@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1730,6 +1730,12 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         else
         {
             pMixerNode->settings = *pMixerSettings;
+        }
+
+        if ( g_NEXUS_audioModuleData.piCapabilities.numHwMixers == 0 &&
+             g_NEXUS_audioModuleData.piCapabilities.numBypassMixers > 0 )
+        {
+            pMixerSettings->type = BAPE_MixerType_eBypass;
         }
 
         errCode = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, pMixerSettings, &pMixerNode->inputMixer);

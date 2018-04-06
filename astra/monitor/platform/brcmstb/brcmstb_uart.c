@@ -45,7 +45,7 @@
 
 #define BCM7268B0_UART_BASE 0xf040c000
 
-uintptr_t uart_base;
+static uintptr_t uart_base;
 
 void plat_uart_init(uintptr_t base)
 {
@@ -65,17 +65,18 @@ void plat_uart_init(uintptr_t base)
             base = BCM7268B0_UART_BASE;
             break;
         default:
-            SYS_HALT();
+            /* Continue without UART */
+            return;
         }
     }
 
+    uart_base = base;
+
     /* Init UART port */
     uart_init(
-        base,
         BRCMSTB_UART_CLK,
         BRCMSTB_BAUD_RATE);
 
-    uart_base = base;
     uart_page = ALIGN_TO_PAGE(base);
 
     /* Map UART registers page */
@@ -87,29 +88,24 @@ void plat_uart_init(uintptr_t base)
 }
 
 int uart_init(
-    uintptr_t base,
     unsigned int uart_clk,
     unsigned int baud_rate)
 {
-    DBG_ASSERT(base);
+    DBG_ASSERT(uart_base);
     DBG_ASSERT(uart_clk);
     DBG_ASSERT(baud_rate);
 
     /* Call into 16550 driver */
     return uart_16550_init(
-        base,
+        uart_base,
         uart_clk,
         baud_rate);
 }
 
-void uart_uninit(void)
-{
-    /* TBD */
-}
-
 int uart_putc(int c)
 {
-    DBG_ASSERT(uart_base);
+    if (!uart_base)
+        return -1;
 
     /* Call into 16550 driver */
     return uart_16550_putc(c, uart_base);
@@ -117,8 +113,18 @@ int uart_putc(int c)
 
 int uart_getc(void)
 {
-    DBG_ASSERT(uart_base);
+    if (!uart_base)
+        return -1;
 
     /* Call into 16550 driver */
     return uart_16550_getc(uart_base);
+}
+
+int uart_flush(void)
+{
+    if (!uart_base)
+        return -1;
+
+    /* Call into 16550 driver */
+    return uart_16550_flush(uart_base);
 }

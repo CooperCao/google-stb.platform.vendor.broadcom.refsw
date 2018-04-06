@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -736,66 +736,84 @@ typedef struct BVDC_P_McdiContext
 #define BVDC_P_Mcdi_PostMuxValue(hMcdi)        (0)
 
 
+#if (BVDC_P_SUPPORT_MCVP)
 /***************************************************************************
 * {private}
 */
 BERR_Code BVDC_P_Mcdi_Create
-    ( BVDC_P_Mcdi_Handle           *phMcdi,
-      BVDC_P_McdiId                 eMcdiId,
-      BREG_Handle                   hRegister,
-      BVDC_P_Resource_Handle        hResource );
+    ( BVDC_P_Mcdi_Handle              *phMcdi,
+      BVDC_P_McdiId                    eMcdiId,
+      BREG_Handle                      hRegister,
+      BVDC_P_Resource_Handle           hResource );
 
 void BVDC_P_Mcdi_Destroy
-    ( BVDC_P_Mcdi_Handle            hMcdi );
+    ( BVDC_P_Mcdi_Handle               hMcdi );
 
 void BVDC_P_Mcdi_Init_isr
-    ( BVDC_P_Mcdi_Handle            hMcdi,
-      BVDC_Window_Handle            hWindow);
+    ( BVDC_P_Mcdi_Handle               hMcdi,
+      BVDC_Window_Handle               hWindow);
 
 void BVDC_P_Mcdi_BuildRul_SrcInit_isr
-    ( BVDC_P_McdiContext           *pMcdi,
-      BVDC_P_ListInfo              *pList,
-      BVDC_P_PictureNode           *pPicture );
+    ( BVDC_P_McdiContext              *pMcdi,
+      BVDC_P_ListInfo                 *pList,
+      BVDC_P_PictureNode              *pPicture );
 
 void BVDC_P_Mcdi_BuildRul_SetEnable_isr
-    ( BVDC_P_Mcdi_Handle             hMcdi,
-      BVDC_P_ListInfo               *pList,
-      bool                           bEnable,
-      BVDC_P_PictureNode            *pPicture,
-      bool                           bInit);
+    ( BVDC_P_Mcdi_Handle               hMcdi,
+      BVDC_P_ListInfo                 *pList,
+      bool                             bEnable,
+      BVDC_P_PictureNode              *pPicture,
+      bool                             bInit);
 
 bool BVDC_P_Mcdi_BeHardStart_isr
-    ( bool                           bInit,
-      BVDC_P_Mcdi_Handle             hMcdi );
+    ( bool                             bInit,
+      BVDC_P_Mcdi_Handle               hMcdi );
 
 void BVDC_P_Mcdi_GetUserConf_isr
-    ( BVDC_P_Mcdi_Handle             hMcdi,
-      BVDC_P_Deinterlace_Settings   *pMadSettings);
+    ( BVDC_P_Mcdi_Handle               hMcdi,
+      BVDC_P_Deinterlace_Settings     *pMadSettings);
 
 void BVDC_P_Mcdi_Init_Chroma_DynamicDefault_isr
-    (BVDC_P_Mcdi_Handle                 hMcdi,
-    BVDC_Deinterlace_ChromaSettings   *pChromaSettings,
-    const BFMT_VideoInfo               *pFmtInfo,
-    bool                                bMfdSrc);
+    ( BVDC_P_Mcdi_Handle               hMcdi,
+      BVDC_Deinterlace_ChromaSettings *pChromaSettings,
+      const BFMT_VideoInfo            *pFmtInfo,
+      bool                             bMfdSrc);
 
 uint16_t BVDC_P_Mcdi_GetVsyncDelayNum_isr
-    ( BVDC_P_Mcdi_Handle             hMcdi,
-      BVDC_MadGameMode               eGameMode);
+    ( BVDC_P_Mcdi_Handle               hMcdi,
+      BVDC_MadGameMode                 eGameMode);
 
 uint16_t BVDC_P_Mcdi_GetPixBufCnt_isr
-    ( bool                               bMadr,
-      BVDC_MadGameMode                   eGameMode);
+    ( bool                             bMadr,
+      BVDC_MadGameMode                 eGameMode);
 
 void BVDC_P_Mcdi_GetDeinterlacerType_isr
-    ( BVDC_P_Mcdi_Handle              hMcdi,
+    ( BVDC_P_Mcdi_Handle               hMcdi,
       bool                            *pbMadr);
 
 #if (BVDC_P_SUPPORT_MTG)
 void BVDC_P_Mcdi_ReadOutPhase_isr
-    ( BVDC_P_Mcdi_Handle                 hMcdi,
-      BVDC_P_PictureNode                *pPicture);
+    ( BVDC_P_Mcdi_Handle               hMcdi,
+      BVDC_P_PictureNode              *pPicture);
 #endif /* BVDC_P_SUPPORT_MTG */
-
+#else
+#define BVDC_P_Mcdi_Create(hmcdi, eid, hreg, hres)               BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_Destroy(hmcdi)                               BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_Init_isr(hmcdi, hwin)                        BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_BuildRul_SrcInit_isr(hmcdi, plist, ppic)     BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_BeHardStart_isr(init, hmcdi)                 (0)
+#define BVDC_P_Mcdi_GetUserConf_isr(hmcdi, pmadsettings)         BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_GetVsyncDelayNum_isr(hmcdi, egmode)          (0)
+#define BVDC_P_Mcdi_GetPixBufCnt_isr(bmadr, egmode)              (0)
+#define BVDC_P_Mcdi_GetDeinterlacerType_isr(hmcdi, bmadr)        BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_BuildRul_SetEnable_isr(hmcdi, plist, \
+    enable, ppic, init)                                          BDBG_ASSERT(0)
+#define BVDC_P_Mcdi_Init_Chroma_DynamicDefault_isr(hmcdi, \
+    pchroma, pfmt, bmfdsrc )                                     BDBG_ASSERT(0)
+#if (BVDC_P_SUPPORT_MTG)
+#define BVDC_P_Mcdi_ReadOutPhase_isr(hmcdi, ppic)                BDBG_ASSERT(0)
+#endif /* BVDC_P_SUPPORT_MTG */
+#endif /* (BVDC_P_SUPPORT_MCVP) */
 #ifdef __cplusplus
 }
 #endif

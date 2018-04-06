@@ -64,7 +64,7 @@
 #define BHSM_IN_BUF2_ADDR       BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BCMD_BUFFER_BYTE_SIZE * 2)
 #define BHSM_OUT_BUF2_ADDR      BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BCMD_BUFFER_BYTE_SIZE * 3)
 
-#define BHSM_MAX_ARCH_PER_MEMC (12) /* Max # ARCH per MEMC */
+#define BSP_ARCHES_PER_MEMC (12) /* Max # ARCH per MEMC */
 
 
 #endif  /* BSP_S_HW_7400_H__ end of header file*/

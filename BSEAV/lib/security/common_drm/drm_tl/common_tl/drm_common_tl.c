@@ -833,7 +833,13 @@ DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommon
             jobBlkSettings[0].scatterGatherCryptoStart   = true;
             jobBlkSettings[0].scatterGatherCryptoEnd     = true;
             jobBlkSettings[0].securityBtp                = true;
-            jobBlkSettings[0].cached                     = false;
+            if (bSkipCacheFlush) {
+                jobBlkSettings[0].cached = true;
+            }
+            else
+            {
+                NEXUS_FlushCache(jobBlkSettings[0].pSrcAddr, jobBlkSettings[0].blockSize);
+            }
             pDmaBlock++;
             j=1;
         }

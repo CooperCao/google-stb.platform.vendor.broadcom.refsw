@@ -1329,6 +1329,30 @@ BERR_Code BXPT_UpdateReadOffset_isr(
     return( ExitCode );
 }
 
+#if (!B_REFSW_MINIMAL)
+BERR_Code BXPT_PausePesRecord(
+    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
+    unsigned int MesgBuffNum,     /* [in] Which message buffer. */
+    bool Pause                                /* [in] Enable or disable pause */
+    )
+{
+    BDBG_ASSERT( hXpt );
+
+    return( BXPT_P_PauseFilters( hXpt, MesgBuffNum, BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_MPEG_PES, Pause ));
+}
+
+BERR_Code BXPT_PausePsiCapture(
+    BXPT_Handle hXpt,                       /* [in] Handle for this transport */
+    unsigned int MesgBuffNum,             /* [in] Which message buffer. */
+    bool Pause                                /* [in] Enable or disable pause */
+    )
+{
+    BDBG_ASSERT( hXpt );
+
+    return( BXPT_P_PauseFilters( hXpt, MesgBuffNum, BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_DATA_OUTPUT_MODE_MPEG_PSI, Pause ));
+}
+#endif
+
 #ifndef BXPT_FOR_BOOTUPDATER
 BERR_Code BXPT_Mesg_SetPidChannelPsiSettings(
         BXPT_Handle hXpt,                  /* [In] Handle for this transport */

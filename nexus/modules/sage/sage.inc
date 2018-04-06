@@ -111,6 +111,9 @@ NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
 ifeq ($(BP3_PROVISIONING),y)
 NEXUS_CFLAGS += -DBP3_PROVISIONING
 endif
+ifeq ($(NO_BP3_TA),y)
+NEXUS_CFLAGS += -DNO_BP3_TA
+endif
 
 ######################
 # SARM Interface     #

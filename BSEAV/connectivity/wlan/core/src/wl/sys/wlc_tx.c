@@ -1549,13 +1549,15 @@ wlc_low_tx_map_pkts(wlc_info_t *wlc, struct spktq *swq, map_pkts_cb_fn cb, void 
 	head_pkt = NULL;
 	while (spktq_peek(swq) != head_pkt) {
 		pkt = spktq_deq(swq);
-		pkt_free = cb(ctx, pkt);
-		if (!pkt_free) {
-			if (!head_pkt)
-				head_pkt = pkt;
-			spktenq(swq, pkt);
-		} else
-			PKTFREE(wlc->osh, pkt, TRUE);
+		if (pkt) {
+			pkt_free = cb(ctx, pkt);
+			if (!pkt_free) {
+				if (!head_pkt)
+					head_pkt = pkt;
+				spktenq(swq, pkt);
+			} else
+				PKTFREE(wlc->osh, pkt, TRUE);
+		}
 	}
 }
 
@@ -1595,13 +1597,15 @@ wlc_tx_map_pkts(wlc_info_t *wlc, struct pktq *q, int prec, map_pkts_cb_fn cb, vo
 
 	while (pktqprec_peek(q, prec) != head_pkt) {
 		pkt = pktq_pdeq(q, prec);
-		pkt_free = cb(ctx, pkt);
-		if (!pkt_free) {
-			if (!head_pkt)
-				head_pkt = pkt;
-			pktq_penq(q, prec, pkt);
-		} else
-			PKTFREE(wlc->osh, pkt, TRUE);
+		if (pkt) {
+			pkt_free = cb(ctx, pkt);
+			if (!pkt_free) {
+				if (!head_pkt)
+					head_pkt = pkt;
+				pktq_penq(q, prec, pkt);
+			} else
+				PKTFREE(wlc->osh, pkt, TRUE);
+		}
 	}
 }
 

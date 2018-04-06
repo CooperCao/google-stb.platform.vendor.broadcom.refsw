@@ -502,7 +502,7 @@ void app_p_quit(AppHandle app)
 #endif
 }
 
-#if DYNRNG_DBV_CONFORMANCE_MODE
+#if 0  && DYNRNG_DBV_CONFORMANCE_MODE
 static void app_p_abort_scenario(AppHandle app)
 {
     unsigned i;
@@ -517,6 +517,22 @@ static void app_p_abort_scenario(AppHandle app)
     osd_update_thumbnail(app->osd.handle, NULL);
 }
 #endif
+
+static void app_p_usage_notification(void * context, int param)
+{
+    static const char * messages[] =
+    {
+        NULL,
+        "UNSUPPORTED_USAGE",
+        NULL
+    };
+    AppHandle app = context;
+    assert(app);
+    (void)param;
+
+    osd_set_dialog_message(app->osd.handle, messages[app->platform.usageMessageIndex]);
+    app->platform.usageMessageIndex = (app->platform.usageMessageIndex + 1) % (sizeof(messages) / sizeof(messages[0]));
+}
 
 static void app_p_usage_protection(AppHandle app)
 {
@@ -541,7 +557,15 @@ static void app_p_usage_protection(AppHandle app)
     )
     {
         fprintf(stdout, "blocked usage mode\n");
-        app_p_abort_scenario(app);
+        osd_set_dialog_visibility(app->osd.handle, true);
+        app->platform.usageMessageIndex = 0;
+        platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
+    }
+    else
+    {
+        osd_set_dialog_message(app->osd.handle, NULL);
+        osd_set_dialog_visibility(app->osd.handle, false);
+        platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
     }
 #else
     (void)app;
@@ -654,6 +678,12 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
             stream_player_stop(app->stream.players[1]);
         }
     }
+    if (!pScenario->streamCount) {
+        for(i=0; i<app->stream.count; i++) {
+            stream_player_stop(app->stream.players[i]);
+        }
+    }
+
     /* copy user requested pic info from scenario if specified, application to hardware happens in update model call at end */
     app_p_resolve_picture_info(app, &pScenario->pictureInfo);
 
@@ -691,8 +721,16 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
         playSettings.stcTrick = pScenario->stcTrick;
         stream_player_play_stream(app->stream.players[i], &playSettings);
     }
-    osd_set_visibility(app->osd.handle, pScenario->osd);
-    osd_set_info_visibility(app->osd.handle, pScenario->info);
+    /* only change OSD visibility if explicitly specified in scenario */
+    if (pScenario->osd != PlatformTriState_eInactive)
+    {
+        osd_set_visibility(app->osd.handle, (bool)pScenario->osd);
+    }
+    /* only change info visibility if explicitly specified in scenario */
+    if (pScenario->info != PlatformTriState_eInactive)
+    {
+        osd_set_info_visibility(app->osd.handle, (bool)pScenario->info);
+    }
     printf("image: %s\n", pScenario->imagePath);
     image_viewer_view_image(app->image.thumbnail, pScenario->imagePath);
     printf("bg: %s\n", pScenario->bgPath);
@@ -1178,6 +1216,9 @@ AppHandle app_create(ArgsHandle args)
     app->platform.output.pictureInfo.gamut = PlatformColorimetry_eAuto;
     app->platform.output.pictureInfo.dynrng = PlatformDynamicRange_eAuto;
 
+    app->platform.usageNotifier = platform_scheduler_add_listener(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE), &app_p_usage_notification, app);
+    if (!app->platform.usageNotifier) goto error;
+
     file_manager_get_default_create_settings(&fileManagerCreateSettings);
     fileManagerCreateSettings.name = STR_STREAMS;
     fileManagerCreateSettings.path = app->cfg->streamsPath;
@@ -1270,6 +1311,7 @@ void app_destroy(AppHandle app)
     osd_update_background(app->osd.handle, NULL);
     osd_update_thumbnail(app->osd.handle, NULL);
 
+    platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
     platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_GFX));
     platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_MAIN));
 
@@ -1326,6 +1368,8 @@ void app_destroy(AppHandle app)
     app->platform.input = NULL;
     platform_display_close(app->platform.display.handle);
     app->platform.display.handle = NULL;
+    platform_scheduler_remove_listener(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE), app->platform.usageNotifier);
+    app->platform.usageNotifier = NULL;
     platform_close(app->platform.handle);
     app->platform.handle = NULL;
     free(app);

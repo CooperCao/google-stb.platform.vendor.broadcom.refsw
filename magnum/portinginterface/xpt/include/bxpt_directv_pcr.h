@@ -52,42 +52,41 @@ extern "C"{
 /*=************************ Module Overview ********************************
 <verbatim>
 The API module provides the direcTV only APIs for the PCR module. The APIs
-in bxpt_pcr.h are required to complete PCR modules configuration in directv mode. 
+in bxpt_pcr.h are required to complete PCR modules configuration in directv mode.
 
-The DirecTV PCR API operates on a PCR channel handle. 
+The DirecTV PCR API operates on a PCR channel handle.
 </verbatim>
 ***************************************************************************/
 
 /***************************************************************************
 Summary:
-Enumeration for the different types of channels supported by the record 
+Enumeration for the different types of channels supported by the record
 module.
 ****************************************************************************/
-typedef enum BXPT_PcrMode 
+typedef enum BXPT_PcrMode
 {
 	BXPT_PcrMode_eDirecTv,
-	BXPT_PcrMode_eMpeg 
+	BXPT_PcrMode_eMpeg
 }
 BXPT_PcrMode;
 
 /***************************************************************************
 Summary:
 Set the stream type used by a PCR module.
-	 
-Description: 
+
+Description:
 This function sets mode for a given PCR module to DirecTV, or back to the
 default MPEG.
 
 Returns:
-    BERR_SUCCESS                - Directv mode set 
-    BERR_INVALID_PARAMETER      - Bad input parameter  
+    BERR_SUCCESS                - Directv mode set
+    BERR_INVALID_PARAMETER      - Bad input parameter
 ***************************************************************************/
-BERR_Code BXPT_PCR_DirecTv_SetPcrMode( 
+BERR_Code BXPT_PCR_DirecTv_SetPcrMode(
 	BXPT_PCR_Handle hPcr, 			   /* [In]The Pcr handle */
 	BXPT_PcrMode Mode
 	);
 
-#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 	Gets the last PCR captured in last PCR Hi/Lo registers for DirecTv mode
@@ -95,13 +94,12 @@ Description:
 	This function reads the values from PCR_LAST_PCR_HI/LO registers.
 Returns:
     BERR_SUCCESS                - Retrieved last PCR
-    BERR_INVALID_PARAMETER      - Bad input parameter 
+    BERR_INVALID_PARAMETER      - Bad input parameter
 ***************************************************************************/
-BERR_Code	BXPT_PCR_DirecTv_GetLastPcr( 
+BERR_Code	BXPT_PCR_DirecTv_GetLastPcr(
 	BXPT_PCR_Handle hPcr, 			   /* [in]The Pcr handle */
 	uint32_t *pPcr      			  /*[out] 32 bits of RTS*/
 	);
-#endif
 
 /***************************************************************************
 Summary:
@@ -112,21 +110,19 @@ BERR_Code	BXPT_PCR_DirecTv_GetLastPcr_isr(
 	uint32_t *pPcr      			  /*[out] 32 bits of RTS*/
 	);
 
-#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 	Gets the STC counter values for DirecTv mode
-Description: 
+Description:
 	This function read the PCR STC counters from STC_HI/LO registers.
 Returns:
     BERR_SUCCESS                - Retrieved STC counter values
-    BERR_INVALID_PARAMETER      - Bad input parameter 
+    BERR_INVALID_PARAMETER      - Bad input parameter
 ***************************************************************************/
-BERR_Code	BXPT_PCR_DirecTv_GetStc( 
+BERR_Code	BXPT_PCR_DirecTv_GetStc(
 	BXPT_PCR_Handle hPcr,          /* [in]The Pcr handle */
 	uint32_t *pStcHi               /*[out] 32 bits of RTS*/
 	);
-#endif
 
 #ifdef __cplusplus
 }

@@ -301,7 +301,8 @@ static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void)
         }
 
         vceSettings.hFirmwareMem[0] = g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[0]].mma;
-        NEXUS_Heap_GetStatus(g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[0]].nexus, &heapStatus);
+        rc = NEXUS_Heap_GetStatus(g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[0]].nexus, &heapStatus);
+        if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
         vceSettings.firmwareMemc[0] = heapStatus.memcIndex;
         vceSettings.hFirmwareMem[1] = g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[1]].mma;
         /* firmwareMemc[1] is unused, so don't set */

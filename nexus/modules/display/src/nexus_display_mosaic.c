@@ -285,8 +285,7 @@ void NEXUS_VideoWindow_GetMosaicSettings_priv( NEXUS_VideoWindowHandle window, N
 #if NEXUS_NUM_MOSAIC_DECODES
     *pSettings = window->mosaic.mosaicSettings;
 #else
-    BSTD_UNUSED(pSettings);
-    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 #endif
 }
 

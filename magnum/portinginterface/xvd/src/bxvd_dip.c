@@ -381,6 +381,7 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
        */
       BXVD_Handle hXvd;
       BXVD_ChannelHandle hXvdCh;
+      BXDM_PictureProvider_DisplayMode eXDMDisplayMode;
 
       for ( i=0; i < hXvdDipCh->stDisplayInterruptInfo.uiSTCCount; i++ )
       {
@@ -402,44 +403,48 @@ BXVD_DisplayInterruptProvider_S_PictureDataReady_isr(
 
             if ( hXvdCh && hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive )
             {
-               switch( hXvdCh->sDecodeSettings.eSTC )
+               BXDM_PictureProvider_GetDisplayMode_isr( hXvdCh->hPictureProvider, &eXDMDisplayMode);
+
+               if ( eXDMDisplayMode == BXDM_PictureProvider_DisplayMode_eTSM )
                {
-                  case 0: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT0; break;
-                  case 1: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT1; break;
-                  case 2: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT2; break;
-                  case 3: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT3; break;
+                  switch( hXvdCh->sDecodeSettings.eSTC )
+                  {
+                     case 0: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT0; break;
+                     case 1: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT1; break;
+                     case 2: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT2; break;
+                     case 3: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT3; break;
 #ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT4
-                  case 4: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT4; break;
+                     case 4: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT4; break;
 #ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT5
-                  case 5: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT5; break;
+                     case 5: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT5; break;
 #ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT6
-                  case 6: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT6; break;
-                  case 7: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT7; break;
+                     case 6: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT6; break;
+                     case 7: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT7; break;
 #ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT8
-                  case 8: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT8; break;
-                  case 9: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT9; break;
-                  case 10: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT10; break;
-                  case 11: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT11; break;
+                     case 8: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT8; break;
+                     case 9: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT9; break;
+                     case 10: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT10; break;
+                     case 11: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT11; break;
 #ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT12
-                  case 12: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT12; break;
-                  case 13: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT13; break;
-                  case 14: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT14; break;
-                  case 15: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT15; break;
+                     case 12: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT12; break;
+                     case 13: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT13; break;
+                     case 14: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT14; break;
+                     case 15: uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT15; break;
 #endif
 #endif
 #endif
 #endif
 #endif
-                  default:
-                     uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT0;
-                     BERR_TRACE(BERR_INVALID_PARAMETER);
-                     break;
+                     default:
+                        uiOffset = BCHP_XPT_PCROFFSET_STC_SNAPSHOT0;
+                        BERR_TRACE(BERR_INVALID_PARAMETER);
+                        break;
 
+                  }
+
+                  hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[hXvdCh->sDecodeSettings.eSTC].uiValue = BXVD_Reg_Read32_isr( hXvdDipCh->stChannelSettings.hXvd, uiOffset );
+                  hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[hXvdCh->sDecodeSettings.eSTC].bValid = true;
                }
-
-               hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[hXvdCh->sDecodeSettings.eSTC].uiValue = BXVD_Reg_Read32_isr( hXvdDipCh->stChannelSettings.hXvd, uiOffset );
-               hXvdDipCh->stDisplayInterruptInfo.astSTCFromXPT[hXvdCh->sDecodeSettings.eSTC].bValid = true;
-
             }
          }
       }

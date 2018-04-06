@@ -47,6 +47,7 @@
 #include "bvdc_source_priv.h"
 #include "bvdc_feeder_priv.h"
 #include "bvdc_656in_priv.h"
+#include "bvdc_mcvp_priv.h"
 
 BDBG_MODULE(BVDC_PRIV);
 
@@ -1202,6 +1203,69 @@ BERR_Code BVDC_P_CheckHeapSettings
 }
 
 #ifndef BVDC_FOR_BOOTUPDATER
+#if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
+void BVDC_P_GetMaxMosaicDeinterlacerInfo
+    ( BBOX_Vdc_WindowClass                eWinClass,
+      uint32_t                           *pulMaxWidth,
+      uint32_t                           *pulMaxHeight,
+      uint32_t                           *pulMaxCount )
+{
+    bool                         bValid = false;
+    uint32_t                     i, ulSize, ulMaxSize = 0;
+    uint32_t                     ulWidth, ulHeight, ulCount;
+    const BVDC_WindowClassLimits      *pWinClass;
+    const BBOX_Vdc_PictureSizeLimits  *pDeinterlacer;
+
+    BVDC_P_Compression_Settings   stCompression;
+    BPXL_Format                   ePxlFormat;
+    BVDC_P_Rect                   stMadBufRect;
+
+    BVDC_P_Window_Compression_Init(false, false, NULL, &stCompression, BVDC_P_Mvp_Dcxs);
+    BVDC_P_Mvp_Init_Default(NULL, &ePxlFormat,
+        NULL, NULL, NULL, NULL, NULL, NULL);
+
+    pWinClass = &sa_WindowClassTble[eWinClass];
+    for(i = 0; i < BAVC_MOSAIC_MAX; i++)
+    {
+        pDeinterlacer = &pWinClass->mosaicRects[i].stDeinterlacer;
+
+        if(!pDeinterlacer->ulWidth || !pDeinterlacer->ulHeight)
+            continue;
+
+        stMadBufRect.ulWidth = pDeinterlacer->ulWidth;
+        stMadBufRect.ulHeight= pDeinterlacer->ulHeight;
+
+        BKNI_EnterCriticalSection();
+        BVDC_P_Window_GetBufSize_isr(0, &stMadBufRect, true,
+            false, false, false, ePxlFormat, &stCompression,
+            BVDC_P_BufHeapType_eMad_Pixel,  &ulSize, BAVC_VideoBitDepth_e8Bit);
+        BKNI_LeaveCriticalSection();
+        ulSize *= (i+1);
+
+        if(ulSize > ulMaxSize)
+        {
+            ulWidth = pDeinterlacer->ulWidth;
+            ulHeight = pDeinterlacer->ulHeight;
+            ulCount = i+1;
+            ulMaxSize = ulSize;
+            bValid = true;
+        }
+    }
+
+    if(!bValid)
+    {
+        ulWidth = BFMT_PAL_WIDTH;
+        ulHeight = BFMT_PAL_HEIGHT;
+        ulCount = BVDC_P_DEINTERLACE_MAX_MOSAIC_CHANNEL;
+    }
+
+    *pulMaxWidth = ulWidth;
+    *pulMaxHeight = ulHeight;
+    *pulMaxCount = ulCount;
+
+}
+#endif
+
 void BVDC_P_SrcWinClass_Init
     ( BVDC_Handle  hVdc )
 {
@@ -1321,6 +1385,37 @@ BERR_Code BVDC_GetSourceClassLimit
     return BERR_SUCCESS;
 }
 
+BVDC_P_ScanoutMode BVDC_P_GetScanoutMode4AutoDisable1080p_isr
+    ( const BVDC_P_Rect              *pRect )
+{
+    uint32_t  ulWidth, ulHeight;
+    BVDC_P_ScanoutMode  eScanoutMode;
 
+    ulWidth = pRect->ulWidth;
+    ulHeight = pRect->ulHeight;
+
+    if((ulWidth * ulHeight) <= (BFMT_1080P_WIDTH*BFMT_1080P_HEIGHT))
+    {
+        eScanoutMode = BVDC_P_ScanoutMode_eCapture;
+    }
+    else
+    {
+        /* live mode */
+        if(ulHeight < (BFMT_2160P_HEIGHT * BVDC_P_AUTO_DISABLE_1080P_DECIMATE41_THRESHOLD / 100))
+        {
+            eScanoutMode = BVDC_P_ScanoutMode_eLive_Decimate_4_1;
+        }
+        else if(ulHeight < (BFMT_2160P_HEIGHT * BVDC_P_AUTO_DISABLE_1080P_DECIMATE21_THRESHOLD / 100))
+        {
+            eScanoutMode = BVDC_P_ScanoutMode_eLive_Decimate_2_1;
+        }
+        else
+        {
+            eScanoutMode = BVDC_P_ScanoutMode_eLive;
+        }
+    }
+
+    return eScanoutMode;
+}
 
 /* End of file. */

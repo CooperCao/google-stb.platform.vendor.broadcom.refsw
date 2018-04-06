@@ -19,4 +19,7 @@ int uart_16550_putc(
 int uart_16550_getc(
     uintptr_t base);
 
+int uart_16550_flush(
+    uintptr_t base);
+
 #endif	/* __UART_16550_H__ */

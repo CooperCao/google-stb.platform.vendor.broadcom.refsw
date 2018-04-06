@@ -46,6 +46,7 @@
 extern "C" {
 #endif
 
+#if(!B_REFSW_MINIMAL)
 /* describes the possible entries in a register DMA list */
 typedef enum
 {
@@ -77,7 +78,9 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
     BRDC_DBG_ListEntry  *peEntry,
     uint32_t             aulArgs[4]
     );
+#endif
 
+#ifdef BRDC_USE_CAPTURE_BUFFER
 typedef struct BRDC_DBG_CaptureBuffer {
     uint8_t *mem;
     int size; /* size of mem in bytes */
@@ -97,7 +100,7 @@ BRDC_DBG_DestroyCaptureBuffer(BRDC_DBG_CaptureBuffer *buffer);
 void
 BRDC_DBG_WriteCapture_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Handle hSlot, BRDC_List_Handle hList);
 void
-BRDC_P_DBG_WriteCaptures_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Handle *phSlots, BRDC_List_Handle hList, uint32_t ulSlots);
+BRDC_DBG_WriteCaptures_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Handle *phSlots, BRDC_List_Handle hList, uint32_t ulSlots);
 
 /* prefixes */
 #define BRDC_DBG_RUL            1
@@ -113,6 +116,7 @@ void BRDC_DBG_LogErrorCode_isr(BRDC_Handle rdc, uint32_t prefix, const char *str
 void BRDC_DBG_ReadCapture_isr(BRDC_Handle rdc, uint8_t *mem, int size, int *read);
 
 void BRDC_DBG_EnableCapture_isr(BRDC_Handle rdc, bool enable);
+#endif
 
 #ifdef BRDC_DEBUG
 BERR_Code BRDC_Slot_SetList_NoArmSync_isr

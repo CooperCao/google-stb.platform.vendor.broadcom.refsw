@@ -122,6 +122,11 @@ BAPE_SOURCES := \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_spdif_output.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_src_priv.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_tru_volume.c
+
+ifeq ($(BCHP_CHIP),7211)
+BAPE_SOURCES += $(MAGNUM)/portinginterface/ape/src/raaga/bape_dma_output_priv.c
+endif
+
 endif
 
 ifneq ($(BAPE_DSP_SUPPORT),n)

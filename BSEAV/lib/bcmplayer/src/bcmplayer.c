@@ -895,7 +895,7 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
 
     targetOffset = handle->currentOffset + handle->normalPlayBufferSize;
     if (handle->settings.normalPlayAlignment) {
-        targetOffset &= ~(handle->settings.normalPlayAlignment-1);
+        targetOffset &= ~((uint64_t)(handle->settings.normalPlayAlignment-1));
     }
 
     /* find out how much we can read, up to normalPlayBufferSize */

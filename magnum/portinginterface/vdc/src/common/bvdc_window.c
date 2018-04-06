@@ -92,14 +92,14 @@ uint32_t BVDC_P_GetBoxWindowId_isrsafe
 /***************************************************************************
  *
  */
-BERR_Code BVDC_Window_GetDefaultSettings
+void BVDC_Window_GetDefaultCreateSettings
     ( BVDC_WindowId                    eWindowId,
-      BVDC_Window_Settings            *pDefSettings )
+      BVDC_Window_CreateSettings      *pDefSettings )
 {
     BSTD_UNUSED(eWindowId);
 
     /* Clear out first */
-    BKNI_Memset(pDefSettings, 0, sizeof(BVDC_Window_Settings));
+    BKNI_Memset(pDefSettings, 0, sizeof(BVDC_Window_CreateSettings));
 
     /* Initialized */
     pDefSettings->hHeap = NULL;
@@ -126,7 +126,7 @@ BERR_Code BVDC_Window_GetDefaultSettings
     }
     #endif
 
-    return BERR_SUCCESS;
+    return;
 }
 
 #ifndef BVDC_FOR_BOOTUPDATER
@@ -175,7 +175,7 @@ BERR_Code BVDC_Window_Create
       BVDC_Window_Handle              *phWindow,
       BVDC_WindowId                    eId,
       BVDC_Source_Handle               hSource,
-      const BVDC_Window_Settings      *pDefSettings )
+      const BVDC_Window_CreateSettings      *pDefSettings )
 {
     BVDC_Window_Handle hWindow;
 #if (BVDC_P_CHECK_MEMC_INDEX)
@@ -455,7 +455,7 @@ BERR_Code BVDC_Window_Create
     }
     else
     {
-        BVDC_Window_GetDefaultSettings(hWindow->eId, &hWindow->stSettings);
+        BVDC_Window_GetDefaultCreateSettings(hWindow->eId, &hWindow->stSettings);
     }
 
 #if BVDC_P_SUPPORT_MOSAIC_MODE
@@ -2585,7 +2585,7 @@ BERR_Code BVDC_Window_SetMosaicConfiguration
         }
         if(hWindow->stNewInfo.hSource->hVdc->stSettings.bDisableMosaic)
         {
-            BDBG_ERR(("This window[%d] mosaic disabled by BVDC_Settings.", hWindow->eId));
+            BDBG_ERR(("This window[%d] mosaic disabled by BVDC_OpenSettings.", hWindow->eId));
         }
         if(!BVDC_P_SRC_VALID_COMBO_TRIGGER(hWindow->stNewInfo.hSource->eCombTrigger))
         {
@@ -2594,7 +2594,6 @@ BERR_Code BVDC_Window_SetMosaicConfiguration
         }
         return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
     }
-
     hWindow->stNewInfo.bClearRect = bEnable;
     if(bEnable)
     {
@@ -3723,6 +3722,50 @@ BERR_Code BVDC_Window_GetDstRightRect
     return BERR_SUCCESS;
 }
 #endif
+
+/***************************************************************************
+ *
+ */
+BERR_Code BVDC_Window_SetSettings
+    ( BVDC_Window_Handle                 hWindow,
+      const BVDC_Window_Settings *pSettings)
+{
+    BERR_Code eStatus = BERR_SUCCESS;
+    BDBG_ENTER(BVDC_Window_SetSettings);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+    /* set new value */
+    if(!pSettings)
+    {
+        eStatus = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto done;
+    }
+
+    /* set new value */
+    hWindow->stNewInfo.eEnableBackgroundBars = pSettings->eEnableBackgroundBars;
+    BKNI_EnterCriticalSection();
+    hWindow->bBarsToBeFilled = (BVDC_Mode_eOn == pSettings->eEnableBackgroundBars);
+    BKNI_LeaveCriticalSection();
+
+done:
+    BDBG_LEAVE(BVDC_Window_SetSettings);
+    return eStatus;
+}
+
+/***************************************************************************
+ *
+ */
+void BVDC_Window_GetSettings
+    ( BVDC_Window_Handle                 hWindow,
+      BVDC_Window_Settings       *pSettings)
+{
+    BDBG_ENTER(BVDC_Window_SetSettings);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+    if(pSettings)
+    {
+        pSettings->eEnableBackgroundBars = hWindow->stCurInfo.eEnableBackgroundBars;
+    }
+}
 
 /***************************************************************************
  *

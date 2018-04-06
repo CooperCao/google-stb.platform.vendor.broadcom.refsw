@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -877,6 +877,8 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
     uint32_t *pSource;
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
+    unsigned samplesPerDword;
+    unsigned bufferDivider;
 
     for ( ;; )
     {
@@ -894,8 +896,10 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
         }
         BMMA_FlushCache(bufferDescriptor.buffers[BAPE_Channel_eLeft].block, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, bufferSize);
         pSource = bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer;
+        samplesPerDword = (bufferDescriptor.bitsPerSample == 16) ? bufferDescriptor.samplesPerDword : 1;
+        bufferDivider = (samplesPerDword == 2) ? 1 : 2;
         copied = 0;
-        while ( bufferSize >= 8 )
+        while ( bufferSize >= (8/samplesPerDword) )
         {
             size_t available, bytesToCopy;
             available = NEXUS_AudioCapture_P_GetContiguousSpace(handle);
@@ -904,9 +908,9 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
                 /* Our buffer is full. */
                 break;
             }
-            if ( available >= bufferSize/2 )
+            if ( available >= bufferSize/bufferDivider )
             {
-                bytesToCopy = bufferSize/2;
+                bytesToCopy = bufferSize/bufferDivider;
             }
             else
             {
@@ -925,18 +929,44 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
                     SWAP16(temp);
                     sample |= temp;      /* Left */
                 }
-                else {
-                    sample = (*pSource++)&0xffff0000;  /* Right */
-                    sample |= (*pSource++)>>16;          /* Left */
+                if ( samplesPerDword == 1 )
+                {
+                    sample  = (*pSource++)&0xffff0000;  /* Right */
+                    sample |= (*pSource++) >> 16;       /* Left */
+                }
+                else if ( samplesPerDword == 2 )
+                {
+                    sample  = (*pSource)&0xffff0000;    /* Right */
+                    sample |= (*pSource++) >> 16;       /* Left */
+                }
+                else
+                {
+                    BDBG_WRN(("Unsupported bits per sample."));
+                    BERR_TRACE(BERR_UNKNOWN);
+                    return;
                 }
 #else
-                sample = (*pSource++)>>16;          /* Left */
-                sample |= (*pSource++)&0xffff0000;  /* Right */
+                if ( samplesPerDword == 1 )
+                {
+                    sample  = (*pSource++) >> 16;       /* Left */
+                    sample |= (*pSource++)&0xffff0000;  /* Right */
+                }
+                else if ( samplesPerDword == 2 )
+                {
+                    sample  = (*pSource) >> 16;         /* Left */
+                    sample |= (*pSource++)&0xffff0000;  /* Right */
+                }
+                else
+                {
+                    BDBG_WRN(("Unsupported bits per sample."));
+                    BERR_TRACE(BERR_UNKNOWN);
+                    return;
+                }
 #endif
                 handle->pBuffer[handle->wptr] = sample;
                 NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
-                copied += 8;
-                bufferSize -= 8;
+                copied += 8/samplesPerDword;
+                bufferSize -= 8/samplesPerDword;
                 bytesToCopy -= 4;
             }
         }

@@ -59,6 +59,7 @@ SUBMOD_DIRS := \
 	libc/strings \
 	drivers/uart_16550 \
 	drivers/gicv2 \
+	drivers/avs \
 	platform/$(TZ_PLATFORM) \
 
 SRC_DIRS := $(SUBMOD_DIRS)

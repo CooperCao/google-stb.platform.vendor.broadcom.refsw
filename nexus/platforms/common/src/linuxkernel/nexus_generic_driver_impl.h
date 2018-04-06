@@ -110,8 +110,8 @@ void nexus_driver_server_close_module_headers(void);
 int nexus_driver_server_postinit(void);
 void nexus_driver_server_preuninit(void);
 
-void NEXUS_P_Proxy_StopCallbacks( void *interfaceHandle );
-void NEXUS_P_Proxy_StartCallbacks( void *interfaceHandle );
+void NEXUS_Platform_P_StopCallbacks_driver(void *interfaceHandle, struct nexus_driver_slave_scheduler *slave);
+void NEXUS_P_Proxy_StopCallbacks_driver(void *interfaceHandle, struct nexus_driver_slave_scheduler *slave);
 
 void NEXUS_Platform_P_TerminateProcess(unsigned pid);
 NEXUS_Error nexus_p_set_client_mode(struct nexus_driver_client_state *client, NEXUS_ClientMode mode);

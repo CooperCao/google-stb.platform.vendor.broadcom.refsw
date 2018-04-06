@@ -184,8 +184,16 @@
 /* Common to all flavors */
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_sun_gisb_arb.h"
+
+#ifdef BCHP_XPT_PCROFFSET_REG_START
 #include "bchp_xpt_pcroffset.h"
+#endif
+
+#ifdef BCHP_XPT_RAVE_REG_START
 #include "bchp_xpt_rave.h"
+#else
+#include "bchp_ott_xpt_cdb_itb.h"
+#endif
 
 #include "bafl.h"
 
@@ -400,9 +408,15 @@ BXVD_P_TEAR_DOWN_FW_MEMORY_PROTOTYPE(RevE0);
 BXVD_P_VERIFY_WATCHDOG_FIRED_PROTOTYPE(RevK0);
 
 /* Rave Context Register info needed by FW */
+#ifdef BCHP_XPT_RAVE_REG_START
 #define BXVD_P_RAVE_CONTEXT_SIZE        (BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR)
 #define BXVD_P_RAVE_CX_HOLD_CLR_STATUS  BCHP_XPT_RAVE_CX_HOLD_CLR_STATUS
 #define BXVD_P_RAVE_PACKET_COUNT        BCHP_XPT_RAVE_PACKET_COUNT
+#else
+#define BXVD_P_RAVE_CONTEXT_SIZE        (BCHP_OTT_XPT_CDB_ITB_CX1_CDB_WRITE_PTR - BCHP_OTT_XPT_CDB_ITB_CX0_CDB_WRITE_PTR)
+#define BXVD_P_RAVE_CX_HOLD_CLR_STATUS   BCHP_OTT_XPT_CDB_ITB_CX_HOLD_CLR_STATUS
+#define BXVD_P_RAVE_PACKET_COUNT        0
+#endif
 
 /* Use Host Interface Memory routines */
 #define BXVD_P_USE_READ_DISPLAY_INFO_HIM_API_REVT0 1

@@ -338,7 +338,8 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 
             if (!g_NexusCore.publicHandles.heap[i].mma) continue; /* NEXUS_MEMORY_TYPE_RESERVED may have no BMMA heap */
 
-            (void)NEXUS_Heap_GetStatus_driver(g_NexusCore.publicHandles.heap[i].nexus, &memStatus);
+            rc = NEXUS_Heap_GetStatus_driver(g_NexusCore.publicHandles.heap[i].nexus, &memStatus);
+            if (rc) continue;
 
             /* must have at least one heap for MEMC. also check memc[] bounds. */
             if (memStatus.memcIndex >= NEXUS_MAX_HEAPS || memStatus.memcIndex >= NEXUS_MAX_MEMC) {

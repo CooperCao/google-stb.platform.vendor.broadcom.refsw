@@ -44,8 +44,13 @@
 extern "C" {
 #endif
 
-/* HDCP API version */
-#define SAGE_TA_HDCP22_API_VERSION_ID		0x01010001
+/* Latest HDCP API version */
+#define SAGE_TA_HDCP22_API_VERSION_ID		0x01010002
+
+/* revisions of HDCP API */
+#define SAGE_TX_HDCP22_API_VERSION_ID_01	0x01010001
+#define SAGE_TX_HDCP22_API_VERSION_ID_02	0x01010002
+
 
 #define HDCP22_ERRORS_BASE								0x200
 
@@ -108,7 +113,9 @@ typedef enum Hdcp22_AuthenticationStatus
 	Hdcp22_AuthenticationStatus_eRxAuthenticated,
 	Hdcp22_AuthenticationStatus_eRepeaterAuthenticated,
 	Hdcp22_AuthenticationStatus_eReadyToDisableKeyRamSerial,
-	Hdcp22_AuthenticationStatus_eAutoI2CTimerUnavailable
+	Hdcp22_AuthenticationStatus_eAutoI2CTimerUnavailable,
+	Hdcp22_AuthenticationStatus_eSessionKeyLoadedWithRepeater,
+	Hdcp22_AuthenticationStatus_eRASMSent
 } Hdcp22_AuthenticationStatus;
 
 

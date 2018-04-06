@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,7 +129,7 @@
 #define BERR_MMD_ID     (BERR_START_ID + 73)
 #define BERR_WFE_ID     (BERR_START_ID + 74)
 #define BERR_SCS_ID     (BERR_START_ID + 75)
-#define BERR_CEC_ID		(BERR_START_ID + 76)
+#define BERR_CEC_ID     (BERR_START_ID + 76)
 #define BERR_VCE_ID     (BERR_START_ID + 77)
 #define BERR_BCP_ID     (BERR_START_ID + 78)
 #define BERR_ODS_ID     (BERR_START_ID + 79)
@@ -140,6 +140,7 @@
 #define BERR_BOX_ID     (BERR_START_ID + 84)
 #define BERR_MMA_ID     (BERR_START_ID + 85)
 #define BERR_DBG_ID     (BERR_START_ID + 86)
+#define BERR_OTT_ID     (BERR_START_ID + 87)
 
 
 /* syslibs */

@@ -681,13 +681,13 @@ Description:
 
     BVDC_DisplayId_eAuto - Specify that BVDC_Display_Create uses
     compositor ID as a VEC's ID in conjuntion with the bVecSwap flag in
-    BVDC_Settings.  For example if application uses BVDC_BVDC_DisplayId_eAuto
+    BVDC_OpenSettings.  For example if application uses BVDC_BVDC_DisplayId_eAuto
     to create a Display with a CompositoreId_Compositor0, a corresponding
-    BVDC_BVDC_DisplayId_eDisplay0.  See also BVDC_Settings for bVecSwap
+    BVDC_BVDC_DisplayId_eDisplay0.  See also BVDC_OpenSettings for bVecSwap
     definitions.
 
 See Also:
-    BVDC_Settings, BVDC_Compositor_Create, BVDC_Display_Create,
+    BVDC_OpenSettings, BVDC_Compositor_Create, BVDC_Display_Create,
     BVDC_Display_Destroy.
 ***************************************************************************/
 typedef enum
@@ -738,7 +738,7 @@ Description:
     BVDC_DisplayTg_eStg5   - Specify ViCE channel 5 out Simple Timing Generator.
 
 See Also:
-    BVDC_Display_Settings, BVDC_Display_Create
+    BVDC_Display_CreateSettings, BVDC_Display_Create
 ***************************************************************************/
 typedef enum
 {
@@ -2096,7 +2096,7 @@ Description:
 
     bNonMfdSource - Defines non-mfd/vfd source, can be enabled by selecting
         HD_DVI, 656, or mfd/vfd (with MTG enabled,
-        BVDC_Source_Settings.eMtgMode) source.
+        BVDC_Source_CreateSettings.eMtgMode) source.
 
     bSyncSlip - Defines sync slip mode, can be enabled by selecting non
         MFD/VFD source or slaved window for MFD/VFD source
@@ -2317,7 +2317,7 @@ Summary:
     This structure describes the settings for the video display control.
 
 Description:
-    BVDC_Settings is a structure that use to describe the public
+    BVDC_OpenSettings is a structure that use to describe the public
     settings of a video display control that includes all the miscellaneous
     configurations.  The settings are in chip scope.
 
@@ -2408,7 +2408,7 @@ typedef struct
 
     /* MemConfig settings */
     BVDC_MemConfigSettings            *pMemConfigSettings;
-} BVDC_Settings;
+} BVDC_OpenSettings;
 
 /***************************************************************************
 Summary:
@@ -2446,7 +2446,7 @@ Summary:
     This structure describes the default settings a compositor
 
 Description:
-    BVDC_Compositor_Settings is a structure that use to describe the public
+    BVDC_Compositor_CreateSettings is a structure that use to describe the public
     settings of a compositor aka CMP.
 
     hCfcHeap - Specify what MMA heap is used for this compositor's CFC block.
@@ -2459,20 +2459,20 @@ Description:
         system behaviors.
 
 See Also:
-    BVDC_Compositor_GetDefaultSettings, BVDC_Compositor_Create.
+    BVDC_Compositor_GetDefaultCreateSettings, BVDC_Compositor_Create.
 ***************************************************************************/
 typedef struct
 {
     BMMA_Heap_Handle                   hCfcHeap;
 
-}BVDC_Compositor_Settings;
+}BVDC_Compositor_CreateSettings;
 
 /***************************************************************************
 Summary:
-    This structure describes the default settings a window
+    This structure describes the settings when creating a window
 
 Description:
-    BVDC_Window_Settings is a structure that use to describe the public
+    BVDC_Window_CreateSettings is a structure that use to describe the public
     settings of a window.
 
     hHeap - Specify what vdc heap to be used for this window. Capture block on this
@@ -2557,6 +2557,28 @@ typedef struct
     bool                               bDeinterlacerAllocFull;
     bool                               bBypassVideoProcessings;
 
+}BVDC_Window_CreateSettings;
+
+/***************************************************************************
+Summary:
+    This structure describes the dynamic settings of a window
+
+Description:
+    eEnableBackgroundBars - This flag is applicable to non-mosaic mode
+        video window only; if true, the window background (within DstRect) will be
+        cleared with const color (CMP background color) when the video window size
+        is automatically scaled smaller than the window DstRect size for AllSource
+        aspect ratio correction mode; else, the DstRect background will be transparent.
+        Note, mosaic mode and ClearRect setting will take precedence to this flag.
+
+See Also:
+    BVDC_Window_SetSettings
+    BVDC_Window_GetSettings
+***************************************************************************/
+typedef struct
+{
+    BVDC_Mode                          eEnableBackgroundBars;
+
 }BVDC_Window_Settings;
 
 /* Window Class:
@@ -2624,7 +2646,7 @@ Summary:
     This structure describes the default settings a source
 
 Description:
-    BVDC_Source_Settings is a structure that use to describe the public
+    BVDC_Source_CreateSettings is a structure that use to describe the public
     settings of a source.
 
     hHeap - Specify what hHeap to be used for this source.  If hHeap is NULL
@@ -2648,7 +2670,7 @@ Description:
         system behaviors.
 
 See Also:
-    BVDC_Source_GetDefaultSettings, BVDC_Source_Create.
+    BVDC_Source_GetDefaultCreateSettings, BVDC_Source_Create.
 ***************************************************************************/
 typedef struct
 {
@@ -2658,14 +2680,14 @@ typedef struct
     bool                               bGfxSrc;
     BMMA_Heap_Handle                   hCfcHeap;
 
-}BVDC_Source_Settings;
+}BVDC_Source_CreateSettings;
 
 /***************************************************************************
 Summary:
     This structure describes the default settings a display
 
 Description:
-    BVDC_Display_Settings is a structure that use to describe the public
+    BVDC_Display_CreateSettings is a structure that use to describe the public
     settings of a display.
 
     eMasterTg - Specify which Tg drives this display and triggers the display
@@ -2694,7 +2716,7 @@ Description:
     (true) is consistent with SMPTE 296M-1997, clause 12.7
 
 See Also:
-    BVDC_Display_GetDefaultSettings, BVDC_Display_Create.
+    BVDC_Display_GetDefaultCreateSettings, BVDC_Display_Create.
 ***************************************************************************/
 typedef struct
 {
@@ -2703,7 +2725,7 @@ typedef struct
     bool                               bArib480p;
     bool                               bModifiedSync;
 
-}BVDC_Display_Settings;
+}BVDC_Display_CreateSettings;
 
 /***************************************************************************
 Summary:
@@ -5334,7 +5356,8 @@ See Also:
     BVDC_GetMemoryConfiguration
 **************************************************************************/
 void BVDC_GetDefaultMemConfigSettings
-    ( BVDC_MemConfigSettings             *pMemConfigSettings );
+    ( const BBOX_Config                  *pBoxConfig,
+      BVDC_MemConfigSettings             *pMemConfigSettings );
 
 /***************************************************************************
 Summary:
@@ -5362,7 +5385,8 @@ See Also:
     BVDC_GetDefaultMemConfigSettings
 **************************************************************************/
 BERR_Code BVDC_GetMemoryConfiguration
-    ( const BVDC_MemConfigSettings       *pMemConfigSettings,
+    ( const BBOX_Config                  *pBoxConfig,
+      const BVDC_MemConfigSettings       *pMemConfigSettings,
       BVDC_MemConfig                     *pMemConfig );
 
 /***************************************************************************
@@ -5461,7 +5485,7 @@ See Also:
 **************************************************************************/
 void BVDC_GetDefaultSettings
     ( const BBOX_Handle                hBox,
-      BVDC_Settings                   *pDefSettings );
+      BVDC_OpenSettings                   *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -5527,7 +5551,7 @@ BERR_Code BVDC_Open
       BINT_Handle                      hInt,
       BRDC_Handle                      hRdc,
       BTMR_Handle                      hTmr,
-      const BVDC_Settings             *pDefSettings );
+      const BVDC_OpenSettings             *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -5784,7 +5808,7 @@ Description:
     A heap handle is used for allocating/deallocating buffers needed by a
     window. The application must know the use of this heap as this is
     separate from the heap created internally by the VDC. This heap is then
-    passed in to BVDC_Window_Create via the BVDC_Window_Settings structure.
+    passed in to BVDC_Window_Create via the BVDC_Window_CreateSettings structure.
 
 Input:
     hVdc - Handle to the VDC module.
@@ -5886,15 +5910,13 @@ Output:
     pDefSettings - A reference to default settings structure.
 
 Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully get BVDC_Compositor_Settings default settings.
 
 See Also:
-    BVDC_Compositor_Create, BVDC_Compositor_Settings.
+    BVDC_Compositor_Create, BVDC_Compositor_CreateSettings.
 **************************************************************************/
-BERR_Code BVDC_Compositor_GetDefaultSettings
+void BVDC_Compositor_GetDefaultCreateSettings
     ( BVDC_CompositorId                eCompositorId,
-      BVDC_Compositor_Settings        *pDefSettings );
+      BVDC_Compositor_CreateSettings  *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -5934,7 +5956,7 @@ BERR_Code BVDC_Compositor_Create
     ( BVDC_Handle                      hVdc,
       BVDC_Compositor_Handle          *phCompositor,
       BVDC_CompositorId                eCompositorId,
-      const BVDC_Compositor_Settings  *pDefSettings );
+      const BVDC_Compositor_CreateSettings  *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -6213,30 +6235,28 @@ BERR_Code BVDC_Compositor_GetCapabilities
 
 /***************************************************************************
 Summary:
-    This function gets window default setting structure.
+    This function gets window default createSetting structure.
 
 Description:
-    BVDC_Window_Settings inherent default setting structure could be
+    BVDC_Window_CreateSettings inherent default setting structure could be
     queried by this API function prior to BVDC_Window_Create, modified and
     then passed to BVDC_Window_Create.  This save application tedious
     work of filling in the configuration structure.
 
 Input:
-    eWindowId - Default settings for specific window.
+    eWindowId - Default create settings for specific window.
 
 Output:
     pDefSettings - A reference to default settings structure.
 
 Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully get BVDC_Window_Settings default settings.
 
 See Also:
     BVDC_Window_Create.
 **************************************************************************/
-BERR_Code BVDC_Window_GetDefaultSettings
+void BVDC_Window_GetDefaultCreateSettings
     ( BVDC_WindowId                    eWindowId,
-      BVDC_Window_Settings            *pDefSettings );
+      BVDC_Window_CreateSettings      *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -6280,14 +6300,14 @@ Returns:
 
 See Also:
     BVDC_Compositor_GetMaxWindowCount, BVDC_Window_Destroy,
-    BVDC_Heap_Create, BVDC_Window_Settings.
+    BVDC_Heap_Create, BVDC_Window_CreateSettings.
 **************************************************************************/
 BERR_Code BVDC_Window_Create
     ( BVDC_Compositor_Handle           hCompositor,
       BVDC_Window_Handle              *phWindow,
       BVDC_WindowId                    eId,
       BVDC_Source_Handle               hSource,
-      const BVDC_Window_Settings      *pDefSettings );
+      const BVDC_Window_CreateSettings *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -7751,7 +7771,7 @@ Description:
     When bUseSrcFrameRate, this window's source will be used as the master
     framerate for the display.  It will match the display framerate with
     the source.  By default it is disabled.  The default display framerate
-    will be from the default BVDC_Settings.  In the case of compositor/display
+    will be from the default BVDC_OpenSettings.  In the case of compositor/display
     has two or more video windows, only one window should be set as master.
     The display framerate selection or tracking is based on source only
     when given display format capable of outputing multiple framerates.
@@ -10261,6 +10281,46 @@ BERR_Code BVDC_Window_GetBandwidthEquationParams
       uint32_t                         *pulDelta,
       BVDC_SclCapBias                  *peSclCapBias);
 
+/***************************************************************************
+Summary:
+    Set the window dynamic settings.
+
+Description:
+    This requires a call to BVDC_ApplyChanges to activate the settings.
+
+Inputs:
+    hWindow      - the window handle
+    pSettings    - the window dynamic settings
+
+Returns:
+
+See Also:
+    BVDC_Window_GetSettings
+****************************************************************************/
+BERR_Code BVDC_Window_SetSettings
+    ( BVDC_Window_Handle                 hWindow,
+      const BVDC_Window_Settings *pSettings);
+
+
+/***************************************************************************
+Summary:
+    Get the current dynamic settings for a window.
+
+Description:
+
+Inputs:
+    hWindow       - the window handle
+    pSettings    - the window dynamic settings
+
+Returns:
+
+See Also:
+    BVDC_Window_SetSettings
+****************************************************************************/
+void BVDC_Window_GetSettings
+    ( BVDC_Window_Handle               hWindow,
+      BVDC_Window_Settings     *pSettings);
+
 
 /***************************************************************************
 Summary:
@@ -10295,7 +10355,7 @@ Summary:
     This function gets source default setting structure.
 
 Description:
-    BVDC_Source_Settings inherent default setting structure could be
+    BVDC_Source_CreateSettings inherent default setting structure could be
     queried by this API function prior to BVDC_Source_Create, modified and
     then passed to BVDC_Source_Create.  This save application tedious
     work of filling in the configuration structure.
@@ -10307,15 +10367,13 @@ Output:
     pDefSettings - A reference to default settings structure.
 
 Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully get BVDC_Source_Settings default settings.
 
 See Also:
     BVDC_Source_Create.
 **************************************************************************/
-BERR_Code BVDC_Source_GetDefaultSettings
+void BVDC_Source_GetDefaultCreateSettings
     ( BAVC_SourceId                    eSourceId,
-      BVDC_Source_Settings            *pDefSettings );
+      BVDC_Source_CreateSettings      *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -10376,7 +10434,7 @@ Description:
 
     When eSourceId is one of the Mpeg or Vfd type, the source device is a
     video source, but it can also be used to feed graphics surface. In
-    this case, the bGfxSrc bool in the BVDC_Source_Settings struct must
+    this case, the bGfxSrc bool in the BVDC_Source_CreateSettings struct must
     be set to true, and this source must be connected to video windows.
 
     For a given video window ID, BVDC_Source_QueryVfd should be used to
@@ -10406,13 +10464,13 @@ Returns:
 
 See Also:
     BVDC_Source_Destroy
-    BVDC_Source_GetDefaultSettings, BVDC_Source_QueryVfd
+    BVDC_Source_GetDefaultCreateSettings, BVDC_Source_QueryVfd
 **************************************************************************/
 BERR_Code BVDC_Source_Create
     ( BVDC_Handle                      hVdc,
       BVDC_Source_Handle              *phSource,
       BAVC_SourceId                    eSourceId,
-      const BVDC_Source_Settings      *pDefSettings );
+      const BVDC_Source_CreateSettings *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -12543,7 +12601,7 @@ Summary:
     This function gets display default setting structure.
 
 Description:
-    BVDC_Display_Settings inherent default setting structure could be
+    BVDC_Display_CreateSettings inherent default setting structure could be
     queried by this API function prior to BVDC_Display_Create, modified and
     then passed to BVDC_Display_Create.  This save application tedious
     work of filling in the configuration structure.
@@ -12556,14 +12614,14 @@ Output:
 
 Returns:
     BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully get BVDC_Display_Settings default settings.
+    BERR_SUCCESS - Successfully get BVDC_Display_CreateSettings default settings.
 
 See Also:
-    BVDC_Display_Create, BVDC_Display_Settings.
+    BVDC_Display_Create, BVDC_Display_CreateSettings.
 **************************************************************************/
-BERR_Code BVDC_Display_GetDefaultSettings
+BERR_Code BVDC_Display_GetDefaultCreateSettings
     ( BVDC_DisplayId                   eDisplayId,
-      BVDC_Display_Settings           *pDefSettings );
+      BVDC_Display_CreateSettings     *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -12596,7 +12654,7 @@ BERR_Code BVDC_Display_Create
     ( BVDC_Compositor_Handle           hCompositor,
       BVDC_Display_Handle             *phDisplay,
       BVDC_DisplayId                   eDisplayId,
-      const BVDC_Display_Settings     *pDefSettings );
+      const BVDC_Display_CreateSettings *pDefSettings );
 
 /***************************************************************************
 Summary:
@@ -13677,13 +13735,13 @@ Description:
     60.00Hz or frame drop at 59.94Hz.  If enable this function will do frame
     drop when applicable.  If enabled it will run at 59.94Hz, 29.97Hz, 23.97Hz,
     etc.  If disabled (default) it will run default rate specified in
-    BVDC_Settings.eDisplayFrameRate.
+    BVDC_OpenSettings.eDisplayFrameRate.
 
 Input:
     hDisplay - Display handle created earlier.
     eDropFrame -
         - eAuto use whatever last used.  Initial rate is from
-            BVDC_Settings.eDisplayFrameRate
+            BVDC_OpenSettings.eDisplayFrameRate
         - eOn will enable drop frame (e.g. 59.94hz)
         - eOff will disable drop frame (e.g. 60.00hz)
 
@@ -13708,7 +13766,7 @@ Description:
     60.00Hz or frame drop at 59.94Hz.  If enable this function will do frame
     drop when applicable.  If enabled it will run at 59.94Hz, 29.97Hz, 23.97Hz,
     etc.  If disabled (default) it will run default rate specified in
-    BVDC_Settings.eDisplayFrameRate.
+    BVDC_OpenSettings.eDisplayFrameRate.
 
 Input:
     hDisplay - Display handle created earlier.

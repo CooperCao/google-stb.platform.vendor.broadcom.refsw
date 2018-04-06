@@ -1471,6 +1471,16 @@ NEXUS_Error NEXUS_AspChannel_Start(
 
     /* TODO: check for if (pSettings->autoStartStreaming) */
 
+    if (pSettings->connectionLost)
+    {
+        hAspChannel->state = NEXUS_AspChannelState_eIdle;
+        BKNI_EnterCriticalSection();
+        NEXUS_IsrCallback_Fire_isr(hAspChannel->hStateChangedCallback);
+        BKNI_LeaveCriticalSection();
+        BDBG_WRN(("%s: hAspChannel=%p Bypassing Start due to lost connection.", BSTD_FUNCTION, (void *)hAspChannel));
+        return (NEXUS_SUCCESS);
+    }
+
     /* Build Start Message. */
     if (pSettings->mode == NEXUS_AspStreamingMode_eOut)
     {
@@ -2015,6 +2025,12 @@ void NEXUS_AspChannel_Stop(
 {
     BERR_Code rc;
     BDBG_ASSERT(hAspChannel);
+
+    if (hAspChannel->startSettings.connectionLost)
+    {
+        hAspChannel->state = NEXUS_AspChannelState_eIdle;
+        return;
+    }
 
     {
         BASP_Pi2Fw_Message pi2FwMessage;

@@ -92,6 +92,8 @@ typedef struct App
             PlatformPictureInfo pictureInfo; /* user settings */
         } output;
         PlatformUsageMode usageMode;
+        PlatformListenerHandle usageNotifier;
+        unsigned usageMessageIndex;
         struct
         {
             struct

@@ -76,6 +76,7 @@
 #define BRCMSTB_SVC_MOD_DVFS            0x01
 #define BRCMSTB_SVC_MOD_ASTRA           0x02
 #define BRCMSTB_SVC_MOD_LINUX           0x03
-#define BRCMSTB_SVC_MOD_MAX             0x04
+#define BRCMSTB_SVC_MOD_SCMI            0x04
+#define BRCMSTB_SVC_MOD_MAX             0x05
 
 #endif /* _BRCMSTB_SVC_H_ */

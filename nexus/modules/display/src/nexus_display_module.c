@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *****************************************************************************/
+ ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #include "priv/nexus_core.h"
@@ -62,7 +62,7 @@ NEXUS_DisplayModule_GetDefaultInternalSettings(NEXUS_DisplayModuleInternalSettin
 void
 NEXUS_DisplayModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *preInitState, NEXUS_DisplayModuleSettings *pSettings)
 {
-    BVDC_Settings vdcCfg;
+    BVDC_OpenSettings vdcCfg;
 #if NEXUS_VBI_SUPPORT
     BVBI_Settings vbiCfg;
 #endif
@@ -575,7 +575,7 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
 {
     NEXUS_ModuleSettings moduleSettings;
     BERR_Code rc;
-    BVDC_Settings vdcCfg;
+    BVDC_OpenSettings vdcCfg;
     NEXUS_DisplayModule_State *state = &g_NEXUS_DisplayModule_State;
     BPXL_Format mPixelFormat;
     BFMT_VideoFmt mVideoFormat;
@@ -879,7 +879,7 @@ void NEXUS_Display_P_DestroyHeap(BVDC_Heap_Handle vdcHeap)
 
 BVDC_Heap_Handle NEXUS_Display_P_CreateHeap(NEXUS_HeapHandle heap)
 {
-    BVDC_Settings vdcCfg;
+    BVDC_OpenSettings vdcCfg;
     BERR_Code rc;
     BPXL_Format mPixelFormat;
     BFMT_VideoFmt mVideoFormat;

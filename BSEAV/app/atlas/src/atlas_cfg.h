@@ -290,7 +290,8 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(IMAGE_PLM_ENABLED,                       string, "plm-enabled_1080.jpg",      "PLM image - disabled"),
     ATLAS_DECLARE(IMAGE_PLM_DISABLED,                      string, "plm-disabled_1080.jpg",     "PLM image - enabled"),
     ATLAS_DECLARE(IMAGE_PLM_PASSTHRU,                      string, "plm-passthru_1080.jpg",     "PLM image passthru"),
-    ATLAS_DECLARE(FORCE_HDMI_HDR10_OUTPUT,                 bool,   "false",                     "Force HDMI HDR output for non-dolbyvision streams.")
+    ATLAS_DECLARE(FORCE_HDMI_HDR10_OUTPUT,                 bool,   "false",                     "Force HDMI HDR output for non-dolbyvision streams."),
+    ATLAS_DECLARE(CEC_REMOTE_ENABLED,					   bool,   "false",			            "If true, it will enable the functionality of receiving the remote control commands thourgh cec using the Bling box.")
 };
 
 #ifndef ATLAS_DECLARE_CONFIGSETTING_VALUES

@@ -45,7 +45,6 @@
 #ifndef BHSM_PRIV__H_
 #define BHSM_PRIV__H_
 
-BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 typedef struct
 {
@@ -88,6 +87,8 @@ typedef struct BHSM_P_Handle{
     BHSM_BfwVersion bfwVersion;
 
 }BHSM_P_Handle;
+
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 /* function to copy byte array into uint32_t array. */
 BERR_Code BHSM_MemcpySwap( void* pDest, const void* pSrc, unsigned byteSize );

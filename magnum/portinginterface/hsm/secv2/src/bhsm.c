@@ -47,6 +47,7 @@
 #include "bhsm_otp_key.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_rsa.h"
+#include "bsp_p_hw.h"
 #ifdef BHSM_DEBUG_BSP
  #include "bhsm_bsp_debug.h"
 #endif
@@ -174,6 +175,8 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCap
     {
         pCaps->numKeyslotsForType[i] = keyslotCaps.numKeySlotsForType[i];
     }
+
+    pCaps->archesPerMemc = BSP_ARCHES_PER_MEMC;
 
     BDBG_LEAVE( BHSM_GetCapabilities );
     return BERR_SUCCESS;

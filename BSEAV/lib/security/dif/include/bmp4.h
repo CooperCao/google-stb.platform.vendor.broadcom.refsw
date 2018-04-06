@@ -130,7 +130,7 @@ typedef struct bmp4_mp4_headers {
 } bmp4_mp4_headers;
 
 typedef struct bmp4_drm_mp4_box_se_entry {
-    uint16_t bytesOfClearData;
+    uint32_t bytesOfClearData;
     uint32_t bytesOfEncData;
 
 } bmp4_drm_mp4_box_se_entry;

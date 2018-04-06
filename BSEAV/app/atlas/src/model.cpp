@@ -52,6 +52,7 @@ CModel::CModel(const char * strName) :
     _pConfig(NULL),
     _pChannelMgr(NULL),
     _pGraphics(NULL),
+	_pCecRemote(NULL),
     _fullScreenWindowType(eWindowType_Main),
     _pVideoDecode(NULL),
     _pStillDecode(NULL),

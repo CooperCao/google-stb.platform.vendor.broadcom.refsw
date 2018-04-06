@@ -216,14 +216,16 @@ sub build_thunks
         # leave MSG and return value
         if ($func->{RETTYPE} eq "void") {
             print FILE "  module_unlock();\n";
-            if (defined $stopcallbacks_handle) {
-                print FILE "NEXUS_StartCallbacks((void*)$stopcallbacks_handle);\n";
-            }
             print FILE "  NEXUS_P_TRACE_MSG((\"<%s\", \"$func->{FUNCNAME}\"));\n";
             print FILE "  NEXUS_P_API_STATS_STOP(\"$func->{FUNCNAME}\",NEXUS_MODULE_SELF); /* this statistics count all API call overhead */\n";
             print FILE "  return;\n";
         }
         else {
+            if ($func->{RETTYPE} ne "NEXUS_Error") {
+                if (exists $func->{ATTR}->{'release'}) {
+                    print FILE "  if (result) NEXUS_StartCallbacks(result);\n";
+                }
+            }
             if (scalar @{$generated_code->{'server_post_success'}}) {
                 if ($func->{RETTYPE} eq "NEXUS_Error") {
                     print FILE "  if (!result) {\n";
@@ -236,9 +238,6 @@ sub build_thunks
                 print FILE "  }\n";
             }
             print FILE "  module_unlock();\n";
-            if (defined $stopcallbacks_handle) {
-                print FILE "NEXUS_StartCallbacks((void*)$stopcallbacks_handle);\n";
-            }
             print FILE "  NEXUS_P_TRACE_MSG((\"<%s\=%#lx\", \"$func->{FUNCNAME}\", (unsigned long)result));\n";
             print FILE "  NEXUS_P_API_STATS_STOP(\"$func->{FUNCNAME}\", NEXUS_MODULE_SELF); /* this statistics count all API call overhead */\n";
             print FILE "  return result;\n";

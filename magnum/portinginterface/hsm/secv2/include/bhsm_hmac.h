@@ -48,7 +48,11 @@
 extern "C" {
 #endif
 
-typedef struct BHSM_P_Hmac* BHSM_HmacHandle;
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
+ typedef struct BHSM_P_Hmac* BHSM_HmacHandle;
+#else
+ typedef struct BHSM_P_Hash* BHSM_HmacHandle; /* Internally, HMAC is an extension of HASH. */
+#endif
 
 #define BHSM_HMAC_MAX_LENGTH (32)
 #define BHSM_HMAC_LAST_DATA  (1)
@@ -101,18 +105,6 @@ typedef struct BHSM_HmacSubmitData
 
 }BHSM_HmacSubmitData;
 
-#if (BHSM_ZEUS_VER_MAJOR == 4)
-typedef struct BHSM_HmacSubmitData_1char
-{
-    /* IN */
-    unsigned char data;
-
-    /* OUT */
-    uint8_t hmac[BHSM_HMAC_MAX_LENGTH];
-    unsigned hmacLength;
-
-}BHSM_HmacSubmitData_1char;
-#endif
 /*
     Create a HMAC context.
 */
@@ -143,7 +135,20 @@ Description:
 */
 BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pData );
 
+
+
 #if (BHSM_ZEUS_VER_MAJOR == 4)
+typedef struct BHSM_HmacSubmitData_1char
+{
+    /* IN */
+    unsigned char data;
+
+    /* OUT */
+    uint8_t hmac[BHSM_HMAC_MAX_LENGTH];
+    unsigned hmacLength;
+
+}BHSM_HmacSubmitData_1char;
+
 BERR_Code BHSM_Hmac_SubmitData_1char( BHSM_HmacHandle handle, BHSM_HmacSubmitData_1char  *pData );
 #endif
 

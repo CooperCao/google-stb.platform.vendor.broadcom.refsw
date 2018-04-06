@@ -80,6 +80,7 @@ static void print_usage(void)
     );
     printf(
         "  -early_picture_delivery\n"
+        "  -secure                  use SVP secure picture buffers\n"
     );
     printf(
         "  -video_cdb SIZE          use 'm' or 'k' suffix, decimal allowed\n"
@@ -220,6 +221,9 @@ int main(int argc, const char **argv)
                 print_usage();
                 return -1;
             }
+        }
+        else if (!strcmp(argv[curarg], "-secure")) {
+            start_settings.video.secure = true;
         }
         else {
             if (num_decodes == MAX_DECODES) {

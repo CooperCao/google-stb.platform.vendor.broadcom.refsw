@@ -73,7 +73,8 @@
 #define B_IPC_CLIENT_SET_RESULT(type, api) __result = B_IPC_FIELD(api, out, ret.__retval);
 #define B_IPC_CLIENT_CHECK_RETURN_CODE(api) if(__result!=NEXUS_SUCCESS) {/*(void)BERR_TRACE(__result);*/goto done_end;}
 #define B_IPC_CLIENT_END_VOID(api)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: NEXUS_CLIENT_LEAVE(api);return;}
-#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: if(__has_callbacks) {NEXUS_StartCallbacks((void *)handle);} NEXUS_CLIENT_LEAVE(api);} return;}
+#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: NEXUS_CLIENT_LEAVE(api);} return;}
+#define B_IPC_CLIENT_END_ACQUIRE_HANDLE(type, api) done_end: NEXUS_P_ClientCall_End(&__state); NEXUS_StartCallbacks((void*)__result); done: NEXUS_CLIENT_LEAVE(api);return __result; err_call: __result=0; goto done_end;;err_begin: __result=0;goto done;}
 #define B_IPC_CLIENT_END_HANDLE(type, api) done_end: NEXUS_P_ClientCall_End(&__state); done: NEXUS_CLIENT_LEAVE(api);return __result; err_call: __result=0; goto done_end;;err_begin: __result=0;goto done;}
 #define B_IPC_CLIENT_END(api)  done_end: NEXUS_P_ClientCall_End(&__state);done: return __result;err_call: __result=__rc; goto done_end;err_begin: __result=__rc;goto done;}
 #define B_IPC_CLIENT_SEND(api, arg)  B_IPC_FIELD(api, in, args.arg) = arg;

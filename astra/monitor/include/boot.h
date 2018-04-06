@@ -44,40 +44,40 @@
 
 typedef struct boot_args
 {
-	/* Load-link offset */
-	ptrdiff_t load_link_offset;
+    /* Load-link offset */
+    ptrdiff_t load_link_offset;
 
-	/* Boot uart base */
-	uintptr_t uart_base;
+    /* Boot uart base */
+    uintptr_t uart_base;
 
-	/* Warm boot flag */
-	bool warm_boot;
+    /* Warm boot flag */
+    bool warm_boot;
 
-	/* CPU counter freqeuncy */
-	uint32_t counter_freq;
+    /* CPU counter freqeuncy */
+    uint32_t counter_freq;
 
 } boot_args_t;
 
 extern boot_args_t boot_args;
 
 static inline uintptr_t uart_base(void) {
-	return boot_args.uart_base;
+    return boot_args.uart_base;
 }
 
 static inline uint32_t counter_freq(void) {
-	return boot_args.counter_freq;
+    return boot_args.counter_freq;
 }
 
 static inline bool warm_boot(void) {
-	return boot_args.warm_boot;
+    return boot_args.warm_boot;
 }
 
 static inline uintptr_t link_to_load(uintptr_t link_addr) {
-	return link_addr + boot_args.load_link_offset;
+    return link_addr + boot_args.load_link_offset;
 }
 
 static inline uintptr_t load_to_link(uintptr_t load_addr) {
-	return load_addr - boot_args.load_link_offset;
+    return load_addr - boot_args.load_link_offset;
 }
 
 static inline void *bootstrap_memcpy(void *dst, void *src, size_t len)

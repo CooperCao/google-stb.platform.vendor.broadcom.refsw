@@ -105,7 +105,7 @@ BVCE_P_Buffer_GetAddress_isrsafe(
    );
 
 void
-BVCE_P_Buffer_FlushCache_isr(
+BVCE_P_Buffer_FlushCache_isrsafe(
    BVCE_P_Buffer_Handle hBuffer,
    void *pBuffer,
    unsigned uiSize

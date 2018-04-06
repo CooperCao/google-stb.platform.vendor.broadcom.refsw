@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,4 +62,5 @@
 #define NEXUS_CORE_IMG_ID_FRONTEND_7584 "FE_7584"
 #define NEXUS_CORE_IMG_ID_FRONTEND_3461 "FE_3461"
 #define NEXUS_CORE_IMG_ID_FRONTEND_7563 "FE_7563"
+#define NEXUS_CORE_IMG_ID_SWXPT  "SWXPT"
 #endif

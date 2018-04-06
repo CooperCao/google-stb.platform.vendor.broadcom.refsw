@@ -74,7 +74,6 @@ extern "C" {
 #include "bchp_vec_cfg.h"
 #include "bchp_misc.h"
 #include "bchp_video_enc_decim_0.h"
-#include "bchp_timer.h"
 #include "bvdc_resource_priv.h"
 #include "bvdc_cfc_priv.h"
 
@@ -1164,6 +1163,7 @@ typedef struct BVDC_P_DisplayContext
 #endif
 #if BVDC_P_SUPPORT_VIP
     BVDC_P_Vip_Handle           hVip;
+    BVDC_P_DisplayResourceState eVipState;           /* VIP state */
 #endif
     BFMT_VideoFmt               eStgRampFmt; /* STG final rampup format */
     BFMT_VideoInfo              stStgRampCustomFmt; /* the STG final rampup custom format */

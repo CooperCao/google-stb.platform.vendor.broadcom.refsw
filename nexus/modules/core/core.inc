@@ -71,7 +71,7 @@ NEXUS_CORE_SOURCES := \
 
 NEXUS_CORE_LOCAL_SOURCES := \
 	$(NEXUS_TOP)/modules/core/src/nexus_memory_local.c \
-	$(NEXUS_TOP)/modules/core/src/nexus_core_convert_local.c 
+	$(NEXUS_TOP)/modules/core/src/nexus_core_convert_local.c
 
 NEXUS_CORE_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_core_thunks.c
 
@@ -171,8 +171,10 @@ NEXUS_CORE_DEFINES += NEXUS_PROFILE_OS_$(B_REFSW_OS)
 NEXUS_SYMBOLS_SRC := bsymbols.c
 
 # Tell magnum to compile out anything that isn't required for Nexus
-B_REFSW_MINIMAL := y
+B_REFSW_MINIMAL ?= y
+ifeq ($(B_REFSW_MINIMAL),y)
 NEXUS_CORE_DEFINES += B_REFSW_MINIMAL
+endif
 
 #####################
 # Module Extensions #

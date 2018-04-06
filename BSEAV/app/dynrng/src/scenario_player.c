@@ -118,8 +118,12 @@ void scenario_player_p_get_default_scenario(Scenario * pScenario)
     pScenario->pictureInfo.sampling = -1;
     pScenario->processing.vid = PlatformDynamicRangeProcessingMode_eMax;
     pScenario->processing.gfx = PlatformDynamicRangeProcessingMode_eMax;
-    pScenario->osd = true;
-    pScenario->info = true;
+    pScenario->osd = PlatformTriState_eInactive;
+#if DYNRNG_DBV_CONFORMANCE_MODE
+    pScenario->info = PlatformTriState_eOff;
+#else
+    pScenario->info = PlatformTriState_eOn;
+#endif
 }
 
 static void scenario_player_p_get_reset_scenario(Scenario * pScenario)
@@ -277,9 +281,13 @@ static int scenario_player_p_set_variable(ScenarioPlayerHandle player, const cha
     }
     else if (!strcmp(name, "info"))
     {
-        if (!strcasecmp(value, "off") || !strtoul(value, NULL, 0))
+        if (!strcasecmp(value, "on") || !strtoul(value, NULL, 1))
         {
-            pScenario->info = false;
+            pScenario->info = PlatformTriState_eOn;
+        }
+        else if (!strcasecmp(value, "off") || !strtoul(value, NULL, 0))
+        {
+            pScenario->info = PlatformTriState_eOff;
         }
     }
     else if (!strcmp(name, "forceRestart"))

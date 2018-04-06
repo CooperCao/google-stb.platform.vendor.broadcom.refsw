@@ -782,6 +782,22 @@ uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyladderCaVendorIdScope caVen
     return 0xFF;
 }
 
+BERR_Code BHSM_P_KeyLadder_GetDetails( BHSM_KeyLadderHandle handle, BHSM_KeyLadderDetails_t *pDetails )
+{
+    BHSM_P_KeyLadder *pKeySlot = (BHSM_P_KeyLadder*)handle;
+
+    BDBG_ENTER( BHSM_P_KeyLadder_GetDetails );
+
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pDetails ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    pDetails->hHsm = pKeySlot->hHsm;
+    pDetails->configured = pKeySlot->configured;
+    pDetails->index = pKeySlot->index;
+
+    BDBG_LEAVE( BHSM_P_KeyLadder_GetDetails );
+    return BERR_SUCCESS;
+}
 
 
 

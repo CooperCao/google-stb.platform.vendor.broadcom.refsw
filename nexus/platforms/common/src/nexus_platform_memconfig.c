@@ -322,7 +322,7 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
 #if NEXUS_HAS_DISPLAY
     {
         bool mtg = false;
-        BVDC_GetDefaultMemConfigSettings(&structs->vdc.memConfigSettings);
+        BVDC_GetDefaultMemConfigSettings(&preInitState->boxConfig, &structs->vdc.memConfigSettings);
 
 #if NEXUS_MTG_DISABLED
         BDBG_WRN(("MTG disabled"));
@@ -841,7 +841,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
         BDBG_CASSERT(BVDC_MAX_DISPLAYS >= NEXUS_MAX_DISPLAYS);
         BDBG_CASSERT(BVDC_MAX_VIDEO_WINDOWS >= NEXUS_MAX_VIDEO_WINDOWS);
-        BVDC_GetDefaultMemConfigSettings(&structs->vdc.memConfigSettings);
+        BVDC_GetDefaultMemConfigSettings(&preInitState->boxConfig, &structs->vdc.memConfigSettings);
         for (i=0;i<BVDC_MAX_DISPLAYS;i++) {
             unsigned j;
             structs->vdc.memConfigSettings.stDisplay[i].bUsed = false;
@@ -869,7 +869,8 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
                     if(bPip &&(pSettings->display[i].window[j].sizeLimit == NEXUS_VideoWindowSizeLimit_eFull)) {
                         BDBG_WRN(("Can not set to NEXUS_VideoWindowSizeLimit_eFull due to boxmode limit"));
-                        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                        goto err_getsettings;
                     }
                 }
                 else {
@@ -922,7 +923,10 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                     else
                         structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].eSclCapBias = BBOX_Vdc_SclCapBias_eAuto;
 
-                    if (num_mosaic_decoders == 0) {
+                    if (preInitState->boxMode && (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].eClass != BBOX_Vdc_WindowClass_eLegacy)) {
+                        structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode = (preInitState->boxConfig.stVdc.astDisplay[i].astWindow[j].eClass != BBOX_Vdc_WindowClass_e0_1);
+                    }
+                    else if (num_mosaic_decoders == 0) {
                         structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode = false;
                     }
                     if (pSettings->videoInputs.hdDvi || pSettings->videoInputs.ccir656) {
@@ -999,7 +1003,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         /* SD main window is not used, turn off bLipsync */
         if(!structs->vdc.memConfigSettings.stDisplay[1].bUsed || !structs->vdc.memConfigSettings.stDisplay[1].stWindow[0].bUsed)
             structs->vdc.memConfigSettings.stDisplay[0].stWindow[0].bLipsync = false;
-        rc = BVDC_GetMemoryConfiguration(&structs->vdc.memConfigSettings, &structs->vdc.memConfig);
+        rc = BVDC_GetMemoryConfiguration(&preInitState->boxConfig, &structs->vdc.memConfigSettings, &structs->vdc.memConfig);
         if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
 
         BDBG_CASSERT(NEXUS_MAX_MEMC <= BVDC_MAX_MEMC);

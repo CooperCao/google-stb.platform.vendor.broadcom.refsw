@@ -390,6 +390,7 @@ APP_OBJECTS += \
     graphics.o \
     video_window.o \
     output.o \
+	cec_remote.o \
     video_decode.o \
     pid.o \
     stc.o \
@@ -773,6 +774,7 @@ ATLAS_DIRS += ../src/nxclient
 APP_OBJECTS += \
 	atlas_main_nx.o \
 	board_nx.o \
+	cec_remote_nx.o \
 	control_nx.o \
 	display_nx.o \
 	audio_decode_nx.o \

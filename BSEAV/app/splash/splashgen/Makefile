@@ -46,6 +46,9 @@ export BRDC_DISABLE_TRACK_EXECUTION=y
 export NEXUS_FILE_MUX_SUPPORT=n
 export BBOX_USE_BOX_MODE_0_RTS ?= y
 
+# To include BRDC_DBG functions
+export B_REFSW_MINIMAL = n
+
 # These are the only supported targets
 PHONY := \
 	all clean api clean_api clean_apps artifacts clean_artifacts \

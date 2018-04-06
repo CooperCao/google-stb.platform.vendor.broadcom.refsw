@@ -59,6 +59,9 @@ typedef struct cpu_data {
     /* Pointer to PSCI CPU strcuture */
     struct psci_cpu *psci_cpu;
 
+    /* Pointer to DVFS CPU structure */
+    struct dvfs_cpu *dvfs_cpu;
+
 } __align_cache cpu_data_t;
 
 /**************************************************************************

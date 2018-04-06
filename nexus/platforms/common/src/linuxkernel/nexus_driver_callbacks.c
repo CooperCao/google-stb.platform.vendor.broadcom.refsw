@@ -79,7 +79,6 @@ struct nexus_driver_callback_entry {
     struct nexus_driver_callback_data now,prev; /* store current and previous data, previous is used when need to restore mapping */
     /* members below are managed in the global context */
     bool fired;
-    bool stopped;
     bool zombie;
     BLST_S_ENTRY(nexus_driver_callback_entry) list_fired; /* entry could be simultaneously in multiple lists */
     int callback_param; /* this is bypass argument, it's passed as is between user/kernel callbacks */
@@ -237,7 +236,6 @@ nexus_driver_scheduler_p_queue(void *context, int param)
     }
     entry->callback_param = param;
     if(!entry->fired) {
-        /* only insert into queue if wasn't there previously */
         entry->fired = true;
         if(entry->slave==NULL) {
             scheduler = entry->scheduler;
@@ -351,10 +349,6 @@ nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callb
     for( count = 0; NULL != (entry = BLST_S_FIRST(&scheduler->fired_callbacks)) && count < nentries;)  {
         BLST_S_REMOVE_HEAD(&scheduler->fired_callbacks, list_fired);
         entry->fired = false;
-        if(entry->stopped) {
-            entry->stopped = false;
-            continue;
-        }
         desc[count].desc.callback = (unsigned long)entry->now.callback;
         desc[count].desc.context = (unsigned long)entry->now.context;
         desc[count].desc.param = entry->callback_param;
@@ -380,35 +374,41 @@ nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callb
 }
 
 static void
-NEXUS_P_Proxy_MarkCallbacks( void *interfaceHandle, bool stopped )
+NEXUS_P_Proxy_MarkCallbacks( void *interfaceHandle, struct nexus_driver_callback_scheduler *scheduler)
 {
-    unsigned i;
+    struct nexus_driver_callback_entry *entry;
     LOCK();
-
-    for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
-        struct nexus_driver_callback_scheduler *scheduler = &nexus_driver_callback_schedulers[i];
-        struct nexus_driver_callback_entry *entry;
-        for( entry = BLST_S_FIRST(&scheduler->fired_callbacks); entry ; entry = BLST_S_NEXT(entry, list_fired)) {
-            if(entry->key.object == interfaceHandle || interfaceHandle==NULL) {
-                entry->stopped = stopped;
-            }
+    for( entry = BLST_S_FIRST(&scheduler->fired_callbacks); entry ; ) {
+        struct nexus_driver_callback_entry *next;
+        next = BLST_S_NEXT(entry, list_fired);
+        BDBG_ASSERT(entry->fired);
+        if(entry->key.object == interfaceHandle || interfaceHandle==NULL) {
+            entry->fired = false;
+            BLST_S_REMOVE(&scheduler->fired_callbacks, entry, nexus_driver_callback_entry, list_fired);
         }
+        entry = next;
     }
     UNLOCK();
     return;
 }
 
-void
-NEXUS_P_Proxy_StopCallbacks( void *interfaceHandle )
+void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
 {
-    NEXUS_P_Proxy_MarkCallbacks(interfaceHandle, true);
-    return;
+    NEXUS_P_Proxy_StopCallbacks_driver(interfaceHandle, NULL);
 }
 
 void
-NEXUS_P_Proxy_StartCallbacks( void *interfaceHandle )
+NEXUS_P_Proxy_StopCallbacks_driver( void *interfaceHandle, struct nexus_driver_slave_scheduler *slave)
 {
-    NEXUS_P_Proxy_MarkCallbacks(interfaceHandle, false);
+    if (slave) {
+        NEXUS_P_Proxy_MarkCallbacks(interfaceHandle, &slave->scheduler);
+    }
+    else {
+        unsigned i;
+        for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+            NEXUS_P_Proxy_MarkCallbacks(interfaceHandle, &nexus_driver_callback_schedulers[i]);
+        }
+    }
     return;
 }
 
@@ -595,7 +595,6 @@ nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header
         entry->now.context = NULL;
         entry->prev.context = NULL;
         entry->fired = false;
-        entry->stopped = false;
         entry->zombie = false;
         BDBG_OBJECT_ASSERT(scheduler, nexus_driver_callback_scheduler);
         entry->scheduler = scheduler;

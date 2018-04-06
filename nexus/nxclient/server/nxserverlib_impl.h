@@ -342,6 +342,7 @@ struct b_session {
         struct {
             nxclient_t client;
         } repeater;
+        bool defaultSdActive; /* our last format change was caused by defaultSdFormat */
     } hdmi;
 #endif
 #if NEXUS_HAS_HDMI_INPUT

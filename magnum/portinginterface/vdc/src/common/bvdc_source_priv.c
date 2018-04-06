@@ -239,6 +239,9 @@ static void BVDC_P_Source_RefreshWindow_isr
     BVDC_P_Source_Info *pNewInfo;
     BVDC_P_Source_Info *pCurInfo;
     BVDC_P_Source_DirtyBits *pNewDirty;
+    const BVDC_P_Window_Info     *pWinInfo;
+    const BVDC_P_Compositor_Info *pCmpInfo;
+    BVDC_P_ScanoutMode            eWinScanoutMode;
 
     BDBG_ENTER(BVDC_P_Source_RefreshWindow_isr);
     BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
@@ -250,6 +253,7 @@ static void BVDC_P_Source_RefreshWindow_isr
     /* Initialize as if no vbi pass-thru, etc. */
     bMosaicMode   = false;
     bDeinterlace  = false;
+    eWinScanoutMode  = pCurInfo->eWinScanoutMode;
 
     /* Search all window connected to this source, and see if it has vbi
     * pass-thru, mad, phase, etc. */
@@ -268,26 +272,37 @@ static void BVDC_P_Source_RefreshWindow_isr
         hWindow = hSource->ahWindow[i];
         BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
+        pWinInfo = &hWindow->stNewInfo;
+        pCmpInfo = &hWindow->hCompositor->stNewInfo;
+
         /* If this source has a window with deinterlacer */
-        if(hWindow->stNewInfo.bMosaicMode)
+        if(pWinInfo->bMosaicMode)
         {
             bMosaicMode = true;
         }
 
         /* If this source has a window with deinterlacer */
-        if(hWindow->stNewInfo.bDeinterlace)
+        if(pWinInfo->bDeinterlace)
         {
             bDeinterlace = true;
+        }
+
+        if(BFMT_IS_4kx2k(pCmpInfo->pFmtInfo->eVideoFmt) &&
+           (BBOX_Vdc_SclCapBias_eAutoDisable1080p == hWindow->eBoxSclCapBias))
+        {
+            eWinScanoutMode = BVDC_P_GetScanoutMode4AutoDisable1080p_isr(&pWinInfo->stScalerOutput);
         }
     }
 
     /* source VBI changes will be reflected into the next RUL */
     if((pCurInfo->bDeinterlace  != bDeinterlace ) ||
-        (pCurInfo->bMosaicMode   != bMosaicMode  ))
+        (pCurInfo->bMosaicMode  != bMosaicMode  ) ||
+        (pCurInfo->eWinScanoutMode != eWinScanoutMode ))
     {
         /* set new info and dirty bits. */
         pNewInfo->bMosaicMode   = bMosaicMode;
         pNewInfo->bDeinterlace  = bDeinterlace;
+        pNewInfo->eWinScanoutMode  = eWinScanoutMode;
         pNewDirty->stBits.bWinChanges  = BVDC_P_DIRTY; /* bWinChanges */
 
         /* On a connect/disconnect source is already gone thru applychanges
@@ -791,7 +806,7 @@ void BVDC_P_Source_Destroy
 */
 void BVDC_P_Source_Init
     ( BVDC_Source_Handle               hSource,
-      const BVDC_Source_Settings      *pDefSettings )
+      const BVDC_Source_CreateSettings *pDefSettings )
 {
     uint32_t i;
     const BFMT_VideoInfo *pDefFmt;

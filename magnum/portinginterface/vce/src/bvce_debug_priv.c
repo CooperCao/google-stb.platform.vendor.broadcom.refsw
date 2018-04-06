@@ -39,13 +39,14 @@
  *
  ***************************************************************************/
 
+/* base modules */
+#include "bstd.h"           /* standard types */
+#include "bkni.h"           /* kernel interface */
+
 #if ( BVCE_P_DUMP_OUTPUT_CDB || BVCE_P_DUMP_OUTPUT_ITB || BVCE_P_DUMP_OUTPUT_ITB_DESC || BVCE_P_DUMP_ARC_DEBUG_LOG || BVCE_P_DUMP_USERDATA_LOG || BVCE_P_TEST_MODE || BVCE_P_DUMP_MAU_PERFORMANCE_DATA )
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-/* base modules */
-#include "bstd.h"           /* standard types */
-#include "bkni.h"           /* kernel interface */
 
 #include <stdio.h>
 #include <errno.h>
@@ -153,10 +154,4 @@ BVCE_Debug_P_WriteLogBuffer_isr(
    fwrite( pBuffer, 1, uiNumBytes, hLog->hFile );
 }
 
-#else
-void BVCE_Debug_P_Foo(void);
-void BVCE_Debug_P_Foo(void)
-{
-   return;
-}
 #endif

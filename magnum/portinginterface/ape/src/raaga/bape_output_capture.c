@@ -49,6 +49,8 @@ BDBG_MODULE(bape_output_capture);
 
 #if BAPE_CHIP_MAX_OUTPUT_CAPTURES > 0
 
+#define BAPE_CAPTURE_USE_SOURCE_BUFFERS_DIRECTLY    1
+
 BDBG_OBJECT_ID(BAPE_OutputCapture);
 
 typedef struct BAPE_OutputCapture
@@ -174,7 +176,7 @@ static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle
     {
         BAPE_BufferGroupStatus bufferGroupStatus;
 
-        BAPE_BufferGroup_GetStatus(handle->bufferGroupHandle, &bufferGroupStatus);
+        BAPE_BufferGroup_GetStatus_isrsafe(handle->bufferGroupHandle, &bufferGroupStatus);
         if ( bufferGroupStatus.interleaved != handle->settings.interleaveData || numBuffers != bufferGroupStatus.numChannels )
         {
             BAPE_BufferGroup_Close(handle->bufferGroupHandle);
@@ -187,6 +189,10 @@ static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle
         unsigned i;
         BAPE_BufferGroupOpenSettings bufferGroupSettings;
         BAPE_BufferGroup_GetDefaultOpenSettings(&bufferGroupSettings);
+        #if BAPE_CAPTURE_USE_SOURCE_BUFFERS_DIRECTLY
+        BSTD_UNUSED(i);
+        bufferGroupSettings.bufferless = true;
+        #else
         for (i = 0; i < numChannelPairs; i++)
         {
             bufferGroupSettings.buffers[i*2].pInterface = handle->pBufferInterface[i];
@@ -201,6 +207,7 @@ static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle
                 bufferGroupSettings.buffers[i*2+1].pBuffer = handle->pBuffers[i+1];
             }
         }
+        #endif
         bufferGroupSettings.type = BAPE_BufferType_eReadWrite;
         bufferGroupSettings.bufferSize = handle->bufferSize;
         bufferGroupSettings.interleaved = handle->settings.interleaveData;
@@ -513,14 +520,17 @@ void BAPE_OutputCapture_Flush_isr(
     #endif
     if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
     {
-        BAPE_BufferGroupStatus bgStatus;
-        BAPE_BufferGroup_GetStatus(handle->bufferGroupHandle, &bgStatus);
-        if ( bgStatus.enabled )
+        if ( handle->bufferGroupHandle )
         {
-            BDBG_WRN(("Cannot flush Capture because the buffer group is running"));
-            return;
+            BAPE_BufferGroupStatus bgStatus;
+            BAPE_BufferGroup_GetStatus_isrsafe(handle->bufferGroupHandle, &bgStatus);
+            if ( bgStatus.enabled )
+            {
+                BDBG_WRN(("Cannot flush Capture because the buffer group is running"));
+                return;
+            }
+            BAPE_BufferGroup_Flush(handle->bufferGroupHandle);
         }
-        BAPE_BufferGroup_Flush(handle->bufferGroupHandle);
     }
 }
 
@@ -553,7 +563,15 @@ BERR_Code BAPE_OutputCapture_GetBuffer(
     #endif
     if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
     {
-        return BERR_TRACE(BAPE_BufferGroup_Read(handle->bufferGroupHandle, pBuffers));
+        if ( handle->bufferGroupHandle )
+        {
+            return BERR_TRACE(BAPE_BufferGroup_Read(handle->bufferGroupHandle, pBuffers));
+        }
+        else
+        {
+            BERR_TRACE(BERR_UNKNOWN);
+            BDBG_WRN(("bufferGroupHandle is NULL"));
+        }
     }
 
     return BERR_SUCCESS;

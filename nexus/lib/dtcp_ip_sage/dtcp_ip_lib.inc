@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -169,9 +169,7 @@ B_DTCP_IP_LIB_DEFINES += B_DTCP_IP_COMMON_DRM_CONTENT_SUPPORT
 #build with common DRM key provisioning by default.
 ifneq (${B_DTCP_IP_BUILD_MODE},stubs)
 ifeq ($(DTCP_IP_USE_EXT_VENDOR_LIB),y)
-B_DTCP_IP_LIB_LDFLAGS +=  -L$(B_LIB_TOP)/../../BSEAV/lib/security/third_party/dtcp_ip -lb_dtcp_ip_vendor
 else
-B_DTCP_IP_LIB_SOURCES += $(B_LIB_TOP)/../../BSEAV/lib/security/third_party/dtcp_ip/drm_dtcp_ip_vendor.c
 endif
 endif
 

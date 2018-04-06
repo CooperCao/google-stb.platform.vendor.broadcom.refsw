@@ -176,7 +176,7 @@ BERR_Code BAPE_Mixer_Create(
     )
 {
     BERR_Code errCode;
-    BAPE_MixerSettings defaultSettings;
+    BAPE_MixerSettings *defaultSettings=NULL;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
@@ -185,8 +185,10 @@ BERR_Code BAPE_Mixer_Create(
 
     if ( NULL == pSettings )
     {
-        BAPE_Mixer_GetDefaultSettings(&defaultSettings);
-        pSettings = &defaultSettings;
+        defaultSettings = BKNI_Malloc(sizeof(*defaultSettings));
+        if(defaultSettings==NULL) {return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);}
+        BAPE_Mixer_GetDefaultSettings(defaultSettings);
+        pSettings = defaultSettings;
     }
 
     switch ( pSettings->type )
@@ -213,6 +215,9 @@ BERR_Code BAPE_Mixer_Create(
         BDBG_ERR(("MixerType %u is invalid or not supported", pSettings->type ));
         errCode = BERR_INVALID_PARAMETER;
         break;
+    }
+    if(defaultSettings) {
+        BKNI_Free(defaultSettings);
     }
 
     return BERR_TRACE(errCode);

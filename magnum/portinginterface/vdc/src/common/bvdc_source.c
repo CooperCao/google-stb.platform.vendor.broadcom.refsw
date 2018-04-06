@@ -129,9 +129,9 @@ static const uint32_t s_aulFrmRate[] =
 /***************************************************************************
  *
  */
-BERR_Code BVDC_Source_GetDefaultSettings
+void BVDC_Source_GetDefaultCreateSettings
     ( BAVC_SourceId                    eSourceId,
-      BVDC_Source_Settings            *pDefSettings )
+      BVDC_Source_CreateSettings      *pDefSettings )
 {
     BSTD_UNUSED(eSourceId);
 
@@ -147,7 +147,7 @@ BERR_Code BVDC_Source_GetDefaultSettings
         pDefSettings->bGfxSrc = true;
     }
 
-    return BERR_SUCCESS;
+    return;
 }
 
 #if !B_REFSW_MINIMAL
@@ -185,7 +185,7 @@ BERR_Code BVDC_Source_Create
     ( BVDC_Handle                      hVdc,
       BVDC_Source_Handle              *phSource,
       BAVC_SourceId                    eSourceId,
-      const BVDC_Source_Settings      *pDefSettings )
+      const BVDC_Source_CreateSettings *pDefSettings )
 {
     BVDC_P_SourceContext *pSource;
     BVDC_P_DrainContext stTmpDrain;
@@ -223,7 +223,7 @@ BERR_Code BVDC_Source_Create
     if((BVDC_P_SRC_IS_HDDVI(eSourceId) && hVdc->stSettings.bDisableHddviInput) ||
        (BVDC_P_SRC_IS_ITU656(eSourceId) && hVdc->stSettings.bDisable656Input))
     {
-        BDBG_ERR(("Source[%d] disabled by BVDC_Settings.", eSourceId));
+        BDBG_ERR(("Source[%d] disabled by BVDC_OpenSettings.", eSourceId));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -2248,6 +2248,106 @@ static void BVDC_P_Source_PrintPicture_isr
 }
 #endif
 
+#ifndef BVDC_FOR_BOOTUPDATER
+/**************************************************************************
+ *  Get the scanout mode for MPEG source
+ *  Look at the source limit rectangles from the source class for N=1.
+ *
+ *  If the connecting windows falls in the 2:1 region
+ *      if no source class, decimate 2:1
+ *      else if the video source height is larger than 1/2 the source class height then we decimate 2:1
+ *      else no decimate, live
+ *
+ *  If the connecting windows falls in the 4:1 region
+ *      if no source class decimate 4:1
+ *      else if the video source height is larger than 1/2 the source class height then we decimate 4:1
+ *      else if the video source height is larger than 1/4 the source class height then we decimate 2:1
+ *      else no decimate, live
+ */
+static BVDC_P_ScanoutMode BVDC_P_Source_GetMpegScanoutMode_isr
+    ( BVDC_Source_Handle         hSource,
+      BAVC_MVD_Field            *pNewPic )
+{
+    bool                     bDoubleVertSize;
+    uint32_t                 ulHalfSrcRateLimit;
+    uint32_t                 ulL1RTSMaxHeight, ulL2RTSMaxHeight, ulPtRTSMaxHeight;
+    uint32_t                 ulSourceHeight;
+    BVDC_P_ScanoutMode       eMpegScanoutMode;
+    const BBOX_Config       *pBoxConfig;
+    BBOX_Vdc_SourceClass     eSourceClass;
+    BBOX_Vdc_SourceRateLimit eRateLimit;
+    const BVDC_SourceClassLimits  *pSourceClassLimit;
+
+    eMpegScanoutMode = hSource->stCurInfo.eWinScanoutMode;
+
+    /* Get boxmode mosaic mode class */
+    pBoxConfig = &hSource->hVdc->stBoxConfig;
+    eSourceClass = pBoxConfig->stVdc.astSource[hSource->eId].eClass;
+    if(eSourceClass == BBOX_Vdc_SourceClass_eLegacy)
+    {
+        /* Use the window decimate if no source class */
+        return eMpegScanoutMode;
+    }
+
+    /* Non-legacy class */
+    pSourceClassLimit = &hSource->hVdc->pstSrcClassTbl[eSourceClass];
+
+    eRateLimit = pBoxConfig->stVdc.astSource[hSource->eId].eRateLimit;
+    if(eRateLimit == BBOX_Vdc_SourceRateLimit_e50Hz)
+        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e25];
+    else
+        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e30];
+
+    if(s_aulFrmRate[hSource->eMfdVertRateCode] <= ulHalfSrcRateLimit)
+        bDoubleVertSize = true;
+    else
+        bDoubleVertSize = false;
+
+    ulL1RTSMaxHeight = pSourceClassLimit->landscape1[0].ulHeight << bDoubleVertSize;
+    ulL2RTSMaxHeight = pSourceClassLimit->landscape2[0].ulHeight << bDoubleVertSize;
+    ulPtRTSMaxHeight = pSourceClassLimit->portrait[0].ulHeight << bDoubleVertSize;
+    ulSourceHeight = pNewPic->ulSourceVerticalSize >>
+        (pNewPic->eSourcePolarity != BAVC_Polarity_eFrame);
+
+    if(hSource->stCurInfo.eWinScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_2_1)
+    {
+        if( (ulSourceHeight <= (ulL1RTSMaxHeight/2)) ||
+            (ulSourceHeight <= (ulL2RTSMaxHeight/2))  ||
+            (ulSourceHeight <= (ulPtRTSMaxHeight/2)) )
+        {
+            eMpegScanoutMode = BVDC_P_ScanoutMode_eLive;
+        }
+        else
+        {
+            /* Not fit in any of the above */
+            eMpegScanoutMode = BVDC_P_ScanoutMode_eLive_Decimate_2_1;
+        }
+    }
+    else if(hSource->stCurInfo.eWinScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_4_1)
+    {
+        if( (ulSourceHeight <= (ulL1RTSMaxHeight/4)) ||
+            (ulSourceHeight <= (ulL2RTSMaxHeight/4))  ||
+            (ulSourceHeight <= (ulPtRTSMaxHeight/4)) )
+        {
+            eMpegScanoutMode = BVDC_P_ScanoutMode_eLive;
+        }
+        else if( (ulSourceHeight <= (ulL1RTSMaxHeight/2)) ||
+            (ulSourceHeight <= (ulL2RTSMaxHeight/2))  ||
+            (ulSourceHeight <= (ulPtRTSMaxHeight/2)) )
+        {
+            eMpegScanoutMode = BVDC_P_ScanoutMode_eLive_Decimate_2_1;
+        }
+        else
+        {
+            eMpegScanoutMode = BVDC_P_ScanoutMode_eLive_Decimate_4_1;
+        }
+    }
+
+    return eMpegScanoutMode;
+}
+#endif
+
+
 #define BVDC_P_REFRESH_RATE_MISMATCHES_THRESHOLD   6
 /**************************************************************************
  *
@@ -2423,7 +2523,7 @@ static void BVDC_P_Source_ValidateMpegData_isr
        (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL != pNewPic->eMatrixCoefficients) &&
        (BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL != pNewPic->eMatrixCoefficients))
     {
-        const BVDC_Settings *pDefSetting = &hSource->hVdc->stSettings;
+        const BVDC_OpenSettings *pDefSetting = &hSource->hVdc->stSettings;
         if(pNewPic->ulSourceVerticalSize > BFMT_PAL_HEIGHT)
         {
             pNewPic->eMatrixCoefficients = pDefSetting->eColorMatrix_HD;
@@ -2582,6 +2682,27 @@ static void BVDC_P_Source_ValidateMpegData_isr
         }
     }
 
+#ifndef BVDC_FOR_BOOTUPDATER
+    /* Live scan out with decimation */
+    if(!hSource->stCurInfo.bMosaicMode &&
+       BVDC_P_SCANOUTMODE_DECIMATE(hSource->stCurInfo.eWinScanoutMode))
+    {
+        /* Connecting window size falls into decimate region. Check if
+         * need to decimate source */
+         hSource->hMpegFeeder->eScanoutMode = BVDC_P_Source_GetMpegScanoutMode_isr(hSource, pNewPic);
+        if(BVDC_P_SCANOUTMODE_DECIMATE(hSource->hMpegFeeder->eScanoutMode))
+        {
+            pNewPic->eSourcePolarity = BAVC_Polarity_eTopField;
+            pNewPic->eChrominanceInterpolationMode = BAVC_InterpolationMode_eField;
+            if(hSource->hMpegFeeder->eScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_4_1)
+            {
+                pNewPic->ulSourceVerticalSize = pNewPic->ulSourceVerticalSize/2;
+                pNewPic->ulDisplayVerticalSize= pNewPic->ulDisplayVerticalSize/2;
+            }
+        }
+    }
+#endif
+
     /* Check if there are general changes from previous pictures. */
     if(BVDC_P_FIELD_DIFF(pNewPic, pCurPic, bMute) ||
        BVDC_P_FIELD_DIFF(pNewPic, pCurPic, ulSourceHorizontalSize) ||
@@ -2620,11 +2741,13 @@ static void BVDC_P_Source_ValidateMpegData_isr
     }
 
 #if (BCHP_CHIP==7250)
+#ifndef BVDC_FOR_BOOTUPDATER
     if((hSource->hVdc->stBoxConfig.stBox.ulBoxId==8) &&
         (hSource->stCurInfo.bMosaicMode && (hSource->ulMosaicCount>1)))
     {
         hSource->bPictureChanged = true;
     }
+#endif
 #endif
 
     /* I -> P, or P -> I, for non-muted pictures. */

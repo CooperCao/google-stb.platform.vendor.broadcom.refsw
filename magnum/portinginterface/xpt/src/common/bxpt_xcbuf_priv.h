@@ -60,13 +60,11 @@ BERR_Code BXPT_P_XcBuf_Shutdown(
     BXPT_Handle hXpt            /* [in] Handle for this transport */
     );
 
-#ifdef BXPT_IS_CORE40NM
 void BXPT_XcBuf_P_EnablePlaybackPausing(
     BXPT_Handle hXpt,
     unsigned PbChannelNum,
     bool PauseEn
     );
-#endif
 
 #if BXPT_HAS_PIPELINE_ERROR_REPORTING
 BERR_Code BXPT_P_XcBuf_ReportOverflows(
@@ -78,5 +76,4 @@ BERR_Code BXPT_P_XcBuf_ReportOverflows(
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* BXPT_XCBUFF_PRIV_H__ */

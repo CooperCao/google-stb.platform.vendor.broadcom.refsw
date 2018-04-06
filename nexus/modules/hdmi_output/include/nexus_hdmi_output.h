@@ -389,7 +389,7 @@ typedef struct NEXUS_HdmiOutputStatus
     bool hdmiDevice;    /* True if Rx supports HDMI, false if supports only DVI */
     char monitorName[14];              /* NULL-terminated string for the monitor name */
     NEXUS_HdmiOutputMonitorRange monitorRange;  /* supported min and max H/V freqency ranges */
-    NEXUS_VideoFormat preferredVideoFormat;  /* monitor's preferred video format */
+    NEXUS_VideoFormat preferredVideoFormat;  /* Tx's preferred video format based on Rx/Tx capabilities */
     bool videoFormatSupported[NEXUS_VideoFormat_eMax];
     uint16_t hdmi3DFormatsSupported[NEXUS_VideoFormat_eMax]; /* This is a bit-field value. Use NEXUS_HdmiOutput_3DStructure_xxx macros
                                                                to determine the supported 3D Structures for a particular video format. */
@@ -421,6 +421,10 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus(
     NEXUS_HdmiOutputStatus *pStatus    /* [out] Status */
     );
 
+
+
+#define NEXUS_HDMI_OUTPUT_MAX_EDID_PREFERRED_FORMATS 2
+
 /**
 Summary:
 Basic EDID data from the receiver device
@@ -443,7 +447,8 @@ typedef struct NEXUS_HdmiOutputBasicEdidData
     /*  Detailed Timings/Descriptors */
     char monitorName[14];              /* NULL-terminated string for the monitor name */
     NEXUS_HdmiOutputMonitorRange monitorRange;  /* supported min and max H/V freqency ranges */
-    NEXUS_VideoFormat preferredVideoFormat;  /* monitor's preferred video format */
+    NEXUS_VideoFormat preferredVideoFormat;  /* preferred video format based on Rx and Tx capabilities */
+    NEXUS_VideoFormat preferredVideoFormats[NEXUS_HDMI_OUTPUT_MAX_EDID_PREFERRED_FORMATS];  /* Rx's preferred video formats */
 } NEXUS_HdmiOutputBasicEdidData;
 
 

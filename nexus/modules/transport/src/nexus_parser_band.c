@@ -36,7 +36,9 @@
  *  ANY LIMITED REMEDY.
  *****************************************************************/
 #include "nexus_transport_module.h"
+#ifdef BCHP_XPT_FE_REG_START
 #include "bchp_xpt_fe.h"
+#endif
 #if NEXUS_TRANSPORT_EXTENSION_TSMF
 #include "priv/nexus_tsmf_priv.h"
 #endif
@@ -51,6 +53,8 @@
 
 BDBG_MODULE(nexus_parser_band);
 BDBG_FILE_MODULE(nexus_flow_parser_band);
+
+#if NEXUS_NUM_PARSER_BANDS
 
 /* when we receive a parser band CC error interrupt, we can look up which pid channel had the error.
 this is not exact, but the approximate count is useful. */
@@ -68,8 +72,6 @@ void NEXUS_ParserBand_P_CountCcErrors_isr(void)
         }
     }
 }
-
-#if NEXUS_NUM_PARSER_BANDS
 
 #define PARSER_BAND_HAS_MEMORY(i) (pTransport->settings.clientEnabled.parserBand[i].rave)
 

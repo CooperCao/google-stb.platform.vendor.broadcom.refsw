@@ -243,21 +243,27 @@ int update_mac_addr(void)
 
 static void usage(void)
 {
-    printf( "Usage: wlinstall <driver name(optional, wl.ko will be used )> <intefacename(optional,wlan0 will be used ) <name of nvram file(optional)>  <name of plat driver (optional, wlplat.ko)\n" );
+    printf( "Usage: wlinstall <driver name(wl.ko will be used )> <intefacename(wlan0 will be used ) <name of nvram file (or else local path will be tried)>\n" );
 } /* usage */
 
 #define BUF_SIZE 1024
 #define COMMAND_BUF_SIZE 2048
 #define DEFAULT_IFACE_NAME "wlan0"
+#define DEFAULT_NVRAM_PATH "nvram.txt"
+#define PATH_SIZE 256
 
 int main(int argc, char **argv)
 {
     int board_index=0,i=0;
     char *buf=NULL;
+    char *nvram_name=NULL;
     char *command_buf=NULL;
-    char if_name[256];
+    char if_name[PATH_SIZE];
+    char nvram_path[PATH_SIZE];
     int size=0;
     FILE *fd=NULL;
+    char *wlpath=NULL;
+    unsigned int pathlen=0;
 
     if(argc == 2)
     {
@@ -268,18 +274,13 @@ int main(int argc, char **argv)
     }
 
     command_buf = (char *)malloc(COMMAND_BUF_SIZE);
-    if (command_buf == NULL)
-    {
-        printf("***Failed to allocate memory %d***\n ",COMMAND_BUF_SIZE);
-        goto error;
-    }
-
     buf = (char *)malloc(BUF_SIZE);
     if (buf == NULL)
     {
         printf("***Failed to allocate memory %d***\n",BUF_SIZE);
         goto error;
     }
+    memset((void*)if_name,0,sizeof(if_name));
 
     /* check the board and turn on wifi radio */
     memset((void*)buf,0,BUF_SIZE);
@@ -302,37 +303,24 @@ int main(int argc, char **argv)
     {
         printf("*** Add support for %s if PA is controlled through GPIO ***\n",buf);
     }
+    /* check the board and turn on wifi radio */
 
-    /* copy nvram file */
-    memset((void*)command_buf,0,COMMAND_BUF_SIZE);
-    if(argc >= 4)
-    {
-        if(strcmp("nvram.txt", argv[3]) != 0)
-            snprintf(command_buf, COMMAND_BUF_SIZE,"cp -vf %s nvram.txt",argv[3]);
-    }
-    else
+    /*Get board specific nvram file */
     {
         size = strlen(buf);
         if(size)
         {
+            nvram_name = (char *)malloc(PATH_SIZE);
+            memset((void*)nvram_name,0,PATH_SIZE);
             for(i=0;i<size;i++)
-                buf[i] = (char)tolower(buf[i]);
-            snprintf(command_buf, COMMAND_BUF_SIZE,"cp -vf %s.txt nvram.txt",buf);
+                nvram_name[i] = (char)tolower(buf[i]);
+            printf("*** nvram file name is  %s ***\n", nvram_name);
         }
     }
-    if (strlen(command_buf))
-    {
-        /* printf("%s\n",command_buf);*/
-        system(command_buf);
-        system("sync");
-    }
-    else
-    {
-        printf("*** No new nvram provided, driver will use nvram.txt file from the local directory  ***\n");
-    }
+    /*Get board specific nvram file */
 
-    /* update_mac_addr(); */
-    /* uninstall driver must be uninstalled wl, then wlplat */
+
+    /* Clean up any prior installed kernel drivers */
     memset((void*)buf,0,BUF_SIZE);
     fd = popen("lsmod | grep -w wl", "r");
     if(fread(buf, 1, sizeof(buf), fd) > 0) {
@@ -346,6 +334,7 @@ int main(int argc, char **argv)
         printf("*** Module wl is not loaded\n");
     }
 
+    memset((void*)buf,0,BUF_SIZE);
     fd = popen("lsmod | grep -w wlplat","r");
     if(fread(buf, 1, sizeof(buf), fd) > 0) {
         memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
@@ -357,58 +346,95 @@ int main(int argc, char **argv)
     else {
         printf("*** Module wlplat is not loaded\n");
     }
+    /* Clean up any prior installed kernel drivers */
 
-    /* install driver */
-    memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
-    if(argc >= 5)
-    {
-        snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s",argv[4]);
+    /*Parse arguments */
+    if(argc >= 2){
+        wlpath = (char *)malloc(PATH_SIZE);
+        if (wlpath == NULL)
+        {
+            printf("***Failed to allocate memory %d***\n",PATH_SIZE);
+            goto error;
+        }
+        memset((void*)wlpath,0,PATH_SIZE);
+        pathlen=strlen(argv[1]);
+        if (pathlen>4)
+            memcpy(wlpath,argv[1],pathlen-5);
     }
-    else
-    {
-        snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlplat.ko");
-    }
 
-    printf("*** Installing driver: %s ***\n",command_buf);
-    sleep(1);
-    system(command_buf);
-
-    memset((void*)if_name,0,sizeof(if_name));
     if(argc >= 3)
-    {
-        snprintf(if_name, sizeof(if_name),"intf_name=%s",argv[2]);
-    }
+            snprintf(if_name, sizeof(if_name),"intf_name=%s",argv[2]);
     else
-    {
-        snprintf(if_name, sizeof(if_name),"intf_name=%s",DEFAULT_IFACE_NAME);
-    }
+            snprintf(if_name, sizeof(if_name),"intf_name=%s",DEFAULT_IFACE_NAME);
 
-    /* install driver */
-    memset((void*)buf,0,BUF_SIZE);
-    if(argc >= 2)
+    if(argc >= 4)
     {
-        snprintf(buf, BUF_SIZE,"%s",argv[1]);
+        memset((void*)nvram_path,0,sizeof(nvram_path));
+        snprintf(nvram_path, sizeof(nvram_path),"nvram_path=%s",argv[3]);
+    } else if(nvram_name) {
+        memset((void*)command_buf,0,COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE,"ls | grep -w %s",nvram_name);
+
+        memset((void*)buf,0,BUF_SIZE);
+        fd = popen(command_buf,"r");
+        if(fread(buf, 1, sizeof(buf), fd) > 0) {
+            snprintf(nvram_path, sizeof(nvram_path), "nvram_path=%s.txt",nvram_name);
+        } else {
+            memset((void*)command_buf,0,COMMAND_BUF_SIZE);
+            snprintf(command_buf, COMMAND_BUF_SIZE,"ls %s | grep -w %s",wlpath,nvram_name);
+
+            memset((void*)buf,0,BUF_SIZE);
+            fd = popen(command_buf,"r");
+            if(fread(buf, 1, sizeof(buf), fd) > 0)
+                snprintf(nvram_path, sizeof(nvram_path), "nvram_path=%s%s.txt",wlpath,nvram_name);
+        }
+    } else {
+        snprintf(nvram_path, sizeof(nvram_path),"nvram_path=%s",DEFAULT_NVRAM_PATH);
     }
-    else
+    /*Parse arguments */
+
+
+    /* Install plat driver*/
     {
-        snprintf(buf, BUF_SIZE,"%s","wl.ko");
+        memset((void*)command_buf,0,COMMAND_BUF_SIZE);
+        if(wlpath)
+            snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %swlplat.ko",wlpath);
+        else
+            snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s","wlplat.ko");
+        printf("*** Installing driver: %s ***\n",command_buf);
+        sleep(1);
+        system(command_buf);
     }
-    memset((void*)command_buf,0,COMMAND_BUF_SIZE);
-    snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s %s",buf,if_name);
-    printf("*** Installing driver: %s\n",command_buf);
-    sleep(1);
-    system(command_buf);
+    /* Install plat driver*/
+
+    /* Install wl driver*/
+    {
+        memset((void*)buf,0,BUF_SIZE);
+        if(wlpath)
+            snprintf(buf, BUF_SIZE,"%swl.ko",wlpath);
+        else
+            snprintf(buf, BUF_SIZE,"%s","wl.ko");
+        memset((void*)command_buf,0,COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s %s %s",buf,if_name,nvram_path);
+        printf("*** Installing driver: %s\n",command_buf);
+        sleep(1);
+        system(command_buf);
+    }
+    /* Install wl driver*/
+
     free(buf);
     free(command_buf);
+    free(nvram_name);
+    free(wlpath);
     return 0;
 error:
     if (buf)
-    {
         free(buf);
-    }
     if (command_buf)
-    {
         free(command_buf);
-    }
+    if (nvram_name)
+        free(nvram_name);
+    if (wlpath)
+        free(wlpath);
     return 1;
 }

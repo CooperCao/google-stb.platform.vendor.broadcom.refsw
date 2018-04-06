@@ -41,14 +41,17 @@
 #include "context_mgt.h"
 #include "gic.h"
 #include "interrupt.h"
+#include "dvfs.h"
 #include "brcmstb_svc.h"
 #include "brcmstb_astra.h"
 
 static void do_astra_nsec_switch(uint64_t *ctx);
+static void do_astra_cpu_update(uint64_t *ctx);
 
 static service_do_func_t do_astra_funcs[BRCMSTB_SVC_ASTRA_MAX] =
 {
-    do_astra_nsec_switch
+    do_astra_nsec_switch,
+    do_astra_cpu_update,
 };
 
 static void brcmstb_svc_astra_init(void)
@@ -87,6 +90,21 @@ static void do_astra_nsec_switch(uint64_t *ctx)
     /* Only switch to non-secure world if enabled */
     if (is_nsec_enable())
         cm_switch_context((cpu_context_t *)ctx, NON_SECURE);
+}
+
+static void do_astra_cpu_update(uint64_t *ctx)
+{
+    uint32_t cpu_load = ctx[1];
+    uint32_t cpu_freq;
+
+    /* Update DVFS with CPU load */
+    dvfs_set_sec_load(cpu_load);
+
+    /* Return CPU frequency from DVFS */
+    dvfs_get_sec_freq(&cpu_freq);
+
+    ctx[1] = cpu_freq;
+    ctx[0] = SMC_OK;
 }
 
 service_mod_desc_t brcmstb_svc_astra_desc = {

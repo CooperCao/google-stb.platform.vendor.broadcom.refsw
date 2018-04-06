@@ -70,7 +70,10 @@ enum {
 
 /* Brcmstb SOC register group descriptor */
 typedef struct brcmstb_rgroup {
-    uint32_t rev; /* Revision is used in case register offsets/formats changed */
+    /* Revision is bumped in case the offsets and/or formats
+     * of any relevent registers in the group have changed
+     */
+    uint32_t rev;
     uint32_t base;
     uint32_t size;
 } brcmstb_rgroup_t;

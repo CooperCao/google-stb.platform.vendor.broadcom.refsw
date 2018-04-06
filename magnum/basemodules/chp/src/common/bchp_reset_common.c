@@ -43,7 +43,7 @@
 #include "bchp_priv.h"
 
 #include "bchp_common.h"
-#if defined BCHP_V3D_TFU_REG_START || BCHP_V3D_TFUV3D_REG_START
+#ifdef BCHP_V3D_TFU_REG_START
 /* VC5 */
 #define USE_VC5 1
 
@@ -65,12 +65,6 @@
 #define V3D_TECH_VERSION   BCHP_V3D_CTL_0_IDENT0_TVER_DEFAULT
 #define V3D_REVISION       BCHP_V3D_CTL_0_IDENT1_REV_DEFAULT
 #define V3D_SUB_REV        BCHP_V3D_CTL_0_IDENT3_IPREV_DEFAULT
-#define V3D_HIDDEN_REV     0
-#elif defined(BCHP_V3D_CTLV3D_REG_START)
-#include "bchp_v3d_ctlv3d.h"
-#define V3D_TECH_VERSION   BCHP_V3D_CTLV3D_IDENT0_TVER_DEFAULT
-#define V3D_REVISION       BCHP_V3D_CTLV3D_IDENT1_REV_DEFAULT
-#define V3D_SUB_REV        BCHP_V3D_CTLV3D_IDENT3_IPREV_DEFAULT
 #define V3D_HIDDEN_REV     0
 #else
 #include "bchp_v3d_ctl.h"
@@ -106,8 +100,6 @@
 
 #ifdef BCHP_V3D_HUB_CTL_REG_START
 #include "bchp_v3d_hub_ctl.h"
-#else
-#include "bchp_v3d_hub_ctlv3d.h"
 #endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -425,9 +417,6 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
     #ifdef BCHP_V3D_CTL_0_INT_CLR
     BREG_Write32(hReg, BCHP_V3D_CTL_0_INT_CLR, ~0);
     BREG_Write32(hReg, BCHP_V3D_HUB_CTL_INT_CLR, ~0);
-    #else
-    BREG_Write32(hReg, BCHP_V3D_CTLV3D_INT_CLR, ~0);
-    BREG_Write32(hReg, BCHP_V3D_HUB_CTLV3D_INT_CLR, ~0);
     #endif
 #endif /* V3D_VER_AT_LEAST */
 #else

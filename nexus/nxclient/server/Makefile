@@ -42,6 +42,9 @@ NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
+ifndef B_REFSW_SHAREABLE
+B_REFSW_SHAREABLE := y
+endif
 
 NEXUS_TOP := $(shell cd ../../;pwd)
 
@@ -109,8 +112,13 @@ CFLAGS += -MMD
 # Some systems build libnxserver.a into a .so. This could increase code size, but I don't see it.
 CFLAGS += -fPIC
 
+ifeq ($(B_REFSW_SHAREABLE),y)
 NXCLIENT_P_SHARED_LIB := $(BINDIR)/libnxclient.so
 NXCLIENT_P_LOCAL_SHARED_LIB := $(BINDIR)/libnxclient_local.so
+else
+NXCLIENT_P_SHARED_LIB := $(BINDIR)/libnxclient.a
+NXCLIENT_P_LOCAL_SHARED_LIB := $(BINDIR)/libnxclient_local.a
+endif
 
 $(BINDIR)/nxserver $(BINDIR)/nxserverlib_ipc.o $(BINDIR)/nxserverlib_ipc_verify.o: $(NXCLIENT_P_SHARED_LIB)
 
@@ -166,6 +174,9 @@ endif
 NXSERVERLIB = $(BINDIR)/libnxserver.a
 NXSERVERLIB_OBJS := $(addprefix $(BINDIR)/,$(patsubst %.c,%.o,$(NXSERVERLIB_SRCS)))
 NXSERVER_OBJS := $(addprefix $(BINDIR)/,$(patsubst %.c,%.o,$(NXSERVER_SRC)))
+ifneq ($(B_REFSW_SHAREABLE),y)
+NEXUS_STATIC_LIB := $(NEXUS_OBJ_DIR)/libnexus.a
+endif
 
 clean_apps:
 	-$(RM) -r $(BINDIR)
@@ -184,7 +195,7 @@ $(NXSERVERLIB): $(NXSERVERLIB_OBJS) $(EXTRA_OBJS)
 	$(Q_)$(AR) rcs $@ $^
 	$(CP) $@ ${NEXUS_BIN_DIR}
 
-$(BINDIR)/nxserver: $(NXSERVER_OBJS) $(NXSERVERLIB)
+$(BINDIR)/nxserver: $(NXSERVER_OBJS) $(NXSERVERLIB) $(NEXUS_STATIC_LIB)
 	@echo [Link... $@]
 	@mkdir -p $(dir $@)
 	$(Q_)$(CC) -o $@ $(filter %.o %.a,$^) $(CFLAGS) $(LDFLAGS)
@@ -196,7 +207,10 @@ install: all
 
 all:
 	@echo [Install... nxclient to $(realpath ${NEXUS_BIN_DIR})]
-	${Q_}$(CP) $(BINDIR)/nxserver $(NXCLIENT_P_SHARED_LIB) $(NXCLIENT_P_LOCAL_SHARED_LIB) ${NEXUS_BIN_DIR}
+	${Q_}$(CP) $(BINDIR)/nxserver ${NEXUS_BIN_DIR}
+ifeq ($(B_REFSW_SHAREABLE),y)
+	${Q_}$(CP) $(NXCLIENT_P_SHARED_LIB) $(NXCLIENT_P_LOCAL_SHARED_LIB) ${NEXUS_BIN_DIR}
+endif
 
 nexus_headers:
 	${Q_}echo Copying header files to ${NEXUS_BIN_DIR}/include

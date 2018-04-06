@@ -235,15 +235,13 @@ static void platform_init_uart(void *devTree)
 
     uint8_t *serialStart = (uint8_t *)PAGE_START_4K(serialAddr);
     uint8_t *serialEnd = serialStart + PAGE_SIZE_4K_BYTES - 1;
+    UNUSED(uartEnd);
 
     PageTable *kernelPageTable = PageTable::kernelPageTable();
 
-    if (serialStart != uartStart ||
-        serialEnd != uartEnd) {
-        kernelPageTable->mapPageRange(
+    kernelPageTable->mapPageRange(
             serialStart, serialEnd, uartStart,
             MAIR_DEVICE, MEMORY_ACCESS_RW_KERNEL, true, false);
-    }
 
     // Hold off uart switching till entire system init done
     sys_uart = (uintptr_t)serialAddr;

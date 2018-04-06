@@ -37,8 +37,40 @@
  *****************************************************************************/
 
 #include "monitor.h"
+#include "platform_dvfs.h"
 #include "brcmstb_svc.h"
 #include "brcmstb_dvfs.h"
+#include "brcmstb_priv.h"
+#include "avs.h"
+
+void plat_dvfs_init(void)
+{
+    uintptr_t mbox_base    = BRCMSTB_RGROUP_BASE(AVS_CPU_DATA_MEM);
+    uintptr_t host_l2_base = BRCMSTB_RGROUP_BASE(AVS_HOST_L2);
+    uintptr_t avs_l2_base  = BRCMSTB_RGROUP_BASE(AVS_CPU_L2);
+
+    avs_init(
+        mbox_base,
+        host_l2_base,
+        avs_l2_base);
+}
+
+int plat_cpu_pstate_set(uint32_t pstate)
+{
+    return avs_cpu_pstate_set(pstate);
+}
+
+int plat_cpu_pstate_get(uint32_t *ppstate)
+{
+    return avs_cpu_pstate_get(ppstate);
+}
+
+int plat_cpu_pstate_freqs(
+    size_t *pcount,
+    uint32_t *pfreqs)
+{
+    return avs_cpu_pstate_freqs(pcount, pfreqs);
+}
 
 static void brcmstb_svc_dvfs_init(void)
 {

@@ -970,7 +970,7 @@ static void NEXUS_HdmiOutput_P_GetStatusEdidData(NEXUS_HdmiOutputHandle output, 
         /* Keep going - other parts of the EDID may be valid */
     }
 
-    /*** Preferred format ***/
+    /*** Tx Preferred format ***/
     pStatus->preferredVideoFormat = NEXUS_HdmiOutput_P_GetPreferredFormat(output);
 
 
@@ -1120,8 +1120,8 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
         /* no further checking is required; cannot determine any addl support */
         goto done ;
     }
-	else
-	{
+    else
+    {
         NEXUS_HdmiOutput_P_GetStatusEdidData(output, pStatus) ;
     }
 
@@ -1259,6 +1259,7 @@ done:
 NEXUS_Error NEXUS_HdmiOutput_GetBasicEdidData( NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputBasicEdidData *pData )
 {
     NEXUS_Error errCode;
+	uint8_t i ;
 
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
     RESOLVE_ALIAS(output);
@@ -1275,7 +1276,15 @@ NEXUS_Error NEXUS_HdmiOutput_GetBasicEdidData( NEXUS_HdmiOutputHandle output, NE
 
     /* convert magnum to nexus video format */
     pData->preferredVideoFormat =
-        NEXUS_P_VideoFormat_FromMagnum_isrsafe((BFMT_VideoFmt)pData->preferredVideoFormat);
+        NEXUS_HdmiOutput_P_GetPreferredFormat(output);
+
+    for (i = 0 ; i < BHDM_EDID_MAX_PREFERRED_FORMATS ; i++)
+    {
+        pData->preferredVideoFormats[i] =
+            NEXUS_P_VideoFormat_FromMagnum_isrsafe((BFMT_VideoFmt)pData->preferredVideoFormats[i]);
+    }
+    BDBG_MSG(("Tx Preferred Video Format: %d", pData->preferredVideoFormat)) ;
+
     return BERR_SUCCESS;
 }
 
@@ -1407,6 +1416,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
             output->invalidEdidReported = true ;
         }
         pEdid->basicData.preferredVideoFormat = NEXUS_VideoFormat_eVesa640x480p60hz ;
+        pEdid->basicData.preferredVideoFormats[0] = NEXUS_VideoFormat_eVesa640x480p60hz ;
         BKNI_Memcpy(pEdid->basicData.monitorName, InvalidEdidName, sizeof(InvalidEdidName)) ;
         goto done ;
     }
@@ -1523,6 +1533,8 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
     /* Supported Video Formats (Preferred Timings, Video DBs, YCbCr 4:2:0 DBs) */
     retCode = NEXUS_HdmiOutput_P_GetSupportedFormats(output, pEdid->videoFormatSupported) ;
     if ( retCode ) { errCode = BERR_TRACE(retCode); }
+
+	pEdid->valid = true ;
 
 done:
     if (pstBcmAudioFormats)
@@ -1666,6 +1678,7 @@ NEXUS_AudioOutputHandle NEXUS_HdmiOutput_GetAudioConnector( NEXUS_HdmiOutputHand
 static NEXUS_VideoFormat NEXUS_HdmiOutput_P_GetPreferredFormat(NEXUS_HdmiOutputHandle output)
 {
     NEXUS_Error errCode;
+    BERR_Code rc  ;
     BFMT_VideoFmt magnumFormat;
     NEXUS_VideoFormat nexusFormat;
     BHDM_EDID_DetailTiming detailedTiming ;
@@ -1676,17 +1689,19 @@ static NEXUS_VideoFormat NEXUS_HdmiOutput_P_GetPreferredFormat(NEXUS_HdmiOutputH
 
 get_next_detailed_timing_from_edid:
     /* first detailed EDID block contains preferred format */
-    (void) BHDM_EDID_GetDetailTiming(output->hdmHandle, detailTimingNum, &detailedTiming, &magnumFormat);
+    rc =  BHDM_EDID_GetDetailTiming(output->hdmHandle, detailTimingNum, &detailedTiming, &magnumFormat);
 
     /* if the 1st/current detailed (preferred) format is not supported, */
-    /*     check if the next detailed timing format is supported */
-    if (!BFMT_SUPPORT_HDMI(magnumFormat))
+    /* a bcm driver proposed alternate is returned and can be used */
+    /* or check if the next detailed timing format is supported */
+    if ((!BFMT_SUPPORT_HDMI(magnumFormat))
+    ||  (rc == BHDM_EDID_DETAILTIMING_NOT_SUPPORTED))
     {
         detailTimingNum++;
         goto get_next_detailed_timing_from_edid ;
     }
 
-    /* Translate the first selection */
+    /* Translate the first STB preferred format found */
     nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(magnumFormat);
 
     /* If preferred format is VESA, check for HD format */
@@ -2772,14 +2787,27 @@ NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
     )
 {
     BERR_Code errCode = BERR_SUCCESS ;
+    uint8_t deviceAttached = false ;
+
     if (handle->videoConnected)
     {
         BDBG_WRN(("HDMI Output device already connected to the display")) ;
-		goto done ;
+        goto done ;
     }
 
     errCode = BHDM_Resume(handle->hdmHandle) ;
     if (errCode) { errCode = BERR_TRACE(errCode) ;}
+
+
+    errCode = BHDM_RxDeviceAttached(handle->hdmHandle, &deviceAttached);
+    if (errCode) {errCode = BERR_TRACE(errCode) ; }
+
+    /* when adding HDMI to display. force a hot plug if a device is attached */
+    if (deviceAttached)
+    {
+        NEXUS_HdmiOutput_P_HotplugCallback(handle) ;
+    }
+
     handle->videoConnected = true;
 
 done:

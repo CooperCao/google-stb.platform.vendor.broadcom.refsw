@@ -141,8 +141,7 @@ static void NEXUS_AudioModule_Print(void)
     unsigned i,j;
     BDBG_LOG(("Audio:"));
 
-    BDBG_LOG((" handles: ape:%p dsp:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.dspHandle));
-    BDBG_LOG((" img ctxt:%p", (void *)g_NEXUS_audioModuleData.pImageContext));
+    BDBG_LOG((" handles: ape:%p dsp:%p img:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.dspHandle, (void *)g_NEXUS_audioModuleData.pImageContext));
     BDBG_LOG((" settings: wd:%d id:%d",g_NEXUS_audioModuleData.settings.watchdogEnabled,g_NEXUS_audioModuleData.settings.independentDelay));
 
     for (i=0; i < g_NEXUS_audioModuleData.capabilities.numDecoders; i++) {
@@ -175,6 +174,9 @@ static void NEXUS_AudioModule_Print(void)
             BDBG_LOG(("  dsp index=%d started=%s, codec=%d, pid=0x%x, pidCh=%p, stcCh=%p",handle->openSettings.dspIndex,
                 status.started == NEXUS_AudioRunningState_eStarted ? "started" : (status.started == NEXUS_AudioRunningState_eSuspended ? "suspended" : "stopped"),
                 status.started ? status.codec : 0, pidChannelStatus.pid, (void *)handle->programSettings.pidChannel, (void *)handle->programSettings.stcChannel));
+            if (status.started && (status.numFifoOverflows || status.numFifoUnderflows)) {
+                BDBG_LOG(("  overflows=%u, underflows=%u", status.numFifoOverflows, status.numFifoUnderflows));
+            }
             BDBG_LOG(("  fifo: %d/%d (%d%%), queued: %d", status.fifoDepth, status.fifoSize, status.fifoSize ? status.fifoDepth*100/status.fifoSize : 0, status.queuedFrames));
             BDBG_LOG(("  TSM: %s pts=%#x pts_stc_diff=%d pts_offset=%#x errors=%d", status.tsm ? "enabled" : "disabled", status.pts, status.ptsStcDifference,
                 tsmSettings.ptsOffset, status.ptsErrorCount));
@@ -242,9 +244,12 @@ static void NEXUS_AudioModule_Print(void)
         }
     }
 
-    BDBG_LOG(("Audio DSP Firmware Version %s", g_NEXUS_audioModuleData.dspFirmwareVersionInfo));
-    BDBG_LOG(("Audio ARM Firmware Version %s", g_NEXUS_audioModuleData.armFirmwareVersionInfo));
-
+    if (g_NEXUS_audioModuleData.dspFirmwareVersionInfo[0]) {
+        BDBG_LOG(("Audio DSP Firmware Version %s", g_NEXUS_audioModuleData.dspFirmwareVersionInfo));
+    }
+    if (g_NEXUS_audioModuleData.armFirmwareVersionInfo[0]) {
+        BDBG_LOG(("Audio ARM Firmware Version %s", g_NEXUS_audioModuleData.armFirmwareVersionInfo));
+    }
 #endif
 }
 
@@ -1321,76 +1326,78 @@ err :
 
 void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
 {
-    BAPE_Capabilities apeCaps;
+    BAPE_Capabilities * apeCaps;
     unsigned i,j;
     BDBG_ASSERT(NULL != pCaps);
 
-    BAPE_GetCapabilities(g_NEXUS_audioModuleData.apeHandle, &apeCaps);
+    BAPE_GetCapabilities(g_NEXUS_audioModuleData.apeHandle, &g_NEXUS_audioModuleData.piCapabilities);
+
+    apeCaps = &g_NEXUS_audioModuleData.piCapabilities;
 
     BKNI_Memset(pCaps, 0, sizeof(NEXUS_AudioCapabilities));
 
-    BKNI_Memcpy(&g_NEXUS_audioModuleData.dspFirmwareVersionInfo, &apeCaps.dsp[BAPE_DEVICE_TYPE_DSP].versionInfo, sizeof(apeCaps.dsp[BAPE_DEVICE_TYPE_DSP].versionInfo));
-    BKNI_Memcpy(&g_NEXUS_audioModuleData.armFirmwareVersionInfo, &apeCaps.dsp[BAPE_DEVICE_TYPE_ARM].versionInfo, sizeof(apeCaps.dsp[BAPE_DEVICE_TYPE_ARM].versionInfo));
+    BKNI_Memcpy(&g_NEXUS_audioModuleData.dspFirmwareVersionInfo, &apeCaps->dsp[BAPE_DEVICE_TYPE_DSP].versionInfo, sizeof(apeCaps->dsp[BAPE_DEVICE_TYPE_DSP].versionInfo));
+    BKNI_Memcpy(&g_NEXUS_audioModuleData.armFirmwareVersionInfo, &apeCaps->dsp[BAPE_DEVICE_TYPE_ARM].versionInfo, sizeof(apeCaps->dsp[BAPE_DEVICE_TYPE_ARM].versionInfo));
 
     #ifdef NEXUS_NUM_HDMI_INPUTS
-    pCaps->numInputs.hdmi = NEXUS_NUM_HDMI_INPUTS < apeCaps.numInputs.mai ? NEXUS_NUM_HDMI_INPUTS : apeCaps.numInputs.mai;
+    pCaps->numInputs.hdmi = NEXUS_NUM_HDMI_INPUTS < apeCaps->numInputs.mai ? NEXUS_NUM_HDMI_INPUTS : apeCaps->numInputs.mai;
     #endif
     #ifdef NEXUS_NUM_I2S_INPUTS
-    pCaps->numInputs.i2s = NEXUS_NUM_I2S_INPUTS < apeCaps.numInputs.i2s ? NEXUS_NUM_I2S_INPUTS : apeCaps.numInputs.i2s;
+    pCaps->numInputs.i2s = NEXUS_NUM_I2S_INPUTS < apeCaps->numInputs.i2s ? NEXUS_NUM_I2S_INPUTS : apeCaps->numInputs.i2s;
     #endif
     #ifdef NEXUS_NUM_SPDIF_INPUTS
-    pCaps->numInputs.spdif = NEXUS_NUM_SPDIF_INPUTS < apeCaps.numInputs.spdif ? NEXUS_NUM_SPDIF_INPUTS : apeCaps.numInputs.spdif;
+    pCaps->numInputs.spdif = NEXUS_NUM_SPDIF_INPUTS < apeCaps->numInputs.spdif ? NEXUS_NUM_SPDIF_INPUTS : apeCaps->numInputs.spdif;
     #endif
     #ifdef NEXUS_NUM_AUDIO_RETURN_CHANNEL
-    pCaps->numOutputs.audioReturnChannel = NEXUS_NUM_AUDIO_RETURN_CHANNEL < apeCaps.numOutputs.audioReturnChannel ? NEXUS_NUM_AUDIO_RETURN_CHANNEL : apeCaps.numOutputs.audioReturnChannel;
+    pCaps->numOutputs.audioReturnChannel = NEXUS_NUM_AUDIO_RETURN_CHANNEL < apeCaps->numOutputs.audioReturnChannel ? NEXUS_NUM_AUDIO_RETURN_CHANNEL : apeCaps->numOutputs.audioReturnChannel;
     #endif
     #ifdef NEXUS_NUM_AUDIO_CAPTURES
-    pCaps->numOutputs.capture = NEXUS_NUM_AUDIO_CAPTURES < apeCaps.numOutputs.capture ? NEXUS_NUM_AUDIO_CAPTURES : apeCaps.numOutputs.capture;
+    pCaps->numOutputs.capture = NEXUS_NUM_AUDIO_CAPTURES < apeCaps->numOutputs.capture ? NEXUS_NUM_AUDIO_CAPTURES : apeCaps->numOutputs.capture;
     #endif
     #ifdef NEXUS_NUM_AUDIO_DACS
-    pCaps->numOutputs.dac = NEXUS_NUM_AUDIO_DACS < apeCaps.numOutputs.dac ? NEXUS_NUM_AUDIO_DACS : apeCaps.numOutputs.dac;
+    pCaps->numOutputs.dac = NEXUS_NUM_AUDIO_DACS < apeCaps->numOutputs.dac ? NEXUS_NUM_AUDIO_DACS : apeCaps->numOutputs.dac;
     #endif
     #ifdef NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-    pCaps->numOutputs.dummy = NEXUS_NUM_AUDIO_DUMMY_OUTPUTS < apeCaps.numOutputs.dummy ? NEXUS_NUM_AUDIO_DUMMY_OUTPUTS : apeCaps.numOutputs.dummy;
+    pCaps->numOutputs.dummy = NEXUS_NUM_AUDIO_DUMMY_OUTPUTS < apeCaps->numOutputs.dummy ? NEXUS_NUM_AUDIO_DUMMY_OUTPUTS : apeCaps->numOutputs.dummy;
     #endif
     #ifdef NEXUS_NUM_HDMI_OUTPUTS
-    pCaps->numOutputs.hdmi = NEXUS_NUM_HDMI_OUTPUTS < apeCaps.numOutputs.mai ? NEXUS_NUM_HDMI_OUTPUTS : apeCaps.numOutputs.mai;
+    pCaps->numOutputs.hdmi = NEXUS_NUM_HDMI_OUTPUTS < apeCaps->numOutputs.mai ? NEXUS_NUM_HDMI_OUTPUTS : apeCaps->numOutputs.mai;
     #endif
     #ifdef NEXUS_NUM_I2S_OUTPUTS
-    pCaps->numOutputs.i2s = NEXUS_NUM_I2S_OUTPUTS < apeCaps.numOutputs.i2s ? NEXUS_NUM_I2S_OUTPUTS : apeCaps.numOutputs.i2s;
+    pCaps->numOutputs.i2s = NEXUS_NUM_I2S_OUTPUTS < apeCaps->numOutputs.i2s ? NEXUS_NUM_I2S_OUTPUTS : apeCaps->numOutputs.i2s;
     #endif
-    pCaps->numOutputs.loopback = apeCaps.numOutputs.loopback;
+    pCaps->numOutputs.loopback = apeCaps->numOutputs.loopback;
     #ifdef NEXUS_NUM_RFM_OUTPUTS
-    pCaps->numOutputs.rfmod = NEXUS_NUM_RFM_OUTPUTS < apeCaps.numOutputs.rfmod ? NEXUS_NUM_RFM_OUTPUTS : apeCaps.numOutputs.rfmod;
+    pCaps->numOutputs.rfmod = NEXUS_NUM_RFM_OUTPUTS < apeCaps->numOutputs.rfmod ? NEXUS_NUM_RFM_OUTPUTS : apeCaps->numOutputs.rfmod;
     #endif
     #ifdef NEXUS_NUM_SPDIF_OUTPUTS
-    pCaps->numOutputs.spdif = NEXUS_NUM_SPDIF_OUTPUTS < apeCaps.numOutputs.spdif ? NEXUS_NUM_SPDIF_OUTPUTS : apeCaps.numOutputs.spdif;
+    pCaps->numOutputs.spdif = NEXUS_NUM_SPDIF_OUTPUTS < apeCaps->numOutputs.spdif ? NEXUS_NUM_SPDIF_OUTPUTS : apeCaps->numOutputs.spdif;
     #endif
 
     #ifdef NEXUS_NUM_AUDIO_DECODERS
-    pCaps->numDecoders = NEXUS_NUM_AUDIO_DECODERS < apeCaps.numDecoders ? NEXUS_NUM_AUDIO_DECODERS : apeCaps.numDecoders;
+    pCaps->numDecoders = NEXUS_NUM_AUDIO_DECODERS < apeCaps->numDecoders ? NEXUS_NUM_AUDIO_DECODERS : apeCaps->numDecoders;
     #endif
     #ifdef NEXUS_NUM_AUDIO_PLAYBACKS
-    pCaps->numPlaybacks = NEXUS_NUM_AUDIO_PLAYBACKS < apeCaps.numPlaybacks ? NEXUS_NUM_AUDIO_PLAYBACKS : apeCaps.numPlaybacks;
+    pCaps->numPlaybacks = NEXUS_NUM_AUDIO_PLAYBACKS < apeCaps->numPlaybacks ? NEXUS_NUM_AUDIO_PLAYBACKS : apeCaps->numPlaybacks;
     #endif
     #ifdef NEXUS_NUM_AUDIO_INPUT_CAPTURES
-    pCaps->numInputCaptures = NEXUS_NUM_AUDIO_INPUT_CAPTURES < apeCaps.numInputCaptures ? NEXUS_NUM_AUDIO_INPUT_CAPTURES : apeCaps.numInputCaptures;
+    pCaps->numInputCaptures = NEXUS_NUM_AUDIO_INPUT_CAPTURES < apeCaps->numInputCaptures ? NEXUS_NUM_AUDIO_INPUT_CAPTURES : apeCaps->numInputCaptures;
     #endif
     #ifdef NEXUS_NUM_AUDIO_MIXERS
-    pCaps->numMixers = apeCaps.numHwMixers + apeCaps.numBypassMixers;
+    pCaps->numMixers = apeCaps->numHwMixers + apeCaps->numBypassMixers;
     pCaps->numMixers = NEXUS_NUM_AUDIO_MIXERS < pCaps->numMixers ? NEXUS_NUM_AUDIO_MIXERS : pCaps->numMixers;
     #endif
-    pCaps->numVcxos = apeCaps.numVcxos;
-    pCaps->numPlls = apeCaps.numPlls;
-    pCaps->numNcos = apeCaps.numNcos;
-    pCaps->numStcs = apeCaps.numStcs;
-    pCaps->numCrcs = apeCaps.numCrcs;
-    pCaps->numSrcs = apeCaps.numSrcs;
-    pCaps->numEqualizerStages = apeCaps.numEqualizerStages;
-    pCaps->equalizer.supported = apeCaps.equalizer.supported;
+    pCaps->numVcxos = apeCaps->numVcxos;
+    pCaps->numPlls = apeCaps->numPlls;
+    pCaps->numNcos = apeCaps->numNcos;
+    pCaps->numStcs = apeCaps->numStcs;
+    pCaps->numCrcs = apeCaps->numCrcs;
+    pCaps->numSrcs = apeCaps->numSrcs;
+    pCaps->numEqualizerStages = apeCaps->numEqualizerStages;
+    pCaps->equalizer.supported = apeCaps->equalizer.supported;
 
-    pCaps->numDsps = apeCaps.numDevices[BAPE_DEVICE_TYPE_DSP];
-    pCaps->numSoftAudioCores = apeCaps.numDevices[BAPE_DEVICE_TYPE_ARM];
+    pCaps->numDsps = apeCaps->numDevices[BAPE_DEVICE_TYPE_DSP];
+    pCaps->numSoftAudioCores = apeCaps->numDevices[BAPE_DEVICE_TYPE_ARM];
     for ( j = 0; j < BAPE_DEVICE_TYPE_MAX; j++ )
     {
         for ( i = 0; i < NEXUS_AudioCodec_eMax; i++ )
@@ -1398,32 +1405,32 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
             BAVC_AudioCompressionStd codec = NEXUS_Audio_P_CodecToMagnum(i);
             if ( codec != BAVC_AudioCompressionStd_eMax )
             {
-                pCaps->dsp.codecs[i].decode |= apeCaps.dsp[j].codecs[codec].decode;
-                pCaps->dsp.codecs[i].passthrough |= apeCaps.dsp[j].codecs[codec].passthrough;
-                pCaps->dsp.codecs[i].encode |= apeCaps.dsp[j].codecs[codec].encode;
+                pCaps->dsp.codecs[i].decode |= apeCaps->dsp[j].codecs[codec].decode;
+                pCaps->dsp.codecs[i].passthrough |= apeCaps->dsp[j].codecs[codec].passthrough;
+                pCaps->dsp.codecs[i].encode |= apeCaps->dsp[j].codecs[codec].encode;
             }
         }
-        pCaps->dsp.audysseyAbx |= apeCaps.dsp[j].audysseyAbx;
-        pCaps->dsp.audysseyAdv |= apeCaps.dsp[j].audysseyAdv;
-        pCaps->dsp.autoVolumeLevel |= apeCaps.dsp[j].autoVolumeLevel;
-        pCaps->dsp._3dSurround |= apeCaps.dsp[j]._3dSurround;
-        pCaps->dsp.decodeRateControl |= apeCaps.dsp[j].decodeRateControl;
-        pCaps->dsp.dolbyDigitalReencode |= apeCaps.dsp[j].dolbyDigitalReencode;
-        pCaps->dsp.dolbyVolume258 |= apeCaps.dsp[j].dolbyVolume;
-        pCaps->dsp.echoCanceller.supported |= apeCaps.dsp[j].echoCanceller.supported;
-        pCaps->dsp.echoCanceller.algorithms[NEXUS_EchoCancellerAlgorithm_eSpeex] |= apeCaps.dsp[j].echoCanceller.algorithms[BAPE_EchoCancellerAlgorithm_eSpeex];
-        pCaps->dsp.encoder |= apeCaps.dsp[j].encoder;
-        pCaps->dsp.mixer |= apeCaps.dsp[j].mixer;
-        pCaps->dsp.muxOutput |= apeCaps.dsp[j].muxOutput;
-        pCaps->dsp.rfEncoder.supported |= apeCaps.dsp[j].rfEncoder.supported;
-        pCaps->dsp.rfEncoder.encodings[NEXUS_RfAudioEncoding_eBtsc] |= apeCaps.dsp[j].rfEncoder.encodings[BAPE_RfAudioEncoding_eBtsc];
-        pCaps->dsp.studioSound |= apeCaps.dsp[j].studioSound;
-        pCaps->dsp.truVolume |= apeCaps.dsp[j].truVolume;
-        pCaps->dsp.karaoke |= apeCaps.dsp[j].karaoke;
+        pCaps->dsp.audysseyAbx |= apeCaps->dsp[j].audysseyAbx;
+        pCaps->dsp.audysseyAdv |= apeCaps->dsp[j].audysseyAdv;
+        pCaps->dsp.autoVolumeLevel |= apeCaps->dsp[j].autoVolumeLevel;
+        pCaps->dsp._3dSurround |= apeCaps->dsp[j]._3dSurround;
+        pCaps->dsp.decodeRateControl |= apeCaps->dsp[j].decodeRateControl;
+        pCaps->dsp.dolbyDigitalReencode |= apeCaps->dsp[j].dolbyDigitalReencode;
+        pCaps->dsp.dolbyVolume258 |= apeCaps->dsp[j].dolbyVolume;
+        pCaps->dsp.echoCanceller.supported |= apeCaps->dsp[j].echoCanceller.supported;
+        pCaps->dsp.echoCanceller.algorithms[NEXUS_EchoCancellerAlgorithm_eSpeex] |= apeCaps->dsp[j].echoCanceller.algorithms[BAPE_EchoCancellerAlgorithm_eSpeex];
+        pCaps->dsp.encoder |= apeCaps->dsp[j].encoder;
+        pCaps->dsp.mixer |= apeCaps->dsp[j].mixer;
+        pCaps->dsp.muxOutput |= apeCaps->dsp[j].muxOutput;
+        pCaps->dsp.rfEncoder.supported |= apeCaps->dsp[j].rfEncoder.supported;
+        pCaps->dsp.rfEncoder.encodings[NEXUS_RfAudioEncoding_eBtsc] |= apeCaps->dsp[j].rfEncoder.encodings[BAPE_RfAudioEncoding_eBtsc];
+        pCaps->dsp.studioSound |= apeCaps->dsp[j].studioSound;
+        pCaps->dsp.truVolume |= apeCaps->dsp[j].truVolume;
+        pCaps->dsp.karaoke |= apeCaps->dsp[j].karaoke;
 
         for ( i = 0; i < NEXUS_AudioPostProcessing_eMax; i++ ) {
             if ( NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i) != BAPE_PostProcessorType_eMax ) {
-                pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] |= apeCaps.dsp[j].processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
+                pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] |= apeCaps->dsp[j].processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
             }
         }
     }

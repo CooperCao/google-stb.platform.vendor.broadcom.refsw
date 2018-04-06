@@ -62,8 +62,8 @@ BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h)
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER24_ADC, 0xD5C00DD0);  /* updated ADC registers */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, 0x010020A5);  /* updated ADC registers */
 
-   /* override defaults for mixpll */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER12_MPLL, 0x0C07FFFF);    /* ndiv_int=192, ndiv_fract=524287 */
+   /* override defaults for mixpll LO to 2307.5MHz */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER12_MPLL, 0x0C04AAAB);    /* ndiv_int=192, ndiv_fract=305835 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER13_MPLL, 0x08032220);    /* configure lock detection */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER14_MPLL, 0xB4E83BA0);    /* Ibias_VCO_slope=16 */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER13_MPLL, 0x00000800);       /* enable continouos pll locking system */
@@ -263,7 +263,7 @@ BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h)
 
       /* calculate capv(ndxc) = Clng(cnt_act(ndxc)/cnt_nom(ndxc) * (15+capv_nom(ndxc)) - 14) */
       BMTH_HILO_64TO64_Div32(val, 0, countNominal[i], &Q_hi, &Q_lo); /* count scaled up 32.32 for division */
-      val = (Q_lo * 24) - 917504;   /* scaled 16.16 after divide, times 15+capv=24, minus 14 */
+      val = (Q_lo * 23) - 917504;   /* scaled 16.16 after divide, times 15+capv=23, minus 14 */
       val = (val + 32768) >> 16;    /* round */
       cap[i] = val & 0xF;           /* 4-bit cap values */
 

@@ -491,7 +491,7 @@ b_play_decoders_in_tsm_mode(NEXUS_PlaybackHandle playback)
             if (!status.tsm) return false;
         }
         else if(pid->cfg.pidSettings.pidType == NEXUS_PidType_eAudio) {
-            NEXUS_AudioDecoderStatus status, status2;
+            NEXUS_P_Playback_AudioDecoderStatus status, status2;
             rc = NEXUS_P_Playback_AudioDecoder_GetStatus(pid, &status, &status2);
             if (rc) return false;
             if (status.started && !status.tsm) return false;
@@ -527,7 +527,7 @@ b_play_getpts(NEXUS_PlaybackHandle p, uint32_t *pts)
 
         for(pid = BLST_S_FIRST(&p->pid_list); pid ; pid = BLST_S_NEXT(pid, link)) {
             if(pid->cfg.pidSettings.pidType == NEXUS_PidType_eAudio) {
-                NEXUS_AudioDecoderStatus audioStatus, audioStatus2;
+                NEXUS_P_Playback_AudioDecoderStatus audioStatus, audioStatus2;
                 rc = NEXUS_P_Playback_AudioDecoder_GetStatus(pid, &audioStatus, &audioStatus2);
                     if(rc==BERR_SUCCESS) {
                     if(audioStatus.started && (audioStatus.ptsType == NEXUS_PtsType_eCoded || audioStatus.ptsType == NEXUS_PtsType_eInterpolatedFromValidPTS || p->actualTransportType==NEXUS_TransportType_eEs)) {
@@ -2113,8 +2113,10 @@ NEXUS_Playback_Stop(NEXUS_PlaybackHandle playback)
 #endif
 
     BDBG_ASSERT(playback->params.playpump);
-    NEXUS_StopCallbacks(playback->params.playpump);
     NEXUS_Playpump_Stop(playback->params.playpump);
+
+    /* must come after NEXUS_Playpump_Stop. this stops and clears callbacks, removes the stopped state */
+    NEXUS_StopCallbacks(playback->params.playpump);
     NEXUS_StartCallbacks(playback->params.playpump);
 
     b_play_stop_media(playback);

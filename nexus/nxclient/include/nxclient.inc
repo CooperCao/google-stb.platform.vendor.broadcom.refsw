@@ -68,7 +68,7 @@ NXCLIENT_INCLUDES += $(BMEDIA_INCLUDES) $(BFILE_MEDIA_INCLUDES) $(BSEAV)/lib/mpe
 # NXCLIENT_CFLAGS and NXCLIENT_LDFLAGS
 #
 NXCLIENT_SHARED_LIB=$(NEXUS_BIN_DIR)/libnxclient.so
-NXCLIENT_LDFLAGS += $(NEXUS_CLIENT_LD_LIBRARIES) -lnxclient
+NXCLIENT_LDFLAGS += -lnxclient $(NEXUS_CLIENT_LD_LIBRARIES)
 NXCLIENT_CFLAGS += $(addprefix -I,$(NXCLIENT_INCLUDES)) $(addprefix -D,$(BMEDIA_PROBE_DEFINES))
 
 # It is recommended that apps and libraries conditionally using nxclient use the NXCLIENT_SUPPORT=y env variable

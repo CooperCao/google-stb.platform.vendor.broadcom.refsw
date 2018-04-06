@@ -1000,6 +1000,16 @@ void CControl::processNotification(CNotification & notification)
         channelUp();
         break;
 
+	case eNotify_RunScript:
+    {
+        CLua * pLua = (CLua *)findView("lua");
+        MString * scriptName = (MString *)notification.getData();
+        if (NULL != pLua)
+        {
+            pLua->setRunScript(scriptName->s());
+        }
+    }
+
     case eNotify_GetChannelStats:
         getChannelStats();
         break;
@@ -1581,7 +1591,6 @@ void CControl::processNotification(CNotification & notification)
         if (0 == _scanTunerList.total())
         {
             _pModel->setMode(eMode_Invalid);
-            _pModel->setScanStartState(false);
 
             if (false == pScanData->getAppendToChannelList())
             {
@@ -1591,6 +1600,8 @@ void CControl::processNotification(CNotification & notification)
 
             _pChannelMgr->dumpChannelList(true);
             tuneChannel();
+
+            _pModel->setScanStartState(false);
         }
     }
     break;
@@ -3971,17 +3982,21 @@ eRet CControl::scanTuner(CTunerScanData * pScanData)
         /* check out tuner to use for scan */
         while (NULL != (pTuner = (CTuner *)pBoardResources->checkoutResource(_id, pScanData->getTunerType())))
         {
-            if (_scanTunerList.total() == GET_INT(_pCfg, SCAN_MAX_TUNERS))
-            {
-                break;
-            }
-
             _scanTunerList.add(pTuner);
 
             /* copy existing scan data and clear out freq list - we will reassign freqs to scan
              * later (based on how many tuners that are available) */
             pTuner->scanDataSave(pScanData);
             pTuner->scanDataFreqListClear();
+
+#ifdef MPOD_SUPPORT
+            SET(_pCfg, SCAN_MAX_TUNERS, 1);
+#endif
+            if (_scanTunerList.total() == GET_INT(_pCfg, SCAN_MAX_TUNERS))
+            {
+                break;
+            }
+
         }
 
         if (_scanTunerList.total() == 0)

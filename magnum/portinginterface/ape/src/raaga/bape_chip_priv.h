@@ -63,7 +63,9 @@
 #include "bchp_aio_misc.h"
 #include "bchp_aud_fmm_misc.h"
 #else
+#ifdef BCHP_AUD_MISC_REG_START
 #include "bchp_aud_misc.h"
+#endif
 #endif
 
 #if defined BCHP_AUD_FMM_IOP_MISC_REG_START
@@ -72,6 +74,10 @@
 
 #if defined BCHP_CLKGEN_REG_START
 #include "bchp_clkgen.h"
+#endif
+
+#if defined BCHP_DVP_CFG_REG_START
+#include "bchp_dvp_cfg.h"
 #endif
 
 /* The following block undefines everything associated with AIO HW blocks*/
@@ -276,7 +282,7 @@
 
 #if defined BCHP_AUD_FMM_IOP_OUT_MAI_1_REG_START
 #define BAPE_CHIP_MAX_MAI_OUTPUTS (2)
-#elif defined BCHP_AUD_FMM_OP_CTRL_MAI_FORMAT || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
+#elif defined BCHP_AUD_FMM_OP_CTRL_MAI_FORMAT || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START || defined BCHP_DVP_CFG_REG_START
 #define BAPE_CHIP_MAX_MAI_OUTPUTS (1)
 #else
 #define BAPE_CHIP_MAX_MAI_OUTPUTS (0)

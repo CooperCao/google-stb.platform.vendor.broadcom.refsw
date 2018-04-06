@@ -83,9 +83,27 @@ else
 WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21
 endif
 
+PLAYREADY25_SUPPORT ?= y
+PLAYREADY25_DIR := $(BSEAV_TOP)/thirdparty/playready/2.5
+ifneq ($(shell ls "$(PLAYREADY25_DIR)" 2>/dev/null|grep -m1 -o inc), inc)
+    PLAYREADY25_SUPPORT = n
+    $(warning !!!!! Playready 2.5 is disabled !!!!!)
+endif
+ifeq ($(PLAYREADY25_SUPPORT),y)
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
-include $(COMMON_DRM_TOP)/common_drm.inc
+endif
+
+PLAYREADY3x_SUPPORT ?= y
+PLAYREADY3x_DIR := $(BSEAV_TOP)/thirdparty/playready/3.0
+ifneq ($(shell ls "$(PLAYREADY3x_DIR)" 2>/dev/null|grep -m1 -o inc), inc)
+    PLAYREADY3x_SUPPORT = n
+    $(warning !!!!! Playready 3.x is disabled !!!!!)
+endif
+ifeq ($(PLAYREADY3x_SUPPORT),y)
 include $(BSEAV_TOP)/thirdparty/playready/3.0/prdy30_libdir.inc
+endif
+
+include $(COMMON_DRM_TOP)/common_drm.inc
 
 WIDEVINE_SUPPORT ?= y
 ifneq ($(shell ls "$(WIDEVINE_CENC_DIR)" 2>/dev/null|grep -m1 -o Makefile), Makefile)
@@ -105,11 +123,15 @@ NJOBS ?= 1
 .PHONY : all
 all: prep_wvcdm
 	$(Q_)export WIDEVINE_SUPPORT=$(WIDEVINE_SUPPORT); \
+	export PLAYREADY25_SUPPORT=$(PLAYREADY25_SUPPORT); \
+	export PLAYREADY3x_SUPPORT=$(PLAYREADY3x_SUPPORT); \
 	$(MAKE) -C ./src install
 
 .PHONY : dif_only
 dif_only:
 	$(Q_)export WIDEVINE_SUPPORT=$(WIDEVINE_SUPPORT); \
+	export PLAYREADY25_SUPPORT=$(PLAYREADY25_SUPPORT); \
+	export PLAYREADY3x_SUPPORT=$(PLAYREADY3x_SUPPORT); \
 	$(MAKE) -C ./src install
 
 .PHONY : clean
@@ -122,6 +144,8 @@ endif
 localclean:
 	$(Q_)echo [DIF..... cleaning DIF];
 	$(Q_)export WIDEVINE_SUPPORT=$(WIDEVINE_SUPPORT); \
+	export PLAYREADY25_SUPPORT=$(PLAYREADY25_SUPPORT); \
+	export PLAYREADY3x_SUPPORT=$(PLAYREADY3x_SUPPORT); \
 	$(MAKE) -C ./src clean
 	$(Q_)$(MAKE) -C ./examples clean
 
@@ -169,17 +193,30 @@ prep_security: prep_nexus
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install > $(LOG_REDIRECT_FILE);
 	$(Q_)echo [DIF..... building cmndrm];
 	$(Q_)$(MAKE) -C $(COMMON_DRM_TOP) install > $(LOG_REDIRECT_FILE)
+ifeq ($(PLAYREADY25_SUPPORT),y)
 	$(Q_)echo [DIF..... building cmndrmprdy];
 	$(Q_)$(MAKE) -C $(COMMON_DRM_TOP) playready > $(LOG_REDIRECT_FILE)
+endif
 	$(Q_)echo [DIF..... copying CommonDRM dependent libs...];
 	$(Q_)install -c -m 0755 $(COMMON_DRM_BIN_DEPS_LIST) $(NEXUS_BIN_DIR)
+ifeq ($(PLAYREADY25_SUPPORT),y)
 	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/common_drm/libcmndrmprdy.so $(NEXUS_BIN_DIR)
+endif
 ifeq ($(SAGE_SUPPORT),y)
+ifeq ($(PLAYREADY3x_SUPPORT),y)
 	$(Q_)echo [DIF..... building prdyhttp];
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/thirdparty/playready/http install > $(LOG_REDIRECT_FILE)
-	$(Q_)echo [DIF..... copying playreadypk 2.5 and 3.0 lib...];
+endif
+ifeq ($(PLAYREADY25_SUPPORT),y)
+	$(Q_)echo [DIF..... copying playreadypk 2.5 lib...];
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk$(PREBLT_LIB_SUFFIX)_host.so $(NEXUS_BIN_DIR)
+endif
+ifeq ($(PLAYREADY3x_SUPPORT),y)
+	$(Q_)echo [DIF..... copying playreadypk 3.0 lib...];
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(PRDY30_LIBDIR)/libplayready30pk.so $(NEXUS_BIN_DIR)
+endif
 else
+ifeq ($(PLAYREADY25_SUPPORT),y)
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk.so $(NEXUS_BIN_DIR)
+endif
 endif

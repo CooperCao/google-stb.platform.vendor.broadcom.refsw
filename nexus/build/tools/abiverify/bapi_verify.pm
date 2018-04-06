@@ -1187,6 +1187,8 @@ sub generate_client {
             print $fout "B_IPC_CLIENT_END_DESTRUCTOR($api, $func->{PARAMS}[0]{NAME})\n";
         } elsif($func->{RETTYPE} eq 'void') {
             print $fout "B_IPC_CLIENT_END_VOID($api)\n";
+        } elsif (is_handle($func->{RETTYPE}, $class_handles) && exists $func->{ATTR}->{'release'}) {
+            print $fout "B_IPC_CLIENT_END_ACQUIRE_HANDLE($func->{RETTYPE}, $api)\n";
         } elsif (is_handle($func->{RETTYPE}, $class_handles)) {
             print $fout "B_IPC_CLIENT_END_HANDLE($func->{RETTYPE}, $api)\n";
         } else {

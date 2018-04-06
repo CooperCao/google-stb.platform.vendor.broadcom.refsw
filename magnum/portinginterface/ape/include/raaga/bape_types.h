@@ -311,7 +311,11 @@ Buffer Descriptor
 typedef struct BAPE_BufferDescriptor
 {
     bool interleaved;               /* If true, every other channel will have valid pointers,
-                                       e.g. L for L/R, Ls for Ls/Rs, etc.  */
+                                       e.g. L for L/R, Ls for Ls/Rs, etc. */
+    bool compressed;                /* If true, data is compressed */
+    bool spdifFormatted;            /* specifies if SPDIF formatting has been applied */
+    unsigned bitsPerSample;         /* bits per sample - 16, 24, 32. 0 means unknown. */
+    unsigned samplesPerDword;       /* samples per dword - typically 1 or 2. if 8bits/sample, then this could be 4 */
     unsigned numBuffers;            /* Number of buffers.  For mono/interleaved stereo this is 1.  For
                                        non-interleaved stereo, it's 2.  For non-interleaved 7.1 it's 8. */
     struct

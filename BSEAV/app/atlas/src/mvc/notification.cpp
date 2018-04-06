@@ -73,6 +73,7 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_GetChannelStats).s(), "eNotify_GetChannelS
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_GetCurrentChannelNumber).s(), "eNotify_GetCurrentChannelNumber") /* command  - get current channel number in fullscreen */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProgram).s(), "eNotify_SetAudioProgram")                 /* command  - change current audio pid */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProcessing).s(), "eNotify_SetAudioProcessing")           /* command  - change audio processing type*/
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RunScript).s(), "eNotify_RunScript")                             /* command  - Run the Lua script */
 #ifdef CPUTEST_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetCpuTestLevel).s(), "eNotify_SetCpuTestLevel") /* command  - change cpu test level */
 #endif

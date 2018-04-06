@@ -55,8 +55,3 @@ BI2C_INCLUDES += $(MAGNUM)/portinginterface/i2c/include
 BI2C_SOURCES += $(MAGNUM)/portinginterface/i2c/src/bi2c.c
 BI2C_SOURCES += $(MAGNUM)/portinginterface/i2c/src/bi2c_sw.c
 BI2C_SOURCES += $(MAGNUM)/portinginterface/i2c/src/bi2c_auto.c
-
-# Module Dependencies
-ifeq ($(BCHP_CHIP),7211)
-include $(MAGNUM)/portinginterface/ott/bott.inc
-endif

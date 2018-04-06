@@ -519,6 +519,7 @@ const char *NEXUS_P_VideoFormat_ToStr_isrsafe(NEXUS_VideoFormat format);
 NEXUS_Error NEXUS_Core_HeapMemcIndex_isrsafe(unsigned heapIndex, unsigned *pMemcIndex);
 
 unsigned NEXUS_Heap_GetMemcIndex_isrsafe(NEXUS_HeapHandle heap);
+unsigned NEXUS_Heap_GetIndex_isrsafe(NEXUS_HeapHandle heap);
 
 struct b_objdb_client;
 void NEXUS_CoreModule_Uninit_Client_priv(struct b_objdb_client *client);

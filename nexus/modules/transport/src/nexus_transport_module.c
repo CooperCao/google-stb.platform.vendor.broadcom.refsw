@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,7 +59,17 @@
 #include "bchp_int_id_xpt_wakeup.h"
 #endif
 
+#if BCHP_XPT_RAVE_REG_START
 #include "bxpt_rave_ihex.h"
+#endif
+
+#if NEXUS_USE_OTT_TRANSPORT
+#define BXPT_GetDefaultSettings BOTT_BXPT_GetDefaultSettings
+#define BXPT_Open BOTT_BXPT_Open
+#define BXPT_Close BOTT_BXPT_Close
+#define BXPT_Standby BOTT_BXPT_Standby
+#define BXPT_Resume BOTT_BXPT_Resume
+#endif
 
 BDBG_MODULE(nexus_transport);
 
@@ -942,8 +952,13 @@ done:
 void NEXUS_TransportModule_GetRaveFirmware_isrsafe( void **ppBxptRaveInitData,
                                                     unsigned *pBxptRaveInitDataSize  /* size of firmware in bytes. */ )
 {
+#if BCHP_XPT_RAVE_REG_START
     *ppBxptRaveInitData    = (void*)BxptRaveInitData;
     *pBxptRaveInitDataSize = (unsigned)BxptRaveInitDataSize*sizeof(uint32_t);
+#else
+    BSTD_UNUSED(ppBxptRaveInitData);
+    BSTD_UNUSED(pBxptRaveInitDataSize);
+#endif
     return;
 }
 

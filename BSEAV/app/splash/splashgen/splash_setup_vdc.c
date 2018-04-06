@@ -150,7 +150,7 @@ BERR_Code  splash_vdc_setup(
 	uint32_t  componentDspIdx;
 	uint32_t  hdmDspIdx;
 	uint32_t  winHeight;
-	BVDC_Settings  stDefSettings;
+	BVDC_OpenSettings  stDefSettings;
 	int  ii;
 	uint8_t val = 0;
 
@@ -326,9 +326,9 @@ BERR_Code  splash_vdc_setup(
 #ifdef SPLASH_MASTERTG_DVI
 			if (hdmDspIdx == (uint32_t)ii)
 			{
-				BVDC_Display_Settings  cfg_display;
+				BVDC_Display_CreateSettings  cfg_display;
 
-				BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay0, &cfg_display);
+				BVDC_Display_GetDefaultCreateSettings(BVDC_DisplayId_eDisplay0, &cfg_display);
 				cfg_display.eMasterTg = BVDC_DisplayTg_eDviDtg;
 				eErr = BVDC_Display_Create(hCompositor,&hDisplay,
 					BVDC_DisplayId_eDisplay0, &cfg_display);

@@ -284,8 +284,8 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     static const BAVC_SourceId gfx_ids[]={BAVC_SourceId_eGfx0,BAVC_SourceId_eGfx1, BAVC_SourceId_eGfx2,BAVC_SourceId_eGfx3,BAVC_SourceId_eGfx4,BAVC_SourceId_eGfx5, BAVC_SourceId_eGfx6};
     const BPXL_Plane *surface;
     NEXUS_SurfaceCreateSettings surfaceCfg;
-    BVDC_Window_Settings windowCfg;
-    BVDC_Source_Settings sourceSettings;
+    BVDC_Window_CreateSettings windowCfg;
+    BVDC_Source_CreateSettings sourceSettings;
 
     BDBG_MSG((">graphics: %ux%u video=%p display=%p graphics=%p", cfg->position.width, cfg->position.height, (void*)video, (void*)display, (void*)graphics));
     if (display->index >= sizeof(gfx_ids)/sizeof(*gfx_ids)) {
@@ -305,7 +305,7 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     graphics->frameBufferWidth = surfaceCfg.width;
     graphics->frameBufferPixelFormat = surfaceCfg.pixelFormat;
 
-    BVDC_Source_GetDefaultSettings(gfx_ids[display->index], &sourceSettings);
+    BVDC_Source_GetDefaultCreateSettings(gfx_ids[display->index], &sourceSettings);
     /* CFC LUT heap */
     if(NEXUS_MAX_HEAPS != video->moduleSettings.cfc.gfdHeapIndex[display->index]) {
         sourceSettings.hCfcHeap = g_pCoreHandles->heap[video->moduleSettings.cfc.gfdHeapIndex[display->index]].mma;
@@ -318,7 +318,7 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     rc = BVDC_Source_InstallPictureCallback(graphics->source, NEXUS_Display_P_GraphicsNext_isr, display, 0);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_source_cfg;}
 
-    BVDC_Window_GetDefaultSettings(BVDC_WindowId_eAuto, &windowCfg);
+    BVDC_Window_GetDefaultCreateSettings(BVDC_WindowId_eAuto, &windowCfg);
     windowCfg.bBypassVideoProcessings = display->graphics.colorMatrix.bypass;
     rc = BVDC_Window_Create( display->compositor, &graphics->windowVdc, BVDC_WindowId_eAuto, graphics->source, &windowCfg);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_window;}
@@ -823,6 +823,19 @@ NEXUS_Error NEXUS_Display_GetGraphicsFramebufferStatus( NEXUS_DisplayHandle disp
     if (!graphics->source) {
         return NEXUS_SUCCESS;
     }
+#if NEXUS_AUTO_GRAPHICS_COMPRESSION
+    /* if compression is possible, search for a match. if no match, search for what we're given. */
+    {
+        unsigned i;
+        for (i=0;i<NEXUS_MAX_COMPRESSED_FRAMEBUFFERS;i++) {
+            if (graphics->compression.cache[i].uncompressed == surface) {
+                surface = graphics->compression.cache[i].compressed;
+                break;
+            }
+        }
+    }
+#endif
+
     NEXUS_Module_Lock(video->modules.surface);
     plane = NEXUS_Surface_GetPixelPlane_priv(surface);
     NEXUS_Module_Unlock(video->modules.surface);

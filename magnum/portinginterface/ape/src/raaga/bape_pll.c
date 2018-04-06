@@ -1428,4 +1428,47 @@ BERR_Code BAPE_Pll_P_ResumeFromStandby(BAPE_Handle bapeHandle)
     return errCode;
 }
 
+#else
+
+void BAPE_Pll_GetSettings(
+    BAPE_Handle handle,
+    BAPE_Pll pll,
+    BAPE_PllSettings *pSettings /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pll);
+    BSTD_UNUSED(pSettings);
+}
+
+/***************************************************************************
+Summary:
+Set PLL Settings
+***************************************************************************/
+BERR_Code BAPE_Pll_SetSettings(
+    BAPE_Handle handle,
+    BAPE_Pll pll,
+    const BAPE_PllSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pll);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Pll_EnableExternalMclk(
+    BAPE_Handle     handle,
+    BAPE_Pll        pll,
+    unsigned        mclkIndex,
+    BAPE_MclkRate   mclkRate
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pll);
+    BSTD_UNUSED(mclkIndex);
+    BSTD_UNUSED(mclkRate);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
 #endif

@@ -56,10 +56,12 @@ BHSM_HmacHandle BHSM_Hmac_Create( BHSM_Handle hHsm )
 
     BDBG_ENTER( BHSM_Hmac_Create );
 
-    hashHandle = BHSM_Hash_Create(hHsm);
+    if( !hHsm ){ BERR_TRACE(BERR_INVALID_PARAMETER); return NULL; }
+
+    hashHandle = BHSM_Hash_Create( hHsm );
 
     BDBG_LEAVE( BHSM_Hmac_Create );
-    return (BHSM_HmacHandle)hashHandle;
+    return hashHandle;
 }
 
 
@@ -68,7 +70,9 @@ void BHSM_Hmac_Destroy( BHSM_HmacHandle handle )
 {
     BDBG_ENTER( BHSM_Hmac_Destroy );
 
-    BHSM_Hash_Destroy_priv((BHSM_HashHandle)handle, IS_HMAC);
+    if( !handle ){ BERR_TRACE(BERR_INVALID_PARAMETER); return; }
+
+    BHSM_Hash_Destroy_priv( handle );
 
     BDBG_LEAVE( BHSM_Hmac_Destroy );
     return;
@@ -92,66 +96,79 @@ BERR_Code BHSM_Hmac_SetSettings( BHSM_HmacHandle handle, const BHSM_HmacSettings
 {
     BHSM_HashSettings hashSettings;
     BERR_Code rc = BERR_SUCCESS;
+    BHSM_P_HashOperation_e operation = BHSM_P_HashOperation_eHmac;
 
     BDBG_ENTER( BHSM_Hmac_SetSettings );
 
-    BHSM_Hash_GetDefaultSettings(&hashSettings);
+    if( !handle ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    BHSM_Hash_GetDefaultSettings( &hashSettings );
 
     hashSettings.hashType = pSettings->hashType;
     hashSettings.appendKey = true;
 
-    if(pSettings->keySource == BHSM_HmacKeySource_eKeyLadder)
+    switch(  pSettings->keySource )
     {
-        hashSettings.key.keyladder.handle = pSettings->key.keyladder.handle;
-        hashSettings.key.keyladder.level = pSettings->key.keyladder.level;
-    }
-    else
-    {
-        switch( pSettings->hashType ) {
-        case BHSM_HashType_e1_160: { hashSettings.key.softKeySize = 160; break; }
-        case BHSM_HashType_e2_224: { hashSettings.key.softKeySize = 224; break; }
-        case BHSM_HashType_e2_256: { hashSettings.key.softKeySize = 256; break; }
+        case BHSM_HmacKeySource_eKeyLadder:
+        {
+            hashSettings.key.keyladder.handle = pSettings->key.keyladder.handle;
+            hashSettings.key.keyladder.level = pSettings->key.keyladder.level;
+            operation = BHSM_P_HashOperation_eHmac;
+            break;
+        }
+        case BHSM_HmacKeySource_eSoftwareKey:
+        {
+            switch( pSettings->hashType ) {
+                case BHSM_HashType_e1_160: { hashSettings.key.softKeySize = 160; break; }
+                case BHSM_HashType_e2_224: { hashSettings.key.softKeySize = 224; break; }
+                case BHSM_HashType_e2_256: { hashSettings.key.softKeySize = 256; break; }
+                default: { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+            }
+
+            if( (hashSettings.key.softKeySize/8) > sizeof(hashSettings.key.softKey) ) {
+                return BERR_TRACE(BERR_INVALID_PARAMETER);
+            }
+            BKNI_Memcpy( hashSettings.key.softKey, pSettings->key.softKey, hashSettings.key.softKeySize/8 );
+            operation = BHSM_P_HashOperation_eHmac;
+            break;
+        }
+        case BHSM_HmacKeySource_eRpmb:
+        {
+
+            operation = BHSM_P_HashOperation_eHmacRpmb;
+            break;
+        }
         default: { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-        }
-
-        if( (hashSettings.key.softKeySize/8) > sizeof(hashSettings.key.softKey) ) {
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-        BKNI_Memcpy(hashSettings.key.softKey, pSettings->key.softKey, hashSettings.key.softKeySize/8);
     }
 
-    rc = BHSM_Hash_SetSettings_priv((BHSM_HashHandle)handle, &hashSettings, IS_HMAC);
-    if (rc != BERR_SUCCESS )
-    {
-        rc = BERR_TRACE(rc);
-    }
+    rc = BHSM_Hash_SetSettings_priv( handle, &hashSettings, operation );
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE(rc); }
 
     BDBG_LEAVE( BHSM_Hmac_SetSettings );
     return rc;
 }
 
-BERR_Code BHSM_Hmac_SubmitData_1char( BHSM_HmacHandle handle,
-                            BHSM_HmacSubmitData_1char  *pData )
+BERR_Code BHSM_Hmac_SubmitData_1char( BHSM_HmacHandle handle, BHSM_HmacSubmitData_1char *pData )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_HmacHashSubmitInfo submitInfo;
 
     BDBG_ENTER( BHSM_Hash_SubmitData );
 
-    BKNI_Memset(&submitInfo, 0, sizeof(submitInfo));
+    if( !handle ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    BKNI_Memset( &submitInfo, 0, sizeof(submitInfo) );
     submitInfo.useInlineData = true;
     submitInfo.Data = pData->data;
     submitInfo.dataSize = 1;
     submitInfo.last = true;
-    submitInfo.hashNotHamc = IS_HMAC;
     submitInfo.pHash = pData->hmac;
     submitInfo.pHashLength = &pData->hmacLength;
 
-    rc = BHSM_Hash_SubmitData_priv((BHSM_HashHandle)handle, &submitInfo);
-    if (rc != BERR_SUCCESS )
-    {
-        rc = BERR_TRACE(rc);
-    }
+    rc = BHSM_Hash_SubmitData_priv( handle, &submitInfo );
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE(rc); }
 
     BDBG_LEAVE( BHSM_Hash_SubmitData );
     return rc;
@@ -160,25 +177,24 @@ BERR_Code BHSM_Hmac_SubmitData_1char( BHSM_HmacHandle handle,
 
 BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pData )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_HmacHashSubmitInfo submitInfo;
 
     BDBG_ENTER( BHSM_Hmac_SubmitData );
 
-    BKNI_Memset(&submitInfo, 0, sizeof(submitInfo));
+    if( !handle ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    BKNI_Memset( &submitInfo, 0, sizeof(submitInfo) );
     submitInfo.useInlineData = false;
     submitInfo.dataOffset = pData->dataOffset;
     submitInfo.dataSize = pData->dataSize;
     submitInfo.last = pData->last;
-    submitInfo.hashNotHamc = IS_HMAC;
     submitInfo.pHash = pData->hmac;
     submitInfo.pHashLength = &pData->hmacLength;
 
-    rc = BHSM_Hash_SubmitData_priv((BHSM_HashHandle)handle, &submitInfo);
-    if (rc != BERR_SUCCESS )
-    {
-        rc = BERR_TRACE(rc);
-    }
+    rc = BHSM_Hash_SubmitData_priv( handle, &submitInfo );
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE(rc); }
 
     BDBG_LEAVE( BHSM_Hmac_SubmitData );
     return rc;

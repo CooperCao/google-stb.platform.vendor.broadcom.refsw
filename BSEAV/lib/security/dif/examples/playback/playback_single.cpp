@@ -86,7 +86,7 @@ BDBG_MODULE(playback_dif_single);
 #define ZORDER_TOP 10
 
 #ifdef DIF_SCATTER_GATHER
-#define NUM_CIRCULAR_BUF 60
+#define NUM_CIRCULAR_BUF 60 /* must be greater than half of descFifoSize */
 #endif
 
 #define REPACK_VIDEO_PES_ID 0xE0
@@ -127,7 +127,13 @@ public:
     int video_decode_hdr;
 
     uint8_t *pAvccHdr;
+#ifdef DIF_SCATTER_GATHER
+    /* We use 2 buffers by turn to prevent the previous fragment data */
+    /* from being overwritten by file io for the subsequent fragment */
+    uint8_t *pPayload[2];
+#else
     uint8_t *pPayload;
+#endif
     uint8_t *pAudioHeaderBuf;
     uint8_t *pVideoHeaderBuf;
 #ifdef DIF_SCATTER_GATHER
@@ -165,13 +171,18 @@ public:
 
     uint64_t last_video_fragment_time;
     uint64_t last_audio_fragment_time;
-	bool bypassAudio;
+    bool bypassAudio;
 };
 
 AppContext::AppContext()
 {
     pAvccHdr = NULL;
+#ifdef DIF_SCATTER_GATHER
+    pPayload[0] = NULL;
+    pPayload[1] = NULL;
+#else
     pPayload = NULL;
+#endif
     pAudioHeaderBuf = NULL;
     pVideoHeaderBuf = NULL;
 #ifdef DIF_SCATTER_GATHER
@@ -213,7 +224,7 @@ AppContext::AppContext()
 
     last_video_fragment_time = 0;
     last_audio_fragment_time = 0;
-	bypassAudio = false;
+    bypassAudio = false;
 }
 
 AppContext::~AppContext()
@@ -227,7 +238,11 @@ AppContext::~AppContext()
     }
 
     if (pAvccHdr) NEXUS_Memory_Free(pAvccHdr);
+#ifdef DIF_SCATTER_GATHER
+    if (pPayload[0]) NEXUS_Memory_Free(pPayload[0]);
+#else
     if (pPayload) NEXUS_Memory_Free(pPayload);
+#endif
     if (pAudioHeaderBuf) NEXUS_Memory_Free(pAudioHeaderBuf);
     if (pVideoHeaderBuf) NEXUS_Memory_Free(pVideoHeaderBuf);
 #ifdef DIF_SCATTER_GATHER
@@ -495,7 +510,6 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
 
 #ifdef DIF_SCATTER_GATHER
                 // Create secure buffer for decrypt output
-                // Needs flow control
                 if (s_app.videoDecOut[s_app.video_idx] != NULL) {
                     BufferFactory::DestroyBuffer(s_app.videoDecOut[s_app.video_idx]);
                 }
@@ -591,7 +605,6 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 if (streamer) {
 #ifdef DIF_SCATTER_GATHER
                     // Create secure buffer for decrypt output
-                    // Needs flow control
                     if (s_app.audioDecOut[s_app.audio_idx] != NULL) {
                         BufferFactory::DestroyBuffer(s_app.audioDecOut[s_app.audio_idx]);
                         s_app.audioDecOut[s_app.audio_idx] = NULL;
@@ -1059,11 +1072,21 @@ static void setup_streamer()
         exit(EXIT_FAILURE);
     }
 
+#ifdef DIF_SCATTER_GATHER
+    uint8_t * pPayload = NULL;
+    if (NEXUS_Memory_Allocate(BUF_SIZE * 2, &memSettings, (void **)&pPayload) !=  NEXUS_SUCCESS) {
+        fprintf(stderr,"NEXUS_Memory_Allocate failed");
+        exit(EXIT_FAILURE);
+    }
+    s_app.pPayload[0] = pPayload;
+    s_app.pPayload[1] = pPayload + BUF_SIZE;
+#else
     s_app.pPayload = NULL;
     if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void **)&s_app.pPayload) !=  NEXUS_SUCCESS) {
         fprintf(stderr,"NEXUS_Memory_Allocate failed");
         exit(EXIT_FAILURE);
     }
+#endif
 
     s_app.pAudioHeaderBuf = NULL;
     if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS,
@@ -1086,20 +1109,24 @@ static void setup_streamer()
 
     BKNI_CreateEvent(&s_app.event);
 
-    NEXUS_Playpump_GetSettings(s_app.videoPlaypump, &playpumpSettings);
+    s_app.videoStreamer->GetSettings(&playpumpSettings);
     playpumpSettings.dataCallback.callback = play_callback;
     playpumpSettings.dataCallback.context = s_app.event;
     playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
-    NEXUS_Playpump_SetSettings(s_app.videoPlaypump, &playpumpSettings);
+    s_app.videoStreamer->SetSettings(&playpumpSettings);
 
-    NEXUS_Playpump_GetSettings(s_app.audioPlaypump, &playpumpSettings);
-    playpumpSettings.dataCallback.callback = play_callback;
-    playpumpSettings.dataCallback.context = s_app.event;
-    playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
-    NEXUS_Playpump_SetSettings(s_app.audioPlaypump, &playpumpSettings);
+    if (s_app.audioStreamer) {
+        s_app.audioStreamer->GetSettings(&playpumpSettings);
+        playpumpSettings.dataCallback.callback = play_callback;
+        playpumpSettings.dataCallback.context = s_app.event;
+        playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
+        s_app.audioStreamer->SetSettings(&playpumpSettings);
+    }
 
     NEXUS_Playpump_Start(s_app.videoPlaypump);
-    NEXUS_Playpump_Start(s_app.audioPlaypump);
+    if (s_app.audioStreamer) {
+        NEXUS_Playpump_Start(s_app.audioPlaypump);
+    }
 
     NEXUS_PlaypumpOpenPidChannelSettings video_pid_settings;
     NEXUS_Playpump_GetDefaultOpenPidChannelSettings(&video_pid_settings);
@@ -1111,14 +1138,16 @@ static void setup_streamer()
     else
       LOGW(("@@@ videoPidChannel OK"));
 
-    s_app.audioPidChannel = s_app.audioStreamer->OpenPidChannel(REPACK_AUDIO_PES_ID, NULL);
+    if (s_app.audioStreamer) {
+        s_app.audioPidChannel = s_app.audioStreamer->OpenPidChannel(REPACK_AUDIO_PES_ID, NULL);
 
-    if ( !s_app.audioPidChannel )
-      LOGW(("@@@ audioPidChannel NULL"));
-    else
-      LOGW(("@@@ audioPidChannel OK"));
+        if ( !s_app.audioPidChannel )
+            LOGW(("@@@ audioPidChannel NULL"));
+        else
+            LOGW(("@@@ audioPidChannel OK"));
 
-    NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
+        NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
+    }
     NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
 
     LOGW(("@@@ set video audio program for h264"));
@@ -1327,8 +1356,13 @@ void playback_loop()
     void *decoder_data;
     uint32_t decoder_len;
 
+#ifdef DIF_SCATTER_GATHER
+    for (unsigned i = 0;; i++) {
+        decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload[i%2], decoder_len);
+#else
     for (;;) {
         decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload, decoder_len);
+#endif
         if (decoder_data == NULL || shouldExit)
             break;
 

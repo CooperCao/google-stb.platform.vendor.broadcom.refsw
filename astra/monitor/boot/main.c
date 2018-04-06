@@ -52,7 +52,6 @@
 #include "bl31_params.h"
 #include "astra.h"
 #include "psci.h"
-#include "scmi.h"
 #include "dvfs.h"
 #include "cpu_data.h"
 #include "context_mgt.h"
@@ -66,6 +65,31 @@ cpu_data_t cpu_data[MAX_NUM_CPUS];
 
 #define IMG_IS_AARCH64(img_info) \
     ((img_info.flags & IMG_AARCH32_MASK) == IMG_AARCH64)
+
+#define ARM_IMAGE_MAGIC_OFFSET          0x38
+#define ARM_IMAGE_MAGIC_AARCH64         0x644d5241
+#define ARM_IMAGE_MAGIC_AARCH32         0x324d5241
+
+#define ZIMAGE_MAGIC_OFFSET             0x24
+#define ZIMAGE_MAGIC_NUMBER             0x016f2818
+
+static inline bool is_img_arm_aarch32(void *pimg)
+{
+    uint32_t magic = *(uint32_t *)(pimg + ARM_IMAGE_MAGIC_OFFSET);
+    return  (magic == ARM_IMAGE_MAGIC_AARCH32);
+}
+
+static inline bool is_img_arm_aarch64(void *pimg)
+{
+    uint32_t magic = *(uint32_t *)(pimg + ARM_IMAGE_MAGIC_OFFSET);
+    return  (magic == ARM_IMAGE_MAGIC_AARCH64);
+}
+
+static inline bool is_img_zimage(void *pimg)
+{
+    uint32_t magic = *(uint32_t *)(pimg + ZIMAGE_MAGIC_OFFSET);
+    return  (magic == ZIMAGE_MAGIC_NUMBER);
+}
 
 #ifdef DEBUG
 static void mon_params_dump()
@@ -291,6 +315,28 @@ void mon_early_init(uintptr_t mon_params_addr)
         ASSERT(mon_params.hdr.version == MONITOR_PARAMS_VERSION);
     }
 
+    /* Update image flags */
+    if (mon_params.tz_entry_point) {
+        void *pimg = (void *)mon_params.tz_entry_point;
+
+        /* Overwrite image flags with ARM image header info */
+        if (is_img_arm_aarch64(pimg))
+            mon_params.tz_img_info.flags &= ~IMG_AARCH32_MASK;
+        else if (is_img_arm_aarch32(pimg))
+            mon_params.tz_img_info.flags |= IMG_AARCH32_MASK;
+    }
+
+    if (mon_params.nw_entry_point) {
+        void *pimg = (void *)mon_params.nw_entry_point;
+
+        if (is_img_arm_aarch64(pimg))
+            /* Linux uses ARM image header only for 64-bit */
+            mon_params.tz_img_info.flags &= ~IMG_AARCH32_MASK;
+        else if (is_img_zimage(pimg))
+            /* Linux uses zImage header for 32-bit */
+            mon_params.tz_img_info.flags |= IMG_AARCH32_MASK;
+    }
+
 #ifdef DEBUG
     mon_params_dump();
 #endif
@@ -319,12 +365,15 @@ void mon_main(void)
 
     INFO_MSG("Entering monitor main function...");
 
-    /* Init platform */
-    plat_init();
-
     /* Init platform s3 in warm boot */
     if (warm_boot())
         plat_s3_init();
+
+    /* Init platform DVFS */
+    plat_dvfs_init();
+
+    /* Init platform */
+    plat_init();
 
     /* Init interrupts */
     interrupt_init();
@@ -341,18 +390,12 @@ void mon_main(void)
         mon_params.num_cpus,
         NULL);
 
-    /* Init SCMI */
-    scmi_init();
-
     /* Init DVFS */
-    dvfs_init();
+    dvfs_init(mon_params.num_cpus);
 
     /* Set tpidr_el3 to point to CPU data */
     pcpu_data = get_cpu_data_by_index(get_cpu_index());
     write_tpidr_el3((uint64_t)pcpu_data);
-
-    /* Notify PSCI that CPU is up */
-    psci_cpu_up();
 
     /* init CPU data */
     pcpu_data->cpu_flags =
@@ -360,6 +403,9 @@ void mon_main(void)
          (mon_params.tz_cpus_mask & (1 << get_cpu_index()))) ? CPU_SEC_MASK : 0) |
         ((mon_params.nw_entry_point &&
          (mon_params.nw_cpus_mask & (1 << get_cpu_index()))) ? CPU_NSEC_MASK : 0);
+
+    /* Notify PSCI that CPU is up */
+    psci_cpu_up();
 
     /* Init secure world context */
     if (sec_enable(pcpu_data)) {
@@ -445,15 +491,15 @@ void mon_secondary_main(void)
     pcpu_data = get_cpu_data_by_index(get_cpu_index());
     write_tpidr_el3((uint64_t)pcpu_data);
 
-    /* Notify PSCI that CPU is up */
-    psci_cpu_up();
-
     /* init CPU data */
     pcpu_data->cpu_flags =
         ((mon_params.tz_entry_point &&
          (mon_params.tz_cpus_mask & (1 << get_cpu_index()))) ? CPU_SEC_MASK : 0) |
         ((mon_params.nw_entry_point &&
          (mon_params.nw_cpus_mask & (1 << get_cpu_index()))) ? CPU_NSEC_MASK : 0);
+
+    /* Notify PSCI that CPU is up */
+    psci_cpu_up();
 
     /* Init secure world context */
     if (sec_enable(pcpu_data)) {

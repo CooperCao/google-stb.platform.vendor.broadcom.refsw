@@ -618,7 +618,7 @@ BVCE_S_LoadFirmware(
          return BERR_TRACE( rc );
       }
 
-      BVCE_P_Buffer_FlushCache_isr(
+      BVCE_P_Buffer_FlushCache_isrsafe(
          hVce->fw.memory[i].hBuffer,
          pCodeBufferCached,
          BVCE_P_Buffer_GetSize( hVce->fw.memory[i].hBuffer )
@@ -2004,7 +2004,7 @@ BVCE_S_SendCommand_Init(
          {
             szVersionCached = (void*) ((uint8_t*) pCachedAddress + (hVce->fw.stResponse.type.stInit.pszVersionStr - (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[0].hBuffer )));
 
-            BVCE_P_Buffer_FlushCache_isr(
+            BVCE_P_Buffer_FlushCache_isrsafe(
                hVce->fw.memory[0].hBuffer,
                szVersionCached,
                512
@@ -4290,7 +4290,7 @@ BVCE_Debug_S_ReadBuffer_impl(
          uiInputLength1 = stDebugBufferInfo.uiWriteOffset;
       }
 
-      BVCE_P_Buffer_FlushCache_isr(
+      BVCE_P_Buffer_FlushCache_isrsafe(
          hVce->fw.debug[eARCInstance].hBuffer,
          (void*) pInputBuffer0,
          uiInputLength0
@@ -4298,7 +4298,7 @@ BVCE_Debug_S_ReadBuffer_impl(
 
       if ( NULL != pInputBuffer1 )
       {
-         BVCE_P_Buffer_FlushCache_isr(
+         BVCE_P_Buffer_FlushCache_isrsafe(
             hVce->fw.debug[eARCInstance].hBuffer,
             (void*) pInputBuffer1,
             uiInputLength1
@@ -4654,7 +4654,7 @@ BVCE_Channel_Debug_S_DumpState_impl(
          pBuffer = BVCE_P_Buffer_LockAddress( hVceCh->hVce->hCabacCmdBuffer );
          if ( NULL != pBuffer )
          {
-            BVCE_P_Buffer_FlushCache_isr( hVceCh->hVce->hCabacCmdBuffer, pBuffer, uiSize );
+            BVCE_P_Buffer_FlushCache_isrsafe( hVceCh->hVce->hCabacCmdBuffer, pBuffer, uiSize );
             BVCE_Debug_P_OpenLog( fname, &hLog );
             BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
             BVCE_Debug_P_CloseLog( hLog );
@@ -4676,7 +4676,7 @@ BVCE_Channel_Debug_S_DumpState_impl(
          pBuffer = BVCE_P_Buffer_LockAddress( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer );
          if ( NULL != pBuffer )
          {
-            BVCE_P_Buffer_FlushCache_isr( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer, pBuffer, uiSize );
+            BVCE_P_Buffer_FlushCache_isrsafe( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer, pBuffer, uiSize );
             BVCE_Debug_P_OpenLog( fname, &hLog );
             BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
             BVCE_Debug_P_CloseLog( hLog );
@@ -4701,7 +4701,7 @@ BVCE_Channel_Debug_S_DumpState_impl(
              pBuffer = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stITB.hBuffer );
              if ( NULL != pBuffer )
              {
-                BVCE_P_Buffer_FlushCache_isr( hVceOutput->hOutputBuffers->stITB.hBuffer, pBuffer, uiSize );
+                BVCE_P_Buffer_FlushCache_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer, pBuffer, uiSize );
                 BVCE_Debug_P_OpenLog( fname, &hLog );
                 BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
                 BVCE_Debug_P_CloseLog( hLog );
@@ -4721,7 +4721,7 @@ BVCE_Channel_Debug_S_DumpState_impl(
              pBuffer = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
              if ( NULL != pBuffer )
              {
-                BVCE_P_Buffer_FlushCache_isr( hVceOutput->hOutputBuffers->stCDB.hBuffer, pBuffer, uiSize );
+                BVCE_P_Buffer_FlushCache_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer, pBuffer, uiSize );
                 BVCE_Debug_P_OpenLog( fname, &hLog );
                 BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
                 BVCE_Debug_P_CloseLog( hLog );
@@ -7189,7 +7189,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
                }
             }
 
-            BVCE_P_Buffer_FlushCache_isr(
+            BVCE_P_Buffer_FlushCache_isrsafe(
                hVceCh->userdata.hBuffer,
                pBaseFWPacketDescriptor,
                uiTargetDescNum*BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH

@@ -35,7 +35,6 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #############################################################################
-
 #
 # Template for transport arrival timestamp control extension
 #
@@ -69,4 +68,4 @@ NEXUS_TRANSPORT_DEFINES += NEXUS_TRANSPORT_EXTENSION_ATS=1
 ##################
 # Magnum Modules #
 ##################
-NEXUS_TRANSPORT_MAGNUM_MODULES +=$(MAGNUM)/portinginterface/xpt/bxpt_ats.inc
+# add additional magnum modules here

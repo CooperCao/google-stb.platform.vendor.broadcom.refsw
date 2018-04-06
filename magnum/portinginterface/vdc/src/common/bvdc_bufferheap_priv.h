@@ -252,7 +252,6 @@ void BVDC_P_BufferHeap_GetHeapIdBySize_isr
     ( const BVDC_P_BufferHeap_SizeInfo *pHeapSizeInfo,
       uint32_t                          ulSize,
       BVDC_P_BufferHeapId              *peBufHeapId );
-#define BVDC_P_BufferHeap_GetHeapIdBySize  BVDC_P_BufferHeap_GetHeapIdBySize_isr
 
 void BVDC_P_BufferHeap_GetHeapSizeById_isr
     ( const BVDC_P_BufferHeapContext  *pHeap,

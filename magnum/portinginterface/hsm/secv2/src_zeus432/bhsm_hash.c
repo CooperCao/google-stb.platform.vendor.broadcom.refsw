@@ -37,13 +37,12 @@
 
  ******************************************************************************/
 
+#include "bstd.h"
 #include "bhsm.h"
 #include "bhsm_priv.h"
 #include "bhsm_bsp_msg.h"
 #include "bsp_s_hmac_sha1.h"
-
-#include "bstd.h"
-#include "bhsm.h"
+#include "bsp_s_keycommon.h"
 #include "bhsm_hash.h"
 #include "bhsm_hash_priv.h"
 
@@ -52,45 +51,27 @@ BDBG_MODULE( BHSM );
 #define BHSM_P_HASH_MAX_SIZE   (8*4)
 #define BHSM_P_HASH_STATE_SIZE (18*4)
 #define BHSM_P_HASH_MIN_KEYSIZE  (20)
+#ifdef BHSM_BUILD_HSM_FOR_SAGE
+  #define _HASH_CONTEXT_MAX     (1)                                     /* number of simultaneous HASH BFW contexts. */
+  #define _HASH_CONTEXT_OFFSET  BPI_HmacSha1_Context_eHmacSha1CtxSCM    /* offset to context. */
+#else
+  #define _HASH_CONTEXT_MAX     (2)
+  #define _HASH_CONTEXT_OFFSET  (BPI_HmacSha1_Context_eHmacSha1Ctx0)
+#endif
 
-typedef enum{
-    BHSM_P_HashState_eInitial,          /* created.     */
-    BHSM_P_HashState_eReady,            /* configured.  */
-    BHSM_P_HashState_eInprogress,       /* waiting for more data. */
-    BHSM_P_HashState_Max
-}BHSM_P_HashState;
 
-typedef enum
-{
-    BHSM_HMACSHA_ContinualMode_eAllSeg  = 0x00,  /* All data in this command */
-    BHSM_HMACSHA_ContinualMode_eMoreSeg = 0x01,  /* More data will be sent in the next command */
-    BHSM_HMACSHA_ContinualMode_eLastSeg = 0x10   /* Last command with all the remaining data   */
-
-}BHSM_HMACSHA_ContinualMode_e;
-
-#define MAX_SHA_SESSION  2
-
-typedef struct
-{
-    BHSM_Handle hHsm;
-    BHSM_HashSettings settings;
-    BHSM_P_HashState state;
-
-    unsigned index;
-    bool inUse;
-
-}BHSM_P_Hash;
 
 BERR_Code BHSM_HashHmac_Init( BHSM_Handle hHsm, BHSM_HashHmacModuleSettings *pSettings )
 {
     BDBG_ENTER( BHSM_HashHmac_Init );
 
+    if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     BSTD_UNUSED( pSettings );
 
-    hHsm->modules.pHash = BKNI_Malloc( sizeof(BHSM_P_Hash)*MAX_SHA_SESSION );
+    hHsm->modules.pHash = BKNI_Malloc( sizeof(BHSM_P_Hash)*_HASH_CONTEXT_MAX );
     if( !hHsm->modules.pHash ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
 
-    BKNI_Memset( hHsm->modules.pHash, 0, sizeof(BHSM_P_Hash)*MAX_SHA_SESSION );
+    BKNI_Memset( hHsm->modules.pHash, 0, sizeof(BHSM_P_Hash)*_HASH_CONTEXT_MAX );
 
     BDBG_LEAVE( BHSM_HashHmac_Init );
     return BERR_SUCCESS;
@@ -100,12 +81,10 @@ void BHSM_HashHmac_Uninit( BHSM_Handle hHsm )
 {
     BDBG_ENTER( BHSM_HashHmac_Uninit );
 
-    if( !hHsm->modules.pHash ) {
-        BERR_TRACE( BERR_NOT_INITIALIZED );
-        return;
-    }
+    if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
+    if( !hHsm->modules.pHash ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return; }
 
-    BKNI_Memset( hHsm->modules.pHash, 0,  sizeof(BHSM_P_Hash)*MAX_SHA_SESSION );
+    BKNI_Memset( hHsm->modules.pHash, 0,  sizeof(BHSM_P_Hash)*_HASH_CONTEXT_MAX );
     BKNI_Free( hHsm->modules.pHash );
     hHsm->modules.pHash = NULL;
 
@@ -116,11 +95,16 @@ void BHSM_HashHmac_Uninit( BHSM_Handle hHsm )
 BHSM_HashHandle BHSM_Hash_Create( BHSM_Handle hHsm )
 {
     unsigned i;
-    BHSM_P_Hash* pInstances = hHsm->modules.pHash;
+    BHSM_P_Hash* pInstances = NULL;
 
     BDBG_ENTER( BHSM_Hash_Create );
 
-    for(i = 0; i < MAX_SHA_SESSION; i++)
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !hHsm->modules.pHash ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return NULL; }
+
+    pInstances = hHsm->modules.pHash;
+
+    for(i = 0; i < _HASH_CONTEXT_MAX; i++)
     {
         if(pInstances[i].inUse == false)
         {
@@ -128,11 +112,7 @@ BHSM_HashHandle BHSM_Hash_Create( BHSM_Handle hHsm )
         }
     }
 
-    if(i == MAX_SHA_SESSION)
-    {
-        BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-        return NULL;
-    }
+    if( i == _HASH_CONTEXT_MAX ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
 
     BKNI_Memset(&pInstances[i], 0, sizeof(BHSM_P_Hash));
     pInstances[i].inUse = true;
@@ -146,37 +126,36 @@ BHSM_HashHandle BHSM_Hash_Create( BHSM_Handle hHsm )
 
 void BHSM_Hash_Destroy( BHSM_HashHandle handle )
 {
-    BHSM_Hash_Destroy_priv(handle, IS_SHA);
+    BHSM_Hash_Destroy_priv( handle );
 }
 
-void BHSM_Hash_Destroy_priv( BHSM_HashHandle handle, bool hashNotHamc )
+void BHSM_Hash_Destroy_priv( BHSM_HashHandle handle )
 {
-    BHSM_P_Hash *pInstance = (BHSM_P_Hash*)handle;
+    BHSM_P_Hash *pInstance = handle;
     BDBG_ENTER( BHSM_Hash_Destroy );
 
+    if( !handle ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
     if( !pInstance ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
 
-    if(pInstance->state == BHSM_P_HashState_eInprogress)
+    if( pInstance->state == BHSM_P_HashState_eInprogress )
     {
-        uint8_t digest[BHSM_P_HASH_MAX_SIZE];
+        uint8_t digest[BHSM_P_HASH_MAX_SIZE] = {0};
         unsigned hashLength;
         BHSM_P_HmacHashSubmitInfo submitInfo;
-        BERR_Code rc;
+        BERR_Code rc = BERR_UNKNOWN;
 
-        BKNI_Memset(&submitInfo, 0, sizeof(submitInfo));
+        BDBG_WRN(( "[%s]: Destroy out of sequence.", BSTD_FUNCTION ));
+
+        BKNI_Memset( &submitInfo, 0, sizeof(submitInfo) );
         submitInfo.useInlineData = true;
         submitInfo.Data = 0x01;
         submitInfo.dataSize = 1;
         submitInfo.last = true;
-        submitInfo.hashNotHamc = hashNotHamc;
         submitInfo.pHash = digest;
         submitInfo.pHashLength = &hashLength;
 
-        rc = BHSM_Hash_SubmitData_priv(handle, &submitInfo);
-        if (rc != BERR_SUCCESS )
-        {
-            rc = BERR_TRACE(rc);
-        }
+        rc = BHSM_Hash_SubmitData_priv( handle, &submitInfo );
+        if( rc != BERR_SUCCESS ) {  BERR_TRACE(rc); /* continue, best effort. */ }
     }
     pInstance->inUse = false;
     BKNI_Memset( pInstance, 0, sizeof(*pInstance) );
@@ -197,53 +176,55 @@ void BHSM_Hash_GetDefaultSettings( BHSM_HashSettings *pSettings )
 }
 
 
-BERR_Code BHSM_Hash_SetSettings( BHSM_HashHandle handle, const BHSM_HashSettings *pSettings )
+BERR_Code BHSM_Hash_SetSettings( BHSM_HashHandle handle,
+                                 const BHSM_HashSettings *pSettings )
 {
-    return BHSM_Hash_SetSettings_priv(handle, pSettings,  IS_SHA);
+    return BHSM_Hash_SetSettings_priv( handle, pSettings, BHSM_P_HashOperation_eHash );
 }
 
-BERR_Code BHSM_Hash_SetSettings_priv( BHSM_HashHandle handle, const BHSM_HashSettings *pSettings,  bool hashNotHamc)
+BERR_Code BHSM_Hash_SetSettings_priv( BHSM_HashHandle handle,
+                                      const BHSM_HashSettings *pSettings,
+                                      BHSM_P_HashOperation_e operation )
 {
-    BHSM_P_Hash *pInstance = (BHSM_P_Hash*)handle;
-    BERR_Code rc = BERR_SUCCESS;
+    BHSM_P_Hash *pInstance = handle;
+    BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_Hash_SetSettings );
 
-    if(pInstance->state == BHSM_P_HashState_eInprogress)
+    if( pInstance->state == BHSM_P_HashState_eInprogress )
     {
         /* Flush the BFW engine.*/
-        uint8_t digest[BHSM_P_HASH_MAX_SIZE];
+        uint8_t digest[BHSM_P_HASH_MAX_SIZE] = {0};
         unsigned hashLength;
         BHSM_P_HmacHashSubmitInfo submitInfo;
 
-        BKNI_Memset(&submitInfo, 0, sizeof(submitInfo));
+        BDBG_WRN(( "[%s]: Set Settings out of sequence.", BSTD_FUNCTION ));
+
+        BKNI_Memset( &submitInfo, 0, sizeof(submitInfo) );
         submitInfo.useInlineData = true;
         submitInfo.Data = 0x01;
         submitInfo.dataSize = 1;
         submitInfo.last = true;
-        submitInfo.hashNotHamc = hashNotHamc;
         submitInfo.pHash = digest;
         submitInfo.pHashLength = &hashLength;
 
-        rc = BHSM_Hash_SubmitData_priv(handle, &submitInfo);
-        if (rc != BERR_SUCCESS )
-        {
-            rc = BERR_TRACE(rc);
-        }
+        rc = BHSM_Hash_SubmitData_priv( handle, &submitInfo );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
     }
     pInstance->settings = *pSettings;
+    pInstance->operation = operation;
     pInstance->state = BHSM_P_HashState_eReady;
 
     BDBG_LEAVE( BHSM_Hash_SetSettings );
-    return rc;
+    return BERR_SUCCESS;
 }
 
 BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
-        BHSM_P_HmacHashSubmitInfo *pHmacHashSubmitInfo)
+                                     BHSM_P_HmacHashSubmitInfo *pData )
 {
-    BHSM_P_Hash *pInstance = (BHSM_P_Hash*)handle;
+    BHSM_P_Hash *pInstance = handle;
     BHSM_BspMsg_h hMsg = NULL;
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     unsigned _eAddressOrData = BCMD_HmacSha1_InCmdField_eAddressOrData;
     unsigned _eDataLength = BCMD_HmacSha1_InCmdField_eDataLen;
     uint8_t status = ~0;
@@ -254,18 +235,18 @@ BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
     BDBG_ENTER( BHSM_Hash_SubmitData );
 
     if( pInstance->state == BHSM_P_HashState_eInitial ) { return BERR_TRACE(BHSM_STATUS_STATE_ERROR); }
-    if( !pHmacHashSubmitInfo ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-    *pHmacHashSubmitInfo->pHashLength = 0;
+    if( !pData ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
-    if( ( rc = BHSM_BspMsg_Create( pInstance->hHsm, &hMsg ) ) != BERR_SUCCESS )
-    {
-        return BERR_TRACE( rc );
-    }
+    *pData->pHashLength = 0;
+
+    rc = BHSM_BspMsg_Create( pInstance->hHsm, &hMsg );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
     BHSM_BspMsg_GetDefaultHeader( &header );
 
-    if (pHmacHashSubmitInfo->last)
+    if( pData->last )
     {
-        if(pInstance->state == BHSM_P_HashState_eInprogress)
+        if( pInstance->state == BHSM_P_HashState_eInprogress )
         {
             header.continualMode = BHSM_HMACSHA_ContinualMode_eLastSeg;
         }
@@ -280,96 +261,99 @@ BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
     }
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eUSER_SHA1, &header );
 
-    if( pInstance->settings.appendKey ) {
-
-        if( pInstance->settings.key.keyladder.handle == NULL)
+    if( pInstance->operation == BHSM_P_HashOperation_eHmacRpmb )
+    {
+        BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eVKL, BCMD_VKLID_eRPMBHmacKey );
+    }
+    else
+    {
+        if( pInstance->settings.appendKey )
         {
-            unsigned shaKeysize = 0;
-            keySize = pInstance->settings.key.softKeySize  / 8;
-
-            switch( pInstance->settings.hashType )
+            if( pInstance->settings.key.keyladder.handle == NULL )
             {
-            case BHSM_HashType_e1_160: shaKeysize = 20; break;
-            case BHSM_HashType_e2_224: shaKeysize = 28; break;
-            case BHSM_HashType_e2_256: shaKeysize = 32; break;
-            default: return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+                unsigned shaKeysize = 0;
+                keySize = pInstance->settings.key.softKeySize  / 8;
+
+                switch( pInstance->settings.hashType )
+                {
+                    case BHSM_HashType_e1_160: shaKeysize = 20; break;
+                    case BHSM_HashType_e2_224: shaKeysize = 28; break;
+                    case BHSM_HashType_e2_256: shaKeysize = 32; break;
+                    default: { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto BHSM_P_DONE_LABEL; }
+                }
+
+                if(keySize > shaKeysize) { rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL;  }
+
+                _eDataLength = BCMD_HmacSha1_InCmdField_eKeyData + keySize;
+                _eAddressOrData = _eDataLength + 4;
+                writekey = true;
             }
+            else
+            {
+                BHSM_KeyLadderInfo info;
 
-            if(keySize > shaKeysize) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+                rc = BHSM_KeyLadder_GetInfo( pInstance->settings.key.keyladder.handle,  &info );
+                if( rc != BERR_SUCCESS ) { rc = BERR_TRACE(rc); goto BHSM_P_DONE_LABEL; }
 
-            _eDataLength = BCMD_HmacSha1_InCmdField_eKeyData + keySize;
-            _eAddressOrData = _eDataLength + 4;
-            writekey = true;
-        }
-        else
-        {
-            BHSM_KeyLadderInfo info;
-            if ( BHSM_KeyLadder_GetInfo( pInstance->settings.key.keyladder.handle,  &info))  { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-
-            BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eVKL, info.index );
-            BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eKeyLayer, pInstance->settings.key.keyladder.level );
+                BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eVKL, info.index );
+                BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eKeyLayer, pInstance->settings.key.keyladder.level );
+            }
         }
     }
 
-    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eOperation,  (pHmacHashSubmitInfo->hashNotHamc) ? BPI_HmacSha1_Op_eSha1 : BPI_HmacSha1_Op_eHmac);
-    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIncludeKey, (pInstance->settings.appendKey &  pHmacHashSubmitInfo->hashNotHamc) ? 1 : 0);
-    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIsAddress,  (pHmacHashSubmitInfo->useInlineData) ? 0 : 1);
+    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eOperation,  (pInstance->operation == BHSM_P_HashOperation_eHash) ?
+                                                                           BPI_HmacSha1_Op_eSha1 : BPI_HmacSha1_Op_eHmac );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIncludeKey, (pInstance->settings.appendKey & (pInstance->operation == BHSM_P_HashOperation_eHash)) ? 1 : 0 );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIsAddress,  (pData->useInlineData) ? 0 : 1 );
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eShaType,    pInstance->settings.hashType );
-#ifdef BHSM_BUILD_HSM_FOR_SAGE
-    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eContextId,  BPI_HmacSha1_Context_eHmacSha1CtxSCM +  pInstance->index);
-#else
-    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eContextId,  BPI_HmacSha1_Context_eHmacSha1Ctx0 +  pInstance->index);
-#endif
+    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eContextId,  (_HASH_CONTEXT_OFFSET + pInstance->index) );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eKeyLen, keySize );
 
-    if(writekey)
+    if( writekey )
     {
         BHSM_BspMsg_PackArray( hMsg, BCMD_HmacSha1_InCmdField_eKeyData, pInstance->settings.key.softKey, keySize );
     }
 
-    BHSM_BspMsg_Pack32( hMsg, _eDataLength, pHmacHashSubmitInfo->dataSize );
-    if(pHmacHashSubmitInfo->useInlineData)
+    BHSM_BspMsg_Pack32( hMsg, _eDataLength, pData->dataSize );
+    if( pData->useInlineData )
     {
-        BHSM_BspMsg_Pack8( hMsg, _eAddressOrData, pHmacHashSubmitInfo->Data);
+        BHSM_BspMsg_Pack8( hMsg, _eAddressOrData, pData->Data );
     }
     else
     {
-        BHSM_BspMsg_Pack32( hMsg, _eAddressOrData, pHmacHashSubmitInfo->dataOffset );
+        BHSM_BspMsg_Pack32( hMsg, _eAddressOrData, pData->dataOffset );
     }
 
-    if( ( rc = BHSM_BspMsg_SubmitCommand( hMsg ) ) != BERR_SUCCESS )
-    {
-        rc = BERR_TRACE(rc);
-        goto BHSM_P_DONE_LABEL;
-    }
+    rc = BHSM_BspMsg_SubmitCommand( hMsg );
+    if( rc != BERR_SUCCESS ) { rc = BERR_TRACE(rc); goto BHSM_P_DONE_LABEL; }
 
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
     if(    ( status != 0 )
         && ( status != 0xA8 )    /* more data expected. */ )
     {
-        BDBG_ERR(( "BHSM_UserHmacSha failed status[0x%02X]", status ));
+        BDBG_ERR(( "[%s] failed status[0x%02X]", BSTD_FUNCTION, status ));
         rc = BHSM_STATUS_FAILED;
         goto BHSM_P_DONE_LABEL;
     }
 
-    if( pHmacHashSubmitInfo->last ) {
+    if( pData->last ) {
         uint16_t            digestSize = 0;
         BHSM_BspMsg_Get16( hMsg, BCMD_CommonBufferFields_eParamLen, &digestSize );
         digestSize -= 4; /* remove status paramter bytes from length */
 
-        if( digestSize > BHSM_HASH_MAX_LENGTH ) { rc = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); goto BHSM_P_DONE_LABEL; }
+        if( digestSize > BHSM_HASH_MAX_LENGTH ) { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto BHSM_P_DONE_LABEL; }
 
-        BHSM_BspMsg_GetArray( hMsg, BCMD_HmacSha1_OutCmdField_eDigest, pHmacHashSubmitInfo->pHash, digestSize );
+        BHSM_BspMsg_GetArray( hMsg, BCMD_HmacSha1_OutCmdField_eDigest, pData->pHash, digestSize );
 
-        *pHmacHashSubmitInfo->pHashLength = digestSize;
+        *pData->pHashLength = digestSize;
         pInstance->state = BHSM_P_HashState_eReady;
     }
     else {
         pInstance->state = BHSM_P_HashState_eInprogress;
     }
 
-    BHSM_P_DONE_LABEL:
+BHSM_P_DONE_LABEL:
 
     (void)BHSM_BspMsg_Destroy( hMsg );
 
@@ -378,57 +362,48 @@ BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
 }
 
 BERR_Code BHSM_Hash_SubmitData_1char( BHSM_HashHandle handle,
-        BHSM_HashSubmitData_1char *pData)
+                                      BHSM_HashSubmitData_1char *pData )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_HmacHashSubmitInfo submitInfo;
 
     BDBG_ENTER( BHSM_Hash_SubmitData );
 
-
-    BKNI_Memset(&submitInfo, 0, sizeof(submitInfo));
+    BKNI_Memset( &submitInfo, 0, sizeof(submitInfo) );
     submitInfo.useInlineData = true;
     submitInfo.Data = pData->data;
     submitInfo.dataSize = 1;
     submitInfo.last = true;
-    submitInfo.hashNotHamc = IS_SHA;
     submitInfo.pHash = pData->hash;
     submitInfo.pHashLength = &pData->hashLength;
 
-    rc = BHSM_Hash_SubmitData_priv(handle, &submitInfo);
-    if (rc != BERR_SUCCESS )
-    {
-        rc = BERR_TRACE(rc);
-    }
+    rc = BHSM_Hash_SubmitData_priv( handle, &submitInfo );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
     BDBG_LEAVE( BHSM_Hash_SubmitData );
-    return rc;
+    return BERR_SUCCESS;
 }
 
 
-BERR_Code BHSM_Hash_SubmitData( BHSM_HashHandle handle, BHSM_HashSubmitData  *pData )
+BERR_Code BHSM_Hash_SubmitData( BHSM_HashHandle handle,
+                                BHSM_HashSubmitData  *pData )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_HmacHashSubmitInfo submitInfo;
 
     BDBG_ENTER( BHSM_Hash_SubmitData );
 
-
-    BKNI_Memset(&submitInfo, 0, sizeof(submitInfo));
+    BKNI_Memset( &submitInfo, 0, sizeof(submitInfo) );
     submitInfo.useInlineData = false;
     submitInfo.dataOffset = pData->dataOffset;
     submitInfo.dataSize = pData->dataSize;
     submitInfo.last = pData->last;
-    submitInfo.hashNotHamc = IS_SHA;
     submitInfo.pHash = pData->hash;
     submitInfo.pHashLength = &pData->hashLength;
 
-    rc = BHSM_Hash_SubmitData_priv(handle, &submitInfo);
-    if (rc != BERR_SUCCESS )
-    {
-        rc = BERR_TRACE(rc);
-    }
+    rc = BHSM_Hash_SubmitData_priv( handle, &submitInfo );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
     BDBG_LEAVE( BHSM_Hash_SubmitData );
-    return rc;
+    return BERR_SUCCESS;
 }

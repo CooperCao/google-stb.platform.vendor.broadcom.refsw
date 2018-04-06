@@ -367,7 +367,7 @@ BVCE_P_Buffer_GetAddress_isrsafe(
 }
 
 void
-BVCE_P_Buffer_FlushCache_isr(
+BVCE_P_Buffer_FlushCache_isrsafe(
    BVCE_P_Buffer_Handle hBuffer,
    void *pBuffer,
    unsigned uiSize
@@ -376,13 +376,13 @@ BVCE_P_Buffer_FlushCache_isr(
    BDBG_ASSERT( hBuffer );
    BDBG_ASSERT( pBuffer );
 
-   BDBG_ENTER( BVCE_P_Buffer_FlushCache_isr );
+   BDBG_ENTER( BVCE_P_Buffer_FlushCache_isrsafe );
 
    if ( true == hBuffer->bBufferValid )
    {
       if ( NULL != hBuffer->hAllocator->hRange )
       {
-         BMMA_FlushCache_isr(
+         BMMA_FlushCache_isrsafe(
             hBuffer->hAllocator->hBlock,
             pBuffer,
             uiSize
@@ -390,7 +390,7 @@ BVCE_P_Buffer_FlushCache_isr(
       }
       else
       {
-         BMMA_FlushCache_isr(
+         BMMA_FlushCache_isrsafe(
             hBuffer->stBlock.hBlock,
             pBuffer,
             uiSize
@@ -399,10 +399,10 @@ BVCE_P_Buffer_FlushCache_isr(
    }
    else
    {
-      BDBG_ERR(("BVCE_P_Buffer_FlushCache_isr() called for an unlocked buffer"));
+      BDBG_ERR(("BVCE_P_Buffer_FlushCache_isrsafe() called for an unlocked buffer"));
    }
 
-   BDBG_LEAVE( BVCE_P_Buffer_FlushCache_isr );
+   BDBG_LEAVE( BVCE_P_Buffer_FlushCache_isrsafe );
 }
 
 void BVCE_P_Buffer_UnlockAddress(

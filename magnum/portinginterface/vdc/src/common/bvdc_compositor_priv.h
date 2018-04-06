@@ -330,6 +330,7 @@ typedef struct BVDC_P_CompositorContext
     BAVC_HDMI_DRMInfoFrameType1       stHdrParm;
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
     bool                              bBlendMatrixOn;
+    uint8_t                           ucBlendMatrixOnRulBuildCntr;
 #endif
 #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
     uint32_t                          aulNLCfg[BVDC_P_MAX_VIDEO_WINS_PER_CMP][BVDC_P_CMP_NL_CFG_REGS]; /* V0 and V1, 8 regs */

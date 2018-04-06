@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_surface_compositor_module.h"
 #include "nexus_surface_compositor_impl.h"
 #include "priv/nexus_display_priv.h"
@@ -76,7 +73,6 @@ NEXUS_SurfaceClientHandle NEXUS_SurfaceClient_AcquireVideoWindow( NEXUS_SurfaceC
     client->acquired = true;
     client->parent = parent_handle;
     nexus_surfacecmp_p_insert_child(client->parent, client, false);
-    NEXUS_OBJECT_ACQUIRE(client, NEXUS_SurfaceClient, client->parent);
     nexus_surfaceclient_p_setwindows(client);
 
     nexus_p_surface_compositor_update_client(client->parent, NEXUS_P_SURFACECLIENT_UPDATE_CLIENT);
@@ -98,7 +94,6 @@ void NEXUS_SurfaceClient_P_VideoWindowFinalizer( NEXUS_SurfaceClientHandle clien
     client->acquired = false;
     nexus_surfaceclient_p_resetvideo(client);
     BLST_S_REMOVE(&client->parent->children, client, NEXUS_SurfaceClient, child_link);
-    NEXUS_OBJECT_RELEASE(client, NEXUS_SurfaceClient, client->parent);
     client->parent = NULL;
 
     NEXUS_OBJECT_DESTROY(NEXUS_SurfaceClient, client);
@@ -424,6 +419,7 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
             pWindowSettings->contentMode = pSettings->composition.contentMode;
         }
         pWindowSettings->alpha = pSettings->composition.constantColor >> 24;
+        pWindowSettings->fillContentModeBars = pSettings->composition.fillContentModeBars;
 
         /* set if there's any change */
         if (BKNI_Memcmp(&client->server->prevWindowSettings, pWindowSettings, sizeof(*pWindowSettings))) {

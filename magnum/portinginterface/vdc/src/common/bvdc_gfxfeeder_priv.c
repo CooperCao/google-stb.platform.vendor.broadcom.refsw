@@ -497,7 +497,7 @@ static void BVDC_P_GfxFeeder_SetAllDirty(
  */
 void BVDC_P_GfxFeeder_Init(
     BVDC_P_GfxFeeder_Handle          hGfxFeeder,
-    const BVDC_Source_Settings      *pSettings )
+    const BVDC_Source_CreateSettings      *pSettings )
 {
     BDBG_ENTER(BVDC_P_GfxFeeder_Init);
     BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
@@ -2366,12 +2366,6 @@ void BVDC_P_GfxFeeder_UpdateState_isr
 
     /* this copy should be after HandleIsrSurface_isr since it might change Dirty */
     stCurDirty = pCurCfg->stDirty;
-    if(!pList->bLastExecuted)
-    {
-        /* rebuild RUL for the changes done in last vsync, because last vsync's
-         * RUL is lost */
-        BVDC_P_OR_ALL_DIRTY(&stCurDirty, &hGfxFeeder->stPrevDirty);
-    }
 
     /* at this point CurSur could be the same as last vsync, be changed by SetSurface
      * /SetSurface_isr, or by the callback func */
@@ -2402,11 +2396,30 @@ void BVDC_P_GfxFeeder_UpdateState_isr
         BVDC_P_BUILD_RESET(pList->pulCurrent,
             hGfxFeeder->ulResetRegAddr, hGfxFeeder->ulResetMask);
         BVDC_P_GfxFeeder_SetAllDirty(&stCurDirty);
+#else
+        BSTD_UNUSED(pList);
 #endif
         hGfxFeeder->ulInitVsyncCntr --;
     }
 
-    /* BuildRulFor* will use pCurCfg->stDirty, so copy back after modification */
+    /* BuildRulFor* will use pCurCfg->stDirty, so copy back after modification
+     * note: we use ulBuildCntr to make it build twice, in case 1st RUL might not get executed
+     * note: pCurCfg->stDirty will be cleared at the end of BVDC_P_GfxFeeder_BuildRul_isr */
+    if (0 == hGfxFeeder->ulBuildCntr)
+    {
+        BVDC_P_CLEAN_ALL_DIRTY(&hGfxFeeder->stPrevDirty);
+    }
+    if (BVDC_P_IS_DIRTY(&stCurDirty))
+    {
+        hGfxFeeder->ulBuildCntr = BVDC_P_RUL_UPDATE_THRESHOLD;
+        BVDC_P_OR_ALL_DIRTY(&hGfxFeeder->stPrevDirty, &stCurDirty);
+    }
+    if (hGfxFeeder->ulBuildCntr)
+    {
+        BDBG_MSG(("buildCntr %d, dirty 0x%x", hGfxFeeder->ulBuildCntr, hGfxFeeder->stPrevDirty.aulInts[0]));
+        hGfxFeeder->ulBuildCntr --;
+        stCurDirty = hGfxFeeder->stPrevDirty;
+    }
     pCurCfg->stDirty = stCurDirty;
 
     /* resolve color conversion state */
@@ -2481,7 +2494,6 @@ void BVDC_P_GfxFeeder_BuildRul_isr
 {
     BVDC_P_SurfaceInfo  *pCurSur;
     BVDC_P_GfxFeederCfgInfo  *pCurCfg;
-    BVDC_P_GfxDirtyBits  stCurDirty;
 
     BDBG_ENTER(BVDC_P_GfxFeeder_BuildRul_isr);
 
@@ -2501,9 +2513,6 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr( hGfxFeeder, eFieldId, pList );
 
     BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr( hGfxFeeder, eVnetState, pList );
-
-    /* copy dirty bits to PrevDirty in case this RUL never goes to HW */
-    hGfxFeeder->stPrevDirty = stCurDirty;
 
     BVDC_P_CLEAN_ALL_DIRTY(&(pCurCfg->stDirty));
     pCurSur->bChangeSurface = false; /* must reset after BuildRulForSurCtrl_isr */

@@ -60,7 +60,7 @@ static void NEXUS_Display_P_UndriveVideoDecoder( NEXUS_DisplayHandle display );
 void
 NEXUS_Display_GetDefaultSettings(NEXUS_DisplaySettings *pSettings)
 {
-    BVDC_Settings vdcCfg;
+    BVDC_OpenSettings vdcCfg;
 
     /* Use PI's defaults. */
     BVDC_GetDefaultSettings(NULL, &vdcCfg);
@@ -974,20 +974,19 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
     BERR_Code rc=BERR_SUCCESS;
     BVDC_DisplayId vdcDisplayId;
     BVDC_CompositorId vdcCmpId = BVDC_CompositorId_eCompositor0 + displayIndex;
-    BVDC_Compositor_Settings vdcCmpSettings;
+    BVDC_Compositor_CreateSettings vdcCmpSettings;
     bool bModifiedSync = (g_NEXUS_DisplayModule_State.moduleSettings.componentOutputSyncType == NEXUS_ComponentOutputSyncType_eAllChannels);
     BDBG_MODULE_MSG(nexus_flow_display, ("open %p, index %d, type %d",
         (void *)display, displayIndex, pSettings->displayType));
 
-    rc = BVDC_Compositor_GetDefaultSettings(vdcCmpId, &vdcCmpSettings);
-    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
+    BVDC_Compositor_GetDefaultCreateSettings(vdcCmpId, &vdcCmpSettings);
     /* CFC LUT heap */
     if(NEXUS_MAX_HEAPS != pVideo->moduleSettings.cfc.cmpHeapIndex[displayIndex]) {
         vdcCmpSettings.hCfcHeap = g_pCoreHandles->heap[pVideo->moduleSettings.cfc.cmpHeapIndex[displayIndex]].mma;
     }
 
     if (pSettings->displayType == NEXUS_DisplayType_eDvo || pSettings->displayType == NEXUS_DisplayType_eLvds) {
-        BVDC_Display_Settings vdcDisplayCfg;
+        BVDC_Display_CreateSettings vdcDisplayCfg;
 
         if (displayIndex != 0) {
             BDBG_ERR(("invalid dvo display"));
@@ -996,7 +995,7 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
         vdcDisplayId = BVDC_DisplayId_eDisplay0;
-        rc = BVDC_Display_GetDefaultSettings(vdcDisplayId, &vdcDisplayCfg);
+        rc = BVDC_Display_GetDefaultCreateSettings(vdcDisplayId, &vdcDisplayCfg);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
         display->timingGenerator = vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eDviDtg;
         vdcDisplayCfg.bModifiedSync = bModifiedSync;
@@ -1004,12 +1003,12 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
     }
     else if (pSettings->displayType == NEXUS_DisplayType_eBypass) {
-        BVDC_Display_Settings vdcDisplayCfg;
+        BVDC_Display_CreateSettings vdcDisplayCfg;
 
         rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
-        rc = BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
+        rc = BVDC_Display_GetDefaultCreateSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
 
         if (pSettings->timingGenerator < NEXUS_DisplayTimingGenerator_eAuto) {
@@ -1023,7 +1022,7 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
     }
     else {
-        BVDC_Display_Settings vdcDisplayCfg;
+        BVDC_Display_CreateSettings vdcDisplayCfg;
         NEXUS_DisplayTimingGenerator timingGenerator = pSettings->timingGenerator;
 
         unsigned vecIndex;
@@ -1042,7 +1041,7 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
-        rc = BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);
+        rc = BVDC_Display_GetDefaultCreateSettings(BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
         if (timingGenerator < NEXUS_DisplayTimingGenerator_eAuto) {
             BDBG_CASSERT(NEXUS_DisplayTimingGenerator_eEncoder == (NEXUS_DisplayTimingGenerator)BVDC_DisplayTg_eStg);

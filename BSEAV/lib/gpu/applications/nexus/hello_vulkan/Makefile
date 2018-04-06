@@ -34,7 +34,7 @@ SRC = hello_vulkan.cpp
 
 TARGET_DIR := $(B_REFSW_OBJ_ROOT)/$(shell pwd | sed 's/.*\($(BASEPATH)\)/\1/g')
 
-all: $(TARGET_DIR) vulkan $(APP)
+all: $(TARGET_DIR) $(APP)
 
 include $(LIBVULKAN_DIR)/b_libvulkan_targets.inc
 include $(LIBVULKAN_DIR)/libvulkan.inc
@@ -72,7 +72,7 @@ LDFLAGS += -L$(LIBVULKAN_LIB_FOLDER) -lvulkan
 endif
 
 ifneq ($(wildcard $(V3D_DIR)),)
-api: nexus_api
+api: nexus_api vulkan
 	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
 	$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) NO_V3DDRIVER_BUILD=y
 else

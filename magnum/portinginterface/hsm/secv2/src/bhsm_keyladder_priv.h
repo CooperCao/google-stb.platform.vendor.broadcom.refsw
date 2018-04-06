@@ -42,10 +42,19 @@
 
 #include "bhsm_keyladder.h"
 
+typedef struct{
+    BHSM_Handle hHsm;
+    bool configured;
+    unsigned index;   /* keyladder index */
 
-BHSM_Handle BHSM_P_KeyLadder_GetHsmHandle( BHSM_KeyLadderHandle handle );
+}BHSM_KeyLadderDetails_t;
 
-bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle );
+
+BERR_Code BHSM_P_KeyLadder_GetDetails( BHSM_KeyLadderHandle hKeyLadder,
+                                       BHSM_KeyLadderDetails_t *pDetails );
+
+BHSM_Handle BHSM_P_KeyLadder_GetHsmHandle( BHSM_KeyLadderHandle handle );  /* DEPRECATED ... use BHSM_P_KeyLadder_GetDetails */
+bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle );      /* DEPRECATED ... use BHSM_P_KeyLadder_GetDetails */
 
 uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsigned otpIndex );
 

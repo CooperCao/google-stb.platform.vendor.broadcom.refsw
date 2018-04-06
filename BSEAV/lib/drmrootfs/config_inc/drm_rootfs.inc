@@ -78,7 +78,7 @@ char drm_key_region_tmp_dir[] ="/tmp/";
 **
 ******************************************************************************/
 #ifdef ANDROID
-char drm_bin_file_rootfs_path[] ="/hwcfg/drm.bin";
+char drm_bin_file_rootfs_path[] ="/dev/hwcfg/drm.bin";
 #else
 char drm_bin_file_rootfs_path[] ="./drm.bin";
 #endif

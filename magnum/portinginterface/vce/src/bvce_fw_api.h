@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x08000000
+#define VICE_API_VERSION                  0x09000000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -1499,12 +1499,6 @@ typedef union
          build process
  */
 
-#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE           12
-#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE                      14
-
-#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                 (8)*2
-#define PREPROCESSOR_MAX_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE              (8)
-#define PREPROCESSOR_MAX_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                            (10)*2
 
 /* ==========================================================*/
 /* ------------------  BUILD TIME CHECKS ------------------- */

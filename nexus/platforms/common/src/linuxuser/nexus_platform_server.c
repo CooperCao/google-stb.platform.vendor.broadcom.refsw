@@ -907,11 +907,12 @@ static void nexus_server_thread(void *context)
                                 NEXUS_Error nrc = nexus_p_read_interface(client, &interface);
                                 if (nrc == NEXUS_SUCCESS) {
                                     b_objdb_set_client(&client->client_state.client);
-                                    if(b_objdb_verify_any_object(interface)==NEXUS_SUCCESS) {
+                                    nrc = b_objdb_verify_any_object(interface);
+                                    if(nrc==NEXUS_SUCCESS) {
                                         /* start production of callbacks for this interface */
                                         NEXUS_StartCallbacks(interface);
                                     } else {
-                                        /* XXX NEXUS_StartCallbacks could be used with bad handle, in particularly XXX_Close, is paired with auto generated Stop>Start callbacks, where Start called _after_ obhect was already destroyed */
+                                        rc = BERR_TRACE(nrc);
                                     }
                                     b_objdb_set_client(NULL);
                                 }

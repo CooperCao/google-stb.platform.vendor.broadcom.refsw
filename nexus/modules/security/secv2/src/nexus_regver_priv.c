@@ -385,29 +385,26 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
         rc =  BHSM_RvRegion_GetStatus( pRegionData->rvRegionHandle, &regionStatus );
         if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( NEXUS_UNKNOWN ); goto error; }
 
-    } while( --countDown > 0 && !(regionStatus.status & BHSM_RV_REGION_STATUS_ENABLED) );
+    } while( --countDown > 0 && !(regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED) );
 
     if( countDown == 0 )  { rc = BERR_TRACE( NEXUS_TIMEOUT ); goto error; }
 
-    if( regionStatus.status & BHSM_RV_REGION_STATUS_LIVE_MERGE_FAIL ) {
-        pRegionData->verified = false;
+    if( regionStatus.status & BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED ) {
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto error;
     }
 
-    if( regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT ) {
-        pRegionData->verified = false;
+    if( regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED ) {
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto error;
     }
 
-    if (regionStatus.status & BHSM_RV_REGION_STATUS_BG_CHECK_RESULT) {
-        pRegionData->verified = false;
+    if (regionStatus.status & BHSM_RV_REGION_STATUS_BG_CHECK_FAILED) {
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto error;
     }
 
-    pRegionData->verified = regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED;
+    pRegionData->verified = true; /* if we get here, it verified. */
 
     BDBG_LEAVE( NEXUS_Security_RegionVerifyEnable_priv );
     return NEXUS_SUCCESS;

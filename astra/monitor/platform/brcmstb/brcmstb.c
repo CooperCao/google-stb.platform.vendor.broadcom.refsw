@@ -257,6 +257,7 @@ void plat_early_init(uintptr_t plat_params_addr)
             switch (chip_id & ~0xf) {
             case 0x72680010:
             case 0x72710010:
+            case 0x72550000:
                 pbuiltin_params = &bcm7268b0_params;
                 break;
             }
@@ -271,6 +272,13 @@ void plat_early_init(uintptr_t plat_params_addr)
                     &brcmstb_params,
                     pbuiltin_params,
                     sizeof(brcmstb_params_t));
+            }
+
+            /* Adjustment for some chips */
+            if ((chip_id & ~0xf) == 0x72550000) {
+                brcmstb_rgroup_t *prgroup =
+                    &brcmstb_params.rgroups[BRCMSTB_RGROUP_HIF_CPUBIUCTRL];
+                prgroup->base = 0xf0202400;
             }
         }
 

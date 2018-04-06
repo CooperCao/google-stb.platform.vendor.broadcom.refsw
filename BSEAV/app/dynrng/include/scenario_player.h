@@ -55,8 +55,8 @@ typedef struct Scenario
     char * bgPath;
     PlatformUsageMode usageMode;
     unsigned layout;
-    bool osd;
-    bool info;
+    PlatformTriState osd;
+    PlatformTriState info;
     bool forceRestart;
     bool startPaused;
     bool stcTrick;

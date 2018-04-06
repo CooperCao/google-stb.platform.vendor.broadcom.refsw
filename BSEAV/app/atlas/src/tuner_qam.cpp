@@ -614,6 +614,7 @@ error:
     return(ret);
 }
 
+#ifndef MPOD_SUPPORT
 void CTunerQam::doScan()
 {
     eRet     ret            = eRet_Ok;
@@ -622,16 +623,6 @@ void CTunerQam::doScan()
     unsigned numFreqScanned = 0;
 
     CTunerScanNotificationData notifyData(this); /* notification data for reporting scan start/stop/progress */
-
-#ifdef MPOD_SUPPORT
-    if (!_scanData._useCableCardSiData)
-    {
-        /* nothing to scan so we are done */
-        BDBG_WRN((" MPOD_SUPPORT =y disables the manual update of channel map"));
-        BDBG_WRN((" Channel map update will be automatically triggered through by Cable Card"));
-        goto error;
-    }
-#endif /* ifdef MPOD_SUPPORT */
 
     /* set the starting major channel number for newly found channels */
     major = _scanData._majorStartNum;
@@ -681,6 +672,88 @@ error:
 
     _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
 } /* doScan */
+#else
+void CTunerQam::doScan()
+{
+    eRet                       ret   = eRet_Ok;
+    unsigned                   major = 1;
+    CChannelQam                chQam(_pCfg, this); /* temp channel we'll use to do tuning during scan */
+    CTunerScanNotificationData notifyData(this);   /* notification data for reporting scan start/stop/progress */
+    channel_list_t *           _pChannelList;
+    int index;
+
+    BDBG_ASSERT(NULL != _scanThread_handle);
+
+    if (!_scanData._useCableCardSiData)
+    {
+        /* nothing to scan so we are done */
+        BDBG_WRN((" MPOD_SUPPORT =y disables the manual update of channel map"));
+        BDBG_WRN((" Channel map update will be automatically triggered through by Cable Card"));
+        goto error;
+    }
+
+    /* check to see if fast status is supported */
+    {
+        NEXUS_FrontendFastStatus fastStatus;
+        NEXUS_Error              nerror = NEXUS_SUCCESS;
+
+        nerror = NEXUS_Frontend_GetFastStatus(getFrontend(), &fastStatus);
+        if (NEXUS_NOT_SUPPORTED != nerror)
+        {
+            nerror = NEXUS_SUCCESS;
+        }
+        CHECK_NEXUS_ERROR_GOTO("fast status is not supported - aborting scan", ret, nerror, error);
+    }
+
+    /* set the starting major channel number for newly found channels */
+    major         = _scanData._majorStartNum;
+    _pChannelList = _scanData._pChannelList;
+
+    notifyObserversAsync(eNotify_ScanStarted, &notifyData);
+    notifyObserversAsync(eNotify_ScanProgress, &notifyData);
+
+    for (index = 0; index < _pChannelList->active_channels; index++)
+    {
+        NEXUS_FrontendQamSettings settings;
+        NEXUS_Frontend_GetDefaultQamSettings(&settings);
+        /* handle default settings for optional paramters */
+        settings             = chQam.getSettings();
+        settings.frequency   = _pChannelList->channel[index].frequency;
+        settings.mode        = _pChannelList->channel[index].modulation;
+        settings.annex       = _pChannelList->channel[index].annex;
+        settings.symbolRate  = _pChannelList->channel[index].symbolrate;
+        settings.bandwidth   = _scanData._bandwidth;
+        settings.autoAcquire = false;
+        chQam.setSettings(settings);
+        chQam.setTransportType(NEXUS_TransportType_eTs);
+        /* try to tune */
+        ret = chQam.tune(_scanThread_id, _pConfig, true);
+
+        if (eRet_Ok == ret)
+        {
+            chQam.setMajor(major);
+            if (0 < chQam.addPsiPrograms(_scanThread_callback, _scanThread_context))
+            {
+                /* found channels so increment major channel number */
+                major++;
+                chQam.setSourceId(_pChannelList->channel[index].source_id);
+            }
+        }
+        chQam.unTune(_pConfig, false, false);
+        notifyData.setPercent(100 * index / _pChannelList->active_channels);
+        notifyObserversAsync(eNotify_ScanProgress, &notifyData);
+    }
+
+error:
+    if (chQam.isTuned())
+    {
+        chQam.unTune(_pConfig, false, false);
+    }
+    scanDone(&notifyData);
+    _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
+} /* doScan */
+
+#endif /* ifndef MPOD_SUPPORT */
 
 eRet CTunerQam::scanFrequencies(
         unsigned * pMajor,

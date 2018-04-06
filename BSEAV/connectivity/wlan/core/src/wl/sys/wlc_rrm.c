@@ -389,6 +389,7 @@ struct wlc_rrm_info {
 	rrm_statreq_t *statreq;     /* STA stats request/report data */
 	rrm_txstrmreq_t *txstrmreq; /* Transmit stream/category request/report data */
 	struct wl_timer *rrm_noise_ipi_timer; /* measurement for noise ipi */
+        char *event_buf; /* rrm event buf (size = WL_RRM_EVENT_BUF_MAX_SIZE)*/
 };
 
 /* Neighbor Report element */
@@ -747,6 +748,14 @@ BCMATTACHFN(wlc_rrm_attach)(wlc_info_t *wlc)
 	}
 	bzero((char *)rrm_info->rrm_state, sizeof(wlc_rrm_req_state_t));
 
+        if ((rrm_info->event_buf = (char *)MALLOC(wlc->osh,
+		WL_RRM_EVENT_BUF_MAX_SIZE)) == NULL) {
+		WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
+		goto fail;
+	}
+	bzero(rrm_info->event_buf,WL_RRM_EVENT_BUF_MAX_SIZE);
+
 	if (!(rrm_info->rrm_timer = wl_init_timer(wlc->wl, wlc_rrm_timer, rrm_info, "rrm"))) {
 		WL_ERROR(("rrm_timer init failed\n"));
 		goto fail;
@@ -834,7 +843,11 @@ BCMATTACHFN(wlc_rrm_detach)(wlc_rrm_info_t *rrm_info)
 		wl_free_timer(wlc->wl, rrm_info->rrm_noise_ipi_timer);
 	}
 
-	if (rrm_info->rrm_state) {
+        if (rrm_info->event_buf) {
+                MFREE(wlc->osh, rrm_info->event_buf,WL_RRM_EVENT_BUF_MAX_SIZE);
+        }
+
+        if (rrm_info->rrm_state) {
 		MFREE(wlc->osh, rrm_info->rrm_state, sizeof(wlc_rrm_req_state_t));
 	}
 
@@ -2422,23 +2435,21 @@ static void
 wlc_rrm_send_event(wlc_rrm_info_t *rrm_info, struct scb *scb, char *ie, int len,
 	int16 cat, int16 subevent)
 {
-	char buf[WL_RRM_EVENT_BUF_MAX_SIZE] = {0};
-	wl_rrm_event_t *evt = (wl_rrm_event_t *)buf;
-
-	if (len > (WL_RRM_EVENT_BUF_MAX_SIZE - sizeof(wl_rrm_event_t))) {
+        wl_rrm_event_t *evt = (wl_rrm_event_t *)rrm_info->event_buf;
+        if (len > (WL_RRM_EVENT_BUF_MAX_SIZE - sizeof(wl_rrm_event_t))) {
 		WL_RRM(("%s: event length is too big (%d)\n", __FUNCTION__, len));
 		return;
 	}
 
-	WL_RRM(("%s: <0x%x> trigger event....\n", __FUNCTION__, subevent));
-
+        WL_RRM(("%s: <0x%x> trigger event....\n", __FUNCTION__, subevent));
+        bzero(rrm_info->event_buf, WL_RRM_EVENT_BUF_MAX_SIZE);
 	evt->version = RRM_EVENT_VERSION;
 	evt->len = len;
 	evt->cat = cat;
 	evt->subevent = subevent;
 	memcpy(evt->payload, ie, len);
 	wlc_bss_mac_event(rrm_info->wlc, rrm_info->cur_cfg, WLC_E_RRM,
-		&scb->ea, 0, 0, 0, buf, sizeof(buf));
+		&scb->ea, 0, 0, 0, rrm_info->event_buf, WL_RRM_EVENT_BUF_MAX_SIZE);
 	WL_RRM(("%s: <0x%x> trigger event [DONE]\n", __FUNCTION__, subevent));
 }
 

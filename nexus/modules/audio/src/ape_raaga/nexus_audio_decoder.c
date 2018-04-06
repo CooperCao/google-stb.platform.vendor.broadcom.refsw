@@ -1292,15 +1292,18 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
                 #if BDBG_DEBUG_BUILD
                 NEXUS_AudioDecoder_P_PrintRaveStatus(handle->srcRaveContext, "SOURCE");
                 #endif
+                handle->srcRaveCxtConfigured = true;
             }
             else
             {
                 BDBG_MSG(("Configure Dest RAVE"));
                 errCode = NEXUS_AudioDecoder_P_ConfigureRave(handle->dstRaveContext, pProgram, &pidChannelStatus, handle->isPlayback);
+                handle->dstRaveCxtConfigured = true;
             }
             if (errCode)
             {
                 errCode = BERR_TRACE(errCode);
+                handle->srcRaveCxtConfigured = handle->dstRaveCxtConfigured = false;
                 goto err_configure_audio;
             }
         }
@@ -1394,14 +1397,15 @@ err_rave_status:
     if ( pProgram->pidChannel )
     {
         LOCK_TRANSPORT();
-        if ( handle->srcRaveContext )
+        if ( handle->srcRaveCxtConfigured )
         {
             NEXUS_Rave_RemovePidChannel_priv(handle->srcRaveContext);
         }
-        else
+        if ( handle->dstRaveCxtConfigured )
         {
             NEXUS_Rave_RemovePidChannel_priv(handle->dstRaveContext);
         }
+        handle->srcRaveCxtConfigured = handle->dstRaveCxtConfigured = false;
         UNLOCK_TRANSPORT();
     }
 
@@ -1478,16 +1482,17 @@ void NEXUS_AudioDecoder_Stop(
     if ( handle->programSettings.pidChannel )
     {
         LOCK_TRANSPORT();
-        if ( handle->srcRaveContext )
+        if ( handle->srcRaveCxtConfigured )
         {
             BDBG_MSG(("Remove Source Pid Channel from RAVE"));
             NEXUS_Rave_RemovePidChannel_priv(handle->srcRaveContext);
         }
-        else
+        if ( handle->dstRaveCxtConfigured )
         {
             BDBG_MSG(("Remove Dest Pid Channel from RAVE"));
             NEXUS_Rave_RemovePidChannel_priv(handle->dstRaveContext);
         }
+        handle->srcRaveCxtConfigured = handle->dstRaveCxtConfigured = false;
         UNLOCK_TRANSPORT();
         NEXUS_OBJECT_RELEASE(handle, NEXUS_PidChannel, handle->programSettings.pidChannel);
     }

@@ -243,6 +243,7 @@ NEXUS_AspChannel_Start related settings.
 typedef struct NEXUS_AspChannelStartSettings
 {
     NEXUS_AspStreamingProtocol              protocol;
+    bool                                    connectionLost;
     struct {
         NEXUS_AspTcpSettings                tcp;
         NEXUS_AspHttpSettings               http;

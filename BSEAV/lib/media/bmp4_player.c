@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -51,20 +50,20 @@ BDBG_MODULE(bmp4_player);
 BDBG_OBJECT_ID(bmp4_player_t);
 
 typedef struct b_mp4_player_handler {
-	bmp4_parser_handler handler; /* must be first member */
-	bmp4_player_t player;
+    bmp4_parser_handler handler; /* must be first member */
+    bmp4_player_t player;
 } b_mp4_player_handler;
 
 
 typedef struct b_mp4_movie {
-	unsigned ntracks;
-	BLST_SQ_HEAD(b_mp4_tracks, b_mp4_track) tracks;
-	bmp4_movieheaderbox movieheader;
-	bmp4_filetypebox filetype;
-	bool error;
-	bool valid;
-	bool movieheader_valid;
-	bool filetype_valid;
+    unsigned ntracks;
+    BLST_SQ_HEAD(b_mp4_tracks, b_mp4_track) tracks;
+    bmp4_movieheaderbox movieheader;
+    bmp4_filetypebox filetype;
+    bool error;
+    bool valid;
+    bool movieheader_valid;
+    bool filetype_valid;
 } b_mp4_movie;
 
 typedef struct b_mp4_active_box {
@@ -315,48 +314,48 @@ b_mp4_active_box_next(b_mp4_active_box *box, bfile_cached_segment *cache, b_mp4_
 static bmp4_parser_action  
 b_mp4_player_movie(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
-	bmp4_parser_action action = bmp4_parser_action_none;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    bmp4_parser_action action = bmp4_parser_action_none;
 
-	BDBG_MSG(("b_mp4_player_movie:%#lx " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (unsigned long)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	switch(type) {
-	case BMP4_MOVIEHEADER:
-		BDBG_ASSERT(box);
-		player->movie.movieheader_valid = bmp4_parse_movieheader(box, &player->movie.movieheader);
-		if(!player->movie.movieheader_valid) {
-			BDBG_WRN(("b_mp4_player_movie: %#lx error in parsing movie header", (unsigned long)player));
-		}
-		break;
-	case BMP4_TYPE_END:
-		BDBG_MSG(("b_mp4_player_movie:%#lx parsing completed", (unsigned long) player));
-		player->movie.valid = true;
-		action = bmp4_parser_action_return;
-		break;
-	default:
-		break;
-	}
-	if(box) {
-		batom_release(box);
-	}
-	return action;
+    BDBG_MSG(("b_mp4_player_movie:%#lx " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (unsigned long)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    switch(type) {
+    case BMP4_MOVIEHEADER:
+        BDBG_ASSERT(box);
+        player->movie.movieheader_valid = bmp4_parse_movieheader(box, &player->movie.movieheader);
+        if(!player->movie.movieheader_valid) {
+            BDBG_WRN(("b_mp4_player_movie: %#lx error in parsing movie header", (unsigned long)player));
+        }
+        break;
+    case BMP4_TYPE_END:
+        BDBG_MSG(("b_mp4_player_movie:%#lx parsing completed", (unsigned long) player));
+        player->movie.valid = true;
+        action = bmp4_parser_action_return;
+        break;
+    default:
+        break;
+    }
+    if(box) {
+        batom_release(box);
+    }
+    return action;
 }
 
 static bmp4_parser_action  
 b_mp4_player_filetype(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
 
-	BDBG_MSG(("b_mp4_player_filetype:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	if(type == BMP4_FILETYPEBOX) {
-		BDBG_ASSERT(box);
-		player->movie.filetype_valid = bmp4_parse_filetype(box, &player->movie.filetype);
-	}
-	if(box) {
-		batom_release(box);
-	}
-	return bmp4_parser_action_none;
+    BDBG_MSG(("b_mp4_player_filetype:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    if(type == BMP4_FILETYPEBOX) {
+        BDBG_ASSERT(box);
+        player->movie.filetype_valid = bmp4_parse_filetype(box, &player->movie.filetype);
+    }
+    if(box) {
+        batom_release(box);
+    }
+    return bmp4_parser_action_none;
 }
 
 
@@ -375,7 +374,11 @@ b_mp4_track_init(b_mp4_track *track)
     track->hdr_len = 0;
     track->accum_data = NULL;
     track->track_accum = NULL;
+#if NEXUS_USE_OTT_TRANSPORT
+    track->bounded_pes = true;
+#else
     track->bounded_pes = false;
+#endif
     track->fragment.index.valid = false;
     bmp4_track_info_init(&track->info);
     return;
@@ -457,13 +460,13 @@ b_mp4_player_free_track(b_mp4_track *track)
 static void
 b_mp4_player_tracks_free(bmp4_player_t player)
 {
-	b_mp4_track *track;
+    b_mp4_track *track;
 
-	while(NULL!=(track = BLST_SQ_FIRST(&player->movie.tracks))) {
-		BLST_SQ_REMOVE_HEAD(&player->movie.tracks, next);
+    while(NULL!=(track = BLST_SQ_FIRST(&player->movie.tracks))) {
+        BLST_SQ_REMOVE_HEAD(&player->movie.tracks, next);
         b_mp4_player_free_track(track);
-	}
-	return;
+    }
+    return;
 }
 
 static b_mp4_track *
@@ -502,7 +505,7 @@ b_mp4_player_find_track(bmp4_player_t player, uint32_t track_ID)
             return track;
         }
     }
-	BDBG_MSG(("b_mp4_player_find_track:%#lx creating new track #%u track_ID:%u", (unsigned long)player, player->movie.ntracks, track_ID));
+    BDBG_MSG(("b_mp4_player_find_track:%#lx creating new track #%u track_ID:%u", (unsigned long)player, player->movie.ntracks, track_ID));
     track = b_mp4_player_create_track(player);
     if(track) {
         b_mp4_player_attach_track(player, track);
@@ -514,7 +517,7 @@ static b_mp4_track *
 b_mp4_player_reserve_track(bmp4_player_t player)
 {
     b_mp4_track *track;
-	track = player->current_track;
+    track = player->current_track;
     if(track==NULL) {
         track = b_mp4_player_create_track(player);
         player->current_track = track;
@@ -526,17 +529,17 @@ b_mp4_player_reserve_track(bmp4_player_t player)
 static bmp4_parser_action  
 b_mp4_player_track(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
-	b_mp4_track *track;
-	bmp4_parser_action action = bmp4_parser_action_none;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    b_mp4_track *track;
+    bmp4_parser_action action = bmp4_parser_action_none;
     bmp4_trackheaderbox trackheader;
 
-	BDBG_MSG(("b_mp4_player_track:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	switch(type) {
-	case BMP4_TRACKHEADER:
-		BDBG_ASSERT(box);
-	    if(bmp4_parse_trackheader(box, &trackheader) && bmedia_player_stream_test(&player->stream, trackheader.track_ID)) {
+    BDBG_MSG(("b_mp4_player_track:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    switch(type) {
+    case BMP4_TRACKHEADER:
+        BDBG_ASSERT(box);
+        if(bmp4_parse_trackheader(box, &trackheader) && bmedia_player_stream_test(&player->stream, trackheader.track_ID)) {
             track = player->current_track;
             if(track) {
                 b_mp4_player_attach_track(player, track);
@@ -549,43 +552,43 @@ b_mp4_player_track(bmp4_parser_handler *handler, uint32_t type, batom_t box)
                 }
                 player->current_track = track;
             }
-			track->trackheader_valid = true;
+            track->trackheader_valid = true;
             track->info.trackheader = trackheader;
         }
-		break;
-	case BMP4_TYPE_BEGIN:
+        break;
+    case BMP4_TYPE_BEGIN:
         player->current_track = NULL;
-		break;
-	case BMP4_TYPE_END:
-	    track = player->current_track;
+        break;
+    case BMP4_TYPE_END:
+        track = player->current_track;
         if(!track->attached) {
-	        player->current_track = NULL;
+            player->current_track = NULL;
             b_mp4_player_free_track(track);
         }
         break;
-	default:
-		break;
-	}
-	if(box) {
-		batom_release(box);
-	}
-	return action;
+    default:
+        break;
+    }
+    if(box) {
+        batom_release(box);
+    }
+    return action;
 }
 
 static bmp4_parser_action  
 b_mp4_player_media(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
-	b_mp4_track *track;
-	bmp4_parser_action action = bmp4_parser_action_none;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    b_mp4_track *track;
+    bmp4_parser_action action = bmp4_parser_action_none;
 
-	BDBG_MSG(("b_mp4_player_media:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    BDBG_MSG(("b_mp4_player_media:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
     track = b_mp4_player_reserve_track(player);
-	if(track) {
-		switch(type) {
-		case BMP4_MEDIAHEADER:
-			BDBG_ASSERT(box);
+    if(track) {
+        switch(type) {
+        case BMP4_MEDIAHEADER:
+            BDBG_ASSERT(box);
             track->mediaheader_valid = bmp4_parse_mediaheader(box, &track->info.mediaheader);
             if(!track->mediaheader_valid) {
                 BDBG_WRN(("b_mp4_player_media: %#lx track:%u error in parsing Media Header", (unsigned long)player, track->info.trackheader.track_ID));
@@ -595,81 +598,81 @@ b_mp4_player_media(bmp4_parser_handler *handler, uint32_t type, batom_t box)
                     track->info.mediaheader.timescale=1;
                 }
             }
-			break;
-		case BMP4_HANDLER:
-			BDBG_ASSERT(box);
-			track->handler_valid = bmp4_parse_handler(box, &track->info.handler);
-			if(!track->handler_valid) {
-				BDBG_WRN(("b_mp4_player_media: %#lx track:%u error in parsing Handler Reference", (unsigned long)player, track->info.trackheader.track_ID));
-			}
-			break;
-		default:
-			break;
-		}
-	}
-	if(box) {
-		batom_release(box);
-	}
-	return action;
+            break;
+        case BMP4_HANDLER:
+            BDBG_ASSERT(box);
+            track->handler_valid = bmp4_parse_handler(box, &track->info.handler);
+            if(!track->handler_valid) {
+                BDBG_WRN(("b_mp4_player_media: %#lx track:%u error in parsing Handler Reference", (unsigned long)player, track->info.trackheader.track_ID));
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    if(box) {
+        batom_release(box);
+    }
+    return action;
 }
 
 static bmp4_parser_action  
 b_mp4_player_mediainfo(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
-	bmp4_parser_action action = bmp4_parser_action_none;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    bmp4_parser_action action = bmp4_parser_action_none;
 
-	BSTD_UNUSED(type);
+    BSTD_UNUSED(type);
 
-	BDBG_MSG(("b_mp4_player_mediainfo:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	if(box) {
-		batom_release(box);
-	}
-	return action;
+    BDBG_MSG(("b_mp4_player_mediainfo:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    if(box) {
+        batom_release(box);
+    }
+    return action;
 }
 
 static bmp4_parser_action  
 b_mp4_player_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
-	b_mp4_track *track;
-	bmp4_parser_action action = bmp4_parser_action_none;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    b_mp4_track *track;
+    bmp4_parser_action action = bmp4_parser_action_none;
 
-	BDBG_MSG(("b_mp4_player_sampletable:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    BDBG_MSG(("b_mp4_player_sampletable:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
     track = b_mp4_player_reserve_track(player);
-	if(track) {
-		switch(type) {
-		case BMP4_SAMPLEDESCRIPTION:
-			if(track->handler_valid) {
-				track->sample_valid = bmp4_parse_sample_info(box, &track->info.sample_info, track->info.handler.handler_type);
-				if(!track->sample_valid) {
-					BDBG_WRN(("b_mp4_player_media: %#lx track:%u error in parsing Sample Description", (unsigned long)player, track->info.trackheader.track_ID));
-				}
-			} else {
-				BDBG_WRN(("b_mp4_player_media: %#lx track:%u Handler Reference invalid, can't parse Sample Description", (unsigned long)player, track->info.trackheader.track_ID));
-			}
-			break;
-		default:
-			break;
-		}
-	}
-	if(box) {
-		batom_release(box);
-	}
-	return action;
+    if(track) {
+        switch(type) {
+        case BMP4_SAMPLEDESCRIPTION:
+            if(track->handler_valid) {
+                track->sample_valid = bmp4_parse_sample_info(box, &track->info.sample_info, track->info.handler.handler_type);
+                if(!track->sample_valid) {
+                    BDBG_WRN(("b_mp4_player_media: %#lx track:%u error in parsing Sample Description", (unsigned long)player, track->info.trackheader.track_ID));
+                }
+            } else {
+                BDBG_WRN(("b_mp4_player_media: %#lx track:%u Handler Reference invalid, can't parse Sample Description", (unsigned long)player, track->info.trackheader.track_ID));
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    if(box) {
+        batom_release(box);
+    }
+    return action;
 }
 
 static bmp4_parser_action  
 b_mp4_player_movie_extends(bmp4_parser_handler *handler, uint32_t type, batom_t box)
 {
-	bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
-	bmp4_parser_action action = bmp4_parser_action_none;
+    bmp4_player_t player = ((b_mp4_player_handler *)handler)->player;
+    bmp4_parser_action action = bmp4_parser_action_none;
 
 
-	BDBG_MSG(("b_mp4_player_movie_extends:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    BDBG_MSG(("b_mp4_player_movie_extends:%p " B_MP4_TYPE_FORMAT "[" B_MP4_TYPE_FORMAT "] %u bytes", (void *)player, B_MP4_TYPE_ARG(handler->type), B_MP4_TYPE_ARG(type), box?(unsigned)batom_len(box):0));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
     if(type==BMP4_TRACK_EXTENDS) {
         bmp4_trackextendsbox track_extends;
         BDBG_ASSERT(box);
@@ -681,10 +684,10 @@ b_mp4_player_movie_extends(bmp4_parser_handler *handler, uint32_t type, batom_t 
             }
         }
     }
-	if(box) {
-		batom_release(box);
-	}
-	return action;
+    if(box) {
+        batom_release(box);
+    }
+    return action;
 }
 
 
@@ -975,11 +978,11 @@ b_mp4_player_feed_single_block(bmp4_player_t player, bmp4_parser_t mp4, batom_pi
     void *buf;
     ssize_t read_result;
     size_t mp4_result=-1;
-	batom_t atom;
-	BERR_Code mrc = BERR_SUCCESS;
-	const size_t len = 4096;
-	bfile_io_read_t fd = player->fd;
-	batom_factory_t factory=player->factory;
+    batom_t atom;
+    BERR_Code mrc = BERR_SUCCESS;
+    const size_t len = 4096;
+    bfile_io_read_t fd = player->fd;
+    batom_factory_t factory=player->factory;
 
     buf = BKNI_Malloc(len); 
     if (!buf) {
@@ -1066,15 +1069,15 @@ b_mp4_player_fragment_init(bmp4_player_t player)
 
     player->fragment.buffer_data = BKNI_Malloc(buffer_len);
     if(!player->fragment.buffer_data) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_buffer_data;}
-	bfile_buffer_default_cfg(&buffer_cfg);
-	buffer_cfg.buf = player->fragment.buffer_data;
-	buffer_cfg.buf_len = buffer_len;
-	buffer_cfg.nsegs = buffer_cfg.buf_len / BIO_BLOCK_SIZE;
-	buffer_cfg.fd = player->fd;
-	player->fragment.buffer = bfile_buffer_create(player->factory, &buffer_cfg);
+    bfile_buffer_default_cfg(&buffer_cfg);
+    buffer_cfg.buf = player->fragment.buffer_data;
+    buffer_cfg.buf_len = buffer_len;
+    buffer_cfg.nsegs = buffer_cfg.buf_len / BIO_BLOCK_SIZE;
+    buffer_cfg.fd = player->fd;
+    player->fragment.buffer = bfile_buffer_create(player->factory, &buffer_cfg);
     if(!player->fragment.buffer) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_buffer;}
     for(track = BLST_SQ_FIRST(&player->movie.tracks); track!=NULL ; track=BLST_SQ_NEXT(track, next)) {
-		if(track->trackheader_valid && track->mediaheader_valid && track->handler_valid && track->sample_valid && track->track_extends_valid) {
+        if(track->trackheader_valid && track->mediaheader_valid && track->handler_valid && track->sample_valid && track->track_extends_valid) {
             rc = b_mp4_fragment_track_init(player, &track->fragment);
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto err_track;}
             track->fragment_valid = true;
@@ -1499,37 +1502,37 @@ err_mp4:
 bmp4_player_t
 bmp4_player_create(bfile_io_read_t fd, const bmedia_player_config *config, const bmedia_player_stream *stream)
 {
-	bmp4_player_t player;
+    bmp4_player_t player;
     BERR_Code rc;
 
     BSTD_UNUSED(rc);
 
-	BDBG_ASSERT(fd);
-	BDBG_ASSERT(config);
-	BDBG_ASSERT(stream && stream->format == bstream_mpeg_type_mp4);
+    BDBG_ASSERT(fd);
+    BDBG_ASSERT(config);
+    BDBG_ASSERT(stream && stream->format == bstream_mpeg_type_mp4);
 
-	if(!config->buffer) {
-		BDBG_ERR(("bmp4_player_create: buffer has to be provided"));
-		goto err_buffer;
-	}
-	player = BKNI_Malloc(sizeof(*player));
-	if (!player) {
-		BDBG_ERR(("bmp4_player_create: can't allocate %u bytes", (unsigned)sizeof(*player)));
-		goto err_alloc;
-	}
-	BDBG_OBJECT_INIT(player, bmp4_player_t);
-	player->fd = fd;
-	player->config = *config;
-	player->stream = *stream;
-	player->status.direction = 0;
-	player->status.index_error_cnt = 0;
-	player->status.data_error_cnt = 0;
-	player->status.bounds.first = 0;
-	player->status.bounds.last = 0;
-	player->status.position = 0;
-	player->time_scale = BMEDIA_TIME_SCALE_BASE;
-	player->rew_stack.position = 0;
-	player->rew_stack.stack_next = 0;
+    if(!config->buffer) {
+        BDBG_ERR(("bmp4_player_create: buffer has to be provided"));
+        goto err_buffer;
+    }
+    player = BKNI_Malloc(sizeof(*player));
+    if (!player) {
+        BDBG_ERR(("bmp4_player_create: can't allocate %u bytes", (unsigned)sizeof(*player)));
+        goto err_alloc;
+    }
+    BDBG_OBJECT_INIT(player, bmp4_player_t);
+    player->fd = fd;
+    player->config = *config;
+    player->stream = *stream;
+    player->status.direction = 0;
+    player->status.index_error_cnt = 0;
+    player->status.data_error_cnt = 0;
+    player->status.bounds.first = 0;
+    player->status.bounds.last = 0;
+    player->status.position = 0;
+    player->time_scale = BMEDIA_TIME_SCALE_BASE;
+    player->rew_stack.position = 0;
+    player->rew_stack.stack_next = 0;
     player->current_track = NULL;
     player->fragmented = false;
     player->fragment.buffer = NULL;
@@ -1537,59 +1540,59 @@ bmp4_player_create(bfile_io_read_t fd, const bmedia_player_config *config, const
 
     bfile_segment_clear(&player->first_movie_fragment);
 
-	player->factory = batom_factory_create(bkni_alloc, 64);
-	if(!player->factory) {
+    player->factory = batom_factory_create(bkni_alloc, 64);
+    if(!player->factory) {
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_factory;
-	}
-	player->accum_src = batom_accum_create(player->factory);
-	if(!player->accum_src) {
+        goto err_factory;
+    }
+    player->accum_src = batom_accum_create(player->factory);
+    if(!player->accum_src) {
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_accum_src;
-	}
-	player->accum_dest = batom_accum_create(player->factory);
-	if(!player->accum_dest) {
+        goto err_accum_src;
+    }
+    player->accum_dest = batom_accum_create(player->factory);
+    if(!player->accum_dest) {
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_accum_dest;
-	}
+        goto err_accum_dest;
+    }
 
-	if(b_mp4_player_open_file(player)<0) {
+    if(b_mp4_player_open_file(player)<0) {
         rc = BERR_TRACE(BERR_NOT_SUPPORTED);
-		goto err_index;
-	}
-	player->status.bounds.first = 0;
-	player->status.bounds.last = (bmedia_player_pos)((1000*player->movie.movieheader.duration)/player->movie.movieheader.timescale);
+        goto err_index;
+    }
+    player->status.bounds.first = 0;
+    player->status.bounds.last = (bmedia_player_pos)((1000*player->movie.movieheader.duration)/player->movie.movieheader.timescale);
 
-	return player;
+    return player;
 err_index:
-	b_mp4_player_tracks_free(player);
-	batom_accum_destroy(player->accum_dest);
+    b_mp4_player_tracks_free(player);
+    batom_accum_destroy(player->accum_dest);
 err_accum_dest:
-	batom_accum_destroy(player->accum_src);
+    batom_accum_destroy(player->accum_src);
 err_accum_src:
-	batom_factory_destroy(player->factory);
+    batom_factory_destroy(player->factory);
 err_factory:
-	BKNI_Free(player);
+    BKNI_Free(player);
 err_alloc:
 err_buffer:
-	return NULL;
+    return NULL;
 }
 
 void 
 bmp4_player_destroy(bmp4_player_t player)
 {
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	b_mp4_player_tracks_free(player);
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    b_mp4_player_tracks_free(player);
     if(player->fragmented) {
         b_mp4_player_fragment_shutdown(player);
     }
-	batom_accum_destroy(player->accum_dest);
-	batom_accum_destroy(player->accum_src);
-	batom_factory_destroy(player->factory);
-	BDBG_OBJECT_DESTROY(player, bmp4_player_t);
-	BKNI_Free(player);
+    batom_accum_destroy(player->accum_dest);
+    batom_accum_destroy(player->accum_src);
+    batom_factory_destroy(player->factory);
+    BDBG_OBJECT_DESTROY(player, bmp4_player_t);
+    BKNI_Free(player);
 
-	return;
+    return;
 }
 
 static void
@@ -1605,11 +1608,11 @@ b_mp4_player_data_error(bmp4_player_t player)
 static batom_t
 b_mp4_process_sample_mp4a(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_mp4a *mp4a)
 {
-	batom_accum_t dst = player->accum_dest;
+    batom_accum_t dst = player->accum_dest;
 
-	BSTD_UNUSED(mp4a);
-	BDBG_ASSERT(track);
-	BDBG_ASSERT(mp4a);
+    BSTD_UNUSED(mp4a);
+    BDBG_ASSERT(track);
+    BDBG_ASSERT(mp4a);
 
     BDBG_ASSERT(batom_accum_len(dst)==0);
 
@@ -1636,22 +1639,22 @@ b_mp4_process_sample_mp4a(bmp4_player_t player, b_mp4_track *track, batom_t atom
 static batom_t
 b_mp4_process_sample_amr(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_amr *amr)
 {
-	batom_accum_t dst = player->accum_dest;
-	size_t len = batom_len(atom);
+    batom_accum_t dst = player->accum_dest;
+    size_t len = batom_len(atom);
     uint8_t *buf = track->hdr_buf;
 
-	BSTD_UNUSED(amr);
-	BDBG_ASSERT(batom_accum_len(dst)==0);
+    BSTD_UNUSED(amr);
+    BDBG_ASSERT(batom_accum_len(dst)==0);
 
     buf[4] = B_GET_BITS(len, 31, 24);
     buf[5] = B_GET_BITS(len, 23, 16);
     buf[6] = B_GET_BITS(len, 15, 8);
     buf[7] = B_GET_BITS(len, 7, 0);
 
-	batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
-	batom_accum_add_atom(dst, atom);
-	batom_release(atom);
-	return batom_from_accum(dst, NULL, NULL);
+    batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
+    batom_accum_add_atom(dst, atom);
+    batom_release(atom);
+    return batom_from_accum(dst, NULL, NULL);
 }
 
 static batom_t
@@ -1746,90 +1749,90 @@ b_mp4_process_sample_pcm(bmp4_player_t player, b_mp4_track *track, batom_t atom)
 static batom_t
 b_mp4_process_sample_mp4v(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_mp4v *mp4v)
 {
-	batom_accum_t dst = player->accum_dest;
+    batom_accum_t dst = player->accum_dest;
 
-	BSTD_UNUSED(mp4v);
-	BDBG_ASSERT(track);
-	BDBG_ASSERT(mp4v);
-	BDBG_ASSERT(batom_accum_len(dst)==0);
+    BSTD_UNUSED(mp4v);
+    BDBG_ASSERT(track);
+    BDBG_ASSERT(mp4v);
+    BDBG_ASSERT(batom_accum_len(dst)==0);
 
-	if(track->next_sample.syncsample) {
-		batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
-		batom_accum_add_atom(dst, atom);
-		batom_release(atom);
-		return batom_from_accum(dst, NULL, NULL);
-	} else {
-		return atom;
-	}
+    if(track->next_sample.syncsample) {
+        batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
+        batom_accum_add_atom(dst, atom);
+        batom_release(atom);
+        return batom_from_accum(dst, NULL, NULL);
+    } else {
+        return atom;
+    }
 }
 
 static batom_t
 b_mp4_process_sample_s263(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_s263 *s263)
 {
-	batom_accum_t dst = player->accum_dest;
+    batom_accum_t dst = player->accum_dest;
 
-	BSTD_UNUSED(s263);
-	BDBG_ASSERT(track);
-	BDBG_ASSERT(s263);
-	BDBG_ASSERT(batom_accum_len(dst)==0);
+    BSTD_UNUSED(s263);
+    BDBG_ASSERT(track);
+    BDBG_ASSERT(s263);
+    BDBG_ASSERT(batom_accum_len(dst)==0);
 
-	if(track->next_sample.syncsample) {
-		batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
-		batom_accum_add_atom(dst, atom);
-		batom_release(atom);
-		return batom_from_accum(dst, NULL, NULL);
-	} else {
-		return atom;
-	}
+    if(track->next_sample.syncsample) {
+        batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
+        batom_accum_add_atom(dst, atom);
+        batom_release(atom);
+        return batom_from_accum(dst, NULL, NULL);
+    } else {
+        return atom;
+    }
 }
 
 static batom_t
 b_mp4_process_sample_avc(bmp4_player_t player, const b_mp4_track *track, batom_t atom, const bmp4_sample_avc *avc)
 {
-	batom_accum_t src = player->accum_src;
-	batom_accum_t dst = player->accum_dest;
-	batom_cursor cursor;
-	batom_t result = NULL;
+    batom_accum_t src = player->accum_src;
+    batom_accum_t dst = player->accum_dest;
+    batom_cursor cursor;
+    batom_t result = NULL;
 
-	BDBG_ASSERT(track);
-	BDBG_ASSERT(avc);
-	BDBG_ASSERT(batom_accum_len(src)==0);
-	BDBG_ASSERT(batom_accum_len(dst)==0);
+    BDBG_ASSERT(track);
+    BDBG_ASSERT(avc);
+    BDBG_ASSERT(batom_accum_len(src)==0);
+    BDBG_ASSERT(batom_accum_len(dst)==0);
 
-	batom_accum_add_atom(src, atom);
-	batom_release(atom);
-	batom_cursor_from_accum(&cursor, src);
+    batom_accum_add_atom(src, atom);
+    batom_release(atom);
+    batom_cursor_from_accum(&cursor, src);
 
-	if(track->next_sample.syncsample && track->hdr_len) {
-		batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
-	}
+    if(track->next_sample.syncsample && track->hdr_len) {
+        batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
+    }
 
-	for(;;)  {
-		size_t nal_len;
-		batom_cursor nal;
-		size_t data_len;
+    for(;;)  {
+        size_t nal_len;
+        batom_cursor nal;
+        size_t data_len;
 
 
         nal_len = batom_cursor_vword_be(&cursor, avc->meta.nalu_len);
-		if(BATOM_IS_EOF(&cursor)) {
-			break;
-		}
-		BATOM_CLONE(&nal, &cursor);
-		data_len = batom_cursor_skip(&cursor, nal_len);
-		if(data_len!=nal_len || nal_len==0) {
-			BDBG_WRN(("b_mp4_process_sample_avc: %#lx invalid nal_len %u:%u", (unsigned long)player, (unsigned)nal_len, (unsigned)data_len));
+        if(BATOM_IS_EOF(&cursor)) {
+            break;
+        }
+        BATOM_CLONE(&nal, &cursor);
+        data_len = batom_cursor_skip(&cursor, nal_len);
+        if(data_len!=nal_len || nal_len==0) {
+            BDBG_WRN(("b_mp4_process_sample_avc: %#lx invalid nal_len %u:%u", (unsigned long)player, (unsigned)nal_len, (unsigned)data_len));
             b_mp4_player_data_error(player);
-			batom_accum_clear(dst);
+            batom_accum_clear(dst);
             result = batom_empty(player->factory, NULL, NULL);
-			goto done;
-		}
-		batom_accum_add_vec(dst, &bmedia_nal_vec);
-		batom_accum_append(dst, src, &nal, &cursor);
-	}
-	result = batom_from_accum(dst, NULL, NULL);
+            goto done;
+        }
+        batom_accum_add_vec(dst, &bmedia_nal_vec);
+        batom_accum_append(dst, src, &nal, &cursor);
+    }
+    result = batom_from_accum(dst, NULL, NULL);
 done:
-	batom_accum_clear(src);
-	return result;
+    batom_accum_clear(src);
+    return result;
 }
 
 static batom_t
@@ -3077,28 +3080,28 @@ bmp4_player_next(bmp4_player_t player, bmedia_player_entry *entry)
             b_mp4_player_track_clear_accum(track);
         }
         if(track->next_sample.endofstream) {
-    		track->next_sample_valid = false;
+            track->next_sample_valid = false;
             if(!player->eof_reached) {
                 player->eof_reached = true;
                 b_mp4_player_make_eos_packet(player, entry);
             }  else {
                 entry->type = bmedia_player_entry_type_end_of_stream;
-	            BDBG_MSG(("bmp4_player_next: %#lx EOF reached", (unsigned long)player));
+                BDBG_MSG(("bmp4_player_next: %#lx EOF reached", (unsigned long)player));
             }
             return 0;
         }
-		entry->timestamp = track->next_sample.time;
-		entry->start = track->next_sample.offset;
-		entry->embedded = NULL;
-		if(player->config.atom_ready) {
-			/* start asynchronous read */
-			entry->atom = bfile_buffer_async_read(player->config.buffer, track->next_sample.offset, track->next_sample.len, &result, b_mp4_player_read_cont, player);
+        entry->timestamp = track->next_sample.time;
+        entry->start = track->next_sample.offset;
+        entry->embedded = NULL;
+        if(player->config.atom_ready) {
+            /* start asynchronous read */
+            entry->atom = bfile_buffer_async_read(player->config.buffer, track->next_sample.offset, track->next_sample.len, &result, b_mp4_player_read_cont, player);
             if(result==bfile_buffer_result_ok && entry->atom) {
                 bool partial_data;
-			    entry->atom = b_mp4_player_process_sample(player, track, entry->atom, &partial_data);
+                entry->atom = b_mp4_player_process_sample(player, track, entry->atom, &partial_data);
                 if(partial_data) {
-		            track->next_sample_valid = false;
-				    entry->type = bmedia_player_entry_type_no_data;
+                    track->next_sample_valid = false;
+                    entry->type = bmedia_player_entry_type_no_data;
                     entry->length = 0;
                     return 0;
                 }
@@ -3110,14 +3113,14 @@ bmp4_player_next(bmp4_player_t player, bmedia_player_entry *entry)
                 player->current_track = track;
                 switch(result) {
                 case bfile_buffer_result_async:
-				    entry->type = bmedia_player_entry_type_async;
+                    entry->type = bmedia_player_entry_type_async;
                     break;
                 case bfile_buffer_result_no_data:
-				    entry->type = bmedia_player_entry_type_no_data;
+                    entry->type = bmedia_player_entry_type_no_data;
                     break;
                 default:
-			        player->current_track = NULL;
-   				    entry->type = bmedia_player_entry_type_error;
+                    player->current_track = NULL;
+                    entry->type = bmedia_player_entry_type_error;
                     break;
                 }
                 return 0; /* asynchronous read */
@@ -3139,37 +3142,37 @@ bmp4_player_next(bmp4_player_t player, bmedia_player_entry *entry)
             }
         }
         b_mp4_sample_finish_entry(entry);
-		track->next_sample_valid = false;
-		return 0;
-	} 
-	BDBG_MSG(("bmp4_player_next: %#lx stream error", (unsigned long)player));
-	return -1;
+        track->next_sample_valid = false;
+        return 0;
+    }
+    BDBG_MSG(("bmp4_player_next: %#lx stream error", (unsigned long)player));
+    return -1;
 }
 
 void 
 bmp4_player_tell(bmp4_player_t player, bmedia_player_pos *pos)
 {
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	*pos = player->status.position;
-	return;
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    *pos = player->status.position;
+    return;
 }
 
 void 
 bmp4_player_get_status(bmp4_player_t player, bmedia_player_status *status)
 {
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	BDBG_MSG_TRACE(("bmp4_player_get_status:> %#lx", (unsigned long)player));
-	*status = player->status;
-	BDBG_MSG_TRACE(("bmp4_player_get_status:< %#lx %ld:%ld", (unsigned long)player, (long)player->status.bounds.first, (long)player->status.bounds.last));
-	return;
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    BDBG_MSG_TRACE(("bmp4_player_get_status:> %#lx", (unsigned long)player));
+    *status = player->status;
+    BDBG_MSG_TRACE(("bmp4_player_get_status:< %#lx %ld:%ld", (unsigned long)player, (long)player->status.bounds.first, (long)player->status.bounds.last));
+    return;
 }
 
 int
 bmp4_player_set_direction(bmp4_player_t player, bmedia_player_step direction, bmedia_time_scale time_scale)
 {
     int rc=0;
-	BDBG_OBJECT_ASSERT(player, bmp4_player_t);
-	BDBG_MSG_TRACE(("bmp4_player_set_direction:> %#lx %ld", (unsigned long)player, (long)direction));
+    BDBG_OBJECT_ASSERT(player, bmp4_player_t);
+    BDBG_MSG_TRACE(("bmp4_player_set_direction:> %#lx %ld", (unsigned long)player, (long)direction));
 
     player->eof_reached = false;
     if(player->fragmented) {
@@ -3181,11 +3184,11 @@ bmp4_player_set_direction(bmp4_player_t player, bmedia_player_step direction, bm
     if(player->status.direction != direction) {
         player->current_track = NULL;
     }
-	player->status.direction = direction;
-	player->time_scale = time_scale;
+    player->status.direction = direction;
+    player->time_scale = time_scale;
 done:
-	BDBG_MSG_TRACE(("bmp4_player_set_direction:< %#lx %ld", (unsigned long)player, (long)rc));
-	return rc;
+    BDBG_MSG_TRACE(("bmp4_player_set_direction:< %#lx %ld", (unsigned long)player, (long)rc));
+    return rc;
 }
 
 static bmedia_player_pos
@@ -3386,57 +3389,54 @@ error:
 static void *
 b_mp4_player_create(bfile_io_read_t fd, const bmedia_player_config *config, const bmedia_player_stream *stream)
 {
-	return bmp4_player_create(fd, config, stream);
+    return bmp4_player_create(fd, config, stream);
 }
 
 static void
 b_mp4_player_destroy(void *player)
 {
-	bmp4_player_destroy(player);
+    bmp4_player_destroy(player);
 }
 
 static int
 b_mp4_player_next(void *player, bmedia_player_entry *entry)
 {
-	return bmp4_player_next(player, entry);
+    return bmp4_player_next(player, entry);
 }
 
 static void 
 b_mp4_player_tell(void *player, bmedia_player_pos *pos)
 {
-	bmp4_player_tell(player, pos);
-	return;
+    bmp4_player_tell(player, pos);
+    return;
 }
 
 static void 
 b_mp4_player_get_status(void *player, bmedia_player_status *status)
 {
-	bmp4_player_get_status(player, status);
-	return;
+    bmp4_player_get_status(player, status);
+    return;
 }
 
 static int
 b_mp4_player_set_direction(void *player, bmedia_player_step direction, bmedia_time_scale time_scale, bmedia_player_decoder_mode *mode)
 {
     BSTD_UNUSED(mode);
-	return bmp4_player_set_direction(player, direction, time_scale);
+    return bmp4_player_set_direction(player, direction, time_scale);
 }
 
 static int  
 b_mp4_player_seek(void *player, bmedia_player_pos pos)
 {
-	return bmp4_player_seek(player, pos);
+    return bmp4_player_seek(player, pos);
 }
 
 const bmedia_player_methods bmp4_player_methods = {
-	b_mp4_player_create,
-	b_mp4_player_destroy,
-	b_mp4_player_next,
-	b_mp4_player_tell,
-	b_mp4_player_get_status,
-	b_mp4_player_set_direction,
-	b_mp4_player_seek
+    b_mp4_player_create,
+    b_mp4_player_destroy,
+    b_mp4_player_next,
+    b_mp4_player_tell,
+    b_mp4_player_get_status,
+    b_mp4_player_set_direction,
+    b_mp4_player_seek
 };
-
-
-

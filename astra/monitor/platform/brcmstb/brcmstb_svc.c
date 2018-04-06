@@ -47,12 +47,14 @@ extern service_mod_desc_t brcmstb_svc_psci_desc;
 extern service_mod_desc_t brcmstb_svc_dvfs_desc;
 extern service_mod_desc_t brcmstb_svc_astra_desc;
 extern service_mod_desc_t brcmstb_svc_linux_desc;
+extern service_mod_desc_t brcmstb_svc_scmi_desc;
 
 static service_mod_desc_t *brcmstb_svc_mod_descs[BRCMSTB_SVC_MOD_MAX] = {
     &brcmstb_svc_psci_desc,
     &brcmstb_svc_dvfs_desc,
     &brcmstb_svc_astra_desc,
-    &brcmstb_svc_linux_desc
+    &brcmstb_svc_linux_desc,
+    &brcmstb_svc_scmi_desc,
 };
 
 static uint32_t call_count;

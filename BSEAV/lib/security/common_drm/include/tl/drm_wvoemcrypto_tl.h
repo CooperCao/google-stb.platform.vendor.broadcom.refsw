@@ -197,10 +197,7 @@ typedef struct Drm_WVOemCryptoHostSessionCtx_t
     Drm_WVOemCryptoCipherMode cipher_mode;
     Drm_WVoemCryptoKeySlot_t *key_slot_ptr[DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT];
     uint32_t num_key_slots;
-    struct {
-        uint32_t btp_sage_size;
-        uint8_t *btp_sage_buffer;
-    } btp_info;
+    uint8_t *btp_sage_buffer;
 }Drm_WVOemCryptoHostSessionCtx_t;
 
 typedef struct Drm_WVOemCryptoEncryptPattern_t {

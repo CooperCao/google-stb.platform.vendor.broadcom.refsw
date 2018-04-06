@@ -241,35 +241,6 @@ BERR_Code BICP_Close(
     return( retCode );
 }
 
-#if !B_REFSW_MINIMAL
-BERR_Code BICP_GetDefaultSettings(
-    BICP_Settings *pDefSettings,        /* [output] Returns default setting */
-    BCHP_Handle hChip                   /* Chip handle */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-    BSTD_UNUSED(hChip);
-
-    *pDefSettings = NULL; /*none available*/
-
-    return( retCode );
-}
-
-BERR_Code BICP_GetTotalChannels(
-    BICP_Handle hDev,                   /* Device handle */
-    unsigned int *totalChannels         /* [output] Returns total number downstream channels supported */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(hDev, BICP_Handle);
-
-    *totalChannels = hDev->maxChnNo;
-
-    return( retCode );
-}
-#endif
-
 BERR_Code BICP_GetChannelDefaultSettings(
     BICP_Handle hDev,                   /* Device handle */
     unsigned int channelNo,             /* Channel number to default setting for */
@@ -455,22 +426,6 @@ done:
     return( retCode );
 }
 
-#if !B_REFSW_MINIMAL
-BERR_Code BICP_GetDevice(
-    BICP_ChannelHandle hChn,            /* Device channel handle */
-    BICP_Handle *phDev                  /* [output] Returns Device handle */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-
-    *phDev = hChn->hIcp;
-
-    return( retCode );
-}
-#endif
-
 BERR_Code BICP_GetEventHandle(
     BICP_ChannelHandle hChn,            /* Device channel handle */
     BKNI_EventHandle *phEvent           /* [output] Returns event handle */
@@ -509,32 +464,6 @@ BERR_Code BICP_EnableEdge(
 
     return( retCode );
 }
-
-#if !B_REFSW_MINIMAL
-BERR_Code BICP_DisableEdge(
-    BICP_ChannelHandle  hChn,           /* Device channel handle */
-    BICP_EdgeConfig     edge            /* edge config */
-    )
-{
-    BERR_Code retCode = BERR_SUCCESS;
-    uint32_t lval, mask;
-    BICP_Handle hDev;
-
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-
-    hDev = hChn->hIcp;
-
-    lval = BREG_Read32(hDev->hRegister, BCHP_ICAP_INEDGE);
-    mask = 1 << hChn->chnNo;
-    if (edge == BICP_EdgeConfig_ePositive || edge == BICP_EdgeConfig_eBoth)
-        lval &= ~(mask << BCHP_ICAP_INEDGE_icap_pedgedet_SHIFT);
-    if (edge == BICP_EdgeConfig_eNegative || edge == BICP_EdgeConfig_eBoth)
-        lval &= ~mask;
-    BREG_Write32(hDev->hRegister, BCHP_ICAP_INEDGE, lval);
-
-    return( retCode );
-}
-#endif
 
 BERR_Code BICP_GetTimerCnt(
     BICP_ChannelHandle  hChn,           /* Device channel handle */
@@ -576,104 +505,6 @@ BERR_Code BICP_GetTimerCnt(
 
     return( retCode );
 }
-
-#if !B_REFSW_MINIMAL
-BERR_Code BICP_PollTimer(
-    BICP_ChannelHandle  hChn,           /* Device channel handle */
-    bool                *triggered,     /* status of trigger */
-    uint16_t            *timerCnt       /* pointer to count */
-    )
-{
-    BERR_Code       retCode = BERR_SUCCESS;
-    uint32_t        mask, lval;
-    BICP_Handle     hDev;
-
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-
-    hDev = hChn->hIcp;
-    lval = BREG_Read32(hDev->hRegister, BCHP_ICAP_INSTATUS);
-    mask = 1 << hChn->chnNo;
-    *triggered =  (lval & mask) ? true : false;
-    if (*triggered)
-    {
-        /* Reset interrupt pins */
-        BREG_Write32(hDev->hRegister, BCHP_ICAP_RST, mask);
-        BREG_Write32(hDev->hRegister, BCHP_ICAP_RST, 0);
-
-        /* Get the count for caller */
-        BICP_CHK_RETCODE (retCode, BICP_GetTimerCnt (hChn, timerCnt) );
-    }
-
-done:
-    return( retCode );
-}
-
-void BICP_EnableInt(
-    BICP_ChannelHandle  hChn            /* Device channel handle */
-    )
-{
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-
-    BKNI_EnterCriticalSection();
-    BICP_P_EnableInt_isr( hChn );
-    BKNI_LeaveCriticalSection();
-}
-
-void BICP_DisableInt(
-    BICP_ChannelHandle  hChn            /* Device channel handle */
-    )
-{
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-
-    BKNI_EnterCriticalSection();
-    BICP_P_DisableInt_isr( hChn );
-    BKNI_LeaveCriticalSection();
-}
-
-void BICP_EnableRC6(
-    BICP_ChannelHandle  hChn,           /* Device channel handle */
-    BICP_Callback pCallback             /* Pointer to completion callback. */
-    )
-{
-    BICP_Handle hDev;
-
-    BDBG_OBJECT_ASSERT(hDev, BICP_ChannelHandle);
-    hChn->handleRC6 = 1;
-    hChn->pInterruptEventUserCallback = pCallback;
-    hDev = hChn->hIcp;
-    hDev->uiRCPinMask |= (1<<hChn->chnNo);
-}
-
-void BICP_DisableRC6(
-    BICP_ChannelHandle  hChn            /* Device channel handle */
-    )
-{
-    BICP_Handle hDev;
-
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-    hChn->handleRC6 = 0;
-
-    hDev = hChn->hIcp;
-    hDev->uiRCPinMask &= ~(1<<hChn->chnNo);
-}
-
-void BICP_ResetIntCount(
-    BICP_ChannelHandle  hChn            /* Device channel handle */
-    )
-{
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-    hChn->isrCount = 0;
-}
-
-void BICP_GetIntCount(
-    BICP_ChannelHandle  hChn,           /* Device channel handle */
-    uint32_t            *data
-    )
-{
-    BDBG_OBJECT_ASSERT(hChn, BICP_ChannelHandle);
-    *data = hChn->isrCount;
-}
-#endif
 
 /*******************************************************************************
 *

@@ -522,12 +522,22 @@ typedef struct {
     unsigned int rxbadda;
 } WiFiCounters_t;
 
+typedef struct {
+    unsigned char* buff;	/* I/Q samples in order*/
+    unsigned int count;
+    unsigned int type;
+    unsigned int chains;
+} WiFiSamples_t;
+
+typedef int BWL_SampleType; /* matches WL driver sample types */
+
 typedef char BWL_MAC_ADDRESS[20];
 
 int32_t BWL_GetCounters(BWL_Handle hBwl, WiFiCounters_t *pCounters);
 int32_t BWL_ResetCounter(BWL_Handle hBwl);
 int32_t BWL_GetRevInfo(BWL_Handle hBwl, RevInfo_t *pRevInfo);
 int32_t BWL_ScanAbort(BWL_Handle hBwl);
+int32_t BWL_GetSamples(BWL_Handle hBwl, BWL_SampleType nType, WiFiSamples_t *pSamples);
 
 int32_t BWL_IsConnectedAp
 (

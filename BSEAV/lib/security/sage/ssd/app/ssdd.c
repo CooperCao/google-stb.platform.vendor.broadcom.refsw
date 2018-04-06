@@ -104,13 +104,24 @@ static bool SSDD_IsRpmbAvailable(char *rpmb_path)
     NEXUS_GetSecurityCapabilities( &securityCaps );
 
     SSDD_Debug_printf("BFW Version=%u.%u.%u\n",
+#if (NEXUS_SECURITY_API_VERSION==1)
             NEXUS_BFW_VERSION_MAJOR(securityCaps.version.firmware),
             NEXUS_BFW_VERSION_MINOR(securityCaps.version.firmware),
             NEXUS_BFW_VERSION_SUBMINOR(securityCaps.version.firmware));
+#else
+            securityCaps.version.bfw.major,
+            securityCaps.version.bfw.minor,
+            securityCaps.version.bfw.subminor);
+#endif
+
 
     /* BFW version must be 4.2.3 or greater to support the RPMB/Replay key-ladder */
+#if (NEXUS_SECURITY_API_VERSION==1)
     if (securityCaps.version.firmware >= NEXUS_BFW_VERSION_CALC(4,2,3)) {
-
+#else
+    if (NEXUS_BFW_VERSION_CALC(securityCaps.version.bfw.major, securityCaps.version.bfw.minor, securityCaps.version.bfw.subminor) >=
+        NEXUS_BFW_VERSION_CALC(4,2,3)) {
+#endif
         SSDD_Debug_printf("RPMB path=\"%s\"\n", rpmb_path);
 
         /* Now check that RPMB path exists */

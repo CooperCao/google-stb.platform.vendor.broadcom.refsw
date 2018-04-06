@@ -50,7 +50,10 @@
 #include "priv/nexus_core_img.h"
 #include "priv/nexus_core_preinit.h"
 
+#include "bchp_common.h"
+#ifdef BCHP_XPT_RAVE_REG_START
 #include "bchp_xpt_rave.h"
+#endif
 #include "bxvd_pvr.h"
 #include "bxvd.h"
 #include "bxvd_decoder.h"

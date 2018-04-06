@@ -394,43 +394,6 @@ static const BCFC_TfConvRamLuts s_TfConvRamLutsTpTo1886 =
 
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
 
-/* same as above, except that both *pA, *pB and *pM are 64 bits matrices.  For more accuracy
- */
-static void BVDC_P_Csc_Mult_64_isr
-    ( const int64_t                        *pA,  /* matrix A element buf ptr */
-      int                                   iAc, /* matrxi A's number of columns */
-      const int64_t                        *pB,  /* matrix B element buf ptr */
-      int                                   iBc, /* matrxi B's number of columns */
-      int64_t                              *pM ) /* matrix M element buf ptr */
-{
-    int32_t ii, jj, iMc;
-
-    BDBG_ASSERT(((iAc == 3) || (iAc == 4)) && ((iBc == 3) || (iBc == 4)));
-
-    iMc = (iAc > iBc)? iAc : iBc;
-    for (ii=0; ii<3; ii++)
-    {
-        for (jj=0; jj<iBc; jj++)
-        {
-            uint64_t t;
-            t =(((*(pA + ii * iAc + 0)) * (*(pB + 0 * iBc + jj)) +
-                 (*(pA + ii * iAc + 1)) * (*(pB + 1 * iBc + jj)) +
-                 (*(pA + ii * iAc + 2)) * (*(pB + 2 * iBc + jj)) +
-                 (1 << (BVDC_P_CFC_FIX_FRACTION_BITS - 1))) >> BVDC_P_CFC_FIX_FRACTION_BITS);
-            *(pM + ii * iMc + jj) = *(int64_t *)(&t);
-        }
-
-        if ((iBc == 4) && (iAc == 4))
-        {
-            *(pM + ii * iMc + 3) += *(pA + ii * iAc + 3);
-        }
-        else if (iAc == 4) /* (iBc == 3) */
-        {
-            *(pM + ii * iMc + 3) = *(pA + ii * iAc + 3);
-        }
-    }
-}
-
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) && (BVDC_P_CMP_CFC_VER != BVDC_P_CFC_VER_5)
 static void BVDC_P_Cfc_InitRamLut_isrsafe(
     const BCFC_RamLut             *pRamLut,
@@ -2984,7 +2947,7 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
     }
 #endif /* #if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1) */
 
-    pCfc->ucRulBuildCntr = 0;
+    pCfc->ucRulBuildCntr --;
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
 
@@ -3212,6 +3175,11 @@ void BVDC_P_Compositor_BuildBlendOutMatrixRul_isr
         /* DBV out will have blender out configured in dbv code; */
         if ((bEnBlendMatrix != hCompositor->bBlendMatrixOn) || hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace)
         {
+            hCompositor->bBlendMatrixOn = bEnBlendMatrix;
+            hCompositor->ucBlendMatrixOnRulBuildCntr = BVDC_P_RUL_UPDATE_THRESHOLD;
+        }
+        if (hCompositor->ucBlendMatrixOnRulBuildCntr)
+        {
             ulStartReg = BCHP_HDR_CMP_0_CMP_BLENDER_OUT_PQ_CSC_EN + hCompositor->ulRegOffset;
             *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
             *pList->pulCurrent++ = BRDC_REGISTER(ulStartReg);
@@ -3234,7 +3202,7 @@ void BVDC_P_Compositor_BuildBlendOutMatrixRul_isr
                 BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d: disable blend-out-matrices, due to %s",
                     hCompositor->eId, (!hCompositor->abBlenderUsed[1])? "no blending" : "SDR output"));
             }
-            hCompositor->bBlendMatrixOn = bEnBlendMatrix;
+            hCompositor->ucBlendMatrixOnRulBuildCntr --;
         }
     }
 #else
@@ -3727,7 +3695,7 @@ void BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr
     BMTH_FIX_SIGNED_MUL_64_isrsafe(x, y, BVDC_P_CFC_FIX_FRACTION_BITS, \
                            BVDC_P_CFC_FIX_FRACTION_BITS, BVDC_P_CFC_FIX_FRACTION_BITS)
 
-#define BVDC_P_CFC_FIX_MUL_OFFSET(x, y, matrix) \
+#define BVDC_P_CFC_FIX_MUL_OFFSET(x, y) \
     BMTH_FIX_SIGNED_MUL_64_isrsafe(x, BVDC_P_CFC_FIXTOCO(y), BVDC_P_CFC_FIX_FRACTION_BITS, \
                            BCFC_CSC_SW_CO_F_BITS, BVDC_P_CFC_FIX_FRACTION_BITS)
 
@@ -3946,14 +3914,14 @@ void BVDC_P_Cfc_ApplyContrast_isr
                 )
                 + lFixOne;
     }
-    lFixYOffset  = BVDC_P_CFC_FIX_MUL_OFFSET(lFixK, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[0][3]), pCscCoeffs) +
+    lFixYOffset  = BVDC_P_CFC_FIX_MUL_OFFSET(lFixK, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[0][3])) +
                    (BVDC_P_CFC_LUMA_BLACK_OFFSET * (lFixOne - lFixK));
 
 #if (BVDC_SUPPORT_CONTRAST_WITH_CBCR)
-    lFixCbOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixK, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3]), pCscCoeffs) +
+    lFixCbOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixK, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3])) +
                    (BVDC_P_CFC_CHROMA_BLACK_OFFSET * (lFixOne - lFixK));
 
-    lFixCrOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixK, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3]), pCscCoeffs) +
+    lFixCrOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixK, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3])) +
                    (BVDC_P_CFC_CHROMA_BLACK_OFFSET * (lFixOne - lFixK));
 #endif
 
@@ -4106,8 +4074,8 @@ void BVDC_P_Cfc_ApplySaturationAndHue_isr
                    BVDC_P_CFC_FIX_MUL(lFixKSinKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[2][1]));
     lTmpCb2      = BVDC_P_CFC_FIX_MUL(lFixKCosKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[1][2])) -
                    BVDC_P_CFC_FIX_MUL(lFixKSinKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[2][2]));
-    lTmpCbOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixKCosKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3]), pCscCoeffs) -
-                   BVDC_P_CFC_FIX_MUL_OFFSET(lFixKSinKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3]), pCscCoeffs) +
+    lTmpCbOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixKCosKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3])) -
+                   BVDC_P_CFC_FIX_MUL_OFFSET(lFixKSinKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3])) +
                    lFixC0;
 
     lTmpCr0      = BVDC_P_CFC_FIX_MUL(lFixKSinKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[1][0])) +
@@ -4116,8 +4084,8 @@ void BVDC_P_Cfc_ApplySaturationAndHue_isr
                    BVDC_P_CFC_FIX_MUL(lFixKCosKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[2][1]));
     lTmpCr2      = BVDC_P_CFC_FIX_MUL(lFixKSinKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[1][2])) +
                    BVDC_P_CFC_FIX_MUL(lFixKCosKt, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[2][2]));
-    lTmpCrOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixKSinKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3]), pCscCoeffs) +
-                   BVDC_P_CFC_FIX_MUL_OFFSET(lFixKCosKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3]), pCscCoeffs) +
+    lTmpCrOffset = BVDC_P_CFC_FIX_MUL_OFFSET(lFixKSinKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3])) +
+                   BVDC_P_CFC_FIX_MUL_OFFSET(lFixKCosKt, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3])) +
                    lFixC1;
 
     pCscCoeffs->m[1][0] = BVDC_P_CFC_FIXTOCX(lTmpCb0);
@@ -4195,6 +4163,38 @@ typedef struct BVDC_P_BufForApplyAttenuationRGB
 } BVDC_P_BufForApplyAttenuationRGB;
 
 /***************************************************************************
+ * Multiplies two csc matrices set up in 4x4 format.
+ */
+static void BVDC_P_Csc_Mult_64_isr
+    ( int64_t                          *pM,  /* matrix M element buf ptr */
+      const int64_t                    *pA,  /* matrix A element buf ptr */
+      const int64_t                    *pB)  /* matrix B element buf ptr */
+
+{
+    int i, j, k;
+
+    for (i = 0; i < 4; i++)
+    {
+        for (j = 0; j < 4; j++)
+        {
+            uint64_t t = 0;
+            for (k = 0; k < 4; k++)
+            {
+                if (j == 3)
+                {
+                    t += BVDC_P_CFC_FIX_MUL_OFFSET(*(pA + i * 4 + k), *(pB + k * 4 + j));
+                }
+                else
+                {
+                    t += BVDC_P_CFC_FIX_MUL(*(pA + i * 4 + k), *(pB + k * 4 + j));
+                }
+            }
+            *(pM + i * 4 + j) = *(int64_t *)(&t);
+        }
+    }
+}
+
+/***************************************************************************
  * Apply RGB attenuation calculation to color matrix
  */
 void BVDC_P_Cfc_ApplyAttenuationRGB_isr
@@ -4259,26 +4259,26 @@ void BVDC_P_Cfc_ApplyAttenuationRGB_isr
     pTmp->M1[0][0] = BVDC_P_CFC_FIX_MUL(lAttenuationR, pTmp->M1[0][0]);
     pTmp->M1[0][1] = BVDC_P_CFC_FIX_MUL(lAttenuationR, pTmp->M1[0][1]);
     pTmp->M1[0][2] = BVDC_P_CFC_FIX_MUL(lAttenuationR, pTmp->M1[0][2]);
-    pTmp->M1[0][3] = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationR, pTmp->M1[0][3], pCscCoeffs) + lOffsetR ;
+    pTmp->M1[0][3] = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationR, pTmp->M1[0][3]) + lOffsetR ;
 
     pTmp->M1[1][0] = BVDC_P_CFC_FIX_MUL(lAttenuationG, pTmp->M1[1][0]);
     pTmp->M1[1][1] = BVDC_P_CFC_FIX_MUL(lAttenuationG, pTmp->M1[1][1]);
     pTmp->M1[1][2] = BVDC_P_CFC_FIX_MUL(lAttenuationG, pTmp->M1[1][2]);
-    pTmp->M1[1][3] = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationG, pTmp->M1[1][3], pCscCoeffs) + lOffsetG ;
+    pTmp->M1[1][3] = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationG, pTmp->M1[1][3]) + lOffsetG ;
 
     pTmp->M1[2][0] = BVDC_P_CFC_FIX_MUL(lAttenuationB, pTmp->M1[2][0]);
     pTmp->M1[2][1] = BVDC_P_CFC_FIX_MUL(lAttenuationB, pTmp->M1[2][1]);
     pTmp->M1[2][2] = BVDC_P_CFC_FIX_MUL(lAttenuationB, pTmp->M1[2][2]);
-    pTmp->M1[2][3] = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationB, pTmp->M1[2][3], pCscCoeffs) + lOffsetB ;
+    pTmp->M1[2][3] = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationB, pTmp->M1[2][3]) + lOffsetB ;
 
     /* M2 = RGB to YCrCb Matrix */
     BVDC_P_CFC_MAKE4X4(pTmp->M2, pRGBToYCbCr);
 
     /* Multiply M2*M1 -> Store in MTmp  */
-    BVDC_P_Csc_Mult_64_isr(&pTmp->M2[0][0], 4, &pTmp->M1[0][0], 4, &pTmp->MTmp[0][0]);
+    BVDC_P_Csc_Mult_64_isr(&pTmp->MTmp[0][0], &pTmp->M2[0][0], &pTmp->M1[0][0]);
 
     /* Multiply MTmp*M0 -> store in M1 */
-    BVDC_P_Csc_Mult_64_isr(&pTmp->MTmp[0][0], 4, &pTmp->M0[0][0], 4, &pTmp->M1[0][0]);
+    BVDC_P_Csc_Mult_64_isr(&pTmp->M1[0][0], &pTmp->MTmp[0][0], &pTmp->M0[0][0]);
 
     pCscCoeffs->m[0][0] = BVDC_P_CFC_FIXTOCX(pTmp->M1[0][0]);
     pCscCoeffs->m[0][1] = BVDC_P_CFC_FIXTOCX(pTmp->M1[0][1]);
@@ -4347,9 +4347,9 @@ void BVDC_P_Cfc_DvoApplyAttenuationRGB_isr
         return;
     }
 
-    lNewOffsetR = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationR, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3]), pCscCoeffs) + lOffsetR;
-    lNewOffsetG = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationG, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[0][3]), pCscCoeffs) + lOffsetG;
-    lNewOffsetB = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationB, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3]), pCscCoeffs) + lOffsetB;
+    lNewOffsetR = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationR, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[2][3])) + lOffsetR;
+    lNewOffsetG = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationG, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[0][3])) + lOffsetG;
+    lNewOffsetB = BVDC_P_CFC_FIX_MUL_OFFSET(lAttenuationB, BVDC_P_CFC_COTOFIX(pCscCoeffs->m[1][3])) + lOffsetB;
 
     /* R */
     pCscCoeffs->m[2][0] = BVDC_P_CFC_FIXTOCX(BVDC_P_CFC_FIX_MUL(lAttenuationR, BVDC_P_CFC_CXTOFIX(pCscCoeffs->m[2][0])));

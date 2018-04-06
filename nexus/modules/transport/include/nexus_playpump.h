@@ -423,6 +423,9 @@ typedef struct NEXUS_PlaypumpStatus
 {
     bool started;               /* Has NEXUS_Playpump_Start been called? */
     size_t fifoDepth;           /* Depth in bytes of the playback buffer */
+    unsigned softwareFifoDelay; /* Bytes which are still counted in fifoDepth but have actually been processed by hardware.
+                                   There is a delay before software fifoDepth can be updated.
+                                   fifoDepth minus softwareFifoDelay is the number of bytes still to be processed by hardware. */
     size_t fifoSize;            /* Size in bytes of the playback buffer */
     size_t descFifoDepth;       /* Number of active (i.e. busy) descriptors */
     size_t descFifoSize;        /* Number of allocated descriptors */

@@ -36,9 +36,6 @@
 #include "civetweb.h"
 #include <stdbool.h>
 
-// TODO: Partners should define this port
-#define SSDP_PORT (56790)
-
 static char gBuf[4096];
 extern int quit;
 
@@ -83,7 +80,6 @@ static const char wakeup_header[] = "WAKEUP: MAC=%s;Timeout=%d\r\n";
 #define HW_ADDRSTRLEN 18
 char ip_addr[INET_ADDRSTRLEN] = "127.0.0.1";
 static char hw_addr[HW_ADDRSTRLEN] = "00:00:00:00:00:00";
-static int dial_port = 0;
 static int my_port = 0;
 static char friendly_name[256];
 static char uuid[256];
@@ -96,7 +92,7 @@ int request_handler(struct mg_connection *conn, void *cbdata)
   mg_printf(conn, "HTTP/1.1 200 OK\r\n"
       "Content-Type: application/xml\r\n"
       "Application-URL: http://%s:%d/apps/\r\n"
-      "\r\n", ip_addr, dial_port);
+      "\r\n", ip_addr, my_port);
   mg_printf(conn, ddxml, friendly_name, model_name, uuid);
   return 200;
 }
@@ -265,8 +261,7 @@ void run_ssdp(int port, const char *pFriendlyName, const char * pModelName, cons
         strcpy(uuid, "deadbeef-dead-beef-dead-beefdeadbeef");
     }
 
-    dial_port = port;
-    my_port = SSDP_PORT;
+    my_port = port;
 
     printf("SSDP listening on %s:%d\n", ip_addr, my_port);
     handle_mcast();

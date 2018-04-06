@@ -1192,8 +1192,10 @@ static int _srai_get_heap(NEXUS_MemoryType memoryType, unsigned heapType, NEXUS_
     }
     else {
         int i;
-        BDBG_WRN(("%s: given heap %p is not valid. Consider using SRAI_SetSettings() with proper heap indexes.",
-                  BSTD_FUNCTION, (void *)heap));
+        if (heap != NULL) {
+            BDBG_WRN(("%s: given heap %p is not valid. Consider using SRAI_SetSettings() with proper heap indexes.",
+                      BSTD_FUNCTION, (void *)heap));
+        }
         for (i = 0; i < NEXUS_MAX_HEAPS; i++) {
             if (_srai_valid_heap(pClientConfig->heap[i], memoryType, heapType, pHeapStatus)) {
                 validHeap = pClientConfig->heap[i];
@@ -1287,7 +1289,9 @@ static int _srai_init_settings(void)
                        NEXUS_HEAP_TYPE_EXPORT_REGION,
                        clientConfig.heap[_srai_settings.exportHeapIndex],
                        &_srai.exportAllocSettings, &heapStatus, &clientConfig)) {
-        BDBG_WRN(("%s: export secure heap is not configured", BSTD_FUNCTION));
+        if (clientConfig.heap[_srai_settings.exportHeapIndex] != NULL) {
+            BDBG_WRN(("%s: Export Secure heap could not be configured", BSTD_FUNCTION));
+        }
         /* Explicitly clear the exportAllocSettings */
         BKNI_Memset(&_srai.exportAllocSettings, 0, sizeof(_srai.exportAllocSettings));
     }
@@ -1302,7 +1306,9 @@ static int _srai_init_settings(void)
                        NEXUS_HEAP_TYPE_ARR,
                        clientConfig.heap[_srai_settings.arrHeapIndex],
                        &_srai.arrAllocSettings, &heapStatus, &clientConfig)) {
-        BDBG_WRN(("%s: arr heap is not configured", BSTD_FUNCTION));
+        if (clientConfig.heap[_srai_settings.arrHeapIndex] != NULL) {
+            BDBG_WRN(("%s: ARR heap could not be configured", BSTD_FUNCTION));
+        }
         /* Explicitly clear the exportAllocSettings */
         BKNI_Memset(&_srai.arrAllocSettings, 0, sizeof(_srai.arrAllocSettings));
     }

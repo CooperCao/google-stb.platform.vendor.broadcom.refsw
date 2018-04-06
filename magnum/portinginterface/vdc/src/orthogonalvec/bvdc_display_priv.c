@@ -42,8 +42,11 @@
 
 /* Note: Tricky here!  bavc.h needs bchp_gfd_x.h defininitions.
  * The check here is to see if chips has more than one gfx feeder. */
+#include "bchp_common.h"
 #include "bchp_gfd_0.h"
+#ifdef BCHP_GFD_1_REG_START
 #include "bchp_gfd_1.h"
+#endif
 
 #include "bavc.h"
 #include "bvdc_compositor_priv.h"
@@ -53,7 +56,6 @@
 
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_misc.h"
-#include "bchp_timer.h"
 
 #include "bchp_it_0.h"
 
@@ -223,11 +225,15 @@ BERR_Code BVDC_P_Display_Create
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_0 == BCHP_VEC_CFG_ITU656_DTG_0_SOURCE_SOURCE_S_0);
 #endif
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_0 == BCHP_VEC_CFG_DECIM_0_SOURCE_SOURCE_S_0);
+#ifdef BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1 == BCHP_VEC_CFG_DVI_DTG_0_SOURCE_SOURCE_S_1);
+#endif
 #ifdef BCHP_VEC_CFG_ITU656_DTG_0_SOURCE_SOURCE_S_1
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1 == BCHP_VEC_CFG_ITU656_DTG_0_SOURCE_SOURCE_S_1);
 #endif
+#ifdef BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1 == BCHP_VEC_CFG_DECIM_0_SOURCE_SOURCE_S_1);
+#endif
 #if (BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT > 0)
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_2 == BCHP_VEC_CFG_DVI_DTG_0_SOURCE_SOURCE_S_2);
     BDBG_CASSERT(BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_2 == BCHP_VEC_CFG_ITU656_DTG_0_SOURCE_SOURCE_S_2);

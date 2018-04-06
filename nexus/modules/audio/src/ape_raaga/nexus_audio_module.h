@@ -137,6 +137,7 @@ typedef struct NEXUS_AudioModuleData
     NEXUS_AudioModuleSettings settings;
     NEXUS_AudioModuleInternalSettings internalSettings;
     NEXUS_AudioCapabilities capabilities;
+    BAPE_Capabilities piCapabilities;
     void *pImageContext;
     bool watchdogDeferred;
     unsigned numDsps;
@@ -213,6 +214,7 @@ typedef struct NEXUS_AudioDecoder
     bool sageAudioCapable;
     bool forceSarmRaveConfiguration;
     bool sageAudioEnabled;
+    bool srcRaveCxtConfigured,dstRaveCxtConfigured;
     #if NEXUS_HAS_SAGE
     NEXUS_SageAudioStartSettings sageAudioSettings;
     #endif

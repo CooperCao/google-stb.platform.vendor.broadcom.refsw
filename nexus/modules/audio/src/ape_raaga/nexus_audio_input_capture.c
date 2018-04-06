@@ -420,7 +420,8 @@ static void NEXUS_P_AudioInputCapture_ConnectHdmiInput(NEXUS_AudioInputCaptureHa
             NEXUS_HdmiInput_AudioConnected_priv(hdmiInput, connected);
             NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiInput);
         }
-        else {
+        else if (handle->startSettings.input->objectType == NEXUS_AudioInputType_eHdmi)
+        {
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
     }

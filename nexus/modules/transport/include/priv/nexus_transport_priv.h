@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -123,11 +123,13 @@ void NEXUS_TransportModule_GetPidchannelEvent(BKNI_EventHandle *event);
 struct NEXUS_TbgHostParserSettings {
     bool enabled;
     uint8_t markerTag;
+#if NEXUS_NUM_PARSER_BANDS
     struct {
         bool changed;
         unsigned primaryParserBandIndex;
         unsigned unmappedPidChIndex;
     } band[NEXUS_NUM_PARSER_BANDS];
+#endif
 };
 
 void NEXUS_Tbg_GetHostParserSettings_priv(

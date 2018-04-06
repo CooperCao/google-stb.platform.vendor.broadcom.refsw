@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -130,6 +130,7 @@ NEXUS_Recpump_P_DmaCallback(void *context)
 }
 #endif
 
+#if !NEXUS_USE_OTT_TRANSPORT
 static void
 NEXUS_Recpump_isr(void *flow_, int parm2 )
 {
@@ -159,6 +160,7 @@ NEXUS_Recpump_TsioDmaEnd_isr(void *context, int parm2 )
     NEXUS_IsrCallback_Fire_isr(pump->tsioDmaEndCallback);
     BINT_DisableCallback_isr(pump->tsioDmaEndIrq);
 }
+#endif
 #endif
 
 /*
@@ -310,7 +312,9 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
 {
     NEXUS_Error rc = 0;
     BXPT_Rave_AllocCxSettings allocSettings;
+#if !NEXUS_USE_OTT_TRANSPORT
     BINT_Id int_id;
+#endif
     NEXUS_RecpumpHandle r;
     NEXUS_RecpumpOpenSettings settings;
 
@@ -480,6 +484,8 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (!r->data.eventCallback) { rc=BERR_TRACE(NEXUS_UNKNOWN);goto error;}
 
     r->data.irqEnabled = false;
+
+#if !NEXUS_USE_OTT_TRANSPORT
 #if BXPT_HAS_RAVE_MIN_DEPTH_INTR
     BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eCdbMinDepthThresh, &int_id);
 #else
@@ -491,6 +497,7 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eCdbOverflow, &int_id);
     rc = BINT_CreateCallback(&r->data.overflow_irq, g_pCoreHandles->bint, int_id, NEXUS_Recpump_Overflow_isr, &r->data, 0);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
+#endif
 
     rc = BKNI_CreateEvent(&r->index.event);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
@@ -499,6 +506,8 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (!r->index.eventCallback) { rc=BERR_TRACE(NEXUS_UNKNOWN);goto error;}
 
     r->index.irqEnabled = false;
+
+#if !NEXUS_USE_OTT_TRANSPORT
 #if BXPT_HAS_RAVE_MIN_DEPTH_INTR
     BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eItbMinDepthThresh, &int_id);
 #else
@@ -517,6 +526,8 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (rc) { rc=BERR_TRACE(rc); goto error; }
     r->tsioDmaEndCallback = NEXUS_IsrCallback_Create(r, NULL);
 #endif
+#endif
+
 #if NEXUS_ENCRYPTED_DVR_WITH_M2M && (!NEXUS_HAS_XPT_DMA)
     rc = BKNI_CreateEvent(&r->crypto.event);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
@@ -781,6 +792,8 @@ static NEXUS_Error NEXUS_Recpump_P_ProvisionScdIndexer(NEXUS_RecpumpHandle r)
                 }
 #if BXPT_HAS_SVC_MVC
                 indx_cfg.Cfg.Scd.SvcMvcMode = svcVideo;
+#else
+                BSTD_UNUSED(svcVideo);
 #endif
                 rc = BXPT_Rave_SetIndexerConfig(r->scdIdx, &indx_cfg);
                 if (rc) {return BERR_TRACE(rc);}
@@ -1689,8 +1702,6 @@ void NEXUS_Recpump_Stop(NEXUS_RecpumpHandle r)
     BINT_ClearCallback(r->index.overflow_irq);
     r->actuallyStarted = false;
     r->started = false;
-
-    NEXUS_CancelCallbacks(r);
 
     return;
 }

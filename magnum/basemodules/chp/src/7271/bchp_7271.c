@@ -149,7 +149,7 @@ static BERR_Code BCHP_P_GetFeature
 
     /* read bond-out status common for many features */
     ulBondStatus = BREG_Read32(hChip->regHandle,
-        BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0);
+        BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_1);
 
     /* which feature? */
     switch (eFeature)

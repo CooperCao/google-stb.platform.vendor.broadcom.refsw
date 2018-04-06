@@ -1926,6 +1926,10 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
         pBuffers->numBuffers = 2*handle->numChannelPairs;
         pBuffers->interleaved = false;
     }
+
+    pBuffers->bitsPerSample = 32;
+    pBuffers->samplesPerDword = 1;
+
     fifoSize = handle->settings.bufferInfo[0].length;
     if ( !handle->started )
     {
@@ -2583,8 +2587,8 @@ BERR_Code BAPE_FciSplitterGroup_P_Start(
     connected = BAPE_FciSplitterGroup_P_GetConnectedOutputGroupIndexes(handle);
     if ( !connected )
     {
-        BDBG_MODULE_WRN(bape_fcisp, ("No Fci Splitter output groups connected"));
-        return BERR_TRACE(BERR_NOT_INITIALIZED);
+        BDBG_MODULE_MSG(bape_fcisp, ("No Fci Splitter output groups connected"));
+        return BERR_SUCCESS;
     }
 
     /* Allocate HW resources for FCI Splitter input

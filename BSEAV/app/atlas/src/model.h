@@ -46,6 +46,7 @@
 #include "nexus_uhf_input.h"
 #endif
 #include "remote.h"
+#include "cec_remote.h"
 #include "nexus_simple_video_decoder_server.h"
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_simple_audio_playback_server.h"
@@ -68,6 +69,7 @@ class CAudioDecode;
 class CSimpleAudioDecode;
 class CSimplePcmPlayback;
 class CIrRemote;
+class CCecRemote;
 class CPlayback;
 class CRecord;
 class CPower;
@@ -125,6 +127,9 @@ public:
     void                                 addStc(CStc * pStc, eWindowType windowType = eWindowType_Main ) { _pStc[windowType] = pStc; }
     void                                 removeStc(eWindowType windowType = eWindowType_Main) { _pStc[windowType] = NULL; }
     CStc *                               getStc(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _pStc[_fullScreenWindowType] : _pStc[windowType]); }
+	void                                 addCecRemote(CCecRemote * pCecRemote) { _pCecRemote = pCecRemote; }
+    void                                 removeCecRemote(CCecRemote * pCecRemote) { BSTD_UNUSED(pCecRemote); _pCecRemote = NULL; }
+    CCecRemote *                         getCecRemote(void) { return(_pCecRemote); }
     void                                 addVideoDecode(CVideoDecode * pVideoDecode) { _pVideoDecode = pVideoDecode; }
     void                                 removeVideoDecode(CVideoDecode * pVideoDecode) { BSTD_UNUSED(pVideoDecode); _pVideoDecode = NULL; }
     CVideoDecode *                       getVideoDecode(void) { return(_pVideoDecode); }
@@ -272,6 +277,7 @@ protected:
 #endif
     MList<CDisplay>                      _displayList;
     CGraphics *                          _pGraphics;
+	CCecRemote *						 _pCecRemote;
     eWindowType                          _fullScreenWindowType;
     CVideoDecode *                       _pVideoDecode;
     CStillDecode *                       _pStillDecode;

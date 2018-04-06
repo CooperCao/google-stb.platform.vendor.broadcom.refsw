@@ -277,6 +277,8 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
          pSharedData->container.vDepth);
 
       ok = true;
+
+      pSharedData->container.vHwTex = 1;
    }
    else
    {
@@ -604,6 +606,7 @@ bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, 
 
 good:
    result = true;
+   pSharedData->container.vHwTex = 1;
    goto finish;
 
 error:

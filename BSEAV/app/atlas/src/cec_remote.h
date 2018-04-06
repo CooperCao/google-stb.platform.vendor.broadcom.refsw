@@ -35,13 +35,55 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+#ifndef __CEC_REMOTE_H
+#define __CEC_REMOTE_H
 
-#ifndef _SCMI_H_
-#define _SCMI_H_
+#include "bwidgets.h"
+#include "widget_engine.h"
+#include "mvc.h"
+#include "bstd.h"
+#include "bkni.h"
+#include "remote.h"
+
+#if NEXUS_HAS_CEC
+#include "nexus_cec.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
- * SCMI functions
+ * CCecRemote is a model class used to provide the atlas remote control functionality through CEC communication.
+ *
  */
-int scmi_init(void);
+class CCecRemote : public CMvcModel
+{
+public:
+	NEXUS_CecHandle _hCec;
+	CRemoteEvent * pRemoteEvent;
+	bool _deviceReady;
+	bool _messageReceived;
+	bool _JsonReceived;
+	int _counter;
+	MString _cecKeyStr;
+	MString _cecCommandMode;
+	MString _cecLuaScriptName;
+	MString _cecJsonString, _cecTempJsonStr, _displayFormatStr, _playbackStreamName;
 
-#endif /* _SCMI_H_ */
+	CCecRemote(void);
+    ~CCecRemote(void);
+	CWidgetEngine * getWidgetEngine(void)   { return(_pWidgetEngine); }
+    eRet open(CWidgetEngine * pWidgetEngine);
+	void close();
+	void handleCallback();
+	eNotification cecCmdToNotification(MString);
+protected:
+    CWidgetEngine *    _pWidgetEngine;
+};
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __CEC_REMOTE_H */

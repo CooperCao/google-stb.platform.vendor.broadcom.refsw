@@ -44,13 +44,24 @@
 
 void plat_reset_handler(void);
 
+/*
+ * Platform early init functions
+ *
+ * These functions are called in bootstrap before MMU is enabled.
+ * They generally init platform hardware and adds mmap regions.
+ */
 void plat_uart_init(uintptr_t base);
 void plat_gic_init(void);
 void plat_early_init(uintptr_t plat_params_addr);
-void plat_init(void);
-
 void plat_early_s3_init(void);
+
+/*
+ * Platform init functions
+ */
+void plat_dvfs_init(void);
+void plat_init(void);
 void plat_s3_init(void);
+
 uintptr_t plat_s3_nsec_reentry_point(void);
 
 #endif /* _PLATFORM_H_ */

@@ -965,15 +965,9 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
         BKNI_Memcpy(&hdmiOutputHdcpSettings.aksv, &hdcpTxAksv,
             NEXUS_HDMI_OUTPUT_HDCP_KSV_LENGTH) ;
 
-        /* install HDCP success  callback */
-        hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged ;
-        hdmiOutputHdcpSettings.successCallback.context =  hdmiOutput ;
-        hdmiOutputHdcpSettings.successCallback.param = true;
-
-        /* install HDCP failure callback */
-        hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged ;
-        hdmiOutputHdcpSettings.failureCallback.context = hdmiOutput ;
-        hdmiOutputHdcpSettings.failureCallback.param = false;
+        /* install HDCP callback */
+        hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged ;
+        hdmiOutputHdcpSettings.stateChangedCallback.context =  hdmiOutput ;
 
     NEXUS_HdmiOutput_SetHdcpSettings(hdmiOutput, &hdmiOutputHdcpSettings);
 

@@ -42,7 +42,9 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BCHP_AUD_FMM_BF_CTRL_REG_START
 #include "bchp_aud_fmm_bf_ctrl.h"
+#endif
 
 BDBG_MODULE(bape_iop_priv);
 BDBG_FILE_MODULE(bape_fci);
@@ -66,7 +68,7 @@ typedef struct BAPE_LoopbackGroup
     bool started;
     unsigned numChannelPairs;
     BAPE_Handle deviceHandle;
-    uint32_t loopbackIds[BAPE_ChannelPair_eMax];    
+    uint32_t loopbackIds[BAPE_ChannelPair_eMax];
     BAPE_LoopbackGroupSettings settings;
 } BAPE_LoopbackGroup;
 
@@ -156,7 +158,7 @@ static BERR_Code BAPE_P_InitMsHw(BAPE_Handle handle)
     /* Program AUD_FMM_MS_CTRL_USEQ_INST+4: INST to 1 */
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_USEQ_INSTi_ARRAY_BASE + 4, 1);
 
-    /* Program AUD_FMM_MS_CTRL_USEQ_CTRL: CFG_CTRL to 2 
+    /* Program AUD_FMM_MS_CTRL_USEQ_CTRL: CFG_CTRL to 2
              to enable internal access to instruction memory */
     regVal = BREG_Read32(regHandle, BCHP_AUD_FMM_MS_CTRL_USEQ_CTRL);
     regVal &= ~BCHP_MASK(AUD_FMM_MS_CTRL_USEQ_CTRL, CFG_CTRL);
@@ -180,7 +182,7 @@ static BERR_Code BAPE_P_InitMsHw(BAPE_Handle handle)
     /* Program AUD_FMM_MS_CTRL_USEQ_INST+4: INST to 0 */
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_USEQ_INSTi_ARRAY_BASE + 4, 0);
 
-    /* Program AUD_FMM_MS_CTRL_USEQ_CTRL: CFG_CTRL to 0 
+    /* Program AUD_FMM_MS_CTRL_USEQ_CTRL: CFG_CTRL to 0
              to enable internal access to block external access */
     regVal = BREG_Read32(regHandle, BCHP_AUD_FMM_MS_CTRL_USEQ_CTRL);
     regVal &= ~BCHP_MASK(AUD_FMM_MS_CTRL_USEQ_CTRL, CFG_CTRL);
@@ -192,27 +194,27 @@ static BERR_Code BAPE_P_InitMsHw(BAPE_Handle handle)
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE,  0x4);
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 4, 0x200);
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + BAPE_CBIT_BUFFER_SIZE *4,   0x4);
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + BAPE_CBIT_BUFFER_SIZE * 4 + 4, 0x200);        
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + BAPE_CBIT_BUFFER_SIZE * 4 + 4, 0x200);
 
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 2*BAPE_CBIT_BUFFER_SIZE *4,   0x4);
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 2*BAPE_CBIT_BUFFER_SIZE * 4 + 4,   0x200);        
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 2*BAPE_CBIT_BUFFER_SIZE * 4 + 4,   0x200);
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 3*BAPE_CBIT_BUFFER_SIZE *4,   0x4);
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 3*BAPE_CBIT_BUFFER_SIZE * 4 + 4,   0x200);        
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBITSi_ARRAY_BASE + 3*BAPE_CBIT_BUFFER_SIZE * 4 + 4,   0x200);
 
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBIT_CTRL_0,   0x50);
     BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_CBIT_CTRL_1,   0x68);
 
     /*Initializing ramp amount*/
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_RAMP_AMOUNT_0,  0x0);           
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_RAMP_AMOUNT_1,  0x0);           
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_RAMP_AMOUNT_0,  0x0);
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_RAMP_AMOUNT_1,  0x0);
 
     /*Initializing Stream CTRL*/
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_STREAM_CTRL_0, 0x112);                   
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_STREAM_CTRL_1, 0x112);       
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_STREAM_CTRL_0, 0x112);
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_STREAM_CTRL_1, 0x112);
 
     /*Initializing burst*/
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_BURST_0, 0x0);       
-    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_BURST_1, 0x0);       
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_BURST_0, 0x0);
+    BREG_Write32(regHandle, BCHP_AUD_FMM_MS_CTRL_FW_BURST_1, 0x0);
 
     #if 0 /* SWSTB-7583 */
     /* Initializing SPDIF cfg */
@@ -448,7 +450,7 @@ void BAPE_Iop_P_GetStreamSettings(
     uint32_t regAddr, regVal, value;
     /* STB chips */
     BDBG_ASSERT(streamId <= BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_END);  /* END is inclusive */
-    regAddr = BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_BASE + 
+    regAddr = BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_BASE +
               ((BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_ELEMENT_SIZE/8) * streamId);
     regVal = BREG_Read32(handle->regHandle, regAddr);
     value = BCHP_GET_FIELD_DATA(regVal, AUD_FMM_IOP_CTRL_FCI_CFGi, STREAM_BIT_RESOLUTION);
@@ -603,13 +605,13 @@ static void BAPE_Iop_P_SetCaptureEnable(
     regVal = BREG_Read32(handle->regHandle, regAddr);
     regVal &= ~(BCHP_MASK(AUD_FMM_IOP_CTRL_CAP_CFGi, ENA));
     regVal |= BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_CAP_CFGi, ENA, value);
-    BREG_Write32(handle->regHandle, regAddr, regVal);   
+    BREG_Write32(handle->regHandle, regAddr, regVal);
 #elif defined BCHP_AUD_FMM_IOP_CTRL_CAP_CFG
     regAddr = BCHP_AUD_FMM_IOP_CTRL_CAP_CFG;
     regVal = BREG_Read32(handle->regHandle, regAddr);
     regVal &= ~(BCHP_MASK(AUD_FMM_IOP_CTRL_CAP_CFG, ENA0)<<captureId);
     regVal |= (BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_CAP_CFG, ENA0, value)<<captureId);
-    BREG_Write32(handle->regHandle, regAddr, regVal);   
+    BREG_Write32(handle->regHandle, regAddr, regVal);
 #else
 #error Unknown IOP Capture Layout
 #endif
@@ -681,7 +683,7 @@ BERR_Code BAPE_Iop_P_SetStreamSettings(
     uint32_t regAddr, regVal, value;
     /* STB chips */
     BDBG_ASSERT(streamId <= BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_END);  /* END is inclusive */
-    regAddr = BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_BASE + 
+    regAddr = BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_BASE +
               ((BCHP_AUD_FMM_IOP_CTRL_FCI_CFGi_ARRAY_ELEMENT_SIZE/8) * streamId);
     regVal = BREG_Read32(handle->regHandle, regAddr);
     regVal &= ~(BCHP_MASK(AUD_FMM_IOP_CTRL_FCI_CFGi, STREAM_BIT_RESOLUTION)|
@@ -894,7 +896,7 @@ err_after_alloc_loopback:
     BAPE_LoopbackGroup_P_Destroy(handle);
     /* fall through */
 err_alloc_loopback:
-    return errCode; 
+    return errCode;
 }
 
 void BAPE_LoopbackGroup_P_Destroy(BAPE_LoopbackGroupHandle handle)
@@ -958,24 +960,24 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
         uint32_t mask, value;
         switch ( handle->loopbackIds[i] )
         {
-        default: 
+        default:
             BDBG_ASSERT(0); /* Should never be possible */
             /* Fall through */
-        case 0: 
-            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL0); 
-            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL0, pSettings->fs); 
+        case 0:
+            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL0);
+            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL0, pSettings->fs);
             break;
-        case 1: 
-            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL1); 
-            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL1, pSettings->fs); 
+        case 1:
+            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL1);
+            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL1, pSettings->fs);
             break;
-        case 2: 
-            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL2); 
-            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL2, pSettings->fs); 
+        case 2:
+            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL2);
+            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL2, pSettings->fs);
             break;
-        case 3: 
-            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL3); 
-            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL3, pSettings->fs); 
+        case 3:
+            mask = BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL3);
+            value = BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFG, TMG_SRC_SEL3, pSettings->fs);
             break;
         }
         regVal = (regVal & (~mask))|value;
@@ -990,7 +992,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
 
         regAddr = BAPE_Reg_P_GetArrayAddress(AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, handle->loopbackIds[i]);
         BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
-        switch ( handle->settings.mclkSource ) 
+        switch ( handle->settings.mclkSource )
         {
 #ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_PLL0_ch1
         case BAPE_MclkSource_ePll0:
@@ -998,7 +1000,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
             {
             case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL0_ch1); break;
             case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL0_ch2); break;
-            case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL0_ch3); break;                
+            case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL0_ch3); break;
             default: return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
             break;
@@ -1009,7 +1011,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
             {
             case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL1_ch1); break;
             case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL1_ch2); break;
-            case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL1_ch3); break;                
+            case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL1_ch3); break;
             default: return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
             break;
@@ -1020,7 +1022,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
             {
             case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL2_ch1); break;
             case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL2_ch2); break;
-            case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL2_ch3); break;                
+            case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, PLL2_ch3); break;
             default: return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
             break;
@@ -1139,8 +1141,8 @@ BERR_Code BAPE_LoopbackGroup_P_Start(BAPE_LoopbackGroupHandle handle)
         case 22: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_STREAM_CFG_i, STREAM_BIT_RESOLUTION, Res_22_Bit); break;
         case 23: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_STREAM_CFG_i, STREAM_BIT_RESOLUTION, Res_23_Bit); break;
         case 24: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_STREAM_CFG_i, STREAM_BIT_RESOLUTION, Res_24_Bit); break;
-        default: 
-            BDBG_ERR(("Invalid loopback stream resolution (%u)", handle->settings.resolution)); 
+        default:
+            BDBG_ERR(("Invalid loopback stream resolution (%u)", handle->settings.resolution));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_STREAM_CFG_i, FCI_ID, handle->settings.input.ids[i]);
@@ -1260,7 +1262,7 @@ void BAPE_LoopbackGroup_P_GetCaptureFciIds(
 
         startId = BCHP_GET_FIELD_DATA(
             BAPE_Reg_P_Read(handle->deviceHandle, BCHP_AUD_FMM_IOP_LOOPBACK_0_CAPTURE_FCI_ID_TABLE),
-            AUD_FMM_IOP_LOOPBACK_0_CAPTURE_FCI_ID_TABLE, 
+            AUD_FMM_IOP_LOOPBACK_0_CAPTURE_FCI_ID_TABLE,
             START_FCI_ID);
 
         for ( i = 0; i < handle->numChannelPairs; i++ )
@@ -1288,7 +1290,7 @@ BERR_Code BAPE_LoopbackGroup_P_ResumeFromStandby(BAPE_Handle bapeHandle)
             /* Put the HW into the generic open state. */
             errCode = BAPE_LoopbackGroup_P_OpenHw(hLoopbackGroup );
             if ( errCode ) return BERR_TRACE(errCode);
-            
+
             /* Now apply changes for the settings struct. */
             BKNI_EnterCriticalSection();
             errCode = BAPE_LoopbackGroup_P_SetSettings_isr(hLoopbackGroup, &hLoopbackGroup->settings);
@@ -1407,7 +1409,7 @@ err_after_alloc_dummysink:
     handle->allocated = false;
     /* fall through */
 err_alloc_dummysink:
-    return errCode; 
+    return errCode;
 }
 
 void BAPE_DummysinkGroup_P_Destroy(BAPE_DummysinkGroupHandle handle)
@@ -1469,7 +1471,7 @@ BERR_Code BAPE_DummysinkGroup_P_SetSettings_isr(
 
         regAddr = BAPE_Reg_P_GetArrayAddress(AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, handle->dummysinkIds[i]);
         BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
-        switch ( handle->settings.mclkSource ) 
+        switch ( handle->settings.mclkSource )
         {
 #ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_PLL0_ch1
         case BAPE_MclkSource_ePll0:
@@ -1554,7 +1556,7 @@ BERR_Code BAPE_DummysinkGroup_P_SetSettings_isr(
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
         BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, regAddr);
-    }    
+    }
 #endif
 
     return BERR_SUCCESS;
@@ -1622,8 +1624,8 @@ BERR_Code BAPE_DummysinkGroup_P_Start(BAPE_DummysinkGroupHandle handle)
         case 22: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_STREAM_CFG_0_i, STREAM_BIT_RESOLUTION, Res_22_Bit); break;
         case 23: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_STREAM_CFG_0_i, STREAM_BIT_RESOLUTION, Res_23_Bit); break;
         case 24: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_STREAM_CFG_0_i, STREAM_BIT_RESOLUTION, Res_24_Bit); break;
-        default: 
-            BDBG_ERR(("Invalid loopback stream resolution (%u)", handle->settings.resolution)); 
+        default:
+            BDBG_ERR(("Invalid loopback stream resolution (%u)", handle->settings.resolution));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
         BDBG_MODULE_MSG(bape_fci, ("  fci %x -> DUMMY %d pair[%d]", handle->settings.input.ids[i], handle->dummysinkIds[i], i));
@@ -1674,7 +1676,7 @@ void BAPE_DummysinkGroup_P_GetOutputEnableParams(
     #warning "UNSUPPORTED CHIP - update this code"
 #endif
         BDBG_MSG(("Get dummy grp idx[%d], dummy id %d, enable=%d:", i, handle->dummysinkIds[i], enable));
-        BDBG_MSG(("\taddr %08x, mask %08x, value %08x", 
+        BDBG_MSG(("\taddr %08x, mask %08x, value %08x",
             pEnableParams->chPairs[i].address,
             pEnableParams->chPairs[i].mask,
             pEnableParams->chPairs[i].value));
@@ -1760,7 +1762,7 @@ BERR_Code BAPE_DummysinkGroup_P_ResumeFromStandby(BAPE_Handle bapeHandle)
             /* Put the HW into the generic open state. */
             errCode = BAPE_DummysinkGroup_P_OpenHw(hDummysinkGroup );
             if ( errCode ) return BERR_TRACE(errCode);
-            
+
             /* Now apply changes for the settings struct. */
             BKNI_EnterCriticalSection();
             errCode = BAPE_DummysinkGroup_P_SetSettings_isr(hDummysinkGroup, &hDummysinkGroup->settings);

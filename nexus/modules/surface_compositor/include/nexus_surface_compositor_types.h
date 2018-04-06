@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2011-2014 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef NEXUS_SURFACE_COMPOSITOR_TYPES_H__
 #define NEXUS_SURFACE_COMPOSITOR_TYPES_H__
 
@@ -81,7 +70,7 @@ typedef struct NEXUS_SurfaceComposition
     NEXUS_SurfaceRegion virtualDisplay; /* If width/height non-zero, composition.position will be positioned and scaled relative to the virtualDisplay dimensions.
         Otherwise, graphics will be positioned and scaled in clipped framebuffer coordinates; video will be positioned and scaled in parent coordinates.
         Because clipping and HW upscaling makes the mapping of framebuffer coordinates to display coordinates complex, we recommend using virtualDisplay. */
-    NEXUS_Rect position; /* position and size of the surface relative to the size of the parent. scaling is automatic. 
+    NEXUS_Rect position; /* position and size of the surface relative to the size of the parent. scaling is automatic.
                             if rectangle is offscreen, the surface will be clipped appropriately. */
     NEXUS_SurfaceRegion clipBase; /* If width/height non-zero, compositin.clipRect will use this as units.
                             Otherwise it will use virtualDispay. */
@@ -104,10 +93,11 @@ typedef struct NEXUS_SurfaceComposition
     NEXUS_Pixel constantColor; /* For graphics, constant alpha and color for colorBlend and alphaBlend.
                                   For video, upper 8 bits used for alpha. */
     int rightViewOffset; /* if display3D, it controls z-offset (in units of virtualDisplay.width) (in addition to any z-offset for the framebuffer) */
-    
+
     bool colorMatrixEnabled; /* set true to use colorMatrix */
     NEXUS_Graphics2DColorMatrix colorMatrix; /* see NEXUS_Graphics2D_SetAlphaColorMatrix for simple matrix-based alpha blend */
     NEXUS_VideoWindowContentMode contentMode;
+    NEXUS_TristateEnable fillContentModeBars;
 } NEXUS_SurfaceComposition;
 
 /**

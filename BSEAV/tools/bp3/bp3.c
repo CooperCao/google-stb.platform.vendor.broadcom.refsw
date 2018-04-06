@@ -188,6 +188,8 @@ const char * const bp3_errors[] = {
     BP3_Error_(eFailedToReadProductID),
     BP3_Error_(eFailedToReadBondOptionReg),
     BP3_Error_(eSageInternal_50),
+    BP3_Error_(eInvalidLicenseBondOption),
+    BP3_Error_(eLicenseBondOptionMismatch)
 };
 
 BDBG_MODULE(bp3_curl);

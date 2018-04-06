@@ -109,8 +109,12 @@
 #endif
 #include "bchp_v3d_tfu.h"
 #include "bchp_v3d_hub_ctl.h"
+#ifdef BCHP_V3D_TOP_GR_BRIDGE_REG_START
 #include "bchp_v3d_top_gr_bridge.h"
+#endif
+#ifdef BCHP_HIF_CPU_INTR1_REG_START
 #include "bchp_hif_cpu_intr1.h"
+#endif
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_clkgen.h"
 

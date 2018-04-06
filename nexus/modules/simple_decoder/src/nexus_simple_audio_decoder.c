@@ -280,9 +280,14 @@ NEXUS_SimpleAudioDecoderHandle NEXUS_SimpleAudioDecoder_Create( NEXUS_SimpleAudi
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
     else {
-        NEXUS_SimpleAudioDecoderServerSettings settings;
-        NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(&settings);
-        rc = NEXUS_SimpleAudioDecoder_SetServerSettings(server, handle, &settings);
+        NEXUS_SimpleAudioDecoderServerSettings *settings;
+        settings = BKNI_Malloc(sizeof(*settings));
+        if(!settings) { (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto error; }
+
+        NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(settings);
+        rc = NEXUS_SimpleAudioDecoder_SetServerSettings(server, handle, settings);
+
+        BKNI_Free(settings);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
 

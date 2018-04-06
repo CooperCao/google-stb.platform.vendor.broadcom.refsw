@@ -340,6 +340,9 @@ typedef struct BVDC_P_Source_Info
       | Mpeg Feeder Source    |
       +-----------------------+ */
     bool                             bMosaicMode;
+    /* This flag indicates the scanout mode for the windows connecting to the
+     * MPEG source. The scanout mode for the source is stored in feeder */
+    BVDC_P_ScanoutMode               eWinScanoutMode;
     bool                             bPsfEnable;
     bool                             bForceFrameCapture;
     /*  SW7425-686 XVD and BVN display rate mismatch */
@@ -559,7 +562,6 @@ typedef struct BVDC_P_SourceContext
     uint32_t                  ulPixelCount;
 
     bool                      bPqNcl;
-
 #if BVDC_P_SUPPORT_MTG
     BVDC_Display_Handle       hDspTimebaseLocked;
     BAVC_Timebase             eTimeBase;
@@ -586,7 +588,7 @@ void BVDC_P_Source_Destroy
 
 void BVDC_P_Source_Init
     ( BVDC_Source_Handle               hSource,
-      const BVDC_Source_Settings      *pDefSettings );
+      const BVDC_Source_CreateSettings *pDefSettings );
 
 BERR_Code BVDC_P_Source_ValidateChanges
     ( const BVDC_Source_Handle         ahSource[] );

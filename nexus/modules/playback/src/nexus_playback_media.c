@@ -877,15 +877,15 @@ NEXUS_Playback_P_AudioCodecMap_ToMedia(NEXUS_AudioCodec audioCodec)
 NEXUS_Error
 b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, const NEXUS_PlaypumpStatus *playpump_status,const NEXUS_PlaybackStartSettings *params)
 {
-    bmedia_player_stream stream;
-    bmedia_player_config player_config;
+
     unsigned i;
     const NEXUS_Playback_P_PidChannel *pid;
     const NEXUS_Playback_P_PidChannel *master_pid;
     NEXUS_Error rc=NEXUS_SUCCESS;
-    NEXUS_PlaypumpSettings pumpCfg;
     bmedia_player_decoder_mode mode;
+    struct NEXUS_P_Playback_state_b_play_start_media *data;
 
+    data = &playback->state.functionData.b_play_start_media;
     playback->media_player = NULL;
     playback->state.index_type = NEXUS_PlaybackMpeg2TsIndexType_eAutoDetect;
     playback->state.media.last_segment_hdr = (uint8_t*)playpump_status->bufferBase + playpump_status->fifoSize - sizeof(NEXUS_PlaypumpSegment);
@@ -896,87 +896,87 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
     playback->state.media.pts_timer = NEXUS_ScheduleTimer(BMEDIA_UPDATE_POSITION_INTERVAL, b_play_media_pts_timer, playback);
 
     b_play_media_time_test();
-    bmedia_player_init_stream(&stream);
+    bmedia_player_init_stream(&data->stream);
     switch(playback->params.playpumpSettings.transportType) {
     case NEXUS_TransportType_eAsf:
-        stream.format = bstream_mpeg_type_asf;
+        data->stream.format = bstream_mpeg_type_asf;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eAvi:
-        stream.format = bstream_mpeg_type_avi;
+        data->stream.format = bstream_mpeg_type_avi;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eMp4:
-        stream.format = bstream_mpeg_type_mp4;
+        data->stream.format = bstream_mpeg_type_mp4;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eMkv:
-        stream.format = bstream_mpeg_type_mkv;
+        data->stream.format = bstream_mpeg_type_mkv;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eTs:
     case NEXUS_TransportType_eBulk:
-        stream.format = bstream_mpeg_type_ts;
+        data->stream.format = bstream_mpeg_type_ts;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eDssPes:
     case NEXUS_TransportType_eDssEs:
-        stream.format = bstream_mpeg_type_dss_es;
+        data->stream.format = bstream_mpeg_type_dss_es;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eMpeg2Pes:
-        stream.format = bstream_mpeg_type_pes;
+        data->stream.format = bstream_mpeg_type_pes;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eMpeg1Ps:
-        stream.format = bstream_mpeg_type_ts;
+        data->stream.format = bstream_mpeg_type_ts;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eVob:
-        stream.format = bstream_mpeg_type_vob;
+        data->stream.format = bstream_mpeg_type_vob;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eWav:
-        stream.format = bstream_mpeg_type_wav;
+        data->stream.format = bstream_mpeg_type_wav;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eMp4Fragment:
-        stream.format = bstream_mpeg_type_mp4_fragment;
+        data->stream.format = bstream_mpeg_type_mp4_fragment;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eRmff:
-        stream.format = bstream_mpeg_type_rmff;
+        data->stream.format = bstream_mpeg_type_rmff;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eFlv:
-        stream.format = bstream_mpeg_type_flv;
+        data->stream.format = bstream_mpeg_type_flv;
         playback->state.media.segmented = true;
         break;
     case NEXUS_TransportType_eOgg:
-        stream.format = bstream_mpeg_type_ogg;
+        data->stream.format = bstream_mpeg_type_ogg;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eFlac:
-        stream.format = bstream_mpeg_type_flac;
+        data->stream.format = bstream_mpeg_type_flac;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eApe:
-        stream.format = bstream_mpeg_type_ape;
+        data->stream.format = bstream_mpeg_type_ape;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eAmr:
-        stream.format = bstream_mpeg_type_amr;
+        data->stream.format = bstream_mpeg_type_amr;
         playback->state.media.segmented = false;
         break;
     case NEXUS_TransportType_eAiff:
-        stream.format = bstream_mpeg_type_aiff;
+        data->stream.format = bstream_mpeg_type_aiff;
         playback->state.media.segmented = false;
         break;
     default:
         BDBG_WRN(("Unknown transport type %u, defaulting to ES", playback->params.playpumpSettings.transportType));
         /* fallthrough */
     case NEXUS_TransportType_eEs:
-        stream.format = bstream_mpeg_type_es;
+        data->stream.format = bstream_mpeg_type_es;
         playback->state.media.segmented = false;
         break;
     }
@@ -1005,11 +1005,11 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
         }
     }
     if(master_pid) {
-        stream.master = master_pid->pid;
+        data->stream.master = master_pid->pid;
     } else {
-        /* if there's no masgter pid, then we can still do playback-only work. setting to the NULL
+        /* if there's no master pid, then we can still do playback-only work. setting to the NULL
         pid tells media framework plugs that we have not forgotten a param in their API. */
-        stream.master = 0x1fff;
+        data->stream.master = 0x1fff;
     }
 
     for(i=0,pid = BLST_S_FIRST(&playback->pid_list); pid ; pid = BLST_S_NEXT(pid, link)) {
@@ -1029,21 +1029,21 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
         }
         statusValid = NEXUS_PidChannel_GetStatus(pid->pidChn, &status)==NEXUS_SUCCESS;
         if(pid==master_pid) {
-            stream.stream.es.video_codec = video_codec;
-            stream.stream.es.audio_codec = audio_codec;
+            data->stream.stream.es.video_codec = video_codec;
+            data->stream.stream.es.audio_codec = audio_codec;
             if(statusValid) {
                 BDBG_MSG(("%s:%p mapping track %u(master) -> %#x:%#x", "b_play_start_media", (void *)playback, (unsigned)pid->pid, (unsigned)status.remappedPid, (unsigned)status.pid));
-                stream.stream.id.master = status.remappedPid;
+                data->stream.stream.id.master = status.remappedPid;
             }
         } else {
             if(i<BMEDIA_PLAYER_MAX_TRACKS) {
-                stream.stream.es.other_video[i] = video_codec;
-                stream.stream.es.other_audio[i] = audio_codec;
+                data->stream.stream.es.other_video[i] = video_codec;
+                data->stream.stream.es.other_audio[i] = audio_codec;
                 if(statusValid) {
                     BDBG_MSG(("%s:%p mapping track %u(%u) -> %#x:%#x", "b_play_start_media", (void *)playback, (unsigned)pid->pid, (unsigned)i, (unsigned)status.remappedPid, (unsigned)status.pid));
-                    stream.stream.id.other[i] = status.remappedPid;
+                    data->stream.stream.id.other[i] = status.remappedPid;
                 }
-                stream.other[i] = pid->pid;
+                data->stream.other[i] = pid->pid;
             } else {
                 BDBG_WRN(("%s:%p track:%u exceeded max number of tracks %u>=%u", "b_play_start_media", (void *)playback, (unsigned)pid->pid, (unsigned)i, BMEDIA_PLAYER_MAX_TRACKS));
             }
@@ -1062,7 +1062,7 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
         goto error_file_index;
     }
 
-    bmedia_player_init_config(&player_config);
+    bmedia_player_init_config(&data->player_config);
     if(file->file.index && params->mode == NEXUS_PlaybackMode_eIndexed && playback->params.playpumpSettings.transportType==NEXUS_TransportType_eTs) {
         switch(params->mpeg2TsIndexType) {
         case NEXUS_PlaybackMpeg2TsIndexType_eAutoDetect:
@@ -1101,7 +1101,7 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
                       size_t segmentSize = buffer_cfg.buf_len / buffer_cfg.nsegs; /* don't attempt to change size of the segment */
                       buffer_cfg.nsegs = playpumpStatus.fifoSize/ segmentSize;
                       buffer_cfg.buf_len = buffer_cfg.nsegs * segmentSize;
-                      player_config.format.mp4.fragmentBufferSize = playpumpStatus.fifoSize;
+                      data->player_config.format.mp4.fragmentBufferSize = playpumpStatus.fifoSize;
                   }
               }
           }
@@ -1124,65 +1124,65 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
           }
       }
 
-    player_config.buffer = playback->state.media.buffer;
-    player_config.factory = playback->state.media.factory;
-    player_config.cntx = playback;
-    player_config.atom_ready = b_play_media_async_atom_ready;
-    player_config.error_detected = b_play_media_player_error;
-    player_config.get_dqt_index = b_play_media_get_dqt_index;
-    player_config.timeshifting = playback->params.timeshifting;
-    b_play_update_media_player_config(playback, &player_config.decoder_features);
+    data->player_config.buffer = playback->state.media.buffer;
+    data->player_config.factory = playback->state.media.factory;
+    data->player_config.cntx = playback;
+    data->player_config.atom_ready = b_play_media_async_atom_ready;
+    data->player_config.error_detected = b_play_media_player_error;
+    data->player_config.get_dqt_index = b_play_media_get_dqt_index;
+    data->player_config.timeshifting = playback->params.timeshifting;
+    b_play_update_media_player_config(playback, &data->player_config.decoder_features);
 
     if(playback->params.playpumpSettings.transportType==NEXUS_TransportType_eTs) {
-        stream.stream.mpeg2ts.packet_size = playback->params.playpumpSettings.timestamp.type == NEXUS_TransportTimestampType_eNone?188:192;
+        data->stream.stream.mpeg2ts.packet_size = playback->params.playpumpSettings.timestamp.type == NEXUS_TransportTimestampType_eNone?188:192;
     }
 
     if(params->mode == NEXUS_PlaybackMode_eIndexed && file->file.index) {
         if(playback->state.index_type==NEXUS_PlaybackMpeg2TsIndexType_eSelf || playback->params.playpumpSettings.transportType==NEXUS_TransportType_eMpeg2Pes || playback->params.playpumpSettings.transportType==NEXUS_TransportType_eVob || playback->params.playpumpSettings.transportType==NEXUS_TransportType_eEs)  {
             playback->state.media.segmented = false;
-            stream.without_index = true;
-            stream.stream.noindex.auto_rate = true;
-            stream.stream.noindex.bitrate = params->bitrate;
+            data->stream.without_index = true;
+            data->stream.stream.noindex.auto_rate = true;
+            data->stream.stream.noindex.bitrate = params->bitrate;
             if(playback->params.enableStreamProcessing) {
-                stream.stream.noindex.auto_rate = true;
-                stream.stream.id.master = 0xC0;
+                data->stream.stream.noindex.auto_rate = true;
+                data->stream.stream.id.master = 0xC0;
            }
            else if( playback->params.playpumpSettings.transportType==NEXUS_TransportType_eEs)
            {
-                stream.stream.id.master = 0x0;
+                data->stream.stream.id.master = 0x0;
            }
         }
-        if (!player_config.timeshifting) {
+        if (!data->player_config.timeshifting) {
             off_t first, last;
             if (!file->file.data->bounds(file->file.data, &first, &last)) {
-                player_config.data_file_size = last;
+                data->player_config.data_file_size = last;
             }
         }
-        playback->media_player = bmedia_player_create(file->file.index, &player_config, &stream);
+        playback->media_player = bmedia_player_create(file->file.index, &data->player_config, &data->stream);
         if (!playback->media_player) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error_player; }
     } else {
         playback->state.media.segmented = false;
-        stream.without_index = true;
-        stream.stream.noindex.auto_rate = params->mode == NEXUS_PlaybackMode_eAutoBitrate;
+        data->stream.without_index = true;
+        data->stream.stream.noindex.auto_rate = params->mode == NEXUS_PlaybackMode_eAutoBitrate;
         if(playback->params.playpumpSettings.transportType==NEXUS_TransportType_eEs) {
             if(playback->params.enableStreamProcessing) {
-                stream.stream.noindex.auto_rate = true;
-                stream.stream.id.master = 0xC0;
+                data->stream.stream.noindex.auto_rate = true;
+                data->stream.stream.id.master = 0xC0;
             } else {
                 if(params->mode == NEXUS_PlaybackMode_eAutoBitrate) {
-                    stream.stream.id.master = 0;
+                    data->stream.stream.id.master = 0;
                 }
             }
         }
-        stream.stream.noindex.bitrate = params->bitrate;
-        playback->media_player = bmedia_player_create(file->file.data, &player_config, &stream);
+        data->stream.stream.noindex.bitrate = params->bitrate;
+        playback->media_player = bmedia_player_create(file->file.data, &data->player_config, &data->stream);
         if (!playback->media_player) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error_player; }
     }
     bmedia_player_set_direction(playback->media_player, 0, BMEDIA_TIME_SCALE_BASE, &mode); /* normal decode */
-    NEXUS_Playpump_GetSettings(playback->params.playpump, &pumpCfg);
-    playback->actualTransportType = pumpCfg.transportType;
-    pumpCfg.mode = playback->state.media.segmented ? NEXUS_PlaypumpMode_eSegment : NEXUS_PlaypumpMode_eFifo;
-    rc = NEXUS_Playpump_SetSettings(playback->params.playpump, &pumpCfg);
+    NEXUS_Playpump_GetSettings(playback->params.playpump, &data->pumpCfg);
+    playback->actualTransportType = data->pumpCfg.transportType;
+    data->pumpCfg.mode = playback->state.media.segmented ? NEXUS_PlaypumpMode_eSegment : NEXUS_PlaypumpMode_eFifo;
+    rc = NEXUS_Playpump_SetSettings(playback->params.playpump, &data->pumpCfg);
     if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto error_playpump; }
     playback->state.direction = 1;
     playback->state.data_source = b_play_next_frame;

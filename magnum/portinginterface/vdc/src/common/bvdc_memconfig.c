@@ -50,7 +50,8 @@ BDBG_MODULE(BVDC_MEMCONFIG);
  *
  */
 void BVDC_GetDefaultMemConfigSettings
-    ( BVDC_MemConfigSettings             *pMemConfigSettings )
+    ( const BBOX_Config                  *pBoxConfig,
+      BVDC_MemConfigSettings             *pMemConfigSettings )
 {
     uint32_t    ulDispIndex, ulWinIndex;
     BVDC_P_MemConfig_SystemInfo   *pSystemConfigInfo;
@@ -157,6 +158,12 @@ void BVDC_GetDefaultMemConfigSettings
         }
     }
 
+    if(pBoxConfig)
+    {
+        BVDC_P_Memconfig_UpdateSettingByBoxmode(pBoxConfig, pMemConfigSettings);
+    }
+
+    /* Dump out default settings */
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
     {
         BVDC_DispMemConfigSettings  *pDisplay;
@@ -321,7 +328,8 @@ static void BVDC_P_Memconfig_GetCfcSize
  *
  */
 BERR_Code BVDC_GetMemoryConfiguration
-    ( const BVDC_MemConfigSettings       *pMemConfigSettings,
+    ( const BBOX_Config                  *pBoxConfig,
+      const BVDC_MemConfigSettings       *pMemConfigSettings,
       BVDC_MemConfig                     *pMemConfig )
 {
     uint32_t                      ulDispIndex, ulWinIndex;
@@ -330,6 +338,7 @@ BERR_Code BVDC_GetMemoryConfiguration
     BVDC_Heap_Settings           *pMemcHeapSettings;
     BVDC_P_BufferHeap_SizeInfo   *pHeapSizeInfo;
     BVDC_P_MemConfig_SystemInfo  *pSystemConfigInfo;
+    BVDC_MemConfigSettings        *pBoxMemConfigSettings;
 
     BDBG_ASSERT(pMemConfigSettings);
     BDBG_ASSERT(pMemConfig);
@@ -344,33 +353,93 @@ BERR_Code BVDC_GetMemoryConfiguration
     }
     BKNI_Memset((void*)pSystemConfigInfo, 0x0, sizeof(BVDC_P_MemConfig_SystemInfo));
 
+    pBoxMemConfigSettings = (BVDC_MemConfigSettings*)
+        (BKNI_Malloc(sizeof(BVDC_MemConfigSettings)));
+    if(!pBoxMemConfigSettings)
+    {
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
+    *pBoxMemConfigSettings = *pMemConfigSettings;
+
     /* Collect information */
     BVDC_P_MemConfigInfo_Init(pSystemConfigInfo);
 
     /* Get buffer heap size */
-    BVDC_P_MemConfig_GetBufSize(&pMemConfigSettings->stHeapSettings,
+    BVDC_P_MemConfig_GetBufSize(&pBoxMemConfigSettings->stHeapSettings,
         pSystemConfigInfo);
 
     /* Validate input settings */
-    err = BVDC_P_MemConfig_Validate(pMemConfigSettings, pSystemConfigInfo);
+    err = BVDC_P_MemConfig_Validate(pBoxMemConfigSettings, pSystemConfigInfo);
     if(err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
+    if(pBoxConfig)
+    {
+        BVDC_P_Memconfig_UpdateSettingByBoxmode(pBoxConfig, pBoxMemConfigSettings);
+    }
+
+    /* Dump out user + boxmode settings */
+    for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
+    {
+        BVDC_DispMemConfigSettings  *pDisplay;
+        const BFMT_VideoInfo  *pSrcFmtInfo, *pDispFmtInfo;
+
+        pDisplay = (BVDC_DispMemConfigSettings  *)(&pBoxMemConfigSettings->stDisplay[ulDispIndex]);
+        BDBG_ASSERT(pDisplay);
+
+        if(!pDisplay->bUsed)
+            continue;
+
+        pDispFmtInfo = BFMT_GetVideoFormatInfoPtr(pDisplay->eMaxDisplayFormat);
+        BDBG_MSG(("Disp[%d]: Used(%d) %s", ulDispIndex, pDisplay->bUsed,
+            pDispFmtInfo->pchFormatStr));
+
+        for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
+        {
+            BVDC_WinMemConfigSettings  *pWindow;
+
+            pWindow = &(pDisplay->stWindow[ulWinIndex]);
+            BDBG_ASSERT(pWindow);
+
+            pSrcFmtInfo = BFMT_GetVideoFormatInfoPtr(pWindow->eMaxSourceFormat);
+            if(pWindow->bUsed)
+            {
+                BDBG_MSG(("    Win[%d]: Used(%d) CapMemc[%d] MadMemc[%d] %s",
+                    ulWinIndex, pWindow->bUsed, pWindow->ulMemcIndex,
+                    pWindow->ulMadMemcIndex, pSrcFmtInfo->pchFormatStr));
+                BDBG_MSG(("    Win[%d]: NotMfd Slip Pip Lip Mos Mad Bias 3D Psf Side Box ACrop ICrop 5060 Slave AddBuf",
+                    ulWinIndex));
+                BDBG_MSG(("    Win[%d]: %4d %5d %3d %3d %3d %3d %4d %3d %2d %4d %3d %4d %5d %5d %4d %5d",
+                    ulWinIndex, pWindow->bNonMfdSource, pWindow->bSyncSlip,
+                    pWindow->bPip, pWindow->bLipsync, pWindow->bMosaicMode,
+                    pWindow->eDeinterlacerMode, pWindow->eSclCapBias,
+                    pWindow->b3DMode, pWindow->bPsfMode, pWindow->bSideBySide,
+                    pWindow->bBoxDetect, pWindow->bArbitraryCropping,
+                    pWindow->bIndependentCropping, pWindow->b5060Convert,
+                    pWindow->bSlave_24_25_30_Display, pWindow->ulAdditionalBufCnt));
+            }
+            else
+            {
+                BDBG_MSG(("    Win[%d]: Used(%d)", ulWinIndex, pWindow->bUsed));
+            }
+        }
+    }
+
 #if BVDC_P_SUPPORT_VIP
-    err = BVDC_P_Memconfig_GetVipSize(pMemConfigSettings, pMemConfig);
+    err = BVDC_P_Memconfig_GetVipSize(pBoxMemConfigSettings, pMemConfig);
     if(err != BERR_SUCCESS)
         return BERR_TRACE(err);
 #endif
 
 #if BVDC_P_CMP_CFC_VER >= 3
-    BVDC_P_Memconfig_GetCfcSize(pMemConfigSettings, pMemConfig);
+    BVDC_P_Memconfig_GetCfcSize(pBoxMemConfigSettings, pMemConfig);
 #endif
 
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
     {
         BVDC_DispMemConfigSettings  *pDisplay;
 
-        pDisplay = (BVDC_DispMemConfigSettings  *)(&pMemConfigSettings->stDisplay[ulDispIndex]);
+        pDisplay = (BVDC_DispMemConfigSettings  *)(&pBoxMemConfigSettings->stDisplay[ulDispIndex]);
         BDBG_ASSERT(pDisplay);
 
         /* Skip if display is not used */
@@ -386,6 +455,7 @@ BERR_Code BVDC_GetMemoryConfiguration
             BVDC_WinMemConfigSettings  *pWindow;
             BVDC_P_MemConfig_WindowInfo  stWindowInfo;
             BVDC_Heap_Settings  *pCapHeapSetting, *pMadHeapSetting;
+            BBOX_Vdc_WindowClass   eWinClass = BBOX_Vdc_WindowClass_eLegacy;
 
             pWindow = &(pDisplay->stWindow[ulWinIndex]);
             BDBG_ASSERT(pWindow);
@@ -400,15 +470,21 @@ BERR_Code BVDC_GetMemoryConfiguration
                 continue;
             }
 
-            BVDC_P_MemConfig_SetBufFormat(&pMemConfigSettings->stHeapSettings,
+            BVDC_P_MemConfig_SetBufFormat(&pBoxMemConfigSettings->stHeapSettings,
                 pCapHeapSetting);
-            BVDC_P_MemConfig_SetBufFormat(&pMemConfigSettings->stHeapSettings,
+            BVDC_P_MemConfig_SetBufFormat(&pBoxMemConfigSettings->stHeapSettings,
                 pMadHeapSetting);
 
             /* Get settings for each window */
             BDBG_MSG(("---Buffer Count Per Window---"));
+
+            if(pBoxConfig)
+            {
+                eWinClass = pBoxConfig->stVdc.astDisplay[ulDispIndex].astWindow[ulWinIndex].eClass;
+            }
+
             BVDC_P_MemConfig_GetWindowInfo(pWindow, pDisplay,
-                pSystemConfigInfo, ulDispIndex, ulWinIndex,
+                pSystemConfigInfo, ulDispIndex, ulWinIndex, eWinClass,
                 &stWindowInfo);
             BDBG_MSG(("Disp[%d]Win[%d] buffer type (4HD, 4HD_Pip, 2HD, 2HD_Pip, HD, HD_Pip, SD, SD_Pip) PicSize",
                 ulDispIndex, ulWinIndex));
@@ -519,10 +595,10 @@ BERR_Code BVDC_GetMemoryConfiguration
 
     for(ulMemcIndex = 0; ulMemcIndex < BVDC_MAX_MEMC; ulMemcIndex++)
     {
-        BVDC_P_MemConfig_SetBufFormat(&pMemConfigSettings->stHeapSettings,
+        BVDC_P_MemConfig_SetBufFormat(&pBoxMemConfigSettings->stHeapSettings,
             &pMemConfig->stMemc[ulMemcIndex].stHeapSettings);
 
-        if(ulMemcIndex == pMemConfigSettings->stRdc.ulMemcIndex)
+        if(ulMemcIndex == pBoxMemConfigSettings->stRdc.ulMemcIndex)
         {
             pMemConfig->stMemc[ulMemcIndex].ulRulSize += ulRulSize;
         }
@@ -557,6 +633,11 @@ BERR_Code BVDC_GetMemoryConfiguration
     if(pSystemConfigInfo)
     {
         BKNI_Free((void*)pSystemConfigInfo);
+    }
+
+    if(pBoxMemConfigSettings)
+    {
+        BKNI_Free((void*)pBoxMemConfigSettings);
     }
     BDBG_MSG(("------------------------------"));
 

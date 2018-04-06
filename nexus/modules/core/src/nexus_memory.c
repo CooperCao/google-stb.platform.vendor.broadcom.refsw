@@ -649,6 +649,11 @@ unsigned NEXUS_Heap_GetMemcIndex_isrsafe(NEXUS_HeapHandle heap)
     return heap->settings.memcIndex;
 }
 
+unsigned NEXUS_Heap_GetIndex_isrsafe(NEXUS_HeapHandle heap)
+{
+    return heap->index;
+}
+
 NEXUS_Error NEXUS_Heap_GetStatus_driver_priv( NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus )
 {
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));

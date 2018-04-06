@@ -1082,9 +1082,7 @@ BERR_Code BXPT_Resume(
 #if BXPT_HAS_MESG_L2
     BXPT_Interrupt_P_Init( hXpt );
 #endif
-#if BXPT_HAS_RAVE_L2
     BXPT_Rave_P_EnableInterrupts( hXpt );
-#endif
 #if BXPT_HAS_MEMDMA
     BXPT_Dma_P_EnableInterrupts( hXpt );
 #endif
@@ -3491,7 +3489,7 @@ bool BXPT_IsMtsifDecryptionEnabled(
 }
 #endif
 
-#ifdef BXPT_ATS_API
+#if (!B_REFSW_MINIMAL)
 void BXPT_ResetAtsCounter(
     BXPT_Handle hXpt
     )
@@ -3534,7 +3532,9 @@ void BXPT_SetAtsExternal(
     BCHP_SET_FIELD_DATA( atsCtrlReg, XPT_FE_ATS_COUNTER_CTRL, INC_MUX_SEL, 1 );
     BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_ATS_COUNTER_CTRL, atsCtrlReg );
 }
+#endif
 
+#if (!B_REFSW_MINIMAL)
 uint32_t BXPT_GetBinaryAts(
     BXPT_Handle hXpt
     )

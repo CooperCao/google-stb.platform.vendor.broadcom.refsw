@@ -51,7 +51,9 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BCHP_AUD_FMM_BF_CTRL_REG_START
 #include "bchp_aud_fmm_bf_ctrl.h"
+#endif
 #if BAPE_CHIP_MAX_DECODERS
 #include "bdsp.h"
 #endif
@@ -4370,6 +4372,8 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
     BAPE_DecoderHandle handle = pParam1;
     unsigned count;
 
+    BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
+
     BAPE_Decoder_P_GetDataSyncStatus_isr(handle, &count);
 
     if (count != handle->underFlowCount)
@@ -4384,7 +4388,7 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
 
     if (handle->underFlowTimer)
     {
-        BTMR_StartTimer_isr(handle->underFlowTimer, param2);
+        BTMR_StartTimer_isr(handle->underFlowTimer, (unsigned)param2);
     }
 }
 

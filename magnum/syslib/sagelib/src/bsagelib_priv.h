@@ -242,7 +242,7 @@ BERR_Code BSAGElib_P_Rpc_ConsumeResponseCallbacks(BSAGElib_ClientHandle hSAGElib
 BERR_Code BSAGElib_P_Rpc_GetResponse( BSAGElib_ClientHandle hSAGElibClient, BSAGElib_ResponseData *data);
 void BSAGElib_P_Rpc_ResponseCallbackCacheFree(BSAGElib_ClientHandle hSAGElibClient);
 BERR_Code BSAGElib_P_Init_Serial(BSAGElib_Handle hSAGElib);
-BERR_Code BSAGElib_P_GetOtp(BSAGElib_Handle hSAGElib, BCMD_Otp_CmdMsp_e msp_enum, uint32_t *out, const char *dbg_name);
+BERR_Code BSAGElib_P_GetOtp(BSAGElib_Handle hSAGElib, BCMD_Otp_CmdMsp_e msp_enum, uint32_t *out, uint32_t *outLock, const char *dbg_name);
 void BSAGElib_P_Standby_Reset_isrsafe(BSAGElib_Handle hSAGElib);
 BERR_Code BSAGElib_P_SageVklsInit(BSAGElib_Handle hSAGElib);
 void BSAGElib_P_SageVklsUninit(BSAGElib_Handle hSAGElib);

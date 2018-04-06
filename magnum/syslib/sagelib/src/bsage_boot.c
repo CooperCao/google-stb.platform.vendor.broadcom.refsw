@@ -100,6 +100,8 @@ typedef struct {
     uint32_t otp_system_epoch3;
     uint32_t otp_market_id;
     uint32_t otp_market_id1;
+    uint32_t otp_market_id_lock;
+    uint32_t otp_market_id1_lock;
 
     bool sageBlTripleSigning;  /* triple-signing scheme or single-signing scheme */
     bool sageFrameworkTripleSigning;  /* triple-signing scheme or single-signing scheme */
@@ -588,26 +590,26 @@ BSAGE_P_Boot_GetSageOtpMspParams(
      * BCMD_Otp_CmdMsp_eMarketId : market Id
      * BCMD_Otp_CmdMsp_eSystemEpoch // BCMD_Otp_CmdMsp_eReserved87 : Epoch */
 
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved210, &ctx->otp_sage_decrypt_enable, "decrypt_enable");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved210, &ctx->otp_sage_decrypt_enable, NULL, "decrypt_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved209, &ctx->otp_sage_verify_enable, "verify_enable");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved209, &ctx->otp_sage_verify_enable, NULL, "verify_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved212, &ctx->otp_sage_secure_enable, "secure_enable");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved212, &ctx->otp_sage_secure_enable, NULL, "secure_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eMarketId, &ctx->otp_market_id, "market id");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eMarketId, &ctx->otp_market_id, &ctx->otp_market_id_lock, "market id");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGE_P_GetOtp(hSAGE, hHsm, BCMD_Otp_CmdMsp_eMarketId1, &ctx->otp_market_id1, "market id1");
+    rc = BSAGE_P_GetOtp(hSAGE, hHsm, BCMD_Otp_CmdMsp_eMarketId1, &ctx->otp_market_id1, &ctx->otp_market_id1_lock, "market id1");
     if (rc != BERR_SUCCESS) { goto end; }
 
 #if (ZEUS_VERSION < ZEUS_4_1)
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, "system epoch 0");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, NULL, "system epoch 0");
 #else
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved87, &ctx->otp_system_epoch0, "epoch");
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eSystemEpoch3, &ctx->otp_system_epoch3, "system epoch 3");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved87, &ctx->otp_system_epoch0, NULL, "epoch");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eSystemEpoch3, &ctx->otp_system_epoch3, NULL, "system epoch 3");
 #endif
     if (rc != BERR_SUCCESS) { goto end; }
 
@@ -1583,10 +1585,10 @@ BSAGE_P_GetChipsetType(
     uint32_t otp_swizzle0a_msp0;
     uint32_t otp_swizzle0a_msp1;
 
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved233, &otp_swizzle0a_msp0, "msp0");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved233, &otp_swizzle0a_msp0, NULL, "msp0");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved234, &otp_swizzle0a_msp1, "msp1");
+    rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eReserved234, &otp_swizzle0a_msp1, NULL, "msp1");
     if (rc != BERR_SUCCESS) { goto end; }
 
     BDBG_MSG(("%s - OTP [MSP0: %d, MSP1: %d]",
@@ -2130,14 +2132,9 @@ err:
             switch(bootState.lastError)
             {
                 case SAGE_SECUREBOOT_ARC_PRESCREEN_NUMBER_BAD_BIT_EXCEEDED:
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    BDBG_ERR(("* SAGE ARC Bad Bit Management: More than 2 SAGE ARC Bad bits"));
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    break;
                 case SAGE_SECUREBOOT_ARC_PRESCREEN_MSP_PROG_FAILURE:
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    BDBG_ERR(("* SAGE ARC Bad Bit Management: MSP OTP programming error"));
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    BDBG_ERR(("* SAGE self test failure detected (rc=0x%x).", bootState.lastError));
+                    BDBG_ERR((" Please contact Broadcom and submit a failure Analysis Request (FAR)."));
                     break;
                 default:
                     BDBG_ERR(("* Please check your sage_bl%s.bin and sage_framework%s.bin", _flavor, _flavor));

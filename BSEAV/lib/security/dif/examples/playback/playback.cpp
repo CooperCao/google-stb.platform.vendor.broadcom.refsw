@@ -127,7 +127,6 @@ public:
 
 #ifdef DIF_MULTI_THREAD
     uint8_t *pAvccHdr[MAX_MOSAICS];
-    uint8_t *pPayload[MAX_MOSAICS];
     uint8_t *pAudioHeaderBuf[MAX_MOSAICS];
     uint8_t *pVideoHeaderBuf[MAX_MOSAICS];
     pthread_t playback_thread[MAX_MOSAICS];
@@ -138,10 +137,14 @@ public:
     IBuffer* videoPesBuf[MAX_MOSAICS][NUM_CIRCULAR_BUF];
     IBuffer* audioDecOut[MAX_MOSAICS][NUM_CIRCULAR_BUF];
     IBuffer* videoDecOut[MAX_MOSAICS][NUM_CIRCULAR_BUF];
+    /* We use 2 buffers by turn to prevent the previous fragment data */
+    /* from being overwritten by file io for the subsequent fragment */
+    uint8_t *pPayload[MAX_MOSAICS][2];
+#else
+    uint8_t *pPayload[MAX_MOSAICS];
 #endif
 #else // DIF_MULTI_THREAD
     uint8_t *pAvccHdr;
-    uint8_t *pPayload;
     uint8_t *pAudioHeaderBuf;
     uint8_t *pVideoHeaderBuf;
 #ifdef DIF_SCATTER_GATHER
@@ -151,6 +154,11 @@ public:
     IBuffer* videoPesBuf[NUM_CIRCULAR_BUF];
     IBuffer* audioDecOut[NUM_CIRCULAR_BUF];
     IBuffer* videoDecOut[NUM_CIRCULAR_BUF];
+    /* We use 2 buffers by turn to prevent the previous fragment data */
+    /* from being overwritten by file io for the subsequent fragment */
+    uint8_t *pPayload[2];
+#else
+    uint8_t *pPayload;
 #endif
 #endif // DIF_MULTI_THREAD
 
@@ -193,7 +201,6 @@ AppContext::AppContext()
 
 #ifndef DIF_MULTI_THREAD
     pAvccHdr = NULL;
-    pPayload = NULL;
     pAudioHeaderBuf = NULL;
     pVideoHeaderBuf = NULL;
 #ifdef DIF_SCATTER_GATHER
@@ -205,6 +212,10 @@ AppContext::AppContext()
         audioDecOut[i] = NULL;
         videoDecOut[i] = NULL;
     }
+    pPayload[0] = NULL;
+    pPayload[1] = NULL;
+#else
+    pPayload = NULL;
 #endif
 #endif
 
@@ -231,7 +242,6 @@ AppContext::AppContext()
         license[i].clear();
 #ifdef DIF_MULTI_THREAD
         pAvccHdr[i] = NULL;
-        pPayload[i] = NULL;
         pAudioHeaderBuf[i] = NULL;
         pVideoHeaderBuf[i] = NULL;
 #ifdef DIF_SCATTER_GATHER
@@ -243,6 +253,10 @@ AppContext::AppContext()
             audioDecOut[i][j] = NULL;
             videoDecOut[i][j] = NULL;
         }
+        pPayload[i][0] = NULL;
+        pPayload[i][1] = NULL;
+#else
+        pPayload[i] = NULL;
 #endif
 #endif
     }
@@ -267,7 +281,6 @@ AppContext::~AppContext()
 
 #ifndef DIF_MULTI_THREAD
     if (pAvccHdr) NEXUS_Memory_Free(pAvccHdr);
-    if (pPayload) NEXUS_Memory_Free(pPayload);
     if (pAudioHeaderBuf) NEXUS_Memory_Free(pAudioHeaderBuf);
     if (pVideoHeaderBuf) NEXUS_Memory_Free(pVideoHeaderBuf);
 #ifdef DIF_SCATTER_GATHER
@@ -285,6 +298,9 @@ AppContext::~AppContext()
             BufferFactory::DestroyBuffer(videoDecOut[i]);
         }
     }
+    if (pPayload[0]) NEXUS_Memory_Free(pPayload[0]);
+#else
+    if (pPayload) NEXUS_Memory_Free(pPayload);
 #endif
 #endif
 
@@ -326,7 +342,6 @@ AppContext::~AppContext()
         license[i].clear();
 #ifdef DIF_MULTI_THREAD
         if (pAvccHdr[i]) NEXUS_Memory_Free(pAvccHdr[i]);
-        if (pPayload[i]) NEXUS_Memory_Free(pPayload[i]);
         if (pAudioHeaderBuf[i]) NEXUS_Memory_Free(pAudioHeaderBuf[i]);
         if (pVideoHeaderBuf[i]) NEXUS_Memory_Free(pVideoHeaderBuf[i]);
 #ifdef DIF_SCATTER_GATHER
@@ -344,6 +359,9 @@ AppContext::~AppContext()
                 BufferFactory::DestroyBuffer(videoDecOut[i][j]);
             }
         }
+        if (pPayload[i][0]) NEXUS_Memory_Free(pPayload[i][0]);
+#else
+        if (pPayload[i]) NEXUS_Memory_Free(pPayload[i]);
 #endif
 #endif
     }
@@ -605,7 +623,6 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 s_app.video_idx %= NUM_CIRCULAR_BUF;
 #endif
                 if (s_app.decryptor[index]) {
-                    // TODO: needs more work for decrypt
                     numOfByteDecrypted = s_app.decryptor[index]->DecryptSample(pSample,
                         input, decOutput, sampleSize);
                     streamer->SubmitSample(pSample, input, decOutput);
@@ -1115,11 +1132,21 @@ static void setup_streamers()
             exit(EXIT_FAILURE);
         }
 
+#ifdef DIF_SCATTER_GATHER
+        uint8_t * pPayload = NULL;
+        if (NEXUS_Memory_Allocate(BUF_SIZE * 2, &memSettings, (void **)&pPayload) != NEXUS_SUCCESS) {
+            fprintf(stderr,"NEXUS_Memory_Allocate failed");
+            exit(EXIT_FAILURE);
+        }
+        s_app.pPayload[i][0] = pPayload;
+        s_app.pPayload[i][1] = pPayload + BUF_SIZE;
+#else
         s_app.pPayload[i] = NULL;
         if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void **)&s_app.pPayload[i]) != NEXUS_SUCCESS) {
             fprintf(stderr,"NEXUS_Memory_Allocate failed");
             exit(EXIT_FAILURE);
         }
+#endif
 
         s_app.pAudioHeaderBuf[i] = NULL;
         if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS,
@@ -1142,11 +1169,21 @@ static void setup_streamers()
         exit(EXIT_FAILURE);
     }
 
+#ifdef DIF_SCATTER_GATHER
+    uint8_t * pPayload = NULL;
+    if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void **)&pPayload) != NEXUS_SUCCESS) {
+        fprintf(stderr,"NEXUS_Memory_Allocate failed");
+        exit(EXIT_FAILURE);
+    }
+    s_app.pPayload[0] = pPayload;
+    s_app.pPayload[1] = pPayload + BUF_SIZE;
+#else
     s_app.pPayload = NULL;
     if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void **)&s_app.pPayload) != NEXUS_SUCCESS) {
         fprintf(stderr,"NEXUS_Memory_Allocate failed");
         exit(EXIT_FAILURE);
     }
+#endif
 
     s_app.pAudioHeaderBuf = NULL;
     if (NEXUS_Memory_Allocate(BMEDIA_PES_HEADER_MAX_SIZE + BMP4_MAX_PPS_SPS,
@@ -1175,18 +1212,18 @@ static void setup_streamers()
            LOGW(("@@@ Stc Set FAILED ---------------"));
         }
 
-        NEXUS_Playpump_GetSettings(s_app.videoPlaypump[i], &playpumpSettings);
+        s_app.videoStreamer[i]->GetSettings(&playpumpSettings);
         playpumpSettings.dataCallback.callback = play_callback;
         playpumpSettings.dataCallback.context = s_app.event;
         playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
-        NEXUS_Playpump_SetSettings(s_app.videoPlaypump[i], &playpumpSettings);
+        s_app.videoStreamer[i]->SetSettings(&playpumpSettings);
 
         if (s_app.audioStreamer[i]) {
-            NEXUS_Playpump_GetSettings(s_app.audioPlaypump[i], &playpumpSettings);
+            s_app.audioStreamer[i]->GetSettings(&playpumpSettings);
             playpumpSettings.dataCallback.callback = play_callback;
             playpumpSettings.dataCallback.context = s_app.event;
             playpumpSettings.transportType = NEXUS_TransportType_eMpeg2Pes;
-            NEXUS_Playpump_SetSettings(s_app.audioPlaypump[i], &playpumpSettings);
+            s_app.audioStreamer[i]->SetSettings(&playpumpSettings);
         }
 
         NEXUS_Playpump_Start(s_app.videoPlaypump[i]);
@@ -1446,15 +1483,27 @@ void* playback_loop()
     int i = (intptr_t)arg;
     LOGW(("playback thread starting stream %d", i));
 #endif
+#ifdef DIF_SCATTER_GATHER
+    for (unsigned k = 0;; k++) {
+#else
     for (;;) {
+#endif
 #ifndef DIF_MULTI_THREAD
         for (int i = 0; i < s_app.num_mosaics; i++) {
 #endif
             if (!s_app.mosaic[i].done) {
 #ifdef DIF_MULTI_THREAD
+#ifdef DIF_SCATTER_GATHER
+                decoder_data = s_app.parser[i]->GetFragmentData(frag_info, s_app.pPayload[i][k%2], decoder_len);
+#else
                 decoder_data = s_app.parser[i]->GetFragmentData(frag_info, s_app.pPayload[i], decoder_len);
+#endif
+#else
+#ifdef DIF_SCATTER_GATHER
+                decoder_data = s_app.parser[i]->GetFragmentData(frag_info, s_app.pPayload[k%2], decoder_len);
 #else
                 decoder_data = s_app.parser[i]->GetFragmentData(frag_info, s_app.pPayload, decoder_len);
+#endif
 #endif
                 if (decoder_data == NULL) {
                     s_app.mosaic[i].done = true;

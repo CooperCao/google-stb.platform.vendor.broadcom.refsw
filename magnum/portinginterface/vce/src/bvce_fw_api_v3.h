@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x08000000
+#define VICE_API_VERSION                  0x09000000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -114,7 +114,7 @@ extern "C"
  * Maximum FW binary size is used by VCE PI to allocate its own buffers.
  */
 #define MAX_PICARC_FW_SIZE_IN_BYTES                             0x40000       /* 256 kB */
-#define MAX_MBARC_FW_SIZE_IN_BYTES                              0xA000        /* 40 kB */
+#define MAX_MBARC_FW_SIZE_IN_BYTES                              0xC000        /* 48 kB */
 
 
 /* =====================================================*/
@@ -851,7 +851,8 @@ typedef struct BVCE_P_FW_PictureBufferMailbox
                                   * [29:16] Top/Left Bar Value
                                   * [15:14] Bar Data Type (See BarDataType_e)
                                   * [13:00] Bottom/Right Bar Value */
-   uint32_t uiFormatInfo;        /* [31:15] Unused
+   uint32_t uiFormatInfo;        /* [31:23] Unused
+                                  * [22:15] Vip Picture Index (for Low Delay)
                                   * [14:12] Orientation (See OrientationType_e)
                                   * [11:08] Active Format Data (AFD) Mode
                                   * [07:07] Active Format Data (AFD) Valid Flag

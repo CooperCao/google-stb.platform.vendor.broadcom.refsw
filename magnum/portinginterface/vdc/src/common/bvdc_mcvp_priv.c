@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,6 +57,7 @@
 #include "bchp_dmisc.h"
 #endif
 
+#if (BVDC_P_SUPPORT_MCVP)
 #include "bchp_mvp_top_0.h"
 
 BDBG_MODULE(BVDC_MCVP);
@@ -65,9 +66,9 @@ BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_MVP);
 
-
 /* SW7366-343 No MADR core SW_INIT due to wiring error */
-#if (((BCHP_CHIP==7435) && (BCHP_VER==BCHP_VER_B0)) || ((BCHP_CHIP==7366) &&(BCHP_VER>=BCHP_VER_B0)))
+#if (((BCHP_CHIP==7435) && (BCHP_VER==BCHP_VER_B0)) || \
+     ((BCHP_CHIP==7366) && (BCHP_VER>=BCHP_VER_B0)))
 #define BVDC_P_NO_MADR_SWINIT          (1)
 #else
 #define BVDC_P_NO_MADR_SWINIT          (0)
@@ -78,44 +79,42 @@ BDBG_OBJECT_ID(BVDC_MVP);
 #include "bchp_siob_1.h"
 #endif
 
-
-
 /***************************************************************************
  * The followings are exported to other sub-modules inside VDC
  ***************************************************************************/
 #if (BVDC_P_SUPPORT_MCVP_VER > BVDC_P_MCVP_VER_3)
 #if (BVDC_P_SUPPORT_DMISC)
-#define BVDC_P_MAKE_MVP(pMcvp, id, channel_init)                                  \
-{                                                                                 \
-    (pMcvp)->ulCoreResetAddr = BCHP_DMISC_SW_INIT;                                \
-    (pMcvp)->ulCoreResetMask = BCHP_DMISC_SW_INIT_MVP_##id##_MASK;;               \
-    (pMcvp)->ulVnetResetAddr = BCHP_##channel_init;                               \
-    (pMcvp)->ulVnetResetMask = BCHP_##channel_init##_MVP_##id##_MASK;             \
-    (pMcvp)->ulVnetMuxAddr   = BCHP_VNET_F_MVP_##id##_SRC;                        \
-    (pMcvp)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_MVP_##id;             \
+#define BVDC_P_MAKE_MVP(pMcvp, id, channel_init)                               \
+{                                                                              \
+    (pMcvp)->ulCoreResetAddr = BCHP_DMISC_SW_INIT;                             \
+    (pMcvp)->ulCoreResetMask = BCHP_DMISC_SW_INIT_MVP_##id##_MASK;;            \
+    (pMcvp)->ulVnetResetAddr = BCHP_##channel_init;                            \
+    (pMcvp)->ulVnetResetMask = BCHP_##channel_init##_MVP_##id##_MASK;          \
+    (pMcvp)->ulVnetMuxAddr   = BCHP_VNET_F_MVP_##id##_SRC;                     \
+    (pMcvp)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_MVP_##id;          \
     (pMcvp)->ulRegOffset     = BCHP_MVP_TOP_##id##_REG_START - BCHP_MVP_TOP_0_REG_START;  \
 }
 #else
-#define BVDC_P_MAKE_MVP(pMcvp, id, channel_init)                                  \
-{                                                                                 \
-    (pMcvp)->ulCoreResetAddr = BCHP_MMISC_SW_INIT;                                \
-    (pMcvp)->ulCoreResetMask = BCHP_MMISC_SW_INIT_MVP_##id##_MASK;;               \
-    (pMcvp)->ulVnetResetAddr = BCHP_##channel_init;                               \
-    (pMcvp)->ulVnetResetMask = BCHP_##channel_init##_MVP_##id##_MASK;             \
-    (pMcvp)->ulVnetMuxAddr   = BCHP_VNET_F_MVP_##id##_SRC;                        \
-    (pMcvp)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_MVP_##id;             \
+#define BVDC_P_MAKE_MVP(pMcvp, id, channel_init)                               \
+{                                                                              \
+    (pMcvp)->ulCoreResetAddr = BCHP_MMISC_SW_INIT;                             \
+    (pMcvp)->ulCoreResetMask = BCHP_MMISC_SW_INIT_MVP_##id##_MASK;;            \
+    (pMcvp)->ulVnetResetAddr = BCHP_##channel_init;                            \
+    (pMcvp)->ulVnetResetMask = BCHP_##channel_init##_MVP_##id##_MASK;          \
+    (pMcvp)->ulVnetMuxAddr   = BCHP_VNET_F_MVP_##id##_SRC;                     \
+    (pMcvp)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_MVP_##id;          \
     (pMcvp)->ulRegOffset     = BCHP_MVP_TOP_##id##_REG_START - BCHP_MVP_TOP_0_REG_START;  \
 }
 #endif
 #else  /*(BVDC_P_SUPPORT_MCVP_VER > BVDC_P_MCVP_VER_1)  beyond 7420 */
-#define BVDC_P_MAKE_MVP(pMcvp, id, channel_init)                                  \
-{                                                                                 \
-    (pMcvp)->ulCoreResetAddr = BCHP_MMISC_SW_INIT;                                \
-    (pMcvp)->ulCoreResetMask = BCHP_MMISC_SW_INIT_MVP_##id##_MASK;                \
-    (pMcvp)->ulVnetResetAddr = BCHP_##channel_init;                               \
-    (pMcvp)->ulVnetResetMask = BCHP_##channel_init##_MVP_##id##_MASK;             \
-    (pMcvp)->ulVnetMuxAddr   = BCHP_VNET_F_MVP_##id##_SRC;                        \
-    (pMcvp)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_MVP_##id;             \
+#define BVDC_P_MAKE_MVP(pMcvp, id, channel_init)                               \
+{                                                                              \
+    (pMcvp)->ulCoreResetAddr = BCHP_MMISC_SW_INIT;                             \
+    (pMcvp)->ulCoreResetMask = BCHP_MMISC_SW_INIT_MVP_##id##_MASK;             \
+    (pMcvp)->ulVnetResetAddr = BCHP_##channel_init;                            \
+    (pMcvp)->ulVnetResetMask = BCHP_##channel_init##_MVP_##id##_MASK;          \
+    (pMcvp)->ulVnetMuxAddr   = BCHP_VNET_F_MVP_##id##_SRC;                     \
+    (pMcvp)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_MVP_##id;          \
     (pMcvp)->ulRegOffset     = BCHP_MVP_TOP_##id##_REG_START - BCHP_MVP_TOP_0_REG_START;  \
 }
 #endif
@@ -1501,5 +1500,5 @@ void BVDC_P_Mvp_Init_Custom
 
     return;
 }
-
+#endif
 /* End of file. */

@@ -161,6 +161,11 @@ BERR_Code BSRF_g1_Tuner_P_SetNotchFcw(BSRF_ChannelHandle h, int32_t freqHz)
    uint32_t freq, P_hi, P_lo, Q_hi, Q_lo;
 
    hChn->notchFreq = freqHz;
+   if (freqHz == 0)
+      BSRF_P_OrRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, 0x00000200);  /* bypass notch if zero */
+   else
+      BSRF_P_AndRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, ~0x00000200);
+
    if (freqHz < 0)
       freq = -freqHz;
    else

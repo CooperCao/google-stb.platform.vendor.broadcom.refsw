@@ -139,4 +139,33 @@ typedef struct mon_params {
 
 } mon_params_t;
 
+/*
+ * Access functions
+ */
+extern mon_params_t mon_params;
+
+static inline mbox_info_t *sec_mbox_info(void) {
+    return &mon_params.tz_mbox_info;
+}
+
+static inline mbox_info_t *nsec_mbox_info(void) {
+    return &mon_params.nw_mbox_info;
+}
+
+#define DEFINE_MBOX_INFO_FUNC(_sec, _name, _type)   \
+static inline _type _sec##_mbox_##_name(void)       \
+{                                                   \
+    return _sec##_mbox_info()->_name;               \
+}                                                   \
+
+DEFINE_MBOX_INFO_FUNC(sec, addr,  uint64_t);
+DEFINE_MBOX_INFO_FUNC(sec, size,  uint16_t);
+DEFINE_MBOX_INFO_FUNC(sec, sgi,   uint8_t);
+DEFINE_MBOX_INFO_FUNC(sec, flags, uint32_t);
+
+DEFINE_MBOX_INFO_FUNC(nsec, addr,  uint64_t);
+DEFINE_MBOX_INFO_FUNC(nsec, size,  uint16_t);
+DEFINE_MBOX_INFO_FUNC(nsec, sgi,   uint8_t);
+DEFINE_MBOX_INFO_FUNC(nsec, flags, uint32_t);
+
 #endif /* _MON_PARAMS_H_ */

@@ -50,14 +50,14 @@ BDBG_MODULE(BVDC_CMP);
 /***************************************************************************
  *
  */
-BERR_Code BVDC_Compositor_GetDefaultSettings
+void BVDC_Compositor_GetDefaultCreateSettings
     ( BVDC_CompositorId                eCompositorId,
-      BVDC_Compositor_Settings        *pDefSettings )
+      BVDC_Compositor_CreateSettings  *pDefSettings )
 {
     BSTD_UNUSED(eCompositorId);
     BKNI_Memset(pDefSettings, 0, sizeof(*pDefSettings));
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /***************************************************************************
@@ -70,7 +70,7 @@ BERR_Code BVDC_Compositor_Create
     ( BVDC_Handle                      hVdc,
       BVDC_Compositor_Handle          *phCompositor,
       BVDC_CompositorId                eCompositorId,
-      const BVDC_Compositor_Settings  *pDefSettings )
+      const BVDC_Compositor_CreateSettings  *pDefSettings )
 {
     BDBG_ENTER(BVDC_Compositor_Create);
     BDBG_ASSERT(phCompositor);

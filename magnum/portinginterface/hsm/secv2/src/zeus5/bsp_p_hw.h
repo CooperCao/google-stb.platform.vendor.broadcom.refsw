@@ -40,7 +40,7 @@
 #ifndef BSP_P_HW_H__
 #define BSP_P_HW_H__
 
-/* Total number of pid channels supported */
-#define BSP_TOTAL_PIDCHANNELS             1024
+#define BSP_TOTAL_PIDCHANNELS   (1024)    /* Total number of pid channels supported */
+#define BSP_ARCHES_PER_MEMC       (12)    /* Max # ARCH per MEMC */
 
 #endif  /* BSP_P_HW_H__ end of header file*/

@@ -213,6 +213,23 @@ Description:
 #define BRDC_P_STC_FLAG_COUNT              (0)
 #endif
 
+/* HW7445-1476, use SW blockout before the fixes in */
+#if (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || (BCHP_CHIP==7366) || (BCHP_CHIP==74371) || \
+    ((BCHP_CHIP==7439) && (BCHP_VER == BCHP_VER_A0))|| \
+    ((BCHP_CHIP==7364) && (BCHP_VER < BCHP_VER_C0))|| \
+    (BCHP_CHIP==7250)|| (BCHP_CHIP==7563)|| (BCHP_CHIP==7543)
+#define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (1)
+#else
+#define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (0)
+#endif
+
+/* Support register udpate blockout by HW? */
+#if (BCHP_RDC_br_0_start_addr && (!BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND))
+#define BRDC_P_SUPPORT_HW_BLOCKOUT         (1)
+#else
+#define BRDC_P_SUPPORT_HW_BLOCKOUT         (0)
+#endif
+
 /***************************************************************************
  * Data Structure
  ***************************************************************************/
@@ -297,7 +314,6 @@ typedef struct BRDC_P_Slot_Handle
 
 } BRDC_P_Slot_Handle;
 
-
 /***************************************************************************
  * BRDC_P_List_Handle
  ***************************************************************************/
@@ -318,7 +334,9 @@ typedef struct BRDC_P_List_Handle
     BRDC_P_Slot_Head   *pSlotAssigned;     /* Double link list to keep track of which slots the list assigned to */
 
     /* for RDC list debugging */
+#if(!B_REFSW_MINIMAL)
     BRDC_DBG_ListEntry  eNextEntry;
+#endif
     uint32_t           *pulCurListAddr;
     uint32_t            ulNumEntries;
     uint32_t            ulCurrCommand;

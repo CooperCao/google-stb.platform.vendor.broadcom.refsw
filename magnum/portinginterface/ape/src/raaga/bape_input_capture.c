@@ -41,7 +41,9 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BCHP_AUD_FMM_BF_CTRL_REG_START
 #include "bchp_aud_fmm_bf_ctrl.h"
+#endif
 #include "bape_buffer.h"
 
 BDBG_MODULE(bape_input_capture);
@@ -560,6 +562,8 @@ BERR_Code BAPE_InputCapture_Start(
             for ( i = 0; i < numBuffersRequired; i++ )
             {
                 unsigned dfifoBufIndex = i*step;
+                dfifoSettings.bufferInfo[dfifoBufIndex].block = handle->bufferBlock[dfifoBufIndex];
+                dfifoSettings.bufferInfo[dfifoBufIndex].pBuffer = handle->pBuffers[dfifoBufIndex];
                 dfifoSettings.bufferInfo[dfifoBufIndex].base = handle->bufferOffset[i];
                 dfifoSettings.bufferInfo[dfifoBufIndex].length = handle->bufferSize;
                 dfifoSettings.bufferInfo[dfifoBufIndex].watermark = handle->settings.watermark;
@@ -577,6 +581,10 @@ BERR_Code BAPE_InputCapture_Start(
                 length = pBuffer->bufferSize/2;
                 dfifoSettings.bufferInfo[bufferNum].base = pBuffer->offset;
                 dfifoSettings.bufferInfo[bufferNum+1].base = pBuffer->offset + length;
+                dfifoSettings.bufferInfo[bufferNum].block = pBuffer->block;
+                dfifoSettings.bufferInfo[bufferNum+1].block = pBuffer->block;
+                dfifoSettings.bufferInfo[bufferNum].pBuffer = pBuffer->pMemory;
+                dfifoSettings.bufferInfo[bufferNum+1].pBuffer = pBuffer->pMemory;
                 dfifoSettings.bufferInfo[bufferNum].length = length;
                 dfifoSettings.bufferInfo[bufferNum+1].length = length;
             }

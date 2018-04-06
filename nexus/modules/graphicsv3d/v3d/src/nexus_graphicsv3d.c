@@ -222,11 +222,15 @@ NEXUS_Graphicsv3dModule_Init(
          }
       }
 
-      NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle, &heapStatus);
+      err = NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle, &heapStatus);
+      if (err != BERR_SUCCESS)
+         goto error1;
 
       if (g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure)
       {
-         NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure, &heapStatusSecure);
+         err = NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure, &heapStatusSecure);
+         if (err != BERR_SUCCESS)
+            goto error1;
          hSecureOffset = heapStatusSecure.offset;
          hSecureHeapHandle = NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure);
       }

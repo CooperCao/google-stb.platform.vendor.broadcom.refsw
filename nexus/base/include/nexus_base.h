@@ -901,7 +901,8 @@ NEXUS_FlushCache
 
 /**
 Summary:
-Stop all callbacks associated with this interface handle.
+Stops and clears all callbacks associated with this interface handle.
+If the interface is not closed, NEXUS_StartCallbacks must be called to resume callbacks, but will not recover cleared callbacks.
 Wait for any running callbacks to finish, and ensure that no other callbacks for this handle are fired.
 **/
 void NEXUS_Base_P_StopCallbacks(
@@ -912,7 +913,7 @@ void NEXUS_Base_P_StopCallbacks(
 Summary:
 Re-enable all callbacks for this interface handle.
 All interfaces default to being already started.
-If you call StopCallbacks followed by StartCallbacks, no pending callbacks will be lost. <<maybe>>
+This should not be called after an interface has been closed.
 **/
 void NEXUS_Base_P_StartCallbacks(
         void *interfaceHandle
@@ -1240,8 +1241,5 @@ NEXUS_Error NEXUS_Scheduler_SetState(
 
 void NEXUS_Base_ExportEnvVariables(void);
 void NEXUS_Base_SetModuleDebugLevel(void);
-
-#define NEXUS_CancelCallbacks(INTERFACE_HANDLE) NEXUS_Module_CancelCallbacks(NEXUS_MODULE_SELF, (INTERFACE_HANDLE))
-void NEXUS_Module_CancelCallbacks(NEXUS_ModuleHandle module, void *interfaceHandle);
 
 #endif /* !defined NEXUS_BASE_H */

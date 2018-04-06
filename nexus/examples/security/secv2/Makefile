@@ -52,6 +52,8 @@ APPS = \
     security_keyslot_external_keyiv_multiple_DMA_blocks_app \
     security_keyslot_rc_bits_app \
     security_keyslot_playback_app \
+    security_keyslot_mpeg_packet_crypto \
+    security_keyslot_mpeg_packet_crypto_flexible_app \
     security_keyladder_otp_askm_key_app \
     security_keyladder_otp_global_key_app \
     security_keyladder_otp_customer_key_app \
@@ -77,6 +79,8 @@ $(BINDIR)/security_keyslot_aes_cbc_simple           $(BINDIR)/security_keyslot_a
 $(BINDIR)/security_keyslot_aes_cbc_iv_64_app        $(BINDIR)/security_keyslot_aes_cbc_iv_64_app:   $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple     $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple:$(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_app       $(BINDIR)/security_keyslot_external_keyiv_app:  $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_mpeg_packet_crypto       $(BINDIR)/security_keyslot_mpeg_packet_crypto:  $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app       $(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app:  $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app       $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app:  $(EXTRA_SRC)
 # Keyladder app s
 $(BINDIR)/security_keyladder_aes_ecb_app            $(BINDIR)/security_keyladder_aes_ecb_app:       $(EXTRA_SRC)

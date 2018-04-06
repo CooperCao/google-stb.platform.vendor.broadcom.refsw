@@ -201,7 +201,7 @@ initramfs: $(USER_LIBS) $(USER_APPS)
 	cat initramfs.files | cpio -ov > initramfs.cpio; \
 	$(TZ_ARMGNU)-objcopy -I binary -O $(OBJ_TARGET) -B $(ARCH) --rename-section .data=.initramfs initramfs.cpio initramfs.o
 
-$(USER_APPS):
+$(USER_APPS): $(USER_LIBS)
 	$(MAKE) -C $@
 
 $(USER_LIBS):

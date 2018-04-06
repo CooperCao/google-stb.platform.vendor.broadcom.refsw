@@ -73,6 +73,7 @@ void nexus_p_surface_composition_init(NEXUS_SurfaceComposition *composition)
     composition->virtualDisplay.width = 1920;
     composition->virtualDisplay.height = 1080;
     composition->contentMode = NEXUS_VideoWindowContentMode_eBox;
+    composition->fillContentModeBars = NEXUS_TristateEnable_eAuto;
     return;
 }
 
@@ -186,9 +187,14 @@ static void NEXUS_SurfaceClient_P_Release( NEXUS_SurfaceClientHandle client )
 
 static void NEXUS_SurfaceClient_P_ParentFinalizer( NEXUS_SurfaceClientHandle client )
 {
+    NEXUS_SurfaceClientHandle child;
     NEXUS_OBJECT_ASSERT(NEXUS_SurfaceClient, client);
 
     NEXUS_SurfaceClient_Clear(client);
+
+    while ((child = BLST_S_FIRST(&client->children))) {
+        NEXUS_SurfaceCompositor_DestroyClient(child);
+    }
 
     BLST_Q_REMOVE(&client->server->clients, client, link);
 
@@ -267,7 +273,7 @@ void NEXUS_SurfaceClient_Release( NEXUS_SurfaceClientHandle client )
 {
     BDBG_MSG_TRACE(("NEXUS_SurfaceClient_Release:%p", (void *)client));
     BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    
+
     if (client->type == NEXUS_SurfaceClient_eChild) {
         NEXUS_SurfaceClient_DestroyChild(client);
         return;
@@ -276,7 +282,7 @@ void NEXUS_SurfaceClient_Release( NEXUS_SurfaceClientHandle client )
         NEXUS_SurfaceClient_ReleaseVideoWindow(client);
         return;
     }
-    
+
     NEXUS_TaskCallback_Set(client->displayedCallback, NULL);
     NEXUS_TaskCallback_Set(client->recycledCallback, NULL);
     NEXUS_TaskCallback_Set(client->displayStatusChangedCallback, NULL);

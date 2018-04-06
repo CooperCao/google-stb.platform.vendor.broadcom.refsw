@@ -25,10 +25,10 @@ void khrn_init_options(void)
 {
    /* TODO Make option naming a bit more consistent... */
 
-   /* NOTE: In Android, these option names are converted to lower-case, and the underscores are replaced
-    * with periods. So, "V3D_GL_ERROR_ASSIST" becomes "v3d.gl.error.assist" under Android for example.
-    * Since these key names are used in Android, remember to keep them <= 32 characters (including the
-    * NULL terminator).
+   /* NOTE: In Android, these option names are converted to lower-case and prefixed with 'ro.v3d.'
+    * So, "DISABLE_BUFFER_AGE" becomes "ro.v3d.disable_buffer_age" under Android for example.
+    * Since these key names are used in Android, remember to keep them <= 32 characters
+    * (including the NULL terminator).
     */
 
    khrn_options.nonms_double_buffer          = gfx_options_bool(  "GL_TILE_NONMS_DOUBLEBUFFER",    false);
@@ -108,6 +108,8 @@ void khrn_init_options(void)
 
    khrn_options.no_async_host_reads    = gfx_options_bool("KHRN_NO_ASYNC_HOST_READS", false);
    khrn_options.force_async_host_reads = gfx_options_bool("KHRN_FORCE_ASYNC_HOST_READS", false);
+
+   khrn_options.disable_buffer_age     = gfx_options_bool("DISABLE_BUFFER_AGE", false);
 
    if (khrn_options.random_wireframe)
       gfx_rand_init(&random_wireframe_state, khrn_options.random_wireframe_seed);

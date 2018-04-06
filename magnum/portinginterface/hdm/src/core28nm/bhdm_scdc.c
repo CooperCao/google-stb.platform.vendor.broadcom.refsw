@@ -41,7 +41,9 @@
 #include "bhdm.h"
 #include "../common/bhdm_priv.h"
 #include "bhdm_scdc.h"
+#ifdef BCHP_AON_CTRL_REG_START
 #include "bchp_aon_ctrl.h"
+#endif
 
 BDBG_MODULE(BHDM_SCDC) ;
 
@@ -810,8 +812,6 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isr(
 	BREG_Handle hRegister ;
 	uint32_t Register ;
 	uint32_t ulOffset ;
-	uint32_t SCDCStatusBit ;
-	uint32_t SCDCStatusAddress ;
 
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
@@ -843,15 +843,19 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isr(
 			HDMI_TX_PHY_TMDS_CLK_WORD_SEL, CLK_WORD_SEL, pstScrambleConfig->clockWordSelect ) ;
 	BREG_Write32(hRegister, BCHP_HDMI_TX_PHY_TMDS_CLK_WORD_SEL + ulOffset, Register) ;
 
+#ifdef BCHP_AON_CTRL_REG_START
+	{
+		uint32_t SCDCStatusBit ;
+		uint32_t SCDCStatusAddress ;
+		SCDCStatusBit = pstScrambleConfig->txScrambleEnable << 24 ;
+		SCDCStatusAddress = BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + 4 * 11 ;
 
-	SCDCStatusBit = pstScrambleConfig->txScrambleEnable << 24 ;
-	SCDCStatusAddress = BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + 4 * 11 ;
-
-	Register = BREG_Read32(hRegister, SCDCStatusAddress) ;
-		Register &= 0xFEFFFFFF ;
-		Register |= SCDCStatusBit ;
-	BREG_Write32(hRegister, SCDCStatusAddress, Register) ;
-
+		Register = BREG_Read32(hRegister, SCDCStatusAddress) ;
+			Register &= 0xFEFFFFFF ;
+			Register |= SCDCStatusBit ;
+		BREG_Write32(hRegister, SCDCStatusAddress, Register) ;
+	}
+#endif
 	hHDMI->ScrambleConfig = *pstScrambleConfig ;
 
 }

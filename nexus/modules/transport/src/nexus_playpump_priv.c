@@ -49,7 +49,7 @@ BDBG_MODULE(nexus_playpump_priv);
 #define B_PLAY_CHUNK_SIZE_MAX   (60*1024)
 #define B_PLAY_MAX_HW_QUEUE 16 /* max number of elements queued in the HW */
 
-#if B_PLAYPUMP_CAPTURE_DATA 
+#if B_PLAYPUMP_CAPTURE_DATA
 #include <stdio.h>
 
 static void b_playpump_p_capture_data(NEXUS_PlaypumpHandle pump, const char *name, const void *addr, size_t len)
@@ -109,7 +109,7 @@ restart:
             if(b_pump_demux_is_congested(p->demux)) {
                 return true;
             }
-        } 
+        }
 #endif
         if (BFIFO_READ_PEEK(&p->pendingFifo)==0) {
             if(p->state.queued_in_hw==0) {
@@ -279,9 +279,11 @@ remove_inalid_chunk:
         }
     } else {
         /* flush cache and convert address */
+#if !NEXUS_USE_OTT_TRANSPORT
         if ( false == p->settings.dataNotCpuAccessible ) {
             NEXUS_FlushCache(p->state.active.addr, p->state.active.length);
         }
+#endif
         if(p->openSettings.descriptorPacingEnabled)
         {
             BKNI_Memset(&extEntry.flags, 0 , sizeof(BAVC_TsMux_DescConfig));
@@ -339,7 +341,7 @@ static BERR_Code
 b_playpump_bound(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpScatterGatherDescriptor *pSgDesc)
 {
     if (p->boundsHeapAddr && p->boundsHeapSize) {
-        if (pSgDesc->addr < p->boundsHeapAddr || 
+        if (pSgDesc->addr < p->boundsHeapAddr ||
             ((uint8_t *)pSgDesc->addr+pSgDesc->length > (uint8_t *)p->boundsHeapAddr+p->boundsHeapSize))
         {
             /*BDBG_WRN(("%#lx: descriptor bound violation %#lx:%#x %#lx:%#x", p,
@@ -365,7 +367,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
         NEXUS_ASSERT_FIELD(NEXUS_PlaypumpDesc, addr,   NEXUS_PlaypumpScatterGatherDescriptor, addr);
         NEXUS_ASSERT_FIELD(NEXUS_PlaypumpDesc, length, NEXUS_PlaypumpScatterGatherDescriptor, length);
         NEXUS_ASSERT_STRUCTURE(NEXUS_PlaypumpDesc, NEXUS_PlaypumpScatterGatherDescriptor);
-    
+
         for(; amount_used>=sizeof(*pSgDesc); amount_used-=sizeof(*pSgDesc),pSgDesc++) {
             if (b_playpump_bound(p, pSgDesc)!=BERR_SUCCESS) {
                 continue;
@@ -413,7 +415,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
             item->desc.length = amount_used;
             b_playpump_p_capture_data(p, "add_request.dat", item->desc.addr, item->desc.length);
 
-            item->sg = false;        
+            item->sg = false;
             item->skip = skip;
             item->ref_cnt = 0;
             item->desc.descriptorSettings = *settings;
@@ -426,7 +428,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
     }
-    
+
     if(p->state.active.length==0) {
         /* initiate new transaction */
         b_play_next(p);
@@ -659,7 +661,7 @@ b_pid_map_free(b_pid_map *map, uint16_t pid)
     return;
 }
 
-NEXUS_Error 
+NEXUS_Error
 NEXUS_Playpump_AddExtendedOffsetEntries_priv(NEXUS_PlaypumpHandle playpump, const BPVRlib_Feed_ExtendedOffsetEntry *entries, size_t count, size_t *nconsumed)
 {
     NEXUS_ASSERT_MODULE();
@@ -667,7 +669,7 @@ NEXUS_Playpump_AddExtendedOffsetEntries_priv(NEXUS_PlaypumpHandle playpump, cons
     return BPVRlib_Feed_AddExtendedOffsetEntries(playpump->play_feed, entries, count, nconsumed);
 }
 
-NEXUS_Error 
+NEXUS_Error
 NEXUS_Playpump_GetCompleted_priv(NEXUS_PlaypumpHandle playpump, size_t *ncompleted)
 {
     NEXUS_ASSERT_MODULE();

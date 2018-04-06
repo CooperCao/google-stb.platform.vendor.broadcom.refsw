@@ -41,11 +41,10 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 
+#include "decryptor.h"
 #include "drm_data.h"
 #include "drmnamespace.h"
 #include "drmmanager.h"
-
-#include "decryptor.h"
 
 #include <queue>
 

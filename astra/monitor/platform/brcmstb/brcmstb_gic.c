@@ -46,14 +46,19 @@
 #include "gicv2.h"
 #include "brcmstb_priv.h"
 
-uintptr_t gic_base;
+static uintptr_t gic_dist_base;
+static uintptr_t gic_cpuif_base;
 
 void plat_gic_init(void)
 {
+    uintptr_t gic_base;
+
     /* Get GIC base from cbar_el1 register
      * In A53, cbar_el1 is a 64-bit register, no unwrapping necessary.
      */
     gic_base = read_cbar();
+    gic_dist_base  = gic_base + BRCMSTB_GIC_DIST_BASE;
+    gic_cpuif_base = gic_base + BRCMSTB_GIC_CPUIF_BASE;
 
 #ifdef DEBUG
     DBG_PRINT("\nGIC base @ 0x%lx\n", gic_base);
@@ -70,27 +75,26 @@ void plat_gic_init(void)
 int gic_dist_init()
 {
     /* Call into GICv2 driver */
-    return gicv2_dist_init(gic_base + BRCMSTB_GIC_DIST_BASE);
+    return gicv2_dist_init(gic_dist_base);
 }
 
 int gic_cpuif_init()
 {
     /* Call into GICv2 driver */
-    return gicv2_cpuif_init(gic_base + BRCMSTB_GIC_CPUIF_BASE);
+    return gicv2_cpuif_init(gic_cpuif_base);
 }
-
 
 int gic_sec_intr_enable(uint32_t intr_id)
 {
     return gicv2_sec_intr_enable(
-        gic_base + BRCMSTB_GIC_DIST_BASE,
+        gic_dist_base,
         intr_id);
 }
 
 int gic_sec_intr_disable(uint32_t intr_id)
 {
     return gicv2_sec_intr_disable(
-        gic_base + BRCMSTB_GIC_DIST_BASE,
+        gic_dist_base,
         intr_id);
 }
 
@@ -99,27 +103,27 @@ int gic_sgi_intr_generate(
     uint32_t cpu_mask)
 {
     return gicv2_sgi_intr_generate(
-        gic_base + BRCMSTB_GIC_DIST_BASE,
+        gic_dist_base,
         intr_id,
         cpu_mask);
 }
 
 uint32_t gic_intr_max()
 {
-    return gicv2_intr_max(gic_base + BRCMSTB_GIC_DIST_BASE);
+    return gicv2_intr_max(gic_dist_base);
 }
 
 uint32_t gic_intr_iid()
 {
-    return gicv2_intr_iid(gic_base + BRCMSTB_GIC_CPUIF_BASE);
+    return gicv2_intr_iid(gic_cpuif_base);
 }
 
 void gic_intr_ack(uint32_t iid)
 {
-    gicv2_intr_ack(gic_base + BRCMSTB_GIC_CPUIF_BASE, iid);
+    gicv2_intr_ack(gic_cpuif_base, iid);
 }
 
 void gic_intr_end(uint32_t iid)
 {
-    gicv2_intr_end(gic_base + BRCMSTB_GIC_CPUIF_BASE, iid);
+    gicv2_intr_end(gic_cpuif_base, iid);
 }

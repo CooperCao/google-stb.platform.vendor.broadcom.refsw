@@ -698,6 +698,7 @@ BSAGElib_P_GetOtp(
     BSAGElib_Handle hSAGElib,
     BCMD_Otp_CmdMsp_e msp_enum,
     uint32_t *out,
+    uint32_t *outLock,
     const char *dbg_name)
 {
     BERR_Code rc = BERR_SUCCESS;
@@ -721,6 +722,9 @@ BSAGElib_P_GetOtp(
         goto end;
     }
     *out = _EndianSwap(ReadMspParm.aucMspData);
+    if (outLock != NULL) {
+        *outLock = _EndianSwap(ReadMspParm.aucLockMspData);
+    }
 #else
     BHSM_OtpMspRead mspParm;
 
@@ -738,6 +742,9 @@ BSAGElib_P_GetOtp(
     }
 
     *out = mspParm.data;
+    if (outLock != NULL) {
+        *outLock = mspParm.valid;
+    }
 #endif
 end:
     return rc;
@@ -777,10 +784,10 @@ BSAGElib_P_GetChipsetType(
     uint32_t otp_swizzle0a_msp0;
     uint32_t otp_swizzle0a_msp1;
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_GLOBAL_KEY_OWNER_ID_0, &otp_swizzle0a_msp0, "msp0");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_GLOBAL_KEY_OWNER_ID_0, &otp_swizzle0a_msp0, NULL, "msp0");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_GLOBAL_KEY_OWNER_ID_1, &otp_swizzle0a_msp1, "msp1");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_GLOBAL_KEY_OWNER_ID_1, &otp_swizzle0a_msp1, NULL, "msp1");
     if (rc != BERR_SUCCESS) { goto end; }
 
     BDBG_MSG(("%s - OTP [MSP0: %d, MSP1: %d]",

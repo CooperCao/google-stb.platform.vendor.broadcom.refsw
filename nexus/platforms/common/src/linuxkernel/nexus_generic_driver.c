@@ -385,7 +385,9 @@ int nexus_generic_driver_validate_mmap(struct nexus_generic_driver_state *state,
         }
         if(heap) {
             NEXUS_MemoryStatus status;
-            NEXUS_Heap_GetStatus_priv(heap, &status);
+            NEXUS_Error rc;
+            rc = NEXUS_Heap_GetStatus_priv(heap, &status);
+            if (rc) continue;
             BDBG_MSG(("heap:  " BDBG_UINT64_FMT ")%d", BDBG_UINT64_ARG(status.offset), status.size));
             if( (status.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC) == NEXUS_MEMORY_TYPE_DYNAMIC) {
                 hasDynamicHeap = true;
@@ -835,7 +837,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
         {
             object = (void *)arg;
         }
-        NEXUS_Platform_P_StopCallbacks(object);
+        NEXUS_Platform_P_StopCallbacks_driver(object, state->slave_scheduler);
         b_objdb_set_client(NULL);
         break;
     }}

@@ -51,6 +51,13 @@ BDBG_MODULE(base_streamer);
 
 using namespace dif_streamer;
 
+static void StreamerDataCallback(void *context, int param)
+{
+    StreamerEvent* stEvent = (StreamerEvent*)context;
+    BKNI_SetEvent(stEvent->event);
+    stEvent->userCallback.callback(stEvent->userCallback.context, param);
+}
+
 BaseStreamer::BaseStreamer()
 {
     m_internallyPushed = 0;
@@ -59,6 +66,12 @@ BaseStreamer::BaseStreamer()
     m_playpumpBuffer = NULL;
     m_pidChannel = NULL;
     m_numDesc = 0;
+    BKNI_CreateEvent(&m_event.event);
+}
+
+BaseStreamer::~BaseStreamer()
+{
+    BKNI_DestroyEvent(m_event.event);
 }
 
 void BaseStreamer::GetDefaultPlaypumpOpenSettings(
@@ -71,7 +84,6 @@ void BaseStreamer::GetDefaultPlaypumpOpenSettings(
 
     NEXUS_Playpump_GetDefaultOpenSettings(playpumpOpenSettings);
 }
-
 
 NEXUS_PlaypumpHandle BaseStreamer::OpenPlaypump(
     NEXUS_PlaypumpOpenSettings *playpumpOpenSettings)
@@ -97,8 +109,44 @@ NEXUS_PlaypumpHandle BaseStreamer::OpenPlaypump(
     m_playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, playpumpOpenSettings);
     if (!m_playpump) {
         LOGE(("@@@ Playpump Open FAILED----"));
+        return NULL;
     }
+
+    for (int i = 0; i < MAX_DESCRIPTORS; i++) {
+        m_desc[i].addr = NULL;
+        m_desc[i].length = 0;
+    }
+
     return m_playpump;
+}
+
+void BaseStreamer::GetSettings(
+    NEXUS_PlaypumpSettings *playpumpSettings)
+{
+    if (m_playpump == NULL) {
+        LOGE(("%s: Playpump hasn't been opened", BSTD_FUNCTION));
+        return;
+    }
+
+    NEXUS_Playpump_GetSettings(m_playpump, playpumpSettings);
+}
+
+NEXUS_Error BaseStreamer::SetSettings(
+    NEXUS_PlaypumpSettings *playpumpSettings)
+{
+    NEXUS_PlaypumpSettings streamerSettings;
+
+    if (m_playpump == NULL) {
+        LOGE(("%s: Playpump hasn't been opened", BSTD_FUNCTION));
+        return NEXUS_NOT_AVAILABLE;
+    }
+
+    // override users callback settings
+    streamerSettings = *playpumpSettings;
+    m_event.userCallback = playpumpSettings->dataCallback;
+    streamerSettings.dataCallback.callback = StreamerDataCallback;
+    streamerSettings.dataCallback.context = (void*)&m_event;
+    return NEXUS_Playpump_SetSettings(m_playpump, &streamerSettings);
 }
 
 NEXUS_PidChannelHandle BaseStreamer::OpenPidChannel(unsigned pid,
@@ -129,10 +177,10 @@ uint8_t* BaseStreamer::WaitForBuffer(uint32_t size)
     size_t bufferSize = 0;
 
     for (;;) {
-        uint32_t fragment_size = m_offset + size;
+        uint32_t fragment_size = m_offset + size - m_internallyPushed;
         NEXUS_Playpump_GetBuffer(m_playpump, (void**)&playpumpBuffer, &bufferSize);
         if (bufferSize == 0) {
-            BKNI_Sleep(100);
+            BKNI_WaitForEvent(m_event.event, BKNI_INFINITE);
             continue;
         }
 
@@ -196,7 +244,15 @@ bool BaseStreamer::SubmitScatterGather(void* addr, uint32_t length, bool flush, 
         LOGE(("BaseStreamer::%s: Playpump hasn't been opened", BSTD_FUNCTION));
         return false;
     }
-    LOGD(("BaseStreamer::%s ptr=%p len=%u", BSTD_FUNCTION, addr, length));
+    LOGD(("BaseStreamer::%s ptr=%p len=%u flush=%d last=%d", BSTD_FUNCTION, addr, length, flush, last));
+
+    m_desc[m_numDesc].addr = addr;
+    m_desc[m_numDesc].length = (unsigned)length;
+    m_flush[m_numDesc] = flush;
+    m_numDesc++;
+
+    /* if it's not last block just return */
+    if (!last) return true;
 
 retry:
     rc = NEXUS_Playpump_GetStatus(m_playpump, &status);
@@ -207,17 +263,10 @@ retry:
     }
 
     if (status.descFifoDepth >= status.descFifoSize / 2) {
-        BKNI_Sleep(500);
+        LOGD(("BaseStreamer::%s: retrying descFifoDepth=%u", BSTD_FUNCTION, (unsigned)status.descFifoDepth));
+        BKNI_WaitForEvent(m_event.event, BKNI_INFINITE);
         goto retry;
     }
-
-    m_desc[m_numDesc].addr = addr;
-    m_desc[m_numDesc].length = (unsigned)length;
-    m_flush[m_numDesc] = flush;
-    m_numDesc++;
-
-    /* if it's not last block just return */
-    if (!last) return true;
 
     /* Flush if source is GLR and destination is secure */
     for (unsigned i = 0; i < m_numDesc; i++) {
@@ -225,8 +274,8 @@ retry:
             NEXUS_FlushCache(m_desc[i].addr, m_desc[i].length);
         }
         lengthToSubmit += m_desc[i].length;
-        LOGD(("%s: m_desc[%d] length=%d addr=%p (offset=%p)", __FUNCTION__,
-            i, m_desc[i].length, (void*)m_desc[i].addr, (void*)NEXUS_AddrToOffset(m_desc[i].addr)));
+        LOGD(("%s: m_desc[%d] length=%d addr=%p (offset=%p) flush=%d", __FUNCTION__,
+            i, m_desc[i].length, (void*)m_desc[i].addr, (void*)NEXUS_AddrToOffset(m_desc[i].addr), m_flush[i]));
     }
 
     rc = NEXUS_Playpump_SubmitScatterGatherDescriptor(m_playpump, m_desc, m_numDesc, (size_t*)&numConsumed);
@@ -265,6 +314,7 @@ bool BaseStreamer::SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *de
         return false;
     }
 
+    LOGD(("SampleSize=%d entries=%d", pSample->size, pSample->nbOfEntries));
     if (pSample->nbOfEntries == 0) {
         // Full sample case - assuming fully encrypted
         SubmitScatterGather(decrypted->GetPtr(),
@@ -287,6 +337,8 @@ bool BaseStreamer::SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *de
             if (i >= pSample->nbOfEntries - 1 &&
                 pSample->entries[i].bytesOfEncData == 0)
                 last = true;
+            LOGD(("Submit clear entry=%d size=%d last=%d", i,
+                pSample->entries[i].bytesOfClearData, last));
             // Submit clear subsample
             SubmitScatterGather(clear->GetPtr() + clearSize + encSize,
                 pSample->entries[i].bytesOfClearData, true, last);
@@ -296,6 +348,8 @@ bool BaseStreamer::SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *de
         if (pSample->entries[i].bytesOfEncData > 0) {
             if (i >= pSample->nbOfEntries - 1)
                 last = true;
+            LOGD(("Submit decrypted entry=%d size=%d last=%d", i,
+                pSample->entries[i].bytesOfEncData, last));
             // Submit decrypted subsample
             SubmitScatterGather(decrypted->GetPtr() + clearSize + encSize,
                 pSample->entries[i].bytesOfEncData, !IsSecure(), last);

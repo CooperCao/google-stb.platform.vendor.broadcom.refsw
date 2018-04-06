@@ -43,7 +43,9 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BCHP_AUD_FMM_SRC_CTRL_REG_START
 #include "bchp_aud_fmm_src_ctrl0.h"
+#endif
 
 BDBG_MODULE(bape_src_priv);
 
@@ -57,7 +59,7 @@ typedef struct BAPE_SrcGroup
     unsigned numChannelPairs;
     unsigned inputRate, outputRate;
     BAPE_SrcMode mode;
-    BAPE_SrcGroupCoefficients *pCoefMemory[2];   /* IIR Coefficient Memory.  Two are required if doubleBuffered is true, otherwise one. */    
+    BAPE_SrcGroupCoefficients *pCoefMemory[2];   /* IIR Coefficient Memory.  Two are required if doubleBuffered is true, otherwise one. */
     BAPE_Handle deviceHandle;
     uint32_t srcIds[BAPE_ChannelPair_eMax];
     BAPE_SrcGroupSettings settings;
@@ -124,7 +126,7 @@ BERR_Code BAPE_P_InitSrcHw(
         }
     /* End of BAPE_CHIP_SRC_TYPE_IS_LEGACY */
 
-    #elif BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #elif BAPE_CHIP_SRC_TYPE_IS_IIR
         uint32_t regAddr, regVal=0x0, stride, mem=0x30;
         uint32_t coefSelRegAddr,coefRegAddr;
 
@@ -135,7 +137,7 @@ BERR_Code BAPE_P_InitSrcHw(
         /* TODO: Add dynamic allocation support when Upx or Downx SRC types are required */
         regAddr = BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_ARRAY_BASE;
         coefSelRegAddr = BCHP_AUD_FMM_SRC_CTRL0_CF_SELi_ARRAY_BASE;
-        coefRegAddr = BCHP_AUD_FMM_SRC_CTRL0_COEFFi_ARRAY_BASE;    
+        coefRegAddr = BCHP_AUD_FMM_SRC_CTRL0_COEFFi_ARRAY_BASE;
         stride = 4;
         for ( i = 0; i < BAPE_CHIP_MAX_SRCS; i++ )
         {
@@ -149,10 +151,10 @@ BERR_Code BAPE_P_InitSrcHw(
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFGi, WR_BANK_SEL, 0);
             BREG_Write32(handle->regHandle, regAddr, regVal);
             regVal = 0x0;
-            BREG_Write32(handle->regHandle, coefSelRegAddr, regVal);        
+            BREG_Write32(handle->regHandle, coefSelRegAddr, regVal);
             regVal = 0x0;
             BREG_Write32(handle->regHandle, coefSelRegAddr, regVal);
-            mem += 102;      
+            mem += 102;
             regAddr += stride;
             coefSelRegAddr += stride;
             coefRegAddr += stride;
@@ -165,12 +167,12 @@ BERR_Code BAPE_P_InitSrcHw(
             BREG_Write32(handle->regHandle, regAddr + (4*i), 0);
         }
 
-    /* End of BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+    /* End of BAPE_CHIP_SRC_TYPE_IS_LEGACY */
     #else
         #error "Unknown BAPE_CHIP_SRC_TYPE"
-    #endif /* BAPE_CHIP_SRC_TYPE_... */  
+    #endif /* BAPE_CHIP_SRC_TYPE_... */
 
-    /* Reset group IDs to default */    
+    /* Reset group IDs to default */
     for ( i = 0; i < BAPE_CHIP_MAX_SRCS; i++ )
     {
         BAPE_Src_P_SetGroup(handle, i, i);
@@ -266,7 +268,7 @@ static void BAPE_Src_P_SetSampleRate_isr(BAPE_Handle handle, uint32_t srcId, uns
     BDBG_MSG(("SRC Programming - Input Rate %u Output Rate %u", inputRate, outputRate));
     BDBG_MSG(("Programming SRC %u to mode %u num %u den %u scale %u", srcId, type, num, den, denScale));
 
-    #if BAPE_CHIP_SRC_TYPE_IS_LEGACY   
+    #if BAPE_CHIP_SRC_TYPE_IS_LEGACY
         BDBG_ASSERT(num > 0);
         BDBG_ASSERT(den > 0);
         BDBG_ASSERT(denScale > 0);
@@ -282,7 +284,7 @@ static void BAPE_Src_P_SetSampleRate_isr(BAPE_Handle handle, uint32_t srcId, uns
         {
             type = TYPE_NONE;
         }
-        else 
+        else
         {
             type = TYPE_LINT;
         }
@@ -314,9 +316,9 @@ static void BAPE_Src_P_SetSampleRate_isr(BAPE_Handle handle, uint32_t srcId, uns
         regVal &= ~BCHP_MASK(AUD_FMM_SRC_CTRL0_SRC_CFG0, TYPE);
         regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFG0, TYPE, type);
         BREG_Write32_isr(handle->regHandle, regAddr, regVal);
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */
 
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         {
             uint32_t coefAddr;
 
@@ -339,7 +341,7 @@ static void BAPE_Src_P_SetSampleRate_isr(BAPE_Handle handle, uint32_t srcId, uns
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFGi, SRC_TYPE, type);
             BREG_Write32_isr(handle->regHandle, regAddr, regVal);
         }
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 }
 
 void BAPE_SrcGroup_P_GetDefaultCreateSettings(
@@ -351,12 +353,12 @@ void BAPE_SrcGroup_P_GetDefaultCreateSettings(
     pSettings->numChannelPairs = 1;
     pSettings->mode = BAPE_SrcMode_eLinear;
 
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         pSettings->pCoefMemory[0]=NULL;
-        pSettings->pCoefMemory[1]=NULL;    
+        pSettings->pCoefMemory[1]=NULL;
         pSettings->equalizerSettings.numIirBands = 8;
         pSettings->equalizerSettings.rampEnable = false;
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 }
 
 BERR_Code BAPE_SrcGroup_P_Create(
@@ -371,10 +373,10 @@ BERR_Code BAPE_SrcGroup_P_Create(
     BAPE_SrcGroupCoefficients   *pCoefMemory[2]={NULL, NULL};
     bool memoryAllocated = false;
 
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         uint32_t    regAddr, regVal;
         BAPE_SrcCoefficientsSettings coeffSettings;
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pSettings);
@@ -389,10 +391,10 @@ BERR_Code BAPE_SrcGroup_P_Create(
         break;
 
     case BAPE_SrcMode_eIir:
-        #if BAPE_CHIP_SRC_TYPE_IS_LEGACY   
+        #if BAPE_CHIP_SRC_TYPE_IS_LEGACY
             BDBG_ERR(("SRC Equalization is not supported on this chipset."));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
-        #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+        #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */
         break;
 
     default:
@@ -427,14 +429,14 @@ BERR_Code BAPE_SrcGroup_P_Create(
         goto err_alloc_src;
     }
 
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         /* Allocate SRC coefficient memory */
         if(BAPE_SrcMode_eBypass != pSettings->mode)
-        {  
+        {
             unsigned j;
-            
+
             if(NULL != pSettings->pCoefMemory[0])
-            {                
+            {
                 pCoefMemory[0] = pSettings->pCoefMemory[0];
                 if(pSettings->equalizerSettings.rampEnable)
                 {
@@ -467,24 +469,24 @@ BERR_Code BAPE_SrcGroup_P_Create(
                         errCode = BERR_OUT_OF_SYSTEM_MEMORY;
                         return BERR_TRACE(errCode);
                     }
-                    BKNI_Memset(pCoefMemory[1], 0, sizeof(BAPE_SrcGroupCoefficients));        
+                    BKNI_Memset(pCoefMemory[1], 0, sizeof(BAPE_SrcGroupCoefficients));
                 }
                 memoryAllocated = true;
-            }    
+            }
 
             for ( i = 0; i < 2; i++ )
-            {     
+            {
                 if(NULL != pCoefMemory[i])
-                {        
+                {
                     for ( j = 0; j < pSettings->numChannelPairs; j++ )
-                    {    
+                    {
                         coeffSettings.mode = pSettings->mode;
-                        errCode = BAPE_SrcCoefficients_P_Allocate(deviceHandle, &coeffSettings, &pCoefMemory[i]->srcCoefficients[j]);            
+                        errCode = BAPE_SrcCoefficients_P_Allocate(deviceHandle, &coeffSettings, &pCoefMemory[i]->srcCoefficients[j]);
                         if ( errCode )
                         {
                             errCode = BERR_TRACE(errCode);
                             goto err_alloc_src;
-                        }            
+                        }
                         regAddr = BCHP_AUD_FMM_SRC_CTRL0_CF_SELi_ARRAY_BASE + (4*(src+j));
                         regVal = BREG_Read32(deviceHandle->regHandle, regAddr);
                         if ( i == 0 )
@@ -497,15 +499,15 @@ BERR_Code BAPE_SrcGroup_P_Create(
                             regVal &= ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_CF_SELi, CF_BASE_ADDR1));
                             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_CF_SELi, CF_BASE_ADDR1, (pCoefMemory[i]->srcCoefficients[j].baseAddress + 0x18));
                         }
-                        BREG_Write32(deviceHandle->regHandle, regAddr, regVal);  
+                        BREG_Write32(deviceHandle->regHandle, regAddr, regVal);
                     }
                 }
             }
 
             for ( i = 0; i < pSettings->numChannelPairs; i++ )
-            {        
+            {
                 BDBG_MSG(("Programming SRC %u to SRC Type %u", (src+i), pSettings->mode));
-                
+
                 regAddr = BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_ARRAY_BASE + ((BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_ARRAY_ELEMENT_SIZE * (src+i)) / 8);
                 regVal = BREG_Read32(deviceHandle->regHandle, regAddr);
                 regVal &= ~BCHP_MASK(AUD_FMM_SRC_CTRL0_SRC_CFGi, SRC_TYPE);
@@ -513,7 +515,7 @@ BERR_Code BAPE_SrcGroup_P_Create(
                 {
                     regVal |= BCHP_FIELD_ENUM(AUD_FMM_SRC_CTRL0_SRC_CFGi, SRC_TYPE, IIR);
                 }
-                else 
+                else
                 {
                     regVal |= BCHP_FIELD_ENUM(AUD_FMM_SRC_CTRL0_SRC_CFGi, SRC_TYPE, L_Int);
                 }
@@ -523,7 +525,7 @@ BERR_Code BAPE_SrcGroup_P_Create(
 
     #else
         for ( i = 0; i < pSettings->numChannelPairs; i++ )
-        {        
+        {
             uint32_t regVal, regAddr;
             BDBG_MSG(("Programming SRC %u to SRC Type %u", (src+i), pSettings->mode));
 
@@ -535,13 +537,13 @@ BERR_Code BAPE_SrcGroup_P_Create(
             {
                 regVal |= BCHP_FIELD_ENUM(AUD_FMM_SRC_CTRL0_SRC_CFG0, TYPE, Bypass);
             }
-            else 
+            else
             {
                 regVal |= BCHP_FIELD_ENUM(AUD_FMM_SRC_CTRL0_SRC_CFG0, TYPE, L_Int);
             }
             BREG_Write32(deviceHandle->regHandle, regAddr, regVal);
         }
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
     /* Successfully allocated resources.  Initialize Group */
     handle->allocated = true;
@@ -604,7 +606,7 @@ void BAPE_SrcGroup_P_Destroy(
     BKNI_LeaveCriticalSection();
 
     /* Free SRC coefficient memory */
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         for(i=0; i<2; i++)
         {
             if(NULL != handle->pCoefMemory[i])
@@ -618,9 +620,9 @@ void BAPE_SrcGroup_P_Destroy(
                         );
                 }
                 BKNI_Free(handle->pCoefMemory[i]);
-            }    
+            }
         }
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
     /* Release Resources */
     BAPE_P_FreeFmmResource(handle->deviceHandle, BAPE_FmmResourceType_eSrc, handle->numChannelPairs, handle->srcIds[0]);
@@ -723,7 +725,7 @@ void BAPE_SrcGroup_P_SetMute_isr(
 
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE + 
+        regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE +
                   (handle->srcIds[i] * (BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_ELEMENT_SIZE/8));
         regVal = BREG_Read32_isr(handle->deviceHandle->regHandle, regAddr);
         regVal &= ~BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, MUTE_ENA);
@@ -741,9 +743,9 @@ BERR_Code BAPE_SrcGroup_P_Start(
                                )
 {
     uint32_t regVal, regAddr;
-#if BAPE_CHIP_SRC_TYPE_IS_LEGACY   
+#if BAPE_CHIP_SRC_TYPE_IS_LEGACY
     uint32_t mask, value;
-#endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+#endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */
     unsigned i;
 
     BDBG_ASSERT(NULL != handle);
@@ -752,9 +754,9 @@ BERR_Code BAPE_SrcGroup_P_Start(
     /* Apply Settings */
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+        #if BAPE_CHIP_SRC_TYPE_IS_IIR
             /* Ramping Options, Priority, input FCI */
-            regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE + 
+            regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE +
                       (handle->srcIds[i] * (BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_ELEMENT_SIZE/8));
             regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
             regVal &= ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, RAMP_ENA)|
@@ -766,18 +768,18 @@ BERR_Code BAPE_SrcGroup_P_Start(
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_STRM_CFGi, FCI_ID, handle->settings.input.ids[i]);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_STRM_CFGi, PRIORITY, handle->settings.highPriority?1:0);
             BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
-        #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+        #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
 
-        #if BAPE_CHIP_SRC_TYPE_IS_LEGACY   
+        #if BAPE_CHIP_SRC_TYPE_IS_LEGACY
             /* Ramping Options, Priority, input FCI */
-            regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE + 
+            regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE +
                       (handle->srcIds[i] * (BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_ELEMENT_SIZE/8));
             regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
             regVal &= ~(BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, RAMP_ENA)|
             #ifdef BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_RAMP_ZERO_DET_ENA_MASK
                         BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, RAMP_ZERO_DET_ENA)|  /* SW7425-574: This feature does not work unless both L+R have non-zero data.  The field is renamed to ZERO_DETECT when it works correctly. */
-            #endif                    
+            #endif
                         BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, STARTUP_RAMP_ENA));
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_STRM_CFGi, RAMP_ENA, handle->settings.rampEnabled?1:0);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_STRM_CFGi, STARTUP_RAMP_ENA, handle->settings.startupRampEnabled?1:0);
@@ -799,7 +801,7 @@ BERR_Code BAPE_SrcGroup_P_Start(
                 regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_IDMAP10, STREAM0, handle->settings.input.ids[i]);
             }
             BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
-        #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+        #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */
     }
 
     /* Re-apply Sample Rate */
@@ -807,19 +809,19 @@ BERR_Code BAPE_SrcGroup_P_Start(
     BAPE_SrcGroup_P_SetSampleRate_isr(handle, handle->inputRate, handle->outputRate);
     BKNI_LeaveCriticalSection();
 
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         /* Set Enables Last */
         for ( i = 0; i < handle->numChannelPairs; i++ )
         {
-            regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE + 
+            regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE +
                       (handle->srcIds[i] * (BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_ELEMENT_SIZE/8));
             regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
             regVal |= BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, ENABLE);
             BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
         }
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
-    #if BAPE_CHIP_SRC_TYPE_IS_LEGACY   
+    #if BAPE_CHIP_SRC_TYPE_IS_LEGACY
         /* Set Priority */
         mask=value=0;
         for ( i = 0; i < handle->numChannelPairs; i++ )
@@ -841,7 +843,7 @@ BERR_Code BAPE_SrcGroup_P_Start(
         }
         regVal = BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_SRC_CTRL0_STRM_ENA);
         BREG_Write32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_SRC_CTRL0_STRM_ENA, regVal | mask);
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */
 
     handle->started = true;
     return BERR_SUCCESS;
@@ -866,7 +868,7 @@ void BAPE_SrcGroup_P_Stop(
     }
 
     /* Stop */
-    #if BAPE_CHIP_SRC_TYPE_IS_LEGACY   
+    #if BAPE_CHIP_SRC_TYPE_IS_LEGACY
         {
             uint32_t regVal, mask;
 
@@ -878,22 +880,22 @@ void BAPE_SrcGroup_P_Stop(
             regVal = BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_SRC_CTRL0_STRM_ENA);
             BREG_Write32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_SRC_CTRL0_STRM_ENA, regVal & (~mask));
         }
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_LEGACY */
 
-    #if BAPE_CHIP_SRC_TYPE_IS_IIR       
+    #if BAPE_CHIP_SRC_TYPE_IS_IIR
         {
             uint32_t regVal, regAddr;
 
             for ( i = 0; i < handle->numChannelPairs; i++ )
             {
-                regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE + 
+                regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE +
                           (handle->srcIds[i] * (BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_ELEMENT_SIZE/8));
                 regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
                 regVal &= ~BCHP_MASK(AUD_FMM_SRC_CTRL0_STRM_CFGi, ENABLE);
                 BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
             }
         }
-    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+    #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
     handle->started = false;
 }
@@ -950,7 +952,7 @@ static void BAPE_Src_P_SetGroup(BAPE_Handle deviceHandle, uint32_t src, uint32_t
 void BAPE_GetSampleRateConverterRampStep(
                                         BAPE_Handle deviceHandle,
                                         uint32_t *pRampStep                 /* All sample rate converters volume is changed by this amount
-                                                                               every Fs while ramping.  Specified in 4.23 format. 
+                                                                               every Fs while ramping.  Specified in 4.23 format.
                                                                                Ignored for compressed data. */
                                         )
 {
@@ -963,7 +965,7 @@ void BAPE_GetSampleRateConverterRampStep(
 BERR_Code BAPE_SetSampleRateConverterRampStep(
                                              BAPE_Handle deviceHandle,
                                              uint32_t rampStep             /* All sample rate converters volume is changed by this amount
-                                                                                    every Fs while ramping.  Specified in 4.23 format. 
+                                                                                    every Fs while ramping.  Specified in 4.23 format.
                                                                                     Ignored for compressed data. */
                                              )
 {
@@ -990,13 +992,13 @@ BERR_Code BAPE_SetSampleRateConverterRampStep(
 
 static void BAPE_SrcGroup_P_SetEnable_isr(BAPE_SrcGroupHandle handle, uint32_t enable)
 {
-#if BAPE_CHIP_SRC_TYPE_IS_IIR       
+#if BAPE_CHIP_SRC_TYPE_IS_IIR
     uint32_t regVal, regAddr;
     unsigned i;
 
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE + 
+        regAddr = BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_BASE +
                   (handle->srcIds[i] * (BCHP_AUD_FMM_SRC_CTRL0_STRM_CFGi_ARRAY_ELEMENT_SIZE/8));
         regVal = BREG_Read32_isr(handle->deviceHandle->regHandle, regAddr);
         if ( enable )
@@ -1042,7 +1044,7 @@ BERR_Code BAPE_SrcCoefficients_P_Allocate(
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
 
-    /* 
+    /*
         SRC Coefficient Memory Partition:
         0
         . --> IIR
@@ -1076,13 +1078,13 @@ BERR_Code BAPE_SrcCoefficients_P_Allocate(
                 deviceHandle->srcCoeffAllocated[chunk] = true;
             }
             break;
-            
+
         case BAPE_SrcMode_eLinear:
             for(chunk=BAPE_CHIP_P_SRC_LIN_CHUNK_BASE; chunk<=BAPE_CHIP_P_SRC_LIN_CHUNK_END; chunk++)
             {
                 if(false == deviceHandle->srcCoeffAllocated[chunk])
                 {
-                    pCoefficients->baseAddress = BAPE_CHIP_P_TOTAL_SRC_IIR_COEFF + 
+                    pCoefficients->baseAddress = BAPE_CHIP_P_TOTAL_SRC_IIR_COEFF +
                         (chunk - BAPE_CHIP_P_SRC_LIN_CHUNK_BASE)*BAPE_CHIP_P_NUM_LIN_COEFF_PER_CHUNK;
                     pCoefficients->numCoefs = BAPE_CHIP_P_NUM_LIN_COEFF_PER_CHUNK;
                     break;
@@ -1098,7 +1100,7 @@ BERR_Code BAPE_SrcCoefficients_P_Allocate(
                 deviceHandle->srcCoeffAllocated[chunk] = true;
             }
             break;
-            
+
         default:
             BDBG_ERR(("Unsupported SRC Type %d", pSettings->mode));
             return BERR_NOT_SUPPORTED;
@@ -1124,13 +1126,13 @@ void BAPE_SrcCoefficients_P_Free(
     {
         chunk = (pCoefficients->baseAddress - BAPE_CHIP_P_TOTAL_SRC_IIR_COEFF)/BAPE_CHIP_P_NUM_LIN_COEFF_PER_CHUNK + \
                     BAPE_CHIP_P_SRC_LIN_CHUNK_BASE;
-    }        
-        
-    deviceHandle->srcCoeffAllocated[chunk] = false;    
+    }
+
+    deviceHandle->srcCoeffAllocated[chunk] = false;
 }
 
 void BAPE_SrcGroup_P_UpdateCoefficients_isr(
-        BAPE_SrcGroupHandle src, 
+        BAPE_SrcGroupHandle src,
         BAPE_SRC_P_IIRCoeff *pCoeff,
         unsigned *pStepSize
         )
@@ -1149,24 +1151,24 @@ void BAPE_SrcGroup_P_UpdateCoefficients_isr(
 
         coefRegAddr = BCHP_AUD_FMM_SRC_CTRL0_COEFFi_ARRAY_BASE +
         (src->pCoefMemory[newBank]->srcCoefficients[i].baseAddress*(BCHP_AUD_FMM_SRC_CTRL0_COEFFi_ARRAY_ELEMENT_SIZE/8));
-        
+
         for(j=0; j<BAPE_CHIP_P_MAX_IIR_FILTERS_PER_SRC; j++)
         {
-            BREG_Write32_isr(src->deviceHandle->regHandle, 
-                coefRegAddr+(4*5*j), 
+            BREG_Write32_isr(src->deviceHandle->regHandle,
+                coefRegAddr+(4*5*j),
                 pCoeff->b0[j]);
-            BREG_Write32_isr(src->deviceHandle->regHandle, 
-                coefRegAddr+(4*5*j)+4, 
+            BREG_Write32_isr(src->deviceHandle->regHandle,
+                coefRegAddr+(4*5*j)+4,
                 pCoeff->b1[j]);
-            BREG_Write32_isr(src->deviceHandle->regHandle, 
+            BREG_Write32_isr(src->deviceHandle->regHandle,
                 coefRegAddr+(4*5*j)+8,
                 pCoeff->b2[j]);
-            BREG_Write32_isr(src->deviceHandle->regHandle, 
+            BREG_Write32_isr(src->deviceHandle->regHandle,
                 coefRegAddr+(4*5*j)+12,
-                pCoeff->a1[j]);    
-            BREG_Write32_isr(src->deviceHandle->regHandle, 
+                pCoeff->a1[j]);
+            BREG_Write32_isr(src->deviceHandle->regHandle,
                 coefRegAddr+(4*5*j)+16,
-                pCoeff->a2[j]);   
+                pCoeff->a2[j]);
         }
 
         if(pStepSize)
@@ -1178,10 +1180,10 @@ void BAPE_SrcGroup_P_UpdateCoefficients_isr(
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFGi, IIR_STEP_SIZE, *pStepSize);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_SRC_CFGi, WR_BANK_SEL, (newBank));
             BREG_Write32_isr(src->deviceHandle->regHandle, regAddr, regVal);
-        }        
+        }
     }
 }
-#endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
+#endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */
 
 #else /* stubs */
 
@@ -1336,6 +1338,52 @@ void BAPE_SrcGroup_P_GetOutputFciIds(
 {
     BSTD_UNUSED(handle);
     BSTD_UNUSED(pFciGroup);
+}
+
+void BAPE_GetOutputVolumeRampStep(
+    BAPE_Handle deviceHandle,
+    uint32_t *pRampStep                 /* All mixers output volume is changed by this amount
+                                           every Fs while ramping.  Specified in 4.23 format.
+                                           Ignored for compressed data. */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pRampStep);
+}
+
+BERR_Code BAPE_SetOutputVolumeRampStep(
+    BAPE_Handle deviceHandle,
+    uint32_t rampStep                   /* All mixers output volume is changed by this amount
+                                           every Fs while ramping.  Specified in 4.23 format.
+                                           Ignored for compressed data. */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(rampStep);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_GetSampleRateConverterRampStep(
+    BAPE_Handle deviceHandle,
+    uint32_t *pRampStep                 /* All sample rate converters volume is changed by this amount
+                                           every Fs while ramping.  Specified in 4.23 format.
+                                           Ignored for compressed data. */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pRampStep);
+}
+
+BERR_Code BAPE_SetSampleRateConverterRampStep(
+    BAPE_Handle deviceHandle,
+    uint32_t rampStep                   /* All sample rate converters volume is changed by this amount
+                                           every Fs while ramping.  Specified in 4.23 format.
+                                           Ignored for compressed data. */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(rampStep);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 #endif

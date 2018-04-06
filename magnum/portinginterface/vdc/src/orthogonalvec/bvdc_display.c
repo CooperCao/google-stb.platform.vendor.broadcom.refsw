@@ -50,15 +50,15 @@
 BDBG_MODULE(BVDC_DISP);
 
 /*************************************************************************
- *  BVDC_Display_GetDefaultSettings
+ *  BVDC_Display_GetDefaultCreateSettings
  *
  *************************************************************************/
-BERR_Code BVDC_Display_GetDefaultSettings
+BERR_Code BVDC_Display_GetDefaultCreateSettings
     ( BVDC_DisplayId                   eDisplayId,
-      BVDC_Display_Settings           *pDefSettings )
+      BVDC_Display_CreateSettings     *pDefSettings )
 {
     /* Clear out first */
-    BKNI_Memset(pDefSettings, 0, sizeof(BVDC_Display_Settings));
+    BKNI_Memset(pDefSettings, 0, sizeof(BVDC_Display_CreateSettings));
 
     if(BVDC_DisplayId_eAuto == eDisplayId)
     {
@@ -87,7 +87,7 @@ BERR_Code BVDC_Display_Create
     ( BVDC_Compositor_Handle           hCompositor,
       BVDC_Display_Handle             *phDisplay,
       BVDC_DisplayId                   eDisplayId,
-      const BVDC_Display_Settings     *pDefSettings )
+      const BVDC_Display_CreateSettings     *pDefSettings )
 {
     BVDC_Display_Handle hDisplay;
     BVDC_DisplayId eId;

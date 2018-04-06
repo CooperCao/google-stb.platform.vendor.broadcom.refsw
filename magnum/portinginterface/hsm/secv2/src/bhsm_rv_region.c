@@ -288,15 +288,15 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_AUTH_ENFORCED          == (1<<Bsp_CmdRv_QueryStatusBits_eAuthEnforce) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_SAGE_OWNED             == (1<<Bsp_CmdRv_QueryStatusBits_eSageOwned) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergeInProg) );
-    BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_FAIL        == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergeFail) );
+    BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED        == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergeFail) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS        == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergePass) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED     == (1<<Bsp_CmdRv_QueryStatusBits_eFastChkStarted) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED    == (1<<Bsp_CmdRv_QueryStatusBits_eFastChkFinished) );
-    BDBG_CASSERT( BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT      == (1<<Bsp_CmdRv_QueryStatusBits_eFastChkResult) );
+    BDBG_CASSERT( BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED      == (1<<Bsp_CmdRv_QueryStatusBits_eFastChkResult) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED       == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkEnabled) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_STARTED       == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkStarted) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED      == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkFinished) );
-    BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_RESULT        == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkResult) );
+    BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_FAILED        == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkResult) );
 
     if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }

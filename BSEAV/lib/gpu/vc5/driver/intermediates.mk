@@ -32,12 +32,12 @@ $(GLSL_INTERMEDIATE_REL_PATH)/glsl_primitive_types.auto.c : \
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_intrinsic_lookup.auto.h : \
 	$(V3D_DRIVER_LIBS_REL_PATH)/khrn/glsl/glsl_intrinsic_lookup.gperf
 	$(generated_src_dir_exists)
-	$(hide)gperf $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_intrinsic_lookup.gperf > $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_intrinsic_lookup.auto.h
+	$(hide)$(GPERF_CMD) $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_intrinsic_lookup.gperf > $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_intrinsic_lookup.auto.h
 
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_layout.auto.h : \
 	$(V3D_DRIVER_LIBS_REL_PATH)/khrn/glsl/glsl_layout.gperf
 	$(generated_src_dir_exists)
-	$(hide)gperf $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_layout.gperf > $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_layout.auto.h
+	$(hide)$(GPERF_CMD) $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_layout.gperf > $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_layout.auto.h
 
 define textures_auto_gen
 $(generated_src_dir_exists)
@@ -79,7 +79,7 @@ $(GLSL_INTERMEDIATE_REL_PATH)/glsl_parser.output : \
 	$(GLSL_INTERMEDIATE_REL_PATH)/glsl_intrinsic_lookup.auto.h \
 	$(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_parser.y
 		$(generated_src_dir_exists)
-		$(hide)bison -d -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_parser.c $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_parser.y
+		$(hide)$(BISON_CMD) -d -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_parser.c $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_parser.y
 
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_parser.c \
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_parser.h : \
@@ -89,17 +89,17 @@ $(GLSL_INTERMEDIATE_REL_PATH)/glsl_parser.output
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_lexer.c : \
 	$(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_lexer.l
 	$(generated_src_dir_exists)
-	$(hide)flex -L -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_lexer.c --never-interactive $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_lexer.l
+	$(hide)$(FLEX_CMD) -L -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_lexer.c --never-interactive $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_lexer.l
 
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_numbers.c : \
 	$(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_numbers.l
 	$(generated_src_dir_exists)
-	$(hide)flex -L -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_numbers.c --never-interactive $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_numbers.l
+	$(hide)$(FLEX_CMD) -L -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_numbers.c --never-interactive $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_numbers.l
 
 $(GLSL_INTERMEDIATE_REL_PATH)/glsl_version.c : \
 	$(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_version.l
 	$(generated_src_dir_exists)
-	$(hide)flex -L -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_version.c --never-interactive $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_version.l
+	$(hide)$(FLEX_CMD) -L -o $(GLSL_INTERMEDIATE_ABS_PATH)/glsl_version.c --never-interactive $(V3D_DRIVER_LIBS_ABS_PATH)/khrn/glsl/glsl_version.l
 
 $(DGLENUM_INTERMEDIATE_REL_PATH)/dglenum_gen.h : \
 	$(V3D_DRIVER_LIBS_REL_PATH)/util/dglenum/dglenum_gen.py \

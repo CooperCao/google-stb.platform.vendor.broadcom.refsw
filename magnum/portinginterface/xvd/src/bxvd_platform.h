@@ -301,7 +301,7 @@ bool BXVD_P_VerifyWatchdogFired_##family##_isr \
 /* Rev N core */
 #define BXVD_CHIP 'N'
 
-#elif ((BCHP_CHIP == 7278) || (BCHP_CHIP == 7255) || ((BCHP_CHIP == 7260) && (BCHP_VER >= BCHP_VER_B0)))
+#elif ((BCHP_CHIP == 7278) || (BCHP_CHIP == 7255) || (BCHP_CHIP == 7211) || ((BCHP_CHIP == 7260) && (BCHP_VER >= BCHP_VER_B0)))
 /* Rev T core */
 #define BXVD_CHIP 'T'
 

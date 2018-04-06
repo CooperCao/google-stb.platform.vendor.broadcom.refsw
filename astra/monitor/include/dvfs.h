@@ -39,9 +39,25 @@
 #ifndef _DVFS_H_
 #define _DVFS_H_
 
+#define MAX_NUM_ISLANDS                 2
+#define MAX_NUM_CORES                   4
+#define MAX_NUM_PSTATES                 8
+
 /*
  * DVFS functions
  */
-int dvfs_init(void);
+int dvfs_init(uint32_t num_cpus);
+
+int dvfs_cpu_up(uint32_t cpu_index);
+int dvfs_cpu_down(uint32_t cpu_index);
+
+int dvfs_set_sec_load(uint32_t load);
+int dvfs_get_sec_freq(uint32_t *pfreq);
+
+int dvfs_set_nsec_pstate_all(uint32_t pstate);
+int dvfs_get_nsec_pstate_all(uint32_t *ppstate);
+
+int dvfs_set_nsec_pstate(uint32_t pstate);
+int dvfs_get_nsec_pstate(uint32_t *ppstate);
 
 #endif /* _DVFS_H_ */

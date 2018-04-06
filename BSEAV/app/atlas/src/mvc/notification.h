@@ -80,6 +80,7 @@ typedef enum eNotification
     eNotify_GetCurrentChannelNumber, /* command  - get the current channel number in full screen */
     eNotify_SetAudioProgram,         /* command  - change current audio pid */
     eNotify_SetAudioProcessing,      /* command  - change audio processing type */
+	eNotify_RunScript,               /* command  - run the Lua script */
 #ifdef CPUTEST_SUPPORT
     eNotify_SetCpuTestLevel, /* command  - change cpu test level */
 #endif

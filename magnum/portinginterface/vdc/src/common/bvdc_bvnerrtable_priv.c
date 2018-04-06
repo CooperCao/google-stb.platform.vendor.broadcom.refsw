@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1486,7 +1486,7 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_INVALID(eCmp_0_G1, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eCmp_0_G2, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
-#elif (BCHP_CHIP==7255)
+#elif (BCHP_CHIP==7255) || (BCHP_CHIP==7211)
 
     BVDC_P_MAKE_BVN_ERR(eRdc,      RDC_ERR,      BVNF_INTR2_5_R5F, RDC,           RDC,           RDC_error_status),
 
@@ -1526,14 +1526,22 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_INVALID(eXsrc_2,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eTntd_0,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
+#if (BVDC_P_SUPPORT_MCVP)
     BVDC_P_MAKE_BVN_ERR(eMvp_0,    MVP_TOP_0,    BVNM_INTR2_0_R5F, MDI_TOP_0,     MDI_TOP_0,     MDI_TOP_0_BVB_IN_STATUS),
+#else
+    BVDC_P_MAKE_INVALID(eMvp_0,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+#endif
     BVDC_P_MAKE_INVALID(eMvp_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMvp_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMvp_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMvp_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMvp_5,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
+#if (BVDC_P_SUPPORT_MCVP)
     BVDC_P_MAKE_BVN_ERR(eMcdi_0,   MDI_0_BVB_IN, BVNM_INTR2_0_R5F, MDI_TOP_0,     MDI_TOP_0,     MDI_TOP_0_BVB_IN_STATUS),
+#else
+    BVDC_P_MAKE_INVALID(eMcdi_0,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+#endif
     BVDC_P_MAKE_INVALID(eMcdi_1,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMcdi_2,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMcdi_3,   UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
@@ -1559,7 +1567,11 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_INVALID(eCap_7,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
     BVDC_P_MAKE_BVN_ERR(eGfd_0,    GFD0,         BVNB_INTR2_CPU,   GFD_0,         GFD_0,         GFD_0_STATUS),
+#if (BVDC_P_SUPPORT_GFD > 1)
     BVDC_P_MAKE_BVN_ERR(eGfd_1,    GFD1,         BVNB_INTR2_CPU,   GFD_0,         GFD_1,         GFD_0_STATUS),
+#else
+    BVDC_P_MAKE_INVALID(eGfd_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+#endif
     BVDC_P_MAKE_INVALID(eGfd_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eGfd_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eGfd_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
@@ -1578,7 +1590,11 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_INVALID(eCmp_1_V1, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
 
     BVDC_P_MAKE_BVN_ERR(eCmp_0_G0, CMP0_G0,      BVNB_INTR2_CPU,   CMP_0,         CMP_0,         CMP_0_G0_BVB_IN_STATUS),
+#if (BVDC_P_SUPPORT_GFD > 1)
     BVDC_P_MAKE_BVN_ERR(eCmp_1_G0, CMP1_G0,      BVNB_INTR2_CPU,   CMP_0,         CMP_1,         CMP_0_G0_BVB_IN_STATUS),
+#else
+    BVDC_P_MAKE_INVALID(eCmp_1_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+#endif
     BVDC_P_MAKE_INVALID(eCmp_2_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eCmp_3_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eCmp_4_G0, UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),

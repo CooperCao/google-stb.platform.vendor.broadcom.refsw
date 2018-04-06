@@ -2180,20 +2180,10 @@ BERR_Code SetExtractionBitCounts(
     }
     else
     {
-        if( ScdConfig->EsCount > BXPT_MAX_ES_COUNT )
-        {
-            BDBG_ERR(( "EsCount of %u exceeds limit of %u bytes. Clamping to %u bytes.", ScdConfig->EsCount, BXPT_MAX_ES_COUNT, BXPT_MAX_ES_COUNT ));
-            EsCount = BXPT_MAX_ES_COUNT;
+        if( ScdConfig->EsCount > BXPT_MAX_ES_COUNT || ScdConfig->EsCount < BXPT_MIN_ES_COUNT ) {
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
-        else if( ScdConfig->EsCount < BXPT_MIN_ES_COUNT )
-        {
-            BDBG_ERR(( "EsCount must be at least %d. %d will be used.", BXPT_MIN_ES_COUNT, BXPT_MIN_ES_COUNT ));
-            EsCount = 1;
-        }
-        else
-        {
-            EsCount = ScdConfig->EsCount;
-        }
+        EsCount = ScdConfig->EsCount;
 
         /* Crazy bit mapping in the hardware. See the RDB entry for XPT_RAVE_SCD0_SCD_CTRL1.DATA_EXTRACT_NUM_BITS_B */
         EsCount = ( EsCount * 8 ) - 1;

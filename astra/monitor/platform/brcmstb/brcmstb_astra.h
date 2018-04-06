@@ -41,7 +41,8 @@
 
 /* brcmstb Astra functions */
 #define BRCMSTB_SVC_ASTRA_NSEC_SWITCH   0x00
-#define BRCMSTB_SVC_ASTRA_MAX           0x01
+#define BRCMSTB_SVC_ASTRA_CPU_UPDATE    0x01
+#define BRCMSTB_SVC_ASTRA_MAX           0x02
 
 /* brcmstb Astra interrupts */
 #define BRCMSTB_INTR_ASTRA_TIMER        29

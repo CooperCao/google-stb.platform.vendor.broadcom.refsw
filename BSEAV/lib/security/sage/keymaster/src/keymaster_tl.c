@@ -55,7 +55,7 @@
 #define KM_CMD_TIMEOUT_IN_SECONDS 20
 
 #ifdef ANDROID
-#define KEYMASTER_DRM_BIN_DEFAULT_FILEPATH "/hwcfg/drm.bin"
+#define KEYMASTER_DRM_BIN_DEFAULT_FILEPATH "/dev/hwcfg/drm.bin"
 #else
 #define KEYMASTER_DRM_BIN_DEFAULT_FILEPATH "./drm.bin"
 #endif

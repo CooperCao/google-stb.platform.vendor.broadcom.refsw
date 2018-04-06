@@ -71,10 +71,13 @@ static void NEXUS_RaveErrorCounter_Reenable_priv(void *arg)
 {
     struct NEXUS_Rave_P_ErrorCounter *r = arg;
     r->rave_overflow_int_timer = NULL;
+#if !NEXUS_USE_OTT_TRANSPORT
     (void)BINT_EnableCallback(r->cdbOverflow_int);
     (void)BINT_EnableCallback(r->itbOverflow_int);
+#endif
 }
 
+#if !NEXUS_USE_OTT_TRANSPORT
 static void
 NEXUS_Rave_P_ErrorCounterInt_isr(void *context, int param)
 {
@@ -117,6 +120,7 @@ NEXUS_Rave_P_ErrorCounterInt_isr(void *context, int param)
         BKNI_SetEvent(r->isrEvent);
      }
 }
+#endif
 
 static void NEXUS_Rave_P_ErrorCounter_IsrEvent(void *arg)
 {
@@ -129,7 +133,9 @@ static void NEXUS_Rave_P_ErrorCounter_IsrEvent(void *arg)
 NEXUS_Error NEXUS_RaveErrorCounter_Init_priv(struct NEXUS_Rave_P_ErrorCounter *r, BXPT_RaveCx_Handle rave)
 {
     NEXUS_Error rc;
+#if !NEXUS_USE_OTT_TRANSPORT
     BINT_Id int_id;
+#endif
 
     r->rave = rave;
 
@@ -140,6 +146,7 @@ NEXUS_Error NEXUS_RaveErrorCounter_Init_priv(struct NEXUS_Rave_P_ErrorCounter *r
 
     NEXUS_RaveErrorCounter_Reset_priv(r);
 
+#if !NEXUS_USE_OTT_TRANSPORT
     rc = BXPT_Rave_GetIntId(r->rave, BXPT_RaveIntName_eEmuErr, &int_id);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
     rc = BINT_CreateCallback(&r->emuErr_int, g_pCoreHandles->bint, int_id, NEXUS_Rave_P_ErrorCounterInt_isr, r, BXPT_RaveIntName_eEmuErr);
@@ -181,6 +188,7 @@ NEXUS_Error NEXUS_RaveErrorCounter_Init_priv(struct NEXUS_Rave_P_ErrorCounter *r
     if (rc) { rc=BERR_TRACE(rc); goto error; }
     rc = BINT_EnableCallback(r->itbOverflow_int);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
+#endif
 
     return NEXUS_SUCCESS;
 
@@ -416,10 +424,12 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
     }
 #endif
 
+#if !NEXUS_USE_OTT_TRANSPORT
     rc = NEXUS_RaveErrorCounter_Init_priv(&rave->raveErrors, rave->raveHandle);
     if (rc) {
         goto error;
     }
+#endif
 
 #if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
     {

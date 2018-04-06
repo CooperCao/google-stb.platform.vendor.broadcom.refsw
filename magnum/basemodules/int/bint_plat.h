@@ -82,6 +82,9 @@ extern "C" {
 #define BINT_INTC_SIZE 4
 #elif defined BCHP_HIF_CPU_INTR1_INTR_W2_STATUS
 #define BINT_INTC_SIZE 3
+#elif (BCHP_CHIP==7211)
+/* 96 extra VCx ints */
+#define BINT_INTC_SIZE 5
 #else
 #define BINT_INTC_SIZE 2
 #endif

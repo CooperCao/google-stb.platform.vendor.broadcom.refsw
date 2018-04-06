@@ -204,7 +204,7 @@ BVCE_Output_AllocBuffers(
                hVceOutputBuffers->stSettings.stConfig.Cdb.Length
             );
 
-            BVCE_P_Buffer_FlushCache_isr(
+            BVCE_P_Buffer_FlushCache_isrsafe(
                hVceOutputBuffers->stCDB.hBuffer,
                pBufferCached,
                hVceOutputBuffers->stSettings.stConfig.Cdb.Length
@@ -256,7 +256,7 @@ BVCE_Output_AllocBuffers(
             hVceOutputBuffers->stSettings.stConfig.Itb.Length
          );
 
-         BVCE_P_Buffer_FlushCache_isr(
+         BVCE_P_Buffer_FlushCache_isrsafe(
             hVceOutputBuffers->stITB.hBuffer,
             pBufferCached,
             hVceOutputBuffers->stSettings.stConfig.Itb.Length
@@ -1335,7 +1335,7 @@ BVCE_Output_S_ITB_BufferCacheUpdate(
 
       pAddress = (void*) ( (uint8_t*) pBaseAddress + ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset - hVceOutput->state.stITBBuffer.stOffset.uiBase) );
 
-      BVCE_P_Buffer_FlushCache_isr(
+      BVCE_P_Buffer_FlushCache_isrsafe(
                hVceOutput->hOutputBuffers->stITB.hBuffer,
                pAddress,
                uiLength
@@ -1416,7 +1416,7 @@ BVCE_Output_S_CDB_BufferCacheUpdate(
       {
          pAddress = (void*) ( (uint8_t*) pBaseAddress + ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset - hVceOutput->state.stCDBBuffer.stOffset.uiBase) );
 
-         BVCE_P_Buffer_FlushCache_isr(
+         BVCE_P_Buffer_FlushCache_isrsafe(
                   hVceOutput->hOutputBuffers->stCDB.hBuffer,
                   pAddress,
                   uiLength
@@ -1431,7 +1431,7 @@ BVCE_Output_S_CDB_BufferCacheUpdate(
                *puiWord = ((*puiWord << 24) & 0xFF000000) | ((*puiWord >> 24) & 0x000000FF) | ((*puiWord >> 8) & 0x0000FF00) | ((*puiWord << 8) & 0x00FF0000);
             }
 
-            BVCE_P_Buffer_FlushCache_isr(
+            BVCE_P_Buffer_FlushCache_isrsafe(
                      hVceOutput->hOutputBuffers->stCDB.hBuffer,
                      pAddress,
                      uiLength

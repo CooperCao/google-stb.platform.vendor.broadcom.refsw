@@ -47,6 +47,7 @@
 
 BDBG_MODULE(BRDC_BLOCKOUT);
 
+#if !B_REFSW_MINIMAL
 #if(!BRDC_P_SUPPORT_HW_BLOCKOUT)
 typedef struct
 {
@@ -509,7 +510,6 @@ done:
 }
 #endif
 
-#if !B_REFSW_MINIMAL
 BERR_Code BRDC_P_ValidateBlockOutRegisters
     ( const BRDC_BlockOut *pstBlockOut,
       uint32_t             ulRegBlock )
@@ -543,7 +543,6 @@ BERR_Code BRDC_P_ValidateBlockOutRegisters
     }
     return err;
 }
-#endif
 
 BERR_Code BRDC_P_RdcBlockOutInit
     ( BRDC_Handle           hRdc )
@@ -583,5 +582,6 @@ BERR_Code BRDC_P_RdcBlockOutDestroy
 
     return err;
 }
+#endif
 
 /* End of file */

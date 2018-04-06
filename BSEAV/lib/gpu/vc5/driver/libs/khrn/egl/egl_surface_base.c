@@ -202,7 +202,7 @@ EGLint egl_surface_base_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint
 
    case EGL_BUFFER_AGE_EXT:
       {
-         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
+         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW && !khrn_options.disable_buffer_age)
          {
             EGL_CONTEXT_T *context = egl_thread_get_context();
             if (!context || context->draw != surface)

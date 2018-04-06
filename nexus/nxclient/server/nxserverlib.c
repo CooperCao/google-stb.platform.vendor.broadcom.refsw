@@ -1764,14 +1764,21 @@ static NEXUS_HeapHandle nxserver_p_framebuffer_heap(struct b_session *session, u
 {
     NEXUS_HeapHandle heap;
     heap = NEXUS_Platform_GetFramebufferHeap(session->display[displayIndex].global_index);
-    if (secure && displayIndex == 0) {
+    if (heap && secure && displayIndex == 0) {
         NEXUS_MemoryStatus status;
-        NEXUS_Heap_GetStatus(heap, &status);
-        switch (status.memcIndex) {
-        case 0: heap = session->server->platformConfig.heap[NEXUS_MEMC0_SECURE_GRAPHICS_HEAP]; break;
-        case 1: heap = session->server->platformConfig.heap[NEXUS_MEMC1_SECURE_GRAPHICS_HEAP]; break;
-        case 2: heap = session->server->platformConfig.heap[NEXUS_MEMC2_SECURE_GRAPHICS_HEAP]; break;
-        default: heap = NULL; break;
+        NEXUS_Error rc;
+        rc = NEXUS_Heap_GetStatus(heap, &status);
+        if (rc) {
+            BERR_TRACE(rc);
+            heap = NULL;
+        }
+        else {
+            switch (status.memcIndex) {
+            case 0: heap = session->server->platformConfig.heap[NEXUS_MEMC0_SECURE_GRAPHICS_HEAP]; break;
+            case 1: heap = session->server->platformConfig.heap[NEXUS_MEMC1_SECURE_GRAPHICS_HEAP]; break;
+            case 2: heap = session->server->platformConfig.heap[NEXUS_MEMC2_SECURE_GRAPHICS_HEAP]; break;
+            default: heap = NULL; break;
+            }
         }
         if (!heap) {
             BDBG_ERR(("no MEMC%u secure graphics heap exists for display 0", status.memcIndex));
@@ -2336,7 +2343,7 @@ static void hotplug_callback_locked(void *pParam, int iParam)
             bserver_set_audio_config(session->main_audio);
         }
 
-        if (!status.videoFormatSupported[session->nxclient.displaySettings.format])
+        if (!status.videoFormatSupported[session->nxclient.displaySettings.format] || session->hdmi.defaultSdActive)
         {
             BDBG_WRN(("Current format (%d) not supported by attached monitor; Use preferred format (%d)",
                 session->nxclient.displaySettings.format, status.preferredVideoFormat)) ;
@@ -2351,16 +2358,20 @@ static void hotplug_callback_locked(void *pParam, int iParam)
                 }
             }
         }
+        session->hdmi.defaultSdActive = false;
     }
     else {
-        /* for graphics-only SD, switch display[0] to SD format if HDMI is disconnected */
-        if (session->display[1].graphicsOnly) {
+        /* defaultSdFormat feature switches display[0] to SD format if HDMI is disconnected */
+        if (session->server->settings.display.defaultSdFormat != NEXUS_VideoFormat_eUnknown) {
             NxClient_DisplaySettings settings = session->nxclient.displaySettings;
-            NEXUS_VideoFormat format = nxserver_p_default_sd_format(session);
-            if (settings.format != format) {
-                settings.format = format;
-                NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
+            if (settings.format != session->server->settings.display.defaultSdFormat) {
+                settings.format = session->server->settings.display.defaultSdFormat;
+                rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
+                if (!rc) {
+                    session->hdmi.defaultSdActive = true;
+                }
             }
+
         }
     }
 
@@ -2701,7 +2712,7 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
     switch (version_select) {
     case NxClient_HdcpVersion_eAuto:
         hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
-        if (session->hdcp.version_state == nxserver_hdcp_follow) {
+        if (session->hdcp.version_state != nxserver_hdcp_begin) {
             /* second pass */
             hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType0;
         }
@@ -2769,6 +2780,7 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
     settings->hdmi.dolbyVision.blendInIpt = true;
     settings->display.display3DSettings.orientation = NEXUS_VideoOrientation_e2D;
     settings->display.format = NEXUS_VideoFormat_eUnknown; /* use HDMI preferred format, else 720p if supported, else SD */
+    settings->display.defaultSdFormat = NEXUS_VideoFormat_eMax; /* allow cmdline or pick default in init_session() */
     settings->display.graphicsSettings.alpha = 0xFF;
     settings->display.graphicsSettings.enabled = true;
     settings->display.graphicsSettings.sourceBlendFactor = NEXUS_CompositorBlendFactor_eSourceAlpha;
@@ -3090,6 +3102,7 @@ static int init_session(nxserver_t server, unsigned index)
             if (rc) rc = BERR_TRACE(rc);
 
             session->audioSettings.hdmi.channelStatusInfo = hdmiSettings.audioChannelStatusInfo;
+            session->audioSettings.hdmi.ditherEnabled = hdmiSettings.audioDitherEnabled;
 
             rc = NEXUS_HdmiOutput_GetSpdInfoFrame(session->hdmiOutput, &hdmiSpdInfoFrame);
             if (rc) {
@@ -3166,6 +3179,25 @@ static int init_session(nxserver_t server, unsigned index)
     }
 #endif
 
+    if (session->display[1].display && !session->display[1].graphicsOnly) {
+        /* On an HD/SD simul system, SD outputs will be attached to the SD display, so there's
+        no value in defaultSdFormat. */
+        if (server->settings.display.defaultSdFormat != NEXUS_VideoFormat_eUnknown &&
+            server->settings.display.defaultSdFormat != NEXUS_VideoFormat_eMax) {
+            BDBG_WRN(("forcing defaultSdFormat off for HD/SD simul system"));
+        }
+        server->settings.display.defaultSdFormat = NEXUS_VideoFormat_eUnknown;
+    }
+    else if (server->settings.display.defaultSdFormat == NEXUS_VideoFormat_eMax) {
+        /* if have component, default off. else default on. */
+        if (server->platformConfig.outputs.component[0]) {
+            server->settings.display.defaultSdFormat = NEXUS_VideoFormat_eUnknown;
+        }
+        else {
+            server->settings.display.defaultSdFormat = nxserver_p_default_sd_format(session);
+        }
+    }
+
     /*
      * Set-up session slave display
      */
@@ -3223,6 +3255,7 @@ after_display_open:
         NEXUS_SpdifOutputSettings settings;
         NEXUS_SpdifOutput_GetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
         session->audioSettings.spdif.channelStatusInfo = settings.channelStatusInfo;
+        session->audioSettings.spdif.ditherEnabled = settings.dither;
     }
 #endif
 
@@ -4749,12 +4782,22 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
     if (audioCapabilities.numOutputs.spdif > 0) {
         if (nxserver_p_has_spdif_output(session)) {
             NEXUS_SpdifOutputSettings settings;
+            bool spdifChanged = false;
             rc = nxserver_p_set_audio_output(session, NEXUS_SpdifOutput_GetConnector(session->server->platformConfig.outputs.spdif[0]), pSettings, &pSettings->spdif);
             if (rc) {return BERR_TRACE(rc);}
 
             NEXUS_SpdifOutput_GetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
             if (BKNI_Memcmp(&settings.channelStatusInfo, &pSettings->spdif.channelStatusInfo, sizeof(settings.channelStatusInfo))) {
                 settings.channelStatusInfo = pSettings->spdif.channelStatusInfo;
+                spdifChanged = true;
+            }
+
+            if (settings.dither != pSettings->spdif.ditherEnabled) {
+                settings.dither = pSettings->spdif.ditherEnabled;
+                spdifChanged = true;
+            }
+
+            if (spdifChanged) {
                 rc = NEXUS_SpdifOutput_SetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
                 if (rc) {return BERR_TRACE(rc);}
             }
@@ -4773,6 +4816,12 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
                 settings.audioChannelStatusInfo = pSettings->hdmi.channelStatusInfo;
                 hdmiChanged = true;
             }
+
+            if (settings.audioDitherEnabled != pSettings->hdmi.ditherEnabled) {
+                settings.audioDitherEnabled = pSettings->hdmi.ditherEnabled;
+                hdmiChanged = true;
+            }
+
             if (settings.loudnessDeviceMode != pSettings->hdmi.loudnessDeviceMode) {
                 settings.loudnessDeviceMode = pSettings->hdmi.loudnessDeviceMode;
                 hdmiChanged = true;

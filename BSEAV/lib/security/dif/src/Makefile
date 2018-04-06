@@ -87,7 +87,9 @@ SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
 DIF_TOP := $(SECURITY_TOP)/dif
 
+ifeq ($(PLAYREADY25_SUPPORT),y)
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
+endif
 include $(COMMON_DRM_TOP)/common_drm.inc
 include $(DIF_TOP)/dif_libdir.inc
 
@@ -137,7 +139,9 @@ LDFLAGS += $(COMMON_DRM_LDFLAGS)
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
            -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
+ifeq ($(PLAYREADY25_SUPPORT),y)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
+endif
 
 # Link with common_drm libraries
 LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
@@ -154,19 +158,23 @@ LDFLAGS += $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
 endif
 
 # Link settings for Playready 2.5
+ifeq ($(PLAYREADY25_SUPPORT),y)
+CFLAGS += -DMSDRM_PRDY25
 ifeq ($(SAGE_SUPPORT),y)
 LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host
 else
 LDFLAGS += -lplayreadypk
 endif
+endif
 
 # PlayreadyPK 3.0 is only supported with Sage
+ifeq ($(PLAYREADY3x_SUPPORT),y)
 ifeq ($(SAGE_SUPPORT), y)
 include $(BSEAV_TOP)/thirdparty/playready/3.0/prdy30_libdir.inc
 include $(BSEAV_TOP)/thirdparty/playready/http/prdyhttp.inc
 CFLAGS += -DUSE_PK_NAMESPACES=1
 CFLAGS += -DDRM_INCLUDE_PK_NAMESPACE_USING_STATEMENT=1
-CFLAGS += -DMSDRM_PRDY30
+CFLAGS += -DMSDRM_PRDY3x
 CFLAGS += -DDRM_BUILD_PROFILE=900
 CFLAGS += -DTARGET_LITTLE_ENDIAN=1
 CFLAGS += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
@@ -180,6 +188,7 @@ LDFLAGS += -L$(BSEAV_TOP)/$(PRDY30_LIBDIR) -lplayready30pk
 LDFLAGS += ${PRDY_HTTP_LDFLAGS}
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
 CFLAGS += -DDRM_64BIT_TARGET=1 -D__arch64__
+endif
 endif
 endif
 
@@ -265,6 +274,14 @@ D_FOR_LIB_INSTALL := ${DIF_OBJ_ROOT}/${DIF_LIBDIR}
 F_SRC_EXCLUDES = android_decryptor_factory.cpp android_wv_decryptor.cpp
 
 ifneq ($(SAGE_SUPPORT), y)
+F_SRC_EXCLUDES += pr30_decryptor.cpp
+endif
+
+ifneq ($(PLAYREADY25_SUPPORT),y)
+F_SRC_EXCLUDES += pr_decryptor.cpp
+endif
+
+ifneq ($(PLAYREADY3x_SUPPORT),y)
 F_SRC_EXCLUDES += pr30_decryptor.cpp
 endif
 

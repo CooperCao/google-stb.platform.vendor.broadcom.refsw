@@ -398,8 +398,7 @@
 </kernels>
 <bootloaders>
   <version>1.0</version>
-  <bootloader type="BOLT" default="97278B0">1.39</bootloader>
-  <bootloader type="BOLT" default="ARM64,ARM">1.38</bootloader>
+  <bootloader type="BOLT" default="ARM64,ARM">1.40</bootloader>
   <bootloader type="CFE" default="BMIPS,MIPS,OLD_MIPS">18.1</bootloader>
 </bootloaders>
 </plat>

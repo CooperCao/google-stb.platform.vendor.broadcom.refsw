@@ -114,6 +114,8 @@ void BMTH_FIX_Matrix_MultVector_64_isrsafe
 #define BMTH_FIX_Matrix_MultVector_64(pMatrix, pVector, pRetVector)   \
     BMTH_FIX_Matrix_MultVector_64_isrsafe(pMatrix, pVector, pRetVector)
 
+#if 0  /* we don't use those functions yet, so we comment them out */
+
 /***************************************************************************
 Summary:
     Takes a 3x3 matrix and converts it to a 4x4 matrix.
@@ -180,6 +182,8 @@ void BMTH_FIX_Matrix_Dump_isrsafe
 
 #define BMTH_FIX_Matrix_Dump(pMatrix)   \
     BMTH_FIX_Matrix_Dump_isrsafe(pMatrix)
+
+#endif /* #if 0 */ /* we don't use those functions yet, so we comment them out */
 
 #ifdef __cplusplus
 }

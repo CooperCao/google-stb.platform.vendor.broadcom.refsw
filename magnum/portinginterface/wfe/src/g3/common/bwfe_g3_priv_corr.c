@@ -383,6 +383,7 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
 }
 
 
+#ifdef BWFE_HYBRID_ADC
 /******************************************************************************
  BWFE_g3_Corr_P_CoarseAdjust() - ISR context
 ******************************************************************************/
@@ -409,11 +410,7 @@ BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
       absDelay = hChn->sliceDelay[0];
 
    BMTH_HILO_32TO64_Mul(absDelay, 314159265 * 5, &P_hi, &P_lo);   /* pi * 1e8 / 0.2 */
-#if 0
-   BMTH_HILO_64TO64_Div32(P_hi, P_lo, 502232, &Q_hi, &Q_lo);      /* div by Fs_adc/10000 */
-#else
    BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->adcSampleFreqKhz / 10, &Q_hi, &Q_lo);      /* div by Fs_adc/10000 */
-#endif
    BMTH_HILO_64TO64_Add(Q_hi, Q_lo, 0, 2147483647, &Q_hi, &Q_lo); /* ceil(result) */
    BWFE_DEBUG_CORR(BKNI_Printf("absDelay=%d -> Q=%08X %08X\n", absDelay, Q_hi, Q_lo));
 
@@ -444,6 +441,106 @@ BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
 
    return retCode;
 }
+#else
+/******************************************************************************
+ BWFE_g3_Corr_P_CoarseAdjust() - ISR context
+******************************************************************************/
+BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
+{
+   BERR_Code retCode = BERR_SUCCESS;
+   BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
+   uint32_t P_hi, P_lo, Q_hi, Q_lo;
+   uint32_t absDelay;
+
+   //BWFE_DEBUG_CORR(BKNI_Printf("BWFE_g3_Corr_P_CoarseAdjust: measDelay=%d\n", hChn->sliceDelay[0]));
+   BKNI_Printf("BWFE_g3_Corr_P_CoarseAdjust: measDelay=%d R%d/L%d\n", hChn->sliceDelay[0], hChn->adjRight, hChn->adjLeft);
+
+   /* scan up to limits */
+   if ((hChn->adjLeft > 3) || (hChn->adjRight > 3))
+   {
+      BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft);
+      BKNI_SetEvent(hChn->hDelayCalDone);
+      return BERR_SUCCESS;
+   }
+
+   /* meas_delay = (delay / 2^32 * pi) / Fs_adc * 1e12(ps) */
+   /* remove sign */
+   if (hChn->sliceDelay[0] < 0)
+      absDelay = -hChn->sliceDelay[0];
+   else
+      absDelay = hChn->sliceDelay[0];
+
+   BMTH_HILO_32TO64_Mul(absDelay, 3141592654, &P_hi, &P_lo);   /* pi * 1e9 */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->adcSampleFreqKhz, &Q_hi, &Q_lo);      /* div by Fs_adc/1000 */
+   BMTH_HILO_64TO64_Add(Q_hi, Q_lo, 0, 2147483647, &Q_hi, &Q_lo); /* ceil(result) */
+   //BWFE_DEBUG_CORR(BKNI_Printf("absDelay=%d -> Q=%08X %08X\n", absDelay, Q_hi, Q_lo));
+   BKNI_Printf("absDelay=%d -> Q=%08X %08X\n", absDelay, Q_hi, Q_lo);
+
+   if ((hChn->adjLeft == 0) && (hChn->adjRight == 0))
+   {
+      /* choose left or right adjustment for 1st iteration */
+      if (hChn->sliceDelay[0] < 0)
+         hChn->adjLeft++;
+      else
+         hChn->adjRight++;
+   }
+   else
+   {
+      /* continue from previous adjustment */
+      if (hChn->adjLeft > 0)
+      {
+         /* check exit conditions if polarity change in measured delay */
+         if ((hChn->prevDelay < 0) && (hChn->sliceDelay[0] > 0))
+         {
+            BKNI_SetEvent(hChn->hDelayCalDone);
+            if (BWFE_ABS(hChn->sliceDelay[0]) < BWFE_ABS(hChn->prevDelay))
+            {
+               BKNI_Printf("exit L loop\n");
+               return BERR_SUCCESS;
+            }
+            else
+            {
+               BKNI_Printf("revert & exit L loop\n");
+               hChn->adjLeft--;  /* revert adjustment and exit L loop */
+               return BERR_SUCCESS;
+            }
+         }
+         hChn->adjLeft++;
+      }
+      else  /* if (hChn->adjRight > 0) */
+      {
+         /* check exit condition if polarity change in measured delay */
+         if ((hChn->prevDelay > 0) && (hChn->sliceDelay[0] < 0))
+         {
+            BKNI_SetEvent(hChn->hDelayCalDone);
+            if (BWFE_ABS(hChn->sliceDelay[0]) < BWFE_ABS(hChn->prevDelay))
+            {
+               BKNI_Printf("exit R loop\n");
+               return BERR_SUCCESS;
+            }
+            else
+            {
+               BKNI_Printf("revert & exit R loop\n");
+               hChn->adjRight--; /* revert adjustment and exit R loop */
+               return BERR_SUCCESS;
+            }
+         }
+         hChn->adjRight++;
+      }
+   }
+
+   /* update adjustments */
+   BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
+   hChn->prevDelay = hChn->sliceDelay[0];
+
+   /* re-measure delay after new adjustment */
+   BWFE_P_EnableDpmPilot(h);  /* enable DPM tone, disable DPM after delay calculations */
+   hChn->postCalcDelayFunct = BWFE_g3_Corr_P_CoarseAdjust;    /* continue scanning parameters */
+   BWFE_g3_Corr_P_StartCorrelator(h, hChn->dpmPilotFreqKhz * 1000, 0, BWFE_g3_Corr_P_CalcDelay);
+
+   return retCode;
+}
+#endif
 
 
 /******************************************************************************
@@ -586,6 +683,7 @@ BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t adjRight
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t val;
 
+#ifdef BWFE_HYBRID_ADC
    /* cap adjustments */
    if (adjRight > 15)
       adjRight = 15;
@@ -596,6 +694,19 @@ BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t adjRight
    val = (adjLeft << 12) | (adjLeft << 8) | (adjLeft << 4) | adjLeft;   /* S0 left adjust */
    val |= (adjRight << 28) | (adjRight << 24) | (adjRight << 20) | (adjRight << 16);   /* S1 right adjust */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL10, val);
+#else
+   /* cap adjustments */
+   if (adjRight > 3)
+      adjRight = 3;
+   if (adjLeft > 3)
+      adjLeft = 3;
+
+   BWFE_P_ReadRegister(h, BCHP_WFE_ANA_ADC_CNTL11, &val);
+   val &= ~0x03C00000;  /* clear delay correction */
+   val |= (adjLeft << 24);
+   val |= (adjRight << 22);
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL11, val);
+#endif
 
    return retCode;
 }

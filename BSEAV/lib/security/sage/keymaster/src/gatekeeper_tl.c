@@ -49,7 +49,7 @@
 #include "gatekeeper_cmd.h"
 
 #ifdef ANDROID
-#define GATEKEEPER_DRM_BIN_DEFAULT_FILEPATH "/hwcfg/drm.bin"
+#define GATEKEEPER_DRM_BIN_DEFAULT_FILEPATH "/dev/hwcfg/drm.bin"
 #else
 #define GATEKEEPER_DRM_BIN_DEFAULT_FILEPATH "./drm.bin"
 #endif

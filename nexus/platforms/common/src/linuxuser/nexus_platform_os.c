@@ -1343,7 +1343,9 @@ static bool NEXUS_Platform_P_CheckCompatible(const char *path, const char *compa
     pFile = fopen(buf, "rb");
     if (pFile) {
         int rc;
-        if (fread(buf, 1, sizeof(buf), pFile) > 0) {
+        rc = fread(buf, 1, sizeof(buf)-1, pFile);
+        if (rc > 0) {
+            buf[rc] = 0;
             if (strstr(buf, compatible) == buf) {
                 match = true;
             }

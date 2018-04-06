@@ -290,6 +290,7 @@ typedef struct BVDC_P_GfxFeederContext
     bool                             bSupportVertScl;
 
     uint32_t                         ulInitVsyncCntr;
+    uint32_t                         ulBuildCntr;
 
     uint32_t                         ulOffsetPixInByte;   /* Num of offset pix for sub byte pixel format */
     uint32_t                         ulAlphaOffsetPixInByte;   /* Alpha Sur: Num of offset pix in a byte */
@@ -342,7 +343,7 @@ BERR_Code BVDC_P_GfxFeeder_Destroy
  */
 void BVDC_P_GfxFeeder_Init(
     BVDC_P_GfxFeeder_Handle          hGfxFeeder,
-    const BVDC_Source_Settings      *pSettings );
+    const BVDC_Source_CreateSettings      *pSettings );
 
 /*************************************************************************
  * {private}

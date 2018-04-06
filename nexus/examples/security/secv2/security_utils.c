@@ -83,12 +83,12 @@ int securityUtil_DmaTransfer( NEXUS_KeySlotHandle keyslotHandle,
                               bool securityBtp )
 {
     NEXUS_Error   rc;
-    NEXUS_DmaHandle dma;
+    NEXUS_DmaHandle dma = NULL;
+    NEXUS_DmaJobHandle dmaJob = NULL;
+    BKNI_EventHandle dmaEvent = NULL;
     NEXUS_DmaJobSettings jobSettings;
-    NEXUS_DmaJobHandle dmaJob;
     NEXUS_DmaJobStatus jobStatus;
     NEXUS_DmaJobBlockSettings blockSettings;
-    BKNI_EventHandle dmaEvent = NULL;
 
     if( !pSrc || !pDest ) {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
@@ -105,6 +105,22 @@ int securityUtil_DmaTransfer( NEXUS_KeySlotHandle keyslotHandle,
     jobSettings.dataFormat = dataFormat; /* NEXUS_DmaDataFormat_eBlock, or eTS; */
     jobSettings.completionCallback.callback = CompleteCallback;
     jobSettings.completionCallback.context = dmaEvent;
+
+    if( NEXUS_DmaDataFormat_eMpeg == dataFormat ) {
+        if( 192 == dataSize  ) {
+            /* if source data is a mpeg packet with timestamp */
+            jobSettings.timestampType = NEXUS_TransportTimestampType_e32_Binary;
+        }
+        else if (188 == dataSize ) {
+            /* if source data is a mpeg packet without timestamp */
+            jobSettings.timestampType = NEXUS_TransportTimestampType_eNone;
+        }
+        else {
+            /* if source data is a mpeg packet with un-supported size */
+            rc = BERR_TRACE( NEXUS_INVALID_PARAMETER );
+            goto exit;
+        }
+    }
 
     dmaJob = NEXUS_DmaJob_Create( dma, &jobSettings );
 
@@ -125,22 +141,24 @@ int securityUtil_DmaTransfer( NEXUS_KeySlotHandle keyslotHandle,
         BKNI_WaitForEvent( dmaEvent, 1000);
         NEXUS_DmaJob_GetStatus( dmaJob, &jobStatus );
         BDBG_ASSERT( jobStatus.currentState == NEXUS_DmaJobState_eComplete );
+        rc = NEXUS_SUCCESS;
     }
 
-    NEXUS_DmaJob_Destroy( dmaJob );
-    NEXUS_Dma_Close( dma );
-    BKNI_DestroyEvent( dmaEvent );
+exit:
+    if( dmaJob ) NEXUS_DmaJob_Destroy( dmaJob );
+    if( dma ) NEXUS_Dma_Close( dma );
+    if( dmaEvent ) BKNI_DestroyEvent( dmaEvent );
 
-    return NEXUS_SUCCESS;
+    return rc;
 }
 
 /*
    Composit a single TS packet or multiple packets for tests.
    XPT_TS_PACKET_NUM defines the number of the packets.
 */
-void CompositTSPackets( uint8_t * xptTSPackets, unsigned int scValue )
+void CompositTSPackets( uint8_t * xptTSPackets, unsigned int packetSize, unsigned int scValue )
 {
-    int i;
+    unsigned int i;
 
     if( scValue > 3 ) {
         printf( "\nError: invalid transport TS SC value %d", scValue );
@@ -149,14 +167,14 @@ void CompositTSPackets( uint8_t * xptTSPackets, unsigned int scValue )
 
     /* Make up the packet heads */
     for( i = 0; i < XPT_TS_PACKET_NUM; i++ ) {
-        xptTSPackets[XPT_TS_PACKET_SIZE * i] = 0x47;
-        xptTSPackets[XPT_TS_PACKET_SIZE * i + 1] = ( VIDEO_PID & 0xFF00 ) >> 8;
-        xptTSPackets[XPT_TS_PACKET_SIZE * i + 2] = VIDEO_PID & 0xFF;
-        xptTSPackets[XPT_TS_PACKET_SIZE * i + 3] = ( scValue << 6 ) | 0x10 | ( ( 0x9 + i ) & 0xF );
+        xptTSPackets[packetSize * i] = 0x47;
+        xptTSPackets[packetSize * i + 1] = ( VIDEO_PID & 0xFF00 ) >> 8;
+        xptTSPackets[packetSize * i + 2] = VIDEO_PID & 0xFF;
+        xptTSPackets[packetSize * i + 3] = ( scValue << 6 ) | 0x10 | ( ( 0x9 + i ) & 0xF );
     }
 
     /* Make up a TS packet payload. */
-    for( i = XPT_TS_PACKET_HEAD_SIZE; i < XPT_TS_PACKET_SIZE; i++ ) {
+    for( i = XPT_TS_PACKET_HEAD_SIZE; i < packetSize; i++ ) {
         xptTSPackets[i] = i - XPT_TS_PACKET_HEAD_SIZE;
     }
 

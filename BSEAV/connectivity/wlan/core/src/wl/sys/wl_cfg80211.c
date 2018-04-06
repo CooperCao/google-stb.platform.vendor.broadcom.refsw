@@ -2990,6 +2990,7 @@ wl_cfg80211_ifdel_ops(struct net_device *ndev)
 		wl_notify_escan_complete(cfg, ndev, true, false);
 	}
 	wl_clr_drv_status(cfg, CONNECTED, ndev);
+	CFG80211_DISCONNECTED(ndev, 0, NULL, 0, false, GFP_KERNEL);
 
 	/* Wake up any waiting thread */
 	if (cfg->nl80211_locked == 0)
@@ -10670,8 +10671,11 @@ wl_cfg80211_set_rrm (struct net_device *ndev, u8 *ptr, u32 len)
 	if ((rrm_ie = bcm_parse_tlvs(ptr, len, DOT11_MNG_RRM_CAP_ID)) != NULL) {
 		WL_DBG((" RRM IE found\n"));
 		memcpy(&rrm_cap, &rrm_ie->data[0],(u32)rrm_ie->len);
-		wldev_iovar_setbuf(ndev, "rrm", &rrm_cap, sizeof(dot11_rrm_cap_ie_t), cfg->ioctl_buf, WLC_IOCTL_SMLEN,
+		err = wldev_iovar_setbuf(ndev, "rrm", &rrm_cap, sizeof(dot11_rrm_cap_ie_t), cfg->ioctl_buf, WLC_IOCTL_SMLEN,
 		&cfg->ioctl_buf_sync);
+		if (err < 0) {
+			WL_ERR(("RRM setting error %d\n", err));
+		}
 	}
 	else
 		err = BCME_ERROR;

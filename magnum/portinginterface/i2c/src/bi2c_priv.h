@@ -89,7 +89,7 @@ extern "C" {
 
 #ifdef BCHP_BSC_REG_START
 #include "bchp_bsc.h"
-#include "bott_i2c_rdb_map.h"
+#include "bchp_i2c_rdb_remap.h"
 #endif
 
 #include "bkni_multi.h"

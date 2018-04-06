@@ -40,8 +40,45 @@
 #ifndef BHSM_HASH_PRIVATE__H
 #define BHSM_HASH_PRIVATE__H
 
-#define IS_SHA (true)
-#define IS_HMAC (false)
+
+
+typedef enum
+{
+    BHSM_P_HashOperation_eHash,
+    BHSM_P_HashOperation_eHmac,
+    BHSM_P_HashOperation_eHmacRpmb,
+
+    BHSM_P_HashOperation_Max
+}BHSM_P_HashOperation_e;
+
+typedef enum
+{
+    BHSM_P_HashState_eInitial,          /* created.     */
+    BHSM_P_HashState_eReady,            /* configured.  */
+    BHSM_P_HashState_eInprogress,       /* waiting for more data. */
+    BHSM_P_HashState_Max
+}BHSM_P_HashState;
+
+typedef enum
+{
+    BHSM_HMACSHA_ContinualMode_eAllSeg  = 0x00,  /* All data in this command */
+    BHSM_HMACSHA_ContinualMode_eMoreSeg = 0x01,  /* More data will be sent in the next command */
+    BHSM_HMACSHA_ContinualMode_eLastSeg = 0x10   /* Last command with all the remaining data   */
+}BHSM_HMACSHA_ContinualMode_e;
+
+typedef struct BHSM_P_Hash
+{
+    BHSM_Handle hHsm;
+    BHSM_HashSettings settings;
+    BHSM_P_HashState state;
+    BHSM_P_HashOperation_e operation;
+
+    unsigned index;
+    bool inUse;
+
+}BHSM_P_Hash;
+
+
 
 typedef struct {
 
@@ -50,22 +87,20 @@ typedef struct {
     BSTD_DeviceOffset dataOffset;
     unsigned dataSize;
     bool last;
-    bool hashNotHamc;
-
     uint8_t *pHash;
     unsigned *pHashLength;
 
 } BHSM_P_HmacHashSubmitInfo;
 
 
-BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
-                                     BHSM_P_HmacHashSubmitInfo *pHmacHashSubmitInfo);
-
 BERR_Code BHSM_Hash_SetSettings_priv( BHSM_HashHandle handle,
                                       const BHSM_HashSettings *pSettings,
-                                      bool hashNotHamc);
+                                      BHSM_P_HashOperation_e operation );
 
-void BHSM_Hash_Destroy_priv( BHSM_HashHandle handle, bool hashNotHamc );
+BERR_Code BHSM_Hash_SubmitData_priv( BHSM_HashHandle handle,
+                                     BHSM_P_HmacHashSubmitInfo *pHmacHashSubmitInfo );
+
+void BHSM_Hash_Destroy_priv( BHSM_HashHandle handle );
 
 
 #endif

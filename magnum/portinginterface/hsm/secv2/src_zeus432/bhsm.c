@@ -49,6 +49,7 @@
 #include "bhsm_rv_rsa.h"
 #include "bhsm_hash.h"
 #include "bhsm_rv_region.h"
+#include "bsp_s_hw.h"
 
 BDBG_MODULE(BHSM);
 
@@ -163,6 +164,8 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCap
     {
         pCaps->numKeyslotsForType[i] = keyslotCaps.numKeySlotsForType[i];
     }
+
+    pCaps->archesPerMemc = BSP_ARCHES_PER_MEMC;
 
     BDBG_LEAVE( BHSM_GetCapabilities );
     return BERR_SUCCESS;

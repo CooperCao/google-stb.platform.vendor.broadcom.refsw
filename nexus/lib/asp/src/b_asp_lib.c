@@ -155,7 +155,7 @@ void B_AspChannel_Destroy(
     }
 
     /* Offload connection back to Linux */
-    {
+    if ( ! hAspChannel->socketState.connectionLost){
         rc = B_AspChannel_SetSocketStateToLinux(&hAspChannel->socketState, hAspChannel->fdMigratedConnx, pSocketFd);
         BDBG_ASSERT(rc == B_ERROR_SUCCESS);
     }
@@ -353,6 +353,7 @@ B_AspChannelHandle B_AspChannel_Create(
 
     /* Open ASP NetFilter Driver context & add entry identifying this connection flow. */
     /* This enables ASP NetFilter driver to capture any stale TCP packets or re-assembled UDP packets. */
+    if ( ! hAspChannel->socketState.connectionLost)
     {
         struct ASP_Socket5TupleInfo socket5TupleInfo;
 
@@ -394,6 +395,7 @@ B_AspChannelHandle B_AspChannel_Create(
     }
 
     /* Freeze the socket & obtain TCP/UDP state associated with it. */
+    if ( ! hAspChannel->socketState.connectionLost)
     {
         rc = B_AspChannel_GetSocketStateFromLinux(socketFdToOffload, &hAspChannel->socketState);
         CHECK_ERR_NZ_GOTO("B_AspChannel_GetSocketStateFromLinux() Failed ...", rc, error);
@@ -409,14 +411,14 @@ B_AspChannelHandle B_AspChannel_Create(
         BDBG_MSG(("%s: Obtained socketState from Linux for socketFd=%d", BSTD_FUNCTION, socketFdToOffload));
     }
 
-    /* Now find the network interface name & MAC address (local & remote). */
+    /* If the socket is being closed, skip additional configuration. */
+    if ( ! hAspChannel->socketState.connectionLost)
     {
+        /* Now find the network interface name & MAC address (local & remote). */
         rc = B_AspChannel_GetInterfaceNameAndMacAddress(&hAspChannel->socketState, hAspChannel->aspNetFilterDrvFd);
         CHECK_ERR_NZ_GOTO("B_AspChannel_GetInterfaceNameAndMacAddress() Failed ...", rc, error);
-    }
 
-    /* Tell switch to redirect all incoming Ethernet frames (non-fragmented one) of this flow to the ASP Port. */
-    {
+        /* Tell switch to redirect all incoming Ethernet frames (non-fragmented one) of this flow to the ASP Port. */
         hAspChannel->switchPortNumberForAsp = getSwitchPortNumberForAsp();
         hAspChannel->switchQueueNumberForAsp = getSwitchQueueNumberForAsp();
         hAspChannel->switchPortNumberForRemoteNode = getSwitchPortNumberForRemoteNode(&hAspChannel->socketState);
@@ -507,6 +509,7 @@ static B_Error startNexusAsp(
 
     /* Settings common across streaming mode & protocol. */
     startSettings.protocol = streamingProtocol;
+    startSettings.connectionLost =  hAspChannel->socketState.connectionLost;
     startSettings.autoStartStreaming = autoStartStreaming;
     startSettings.mediaInfoSettings.transportType = hAspChannel->createSettings.mediaInfoSettings.transportType;
     startSettings.mediaInfoSettings.maxBitRate = hAspChannel->createSettings.mediaInfoSettings.maxBitRate;

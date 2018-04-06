@@ -43,6 +43,7 @@
 #include "bhsm_bsp_msg.h"
 #include "bsp_s_keycommon.h"
 #include "bhsm_keyladder.h"
+#include "bhsm_keyladder_priv.h"
 #include "bsp_s_commands.h"
 #include "bsp_s_keycommon.h"
 #include "bhsm_keyslot_priv.h"
@@ -840,4 +841,20 @@ static uint8_t _MapDestinationType( BHSM_KeyLadderDestination destination )
     }
 
     return 0;
+}
+
+BERR_Code BHSM_P_KeyLadder_GetDetails( BHSM_KeyLadderHandle handle, BHSM_KeyLadderDetails_t *pDetails )
+{
+    BHSM_P_KeyLadder *pKeyLadder = (BHSM_P_KeyLadder*)handle;
+
+    BDBG_ENTER( BHSM_P_KeyLadder_GetDetails );
+
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pDetails ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    pDetails->configured = pKeyLadder->configured;
+    pDetails->index = pKeyLadder->index;
+
+    BDBG_LEAVE( BHSM_P_KeyLadder_GetDetails );
+    return BERR_SUCCESS;
 }

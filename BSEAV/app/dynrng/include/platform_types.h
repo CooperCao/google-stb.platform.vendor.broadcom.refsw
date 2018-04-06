@@ -333,6 +333,7 @@ typedef struct PlatformMediaPlayerSettings
 
 #define PLATFORM_SCHEDULER_MAIN 0
 #define PLATFORM_SCHEDULER_GFX 1
-#define PLATFORM_SCHEDULER_COUNT 2
+#define PLATFORM_SCHEDULER_USAGE 2
+#define PLATFORM_SCHEDULER_COUNT 3
 
 #endif /* PLATFORM_TYPES_H__ */

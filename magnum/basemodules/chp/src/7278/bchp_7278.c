@@ -66,8 +66,7 @@ static const struct BCHP_P_Info s_aChipInfoTable[] =
     /* B0 code will run on B0 */
     {0x72780010},
 #elif BCHP_VER == BCHP_VER_B1
-    /* B1 code will run on B0,B1 */
-    {0x72780010},
+    /* B1 code will run on B1 */
     {0x72780011},
 #else
     #error "Port required"

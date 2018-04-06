@@ -43,7 +43,9 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BCHP_AUD_FMM_BF_CTRL_REG_START
 #include "bchp_aud_fmm_bf_ctrl.h"
+#endif
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_clkgen.h"
 #if BAPE_DSP_SUPPORT

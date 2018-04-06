@@ -183,7 +183,7 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
         case BHSM_HmacKeySource_eRpmb:
         {
             bspConfig.in.keyType = Bsp_Crypto_HmacKeyType_eRpmb;
-            break;
+            break; /* nothing to be done. */
         }
         default: { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     }

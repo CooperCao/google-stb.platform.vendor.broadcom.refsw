@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,7 +65,7 @@
 #else
 #ifdef BXPT_USE_HOST_AGGREGATOR
     #include "bchp_xpt_mcpb_host_intr_aggregator.h"
-#else
+#elif BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_REG_START
     #include "bchp_xpt_mcpb_cpu_intr_aggregator.h"
 #endif
 #endif /* BXPT_HAS_MULTICHANNEL_PLAYBACK */
@@ -87,9 +87,11 @@ static void NEXUS_Playpump_P_InstallRangeErrIntHandler(NEXUS_PlaypumpHandle p);
 static void NEXUS_Playpump_P_UninstallRangeErrIntHandler(NEXUS_PlaypumpHandle p);
 static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings *pSettings);
 static NEXUS_Error NEXUS_Playpump_P_SetPause( NEXUS_PlaypumpHandle p);
+#if !NEXUS_USE_OTT_TRANSPORT
 static void NEXUS_Playpump_P_TeiError_isr(void *context, int param);
 #if defined BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT || defined BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_STATUS_MCPB_MISC_OOS_INTR_DEFAULT
 static void NEXUS_Playpump_P_OutOfSyncError_isr(void *context, int param);
+#endif
 #endif
 
 void NEXUS_Playpump_GetDefaultOpenPidChannelSettings_priv(NEXUS_Playpump_OpenPidChannelSettings_priv *pSettings)
@@ -309,6 +311,7 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto error;
     }
+#if !NEXUS_USE_OTT_TRANSPORT
     rc = BINT_CreateCallback(&p->teiErrorInt, g_pCoreHandles->bint,
     BXPT_Playback_GetIntId(p->xpt_play, BXPT_PbInt_eTeiError),
     NEXUS_Playpump_P_TeiError_isr, p, 0);
@@ -324,6 +327,7 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
     rc = BINT_EnableCallback(p->outOfSyncErrorInt);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
     #endif
+#endif
 
     rc = NEXUS_Playpump_P_SetParserBand(p, &p->settings);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto error;}
@@ -993,8 +997,10 @@ static NEXUS_Error NEXUS_Playpump_Start_priv(NEXUS_PlaypumpHandle p, bool muxInp
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
     if(p->openSettings.descriptorPacingEnabled)
     {
+#if BXPT_HAS_TSMUX
         cfg.DescBasedPacing = true;
         cfg.Use8WordDesc = true;
+#endif
         cfg.TimestampEn = false;
     }
 #endif
@@ -1183,8 +1189,6 @@ void NEXUS_Playpump_Stop(NEXUS_PlaypumpHandle p)
         NEXUS_Profile_Stop("NEXUS_Playpump");
     }
 
-    NEXUS_CancelCallbacks(p);
-
     return;
 }
 
@@ -1362,19 +1366,19 @@ NEXUS_Error NEXUS_Playpump_SubmitScatterGatherDescriptor(NEXUS_PlaypumpHandle p,
     return 0;
 }
 
-#if 0
-static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatus *pStatus)
+static unsigned NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, size_t fifoDepth)
 {
+    unsigned softwareFifoDelay = 0;
     if(!p->state.running) {
-        return;
+        return 0;
     }
 #if B_HAS_MEDIA
     if(p->state.packetizer==b_play_packetizer_media) {
-        return;
+        return 0;
     }
 #endif
     if(p->state.packetizer==b_play_packetizer_crypto) {
-        return;
+        return 0;
     }
     if(p->state.queued_in_hw) {
         BERR_Code rc;
@@ -1389,7 +1393,6 @@ static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_Playp
                 BMMA_DeviceOffset descDeviceOffset = NEXUS_AddrToOffset(item->desc.addr);
                 unsigned delta;
 
-
                 if(lastCompletedDataAddress >= (descDeviceOffset + item->skip) && lastCompletedDataAddress< (descDeviceOffset+ item->desc.length)) { /* check if HW running through current descriptor */
                     delta = (lastCompletedDataAddress - descDeviceOffset);
                     foundDescriptor = true;
@@ -1397,8 +1400,10 @@ static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_Playp
                     delta = item->desc.length;
                 }
                 deltaFifoDepth+=delta;
-                BDBG_MSG(("%p:adjusting FIFO depth " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "(" BDBG_UINT64_FMT ") %u->%u", (void *)p, BDBG_UINT64_ARG(descDeviceOffset+item->skip), BDBG_UINT64_ARG(descDeviceOffset+item->desc.length), BDBG_UINT64_ARG(lastCompletedDataAddress), (unsigned)pStatus->fifoDepth,pStatus->fifoDepth>=deltaFifoDepth?(unsigned)pStatus->fifoDepth-deltaFifoDepth:0));
-                if(deltaFifoDepth>pStatus->fifoDepth) {
+                BDBG_MSG(("%p:adjusting FIFO depth " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "(" BDBG_UINT64_FMT ") %u->%u", (void *)p,
+                    BDBG_UINT64_ARG(descDeviceOffset+item->skip), BDBG_UINT64_ARG(descDeviceOffset+item->desc.length), BDBG_UINT64_ARG(lastCompletedDataAddress),
+                    (unsigned)fifoDepth, fifoDepth-softwareFifoDelay>=deltaFifoDepth?(unsigned)fifoDepth-(softwareFifoDelay+deltaFifoDepth):0));
+                if(deltaFifoDepth>fifoDepth-softwareFifoDelay) {
                     deltaFifoDepth = 0;
                     break;
                 }
@@ -1408,16 +1413,15 @@ static void NEXUS_Playpump_P_AdjustFifoDepth(NEXUS_PlaypumpHandle p, NEXUS_Playp
                 BFIFO_READ_COMMIT(&copyOfactiveFifo, 1);
             }
             if(foundDescriptor) {
-                BDBG_MSG(("%p:adjusting FIFO depth (" BDBG_UINT64_FMT ") %u->%u", (void *)p, BDBG_UINT64_ARG(lastCompletedDataAddress), (unsigned)pStatus->fifoDepth, (unsigned)pStatus->fifoDepth-deltaFifoDepth));
-                pStatus->fifoDepth -= deltaFifoDepth;
+                BDBG_MSG(("%p:adjusting FIFO depth (" BDBG_UINT64_FMT ") %u->%u", (void *)p, BDBG_UINT64_ARG(lastCompletedDataAddress), (unsigned)fifoDepth, (unsigned)fifoDepth-(softwareFifoDelay+deltaFifoDepth)));
+                softwareFifoDelay += deltaFifoDepth;
             } else {
                 BDBG_MSG(("%p:not found descriptor for " BDBG_UINT64_FMT "", (void *)p, BDBG_UINT64_ARG(lastCompletedDataAddress)));
             }
         }
     }
-    return;
+    return softwareFifoDelay;
 }
-#endif
 
 NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatus *pStatus)
 {
@@ -1454,6 +1458,8 @@ NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatu
         if (sum) {
             pStatus->fifoSize = sum;
         }
+    } else {
+        pStatus->softwareFifoDelay = NEXUS_Playpump_P_AdjustFifoDepth(p, pStatus->fifoDepth);
     }
 
 #if B_HAS_MEDIA
@@ -1831,6 +1837,7 @@ NEXUS_Error NEXUS_Playpump_SuspendPacing( NEXUS_PlaypumpHandle p, bool suspended
     return 0;
 }
 
+#if !NEXUS_USE_OTT_TRANSPORT
 static void NEXUS_Playpump_P_PacingErr_isr( void *playpump, int param2 )
 {
     NEXUS_PlaypumpHandle p = (NEXUS_PlaypumpHandle)playpump;
@@ -1838,9 +1845,13 @@ static void NEXUS_Playpump_P_PacingErr_isr( void *playpump, int param2 )
     p->state.pacingTsRangeError++;
     return;
 }
+#endif
 
 static void NEXUS_Playpump_P_InstallRangeErrIntHandler(NEXUS_PlaypumpHandle p)
 {
+#if NEXUS_USE_OTT_TRANSPORT
+    BSTD_UNUSED(p);
+#else
     BERR_Code rc;
     rc = BINT_CreateCallback(&p->pacingErrIntCallback, g_pCoreHandles->bint, BXPT_Playback_GetIntId(p->xpt_play, BXPT_PbInt_eTsRangeErr),
         NEXUS_Playpump_P_PacingErr_isr, ( void * ) p, 0 );
@@ -1848,6 +1859,7 @@ static void NEXUS_Playpump_P_InstallRangeErrIntHandler(NEXUS_PlaypumpHandle p)
         rc = BINT_EnableCallback(p->pacingErrIntCallback);
     }
     if (rc) {rc = BERR_TRACE(rc);}
+#endif
 }
 
 static void NEXUS_Playpump_P_UninstallRangeErrIntHandler(NEXUS_PlaypumpHandle p)
@@ -1855,6 +1867,7 @@ static void NEXUS_Playpump_P_UninstallRangeErrIntHandler(NEXUS_PlaypumpHandle p)
     (void)BINT_DestroyCallback(p->pacingErrIntCallback);
 }
 
+#if !NEXUS_USE_OTT_TRANSPORT
 static void NEXUS_Playpump_P_CCError_isr(void *context, int param)
 {
     NEXUS_PlaypumpHandle p = context;
@@ -1880,9 +1893,14 @@ static void NEXUS_Playpump_P_OutOfSyncError_isr(void *context, int param)
     p->state.syncErrors++;
 }
 #endif
+#endif
 
 static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings *pSettings)
 {
+#if NEXUS_USE_OTT_TRANSPORT
+    BSTD_UNUSED(p);
+    BSTD_UNUSED(pSettings);
+#else
     BERR_Code rc;
 
     /* only enable certain interrupts when their callbacks are desired. this helps typical system performance. */
@@ -1904,7 +1922,7 @@ static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const 
 
     NEXUS_IsrCallback_Set(p->ccErrorCallback, &pSettings->ccError);
     NEXUS_IsrCallback_Set(p->teiErrorCallback, &pSettings->teiError);
-
+#endif
     return 0;
 }
 

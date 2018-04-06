@@ -1,9 +1,9 @@
 BCHP_V3D_HUB_CTL_H = $(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER)/bchp_v3d_hub_ctl.h
 V3D_TECH_VERSION = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT1_TVER_DEFAULT | awk '{printf "%d", strtonum($$3)}')
 V3D_REVISION = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT1_REV_DEFAULT | awk '{printf "%d", strtonum($$3)}')
-V3D_SUB_REV = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep 'BCHP_V3D_HUB_CTL_IDENT3_\\(IP\\|SUB\\)REV_DEFAULT' | awk '{printf "%d", strtonum($$3)}')
+V3D_SUB_REV = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep 'BCHP_V3D_HUB_CTL_IDENT3_\(IP\|SUB\)REV_DEFAULT' | awk '{printf "%d", strtonum($$3)}')
 V3D_VER_AT_LEAST_3_3_0 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSION) $(V3D_REVISION) $(V3D_SUB_REV)` \>= 30300)
-V3D_VER_AT_LEAST_4_1_0 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSION) $(V3D_REVISION) $(V3D_SUB_REV)` \>= 40100)
+V3D_VER_AT_LEAST_4_1_34 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSION) $(V3D_REVISION) $(V3D_SUB_REV)` \>= 40134)
 
 # Sources common to both GLES and Vulkan
 COMMON_SRC_FILES :=                                             \
@@ -360,7 +360,6 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/Common.cpp                               \
 	libs/vulkan/driver/ControlListBuilder.cpp                   \
 	libs/vulkan/driver/DebugReportCallbackEXT.cpp               \
-	libs/vulkan/driver/DerivedViewportState.cpp                 \
 	libs/vulkan/driver/DescriptorPool.cpp                       \
 	libs/vulkan/driver/DescriptorSet.cpp                        \
 	libs/vulkan/driver/DescriptorSetLayout.cpp                  \
@@ -397,7 +396,7 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/Semaphore.cpp                            \
 	libs/vulkan/driver/ShaderModule.cpp                         \
 	libs/vulkan/driver/SwapchainKHR.cpp                         \
-	libs/vulkan/driver/TileStateMemory.cpp                      \
+	libs/vulkan/driver/Viewport.cpp                             \
 	libs/vulkan/driver/spirv/Module.cpp                         \
 	libs/vulkan/driver/spirv/ModuleAllocator.cpp                \
 	libs/vulkan/driver/spirv/Compiler.cpp                       \

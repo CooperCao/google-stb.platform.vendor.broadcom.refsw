@@ -43,6 +43,10 @@
 #include "bape_priv.h"
 #include "bape_buffer.h"
 
+#if defined BCHP_DVP_CFG_REG_START
+#include "bape_dma_output_priv.h"
+#endif
+
 BDBG_MODULE(bape_mai_output);
 BDBG_FILE_MODULE(bape_loudness);
 BDBG_FILE_MODULE(bape_fci);
@@ -90,6 +94,10 @@ typedef struct BAPE_MaiOutput
     BAPE_MaiOutputDataPath dataPath;
     bool lowLatencyMode;
     bool honorHwMute;
+
+#if defined BCHP_DVP_CFG_REG_START
+    BAPE_DmaOutputHandle dma;
+#endif
 } BAPE_MaiOutput;
 
 #define BAPE_MAI_OUTPUT_MAX_CHANNEL_PAIRS 4
@@ -125,6 +133,9 @@ static void      BAPE_MaiOutput_P_SetMute(BAPE_OutputPort output, bool muted, bo
 
 /* Implementations for Legacy vs. New [7429] Hardware */
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
+/* New */
+#define Impl IopOut
+
 #include "bchp_aud_fmm_iop_out_mai_0.h"
 
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_1_REG_START
@@ -175,7 +186,44 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_IopOut(BAPE_MaiOutputHandle han
 #define BAPE_MAI_Reg_P_GetAddress(Register, idx) BAPE_Reg_P_GetAddress(Register, BAPE_MAI_0_START, BAPE_MAI_START, idx)
 #define BAPE_MAI_Reg_P_GetArrayAddress(Register, i, idx) BAPE_MAI_Reg_P_GetAddress(BAPE_Reg_P_GetArrayAddress(Register, i), idx)
 
+#elif defined BCHP_DVP_CFG_REG_START
+/* OTT */
+#define Impl Ott
+
+#include "bchp_dvp_cfg.h"
+static BERR_Code BAPE_MaiOutput_P_Open_Ott(BAPE_MaiOutputHandle handle);
+static void      BAPE_MaiOutput_P_Close_Ott(BAPE_MaiOutputHandle handle);
+static void      BAPE_MaiOutput_P_SetCbits_Ott_isr(BAPE_MaiOutputHandle handle);
+static BERR_Code BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output);
+static void      BAPE_MaiOutput_P_Disable_Ott(BAPE_OutputPort output);
+static void      BAPE_MaiOutput_P_SetMclk_Ott_isr(BAPE_OutputPort output, BAPE_MclkSource mclkSource, unsigned pllChannel, unsigned mclkFreqToFsRatio);
+static BERR_Code BAPE_MaiOutput_P_OpenHw_Ott(BAPE_MaiOutputHandle handle);
+static void      BAPE_MaiOutput_P_CloseHw_Ott(BAPE_MaiOutputHandle handle);
+static void      BAPE_MaiOutput_P_SetCrossbar_Ott(BAPE_MaiOutputHandle handle, BAPE_StereoMode stereoMode);
+static void      BAPE_MaiOutput_P_SetMute_Ott(BAPE_OutputPort output, bool muted);
+static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Ott(BAPE_MaiOutputHandle handle);
+
+#define  BAPE_MAI_0_START BCHP_DVP_CFG_MAI0_CTL
+#define  BAPE_MAI_0_END   BCHP_DVP_CFG_MAI0_SMP
+
+#if BAPE_CHIP_MAX_MAI_OUTPUTS > 1
+    #define  BAPE_MAI_1_START BCHP_DVP_CFG_MAI1_CTL
+    #define  BAPE_MAI_1_END   BCHP_DVP_CFG_MAI1_SMP
+    #if ((BAPE_MAI_0_END-BAPE_MAI_0_START) != (BAPE_MAI_1_END-BAPE_MAI_1_START))
+        #error "MAI interfaces present with different sizes"
+    #endif
+    #define  BAPE_MAI_START(idx) ((idx==1)?BAPE_MAI_1_START:BAPE_MAI_0_START)
 #else
+    #define  BAPE_MAI_START(idx) BAPE_MAI_0_START
+#endif
+
+#define BAPE_MAI_Reg_P_GetAddress(Register, idx) BAPE_Reg_P_GetAddress(Register, BAPE_MAI_0_START, BAPE_MAI_START, idx)
+#define BAPE_MAI_Reg_P_GetArrayAddress(Register, i, idx) BAPE_MAI_Reg_P_GetAddress(BAPE_Reg_P_GetArrayAddress(Register, i), idx)
+
+#else
+/* Legacy */
+#define Impl Legacy
+
 static const uint16_t g_pauseburst[6] = {0xf872, 0x4e1f, 0x0003, 0x0020, 0x0000, 0x0000};
 static const uint16_t g_nullburst[4] = {0xf872, 0x4e1f, 0xe000, 0x0000};
 
@@ -265,7 +313,11 @@ BERR_Code BAPE_MaiOutput_Open(
     handle->deviceHandle = deviceHandle;
     handle->index = index;
     BAPE_P_InitOutputPort(&handle->outputPort, BAPE_OutputPortType_eMaiOutput, index, handle);
+#if defined BCHP_DVP_CFG_REG_START
+    BAPE_FMT_P_EnableSource(&handle->outputPort.capabilities, BAPE_DataSource_eHostBuffer);
+#else
     BAPE_FMT_P_EnableSource(&handle->outputPort.capabilities, BAPE_DataSource_eFci);
+#endif
     BAPE_FMT_P_EnableType(&handle->outputPort.capabilities, BAPE_DataType_ePcmStereo);
     BAPE_FMT_P_EnableType(&handle->outputPort.capabilities, BAPE_DataType_ePcm5_1);
     BAPE_FMT_P_EnableType(&handle->outputPort.capabilities, BAPE_DataType_ePcm7_1);
@@ -307,6 +359,8 @@ BERR_Code BAPE_MaiOutput_Open(
 
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     errCode = BAPE_MaiOutput_P_Open_IopOut(handle);
+#elif defined BCHP_DVP_CFG_REG_START
+    errCode = BAPE_MaiOutput_P_Open_Ott(handle);
 #else
     errCode = BAPE_MaiOutput_P_Open_Legacy(handle);
 #endif
@@ -362,6 +416,8 @@ void BAPE_MaiOutput_Close(
 
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_Close_IopOut(handle);
+#elif defined BCHP_DVP_CFG_REG_START
+    BAPE_MaiOutput_P_Close_Ott(handle);
 #else
     BAPE_MaiOutput_P_Close_Legacy(handle);
 #endif
@@ -559,6 +615,8 @@ static BERR_Code BAPE_MaiOutput_P_Enable(BAPE_OutputPort output)
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     return BAPE_MaiOutput_P_Enable_IopOut(output);
+#elif defined BCHP_DVP_CFG_REG_START
+    return BAPE_MaiOutput_P_Enable_Ott(output);
 #else
     return BAPE_MaiOutput_P_Enable_Legacy(output);
 #endif
@@ -570,6 +628,8 @@ static void BAPE_MaiOutput_P_Disable(BAPE_OutputPort output)
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_Disable_IopOut(output);
+#elif defined BCHP_DVP_CFG_REG_START
+    return BAPE_MaiOutput_P_Disable_Ott(output);
 #else
     BAPE_MaiOutput_P_Disable_Legacy(output);
 #endif
@@ -581,6 +641,8 @@ static void BAPE_MaiOutput_P_SetMclk_isr(BAPE_OutputPort output, BAPE_MclkSource
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_SetMclk_IopOut_isr(output, mclkSource, pllChannel, mclkFreqToFsRatio);
+#elif defined BCHP_DVP_CFG_REG_START
+    BAPE_MaiOutput_P_SetMclk_Ott_isr(output, mclkSource, pllChannel, mclkFreqToFsRatio);
 #else
     BAPE_MaiOutput_P_SetMclk_Legacy_isr(output, mclkSource, pllChannel, mclkFreqToFsRatio);
 #endif
@@ -593,6 +655,8 @@ static void      BAPE_MaiOutput_P_SetMute(BAPE_OutputPort output, bool muted, bo
     BSTD_UNUSED(sync);
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_SetMute_IopOut(output, muted);
+#elif defined BCHP_DVP_CFG_REG_START
+    BAPE_MaiOutput_P_SetMute_Ott(output, muted);
 #else
     BAPE_MaiOutput_P_SetMute_Legacy(output, muted);
 #endif
@@ -606,6 +670,8 @@ static void BAPE_MaiOutput_P_SetCbits_isr(BAPE_MaiOutputHandle handle)
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_SetCbits_IopOut_isr(handle);
+#elif defined BCHP_DVP_CFG_REG_START
+    BAPE_MaiOutput_P_SetCbits_Ott_isr(handle);
 #else
     BAPE_MaiOutput_P_SetCbits_Legacy_isr(handle);
 #endif
@@ -617,6 +683,8 @@ static BERR_Code BAPE_MaiOutput_P_OpenHw(BAPE_MaiOutputHandle handle)
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     return BAPE_MaiOutput_P_OpenHw_IopOut(handle);
+#elif defined BCHP_DVP_CFG_REG_START
+    return BAPE_MaiOutput_P_OpenHw_Ott(handle);
 #else
     return BAPE_MaiOutput_P_OpenHw_Legacy(handle);
 #endif
@@ -628,6 +696,8 @@ static void BAPE_MaiOutput_P_CloseHw(BAPE_MaiOutputHandle handle)
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_CloseHw_IopOut(handle);
+#elif defined BCHP_DVP_CFG_REG_START
+    return BAPE_MaiOutput_P_CloseHw_Ott(handle);
 #else
     BAPE_MaiOutput_P_CloseHw_Legacy(handle);
 #endif
@@ -637,6 +707,8 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig(BAPE_MaiOutputHandle handle)
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     return BAPE_MaiOutput_P_SetBurstConfig_IopOut(handle);
+#elif defined BCHP_DVP_CFG_REG_START
+    return BAPE_MaiOutput_P_SetBurstConfig_Ott(handle);
 #else
     return BAPE_MaiOutput_P_SetBurstConfig_Legacy(handle);
 #endif
@@ -648,6 +720,8 @@ static BERR_Code BAPE_MaiOutput_P_SetCrossbar(BAPE_MaiOutputHandle handle, BAPE_
 {
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_SetCrossbar_IopOut(handle, stereoMode);
+#elif defined BCHP_DVP_CFG_REG_START
+    BAPE_MaiOutput_P_SetCrossbar_Ott(handle, stereoMode);
 #else
     BAPE_MaiOutput_P_SetCrossbar_Legacy(handle, stereoMode);
 #endif
@@ -1398,6 +1472,262 @@ static void      BAPE_MaiOutput_P_SetCrossbar_IopOut(BAPE_MaiOutputHandle handle
     }
     #endif
 
+}
+
+#elif defined BCHP_DVP_CFG_REG_START
+/**************************************************************************
+OTT style MAI
+**************************************************************************/
+
+static BERR_Code
+BAPE_MaiOutput_P_Open_Ott(BAPE_MaiOutputHandle handle)
+{
+    BSTD_UNUSED(handle);
+    handle->dma = BAPE_DmaOutput_P_Open(handle->deviceHandle);
+    return BERR_SUCCESS;
+}
+
+static void
+BAPE_MaiOutput_P_Close_Ott(BAPE_MaiOutputHandle handle)
+{
+    BSTD_UNUSED(handle);
+}
+
+static bool
+BAPE_MaiOutput_P_SampleRateToPeriod_isrsafe(unsigned sampleRate, unsigned *_n, unsigned *_m)
+{
+    uint64_t srcf = 108000000;
+    unsigned m;
+
+    for (m = 0; m < 256; m++, srcf += 108000000) {
+        if (srcf % sampleRate == 0) {
+            break;
+        }
+    }
+    if (m == 256) {
+        return false;
+    }
+    *_n = srcf / sampleRate;
+    *_m = m;
+    return true;
+}
+
+static void
+BAPE_MaiOutput_P_SetCbits_Ott_isr(BAPE_MaiOutputHandle handle)
+{
+    BAPE_Reg_P_FieldList regFieldList;
+    uint32_t regAddr;
+    unsigned hbr = 0;
+    BAPE_DataType dataType = BAPE_DataType_ePcmStereo;
+    bool compressed = false;
+    bool compressedAsPcm = false;
+    unsigned channels = 2;
+    unsigned n, m;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
+
+    if ( handle->outputPort.mixer )
+    {
+        const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
+
+        dataType = pBfd->type;
+        hbr = (unsigned)BAPE_FMT_P_IsHBR_isrsafe(pBfd);
+        compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
+        compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pBfd);
+        channels = hbr ? 8 : BAPE_FMT_P_GetNumChannels_isrsafe(pBfd);
+    }
+
+    BDBG_MSG(("Set MAI CBITS SR %u, hbr %d, compressed %u, compressedAsPcm %u, channels %d",
+              handle->sampleRate, hbr, compressed, compressedAsPcm, channels));
+
+    /* Program MAI format correctly */
+    if ( handle->outputPort.mixer )
+    {
+        regAddr = BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_FMT, handle->index);
+        BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
+
+        if ( compressed && !compressedAsPcm )
+        {
+            if ( hbr )
+            {
+                BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, AUDIO_FORMAT, HBR_compressed_8_channel);
+            }
+            else
+            {
+                BAPE_Reg_P_AddToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, AUDIO_FORMAT, 0xc2);
+            }
+        }
+        else
+        {
+            switch ( dataType )
+            {
+            case BAPE_DataType_ePcm5_1:
+                BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, AUDIO_FORMAT, SPDIF_linearPCM_6_channel);
+                break;
+            case BAPE_DataType_ePcm7_1:
+                BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, AUDIO_FORMAT, SPDIF_linearPCM_8_channel);
+                break;
+            default:
+            case BAPE_DataType_ePcmStereo:
+                BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, AUDIO_FORMAT, SPDIF_linearPCM_stereo);
+                break;
+            }
+            BAPE_Reg_P_AddToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, SAMPLE_WIDTH, 0); /* 32 bits per sample */
+        }
+
+        if ( compressed || compressedAsPcm )
+        {
+            BAPE_Reg_P_AddToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT, SAMPLE_WIDTH, 16);
+        }
+
+        if ( hbr )
+        {
+            BAPE_Reg_P_AddToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT,
+                                          SAMPLE_RATE, BAPE_MaiOutput_P_SampleRateToMaiFormat_isrsafe(192000));
+        }
+        else
+        {
+            BAPE_Reg_P_AddToFieldList_isr(&regFieldList, HDMI_MAI_FORMAT,
+                                          SAMPLE_RATE, BAPE_MaiOutput_P_SampleRateToMaiFormat_isrsafe(handle->sampleRate));
+        }
+
+        BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, regAddr);
+
+        /* Set sampling period */
+
+        regAddr = BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_SMP, handle->index);
+        BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
+        n = m = 0;
+        if (!BAPE_MaiOutput_P_SampleRateToPeriod_isrsafe(hbr ? 192000 : handle->sampleRate, &n, &m)) {
+            BDBG_ERR(("can't accurately set MAI sample period for %d", hbr ? 192000 : handle->sampleRate));
+        }
+        BAPE_Reg_P_AddToFieldList_isr(&regFieldList, DVP_CFG_MAI0_SMP, SMP_N, n);
+        BAPE_Reg_P_AddToFieldList_isr(&regFieldList, DVP_CFG_MAI0_SMP, SMP_M, m);
+        BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, regAddr);
+
+        /* Set #channels */
+
+        regAddr = BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_CTL, handle->index);
+        BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
+        BAPE_Reg_P_AddToFieldList_isr(&regFieldList, DVP_CFG_MAI0_CTL, CHNUM, channels);
+        BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, regAddr);
+    }
+
+    return;
+}
+
+static BERR_Code
+BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
+{
+    BAPE_MaiOutputHandle handle;
+    BERR_Code rc;
+
+    handle = output->pHandle;
+    BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
+    if (output->mixer == NULL) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle);
+    if (rc != BERR_SUCCESS) {
+        return BERR_TRACE(rc);
+    }
+    rc = BAPE_DmaOutput_P_Enable(handle->dma, true);
+    if (rc != BERR_SUCCESS) {
+        BAPE_DmaOutput_P_UnBind(handle->dma);
+        return BERR_TRACE(rc);
+    }
+
+    /* Update CBITS */
+    BKNI_EnterCriticalSection();
+    BAPE_MaiOutput_P_SetCbits_isr(handle);
+    BKNI_LeaveCriticalSection();
+
+    /* enable MAI */
+    {
+        uint32_t reg = BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_CTL, handle->index);
+        uint32_t ctl = BREG_Read32(handle->deviceHandle->regHandle, reg);
+        if ((ctl & BCHP_MASK(DVP_CFG_MAI0_CTL, ENABLE)) == 0) {
+            ctl |= BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, ENABLE, 1);
+            BREG_Write32(handle->deviceHandle->regHandle, reg, ctl);
+            BREG_Write32(handle->deviceHandle->regHandle, reg, ctl | BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, FLUSH, 1));
+        }
+    }
+
+    return BERR_SUCCESS;
+}
+
+static void
+BAPE_MaiOutput_P_Disable_Ott(BAPE_OutputPort output)
+{
+    BAPE_MaiOutputHandle handle;
+
+    handle = output->pHandle;
+    BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
+
+    /* disable MAI */
+    BAPE_DmaOutput_P_UnBind(handle->dma);
+}
+
+static void
+BAPE_MaiOutput_P_SetMclk_Ott_isr(BAPE_OutputPort output, BAPE_MclkSource mclkSource, unsigned pllChannel, unsigned mclkFreqToFsRatio)
+{
+    BSTD_UNUSED(output);
+    BSTD_UNUSED(mclkSource);
+    BSTD_UNUSED(pllChannel);
+    BSTD_UNUSED(mclkFreqToFsRatio);
+}
+
+static BERR_Code
+BAPE_MaiOutput_P_OpenHw_Ott(BAPE_MaiOutputHandle handle)
+{
+    uint32_t reg = BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_CTL, handle->index);
+    uint32_t ctl =
+        BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, CHALIGN, 1)
+        | BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, WHOLSMP, 1)
+        | BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, CHNUM, 2);
+    uint32_t clr =
+        BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, DLATE, 1)
+        | BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, ERRORE, 1)
+        | BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, ERRORF, 1);
+    BREG_Write32(handle->deviceHandle->regHandle, reg, BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, RST_MAI, 1));
+    BREG_Write32(handle->deviceHandle->regHandle, reg, clr);
+    BREG_Write32(handle->deviceHandle->regHandle, reg, ctl);
+    /* DMA thresholds (from Patrick, ??units??)
+     * panic high: 0x32
+     * panic low: 0x08
+     * dreq high: 0x01
+     * dreq low: 0x01
+     */
+    BREG_Write32(handle->deviceHandle->regHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_THR, handle->index), 0x32080108);
+
+    return BERR_SUCCESS;
+}
+
+static void
+BAPE_MaiOutput_P_CloseHw_Ott(BAPE_MaiOutputHandle output)
+{
+    BSTD_UNUSED(output);
+}
+
+static void
+BAPE_MaiOutput_P_SetCrossbar_Ott(BAPE_MaiOutputHandle output, BAPE_StereoMode stereoMode)
+{
+    BSTD_UNUSED(output);
+    BSTD_UNUSED(stereoMode);
+}
+
+static void
+BAPE_MaiOutput_P_SetMute_Ott(BAPE_OutputPort output, bool muted)
+{
+    BSTD_UNUSED(output);
+    BSTD_UNUSED(muted);
+}
+
+static BERR_Code
+BAPE_MaiOutput_P_SetBurstConfig_Ott(BAPE_MaiOutputHandle output)
+{
+    BSTD_UNUSED(output);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 #else

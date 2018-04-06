@@ -47,7 +47,7 @@ NEXUS_TOP := $(B_REFSW_TOP)/nexus
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
-include cjson.inc
+include ${WORKING_DIR}/cjson.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
@@ -84,8 +84,6 @@ ifneq ($(B_REFSW_CJSON_IS_EXTERNAL),y)
 		if [ -e "${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL}" ]; then \
 			echo "================ Extracting ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL}  CJSON $(CJSON_VER) tarball"; \
 			(cd ${CJSON_TAR_PATH} && unzip -o ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL} >/dev/null ) ; \
-			echo "================ Patching Using $(abspath ${CJSON_BUILD_DIR})/patch.txt"; \
-            (cd ${CJSON_SOURCE_PATH} && patch < ${CJSON_BUILD_DIR}/patch.txt >/dev/null ) ; \
 		else \
 			echo "Tarball ${CJSON_TAR_PATH}/${CJSON_SOURCE_TARBALL} is missing"; exit 1;\
 		fi ${B_CJSON_EXTRACT_REDIR};\

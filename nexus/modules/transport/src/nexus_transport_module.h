@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -105,6 +105,13 @@
 #include "blst_queue.h"
 
 #include "bxpt.h"
+#if NEXUS_USE_OTT_TRANSPORT
+#include "bott_xpt_bxpt_compat.h"
+#ifdef BCHP_OTT_XPT_CDB_ITB_REG_START
+#include "bchp_cdb_itd_rdb_remap.h"
+#endif
+#endif
+
 /* BXPT_HAS_DIRECTV_SUPPORT means the HW supports it and is hardcoded in XPT.
 B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #if B_REFSW_DSS_SUPPORT
@@ -121,8 +128,9 @@ B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #include "bxpt_directv_pcroffset.h"
 #endif
 #include "bpcrlib.h"
+#ifdef BCHP_XPT_RAVE_REG_START
 #include "bchp_xpt_rave.h"
-
+#endif
 #if NEXUS_USE_SW_FILTER
 #include "nexus_message_swfilter_priv.h"
 #endif

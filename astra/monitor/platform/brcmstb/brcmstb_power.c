@@ -312,31 +312,31 @@
 #define BCHP_SUN_TOP_CTRL_SW_MASTER_RESET_chip_master_reset_DEFAULT 0x00000000
 
 
-#define BRCMSTB_POWER_TIMEOUT 50000 /* 50000us = 50ms */
-#define BRCMSTB_POWER_RETRIES 10    /* Max time = 50ms * 10 */
+#define BRCMSTB_POWER_TIMEOUT 500000 /* Timeout = 500,000us = 500ms */
+#define BRCMSTB_POWER_WAIT    10     /* Wait = 10us */
 
 static inline int wait_bits_set(uintptr_t raddr, uint32_t bits)
 {
-    int retry = BRCMSTB_POWER_RETRIES;
+    int retry = BRCMSTB_POWER_TIMEOUT / BRCMSTB_POWER_WAIT;
 
     while (retry--) {
         if (MMIO32(raddr) & bits)
             return 0;
-        udelay(BRCMSTB_POWER_TIMEOUT);
+        udelay(BRCMSTB_POWER_WAIT);
     }
-    return -1;
+    return MON_ETIMEDOUT;
 }
 
 static inline int wait_bits_clr(uintptr_t raddr, uint32_t bits)
 {
-    int retry = BRCMSTB_POWER_RETRIES;
+    int retry = BRCMSTB_POWER_TIMEOUT / BRCMSTB_POWER_WAIT;
 
     while (retry--) {
         if (~(MMIO32(raddr) & bits))
             return 0;
-        udelay(BRCMSTB_POWER_TIMEOUT);
+        udelay(BRCMSTB_POWER_WAIT);
     }
-    return -1;
+    return MON_ETIMEDOUT;
 }
 
 int plat_cpu_power_up(

@@ -1104,8 +1104,9 @@ NEXUS_Record_Stop(NEXUS_RecordHandle record)
         NEXUS_LockModule();
     }
 
-    NEXUS_StopCallbacks(record->cfg.recpump);
     NEXUS_Recpump_Stop(record->cfg.recpump);
+    /* must come after NEXUS_Recpump_Stop. this stops and clears callbacks, removes the stopped state */
+    NEXUS_StopCallbacks(record->cfg.recpump);
     NEXUS_StartCallbacks(record->cfg.recpump);
 
     if (record->index.info.index.indexer) {

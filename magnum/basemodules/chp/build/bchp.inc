@@ -56,6 +56,7 @@ MAGNUM_MODULES += BCHP
 # Always include support for the chip specified by BCHP_CHIP and BCHP_VER
 #
 BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/common
+BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/remap
 BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/$(BCHP_CHIP)/common
 
 include $(MAGNUM)/basemodules/chp/build/bchp_rdb.inc

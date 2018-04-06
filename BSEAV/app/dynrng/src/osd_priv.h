@@ -67,6 +67,12 @@ typedef struct OsdInfoPanel
     OsdPictureInfoView rcv;
 } OsdInfoPanel;
 
+typedef struct OsdDialog
+{
+    BWT_PanelHandle base;
+    BWT_LabelHandle message;
+} OsdDialog;
+
 typedef struct Osd
 {
     OsdCreateSettings createSettings;
@@ -82,6 +88,7 @@ typedef struct Osd
     OsdInfoPanel mosaicInfo;
     OsdInfoPanel pipInfo;
     OsdInfoPanel *current;
+    OsdDialog dialog;
     PlatformModel model;
     BWT_PanelHandle main;
     BWT_PanelHandle video;
@@ -91,6 +98,7 @@ typedef struct Osd
 
 BWT_PanelHandle osd_p_create_main_panel(OsdHandle osd);
 BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, OsdInfoPanel *infoPanel, unsigned textHeight, unsigned numVideos);
+BWT_PanelHandle osd_p_create_dialog_panel(OsdHandle osd);
 
 void osd_label_p_update_dynamic_range(BWT_LabelHandle label, PlatformDynamicRange eotf);
 void osd_label_p_update_processing(BWT_LabelHandle label, PlatformTriState plm);

@@ -37,28 +37,28 @@
  **************************************************************************/
 
 /***************************************************************************
-Overview: 
- 
-The wakeup module within XPT allows the chip to be brought out of a 
-powerdown/standby state when a special "wakeup" transport packet is received 
-at the XPT front-end. Two independent interrupts can be triggered when such 
-a packet is captured: one interrupt to Power Mangement Unit and another to 
-the host MIPS. 
- 
-Note that the interrupt to the PMU is a level type, and will stay asserted 
-until the MIPS clears it. The interrupt is 
- 
-Almost any packet can serve as a "wakeup". The hardware implements a bit-wise 
-filter, against which all incoming packets are compared. The filter allows 
-for both individual bit-wise matches and for sequences of bits that must 
-match. Up to 4 indepedent filters can used simulatenously. A status API 
-allows the MIPS to determine which of the filters successfully matched. 
- 
-The filter matching is done completely in the XPT_WAKEUP hardware block, 
-which allows the rest of XPT to be powered down. This also means that 
-it's not necessary to allocate or configure a PID channel or parser. 
- 
-The type of wake-up packet to be detected is fully configurable by 
+Overview:
+
+The wakeup module within XPT allows the chip to be brought out of a
+powerdown/standby state when a special "wakeup" transport packet is received
+at the XPT front-end. Two independent interrupts can be triggered when such
+a packet is captured: one interrupt to Power Mangement Unit and another to
+the host MIPS.
+
+Note that the interrupt to the PMU is a level type, and will stay asserted
+until the MIPS clears it. The interrupt is
+
+Almost any packet can serve as a "wakeup". The hardware implements a bit-wise
+filter, against which all incoming packets are compared. The filter allows
+for both individual bit-wise matches and for sequences of bits that must
+match. Up to 4 indepedent filters can used simulatenously. A status API
+allows the MIPS to determine which of the filters successfully matched.
+
+The filter matching is done completely in the XPT_WAKEUP hardware block,
+which allows the rest of XPT to be powered down. This also means that
+it's not necessary to allocate or configure a PID channel or parser.
+
+The type of wake-up packet to be detected is fully configurable by
 through the PI, according to the following settings:
 -   Packet length - defines the number of bytes to be compared.
 -   Compare byte - 8-bit value to compare against.
@@ -76,15 +76,15 @@ The compare mask_type is defined as:
     against 8-bit mask.
 -   10b ("2") and 11b ("3"):
 -   All bytes within a contiguous series of 2s or 3s must match
-    ("logical AND") in order for a partial match, for that series, 
-    to be generated; 
+    ("logical AND") in order for a partial match, for that series,
+    to be generated;
 -   Partial results from all independent "2" and "3" series are ORed
-    together. The result is then ANDed with the result from matching 
+    together. The result is then ANDed with the result from matching
     all the "1" bytes.
 
-"2" and "3" mean the same thing. Two levels are used to identify 
-consecutive independent series of 2s or 3s. Of course, a "0", "1" or 
-the end of the packet can also indicate the end of a series of 2s 
+"2" and "3" mean the same thing. Two levels are used to identify
+consecutive independent series of 2s or 3s. Of course, a "0", "1" or
+the end of the packet can also indicate the end of a series of 2s
 or 3s.
 
 Example of byte matching:
@@ -100,13 +100,13 @@ Array content:      1 1 1 1 2 2 2 2 2 3 3 3 3 3 2 2 2 2 2 0 0 1 1
     partial result 1
 -   Bytes 9, 10, 11, 12, 13 are tested for a match partial result 2
 -   Bytes 14, 15, 16, 17, 18 are tested for a match partial result 3
-    IF (partial_result1 == match OR partial_result2 == match OR 
+    IF (partial_result1 == match OR partial_result2 == match OR
     partial_result3 == match) THEN result (all 2s and 3s) = match
 -   Bytes 19, 20 are ignored.
 -   Final result: result(all 1s) and result(all 2s and 3s)
- 
-Sample Code: 
- 
+
+Sample Code:
+
 #include "bstd.h"
 #include "bxpt_priv.h"
 #include "bxpt_wakeup.h"
@@ -119,7 +119,7 @@ Sample Code:
 
 #include <stdio.h>
 
-static void PacketFoundHostIsr( 
+static void PacketFoundHostIsr(
     void *Parm1,
     int Parm2
     )
@@ -130,19 +130,19 @@ static void PacketFoundHostIsr(
 
 static unsigned char CapturedPacket[ BXPT_WAKEUP_PACKET_SIZE ];
 
-/ * 
-This is the pattern in wakeup_packet.ts (streamer version of ib0.dat) 
-Offset Bytes 
------- ----------------------------------------------- 
+/ *
+This is the pattern in wakeup_packet.ts (streamer version of ib0.dat)
+Offset Bytes
+------ -----------------------------------------------
 0002f0 47 12 34 15 12 34 03 46 66 4f 31 00 88 77 66 55
 000300 44 33 ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 * /
-static BXPT_Wakeup_PacketFilter Filter[ BXPT_WAKEUP_PACKET_SIZE ] = 
+static BXPT_Wakeup_PacketFilter Filter[ BXPT_WAKEUP_PACKET_SIZE ] =
 {
     { 0x47, 0xFF, 1 },      / * The packet header, including PID. * /
     { 0x12, 0xFF, 1 },
     { 0x34, 0xFF, 1 },
-    { 0x15, 0xFF, 1 },      
+    { 0x15, 0xFF, 1 },
 
     { 0x12, 0xFF, 2 },
     { 0x34, 0xFF, 2 },
@@ -162,11 +162,11 @@ static BXPT_Wakeup_PacketFilter Filter[ BXPT_WAKEUP_PACKET_SIZE ] =
     { 0x33, 0xFF, 2 }
 };
 
-void WakeupTest( 
-    BXPT_Handle hXpt 
+void WakeupTest(
+    BXPT_Handle hXpt
     )
 {
-    BXPT_Wakeup_Settings Settings; 
+    BXPT_Wakeup_Settings Settings;
     BINT_CallbackHandle hPacketFoundHostIsrCb;
     BKNI_EventHandle hPacketFoundEvent;
     BXPT_Wakeup_Status Status;
@@ -174,27 +174,27 @@ void WakeupTest(
     BKNI_CreateEvent( &hPacketFoundEvent );
 
     / * Host will need a callback to clear the interrupt to the PMU. * /
-    BINT_CreateCallback( 
-        &hPacketFoundHostIsrCb, 
-        hXpt->hInt, 
+    BINT_CreateCallback(
+        &hPacketFoundHostIsrCb,
+        hXpt->hInt,
         BCHP_INT_ID_PKT_DETECT,
-        PacketFoundHostIsr, 
-        ( void * ) hPacketFoundEvent, 
+        PacketFoundHostIsr,
+        ( void * ) hPacketFoundEvent,
         0 );
     BINT_EnableCallback( hPacketFoundHostIsrCb );
-     
+
     / * Set the filter criterion. Should be done before calling
     BXPT_Wakeup_SetSettings() * /
     BXPT_Wakeup_SetPacketFilterBytes( hXpt, 0, Filter );
 
     / *
-    The interrupt to the PMU is a level type, and will stay asserted until the 
-    source in XPT is cleared. This done by a call to BXPT_Wakeup_ClearInterruptToPMU(). 
-    For that reason, the host interrupt will normally be enabled. 
+    The interrupt to the PMU is a level type, and will stay asserted until the
+    source in XPT is cleared. This done by a call to BXPT_Wakeup_ClearInterruptToPMU().
+    For that reason, the host interrupt will normally be enabled.
     * /
-    BXPT_Wakeup_GetDefaults( &Settings ); 
+    BXPT_Wakeup_GetDefaults( &Settings );
     Settings.InputBand = 5;                 / * 97425 SV board uses IB5 * /
-    BXPT_Wakeup_SetSettings( hXpt, &Settings ); 
+    BXPT_Wakeup_SetSettings( hXpt, &Settings );
     BXPT_Wakeup_Armed( hXpt, true );
 
     BKNI_WaitForEvent( hPacketFoundEvent, BKNI_INFINITE );
@@ -205,7 +205,7 @@ void WakeupTest(
 
     BXPT_Wakeup_ClearInterruptToPMU( hXpt );
     BXPT_Wakeup_GetCapturedPacket( hXpt, CapturedPacket );
-    printf( "Captured packet: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", 
+    printf( "Captured packet: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
             CapturedPacket[ 0 ], CapturedPacket[ 1 ], CapturedPacket[ 2 ], CapturedPacket[ 3 ],
             CapturedPacket[ 4 ], CapturedPacket[ 5 ], CapturedPacket[ 6 ], CapturedPacket[ 7 ],
             CapturedPacket[ 8 ], CapturedPacket[ 9 ], CapturedPacket[ 10 ], CapturedPacket[ 11 ]
@@ -215,7 +215,7 @@ void WakeupTest(
     BINT_DestroyCallback( hPacketFoundHostIsrCb );
     BKNI_DestroyEvent( hPacketFoundEvent );
 }
- 
+
 ***************************************************************************/
 
 #ifndef BXPT_WAKEUP_H__
@@ -228,18 +228,18 @@ extern "C" {
 #endif
 
 /***************************************************************************
-Summary: 
-Miscellaneous constants used by this module.  
+Summary:
+Miscellaneous constants used by this module.
 ****************************************************************************/
 #define BXPT_WAKEUP_PACKET_SIZE         (200)   /* Each filter is 200 bytes. */
 #define BXPT_WAKEUP_MAX_PACKET_TYPE     (3)     /* Up to 4 packet types are supported (0 through 3) */
 
 /***************************************************************************
-Summary: 
-These settings affect all 4 of the packet filters. The default values given 
+Summary:
+These settings affect all 4 of the packet filters. The default values given
 are returned by BXPT_Wakeup_GetDefaults()
 ****************************************************************************/
-typedef struct 
+typedef struct
 {
     /* Which input band to scan for the wakeup packet. */
     unsigned InputBand;         /* Defaults to 0. */
@@ -254,9 +254,9 @@ BXPT_Wakeup_Settings;
 
 /***************************************************************************
 Summary:
-Returns the default values, as described in the BXPT_Wakeup_Settings comment 
-block. 
- 
+Returns the default values, as described in the BXPT_Wakeup_Settings comment
+block.
+
 Returns:
     void
 ****************************************************************************/
@@ -264,11 +264,10 @@ void BXPT_Wakeup_GetDefaults(
     BXPT_Wakeup_Settings *Settings  /* [out] The defaults */
     );
 
-#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
-Returns the actual settings currently used by the hardware. 
- 
+Returns the actual settings currently used by the hardware.
+
 Returns:
     void
 ****************************************************************************/
@@ -276,12 +275,11 @@ void BXPT_Wakeup_GetSettings(
     BXPT_Handle hXpt,                   /* [in] Handle for this transport */
     BXPT_Wakeup_Settings *Settings      /* [out] Current hardware values */
     );
-#endif
 
 /***************************************************************************
 Summary:
-Write the given settings out to the hardware. 
- 
+Write the given settings out to the hardware.
+
 Returns:
     BERR_SUCCESS                - New settings are being used.
     BERR_INVALID_PARAMETER      - One of the Settings values is invalid.
@@ -292,14 +290,14 @@ BERR_Code BXPT_Wakeup_SetSettings(
     );
 
 /***************************************************************************
-Summary: 
-Status of the wakeup block. Note that the Type field should be ignored if 
-Found is false. Found will be reset to false when the wakeup block is 
-re-armed. 
- 
-Note that calling BXPT_Wakeup_ClearInterruptToPMU() will also clear Found.  
+Summary:
+Status of the wakeup block. Note that the Type field should be ignored if
+Found is false. Found will be reset to false when the wakeup block is
+re-armed.
+
+Note that calling BXPT_Wakeup_ClearInterruptToPMU() will also clear Found.
 ****************************************************************************/
-typedef struct 
+typedef struct
 {
     bool Found;         /* true if a wakeup packet was received. */
     unsigned Type;      /* Which packet type filter matched */
@@ -307,11 +305,10 @@ typedef struct
 }
 BXPT_Wakeup_Status;
 
-#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
-Return the current status values from hardware.  
- 
+Return the current status values from hardware.
+
 Returns:
     void
 ****************************************************************************/
@@ -319,17 +316,16 @@ void BXPT_Wakeup_GetStatus(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     BXPT_Wakeup_Status *Status
     );
-#endif
 
 /***************************************************************************
 Summary:
-Clear the wakeup interrupt to the Power Management Unit. This interrupt is 
-set when an incoming packet matches one of the filters. The interrupt remains 
-asserted until this API is called.  
- 
-Note that calling BXPT_Wakeup_ClearInterruptToPMU() will also clear the 
+Clear the wakeup interrupt to the Power Management Unit. This interrupt is
+set when an incoming packet matches one of the filters. The interrupt remains
+asserted until this API is called.
+
+Note that calling BXPT_Wakeup_ClearInterruptToPMU() will also clear the
 Found bool in the status register and BXPT_Wakeup_GetStatus() structure.
- 
+
 Returns:
     void
 ****************************************************************************/
@@ -346,25 +342,25 @@ void BXPT_Wakeup_ClearInterruptToPMU_isr(
     );
 
 /***************************************************************************
-Summary: 
-This struct defines the packet filtering config for a single byte of a 
-transport packet. The full filter is an array of (up to) BXPT_WAKEUP_PACKET_SIZE 
-of these structs. See the discussion and example in the module Overview 
-(above) for more information on how to use create a filter config.  
+Summary:
+This struct defines the packet filtering config for a single byte of a
+transport packet. The full filter is an array of (up to) BXPT_WAKEUP_PACKET_SIZE
+of these structs. See the discussion and example in the module Overview
+(above) for more information on how to use create a filter config.
 ****************************************************************************/
-typedef struct 
+typedef struct
 {
     /* Bit pattern to compare the incoming packet against.  */
     unsigned CompareByte;
 
     /*
-    Defines which bits in the CompareByte are used in the wakeup packet detection. 
+    Defines which bits in the CompareByte are used in the wakeup packet detection.
     0 = Corresponding bit will be ignored and treated as always matching.
-    1 = Corresponding bit will be matched against compare bit value.  
+    1 = Corresponding bit will be matched against compare bit value.
     */
     unsigned Mask;
 
-    /* 
+    /*
     Mask type defines how a series of bytes are matched.
     0 = Ignore byte. No byte comparison will be done.
     1 = All bytes with mask-type of 1 must match, whether they are contiguous or not.                                                                      .
@@ -372,19 +368,19 @@ typedef struct
     2 = All bytes with mask-type of 2 must match, but only within a contiguous series of 2's,                                                             .
         in order for a partial match for that series to be generated.
     3 = All bytes with mask-type of 3 must match, but only within a contiguous series of 3's,                                                             .
-        in order for a partial match for that series to be generated. 
-    */ 
-    unsigned MaskType;   
+        in order for a partial match for that series to be generated.
+    */
+    unsigned MaskType;
 }
 BXPT_Wakeup_PacketFilter;
 
 /***************************************************************************
-Summary: 
-Copy the current filter config to user memory. The caller must allocate the 
-memory into which the config will be copied. For example, 
- 
-BXPT_Wakeup_PacketFilter Filter[ BXPT_WAKEUP_PACKET_SIZE ]; 
- 
+Summary:
+Copy the current filter config to user memory. The caller must allocate the
+memory into which the config will be copied. For example,
+
+BXPT_Wakeup_PacketFilter Filter[ BXPT_WAKEUP_PACKET_SIZE ];
+
 Returns:
     BERR_SUCCESS                - Filter config copied to user memory.
     BERR_INVALID_PARAMETER      - WhichPacketType is out-of-range.
@@ -397,9 +393,9 @@ BERR_Code BXPT_Wakeup_GetPacketFilterBytes(
 
 /***************************************************************************
 Summary:
-Load the given filter config into hardware. The change will take effect 
-immediately. 
- 
+Load the given filter config into hardware. The change will take effect
+immediately.
+
 Returns:
     BERR_SUCCESS                - New filter config is being used.
     BERR_INVALID_PARAMETER      - WhichPacketType is out-of-range.
@@ -412,25 +408,25 @@ BERR_Code BXPT_Wakeup_SetPacketFilterBytes(
 
 /***************************************************************************
 Summary:
-Copy out the packet that matched the wakeup filter. The caller must allocate 
-memory to receive the packet. For example, 
-  
-unsigned char CapturedPacket[ BXPT_WAKEUP_PACKET_SIZE ]; 
- 
+Copy out the packet that matched the wakeup filter. The caller must allocate
+memory to receive the packet. For example,
+
+unsigned char CapturedPacket[ BXPT_WAKEUP_PACKET_SIZE ];
+
 Returns:
     void
 ****************************************************************************/
 void BXPT_Wakeup_GetCapturedPacket(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
-    unsigned char *PacketBuffer 
+    unsigned char *PacketBuffer
     );
 
 /***************************************************************************
 Summary:
-Arm/disarm the wakeup block. When armed, the block will begin scanning the 
-input band data. When disarmed, no interrupts to the PMU or MIPS will be 
-generated if wakeup packets are seen in the input. 
- 
+Arm/disarm the wakeup block. When armed, the block will begin scanning the
+input band data. When disarmed, no interrupts to the PMU or MIPS will be
+generated if wakeup packets are seen in the input.
+
 Returns:
     void
 ****************************************************************************/

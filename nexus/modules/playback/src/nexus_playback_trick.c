@@ -741,22 +741,36 @@ NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(const NEXUS_Playba
     return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 }
 
-NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderStatus *pStatus, NEXUS_AudioDecoderStatus *pSecondaryStatus)
+static void NEXUS_P_Playback_AudioDecoderStatus_Convert(const NEXUS_AudioDecoderStatus *audioStatus, NEXUS_P_Playback_AudioDecoderStatus *pStatus)
+{
+    pStatus->started = audioStatus->started;
+    pStatus->tsm = audioStatus->tsm;
+    pStatus->fifoDepth = audioStatus->fifoDepth;
+    pStatus->pts = audioStatus->pts;
+    pStatus->ptsType = audioStatus->ptsType;
+    pStatus->queuedFrames = audioStatus->queuedFrames;
+    return;
+}
+
+NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_P_Playback_AudioDecoderStatus *pStatus, NEXUS_P_Playback_AudioDecoderStatus *pSecondaryStatus)
 {
     NEXUS_Error rc=NEXUS_SUCCESS;
+    NEXUS_AudioDecoderStatus audioStatus;
 
 #if NEXUS_HAS_AUDIO
     /* primary and simple are mutually exclusive for status */
     if (pid->cfg.pidTypeSettings.audio.primary) {
-        rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.primary, pStatus);
+        rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.primary, &audioStatus);
         if (rc) return BERR_TRACE(rc);
+        NEXUS_P_Playback_AudioDecoderStatus_Convert(&audioStatus, pStatus);
     }
     else
 #endif
 #if NEXUS_HAS_SIMPLE_DECODER
     if (pid->cfg.pidTypeSettings.audio.simpleDecoder) {
-        rc = NEXUS_SimpleAudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.simpleDecoder, pStatus);
+        rc = NEXUS_SimpleAudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.simpleDecoder, &audioStatus);
         if (rc) return BERR_TRACE(rc);
+        NEXUS_P_Playback_AudioDecoderStatus_Convert(&audioStatus, pStatus);
     }
     else
 #endif
@@ -767,8 +781,9 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
     if (pSecondaryStatus) {
 #if NEXUS_HAS_AUDIO
         if (pid->cfg.pidTypeSettings.audio.secondary) {
-            rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.secondary, pSecondaryStatus);
+            rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.secondary, &audioStatus);
             if (rc) return BERR_TRACE(rc);
+            NEXUS_P_Playback_AudioDecoderStatus_Convert(&audioStatus, pSecondaryStatus);
         }
         else
 #endif

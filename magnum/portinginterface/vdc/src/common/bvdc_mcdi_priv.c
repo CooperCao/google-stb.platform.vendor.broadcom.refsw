@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,6 +63,7 @@
     (BVDC_MadGameMode_##mode), (delay), (buffer_cnt), (#mode)     \
 }
 
+#if (BVDC_P_SUPPORT_MCVP)
 /* Mcdi game mode delay tables */
 static const BVDC_P_McdiGameModeInfo s_aMcdiGameModeInfo[] =
 {
@@ -81,6 +82,7 @@ static const BVDC_P_McdiGameModeInfo s_aMcdiGameModeInfo[] =
     BVDC_P_MAKE_GAMEMODE_INFO(e3Fields_ForceSpatial,  0, 4),
     BVDC_P_MAKE_GAMEMODE_INFO(eMinField_ForceSpatial, 0, 1),
 };
+
 #if (BVDC_P_SUPPORT_MADR_VER > BVDC_P_MADR_VER_6)
 /* Madr game mode delay tables */
 static const BVDC_P_McdiGameModeInfo s_aMadrGameModeInfo[] =
@@ -114,11 +116,13 @@ static const BVDC_P_McdiGameModeInfo s_aMadrGameModeInfo[] =
 #if (BVDC_P_MCDI_VER_8 <= BVDC_P_SUPPORT_MCDI_VER)
 #include "bchp_mdi_memc_0.h"
 #endif
+
 #if (!BVDC_P_SUPPORT_MCDI_SUPERSET)
 #include "bchp_mdi_ppb_1.h"
 #include "bchp_mdi_fcn_1.h"
 #include "bchp_mdi_top_1.h"
 #endif
+
 #if (BVDC_P_SUPPORT_MCVP > 1)
 #define BVDC_P_MAKE_MDI(pMcdi, id)                                                                    \
 {                                                                                                     \
@@ -132,6 +136,7 @@ static const BVDC_P_McdiGameModeInfo s_aMadrGameModeInfo[] =
     (pMcdi)->ulRegOffset1    = 0;                                                                     \
 }
 #endif
+
 BDBG_MODULE(BVDC_MCDI);
 BDBG_FILE_MODULE(BVDC_DEINTERLACER_MOSAIC);
 BDBG_OBJECT_ID(BVDC_MDI);
@@ -1862,13 +1867,13 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
     BDBG_ASSERT(ulVSize);
 
 
-    /* 2. statistics range */
-    BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_PPB_0_STATS_RANGE,  ulRegOffset,
-            BCHP_FIELD_DATA(MDI_PPB_0_STATS_RANGE, END_LINE, ulVSize - 1));
-
 #if (BVDC_P_SUPPORT_MCDI_VER >= BVDC_P_MCDI_VER_8)
     if(!hMcdi->bMadr)
     {
+        /* 2. statistics range */
+        BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_PPB_0_STATS_RANGE,  ulRegOffset,
+                BCHP_FIELD_DATA(MDI_PPB_0_STATS_RANGE, END_LINE, ulVSize - 1));
+
         /*MDI_PPB_0_START_IT_LINE*/
         BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_PPB_0_START_IT_LINE,  ulRegOffset,
                     BCHP_FIELD_DATA(MDI_PPB_0_START_IT_LINE, VALUE, ulVSize - 1));
@@ -2268,5 +2273,6 @@ void BVDC_P_Mcdi_ReadOutPhase_isr
 #endif
 }
 #endif /* BVDC_P_SUPPORT_MTG */
+#endif /* BVDC_P_SUPPORT_MCVP */
 
 /* End of file. */

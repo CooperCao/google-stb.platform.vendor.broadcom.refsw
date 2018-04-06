@@ -127,6 +127,8 @@ typedef struct BHSM_ModuleCapabilities
 
    unsigned numKeyslotsForType[BHSM_KeyslotType_eMax];   /* Number of each type of keyslot. */
 
+   unsigned archesPerMemc;                               /* the number of arches per MemC */
+
 }BHSM_ModuleCapabilities;
 
 

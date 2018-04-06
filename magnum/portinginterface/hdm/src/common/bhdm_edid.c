@@ -646,6 +646,7 @@ BERR_Code BHDM_EDID_GetBasicData(
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t RxDeviceAttached ;
+	uint8_t i ;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
@@ -663,19 +664,40 @@ BERR_Code BHDM_EDID_GetBasicData(
 		goto done ;
 	}
 
+
 	if (hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock)
 	{
-		/* use the first supported descriptor found */
-		/* convert to BFMT and return as a preferred format */
-		rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI,
-			&hHDMI->AttachedEDID.SupportedDetailTimings[0],
-			&hHDMI->AttachedEDID.BasicData.eVideoFmt) ;
-		if (rc) {rc = BERR_TRACE(rc) ;}
+		for (i = 0 ;
+		(i < hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock) && (i < BHDM_EDID_MAX_PREFERRED_FORMATS) ;
+		i++)
+		{
+			BERR_Code errCode ;
+			/*
+			** convert the first and second supported descriptor to BFMT
+			** and return as a preferred format #1 and #2
+			*/
+			errCode = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI,
+				&hHDMI->AttachedEDID.SupportedDetailTimings[i],
+				&hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[i]) ;
+			if (errCode) {BERR_TRACE(errCode) ;}
+		}
+
+		hHDMI->AttachedEDID.BasicData.PreferredVideoFmt =
+			hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0] ;
 	}
 	else
 	{
-		BDBG_WRN(("No BCM Supported Detail/Preferred Timing Descriptors found; selecting an alternate...")) ;
-		BHDM_EDID_P_SelectAlternateFormat(hHDMI, &hHDMI->AttachedEDID.BasicData.eVideoFmt) ;
+		BDBG_ERR(("No BCM Supported Detail/Preferred Timing Descriptors found; selecting an alternate...")) ;
+		BHDM_EDID_P_SelectAlternateFormat(hHDMI, &hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0]) ;
+
+		/* since no detail timing blocks found
+		   set all preferred formats to the same format
+		*/
+		for (i = 1 ; i < BHDM_EDID_MAX_PREFERRED_FORMATS; i++)
+		{
+			hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[i] =
+				hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0] ;
+		}
 	}
 
 
@@ -976,8 +998,8 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 			/* assign format but return unsupported */
 
 			*Detail_VideoFmt = eVideoFmt ;
-			BDBG_WRN(("This device does not support %s",
-				pVideoFormatInfo->pchFormatStr)) ;
+			BDBG_WRN(("This %d device does not support %s",
+				BCHP_CHIP, pVideoFormatInfo->pchFormatStr)) ;
 			rc = BHDM_EDID_DETAILTIMING_NOT_SUPPORTED ;
 			break ;
 		}
@@ -989,8 +1011,8 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 		|| (eVideoFmt == BFMT_VideoFmt_e3840x2160p_30Hz))
 		{
 			/* 4K p24/25/30 Not Supported on this device */
-			BDBG_WRN(("This device does not support %s",
-				pVideoFormatInfo->pchFormatStr)) ;
+			BDBG_WRN(("This %d device does not support %s",
+				BCHP_CHIP, pVideoFormatInfo->pchFormatStr)) ;
 			rc = BHDM_EDID_DETAILTIMING_NOT_SUPPORTED ;
 			break ;
 		}
@@ -4375,19 +4397,36 @@ BERR_Code BHDM_EDID_Initialize(
 
 			rc = BHDM_EDID_P_ProcessDetailedTimingBlock(hHDMI,
 				&hHDMI->AttachedEDID.Block[offset], &DetailTiming, &eVideoFmt) ;
-			if (rc != BERR_SUCCESS)
+
+			switch (rc)
 			{
+			case BERR_SUCCESS :
+				/* save the first detailed timing that the Tx Supports - this will be Tx preferred format */
+				if (hHDMI->AttachedEDID.TxPreferredDetailTiming.PixelClock == 0)
+				{
+					BKNI_Memcpy(
+						&(hHDMI->AttachedEDID.TxPreferredDetailTiming),
+						&DetailTiming, sizeof(hHDMI->AttachedEDID.TxPreferredDetailTiming)) ;
+				}
+				/* FALL THROUGH */
+
+			case BHDM_EDID_DETAILTIMING_NOT_SUPPORTED :
+				/* keep a copy of first two Rx supported detailed timings for quick retrieval */
+				if (SupportedTimingsFound < 2)
+				{
+					BKNI_Memcpy(
+						&(hHDMI->AttachedEDID.SupportedDetailTimings[SupportedTimingsFound]),
+						&DetailTiming, sizeof(BHDM_EDID_DetailTiming)) ;
+				}
+				break ;
+
+			default :
+				BDBG_WRN(("Error %d processing Detailed Timing Block", rc)) ;
 				/* unable to process Detailed Timing Block continue to next descriptor */
 				continue ;
 			}
 
-			/* keep a copy of first two supported detailed timings for quick retrieval */
-			if (SupportedTimingsFound < 2)
-			{
-				BKNI_Memcpy(
-					&(hHDMI->AttachedEDID.SupportedDetailTimings[SupportedTimingsFound]),
-					&DetailTiming, sizeof(BHDM_EDID_DetailTiming)) ;
-			}
+
 
 			/* set BFMTs that match this Detailed Timing Format as being supported */
 			BHDM_EDID_P_SetSupportedMatchingFmts(hHDMI, eVideoFmt) ;

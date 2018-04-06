@@ -42,8 +42,11 @@
 
 /* Note: Tricky here!  bavc.h needs bchp_gfd_x.h defininitions.
  * The check here is to see if chips has more than one gfx feeder. */
+#include "bchp_common.h"
 #include "bchp_gfd_0.h"
+#ifdef BCHP_GFD_1_REG_START
 #include "bchp_gfd_1.h"
+#endif
 
 #include "bavc.h"
 #include "bchp.h"
@@ -1004,10 +1007,11 @@ static uint32_t BVDC_P_GetVecCfgSrc_isr
         case BVDC_CompositorId_eCompositor0:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_0;
             break;
-
+#if (BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor1:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1;
             break;
+#endif
 
 #if (BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor2:

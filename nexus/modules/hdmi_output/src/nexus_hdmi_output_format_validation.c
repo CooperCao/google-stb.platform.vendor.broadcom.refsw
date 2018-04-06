@@ -63,9 +63,9 @@ static uint8_t numUhdVideoSettingsPriorityTableEntries =
 
 static const NEXUS_HdmiOutput_P_VideoSettings nonUhdVideoSettingsPriorityTable[] =
 {
-    { NEXUS_ColorSpace_eYCbCr444, NEXUS_HdmiColorDepth_e10bit },
     { NEXUS_ColorSpace_eYCbCr422, NEXUS_HdmiColorDepth_e12bit },
     { NEXUS_ColorSpace_eYCbCr444, NEXUS_HdmiColorDepth_e12bit },
+    { NEXUS_ColorSpace_eYCbCr444, NEXUS_HdmiColorDepth_e10bit },
     { NEXUS_ColorSpace_eYCbCr444, NEXUS_HdmiColorDepth_e8bit },
 };
 
@@ -135,7 +135,7 @@ static NEXUS_Error NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(
     errCode = BHDM_GetTxSupportStatus(hdmiOutput->hdmHandle, &platformHdmiOutputSupport) ;
     if (errCode) {BERR_TRACE(errCode); goto done ;}
 
-    preferred->videoFormat = edid->basicData.preferredVideoFormat ;
+    preferred->videoFormat = edid->basicData.preferredVideoFormats[0] ;
 
     /* use 420 colorSpace if preferred format is 4K */
     if  (((preferred->videoFormat == NEXUS_VideoFormat_e3840x2160p60hz)
@@ -590,7 +590,8 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     }
 
     if (( localRequested.colorDepth > NEXUS_HdmiColorDepth_e8bit)
-    &&  (edid->hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE))
+    &&  (edid->hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE)
+    &&  (bUhdFormat))
     {
         BDBG_WRN(("Attached Rx cannot support Color Depth %d; default to 8",
             requested->colorDepth)) ;

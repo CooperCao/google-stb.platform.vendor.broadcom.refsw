@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# defines V3D_VER_AT_LEAST which is required for feature definition
+include $(BSEAV_TOP)/lib/gpu/vc5/driver/common.mk
+
 V3D_DRIVER_TOP_ABS_PATH := $(BSEAV_TOP)/lib/gpu/vc5
 V3D_DRIVER_TOP_REL_PATH := $(subst ${ANDROID}/,,$(V3D_DRIVER_TOP_ABS_PATH))
 
 PYTHON_CMD := python
+BISON_CMD  := ${BISON}
+FLEX_CMD   := ${LEX}
+GPERF_CMD  := ${GPERF_BCM}
 
-ifeq ($(V3D_VER_AT_LEAST_4_1_0), 1)
+ifeq ($(V3D_VER_AT_LEAST_4_1_34), 1)
 HAS_VULKAN ?= 1
 else
 HAS_VULKAN ?= 0
@@ -324,8 +330,6 @@ LOCAL_STATIC_LIBRARIES := vk_gl_intermediate
 
 LOCAL_CFLAGS += -DVK_USE_PLATFORM_ANDROID_KHR=1 -frtti -fexceptions
 
-include $(V3D_DRIVER_TOP_ABS_PATH)/driver/common.mk
-
 LOCAL_C_INCLUDES += \
 	$(DGLENUM_INTERMEDIATE_REL_PATH) \
 	$(GLSL_INTERMEDIATE_REL_PATH) \
@@ -344,10 +348,7 @@ LOCAL_SRC_FILES := \
 	$(addprefix driver/, $(COMMON_SRC_FILES) $(VULKAN_SRC_FILES)) \
 	platform/android/display_android.c \
 	platform/android/memory_android.c \
-	platform/android/sched_android.c \
-	platform/common/memory_convert.c \
-	platform/common/display_helpers.c
-
+	platform/android/sched_android.c
 
 LOCAL_PROPRIETARY_MODULE := true
 

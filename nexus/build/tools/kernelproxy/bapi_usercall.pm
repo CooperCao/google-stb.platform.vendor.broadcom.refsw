@@ -129,9 +129,6 @@ sub generate
             print FILE "    NEXUS_StopCallbacks((void *)$stopcallbacks_handle);\n";
         }
         print FILE "    rc = ioctl( nexus_proxy_module_state.fd, $ioctl, $arg);\n";
-        if (defined $stopcallbacks_handle) {
-            print FILE "    NEXUS_StartCallbacks((void *)$stopcallbacks_handle);\n";
-        }
         if ($func->{RETTYPE} eq "NEXUS_Error") {
             print FILE "    if (rc!=0) {result=BERR_TRACE(NEXUS_OS_ERROR);goto done;}\n";
         } else {
@@ -153,11 +150,6 @@ sub generate
                 print FILE "    {\n";
             }
             bapi_util::print_code \*FILE, $attr->{proxy_post_success}, "    ";
-            print FILE "    }\n";
-        }
-        if ($func->{RETTYPE} ne "NEXUS_Error" && $func->{RETTYPE} ne "void") {
-            print FILE "    if(result) {\n";
-            print FILE "      NEXUS_StartCallbacks((void*)result);\n";
             print FILE "    }\n";
         }
 

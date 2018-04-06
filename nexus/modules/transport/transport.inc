@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,6 +60,19 @@ endif
 
 NEXUS_TRANSPORT_PRECOMPILED_HEADER = $(NEXUS_TOP)/modules/transport/src/nexus_transport_module.h
 
+ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
+NEXUS_TRANSPORT_DEFINES += NEXUS_USE_OTT_TRANSPORT=1
+ifeq ($(NEXUS_TEE_SUPPORT),y)
+NEXUS_USE_ASTRA_FOR_SWXPT?=y
+endif
+ifeq ($(NEXUS_USE_ASTRA_FOR_SWXPT),y)
+NEXUS_TRANSPORT_DEFINES += NEXUS_USE_ASTRA_FOR_SWXPT=1
+endif
+ifneq ($(findstring $(BCHP_CHIP),7211),)
+NEXUS_TRANSPORT_DEFINES += NEXUS_USE_FAKE_OTT_TRANSPORT=1
+endif
+endif
+
 ##################
 # Module Sources #
 ##################
@@ -86,12 +99,38 @@ NEXUS_TRANSPORT_SOURCES := \
     $(NEXUS_TOP)/modules/transport/src/nexus_parser_band_channelbonding.c \
     $(NEXUS_TOP)/modules/transport/src/nexus_gcb_sw.c
 
+ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
+ASTRA_SWXPT_TOP=$(NEXUS_TOP)/../astra/user/swxpt
+NEXUS_TRANSPORT_SOURCES += \
+    $(NEXUS_TOP)/modules/transport/src/nexus_swxpt.c \
+    $(NEXUS_TOP)/modules/transport/src/nexus_swxpt_engine_utils.c \
+    $(ASTRA_SWXPT_TOP)/swxpt_core.c
+
+ifneq ($(NEXUS_USE_ASTRA_FOR_SWXPT),y)
+NEXUS_TRANSPORT_SOURCES += \
+    $(ASTRA_SWXPT_TOP)/swxpt_engine.c
+endif
+
+NEXUS_TRANSPORT_PRIVATE_INCLUDES += $(ASTRA_SWXPT_TOP)/include
+
+ifeq ($(B_REFSW_OS),linuxuser)
+ifeq ($(NEXUS_MODE),)
+NEXUS_TRANSPORT_SOURCES += $(NEXUS_TOP)/modules/transport/src/nexus_swxpt_image.c
+endif
+endif
+
+endif
+
 ifeq ($(filter NEXUS_HAS_XPT_DMA, $(NEXUS_PLATFORM_DEFINES)), NEXUS_HAS_XPT_DMA)
 NEXUS_TRANSPORT_SOURCES += $(NEXUS_TOP)/modules/transport/src/nexus_xpt_dma.c
 endif
 
 ifneq ($(findstring $(BCHP_CHIP),7550 7408 7255),)
 # Software-based message filtering. Required for chips w/o HW filtering. Optional for other chips.
+NEXUS_USE_SW_FILTER=y
+endif
+
+ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
 NEXUS_USE_SW_FILTER=y
 endif
 
@@ -140,10 +179,17 @@ BPCRLIB_HAS_APE := n
 BPCRLIB_HAS_XVD := n
 BPCRLIB_HAS_MVD := n
 NEXUS_TRANSPORT_MAGNUM_MODULES =  \
-    $(MAGNUM)/portinginterface/xpt/bxpt.inc \
-    $(MAGNUM)/portinginterface/xpt/bxpt_auth.inc \
     $(MAGNUM)/syslib/pvrlib/bpvrlib.inc \
     $(MAGNUM)/syslib/pcrlib/bpcrlib.inc
+
+ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
+NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
+    $(MAGNUM)/portinginterface/ott/bott.inc
+else
+NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
+    $(MAGNUM)/portinginterface/xpt/bxpt.inc \
+    $(MAGNUM)/portinginterface/xpt/bxpt_auth.inc
+endif
 
 NEXUS_FW_SIGN_MODULES += BXPT
 
@@ -207,7 +253,11 @@ NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
 endif
 
 ifeq ($(B_REFSW_DSS_SUPPORT),)
+ifeq ($(NEXUS_USE_OTT_TRANSPORT), y)
+B_REFSW_DSS_SUPPORT=n
+else
 B_REFSW_DSS_SUPPORT=y
+endif
 endif
 ifeq ($(B_REFSW_DSS_SUPPORT),y)
 NEXUS_TRANSPORT_DEFINES += B_REFSW_DSS_SUPPORT=1

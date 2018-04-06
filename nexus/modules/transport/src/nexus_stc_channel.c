@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -614,11 +614,12 @@ static NEXUS_Error setPcrOffsetSettings(
     pcr_offset_settings.TimestampDisable = false;
     pcr_offset_settings.CountMode = (NEXUS_IS_DSS_MODE(transportType) ||
         (NEXUS_StcChannel_PcrBits_eLegacy!=pSettings->pcrBits))?BXPT_PcrOffset_StcCountMode_eBinary:BXPT_PcrOffset_StcCountMode_eMod300;
+#if BXPT_HAS_MOSAIC_SUPPORT
     if (!stcChannel->settings.modeSettings.pcr.disableJitterAdjustment != pcr_offset_settings.EnableJitterAdjustment) {
         pcr_offset_settings.EnableJitterAdjustment = !stcChannel->settings.modeSettings.pcr.disableJitterAdjustment;
         JitterAdjustmentChange = true;
     }
-
+#endif
     BDBG_ASSERT(pcr_offset_settings.UsePcrTimeBase == true); /* always use PCR */
     pcr_offset_settings.WhichPcr = stcChannel->timebase->hwIndex;
 
@@ -814,9 +815,9 @@ NEXUS_Error NEXUS_StcChannel_GetStatus(NEXUS_StcChannelHandle stcChannel, NEXUS_
 
     status->index = stcChannel->index;
     status->stcIndex = stcChannel->stcIndex;
-	if(!stcChannel->timebase)
-		return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-	status->timebaseIndex = stcChannel->timebase->hwIndex;
+    if(!stcChannel->timebase)
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    status->timebaseIndex = stcChannel->timebase->hwIndex;
     return 0;
 }
 
@@ -2923,8 +2924,10 @@ NEXUS_Error NEXUS_StcChannel_SetPairSettings( NEXUS_StcChannelHandle stcChannel1
     rc = BXPT_PcrOffset_GetSettings( stcChannel2->pcrOffset, &pcrOffsetSettings2 );
     if(rc!=BERR_SUCCESS){rc=BERR_TRACE(rc);goto error;}
 
+#if BXPT_HAS_MOSAIC_SUPPORT
     nrtConfig1.PairedStc = pcrOffsetSettings2.StcSelect;
     nrtConfig2.PairedStc = pcrOffsetSettings1.StcSelect;
+#endif
 
     nrtConfig1.EnableAvWindowComparison = pSettings->connected;
     nrtConfig2.EnableAvWindowComparison = pSettings->connected;

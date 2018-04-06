@@ -93,7 +93,7 @@ int securityUtil_DmaTransfer( NEXUS_KeySlotHandle keyslotHandle,
    Composit a single TS packet or multiple packets for tests.
    XPT_TS_PACKET_NUM defines the number of the packets.
 */
-void  CompositTSPackets( uint8_t * xptTSPackets, unsigned int scValue );
+void CompositTSPackets( uint8_t * xptTSPackets, unsigned int packetSize, unsigned int scValue );
 
 size_t securityGetAlogrithmKeySize(
     NEXUS_CryptographicAlgorithm algorithm );

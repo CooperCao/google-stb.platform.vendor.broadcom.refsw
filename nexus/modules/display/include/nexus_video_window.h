@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef NEXUS_VIDEO_WINDOW_H__
 #define NEXUS_VIDEO_WINDOW_H__
 
@@ -112,6 +101,11 @@ typedef struct NEXUS_VideoWindowSettings
     bool visible;        /* Is window visible? Defaults to true. */
     unsigned zorder;     /* Z-order relative to other VideoWindows and Graphics. A higher number is on top of a lower number. */
     NEXUS_VideoWindowContentMode contentMode; /* automatic aspect ratio correction */
+    NEXUS_TristateEnable fillContentModeBars; /* eAuto is default and means the video window position rect would show bars in display background color
+                                                when contentMode is eBox, zorder is > 0, and the box mode RTS allows;
+                                                eDisable means the window position rect would not show bars in display background color when contentMode is eBox;
+                                                eEnable means the window position rect would show bars in display background color when contentMode is eBox;
+                                                Note, when clearRect is enabled, this flag will be ignored. */
     bool letterBoxDetect; /* enable letter box detection in the source */
     NEXUS_CallbackDesc letterBoxDetectionChange; /* This callback fires if letterBoxDetect is true and there is a change in the letter box
                              state. Call NEXUS_VideoWindow_GetLetterBoxStatus to get current letter box information. */

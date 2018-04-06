@@ -90,12 +90,12 @@ __bootstrap void mon_bootstrap(
     /* Copy out platform params for mmap regions */
     plat_early_init(plat_params_addr);
 
+    /* Copy out monitior params */
+    mon_early_init(mon_params_addr);
+
     /* Retrieve s3 params */
     if (warm_boot())
         plat_early_s3_init();
-
-    /* Copy out monitior params */
-    mon_early_init(mon_params_addr);
 
     /* Init platform GIC for mmap regions */
     plat_gic_init();

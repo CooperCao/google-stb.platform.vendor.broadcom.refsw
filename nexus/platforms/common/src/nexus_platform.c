@@ -485,8 +485,10 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     unsigned platformCheck, unsigned versionCheck, unsigned structSizeCheck )
 {
     NEXUS_Error errCode;
+#if MULTITHREADED_INIT && NEXUS_HAS_VIDEO_DECODER
     NEXUS_ThreadHandle videoDecoderThread = NULL;
-#if MULTITHREADED_INIT
+#endif
+#if MULTITHREADED_INIT && NEXUS_HAS_AUDIO
     NEXUS_ThreadHandle audioThread = NULL;
 #endif
     struct {
@@ -1340,7 +1342,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #endif
 
 
-#if MULTITHREADED_INIT
+#if MULTITHREADED_INIT && NEXUS_HAS_AUDIO
     /* audio is needed for sync, so join here */
     if (audioThread) {
         NEXUS_Thread_Destroy(audioThread);
@@ -1367,8 +1369,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     }
 #endif
 
+#if MULTITHREADED_INIT && NEXUS_HAS_VIDEO_DECODER
     /* videoDecoder is needed for astm, so join here */
-    /* coverity[dead_error_condition] */
     if (videoDecoderThread) {
         NEXUS_Thread_Destroy(videoDecoderThread);
         videoDecoderThread = NULL;
@@ -1377,6 +1379,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
             goto err;
         }
     }
+#endif
 
 #if NEXUS_HAS_VIDEO_DECODER
 #if NEXUS_HAS_DISPLAY
@@ -2275,6 +2278,11 @@ static NEXUS_Error NEXUS_Platform_P_SetPictureBufferSecure( bool secure )
             continue;
         }
 
+        /* Toggle of URRTx not supported */
+        if((i==NEXUS_MEMC0_URRT_HEAP)||(i==NEXUS_MEMC1_URRT_HEAP)||(i==NEXUS_MEMC2_URRT_HEAP)) {
+            continue;
+        }
+
         NEXUS_Heap_GetRuntimeSettings_priv(g_pCoreHandles->heap[i].nexus, &settings);
         settings.secure = secure;
 
@@ -2333,6 +2341,16 @@ NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings( NEXUS_HeapHandle heap, const 
 
     if(pSettings->secure!=settings.secure) {
         NEXUS_MemoryStatus status;
+
+        switch (NEXUS_Heap_GetIndex_isrsafe(heap)) {
+        case NEXUS_MEMC0_URRT_HEAP:
+        case NEXUS_MEMC1_URRT_HEAP:
+        case NEXUS_MEMC2_URRT_HEAP:
+            /* don't allow toggle on some heaps */
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        default:
+            break;
+        }
 
 #if NEXUS_HAS_VIDEO_DECODER
         {

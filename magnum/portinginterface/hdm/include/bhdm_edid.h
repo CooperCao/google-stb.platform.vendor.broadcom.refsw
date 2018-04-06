@@ -249,6 +249,8 @@ extern "C" {
 
 #define BHDM_EDID_MAX_CEA_VIDEO_ID_CODES 64
 
+#define BHDM_EDID_MAX_PREFERRED_FORMATS 2
+
 
 
 
@@ -349,7 +351,8 @@ typedef struct BHDM_EDID_BasicData
 
 	char monitorName[BHDM_EDID_DESC_ASCII_STRING_LEN];
 	BHDM_EDID_MonitorRange MonitorRange ;
-	BFMT_VideoFmt eVideoFmt ;
+	BFMT_VideoFmt PreferredVideoFmt ;
+	BFMT_VideoFmt PreferredVideoFmts[BHDM_EDID_MAX_PREFERRED_FORMATS] ;
 
 } BHDM_EDID_BasicData ;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,7 @@
 #include "nexus_dma.h"
 #include "nexus_memory.h"
 #include "priv/nexus_sage_audio.h"
+#include "bchp_jtag_otp.h"
 
 NEXUS_SageModule_P_Handle g_NEXUS_sageModule;
 
@@ -84,6 +85,9 @@ BDBG_MODULE(nexus_sage_module);
 #define SAGE_SRR_END_REG     BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSRREndOffset)
 
 #define SAGE_RESETVAL_DOWN  0x1FF1FEED /* Defined in multiple places */
+
+#define BP3_BOND_OPTION     0
+#define BP3_BOND_OPTION_MASK 0xFF
 
 static struct {
     NEXUS_SageModuleSettings settings; /* Nexus sage module settings, given in NEXUS_SageModule_Init */
@@ -924,6 +928,9 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     BERR_Code magnum_rc;
     BSAGElib_BootSettings bootSettings;
     bool reconnect = false;
+#ifdef NO_BP3_TA
+    uint32_t bondOptionReg = 0xFFFFFFFF;
+#endif
 
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
@@ -1045,15 +1052,35 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     NEXUS_Sage_P_SecureLog_Init(&g_sage_module.settings);
     NEXUS_Sage_P_SvpInitDelayed(NULL);
 
-    /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
 #if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
      (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
      (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
      (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0))
-    rc= NEXUS_SUCCESS;
+    {
+        rc= NEXUS_SUCCESS;
+    }
+#else
+#ifdef NO_BP3_TA
+    /* Read the bond option */
+    bondOptionReg = BREG_Read32(g_pCoreHandles->reg, BCHP_JTAG_OTP_GENERAL_STATUS_8);
+
+    BDBG_MSG(("\n\nBond Option Reg 0x%08X ",bondOptionReg));
+    bondOptionReg &= BP3_BOND_OPTION_MASK;
+    BDBG_MSG(("Bond Option from Reg %u",bondOptionReg));
+    /* Install BP3 TA for BP3 production part even if NO_BP3_TA is set. */
+    if (bondOptionReg == BP3_BOND_OPTION)
+    {
+        /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
+        rc = NEXUS_Sage_P_BP3Init(&g_sage_module.settings);
+    }
+    else
+    {
+        rc = NEXUS_SUCCESS;
+    }
 #else
     /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
     rc = NEXUS_Sage_P_BP3Init(&g_sage_module.settings);
+#endif
 #endif
     if (rc != NEXUS_SUCCESS)
     {
@@ -1159,7 +1186,9 @@ void NEXUS_SageModule_Uninit(void)
      (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0))
     /* BP3 TA is not installed on these legacy parts without BP3 provisionable features */
 #else
+#ifndef NO_BP3_TA
     NEXUS_Sage_P_BP3Uninit();
+#endif
 #endif
     NEXUS_Sage_P_SvpStop(false);
     NEXUS_Sage_P_SvpUninit();
@@ -1401,14 +1430,9 @@ err:
             switch(bootState.lastError)
             {
                 case SAGE_SECUREBOOT_ARC_PRESCREEN_NUMBER_BAD_BIT_EXCEEDED:
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    BDBG_ERR(("* SAGE ARC Bad Bit Management: More than 2 SAGE ARC Bad bits"));
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    break;
                 case SAGE_SECUREBOOT_ARC_PRESCREEN_MSP_PROG_FAILURE:
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    BDBG_ERR(("* SAGE ARC Bad Bit Management: MSP OTP programming error"));
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    BDBG_ERR(("* SAGE self test failure detected (rc=0x%x).", bootState.lastError));
+                    BDBG_ERR((" Please contact Broadcom and submit a failure Analysis Request (FAR)."));
                     break;
                 default:
                     BDBG_ERR(("* Please check your sage_framework%s.bin", _flavor));

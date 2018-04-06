@@ -53,7 +53,6 @@
 #include "bvdc_source_priv.h"
 #include "bvdc_feeder_priv.h"
 #include "bchp_bmisc.h"
-#include "bchp_timer.h"
 
 #define BVDC_P_MAKE_CAP(pCapture, id)                                              \
 {                                                                                  \

@@ -44,6 +44,7 @@
 #include "boot.h"
 #include "cache.h"
 #include "cpu_data.h"
+#include "dvfs.h"
 #include "psci.h"
 #include "psci_priv.h"
 #include "platform_power.h"
@@ -90,7 +91,7 @@ static bool last_on_cpu_in_cluster(psci_cpu_t *pcpu)
 
 static int cpu_power_up(psci_cpu_t *pcpu)
 {
-    DBG_MSG("Power up CPU %d from CPU %d",
+    DBG_MSG("Powering up CPU %d from CPU %d",
             pcpu->index, psci_get_cpu()->index);
 
     /* Call plaform power up */
@@ -104,7 +105,7 @@ static int cpu_power_up(psci_cpu_t *pcpu)
 
 static int cpu_power_down(psci_cpu_t *pcpu)
 {
-    DBG_MSG("Power down CPU %d from CPU %d",
+    DBG_MSG("Powering down CPU %d from CPU %d",
             pcpu->index, psci_get_cpu()->index);
 
     /* Call plaform power down */
@@ -118,7 +119,7 @@ static int cpu_detach()
 {
     uint32_t sctlr, cpuectlr;
 
-    DBG_MSG("Detach CPU %d", psci_get_cpu()->index);
+    DBG_MSG("Detaching CPU %d", psci_get_cpu()->index);
 
     /* Clear any dangling exclusive locks */
     clrex();
@@ -157,7 +158,7 @@ static int cpu_standby()
 {
     uint32_t isr;
 
-    DBG_MSG("Standby CPU %d", psci_get_cpu()->index);
+    DBG_MSG("Standbying CPU %d", psci_get_cpu()->index);
 
     /* Return if interrupt(s) pending */
     isr = read_isr_el1();
@@ -223,7 +224,7 @@ int psci_init(
     }
 
     /*
-     * Construct topology tree.
+     * Construct topology tree
      */
     psystem = &psci_system;
     pcluster = &psci_clusters[0];
@@ -251,7 +252,7 @@ int psci_init(
         }
     }
     else {
-        /* Assume each cluster has the same number of CPUs. */
+        /* Assume each cluster has the same number of CPUs */
         size_t num_cpus_per_cluster = num_cpus / num_clusters;
         ASSERT(num_cpus == num_clusters * num_cpus_per_cluster);
 
@@ -349,6 +350,10 @@ int psci_cpu_up(void)
     psystem->state = PSCI_STATE_ON;
 
     spin_unlock(&psystem->lock);
+
+    /* Notify DVFS */
+    dvfs_cpu_up(pcpu->index);
+
     return PSCI_SUCCESS;
 }
 
@@ -360,6 +365,9 @@ int psci_cpu_off(void)
     psci_cpu_t *pcpu = pcluster->pcpus[MPIDR_AFFLVL0_VAL(mpidr)];
 
     SYS_MSG("CPU %d is powering down...", pcpu->index);
+
+    /* Notify DVFS */
+    dvfs_cpu_down(pcpu->index);
 
     spin_lock(&psystem->lock);
 
@@ -414,7 +422,7 @@ int psci_cpu_suspend(
     /* Cluster or system level standby is not supported yet */
     if (pstate_type == PSCI_PSTATE_TYPE_STANDBY &&
         pstate_level != PSCI_PSTATE_LEVEL_CORE)
-	return PSCI_INVALID_PARAMETERS;
+        return PSCI_INVALID_PARAMETERS;
 
     spin_lock(&psystem->lock);
 
@@ -425,8 +433,8 @@ int psci_cpu_suspend(
         /* Unlock before going to standby */
         spin_unlock(&psystem->lock);
 
-	/* Go into standby */
-	cpu_standby();
+        /* Go into standby */
+        cpu_standby();
 
         /* Relock after coming from standby */
         spin_lock(&psystem->lock);
@@ -435,9 +443,9 @@ int psci_cpu_suspend(
         pcpu->state = PSCI_STATE_RUN;
     }
     else {
-	/* Save non-secure entry point and context ID */
-	pcpu->nsec_entry_point = entry_point;
-	pcpu->nsec_context_id  = context_id;
+        /* Save non-secure entry point and context ID */
+        pcpu->nsec_entry_point = entry_point;
+        pcpu->nsec_context_id  = context_id;
 
         if (pstate_level == PSCI_PSTATE_LEVEL_CORE) {
             /* CPU_OFF disguised as CPU_SUSPEND */
@@ -573,13 +581,13 @@ int psci_system_reset(void)
  * System utility functions *
  ****************************/
 
-int get_cpu_index_by_mpidr(uint64_t mpidr)
+uint32_t get_cpu_index_by_mpidr(uint64_t mpidr)
 {
     psci_cpu_t *pcpu = psci_get_cpu_by_mpidr(mpidr);
-    return (pcpu) ? (int)pcpu->index : MON_NOENT;
+    return (pcpu) ? (int)pcpu->index : MON_ENOENT;
 }
 
-int get_cpu_index(void)
+uint32_t get_cpu_index(void)
 {
     return get_cpu_index_by_mpidr(read_mpidr());
 }

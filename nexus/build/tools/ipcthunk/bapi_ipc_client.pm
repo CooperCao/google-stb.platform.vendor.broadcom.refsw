@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Broadcom Proprietary and Confidential. (c)2003 Broadcom. All rights reserved.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -145,9 +145,6 @@ sub generate
         print FILE "    if((void *)out_data != temp) { BKNI_Free(out_data);}\n";
         print FILE "    NEXUS_P_Client_UnlockModule(nexus_client_module_state);\n";
         print FILE "err_lock:\n";
-        if (defined $stopcallbacks_handle) {
-            print FILE "    NEXUS_StartCallbacks((void *)$stopcallbacks_handle);\n";
-        }
         print FILE "err_alloc:\n";
         print FILE "    NEXUS_CLIENT_LEAVE($func->{FUNCNAME});\n";
         if ($func->{RETTYPE} ne "void") {

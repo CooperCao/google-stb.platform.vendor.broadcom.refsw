@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #include "nexus_transport_module.h"
 
@@ -55,6 +47,7 @@ void NEXUS_PidChannel_GetDefaultScramblingSettings( NEXUS_PidChannelScramblingSe
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
+#if BXPT_HAS_RAVE_SCRAMBLING_CONTROL
 static NEXUS_Error NEXUS_P_PidChannel_Master_StartScramblingCheck( NEXUS_P_HwPidChannel *pidChannel, const NEXUS_PidChannelScramblingSettings *pSettings )
 {
     NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, pidChannel);
@@ -204,3 +197,4 @@ void NEXUS_PidChannel_ClearScramblingStatus( NEXUS_PidChannelHandle pidChannel )
    NEXUS_OBJECT_ASSERT(NEXUS_PidChannel, pidChannel);
    NEXUS_P_HwPidChannel_ClearScramblingStatus(pidChannel->hwPidChannel);
 }
+#endif

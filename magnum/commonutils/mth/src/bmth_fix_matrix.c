@@ -167,6 +167,8 @@ void BMTH_FIX_Matrix_MultVector_64_isrsafe(BMTH_FIX_Matrix_64 *pMatrix, BMTH_FIX
     BKNI_Memcpy(pRetVector, &stTempVector, sizeof(stTempVector));
 }
 
+#if 0 /* we don't use those functions yet, so we comment them out */
+
 #if !B_REFSW_MINIMAL
 /***************************************************************************
  * {private}
@@ -420,5 +422,7 @@ void BMTH_FIX_Matrix_Dump_isrsafe(BMTH_FIX_Matrix *pMatrix)
     BKNI_Printf("\n");
 }
 #endif
+
+#endif /* #if 0 */ /* we don't use those functions yet, so we comment them out */
 
 /* end of file */

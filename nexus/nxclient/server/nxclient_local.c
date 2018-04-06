@@ -98,6 +98,12 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
             goto done;
         }
         g_state.ipc = nxserverlib_create_local_ipcstub(g_state.client);
+        if (!g_state.ipc) {
+            NxClient_P_DestroyClient(g_state.client);
+            g_state.client = NULL;
+            rc = BERR_TRACE(NEXUS_UNKNOWN);
+            goto done;
+        }
         if (!pSettings || !pSettings->ignoreStandbyRequest) {
             g_state.implicitAckStandby.id = NxClient_P_RegisterAcknowledgeStandby();
             g_state.implicitAckStandby.used = false;
@@ -115,8 +121,6 @@ void NxClient_Uninit(void)
     if (--g_state.refcnt == 0) {
         NxClient_P_DestroyClient(g_state.client);
         g_state.client = NULL;
-    }
-    if (g_state.ipc) {
         nxserverlib_destroy_local_ipcstub(g_state.ipc);
         g_state.ipc = NULL;
     }

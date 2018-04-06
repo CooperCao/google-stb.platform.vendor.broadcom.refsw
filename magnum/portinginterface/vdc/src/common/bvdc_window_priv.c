@@ -123,7 +123,16 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
     BVDC_P_MAKE_RES(Comp4_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp6_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
-
+#elif (BCHP_CHIP==7211)
+    BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 0, Cap0, Vfd0, Scl0, Unknown),
+    BVDC_P_MAKE_RES(Comp0_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp1_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp1_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp2_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp3_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp4_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp6_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
 #elif (BCHP_CHIP==7364) || (BCHP_CHIP==7250) || (BCHP_CHIP==7271) || \
       (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
     BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0, Vfd0, Scl0, Unknown),
@@ -365,6 +374,18 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ }, /* sharing with Comp1_V0 */
     /*Comp0_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD, FTR___ }, /* sharing with Comp0_V0 */
+    /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp4_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp5_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp6_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+
+#elif (BCHP_CHIP==7211)
+    /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
+    /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR___, FTR___ }, /* sharing with Comp1_V0 */
+    /*Comp0_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
+    /*Comp1_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ }, /* sharing with Comp0_V0 */
     /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp2_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
@@ -1509,8 +1530,8 @@ void BVDC_P_Window_Init
     hWindow->bResetMadDelaySwPipe = false;
 
     /* Use to determine vnet modes. */
-    hWindow->bDstFullScreen       = false;
     hWindow->bCapture             = false;
+    hWindow->eScanoutMode         = BVDC_P_ScanoutMode_eLive;
     hWindow->eBufferHeapIdRequest = BVDC_P_BufferHeapId_eUnknown;
     hWindow->eBufferHeapIdPrefer  = BVDC_P_BufferHeapId_eUnknown;
     hWindow->ulBufCntNeeded       = 0;
@@ -1830,6 +1851,7 @@ void BVDC_P_Window_Init
     eDisplayId = hWindow->hCompositor->hDisplay->eId;
 
     hWindow->bSrcSideDeinterlace = pBoxVdcDispCap->astWindow[ulBoxWinId].stResource.bSrcSideDeinterlacer;
+    hWindow->eBoxSclCapBias = pBoxVdcDispCap->astWindow[ulBoxWinId].eSclCapBias;
 
     hWindow->eWindowClass = pBoxVdcCap->astDisplay[eDisplayId].astWindow[ulBoxWinId].eClass;
     if(hWindow->eWindowClass != BBOX_Vdc_WindowClass_eLegacy)
@@ -2559,6 +2581,11 @@ BERR_Code BVDC_P_Window_ValidateChanges
         if(pNewInfo->bClearRect != pCurInfo->bClearRect)
         {
             pNewDirty->stBits.bMosaicMode = BVDC_P_DIRTY;
+        }
+
+        if(pNewInfo->eEnableBackgroundBars != pCurInfo->eEnableBackgroundBars)
+        {
+            pNewDirty->stBits.bRecAdjust = BVDC_P_DIRTY;
         }
 
         /* hd sd simul mosaic count validation */
@@ -3379,7 +3406,6 @@ static void BVDC_P_Window_SetClearRect_isr
     hCompositor = hWindow->hCompositor;
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
 
-#if BVDC_P_SUPPORT_CMP_CLEAR_RECT
     BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_TOP_CTRL) &= ~(
         BCHP_MASK(CMP_0_V0_RECT_TOP_CTRL, RECT_ENABLE) |
         BCHP_MASK(CMP_0_V0_RECT_TOP_CTRL, RECT_CONFIG) |
@@ -3455,8 +3481,71 @@ static void BVDC_P_Window_SetClearRect_isr
         hWindow->ulMosaicRectSet = BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_ENABLE_MASK);
     }
     hCompositor->ulMosaicAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
-#endif
+
     BDBG_LEAVE(BVDC_P_Window_SetClearRect_isr);
+    return;
+}
+
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Window_SetBgColor_isr
+    ( BVDC_Window_Handle               hWindow,
+      BVDC_P_PictureNode              *pPicture,
+      BAVC_Polarity                    ePolarity)
+{
+    BVDC_Compositor_Handle hCompositor;
+
+    BDBG_ENTER(BVDC_P_Window_SetBgColor_isr);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+    hCompositor = hWindow->hCompositor;
+    BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
+
+    BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_TOP_CTRL) &= ~(
+        BCHP_MASK(CMP_0_V0_RECT_TOP_CTRL, RECT_ENABLE) |
+        BCHP_MASK(CMP_0_V0_RECT_TOP_CTRL, RECT_CONFIG) |
+#ifdef BCHP_CMP_0_V0_RECT_TOP_CTRL_RECT_KEY_VALUE_MASK
+        BCHP_MASK(CMP_0_V0_RECT_TOP_CTRL, RECT_KEY_VALUE) |
+#endif
+        BCHP_MASK(CMP_0_V0_RECT_TOP_CTRL, RECT_COLOR_SRC));
+
+    if(BVDC_P_VNET_USED_SCALER_AT_WRITER(pPicture->stVnetMode) &&
+       (BVDC_Mode_eOff != hWindow->stCurInfo.eEnableBackgroundBars) &&
+       (pPicture->bMosaicMode)
+#if BVDC_P_SUPPORT_STG /* don't clear window background for transcoder window */
+    && !BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg)
+#endif
+    )/* mosaic mode and clearRect takes precedence */
+    {
+        BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_TOP_CTRL) |=
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_TOP_CTRL, RECT_ENABLE, 1) |
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_TOP_CTRL, RECT_CONFIG, 1) | /* clear outside */
+#ifdef BCHP_CMP_0_V0_RECT_TOP_CTRL_RECT_KEY_VALUE_MASK
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_TOP_CTRL, RECT_KEY_VALUE, 0xFF) | /* opaque */
+#endif
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_TOP_CTRL, RECT_COLOR_SRC, 1);
+
+        BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_COLOR) = hCompositor->stCurInfo.ulBgColorYCrCb;
+        BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_ENABLE_MASK) = 1;
+
+        BVDC_P_WIN_GET_REG_DATA_I(0, CMP_0_V0_RECT_SIZEi_ARRAY_BASE) =
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_SIZEi, HSIZE,
+                BVDC_P_ALIGN_UP(hWindow->stAdjDstRect.ulWidth, 2)) |
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_SIZEi, VSIZE,
+                hWindow->stAdjDstRect.ulHeight >> (ePolarity!=BAVC_Polarity_eFrame));
+
+        BVDC_P_WIN_GET_REG_DATA_I(0, CMP_0_V0_RECT_OFFSETi_ARRAY_BASE) =
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_OFFSETi, X_OFFSET,
+                BVDC_P_ALIGN_UP(pPicture->astMosaicRect[0].lLeft, 2)) |
+            BCHP_FIELD_DATA(CMP_0_V0_RECT_OFFSETi, Y_OFFSET,
+                (pPicture->astMosaicRect[0].lTop) >> (ePolarity!=BAVC_Polarity_eFrame));
+    }
+    {
+        hCompositor->ulMosaicAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
+    }
+
+    BDBG_LEAVE(BVDC_P_Window_SetBgColor_isr);
     return;
 }
 #endif
@@ -4452,7 +4541,6 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
     ulPrevDeferIdxRd = hWindow->ulDeferIdxRd[ulPictureIdx];
     ulPrevDeferIdxWr = hWindow->ulDeferIdxWr[ulPictureIdx];
 
-
     if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
     {
         bMadHardStart = BVDC_P_Mcdi_BeHardStart_isr(hWindow->stCurResource.hMcvp->hMcdi->bInitial,
@@ -5102,11 +5190,47 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         else
             pPicture->bMosaicIntra = false;
     }
+    /* Note mosaic mode and ClearRect setting is preferred to eEnableBackgroundBars */
+    else if(BVDC_P_VNET_USED_SCALER_AT_WRITER(hWindow->stVnetMode) &&
+        (BVDC_Mode_eOff != pUserInfo->eEnableBackgroundBars) &&
+        (0 < pUserInfo->ucZOrder) &&
+        ((pUserInfo->stDstRect.ulWidth > hWindow->stAdjSclOut.ulWidth) ||
+         (pUserInfo->stDstRect.ulHeight> hWindow->stAdjSclOut.ulHeight))
+#if BVDC_P_SUPPORT_STG /* no window background clear for transcoder */
+        && !BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg)
+#endif
+    )
+    {
+        /* reuse pPicture bMosaicMode flag to clear window background */
+        pPicture->bMosaicMode = true;
+        pPicture->bMosaicIntra = false;
+        pPicture->ulMosaicCount = 1;
+        pPicture->ulMosaicRectSet = 1;
+        pPicture->astMosaicRect[0] = hWindow->stAdjSclOut;
+        /* Note, AdjustRectangle has calculated aspect ratio corrected window sizes in stAdjSclOut;
+          so given window user setting stSclerOutput >= stAdjSclOut/stAdjDstRect, the window background
+          bars clip size can be calculated by centering the adjusted rect within the user setting rect; */
+        pPicture->astMosaicRect[0].lLeft = (hWindow->stAdjDstRect.lLeft - pUserInfo->stDstRect.lLeft);
+        pPicture->astMosaicRect[0].lTop  = (hWindow->stAdjDstRect.lTop - pUserInfo->stDstRect.lTop);
+        pPicture->abMosaicVisible[0] = true;
+        /* mark the flag */
+        hWindow->bBarsToBeFilled = true;
+    }
     else
     {
         pPicture->bMosaicMode = false;
         pPicture->bMosaicIntra = false;
         pPicture->ulMosaicCount = 0;
+        if(hWindow->bBarsToBeFilled && BVDC_Mode_eOn == pUserInfo->eEnableBackgroundBars &&
+           ((pUserInfo->stDstRect.ulWidth > hWindow->stAdjSclOut.ulWidth) ||
+            (pUserInfo->stDstRect.ulHeight> hWindow->stAdjSclOut.ulHeight)))
+        {
+            hWindow->bBarsToBeFilled = false;
+            BDBG_ERR(("Win[%d] bars are not filled! zorder=%u, scl@w=%d, dst:%ux%u, adjScl=%ux%u",
+                hWindow->eId, pUserInfo->ucZOrder, BVDC_P_VNET_USED_SCALER_AT_WRITER(hWindow->stVnetMode),
+                pUserInfo->stDstRect.ulWidth, pUserInfo->stDstRect.ulHeight,
+                hWindow->stAdjSclOut.ulWidth, hWindow->stAdjSclOut.ulHeight));
+        }
     }
 #endif
 
@@ -5515,7 +5639,7 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
 
             pPicture->pSclIn = pPicture->pSrcOut;
 
-            if(pUserInfo->bMosaicMode)
+            if(pPicture->bMosaicMode)
             {
                 /* cut done in scl, no more in cap */
                 pPicture->stCapOut.lLeft = 0;
@@ -5550,6 +5674,7 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
                 pPicture->stWinIn= hWindow->stCurInfo.stScalerOutput;
                 pPicture->pWinIn = &pPicture->stWinIn;
                 pPicture->stWinIn.ulWidth = BVDC_P_ALIGN_UP(pPicture->stWinIn.ulWidth, 2);
+                pPicture->stWinOut= hWindow->stCurInfo.stDstRect;
             }
             else
             {
@@ -6065,12 +6190,25 @@ void BVDC_P_Window_DecideCapture_isr
      * Why >= width-3?  This is to allow app to pass in 480 and interpret it
      * as full screen.  Basically we want to have the lagacy 480 and 482 lines
      * for 480i, 483 for 480p to be similar. */
-    hWindow->bDstFullScreen =
-        (((pWinInfo->stScalerOutput.ulWidth  == pCmpInfo->pFmtInfo->ulWidth) &&
-          (pWinInfo->stScalerOutput.ulHeight >= pCmpInfo->pFmtInfo->ulDigitalHeight)) ||
-         ((pWinInfo->stScalerOutput.ulWidth  >= pCmpInfo->pFmtInfo->ulWidth * 3 / 4) &&
-          (pWinInfo->stScalerOutput.ulHeight >= pCmpInfo->pFmtInfo->ulDigitalHeight * 3 / 4)&&
-          (BVDC_AspectRatioMode_eUseAllSource != pWinInfo->eAspectRatioMode)));
+    if(BBOX_Vdc_SclCapBias_eAutoDisable1080p == hWindow->eBoxSclCapBias)
+    {
+        hWindow->eScanoutMode = BVDC_P_GetScanoutMode4AutoDisable1080p_isr(&pWinInfo->stScalerOutput);
+    }
+    else
+    {
+        if(((pWinInfo->stScalerOutput.ulWidth  == pCmpInfo->pFmtInfo->ulWidth) &&
+            (pWinInfo->stScalerOutput.ulHeight >= pCmpInfo->pFmtInfo->ulDigitalHeight)) ||
+           ((pWinInfo->stScalerOutput.ulWidth  >= pCmpInfo->pFmtInfo->ulWidth * 3 / 4) &&
+            (pWinInfo->stScalerOutput.ulHeight >= pCmpInfo->pFmtInfo->ulDigitalHeight * 3 / 4)&&
+            (BVDC_AspectRatioMode_eUseAllSource != pWinInfo->eAspectRatioMode)))
+        {
+            hWindow->eScanoutMode = BVDC_P_ScanoutMode_eLive;
+        }
+        else
+        {
+            hWindow->eScanoutMode = BVDC_P_ScanoutMode_eCapture;
+        }
+    }
 
     if(BVDC_P_SRC_IS_MPEG(hSource->eId))
     {
@@ -6080,7 +6218,7 @@ void BVDC_P_Window_DecideCapture_isr
          * TODO: this logic will be moved to _isr to support _SetXyzRect_isr; */
         bCapture = (
 #if (BVDC_P_AUTO_ENABLE_CAPTURE)
-            !hWindow->bDstFullScreen        ||
+            (hWindow->eScanoutMode == BVDC_P_ScanoutMode_eCapture) ||
 #endif
             !hWindow->bSyncLockSrc          ||
              pWinInfo->bForceCapture        ||
@@ -10365,7 +10503,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
              (ulWidth  <= ulMaxMadWidth);
 
         bDeinterlace = (
-            (bSrcInterlace) &&
+            (bSrcInterlace) && (!BVDC_P_SCANOUTMODE_DECIMATE(hWindow->eScanoutMode)) &&
             (bMadSrcSizeOk)
 #if !BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
             && (!hWindow->stCurInfo.bMosaicMode)
@@ -10387,7 +10525,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
             BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC, ("win[%d] picture channel %d bDeinterlacer %d bSrcInterlace %d bMadSrcSizeOk %d %d, vfreq=%u",
                 hWindow->eId, ulPictureIdx,
                 bDeinterlace, bSrcInterlace, bMadSrcSizeOk,
-                hWindow->bDstFullScreen,
+                hWindow->eScanoutMode,
                 hWindow->stCurInfo.hSource->ulVertFreq));
         }
 
@@ -10924,6 +11062,16 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
             pMinDspFmt = hWindow->stSettings.pMinDspFmt;
             stCapBufRect = (pCurInfo->bMosaicMode)
                 ? pCurInfo->stScalerOutput : hWindow->stAdjDstRect;
+
+            /* Max capture is 1080p in AutoDisable1080p mode */
+            if(!hWindow->stCurInfo.bMosaicMode &&
+               (BBOX_Vdc_SclCapBias_eAutoDisable1080p == hWindow->eBoxSclCapBias))
+            {
+                if((pAllocFmt->ulWidth*pAllocFmt->ulHeight) > (BFMT_1080I_WIDTH*BFMT_1080I_HEIGHT))
+                {
+                    pAllocFmt = BFMT_GetVideoFormatInfoPtr_isrsafe(BFMT_VideoFmt_e1080p);
+                }
+            }
 
             /* guaranteed some minimal memory allocation to avoid reallocations
              * when display output format changes. */
@@ -14356,6 +14504,7 @@ void BVDC_P_Window_Reader_isr
 
     BVDC_P_Window_SetSurfaceSize_isr(hWindow, pPicture->pWinIn, eFieldId);
     BVDC_P_Window_SetDisplaySize_isr(hWindow, pPicture->pWinOut, eFieldId,ulRWindowXOffset);
+
     /* compositor check the sur enable bit to start program  */
     if(hWindow->ulBlenderMuteCnt)
         hWindow->ulBlenderMuteCnt--;
@@ -14363,11 +14512,13 @@ void BVDC_P_Window_Reader_isr
 
     /* MosaicMode: update ClearRect mask */
 #if BVDC_P_SUPPORT_CMP_CLEAR_RECT
-    if(pCurInfo->bMosaicMode)
+    if(pCurInfo->bClearRect)
     {
         hWindow->ulMosaicRectSet = pPicture->ulMosaicRectSet;
         BVDC_P_Window_SetClearRect_isr(hWindow, pCurInfo, pPicture);
-        hCompositor->ulMosaicAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
+    } else
+    {
+        BVDC_P_Window_SetBgColor_isr(hWindow, pPicture, eFieldId);
     }
 #endif
 

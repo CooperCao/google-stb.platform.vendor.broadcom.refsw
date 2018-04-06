@@ -67,6 +67,11 @@ typedef enum DrmType {
     drm_type_eMax
 } DrmType;
 
+typedef struct StreamerEvent
+{
+    BKNI_EventHandle event;
+    NEXUS_CallbackDesc userCallback;
+} StreamerEvent;
 
 class IBuffer;
 
@@ -173,7 +178,7 @@ private:
     bool m_givenDmaJob;
 };
 
-#define MAX_DESCRIPTORS 10
+#define MAX_DESCRIPTORS 16
 class IStreamer;
 
 // This is used to create a Streamer
@@ -195,13 +200,21 @@ public:
 
     virtual bool Initialize() = 0;
 
-    // Used to get default settings
+    // Used to get default open settings
     virtual void GetDefaultPlaypumpOpenSettings(
         NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) = 0;
 
     // Used to open a playpump
     virtual NEXUS_PlaypumpHandle OpenPlaypump(
         NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) = 0;
+
+    // Used to get current playpump settings
+    virtual void GetSettings(
+        NEXUS_PlaypumpSettings *playpumpSettings) = 0;
+
+    // Used to set new playpump settings
+    virtual NEXUS_Error SetSettings(
+        NEXUS_PlaypumpSettings *playpumpSettings) = 0;
 
     // Used to open a pid channel
     virtual NEXUS_PidChannelHandle OpenPidChannel(
@@ -231,7 +244,7 @@ class BaseStreamer : public IStreamer
 {
 public:
     BaseStreamer();
-    virtual ~BaseStreamer() {}
+    virtual ~BaseStreamer();
 
     virtual bool Initialize() OVERRIDE { return true; }
 
@@ -240,6 +253,12 @@ public:
 
     virtual NEXUS_PlaypumpHandle OpenPlaypump(
         NEXUS_PlaypumpOpenSettings *playpumpOpenSettings) OVERRIDE;
+
+    virtual void GetSettings(
+        NEXUS_PlaypumpSettings *playpumpSettings) OVERRIDE;
+
+    virtual NEXUS_Error SetSettings(
+        NEXUS_PlaypumpSettings *playpumpSettings) OVERRIDE;
 
     virtual NEXUS_PidChannelHandle OpenPidChannel(
         unsigned pid,
@@ -268,6 +287,7 @@ protected:
 
 private:
     uint8_t* WaitForBuffer(uint32_t size);
+    StreamerEvent m_event;
     uint32_t m_numDesc;
     NEXUS_PlaypumpScatterGatherDescriptor m_desc[MAX_DESCRIPTORS];
     bool m_flush[MAX_DESCRIPTORS];

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -786,7 +786,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_D, pDcrCfg->ulRandomD);
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL) =
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_OUT_CTRL, DITH_CLAMP, 7);
+            BCHP_FIELD_DATA(DNR_0_DCR_DITH_OUT_CTRL, DITH_CLAMP, pDcrCfg->ulDithClamp);
 
         pSrcInfo->stDirty.stBits.bDnrAdjust = false;
         hDnr->ulMnrQp = ulMnrQp;

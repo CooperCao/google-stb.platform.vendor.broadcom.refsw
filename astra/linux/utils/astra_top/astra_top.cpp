@@ -169,6 +169,7 @@ public:
     int parseEntries();
     int getCPUCoresInfo();
     void clearPrevDump();
+    void clearDB();
     void dumpTaskDataToConsole(int cpuID);
     int displayTaskTableFields(int cpuID);
 };
@@ -286,6 +287,8 @@ int main(int argc, const char *argv[])
             }
         }
 
+        pInstance->clearDB();
+
         if (pInstance->options.dispType == eREFRESH)
             pInstance->clearPrevDump();
 
@@ -319,6 +322,12 @@ void Analyzer::clearPrevDump()
     prevLinesCount = curLinesCount;
     curLinesCount = 0;
 }
+
+void Analyzer::clearDB()
+{
+    cpuTasksMap.clear();
+}
+
 
 int Analyzer::displayTaskTableFields(int cpuID)
 {
@@ -467,7 +476,6 @@ void Analyzer::dumpTaskDataToConsole(int cpuID)
         temp.taskInfo.CPUperAccumulated = 0;
         temp.taskInfo.taskLoadAccumalated = 0;
     }
-    cpuTasksMap.clear();
 }
 
 int Analyzer::init()
@@ -577,12 +585,12 @@ int Analyzer::captureEntries()
         return -1;
     }
 
-
     logData.clear();
     while ((rn = read(traceLogFD, buf, BUFFSIZE)) > 0) {
         logData.insert(logData.end(), buf, buf + rn);
     }
     logDataEnd = &logData.back();
+
     close(traceLogFD);
     return logData.size();
 }

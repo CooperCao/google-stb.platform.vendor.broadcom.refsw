@@ -46,8 +46,11 @@
 
 /* Note: Tricky here!  bavc.h needs bchp_gfd_x.h defininitions.
  * The check here is to see if chips has more than one gfx feeder. */
+#include "bchp_common.h"
 #include "bchp_gfd_0.h"
+#ifdef BCHP_GFD_1_REG_START
 #include "bchp_gfd_1.h"
+#endif
 
 #include "bvdc.h"                /* Video display */
 #include "bvdc_priv.h"           /* VDC internal data structures */
@@ -64,7 +67,6 @@
 #include "bchp_fmisc.h"
 #include "bchp_mmisc.h"
 #include "bchp_bmisc.h"
-#include "bchp_timer.h"
 
 #if BVDC_P_SUPPORT_DMISC
 #include "bchp_dmisc.h"
@@ -116,7 +118,7 @@ const uint32_t s_aulDacGrouping[BVDC_MAX_DACS] =
 };
 
 /* Default settings. */
-const BVDC_Settings s_stDefaultSettings =
+const BVDC_OpenSettings s_stDefaultSettings =
 {
     BFMT_VideoFmt_eNTSC,
     BAVC_FrameRateCode_e59_94,             /* Most HDMI monitors support 60Hz */
@@ -427,6 +429,17 @@ const BVDC_P_Features s_VdcFeatures =
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true, false, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false },
+#elif (BCHP_CHIP==7211)
+    false,
+    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
+    {  true,  false,  false, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true,  false, false, false, false, false, false, false, false, false, true,  false,  false, false, false, false, false, false, false, false, true, false,  false, false, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  false, false, false, false, false, false, false, false, false, false, true,  false, false, false, false, false, false, false, false, false,  true, false, false, false, false, false, false, false },
+
 #elif (BCHP_CHIP==7278)
     false,
     /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
@@ -596,7 +609,7 @@ static void BVDC_P_SoftwareReset
  * Check VDC DAC bandgap default settings.
  */
 static BERR_Code BVDC_P_CheckBandgapDefSettings
-    ( const BVDC_Settings             *pDefSettings )
+    ( const BVDC_OpenSettings             *pDefSettings )
 {
     BERR_Code  eStatus = BERR_SUCCESS;
     uint32_t   id;
@@ -628,7 +641,7 @@ static BERR_Code BVDC_P_CheckBandgapDefSettings
  */
 void BVDC_GetDefaultSettings
     ( const BBOX_Handle                hBox,
-      BVDC_Settings                   *pDefSettings )
+      BVDC_OpenSettings                   *pDefSettings )
 {
     BDBG_ENTER(BVDC_GetDefaultSettings);
 
@@ -685,11 +698,10 @@ BERR_Code BVDC_Open
       BINT_Handle                      hInterrupt,
       BRDC_Handle                      hRdc,
       BTMR_Handle                      hTmr,
-      const BVDC_Settings             *pDefSettings )
+      const BVDC_OpenSettings             *pDefSettings )
 {
     BVDC_P_Context *pVdc = NULL;
     BERR_Code eStatus = BERR_SUCCESS;
-    BTMR_Settings sTmrSettings;
     uint32_t i, j;
 
     BDBG_ENTER(BVDC_Open);
@@ -791,13 +803,12 @@ BERR_Code BVDC_Open
 #endif
 
     /* (2) Initalize and start timer */
+#if (!BVDC_P_USE_RDC_TIMESTAMP)
     if(!pVdc->hTimer)
     {
+        BTMR_Settings sTmrSettings;
         BTMR_GetDefaultTimerSettings(&sTmrSettings);
         sTmrSettings.type = BTMR_Type_eSharedFreeRun;
-        sTmrSettings.cb_isr = NULL;
-        sTmrSettings.pParm1 = NULL;
-        sTmrSettings.parm2 = 0;
         sTmrSettings.exclusive = true;
 
         eStatus = BTMR_CreateTimer(hTmr, &pVdc->hTimer, &sTmrSettings);
@@ -806,6 +817,7 @@ BERR_Code BVDC_Open
             goto BVDC_Open_Done;
         }
     }
+#endif
 
     /* Take in feature, this should be the centralize place to discover about
      * chip information and features. */
@@ -1028,11 +1040,13 @@ BERR_Code BVDC_Close
     }
 
     /* [2] Destroy Timer */
+#if (!BVDC_P_USE_RDC_TIMESTAMP)
     if(hVdc->hTimer)
     {
         BTMR_DestroyTimer(hVdc->hTimer);
         hVdc->hTimer = NULL;
     }
+#endif
 
     /* [1.1] Power managment */
 #ifdef BCHP_PWR_RESOURCE_BVN
@@ -1128,11 +1142,13 @@ BERR_Code BVDC_Standby
     if(!hVdc->bStandby)
     {
         /* Destroy Timer */
+#if (!BVDC_P_USE_RDC_TIMESTAMP)
         if(hVdc->hTimer)
         {
             BTMR_DestroyTimer(hVdc->hTimer);
             hVdc->hTimer = NULL;
         }
+#endif
 
 #ifdef BCHP_PWR_RESOURCE_BVN
         BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN);
@@ -1169,6 +1185,7 @@ BERR_Code BVDC_Resume
         BCHP_PWR_AcquireResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
 #endif
 
+#if (!BVDC_P_USE_RDC_TIMESTAMP)
         if(!hVdc->hTimer)
         {
             BERR_Code eStatus = BERR_SUCCESS;
@@ -1177,9 +1194,6 @@ BERR_Code BVDC_Resume
             /* Initalize and start timer */
             BTMR_GetDefaultTimerSettings(&sTmrSettings);
             sTmrSettings.type = BTMR_Type_eSharedFreeRun;
-            sTmrSettings.cb_isr = NULL;
-            sTmrSettings.pParm1 = NULL;
-            sTmrSettings.parm2 = 0;
             sTmrSettings.exclusive = true;
 
             eStatus = BTMR_CreateTimer(hVdc->hTmr, &hVdc->hTimer, &sTmrSettings);
@@ -1188,6 +1202,7 @@ BERR_Code BVDC_Resume
                 return BERR_TRACE(eStatus);
             }
         }
+#endif
 
         BVDC_P_SoftwareReset(hVdc);
         hVdc->bStandby = false;

@@ -44,6 +44,8 @@
 #define MON_EFAULT              -2
 #define MON_EINVAL              -3
 #define MON_EPERM               -4
-#define MON_NOENT               -5
+#define MON_ENOENT              -5
+#define MON_ETIMEDOUT           -6
+#define MON_ENOTSUP             -7
 
 #endif /* _ERROR_H_ */

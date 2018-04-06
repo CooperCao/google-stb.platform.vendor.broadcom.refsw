@@ -56,7 +56,8 @@
 #define B_IPC_CLIENT_SET_RESULT(type, api) __result = B_IPC_FIELD(api, out, ret.__retval);
 #define B_IPC_CLIENT_CHECK_RETURN_CODE(api) if(__result!=NEXUS_SUCCESS) {__rc=/*BERR_TRACE*/(__result);goto done;}
 #define B_IPC_CLIENT_END_VOID(api)  done: NEXUS_PROXY_LEAVE(api);return;}
-#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  done: if(__has_callbacks) {NEXUS_StartCallbacks((void *)handle);} NEXUS_PROXY_LEAVE(api);} return;}
+#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  done: NEXUS_PROXY_LEAVE(api);} return;}
+#define B_IPC_CLIENT_END_ACQUIRE_HANDLE(type, api) NEXUS_StartCallbacks((void*)__result); return __result; done: return (type)NULL;}
 #define B_IPC_CLIENT_END_HANDLE(type, api) return __result; done: return (type)NULL;}
 #define B_IPC_CLIENT_END(api)  return __result;done: return __rc;}
 #define B_IPC_CLIENT_SEND(api, arg)  B_IPC_FIELD(api, in, args.arg) = arg;

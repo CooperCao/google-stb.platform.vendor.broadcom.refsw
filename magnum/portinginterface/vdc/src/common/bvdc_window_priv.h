@@ -267,6 +267,7 @@ typedef enum
     BVDC_P_BufferCount_eToDecrement
 } BVDC_P_BufferCountState;
 
+
 /* Use for dynamic RTS. */
 typedef struct
 {
@@ -642,6 +643,9 @@ typedef struct
     int16_t                       sHdrPeakBrightness;
     int16_t                       sSdrPeakBrightness;
 
+    /* other dynamic settings */
+    BVDC_Mode                     eEnableBackgroundBars;
+
 } BVDC_P_Window_Info;
 
 /***************************************************************************
@@ -792,7 +796,7 @@ typedef struct BVDC_P_WindowContext
     BVDC_P_Window_Info            stCurInfo;
 
     /* Window default setting takin from creat */
-    BVDC_Window_Settings          stSettings;
+    BVDC_Window_CreateSettings    stSettings;
 
     /* Set to true when new & old validated by apply changes */
     bool                          bUserAppliedChanges;
@@ -812,8 +816,9 @@ typedef struct BVDC_P_WindowContext
     bool                          bMaskAvail;
 
     /* Use to determine Vnet mode. */
-    bool                          bDstFullScreen;
+    BVDC_P_ScanoutMode            eScanoutMode;
     bool                          bCapture;
+
     bool                          bSyncLockSrc;
 #if BVDC_P_SUPPORT_STG
     bool                          bSyncSlave; /* for sync-slaved STG window that the window RUL is owned by sync master source */
@@ -822,6 +827,7 @@ typedef struct BVDC_P_WindowContext
                                                 (MHz * BFMT_FREQ_FACTOR) */
     uint32_t                      ulFeedRate;
     uint32_t                      ulSourceRate;
+    BBOX_Vdc_SclCapBias           eBoxSclCapBias;
 
     /* eBufferHeapIdRequest defines the buffer size. eBufferHeapIdPrefer is
      * the prefered buffer heap Id. The actual buffer heap used
@@ -966,6 +972,7 @@ typedef struct BVDC_P_WindowContext
     /* MosaicMode: clear rect mask set */
     uint32_t                      ulMosaicRectSet;
     bool                          bClearRectSupport;
+    bool                          bBarsToBeFilled;
 
     /* sub-struct to manage vnet for the compositor's win src */
     BVDC_P_SubRulContext          stWinOutVnet;

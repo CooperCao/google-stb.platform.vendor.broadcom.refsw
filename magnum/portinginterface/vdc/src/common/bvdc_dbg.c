@@ -86,9 +86,10 @@ void BVDC_P_BvnErrorHandler_isr
             BKNI_Snprintf(hVdc->achBuf, BVDC_P_ERROR_MAX_MSG_LENGTH, "BVN error in %s [ts=%u]", pIntCb->pchInterruptName, BRDC_GetCurrentTimer_isr(hVdc->hRdc));
         }
 
+#ifdef BRDC_USE_CAPTURE_BUFFER
         /* Log to RDC's circular buffer so we see what may have caused it */
         BRDC_DBG_LogErrorCode_isr(hVdc->hRdc, BRDC_DBG_BVN_ERROR, hVdc->achBuf);
-
+#endif
         if(!hVdc->abBvnErrMask[iIdx])
         {
             BDBG_WRN(("%s", hVdc->achBuf));

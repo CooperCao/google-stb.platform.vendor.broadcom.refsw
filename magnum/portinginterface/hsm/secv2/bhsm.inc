@@ -138,12 +138,12 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_rv_region.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_hwkl.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_signed_command.c
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_exceptions.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_otp_priv.c
         ifeq ($(BHSM_DEBUG_BSP),y)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/zeus5/bhsm_p_debug_load_data.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src/bhsm_bsp_debug.c
         endif
-
 
 
         ifeq ($(BHSM_BUILD_BROADCOM_ONLY),y)
@@ -178,11 +178,13 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_hdcp1x.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_rv_rsa.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_rv_region.c
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_exceptions.c
         ifeq ($(_BHSM_BUILD_HSM_FOR_SAGE),y)
             BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_sandbox_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_restricted_anti_rollback_sage.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_hdcp22_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src/bhsm_crypto_restricted_sage.c
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_restricted_anti_rollback_sage.c
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_hdcp22_restricted.c
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_crypto_restricted_sage.c
+            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_exceptions_restricted.c
         endif
         ifeq ($(BHSM_POWAY_SUPPORT),y)
             BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_poway.c

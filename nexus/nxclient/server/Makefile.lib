@@ -40,6 +40,9 @@ NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
 endif
+ifndef B_REFSW_SHAREABLE
+B_REFSW_SHAREABLE := y
+endif
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 # do "make nexus" and "make nexus_headers" first, then "make NEXUS_PREBUILT_BINARY=y"
@@ -74,12 +77,16 @@ else
 LDFLAGS += -Wl,-Map,$(BINDIR)/libnxclient.map -g
 endif
 
+ifeq ($(B_REFSW_SHAREABLE),y)
 IPC_LIB=$(BINDIR)/libnxclient.so
-IPC_LIB_STATIC=$(BINDIR)/libnxclient_static.a
 LOCAL_LIB=$(BINDIR)/libnxclient_local.so
+else
+IPC_LIB=$(BINDIR)/libnxclient.a
+LOCAL_LIB=$(BINDIR)/libnxclient_local.a
+endif
 Q_?=@
 
-all: $(IPC_LIB) $(IPC_LIB_STATIC) $(LOCAL_LIB)
+all: $(IPC_LIB) $(LOCAL_LIB)
 
 B_LINKER=$(CC)
 
@@ -128,17 +135,23 @@ endif
 
 IPC_LIB_OBJS := $(addprefix $(BINDIR)/,nxclient_ipc.o nxclient_common.o $(patsubst %.c,%.o,$(notdir $(NXCLIENT_SOCKET_INTF))) bipc_util.o bipc_client.o)
 
+ifeq ($(B_REFSW_SHAREABLE),y)
 $(IPC_LIB): $(IPC_LIB_OBJS) $(NXCLIENT_MODE_CHECK)
 	${Q_}echo "[Linking $(notdir $@)]"
 	${Q_}$(B_LINKER) ${LDFLAGS} -shared -Wl,--cref -Wl,-x -o $@ -Wl,-soname,libnxclient.so $(filter %.o,$^)
 
-$(IPC_LIB_STATIC): $(IPC_LIB_OBJS) $(NXCLIENT_MODE_CHECK)
+$(LOCAL_LIB): $(BINDIR)/nxclient_local.o $(BINDIR)/nxclient_common.o
+	${Q_}echo "[Linking $(notdir $@)]"
+	${Q_}$(B_LINKER) ${LDFLAGS} -shared -Wl,--cref -Wl,-x -o $@ -Wl,-soname,libnxclient_local.so $^
+else
+$(IPC_LIB): $(IPC_LIB_OBJS) $(NXCLIENT_MODE_CHECK)
 	${Q_}echo "[Archive... $(notdir $@)]"
 	$(Q_)$(AR) rcs $@ $(IPC_LIB_OBJS)
 
 $(LOCAL_LIB): $(BINDIR)/nxclient_local.o $(BINDIR)/nxclient_common.o
-	${Q_}echo "[Linking $(notdir $@)]"
-	${Q_}$(B_LINKER) ${LDFLAGS} -shared -Wl,--cref -Wl,-x -o $@ -Wl,-soname,libnxclient_local.so $^
+	${Q_}echo "[Archive... $(notdir $@)]"
+	$(Q_)$(AR) rcs $@ $(BINDIR)/nxclient_local.o $(BINDIR)/nxclient_common.o
+endif
 
 $(BINDIR)/%.o: %.c
 	${Q_}$(CC) -c -o $@ $(filter %.c %.s %.o, $<) ${CFLAGS}

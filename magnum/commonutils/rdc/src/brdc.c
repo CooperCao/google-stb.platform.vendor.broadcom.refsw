@@ -2449,12 +2449,14 @@ BERR_Code BRDC_Open
         goto error;
     }
 
+#if !B_REFSW_MINIMAL
     /* RDMA Block-out */
     err = BRDC_P_RdcBlockOutInit(hRdc);
     if (err != BERR_SUCCESS)
     {
         goto error;
     }
+#endif
 
 #ifdef BRDC_USE_CAPTURE_BUFFER
     err = BRDC_DBG_CreateCaptureBuffer(&hRdc->captureBuffer, BRDC_P_MAX_COUNT);
@@ -2517,12 +2519,14 @@ BERR_Code BRDC_Close
         }
     }
 
+#if !B_REFSW_MINIMAL
     /* Close related RDMA block-out objects */
     err = BRDC_P_RdcBlockOutDestroy(hRdc);
     if (err != BERR_SUCCESS)
     {
         goto done;
     }
+#endif
 
 #ifdef BRDC_USE_CAPTURE_BUFFER
     BRDC_DBG_DestroyCaptureBuffer(&hRdc->captureBuffer);
@@ -3100,7 +3104,9 @@ BERR_Code BRDC_List_Create
 
     hList->ulAddrOffset      = BMMA_LockOffset(hList->hRULBlock);
 
+#if(!B_REFSW_MINIMAL)
     hList->eNextEntry        = BRDC_DBG_ListEntry_eCommand;
+#endif
     hList->pulCurListAddr    = NULL;
     hList->ulNumEntries      = 0;
     hList->ulCurrCommand     = 0;
@@ -3387,9 +3393,11 @@ BERR_Code BRDC_Slots_Destroy
     BERR_Code         err = BERR_SUCCESS;
     BRDC_Slot_Handle  hSlot = *phSlot;
     uint32_t          ulSyncId;
+    BRDC_Handle       hRdc;
 
     BDBG_ENTER(BRDC_Slots_Destroy);
     BDBG_OBJECT_ASSERT(hSlot, BRDC_SLT);
+    hRdc = hSlot->hRdc;
     ulSyncId = hSlot->ulSyncId;
 
     for(i = 0; i < ulNum; i++) {
@@ -3426,14 +3434,16 @@ BERR_Code BRDC_Slots_Destroy
 
     /* disarm & release synchronizer */
 #if (BCHP_RDC_sync_0_arm)
-    if(ulSyncId != (uint32_t)(-1) && hSlot->hRdc) {
+    if(ulSyncId != (uint32_t)(-1) && hRdc) {
         BKNI_EnterCriticalSection();
-        err = BRDC_P_ReleaseSync_isr(hSlot->hRdc, ulSyncId);
+        err = BRDC_P_ReleaseSync_isr(hRdc, ulSyncId);
         BKNI_LeaveCriticalSection();
         if(err != BERR_SUCCESS) {
             BDBG_ERR(("Failed to release synchronizer[%u]!", ulSyncId));
         }
     }
+#else
+    BSTD_UNUSED(hRdc);
 #endif
 
 done:
@@ -3581,6 +3591,7 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
         return BERR_TRACE(BRDC_SLOT_ERR_EMPTY_LIST);
     }
 
+#if !B_REFSW_MINIMAL
 #if(!BRDC_P_SUPPORT_HW_BLOCKOUT)
     if (BRDC_P_IsRdcBlockOutEnabled_isr(hList->hRdc))
     {
@@ -3589,11 +3600,12 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
             goto done;
     }
 #endif
+#endif
 
 #ifdef BRDC_USE_CAPTURE_BUFFER
     /* Write to log before RUL could possibly be executed;
      * log one slot only to reduce log size; */
-    BRDC_P_DBG_WriteCaptures_isr(&hList->hRdc->captureBuffer, phSlots, hList, ulNum);
+    BRDC_DBG_WriteCaptures_isr(&hList->hRdc->captureBuffer, phSlots, hList, ulNum);
 #endif
 
 #if (BCHP_RDC_sync_0_arm)
@@ -3745,6 +3757,19 @@ BERR_Code BRDC_Slots_SetList_isr
     BDBG_LEAVE(BRDC_Slots_SetList_isr);
     return err;
 }
+
+#if !B_REFSW_MINIMAL
+/***************************************************************************
+ *
+ */
+void BRDC_Slot_GetList_isr
+    ( BRDC_Slot_Handle                 hSlot,
+      BRDC_List_Handle                *phList )
+{
+    /* return list handle */
+    *phList = hSlot->hList;
+}
+#endif
 
 /***************************************************************************
  * This function calls the following _isr functions:

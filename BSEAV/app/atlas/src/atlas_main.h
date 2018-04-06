@@ -159,6 +159,10 @@ public:
     virtual COutputAudioDac *    outputDacInitialize(void);
     virtual void                 outputDacUninitialize(COutputAudioDac ** pOutputDac);
     virtual CSimpleAudioDecode * audioDecodeInitializePip(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
+	virtual CCecRemote *         cecRemoteCreate(void);
+    virtual void                 cecRemoteDestroy(CCecRemote * pCecRemote);
+    virtual CCecRemote *         cecRemoteInitialize(void);
+    virtual void                 cecRemoteUninitialize(void);
 #ifdef NETAPP_SUPPORT
     virtual CBluetooth *    bluetoothCreate(void);
     virtual CAudioCapture * audioCaptureInitialize(CBluetooth * pBluetooth);

@@ -98,6 +98,7 @@ typedef struct tcpState
 #define B_ASP_INTERFACE_NAME_SIZE 16
 typedef struct B_AspChannelSocketState
 {
+    bool                connectionLost;
     TcpState            tcpState;
     struct sockaddr_in  remoteIpAddr;
     unsigned char       remoteMacAddress[NEXUS_ETHER_ADDR_LEN];

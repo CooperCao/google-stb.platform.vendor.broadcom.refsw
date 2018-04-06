@@ -39,8 +39,14 @@ static int compose_key(char *newkey, size_t newkey_sz, const char *oldkey)
 {
     char *keycopy_d;
     const char *keycopy_s;
+    const char *prefix = "";
 
-    if (strlen(oldkey) + 1 > newkey_sz) {
+#if defined(ANDROID) || defined(USE_ANDROID)
+    // Ensure Android properties start "ro.v3d."
+    prefix = "ro.v3d.";
+#endif
+
+    if (strlen(oldkey) + strlen(prefix) + 1 > newkey_sz) {
         return -1;
     }
 
@@ -48,6 +54,10 @@ static int compose_key(char *newkey, size_t newkey_sz, const char *oldkey)
        the alphabet */
 
     keycopy_d = newkey;
+
+    strcpy(keycopy_d, prefix);
+    keycopy_d += strlen(prefix);
+
     for(keycopy_s = oldkey; *keycopy_s; keycopy_s++) {
        char c;
 

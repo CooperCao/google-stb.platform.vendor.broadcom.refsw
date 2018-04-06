@@ -71,11 +71,19 @@ NEXUS_AudioPlaybackHandle g_playbackHandle = NULL;
 static bool enable_capture_thread = true;
 BKNI_EventHandle event = NULL;
 
+#if USE_OUTPUT_CAPTURE
 typedef struct captureCallbackParameters
 {
     NEXUS_AudioCaptureHandle capture;
     BKNI_EventHandle event;
 } captureCallbackParameters;
+#else
+typedef struct captureCallbackParameters
+{
+    NEXUS_AudioInputCaptureHandle capture;
+    BKNI_EventHandle event;
+} captureCallbackParameters;
+#endif
 
 
 void mclock_init( void )
@@ -380,8 +388,6 @@ int main(int argc, char *argv[])
     /* Start thread for playback */
     #if USE_OUTPUT_CAPTURE
     pthread_create(&captureThread, NULL, capture_thread, outputCapture);
-    #else
-    pthread_create(&captureThread, NULL, capture_thread, inputCapture);
     #endif
 
     #if USE_OUTPUT_CAPTURE
@@ -419,6 +425,7 @@ int main(int argc, char *argv[])
     NEXUS_AudioInputCapture_GetDefaultStartSettings(&icStartSettings);
     icStartSettings.input = NEXUS_I2sInput_GetConnector(i2sInput);
     NEXUS_AudioInputCapture_Start(inputCapture, &icStartSettings);
+    pthread_create(&captureThread, NULL, capture_thread, inputCapture);
     #endif
 
     /** start playback **/

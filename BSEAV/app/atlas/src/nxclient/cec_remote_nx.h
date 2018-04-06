@@ -35,13 +35,25 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+#include "cec_remote.h"
 
-#include "config.h"
-#include "monitor.h"
-#include "scmi.h"
+#ifndef __CEC_REMOTE_NX_H
+#define __CEC_REMOTE_NX_H
 
-int scmi_init(void)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * CCecRemoteNx is a model class used to provide the atlas remote control functionality through CEC communication (in Nxclient mode).
+ *
+ */
+class CCecRemoteNx : public CCecRemote
 {
-    INFO_MSG("SCMI init done");
-    return MON_OK;
+public:
+	eRet open(CWidgetEngine * pWidgetEngine);
+};
+#ifdef __cplusplus
 }
+#endif
+#endif /* __CEC_REMOTE_H */

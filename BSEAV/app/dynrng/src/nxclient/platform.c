@@ -74,6 +74,12 @@ PlatformHandle platform_open(const char * appName)
     platform->schedulers[PLATFORM_SCHEDULER_GFX] = platform_scheduler_p_create(platform, &schedulerSettings);
     BDBG_ASSERT(platform->schedulers[PLATFORM_SCHEDULER_GFX]);
 
+    platform_scheduler_p_get_default_create_settings(&schedulerSettings);
+    schedulerSettings.index = PLATFORM_SCHEDULER_USAGE;
+    schedulerSettings.period = 2000;
+    platform->schedulers[PLATFORM_SCHEDULER_USAGE] = platform_scheduler_p_create(platform, &schedulerSettings);
+    BDBG_ASSERT(platform->schedulers[PLATFORM_SCHEDULER_USAGE]);
+
     NxClient_GetDefaultCallbackThreadSettings(&platform->callbackThreadSettings);
     platform->callbackThreadSettings.hdmiOutputHotplug.callback = platform_p_hotplug_handler;
     platform->callbackThreadSettings.hdmiOutputHotplug.context = platform;
@@ -123,6 +129,7 @@ void platform_close(PlatformHandle platform)
 {
     if (!platform) return;
     NxClient_StopCallbackThread();
+    platform_scheduler_p_destroy(platform->schedulers[PLATFORM_SCHEDULER_USAGE]);
     platform_scheduler_p_destroy(platform->schedulers[PLATFORM_SCHEDULER_GFX]);
     platform_scheduler_p_destroy(platform->schedulers[PLATFORM_SCHEDULER_MAIN]);
     BKNI_Free(platform);

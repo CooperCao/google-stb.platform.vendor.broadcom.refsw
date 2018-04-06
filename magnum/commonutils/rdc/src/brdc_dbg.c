@@ -45,6 +45,7 @@
 
 BDBG_MODULE(BRDC_DBG);
 
+#if(!B_REFSW_MINIMAL)
 /***************************************************************************
  *
  */
@@ -457,6 +458,7 @@ BERR_Code BRDC_DBG_GetListEntry(
     BKNI_LeaveCriticalSection();
     return eErr;
 }
+#endif
 
 #ifdef BRDC_USE_CAPTURE_BUFFER
 /**************************************************************
@@ -523,15 +525,9 @@ void BRDC_DBG_WriteCapture_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Handle 
         BMMA_FlushCache_isr(hList->hRULBlock, hList->pulRULAddr, n);
         BRDC_DBG_Write_isr(buffer, hList->pulRULAddr, n);
     }
-#if 0
-    /* internal metrics */
-    if (buffer->num_ruls % 1000 == 0) {
-        BDBG_WRN(("total %d, total_size %d", buffer->num_ruls, buffer->total_bytes));
-    }
-#endif
 }
 
-void BRDC_P_DBG_WriteCaptures_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Handle *phSlots,BRDC_List_Handle hList, uint32_t ulSlots)
+void BRDC_DBG_WriteCaptures_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Handle *phSlots,BRDC_List_Handle hList, uint32_t ulSlots)
 {
     int n = hList->ulEntries * sizeof(uint32_t);
     uint32_t prefix = BRDC_DBG_RUL;
@@ -561,6 +557,7 @@ void BRDC_P_DBG_WriteCaptures_isr(BRDC_DBG_CaptureBuffer *buffer, BRDC_Slot_Hand
         BRDC_DBG_Write_isr(buffer, hList->pulRULAddr, n);
     }
 }
+
 void BRDC_DBG_ReadCapture_isr(BRDC_Handle rdc, uint8_t *mem, int size, int *read)
 {
     int max;

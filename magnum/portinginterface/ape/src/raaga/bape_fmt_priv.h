@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,6 +76,7 @@ typedef enum BAPE_DataType
     BAPE_DataType_eCompressedRaw,   /* RAW Compressed data without 61937 formatting (output from some encoders) */
     BAPE_DataType_eRave,            /* RAVE data, sent in separate CDB/ITB buffers. */
     BAPE_DataType_eRdb,
+    BAPE_DataType_eCrc,
     BAPE_DataType_eUnknown,         /* Unknown or unrecognized data type. */
     BAPE_DataType_eMax
 } BAPE_DataType;

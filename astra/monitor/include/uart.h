@@ -43,13 +43,11 @@
 #include <stdint.h>
 
 int uart_init(
-    uintptr_t base,
     unsigned int uart_clk,
     unsigned int baud_rate);
 
-void uart_uninit(void);
-
 int uart_putc(int c);
 int uart_getc(void);
+int uart_flush(void);
 
 #endif /* _UART_H_ */

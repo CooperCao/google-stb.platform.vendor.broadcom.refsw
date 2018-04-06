@@ -54,7 +54,6 @@
 #include "bchp_mfd_0.h"
 #include "bchp_vfd_0.h"
 #include "bchp_fmisc.h"
-#include "bchp_timer.h"
 #include "bchp_mmisc.h"
 BDBG_MODULE(BVDC_VFD);
 BDBG_FILE_MODULE(BVDC_DITHER);
@@ -2282,6 +2281,12 @@ static BERR_Code BVDC_P_Feeder_SetMpegStride_isr
     else
     {
         ulChromaStride = ulLumaStride;
+    }
+
+    if(hFeeder->eScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_4_1)
+    {
+        ulLumaStride *= 2;
+        ulChromaStride *= 2;
     }
 
     hFeeder->ulChromaStride = ulChromaStride;

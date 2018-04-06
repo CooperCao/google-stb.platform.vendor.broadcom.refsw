@@ -51,6 +51,8 @@
 #define FLASHMAP_VERSION_V5 5
 #define FLASHMAP_VERSION FLASHMAP_VERSION_V5
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 typedef struct
 {
     struct {
@@ -66,13 +68,14 @@ typedef struct
 
 
 
-typedef struct BHSM_P_Handle{
+typedef struct BHSM_P_Handle
+{
+   BDBG_OBJECT( BHSM_P_Handle )
 
    struct{ /* pointers to sub-module data. */
        struct BHSM_KeySlotModule *pKeyslots;
        void* pKeyLadders;
        void* pRegionVerification;
-       void* pHmac;
        void* pHash;
        void* pRvRsa;
        void* pRsa;

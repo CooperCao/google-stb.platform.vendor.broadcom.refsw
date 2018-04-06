@@ -105,11 +105,13 @@ typedef enum Bsp_Otp_CmdMsp_e
 #define OTP_SAGE_DECRYPT_ENABLE     Bsp_Otp_CmdMsp_eSageFsblDecryptionEnable
 #define OTP_SAGE_VERIFY_ENABLE      Bsp_Otp_CmdMsp_eSageVerifyEnable
 #endif
+
 #define OTP_SAGE_SECURE_ENABLE      Bsp_Otp_CmdMsp_eSageSecureEnable
 #define OTP_MARKET_ID_0             Bsp_Otp_CmdMsp_eMarketId0
 #define OTP_MARKET_ID_1             Bsp_Otp_CmdMsp_eMarketId1
 #define OTP_SYSTEM_EPOCH_0          Bsp_Otp_CmdMsp_eSystemEpoch0
 #define OTP_SYSTEM_EPOCH_3          Bsp_Otp_CmdMsp_eSystemEpoch3
+
 #endif
 
 
@@ -148,6 +150,8 @@ typedef struct {
     uint32_t otp_system_epoch3;
     uint32_t otp_market_id;
     uint32_t otp_market_id1;
+    uint32_t otp_market_id_lock;
+    uint32_t otp_market_id1_lock;
 
     bool sageBlTripleSigning;  /* triple-signing scheme or single-signing scheme */
     bool sageFrameworkTripleSigning;  /* triple-signing scheme or single-signing scheme */
@@ -637,7 +641,11 @@ static BERR_Code BSAGElib_P_Boot_CheckMarketId(
 
     if((otp_market_id&key_market_id_mask) != (key_market_id&key_market_id_mask))
     {
-        BDBG_WRN(("%s - Key's market id %x do not match with otp market id %x (key market id select %d, mask %x, otp_market id %x, otp market id1 %x", BSTD_FUNCTION,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
+        BDBG_WRN(("%s: Key market id %08x does not match chip OTP",
+                  BSTD_FUNCTION, key_market_id));
+        BDBG_WRN(("%s: (MktIdSel %d, mask %08x, OTP MktId %08x, OTP MktId1 %08x)",
+                  BSTD_FUNCTION, pKey->ucMarketIDSelect,
+                  key_market_id_mask, ctx->otp_market_id, ctx->otp_market_id1));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -673,16 +681,24 @@ BSAGElib_P_Boot_GetKey(
             ret = &triple_sign_header->second_tier_key[2];
         }
         else {
-            BDBG_ERR(("%s - This chip type does not have valid second tier key.", BSTD_FUNCTION));
+            BDBG_ERR(("%s - Image has no valid second tier key for chip's MarketID1", BSTD_FUNCTION));
         }
     }
     else if(image->header->ucHeaderVersion >= 0x0a && image->header->ucHeaderIndex[0] == 0x53 && image->header->ucHeaderIndex[1] == 0x57)
     {    /* it's SAGE 3.2 bootloader */
         BSAGElib_BootloaderHeader *pBootLoader = (BSAGElib_BootloaderHeader *)image->header;
-        ret = &pBootLoader->second_tier_key;
+        if (BSAGElib_P_Boot_CheckMarketId(ctx,&pBootLoader->second_tier_key) == BERR_SUCCESS) {
+            ret = &pBootLoader->second_tier_key;
+        } else {
+            BDBG_ERR(("%s - Image has no valid second tier key for chip's MarketID1", BSTD_FUNCTION));
+        }
     }
     else {
-        ret = &image->header->second_tier_key;
+        if (BSAGElib_P_Boot_CheckMarketId(ctx,&image->header->second_tier_key) == BERR_SUCCESS) {
+            ret = &image->header->second_tier_key;
+        } else {
+            BDBG_ERR(("%s - Image has no valid second tier key for chip's MarketID1", BSTD_FUNCTION));
+        }
     }
 
     return ret;
@@ -740,30 +756,30 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
     BSAGElib_Handle hSAGElib = ctx->hSAGElib;
 
 #if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(5,1))
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_DECRYPT_ENABLE, &ctx->otp_sage_decrypt_enable, "decrypt_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_DECRYPT_ENABLE, &ctx->otp_sage_decrypt_enable, NULL, "decrypt_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_VERIFY_ENABLE, &ctx->otp_sage_verify_enable, "verify_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_VERIFY_ENABLE, &ctx->otp_sage_verify_enable, NULL, "verify_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 #else
     ctx->otp_sage_decrypt_enable=1;
     ctx->otp_sage_verify_enable=1;
 #endif
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_SECURE_ENABLE, &ctx->otp_sage_secure_enable, "secure_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SAGE_SECURE_ENABLE, &ctx->otp_sage_secure_enable, NULL, "secure_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_0, &ctx->otp_market_id, "market id0");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_0, &ctx->otp_market_id, &ctx->otp_market_id_lock, "market id0");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_1, &ctx->otp_market_id1, "market id1");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_MARKET_ID_1, &ctx->otp_market_id1, &ctx->otp_market_id1_lock, "market id1");
     if (rc != BERR_SUCCESS) { goto end; }
 
 #if (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,1))
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, "system epoch 0");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, NULL, "system epoch 0");
 #else
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_0, &ctx->otp_system_epoch0, "epoch");
-    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_3, &ctx->otp_system_epoch3, "system epoch 3");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_0, &ctx->otp_system_epoch0, NULL, "epoch");
+    rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_3, &ctx->otp_system_epoch3, NULL, "system epoch 3");
 #endif
     if (rc != BERR_SUCCESS) { goto end; }
 
@@ -787,6 +803,17 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
         rc = BERR_INVALID_PARAMETER;
     }
 
+    if((hSAGElib->chipInfo.chipType != BSAGElib_ChipType_eZS) &&
+       ((ctx->otp_market_id1_lock >> 16) != 0xFFFF)) {
+        BDBG_WRN(("    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
+        BDBG_WRN(("    !!!                                                !!!"));
+        BDBG_WRN(("    !!! MarketID1[bits 31:16] have not been programmed !!!"));
+        BDBG_MSG(("    !!!        (unprogrammed=0x%04Xxxxx)               !!!",
+                  ctx->otp_market_id1_lock >> 16));
+        BDBG_WRN(("    !!!    Run 'program_production_marketid1' app      !!!"));
+        BDBG_WRN(("    !!!      to properly program MarketID1             !!!"));
+        BDBG_WRN(("    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
+    }
 end:
     return rc;
 }
@@ -1123,7 +1150,10 @@ static int getDeviceSectionSize(
         else
             chipType = BSAGElib_ChipType_eZB;
 
-        BDBG_MSG(("%s %d i %d count %d, ulDeviceTreeSize %x ChipID %x type %d",BSTD_FUNCTION,__LINE__,i,count,ulDeviceTreeSize,ulChipId,chipType));
+        BDBG_MSG(("%s %d i %d count %d, ulDeviceTreeSize %x ChipID %x part %c%c type %d",
+                  BSTD_FUNCTION,__LINE__,i,count,ulDeviceTreeSize,ulChipId,
+                  pFramework->deviceInfo.ucChipVariant[0], pFramework->deviceInfo.ucChipVariant[1],
+                  chipType));
         if(/*ulChipId == chipId && chipType == hSAGElib->chipInfo.chipType &&*/ *ppFrameworkHeader == NULL)
         {
             *ppFrameworkHeader = pFramework;
@@ -1488,6 +1518,7 @@ BSAGElib_P_Boot_ResetSage(
         pSecondTierKey = BSAGElib_P_Boot_GetKey(ctx, blImg);
         secondTierKey.keyAddr = hSAGElib->i_memory_map.addr_to_offset(pSecondTierKey);
         if(secondTierKey.keyAddr == 0) {
+            rc = BERR_INVALID_PARAMETER;
             BDBG_ERR(("%s - Cannot convert 2nd-tier key address to offset", BSTD_FUNCTION));
             goto end;
         }
@@ -2105,7 +2136,7 @@ end:
 
     } while( !(regionStatus.status&BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED) && --count );
 
-    if( regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT ) {
+    if( regionStatus.status & BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED ) {
         rc = BERR_TRACE(BHSM_STATUS_REGION_VERIFICATION_FAILED); goto end;
     }
 

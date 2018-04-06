@@ -41,42 +41,25 @@
 #include "blst_list.h"           /* Link list support */
 #include "brdc.h"
 #include "brdc_dbg.h"
+#include "brdc_private.h"
 
 /* For RDC block out RUL */
 #define BRDC_P_RDC_BLOCKOUT_RUL_MAX_ENTRY    0x4000
-
-/* HW7445-1476, use SW blockout before the fixes in */
-#if (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || (BCHP_CHIP==7366) || (BCHP_CHIP==74371) || \
-    ((BCHP_CHIP==7439) && (BCHP_VER == BCHP_VER_A0))|| \
-    ((BCHP_CHIP==7364) && (BCHP_VER < BCHP_VER_C0))|| \
-    (BCHP_CHIP==7250)|| (BCHP_CHIP==7563)|| (BCHP_CHIP==7543)
-#define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (1)
-#else
-#define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (0)
-#endif
-
-/* Support register udpate blockout by HW? */
-#if (BCHP_RDC_br_0_start_addr && (!BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND))
-#define BRDC_P_SUPPORT_HW_BLOCKOUT         (1)
-#else
-#define BRDC_P_SUPPORT_HW_BLOCKOUT         (0)
-#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#if !B_REFSW_MINIMAL
 BERR_Code BRDC_P_RdcBlockOutInit
     ( BRDC_Handle           hRdc );
 
 BERR_Code BRDC_P_RdcBlockOutDestroy
     ( BRDC_Handle           hRdc );
 
-#if !B_REFSW_MINIMAL
 BERR_Code BRDC_P_ValidateBlockOutRegisters
     ( const BRDC_BlockOut *pstBlockOut,
       uint32_t             ulNumRegBlocks );
-#endif
 
 #if(!BRDC_P_SUPPORT_HW_BLOCKOUT)
 bool BRDC_P_IsRdcBlockOutEnabled_isr
@@ -84,6 +67,7 @@ bool BRDC_P_IsRdcBlockOutEnabled_isr
 
 BERR_Code BRDC_P_ParseAndReplaceRul_isr
     ( BRDC_List_Handle hList);
+#endif
 #endif
 
 #ifdef __cplusplus

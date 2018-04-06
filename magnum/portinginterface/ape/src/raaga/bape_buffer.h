@@ -203,12 +203,39 @@ void BAPE_Buffer_Enable_isr(
     bool enable
     );
 
+typedef struct BAPE_BufferFormat
+{
+    bool            interleaved;
+    bool            compressed;
+    uint8_t         samplesPerDword; /* 1, 2, or 4 (8 bit only) */
+    uint8_t         numChannels;     /* 1-8 */
+    uint8_t         bitsPerSample;
+} BAPE_BufferFormat;
+
 /***************************************************************************
 Summary:
 Buffer report enable status
 ***************************************************************************/
 bool BAPE_Buffer_IsEnabled_isrsafe(
     BAPE_BufferHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Buffer Get Format
+***************************************************************************/
+BERR_Code BAPE_Buffer_GetFormat_isrsafe(
+    BAPE_BufferHandle handle,
+    BAPE_BufferFormat * pFormat
+    );
+
+/***************************************************************************
+Summary:
+Buffer Set Format
+***************************************************************************/
+BERR_Code BAPE_Buffer_SetFormat_isr(
+    BAPE_BufferHandle handle,
+    BAPE_BufferFormat * pFormat
     );
 
 /***************************************************************************
@@ -226,6 +253,7 @@ typedef struct BAPE_BufferGroupOpenSettings
 
     unsigned numChannels;               /* number of buffers (channels or channel pairs) */
     bool interleaved;                   /* if true, numChannels specifies num channel pairs */
+    bool bufferless;                    /* no local buffers. Will link to an parent buffer group and use its buffers */
 
     /* Optional - user may pass in pre allocated buffers */
     struct {
@@ -238,6 +266,17 @@ typedef struct BAPE_BufferGroupOpenSettings
 
 /***************************************************************************
 Summary:
+Buffer Group Format
+***************************************************************************/
+typedef struct BAPE_BufferGroupFormat
+{
+    bool compressed;                    /* reports if data is compressed */
+    unsigned bitsPerSample;             /* bits per sample - 16, 24, 32. 0 indicates unknown */
+    unsigned samplesPerDword;           /* samples per dword - typically 1 or 2. if 8bits/sample, then this could be 4 */
+} BAPE_BufferGroupFormat;
+
+/***************************************************************************
+Summary:
 Buffer Group Status
 ***************************************************************************/
 typedef struct BAPE_BufferGroupStatus
@@ -246,9 +285,14 @@ typedef struct BAPE_BufferGroupStatus
                                            Default is ReadWrite */
     size_t bufferSize;                  /* Buffer size in bytes (per buffer). must be non-zero unless buffers
                                            are allocated externally (see below) */
-    unsigned numChannels;               /* number of buffers (channels or channel pairs) */
-    bool interleaved;                   /* reports if buffers are interleaved or not */
+
     bool enabled;                       /* reports if consumption is enabled */
+
+    bool interleaved;                   /* reports if buffers are interleaved or not */
+    bool compressed;                    /* reports if data is compressed */
+    unsigned numChannels;               /* number of buffers (channels or channel pairs) */
+    unsigned bitsPerSample;             /* bits per sample - 16, 24, 32. 0 indicates unknown */
+    unsigned samplesPerDword;           /* samples per dword - typically 1 or 2. if 8bits/sample, then this could be 4 */
 } BAPE_BufferGroupStatus;
 
 /***************************************************************************
@@ -443,9 +487,27 @@ BERR_Code BAPE_BufferGroup_Enable_isr(
 
 /***************************************************************************
 Summary:
+Buffer Group Set Format
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_SetFormat(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferGroupFormat * pFormat
+    );
+
+/***************************************************************************
+Summary:
+Buffer Group Set Format
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_SetFormat_isr(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferGroupFormat * pFormat
+    );
+
+/***************************************************************************
+Summary:
 Buffer Group Get Status
 ***************************************************************************/
-void BAPE_BufferGroup_GetStatus(
+void BAPE_BufferGroup_GetStatus_isrsafe(
     BAPE_BufferGroupHandle handle,
     BAPE_BufferGroupStatus * pStatus /* [out] */
     );

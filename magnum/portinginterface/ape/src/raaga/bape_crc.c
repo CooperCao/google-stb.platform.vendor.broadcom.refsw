@@ -305,6 +305,13 @@ BERR_Code BAPE_Crc_Open(
         }
     }
 
+    BKNI_EnterCriticalSection();
+    for ( i = 0; i < handle->settings.numChannelPairs; i++ )
+    {
+        BAPE_Buffer_Enable_isr(handle->resources[i].buffer, true);
+    }
+    BKNI_LeaveCriticalSection();
+
     if ( intHandle == NULL )
     {
         /* Install CRC interrupt handler */
@@ -380,6 +387,14 @@ BERR_Code BAPE_Crc_Close(
             handle->intHandle = NULL;
         }
     }
+
+    /* Disable buffer pool */
+    BKNI_EnterCriticalSection();
+    for ( i = 0; i < handle->settings.numChannelPairs; i++ )
+    {
+        BAPE_Buffer_Enable_isr(handle->resources[i].buffer, false);
+    }
+    BKNI_LeaveCriticalSection();
 
     /* Destroy buffer pool */    
     for ( i = 0; i < handle->settings.numChannelPairs; i++ )

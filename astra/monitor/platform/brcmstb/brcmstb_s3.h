@@ -109,8 +109,8 @@ struct brcmstb_bootloader_scratch_table {
     uint16_t num_entries;
     uint16_t reserved;
     struct {
-	uint32_t upper;
-	uint32_t lower;
+        uint32_t upper;
+        uint32_t lower;
     } entries[];
 
 } __attribute__((packed));

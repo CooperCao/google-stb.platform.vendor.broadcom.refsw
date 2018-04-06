@@ -123,7 +123,6 @@ struct NEXUS_IsrCallback {
     struct NEXUS_CallbackCommon  common; /* must be first member */
     BLST_S_ENTRY(NEXUS_IsrCallback) list_temp;
     BLST_D_ENTRY(NEXUS_IsrCallback) list;
-    bool armed_save; /* saved 'armed' status */
     BDBG_OBJECT(NEXUS_IsrCallback)
 };
 
@@ -530,7 +529,6 @@ NEXUS_Module_IsrCallback_Create(NEXUS_ModuleHandle module,  void *interfaceHandl
         return NULL;
     }
     BDBG_OBJECT_INIT(callback, NEXUS_IsrCallback);
-    callback->armed_save = false;
     NEXUS_P_CallbackCommon_Init(&callback->common, module, interfaceHandle, NEXUS_P_CallbackType_eIsr, pSettings, pFileName, lineNumber);
 
     NEXUS_LockModule();
@@ -636,7 +634,6 @@ NEXUS_Module_IsrCallback_Set(NEXUS_IsrCallbackHandle callback, const NEXUS_Callb
     }
     else {
         callback->common.desc.callback = NULL;
-        callback->common.stopped = false;
     }
     BKNI_LeaveCriticalSection();
     return;
@@ -648,7 +645,6 @@ NEXUS_Module_IsrCallback_Clear(NEXUS_IsrCallbackHandle callback)
     BDBG_OBJECT_ASSERT(callback, NEXUS_IsrCallback);
     BKNI_EnterCriticalSection();
     callback->common.desc.callback = NULL;
-    callback->common.stopped = false;
     BKNI_LeaveCriticalSection();
     return;
 }
@@ -675,13 +671,19 @@ NEXUS_Module_IsrCallback_Fire_isr(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHa
     }
     BDBG_ASSERT(module->scheduler);
     scheduler = module->scheduler;
-    if(!callback->common.armed) {
-        callback->common.armed=true;
-        scheduler->isr_callbacks.armed++;
+    if(callback->common.stopped) {
+        BDBG_ASSERT(!callback->common.armed);
+        BDBG_ASSERT(!callback->common.in_armed_list);
     }
-    BLST_D_REMOVE(&scheduler->isr_callbacks.list, callback, list); /* move item to the  front of list, it shall be safe, in worst case thread would pass through list multiple times */
-    BLST_D_INSERT_HEAD(&scheduler->isr_callbacks.list, callback, list);
-    BKNI_SetEvent_isr(scheduler->control); /* wakeup thread to release resources */
+    else {
+        if(!callback->common.armed) {
+            callback->common.armed=true;
+            scheduler->isr_callbacks.armed++;
+        }
+        BLST_D_REMOVE(&scheduler->isr_callbacks.list, callback, list); /* move item to the  front of list, it shall be safe, in worst case thread would pass through list multiple times */
+        BLST_D_INSERT_HEAD(&scheduler->isr_callbacks.list, callback, list);
+        BKNI_SetEvent_isr(scheduler->control); /* wakeup thread to release resources */
+    }
 
 done:
     return;
@@ -735,6 +737,7 @@ NEXUS_Module_TaskCallback_Destroy( NEXUS_ModuleHandle module, NEXUS_TaskCallback
     scheduler = module->scheduler;
     if(!callback->common.queued) { /* add callback into the queue */
         callback->common.queued = true;
+        BDBG_ASSERT(!callback->common.armed);
         BLST_SQ_INSERT_HEAD(&scheduler->task_callbacks, callback, scheduler_list);
     }
     BKNI_SetEvent(scheduler->control); /* wakeup thread to release resources */
@@ -753,7 +756,6 @@ NEXUS_Module_TaskCallback_Set(NEXUS_TaskCallbackHandle callback, const NEXUS_Cal
     }
     else {
         callback->common.desc.callback = NULL;
-        callback->common.stopped = false;
     }
     NEXUS_UnlockModule();
     return;
@@ -765,7 +767,6 @@ NEXUS_Module_TaskCallback_Clear(NEXUS_TaskCallbackHandle callback)
     BDBG_OBJECT_ASSERT(callback, NEXUS_TaskCallback);
     NEXUS_LockModule();
     callback->common.desc.callback = NULL;
-    callback->common.stopped = false;
     NEXUS_UnlockModule();
     return;
 }
@@ -795,7 +796,7 @@ NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHand
     BDBG_ASSERT(callback->common.scheduler == module->scheduler);
     if(callback->common.deleted) {
         BDBG_WRN(("NEXUS_TaskCallback_Fire: %#lx using stale callback", (unsigned long)callback));
-        /* fall through */
+        return;
     }
     if(callback->common.desc.callback==NULL) {
         return;
@@ -806,16 +807,19 @@ NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHand
     }
     NEXUS_LockModule();
     BDBG_ASSERT(module->scheduler);
-    callback->common.armed = true;
     if (callback->common.stopped) {
         NEXUS_Base_P_CheckStoppedCallback(&callback->common);
+        BDBG_ASSERT(!callback->common.armed);
     }
-    else if(!callback->common.queued) {
-        NEXUS_P_Scheduler *scheduler;
-        callback->common.queued = true;
-        scheduler = callback->common.scheduler;
-        BLST_SQ_INSERT_HEAD(&scheduler->task_callbacks, callback, scheduler_list);
-        BKNI_SetEvent(scheduler->control); /* wakeup thread */
+    else {
+        callback->common.armed = true;
+        if(!callback->common.queued) {
+            NEXUS_P_Scheduler *scheduler;
+            callback->common.queued = true;
+            scheduler = callback->common.scheduler;
+            BLST_SQ_INSERT_HEAD(&scheduler->task_callbacks, callback, scheduler_list);
+            BKNI_SetEvent(scheduler->control); /* wakeup thread */
+        }
     }
     NEXUS_UnlockModule();
     return;
@@ -897,7 +901,6 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 desc = callback->common.desc;
                 BKNI_LeaveCriticalSection();
 
-                callback->armed_save = false;
                 NEXUS_P_Scheduler_SetCurrentCallback(scheduler, &callback->common);
                 NEXUS_UnlockModule();
                 
@@ -919,7 +922,6 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 NEXUS_P_CALLBACK_STATS_STOP(IsrCallbacks, callback, desc.callback, NEXUS_P_CALLBACK_FILENAME(callback->common.pFileName), NEXUS_P_CALLBACK_LINENO(callback->common.lineNumber));  
                 scheduler->current.callback = NULL;
             } else {
-                callback->armed_save = true;
                 NEXUS_Base_P_CheckStoppedCallback(&callback->common);
             }
         }
@@ -1553,6 +1555,22 @@ NEXUS_P_Base_Scheduler_Uninit(void)
     return;
 }
 
+static struct NEXUS_CallbackCommon *NEXUS_Base_P_FindCallback_locked(void *interfaceHandle)
+{
+    struct NEXUS_P_BaseCallbackCommonTree_Key key;
+    struct NEXUS_CallbackCommon *callback;
+
+    key.object = interfaceHandle;
+    key.node = NULL;
+    callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key);
+    if(callback) {
+        if(callback->object < interfaceHandle) { /* FIND_SOME could return smaller entry */
+            callback = BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback);
+        }
+    }
+    return callback;
+}
+
 void
 NEXUS_Base_P_StopCallbacks(void *interfaceHandle)
 {
@@ -1561,22 +1579,42 @@ NEXUS_Base_P_StopCallbacks(void *interfaceHandle)
     unsigned i;
     NEXUS_P_Scheduler *scheduler;
     struct NEXUS_CallbackCommon *callback;
-    struct NEXUS_P_BaseCallbackCommonTree_Key key;
 
     NEXUS_LockModule();
-    /* for(nschedulers=0, callback=BLST_D_FIRST(&NEXUS_P_Base_Scheduler_State.callbacks); callback; callback=BLST_D_NEXT(callback, global_list)) { */
 
-    key.object = interfaceHandle;
-    key.node = NULL;
-    for(nschedulers=0, callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key); callback;
+    for(nschedulers=0, callback=NEXUS_Base_P_FindCallback_locked(interfaceHandle);callback;
         callback=BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback)) {
 
         if(callback->object != interfaceHandle) {
             break;
         }
         if (!callback->stopped) {
-            callback->stopped = true;
+            if(callback->type == NEXUS_P_CallbackType_eTask) {
+                BDBG_OBJECT_ASSERT((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
+                callback->armed = false;
+                callback->stopped = true;
+                if (callback->queued && !callback->deleted) {
+                    callback->queued = false;
+                    BLST_SQ_REMOVE(&callback->scheduler->task_callbacks, (NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback, scheduler_list);
+                }
+            }
+            else if(callback->type == NEXUS_P_CallbackType_eIsr) {
+                BDBG_OBJECT_ASSERT((NEXUS_IsrCallbackHandle)callback, NEXUS_IsrCallback);
+                BKNI_EnterCriticalSection();
+                callback->stopped = true;
+                if(callback->armed) {
+                    callback->armed = false;
+                    BDBG_ASSERT(callback->scheduler->isr_callbacks.armed>0);
+                    callback->scheduler->isr_callbacks.armed--;
+                }
+                callback->in_armed_list = false;
+                BKNI_LeaveCriticalSection();
+            }
             NEXUS_Time_Get(&callback->stopTime);
+        }
+        else {
+            BDBG_ASSERT(!callback->armed);
+            BDBG_ASSERT(!callback->in_armed_list);
         }
         
         scheduler = callback->scheduler;
@@ -1621,14 +1659,10 @@ duplicate:
 void
 NEXUS_Base_P_StartCallbacks(void *interfaceHandle)
 {
-    NEXUS_P_Scheduler *scheduler;
     struct NEXUS_CallbackCommon *callback;
-    struct NEXUS_P_BaseCallbackCommonTree_Key key;
 
     NEXUS_LockModule();
-    key.object = interfaceHandle;
-    key.node = NULL;
-    for(callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key); callback;
+    for(callback=NEXUS_Base_P_FindCallback_locked(interfaceHandle);callback;
         callback=BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback)) {
 
         if(callback->object != interfaceHandle) {
@@ -1637,35 +1671,13 @@ NEXUS_Base_P_StartCallbacks(void *interfaceHandle)
         if(!callback->stopped) {
             continue;
         }
+        BDBG_ASSERT(!callback->armed);
+
         /* if a callback is current, this will skip it */
         if (callback->scheduler->current.callback == callback) {
             callback->scheduler->current.callback = NULL;
         }
         callback->stopped = false;
-        scheduler = callback->scheduler;
-        if(callback->type == NEXUS_P_CallbackType_eTask) {
-            BDBG_OBJECT_ASSERT((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
-            if(callback->armed && !callback->queued) {
-                callback->queued = true;
-                BDBG_OBJECT_ASSERT((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
-                BLST_SQ_INSERT_HEAD(&scheduler->task_callbacks, (NEXUS_TaskCallbackHandle)callback, scheduler_list);
-                BKNI_SetEvent(scheduler->control); /* wakeup thread */
-            }
-        } else if(callback->type == NEXUS_P_CallbackType_eIsr) {
-            BDBG_OBJECT_ASSERT((NEXUS_IsrCallbackHandle)callback, NEXUS_IsrCallback);
-            if(((NEXUS_IsrCallbackHandle)callback)->armed_save) {
-                ((NEXUS_IsrCallbackHandle)callback)->armed_save = false;
-                BKNI_EnterCriticalSection();
-                if(!callback->armed) {
-                    callback->armed=true;
-                    scheduler->isr_callbacks.armed++;
-                }
-                BLST_D_REMOVE(&scheduler->isr_callbacks.list, (NEXUS_IsrCallbackHandle)callback, list); /* move item to the front of list, it shall be safe, in worst case thread would pass through list multiple times */
-                BLST_D_INSERT_HEAD(&scheduler->isr_callbacks.list, (NEXUS_IsrCallbackHandle)callback, list);
-                BKNI_LeaveCriticalSection();
-                BKNI_SetEvent(scheduler->control); /* wakeup thread to release resources */
-            }
-        }
     }
     NEXUS_UnlockModule();
     return;
@@ -1771,51 +1783,4 @@ NEXUS_Error NEXUS_Scheduler_SetState(NEXUS_ModulePriority priority, NEXUS_Schedu
     }
     NEXUS_UnlockModule();
     return rc;
-}
-
-void NEXUS_Module_CancelCallbacks(NEXUS_ModuleHandle module, void *interfaceHandle)
-{
-    struct NEXUS_CallbackCommon *callback;
-    struct NEXUS_P_BaseCallbackCommonTree_Key key;
-
-    /* must verify module is locked to avoid race */
-    BDBG_OBJECT_ASSERT(module, NEXUS_Module);
-    BDBG_ASSERT(NEXUS_Module_Assert(module));
-
-    NEXUS_LockModule();
-    key.object = interfaceHandle;
-    key.node = NULL;
-    for(callback=BLST_AA_TREE_FIND_SOME(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key); callback;
-        callback=BLST_AA_TREE_NEXT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, callback)) {
-        NEXUS_P_Scheduler *scheduler;
-        if (callback->object != interfaceHandle) continue;
-
-        scheduler = callback->scheduler;
-        /* NOTE: scheduler->callback_lock cannot be acquired here, but this callback could be active. The only solution is for the
-        caller to have already called NEXUS_StopCallbacks, which synchronizes with callback threads. */
-        if(callback->type == NEXUS_P_CallbackType_eTask) {
-            BDBG_OBJECT_ASSERT((NEXUS_TaskCallbackHandle)callback, NEXUS_TaskCallback);
-            if (callback->armed) {
-                callback->armed = false;
-            }
-        }
-        else if(callback->type == NEXUS_P_CallbackType_eIsr) {
-            BDBG_OBJECT_ASSERT((NEXUS_IsrCallbackHandle)callback, NEXUS_IsrCallback);
-            BKNI_EnterCriticalSection();
-            if (callback->armed) {
-                callback->armed = false;
-                BDBG_ASSERT(scheduler->isr_callbacks.armed);
-                scheduler->isr_callbacks.armed--;
-            }
-            ((NEXUS_IsrCallbackHandle)callback)->armed_save = false; /* if it was stopped, don't re-arm when started */
-            callback->in_armed_list = false; /* ignore if copied to local list */
-            BKNI_LeaveCriticalSection();
-        }
-    }
-    NEXUS_UnlockModule();
-
-#if !defined(NEXUS_MODE_proxy) && !defined(NEXUS_MODE_client)
-    /* cancel callbacks already delivered to platform */
-    b_objdb_cancel_callbacks(module, interfaceHandle);
-#endif
 }

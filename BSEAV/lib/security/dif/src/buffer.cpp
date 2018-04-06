@@ -70,7 +70,10 @@ bool Buffer::Initialize()
 #ifdef NXCLIENT_SUPPORT
         NEXUS_ClientConfiguration clientConfig;
         NEXUS_Platform_GetClientConfiguration(&clientConfig);
-        memSettings.heap = clientConfig.heap[NXCLIENT_FULL_HEAP];
+        if (clientConfig.mode == NEXUS_ClientMode_eProtected)
+            memSettings.heap = clientConfig.heap[NXCLIENT_FULL_HEAP];
+        else
+            memSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
 #else
         memSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
 #endif

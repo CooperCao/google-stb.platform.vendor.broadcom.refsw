@@ -5,6 +5,7 @@
 #include "Viewport.h"
 
 #include <cmath>
+#include <cstdlib>
 
 namespace bvk {
 
@@ -24,8 +25,8 @@ void Viewport::Set(const VkViewport &vp)
    if (vp.height < 0.0f)
       y = std::lround(vp.y + vp.height);
 
-   w =          std::lround(vp.width);
-   h = std::abs(std::lround(vp.height));   // Ensure +ve height is used here
+   w =           std::lround(vp.width);
+   h = std::labs(std::lround(vp.height));   // Ensure +ve height is used here
 
    depthNear = vp.minDepth;
    depthFar  = vp.maxDepth;

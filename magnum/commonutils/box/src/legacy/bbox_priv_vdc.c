@@ -105,11 +105,11 @@ void BBOX_P_SetBox0MemConfig
     ( BBOX_MemConfig                *pBoxMemConfig )
 {
     BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  0,       0);
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video1,  1,       1);
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video1,  1, Invalid);
     BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,    0         );
 
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video0,  0,       0);
-    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video1,  1,       1);
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video0,  0, Invalid);
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video1,  1, Invalid);
     BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display1,  Gfx0,    0         );
 
     BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display2,  Video0,  1,       1);
@@ -248,6 +248,13 @@ void BBOX_P_SetBox0MemConfig
     BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video0,  0,       0);
     BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display1,  Video1,  0,       0);
     BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display1,  Gfx0,    0         );
+}
+#elif (BCHP_CHIP==7211)
+void BBOX_P_SetBox0MemConfig
+    ( BBOX_MemConfig                *pBoxMemConfig )
+{
+    BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  0,       0);
+    BBOX_P_SET_GFX_WIN_MEMC(  pBoxMemConfig, Display0,  Gfx0,    0         );
 }
 #endif
 

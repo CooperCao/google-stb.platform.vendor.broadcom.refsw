@@ -534,7 +534,7 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_REGISTER(reg)      ((reg) + BCHP_PHYSICAL_OFFSET)
+#define BRDC_REGISTER(reg)      ((reg) + (uint32_t)BCHP_PHYSICAL_OFFSET)
 
 /***************************************************************************
 Summmary
@@ -1860,6 +1860,7 @@ void BRDC_BuildRul_RdModWr_isr
       uint32_t                         ulOrMask,
       uint32_t                         ulRegAddr );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
     Sets a register range to be blocked out during RDMA.
@@ -1883,6 +1884,7 @@ BERR_Code BRDC_SetRdcBlockOut
     ( BRDC_Handle                      hRdc,
       const BRDC_BlockOut             *pstBlockOut,
       uint32_t                         ulRegBlock );
+#endif
 
 #ifdef BCHP_RDC_stc_flag_0
 /***************************************************************************
@@ -2360,6 +2362,25 @@ See Also:
 #define BRDC_Slot_SetCachedListDual_isr(hSlot1, hSlot2, hList) \
     BRDC_Slot_SetListDual_isr(hSlot1, hSlot2, hList)
 
+#if !B_REFSW_MINIMAL
+/***************************************************************************
+Summary:
+    Returns the list handle stored in a specific slot.
+
+Description:
+    The list assigned to a current slot is returned. This will be NULL
+    if no list handle was assigned.
+
+Returns:
+
+See Also:
+    BRDC_Slot_SetList_isr
+    BRDC_Slot_SetCachedList_isr
+****************************************************************************/
+void BRDC_Slot_GetList_isr
+    ( BRDC_Slot_Handle                 hSlot,   /* [in] The slot to hold the list */
+      BRDC_List_Handle                *phList );/* [out] List to store. */
+#endif
 
 /***************************************************************************
 Summary:

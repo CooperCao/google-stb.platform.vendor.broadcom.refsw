@@ -46,6 +46,7 @@
 #include "bluetooth_nx.h"
 #include "audio_capture_nx.h"
 #include "audio_playback_nx.h"
+#include "cec_remote_nx.h"
 
 BDBG_MODULE(atlas_main);
 
@@ -368,4 +369,55 @@ CSimpleAudioDecode * CAtlasNx::audioDecodeInitializePip(
         )
 {
     return(CAtlas::audioDecodeInitialize(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStc, winType));
+}
+
+CCecRemote * CAtlasNx::cecRemoteCreate()
+{
+	eRet ret = eRet_Ok;
+	CCecRemoteNx * pCecRemote = NULL;
+
+	pCecRemote = new CCecRemoteNx();
+	CHECK_PTR_ERROR_GOTO("unable to create the CCecRemoteNx object ", pCecRemote, ret, eRet_NotAvailable, error);
+    _model.addCecRemote(pCecRemote);
+error:
+    return(pCecRemote);
+}
+
+void CAtlasNx::cecRemoteDestroy(CCecRemote * pCecRemote)
+{
+    if (NULL != pCecRemote)
+    {
+        _model.removeCecRemote(pCecRemote);
+        DEL(pCecRemote);
+    }
+}
+CCecRemote * CAtlasNx::cecRemoteInitialize()
+{
+    eRet        retCec     = eRet_Ok;
+    CCecRemoteNx * pCecRemote = NULL;
+
+    /* open cec remote if reserved for us */
+    pCecRemote = (CCecRemoteNx *)cecRemoteCreate();
+	if (NULL != pCecRemote)
+    {
+        retCec = pCecRemote->open(_pWidgetEngine);
+        CHECK_ERROR_GOTO("cec remote failed to open", retCec, errorCec);
+    }
+    goto doneCec;
+errorCec:
+    cecRemoteDestroy(pCecRemote);
+doneCec:
+    return(pCecRemote);
+} /* CecRemoteInitialize */
+
+void CAtlasNx::cecRemoteUninitialize()
+{
+    CCecRemoteNx * pCecRemote = (CCecRemoteNx *)_model.getCecRemote();
+
+    if (NULL == pCecRemote)
+    {
+        return;
+    }
+	pCecRemote->close();
+	cecRemoteDestroy(pCecRemote);
 }

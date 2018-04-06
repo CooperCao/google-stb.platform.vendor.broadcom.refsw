@@ -47,7 +47,9 @@ BDBG_MODULE(nexus_vcxo);
 #if NEXUS_NUM_VCXOS > 0
 static NEXUS_VcxoSettings g_vcxoSettings[NEXUS_NUM_VCXOS];
 
-#if BCHP_CHIP == 7019 || BCHP_CHIP == 7125 || \
+#if BCHP_CHIP == 7211
+#include "nexus_vcxo_impl_ott.c"
+#elif BCHP_CHIP == 7019 || BCHP_CHIP == 7125 || \
     BCHP_CHIP == 7205 || \
     BCHP_CHIP == 7325 || BCHP_CHIP == 7335 || BCHP_CHIP == 7340 || BCHP_CHIP == 7342 || \
     BCHP_CHIP == 7400 || BCHP_CHIP == 7405 || BCHP_CHIP == 7408 || BCHP_CHIP == 7409 || BCHP_CHIP == 7410 || BCHP_CHIP == 7420 || BCHP_CHIP == 7466 || BCHP_CHIP == 7468 || \
@@ -97,7 +99,7 @@ NEXUS_Error NEXUS_Vcxo_SetSettings(
     {
         return BERR_TRACE(errCode);
     }
-    
+
 #if NEXUS_NUM_VCXOS > 0
     NEXUS_Vcxo_P_SetTimebase(vcxo, timebaseIndex);
     BDBG_MSG(("Setting VCXO %u to use timebase %u", (unsigned)vcxo, timebaseIndex));
@@ -130,4 +132,3 @@ void NEXUS_Vcxo_Uninit(void)
 {
     return;
 }
-

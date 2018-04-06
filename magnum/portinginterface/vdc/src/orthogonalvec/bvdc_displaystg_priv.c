@@ -1007,12 +1007,18 @@ void BVDC_P_Display_Copy_Stg_Setting_isr
         /* Tear down the Stg channel */
         hDisplay->eStgState = BVDC_P_DisplayResource_eDestroy;
     }
+
     hDisplay->stCurInfo.bEnableStg = hDisplay->stNewInfo.bEnableStg;
     hDisplay->stCurInfo.bStgNonRealTime = hDisplay->stNewInfo.bStgNonRealTime;
     hDisplay->stCurInfo.bBypassVideoProcess = hDisplay->stNewInfo.bBypassVideoProcess;
     hDisplay->stCurInfo.ulStcSnapshotHiAddr = hDisplay->stNewInfo.ulStcSnapshotHiAddr;
     hDisplay->stCurInfo.ulStcSnapshotLoAddr = hDisplay->stNewInfo.ulStcSnapshotLoAddr;
 #if BVDC_P_SUPPORT_VIP
+    /* one-shot activate VIP; but two-vsync to de-activate VIP to avoid MRC violation; */
+    if(!hDisplay->stNewInfo.hVipHeap && hDisplay->stCurInfo.hVipHeap)
+    {
+        hDisplay->eVipState = BVDC_P_DisplayResource_eDestroy;
+    }
     BKNI_Memcpy(&hDisplay->stCurInfo.stVipMemSettings, &hDisplay->stNewInfo.stVipMemSettings, sizeof(BVDC_VipMemConfigSettings));
     hDisplay->stCurInfo.hVipHeap = hDisplay->stNewInfo.hVipHeap;
 #endif
@@ -1049,7 +1055,28 @@ void BVDC_P_Display_Apply_Stg_Setting_isr
          * trying. So it is safe to move the state to eActive directly.
          */
         hDisplay->eStgState = BVDC_P_DisplayResource_eActive;
+#if BVDC_P_SUPPORT_VIP
+        switch (hDisplay->eVipState)
+        {
+            case BVDC_P_DisplayResource_eDestroy:
+                hDisplay->eVipState = BVDC_P_DisplayResource_eShuttingdown;
+                BDBG_MSG(("Display %d VIP state changed to eShutdown", hDisplay->eId));
+                break;
+            case BVDC_P_DisplayResource_eShuttingdown:
+                if (pList->bLastExecuted)
+                {
+                    hDisplay->eVipState = BVDC_P_DisplayResource_eInactive;
+                    hDisplay->stCurInfo.stDirty.stBits.bStgEnable = BVDC_P_CLEAN;
+                    BDBG_MSG(("Display %d VIP state changed to eInactive", hDisplay->eId));
+                }
+                break;
+            default:
+                hDisplay->stCurInfo.stDirty.stBits.bStgEnable = BVDC_P_CLEAN;
+                break;
+        }
+#else
         hDisplay->stCurInfo.stDirty.stBits.bStgEnable = BVDC_P_CLEAN;
+#endif
     }
     else
     {

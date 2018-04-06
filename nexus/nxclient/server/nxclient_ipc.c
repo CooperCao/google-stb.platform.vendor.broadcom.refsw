@@ -85,7 +85,7 @@ static NEXUS_Error NxClient_P_Join(nxclient_ipc_thread id, const NxClient_JoinSe
         nxclient_state.client[id].fd = b_nxclient_client_connect();
         if (nxclient_state.client[id].fd > 0 || !timeout) break;
 
-        printf("*** unable to connect to ipc server. try again...\n");
+        fprintf(stderr,"*** unable to connect to ipc server. try again...\n");
         BKNI_Sleep(1000);
         timeout--;
     }
@@ -150,12 +150,12 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
 
     rc = NxClient_P_Join(nxclient_ipc_thread_regular, pSettings);
     if(rc) {
-        printf("*** Unable to join nxclient_ipc_thread_regular\n");
+        fprintf(stderr,"*** Unable to join nxclient_ipc_thread_regular\n");
         goto err_regular;
     }
     rc = NxClient_P_Join(nxclient_ipc_thread_restricted, pSettings);
     if(rc) {
-        printf("*** Unable to join nxclient_ipc_thread_restricted\n");
+        fprintf(stderr,"*** Unable to join nxclient_ipc_thread_restricted\n");
         goto err_restricted;
 
     }
@@ -168,12 +168,12 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
         rc = NEXUS_Platform_AuthenticatedJoin(&authSettings);
         if (!rc || !timeout) break;
 
-        printf("*** cannot join. try again...\n");
+        fprintf(stderr,"*** cannot join. try again...\n");
         BKNI_Sleep(1000);
         timeout--;
     };
     if (rc) {
-        printf("### cannot join: %d\n", rc);
+        fprintf(stderr,"### cannot join: %d\n", rc);
         goto err_join;
     }
 

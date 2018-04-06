@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 extern const BVDC_P_Features s_VdcFeatures;
-extern const BVDC_Settings s_stDefaultSettings;
+extern const BVDC_OpenSettings s_stDefaultSettings;
 
 /***************************************************************************
  * Private macros
@@ -92,6 +92,7 @@ typedef struct
     /* This flags control deinterlcer buffer count */
     bool                     bMadr;
     BVDC_DeinterlacerMode    eDeinterlacerMode;
+    BBOX_Vdc_WindowClass     eWinClass;
 
     /* This flags control buffer size */
     bool                     b3d;
@@ -109,10 +110,10 @@ typedef struct
 /***************************************************************************
  * Memory private functions
  ***************************************************************************/
-BERR_Code BVDC_P_MemConfig_GetDefaultRdcSettings
+void BVDC_P_MemConfig_GetDefaultRdcSettings
     ( BVDC_RdcMemConfigSettings          *pRdc );
 
-BERR_Code BVDC_P_MemConfig_GetDefaultDisplaySettings
+void BVDC_P_MemConfig_GetDefaultDisplaySettings
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       uint32_t                            ulDispIndex,
       BVDC_DispMemConfigSettings         *pDisplay );
@@ -124,16 +125,16 @@ void BVDC_P_MemConfig_GetDefaultDeinterlacerSettings
       BVDC_WinMemConfigSettings          *pWindow,
       bool                                bSd );
 
-BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
+void BVDC_P_MemConfig_GetDefaultWindowSettings
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       uint32_t                            ulDispIndex,
       uint32_t                            ulWinIndex,
       BVDC_WinMemConfigSettings          *pWindow );
 
-BERR_Code BVDC_P_MemConfigInfo_Init
+void BVDC_P_MemConfigInfo_Init
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo );
 
-BERR_Code BVDC_P_MemConfig_GetBufSize
+void BVDC_P_MemConfig_GetBufSize
     ( const BVDC_Heap_Settings           *pHeapSettings,
       BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo );
 
@@ -141,32 +142,37 @@ BERR_Code BVDC_P_MemConfig_Validate
     ( const BVDC_MemConfigSettings       *pMemConfigSettings,
       BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo );
 
-BERR_Code BVDC_P_MemConfig_GetWindowInfo
+void BVDC_P_Memconfig_UpdateSettingByBoxmode
+    ( const BBOX_Config                  *pBoxConfig,
+      BVDC_MemConfigSettings             *pMemConfigSettings );
+
+void BVDC_P_MemConfig_GetWindowInfo
     ( BVDC_WinMemConfigSettings          *pWindow,
       BVDC_DispMemConfigSettings         *pDisplay,
       BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       uint32_t                            ulDispIndex,
       uint32_t                            ulWinIndex,
+      BBOX_Vdc_WindowClass                eWinClass,
       BVDC_P_MemConfig_WindowInfo        *pWinConfigInfo );
 
-BERR_Code BVDC_P_MemConfig_GetWindowBufCnt
+void BVDC_P_MemConfig_GetWindowBufCnt
     ( BVDC_WinMemConfigSettings          *pWindow,
       BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       BVDC_P_MemConfig_WindowInfo        *pWinConfigInfo,
       uint32_t                            ulDispIndex,
       uint32_t                            ulWinIndex );
 
-BERR_Code BVDC_P_MemConfig_GetWinBufSize
+void BVDC_P_MemConfig_GetWinBufSize
     ( BVDC_P_MemConfig_SystemInfo        *pSystemConfigInfo,
       BVDC_P_MemConfig_WindowInfo        *pWinConfigInfo,
       uint32_t                           *pulCapSize,
       uint32_t                           *pulMadSize );
 
-BERR_Code BVDC_P_MemConfig_SetBufFormat
+void BVDC_P_MemConfig_SetBufFormat
     ( const BVDC_Heap_Settings           *pHeapSettingsIn,
       BVDC_Heap_Settings                 *pHeapSettingsOut );
 
-BERR_Code BVDC_P_MemConfig_GetRulSize
+void BVDC_P_MemConfig_GetRulSize
     ( uint32_t                           *pulRulSize );
 
 

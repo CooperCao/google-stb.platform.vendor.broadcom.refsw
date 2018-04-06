@@ -1120,8 +1120,8 @@ int main(int argc, const char *argv[])
             return -1;
         }
         playpumpSettings.heap = platformConfig.heap[opts.playbackHeap];
-        NEXUS_Heap_GetStatus(platformConfig.heap[opts.playbackHeap], &heapStatus);
-        playpumpSettings.dataNotCpuAccessible = (heapStatus.memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED)==0;
+        rc = NEXUS_Heap_GetStatus(platformConfig.heap[opts.playbackHeap], &heapStatus);
+        playpumpSettings.dataNotCpuAccessible = !rc && (heapStatus.memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED)==0;
         if(0) {
             playpumpSettings.memory = NEXUS_MemoryBlock_Allocate(playpumpSettings.heap, playpumpSettings.fifoSize, 0, NULL);
         }
@@ -1988,6 +1988,12 @@ int main(int argc, const char *argv[])
                 "      gain=[-32768, 32767]\n"
                 );
                 printf(
+                "  Picture Position Controls\n"
+                "    full - change window size to full screen\n"
+                "    zoom(percentage) - change window size\n"
+                "    pos(x,y,width,height) - change window location and size\n"
+                );
+                printf(
                 "  HDMI Output Controls\n"
                 "    hdmi_colorspace(rgb|420|422|444)\n"
                 "    hdmi_colorrange(auto|limited|full)\n"
@@ -2050,6 +2056,32 @@ int main(int argc, const char *argv[])
                 NEXUS_VideoWindow_GetSettings(window, &settings);
                 settings.position = full;
                 NEXUS_VideoWindow_SetSettings(window, &settings);
+            }
+            else if (strstr(buf, "zoom(") == buf) {
+                NEXUS_VideoWindowSettings settings;
+                signed delta;
+                if(sscanf(buf+5, "%d", &delta) == 1) {
+                    NEXUS_VideoWindow_GetSettings(window, &settings);
+                    settings.position.width += full.width * delta / 100;
+                    settings.position.height += full.height * delta / 100;
+                    NEXUS_VideoWindow_SetSettings(window, &settings);
+                    printf("position at %ux%ux%ux%u\n", settings.position.x, settings.position.y,
+                        settings.position.width, settings.position.height);
+                }
+            }
+            else if (strstr(buf, "pos(") == buf) {
+                NEXUS_VideoWindowSettings settings;
+                int x, y, width, height;
+                if(sscanf(buf+4, "%d,%d,%d,%d", &x, &y, &width, &height) == 4) {
+                    NEXUS_VideoWindow_GetSettings(window, &settings);
+                    settings.position.x = x;
+                    settings.position.y = y;
+                    settings.position.width = width;
+                    settings.position.height = height;
+                    rc = NEXUS_VideoWindow_SetSettings(window, &settings);
+                    printf("position at %ux%ux%ux%u\n", settings.position.x, settings.position.y,
+                        settings.position.width, settings.position.height);
+                }
             }
             else if (!strcmp(buf, "i")) {
                 NEXUS_PlaybackTrickModeSettings trickSettings;
@@ -2864,17 +2896,8 @@ uninit:
     stop_video(&opts, videoDecoder);
     stop_audio(&opts, audioDecoder, compressedDecoder);
 
-#if NEXUS_HAS_AUDIO
-    if(audioDecoder) {
-        NEXUS_AudioDecoder_Close(audioDecoder);
-    }
-    if(compressedDecoder) {
-        NEXUS_AudioDecoder_Close(compressedDecoder);
-    }
-#endif
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_Playback_CloseAllPidChannels(playback);
-    NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_FilePlay_Close(file);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
@@ -2888,10 +2911,19 @@ uninit:
         }
         NEXUS_Display_Close(displaySD);
     }
+
+    NEXUS_VideoDecoder_Close(videoDecoder);
     if (framebuffer) {
         NEXUS_Surface_Destroy(framebuffer);
     }
-
+#if NEXUS_HAS_AUDIO
+    if(audioDecoder) {
+        NEXUS_AudioDecoder_Close(audioDecoder);
+    }
+    if(compressedDecoder) {
+        NEXUS_AudioDecoder_Close(compressedDecoder);
+    }
+#endif
     BKNI_DestroyEvent(endOfStreamEvent);
     NEXUS_Platform_Uninit();
 

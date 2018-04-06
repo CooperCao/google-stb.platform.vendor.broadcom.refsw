@@ -72,6 +72,6 @@ Source dependency location:
        STB> ./nexus.client bp3 service
 
      You should see something like this in the console, among other nexus messages:
-     SSDP listening on <your boards ip>:56790
+     SSDP listening on <your boards ip>:80
 
-     Now you should be able to search and provision the STB from Provision Server remotely.
+     Now you should be able to search and provision the STB from Provision Server remotely. The port # can be modifed in bp3_host.c, #define PORT 80.

@@ -250,7 +250,6 @@ void BXPT_Playback_ConfigTsMuxDesc(
     const BAVC_TsMux_DescConfig *Config     /* [in] Data to be loaded */
     );
 
-#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the muxing flags from the given descriptor.
@@ -262,7 +261,6 @@ void BXPT_Tsmux_GetDescConfig(
     const BXPT_PvrDescriptor *Desc,
     BAVC_TsMux_DescConfig *Config     /* [out] muxing flags unpacked from the descriptor */
     );
-#endif
 
 /* Private functions. Should not be called directly by user code. */
 void BXPT_TsMux_P_ResetBandPauseMap(

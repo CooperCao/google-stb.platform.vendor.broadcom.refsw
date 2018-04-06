@@ -44,7 +44,9 @@
 #include "bape.h"
 #include "bape_priv.h"
 #include "bape_buffer.h"
+#if BCHP_AUD_FMM_BF_CTRL_REG_START
 #include "bchp_aud_fmm_bf_ctrl.h"
+#endif
 
 BDBG_MODULE(bape_playback);
 
@@ -52,7 +54,7 @@ BDBG_MODULE(bape_playback);
 
 BDBG_OBJECT_ID(BAPE_Playback);
 
-static void BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback);
+static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback);
 static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
 static BERR_Code BAPE_Playback_P_StartPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
 static void BAPE_Playback_P_StopPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
@@ -139,7 +141,7 @@ static BERR_Code BAPE_Playback_P_CreateBufferGroup(BAPE_PlaybackHandle hPlayback
     {
         BAPE_BufferGroupStatus bufferGroupStatus;
 
-        BAPE_BufferGroup_GetStatus(hPlayback->bufferGroupHandle, &bufferGroupStatus);
+        BAPE_BufferGroup_GetStatus_isrsafe(hPlayback->bufferGroupHandle, &bufferGroupStatus);
         if ( bufferGroupStatus.interleaved != hPlayback->interleaved || numBuffers != bufferGroupStatus.numChannels )
         {
             BAPE_BufferGroup_Close(hPlayback->bufferGroupHandle);
@@ -200,7 +202,7 @@ BERR_Code BAPE_Playback_Open(
 
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
-    
+
     *pHandle = NULL;
 
     if ( NULL == pSettings )
@@ -222,7 +224,7 @@ BERR_Code BAPE_Playback_Open(
     }
 
     /* TODO: Extend for multichannel and non-interleved */
-    if ( pSettings->numBuffers > BAPE_Channel_eMax ) 
+    if ( pSettings->numBuffers > BAPE_Channel_eMax )
     {
         BDBG_ERR(("Maximum num of buffers required for multichannel non-interleved audio playback cannot exceed %u. Requested num buffers is %u", BAPE_Channel_eMax, pSettings->numBuffers));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -253,7 +255,7 @@ BERR_Code BAPE_Playback_Open(
         hPlayback->threshold = pSettings->watermarkThreshold;
     }
 
-    for (i = 0; i < pSettings->numBuffers; i++) 
+    for (i = 0; i < pSettings->numBuffers; i++)
     {
         unsigned allocSize;
 
@@ -361,7 +363,7 @@ BERR_Code BAPE_Playback_Open(
 
 err_format:
 err_buffer_alloc:
-    for (i = 0; i < pSettings->numBuffers; i++) 
+    for (i = 0; i < pSettings->numBuffers; i++)
     {
         BAPE_Playback_P_FreeBuffer(hPlayback, i);
     }
@@ -378,6 +380,17 @@ void BAPE_Playback_Close(
     unsigned i;
 
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
+
+    if ( hPlayback->interruptTimer )
+    {
+        BKNI_EnterCriticalSection();
+        BTMR_StopTimer_isr(hPlayback->interruptTimer);
+        BKNI_LeaveCriticalSection();
+
+        BTMR_DestroyTimer(hPlayback->interruptTimer);
+        hPlayback->interruptTimer = NULL;
+    }
+
     if ( hPlayback->running )
     {
         BDBG_WRN(("Stopping playback %p (%d) on close", (void *)hPlayback, hPlayback->index));
@@ -433,8 +446,8 @@ BERR_Code BAPE_Playback_SetSettings(
             BDBG_ERR(("Playback %p (%d) is already running.  Cannot change data format.", (void *)hPlayback, hPlayback->index));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
-        
-        if ( hPlayback->startSettings.sampleRate == 0 && hPlayback->settings.sampleRate != pSettings->sampleRate )        
+
+        if ( hPlayback->startSettings.sampleRate == 0 && hPlayback->settings.sampleRate != pSettings->sampleRate )
         {
             if ( pSettings->sampleRate == 0 )
             {
@@ -452,13 +465,13 @@ BERR_Code BAPE_Playback_SetSettings(
         BAPE_FMT_Descriptor format;
 
         BAPE_Connector_P_GetFormat(&hPlayback->node.connectors[0], &format);
-        if ( pSettings->compressedData == true ) 
+        if ( pSettings->compressedData == true )
         {
             format.type = BAPE_DataType_eIec61937;
         }
         else
         {
-            switch ( pSettings->multichannelFormat ) 
+            switch ( pSettings->multichannelFormat )
             {
             case BAPE_MultichannelFormat_e2_0:
                 format.type = BAPE_DataType_ePcmStereo;
@@ -549,12 +562,12 @@ BERR_Code BAPE_Playback_Start(
         BDBG_ERR(("%u buffers are required for the current data format but only %u have been allocated", numBuffers, hPlayback->numBuffers));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    
+
     if ( 0 == pSettings->sampleRate )
     {
         sampleRate = hPlayback->settings.sampleRate;
         if ( 0 == sampleRate )
-        {   
+        {
             BDBG_ERR(("To use a variable sample rate, you must specify a valid rate in BAPE_PlaybackSettings.sampleRate."));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
@@ -674,7 +687,7 @@ BERR_Code BAPE_Playback_Start(
         {
             /* TBD7211 - watermark interrupt - low priority, but some apps might want it. Use BTMR. */
         }
-    }    
+    }
 
     #if BDBG_DEBUG_BUILD
         BAPE_Mixer_P_PrintMixers(hPlayback->hApe);
@@ -721,7 +734,11 @@ BERR_Code BAPE_Playback_Start(
     /* Success */
     BDBG_MSG(("Playback %p (%d) Start Successful", (void *)hPlayback, hPlayback->index));
     hPlayback->running = true;
-    BAPE_Playback_P_ReArmWatermark(hPlayback);
+    errCode = BERR_TRACE(BAPE_Playback_P_ReArmWatermark(hPlayback));
+    if ( errCode )
+    {
+        BDBG_WRN(("Unable to arm playback interrupts"));
+    }
     return BERR_SUCCESS;
 
 err_start_paths:
@@ -744,7 +761,7 @@ void BAPE_Playback_Stop(
     )
 {
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
-    
+
     if ( !hPlayback->running && !hPlayback->suspended)
     {
         BDBG_MSG(("Playback %p (%d) already stopped.", (void *)hPlayback, hPlayback->index));
@@ -974,7 +991,7 @@ BERR_Code BAPE_Playback_GetBuffer(
     BAPE_PlaybackHandle hPlayback,
     BAPE_BufferDescriptor *pBuffers      /* [out] */
     )
-{   
+{
     BERR_Code errCode = BERR_SUCCESS;
     unsigned i, numChannelPairs;
 
@@ -984,7 +1001,7 @@ BERR_Code BAPE_Playback_GetBuffer(
     BDBG_MSG(("Playback %p (%d) GetBuffer", (void *)hPlayback, hPlayback->index));
 
     BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
-    
+
     if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
     {
         if ( (hPlayback->running) && !hPlayback->startSettings.loopEnabled )
@@ -1113,10 +1130,10 @@ void BAPE_Playback_GetStatus(
     )
 {
     BERR_Code errCode;
-    
+
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
     BDBG_ASSERT(NULL != pStatus);
-    
+
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
     if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
@@ -1173,6 +1190,9 @@ BERR_Code BAPE_Playback_SetInterruptHandlers(
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
     BDBG_ASSERT(NULL != pInterrupts);
 
+    /* store new settings */
+    hPlayback->interrupts = *pInterrupts;
+
     if ( hPlayback->running )
     {
         if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
@@ -1188,19 +1208,46 @@ BERR_Code BAPE_Playback_SetInterruptHandlers(
         }
         else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
         {
-            /* TBD7211 - enable interrupt timer - interruptTimer */
-
+            /* nothing to do here */
         }
     }
 
-    /* These aren't actually used by the interrupt directly, so no need for critical section here. */
-    hPlayback->interrupts = *pInterrupts;
-
-    return BERR_SUCCESS;
+    return BERR_TRACE(BAPE_Playback_P_ReArmWatermark(hPlayback));
 }
 
-static void BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
+#define BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION 10000 /* microseconds */
+void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2);
+
+void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2)
 {
+    BAPE_PlaybackHandle handle = pParam1;
+    unsigned free = 0;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Playback);
+
+    if ( handle->bufferGroupHandle )
+    {
+        free = BAPE_BufferGroup_GetBufferFree_isr(handle->bufferGroupHandle);
+    }
+
+    if ( free > handle->threshold )
+    {
+        if (handle->interrupts.watermark.pCallback_isr)
+        {
+            /*BDBG_ERR(("%s Free threshold reached", BSTD_FUNCTION));*/
+            handle->interrupts.watermark.pCallback_isr(handle->interrupts.watermark.pParam1, handle->interrupts.watermark.param2);
+        }
+    }
+
+    if (handle->interruptTimer)
+    {
+        BTMR_StartTimer_isr(handle->interruptTimer, (unsigned)param2);
+    }
+}
+
+static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
+{
+    BERR_Code errCode;
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
 
     if ( hPlayback->running )
@@ -1212,9 +1259,43 @@ static void BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
         }
         else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
         {
-            /* TBD7211 - enable interrupt timer, reset watermark */
+            BTMR_TimerSettings timerSettings;
+
+            if ( hPlayback->interruptTimer )
+            {
+                BKNI_EnterCriticalSection();
+                BTMR_StopTimer_isr(hPlayback->interruptTimer);
+                BKNI_LeaveCriticalSection();
+            }
+
+            if ( !hPlayback->interruptTimer )
+            {
+                BTMR_GetDefaultTimerSettings(&timerSettings);
+                timerSettings.type = BTMR_Type_eCountDown;
+                timerSettings.cb_isr = BAPE_P_CheckPlaybackStatus_isr;
+                timerSettings.pParm1 = hPlayback;
+                timerSettings.parm2 = BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION;
+                errCode = BTMR_CreateTimer(hPlayback->hApe->tmrHandle, &hPlayback->interruptTimer, &timerSettings);
+                if ( errCode )
+                {
+                    BDBG_WRN(("Unable to create playback interrupt timer"));
+                    errCode = BERR_TRACE(errCode);
+                }
+            }
+
+            if ( hPlayback->interruptTimer )
+            {
+                errCode = BTMR_StartTimer(hPlayback->interruptTimer, BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION);
+                if ( errCode )
+                {
+                    BDBG_WRN(("Unable to start playback interrupt timer"));
+                    errCode = BERR_TRACE(errCode);
+                }
+            }
         }
     }
+
+    return BERR_SUCCESS;
 }
 
 static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection)
@@ -1285,9 +1366,9 @@ static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_P
         }
 
         /* Setup Buffers */
-        for ( i = 0; i < chPairs; i++) 
+        for ( i = 0; i < chPairs; i++)
         {
-            if ( sfifoSettings.interleaveData) 
+            if ( sfifoSettings.interleaveData)
             {
                 sfifoSettings.bufferInfo[i].block = hPlayback->block[i*2];
                 sfifoSettings.bufferInfo[i].pBuffer = hPlayback->pBuffer[i*2];
@@ -1368,7 +1449,7 @@ static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_P
 
     /* Other nodes don't require anything done here */
 
-    return BERR_SUCCESS;    
+    return BERR_SUCCESS;
 }
 
 static BERR_Code BAPE_Playback_P_StartPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection)
@@ -1395,6 +1476,25 @@ static BERR_Code BAPE_Playback_P_StartPathToOutput(BAPE_PathNode *pNode, BAPE_Pa
     }
     else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
     {
+        BAPE_BufferGroupFormat bgFormat;
+
+        /* Set Format */
+        bgFormat.bitsPerSample = hPlayback->startSettings.bitsPerSample;
+        bgFormat.compressed = hPlayback->settings.compressedData;
+        if ( hPlayback->interleaved && hPlayback->startSettings.bitsPerSample == 16 )
+        {
+            bgFormat.samplesPerDword = 2;
+        }
+        else
+        {
+            bgFormat.samplesPerDword = 1;
+        }
+        errCode = BAPE_BufferGroup_SetFormat(hPlayback->bufferGroupHandle, &bgFormat);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
         /* Enable consumption */
         errCode = BAPE_BufferGroup_Enable(hPlayback->bufferGroupHandle, true);
         if ( errCode )

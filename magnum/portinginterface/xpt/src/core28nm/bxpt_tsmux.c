@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -535,10 +535,3 @@ void BXPT_Tsmux_GetDescConfig(
     Config->bInsertHostDataAsBtp = descWords[5] & (1 << 22) ? true : false;
 }
 #endif
-
-void BXPT_TsMux_P_ResetPacingPauseMap(
-    BXPT_Handle hXpt
-    )
-{
-    BSTD_UNUSED(hXpt);
-}

@@ -52,9 +52,7 @@ MAGNUM_MODULES += BPVRLIB
 BPVRLIB_INCLUDES += $(MAGNUM)/syslib/pvrlib
 
 # Module Sources
-BPVRLIB_SOURCES += $(MAGNUM)/syslib/pvrlib/bpvrlib_feed.c
-
-# Module Dependencies
 ifeq ($(BCHP_CHIP),7211)
-include $(MAGNUM)/portinginterface/ott/bott.inc
+else
+BPVRLIB_SOURCES += $(MAGNUM)/syslib/pvrlib/bpvrlib_feed.c
 endif

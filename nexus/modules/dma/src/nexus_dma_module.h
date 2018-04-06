@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 
 #include "nexus_base.h"
@@ -57,7 +49,11 @@
 #if NEXUS_HAS_XPT_DMA
 
 #else
+#if NEXUS_USE_OTT_TRANSPORT
+/* stub */
+#else
 #include "bmmd.h"
+#endif
 #endif
 
 #ifndef NEXUS_DMA_MODULE_H__
@@ -80,7 +76,11 @@ typedef struct NEXUS_DmaModuleData
     NEXUS_ModuleHandle dmaModule;
     bool shutdown;
     struct {
+#if NEXUS_USE_OTT_TRANSPORT
+        /* stub */
+#else
         BMMD_Handle mmd;
+#endif
         BLST_S_HEAD(NEXUS_DmaContexts, NEXUS_Dma) dmaHandles; /* virtualization in nexus allows opening multiple nexus DMA handles against one HW block */
     } channel[NEXUS_NUM_DMA_CHANNELS+NEXUS_NUM_SHARF_DMA_CHANNELS]; /* a channel represents a HW block */
 } NEXUS_DmaModuleData;
@@ -95,4 +95,3 @@ typedef struct NEXUS_DmaModuleData
 extern NEXUS_DmaModuleData g_NEXUS_dmaModuleData;
 
 #endif /* #ifndef NEXUS_DMA_MODULE_H__ */
-

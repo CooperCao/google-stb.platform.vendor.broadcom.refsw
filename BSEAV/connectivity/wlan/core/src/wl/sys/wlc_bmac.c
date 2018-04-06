@@ -12697,14 +12697,14 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 
 #ifdef PKTENG_TXREQ_CACHE
 	if (wlc_bmac_pkteng_check_cache(wlc_hw))
-		return 0;
+		return morepending;
 #endif /* PKTENG_TXREQ_CACHE */
 
 	if (D11REV_LT(wlc_hw->corerev, 40)) {
 		/* corerev >= 5 && < 40 */
 		d11regs_t *regs = wlc_hw->regs;
 		osl_t *osh = wlc_hw->osh;
-		tx_status_t txs;
+		tx_status_t *txs = &wlc_hw->txs;
 		wlc_txs_pkg8_t pkg;
 		uint32 s1, s2;
 		uint16 status_bits;
@@ -12722,7 +12722,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 
 		WL_TRACE(("wl%d: %s: ltrev40\n", wlc_hw->unit, __FUNCTION__));
 
-		/* To avoid overhead time is read only once for the whole while loop
+                /* To avoid overhead time is read only once for the whole while loop
 		 * since time accuracy is not a concern for now.
 		 */
 #ifdef WLFCTS
@@ -12730,7 +12730,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 #endif /* !WLFCTS */
 		{
 			tsf_time = R_REG(osh, &regs->tsf_timerlow);
-			txs.dequeuetime = 0;
+			txs->dequeuetime = 0;
 		}
 
 		while (!(*fatal) &&
@@ -12740,7 +12740,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 				/* For corerevs >= 26, the first txstatus package contains
 				 * 32-bit timestamps for dequeue_time and last_tx_time
 				 */
-				txs.dequeuetime = pkg.word[0];
+				txs->dequeuetime = pkg.word[0];
 				tsf_time = pkg.word[1];
 
 				/* wait till the next 8 bytes of txstatus is available */
@@ -12755,7 +12755,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 					status_delay++;
 					if (status_delay > 10) {
 						ASSERT(0);
-						return 0;
+						return morepending;
 					}
 				}
 			}
@@ -12767,21 +12767,21 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 				wlc_hw->unit, __FUNCTION__, s1, s2));
 
 			status_bits = (s1 & TXS_STATUS_MASK);
-			txs.status.raw_bits = status_bits;
-			txs.status.was_acked = (status_bits & TX_STATUS_ACK_RCV) != 0;
-			txs.status.is_intermediate = (status_bits & TX_STATUS_INTERMEDIATE) != 0;
-			txs.status.pm_indicated = (status_bits & TX_STATUS_PMINDCTD) != 0;
-			txs.status.suppr_ind =
+			txs->status.raw_bits = status_bits;
+			txs->status.was_acked = (status_bits & TX_STATUS_ACK_RCV) != 0;
+			txs->status.is_intermediate = (status_bits & TX_STATUS_INTERMEDIATE) != 0;
+			txs->status.pm_indicated = (status_bits & TX_STATUS_PMINDCTD) != 0;
+			txs->status.suppr_ind =
 			        (status_bits & TX_STATUS_SUPR_MASK) >> TX_STATUS_SUPR_SHIFT;
-			txs.status.rts_tx_cnt =
+			txs->status.rts_tx_cnt =
 			        ((s1 & TX_STATUS_RTS_RTX_MASK) >> TX_STATUS_RTS_RTX_SHIFT);
-			txs.status.frag_tx_cnt =
+			txs->status.frag_tx_cnt =
 			        ((s1 & TX_STATUS_FRM_RTX_MASK) >> TX_STATUS_FRM_RTX_SHIFT);
-			txs.frameid = (s1 & TXS_FID_MASK) >> TXS_FID_SHIFT;
-			txs.sequence = s2 & TXS_SEQ_MASK;
-			txs.phyerr = (s2 & TXS_PTX_MASK) >> TXS_PTX_SHIFT;
-			txs.lasttxtime = tsf_time;
-			txs.procflags = 0;
+			txs->frameid = (s1 & TXS_FID_MASK) >> TXS_FID_SHIFT;
+			txs->sequence = s2 & TXS_SEQ_MASK;
+			txs->phyerr = (s2 & TXS_PTX_MASK) >> TXS_PTX_SHIFT;
+			txs->lasttxtime = tsf_time;
+			txs->procflags = 0;
 
 			/* Check if this is an AMPDU BlockAck txstatus.
 			 * An AMPDU BA generates a second txstatus pkg which will be
@@ -12789,17 +12789,17 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 			 * wlc_ampdu_dotxstatus() will clear the procflags bit
 			 * TXS_PROCFLAG_AMPDU_BA_PKG2_READ_REQD.
 			 */
-			if ((txs.status.raw_bits & TX_STATUS_AMPDU) &&
-				(txs.status.raw_bits & TX_STATUS_ACK_RCV)) {
-				txs.procflags |= TXS_PROCFLAG_AMPDU_BA_PKG2_READ_REQD;
+			if ((txs->status.raw_bits & TX_STATUS_AMPDU) &&
+				(txs->status.raw_bits & TX_STATUS_ACK_RCV)) {
+				txs->procflags |= TXS_PROCFLAG_AMPDU_BA_PKG2_READ_REQD;
 			}
 
-			*fatal = wlc_bmac_dotxstatus(wlc_hw, &txs, s2);
+			*fatal = wlc_bmac_dotxstatus(wlc_hw, txs, s2);
 
 			/* If this is an AMPDU BA and the txs package 2 has not been read,
 			 * read and discard it.
 			 */
-			if (txs.procflags & TXS_PROCFLAG_AMPDU_BA_PKG2_READ_REQD) {
+			if (txs->procflags & TXS_PROCFLAG_AMPDU_BA_PKG2_READ_REQD) {
 				(void) wlc_bmac_read_txs_pkg8(wlc_hw, &pkg);
 			}
 			/* !give others some time to run! */
@@ -12818,7 +12818,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 		}
 
 		if (*fatal)
-			return 0;
+			return morepending;
 
 		if (n >= max_tx_num)
 			morepending = TRUE;
@@ -12826,7 +12826,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 		/* corerev >= 40 */
 		d11regs_t *regs = wlc_hw->regs;
 		osl_t *osh = wlc_hw->osh;
-		tx_status_t txs;
+		tx_status_t *txs = &wlc_hw->txs;
 		wlc_txs_pkg16_t pkg;
 		/* pkg 1 */
 		uint32 v_s1, v_s2, v_s3, v_s4;
@@ -12856,19 +12856,19 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 
 			WL_TRACE(("%s: s1=%0x ampdu=%d\n", __FUNCTION__, v_s1,
 				((v_s1 & 0x4) != 0)));
-			txs.frameid = (v_s1 & TXS_FID_MASK) >> TXS_FID_SHIFT;
-			txs.sequence = v_s2 & TXS_SEQ_MASK;
-			txs.phyerr = (v_s2 & TXS_PTX_MASK) >> TXS_PTX_SHIFT;
-			txs.lasttxtime = R_REG(osh, &regs->tsf_timerlow);
+			txs->frameid = (v_s1 & TXS_FID_MASK) >> TXS_FID_SHIFT;
+			txs->sequence = v_s2 & TXS_SEQ_MASK;
+			txs->phyerr = (v_s2 & TXS_PTX_MASK) >> TXS_PTX_SHIFT;
+			txs->lasttxtime = R_REG(osh, &regs->tsf_timerlow);
 			status_bits = v_s1 & TXS_STATUS_MASK;
-			txs.status.raw_bits = status_bits;
-			txs.status.is_intermediate = (status_bits & TX_STATUS40_INTERMEDIATE) != 0;
-			txs.status.pm_indicated = (status_bits & TX_STATUS40_PMINDCTD) != 0;
+			txs->status.raw_bits = status_bits;
+			txs->status.is_intermediate = (status_bits & TX_STATUS40_INTERMEDIATE) != 0;
+			txs->status.pm_indicated = (status_bits & TX_STATUS40_PMINDCTD) != 0;
 
 			ncons = ((status_bits & TX_STATUS40_NCONS) >> TX_STATUS40_NCONS_SHIFT);
-			txs.status.was_acked = ((ncons <= 1) ?
+			txs->status.was_acked = ((ncons <= 1) ?
 				((status_bits & TX_STATUS40_ACK_RCV) != 0) : TRUE);
-			txs.status.suppr_ind =
+			txs->status.suppr_ind =
 			        (status_bits & TX_STATUS40_SUPR) >> TX_STATUS40_SUPR_SHIFT;
 
 			/* pkg 2 comes always */
@@ -12894,32 +12894,32 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 				v_s1, v_s2, v_s3, v_s4,
 				pkg.word[0], pkg.word[1], pkg.word[2], pkg.word[3]));
 
-			txs.status.s3 = v_s3;
-			txs.status.s4 = v_s4;
-			txs.status.s5 = pkg.word[0];
-			txs.status.ack_map1 = pkg.word[1];
-			txs.status.ack_map2 = pkg.word[2];
-			txs.status.s8 = pkg.word[3];
+			txs->status.s3 = v_s3;
+			txs->status.s4 = v_s4;
+			txs->status.s5 = pkg.word[0];
+			txs->status.ack_map1 = pkg.word[1];
+			txs->status.ack_map2 = pkg.word[2];
+			txs->status.s8 = pkg.word[3];
 
-			txs.status.rts_tx_cnt = ((pkg.word[0] & TX_STATUS40_RTS_RTX_MASK) >>
+			txs->status.rts_tx_cnt = ((pkg.word[0] & TX_STATUS40_RTS_RTX_MASK) >>
 			                         TX_STATUS40_RTS_RTX_SHIFT);
-			txs.status.cts_rx_cnt = ((pkg.word[0] & TX_STATUS40_CTS_RRX_MASK) >>
+			txs->status.cts_rx_cnt = ((pkg.word[0] & TX_STATUS40_CTS_RRX_MASK) >>
 			                         TX_STATUS40_CTS_RRX_SHIFT);
 
 			if ((pkg.word[0] & TX_STATUS64_MUTX)) {
 				/* Only RT0 entry is used for frag_tx_cnt in ucode */
-				txs.status.frag_tx_cnt = TX_STATUS40_TXCNT_RT0(v_s3);
+				txs->status.frag_tx_cnt = TX_STATUS40_TXCNT_RT0(v_s3);
 			} else {
-				txs.status.frag_tx_cnt = TX_STATUS40_TXCNT(v_s3, v_s4);
+				txs->status.frag_tx_cnt = TX_STATUS40_TXCNT(v_s3, v_s4);
 			}
 
 #ifdef WLFCTS
 			if (WLFCTS_ENAB(wlc->pub)) {
 				uint32 lasttxtime_lo16 = (pkg.word[3] >> 16) & 0x0000ffff;
 				uint32 dequeuetime_lo16 = pkg.word[3] & 0x0000ffff;
-				txs.dequeuetime = ((txs.lasttxtime - dequeuetime_lo16) & 0xffff0000)
+				txs->dequeuetime = ((txs->lasttxtime - dequeuetime_lo16) & 0xffff0000)
 						| dequeuetime_lo16;
-				txs.lasttxtime = ((txs.lasttxtime - lasttxtime_lo16) & 0xffff0000)
+				txs->lasttxtime = ((txs->lasttxtime - lasttxtime_lo16) & 0xffff0000)
 						| lasttxtime_lo16;
 			}
 #endif /* WLFCTS */
@@ -12940,17 +12940,17 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 					return morepending;
 				}
 
-				txs.status.s9 = v_s9;
-				txs.status.s10 = v_s10;
-				txs.status.s11 = v_s11;
+				txs->status.s9 = v_s9;
+				txs->status.s10 = v_s10;
+				txs->status.s11 = v_s11;
 			}
 
-			*fatal = wlc_bmac_dotxstatus(wlc_hw, &txs, v_s2);
+			*fatal = wlc_bmac_dotxstatus(wlc_hw, txs, v_s2);
 
 			/* !give others some time to run! */
 #ifdef PROP_TXSTATUS
 			/* We must drain out in case of suppress, to avoid Out of Orders */
-			if (txs.status.suppr_ind == TX_STATUS_SUPR_NONE)
+			if (txs->status.suppr_ind == TX_STATUS_SUPR_NONE)
 #endif
 				if (++n >= max_tx_num)
 					break;
@@ -12965,7 +12965,7 @@ wlc_bmac_txstatus(wlc_hw_info_t *wlc_hw, bool bound, bool *fatal)
 
 		if (*fatal) {
 			WL_ERROR(("error %d caught in %s\n", *fatal, __FUNCTION__));
-			return 0;
+			return morepending;
 		}
 
 		if (n >= max_tx_num)

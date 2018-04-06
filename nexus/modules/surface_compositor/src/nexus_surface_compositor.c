@@ -73,11 +73,13 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
         }
         for (client = BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
             NEXUS_SurfaceClientHandle child;
-            BDBG_LOG(("client %p: %d,%d,%d,%d; visible %c; zorder %d", (void *)client,
+            BDBG_LOG(("client %p: %d,%d,%d,%d (virtual %u,%u); visible %c; zorder %d", (void *)client,
                 client->serverSettings.composition.position.x,
                 client->serverSettings.composition.position.y,
                 client->serverSettings.composition.position.width,
                 client->serverSettings.composition.position.height,
+                client->serverSettings.composition.virtualDisplay.width,
+                client->serverSettings.composition.virtualDisplay.height,
                 client->serverSettings.composition.visible?'y':'n',
                 client->serverSettings.composition.zorder));
             if (client->settings.orientation != NEXUS_VideoOrientation_e2D) {
@@ -602,7 +604,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
         }
         if(toogle_enable) {
             /* if enabled was changed we need to simulate that submitted framebuffers was applied */
-            if(server->settings.display[i].display && server->display) {
+            if(server->settings.display[i].display) {
                 struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
                 if(display && display->submitted) {
                     nexus_surface_compositor_p_framebuffer_applied(display);
@@ -616,8 +618,9 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
 static bool nexus_p_is_secure_heap(NEXUS_HeapHandle heap)
 {
     NEXUS_MemoryStatus status;
-    NEXUS_Heap_GetStatus_driver(heap, &status);
-    return status.memoryType & NEXUS_MEMORY_TYPE_SECURE && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF);
+    NEXUS_Error rc;
+    rc = NEXUS_Heap_GetStatus_driver(heap, &status);
+    return !rc && status.memoryType & NEXUS_MEMORY_TYPE_SECURE && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF);
 }
 
 static void nexus_surfacemp_p_release_all_display_framebuffers(NEXUS_SurfaceCompositorHandle server)

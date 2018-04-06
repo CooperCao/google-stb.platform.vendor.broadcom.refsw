@@ -2287,6 +2287,138 @@ extern "C" {
 #define BVDC_P_SUPPORT_STG_VER                (4)
 #define BVDC_P_MANAGE_VIP                     (0) /* VDC owns VIP */
 
+#elif (BCHP_CHIP==7211)
+
+#define BVDC_P_SUPPORT_XSRC                   (0) /* Number of stand alone XSRC HW */
+#define BVDC_P_SUPPORT_MADR                   (0) /* Number of MAD-R HW */
+#define BVDC_P_SUPPORT_MCVP                   (0) /* Number of MCVP HW */
+#define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
+#define BVDC_P_SUPPORT_VEC_GRPD               (0)
+#define BVDC_P_SUPPORT_HDDVI                  (0)
+#define BVDC_P_SUPPORT_DSCL                   (0)
+#define BVDC_P_SUPPORT_DSCL_VER               (0)
+#define BVDC_P_SUPPORT_DNR_VER                (1)
+#define BVDC_P_CMP_CFC_VER                    (5)
+#define BVDC_P_SUPPORT_GFD_VER                (11)
+#define BVDC_P_SUPPORT_SCL_VER                (12)
+
+#define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
+#define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect, see SW7366-151 */
+#define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
+#define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
+#define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
+#define BVDC_P_SUPPORT_MFD                    (1)
+#define BVDC_P_SUPPORT_MFD_VER                (17)/* MFD HW version */
+#define BVDC_P_SUPPORT_MCDI_VER               (0) /* MCDI HW version */
+#define BVDC_P_SUPPORT_MADR_VER               (0) /* MAD-R HW version */
+#define BVDC_P_SUPPORT_MCVP_VER               (6) /* MCVP HW version */
+#define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
+#define BVDC_P_SUPPORT_DRAIN_B                (1) /* Number of VNET_B_DRAIN_x_SRC */
+#define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
+#define BVDC_P_SUPPORT_FREE_CHANNEL           (2) /* Number of VNET_F_FCH_x_SRC */
+#define BVDC_P_SUPPORT_MTG                    (1) /* MFD Trigger Generator */
+#define BVDC_P_SUPPORT_3D                     (1) /* 3d Graphics/video support*/
+#define BVDC_P_MAX_DACS                       (0)
+#define BVDC_P_SUPPORT_4kx2k_60HZ             (1)
+#define BVDC_P_SUPPORT_656_MASTER_MODE        (0)
+#define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
+
+/* source */
+#define BVDC_P_SUPPORT_GFD                    (1)
+#define BVDC_P_SUPPORT_GFD1_VER               (9)
+#define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
+#define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
+#define BVDC_P_SUPPORT_HDDVI_VER              (12)
+
+/* BVN */
+#define BVDC_P_SUPPORT_TNT                    (0)
+#define BVDC_P_SUPPORT_TNT_VER                (0)
+#define BVDC_P_SUPPORT_TNTD                   (0)
+#define BVDC_P_SUPPORT_TNTD_VER               (0)
+#define BVDC_P_SUPPORT_MASK_DITHER            (0)
+#define BVDC_P_SUPPORT_HIST                   (0)
+#define BVDC_P_SUPPORT_VFC                    (0) /* Number of stand alone VFC HW */
+#define BVDC_P_SUPPORT_CAP                    (1)
+#define BVDC_P_SUPPORT_VFD                    (1)
+#define BVDC_P_SUPPORT_SCL                    (1)
+#define BVDC_P_SUPPORT_HSCL_VER               (0) /* HSCL HW version */
+#define BVDC_P_SUPPORT_DMISC                  (0)
+#define BVDC_P_NUM_SHARED_STG                 (0)
+#define BVDC_P_ORTHOGONAL_VEC_VER             (2)
+#define BVDC_P_SUPPORT_IT_VER                 (3)
+#define BVDC_P_SUPPORT_MANR                   (0) /* Number of ANR HW in MCVP */
+#define BVDC_P_SUPPORT_XCODE_WIN_CAP          (0)
+
+/* CMP */
+#define BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT   (1)
+#define BVDC_P_CMP_0_MAX_GFX_WINDOW_COUNT     (1)
+#define BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT   (0)
+#define BVDC_P_CMP_1_MAX_GFX_WINDOW_COUNT     (0)
+#define BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT   (0)
+#define BVDC_P_CMP_2_MAX_GFX_WINDOW_COUNT     (0)
+#define BVDC_P_CMP_3_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_3_Vx */
+#define BVDC_P_CMP_3_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_3_Gx */
+#define BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_4_Vx */
+#define BVDC_P_CMP_4_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_4_Gx */
+#define BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_5_Vx */
+#define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
+#define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
+#define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
+
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (0)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (0) /* cmps other than cmp 0 */
+#define BVDC_P_CMP_0_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_1_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_1_V1_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_2_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_3_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_4_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_5_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_6_V0_CLEAR_RECTS           (0)
+#define BVDC_P_SUPPORT_WIN_CONST_COLOR        (1)
+#define BVDC_P_MIN_XCODE_CMP                  (2)
+
+/* csc */
+#define BVDC_P_SUPPORT_CMP_DEMO_MODE          (2)
+#define BVDC_P_SUPPORT_CSC_MAT_COEF_VER       (4)
+#define BVDC_P_SUPPORT_COLOR_CLIP             (1)
+
+/* display */
+#define BVDC_P_SUPPORT_VBI_ENC_656            (0)
+#define BVDC_P_SUPPORT_VEC_VF_VER             (2)
+#define BVDC_P_SUPPORT_DVI_OUT                (1)
+#define BVDC_P_SUPPORT_ITU656_OUT             (0)
+#define BVDC_P_SUPPORT_RFM_OUTPUT             (0)
+
+#define BVDC_P_SUPPORT_HD_DAC                 (0)
+#define BVDC_P_SUPPORT_DTG_RMD                (1)
+#define BVDC_P_NUM_SHARED_656                 (0)
+#define BVDC_P_NUM_SHARED_DVI                 (1)
+#define BVDC_P_NUM_SHARED_RF                  (0)
+#define BVDC_P_NUM_SHARED_IT                  (1)
+#define BVDC_P_NUM_SHARED_VF                  (0)
+#define BVDC_P_NUM_SHARED_SM                  (0)
+#define BVDC_P_NUM_SHARED_SECAM               (0)     /* Number of VEC's SECAM HW, SECAM_x_register*/
+#define BVDC_P_NUM_SHARED_SDSRC               (0)
+#define BVDC_P_NUM_SHARED_HDSRC               (0)
+/* Note, here SHARED_SECAM/HDSECAM means the secam cross bar.
+ * Some secam cross bar may not have a secam module associated with it.
+ */
+#define BVDC_P_NUM_SHARED_SECAM_HD            (0)     /* Number of VEC's SECAM Passthru HW VEC_CFG_SECAM_x_SOURCE - BVDC_P_NUM_SHARED_SECAM*/
+#define BVDC_P_NUM_SHARED_DAC                 BVDC_P_MAX_DACS
+#define BVDC_P_SUPPORT_CLOCK_GATING           (1)
+#define BVDC_P_SUPPORT_MEM_PWR_GATING         (1)  /*Dynamic Memory Power Gating*/
+#define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_324_SYSCLK)
+#define BVDC_P_SUPPORT_STG                    (0) /* STG HW */
+#define BVDC_P_SUPPORT_STG_VER                (4)
+#define BVDC_P_MANAGE_VIP                     (0) /* VDC owns VIP */
+#define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
+
 #elif (BCHP_CHIP==7278)
 
 /* source */
@@ -2547,6 +2679,11 @@ extern "C" {
 #define BVDC_P_WIN_GET_REG_OFFSET(window_id) \
     ((BVDC_P_WindowId_eComp0_G0==(window_id)) ? (BCHP_CMP_0_G0_SURFACE_SIZE - BCHP_CMP_0_REVISION) \
     :(BVDC_P_WindowId_eComp1_G0==(window_id)) ? (BCHP_CMP_1_G0_SURFACE_SIZE - BCHP_CMP_1_REVISION) \
+    :(BCHP_CMP_0_V0_SURFACE_SIZE - BCHP_CMP_0_REVISION))
+
+#elif (BCHP_CHIP==7211)
+#define BVDC_P_WIN_GET_REG_OFFSET(window_id) \
+    ((BVDC_P_WindowId_eComp0_G0==(window_id)) ? (BCHP_CMP_0_G0_SURFACE_SIZE - BCHP_CMP_0_REVISION) \
     :(BCHP_CMP_0_V0_SURFACE_SIZE - BCHP_CMP_0_REVISION))
 
 #elif (BCHP_CHIP==7231)  || (BCHP_CHIP==7346)  || \
@@ -2917,6 +3054,10 @@ extern "C" {
 #define BVDC_P_DEFAULT_2HD_PIP_BUFFER_COUNT   (0)
 #define BVDC_P_DEFAULT_HD_PIP_BUFFER_COUNT    (0)
 #define BVDC_P_DEFAULT_SD_PIP_BUFFER_COUNT    (0)
+
+/* Threshold in percentage */
+#define BVDC_P_AUTO_DISABLE_1080P_DECIMATE21_THRESHOLD        (81)
+#define BVDC_P_AUTO_DISABLE_1080P_DECIMATE41_THRESHOLD        (41)
 
 /* BVB System clk!  Use to figure out vertical refresh rate! */
 /* Used by 656 and HD_DVI in new trigger mode */
@@ -3679,6 +3820,45 @@ typedef enum
     BVDC_P_State_eShutDown
 
 } BVDC_P_State;
+
+
+/*
+ * BBOX_Vdc_SclCapBias_eAutoDisable1080p:
+ *      BVDC_P_ScanoutMode_eCapture:
+ *          total pixel <= 1080p. Capture is enalbed
+ *      BVDC_P_ScanoutMode_eLive_Decimate_4_1:
+ *          vetical size < 41% of 4k. Capture is disabled. Deinterlacer is
+ *          disabled. 4:1 decimate scan out
+ *      BVDC_P_ScanoutMode_eLive_Decimate_2_1:
+ *          41% of 4k <= vetical size < 81% of 4k. Capture is disabled.
+ *          Deinterlacer is disabled. 2:1 decimated scan out.
+ *      BVDC_P_ScanoutMode_eLive:
+ *          vetical size >= 81% of 4k, Capture is disabled. Normal scan out
+ *
+ * NOT BBOX_Vdc_SclCapBias_eAutoDisable1080p:
+ *      BVDC_P_ScanoutMode_eLive:
+ *          Both horizontal and vetical size >= 75% of display. Capture is
+ *          disabled.
+ *      BVDC_P_ScanoutMode_eCapture:
+ *          Horizontal or vetical size < 75% of display. Capture is enalbed
+ *      No BVDC_P_ScanoutMode_eLive_Decimate_4_1 or BVDC_P_ScanoutMode_eLive_Decimate_2_1
+ *      in this case
+ *
+ */
+typedef enum
+{
+    /* No capture, live mode */
+    BVDC_P_ScanoutMode_eLive = 0,
+    /* No capture, live mode */
+    BVDC_P_ScanoutMode_eLive_Decimate_2_1,
+    BVDC_P_ScanoutMode_eLive_Decimate_4_1,
+    BVDC_P_ScanoutMode_eCapture
+} BVDC_P_ScanoutMode;
+
+#define BVDC_P_SCANOUTMODE_DECIMATE(eScanoutMode) \
+    ((eScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_2_1) || \
+     (eScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_4_1))
+
 
 /* Rectangle structure */
 typedef struct

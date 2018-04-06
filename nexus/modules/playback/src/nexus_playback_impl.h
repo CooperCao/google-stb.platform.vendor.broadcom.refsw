@@ -142,6 +142,12 @@ typedef struct b_trick_settings {
     NEXUS_PlaybackAudioTrickMode audioTrickMode;
 } b_trick_settings;
 
+struct NEXUS_P_Playback_state_b_play_start_media {
+    bmedia_player_stream stream;
+    bmedia_player_config player_config;
+    NEXUS_PlaypumpSettings pumpCfg;
+};
+
 struct NEXUS_Playback {
     BDBG_OBJECT(NEXUS_Playback)
     NEXUS_FilePlayHandle file;
@@ -266,6 +272,9 @@ struct NEXUS_Playback {
             enum b_accurate_seek_state state;
             uint32_t videoPts;
         } accurateSeek;
+        union {
+            struct NEXUS_P_Playback_state_b_play_start_media b_play_start_media;
+        } functionData;
     } state;
 #if B_PLAYBACK_CAPTURE
     struct {
@@ -347,7 +356,19 @@ void NEXUS_Playback_P_AbortPlayback(NEXUS_PlaybackHandle p);
 NEXUS_Error NEXUS_P_Playback_VideoDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderStatus *pStatus);
 void        NEXUS_P_Playback_VideoDecoder_GetPlaybackSettings(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderPlaybackSettings *pSettings);
 NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderPlaybackSettings *pSettings);
-NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderStatus *pStatus, NEXUS_AudioDecoderStatus *pSecondaryStatus);
+
+/* subset of NEXUS_AudioDecoderStatus */
+typedef struct NEXUS_P_Playback_AudioDecoderStatus {
+    NEXUS_AudioRunningState started; /* returns if stopped, running, or suspended */
+    bool tsm;        /* AudioDecoder is in TSM (time stamp managed) mode. TSM may be not applicable (e.g. ES streams), may be disabled directly
+                        by the user (setting stcChannel = NULL) or indirectly by other API's (e.g. trick modes, ASTM, etc.) */
+    unsigned fifoDepth; /* depth in bytes of the compressed buffer */
+    uint32_t pts;              /* current PTS of the audio decoder */
+    NEXUS_PtsType ptsType;     /* current PTS type of the codec */
+    unsigned queuedFrames;     /* Number of compressed frames in the queue */
+} NEXUS_P_Playback_AudioDecoderStatus;
+
+NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_P_Playback_AudioDecoderStatus *pStatus, NEXUS_P_Playback_AudioDecoderStatus *pSecondaryStatus);
 bool b_play_decoders_in_tsm_mode(NEXUS_PlaybackHandle playback);
 const NEXUS_Playback_P_PidChannel *b_play_get_video_decoder(NEXUS_PlaybackHandle playback);
 bool NEXUS_Playback_P_CheckSimpleDecoderSuspended(const NEXUS_Playback_P_PidChannel *pid);

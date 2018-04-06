@@ -92,7 +92,11 @@ int errorCode = 0;
 extern char bp3_bin_file_name[];
 extern char bp3_bin_file_path[];
 
-#define PORT "56790,80"
+// TODO: Partners should define this port
+#define PORT 80
+
+#define STR_(x) #x
+#define STR(x) STR_(x)
 
 int quit = 0;
 
@@ -105,10 +109,6 @@ handle_sigint(int signum UNUSED_PARAM) {
 void run_ssdp(int port, const char *pFriendlyName, const char * pModelName, const char *pUuid);
 void get_local_address(void);
 int request_handler(struct mg_connection *, void *);
-
-#ifndef min
-#define min(a,b) ((a) < (b) ? (a) : (b))
-#endif
 
 static void mg_write_header(struct mg_connection *conn, const char* mime) {
   mg_printf(conn, "HTTP/1.1 200 OK\r\n"
@@ -288,7 +288,7 @@ static struct mg_context *start_webserver()
 {
     const char *options[] = {
         "listening_ports",
-        PORT,
+        STR(PORT),
         0};
     mg_init_library(MG_FEATURES_DEFAULT);
     struct mg_context *ctx = mg_start(NULL, NULL, options);
@@ -323,7 +323,7 @@ static void *ssdpProc(void *args UNUSED_PARAM) {
   uuid_unparse(uu, usn);
   strncpy(usn, "bp30", 4); // last digit is version number
   struct mg_context *ctx = start_webserver();
-  run_ssdp(123, buf, model, usn);
+  run_ssdp(PORT, buf, model, usn);
   mg_stop(ctx);
   mg_exit_library();
   printf("\nWeb server exited\n");

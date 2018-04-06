@@ -48,8 +48,10 @@
 #error "code is not yet ready for C++14"
 #endif
 
+#ifdef MSDRM_PRDY25
 #include "pr_decryptor.h"
-#ifdef MSDRM_PRDY30
+#endif
+#ifdef MSDRM_PRDY3x
 #include "pr30_decryptor.h"
 #endif
 #ifdef ENABLE_WIDEVINE
@@ -68,13 +70,17 @@ IDecryptor* DecryptorFactory::CreateDecryptor(DrmType type)
     IDecryptor* decryptor = NULL;
     switch(type) {
       case drm_type_ePlayready:
+#ifdef MSDRM_PRDY25
         decryptor = new PlayreadyDecryptor();
+#else
+        LOGE(("%s: Playready 2.5 not supported with this build", BSTD_FUNCTION));
+#endif
         break;
       case drm_type_ePlayready30:
-#ifdef MSDRM_PRDY30
+#ifdef MSDRM_PRDY3x
         decryptor = new Playready30Decryptor();
 #else
-        LOGE(("%s: Playready 3.0 not supported with this build", BSTD_FUNCTION));
+        LOGE(("%s: Playready 3.x not supported with this build", BSTD_FUNCTION));
 #endif
         break;
 #ifdef ENABLE_WIDEVINE

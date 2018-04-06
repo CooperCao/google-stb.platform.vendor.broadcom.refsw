@@ -310,6 +310,36 @@ typedef enum BAPE_BufferInterfaceType
 #define BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK          (1<<BAPE_BUFFER_INTERFACE_CTRL_ENABLE_SHIFT)
 
 #define BAPE_BUFFER_INTERFACE_ENABLED(ctl) ((ctl & BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK) != 0)
+
+#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT     (0)
+#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK      (1<<BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT      (1)
+#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK       (1<<BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT   (2)
+#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK    (0x7f<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT (9)
+#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK  (0x7<<BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT     (12)
+#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK      (0x7<<BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED(fmt)      ((fmt & BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK) >> BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED(fmt)       ((fmt & BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK) >> BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(fmt)    ((fmt & BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK) >> BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD(fmt)  ((fmt & BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK) >> BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS(fmt)      ((fmt & BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK) >> BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
+
+/* typically number of channels will be 1 or 2. In theory we could
+   pack 4 x 8 bit samples, but this usage would be very rare.
+   In addition, we could interleave, or not, limit to stereo or not, etc.
+   Some example usage cases -
+    - 32 bits per sample, non-interleaved:   interleaved=0, samplesPerDword=1, numChannels=1
+    - 24 bits per sample, interleaved:   interleaved=1, samplesPerDword=1, numChannels=2
+    - 24 bits per sample, interleaved, 7.1ch:   interleaved=1, samplesPerDword=1, numChannels=8
+    - 16 bits per sample, non-interleaved, 1 samples packed:   interleaved=0, samplesPerDword=1, numChannels=1
+    - 16 bits per sample, non-interleaved, 2 samples packed:   interleaved=0, samplesPerDword=2, numChannels=1
+    - 16 bits per sample, interleaved, 2 samples packed:   interleaved=1, samplesPerDword=2, numChannels=2
+    - 16 bits per sample, interleaved, compressed, 2 samples packed:   interleaved=1, compressed=1, samplesPerDword=2, numChannels=2
+    -  8 bits per sample, interleaved stereo, 4 samples packed:   interleaved=1, samplesPerDword=4, numChannels=2
+*/
 typedef struct BAPE_BufferInterface
 {
     BMMA_Block_Handle block;
@@ -317,11 +347,12 @@ typedef struct BAPE_BufferInterface
     BMMA_DeviceOffset end;
     BMMA_DeviceOffset read;
     BMMA_DeviceOffset valid;
-    BMMA_DeviceOffset watermark; /* Consumption may start when watermark reaches this level. May be 0.
-                                    Consumer will set to 0 when watermark is reached */
-    uint32_t             config; /* Configuration bits */
+    BMMA_DeviceOffset watermark;  /* Consumption may start when watermark reaches this level. May be 0.
+                                     Consumer will set to 0 when watermark is reached */
+    uint32_t             config;  /* Configuration bits */
     uint32_t             control; /* Control bits */
-    volatile int32_t     lock; /* lock field for spin lock to protect enable->disable sequence */
+    uint32_t             format;  /* Producer specifies the format of the data */
+    volatile int32_t     lock;    /* lock field for spin lock to protect enable->disable sequence */
 } BAPE_BufferInterface;
 
 #define BAPE_BUFFER_ASSERT_INTERFACE_VALID(b,e,r,v) \
@@ -2054,7 +2085,7 @@ typedef struct BAPE_Playback
     BMMA_DeviceOffset bufferInterfaceOffset[BAPE_Channel_eMax];
     BAPE_BufferInterface * pBufferInterface[BAPE_Channel_eMax];
     BAPE_BufferGroupHandle bufferGroupHandle;
-    BTMR_Handle interruptTimer;
+    BTMR_TimerHandle interruptTimer;
     BAPE_PlaybackSettings settings;
     unsigned bufferSize;
     unsigned numBuffers;

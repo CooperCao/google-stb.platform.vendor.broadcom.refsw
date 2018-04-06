@@ -264,6 +264,26 @@ void BXPT_Mpod_GetDefaultConfig(
 
 /***************************************************************************
 Summary:
+Enable or disable the input formatter.
+
+Description:
+The MPOD interface's input formatter is normally enabled when BXPT_Mpod_Init()
+is called. The SkipInputFormatter option, when used, will not enable the
+formatter until BXPT_Mpod_EnableInputFormatter() is called.
+
+Returns:
+    void
+
+See Also:
+BXPT_Mpod_Init
+****************************************************************************/
+void BXPT_Mpod_EnableInputFormatter(
+    BXPT_Handle hXpt,                           /* [in] Handle for this transport */
+    bool Enable
+    );
+
+/***************************************************************************
+Summary:
 Initialize the MultiPod interface.
 
 Description:
@@ -301,7 +321,6 @@ BERR_Code BXPT_Mpod_Shutdown(
     BXPT_Handle hXpt                            /* [in] Handle for this transport */
     );
 
-#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get PODRES field from the incoming MultiPod headers.
@@ -315,7 +334,6 @@ Returns:
 unsigned int BXPT_Mpod_GetPodRes(
     BXPT_Handle hXpt                /* [in] Handle for this transport */
     );
-#endif
 
 /***************************************************************************
 Summary:

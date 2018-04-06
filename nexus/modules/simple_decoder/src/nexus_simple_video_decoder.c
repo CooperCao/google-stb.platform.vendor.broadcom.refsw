@@ -174,6 +174,9 @@ struct NEXUS_SimpleVideoDecoder
         struct {
             NEXUS_SimpleVideoDecoderServerSettings temp;
         } NEXUS_SimpleVideoDecoder_SetServerSettings;
+        struct {
+            NEXUS_VideoDecoderSettings settings;
+        } nexus_simplevideodecoder_p_setdecodersettings;
     } functionData;
 };
 
@@ -1624,21 +1627,22 @@ static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVid
         return NEXUS_SUCCESS;
     }
     if (currentSettings) {
-        NEXUS_VideoDecoderSettings settings = handle->settings;
+        NEXUS_VideoDecoderSettings *settings = &handle->functionData.nexus_simplevideodecoder_p_setdecodersettings.settings;
+        *settings = handle->settings;
         /* apply the current simpledecoder settings back to the regular decoder */
         rc = NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &handle->playbackSettings);
         if (rc) return BERR_TRACE(rc);
 
         /* this modifies the stored copy. requires app to not cache settings. */
         if (handle->startSettings.maxWidth && handle->startSettings.maxHeight) {
-            settings.maxWidth = handle->startSettings.maxWidth;
-            settings.maxHeight = handle->startSettings.maxHeight;
+            settings->maxWidth = handle->startSettings.maxWidth;
+            settings->maxHeight = handle->startSettings.maxHeight;
         }
-        settings.supportedCodecs[handle->startSettings.settings.codec] = true;
-        rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &settings);
+        settings->supportedCodecs[handle->startSettings.settings.codec] = true;
+        rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, settings);
         if (rc) return BERR_TRACE(rc);
 
-        handle->settings = settings;
+        handle->settings = *settings;
 
         rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &handle->extendedSettings);
         if (rc) return BERR_TRACE(rc);

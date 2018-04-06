@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -505,6 +505,7 @@ void NEXUS_Platform_P_UnInitCma(void);
 #endif
 
 #if NEXUS_TEE_SUPPORT
+#include "btee_instance.h"
 BTEE_InstanceHandle NEXUS_Platform_P_CreateTeeInstance(void);
 void NEXUS_Platform_P_DestroyTeeInstance(BTEE_InstanceHandle teeHandle);
 #endif
@@ -540,4 +541,3 @@ struct NEXUS_Platform_P_UartId {const unsigned id;const char *name;};
 extern const struct NEXUS_Platform_P_UartId NEXUS_Platform_P_UartIds[];
 
 #endif /* #ifndef NEXUS_PLATFORM_PRIV_H__ */
-

@@ -183,6 +183,44 @@ BWT_PanelHandle osd_p_create_info_panel(OsdHandle osd, OsdInfoPanel *infoPanel, 
     return info;
 }
 
+BWT_PanelHandle osd_p_create_dialog_panel(OsdHandle osd)
+{
+    BWT_PanelHandle dlg;
+    BWT_LabelHandle label;
+    BWT_LabelCreateSettings labelSettings;
+    BWT_PanelCreateSettings settings;
+    const BWT_Dimensions * dims;
+    static const char * dialogPanelName = "dialog";
+
+    assert(osd);
+
+    dims = BWT_Widget_GetDimensions((BWT_WidgetHandle)osd->main);
+    BWT_Label_GetDefaultCreateSettings(&labelSettings);
+    labelSettings.dims = *dims;
+    labelSettings.color = osd->createSettings.theme.textForegroundColor;
+    labelSettings.text = NULL;
+    labelSettings.halign = BWT_HorizontalAlignment_eCenter;
+    labelSettings.valign = BWT_VerticalAlignment_eCenter;
+    label = BWT_Label_Create(osd->bwt, &labelSettings);
+    assert(label);
+
+    BWT_Panel_GetDefaultCreateSettings(&settings);
+    settings.name = dialogPanelName;
+    settings.padding = 0;
+    settings.spacing = 0;
+    settings.dims.width = osd_p_compute_external_dim(dims->width, settings.padding);
+    settings.dims.height = osd_p_compute_external_dim(dims->height, settings.padding);
+    settings.color = 0xFF000000;
+    settings.visible = false;
+    dlg = BWT_Panel_Create(osd->bwt, &settings);
+    assert(dlg);
+
+    BWT_Panel_AddChild(dlg, (BWT_WidgetHandle)label, BWT_VerticalAlignment_eCenter, BWT_HorizontalAlignment_eCenter);
+    osd->dialog.message = label;
+
+    return dlg;
+}
+
 BWT_PanelHandle osd_p_create_main_panel(OsdHandle osd)
 {
     BWT_PanelHandle panel;
@@ -330,6 +368,10 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
     if (!osd->pip) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->pip, BWT_VerticalAlignment_eTop, BWT_HorizontalAlignment_eRight);
 
+    osd->dialog.base = osd_p_create_dialog_panel(osd);
+    if (!osd->dialog.base) goto error;
+    BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->dialog.base, BWT_VerticalAlignment_eCenter, BWT_HorizontalAlignment_eCenter);
+
     osd->info.base = osd_p_create_info_panel(osd, &osd->info, textHeight, 1);
     if (!osd->info.base) goto error;
     osd->mosaicInfo.base = osd_p_create_info_panel(osd, &osd->mosaicInfo, textHeight, osd->maxStreamCount);
@@ -338,6 +380,9 @@ OsdHandle osd_create(const OsdCreateSettings * pSettings)
     if (!osd->pipInfo.base) goto error;
     BWT_Panel_AddChild(osd->main, (BWT_WidgetHandle)osd->info.base, BWT_VerticalAlignment_eBottom, BWT_HorizontalAlignment_eCenter);
     osd->current = &osd->info;
+
+    /* hidden on create */
+    osd_set_info_visibility(osd, false);
 
     osd->usageMode = PlatformUsageMode_eMax;
 
@@ -411,6 +456,22 @@ void osd_set_info_visibility(OsdHandle osd, bool visible)
     assert(osd);
     pthread_mutex_lock(&osd->lock);
     BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->current->base, visible);
+    pthread_mutex_unlock(&osd->lock);
+}
+
+void osd_set_dialog_message(OsdHandle osd, const char * message)
+{
+    assert(osd);
+    pthread_mutex_lock(&osd->lock);
+    BWT_Label_SetText(osd->dialog.message, message);
+    pthread_mutex_unlock(&osd->lock);
+}
+
+void osd_set_dialog_visibility(OsdHandle osd, bool visible)
+{
+    assert(osd);
+    pthread_mutex_lock(&osd->lock);
+    BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->dialog.base, visible);
     pthread_mutex_unlock(&osd->lock);
 }
 

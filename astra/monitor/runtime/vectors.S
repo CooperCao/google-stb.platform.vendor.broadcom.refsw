@@ -58,12 +58,9 @@
 	/* Enable the SError interrupt */
 	msr	daifclr, #DAIF_ABT_BIT
 
-	/* Check bit 31 index to check fast SMC */
-	tbz x0, #FUNCID_TYPE_SHIFT , 1f
-	tbz x0, #FUNCID_MBZ_SHIFT , 1f
-	b stimer_configure
+	/* Secure timer access function */
+	tbnz	w0, #FUNCID_MBZ_SHIFT, stimer_access
 
-1:
 	/* Save LR(x30) which is used */
 	str	x30, [sp, #CTX_GPREGS_OFFSET + CTX_GPREG_LR]
 
@@ -105,7 +102,7 @@
 	 * - x1: pointer to the context
 	 * - x2: flags
 	 */
-	mov     x0, xzr
+	mov	x0, xzr
 	mov	x1, sp
 
 	/* Copy scr_el3.NS bit to flags to indicate caller's security */
@@ -351,26 +348,26 @@ func_vectors mon_exit
 	b	gpregs_context_restore_eret
 endfunc mon_exit
 
-stimer_configure:
+func_vectors stimer_access
 	/* Check bit for function call */
-	ubfx x1, x0, #FUNCID_MBZ_SHIFT, #FUNCID_MBZ_WIDTH
-	tbnz	x1, 1, set_CNTPS_CVAL
-	tbnz	x1, 2, get_CNTPS_CVAL
-	tbnz	x1, 3, set_CNTPS_CTL
-	tbnz	x1, 4, get_CNTPS_CTL
+	ubfx	x1, x0, #FUNCID_MBZ_SHIFT, #FUNCID_MBZ_WIDTH
+	tbnz	x1, 1, set_cntps_cval
+	tbnz	x1, 2, get_cntps_cval
+	tbnz	x1, 3, set_cntps_ctl
+	tbnz	x1, 4, get_cntps_ctl
 	eret
-
-set_CNTPS_CVAL:
-	ORR x2, x2, x3, lsl 32
-	msr CNTPS_CVAL_EL1, x2
+set_cntps_cval:
+	orr	x2, x2, x3, lsl 32
+	msr	cntps_cval_el1, x2
 	eret
-get_CNTPS_CVAL:
-	mrs x2, CNTPS_CVAL_EL1
-	asr x3, x2, 32
+get_cntps_cval:
+	mrs	x2, cntps_cval_el1
+	asr	x3, x2, 32
 	eret
-set_CNTPS_CTL:
-	msr CNTPS_CTL_EL1, x2
+set_cntps_ctl:
+	msr	cntps_ctl_el1, x2
 	eret
-get_CNTPS_CTL:
-	mrs x2, CNTPS_CTL_EL1
+get_cntps_ctl:
+	mrs	x2, cntps_ctl_el1
 	eret
+endfunc stimer_access

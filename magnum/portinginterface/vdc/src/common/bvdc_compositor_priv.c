@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1491,7 +1491,13 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
 #if BVDC_P_SUPPORT_CMP_V0_CLEAR_RECT
         if(hCompositor->ulMosaicAdjust[eVId] || hCompositor->bInitial)
         {
-            if(hCompositor->ahWindow[eVId]->stCurInfo.bClearRect)
+            if(hCompositor->ahWindow[eVId]->stCurInfo.bClearRect ||
+               (BVDC_P_CMP_OFFSET_GET_REG_DATA(CMP_0_V0_RECT_ENABLE_MASK, ulV0V1Offset) &&
+                (BVDC_Mode_eOff != hCompositor->ahWindow[eVId]->stCurInfo.eEnableBackgroundBars)
+#if BVDC_P_SUPPORT_STG /* don't clear window background for transcoder window */
+                && !BVDC_P_DISPLAY_USED_STG(hCompositor->ahWindow[eVId]->hCompositor->hDisplay->eMasterTg)
+#endif
+               ))
             {
                 BVDC_P_CMP_OFFSET_WRITE_TO_RUL(CMP_0_V0_RECT_COLOR, ulV0V1Offset, pList->pulCurrent);
 
@@ -1502,9 +1508,13 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
                 *pList->pulCurrent++ = BVDC_P_CMP_OFFSET_GET_REG_DATA(CMP_0_V0_RECT_ENABLE_MASK, ulV0V1Offset);
 
                 BVDC_P_CMP_OFFSET_RECT_BLOCK_WRITE_TO_RUL(CMP_0_V0_RECT_SIZEi_ARRAY_BASE,
-                    hCompositor->ahWindow[eVId]->stCurInfo.ulMosaicCount, ulV0V1Offset, pList->pulCurrent);
+                    hCompositor->ahWindow[eVId]->stCurInfo.bClearRect?
+                        hCompositor->ahWindow[eVId]->stCurInfo.ulMosaicCount : 1,
+                    ulV0V1Offset, pList->pulCurrent);
                 BVDC_P_CMP_OFFSET_RECT_BLOCK_WRITE_TO_RUL(CMP_0_V0_RECT_OFFSETi_ARRAY_BASE,
-                    hCompositor->ahWindow[eVId]->stCurInfo.ulMosaicCount, ulV0V1Offset, pList->pulCurrent);
+                    hCompositor->ahWindow[eVId]->stCurInfo.bClearRect?
+                        hCompositor->ahWindow[eVId]->stCurInfo.ulMosaicCount : 1,
+                    ulV0V1Offset, pList->pulCurrent);
             }
             else
             {
@@ -2099,6 +2109,9 @@ void BVDC_P_Compositor_WindowsReader_isr
     eOutColorimetry = hCompositor->stOutColorSpaceExt.stColorSpace.eColorimetry;
     pFmtInfo = hCompositor->stCurInfo.pFmtInfo;
 
+    /* if no video window or with multiple video windows, set unknown hdr parameters */
+    hCompositor->bUnknownHdrParm = (hCompositor->ulActiveVideoWindow != 1);
+
     /* second pass: to adjust non-vbi-pass-thru window position;
        Note: adjustment is done in the second pass in case vwin0 has no pass-thru,
              but vwin1 has; */
@@ -2137,7 +2150,47 @@ void BVDC_P_Compositor_WindowsReader_isr
         {
             bWidthTrim = false;
         }
-    }
+
+        /* set unknown video hdr parm if:
+            1) input video is neither HDR10 nor DBV;
+         */
+        if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
+        {
+#if BVDC_P_DBV_SUPPORT
+            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+#endif
+            if((!BCFC_IS_HDR10(hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.eColorTF)
+#if BVDC_P_DBV_SUPPORT
+                && (pMetaData==NULL || (BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType))
+#endif
+                ))
+            {
+                hCompositor->bUnknownHdrParm = true;
+            }
+
+            if(hCompositor->bUnknownHdrParm)
+            {
+                BKNI_Memset_isr(&hCompositor->stHdrParm, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+            }
+            else
+#if BVDC_P_DBV_SUPPORT
+                if(pMetaData==NULL || BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType)
+#endif
+            {
+                hCompositor->stHdrParm.DisplayMasteringLuminance.Max = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxDispMasteringLuma / 10000;
+                hCompositor->stHdrParm.DisplayMasteringLuminance.Min = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMinDispMasteringLuma;
+                hCompositor->stHdrParm.MaxContentLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxContentLight;
+                hCompositor->stHdrParm.MaxFrameAverageLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulAvgContentLight;
+                hCompositor->stHdrParm.WhitePoint.X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulX;
+                hCompositor->stHdrParm.WhitePoint.Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulY;
+                hCompositor->stHdrParm.DisplayPrimaries[0].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulX;
+                hCompositor->stHdrParm.DisplayPrimaries[0].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulY;
+                hCompositor->stHdrParm.DisplayPrimaries[1].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulX;
+                hCompositor->stHdrParm.DisplayPrimaries[1].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulY;
+                hCompositor->stHdrParm.DisplayPrimaries[2].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulX;
+                hCompositor->stHdrParm.DisplayPrimaries[2].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulY;
+            }
+        }    }
 
     /* Turn off 704-sample feature if DCS. */
     /* TODO: remove this restriction */

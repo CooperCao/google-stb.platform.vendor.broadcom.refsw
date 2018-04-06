@@ -55,8 +55,8 @@ SQLITE_DIR:=$(SQLITE_NAME)
 SQLITE_LIB_FOLDER:=${SQLITE_TAR_PATH}/${SQLITE_DIR}/.libs
 SQLITE_EXE_FOLDER:=${SQLITE_TAR_PATH}/${SQLITE_DIR}/src
 
-SQLITE_CFLAGS:= -D_REENTRANT -I${SQLITE_TAR_PATH}/${SQLITE_DIR}/include
-SQLITE_LDFLAGS:= -L$(SQLITE_LIB_FOLDER) -lsqlite
+SQLITE_CFLAGS:= -D_REENTRANT -I${SQLITE_TAR_PATH}/${SQLITE_DIR}
+SQLITE_LDFLAGS:= -L$(SQLITE_LIB_FOLDER) -lsqlite3
 
 #  Where to store downloaded open-source files for local sharing
 B_REFSW_CACHE_DIR ?= $(realpath /projects/stbdev/open-source)

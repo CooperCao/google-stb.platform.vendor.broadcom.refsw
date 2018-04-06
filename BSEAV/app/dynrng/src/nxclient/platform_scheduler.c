@@ -145,6 +145,8 @@ void platform_scheduler_start(PlatformSchedulerHandle scheduler)
 {
     BDBG_ASSERT(scheduler);
 
+    if (scheduler->state != PlatformSchedulerState_eInit) return;
+
     scheduler->state = PlatformSchedulerState_eRunning;
 
     if (pthread_create(&scheduler->thread, NULL, &platform_scheduler_p_thread, scheduler))
@@ -158,6 +160,8 @@ void platform_scheduler_stop(PlatformSchedulerHandle scheduler)
 {
     scheduler->state = PlatformSchedulerState_eDone;
     if (scheduler->thread) pthread_join(scheduler->thread, NULL);
+    scheduler->thread = 0;
+    scheduler->state = PlatformSchedulerState_eInit;
 }
 
 void * platform_scheduler_p_thread(void * context)

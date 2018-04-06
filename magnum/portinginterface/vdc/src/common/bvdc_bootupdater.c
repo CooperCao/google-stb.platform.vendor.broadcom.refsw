@@ -54,7 +54,7 @@ BDBG_MODULE(BVDC_FOR_BOOTUPDATER);
 BDBG_OBJECT_ID(BVDC_FOR_BOOTUPDATER);
 
 extern const uint32_t s_aulDacGrouping[BVDC_MAX_DACS];
-extern const BVDC_Settings s_stDefaultSettings;
+extern const BVDC_OpenSettings s_stDefaultSettings;
 extern const BVDC_P_Features s_VdcFeatures;
 /***************************************************************************
  * BVDC_Open()
@@ -68,7 +68,7 @@ BERR_Code BVDC_Open
       BINT_Handle                      hInterrupt,
       BRDC_Handle                      hRdc,
       BTMR_Handle                      hTmr,
-      const BVDC_Settings             *pDefSettings )
+      const BVDC_OpenSettings             *pDefSettings )
 {
     BVDC_P_Context *pVdc = NULL;
     BERR_Code eStatus = BERR_SUCCESS;
@@ -202,7 +202,7 @@ BERR_Code BVDC_P_Source_Create
 */
 void BVDC_P_Source_Init
     ( BVDC_Source_Handle               hSource,
-      const BVDC_Source_Settings      *pDefSettings )
+      const BVDC_Source_CreateSettings *pDefSettings )
 {
     BVDC_P_Source_Info *pNewInfo;
     BVDC_P_Source_Info *pCurInfo;

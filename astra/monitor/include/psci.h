@@ -64,23 +64,23 @@
  */
 
 /* Power level */
-#define PSCI_PSTATE_LEVEL_SHIFT	        24
-#define PSCI_PSTATE_LEVEL_MASK	        0x3
+#define PSCI_PSTATE_LEVEL_SHIFT         24
+#define PSCI_PSTATE_LEVEL_MASK          0x3
 
-#define PSCI_PSTATE_LEVEL_CORE	        0
-#define PSCI_PSTATE_LEVEL_CLUSTER	1
-#define PSCI_PSTATE_LEVEL_SYSTEM	2
+#define PSCI_PSTATE_LEVEL_CORE          0
+#define PSCI_PSTATE_LEVEL_CLUSTER       1
+#define PSCI_PSTATE_LEVEL_SYSTEM        2
 
 /* State type */
-#define PSCI_PSTATE_TYPE_SHIFT	        16
-#define PSCI_PSTATE_TYPE_MASK	        0x1
+#define PSCI_PSTATE_TYPE_SHIFT          16
+#define PSCI_PSTATE_TYPE_MASK           0x1
 
-#define PSCI_PSTATE_TYPE_STANDBY	0
-#define PSCI_PSTATE_TYPE_POWERDOWN	1
+#define PSCI_PSTATE_TYPE_STANDBY        0
+#define PSCI_PSTATE_TYPE_POWERDOWN      1
 
 /* State ID */
-#define PSCI_PSTATE_ID_SHIFT	        0
-#define PSCI_PSTATE_ID_MASK	        0xffff
+#define PSCI_PSTATE_ID_SHIFT            0
+#define PSCI_PSTATE_ID_MASK             0xffff
 
 #define PSCI_PSTATE_LEVEL(ps)           (((ps) >> PSCI_PSTATE_LEVEL_SHIFT) & PSCI_PSTATE_LEVEL_MASK)
 #define PSCI_PSTATE_TYPE(ps)            (((ps) >> PSCI_PSTATE_TYPE_SHIFT)  & PSCI_PSTATE_TYPE_MASK)
@@ -134,10 +134,10 @@ int psci_system_reset(void);
  */
 
 /* Return the CPU index by mpidr */
-int get_cpu_index_by_mpidr(uint64_t mpidr);
+uint32_t get_cpu_index_by_mpidr(uint64_t mpidr);
 
 /* Return the CPU index for the current CPU */
-int get_cpu_index(void);
+uint32_t get_cpu_index(void);
 
 /* Return non-secure entry point and context ID for the current CPU */
 uintptr_t get_nsec_entry_point(void);

@@ -442,11 +442,7 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
             }
         }
     }
-#if NEXUS_USE_CMA
-    return;
-#endif
-
-    /* coverity[unreachable: FALSE] */
+#if !NEXUS_USE_CMA
     /* determine MEMC index/subIndex for each bmem region */
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         bool done = false;
@@ -480,6 +476,7 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
             pMemory->osRegion[i].length = 0;
         }
     }
+#endif
 }
 
 #define PAGE_ALIGN(x) ((unsigned)(x)& ~0xfff)

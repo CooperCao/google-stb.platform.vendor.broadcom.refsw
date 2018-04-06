@@ -1,39 +1,39 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_display_module.h"
 #include "priv/nexus_surface_priv.h"
@@ -139,6 +139,7 @@ static BERR_Code NEXUS_VideoWindow_P_RecreateWindow(NEXUS_VideoWindowHandle wind
 BVDC_Mode nexus_p_window_alloc_mtg(NEXUS_VideoWindowHandle window)
 {
 #if NEXUS_MTG_DISABLED
+    BSTD_UNUSED(window);
     return BVDC_Mode_eOff;
 #else
     if (window && !g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].mtg) {
@@ -691,6 +692,17 @@ NEXUS_VideoWindow_P_SetVdcSettings(NEXUS_VideoWindowHandle window, const NEXUS_V
         }
     }
 
+    if (force ||
+        settings->fillContentModeBars != window->cfg.fillContentModeBars)
+    {
+        BVDC_Window_Settings windowSettings;
+        BVDC_Window_GetSettings(window->vdcState.window, &windowSettings);
+        rc = NEXUS_P_DisplayTriState_ToMagnum(settings->fillContentModeBars, &windowSettings.eEnableBackgroundBars);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_windowCfg;}
+        rc = BVDC_Window_SetSettings(window->vdcState.window, &windowSettings);
+        if(rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_windowCfg; }
+    }
+
     if (callSync && window->syncSettings.stateChangeCallback_isr) {
         BKNI_EnterCriticalSection();
         (*window->syncSettings.stateChangeCallback_isr)(window->syncSettings.callbackContext, 0);
@@ -888,7 +900,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 {
     BERR_Code rc;
     NEXUS_DisplayHandle display;
-    BVDC_Window_Settings windowCfg;
+    BVDC_Window_CreateSettings windowCfg;
     NEXUS_VideoInput_P_Link *link;
     BVDC_WindowId windowId;
     unsigned windowHeapIndex = NEXUS_MAX_HEAPS;
@@ -912,8 +924,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         window->secureVideo = link->secureVideo;
     }
 
-    rc = BVDC_Window_GetDefaultSettings(window->windowId, &windowCfg);
-    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_window;}
+    BVDC_Window_GetDefaultCreateSettings(window->windowId, &windowCfg);
 
     /*
      * This is for the cases where the application is setting the per window heap using Set Window Settings API
@@ -970,7 +981,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
             goto err_window;
         }
-        if(pVideo->moduleSettings.primaryDisplayHeapIndex != windowHeapIndex)
+        if(windowHeapIndex < NEXUS_MAX_HEAPS && pVideo->moduleSettings.primaryDisplayHeapIndex != windowHeapIndex)
         {
            window->vdcHeap= windowCfg.hHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[windowHeapIndex].nexus);
         }
@@ -983,7 +994,9 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     /* BOXMODE: boxmode driven, pre-alloc fullscreen capture memory for smooth
      * scaling.*/
-    windowCfg.bAllocFullScreen = NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window) &&
+    windowCfg.bAllocFullScreen =
+        NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window) &&
+        (BBOX_Vdc_SclCapBias_eAutoDisable1080p != g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias) &&
         (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].sizeLimit != NEXUS_VideoWindowSizeLimit_eQuarter)
         ?true:cfg->allocateFullScreen;
 
@@ -2252,6 +2265,7 @@ void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned pare
     window->cfg.autoMaster = (index == 0);
     window->cfg.alpha = 0xFF;
     window->cfg.contentMode =  NEXUS_VideoWindowContentMode_eFull;
+    window->cfg.fillContentModeBars = NEXUS_TristateEnable_eAuto;
     window->cfg.sourceBlendFactor = NEXUS_CompositorBlendFactor_eSourceAlpha;
     window->cfg.destBlendFactor = NEXUS_CompositorBlendFactor_eInverseSourceAlpha;
     window->cfg.constantAlpha = 0xFF;

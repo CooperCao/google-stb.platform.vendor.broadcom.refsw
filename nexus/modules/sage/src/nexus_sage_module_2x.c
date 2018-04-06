@@ -683,7 +683,8 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
         NEXUS_MemoryStatus status;
         NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
         if (!heap) continue;
-        NEXUS_Heap_GetStatus(heap, &status);
+        rc = NEXUS_Heap_GetStatus(heap, &status);
+        if (rc) continue;
 
         if ((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) &&
             (status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
@@ -702,8 +703,8 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
 
         heap = g_pCoreHandles->heap[heapIndex].nexus;
         if (!heap) continue;
-        NEXUS_Heap_GetStatus(heap, &status);
-
+        rc = NEXUS_Heap_GetStatus(heap, &status);
+        if (rc) continue;
     }
 
     if (clientHeapIndex == NEXUS_MAX_HEAPS) {
@@ -1144,14 +1145,9 @@ err:
             switch(bootState.lastError)
             {
                 case SAGE_SECUREBOOT_ARC_PRESCREEN_NUMBER_BAD_BIT_EXCEEDED:
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    BDBG_ERR(("* SAGE ARC Bad Bit Management: More than 2 SAGE ARC Bad bits"));
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    break;
                 case SAGE_SECUREBOOT_ARC_PRESCREEN_MSP_PROG_FAILURE:
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
-                    BDBG_ERR(("* SAGE ARC Bad Bit Management: MSP OTP programming error"));
-                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    BDBG_ERR(("* SAGE self test failure detected (rc=0x%x).", bootState.lastError));
+                    BDBG_ERR((" Please contact Broadcom and submit a failure Analysis Request (FAR)."));
                     break;
                 default:
                     BDBG_ERR(("* Please check your sage_bl.bin and sage_os_app.bin"));

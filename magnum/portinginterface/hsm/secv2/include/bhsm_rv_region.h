@@ -64,31 +64,31 @@ extern "C"
 #define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<1)
 #define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<2)
 #define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<3)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAIL         (1<<4)
+#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED       (1<<4)
 #define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<5)
 #define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<7)
 #define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<8)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT       (1<<9)
+#define BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED       (1<<9)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<6)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<10)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<11)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_RESULT         (1<<12)
+#define BHSM_RV_REGION_STATUS_BG_CHECK_FAILED         (1<<12)
 #else
 #define BHSM_RV_REGION_STATUS_REGION_DEFINED          (1<<0)
 #define BHSM_RV_REGION_STATUS_REGION_VERIFIED         (1<<1)
 #define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<2)
 #define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<3)
 #define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<4)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAIL         (1<<5)
+#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED       (1<<5)
 #define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<6)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<7)
 #define BHSM_RV_REGION_STATUS_ENABLED                 (1<<8)
 #define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<9)
 #define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<10)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_RESULT       (1<<12)
+#define BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED       (1<<12)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<13)
 #define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<14)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_RESULT         (1<<15)
+#define BHSM_RV_REGION_STATUS_BG_CHECK_FAILED         (1<<15)
 #endif
 
 typedef struct BHSM_P_RvRegion* BHSM_RvRegionHandle;
@@ -181,13 +181,13 @@ typedef struct
 
     unsigned intervalCheckBandwidth;      /* valid values 0x1 to 0x10*/
     bool     resetOnVerifyFailure;
+    bool     instrCheck;                  /* sage only. Enables instruction checkers. */
     bool     backgroundCheck;
     bool     allowRegionDisable;
     bool     enforceAuth;                 /* override MSP OTP for region to force authentication. */
 
     BHSM_RvSignatureType signatureType;     /* [Zeus4 only]. Describes the type of data that is signed. */
     unsigned             signatureVersion;  /* [Zeus4 only]. Signature Version */
-    bool                 instrCheck;        /* [Zeus4 only]. enable instruction checker for the region */
     bool                 codeRelocatable;   /* [Zeus4 only]. Whether this region should have non-relocatable code  */
     uint32_t             marketId;          /* [Zeus4 only]. */
     uint32_t             marketIdMask;      /* [Zeus4 only]. */

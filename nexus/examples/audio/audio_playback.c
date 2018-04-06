@@ -41,7 +41,12 @@
 #include "nexus_platform.h"
 #include <stdio.h>
 
+#define AUDIO_CAPTURE_TO_FILE   0
+
 #if NEXUS_HAS_AUDIO
+#if AUDIO_CAPTURE_TO_FILE
+#include <pthread.h>
+#endif
 #include "nexus_platform_features.h"
 #include "bstd.h"
 #include "bkni.h"
@@ -49,11 +54,80 @@
 #include "nexus_audio_playback.h"
 #include "nexus_audio_output.h"
 #include "nexus_audio_input.h"
+#include "nexus_audio_capture.h"
 #include <string.h>
 #include <stdlib.h>
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #include "nexus_display.h"
+#endif
+
+#if AUDIO_CAPTURE_TO_FILE
+static NEXUS_AudioCaptureHandle audioCapture = NULL;
+static bool capture_start = false;
+static bool enable_capture_thread = true;
+static FILE * pCaptureFile = NULL;
+/*BKNI_EventHandle event = NULL;*/
+
+static void* capture_thread(void *pParam)
+{
+    BERR_Code errCode;
+    unsigned timeout = 200;
+
+    BSTD_UNUSED(pParam);
+
+    while ( !capture_start && timeout-- > 0 )
+    {
+        BKNI_Sleep(10);
+    }
+
+    while ( enable_capture_thread && audioCapture != NULL )
+    {
+        void* pBuffer = NULL;
+        size_t bufferSize = 0;
+
+        NEXUS_AudioCapture_GetBuffer(audioCapture, &pBuffer, &bufferSize);
+        if ( errCode )
+        {
+            fprintf(stderr, "Error getting capture buffer\n");
+            NEXUS_AudioCapture_Stop(audioCapture);
+            return NULL;
+        }
+
+        if ( bufferSize > 0 )
+        {
+            /* Write samples to disk */
+            if ( pCaptureFile )
+            {
+                if ( 1 != fwrite(pBuffer, bufferSize, 1, pCaptureFile) )
+                {
+                    fprintf(stderr, "Error writing to disk\n");
+                    NEXUS_AudioCapture_Stop(audioCapture);
+                    return NULL;
+                }
+            }
+            else
+            {
+                fprintf(stderr, "Warning: no output file opened\n");
+            }
+
+            /*fprintf(stderr, "Data callback - Wrote %d bytes\n", (int)bufferSize);*/
+            errCode = NEXUS_AudioCapture_ReadComplete(audioCapture, bufferSize);
+            if ( errCode )
+            {
+                fprintf(stderr, "Error committing capture buffer\n");
+                NEXUS_AudioCapture_Stop(audioCapture);
+                return NULL;
+            }
+        }
+        else
+        {
+            BKNI_Sleep(10);
+        }
+    }
+
+    return NULL;
+}
 #endif
 
 /* 1KHz sine wave at 48 KHz */
@@ -114,25 +188,25 @@ static int16_t samples[48] =
 
 typedef struct wave_header
 {
-    unsigned long riff;         /* 'RIFF' */
-    unsigned long riffCSize;    /* size in bytes of file - 8 */
-    unsigned long wave;         /* 'WAVE' */
-    unsigned long fmt;          /* 'fmt ' */
-    unsigned long headerLen;    /* header length (should be 16 for PCM) */
-    unsigned short format;      /* 1 - pcm */
-    unsigned short channels;    /* 1 - mono, 2 - sterio */
-    unsigned long samplesSec;   /* samples / second */
-    unsigned long bytesSec;     /* bytes / second */
-    unsigned short chbits;      /* channels * bits/sample /8 */
-    unsigned short bps;         /* bits per sample (8 or 16) */
+    uint32_t    riff;         /* 'RIFF' */
+    uint32_t    riffCSize;    /* size in bytes of file - 8 */
+    uint32_t    wave;         /* 'WAVE' */
+    uint32_t    fmt;          /* 'fmt ' */
+    uint32_t    headerLen;    /* header length (should be 16 for PCM) */
+    uint16_t    format;      /* 1 - pcm */
+    uint16_t    channels;    /* 1 - mono, 2 - sterio */
+    uint32_t    samplesSec;   /* samples / second */
+    uint32_t    bytesSec;     /* bytes / second */
+    uint16_t    chbits;      /* channels * bits/sample /8 */
+    uint16_t    bps;         /* bits per sample (8 or 16) */
                                 /* Extensible format */
-    unsigned short cbSize;      /* 2 Size of the extension (0 or 22)  */
-    unsigned short wValidBitsPerSample; /* 2 Number of valid bits  */
-    unsigned short dwChannelMask; /* 4 Speaker position mask  */
-    unsigned char SubFormat[16];  /* SubFormat */
+    uint16_t    cbSize;      /* 2 Size of the extension (0 or 22)  */
+    uint16_t    validBitsPerSample; /* 2 Number of valid bits  */
+    uint16_t    channelMask; /* 4 Speaker position mask  */
+    uint8_t     SubFormat[16];  /* SubFormat */
 
-    unsigned long dataSig;      /* 'data' */
-    unsigned long dataLen;      /* length of data */
+    uint32_t    dataSig;      /* 'data' */
+    uint32_t    dataLen;      /* length of data */
 }wave_header;
 
 typedef struct dataCallbackParameters
@@ -168,12 +242,18 @@ int main(int argc, char **argv)
     NEXUS_AudioPlaybackStartSettings settings;
     dataCallbackParameters dataCBParams;
     NEXUS_AudioCapabilities audioCapabilities;
-#if NEXUS_HAS_HDMI_OUTPUT
+    #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_DisplayHandle display=NULL;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputStatus hdmiStatus;
     unsigned timeout=100;
-#endif
+    #endif
+
+    #if AUDIO_CAPTURE_TO_FILE
+    pthread_t captureThread;
+    NEXUS_AudioOutputHandle audioOutCapHandle = NULL;
+    #endif
+
     size_t bytesToPlay = 48000*4*20;    /* 48 kHz, 4 bytes/sample, 20 seconds */
     size_t bytesPlayed=0;
     size_t offset=0;
@@ -201,6 +281,22 @@ int main(int argc, char **argv)
     NEXUS_Platform_GetConfiguration(&config);
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
+    #if AUDIO_CAPTURE_TO_FILE
+    pCaptureFile = fopen("pb_capture.pcm", "wb+");
+    if ( NULL == pCaptureFile )
+    {
+        fprintf(stderr, "Unable to open '%s' for writing\n", "pb_capture.pcm");
+        return -1;
+    }
+    audioCapture = NEXUS_AudioCapture_Open(0, NULL);
+    if ( !audioCapture )
+    {
+        fprintf(stderr, "Unable to open Audio Capture\n");
+        return -1;
+    }
+    audioOutCapHandle = NEXUS_AudioCapture_GetConnector(audioCapture);
+    pthread_create(&captureThread, NULL, capture_thread, NULL);
+    #else
     if (audioCapabilities.numPlaybacks == 0)
     {
         printf("This application is not supported on this platform.\n");
@@ -219,6 +315,8 @@ int main(int argc, char **argv)
     if (audioCapabilities.numOutputs.hdmi > 0) {
         audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]);
     }
+    #endif
+
     #endif
 
     BKNI_CreateEvent(&event);
@@ -265,6 +363,18 @@ int main(int argc, char **argv)
         NEXUS_AudioOutput_AddInput(audioSpdifHandle,
                                    NEXUS_AudioPlayback_GetConnector(handle));
     }
+    #if AUDIO_CAPTURE_TO_FILE
+    if ( audioOutCapHandle )
+    {
+        NEXUS_AudioCaptureStartSettings capStartSettings;
+        NEXUS_AudioCapture_GetDefaultStartSettings(&capStartSettings);
+
+        NEXUS_AudioOutput_AddInput(audioOutCapHandle,
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+
+        NEXUS_AudioCapture_Start(audioCapture, &capStartSettings);
+    }
+    #endif
 
     NEXUS_AudioPlayback_GetDefaultStartSettings(&settings);
     if ( argc > 2 )
@@ -317,7 +427,7 @@ int main(int argc, char **argv)
     /* If we have a wav file, get the sample rate from it */
     if ( pFile )
     {
-        unsigned long dword;
+        uint32_t dword;
         fseek(pFile,0,SEEK_END);
         bytesToPlay = ftell(pFile);
         fseek(pFile,0,SEEK_SET);
@@ -372,20 +482,20 @@ int main(int argc, char **argv)
 
                 if (wh.headerLen == 40 && wh.format == 0xfffe) { /* WAVE_FORMAT_EXTENSIBLE */
                     fread(&wh.cbSize,2,1,pFile);                /* 2 Size of the extension (0 or 22)  */
-                    fread(&wh.wValidBitsPerSample,2,1,pFile);   /* 2 Number of valid bits  */
-                    fread(&wh.dwChannelMask,4,1,pFile);         /* 4 Speaker position mask  */
+                    fread(&wh.validBitsPerSample,2,1,pFile);   /* 2 Number of valid bits  */
+                    fread(&wh.channelMask,4,1,pFile);         /* 4 Speaker position mask  */
                     fread(&wh.SubFormat,16,1,pFile);            /* SubFormat GUID */
                     #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
                     SWAP16(wh.cbSize);
-                    SWAP16(wh.wValidBitsPerSample);
-                    SWAP32(wh.dwChannelMask);
+                    SWAP16(wh.validBitsPerSample);
+                    SWAP32(wh.channelMask);
                     #endif
                 }
                 else if (wh.headerLen == 18 && wh.format == 1) { /* oddball WAVE format */
                     fread(&wh.cbSize,2,1,pFile);                /* 2 Size of the extension (0 or 22) ?*/
                 }
                 else if (wh.headerLen != 16 && wh.format != 1) {
-                    fprintf(stderr, "Not PCM data in WAV file. headerLen = %lu, Format 0x%x\n",wh.headerLen,wh.format);
+                    fprintf(stderr, "Not PCM data in WAV file. headerLen = %u, Format 0x%x\n",wh.headerLen,wh.format);
                 }
 
                 for (;;) {
@@ -426,7 +536,7 @@ int main(int argc, char **argv)
         }
         else if (dword == 0x4D524F46) /* FORM */
         { /* AIFF */
-            unsigned long format;
+            uint32_t format;
             /* We need to determine if this is an AIFF or an AIFF-C */
             fseek(pFile,4,SEEK_CUR); /* ckDataSize */
             fread(&format,4,1,pFile); /* formType */
@@ -452,7 +562,7 @@ int main(int argc, char **argv)
                 #endif
                     if (dword == 0x434F4D4D) /* COMM */
                     {
-                        unsigned long skip, skipLocation;
+                        unsigned skip, skipLocation;
                         uint8_t exp[2];
                         uint8_t significand[8];
                         short channels, bitrate;
@@ -580,6 +690,9 @@ int main(int argc, char **argv)
 
     errCode = NEXUS_AudioPlayback_Start(handle, &settings);
     BDBG_ASSERT(!errCode);
+    #if AUDIO_CAPTURE_TO_FILE
+    capture_start = true;
+    #endif
 
     if ( pFile )
     {
@@ -701,10 +814,39 @@ int main(int argc, char **argv)
         }
     }
 
+    BKNI_Sleep(2000);
+
+    #if AUDIO_CAPTURE_TO_FILE
+    NEXUS_AudioCapture_Stop(audioCapture);
+    enable_capture_thread = false;
+    pthread_join(captureThread, NULL);
+    #endif
+
 done:
     if (handle) {
         printf("Stopping playback\n");
         NEXUS_AudioPlayback_Stop(handle);
+
+        #if AUDIO_CAPTURE_TO_FILE
+        if ( audioOutCapHandle )
+        {
+            NEXUS_AudioOutput_RemoveAllInputs(audioOutCapHandle);
+            NEXUS_AudioCapture_Close(audioCapture);
+        }
+        #endif
+
+        if ( audioDacHandle )
+        {
+            NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+        }
+        if ( audioSpdifHandle )
+        {
+            NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+        }
+        if ( audioHdmiHandle )
+        {
+            NEXUS_AudioOutput_RemoveAllInputs(audioHdmiHandle);
+        }
         BKNI_DestroyEvent(event);
         NEXUS_AudioPlayback_Close(handle);
     }

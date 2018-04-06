@@ -5704,7 +5704,147 @@ BWL_EXIT:
     return( err );
 }
 
+/*******************************************************************************
+*
+*   Name: BWL_GetSamples()
+*
+*   Purpose:
+*        Return all the samples based on input type
+*   Returns:
+*       BWL_ERR_xxx
+*
+*   See Also:
+*
+*
+*******************************************************************************/
+int32_t BWL_GetSamples
+(
+    BWL_Handle     hBwl,    /* [in] BWL Handle */
+    BWL_SampleType nType,   /* [in] WL Sample Types */
+    WiFiSamples_t *pSamples /* Samples structure */
+)
+{
+    int ret;
+    int32_t err = 0;
+    void *wl = hBwl->wl;
+    wl_samplecollect_args_t arg;
+    wlc_rev_info_t revinfo;
+    uint32 phytype;
+    uint32 phyrev;
 
+    uint16 nbytes, tag;
+    wl_sampledata_t *sample_collect;
+    wl_sampledata_t sample_data, *psample;
+    uint32 flag, *header, sync;
+    int sampledata_version = htol16(WL_SAMPLEDATA_T_VERSION);
+
+    BWL_LOCK();
+
+    memset(&revinfo, 0, sizeof(revinfo));
+
+    if ((ret = wlu_get(wl, WLC_GET_REVINFO, &revinfo, sizeof(revinfo))) < 0)
+	    return ret;
+
+    phytype = dtoh32(revinfo.phytype);
+    phyrev = dtoh32(revinfo.phyrev);
+
+    arg.coll_us = 60;
+    arg.cores = -1;
+    arg.bitStart = -1;
+    /* extended settings */
+    arg.trigger = TRIGGER_NOW;
+    arg.mode = nType;
+    arg.post_dur = 500;
+    arg.pre_dur = 0;
+    arg.gpio_sel = 0;
+    arg.downsamp = FALSE;
+    arg.be_deaf = FALSE;
+    arg.timeout = 1000;
+    arg.agc = FALSE;
+    arg.filter = FALSE;
+    arg.trigger_state = 0;
+    arg.module_sel1 = 2;
+    arg.module_sel2 = 6;
+    arg.nsamps = 2048;
+    arg.version = WL_SAMPLECOLLECT_T_VERSION;
+    arg.length = sizeof(wl_samplecollect_args_t);
+
+    UNUSED_PARAMETER(at_start_of_line);
+    UNUSED_PARAMETER(phyrev);
+
+    if ((phytype == WLC_PHY_TYPE_HT) || (phytype == WLC_PHY_TYPE_AC)) {
+	    if ((err = wlu_iovar_getbuf (wl, "sample_collect", &arg, sizeof(arg),
+					    pSamples->buff, WLC_SAMPLECOLLECT_MAXLEN))) {
+		    BWL_CHECK_ERR( err = BWL_ERR_IOCTL );
+	    }
+    } else {
+	    fprintf(stderr, "Unsupported phytype=%x phyrev=%x\n", phytype, phyrev);
+    }
+
+    sample_collect = (wl_sampledata_t *)pSamples->buff;
+    header = (uint32 *)&sample_collect[1];
+    tag = ltoh16_ua(&sample_collect->tag);
+    if (tag != WL_SAMPLEDATA_HEADER_TYPE) {
+	    fprintf(stderr, "Expect SampleData Header type %d, receive type %d\n",
+			    WL_SAMPLEDATA_HEADER_TYPE, tag);
+	    return -1;
+    }
+
+    nbytes = ltoh16_ua(&sample_collect->length);
+    flag = ltoh32_ua(&sample_collect->flag);
+    sync = ltoh32_ua(&header[0]);
+    if (sync != 0xACDC2009) {
+	    fprintf(stderr, "Header sync word mismatch (0x%08x)\n", sync);
+	    return -1;
+    }
+
+    memset(&sample_data, 0, sizeof(wl_sampledata_t));
+    sample_data.version = sampledata_version;
+    sample_data.size = htol16(sizeof(wl_sampledata_t));
+    flag = 0;
+
+    /* new format, used in htphy */
+    do {
+	    sample_data.tag = htol16(WL_SAMPLEDATA_TYPE);
+	    sample_data.length = htol16(WLC_SAMPLECOLLECT_MAXLEN);
+
+	    /* mask seq# */
+	    sample_data.flag = htol32((flag & 0xff));
+
+	    err = wlu_iovar_getbuf(wl, "sample_data", &sample_data, sizeof(wl_sampledata_t),
+			    pSamples->buff, WLC_SAMPLECOLLECT_MAXLEN);
+	    if (err) {
+		    fprintf(stderr, "Error reading back sample collected data\n");
+		    err = -1;
+		    break;
+	    }
+
+	    // ptr = (uint8 *)pSamples->buff + sizeof(wl_sampledata_t);
+	    psample = (wl_sampledata_t *)pSamples->buff;
+	    tag = ltoh16_ua(&psample->tag);
+	    nbytes = ltoh16_ua(&psample->length);
+	    flag = ltoh32_ua(&psample->flag);
+	    if (tag != WL_SAMPLEDATA_TYPE) {
+		    fprintf(stderr, "Expect SampleData type %d, receive type %d\n",
+				    WL_SAMPLEDATA_TYPE, tag);
+		    err = -1;
+		    break;
+	    }
+	    if (nbytes == 0) {
+		    fprintf(stderr, "Done retrieving sample data\n");
+		    err = -1;
+		    break;
+	    }
+
+	    pSamples->count += nbytes;
+
+    } while (flag & WL_SAMPLEDATA_MORE_DATA);
+
+BWL_EXIT:
+    BWL_UNLOCK();
+
+    return( err );
+}
 
 /*******************************************************************************
 *

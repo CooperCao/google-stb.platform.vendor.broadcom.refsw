@@ -57,7 +57,9 @@ BDBG_MODULE(BCHP_AVS);
 
 #include "bchp_avs.h"
 #include "bchp_avs_priv.h"
+#ifdef BCHP_AVS_CPU_DATA_MEM_REG_START
 #include "bchp_avs_cpu_data_mem.h"
+#endif
 #ifdef BCHP_AVS_RO_REGISTERS_0_1_REG_START
 #include "bchp_avs_pvt_mntr_config_1.h"
 #include "bchp_avs_ro_registers_0_1.h"
@@ -219,6 +221,21 @@ typedef enum {
 #endif
 } AVS_MSG_IDX;
 
+
+#ifndef BCHP_AVS_CPU_DATA_MEM_REG_START
+static const uint32_t avs_cpu_memory[128];
+#define BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE (*(uint32_t*)&avs_cpu_memory)
+#endif
+
+#define VREG_ADDR0 (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT0)
+#define VREG_ADDR1 (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT1)
+
+#define TREG_ADDR0 (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP0)
+#define TREG_ADDR1 (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP1)
+
+#define HB_ADDR0 (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_HEARTBEAT)
+
+#if 0
 static const uint32_t vreg_addr[] = {
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT0),
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_VOLT1)
@@ -227,6 +244,8 @@ static const uint32_t treg_addr[] = {
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP0),
     (BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_TEMP1)
 };
+#endif
+
 
 /* Because we may have started up without AVS firmware running, we need to provide data in both situations.
  * If the firmware is running then it is updating the current data in the above locations.
@@ -240,17 +259,17 @@ static void GetAvsData(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *v
 
     *firmware_running = true; /* assume its running */
 
-    *voltage0 = BREG_Read32(hHandle->hRegister, vreg_addr[0]);
-    *voltage1 = BREG_Read32(hHandle->hRegister, vreg_addr[1]);
-    *temperature = BREG_Read32(hHandle->hRegister, treg_addr[0]);
-    *heartbeat = BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_HEARTBEAT);
+    *voltage0 = BREG_Read32(hHandle->hRegister, VREG_ADDR0);
+    *voltage1 = BREG_Read32(hHandle->hRegister, VREG_ADDR1);
+    *temperature = BREG_Read32(hHandle->hRegister, TREG_ADDR0);
+    *heartbeat = BREG_Read32(hHandle->hRegister, HB_ADDR0);
 
     {
         BDBG_MSG(("v0=%08x v1=%08x  t0=%08x t1=%08x  rev=%08x  beat=%08x",
             *voltage0,
             *voltage1,
             *temperature,
-            BREG_Read32(hHandle->hRegister, treg_addr[1]),
+            BREG_Read32(hHandle->hRegister, TREG_ADDR1),
             BREG_Read32(hHandle->hRegister, BCHP_AVS_CPU_DATA_MEM_WORDi_ARRAY_BASE + 4*AVS_MSG_IDX_REVISION),
             *heartbeat
         ));

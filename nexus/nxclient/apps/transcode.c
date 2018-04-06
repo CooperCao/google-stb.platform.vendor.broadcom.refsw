@@ -483,9 +483,17 @@ static int start_encode(EncodeContext *pContext)
     if (pContext->encoderSettings.width || pContext->encoderSettings.height) {
         encoderSettings.video.width = pContext->encoderSettings.width;
         encoderSettings.video.height = pContext->encoderSettings.height;
-    } else {/* save default */
-        pContext->encoderSettings.width  = encoderSettings.video.width;
-        pContext->encoderSettings.height = encoderSettings.video.height;
+    } else {
+        /* save default from SimpleEncoder.
+        if max is 720p, maxInterlaced is 576i. so a transform is needed. */
+        if (pContext->encoderSettings.interlaced && encoderSettings.video.height == 720) {
+            encoderSettings.video.width = pContext->encoderSettings.width  = 720;
+            encoderSettings.video.height = pContext->encoderSettings.height = 576;
+        }
+        else {
+            pContext->encoderSettings.width  = encoderSettings.video.width;
+            pContext->encoderSettings.height = encoderSettings.video.height;
+        }
     }
     encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.streamStructure.framesP;
     encoderSettings.videoEncoder.streamStructure.framesB = pContext->encoderSettings.streamStructure.framesB;

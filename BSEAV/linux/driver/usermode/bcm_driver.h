@@ -348,7 +348,7 @@ typedef struct bcmdriver_os_config {
 #define BRCM_IOCTL_GET_OS_CONFIG _IOW(101, 44, struct bcmdriver_os_config)
 
 typedef struct bcmdriver_chip_info {
-    uint32_t bchp_physical_offset;
+    uint64_t bchp_physical_offset;
 } bcmdriver_chip_info;
 #define BRCM_IOCTL_SET_CHIP_INFO _IOW(101, 45, struct bcmdriver_chip_info)
 

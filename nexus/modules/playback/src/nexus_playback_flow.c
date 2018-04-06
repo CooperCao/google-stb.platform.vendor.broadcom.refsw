@@ -613,7 +613,7 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, bool
             break;
         case NEXUS_PidType_eAudio:
             {
-                NEXUS_AudioDecoderStatus audioStatus, audioStatus2;
+                NEXUS_P_Playback_AudioDecoderStatus audioStatus, audioStatus2;
                 rc = NEXUS_P_Playback_AudioDecoder_GetStatus(pid, &audioStatus, &audioStatus2);
                 if (!rc) {
                     if(audioStatus.started) {

@@ -163,6 +163,7 @@ STRING_TO_ENUM_DECLARE(stringToAssociate, NEXUS_AudioAc4AssociateType)
 ENUM_TO_MSTRING_DECLARE(associateToString, NEXUS_AudioAc4AssociateType)
 STRING_TO_ENUM_DECLARE(stringToPriority, ePriority)
 ENUM_TO_MSTRING_DECLARE(priorityToString, ePriority)
+STRING_TO_ENUM_DECLARE(cecCommandStringToNotification, eNotification)
 
 #ifdef __cplusplus
 }

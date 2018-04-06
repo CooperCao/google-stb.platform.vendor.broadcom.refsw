@@ -41,7 +41,7 @@
 
 /* GIC IID format:
  * - bit[9:0]:   interrupt ID (intr_id)
- * - bit[12:10]: cpu ID (cpu_id)
+ * - bit[12:10]: CPU ID (cpu_id)
  */
 #define GIC_INTR_ID_SHIFT   0
 #define GIC_INTR_ID_MASK    0x3ff

@@ -363,7 +363,7 @@ static NEXUS_Error
 NEXUS_VideoInput_P_Create_VdcSource(NEXUS_VideoInput source, NEXUS_VideoInput_P_Link *link, const NEXUS_VideoInput_P_LinkData *data)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    BVDC_Source_Settings sourceCfg;
+    BVDC_Source_CreateSettings sourceCfg;
 
     BDBG_ASSERT(source && source->source);
     BDBG_ASSERT(link);
@@ -373,10 +373,10 @@ NEXUS_VideoInput_P_Create_VdcSource(NEXUS_VideoInput source, NEXUS_VideoInput_P_
     if (data->sourceVdc) {
         link->sourceVdc = data->sourceVdc;
         link->copiedSourceVdc = true;
+        link->mtg = data->mtg;
     }
     else {
-        rc = BVDC_Source_GetDefaultSettings(data->sourceId, &sourceCfg);
-        if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_source;}
+        BVDC_Source_GetDefaultCreateSettings(data->sourceId, &sourceCfg);
 
         if (data->heap && data->heap != pVideo->heap) {
             sourceCfg.hHeap = NEXUS_Display_P_CreateHeap(data->heap);

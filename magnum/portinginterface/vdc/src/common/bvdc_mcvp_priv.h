@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -150,7 +150,7 @@ typedef struct BVDC_P_McvpContext
 #define BVDC_P_Mcvp_UnsetVnet_isr(hMcvp) \
     BVDC_P_SubRul_UnsetVnet_isr(&((hMcvp)->SubRul))
 
-
+#if (BVDC_P_SUPPORT_MCVP)
 /***************************************************************************
 * {private}
 *
@@ -271,12 +271,23 @@ void BVDC_P_Mvp_Init_Default
       BVDC_Deinterlace_ChromaSettings    *pChromaSettings,
       BVDC_Deinterlace_MotionSettings    *pMotionSettings );
 
-
 void BVDC_P_Mvp_Init_Custom
     ( BVDC_422To444UpSampler            *pUpSampler,
       BVDC_444To422DnSampler            *pDnSampler,
       BVDC_Deinterlace_LowAngleSettings *pLowAngles );
-
+#else
+#define BVDC_P_Mcvp_Create(hmcvp, eid, hreg, hres)               BDBG_ASSERT(0)
+#define BVDC_P_Mcvp_Destroy(hmcvp)                               BDBG_ASSERT(0)
+#define BVDC_P_Mcvp_BuildRul_isr(hmcvp, list, evnet, pwin, ppic) BDBG_ASSERT(0)
+#define BVDC_P_Mcvp_AcquireConnect_isr(hmcvp, hheap, hwin)       BDBG_ASSERT(0)
+#define BVDC_P_Mcvp_SetVnetAllocBuf_isr(hmcvp, mux, patch, bcfg) BDBG_ASSERT(0)
+#define BVDC_P_Mcvp_UnsetVnetFreeBuf_isr(hmcvp)                  BDBG_ASSERT(0)
+#define BVDC_P_Mcvp_ReleaseConnect_isr(hmcvp)                    BDBG_ASSERT(0)
+#define BVDC_P_MCVP_SetInfo_isr(hmcvp, hwin, ppic)               BDBG_ASSERT(0)
+#define BVDC_P_Mvp_Init_Custom(upsample, dnsample, lowangle)     BDBG_ASSERT(0)
+#define BVDC_P_Mvp_Init_Default(egmode, epxl, epq, bshrink, \
+    pd32, pd22, chroma, motion )                                 BDBG_ASSERT(0)
+#endif /* (BVDC_P_SUPPORT_MCVP) */
 
 #ifdef __cplusplus
 }

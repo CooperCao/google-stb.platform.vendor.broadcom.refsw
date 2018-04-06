@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -62,17 +62,21 @@ NEXUS_ModuleHandle NEXUS_DmaModule_Init( const NEXUS_DmaModuleSettings *pSetting
 {
     NEXUS_ModuleSettings moduleSettings;
     NEXUS_DmaModuleSettings defaultSettings;
-    BMMD_Settings mmdSettings;
+#if NEXUS_USE_OTT_TRANSPORT
+    /* stub */
+#else
     NEXUS_Error errCode;
+    BMMD_Settings mmdSettings;
     unsigned i = 0;
 
     BDBG_ASSERT(NULL==g_NEXUS_dmaModuleData.dmaModule && NULL==g_NEXUS_dmaModuleData.channel[0].mmd);
+#endif
 
     if (!pSettings) {
         NEXUS_DmaModule_GetDefaultSettings(&defaultSettings);
         pSettings = &defaultSettings;
     }
-    
+
     /* init global module data */
     BKNI_Memset(&g_NEXUS_dmaModuleData, 0, sizeof(g_NEXUS_dmaModuleData));
 
@@ -81,11 +85,14 @@ NEXUS_ModuleHandle NEXUS_DmaModule_Init( const NEXUS_DmaModuleSettings *pSetting
     moduleSettings.priority = NEXUS_AdjustModulePriority(NEXUS_ModulePriority_eHigh, &pSettings->common); /* dma interface is fast */
     g_NEXUS_dmaModuleData.dmaModule = NEXUS_Module_Create("dma", &moduleSettings);
     if ( NULL == g_NEXUS_dmaModuleData.dmaModule ) {
-        errCode = BERR_TRACE(BERR_OS_ERROR);
+        BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
     NEXUS_LockModule();
 
+#if NEXUS_USE_OTT_TRANSPORT
+    /* stub */
+#else
     BMMD_GetDefaultSettings(&mmdSettings);
     mmdSettings.engineType = BMMD_EngineType_eDma;
     for (i=0; (int)i<NEXUS_NUM_DMA_CHANNELS; i++) { /* the cast to int suppresses a benign compiler warning */
@@ -108,14 +115,19 @@ NEXUS_ModuleHandle NEXUS_DmaModule_Init( const NEXUS_DmaModuleSettings *pSetting
         }
     }
 #endif
+#endif
 
     NEXUS_UnlockModule();
     return g_NEXUS_dmaModuleData.dmaModule;
 
+#if NEXUS_USE_OTT_TRANSPORT
+    /* stub */
+#else
 error:
     NEXUS_UnlockModule();
     NEXUS_DmaModule_Uninit();
     return NULL;
+#endif
 }
 
 /***************************************************************************
@@ -138,24 +150,31 @@ static void NEXUS_Dma_P_Shutdown(void)
 
 void NEXUS_DmaModule_Uninit(void)
 {
+#if NEXUS_USE_OTT_TRANSPORT
+    /*stub */
+#else
     unsigned i;
+#endif
     BDBG_ASSERT(g_NEXUS_dmaModuleData.dmaModule);
-      
+
     NEXUS_LockModule();
     g_NEXUS_dmaModuleData.shutdown = true;
     NEXUS_Dma_P_Shutdown();
-    
+
     /* 7408 XPT hardware is broken. Need to disable MDMA L1 interrupt before XPT can be unintialised */
 #if BCHP_CHIP == 7408
     NEXUS_Core_DisableInterrupt(BCHP_HIF_CPU_INTR1_INTR_W0_MASK_STATUS_XPT_MDMA_CPU_INTR_SHIFT);
     NEXUS_Core_DisconnectInterrupt(BCHP_HIF_CPU_INTR1_INTR_W0_MASK_STATUS_XPT_MDMA_CPU_INTR_SHIFT);
 #endif
 
+#if !NEXUS_USE_OTT_TRANSPORT
     for (i=0; i<NEXUS_NUM_DMA_CHANNELS+NEXUS_NUM_SHARF_DMA_CHANNELS; i++) {
         if (g_NEXUS_dmaModuleData.channel[i].mmd) {
             BMMD_Close(g_NEXUS_dmaModuleData.channel[i].mmd);
         }
     }
+#endif
+
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_dmaModuleData.dmaModule);
     BKNI_Memset(&g_NEXUS_dmaModuleData, 0, sizeof(g_NEXUS_dmaModuleData));
@@ -165,7 +184,7 @@ void NEXUS_DmaModule_Uninit(void)
 
 NEXUS_Error NEXUS_DmaModule_Standby_priv(bool enabled, const NEXUS_StandbySettings *pSettings)
 {
-#if NEXUS_POWER_MANAGEMENT
+#if NEXUS_POWER_MANAGEMENT && !NEXUS_USE_OTT_TRANSPORT
     unsigned i;
     BERR_Code rc;
     BSTD_UNUSED(pSettings);
@@ -189,14 +208,14 @@ NEXUS_Error NEXUS_DmaModule_Standby_priv(bool enabled, const NEXUS_StandbySettin
     }
 
     return NEXUS_SUCCESS;
-    
+
 error:
     /* resume all MMD modules */
     for (i=0; i<NEXUS_NUM_DMA_CHANNELS+NEXUS_NUM_SHARF_DMA_CHANNELS; i++) {
         if (g_NEXUS_dmaModuleData.channel[i].mmd) {
             BMMD_Resume(g_NEXUS_dmaModuleData.channel[i].mmd);
         }
-    }    
+    }
     return NEXUS_NOT_SUPPORTED;
 #else
     BSTD_UNUSED(pSettings);

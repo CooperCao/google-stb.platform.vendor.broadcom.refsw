@@ -941,82 +941,85 @@ static void nexus_simpleencoder_p_destroy_stream_mux(NEXUS_SimpleEncoderHandle h
 static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHandle handle)
 {
     NEXUS_Error rc;
-    NEXUS_StreamMuxStartSettings *pMuxStartSettings;
     NEXUS_StreamMuxOutput muxOutput;
     NEXUS_PidChannelHandle pidChannel;
-    NEXUS_RecpumpSettings recpumpSettings;
     bool tts;
     unsigned i;
+    struct {
+        NEXUS_StreamMuxStartSettings muxStartSettings;
+        NEXUS_RecpumpSettings recpumpSettings;
+        NEXUS_RecpumpPidChannelSettings pidSettings;
+        NEXUS_RecpumpTpitFilter filter;
+        NEXUS_MessageSettings messageSettings;
+        NEXUS_MessageStartSettings messageStartSettings;
+        NEXUS_PidChannelStatus status;
+    } *data;
 
-    pMuxStartSettings = BKNI_Malloc(sizeof(*pMuxStartSettings));
-    if (!pMuxStartSettings) {
+    data = BKNI_Malloc(sizeof(*data));
+    if (!data) {
         return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
     }
 
-    NEXUS_Recpump_GetSettings(handle->startSettings.recpump, &recpumpSettings);
-    tts = (recpumpSettings.timestampType != NEXUS_TransportTimestampType_eNone);
+    NEXUS_Recpump_GetSettings(handle->startSettings.recpump, &data->recpumpSettings);
+    tts = (data->recpumpSettings.timestampType != NEXUS_TransportTimestampType_eNone);
 
-    NEXUS_StreamMux_GetDefaultStartSettings(pMuxStartSettings);
-    pMuxStartSettings->transportType = handle->startSettings.output.transport.type;
-    pMuxStartSettings->stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eVideo);
-    if (!pMuxStartSettings->stcChannel) {
-        pMuxStartSettings->stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eAudio);
+    NEXUS_StreamMux_GetDefaultStartSettings(&data->muxStartSettings);
+    data->muxStartSettings.transportType = handle->startSettings.output.transport.type;
+    data->muxStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eVideo);
+    if (!data->muxStartSettings.stcChannel) {
+        data->muxStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eAudio);
     }
-    pMuxStartSettings->nonRealTime = handle->serverSettings.nonRealTime;
-    pMuxStartSettings->nonRealTimeRate = handle->startSettings.transcode.nonRealTimeRate;
-    pMuxStartSettings->useInitialPts = handle->startSettings.transcode.useInitialPts;
-    pMuxStartSettings->initialPts = handle->startSettings.transcode.initialPts;
+    data->muxStartSettings.nonRealTime = handle->serverSettings.nonRealTime;
+    data->muxStartSettings.nonRealTimeRate = handle->startSettings.transcode.nonRealTimeRate;
+    data->muxStartSettings.useInitialPts = handle->startSettings.transcode.useInitialPts;
+    data->muxStartSettings.initialPts = handle->startSettings.transcode.initialPts;
     if (handle->startVideo) {
-        pMuxStartSettings->video[0].pid = handle->startSettings.output.video.pid;
-        pMuxStartSettings->video[0].encoder = handle->serverSettings.videoEncoder;
-        pMuxStartSettings->video[0].playpump = handle->serverSettings.playpump[0];
-        nexus_simpleencoder_p_set_playpump(pMuxStartSettings->video[0].playpump, tts, false);
+        data->muxStartSettings.video[0].pid = handle->startSettings.output.video.pid;
+        data->muxStartSettings.video[0].encoder = handle->serverSettings.videoEncoder;
+        data->muxStartSettings.video[0].playpump = handle->serverSettings.playpump[0];
+        nexus_simpleencoder_p_set_playpump(data->muxStartSettings.video[0].playpump, tts, false);
     }
     if (handle->startAudio) {
-        pMuxStartSettings->audio[0].pid = handle->startSettings.output.audio.pid;
-        pMuxStartSettings->audio[0].muxOutput = handle->serverSettings.audioMuxOutput;
-        pMuxStartSettings->audio[0].playpump = handle->serverSettings.playpump[1];
-        nexus_simpleencoder_p_set_playpump(pMuxStartSettings->audio[0].playpump, tts, false);
+        data->muxStartSettings.audio[0].pid = handle->startSettings.output.audio.pid;
+        data->muxStartSettings.audio[0].muxOutput = handle->serverSettings.audioMuxOutput;
+        data->muxStartSettings.audio[0].playpump = handle->serverSettings.playpump[1];
+        nexus_simpleencoder_p_set_playpump(data->muxStartSettings.audio[0].playpump, tts, false);
     }
 
     /* pcr.playpump is also used for PSI, so add unconditionally. */
-    pMuxStartSettings->pcr.playpump = handle->serverSettings.playpump[2];
-    nexus_simpleencoder_p_set_playpump(pMuxStartSettings->pcr.playpump, tts, true);
+    data->muxStartSettings.pcr.playpump = handle->serverSettings.playpump[2];
+    nexus_simpleencoder_p_set_playpump(data->muxStartSettings.pcr.playpump, tts, true);
     if (handle->startSettings.output.transport.pcrPid) {
-        pMuxStartSettings->pcr.pid = handle->startSettings.output.transport.pcrPid;
-        pMuxStartSettings->pcr.interval = handle->startSettings.output.transport.pcrInterval;
+        data->muxStartSettings.pcr.pid = handle->startSettings.output.transport.pcrPid;
+        data->muxStartSettings.pcr.interval = handle->startSettings.output.transport.pcrInterval;
     }
     else {
-        pMuxStartSettings->pcr.interval = 0;
+        data->muxStartSettings.pcr.interval = 0;
     }
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
         if (handle->startSettings.passthrough[i]) {
-            NEXUS_MessageSettings messageSettings;
-            NEXUS_MessageStartSettings messageStartSettings;
 
-            NEXUS_Message_GetDefaultSettings(&messageSettings);
-            messageSettings.bufferSize = 512*1024;
-            messageSettings.maxContiguousMessageSize = 0; /* to support TS capture and in-place operation */
-            pMuxStartSettings->userdata[i].message = handle->message[i] = NEXUS_Message_Open(&messageSettings);
+            NEXUS_Message_GetDefaultSettings(&data->messageSettings);
+            data->messageSettings.bufferSize = 512*1024;
+            data->messageSettings.maxContiguousMessageSize = 0; /* to support TS capture and in-place operation */
+            data->muxStartSettings.userdata[i].message = handle->message[i] = NEXUS_Message_Open(&data->messageSettings);
             if (!handle->message[i]) {rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_message;}
 
-            NEXUS_Message_GetDefaultStartSettings(handle->message[i], &messageStartSettings);
-            messageStartSettings.format = NEXUS_MessageFormat_eTs;
-            messageStartSettings.pidChannel = handle->startSettings.passthrough[i];
-            rc = NEXUS_Message_Start(handle->message[i], &messageStartSettings);
+            NEXUS_Message_GetDefaultStartSettings(handle->message[i], &data->messageStartSettings);
+            data->messageStartSettings.format = NEXUS_MessageFormat_eTs;
+            data->messageStartSettings.pidChannel = handle->startSettings.passthrough[i];
+            rc = NEXUS_Message_Start(handle->message[i], &data->messageStartSettings);
             if (rc) {rc = BERR_TRACE(rc); goto err_message;}
         }
     }
     /* session display encode needs low latency */
     if(handle->startSettings.input.display) {
-        pMuxStartSettings->servicePeriod    = 10;/* ms */
-        pMuxStartSettings->latencyTolerance = 20;/* ms */
+        data->muxStartSettings.servicePeriod    = 10;/* ms */
+        data->muxStartSettings.latencyTolerance = 20;/* ms */
     }
-    rc = NEXUS_StreamMux_Start(handle->streamMux, pMuxStartSettings, &muxOutput);
+    rc = NEXUS_StreamMux_Start(handle->streamMux, &data->muxStartSettings, &muxOutput);
     if (rc) {rc = BERR_TRACE(rc); goto err_startmux;}
 
-    BKNI_Free(pMuxStartSettings);
-    pMuxStartSettings = NULL;
 
     if (handle->startSettings.output.transport.pcrPid) {
         pidChannel = NEXUS_Playpump_OpenPidChannel(handle->serverSettings.playpump[2], handle->startSettings.output.transport.pcrPid, NULL);
@@ -1025,9 +1028,9 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
         if (rc) {rc = BERR_TRACE(rc); goto err_openpid;}
 
         /* TTS format may adjust timestamp by pcr; however, client doesn't have access to pcr pid channel, so we set it here. */
-        if (tts && recpumpSettings.adjustTimestampUsingPcrs) {
-            recpumpSettings.pcrPidChannel = pidChannel;
-            rc = NEXUS_Recpump_SetSettings(handle->startSettings.recpump, &recpumpSettings);
+        if (tts && data->recpumpSettings.adjustTimestampUsingPcrs) {
+            data->recpumpSettings.pcrPidChannel = pidChannel;
+            rc = NEXUS_Recpump_SetSettings(handle->startSettings.recpump, &data->recpumpSettings);
             if (rc) {rc = BERR_TRACE(rc); goto err_openpid;}
         }
     }
@@ -1038,9 +1041,8 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     }
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
         if (handle->startSettings.passthrough[i]) {
-            NEXUS_PidChannelStatus status;
-            NEXUS_PidChannel_GetStatus(handle->startSettings.passthrough[i], &status);
-            pidChannel = NEXUS_Playpump_OpenPidChannel(handle->serverSettings.playpump[2], status.remappedPid, NULL);
+            NEXUS_PidChannel_GetStatus(handle->startSettings.passthrough[i], &data->status);
+            pidChannel = NEXUS_Playpump_OpenPidChannel(handle->serverSettings.playpump[2], data->status.remappedPid, NULL);
             if (!pidChannel) {rc = BERR_TRACE(NEXUS_UNKNOWN); goto err_openpid;}
             rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, pidChannel, NULL);
             if (rc) {rc = BERR_TRACE(rc); goto err_openpid;}
@@ -1056,14 +1058,13 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     }
 
     if (muxOutput.video[0]) {
-        NEXUS_RecpumpPidChannelSettings settings;
-        NEXUS_Recpump_GetDefaultAddPidChannelSettings(&settings);
+        NEXUS_Recpump_GetDefaultAddPidChannelSettings(&data->pidSettings);
         if (handle->startSettings.output.video.index) {
-            settings.pidType = NEXUS_PidType_eVideo;
-            settings.pidTypeSettings.video.index = true;
-            settings.pidTypeSettings.video.codec = handle->startSettings.output.video.settings.codec;
+            data->pidSettings.pidType = NEXUS_PidType_eVideo;
+            data->pidSettings.pidTypeSettings.video.index = true;
+            data->pidSettings.pidTypeSettings.video.codec = handle->startSettings.output.video.settings.codec;
         }
-        rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, muxOutput.video[0], &settings);
+        rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, muxOutput.video[0], &data->pidSettings);
         if (rc) {rc = BERR_TRACE(rc); goto err_addpid;}
 
         handle->pids.video.pidChannel = muxOutput.video[0];
@@ -1076,11 +1077,10 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
 
         /* may want user option for TPIT RAI indexing. required for HLS now. */
         if (handle->startSettings.output.video.raiIndex) {
-            NEXUS_RecpumpTpitFilter filter;
-            NEXUS_Recpump_GetDefaultTpitFilter(&filter);
-            filter.config.mpeg.randomAccessIndicatorEnable = true;
-            filter.config.mpeg.randomAccessIndicatorCompValue = true;
-            rc = NEXUS_Recpump_SetTpitFilter(handle->startSettings.recpump, muxOutput.video[0], &filter);
+            NEXUS_Recpump_GetDefaultTpitFilter(&data->filter);
+            data->filter.config.mpeg.randomAccessIndicatorEnable = true;
+            data->filter.config.mpeg.randomAccessIndicatorCompValue = true;
+            rc = NEXUS_Recpump_SetTpitFilter(handle->startSettings.recpump, muxOutput.video[0], &data->filter);
             if (rc) {rc = BERR_TRACE(rc); goto err_addpid;}
         }
     }
@@ -1096,7 +1096,8 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
 #endif
     }
 
-    return 0;
+    BKNI_Free(data);
+    return NEXUS_SUCCESS;
 
 err_addpid:
 err_openpid:
@@ -1110,9 +1111,7 @@ err_message:
             handle->message[i] = NULL;
         }
     }
-    if (pMuxStartSettings) {
-        BKNI_Free(pMuxStartSettings);
-    }
+    BKNI_Free(data);
     return rc;
 }
 

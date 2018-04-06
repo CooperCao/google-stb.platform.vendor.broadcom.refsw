@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -132,6 +132,8 @@ typedef struct NxClient_AudioOutputSettings
     int32_t leftVolume;
     int32_t rightVolume;
     bool muted;
+    bool ditherEnabled;              /* Enable dither signal when no pcm audio data is present.
+                                        Only applies to HDMI and spdif. */
 
     NEXUS_AudioChannelStatusInfo channelStatusInfo; /* only applies to hdmi and spdif */
     NEXUS_AudioLoudnessDeviceMode loudnessDeviceMode; /* only applies to hdmi */
@@ -328,6 +330,12 @@ typedef struct NxClient_DisplaySettings
 {
     unsigned sequenceNumber;
     NEXUS_VideoFormat format;
+    NEXUS_VideoFormat defaultSdFormat; /* This defaults to an SD format (NTSC, PAL, etc.) if the system is not HD/SD simul and does not have component.
+                                          If set, then when HDMI is disconnected, automatically switch the main display to this SD format.
+                                          This allows SD outputs (composite, 656, etc.) to work automatically.
+                                          When HDMI is reconnected, switch back to the TV's preferred format.
+                                          When nxserver starts with HDMI disconnected, 'defaultSdFormat' is used instead of 'format'.
+                                          If eUnknown, this feature is disabled. */
     NEXUS_DisplayAspectRatio aspectRatio;
     struct {
         unsigned x, y;

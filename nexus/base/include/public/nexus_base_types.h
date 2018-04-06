@@ -224,7 +224,8 @@ Standard definition of a tristate in Nexus.
 typedef enum NEXUS_TristateEnable {
     NEXUS_TristateEnable_eDisable, /* backward compat with boolean false */
     NEXUS_TristateEnable_eEnable,  /* backward compat with boolean true */
-    NEXUS_TristateEnable_eNotSet,  /* this is the tristate */
+    NEXUS_TristateEnable_eAuto,  /* this is the tristate */
+    NEXUS_TristateEnable_eNotSet=NEXUS_TristateEnable_eAuto, /* backward compatible */
     NEXUS_TristateEnable_eMax
 } NEXUS_TristateEnable;
 

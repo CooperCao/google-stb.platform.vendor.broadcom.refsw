@@ -39,10 +39,10 @@
 #include "nexus_security_module.h"
 #include "nexus_security.h"
 #include "priv/nexus_security_priv.h"
+#include "priv/nexus_core.h"
+#include "bhsm_exceptions.h"
 
 BDBG_MODULE(nexus_security);
-
-
 
 /*
 Description:
@@ -50,10 +50,9 @@ Description:
 */
 void NEXUS_Security_PrintArchViolation_priv(void)
 {
-#if 0 /*&& BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)*/
-    BERR_Code  magnumRc;
-    BHSM_ExceptionStatusRequest_t request;
-    BHSM_ExceptionStatus_t status;
+    BERR_Code hsmRc;
+    BHSM_ModuleCapabilities caps;
+    BHSM_ExceptionMemcArch_t exception;
     BCHP_MemoryInfo memInfo;
     BHSM_Handle hHsm;
     unsigned maxMemc = 0;
@@ -67,56 +66,50 @@ void NEXUS_Security_PrintArchViolation_priv(void)
     if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return; }
 
     BKNI_Memset( &memInfo, 0, sizeof( memInfo ) );
-    magnumRc = BCHP_GetMemoryInfo( g_pCoreHandles->chp, &memInfo );
-    if( magnumRc != BERR_SUCCESS ) { BERR_TRACE( magnumRc ); return; }
+    hsmRc = BCHP_GetMemoryInfo( g_pCoreHandles->chp, &memInfo );
+    if( hsmRc != BERR_SUCCESS ) { BERR_TRACE( hsmRc ); return; }
+
+    hsmRc = BHSM_GetCapabilities( hHsm, &caps );
+    if( hsmRc != BERR_SUCCESS ) { BERR_TRACE( hsmRc ); return; }
 
     maxMemc = sizeof(memInfo.memc)/sizeof(memInfo.memc[0]);
 
-    BKNI_Memset( &request, 0, sizeof(request) );
+    BKNI_Memset( &exception, 0, sizeof(exception) );
 
-    request.deviceType = BHSM_ExceptionStatusDevice_eMemcArch;
-    request.keepStatus = false;
+    exception.keepStatus = false;
 
     for( memcIndex = 0; memcIndex < maxMemc; memcIndex++ )  /* iterate over mem controllers. */
     {
-        if( memInfo.memc[memcIndex].size > 0 )              /* if the MEMC is in use. */
+        if( memInfo.memc[memcIndex].valid )              /* if the MEMC is in use. */
         {
-            request.u.memArch.memcIndex = memcIndex;
+            exception.memcIndex = memcIndex;
 
-            for( archIndex = 0; archIndex < BHSM_MAX_ARCH_PER_MEMC; archIndex++ )   /* itterate over ARCHes. */
+            for( archIndex = 0; archIndex < caps.archesPerMemc; archIndex++ )   /* itterate over ARCHes. */
             {
-                request.u.memArch.archIndex = archIndex;
+                exception.archIndex = archIndex;
 
-                magnumRc = BHSM_GetExceptionStatus( hHsm, &request, &status );
-                if( magnumRc != BERR_SUCCESS )
-                {
-                    if(magnumRc != BERR_NOT_SUPPORTED) {
-                        magnumRc = BERR_TRACE( magnumRc );
-                    }
-                    return;
-                }
+                hsmRc = BHSM_Exception_GetMemcArch( hHsm, &exception );
+                if( hsmRc != BERR_SUCCESS ) { BERR_TRACE( hsmRc );  continue; }
 
-                if( status.u.memArch.endAddress ) /* if there has been a violation */
+                if( exception.endAddress ) /* if there has been a violation */
                 {
                     BDBG_ERR(("MEMC ARCH Violation. MEMC[%u]ARCH[%u] Addr start [" BDBG_UINT64_FMT  \
                               "] end[" BDBG_UINT64_FMT "] numBlocks[%u] scbClientId[%u:%s] requestType[%#x:%s]",
                               memcIndex,
                               archIndex,
-                              BDBG_UINT64_ARG(status.u.memArch.startAddress),
-                              BDBG_UINT64_ARG(status.u.memArch.endAddress),
-                              status.u.memArch.numBlocks,
-                              status.u.memArch.scbClientId,
-                              BMRC_Checker_GetClientName(memcIndex, status.u.memArch.scbClientId),
-                              status.u.memArch.requestType,
-                              BMRC_Monitor_GetRequestTypeName_isrsafe(status.u.memArch.requestType) ));
+                              BDBG_UINT64_ARG(exception.startAddress),
+                              BDBG_UINT64_ARG(exception.endAddress),
+                              exception.numBlocks,
+                              exception.scbClientId,
+                              BMRC_Checker_GetClientName( memcIndex, exception.scbClientId ),
+                              exception.requestType,
+                              BMRC_Monitor_GetRequestTypeName_isrsafe( exception.requestType ) ));
                 }
             }
         }
     }
 
     BDBG_LEAVE(NEXUS_Security_PrintArchViolation_priv);
-#endif /* BHSM_ZEUS_VERSION .. */
-
     return;
 }
 

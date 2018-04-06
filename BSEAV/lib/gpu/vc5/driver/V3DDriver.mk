@@ -6,7 +6,10 @@ NEXUS_TOP ?= $(shell cd ../../../../../nexus; pwd)
 MAGNUM_TOP ?= $(shell cd $(NEXUS_TOP)/../magnum; pwd)
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
-ifeq ($(V3D_VER_AT_LEAST_4_1_0), 1)
+# defines V3D_VER_AT_LEAST which is required for feature definition
+include common.mk
+
+ifeq ($(V3D_VER_AT_LEAST_4_1_34), 1)
 HAS_VULKAN ?= 1
 else
 HAS_VULKAN ?= 0
@@ -17,6 +20,9 @@ endif
 PROFILING?=0
 
 PYTHON_CMD := python2
+BISON_CMD  := bison
+FLEX_CMD   := flex
+GPERF_CMD  := gperf
 
 ifeq ($(VERBOSE),)
 hide := @
@@ -107,8 +113,6 @@ GLSL_INTERMEDIATE_ABS_PATH := $(abspath $(V3D_OBJDIR)/libs/khrn/glsl)
 DGLENUM_INTERMEDIATE_ABS_PATH := $(abspath $(V3D_OBJDIR)/libs/util/dglenum)
 GLSL_INTERMEDIATE_REL_PATH := $(V3D_OBJDIR)/libs/khrn/glsl
 DGLENUM_INTERMEDIATE_REL_PATH := $(V3D_OBJDIR)/libs/util/dglenum
-
-include common.mk
 
 CFLAGS += \
 	-fpic -DPIC \

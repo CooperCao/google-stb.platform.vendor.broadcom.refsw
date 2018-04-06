@@ -760,11 +760,11 @@ BERR_Code BXPT_Rave_OpenChannel(
     return ExitCode;
 }
 
-#if BXPT_HAS_RAVE_L2
 void BXPT_Rave_P_EnableInterrupts(
     BXPT_Handle hXpt                                /* [in] Handle for this transport instance */
     )
 {
+#if BXPT_HAS_RAVE_L2
     uint32_t enables = BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_RAVE_FW_GENERIC_1_INTR_MASK |
         BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_RAVE_ITB_MIN_DEPTH_THRESH_INTR_MASK |
         BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_STATUS_RAVE_CDB_MIN_DEPTH_THRESH_INTR_MASK |
@@ -787,8 +787,10 @@ void BXPT_Rave_P_EnableInterrupts(
 #endif
 
     BREG_Write32( hXpt->hRegister, BCHP_XPT_RAVE_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR, enables );
-}
+#else
+    BSTD_UNUSED( hXpt );
 #endif
+}
 
 BERR_Code BXPT_Rave_CloseChannel(
     BXPT_Rave_Handle hRave     /* [in] Handle for this RAVE instance */
@@ -816,7 +818,6 @@ BERR_Code BXPT_Rave_CloseChannel(
     return( ExitCode );
 }
 
-#ifdef BXPT_P_HAS_AVS_PLUS_WORKAROUND
 BERR_Code BXPT_Rave_AllocAvsCxPair(
     BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
     const BXPT_Rave_AllocCxSettings *pDecodeCxSettings, /* [in] settings for this RAVE channel allocation */
@@ -829,7 +830,6 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     *ReferenceContext = NULL;
     return BXPT_Rave_AllocCx(hRave, pDecodeCxSettings, DecodeContext);
 }
-#endif
 
 void BXPT_Rave_GetDefaultAllocCxSettings(
     BXPT_Rave_AllocCxSettings *pSettings /* [out] default settings */
@@ -2031,20 +2031,10 @@ BERR_Code SetExtractionBitCounts(
     }
     else
     {
-        if( ScdConfig->EsCount > BXPT_MAX_ES_COUNT )
-        {
-            BDBG_ERR(( "EsCount of %u exceeds limit of %u bytes. Clamping to %u bytes.", ScdConfig->EsCount, BXPT_MAX_ES_COUNT, BXPT_MAX_ES_COUNT ));
-            EsCount = BXPT_MAX_ES_COUNT;
+        if( ScdConfig->EsCount > BXPT_MAX_ES_COUNT || ScdConfig->EsCount < BXPT_MIN_ES_COUNT ) {
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
-        else if( ScdConfig->EsCount < BXPT_MIN_ES_COUNT )
-        {
-            BDBG_ERR(( "EsCount must be at least %d. %d will be used.", BXPT_MIN_ES_COUNT, BXPT_MIN_ES_COUNT ));
-            EsCount = 1;
-        }
-        else
-        {
-            EsCount = ScdConfig->EsCount;
-        }
+        EsCount = ScdConfig->EsCount;
 
         /* Crazy bit mapping in the hardware. See the RDB entry for XPT_RAVE_SCD0_SCD_CTRL1.DATA_EXTRACT_NUM_BITS_B */
         EsCount = ( EsCount * 8 ) - 1;
@@ -8233,7 +8223,10 @@ BERR_Code BXPT_Rave_StartPTS(
     BDBG_MSG(("Programming Start PTS %u", StartPTS));
     return BERR_SUCCESS;
 }
+#endif
 
+
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_Rave_Cancel_PTS(  BXPT_RaveCx_Handle hCtx  )
 {
     hCtx->SoftRave.splice_monitor_PTS = 0;

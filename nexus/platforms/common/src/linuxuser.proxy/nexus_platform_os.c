@@ -98,6 +98,9 @@ extern BIMG_Interface SCM_IMAGE_Interface;
 #if NEXUS_HAS_PICTURE_DECODER
 #include "bsid_img.h"
 #endif
+#if NEXUS_USE_OTT_TRANSPORT
+#include "priv/swxpt_image.h"
+#endif
 #if NEXUS_HAS_FRONTEND
 #if NEXUS_HAS_FRONTEND_CTFE_IMG
 #include "bhab_ctfe_img.h"
@@ -204,19 +207,6 @@ struct NEXUS_Platform_P_ProxyScheduler {
 #endif
 };
 
-typedef struct nexus_proxy_stopped_callback_entry {
-    BLST_D_ENTRY(nexus_proxy_stopped_callback_entry) list;
-    void *interfaceHandle;
-    struct {
-#if NEXUS_TRACK_STOP_CALLBACKS
-        const char* pFileName;
-        unsigned lineNumber;
-        const char* pFunctionName;
-#endif
-        NEXUS_Time stopTime;
-    } debug;
-} nexus_proxy_stopped_callback_entry;
-
 static struct NEXUS_Platform_P_State
 {
     NEXUS_ModuleHandle module;
@@ -235,12 +225,12 @@ static struct NEXUS_Platform_P_State
     struct NEXUS_Platform_P_ProxyScheduler schedulers[NEXUS_ModulePriority_eMax];
     int fd;
     bool opened[NEXUS_PLATFORM_P_NUM_DRIVERS];
-    BLST_D_HEAD(nexus_proxy_stopped_callback_list, nexus_proxy_stopped_callback_entry) stopped_callbacks;
     NEXUS_ClientConfiguration clientConfig;
     NEXUS_Platform_P_DebugLog debugLog;
     struct {
         pthread_rwlock_t ioctl_lock;
-        pthread_rwlock_t callback_lock;
+        pthread_rwlock_t park_lock;
+        pthread_rwlock_t callback_lock[NEXUS_ModulePriority_eMax];
     } stopCallbacks;
 } NEXUS_Platform_P_State;
 
@@ -375,8 +365,8 @@ NEXUS_Platform_P_InitOS(void)
 
     rc = pthread_rwlock_init(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock, NULL);
     if (rc) {BERR_TRACE(rc); goto err_ioctl_lock;}
-    rc = pthread_rwlock_init(&NEXUS_Platform_P_State.stopCallbacks.callback_lock, NULL);
-    if (rc) {BERR_TRACE(rc); goto err_callback_lock;}
+    rc = pthread_rwlock_init(&NEXUS_Platform_P_State.stopCallbacks.park_lock, NULL);
+    if (rc) {BERR_TRACE(rc); goto err_park_lock;}
 
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         NEXUS_Base_Scheduler_Config config;
@@ -392,6 +382,8 @@ NEXUS_Platform_P_InitOS(void)
         }
 
         BDBG_MSG((">CALLBACK[%u]", i));
+        rc = pthread_rwlock_init(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[i], NULL);
+        if (rc) {BERR_TRACE(rc); goto err_threads;}
         NEXUS_P_Base_GetSchedulerConfig(i, &config);
         state->schedulers[i].priority = i;
         state->schedulers[i].thread = NEXUS_Thread_Create(config.name, scheduler, &state->schedulers[i], config.pSettings);
@@ -428,8 +420,6 @@ NEXUS_Platform_P_InitOS(void)
     }
 
 
-    BLST_D_INIT(&state->stopped_callbacks);
-
     if(!state->slave) {
 #if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
         (void)NEXUS_Platform_P_InitWakeupDriver();
@@ -449,10 +439,11 @@ err_threads:
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         if (state->schedulers[i].thread) {
             NEXUS_Thread_Destroy(state->schedulers[i].thread);
+            pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[i]);
         }
     }
-    pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.callback_lock);
-err_callback_lock:
+    pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
+err_park_lock:
     pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
 err_ioctl_lock:
     NEXUS_UnlockModule();
@@ -464,7 +455,6 @@ NEXUS_Platform_P_UninitOS(void)
 {
     unsigned i;
     struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
-    nexus_proxy_stopped_callback_entry *entry;
 
     NEXUS_LockModule();
     if(!state->slave) {
@@ -478,11 +468,6 @@ NEXUS_Platform_P_UninitOS(void)
         g_NEXUS_CallbackMonitorTimer=NULL;
     }
 
-    while(NULL!=(entry=BLST_D_FIRST(&state->stopped_callbacks))) {
-        BLST_D_REMOVE_HEAD(&state->stopped_callbacks, list);
-        BKNI_Free(entry);
-    }
-
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         nexus_p_remove_heap(i);
     }
@@ -492,10 +477,11 @@ NEXUS_Platform_P_UninitOS(void)
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         if (state->schedulers[i].thread) {
             NEXUS_Thread_Destroy(state->schedulers[i].thread);
+            pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[i]);
         }
     }
+    pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
     pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
-    pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.callback_lock);
     NEXUS_UnlockModule();
     return;
 }
@@ -935,6 +921,14 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_45316_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_45316); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
 #endif
+#if NEXUS_USE_OTT_TRANSPORT
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&SWXPT_IMAGE_Interface, SWXPT_IMAGE_Context, NEXUS_CORE_IMG_ID_SWXPT);
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
+#endif
+
 
     NEXUS_Thread_GetDefaultSettings(&threadSettings);
     gImageThread = NEXUS_Thread_Create("Nexus_Image",NEXUS_Platform_P_ImageThread,NULL,&threadSettings);
@@ -1186,38 +1180,36 @@ void NEXUS_Platform_P_UninitProxy(void)
     return;
 }
 
-/* find a stopped interface handle */
-static nexus_proxy_stopped_callback_entry *
-NEXUS_P_Proxy_FindStoppedCallbacks( void *interfaceHandle )
-{
-    nexus_proxy_stopped_callback_entry *entry;
-    for(entry=BLST_D_FIRST(&NEXUS_Platform_P_State.stopped_callbacks);entry;entry=BLST_D_NEXT(entry,list)) {
-        if(entry->interfaceHandle == interfaceHandle) {
-            return entry;
-        }
-    }
-    return NULL;
-}
-
 enum nexus_platform_lockscheduler {
     nexus_platform_lockscheduler_lock,
     nexus_platform_lockscheduler_no_lock
 };
 
 static int
-NEXUS_Platform_P_RunCallbacks(int proxy_fd, NEXUS_ModulePriority priority, unsigned timeout, enum nexus_platform_lockscheduler lock, struct NEXUS_Platform_P_ProxyScheduler *scheduler)
+NEXUS_Platform_P_RunCallbacks(int proxy_fd, unsigned timeout, enum nexus_platform_lockscheduler lock, struct NEXUS_Platform_P_ProxyScheduler *scheduler)
 {
     unsigned i;
     int rc;
     int prc; /* we will BERR_TRACE but otherwise ignore pthread errors. there is no recovery. */
     PROXY_NEXUS_Scheduler *data = &scheduler->data;
     PROXY_NEXUS_RunScheduler runScheduler;
+    NEXUS_ModulePriority priority = scheduler->priority;
 
     runScheduler.in.priority = priority;
     runScheduler.in.timeout = timeout;
 #if NEXUS_PROXY_STATISTICS && NEXUS_P_DEBUG_PROXY_CALLBACKS
     scheduler->stats.runCallbacksCount++;
 #endif
+
+    /* we need schedulers to park outside of ioctl */
+    prc = pthread_rwlock_rdlock(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
+    if (prc) {
+        BERR_TRACE(prc); /* keep going */
+    }
+    else {
+        prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
+        if (prc) BERR_TRACE(prc); /* keep going */
+    }
 
     /* first, call blocking function to drive kernel state machine */
     prc = pthread_rwlock_rdlock(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
@@ -1240,16 +1232,15 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, NEXUS_ModulePriority priority, unsig
     prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
     if (prc) BERR_TRACE(prc); /* keep going */
 
-    /* we cannot short circuit here if count == 0. every thread must acquire callback_lock to
-    avoid calling back into previous ioctl before StopCallbacks acquires ioctl_lock. */
-
-    prc = pthread_rwlock_rdlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock);
-    if (prc) BERR_TRACE(prc); /* keep going */
+    if (data->out.count == 0) {
+        return NEXUS_SUCCESS;
+    }
 
     for(i=0;i<data->out.count;i++) {
         BDBG_MSG(("NEXUS_Platform_P_RunCallbacks: callback:%#lx context:%#lx param:%d", (unsigned long)data->out.callbacks[i].desc.callback, (unsigned long)data->out.callbacks[i].desc.context, data->out.callbacks[i].desc.param));
         if(data->out.callbacks[i].desc.callback) {
-            nexus_proxy_stopped_callback_entry *entry;
+            prc = pthread_rwlock_rdlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[priority]);
+            if (prc) BERR_TRACE(prc); /* keep going */
 
             if (lock == nexus_platform_lockscheduler_lock) {
                 PROXY_NEXUS_SchedulerLock schedulerLock;
@@ -1263,12 +1254,7 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, NEXUS_ModulePriority priority, unsig
                 /* remember the current callback so we only sync with schedulers where necessary */
                 scheduler->current_callback = (void *)(unsigned long)data->out.callbacks[i].interfaceHandle;
 
-                NEXUS_LockModule();
-                /* check NEXUS_P_Proxy_FindStoppedCallbacks. this is needed for non-Close StopCallbacks
-                where the stop may be persistent. */
-                entry = NEXUS_P_Proxy_FindStoppedCallbacks((void *)(unsigned long)data->out.callbacks[i].interfaceHandle);
-                NEXUS_UnlockModule();
-                if (!entry) {
+                {
                     NEXUS_Callback callback;
 #if NEXUS_P_DEBUG_PROXY_CALLBACKS
 #if NEXUS_PROXY_STATISTICS
@@ -1295,21 +1281,8 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, NEXUS_ModulePriority priority, unsig
 #endif
 #endif
                 }
-                else {
-                    NEXUS_Time now;
-                    unsigned diff;
-                    NEXUS_Time_Get(&now);
-                    diff = NEXUS_Time_Diff(&now, &entry->debug.stopTime);
-                    if (diff >= 1000) {
-#if NEXUS_TRACK_STOP_CALLBACKS
-                        BDBG_WRN(("stopped %p callback after %u msec from %s:%u %s", entry->interfaceHandle, diff,
-                            entry->debug.pFileName, entry->debug.lineNumber, entry->debug.pFunctionName));
-#else
-                        BDBG_WRN(("stopped %p callback after %u msec", entry->interfaceHandle, diff));
-#endif
-                    }
-                }
 
+                BDBG_ASSERT(scheduler->current_callback);
                 scheduler->current_callback = NULL;
             }
             if (lock == nexus_platform_lockscheduler_lock) {
@@ -1319,11 +1292,12 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, NEXUS_ModulePriority priority, unsig
                 rc = ioctl(proxy_fd, IOCTL_PROXY_NEXUS_SchedulerLock, &schedulerLock);
                 if(rc!=0) { rc = BERR_TRACE(BERR_OS_ERROR); break; }
             }
+            prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[priority]);
+            if (prc) BERR_TRACE(prc); /* keep going */
         }
     }
+
     data->out.count = 0; /* all have been consumed */
-    prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock);
-    if (prc) BERR_TRACE(prc); /* keep going */
     return rc;
 
 unlock_ioctl_lock:
@@ -1359,7 +1333,7 @@ NEXUS_Platform_P_SchedulerThread(void *scheduler_)
         if(timeout>status.timeout) {
            timeout=status.timeout;
         }
-        if(NEXUS_Platform_P_RunCallbacks(proxy_fd, priority, timeout, nexus_platform_lockscheduler_lock, scheduler)!=0) {
+        if(NEXUS_Platform_P_RunCallbacks(proxy_fd, timeout, nexus_platform_lockscheduler_lock, scheduler)!=0) {
             break;
         }
     }
@@ -1401,7 +1375,7 @@ NEXUS_Platform_P_SchedulerSlaveThread(void *scheduler_)
         }
 
         BDBG_MSG_TRACE(("NEXUS_Platform_P_SchedulerSlaveThread"));
-        if(NEXUS_Platform_P_RunCallbacks(proxy_fd, NEXUS_ModulePriority_eDefault, 10, nexus_platform_lockscheduler_no_lock, scheduler)!=0) {
+        if(NEXUS_Platform_P_RunCallbacks(proxy_fd, 10, nexus_platform_lockscheduler_no_lock, scheduler)!=0) {
             break;
         }
     }
@@ -1415,7 +1389,6 @@ void NEXUS_Platform_P_StopCallbacks_tagged(void *interfaceHandle, const char *pF
 void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
 #endif
 {
-    nexus_proxy_stopped_callback_entry *entry;
     unsigned i;
     int rc;
     int prc; /* we will BERR_TRACE but otherwise ignore pthread errors. there is no recovery. */
@@ -1430,8 +1403,8 @@ void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
     /* second, stop callbacks that are local */
     NEXUS_Base_P_StopCallbacks(interfaceHandle);
 
-    /* park all schedulers */
-    prc = pthread_rwlock_wrlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock);
+    /* park all schedulers before ioctl, which allows us to get ioctl_lock */
+    prc = pthread_rwlock_wrlock(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
     if (prc) BERR_TRACE(prc); /* keep going */
 
     while (1) {
@@ -1450,40 +1423,22 @@ void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
     /* clear interface pending in scheduler */
     for(priority=0;priority<NEXUS_ModulePriority_eMax;priority++) {
         PROXY_NEXUS_Scheduler *data = &NEXUS_Platform_P_State.schedulers[priority].data;
+        if (!NEXUS_Platform_P_State.schedulers[priority].thread) continue;
         for(i=0;i<data->out.count;i++) {
             if ((void *)(unsigned long)data->out.callbacks[i].interfaceHandle == interfaceHandle) {
+                prc = pthread_rwlock_wrlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[priority]);
+                if (prc) BERR_TRACE(prc); /* keep going */
+                BDBG_ASSERT(!NEXUS_Platform_P_State.schedulers[priority].current_callback);
                 data->out.callbacks[i].interfaceHandle = 0;
+                prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock[priority]);
+                if (prc) BERR_TRACE(prc); /* keep going */
             }
         }
     }
 
-    /* third, add to persistent list of stopped callbacks */
-    NEXUS_LockModule();
-    entry = NEXUS_P_Proxy_FindStoppedCallbacks(interfaceHandle);
-    if(entry==NULL) {
-        entry = BKNI_Malloc(sizeof(*entry));
-        if(entry) {
-            entry->interfaceHandle = interfaceHandle;
-#if NEXUS_TRACK_STOP_CALLBACKS
-            entry->debug.pFileName = pFileName;
-            entry->debug.lineNumber = lineNumber;
-            entry->debug.pFunctionName = pFunctionName;
-#endif
-            NEXUS_Time_Get(&entry->debug.stopTime);
-            BLST_D_INSERT_HEAD(&NEXUS_Platform_P_State.stopped_callbacks, entry, list);
-        } else {
-            NEXUS_Error rc =BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-            BSTD_UNUSED(rc);
-        }
-    }
-    else {
-        BDBG_WRN(("Stopping already stopped callback interface %p", entry->interfaceHandle));
-    }
-    NEXUS_UnlockModule();
-
     prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
     if (prc) BERR_TRACE(prc); /* keep going */
-    prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.callback_lock);
+    prc = pthread_rwlock_unlock(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
     if (prc) BERR_TRACE(prc); /* keep going */
 
     return;
@@ -1495,7 +1450,6 @@ void NEXUS_Platform_P_StartCallbacks_tagged(void *interfaceHandle, const char *p
 void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
 #endif
 {
-    nexus_proxy_stopped_callback_entry *entry;
     int rc;
 
     if (!interfaceHandle) return;
@@ -1504,14 +1458,6 @@ void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
     if (rc!=0) { BERR_TRACE(BERR_OS_ERROR);}
 
     NEXUS_Base_P_StartCallbacks(interfaceHandle);
-
-    NEXUS_LockModule();
-    entry = NEXUS_P_Proxy_FindStoppedCallbacks(interfaceHandle);
-    if(entry!=NULL) {
-        BLST_D_REMOVE(&NEXUS_Platform_P_State.stopped_callbacks, entry, list);
-        BKNI_Free(entry);
-    }
-    NEXUS_UnlockModule();
     return;
 }
 

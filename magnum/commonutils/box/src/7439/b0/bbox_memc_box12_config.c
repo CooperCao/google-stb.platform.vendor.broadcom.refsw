@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2017 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,7 @@
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Fri Jan  6 23:33:06 2017 GMT
+ *   at: Thu Mar 29 18:08:56 2018 GMT
  *   by: robinc
  *   for: Box 7251_4kstb50
  *         MemC 0 (32-bit DDR3@1066MHz) w/432MHz clock
@@ -65,7 +65,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20170106233306_7251_4kstb50[] = {
+static const uint32_t aulMemc0_20180329180856_7251_4kstb50[] = {
            0x007d2018,  /*   0: XPT_WR_RS 4640ns */
            0x81e4e05a,  /*   1: XPT_WR_XC RR 19040ns */
            0x82441032,  /*   2: XPT_WR_CDB RR 21490ns */
@@ -143,16 +143,16 @@ static const uint32_t aulMemc0_20170106233306_7251_4kstb50[] = {
            0x80000067,  /*  74: HVD0_DBLK_1 RR 0ns */
            0x80270046,  /*  75: HVD0_ILCPU RR 1451ns */
            0x80bf304e,  /*  76: HVD0_OLCPU RR 7512ns */
-           0x00654015,  /*  77: HVD0_CAB 3755ns */
-           0x0071a016,  /*  78: HVD0_ILSI 4214ns */
+           0x8062a015,  /*  77: HVD0_CAB RR 3658ns */
+           0x8071a016,  /*  78: HVD0_ILSI RR 4214ns */
            0x8264c05b,  /*  79: HVD0_ILCPU_p2 RR 22701ns */
-           0x0073f017,  /*  80: HVD0_ILSI_p2 4299ns */
+           0x8073f017,  /*  80: HVD0_ILSI_p2 RR 4299ns */
            0x8000006a,  /*  81: HVD1_DBLK_0 RR 0ns */
            0x8000006b,  /*  82: HVD1_DBLK_1 RR 0ns */
            0x803b3048,  /*  83: HVD1_ILCPU RR 2198ns */
            0x8188e057,  /*  84: HVD1_OLCPU RR 15429ns */
-           0x00973023,  /*  85: HVD1_CAB 5606ns */
-           0x01b7f02f,  /*  86: HVD1_ILSI 16299ns */
+           0x80973023,  /*  85: HVD1_CAB RR 5606ns */
+           0x81b7f02f,  /*  86: HVD1_ILSI RR 16299ns */
            0xbffff0ff,  /*  87: SID RR */
            0x3ffff0ff,  /*  88: UNASSIGNED off */
            0x3ffff0ff,  /*  89: UNASSIGNED off */
@@ -184,7 +184,7 @@ static const uint32_t aulMemc0_20170106233306_7251_4kstb50[] = {
            0x3ffff0ff,  /* 115: UNASSIGNED off */
            0x3ffff0ff,  /* 116: UNASSIGNED off */
            0x3ffff0ff,  /* 117: UNASSIGNED off */
-           0x0023a004,  /* 118: BVN_VFD0 1326.36815920398ns */
+           0x001fd003,  /* 118: BVN_VFD0 1185ns */
            0x0047700a,  /* 119: BVN_VFD1 2652.73631840796ns */
            0x0359a039,  /* 120: BVN_VFD2 31770ns */
            0x0359a03a,  /* 121: BVN_VFD3 31770ns */
@@ -192,7 +192,7 @@ static const uint32_t aulMemc0_20170106233306_7251_4kstb50[] = {
            0x00951020,  /* 123: BVN_VFD5 5527.3631840796ns */
            0x3ffff0ff,  /* 124: UNASSIGNED off */
            0x3ffff0ff,  /* 125: UNASSIGNED off */
-           0x00221003,  /* 126: BVN_CAP0 1266.50831353919ns */
+           0x00221004,  /* 126: BVN_CAP0 1266.50831353919ns */
            0x008f101e,  /* 127: BVN_CAP1 5305.47263681592ns */
            0x0174702d,  /* 128: BVN_CAP2 13800ns */
            0x0174702e,  /* 129: BVN_CAP3 13800ns */
@@ -325,30 +325,30 @@ static const uint32_t aulMemc0_20170106233306_7251_4kstb50[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170106233306_7251_4kstb50[] = {
-  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80700802}, /* HVD0_PFRI (gHvd0) 592320.00 ns/80 */
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180329180856_7251_4kstb50[] = {
+  {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80700702}, /* HVD0_PFRI (gHvd0) 592320.00 ns/80 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000031f}, /* d: 4; p: 799.63125 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x000017e8}, /* 6120 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000e58}, /* 60% * 6120 */
-  {BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG,      0x80710802}, /* HVD1_PFRI (gHvd1) 1112880.00 ns/60 */
+  {BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG,      0x80710702}, /* HVD1_PFRI (gHvd1) 1112880.00 ns/60 */
   {BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_FILTER_CTRL, 0x400007d3}, /* d: 4; p: 2003.18333333333 */
   {BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_THRESH0,     0x00000905}, /* 2309 */
   {BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_THRESH1,     0x00000569}, /* 60% * 2309 */
-  {BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG,      0x806f0803}, /* VICE_PFRI (gVice) 333333.33 ns/80 */
+  {BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG,      0x806f0703}, /* VICE_PFRI (gVice) 333333.33 ns/80 */
   {BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_FILTER_CTRL, 0x400001c1}, /* d: 4; p: 449.996875 */
   {BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH0,     0x000001a0}, /* 416 */
   {BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH1,     0x000000f9}  /* 60% * 416 */
 };
 
-static const uint32_t* const paulMemc_box12[] = { &aulMemc0_20170106233306_7251_4kstb50[0]};
+static const uint32_t* const paulMemc_box12[] = { &aulMemc0_20180329180856_7251_4kstb50[0]};
 
 const BBOX_Rts stBoxRts_7251_4kstb50_box12 = {
-  "20170106233306_7251_4kstb50_box12",
+  "20180329180856_7251_4kstb50_box12",
   7439,
   12,
   1,
   256,
   (const uint32_t**)&paulMemc_box12[0],
   12,
-  stBoxRts_PfriClient_20170106233306_7251_4kstb50
+  stBoxRts_PfriClient_20180329180856_7251_4kstb50
 };

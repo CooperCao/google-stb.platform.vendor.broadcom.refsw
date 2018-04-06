@@ -54,7 +54,7 @@ static const namevalue_t g_pixelFormatStrs[] = {
 
 static void print_usage(void)
 {
-    printf(
+    fprintf(stderr,
     "### nxserver: invalid command line. run \"nexus nxserver --help\" for documentation.\n"
     );
 }
@@ -181,6 +181,9 @@ static void print_full_usage(void)
     "  -growHeapBlockSize SIZE           \tGrow/shrink on-demand heap with this block size. Use M or K suffix for units.\n"
     );
     printf(
+    "  -dtu                              \tMark all PICBUF heaps as DTU. Requires CMA be configured.\n"
+    );
+    printf(
     "  -videoDacBandGapAdjust VALUE\n"
     "  -videoDacDetection\n"
     "  -cgmsB\n"
@@ -204,6 +207,9 @@ static void print_full_usage(void)
     );
     printf(
     "  -watchdog                         \tEnable HW watchdog and pet from at least one nxserver thread. If nxserver hangs or is killed, system will reset.\n"
+    );
+    printf(
+    "  -default_sd {ntsc,pal,secam,off}  \tAutomatically switch display0 to SD format when HDMI is disconnected. Defaults on for non-HD/SD simul systems without component.\n"
     );
 }
 
@@ -414,7 +420,7 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
                 pMemConfigSettings->videoEncoder[index].interlaced = (interlaced == 'i');
             }
         }
-        else if (sscanf(memconfig_str[i], "videoEncoder,%u,%u,%u,%c", &index, &maxWidth, &maxHeight, &interlaced) == 3) {
+        else if (sscanf(memconfig_str[i], "videoEncoder,%u,%u,%u,%c", &index, &maxWidth, &maxHeight, &interlaced) == 4) {
             pMemConfigSettings->videoEncoder[index].maxWidth = maxWidth;
             pMemConfigSettings->videoEncoder[index].maxHeight = maxHeight;
             pMemConfigSettings->videoEncoder[index].interlaced = (interlaced == 'i');
@@ -973,7 +979,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             sscanf(argv[++curarg], "%f", &size);
             if (size > 100.0) /* is 100 M sufficient for this check? */
             {
-                printf("\n### Specified video CDB size (%0.3f MB = %0.0f bytes) too large\n\n", size, size * MB);
+                fprintf(stderr,"### Specified video CDB size (%0.3f MB = %0.0f bytes) too large\n", size, size * MB);
                 print_usage();
                 return -1;
             }
@@ -984,7 +990,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             sscanf(argv[++curarg], "%f", &size);
             if (size > 20.0) /* is 20 M sufficient for this check? */
             {
-                printf("\n### Specified audio CDB size (%0.3f MB = %0.0f bytes) too large\n\n", size, size * MB);
+                fprintf(stderr,"### Specified audio CDB size (%0.3f MB = %0.0f bytes) too large\n", size, size * MB);
                 print_usage();
                 return -1;
             }
@@ -1201,6 +1207,15 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         }
         else if (!strcmp(argv[curarg], "-watchdog")) {
             settings->watchdog = true;
+        }
+        else if (!strcmp(argv[curarg], "-default_sd") && curarg+1<argc) {
+            curarg++;
+            if (!strcmp(argv[curarg], "off")) {
+                settings->display.defaultSdFormat = NEXUS_VideoFormat_eUnknown;
+            }
+            else {
+                settings->display.defaultSdFormat = lookup(g_videoFormatStrs, argv[curarg]);
+            }
         }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);

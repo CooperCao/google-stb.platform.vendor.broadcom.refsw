@@ -70,6 +70,7 @@ Through this interface a BSP client can:
 */
 
 #define BHSM_P_BSP_MSG_SIZE (BCMD_BUFFER_BYTE_SIZE)  /* the maxumum size of a BSP command */
+#define BHSM_P_BSP_INVALID_STATUS (0xFF)             /* Indicates an invalid BSP status */
 
 
 typedef struct BHSM_P_BspMsg* BHSM_BspMsg_h;

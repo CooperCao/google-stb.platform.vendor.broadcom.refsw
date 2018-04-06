@@ -275,6 +275,10 @@ do { \
 #define BVDC_P_WIDTH_HEIGHT_RATIO_PERCENTAGE(w, h)    \
     (((w)*(BVDC_P_PERCENTAGE_FACTOR))/(h))
 
+/* This is same as hMcdi->ulMosaicMaxChannels:
+    MDI_TOP_0_HW_CONFIGURATION.MULTIPLE_CONTEXT  */
+#define BVDC_P_DEINTERLACE_MAX_MOSAIC_CHANNEL     (6)
+
 /***************************************************************************
  * VDC Internal data structures
  ***************************************************************************/
@@ -310,7 +314,7 @@ typedef struct BVDC_P_Context
     BDBG_OBJECT(BVDC_VDC)
 
     /* public fields */
-    BVDC_Settings                  stSettings;
+    BVDC_OpenSettings                  stSettings;
 
     /* handed down from app. */
     BCHP_Handle                    hChip;
@@ -486,7 +490,18 @@ uint32_t BVDC_P_GetBoxWindowId_isrsafe
 #ifndef BVDC_FOR_BOOTUPDATER
 void BVDC_P_SrcWinClass_Init
     ( BVDC_Handle                      hVdc );
+
+#if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
+void BVDC_P_GetMaxMosaicDeinterlacerInfo
+    ( BBOX_Vdc_WindowClass                eWinClass,
+      uint32_t                           *pulMaxWidth,
+      uint32_t                           *pulMaxHeight,
+      uint32_t                           *pulMaxCount );
 #endif
+#endif
+
+BVDC_P_ScanoutMode BVDC_P_GetScanoutMode4AutoDisable1080p_isr
+    ( const BVDC_P_Rect               *pRect );
 
 void BVDC_P_PrintHeapInfo
     ( const BVDC_Heap_Settings        *pHeap );

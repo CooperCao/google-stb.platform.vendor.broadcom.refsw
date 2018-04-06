@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -116,6 +116,7 @@ NEXUS_Error NEXUS_InputBand_SetSettings(NEXUS_InputBand inputBand, const NEXUS_I
 
 NEXUS_Error NEXUS_InputBand_ArmSyncGeneration(NEXUS_InputBand inputBand, unsigned skip)
 {
+#if NEXUS_MAX_INPUT_BANDS
     BERR_Code rc;
     BXPT_InputBandConfig  config;
 
@@ -135,6 +136,11 @@ NEXUS_Error NEXUS_InputBand_ArmSyncGeneration(NEXUS_InputBand inputBand, unsigne
     if(rc == BERR_INVALID_PARAMETER)
     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     return BERR_SUCCESS;
+#else
+    BSTD_UNUSED(inputBand);
+    BSTD_UNUSED(skip);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
 }
 
 NEXUS_Error NEXUS_InputBand_P_SetTransportType(NEXUS_InputBand inputBand, NEXUS_TransportType transportType)
@@ -154,7 +160,9 @@ NEXUS_Error NEXUS_InputBand_P_SetTransportType(NEXUS_InputBand inputBand, NEXUS_
 #endif
 }
 
+#ifdef BCHP_XPT_FE_REG_START
 #include "bchp_xpt_fe.h"
+#endif
 NEXUS_Error NEXUS_InputBand_GetStatus(NEXUS_InputBand inputBand, NEXUS_InputBandStatus *pStatus)
 {
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -345,6 +353,7 @@ static NEXUS_Error nexus_p_find_avail_pidch(unsigned first, unsigned bound, unsi
 
 void nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChannelSettings *pSettings)
 {
+#if BXPT_HAS_FULL_PID_PARSER
     BXPT_PidChannel_CC_Config cfg;
     bool bandContinuityCountEnabled = true;
     NEXUS_Error rc;
@@ -370,6 +379,10 @@ void nexus_p_set_pid_cc(NEXUS_P_HwPidChannel *hwPidChannel, const NEXUS_PidChann
     cfg.Generate_CC_Enable = pSettings->generateContinuityCount;
     rc = BXPT_SetPidChannel_CC_Config(pTransport->xpt, hwPidChannel->status.pidChannelIndex, &cfg);
     if (rc) BERR_TRACE(rc); /* should never happen, so don't propagate */
+#else
+    BSTD_UNUSED(hwPidChannel);
+    BSTD_UNUSED(pSettings);
+#endif
 }
 
 NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBand, NEXUS_PlaypumpHandle playpump, unsigned combinedPid,
@@ -773,7 +786,9 @@ static void NEXUS_P_HwPidChannel_P_Finalizer(NEXUS_P_HwPidChannel *pidChannel)
     BDBG_ASSERT(BLST_S_FIRST(&pidChannel->swPidChannels)==NULL); /* when this function called all SW pidChannels should be already deleted */
     NEXUS_P_HwPidChannel_Disconnect(pidChannel);
 
+#if BXPT_HAS_RAVE_SCRAMBLING_CONTROL
     NEXUS_P_HwPidChannel_StopScramblingCheck(pidChannel);
+#endif
 
     if (pidChannel->settings.remap.enabled) {
         (void)BXPT_Spid_ConfigureChannel(pTransport->xpt, pidChannel->status.pidChannelIndex, 0, BXPT_Spid_eChannelMode_Disable);

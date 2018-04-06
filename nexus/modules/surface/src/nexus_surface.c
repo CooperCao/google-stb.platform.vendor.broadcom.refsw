@@ -257,6 +257,22 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         case NEXUS_PixelFormat_eA8_B8_G8_R8:
         case NEXUS_PixelFormat_eX8_B8_G8_R8:
         case NEXUS_PixelFormat_eR5_G6_B5:
+#if V3D_IS_VC4
+#else
+        case NEXUS_PixelFormat_eR8_G8_B8_A8:
+        case NEXUS_PixelFormat_eR8_G8_B8_X8:
+        case NEXUS_PixelFormat_eA4_B4_G4_R4:
+        case NEXUS_PixelFormat_eX4_B4_G4_R4:
+        case NEXUS_PixelFormat_eR4_G4_B4_A4:
+        case NEXUS_PixelFormat_eR4_G4_B4_X4:
+        case NEXUS_PixelFormat_eR5_G5_B5_A1:
+        case NEXUS_PixelFormat_eR5_G5_B5_X1:
+        case NEXUS_PixelFormat_eA1_B5_G5_R5:
+        case NEXUS_PixelFormat_eX1_B5_G5_R5:
+        case NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08:
+        case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
+        case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
+#endif
             break;
         default:
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -301,7 +317,11 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         }
         heap = NEXUS_Heap_GetMmaHandle(surface->createSettings.heap);
 
-        NEXUS_Heap_GetStatus(surface->createSettings.heap, &heapStatus);
+        rc = NEXUS_Heap_GetStatus(surface->createSettings.heap, &heapStatus);
+        if (rc) {
+            rc = BERR_TRACE(rc);
+            goto error;
+        }
         BMMA_GetDefaultAllocationSettings(&mmaSettings);
     }
 
@@ -579,6 +599,7 @@ NEXUS_StripedSurfaceHandle NEXUS_StripedSurface_Create( const NEXUS_StripedSurfa
 
     /* if internally create stripe surface from the given heaps */
     if(pSettings->lumaHeap && pSettings->chromaHeap) {
+        NEXUS_Error rc;
         /* validate the rest fields */
         picCfg.lumaHeap = pSettings->lumaHeap;
         picCfg.chromaHeap = pSettings->chromaHeap;
@@ -590,8 +611,16 @@ NEXUS_StripedSurfaceHandle NEXUS_StripedSurface_Create( const NEXUS_StripedSurfa
 
         /* find the luma/chroma stripe surface parameters (stripeWidth, NMBY_M/R) */
         /* assume luma/chroma stripe parameters are the same */
-        NEXUS_Heap_GetStatus(pSettings->lumaHeap, &s);
-        BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memInfo);
+        rc = NEXUS_Heap_GetStatus(pSettings->lumaHeap, &s);
+        if (rc) {
+            rc = BERR_TRACE(rc);
+            goto err_done;
+        }
+        rc = BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memInfo);
+        if (rc) {
+            rc = BERR_TRACE(rc);
+            goto err_done;
+        }
         picCfg.stripedWidth = memInfo.memc[s.memcIndex].ulStripeWidth;
         mbMultiplier = memInfo.memc[s.memcIndex].ulMbMultiplier;
         mbRemainder  = memInfo.memc[s.memcIndex].ulMbRemainder;

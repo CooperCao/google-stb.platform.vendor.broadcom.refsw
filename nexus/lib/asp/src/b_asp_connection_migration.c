@@ -173,7 +173,13 @@ static int tcpFreezeSocket(int socketFd)
 {
     int rc;
     int freeze = 1;
+
     rc = setsockopt(socketFd, IPPROTO_TCP, TCP_REPAIR, (void*)&freeze, sizeof(freeze) );
+    if (rc != 0 && errno == EPERM)      /* EPERM => Socket probably closing. */
+    {
+        BDBG_WRN(("%s : %d setsockopt(TCP_REPAIR), errno=EPERM, Assume socket closing", BSTD_FUNCTION, BSTD_LINE ));
+        return EPERM;          /* Socket not in closed or established state. */
+    }
     CHECK_ERR_NZ_GOTO("Failed to set TCP_REPAIR option, error: ", rc, error);
 
     return 0;
@@ -427,6 +433,11 @@ int B_AspChannel_GetSocketStateFromLinux(
     int rc;
 
     rc = tcpFreezeSocket(socketFd);
+    if (rc == EPERM)     /* EPERM => Socket probably closing. */
+    {
+        pSocketState->connectionLost = true;
+        return 0; /* return success... losing connection is normal if client changes channel. */
+    }
     CHECK_ERR_NZ_GOTO("tcpFreezeSocket Failed...", rc, error);
 
     rc = tcpSelectQueue(socketFd, TCP_RECV_QUEUE);
@@ -606,6 +617,13 @@ int B_AspChannel_GetSocketAddrInfo(
     /* Get remote ip_addr and port details.*/
     addrLen = sizeof(pSocketState->remoteIpAddr);
     rc = getpeername(socketFd, (struct sockaddr *)&pSocketState->remoteIpAddr, (socklen_t *)&addrLen);
+    if (rc != 0 && errno == ENOTCONN)           /* ENOTCONN => Socket not connected. */
+    {
+        BDBG_WRN(("%s : %d getpeername(), errno=ENOTCONN, Assume socket closed", BSTD_FUNCTION, BSTD_LINE ));
+        pSocketState->connectionLost = true;    /* Indicate connection lost. */
+        return 0;     /* return success... losing connection is normal if client changes channel. */
+    }
+
     CHECK_ERR_NZ_GOTO("failed to get peer address info..", rc, error);
     BDBG_MSG(("%s: RemoteIpAddr:Port %s:%d", BSTD_FUNCTION, inet_ntoa(pSocketState->remoteIpAddr.sin_addr), ntohs(pSocketState->remoteIpAddr.sin_port)));
     return 0;
@@ -823,7 +841,7 @@ int B_AspChannel_UpdateInterfaceName(
                                 {
                                     BDBG_MSG(("%s: MAC address matched: ifIdx=%d l2Hdr: size=%lu value=0x%02X%02X%02X%02X%02X%02X\n", BSTD_FUNCTION,
                                             pNdMsg->ndm_ifindex,
-                                            RTA_PAYLOAD(pRtaMsg),
+                                            (unsigned long)RTA_PAYLOAD(pRtaMsg),
                                             macAddress[0], macAddress[1], macAddress[2], macAddress[3], macAddress[4], macAddress[5]
                                           ));
                                     matchedIfIndex = pNdMsg->ndm_ifindex;
