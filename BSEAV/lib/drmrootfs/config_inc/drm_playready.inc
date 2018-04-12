@@ -116,7 +116,7 @@ _DRM_SHORT_WCHAR_ pr_revoke_info[] =L"pr_srm_data.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
-_DRM_SHORT_WCHAR_ pr_bin_filename[] = L"/hwcfg/drm.bin";
+_DRM_SHORT_WCHAR_ pr_bin_filename[] = L"/dev/hwcfg/drm.bin";
 #else
 _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 #endif
@@ -141,7 +141,7 @@ _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
-_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/hwcfg/drm.bin";
+_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/dev/hwcfg/drm.bin";
 #else
 _DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"./playready3x.bin";
 #endif
