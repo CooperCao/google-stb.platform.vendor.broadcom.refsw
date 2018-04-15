@@ -508,10 +508,11 @@ BSAGElib_P_CloseClient(
                 break;
             }
             nextRemote = BLST_S_NEXT(remote, link);
-
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
             if (remote == hSAGElib->hStandbyRemote) {
                 continue;
             }
+#endif
 
             /* moduleId is 0 means it is not a module */
             if (remote->moduleId == 0) {
@@ -520,8 +521,6 @@ BSAGElib_P_CloseClient(
             }
 
             BSAGElib_P_Rpc_RemoveRemote(remote);
-            BDBG_ERR(("%s: leaked module hSAGElib=%p hSAGElibClient=%p remote=%p. Forcing uninit.",
-                      __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
     }
 
@@ -532,11 +531,14 @@ BSAGElib_P_CloseClient(
         if (remote == NULL) {
             break;
         }
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
         if (remote == hSAGElib->hStandbyRemote) {
             hSAGElib->hStandbyRemote = NULL;
             BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p Standby remote=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
-        else {
+        else
+#endif
+        {
             BDBG_ERR(("%s: leaked hSAGElib=%p hSAGElibClient=%p remote=%p. Forcing close.",
                       __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }

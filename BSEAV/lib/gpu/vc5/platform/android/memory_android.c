@@ -229,9 +229,7 @@ alloc_default:
    if (!block)
    {
       int growRC = NEXUS_SUCCESS;
-
-      void *nexus_client = v3d_get_nexus_client_context();
-      EGL_nexus_trim_cma(nexus_client);
+      int trim_cma = 0;
 
       while (block == NULL && growRC == NEXUS_SUCCESS)
       {
@@ -259,8 +257,16 @@ alloc_default:
          }
          else
          {
-            /* Cannot grow any more */
-            break;
+            if (!trim_cma) {
+               /* Last chance, try to free up some memory. */
+               void *nexus_client = v3d_get_nexus_client_context();
+               EGL_nexus_trim_cma(nexus_client);
+               growRC = NEXUS_SUCCESS;
+               trim_cma = 1;
+            } else {
+               /* Cannot grow any more */
+               break;
+            }
          }
       }
    }
