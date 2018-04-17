@@ -158,7 +158,7 @@ int bcm_encode_wnm_deauthentication_imminent(wnm_encode_t *pkt,
 	return bcm_encode_length(pkt) - initLen;
 }
 
-int wl_actframe(nas_t *nas, int bsscfg_idx, uint32 packet_id,
+int wl_actframe(nas_t *nas, int bsscfg_idx, ulong packet_id,
 	uint32 channel, int32 dwell_time,
 	struct ether_addr *BSSID, struct ether_addr *da,
 	uint16 len, uint8 *data)
@@ -276,7 +276,7 @@ nas_send_wnm_subscription_remediation(nas_t *nas, char* url,
 
 	/* send action frame */
 	wl_actframe(nas, -1,
-		(uint32)bcm_encode_buf(&enc), 0, 250, &nas->ea, ea,
+		(ulong)bcm_encode_buf(&enc), 0, 250, &nas->ea, ea,
 		bcm_encode_length(&enc), bcm_encode_buf(&enc));
 
 	return 1;
@@ -304,7 +304,7 @@ nas_send_wnm_deauthentication_imminent(nas_t *nas, uint8 reason,
 
 	/* send action frame */
 	wl_actframe(nas, -1,
-		(uint32)bcm_encode_buf(&enc), 0, 250, &nas->ea, ea,
+		(ulong)bcm_encode_buf(&enc), 0, 250, &nas->ea, ea,
 		bcm_encode_length(&enc), bcm_encode_buf(&enc));
 
 	return 1;

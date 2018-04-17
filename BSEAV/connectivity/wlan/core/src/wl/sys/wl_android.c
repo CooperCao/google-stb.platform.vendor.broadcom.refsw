@@ -36,7 +36,6 @@
 #include <wlioctl.h>
 #include <wlioctl_utils.h>
 #include <bcmutils.h>
-#include <linux_osl.h>
 #if defined(BCMDONGLEHOST)
 #include <dhd_dbg.h>
 #include <dngl_stats.h>
@@ -108,6 +107,8 @@
 #define CMD_DATARATE      "DATARATE"
 #define CMD_ASSOC_CLIENTS "ASSOCLIST"
 #define CMD_SET_CSA       "SETCSA"
+#define CMD_SET_CCA       "SETCCA"
+#define CMD_GET_CCA       "GETCCA"
 #ifdef WL_SUPPORT_AUTO_CHANNEL
 #define CMD_SET_HAPD_AUTO_CHANNEL	"HAPD_AUTO_CHANNEL"
 #endif /* WL_SUPPORT_AUTO_CHANNEL */
@@ -346,6 +347,7 @@ typedef struct android_wifi_af_params {
 #define MIRACAST_MCHAN_BW       25
 #endif
 
+#define IOCTL_RETRY_COUNT		5
 #ifdef CONNECTION_STATISTICS
 #define CMD_GET_CONNECTION_STATS	"GET_CONNECTION_STATS"
 
@@ -995,6 +997,81 @@ static int wl_android_set_csa(struct net_device *dev, char *command, int total_l
 		return -1;
 	}
 	return 0;
+}
+static int wl_android_set_cca(struct net_device *dev, char *command, int total_len)
+{
+	cca_msrmnt_query req;
+	int error = 0;
+	char smbuf[WLC_IOCTL_SMLEN] = {0};
+
+	command = (command + strlen(CMD_SET_CCA));
+	if (!*++command) {
+		DHD_ERROR(("%s:error missing arguments\n", __FUNCTION__));
+		return -1;
+	}
+
+	req.msrmnt_query = 0;
+	req.time_req = bcm_atoi(command);
+
+	error = wldev_iovar_getbuf(dev, "ccastats", &req, sizeof(req), smbuf,
+		sizeof(smbuf), NULL);
+
+	if (error) {
+		DHD_ERROR(("%s: set ccastats failed code %d\n",
+			__FUNCTION__, error));
+		return -1;
+	}
+
+	return 0;
+}
+
+static int wl_android_get_cca(struct net_device *dev, char *command, int total_len)
+{
+	cca_msrmnt_query req;
+	int retry, error = 0;
+	cca_stats_n_flags *stats;
+	int bytes_written;
+	char *ioctl_buf;
+	uint16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
+
+	ioctl_buf = kzalloc(WLC_IOCTL_MEDLEN, kflags);
+	if (!ioctl_buf) {
+		WL_ERR(("ioctl memory alloc failed\n"));
+		return -ENOMEM;
+	}
+
+	command = (command + strlen(CMD_GET_CCA));
+	if (!*++command) {
+		req.report_opt = 0;
+	} else {
+		req.report_opt = bcm_atoi(command);
+	}
+
+	req.msrmnt_query = 1;
+	req.time_req = 0;
+
+	retry = IOCTL_RETRY_COUNT;
+	while (retry--) {
+		error = wldev_iovar_getbuf(dev, "ccastats", &req, sizeof(req), ioctl_buf,
+			WLC_IOCTL_MEDLEN, NULL);
+		if (error >=  0) {
+			break;
+		}
+		WL_DBG(("attempt = %d, err = %d, \n",
+			(IOCTL_RETRY_COUNT - retry), error));
+	}
+
+	if (retry <= 0)	{
+		WL_ERR(("failure, ccastats IOVAR failed\n"));
+		return -EINVAL;
+	}
+
+	stats = (cca_stats_n_flags *)(ioctl_buf);
+	bytes_written = snprintf(command, total_len, "%s %s",
+			CMD_GET_CCA, stats->buf);
+
+	kfree(ioctl_buf);
+	return bytes_written;
 }
 static int wl_android_get_band(struct net_device *dev, char *command, int total_len)
 {
@@ -5516,6 +5593,10 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 #endif /* WL_CFG80211 */
 	else if (strnicmp(command, CMD_SET_CSA, strlen(CMD_SET_CSA)) == 0) {
 		bytes_written = wl_android_set_csa(net, command, priv_cmd.total_len);
+	} else if (strnicmp(command, CMD_SET_CCA, strlen(CMD_SET_CCA)) == 0) {
+		bytes_written = wl_android_set_cca(net, command, priv_cmd.total_len);
+	} else if (strnicmp(command, CMD_GET_CCA, strlen(CMD_GET_CCA)) == 0) {
+		bytes_written = wl_android_get_cca(net, command, priv_cmd.total_len);
 	} else if (strnicmp(command, CMD_80211_MODE, strlen(CMD_80211_MODE)) == 0) {
 		bytes_written = wl_android_get_80211_mode(net, command, priv_cmd.total_len);
 	} else if (strnicmp(command, CMD_CHANSPEC, strlen(CMD_CHANSPEC)) == 0) {

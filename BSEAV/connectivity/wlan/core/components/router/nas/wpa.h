@@ -295,7 +295,7 @@ typedef enum { ITIMER_OK = 0, ITIMER_CREATE_ERROR, ITIMER_CONNECT_ERROR,
 
 /* Set an iterval timer. */
 extern itimer_status_t wpa_set_itimer(bcm_timer_module_id module, bcm_timer_id *td,
-                                      bcm_timer_cb handler, int handler_param,
+                                      bcm_timer_cb handler, void *handler_param,
                                       int secs, int msecs);
 extern itimer_status_t wpa_set_timeout(bcm_timer_id td, int secs, int msecs);
 

@@ -1302,6 +1302,8 @@ typedef struct _counter_tbl_t {
 void counter_printlog(counter_tbl_t *ctr_tbl);
 #endif /* DEBUG_COUNTER */
 
+typedef bool (*map_pkts_cb_fn)(void *ctx, void *pkt);
+
 #if defined(__GNUC__)
 #define CALL_SITE __builtin_return_address(0)
 #else

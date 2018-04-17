@@ -27,9 +27,17 @@
 #define CCA_CHANNELS_NUM 39
 
 #ifdef ISID_STATS
+/* This is specially for dongle builds so not changing the value*/
 #define CCA_POOL_MAX		450	/* bigger pool for interference samples */
 #else
-#define CCA_POOL_MAX		300
+/* 
+ * For non dongle builds, a random number was hard coded here as CCA POOL size. 
+ * instead this should have been number of channels * number of seconds of history per channel.
+ * The random number chosen earlier was less than the corrected number hence
+ * cca pool was running out of space causing debug prints of cca_alloc_failures. 
+ * Now, the cca watch dog will recycle cca pool as expected. 
+ */
+#define CCA_POOL_MAX		MAX_CCA_SECS*CCA_CHANNELS_NUM
 #endif
 #define CCA_FREE_BUF		0xffff
 

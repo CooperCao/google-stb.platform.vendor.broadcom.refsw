@@ -5854,8 +5854,9 @@ wlc_phy_crs_min_pwr_cal_acphy(phy_info_t *pi, uint8 crsmin_cal_mode)
 		}
 #endif /* WL11ULB */
 
-		PHY_CAL(("%s: cmplx_pwr (%d) =======  %d\n", __FUNCTION__, i, cmplx_pwr_dbm[i]));
-		rxgcrsi->lesi_off_noise_th = cmplx_pwr_dbm[i] >= ACPHY_LESI_OFF_NOISE_THRESH ? TRUE: FALSE;
+		PHY_CAL(("%s: cmplx_pwr (%d) cache (%d) ==  %d\n", __FUNCTION__, i, cmplx_pwr_dbm[i],  rxgcrsi->phy_noise_cache_crsmin[chan_freq_range][i]));
+		rxgcrsi->lesi_off_noise_th = rxgcrsi->phy_noise_cache_crsmin[chan_freq_range][i] >= ACPHY_LESI_OFF_NOISE_THRESH ? TRUE: FALSE;
+
 		/* out of bound */
 		if ((idxlists[core_count].idx < 0) ||
 		    (idxlists[core_count].idx > (thresh_sz - 1))) {
@@ -9183,9 +9184,10 @@ static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t *ctx, int32 *ass
 		}
 		assert_thres_val = (640000*(assert_local_dBm + 75) + 25045696)/30103;
 		de_assert_thresh_val = (640000*(assert_local_dBm + 69) + 25045696)/30103;
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
-		if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev)) {
+
+		if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev) ||  ACMAJORREV_37(pi->pubpi->phy_rev)) {
 			/* Set the EDCRS Assert Threshold for core0 */
+
 			WRITE_PHYREG(pi, ed_crs20LAssertThresh00, (uint16)assert_thres_val);
 			WRITE_PHYREG(pi, ed_crs20LAssertThresh10, (uint16)assert_thres_val);
 			WRITE_PHYREG(pi, ed_crs20UAssertThresh00, (uint16)assert_thres_val);
@@ -9282,7 +9284,6 @@ static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t *ctx, int32 *ass
 				(uint16)de_assert_thresh_val);
 
 		} else
-#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33))) */
 		if (ACREV_GE(pi->pubpi->phy_rev, 34) &&
 			(!(ACMAJORREV_36(pi->pubpi->phy_rev)))) {
 			FOREACH_CORE(pi, core) {

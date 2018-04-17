@@ -49,6 +49,8 @@ struct wl_ibss;
 
 #define SUPPORT_SOFTAP_WPAWPA2_MIXED
 
+#define WIPHY_INTERFACE "phy01"
+
 #if defined(IL_BIGENDIAN)
 #include <bcmendian.h>
 #define htod32(i) (bcmswap32(i))
@@ -535,6 +537,7 @@ struct net_info {
 	wl_cfgbss_t bss;
 	u32 ulb_bw;
 	u8 ifidx;
+	bool use_4addr;
 	struct list_head list; /* list of all net_info structure */
 };
 
@@ -633,6 +636,8 @@ struct parsed_ies {
 	u32 wpa_ie_len;
 	const bcm_tlv_t *wpa2_ie;
 	u32 wpa2_ie_len;
+	dot11_extcap_ie_t *extcap_ie;
+	u32 extcap_ie_len;
 };
 
 #ifdef WL_SDO
@@ -954,6 +959,9 @@ struct bcm_cfg80211 {
 	const uint8 *bip_pos;
 	int mfp_mode;
 #endif /* MFP */
+#ifdef TRAFFIC_MGMT
+	struct cfg80211_qos_map qos_map;
+#endif
 #ifdef WES_SUPPORT
 #ifdef CUSTOMER_SCAN_TIMEOUT_SETTING
 	int custom_scan_channel_time;
@@ -1777,12 +1785,12 @@ struct net_device *wl_cfg80211_get_remain_on_channel_ndev(struct bcm_cfg80211 *c
 #define ACS_MSRMNT_DELAY 1000 /* dump_obss delay in ms */
 #define IOCTL_RETRY_COUNT 5
 #define CHAN_NOISE_DUMMY -80
-#define OBSS_TOKEN_IDX 15
-#define IBSS_TOKEN_IDX 15
-#define TX_TOKEN_IDX 14
-#define CTG_TOKEN_IDX 13
-#define PKT_TOKEN_IDX 15
-#define IDLE_TOKEN_IDX 12
+#define OBSS_TOKEN_IDX 1
+#define IBSS_TOKEN_IDX 1
+#define TX_TOKEN_IDX 2
+#define CTG_TOKEN_IDX 1
+#define PKT_TOKEN_IDX 1
+#define IDLE_TOKEN_IDX 3
 #endif /* WL_SUPPORT_ACS */
 
 #ifdef BCMWAPI_WPI

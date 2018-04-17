@@ -5149,7 +5149,7 @@ find_emmc_devpath(osl_t *osh, char *flshdevpath, int emmcblk, char *name, int si
 
 	emmc_blk_id = 0;
 	while ((emmc_blk_id < emmcblk) && (err != BCME_OK)){
-		emmcblk_name_size = snprintf(NULL, 0, "%s%d", EMMC_BLK, emmc_blk_id) + 1;
+		emmcblk_name_size = snprintf(NULL, 0, "%s%s%d",SYSFS_DEV,EMMC_BLK, emmc_blk_id) + 1;
 		if ((emmcblk_path =  MALLOC_NOPERSIST(osh, emmcblk_name_size))) {
 			sprintf(emmcblk_path, "%s%s%d", SYSFS_DEV, EMMC_BLK, emmc_blk_id);
 			dump_emmc_info(osh, emmcblk_path, EMMC_INFO_TMP_FILE);

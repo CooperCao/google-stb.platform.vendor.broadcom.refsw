@@ -709,11 +709,9 @@ static int wl_preinit_ioctls(struct net_device *ndev)
 
 #ifdef WL_CFG80211
 	setbit(eventmask, WLC_E_ESCAN_RESULT);
-
-#if defined(WLP2P) && (defined(WL_ENABLE_P2P_IF) || defined(WL_CFG80211_P2P_DEV_IF))
-
 	setbit(eventmask, WLC_E_ACTION_FRAME_RX);
 	setbit(eventmask, WLC_E_ACTION_FRAME_COMPLETE);
+#if defined(WLP2P) && (defined(WL_ENABLE_P2P_IF) || defined(WL_CFG80211_P2P_DEV_IF))
 	setbit(eventmask, WLC_E_ACTION_FRAME_OFF_CHAN_COMPLETE);
 	setbit(eventmask, WLC_E_P2P_DISC_LISTEN_COMPLETE);
 #endif  /* defined(WLP2P) && (defined(WL_ENABLE_P2P_IF) || defined(WL_CFG80211_P2P_DEV_IF)) */
@@ -1024,6 +1022,7 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	online_cpus = 1;
 #endif /* CONFIG_SMP */
 	wl->max_cpu_id = online_cpus - 1;
+	wl->tx_cpu_id = 0;
 
 	WL_ERROR(("wl%d: online cpus %d\n", unit, online_cpus));
 
@@ -1046,7 +1045,7 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	}
 #endif /* WL_ALL_PASSIVE */
 
-	wl->txq_dispatched = FALSE;
+	wl->txq_dispatched = 0;
 	wl->txq_head = wl->txq_tail = NULL;
 	wl->txq_cnt = 0;
 
@@ -2994,7 +2993,7 @@ wl_add_if(wl_info_t *wl, struct wlc_if *wlcif, uint unit, struct ether_addr *rem
 	   copy into netdev when it becomes ready
 	 */
 #if defined(USE_CFG80211)
-	if (wl_cfg80211_query_if_name(wlif->dev, wlif->name) == -1)
+	if (remote || wl_cfg80211_query_if_name(wlif->dev, wlif->name) == -1)
 	{
 		WL_TRACE(("wpa virtual interface name does not exist. Change to %s\n", wlif->name));
 		snprintf(wlif->name, sizeof(wlif->name), "%s%d.%d", devname, wl->pub->unit, wlif->subunit);
@@ -4377,10 +4376,29 @@ wl_txq_xmit(wl_info_t *wl, struct sk_buff *skb)
 	wl->txq_tail = skb;
 	wl->txq_cnt++;
 
-	if (!wl->txq_dispatched) {
+	/*
+	 * In SMP systems with n CPU cores, generic linux L2 transmit context runs on a CPU core, so 
+	 *  there are about n-1 cores on which tx work items can be dispatched. Hence permitting dispatching of
+	 *  of n-1 work items on n-1 cores which are not part of linux L2 transmit context.
+	 *  wl->max_cpu_id = num cpu core -1 from wl_attach.
+	 */
+#ifdef BCMDBG
+        /* 
+         * This case should never arise unless there is a bug in kernel work queue scheduling
+         */
+        if (wl->txq_dispatched >= wl->max_cpu_id + 1)
+		WL_ERROR(("wl%d: WARNING dispatched tx work items (%d) >= max CPU cores (%d)\n",
+			wl->pub->unit, wl->txq_dispatched,wl->max_cpu_id + 1));
+#endif
+	if (wl->txq_dispatched < wl->max_cpu_id) {
 		int32 err = 0;
-
-		/* In smp non passive mode, schedule tasklet for tx */
+                if (wl->tx_cpu_id == raw_smp_processor_id()) {
+		   wl->tx_cpu_id++;
+                   if (wl->tx_cpu_id >= (wl->max_cpu_id + 1)) {
+		      wl->tx_cpu_id = 0;
+                   }
+                }
+	       /* In smp non passive mode, schedule tasklet for tx */
 		if (!WL_ALL_PASSIVE_ENAB(wl) && txworkq == 0)
 			wl_sched_tx_tasklet(wl);
 #ifdef WL_ALL_PASSIVE
@@ -4390,7 +4408,7 @@ wl_txq_xmit(wl_info_t *wl, struct sk_buff *skb)
 #ifdef WL_BIDIRECTIONAL_TPUT
 				wl->max_cpu_id,
 #else
-				wl->max_cpu_id - raw_smp_processor_id(),
+			        wl->tx_cpu_id,
 #endif
 				&wl->txq_task.work) == 0);
 #endif
@@ -4398,12 +4416,22 @@ wl_txq_xmit(wl_info_t *wl, struct sk_buff *skb)
 			err = (int32)(SCHEDULE_WORK(wl, &wl->txq_task.work) == 0);
 #endif /* WL_ALL_PASSIVE */
 
+                /*
+                 *  increment dispatching only if schedule_work_on API put the work item
+                 *  in the global linux system queue. Otherwise, the work item  placed previously
+                 *  on a particular CPU didn't complete yet. So no need to flag errors in that case.
+                 *  This could happen in debug builds. Removing the else case because
+                 *  uart prints in debug mode were reducing the tx/rx performance because
+                 *  excessive uart transmit interrupts.
+                 */
 		if (!err) {
 			atomic_inc(&wl->callbacks);
-			wl->txq_dispatched = TRUE;
-		} else
-			WL_ERROR(("wl%d: wl_start/schedule_work failed\n",
-			          wl->pub->unit));
+			wl->txq_dispatched++;
+			wl->tx_cpu_id++;
+			if (wl->tx_cpu_id >= (wl->max_cpu_id + 1)) {
+		            wl->tx_cpu_id = 0;
+			}
+		} 
 	}
 
 	TXQ_UNLOCK(wl);
@@ -4470,7 +4498,7 @@ wl_start_txqwork(wl_task_t *task)
 		TXQ_LOCK(wl);
 	}
 
-	wl->txq_dispatched = FALSE;
+	wl->txq_dispatched--;
 	atomic_dec(&wl->callbacks);
 	TXQ_UNLOCK(wl);
 } /* wl_start_txqwork */

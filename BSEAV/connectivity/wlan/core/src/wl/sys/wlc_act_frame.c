@@ -80,6 +80,7 @@ struct wlc_act_frame_info {
 typedef struct act_frame_cubby {
 	int32			af_dwell_time;
 	void			*action_frame;		/* action frame for off channel */
+	void			*wifiaction;		/* action frame for on channel*/
 	wlc_msch_req_handle_t	*req_msch_actframe_hdl;	/* hdl to msch request */
 	wlc_actframe_callback	cb_func;		/* callback function */
 	void			*cb_ctxt;		/* callback context to be passed back */
@@ -706,11 +707,12 @@ wlc_send_action_frame(wlc_info_t *wlc, wlc_bsscfg_t *cfg, const struct ether_add
 	void *action_frame)
 {
 	void *pkt = wlc_prepare_action_frame(wlc, cfg, bssid, action_frame);
-
+	act_frame_cubby_t *act_frame_cubby;
+	act_frame_cubby = BSSCFG_ACT_FRAME_CUBBY(wlc->wlc_act_frame_info, cfg);
 	if (!pkt) {
 		return BCME_NOMEM;
 	}
-
+	act_frame_cubby->wifiaction = pkt;
 	return wlc_tx_action_frame_now(wlc, cfg, pkt, NULL);
 }
 
@@ -752,16 +754,24 @@ wlc_actionframetx_complete(wlc_info_t *wlc, void *pkt, uint txstatus)
 				"actframe=%p\n", __FUNCTION__,
 				actframe_cubby->req_msch_actframe_hdl, pkt,
 				actframe_cubby->action_frame));
-			return;
 		}
-
-		/* Send back the Tx status to the host */
-		if (!af_evt_sent) {
-			wlc_bss_mac_event(wlc, cfg, WLC_E_ACTION_FRAME_COMPLETE, NULL, status,
-				0, 0, &packetId, sizeof(packetId));
+		else {
+			/* Send back the Tx status to the host */
+			if (!af_evt_sent) {
+				wlc_bss_mac_event(wlc, cfg, WLC_E_ACTION_FRAME_COMPLETE, NULL, status,
+					0, 0, &packetId, sizeof(packetId));
+			}
+			actframe_cubby->action_frame = NULL;
+				return;
 		}
-		actframe_cubby->action_frame = NULL;
 	}
+
+	if (actframe_cubby->wifiaction && actframe_cubby->wifiaction == pkt) {
+		wlc_bss_mac_event(wlc, cfg, WLC_E_ACTION_FRAME_COMPLETE, NULL, status,
+			0, 0, &packetId, sizeof(packetId));
+		actframe_cubby->wifiaction = NULL;
+	}
+
 }
 
 /** Called back by the multichannel scheduler (msch) */

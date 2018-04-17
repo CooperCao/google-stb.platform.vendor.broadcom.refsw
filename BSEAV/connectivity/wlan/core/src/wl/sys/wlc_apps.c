@@ -4840,6 +4840,18 @@ wlc_apps_get_psq(wlc_info_t * wlc, struct scb * scb)
 	return &SCB_PSINFO(wlc->psinfo, scb)->psq;
 }
 
+void
+wlc_apps_map_pkts(wlc_info_t *wlc, struct scb *scb, map_pkts_cb_fn cb, void *ctx)
+{
+	apps_wlc_psinfo_t *wlc_psinfo;
+	struct apps_scb_psinfo *scb_psinfo;
+	wlc_psinfo = wlc->psinfo;
+	scb_psinfo = SCB_PSINFO(wlc_psinfo, scb);
+
+	if (scb_psinfo)
+		wlc_scb_psq_map_pkts(wlc, &scb_psinfo->psq, cb, ctx);
+}
+
 #ifdef WL_AUXPMQ
 /* clear auxpmq index for each SCB. */
 void

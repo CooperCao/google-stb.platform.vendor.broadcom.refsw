@@ -444,6 +444,7 @@ get_board_nvram_filename(void)
 }
 #endif /* NVRAM_FLASH || BCMNVRAMR */
 
+#if defined(BCMNVRAMR)
 static int
 nvram_file_init(void* sih)
 {
@@ -609,6 +610,7 @@ nvram_file_read(char **nvramp, int *nvraml)
 	}
 	return err;
 }
+#endif /* BCMNVRAMR */
 
 int
 BCMATTACHFN(nvram_append)(void *si, char *varlst, uint varsz)

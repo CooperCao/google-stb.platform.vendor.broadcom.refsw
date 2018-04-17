@@ -677,9 +677,9 @@
 #define BFL2_PCIEWAR_OVR	0x00000020  /* Board overrides ASPM and Clkreq settings */
 #define BFL2_CAESERS_BRD	0x00000040  /* Board is Caesers brd (unused by sw) */
 #define BFL2_WLCX_ATLAS		0x00000040  /* Board flag to initialize ECI for WLCX on FL-ATLAS */
-#define BFL2_BTC3WIRE		0x00000080  /* Board support legacy 3 wire or 4 wire */
-#define BFL2_BTCLEGACY          0x00000080  /* Board support legacy 3/4 wire, to replace
-					     * BFL2_BTC3WIRE
+#define BFL2_BTC3WIRE		0x00000080  /* Board support legacy 3 wire */
+#define BFL2_BTCLEGACY          0x00000080  /* 7271 defintion: 1 means 3 wire.  0 means seci.  4 wire not an option.
+					     * Old: Board support legacy 3 wire, to replace BFL2_BTC3WIRE.
 					     */
 #define BFL2_SKWRKFEM_BRD	0x00000100  /* 4321mcm93 board uses Skyworks FEM */
 #define BFL2_SPUR_WAR		0x00000200  /* Board has a WAR for clock-harmonic spurs */
@@ -707,7 +707,9 @@
 					     * driver per chip/boardtype. This can be used
 					     * when tempsense qualification happens after shipment
 					     */
-#define BFL2_BTC3WIREONLY       0x02000000  /* standard 3 wire btc only.  4 wire not supported */
+#define BFL2_BTC3WIREONLY       0x02000000  /* 7271 defintion: 1, GCI 3wire. 0, GPIO 3wire(TBD).
+					     * Old: standard 3 wire btc only.  4 wire not supported.
+					     */
 #define BFL2_PWR_NOMINAL	0x04000000  /* 0: power reduction on, 1: no power reduction */
 #define BFL2_EXTLNA_PWRSAVE	0x08000000  /* boardflag to enable ucode to apply power save */
 						/* ucode control of eLNA during Tx */
@@ -792,9 +794,18 @@
 
 #define BFL4_4364_HARPOON 0x0100   /* Harpoon module 4364 */
 #define BFL4_4364_GODZILLA 0x0200   /* Godzilla module 4364 */
+#if 0
+/* Deprecated for new dual PDET bits */
 #define BFL4_BTCOEX_OVER_SECI	0x00000400 /* Enable btcoex over gci seci */
 #define BFL4_BTC3WIRE_VIA_GCI	0x00000800 /* Enable 3wire coex through gci */
 #define BFL4_BTC3WIRE_VIA_GPIO	0x00001000 /* Enable 3wire coex through dot11mac*/
+#endif
+#define BFL4_SROM18_2G_CORE1_DETTYPE    0x00000400 /* Determine power detector type for 2G Core1 */
+#define BFL4_SROM18_2G_CORE2_DETTYPE    0x00000800 /* Determine power detector type for 2G Core2 */
+#define BFL4_SROM18_2G_CORE3_DETTYPE    0x00001000 /* Determine power detector type for 2G Core3 */
+#define BFL4_SROM18_5G_CORE1_DETTYPE    0x00002000 /* Determine power detector type for 5G Core1 */
+#define BFL4_SROM18_5G_CORE2_DETTYPE    0x00004000 /* Determine power detector type for 5G Core2 */
+#define BFL4_SROM18_5G_CORE3_DETTYPE    0x00008000 /* Determine power detector type for 5G Core3 */
 
 /* papd params */
 #define PAPD_TX_ATTN_2G 0xFF
