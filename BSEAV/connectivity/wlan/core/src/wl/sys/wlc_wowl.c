@@ -3086,6 +3086,11 @@ wlc_wowl_clear_by_cfgid(wowl_info_t *wowl, uint16 id)
 
 	cfg = wlc_bsscfg_find_by_ID(wlc, id);
 
+	if (!cfg) {
+		WL_ERROR(("wl%d: no cfg's with matching criteria\n", wlc->pub->unit));
+		return BCME_ERROR;
+	}
+
 	/* clear the wowl_os flags */
 	wowl->flags_os = 0;
 

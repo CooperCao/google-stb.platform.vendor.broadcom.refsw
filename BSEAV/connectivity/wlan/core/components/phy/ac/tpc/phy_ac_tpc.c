@@ -100,7 +100,7 @@ struct phy_ac_tpc_info {
 static void phy_ac_tpc_std_params_attach(phy_ac_tpc_info_t *info);
 static void wlc_phy_txpwrctrl_pwr_setup_acphy(phy_info_t *pi);
 static void wlc_phy_txpwrctrl_pwr_setup_srom12_acphy(phy_info_t *pi);
-int8 wlc_phy_fittype_srom12_acphy(phy_info_t *pi);
+int8 wlc_phy_fittype_srom12_acphy(phy_info_t *pi, uint8 core);
 static void wlc_phy_get_srom12_pdoffset_acphy(phy_info_t *pi, int8 *pdoffs);
 static void phy_ac_tpc_get_paparams_percore_srom12(phy_info_t *pi,
 		uint8 chan_freq_range, int16 *a, int16 *b, int16 *c, int16 *d, uint8 core);
@@ -2383,7 +2383,7 @@ phy_ac_tpc_get_paparams_80p80_srom12(phy_info_t *pi, uint8 *chan_freqs,
 }
 
 int8
-wlc_phy_fittype_srom12_acphy(phy_info_t *pi)
+wlc_phy_fittype_srom12_acphy(phy_info_t *pi, uint8 core)
 {
 	int8 pdet_range;
 	if (CHSPEC_IS5G(pi->radio_chanspec))
@@ -2397,9 +2397,53 @@ wlc_phy_fittype_srom12_acphy(phy_info_t *pi)
 	case 26:
 		return 1; /* Diode detector for both 2G and 5G */
 	default:
-		if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-			ACMAJORREV_33(pi->pubpi->phy_rev) ||
-			ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+			if (pi->sromi->sr13_dettype_en) {
+				if (CHSPEC_IS5G(pi->radio_chanspec))
+					return pi->sromi->dettype_5g;
+				else
+					return pi->sromi->dettype_2g;
+			} else {
+					if (CHSPEC_IS5G(pi->radio_chanspec)) {
+						switch ( core ) {
+							case 0:
+								return pi->sromi->dettype_5g;
+								break;
+							case 1:
+								return pi->sromi->dettype_5g_core1;
+								break;
+							case 2:
+								return pi->sromi->dettype_5g_core2;
+								break;
+							case 3:
+								return pi->sromi->dettype_5g_core3;
+								break;
+							default:
+								return pi->sromi->dettype_5g;
+								break;
+						}
+					} else {
+						switch ( core ) {
+							case 0:
+								return pi->sromi->dettype_2g;
+								break;
+							case 1:
+								return pi->sromi->dettype_2g_core1;
+								break;
+							case 2:
+								return pi->sromi->dettype_2g_core2;
+								break;
+							case 3:
+								return pi->sromi->dettype_2g_core3;
+								break;
+							default:
+								return pi->sromi->dettype_2g;
+								break;
+						}
+					}
+			}
+		} else if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+				   ACMAJORREV_33(pi->pubpi->phy_rev)) {
 			if (pi->sromi->sr13_dettype_en) {
 				if (CHSPEC_IS5G(pi->radio_chanspec))
 					return pi->sromi->dettype_5g;
@@ -2996,7 +3040,7 @@ wlc_phy_txpwrctrl_pwr_setup_srom12_acphy(phy_info_t *pi)
 			PHY_TXPWR(("\n"));
 
 			/* get PA fittype */
-			pa_fittype = wlc_phy_fittype_srom12_acphy(pi);
+			pa_fittype = wlc_phy_fittype_srom12_acphy(pi, 0);
 			PHY_TXPWR(("wl%d: %s:pa_fittype = %d\n",
 				pi->sh->unit, __FUNCTION__, pa_fittype));
 		}
@@ -3023,9 +3067,20 @@ wlc_phy_txpwrctrl_pwr_setup_srom12_acphy(phy_info_t *pi)
 
 				for (idx = 0; idx < tbl_len; idx++) {
 				ctrSqr[idx] = idx * idx;
-				if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-					ACMAJORREV_33(pi->pubpi->phy_rev) ||
-					ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+					pa_fittype = wlc_phy_fittype_srom12_acphy(pi, core);
+					pwr_est = phy_ac_tpc_get_estpwrlut_srom12(
+							a, b, c, d,
+							pa_fittype, core, idx);
+
+					if (using_estpwr_lut_cck) {
+						pwr_est_cck = phy_ac_tpc_get_estpwrlut_srom12(
+								ak, bk, ck, dk,
+								pa_fittype, core, idx);
+					}
+				} else if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+							ACMAJORREV_33(pi->pubpi->phy_rev)){
+					pa_fittype = wlc_phy_fittype_srom12_acphy(pi, 0);
 					pwr_est = phy_ac_tpc_get_estpwrlut_srom12(
 							a, b, c, d,
 							pa_fittype, core, idx);
@@ -3036,7 +3091,7 @@ wlc_phy_txpwrctrl_pwr_setup_srom12_acphy(phy_info_t *pi)
 								pa_fittype, core, idx);
 					}
 				} else {
-					if (wlc_phy_fittype_srom12_acphy(pi) == 0) {
+					if (wlc_phy_fittype_srom12_acphy(pi, 0) == 0) {
 						firstTerm  = (int32)a[core] * 128;
 						secondTerm = ((int32)b[core] * idx) / 2;
 						thirdTerm  = ((int32)c[core] * ctrSqr[idx]) / 128;
@@ -3122,8 +3177,8 @@ wlc_phy_txpwrctrl_pwr_setup_srom12_acphy(phy_info_t *pi)
 				}
 
 				if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-				    ACMAJORREV_33(pi->pubpi->phy_rev) ||
-				    ACMAJORREV_37(pi->pubpi->phy_rev)) {
+					ACMAJORREV_33(pi->pubpi->phy_rev) ||
+					ACMAJORREV_37(pi->pubpi->phy_rev)) {
 					/* Est Pwr Table is 128x24 Table. */
 					wlc_phy_table_write_acphy(pi, ACPHY_TBL_ID_ESTPWRLUTS(core),
 						tbl_len, 0, 32, regval);
@@ -3974,6 +4029,12 @@ BCMATTACHFN(phy_ac_tpc_nvram_attach)(phy_ac_tpc_info_t *tpci)
 	pi->sromi->sr13_en_sw_txrxchain_mask =
 	        ((pi->sh->boardflags4 & BFL4_SROM13_EN_SW_TXRXCHAIN_MASK) != 0);
 	pi->sromi->sr13_1p5v_cbuck = ((pi->sh->boardflags4 & BFL4_SROM13_1P5V_CBUCK) != 0);
+	pi->sromi->dettype_2g_core1 = (pi->sh->boardflags4 & BFL4_SROM18_2G_CORE1_DETTYPE) >> 10;
+	pi->sromi->dettype_2g_core2 = (pi->sh->boardflags4 & BFL4_SROM18_2G_CORE2_DETTYPE) >> 11;
+	pi->sromi->dettype_2g_core3 = (pi->sh->boardflags4 & BFL4_SROM18_2G_CORE3_DETTYPE) >> 12;
+	pi->sromi->dettype_5g_core1 = (pi->sh->boardflags4 & BFL4_SROM18_5G_CORE1_DETTYPE) >> 13;
+	pi->sromi->dettype_5g_core2 = (pi->sh->boardflags4 & BFL4_SROM18_5G_CORE2_DETTYPE) >> 14;
+	pi->sromi->dettype_5g_core3 = (pi->sh->boardflags4 & BFL4_SROM18_5G_CORE3_DETTYPE) >> 15;
 	pi->sromi->epa_on_during_txiqlocal = ((pi->sh->boardflags2 &
 	    BFL2_SROM11_EPA_ON_DURING_TXIQLOCAL) != 0);
 	pi->tpci->data->tx_pwr_ctrl_damping_en	= (int8) (PHY_GETINTVAR_DEFAULT_SLICE(pi,

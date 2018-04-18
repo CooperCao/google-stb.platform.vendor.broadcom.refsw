@@ -2131,6 +2131,7 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 
 		WL_SRSCAN(("starting assoc scan"));
 		WL_ASSOC(("starting assoc scan\n"));
+		wlc_assoc_homech_req_update(cfg);
 	} else {
 		wlc_bss_info_t *current_bss = cfg->current_bss;
 		bool partial_scan_ok;
@@ -6182,6 +6183,7 @@ wlc_sta_assoc_upd(wlc_bsscfg_t *cfg, bool state)
 	wlc_phy_t  *pi	= WLC_PI(wlc);
 	int idx;
 	wlc_bsscfg_t *bc;
+	struct scb *scb = NULL;
 
 #if defined(BCMECICOEX)
 	chanspec_t  chspec;
@@ -6208,6 +6210,12 @@ wlc_sta_assoc_upd(wlc_bsscfg_t *cfg, bool state)
 	}
 
 	cfg->associated = state;
+
+	scb = wlc_scbfindband(wlc, cfg, &cfg->BSSID,
+			CHSPEC_WLCBANDUNIT(cfg->current_bss->chanspec));
+	if(scb) {
+		scb->state &= ~DISASSOCIATING;
+	}
 
 	wlc->stas_associated = 0;
 	wlc->ibss_bsscfgs = 0;
@@ -8331,7 +8339,6 @@ wlc_disassoc_tx_cb(wlc_info_t *wlc, wlc_bsscfg_t *cfg, void *pkt,
 	return BCME_OK;
 }
 
-
 void
 wlc_disassoc_tx(wlc_bsscfg_t *cfg, bool send_disassociate)
 {
@@ -8408,6 +8415,33 @@ wlc_disassoc_tx(wlc_bsscfg_t *cfg, bool send_disassociate)
 			          "radar/restricted channel \n",
 			          WLCWLUNIT(wlc), eabuf));
 		} else if (as->disassoc_tx_retry < 7) {
+			wlc_txq_info_t *qi;
+			uint pktpend = 0;
+			if (scb && !SCB_DISASSOCIATING(scb)) {
+				scb->state |= DISASSOCIATING;
+				WL_ASSOC(("wl%d: DISASSOC: entering DISASSOCIATING state\n",
+					WLCWLUNIT(wlc)));
+				pktpend = TXPKTPENDTOT(wlc);
+
+				/* Flush Tx FIFO's if packets pending. */
+				if (pktpend) {
+					WL_ASSOC(("wl%d: DISASSOC: clear pending TxQ %d before sending disassoc\n",
+						WLCWLUNIT(wlc), pktpend));
+					WL_INFORM(("txpktpend AC_BK %d AC_BE %d AC_VI %d AC_VO %d BCMC %d fifo5 %d "
+						"total_tx_pkt %d\n",
+						TXPKTPENDGET(wlc, TX_AC_BK_FIFO), TXPKTPENDGET(wlc, TX_AC_BE_FIFO),
+						TXPKTPENDGET(wlc, TX_AC_VI_FIFO), TXPKTPENDGET(wlc, TX_AC_VO_FIFO),
+						TXPKTPENDGET(wlc, TX_BCMC_FIFO), TXPKTPENDGET(wlc, TX_ATIM_FIFO),
+						wlc_txpktcnt(wlc)));
+					wlc_assoc_change_state(cfg, AS_WAIT_DISASSOC);
+					/* Clear HW Fifos */
+					wlc_sync_txfifo(wlc, cfg->wlcif->qi, BITMAP_SYNC_ALL_TX_FIFOS, FLUSHFIFO);
+					/* Clear the TxQ for this SCB */
+					for (qi = wlc->tx_queues; qi != NULL; qi = qi->next) {
+						wlc_pktq_scb_free(wlc, WLC_GET_TXQ(qi), scb);
+					}
+				}
+			}
 			WL_ASSOC(("wl%d: JOIN: sending DISASSOC to %s\n",
 				WLCWLUNIT(wlc), eabuf));
 			if (wlc_senddisassoc_ex(wlc, cfg, scb, &BSSID, &BSSID,
@@ -8425,8 +8459,16 @@ wlc_disassoc_tx(wlc_bsscfg_t *cfg, bool send_disassociate)
 
 
 exit:
+	/*
+	* We're here either because we completed the disassociation or ran out of retries.
+	* So, we need to send WLC_E_DISASSOC to inform host of disassoc completion
+	*/
+	wlc_bss_mac_event(wlc, cfg, WLC_E_DISASSOC, &BSSID, WLC_E_STATUS_SUCCESS,
+		DOT11_RC_DISASSOC_LEAVING, wlc_assoc_bsstype(cfg), NULL, 0);
+
 	as->disassoc_tx_retry = 0;
 	wlc_bsscfg_disable(wlc, cfg);
+	wlc_sta_assoc_upd(cfg, FALSE);
 	cfg->assoc->block_disassoc_tx = FALSE;
 	return;
 } /* wlc_disassoc_tx */

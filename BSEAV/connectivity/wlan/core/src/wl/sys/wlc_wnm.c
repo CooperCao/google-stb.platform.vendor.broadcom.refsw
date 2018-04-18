@@ -4568,7 +4568,14 @@ wlc_wnm_scb_init(void *context, struct scb *scb)
 static void
 wlc_wnm_scb_deinit(void *context, struct scb *scb)
 {
+	wlc_wnm_info_t *wnm = (wlc_wnm_info_t *)context;
+	wnm_scb_cubby_t *wnm_scb = SCB_WNM_CUBBY(wnm, scb);
 
+	if ((SCB_TFS(wnm_scb->cap) ||
+		SCB_WNM_SLEEP(wnm_scb->cap)) &&
+		wnm_scb->tfs_fset_head != NULL) {
+		wlc_wnm_scb_cleanup(wnm->wlc, scb);
+	}
 }
 
 #ifdef BCMDBG
@@ -5170,6 +5177,14 @@ wlc_wnm_scb_sm_interval(wlc_info_t *wlc, struct scb *scb)
 		return wnm_scb->sleep_interval;
 	else
 		return 0;
+}
+
+bool
+wlc_wnm_scb_sm_sleeping(wlc_info_t *wlc, struct scb *scb)
+{
+	wnm_scb_cubby_t *wnm_scb = SCB_WNM_CUBBY(wlc->wnm_info, scb);
+
+	return (wnm_scb->sleeping);
 }
 
 bool
@@ -5976,7 +5991,8 @@ wlc_wnm_parse_tfs_req_ie(wlc_info_t *wlc, struct scb *scb, uint8 *body,
 		/* delete wnm_tfs_req and attached subelement/tclas element */
 		wlc_wnm_tfs_req_free(wlc->wnm_info, &tfs_list, -1);
 
-		if (wnm_tfs_req)
+		/* free wnm_tfs_req for failed case */
+		if ((!valid) && wnm_tfs_req)
 			MFREE(wlc->osh, wnm_tfs_req, sizeof(wnm_tfs_fset_t));
 	}
 
@@ -7319,6 +7335,8 @@ wlc_wnm_parse_bsstrans_resp(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, struct sc
 	wnm_cfg = WNM_BSSCFG_CUBBY(wnm, bsscfg);
 	bsstrans = &wnm_cfg->bsstrans_req_info;
 
+	wlc_bss_mac_event(wnm->wlc, bsscfg, WLC_E_BSSTRANS_RESP, &scb->ea, 0, 0, 0, body, body_len);
+
 	if (bsstrans->timer_state == BSSTRANS_WAIT_FOR_BSS_TERM &&
 	    bsstrans_resp->token == wnm_scb->bsstrans_token) {
 		/* This resp frame is in response for the BSS transition req frame
@@ -8514,7 +8532,7 @@ wlc_wnm_sleep_req_frame_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg)
 	wnm_bsscfg_cubby_t *wnm_cfg = WNM_BSSCFG_CUBBY(wnm, bsscfg);
 	struct scb *scb;
 	void *p;
-	int maxlen = DOT11_WNM_SLEEP_REQ_LEN + TLV_HDR_LEN + DOT11_WNM_SLEEP_IE_LEN;
+	int maxlen = DOT11_MGMT_HDR_LEN + DOT11_WNM_SLEEP_REQ_LEN + TLV_HDR_LEN + DOT11_WNM_SLEEP_IE_LEN;
 	uint8 *body;
 	dot11_wnm_sleep_req_t *req;
 	wnm_tfs_fset_t *fset;
@@ -8524,8 +8542,9 @@ wlc_wnm_sleep_req_frame_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg)
 		if (fset->status == TFS_STATUS_VALIDATED || fset->status == TFS_STATUS_VALIDATING)
 			maxlen += TLV_HDR_LEN + 255;
 	maxlen = MIN(DOT11_MAX_MPDU_BODY_LEN, maxlen);
-	if ((p = wlc_frame_get_mgmt(wlc, FC_ACTION, &bsscfg->BSSID,
-		&bsscfg->cur_etheraddr, &bsscfg->BSSID, maxlen, &body)) == NULL) {
+	if ((p = wlc_frame_get_action(wlc, &bsscfg->BSSID,
+		&bsscfg->cur_etheraddr, &bsscfg->BSSID,
+		maxlen, &body, DOT11_ACTION_CAT_WNM)) == NULL) {
 		return;
 	}
 
@@ -8829,7 +8848,8 @@ wlc_wnm_upd_sleep_period(wlc_bsscfg_t *cfg)
 	}
 
 	/* set new sleep period in number of DTIMs */
-	sleep_prd = MIN(sleep_prd + WNM_SLEEP_UPD, wnm_cfg->sleep_intv);
+	sleep_prd = MIN(sleep_prd + WNM_SLEEP_UPD,
+		wnm_cfg->sleep_intv * cfg->current_bss->dtim_period);
 
 	WL_WNM(("Update sleep period to %d\n", sleep_prd));
 
@@ -8908,6 +8928,7 @@ wlc_wnm_sleep_add_tfs_filter(wlc_bsscfg_t *cfg)
 	wl_tfs_set_t tfs = {0, 1, 0, 0};
 	dot11_tclas_fc_t fc;
 
+	memset(&fc, 0, sizeof(fc));
 	fc.data[0] = 0;
 	fc.hdr.type = DOT11_TCLAS_FC_0_ETH;
 	fc.hdr.mask = 0;

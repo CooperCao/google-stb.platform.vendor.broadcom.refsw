@@ -47,7 +47,6 @@
 #include <bcm_mpool_pub.h>
 #include <bcmcdc.h>
 
-
 typedef struct {
 	uint32 num;
 	chanspec_t list[1];
@@ -115,7 +114,7 @@ typedef struct {
 typedef struct wl_action_frame {
 	struct ether_addr 	da;
 	uint16 			len;
-	uint32 			packetId;
+	ulong	 		packetId;
 	uint8			data[ACTION_FRAME_SIZE];
 } wl_action_frame_t;
 
@@ -1352,6 +1351,8 @@ typedef struct {
 	chanspec_t		chanspec;       /** chanspec this sta is on */
 	wl_rateset_args_t	rateset_adv;	/* rateset along with mcs index bitmap */
 } sta_info_v5_t;
+
+typedef sta_info_v4_t sta_info_t;
 
 #define WL_OLD_STAINFO_SIZE	OFFSETOF(sta_info_t, tx_tot_pkts)
 
@@ -6611,6 +6612,15 @@ typedef struct chanim_stats {
 	uint8 chan_idle;                /**< normalized as 0~255 */
 } chanim_stats_t;
 
+typedef struct {
+	uint32 buflen;
+	uint32 version;
+	uint32 count;
+	chanim_stats_v2_t stats[1];
+} wl_chanim_stats_v2_t;
+
+#define WL_CHANIM_STATS_V2_FIXED_LEN OFFSETOF(wl_chanim_stats_v2_t, stats)
+
 #define WL_CHANIM_STATS_VERSION 3
 typedef struct {
 	uint32 buflen;
@@ -10294,6 +10304,7 @@ typedef struct wlc_dwds_config {
 	uint32		enable;
 	uint32		mode; /**< STA/AP interface */
 	struct ether_addr ea;
+	int32 bssidx;
 } wlc_dwds_config_t;
 
 typedef struct wl_el_set_params_s {
@@ -11466,6 +11477,7 @@ typedef enum wl_interface_type {
 	WL_INTERFACE_TYPE_P2P_GC = 5,
 	WL_INTERFACE_TYPE_P2P_DISC = 6,
 	WL_INTERFACE_TYPE_IBSS = 7,
+	WL_INTERFACE_TYPE_WDS = 8,
 	WL_INTERFACE_TYPE_MAX
 } wl_interface_type_t;
 

@@ -63,6 +63,7 @@ phy_rxgcrs_doiovar(void *ctx, uint32 aid, void *p, uint plen, void *a, uint alen
 
 	switch (aid) {
 	case IOV_SVAL(IOV_ED_THRESH):
+		int_val = *(int *)a;
 		err = wlc_phy_adjust_ed_thres(pi, &int_val, TRUE);
 		break;
 	case IOV_GVAL(IOV_ED_THRESH):

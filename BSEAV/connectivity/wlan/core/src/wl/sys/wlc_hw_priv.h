@@ -303,6 +303,7 @@ struct wlc_hw_info {
 	uint32 phy_cap;		/* capabilities used for bmac attach */
 	uint32 bmac_phase;	/* bmac states: 0: normal-attach, 1: phase1-attach */
 	struct wl_timer *srtimer;	/* timer for save restore wakeup */
+        tx_status_t txs;   /*tx status strutures*/
 };
 
 #endif /* !_wlc_hw_priv_h_ */

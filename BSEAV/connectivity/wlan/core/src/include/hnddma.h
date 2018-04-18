@@ -392,7 +392,7 @@ extern void dma_get_txd_memaddr(hnddma_t *dmah, uint32 *addrlo, uint32 *addrhi, 
 
 extern int dma_txdesc(hnddma_t *dmah, dma64dd_t *dd, bool commit);
 extern int dma_getnexttxdd(hnddma_t *dmah, txd_range_t range, uint32 *flags);
-
+extern int dmatx_map_pkts(hnddma_t *di, map_pkts_cb_fn cb, void *ctx);
 extern void dma_update_rxfill(hnddma_t *dmah);
 extern void dma_rxchan_reset(hnddma_t *di);
 extern void dma_txchan_reset(hnddma_t *di);

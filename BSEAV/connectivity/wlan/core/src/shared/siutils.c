@@ -1976,7 +1976,7 @@ si_gci_3wire_init(si_t *sih)
 void
 si_gci_seci_init(si_t *sih)
 {
-	/* For WL-Coex (#ifdef WLCX_ATLAS) and BT-Coex (BFL4_BTCOEX_OVER_SECI) */
+	/* For WL-Coex (#ifdef WLCX_ATLAS) and BT-Coex !(BFL2_BTCLEGACY) */
 	if (CHIPID(sih->chip) == BCM7271_CHIP_ID) {
 		SI_MSG(("si_gci_seci_init: 7271 configure\n"));
 		/* 7271 Configuration
@@ -8010,10 +8010,11 @@ BCMINITFN(si_gci_init)(si_t *sih)
 	{
 		si_gci_reset(sih);
 
-		if (sih->boardflags4 & BFL4_BTCOEX_OVER_SECI) {
+        /* see 7271 comments about board flags */
+		if (!(sih->boardflags2 & BFL2_BTCLEGACY)) {
 			si_gci_seci_init(sih);
 		}
-		else if (sih->boardflags4 & BFL4_BTC3WIRE_VIA_GCI) {
+		else if ((sih->boardflags2 & BFL2_BTCLEGACY) && ((sih->boardflags2 & BFL2_BTC3WIREONLY))) {
 			si_gci_3wire_init(sih);
 		}
 

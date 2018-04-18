@@ -389,6 +389,7 @@ struct wlc_rrm_info {
 	rrm_statreq_t *statreq;     /* STA stats request/report data */
 	rrm_txstrmreq_t *txstrmreq; /* Transmit stream/category request/report data */
 	struct wl_timer *rrm_noise_ipi_timer; /* measurement for noise ipi */
+        char *event_buf; /* rrm event buf (size = WL_RRM_EVENT_BUF_MAX_SIZE)*/
 };
 
 /* Neighbor Report element */
@@ -747,6 +748,14 @@ BCMATTACHFN(wlc_rrm_attach)(wlc_info_t *wlc)
 	}
 	bzero((char *)rrm_info->rrm_state, sizeof(wlc_rrm_req_state_t));
 
+        if ((rrm_info->event_buf = (char *)MALLOC(wlc->osh,
+		WL_RRM_EVENT_BUF_MAX_SIZE)) == NULL) {
+		WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
+		goto fail;
+	}
+	bzero(rrm_info->event_buf,WL_RRM_EVENT_BUF_MAX_SIZE);
+
 	if (!(rrm_info->rrm_timer = wl_init_timer(wlc->wl, wlc_rrm_timer, rrm_info, "rrm"))) {
 		WL_ERROR(("rrm_timer init failed\n"));
 		goto fail;
@@ -834,7 +843,11 @@ BCMATTACHFN(wlc_rrm_detach)(wlc_rrm_info_t *rrm_info)
 		wl_free_timer(wlc->wl, rrm_info->rrm_noise_ipi_timer);
 	}
 
-	if (rrm_info->rrm_state) {
+        if (rrm_info->event_buf) {
+                MFREE(wlc->osh, rrm_info->event_buf,WL_RRM_EVENT_BUF_MAX_SIZE);
+        }
+
+        if (rrm_info->rrm_state) {
 		MFREE(wlc->osh, rrm_info->rrm_state, sizeof(wlc_rrm_req_state_t));
 	}
 
@@ -2422,23 +2435,21 @@ static void
 wlc_rrm_send_event(wlc_rrm_info_t *rrm_info, struct scb *scb, char *ie, int len,
 	int16 cat, int16 subevent)
 {
-	char buf[WL_RRM_EVENT_BUF_MAX_SIZE] = {0};
-	wl_rrm_event_t *evt = (wl_rrm_event_t *)buf;
-
-	if (len > (WL_RRM_EVENT_BUF_MAX_SIZE - sizeof(wl_rrm_event_t))) {
+        wl_rrm_event_t *evt = (wl_rrm_event_t *)rrm_info->event_buf;
+        if (len > (WL_RRM_EVENT_BUF_MAX_SIZE - sizeof(wl_rrm_event_t))) {
 		WL_RRM(("%s: event length is too big (%d)\n", __FUNCTION__, len));
 		return;
 	}
 
-	WL_RRM(("%s: <0x%x> trigger event....\n", __FUNCTION__, subevent));
-
+        WL_RRM(("%s: <0x%x> trigger event....\n", __FUNCTION__, subevent));
+        bzero(rrm_info->event_buf, WL_RRM_EVENT_BUF_MAX_SIZE);
 	evt->version = RRM_EVENT_VERSION;
 	evt->len = len;
 	evt->cat = cat;
 	evt->subevent = subevent;
 	memcpy(evt->payload, ie, len);
 	wlc_bss_mac_event(rrm_info->wlc, rrm_info->cur_cfg, WLC_E_RRM,
-		&scb->ea, 0, 0, 0, buf, sizeof(buf));
+		&scb->ea, 0, 0, 0, rrm_info->event_buf, WL_RRM_EVENT_BUF_MAX_SIZE);
 	WL_RRM(("%s: <0x%x> trigger event [DONE]\n", __FUNCTION__, subevent));
 }
 
@@ -3961,11 +3972,14 @@ wlc_rrm_send_nbrreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, wlc_ssid_t *ssi
 {
 	void *p;
 	uint8 *pbody;
-	int buflen;
+	uint buflen;
 	dot11_rm_action_t *rmreq;
 	wlc_info_t *wlc = rrm_info->wlc;
 	bcm_tlv_t *ssid_ie;
 	rrm_bsscfg_cubby_t *rrm_cfg;
+	uint8 *req_data_ptr;
+	dot11_meas_req_loc_t *ie;
+	struct scb *scb;
 
 	rrm_cfg = RRM_BSSCFG_CUBBY(rrm_info, cfg);
 	ASSERT(rrm_cfg != NULL);
@@ -3976,20 +3990,71 @@ wlc_rrm_send_nbrreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, wlc_ssid_t *ssi
 	if (ssid)
 		buflen += ssid->SSID_len + TLV_HDR_LEN;
 
-	if ((p = wlc_rrm_prep_gen_request(rrm_info, cfg, &cfg->BSSID, buflen, &pbody)) == NULL)
+	if (isset(cfg->ext_cap, DOT11_EXT_CAP_FTM_RESPONDER) ||
+		isset(cfg->ext_cap, DOT11_EXT_CAP_FTM_INITIATOR)) {
+		if (isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_LCIM)) {
+			buflen += TLV_HDR_LEN + DOT11_MNG_IE_MREQ_LCI_FIXED_LEN;
+		}
+		if (isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_CIVIC_LOC)) {
+			buflen += TLV_HDR_LEN + DOT11_MNG_IE_MREQ_CIVIC_FIXED_LEN;
+		}
+	} else {
+		WL_ERROR(("wl%d: wlc_rrm_send_nbrreq: FTM not enabled,"
+			" not including location elements\n",
+			wlc->pub->unit));
+	}
+
+	if ((p = wlc_frame_get_action(wlc, &cfg->BSSID,
+		&cfg->cur_etheraddr, &cfg->BSSID, buflen, &pbody, DOT11_ACTION_CAT_RRM)) == NULL) {
 		return;
+	}
 
 	rmreq = (dot11_rm_action_t *)pbody;
+	rmreq->category = DOT11_ACTION_CAT_RRM;
+	rmreq->action = DOT11_RM_ACTION_NR_REQ;
+	WLC_RRM_UPDATE_TOKEN(rrm_cfg->req_token);
 	rmreq->token = rrm_cfg->req_token;
+	req_data_ptr = &rmreq->data[0];
 
 	if (ssid != NULL) {
 		ssid_ie = (bcm_tlv_t *)&rmreq->data[0];
 		ssid_ie->id = DOT11_MNG_SSID_ID;
-		ssid_ie->len = (uint8)ssid->SSID_len;
-		bcopy(ssid->SSID, ssid_ie->data, ssid->SSID_len);
+		ssid_ie->len = MIN(DOT11_MAX_SSID_LEN, (uint8)ssid->SSID_len);
+		bcopy(ssid->SSID, ssid_ie->data, ssid_ie->len);
+		req_data_ptr += (TLV_HDR_LEN + ssid_ie->len);
 	}
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	if (isset(cfg->ext_cap, DOT11_EXT_CAP_FTM_RESPONDER) ||
+		isset(cfg->ext_cap, DOT11_EXT_CAP_FTM_INITIATOR)) {
+
+		WLC_RRM_UPDATE_TOKEN(rrm_info->req_elt_token);
+		if (isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_LCIM)) {
+			ie = (dot11_meas_req_loc_t *) req_data_ptr;
+			ie->id = DOT11_MNG_MEASURE_REQUEST_ID;
+			ie->len = DOT11_MNG_IE_MREQ_LCI_FIXED_LEN;
+			ie->token = rrm_info->req_elt_token;
+			ie->mode = 0; /* enable bit is 0 */
+			ie->type = DOT11_MEASURE_TYPE_LCI;
+			ie->req.lci.subject = DOT11_FTM_LOCATION_SUBJ_REMOTE;
+			req_data_ptr += TLV_HDR_LEN + DOT11_MNG_IE_MREQ_LCI_FIXED_LEN;
+		}
+		if (isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_CIVIC_LOC)) {
+			ie = (dot11_meas_req_loc_t *) req_data_ptr;
+			ie->id = DOT11_MNG_MEASURE_REQUEST_ID;
+			ie->len = DOT11_MNG_IE_MREQ_CIVIC_FIXED_LEN;
+			ie->token = rrm_info->req_elt_token;
+			ie->mode = 0; /* enable bit is 0 */
+			ie->type = DOT11_MEASURE_TYPE_CIVICLOC;
+			ie->req.civic.subject = DOT11_FTM_LOCATION_SUBJ_REMOTE;
+			ie->req.civic.type = 0;
+			ie->req.civic.siu = 0;
+			ie->req.civic.si = 0;
+			req_data_ptr += TLV_HDR_LEN + DOT11_MNG_IE_MREQ_CIVIC_FIXED_LEN;
+		}
+	}
+
+	scb = wlc_scbfind(wlc, cfg, &cfg->BSSID);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 #endif /* STA */
 

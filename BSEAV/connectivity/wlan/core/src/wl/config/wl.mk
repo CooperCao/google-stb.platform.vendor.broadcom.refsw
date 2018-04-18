@@ -1051,6 +1051,12 @@ ifeq ($(WET),1)
 endif
 #endif
 
+#ifdef ACS
+ifeq ($(ACS),1)
+	WLFLAGS += -DWL_SUPPORT_ACS
+endif
+#endif
+
 #ifdef RXCHAIN_PWRSAVE
 ifeq ($(RXCHAIN_PWRSAVE), 1)
 	WLFLAGS += -DRXCHAIN_PWRSAVE
@@ -2776,6 +2782,12 @@ ifeq ($(WL_RXEARLYRC),1)
 endif
 #endif
 
+#ifdef ROBUST_DISASSOC_TX
+ifeq ($(ROBUST_DISASSOC_TX),1)
+	WLFLAGS += -DROBUST_DISASSOC_TX
+endif
+#endif
+
 #ifdef WLMCHAN
 #ifdef PROP_TXSTATUS
 ifeq ($(WLMCHAN),1)
@@ -3016,6 +3028,10 @@ ifeq ($(STB_SOC_WIFI),1)
 	WLFILES_SRC += src/wl/sys/wl_stbsoc.c
 endif
 
+ifeq ($(STBAP_BISON), 1)
+	WLFLAGS += -DSTBAP_BISON
+endif
+
 ifeq ($(STBLINUX),1)
 	WLFLAGS += -DSTBLINUX
 endif
@@ -3111,6 +3127,10 @@ ifeq ($(WL_DTS),1)
 	WLFLAGS += -DWL_DTS
 endif
 
+#2G Chain locking
+ifeq ($(WL_2G2X2LOCK),1)
+	WLFLAGS += -DWL_2G2X2LOCK
+endif
 
 # Sorting has two benefits: it uniqifies the list, which may have
 # gotten some double entries above, and it makes for prettier and

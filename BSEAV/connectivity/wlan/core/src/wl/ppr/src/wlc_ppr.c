@@ -1913,6 +1913,7 @@ ppr_disable_vht_mimo_rates(ppr_t* pprptr)
 
 
 /** Apply appropriate single-, two- and three-chain constraints across the appropriate ppr block */
+/* Also apply constraints on 4 chains */
 static uint ppr_apply_constraint_to_block(int8* pprbuf, int8 constraint)
 {
 	uint ret = 0;
@@ -1921,12 +1922,18 @@ static uint ppr_apply_constraint_to_block(int8* pprbuf, int8 constraint)
 #if (PPR_MAX_TX_CHAINS > 2)
 	int8 constraint_3chain = constraint - (QDB(4) + 3); /* - 4.75dBm */
 #endif /* PPR_MAX_TX_CHAINS > 2 */
+#if (PPR_MAX_TX_CHAINS > 3)
+	int8 constraint_4chain = constraint - QDB(6); /* - 6.00dB */
+#endif /* PPR_MAX_TX_CHAINS > 3 */
 
 	APPLY_CONSTRAINT(PPR_CHAIN1_FIRST, PPR_CHAIN1_END, constraint);
 	APPLY_CONSTRAINT(PPR_CHAIN2_FIRST, PPR_CHAIN2_END, constraint_2chain);
 #if (PPR_MAX_TX_CHAINS > 2)
 	APPLY_CONSTRAINT(PPR_CHAIN3_FIRST, PPR_CHAIN3_END, constraint_3chain);
 #endif /* PPR_MAX_TX_CHAINS > 2 */
+#if (PPR_MAX_TX_CHAINS > 3)
+	APPLY_CONSTRAINT(PPR_CHAIN4_FIRST, PPR_CHAIN4_END, constraint_4chain);
+#endif /* PPR_MAX_TX_CHAINS > 3 */
 	return ret;
 }
 #endif /* (PPR_MAX_TX_CHAINS > 1) */

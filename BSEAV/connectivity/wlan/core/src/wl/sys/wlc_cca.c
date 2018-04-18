@@ -91,7 +91,7 @@ struct cca_info {
 	int             cca_second;		/* which second bucket we are using */
 	int             cca_second_max;		/* num of seconds to track */
 	int		alloc_fail;
-	wlc_congest_t	cca_pool[CCA_POOL_MAX];
+	wlc_congest_t	*cca_pool;
 };
 
 #define CCA_POOL_DATA(cca, chanspec, second) \
@@ -144,6 +144,12 @@ BCMATTACHFN(wlc_cca_attach)(wlc_info_t *wlc)
 
 	for (i = 0; i < CCA_CHANNELS_NUM; i++)
 		cca->chan_stats[i].chanspec = chanlist[i];
+
+        if ((cca->cca_pool = MALLOCZ(wlc->osh, (sizeof(wlc_congest_t)*CCA_POOL_MAX))) == NULL) {
+		WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
+		goto fail;
+	}
 	for (i = 0; i < CCA_POOL_MAX; i++)
 		cca->cca_pool[i].congest_ibss = CCA_FREE_BUF;
 
@@ -165,9 +171,11 @@ BCMATTACHFN(wlc_cca_attach)(wlc_info_t *wlc)
 	wlc->pub->_cca_stats = TRUE;
 	return cca;
 fail:
+        if (cca != NULL && cca->cca_pool != NULL)
+                MFREE(wlc->osh, cca->cca_pool,(sizeof(wlc_congest_t)*CCA_POOL_MAX));
 	if (wlc->cca_chan_qual != NULL)
 		MFREE(wlc->osh, wlc->cca_chan_qual, sizeof(cca_chan_qual_t));
-	if (cca != NULL)
+        if (cca != NULL)
 		MFREE(wlc->osh, cca, sizeof(cca_info_t));
 	return NULL;
 }
@@ -188,6 +196,7 @@ BCMATTACHFN(wlc_cca_detach)(cca_info_t *cca)
 
 	if (wlc->cca_chan_qual != NULL)
 		MFREE(wlc->osh, wlc->cca_chan_qual, sizeof(cca_chan_qual_t));
+        MFREE(wlc->osh, cca->cca_pool,(sizeof(wlc_congest_t)*CCA_POOL_MAX));
 	MFREE(wlc->osh, cca, sizeof(cca_info_t));
 }
 
@@ -266,7 +275,8 @@ cca_alloc_pool(cca_info_t *cca, int ch_idx, int second)
 	/* The zero'th entry is reserved, Its like a NULL pointer, give it out for failure */
 	for (i = 1; i < CCA_POOL_MAX && cca->cca_pool[i].congest_ibss != CCA_FREE_BUF; i++)
 		;
-	if (i == CCA_POOL_MAX) {
+
+        if (i == CCA_POOL_MAX) {
 		WL_ERROR(("%s: allocate an entry failed!\n", __FUNCTION__));
 		/* Just leave the current bucket in place, nothing else we can do */
 		/* Wait til watchdog ages out soem buckets */

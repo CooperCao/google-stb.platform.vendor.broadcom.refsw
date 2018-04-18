@@ -534,6 +534,15 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 #endif
 			if (!int_val)
 				return BCME_BADOPTION;
+
+#if defined(WL_2G2X2LOCK)
+			/* For 2G lock, only allow txchain 1,2,3 */
+			if(int_val > 3) {
+				WL_ERROR(("wl%d: -2glock- disallows txchain > 3\n", wlc->pub->unit));
+				return BCME_RANGE;
+			}
+#endif
+
 			if (int_val == WL_STF_CONFIG_CHAINS_DISABLED) {
 				int_val = wlc->stf->hw_txchain;
 #ifdef WL_STF_ARBITRATOR
@@ -677,6 +686,15 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 					wlc_disable_rxchain_pwrsave(wlc->ap);
 			}
 #endif
+
+#if defined(WL_2G2X2LOCK)
+			/* For 2G lock, only allow txchain 1,2,3 */
+			if(int_val > 3) {
+				WL_ERROR(("wl%d: -2glock- disallows rxchain > 3\n", wlc->pub->unit));
+				return BCME_RANGE;
+			}
+#endif
+
 			if (int_val == WL_STF_CONFIG_CHAINS_DISABLED) {
 				int_val = wlc->stf->hw_rxchain;
 #ifdef WL_STF_ARBITRATOR

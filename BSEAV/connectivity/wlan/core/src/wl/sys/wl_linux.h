@@ -134,6 +134,7 @@ struct wl_info {
 	uint		monitor_type;	/**< monitor pseudo device */
 	bool		resched;	/**< dpc needs to be and is rescheduled */
 	uint		max_cpu_id;	/**< upper ID of CPU, i.e. nr of CPUs - 1 */
+	uint		tx_cpu_id;      /**< current cpu ID on which a tx work item is scheduled */
 #ifdef TOE
 	wl_toe_info_t	*toei;		/**< pointer to toe specific information */
 #endif
@@ -154,7 +155,7 @@ struct wl_info {
 	struct ieee80211_tkip_data  *tkip_bcast_data[NUM_GROUP_KEYS];
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
 	/* RPC, handle, lock, txq, workitem */
-	bool		txq_dispatched;	/**< Avoid scheduling multiple tasks */
+	uint		txq_dispatched;	/**< max tx work items dispatched before waiting to schedule a tx work item */
 	spinlock_t	txq_lock;	/**< Lock for the queue */
 	struct sk_buff	*txq_head;	/**< TX Q */
 	struct sk_buff	*txq_tail;	/**< Points to the last buf */

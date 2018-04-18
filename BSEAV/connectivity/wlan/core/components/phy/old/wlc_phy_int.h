@@ -1920,7 +1920,13 @@ typedef struct phy_srom_info
 	bool	sr13_dettype_en;		/* enabling the above two dettype flags */
 	bool	sr13_cck_spur_en;		/* enabling cck spur reduction setting in srom13 */
 	bool	sr13_1p5v_cbuck;		/* using 1.5V cbuck board in 4366 */
-	int8    ofdmfilttype_2g;        	/* 20MHz ofdm filter type for 2G */
+	bool	dettype_2g_core1;  /* determines the detector type for 2G core1, 1:diode 0:log */
+	bool	dettype_2g_core2;  /* determines the detector type for 2G core2, 1:diode 0:log */
+	bool	dettype_2g_core3;  /* determines the detector type for 2G core3, 1:diode 0:log */
+	bool	dettype_5g_core1;  /* determines the detector type for 5G core1, 1:diode 0:log */
+	bool	dettype_5g_core2;  /* determines the detector type for 5G core2, 1:diode 0:log */
+	bool	dettype_5g_core3;  /* determines the detector type for 5G core3, 1:diode 0:log */
+	int8    ofdmfilttype_2g;		/* 20MHz ofdm filter type for 2G */
 	int8    cckfilttype;			/* cck filter type */
 	int8    ofdmfilttype;			/* 20Mhz ofdm filter type */
 	int8    ofdmfilttype40;			/* 40Mhz ofdm filter type */

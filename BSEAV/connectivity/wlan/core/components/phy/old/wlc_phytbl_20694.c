@@ -4440,7 +4440,7 @@ int8 BCMATTACHDATA(tia_gain_tbl_2g_maj40)[N_TIA_GAINS] =
 
 /* 5G TIA Gain table for maj40 */
 int8 BCMATTACHDATA(tia_gain_tbl_5g_maj40)[N_TIA_GAINS] =
-	{12, 15, 18, 21, 24, 27, 30, 30, 30, 30, 30, 29};
+	{11, 14, 17, 20, 23, 26, 29, 29, 29, 29, 29, 28};
 
 /* 2G TIA GainBits table for maj40 */
 int8 BCMATTACHDATA(tia_gainbits_tbl_2g_maj40)[N_TIA_GAINS] = {0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 15};

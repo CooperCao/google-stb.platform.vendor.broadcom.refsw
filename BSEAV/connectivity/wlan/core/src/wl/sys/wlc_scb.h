@@ -97,6 +97,7 @@ struct scb {
 	uint8           ps_pretend;     /**< AP pretending STA is in PS mode */
 	uint16		cap;		/**< sta's advertized capability field */
 	wlc_if_t	*wds;		/**< per-port WDS cookie */
+	wlc_bsscfg_t	*wdscfg;	/**< bsscfg to which wds scb belongs */
 	tx_path_node_t	*tx_path;	/**< pkt tx path (allocated as scb cubby) */
 	wl_if_stats_t	*if_stats;
 #ifdef WL_CS_RESTRICT_RELEASE
@@ -379,6 +380,7 @@ extern void wlc_scb_awdl_free(struct wlc_info *wlc);
 #define PENDING_AUTH		4	/**< Waiting for 802.11 authentication response */
 #define PENDING_ASSOC		8	/**< Waiting for 802.11 association response */
 #define AUTHORIZED		0x10	/**< 802.1X authorized */
+#define DISASSOCIATING		0x40	/* Set before sending disassoc */
 
 /* scb association state helpers */
 #define SCB_ASSOCIATED(a)	((a)->state & ASSOCIATED)
@@ -386,6 +388,7 @@ extern void wlc_scb_awdl_free(struct wlc_info *wlc);
 #define SCB_AUTHENTICATING(a)	((a)->state & PENDING_AUTH)
 #define SCB_AUTHENTICATED(a)	((a)->state & AUTHENTICATED)
 #define SCB_AUTHORIZED(a)	((a)->state & AUTHORIZED)
+#define SCB_DISASSOCIATING(a)	((a)->state & DISASSOCIATING)
 
 /* scb marking bitfield - used by scb module itself */
 #define SCB_MARK_TO_DEL		(1 << 0)	/**< mark to be deleted in watchdog */

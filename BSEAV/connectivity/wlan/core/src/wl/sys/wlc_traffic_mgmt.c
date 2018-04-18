@@ -2914,6 +2914,7 @@ wlc_trf_mgmt_filter_pkt(
 			PKTSETPRIO(pkt, TRF_MGMT_DWM_PRIO(dwm_filter));
 			if (TRF_MGMT_DWM_IS_FAVORED_SET(dwm_filter))
 				WLPKTTAG(pkt)->flags3 |= WLF3_FAVORED;
+			WL_TRF_MGMT(("wlc_trf_mgmt_filter_pkt: mapping dscp 0x%x to priority %d\n", pkt_desc->dscp, TRF_MGMT_DWM_PRIO(dwm_filter)));
 			wlc_trf_mgmt_send_pkt(trf_mgmt_info, pkt);
 			return BCME_OK;
 		}

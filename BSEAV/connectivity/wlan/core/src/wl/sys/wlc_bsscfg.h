@@ -518,11 +518,14 @@ struct wlc_bsscfg {
 #endif
 
 #ifdef WLFBT
-#define BSSCFG_IS_FBT_1X(cfg)  (((cfg)->flags2 & WLC_BSSCFG_FL2_FBT_1X) != 0)
-#define BSSCFG_IS_FBT_PSK(cfg) (((cfg)->flags2 & WLC_BSSCFG_FL2_FBT_PSK) != 0)
+#define WLC_BSSCFG_FL2_FBT_MASK	(WLC_BSSCFG_FL2_FBT_1X | WLC_BSSCFG_FL2_FBT_PSK)
+#define BSSCFG_IS_FBT(cfg)	(((cfg)->flags2 & WLC_BSSCFG_FL2_FBT_MASK) != 0)
+#define BSSCFG_IS_FBT_1X(cfg)	(((cfg)->flags2 & WLC_BSSCFG_FL2_FBT_1X) != 0)
+#define BSSCFG_IS_FBT_PSK(cfg)	(((cfg)->flags2 & WLC_BSSCFG_FL2_FBT_PSK) != 0)
 #else
-#define BSSCFG_IS_FBT_1X(cfg)  FALSE
-#define BSSCFG_IS_FBT_PSK(cfg) FALSE
+#define BSSCFG_IS_FBT(cfg)	FALSE
+#define BSSCFG_IS_FBT_1X(cfg)	FALSE
+#define BSSCFG_IS_FBT_PSK(cfg)	FALSE
 #endif
 
 #ifdef WLAIBSS
