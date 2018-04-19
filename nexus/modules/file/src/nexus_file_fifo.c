@@ -895,6 +895,7 @@ NEXUS_FifoPlay_Open(const char *fname, const char *indexname, NEXUS_FifoRecordHa
     file = BKNI_Malloc(sizeof(*file));
     if (!file) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_alloc; }
     BKNI_Memset(file, 0, sizeof(*file));
+    NEXUS_FilePlay_Init(&file->self);
 
     file->data = bpvrfifo_read_open(fname, true, writer?writer->data.file:NULL);
     if (!file->data) { goto err_data;}

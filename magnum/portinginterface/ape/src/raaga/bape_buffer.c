@@ -57,6 +57,7 @@ static BERR_Code BAPE_Buffer_P_ControlUnlock_isrsafe(BAPE_BufferHandle handle);
 static BERR_Code BAPE_BufferGroup_P_ControlLock_isrsafe(BAPE_BufferGroupHandle handle);
 static BERR_Code BAPE_BufferGroup_P_ControlUnlock_isrsafe(BAPE_BufferGroupHandle handle);
 static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSource);
+static void BAPE_BufferGroup_P_DataReady_isr(BAPE_BufferGroupHandle handle, unsigned size);
 
 typedef struct BAPE_Buffer
 {
@@ -1105,7 +1106,7 @@ typedef struct BAPE_BufferGroup
     BMMA_DeviceOffset localReadOffset; /* used for non-buffered linked outputs */
     unsigned bufferSize;
     BAPE_BufferHandle pBufferHandle[BAPE_Channel_eMax];
-
+    BAPE_BufferGroupInterruptHandlers interrupts;
     bool enabled;
 
     BAPE_BufferGroupHandle pSource; /* set if this buffer group is linked to a source buffer group */
@@ -1551,6 +1552,11 @@ static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSour
                 }
 
                 pBufferGroup->localReadOffset += written;
+
+                if ( written > 0 )
+                {
+                    BAPE_BufferGroup_P_DataReady_isr(pBufferGroup, written);
+                }
             }
         }
     }
@@ -1966,6 +1972,29 @@ BERR_Code BAPE_BufferGroup_GetWriteBuffers_isr(
     return BERR_SUCCESS;
 }
 
+static void BAPE_BufferGroup_P_DataReady_isr(
+    BAPE_BufferGroupHandle handle,
+    unsigned size
+    )
+{
+    BAPE_BufferGroupHandle pBufferGroup;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+
+    /* pass through to linked outputs */
+    for ( pBufferGroup = BLST_S_FIRST(&handle->outputList);
+        pBufferGroup != NULL;
+        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
+
+        BAPE_BufferGroup_P_DataReady_isr(pBufferGroup, size);
+    }
+    /* notify our direct consumer, if any exists */
+    if ( handle->interrupts.dataReady.pCallback_isr )
+    {
+        handle->interrupts.dataReady.pCallback_isr(handle->interrupts.dataReady.pParam1, handle->interrupts.dataReady.param2);
+    }
+}
+
 /***************************************************************************
 Summary:
 Buffer Group Write
@@ -1983,6 +2012,7 @@ BERR_Code BAPE_BufferGroup_WriteComplete(
 
     return errCode;
 }
+
 /***************************************************************************
 Summary:
 Buffer Group Write
@@ -2072,6 +2102,11 @@ BERR_Code BAPE_BufferGroup_WriteComplete_isr(
         {
             /* BDBG_MSG(("Fill output buffer consumers")); */
             BERR_TRACE(BAPE_BufferGroup_P_FillOutputs_isr(handle));
+        }
+
+        if ( size > 0 )
+        {
+            BAPE_BufferGroup_P_DataReady_isr(handle, size);
         }
     }
     else
@@ -2433,6 +2468,8 @@ BERR_Code BAPE_BufferGroup_SetFormat_isr(
             bufferFormat.compressed = pFormat->compressed;
             bufferFormat.bitsPerSample = pFormat->bitsPerSample;
             bufferFormat.samplesPerDword = pFormat->samplesPerDword;
+            /* TBD7211 - refine number of channels if we add support for interleaving > 2 channels into one buffer */
+            bufferFormat.numChannels = (handle->interleaved ? 2 : 1);
 
             for ( i = 0; i < handle->numChannelPairs*2; i++ )
             {
@@ -2460,6 +2497,38 @@ BERR_Code BAPE_BufferGroup_SetFormat_isr(
             return BERR_TRACE(BERR_UNKNOWN);
         }
     }
+
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Buffer Group Get Interrupt Handlers
+***************************************************************************/
+void BAPE_BufferGroup_GetInterruptHandlers(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferGroupInterruptHandlers *pInterrupts    /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+    BDBG_ASSERT(NULL != pInterrupts);
+    *pInterrupts = handle->interrupts;
+}
+
+/***************************************************************************
+Summary:
+Buffer Group Set Interrupt Handlers
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_SetInterruptHandlers(
+    BAPE_BufferGroupHandle handle,
+    const BAPE_BufferGroupInterruptHandlers *pInterrupts
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+    BDBG_ASSERT(NULL != pInterrupts);
+
+    /* store new settings */
+    handle->interrupts = *pInterrupts;
 
     return BERR_SUCCESS;
 }

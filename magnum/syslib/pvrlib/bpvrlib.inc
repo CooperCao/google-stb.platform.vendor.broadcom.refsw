@@ -52,7 +52,6 @@ MAGNUM_MODULES += BPVRLIB
 BPVRLIB_INCLUDES += $(MAGNUM)/syslib/pvrlib
 
 # Module Sources
-ifeq ($(BCHP_CHIP),7211)
-else
+ifeq ($(wildcard ${BCHP_RDB_PATH}/bchp_ott_xpt_cdb_itb.h),)
 BPVRLIB_SOURCES += $(MAGNUM)/syslib/pvrlib/bpvrlib_feed.c
 endif

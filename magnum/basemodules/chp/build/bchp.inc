@@ -96,7 +96,10 @@ endif
 #
 # SAGE related
 ifeq ($(SAGE_SUPPORT),y)
+include $(MAGNUM)/portinginterface/hsm/bhsm_defs.inc
 BCHP_INCLUDES += $(MAGNUM)/syslib/sagelib/include
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_sage.c
 BCHP_DEFINES += BCHP_SAGE_SUPPORT
+BCHP_DEFINES += BHSM_ZEUS_VER_MAJOR=${BHSM_ZEUS_VER_MAJOR}
+BCHP_DEFINES += BHSM_ZEUS_VER_MINOR=${BHSM_ZEUS_VER_MINOR}
 endif

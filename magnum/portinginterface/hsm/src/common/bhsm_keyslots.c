@@ -3382,7 +3382,7 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
             keyslotNumber = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;    /* use the g2gr bypass.  */
             break;
         }
-        default: return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+        default: { BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); goto BHSM_P_DONE_LABEL; }
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );

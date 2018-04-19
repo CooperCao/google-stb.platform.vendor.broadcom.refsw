@@ -103,9 +103,11 @@ ifeq ($(BRDC_USE_CAPTURE_BUFFER),y)
 NEXUS_DISPLAY_DEFINES += BRDC_USE_CAPTURE_BUFFER=1
 endif
 
-# output VDC multibuffer log
+# output VDC multibuffer log in user mode only
 ifeq ($(BVDC_BUF_LOG),y)
+ifeq ($(NEXUS_MODE),)
 NEXUS_DISPLAY_DEFINES += BVDC_BUF_LOG=1
+endif
 endif
 
 

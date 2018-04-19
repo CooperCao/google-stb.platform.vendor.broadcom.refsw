@@ -493,6 +493,7 @@ void NEXUS_Platform_P_ClientMapMemory(void *pMem, size_t length, uint64_t offset
 void NEXUS_Platform_P_ClientUnmapMemory(void *pMem, size_t length);
 #endif
 NEXUS_Error b_get_client_default_heaps(NEXUS_ClientConfiguration *config, struct b_objdb_client_default_heaps *default_heaps);
+void nexus_platform_p_update_all_mmap_access(void);
 
 #if NEXUS_USE_CMA
 #if B_REFSW_SYSTEM_MODE_CLIENT

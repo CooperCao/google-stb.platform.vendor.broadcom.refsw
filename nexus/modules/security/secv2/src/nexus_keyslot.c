@@ -116,15 +116,19 @@ NEXUS_KeySlotHandle NEXUS_KeySlot_Allocate( const NEXUS_KeySlotAllocateSettings 
     BKNI_Memset( pKeySlot, 0, sizeof(*pKeySlot) );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); goto error; }
 
     handle = NEXUS_KeySlot_Create();
     if( !handle ){ BERR_TRACE(NEXUS_NOT_AVAILABLE); goto error; }
 
-
     BHSM_Keyslot_GetDefaultAllocateSettings( &hsmKeyslotSettings );
     BKNI_Memset( &hsmKeyslotSettings, 0, sizeof(hsmKeyslotSettings) );
-    hsmKeyslotSettings.owner        = pSettings->owner;
+
+    switch( pSettings->owner ){
+        case NEXUS_SecurityCpuContext_eHost: { hsmKeyslotSettings.owner = BHSM_SecurityCpuContext_eHost; break; }
+        case NEXUS_SecurityCpuContext_eSage: { hsmKeyslotSettings.owner = BHSM_SecurityCpuContext_eSage; break; }
+        default: {  BERR_TRACE(NEXUS_INVALID_PARAMETER); goto error; }
+    }
     hsmKeyslotSettings.slotType     = _convertSlotTypeToHsm( pSettings->slotType );
     hsmKeyslotSettings.useWithDma   = pSettings->useWithDma;
 
@@ -157,15 +161,18 @@ NEXUS_KeySlotHandle NEXUS_KeySlot_Allocate( const NEXUS_KeySlotAllocateSettings 
     return handle;
 
 error:
-    handle->deferDestroy = false;
     if( pKeySlot->dmaPidChannelHandle ) {
         NEXUS_PidChannel_CloseDma_Priv( pKeySlot->dmaPidChannelHandle );
         handle->dma.valid = false;
     }
+
     if( pKeySlot->hsmKeyslotHandle ) { BHSM_Keyslot_Free( pKeySlot->hsmKeyslotHandle ); }
     BKNI_Free( pKeySlot );
 
-    if( handle ) NEXUS_KeySlot_Destroy( handle );
+    if( handle ){
+        handle->deferDestroy = false;
+        NEXUS_KeySlot_Destroy( handle );
+    }
 
     return NULL;
 }
@@ -412,6 +419,7 @@ NEXUS_Error NEXUS_KeySlot_SetEntryIv ( NEXUS_KeySlotHandle handle,
     if( entry >= NEXUS_KeySlotBlockEntry_eMax ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
     if( !pIv && !pIv2 ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
 
+    BDBG_CASSERT( BHSM_KEYSLOT_MAX_IV_SIZE == NEXUS_KEYSLOT_MAX_IV_SIZE );
 
     BKNI_Memset( &hsmIv, 0, sizeof(hsmIv) );
     BKNI_Memset( &hsmIv2, 0, sizeof(hsmIv2) );

@@ -146,11 +146,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                     devTypeName = "arm";
                     numDevices = audioCaps.numSoftAudioCores;
                     break;
-                default:
-                    devTypeName = "";
-                    BDBG_ERR(("Invalid Device Type"));
-                    return NULL;
-                    break; /* unreachable */
                 }
 
                 for ( dev = 0; dev < numDevices; dev++ )
@@ -182,10 +177,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                         debugData[type].arm[dev].pFile = pFile;
                         debugData[type].arm[dev].index = 0;
                         break;
-                    default:
-                        BDBG_ERR(("Invalid Device Type"));
-                        return NULL;
-                        break; /* unreachable */
                     }
                 }
             }
@@ -212,10 +203,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                     case BAPE_DEVICE_TYPE_ARM:
                         numDevices = audioCaps.numSoftAudioCores;
                         break;
-                    default:
-                        BDBG_ERR(("Invalid Device Type"));
-                        goto exit;
-                        break; /* unreachable */
                     }
 
                     for ( dev = 0; dev < numDevices; dev++ )
@@ -236,11 +223,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                             index = debugData[type].arm[dev].index;
                             offset = BAPE_DEVICE_ARM_FIRST;
                             break;
-                        default:
-                            devTypeName = "";
-                            BDBG_ERR(("Invalid Device Type"));
-                            return NULL;
-                            break; /* unreachable */
                         }
 
                         do
@@ -283,10 +265,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                                 debugData[type].arm[dev].index = index;
                                 debugData[type].arm[dev].pFile = pFile;
                                 break;
-                            default:
-                                BDBG_ERR(("Invalid Device Type"));
-                                return NULL;
-                                break; /* unreachable */
                             }
                         }
                     }
@@ -305,10 +283,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
             case BAPE_DEVICE_TYPE_ARM:
                 numDevices = audioCaps.numSoftAudioCores;
                 break;
-            default:
-                BDBG_ERR(("Invalid Device Type"));
-                goto exit;
-                break; /* unreachable */
             }
 
             for ( dev = 0; dev < numDevices; dev++ )
@@ -322,10 +296,6 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                 case BAPE_DEVICE_TYPE_ARM:
                     offset = BAPE_DEVICE_ARM_FIRST;
                     break;
-                default:
-                    BDBG_ERR(("Invalid Device Type"));
-                    goto exit;
-                    break; /* unreachable */
                 }
 
                 if ( NEXUS_GetEnv("audio_debug_service_enabled") )
@@ -354,9 +324,6 @@ exit:
             case BAPE_DEVICE_TYPE_ARM:
                 numDevices = audioCaps.numSoftAudioCores;
                 break;
-            default:
-                BDBG_ERR(("Invalid Device Type"));
-                break;
             }
 
             for ( dev = 0; dev < numDevices; dev++ )
@@ -370,8 +337,6 @@ exit:
                     break;
                 case BAPE_DEVICE_TYPE_ARM:
                     pFile = debugData[type].arm[dev].pFile;
-                    break;
-                default:
                     break;
                 }
 

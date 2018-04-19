@@ -314,6 +314,7 @@ typedef struct NEXUS_StcChannelSnapshotStatus
 {
     uint32_t stcLoAddr;
     uint32_t stcHiAddr;
+    unsigned index;
 } NEXUS_StcChannelSnapshotStatus;
 
 NEXUS_StcChannelSnapshotHandle NEXUS_StcChannel_OpenSnapshot_priv(NEXUS_StcChannelHandle stcChannel);

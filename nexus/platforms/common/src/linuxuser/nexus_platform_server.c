@@ -1596,6 +1596,16 @@ static void nexus_unregister_client_lock(NEXUS_ClientHandle client)
 
 extern int g_NEXUS_driverFd; /* from nexus_platform_os.c */
 
+static bool nexus_p_heap_access_allowed(NEXUS_ClientHandle client, NEXUS_HeapHandle heap)
+{
+    unsigned i;
+    if (client->client_state.client.mode != NEXUS_ClientMode_eUntrusted) return true;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (client->client_state.client.config.heap[i] == heap) return true;
+    }
+    return (b_objdb_verify_any_object(heap) == NEXUS_SUCCESS);
+}
+
 static void nexus_platform_p_set_mmap_access(NEXUS_ClientHandle client, bool grant)
 {
     t_bcm_linux_mmap_access access;
@@ -1610,8 +1620,9 @@ static void nexus_platform_p_set_mmap_access(NEXUS_ClientHandle client, bool gra
         unsigned i,j;
         for (i=0,j=0;i<NEXUS_MAX_HEAPS && j<BCM_MAX_HEAPS;i++) {
             NEXUS_MemoryStatus status;
-            if (client->client_state.client.config.heap[i]) {
-                rc = NEXUS_Heap_GetStatus_priv(client->client_state.client.config.heap[i], &status);
+            NEXUS_HeapHandle heap = g_pCoreHandles->heap[i].nexus;
+            if (heap && nexus_p_heap_access_allowed(client, heap)) {
+                rc = NEXUS_Heap_GetStatus_priv(heap, &status);
                 if (rc) {rc = BERR_TRACE(rc); continue;}
                 /* a heap may be granted for HW access, but not mmap access */
                 if (
@@ -1631,6 +1642,15 @@ static void nexus_platform_p_set_mmap_access(NEXUS_ClientHandle client, bool gra
     if (rc) rc = BERR_TRACE(rc); /* fall through. client mmap may fail, but server keeps going. */
 
     return;
+}
+
+void nexus_platform_p_update_all_mmap_access(void)
+{
+    NEXUS_ClientHandle client;
+    struct NEXUS_Server *server = g_server;
+    for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
+        nexus_platform_p_set_mmap_access(client, true);
+    }
 }
 
 /**

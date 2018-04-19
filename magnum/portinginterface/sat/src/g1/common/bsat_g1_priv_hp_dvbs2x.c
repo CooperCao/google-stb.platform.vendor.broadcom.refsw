@@ -141,7 +141,7 @@ BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONTROL, ~0xF0000000, 0x50000000);
 
    /* let the HP run */
-   BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &(hChn->count1));
+   /* BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &(hChn->count1)); */
    BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable_isr(h, true));
 
    /* start reacquisition timer */
@@ -601,7 +601,7 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
 
    /* HP is locked */
    BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eRcvrLocked);
-   BDBG_MSG(("HP%d locked in %u usecs", h->channel, t-hChn->count1));
+   /* BDBG_MSG(("HP%d locked in %u usecs", h->channel, t-hChn->count1)); */
 
 #ifndef BSAT_EXCLUDE_AFEC
    if ((BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode)) || (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode)))

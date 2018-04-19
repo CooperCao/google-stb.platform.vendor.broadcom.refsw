@@ -2781,13 +2781,19 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
 }
 
 
-/* Connect video */
+/* Connect (AddOutput) HdmiOutput to the Nexus Display */
 NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
     NEXUS_HdmiOutputHandle handle
     )
 {
     BERR_Code errCode = BERR_SUCCESS ;
     uint8_t deviceAttached = false ;
+
+    if (handle->openSettings.manualTmdsControl)
+    {
+        BDBG_MSG(("Manual Control of TMDS does not enable/disable phy")) ;
+        goto done ;
+    }
 
     if (handle->videoConnected)
     {
@@ -2815,7 +2821,7 @@ done:
 }
 
 
-/* Disconnect video */
+/* Disconnect (RemoveOutput) HdmiOutput from the Nexus Display */
 NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     NEXUS_HdmiOutputHandle handle
     )
@@ -2824,6 +2830,12 @@ NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     BHDM_StandbySettings standbySettings ;
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+
+    if (handle->openSettings.manualTmdsControl)
+    {
+        BDBG_MSG(("Manual Control of TMDS does not enable/disable phy")) ;
+        goto done ;
+    }
 
     if (!handle->videoConnected)
     {

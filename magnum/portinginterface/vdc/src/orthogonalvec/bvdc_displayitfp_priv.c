@@ -903,8 +903,7 @@ void BVDC_P_ITFP_EPM_Preprocessor_ReadVipStats_isr(BVDC_P_Vip_Handle hVip)
     BDBG_MODULE_MSG(BVDC_ITFP_Q,("prev pcc addr = "BDBG_UINT64_FMT, BDBG_UINT64_ARG(hVip->stRegs.ullPccLumaAddr)));
     BDBG_MODULE_MSG(BVDC_ITFP_Q,("     hist addr = "BDBG_UINT64_FMT, BDBG_UINT64_ARG(hVip->stRegs.ullHistLumaAddr)));
 
-    if (pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[WrPtr_PictureQueue].IsVipStatsSet == true)
-        return;
+    BDBG_ASSERT(pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[WrPtr_PictureQueue].IsVipStatsSet!=true);
 
     /* 1H must have both width and height within the limit; TODO: how about ViCE2? */
     VipStatsDecimType =
@@ -950,6 +949,15 @@ void BVDC_P_ITFP_EPM_Preprocessor_ReadVipStats_isr(BVDC_P_Vip_Handle hVip)
         pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[WrPtr_PictureQueue].OptsDelta2pic = 1;
 
     pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[WrPtr_PictureQueue].OptsDeltaUsed = 0;
+
+    /* propagate pCapture to ITFP pic buffer Q */
+    hVip->astItfpPicQ[WrPtr_PictureQueue].pPic     = hVip->pCapture;
+    hVip->astItfpPicQ[WrPtr_PictureQueue].pDecim1v = hVip->pCaptureDecim1v;
+    hVip->astItfpPicQ[WrPtr_PictureQueue].pDecim2v = hVip->pCaptureDecim2v;
+    hVip->astItfpPicQ[WrPtr_PictureQueue].pChroma  = hVip->pCaptureChroma;
+    hVip->astItfpPicQ[WrPtr_PictureQueue].pShifted = hVip->pCaptureShifted;
+    /* zero out pCapture to defer the delivery until ITFP delay is satisfied */
+    hVip->pCapture = NULL;
 
     /* advance itfp Q write pointer and fullness */
     pEpmPreprocessorInfo->PreProcessorPictureQueue.WrPtr = BVDC_P_EPM_mod_isrsafe((pEpmPreprocessorInfo->PreProcessorPictureQueue.WrPtr + 1), pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff);
@@ -1039,15 +1047,14 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
     BAVC_CadencePhase  CadencePhase;
     uint16_t PictureWidthInMb, FrameHeightInMb;
     uint32_t NumberOfMbsPerFrame;
-    uint8_t ProgressiveItfpDelay;
+    uint8_t ItfpDelay = 0;
     uint8_t EnableItfp;
     uint8_t PictureQueueFullness;
     BVDC_P_ITFP_EpmPreprocessorInfo_t *pEpmPreprocessorInfo;
 
     BDBG_OBJECT_ASSERT(hVip, BVDC_VIP);
     pEpmPreprocessorInfo = &hVip->stEpmInfo;
-    if (pEpmPreprocessorInfo->PreProcessorPictureQueue.Fullness == 0)
-        return;
+    BDBG_ASSERT(pEpmPreprocessorInfo->PreProcessorPictureQueue.Fullness);
 
     RdPtr_PictureQueue = pEpmPreprocessorInfo->PreProcessorPictureQueue.RdPtr;
     PictureQueueFullness = pEpmPreprocessorInfo->PreProcessorPictureQueue.Fullness;
@@ -1066,8 +1073,8 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
         PictureQueueFullness--;
     }
 
-    PictureWidthInMb = hVip->pCapture->stPicture.ulWidthInMbs;
-    FrameHeightInMb = hVip->pCapture->stPicture.ulHeightInMbs;
+    PictureWidthInMb = hVip->astItfpPicQ[RdPtr_PictureQueue].pPic->stPicture.ulWidthInMbs;
+    FrameHeightInMb  = hVip->astItfpPicQ[RdPtr_PictureQueue].pPic->stPicture.ulHeightInMbs;
     NumberOfMbsPerFrame = PictureWidthInMb * FrameHeightInMb;
 
     if (pEpmPreprocessorInfo->IsProgressive)
@@ -1087,13 +1094,13 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
             EnableItfp = 0;
         }
 
-        ProgressiveItfpDelay = EnableItfp;
+        ItfpDelay = EnableItfp;
 
-        while (PictureQueueFullness > ProgressiveItfpDelay)
+        while (PictureQueueFullness > ItfpDelay)
         {
             BVDC_P_ITFP_ProgressiveItfpInfo_t ItfpInfo;
 
-            NextRdPtr = BVDC_P_EPM_mod_isrsafe(RdPtr + ProgressiveItfpDelay, pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff);
+            NextRdPtr = BVDC_P_EPM_mod_isrsafe(RdPtr + ItfpDelay, pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff);
             ItfpInfo.NumberOfMbsPerFrame = NumberOfMbsPerFrame;
             ItfpInfo.Repf_motion = pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[NextRdPtr].Histogram;
             ItfpInfo.Sigma = pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[NextRdPtr].Sigma;
@@ -1124,8 +1131,8 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
 
             }
 
-            pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr].CadenceType = CadenceType;
-            pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr].CadencePhase = CadencePhase;
+            hVip->astItfpPicQ[RdPtr].pPic->stPicture.stCadence.type  = CadenceType;
+            hVip->astItfpPicQ[RdPtr].pPic->stPicture.stCadence.phase = CadencePhase;
             pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr].IsCadenceSet = true;
 
             RdPtr = BVDC_P_EPM_mod_isrsafe(RdPtr + 1, pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff);
@@ -1134,7 +1141,8 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
     }
     else
     {
-        if (PictureQueueFullness >= 4)
+        ItfpDelay = 3;
+        if (PictureQueueFullness > ItfpDelay)
         {
             uint8_t Idx;
             uint8_t NumberOfFieldsWithDeterminedCadence;
@@ -1210,7 +1218,7 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
             if (NumberOfFieldsWithDeterminedCadence == 3)
             {
                 CadenceType = BAVC_CadenceType_e3_2;
-                CadencePhase = BAVC_CadencePhase_e3;/* -2 fields delay */
+                CadencePhase = BAVC_CadencePhase_e0;
             }
 
             if (
@@ -1224,7 +1232,7 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
                 if (Locked32)
                 {
                     CadenceType = BAVC_CadenceType_e3_2;
-                    CadencePhase = BAVC_CadencePhase_e1; /* -2 fields delay */
+                    CadencePhase = BAVC_CadencePhase_e3;
                 }
                 else
                 {
@@ -1235,8 +1243,9 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
             RdPtr = RdPtr_PictureQueue;
             for (Idx = 0; Idx < NumberOfFieldsWithDeterminedCadence; Idx++)
             {
-                pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr].CadenceType = CadenceType;
-                pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr].CadencePhase = CadencePhase;
+                /* update the cadence info to the just captured picture */
+                hVip->astItfpPicQ[RdPtr].pPic->stPicture.stCadence.type  = CadenceType;
+                hVip->astItfpPicQ[RdPtr].pPic->stPicture.stCadence.phase = CadencePhase;
                 pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr].IsCadenceSet = true;
                 RdPtr = BVDC_P_EPM_mod_isrsafe((RdPtr + 1), pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff);
                 if (CadenceType != BAVC_CadenceType_eUnlocked) {
@@ -1246,18 +1255,23 @@ void BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(   BVDC_P_Vip_Handle hVip
         }
     }
 
-    /* update the cadence info to the just captured picture */
     RdPtr_PictureQueue = pEpmPreprocessorInfo->PreProcessorPictureQueue.RdPtr;
-    hVip->pCapture->stPicture.stCadence.type =
-        pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr_PictureQueue].CadenceType;
-    hVip->pCapture->stPicture.stCadence.phase =
-        pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr_PictureQueue].CadencePhase;
-    BDBG_MSG(("R[%d] cadence: type=%d, phase=%d!", RdPtr_PictureQueue, hVip->pCapture->stPicture.stCadence.type, hVip->pCapture->stPicture.stCadence.phase));
+    /* This will delay the VIP picture delivery due to ITFP delay */
+    if(pEpmPreprocessorInfo->PreProcessorPictureQueue.Fullness > ItfpDelay)
+    {
+        hVip->pCapture        = hVip->astItfpPicQ[RdPtr_PictureQueue].pPic;
+        hVip->pCaptureDecim1v = hVip->astItfpPicQ[RdPtr_PictureQueue].pDecim1v;
+        hVip->pCaptureDecim2v = hVip->astItfpPicQ[RdPtr_PictureQueue].pDecim2v;
+        hVip->pCaptureChroma  = hVip->astItfpPicQ[RdPtr_PictureQueue].pChroma;
+        hVip->pCaptureShifted = hVip->astItfpPicQ[RdPtr_PictureQueue].pShifted;
+        BDBG_MSG(("R[%d] cadence: type=%d, phase=%d!", RdPtr_PictureQueue, hVip->pCapture->stPicture.stCadence.type, hVip->pCapture->stPicture.stCadence.phase));
+    }
 
     /* clear the stats Q entry and move read pointer after it's consumed */
     if(pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr_PictureQueue].IsCadenceSet) {
         BDBG_MODULE_MSG(BVDC_ITFP_Q,("R[%d] clears flags!", RdPtr_PictureQueue));
         BKNI_Memset_isr(&pEpmPreprocessorInfo->PreProcessorPictureQueue.PreProcessorVipBuffersArray[RdPtr_PictureQueue], 0, sizeof(BVDC_P_ITFP_PreProcessorVipBuffers_t));
+        BKNI_Memset_isr(&hVip->astItfpPicQ[RdPtr_PictureQueue], 0, sizeof(hVip->astItfpPicQ[RdPtr_PictureQueue]));
         pEpmPreprocessorInfo->PreProcessorPictureQueue.RdPtr = BVDC_P_EPM_mod_isrsafe((pEpmPreprocessorInfo->PreProcessorPictureQueue.RdPtr + 1), pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff);
         pEpmPreprocessorInfo->PreProcessorPictureQueue.Fullness--;
     }
@@ -1284,7 +1298,6 @@ void BVDC_P_ITFP_EPM_Preprocessor_init(    BVDC_P_Vip_Handle hVip)
 
     pEpmPreprocessorInfo->PreProcessorPictureQueue.NumOfBuff = BVDC_P_ITFP_PREPROCESSOR_PIC_QUEUE_SIZE;
 
-    /* TODO: add API control */
     pEpmPreprocessorInfo->IsItfpEnabled = true;
     pEpmPreprocessorInfo->EncoderModeOfOperation = 0;
 

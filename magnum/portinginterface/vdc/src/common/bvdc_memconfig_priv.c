@@ -605,9 +605,11 @@ BERR_Code BVDC_P_MemConfig_Validate
  */
 void BVDC_P_Memconfig_UpdateSettingByBoxmode
     ( const BBOX_Config                  *pBoxConfig,
+      const BVDC_MemConfigSettings       *pUserMemConfigSettings,
       BVDC_MemConfigSettings             *pMemConfigSettings )
 {
-    uint32_t    ulDispIndex, ulWinIndex;
+    bool        bMtgCapable = false, bMtgEnable;
+    uint32_t    i, ulDispIndex, ulWinIndex;
     const BBOX_Vdc_Capabilities       *pBoxVdcCap;
     const BBOX_Vdc_MemcIndexSettings  *pBoxVdcMemIndex;
 
@@ -616,6 +618,15 @@ void BVDC_P_Memconfig_UpdateSettingByBoxmode
 
     pBoxVdcCap = &pBoxConfig->stVdc;
     pBoxVdcMemIndex = &pBoxConfig->stMemConfig.stVdcMemcIndex;
+
+    for(i = 0; i < BAVC_SourceId_eMax; i++)
+    {
+        if(pBoxVdcCap->astSource[i].bMtgCapable)
+        {
+            bMtgCapable = true;
+            break;
+        }
+    }
 
     /* RDC */
     if(pBoxVdcMemIndex->ulRdcMemcIndex != BBOX_MemcIndex_Invalid)
@@ -667,8 +678,32 @@ void BVDC_P_Memconfig_UpdateSettingByBoxmode
 
         if(pBoxVdcDispCap->eMaxVideoFmt != BBOX_VDC_DISREGARD)
         {
-            pDisplay->eMaxDisplayFormat = pBoxVdcDispCap->eMaxVideoFmt;
+            if(pUserMemConfigSettings)
+            {
+                const BFMT_VideoInfo  *pBoxFmtInfo, *pUserFmtInfo;
+
+                pBoxFmtInfo = BFMT_GetVideoFormatInfoPtr(pBoxVdcDispCap->eMaxVideoFmt);
+                pUserFmtInfo = BFMT_GetVideoFormatInfoPtr(pUserMemConfigSettings->stDisplay[ulDispIndex].eMaxDisplayFormat);
+
+                if((pUserFmtInfo->ulWidth*pUserFmtInfo->ulHeight) > (pBoxFmtInfo->ulWidth*pBoxFmtInfo->ulHeight))
+                {
+                    BDBG_WRN(("Disp[%d] video format user setting %s is bigger than boxmode limit %s",
+                        ulDispIndex, pUserFmtInfo->pchFormatStr, pBoxFmtInfo->pchFormatStr));
+                    pDisplay->eMaxDisplayFormat = pBoxVdcDispCap->eMaxVideoFmt;
+                }
+                else
+                {
+                    pDisplay->eMaxDisplayFormat = pUserMemConfigSettings->stDisplay[ulDispIndex].eMaxDisplayFormat;
+                }
+            }
+            else
+            {
+                pDisplay->eMaxDisplayFormat = pBoxVdcDispCap->eMaxVideoFmt;
+            }
         }
+
+        /* No MTG on STG path */
+        bMtgEnable = bMtgCapable && !pBoxVdcDispCap->stStgEnc.bAvailable;
 
         for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
         {
@@ -707,7 +742,17 @@ void BVDC_P_Memconfig_UpdateSettingByBoxmode
             {
                 if((pBoxVdcWinCap->stSizeLimits.ulHeightFraction == 1) && (pBoxVdcWinCap->stSizeLimits.ulWidthFraction == 1))
                 {
-                    pWindow->bPip = false;
+                    if(pUserMemConfigSettings)
+                    {
+                        if(!pUserMemConfigSettings->stDisplay[ulDispIndex].stWindow[ulWinIndex].bPip)
+                        {
+                            pWindow->bPip = false;
+                        }
+                    }
+                    else
+                    {
+                        pWindow->bPip = false;
+                    }
                 }
                 else
                 {
@@ -720,7 +765,11 @@ void BVDC_P_Memconfig_UpdateSettingByBoxmode
                 pWindow->eSclCapBias = pBoxVdcWinCap->eSclCapBias;
             }
 
-            if(!pBoxVdcCap->astSource[BAVC_SourceId_eHdDvi0].bAvailable &&
+            if(bMtgEnable)
+            {
+                pWindow->bNonMfdSource = true;
+            }
+            else if(!pBoxVdcCap->astSource[BAVC_SourceId_eHdDvi0].bAvailable &&
                !pBoxVdcCap->astSource[BAVC_SourceId_eHdDvi1].bAvailable)
             {
                 pWindow->bNonMfdSource = false;

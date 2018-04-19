@@ -92,7 +92,6 @@ static struct NEXUS_Platform_P_MemcBspInterrupts {
 /* map all heaps */
 static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryRegion *region);
 static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region);
-static void nexus_platform_p_destroy_runtime_heaps(void);
 
 #if BEXUS_P_TRACELOG_FOR_SECURE_ARCH
 /* when enabled, this code will get be called after detected violation and will print print last captured transactions that are targeting the secure heaps */
@@ -662,7 +661,9 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
 /* Error cases */
 err_memc_intr:
 err_core:
-
+    if (g_coreSettings.pMapSettings) {
+        NEXUS_Platform_P_FreePMapSettings(g_coreSettings.pMapSettings);
+    }
 err_int:
 err_map:
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -683,7 +684,6 @@ void NEXUS_Platform_P_UninitCore(void)
     unsigned i;
     NEXUS_Platform_P_MemcBspInterrupt_Uninit(&g_NEXUS_Platform_P_MemcBspInterrupts);
 
-    nexus_platform_p_destroy_runtime_heaps();
     NEXUS_CoreModule_Uninit();
     if (g_coreSettings.pMapSettings) {
         NEXUS_Platform_P_FreePMapSettings(g_coreSettings.pMapSettings);
@@ -823,143 +823,23 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
 void NEXUS_Platform_GetDefaultCreateHeapSettings( NEXUS_PlatformCreateHeapSettings *pSettings )
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    pSettings->memoryType = NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
 }
-
-/* g_runtimeHeaps[].heap mirrors g_pCoreHandles->nexusHeap[], but only for runtime-created heaps */
-static struct {
-    NEXUS_HeapHandle heap;
-    NEXUS_Core_MemoryRegion region;
-    NEXUS_PlatformCreateHeapSettings settings;
-} *g_runtimeHeaps;
 
 NEXUS_HeapHandle NEXUS_Platform_CreateHeap( const NEXUS_PlatformCreateHeapSettings *pSettings )
 {
     NEXUS_HeapHandle heap;
-    unsigned i;
-    unsigned unused = NEXUS_MAX_HEAPS;
-    NEXUS_Core_MemoryRegion *region;
-    NEXUS_Error rc;
-
-    if (!g_runtimeHeaps) {
-        g_runtimeHeaps = BKNI_Malloc(sizeof(*g_runtimeHeaps)*NEXUS_MAX_HEAPS);
-        if (!g_runtimeHeaps) {
-            BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-            return NULL;
-        }
-        BKNI_Memset(g_runtimeHeaps, 0, sizeof(*g_runtimeHeaps)*NEXUS_MAX_HEAPS);
+    heap = NEXUS_Heap_CreateInternal(pSettings);
+    if (heap) {
+        nexus_platform_p_update_all_mmap_access();
     }
-
-    /* param validation */
-    if (pSettings->offset + pSettings->size <= pSettings->offset) {
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
-    /* TODO: This function only works for MEMC0 now. To extend for MEMC1/2 support, we should consider
-    refactoring NEXUS_Platform_P_CalcSubMemc to get generic physical base address per MEMC information.
-    For now, use a simple, universal bound for MEMC0. */
-    if (pSettings->offset >= 0x60000000) {
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
-    /* verify that new heap has no offset or userAddress overlap with existing heaps */
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        heap = g_pCoreHandles->heap[i].nexus;
-        if (heap) {
-            NEXUS_MemoryStatus status;
-            rc = NEXUS_Heap_GetStatus(heap, &status);
-            if (rc) {
-                rc = BERR_TRACE(rc);
-                return NULL;
-            }
-            status.addr = NEXUS_OffsetToCachedAddr(status.offset);
-            if (pSettings->offset >= status.offset && pSettings->offset + pSettings->size <= status.offset + status.size) {
-                BDBG_ERR(("NEXUS_Platform_CreateHeap: runtime heap's offset cannot overlap existing heap"));
-                return NULL;
-            }
-            if (pSettings->userAddress >= status.addr && (uint8_t*)pSettings->userAddress + pSettings->size <= (uint8_t*)status.addr + status.size) {
-                BDBG_ERR(("NEXUS_Platform_CreateHeap: runtime heap's address cannot overlap existing heap"));
-                return NULL;
-            }
-        }
-        else if (unused == NEXUS_MAX_HEAPS) {
-            unused = i;
-        }
-    }
-    if (unused == NEXUS_MAX_HEAPS) {
-        BDBG_ERR(("must increase NEXUS_MAX_HEAPS"));
-        return NULL;
-    }
-    i = unused;
-    BDBG_ASSERT(!g_runtimeHeaps[i].heap);
-    g_runtimeHeaps[i].settings = *pSettings;
-
-    /* we can create the heap now */
-    region = &g_runtimeHeaps[i].region;
-    BKNI_Memset(region, 0, sizeof(*region));
-    region->memcIndex = 0; /* see above for restriction */
-    region->offset = pSettings->offset;
-    region->length = pSettings->size;
-    region->memoryType = pSettings->memoryType;
-    region->alignment = pSettings->alignment;
-    region->pvAddrCached = pSettings->userAddress;
-    region->locked = pSettings->locked;
-
-    rc = NEXUS_Platform_P_MapRegion(i, region);
-    if (rc) {
-        rc = BERR_TRACE(rc);
-        return NULL;
-    }
-
-    NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
-    heap = NEXUS_Heap_Create_priv(i, NULL, region);
-    NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
-    if (!heap) {
-        NEXUS_Platform_P_UnmapRegion(region);
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
-    g_runtimeHeaps[i].heap = heap;
-
     return heap;
 }
 
 void NEXUS_Platform_DestroyHeap( NEXUS_HeapHandle heap )
 {
-    unsigned i;
-    /* only allow heaps created with NEXUS_Platform_CreateHeap to be destroyed here */
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (g_runtimeHeaps[i].heap == heap) {
-            BDBG_ASSERT(heap == g_pCoreHandles->heap[i].nexus);
-            NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
-            NEXUS_Heap_Destroy_priv(heap);
-            NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
-            if (g_runtimeHeaps[i].settings.userAddress) {
-                /* don't unmap what the user mapped */
-                g_runtimeHeaps[i].region.pvAddrCached = NULL;
-            }
-            NEXUS_Platform_P_UnmapRegion(&g_runtimeHeaps[i].region);
-            g_runtimeHeaps[i].heap = NULL;
-            return;
-        }
-    }
-    BDBG_ERR(("NEXUS_Platform_DestroyHeap: %p was not created with NEXUS_Platform_CreateHeap", (void *)heap));
-}
-
-static void nexus_platform_p_destroy_runtime_heaps(void)
-{
-    if (g_runtimeHeaps) {
-        unsigned i;
-        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-            if (g_runtimeHeaps[i].heap) {
-                NEXUS_Platform_DestroyHeap(g_runtimeHeaps[i].heap);
-            }
-        }
-        BKNI_Free(g_runtimeHeaps);
-        g_runtimeHeaps = NULL;
-    }
+    NEXUS_Heap_DestroyInternal(heap);
+    nexus_platform_p_update_all_mmap_access();
 }
 
 static struct {

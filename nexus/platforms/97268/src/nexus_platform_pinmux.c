@@ -139,13 +139,14 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 }
 #endif
 
-
+/* Set NEXUS_FRONT_PANEL_RESET_ENABLE to 1 to enable the front panel reset. Please make sure if the board has the related AON Pin configured for it. */
+#define NEXUS_FRONT_PANEL_RESET_ENABLE 0
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
     NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
-
+#if NEXUS_FRONT_PANEL_RESET_ENABLE
     BDBG_MSG(("Setting pinmux to make the frontpanel reset enable"));
     reg = BREG_Read32(hReg, BCHP_AON_CTRL_RESET_CTRL);
     reg &=~(
@@ -155,7 +156,7 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
           BCHP_FIELD_DATA(AON_CTRL_RESET_CTRL, front_panel_reset_enable, 1) /*Enable*/
           );
     BREG_Write32 (hReg, BCHP_AON_CTRL_RESET_CTRL, reg);
-
+#endif
     /* Configure the streamer (BCM9TS) input to route into input band 3 for SV */
 
     NEXUS_Platform_GetStatus(&platformStatus);

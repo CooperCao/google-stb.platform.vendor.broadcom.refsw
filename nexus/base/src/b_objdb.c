@@ -814,10 +814,10 @@ b_objdb_get_object_list_result b_objdb_get_object_list(const struct b_objdb_clie
         if(NEXUS_P_Base_StrCmp(object->descriptor->type_name, type_name)!=0) {
             continue;
         }
-        if (owner && object->state.client != owner && object->state.acquired_client != owner) {
+        if (owner && object->state.client != owner && object->state.acquired_client != owner && !object->state.shared) {
             continue;
         }
-        if (calling_client->mode < NEXUS_ClientMode_eProtected || object->state.client == calling_client || object->state.acquired_client == calling_client) {
+        if (calling_client->mode < NEXUS_ClientMode_eProtected || object->state.client == calling_client || object->state.acquired_client == calling_client || object->state.shared) {
             if(n<nobjects) {
                 if (objects) {
                     objects[n].object = (uint8_t *)object - object->descriptor->offset;

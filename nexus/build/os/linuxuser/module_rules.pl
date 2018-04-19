@@ -80,11 +80,7 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "ifeq (\$(NEXUS_MODE),proxy)\n";
             print OUTFILE "ifeq (,\$(filter $moduleUpper,\$(NEXUS_CLIENT_MODULES)))\n";
             # for proxy, only compile the proxy object
-            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
             print OUTFILE "NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_proxy.\$(NEXUS_OBJ_SUFFIX) \n";
-            print OUTFILE "else\n";
-            print OUTFILE "NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_proxy.\$(NEXUS_OBJ_SUFFIX) \n";
-            print OUTFILE "endif\n"; #NEXUS_ABICOMPAT_MODE
             print OUTFILE "NEXUS_$moduleUpper\_OBJECTS += \$(addprefix \$(NEXUS_OBJ_DIR)/$moduleUpper/,\$(patsubst %.c,%.\$(NEXUS_OBJ_SUFFIX),\$(notdir \$(NEXUS_$moduleUpper\_LOCAL_SOURCES))))\n";
             print OUTFILE "NEXUS_$moduleUpper\_CFLAGS += -DNEXUS_THUNK_LAYER \n";
             if ( $moduleUpper eq 'PLATFORM') {
@@ -141,13 +137,8 @@ foreach $moduleUpper (@ARGV) {
 
             # for client, only compile the client object + local sources
             print OUTFILE "ifeq (\${NEXUS_MODE},client)\n";
-            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
-            print OUTFILE "  NEXUS_$moduleUpper\_CLIENT := \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_client.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_api.h\n";
-            print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_client.\$(NEXUS_OBJ_SUFFIX)\n";
-            print OUTFILE "else\n";
-            print OUTFILE "  NEXUS_$moduleUpper\_CLIENT := \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_client.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_api.h\n";
-            print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_ipc_client.\$(NEXUS_OBJ_SUFFIX)\n";
-            print OUTFILE "endif\n"; #NEXUS_ABICOMPAT_MODE
+            print OUTFILE "NEXUS_$moduleUpper\_CLIENT := \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_client.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_api.h\n";
+            print OUTFILE "NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_client.\$(NEXUS_OBJ_SUFFIX)\n";
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(addprefix \$(NEXUS_OBJ_DIR)/$moduleUpper/,\$(patsubst %.c,%.\$(NEXUS_OBJ_SUFFIX),\$(notdir \$(NEXUS_$moduleUpper\_LOCAL_SOURCES))))\n";
             print OUTFILE "  NEXUS_$moduleUpper\_CFLAGS += -DNEXUS_THUNK_LAYER \n";
             if ( $moduleUpper eq 'PLATFORM') {
@@ -155,15 +146,11 @@ foreach $moduleUpper (@ARGV) {
             }
             print OUTFILE "else\n";
             # for server, add the server object
-            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_server.\$(NEXUS_OBJ_SUFFIX) \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_ipc.\$(NEXUS_OBJ_SUFFIX)\n";
             print OUTFILE "ifeq (\$(NEXUS_COMPAT_32ABI),y)\n";
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify.\$(NEXUS_OBJ_SUFFIX)\n";
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_api_compat.\$(NEXUS_OBJ_SUFFIX)\n";
             print OUTFILE "endif\n"; #NEXUS_COMPAT_32ABI
-            print OUTFILE "else\n";
-            print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_ipc_server.\$(NEXUS_OBJ_SUFFIX)\n";
-            print OUTFILE "endif\n"; #NEXUS_ABICOMPAT_MODE
             print OUTFILE "endif\n"; #client
             print OUTFILE "endif\n"; #NEXUS_CLIENT_MODULES
             print OUTFILE "endif\n"; #proxy
@@ -184,9 +171,7 @@ foreach $moduleUpper (@ARGV) {
         }
 
         if ( $moduleUpper eq 'PLATFORM') {
-            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
             print OUTFILE "\${NEXUS_$moduleUpper\_OBJECTS} : \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_api_compat.h\n";
-            print OUTFILE "endif\n";
             print OUTFILE "\n";
         }
         # Module Rules

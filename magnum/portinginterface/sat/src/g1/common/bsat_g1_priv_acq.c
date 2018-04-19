@@ -48,7 +48,7 @@
 
 BDBG_MODULE(bsat_g1_priv_acq);
 
-#define BSAT_DEBUG_ACQ(x) /* x */
+#define BSAT_DEBUG_ACQ(x) /* x  */
 #define BSAT_DEBUG_OI(x) /* x */
 
 #define BSAT_G1_LOCK_FILTER_INCR 1250 /* orig: 5000 */
@@ -259,9 +259,7 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
    hChn->configParam[BSAT_g1_CONFIG_ACQ_DAFE_CTL] = 0;
    hChn->configParam[BSAT_g1_CONFIG_TRK_DAFE_CTL] = 0;
    hChn->configParam[BSAT_g1_CONFIG_ACM_DEBUG] = 0;
-#ifdef BSAT_HAS_WFE
    hChn->notchState = -1;
-#endif
    BKNI_Memset((void*)&(hChn->miscSettings), 0, sizeof(BSAT_ExtAcqSettings));
    BKNI_Memset((void*)&(hChn->saSettings), 0, sizeof(BSAT_ScanSpectrumSettings));
    BKNI_Memset((void*)&(hChn->saStatus), 0, sizeof(BSAT_SpectrumStatus));
@@ -290,7 +288,7 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
 {
-   BERR_Code retCode;
+   BERR_Code retCode = BERR_SUCCESS;
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_g1_P_Handle *hDev = (BSAT_g1_P_Handle *)(h->pDevice->pImpl);
 
@@ -301,8 +299,6 @@ BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
 
    BSAT_g1_P_InitChannelHandle(h);
    BSAT_g1_P_IndicateNotLocked_isrsafe(h);
-
-   BSAT_CHK_RETCODE(BSAT_g1_P_SetDefaultSampleFreq(h));
 
 #ifndef BSAT_EXCLUDE_AFEC
    if (hChn->bHasAfec)
@@ -332,7 +328,6 @@ BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
    BSAT_g1_P_PowerDownOpll_isrsafe(h);
 
    /* initialize clockgen and sds */
-#ifdef BSAT_HAS_WFE
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CG_CGDIV01, 0x005D0119); /* 375KHz mi2c clk */
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_MISC_MISCTL, ~0x00000008); /* power down ring oscillators for noise reduction */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_BL_BFOS, 0x03A0CC00); /* assume Fb=20, Fs=145.125 */
@@ -346,23 +341,9 @@ BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_IQCTL, 0x00008284); /* bypass IQ phase/amplitude imbalance correction */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, 0x00020311); /* bypass DCO */
 #endif
-#else
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CG_CGDIV01, 0x005D0119); /* 375KHz mi2c clk */
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CG_SPLL_CTRL, 0x84400000); /* per Hiroshi */
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_MISC_TPCTL2, ~0x70000000);
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_MISC_MISCTL, ~0x00000008); /* power down ring oscillators for noise reduction */
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_AGC_AGCCTL, 0x00041F1F); /* IF AGC only, freeze/reset RF/IF */
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_BL_BFOS, 0x049CCC00);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_MISC_TPDIR, 0xFF4B008F);
-   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_FE_ADCPCTL, 0x00000001);  /* reset */
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_FE_ADCPCTL, 0xFFFFFF00); /* clear reset */
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_IQCTL, 0x00008080); /* changed from TT40G */
-#endif
 
    /* initialize tuner */
    BSAT_g1_P_TunerInit(h, NULL);
-
-   done:
    return retCode;
 }
 
@@ -430,26 +411,6 @@ void BSAT_g1_P_IncrementReacqCount_isr(BSAT_ChannelHandle h)
    hChn->reacqCount++;
    if (hChn->reacqCount > hDev->acqDoneThreshold)
       BSAT_g1_P_IndicateAcqDone_isr(h);
-}
-
-
-/******************************************************************************
- BSAT_g1_P_SetDefaultSampleFreq()
-******************************************************************************/
-BERR_Code BSAT_g1_P_SetDefaultSampleFreq(BSAT_ChannelHandle h)
-{
-   BERR_Code retCode;
-
-   BSTD_UNUSED(h);
-
-#ifndef BSAT_HAS_WFE
-   retCode = BSAT_ERR_NOT_IMPLEMENTED;
-#else
-   /* do nothing */
-   retCode = BERR_SUCCESS;
-#endif
-
-   return retCode;
 }
 
 
@@ -954,69 +915,69 @@ static BERR_Code BSAT_g1_P_CheckSignalNotification_isr(BSAT_ChannelHandle h)
       15 * 256, /* 13: DCII 5/11 */
       15 * 256, /* 14: DCII 3/5 */
       15 * 256, /* 15: DCII 4/5 */
-      512,  /* 16: DVB-S2 QPSK 1/4 = 2 */
-      512,  /* 17: DVB-S2 QPSK 1/3 = 2 */
-      512,  /* 18: DVB-S2 QPSK 2/5 = 2 */
-      845,  /* 19: DVB-S2 QPSK 1/2 = 3.3 */
-      1178, /* 20: DVB-S2 QPSK 3/5 = 4.6 */
-      1331, /* 21: DVB-S2 QPSK 2/3 = 5.2 */
-      1587, /* 22: DVB-S2 QPSK 3/4 = 6.2 */
-      1766, /* 23: DVB-S2 QPSK 4/5 = 6.9 */
-      1894, /* 24: DVB-S2 QPSK 5/6 = 7.4 */
+      538,  /* 16: DVB-S2 QPSK 1/4 = 2.1 */
+      538,  /* 17: DVB-S2 QPSK 1/3 = 2.1 */
+      538,  /* 18: DVB-S2 QPSK 2/5 = 2.1 */
+      947,  /* 19: DVB-S2 QPSK 1/2 = 3.7 */
+      1357,  /* 20: DVB-S2 QPSK 3/5 = 5.3 */
+      1587, /* 21: DVB-S2 QPSK 2/3 = 6.2 */
+      1562, /* 22: DVB-S2 QPSK 3/4 = 6.1 */
+      1741, /* 23: DVB-S2 QPSK 4/5 = 6.8 */
+      1869, /* 24: DVB-S2 QPSK 5/6 = 7.3 */
       2150, /* 25: DVB-S2 QPSK 8/9 = 8.4 */
-      2202, /* 26: DVB-S2 QPSK 9/10 = 8.6 */
-      2061, /* 27: DVB-S2 8PSK 3/5 = 8.05 */
+      2227, /* 26: DVB-S2 QPSK 9/10 = 8.7 */
+      1997, /* 27: DVB-S2 8PSK 3/5 = 7.8 */
       2278, /* 28: DVB-S2 8PSK 2/3 = 8.9 */
       2611, /* 29: DVB-S2 8PSK 3/4 = 10.2 */
       2995, /* 30: DVB-S2 8PSK 5/6 = 11.7 */
-      3354, /* 31: DVB-S2 8PSK 8/9 = 13.1 */
-      3430, /* 32: DVB-S2 8PSK 9/10 = 13.4 */
-      2808, /* 33: DVB-S2 16APSK 2/3 = 10.97 */
-      3126, /* 34: DVB-S2 16APSK 3/4 = 12.21 */
-      3336, /* 35: DVB-S2 16APSK 4/5 = 13.03 */
-      3484, /* 36: DVB-S2 16APSK 5/6 = 13.61 */
-      3812, /* 37: DVB-S2 16APSK 8/9 = 14.89 */
-      3873, /* 38: DVB-S2 16APSK 9/10 = 15.13 */
-      3771, /* 39: DVB-S2 32APSK 3/4 = 14.73 */
-      4004, /* 40: DVB-S2 32APSK 4/5 = 15.64 */
-      4168, /* 41: DVB-S2 32APSK 5/6 = 16.28 */
-      4529, /* 42: DVB-S2 32APSK 8/9 = 17.69 */
-      4621, /* 43: DVB-S2 32APSK 9/10 = 18.05 */
-      660,  /* 44: Turbo QPSK 1/2 = 2.578125 */
-      1173, /* 45: Turbo QPSK 2/3 = 4.582 */
-      1440, /* 46: Turbo QPSK 3/4 = 5.625 */
-      1717, /* 47: Turbo QPSK 5/6 = 6.707 */
-      1892, /* 48: Turbo QPSK 7/8 = 7.390625 */
-      2094, /* 49: Turbo 8PSK 2/3 = 8.1797 */
-      2299, /* 50: Turbo 8PSK 3/4 = 8.98047 */
-      2424, /* 51: Turbo 8PSK 4/5 = 9.46875 */
-      2799, /* 52: Turbo 8PSK 5/6 = 10.9336 */
-      2924, /* 53: Turbo 8PSK 8/9 = 11.4219 */
-      512,  /* 54: DVB-S2X QPSK 13/45 = 2 */
-      568,  /* 55: DVB-S2X QPSK 9/20 = 2.22 */
-      883,  /* 56: DVB-S2X QPSK 11/20 = 3.45 */
-      1723, /* 57: DVB-S2X 8APSK 5/9-L = 6.73 */
-      1825, /* 58: DVB-S2X 8APSK 26/45-L = 7.13 */
-      2079, /* 59: DVB-S2X 8APSK 23/36 = 8.12 */
-      2309, /* 60: DVB-S2X 8APSK 25/36 = 9.02 */
-      2429, /* 61: DVB-S2X 8APSK 13/18 = 9.49 */
-      2040, /* 62: DVB-S2X 16APSK 1/2-L = 7.97 */
-      2189, /* 63: DVB-S2X 16APSK 8/15-L = 8.55 */
-      2263, /* 64: DVB-S2X 16APSK 5/9-L = 8.84 */
-      2435, /* 65: DVB-S2X 16APSK 26/45 = 9.51 */
-      2509, /* 66: DVB-S2X 16APSK 3/5 = 9.80 */
-      2409, /* 67: DVB-S2X 16APSK 3/5-L = 9.41 */
-      2586, /* 68: DVB-S2X 16APSK 28/45 = 10.10 */
-      2657, /* 69: DVB-S2X 16APSK 23/36 = 10.38 */
-      2670, /* 70: DVB-S2X 16APSK 2/3-L = 10.43 */
-      2885, /* 71: DVB-S2X 16APSK 25/36 = 11.27 */
-      2998, /* 72: DVB-S2X 16APSK 13/18 = 11.71 */
-      3238, /* 73: DVB-S2X 16APSK 7/9 = 12.65 */
-      3581, /* 74: DVB-S2X 16APSK 77/90 = 13.99 */
-      3354, /* 75: DVB-S2X 32APSK 2/3-L = 13.10 */
-      3520, /* 76: DVB-S2X 32APSK 32/45 = 13.75 */
-      3628, /* 77: DVB-S2X 32APSK 11/15 = 14.17 */
-      3853  /* 78: DVB-S2X 32APSK 7/9 = 15.05 */
+      3328, /* 31: DVB-S2 8PSK 8/9 = 13 */
+      3379, /* 32: DVB-S2 8PSK 9/10 = 13.2 */
+      2893, /* 33: DVB-S2 16APSK 2/3 = 11.3 */
+      3174, /* 34: DVB-S2 16APSK 3/4 = 12.4 */
+      3405, /* 35: DVB-S2 16APSK 4/5 = 13.3 */
+      3558, /* 36: DVB-S2 16APSK 5/6 = 13.9 */
+      3866, /* 37: DVB-S2 16APSK 8/9 = 15.1 */
+      3917, /* 38: DVB-S2 16APSK 9/10 = 15.3 */
+      3891, /* 39: DVB-S2 32APSK 3/4 = 15.2 */
+      4070, /* 40: DVB-S2 32APSK 4/5 = 15.9 */
+      4250, /* 41: DVB-S2 32APSK 5/6 = 16.6 */
+      4582, /* 42: DVB-S2 32APSK 8/9 = 17.9 */
+      4659, /* 43: DVB-S2 32APSK 9/10 = 18.2 */
+      400,  /* 44: Turbo QPSK 1/2 = 1.5625 */
+      903,  /* 45: Turbo QPSK 2/3 = 3.5273 */
+      1173, /* 46: Turbo QPSK 3/4 = 4.582 */
+      1466, /* 47: Turbo QPSK 5/6 = 5.7266 */
+      1642, /* 48: Turbo QPSK 7/8 = 6.4140625 */
+      1842, /* 49: Turbo 8PSK 2/3 = 7.1953 */
+      2042, /* 50: Turbo 8PSK 3/4 = 7.97656 */
+      2172, /* 51: Turbo 8PSK 4/5 = 8.484375 */
+      2549, /* 52: Turbo 8PSK 5/6 = 9.957 */
+      2674, /* 53: Turbo 8PSK 8/9 = 10.4453 */
+      128,  /* 54: DVB-S2X QPSK 13/45 = 0.5 */
+      614,  /* 55: DVB-S2X QPSK 9/20 = 2.4 */
+      922,  /* 56: DVB-S2X QPSK 11/20 = 3.6 */
+      1818, /* 57: DVB-S2X 8APSK 5/9-L = 7.1 */
+      1920, /* 58: DVB-S2X 8APSK 26/45-L = 7.5 */
+      2227, /* 59: DVB-S2X 8APSK 23/36 = 8.7 */
+      2355, /* 60: DVB-S2X 8APSK 25/36 = 9.2 */
+      2483, /* 61: DVB-S2X 8APSK 13/18 = 9.7 */
+      2176, /* 62: DVB-S2X 16APSK 1/2-L = 8.5 */
+      2330, /* 63: DVB-S2X 16APSK 8/15-L = 9.1 */
+      2406, /* 64: DVB-S2X 16APSK 5/9-L = 9.4 */
+      2970, /* 65: DVB-S2X 16APSK 26/45 = 11.6 */
+      2918, /* 66: DVB-S2X 16APSK 3/5 = 11.4 */
+      2560, /* 67: DVB-S2X 16APSK 3/5-L = 10.0 */
+      2816, /* 68: DVB-S2X 16APSK 28/45 = 11.0 */
+      2842, /* 69: DVB-S2X 16APSK 23/36 = 11.1 */
+      2714, /* 70: DVB-S2X 16APSK 2/3-L = 10.6 */
+      2995, /* 71: DVB-S2X 16APSK 25/36 = 11.7 */
+      3354, /* 72: DVB-S2X 16APSK 13/18 = 13.1 */
+      3456, /* 73: DVB-S2X 16APSK 7/9 = 13.5 */
+      3635, /* 74: DVB-S2X 16APSK 77/90 = 14.2 */
+      3942, /* 75: DVB-S2X 32APSK 2/3-L = 15.4 */
+      3942, /* 76: DVB-S2X 32APSK 32/45 = 15.4 */
+      3942, /* 77: DVB-S2X 32APSK 11/15 = 15.4 */
+      3968  /* 78: DVB-S2X 32APSK 7/9 = 15.5 */
    };
 
    static const uint16_t BSAT_SNR_THRESHOLD2[] = /* in units of 1/256 dB */
@@ -1037,34 +998,34 @@ static BERR_Code BSAT_g1_P_CheckSignalNotification_isr(BSAT_ChannelHandle h)
       10 * 256, /* 13: DCII 5/11 */
       10 * 256, /* 14: DCII 3/5 */
       10 * 256, /* 15: DCII 4/5 */
-      256,  /* 16: DVB-S2 QPSK 1/4 = 1 */
-      256,  /* 17: DVB-S2 QPSK 1/3 = 1 */
-      256,  /* 18: DVB-S2 QPSK 2/5 = 1 */
-      589,  /* 19: DVB-S2 QPSK 1/2 = 2.3 */
-      922,  /* 20: DVB-S2 QPSK 3/5 = 3.6 */
-      1075, /* 21: DVB-S2 QPSK 2/3 = 4.2 */
-      1331, /* 22: DVB-S2 QPSK 3/4 = 5.2 */
-      1510, /* 23: DVB-S2 QPSK 4/5 = 5.9 */
-      1638, /* 24: DVB-S2 QPSK 5/6 = 6.4 */
-      1894, /* 25: DVB-S2 QPSK 8/9 = 7.4 */
-      1946, /* 26: DVB-S2 QPSK 9/10 = 7.6 */
-      1805, /* 27: DVB-S2 8PSK 3/5 = 7.05 */
-      2022, /* 28: DVB-S2 8PSK 2/3 = 7.9 */
-      2355, /* 29: DVB-S2 8PSK 3/4 = 9.2 */
-      2739, /* 30: DVB-S2 8PSK 5/6 = 10.7 */
-      3098, /* 31: DVB-S2 8PSK 8/9 = 12.1 */
-      3174, /* 32: DVB-S2 8PSK 9/10 = 12.4 */
-      2552, /* 33: DVB-S2 16APSK 2/3 = 9.97 */
-      2870, /* 34: DVB-S2 16APSK 3/4 = 11.21 */
-      3080, /* 35: DVB-S2 16APSK 4/5 = 12.03 */
-      3228, /* 36: DVB-S2 16APSK 5/6 = 12.61 */
-      3556, /* 37: DVB-S2 16APSK 8/9 = 13.89 */
-      3617, /* 38: DVB-S2 16APSK 9/10 = 14.13 */
-      3515, /* 39: DVB-S2 32APSK 3/4 = 13.73 */
-      3748, /* 40: DVB-S2 32APSK 4/5 = 14.64 */
-      3912, /* 41: DVB-S2 32APSK 5/6 = 15.28 */
-      4273, /* 42: DVB-S2 32APSK 8/9 = 16.69 */
-      4365, /* 43: DVB-S2 32APSK 9/10 = 17.05 */
+      26,  /* 16: DVB-S2 QPSK 1/4 = 0.1 */
+      26,  /* 17: DVB-S2 QPSK 1/3 = 0.1 */
+      26,  /* 18: DVB-S2 QPSK 2/5 = 0.1 */
+      435,  /* 19: DVB-S2 QPSK 1/2 = 1.7 */
+      589,  /* 20: DVB-S2 QPSK 3/5 = 2.3 */
+      819, /* 21: DVB-S2 QPSK 2/3 = 3.2 */
+      1050, /* 22: DVB-S2 QPSK 3/4 = 4.1 */
+      1229, /* 23: DVB-S2 QPSK 4/5 = 4.8 */
+      1357, /* 24: DVB-S2 QPSK 5/6 = 5.3 */
+      1638, /* 25: DVB-S2 QPSK 8/9 = 6.4 */
+      1715, /* 26: DVB-S2 QPSK 9/10 = 6.7 */
+      1485, /* 27: DVB-S2 8PSK 3/5 = 5.8 */
+      1766, /* 28: DVB-S2 8PSK 2/3 = 6.9 */
+      2099, /* 29: DVB-S2 8PSK 3/4 = 8.2 */
+      2483, /* 30: DVB-S2 8PSK 5/6 = 9.7 */
+      2816, /* 31: DVB-S2 8PSK 8/9 = 11 */
+      2867, /* 32: DVB-S2 8PSK 9/10 = 11.2 */
+      2381, /* 33: DVB-S2 16APSK 2/3 = 9.3 */
+      2662, /* 34: DVB-S2 16APSK 3/4 = 10.4 */
+      2893, /* 35: DVB-S2 16APSK 4/5 = 11.3 */
+      3046, /* 36: DVB-S2 16APSK 5/6 = 11.9 */
+      3354, /* 37: DVB-S2 16APSK 8/9 = 13.1 */
+      3405, /* 38: DVB-S2 16APSK 9/10 = 13.3 */
+      3379, /* 39: DVB-S2 32APSK 3/4 = 13.2 */
+      3558, /* 40: DVB-S2 32APSK 4/5 = 13.9 */
+      3738, /* 41: DVB-S2 32APSK 5/6 = 14.6 */
+      4070, /* 42: DVB-S2 32APSK 8/9 = 15.9 */
+      4147, /* 43: DVB-S2 32APSK 9/10 = 16.2 */
       400,  /* 44: Turbo QPSK 1/2 = 1.5625 */
       903,  /* 45: Turbo QPSK 2/3 = 3.5273 */
       1173, /* 46: Turbo QPSK 3/4 = 4.582 */
@@ -1075,31 +1036,31 @@ static BERR_Code BSAT_g1_P_CheckSignalNotification_isr(BSAT_ChannelHandle h)
       2172, /* 51: Turbo 8PSK 4/5 = 8.484375 */
       2549, /* 52: Turbo 8PSK 5/6 = 9.957 */
       2674, /* 53: Turbo 8PSK 8/9 = 10.4453 */
-      256,  /* 54: DVB-S2X QPSK 13/45 = 1 */
-      312,  /* 55: DVB-S2X QPSK 9/20 = 1.22 */
-      627,  /* 56: DVB-S2X QPSK 11/20 = 2.45 */
-      1467, /* 57: DVB-S2X 8APSK 5/9-L = 5.73 */
-      1569, /* 58: DVB-S2X 8APSK 26/45-L = 6.13 */
-      1823, /* 59: DVB-S2X 8APSK 23/36 = 7.12 */
-      2053, /* 60: DVB-S2X 8APSK 25/36 = 8.02 */
-      2173, /* 61: DVB-S2X 8APSK 13/18 = 8.49 */
-      1784, /* 62: DVB-S2X 16APSK 1/2-L = 6.97 */
-      1933, /* 63: DVB-S2X 16APSK 8/15-L = 7.55 */
-      2007, /* 64: DVB-S2X 16APSK 5/9-L = 7.84 */
-      2179, /* 65: DVB-S2X 16APSK 26/45 = 8.51 */
-      2253, /* 66: DVB-S2X 16APSK 3/5 = 8.80 */
-      2153, /* 67: DVB-S2X 16APSK 3/5-L = 8.41 */
-      2330, /* 68: DVB-S2X 16APSK 28/45 = 9.10 */
-      2401, /* 69: DVB-S2X 16APSK 23/36 = 9.38 */
-      2414, /* 70: DVB-S2X 16APSK 2/3-L = 9.43 */
-      2629, /* 71: DVB-S2X 16APSK 25/36 = 10.27 */
-      2742, /* 72: DVB-S2X 16APSK 13/18 = 10.71 */
-      2982, /* 73: DVB-S2X 16APSK 7/9 = 11.65 */
-      3325, /* 74: DVB-S2X 16APSK 77/90 = 12.99 */
-      3098, /* 75: DVB-S2X 32APSK 2/3-L = 12.10 */
-      3264, /* 76: DVB-S2X 32APSK 32/45 = 12.75 */
-      3372, /* 77: DVB-S2X 32APSK 11/15 = 13.17 */
-      3597  /* 78: DVB-S2X 32APSK 7/9 = 14.05 */
+      26,  /* 54: DVB-S2X QPSK 13/45 = 0.1 */
+      102,  /* 55: DVB-S2X QPSK 9/20 = 0.4 */
+      410,  /* 56: DVB-S2X QPSK 11/20 = 1.6 */
+      1306, /* 57: DVB-S2X 8APSK 5/9-L = 5.1 */
+      1408, /* 58: DVB-S2X 8APSK 26/45-L = 5.5 */
+      1715, /* 59: DVB-S2X 8APSK 23/36 = 6.7 */
+      1843, /* 60: DVB-S2X 8APSK 25/36 = 7.2 */
+      1971, /* 61: DVB-S2X 8APSK 13/18 = 7.7 */
+      1664, /* 62: DVB-S2X 16APSK 1/2-L = 6.5 */
+      1818, /* 63: DVB-S2X 16APSK 8/15-L = 7.1 */
+      1894, /* 64: DVB-S2X 16APSK 5/9-L = 7.4 */
+      2458, /* 65: DVB-S2X 16APSK 26/45 = 9.6 */
+      2406, /* 66: DVB-S2X 16APSK 3/5 = 9.4 */
+      2048, /* 67: DVB-S2X 16APSK 3/5-L = 8.0 */
+      2304, /* 68: DVB-S2X 16APSK 28/45 = 9.0 */
+      2330, /* 69: DVB-S2X 16APSK 23/36 = 9.1 */
+      2202, /* 70: DVB-S2X 16APSK 2/3-L = 8.6 */
+      2483, /* 71: DVB-S2X 16APSK 25/36 = 9.7 */
+      2842, /* 72: DVB-S2X 16APSK 13/18 = 11.1 */
+      2944, /* 73: DVB-S2X 16APSK 7/9 = 11.5 */
+      3123, /* 74: DVB-S2X 16APSK 77/90 = 12.2 */
+      3430, /* 75: DVB-S2X 32APSK 2/3-L = 13.4 */
+      3430, /* 76: DVB-S2X 32APSK 32/45 = 13.4 */
+      3430, /* 77: DVB-S2X 32APSK 11/15 = 13.4 */
+      3456  /* 78: DVB-S2X 32APSK 7/9 = 13.5 */
    };
 
    /* check freq drift threshold */
@@ -1267,7 +1228,10 @@ static void BSAT_g1_P_ResetLockFilter_isr(BSAT_ChannelHandle h)
    uint32_t P_hi, P_lo, Q_hi;
 
    hChn->stableLockTimeout = BSAT_MODE_IS_LEGACY_QPSK(hChn->actualMode) ? 3000 : 5000;
-   hChn->maxStableLockTimeout = 150000; /* orig: 200000 */
+   if (hChn->acqType == BSAT_AcqType_eDvbs2)
+      hChn->maxStableLockTimeout = 20000;
+   else
+      hChn->maxStableLockTimeout = 150000;
    hChn->lockFilterRamp = -2;
 
    if (hChn->acqSettings.symbolRate < 20000000)
@@ -2022,20 +1986,7 @@ static BERR_Code BSAT_g1_P_SignalDetectModeExit_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_SetAgcTrackingBw_isr(BSAT_ChannelHandle h)
 {
-#ifdef BSAT_HAS_WFE
    return BSAT_g1_P_ConfigChanAgc_isr(h, true);
-#else
-   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   uint32_t val;
-
-   if (hChn->agcCtl & BSAT_G3_CONFIG_AGC_CTL_METER_MODE)
-      val = 0x0A0A0000;
-   else
-      val = 0x03030000;
-
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_AGC_ABW, &val);
-   return BERR_SUCCESS;
-#endif
 }
 
 
@@ -2372,9 +2323,6 @@ BERR_Code BSAT_g1_P_NonLegacyModeAcquireInit_isr(BSAT_ChannelHandle h)
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0x00000010);
 
-#ifndef BSAT_HAS_WFE
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_AGC_ABW, 0x0B0B0000);
-#endif
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0x00FF00FF, 0x03000600); /* EQMU=0x03,EQFFE2=0x06 */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0x000000FF, 0x00140400); /* EQMISC=0x14, EQBLND=0x04 */
 #ifdef BCHP_SDS_FEC_FERR
@@ -2426,6 +2374,7 @@ static BERR_Code BSAT_g1_P_OnReacqTimerExpired_isr(BSAT_ChannelHandle h)
    }
 #endif
 
+   BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->EnableLockInterrupts(h, false);
    hChn->bReacqTimerExpired = true;
    hChn->reacqCause = BSAT_ReacqCause_eFecNotStableLock;
    return BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->Reacquire(h);
@@ -2579,12 +2528,7 @@ static BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h)
    hChn->bForceReacq = false;
 
    BSAT_CHK_RETCODE(BSAT_g1_P_GetActualMode_isr(h, &(hChn->actualMode)));
-#ifdef BSAT_HAS_WFE
    retCode = BSAT_g1_P_Acquire2_isr(h);
-#else
-   BSAT_CHK_RETCODE(BSAT_g1_P_ConfigAgc(h));
-   retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 7000, BSAT_g1_P_Acquire2_isr);  /* AGC delay to get the stable DFT output power at the beginning of DFT, esp. under ACI */
-#endif
 
    done:
    return retCode;
@@ -2631,9 +2575,6 @@ static BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 
    if (hChn->acqSettings.options & BSAT_ACQ_TUNER_TEST_MODE)
    {
-#ifndef BSAT_HAS_WFE
-      BSAT_CHK_RETCODE(BSAT_g1_P_TunerSetFilter_isr(h, true)); /* set tracking LPF */
-#endif
       hChn->acqSettings.mode = BSAT_Mode_eUnknown;
       hChn->acqState = BSAT_AcqState_eIdle;
       return BERR_SUCCESS; /* exit the acquisition */
@@ -2727,10 +2668,6 @@ static BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
 
-#ifndef BSAT_HAS_WFE
-   BSAT_CHK_RETCODE(BSAT_g1_P_TunerSetFilter_isr(h, true)); /* set tracking LPF */
-#endif
-
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x000000EF, 0x00000003);
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x000000EF, 0x00000000);
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x0000FF00, 0x00007000);
@@ -2814,7 +2751,7 @@ BERR_Code BSAT_g1_P_StartTracking_isr(BSAT_ChannelHandle h)
    bValid = BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->IsValidMode(h);
    if (!bValid)
    {
-      BDBG_MSG(("BSAT_g1_P_StartTracking_isr(): invalid mode"));
+      BDBG_WRN(("BSAT_g1_P_StartTracking_isr(): invalid mode"));
       hChn->reacqCause = BSAT_ReacqCause_eInvalidMode;
       return BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->Reacquire(h);
    }
@@ -2951,9 +2888,13 @@ void BSAT_g1_P_NotLock_isr(void *p, int int_id)
    /* extend stable lock timeout */
    if ((hChn->reacqCount> 0) || hChn->bEverStableLock)
    {
-      hChn->stableLockTimeout += (((hChn->lockFilterRamp++ > 0) ? hChn->lockFilterRamp : 1) * BSAT_G1_LOCK_FILTER_INCR);
+      hChn->stableLockTimeout += (((hChn->lockFilterRamp > 0) ? hChn->lockFilterRamp : 1) * BSAT_G1_LOCK_FILTER_INCR);
+      if (hChn->lockFilterRamp < 32)
+         hChn->lockFilterRamp++;
       if (hChn->stableLockTimeout > hChn->maxStableLockTimeout)
          hChn->stableLockTimeout = hChn->maxStableLockTimeout;
+
+      /* BDBG_ERR(("NotLock_isr: stableLockTimeout=%d, maxStableLockTimeout=%d, lockFilterRamp=%d", hChn->stableLockTimeout, hChn->maxStableLockTimeout, hChn->lockFilterRamp)); */
    }
 
    if (BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->OnLostLock)
@@ -2965,15 +2906,6 @@ void BSAT_g1_P_NotLock_isr(void *p, int int_id)
       BSAT_g1_P_GetModeFunct_isrsafe(hChn->acqType)->Reacquire(h);
       return;
    }
-
-#if 0
-   if (hChn->bStableLock && (hChn->acqSettings.options & BSAT_ACQ_ENABLE_BERT))
-   {
-      /* reset the bert if bert lost lock */
-      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_BERT_BERCTL, 1);
-      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_BERT_BERCTL, ~1);  /* clear reset */
-   }
-#endif
 
    hChn->bStableLock = false;
 
@@ -3027,9 +2959,6 @@ static BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h)
    BSAT_CHK_RETCODE(BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eReacqTimer));
    BSAT_CHK_RETCODE(BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eStableLock));
    BSAT_DEBUG_ACQ(BDBG_ERR(("BSAT_g1_P_OnStableLock_isr(%u): t=%d", h->channel, hChn->configParam[BSAT_g1_CONFIG_ACQ_TIME])));
-#if 0
-   BSAT_g1_P_ResetLockFilter_isr(h);
-#endif
    BSAT_CHK_RETCODE(BSAT_g1_P_GetCarrierError_isrsafe(h, &(hChn->initFreqOffset)));
    hChn->relockCount++;
 
@@ -3105,7 +3034,6 @@ static BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h)
       }
    }
 
-#ifdef BSAT_HAS_WFE
    if ((hChn->timeSinceStableLock % 4) == 0)
    {
       retCode = BSAT_g1_P_UpdateNotch_isr(h);
@@ -3114,7 +3042,6 @@ static BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h)
          BDBG_WRN(("BSAT_g1_P_OnMonitorLock_isr(): BSAT_g1_P_UpdateNotch_isr() error 0x%X", retCode));
       }
    }
-#endif
 
    retCode = BSAT_g1_P_LeakPliToFli_isr(h);
    if (retCode != BERR_SUCCESS)
@@ -3143,9 +3070,6 @@ BERR_Code BSAT_g1_P_Reacquire_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
    bool bStopAcq = false;
-#ifndef BSAT_HAS_WFE
-   bool bRefPllLocked, bMixPllLocked;
-#endif
 
    BSAT_CHK_RETCODE(BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eReacquire));
    BSAT_DEBUG_ACQ(BDBG_ERR(("BSAT_g1_P_Reacquire_isr(%d)", h->channel)));
@@ -3212,16 +3136,6 @@ BERR_Code BSAT_g1_P_Reacquire_isr(BSAT_ChannelHandle h)
       if (hChn->acqSettings.mode != BSAT_Mode_eTurbo_scan)
          BSAT_g1_P_IncrementReacqCount_isr(h);
    }
-
-#ifndef BSAT_HAS_WFE
-   if ((hChn->acqSettings.acq_ctl & BSAT_ACQSETTINGS_BYPASS_TUNE) == 0)
-   {
-      BSAT_CHK_RETCODE(BSAT_g1_P_TunerSetFilter(h, false)); /* set acquisition LPF */
-      BSAT_CHK_RETCODE(BSAT_g1_P_TunerGetLockStatus(h, &bRefPllLocked, &bMixPllLocked));
-      if (!bRefPllLocked || !bMixPllLocked)
-         hChn->reacqCtl |= BSAT_G3_CONFIG_REACQ_CTL_FORCE_RETUNE;
-   }
-#endif
 
    if (hChn->miscSettings.bDontRetuneOnReacquire)
       retCode = BSAT_g1_P_Acquire1_isr(h);

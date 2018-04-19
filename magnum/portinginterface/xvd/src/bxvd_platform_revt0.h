@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -351,10 +351,12 @@
    eMemCfgMode = BXVD_P_MemCfgMode_eUNKNOWN;          \
 }
 
-/* HVD Rev R */
-#if BXVD_P_CORE_REVISION_NUM >= 21    /* Core revision U or later */
+#if 0
+/* Bug in REV U core, AVS2 is no longer supported */
+/* #if BXVD_P_CORE_REVISION_NUM >= 21    / * Core revision U or later */
 #define BXVD_P_PLATFORM_SUPPORTED_PROTOCOLS  BXVD_P_REVU_DECODE_PROTOCOLS_MASK
 #else
+/* HVD Rev R */
 #define BXVD_P_PLATFORM_SUPPORTED_PROTOCOLS  BXVD_P_REVS_DECODE_PROTOCOLS_MASK
 #endif
 

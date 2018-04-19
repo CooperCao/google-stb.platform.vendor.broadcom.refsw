@@ -350,6 +350,15 @@ nexus_generic_driver_close(struct nexus_generic_driver_state *state, bool abnorm
     return;
 }
 
+static bool nexus_p_heap_access_allowed(struct nexus_driver_client_state *client, NEXUS_HeapHandle heap)
+{
+    unsigned i;
+    if (client->client.mode != NEXUS_ClientMode_eUntrusted) return true;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (client->client.config.heap[i] == heap) return true;
+    }
+    return (b_objdb_verify_any_object(heap) == NEXUS_SUCCESS);
+}
 
 int nexus_generic_driver_validate_mmap(struct nexus_generic_driver_state *state, uint64_t offset, unsigned size)
 {
@@ -377,13 +386,8 @@ int nexus_generic_driver_validate_mmap(struct nexus_generic_driver_state *state,
     }
 
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        NEXUS_HeapHandle heap;
-        if (client->client.mode == NEXUS_ClientMode_eUntrusted) {
-            heap = client->client.config.heap[i];
-        } else {
-            heap = g_NEXUS_pCoreHandles->heap[i].nexus;
-        }
-        if(heap) {
+        NEXUS_HeapHandle heap = g_NEXUS_pCoreHandles->heap[i].nexus;
+        if (heap && nexus_p_heap_access_allowed(client, heap)) {
             NEXUS_MemoryStatus status;
             NEXUS_Error rc;
             rc = NEXUS_Heap_GetStatus_priv(heap, &status);

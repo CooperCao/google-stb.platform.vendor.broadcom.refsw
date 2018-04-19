@@ -1023,7 +1023,19 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
     if(info) {
         BKNI_Free(info);
     }
-    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+    if(rc!=NEXUS_SUCCESS) {
+        struct NEXUS_Platform_P_AllocatorState *state;
+
+        state = BKNI_Malloc(sizeof(*state));
+        if(state) {
+            BKNI_Memset(state,0,sizeof(*state));
+            NEXUS_Platform_P_SuggestBootParams(state, pSettings->heap, pMemory, "required");
+            BKNI_Free(state);
+        } else {
+            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        return BERR_TRACE(rc);
+    }
     rc = NEXUS_Platform_P_SetCoreCmaSettings_Adjust(pSettings->heap, pCoreSettings);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
 

@@ -45,9 +45,6 @@
 # Security is on by default
 NEXUS_SECURITY_SUPPORT ?= y
 
-# RFM Support turned off by default due to SWSTB-170.
-NEXUS_RFM_SUPPORT := n
-
 NEXUS_HDMI_INPUT_SUPPORT := n
 
 #

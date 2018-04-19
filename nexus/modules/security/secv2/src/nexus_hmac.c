@@ -80,7 +80,7 @@ NEXUS_HmacHandle NEXUS_Hmac_Create( void )
     NEXUS_OBJECT_INIT( NEXUS_Hmac, handle );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); goto _error; }
 
     handle->hHsmHmac = BHSM_Hmac_Create( hHsm );
     if( !handle->hHsmHmac ) { BERR_TRACE(NEXUS_NOT_AVAILABLE); goto _error; }
@@ -104,7 +104,7 @@ static void NEXUS_Hmac_P_Finalizer( NEXUS_HmacHandle handle )
 
     if( handle ){
 
-        NEXUS_HashHmac_QueueDestroy(handle->queue);
+        NEXUS_HashHmac_QueueDestroy( handle->queue );
         if( handle->hHsmHmac ) { BHSM_Hmac_Destroy ( handle->hHsmHmac ); }
 
         NEXUS_OBJECT_DESTROY( NEXUS_Hmac, handle );

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2009-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2009-2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,6 +66,8 @@ struct botf_itb_feeder_tag {
     /* Fields used for svp itb entry translation */
     const uint8_t *lastbaseptr;
     bool updatebaseptr;
+    bool used40bitBase;
+    bool used32bitBase;
 #if B_OTF_FEEDER_CAPTURE    
     struct {
         unsigned file_no;
@@ -80,14 +82,15 @@ botf_itb_feeder
 botf_itb_feeder_create(const BOTF_ParserPtrs *IPParserPtrs)
 {
     botf_itb_feeder feeder;
-    BERR_Code rc;
 
     feeder = BKNI_Malloc(sizeof(*feeder));
-    if(!feeder) {rc=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
+    if(!feeder) {(void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
     BDBG_OBJECT_INIT(feeder, botf_itb_feeder);
 
     feeder->IPParserPtrs = IPParserPtrs;
     feeder->updatebaseptr = false;
+    feeder->used40bitBase = false;
+    feeder->used32bitBase = false;
     feeder->lastbaseptr = NULL;
 
 #if B_OTF_FEEDER_CAPTURE    
@@ -123,12 +126,38 @@ b_otf_itb_feeder_print_itb(uint32_t *destn)
 static uint32_t *
 b_otf_itb_feeder_add_baseentry(botf_itb_feeder feeder, uint32_t *destn, const uint8_t *baseptr)
 {
+    if(!feeder->IPParserPtrs->mem->otf->cdb40bit) {
 #ifdef UNIFIED_ITB_SUPPORT
-    destn[0] = 0x20000000; 
+        destn[0] = (B_SCV_TYPE_BASE << 24);
 #else
-    destn[0] = 0x01000000;
+        destn[0] = 0x01000000;
 #endif
-    destn[1] = botf_mem_paddr(feeder->IPParserPtrs->mem, baseptr);
+        destn[1] = botf_mem_paddr(feeder->IPParserPtrs->mem, baseptr);
+        if(!feeder->used32bitBase) {
+            feeder->used32bitBase = true;
+            if(feeder->used40bitBase) {
+                (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+            }
+        }
+    } else {
+#ifdef UNIFIED_ITB_SUPPORT
+        destn[0] = (B_SCV_TYPE_BASE_40BIT << 24);
+#else
+#error "Not supported"
+#endif
+        if(baseptr >= feeder->IPParserPtrs->CdbStartPtr || baseptr <= feeder->IPParserPtrs->CdbEndPtr) {
+            destn[1] = baseptr -  feeder->IPParserPtrs->CdbStartPtr;
+        } else {
+            (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+            destn[1] = 0;
+        }
+        if(!feeder->used40bitBase) {
+            feeder->used40bitBase = true;
+            if(feeder->used32bitBase) {
+                (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+            }
+        }
+    }
     destn[2] = 0;
     destn[3] = 0;
     botf_mem_flush(feeder->IPParserPtrs->mem, destn, B_SCV_LEN);
@@ -333,6 +362,10 @@ botf_itb_feeder_copy(botf_itb_feeder feeder, void *dst, const void *src_)
     case B_SCV_TYPE_BASE:
         /* Keep a copy of last base ptr, copy to destn itb later */
         feeder->lastbaseptr = botf_mem_vaddr(feeder->IPParserPtrs->mem,src[1]);
+        feeder->updatebaseptr = true;
+        return destn;
+    case B_SCV_TYPE_BASE_40BIT:
+        feeder->lastbaseptr = feeder->IPParserPtrs->CdbStartPtr+src[1];
         feeder->updatebaseptr = true;
         return destn;
 #if 0

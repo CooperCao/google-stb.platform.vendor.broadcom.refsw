@@ -199,6 +199,16 @@ static BERR_Code BCHP_P_GetFeature
         rc = BERR_SUCCESS;
         break;
 
+    case BCHP_Feature_eRfmCapable:
+        /* RFM module is present in A0 and B0 but not C0*/
+#if (BCHP_VER <= BCHP_VER_B0)
+        *(bool *)pFeatureValue = true;
+#else
+        *(bool *)pFeatureValue = false;
+#endif
+        rc = BERR_SUCCESS;
+        break;
+
     default:
         rc = BCHP_P_GetDefaultFeature(hChip, eFeature, pFeatureValue);
         break;

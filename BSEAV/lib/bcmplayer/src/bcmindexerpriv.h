@@ -60,7 +60,7 @@ struct BNAV_Indexer_HandleImpl
                                                first I-slice */
     unsigned        seqHdrSize;             /* Number of bytes in the sequence
                                                header */
-    unsigned        seqHdrStartOffset;      /* Sequence header offset (in bytes) relative to frame offset */
+    uint64_t        seqHdrStartOffset;      /* Offset of sequence header */
     uint64_t        picStart;               /* Offset of start of picture */
     uint64_t        picEnd;                 /* Offset of end of picture */
     struct {

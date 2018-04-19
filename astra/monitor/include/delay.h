@@ -49,7 +49,7 @@ static inline void udelay(uint32_t us)
     __asm__ volatile("mrs %[f], CNTFRQ_EL0" : [f] "=r" (freq) ::);
     __asm__ volatile("mrs %[n], CNTPCT_EL0" : [n] "=r" (now) ::);
 
-    end = now + freq * us / 1000000;
+    end = now + (freq / 1000000) * us;
     while (now < end)
         __asm__ volatile("mrs %[n], CNTPCT_EL0" : [n] "=r" (now) ::);
 }

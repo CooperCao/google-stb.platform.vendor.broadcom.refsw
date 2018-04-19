@@ -444,20 +444,241 @@ void BVDC_P_Dnr_BuildRul_isr
  * {private}
  *
  */
-BERR_Code BVDC_P_Dnr_SetInfo_isr
+static void BVDC_P_Dnr_SetBnrInfo_isr
+    ( BVDC_P_Dnr_Handle                hDnr,
+      const BVDC_P_PictureNodePtr      pPicture,
+      uint32_t                         ulBnrQp,
+      int32_t                          iBnrLevel )
+{
+    BVDC_P_BnrCfgEntry *pBnrCfg;
+
+    /* Block Noise Reduction (BNR) */
+    pBnrCfg = (BVDC_P_BnrCfgEntry *)BVDC_P_Dnr_GetBnrCfg_isr(ulBnrQp,
+        pPicture->PicComRulInfo.eSrcOrigPolarity,
+        hDnr->hSource->stCurInfo.pFmtInfo, hDnr->hSource->stCurInfo.stDnrSettings.pvUserInfo);
+
+    /* If Get funtion returns NULL pointer, generate the BNR config table */
+    /* locally, otherwise, copying the BNR config table to the context */
+    if(!pBnrCfg)
+    {
+        pBnrCfg = &hDnr->stBnrCfg;
+        pBnrCfg->ulHBnr = (ulBnrQp > 0);
+        pBnrCfg->ulVBnr = (ulBnrQp > 0);
+        pBnrCfg->ulLrLimit = (ulBnrQp == 0) ? 0 : BVDC_P_DNR_CLAMP(2, 14, 2 + (ulBnrQp >> 2) );
+        pBnrCfg->ulSmallGrid = (pPicture->PicComRulInfo.eSrcOrigPolarity != BAVC_Polarity_eFrame);
+        pBnrCfg->ulHRel = (ulBnrQp == 0) ? 0 :
+            BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_VBNR_CONFIG, VBNR_REL),
+            2 + 14 / ulBnrQp);
+        pBnrCfg->ulVRel = (ulBnrQp == 0) ? 0 :
+            BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_VBNR_CONFIG, VBNR_REL),
+            2 + 14 / ulBnrQp);
+        if(hDnr->bDnrH)
+        {
+            if(iBnrLevel < 100)
+            {
+                if(pBnrCfg->ulVRel < 5)
+                    pBnrCfg->ulVRel = 5;
+            }
+            else
+            {
+                if(pBnrCfg->ulVRel < 4)
+                    pBnrCfg->ulVRel = 4;
+            }
+        }
+        pBnrCfg->ulHLimit = BVDC_P_DNR_CLAMP(0, 80 + 25 * (uint32_t)((iBnrLevel + 100) / 150), (7 * ulBnrQp / 2));
+        pBnrCfg->ulVLimit = BVDC_P_DNR_CLAMP(0, 80 + 25 * (uint32_t)((iBnrLevel + 100) / 150), (7 * ulBnrQp / 2));
+    }
+    else
+    {
+        hDnr->stBnrCfg = *pBnrCfg;
+        pBnrCfg = &hDnr->stBnrCfg;
+    }
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CTRL) = (
+        BCHP_FIELD_DATA(DNR_0_BNR_CTRL, VBNR_ENABLE, pBnrCfg->ulVBnr));
+    /* TODO: program with the correct settings for VBNR and HBNR REL and LIMIT */
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG) &= ~(
+        BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_LR_LIMIT) |
+        BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_REL) |
+        BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_LIMIT));
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG) |=
+        BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_LR_LIMIT, pBnrCfg->ulLrLimit) |
+        BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_REL,      pBnrCfg->ulVRel)     |
+        BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_LIMIT,    pBnrCfg->ulVLimit);
+}
+
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Dnr_SetMnrInfo_isr
+    ( BVDC_P_Dnr_Handle                hDnr,
+      const BVDC_P_PictureNodePtr      pPicture,
+      uint32_t                         ulMnrQp,
+      int32_t                          iMnrLevel )
+{
+    BVDC_P_MnrCfgEntry *pMnrCfg;
+    uint32_t ulSrcHSize = (pPicture->pDnrIn->ulWidth);
+
+    /* Mosquito Noise Reduction (MNR) */
+    pMnrCfg = (BVDC_P_MnrCfgEntry *)BVDC_P_Dnr_GetMnrCfg_isr(ulMnrQp,
+        ulSrcHSize, hDnr->hSource->stCurInfo.pFmtInfo, hDnr->hSource->stCurInfo.stDnrSettings.pvUserInfo);
+
+    /* If Get funtion returns NULL pointer, generate the MNR config table */
+    /* locally, otherwise, copying the MNR config table to the context */
+    if(!pMnrCfg)
+    {
+        uint32_t ulMnrMerge;
+
+        pMnrCfg = &hDnr->stMnrCfg;
+        pMnrCfg->ulMnr = (ulMnrQp > 0);
+        pMnrCfg->ulSpot = (ulMnrQp > 10);
+        ulMnrMerge = ulMnrQp / 6 + ((ulSrcHSize > BFMT_NTSC_WIDTH) ? 1 : 0);
+
+        pMnrCfg->ulMerge = BVDC_P_DNR_CLAMP(0,
+            BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_MERGE), 4),
+            ulMnrMerge);
+
+        pMnrCfg->ulRel = BVDC_P_DNR_CLAMP(36 - (3 * (uint32_t)((iMnrLevel + 100) / 150)),
+            BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_REL), 120),
+            120 - (ulMnrQp * 7) / 2);
+
+        /* PR32066: zoneplate pattern cause video flicking/beating when either
+         * BNR or MNR is turned on. */
+        /*
+        pMnrCfg->ulLimit = BVDC_P_DNR_CLAMP(0,
+            BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_LIMIT),
+            ulMnrQp * 14 / 10); */
+        /* PR34386: */
+        /*pMnrCfg->ulLimit = 0;*/
+        pMnrCfg->ulLimit = BVDC_P_DNR_CLAMP(0, 30 + 7 * (uint32_t)((iMnrLevel + 100) / 150), ((ulMnrQp > 3)? ulMnrQp-3 : 0) * 10 / 10);
+        if(hDnr->ulFilterLimit == 0)
+        {
+            hDnr->ulFilterLimit = pMnrCfg->ulLimit * 100;
+        }
+        if(pMnrCfg->ulLimit * 10000 > hDnr->ulFilterLimit * 110)
+        {
+            hDnr->ulFilterLimit = hDnr->ulFilterLimit * 110;
+        }
+        else if(pMnrCfg->ulLimit * 10000 < hDnr->ulFilterLimit * 98)
+        {
+            hDnr->ulFilterLimit = hDnr->ulFilterLimit * 98;
+        }
+        else
+        {
+            hDnr->ulFilterLimit = pMnrCfg->ulLimit * 10000;
+        }
+
+        pMnrCfg->ulLimit = (hDnr->ulFilterLimit + 5000) / 10000;
+        hDnr->ulFilterLimit = hDnr->ulFilterLimit / 100;
+    }
+    else
+    {
+        hDnr->stMnrCfg = *pMnrCfg;
+        pMnrCfg = &hDnr->stMnrCfg;
+    }
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CTRL) =
+        BCHP_FIELD_DATA(DNR_0_MNR_CTRL, MNR_ENABLE, pMnrCfg->ulMnr);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG) &= ~(
+        BCHP_MASK(DNR_0_MNR_CONFIG, MNR_FILTER_SIZE) |
+        BCHP_MASK(DNR_0_MNR_CONFIG, MNR_MERGE) |
+        BCHP_MASK(DNR_0_MNR_CONFIG, MNR_REL) |
+        BCHP_MASK(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND) |
+        BCHP_MASK(DNR_0_MNR_CONFIG, MNR_LIMIT));
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG) |= (
+        BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_FILTER_SIZE, 0         ) |
+        BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_MERGE, pMnrCfg->ulMerge) |
+        BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_REL,   pMnrCfg->ulRel  ) |
+        BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND, 1         ) |
+        BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_LIMIT, pMnrCfg->ulLimit));
+}
+
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Dnr_SetDcrInfo_isr
+    ( BVDC_P_Dnr_Handle                hDnr,
+      int32_t                          iDcrLevel )
+{
+    BVDC_P_DcrCfgEntry *pDcrCfg;
+    const BVDC_Dnr_Settings *pDnrSettings;
+    uint32_t ulDitherEn, ulDcrFiltEn;
+    uint32_t ulBright0, ulBright1, ulBright2;
+
+    pDnrSettings = &hDnr->hSource->stCurInfo.stDnrSettings;
+    pDcrCfg = (BVDC_P_DcrCfgEntry *)BVDC_P_Dnr_GetDcrCfg_isr(iDcrLevel,
+        hDnr->hSource->stCurInfo.pFmtInfo, pDnrSettings->pvUserInfo);
+    hDnr->stDcrCfg = *pDcrCfg;
+    pDcrCfg = &hDnr->stDcrCfg;
+
+    ulDitherEn = (hDnr->b10BitMode || hDnr->bDbvMode) ? 0: (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
+    if(hDnr->eDcrMode != pDnrSettings->eDcrMode)
+    {
+        BDBG_MODULE_MSG(BVDC_DITHER,("DNR%d DITHER: %s", hDnr->eId, ulDitherEn ? "ENABLE" : "DISABLE"));
+    }
+    ulDcrFiltEn = (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable) && !hDnr->bDbvMode;
+    ulBright0 = 0;
+    ulBright1 = 1;
+    ulBright2 = 0;
+
+    /* PR47349: always disable DITH in DCR block for 10-bit chips */
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_CTRL) =
+        BCHP_FIELD_DATA(DNR_0_DCR_CTRL, DITH_ENABLE, ulDitherEn  ) |
+        BCHP_FIELD_DATA(DNR_0_DCR_CTRL, FILT_ENABLE, ulDcrFiltEn );
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_LIMIT) =
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_2_LIMIT, pDcrCfg->ulFilt2Limit) |
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_1_LIMIT, pDcrCfg->ulFilt1Limit) |
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_0_LIMIT, pDcrCfg->ulFilt0Limit);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_CONFIG) =
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, BRIGHT_0,   ulBright0    ) |
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, BRIGHT_1,   ulBright1    ) |
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, BRIGHT_2,   ulBright2    ) |
+        BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, FILT_CLAMP, pDcrCfg->ulFiltClamp);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_PATTERN) =
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, ALTERNATE_Y, 0) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, ALTERNATE_X, 1) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, INVERT_Y,    0) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, INVERT_X,    0) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, AUTO_DITH,   1);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_VALUE) =
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_VALUE, ORDER_A, pDcrCfg->ulOrderA) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_VALUE, ORDER_B, pDcrCfg->ulOrderB);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN) =
+        BCHP_FIELD_ENUM(DNR_0_DCR_DITH_RANDOM_PATTERN, RNG_MODE, RUN   ) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN, RNG_SEED, 0x1111);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_VALUE) =
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_A, pDcrCfg->ulRandomA) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_B, pDcrCfg->ulRandomB) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_C, pDcrCfg->ulRandomC) |
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_D, pDcrCfg->ulRandomD);
+
+    BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL) =
+        BCHP_FIELD_DATA(DNR_0_DCR_DITH_OUT_CTRL, DITH_CLAMP, pDcrCfg->ulDithClamp);
+}
+
+/***************************************************************************
+ * {private}
+ *
+ */
+void BVDC_P_Dnr_SetInfo_isr
     ( BVDC_P_Dnr_Handle                hDnr,
       const BVDC_P_PictureNodePtr      pPicture )
 {
     uint32_t ulSrcVSize, ulSrcHSize;
     uint32_t ulMnrQp, ulBnrQp;
     uint32_t ulAdjQp, ulVOffset, ulHOffset;
-    uint32_t ulDitherEn, ulDcrFiltEn;
-    uint32_t ulBright0, ulBright1, ulBright2;
     const BVDC_P_Rect  *pScanOut = &pPicture->hBuffer->hWindow->stCurInfo.hSource->stScanOut;
     BVDC_P_Source_Info *pSrcInfo;
-    BVDC_P_DcrCfgEntry *pDcrCfg;
-    BVDC_P_BnrCfgEntry *pBnrCfg;
-    BVDC_P_MnrCfgEntry *pMnrCfg;
     const BVDC_Dnr_Settings *pDnrSettings;
     BFMT_Orientation eOrientation;
     int32_t iBnrLevel, iMnrLevel, iDcrLevel;
@@ -556,6 +777,12 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         }
     }
 #endif
+
+    /* Per architecture request, always calculate MNR Limit due to the */
+    /* recursive use of filter limit.  This operation can be put back  */
+    /* once XVD implements the IIR filtering */
+    BVDC_P_Dnr_SetMnrInfo_isr(hDnr, pPicture, ulMnrQp, iMnrLevel);
+
     /* Source size and destination size.   Detecting dynamics format (size)
      * change.  Base on these information we can further bypass
      * unnecessary computations. */
@@ -604,189 +831,9 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_SRC_PIC_SIZE, HSIZE, ulSrcHSize) |
             BCHP_FIELD_DATA(DNR_0_SRC_PIC_SIZE, VSIZE, ulSrcVSize));
 
-        /* Block Noise Reduction (BNR) */
-        pBnrCfg = (BVDC_P_BnrCfgEntry *)BVDC_P_Dnr_GetBnrCfg_isr(ulBnrQp,
-            pPicture->PicComRulInfo.eSrcOrigPolarity,
-            pSrcInfo->pFmtInfo, pDnrSettings->pvUserInfo);
-
-        /* If Get funtion returns NULL pointer, generate the BNR config table */
-        /* locally, otherwise, copying the BNR config table to the context */
-        if(!pBnrCfg)
-        {
-            pBnrCfg = &hDnr->stBnrCfg;
-            pBnrCfg->ulHBnr = (ulBnrQp > 0);
-            pBnrCfg->ulVBnr = (ulBnrQp > 0);
-            pBnrCfg->ulLrLimit = (ulBnrQp == 0) ? 0 : BVDC_P_DNR_CLAMP(2, 14, 2 + (ulBnrQp >> 2) );
-            pBnrCfg->ulSmallGrid = (pPicture->PicComRulInfo.eSrcOrigPolarity != BAVC_Polarity_eFrame);
-            pBnrCfg->ulHRel = (ulBnrQp == 0) ? 0 :
-                BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_VBNR_CONFIG, VBNR_REL),
-                2 + 14 / ulBnrQp);
-            pBnrCfg->ulVRel = (ulBnrQp == 0) ? 0 :
-                BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_VBNR_CONFIG, VBNR_REL),
-                2 + 14 / ulBnrQp);
-            if(hDnr->bDnrH)
-            {
-                if(iBnrLevel < 100)
-                {
-                    if(pBnrCfg->ulVRel < 5)
-                        pBnrCfg->ulVRel = 5;
-                }
-                else
-                {
-                    if(pBnrCfg->ulVRel < 4)
-                        pBnrCfg->ulVRel = 4;
-                }
-            }
-            pBnrCfg->ulHLimit = BVDC_P_DNR_CLAMP(0, 80 + 25 * (uint32_t)((iBnrLevel + 100) / 150), (7 * ulBnrQp / 2));
-            pBnrCfg->ulVLimit = BVDC_P_DNR_CLAMP(0, 80 + 25 * (uint32_t)((iBnrLevel + 100) / 150), (7 * ulBnrQp / 2));
-        }
-        else
-        {
-            hDnr->stBnrCfg = *pBnrCfg;
-            pBnrCfg = &hDnr->stBnrCfg;
-        }
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CTRL) = (
-            BCHP_FIELD_DATA(DNR_0_BNR_CTRL, VBNR_ENABLE, pBnrCfg->ulVBnr));
-        /* TODO: program with the correct settings for VBNR and HBNR REL and LIMIT */
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG) &= ~(
-            BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_LR_LIMIT) |
-            BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_REL) |
-            BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_LIMIT));
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG) |=
-            BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_LR_LIMIT, pBnrCfg->ulLrLimit) |
-            BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_REL,      pBnrCfg->ulVRel)     |
-            BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_LIMIT,    pBnrCfg->ulVLimit);
-
-        /* Mosquito Noise Reduction (MNR) */
-        pMnrCfg = (BVDC_P_MnrCfgEntry *)BVDC_P_Dnr_GetMnrCfg_isr(ulMnrQp,
-            ulSrcHSize, pSrcInfo->pFmtInfo, pDnrSettings->pvUserInfo);
-
-        /* If Get funtion returns NULL pointer, generate the MNR config table */
-        /* locally, otherwise, copying the MNR config table to the context */
-        if(!pMnrCfg)
-        {
-            uint32_t ulMnrMerge;
-
-            pMnrCfg = &hDnr->stMnrCfg;
-            pMnrCfg->ulMnr = (ulMnrQp > 0);
-            pMnrCfg->ulSpot = (ulMnrQp > 10);
-            ulMnrMerge = ulMnrQp / 6 + ((ulSrcHSize > BFMT_NTSC_WIDTH) ? 1 : 0);
-
-            pMnrCfg->ulMerge = BVDC_P_DNR_CLAMP(0,
-                BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_MERGE), 4),
-                ulMnrMerge);
-
-            pMnrCfg->ulRel = BVDC_P_DNR_CLAMP(36 - (3 * (uint32_t)((iMnrLevel + 100) / 150)),
-                BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_REL), 120),
-                120 - (ulMnrQp * 7) / 2);
-
-            /* PR32066: zoneplate pattern cause video flicking/beating when either
-             * BNR or MNR is turned on. */
-            /*
-            pMnrCfg->ulLimit = BVDC_P_DNR_CLAMP(0,
-                BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_LIMIT),
-                ulMnrQp * 14 / 10); */
-            /* PR34386: */
-            /*pMnrCfg->ulLimit = 0;*/
-            pMnrCfg->ulLimit = BVDC_P_DNR_CLAMP(0, 30 + 7 * (uint32_t)((iMnrLevel + 100) / 150), ((ulMnrQp > 3)? ulMnrQp-3 : 0) * 10 / 10);
-            if(hDnr->ulFilterLimit == 0)
-            {
-                hDnr->ulFilterLimit = pMnrCfg->ulLimit * 100;
-            }
-            if(pMnrCfg->ulLimit * 10000 > hDnr->ulFilterLimit * 110)
-            {
-                hDnr->ulFilterLimit = hDnr->ulFilterLimit * 110;
-            }
-            else if(pMnrCfg->ulLimit * 10000 < hDnr->ulFilterLimit * 98)
-            {
-                hDnr->ulFilterLimit = hDnr->ulFilterLimit * 98;
-            }
-            else
-            {
-                hDnr->ulFilterLimit = pMnrCfg->ulLimit * 10000;
-            }
-
-            pMnrCfg->ulLimit = (hDnr->ulFilterLimit + 5000) / 10000;
-            hDnr->ulFilterLimit = hDnr->ulFilterLimit / 100;
-        }
-        else
-        {
-            hDnr->stMnrCfg = *pMnrCfg;
-            pMnrCfg = &hDnr->stMnrCfg;
-        }
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CTRL) =
-            BCHP_FIELD_DATA(DNR_0_MNR_CTRL, MNR_ENABLE, pMnrCfg->ulMnr);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG) &= ~(
-            BCHP_MASK(DNR_0_MNR_CONFIG, MNR_FILTER_SIZE) |
-            BCHP_MASK(DNR_0_MNR_CONFIG, MNR_MERGE) |
-            BCHP_MASK(DNR_0_MNR_CONFIG, MNR_REL) |
-            BCHP_MASK(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND) |
-            BCHP_MASK(DNR_0_MNR_CONFIG, MNR_LIMIT));
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG) |= (
-            BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_FILTER_SIZE, 0         ) |
-            BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_MERGE, pMnrCfg->ulMerge) |
-            BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_REL,   pMnrCfg->ulRel  ) |
-            BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND, 1         ) |
-            BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_LIMIT, pMnrCfg->ulLimit));
-
-        pDcrCfg = (BVDC_P_DcrCfgEntry *)BVDC_P_Dnr_GetDcrCfg_isr(iDcrLevel,
-            pSrcInfo->pFmtInfo, pDnrSettings->pvUserInfo);
-        hDnr->stDcrCfg = *pDcrCfg;
-        pDcrCfg = &hDnr->stDcrCfg;
-
-        ulDitherEn = (hDnr->b10BitMode || hDnr->bDbvMode) ? 0: (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable);
-        if(hDnr->eDcrMode != pDnrSettings->eDcrMode)
-        {
-            BDBG_MODULE_MSG(BVDC_DITHER,("DNR%d DITHER: %s", hDnr->eId, ulDitherEn ? "ENABLE" : "DISABLE"));
-        }
-        ulDcrFiltEn = (pDnrSettings->eDcrMode == BVDC_FilterMode_eEnable) && !hDnr->bDbvMode;
-        ulBright0 = 0;
-        ulBright1 = 1;
-        ulBright2 = 0;
-
-        /* PR47349: always disable DITH in DCR block for 10-bit chips */
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_CTRL) =
-            BCHP_FIELD_DATA(DNR_0_DCR_CTRL, DITH_ENABLE, ulDitherEn  ) |
-            BCHP_FIELD_DATA(DNR_0_DCR_CTRL, FILT_ENABLE, ulDcrFiltEn );
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_LIMIT) =
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_2_LIMIT, pDcrCfg->ulFilt2Limit) |
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_1_LIMIT, pDcrCfg->ulFilt1Limit) |
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_0_LIMIT, pDcrCfg->ulFilt0Limit);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_CONFIG) =
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, BRIGHT_0,   ulBright0    ) |
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, BRIGHT_1,   ulBright1    ) |
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, BRIGHT_2,   ulBright2    ) |
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_CONFIG, FILT_CLAMP, pDcrCfg->ulFiltClamp);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_PATTERN) =
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, ALTERNATE_Y, 0) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, ALTERNATE_X, 1) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, INVERT_Y,    0) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, INVERT_X,    0) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_PATTERN, AUTO_DITH,   1);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_VALUE) =
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_VALUE, ORDER_A, pDcrCfg->ulOrderA) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_VALUE, ORDER_B, pDcrCfg->ulOrderB);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN) =
-            BCHP_FIELD_ENUM(DNR_0_DCR_DITH_RANDOM_PATTERN, RNG_MODE, RUN   ) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN, RNG_SEED, 0x1111);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_VALUE) =
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_A, pDcrCfg->ulRandomA) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_B, pDcrCfg->ulRandomB) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_C, pDcrCfg->ulRandomC) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_RANDOM_VALUE, RANDOM_D, pDcrCfg->ulRandomD);
-
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL) =
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_OUT_CTRL, DITH_CLAMP, pDcrCfg->ulDithClamp);
+        BVDC_P_Dnr_SetBnrInfo_isr(hDnr, pPicture, ulBnrQp, iBnrLevel);
+        /*BVDC_P_Dnr_SetMnrInfo_isr(hDnr, pPicture, ulMnrQp, iMnrLevel);*/
+        BVDC_P_Dnr_SetDcrInfo_isr(hDnr, iDcrLevel);
 
         pSrcInfo->stDirty.stBits.bDnrAdjust = false;
         hDnr->ulMnrQp = ulMnrQp;
@@ -810,7 +857,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
 
     BDBG_LEAVE(BVDC_P_Dnr_SetInfo_isr);
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /***************************************************************************
@@ -893,13 +940,13 @@ void BVDC_P_Dnr_BuildRul_isr
     return;
 }
 
-BERR_Code BVDC_P_Dnr_SetInfo_isr
+void BVDC_P_Dnr_SetInfo_isr
     ( BVDC_P_Dnr_Handle                hDnr,
       const BVDC_P_PictureNodePtr      pPicture )
 {
     BSTD_UNUSED(hDnr);
     BSTD_UNUSED(pPicture);
-    return BERR_SUCCESS;
+    return;
 }
 
 BERR_Code BVDC_P_Dnr_SetEnable_isr

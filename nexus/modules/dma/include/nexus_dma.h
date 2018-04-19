@@ -421,6 +421,47 @@ NEXUS_Error NEXUS_DmaJob_GetStatus(
     NEXUS_DmaJobStatus *pStatus /* [out] */
     );
 
+
+/***************************************************************************
+Summary:
+Version of NEXUS_DmaJobBlockSettings used by the
+***************************************************************************/
+typedef struct NEXUS_DmaJobBlockDirectSettings
+{
+    uint64_t srcOffset;     /* source offset */
+    uint64_t destOffset;    /* destination offset - may be the same as source offset */
+    unsigned blockSize;     /* in bytes */
+
+    bool resetCrypto;       /* Should the crypto operation reset on this block? This flag has an effect only when paired with scatterGatherCryptoStart */
+    bool scatterGatherCryptoStart; /* If true, this block starts a scatter-gather crypto op */
+    bool scatterGatherCryptoEnd;   /* If true, this block ends a scatter-gather crypto op */
+    bool securityBtp;  /* if true, then this block is a BTP descriptor */
+} NEXUS_DmaJobBlockDirectSettings;
+
+/***************************************************************************
+Summary:
+Direct version of NEXUS_DmaJob_GetDefaultBlockSettings()
+***************************************************************************/
+void NEXUS_DmaJob_GetDefaultBlockDirectSettings(
+    NEXUS_DmaJobBlockDirectSettings *pSettings /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Direct version of NEXUS_DmaJob_ProcessBlocks()
+
+Description:
+This function allows application to construct descriptors in the device memory,
+thus avoiding need to copy descriptors across process (or kernel) boundary.
+Memory passed to this function could be freely reused after function returns.
+***************************************************************************/
+NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect (
+    NEXUS_DmaJobHandle handle,
+    const NEXUS_DmaJobBlockDirectSettings *pSettings, /* attr{memory=cached} device memory where NEXUS_DmaJobBlockDirectSettings reside */
+    unsigned nBlocks
+    );
+
+
 #ifdef __cplusplus
 }
 #endif

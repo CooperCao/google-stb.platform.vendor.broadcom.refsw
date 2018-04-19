@@ -413,6 +413,11 @@ In the math below, the arrays are 0-based.
     #define BXPT_HAS_DPCRS 1
     #define BXPT_HAS_REDUCED_TIMEREFS 1
     #define BXPT_HAS_RAVE_SCRAMBLING_CONTROL 1
+
+    #define BXPT_NUM_STC_SNAPSHOTS          6
+    #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
+    #define BXPT_MAX_EXTERNAL_TRIGS         3
+
 #endif
 
 #ifdef __cplusplus

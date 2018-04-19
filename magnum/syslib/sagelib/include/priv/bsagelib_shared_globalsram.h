@@ -46,6 +46,10 @@
 
 #include "bchp_scpu_globalram.h"
 
+#ifndef BHSM_ZEUS_VER_MAJOR
+#error BHSM_ZEUS_VER_MAJOR must be defined when including this file
+#endif
+
 /*
   GlobalRAM is partitioned by BFW.
   Partition boundaries are indicated in SUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR register
@@ -76,14 +80,14 @@
 #define GlobalSram_Pointers                   0x00    /*  */
 #define GlobalSram_FixedDataHeader            0x02    /* version |r|r| #words in Licensing / General fixed area */
 #define GlobalSram_RRegion_Info               0x03    /* Feature table entry 2 */
-#define SAGE_GlobalSram_TotalSize            (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_END+1) /* Size: first Out of bound index */
+#define SAGE_GlobalSram_TotalSize             (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_END+1) /* Size: first Out of bound index */
 
 #if BHSM_ZEUS_VER_MAJOR==5
 /* 7278A0,B0 GlobalSRAM[0] = 0x70E03402 (expected 8BFA3C02 per document THIS MAY NOT BE CORRECT) */
 #define GlobalSram_FixedData_size             0x32    /* #words in fixed area, RO to all but BSP, SAGE */
 #define GlobalSram_MaxVideoRes_Info           0x20    /* Feature table entry 6 */
 #define GlobalSram_IPLicensing_Info           0x22    /* Feature table entry 1 */
-#define GlobalSram_IPLicensing_Info_size      0x08    /* GlobalSram_IPLicensing_Info[7:0]/32 used, but more reserved*/
+#define GlobalSram_IPLicensing_Info_size      0x08    /* GlobalSram_IPLicensing_Info[7:0]/32 used, but more reserved */
 #define GlobalSram_HostSage_Scratchpad        0x34    /* GlobalSram_Pointers [15:8] */
 #define GlobalSram_HostSage_Scratchpad_size   0x1C
 #define GlobalSram_Misc_Comm                  0x50    /* GlobalSram_Pointers[1] [7:0] */
@@ -93,7 +97,7 @@
 #define GlobalSram_BSP_AsyncData              0xE0    /* GlobalSram_Pointers [23:16] */
 #define GlobalSram_BSP_AsyncData_size         0x02    /* 0xE2-FF unused in Z5 */
 #define GlobalSram_RRegion_Extension          (GlobalSram_RRegion_Info+7*2) /* continuation of RRegion struct */
-#define GlobalSram_RRegion_Extension_size     (GlobalSram_RRegion_Info+7*2) /* continuation of RRegion struct */
+#define GlobalSram_RRegion_Extension_size     (7*2) /* continuation of RRegion struct */
 #if BHSM_ZEUS_VER_MINOR!=0
 #define GlobalSram_SAGE_Extended_Scratchpad         0x100   /* Extended SAGE Scratchpad (Zeus >= 5.1) */
 #define GlobalSram_SAGE_Extended_Scratchpad_size    0x100
@@ -115,8 +119,8 @@
 #define GlobalSram_Misc_Comm_size             0x20
 #define GlobalSram_BSP_AsyncData              0xE0
 #define GlobalSram_BSP_AsyncData_size         0x02
-#define GlobalSram_RRegion_Extension          (0xE2+0x01) /* continuation of RRegion struct, skip header*/
-#define GlobalSram_RRegion_Extension_size     (0x1D)      /* Allocated Size */
+#define GlobalSram_RRegion_Extension          0xE2 /* continuation of RRegion struct */
+#define GlobalSram_RRegion_Extension_size     (0x1E)      /* Allocated Size */
 
 #define RESTRICTED_REGION_OFFSET(RR_Start) (RR_Start)
 #define RESTRICTED_REGION_SIZE(RR_Start,RR_End) (((RR_End)|0x07)+1-(RR_Start))
@@ -139,6 +143,16 @@
 #define BSAGElib_GlobalSram_eCRREndOffset               (GlobalSram_RRegion_Info+0x02) /* Set by BSP: physical address of the last byte of CRR */
 #define BSAGElib_GlobalSram_eSRRStartOffset             (GlobalSram_RRegion_Info+0x03) /* Set by BSP: physical address of the first byte of SRR */
 #define BSAGElib_GlobalSram_eSRREndOffset               (GlobalSram_RRegion_Info+0x04) /* Set by BSP: physical address of the last byte of SRR */
+#define BSAGElib_GlobalSram_eURR0StartOffset            (GlobalSram_RRegion_Info+0x05) /* Set by SAGE: physical address of the first byte of URR0 */
+#define BSAGElib_GlobalSram_eURR0EndOffset              (GlobalSram_RRegion_Info+0x06) /* Set by SAGE: physical address of the last byte of URR0 */
+#define BSAGElib_GlobalSram_eURR1StartOffset            (GlobalSram_RRegion_Info+0x07) /* Set by SAGE: physical address of the first byte of URR1 */
+#define BSAGElib_GlobalSram_eURR1EndOffset              (GlobalSram_RRegion_Info+0x08) /* Set by SAGE: physical address of the last byte of URR1 */
+#define BSAGElib_GlobalSram_eURR2StartOffset            (GlobalSram_RRegion_Info+0x09) /* Set by SAGE: physical address of the first byte of URR2 */
+#define BSAGElib_GlobalSram_eURR2EndOffset              (GlobalSram_RRegion_Info+0x0A) /* Set by SAGE: physical address of the last byte of URR2 */
+#define BSAGElib_GlobalSram_eRAAGAStartOffset           (GlobalSram_RRegion_Info+0x0B) /* Set by SAGE: physical address of the first byte of RAAGA RR */
+#define BSAGElib_GlobalSram_eRAAGAEndOffset             (GlobalSram_RRegion_Info+0x0C) /* Set by SAGE: physical address of the last byte of RAAGA RR */
+#define BSAGElib_GlobalSram_eRAAGA1StartOffset          (GlobalSram_RRegion_Info+0x0D) /* Set by SAGE: physical address of the first byte of RAAGA1 RR */
+#define BSAGElib_GlobalSram_eRAAGA1EndOffset            (GlobalSram_RRegion_Info+0x0E) /* Set by SAGE: physical address of the last byte of RAAGA1 RR */
 
 #define BSAGElib_GlobalSram_eMaxResGlr                  (GlobalSram_MaxVideoRes_Info)     /* Set by SAGE: Maximum resolution */
 #define BSAGElib_GlobalSram_eMaxRes                     (GlobalSram_MaxVideoRes_Info+0x01) /* Set by SAGE: Maximum resolution */
@@ -230,6 +244,9 @@
 
 /* FIRST of Misc global comm */
 #define BSAGElib_GlobalSram_eMiscCommFirst              (GlobalSram_Misc_Comm)
+#define BSAGElib_GlobalSram_eHostSageComControl         (GlobalSram_Misc_Comm+0x00)
+#define BSAGElib_GlobalSram_eHostSageComBuffer          (GlobalSram_Misc_Comm+0x01)
+
 
 #if 0
 /* HSM STASH will be removed; do not use for now [0x50, 0x5F] */

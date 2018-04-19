@@ -388,14 +388,11 @@ void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSe
     return;
 }
 
+#if NEXUS_MAX_INPUT_BANDS
 static void NEXUS_InputBand_P_GetDefaultSettings(NEXUS_InputBand inputBand, NEXUS_InputBandSettings *pSettings)
 {
-#if NEXUS_MAX_INPUT_BANDS
     BXPT_InputBandConfig cfg;
     BERR_Code rc;
-#else
-    BSTD_UNUSED(inputBand);
-#endif
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -411,7 +408,6 @@ static void NEXUS_InputBand_P_GetDefaultSettings(NEXUS_InputBand inputBand, NEXU
     pSettings->errorActiveHigh = true;
     pSettings->packetLength = 188;
 
-#if NEXUS_MAX_INPUT_BANDS
     rc = BXPT_GetInputBandConfig(pTransport->xpt, inputBand, &cfg);
     if (!rc) {
         pSettings->parallelInput = cfg.ParallelInputSel;
@@ -419,8 +415,8 @@ static void NEXUS_InputBand_P_GetDefaultSettings(NEXUS_InputBand inputBand, NEXU
     else {
         pSettings->parallelInput = false;
     }
-#endif
 }
+#endif
 
 #if BXPT_NUM_PCRS
 static NEXUS_Error NEXUS_Timebase_P_Init(unsigned index)

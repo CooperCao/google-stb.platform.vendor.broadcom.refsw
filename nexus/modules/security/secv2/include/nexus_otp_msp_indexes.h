@@ -114,6 +114,73 @@ extern "C"
  #define NEXUS_OTPMSP_BOOT_CODE_DECRYPT_ENABLE  342
  #define NEXUS_OTPMSP_MSP_PROG_DISABLE  344
  #define NEXUS_OTPMSP_MSP_PROG_LOCK_ENABLE  345
+#else
+ #define NEXUS_OTPMSP_PCIE0_HOST_PROTECT                           (7)
+ #define NEXUS_OTPMSP_PCIE0_CLIENT_PROTECT                         (8)
+ #define NEXUS_OTPMSP_PCIE0_MWIN_RESTRICT_ENABLE                 (135)
+ #define NEXUS_OTPMSP_PCIE0_MWIN_DISABLE                         (134)
+ #define NEXUS_OTPMSP_PCIE0_GWIN_DISABLE                         (133)
+ #define NEXUS_OTPMSP_PCIE0_MWIN_SIZE_ENFORCE_ENABLE             (621)
+ #define NEXUS_OTPMSP_PCIE1_HOST_PROTECT                           (9)
+ #define NEXUS_OTPMSP_PCIE1_CLIENT_PROTECT                        (10)
+ #define NEXUS_OTPMSP_PCIE1_MWIN_RESTRICT_ENABLE                 (137)
+ #define NEXUS_OTPMSP_PCIE1_MWIN_DISABLE                         (136)
+ #define NEXUS_OTPMSP_PCIE1_GWIN_DISABLE                         (133)
+ #define NEXUS_OTPMSP_PCIE1_MWIN_SIZE_ENFORCE_ENABLE             (622)
+ #define NEXUS_OTPMSP_CR_LOCK_ENABLE                               (5)
+ #define NEXUS_OTPMSP_ASYMMETRIC_CR_LOCK_ENABLE                  (238)
+ #define NEXUS_OTPMSP_FORCE_DRAM_SCRAMBLER                        (18)
+ #define NEXUS_OTPMSP_DATA_SECTION1_LOCK                         (529)
+ #define NEXUS_OTPMSP_DESTINATION_DISALLOW_KEY_A                  (37)
+ #define NEXUS_OTPMSP_DESTINATION_DISALLOW_KEY_B                  (38)
+ #define NEXUS_OTPMSP_DESTINATION_DISALLOW_KEY_C                  (39)
+ #define NEXUS_OTPMSP_DESTINATION_DISALLOW_KEY_D                  (40)
+ #define NEXUS_OTPMSP_DESTINATION_DISALLOW_KEY_E                  (41)
+ #define NEXUS_OTPMSP_DESTINATION_DISALLOW_KEY_F                  (42)
+ #define NEXUS_OTPMSP_PUBLIC_KEY0_INDEX                           (73)
+ #define NEXUS_OTPMSP_SECURE_BOOT_ENABLE                          (74)
+ #define NEXUS_OTPMSP_RAAGA_A_VERIFY_ENABLE                       (76)
+ #define NEXUS_OTPMSP_RAAGA_B_VERIFY_ENABLE                      (193)
+ #define NEXUS_OTPMSP_VIDEO_VERIFY_ENABLE                         (77)
+ #define NEXUS_OTPMSP_VICE_VERIFY_ENABLE                         (131)
+ /*#define NEXUS_OTPMSP_BOOT_CODE_DECRYPT_KEY_SRC*/
+ #define NEXUS_OTPMSP_BOOT_CODE_HIDE_ENABLE                       (79)
+ /*#define NEXUS_OTPMSP_BOOT_CODE_DECRYPT_KEY_INDEX*/
+ #define NEXUS_OTPMSP_ASKM_STB_OWNER_ID                           (43)
+ #define NEXUS_OTPMSP_CP_CONTROL_BITS                             (46)
+ #define NEXUS_OTPMSP_CA_CONTROL_BITS                             (45)
+ #define NEXUS_OTPMSP_FORCE_SC_DISALLOW                          (620)
+ #define NEXUS_OTPMSP_EBI_CS_SWAP_DISABLE                        (156)
+ #define NEXUS_OTPMSP_CA_KEY_LADDER_DISABLE                       (47)
+ #define NEXUS_OTPMSP_CP_KEY_LADDER_DISABLE                       (48)
+ /*#define NEXUS_OTPMSP_GLOBAL_KEY_TO_CA_KEY_LADDER_DISABLE*/
+ /*#define NEXUS_OTPMSP_GLOBAL_KEY_TO_CP_KEY_LADDER_DISABLE*/
+ #define NEXUS_OTPMSP_TWO_STAGE_CA_KEY_LADDER_DISABLE            (163)
+ #define NEXUS_OTPMSP_TWO_STAGE_CP_KEY_LADDER_DISABLE            (164)
+ /*#define NEXUS_OTPMSP_CA_CPD_DES_TDES_CBC_SOFTWARE_KEY_DISABLE*/
+ #define NEXUS_OTPMSP_CA_SOFTWARE_KEY_DISABLE                     (59)
+ #define NEXUS_OTPMSP_CA_DVB_CSA3_SOFTWARE_KEY_DISABLE           (245)
+ #define NEXUS_OTPMSP_CP_MULTI2_ECB_CBC_SOFTWARE_KEY_DISABLE     (146)
+ #define NEXUS_OTPMSP_RPMB_HOST_REPLAY_KEY_LADDER_DISABLE        (640)
+ #define NEXUS_OTPMSP_RPMB_USE_KEY_MOD                           (641)
+ #define NEXUS_OTPMSP_RPMB_OUT_KEY_MOD                           (642)
+ /*#define NEXUS_OTPMSP_CP_DES_SOFTWARE_KEY_DISABLE*/
+ /*#define NEXUS_OTPMSP_CP_TDES_SOFTWARE_KEY_DISABLE*/
+ #define NEXUS_OTPMSP_CP_AES_SOFTWARE_KEY_DISABLE                 (63)
+ #define NEXUS_OTPMSP_CP_AES_COUNTER_SOFTWARE_KEY_DISABLE         (64)
+ #define NEXUS_OTPMSP_IP_LICENSING_CHECK_ENABLE                   (70)
+ #define NEXUS_OTPMSP_MARKET_ID0                                  (94)
+ #define NEXUS_OTPMSP_SYSTEM_EPOCH0                               (87)
+ #define NEXUS_OTPMSP_SYSTEM_EPOCH1                              (520)
+ #define NEXUS_OTPMSP_SYSTEM_EPOCH2                              (519)
+ #define NEXUS_OTPMSP_SYSTEM_EPOCH3                              (518)
+ #define NEXUS_OTPMSP_KEYLADDER_KEY_CONTRIBUTION_DISALLOW        (623)
+ #define NEXUS_OTPMSP_KEYLADDER_KEY_CONTRIBUTION_FEATURE_DISABLE (624)
+ /*#define NEXUS_OTPMSP_CP_G_HASH_SOFTWARE_KEY_DISABLE*/
+ /*#define NEXUS_OTPMSP_CP_CAM_SOFTWARE_KEY_DISABLE*/
+ /*#define NEXUS_OTPMSP_BOOT_CODE_DECRYPT_ENABLE*/
+ /*#define NEXUS_OTPMSP_MSP_PROG_DISABLE*/
+ /*#define NEXUS_OTPMSP_MSP_PROG_LOCK_ENABLE*/
 #endif
 
 #ifdef __cplusplus

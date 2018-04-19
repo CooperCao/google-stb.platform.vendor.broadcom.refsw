@@ -89,10 +89,12 @@
     </boards>
   </platform>
   <platform id="97255">
-    <bondouts></bondouts>
+    <bondouts>973574</bondouts>
     <revisions>A0</revisions>
     <cpu_arch>ARM64</cpu_arch>
-    <boards></boards>
+    <boards>
+      <board name="sv">NEXUS_USE_73574_SV=y</board>
+    </boards>
   </platform>
   <platform id="97260">
     <bondouts></bondouts>

@@ -86,7 +86,13 @@ BDBG_MODULE(playback_dif_single);
 #define ZORDER_TOP 10
 
 #ifdef DIF_SCATTER_GATHER
-#define NUM_CIRCULAR_BUF 60 /* must be greater than half of descFifoSize */
+/* We hold multiple samples - greater than half of descFifoSize */
+/* This is to avoid overwriting by processing the current sample */
+#define NUM_SAMPLES_HELD 60
+
+/* We hold a couple of buffers for the previous fragments */
+/* This is to avoid overwriting by processing the current fragment */
+#define NUM_FRAGMENTS_HELD 3
 #endif
 
 #define REPACK_VIDEO_PES_ID 0xE0
@@ -125,12 +131,11 @@ public:
     IStreamer* videoStreamer;
     IStreamer* audioStreamer;
     int video_decode_hdr;
+    size_t nalu_len;
 
     uint8_t *pAvccHdr;
 #ifdef DIF_SCATTER_GATHER
-    /* We use 2 buffers by turn to prevent the previous fragment data */
-    /* from being overwritten by file io for the subsequent fragment */
-    uint8_t *pPayload[2];
+    uint8_t *pPayload[NUM_FRAGMENTS_HELD];
 #else
     uint8_t *pPayload;
 #endif
@@ -138,11 +143,11 @@ public:
     uint8_t *pVideoHeaderBuf;
 #ifdef DIF_SCATTER_GATHER
     uint32_t audio_idx;
-    IBuffer* audioPesBuf[NUM_CIRCULAR_BUF];
+    IBuffer* audioPesBuf[NUM_SAMPLES_HELD];
     uint32_t video_idx;
-    IBuffer* videoPesBuf[NUM_CIRCULAR_BUF];
-    IBuffer* audioDecOut[NUM_CIRCULAR_BUF];
-    IBuffer* videoDecOut[NUM_CIRCULAR_BUF];
+    IBuffer* videoPesBuf[NUM_SAMPLES_HELD];
+    IBuffer* audioDecOut[NUM_SAMPLES_HELD];
+    IBuffer* videoDecOut[NUM_SAMPLES_HELD];
 #endif
 
     FILE *fp_mp4;
@@ -178,8 +183,9 @@ AppContext::AppContext()
 {
     pAvccHdr = NULL;
 #ifdef DIF_SCATTER_GATHER
-    pPayload[0] = NULL;
-    pPayload[1] = NULL;
+    for (int i = 0; i < NUM_FRAGMENTS_HELD; i++) {
+        pPayload[i] = NULL;
+    }
 #else
     pPayload = NULL;
 #endif
@@ -188,7 +194,7 @@ AppContext::AppContext()
 #ifdef DIF_SCATTER_GATHER
     audio_idx = 0;
     video_idx = 0;
-    for (int i = 0; i < NUM_CIRCULAR_BUF; i++) {
+    for (int i = 0; i < NUM_SAMPLES_HELD; i++) {
         audioPesBuf[i] = NULL;
         videoPesBuf[i] = NULL;
         audioDecOut[i] = NULL;
@@ -206,6 +212,7 @@ AppContext::AppContext()
     videoStreamer = NULL;
     audioStreamer = NULL;
     video_decode_hdr = 0;
+    nalu_len = 0;
     videoDecoder = NULL;
     audioDecoder = NULL;
     stcChannel = NULL;
@@ -246,7 +253,7 @@ AppContext::~AppContext()
     if (pAudioHeaderBuf) NEXUS_Memory_Free(pAudioHeaderBuf);
     if (pVideoHeaderBuf) NEXUS_Memory_Free(pVideoHeaderBuf);
 #ifdef DIF_SCATTER_GATHER
-    for (int i = 0; i < NUM_CIRCULAR_BUF; i++) {
+    for (int i = 0; i < NUM_SAMPLES_HELD; i++) {
         if (audioPesBuf[i] != NULL) {
             BufferFactory::DestroyBuffer(audioPesBuf[i]);
         }
@@ -368,48 +375,25 @@ static int parse_esds_config(uint8_t* pBuf, bmedia_info_aac *info_aac, size_t pa
 }
 
 static int parse_avcc_config(uint8_t *avcc_hdr, size_t *hdr_len, size_t *nalu_len,
-        uint8_t *cfg_data, size_t cfg_data_size)
+    uint8_t *cfg_data, size_t cfg_data_size)
 {
     bmedia_h264_meta meta;
-    unsigned int i, sps_len, pps_len;
-    uint8_t *data;
-    uint8_t *dst;
+    batom_cursor cursor;
+
+    batom_factory_t factory = batom_factory_create(bkni_alloc, 64);
+    batom_accum_t dst = batom_accum_create(factory);
 
     bmedia_read_h264_meta(&meta, cfg_data, cfg_data_size);
 
+    bmedia_copy_h264_meta_with_nal_vec(dst, &meta, &bmp4_nal_vec);
+    batom_cursor_from_accum(&cursor, dst);
+    *hdr_len = batom_cursor_copy(&cursor, avcc_hdr, BMP4_MAX_PPS_SPS);
     *nalu_len = meta.nalu_len;
 
-    data = (uint8_t *)meta.sps.data;
-    dst = avcc_hdr;
-    *hdr_len = 0;
+    batom_accum_clear(dst);
+    batom_accum_destroy(dst);
+    batom_factory_destroy(factory);
 
-    for(i = 0; i < meta.sps.no; i++)
-    {
-        sps_len = (((uint16_t)data[0]) <<8) | data[1];
-        data += 2;
-        /* Add NAL */
-        BKNI_Memcpy(dst, bmp4_nal, sizeof(bmp4_nal)); dst += sizeof(bmp4_nal);
-        /* Add SPS */
-        BKNI_Memcpy(dst, data, sps_len);
-        dst += sps_len;
-        data += sps_len;
-        *hdr_len += (sizeof(bmp4_nal) + sps_len);
-    }
-
-    data = (uint8_t *)meta.pps.data;
-    for (i = 0; i < meta.pps.no; i++)
-    {
-        pps_len = (((uint16_t)data[0]) <<8) | data[1];
-        data += 2;
-        /* Add NAL */
-        BKNI_Memcpy(dst, bmp4_nal, sizeof(bmp4_nal));
-        dst += sizeof(bmp4_nal);
-        /* Add PPS */
-        BKNI_Memcpy(dst, data, pps_len);
-        dst += pps_len;
-        data += pps_len;
-        *hdr_len += (sizeof(bmp4_nal) + pps_len);
-    }
     return 0;
 }
 
@@ -443,9 +427,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             {
                 streamer = s_app.videoStreamer;
                 /* H.264 Decoder configuration parsing */
-                size_t avcc_hdr_size;
-                size_t nalu_len = 0;
-                parse_avcc_config(s_app.pAvccHdr, &avcc_hdr_size, &nalu_len, (uint8_t*)decoder_data, decoder_len);
+		size_t avcc_hdr_size = 0;
 
                 bmedia_pes_info_init(&pes_info, REPACK_VIDEO_PES_ID);
                 frag_duration = s_app.last_video_fragment_time +
@@ -456,11 +438,12 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
 
                 if (s_app.video_decode_hdr == 0) {
+                    parse_avcc_config(s_app.pAvccHdr, &avcc_hdr_size, &s_app.nalu_len, (uint8_t*)decoder_data, decoder_len);
                     pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
-                        (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
+                        (sampleSize + avcc_hdr_size - s_app.nalu_len + sizeof(bmp4_nal)), &pes_info);
                 } else {
                     pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
-                        sampleSize - nalu_len + sizeof(bmp4_nal), &pes_info);
+                        (sampleSize -s_app.nalu_len + sizeof(bmp4_nal)), &pes_info);
                 }
 
                 if (pes_header_len > 0) {
@@ -471,7 +454,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                     s_app.videoPesBuf[s_app.video_idx]->Copy(0, s_app.pVideoHeaderBuf, pes_header_len);
                     streamer->SubmitScatterGather(
                         s_app.videoPesBuf[s_app.video_idx]->GetPtr(),
-                        pes_header_len, /* flush= */true);
+                        pes_header_len);
 #else
                     IBuffer* output =
                         streamer->GetBuffer(pes_header_len);
@@ -484,7 +467,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 if (s_app.video_decode_hdr == 0) {
 #ifdef DIF_SCATTER_GATHER
                     streamer->SubmitScatterGather(s_app.pAvccHdr,
-                        avcc_hdr_size, /* flush= */true);
+                        avcc_hdr_size);
 #else
                     IBuffer* output =
                         streamer->GetBuffer(avcc_hdr_size);
@@ -516,7 +499,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 IBuffer* decOutput = BufferFactory::CreateBuffer(sampleSize, NULL, streamer->IsSecure());
                 s_app.videoDecOut[s_app.video_idx] = decOutput;
                 s_app.video_idx++;
-                s_app.video_idx %= NUM_CIRCULAR_BUF;
+                s_app.video_idx %= NUM_SAMPLES_HELD;
                 if (s_app.decryptor) {
                     numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
                         input, decOutput, sampleSize);
@@ -589,7 +572,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
 #endif
                     streamer->SubmitScatterGather(
                         s_app.audioPesBuf[s_app.audio_idx]->GetPtr(),
-                        pes_header_len + BMEDIA_ADTS_HEADER_SIZE, !s_app.audioPesBuf[s_app.audio_idx]->IsSecure());
+                        pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
 #else // DIF_SCATTER_GATHER
                     IBuffer* output =
                         streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
@@ -620,7 +603,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                         numOfByteDecrypted = sampleSize;
                     }
                     s_app.audio_idx++;
-                    s_app.audio_idx %= NUM_CIRCULAR_BUF;
+                    s_app.audio_idx %= NUM_SAMPLES_HELD;
                     if (numOfByteDecrypted != sampleSize)
                     {
                         LOGE(("%s Failed to decrypt sample, can't continue - %d", BSTD_FUNCTION, __LINE__));
@@ -1074,12 +1057,13 @@ static void setup_streamer()
 
 #ifdef DIF_SCATTER_GATHER
     uint8_t * pPayload = NULL;
-    if (NEXUS_Memory_Allocate(BUF_SIZE * 2, &memSettings, (void **)&pPayload) !=  NEXUS_SUCCESS) {
+    if (NEXUS_Memory_Allocate(BUF_SIZE * NUM_FRAGMENTS_HELD, &memSettings, (void **)&pPayload) !=  NEXUS_SUCCESS) {
         fprintf(stderr,"NEXUS_Memory_Allocate failed");
         exit(EXIT_FAILURE);
     }
-    s_app.pPayload[0] = pPayload;
-    s_app.pPayload[1] = pPayload + BUF_SIZE;
+    for (int i = 0; i < NUM_FRAGMENTS_HELD; i++) {
+        s_app.pPayload[i] = pPayload + BUF_SIZE * i;
+    }
 #else
     s_app.pPayload = NULL;
     if (NEXUS_Memory_Allocate(BUF_SIZE, &memSettings, (void **)&s_app.pPayload) !=  NEXUS_SUCCESS) {
@@ -1358,7 +1342,7 @@ void playback_loop()
 
 #ifdef DIF_SCATTER_GATHER
     for (unsigned i = 0;; i++) {
-        decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload[i%2], decoder_len);
+        decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload[i%NUM_FRAGMENTS_HELD], decoder_len);
 #else
     for (;;) {
         decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload, decoder_len);

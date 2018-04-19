@@ -40,8 +40,6 @@ vpath %.S   $(SRC_DIRS)
 vpath %.c   $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
 
-Q_ ?=@
-
 define make-goal
 $1/%.o: %.c
 	@echo [Compile... $$<]

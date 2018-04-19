@@ -390,13 +390,30 @@ static inline unsigned int read_mpidr(void)
 		freq = rv; \
 	}
 
-#define ARCH_SPECIFIC_NSWTASK { \
+#define ARCH_SPECIFIC_NSWTASK \
 	asm volatile("cpsie af":::); \
 	while (true) { \
-		asm volatile("mov r0, #0x83000000":::"r0"); \
-		asm volatile("orr r0, r0, #0x0200":::"r0"); \
-		asm volatile("smc #0":::); \
-	} \
+		asm volatile( \
+			"mov r0, #0x83000000 \r\n"  \
+			"orr r0, r0, #0x0200 \r\n" \
+			"smc #0 \r\n" \
+			::: "r0"); \
+	}
+
+#define ARCH_SPECIFIC_CPU_UPDATE(load, freq) { \
+		register uint32_t rload, rfreq; \
+		rload = load; \
+		asm volatile( \
+			"mov r0, #0x83000000 \r\n" \
+			"orr r0, r0, #0x0200 \r\n" \
+			"orr r0, r0, #0x01 \r\n" \
+			"mov r1, %[rload] \r\n" \
+			"smc #0 \r\n" \
+			"mov %[rfreq], r1 \r\n" \
+			: [rfreq] "=r" (rfreq) \
+			: [rload] "r" (rload) \
+			: "r0", "r1"); \
+		freq = rfreq; \
 	}
 
 #define ARCH_V8ARM32_SPECIFIC_GET_STIMER_CVAL(cval) { \
@@ -427,8 +444,8 @@ static inline unsigned int read_mpidr(void)
 		asm volatile("push {r1}":::);\
 		asm volatile("push {r2}":::);\
 		asm volatile("push {r3}":::);\
-		asm volatile("mov r2, %[rt]":: [rt] "r" (fireAtLow):);\
-		asm volatile("mov r3, %[rt]": :[rt] "r" (fireAtHigh):);\
+		asm volatile("mov r2, %[rt]"::[rt] "r" (fireAtLow):);\
+		asm volatile("mov r3, %[rt]"::[rt] "r" (fireAtHigh):);\
 		asm volatile("mov r0, #0x83000000":::"r0");\
 		asm volatile("orr r0, r0, #0x30000":::"r0"); \
 		asm volatile("smc #0":::);\

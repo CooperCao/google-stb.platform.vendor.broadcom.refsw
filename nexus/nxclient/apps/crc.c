@@ -53,6 +53,7 @@ static void print_usage(void)
         "Usage: crc OPTIONS\n"
         "-cmp DISPLAYINDEX       0=HD,1=SD,2=encode. ctrl-c to exit.\n"
         "-hdmi                   ctrl-c to exit.\n"
+        "-single_hdmi              read single stable HDMI CRC and print it\n"
         "-avd FILE[:PROGRAM] ...\n"
         "-mfd FILE[:PROGRAM] ...\n"
         "-only_mfd FILE[:PROGRAM] ...\n   like MFD, but don't set the decoder into CRC mode"
@@ -119,7 +120,7 @@ enum crc_type
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
-    int rc;
+    int rc, app_rc = NEXUS_SUCCESS;
     enum crc_type crc_type = crc_type_none;
     int curarg = 1;
     struct {
@@ -140,9 +141,15 @@ int main(int argc, const char **argv)
         bool dqt, mdqt, zero_delay_output_mode, iframe_as_rap, ignore_dpb_output_delay, ignore_num_reorder_frames, early_picture_delivery;
     } extra_settings;
     float video_framerate = 0.0;
+    struct {
+        bool set;
+        unsigned total_count;
+        unsigned last_value, last_value_count;
+    } single_hdmi;
 
     memset(decoder, 0, sizeof(decoder));
     memset(&extra_settings, 0, sizeof(extra_settings));
+    memset(&single_hdmi, 0, sizeof(single_hdmi));
     media_player_get_default_create_settings(&create_settings);
     media_player_get_default_start_settings(&start_settings);
     while (curarg < argc) {
@@ -224,6 +231,10 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-secure")) {
             start_settings.video.secure = true;
+        }
+        else if (!strcmp(argv[curarg], "-single_hdmi")) {
+            single_hdmi.set = true;
+            crc_type = crc_type_hdmi;
         }
         else {
             if (num_decodes == MAX_DECODES) {
@@ -378,7 +389,27 @@ int main(int argc, const char **argv)
             else {
                 unsigned i;
                 for (i=0;i<data.numEntries;i++) {
-                    printf("HDMI CRC %x\n", data.data[i].crc);
+                    if (single_hdmi.set) {
+                        if (single_hdmi.last_value == data.data[i].crc) {
+                            single_hdmi.last_value_count++;
+                        }
+                        else {
+                            single_hdmi.last_value_count = 0;
+                            single_hdmi.last_value = data.data[i].crc;
+                        }
+                        if (++single_hdmi.total_count > 50) {
+                            if (single_hdmi.last_value_count < 10) {
+                                app_rc = BERR_TRACE(NEXUS_UNKNOWN);
+                            }
+                            else {
+                                printf("%x\n", single_hdmi.last_value);
+                            }
+                            goto done;
+                        }
+                    }
+                    else {
+                        printf("HDMI CRC %x\n", data.data[i].crc);
+                    }
                 }
             }
         }
@@ -451,7 +482,7 @@ done:
         }
     }
     NxClient_Uninit();
-    return 0;
+    return app_rc;
 }
 #else
 #include <stdio.h>

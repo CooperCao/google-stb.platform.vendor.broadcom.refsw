@@ -48,6 +48,7 @@ extern "C"
 #endif
 
  /*  OTP MSP indexes. */
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
 
 #define BHSM_OTPMSP_PCIE0_HOST_PROTECT  0
 #define BHSM_OTPMSP_PCIE0_CLIENT_PROTECT  1
@@ -112,6 +113,76 @@ extern "C"
 #define BHSM_OTPMSP_BOOT_CODE_DECRYPT_ENABLE  342
 #define BHSM_OTPMSP_MSP_PROG_DISABLE  344
 #define BHSM_OTPMSP_MSP_PROG_LOCK_ENABLE  345
+
+#else
+ #define BHSM_OTPMSP_PCIE0_HOST_PROTECT                           (7)
+ #define BHSM_OTPMSP_PCIE0_CLIENT_PROTECT                         (8)
+ #define BHSM_OTPMSP_PCIE0_MWIN_RESTRICT_ENABLE                 (135)
+ #define BHSM_OTPMSP_PCIE0_MWIN_DISABLE                         (134)
+ #define BHSM_OTPMSP_PCIE0_GWIN_DISABLE                         (133)
+ #define BHSM_OTPMSP_PCIE0_MWIN_SIZE_ENFORCE_ENABLE             (621)
+ #define BHSM_OTPMSP_PCIE1_HOST_PROTECT                           (9)
+ #define BHSM_OTPMSP_PCIE1_CLIENT_PROTECT                        (10)
+ #define BHSM_OTPMSP_PCIE1_MWIN_RESTRICT_ENABLE                 (137)
+ #define BHSM_OTPMSP_PCIE1_MWIN_DISABLE                         (136)
+ #define BHSM_OTPMSP_PCIE1_GWIN_DISABLE                         (133)
+ #define BHSM_OTPMSP_PCIE1_MWIN_SIZE_ENFORCE_ENABLE             (622)
+ #define BHSM_OTPMSP_CR_LOCK_ENABLE                               (5)
+ #define BHSM_OTPMSP_ASYMMETRIC_CR_LOCK_ENABLE                  (238)
+ #define BHSM_OTPMSP_FORCE_DRAM_SCRAMBLER                        (18)
+ #define BHSM_OTPMSP_DATA_SECTION1_LOCK                         (529)
+ #define BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_A                  (37)
+ #define BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_B                  (38)
+ #define BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_C                  (39)
+ #define BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_D                  (40)
+ #define BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_E                  (41)
+ #define BHSM_OTPMSP_DESTINATION_DISALLOW_KEY_F                  (42)
+ #define BHSM_OTPMSP_PUBLIC_KEY0_INDEX                           (73)
+ #define BHSM_OTPMSP_SECURE_BOOT_ENABLE                          (74)
+ #define BHSM_OTPMSP_RAAGA_A_VERIFY_ENABLE                       (76)
+ #define BHSM_OTPMSP_RAAGA_B_VERIFY_ENABLE                      (193)
+ #define BHSM_OTPMSP_VIDEO_VERIFY_ENABLE                         (77)
+ #define BHSM_OTPMSP_VICE_VERIFY_ENABLE                         (131)
+ /*#define BHSM_OTPMSP_BOOT_CODE_DECRYPT_KEY_SRC*/
+ #define BHSM_OTPMSP_BOOT_CODE_HIDE_ENABLE                       (79)
+ /*#define BHSM_OTPMSP_BOOT_CODE_DECRYPT_KEY_INDEX*/
+ #define BHSM_OTPMSP_ASKM_STB_OWNER_ID                           (43)
+ #define BHSM_OTPMSP_CP_CONTROL_BITS                             (46)
+ #define BHSM_OTPMSP_CA_CONTROL_BITS                             (45)
+ #define BHSM_OTPMSP_FORCE_SC_DISALLOW                          (620)
+ #define BHSM_OTPMSP_EBI_CS_SWAP_DISABLE                        (156)
+ #define BHSM_OTPMSP_CA_KEY_LADDER_DISABLE                       (47)
+ #define BHSM_OTPMSP_CP_KEY_LADDER_DISABLE                       (48)
+ /*#define BHSM_OTPMSP_GLOBAL_KEY_TO_CA_KEY_LADDER_DISABLE*/
+ /*#define BHSM_OTPMSP_GLOBAL_KEY_TO_CP_KEY_LADDER_DISABLE*/
+ #define BHSM_OTPMSP_TWO_STAGE_CA_KEY_LADDER_DISABLE            (163)
+ #define BHSM_OTPMSP_TWO_STAGE_CP_KEY_LADDER_DISABLE            (164)
+ /*#define BHSM_OTPMSP_CA_CPD_DES_TDES_CBC_SOFTWARE_KEY_DISABLE*/
+ #define BHSM_OTPMSP_CA_SOFTWARE_KEY_DISABLE                     (59)
+ #define BHSM_OTPMSP_CA_DVB_CSA3_SOFTWARE_KEY_DISABLE           (245)
+ #define BHSM_OTPMSP_CP_MULTI2_ECB_CBC_SOFTWARE_KEY_DISABLE     (146)
+ #define BHSM_OTPMSP_RPMB_HOST_REPLAY_KEY_LADDER_DISABLE        (640)
+ #define BHSM_OTPMSP_RPMB_USE_KEY_MOD                           (641)
+ #define BHSM_OTPMSP_RPMB_OUT_KEY_MOD                           (642)
+ /*#define BHSM_OTPMSP_CP_DES_SOFTWARE_KEY_DISABLE*/
+ /*#define BHSM_OTPMSP_CP_TDES_SOFTWARE_KEY_DISABLE*/
+ #define BHSM_OTPMSP_CP_AES_SOFTWARE_KEY_DISABLE                 (63)
+ #define BHSM_OTPMSP_CP_AES_COUNTER_SOFTWARE_KEY_DISABLE         (64)
+ #define BHSM_OTPMSP_IP_LICENSING_CHECK_ENABLE                   (70)
+ #define BHSM_OTPMSP_MARKET_ID0                                  (94)
+ #define BHSM_OTPMSP_SYSTEM_EPOCH0                               (87)
+ #define BHSM_OTPMSP_SYSTEM_EPOCH1                              (520)
+ #define BHSM_OTPMSP_SYSTEM_EPOCH2                              (519)
+ #define BHSM_OTPMSP_SYSTEM_EPOCH3                              (518)
+ #define BHSM_OTPMSP_KEYLADDER_KEY_CONTRIBUTION_DISALLOW        (623)
+ #define BHSM_OTPMSP_KEYLADDER_KEY_CONTRIBUTION_FEATURE_DISABLE (624)
+ /*#define BHSM_OTPMSP_CP_G_HASH_SOFTWARE_KEY_DISABLE*/
+ /*#define BHSM_OTPMSP_CP_CAM_SOFTWARE_KEY_DISABLE*/
+ /*#define BHSM_OTPMSP_BOOT_CODE_DECRYPT_ENABLE*/
+ /*#define BHSM_OTPMSP_MSP_PROG_DISABLE*/
+ /*#define BHSM_OTPMSP_MSP_PROG_LOCK_ENABLE*/
+#endif
+
 
 #ifdef __cplusplus
 }

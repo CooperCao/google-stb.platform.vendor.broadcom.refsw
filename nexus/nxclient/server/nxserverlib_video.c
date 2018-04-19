@@ -865,7 +865,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
     for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
         if (session->display[j].display && !session->display[j].graphicsOnly) {
             /* regular window may already be open */
-            if (!session->display[j].window[index][0]) {
+            if (!session->display[j].window[index][0] && !session->display[j].parentWindow[index]) {
                 session->display[j].window[index][0] = NEXUS_VideoWindow_Open(session->display[j].display, index);
                 if (!session->display[j].window[index][0]) {
                     rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -1178,10 +1178,12 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
                 goto err_set;
             }
 
-            while (window_index<NXCLIENT_MAX_IDS && session->display[0].mosaic_connect[connect->windowIndex][window_index] != connect) window_index++;
-            if (window_index == NXCLIENT_MAX_IDS) {
-                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-                goto err_set;
+            if (has_window(connect)) {
+                while (window_index<NXCLIENT_MAX_IDS && session->display[0].mosaic_connect[connect->windowIndex][window_index] != connect) window_index++;
+                if (window_index == NXCLIENT_MAX_IDS) {
+                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                    goto err_set;
+                }
             }
         }
 

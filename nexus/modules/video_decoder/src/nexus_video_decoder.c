@@ -3433,10 +3433,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
     if (rc) {rc = BERR_TRACE(rc);goto err_setptsoffset;}
 
     cfg.eSTC = BXVD_STC_eZero + stcChannelIndex;
-    if(cfg.eSTC >= BXVD_STC_eMax) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        goto err_invalid_stc;
-    }
 
 #ifndef B_REFSW_AVD_STC
 #include "bchp_rdc.h"
@@ -3460,16 +3456,23 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
 
         NEXUS_StcChannel_GetSnapshotSettings_priv(videoDecoder->stcSnapshot.handle, &settings);
         settings.triggerIndex = videoDecoder->stcSnapshot.settings.trigger;
+        /* use explicit snapshot mode instead of legacy mode */
+        settings.mode = NEXUS_IS_DSS_MODE(videoDecoder->transportType)? NEXUS_StcChannelSnapshotMode_eLsb32 : NEXUS_StcChannelSnapshotMode_eMsb32;
         rc = NEXUS_StcChannel_SetSnapshotSettings_priv(videoDecoder->stcSnapshot.handle, &settings);
         if (rc) { BERR_TRACE(rc); UNLOCK_TRANSPORT(); goto err_snapshot_stc; }
 
         NEXUS_StcChannel_GetSnapshotStatus_priv(videoDecoder->stcSnapshot.handle, &status);
         UNLOCK_TRANSPORT();
+        cfg.eSTC = BXVD_STC_eZero + status.index;
     }
     else
 #endif
     {
         cfg.stXDMSettings.bUseXPTSTC = false;
+    }
+    if(cfg.eSTC >= BXVD_STC_eMax) {
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto err_invalid_stc;
     }
 
     /* map the XDM with decoder */
@@ -3620,6 +3623,7 @@ err_framerate_tomagnum:
         BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(displayInterrupt, DisplayManagerLite_isr, pPrivateContext);
     }
 err_init_queue:
+err_invalid_stc:
 #if !B_REFSW_AVD_STC
 err_snapshot_stc:
 #endif
@@ -3629,7 +3633,6 @@ err_snapshot_stc:
         UNLOCK_TRANSPORT();
         videoDecoder->stcSnapshot.handle = NULL;
     }
-err_invalid_stc:
 err_setptsoffset:
     NEXUS_CancelTimer(videoDecoder->fifoWatchdog.timer);
     videoDecoder->fifoWatchdog.timer = NULL;

@@ -89,17 +89,13 @@ NEXUS_HashHandle NEXUS_Hash_Create( void )
     NEXUS_OBJECT_INIT( NEXUS_Hash, handle );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); goto _error; }
 
     handle->hHsmHash = BHSM_Hash_Create( hHsm );
     if( !handle->hHsmHash ) { BERR_TRACE(NEXUS_NOT_AVAILABLE); goto _error; }
 
     handle->queue = NEXUS_HashHmac_QueueCreate();
-    if( handle->queue == NULL)
-    {
-        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
-        goto _error;
-    }
+    if( !handle->queue) { BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto _error; }
 
     BDBG_LEAVE( NEXUS_Hash_Create );
     return handle;
@@ -117,10 +113,12 @@ static void NEXUS_Hash_P_Finalizer( NEXUS_HashHandle handle )
 
     if( handle ){
 
-        NEXUS_HashHmac_QueueDestroy(handle->queue);
+        if( handle->queue ) { NEXUS_HashHmac_QueueDestroy( handle->queue ); }
+
         if( handle->hHsmHash ) { BHSM_Hash_Destroy ( handle->hHsmHash ); }
 
         NEXUS_OBJECT_DESTROY( NEXUS_Hash, handle );
+
         BKNI_Free( handle );
     }
 

@@ -55,16 +55,6 @@ static const char * const dynrngProcessingModeStrings[] =
 
 #define GET_PROC_STR(SETTINGS, TYPE) dynrngProcessingModeStrings[(SETTINGS)->processingModes[NEXUS_DynamicRangeProcessingType_e##TYPE]]
 
-static void NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(
-    NEXUS_DynamicRangeProcessingCapabilities * pNexus,
-    const BVDC_Window_Capabilities * pMagnum)
-{
-    BKNI_Memset(pNexus, 0, sizeof(*pNexus));
-    pNexus->typesSupported[NEXUS_DynamicRangeProcessingType_ePlm] = pMagnum->bConvHdr10;
-    pNexus->typesSupported[NEXUS_DynamicRangeProcessingType_eDolbyVision] = pMagnum->bDolby;
-    pNexus->typesSupported[NEXUS_DynamicRangeProcessingType_eTechnicolorPrime] = pMagnum->bTchInput;
-}
-
 static void NEXUS_P_DynamicRangeProcessingSettingsToMagnum(
     const NEXUS_DynamicRangeProcessingSettings * pSettings,
     BVDC_Test_Window_ForceCfcConfig * pCfcConfig
@@ -135,37 +125,6 @@ static NEXUS_VideoWindowHandle NEXUS_P_GetActiveVideoWindow(NEXUS_DisplayHandle 
     }
 
     return window;
-}
-
-void NEXUS_VideoWindow_GetDynamicRangeProcessingCapabilities(
-    unsigned displayId,
-    unsigned windowId,
-    NEXUS_DynamicRangeProcessingCapabilities * pCapabilities
-)
-{
-    NEXUS_DisplayHandle display;
-    BVDC_Window_Capabilities vdcCaps;
-
-    BDBG_ASSERT(pCapabilities);
-    BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
-
-    if (displayId >= NEXUS_NUM_DISPLAYS || windowId > 1) {
-        BDBG_ERR(("DisplayId %u windowId %u is not supported!", displayId, windowId));
-        return;
-    }
-
-    display = pVideo->displays[displayId];
-
-    if (display)
-    {
-        if (windowId >= pVideo->cap.display[display->index].numVideoWindows) {
-            BERR_TRACE(BERR_NOT_SUPPORTED);
-            return;
-        }
-        BVDC_GetWindowCapabilities(pVideo->vdc, display->index + BVDC_CompositorId_eCompositor0,
-            windowId + BVDC_WindowId_eVideo0, &vdcCaps);
-        NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
-    }
 }
 
 void NEXUS_VideoWindow_GetDynamicRangeProcessingSettings(
@@ -284,31 +243,6 @@ void NEXUS_VideoWindow_SetTargetPeakBrightness(
             BVDC_Test_Window_SetTargetPeakBrightness(window->vdcState.window, sHdrPeak, sSdrPeak);
             NEXUS_Display_P_ApplyChanges();
         }
-    }
-}
-
-void NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(
-    unsigned displayId,
-    NEXUS_DynamicRangeProcessingCapabilities * pCapabilities
-)
-{
-    NEXUS_DisplayHandle display;
-    BVDC_Window_Capabilities vdcCaps;
-
-    BDBG_ASSERT(pCapabilities);
-    BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
-
-    if (displayId >= NEXUS_NUM_DISPLAYS) {
-        BDBG_ERR(("DisplayId %u is not supported!", displayId));
-        return;
-    }
-    display = pVideo->displays[displayId];
-
-    if (display)
-    {
-        BVDC_GetWindowCapabilities(pVideo->vdc, display->index + BVDC_CompositorId_eCompositor0,
-            display->index + BVDC_WindowId_eGfx0, &vdcCaps);
-        NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
     }
 }
 

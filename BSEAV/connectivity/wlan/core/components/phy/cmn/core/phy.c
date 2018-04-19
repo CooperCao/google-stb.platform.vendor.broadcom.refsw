@@ -1513,7 +1513,7 @@ _phy_dump_phyregs(void *ctx, struct bcmstrbuf *b)
 
 }
 
-#define PAGE_SZ 512
+#define PAGE_SZ 4000  // 7271: Increased from 512 so only 1 page needed for dump phyreg
 #define NUM_PAGES 10
 
 typedef struct {

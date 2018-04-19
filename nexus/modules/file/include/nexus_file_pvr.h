@@ -59,6 +59,8 @@ struct NEXUS_FilePlay {
     bool locked;
 };
 
+void NEXUS_FilePlay_Init(struct NEXUS_FilePlay *filePlay);
+
 
 #ifdef __cplusplus
 }

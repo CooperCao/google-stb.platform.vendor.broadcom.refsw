@@ -609,6 +609,12 @@ void BHDM_P_EnableTmdsData_isr(
 	bEnableTmdsOutput = false ;
 #endif
 
+	if (hHDMI->standby)
+	{
+		goto done ;
+	}
+
+
 	if (bEnableTmdsOutput)
 		TmdsOutput = 0x0 ; /* TMDS ON */
 	else
@@ -671,6 +677,8 @@ void BHDM_P_EnableTmdsData_isr(
 	}
 
 	hHDMI->DeviceStatus.tmds.dataEnabled = bEnableTmdsOutput ;
+
+done:
 	BDBG_LEAVE(BHDM_P_EnableTmdsData_isr) ;
 }
 
@@ -689,6 +697,12 @@ void BHDM_P_EnableTmdsClock_isr(
 	uint32_t TmdsOutput ;
 
 	BDBG_ENTER(BHDM_P_EnableTmdsClock_isr) ;
+
+	if (hHDMI->standby)
+	{
+		goto done ;
+	}
+
 
 	hRegister = hHDMI->hRegister ;
 #if BHDM_CONFIG_DVO_SUPPORT
@@ -745,6 +759,7 @@ void BHDM_P_EnableTmdsClock_isr(
 	}
 
 	hHDMI->DeviceStatus.tmds.clockEnabled = bEnableTmdsClock ;
+done:
 	BDBG_LEAVE(BHDM_P_EnableTmdsClock_isr) ;
 }
 

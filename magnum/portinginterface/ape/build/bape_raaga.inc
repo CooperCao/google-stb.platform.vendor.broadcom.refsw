@@ -123,8 +123,9 @@ BAPE_SOURCES := \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_src_priv.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_tru_volume.c
 
-ifeq ($(BCHP_CHIP),7211)
-BAPE_SOURCES += $(MAGNUM)/portinginterface/ape/src/raaga/bape_dma_output_priv.c
+ifneq ($(wildcard ${BCHP_RDB_PATH}/bchp_ott_xpt_cdb_itb.h),)
+BAPE_SOURCES += $(MAGNUM)/portinginterface/ape/src/raaga/bape_dma_output_priv.c \
+                $(MAGNUM)/portinginterface/ape/src/raaga/bape_buffer_filter_priv.c
 endif
 
 endif

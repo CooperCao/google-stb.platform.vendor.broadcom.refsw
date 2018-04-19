@@ -52,10 +52,15 @@ endif
 ##################
 # Magnum Modules #
 ##################
+ifneq ($(BAPE_DSP_SUPPORT),n)
 NEXUS_AUDIO_MAGNUM_MODULES = \
 	$(MAGNUM)/basemodules/dsp/bdsp.inc \
 	$(MAGNUM)/basemodules/dsp/bdsp_auth.inc \
 	$(MAGNUM)/portinginterface/ape/bape.inc
+else
+NEXUS_AUDIO_MAGNUM_MODULES = \
+	$(MAGNUM)/portinginterface/ape/bape.inc
+endif
 
 NEXUS_FW_SIGN_MODULES += BDSP
 

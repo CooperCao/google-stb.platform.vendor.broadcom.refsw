@@ -152,6 +152,13 @@ err_args:
     return rc;
 }
 
+void NEXUS_FilePlay_Init(struct NEXUS_FilePlay *filePlay)
+{
+    BDBG_ASSERT(filePlay);
+    BKNI_Memset(filePlay, 0, sizeof(*filePlay));
+    return;
+}
+
 NEXUS_Error NEXUS_FilePlay_Lock_priv( NEXUS_FilePlayHandle file )
 {
     if (file->locked) return NEXUS_NOT_AVAILABLE;

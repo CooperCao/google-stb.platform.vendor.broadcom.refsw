@@ -234,3 +234,19 @@ NEXUS_DmaJob_ProcessBlocks_priv(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlo
     BSTD_UNUSED(event);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
+
+void
+NEXUS_DmaJob_GetDefaultBlockDirectSettings( NEXUS_DmaJobBlockDirectSettings *pSettings)
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+NEXUS_Error
+NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockDirectSettings *pSettings, unsigned nBlocks)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(nBlocks);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+}

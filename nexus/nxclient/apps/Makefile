@@ -63,7 +63,6 @@ BASIC_BUILD_APPS = \
 	graphics_as_video \
 	hdmi_input \
 	heaps \
-	insert_ir_input \
 	live \
 	mosaic_video_as_graphics \
 	osd \

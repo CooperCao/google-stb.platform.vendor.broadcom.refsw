@@ -112,7 +112,7 @@ typedef enum
     ChipType_eZB,
     ChipType_eCustomer,
     ChipType_eCustomer1,
-	ChipType_eMax
+    ChipType_eMax
 } ChipType_e;
 
 
@@ -238,6 +238,32 @@ DrmRC DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platformIndex,
                                                 char * drm_bin_filename,
                                                 BSAGElib_InOutContainer *container,
                                                 SRAI_ModuleHandle *moduleHandle);
+
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_ModuleInitialize_TA
+**
+** DESCRIPTION:
+**    Initializes the DRM module of specified platform
+**
+** PARAMETERS:
+**    CommonDrmPlatformType_e platformIndex
+**    uint32_t module_id
+**    char * drm_bin_filename
+**    BSAGElib_InOutContainer *container
+**    SRAI_ModuleHandle *moduleHandle
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
+DrmRC DRM_Common_TL_ModuleInitialize_TA_Ext(CommonDrmPlatformType_e platIndex,
+                                            uint32_t module_id,
+                                            char * drm_bin_filename,
+                                            BSAGElib_InOutContainer *container,
+                                            SRAI_ModuleHandle *moduleHandle,
+                                            SRAI_Module_InitSettings *init_settings);
+
 
 /******************************************************************************
 ** FUNCTION

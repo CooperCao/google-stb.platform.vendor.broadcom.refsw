@@ -100,7 +100,7 @@ extern "C"
 
 
 #define BHSM_KEYSLOT_MAX_KEY_SIZE (32)    /* Maximum key size is 256 bits. */
-#define BHSM_KEYSLOT_MAX_IV_SIZE (BHSM_KEYSLOT_MAX_KEY_SIZE)
+#define BHSM_KEYSLOT_MAX_IV_SIZE (16)
 
 
 typedef struct BHSM_P_KeySlot* BHSM_KeyslotHandle;

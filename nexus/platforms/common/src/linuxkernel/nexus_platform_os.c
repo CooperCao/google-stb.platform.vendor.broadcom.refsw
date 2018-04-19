@@ -633,10 +633,12 @@ NEXUS_Platform_P_Isr(unsigned long data)
         {
             b_virtual_irq_reenable_irqs_spinlocked();
         }
+#if NEXUS_HAS_GPIO
         if (NEXUS_Platform_P_SharedGpioSupported())
         {
             b_shared_gpio_reenable_irqs_spinlocked();
         }
+#endif
         spin_unlock_irqrestore(&state->lock, flags);
     }
 
@@ -1415,4 +1417,8 @@ bool NEXUS_Platform_P_LazyUnmap(void)
 #else
     return true;
 #endif
+}
+
+void nexus_platform_p_update_all_mmap_access(void)
+{
 }

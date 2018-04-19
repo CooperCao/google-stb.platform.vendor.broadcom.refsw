@@ -69,7 +69,9 @@ static NEXUS_Error _SetPidChannelBypassKeyslot( NEXUS_PidChannelHandle pidChanne
     NEXUS_Security_GetHsm_priv( &hHsm );
     if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
-    rc = BHSM_SetPidChannelBypassKeyslot( hHsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), bypassKeySlot );
+    rc = BHSM_SetPidChannelBypassKeyslot( hHsm,
+                                          NEXUS_PidChannel_GetIndex_isrsafe(pidChannel),
+                                          (BHSM_BypassKeySlot_e)bypassKeySlot );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE(NEXUS_UNKNOWN); }
 
     NEXUS_Security_LockTransport( true );

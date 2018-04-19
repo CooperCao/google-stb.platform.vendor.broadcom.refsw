@@ -737,14 +737,12 @@ kernel and rootfs to the eMMC flash. </span></b></p>
 <p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
 #0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span><span style='color:#0070C0'>Reboot the board with &quot;boot
-emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw bmem=584m@2488m
-brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </span></b></p>
+emmcflash0.kernel: 'root=/dev/mmcblk1p6 rootwait rw bmem=640m@2428m brcm_cma=256m@2172m bmem=816m@13520m brcm_cma=256m@13264m'&quot; </span></b></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
 #0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span><span style='color:#0070C0'>Set the STARTUP or a function key variable
-to &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk0p6 rootwait rw bmem=584m@2488m
-brcm_cma=256m@2232m bmem=544m@13792m brcm_cma=256m@13536m'&quot; </span></b></p>
+to &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk1p6 rootwait rw bmem=640m@2428m brcm_cma=256m@2172m bmem=816m@13520m brcm_cma=256m@13264m'&quot; </span></b></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
 #0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -758,7 +756,7 @@ graphics core to access memory.&nbsp; If 3D graphics is not used,<br>
 those statements can be omitted from the boot command.&nbsp; They can be
 adjusted as recommended by messages during Nexus boot.&nbsp; The example given
 is adjusted to work for both Box Mode 1 and Box Mode 2.&nbsp; If 3D graphics is
-used with Box Mode 2, the brcm_cma=256m@2232m is useful. For other box modes,
+used with Box Mode 2, the brcm_cma=256m@2172m is useful. For other box modes,
 it may be removed. See BSEAV/lib/gpu/docs/VC5_AppNote_MMU.pdf for more
 information.</span></b></p>
 
@@ -766,8 +764,9 @@ information.</span></b></p>
 internal development, a board issue causes the &quot;v7-32&quot; global address
 map to be selected. If you don't see the message &quot;v7-64 Memory Map Variant
 detected.&quot; and encounter heap allocation problems during Nexus
-initialization, an alternative set of boot parameters, 'bmem=584m@2488m
-brcm_cma=256m@2232m bmem=544m@3552m brcm_cma=256m@3296m' may be needed.</span></b></p>
+initialization, an alternative set of boot parameters, 'bmem=640m@2428m brcm_cma=256m@2172m bmem=816m@3280m brcm_cma=256m@3024m' may be needed.</span></b></p>
+<p><b><span style='color:#0070C0'>These suggested bmem parameters were chosen as a set of &quot;worst case&quot; values that can be used with all box modes.  You may be able to find bmem and brcm_cma values more optimal for your application.  Try running with none, then look for the
+&quot;nexus_platform_cma: recommended Linux boot parameters:&quot; message during Nexus initialization.  Note that the example values allow some space at the top of the first bmem region for a reserved region 'NWMBOX'.</b></span></p>
 
 <p><b><span style='color:#0070C0'>Important: brcm_cma regions must be 4MB
 aligned.</span></b></p>

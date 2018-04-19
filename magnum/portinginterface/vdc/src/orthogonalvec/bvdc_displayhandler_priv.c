@@ -561,7 +561,7 @@ BERR_Code BVDC_P_AllocITResources_isr
         if(hDisplay->ulMVQueryTmpAddr == 0)
         {
             hDisplay->ulMVQueryAddr = BRDC_GET_MV_BLOCK_REG(hDisplay->eId);
-            hDisplay->ulMVQueryTmpAddr = BRDC_AllocScratchReg(hDisplay->hVdc->hRdc);
+            hDisplay->ulMVQueryTmpAddr = BRDC_AllocScratchReg_isr(hDisplay->hVdc->hRdc);
             if(hDisplay->ulMVQueryTmpAddr == 0)
             {
                 BDBG_ERR(("Not enough scratch registers for Tmp MV query!"));

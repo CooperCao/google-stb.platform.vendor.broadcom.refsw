@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -133,22 +133,22 @@ void botf_scv_parser_getdatabytes(botf_scv_parser parser, uint8_t offset, uint8_
 }
 
 bool
-botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_len, size_t *scv_processed)
+botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, unsigned scv_len, unsigned *scv_processed)
 {
-    size_t scv_count;
+    unsigned scv_count;
     uint32_t word0, word1, word3;
     unsigned type;    
     int offset;	
     const uint32_t *scv_ptr=scv_ptr_;
     bool paused;
 
-    BDBG_MSG_PARSE(("%#x:new SCV entries %#x %u(%u)", (unsigned)parser, (unsigned)scv_ptr, (unsigned)scv_len/B_SCV_LEN, (unsigned)scv_len));
+    BDBG_MSG_PARSE(("%p:new SCV entries %p %u(%u)", (void *)parser, (void *)scv_ptr, (unsigned)scv_len/B_SCV_LEN, (unsigned)scv_len));
     if( (scv_len%B_SCV_LEN)!=0) {
         BDBG_ERR(("%p:new SCV entries %p %u(%u)", (void *)parser, (void *)scv_ptr, (unsigned)scv_len/B_SCV_LEN, (unsigned)scv_len));
     }
     BDBG_ASSERT((scv_len%B_SCV_LEN)==0);
     BDBG_ASSERT(((unsigned long)scv_ptr%sizeof(uint32_t))==0);
-    BDBG_MSG_TRACE(("%#x %#x %#x %#x", parser->IPParserPtrs->ItbStartPtr, scv_ptr,  (const uint8_t *)scv_ptr + scv_len, (parser->IPParserPtrs->ItbEndPtr)+1));
+    BDBG_MSG_TRACE(("%p %p %p %p", (void *)parser->IPParserPtrs->ItbStartPtr, (void *)scv_ptr,  (const uint8_t *)scv_ptr + scv_len, (parser->IPParserPtrs->ItbEndPtr)+1));
     BDBG_ASSERT(parser->IPParserPtrs->ItbStartPtr <= (const uint8_t *)scv_ptr && (const uint8_t *)scv_ptr + scv_len <= (parser->IPParserPtrs->ItbEndPtr+1));
 
     /*
@@ -162,11 +162,21 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
         type = (word0 >> 24)&0xff;
         BDBG_MSG_TRACE(("SCV(%d:%d) %#x", scv_len/B_SCV_LEN, scv_count/B_SCV_LEN, type));
         switch(type) {
+        case B_SCV_TYPE_BASE_40BIT:
+            parser->IPParserPtrs->mem->otf->cdb40bit = true;
+            word1 = scv_ptr[1];
+            parser->cdb_base = parser->IPParserPtrs->CdbStartPtr + word1;
+            if(parser->cdb_base > parser->IPParserPtrs->CdbEndPtr) {
+                (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+            }
+            parser->baseentryptr = scv_ptr;
+            BDBG_MSG_TRACE(("%p base40 %#x:%p", (void *)parser, word1, parser->cdb_base));
+            break;
         case B_SCV_TYPE_BASE:
             word1 = scv_ptr[1];
             parser->cdb_base = botf_mem_vaddr(parser->IPParserPtrs->mem, word1);
             parser->baseentryptr = scv_ptr;
-            BDBG_MSG_TRACE(("%#x base %#x:%#x", (unsigned)parser, word1, (unsigned)parser->cdb_base));
+            BDBG_MSG_TRACE(("%p base %#x:%p", (void *)parser, word1, parser->cdb_base));
             break;
         case B_SCV_TYPE_PCR_OFFSET:
         case B_SCV_TYPE_PCR:
@@ -174,7 +184,7 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
         case B_SCV_TYPE_PTS:
             {                
                 word1 = scv_ptr[1];                 
-                BDBG_MSG_PARSE(("%#x:PTS %#x(%u)", (unsigned)parser, word1, word1));
+                BDBG_MSG_PARSE(("%p:PTS %#x(%u)", (void *)parser, word1, word1));
                 bpvr_gop_manager_set_pts(parser->manager, word1);
             }
             break;
@@ -182,7 +192,7 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
             /* currently we are using only first 7 bytes, so ignore 2nd ITB entry when ITB is split */
             if ((B_SCV_ISSPLIT(word0)) && (B_SCV_SPLITINDX(word0) != 0)){
                 /* Second entry in Split case */
-                BDBG_MSG_PARSE(("%#x:split entry found and ignored", (unsigned)parser));
+                BDBG_MSG_PARSE(("%p:split entry found and ignored", (void *)parser));
                 /* Ignore */
             } else {
                 const uint8_t *scode_cdb, *scode_cdb_wrap;
@@ -220,7 +230,7 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
                 parser->scode.itbentryptr = scv_ptr;
                 parser->scode.prevbaseentryptr = parser->baseentryptr;
 
-                BDBG_MSG_TRACE(("scode: 0x000001%02x %#x %#x", parser->scode.code, offset, (unsigned)parser->scode.cdb));
+                BDBG_MSG_TRACE(("scode: 0x000001%02x %#x %p", parser->scode.code, offset, parser->scode.cdb));
                 paused = bpvr_gop_manager_feed(parser->manager, &parser->scode);
             }
             break;
@@ -234,7 +244,7 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
                     break;
                 }
                 word3 = ((uint32_t *) scv_ptr)[3];                
-                BDBG_MSG_PARSE(("%#x: TAG %#x", (unsigned)parser, word3));
+                BDBG_MSG_PARSE(("%p: TAG %#x", (void *)parser, word3));
                 bpvr_gop_manager_set_tag(parser->manager, word3);
                 disp_iframe = (word0 & 0x1);
                 bpvr_gop_manager_set_disp_only_lfiframe(parser->manager, disp_iframe);                

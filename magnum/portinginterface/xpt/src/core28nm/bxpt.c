@@ -1939,7 +1939,7 @@ BERR_Code BXPT_GetParserDataSource(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else

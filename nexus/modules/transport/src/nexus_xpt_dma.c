@@ -784,8 +784,6 @@ NEXUS_DmaJob_P_ProcessBlocks(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockS
         blockSettings[i].sgScramStart = pSettings->scatterGatherCryptoStart;
         blockSettings[i].sgScramEnd = pSettings->scatterGatherCryptoEnd;
         blockSettings[i].securityBtp = pSettings->securityBtp;
-        blockSettings[i].srcPtr = pSettings->pSrcAddr;
-        blockSettings[i].dstPtr = pSettings->pDestAddr;
         dmaLength += pSettings->blockSize;
     }
 
@@ -1068,4 +1066,57 @@ void NEXUS_PidChannel_CloseDma_Priv(NEXUS_PidChannelHandle pidChannel)
     }
     BKNI_Free(pidChannel->hwPidChannel);
     BKNI_Free(pidChannel);
+}
+
+void NEXUS_DmaJob_GetDefaultBlockDirectSettings( NEXUS_DmaJobBlockDirectSettings *pSettings)
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BXPT_Dma_Context_GetDefaultBlockSettings((BXPT_Dma_ContextBlockSettings*)pSettings);
+    return;
+}
+
+NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockDirectSettings *pSettings, unsigned nBlocks)
+{
+    NEXUS_Error errCode;
+    const BXPT_Dma_ContextBlockSettings *blockSettings;
+
+    NEXUS_ASSERT_STRUCTURE(NEXUS_DmaJobBlockDirectSettings, BXPT_Dma_ContextBlockSettings);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, srcOffset, BXPT_Dma_ContextBlockSettings, src);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, destOffset, BXPT_Dma_ContextBlockSettings, dst);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, blockSize, BXPT_Dma_ContextBlockSettings, size);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, resetCrypto, BXPT_Dma_ContextBlockSettings, resetCrypto);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, scatterGatherCryptoStart, BXPT_Dma_ContextBlockSettings, sgScramStart);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, scatterGatherCryptoEnd, BXPT_Dma_ContextBlockSettings, sgScramEnd);
+    NEXUS_ASSERT_FIELD(NEXUS_DmaJobBlockDirectSettings, securityBtp, BXPT_Dma_ContextBlockSettings, securityBtp);
+
+    if (handle->state != NEXUS_DmaJob_P_StateIdle) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+    if(!NEXUS_P_CpuAccessibleAddress(pSettings)) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    blockSettings =  (void *)pSettings;
+    BDBG_MSG(("  started job:%p nBlocks:%u", (void *)handle, nBlocks));
+
+    handle->flushAfter = false; /* pSettings->cached is ignored */
+
+    handle->state = NEXUS_DmaJob_P_StateQueued;
+
+    errCode = BXPT_Dma_Context_Enqueue(handle->ctx, blockSettings, nBlocks); /* ISR callback may fire before this function returns, which is fine */
+    switch (errCode) {
+        case BERR_SUCCESS: /* completed */
+            handle->state = NEXUS_DmaJob_P_StateIdle;
+            goto done;
+        case BXPT_DMA_QUEUED:
+            errCode = NEXUS_DMA_QUEUED;
+            break;
+        default:
+            handle->state = NEXUS_DmaJob_P_StateIdle;
+            errCode = BERR_TRACE(errCode);
+            goto done;
+    }
+
+    BDBG_MSG(("   queued job:%p", (void *)handle));
+done:
+    return errCode;
 }

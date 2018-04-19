@@ -39,7 +39,7 @@
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Wed Mar  7 03:22:06 2018 GMT
+ *   at: Mon Apr  9 02:46:10 2018 GMT
  *   by: rl902794
  *   for: Box UHDp60
  *         MemC 0 (32-bit DDR4@1200MHz) w/324MHz clock
@@ -59,7 +59,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20180307032206_UHDp60[] = {
+static const uint32_t aulMemc0_20180409024610_UHDp60[] = {
            0x004c0008,  /*   0: XPT_WR_RS 3760ns */
            0x3ffff0ff,  /*   1: UNASSIGNED off */
            0x80a1700e,  /*   2: XPT_WR_CDB RR 7979ns */
@@ -138,7 +138,7 @@ static const uint32_t aulMemc0_20180307032206_UHDp60[] = {
            0x804df01c,  /*  75: HVD0_ILCPU RR 3857ns */
            0x8021d01a,  /*  76: HVD0_OLCPU RR 1776ns */
            0x8041b007,  /*  77: HVD0_CAB RR 3250ns */
-           0x0052000b,  /*  78: HVD0_ILSI 4058ns */
+           0x0052000c,  /*  78: HVD0_ILSI 4058ns */
            0x3ffff0ff,  /*  79: UNASSIGNED off */
            0x3ffff0ff,  /*  80: UNASSIGNED off */
            0x3ffff0ff,  /*  81: UNASSIGNED off */
@@ -154,9 +154,9 @@ static const uint32_t aulMemc0_20180307032206_UHDp60[] = {
            0x3ffff0ff,  /*  91: UNASSIGNED off */
            0x3ffff0ff,  /*  92: UNASSIGNED off */
            0x3ffff0ff,  /*  93: UNASSIGNED off */
-           0x003ac005,  /*  94: BVN_MAD_PIX_FD 2925ns +HRT(0.5%) */
-           0x0052c00c,  /*  95: BVN_MAD_QUANT 4115ns +HRT(0.5%) */
-           0x0075c00d,  /*  96: BVN_MAD_PIX_CAP 5852ns +HRT(0.5%) */
+           0x00387005,  /*  94: BVN_MAD_PIX_FD 2808ns +HRT(0.5%) */
+           0x004f700a,  /*  95: BVN_MAD_QUANT 3950ns +HRT(0.5%) */
+           0x0071000d,  /*  96: BVN_MAD_PIX_CAP 5616ns +HRT(0.5%) */
            0x3ffff0ff,  /*  97: UNASSIGNED off */
            0x3ffff0ff,  /*  98: UNASSIGNED off */
            0x3ffff0ff,  /*  99: UNASSIGNED off */
@@ -226,7 +226,7 @@ static const uint32_t aulMemc0_20180307032206_UHDp60[] = {
            0x3ffff0ff,  /* 163: UNASSIGNED off */
            0x3ffff0ff,  /* 164: UNASSIGNED off */
            0x3ffff0ff,  /* 165: UNASSIGNED off */
-           0x0050500a,  /* 166: BVN_CMP0 3974ns */
+           0x0050500b,  /* 166: BVN_CMP0 3974ns */
            0x3ffff0ff,  /* 167: UNASSIGNED off */
            0x3ffff0ff,  /* 168: UNASSIGNED off */
            0x3ffff0ff,  /* 169: UNASSIGNED off */
@@ -319,22 +319,22 @@ static const uint32_t aulMemc0_20180307032206_UHDp60[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180307032206_UHDp60[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180409024610_UHDp60[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x802d0905}, /* HVD0_PFRI (gHVC) 236520.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x400001de}, /* d: 4; p: 478.95 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001440}, /* 5184 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000c26}  /* 60% * 5184 */
 };
 
-static const uint32_t* const paulMemc_box5[] = { &aulMemc0_20180307032206_UHDp60[0]};
+static const uint32_t* const paulMemc_box5[] = { &aulMemc0_20180409024610_UHDp60[0]};
 
 const BBOX_Rts stBoxRts_UHDp60_box5 = {
-  "20180307032206_UHDp60_box5",
+  "20180409024610_UHDp60_box5",
   7255,
   5,
   1,
   256,
   (const uint32_t**)&paulMemc_box5[0],
   4,
-  stBoxRts_PfriClient_20180307032206_UHDp60
+  stBoxRts_PfriClient_20180409024610_UHDp60
 };

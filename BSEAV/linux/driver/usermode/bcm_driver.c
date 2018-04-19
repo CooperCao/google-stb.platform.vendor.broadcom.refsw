@@ -863,7 +863,7 @@ static int brcm_set_mmap_access(const t_bcm_linux_mmap_access *access)
             break;
         }
     }
-    if (revoke==0) {
+    if (revoke==0 && !node) {
         node = kmalloc(sizeof(*node), GFP_KERNEL);
         if (!node) {
             mutex_unlock(&gBcmLock);
@@ -1509,11 +1509,11 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             data->info.cma.range[i].size = data->memory.cma.range[i].size;
         }
         data->info.reserved.count = data->memory.reserved.count;
-        for(i=0;i<BCMDRIVER_MAX_RANGES;i++) {
+        for(i=0;i<BCMDRIVER_MAX_RESERVED_RANGES;i++) {
             data->info.reserved.range[i].addr = data->memory.reserved.range[i].addr;
             data->info.reserved.range[i].size = data->memory.reserved.range[i].size;
         }
-        for(i=0;i<BCMDRIVER_MAX_RANGES;i++) {
+        for(i=0;i<BCMDRIVER_MAX_RESERVED_RANGES;i++) {
 #if BRCMSTB_H_VERSION >= 10
             BDBG_CASSERT(sizeof(data->info.reserved.range_name[i].name)==sizeof(data->memory.reserved.range_name[i].name));
             memcpy(data->info.reserved.range_name[i].name, data->memory.reserved.range_name[i].name, sizeof(data->memory.reserved.range_name[i].name));

@@ -1094,6 +1094,8 @@ BIP_SocketHandle BIP_Listener_Accept(
     )
 {
     BIP_Status rc = BIP_SUCCESS;
+    BIP_SocketHandle  hAcceptedSocket = NULL;    /* For holding accepted socket after locks are released. */
+
     BDBG_OBJECT_ASSERT( hListener, BIP_Listener );
     BDBG_MSG(( "%s: Start of ", BSTD_FUNCTION ));
     B_Mutex_Lock( hListener->acceptLock );
@@ -1110,14 +1112,16 @@ BIP_SocketHandle BIP_Listener_Accept(
         /*change states*/
         ProcessState( hListener, BIP_ListenerProcessStateEvent_eAccept );  /*Current State = Accept done to  Next State = Listening*/
 
+        hAcceptedSocket = hListener->hAcceptedSocket;    /* Save socket handle before unlocking. */
+
         B_Mutex_Unlock( hListener->listenerLock );
         B_Mutex_Unlock( hListener->acceptLock );
 
         if (hListener->hAcceptedSocket) {
             BIP_MSG_TRC(( BIP_MSG_PRE_FMT "New connect on BipSocket=%p: " BIP_LISTENER_PRINTF_FMT
-                          BIP_MSG_PRE_ARG, (void *)hListener->hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
+                          BIP_MSG_PRE_ARG, (void *)hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
         }
-        return( hListener->hAcceptedSocket );
+        return( hAcceptedSocket );
     }
 
     /* non blocking: */
@@ -1167,16 +1171,17 @@ BIP_SocketHandle BIP_Listener_Accept(
             ProcessState( hListener, BIP_ListenerProcessStateEvent_eAccept );    /*Current State = Accepting/AcceptDone/Stopping  to  Next State = Listening/Stopping*/
         }
     }
+    hAcceptedSocket = hListener->hAcceptedSocket;    /* Save socket handle before unlocking. */
 
     B_Mutex_Unlock( hListener->listenerLock );
     B_Mutex_Unlock( hListener->acceptLock );
 
     if (hListener->hAcceptedSocket) {
         BIP_MSG_TRC(( BIP_MSG_PRE_FMT "New connect on BipSocket=%p: " BIP_LISTENER_PRINTF_FMT
-                      BIP_MSG_PRE_ARG, (void *)hListener->hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
+                      BIP_MSG_PRE_ARG, (void *)hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
     }
 
-    return( hListener->hAcceptedSocket );
+    return( hAcceptedSocket );
 } /* BIP_Listener_Accept */
 
 void BIP_Listener_Destroy(

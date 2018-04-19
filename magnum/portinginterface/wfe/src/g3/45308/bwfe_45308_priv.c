@@ -611,6 +611,10 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 ******************************************************************************/
 BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 {
+   /* configure rffe */
+   BWFE_P_AndRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, ~0x03FF8000);
+   BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER03, 0x00100000);  /* disable lna */
+
    /* inject dpm tone to adc input */
    BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER01, 0x00000010);
    BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x60000000);  /* max gain */
@@ -636,6 +640,10 @@ BERR_Code BWFE_P_DisableDpmPilot(BWFE_ChannelHandle h)
 
    /* power down dpm pll and dac and assert resets */
    BWFE_P_AndRegister(h, BCHP_WFE_ANA_DPM_CNTL, ~0x00000073);
+
+   /* restore rffe settings */
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x105AC888);  /* default value */
+   BWFE_P_AndRegister(h, BCHP_WFE_ANA_RFFE_WRITER03, ~0x00100000);   /* enable lna */
 
    return BERR_SUCCESS;
 }

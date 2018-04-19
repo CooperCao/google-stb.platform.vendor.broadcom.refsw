@@ -35,7 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-#if NEXUS_HAS_TRANSPORT
+#if NEXUS_HAS_TRANSPORT && NEXUS_HAS_RECORD
 #include "brecord_gui.h"
 #include "bfont.h"
 #include "nexus_surface_client.h"

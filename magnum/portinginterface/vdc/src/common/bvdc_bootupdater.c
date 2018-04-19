@@ -452,7 +452,7 @@ BERR_Code BVDC_Window_Create
       BVDC_Window_Handle              *phWindow,
       BVDC_WindowId                    eId,
       BVDC_Source_Handle               hSource,
-      const BVDC_Window_Settings      *pDefSettings )
+      const BVDC_Window_CreateSettings *pDefSettings )
 {
     BVDC_Window_Handle hWindow;
     BERR_Code eRet = BERR_SUCCESS;
@@ -542,7 +542,7 @@ BERR_Code BVDC_Window_Create
     }
     else
     {
-        BVDC_Window_GetDefaultSettings(hWindow->eId, &hWindow->stSettings);
+        BVDC_Window_GetDefaultCreateSettings(hWindow->eId, &hWindow->stSettings);
     }
 
 

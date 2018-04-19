@@ -276,8 +276,11 @@ chunk_read(bfile_io_read_t fd, void *buf_, size_t length)
             rc = to_read;
         }
         else {
-            if (!file->data) { /* if file isn't open, return EOF */
-                break;
+            if (!file->data) { /* if file isn't open, try again  */
+                file->data = chunk_read_open(file, file->chunk);
+                if(!file->data) { /* and return EOF if failed */
+                    break;
+                }
             }
 
             BDBG_MSG((">reading [%u/%u:%u] (%u/%u/%u) %#lx", (unsigned)result, file->chunk, (unsigned)file->cur_pos, (unsigned)to_read, (unsigned)length, (unsigned)file->chunk_budget, (unsigned long)buf));
@@ -470,6 +473,7 @@ NEXUS_ChunkedFilePlay_Open(const char *fname, const char *indexname, const NEXUS
         NEXUS_ChunkedFilePlay_GetDefaultOpenSettings(&openSettings);
         pSettings = &openSettings;
     }
+    NEXUS_FilePlay_Init(&file->self);
     file->data.settings = *pSettings;
 
     b_strncpy(file->data.base_name, fname, sizeof(file->data.base_name));

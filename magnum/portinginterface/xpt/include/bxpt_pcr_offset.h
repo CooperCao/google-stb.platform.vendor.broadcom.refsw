@@ -230,44 +230,6 @@ typedef struct BXPT_PcrOffset_Settings
 }
 BXPT_PcrOffset_Settings;
 
-#if BXPT_HAS_TSMUX
-
-/***************************************************************************
-Summary:
-Status bits for the TsMux channel.
-****************************************************************************/
-typedef enum BXPT_PcrOffset_StcTriggerMode
-{
-    BXPT_PcrOffset_StcTriggerMode_eTimebase,            /* Increment STC by timebase */
-    BXPT_PcrOffset_StcTriggerMode_eExternalTrig,        /* Increment by external trigger source. */
-    BXPT_PcrOffset_StcTriggerMode_eSoftIncrement,       /* Increment when STC_INC_TRIG register is written */
-    BXPT_PcrOffset_StcTriggerMode_eMax
-}
-BXPT_PcrOffset_StcTriggerMode;
-
-/***************************************************************************
-Summary:
-PCR Offset configuration for Non-Realtime Transcoding.
-****************************************************************************/
-typedef struct BXPT_PcrOffset_NRTConfig
-{
-    unsigned PairedStc;                      /* Which STC is paired with this PcrOffset's for AV Window comparisons */
-    bool EnableAvWindowComparison;              /* Enable AV Window comparisons with AvCompareStc */
-    unsigned AvWindow;                          /* Window, expressed in mSec. The STC increment is stalled when the
-                                                  comparison exceedes this window. */
-    BXPT_PcrOffset_StcTriggerMode TriggerMode;      /* Event that will increment the STC */
-    unsigned ExternalTriggerNum;                /* Identifies which external trigger is used when TriggerMode == _eExternalTrig */
-
-    /*
-    ** Amount to increment the STC by when external or soft trigger is used.
-    ** This should be set to one video or audio frame-time, depending on which
-    ** decoder is being driven. The value is expressed in 42-bit MPEG or
-    ** 32-bit binary STC format, as dictated by the transport format being used.
-    */
-    uint64_t StcIncrement;
-}
-BXPT_PcrOffset_NRTConfig;
-
 #if BXPT_NUM_STC_SNAPSHOTS > 0
 typedef struct BXPT_P_StcSnapshot * BXPT_PcrOffset_StcSnapshot;
 
@@ -314,7 +276,51 @@ void BXPT_PcrOffset_GetStcSnapshotRegisterOffsets(
     BXPT_PcrOffset_StcSnapshot Snapshot,   /* [in] The channel handle */
     BXPT_PcrOffset_StcSnapshotRegisters *RegMap
     );
+
+unsigned BXPT_PcrOffset_GetStcSnapshotIndex(
+    BXPT_PcrOffset_StcSnapshot Snapshot   /* [in] The channel handle */
+    );
 #endif
+
+#if BXPT_HAS_TSMUX
+
+/***************************************************************************
+Summary:
+Status bits for the TsMux channel.
+****************************************************************************/
+typedef enum BXPT_PcrOffset_StcTriggerMode
+{
+    BXPT_PcrOffset_StcTriggerMode_eTimebase,            /* Increment STC by timebase */
+    BXPT_PcrOffset_StcTriggerMode_eExternalTrig,        /* Increment by external trigger source. */
+    BXPT_PcrOffset_StcTriggerMode_eSoftIncrement,       /* Increment when STC_INC_TRIG register is written */
+    BXPT_PcrOffset_StcTriggerMode_eMax
+}
+BXPT_PcrOffset_StcTriggerMode;
+
+/***************************************************************************
+Summary:
+PCR Offset configuration for Non-Realtime Transcoding.
+****************************************************************************/
+typedef struct BXPT_PcrOffset_NRTConfig
+{
+    unsigned PairedStc;                      /* Which STC is paired with this PcrOffset's for AV Window comparisons */
+    bool EnableAvWindowComparison;              /* Enable AV Window comparisons with AvCompareStc */
+    unsigned AvWindow;                          /* Window, expressed in mSec. The STC increment is stalled when the
+                                                  comparison exceedes this window. */
+    BXPT_PcrOffset_StcTriggerMode TriggerMode;      /* Event that will increment the STC */
+    unsigned ExternalTriggerNum;                /* Identifies which external trigger is used when TriggerMode == _eExternalTrig */
+
+    /*
+    ** Amount to increment the STC by when external or soft trigger is used.
+    ** This should be set to one video or audio frame-time, depending on which
+    ** decoder is being driven. The value is expressed in 42-bit MPEG or
+    ** 32-bit binary STC format, as dictated by the transport format being used.
+    */
+    uint64_t StcIncrement;
+}
+BXPT_PcrOffset_NRTConfig;
+
+
 
 /***************************************************************************
 Summary: Example code for configurating an audio and a video decoder PCR

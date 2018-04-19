@@ -104,3 +104,11 @@ BERR_Code BDTU_GetStatus( BDTU_Handle handle, BDTU_Status *pStatus )
     BSTD_UNUSED(pStatus);
     return BERR_NOT_SUPPORTED;
 }
+
+BERR_Code BDTU_GetState( BREG_Handle reg, unsigned memcIndex, BDTU_State *pState )
+{
+    BSTD_UNUSED(reg);
+    BSTD_UNUSED(memcIndex);
+    *pState = BDTU_State_eUnset;
+    return BERR_SUCCESS;
+}

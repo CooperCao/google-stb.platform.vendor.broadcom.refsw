@@ -144,6 +144,7 @@ BERR_Code BVDC_P_MemConfig_Validate
 
 void BVDC_P_Memconfig_UpdateSettingByBoxmode
     ( const BBOX_Config                  *pBoxConfig,
+      const BVDC_MemConfigSettings       *pUserMemConfigSettings,
       BVDC_MemConfigSettings             *pMemConfigSettings );
 
 void BVDC_P_MemConfig_GetWindowInfo

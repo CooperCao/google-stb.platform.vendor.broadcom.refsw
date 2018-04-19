@@ -353,8 +353,8 @@ void BXVD_P_Memory_Dump(BXVD_P_MemoryHandle hXvdMem,
       BKNI_Printf("   Region alignment: %d\n",
                   hXvdMem->aAllocatedRegions[region].uiRegionAlignment);
 
-      BKNI_Printf("   Region address: 0x%016x\n",
-                  hXvdMem->aAllocatedRegions[region].RegionAddr);
+      BKNI_Printf("   Region address: " BDBG_UINT64_FMT "\n",
+                  BDBG_UINT64_ARG(hXvdMem->aAllocatedRegions[region].RegionAddr));
 
       BKNI_Printf("        Region size: 0x%x (%d)\n",
                   hXvdMem->aAllocatedRegions[region].uiRegionSize,

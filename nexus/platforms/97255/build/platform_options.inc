@@ -62,6 +62,13 @@ export NEXUS_FRONTEND_45308 ?= y
 export NEXUS_FRONTEND_45316 ?= y
 
 #
+# SWSTB-9290 Add support for 73574, add more platform type as they become available
+#
+ifeq ($(NEXUS_USE_73574_SV),y)
+NEXUS_PLATFORM_DEFINES += NEXUS_FRONTEND_45402=1
+endif
+
+#
 # by default, we include the following
 #
 include $(NEXUS_TOP)/platforms/common/build/platform_generic_options.inc

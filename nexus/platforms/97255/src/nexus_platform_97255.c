@@ -191,6 +191,11 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             }
             break;
         }
+        case 0x73574:
+        {
+            /* for future reference */
+            break;
+        }
         case 0x7255:
         default:
         {

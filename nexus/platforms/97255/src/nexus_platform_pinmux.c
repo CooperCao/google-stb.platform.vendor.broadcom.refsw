@@ -75,6 +75,43 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         }
         case SV_BOARD_ID:
         {
+            if (platformStatus.chipId == 0x73574) {
+                /* GPIO_040 UART_TXD_0  */
+                reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
+                reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_040));
+                reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_040, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5_gpio_040_UART_TXD_0));
+                BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5, reg);
+                /* GPIO_041 UART_RXD_0  */
+                reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6);
+                reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_041));
+                reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_6, gpio_041, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_gpio_041_UART_RXD_0));
+                BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6, reg);
+
+                /* AON_GPIO_12 UART_RXD_1 */
+                /* AON_GPIO_13 UART_TXD_1 */
+                reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1);
+                reg &= ~(BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_12) |
+                         BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13));
+                reg |= (BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_12, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_12_ALT_TP_IN_00) |
+                        BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_13_ALT_TP_OUT_00));
+                BREG_Write32 (hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, reg);
+
+                /*Route SAGE to UART1 for now */
+                reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
+                reg &=~( BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_1_cpu_sel ) );
+                reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_1_cpu_sel, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0_port_0_cpu_sel_SCPU) );
+                BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0, reg);
+
+                /* AON_GPIO_16 UART_RXD_2 */
+                /* AON_GPIO_17 UART_TXD_2 */
+
+
+                /* finally explicitly set the test port for UART 1 and 2 */
+                 reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
+                 reg &= ~(BCHP_MASK(SUN_TOP_CTRL_TEST_PORT_CTRL, encoded_tp_enable));
+                 reg |= BCHP_FIELD_DATA(SUN_TOP_CTRL_TEST_PORT_CTRL,encoded_tp_enable, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS);
+                 BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);
+            }
             /* 72550 and 72554 SVs are different designs. 7255[01] uses a 7250 SV but the schematics require some mapping */
             if (platformStatus.chipId < 0x72553) {
 

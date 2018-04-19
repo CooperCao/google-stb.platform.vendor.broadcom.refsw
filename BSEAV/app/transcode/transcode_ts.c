@@ -473,6 +473,8 @@ typedef struct TranscodeContext {
     } ptsSeed;
 
     bool bShuttingDown;
+
+    NEXUS_StcChannelUnderflowHandling underflowHandling;
 } TranscodeContext;
 
 /* global context
@@ -4473,6 +4475,7 @@ static int open_transcode(
             NEXUS_StcChannel_GetDefaultSettings(BTST_XCODE_VIDEO_STC_IDX(pContext->contextId), &stcSettings);
             stcSettings.timebase = NEXUS_Timebase_e0+pContext->contextId;
             stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+            stcSettings.underflowHandling = pContext->underflowHandling;
             stcSettings.modeSettings.Auto.transportType = pInputSettings->eStreamType;
             stcSettings.autoConfigTimebase = true;/* decoder STC auto config timebase */
             pContext->stcVideoChannel = NEXUS_StcChannel_Open(BTST_XCODE_VIDEO_STC_IDX(pContext->contextId), &stcSettings);
@@ -6050,7 +6053,8 @@ void print_usage(void) {
             printf("  -audioPesPacking - Enable audio PES packing\n");
             printf("  -onePtsPerSegment - Insert only one PTS per segment\n");
             printf("  -ptsSeed PTS - Start NRT transcode with specified video PTS (in 45Khz)\n");
-            printf("  -itfpoff - Disable ITFP");
+            printf("  -underflowPause - Set NRT mode STC input underflow handling mode to pause\n");
+            printf("  -itfpoff - Disable ITFP\n");
 }
 
 /* include media probe */
@@ -6222,6 +6226,10 @@ int main(int argc, char **argv)  {
             if(!strcmp("-fifo",argv[i])) {
                 g_bFifo = true;
                 fprintf(stderr, "Enabled fifo record...\n");
+            }
+            if(!strcmp("-underflowPause",argv[i])) {
+                pContext->underflowHandling = NEXUS_StcChannelUnderflowHandling_eAllowProducerPause;
+                fprintf(stderr, "Enabled input underflow pause mode...\n");
             }
             if(!strcmp("-NRTwrap",argv[i])||!strcmp("-loop",argv[i])) {
                 g_bNonRealTimeWrap = true;

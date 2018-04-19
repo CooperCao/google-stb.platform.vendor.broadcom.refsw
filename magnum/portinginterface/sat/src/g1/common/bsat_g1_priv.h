@@ -1,39 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -47,19 +51,16 @@
 #ifndef BYPASS_LEAP
    #define BSAT_HAS_LEAP
 #endif
-   #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    /* #define BSAT_EXCLUDE_SPUR_CANCELLER */
    #include "bsat_7366_priv.h"
 #elif (BCHP_CHIP==45216)
    #define BSAT_HAS_LEAP
-   #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    /* #define BSAT_EXCLUDE_SPUR_CANCELLER */
    #include "bsat_45216_priv.h"
 #elif (BCHP_CHIP==45308)
    #define BSAT_HAS_LEAP
-   #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    #define BSAT_HAS_DVBS2X
    #define BSAT_HAS_DUAL_TFEC
@@ -67,17 +68,14 @@
    #include "bsat_45308_priv.h"
 #elif (BCHP_CHIP==4538)
    #define BSAT_HAS_LEAP
-   #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    #define BSAT_EXCLUDE_SPUR_CANCELLER
    #include "bsat_4538_priv.h"
 #elif (BCHP_CHIP==7364)
-   #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    #include "bsat_7364_priv.h"
 #elif (BCHP_CHIP==45402)
    #define BSAT_HAS_LEAP
-   #define BSAT_HAS_WFE
    #define BSAT_EXCLUDE_MI2C
    #define BSAT_HAS_DVBS2X
    #define BSAT_HAS_DUAL_TFEC
@@ -200,9 +198,7 @@ typedef struct BSAT_g1_P_Handle
    BREG_Handle           hRegister;             /* register handle */
    BINT_Handle           hInterrupt;            /* interrupt handle */
    BKNI_EventHandle      hInitDoneEvent;        /* initialization done event handle */
-#ifdef BSAT_HAS_WFE
    BSAT_NotchSettings    notchSettings[BSAT_G1_MAX_NOTCH]; /* notch settings for spur cancellation */
-#endif
 #ifndef BSAT_EXCLUDE_SPUR_CANCELLER
    uint32_t              cwcFreq[6];
 #endif
@@ -215,9 +211,7 @@ typedef struct BSAT_g1_P_Handle
    uint16_t              afecRampChanMask;          /* bitmask indicating which channels have afec lock */
    uint16_t              afecRampLowThreshChanMask; /* bitmask indicating which afec locked channels have ave iter below threshold */
    uint8_t               sdsRevId;              /* SDS core revision ID */
-#ifdef BSAT_HAS_WFE
    uint8_t               nNotch;                /* number of spurs cancelled by DCO notch filter */
-#endif
    uint8_t               acqDoneThreshold;      /* number of failed reacqs before setting acq done event */
 } BSAT_g1_P_Handle;
 
@@ -404,9 +398,7 @@ typedef struct BSAT_g1_P_ChannelHandle
    uint8_t              turboScanState;        /* used in Turbo scan mode */
    uint8_t              turboScanLockedModeFailures;
 #endif
-#ifdef BSAT_HAS_WFE
    int8_t               notchState;
-#endif
 } BSAT_g1_P_ChannelHandle;
 
 
@@ -480,10 +472,8 @@ BERR_Code BSAT_g1_P_SetTurboAcqSettings(BSAT_ChannelHandle h, BSAT_TurboAcqSetti
 #endif
 BERR_Code BSAT_g1_P_GetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSettings *pSettings);
 BERR_Code BSAT_g1_P_SetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSettings *pSettings);
-#ifdef BSAT_HAS_WFE
 BERR_Code BSAT_g1_P_SetNotchSettings(BSAT_Handle, uint32_t, BSAT_NotchSettings*);
 BERR_Code BSAT_g1_P_GetNotchSettings(BSAT_Handle, uint32_t*, BSAT_NotchSettings*);
-#endif
 #ifndef BSAT_EXCLUDE_SPUR_CANCELLER
 BERR_Code BSAT_g1_P_SetCwc(BSAT_Handle h, uint32_t n, uint32_t *pFreqs);
 #endif
@@ -704,7 +694,6 @@ BERR_Code BSAT_g1_P_TunerSetFreq_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFun
 BERR_Code BSAT_g1_P_TunerQuickTune_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT nextFunct);
 BERR_Code BSAT_g1_ResetXbarFifo(BSAT_Handle h, uint8_t adcSelect);
 
-#ifdef BSAT_HAS_WFE
 /* channelizer functions */
 BERR_Code BSAT_g1_P_ChanSetAciCoeff_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_DisableAllNotch_isrsafe(BSAT_ChannelHandle h);
@@ -715,7 +704,6 @@ BERR_Code BSAT_g1_P_SetAdcSelect(BSAT_ChannelHandle h, uint8_t adcSelect);
 BERR_Code BSAT_g1_P_GetAdcSelect(BSAT_ChannelHandle h, uint8_t *pAdcSelect);
 BERR_Code BSAT_g1_P_FreezeChanAgc_isr(BSAT_ChannelHandle h, bool bFreeze);
 void BSAT_g1_P_LoadAciFilterCoeff_isr(BSAT_ChannelHandle h, const int16_t *pCoeff);
-#endif
 
 #if (!defined(BSAT_EXCLUDE_AFEC) && defined(BSAT_HAS_DVBS2X))
 const uint8_t* BSAT_g1_P_AfecGetPdLut_isr(uint8_t lutMode);

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #ifndef BSAGELIB_SHARED_TYPES_H_
@@ -47,13 +48,14 @@
 /* SAGE global SRAM register indexes */
 typedef enum
 {
-	BSAGElib_GlobalSram_eRequestBuffer = 0x20,
+    BSAGElib_GlobalSram_eRequestBuffer = 0x20,
     BSAGElib_GlobalSram_eRequestBufferSize,
     BSAGElib_GlobalSram_eAckBuffer,
     BSAGElib_GlobalSram_eAckBufferSize,
     BSAGElib_GlobalSram_eResponseBuffer,
     BSAGElib_GlobalSram_eResponseBufferSize,
     BSAGElib_GlobalSram_eRestrictedRegion1,
+    BSAGElib_GlobalSram_eCRRStartOffset=BSAGElib_GlobalSram_eRestrictedRegion1,
     BSAGElib_GlobalSram_eRestrictedRegion1Size,
     BSAGElib_GlobalSram_eRestrictedRegion2,
     BSAGElib_GlobalSram_eRestrictedRegion2Size,
@@ -135,5 +137,25 @@ typedef enum {
     BSAGElib_SystemCommandId_ePowerManagement
 } BSAGElib_SystemCommandId;
 #endif
+
+/******************* Valid fields for BSAGElib_GlobalSram_eSuspend **************/
+/* States set by HOST for SAGE to consume */
+#define SAGE_SUSPENDVAL_H2S_RUN              0x4F4E4D4C /* Request SAGE to resume. deprecated? */
+#define SAGE_SUSPENDVAL_H2S_SLEEP            0x4F567856 /* Request SAGE to enter S2 sleep */
+#define SAGE_SUSPENDVAL_H2S_RESUME           0x4E345678 /* Request SAGE to resume from S2 */
+/* States set by SAGE for HOST to consume */
+#define SAGE_SUSPENDVAL_S2H_RESUMING         0x77347856 /* SAGE is resuming from S2 */
+#define SAGE_SUSPENDVAL_S2H_S3READY          0x534E8C53 /* SAGE prep for S3 standby is complete */
+#define SAGE_SUSPENDVAL_S2H_S2READY          0x524E8C52 /* SAGE prep for S2 standby is complete */
+/* The following only in (4.x where >= 4.0.Alpha5) | (3.x where > 3.2.15) */
+#define SAGE_SUSPENDVAL_S2H_STANDBYFAIL_RUN  0x544E8C54 /* Standby has failed. SAGE is still running */
+#define SAGE_SUSPENDVAL_S2H_STANDBYFAIL_DEAD 0x554E8C55 /* Standby attempt has failed. SAGE has RESET (most likely trigger a chip reset) */
+
+/******************* Valid fields for BSAGElib_GlobalSram_eReset **************/
+#define SAGE_RESETVAL_S2H_READYTORESTART 0x0112E00E /* SAGE is running and ready for SAGE_SUSPENDVAL_xxx commands */
+#define SAGE_RESETVAL_S2H_MAINSTART      0x0211DCB0 /* SAGE framework has run (but not "readytorestart" */
+#define SAGE_RESETVAL_S2H_DOWN           0x1FF1FEED /* SAGE has shut down (Should check w/ BCHP_SAGE_IsStarted) */
+#define SAGE_RESETVAL_S2H_ERROR          0x30DE018E /* SAGE error in shut down attempt */
+#define SAGE_RESETVAL_H2S_RESET          0x4E404E40 /* HOST request to have SAGE shut down */
 
 #endif /* BSAGELIB_SHARED_TYPES_H_ */

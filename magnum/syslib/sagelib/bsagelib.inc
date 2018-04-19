@@ -47,6 +47,7 @@ include $(MAGNUM)/syslib/sagelib/bsagelib_public.inc
 
 # Module Includes
 BSAGELIB_INCLUDES += $(MAGNUM)/syslib/sagelib/include
+BSAGELIB_INCLUDES += $(MAGNUM)/syslib/sagelib/include/priv
 
 # Module Sources
 ifeq ($(SAGE_VERSION), 2x)
@@ -56,6 +57,7 @@ ifeq ($(SAGE_KO), y)
 BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_boot_ko.c
 else
 BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_boot.c
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_boot_4x.c
 endif
 endif
 

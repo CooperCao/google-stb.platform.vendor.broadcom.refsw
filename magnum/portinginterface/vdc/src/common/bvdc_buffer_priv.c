@@ -1,43 +1,45 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* Module Description:
-*
-***************************************************************************/
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "bstd.h"
 #include "bkni.h"
 #include "bvdc_buffer_priv.h"
@@ -50,6 +52,8 @@
 #include "bvdc_window_priv.h"
 #include "bvdc_capture_priv.h"
 #include "bvdc_feeder_priv.h"
+#include "bvdc_buffer_timestamp_priv.h"
+#include "bvdc_buffer_dbg_priv.h"
 
 
 BDBG_MODULE(BVDC_BUF);
@@ -57,616 +61,13 @@ BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_FILE_MODULE(BVDC_BUF_MTGW);
 BDBG_OBJECT_ID(BVDC_BUF);
 
-#if (BVDC_BUF_LOG == 1)
-/***************************************************************************
- */
-
-/* Logging Legend
-
-   Depends on the event, each logging entry has the following format:
-   * uuuuuuuu:bbbb:mx:y[...W.R]z:iiiiiiii:vvvvvvvv
-     + uuuuuuuu: Reference timestamp (microsecond)
-     + bbbbb:    Event number index in the circular buffer
-     + mx:       Event m of window x
-       = Ax:y    Window x writer skips 2 fields, y:pCurWriterBuf->ulBufferId
-       = Bx:y    Window x writer skips 1 field/frame, y:pCurWriterBuf->ulBufferId
-       = Cx:y    Window x reader repeat 1 field/frame, y:pCurReaderBuf->ulBufferId
-       = Dx:y    Window x reader repeat for polarity, y:pCurReaderBuf->ulBufferId
-       = Ex:y    Window x reader repeat 1 field/frame, y:pCurReaderBuf->ulBufferId with possible inversion
-       = Fx:y    Window x writer overruns reader which may or may not be allowed, y:pCurWriterBuf->ulBufferId
-       = Gx:y    Window x reader overruns writer which may or may not be allowed, y:pCurReaderBuf->ulBufferId
-       = Kx:y    Window x new writer IRQ at position y
-       = Lx:y    Window x new reader IRQ at position y
-     + [...W.R]: Position of reader and writer pointers
-     + z:        Number of active buffers
-     + iiiiiiii: other info, i.e., number of captured fields, source polarity, vec polarity, etc
-     + vvvvvvvv: VDC timestamp
-
-   * uuuuuuuu:bbbb:mx:yyyyyyyy:zzzzz
-     + uuuuuuuu: Reference timestamp (microsecond)
-     + bbbbb:    Event number index in the circular buffer
-     + mx:
-       = Ox:     Reader latency on window x
-       = Px:     Writer latency on window x
-     + yyyyyyyy: Time delta
-     + zzzzz:    Number of captured fields so far
-
-   * uuuuuuuu:bbbb:Jx:R=y W=z
-     + uuuuuuuu: Reference timestamp (microsecond)
-     + bbbbb:    Event number index in the circular buffer
-     + Qx:       Invalidate on window x
-     + R=y:      Set reader to position y
-     + W=z       Set writer to position z
-
-   * uuuuuuuu:bbbb:mx:yyyyy
-     + uuuuuuuu: Reference timestamp (microsecond)
-     + bbbbb:    Event number index in the circular buffer
-     + mx:
-       = Sx:     Reader of window x moved by writer due to misordered ISR (type 1)
-       = Tx:     Writer of window x moved by reader due to misordered ISR (type 1)
-     + yyyyy:    Number of captured fields
-
-   * uuuuuuuu:bbbb:mx:cnt=y
-     + uuuuuuuu:  Reference timestamp (microsecond)
-     + bbbbb:     Event number index in the circular buffer
-     + mx:
-       = Ux:cnt=y Added buffer entry on window x to count=y
-       = Vx:cnt=y Removed buffer entry on window x to count=y
-
-   * uuuuuuuu:bbbb:Tx:cccccccc:pppppppp
-     + uuuuuuuu:  Reference timestamp (microsecond)
-     + bbbbb:     Event number index in the circular buffer
-     + Tx:        Timestamp update on window x
-     + cccccccc:  VDC capture timestamp (microsecond)
-     + pppppppp:  VDC playback timestamp (microsecond)
-
-    * uuuuuuuu:bbbb:Yx:cccccccc:pppppppp:rrrrrrrr
-     + uuuuuuuu:  Reference timestamp (microsecond)
-     + bbbbb:     Event number index in the circular buffer
-     + Yx:        Timestamp update on window x
-     + cccccccc:  VDC playback timestamp (microsecond)
-     + pppppppp:  VDC writer ISR timestamp (microsecond)
-     + rrrrrrrr:  VDC reader ISR timestamp (microsecond)
-
-    * uuuuuuuu:bbbb:Zx:cccccccc:pppppppp:rrrrrrrr
-     + uuuuuuuu:  Reference timestamp (microsecond)
-     + bbbbb:     Event number index in the circular buffer
-     + Zx:        Timestamp update on window x
-     + cccccccc:  VDC capture timestamp (microsecond)
-     + pppppppp:  VDC reader ISR timestamp (microsecond)
-     + rrrrrrrr:  VDC writer ISR timestamp (microsecond)
-*/
-
-#define BVDC_P_BUF_LOG_ENTRIES         2048                             /* Number of log entries - must be of powers of 2 */
-#define BVDC_P_BUF_LOG_ENTRIES_MASK    (2048-1)                         /* Mask of the number of log entries */
-#define BVDC_P_BUF_LOG_ENTRIES_PAD     64                               /* Number of events to dump before and after the last skip/repeat event */
-#define BVDC_P_BUF_LOG_MAX_OUTPUT      (BVDC_P_BUF_LOG_ENTRIES_PAD<<1)  /* Maximum number of log entries at each round */
-#define BVDC_P_BUF_LOG_BUFFERS_NUM_MAX 16                               /* Maximum number buffer entries of eacn VDC window */
-#define BVDC_P_BUF_LOG_TRACE_WINDOW_0  0                                /* The first VDC window to trace */
-#define BVDC_P_BUF_LOG_TRACE_WINDOW_1  1                                /* The second VDC window to trace */
-#define BVDC_P_BUF_LOG_TRIGGER_DUMP    32                               /* The difference between the last skip/repeat and last written
-                                                                           entry exceeds 32 entries. Exceeding this triggers a dump of the
-                                                                           log. */
-
-/* INFO_1 Fields */
-#define BVDC_P_BUF_LOG_DST_POLARITY_SHIFT              0
-#define BVDC_P_BUF_LOG_PIC_REPEAT_CNT_SHIFT            0
-#define BVDC_P_BUF_LOG_PIC_SKIP_CNT_SHIFT              0
-#define BVDC_P_BUF_LOG_ORIG_SRC_POLARITY_SHIFT         8
-#define BVDC_P_BUF_LOG_SRC_POLARITY_SHIFT              16
-#define BVDC_P_BUF_LOG_VEC_POLARITY_SHIFT              BVDC_P_BUF_LOG_SRC_POLARITY_SHIFT
-#define BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT            24
-
-#define BVDC_P_BUF_LOG_DST_POLARITY                    0x000000FF
-#define BVDC_P_BUF_LOG_PIC_REPEAT_CNT                  0x000000FF
-#define BVDC_P_BUF_LOG_PIC_SKIP_CNT                    0x000000FF
-#define BVDC_P_BUF_LOG_ORIG_SRC_POLARITY               0x0000FF00
-#define BVDC_P_BUF_LOG_SRC_POLARITY                    0x00FF0000
-#define BVDC_P_BUF_LOG_VEC_POLARITY                    BVDC_P_BUF_LOG_SRC_POLARITY
-#define BVDC_P_BUF_LOG_NUM_CAP_FIELDS                  0xFF000000
-
-/* INFO_2 Fields */
-#define BVDC_P_BUF_LOG_W_NORMAL_ADVANCE_SHIFT          0
-#define BVDC_P_BUF_LOG_SKIP_DUE_TO_WRITER_GAP_SHIFT    1
-#define BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT           2
-#define BVDC_P_BUF_LOG_W_OVERRAN_R_SHIFT               3
-
-#define BVDC_P_BUF_LOG_W_NORMAL_ADVANCE                0x1
-#define BVDC_P_BUF_LOG_SKIP_DUE_TO_WRITER_GAP          0x2
-#define BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG                 0x4
-#define BVDC_P_BUF_LOG_W_OVERRAN_R                     0x8
-
-
-#define BVDC_P_BUF_LOG_R_NORMAL_ADVANCE_SHIFT          4
-#define BVDC_P_BUF_LOG_FORCED_REPEAT_PIC_SHIFT         5
-#define BVDC_P_BUF_LOG_FORCED_REPEAT_PIC_COUNT_SHIFT   6
-#define BVDC_P_BUF_LOG_R_OVERRAN_W_SHIFT               7
-
-#define BVDC_P_BUF_LOG_R_NORMAL_ADVANCE                0x10
-#define BVDC_P_BUF_LOG_FORCED_REPEAT_PIC               0x20
-#define BVDC_P_BUF_LOG_FORCED_REPEAT_COUNT             0x40
-#define BVDC_P_BUF_LOG_R_OVERRAN_W                     0x80
-
-/* This index implementation assumes little-endian configuration.
-   This allows vdclog_dump to only output the recent events.
-   In the 32-bit value ulIdx, the upper 16-bit is the wraparound counter,
-   and the lower 16-bit is the actual index to the vdclog event buffer. */
-#define BVDC_P_BUF_LOG_IDX_INCREMENT(stIdx) \
-                                    stIdx.ulIdx++;                                        \
-                                    if(stIdx.stIdxPart.usIdxEvent >= BVDC_P_BUF_LOG_ENTRIES)  \
-                                    {                                                   \
-                                        stIdx.stIdxPart.usIdxEvent = 0;                   \
-                                        stIdx.stIdxPart.usIdxRound++;                     \
-                                    }
-#define BVDC_P_BUF_LOG_IDX_ADD(stIdx, uValueAdd)                                              \
-                                    stIdx.ulIdx += uValueAdd;                                 \
-                                    if(stIdx.stIdxPart.usIdxEvent >= BVDC_P_BUF_LOG_ENTRIES)      \
-                                    {                                                       \
-                                        stIdx.stIdxPart.usIdxEvent &= BVDC_P_BUF_LOG_ENTRIES_MASK;\
-                                        stIdx.stIdxPart.usIdxRound++;                         \
-                                    }
-#define BVDC_P_BUF_LOG_IDX_SUB(stIdx, uValueSub)              \
-                                    stIdx.ulIdx -= uValueSub; \
-                                    stIdx.stIdxPart.usIdxEvent &= BVDC_P_BUF_LOG_ENTRIES_MASK
-
-typedef union  {
-    uint32_t ulIdx;
-    struct  {
-        uint16_t usIdxEvent;
-        uint16_t usIdxRound;
-    } stIdxPart;
-} BVDC_P_BufLogIdx;
-
-typedef struct {
-    uint32_t    ulWindowId;
-    uint32_t    ulBufferId;
-    char        cRW[BVDC_P_BUF_LOG_BUFFERS_NUM_MAX];
-    uint32_t    ulBufferNum;
-    uint32_t    ulBufferTS;
-    uint32_t    ulInfo_1;
-    uint32_t    ulInfo_2;
-    uint32_t    ulInfo_3;
-} BVDC_P_BufLogSkipRepeat;
-
-typedef struct  {
-    uint32_t    ulTimeDiff;
-    uint32_t    ulWindowId;
-    uint32_t    ulNumCapField;
-} BVDC_P_BufLogTimeStamp;
-
-typedef struct {
-    uint32_t    ulU0;
-    uint32_t    ulU1;
-    uint32_t    ulU2;
-    uint32_t    ulU3;
-} BVDC_P_BufLogGeneric;
-
-typedef struct BVDC_P_BufLog {
-    char        cLogType;                                      /* See the logging legend above... */
-    uint32_t    ulTime;                                        /* Timestamp from the free-running timer (microseconds) */
-    union {
-        BVDC_P_BufLogSkipRepeat   stSkipRepeat;                /* Skip/Repeat event - events {A, B, C, D} */
-        BVDC_P_BufLogTimeStamp    stTimeStamp;                 /* Latency event */
-        BVDC_P_BufLogGeneric      stGeneric;                   /* Generic event */
-    } BufLogData;
-    uint32_t    ulInterruptLatency;
-} BVDC_P_BufLog;
-
-static BVDC_P_BufLog          astBufLog[BVDC_P_BUF_LOG_ENTRIES];      /* The circular buffer */
-static BVDC_P_BufLogIdx       stBufLog_IdxW = {0};                    /* Writer pointer */
-static BVDC_P_BufLogIdx       stBufLog_IdxLastSkipRepeat={0};         /* The position of the last Skip/Repeat event */
-static BVDC_BufLogState       eBufLogState = BVDC_BufLogState_eReset; /* State of the logging */
-static BVDC_CallbackFunc_isr  pfBufLogCallback = NULL;                /* User registered callback function */
-static void                   *pvBufLogCallbackParm1 = NULL;          /* First user callback parameter */
-static int                    iBufLogParm2 = 0;                       /* Second user callback parameter */
-static BTMR_TimerRegisters    stTmrRegs={0,0};                        /* VDC timer registers */
-static bool                   bstBufLogEnable[BVDC_P_WindowId_eComp0_G0]
-    = {true, true, true, true, true, true};
-
-void BVDC_P_Buffer_SetLogStateAndDumpTrigger
-    ( BVDC_BufLogState                    eLogState,
-      const BVDC_CallbackFunc_isr         pfCallback,
-      void                               *pvParm1,
-      int                                 iParm2 )
-{
-    /* Store user settings */
-    eBufLogState = eLogState;
-    pfBufLogCallback = pfCallback;
-    pvBufLogCallbackParm1 = pvParm1;
-    iBufLogParm2 = iParm2;
-    return;
-}
-
-/*
- * Outputs the log, from BVDC_P_BUF_LOG_ENTRIES_PAD events prior to the first skip/repeat event through BVDC_P_BUF_LOG_ENTRIES_PAD events
- * after the last skip/repeat event.
- * It tries to catch up with the stBufLog_IdxLastSkipRepeat index, that moves whenever another skip/repeat event occurs.
- */
-void BVDC_P_Buffer_DumpLog
-    ( char            *pLog,
-      unsigned int     uiLenToRead,
-      unsigned int    *puiReadCount )
-{
-    uint32_t         ulBufCtr = 0, ulOutputCtr = 0;
-    BVDC_P_BufLog    *pstSrc = (BVDC_P_BufLog*)&(astBufLog[0]);
-    BVDC_P_BufLogIdx stBufLog_IdxRLast, stBufLog_IdxR;
-    uint16_t         usBufLogR;
-    uint32_t         ulStringOffset = 0;
-
-    /* compute the starting point */
-    stBufLog_IdxR = stBufLog_IdxLastSkipRepeat;
-    BVDC_P_BUF_LOG_IDX_SUB(stBufLog_IdxR, BVDC_P_BUF_LOG_ENTRIES_PAD);
-
-    /* header marker */
-    ulStringOffset = BKNI_Snprintf(&pLog[0], uiLenToRead,
-                            "BRCM===%08x:%08x:%08x===>\n",
-                            stBufLog_IdxR.ulIdx, stBufLog_IdxLastSkipRepeat.ulIdx, stBufLog_IdxW.ulIdx);
-
-    while(1)
-    {
-        usBufLogR = stBufLog_IdxR.stIdxPart.usIdxEvent;
-        ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead,
-                                "%010u:%04u:%c",
-                                (pstSrc + usBufLogR)->ulTime,
-                                usBufLogR,
-                                (pstSrc + usBufLogR)->cLogType);
-
-        if ((pstSrc + usBufLogR)->cLogType <= ((eBufLogState == BVDC_BufLogState_eAutomaticReduced) ? 'F' : 'M'))
-        {
-            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                    "%u:%u[",
-                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulWindowId,
-                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferId);
-
-            for(ulBufCtr=0; ulBufCtr<((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferNum); ulBufCtr++)
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                        "%c",
-                                        (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.cRW[ulBufCtr]);
-            }
-
-            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                    "]%u:%08x:%012u",
-                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferNum,
-                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_1,
-                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferTS);
-
-            if ((pstSrc + usBufLogR)->cLogType == 'A' || (pstSrc + usBufLogR)->cLogType == 'B')
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== skip");  /* mark the skip event to ease reading of the logs */
-            }
-
-            if ((pstSrc + usBufLogR)->cLogType == 'C' || (pstSrc + usBufLogR)->cLogType == 'D')
-            {
-                if ((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_2 & BVDC_P_BUF_LOG_FORCED_REPEAT_PIC)
-                {
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== MTG forced repeat");
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== pic %x", (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_3);
-
-                }
-                else
-                {
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== repeat");  /* mark the repeat event to ease reading of the logs */
-                }
-            }
-
-            if ((pstSrc + usBufLogR)->cLogType == 'E')
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== possible inversion");  /* mark the inversion event to ease reading of the logs */
-            }
-
-            if ((pstSrc + usBufLogR)->cLogType == 'F')
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== W overran R");  /* mark the encroachment event to ease reading of the logs */
-            }
-
-            if ((pstSrc + usBufLogR)->cLogType == 'G')
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== R overran W");  /* mark the encroachment event to ease reading of the logs */
-            }
-
-            /* mark skips accordingly */
-            if ((pstSrc + usBufLogR)->cLogType == 'K')
-            {
-                if ((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_2 & BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG)
-                {
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== skip due to MTG drop");
-                }
-                else if ((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_2 & BVDC_P_BUF_LOG_SKIP_DUE_TO_WRITER_GAP)
-                {
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== skip due to writer gap");
-                }
-                else if ((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_2 & BVDC_P_BUF_LOG_W_NORMAL_ADVANCE)
-                {
-                    ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== normal advance");
-                }
-
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== pic %x", (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_3);
-            }
-
-            if ((pstSrc + usBufLogR)->cLogType == 'L')
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== pic %x", (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo_3);
-            }
-
-            /* check for missed/delayed interrupts */
-            if ((usBufLogR != 0) && ((pstSrc + usBufLogR)->cLogType == 'K' || (pstSrc + usBufLogR)->cLogType == 'L'))
-            {
-                uint16_t usLogEntry = usBufLogR;
-                uint32_t ulWindowId = (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulWindowId;
-                uint32_t ulInterruptLatency = 0;
-
-                /* find previous K or L entry of the same window */
-                if ((pstSrc + usBufLogR)->cLogType == 'K')
-                {
-                    do
-                    {
-                        usLogEntry--;
-                    } while ((usLogEntry != 0) && ((pstSrc + usLogEntry)->cLogType != 'K') &&
-                            (ulWindowId == (pstSrc + usLogEntry)->BufLogData.stSkipRepeat.ulWindowId));
-                }
-                else
-                {
-                    do
-                    {
-                        usLogEntry--;
-                    } while ((usLogEntry != 0) && ((pstSrc + usLogEntry)->cLogType != 'L') &&
-                            (ulWindowId == (pstSrc + usLogEntry)->BufLogData.stSkipRepeat.ulWindowId));
-                }
-
-                if (usLogEntry != 0)
-                {
-                    uint32_t ulCurrentIndexTime = (pstSrc + usBufLogR)->ulTime;
-
-                    /* Account for timer value wrap-around  */
-                    if ((pstSrc + usLogEntry)->ulTime > (pstSrc + usBufLogR)->ulTime)
-                    {
-                        ulCurrentIndexTime += BTMR_ReadTimerMax();
-                    }
-
-                    ulInterruptLatency = (ulCurrentIndexTime - (pstSrc + usLogEntry)->ulTime)/1000; /* ms */
-                }
-
-                /* pad 10% */
-                if (ulInterruptLatency > (110*(pstSrc + usBufLogR)->ulInterruptLatency)/100)
-                {
-                     ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== missed interrupt");
-                }
-            }
-
-            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "\n");
-
-        }
-        else if(eBufLogState != BVDC_BufLogState_eAutomaticReduced)
-        {
-            if((pstSrc + usBufLogR)->cLogType == 'Q')
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                "%u:R=%u W=%u",
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2);
-            }
-            else if( ((pstSrc + usBufLogR)->cLogType == 'S') || ((pstSrc + usBufLogR)->cLogType == 'T') ||
-                     ((pstSrc + usBufLogR)->cLogType == 'Y') || ((pstSrc + usBufLogR)->cLogType == 'Z'))
-            {
-
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                "%u:%u:%012u:%012u",
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU3);
-            }
-            else if( ((pstSrc + usBufLogR)->cLogType == 'U') || ((pstSrc + usBufLogR)->cLogType == 'V') )
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                "%u:cnt=%u",
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1);
-            }
-            else if( ((pstSrc + usBufLogR)->cLogType == 'T') )
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                "%u:%012u:%012u",
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
-                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2);
-            }
-            else
-            {
-                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
-                                "%u:%u:%u",
-                                (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulWindowId,
-                                (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulTimeDiff,
-                                (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulNumCapField);
-            }
-
-            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "\n");
-        }
-
-        ulOutputCtr++;
-        if(ulOutputCtr >= BVDC_P_BUF_LOG_MAX_OUTPUT)
-        {
-            BDBG_ERR(("Reached debug message output limit"));
-            break;
-        }
-        else
-        {
-            /* compute the last entry - match to recent buffer entries only */
-            stBufLog_IdxRLast = stBufLog_IdxLastSkipRepeat;
-            BVDC_P_BUF_LOG_IDX_ADD(stBufLog_IdxRLast, BVDC_P_BUF_LOG_ENTRIES_PAD);
-
-            /* adjust to the latest buffer entries only if necessary */
-            if( stBufLog_IdxRLast.ulIdx > stBufLog_IdxW.ulIdx )
-            {
-                stBufLog_IdxRLast = stBufLog_IdxW;
-            }
-
-            /* break when stBufLog_IdxLastSkipRepeat doesn't move anymore */
-            if(stBufLog_IdxR.ulIdx == stBufLog_IdxRLast.ulIdx)
-            {
-                break;
-            }
-            BVDC_P_BUF_LOG_IDX_INCREMENT(stBufLog_IdxR);
-        }
-    }
-
-
-    BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<===BRCM\n");
-
-    BDBG_ASSERT(ulStringOffset <= uiLenToRead);
-
-    *puiReadCount = ulStringOffset;
-}
-
-
-static void BVDC_P_BufLogAddEvent_isr( int type,
-                                       uint32_t v1,
-                                       uint32_t v2,
-                                       uint32_t v3,
-                                       uint32_t v4,
-                                       uint32_t v5,
-                                       uint32_t v6,
-                                       uint32_t v7,
-                                       const BVDC_P_Buffer_Handle hBuffer
-                                     )
-{
-    int      i, j;
-    bool bSkipRepeatEvent = false;
-    uint16_t usBufLogW;
-    uint32_t ulDiff;
-
-    if(eBufLogState == BVDC_BufLogState_eReset)
-        return;
-
-    if(!bstBufLogEnable[v1])
-    {
-        return;
-    }
-
-    BVDC_P_BUF_LOG_IDX_INCREMENT(stBufLog_IdxW);
-    usBufLogW = stBufLog_IdxW.stIdxPart.usIdxEvent;
-
-    if (0 == stTmrRegs.status)
-        BTMR_GetTimerRegisters(hBuffer->hWindow->hCompositor->hVdc->hTimer, &stTmrRegs);
-
-    astBufLog[usBufLogW].cLogType = type;
-    BTMR_ReadTimer_isr(hBuffer->hWindow->hCompositor->hVdc->hTimer, &(astBufLog[usBufLogW].ulTime));
-
-    if (type <= 'M')                                            /* skip / repeat */
-    {
-        BVDC_P_PictureNode *pPicture;
-
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulWindowId = v1;
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulBufferId = v2;
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulBufferNum = hBuffer->ulActiveBufCnt;
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulBufferTS = v4;
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo_1 = v3;
-        astBufLog[usBufLogW].ulInterruptLatency = v5;
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo_2 = v6;
-        astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo_3 = v7;
-
-        pPicture = BLST_CQ_FIRST(hBuffer->pBufList);
-
-        BKNI_Memset((void*)(astBufLog[usBufLogW].BufLogData.stSkipRepeat.cRW), ' ', sizeof(char) * BVDC_P_BUF_LOG_BUFFERS_NUM_MAX);
-
-        /* ulBufCnt is the max number of buffer that could be allocated.  Usually it is 4.
-            We go through the list and find the active ones.  cRW[index] cannot use i as index. */
-        for(i = 0, j=0; i < (int)hBuffer->ulBufCnt; i++)
-        {
-            if(pPicture->stFlags.bActiveNode)
-            {
-                astBufLog[usBufLogW].BufLogData.stSkipRepeat.cRW[j++] = (pPicture == hBuffer->pCurReaderBuf) ? 'R'
-                                                              : ((pPicture == hBuffer->pCurWriterBuf) ? 'W' : 'x');
-
-                if (j==BVDC_P_BUF_LOG_BUFFERS_NUM_MAX)
-                    break;
-            }
-            pPicture = BVDC_P_Buffer_GetNextNode(pPicture);
-        }
-
-        if (stBufLog_IdxW.ulIdx >= stBufLog_IdxLastSkipRepeat.ulIdx)
-        {
-            ulDiff = stBufLog_IdxW.ulIdx - stBufLog_IdxLastSkipRepeat.ulIdx;
-        }
-        else
-        {
-            ulDiff = stBufLog_IdxLastSkipRepeat.ulIdx - stBufLog_IdxW.ulIdx;
-        }
-
-        /* Only trigger the dumps on skip/repeat events or when the difference between
-           the last skip/repeat and last written entry exceeds 32 entries. The latter
-           condition guaranties that no entries will be overwritten before being dumped
-           to the console. */
-        if ((type <= 'F') || (ulDiff > BVDC_P_BUF_LOG_TRIGGER_DUMP))
-            bSkipRepeatEvent = true;
-    }
-    else if (type <= 'P')
-    {
-        astBufLog[usBufLogW].BufLogData.stTimeStamp.ulWindowId = v1;
-        astBufLog[usBufLogW].BufLogData.stTimeStamp.ulTimeDiff = v2;
-        astBufLog[usBufLogW].BufLogData.stTimeStamp.ulNumCapField = v3;
-    }
-    else
-    {
-        astBufLog[usBufLogW].BufLogData.stGeneric.ulU0 = v1;
-        astBufLog[usBufLogW].BufLogData.stGeneric.ulU1 = v2;
-        astBufLog[usBufLogW].BufLogData.stGeneric.ulU2 = v3;
-        astBufLog[usBufLogW].BufLogData.stGeneric.ulU3 = v4;
-    }
-
-    if(bSkipRepeatEvent)
-    {
-        stBufLog_IdxLastSkipRepeat = stBufLog_IdxW;
-        if(eBufLogState >= BVDC_BufLogState_eAutomatic)
-        {
-            if(pfBufLogCallback)
-                pfBufLogCallback(pvBufLogCallbackParm1, iBufLogParm2, NULL);
-            else
-                BDBG_ERR(("BufLog-AutoTrigger: User callback function unavailable"));
-        }
-    }
-}
-
-
-void BVDC_P_Buffer_SetManualTrigger(void)
-{
-    if(pfBufLogCallback)
-    {
-        /* Compute the dump-starting point for the manual trigger */
-        stBufLog_IdxLastSkipRepeat = stBufLog_IdxW;
-        BVDC_P_BUF_LOG_IDX_SUB(stBufLog_IdxLastSkipRepeat, BVDC_P_BUF_LOG_ENTRIES_PAD);
-
-        /* Execute the callback */
-        pfBufLogCallback(pvBufLogCallbackParm1, iBufLogParm2, NULL);
-    }
-    else
-    {
-        BDBG_ERR(("BufLog-ManualTrigger: User callback function unavailable"));
-    }
-}
-
-void BVDC_P_Buffer_EnableBufLog
-    ( BVDC_P_WindowId         eId,
-      bool                    bEnable)
-{
-    bstBufLogEnable[eId] = bEnable;
-    BDBG_MSG(("BVDC_P_Buffer_EnableBufLog: %d %d", eId, bEnable));
-}
-
-#endif
-
 /* VEC alignment may have 200 usecs error, RUL sampling of timestamp may have
    another +/-100 usecs error; worst case double-buffer reader/writer pointers
    timestamps relative error may be up to ~400usecs; */
 #define BVDC_P_DOUBLE_BUFFER_TS_TOLERANCE   (\
     2 * BVDC_P_MULTIBUFFER_RW_TOLERANCE + BVDC_P_USEC_ALIGNMENT_THRESHOLD)
 
-static void BVDC_P_Buffer_UpdateTimestamps_isr
-    ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eSrcPolarity,
-      const BAVC_Polarity              eDispPolarity );
+#define BVDC_P_PHASE2_TIME_STAMP_ADJUST  0x208D
 
 static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
     ( BVDC_Window_Handle               hWindow,
@@ -892,6 +293,7 @@ static void BVDC_P_Buffer_InitPictureNode
         pPicture->eMadPixelHeapId = BVDC_P_BufferHeapId_eUnknown;
         pPicture->eMadQmHeapId    = BVDC_P_BufferHeapId_eUnknown;
     }
+
     BKNI_Memset((void*)&pPicture->stCapCompression,
         0x0, sizeof(BVDC_P_Compression_Settings));
 
@@ -911,6 +313,10 @@ BERR_Code BVDC_P_Buffer_Create
     uint32_t i;
     BVDC_P_BufferContext *pBuffer;
     BVDC_P_PictureNode *pPicture;
+
+#if (BVDC_BUF_LOG==1)
+    BVDC_P_BufLog *pBufLog;
+#endif
 
     BDBG_ENTER(BVDC_P_Buffer_Create);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -982,6 +388,17 @@ BERR_Code BVDC_P_Buffer_Create
 
         BLST_CQ_INSERT_TAIL(pBuffer->pBufList, pPicture, link);
     }
+
+#if (BVDC_BUF_LOG==1)
+    pBufLog = (BVDC_P_BufLog *)BKNI_Malloc(sizeof(BVDC_P_BufLog));
+    if(pBufLog == NULL)
+    {
+        BDBG_ERR(("Failed to create multi-buffer log object."));
+        goto oom_err;
+    }
+    pBuffer->pBufLog = pBufLog;
+#endif
+
     /* All done. now return the new fresh context to user. */
     *phBuffer = (BVDC_P_Buffer_Handle)pBuffer;
 
@@ -1028,6 +445,12 @@ BERR_Code BVDC_P_Buffer_Destroy
 
     BDBG_ENTER(BVDC_P_Buffer_Destroy);
     BDBG_OBJECT_ASSERT(hBuffer, BVDC_BUF);
+
+#if (BVDC_BUF_LOG==1)
+    /* [4] Free memory alloc for multi-buffer log object */
+    BKNI_Free(hBuffer->pBufLog);
+    hBuffer->pBufLog = NULL;
+#endif
 
     /* [3] Free memory for individual buffer node */
     while(hBuffer->ulBufCnt--)
@@ -1134,6 +557,10 @@ void BVDC_P_Buffer_Init
     hBuffer->bRepeatForGap = false;
 #endif
 
+#if (BVDC_BUF_LOG==1)
+    BVDC_P_BufLog_Init(hBuffer->pBufLog);
+#endif
+
     BDBG_LEAVE(BVDC_P_Buffer_Init);
 }
 
@@ -1218,7 +645,7 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
             hBuffer->pCurWriterBuf = pPicture;
 
 #if (BVDC_BUF_LOG == 1)
-        BVDC_P_BufLogAddEvent_isr('U',
+        BVDC_P_BufLog_AddEvent_isr('U',
                             hBuffer->hWindow->eId,
                             hBuffer->ulActiveBufCnt,
                             0,
@@ -1350,7 +777,7 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
         hBuffer->iLastAddedBufIndex--;
         hBuffer->ulActiveBufCnt--;
 
-        BVDC_P_BufLogAddEvent_isr('V',
+        BVDC_P_BufLog_AddEvent_isr('V',
                             hBuffer->hWindow->eId,
                             hBuffer->ulActiveBufCnt,
                             0,
@@ -1527,7 +954,7 @@ BERR_Code BVDC_P_Buffer_Invalidate_isr
 #endif
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('Q',
+    BVDC_P_BufLog_AddEvent_isr('Q',
                         hBuffer->hWindow->eId,
                         hBuffer->pCurReaderBuf->ulBufferId,
                         hBuffer->pCurWriterBuf->ulBufferId,
@@ -1545,53 +972,6 @@ BERR_Code BVDC_P_Buffer_Invalidate_isr
     BDBG_LEAVE(BVDC_P_Buffer_Invalidate_isr);
     return BERR_SUCCESS;
 }
-
-#if 0
-/***************************************************************************
- *
- */
-BVDC_P_PictureNode* BVDC_P_Buffer_GetPrevWriterNode_isr
-    ( const BVDC_P_Buffer_Handle       hBuffer )
-{
-    BVDC_P_PictureNode     *pPrevNode;
-
-    BDBG_OBJECT_ASSERT(hBuffer, BVDC_BUF);
-
-    if(!hBuffer->ulActiveBufCnt)
-        return hBuffer->pCurWriterBuf;
-
-    BVDC_P_Buffer_GetPrevActiveNode(pPrevNode, hBuffer->pCurWriterBuf);
-    return pPrevNode;
-}
-#endif
-
-#if 0
-/***************************************************************************
- *
- */
-void BVDC_P_Buffer_SetCurWriterNode_isr
-    ( const BVDC_P_Buffer_Handle       hBuffer,
-      BVDC_P_PictureNode              *pPicture )
-{
-    BDBG_OBJECT_ASSERT(hBuffer, BVDC_BUF);
-
-    hBuffer->pCurWriterBuf = pPicture;
-}
-#endif
-
-#if 0
-/***************************************************************************
- *
- */
-void BVDC_P_Buffer_SetCurReaderNode_isr
-    ( const BVDC_P_Buffer_Handle       hBuffer,
-      BVDC_P_PictureNode              *pPicture )
-{
-    BDBG_OBJECT_ASSERT(hBuffer, BVDC_BUF);
-
-    hBuffer->pCurReaderBuf = pPicture;
-}
-#endif
 
 /***************************************************************************
  *
@@ -1745,221 +1125,6 @@ BERR_Code  BVDC_P_Buffer_ExtractBuffer_isr
 /***************************************************************************
  * The main multi-buffering algorithm
  ***************************************************************************/
-/***************************************************************************
- * This functions compares ulTimeStamp1 and ulTimeStamp2, and returns the
- * more recent time stamp
- */
-#if (BVDC_P_USE_RDC_TIMESTAMP)
-static uint32_t BVDC_P_Buffer_GetRecentTimeStamp_isr
-    ( BVDC_P_Buffer_Handle             hBuffer,
-      uint32_t                         ulPrevTimeStamp,
-      uint32_t                         ulTimeStamp1,
-      uint32_t                         ulTimeStamp2 )
-{
-    uint32_t    ulRecentTimeStamp;
-
-    /* Check if time stamp warp around */
-    if(ulTimeStamp1 < ulPrevTimeStamp)
-        ulTimeStamp1 += hBuffer->ulMaxTimestamp;
-
-    if(ulTimeStamp2 < ulPrevTimeStamp)
-        ulTimeStamp2 += hBuffer->ulMaxTimestamp;
-
-    if(ulTimeStamp2 > ulTimeStamp1)
-        ulRecentTimeStamp = ulTimeStamp2;
-    else
-        ulRecentTimeStamp = ulTimeStamp1;
-
-    /* Get back real time stamp */
-    if(ulRecentTimeStamp > hBuffer->ulMaxTimestamp)
-        ulRecentTimeStamp -= hBuffer->ulMaxTimestamp;
-
-    return ulRecentTimeStamp;
-}
-#endif
-
-/***************************************************************************
- *
- */
-static void BVDC_P_Buffer_UpdateWriterTimestamps_isr
-    ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eFieldId )
-{
-    uint32_t ulTimestamp;
-#if (BVDC_P_USE_RDC_TIMESTAMP)
-    uint32_t           ulOtherSlotTimestamp;
-    BRDC_Slot_Handle   hCaptureSlot, hOtherCaptureSlot;
-#endif
-
-#if (!BVDC_P_USE_RDC_TIMESTAMP)
-    BSTD_UNUSED(eFieldId);
-#endif
-
-    BDBG_ENTER(BVDC_P_Buffer_UpdateWriterTimestamps_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hWindow->hBuffer, BVDC_BUF);
-
-#if (BVDC_P_USE_RDC_TIMESTAMP)
-    if(eFieldId == BAVC_Polarity_eFrame)
-    {
-        if(BVDC_P_SRC_IS_MPEG(hWindow->stCurInfo.hSource->eId))
-        {
-            /* Progressive format use frame slot */
-            hCaptureSlot = hWindow->stCurInfo.hSource->ahSlot[BAVC_Polarity_eFrame];
-            ulTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hCaptureSlot);
-        }
-        else
-        {
-            /* Non-Mpeg sources use 2 slots */
-            /* Progressive format use top field slot */
-            hCaptureSlot = hWindow->stCurInfo.hSource->ahSlot[BAVC_Polarity_eTopField];
-            ulTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hCaptureSlot);
-        }
-    }
-    else
-    {
-        /* get time stamp from both slots, choose the later one */
-        hCaptureSlot = hWindow->stCurInfo.hSource->ahSlot[eFieldId];
-        hOtherCaptureSlot = hWindow->stCurInfo.hSource->ahSlot[BVDC_P_NEXT_POLARITY(eFieldId)];
-
-        ulTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hCaptureSlot);
-        ulOtherSlotTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hOtherCaptureSlot);
-
-        ulTimestamp = BVDC_P_Buffer_GetRecentTimeStamp_isr(hWindow->hBuffer,
-            hWindow->hBuffer->ulPrevWriterTimestamp, ulTimestamp, ulOtherSlotTimestamp);
-    }
-#else
-
-    ulTimestamp = BREG_Read32(hWindow->stCurResource.hCapture->hRegister, hWindow->stCurResource.hCapture->ulTimestampRegAddr);
-    /* convert to microseconds based on a 27MHz clock since direct regsiter reads are tick values */
-    ulTimestamp /= BVDC_P_CLOCK_RATE;
-
-#endif
-
-#if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('T',
-                        hWindow->eId,
-                        ulTimestamp,
-                        0xAABB, /* Writer time stamp mark */
-                        0,
-                        0,
-                        0,
-                        0,
-                        hWindow->hBuffer);
-#endif
-
-    if (ulTimestamp != hWindow->hBuffer->ulCurrWriterTimestamp)
-    {
-        uint32_t ulTempCurWriterTs = hWindow->hBuffer->ulCurrWriterTimestamp;
-
-        if (hWindow->hBuffer->bWriterWrapAround)
-        {
-            ulTempCurWriterTs -= hWindow->hBuffer->ulMaxTimestamp;
-            hWindow->hBuffer->bWriterWrapAround = false;
-        }
-
-        hWindow->hBuffer->ulPrevWriterTimestamp = ulTempCurWriterTs;
-        hWindow->hBuffer->ulCurrWriterTimestamp = ulTimestamp;
-    }
-
-    /* Apply correction to wraparound, if necssary. */
-    if (hWindow->hBuffer->ulCurrWriterTimestamp < hWindow->hBuffer->ulPrevWriterTimestamp )
-    {
-        hWindow->hBuffer->ulCurrWriterTimestamp   += hWindow->hBuffer->ulMaxTimestamp;
-        hWindow->hBuffer->bWriterWrapAround = true;
-    }
-
-    BDBG_LEAVE(BVDC_P_Buffer_UpdateWriterTimestamps_isr);
-    return;
-}
-
-/***************************************************************************
- *
- */
-static void BVDC_P_Buffer_UpdateReaderTimestamps_isr
-    ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eFieldId )
-{
-    uint32_t ulTimestamp;
-#if (BVDC_P_USE_RDC_TIMESTAMP)
-    uint32_t           ulOtherSlotTimestamp;
-    BRDC_Slot_Handle   hPlaybackSlot, hOtherPlaybackSlot;
-#endif
-
-#if (!BVDC_P_USE_RDC_TIMESTAMP)
-    BSTD_UNUSED(eFieldId);
-#endif
-
-    BDBG_ENTER(BVDC_P_Buffer_UpdateReaderTimestamps_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hWindow->hBuffer, BVDC_BUF);
-
-#if (BVDC_P_USE_RDC_TIMESTAMP)
-    /* display uses 2 slots */
-    if(eFieldId == BAVC_Polarity_eFrame)
-    {
-        /* Progressive format use top field slot */
-        hPlaybackSlot = hWindow->hCompositor->ahSlot[BAVC_Polarity_eTopField];
-        ulTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hPlaybackSlot);
-    }
-    else
-    {
-        /* get time stamp from both slots, choose the later one */
-        hPlaybackSlot = hWindow->hCompositor->ahSlot[eFieldId];
-        hOtherPlaybackSlot = hWindow->hCompositor->ahSlot[BVDC_P_NEXT_POLARITY(eFieldId)];
-
-        ulTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hPlaybackSlot);
-        ulOtherSlotTimestamp = BRDC_Slot_GetTimerSnapshot_isr(hOtherPlaybackSlot);
-
-        ulTimestamp = BVDC_P_Buffer_GetRecentTimeStamp_isr(hWindow->hBuffer,
-            hWindow->hBuffer->ulPrevReaderTimestamp, ulTimestamp, ulOtherSlotTimestamp);
-    }
-#else
-
-    ulTimestamp = BREG_Read32(hWindow->stCurResource.hPlayback->hRegister,
-        hWindow->stCurResource.hPlayback->ulTimestampRegAddr);
-
-    /* convert to microseconds based on a 27MHz clock since direct regsiter reads are tick values */
-    ulTimestamp /= BVDC_P_CLOCK_RATE;
-#endif
-
-#if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('T',
-                            hWindow->eId,
-                            0xBBAA, /* Reader time stamp mark */
-                            ulTimestamp,
-                            0,
-                            0,
-                            0,
-                            0,
-                            hWindow->hBuffer);
-#endif
-
-    if (ulTimestamp != hWindow->hBuffer->ulCurrReaderTimestamp)
-    {
-        uint32_t ulTempCurReaderTs = hWindow->hBuffer->ulCurrReaderTimestamp;
-
-        if (hWindow->hBuffer->bReaderWrapAround)
-        {
-            ulTempCurReaderTs -= hWindow->hBuffer->ulMaxTimestamp;
-            hWindow->hBuffer->bReaderWrapAround = false;
-        }
-
-        hWindow->hBuffer->ulPrevReaderTimestamp = ulTempCurReaderTs;
-        hWindow->hBuffer->ulCurrReaderTimestamp = ulTimestamp;
-    }
-
-    /* Apply correction to wraparound, if necssary. */
-    if (hWindow->hBuffer->ulCurrReaderTimestamp < hWindow->hBuffer->ulPrevReaderTimestamp)
-    {
-        hWindow->hBuffer->ulCurrReaderTimestamp   += hWindow->hBuffer->ulMaxTimestamp;
-        hWindow->hBuffer->bReaderWrapAround = true;
-    }
-
-    BDBG_LEAVE(BVDC_P_Buffer_UpdateReaderTimestamps_isr);
-    return;
-
-}
 
 /***************************************************************************
  * When a pic node is returned by BVDC_P_Buffer_GetNextWriterNode_isr, it is
@@ -1972,10 +1137,13 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
       const BAVC_Polarity          eSrcPolarity,
       const BVDC_P_Buffer_MtgMode  eMtgMode )
 {
-    BVDC_P_PictureNode      *pNextNode;
-    uint32_t                 ulTimeStamp;
-    uint32_t                 ulMadOutPhase=1;
-    bool                     bDropPicDueToXdmMtgRepeat = false;
+    BVDC_P_PictureNode  *pNextNode;
+    uint32_t             ulTimeStamp;
+    uint32_t             ulMadOutPhase=1;
+    bool                 bDropPicDueToXdmMtgRepeat = false;
+#if (BVDC_BUF_LOG == 1)
+    bool                 bDropPicDueToMtgPhase = false;
+#endif
 
     BDBG_ENTER(BVDC_P_Buffer_GetNextWriterNode_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -2002,6 +1170,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
 
         bDropPicDueToXdmMtgRepeat = bMtgRepeatPicture && bUpSampledRate &&
                 (hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq == ulSrcFreq) ? true : false;
+
     }
 
     /* ----------------------------------
@@ -2051,6 +1220,19 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
          */
         /* 1) update writer timestamp */
         BVDC_P_Buffer_UpdateWriterTimestamps_isr(hWindow, eSrcPolarity);
+
+#if (BVDC_BUF_LOG == 1)
+        BVDC_P_BufLog_AddEvent_isr('T',
+                                  hWindow->eId,
+                                  hWindow->hBuffer->ulCurrWriterTimestamp,
+                                  0xAABB, /* Writer time stamp mark */
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  hWindow->hBuffer);
+#endif
+
 
         /* 2) get the delta ts = |w_ts - r_ts|; */
         if(hWindow->hBuffer->ulCurrWriterTimestamp > hWindow->hBuffer->ulCurrReaderTimestamp)
@@ -2121,6 +1303,10 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
             BDBG_ASSERT(eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase);
             BDBG_MODULE_MSG(BVDC_BUF_MTGW,("Win[%d]: Use current phase %d, B[%d]",
                     hWindow->eId, hWindow->hBuffer->pCurWriterBuf->ulMadOutPhase, hWindow->hBuffer->pCurWriterBuf->ulBufferId));
+
+#if (BVDC_BUF_LOG == 1)
+            bDropPicDueToMtgPhase = true;
+#endif
         }
         goto done;
     }
@@ -2163,7 +1349,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
 done:
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('K',
+    BVDC_P_BufLog_AddEvent_isr('K',
         hWindow->eId,
         hWindow->hBuffer->pCurWriterBuf->ulBufferId,
         (hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT) |
@@ -2172,7 +1358,7 @@ done:
             (hWindow->hBuffer->pCurWriterBuf->eDstPolarity << BVDC_P_BUF_LOG_DST_POLARITY_SHIFT),
         hWindow->hBuffer->ulCurrWriterTimestamp,
         (100000/hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq),
-        (((bDropPicDueToXdmMtgRepeat) ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT),
+        (((bDropPicDueToXdmMtgRepeat || bDropPicDueToMtgPhase) ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT),
         hWindow->hBuffer->pCurWriterBuf->ulDecodePictureId,
         hWindow->hBuffer);
 #endif
@@ -2182,36 +1368,6 @@ done:
 }
 
 
-/***************************************************************************
- *
- */
-static void BVDC_P_Buffer_UpdateTimestamps_isr
-    ( BVDC_Window_Handle               hWindow,
-      const BAVC_Polarity              eSrcPolarity,
-      const BAVC_Polarity              eDispPolarity )
-{
-    BDBG_ENTER(BVDC_P_Buffer_UpdateTimestamps_isr);
-
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    BVDC_P_Buffer_UpdateReaderTimestamps_isr(hWindow, eDispPolarity);
-    BVDC_P_Buffer_UpdateWriterTimestamps_isr(hWindow, eSrcPolarity);
-
-#if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('T',
-        hWindow->eId,
-        hWindow->hBuffer->ulCurrWriterTimestamp,
-        hWindow->hBuffer->ulCurrReaderTimestamp,
-        hWindow->hBuffer->ulNumCapField,
-        0,
-        0,
-        0,
-        hWindow->hBuffer);
-#endif
-
-    BDBG_LEAVE(BVDC_P_Buffer_UpdateTimestamps_isr);
-    return;
-}
 
 /***************************************************************************
  *
@@ -2230,17 +1386,29 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
 
     BVDC_P_Buffer_UpdateTimestamps_isr(hWindow, eSrcPolarity, eDispPolarity);
 
+#if (BVDC_BUF_LOG == 1)
+    BVDC_P_BufLog_AddEvent_isr('T',
+                                hWindow->eId,
+                                hWindow->hBuffer->ulCurrWriterTimestamp,
+                                hWindow->hBuffer->ulCurrReaderTimestamp,
+                                hWindow->hBuffer->ulNumCapField,
+                                0,
+                                0,
+                                0,
+                                hWindow->hBuffer);
+#endif
+
     /* reader is seemingly ahead of writer so maybe misordered */
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('Y',
-                        hWindow->eId,
-                        hWindow->stCurResource.hPlayback->ulTimestamp,
-                        hWindow->hBuffer->ulCurrWriterTimestamp,
-                        hWindow->hBuffer->ulCurrReaderTimestamp,
-                        0,
-                        0,
-                        0,
-                        hWindow->hBuffer);
+    BVDC_P_BufLog_AddEvent_isr('Y',
+                                hWindow->eId,
+                                hWindow->stCurResource.hPlayback->ulTimestamp,
+                                hWindow->hBuffer->ulCurrWriterTimestamp,
+                                hWindow->hBuffer->ulCurrReaderTimestamp,
+                                0,
+                                0,
+                                0,
+                                hWindow->hBuffer);
 #endif
 
     if ( hWindow->hBuffer->ulCurrReaderTimestamp <= hWindow->hBuffer->ulCurrWriterTimestamp )
@@ -2259,7 +1427,7 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
                     BVDC_P_Buffer_MoveSyncSlipReaderNode_isr(hWindow, eDispPolarity, eMtgMode);
                 hWindow->hBuffer->bReaderNodeMovedByWriter = true;
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('S',
+                    BVDC_P_BufLog_AddEvent_isr('S',
                         hWindow->eId,
                         hWindow->hBuffer->ulNumCapField,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
@@ -2267,7 +1435,6 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
                         0,
                         0,
                         0,
-
                         hWindow->hBuffer);
 #else
                     BDBG_MSG(("(A) Win[%d] W: %d writer ISR moved reader due to misordered ISR",
@@ -2299,16 +1466,15 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
     return;
 }
 
-#define BVDC_P_PHASE2_TIME_STAMP_ADJUST  0x208D
 static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eSrcPolarity,
       const BVDC_P_Buffer_MtgMode      eMtgMode )
 {
-    BVDC_P_PictureNode         *pNextNode, *pNextNextNode, *pPrevNode;
-    bool                        bSkip;
-    uint32_t                    ulGap;
-    bool                        bProgressivePullDown = false;
+    BVDC_P_PictureNode *pNextNode, *pNextNextNode, *pPrevNode;
+    bool                bSkip;
+    uint32_t            ulGap;
+    bool                bProgressivePullDown = false;
 
     BDBG_ENTER(BVDC_P_Buffer_MoveSyncSlipWriterNode_isr);
 
@@ -2389,6 +1555,10 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
          (pNextNextNode == hWindow->hBuffer->pCurReaderBuf)) ||
         bSkip)
     {
+        bool bMtgAlignSrcWithDisplay =
+             (hWindow->hBuffer->bMtgAlignSrcAndDisp && (pNextNode->PicComRulInfo.eSrcOrigPolarity != BAVC_Polarity_eFrame)) ?
+            true : false;
+
         hWindow->hBuffer->ulSkipStat++;
 
         /* Skip one frame if capture as frame, or one field if capture as field but display is progressive and
@@ -2398,20 +1568,21 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
          */
         if (!((hWindow->bFrameCapture) ||
               (VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt) &&
-               (!BVDC_P_MVP_USED_MAD_AT_READER(hWindow->stVnetMode, hWindow->stMvpMode)))))
+               (!BVDC_P_MVP_USED_MAD_AT_READER(hWindow->stVnetMode, hWindow->stMvpMode)))) ||
+               bMtgAlignSrcWithDisplay)
         {
             hWindow->hBuffer->pCurWriterBuf = pPrevNode;
 
 #if (BVDC_BUF_LOG == 1)
-            BVDC_P_BufLogAddEvent_isr('A',
+            BVDC_P_BufLog_AddEvent_isr('A',
                 hWindow->eId,
                 hWindow->hBuffer->pCurWriterBuf->ulBufferId,
                 (hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT) |
                     (hWindow->hBuffer->ulSkipStat << BVDC_P_BUF_LOG_PIC_SKIP_CNT_SHIFT),
                 hWindow->hBuffer->ulCurrWriterTimestamp,
                 0,
-                0,
-                0,
+                (bMtgAlignSrcWithDisplay ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_ALIGN_SRC_SHIFT,
+                hWindow->hBuffer->pCurWriterBuf->ulDecodePictureId,
                 hWindow->hBuffer);
 #else
             BDBG_MSG(("Win[%d] W:     Skip 2 fields, num of cap fields %d, total %d",
@@ -2420,9 +1591,8 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
         }
         else
         {
-
 #if (BVDC_BUF_LOG == 1)
-            BVDC_P_BufLogAddEvent_isr('B',
+            BVDC_P_BufLog_AddEvent_isr('B',
                 hWindow->eId,
                 hWindow->hBuffer->pCurWriterBuf->ulBufferId,
                 hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
@@ -2446,7 +1616,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
 #if (BVDC_BUF_LOG == 1)
     if (hWindow->hBuffer->pCurWriterBuf == hWindow->hBuffer->pCurReaderBuf)
     {
-        BVDC_P_BufLogAddEvent_isr('F',
+        BVDC_P_BufLog_AddEvent_isr('F',
                 hWindow->eId,
                 hWindow->hBuffer->pCurWriterBuf->ulBufferId,
                 hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
@@ -2519,6 +1689,18 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextReaderNode_isr
          */
         /* 1) update reader timestamp */
         BVDC_P_Buffer_UpdateReaderTimestamps_isr(hWindow, eVecPolarity);
+
+#if (BVDC_BUF_LOG == 1)
+        BVDC_P_BufLog_AddEvent_isr('T',
+                                  hWindow->eId,
+                                  0xBBAA, /* Reader time stamp mark */
+                                  hWindow->hBuffer->ulCurrReaderTimestamp,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  hWindow->hBuffer);
+#endif
 
         /* 2) get the deltaTs between w_ts and r_ts; */
         if(hWindow->hBuffer->ulCurrWriterTimestamp > hWindow->hBuffer->ulCurrReaderTimestamp)
@@ -2628,7 +1810,7 @@ done:
 
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('L',
+    BVDC_P_BufLog_AddEvent_isr('L',
         hWindow->eId,
         hWindow->hBuffer->pCurReaderBuf->ulBufferId,
         hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
@@ -2668,15 +1850,25 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
     BVDC_P_Buffer_UpdateTimestamps_isr(hWindow, eSrcPolarity, eDispPolarity);
 
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('Z',
-                        hWindow->eId,
-                        hWindow->stCurResource.hCapture->ulTimestamp,
-                        hWindow->hBuffer->ulCurrReaderTimestamp,
-                        hWindow->hBuffer->ulCurrWriterTimestamp,
-                        0,
-                        0,
-                        0,
-                        hWindow->hBuffer);
+    BVDC_P_BufLog_AddEvent_isr('T',
+                              hWindow->eId,
+                              hWindow->hBuffer->ulCurrWriterTimestamp,
+                              hWindow->hBuffer->ulCurrReaderTimestamp,
+                              hWindow->hBuffer->ulNumCapField,
+                              0,
+                              0,
+                              0,
+                              hWindow->hBuffer);
+
+    BVDC_P_BufLog_AddEvent_isr('Z',
+                              hWindow->eId,
+                              hWindow->stCurResource.hCapture->ulTimestamp,
+                              hWindow->hBuffer->ulCurrReaderTimestamp,
+                              hWindow->hBuffer->ulCurrWriterTimestamp,
+                              0,
+                              0,
+                              0,
+                              hWindow->hBuffer);
 #endif
 
 
@@ -2698,7 +1890,7 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
                     hWindow->hBuffer->bWriterNodeMovedByReader = true;
 
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('T',
+                    BVDC_P_BufLog_AddEvent_isr('T',
                         hWindow->eId,
                         hWindow->hBuffer->ulNumCapField,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
@@ -2835,7 +2027,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
             if (!hWindow->bFrameCapture && hWindow->stCurInfo.hSource->bSrcInterlaced &&
                 hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced)
             {
-                 BVDC_P_BufLogAddEvent_isr('E',
+                 BVDC_P_BufLog_AddEvent_isr('E',
                     hWindow->eId,
                     hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                     hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
@@ -2848,7 +2040,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
             }
             else
             {
-                BVDC_P_BufLogAddEvent_isr('C',
+                BVDC_P_BufLog_AddEvent_isr('C',
                     hWindow->eId,
                     hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                     hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
@@ -2867,17 +2059,29 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
     }
     else
     {
+        BAVC_Polarity eDstPolarity;
+        bool bMtgAlignSrcWithDisplay;
+
         pCurNode = hWindow->hBuffer->pCurReaderBuf;
 
         /* Advance the reader anyway first */
         hWindow->hBuffer->pCurReaderBuf = pNextNode;
 
+        eDstPolarity = hWindow->hBuffer->pCurReaderBuf->eDstPolarity;
+
+        bMtgAlignSrcWithDisplay = (hWindow->hBuffer->bMtgAlignSrcAndDisp &&
+            (hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity != BAVC_Polarity_eFrame) &&
+            (hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity != eVecPolarity)) ?
+            true : false;
+
         /* Now we need to decide if reader's polarity satisfies VEC.
          */
-        if (!hWindow->hBuffer->pCurReaderBuf->stFlags.bMute &&
+        if ((!hWindow->hBuffer->pCurReaderBuf->stFlags.bMute &&
             hWindow->hBuffer->pCurReaderBuf->stFlags.bCadMatching &&
-            (hWindow->hBuffer->pCurReaderBuf->eDstPolarity != eVecPolarity))
+            (eDstPolarity != eVecPolarity)) ||
+                (!hWindow->hBuffer->pCurReaderBuf->stFlags.bCadMatching && bMtgAlignSrcWithDisplay))
         {
+
 #if BVDC_P_REPEAT_ALGORITHM_ONE
             /* If polarity mismatch is caused by a reader repeat to avoid catching up writer, then
              * move reader to next field anyway to spread 2 repeats over 4 fields.
@@ -2885,28 +2089,29 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
              */
             if ((!hWindow->hBuffer->bRepeatForGap) ||
                 ((pNextNode == hWindow->hBuffer->pCurWriterBuf) && (!hWindow->stCurInfo.stGameDelaySetting.bEnable)) ||
-                ((hWindow->hBuffer->eReaderVsWriterRateCode > BVDC_P_WrRate_NotFaster) && (pNextNextNode == hWindow->hBuffer->pCurWriterBuf)))
+                ((hWindow->hBuffer->eReaderVsWriterRateCode > BVDC_P_WrRate_NotFaster) && (pNextNextNode == hWindow->hBuffer->pCurWriterBuf)) ||
+                bMtgAlignSrcWithDisplay)
 #endif
             {
                 hWindow->hBuffer->ulRepeatStat++;
 
 #if (BVDC_BUF_LOG == 1)
-                BVDC_P_BufLogAddEvent_isr('D',
+                BVDC_P_BufLog_AddEvent_isr('D',
                     hWindow->eId,
                     hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                     hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
                         (eVecPolarity << BVDC_P_BUF_LOG_VEC_POLARITY_SHIFT) |
                         (hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity << BVDC_P_BUF_LOG_ORIG_SRC_POLARITY_SHIFT) |
-                        (hWindow->hBuffer->pCurReaderBuf->eDstPolarity << BVDC_P_BUF_LOG_DST_POLARITY_SHIFT),
+                        (eDstPolarity << BVDC_P_BUF_LOG_DST_POLARITY_SHIFT),
                     hWindow->hBuffer->ulCurrReaderTimestamp,
                     0,
-                    0,
+                    (bMtgAlignSrcWithDisplay ? 1 : 0) << BVDC_P_BUF_LOG_REPEAT_DUE_TO_MTG_ALIGN_SRC_SHIFT,
                     0,
                     hWindow->hBuffer);
 #else
                 BDBG_MSG(("Win[%d] R:      Repeat for polarity, src I, VEC %d. orig src p %d, cap %d, total %d",
                     hWindow->hBuffer->hWindow->eId, eVecPolarity, hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity,
-                    hWindow->hBuffer->pCurReaderBuf->eDstPolarity, hWindow->hBuffer->ulRepeatStat));
+                    eDstPolarity, hWindow->hBuffer->ulRepeatStat));
 #endif
 
                 /* Repeat one field so that next field will match VEC polarity.
@@ -2923,7 +2128,6 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
          * This is needed to prevent a 2:2:2:2:2:2:3:1:3 cadence. The expected cadence is 2: 2:2:2:2:2:3:2:2:2.
          *  See multibuffer analysis.
          */
-
         if (hWindow->hBuffer->pCurReaderBuf->stFlags.bRev32Locked &&
             hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq == (50 * BFMT_FREQ_FACTOR))
 
@@ -3017,7 +2221,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
 #if (BVDC_BUF_LOG == 1)
                 if (bForcedRepeat)
                 {
-                    BVDC_P_BufLogAddEvent_isr('C',
+                    BVDC_P_BufLog_AddEvent_isr('C',
                             hWindow->eId,
                             hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                             hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |
@@ -3037,7 +2241,7 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
 #if (BVDC_BUF_LOG == 1)
     if (hWindow->hBuffer->pCurReaderBuf == hWindow->hBuffer->pCurWriterBuf)
     {
-        BVDC_P_BufLogAddEvent_isr('G',
+        BVDC_P_BufLog_AddEvent_isr('G',
                 hWindow->eId,
                 hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                 hWindow->hBuffer->ulNumCapField << BVDC_P_BUF_LOG_NUM_CAP_FIELDS_SHIFT |

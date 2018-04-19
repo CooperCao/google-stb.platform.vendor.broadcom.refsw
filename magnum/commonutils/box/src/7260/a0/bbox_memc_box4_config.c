@@ -1,45 +1,49 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  ******************************************************************************
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Tue Mar  6 17:39:32 2018 GMT
+ *   at: Sun Apr  8 16:37:12 2018 GMT
  *   by: ar924196
  *   for: Box UHDp60_or_DualHDPiP
  *         MemC 0 (32-bit DDR4@1200MHz) w/388MHz clock
@@ -54,11 +58,12 @@
  *     /projects/bbvlsi_core1/Architecture/Chips/7260_andrewr/rts/sim/BCM7260ClientGroups.cfg
  *
  *****************************************************************************/
+
 #include "bchp_memc_gen_0.h"  /* located in /TBD directory */
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20180306173932_UHDp60_or_DualHDPiP[] = {
+static const uint32_t aulMemc0_20180408163712_UHDp60_or_DualHDPiP[] = {
            0x002b0004,  /*   0: XPT_WR_RS 1780ns */
            0x8082c025,  /*   1: XPT_WR_XC RR 5720ns */
            0x8097e015,  /*   2: XPT_WR_CDB RR 6270ns */
@@ -137,9 +142,9 @@ static const uint32_t aulMemc0_20180306173932_UHDp60_or_DualHDPiP[] = {
            0x805d6022,  /*  75: HVD0_ILCPU RR 3857ns */
            0x80288020,  /*  76: HVD0_OLCPU RR 1776ns */
            0x804eb00c,  /*  77: HVD0_CAB RR 3250ns */
-           0x8062400e,  /*  78: HVD0_ILSI RR 4058ns */
+           0x8062400f,  /*  78: HVD0_ILSI RR 4058ns */
            0x805d6023,  /*  79: HVD0_ILCPU_p2 RR 3857ns */
-           0x8062400f,  /*  80: HVD0_ILSI_p2 RR 4058ns */
+           0x80624010,  /*  80: HVD0_ILSI_p2 RR 4058ns */
            0x3ffff0ff,  /*  81: UNASSIGNED off */
            0x3ffff0ff,  /*  82: UNASSIGNED off */
            0x3ffff0ff,  /*  83: UNASSIGNED off */
@@ -153,9 +158,9 @@ static const uint32_t aulMemc0_20180306173932_UHDp60_or_DualHDPiP[] = {
            0x3ffff0ff,  /*  91: UNASSIGNED off */
            0x3ffff0ff,  /*  92: UNASSIGNED off */
            0x3ffff0ff,  /*  93: UNASSIGNED off */
-           0x0046700a,  /*  94: BVN_MAD_PIX_FD 2925ns +HRT(0.5%) */
-           0x00632010,  /*  95: BVN_MAD_QUANT 4115ns +HRT(0.5%) */
-           0x008d1012,  /*  96: BVN_MAD_PIX_CAP 5852ns +HRT(0.5%) */
+           0x0043a00a,  /*  94: BVN_MAD_PIX_FD 2808ns +HRT(0.5%) */
+           0x005f200d,  /*  95: BVN_MAD_QUANT 3950ns +HRT(0.5%) */
+           0x00876012,  /*  96: BVN_MAD_PIX_CAP 5616ns +HRT(0.5%) */
            0x3ffff0ff,  /*  97: UNASSIGNED off */
            0x3ffff0ff,  /*  98: UNASSIGNED off */
            0x3ffff0ff,  /*  99: UNASSIGNED off */
@@ -178,7 +183,7 @@ static const uint32_t aulMemc0_20180306173932_UHDp60_or_DualHDPiP[] = {
            0x3ffff0ff,  /* 116: UNASSIGNED off */
            0x3ffff0ff,  /* 117: UNASSIGNED off */
            0x0018c002,  /* 118: BVN_VFD0 1027ns */
-           0x00003006,  /* 119: BVN_VFD1 2370ns */
+           0x00395006,  /* 119: BVN_VFD1 2370ns */
            0x3ffff0ff,  /* 120: UNASSIGNED off */
            0x3ffff0ff,  /* 121: UNASSIGNED off */
            0x3ffff0ff,  /* 122: UNASSIGNED off */
@@ -225,7 +230,7 @@ static const uint32_t aulMemc0_20180306173932_UHDp60_or_DualHDPiP[] = {
            0x3ffff0ff,  /* 163: UNASSIGNED off */
            0x3ffff0ff,  /* 164: UNASSIGNED off */
            0x3ffff0ff,  /* 165: UNASSIGNED off */
-           0x0060300d,  /* 166: CMP0 3974ns */
+           0x0060300e,  /* 166: CMP0 3974ns */
            0x3ffff0ff,  /* 167: UNASSIGNED off */
            0x3ffff0ff,  /* 168: UNASSIGNED off */
            0x3ffff0ff,  /* 169: UNASSIGNED off */
@@ -318,22 +323,22 @@ static const uint32_t aulMemc0_20180306173932_UHDp60_or_DualHDPiP[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180306173932_UHDp60_or_DualHDPiP[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180408163712_UHDp60_or_DualHDPiP[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80340905}, /* HVD0_PFRI (gHVC_2k) 236520.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000023d}, /* d: 4; p: 573.55625 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x000014a0}, /* 5280 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000c60}  /* 60% * 5280 */
 };
 
-static const uint32_t* const paulMemc_box4[] = { &aulMemc0_20180306173932_UHDp60_or_DualHDPiP[0]};
+static const uint32_t* const paulMemc_box4[] = { &aulMemc0_20180408163712_UHDp60_or_DualHDPiP[0]};
 
 const BBOX_Rts stBoxRts_UHDp60_or_DualHDPiP_box4 = {
-  "20180306173932_UHDp60_or_DualHDPiP_box4",
+  "20180408163712_UHDp60_or_DualHDPiP_box4",
   7260,
   4,
   1,
   256,
   (const uint32_t**)&paulMemc_box4[0],
   4,
-  stBoxRts_PfriClient_20180306173932_UHDp60_or_DualHDPiP
+  stBoxRts_PfriClient_20180408163712_UHDp60_or_DualHDPiP
 };

@@ -259,24 +259,6 @@ long BNAV_Indexer_Feed(
 
 /**
 * Summary:
-* Feed PES data into Bcmindexer.
-*
-* Description:
-* No intermediate SCT entries are produced.
-* This is only supported for VC1 currently.
-*
-* Return values:
-* -1 on error
-* 0 on success
-**/
-int BNAV_Indexer_FeedPES(
-    BNAV_Indexer_Handle handle,
-    uint8_t *p_bfr,             /* Pointer to PES data. */
-    unsigned size                   /* Number of bytes pointed to by p_bfr. */
-    );
-
-/**
-* Summary:
 * Feed start code table (SCT) data in reverse order into Bcmindexer.
 *
 * Description:

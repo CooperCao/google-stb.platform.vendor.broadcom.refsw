@@ -512,4 +512,36 @@ void BAPE_BufferGroup_GetStatus_isrsafe(
     BAPE_BufferGroupStatus * pStatus /* [out] */
     );
 
+/***************************************************************************
+Summary:
+Buffer Group Interrupts
+***************************************************************************/
+typedef struct BAPE_BufferGroupInterruptHandlers
+{
+    struct
+    {
+        void (*pCallback_isr)(void *pParam1, int param2);
+        void *pParam1;
+        int param2;
+    } dataReady;
+} BAPE_BufferGroupInterruptHandlers;
+
+/***************************************************************************
+Summary:
+Buffer Group Get Interrupt Handlers
+***************************************************************************/
+void BAPE_BufferGroup_GetInterruptHandlers(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferGroupInterruptHandlers *pInterrupts    /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Buffer Group Set Interrupt Handlers
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_SetInterruptHandlers(
+    BAPE_BufferGroupHandle handle,
+    const BAPE_BufferGroupInterruptHandlers *pInterrupts
+    );
+
 #endif /* #ifndef BAPE_BUFFER_H_ */

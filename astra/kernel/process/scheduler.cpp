@@ -58,6 +58,8 @@ SpinLock Scheduler::schedLock;
 PerCPU<Timer> Scheduler::preemptionTimer;
 PerCPU<uint64_t> Scheduler::startWorldRunTime;
 PerCPU<uint64_t> Scheduler::cfsGlobalSlot;
+uint32_t Scheduler::cpuFreq;
+PerCPU<uint32_t> Scheduler::cpuLoad;
 
 PerCPU<uint64_t> Scheduler::edfGlobalSlot;
 PerCPU<Timer> Scheduler::edfPreemptionTimer;
@@ -82,7 +84,10 @@ extern "C" void edfScheduleTimerFired(Timer t, void *ctx) {
     UNUSED(t);
     UNUSED(ctx);
 
+#ifdef MON64
     //printf("\t edfScheduleTimerFired 0x%x%x  \n", (int)(TzHwCounter::timeNow() >> 32), (int)(TzHwCounter::timeNow() & 0xffffffff));
+    ARCH_SPECIFIC_CPU_UPDATE(Scheduler::cpuLoad.cpuLocal(), Scheduler::cpuFreq);
+#endif
     Scheduler::scheduleClassType(Scheduler::Class::EDF_Class);
 }
 
@@ -138,6 +143,13 @@ void Scheduler::init() {
     idleQueue.cpuLocal().init();
     dumpTimer = TzTimers::create((TzHwCounter::timeNow()+(TzHwCounter::frequency()*5)), (uint64_t) TzHwCounter::frequency()*5, dumpTimerFired, nullptr);
 #endif
+
+#ifdef MON64
+    /* Entire EDF period is CPU load, calculated with init CPU frequency */
+    register uint32_t initLoad = 0, initFreq;
+    ARCH_SPECIFIC_CPU_UPDATE(initLoad, initFreq);
+    cpuLoad.cpuLocal() = (initFreq / 100) * TIME_SLICE_EDF_PERCENT;
+#endif
     printf("Scheduler init done \n");
 }
 
@@ -161,6 +173,9 @@ void Scheduler::initSecondaryCpu() {
 
     uint64_t timeStop = timeSchedule + TimeSliceEDF;
     edfPreemptionTimer.cpuLocal() = TzTimers::create(timeStop, (uint64_t)TimeSliceDuration, edfPreemptionTimerFired, nullptr);
+
+    /* No tasks on secondary CPU */
+    cpuLoad.cpuLocal() = 0;
 
 #ifdef TASK_LOG
     idleQueue.cpuLocal().init();
@@ -240,18 +255,18 @@ void Scheduler::updateTimeSlice() {
     TzTask *currTask = currentTask[cpuNum];
 
 #ifdef TASK_LOG // To print the CPU %
-        uint64_t nowTime = TzHwCounter::timeNow();
-        uint64_t worldRunTime = nowTime - Scheduler::startWorldRunTime.cpuLocal();
+    uint64_t nowTime = TzHwCounter::timeNow();
+    uint64_t worldRunTime = nowTime - Scheduler::startWorldRunTime.cpuLocal();
+
     /* Dump every 200ms */
     if((worldRunTime >= (TzHwCounter::frequency()/10))){
         updateTaskLog(worldRunTime);
-            Scheduler::startWorldRunTime.cpuLocal() = nowTime;
-        }
+        Scheduler::startWorldRunTime.cpuLocal() = nowTime;
+    }
 #endif
 
     /* Update for all Tasks even though it might not be in runnable state anymore */
-    if(currTask != nullptr)
-    {
+    if(currTask != nullptr) {
         uint64_t taskRunTime = TzHwCounter::timeNow() - currTask->lastScheduledAt;
         currTask->totalRunTime += taskRunTime;
         currTask->cumRunTime += taskRunTime;
@@ -261,8 +276,7 @@ void Scheduler::updateTimeSlice() {
         /* This happens when EDF task is not present */
         currTask->lastScheduledAt = TzHwCounter::timeNow();
 
-        if((currTask->totalRunTime >= currTask->quantaRunTime))
-        {
+        if((currTask->totalRunTime >= currTask->quantaRunTime)){
             currTask->totalRunTime = 0;
             /* Increment the slotTime */
             currTask->slotTimeSlice += 1;
@@ -320,8 +334,7 @@ TzTask *Scheduler::cfsSchedule() {
         cfsGlobalSlot.cpuLocal() = nextTask->slotTimeSlice;
 
     }
-    if (runQueue.cpuLocal().head() != nullptr)
-    {
+    if (runQueue.cpuLocal().head() != nullptr) {
         nextTask->quantaRunTime = (nextTask->priority * TimeSliceDuration)/sumRunnablePriorities.cpuLocal();
         uint64_t remainingRunTime = (uint64_t)(nextTask->quantaRunTime  - nextTask->pqValue());
         uint64_t timerRunTime = nextTask->lastScheduledAt + remainingRunTime;
@@ -374,13 +387,10 @@ TzTask *Scheduler::edfSchedule() {
     /* If the nextTask has slot higher than global slot then all the tasks         */
     /* in the queue have slot higher than global slot. So increment the global slot. */
     if(nextTask->slotTimeSlice > edfGlobalSlot.cpuLocal()){
-
         edfGlobalSlot.cpuLocal() = nextTask->slotTimeSlice;
     }
 
-    if (runQueue.cpuLocal().head() != nullptr)
-    {
-
+    if (runQueue.cpuLocal().head() != nullptr) {
         nextTask->quantaRunTime = (TimeSliceDuration / 100) * nextTask->priority;
         uint64_t remainingRunTime = (uint64_t)(nextTask->quantaRunTime  - nextTask->pqValue());
         uint64_t timerRunTime = nextTask->lastScheduledAt + remainingRunTime;
@@ -403,7 +413,6 @@ TzTask *Scheduler::edfSchedule() {
         TzIoc::notify();
     }
     return nextTask;
-
 }
 
 

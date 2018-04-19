@@ -63,6 +63,7 @@ struct NEXUS_Heap {
     bool dynamic;
     NEXUS_HeapRuntimeSettings runtimeSettings;
     BMRC_MonitorRegion_Handle secureMonitorRegion;
+    bool runtimeCreated;
 };
 
 void NEXUS_Memory_GetDefaultAllocationSettings( NEXUS_MemoryAllocationSettings *pSettings )
@@ -570,16 +571,105 @@ error:
     return NULL;
 }
 
-NEXUS_HeapHandle NEXUS_Heap_CreateInternal (void)
+NEXUS_HeapHandle NEXUS_Heap_CreateInternal( const NEXUS_PlatformCreateHeapSettings *pSettings )
 {
-    (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    return NULL;
+    NEXUS_HeapHandle heap;
+    unsigned i;
+    unsigned unused = NEXUS_MAX_HEAPS;
+    NEXUS_Core_MemoryRegion region;
+    NEXUS_Error rc;
+    unsigned memcIndex;
+
+    /* param validation */
+    if (pSettings->offset + pSettings->size <= pSettings->offset) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+    /* we only support on-demand memory map for runtime created heaps */
+    if (pSettings->memoryType & (NEXUS_MEMORY_TYPE_DRIVER_UNCACHED | NEXUS_MEMORY_TYPE_DRIVER_CACHED | NEXUS_MEMORY_TYPE_APPLICATION_CACHED)) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+    if (!(pSettings->memoryType & (NEXUS_MEMORY_TYPE_MANAGED|NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED))) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+    if (pSettings->userAddress) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+
+#if 0
+    for (memcIndex = 0; memcIndex < NEXUS_MAX_MEMC; memcIndex++) {
+        unsigned subIndex;
+        for (subIndex = 0; subIndex < BCHP_MAX_MEMC_REGIONS; subIndex++) {
+            if (pSettings->offset >= g_pCoreHandles->memoryLayout.memc[memcIndex].region[subIndex].addr &&
+                pSettings->offset+pSettings->size <= g_pCoreHandles->memoryLayout.memc[memcIndex].region[subIndex].addr + g_pCoreHandles->memoryLayout.memc[memcIndex].region[subIndex].size) break;
+        }
+        if (subIndex < BCHP_MAX_MEMC_REGIONS) break;
+    }
+    if (memcIndex == NEXUS_MAX_MEMC) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+#else
+    memcIndex = 0;
+#endif
+
+    /* verify that new heap has no offset or userAddress overlap with existing heaps */
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        heap = g_pCoreHandles->heap[i].nexus;
+        if (heap) {
+            NEXUS_MemoryStatus status;
+            rc = NEXUS_Heap_GetStatus_driver_priv(heap, &status);
+            if (rc) {
+                rc = BERR_TRACE(rc);
+                return NULL;
+            }
+            if (pSettings->offset >= status.offset && pSettings->offset + pSettings->size <= status.offset + status.size) {
+                BDBG_ERR(("NEXUS_Platform_CreateHeap: runtime heap's offset cannot overlap existing heap"));
+                return NULL;
+            }
+        }
+        else if (unused == NEXUS_MAX_HEAPS) {
+            unused = i;
+        }
+    }
+    if (unused == NEXUS_MAX_HEAPS) {
+        BDBG_ERR(("must increase NEXUS_MAX_HEAPS"));
+        return NULL;
+    }
+    i = unused;
+
+    /* we can create the heap now */
+    BKNI_Memset(&region, 0, sizeof(region));
+    region.memcIndex = memcIndex;
+    region.offset = pSettings->offset;
+    region.length = pSettings->size;
+    region.memoryType = pSettings->memoryType;
+    region.heapType = pSettings->heapType;
+    region.alignment = pSettings->alignment;
+    region.locked = pSettings->locked;
+
+    heap = NEXUS_Heap_Create_priv(i, g_pCoreHandles->reg, &region);
+    if (!heap) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+    heap->runtimeCreated = true;
+    NEXUS_OBJECT_REGISTER(NEXUS_Heap, heap, Create);
+
+    return heap;
 }
 
 void NEXUS_Heap_DestroyInternal( NEXUS_HeapHandle heap)
 {
-    BSTD_UNUSED(heap);
-    (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    NEXUS_OBJECT_UNREGISTER(NEXUS_Heap, heap, Destroy);
+    if (!heap->runtimeCreated) {
+        BDBG_ERR(("NEXUS_Heap_Destroy: %p was not created with NEXUS_Heap_Create", (void *)heap));
+        return;
+    }
+    NEXUS_Heap_Destroy_priv(heap);
     return;
 }
 

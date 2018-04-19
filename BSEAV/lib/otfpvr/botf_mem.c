@@ -46,15 +46,17 @@
 #include "bkni_multi.h"
 #include "botf_priv.h"
 
+BDBG_MODULE(botf_mem);
+
 void
 botf_mem_init(botf_mem *mem, BSTD_DeviceOffset addr, void *cached_ptr, uint64_t range, struct BOTF_Data *otf, void (*FlushCache)(const void *, size_t))
 {
-    mem->base = (int64_t)(long)cached_ptr - addr;
     mem->ptr = cached_ptr;
     mem->addr = addr;
     mem->range = range;
     mem->otf = otf;
     mem->FlushCache = FlushCache;
+    BDBG_MSG(("mem:%p ptr:%p..%p addr:" BDBG_UINT64_FMT " .. " BDBG_UINT64_FMT "", (void *)mem, cached_ptr, (uint8_t *)cached_ptr + range, BDBG_UINT64_ARG(addr), BDBG_UINT64_ARG(addr+range)));
     return;
 }
 
@@ -62,14 +64,14 @@ BSTD_DeviceOffset
 botf_mem_paddr(botf_mem_t mem, const void *ptr)
 {
     BDBG_ASSERT((const uint8_t *)ptr >= mem->ptr && (const uint8_t *)ptr < (mem->ptr + mem->range));
-    return (unsigned long)ptr - mem->base;
+    return mem->addr + ((uint8_t *)ptr - (uint8_t *)mem->ptr);
 }
 
 void *
 botf_mem_vaddr(botf_mem_t mem, BSTD_DeviceOffset addr)
 {
     BDBG_ASSERT(addr >= mem->addr && addr < (mem->addr + mem->range));
-    return (uint8_t *)(long)(mem->base + addr);
+    return (void *)(mem->ptr + (addr - mem->addr));
 }
 
 void botf_mem_flush(botf_mem_t mem, const void *ptr, size_t len)

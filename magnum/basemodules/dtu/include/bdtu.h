@@ -164,6 +164,12 @@ BERR_Code BDTU_GetStatus(
     BDTU_Status *pStatus
     );
 
+BERR_Code BDTU_GetState(
+    BREG_Handle reg,
+    unsigned memcIndex,
+    BDTU_State *pState
+    );
+
 #ifdef __cplusplus
 }
 #endif

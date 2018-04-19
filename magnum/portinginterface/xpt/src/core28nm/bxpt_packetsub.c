@@ -291,23 +291,6 @@ void BXPT_PacketSub_CloseChannel(
 }
 
 
-#if (!B_REFSW_MINIMAL)
-unsigned int BXPT_PacketSub_GetPidChanNum(
-    BXPT_PacketSub_Handle hPSub     /* [in] Handle for the channel. */
-    )
-{
-    unsigned int PidChannelNum;
-    BXPT_Handle hXpt;                           /* [in] Handle for this transport */
-
-    BDBG_ASSERT( hPSub );
-
-    hXpt = (BXPT_Handle) hPSub->vhXpt;
-    BXPT_AllocPidChannel( hXpt, false, &PidChannelNum );
-
-    return PidChannelNum;
-}
-#endif
-
 BERR_Code BXPT_PacketSub_SetPidChanNum(
     BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
     unsigned int PidChanNum,        /* [in] Which PID channel to assign the output to. */

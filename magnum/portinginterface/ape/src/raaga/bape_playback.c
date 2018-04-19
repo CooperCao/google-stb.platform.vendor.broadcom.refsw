@@ -54,6 +54,8 @@ BDBG_MODULE(bape_playback);
 
 BDBG_OBJECT_ID(BAPE_Playback);
 
+#define BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION 10000 /* microseconds */
+static void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2);
 static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback);
 static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
 static BERR_Code BAPE_Playback_P_StartPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
@@ -1215,10 +1217,7 @@ BERR_Code BAPE_Playback_SetInterruptHandlers(
     return BERR_TRACE(BAPE_Playback_P_ReArmWatermark(hPlayback));
 }
 
-#define BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION 10000 /* microseconds */
-void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2);
-
-void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2)
+static void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2)
 {
     BAPE_PlaybackHandle handle = pParam1;
     unsigned free = 0;
@@ -1241,13 +1240,13 @@ void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2)
 
     if (handle->interruptTimer)
     {
-        BTMR_StartTimer_isr(handle->interruptTimer, (unsigned)param2);
+        BERR_TRACE(BTMR_StartTimer_isr(handle->interruptTimer, (unsigned)param2));
     }
 }
 
 static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
 {
-    BERR_Code errCode;
+    BERR_Code errCode = BERR_SUCCESS;
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
 
     if ( hPlayback->running )
@@ -1270,32 +1269,34 @@ static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
 
             if ( !hPlayback->interruptTimer )
             {
-                BTMR_GetDefaultTimerSettings(&timerSettings);
+                errCode = BERR_TRACE(BTMR_GetDefaultTimerSettings(&timerSettings));
+                if ( errCode )
+                {
+                    BDBG_WRN(("Get default timer settings failed"));
+                }
                 timerSettings.type = BTMR_Type_eCountDown;
                 timerSettings.cb_isr = BAPE_P_CheckPlaybackStatus_isr;
                 timerSettings.pParm1 = hPlayback;
                 timerSettings.parm2 = BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION;
-                errCode = BTMR_CreateTimer(hPlayback->hApe->tmrHandle, &hPlayback->interruptTimer, &timerSettings);
+                errCode |= BERR_TRACE(BTMR_CreateTimer(hPlayback->hApe->tmrHandle, &hPlayback->interruptTimer, &timerSettings));
                 if ( errCode )
                 {
                     BDBG_WRN(("Unable to create playback interrupt timer"));
-                    errCode = BERR_TRACE(errCode);
                 }
             }
 
             if ( hPlayback->interruptTimer )
             {
-                errCode = BTMR_StartTimer(hPlayback->interruptTimer, BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION);
+                errCode |= BERR_TRACE(BTMR_StartTimer(hPlayback->interruptTimer, BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION));
                 if ( errCode )
                 {
                     BDBG_WRN(("Unable to start playback interrupt timer"));
-                    errCode = BERR_TRACE(errCode);
                 }
             }
         }
     }
 
-    return BERR_SUCCESS;
+    return errCode;
 }
 
 static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection)

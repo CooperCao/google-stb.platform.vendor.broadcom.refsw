@@ -52,6 +52,7 @@
 #include <linux/if_packet.h>
 #include <linux/if.h>
 #include <linux/if_ether.h>
+#include <pthread.h>
 
 #include "b_asp_lib.h"
 #include "b_asp_lib_impl.h"
@@ -64,10 +65,15 @@ BDBG_MODULE(b_asp_lib);
 /* Global ASP Mgr Context. */
 typedef struct B_Asp
 {
+    int initialized;        /* 0 => not initialized */
     B_AspInitSettings settings;
     char *pAspProxyServerIp;
 } B_Asp;
-static B_Asp g_aspMgr;
+static B_Asp g_aspMgr;      /* Initialized to zero at compile time. */
+
+static pthread_mutex_t g_initMutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 
 typedef struct B_AspChannel
 {
@@ -92,11 +98,23 @@ typedef struct B_AspChannel
 
 void B_Asp_Uninit(void)
 {
-    if (g_aspMgr.pAspProxyServerIp)
+    pthread_mutex_lock(&g_initMutex);
+
+    if (g_aspMgr.initialized)
     {
-        free(g_aspMgr.pAspProxyServerIp);
-        g_aspMgr.pAspProxyServerIp = NULL;
+        g_aspMgr.initialized = false;
+
+        if (g_aspMgr.pAspProxyServerIp)
+        {
+            free(g_aspMgr.pAspProxyServerIp);
+            g_aspMgr.pAspProxyServerIp = NULL;
+        }
+
+        BKNI_Uninit();
     }
+
+    pthread_mutex_unlock(&g_initMutex);
+    return;
 }
 
 void B_Asp_GetDefaultInitSettings(
@@ -112,18 +130,48 @@ B_Error B_Asp_Init(
     )
 {
 
-    memset(&g_aspMgr, 0, sizeof(g_aspMgr));
+    B_Error errCode = B_ERROR_SUCCESS;
+    int rc;
 
-    if (!pSettings)
+    rc = pthread_mutex_lock(&g_initMutex);
+    if ( rc )
     {
-        B_Asp_GetDefaultInitSettings(&g_aspMgr.settings);
+        return B_ERROR_OS_ERROR;
     }
-    else
+
+    /* Check for first open */
+    if ( g_aspMgr.initialized )
     {
-        g_aspMgr.settings = *pSettings;
+        BDBG_ERR(("Error, B_Asp_Init() has already been called."));
+        errCode = B_ERROR_NOT_INITIALIZED;
     }
-    /* TODO: Create the Daemon. */
-    return 0;
+
+    if (errCode == B_ERROR_SUCCESS)
+    {
+        errCode = BKNI_Init();
+    }
+
+    if ( errCode == B_ERROR_SUCCESS)
+    {
+        if (!pSettings)
+        {
+            B_Asp_GetDefaultInitSettings(&g_aspMgr.settings);
+        }
+        else
+        {
+            g_aspMgr.settings = *pSettings;
+        }
+
+        /* TODO: Create the Daemon. */
+    }
+
+    if ( errCode == B_ERROR_SUCCESS)
+    {
+        g_aspMgr.initialized = true;
+    }
+
+    pthread_mutex_unlock(&g_initMutex);
+    return errCode;
 }
 
 void B_AspChannel_Destroy(
@@ -309,6 +357,14 @@ B_AspChannelHandle B_AspChannel_Create(
     BDBG_ASSERT(pSettings->protocol < B_AspStreamingProtocol_eMax);
 
     BDBG_MSG(("%s: socketFd=%d", BSTD_FUNCTION, socketFdToOffload));
+
+    if ( !g_aspMgr.initialized )
+    {
+        BDBG_ERR(("Error, B_Asp_Init() has not been called"));
+        BDBG_ASSERT(g_aspMgr.initialized);
+        return NULL;
+    }
+
     if (pSettings->mode == B_AspStreamingMode_eOut && !pSettings->modeSettings.streamOut.hRecpump)
     {
         BDBG_ERR(("%s: Missing parameter: StreamingOut mode requires pSettings->modeSettings.streamOut.hRecpump!", BSTD_FUNCTION));
@@ -689,7 +745,7 @@ B_Error B_AspChannel_StartStreaming(
 }
 
 /*
-* B_AspChannel_Stop()
+* B_AspChannel_StopStreaming()
 */
 void B_AspChannel_StopStreaming(
     B_AspChannelHandle    hAspChannel

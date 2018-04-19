@@ -2055,6 +2055,7 @@ typedef struct BVDC_VipMemConfigSettings
     bool                   bSupportInterlaced; /* interlaced requires shifted chroma capture */
     bool                   bSupportDecimatedLuma; /* requires decimated luma capture for CME */
     bool                   bSupportBframes; /* B frame requires more allocation */
+    bool                   bSupportItfp; /* ITFP algorithm may delay picture delivery */
 } BVDC_VipMemConfigSettings;
 
 /***************************************************************************

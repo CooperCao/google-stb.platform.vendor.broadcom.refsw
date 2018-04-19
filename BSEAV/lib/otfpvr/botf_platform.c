@@ -54,10 +54,10 @@ BDBG_MODULE(BOTF_PLATFORM);
 static uint8_t *
 BOTF_P_ReadPtr(BOTF_Handle hOtf, uint32_t reg)
 {
-    uint32_t val;    
+    uint64_t val;
     void *addr;
 
-    val = BREG_Read32(hOtf->hBReg, reg);
+    val = BREG_ReadAddr(hOtf->hBReg, reg);
     if(val) {
         addr = botf_mem_vaddr(&hOtf->mem, val);
     } else {
@@ -69,11 +69,11 @@ BOTF_P_ReadPtr(BOTF_Handle hOtf, uint32_t reg)
 static uint8_t *
 BOTF_P_ReadPtrAndUpdate(BOTF_Handle hOtf, uint32_t src, uint32_t dst)
 {
-    uint32_t val;    
+    uint64_t val;
     void *addr;
 
-    val = BREG_Read32(hOtf->hBReg, src);
-    BREG_Write32(hOtf->hBReg, dst, val);
+    val = BREG_ReadAddr(hOtf->hBReg, src);
+    BREG_WriteAddr(hOtf->hBReg, dst, val);
     if(val) {
         addr = botf_mem_vaddr(&hOtf->mem, val);
     } else {
@@ -88,7 +88,7 @@ BOTF_P_WritePtr(BOTF_Handle hOtf, uint32_t reg, const void *ptr)
     uint32_t offset;
 
     offset = botf_mem_paddr(&hOtf->mem, ptr);
-    BREG_Write32(hOtf->hBReg, reg, offset);
+    BREG_WriteAddr(hOtf->hBReg, reg, offset);
     return;
 }
 
@@ -118,21 +118,22 @@ void BOTF_P_InitBufferPtrs(BOTF_Handle hOtf)
 {
 
     hOtf->IPParserPtrs.CdbStartPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.CDB_Base);
-    hOtf->IPParserPtrs.CdbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.CDB_Base+4);
+    hOtf->IPParserPtrs.CdbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.CDB_End);
     hOtf->IPParserPtrs.CdbReadPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.CDB_Read);
     hOtf->IPParserPtrs.ItbStartPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.ITB_Base);
-    hOtf->IPParserPtrs.ItbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.ITB_Base+4);
+    hOtf->IPParserPtrs.ItbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.ITB_End);
 
     /* Initialize wraparound pointer to the end */
     hOtf->IPParserPtrs.ItbWrapAroundPtr = hOtf->IPParserPtrs.ItbEndPtr;
     hOtf->IPParserPtrs.CdbWrapAroundPtr = hOtf->IPParserPtrs.CdbEndPtr;
 
     hOtf->IPParserPtrs.ItbReadPtr=BOTF_P_ReadPtr(hOtf, hOtf->IpParserRegMap.ITB_Read);
+
     hOtf->OPParserPtrs.CdbStartPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.CDB_Base);
-    hOtf->OPParserPtrs.CdbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.CDB_Base+4);
+    hOtf->OPParserPtrs.CdbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.CDB_End);
     hOtf->OPParserPtrs.CdbValidPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.CDB_Valid);
     hOtf->OPParserPtrs.ItbStartPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.ITB_Base);
-    hOtf->OPParserPtrs.ItbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.ITB_Base+4);
+    hOtf->OPParserPtrs.ItbEndPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.ITB_End);
     hOtf->OPParserPtrs.ItbValidPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.ITB_Valid);
     hOtf->OPParserPtrs.ItbReadPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.ITB_Read);
     hOtf->OPParserPtrs.CdbReadPtr=BOTF_P_ReadPtr(hOtf, hOtf->OpParserRegMap.CDB_Read);
@@ -170,28 +171,28 @@ void BOTF_P_SetOPITBWrapPtr(BOTF_Handle hOtf)
 
 BERR_Code BOTF_PlatformOpen(BOTF_Handle hOtf)
 {
-    uint32_t baseptr, val;
+    uint64_t baseptr, val;
     BMMA_Block_Handle mma;
     void *cached_addr;
 
     BDBG_MSG(("BOTF_PlatformOpen"));
 
     /* Save current OP parser pointers */
-    hOtf->OpParserRegSave.CdbStart = BREG_Read32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base);
-    hOtf->OpParserRegSave.ItbStart = BREG_Read32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base);    
+    hOtf->OpParserRegSave.CdbStart = BREG_ReadAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base);
+    hOtf->OpParserRegSave.ItbStart = BREG_ReadAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base);
 
     /* initialize OP CDB ptrs */
-    val = BREG_Read32(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Base);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base, val);
+    val = BREG_ReadAddr(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Base);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base, val);
 
-    val = BREG_Read32(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Base+4);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base+4, val);
-    val = BREG_Read32(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Read);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Read, val);
-    val = BREG_Read32(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Wrap);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Wrap, val);
-    val = BREG_Read32(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Valid);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Valid, val);
+    val = BREG_ReadAddr(hOtf->hBReg, hOtf->IpParserRegMap.CDB_End);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_End, val);
+    val = BREG_ReadAddr(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Read);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Read, val);
+    val = BREG_ReadAddr(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Wrap);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Wrap, val);
+    val = BREG_ReadAddr(hOtf->hBReg, hOtf->IpParserRegMap.CDB_Valid);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Valid, val);
 
     /* Allocate and set destn ITB pointers */
     mma = BMMA_Alloc( hOtf->mma, hOtf->OPParserITBSize, 1<<hOtf->OPParserITBAlign, NULL);
@@ -206,12 +207,12 @@ BERR_Code BOTF_PlatformOpen(BOTF_Handle hOtf)
     baseptr = botf_mem_paddr(&hOtf->mem, cached_addr);
     hOtf->itb_buffer = cached_addr;
     hOtf->itbMem = mma;
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base, baseptr);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Read, baseptr);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Valid, baseptr);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Wrap, baseptr+hOtf->OPParserITBSize - 1);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base+4,  baseptr+hOtf->OPParserITBSize - 1);
-
+    hOtf->cdb40bit = false;
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base, baseptr);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Read, baseptr);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Valid, baseptr);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Wrap, baseptr+hOtf->OPParserITBSize - 1);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_End,  baseptr+hOtf->OPParserITBSize - 1);
     return BERR_SUCCESS;
 }
 
@@ -219,9 +220,9 @@ void BOTF_PlatformFlushOpParser(BOTF_Handle hOtf)
 {
     uint32_t val;
     /* Write baseptr to both read and valid to indicate empty buffer */
-    val = BREG_Read32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Read, val);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Valid, val);
+    val = BREG_ReadAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Read, val);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Valid, val);
 }
 
 void BOTF_PlatformClose(BOTF_Handle hOtf)
@@ -231,7 +232,7 @@ void BOTF_PlatformClose(BOTF_Handle hOtf)
     hOtf->itb_buffer = NULL;
     hOtf->itbMem = NULL;
     /* Restore the OP parser pointers */
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base, hOtf->OpParserRegSave.CdbStart);
-    BREG_Write32(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base, hOtf->OpParserRegSave.ItbStart);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.CDB_Base, hOtf->OpParserRegSave.CdbStart);
+    BREG_WriteAddr(hOtf->hBReg, hOtf->OpParserRegMap.ITB_Base, hOtf->OpParserRegSave.ItbStart);
 }
 

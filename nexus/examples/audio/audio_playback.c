@@ -63,11 +63,26 @@
 #endif
 
 #if AUDIO_CAPTURE_TO_FILE
+
+#define AUDIO_CAPTURE_POLL      0
+
 static NEXUS_AudioCaptureHandle audioCapture = NULL;
 static bool capture_start = false;
 static bool enable_capture_thread = true;
 static FILE * pCaptureFile = NULL;
-/*BKNI_EventHandle event = NULL;*/
+BKNI_EventHandle captureEvent = NULL;
+
+void capture_dataready(void *context, int param)
+{
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(param);
+
+    /*printf("capture data ready\n");*/
+    if ( captureEvent )
+    {
+        BKNI_SetEvent(captureEvent);
+    }
+}
 
 static void* capture_thread(void *pParam)
 {
@@ -122,7 +137,16 @@ static void* capture_thread(void *pParam)
         }
         else
         {
+            #if AUDIO_CAPTURE_POLL
             BKNI_Sleep(10);
+            #else
+            BERR_Code errCode;
+            errCode = BERR_TRACE(BKNI_WaitForEvent(captureEvent, 5000));
+            if ( errCode != BERR_SUCCESS )
+            {
+                fprintf(stderr, "Wait for capture event returned %u\n", errCode);
+            }
+            #endif
         }
     }
 
@@ -295,6 +319,7 @@ int main(int argc, char **argv)
         return -1;
     }
     audioOutCapHandle = NEXUS_AudioCapture_GetConnector(audioCapture);
+    BKNI_CreateEvent(&captureEvent);
     pthread_create(&captureThread, NULL, capture_thread, NULL);
     #else
     if (audioCapabilities.numPlaybacks == 0)
@@ -372,6 +397,9 @@ int main(int argc, char **argv)
         NEXUS_AudioOutput_AddInput(audioOutCapHandle,
                                    NEXUS_AudioPlayback_GetConnector(handle));
 
+        capStartSettings.dataCallback.callback = capture_dataready;
+        capStartSettings.dataCallback.context = NULL;
+        capStartSettings.dataCallback.param = 0;
         NEXUS_AudioCapture_Start(audioCapture, &capStartSettings);
     }
     #endif
@@ -819,6 +847,10 @@ int main(int argc, char **argv)
     #if AUDIO_CAPTURE_TO_FILE
     NEXUS_AudioCapture_Stop(audioCapture);
     enable_capture_thread = false;
+    if ( captureEvent )
+    {
+        BKNI_SetEvent(captureEvent);
+    }
     pthread_join(captureThread, NULL);
     #endif
 
@@ -832,6 +864,11 @@ done:
         {
             NEXUS_AudioOutput_RemoveAllInputs(audioOutCapHandle);
             NEXUS_AudioCapture_Close(audioCapture);
+            if ( captureEvent )
+            {
+                BKNI_DestroyEvent(captureEvent);
+                captureEvent = NULL;
+            }
         }
         #endif
 

@@ -918,19 +918,8 @@ NEXUS_Playback_RecordProgress_priv(NEXUS_PlaybackHandle p)
 
     BDBG_MSG(("NEXUS_Playback_RecordProgress_priv %u", (unsigned)p->state.read_size));
     if (p->state.read_size==0) {
-        bmedia_player_pos pos;
-        bmedia_player_status status;
-
-        bmedia_player_tell(p->media_player, &pos);
-        bmedia_player_get_status(p->media_player, &status);
-        if (pos > status.bounds.first) {
-            /* we are waiting for an index, try to get new entry */
-            b_play_next_frame(p);
-        }
-        else {
-            /* if we've fallen off the beginning of a continuous record, we need to reposition */
-            p->state.state = eWaitingPlayback;
-        }
+        /* we are waiting for an index, try to get new entry */
+        b_play_next_frame(p);
     }
     else {
        /* we are waiting for a data */
@@ -1486,7 +1475,7 @@ NEXUS_Playback_TrickMode(NEXUS_PlaybackHandle p, const NEXUS_PlaybackTrickModeSe
     bplay_p_clear_accurate_seek(p);
 
     if (params->skipControl == NEXUS_PlaybackSkipControl_eDecoder || params->rateControl == NEXUS_PlaybackRateControl_eDecoder) {
-        if (!b_play_get_video_decoder(p) && !b_play_has_audio_decoder(p)) {
+        if (!b_play_has_connected_decoders(p)) {
             BDBG_ERR(("NEXUS_Playback_TrickMode failed because no video or audio decoder was provided in any NEXUS_PlaybackPidChannelSettings."));
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
@@ -1646,7 +1635,7 @@ NEXUS_Playback_Seek(NEXUS_PlaybackHandle p, NEXUS_PlaybackPosition position)
 
     bplay_p_clear_accurate_seek(p);
 
-    if (!b_play_get_video_decoder(p) && !b_play_has_audio_decoder(p)) {
+    if (!b_play_has_connected_decoders(p)) {
         /* no-decoder playback is valid, so this is only a WRN */
         BDBG_WRN(("No video or audio decoder was provided with NEXUS_PlaybackPidChannelSettings; therefore NEXUS_Playback_Seek will not be precise."));
     }

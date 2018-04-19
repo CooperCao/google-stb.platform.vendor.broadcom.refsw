@@ -369,10 +369,6 @@ static void NEXUS_Platform_P_InitAudio(void *context)
     BDBG_ASSERT(g_NEXUS_platformHandles.security);
     internalAudioSettings.modules.security = g_NEXUS_platformHandles.security;
     #endif
-    #if NEXUS_HAS_SAGE
-    BDBG_ASSERT(g_NEXUS_platformHandles.sage);
-    internalAudioSettings.modules.sage = g_NEXUS_platformHandles.sage;
-    #endif
     /* this is something used by the DTV... for now ignore the "DTV centric guarding schema" */
     #if NEXUS_HAS_FRONTEND
     internalAudioSettings.modules.frontend = g_NEXUS_platformHandles.frontend;
@@ -1309,7 +1305,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_Graphicsv3dModule_Uninit, NEXUS_Graphicsv3d_Standby_priv);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAlwaysOn, NEXUS_Graphicsv3dModule_Uninit, NEXUS_Graphicsv3d_Standby_priv);
 #endif
 
 #if NEXUS_HAS_DISPLAY
@@ -1666,11 +1662,11 @@ void NEXUS_Platform_Uninit(void)
     NEXUS_Base_Stop();
     NEXUS_LockModule();
 
+base_only_init: /* base only still requires uninit of core */
 #ifdef BCHP_PWR_RESOURCE_BINT_OPEN
     BCHP_PWR_AcquireResource(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_BINT_OPEN);
 #endif
 
-base_only_init: /* base only still requires uninit of core */
     NEXUS_Platform_P_UninitModules();
 
 #if NEXUS_HAS_DVB_CI
@@ -1719,8 +1715,12 @@ base_only_init: /* base only still requires uninit of core */
 
 void NEXUS_Platform_GetConfiguration(NEXUS_PlatformConfiguration *pConfiguration)
 {
+    unsigned i;
     /* verify platform module lock is enabled */
     NEXUS_ASSERT_MODULE();
+    for(i=0;i<NEXUS_MAX_HEAPS;i++) {
+        g_NEXUS_platformHandles.config.heap[i] = g_pCoreHandles->heap[i].nexus;
+    }
     *pConfiguration = g_NEXUS_platformHandles.config;
     return;
 }
@@ -1970,6 +1970,10 @@ static NEXUS_Error nexus_p_api_verify_heap(const struct b_objdb_client *client, 
             *pHeap = heap;
             return NEXUS_SUCCESS;
         }
+    }
+
+    if (b_objdb_verify_any_object(heap) == NEXUS_SUCCESS) {
+        return NEXUS_SUCCESS;
     }
 
     BDBG_ERR(("client %p tried to use invalid heap %p, but was rejected", (void *)client, (void *)heap));

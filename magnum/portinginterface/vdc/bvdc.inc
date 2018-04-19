@@ -105,6 +105,8 @@ BVDC_SOURCES = \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_boxdetect_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_bufferheap_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_buffer_priv.c \
+    $(MAGNUM)/portinginterface/vdc/src/common/bvdc_buffer_timestamp_priv.c \
+    $(MAGNUM)/portinginterface/vdc/src/common/bvdc_buffer_dbg_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_capture_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_chromacoeff_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_vnetcrc_priv.c \

@@ -2901,6 +2901,8 @@ uint32_t BVC5_P_GetClockSpeed(
    err = BCHP_PWR_GetClockRate(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D, &rate);
    if (err == BERR_SUCCESS)
       res = rate / (1000 * 1000);
+#else
+   BSTD_UNUSED(hVC5);
 #endif
 
    return res;

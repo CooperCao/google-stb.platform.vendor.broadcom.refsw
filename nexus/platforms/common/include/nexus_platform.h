@@ -314,20 +314,6 @@ NEXUS_HeapHandle NEXUS_Platform_GetFramebufferHeap(
 
 /**
 Summary:
-Settings for NEXUS_Platform_CreateHeap
-**/
-typedef struct NEXUS_PlatformCreateHeapSettings
-{
-    unsigned offset; /* physical address */
-    unsigned size; /* in bytes */
-    NEXUS_MemoryType memoryType; /* requested memory mapping */
-    unsigned alignment; /* required alignment (in bytes) of allocations in this region */
-    bool locked; /* if true, nexus is not allowed to allocate from this heap */
-    void *userAddress; /* if set, use this instead of doing an internal mmap for NEXUS_MemoryType_eApplication. attr{kind=null_ptr} */
-} NEXUS_PlatformCreateHeapSettings;
-
-/**
-Summary:
 Get default settings for NEXUS_Platform_CreateHeap
 **/
 void NEXUS_Platform_GetDefaultCreateHeapSettings(

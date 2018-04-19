@@ -278,6 +278,10 @@ struct NEXUS_SurfaceCompositor
     NEXUS_Graphics2DHandle gfx;
     NEXUS_CallbackHandler packetSpaceAvailableCallback, checkpointCallback;
     bool secureFramebuffer;
+    struct {
+        unsigned cnt;
+        bool disabled;
+    } auto_disable;
 
     struct {
         NEXUS_SurfaceClientHandle client; /* tunneled client that has allocated framebuffer surfaces, it may or may not be visible/rendered */
@@ -457,6 +461,7 @@ NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceComposi
 void nexus_p_surface_compositor_update_client(NEXUS_SurfaceClientHandle client, unsigned flags);
 void nexus_p_surface_compositor_check_inactive(NEXUS_SurfaceCompositorHandle server);
 void nexus_surface_compositor_p_schedule_inactive_timer(NEXUS_SurfaceCompositorHandle server);
+bool nexus_surface_compositor_p_display_enabled(NEXUS_SurfaceCompositorHandle server, unsigned i);
 
 void nexus_surface_compositor_p_release_surfaces(NEXUS_SurfaceCompositorHandle server);
 

@@ -663,7 +663,7 @@ static int provision(int argc, char *argv[])
     rc = curl_easy_perform(curl);
     if (apiVer == v1) {
       if (rc) continue;
-      CHECK_ERROR_RESP(rc, "Authentication on server %s failed. %s\n", server, rc == CURLE_OK ? "" : curl_easy_strerror(rc))
+      CHECK_ERROR_RESP(rc, "Authentication on server %s failed. %s\n", server, apiTokenKey.memory ? (char*) apiTokenKey.memory : rc == CURLE_OK ? "" : curl_easy_strerror(rc))
       cJSON *root = cJSON_Parse(apiTokenKey.memory);
       char *token = cJSON_GetObjectItem(root, "token")->valuestring;
       char *apiKey = cJSON_GetObjectItem(root, "apiKey")->valuestring;
@@ -696,7 +696,7 @@ static int provision(int argc, char *argv[])
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &apiTokenKey);
 
     rc = curl_easy_perform(curl);
-    CHECK_ERROR_RESP(rc, "Authentication token on server %s failed. %s\n", server, rc == CURLE_OK ? "" : curl_easy_strerror(rc))
+    CHECK_ERROR_RESP(rc, "Authentication token on server %s failed. %s\n", server, apiTokenKey.memory ? (char*) apiTokenKey.memory : rc == CURLE_OK ? "" : curl_easy_strerror(rc))
     cJSON *root = cJSON_Parse(apiTokenKey.memory);
     char *token = cJSON_GetObjectItem(root, "token")->valuestring;
     apitoken = strdup(token);

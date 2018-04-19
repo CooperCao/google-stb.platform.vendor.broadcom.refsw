@@ -1366,7 +1366,11 @@ static unsigned NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const cha
     if (pFile) {
         char val[4]; /* Assuming 4 byte value. TODO : Fix for larger properties */
         int rc;
-        if (fread(val, 1, sizeof(val), pFile) > 0) {
+        rc = fread(val, 1, sizeof(val), pFile);
+        if (rc != sizeof(val)) {
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+        else {
             value = val[0]<<24 | val[1]<<16 | val[2]<<8 | val[3];
         }
         rc = fclose(pFile);

@@ -48,7 +48,7 @@ extern "C" void schedule();
 #define TIME_SLICE_DURATION_MS      20
 #define TIME_SLICE_DELAY_MS         1000
 #define TIME_SLICE_STAGGER_PERCENT  1
-#define TIME_SLICE_EDF_PERCENT      25
+#define TIME_SLICE_EDF_PERCENT      60
 
 class TzTask;
 extern "C" TzTask *currentTask[MAX_NUM_CPUS];
@@ -86,6 +86,9 @@ public:
     static PerCPU<tzutils::PriorityQueue<TzTask>> idleQueue;
     static void updateTaskLog(uint64_t worldRunTime);
 #endif
+
+    static uint32_t cpuFreq;
+    static PerCPU<uint32_t> cpuLoad;
 
 private:
     static PerCPU<Class> scheduleClass;

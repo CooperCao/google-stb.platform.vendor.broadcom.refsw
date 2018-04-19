@@ -145,14 +145,15 @@ typedef struct BOTF_Data
     BOTF_ParserPtrs          IPParserPtrs;        /* Local copy of latest IP parser buffer pointers*/
     BOTF_ParserPtrs          OPParserPtrs;        /* Local copy of latest OP parser buffer pointers*/    
     struct {
-        uint32_t CdbStart; 
-        uint32_t ItbStart;
+        uint64_t CdbStart;
+        uint64_t ItbStart;
     } OpParserRegSave;     /* Local copy of OP Parser pointers when OTF was opened */
     BOTF_VideoDecoderStatus  prevVideoDecoderStatus;
     BKNI_EventHandle         DataEndEvent;
     botf_mem    mem;
     BMMA_Block_Handle itbMem;
     void *itb_buffer;
+    bool cdb40bit;
 
     BDBG_OBJECT(BOTF)
 } BOTF_Data ;

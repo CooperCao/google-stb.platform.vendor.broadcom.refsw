@@ -1918,9 +1918,21 @@ void BVDC_P_Compositor_BuildSyncLockRul_isr
 
                 } else
 #endif
+                {
                     BVDC_P_BUILD_IMM_EXEC_OPS(pList->pulCurrent, hSource->aulImmTriggerAddr[
                         hSource->bFieldSwap ? BVDC_P_NEXT_POLARITY(eFieldId) : eFieldId]);
-
+                }
+#if BVDC_P_SUPPORT_RDC_STC_FLAG
+                /* MFD source's STC flag force triggered by the CMP/VEC */
+                if(hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT &&
+                   hSource->ulStcFlagTrigSel != hCompositor->eId)
+                {
+                    hSource->ulStcFlagTrigSel = hCompositor->eId;
+                    BDBG_MSG(("MFD%u STC flag%u selects trigger from CMP%u", hSource->eId, hSource->ulStcFlag, hSource->ulStcFlagTrigSel));
+                    BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag,
+                        BRDC_Trigger_eCmp_0Trig0 + hSource->ulStcFlagTrigSel*2);
+                }
+#endif
                 hSource->ulDispVsyncFreq = hCompositor->hDisplay->stCurInfo.ulVertFreq;
             }
 

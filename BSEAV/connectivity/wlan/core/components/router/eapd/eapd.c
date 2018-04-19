@@ -379,8 +379,8 @@ eapd_dump(eapd_wksp_t *nwksp)
 	while (cb) {
 		if (cb->brcmSocket) {
 			brcmSocket = cb->brcmSocket;
-			EAPD_PRINT("	     [rfp=0x%x] drvSocket %d on %s for brcm event packet\n",
-				(uint) brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
+			EAPD_PRINT("	     [rfp=0x%p] drvSocket %d on %s for brcm event packet\n",
+				brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
 		}
 		cb = cb->next;
 		if (cb)

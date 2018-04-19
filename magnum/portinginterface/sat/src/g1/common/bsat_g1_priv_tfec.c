@@ -817,19 +817,11 @@ static BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h)
       {
          if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
          {
-#ifdef BSAT_HAS_WFE
             BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x3800); /* val = 0x38000000 */
-#else
-            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x3900); /* val = 0x39000000 */
-#endif
          }
          else
          {
-#ifdef BSAT_HAS_WFE
             BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x2500); /* val = 0x25000000 */
-#else
-            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x2860); /* val = 0x28600000 */
-#endif
          }
       }
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_F0B, val);
@@ -841,20 +833,12 @@ static BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h)
    BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, pl_res_byp, 1);
    if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
    {
-#ifdef BSAT_HAS_WFE
       BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x35); /* threshold=0x4B */
-#else
-      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x67); /* val = 0x670A */
-#endif
    }
    else
    {
       /* Turbo QPSK */
-#ifdef BSAT_HAS_WFE
       BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x3E); /* threshold=0x58 */
-#else
-      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x75); /* val = 0x750A */
-#endif
    }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_PLDCTL, val);
 

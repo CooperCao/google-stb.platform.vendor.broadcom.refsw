@@ -542,6 +542,9 @@ static BCMD_SecondTierKey_t * BSAGElib_P_Boot_GetKey(BSAGElib_P_BootContext *ctx
 static uint8_t *BSAGElib_P_Boot_GetSignature(BSAGElib_P_BootContext *ctx, BSAGElib_SageImageHolder *image);
 static void BSAGElib_P_Boot_SetImageInfo(BSAGElib_ImageInfo *pImageInfo, BSAGElib_SageImageHolder* holder, uint32_t header_version, uint32_t type, bool triple_sign);
 
+/* in bsagelib_boot_4x.c */
+extern BERR_Code BSAGElib_P_Boot_SUIF(BSAGElib_Handle hSAGElib,BSAGElib_BootSettings *pBootSettings);
+
 static BERR_Code BSAGElib_P_Boot_CheckFrameworkKeys(
     BSAGElib_P_BootContext *ctx,
     BSAGElib_SageImageHolder* frameworkHolder)
@@ -2394,6 +2397,26 @@ BSAGElib_Boot_Launch(
         goto end;
     }
 
+    /* Check SRR location  */
+    rc = BSAGElib_P_Boot_CheckSRR(hSAGElib, pBootSettings);
+    if(rc != BERR_SUCCESS) {
+        BDBG_ERR(("***********************************************************************"));
+        BDBG_ERR(("BOLT and Nexus do not agree on SAGE heap location"));
+        BDBG_ERR(("SAGE load can not continue"));
+        BDBG_ERR(("***********************************************************************"));
+        goto end;
+    }
+
+    rc = BSAGElib_P_Boot_SUIF(hSAGElib,pBootSettings);
+    if(rc != BERR_NOT_SUPPORTED)
+    {
+        /* when a BERR_NOT_SUPPORTED is returned, it mean the SBL or SSF is not SUIF format,
+         * we should keep on going to boot non-SUIF image,
+         * or we successfully booted SAGE, or in error, we can return in these cases
+         */
+        goto end;
+    }
+
     ctx = BKNI_Malloc(sizeof(*ctx));
     if (ctx == NULL) {
         BDBG_ERR(("%s - Cannot allocate temporary context for SAGE Boot.", BSTD_FUNCTION));
@@ -2448,16 +2471,6 @@ BSAGElib_Boot_Launch(
 
     /* Check SBL B/C compatability */
     BSAGElib_P_Boot_CheckFrameworkKeys(ctx, &frameworkHolder);
-
-    /* Check SRR location  */
-    rc = BSAGElib_P_Boot_CheckSRR(hSAGElib, pBootSettings);
-    if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("***********************************************************************"));
-        BDBG_ERR(("BOLT and Nexus do not agree on SAGE heap location"));
-        BDBG_ERR(("SAGE load can not continue"));
-        BDBG_ERR(("***********************************************************************"));
-        goto end;
-    }
 
     /* push region map to DRAM */
     if(pBootSettings->regionMapNum != 0) {

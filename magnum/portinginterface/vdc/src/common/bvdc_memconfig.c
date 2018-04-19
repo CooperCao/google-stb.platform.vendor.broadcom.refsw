@@ -111,6 +111,7 @@ void BVDC_GetDefaultMemConfigSettings
         pDisplay->vip.stCfgSettings.bSupportInterlaced = true;
         pDisplay->vip.stCfgSettings.bSupportDecimatedLuma = true;
         pDisplay->vip.stCfgSettings.bSupportBframes = true;
+        pDisplay->vip.stCfgSettings.bSupportItfp = true;
 #else
         pDisplay->vip.stCfgSettings.bSupportInterlaced = false;
 #endif
@@ -160,7 +161,7 @@ void BVDC_GetDefaultMemConfigSettings
 
     if(pBoxConfig)
     {
-        BVDC_P_Memconfig_UpdateSettingByBoxmode(pBoxConfig, pMemConfigSettings);
+        BVDC_P_Memconfig_UpdateSettingByBoxmode(pBoxConfig, NULL, pMemConfigSettings);
     }
 
     /* Dump out default settings */
@@ -375,7 +376,7 @@ BERR_Code BVDC_GetMemoryConfiguration
 
     if(pBoxConfig)
     {
-        BVDC_P_Memconfig_UpdateSettingByBoxmode(pBoxConfig, pBoxMemConfigSettings);
+        BVDC_P_Memconfig_UpdateSettingByBoxmode(pBoxConfig, pMemConfigSettings, pBoxMemConfigSettings);
     }
 
     /* Dump out user + boxmode settings */

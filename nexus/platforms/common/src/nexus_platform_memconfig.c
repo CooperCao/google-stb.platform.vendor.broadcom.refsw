@@ -966,7 +966,11 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                     structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.ulMemcId =
                         g_pPreInitState->boxConfig.stVce.stInstance[preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.ulEncoderCoreId].uiMemcIndex;
                     structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportDecimatedLuma = true;
+            #if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
+                    structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportBframes       = false;
+            #else
                     structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportBframes       = true;
+            #endif
                     NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->display[i].maxFormat, &info);
                     structs->vdc.memConfigSettings.stDisplay[i].vip.stCfgSettings.bSupportInterlaced =
                         (info.height == BFMT_1080I_HEIGHT || info.height == BFMT_480P_HEIGHT || info.height == BFMT_576P_HEIGHT)?
@@ -1319,6 +1323,11 @@ static NEXUS_Error NEXUS_P_ConfigOneMemcDtuHeap(const NEXUS_Core_PreInitState *p
 
     if ((pSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0 &&
         (pSettings->heap[secureHeapIndex].heapType & NEXUS_HEAP_TYPE_DTU) == 0) return NEXUS_SUCCESS;
+
+    if (pSettings->heap[heapIndex].offset) {
+        /* allow user to set address externally */
+        return NEXUS_SUCCESS;
+    }
 
     BDTU_P_ReadMappingInfo(preInitState->hReg, memcIndex, &map);
 

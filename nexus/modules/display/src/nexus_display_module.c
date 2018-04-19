@@ -1,40 +1,44 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- ******************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #include "priv/nexus_core.h"
@@ -50,7 +54,7 @@ NEXUS_DisplayModule_State g_NEXUS_DisplayModule_State;
 static void NEXUS_P_SetDisplayCapabilities(void);
 #define pVideo (&g_NEXUS_DisplayModule_State)
 #define NEXUS_P_GET_MAX_PIXEL(format_info) \
-	(((format_info.verticalFreq)/100)*(format_info.width)*(format_info.height) >> (format_info.interlaced))
+    (((format_info.verticalFreq)/100)*(format_info.width)*(format_info.height) >> (format_info.interlaced))
 
 void
 NEXUS_DisplayModule_GetDefaultInternalSettings(NEXUS_DisplayModuleInternalSettings *pSettings)
@@ -390,13 +394,15 @@ static struct {
     char *log;
 } g_buflog_capture;
 
-void NEXUS_Display_P_BufLogCapture(void)
+void NEXUS_Display_P_BufLogCapture(NEXUS_DisplayHandle display, unsigned windowIndex)
 {
     unsigned int read_count;
 
+    NEXUS_ASSERT_MODULE();
+
     if (g_buflog_capture.log)
     {
-        BVDC_DumpBufLog(g_buflog_capture.log,
+        BVDC_Dbg_Window_DumpBufLog(display->windows[windowIndex].vdcState.window, g_buflog_capture.log,
                         NEXUS_BUF_LOG_CAPTURE_SIZE * NEXUS_BUF_LOG_ENTRY_LEN,
                         &read_count);
 
@@ -616,6 +622,12 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
     g_NEXUS_displayModuleHandle = NEXUS_Module_Create("display", &moduleSettings);
     if(!g_NEXUS_displayModuleHandle) { rc = BERR_TRACE(BERR_OS_ERROR); goto err_module; }
     NEXUS_LockModule();
+
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    if (nexus_display_p_init_buflogcapture() != BERR_SUCCESS) {
+        goto err_tmr;
+    }
+#endif
 
     if (pModuleSettings->modules.videoDecoder) {
         NEXUS_UseModule(pSettings->modules.videoDecoder);
@@ -842,6 +854,10 @@ void NEXUS_DisplayModule_Uninit(void)
         }
     }
 
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    nexus_display_p_uninit_buflogcapture();
+#endif
+
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_displayModuleHandle);
     return;
@@ -1000,6 +1016,39 @@ NEXUS_Error NEXUS_DisplayModule_GetStatus_priv(NEXUS_DisplayModuleStatus *pStatu
     return 0;
 }
 
+static void NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(
+    NEXUS_DynamicRangeProcessingCapabilities * pNexus,
+    const BVDC_Window_Capabilities * pMagnum)
+{
+    BKNI_Memset(pNexus, 0, sizeof(*pNexus));
+    pNexus->typesSupported[NEXUS_DynamicRangeProcessingType_ePlm] = pMagnum->bConvHdr10;
+    pNexus->typesSupported[NEXUS_DynamicRangeProcessingType_eDolbyVision] = pMagnum->bDolby;
+    pNexus->typesSupported[NEXUS_DynamicRangeProcessingType_eTechnicolorPrime] = pMagnum->bTchInput;
+}
+
+static void NEXUS_Display_P_SetDynamicRangeProcessingCapabilities(void)
+{
+    NEXUS_DynamicRangeProcessingCapabilities * pCapabilities;
+    BVDC_Window_Capabilities vdcCaps;
+    BERR_Code rc = BERR_SUCCESS;
+    unsigned i,j;
+
+    for (j=0;j<NEXUS_MAX_DISPLAYS;j++) {
+        if (pVideo->cap.display[j].graphics.width) {
+            pCapabilities = &pVideo->cap.display[j].graphics.dynamicRangeProcessing;
+            rc = BVDC_GetWindowCapabilities(pVideo->vdc, j + BVDC_CompositorId_eCompositor0, BVDC_WindowId_eGfx0, &vdcCaps);
+            if (rc) { BERR_TRACE(rc); return; }
+            NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
+        }
+        for (i=0;i<pVideo->cap.display[j].numVideoWindows;i++) {
+            pCapabilities = &pVideo->cap.display[j].window[i].dynamicRangeProcessing;
+            rc = BVDC_GetWindowCapabilities(pVideo->vdc, j + BVDC_CompositorId_eCompositor0, i + BVDC_WindowId_eVideo0, &vdcCaps);
+            if (rc) { BERR_TRACE(rc); return; }
+            NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(pCapabilities, &vdcCaps);
+        }
+    }
+}
+
 static void NEXUS_P_SetDisplayCapabilities(void)
 {
     NEXUS_DisplayCapabilities *pCapabilities = &pVideo->cap;
@@ -1027,18 +1076,22 @@ static void NEXUS_P_SetDisplayCapabilities(void)
             }
         }
         for (j=0;j<NEXUS_MAX_DISPLAYS;j++) {
+            /* assume no videowindowless displays on pre-boxmode platforms */
+            if (pCapabilities->display[j].numVideoWindows)
+            {
 /* hardcode pre-boxmode graphics limits here */
 #if BCHP_CHIP == 7425 || BCHP_CHIP == 7400
-            /* 7425 GFD2 (used with VCE 1) doesn't have GFD bandwidth */
-            if (j != 2) {
+                /* 7425 GFD2 (used with VCE 1) doesn't have GFD bandwidth */
+                if (j != 2) {
+                    pCapabilities->display[j].graphics.width = 1920;
+                    pCapabilities->display[j].graphics.height = 1080;
+                }
+#else
+                /* no box modes, so just put in 40nm max numbers */
                 pCapabilities->display[j].graphics.width = 1920;
                 pCapabilities->display[j].graphics.height = 1080;
-            }
-#else
-            /* no box modes, so just put in 40nm max numbers */
-            pCapabilities->display[j].graphics.width = 1920;
-            pCapabilities->display[j].graphics.height = 1080;
 #endif
+            }
         }
     }
     else {
@@ -1092,6 +1145,9 @@ static void NEXUS_P_SetDisplayCapabilities(void)
             }
         }
     }
+
+    NEXUS_Display_P_SetDynamicRangeProcessingCapabilities();
+
     rc = BVDC_Display_GetCapabilities(NULL /* generic capabilities */, &vdcDisplayCap);
     if (!rc) {
         unsigned i;

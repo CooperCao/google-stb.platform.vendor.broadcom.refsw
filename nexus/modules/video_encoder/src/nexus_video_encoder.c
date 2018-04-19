@@ -1056,7 +1056,7 @@ static NEXUS_Error NEXUS_VideoEncoder_P_OpenStcSnapshot(
 
     NEXUS_StcChannel_GetSnapshotSettings_priv(encoder->snapshot, &snapshotSettings);
     snapshotSettings.triggerIndex = stgIndex;
-    snapshotSettings.mode = NEXUS_StcChannelSnapshotMode_eLegacy;
+    snapshotSettings.mode = NEXUS_StcChannelSnapshotMode_eLsb32; /* encoder stc always in binary mode so take LSB */
     rc = NEXUS_StcChannel_SetSnapshotSettings_priv(encoder->snapshot, &snapshotSettings);
     if (rc) {rc=BERR_TRACE(rc); goto error;}
 
@@ -1142,6 +1142,7 @@ NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEnco
     displaySettings.vip.stMemSettings.bSupportDecimatedLuma = true;
     displaySettings.vip.stMemSettings.bSupportBframes       = true;
     displaySettings.vip.stMemSettings.bSupportInterlaced    = pSettings->interlaced;
+    displaySettings.vip.stMemSettings.bSupportItfp          = encoder->settings.enableFieldPairing;
     displaySettings.vip.stMemSettings.ulMaxHeight = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[encoder->index].memory.maxHeight;
     displaySettings.vip.stMemSettings.ulMaxWidth  = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[encoder->index].memory.maxWidth;
     rc = NEXUS_Display_SetEncoderCallback_priv(pSettings->input, pSettings->window, &displaySettings);
