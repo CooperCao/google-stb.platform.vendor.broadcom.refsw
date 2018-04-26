@@ -34,23 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- ******************************************************************************
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * API Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Wed Mar  7 03:22:00 2018 GMT
+ *   at: Mon Apr  9 02:46:01 2018 GMT
  *   by: rl902794
  *   for: Box UHDp60
  *         MemC 0 (32-bit DDR4@1200MHz) w/388.8MHz clock
@@ -70,7 +59,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20180307032200_UHDp60[] = {
+static const uint32_t aulMemc0_20180409024601_UHDp60[] = {
            0x005b0009,  /*   0: XPT_WR_RS 3760ns */
            0x3ffff0ff,  /*   1: UNASSIGNED off */
            0x80c1500f,  /*   2: XPT_WR_CDB RR 7979ns */
@@ -149,7 +138,7 @@ static const uint32_t aulMemc0_20180307032200_UHDp60[] = {
            0x805d601c,  /*  75: HVD0_ILCPU RR 3857ns */
            0x8028801a,  /*  76: HVD0_OLCPU RR 1776ns */
            0x804eb008,  /*  77: HVD0_CAB RR 3250ns */
-           0x0062400c,  /*  78: HVD0_ILSI 4058ns */
+           0x0062400d,  /*  78: HVD0_ILSI 4058ns */
            0x3ffff0ff,  /*  79: UNASSIGNED off */
            0x3ffff0ff,  /*  80: UNASSIGNED off */
            0x3ffff0ff,  /*  81: UNASSIGNED off */
@@ -165,9 +154,9 @@ static const uint32_t aulMemc0_20180307032200_UHDp60[] = {
            0x3ffff0ff,  /*  91: UNASSIGNED off */
            0x3ffff0ff,  /*  92: UNASSIGNED off */
            0x3ffff0ff,  /*  93: UNASSIGNED off */
-           0x00467006,  /*  94: BVN_MAD_PIX_FD 2925ns +HRT(0.5%) */
-           0x0063200d,  /*  95: BVN_MAD_QUANT 4115ns +HRT(0.5%) */
-           0x008d100e,  /*  96: BVN_MAD_PIX_CAP 5852ns +HRT(0.5%) */
+           0x0043a006,  /*  94: BVN_MAD_PIX_FD 2808ns +HRT(0.5%) */
+           0x005f200b,  /*  95: BVN_MAD_QUANT 3950ns +HRT(0.5%) */
+           0x0087600e,  /*  96: BVN_MAD_PIX_CAP 5616ns +HRT(0.5%) */
            0x3ffff0ff,  /*  97: UNASSIGNED off */
            0x3ffff0ff,  /*  98: UNASSIGNED off */
            0x3ffff0ff,  /*  99: UNASSIGNED off */
@@ -237,7 +226,7 @@ static const uint32_t aulMemc0_20180307032200_UHDp60[] = {
            0x3ffff0ff,  /* 163: UNASSIGNED off */
            0x3ffff0ff,  /* 164: UNASSIGNED off */
            0x3ffff0ff,  /* 165: UNASSIGNED off */
-           0x0060300b,  /* 166: BVN_CMP0 3974ns */
+           0x0060300c,  /* 166: BVN_CMP0 3974ns */
            0x3ffff0ff,  /* 167: UNASSIGNED off */
            0x3ffff0ff,  /* 168: UNASSIGNED off */
            0x3ffff0ff,  /* 169: UNASSIGNED off */
@@ -330,22 +319,22 @@ static const uint32_t aulMemc0_20180307032200_UHDp60[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180307032200_UHDp60[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180409024601_UHDp60[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x802d0905}, /* HVD0_PFRI (gHVC) 236520.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000023e}, /* d: 4; p: 574.7375 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001440}, /* 5184 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000c26}  /* 60% * 5184 */
 };
 
-static const uint32_t* const paulMemc_box4[] = { &aulMemc0_20180307032200_UHDp60[0]};
+static const uint32_t* const paulMemc_box4[] = { &aulMemc0_20180409024601_UHDp60[0]};
 
 const BBOX_Rts stBoxRts_UHDp60_box4 = {
-  "20180307032200_UHDp60_box4",
+  "20180409024601_UHDp60_box4",
   7255,
   4,
   1,
   256,
   (const uint32_t**)&paulMemc_box4[0],
   4,
-  stBoxRts_PfriClient_20180307032200_UHDp60
+  stBoxRts_PfriClient_20180409024601_UHDp60
 };

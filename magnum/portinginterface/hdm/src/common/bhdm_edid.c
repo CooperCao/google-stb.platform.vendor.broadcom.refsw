@@ -4020,11 +4020,6 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 	{
 		BDBG_WRN(("NO HDMI SUPPORT; HDMI Rx Vendor Specific Data Block (VSDB) not found")) ;
 	}
-	else if (!hHDMI->AttachedEDID.RxVSDB.Audio)
-	{
-		BDBG_WRN(("Attached HDMI device '%s' does not support audio",
-			hHDMI->AttachedEDID.MonitorName)) ;
-	}
 	else if (!hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioCompressionStd_ePcm].Supported)
 	{
 		/* all HDMI Rx that set VSDB.Audio must support Basic Audio (eg 2 Ch PCM)

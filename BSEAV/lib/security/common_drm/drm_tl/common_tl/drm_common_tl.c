@@ -306,6 +306,25 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
                             SRAI_ModuleHandle *moduleHandle)
 {
     DrmRC rc = Drm_Success;
+    SRAI_Module_InitSettings init_settings;
+
+    init_settings.indicationCallback = NULL;
+    init_settings.indicationCallbackArg = 0;
+
+    rc = DRM_Common_TL_ModuleInitialize_TA_Ext(platIndex,
+        module_id, drm_bin_filename, container, moduleHandle, &init_settings);
+    return rc;
+}
+
+DrmRC
+DRM_Common_TL_ModuleInitialize_TA_Ext(CommonDrmPlatformType_e platIndex,
+                            uint32_t module_id,
+                            char * drm_bin_filename,
+                            BSAGElib_InOutContainer *container,
+                            SRAI_ModuleHandle *moduleHandle,
+			    SRAI_Module_InitSettings *init_settings)
+{
+    DrmRC rc = Drm_Success;
     FILE * fptr = NULL;
     uint32_t filesize = 0;
     uint32_t read_size = 0;
@@ -464,7 +483,7 @@ DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
 
     /* All modules will call SRAI_Module_Init */
     BDBG_MSG(("%s - ************************* (platformHandle = %p)", BSTD_FUNCTION, (void *)platformHandle[platformIndex]));
-    sage_rc = SRAI_Module_Init(platformHandle[platformIndex], module_id, container, moduleHandle);
+    sage_rc = SRAI_Module_Init_Ext(platformHandle[platformIndex], module_id, container, moduleHandle, init_settings);
     if(sage_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Error calling SRAI_Module_Init", BSTD_FUNCTION));

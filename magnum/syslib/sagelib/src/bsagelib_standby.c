@@ -43,21 +43,15 @@
 #include "bsagelib.h"
 #include "bsagelib_client.h"
 #include "bsagelib_rai.h"
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
+#include "priv/bsagelib_shared_globalsram.h"
+#endif
 #include "priv/bsagelib_shared_types.h"
 #include "bsagelib_priv.h"
 
 #include "bhsm_keyladder.h"
 
 BDBG_MODULE(BSAGElib);
-
-#define SAGE_SUSPENDVAL_RUN              0x4F4E4D4C
-#define SAGE_SUSPENDVAL_SLEEP            0x4F567856
-#define SAGE_SUSPENDVAL_RESUME           0x4E345678
-#define SAGE_SUSPENDVAL_RESUMING         0x77347856
-#define SAGE_SUSPENDVAL_S3READY          0x534E8C53
-#define SAGE_SUSPENDVAL_S2READY          0x524E8C52
-#define SAGE_SUSPENDVAL_STANDBYFAIL_RUN  0x544E8C54
-#define SAGE_SUSPENDVAL_STANDBYFAIL_DEAD 0x554E8C55
 
 #define SAGE_SUSPENDADDR BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSuspend)
 
@@ -149,7 +143,7 @@ BSAGElib_P_Standby_S2(
         hSAGElib->hStandbyRemote = hRemote;
         hRemote = NULL;
 
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_SLEEP);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_SLEEP);
         rc = BSAGElib_P_Standby_PMCommand(hSAGElibClient, NULL);
         if (rc != BERR_SUCCESS) {
             BDBG_ERR(("%s/enter: failed to send Standby PM Command", BSTD_FUNCTION));
@@ -160,7 +154,7 @@ BSAGElib_P_Standby_S2(
     }
     else {
         BDBG_MSG(("%s/leave: S2 'passive sleep'", BSTD_FUNCTION));
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RESUME);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_RESUME);
     }
 
 end:
@@ -220,7 +214,7 @@ BSAGElib_P_Standby_S3(
         allocatedKeyslot = true;
         BDBG_MSG(("%s/enter: Allocated M2M keyslot %d", BSTD_FUNCTION, M2MKeySlotIO.keySlotNum));
 
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_SLEEP);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_SLEEP);
 
         /* Send the PM command to SAGE, associated the keyslot num and a memory block from CRR */
         container->basicIn[0] = M2MKeySlotIO.keySlotNum;
@@ -243,7 +237,7 @@ BSAGElib_P_Standby_S3(
 
         BDBG_MSG(("%s/enter: Command sent, waiting for SAGE to be ready for S3", BSTD_FUNCTION));
 
-        while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S3READY) {
+        while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S2H_S3READY) {
             BKNI_Sleep(1);
         }
 
@@ -257,7 +251,7 @@ BSAGElib_P_Standby_S3(
 
         BSAGElib_P_SageVklsInit(hSAGElib);
 
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_RUN);
         hSAGElib->resetPending = 1;
         if (hSAGElib->enablePinmux) {
             BSAGElib_P_Init_Serial(hSAGElib);
@@ -319,7 +313,7 @@ BSAGElib_P_Standby_S2(
         }
 
         BDBG_MSG(("%s/enter: S2 'passive sleep' before write %x", BSTD_FUNCTION, BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR)));
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_SLEEP);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_SLEEP);
         BDBG_MSG(("%s/enter: S2 'passive sleep' after write %x", BSTD_FUNCTION, BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR)));
 
         container->basicIn[1] = FrameworkModule_CommandId_eStandbyPassive;
@@ -342,20 +336,20 @@ BSAGElib_P_Standby_S2(
         /* Will be releasing BCHP_PWR resources... wait for OK from sage before continuing */
         for (count = 0; count < S2_WAIT_COUNT; count++) {
             suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
-            if (suspendRegValue == SAGE_SUSPENDVAL_S2READY) {
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2H_S2READY) {
                 /* Everything is ok */
                 rc = BERR_SUCCESS;
                 goto end;
             }
 
-            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_RUN) {
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2H_STANDBYFAIL_RUN) {
                 BDBG_ERR(("SAGE ERROR entering S2"));
-                BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
+                BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_RUN);
                 rc = BERR_UNKNOWN;
                 goto end;
             }
 
-            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_DEAD) {
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2H_STANDBYFAIL_DEAD) {
                 /* Note that on a production system, the chip should have reset by now */
                 BDBG_ERR(("SAGE ERROR entering S2. SAGE NO LONGER RUNNING"));
                 rc = BERR_UNKNOWN;
@@ -373,13 +367,13 @@ BSAGElib_P_Standby_S2(
         suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
         BDBG_MSG(("%s/leave: S2 'passive sleep' %x", BSTD_FUNCTION, suspendRegValue));
 
-        if(suspendRegValue == SAGE_SUSPENDVAL_SLEEP){
+        if(suspendRegValue == SAGE_SUSPENDVAL_H2S_SLEEP){
             BDBG_MSG(("%s/leave: Command sent, waiting for SAGE to be ready for S2", BSTD_FUNCTION));
-            while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S2READY) {
+            while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S2H_S2READY) {
                 BKNI_Sleep(1);
             }
         }
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RESUME);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_RESUME);
     }
 
 end:
@@ -427,7 +421,7 @@ BSAGElib_P_Standby_S3(
         }
         BKNI_Memset(container, 0, sizeof(*container));
 
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_SLEEP);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_SLEEP);
 
         /* Send the PM command to SAGE, associated the keyslot num and a memory block from CRR */
         container->basicIn[1] = FrameworkModule_CommandId_eStandbyDeepSleep;
@@ -449,19 +443,19 @@ BSAGElib_P_Standby_S3(
 
         for (count = 0; count < S3_WAIT_COUNT; count++) {
             suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
-            if (suspendRegValue == SAGE_SUSPENDVAL_S3READY) {
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2H_S3READY) {
                 /* Everything is ok */
                 break;
             }
 
-            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_RUN) {
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2H_STANDBYFAIL_RUN) {
                 BDBG_ERR(("SAGE ERROR entering S3"));
-                BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
+                BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_RUN);
                 rc = BERR_UNKNOWN;
                 goto end;
             }
 
-            if (suspendRegValue == SAGE_SUSPENDVAL_STANDBYFAIL_DEAD) {
+            if (suspendRegValue == SAGE_SUSPENDVAL_S2H_STANDBYFAIL_DEAD) {
                 /* Note that on a production system, the chip should have reset by now */
                 BDBG_ERR(("SAGE ERROR entering S3. SAGE NO LONGER RUNNING"));
                 rc = BERR_UNKNOWN;
@@ -486,7 +480,7 @@ BSAGElib_P_Standby_S3(
 
         BSAGElib_P_SageVklsInit(hSAGElib);
 
-        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_H2S_RUN);
         hSAGElib->resetPending = 1;
         if (hSAGElib->enablePinmux) {
             BSAGElib_P_Init_Serial(hSAGElib);

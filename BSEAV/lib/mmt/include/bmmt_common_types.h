@@ -47,7 +47,8 @@ extern "C"
 typedef enum bmmt_stream_type {
     bmmt_stream_type_unknown,
     bmmt_stream_type_h265,
-    bmmt_stream_type_aac
+    bmmt_stream_type_aac,
+    bmmt_stream_type_subtitle
 } bmmt_stream_type;
 
 

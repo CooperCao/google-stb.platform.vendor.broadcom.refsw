@@ -67,6 +67,10 @@ SAGE_TOP ?= ${URSR_TOP}/sage
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${BSEAV_TOP}/lib/security/sage/ssd/app/ssdd.inc
 
+MAGNUM ?= ${MAGNUM_TOP}
+include ${MAGNUM_TOP}/portinginterface/hsm/bhsm_defs.inc
+CFLAGS += -DBHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR) -DBHSM_ZEUS_VER_MINOR=$(BHSM_ZEUS_VER_MINOR)
+
 ifeq ($(B_REFSW_OBJ_ROOT),)
 SSDD_OBJDIR:= obj
 else

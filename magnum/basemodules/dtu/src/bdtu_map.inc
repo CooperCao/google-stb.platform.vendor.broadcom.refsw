@@ -48,16 +48,16 @@ static void BDTU_P_ReadMappingInfo(BREG_Handle reg, unsigned memcIndex, BDTU_Map
     BKNI_Memset(pInfo, 0, sizeof(*pInfo));
     pInfo->memcIndex = memcIndex;
 
-#if BCHP_CHIP==7260 || BCHP_CHIP==7268 || BCHP_CHIP==7271
+#if BCHP_CHIP==7268 || BCHP_CHIP==7271
     pInfo->region[0].addr = 0x00000000;
     pInfo->region[0].size = 0xC0000000;
 #if 0
-    /* region above 4GB has issues for HVD, so avoid */
-    pInfo->region[1].addr = BCHP_UINT64_C(0x1, 0x00000000);
+    /* region above 4GB can only be used by M2MC/V3D/CPU */
+    pInfo->region[1].addr = BCHP_UINT64_C(0x3, 0x00000000);
     pInfo->region[1].size = 0x40000000;
 #endif
 #elif BCHP_CHIP==7278
-    if (BCHP_GET_FIELD_DATA(BREG_Read32(reg, BCHP_AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT),
+    if (reg && BCHP_GET_FIELD_DATA(BREG_Read32(reg, BCHP_AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT),
         AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT, map_variant))
     {
         /* v7-64 */

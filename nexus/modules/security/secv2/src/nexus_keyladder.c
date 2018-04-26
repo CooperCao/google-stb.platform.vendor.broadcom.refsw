@@ -85,13 +85,18 @@ NEXUS_KeyLadderHandle NEXUS_KeyLadder_Allocate( unsigned index,
     handle = BKNI_Malloc( sizeof(struct NEXUS_KeyLadder) );
     if( !handle ) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL; }
 
-    NEXUS_OBJECT_INIT(NEXUS_KeyLadder, handle);
+    NEXUS_OBJECT_INIT( NEXUS_KeyLadder, handle );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); return NULL; }
+    if( !hHsm ) { BERR_TRACE( NEXUS_NOT_INITIALIZED ); goto error; }
 
     BKNI_Memset( &hsmSettings, 0, sizeof(hsmSettings) );
-    hsmSettings.owner = pSettings->owner;
+
+    switch( pSettings->owner ){
+        case NEXUS_SecurityCpuContext_eHost: { hsmSettings.owner = BHSM_SecurityCpuContext_eHost; break; }
+        case NEXUS_SecurityCpuContext_eSage: { hsmSettings.owner = BHSM_SecurityCpuContext_eSage; break; }
+        default: {  BERR_TRACE(NEXUS_INVALID_PARAMETER); goto error; }
+    }
     hsmSettings.index = index;
 
     handle->hsmKeyLadderHandle = BHSM_KeyLadder_Allocate( hHsm, &hsmSettings );
@@ -101,13 +106,13 @@ NEXUS_KeyLadderHandle NEXUS_KeyLadder_Allocate( unsigned index,
 
 error:
 
-    if( handle ) {
-        if( handle->hsmKeyLadderHandle ) {
-            BHSM_KeyLadder_Free( handle->hsmKeyLadderHandle );
-            handle->hsmKeyLadderHandle = NULL;
-        }
-        BKNI_Free( handle );
+    if( handle->hsmKeyLadderHandle ) {
+        BHSM_KeyLadder_Free( handle->hsmKeyLadderHandle );
+        handle->hsmKeyLadderHandle = NULL;
     }
+
+    NEXUS_OBJECT_DESTROY( NEXUS_KeyLadder, handle );
+    BKNI_Free( handle );
 
     BDBG_LEAVE(NEXUS_KeyLadder_Allocate);
     return NULL;

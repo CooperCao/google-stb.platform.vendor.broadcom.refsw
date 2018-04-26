@@ -59,7 +59,7 @@ static uint8 soc_nvram_calc_crc(struct nvram_header *nvh);
 
 #if defined(NVRAM_FLASH) || defined(BCMNVRAMR)
 #define FILE_PATHLEN	512
-#define NVRAM_FILE_OEM_ANDROID "/hwcfg/nvm.txt"
+#define NVRAM_FILE_OEM_ANDROID "/dev/hwcfg/nvm.txt"
 #define NVRAM_FILE_DEFAULT "nvram.txt"
 extern char nvram_path[];
 extern char board_nvram_path[];
@@ -444,6 +444,7 @@ get_board_nvram_filename(void)
 }
 #endif /* NVRAM_FLASH || BCMNVRAMR */
 
+#if defined(BCMNVRAMR)
 static int
 nvram_file_init(void* sih)
 {
@@ -609,6 +610,7 @@ nvram_file_read(char **nvramp, int *nvraml)
 	}
 	return err;
 }
+#endif /* BCMNVRAMR */
 
 int
 BCMATTACHFN(nvram_append)(void *si, char *varlst, uint varsz)

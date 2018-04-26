@@ -61,6 +61,8 @@ extern "C" {
 #define BMP4_MAX_DRM_SCHEMES (4)
 
 static const uint8_t bmp4_nal[] = {0x00, 0x00, 0x00, 0x01};
+static const batom_vec bmp4_nal_vec = BATOM_VEC_INITIALIZER((void *)bmp4_nal, sizeof(bmp4_nal));
+
 
 typedef struct bmp4_uuid {
     uint8_t data[BMP4_UUID_LENGTH];

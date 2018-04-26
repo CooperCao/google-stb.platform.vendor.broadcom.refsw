@@ -658,7 +658,6 @@ static void bmmt_p_stream_data(void *context, batom_accum_t data, const bmmt_dem
 
     BDBG_MSG(("MPU:%x PTS:%x", (unsigned)(time_info->mpu_time), (unsigned)time_info->pes_info.pts));
     pes_header_length = bmedia_pes_header_init(pes_header, length , &time_info->pes_info);
-
     mmt->buffer.offset = 0;
     mmt->buffer.length = 0;
     if (mmt->fout)
@@ -984,7 +983,18 @@ bmmt_stream_t bmmt_stream_open(bmmt_t mmt, bmmt_stream_settings *settings)
         bmmt_demux_stream_config_init(&stream->demux_stream_config);
         stream->demux_stream_config.stream_type = settings->stream_type;
         stream->demux_stream_config.packet_id = settings->pid;
-        stream->pes_id = (settings->stream_type == bmmt_stream_type_h265)?0xE0:0xC0;
+        if (settings->stream_type == bmmt_stream_type_h265) {
+            stream->pes_id = 0xE0;
+        }
+        else {
+           if (settings->stream_type == bmmt_stream_type_aac) {
+              stream->pes_id = 0xC0;
+           }
+           else
+           {
+              stream->pes_id = 0xBD;
+           }
+        }
         stream->demux_stream_config.pes_stream_id = stream->pes_id;
         stream->demux_stream_config.stream_context = stream;
         stream->demux_stream_config.stream_data = bmmt_p_stream_data;

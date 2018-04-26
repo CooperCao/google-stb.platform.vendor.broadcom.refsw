@@ -46,7 +46,12 @@
 #define NEXUS_P_COMPAT_UNION_VERIFY(struct, base, union, type) BDBG_CASSERT(B_SIZEOF(struct, base.union)==B_SIZEOF(B_NEXUS_COMPAT_TYPE(struct), base.union)); BDBG_CASSERT( (offsetof(struct, base.union) - offsetof(struct, base))==(offsetof(B_NEXUS_COMPAT_TYPE(struct), base.union) - offsetof(B_NEXUS_COMPAT_TYPE(struct), base)) );
 #define NEXUS_P_COMPAT_UNION_VERIFY_PLAIN(struct, base, union, type) NEXUS_P_COMPAT_UNION_VERIFY(struct, base, union, type)
 #define NEXUS_P_COMPAT_UNION_VERIFY_GENERIC(struct, base, union, type) BDBG_CASSERT(B_SIZEOF(struct,base.union)==sizeof(unsigned)); NEXUS_P_COMPAT_UNION_VERIFY(struct, base, union, type)
-#define NEXUS_P_COMPAT_UNION_VERIFY_SPECIAL(struct, base, union, type) BDBG_ASSERT(0);  /* not supported */
+#define NEXUS_P_COMPAT_UNION_VERIFY_SPECIAL(struct, base, union, type) BDBG_CASSERT(0);  /* not supported */
+
+#define NEXUS_P_COMPAT_SHARED_MEMORY_VERIFY(struct, field, type) BDBG_CASSERT(B_SIZEOF(struct, field)==B_SIZEOF(B_NEXUS_COMPAT_TYPE(struct), field)); BDBG_CASSERT( (offsetof(struct, field) == (offsetof(B_NEXUS_COMPAT_TYPE(struct), field))));
+#define NEXUS_P_COMPAT_SHARED_MEMORY_VERIFY_PLAIN(struct, field, type) NEXUS_P_COMPAT_SHARED_MEMORY_VERIFY(struct, field, type)
+#define NEXUS_P_COMPAT_SHARED_MEMORY_VERIFY_GENERIC(struct, field, type) BDBG_CASSERT(B_SIZEOF(struct,field)==sizeof(unsigned));NEXUS_P_COMPAT_SHARED_MEMORY_VERIFY(struct, field, type)
+#define NEXUS_P_COMPAT_SHARED_MEMORY_VERIFY_SPECIAL(struct, field, type) BDBG_CASSERT(0);  /* not supported */
 
 #define NEXUS_P_COMPAT_IN_BEGIN(type) static NEXUS_Error type##_compat_in(const B_NEXUS_COMPAT_TYPE(type) *__src, type *__dst) { NEXUS_Error __rc=NEXUS_SUCCESS; BSTD_UNUSED(__src);
 #define NEXUS_P_COMPAT_IN_END(type) return __rc;}

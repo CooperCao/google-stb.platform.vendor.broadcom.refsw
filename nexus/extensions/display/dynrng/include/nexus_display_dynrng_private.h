@@ -46,18 +46,6 @@ extern "C" {
 
 /***************************************************************************
 Summary:
-Processing type for dynamic range processing.
-****************************************************************************/
-typedef enum NEXUS_DynamicRangeProcessingType
-{
-    NEXUS_DynamicRangeProcessingType_ePlm, /* Broadcom Programmable Luminance Mapping */
-    NEXUS_DynamicRangeProcessingType_eDolbyVision,
-    NEXUS_DynamicRangeProcessingType_eTechnicolorPrime,
-    NEXUS_DynamicRangeProcessingType_eMax
-} NEXUS_DynamicRangeProcessingType;
-
-/***************************************************************************
-Summary:
 Processing mode for dynamic range processing.
 ****************************************************************************/
 typedef enum NEXUS_DynamicRangeProcessingMode
@@ -77,30 +65,12 @@ typedef struct NEXUS_DynamicRangeProcessingSettings {
 
 /***************************************************************************
 Summary:
-Dynamic range processing capabilities
-****************************************************************************/
-typedef struct NEXUS_DynamicRangeProcessingCapabilities {
-    bool typesSupported[NEXUS_DynamicRangeProcessingType_eMax]; /* processing types supported */
-} NEXUS_DynamicRangeProcessingCapabilities;
-
-/***************************************************************************
-Summary:
 Dynamic range processing settings
 ****************************************************************************/
 typedef struct NEXUS_GraphicsLuminanceBounds {
     unsigned min;
     unsigned max;
 } NEXUS_GraphicsLuminanceBounds;
-
-/***************************************************************************
-Summary:
-Get the per-window video dynamic range processing capabilities for the display with HDMI attached
-****************************************************************************/
-void NEXUS_VideoWindow_GetDynamicRangeProcessingCapabilities(
-    unsigned displayId,
-    unsigned windowId,
-    NEXUS_DynamicRangeProcessingCapabilities * pCapabilities /* [out] */
-);
 
 /***************************************************************************
 Summary:
@@ -142,15 +112,6 @@ void NEXUS_VideoWindow_SetTargetPeakBrightness(
     unsigned windowId,
     int  sHdrPeak,
     int  sSdrPeak
-);
-
-/***************************************************************************
-Summary:
-Get the graphics dynamic range processing capabilities for the display with HDMI attached
-****************************************************************************/
-void NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(
-    unsigned displayId,
-    NEXUS_DynamicRangeProcessingCapabilities * pCapabilities /* [out] */
 );
 
 /***************************************************************************

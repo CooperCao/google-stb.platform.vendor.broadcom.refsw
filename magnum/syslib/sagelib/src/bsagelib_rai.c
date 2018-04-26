@@ -50,6 +50,8 @@ BDBG_MODULE(BSAGElib);
 #include "bsagelib_rai.h"
 
 #include "bsagelib_sdl_header.h"
+#include "priv/suif.h"
+#include "priv/suif_sdl.h"
 
 /* Local functions */
 static void BSAGElib_P_Rai_Check_ContainerCache(BSAGElib_ClientHandle hSAGElibClient);
@@ -153,68 +155,107 @@ _P_IsSdlValid(
 {
     bool rc = false;
     uint32_t sdlTHLSigShort;
+    SUIF_CommonHeader *pSUIFHeader = NULL;
+    uint32_t magicNumber,*pMagicNumber_BE;
 
-    sdlTHLSigShort = pHeader->ucSsfThlShortSig[0] | (pHeader->ucSsfThlShortSig[1] << 8) |
-                     (pHeader->ucSsfThlShortSig[2] << 16) | (pHeader->ucSsfThlShortSig[3] << 24);
-
-    if (sdlTHLSigShort != 0) {
-        rc = (sdlTHLSigShort == hSAGElib->frameworkInfo.THLShortSig);
-        if (rc != true) {
-            if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
-                 pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
-                rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
-                if (rc != true) {
-                    BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
-                              BSTD_FUNCTION, pHeader->ucSsfVersion[0],
-                              pHeader->ucSsfVersion[1],
-                              pHeader->ucSsfVersion[2],
-                              pHeader->ucSsfVersion[3]));
-                    BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
-                              BSTD_FUNCTION));
-                    BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
-                              BSTD_FUNCTION, hSAGElib->frameworkInfo.version[0],
-                              hSAGElib->frameworkInfo.version[1],
-                              hSAGElib->frameworkInfo.version[2],
-                              hSAGElib->frameworkInfo.version[3]));
-                    goto end;
-                }
-            }
-            else {
-                BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", BSTD_FUNCTION));
-            }
-
-            BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
-                      BSTD_FUNCTION, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
-            BDBG_ERR(("%s: The SDL must be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
-                      BSTD_FUNCTION));
-            goto end;
-        }
-    } else {
+    pSUIFHeader = (SUIF_CommonHeader *)pHeader;
+    pMagicNumber_BE = (uint32_t *)pSUIFHeader->magicNumber_BE;
+    magicNumber = SUIF_Get32(pMagicNumber,BE);
+    if(magicNumber == SUIF_MagicNumber_eSDL)
+    {   /* this is SUIF format image */
+        const SUIF_SDLSpecificHeader *pSUIFSDLHeader = SUIF_GetSdlHeaderFromPackageHeader((SUIF_PackageHeader *)pHeader);
         bool isAlphaSSF = (hSAGElib->frameworkInfo.version[2] == 0) && (hSAGElib->frameworkInfo.version[3] != 0);
-        bool isAlphaSDK = (pHeader->ucSsfVersion[2] == 0) && (pHeader->ucSsfVersion[3] != 0);
-        BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", BSTD_FUNCTION));
+        bool isAlphaSDK = (pSUIFSDLHeader->ssfVersion.revision == 0) && (pSUIFSDLHeader->ssfVersion.branch != 0);
         /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
         if (isAlphaSSF || isAlphaSDK) {
-            rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+            rc = ((hSAGElib->frameworkInfo.version[0] == pSUIFSDLHeader->ssfVersion.major) &&
+                  (hSAGElib->frameworkInfo.version[1] == pSUIFSDLHeader->ssfVersion.minor) &&
+                  (hSAGElib->frameworkInfo.version[2] == pSUIFSDLHeader->ssfVersion.revision) &&
+                  (hSAGElib->frameworkInfo.version[3] == pSUIFSDLHeader->ssfVersion.branch)    );
             if (rc != true) {
                 if (isAlphaSSF) {
                     BDBG_ERR(("%s: The SAGE Alpha Framework does not match the SDK version (%u.%u.%u.%u) of the TA",
-                              BSTD_FUNCTION, pHeader->ucSsfVersion[0],
-                              pHeader->ucSsfVersion[1],
-                              pHeader->ucSsfVersion[2],
-                              pHeader->ucSsfVersion[3]));
+                              BSTD_FUNCTION, pSUIFSDLHeader->ssfVersion.major,
+                              pSUIFSDLHeader->ssfVersion.minor,
+                              pSUIFSDLHeader->ssfVersion.revision,
+                              pSUIFSDLHeader->ssfVersion.branch));
                 }
                 else {
                     BDBG_ERR(("%s: The SAGE TA's Alpha SDK version (%u.%u.%u.%u) does not match the Framework",
-                              BSTD_FUNCTION, pHeader->ucSsfVersion[0],
-                              pHeader->ucSsfVersion[1],
-                              pHeader->ucSsfVersion[2],
-                              pHeader->ucSsfVersion[3]));
+                              BSTD_FUNCTION, pSUIFSDLHeader->ssfVersion.major,
+                              pSUIFSDLHeader->ssfVersion.minor,
+                              pSUIFSDLHeader->ssfVersion.revision,
+                              pSUIFSDLHeader->ssfVersion.branch));
                 }
                 goto end;
             }
         } else {
             rc = true;
+        }
+    }else
+    {
+        sdlTHLSigShort = pHeader->ucSsfThlShortSig[0] | (pHeader->ucSsfThlShortSig[1] << 8) |
+                         (pHeader->ucSsfThlShortSig[2] << 16) | (pHeader->ucSsfThlShortSig[3] << 24);
+
+        if (sdlTHLSigShort != 0) {
+            rc = (sdlTHLSigShort == hSAGElib->frameworkInfo.THLShortSig);
+            if (rc != true) {
+                if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
+                     pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
+                    rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+                    if (rc != true) {
+                        BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
+                                  BSTD_FUNCTION, pHeader->ucSsfVersion[0],
+                                  pHeader->ucSsfVersion[1],
+                                  pHeader->ucSsfVersion[2],
+                                  pHeader->ucSsfVersion[3]));
+                        BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
+                                  BSTD_FUNCTION));
+                        BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
+                                  BSTD_FUNCTION, hSAGElib->frameworkInfo.version[0],
+                                  hSAGElib->frameworkInfo.version[1],
+                                  hSAGElib->frameworkInfo.version[2],
+                                  hSAGElib->frameworkInfo.version[3]));
+                        goto end;
+                    }
+                }
+                else {
+                    BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", BSTD_FUNCTION));
+                }
+
+                BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
+                          BSTD_FUNCTION, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
+                BDBG_ERR(("%s: The SDL must be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
+                          BSTD_FUNCTION));
+                goto end;
+            }
+        } else {
+            bool isAlphaSSF = (hSAGElib->frameworkInfo.version[2] == 0) && (hSAGElib->frameworkInfo.version[3] != 0);
+            bool isAlphaSDK = (pHeader->ucSsfVersion[2] == 0) && (pHeader->ucSsfVersion[3] != 0);
+            BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", BSTD_FUNCTION));
+            /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
+            if (isAlphaSSF || isAlphaSDK) {
+                rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+                if (rc != true) {
+                    if (isAlphaSSF) {
+                        BDBG_ERR(("%s: The SAGE Alpha Framework does not match the SDK version (%u.%u.%u.%u) of the TA",
+                                  BSTD_FUNCTION, pHeader->ucSsfVersion[0],
+                                  pHeader->ucSsfVersion[1],
+                                  pHeader->ucSsfVersion[2],
+                                  pHeader->ucSsfVersion[3]));
+                    }
+                    else {
+                        BDBG_ERR(("%s: The SAGE TA's Alpha SDK version (%u.%u.%u.%u) does not match the Framework",
+                                  BSTD_FUNCTION, pHeader->ucSsfVersion[0],
+                                  pHeader->ucSsfVersion[1],
+                                  pHeader->ucSsfVersion[2],
+                                  pHeader->ucSsfVersion[3]));
+                    }
+                    goto end;
+                }
+            } else {
+                rc = true;
+            }
         }
     }
 
@@ -271,6 +312,10 @@ BSAGElib_Rai_Platform_Install(
     char *platform_name = _P_LookupPlatformName(platformId);
     char revstr[9];
     BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
+    uint8_t ucSdlVersion[4];                  /* SDL version */
+    uint8_t ucSageSecureBootToolVersion[4];   /* Version of the secure boot tool used to signed the binary */
+    SUIF_CommonHeader *pSUIFHeader = NULL;
+    uint32_t magicNumber,*pMagicNumber_BE;
 
     if (binSize < sizeof(BSAGElib_SDLHeader)) {
         BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
@@ -279,30 +324,55 @@ BSAGElib_Rai_Platform_Install(
     }
     pHeader = (BSAGElib_SDLHeader *)binBuff;
 
+    pSUIFHeader = (SUIF_CommonHeader *)binBuff;
+    pMagicNumber_BE = (uint32_t *)pSUIFHeader->magicNumber_BE;
+    magicNumber = SUIF_Get32(pMagicNumber,BE);
+    if(magicNumber == SUIF_MagicNumber_eSDL)
+    {   /* this is SUIF format image */
+        ucSdlVersion[0] = pSUIFHeader->imageVersion.major;
+        ucSdlVersion[1] = pSUIFHeader->imageVersion.minor;
+        ucSdlVersion[2] = pSUIFHeader->imageVersion.revision;
+        ucSdlVersion[3] = pSUIFHeader->imageVersion.branch;
+        ucSageSecureBootToolVersion[0] = pSUIFHeader->signingToolVersion.major;
+        ucSageSecureBootToolVersion[1] = pSUIFHeader->signingToolVersion.minor;
+        ucSageSecureBootToolVersion[2] = pSUIFHeader->signingToolVersion.revision;
+        ucSageSecureBootToolVersion[3] = pSUIFHeader->signingToolVersion.branch;
+    }else
+    {   /* this is 3.x image */
+        ucSdlVersion[0] = pHeader->ucSdlVersion[0];
+        ucSdlVersion[1] = pHeader->ucSdlVersion[1];
+        ucSdlVersion[2] = pHeader->ucSdlVersion[2];
+        ucSdlVersion[3] = pHeader->ucSdlVersion[3];
+        ucSageSecureBootToolVersion[0] = pHeader->ucSageSecureBootToolVersion[0];
+        ucSageSecureBootToolVersion[1] = pHeader->ucSageSecureBootToolVersion[1];
+        ucSageSecureBootToolVersion[2] = pHeader->ucSageSecureBootToolVersion[2];
+        ucSageSecureBootToolVersion[3] = pHeader->ucSageSecureBootToolVersion[3];
+    }
+
     container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
     if(container == NULL)
         goto err;
 
-    if ((pHeader->ucSdlVersion[2] == 0) && (pHeader->ucSdlVersion[3] != 0)) {
-        BKNI_Snprintf(revstr, sizeof(revstr)-1, "Alpha%u", pHeader->ucSdlVersion[3]);
+    if ((ucSdlVersion[2] == 0) && (ucSdlVersion[3] != 0)) {
+        BKNI_Snprintf(revstr, sizeof(revstr)-1, "Alpha%u", ucSdlVersion[3]);
     } else {
         BKNI_Snprintf(revstr, sizeof(revstr)-1, "%u.%u",
-                      pHeader->ucSdlVersion[2], pHeader->ucSdlVersion[3]);
+                      ucSdlVersion[2], ucSdlVersion[3]);
     }
     if (platform_name == NULL) {
         BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platformId,
-                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1], revstr,
-                  pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
-                  pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
+                  ucSdlVersion[0], ucSdlVersion[1], revstr,
+                  ucSageSecureBootToolVersion[0], ucSageSecureBootToolVersion[1],
+                  ucSageSecureBootToolVersion[2], ucSageSecureBootToolVersion[3]
                   ));
     }
     else {
         BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platform_name,
-                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1], revstr,
-                  pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
-                  pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
+                  ucSdlVersion[0], ucSdlVersion[1], revstr,
+                  ucSageSecureBootToolVersion[0], ucSageSecureBootToolVersion[1],
+                  ucSageSecureBootToolVersion[2], ucSageSecureBootToolVersion[3]
                   ));
     }
     BDBG_MSG(("%s: Platform %x %p %d",BSTD_FUNCTION, platformId, binBuff,binSize  ));
@@ -495,7 +565,9 @@ BSAGElib_Rai_Platform_Install(
     container->blocks[0].data.ptr = binBuff;
     container->blocks[0].len = binSize;
 
+    if(magicNumber != SUIF_MagicNumber_eSDL)
     {
+        /* this is sage 3.x iamge, not SUIF image */
         BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)binBuff;
         if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_SINGLE)
         {
@@ -508,7 +580,7 @@ BSAGElib_Rai_Platform_Install(
             container->basicIn[1] = 1;
         }
         else{
-            BDBG_ERR(("%s: invalida Image Siging Scheme value (0x%02x) detected", BSTD_FUNCTION, pHeader->ucSageImageSigningScheme));
+            BDBG_ERR(("%s: invalid Image Siging Scheme value (0x%02x) detected", BSTD_FUNCTION, pHeader->ucSageImageSigningScheme));
             rc = BERR_INVALID_PARAMETER;
             goto end;
         }

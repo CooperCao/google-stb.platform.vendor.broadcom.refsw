@@ -677,6 +677,7 @@ BERR_Code BVDC_P_Vip_FreeBuffer
 {
     BVDC_P_VipBufferNode *pBuffer;
     BVDC_P_VipAssocBufferNode *pBufferAssoc;
+    bool bItfp = hVip->hDisplay->stCurInfo.stVipMemSettings.bSupportItfp;
     BERR_Code rc = BERR_SUCCESS;
 
     BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%d] frees buffers", hVip->eId));
@@ -707,6 +708,53 @@ BERR_Code BVDC_P_Vip_FreeBuffer
     if(hVip->pToCapture) {
         BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, hVip->pToCapture, link);
         hVip->pToCapture = NULL;
+    }
+    /* free itfp buffers */
+    if(bItfp) {
+        while(hVip->stEpmInfo.PreProcessorPictureQueue.Fullness--) {
+            pBuffer = hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pPic;
+            if(pBuffer) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQ, pBuffer, link);
+                hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pPic = NULL;
+                BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases ITFP[%u] buf[%d] %p, pNext=%p",
+                    hVip->eId, hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr, pBuffer->ulBufferId,
+                    (void *)pBuffer, (void *)BLST_SQ_NEXT(pBuffer, link)));
+            }
+            pBufferAssoc = hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pDecim1v;
+            if(pBufferAssoc) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim1v, pBufferAssoc, link);
+                hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pDecim1v = NULL;
+                BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases ITFP Decim1v buf[%d] %p, pNext=%p",
+                    hVip->eId, pBufferAssoc->ulBufferId,
+                    (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            }
+            pBufferAssoc = hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pDecim2v;
+            if(pBufferAssoc) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQdecim2v, pBufferAssoc, link);
+                hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pDecim2v = NULL;
+                BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases ITFP Decim2v buf[%d] %p, pNext=%p",
+                    hVip->eId, pBufferAssoc->ulBufferId,
+                    (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            }
+            pBufferAssoc = hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pChroma;
+            if(pBufferAssoc) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQchroma, pBufferAssoc, link);
+                hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pChroma = NULL;
+                BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases ITFP Chroma buf[%d] %p, pNext=%p",
+                    hVip->eId, pBufferAssoc->ulBufferId,
+                    (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            }
+            pBufferAssoc = hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pShifted;
+            if(pBufferAssoc) {
+                BLST_SQ_INSERT_TAIL(&hVip->stFreeQshifted, pBufferAssoc, link);
+                hVip->astItfpPicQ[hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr].pShifted = NULL;
+                BDBG_MODULE_MSG(BVDC_VIP_MEM,("[%d] releases ITFP Shifted buf[%d] %p, pNext=%p",
+                    hVip->eId, pBufferAssoc->ulBufferId,
+                    (void *)pBufferAssoc, (void *)BLST_SQ_NEXT(pBufferAssoc, link)));
+            }
+            hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr = (hVip->stEpmInfo.PreProcessorPictureQueue.RdPtr + 1) %
+                hVip->stEpmInfo.PreProcessorPictureQueue.NumOfBuff;
+        }
     }
 
     /* 2) free chroma buffer queues */
@@ -1355,24 +1403,31 @@ void BVDC_P_Vip_BuildRul_isr
        Note RUL has a picture delay, so when isr building the next capture picture, the last capture just got triggered!
        and it takes one more picture time to complete the capture! We allow picture delivered only after its capture is done. */
     if(hVip->pCapture) {/* beingCaptured -> Capture Done */
-        /* cadence detection given the stats available now with the just captured picture! */
-        hVip->stEpmInfo.IsProgressive = !pFmtInfo->bInterlaced;
-        BVDC_P_ITFP_EPM_Preprocessor_ReadVipStats_isr(hVip);
-        BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(hVip);
-
-        /* insert the captured picture to the CaptureQ available for GetBuffer API */
-        BLST_SQ_INSERT_TAIL(&hVip->stCaptureQ, hVip->pCapture, link);
-        BLST_SQ_INSERT_TAIL(&hVip->stCaptureQchroma, hVip->pCaptureChroma, link);
-        /* only top field delivers shifted chroma buffer */
-        if(hVip->pCaptureShifted && hVip->pCapture->stPicture.ePolarity == BAVC_Polarity_eTopField) {
-            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQshifted, hVip->pCaptureShifted, link);
-            hVip->pCaptureShifted = NULL; /* clear the pointer */
+        /* Note, ITFP queue filling may zero out pCapture and delay the delivery */
+        if(hDisplay->stCurInfo.stVipMemSettings.bSupportItfp)
+        {
+            /* cadence detection given the stats available now with the just captured picture! */
+            hVip->stEpmInfo.IsProgressive = !pFmtInfo->bInterlaced;
+            BVDC_P_ITFP_EPM_Preprocessor_ReadVipStats_isr(hVip);
+            BVDC_P_ITFP_EPM_Preprocessor_CadenceDetection_isr(hVip);
         }
-        if(hVip->stMemSettings.bDecimatedLuma) {
-            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQdecim1v, hVip->pCaptureDecim1v, link);
-            hVip->pCaptureDecim1v = NULL; /* clear the pointer */
-            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQdecim2v, hVip->pCaptureDecim2v, link);
-            hVip->pCaptureDecim2v = NULL; /* clear the pointer */
+
+        if(hVip->pCapture)
+        {   /* possible ITFP queue delay */
+            /* insert the captured picture to the CaptureQ available for GetBuffer API */
+            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQ, hVip->pCapture, link);
+            BLST_SQ_INSERT_TAIL(&hVip->stCaptureQchroma, hVip->pCaptureChroma, link);
+            /* only top field delivers shifted chroma buffer */
+            if(hVip->pCaptureShifted && hVip->pCapture->stPicture.ePolarity == BAVC_Polarity_eTopField) {
+                BLST_SQ_INSERT_TAIL(&hVip->stCaptureQshifted, hVip->pCaptureShifted, link);
+                hVip->pCaptureShifted = NULL; /* clear the pointer */
+            }
+            if(hVip->stMemSettings.bDecimatedLuma) {
+                BLST_SQ_INSERT_TAIL(&hVip->stCaptureQdecim1v, hVip->pCaptureDecim1v, link);
+                hVip->pCaptureDecim1v = NULL; /* clear the pointer */
+                BLST_SQ_INSERT_TAIL(&hVip->stCaptureQdecim2v, hVip->pCaptureDecim2v, link);
+                hVip->pCaptureDecim2v = NULL; /* clear the pointer */
+            }
         }
         hVip->pCapture = NULL; /* clear the pointer */
         hVip->pCaptureChroma = NULL; /* clear the pointer */
@@ -1391,6 +1446,8 @@ void BVDC_P_Vip_BuildRul_isr
             if(hVip->pCapture->stPicture.ePolarity == BAVC_Polarity_eTopField) {
                 hVip->pCaptureShifted = hVip->pToCaptureShifted;
                 hVip->pToCaptureShifted = NULL; /* clear the pointer */
+            } else {
+                hVip->pCaptureShifted = NULL;
             }
             if(hVip->stMemSettings.bDecimatedLuma) {
                 hVip->pCaptureDecim1v = hVip->pToCaptureDecim1v;

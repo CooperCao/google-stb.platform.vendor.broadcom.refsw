@@ -61,6 +61,8 @@ APPS = \
     security_keyladder_aes_cbc_app \
     security_keyladder_aes_ecb_simple \
     security_keyladder_tdes_app \
+    security_hash_app \
+    security_hmac_app \
 
 # Utilities functions that are commonly used by the apps:
 EXTRA_SRC += security_utils.c
@@ -68,6 +70,7 @@ EXTRA_SRC += security_utils.c
 EXTRA_OBJS += security_utils.o
 
 include ../../Makefile.inc
+
 # Keyslot apps
 $(BINDIR)/security_keyslot_des_app                  $(BINDIR)/security_keyslot_des_app:             $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_des_simple               $(BINDIR)/security_keyslot_des_simple:          $(EXTRA_SRC)
@@ -82,7 +85,11 @@ $(BINDIR)/security_keyslot_external_keyiv_app       $(BINDIR)/security_keyslot_e
 $(BINDIR)/security_keyslot_mpeg_packet_crypto       $(BINDIR)/security_keyslot_mpeg_packet_crypto:  $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app       $(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app:  $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app       $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app:  $(EXTRA_SRC)
-# Keyladder app s
+# Sha app
+$(BINDIR)/security_hash_app							$(BINDIR)/security_hash_app:  					$(EXTRA_SRC)
+# HMAC app
+$(BINDIR)/security_hmac_app							$(BINDIR)/security_hmac_app:  					$(EXTRA_SRC)
+# Keyladder apps
 $(BINDIR)/security_keyladder_aes_ecb_app            $(BINDIR)/security_keyladder_aes_ecb_app:       $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_aes_cbc_app            $(BINDIR)/security_keyladder_aes_cbc_app:       $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_aes_ecb_simple         $(BINDIR)/security_keyladder_aes_ecb_simple:    $(EXTRA_SRC)

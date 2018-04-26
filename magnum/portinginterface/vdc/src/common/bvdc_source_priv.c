@@ -570,7 +570,9 @@ BERR_Code BVDC_P_Source_Create
 #ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
         BKNI_EnterCriticalSection();
         pSource->ulStcFlag = BRDC_AcquireStcFlag_isr(hVdc->hRdc, BRDC_MAX_STC_FLAG_COUNT);
+        pSource->ulStcFlagTrigSel = -1;
         BKNI_LeaveCriticalSection();
+        BDBG_MSG(("MFD%d stc flag = %d", eSourceId, pSource->ulStcFlag));
         if(pSource->ulStcFlag == BRDC_MAX_STC_FLAG_COUNT)
         {
             BDBG_ERR(("No STC flag available for MFD source %d!", eSourceId));
@@ -1063,7 +1065,11 @@ void BVDC_P_Source_Init
 #if BVDC_P_SUPPORT_RDC_STC_FLAG
             if(bMtgSrc && hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
             {
+                BKNI_EnterCriticalSection();
+                hSource->ulStcFlagTrigSel = BRDC_Trigger_eMfd0Mtg0 + hSource->eId*2;
                 BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag, BRDC_Trigger_eMfd0Mtg0 + hSource->eId*2);
+                BKNI_LeaveCriticalSection();
+                BDBG_MSG(("MFD%u STC flag%u selects trigger from MTG%u", hSource->eId, hSource->ulStcFlag, hSource->eId));
             }
 #endif
         }
@@ -1646,14 +1652,6 @@ void BVDC_P_Source_FindLockWindow_isr
                         hSource->ulTransferLock        = 0;
 #endif
 
-#if BVDC_P_SUPPORT_RDC_STC_FLAG
-                        /* synclocked MFD source's STC flag triggered by the sync-locked CMP/VEC */
-                        if(hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
-                        {
-                            BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag,
-                                BRDC_Trigger_eCmp_0Trig0 + hSource->hSyncLockCompositor->eId*2);
-                        }
-#endif
                         /* Notify callback event that synclock window has changed */
                         if(hTmpWindow->stCurInfo.stCbSettings.stMask.bSyncLock)
                         {
@@ -1811,15 +1809,6 @@ void BVDC_P_Source_ConnectWindow_isr
                 }
             }
         }
-
-#if BVDC_P_SUPPORT_RDC_STC_FLAG
-        /* synclocked MFD source's STC flag triggered by the sync-locked CMP/VEC */
-        if(hSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
-        {
-            BRDC_ConfigureStcFlag_isr(hSource->hVdc->hRdc, hSource->ulStcFlag,
-                BRDC_Trigger_eCmp_0Trig0 + hSource->hSyncLockCompositor->eId*2);
-        }
-#endif
     }
 #if BVDC_P_SUPPORT_STG
     else if((BVDC_P_SRC_IS_MPEG(hSource->eId)) &&
@@ -1995,14 +1984,6 @@ void BVDC_P_Source_DisconnectWindow_isr
                 hWindow->hCompositor->hSyncLockWin = hTmpWindow;
                 hWindow->hCompositor->hSyncLockSrc = hTmpSource;
 
-#if BVDC_P_SUPPORT_RDC_STC_FLAG
-                /* synclocked MFD source's STC flag triggered by the sync-locked CMP/VEC */
-                if(hTmpSource->ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
-                {
-                    BRDC_ConfigureStcFlag_isr(hTmpSource->hVdc->hRdc, hTmpSource->ulStcFlag,
-                        BRDC_Trigger_eCmp_0Trig0 + hTmpSource->hSyncLockCompositor->eId*2);
-                }
-#endif
                 /* Notify callback event that synclock window has changed */
                 if(hTmpWindow->stCurInfo.stCbSettings.stMask.bSyncLock)
                 {

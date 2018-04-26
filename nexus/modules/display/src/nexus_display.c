@@ -1216,12 +1216,6 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
 
     nexus_display_p_init_rdccapture();
 
-#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
-    if (nexus_display_p_init_buflogcapture() != BERR_SUCCESS) {
-        goto err_alloc;
-    }
-#endif
-
     display = BKNI_Malloc(sizeof(*display));
     if(!display) {
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -1379,10 +1373,6 @@ NEXUS_Display_P_Finalizer(NEXUS_DisplayHandle display)
     }
 
     nexus_display_p_uninit_rdccapture();
-
-#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
-    nexus_display_p_uninit_buflogcapture();
-#endif
 
     /* stop all callbacks from coming into display module */
     nexus_p_uninstall_display_cb(display);
@@ -2498,12 +2488,7 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         vdcSettings.ulStcSnapshotLoAddr = pSettings->stcSnapshotLoAddr;
         vdcSettings.ulStcSnapshotHiAddr = pSettings->stcSnapshotHiAddr;
         vdcSettings.vip.hHeap = pSettings->vip.hHeap;
-        vdcSettings.vip.stMemSettings.ulMemcId = pSettings->vip.stMemSettings.ulMemcId;
-        vdcSettings.vip.stMemSettings.ulMaxHeight = pSettings->vip.stMemSettings.ulMaxHeight;
-        vdcSettings.vip.stMemSettings.ulMaxWidth = pSettings->vip.stMemSettings.ulMaxWidth;
-        vdcSettings.vip.stMemSettings.bSupportInterlaced = pSettings->vip.stMemSettings.bSupportInterlaced;
-        vdcSettings.vip.stMemSettings.bSupportDecimatedLuma = pSettings->vip.stMemSettings.bSupportDecimatedLuma;
-        vdcSettings.vip.stMemSettings.bSupportBframes = pSettings->vip.stMemSettings.bSupportBframes;
+        BKNI_Memcpy(&vdcSettings.vip.stMemSettings, &pSettings->vip.stMemSettings, sizeof(BVDC_VipMemConfigSettings));
         stgEnabled = true;
         BDBG_MSG(("VIP heap set to %p", (void *)(vdcSettings.vip.hHeap)));
         rc = BVDC_Display_SetStgConfiguration(display->displayVdc, stgEnabled, &vdcSettings);
@@ -2526,6 +2511,7 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
             BAVC_VCE_BufferConfig vceBufferConfig;
 
             BAVC_VCE_GetDefaultBufferConfig_isrsafe(true, &vceBufferConfig );
+            if(!pSettings->vip.stMemSettings.bSupportBframes) vceBufferConfig.uiNumberOfBFrames = 0;
             display->encoder.numOrigBufs = BAVC_VCE_GetRequiredBufferCount_isrsafe( &vceBufferConfig, BAVC_VCE_BufferType_eOriginal );
             display->encoder.numDecimBufs = pSettings->vip.stMemSettings.bSupportDecimatedLuma?
                 BAVC_VCE_GetRequiredBufferCount_isrsafe( &vceBufferConfig, BAVC_VCE_BufferType_eDecimated) : 0;

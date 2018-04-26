@@ -56,6 +56,7 @@
 int main(void)
 {
     NEXUS_PlatformSettings platformSettings;
+    NEXUS_PlatformCapabilities platformCap;
     NEXUS_MemoryConfigurationSettings memConfigSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
@@ -79,6 +80,11 @@ int main(void)
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+    NEXUS_GetPlatformCapabilities(&platformCap);
+    if (!platformCap.dtu.enabled) {
+        fprintf(stderr, "DTU not enabled, so NEXUS_Platform_MemConfigInit will fail\n");
+    }
+
     platformSettings.openFrontend = false;
     platformSettings.heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
     platformSettings.heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;

@@ -2453,7 +2453,9 @@ static NEXUS_Error NEXUS_SetPidChannelBypassKeyslot_priv( NEXUS_PidChannelHandle
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eGT2T     == (int)BHSM_BypassKeySlot_eGT2T );
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eMax      == (int)BHSM_BypassKeySlot_eInvalid  );
 
-    rc = BHSM_SetPidChannelBypassKeyslot( g_security.hsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), bypassKeySlot );
+    rc = BHSM_SetPidChannelBypassKeyslot( g_security.hsm,
+                                          NEXUS_PidChannel_GetIndex_isrsafe(pidChannel),
+                                          (BHSM_BypassKeySlot_e)bypassKeySlot );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( MAKE_HSM_ERR(rc) ); }
 
     NEXUS_Module_Lock(g_security.moduleSettings.transport);

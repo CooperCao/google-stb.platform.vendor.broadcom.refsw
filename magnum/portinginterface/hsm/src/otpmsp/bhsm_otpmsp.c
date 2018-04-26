@@ -649,11 +649,6 @@ BERR_Code BHSM_ReadAntiRollOverCounter (BHSM_Handle hHsm,
     }
 
     BHSM_BspMsg_Get32 (hMsg, BCMD_Otp_OutCmdCounterOp_eCounterValue, &(pValue->count)); /* read count */
-    if (status != 0)
-    {
-        rc = BERR_TRACE (BHSM_STATUS_BSP_ERROR);
-        goto BHSM_P_DONE_LABEL;
-    }
 
   BHSM_P_DONE_LABEL:
 

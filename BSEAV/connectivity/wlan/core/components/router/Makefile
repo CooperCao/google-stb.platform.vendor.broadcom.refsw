@@ -475,6 +475,7 @@ obj-$(CONFIG_EMF) += emf
 obj-$(CONFIG_EMF) += igs
 obj-$(CONFIG_IGMP_PROXY) += igmp
 obj-$(CONFIG_WL_ACI) += aci
+obj-$(CONFIG_BCMBSD) += bsd
 ifeq (2_6,$(LINUX_VERSION))
 obj-y += udev
 obj-y += hotplug2
@@ -491,9 +492,6 @@ obj-$(CONFIG_PHYMON_UTILITY) += phymon
 #endif
 #if defined(EXT_ACS)
 obj-$(CONFIG_EXTACS) += acsd
-#endif
-#if defined(BCM_BSD)
-obj-$(CONFIG_BCMBSD) += bsd
 #endif
 #if defined(BCM_SSD)
 obj-$(CONFIG_BCMSSD) += ssd

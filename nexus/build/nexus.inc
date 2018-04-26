@@ -75,9 +75,7 @@ vpath %.c $(NEXUS_SOURCE_DIRS)
 ifeq ($(BPROFILE_SUPPORT),y)
 NEXUS_CFLAGS_BPROFILE = -DB_HAS_BPROFILE=1 -finstrument-functions
 endif
-ifeq ($(NEXUS_ABICOMPAT_MODE),y)
 NEXUS_CFLAGS += -DNEXUS_ABICOMPAT_MODE=1
-endif
 
 ifeq (${NEXUS_COMPAT_32ABI},y)
 NEXUS_P_QEMU_ABIVERIFY ?= $(shell qemu-arm  -version >/dev/null 2>&1 && echo y)

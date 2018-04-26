@@ -485,21 +485,38 @@
 
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(rv) asm volatile("mrs %[xt],cntfrq_el0" : [xt] "=r" (rv) : :)
 
-
 #define ARCH_SPECIFIC_NSWTASK \
 	while (true) { \
-		asm volatile("mov x0, #0x83000000":::"x0"); \
-                asm volatile("orr x0, x0, #0x0200":::"x0"); \
 		disable_fiq();\
-		asm volatile("smc #0":::); \
-		enable_fiq();\
+		asm volatile( \
+			"mov x0, #0x83000000 \r\n"  \
+			"orr x0, x0, #0x0200 \r\n" \
+			"smc #0 \r\n" \
+			::: "x0"); \
+		enable_fiq(); \
+	}
+
+#define ARCH_SPECIFIC_CPU_UPDATE(load, freq) { \
+		register uint32_t xload, xfreq; \
+		xload = load; \
+		asm volatile( \
+			"mov x0, #0x83000000 \r\n" \
+			"orr x0, x0, #0x0200 \r\n" \
+			"orr x0, x0, #0x01 \r\n" \
+			"mov x1, %[xload] \r\n" \
+			"smc #0 \r\n" \
+			"mov %[xfreq], x1 \r\n" \
+			: [xfreq] "=r" (xfreq) \
+			: [xload] "r" (xload) \
+			: "x0", "x1"); \
+		freq = xfreq; \
 	}
 
 #define ARCH_SPECIFIC_ENABLE_INTERRUPTS { \
-	enable_irq(); \
-	enable_fiq(); \
-	enable_serror(); \
-}
+		enable_irq(); \
+		enable_fiq(); \
+		enable_serror(); \
+	}
 
 #define ARCH_SPECIFIC_GET_SPSR(spsr) asm volatile("mrs %[xt],spsr_el1": [xt] "=r" (spsr) : :)
 

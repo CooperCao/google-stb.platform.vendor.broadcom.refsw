@@ -750,6 +750,42 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
+    if(gNumSessions == 0)
+    {
+        rc = DRM_WVOemCrypto_GetMaxNumberOfSessions(&gNumSessions, wvRc);
+        if(rc != Drm_Success || gNumSessions == 0)
+        {
+            BDBG_ERR(("%s - Error obtaining maximum number of sessions (%d), rc:%d", BSTD_FUNCTION, gNumSessions, rc));
+            if (rc == Drm_Success)
+                rc = Drm_Err;
+            goto ErrorExit;
+        }
+    }
+
+    if(gHostSessionCtx == NULL)
+    {
+        gHostSessionCtx = BKNI_Malloc(gNumSessions * sizeof(Drm_WVOemCryptoHostSessionCtx_t));
+        if(gHostSessionCtx == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for session context", BSTD_FUNCTION ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+        BKNI_Memset(gHostSessionCtx, 0x0, gNumSessions * sizeof(Drm_WVOemCryptoHostSessionCtx_t));
+    }
+
+    if(gWvEncDmaBlockInfoList == NULL)
+    {
+        gWvEncDmaBlockInfoList = BKNI_Malloc(gNumSessions * sizeof(Drm_WVOemCryptoEncDmaList));
+        if(gWvEncDmaBlockInfoList == NULL)
+        {
+            BDBG_ERR(("%s - Error allocationg memory for DMA block list", BSTD_FUNCTION ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+        BKNI_Memset(gWvEncDmaBlockInfoList, 0x0, gNumSessions * sizeof(Drm_WVOemCryptoEncDmaList));
+    }
+
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
@@ -787,40 +823,6 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
     (*session) = container->basicOut[1];
 
     BDBG_MSG(("%s: opened session with id = %d",BSTD_FUNCTION,container->basicOut[1] ));
-
-    if(gNumSessions == 0)
-    {
-        rc = DRM_WVOemCrypto_GetMaxNumberOfSessions(&gNumSessions, wvRc);
-        if(rc != Drm_Success || gNumSessions == 0)
-        {
-            BDBG_ERR(("%s - Error obtaining maximum number of sessions (%d)", BSTD_FUNCTION, gNumSessions));
-            goto ErrorExit;
-        }
-    }
-
-    if(gHostSessionCtx == NULL)
-    {
-        gHostSessionCtx = BKNI_Malloc(gNumSessions * sizeof(Drm_WVOemCryptoHostSessionCtx_t));
-        if(gHostSessionCtx == NULL)
-        {
-            BDBG_ERR(("%s - Error allocating memory for session context", BSTD_FUNCTION ));
-            rc = Drm_Err;
-            goto ErrorExit;
-        }
-        BKNI_Memset(gHostSessionCtx, 0x0, gNumSessions * sizeof(Drm_WVOemCryptoHostSessionCtx_t));
-    }
-
-    if(gWvEncDmaBlockInfoList == NULL)
-    {
-        gWvEncDmaBlockInfoList = BKNI_Malloc(gNumSessions * sizeof(Drm_WVOemCryptoEncDmaList));
-        if(gWvEncDmaBlockInfoList == NULL)
-        {
-            BDBG_ERR(("%s - Error allocationg memory for DMA block list", BSTD_FUNCTION ));
-            rc = Drm_Err;
-            goto ErrorExit;
-        }
-        BKNI_Memset(gWvEncDmaBlockInfoList, 0x0, gNumSessions * sizeof(Drm_WVOemCryptoEncDmaList));
-    }
 
 ErrorExit:
     if(container != NULL)
@@ -890,50 +892,56 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
 
 ErrorExit:
 
-    if (gWvEncDmaBlockInfoList[session].dma_block_info != NULL)
+    if (gWvEncDmaBlockInfoList)
     {
-        SRAI_Memory_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].dma_block_info));
-        gWvEncDmaBlockInfoList[session].dma_block_info = NULL;
-    }
-
-    if (gWvEncDmaBlockInfoList[session].non_sec_src != NULL)
-    {
-        for(i = 0; i < MAX_SG_DMA_BLOCKS; i++)
+        if (gWvEncDmaBlockInfoList[session].dma_block_info != NULL)
         {
-            if(gWvEncDmaBlockInfoList[session].non_sec_src[i] != NULL)
-            {
-                SRAI_Memory_Free(gWvEncDmaBlockInfoList[session].non_sec_src[i]);
-                gWvEncDmaBlockInfoList[session].non_sec_src[i] = NULL;
-            }
+            SRAI_Memory_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].dma_block_info));
+            gWvEncDmaBlockInfoList[session].dma_block_info = NULL;
         }
 
-        BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_src));
-        gWvEncDmaBlockInfoList[session].non_sec_src = NULL;
+        if (gWvEncDmaBlockInfoList[session].non_sec_src != NULL)
+        {
+            for(i = 0; i < MAX_SG_DMA_BLOCKS; i++)
+            {
+                if(gWvEncDmaBlockInfoList[session].non_sec_src[i] != NULL)
+                {
+                    SRAI_Memory_Free(gWvEncDmaBlockInfoList[session].non_sec_src[i]);
+                    gWvEncDmaBlockInfoList[session].non_sec_src[i] = NULL;
+                }
+            }
+
+            BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_src));
+            gWvEncDmaBlockInfoList[session].non_sec_src = NULL;
+        }
+
+        if (gWvEncDmaBlockInfoList[session].non_sec_dst != NULL)
+        {
+            BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_dst));
+            gWvEncDmaBlockInfoList[session].non_sec_dst = NULL;
+        }
+
+        if (gWvEncDmaBlockInfoList[session].non_sec_len != NULL)
+        {
+            BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_len));
+            gWvEncDmaBlockInfoList[session].non_sec_len = NULL;
+        }
     }
 
-    if (gWvEncDmaBlockInfoList[session].non_sec_dst != NULL)
+    if (gHostSessionCtx)
     {
-        BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_dst));
-        gWvEncDmaBlockInfoList[session].non_sec_dst = NULL;
+        if (gHostSessionCtx[session].btp_sage_buffer)
+        {
+            BDBG_MSG(("%s  Freeing btp buffer 0x%08x", BSTD_FUNCTION, gHostSessionCtx[session].btp_sage_buffer ));
+            SRAI_Memory_Free( gHostSessionCtx[session].btp_sage_buffer );
+            gHostSessionCtx[session].btp_sage_buffer = NULL;
+        }
+
+        gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
+        gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
     }
 
-    if (gWvEncDmaBlockInfoList[session].non_sec_len != NULL)
-    {
-        BKNI_Free((uint8_t*)(gWvEncDmaBlockInfoList[session].non_sec_len));
-        gWvEncDmaBlockInfoList[session].non_sec_len = NULL;
-    }
-
-    if (gHostSessionCtx[session].btp_sage_buffer)
-    {
-        BDBG_MSG(("%s  Freeing btp buffer 0x%08x", BSTD_FUNCTION, gHostSessionCtx[session].btp_sage_buffer ));
-        SRAI_Memory_Free( gHostSessionCtx[session].btp_sage_buffer );
-        gHostSessionCtx[session].btp_sage_buffer = NULL;
-    }
-
-    gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
-    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
-
-    if(!gCentralKeySlotCacheMode)
+    if(!gCentralKeySlotCacheMode && gHostSessionCtx)
     {
         /*free the session keyslot(s)*/
         for(i = 0; i < gHostSessionCtx[session].num_key_slots; i++)

@@ -76,6 +76,7 @@ typedef struct boardFrontendConfigOptions {
 
 static boardFrontendConfigOptions boardFrontendConfig[] = {
     /* BID   FEM    QAM    SPI    IRQ settings */
+    {  1, 1, false, false, true,  25, NEXUS_GpioType_eAonStandard }, /* 73574A0 on board */
     {  1, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* SV Slot 0 */
     {  2, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* DV */
     {  6, 2, true,  false, true,  24, NEXUS_GpioType_eAonStandard}, /* HB */
@@ -273,7 +274,45 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         }
 
     }
+    /* This means it is built-in tuner - to be handled by FE expert sample code for now */
+    if (!boardConfig->onboardQam && !boardConfig->femtsif ) {
+        /* must be a 7357X type with built-in tuner  use product ID or board ID */
+        if (platformStatus.boardId.major == 1 && platformStatus.boardId.minor == 1) {
+            NEXUS_FrontendProbeResults probeResults;
+            BSTD_UNUSED(userParams);
+            NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
+            if (probeResults.chip.familyId != 0) {
+                BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
+                BDBG_MSG(("Setting up interrupt on GPIO %d",boardConfig->irqGpio));
+                NEXUS_Gpio_GetDefaultSettings(boardConfig->irqGpioType, &gpioSettings);
+                gpioSettings.mode = NEXUS_GpioMode_eInput;
+                gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+                gpioIrqHandle = NEXUS_Gpio_Open(boardConfig->irqGpioType, boardConfig->irqGpio, &gpioSettings);
+                BDBG_ASSERT(NULL != gpioIrqHandle);
 
+                deviceSettings.gpioInterrupt = gpioIrqHandle;
+                device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+
+                if (device) {
+                    NEXUS_FrontendDeviceCapabilities capabilities;
+
+                    NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+                    for (i=0; i < capabilities.numTuners ; i++) {
+                        NEXUS_FrontendChannelSettings channelSettings;
+                        channelSettings.device = device;
+                        channelSettings.channelNumber = i;
+
+                        pConfig->frontend[i] = NEXUS_Frontend_Open(&channelSettings);
+                        if ( NULL == (pConfig->frontend[i]) ) {
+                            BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
+                            continue;
+                        }
+                        BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+                    }
+                }
+            }
+        }
+    }
     return NEXUS_SUCCESS;
 }
 

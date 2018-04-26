@@ -1914,4 +1914,11 @@ void BXPT_PcrOffset_GetStcSnapshotRegisterOffsets(
     RegMap->StcLo = GetStcSnapshotRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_LO, Snapshot->Index );
     RegMap->StcHi = GetStcSnapshotRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_HI, Snapshot->Index );
 }
+
+unsigned BXPT_PcrOffset_GetStcSnapshotIndex(
+    BXPT_PcrOffset_StcSnapshot Snapshot   /* [in] The channel handle */
+    )
+{
+    return Snapshot->Index;
+}
 #endif

@@ -828,10 +828,6 @@ void BVDC_P_ProgrameStgMBox_isr
 #else
         BSTD_UNUSED(bRepeatPol);
 #endif
-#ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
-        BRDC_ConfigureStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStcFlag, !hDisplay->hCompositor->bStallStc?
-            hDisplay->eTopTrigger : BRDC_Trigger_UNKNOWN);
-#endif
         BREG_Write32_isr(hDisplay->hVdc->hRegister, BCHP_VIDEO_ENC_STG_0_STC_CONTROL + ulRegOffset,
             BCHP_FIELD_DATA(VIDEO_ENC_STG_0_STC_CONTROL, STC_FLAG_ENABLE, !hDisplay->hCompositor->bStallStc));
 

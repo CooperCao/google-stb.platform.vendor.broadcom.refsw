@@ -1211,7 +1211,7 @@ BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature 
     };
     unsigned node;
     BDBG_OBJECT_ASSERT(chp, BCHP);
-#if (defined BHSM_ZEUS_VER_MAJOR) && (defined BCHP_SAGE_SUPPORT)
+#if (defined BHSM_ZEUS_VER_MAJOR) && (defined BCHP_SAGE_SUPPORT) && (defined GlobalSram_IPLicensing_Info)
     BDBG_CASSERT(GlobalSram_IPLicensing_Info==BCHP_P_SAGE_IPLICENSING_BASE_OFFSET);
     BDBG_CASSERT(BSAGElib_GlobalSram_eBP3HostFeatureList==BCHP_P_SAGE_IPLICENSING_HOST_OFFSET);
     BDBG_CASSERT(BSAGElib_GlobalSram_eBP3AudioFeatureList0==BCHP_P_SAGE_IPLICENSING_AUDIO_OFFSET);

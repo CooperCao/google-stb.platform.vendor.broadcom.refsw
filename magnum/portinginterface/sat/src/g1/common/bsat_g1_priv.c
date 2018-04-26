@@ -1807,7 +1807,6 @@ BERR_Code BSAT_g1_P_GetAcmSettings(BSAT_ChannelHandle h, BSAT_AcmSettings *pSett
 /******************************************************************************
  BSAT_g1_P_SetNotchSettings()
 ******************************************************************************/
-#ifdef BSAT_HAS_WFE
 BERR_Code BSAT_g1_P_SetNotchSettings(BSAT_Handle h, uint32_t n, BSAT_NotchSettings *pSettings)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)h->pImpl;
@@ -1839,21 +1838,11 @@ BERR_Code BSAT_g1_P_SetNotchSettings(BSAT_Handle h, uint32_t n, BSAT_NotchSettin
 
    return BERR_SUCCESS;
 }
-#elif defined(BSAT_EXCLUDE_API_TABLE)
-BERR_Code BSAT_g1_P_SetNotchSettings(BSAT_Handle h, uint32_t n, BSAT_NotchSettings *pSettings)
-{
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(n);
-   BSTD_UNUSED(pSettings);
-   return BERR_NOT_SUPPORTED;
-}
-#endif
 
 
 /******************************************************************************
  BSAT_g1_P_GetNotchSettings()
 ******************************************************************************/
-#ifdef BSAT_HAS_WFE
 BERR_Code BSAT_g1_P_GetNotchSettings(BSAT_Handle h, uint32_t *pNum, BSAT_NotchSettings *pSettings)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)h->pImpl;
@@ -1872,15 +1861,6 @@ BERR_Code BSAT_g1_P_GetNotchSettings(BSAT_Handle h, uint32_t *pNum, BSAT_NotchSe
 
    return BERR_SUCCESS;
 }
-#elif defined(BSAT_EXCLUDE_API_TABLE)
-BERR_Code BSAT_g1_P_GetNotchSettings(BSAT_Handle h, uint32_t *pNum, BSAT_NotchSettings *pSettings)
-{
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(pNum);
-   BSTD_UNUSED(pSettings);
-   return BERR_NOT_SUPPORTED;
-}
-#endif
 
 
 /******************************************************************************

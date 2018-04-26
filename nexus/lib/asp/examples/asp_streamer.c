@@ -418,7 +418,7 @@ int main(int argc, char *argv[])
     NEXUS_PlaybackSettings          playbackSettings;
     NEXUS_RecpumpSettings           recpumpSettings;
 
-    BKNI_Init();
+    B_Asp_Init(NULL);
 
     /* Parse command line options. */
     {
@@ -708,5 +708,7 @@ int main(int argc, char *argv[])
     NEXUS_Platform_StopServer();
     NEXUS_Platform_Uninit();
 #endif
+
+    B_Asp_Uninit();
     BDBG_LOG(("Done!...."));
 }

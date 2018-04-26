@@ -68,6 +68,7 @@ typedef enum psci_state {
 typedef struct psci_cpu {
     uint32_t index;
     uint32_t state;
+    bool detached;
 
     uintptr_t nsec_entry_point;
     uint64_t nsec_context_id;

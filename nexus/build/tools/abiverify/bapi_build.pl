@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+#  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,7 @@ bapi_verify::verify_struct($fout_h, $main->{STRUCTS},$main->{CLASS_HANDLES}, 'st
 
 if(not defined $main->{OUTPUT}) {
     my $api_info =bapi_verify::process_functions($fout_h, $module, $main->{FUNCREFS} ,$main->{CLASS_HANDLES}, $main->{STRUCTS}, $main->{ORIGINAL_STRUCTS});
+    my $shared_types = pop @$api_info;
     my $varargs_info = pop @$api_info;
     my $compat_info = pop @$api_info;
     my $api_ids = pop @$api_info;
@@ -97,7 +98,7 @@ if(not defined $main->{OUTPUT}) {
     bapi_verify::print_struct($fout_h, $expanded_api_struct, $main->{CLASS_HANDLES}, 1);
     bapi_verify::verify_struct($fout_h, $expanded_api_struct, $main->{CLASS_HANDLES},'func');
 
-    bapi_verify::generate($destdir, $module, $main->{FUNCREFS} ,$main->{CLASS_HANDLES}, $main->{STRUCTS}, $main->{VERSION}, $ioctls, $referenced_api_copy, $api_ids, $compat_info, $varargs_info, $main->{STRUCTS_ATTR});
+    bapi_verify::generate($destdir, $module, $main->{FUNCREFS} ,$main->{CLASS_HANDLES}, $main->{STRUCTS}, $main->{VERSION}, $ioctls, $referenced_api_copy, $api_ids, $compat_info, $varargs_info, $main->{STRUCTS_ATTR}, $shared_types);
 
     $file = "$destdir/nexus_${module}_abiverify.c.tmp.c";
     open (my $fout_c, '>', $file) or die "Can't open $file";

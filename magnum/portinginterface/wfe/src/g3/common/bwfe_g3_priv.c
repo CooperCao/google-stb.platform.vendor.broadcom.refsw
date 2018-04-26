@@ -250,8 +250,13 @@ BERR_Code BWFE_g3_P_OpenChannel(
    chG3->dgsClipCountPing = 0;
    chG3->dgsClipCountPong = 0;
 #ifndef BWFE_EXCLUDE_ANALOG_DELAY
+   #ifdef BWFE_HYBRID_ADC
    chG3->adjRight = 7;
    chG3->adjLeft = 7;
+   #else
+   chG3->adjRight = 0;
+   chG3->adjLeft = 0;
+   #endif
    chG3->prevDelay = 0;
 #endif
 #ifdef BWFE_HYBRID_ADC
@@ -425,10 +430,6 @@ BERR_Code BWFE_g3_P_ResetChannel(BWFE_ChannelHandle h)
    /* run delay calibration on first power up */
    if (hChn->prevDelay == 0)
    {
-      /* configure rffe, boost dpm gain, disable lpf */
-      BWFE_P_WriteRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x70004888);
-      BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER03, 0x00100000);  /* disable lna */
-
       /* calibrate slice delays for each adc */
       retCode = BWFE_g3_P_CalibrateAnalogDelay(h);
       if (retCode)
@@ -442,10 +443,6 @@ BERR_Code BWFE_g3_P_ResetChannel(BWFE_ChannelHandle h)
          BDBG_ERR(("ADC%d Calibration timeout\n", h->channel));
          BERR_TRACE(retCode = BWFE_ERR_CORR_TIMEOUT);
       }
-
-      /* restore rffe settings */
-      BWFE_P_WriteRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x105AC888);
-      BWFE_P_AndRegister(h, BCHP_WFE_ANA_RFFE_WRITER03, ~0x00100000);   /* enable lna */
    }
 #endif
 
@@ -1264,8 +1261,10 @@ BERR_Code BWFE_g3_P_CalibrateAnalogDelay(BWFE_ChannelHandle h)
    /* enable DPM tone, disable DPM after delay calculations */
    BWFE_P_EnableDpmPilot(h);
 
+#ifdef BWFE_HYBRID_ADC
    /* enable software loop, deassert reset, enable fine delays */
    BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_ADC_CNTL8, ~0xF0000000, 0x70000000);
+#endif
 
    /* use slice0 as reference */
    hChn->corrRefSlice = 0;

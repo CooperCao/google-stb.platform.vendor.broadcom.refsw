@@ -148,6 +148,9 @@ static void mem_single_decode(NEXUS_MemoryConfigurationSettings *pSettings)
             pSettings->videoDecoder[i].used = i<1;
         }
     }
+    for (i=0;i<NEXUS_MAX_STILL_DECODERS;i++) {
+        pSettings->stillDecoder[i].used = false;
+    }
 }
 
 static void mem_quarter_size_pip(NEXUS_MemoryConfigurationSettings *pSettings)
@@ -226,11 +229,16 @@ static void mem_minimum(NEXUS_MemoryConfigurationSettings *pSettings)
             pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH264] = true;
         }
     }
+    for (i=0;i<NEXUS_MAX_STILL_DECODERS;i++) {
+        pSettings->stillDecoder[i].used = false;
+    }
 #if NEXUS_HAS_VIDEO_ENCODER
     for (i=0;i<NEXUS_MAX_VIDEO_ENCODERS;i++) {
         pSettings->videoEncoder[i].used = false;
     }
 #endif
+    pSettings->videoInputs.hdDvi = false;
+    pSettings->videoInputs.ccir656 = false;
 }
 
 static void print_estimate(void)
@@ -285,7 +293,7 @@ int main(int argc, char **argv)
             "5) No MVC (plus #4)\n"
             "6) No HEVC, 4K, 10 bit decode (plus #5)\n"
             "7) Single display (plus #6)\n"
-            "8) 1080p display (plus #7\n"
+            "8) 1080p display (plus #7)\n"
             "9) Lowest: Single decode, single display, no MAD, no capture\n"
             "q) Quit\n"
             );

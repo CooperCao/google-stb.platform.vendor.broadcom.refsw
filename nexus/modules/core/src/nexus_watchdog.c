@@ -1,47 +1,53 @@
 /***************************************************************************
-*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ***************************************************************************/
 #include "nexus_core_module.h"
 #include "bchp_common.h"
+
+#ifdef BCHP_TIMER_REG_START
 #include "bchp_timer.h" /* TODO: we are assuming that this is available on all platforms and the register
                            names are identical. this appears to be the case at least for now */
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_int_id_timer.h"
+#endif
 
 BDBG_MODULE(nexus_watchdog);
 
@@ -63,6 +69,7 @@ struct NEXUS_Watchdog
     NEXUS_OBJECT(NEXUS_Watchdog);
 };
 
+#ifdef BCHP_TIMER_REG_START
 static struct {
     bool started;
     unsigned timeout;
@@ -74,9 +81,11 @@ static struct {
 static NEXUS_WatchdogHandle g_watchdogInterface;
 
 static void NEXUS_Watchdog_P_ReadResetHistory(void);
+#endif
 
 void NEXUS_Watchdog_P_Init(void)
 {
+#ifdef BCHP_TIMER_REG_START
     NEXUS_Error rc;
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
     g_watchdog.stopTimerOnDestroy = true;
@@ -84,20 +93,24 @@ void NEXUS_Watchdog_P_Init(void)
     /* must issue magic stop sequence to get control again */
     rc = NEXUS_WatchdogInterface_StopTimer(g_watchdogInterface);
     if (rc) BERR_TRACE(rc); /* keep going */
+#endif
 }
 
 void NEXUS_Watchdog_P_Uninit(void)
 {
+#ifdef BCHP_TIMER_REG_START
     if(g_watchdog.stopTimerOnDestroy) {
         NEXUS_Error rc;
         rc = NEXUS_WatchdogInterface_StopTimer(g_watchdogInterface);
         if (rc) BERR_TRACE(rc); /* keep going */
     }
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
+#endif
 }
 
 NEXUS_WatchdogHandle NEXUS_WatchdogInterface_Open( unsigned index )
 {
+#ifdef BCHP_TIMER_REG_START
     if (g_watchdogInterface) {
         BERR_TRACE(NEXUS_NOT_AVAILABLE);
         return NULL;
@@ -113,10 +126,15 @@ NEXUS_WatchdogHandle NEXUS_WatchdogInterface_Open( unsigned index )
     }
     NEXUS_OBJECT_INIT(NEXUS_Watchdog, g_watchdogInterface);
     return g_watchdogInterface;
+#else
+    BSTD_UNUSED(index);
+    return NULL;
+#endif
 }
 
 static void NEXUS_Watchdog_P_Finalizer( NEXUS_WatchdogHandle watchdog )
 {
+#ifdef BCHP_TIMER_REG_START
     if(g_watchdog.stopTimerOnDestroy) {
         NEXUS_Error rc;
         rc = NEXUS_WatchdogInterface_StopTimer(watchdog);
@@ -125,10 +143,14 @@ static void NEXUS_Watchdog_P_Finalizer( NEXUS_WatchdogHandle watchdog )
     NEXUS_OBJECT_DESTROY(NEXUS_Watchdog, g_watchdogInterface);
     BKNI_Free(watchdog);
     g_watchdogInterface = NULL;
+#else
+    BSTD_UNUSED(watchdog);
+#endif
 }
 
 NEXUS_OBJECT_CLASS_MAKE(NEXUS_Watchdog, NEXUS_WatchdogInterface_Close);
 
+#ifdef BCHP_TIMER_REG_START
 static void nexus_p_watchdog_isr(void *context, int param)
 {
     NEXUS_WatchdogCallbackHandle handle = context;
@@ -155,9 +177,11 @@ static void nexus_watchdog_p_stop_callback(void)
         BINT_DisableCallback(handle->intCallback);
     }
 }
+#endif
 
 NEXUS_Error NEXUS_WatchdogInterface_SetTimeout(NEXUS_WatchdogHandle watchdog, unsigned timeout)
 {
+#ifdef BCHP_TIMER_REG_START
     if (!watchdog && g_watchdogInterface) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -182,10 +206,16 @@ NEXUS_Error NEXUS_WatchdogInterface_SetTimeout(NEXUS_WatchdogHandle watchdog, un
 
     g_watchdog.timeout = timeout;
     return NEXUS_SUCCESS;
+#else
+    BSTD_UNUSED(watchdog);
+    BSTD_UNUSED(timeout);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }
 
 NEXUS_Error NEXUS_WatchdogInterface_StartTimer(NEXUS_WatchdogHandle watchdog)
 {
+#ifdef BCHP_TIMER_REG_START
     if (!watchdog && g_watchdogInterface) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -211,10 +241,15 @@ NEXUS_Error NEXUS_WatchdogInterface_StartTimer(NEXUS_WatchdogHandle watchdog)
     g_watchdog.started = true;
 
     return NEXUS_SUCCESS;
+#else
+    BSTD_UNUSED(watchdog);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }
 
 NEXUS_Error NEXUS_WatchdogInterface_StopTimer(NEXUS_WatchdogHandle watchdog)
 {
+#ifdef BCHP_TIMER_REG_START
     if (!watchdog && g_watchdogInterface) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -226,8 +261,13 @@ NEXUS_Error NEXUS_WatchdogInterface_StopTimer(NEXUS_WatchdogHandle watchdog)
     nexus_watchdog_p_stop_callback();
     g_watchdog.started = false;
     return NEXUS_SUCCESS;
+#else
+    BSTD_UNUSED(watchdog);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }
 
+#ifdef BCHP_TIMER_REG_START
 #if defined(BCHP_AON_CTRL_REG_START)
 #include "bchp_aon_ctrl.h"
 #endif
@@ -254,6 +294,7 @@ static void NEXUS_Watchdog_P_ReadResetHistory(void)
     }
 #endif
 }
+#endif
 
 void NEXUS_Watchdog_GetLastResetStatus(bool *pStatus)
 {
@@ -261,6 +302,7 @@ void NEXUS_Watchdog_GetLastResetStatus(bool *pStatus)
     BDBG_LOG(("NEXUS_Watchdog_GetLastResetStatus is not supported on ARM platforms."));
     BDBG_LOG(("Reset status, captured by BOLT, can be retrieved from Device Tree using: cat /proc/device-tree/bolt/reset-list"));
 #endif
+#ifdef BCHP_TIMER_REG_START
 #if defined(BCHP_AON_CTRL_REG_START)
 #ifdef BCHP_AON_CTRL_RESET_HISTORY_host_watchdog_timer_reset_MASK
     *pStatus = BCHP_GET_FIELD_DATA(g_watchdog.resetHistory, AON_CTRL_RESET_HISTORY,  host_watchdog_timer_reset);
@@ -269,6 +311,9 @@ void NEXUS_Watchdog_GetLastResetStatus(bool *pStatus)
 #endif
 #else
     *pStatus = BCHP_GET_FIELD_DATA(g_watchdog.resetHistory, SUN_TOP_CTRL_RESET_HISTORY,  watchdog_timer_reset);
+#endif
+#else
+    BSTD_UNUSED(pStatus);
 #endif
 }
 
@@ -279,14 +324,17 @@ void NEXUS_WatchdogCallback_GetDefaultSettings( NEXUS_WatchdogCallbackSettings *
     pSettings->stopTimerOnDestroy = true;
 }
 
+#ifdef BCHP_TIMER_REG_START
 static void nexus_p_watchdog_event(void *context)
 {
     NEXUS_WatchdogCallbackHandle handle = context;
     NEXUS_TaskCallback_Fire(handle->callback);
 }
+#endif
 
 NEXUS_WatchdogCallbackHandle NEXUS_WatchdogCallback_Create( const NEXUS_WatchdogCallbackSettings *pSettings )
 {
+#ifdef BCHP_TIMER_REG_START
     NEXUS_WatchdogCallbackHandle handle;
     int rc;
     handle = BKNI_Malloc(sizeof(*handle));
@@ -325,10 +373,15 @@ NEXUS_WatchdogCallbackHandle NEXUS_WatchdogCallback_Create( const NEXUS_Watchdog
 error:
     NEXUS_WatchdogCallback_Destroy(handle);
     return NULL;
+#else
+    BSTD_UNUSED(pSettings);
+    return NULL;
+#endif
 }
 
 static void NEXUS_WatchdogCallback_P_Finalizer( NEXUS_WatchdogCallbackHandle handle )
 {
+#ifdef BCHP_TIMER_REG_START
     if (handle->intCallback) {
         BINT_DestroyCallback(handle->intCallback);
     }
@@ -344,6 +397,9 @@ static void NEXUS_WatchdogCallback_P_Finalizer( NEXUS_WatchdogCallbackHandle han
     BLST_S_REMOVE(&g_watchdog.callbacks, handle, NEXUS_WatchdogCallback, link);
     NEXUS_OBJECT_DESTROY(NEXUS_WatchdogCallback, handle);
     BKNI_Free(handle);
+#else
+    BSTD_UNUSED(handle);
+#endif
 }
 
 NEXUS_OBJECT_CLASS_MAKE(NEXUS_WatchdogCallback, NEXUS_WatchdogCallback_Destroy);

@@ -43,6 +43,7 @@
 #include "monitor.h"
 #include "boot.h"
 #include "cache.h"
+#include "delay.h"
 #include "cpu_data.h"
 #include "dvfs.h"
 #include "psci.h"
@@ -82,8 +83,7 @@ static bool last_on_cpu_in_cluster(psci_cpu_t *pcpu)
     for (i = 0; i < pcluster->num_cpus; i++) {
         psci_cpu_t *pccpu = pcluster->pcpus[i];
         if (pccpu != pcpu &&
-            pccpu->state != PSCI_STATE_OFF &&
-            pccpu->state != PSCI_STATE_OFF_PENDING)
+            pccpu->state > PSCI_STATE_OFF_PENDING)
             return false;
     }
     return true;
@@ -115,14 +115,11 @@ static int cpu_power_down(psci_cpu_t *pcpu)
     return PSCI_SUCCESS;
 }
 
-static int cpu_detach()
+static int cpu_detach(psci_cpu_t *pcpu)
 {
     uint32_t sctlr, cpuectlr;
 
     DBG_MSG("Detaching CPU %d", psci_get_cpu()->index);
-
-    /* Clear any dangling exclusive locks */
-    clrex();
 
     /* ARM recipe for "Individual core shutdown mode":
      * http://infocenter.arm.com/help/ index.jsp? \
@@ -146,6 +143,9 @@ static int cpu_detach()
     /* 5. Execute a DSB SY instruction */
     isb();
     dsb();
+
+    /* Mark CPU detached */
+    pcpu->detached = true;
 
     /* 6. Execute a WFI instruction */
     while (1) wfi();
@@ -184,13 +184,28 @@ static void cpus_power_down()
         for (j = 0; j < pscluster->num_cpus; j++) {
             psci_cpu_t *pccpu = pscluster->pcpus[j];
 
-            if (pccpu != pcpu &&
-                pccpu->state == PSCI_STATE_OFF_PENDING) {
+            if (pccpu == pcpu)
+                continue;
+
+            if (pccpu->state == PSCI_STATE_OFF_PENDING) {
+                /* Flag detached is updated by CPU w/o cache */
+                volatile bool *pdetached = &pccpu->detached;
+
+                /* Wait for CPU to be detached */
+                while (!*pdetached) {
+                    udelay(10);
+                    dccivac((uintptr_t)pccpu);
+                }
+
                 /* Power down CPU */
                 cpu_power_down(pccpu);
 
+                /* Give extra time to settle */
+                mdelay(1);
+
                 /* Update CPU state */
                 pccpu->state = PSCI_STATE_OFF;
+                pccpu->detached = false;
             }
         }
     }
@@ -364,8 +379,6 @@ int psci_cpu_off(void)
     psci_cluster_t *pcluster = &psci_clusters[MPIDR_AFFLVL1_VAL(mpidr)];
     psci_cpu_t *pcpu = pcluster->pcpus[MPIDR_AFFLVL0_VAL(mpidr)];
 
-    SYS_MSG("CPU %d is powering down...", pcpu->index);
-
     /* Notify DVFS */
     dvfs_cpu_down(pcpu->index);
 
@@ -396,7 +409,7 @@ int psci_cpu_off(void)
     }
     else {
         /* Detach first, pending power down */
-        cpu_detach();
+        cpu_detach(pcpu);
     }
 
     /* !!! Should NOT have reached here !!! */

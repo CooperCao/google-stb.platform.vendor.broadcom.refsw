@@ -442,6 +442,8 @@ NEXUS_FilePlayHandle NEXUS_FilePlay_Open(const NEXUS_FilePlayOpenSettings *pSett
     file =  BKNI_Malloc(sizeof(*file));
     if (!file) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_alloc; }
 
+    NEXUS_FilePlay_Init(&file->self);
+
     rc = bfile_io_read_posix_open(&file->data, pSettings->data.filename, pSettings->data.directIo);
     if (rc!=NEXUS_SUCCESS) {
         BDBG_ERR(("Unable to open input file: '%s', errno %d", pSettings->data.filename, errno));
@@ -462,7 +464,6 @@ NEXUS_FilePlayHandle NEXUS_FilePlay_Open(const NEXUS_FilePlayOpenSettings *pSett
     }
     file->self.file.data = &file->data.self;
     file->self.file.close = posix_close_in;
-    file->self.locked = false;
 
     return &file->self;
 

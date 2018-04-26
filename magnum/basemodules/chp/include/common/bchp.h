@@ -1157,12 +1157,18 @@ BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature 
 
 /* BP3 Do NOT Modify End */
 
+bool BCHP_SkipInitialReset(BCHP_Handle chp);
+
+#ifdef BCHP_SAGE_SUPPORT /* bchp_sage.c will be compiled */
 /* Use the following API in order to reset SAGE. */
 bool BCHP_SAGE_IsStarted(BREG_Handle hReg); /* returns true if SAGE is CURRENTLY running */
 bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg); /* returns true if SAGE has EVER run. It may or may not be currently running */
 BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
-
-bool BCHP_SkipInitialReset(BCHP_Handle chp);
+#else
+#define BCHP_SAGE_IsStarted(x) false
+#define BCHP_SAGE_HasEverStarted(x) false
+#define BCHP_SAGE_Reset(x) BERR_SUCCESS
+#endif
 
 #ifdef __cplusplus
 }

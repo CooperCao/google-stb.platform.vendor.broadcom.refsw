@@ -5989,7 +5989,11 @@ BVCE_Channel_StartEncode(
 static const BVCE_Channel_StopEncodeSettings s_stDefaultStopEncodeSettings =
 {
  BVCE_P_SIGNATURE_STOPENCODESETTINGS, /* Signature */
+#if (BVCE_P_VDC_MANAGE_VIP)
+ BVCE_Channel_StopMode_eImmediate     /* Stop Mode */
+#else
  BVCE_Channel_StopMode_eNormal        /* Stop Mode */
+#endif
 };
 
 void
@@ -6009,6 +6013,45 @@ BVCE_Channel_GetDefaultStopEncodeSettings(
 
 /* BVCE_Channel_StopEncode - Stops the encode process.
  */
+#define BVCE_P_STOP_RECOVERY_DELAY 10000
+#define BVCE_P_STOP_RECOVERY_TIME 500000
+
+#if (BVCE_P_VDC_MANAGE_VIP)
+static
+BERR_Code
+BVCE_Channel_S_WaitForEOS(
+   BVCE_Channel_Handle hVceCh
+   )
+{
+   BERR_Code rc = BERR_SUCCESS;
+
+   unsigned uiNumIterations = BVCE_P_STOP_RECOVERY_TIME / BVCE_P_STOP_RECOVERY_DELAY;
+
+   rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
+   while ( ( uiNumIterations != 0 )
+           && ( BVCE_P_Status_eOpened != hVceCh->eStatus )
+           && ( BERR_SUCCESS == rc )
+         )
+   {
+      BKNI_Delay(BVCE_P_STOP_RECOVERY_DELAY);
+      rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
+      uiNumIterations--;
+   }
+
+   if ( 0 == ( hVceCh->stStatus.uiEventFlags & BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS ) )
+   {
+      rc = BERR_TRACE( BERR_UNKNOWN );
+      BDBG_ERR(("VCE FW not done with stop, yet"));
+   }
+
+   BVCE_Channel_P_HandleEOSEvent(
+      hVceCh
+      );
+
+   return BERR_TRACE( rc );
+}
+#endif
+
 static
 BERR_Code
 BVCE_Channel_S_StopEncode_impl(
@@ -6061,11 +6104,15 @@ BVCE_Channel_S_StopEncode_impl(
 
             if ( BVCE_Channel_StopMode_eNormal == hVceCh->stStopEncodeSettings.eStopMode )
             {
+#if !(BVCE_P_VDC_MANAGE_VIP)
                if ( 0 != ( stChannelStatus.uiErrorFlags & BVCE_CHANNEL_STATUS_FLAGS_ERROR_CDB_FULL ) )
                {
                   BDBG_WRN(("CDB Full during stop...forcing immediate stop!"));
+#endif
                   hVceCh->stStopEncodeSettings.eStopMode = BVCE_Channel_StopMode_eImmediate;
+#if !(BVCE_P_VDC_MANAGE_VIP)
                }
+#endif
             }
          }
          break;
@@ -6110,6 +6157,12 @@ BVCE_Channel_S_StopEncode_impl(
    {
       BVCE_Channel_FlushEncode( hVceCh );
    }
+#if (BVCE_P_VDC_MANAGE_VIP)
+   else
+   {
+      BVCE_Channel_S_WaitForEOS( hVceCh );
+   }
+#endif
 
    return BERR_TRACE( rc );
 }
@@ -6168,8 +6221,6 @@ BVCE_Channel_S_FlushEncode_impl(
 
    if ( BVCE_P_Status_eStopping == hVceCh->eStatus )
    {
-#define BVCE_P_STOP_RECOVERY_DELAY 10000
-#define BVCE_P_STOP_RECOVERY_TIME 500000
       unsigned uiNumIterations = BVCE_P_STOP_RECOVERY_TIME / BVCE_P_STOP_RECOVERY_DELAY;
 
       rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
@@ -7615,6 +7666,118 @@ BERR_Code BVCE_P_FrameRateConversionLUT_isrsafe(
 
    switch ( eSourceFrameRate )
    {
+      case BAVC_FrameRateCode_e7_493:
+      case BAVC_FrameRateCode_e7_5:
+         /* 7.5 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e7_493:
+            case BAVC_FrameRateCode_e7_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e9_99:
+      case BAVC_FrameRateCode_e10:
+         /* 10 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e9_99:
+            case BAVC_FrameRateCode_e10:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e11_988:
+      case BAVC_FrameRateCode_e12:
+         /* 12 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e11_988:
+            case BAVC_FrameRateCode_e12:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e12_5:
+         /* 12.5 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e12_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e14_985:
+      case BAVC_FrameRateCode_e15:
+         /* 15 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e14_985:
+            case BAVC_FrameRateCode_e15:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e7_493:
+            case BAVC_FrameRateCode_e7_5:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e15 == eSourceFrameRate ) ? BAVC_FrameRateCode_e7_5 : BAVC_FrameRateCode_e7_493;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
+      case BAVC_FrameRateCode_e19_98:
+      case BAVC_FrameRateCode_e20:
+         /* 20 Hz Display */
+         switch ( eEncodeFrameRate )
+         {
+            /* 1:1 */
+            case BAVC_FrameRateCode_e19_98:
+            case BAVC_FrameRateCode_e20:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = eSourceFrameRate;
+               rc = BERR_SUCCESS;
+               break;
+
+            case BAVC_FrameRateCode_e9_99:
+            case BAVC_FrameRateCode_e10:
+               pstFrameRateConversionSettings->eEffectiveFrameRate = ( BAVC_FrameRateCode_e20 == eSourceFrameRate ) ? BAVC_FrameRateCode_e10 : BAVC_FrameRateCode_e9_99;
+               rc = BERR_SUCCESS;
+               break;
+
+            default:
+               break;
+         }
+         break;
+
       case BAVC_FrameRateCode_e23_976:
       case BAVC_FrameRateCode_e24:
          /* 24 Hz Display */
@@ -7977,11 +8140,46 @@ BVCE_Channel_Picture_Enqueue_isr(
          BKNI_Memset( &stFrameRateConversionSettings, 0, sizeof( stFrameRateConversionSettings ) );
          stFrameRateConversionSettings.eEffectiveFrameRate = pstPicture->eFrameRate;
 
+         /* Seed the New PTS */
+         if ( false == hVceCh->picture.stState.bNextNewPTSIn360Khz )
+         {
+            if ( true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+            {
+               /* In NRT: PTS[0] = 0 */
+               hVceCh->picture.stState.uiNextNewPTSIn360Khz = 0;
+            }
+            else
+            {
+               /* In RT: PTS[0] = STCSnapshot */
+               uint64_t uiSTCSnapshot = pstPicture->ulSTCSnapshotHi;
+               uiSTCSnapshot <<= 32;
+               uiSTCSnapshot |= pstPicture->ulSTCSnapshotLo;
+               hVceCh->picture.stState.uiNextNewPTSIn360Khz = uiSTCSnapshot / 75;
+            }
+            hVceCh->picture.stState.bNextNewPTSIn360Khz = true;
+         }
+         else if ( false == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+         {
+#define BVCE_P_MAX_STC_DIVERGENCE_IN_45Khz (45000*2)
+            uint32_t uiNextNewPTSin45Khz = hVceCh->picture.stState.uiNextNewPTSIn360Khz / 8;
+            uint32_t uiSTCSnapshotin45Khz = (uint32_t) ( ( ( (uint64_t) pstPicture->ulSTCSnapshotHi << 32 ) | pstPicture->ulSTCSnapshotLo ) / 600 );
+            int32_t iDelta = uiSTCSnapshotin45Khz - uiNextNewPTSin45Khz;
+
+            /* Check to make sure The algorithmic PTS is not diverging from the actual STC snapshot */
+            if ( ( iDelta > BVCE_P_MAX_STC_DIVERGENCE_IN_45Khz )
+                 || ( iDelta < -BVCE_P_MAX_STC_DIVERGENCE_IN_45Khz ) )
+            {
+               BDBG_ERR(("STC is diverging from algorithmic PTS (%d in 45Khz)", iDelta));
+            }
+         }
+
          /* Keep track of pictures dropped by VDC */
          if ( ( true == hVceCh->picture.stState.stPreviousReceived.bValid )
               && ( pstPicture->ulPictureId != hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId )
               && ( pstPicture->ulPictureId != ( hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId + 1 ) ) )
          {
+            unsigned uiNumDroppedPics = ( ( pstPicture->ulPictureId - hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId ) - 1);
+
             BVCE_Channel_S_Picture_Print_Debug_isr(
                   hVceCh,
                   pstPicture,
@@ -7989,24 +8187,18 @@ BVCE_Channel_Picture_Enqueue_isr(
                   "Display dropped pictures",
                   (true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode)
                   );
-            hVceCh->picture.stState.stats.uiNumDroppedDueToError += ( ( pstPicture->ulPictureId - hVceCh->picture.stState.stPreviousReceived.stPicture.ulPictureId ) - 1);
+
+            hVceCh->picture.stState.stats.uiNumDroppedDueToError += uiNumDroppedPics;
+            hVceCh->picture.stState.uiNextNewPTSIn360Khz += BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[pstPicture->eFrameRate] * uiNumDroppedPics;
          }
 
-         if ( true == hVceCh->stStartEncodeSettings.bNonRealTimeEncodeMode )
+         /* Set the new PTS for this picture */
          {
             uint64_t uiNewPTSLocalin90Khz = hVceCh->picture.stState.uiNextNewPTSIn360Khz/4;
             /* Generate PTS */
             uiNewPTSin90Khz = ( uiNewPTSLocalin90Khz >> 32 ) & 0x1;
             uiNewPTSin90Khz <<= 32;
             uiNewPTSin90Khz |= uiNewPTSLocalin90Khz & 0xFFFFFFFF;
-         }
-         else
-         {
-            /* Use STC Snapshot for PTS */
-            uiNewPTSin90Khz = pstPicture->ulSTCSnapshotHi;
-            uiNewPTSin90Khz <<= 32;
-            uiNewPTSin90Khz |= pstPicture->ulSTCSnapshotLo;
-            uiNewPTSin90Khz /= 300;
          }
          uiCurrentSTCin45Khz = uiNewPTSin90Khz/2;
 

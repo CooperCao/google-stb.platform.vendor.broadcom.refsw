@@ -79,16 +79,15 @@ NEXUS_HashHmacQueue * NEXUS_HashHmac_QueueCreate(void)
 {
     NEXUS_MemoryAllocationSettings allocSettings;
     NEXUS_P_HashHmacQueue *pQueue = NULL ;
+    NEXUS_Error rc = NEXUS_UNKNOWN;
 
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     allocSettings.alignment = 64;
     allocSettings.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
-    NEXUS_Memory_Allocate(NEXUS_HASH_INTERNAL_BUFFER_SIZE + sizeof(NEXUS_P_HashHmacQueue), &allocSettings, (void**)&pQueue);
-    if (pQueue == NULL)
-    {
-        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
-        return NULL;
-    }
+    rc = NEXUS_Memory_Allocate(NEXUS_HASH_INTERNAL_BUFFER_SIZE + sizeof(NEXUS_P_HashHmacQueue), &allocSettings, (void**)&pQueue);
+    if( rc != NEXUS_SUCCESS ) { BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); return NULL; }
+    if( pQueue == NULL ) { BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); return NULL; }
+
     pQueue->leftOverBuffer = (uint8_t*)pQueue + sizeof(NEXUS_P_HashHmacQueue);
 #if _REVERSE_DATA_BUFFER
     pQueue->swapBuffer = &pQueue->leftOverBuffer[NEXUS_HASH_BUFFER_LEFTOVER_SIZE];

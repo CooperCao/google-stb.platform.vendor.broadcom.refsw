@@ -39,49 +39,30 @@
 #include "bstd.h"
 #include "berr.h"
 #include "bkni.h"
+#include "bchp_priv.h"
 #include "bchp_scpu_host_intr2.h"
 #include "bchp_scpu_globalram.h"
+#include "bchp_common.h"
 #include "bsagelib_types.h"
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
+#include "priv/bsagelib_shared_globalsram.h"
+#endif
+#include "priv/bsagelib_shared_types.h"
 #include "bchp_bsp_glb_control.h"
 
+#if !defined(BCHP_SCPU_GLOBALRAM_REG_START)
+#error Cannot build with SAGE support without globalram registers
+#endif
+
 BDBG_MODULE(BCHP_SAGE);
-
-#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
-#define SAGE_BOOT_STATUS_OFFSET 0x120
-#define SAGE_RESET_OFFSET 0x1a4
-#define SAGE_SRR_START_OFFSET 0x18
-#define SAGE_CRR_START_OFFSET 0x10
-#else
-#if BHSM_ZEUS_VER_MAJOR>=5
-#define GlobalSram_HostSage_Scratchpad        0x34
-#else
-#define GlobalSram_HostSage_Scratchpad        0x20
-#endif
-#define SAGE_BOOT_STATUS_OFFSET ((GlobalSram_HostSage_Scratchpad+0x0E)*4)
-#define SAGE_RESET_OFFSET ((GlobalSram_HostSage_Scratchpad+0x0B)*4)
-#define SAGE_SRR_START_OFFSET (0x06*4)
-#define SAGE_CRR_START_OFFSET (0x04*4)
-#endif
-
-#define SAGE_BOOT_STATUS_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_BOOT_STATUS_OFFSET)
-
-#define SAGE_BOOT_ERROR          (0xFFFF)
-#define SAGE_BOOT_NOT_STARTED    (0x00FF)
-#define SAGE_BOOT_BL_SUCCESS     (0x0001)
-#define SAGE_BOOT_SUCCESS        (0x0000)
 
 #define SAGE_MAX_BOOT_TIME_US (10 * 1000 * 1000)
 #define SAGE_STEP_BOOT_TIME_US (50 * 1000)
 
-#define SAGE_RESET_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_RESET_OFFSET)
-#define SAGE_SRR_START_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_SRR_START_OFFSET)
-#define SAGE_CRR_START_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_CRR_START_OFFSET)
-
-#define SAGE_RESETVAL_RESET 0x4E404E40
-#define SAGE_RESETVAL_READYTORESTART 0x0112E00E
-#define SAGE_RESETVAL_MAINSTART 0x0211DCB0
-#define SAGE_RESETVAL_DOWN  0x1FF1FEED
-#define SAGE_RESETVAL_ERROR 0x30DE018E
+#define SAGE_RESET_REG BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eReset)
+#define SAGE_SRR_START_REG BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSRRStartOffset)
+#define SAGE_CRR_START_REG BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eCRRStartOffset)
+#define SAGE_BOOT_STATUS_REG BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBootStatus)
 
 #define SAGE_RESET_WAIT_COUNT 1000
 #define SAGE_RESET_WAIT_DELAY 10
@@ -119,9 +100,9 @@ BCHP_SAGE_Reset(
         uint32_t totalBootTimeUs = 0;
         do {
             val = BREG_Read32(hReg, SAGE_BOOT_STATUS_REG);
-            if ((val == SAGE_BOOT_BL_SUCCESS) ||
-                (val == SAGE_BOOT_NOT_STARTED) ||
-                (val == SAGE_BOOT_ERROR)) {
+            if ((val == BSAGElibBootStatus_eBlStarted) ||
+                (val == BSAGElibBootStatus_eNotStarted) ||
+                (val == BSAGElibBootStatus_eError)) {
                 /* Need to wait till OS/App success or failure or timeout */
                 BKNI_Sleep(SAGE_STEP_BOOT_TIME_US/1000); /* BKNI_Sleep() takes ms; convert from us to ms */
                 totalBootTimeUs += SAGE_STEP_BOOT_TIME_US;
@@ -131,7 +112,7 @@ BCHP_SAGE_Reset(
                 }
             }
             else {
-                if (val != SAGE_BOOT_SUCCESS) {
+                if (val != BSAGElibBootStatus_eStarted) {
                     BDBG_WRN(("SAGE May be stuck in an error. Keep going..."));
                 }
                 break;
@@ -142,7 +123,7 @@ BCHP_SAGE_Reset(
 
     val = BREG_Read32(hReg, SAGE_RESET_REG);
 
-    if(val == SAGE_RESETVAL_ERROR)
+    if(val == SAGE_RESETVAL_S2H_ERROR)
     {
         /* Error in a previous cleanup attempt */
         BDBG_ERR(("Previous SAGE clean failed! All TA's must be clean/closed."));
@@ -150,7 +131,7 @@ BCHP_SAGE_Reset(
         goto end;
     }
 
-    if (val == SAGE_RESETVAL_READYTORESTART)
+    if (val == SAGE_RESETVAL_S2H_READYTORESTART)
     {
         uint32_t cpt = 0;
 
@@ -160,7 +141,7 @@ BCHP_SAGE_Reset(
         BREG_Write32(hReg, BCHP_SCPU_HOST_INTR2_CPU_CLEAR, 1 << BCHP_SCPU_HOST_INTR2_CPU_CLEAR_SCPU_TIMER_SHIFT);
 
         /* request a reset */
-        BREG_Write32(hReg, SAGE_RESET_REG, SAGE_RESETVAL_RESET);
+        BREG_Write32(hReg, SAGE_RESET_REG, SAGE_RESETVAL_H2S_RESET);
         do {
             uint32_t wdval;
             cpt++;
@@ -172,17 +153,23 @@ BCHP_SAGE_Reset(
             }
             val=BREG_Read32(hReg, SAGE_RESET_REG);
 
-            if(val == SAGE_RESETVAL_DOWN)
+            if(val == SAGE_RESETVAL_S2H_DOWN)
             {
+                /* SAGE has indicated it's done, but BSP may not have powered off yet...
+                 * wait for SAGE to be put in reset */
+                if(BCHP_SAGE_IsStarted(hReg))
+                {
+                    continue;
+                }
                 BDBG_MSG(("SAGE shutdown successfully"));
                 break;
             }
-            if(val == SAGE_RESETVAL_READYTORESTART)
+            if(val == SAGE_RESETVAL_S2H_READYTORESTART)
             {
                 BDBG_MSG(("SAGE has cleaned succesfully!"));
                 break;
             }
-            if(val == SAGE_RESETVAL_ERROR)
+            if(val == SAGE_RESETVAL_S2H_ERROR)
             {
                 BDBG_ERR(("SAGE CANNOT CLEAN... All TA's must be clean/closed."));
                 rc=BERR_TRACE(BERR_LEAKED_RESOURCE);

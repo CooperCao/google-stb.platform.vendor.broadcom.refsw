@@ -1605,10 +1605,17 @@ void NEXUS_VideoInput_P_UpdateSyncLockDisplay(NEXUS_VideoInput_P_Link *link)
     BKNI_Memset(&stcSnapshot, 0, sizeof(stcSnapshot));
     BVDC_Source_GetStcFlag(link->sourceVdc, &stcFlag);
     if(stcFlag < BRDC_MAX_STC_FLAG_COUNT) {
+#if defined(BCHP_XPT_PCROFFSET_REG_START)
         /* XPT_PCROFFSET_STC_SNAPSHOT0_CTRL.SNAPSHOT_TRIG_SEL for external trigger for "BVN flag0" starts at 8,
         then increments, so add offset of 8 to stcFlag, which is the MFD #. */
         stcSnapshot.trigger = stcFlag + 8;
         stcSnapshot.set = true;
+#elif defined(BCHP_OTT_XPT_TSM_REG_START)
+        /* OTT_XPT_TSM_STC_SNAPSHOT_CTRL0.STC_TRIG_SEL for external trigger for "BVN flag0" starts (and ends) at 0,
+        so add offset of 0 to stcFlag, which is the MFD #. */
+        stcSnapshot.trigger = stcFlag;
+        stcSnapshot.set = true;
+#endif
     }
 
     NEXUS_Module_Lock(pVideo->modules.videoDecoder);

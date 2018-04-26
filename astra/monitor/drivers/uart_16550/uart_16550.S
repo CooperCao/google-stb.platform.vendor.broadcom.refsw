@@ -24,8 +24,9 @@
 	 * In: x0 - uart base address
 	 *     w1 - Uart clock in Hz
 	 *     w2 - Baud rate
-	 * Out: return 1 on success
-	 * Clobber list : x1, x2, x3
+	 * Out: return 0 on success
+	 *      return -1 on error
+	 * Clobber list: x1, x2, x3
 	 * -----------------------------------------------
 	 */
 func uart_16550_init
@@ -36,7 +37,9 @@ func uart_16550_init
 	cbz	w2, init_fail
 
 	/* Program the baudrate */
-	/* Divisor =  Uart clock / (16 * baudrate) */
+	/* Divisor =  (Uart clock + 8 * baud rate) / (16 * baud rate) */
+	lsl	w3, w2, #3
+	add	w1, w1, w3
 	lsl	w2, w2, #4
 	udiv	w2, w1, w2
 	and	w1, w2, #0xff		/* w1 = DLL */
@@ -63,8 +66,10 @@ func uart_16550_init
 	/* DTR + RTS */
 	mov	w3, #3
 	str	w3, [x0, #UARTMCR]
-	mov	w0, #1
+	mov	w0, #0
+	ret
 init_fail:
+	mov	w0, #-1
 	ret
 endfunc uart_16550_init
 
@@ -72,10 +77,11 @@ endfunc uart_16550_init
 	 * int uart_16550_putc(int c, unsigned int base_addr)
 	 * Function to output a character over the uart. It
 	 * returns the character printed on success or -1 on error.
-	 * In : w0 - character to be printed
-	 *      x1 - uart base address
-	 * Out : return -1 on error else return character.
-	 * Clobber list : x2
+	 * In: w0 - character to be printed
+	 *     x1 - uart base address
+	 * Out: return character
+	 *      return -1 on error
+	 * Clobber list: x2
 	 * --------------------------------------------------------
 	 */
 func uart_16550_putc
@@ -87,17 +93,13 @@ func uart_16550_putc
 	b.ne	2f
 	/* Check if the transmit FIFO is full */
 1:	ldr	w2, [x1, #UARTLSR]
-	and	w2, w2, #(UARTLSR_TEMT | UARTLSR_THRE)
-	cmp	w2, #(UARTLSR_TEMT | UARTLSR_THRE)
-	b.ne	1b
+	tbz	w2, #UARTLSR_THRE_SHIFT, 1b
 	mov	w2, #0xD		/* '\r' */
 	str	w2, [x1, #UARTTX]
 
 	/* Check if the transmit FIFO is full */
 2:	ldr	w2, [x1, #UARTLSR]
-	and	w2, w2, #(UARTLSR_TEMT | UARTLSR_THRE)
-	cmp	w2, #(UARTLSR_TEMT | UARTLSR_THRE)
-	b.ne	2b
+	tbz	w2, #UARTLSR_THRE_SHIFT, 2b
 	str	w0, [x1, #UARTTX]
 	ret
 putc_error:
@@ -110,9 +112,10 @@ endfunc uart_16550_putc
 	 * Function to get a character from the uart.
 	 * It returns the character grabbed on success
 	 * or -1 on error.
-	 * In : x0 - uart base address
-	 * Out : return -1 on error else return character.
-	 * Clobber list : x0, x1
+	 * In: x0 - uart base address
+	 * Out: return character
+	 *      return -1 on error
+	 * Clobber list: x0, x1
 	 * ---------------------------------------------
 	 */
 func uart_16550_getc
@@ -130,9 +133,10 @@ endfunc uart_16550_getc
 	 * int uart_16550_flush(uintptr_t base_addr)
 	 * Function to force a write of all buffered
 	 * data that hasn't been output.
-	 * In : x0 - uart base address
-	 * Out : return -1 on error else return 0.
-	 * Clobber list : x0, x1
+	 * In: x0 - uart base address
+	 * Out: return 0 on success
+	 *      return -1 on error
+	 * Clobber list: x0, x1
 	 * ---------------------------------------------
 	 */
 func uart_16550_flush

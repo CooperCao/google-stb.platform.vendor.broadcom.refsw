@@ -569,6 +569,7 @@ typedef struct BVDC_P_SourceContext
 
 #ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
     uint32_t                  ulStcFlag; /* STC flag to trigger decoder STC snapshot */
+    unsigned                  ulStcFlagTrigSel;
 #endif
 } BVDC_P_SourceContext;
 

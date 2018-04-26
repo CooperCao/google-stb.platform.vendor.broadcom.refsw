@@ -141,17 +141,19 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
 /* Set NEXUS_ENABLE_HVD_OL_OUTPUT to 1 to enable HVD OL UART output on SV board, board modification required */
 #define NEXUS_ENABLE_HVD_OL_OUTPUT 0
+/* Set NEXUS_FRONT_PANEL_RESET_ENABLE to 1 to enable the front panel reset. Please make sure if the board has the related AON Pin configured for it. */
+#define NEXUS_FRONT_PANEL_RESET_ENABLE 0
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-	BREG_Handle hReg = g_pCoreHandles->reg;
-    uint32_t reg;
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux();
 #endif
 
 #if NEXUS_ENABLE_HVD_OL_OUTPUT
     {
+	BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
     /* HVD OL output setup */
     reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
     reg &= ~(
@@ -181,6 +183,8 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 #endif
 
 #if NEXUS_HAS_DVB_CI
+	BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
     reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
     reg &= ~(
             BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_006) |
@@ -269,6 +273,9 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
             );
     BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9, reg);
 #endif
+#if NEXUS_FRONT_PANEL_RESET_ENABLE
+	BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
 	BDBG_MSG(("Setting pinmux to make the frontpanel reset enable"));
     reg = BREG_Read32(hReg, BCHP_AON_CTRL_RESET_CTRL);
     reg &=~(
@@ -278,6 +285,6 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
           BCHP_FIELD_DATA(AON_CTRL_RESET_CTRL, front_panel_reset_enable, 1) /*Enable*/
           );
     BREG_Write32 (hReg, BCHP_AON_CTRL_RESET_CTRL, reg);
-
+#endif
     return BERR_SUCCESS;
 }

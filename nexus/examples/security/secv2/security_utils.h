@@ -43,6 +43,7 @@
 #include "nexus_platform.h"
 #include "nexus_dma.h"
 #include "stdio.h"
+#include <string.h>
 
 BDBG_MODULE( secv2_examples );
 
@@ -53,9 +54,25 @@ BDBG_MODULE( secv2_examples );
 #define OUT_XPT_TYPE  NEXUS_TransportType_eTs
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
+#define SECURITY_CHECK_RC(rc) {     \
+    if (rc) {                       \
+        BERR_TRACE( rc );           \
+        goto exit;                  \
+    }                               \
+}
+
+#define SECURITY_CHECK_TEST_RESULT(rc)   {                                                     \
+    if (rc) {                                                                                      \
+        BDBG_ERR( ( "<--- Failed: %s() Test#%d with %s.\n", BSTD_FUNCTION, count++,  pTestTitle)); \
+        return BERR_TRACE( rc );                                        \
+    } else  {                                                           \
+        BDBG_LOG(("<--- Success: %s() Test#%d with %s.\n",  BSTD_FUNCTION, count++, pTestTitle));  \
+    }                                                                   \
+}
+
 #define DEBUG_PRINT_ARRAY(description_txt,in_size,in_ptr) {             \
     int x_offset;                                                       \
-    printf("[%s][%d]", description_txt, in_size );                      \
+    printf("[%s][%u]", description_txt, (unsigned int) in_size );       \
     for( x_offset = 0; x_offset < (int)(in_size); x_offset++ )          \
     {                                                                   \
         if( x_offset%16 == 0 ) { printf("\n"); }                        \

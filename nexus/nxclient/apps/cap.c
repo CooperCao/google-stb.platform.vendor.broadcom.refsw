@@ -164,11 +164,15 @@ int main(int argc, char **argv)
             break;
         }
         else if (!strcmp(argv[curarg], "-mosaic_coverage") && curarg+1<argc) {
-#if NEXUS_HAS_DISPLAY
-            NEXUS_DisplayMaxMosaicCoverage coverage;
-            rc = NEXUS_Display_GetMaxMosaicCoverage(0, atoi(argv[++curarg]), &coverage);
-            if (!rc) {
-                result = coverage.maxCoverage;
+#if NEXUS_HAS_DISPLAY && NEXUS_HAS_VIDEO_DECODER
+            NEXUS_VideoDecoderCapabilities videoDecoderCap;
+            NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+            if (videoDecoderCap.memory[0].mosaic.maxNumber) {
+                NEXUS_DisplayMaxMosaicCoverage coverage;
+                rc = NEXUS_Display_GetMaxMosaicCoverage(0, atoi(argv[++curarg]), &coverage);
+                if (!rc) {
+                    result = coverage.maxCoverage;
+                }
             }
 #endif
             break;

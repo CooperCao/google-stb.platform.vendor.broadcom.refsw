@@ -48,12 +48,8 @@ all: install
 # Include nexus definitions
 include $(NEXUS_TOP)/build/nexus_defs.inc
 
-NEXUS_ABICOMPAT_MODE?=y
-
-ifeq ($(NEXUS_ABICOMPAT_MODE),y)
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
 NEXUS_COMPAT_32ABI?=y
-endif
 endif
 
 NEXUS_PLATFORM_BUILDDIR=$(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build

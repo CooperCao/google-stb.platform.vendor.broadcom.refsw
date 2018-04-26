@@ -125,9 +125,19 @@ static void NEXUS_Platform_P_PrintRegions(const NEXUS_PlatformOsRegion *osRegion
     return;
 }
 
+static bool NEXUS_Platform_P_TestIntersect(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
+{
+    return (addr1 < addr2+size2) && (addr2 < addr1+size1);
+}
+
+static bool NEXUS_Platform_P_TestContain(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
+{
+    return (addr2 >= addr1) && (addr2 + size2 <= addr1 + size1);
+}
+
 static bool NEXUS_Platform_P_IsOverlap(const NEXUS_PlatformOsRegion *osRegion, const nexus_p_memory_range *range)
 {
-    return ((range->addr+range->size) >= osRegion->base && (osRegion->base + osRegion->length) >= range->addr);
+    return NEXUS_Platform_P_TestIntersect(range->addr, range->size, osRegion->base, osRegion->length);
 }
 
 static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_info *info, NEXUS_PlatformOsRegion *osRegion, unsigned n_regions, const NEXUS_PlatformHeapSettings *heap, unsigned alignment)
@@ -168,21 +178,32 @@ static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_i
         if((int)i>=info->reserved.count) {
             break;
         }
+        if(info->reserved.range[i].size==0) {
+            continue;
+        }
         for(j=0;j<last_region;j++) {
-            if(NEXUS_Platform_P_IsOverlap(&osRegion[j], &info->reserved.range[i])) {
-                if(info->reserved.range[i].addr <= osRegion[j].base) {
-                    if( (info->reserved.range[i].addr + info->reserved.range[i].size) >= (osRegion[j].base + osRegion[j].length)) {
+            unsigned _1MByte = 1024 * 1024;
+            nexus_p_memory_range reserved_range; /* reserved range alligned to MByte boundary */
+            uint64_t reserved_range_end;
+
+            reserved_range_end  = NEXUS_Platform_P_GetAllignedMbytes(info->reserved.range[i].addr + info->reserved.range[i].size)*(uint64_t)_1MByte;
+            reserved_range.addr = info->reserved.range[i].addr - info->reserved.range[i].addr%_1MByte;
+            reserved_range.size = reserved_range_end - reserved_range.addr;
+
+            if(NEXUS_Platform_P_IsOverlap(&osRegion[j], &reserved_range)) {
+                if(reserved_range.addr <= osRegion[j].base) {
+                    if( (reserved_range.addr + reserved_range.size) >= (osRegion[j].base + osRegion[j].length)) {
                         osRegion[j].length = 0;  /* remove region */
                     } else {
-                        BDBG_ASSERT((info->reserved.range[i].addr + info->reserved.range[i].size) >= osRegion[j].base);
-                        osRegion[j].length -= (info->reserved.range[i].addr + info->reserved.range[i].size) - osRegion[j].base; /* adjust size */
-                        osRegion[j].base = (info->reserved.range[i].addr + info->reserved.range[i].size); /* and start */
+                        BDBG_ASSERT((reserved_range.addr + reserved_range.size) >= osRegion[j].base);
+                        osRegion[j].length -= (reserved_range.addr + reserved_range.size) - osRegion[j].base; /* adjust size */
+                        osRegion[j].base = (reserved_range.addr + reserved_range.size); /* and start */
                     }
-                } else if((info->reserved.range[i].addr + info->reserved.range[i].size) >= (osRegion[j].base + osRegion[j].length)) {
-                    BDBG_ASSERT(osRegion[j].base + osRegion[j].length >= info->reserved.range[i].addr);
-                    osRegion[j].length -= (osRegion[j].base + osRegion[j].length) - info->reserved.range[i].addr; /* adjust size */
+                } else if((reserved_range.addr + reserved_range.size) >= (osRegion[j].base + osRegion[j].length)) {
+                    BDBG_ASSERT(osRegion[j].base + osRegion[j].length >= reserved_range.addr);
+                    osRegion[j].length -= (osRegion[j].base + osRegion[j].length) - reserved_range.addr; /* adjust size */
                 } else {
-                    size_t new_size = info->reserved.range[i].addr - osRegion[j].base;
+                    size_t new_size = reserved_range.addr - osRegion[j].base;
                     /* reserved region in middle - would have to spilt osRegion in two */
                     if( new_size >= alignment) {
                         if(last_region>=n_regions) {
@@ -193,14 +214,14 @@ static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_i
                         osRegion[j].length = new_size; /* adjust size */
                         j++;
                     }
-                    osRegion[j].length = (osRegion[j].base + osRegion[j].length) - (info->reserved.range[i].addr + info->reserved.range[i].size); /* adjust size */
-                    osRegion[j].base = info->reserved.range[i].addr + info->reserved.range[i].size; /* and start */
+                    osRegion[j].length = (osRegion[j].base + osRegion[j].length) - (reserved_range.addr + reserved_range.size); /* adjust size */
+                    osRegion[j].base = reserved_range.addr + reserved_range.size; /* and start */
                 }
             }
         }
     }
     for(i=0;i<last_region;i++) {
-        BDBG_MSG(("raw MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", osRegion[i].memcIndex, i, (unsigned)(osRegion[i].length/(1024*1024)), (unsigned)(osRegion[i].length), BDBG_UINT64_ARG(osRegion[i].base)));
+        BDBG_MSG(("raw MEMC%u.%u %uMBytes(" BDBG_UINT64_FMT ") at " BDBG_UINT64_FMT "", osRegion[i].memcIndex, i, (unsigned)(osRegion[i].length/(1024*1024)), BDBG_UINT64_ARG(osRegion[i].length), BDBG_UINT64_ARG(osRegion[i].base)));
     }
 
     /* filter out all small regions */
@@ -304,6 +325,7 @@ static NEXUS_Error NEXUS_Platform_P_SetHostReservedMemoryFromInfo(const nexus_p_
         if(allocation && osReservedRegions[osReservedRegion].tag[0]!='\0') {
             BDBG_LOG(("reserved region:%u MEMC%d '%s' " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT "", i, memc, osReservedRegions[osReservedRegion].tag, BDBG_UINT64_ARG(info->reserved.range[i].addr), BDBG_UINT64_ARG(info->reserved.range[i].addr+info->reserved.range[i].size)));
         }
+        osReservedRegion++;
     }
     return NEXUS_SUCCESS;
 }
@@ -1375,15 +1397,6 @@ static NEXUS_Error NEXUS_Platform_P_CalculateBootParams(struct NEXUS_Platform_P_
     return NEXUS_SUCCESS;
 }
 
-static bool NEXUS_Platform_P_TestIntersect(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
-{
-    return (addr1 < addr2+size2) && (addr2 < addr1+size1);
-}
-
-static bool NEXUS_Platform_P_TestContain(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
-{
-    return (addr2 >= addr1) && (addr2 + size2 <= addr1 + size1);
-}
 
 static bool NEXUS_Platform_P_RangeTestIntersect(const nexus_p_memory_range *outer, NEXUS_Addr addr, size_t size)
 {
@@ -1457,7 +1470,37 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
                 return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             }
         }
-        for (j=0;j<NEXUS_MAX_HEAPS;j++) {
+       if(heap->placement.tag[0]!=0) {
+            for (j=0;j<NEXUS_MAX_HEAPS;j++) {
+                const NEXUS_PlatformOsReservedRegion *osReservedRegion = &pMemory->osReservedRegions[j];
+                if(osReservedRegion->length==0) {
+                    continue;
+                }
+                if(NEXUS_StrCmp(osReservedRegion->tag, heap->placement.tag)==0) {
+                    if(!NEXUS_Platform_P_TestContain(osReservedRegion->base, osReservedRegion->length, region->offset, region->length)) {
+                        BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " is not placed to reserved region '%s' " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), osReservedRegion->tag, BDBG_UINT64_ARG(osReservedRegion->base), BDBG_UINT64_ARG(osReservedRegion->base + osReservedRegion->length)));
+                        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                    }
+                    break;
+                }
+            }
+            if(j!=NEXUS_MAX_HEAPS) {
+                continue; /* if heap placed in matching region, ignore other tests */
+            }
+       }
+       for (j=0;info && j<sizeof(info->reserved.range)/sizeof(info->reserved.range[0]);j++) {
+           if((int)j>=info->reserved.count) {
+               break;
+           }
+           if(info->reserved.range[j].size==0) {
+               continue;
+           }
+           if(NEXUS_Platform_P_TestIntersect(info->reserved.range[j].addr, info->reserved.range[j].size, region->offset, region->length)) {
+               BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " intersects with reserved %u at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), j, BDBG_UINT64_ARG(info->reserved.range[j].addr), BDBG_UINT64_ARG(info->reserved.range[j].addr+ info->reserved.range[j].size)));
+               return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+           }
+       }
+       for (j=0;j<NEXUS_MAX_HEAPS;j++) {
             const NEXUS_PlatformOsRegion *osRegion = &pMemory->osRegion[j];
             if(osRegion->length==0) {
                 continue;
@@ -1468,17 +1511,6 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
                     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 }
                 break;
-            }
-        }
-        if(j==NEXUS_MAX_HEAPS && heapSettings[i].placement.tag[0]!='\0') { /* heap also could be placed into the reserved region */
-            for (j=0;j<NEXUS_MAX_HEAPS;j++) {
-                const NEXUS_PlatformOsReservedRegion *osReservedRegion = &pMemory->osReservedRegions[j];
-                if(osReservedRegion->length==0) {
-                    continue;
-                }
-                if(NEXUS_Platform_P_TestContain(osReservedRegion->base, osReservedRegion->length, region->offset, region->length)) {
-                    break;
-                }
             }
         }
         if(j==NEXUS_MAX_HEAPS) {

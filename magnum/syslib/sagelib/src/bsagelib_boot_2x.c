@@ -362,23 +362,23 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
      * BCMD_Otp_CmdMsp_eMarketId : market Id
      * BCMD_Otp_CmdMsp_eSystemEpoch // BCMD_Otp_CmdMsp_eReserved87 : Epoch */
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved210, &ctx->otp_sage_decrypt_enable, "decrypt_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved210, &ctx->otp_sage_decrypt_enable, NULL, "decrypt_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved209, &ctx->otp_sage_verify_enable, "verify_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved209, &ctx->otp_sage_verify_enable, NULL, "verify_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved212, &ctx->otp_sage_secure_enable, "secure_enable");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved212, &ctx->otp_sage_secure_enable, NULL, "secure_enable");
     if (rc != BERR_SUCCESS) { goto end; }
 
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eMarketId, &ctx->otp_market_id, "market id");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eMarketId, &ctx->otp_market_id, NULL, "market id");
     if (rc != BERR_SUCCESS) { goto end; }
 
 #if (ZEUS_VERSION < ZEUS_4_1)
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, "system epoch 0");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, NULL, "system epoch 0");
 #else
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved87, &ctx->otp_system_epoch0, "epoch");
-    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch3, &ctx->otp_system_epoch3, "system epoch 3");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eReserved87, &ctx->otp_system_epoch0, NULL, "epoch");
+    rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch3, &ctx->otp_system_epoch3, NULL, "system epoch 3");
 #endif
     if (rc != BERR_SUCCESS) { goto end; }
 

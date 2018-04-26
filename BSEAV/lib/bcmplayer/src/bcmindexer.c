@@ -1898,18 +1898,6 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
     return i;
 }
 
-#if !B_REFSW_MINIMAL
-int BNAV_Indexer_FeedPES(BNAV_Indexer_Handle handle, uint8_t *p_bfr, unsigned size)
-{
-    if (handle->settings.navVersion == BNAV_Version_VC1_PES) {
-        return BNAV_P_FeedPES_VC1(handle, p_bfr, size);
-    }
-
-    BDBG_ERR(("FeedPES is only supported for BNAV_Version_VC1_PES"));
-    return -1;
-}
-#endif
-
 static long
 BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntries)
 {

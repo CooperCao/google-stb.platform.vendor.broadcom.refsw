@@ -226,7 +226,7 @@ public:
 
     // Used to submit a buffer for scatter-gather
     virtual bool SubmitScatterGather(IBuffer* buffer, bool last = false) = 0;
-    virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last = false) = 0;
+    virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush = true, bool last = false) = 0;
 
     // Used to submit a sample with sub-samples with decrypted buffer
     virtual bool SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *decrypted) = 0;
@@ -267,7 +267,7 @@ public:
     virtual IBuffer* GetBuffer(uint32_t size) OVERRIDE;
 
     virtual bool SubmitScatterGather(IBuffer* buffer, bool last = false) OVERRIDE;
-    virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush, bool last = false) OVERRIDE;
+    virtual bool SubmitScatterGather(void* addr, uint32_t length, bool flush = true, bool last = false) OVERRIDE;
 
     virtual bool SubmitSample(SampleInfo *pSample, IBuffer *clear, IBuffer *decrypted) OVERRIDE;
 

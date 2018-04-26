@@ -48,6 +48,15 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
 {
 #if NEXUS_HAS_VIDEO_DECODER
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
+    switch (g_pPreInitState->boxMode) {
+    case 1:
+    case 2:
+        /* no mosaic support */
+        pSettings->videoDecoder[0].mosaic.maxNumber = 0;
+        break;
+    default:
+        break;
+    }
 #else
     BSTD_UNUSED(pSettings);
 #endif

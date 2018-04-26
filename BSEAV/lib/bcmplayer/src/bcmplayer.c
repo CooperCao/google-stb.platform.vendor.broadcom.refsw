@@ -125,8 +125,8 @@ typedef struct BNAV_sPktFifoEntry
 
 struct BNAV_Player_P_PtsCacheEntry {
     uint32_t pts;
-    long index;
     unsigned sectionCounter; /* on a PTS discontinuity, this is incremented */
+    long index;
 };
 
 struct BNAV_Player_P_PtsCache {
@@ -142,6 +142,7 @@ struct BNAV_Player_P_PtsCache {
     unsigned rptr;               /* index of oldest entry in the fifo, beginning of a "backwards search" */
     bool doBackwardPtsSearch;    /* If set search backwards instead of forwards. this means starting the search from the most recently added PTS,
                                     which is not typical. the typical usage is to search from the oldest PTS, the one likely to be the decoder's current PTS. */
+    bool discardToPtsCalled;
     unsigned sectionCounter;
 };
 
@@ -2438,11 +2439,11 @@ it is limited by GOP size, which is practically limited by channel change time. 
     BDBG_MSG_PTSCACHE(("AddToPTSCache (%ld,%#lx) at %d (section %d)", index, pts, handle->ptscache.wptr, handle->ptscache.sectionCounter));
 advance:
     handle->ptscache.wptr = B_PTSCACHE_NEXT(handle, handle->ptscache.wptr);
-    if (handle->ptscache.wptr == handle->ptscache.rptr) {
+    if (handle->ptscache.wptr == handle->ptscache.rptr && handle->ptscache.discardToPtsCalled) {
         /* the cache is full. try to increate the buffer. */
         unsigned larger_size = handle->ptscache.cacheSize * 2;
         if (larger_size > MAX_PTS_CACHE_SIZE) {
-            BDBG_ERR(("bcmplayer ptscache full at %u. Is BNAV_Player_DiscardToPts being called?", handle->ptscache.cacheSize));
+            BDBG_ERR(("bcmplayer ptscache full at %u.", handle->ptscache.cacheSize));
         }
         else {
             struct BNAV_Player_P_PtsCacheEntry *ptr;
@@ -2474,6 +2475,7 @@ static void BNAV_Player_P_FlushPTSCache(BNAV_Player_Handle handle)
     BDBG_MSG_PTSCACHE(("BNAV_Player_P_FlushPTSCache"));
     handle->ptscache.wptr = handle->ptscache.rptr = 0; /* empty */
     handle->ptscache.sectionCounter = 0;
+    handle->ptscache.discardToPtsCalled = false;
 }
 
 static int BNAV_Player_P_AddCurrentToPTSCache(BNAV_Player_Handle handle)
@@ -2609,6 +2611,7 @@ void BNAV_Player_DiscardToPts(BNAV_Player_Handle handle, uint32_t pts)
 {
     int index = BNAV_Player_P_FindIndexFromPts(handle, pts);
     BDBG_MSG_PTSCACHE(("BNAV_Player_DiscardToPts %#x ==> %d", pts, index));
+    handle->ptscache.discardToPtsCalled = true;
     if (index != -1) {
         handle->ptscache.rptr = index;
     }

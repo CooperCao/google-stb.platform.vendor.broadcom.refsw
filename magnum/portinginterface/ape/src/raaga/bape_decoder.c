@@ -2118,7 +2118,8 @@ static BERR_Code BAPE_Decoder_P_Start(
         errCode = BAPE_Decoder_P_ApplyKaraokeSettings(handle);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            errCode = BERR_TRACE(errCode);
+            goto err_codec_settings;
         }
     }
 
@@ -4374,7 +4375,7 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
-    BAPE_Decoder_P_GetDataSyncStatus_isr(handle, &count);
+    BERR_TRACE(BAPE_Decoder_P_GetDataSyncStatus_isr(handle, &count));
 
     if (count != handle->underFlowCount)
     {
@@ -4388,7 +4389,7 @@ void BAPE_P_CheckUnderflow_isr (void *pParam1, int param2)
 
     if (handle->underFlowTimer)
     {
-        BTMR_StartTimer_isr(handle->underFlowTimer, (unsigned)param2);
+        BERR_TRACE(BTMR_StartTimer_isr(handle->underFlowTimer, (unsigned)param2));
     }
 }
 

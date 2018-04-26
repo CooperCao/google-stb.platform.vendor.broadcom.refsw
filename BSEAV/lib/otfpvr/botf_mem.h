@@ -52,9 +52,8 @@ extern "C"
 struct BOTF_Data;
 
 typedef struct botf_mem {
-    /* this is virtuall addrees corresponding to the physical address 0, it's used to convert from physicall to virtual (CPU) addresses */
-    int64_t base; /* base0 is just a cheap way to convert from address to offset, offset = address - base0 and address = offset + base0 */
-    BSTD_DeviceOffset addr;/* used for debugging */
+    /* this is virtual address corresponding to the physical address 0, it's used to convert from physical to virtual (CPU) addresses */
+    BSTD_DeviceOffset addr;/* physical address */
     const uint8_t *ptr;/* cached_ptr  - used for debugging */
     unsigned range; /* used for debugging */
     struct BOTF_Data *otf;

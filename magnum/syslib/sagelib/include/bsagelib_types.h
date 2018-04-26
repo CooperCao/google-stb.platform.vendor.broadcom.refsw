@@ -435,6 +435,20 @@ enum widevine_module {
 #define BSAGELIB_SOURCE_TIMER 0x3
 #define BSAGELIB_SOURCE_GENERIC 0x4
 
+/* protocol flags used in BSAGElib_GlobalSram_eHostSageComControl */
+#define HOSTSAGE_CONTROL_SRdy_SHIFT     16
+#define HOSTSAGE_CONTROL_SRdy           (1<<HOSTSAGE_CONTROL_SRdy_SHIFT)
+#define HOSTSAGE_CONTROL_SRdy_MASK      (0xff<<HOSTSAGE_CONTROL_SRdy_SHIFT)
+#define HOSTSAGE_CONTROL_ORdy_SHIFT     8
+#define HOSTSAGE_CONTROL_ORdy           (1<<HOSTSAGE_CONTROL_ORdy_SHIFT)
+#define HOSTSAGE_CONTROL_ORdy_MASK      (0xff<<HOSTSAGE_CONTROL_ORdy_SHIFT)
+#define HOSTSAGE_CONTROL_IRdy_SHIFT     0
+#define HOSTSAGE_CONTROL_IRdy           (1<<HOSTSAGE_CONTROL_IRdy_SHIFT)
+#define HOSTSAGE_CONTROL_IRdy_MASK      (0xff<<HOSTSAGE_CONTROL_IRdy_SHIFT)
+
+/* Command to load SSF passed through BSAGElib_InOutContainer.basicIn[0] */
+#define Hsc_LoadSSF (0x4C535346)
+
 /* Secure Log module IDs  */
 typedef enum Secure_Log_ModuleId_e{
     Secure_Log_ModuleId = 0x01

@@ -720,7 +720,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         {
             BDBG_WRN(("TEE(Astra) is not enabled. Cannot open BDSP ARM instance."));
             (void)BERR_TRACE(errCode);
-            goto err_dsp;
+            goto err_arm;
         }
     }
     #endif
@@ -944,8 +944,8 @@ err_arm:
     {
         BDSP_Close(g_NEXUS_audioModuleData.dspHandle);
     }
-err_dsp:
 #if BDSP_RAAGA_AUDIO_SUPPORT
+err_dsp:
     if (pRaagaSettings) { BKNI_Free(pRaagaSettings); pRaagaSettings = NULL; }
     if (pMemoryInfo) { BKNI_Free(pMemoryInfo); pMemoryInfo = NULL; }
 #endif

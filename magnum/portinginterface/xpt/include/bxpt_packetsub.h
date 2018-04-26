@@ -243,22 +243,6 @@ BERR_Code BXPT_PacketSub_SetPidChanNum(
 
 /***************************************************************************
 Summary:
-Get the ouput PID channel number.
-
-Description:
-On certain chips (the 7403 right now), only certain PID channels can
-be used with the PSUB hardware. This API will return the correct PID channel
-number for the given PSUB.
-
-Returns:
-    unsigned int - PID channel number to be used with this PacketSub block.
-****************************************************************************/
-unsigned int BXPT_PacketSub_GetPidChanNum(
-	BXPT_PacketSub_Handle hPSub 	/* [in] Handle for the channel. */
-	);
-
-/***************************************************************************
-Summary:
 Force immediate output.
 
 Description:

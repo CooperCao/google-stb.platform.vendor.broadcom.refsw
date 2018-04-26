@@ -39,6 +39,19 @@
 # TZ platform
 TZ_PLATFORM ?= brcmstb
 
+# TZ verbosity is derived from refsw verbosity if defined
+ifeq ($(B_REFSW_VERBOSE),y)
+TZ_VERBOSE := y
+endif
+
+# TZ verbosity specific defines
+ifeq ($(TZ_VERBOSE),y)
+Q_ :=
+else
+Q_ := @
+MAKEFLAGS += --no-print-directory
+endif
+
 # TZ arch is derived from refsw arch if defined
 ifeq ($(B_REFSW_ARCH),arm-linux)
 TZ_ARCH := Arm32
@@ -52,9 +65,6 @@ TZ_ARCH ?= Arm64
 # TZ arch specific defines
 ifeq ($(TZ_ARCH),Arm32)
 # 32-bit ARM defines
-CFG_ARM32_core  := y
-CFG_ARM64_core  := n
-
 TZ_TOOLCHAIN    ?= /opt/toolchains/tzos/DSO/gcc-arm-tzos-musl-5.3
 TZ_ARMGNU       ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musleabi
 
@@ -64,9 +74,6 @@ ARCHFLAGS   += -mcpu=cortex-a15 -mfpu=vfpv3
 OBJ_TARGET  := elf32-littlearm
 else
 # 64-bit ARM defines
-CFG_ARM32_core  := n
-CFG_ARM64_core  := y
-
 TZ_TOOLCHAIN    ?= /opt/toolchains/tzos/DSO/gcc-aarch64-tzos-musl-5.3
 TZ_ARMGNU       ?= $(TZ_TOOLCHAIN)/bin/aarch64-tzos-musleabi
 

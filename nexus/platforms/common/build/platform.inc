@@ -226,11 +226,7 @@ ifeq ($(B_REFSW_OS),linuxkernel)
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_callbacks.c
 
         # nexus_generic_driver.c depends on the thunk in order to trap NEXUS_Platform_Init/Uninit
-        ifeq ($(NEXUS_ABICOMPAT_MODE),y)
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_abiverify_ioctl.h
-        else
-        $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_ioctl.h
-        endif
 
     endif
 
@@ -266,11 +262,7 @@ ifeq ($(B_REFSW_OS),bare)
         # $(NEXUS_PLATFORM_COMMON_DIR)/src/bare/libgcc/memcpy_brcm.S
 
     # nexus_generic_driver.c depends on the thunk in order to trap NEXUS_Platform_Init/Uninit
-    ifeq ($(NEXUS_ABICOMPAT_MODE),y)
     $(NEXUS_PLATFORM_COMMON_DIR)/src/linuxkernel/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_abiverify_ioctl.h
-    else
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/linuxkernel/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_ioctl.h
-    endif
 endif
 
 # allow override of socket interface
@@ -341,7 +333,7 @@ NEXUS_PLATFORM_PROXY_SOURCES += \
 endif
 ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
-     $(NEXUS_TOP)/modules/transport/src/swxpt_image.c
+     $(NEXUS_TOP)/modules/transport/src/nexus_swxpt_image.c
 endif
 endif
 NEXUS_PLATFORM_SOURCES := $(NEXUS_PLATFORM_PROXY_SOURCES)

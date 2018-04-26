@@ -302,9 +302,6 @@ typedef struct BXPT_Dma_ContextBlockSettings
     bool sgScramStart; /* if true, then this block indicates the start of scatter-gather scrambling operation */
     bool sgScramEnd;   /* if true, then this block indicates the end of scatter-gather scrambling operation */
     bool securityBtp;  /* if true, then this block is a BTP descriptor */
-
-    const void* srcPtr; /* unused */
-    void* dstPtr;       /* unused */
 } BXPT_Dma_ContextBlockSettings;
 
 

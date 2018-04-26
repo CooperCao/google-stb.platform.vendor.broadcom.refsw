@@ -2989,8 +2989,20 @@ wl_cfg80211_ifdel_ops(struct net_device *ndev)
 		WL_DBG(("ESCAN COMPLETED\n"));
 		wl_notify_escan_complete(cfg, ndev, true, false);
 	}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+	if (wl_get_drv_status(cfg, CONNECTED, ndev) &&
+#if defined(WDS)
+		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_WDS &&
+		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_AP_VLAN &&
+#endif /* WDS */
+		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_AP) {
+		CFG80211_DISCONNECTED(ndev, 0, NULL, 0, false, GFP_KERNEL);
+	}
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)) */
+
+
 	wl_clr_drv_status(cfg, CONNECTED, ndev);
-	CFG80211_DISCONNECTED(ndev, 0, NULL, 0, false, GFP_KERNEL);
 
 	/* Wake up any waiting thread */
 	if (cfg->nl80211_locked == 0)
@@ -6724,6 +6736,7 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	bool act = false;
 	s32 err = 0;
 	u8 *curbssid;
+	s32 wowl_activate;
 #ifdef BCMDONGLEHOST
 	dhd_pub_t *dhdp = (dhd_pub_t *)(cfg->pub);
 #endif /* BCMDONGLEHOST */
@@ -6776,6 +6789,11 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 					return err;
 				}
 				wl_cfg80211_wait_for_disconnection(cfg, dev);
+		} else  {
+			err = wldev_iovar_getint(dev, "wowl_activated", &wowl_activate);
+			if (!unlikely(err) && wowl_activate == 1) {
+				CFG80211_DISCONNECTED(dev, reason_code, NULL, 0, false, GFP_KERNEL);
+			}
 		}
 	}
 #ifdef CUSTOM_SET_CPUCORE
@@ -10732,6 +10750,7 @@ wl_cfg80211_set_ap_role(
 	s32 pm;
 	s32 is_rsdb_supported = BCME_ERROR;
 	s32 bssidx;
+	s32 apsta = 0;
 
 #if defined (BCMDONGLEHOST)
 	is_rsdb_supported = DHD_OPMODE_SUPPORTED(cfg->pub, DHD_FLAG_RSDB_MODE);
@@ -10758,21 +10777,26 @@ wl_cfg80211_set_ap_role(
 		/* coverity[dead_error_line] */
 		} else if (is_rsdb_supported == 0) {
 			/* AP mode switch not supported. Try setting up AP explicitly */
-			err = wldev_ioctl(dev, WLC_DOWN, &ap, sizeof(s32), true);
-			if (err < 0) {
-				WL_ERR(("WLC_DOWN error %d\n", err));
-				return err;
+			err = wldev_iovar_getint(dev, "apsta", (s32 *)&apsta);
+			if (unlikely(err)) {
+				WL_ERR(("Could not get apsta %d\n", err));
 			}
-			err = wldev_iovar_setint(dev, "apsta", 0);
-			if (err < 0) {
-				WL_ERR(("wl apsta 0 error %d\n", err));
-				return err;
-			}
-
-			if ((err = wldev_ioctl(dev,
-				WLC_SET_AP, &ap, sizeof(s32), true)) < 0) {
-				WL_ERR(("setting AP mode failed %d \n", err));
-				return err;
+			if (apsta == 0) {
+				err = wldev_ioctl_set(dev, WLC_DOWN, &ap, sizeof(s32));
+				if (err < 0) {
+					WL_ERR(("WLC_DOWN error %d\n", err));
+					return err;
+				}
+				if ((err = wldev_ioctl_set(dev,	WLC_SET_AP, &ap, sizeof(s32))) < 0) {
+					WL_ERR(("setting AP mode failed %d \n", err));
+					return err;
+				}
+			} else {
+				if ((err = wl_cfg80211_add_del_bss(cfg, dev, bssidx,
+					WL_INTERFACE_TYPE_AP, 0, NULL)) < 0) {
+					WL_ERR(("wl add_del_bss returned error:%d\n", err));
+					return err;
+				}
 			}
 		}
 

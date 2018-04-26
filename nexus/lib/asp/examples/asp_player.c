@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
 
     /* Initialize */
     {
-        BKNI_Init();
+        B_Asp_Init(NULL);
         signal(SIGINT, sigHandler);
     }
 
@@ -558,6 +558,10 @@ out:
     BKNI_DestroyEvent(hStateChangedEvent);
     BKNI_DestroyEvent(hDataReadyEvent);
 
+    /* Uninitialize */
+    {
+        B_Asp_Uninit();
+    }
     printf("exiting..\n");
     return (0);
 }

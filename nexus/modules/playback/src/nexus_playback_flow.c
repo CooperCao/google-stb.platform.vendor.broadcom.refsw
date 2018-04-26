@@ -642,7 +642,7 @@ bplay_get_decode_mark(NEXUS_PlaybackHandle playback, uint32_t *pFifoMarker, bool
     }
     *pFifoMarker = fifoMarker;
     BDBG_MSG_FLOW(("%s:%p queued %u, fifoMarker %u",  "bplay_get_decode_mark", (void*)playback, (unsigned)*pQueued, (unsigned)fifoMarker));
-    if(fifoMarker==0) {
+    if(fifoMarker==0 && b_play_has_connected_decoders(playback) ) {
         BDBG_WRN(("unable to get decode mark"));
     }
     return;

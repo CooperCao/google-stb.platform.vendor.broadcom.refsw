@@ -450,8 +450,8 @@ BOTF_PlayStep(BOTF_Handle hOtf, const BOTF_VideoDecoderStatus  *videoDecoderStat
 {
     int ScvLen1, ScvLen2;
     bool bEmpty = true;	
-    size_t size;
-    size_t ScvProcessed;
+    unsigned size;
+    unsigned ScvProcessed;
     const uint8_t *LastOPParserItbReadPtr;
     bool boRaveFull;
 

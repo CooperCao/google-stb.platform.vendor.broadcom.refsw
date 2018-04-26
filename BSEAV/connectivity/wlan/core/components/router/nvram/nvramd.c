@@ -56,7 +56,7 @@
 #define WL_WPA_PSK_SIZE_MAX  72  // max 64 hex or 63 char
 #define WL_UUID_SIZE_MAX  40
 
-#define WL_DEFAULT_VALUE_SIZE_MAX  128
+#define WL_DEFAULT_VALUE_SIZE_MAX  160
 #define WL_DEFAULT_NAME_SIZE_MAX  20
 #define WL_WDS_SIZE_MAX  80
 

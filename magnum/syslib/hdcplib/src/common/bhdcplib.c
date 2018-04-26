@@ -333,12 +333,12 @@ BERR_Code BHDCPlib_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Dependencies *
 done:
 	if (rc != BERR_SUCCESS)
 	{
-		if (!hHandle)
+		if (hHandle)
 		{
+			BDBG_OBJECT_DESTROY(hHandle, HDCPLIB);
 			BKNI_Free(hHandle);
 			hHandle=NULL;
 		}
-		BDBG_OBJECT_DESTROY(hHandle, HDCPLIB);
 	}
 
 	*hHDCPlib = hHandle;

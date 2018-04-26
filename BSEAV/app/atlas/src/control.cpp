@@ -2784,6 +2784,7 @@ eRet CControl::decodeChannel(
                 CChannel * pChNew = NULL;
                 int        i      = 0;
 
+                BDBG_WRN(("Successfully found one or more programs"));
                 BDBG_MSG(("verify cached pids..."));
 
                 /* verify current channel pids exist in chanInfo */

@@ -163,7 +163,7 @@ endif
 ifneq ($(SAGEBL_BINARIES_AVAILABLE),y)
 	@echo [Install SAGEBL binaries from ${SAGE_BINARY_TOP}]
 	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/sage_bl.bin ${NEXUS_BIN_DIR}
-	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_bl_dev.bin ${NEXUS_BIN_DIR}
+	-${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_bl_dev.bin ${NEXUS_BIN_DIR}
 else
 	@echo [Please install your own SAGEBL binaries under $(NEXUS_BIN_DIR)]
 endif
@@ -173,8 +173,8 @@ ifneq ($(SAGESW_BINARIES_AVAILABLE),y)
 	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/sage_framework.bin ${NEXUS_BIN_DIR}
 	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/sage_ta*.bin ${NEXUS_BIN_DIR}
 
-	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_framework_dev.bin ${NEXUS_BIN_DIR}
-	${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_ta*.bin ${NEXUS_BIN_DIR}
+	-${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_framework_dev.bin ${NEXUS_BIN_DIR}
+	-${Q_}$(CP) -f $(SAGE_BINARY_PATH)/dev/sage_ta*.bin ${NEXUS_BIN_DIR}
 else
 	@echo [Please install your own SAGESW binaries under $(NEXUS_BIN_DIR)]
 endif

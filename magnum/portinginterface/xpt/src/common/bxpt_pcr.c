@@ -634,7 +634,7 @@ BERR_Code   BXPT_PCR_SetStcExtRateControl(
 
     BDBG_ENTER(BXPT_PCR_SetStcExtRateControl);
 
-    BDBG_MSG(( "StcExtRateControl: Prescale %lu, Inc %lu", StcExtRateCfg->Prescale, StcExtRateCfg->Inc ));
+    BDBG_MSG(( "StcExtRateControl: Prescale %u, Inc %u", StcExtRateCfg->Prescale, StcExtRateCfg->Inc ));
 
     Reg = BREG_Read32(hRegister, BCHP_XPT_DPCR0_STC_EXT_CTRL+Offset);
 

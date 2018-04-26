@@ -1057,25 +1057,24 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
     BDBG_MSG(("create %p", (void*)r));
 
     NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioOpenSettings);
+
+    /* Settings common across all decoder types */
     if (server->settings.audioDecoder.fifoSize) {
         audioOpenSettings.fifoSize = server->settings.audioDecoder.fifoSize;
     }
+    audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
+    if (server->settings.svp != nxserverlib_svp_type_none) {
+        if (!audioOpenSettings.cdbHeap) {
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            goto error;
+        }
+    }
+
     if (type == b_audio_decoder_type_regular) {
         r->mode = b_audio_mode_playback;
         if (b_alloc_audio_index(r, &index)) {
             rc = BERR_TRACE(NEXUS_UNKNOWN);
             goto error;
-        }
-        audioOpenSettings.dspIndex = 0;
-        if ( !server->settings.client.heap[NXCLIENT_ARR_HEAP] || cap.numSoftAudioCores == 0 )
-        {
-            audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
-        }
-        if (server->settings.svp != nxserverlib_svp_type_none) {
-            if (!audioOpenSettings.cdbHeap) {
-                rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-                goto error;
-            }
         }
         audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
         r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);

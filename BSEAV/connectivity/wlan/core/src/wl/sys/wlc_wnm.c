@@ -7335,6 +7335,8 @@ wlc_wnm_parse_bsstrans_resp(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, struct sc
 	wnm_cfg = WNM_BSSCFG_CUBBY(wnm, bsscfg);
 	bsstrans = &wnm_cfg->bsstrans_req_info;
 
+	wlc_bss_mac_event(wnm->wlc, bsscfg, WLC_E_BSSTRANS_RESP, &scb->ea, 0, 0, 0, body, body_len);
+
 	if (bsstrans->timer_state == BSSTRANS_WAIT_FOR_BSS_TERM &&
 	    bsstrans_resp->token == wnm_scb->bsstrans_token) {
 		/* This resp frame is in response for the BSS transition req frame

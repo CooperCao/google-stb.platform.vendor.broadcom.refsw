@@ -2636,7 +2636,7 @@ void BVDC_P_Window_BuildCfcRul_isr
                 {
                     *pList->pulCurrent++ = BCHP_FIELD_ENUM(HDR_CMP_0_V0_BLENDER_IN_CSC_EN, BLENDER_IN_CSC_ENABLE, DISABLE);
                     BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d_V%d: disable blend-in-matrices, due to %s",
-                        hCompositor->eId, eWinInCmp, (!hCompositor->abBlenderUsed[1])? "no blending" : "SDR output"));
+                        hCompositor->eId, eWinInCmp, (!hCompositor->abBlenderUsed[0])? "no blending" : "non-HDR10 output"));
                 }
                 pCfc->bBlendInMatrixOn = bEnBlendMatrix;
             }
@@ -2947,7 +2947,7 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
     }
 #endif /* #if (BVDC_P_CMP_CFC_VER <= BVDC_P_CFC_VER_1) */
 
-    pCfc->ucRulBuildCntr --;
+    pCfc->ucRulBuildCntr = 0;
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
 
@@ -3033,14 +3033,16 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
         BVDC_P_Cfc_BuildRulForLutLoading_isr(&hGfxFeeder->stCfcLutList, BCHP_GFD_0_LUT_DESC_ADDR + hGfxFeeder->ulRegOffset,
             BCHP_GFD_0_LUT_DESC_CFG + hGfxFeeder->ulRegOffset, pList);
 
-        /* Programming HDR blend-in-matrix: 7271 A0 does not have blend-in-matrix, but has alpha-div
+        /* Programming HDR blend-in-matrix: GFD_0_CTRL.ALPHA_DIV_EN controls whether GFD blend-in-matrix is used.
+         * 7271 A0 does not have blend-in-matrix, but has alpha-div
+         * is it possible that bEnBlendMatrix changes to true
          */
         if (hGfxFeeder->hWindow)
         {
             BVDC_Compositor_Handle hCompositor = hGfxFeeder->hWindow->hCompositor;
             bool bEnBlendMatrix = BVDC_P_CFC_NEED_BLEND_MATRIX(hCompositor);
             eMaCscType = BCFC_CscType_eMa3x5_25CB;
-            if ((bEnBlendMatrix != pCfc->bBlendInMatrixOn) || hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace)
+            /*if ((bEnBlendMatrix != pCfc->bBlendInMatrixOn) || hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace)*/
             {
                 if (bEnBlendMatrix)
                 {
@@ -3050,8 +3052,14 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
                     ulStartReg = BCHP_GFD_0_CSC_COEFF_C00 + hGfxFeeder->ulRegOffset;
                     BVDC_P_Cfc_BuildRulForCscRx4_isr(
                         pCsc, NULL, BCFC_MAKE_CSC_CFG(eMcCscType, BCFC_LeftShift_eNotExist), ulStartReg, pList);
+                    pCfc->bBlendInMatrixOn = bEnBlendMatrix;
                 }
-                pCfc->bBlendInMatrixOn = bEnBlendMatrix;
+                else
+                {
+                    BDBG_MODULE_MSG(BVDC_CFC_2,("Gfd%d-Cfc: disable blend-in-matrices, due to %s",
+                        (hGfxFeeder->eId - BAVC_SourceId_eGfx0), (!hCompositor->abBlenderUsed[0])? "no blending" : "non-HDR10 output"));
+                    pCfc->bBlendInMatrixOn = bEnBlendMatrix;
+                }
             }
         }
 
@@ -3200,7 +3208,7 @@ void BVDC_P_Compositor_BuildBlendOutMatrixRul_isr
                     BCHP_FIELD_ENUM(HDR_CMP_0_CMP_BLENDER_OUT_PQ_CSC_EN, BLENDER_PQ_ADJ_ENABLE,  DISABLE) |
                     BCHP_FIELD_ENUM(HDR_CMP_0_CMP_BLENDER_OUT_PQ_CSC_EN, BLENDER_OUT_CSC_ENABLE, DISABLE);
                 BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d: disable blend-out-matrices, due to %s",
-                    hCompositor->eId, (!hCompositor->abBlenderUsed[1])? "no blending" : "SDR output"));
+                    hCompositor->eId, (!hCompositor->abBlenderUsed[0])? "no blending" : "non-HDR10 output"));
             }
             hCompositor->ucBlendMatrixOnRulBuildCntr --;
         }

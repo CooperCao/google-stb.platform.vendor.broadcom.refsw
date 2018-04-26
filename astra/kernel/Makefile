@@ -135,6 +135,14 @@ WARNFLAGS   += -Werror
 
 OSFLAGS     := -D__TZOS__
 
+ifeq (Arm64,$(TZ_ARCH))
+KFLAGS      := -DMON64
+else
+ifeq (y,$(MON64))
+KFLAGS      := -DMON64
+endif
+endif
+
 ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS) $(KFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 

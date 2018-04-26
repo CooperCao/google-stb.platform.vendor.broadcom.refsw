@@ -146,8 +146,7 @@ typedef struct NEXUS_AudioDecoderStartSettings
                                            Note, setting maxOutputRate = 96000 requires NEXUS_AudioModuleSettings->maxPcmSampleRate to
                                            also be increased to 96000 at Init time. */
     bool karaokeModeEnabled;            /* If true, karaoke postprocess is enabled. */
-    NEXUS_AudioDecoderSecureType secureAudio; /* Specifies whether the source content will be stored in secure ARR memory, which requires
-                                                 Sage Audio processing */
+    NEXUS_AudioDecoderSecureType secureAudio; /* deprecated */
 } NEXUS_AudioDecoderStartSettings;
 
 /***************************************************************************

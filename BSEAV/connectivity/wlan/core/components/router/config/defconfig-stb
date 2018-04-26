@@ -71,7 +71,7 @@ CONFIG_BCMWPA2=y
 # CONFIG_SHRINK_MEMORY is not set
 # CONFIG_BCMDCS is not set
 # CONFIG_EXTACS is not set
-# CONFIG_BCMBSD is not set
+CONFIG_BCMBSD=y
 # CONFIG_BCMSSD is not set
 # CONFIG_CR4_OFFLOAD is not set
 # CONFIG_PLC is not set

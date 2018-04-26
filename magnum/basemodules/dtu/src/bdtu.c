@@ -543,24 +543,30 @@ BERR_Code BDTU_ReadInfo( BDTU_Handle handle, BSTD_DeviceOffset physAddr, BDTU_Pa
 
 BERR_Code BDTU_GetStatus( BDTU_Handle handle, BDTU_Status *pStatus )
 {
-    uint32_t val;
-
+    BERR_Code rc;
     BDBG_OBJECT_ASSERT(handle, BDTU);
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    rc = BDTU_GetState(handle->createSettings.reg, handle->createSettings.memoryLayout.memcIndex, &pStatus->state);
+    if (rc) return BERR_TRACE(rc);
+    return BERR_SUCCESS;
+}
 
-    switch(handle->createSettings.memoryLayout.memcIndex)
+BERR_Code BDTU_GetState( BREG_Handle reg, unsigned memcIndex, BDTU_State *pState )
+{
+    uint32_t val;
+    switch(memcIndex)
     {
         case 0:
-            val = BREG_Read32(handle->createSettings.reg, BCHP_MEMC_DTU_CONFIG_0_TRANSLATE);
+            val = BREG_Read32(reg, BCHP_MEMC_DTU_CONFIG_0_TRANSLATE);
             break;
 #ifdef BCHP_MEMC_DTU_MAP_STATE_1_REG_START
         case 1:
-            val = BREG_Read32(handle->createSettings.reg, BCHP_MEMC_DTU_CONFIG_1_TRANSLATE);
+            val = BREG_Read32(reg, BCHP_MEMC_DTU_CONFIG_1_TRANSLATE);
             break;
 #endif
 #ifdef BCHP_MEMC_DTU_MAP_STATE_2_REG_START
         case 2:
-            val = BREG_Read32(handle->createSettings.reg, BCHP_MEMC_DTU_CONFIG_2_TRANSLATE);
+            val = BREG_Read32(reg, BCHP_MEMC_DTU_CONFIG_2_TRANSLATE);
             break;
 #endif
         default:
@@ -571,13 +577,13 @@ BERR_Code BDTU_GetStatus( BDTU_Handle handle, BDTU_Status *pStatus )
     switch(val)
     {
         case BCHP_MEMC_DTU_CONFIG_0_TRANSLATE_ENABLE_UNSET:
-            pStatus->state = BDTU_State_eUnset;
+            *pState = BDTU_State_eUnset;
             break;
         case BCHP_MEMC_DTU_CONFIG_0_TRANSLATE_ENABLE_ENABLE:
-            pStatus->state = BDTU_State_eEnabled;
+            *pState = BDTU_State_eEnabled;
             break;
         case BCHP_MEMC_DTU_CONFIG_0_TRANSLATE_ENABLE_DISABLE:
-            pStatus->state = BDTU_State_eDisabled;
+            *pState = BDTU_State_eDisabled;
             break;
         default:
             return BERR_TRACE(BERR_UNKNOWN);

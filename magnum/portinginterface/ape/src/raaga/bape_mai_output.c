@@ -96,6 +96,13 @@ typedef struct BAPE_MaiOutput
     bool honorHwMute;
 
 #if defined BCHP_DVP_CFG_REG_START
+    /* necessary for SPDIF encoding */
+    struct {
+        unsigned subFrames;
+        unsigned clk;
+        uint8_t channelStatus[24];
+    } spdif;
+
     BAPE_DmaOutputHandle dma;
 #endif
 } BAPE_MaiOutput;
@@ -629,7 +636,7 @@ static void BAPE_MaiOutput_P_Disable(BAPE_OutputPort output)
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_Disable_IopOut(output);
 #elif defined BCHP_DVP_CFG_REG_START
-    return BAPE_MaiOutput_P_Disable_Ott(output);
+    BAPE_MaiOutput_P_Disable_Ott(output);
 #else
     BAPE_MaiOutput_P_Disable_Legacy(output);
 #endif
@@ -697,7 +704,7 @@ static void BAPE_MaiOutput_P_CloseHw(BAPE_MaiOutputHandle handle)
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     BAPE_MaiOutput_P_CloseHw_IopOut(handle);
 #elif defined BCHP_DVP_CFG_REG_START
-    return BAPE_MaiOutput_P_CloseHw_Ott(handle);
+    BAPE_MaiOutput_P_CloseHw_Ott(handle);
 #else
     BAPE_MaiOutput_P_CloseHw_Legacy(handle);
 #endif
@@ -1521,11 +1528,11 @@ BAPE_MaiOutput_P_SetCbits_Ott_isr(BAPE_MaiOutputHandle handle)
     BAPE_DataType dataType = BAPE_DataType_ePcmStereo;
     bool compressed = false;
     bool compressedAsPcm = false;
-    unsigned channels = 2;
     unsigned n, m;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
 
+    handle->spdif.subFrames = 2;
     if ( handle->outputPort.mixer )
     {
         const BAPE_FMT_Descriptor     *pBfd = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
@@ -1534,11 +1541,11 @@ BAPE_MaiOutput_P_SetCbits_Ott_isr(BAPE_MaiOutputHandle handle)
         hbr = (unsigned)BAPE_FMT_P_IsHBR_isrsafe(pBfd);
         compressed = BAPE_FMT_P_IsCompressed_isrsafe(pBfd);
         compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pBfd);
-        channels = hbr ? 8 : BAPE_FMT_P_GetNumChannels_isrsafe(pBfd);
+        handle->spdif.subFrames = hbr ? 8 : BAPE_FMT_P_GetNumChannels_isrsafe(pBfd);
     }
 
     BDBG_MSG(("Set MAI CBITS SR %u, hbr %d, compressed %u, compressedAsPcm %u, channels %d",
-              handle->sampleRate, hbr, compressed, compressedAsPcm, channels));
+              handle->sampleRate, hbr, compressed, compressedAsPcm, handle->spdif.subFrames));
 
     /* Program MAI format correctly */
     if ( handle->outputPort.mixer )
@@ -1609,11 +1616,136 @@ BAPE_MaiOutput_P_SetCbits_Ott_isr(BAPE_MaiOutputHandle handle)
 
         regAddr = BAPE_MAI_Reg_P_GetAddress(BCHP_DVP_CFG_MAI0_CTL, handle->index);
         BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
-        BAPE_Reg_P_AddToFieldList_isr(&regFieldList, DVP_CFG_MAI0_CTL, CHNUM, channels);
+        BAPE_Reg_P_AddToFieldList_isr(&regFieldList, DVP_CFG_MAI0_CTL, CHNUM, handle->spdif.subFrames);
+        BAPE_Reg_P_AddToFieldList_isr(&regFieldList, DVP_CFG_MAI0_CTL, PAREN, 1);
         BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, regAddr);
+        if (!handle->settings.useRawChannelStatus)
+        {
+            BAPE_Spdif_P_ChannelStatusBits cbits;
+            BAPE_P_MapSpdifChannelStatusToBits_isr(&handle->outputPort, &handle->settings.channelStatus, &cbits);
+            handle->spdif.channelStatus[0] = cbits.bits[0];
+            handle->spdif.channelStatus[1] = cbits.bits[1];
+            handle->spdif.channelStatus[2] = cbits.bits[2];
+            handle->spdif.channelStatus[3] = 0;
+            handle->spdif.channelStatus[4] = 0;
+            handle->spdif.channelStatus[5] = 0;
+        }
+        handle->spdif.clk = 0;
     }
 
     return;
+}
+
+#ifdef SOFTWARE_PARITY
+bool
+parityodd(uint32_t v)
+{
+    v = (v >> 16) ^ (v & 0xffff);
+    v = (v >> 8) ^ (v & 0xff);
+    v = (v >> 4) ^ (v & 0xf);
+    v = (v >> 2) ^ (v & 0x3);
+    v = (v >> 1) ^ (v & 0x1);
+    return v;
+}
+#endif
+
+static void
+BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc, uint8_t *pIn, unsigned inCount, uint8_t *pOut, unsigned outCount, unsigned *inSize, unsigned *outSize)
+{
+    unsigned bytesPerSample;
+    unsigned framesToCopy;
+    unsigned totalBytesRead, totalBytesWritten;
+    BAPE_MaiOutputHandle handle = (BAPE_MaiOutputHandle)ctx;
+    switch (pDesc->bitsPerSample) {
+    case 8:
+        bytesPerSample = 1;
+        break;
+    case 16:
+        bytesPerSample = 2;
+        break;
+    case 24:
+        bytesPerSample = 3;
+        break;
+    case 32:
+        bytesPerSample = 4;
+        break;
+    default:
+        BDBG_ASSERT(0);
+    }
+    framesToCopy = inCount / (bytesPerSample * handle->spdif.subFrames);
+    if (framesToCopy > outCount / (4 * handle->spdif.subFrames)) {
+        framesToCopy = outCount / (4 * handle->spdif.subFrames);
+    }
+    totalBytesRead = framesToCopy * bytesPerSample * handle->spdif.subFrames;
+    totalBytesWritten = framesToCopy * 4 * handle->spdif.subFrames;
+    /*
+     * assume host order, 24 bit, signed, HDMI_MAI_CONFIG.MAI_BIT_REVERSE == 1, DVP_CFG_MAI0_CTL.PAREN == 1
+     * PCUV LLLL LLLL LLLL LLLL 0000 0000 'M or B' PCUV RRRR RRRR RRRR RRRR 'W'
+     * 'M' 4 (or 0)
+     * 'B' 1 (or f)
+     * 'W' 2 (or same as subframe 0)
+     */
+    while (framesToCopy) {
+        uint32_t flags;
+        bool cb;
+        unsigned c;
+        if (handle->settings.useRawChannelStatus) {
+            cb = (handle->settings.rawChannelStatus[handle->spdif.clk >> 3] & (1 << (handle->spdif.clk & 7))) != 0;
+        }
+        else {
+            cb = (handle->spdif.channelStatus[handle->spdif.clk >> 5] & (1 << (handle->spdif.clk & 31))) != 0;
+        }
+        flags = 0x10000000;
+        if (cb) {
+            flags |= 0x40000000;
+        }
+        if (handle->spdif.clk == 0) {
+            flags |= 0xf;
+        }
+        if (++handle->spdif.clk >= 192) {
+            handle->spdif.clk = 0;
+        }
+        /* assume signed, littleendian */
+        for (c = 0; c < handle->spdif.subFrames; c++) {
+            uint32_t samp;
+            switch (bytesPerSample) {
+            case 1:
+                samp = *pIn++;
+                samp = (samp << 20) | flags;
+                break;
+            case 2:
+                samp = *pIn++;
+                samp |= (*pIn++) << 8;
+                samp = (samp << 12) | flags;
+                break;
+            case 3:
+                samp = *pIn++;
+                samp |= (*pIn++) << 8;
+                samp |= (*pIn++) << 16;
+                samp = (samp << 8) | flags;
+                break;
+            case 4:
+                pIn++; /* skip LSB */
+                samp = *pIn++;
+                samp |= (*pIn++) << 8;
+                samp |= (*pIn++) << 16;
+                samp = (samp << 8) | flags;
+                break;
+            }
+
+#ifdef SOFTWARE_PARITY
+            if (parityodd(samp)) {
+                samp |= 0x80000000;
+            }
+#endif
+            *(uint32_t *)pOut = samp;
+            pOut += 4;
+        }
+        framesToCopy--;
+    }
+    *inSize = totalBytesRead;
+    *outSize = totalBytesWritten;
+    BDBG_WRN(("BAPE_MaiOutput_P_SpdifEncode_Ott_isr: %d/%d", totalBytesRead, totalBytesWritten));
 }
 
 static BERR_Code
@@ -1621,13 +1753,15 @@ BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
 {
     BAPE_MaiOutputHandle handle;
     BERR_Code rc;
+    const BAPE_FMT_Descriptor *pFormat;
 
     handle = output->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
     if (output->mixer == NULL) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle);
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
+    rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle, pFormat->type == BAPE_DataType_eIec60958Raw ? 0 : BAPE_MaiOutput_P_SpdifEncode_Ott_isr, handle);
     if (rc != BERR_SUCCESS) {
         return BERR_TRACE(rc);
     }

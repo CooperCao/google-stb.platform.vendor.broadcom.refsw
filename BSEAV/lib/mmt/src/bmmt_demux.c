@@ -350,6 +350,43 @@ void bmmt_demux_stream_destroy(bmmt_demux_t demux, bmmt_demux_stream_t stream)
     return;
 }
 
+int b_mmt_demux_stream_process_payload_subtitle(bmmt_demux_stream_t stream, const bmmt_mpu_header *mpu, bmmt_timed_mfu_data *mfu)
+{
+    int rc;
+    if(mpu->f_i==0x00) { /* Payload contains one or more complete data units */
+        unsigned mfu_length = mfu->length;
+        rc = stream->config.copy_payload(stream->config.stream_context, stream->frame, &mfu->payload, mfu_length);
+        if(rc!=0) {
+            return BDBG_TRACE_ERROR(rc);
+        }
+        stream->config.stream_data(stream->config.stream_context, stream->frame, &stream->time_info);
+        BMEDIA_PES_UNSET_PTS(&stream->time_info.pes_info);
+        stream->time_info.mpu_time_valid = false;
+        batom_accum_clear(stream->frame);
+    } else {
+        rc = stream->config.copy_payload(stream->config.stream_context, stream->data_unit, &mfu->payload, mfu->length);
+        if(rc!=0) {
+            return BDBG_TRACE_ERROR(rc);
+        }
+        if(mpu->f_i==0x3) { /* Payload contains the last fragment of data unit */
+            batom_cursor cursor;
+            batom_cursor cursor_end;
+            batom_cursor_from_accum(&cursor, stream->data_unit);
+            BATOM_CLONE(&cursor_end,&cursor);
+            batom_cursor_skip(&cursor_end, batom_accum_len(stream->data_unit));
+            if(!batom_accum_append(stream->frame, stream->data_unit, &cursor, &cursor_end)) {
+                return BDBG_TRACE_ERROR(BTLV_RESULT_OUT_OF_MEMORY);
+            }
+            batom_accum_clear(stream->data_unit);
+            stream->config.stream_data(stream->config.stream_context, stream->frame, &stream->time_info);
+            BMEDIA_PES_UNSET_PTS(&stream->time_info.pes_info);
+            stream->time_info.mpu_time_valid = false;
+            batom_accum_clear(stream->frame);
+        }
+    }
+    return 0;
+}
+
 int b_mmt_demux_stream_process_payload_h265(bmmt_demux_stream_t stream, const bmmt_mpu_header *mpu, bmmt_timed_mfu_data *mfu)
 {
     int rc;
@@ -556,6 +593,13 @@ int bmmt_demux_stream_process_payload(bmmt_demux_t demux, bmmt_demux_stream_t st
                         return BDBG_TRACE_ERROR(rc);
                     }
                     break;
+                case bmmt_stream_type_subtitle:
+                    rc = b_mmt_demux_stream_process_payload_subtitle(stream, &mpu, &mfu[i]);
+                    if(rc!=0) {
+                        return BDBG_TRACE_ERROR(rc);
+                    }
+                    break;
+
                 default:
                     break;
                 }

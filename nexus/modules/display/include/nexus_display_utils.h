@@ -53,6 +53,26 @@ typedef enum NEXUS_GraphicsCompression
     NEXUS_GraphicsCompression_eMax
 } NEXUS_GraphicsCompression;
 
+/***************************************************************************
+Summary:
+Processing type for dynamic range processing.
+****************************************************************************/
+typedef enum NEXUS_DynamicRangeProcessingType
+{
+    NEXUS_DynamicRangeProcessingType_ePlm, /* Broadcom Programmable Luminance Mapping */
+    NEXUS_DynamicRangeProcessingType_eDolbyVision,
+    NEXUS_DynamicRangeProcessingType_eTechnicolorPrime,
+    NEXUS_DynamicRangeProcessingType_eMax
+} NEXUS_DynamicRangeProcessingType;
+
+/***************************************************************************
+Summary:
+Dynamic range processing capabilities
+****************************************************************************/
+typedef struct NEXUS_DynamicRangeProcessingCapabilities {
+    bool typesSupported[NEXUS_DynamicRangeProcessingType_eMax]; /* processing types supported */
+} NEXUS_DynamicRangeProcessingCapabilities;
+
 /**
 Summary:
 display module capabilities
@@ -66,9 +86,11 @@ typedef struct NEXUS_DisplayCapabilities
         struct {
             unsigned width, height; /* if 0, graphics is not usable */
             NEXUS_GraphicsCompression compression;
+            NEXUS_DynamicRangeProcessingCapabilities dynamicRangeProcessing;
         } graphics; /* max capability */
         struct {
             unsigned maxWidthPercentage, maxHeightPercentage;
+            NEXUS_DynamicRangeProcessingCapabilities dynamicRangeProcessing;
         } window[NEXUS_MAX_VIDEO_WINDOWS];
     } display[NEXUS_MAX_DISPLAYS];
     bool displayFormatSupported[NEXUS_VideoFormat_eMax]; /* is NEXUS_DisplaySettings.format supported by any display in the system? */

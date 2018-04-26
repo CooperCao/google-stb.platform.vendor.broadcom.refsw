@@ -75,6 +75,9 @@ include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_tools.inc
 APP_INCLUDES += ${BSAGELIB_INCLUDES} ${BSAGELIB_TOOLS_INCLUDES}
 
+include ${MAGNUM_TOP}/portinginterface/hsm/bhsm_defs.inc
+CFLAGS += -DBHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR) -DBHSM_ZEUS_VER_MINOR=$(BHSM_ZEUS_VER_MINOR)
+
 # Custom include paths
 CFLAGS += -I./include -I$(SAGE_TOP)/include/private
 CFLAGS += $(addprefix -I,${BSAGELIB_INCLUDES})

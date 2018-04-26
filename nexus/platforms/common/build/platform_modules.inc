@@ -165,6 +165,8 @@ ifneq ($(NEXUS_AUDIO_SUPPORT),n)
 include $(NEXUS_TOP)/modules/audio/audio.inc
 else
 BINT_RAAGA_DISABLED := y
+NEXUS_ASTM_SUPPORT ?= n
+NEXUS_SYNC_CHANNEL_SUPPORT ?= n
 endif
 ifneq ($(NEXUS_SURFACE_SUPPORT),n)
 include $(NEXUS_TOP)/modules/surface/surface.inc

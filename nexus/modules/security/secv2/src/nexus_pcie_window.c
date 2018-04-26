@@ -76,7 +76,7 @@ NEXUS_Error NEXUS_Security_SetPciEMaxWindowSize( const NEXUS_SecurityPciEMaxWind
     if( !pConfig ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
     if( pConfig->signedCommandLength != NEXUS_SIGNED_COMMAND_SIZE ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
-    rc = NEXUS_Memory_Allocate( sizeof(NEXUS_SignedCommand), NULL, (void*)pSignedCommand );
+    rc = NEXUS_Memory_Allocate( sizeof(NEXUS_SignedCommand), NULL, (void**)&pSignedCommand );
     if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto error; }
 
     NEXUS_GetDefaultSignedCommand( pSignedCommand );

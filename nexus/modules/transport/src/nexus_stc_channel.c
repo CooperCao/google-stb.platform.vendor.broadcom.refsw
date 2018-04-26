@@ -103,7 +103,9 @@ static void NEXUS_StcChannel_P_Finalizer(NEXUS_StcChannelHandle stcChannel)
     /* clean up any leftover enabled pid channels */
     while ((e = BLST_Q_FIRST(&stcChannel->pids))) {
         BDBG_WRN(("Unbalanced EnablePidChannel(%u) for pidChannel %u; disabling", e->refcnt, e->pidChannelIndex));
+#if BXPT_HAS_MOSAIC_SUPPORT
         BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, e->pidChannelIndex);
+#endif
         BLST_Q_REMOVE(&stcChannel->pids, e, link);
         BKNI_Free(e);
     }
@@ -596,7 +598,9 @@ static NEXUS_Error setPcrOffsetSettings(
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     BXPT_PcrOffset_Settings pcr_offset_settings;
+#if BXPT_HAS_MOSAIC_SUPPORT
     bool JitterAdjustmentChange = false;
+#endif
 
 #if B_REFSW_DSS_SUPPORT
     rc = BXPT_DirecTv_PcrOffset_SetPcrMode(stcChannel->pcrOffset, NEXUS_IS_DSS_MODE(transportType)?BXPT_PcrMode_eDirecTv:BXPT_PcrMode_eMpeg);
@@ -674,12 +678,14 @@ static NEXUS_Error setPcrOffsetSettings(
     rc = BXPT_PcrOffset_SetSettings(stcChannel->pcrOffset, &pcr_offset_settings);
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
+#if BXPT_HAS_MOSAIC_SUPPORT
     if (JitterAdjustmentChange) {
         NEXUS_StcChannelPidChannelEntry *e;
         for (e = BLST_Q_FIRST(&stcChannel->pids); e; e = BLST_Q_NEXT(e, link)) {
             BXPT_PcrOffset_ApplyPidChannelSettings(stcChannel->pcrOffset, e->pidChannelIndex);
         }
     }
+#endif
 
 error:
     return rc;
@@ -920,6 +926,7 @@ static NEXUS_Error NEXUS_StcChannel_P_SetStc_isr(NEXUS_StcChannelHandle stcChann
         prevents PTS Errors from raptor which tries to follow a tight TSM threshold. */
         diff = previousStc - stc;
         diff = diff>=0 ? diff:-diff;
+        BDBG_MSG(("Set STC%u=0x%x, prev=0x%x, diff=%#x, thresh=%#x", stcChannel->stcIndex, stc, previousStc, diff, offsetThreshold));
         if (diff > (int32_t)offsetThreshold) {
             NEXUS_Error rc;
             rc = BXPT_PcrOffset_SetStc_isr(stcChannel->pcrOffset, stc);
@@ -3171,6 +3178,7 @@ NEXUS_Error NEXUS_StcChannel_GetSnapshotStatus_priv(NEXUS_StcChannelSnapshotHand
     BXPT_PcrOffset_GetStcSnapshotRegisterOffsets(snapshot->magSnapshot, &regMap);
     pStatus->stcLoAddr = regMap.StcLo;
     pStatus->stcHiAddr = regMap.StcHi;
+    pStatus->index = BXPT_PcrOffset_GetStcSnapshotIndex(snapshot->magSnapshot);
 
     BDBG_MSG(("snapshot %p: stcLoAddr = %#x; stcHiAddr = %#x", (void*)snapshot, pStatus->stcLoAddr, pStatus->stcHiAddr));
     return rc;

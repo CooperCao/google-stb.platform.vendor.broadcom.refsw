@@ -690,7 +690,8 @@ typedef struct BVCE_P_Channel_Context
             bool bLastOriginalPTSValid;
             uint32_t ulLastOriginalPTS;
 
-            uint64_t uiNextNewPTSIn360Khz; /* PTS of incoming pictures for NRT mode */
+            uint64_t uiNextNewPTSIn360Khz; /* PTS of incoming pictures */
+            bool bNextNewPTSIn360Khz;
             uint64_t uiNextSTCIn360Khz; /* STC for NRT mode */
 
             bool bNextTargetPTSin360KhzValid;

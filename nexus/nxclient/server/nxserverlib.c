@@ -3159,16 +3159,7 @@ static int init_session(nxserver_t server, unsigned index)
         session->display[session_display_index].display = NEXUS_Display_Open(server->global_display_index, &displaySettings);
         server->global_display_index++;
         if (session->display[session_display_index].display) {
-#if NEXUS_VBI_SUPPORT
-            NEXUS_DisplayVbiSettings vbiSettings;
-#endif
             NEXUS_VideoFormat_GetInfo(displaySettings.format, &session->display[session_display_index].formatInfo);
-#if NEXUS_VBI_SUPPORT
-            NEXUS_Display_GetVbiSettings(session->display[session_display_index].display, &vbiSettings);
-            vbiSettings.closedCaptionEnabled = true;
-            rc = NEXUS_Display_SetVbiSettings(session->display[session_display_index].display, &vbiSettings);
-            if (rc) BERR_TRACE(rc); /* keep going */
-#endif
         }
         else {
             BDBG_WRN(("unable to open display 1 as slave display"));
@@ -3599,8 +3590,8 @@ void NxClient_P_GetDisplaySettings(nxclient_t client, struct b_session *session,
     if (client) {
         /* hdcp is per-client */
         pSettings->hdmiPreferences.hdcp = client->hdcp_level;
+        pSettings->hdmiPreferences.version = client->hdcp_version;
     }
-    pSettings->hdmiPreferences.version = session->hdcp.version_select;
 }
 
 
@@ -4044,7 +4035,10 @@ static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_
 
     /* SD outputs */
     if (server->settings.session[session->index].output.sd && pSettings->compositePreferences.enabled) {
-        bool hdDisplayisSdFormat = session->display[0].formatInfo.height <= 576 && session->display[0].formatInfo.interlaced;
+        NEXUS_VideoFormatInfo info;
+        bool hdDisplayisSdFormat;
+        NEXUS_VideoFormat_GetInfo(pSettings->format, &info);
+        hdDisplayisSdFormat = (info.height <= 576) && info.interlaced;
         /* for graphics-only SD system move SD outputs to HD display if HD display is in SD format */
         if (session->display[1].display && !(session->display[1].graphicsOnly && hdDisplayisSdFormat)) {
             display = session->display[1].display;
@@ -4056,13 +4050,21 @@ static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_
     else {
         display = NULL;
     }
+
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     if (server->platformConfig.outputs.composite[0]) {
         if ((session->composite.display != display) && session->composite.display) {
             NEXUS_Display_RemoveOutput(session->composite.display, NEXUS_CompositeOutput_GetConnector(server->platformConfig.outputs.composite[0]));
         }
         if ((session->composite.display != display) && display) {
+            NEXUS_DisplayVbiSettings vbiSettings;
+            NEXUS_Error rc;
+
             NEXUS_Display_AddOutput(display, NEXUS_CompositeOutput_GetConnector(server->platformConfig.outputs.composite[0]));
+            NEXUS_Display_GetVbiSettings(display, &vbiSettings);
+            vbiSettings.closedCaptionEnabled = true;
+            rc = NEXUS_Display_SetVbiSettings(display, &vbiSettings);
+            if (rc) BERR_TRACE(rc); /* keep going */
         }
     }
 #endif

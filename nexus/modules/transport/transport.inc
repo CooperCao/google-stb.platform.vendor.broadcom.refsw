@@ -68,7 +68,8 @@ endif
 ifeq ($(NEXUS_USE_ASTRA_FOR_SWXPT),y)
 NEXUS_TRANSPORT_DEFINES += NEXUS_USE_ASTRA_FOR_SWXPT=1
 endif
-ifneq ($(findstring $(BCHP_CHIP),7211),)
+ifeq ($(wildcard ${BCHP_RDB_PATH}/bchp_ott_xpt_cdb_itb.h),)
+NEXUS_USE_FAKE_OTT_TRANSPORT=y
 NEXUS_TRANSPORT_DEFINES += NEXUS_USE_FAKE_OTT_TRANSPORT=1
 endif
 endif
@@ -183,8 +184,15 @@ NEXUS_TRANSPORT_MAGNUM_MODULES =  \
     $(MAGNUM)/syslib/pcrlib/bpcrlib.inc
 
 ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
+ifeq ($(NEXUS_USE_FAKE_OTT_TRANSPORT),y)
+NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
+    $(MAGNUM)/portinginterface/ott/bott.inc \
+    $(MAGNUM)/portinginterface/xpt/bxpt.inc \
+    $(MAGNUM)/portinginterface/xpt/bxpt_auth.inc
+else
 NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
     $(MAGNUM)/portinginterface/ott/bott.inc
+endif
 else
 NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
     $(MAGNUM)/portinginterface/xpt/bxpt.inc \

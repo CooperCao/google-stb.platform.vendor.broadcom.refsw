@@ -1527,10 +1527,6 @@ BPCRlib_Channel_GetStc(BPCRlib_Channel chn, uint32_t *stc)
     BKNI_EnterCriticalSection();
     /* Systems with PCROFFSET require the aux_transport setting and do not use the pcr setting. */
     *stc = BXPT_PcrOffset_GetStc_isr(chn->cfg.aux_transport) + BXPT_PcrOffset_GetOffset_isr(chn->cfg.aux_transport);
-    if (rc!=BERR_SUCCESS) {
-        rc = BERR_TRACE(rc);
-        goto done;
-    }
     if (!chn->cfg.playback || chn->cfg.mode!=BPCRlib_Mode_eConstantDelay) {
         goto done;
     }

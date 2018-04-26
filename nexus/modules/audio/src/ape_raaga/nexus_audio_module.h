@@ -210,16 +210,9 @@ typedef struct NEXUS_AudioDecoder
     bool suspended;
     BAPE_DecoderHandle channel;
     BAPE_DecoderStartSettings apeStartSettings;
-    void* sageAudioHandle;
-    bool sageAudioCapable;
-    bool forceSarmRaveConfiguration;
-    bool sageAudioEnabled;
-    bool srcRaveCxtConfigured,dstRaveCxtConfigured;
-    #if NEXUS_HAS_SAGE
-    NEXUS_SageAudioStartSettings sageAudioSettings;
-    #endif
+    bool raveCxtConfigured;
     NEXUS_RaveStatus raveStatus;
-    NEXUS_RaveHandle srcRaveContext, dstRaveContext;
+    NEXUS_RaveHandle raveContext;
     NEXUS_RaveHandle savedRaveContext;
     NEXUS_AudioDecoderPrimerHandle primer;
     BKNI_EventHandle sampleRateEvent;
@@ -301,7 +294,7 @@ typedef struct NEXUS_AudioDecoder
     struct {
         NEXUS_AudioRaveMonitorHandle monitor;
         NEXUS_AudioRaveMonitorStartSettings startSettings;
-    } srcRaveMonitor, dstRaveMonitor;
+    } raveMonitor;
     #endif
 } NEXUS_AudioDecoder;
 

@@ -293,6 +293,12 @@ typedef struct BVDC_P_VipContext
     BVDC_P_VipShiftedBufferQueue  stDeliverQshifted;/* deliver Q to encoder (shifted chroma) */
     BVDC_P_VipAssocBufferNode    *pToCaptureShifted, *pCaptureShifted; /* intermediate shifted chroma buffers */
 
+    /* 4-field ITFP queue */
+    struct {
+       BVDC_P_VipBufferNode      *pPic;
+       BVDC_P_VipAssocBufferNode *pDecim1v, *pDecim2v, *pChroma, *pShifted;
+    } astItfpPicQ[BVDC_P_ITFP_PREPROCESSOR_PIC_QUEUE_SIZE];
+
     /* flag initial state, requires reset; */
     bool                           bInitial;
     uint32_t                       ulResetRegAddr;

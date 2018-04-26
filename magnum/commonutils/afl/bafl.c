@@ -144,12 +144,16 @@ BERR_Code BAFL_Load ( const uint32_t uiDevice,
    if (rc != BERR_SUCCESS)
    {
       BDBG_ERR(("unable to read image header"));
+      pImgInterface->close(pImage);
+      /* coverity[leaked_storage] - coverity mismatches open and close, resulting in false detection */
       return BERR_TRACE(rc);
    }
 
    if (pImageHeader->uiDevice != uiDevice)
    {
       BDBG_ERR(("Incorrect image load device:%08x for intended device: %08x ", pImageHeader->uiDevice, uiDevice));
+      pImgInterface->close(pImage);
+      /* coverity[leaked_storage] - coverity mismatches open and close, resulting in false detection */
       return BERR_TRACE(BERR_INVALID_PARAMETER);
    }
 
@@ -161,6 +165,8 @@ BERR_Code BAFL_Load ( const uint32_t uiDevice,
    if (!pElfInfo)
    {
       BDBG_ERR(("unable to allocate Elf Info structure"));
+      pImgInterface->close(pImage);
+      /* coverity[leaked_storage] - coverity mismatches open and close, resulting in false detection */
       return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
    }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  **************************************************************************/
 #include "nexus_dma_module.h"
 #include "nexus_base.h"
@@ -784,3 +781,69 @@ NEXUS_DmaJob_ProcessBlocks_priv(NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlo
     return NEXUS_DmaJob_P_ProcessBlocks(handle, pSettings, nBlocks);
 }
 
+void NEXUS_DmaJob_GetDefaultBlockDirectSettings( NEXUS_DmaJobBlockDirectSettings *pSettings)
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    return;
+}
+
+NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const NEXUS_DmaJobBlockDirectSettings *pSettings, unsigned nBlocks)
+{
+    NEXUS_Error errCode;
+    BMMD_ContextBlockSettings *blockSettings = handle->blockSettings;
+    uint32_t srcOffset, dstOffset;
+    unsigned i, dmaLength = 0;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_DmaJob);
+
+    BDBG_MSG(("  started job:%#lx nBlocks:%u", (unsigned long)handle, nBlocks));
+
+    if(!NEXUS_P_CpuAccessibleAddress(pSettings)) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
+    for (i=0; i<nBlocks; i++,pSettings++) {
+        srcOffset = pSettings->srcOffset;
+        dstOffset = pSettings->destOffset;
+
+        BMMD_Context_GetDefaultBlockSettings(&blockSettings[i]);
+        blockSettings[i].src = srcOffset;
+        blockSettings[i].dst = dstOffset;
+        blockSettings[i].size = pSettings->blockSize;
+        blockSettings[i].resetCrypto = pSettings->resetCrypto;
+        blockSettings[i].sgScramStart = pSettings->scatterGatherCryptoStart;
+        blockSettings[i].sgScramEnd = pSettings->scatterGatherCryptoEnd;
+
+        dmaLength += pSettings->blockSize;
+    }
+    handle->flushAfter = false; /* pSettings->cached is ignored */
+
+    handle->state = NEXUS_DmaJob_P_StateQueued;
+    errCode = BMMD_Context_Enqueue(handle->ctx, blockSettings, nBlocks); /* ISR callback may fire before this function returns, which is fine */
+    switch (errCode) {
+        case BERR_SUCCESS: /* completed */
+            handle->state = NEXUS_DmaJob_P_StateIdle;
+            goto completed;
+            break;
+        case BMMD_QUEUED:
+            if (dmaLength <= handle->settings.busyWaitThreshold) {
+                unsigned busyWait = handle->settings.busyWait;
+                for(; busyWait>0; busyWait--) {
+                    BKNI_Delay(1);
+                    if (handle->state==NEXUS_DmaJob_P_StateIdle) {
+                        goto completed;
+                    }
+                }
+            }
+            break;
+        default:
+            handle->state = NEXUS_DmaJob_P_StateIdle;
+            return BERR_TRACE(errCode);
+    }
+
+    BDBG_MSG(("   queued job:%#lx", (unsigned long)handle));
+    return NEXUS_DMA_QUEUED;
+completed:
+    return NEXUS_SUCCESS;
+}

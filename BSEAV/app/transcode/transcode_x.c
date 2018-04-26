@@ -53,7 +53,7 @@
 
 int main(int argc, const char *argv[]) {
 
-    printf("\n\nVideo Encoder/Transcode is not supported on this platform\n\n");
+    BKNI_Printf("\n\nVideo Encoder/Transcode is not supported on this platform\n\n");
     return 0;
 }
 
@@ -130,6 +130,7 @@ int main(int argc, const char *argv[]) {
 BDBG_MODULE(transcode_x);
 BDBG_FILE_MODULE(trnsx_input);
 BDBG_FILE_MODULE(trnsx_dbg);
+BDBG_FILE_MODULE(trnsx_dbg_audio);
 BDBG_FILE_MODULE(trnsx_echo);
 BDBG_FILE_MODULE(trnsx_parse);
 
@@ -141,12 +142,14 @@ BDBG_FILE_MODULE(trnsx_parse);
 /*
  * Local data types.
  */
-
+/*
 #if NEXUS_HAS_SYNC_CHANNEL
 #define BTST_ENABLE_AV_SYNC 1
 #else
 #define BTST_ENABLE_AV_SYNC 0
 #endif
+*/
+#define BTST_ENABLE_AV_SYNC 0
 
 /* matching audio xcoders per DSP core with video */
 #if NEXUS_NUM_VCE_CHANNELS
@@ -749,8 +752,7 @@ typedef struct TRNSX_Transcode
         NEXUS_AudioDecoderHandle    audioDecoder;
         NEXUS_StcChannelHandle      stcChannel;
         NEXUS_PidChannelHandle      pidChannel;
-
-        NEXUS_AudioMuxOutputHandle  audioMuxOutput;
+        NEXUS_AudioMixerHandle      audioMixer;
 
 #if BTST_ENABLE_AV_SYNC
         NEXUS_SyncChannelHandle     syncChannel;
@@ -773,11 +775,18 @@ typedef struct TRNSX_Transcode
     /*** Audio Encoder ***/
     struct
     {
-        NEXUS_AudioMixerHandle      audioMixer;     /* right place for this? */
         NEXUS_AudioEncoderHandle    audioEncoder;
         NEXUS_AudioEncoderSettings  encoderSettings;
 
     } audioEncoder;
+
+    /*** Audio Mux Output ***/
+    struct
+    {
+        NEXUS_AudioMuxOutputHandle          audioMuxOutput;
+        NEXUS_AudioMuxOutputStartSettings   startSettings;
+
+    } audioMuxOutput;
 
     /*** Video Decoder ***/
     struct
@@ -991,7 +1000,7 @@ typedef struct TRNSX_TestContext
  */
 static NEXUS_Error TRNSX_Playback_Start( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans );
 static NEXUS_Error TRNSX_Playback_Stop( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans );
-
+static NEXUS_Error TRNSX_AudioDecoder_Start( TRNSX_TestContext *  pCtxt, TRNSX_Transcode * pTrans );
 
 /*
  * Utilities
@@ -1004,10 +1013,10 @@ static void print_value_list(const namevalue_t *table)
     for (i=0;table[i].name;i++) {
         /* skip aliases */
         if (i > 0 && table[i].value == table[i-1].value) continue;
-        printf("%s (%u)%s",sep,table[i].value, table[i].name);
+        BKNI_Printf("%s (%u)%s",sep,table[i].value, table[i].name);
         sep = ",";
     }
-    printf(" }\n");
+    BKNI_Printf(" }\n");
 }
 
 int TRNSX_MediaProbe(
@@ -1214,31 +1223,28 @@ static void TRNSX_Print_VideoDecoderStatus( NEXUS_VideoDecoderStatus * pstStatus
 
 static void TRNSX_Print_AudioDecoderStatus( NEXUS_AudioDecoderStatus * pstStatus )
 {
-   printf("  data buffer depth     = %u\n", pstStatus->fifoDepth);
-   printf("  data buffer size      = %u\n", pstStatus->fifoSize);
-   printf("  sample rate           = %u\n", pstStatus->sampleRate);
-   printf("  queued frames         = %u\n", pstStatus->queuedFrames);
-   printf("  numDecoded count      = %u\n", pstStatus->framesDecoded);
-   printf("  numDummyFrames        = %u\n", pstStatus->dummyFrames);
-   printf("  numFifoOverflows      = %u\n", pstStatus->numFifoOverflows);
-   printf("  numFifoUnderflows     = %u\n", pstStatus->numFifoUnderflows);
-   printf("  current PTS (45KHz)   = 0x%x\n", pstStatus->pts);
-   printf("  PTS error count       = %u\n", pstStatus->ptsErrorCount);
-
-#if 0
-   NEXUS_AudioMuxOutput_GetStatus(pTrans->audioDecoder.audioMuxOutput, &audioMuxOutputStatus);
-   printf("Audio mux output[%d] Status:\n", pTrans->uiIndex);
-   printf("----------------------\n");
-   printf("data buffer depth     = %u\n", audioMuxOutputStatus.data.fifoDepth);
-   printf("data buffer size      = %u\n", audioMuxOutputStatus.data.fifoSize);
-   printf("numEncoded frames     = %u\n", audioMuxOutputStatus.numFrames);
-   printf("numErrorFrames        = %u\n", audioMuxOutputStatus.numErrorFrames);
-   printf("----------------------\n\n");
-#endif
-
+    BKNI_Printf("  data buffer depth     = %u\n", pstStatus->fifoDepth);
+    BKNI_Printf("  data buffer size      = %u\n", pstStatus->fifoSize);
+    BKNI_Printf("  sample rate           = %u\n", pstStatus->sampleRate);
+    BKNI_Printf("  queued frames         = %u\n", pstStatus->queuedFrames);
+    BKNI_Printf("  numDecoded count      = %u\n", pstStatus->framesDecoded);
+    BKNI_Printf("  numDummyFrames        = %u\n", pstStatus->dummyFrames);
+    BKNI_Printf("  numFifoOverflows      = %u\n", pstStatus->numFifoOverflows);
+    BKNI_Printf("  numFifoUnderflows     = %u\n", pstStatus->numFifoUnderflows);
+    BKNI_Printf("  current PTS (45KHz)   = 0x%x\n", pstStatus->pts);
+    BKNI_Printf("  PTS error count       = %u\n", pstStatus->ptsErrorCount);
     return;
-
 }
+
+static void TRNSX_Print_AudioMuxOutputStatus( NEXUS_AudioMuxOutputStatus * pstStatus )
+{
+    BKNI_Printf("  data buffer depth     = %u\n", pstStatus->data.fifoDepth);
+    BKNI_Printf("  data buffer size      = %u\n", pstStatus->data.fifoSize);
+    BKNI_Printf("  numEncoded frames     = %u\n", pstStatus->numFrames);
+    BKNI_Printf("  numErrorFrames        = %u\n", pstStatus->numErrorFrames);
+    return;
+}
+
 static void TRNSX_Print_VideoEncoderSetSettings(
     NEXUS_VideoEncoderSettings *  pstSettings
     )
@@ -1862,7 +1868,7 @@ static void TRNSX_Util_StcChannel_Open(
             pTrans->audioDecoder.stcChannel = pTrans->videoEncoder.stcChannel;
             BDBG_ASSERT(pTrans->videoEncoder.stcChannel);
 
-            BDBG_MODULE_MSG(trnsx_dbg,("%s:: NRT mode session:%d video STC is unique, audio and encoder share a STC", BSTD_FUNCTION, pTrans->uiIndex ));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: NRT mode video STC is unique, audio and encoder share a STC", BSTD_FUNCTION, pTrans->uiIndex ));
         }
         else
         {
@@ -1883,13 +1889,13 @@ static void TRNSX_Util_StcChannel_Open(
             pTrans->videoEncoder.stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
             BDBG_ASSERT(pTrans->videoEncoder.stcChannel);
 
-            BDBG_MODULE_MSG(trnsx_dbg,("%s:: RT mode session:%d video and audio share a STC, encoder STC si unique", BSTD_FUNCTION, pTrans->uiIndex ));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: RT mode video and audio share a STC, encoder STC is unique", BSTD_FUNCTION, pTrans->uiIndex ));
 
         }
     }
     else
     {
-        BDBG_ERR(("%s:: only support source type of file", BSTD_FUNCTION));
+        BDBG_ERR(("%s[%d]:: only support source type of file", BSTD_FUNCTION, pTrans->uiIndex ));
         BDBG_ASSERT(0);
     }
 
@@ -2244,8 +2250,6 @@ static void TRNSX_StreamMux_PsiMessageCallback(void *context, int param)
 #define DESCRIPTOR_BASE(buf) (&buf[TS_PSI_LAST_SECTION_NUMBER_OFFSET+5])
 #define STREAM_BASE(buf) (TS_PSI_LAST_SECTION_NUMBER_OFFSET + 5 + PROGRAM_INFO_LENGTH(buf))
 
-#if 1
-
 static int TS_PMT_P_getStreamByteOffset( const uint8_t *buf, unsigned bfrSize, int streamNum )
 {
     int byteOffset;
@@ -2290,7 +2294,7 @@ int TRNSX_StreamMux_SystemData_AddPsiFilter(
     if (!msg) {
         return -1;
     }
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: adding PSI filter[%u] for PID %u", BSTD_FUNCTION, i, pid));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: adding PSI filter[%u] for PID %u", BSTD_FUNCTION, pTrans->uiIndex, i, pid));
 
     /*if(pTrans->source.eType == TRNSX_Source_eFile) */
     {
@@ -2348,7 +2352,7 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
     /* to get input PMT, need to set up message filter */
     BKNI_CreateEvent(&event);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: starting PSI filter PID = %u", BSTD_FUNCTION, pTrans->source.uiPmtPid));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: starting PSI filter PID = %u", BSTD_FUNCTION, pTrans->uiIndex, pTrans->source.uiPmtPid));
 
     /* if user specified PMT PID, msg[0] is for the PMT; else msg[0] is for PAT; */
     TRNSX_StreamMux_SystemData_AddPsiFilter(pCtxt, pTrans, pTrans->source.uiPmtPid, event);
@@ -2362,7 +2366,7 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
 
         if (count == BTST_MAX_MESSAGE_FILTERS) {
             count = 0;
-            if(++loop > BTST_MAX_MESSAGE_FILTERS) {BDBG_ERR(("%s:: failed to get input user data PMT!", BSTD_FUNCTION)); rc = -1; break;}
+            if(++loop > BTST_MAX_MESSAGE_FILTERS) {BDBG_ERR(("%s[%d]:: failed to get input user data PMT!", BSTD_FUNCTION, pTrans->uiIndex)); rc = -1; break;}
         }
 
         if (!pTrans->streamMux.userData.psi_message[count].message || pTrans->streamMux.userData.psi_message[count].done) {
@@ -2375,7 +2379,7 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
         if (!size) {
             BERR_Code rc = BKNI_WaitForEvent(event, 5 * 1000); /* wait 5 seconds */
             if (rc == NEXUS_TIMEOUT) {
-                BDBG_WRN(("%s:: no PSI messages", BSTD_FUNCTION));
+                BDBG_WRN(("%s[%d]:: no PSI messages", BSTD_FUNCTION,pTrans->uiIndex));
                 rc = -1;
                 break;
             }
@@ -2386,16 +2390,16 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
         /* We should always get whole PAT's because maxContiguousMessageSize is 4K */
         message_length = TS_PSI_GET_SECTION_LENGTH(buffer) + 3;
         BDBG_ASSERT(size >= (size_t)message_length);
-        BDBG_MODULE_MSG(trnsx_dbg,("%s:: message[%u] size = "BDBG_UINT64_FMT", table ID = %u", BSTD_FUNCTION, count, BDBG_UINT64_ARG((uint64_t)size), buffer[0]));
+        BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: message[%u] size = "BDBG_UINT64_FMT", table ID = %u", BSTD_FUNCTION, pTrans->uiIndex, count, BDBG_UINT64_ARG((uint64_t)size), buffer[0]));
 
         if (buffer[0] == 0) {
             /* 1) Program Association Table */
-            BDBG_MODULE_MSG(trnsx_dbg,("%s:: PAT: size=%d", BSTD_FUNCTION, message_length));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: PAT: size=%d", BSTD_FUNCTION, pTrans->uiIndex, message_length));
             for (programNum=0;programNum<(unsigned)(TS_PSI_GET_SECTION_LENGTH(buffer)-7)/4;programNum++) {
                 unsigned byteOffset = 8 + programNum*4;
                 unsigned program = TS_READ_16( &buffer[byteOffset] );
                 unsigned short pid = (uint16_t)(TS_READ_16( &buffer[byteOffset+2] ) & 0x1FFF);
-                BDBG_MODULE_MSG(trnsx_dbg,("%s::  program %d: PID %u", BSTD_FUNCTION, program, pid));
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]::  program %d: PID %u", BSTD_FUNCTION, pTrans->uiIndex, program, pid));
                 /* add PMT filters for all programs */
                 TRNSX_StreamMux_SystemData_AddPsiFilter(pCtxt, pTrans, pid, event);
             }
@@ -2404,32 +2408,32 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
             TS_PMT_stream pmtStream;
 
             /* Program Table */
-            BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d found PMT PID[%u]:\nprogram number %d size=%d", BSTD_FUNCTION, pTrans->uiIndex,
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: found PMT PID[%u]:\nprogram number %d size=%d", BSTD_FUNCTION, pTrans->uiIndex,
                 pTrans->streamMux.userData.psi_message[count].pid, TS_READ_16(&buffer[3]), message_length));
             /* need to validate the PMT section */
             if(!TS_PMT_validate(buffer, size)) {BDBG_ERR(("invalid PMT")); goto Done_getUserDataPsi;}
 
             streamNum = TS_PMT_getNumStreams(buffer, size);
-            BDBG_MODULE_MSG(trnsx_dbg,("%s:: total streams: %d", BSTD_FUNCTION,  streamNum));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: total streams: %d", BSTD_FUNCTION, pTrans->uiIndex, streamNum));
 
             /* 2) search for all streams to match the video PID if no specified PMT PID */
             if( 0 == pTrans->source.uiPmtPid)
             {
-                BDBG_MODULE_MSG(trnsx_dbg,("%s:: PMT PID is 0, search PMT table", BSTD_FUNCTION));
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: PMT PID is 0, search PMT table", BSTD_FUNCTION,pTrans->uiIndex));
                 for (i=0;i<streamNum;i++)
                 {
                     TS_PMT_getStream(buffer, size, i, &pmtStream);
-                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tPID: %d, stream_type: %d", BSTD_FUNCTION, pmtStream.elementary_PID, pmtStream.stream_type));
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: \tPID: %d, stream_type: %d", BSTD_FUNCTION, pTrans->uiIndex, pmtStream.elementary_PID, pmtStream.stream_type));
                     if(pmtStream.elementary_PID == pTrans->source.iVideoPid)
                     {
-                        BDBG_MODULE_MSG(trnsx_dbg,("%s:: Found matching video PID!",BSTD_FUNCTION));
+                        BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: Found matching video PID!",BSTD_FUNCTION,pTrans->uiIndex));
                         break;
                     }
                 }
                 if(i == streamNum)
                 {
                     /* not found so continue to next PMT */
-                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: pass:%d did not find PMT table with video PID:%d",BSTD_FUNCTION, count, pTrans->source.iVideoPid ));
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: pass:%d did not find PMT table with video PID:%d",BSTD_FUNCTION, pTrans->uiIndex,count, pTrans->source.iVideoPid ));
                     goto Done_getUserDataPsi;
 
                 }
@@ -2454,8 +2458,8 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
                         ++num;
                         if(num >= NEXUS_MAX_MUX_PIDS) break;
                     }
-                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tset source user data PID: %d with elementary_PID: %x (%d)",
-                                            BSTD_FUNCTION, num, pmtStream.elementary_PID,pmtStream.elementary_PID));
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: \tset source user data PID: %d with elementary_PID: %x (%d)",
+                                            BSTD_FUNCTION, pTrans->uiIndex, num, pmtStream.elementary_PID,pmtStream.elementary_PID));
                     pTrans->source.userData.pids[num] = pmtStream.elementary_PID;
                 } else {
                     for(num=0; num < pTrans->streamMux.userData.numPids; num++) {
@@ -2469,7 +2473,7 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
                 }
 
                 /* 4) save user data PSI info */
-                BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tuser data PID: %d, stream_type: %d\n", BSTD_FUNCTION, pmtStream.elementary_PID, pmtStream.stream_type));
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: \tuser data PID: %d, stream_type: %d\n", BSTD_FUNCTION, pTrans->uiIndex, pmtStream.elementary_PID, pmtStream.stream_type));
                 /* save pmt stream info and remap PID */
                 pTrans->streamMux.userData.streams[num].stPMTStream = pmtStream;
 
@@ -2482,11 +2486,11 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
                 /* save stream descriptor size */
                 streamOffset = TS_PMT_P_getStreamByteOffset(buffer, size, i);
                 pTrans->streamMux.userData.streams[num].iLengthDesc = TS_READ_16(&buffer[streamOffset+3])&0x3FF;
-                BDBG_MODULE_MSG(trnsx_dbg,("%s:: \tdescriptor length: %d\n", BSTD_FUNCTION, pTrans->streamMux.userData.streams[num].iLengthDesc));
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: \tdescriptor length: %d\n", BSTD_FUNCTION, pTrans->uiIndex, pTrans->streamMux.userData.streams[num].iLengthDesc));
 
                 /* sanity check descriptor size */
                 if(pTrans->streamMux.userData.streams[num].iLengthDesc > 188) {
-                BDBG_ERR(("%s:: User data descriptor length %d too long!",BSTD_FUNCTION,  pTrans->streamMux.userData.streams[num].iLengthDesc));
+                BDBG_ERR(("%s[%d]:: User data descriptor length %d too long!",BSTD_FUNCTION, pTrans->uiIndex,  pTrans->streamMux.userData.streams[num].iLengthDesc));
                     pTrans->streamMux.userData.streams[num].bValid = false;/* invalidate */
                     goto Done_getUserDataPsi;
                 }
@@ -2496,7 +2500,7 @@ static void TRNSX_StreamMux_SystemData_GetUserDataPsiFromPmt(
             }
             if(pTrans->streamMux.userData.numPids == BTST_TS_USER_DATA_ALL) {
                 pTrans->streamMux.userData.numPids = num+1;/* found num of user data streams */
-                BDBG_MODULE_MSG(trnsx_dbg,("%s:: Context%d found "BDBG_UINT64_FMT" user data PIDs to pass through.", BSTD_FUNCTION, pTrans->uiIndex, BDBG_UINT64_ARG((uint64_t)pTrans->streamMux.userData.numPids)));
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: found "BDBG_UINT64_FMT" user data PIDs to pass through.", BSTD_FUNCTION, pTrans->uiIndex, BDBG_UINT64_ARG((uint64_t)pTrans->streamMux.userData.numPids)));
             }
 
         }
@@ -2545,7 +2549,7 @@ Done_getUserDataPsi:
 }
 
 /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
-#endif
+
 
 #define BTST_TS_HEADER_BUF_LENGTH   189
 
@@ -2618,11 +2622,11 @@ void TRNSX_StreamMux_SystemData_AddPatPmt(
 
     TS_PAT_finalize(&patState, &pat_pl_size);
     TS_PMT_finalize(&pmtState, &pmt_pl_size);
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d output PMT section:", BSTD_FUNCTION, pTrans->uiIndex));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: output PMT section:", BSTD_FUNCTION, pTrans->uiIndex));
 
     for(i=0; i < (int)pmtState.size; i+=8)
     {
-        BDBG_MODULE_MSG(trnsx_dbg,("%s:: %02x %02x %02x %02x %02x %02x %02x %02x", BSTD_FUNCTION,
+        BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: %02x %02x %02x %02x %02x %02x %02x %02x", BSTD_FUNCTION, pTrans->uiIndex,
         pmtState.buf[i], pmtState.buf[i+1], pmtState.buf[i+2], pmtState.buf[i+3],
             pmtState.buf[i+4], pmtState.buf[i+5], pmtState.buf[i+6], pmtState.buf[i+7]));
     }
@@ -2640,11 +2644,11 @@ void TRNSX_StreamMux_SystemData_AddPatPmt(
     TS_buildTSHeader(&pidInfo, &pidState, pTrans->streamMux.pmt[0], BTST_TS_HEADER_BUF_LENGTH, &buf_used, pmtState.size, &payload_pked, 1);
     BKNI_Memcpy((uint8_t*)pTrans->streamMux.pmt[0] + buf_used, pmt_pl_buf, pmt_pl_size);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d output PMT packet:", BSTD_FUNCTION, pTrans->uiIndex));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: output PMT packet:", BSTD_FUNCTION, pTrans->uiIndex));
 
     for(i=0; i < BTST_TS_HEADER_BUF_LENGTH; i+=8)
     {
-        BDBG_MODULE_MSG(trnsx_dbg,("%s:: %02x %02x %02x %02x %02x %02x %02x %02x", BSTD_FUNCTION,
+        BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: %02x %02x %02x %02x %02x %02x %02x %02x", BSTD_FUNCTION, pTrans->uiIndex,
             *((uint8_t*)pTrans->streamMux.pmt[0]+i),
             *((uint8_t*)pTrans->streamMux.pmt[0]+i+1),
             *((uint8_t*)pTrans->streamMux.pmt[0]+i+2),
@@ -2683,7 +2687,7 @@ static void TRNSX_StreamMux_SystemData_InsertTimer(void *context)
     NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[0]);
     NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[1]);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d insert PAT&PMT... ccPAT = %x ccPMT=%x",
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: insert PAT&PMT... ccPAT = %x ccPMT=%x",
                         BSTD_FUNCTION, pTrans->uiIndex,
                         *((uint8_t*)pTrans->streamMux.pat[pTrans->streamMux.ccValue % BTST_PSI_QUEUE_CNT] + 4) & 0xf,
                         *((uint8_t*)pTrans->streamMux.pmt[pTrans->streamMux.ccValue  % BTST_PSI_QUEUE_CNT] + 4) & 0xf));
@@ -2692,7 +2696,7 @@ static void TRNSX_StreamMux_SystemData_InsertTimer(void *context)
     {
         pTrans->streamMux.systemdataTimer = B_Scheduler_StartTimer(
             pTrans->streamMux.schedulerSystemdata,pTrans->streamMux.mutexSystemdata, 1000, TRNSX_StreamMux_SystemData_InsertTimer, pTrans);
-        if(pTrans->streamMux.systemdataTimer==NULL) {BDBG_ERR(("schedule timer error %d", NEXUS_OUT_OF_SYSTEM_MEMORY));}
+        if(pTrans->streamMux.systemdataTimer==NULL) {BDBG_ERR(("%s[%d]:: schedule timer error %d", BSTD_FUNCTION, pTrans->uiIndex,  NEXUS_OUT_OF_SYSTEM_MEMORY));}
     }
     return;
 }
@@ -2710,7 +2714,7 @@ static void TRNSX_StreamMux_SystemData_Open(
 
     BSTD_UNUSED(audCodec);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->playback.eState )));
 
     /* TODO: add error checking for proper sequencing. */
     pTrans->streamMux.eState = TRNSX_State_eOpened;
@@ -2741,7 +2745,7 @@ static void TRNSX_StreamMux_SystemData_Open(
 #if 0
     if(pContext->encodeSettings.bAudioEncode)
     {/* audio transcode */
-        audCodec = pContext->encodeSettings.encoderAudioCodec;
+        audCodec = pTrans->audioEncoder.encoderSettings.codec;
         audPid = pTrans->streamMux.uiAudioPid;
     }
     else if(pTrans->streamMux.bEncodingAudio)
@@ -2793,7 +2797,7 @@ static void TRNSX_StreamMux_SystemData_Open(
     pTrans->streamMux.psi[1].timestampDelta = 0;
     NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[0]);
     NEXUS_StreamMux_AddSystemDataBuffer(pTrans->streamMux.streamMux, &pTrans->streamMux.psi[1]);
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: insert PAT&PMT... ccPAT = %x ccPMT=%x", BSTD_FUNCTION,
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: insert PAT&PMT... ccPAT = %x ccPMT=%x", BSTD_FUNCTION, pTrans->uiIndex,
                         *((uint8_t*)pTrans->streamMux.pat[0] + 4) & 0xf,
                         *((uint8_t*)pTrans->streamMux.pmt[0] + 4) & 0xf));
 
@@ -2872,7 +2876,6 @@ static void TRNSX_StreamMux_SystemData_Close(
     }
 }
 
-#if will_this_be_needed
 /************************************
  * Set up encoder AV sync.
  * encode setting and startSetting to be set after end-to-end delay is determined */
@@ -2885,15 +2888,17 @@ static void TRNSX_StreamMux_SystemData_Close(
 *       vDee' = aDee' = vDee;
 *   }
 */
-static void xcode_av_sync(
-    TranscodeContext  *pContext,
-    NEXUS_VideoEncoderSettings *pVideoEncoderConfig,
-    NEXUS_VideoEncoderStartSettings *pVideoEncoderStartConfig )
+static void TRNSX_StreamMux_AV_Sync(
+    TRNSX_TestContext *  pCtxt,
+    TRNSX_Transcode * pTrans
+    )
 {
     NEXUS_VideoEncoderDelayRange videoDelay;
     NEXUS_AudioMuxOutputDelayStatus audioDelayStatus;
-    NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
+
     unsigned Dee = 0;
+
+    BSTD_UNUSED(pCtxt);
 
     /******************************************
      * add configurable delay to video path
@@ -2901,7 +2906,13 @@ static void xcode_av_sync(
     /* disable Inverse Telecine Field Pairing for extreme low delay mode
      * NOTE: ITFP is encoder feature to detect and lock on 3:2/2:2 cadence in the video content to help
      * efficient coding for interlaced formats; disabling ITFP will impact the bit efficiency but reduce the encode delay. */
-    if(!pContext->bNoVideo) {
+
+    /*if(!pContext->bNoVideo) */
+    {
+        /* TODO: give the use of key:value pairs, is any of the following needed?
+         * Should any of the following defaults be used? */
+
+#if can_this_be_deleted
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
         pVideoEncoderStartConfig->bounds.inputDimension.max.width = BTST_INPUT_MAX_WIDTH;
         pVideoEncoderStartConfig->bounds.inputDimension.max.height = BTST_INPUT_MAX_HEIGHT;
@@ -2970,24 +2981,34 @@ static void xcode_av_sync(
                 pContext->encodeSettings.videoEncoderMemConfig.maxHeight : 1088;
         }
 #endif
-
+#endif /* end of can_this_be_deleted*/
         /*****************************************
          * calculate video encoder A2P delay
          */
         /* NOTE: video encoder delay is in 27MHz ticks; the min is based on the bound settings. */
+
+        /* TODO: also called in TRNSX_VideoEncoder_Start */
+
+        NEXUS_VideoEncoder_GetDelayRange(pTrans->videoEncoder.videoEncoder, &pTrans->videoEncoder.settings, &pTrans->videoEncoder.startSettings, &videoDelay);
+        BKNI_Printf("%s: video encoder end-to-end delay = [%u ~ %u] ms\n", BSTD_FUNCTION, videoDelay.min/27000, videoDelay.max/27000);
+
+#if 0
         NEXUS_VideoEncoder_GetDelayRange(pContext->videoEncoder, pVideoEncoderConfig, pVideoEncoderStartConfig, &videoDelay);
-        Dee = videoDelay.min;
         BDBG_WRN(("\n\tVideo encoder end-to-end delay = [%u ~ %u] ms", videoDelay.min/27000, videoDelay.max/27000));
+#endif
+        Dee = videoDelay.min;
+
     }
 
     if(pTrans->streamMux.bEncodingAudio)
     {
-        NEXUS_AudioMuxOutput_GetDelayStatus(pTrans->audioDecoder.audioMuxOutput, pContext->encodeSettings.encoderAudioCodec, &audioDelayStatus);
-        BDBG_WRN(("\n\tAudio codec %d end-to-end delay = %u ms", pContext->encodeSettings.encoderAudioCodec, audioDelayStatus.endToEndDelay));
+        NEXUS_AudioMuxOutput_GetDelayStatus(pTrans->audioMuxOutput.audioMuxOutput, pTrans->audioEncoder.encoderSettings.codec, &audioDelayStatus);
+        BDBG_WRN(("\n\tAudio codec %d end-to-end delay = %u ms", pTrans->audioEncoder.encoderSettings.codec, audioDelayStatus.endToEndDelay));
 
         Dee = audioDelayStatus.endToEndDelay * 27000; /* in 27MHz ticks */
 
-        if(!pContext->bNoVideo) {
+        /*if(!pContext->bNoVideo) */
+        {
             if(Dee > videoDelay.min)
             {
                 if(Dee > videoDelay.max)
@@ -3005,24 +3026,22 @@ static void xcode_av_sync(
                 Dee = videoDelay.min;
                 BDBG_WRN(("Use video Dee %u ms %u ticks@27Mhz!", Dee/27000, Dee));
             }
-            pVideoEncoderConfig->encoderDelay = Dee;
+            pTrans->videoEncoder.settings.encoderDelay = Dee;
         }
 
         /* Start audio mux output */
-        NEXUS_AudioMuxOutput_GetDefaultStartSettings(&audioMuxStartSettings);
+        NEXUS_AudioMuxOutput_GetDefaultStartSettings(&pTrans->audioMuxOutput.startSettings);
+
         /* audio NRT requires mux out to take NRT audio decode STC which is assigned with transcode STC. */
-        audioMuxStartSettings.stcChannel        = pContext->stcChannelTranscode;
-        audioMuxStartSettings.presentationDelay = Dee/27000;/* in ms */
-        audioMuxStartSettings.nonRealTime       = pTrans->bNonRealTime;
-        pContext->audMuxStartSettings = audioMuxStartSettings;
+        pTrans->audioMuxOutput.startSettings.stcChannel        = pTrans->videoEncoder.stcChannel;
+        pTrans->audioMuxOutput.startSettings.presentationDelay = Dee/27000;/* in ms */
+        pTrans->audioMuxOutput.startSettings.nonRealTime       = pTrans->bNonRealTime;
+
     }
     else
-        pVideoEncoderConfig->encoderDelay = Dee;
+        pTrans->videoEncoder.settings.encoderDelay = Dee;
 
-    /* store the encoder A2P delay based on the bounds and av sync for mux resource allocation */
-    pContext->encodeDelay = Dee;
 }
-#endif
 
 /* cloned from transcode::open_transcode */
 /* This rouinte will only be called if audio is being encoded. */
@@ -3039,8 +3058,16 @@ static void TRNSX_StreamMux_OpenAudio(
 
 
     /* Note: this routine will only be called if audio is being encoded. */
+    /* TODO: make a wrapper around audio encoder open or is this really audio encoder open? */
 
 #if 1
+
+    if ( pTrans->audioDecoder.audioDecoder == NULL )
+    {
+        BDBG_ERR(("%s: audio decoder is not open", BSTD_FUNCTION ));
+        BDBG_ASSERT(0);
+    }
+
 
     /*if(!pContext->bNoVideo )*/
     if (1)
@@ -3068,13 +3095,15 @@ static void TRNSX_StreamMux_OpenAudio(
                 audioMixerSettings.outputSampleRate = 48000;/* fixed to allow gap filling for bogus audio PID */
             }
             audioMixerSettings.dspIndex    = pTrans->uiIndex / BTST_NUM_AUDIO_XCODE_PER_DSP;
-            pTrans->audioEncoder.audioMixer = NEXUS_AudioMixer_Open(&audioMixerSettings);
-            assert(pTrans->audioEncoder.audioMixer);
+            pTrans->audioDecoder.audioMixer = NEXUS_AudioMixer_Open(&audioMixerSettings);
+            assert(pTrans->audioDecoder.audioMixer);
+            BDBG_MODULE_MSG(trnsx_dbg_audio,("%s[%d]:: NEXUS_AudioMixer_Open", BSTD_FUNCTION, pTrans->uiIndex ));
         }
 
         /* Open audio mux output */
-        pTrans->audioDecoder.audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
-        assert(pTrans->audioDecoder.audioMuxOutput);
+        pTrans->audioMuxOutput.audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
+        assert(pTrans->audioMuxOutput.audioMuxOutput);
+        BDBG_MODULE_MSG(trnsx_dbg_audio,("%s[%d]:: NEXUS_AudioMuxOutput_Create", BSTD_FUNCTION, pTrans->uiIndex ));
 
         /*if(pEncodeSettings->bAudioEncode || (pTrans->source.eType == TRNSX_Source_eHDMI))*/
         if ( 1 )
@@ -3086,12 +3115,13 @@ static void TRNSX_StreamMux_OpenAudio(
             audioCodec = pTrans->audioEncoder.encoderSettings.codec;
             pTrans->audioEncoder.audioEncoder = NEXUS_AudioEncoder_Open(&pTrans->audioEncoder.encoderSettings);
             assert(pTrans->audioEncoder.audioEncoder);
+            BDBG_MODULE_MSG(trnsx_dbg_audio,("%s[%d]:: NEXUS_AudioEncoder_Open", BSTD_FUNCTION, pTrans->uiIndex ));
 
             if(audioCodec == NEXUS_AudioCodec_eAacPlus && pTrans->streamMux.bForce48KbpsAACplus) {
                 NEXUS_AudioEncoder_GetCodecSettings(pTrans->audioEncoder.audioEncoder, audioCodec, &codecSettings);
                 codecSettings.codecSettings.aacPlus.bitRate = 48000;
                 NEXUS_AudioEncoder_SetCodecSettings(pTrans->audioEncoder.audioEncoder, &codecSettings);
-                BDBG_WRN(("Force AAC plus bitrate = 48Kbps"));
+                BDBG_WRN(("%s[%d]:: Force AAC plus bitrate = 48Kbps", BSTD_FUNCTION, pTrans->uiIndex ));
             }
 
             /* TODO: should much of the following be moved to TRNSX_StreamMux_Start?
@@ -3101,16 +3131,16 @@ static void TRNSX_StreamMux_OpenAudio(
                 /* Connect decoder to encoder */
                 NEXUS_AudioEncoder_AddInput(pTrans->audioEncoder.audioEncoder,
                     NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-                BDBG_WRN(("No DSP mixer..."));
+                BDBG_WRN(("%s[%d]:: No DSP mixer...", BSTD_FUNCTION, pTrans->uiIndex ));
             }
             else {
                 /* Connect decoder to mixer and set as master */
-                NEXUS_AudioMixer_AddInput(pTrans->audioEncoder.audioMixer,
+                NEXUS_AudioMixer_AddInput(pTrans->audioDecoder.audioMixer,
                     NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder,
                         (pTrans->streamMux.eMultiChanFmt > NEXUS_AudioMultichannelFormat_eStereo && USE_DDRE)?
                         NEXUS_AudioDecoderConnectorType_eMultichannel : NEXUS_AudioDecoderConnectorType_eStereo));
                 if(pTrans->audioDecoder.secondary.bEnabled) {
-                    NEXUS_AudioMixer_AddInput(pTrans->audioEncoder.audioMixer,
+                    NEXUS_AudioMixer_AddInput(pTrans->audioDecoder.audioMixer,
                         NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.secondary.audioDecoder,
                             (pTrans->streamMux.eMultiChanFmt > NEXUS_AudioMultichannelFormat_eStereo && USE_DDRE)?
                             NEXUS_AudioDecoderConnectorType_eMultichannel : NEXUS_AudioDecoderConnectorType_eStereo));
@@ -3119,7 +3149,7 @@ static void TRNSX_StreamMux_OpenAudio(
                         (pTrans->streamMux.eMultiChanFmt > NEXUS_AudioMultichannelFormat_eStereo && USE_DDRE)?
                         NEXUS_AudioDecoderConnectorType_eMultichannel : NEXUS_AudioDecoderConnectorType_eStereo);
                 if(pTrans->streamMux.b32KHzAudio) audioMixerSettings.outputSampleRate = 32000;
-                NEXUS_AudioMixer_SetSettings(pTrans->audioEncoder.audioMixer, &audioMixerSettings);
+                NEXUS_AudioMixer_SetSettings(pTrans->audioDecoder.audioMixer, &audioMixerSettings);
 
                 #if USE_DDRE
                     /* Add the DDRE processor after mixing */
@@ -3131,7 +3161,7 @@ static void TRNSX_StreamMux_OpenAudio(
                     pContext->dv258 = NEXUS_DolbyVolume258_Open(&setting);
                     }
                     NEXUS_DolbyVolume258_AddInput(pContext->dv258,
-                        NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
+                        NEXUS_AudioMixer_GetConnector(pTrans->audioDecoder.audioMixer));
                     NEXUS_DolbyDigitalReencode_AddInput(pContext->ddre,
                         NEXUS_DolbyVolume258_GetConnector(pContext->dv258));
 
@@ -3141,13 +3171,13 @@ static void TRNSX_StreamMux_OpenAudio(
                 #else
                     /* Connect mixer to encoder */
                     NEXUS_AudioEncoder_AddInput(pTrans->audioEncoder.audioEncoder,
-                        NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
+                        NEXUS_AudioMixer_GetConnector(pTrans->audioDecoder.audioMixer));
                 #endif
             }
 
             /* Connect mux to encoder */
             NEXUS_AudioOutput_AddInput(
-                NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput),
+                NEXUS_AudioMuxOutput_GetConnector(pTrans->audioMuxOutput.audioMuxOutput),
                 NEXUS_AudioEncoder_GetConnector(pTrans->audioEncoder.audioEncoder));
         }
 #if 0
@@ -3156,17 +3186,17 @@ static void TRNSX_StreamMux_OpenAudio(
             if(!pTrans->streamMux.bDspMixer) {
                 /* Connect decoder to mux out */
                 NEXUS_AudioOutput_AddInput(
-                    NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput),
+                    NEXUS_AudioMuxOutput_GetConnector(pTrans->audioMuxOutput.audioMuxOutput),
                     NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
             }
             else {
-                NEXUS_AudioMixer_AddInput(pTrans->audioEncoder.audioMixer,
+                NEXUS_AudioMixer_AddInput(pTrans->audioDecoder.audioMixer,
                     NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
                 audioMixerSettings.master = NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eCompressed);
-                NEXUS_AudioMixer_SetSettings(pTrans->audioEncoder.audioMixer, &audioMixerSettings);
+                NEXUS_AudioMixer_SetSettings(pTrans->audioDecoder.audioMixer, &audioMixerSettings);
                 NEXUS_AudioOutput_AddInput(
-                    NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput),
-                    NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
+                    NEXUS_AudioMuxOutput_GetConnector(pTrans->audioMuxOutput.audioMuxOutput),
+                    NEXUS_AudioMixer_GetConnector(pTrans->audioDecoder.audioMixer));
             }
             audioCodec = audioProgram.codec; /* pTrans->source.eAudioCodec*/
         }
@@ -3196,13 +3226,12 @@ static void TRNSX_StreamMux_OpenAudio(
             #else
                 NEXUS_AudioOutput_AddInput(
                     NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]),
-                    NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
+                    NEXUS_AudioMixer_GetConnector(pTrans->audioDecoder.audioMixer));
             #endif
             }
         }
     }
 
-#if will_this_be_needed
 
     /************************************
      * Set up encoder AV sync.
@@ -3216,7 +3245,9 @@ static void TRNSX_StreamMux_OpenAudio(
     *       vDee' = aDee' = vDee;
     *   }
     */
-    xcode_av_sync(pContext, &videoEncoderConfig, &videoEncoderStartConfig);
+    TRNSX_StreamMux_AV_Sync( pCtxt, pTrans );
+
+#if will_this_be_needed
 
     if(pTrans->source.eType != TRNSX_Source_eHDMI && !pContext->bNoVideo ) {
 #if BTST_ENABLE_AV_SYNC
@@ -3294,11 +3325,7 @@ static void TRNSX_StreamMux_Open(
     pTrans->streamMux.bEncodingAudio = false;
     if ( pTrans->bEncodeAudio )
     {
-        if ( pTrans->audioEncoder.audioEncoder == NULL )
-        {
-            BDBG_ERR(("%s:: the audio decoder must be opened before the mux.  This might get fixed in the future.", BSTD_FUNCTION));
-        }
-        else if ( pTrans->source.uiNumAudio == 0 )
+        if ( pTrans->source.uiNumAudio == 0 )
         {
             BDBG_ERR(("%s:: encoding audio, but the number of audio programs is 0.", BSTD_FUNCTION));
             BDBG_ERR(("%s:: was the stream probed prior to calling mux_open?", BSTD_FUNCTION));
@@ -3310,7 +3337,7 @@ static void TRNSX_StreamMux_Open(
         }
     }
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: streamMux.eState: %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->streamMux.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: eState on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->streamMux.eState )));
 
     /* initialize with the number of pids specified by the user */
     pTrans->streamMux.userData.numPids = ( pTrans->source.userData.numPids ) ? pTrans->source.userData.numPids : BTST_TS_USER_DATA_ALL;
@@ -3418,7 +3445,7 @@ static void TRNSX_StreamMux_Open(
     pTrans->streamMux.configuration.supportTts = (pTrans->streamMux.transportTimestampType != NEXUS_TransportTimestampType_eNone);
 
     NEXUS_StreamMux_GetMemoryConfiguration( &pTrans->streamMux.configuration, &pTrans->streamMux.createSettings.memoryConfiguration );
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: pTrans->streamMux.configuration:: videoPids:%d audioPids:%d userDataPids:%d", BSTD_FUNCTION,
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: pTrans->streamMux.configuration:: videoPids:%d audioPids:%d userDataPids:%d", BSTD_FUNCTION,pTrans->uiIndex,
                         pTrans->streamMux.configuration.videoPids,
                         pTrans->streamMux.configuration.audioPids,
                         pTrans->streamMux.configuration.userDataPids ));
@@ -3460,7 +3487,7 @@ static void TRNSX_StreamMux_Open(
         assert(pCtxt->playpumpTranscodeAudio);
 #endif
         pTrans->streamMux.startSettings.audio[0].pid        = pTrans->streamMux.uiAudioPid;
-        pTrans->streamMux.startSettings.audio[0].muxOutput  = pTrans->audioDecoder.audioMuxOutput;
+        pTrans->streamMux.startSettings.audio[0].muxOutput  = pTrans->audioMuxOutput.audioMuxOutput;
         pTrans->streamMux.startSettings.audio[0].playpump   = pTrans->streamMux.playpump; /*pCtxt->playpumpTranscodeAudio;*/
         pTrans->streamMux.startSettings.audio[0].pesPacking = pTrans->streamMux.bAudioPesPacking;
 
@@ -3543,7 +3570,7 @@ static void TRNSX_StreamMux_Open(
             {
                 messageSettings.overflow.param = pTrans->streamMux.userData.streams[i].pid;
 
-                BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d opened message buffer for user data source PID %d record PID %d",
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: opened message buffer for user data source PID %d record PID %d",
                             BSTD_FUNCTION,
                             pTrans->uiIndex,
                             pTrans->source.userData.pids[i],
@@ -3558,7 +3585,7 @@ static void TRNSX_StreamMux_Open(
                     playbackPidSettings.pidSettings.pidSettings.remap.enabled = true;
                     playbackPidSettings.pidSettings.pidSettings.remap.pid     = pTrans->streamMux.userData.streams[i].pid;/* optional PID remap */
 
-                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d enable userdata PID remapping, record PID: %d(%x)",
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: enable userdata PID remapping, record PID: %d(%x)",
                                                BSTD_FUNCTION,
                                                pTrans->uiIndex,
                                                playbackPidSettings.pidSettings.pidSettings.remap.pid,
@@ -3660,8 +3687,77 @@ static void TRNSX_StreamMux_Open(
 
 /* Reference transcode_ts::close_transcode */
 
+static void TRNSX_StreamMux_CloseAudio(
+    TRNSX_TestContext *  pCtxt,
+    TRNSX_Transcode * pTrans
+    )
+{
+    if(pTrans->streamMux.bEncodingAudio)
+    {
+        /*if(pContext->encodeSettings.bAudioEncode || (pTrans->source.eType == TRNSX_Source_eHDMI))*/
+        if ( 1 )
+        {
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioMuxOutput.audioMuxOutput));
+            NEXUS_AudioEncoder_RemoveAllInputs(pTrans->audioEncoder.audioEncoder);
+            NEXUS_AudioInput_Shutdown(NEXUS_AudioEncoder_GetConnector(pTrans->audioEncoder.audioEncoder));
+            NEXUS_AudioEncoder_Close(pTrans->audioEncoder.audioEncoder);
+            if(pTrans->streamMux.bDspMixer) {
+                NEXUS_AudioMixer_RemoveAllInputs(pTrans->audioDecoder.audioMixer);
+            }
+            if(!pTrans->bNonRealTime) {
+                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
+                NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
+            }
+#if USE_DDRE
+            NEXUS_DolbyDigitalReencode_RemoveAllInputs(pContext->ddre);
+            NEXUS_DolbyDigitalReencode_Close(pContext->ddre);
+            NEXUS_DolbyVolume258_RemoveAllInputs(pContext->dv258);
+            NEXUS_DolbyVolume258_Close(pContext->dv258);
+#endif
+            if(pTrans->streamMux.bDspMixer) {
+                NEXUS_AudioInput_Shutdown(NEXUS_AudioMixer_GetConnector(pTrans->audioDecoder.audioMixer));
+                NEXUS_AudioMixer_Close(pTrans->audioDecoder.audioMixer);
+            }
+            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+            NEXUS_AudioDecoder_Close(pTrans->audioDecoder.audioDecoder);
+            if(pTrans->audioDecoder.secondary.bEnabled) {
+                NEXUS_AudioDecoder_Close(pTrans->audioDecoder.secondary.audioDecoder);
+            }
+        }
+        else
+        {
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioMuxOutput.audioMuxOutput));
+            if(pTrans->streamMux.bDspMixer) {
+                NEXUS_AudioMixer_RemoveAllInputs(pTrans->audioDecoder.audioMixer);
+            }
+            if(!pTrans->bNonRealTime) {
+                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
+                NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
+            }
+            if(pTrans->streamMux.bDspMixer) {
+                NEXUS_AudioInput_Shutdown(NEXUS_AudioMixer_GetConnector(pTrans->audioDecoder.audioMixer));
+                NEXUS_AudioMixer_Close(pTrans->audioDecoder.audioMixer);
+            }
+            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+            NEXUS_AudioDecoder_Close(pTrans->audioDecoder.audioDecoder);
+        }
+
+#if 0
+        if ( pContext->playpumpTranscodeAudio != pContext->playpumpTranscodeMCPB ) NEXUS_Playpump_Close(pContext->playpumpTranscodeAudio);
+#endif
+        NEXUS_AudioOutput_Shutdown(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioMuxOutput.audioMuxOutput));
+        NEXUS_AudioMuxOutput_Destroy(pTrans->audioMuxOutput.audioMuxOutput);
+
+        pTrans->audioMuxOutput.audioMuxOutput = NULL;
+
+    }
+
+    return;
+
+}
+
+
 static void TRNSX_StreamMux_Close(
-    /* TranscodeContext  *pContext,*/
     TRNSX_TestContext *  pCtxt,
     TRNSX_Transcode * pTrans
     )
@@ -3805,62 +3901,8 @@ static void TRNSX_StreamMux_Close(
         pTrans->streamMux.playpump = NULL;
     }
 
-#if 0
-    if(pTrans->streamMux.bEncodingAudio)
-    {
-        if(pContext->encodeSettings.bAudioEncode || (pTrans->source.eType == TRNSX_Source_eHDMI))
-        {
-            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput));
-            NEXUS_AudioEncoder_RemoveAllInputs(pTrans->audioEncoder.audioEncoder);
-            NEXUS_AudioInput_Shutdown(NEXUS_AudioEncoder_GetConnector(pTrans->audioEncoder.audioEncoder));
-            NEXUS_AudioEncoder_Close(pTrans->audioEncoder.audioEncoder);
-            if(pTrans->streamMux.bDspMixer) {
-                NEXUS_AudioMixer_RemoveAllInputs(pTrans->audioEncoder.audioMixer);
-            }
-            if(!pTrans->bNonRealTime) {
-                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-                NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-            }
-#if USE_DDRE
-            NEXUS_DolbyDigitalReencode_RemoveAllInputs(pContext->ddre);
-            NEXUS_DolbyDigitalReencode_Close(pContext->ddre);
-            NEXUS_DolbyVolume258_RemoveAllInputs(pContext->dv258);
-            NEXUS_DolbyVolume258_Close(pContext->dv258);
-#endif
-            if(pTrans->streamMux.bDspMixer) {
-                NEXUS_AudioInput_Shutdown(NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
-                NEXUS_AudioMixer_Close(pTrans->audioEncoder.audioMixer);
-            }
-            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-            NEXUS_AudioDecoder_Close(pTrans->audioDecoder.audioDecoder);
-            if(pTrans->audioDecoder.secondary.bEnabled) {
-                NEXUS_AudioDecoder_Close(pTrans->audioDecoder.secondary.audioDecoder);
-            }
-        }
-        else
-        {
-            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput));
-            if(pTrans->streamMux.bDspMixer) {
-                NEXUS_AudioMixer_RemoveAllInputs(pTrans->audioEncoder.audioMixer);
-            }
-            if(!pTrans->bNonRealTime) {
-                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-                NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-            }
-            if(pTrans->streamMux.bDspMixer) {
-                NEXUS_AudioInput_Shutdown(NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
-                NEXUS_AudioMixer_Close(pTrans->audioEncoder.audioMixer);
-            }
-            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-            NEXUS_AudioDecoder_Close(pTrans->audioDecoder.audioDecoder);
-        }
+    TRNSX_StreamMux_CloseAudio( pCtxt, pTrans );
 
-        if ( pContext->playpumpTranscodeAudio != pContext->playpumpTranscodeMCPB ) NEXUS_Playpump_Close(pContext->playpumpTranscodeAudio);
-        NEXUS_AudioOutput_Shutdown(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput));
-        NEXUS_AudioMuxOutput_Destroy(pTrans->audioDecoder.audioMuxOutput);
-        pTrans->audioDecoder.audioMuxOutput = NULL;
-    }
-#endif
 
 #if 0
     if ( NULL != pContext->playpumpTranscodeMCPB ) NEXUS_Playpump_Close(pContext->playpumpTranscodeMCPB);
@@ -3872,7 +3914,7 @@ static void TRNSX_StreamMux_Close(
        if NRT mode, the audio STC is the same as transcode STC; if RT mode, audio STC is the same as video STC. */
     if(!g_activeXcodeCount || !g_bSimulXcode) {
         NEXUS_StcChannel_Close(pContext->stcVideoChannel);
-        NEXUS_StcChannel_Close(pContext->stcChannelTranscode);
+        NEXUS_StcChannel_Close(pTrans->videoEncoder.stcChannel);
     }
 #endif
 
@@ -3925,8 +3967,9 @@ static NEXUS_Error TRNSX_StreamMux_Start(
      * NOTE: transcoder record/mux resume
      */
     /* start mux */
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: pTrans->streamMux.startSettings:: video pid[0]:%0x pcr pid[0]:%0x audio pid:%0x",
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: pTrans->streamMux.startSettings:: video pid[0]:%0x pcr pid[0]:%0x audio pid:%0x",
                         BSTD_FUNCTION,
+                        pTrans->uiIndex,
                         (unsigned int)pTrans->streamMux.startSettings.video[0].pid,
                         (unsigned int)pTrans->streamMux.startSettings.pcr.pid,
                         (unsigned int)pTrans->streamMux.startSettings.audio[0].pid));
@@ -3937,7 +3980,7 @@ static NEXUS_Error TRNSX_StreamMux_Start(
 
     pidChannelTranscodeVideo = muxOutput.video[0];
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s:: session:%d muxOutput.video[0]: %0x (NEXUS_PidChannelHandle) muxOutput.audio[0]: %0x (NEXUS_PidChannelHandle)",
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: muxOutput.video[0]: %0x (NEXUS_PidChannelHandle) muxOutput.audio[0]: %0x (NEXUS_PidChannelHandle)",
                                BSTD_FUNCTION,
                                pTrans->uiIndex,
                                (unsigned int)muxOutput.video[0],
@@ -4099,41 +4142,47 @@ static NEXUS_Error TRNSX_StreamMux_Start(
         /* Start decoder */
         NEXUS_VideoDecoder_Start(pContext->videoDecoder, &pContext->vidProgram);
     }
-
+#endif
+    /*TODO: should be in AudioDecoder_Start*/
     if(pTrans->streamMux.bEncodingAudio)
     {
         /* Start audio mux output */
-        errCode = NEXUS_AudioMuxOutput_Start(pTrans->audioDecoder.audioMuxOutput, &pContext->audMuxStartSettings);
-        if ( NEXUS_SUCCESS != errCode ) {
+        rc = NEXUS_AudioMuxOutput_Start(pTrans->audioMuxOutput.audioMuxOutput, &pTrans->audioMuxOutput.startSettings);
+        if ( NEXUS_SUCCESS != rc ) {
             BDBG_ERR(("%s:%d - NEXUS_AudioMuxOutput_Start failed", __FILE__, __LINE__));
-            return;
+            return rc;
         }
-        if(!pContext->bNoStopDecode) {
+
+        if( 1 )
+        /*if(!pContext->bNoStopDecode) */
+        {
             /* Start audio mixer */
             if(pTrans->streamMux.bDspMixer) {
-                errCode = NEXUS_AudioMixer_Start(pTrans->audioEncoder.audioMixer);
-                if ( NEXUS_SUCCESS != errCode ) {
+                rc = NEXUS_AudioMixer_Start(pTrans->audioDecoder.audioMixer);
+                if ( NEXUS_SUCCESS != rc ) {
                     BDBG_ERR(("%s:%d - NEXUS_AudioMixer_Start failed", __FILE__, __LINE__));
-                    return;
+                    return rc;
                 }
             }
 
-            errCode = NEXUS_AudioDecoder_Start(pTrans->audioDecoder.audioDecoder, &pContext->audProgram);
-            if ( NEXUS_SUCCESS != errCode ) {
+            /*rc = NEXUS_AudioDecoder_Start(pTrans->audioDecoder.audioDecoder, &pContext->audProgram);*/
+            rc = TRNSX_AudioDecoder_Start( pCtxt, pTrans );
+            if ( NEXUS_SUCCESS != rc ) {
                 BDBG_ERR(("%s:%d - NEXUS_AudioDecoder_Start(PRIMARY) failed", __FILE__, __LINE__));
-                return;
+                return rc;
             }
+#if 0
             if(pTrans->audioDecoder.secondary.bEnabled) {
                 BDBG_WRN(("Starting Secondary audio"));
-                errCode = NEXUS_AudioDecoder_Start(pTrans->audioDecoder.secondary.audioDecoder, &pContext->secondaryProgram);
-                if ( NEXUS_SUCCESS != errCode ) {
+                rc = NEXUS_AudioDecoder_Start(pTrans->audioDecoder.secondary.audioDecoder, &pContext->secondaryProgram);
+                if ( NEXUS_SUCCESS != rc ) {
                     BDBG_ERR(("%s:%d - NEXUS_AudioDecoder_Start(SECONDARY) failed", __FILE__, __LINE__));
-                    return;
+                    return rc;
                 }
             }
+#endif
         }
     }
-#endif
 
     /* Start playback before mux set up PAT/PMT which may depend on PMT user data PSI extraction */
     /* Handled elsewhere, this can be deleted. */
@@ -4205,20 +4254,27 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
     }
 #endif
 
-#if 0
-     if(pTrans->streamMux.bEncodingAudio)
-     {
-         if(!pContext->bNoStopDecode) {
-             NEXUS_AudioDecoder_Stop(pTrans->audioDecoder.audioDecoder);
-             if(pTrans->audioDecoder.secondary.bEnabled) {
-                 NEXUS_AudioDecoder_Stop(pTrans->audioDecoder.secondary.audioDecoder);
-             }
-             if(pTrans->streamMux.bDspMixer) {
-                 NEXUS_AudioMixer_Stop(pTrans->audioEncoder.audioMixer);
-             }
-         }
-         NEXUS_AudioMuxOutput_Stop(pTrans->audioDecoder.audioMuxOutput);
-     }
+#if 1
+    /* TODO: should this be in TRNSX_AudioDecoder_Stop? */
+    if(pTrans->streamMux.bEncodingAudio)
+    {
+        /*if(!pContext->bNoStopDecode) */
+        if ( 1 )
+        {
+            NEXUS_AudioDecoder_Stop(pTrans->audioDecoder.audioDecoder);
+            BDBG_MODULE_MSG(trnsx_dbg_audio,("%s[%d]:: NEXUS_AudioDecoder_Stop", BSTD_FUNCTION, pTrans->uiIndex ));
+
+            if(pTrans->audioDecoder.secondary.bEnabled) {
+                NEXUS_AudioDecoder_Stop(pTrans->audioDecoder.secondary.audioDecoder);
+            }
+            if(pTrans->streamMux.bDspMixer) {
+                NEXUS_AudioMixer_Stop(pTrans->audioDecoder.audioMixer);
+                BDBG_MODULE_MSG(trnsx_dbg_audio,("%s[%d]:: NEXUS_AudioMixer_Stop", BSTD_FUNCTION, pTrans->uiIndex ));
+            }
+        }
+        NEXUS_AudioMuxOutput_Stop(pTrans->audioMuxOutput.audioMuxOutput);
+        BDBG_MODULE_MSG(trnsx_dbg_audio,("%s[%d]:: NEXUS_AudioMuxOutput_Stop", BSTD_FUNCTION, pTrans->uiIndex ));
+    }
 #endif
 
 #if 0
@@ -4245,7 +4301,7 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
 
             if(BKNI_WaitForEvent(pTrans->streamMux.finishEvent, 4000)!=BERR_SUCCESS)
             {
-                fprintf(stderr, "%s:: timed out waiting for pTrans->streamMux.finishEvent\n", BSTD_FUNCTION);
+                fprintf(stderr, "%s[%d]:: timed out waiting for pTrans->streamMux.finishEvent\n", BSTD_FUNCTION, pTrans->uiIndex);
             }
         }
      }
@@ -4289,7 +4345,7 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
 
      /* Temporary workaround to flush pending descriptors from NEXUS_AudioMuxOutput prior to restarting it.
         Restarting will flush the pending descriptors. */
- #if 0
+ #if 1
      if (pTrans->streamMux.bEncodingAudio)
      {
          const NEXUS_AudioMuxOutputFrame *pBuf,*pBuf2;
@@ -4297,14 +4353,14 @@ static NEXUS_Error TRNSX_StreamMux_Stop(
          NEXUS_Error errCode;
 
          do {
-            errCode = NEXUS_AudioMuxOutput_GetBuffer(pTrans->audioDecoder.audioMuxOutput, &pBuf, &size, &pBuf2, &size2);
+            errCode = NEXUS_AudioMuxOutput_GetBuffer(pTrans->audioMuxOutput.audioMuxOutput, &pBuf, &size, &pBuf2, &size2);
             if ( BERR_SUCCESS == errCode )
             {
                 size += size2;
                 if ( size > 0 )
                 {
                     BDBG_WRN(("Flushing "BDBG_UINT64_FMT" outstanding audio descriptors", BDBG_UINT64_ARG((uint64_t)size)));
-                    NEXUS_AudioMuxOutput_ReadComplete(pTrans->audioDecoder.audioMuxOutput, size);
+                    NEXUS_AudioMuxOutput_ReadComplete(pTrans->audioMuxOutput.audioMuxOutput, size);
                 }
             }
          } while ( size > 0 );
@@ -4597,6 +4653,8 @@ static NEXUS_Error TRNSX_Mux_Start(
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: transport type %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name( g_transportTypeStrs, pTrans->record.eTransportType)));
+
     switch( pTrans->record.eTransportType )
     {
         /* ES - buffer read */
@@ -4641,6 +4699,8 @@ static NEXUS_Error TRNSX_Mux_Stop(
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: transport type %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name( g_transportTypeStrs, pTrans->record.eTransportType)));
 
     switch( pTrans->record.eTransportType )
     {
@@ -4692,7 +4752,7 @@ static NEXUS_Error TRNSX_Playback_Open(
 
     BSTD_UNUSED(pCtxt);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->playback.eState )));
 
     /*if ( pTrans->playback.eState == TRNSX_State_eClosed )*/
     if ( 1 )
@@ -4700,14 +4760,14 @@ static NEXUS_Error TRNSX_Playback_Open(
         if ( pTrans->playback.playpump == NULL )
         {
             pTrans->playback.playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
-            BDBG_MODULE_MSG(trnsx_dbg,("%s: called NEXUS_Playpump_Open", BSTD_FUNCTION));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: called NEXUS_Playpump_Open", BSTD_FUNCTION, pTrans->uiIndex));
             BDBG_ASSERT(pTrans->playback.playpump);
         }
 
         if ( pTrans->playback.playback == NULL )
         {
             pTrans->playback.playback = NEXUS_Playback_Create(); /* Calls NEXUS_Playback_GetDefaultSettings(). */
-            BDBG_MODULE_MSG(trnsx_dbg,("%s: called NEXUS_Playback_Create", BSTD_FUNCTION));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s:[%d]::called NEXUS_Playback_Create", BSTD_FUNCTION, pTrans->uiIndex));
             BDBG_ASSERT(pTrans->playback.playback);
 
             NEXUS_Playback_GetSettings(pTrans->playback.playback, &pTrans->playback.playbackSettings);
@@ -4720,10 +4780,10 @@ static NEXUS_Error TRNSX_Playback_Open(
         if ( pTrans->playback.hFilePlay == NULL )
         {
             pTrans->playback.hFilePlay = NEXUS_FilePlay_OpenPosix(pTrans->source.fname, NULL);
-            BDBG_MODULE_MSG(trnsx_dbg,("%s: called NEXUS_FilePlay_OpenPosix", BSTD_FUNCTION));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: called NEXUS_FilePlay_OpenPosix", BSTD_FUNCTION, pTrans->uiIndex));
 
             if (!pTrans->playback.hFilePlay) {
-                fprintf(stderr, "%s: can't open file:%s\n", BSTD_FUNCTION, pTrans->source.fname);
+                fprintf(stderr, "%s[%d]:: can't open file:%s\n", BSTD_FUNCTION, pTrans->uiIndex, pTrans->source.fname);
                 return -1;
             }
         }
@@ -4737,13 +4797,13 @@ static NEXUS_Error TRNSX_Playback_Open(
             pTrans->playback.playbackPidSettings.pidTypeSettings.video.index = true;
             pTrans->playback.playbackPidSettings.pidTypeSettings.video.decoder = pTrans->videoDecoder.videoDecoder;
             pTrans->videoDecoder.videoPidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pTrans->source.iVideoPid, &pTrans->playback.playbackPidSettings);
-            BDBG_MODULE_MSG(trnsx_dbg,("%s: opened video PID channel", BSTD_FUNCTION));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: opened video PID channel", BSTD_FUNCTION, pTrans->uiIndex));
 
             if(pTrans->source.iVideoPid != pTrans->source.iPcrPid)
             {
                 pTrans->playback.playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
                 pTrans->videoDecoder.pcrPidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pTrans->source.iPcrPid, &pTrans->playback.playbackPidSettings);
-                BDBG_MODULE_MSG(trnsx_dbg,("%s: opened video PCR channel", BSTD_FUNCTION));
+                BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: opened video PCR channel", BSTD_FUNCTION, pTrans->uiIndex));
             }
         }
 
@@ -4767,7 +4827,7 @@ static NEXUS_Error TRNSX_Playback_Open(
                 if(pTrans->audioDecoder.secondary.bEnabled) {
                     /* TODO: how to specify secondary PID? */
                     /*pTrans->audioDecoder.secondary.pidChannel = NEXUS_Playback_OpenPidChannel(pTrans->playback.playback, pInputSettings->iSecondaryPid, &playbackPidSettings);*/
-                    BDBG_ERR(("%s: need to specify a secondary PID", BSTD_FUNCTION ));
+                    BDBG_ERR(("%s[%d]:: need to specify a secondary PID", BSTD_FUNCTION, pTrans->uiIndex ));
                     BDBG_ASSERT(0);
                 }
             }
@@ -4787,7 +4847,7 @@ static NEXUS_Error TRNSX_Playback_Open(
 #endif
 #endif
 
-                BDBG_ERR(("%s: have only implemented PID channels for file playback", BSTD_FUNCTION ));
+                BDBG_ERR(("%s[%d]:: have only implemented PID channels for file playback", BSTD_FUNCTION, pTrans->uiIndex ));
                 BDBG_ASSERT(0);
             }
         }
@@ -4809,12 +4869,37 @@ static NEXUS_Error TRNSX_Playback_Close(
 
     BSTD_UNUSED(pCtxt);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->playback.eState )));
 
     if ( pTrans->playback.eState == TRNSX_State_eRunning )
     {
-        BDBG_ERR(("%s: playback must be stopped before it can be closed.", BSTD_FUNCTION ));
+        BDBG_ERR(("%s[%d]:: playback must be stopped before it can be closed.", BSTD_FUNCTION, pTrans->uiIndex ));
         rc = NEXUS_UNKNOWN;
+    }
+
+#if 0
+    if ( pTrans->videoDecoder.videoPidChannel )
+    {
+        NEXUS_Playback_ClosePidChannel(pTrans->playback.playback, pTrans->videoDecoder.videoPidChannel);
+        pTrans->videoDecoder.videoPidChannel = NULL;
+    }
+
+    if(NULL != pTrans->videoDecoder.pcrPidChannel)
+    {
+        NEXUS_Playback_ClosePidChannel(pTrans->playback.playback, pTrans->videoDecoder.pcrPidChannel);
+        pTrans->videoDecoder.pcrPidChannel = NULL;
+    }
+#else
+    NEXUS_Playback_CloseAllPidChannels(pTrans->playback.playback);
+    pTrans->videoDecoder.videoPidChannel = NULL;
+    pTrans->videoDecoder.pcrPidChannel = NULL;
+    pTrans->audioDecoder.pidChannel = NULL;
+#endif
+
+    if ( pTrans->playback.hFilePlay )
+    {
+        NEXUS_FilePlay_Close(pTrans->playback.hFilePlay);
+        pTrans->playback.hFilePlay = NULL;
     }
 
     if ( pTrans->playback.playback )
@@ -4844,7 +4929,7 @@ static NEXUS_Error TRNSX_Playback_Start(
 
     TRNSX_Playback_Open( pCtxt, pTrans );
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->playback.eState )));
 
     NEXUS_Playback_Start(pTrans->playback.playback, pTrans->playback.hFilePlay, NULL);
 
@@ -4862,7 +4947,7 @@ static NEXUS_Error TRNSX_Playback_Stop(
 
     BSTD_UNUSED(pCtxt);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: playback.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->playback.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->playback.eState )));
 
     NEXUS_Playback_Stop(pTrans->playback.playback);
 
@@ -4878,11 +4963,24 @@ static unsigned TRNSX_VideoEncoderDisplay_GetIndex(
     unsigned encoderId
     )
 {
-    if (encoderId < NEXUS_MAX_VIDEO_ENCODERS && pCtxt->encoderCapabilities.videoEncoder[encoderId].supported) {
-        return pCtxt->encoderCapabilities.videoEncoder[encoderId].displayIndex;
+    unsigned displayIndex = 0;
+
+    if ( encoderId >= NEXUS_MAX_VIDEO_ENCODERS )
+    {
+        BDBG_ERR(("%s: encoder index %d is >= NEXUS_MAX_VIDEO_ENCODERS %d", BSTD_FUNCTION, encoderId, NEXUS_MAX_VIDEO_ENCODERS));
+    }
+    else if ( pCtxt->encoderCapabilities.videoEncoder[encoderId].supported )
+    {
+        displayIndex = pCtxt->encoderCapabilities.videoEncoder[encoderId].displayIndex;
+        BDBG_MODULE_MSG(trnsx_dbg,("%s: encoder:%d using display index: %d", BSTD_FUNCTION, encoderId, displayIndex));
+    }
+    else
+    {
+        BDBG_ERR(("%s: there is not a display associated with encoder %d", BSTD_FUNCTION, encoderId));
     }
 
-    return 0;
+    return displayIndex;
+
 }
 
 static NEXUS_Error TRNSX_VideoEncoderDisplay_Open(
@@ -4902,13 +5000,13 @@ static NEXUS_Error TRNSX_VideoEncoderDisplay_Open(
     /* TODO: should this be enforced? */
     if ( !pTrans->videoEncoder.videoEncoder )
     {
-        BDBG_ERR(("%s: the encoder must be opened before the display", BSTD_FUNCTION ));
+        BDBG_ERR(("%s[%d]:: the encoder must be opened before the display", BSTD_FUNCTION, pTrans->uiIndex ));
         return NEXUS_NOT_INITIALIZED;
     }
 
     if ( pTrans->videoEncoder.display )
     {
-        BDBG_ERR(("%s: the display has already been opened", BSTD_FUNCTION ));
+        BDBG_ERR(("%s[%d]:: the display has already been opened", BSTD_FUNCTION, pTrans->uiIndex ));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -4935,6 +5033,7 @@ static NEXUS_Error TRNSX_VideoEncoderDisplay_Open(
 
     if( pTrans->videoEncoder.bCustomDisplaySettings )
     {
+        BDBG_MODULE_MSG(trnsx_dbg, ("%s[%d]:: calling NEXUS_Display_SetCustomFormatSettings", BSTD_FUNCTION, pTrans->uiIndex));
         rc = NEXUS_Display_SetCustomFormatSettings(pTrans->videoEncoder.display, NEXUS_VideoFormat_eCustom2, &pTrans->videoEncoder.customFormatSettings);
         BDBG_ASSERT(!rc);
     }
@@ -4989,7 +5088,7 @@ static NEXUS_Error TRNSX_AudioDecoder_Open(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: audioDecoder.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->audioDecoder.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->audioDecoder.eState )));
 
     pTrans->audioDecoder.eState = TRNSX_State_eOpened;
 
@@ -5041,7 +5140,7 @@ static NEXUS_Error TRNSX_AudioDecoder_Open(
             printf("\n Audio Codec:\n");
             print_value_list(g_audioCodecStrs);
             pContext->inputSettings.eAudioCodec = getNameValue(input, g_audioCodecStrs);
-            pContext->encodeSettings.encoderAudioCodec = pContext->inputSettings.eAudioCodec;
+            pTrans->audioEncoder.encoderSettings.codec = pContext->inputSettings.eAudioCodec;
             if(g_bMultiChanAudio) {
                 printf("\n Multi-channel audio format: \n");
                 print_value_list(g_audioChannelFormatStrs);
@@ -5081,63 +5180,44 @@ static NEXUS_Error TRNSX_AudioDecoder_Close(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-#if 0
-        if(pTrans->streamMux.bEncodingAudio)
-        {
-            if(pContext->encodeSettings.bAudioEncode || (pTrans->source.eType == TRNSX_Source_eHDMI))
-            {
-                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput));
-                NEXUS_AudioEncoder_RemoveAllInputs(pTrans->audioEncoder.audioEncoder);
-                NEXUS_AudioInput_Shutdown(NEXUS_AudioEncoder_GetConnector(pTrans->audioEncoder.audioEncoder));
-                NEXUS_AudioEncoder_Close(pTrans->audioEncoder.audioEncoder);
-                if(pTrans->streamMux.bDspMixer) {
-                    NEXUS_AudioMixer_RemoveAllInputs(pTrans->audioEncoder.audioMixer);
-                }
-                if(!pTrans->bNonRealTime) {
-                    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-                    NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-                }
-#if USE_DDRE
-                NEXUS_DolbyDigitalReencode_RemoveAllInputs(pContext->ddre);
-                NEXUS_DolbyDigitalReencode_Close(pContext->ddre);
-                NEXUS_DolbyVolume258_RemoveAllInputs(pContext->dv258);
-                NEXUS_DolbyVolume258_Close(pContext->dv258);
+    /* TODO: this routine is basically a NOP at the moment.  The auido decoder close is
+     * currently handled in TRNSX_StreamMux_CloseAudio. */
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->audioDecoder.eState )));
+
+    if ( pTrans->audioDecoder.eState != TRNSX_State_eStopped )
+    {
+        BDBG_ERR(("%s[%d]:: the decoder is %s. It must be stopped before you can call close.", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs ,pTrans->audioDecoder.eState)));
+        return NEXUS_NOT_INITIALIZED;
+    }
+
+    pTrans->audioDecoder.eState = TRNSX_State_eClosed;
+
+
+#if video_decoder_close
+
+    /*NEXUS_VideoWindow_RemoveInput(pTrans->videoEncoder.window, NEXUS_VideoDecoder_GetConnector(pTrans->videoDecoder.videoDecoder));*/
+
+    /* Do the PID channels need to be closed prior to calling NEXUS_VideoInput_Shutdown?
+     * That seems to be the case based on experimenting. */
+    TRNSX_Playback_Close( pCtxt, pTrans );
+
+    NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(pTrans->videoDecoder.videoDecoder));
+
+    NEXUS_VideoDecoder_Close(pTrans->videoDecoder.videoDecoder);
+    pTrans->videoDecoder.videoDecoder = NULL;
+
 #endif
-                if(pTrans->streamMux.bDspMixer) {
-                    NEXUS_AudioInput_Shutdown(NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
-                    NEXUS_AudioMixer_Close(pTrans->audioEncoder.audioMixer);
-                }
-                NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-                NEXUS_AudioDecoder_Close(pTrans->audioDecoder.audioDecoder);
-                if(pTrans->audioDecoder.secondary.bEnabled) {
-                    NEXUS_AudioDecoder_Close(pTrans->audioDecoder.secondary.audioDecoder);
-                }
-            }
-            else
-            {
-                NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput));
-                if(pTrans->streamMux.bDspMixer) {
-                    NEXUS_AudioMixer_RemoveAllInputs(pTrans->audioEncoder.audioMixer);
-                }
-                if(!pTrans->bNonRealTime) {
-                    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-                    NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pCtxt->platformConfig.outputs.audioDummy[pTrans->uiIndex]));
-                }
-                if(pTrans->streamMux.bDspMixer) {
-                    NEXUS_AudioInput_Shutdown(NEXUS_AudioMixer_GetConnector(pTrans->audioEncoder.audioMixer));
-                    NEXUS_AudioMixer_Close(pTrans->audioEncoder.audioMixer);
-                }
-                NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(pTrans->audioDecoder.audioDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-                NEXUS_AudioDecoder_Close(pTrans->audioDecoder.audioDecoder);
-            }
-
-            if ( pContext->playpumpTranscodeAudio != pContext->playpumpTranscodeMCPB ) NEXUS_Playpump_Close(pContext->playpumpTranscodeAudio);
-            NEXUS_AudioOutput_Shutdown(NEXUS_AudioMuxOutput_GetConnector(pTrans->audioDecoder.audioMuxOutput));
-            NEXUS_AudioMuxOutput_Destroy(pTrans->audioDecoder.audioMuxOutput);
-            pTrans->audioDecoder.audioMuxOutput = NULL;
-        }
 
 
+    /* TODO: since the audio decoder will share a STC channel with either the video decoder or encoder,
+     * does the following call be in a wrapper? */
+#if 0
+    NEXUS_StcChannel_Close(pTrans->audioDecoder.stcChannel);
+    pTrans->audioDecoder.stcChannel = NULL;
+#endif
+
+#if 0
     if(pTrans->source.eType == TRNSX_Source_eFile && (!g_activeXcodeCount || !g_bSimulXcode))
     {
         NEXUS_Playback_CloseAllPidChannels(pTrans->playback.playback);
@@ -5161,9 +5241,6 @@ static NEXUS_Error TRNSX_AudioDecoder_Close(
 #endif
 
 
-    /* TODO: any error checking of the state? */
-    pTrans->audioDecoder.eState = TRNSX_State_eClosed;
-
     return rc;
 }
 
@@ -5177,6 +5254,8 @@ static NEXUS_Error TRNSX_AudioDecoder_Start(
 
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->audioDecoder.eState )));
 
     /* Needs to be called to open audioDecoder.pidChannel,
      * which can't be opened until playback is open*/
@@ -5215,7 +5294,7 @@ static NEXUS_Error TRNSX_AudioDecoder_Start(
     {
 #if 0
         /* Start audio mux output */
-        errCode = NEXUS_AudioMuxOutput_Start(pTrans->audioDecoder.audioMuxOutput, &pContext->audMuxStartSettings);
+        errCode = NEXUS_AudioMuxOutput_Start(pTrans->audioMuxOutput.audioMuxOutput, &pTrans->audioMuxOutput.startSettings);
         if ( NEXUS_SUCCESS != errCode ) {
             BDBG_ERR(("%s:%d - NEXUS_AudioMuxOutput_Start failed", __FILE__, __LINE__));
             return;
@@ -5228,7 +5307,7 @@ static NEXUS_Error TRNSX_AudioDecoder_Start(
 #if 0
             /* Start audio mixer */
             if(pTrans->streamMux.bDspMixer) {
-                errCode = NEXUS_AudioMixer_Start(pTrans->audioEncoder.audioMixer);
+                errCode = NEXUS_AudioMixer_Start(pTrans->audioDecoder.audioMixer);
                 if ( NEXUS_SUCCESS != errCode ) {
                     BDBG_ERR(("%s:%d - NEXUS_AudioMixer_Start failed", __FILE__, __LINE__));
                     return;
@@ -5270,6 +5349,10 @@ static NEXUS_Error TRNSX_AudioDecoder_Stop(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->audioDecoder.eState )));
+
+    /* currently handled in TRNSX_StreamMux_Stop.*/
+
 #if 0
     if(pTrans->streamMux.bEncodingAudio)
     {
@@ -5279,10 +5362,10 @@ static NEXUS_Error TRNSX_AudioDecoder_Stop(
                 NEXUS_AudioDecoder_Stop(pTrans->audioDecoder.secondary.audioDecoder);
             }
             if(pTrans->streamMux.bDspMixer) {
-                NEXUS_AudioMixer_Stop(pTrans->audioEncoder.audioMixer);
+                NEXUS_AudioMixer_Stop(pTrans->audioDecoder.audioMixer);
             }
         }
-        NEXUS_AudioMuxOutput_Stop(pTrans->audioDecoder.audioMuxOutput);
+        NEXUS_AudioMuxOutput_Stop(pTrans->audioMuxOutput.audioMuxOutput);
     }
 
     /* Temporary workaround to flush pending descriptors from NEXUS_AudioMuxOutput prior to restarting it.
@@ -5295,14 +5378,14 @@ static NEXUS_Error TRNSX_AudioDecoder_Stop(
         NEXUS_Error errCode;
 
         do {
-           errCode = NEXUS_AudioMuxOutput_GetBuffer(pTrans->audioDecoder.audioMuxOutput, &pBuf, &size, &pBuf2, &size2);
+           errCode = NEXUS_AudioMuxOutput_GetBuffer(pTrans->audioMuxOutput.audioMuxOutput, &pBuf, &size, &pBuf2, &size2);
            if ( BERR_SUCCESS == errCode )
            {
                size += size2;
                if ( size > 0 )
                {
                    BDBG_WRN(("Flushing "BDBG_UINT64_FMT" outstanding audio descriptors", BDBG_UINT64_ARG((uint64_t)size)));
-                   NEXUS_AudioMuxOutput_ReadComplete(pTrans->audioDecoder.audioMuxOutput, size);
+                   NEXUS_AudioMuxOutput_ReadComplete(pTrans->audioMuxOutput.audioMuxOutput, size);
                }
            }
         } while ( size > 0 );
@@ -5323,7 +5406,6 @@ static NEXUS_Error TRNSX_AudioDecoder_GetStatus(
     TRNSX_Transcode * pTrans
     )
 {
-    NEXUS_AudioDecoderStatus audioDecoderStatus;
 
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -5332,8 +5414,20 @@ static NEXUS_Error TRNSX_AudioDecoder_GetStatus(
 
     if ( pTrans->audioDecoder.audioDecoder )
     {
+        NEXUS_AudioDecoderStatus audioDecoderStatus;
         NEXUS_AudioDecoder_GetStatus(pTrans->audioDecoder.audioDecoder, &audioDecoderStatus);
+
+        BKNI_Printf("Audio Decoder[%d] Status:\n", pTrans->uiIndex);
         TRNSX_Print_AudioDecoderStatus( &audioDecoderStatus );
+
+        if ( pTrans->audioMuxOutput.audioMuxOutput )
+        {
+            NEXUS_AudioMuxOutputStatus audioMuxOutputStatus;
+            NEXUS_AudioMuxOutput_GetStatus(pTrans->audioMuxOutput.audioMuxOutput, &audioMuxOutputStatus);
+
+            BKNI_Printf("Audio mux output[%d] Status:\n", pTrans->uiIndex);
+            TRNSX_Print_AudioMuxOutputStatus( &audioMuxOutputStatus );
+        }
     }
     else
     {
@@ -5368,11 +5462,11 @@ static NEXUS_Error TRNSX_VideoDecoder_Open(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: videoDecoder.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
 
     if ( pTrans->videoDecoder.eState != TRNSX_State_eClosed )
     {
-        BDBG_ERR(("%s: the decoder is %s. It must closed before you can call open.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
+        BDBG_ERR(("%s[%d]:: the decoder is %s. It must closed before you can call open.", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -5380,7 +5474,6 @@ static NEXUS_Error TRNSX_VideoDecoder_Open(
 
     pTrans->videoDecoder.videoDecoder = NEXUS_VideoDecoder_Open(pTrans->uiIndex, NULL); /* take default capabilities */
 
-    /*pTrans->videoDecoder.stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &pTrans->videoDecoder.stcSettings);*/
     TRNSX_Util_StcChannel_Open( pCtxt,  pTrans );
 
     return rc;
@@ -5398,11 +5491,11 @@ static NEXUS_Error TRNSX_VideoDecoder_Close(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: videoDecoder.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
 
     if ( pTrans->videoDecoder.eState != TRNSX_State_eStopped )
     {
-        BDBG_ERR(("%s: the decoder is %s. It must be stopped before you can call close.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
+        BDBG_ERR(("%s[%d]:: the decoder is %s. It must be stopped before you can call close.", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -5415,6 +5508,7 @@ static NEXUS_Error TRNSX_VideoDecoder_Close(
     /*NEXUS_VideoWindow_RemoveInput(pTrans->videoEncoder.window, NEXUS_VideoDecoder_GetConnector(pTrans->videoDecoder.videoDecoder));*/
 
     /* TODO: Move the following two close calls to TRNSX_Playback_Close?*/
+#if 0
     NEXUS_Playback_ClosePidChannel(pTrans->playback.playback, pTrans->videoDecoder.videoPidChannel);
     pTrans->videoDecoder.videoPidChannel = NULL;
 
@@ -5426,16 +5520,22 @@ static NEXUS_Error TRNSX_VideoDecoder_Close(
 
     NEXUS_FilePlay_Close(pTrans->playback.hFilePlay);
     pTrans->playback.hFilePlay = NULL;
+#endif
+    /* Do the PID channels need to be closed prior to calling NEXUS_VideoInput_Shutdown?
+     * That seems to be the case based on experimenting. */
+    TRNSX_Playback_Close( pCtxt, pTrans );
 
     NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(pTrans->videoDecoder.videoDecoder));
 
     NEXUS_VideoDecoder_Close(pTrans->videoDecoder.videoDecoder);
     pTrans->videoDecoder.videoDecoder = NULL;
 
+    /* TODO: since the audio decoder will share a STC channel with either the video decoder or encoder,
+     * does the following call be in a wrapper? */
     NEXUS_StcChannel_Close(pTrans->videoDecoder.stcChannel);
     pTrans->videoDecoder.stcChannel = NULL;
 
-    TRNSX_Playback_Close( pCtxt, pTrans );
+    /*TRNSX_Playback_Close( pCtxt, pTrans );*/
 
     return rc;
 
@@ -5453,17 +5553,17 @@ static NEXUS_Error TRNSX_VideoDecoder_Start(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: videoDecoder.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
 
     if ( strlen( pTrans->source.fname ) == 0 )
     {
-        BDBG_ERR(("%s: you must specify a source file before starting the decoder.", BSTD_FUNCTION ));
+        BDBG_ERR(("%s[%d]:: you must specify a source file before starting the decoder.", BSTD_FUNCTION, pTrans->uiIndex ));
         return NEXUS_NOT_INITIALIZED;
     }
 
     if ( pTrans->videoDecoder.eState != TRNSX_State_eOpened && pTrans->videoDecoder.eState != TRNSX_State_eStopped )
     {
-        BDBG_ERR(("%s: the decoder is %s. It must be opened or stopped before you can call start.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
+        BDBG_ERR(("%s[%d]:: the decoder is %s. It must be opened or stopped before you can call start.", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -5509,11 +5609,11 @@ static NEXUS_Error TRNSX_VideoDecoder_Stop(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
-    BDBG_MODULE_MSG(trnsx_dbg,("%s: videoDecoder.state on entry %s", BSTD_FUNCTION, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoDecoder.eState )));
 
     if ( pTrans->videoDecoder.eState != TRNSX_State_eRunning )
     {
-        BDBG_ERR(("%s: the decoder is %s. It must be running before you can call stop.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
+        BDBG_ERR(("%s[%d]:: the decoder is %s. It must be running before you can call stop.", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs ,pTrans->videoDecoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -5542,11 +5642,12 @@ static NEXUS_Error TRNSX_VideoDecoder_GetStatus(
     if ( pTrans->videoDecoder.videoDecoder )
     {
         NEXUS_VideoDecoder_GetStatus(pTrans->videoDecoder.videoDecoder, &videoDecoderStatus);
+        BKNI_Printf("Video Decoder[%d] Status:\n", pTrans->uiIndex);
         TRNSX_Print_VideoDecoderStatus( &videoDecoderStatus );
     }
     else
     {
-        BKNI_Printf("%s: video decoder has not been opened yet\n", BSTD_FUNCTION );
+        BKNI_Printf("%s{%d]:: video decoder has not been opened yet\n", BSTD_FUNCTION, pTrans->uiIndex );
     }
 
     return rc;
@@ -5565,7 +5666,7 @@ static void TRNSX_VideoEncoder_WatchdogHandler (void *context, int param)
    /* Simply flag the event for now. */
    pTrans->videoEncoder.bEncoderWatchdogged = true;
 
-   BDBG_ERR(("%s: encoder watchdog fired.", BSTD_FUNCTION));
+   BDBG_ERR(("%s[%d]:: encoder watchdog fired.", BSTD_FUNCTION, pTrans->uiIndex));
 
    return;
 }
@@ -5603,6 +5704,8 @@ static NEXUS_Error TRNSX_VideoEncoder_Open(
 
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoEncoder.eState )));
 
     if ( pTrans->videoEncoder.eState != TRNSX_State_eClosed )
     {
@@ -5680,6 +5783,8 @@ static NEXUS_Error TRNSX_VideoEncoder_Close(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoEncoder.eState )));
+
     if ( pTrans->videoEncoder.eState != TRNSX_State_eStopped )
     {
         BDBG_ERR(("%s: the encoder is %s. It must be stopped before you can call close.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoEncoder.eState)));
@@ -5706,6 +5811,9 @@ static NEXUS_Error TRNSX_VideoEncoder_Close(
         pTrans->videoEncoder.videoEncoder = NULL;
     }
 
+    /* TODO: since the audio decoder will share a STC channel with either the video decoder or encoder,
+     * does the following call be in a wrapper? */
+
     if ( pTrans->videoEncoder.stcChannel )
     {
         NEXUS_StcChannel_Close(pTrans->videoEncoder.stcChannel);
@@ -5726,6 +5834,8 @@ static NEXUS_Error TRNSX_VideoEncoder_Start(
 
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoEncoder.eState )));
 
     if ( strlen( pTrans->record.fname ) == 0 )
     {
@@ -5767,6 +5877,30 @@ static NEXUS_Error TRNSX_VideoEncoder_Start(
 
     /* note the Dee is set by SetSettings, from where? */
     NEXUS_VideoEncoder_SetSettings(pTrans->videoEncoder.videoEncoder, &pTrans->videoEncoder.settings);
+
+
+    if ( pTrans->videoEncoder.bCustomDisplaySettings )
+    {
+        pTrans->videoEncoder.startSettings.interlaced = pTrans->videoEncoder.customFormatSettings.interlaced;
+
+        BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: using custom display settings: videoEncoder.startSettings.interlaced:%d ",
+                                        BSTD_FUNCTION,
+                                        pTrans->uiIndex,
+                                        pTrans->videoEncoder.customFormatSettings.interlaced ));
+    }
+    else
+    {
+        NEXUS_VideoFormatInfo fmtInfo;
+        NEXUS_VideoFormat_GetInfo(pTrans->videoEncoder.displaySettings.format, &fmtInfo);
+        pTrans->videoEncoder.startSettings.interlaced = fmtInfo.interlaced;
+
+        BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: display format: %s videoEncoder.startSettings.interlaced:%d ",
+                            BSTD_FUNCTION,
+                            pTrans->uiIndex,
+                            lookup_name(g_videoFormatStrs, pTrans->videoEncoder.displaySettings.format ),
+                            pTrans->videoEncoder.customFormatSettings.interlaced ));
+    }
+
     NEXUS_VideoEncoder_Start(pTrans->videoEncoder.videoEncoder, &pTrans->videoEncoder.startSettings);
 
     return rc;
@@ -5782,9 +5916,11 @@ static NEXUS_Error TRNSX_VideoEncoder_Stop(
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
 
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->videoEncoder.eState )));
+
     if ( pTrans->videoEncoder.eState != TRNSX_State_eRunning )
     {
-        BDBG_ERR(("%s: the encoder is %s. It must be running before you can call stop.", BSTD_FUNCTION, lookup_name(g_stateStrs ,pTrans->videoEncoder.eState)));
+        BDBG_ERR(("%s[%d]:: the encoder is %s. It must be running before you can call stop.", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs ,pTrans->videoEncoder.eState)));
         return NEXUS_NOT_INITIALIZED;
     }
 
@@ -5817,13 +5953,14 @@ static NEXUS_Error TRNSX_VideoEncoder_GetStatus(
     if ( pTrans->videoEncoder.videoEncoder )
     {
         NEXUS_VideoEncoder_GetStatus(pTrans->videoEncoder.videoEncoder, &videoEncodeStatus);
+        BKNI_Printf("Video Encoder[%d] Status:\n", pTrans->uiIndex);
         TRNSX_Print_VideoEncoderStatus( &videoEncodeStatus );
         NEXUS_VideoEncoder_GetDefaultClearStatus(&clearStatus);
         NEXUS_VideoEncoder_ClearStatus(pTrans->videoEncoder.videoEncoder, &clearStatus);
     }
     else
     {
-        BKNI_Printf("%s: video encoder has not been opened yet\n", BSTD_FUNCTION );
+        BKNI_Printf("%s[%d]:: video encoder has not been opened yet\n", BSTD_FUNCTION, pTrans->uiIndex );
     }
 
     return rc;
@@ -5841,6 +5978,8 @@ static NEXUS_Error TRNSX_Transcode_Open(
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     BDBG_ENTER(TRNSX_Transcode_Open);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->eState )));
 
     BDBG_ASSERT(pCtxt);
     BDBG_ASSERT(pTrans);
@@ -5878,6 +6017,8 @@ static NEXUS_Error TRNSX_Transcode_Start(
 
     BDBG_ENTER(TRNSX_Transcode_Start);
 
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->eState )));
+
     rc = TRNSX_Transcode_Open( pCtxt, pTrans );
 
     if ( rc != NEXUS_SUCCESS ) goto done;
@@ -5914,6 +6055,8 @@ static NEXUS_Error TRNSX_Transcode_Close(
 
     BDBG_ENTER(TRNSX_Transcode_Close);
 
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->eState )));
+
     TRNSX_VideoDecoder_Close( pCtxt, pTrans );
 
     TRNSX_VideoEncoder_Close( pCtxt, pTrans );
@@ -5934,6 +6077,8 @@ static NEXUS_Error TRNSX_Transcode_Stop(
     BSTD_UNUSED(pCtxt);
 
     BDBG_ENTER(TRNSX_Transcode_Stop);
+
+    BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: state on entry %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_stateStrs, pTrans->eState )));
 
     pTrans->eState = TRNSX_State_eStopped;
 
@@ -6227,7 +6372,7 @@ static void TRNSX_Command_Execute(
     BDBG_ASSERT(pTrans);
     BDBG_ASSERT(pstCmd);
 
-    BDBG_MODULE_MSG(trnsx_input,("%s: executing %s", BSTD_FUNCTION, lookup_name(g_cmdFullnameStrs, pTrans->eActiveCmd )));
+    BDBG_MODULE_MSG(trnsx_input,("%s[%d]:: executing %s", BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_cmdFullnameStrs, pTrans->eActiveCmd )));
 
     switch( pTrans->eActiveCmd )
     {
@@ -6264,10 +6409,11 @@ static void TRNSX_Command_Execute(
             if( pTrans->videoEncoder.bCustomDisplaySettings && pTrans->videoEncoder.display )
             {
                 NEXUS_Error rc = NEXUS_SUCCESS;
+                BDBG_MODULE_MSG(trnsx_dbg, ("%s[%d]:: calling NEXUS_Display_SetCustomFormatSettings", BSTD_FUNCTION, pTrans->uiIndex));
                 rc = NEXUS_Display_SetCustomFormatSettings(pTrans->videoEncoder.display, NEXUS_VideoFormat_eCustom2, &pTrans->videoEncoder.customFormatSettings);
                 if ( rc )
                 {
-                    BDBG_ERR(("%s: NEXUS_Display_SetCustomFormatSettings returned: %d", BSTD_FUNCTION, rc));
+                    BDBG_ERR(("%s[%d]:: NEXUS_Display_SetCustomFormatSettings returned: %d", BSTD_FUNCTION, pTrans->uiIndex, rc));
                 }
             }
             break;
@@ -6312,9 +6458,9 @@ static void TRNSX_Command_Execute(
         case TRNSX_Cmd_eMuxStop:        TRNSX_Mux_Stop( pCtxt, pTrans );    break;
 
         case TRNSX_Cmd_eSleep:
-            BDBG_MODULE_MSG(trnsx_dbg,("%s: begin sleep", BSTD_FUNCTION));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: begin sleep", BSTD_FUNCTION, pTrans->uiIndex));
             BKNI_Sleep( (pTrans->sleep.eUnit == TRNSX_SleepUnit_eSecs) ? pTrans->sleep.uiDuration * 1000 : pTrans->sleep.uiDuration );
-            BDBG_MODULE_MSG(trnsx_dbg,("%s: end sleep", BSTD_FUNCTION));
+            BDBG_MODULE_MSG(trnsx_dbg,("%s[%d]:: end sleep", BSTD_FUNCTION, pTrans->uiIndex));
             break;
 
         case TRNSX_Cmd_eNone:
@@ -6322,7 +6468,7 @@ static void TRNSX_Command_Execute(
             break;
 
         default:
-             BKNI_Printf("%s: hit default, support has not been added for command %d\n", BSTD_FUNCTION, pTrans->eActiveCmd );
+             BKNI_Printf("%s[%d]:: hit default, support has not been added for command %d\n", BSTD_FUNCTION, pTrans->uiIndex, pTrans->eActiveCmd );
              break;
     }
 
@@ -6473,7 +6619,8 @@ static bool TRNSX_Command_ParseParams(
                             break;
 
                         default:
-                            BDBG_ERR(("Audio codec %s is not supported defaulting to NEXUS_AudioCodec_eAac", lookup_name(g_audioCodecStrs,eAudioCodec)));
+                            BDBG_ERR(("%s[%d]:: udio codec %s is not supported defaulting to NEXUS_AudioCodec_eAac",
+                                            BSTD_FUNCTION, pTrans->uiIndex, lookup_name(g_audioCodecStrs,eAudioCodec)));
                             pTrans->audioEncoder.encoderSettings.codec = NEXUS_AudioCodec_eAac;
                             break;
                     }
@@ -6528,8 +6675,8 @@ static bool TRNSX_Command_ParseParams(
                     pTrans->videoEncoder.customFormatSettings.refreshRate = pstCmd->data[0].uiValue;
                     if ( pstCmd->data[0].uiValue < 1 * 1000 || pstCmd->data[0].uiValue > 240 * 1000 )
                     {
-                        BDBG_WRN(("Is this value correct? refreshRate is specified in units of in 1/1000th Hz"));
-                        BDBG_WRN(("Was expecting something like 60*1000."));
+                        BDBG_WRN(("%s[%d]:: is this value correct? refreshRate is specified in units of in 1/1000th Hz", BSTD_FUNCTION, pTrans->uiIndex));
+                        BDBG_WRN(("%s[%d]:: was expecting something like 60*1000.", BSTD_FUNCTION, pTrans->uiIndex));
                     }
                 }
                 else

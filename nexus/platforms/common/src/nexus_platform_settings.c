@@ -55,6 +55,7 @@
 #include "nexus_platform_api_compat.h"
 #endif
 #include "bchp_common.h"
+#include "bdtu.h"
 
 BDBG_MODULE(nexus_platform_settings);
 
@@ -803,6 +804,8 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
 {
     unsigned i;
     const NEXUS_Core_PreInitState *preInitState;
+    BDTU_State dtuState;
+    int rc;
 
     BSTD_UNUSED(i);
     preInitState = NEXUS_Platform_P_PreInit();
@@ -889,6 +892,9 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
 #endif
 #endif
     }
+
+    rc = BDTU_GetState(preInitState->hReg, 0, &dtuState);
+    pCap->dtu.enabled = !rc && (dtuState == BDTU_State_eEnabled);
 
     NEXUS_Platform_P_PreUninit();
 }

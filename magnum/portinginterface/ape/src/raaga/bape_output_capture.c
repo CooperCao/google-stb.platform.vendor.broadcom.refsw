@@ -154,6 +154,31 @@ static void BAPE_OutputCapture_P_FreeBuffer(BAPE_OutputCaptureHandle handle, uns
     }
 }
 
+static void BAPE_OutputCapture_P_DataReady_isr(void* pParam, int param)
+{
+    BAPE_OutputCaptureHandle handle = (BAPE_OutputCaptureHandle)pParam;
+
+    BSTD_UNUSED(param);
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_OutputCapture);
+
+    if ( handle->interrupts.watermark.pCallback_isr )
+    {
+        if ( handle->bufferGroupHandle && handle->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+        {
+            /*BDBG_ERR(("DATA READY: depth %u, watermark %u", BAPE_BufferGroup_GetBufferDepth_isr(handle->bufferGroupHandle), handle->settings.watermark));*/
+            if ( BAPE_BufferGroup_GetBufferDepth_isr(handle->bufferGroupHandle) >= handle->settings.watermark )
+            {
+                handle->interrupts.watermark.pCallback_isr(handle->interrupts.watermark.pParam1, handle->interrupts.watermark.param2);
+            }
+        }
+        else if ( handle->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
+        {
+            /* nothing to do -- HW handles this */
+        }
+    }
+}
+
 static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle handle, unsigned numChannelPairs)
 {
     BERR_Code errCode;
@@ -186,6 +211,7 @@ static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle
 
     if ( !handle->bufferGroupHandle )
     {
+        BAPE_BufferGroupInterruptHandlers interrupts;
         unsigned i;
         BAPE_BufferGroupOpenSettings bufferGroupSettings;
         BAPE_BufferGroup_GetDefaultOpenSettings(&bufferGroupSettings);
@@ -219,6 +245,12 @@ static BERR_Code BAPE_OutputCapture_P_CreateBufferGroup(BAPE_OutputCaptureHandle
             BDBG_ERR(("ERROR, unable to create buffer interface"));
             return BERR_TRACE(errCode);
         }
+
+        BAPE_BufferGroup_GetInterruptHandlers(handle->bufferGroupHandle, &interrupts);
+        interrupts.dataReady.pCallback_isr = BAPE_OutputCapture_P_DataReady_isr;
+        interrupts.dataReady.pParam1 = handle;
+        interrupts.dataReady.param2 = 0;
+        BAPE_BufferGroup_SetInterruptHandlers(handle->bufferGroupHandle, &interrupts);
 
         /* Flush newly created group in case we had stale data in any of the buffers */
         BAPE_BufferGroup_Flush(handle->bufferGroupHandle);
@@ -529,7 +561,7 @@ void BAPE_OutputCapture_Flush_isr(
                 BDBG_WRN(("Cannot flush Capture because the buffer group is running"));
                 return;
             }
-            BAPE_BufferGroup_Flush(handle->bufferGroupHandle);
+            BAPE_BufferGroup_Flush_isr(handle->bufferGroupHandle);
         }
     }
 }
@@ -665,7 +697,12 @@ BERR_Code BAPE_OutputCapture_SetInterruptHandlers(
                 return BERR_TRACE(errCode);
             }
         }
+        else
         #endif
+        if ( handle->bufferGroupHandle )
+        {
+            /* nothing to do at this point */
+        }
     }
 
     handle->interrupts = *pInterrupts;

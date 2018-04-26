@@ -46,6 +46,7 @@
 #define MON_EPERM               -4
 #define MON_ENOENT              -5
 #define MON_ETIMEDOUT           -6
-#define MON_ENOTSUP             -7
+#define MON_ENOTSUPP            -7
+#define MON_EIO                 -8
 
 #endif /* _ERROR_H_ */

@@ -1352,6 +1352,8 @@ typedef struct {
 	wl_rateset_args_t	rateset_adv;	/* rateset along with mcs index bitmap */
 } sta_info_v5_t;
 
+typedef sta_info_v4_t sta_info_t;
+
 #define WL_OLD_STAINFO_SIZE	OFFSETOF(sta_info_t, tx_tot_pkts)
 
 #define WL_STA_VER_4		4

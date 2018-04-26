@@ -84,8 +84,8 @@ SAGE_FW := ${SAGE_BINARY_TOP}
 VERIFY_ALLCHIP_BINARIES=$(addprefix verify_binaries_,${ALLCHIPS})
 VERIFY_ALLCHIP_SBL_BINS=$(addprefix verify_sbl_binaries_,${ALLCHIPS})
 VERIFY_ALLCHIP_SSF_BINS=$(addprefix verify_ssf_binaries_,${ALLCHIPS})
-# All chips which have all TAs (7278B0 is not included)
-VERIFY_ALLCHIP_TA_BINS=$(addprefix verify_ta_binaries_,$(filter-out 7278B0, ${ALLCHIPS}))
+
+VERIFY_ALLCHIP_TA_BINS=$(addprefix verify_ta_binaries_,${ALLCHIPS})
 
 ANTIROLLBACK_DEV_BINS_META=${MY_TOP}/antirollback_dev_meta
 ANTIROLLBACK_PROD_BINS_META=${MY_TOP}/antirollback_prod_meta
@@ -186,8 +186,6 @@ ${VERIFY_ALLCHIP_SSF_BINS} : verify_ssf_binaries_% : ${SSF_PROD_BINS_META}.%.txt
 	${Q_}${VERIFY_SCRIPT} ${SSF_DEV_BINS_META}.$*.txt $*/dev/sage_framework_dev.bin ${SAGE_FW} ${SAGE_QUIET_BINARIES}
 
 ${VERIFY_ALLCHIP_TA_BINS} : verify_ta_binaries_% : verify_ar_% verify_bp3_% verify_dtcp_% verify_edrm_% verify_hdcp_% verify_keymaster_% verify_mfg_% verify_nf_% verify_pr25_% verify_pr30_% verify_svp_% verify_ssd_% verify_util_% verify_wv_%
-
-verify_ta_binaries_7278B0 : verify_ta_binaries_% : verify_ar_% verify_bp3_% verify_dtcp_% verify_edrm_% verify_hdcp_% verify_mfg_% verify_nf_% verify_pr25_% verify_pr30_% verify_svp_% verify_util_% verify_wv_%
 
 ${VERIFY_ALLCHIP_ANTIROLLBACK_BINS} : verify_ar_% : ${ANTIROLLBACK_PROD_BINS_META}.%.txt ${ANTIROLLBACK_DEV_BINS_META}.%.txt
 	@echo [Binary... $@]

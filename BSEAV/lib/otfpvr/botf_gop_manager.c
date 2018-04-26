@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -287,7 +287,6 @@ bpvr_gop_manager
 bpvr_gop_manager_create(bpvr_gop_manager_cfg *cfg)
 {
 	bpvr_gop_manager manager;
-    BERR_Code  rc;
     unsigned i;
 
 	BDBG_ASSERT(cfg->cdb_done);
@@ -297,7 +296,7 @@ bpvr_gop_manager_create(bpvr_gop_manager_cfg *cfg)
 	
 	manager = BKNI_Malloc(sizeof(*manager));
 	if (!manager) {
-        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 		return NULL;
 	}
 	BKNI_Memset(manager, 0, sizeof(*manager));
@@ -316,7 +315,7 @@ bpvr_gop_manager_create(bpvr_gop_manager_cfg *cfg)
 
 	manager->player = bpvr_gop_player_create(bpvr_gop_manager_recycle, manager, cfg->cdb_cntx, cfg->OPParserPtrs, cfg->IPParserPtrs);
 	if (!manager->player) {
-        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 		BKNI_Free(manager);
 		return NULL;
 	}

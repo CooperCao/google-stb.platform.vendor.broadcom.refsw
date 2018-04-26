@@ -110,11 +110,11 @@ static void platform_display_p_dynamic_range_processing_settings_to_nexus(
 
 void platform_display_get_video_dynamic_range_processing_capabilities(PlatformDisplayHandle display, unsigned windowId, PlatformDynamicRangeProcessingCapabilities * pCapabilities)
 {
-    NEXUS_DynamicRangeProcessingCapabilities caps;
-    BSTD_UNUSED(display);
+    NEXUS_DynamicRangeProcessingCapabilities * pCaps;
+    BDBG_ASSERT(display);
     BDBG_ASSERT(pCapabilities);
-    NEXUS_VideoWindow_GetDynamicRangeProcessingCapabilities(NEXUS_FindHdmiDisplay(), windowId, &caps);
-    platform_display_p_dynamic_range_processing_capabilities_from_nexus(&caps, pCapabilities);
+    pCaps = &display->platform->display.caps.display[NEXUS_FindHdmiDisplay()].window[windowId].dynamicRangeProcessing;
+    platform_display_p_dynamic_range_processing_capabilities_from_nexus(pCaps, pCapabilities);
 }
 
 void platform_display_get_video_dynamic_range_processing_settings(PlatformDisplayHandle display, unsigned windowId, PlatformDynamicRangeProcessingSettings * pSettings)
@@ -154,11 +154,11 @@ void platform_display_set_video_target_peak_brightness(PlatformDisplayHandle dis
 
 void platform_display_get_graphics_dynamic_range_processing_capabilities(PlatformDisplayHandle display, PlatformDynamicRangeProcessingCapabilities * pCapabilities)
 {
-    NEXUS_DynamicRangeProcessingCapabilities caps;
-    BSTD_UNUSED(display);
+    NEXUS_DynamicRangeProcessingCapabilities * pCaps;
+    BDBG_ASSERT(display);
     BDBG_ASSERT(pCapabilities);
-    NEXUS_Display_GetGraphicsDynamicRangeProcessingCapabilities(NEXUS_FindHdmiDisplay(), &caps);
-    platform_display_p_dynamic_range_processing_capabilities_from_nexus(&caps, pCapabilities);
+    pCaps = &display->platform->display.caps.display[NEXUS_FindHdmiDisplay()].graphics.dynamicRangeProcessing;
+    platform_display_p_dynamic_range_processing_capabilities_from_nexus(pCaps, pCapabilities);
 }
 
 void platform_display_get_graphics_dynamic_range_processing_settings(PlatformDisplayHandle display, PlatformDynamicRangeProcessingSettings * pSettings)

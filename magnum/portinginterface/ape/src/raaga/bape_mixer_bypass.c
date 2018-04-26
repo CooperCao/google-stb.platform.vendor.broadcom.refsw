@@ -1037,7 +1037,7 @@ static BERR_Code BAPE_BypassMixer_P_ConfigPathFromInput(
     /* Setup linkage from conection into mixer */
     inputNum = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, pConnection->pSource);
 
-    BDBG_ERR(("pConnection %p, bufferGroup %p", (void*)pConnection, (void*)pConnection->bufferGroupHandle));
+    BDBG_MSG(("pConnection %p, bufferGroup %p", (void*)pConnection, (void*)pConnection->bufferGroupHandle));
     if ( pConnection->bufferGroupHandle )
     {
         /* TBD7211 - anything to do here? - this will only work for 1:1 bypass.

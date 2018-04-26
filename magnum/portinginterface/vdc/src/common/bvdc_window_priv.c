@@ -10932,6 +10932,7 @@ static void BVDC_P_Window_DetermineBufferCount_isr
         /* SW7425-4703: roll back version 255 for SW7425-3748 */
         bBuf50to60Hz = (ulSrcVertRate == 50 && ulDstVertRate == 60) ? true : false;
 
+        /* For 50-to-60 with no deinterlacer */
         if ((!hWindow->bFrameCapture) && (!VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt))
             && ((hWindow->hBuffer->eWriterVsReaderRateCode > BVDC_P_WrRate_NotFaster) ||
                 (bBuf50to60Hz && (!BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode)))))
@@ -10970,7 +10971,6 @@ static void BVDC_P_Window_DetermineBufferCount_isr
             hWindow->ulBufCntNeeded, *(unsigned int *)&hWindow->stVnetMode));
         hWindow->stCurInfo.stDirty.stBits.bReallocBuffers = BVDC_P_DIRTY;
     }
-
 }
 
 static bool BVDC_P_Window_DecideCapBufsCfgs_isr
@@ -12024,6 +12024,7 @@ static void BVDC_P_Window_SetCadenceHandling_isr
          *     which is at the reader side as well will convert the
          *     frame to field with proper polarity.
          */
+
         if ((!hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced)    ||
             (hWindow->bFrameCapture) ||
             (BVDC_P_MVP_USED_MAD_AT_READER(hWindow->stVnetMode, hWindow->stMvpMode)))
@@ -12031,12 +12032,14 @@ static void BVDC_P_Window_SetCadenceHandling_isr
             hWindow->stCadHndl.bForceAltCap = false;
             hWindow->stCadHndl.bReaderCadMatching = false;
         }
+
         /* Progressive source and capture as field for interlaced display.
          */
         else if ((!bSrcInterlaced) && (!hWindow->bFrameCapture))
         {
             hWindow->stCadHndl.bForceAltCap = true;
             hWindow->stCadHndl.bReaderCadMatching = true;
+
         }
         /* Interlaced source and interlaced display.
          */
@@ -12062,7 +12065,6 @@ static void BVDC_P_Window_SetCadenceHandling_isr
                 }
                 else
                 {
-
                     /* If scaler is at writer side, writer side will generate the
                      * correct T/B/T/B cadence and reader side will match captured
                      * polarity against VEC polarity.
@@ -14041,14 +14043,41 @@ void BVDC_P_Window_Reader_isr
         {
             BVDC_P_Buffer_MtgMode eMtgMode;
 
+            hWindow->hBuffer->bMtgAlignSrcAndDisp = false;
+
             if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
             {
                 eMtgMode = BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) ? BVDC_P_Buffer_MtgMode_eMadPhase : BVDC_P_Buffer_MtgMode_eXdmRepeat;
+
+                /* For those cases where the source is interlaced, is de-interlaced to a frame, and then scanned
+                   out with the opposite polarity to the display field, a vertical bounce is sometimes seen depending
+                   on content. See SWSTB-6406. This is mainly due to MTG always being set to send out frames.
+                   The solution is to use the srcOriginalPolarity instead of the srcPolarity for determining which
+                   picture to display in multibuffering. Note that this only applies to cases wherein the source and
+                   display rates are the same and are both interlaced and there is no 3:2 lock detected by the
+                   associated deinterlacer. Note that 59.94Hz and 60Hz rates are deemed the same.
+                 */
+                if (eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)
+                {
+                    uint32_t ulDispRateMask = hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreqMask;
+                    uint32_t ulSrcRateMask = hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->ulVertFreqMask;
+                    bool bDispInterlaced = hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced;
+                    bool bSrcInterlaced = hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
+
+                    /* matching rates and interlaced display */
+                    if (!hWindow->pCurReaderNode->stFlags.bRev32Locked &&
+                        bDispInterlaced == bSrcInterlaced &&
+                        ulDispRateMask == ulSrcRateMask)
+                    {
+                        hWindow->hBuffer->bMtgAlignSrcAndDisp = true;
+                    }
+                }
             }
             else
             {
                 eMtgMode = BVDC_P_Buffer_MtgMode_eNonMtg;
             }
+
 
             pPicture = BVDC_P_Buffer_GetNextReaderNode_isr(hWindow, eFieldId, eMtgMode);
 

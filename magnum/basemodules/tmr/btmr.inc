@@ -53,7 +53,7 @@ BTMR_INCLUDES += \
 	   $(MAGNUM)/basemodules/tmr/include
 
 # Module Sources
-ifeq ($(BCHP_CHIP),7211)
+ifneq ($(wildcard ${BCHP_RDB_PATH}/bchp_ott_xpt_cdb_itb.h),)
 BTMR_SOURCES += \
 	$(MAGNUM)/portinginterface/ott/src/bott_tmr.c
 else

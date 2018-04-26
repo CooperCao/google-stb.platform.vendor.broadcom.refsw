@@ -193,7 +193,7 @@ void BVDC_P_GfxFeeder_GetCfcCapabilities
             break;
 #endif
         default:
-            BDBG_ERR(("Need to handle BAVC_SourceId_eGfx%d", eGfdId));
+            BDBG_ERR(("Need to handle BAVC_SourceId_eGfx%d", eGfdId - BAVC_SourceId_eGfx0));
             BDBG_ASSERT(0);
             break;
     }
@@ -2402,9 +2402,8 @@ void BVDC_P_GfxFeeder_UpdateState_isr
         hGfxFeeder->ulInitVsyncCntr --;
     }
 
-    /* BuildRulFor* will use pCurCfg->stDirty, so copy back after modification
-     * note: we use ulBuildCntr to make it build twice, in case 1st RUL might not get executed
-     * note: pCurCfg->stDirty will be cleared at the end of BVDC_P_GfxFeeder_BuildRul_isr */
+#if 0
+    /* note: we use ulBuildCntr to make it build twice, in case 1st RUL might not get executed */
     if (0 == hGfxFeeder->ulBuildCntr)
     {
         BVDC_P_CLEAN_ALL_DIRTY(&hGfxFeeder->stPrevDirty);
@@ -2420,6 +2419,18 @@ void BVDC_P_GfxFeeder_UpdateState_isr
         hGfxFeeder->ulBuildCntr --;
         stCurDirty = hGfxFeeder->stPrevDirty;
     }
+#else
+    if(!pList->bLastExecuted)
+    {
+        /* rebuild RUL for the changes done in last vsync, because last vsync's
+         * RUL is lost */
+        BVDC_P_OR_ALL_DIRTY(&stCurDirty, &hGfxFeeder->stPrevDirty);
+    }
+    hGfxFeeder->stPrevDirty = stCurDirty;
+#endif
+
+    /* BuildRulFor* will use pCurCfg->stDirty, so copy back after modification */
+    /* note: pCurCfg->stDirty will be cleared at the end of BVDC_P_GfxFeeder_BuildRul_isr */
     pCurCfg->stDirty = stCurDirty;
 
     /* resolve color conversion state */

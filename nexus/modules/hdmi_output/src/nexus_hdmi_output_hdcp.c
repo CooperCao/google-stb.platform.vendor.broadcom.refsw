@@ -2156,8 +2156,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    BSTD_UNUSED(input);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
+    return input ? BERR_TRACE(BERR_NOT_SUPPORTED) : NEXUS_SUCCESS;
 }
 
 NEXUS_Error NEXUS_HdmiOutput_GetHdcp2xReceiverIdListData(

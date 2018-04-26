@@ -52,9 +52,6 @@
 #include "nexus_file_mux_init.h"
 #endif
 
-extern NEXUS_HeapHandle NEXUS_Platform_CreateHeap_proxy( const NEXUS_PlatformCreateHeapSettings *pSettings );
-extern void NEXUS_Platform_DestroyHeap_proxy( NEXUS_HeapHandle heap );
-
 static bool g_NEXUS_magnum_init = false;
 
 NEXUS_Error
@@ -212,44 +209,4 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
 {
     NEXUS_Platform_P_Magnum_Init();
     memset(pSettings, 0, sizeof(*pSettings));
-}
-
-NEXUS_HeapHandle NEXUS_Platform_CreateHeap( const NEXUS_PlatformCreateHeapSettings *pSettings )
-{
-    NEXUS_HeapHandle heap;
-    unsigned i;
-
-    /* find a slot */
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (!NEXUS_Platform_P_State.mmaps[i].heap) break;
-    }
-    if (i == NEXUS_MAX_HEAPS) {
-        BERR_TRACE(NEXUS_NOT_AVAILABLE);
-        return NULL;
-    }
-
-    heap = NEXUS_Platform_CreateHeap_proxy(pSettings);
-    if (heap) {
-        int rc;
-        rc = nexus_p_add_heap(i, heap, pSettings->offset, pSettings->size, pSettings->memoryType, true, pSettings->userAddress);
-        if (rc) {rc = BERR_TRACE(rc); goto error;}
-    }
-    return heap;
-
-error:
-    NEXUS_Platform_DestroyHeap_proxy(heap);
-    return NULL;
-}
-
-void NEXUS_Platform_DestroyHeap( NEXUS_HeapHandle heap )
-{
-    unsigned i;
-
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (NEXUS_Platform_P_State.mmaps[i].heap == heap && NEXUS_Platform_P_State.mmaps[i].dynamic) {
-            nexus_p_remove_heap(i);
-            NEXUS_Platform_DestroyHeap_proxy(heap);
-            break;
-        }
-    }
 }

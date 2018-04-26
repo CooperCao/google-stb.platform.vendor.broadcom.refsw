@@ -584,25 +584,15 @@ static void nexus_audiodecoderprimer_replace(NEXUS_AudioDecoderPrimerHandle prim
     BDBG_ASSERT(!audioDecoder->primer);
     audioDecoder->primer = primer;
     primer->audioDecoder = audioDecoder;
-    audioDecoder->savedRaveContext = audioDecoder->dstRaveContext;
-    if ( audioDecoder->srcRaveContext ) {
-        audioDecoder->dstRaveContext = audioDecoder->srcRaveContext;
-        audioDecoder->srcRaveContext = primer->rave;
-    } else {
-        audioDecoder->dstRaveContext = primer->rave;
-    }
+    audioDecoder->savedRaveContext = audioDecoder->raveContext;
+    audioDecoder->raveContext = primer->rave;
 }
 
 static void nexus_audiodecoderprimer_restore(NEXUS_AudioDecoderPrimerHandle primer)
 {
     if (primer->audioDecoder) {
         BDBG_ASSERT(primer->audioDecoder->primer == primer);
-        if ( primer->audioDecoder->srcRaveContext ) {
-            primer->audioDecoder->dstRaveContext = primer->audioDecoder->srcRaveContext;
-            primer->audioDecoder->srcRaveContext = primer->audioDecoder->savedRaveContext;
-        } else {
-            primer->audioDecoder->dstRaveContext = primer->audioDecoder->savedRaveContext;
-        }
+        primer->audioDecoder->raveContext = primer->audioDecoder->savedRaveContext;
         primer->audioDecoder->savedRaveContext = NULL;
         primer->audioDecoder->primer = NULL;
         primer->audioDecoder = NULL;

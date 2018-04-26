@@ -84,8 +84,6 @@ BDBG_MODULE(nexus_sage_module);
 #define SAGE_SRR_START_REG   BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSRRStartOffset)
 #define SAGE_SRR_END_REG     BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSRREndOffset)
 
-#define SAGE_RESETVAL_DOWN  0x1FF1FEED /* Defined in multiple places */
-
 #define BP3_BOND_OPTION     0
 #define BP3_BOND_OPTION_MASK 0xFF
 
@@ -935,14 +933,7 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
     /* Check again (may be called for watchdog/standby) */
-    if((BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
-        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK)) {
-        g_NEXUS_sageModule.reset = 1;
-        reconnect = false;
-    } else {
-        g_NEXUS_sageModule.reset = 0;
-        reconnect = true;
-    }
+    g_NEXUS_sageModule.reset = !BCHP_SAGE_IsStarted(g_pCoreHandles->reg);
 
     frameworkImg.raw = &g_sage_module.framework;
     blImg.raw = &bl;
@@ -997,12 +988,27 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     bootSettings.logBufferOffset = (uint32_t)g_sage_module.logBufferHeapOffset;
     bootSettings.logBufferSize = g_sage_module.logBufferHeapLen;
 
-    if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG)==SAGE_RESETVAL_DOWN)
+    if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG)==SAGE_RESETVAL_S2H_DOWN)
     {
+        uint32_t cnt=0;
+
         /* In case of previous shutdown.. wait for sage to be down */
         if(NEXUS_Sage_P_WaitSageRegion()!=NEXUS_SUCCESS)
         {
             BDBG_ERR(("Failed waiting for SAGE shutdown. Continue, but SAGE may not function"));
+        }
+
+        /* If SAGE_RESET_REG is "DOWN", then sage has shut down, it is expected that it will be in reset */
+        /* This check may not be necessary, but good to double check */
+        /* If SAGE is still running (!reset) but GSRAM is "DOWN", then some unknown state.. cannot proceed */
+        while(!g_NEXUS_sageModule.reset) {
+            if(cnt++ > 10) {
+                BDBG_ERR(("Timeout waiting for SAGE to be in RESET, cannot cleanly start"));
+                rc = NEXUS_TIMEOUT;
+                goto err;
+            }
+            BKNI_Sleep(100);
+            g_NEXUS_sageModule.reset = !BCHP_SAGE_IsStarted(g_pCoreHandles->reg);
         }
     }
 
@@ -1020,8 +1026,16 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
             BDBG_ERR(("*******  SAGE ERROR  <<<<<"));
         }
     } else {
+        /* Can't assume that just because SAGE is running, it's ready to reconnect with HOST */
+        if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG) != SAGE_RESETVAL_S2H_READYTORESTART) {
+            BDBG_ERR(("SAGE is running, but NOT ready for host reconnect. Cannot continue"));
+            rc = NEXUS_NOT_AVAILABLE;
+            goto err;
+        }
+
         /* Do some checks, that we can restart w/ SAGE already running */
         magnum_rc = BSAGElib_Boot_HostReset(g_NEXUS_sageModule.hSAGElib, &bootSettings);
+        reconnect = true; /* Need a 2nd step for the reconnect to complete */
     }
 
     if(magnum_rc != BERR_SUCCESS) {
@@ -1209,7 +1223,7 @@ void NEXUS_SageModule_Uninit(void)
     if (booted) {
         BCHP_SAGE_Reset(g_pCoreHandles->reg);
 
-        if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG)==SAGE_RESETVAL_DOWN)
+        if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG)==SAGE_RESETVAL_S2H_DOWN)
         {
             if(NEXUS_Sage_P_WaitSageRegion()!=NEXUS_SUCCESS)
             {

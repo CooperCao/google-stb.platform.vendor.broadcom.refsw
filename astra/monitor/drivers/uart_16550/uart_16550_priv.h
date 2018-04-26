@@ -67,4 +67,7 @@
 #define UARTLSR_RDR_BIT		(0)		/* Rx Data Ready Bit */
 #define UARTLSR_RDR		(1 << UARTLSR_RDR_BIT)	/* Rx Data Ready */
 
+#define UARTLSR_TEMT_SHIFT	6		/* Tx Shift Register Empty */
+#define UARTLSR_THRE_SHIFT	5		/* Tx Holding Register Empty */
+
 #endif	/* __UART_16550_PRIV_H__ */
