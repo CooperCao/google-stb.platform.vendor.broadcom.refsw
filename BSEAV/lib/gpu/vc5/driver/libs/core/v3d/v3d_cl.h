@@ -353,11 +353,9 @@ struct v3d_tlb_ldst_params
    v3d_memory_format_t memory_format;
 #if V3D_VER_AT_LEAST(4,1,34,0)
    v3d_pixel_format_t pixel_format;
-# if V3D_VER_AT_LEAST(4,1,34,0)
    bool load_alpha_to_one;
    bool chan_reverse;
    bool rb_swap;
-# endif
 #else
    v3d_output_format_t output_format;
 #endif

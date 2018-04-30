@@ -180,6 +180,7 @@ static uint32_t IndexOfResultId(spv::Core op)
    case spv::Core::OpAtomicOr :
    case spv::Core::OpAtomicXor :
    case spv::Core::OpPhi :
+   case spv::Core::OpGroupNonUniformElect :
       return 2;
    default :
       return 0;

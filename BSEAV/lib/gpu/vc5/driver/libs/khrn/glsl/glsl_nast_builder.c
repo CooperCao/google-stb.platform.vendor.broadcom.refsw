@@ -33,8 +33,6 @@ static void vpost_expr_has_no_side_effects(Expr *expr, void *data)
          break;
       case EXPR_FUNCTION_CALL: {
          Symbol    *function = expr->u.function_call.function;
-         Statement *function_def = function->u.function_instance.function_def;
-         Statement *body = function_def->u.function_def.body;
 
          // don't allow any out params
          for (unsigned i = 0; i < function->type->u.function_type.param_count; i++) {
@@ -42,7 +40,14 @@ static void vpost_expr_has_no_side_effects(Expr *expr, void *data)
                *result = false;
          }
 
+         Statement *function_def = function->u.function_instance.function_def;
+         // If there is no definition then this must be a stdlib function, so allow it
+         if (!function_def) {
+            assert(glsl_stdlib_is_stdlib_function(function));
+            break;
+         }
          // check that the function body is a return statement
+         Statement *body = function_def->u.function_def.body;
          assert(body->flavour == STATEMENT_COMPOUND);
          StatementChainNode *body_stmt = body->u.compound.statements->first;
          if (body_stmt && body_stmt->statement->flavour == STATEMENT_RETURN_EXPR)
@@ -168,7 +173,12 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
             }
          }
          // call the function
-         glsl_nstmt_list_add(nstmts, glsl_nstmt_new_function_call(result, function, args));
+         if (!glsl_stdlib_is_stdlib_function(function) ||
+             glsl_stdlib_function_bodies[glsl_stdlib_function_index(function)] != NULL)
+            glsl_nstmt_list_add(nstmts, glsl_nstmt_new_function_call(result, function, args));
+         else
+            glsl_nstmt_list_add(nstmts, glsl_nstmt_new_assign(result, glsl_expr_construct_function_call(-1, function, args)));
+
          // copy back out params
          // Atomic memory functions don't obey the calling convention here
          if (!glsl_stdlib_is_stdlib_function(function) ||

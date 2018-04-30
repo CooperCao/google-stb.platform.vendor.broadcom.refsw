@@ -65,6 +65,7 @@ static void print_usage(void)
     "Usage: 3dtv_client OPTIONS\n"
     "  --help or -h for help\n"
     "  -2d              Draw a 3D surface, but submit as 2D. You will set both left and right at the same time.\n"
+    "  -timeout SECONDS\n"
     );
 }
 
@@ -230,6 +231,9 @@ int main(int argc, const char **argv)
         while (1) BKNI_Sleep(1000);
     }
 
+    if (font) {
+        bfont_close(font);
+    }
     NEXUS_SurfaceClient_Release(blit_client);
     BKNI_DestroyEvent(displayedEvent);
     BKNI_DestroyEvent(checkpointEvent);

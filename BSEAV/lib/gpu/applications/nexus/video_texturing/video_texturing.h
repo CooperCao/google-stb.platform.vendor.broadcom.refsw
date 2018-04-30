@@ -127,7 +127,7 @@ private:
 #else
    uint32_t                      m_decodeBuffers;
 #endif
-   BEGL_BufferFormat             m_decodeFormat;
+   NEXUS_PixelFormat             m_decodeFormat;
    std::string                   m_videoFile;
    MediaData                     m_mediaData;
 

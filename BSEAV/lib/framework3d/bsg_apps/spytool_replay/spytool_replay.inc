@@ -3,10 +3,16 @@
 ###############################################################################
 
 CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/tools/gpumon_hook
+CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/tools/gpumon_tools
 CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/driver
 CXXFLAGS += -I$(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/driver/interface/khronos/include
 
-VPATH = $(BSEAV_DIR)/lib/gpu/tools/gpumon_hook
+ifeq ($(V3D_PREFIX),vc5)
+CXXFLAGS += -DHAS_ES3=1
+endif
+
+VPATH = $(BSEAV_DIR)/lib/gpu/tools/gpumon_hook \
+        $(BSEAV_DIR)/lib/gpu/tools/gpumon_tools
 
 SOURCES =             \
    spytool_replay.cpp \
@@ -16,6 +22,8 @@ SOURCES =             \
    GetProcAddress.cpp \
    Loader.cpp         \
    packet.cpp         \
-   packetreader.cpp
+   packetreader.cpp   \
+   GLStdCommand.cpp   \
+   GLStdCommandMap.cpp
 
 TARGET := spytool_replay

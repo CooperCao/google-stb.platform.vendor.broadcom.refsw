@@ -3,7 +3,7 @@
  ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_client_platform.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/eglext.h>
 
 #include "interface/khronos/egl/egl_client_config.h"
 
@@ -13,7 +13,7 @@
 
 typedef uint64_t FEATURES_T;
 
-#define FEATURES_PACK(r, g, b, a, d, s, m, mask, lockable, framebuffer_target_android, recordable_android) \
+#define FEATURES_PACK(r, g, b, a, d, s, m, framebuffer_target_android, recordable_android) \
    ((FEATURES_T)((((uint64_t)(r)             ) << 36) | \
                  (((uint64_t)(g)             ) << 32) | \
                  (((uint64_t)(b)             ) << 28) | \
@@ -21,14 +21,12 @@ typedef uint64_t FEATURES_T;
                  ((d                         ) << 16) | \
                  ((s                         ) << 12) | \
                  ((m                         ) <<  4) | \
-                 (((mask) >> 3               ) <<  3) | \
-                 ((lockable                  ) <<  2) | \
                  ((framebuffer_target_android) <<  1) | \
                   (recordable_android        ) <<  0))
 
 typedef struct {
    FEATURES_T features;
-   KHRN_IMAGE_FORMAT_T color, depth, multisample, mask;
+   KHRN_IMAGE_FORMAT_T color, depth, multisample;
 } FEATURES_AND_FORMATS_T;
 
 /*
@@ -39,117 +37,105 @@ typedef struct {
 */
 
 static const FEATURES_AND_FORMATS_T formats_TFORMAT[] = {
-/*                R  G  B  A   D  S  M  MASK
-                                        |  LOCKABLE
-                                        |  |  FRAMEBUFFER_TARGET_ANDROID
-                                        |  |  |  RECORDABLE
-                                        |  |  |  |   COLOR        DEPTH                 MULTISAMPLE           MASK */
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 0, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 0, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 0, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 0, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 0, 0, 0, 0), XBGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+/*                R  G  B  A   D  S  M  FRAMEBUFFER_TARGET_ANDROID
+                                        |  RECORDABLE
+                                        |  |  COLOR        DEPTH                 MULTISAMPLE          */
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 0, 0), XBGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 1, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 1, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 0, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 1, 0, 0, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 0, 0, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 1, 0, 0, 0, 0), XBGR_8888_TF,IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 1, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 1, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 0), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 1, 0, 0), XBGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, COL_32_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 1, 0, 0), XBGR_8888_TF,IMAGE_FORMAT_INVALID, COL_32_TLBD},
 
-   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 0, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 0, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 0, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 0, 0, 0, 0), RGB_565_TF,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 0, 0), RGB_565_TF,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 
-   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 1, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 1, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 1, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 1, 0, 0, 0, 0), RGB_565_TF,  IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 1, 0, 0), RGB_565_TF,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 1, 0, 0), RGB_565_TF,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 1, 0, 0), RGB_565_TF,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 1, 0, 0), RGB_565_TF,  IMAGE_FORMAT_INVALID, COL_32_TLBD},
 
-   {FEATURES_PACK(5, 6, 5, 0, 16, 0, 0, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 8, 0, 0, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 8, 0, 0, 0), XBGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 8, 0, 0, 0), RGB_565_TF,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
+   {FEATURES_PACK(5, 6, 5, 0, 16, 0, 0, 0, 0), RGB_565_TF,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
 
 #if EGL_ANDROID_framebuffer_target
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 1, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 1, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 #endif
 
 #if EGL_ANDROID_recordable
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 0, 1), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 1), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 0, 0, 1), ABGR_8888_TF,IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 1), ABGR_8888_TF,IMAGE_FORMAT_INVALID, COL_32_TLBD},
 #endif
 };
 
 
 static const FEATURES_AND_FORMATS_T formats_RSO[] = {
-/*                R  G  B  A   D  S  M  MASK
-                                        |  LOCKABLE
-                                        |  |  FRAMEBUFFER_TARGET_ANDROID
-                                        |  |  |  RECORDABLE
-                                        |  |  |  |   COLOR         DEPTH                 MULTISAMPLE           MASK */
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 0, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 0, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 0, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 0, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 0, 0, 0, 0), XBGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+/*                R  G  B  A   D  S  M  FRAMEBUFFER_TARGET_ANDROID
+                                        |  RECORDABLE
+                                        |  |  COLOR        DEPTH                 MULTISAMPLE          */
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 0, 0), XBGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 1, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 1, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 0, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 1, 0, 0, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 0, 0, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 1, 0, 0, 0, 0), XBGR_8888_RSO,IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 8, 1, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0, 24, 0, 1, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 0), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 8, 1, 0, 0), XBGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, COL_32_TLBD},
+   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 1, 0, 0), XBGR_8888_RSO,IMAGE_FORMAT_INVALID, COL_32_TLBD},
 
-   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 0, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 0, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 0, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 0, 0, 0, 0), RGB_565_RSO,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 0, 0), RGB_565_RSO,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 
-   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 1, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 1, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 1, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD,    IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 1, 0, 0, 0, 0), RGB_565_RSO,  IMAGE_FORMAT_INVALID, COL_32_TLBD,          IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 8, 1, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(5, 6, 5, 0, 24, 0, 1, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 8, 1, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 1, 0, 0), RGB_565_RSO,  IMAGE_FORMAT_INVALID, COL_32_TLBD},
 
-   {FEATURES_PACK(5, 6, 5, 0, 16, 0, 0, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 8, 0, 0, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
-   {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 8, 0, 0, 0), XBGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
-   {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 8, 0, 0, 0), RGB_565_RSO,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
+   {FEATURES_PACK(5, 6, 5, 0, 16, 0, 0, 0, 0), RGB_565_RSO,  DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
 
 #if EGL_ANDROID_framebuffer_target
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 1, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 1, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 #endif
 
 #if EGL_ANDROID_recordable
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 0, 1), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 1), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 
-   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD, IMAGE_FORMAT_INVALID},
-   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 0, 0, 1), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, COL_32_TLBD, IMAGE_FORMAT_INVALID},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 8, 1, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8, 24, 0, 1, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 8, 1, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD /*?*/,  DEPTH_COL_64_TLBD},
+   {FEATURES_PACK(8, 8, 8, 8,  0, 0, 1, 0, 1), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, COL_32_TLBD},
 #endif
 };
 
@@ -178,8 +164,6 @@ static bool bindable_rgba(FEATURES_T features);
 #define FEATURES_UNPACK_DEPTH(c)                         ((EGLint)((c) >> 16 & 0xff))
 #define FEATURES_UNPACK_STENCIL(c)                       ((EGLint)((c) >> 12 & 0xf))
 #define FEATURES_UNPACK_MULTI(c)                         ((EGLint)((c) >> 4 & 0x1))
-#define FEATURES_UNPACK_MASK(c)                          ((EGLint)(((c) >> 3 & 0x1) << 3))
-#define FEATURES_UNPACK_LOCKABLE(c)                      ((EGLint)((c) >> 2 & 0x1))
 #define FEATURES_UNPACK_ANDROID_FRAMEBUFFER_TARGET(c)    ((EGLint)((c) >> 1 & 0x1))
 #define FEATURES_UNPACK_ANDROID_RECORDABLE(c)            ((EGLint)((c)      & 0x1))
 #define FEATURES_UNPACK_COLOR(c)                         (FEATURES_UNPACK_RED(c)+FEATURES_UNPACK_GREEN(c)+FEATURES_UNPACK_BLUE(c)+FEATURES_UNPACK_ALPHA(c))
@@ -281,9 +265,6 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
          int valid_bits = EGL_WINDOW_BIT | EGL_PIXMAP_BIT | EGL_PBUFFER_BIT |
             EGL_MULTISAMPLE_RESOLVE_BOX_BIT | EGL_SWAP_BEHAVIOR_PRESERVED_BIT |
             EGL_VG_COLORSPACE_LINEAR_BIT | EGL_VG_ALPHA_FORMAT_PRE_BIT;
-#if EGL_KHR_lock_surface
-         valid_bits |= EGL_LOCK_SURFACE_BIT_KHR | EGL_OPTIMAL_FORMAT_BIT_KHR;
-#endif
          if (value != EGL_DONT_CARE && (value & ~valid_bits))
             return false;
          break;
@@ -299,22 +280,6 @@ bool egl_config_check_attribs(const EGLint *attrib_list)
          value = *attrib_list++;
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
-#if EGL_KHR_lock_surface
-      case EGL_MATCH_FORMAT_KHR:
-         value = *attrib_list++;
-         switch (value) {
-         case EGL_DONT_CARE:
-         case EGL_NONE:
-         case EGL_FORMAT_RGB_565_EXACT_KHR:
-         case EGL_FORMAT_RGB_565_KHR:
-         case EGL_FORMAT_RGBA_8888_EXACT_KHR:
-         case EGL_FORMAT_RGBA_8888_KHR:
-            break;
-         default:
-            return false;
-         }
-         break;
-#endif
 #if EGL_ANDROID_recordable
       case EGL_RECORDABLE_ANDROID:
          value = *attrib_list++;
@@ -366,8 +331,6 @@ static bool less_than(int id0, int id1, bool use_red, bool use_green, bool use_b
    EGLint stencil0 = FEATURES_UNPACK_STENCIL(features0);
    EGLint stencil1 = FEATURES_UNPACK_STENCIL(features1);
 
-   EGLint mask0 = FEATURES_UNPACK_MASK(features0);
-   EGLint mask1 = FEATURES_UNPACK_MASK(features1);
 
    int used0 = 0;
    int used1 = 0;
@@ -393,8 +356,7 @@ static bool less_than(int id0, int id1, bool use_red, bool use_green, bool use_b
       (all0 < all1 || (all0 == all1 &&
       (multi0 < multi1 || (multi0 == multi1 &&
       (depth0 < depth1 || (depth0 == depth1 &&
-      (stencil0 < stencil1 || (stencil0 == stencil1 &&
-      (mask0 < mask1))))))))));
+      (stencil0 < stencil1))))))));
 }
 
 void egl_config_sort(int *ids, bool use_red, bool use_green, bool use_blue, bool use_alpha)
@@ -434,7 +396,7 @@ bool egl_config_get_attrib(int id, EGLint attrib, EGLint *value)
       *value = FEATURES_UNPACK_ALPHA(features);
       return true;
    case EGL_ALPHA_MASK_SIZE:
-      *value = FEATURES_UNPACK_MASK(features);
+      *value = 0;
       return true;
    case EGL_BIND_TO_TEXTURE_RGB:
       *value = bindable_rgb(features);
@@ -507,14 +469,6 @@ bool egl_config_get_attrib(int id, EGLint attrib, EGLint *value)
          EGL_VG_ALPHA_FORMAT_PRE_BIT |
          EGL_MULTISAMPLE_RESOLVE_BOX_BIT
          );
-#if EGL_KHR_lock_surface
-      if (egl_config_is_lockable(id))
-      {
-         *value |= EGL_LOCK_SURFACE_BIT_KHR;
-         if (egl_config_get_mapped_format(id) == egl_config_get_color_format(id))
-            *value |= EGL_OPTIMAL_FORMAT_BIT_KHR;      /* Considered optimal if no format conversion needs doing. Currently all lockable surfaces are optimal */
-      }
-#endif
       return true;
    case EGL_TRANSPARENT_TYPE:
       *value = EGL_NONE;
@@ -524,25 +478,6 @@ bool egl_config_get_attrib(int id, EGLint attrib, EGLint *value)
    case EGL_TRANSPARENT_BLUE_VALUE:
       *value = 0;
       return true;
-#if EGL_KHR_lock_surface
-   case EGL_MATCH_FORMAT_KHR:
-      if (!egl_config_is_lockable(id))
-         *value = EGL_NONE;
-      else {
-         switch (egl_config_get_mapped_format(id))
-         {
-         case RGB_565_RSO:
-            *value = EGL_FORMAT_RGB_565_EXACT_KHR;
-            break;
-         case ARGB_8888_RSO:
-            *value = EGL_FORMAT_RGBA_8888_EXACT_KHR;
-            break;
-         default:
-            UNREACHABLE();
-         }
-      }
-      return true;
-#endif
 #if EGL_ANDROID_recordable
    case EGL_RECORDABLE_ANDROID:
       if (egl_config_is_recordable(id))
@@ -641,16 +576,6 @@ bool egl_config_filter(int id, const EGLint *attrib_list)
       case EGL_MATCH_NATIVE_PIXMAP:
          return false;
          break;
-#if EGL_KHR_lock_surface
-      case EGL_MATCH_FORMAT_KHR:
-         if (!(value == EGL_DONT_CARE || value == actual_value
-            || (value == EGL_FORMAT_RGB_565_KHR && actual_value == EGL_FORMAT_RGB_565_EXACT_KHR)
-            || (value == EGL_FORMAT_RGBA_8888_KHR && actual_value == EGL_FORMAT_RGBA_8888_EXACT_KHR)))
-         {
-            return false;
-         }
-         break;
-#endif
 
          /* Attributes we can completely ignore */
       case EGL_MAX_PBUFFER_WIDTH:
@@ -732,25 +657,6 @@ KHRN_IMAGE_FORMAT_T egl_config_get_depth_format(int id)
    assert(id >= 0 && id < EGL_MAX_CONFIGS);
 
    return formats[id].depth;
-}
-
-/*
-   KHRN_IMAGE_FORMAT_T egl_config_get_mask_format(int id)
-
-   Preconditions:
-
-   0 <= id < EGL_MAX_CONFIGS
-
-   Postconditions:
-
-   Return value is a hardware framebuffer-supported mask KHRN_IMAGE_FORMAT_T or IMAGE_FORMAT_INVALID
-*/
-
-KHRN_IMAGE_FORMAT_T egl_config_get_mask_format(int id)
-{
-   assert(id >= 0 && id < EGL_MAX_CONFIGS);
-
-   return formats[id].mask;
 }
 
 /*
@@ -871,26 +777,11 @@ bool egl_config_match_pixmap_info(int id, KHRN_IMAGE_WRAP_T *image)
 
    Postconditions:
 
-   Result is a bitmap which is a subset of (EGL_OPENGL_ES_BIT | EGL_OPENVG_BIT | EGL_OPENGL_ES2_BIT)
+   Result is a bitmap which is a subset of (EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT)
 */
 
 uint32_t egl_config_get_api_support(int id)
 {
-   /* no configs are api-specific (ie if you can use a config with gl, you can
-    * use it with vg too, and vice-versa). however, some configs have color
-    * buffer formats that are incompatible with the hardware, and so can't be
-    * used with any api. such configs may still be useful eg with the surface
-    * locking extension... */
-
-#if EGL_KHR_lock_surface
-   /* to reduce confusion, just say no for all lockable configs. this #if can be
-    * safely commented out -- the color buffer format check below will catch
-    * lockable configs we actually can't use */
-   if (egl_config_is_lockable(id)) {
-      return 0;
-   }
-#endif
-
    switch (egl_config_get_color_format(id)) {
    case ABGR_8888_RSO: case ABGR_8888_TF: case ABGR_8888_LT:
    case XBGR_8888_RSO: case XBGR_8888_TF: case XBGR_8888_LT:
@@ -913,13 +804,12 @@ uint32_t egl_config_get_api_support(int id)
 
    Postconditions:
 
-   Result is a bitmap which is a subset of (EGL_OPENGL_ES_BIT | EGL_OPENVG_BIT | EGL_OPENGL_ES2_BIT)
+   Result is a bitmap which is a subset of (EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT)
 */
 
 uint32_t egl_config_get_api_conformance(int id)
 {
-   /* vg doesn't support multisampled surfaces properly */
-   return egl_config_get_api_support(id) & ~(FEATURES_UNPACK_MULTI(formats[id].features) ? EGL_OPENVG_BIT : 0);
+   return egl_config_get_api_support(id);
 }
 
 bool egl_config_bpps_match(int id0, int id1) /* bpps of all buffers match */
@@ -933,58 +823,8 @@ bool egl_config_bpps_match(int id0, int id1) /* bpps of all buffers match */
       FEATURES_UNPACK_BLUE(config0)    == FEATURES_UNPACK_BLUE(config1) &&
       FEATURES_UNPACK_ALPHA(config0)   == FEATURES_UNPACK_ALPHA(config1) &&
       FEATURES_UNPACK_DEPTH(config0)   == FEATURES_UNPACK_DEPTH(config1) &&
-      FEATURES_UNPACK_STENCIL(config0) == FEATURES_UNPACK_STENCIL(config1) &&
-      FEATURES_UNPACK_MASK(config0)    == FEATURES_UNPACK_MASK(config1);
+      FEATURES_UNPACK_STENCIL(config0) == FEATURES_UNPACK_STENCIL(config1);
 }
-
-#if EGL_KHR_lock_surface
-
-/*
-   KHRN_IMAGE_FORMAT_T egl_config_get_mapped_format(int id)
-
-   Returns the format of the mapped buffer when an EGL surface is locked.
-
-   Preconditions:
-
-   0 <= id < EGL_MAX_CONFIGS
-   egl_config_is_lockable(id)
-
-   Postconditions:
-
-   Return value is RGB_565_RSO or ARGB_8888_RSO
-*/
-
-KHRN_IMAGE_FORMAT_T egl_config_get_mapped_format(int id)
-{
-   KHRN_IMAGE_FORMAT_T result;
-
-   assert(id >= 0 && id < EGL_MAX_CONFIGS);
-   assert(FEATURES_UNPACK_LOCKABLE(formats[id].features));
-
-   /* If any t-format images were lockable, we would convert to raster format here */
-   result = egl_config_get_color_format(id);
-   assert(khrn_image_is_rso(result));
-   return result;
-}
-
-/*
-   bool egl_config_is_lockable(int id)
-
-   Preconditions:
-
-   0 <= id < EGL_MAX_CONFIGS
-
-   Postconditions:
-
-   -
-*/
-
-bool egl_config_is_lockable(int id)
-{
-   assert(id >= 0 && id < EGL_MAX_CONFIGS);
-   return FEATURES_UNPACK_LOCKABLE(formats[id].features);
-}
-#endif /* EGL_KHR_lock_surface */
 
 #if EGL_ANDROID_framebuffer_target
 bool egl_config_is_framebuffer_target(int id)

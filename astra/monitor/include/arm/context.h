@@ -235,9 +235,8 @@ DEFINE_REG_STRUCT(el3_state, CTX_EL3STATE_ALL);
  * Macros to access members of any of the above structures using their
  * offsets
  */
-#define read_ctx_reg(ctx, offset)	((ctx)->_regs[offset >> DWORD_SHIFT])
-#define write_ctx_reg(ctx, offset, val)	(((ctx)->_regs[offset >> DWORD_SHIFT]) \
-					 = val)
+#define read_ctx_reg(ctx, offset)	((ctx)->_regs[(offset) >> DWORD_SHIFT])
+#define write_ctx_reg(ctx, offset, val)	(((ctx)->_regs[(offset) >> DWORD_SHIFT]) = (val))
 
 /*
  * Top-level context structure which is used by EL3 firmware to

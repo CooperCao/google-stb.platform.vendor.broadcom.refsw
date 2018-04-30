@@ -6,25 +6,25 @@
 
 #include "glsl_basic_block.h"
 #include "glsl_map.h"
+
 #include "SymbolHandle.h"
 #include "ModuleAllocator.h"
 
 namespace bvk {
 
-class DflowBuilder;
 class Dflow;
 class BasicBlockData;
 
 class BasicBlockPool
 {
 public:
-   BasicBlockPool(const spv::ModuleAllocator<uint32_t>  &allocator);
+   BasicBlockPool(const spv::ModuleAllocator<uint32_t> &allocator);
    ~BasicBlockPool();
 
-   BasicBlock *ConstructBlock() const
+   BasicBlockData *ConstructBlockData() const
    {
       m_list->push_back(glsl_basic_block_construct());
-      return m_list->back();
+      return spv::ModuleAllocator<BasicBlockData>(m_allocator).New(m_list->back());
    }
 
    void RetainReachableBlocks(BasicBlock *block);
@@ -41,7 +41,7 @@ public:
       m_blockData(nullptr)
    {}
 
-   BasicBlockHandle(const DflowBuilder &builder);
+   BasicBlockHandle(const BasicBlockPool &pool);
 
    explicit BasicBlockHandle(BasicBlockData *blockData) :
       m_blockData(blockData)
@@ -69,8 +69,8 @@ private:
 class BasicBlockData
 {
 public:
-   BasicBlockData(const BasicBlockPool &pool) :
-      m_block(pool.ConstructBlock()), // The pool will tidy up any blocks not passed to the back-end compiler
+   BasicBlockData(BasicBlock *block) :
+      m_block(block), // The pool will tidy up any blocks not passed to the back-end compiler
       m_redirect()
    {
    }

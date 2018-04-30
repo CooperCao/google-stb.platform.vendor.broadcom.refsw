@@ -421,7 +421,7 @@ bool platform_graphics_recycle(PlatformGraphicsHandle gfx)
         platform_graphics_p_recycle_next(gfx);
         if (gfx->surfaceClient.surfaces[gfx->surfaceClient.submitIndex].submitted) {
             rc = BKNI_WaitForEvent(gfx->surfaceClient.recycledEvent, 2000);
-            BDBG_ASSERT(!rc);
+            if (rc) BERR_TRACE(rc);
             return false;
         }
     }

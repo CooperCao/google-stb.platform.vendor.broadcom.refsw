@@ -43,7 +43,9 @@ typedef enum {
    SPECIAL_THRSW,
    SPECIAL_IMUL32,
    SPECIAL_VARYING,
+#if !V3D_HAS_SFU_ROTATE
    SPECIAL_ROTATE,
+#endif
    SPECIAL_VOID,
 } SchedNodeType;
 
@@ -84,10 +86,12 @@ struct backflow_s {
 
       v3d_qpu_sigbits_t sigbits;
 
+#if !V3D_HAS_SFU_ROTATE
       struct {
          uint32_t amount;
          bool     quad;
       } rotate;
+#endif
    } u;
 
    backend_reg magic_write;
@@ -153,7 +157,8 @@ typedef struct {
    Backflow *read_dep;
 
    /* Last read of each row from the VPM. Writes to these rows must wait until after */
-#define MAX_VPM_DEPENDENCY (4*V3D_MAX_ATTR_ARRAYS + 2)
+   /* Must be large enough for all attributes, plus vertex id, instance id and base instance */
+#define MAX_VPM_DEPENDENCY (4*V3D_MAX_ATTR_ARRAYS + 3)
    Backflow *vpm_dep[MAX_VPM_DEPENDENCY];
 } SchedShaderInputs;
 
@@ -176,6 +181,11 @@ typedef struct phi_list {
 } PhiList;
 
 typedef struct {
+   bool per_quad;
+   uint32_t required_components;
+} DFInfo;
+
+typedef struct {
    Backflow **outputs;
    int num_outputs;
 
@@ -188,21 +198,25 @@ typedef struct {
    PhiList      *phi_list;
    ExternalList *external_list;
 
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    bool per_sample;
+#endif
 
    /* These are filled in during translation and used for scheduling */
    struct tmu_lookup_s *tmu_lookups;
+   struct tmu_lookup_s *tmu_lookups_tail;
+
+   BackflowChain msf_reads;
 
    /* These are also needed by the scheduler for iodeps */
    Backflow *first_tlb_read;
    Backflow *last_tlb_read;
    Backflow *first_tlb_write;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   ldunifa_lookup *ldunifa_lookups;
+#else
    Backflow *last_vpm_read;      /* TODO: Employ a better strategy than having all      */
    Backflow *first_vpm_write;    /*       reads/writes in the first/last thread section */
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   ldunifa_lookup* ldunifa_lookups;
 #endif
 } SchedBlock;
 
@@ -212,6 +226,7 @@ Backflow *create_sig(uint32_t sigbits);
 
 Backflow *create_alu(v3d_qpu_opcode_t op, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
                      Backflow *left, Backflow *right, Backflow *output);
+Backflow *create_imul32(uint32_t cond_setf, Backflow *flag, Backflow *l, Backflow *r, Backflow *output);
 
 Backflow *tr_external(int block, int output, ExternalList **list);
 
@@ -235,4 +250,4 @@ unsigned vertex_shader_inputs(SchedShaderInputs *ins,
 
 SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
                             const bool *output_active, SchedShaderInputs *ins,
-                            const struct glsl_backend_cfg *key, const bool *per_quad);
+                            const struct glsl_backend_cfg *key, const DFInfo *info);

@@ -97,9 +97,6 @@ typedef struct
 } BHSM_BspMsgConfigure_t;
 
 
-void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg );
-void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg );
-
 /* To be called only during HSM module initialisation. */
 BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgConfigure_t *pConfig );
 

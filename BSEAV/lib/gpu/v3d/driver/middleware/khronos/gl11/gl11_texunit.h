@@ -1,18 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 texture unit structure declaration.
-=============================================================================*/
-
-#ifndef GL11_TEXUNIT_H
-#define GL11_TEXUNIT_H
-
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 
 /*
    The state required for the current texture environment, for each texture unit,
@@ -70,5 +61,3 @@ typedef struct {
    //cache of current matrix for install uniforms
    float current_matrix[16];
 } GL11_TEXUNIT_T;
-
-#endif

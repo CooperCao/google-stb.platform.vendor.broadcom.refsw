@@ -26,6 +26,9 @@ extern "C"
 
 #define BEGL_DEFAULT_PLATFORM 0
 
+#define BEGL_SWAPCHAIN_BUFFER 0
+#define BEGL_PIXMAP_BUFFER 1
+
 typedef enum
 {
    BEGL_Increment = 0,
@@ -37,8 +40,7 @@ typedef enum
    BEGL_WindowInfoWidth = 1,
    BEGL_WindowInfoHeight = 2,
    BEGL_WindowInfoFormat = 4,
-   BEGL_WindowInfoSwapChainCount = 8,
-   BEGL_WindowInfoBackBufferAge = 16,
+   BEGL_WindowInfoSwapChainCount = 8
 } BEGL_WindowInfoFlags;
 
 typedef struct
@@ -46,7 +48,6 @@ typedef struct
    uint32_t            width;                 /* Visible width of window in pixels */
    uint32_t            height;                /* Visible height of window in pixels */
    uint32_t            swapchain_count;       /* Number of buffers in the swap chain, or 0 to take defaults from egl */
-   uint32_t            backBufferAge;         /* Age of last dequeued buffer */
 } BEGL_WindowInfo;
 
 typedef struct BEGL_PixmapInfo
@@ -84,16 +85,14 @@ typedef struct
    bool                contiguous;            /* In contiguous memory                                   */
 
    // Extra data required for sand striped formats
-   uint64_t            chromaOffset;          /* Physical address of chroma buffer                      */
-   uint32_t            chromaByteSize;        /* Size of the chroma buffer in bytes                     */
    uint32_t            stripeWidth;           /* 128 or 256                                             */
-   uint32_t            lumaStripedHeight;
-   uint32_t            chromaStripedHeight;
-   bool                lumaAndChromaInSameAllocation;
+   uint32_t            stripedHeight;
 
 } BEGL_SurfaceInfo;
 
 typedef void  *BEGL_DisplayHandle;    /* Opaque 'display' handle */
+typedef void  *BEGL_SwapchainBuffer;  /* Opaque as far as driver is concerned. Only the platform knows the actual type. */
+typedef void  *BEGL_NativeBuffer;     /* Opaque as far as driver is concerned. Only the platform knows the actual type. */
 
 typedef struct BEGL_InitInterface
 {
@@ -158,26 +157,59 @@ typedef struct BEGL_DisplayInterface
     * This is needed by EGL in order to know the size of a native 'window'. */
    BEGL_Error (*WindowGetInfo)(void *context, void *opaqueNativeWindow, BEGL_WindowInfoFlags flags, BEGL_WindowInfo *info);
 
-   /* Called to get access to an underlying native surface.
-    * Can be NULL if creating EGL images from native buffers isn't required.
+   /* Get pixmap format.
+    *
+    * The nativePixmap is given by the calling application and must be verified.
+    * Return BEGL_BufferFormat_INVALID if the nativePixmap parameter is not
+    * a valid handle to the platform pixmap.
+    *
+    * This function is optional, it may be NULL if pixmaps are unsupported.
     */
-   BEGL_Error (*GetNativeSurface)(void *context, uint32_t eglTarget, void *eglClientBuffer, void **opaqueNativeSurface);
+   BEGL_BufferFormat (*GetPixmapFormat)(void *context, void *nativePixmap);
 
-   BEGL_Error (*SurfaceGetInfo)(void *context, void *opaqueNativeSurface, BEGL_SurfaceInfo *info);
-   BEGL_Error (*SurfaceChangeRefCount)(void *context, void *opaqueNativeSurface, BEGL_RefCountMode inOrDec);
+   /* Get a new reference to the underlying native buffer.
+    *
+    * For swapchain buffers the target is set to BEGL_SWAPCHAIN_BUFFER and
+    * buffer is the BEGL_SwapchainBuffer obtained from GetNextSurface().
+    * The plane is always 0.
+    *
+    * For pixmaps the target is set to BEGL_PIXMAP_BUFFER and buffer
+    * is the platform-specific EGLNativePixmapType. Plane is always 0.
+    *
+    * For platform-specific EGL client buffers target and buffer parameters
+    * are those of the corresponding eglCreateImage() call and plane is the
+    * 0-based plane index for multi-planar formats (for now only SAND).
+    *
+    * On success it returns a new, non-NULL reference to the native buffer
+    * and fills-in BEGL_BufferSettings structure. The returned reference must
+    * remain valid until it's released by calling SurfaceRelease().
+    * The destruction of the eglObject must not free or invalidate the native
+    * buffer unless it was already released by the driver.
+    */
+   BEGL_NativeBuffer (*SurfaceAcquire)(void *context, uint32_t target,
+         void *eglObject, uint32_t plane, BEGL_SurfaceInfo *info);
 
-   /* Return the next render buffer surface in the swap chain (in opaqueNativeSurface)
+   /* Release a reference obtained from SurfaceAcquire().
+    *
+    * The target and plane have the same values as with the corresponding call
+    * to the SurfaceAcquire(). After all references are released the buffer
+    * may be freed.
+    */
+   BEGL_Error (*SurfaceRelease)(void *context, uint32_t target, uint32_t plane,
+         BEGL_NativeBuffer buffer);
+
+   /* Return the next render buffer surface in the swap chain
     * with a fence to wait on before accessing the buffer surface.
     * A surface obtained this way must be returned to the display system with a call to
     * DisplaySurface or CancelSurface.
     * All these 3 functions must be implemented;
     */
-   BEGL_Error (*GetNextSurface)(void *context, void *opaqueNativeWindow, BEGL_BufferFormat format,
-                               BEGL_BufferFormat *actualFormat, void **opaqueNativeSurface, bool secure, int *fence);
+   BEGL_SwapchainBuffer (*GetNextSurface)(void *context, void *opaqueNativeWindow, BEGL_BufferFormat format, bool secure,
+         int *age, int *fence);
 
-   BEGL_Error (*DisplaySurface)(void *context, void *nativeWindow, void *nativeSurface, int fence, int interval);
+   BEGL_Error (*DisplaySurface)(void *context, void *nativeWindow, BEGL_SwapchainBuffer buffer, int fence, int interval);
 
-   BEGL_Error (*CancelSurface)(void *context, void *nativeWindow, void *nativeSurface, int fence);
+   BEGL_Error (*CancelSurface)(void *context, void *nativeWindow, BEGL_SwapchainBuffer buffer, int fence);
 
    void *(*WindowPlatformStateCreate)(void *context, void *nativeWindow);
 

@@ -10,8 +10,6 @@
 #include "glsl_intern.h"                  /* Ditto */
 #include "glsl_layout.h"
 
-#include "../glxx/glxx_int_config.h"
-
 QualList *qual_list_new(Qualifier *head) {
    QualList *ret = malloc_fast(sizeof(QualList));
    QualListNode *n = malloc_fast(sizeof(QualListNode));
@@ -31,57 +29,45 @@ QualList *qual_list_append(QualList *list, Qualifier *q) {
    return list;
 }
 
-Qualifier *new_qual_storage(StorageQualifier q) {
+Qualifier *new_qual(QualFlavour f) {
    Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_STORAGE;
+   ret->flavour = f;
+   return ret;
+}
+
+Qualifier *new_qual_storage(StorageQualifier q) {
+   Qualifier *ret = new_qual(QUAL_STORAGE);
    ret->u.storage = q;
    return ret;
 }
 
 Qualifier *new_qual_auxiliary(AuxiliaryQualifier q) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_AUXILIARY;
+   Qualifier *ret = new_qual(QUAL_AUXILIARY);
    ret->u.auxiliary = q;
    return ret;
 }
 
 Qualifier *new_qual_memory(MemoryQualifier q) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_MEMORY;
+   Qualifier *ret = new_qual(QUAL_MEMORY);
    ret->u.memory = q;
    return ret;
 }
 
 Qualifier *new_qual_layout(LayoutIDList *q) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_LAYOUT;
+   Qualifier *ret = new_qual(QUAL_LAYOUT);
    ret->u.layout = q;
    return ret;
 }
 
 Qualifier *new_qual_prec(PrecisionQualifier q) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_PREC;
+   Qualifier *ret = new_qual(QUAL_PREC);
    ret->u.precision = q;
    return ret;
 }
 
 Qualifier *new_qual_interp(InterpolationQualifier q) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_INTERP;
+   Qualifier *ret = new_qual(QUAL_INTERP);
    ret->u.interp = q;
-   return ret;
-}
-
-Qualifier *new_qual_invariant(void) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_INVARIANT;
-   return ret;
-}
-
-Qualifier *new_qual_precise(void) {
-   Qualifier *ret = malloc_fast(sizeof(Qualifier));
-   ret->flavour = QUAL_PRECISE;
    return ret;
 }
 

@@ -499,7 +499,6 @@ sub process_functions {
                     $ioctl_field->{COMPAT}{POINTER}=1;
                     push @ioctl_pointers, $ioctl_field;
                     if ($param->{INPARAM}) {
-                        push @fields_pointer_in_null, $null;
                         push @fields_memory_in, $field;
                     } else {
                         push @fields_pointer_out_null, $null;
@@ -1269,7 +1268,11 @@ sub generate_meta
                         push @pointer, "NEXUS_OFFSETOF($arg_type, $args . pointer . $param->{NAME}), /* offset */";
                     }
                     if($param->{INPARAM}) {
-                        push @pointer, "NEXUS_OFFSETOF($arg_type, $args . pointer . is_null . $param->{NAME}), /* null_offset */";
+                        if( exists $param->{ATTR}{memory} && $param->{ATTR}{memory} eq 'cached') {
+                            push @pointer, "-1 , /* null_offset */";
+                        } else {
+                            push @pointer, "NEXUS_OFFSETOF($arg_type, $args . pointer . is_null . $param->{NAME}), /* null_offset */";
+                        }
                     } else {
                         push @pointer, "NEXUS_OFFSETOF($in_arg_type, $in_args . pointer . out_is_null . $param->{NAME}), /* null_offset */";
                     }

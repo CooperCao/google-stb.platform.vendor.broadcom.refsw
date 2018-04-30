@@ -39,10 +39,11 @@ private:
       uint32_t m_size;
    };
 
+   template <typename V> bool Get(V *value, uint32_t id) const;
+
 private:
    bvk::map<uint32_t, Entry>  m_map;
    bvk::vector<uint8_t>       m_data;
 };
-
 
 }

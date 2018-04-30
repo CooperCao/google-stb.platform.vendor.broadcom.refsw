@@ -713,6 +713,7 @@ enum wlc_iov {
 	IOV_SLAVE_RADAR = 119,
 	IOV_PKTALLOCED = 120,
 	IOV_INTF_ENABLE_BRIDGE = 121,
+	IOV_RX_PROB_REQ = 122,
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -1135,6 +1136,9 @@ static const bcm_iovar_t wlc_iovars[] = {
 	},
 #endif /* SLAVE_RADAR */
 	{"intf_enable_bridge", IOV_INTF_ENABLE_BRIDGE,
+	0, 0, IOVT_BOOL, 0
+	},
+	{"drv_rx_prob_req", IOV_RX_PROB_REQ,
 	0, 0, IOVT_BOOL, 0
 	},
 	{NULL, 0, 0, 0, 0, 0}
@@ -14029,7 +14033,15 @@ wlc_doiovar(void *hdl, uint32 actionid,
 	case IOV_SVAL(IOV_INTF_ENABLE_BRIDGE):
 		wl_enable_bridge_if(wlc->wl, wlcif, bool_val);
 		break;
-
+	case IOV_SVAL (IOV_RX_PROB_REQ):
+		/* Disable MHF5_SUPPRESS_PRB_REQ in ucode to let driver handle probreq
+		* and enable WLC_E_PROBREQ_MSG event.
+		*/
+		wlc_eventq_set_ind(wlc->eventq, WLC_E_PROBREQ_MSG, bool_val);
+		break;
+	case IOV_GVAL (IOV_RX_PROB_REQ):
+		*ret_int_ptr = wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG);
+		break;
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

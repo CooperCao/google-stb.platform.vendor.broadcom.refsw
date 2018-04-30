@@ -9,6 +9,11 @@ all: copy_to_bin
 V3D_DIR ?= $(shell cd ../../$(V3D_PREFIX)/driver; pwd)
 V3D_PLATFORM_DIR ?= $(shell cd ../../$(V3D_PREFIX)/platform; pwd)
 
+GCCGTEQ_40800 := $(shell expr `$(CC) -dumpversion | awk 'BEGIN { FS = "." }; { printf("%d%02d%02d", $$1, $$2, $$3) }'` \>= 40800)
+ifneq ("$(GCCGTEQ_40800)", "1")
+$(error GCC >= 4.8 required to build hook)
+endif
+
 ifeq ($(V3D_PREFIX),vc5)
 V3D_VER_INC_DIR = $(V3D_DIR)/libs/core/v3d
 else #VC4
@@ -16,11 +21,11 @@ V3D_VER_INC_DIR = $(V3D_DIR)/helpers/v3d
 endif
 
 CFLAGS += -I. -I$(V3D_DIR)/interface/khronos/include -I$(V3D_VER_INC_DIR) -I$(V3D_DIR)
-CFLAGS += -Os -fPIC -DPIC -DBCG_ABSTRACT_PLATFORM -std=c++0x
+CFLAGS += -Os -fPIC -DPIC -DBCG_ABSTRACT_PLATFORM -std=c++0x -pthread
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 CFLAGS += -I$(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) -DEMBEDDED_SETTOP_BOX=1
 
-LDFLAGS = -shared -Wl,--export-dynamic
+LDFLAGS = -shared -Wl,--export-dynamic -pthread
 
 .PHONY: copy_to_bin
 copy_to_bin : lib/libgpumon_hook.so

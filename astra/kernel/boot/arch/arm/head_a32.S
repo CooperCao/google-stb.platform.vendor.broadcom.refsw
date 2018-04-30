@@ -39,10 +39,8 @@
 #include "config.h"
 #include "arm/arm.h"
 
-#define ZIMAGE_MAGIC_NUMBER   0x016f2818
-#define ARM_IMAGE_HEADER      0x324d5241  /* ARM image header for 32bit ("ARM\x32") */
-
-.section ".text.bootstrap"
+/* ARM image header for AARCH32 ("ARM\x32") */
+#define ARM_IMAGE_MAGIC_AARCH32         0x324d5241
 
 .arm
 
@@ -50,57 +48,71 @@
 .global tz_bootstrap
 .global mon_stack_start
 
+.section ".text.bootstrap"
+
 tz_init:
 
-    /* The image must begin with a zImage header. This makes
-     * BOLT not-care whether its booting a TZ kernel or a regular Linux kernel
+    /* The image must begin with a ARM image header as used by Linux
+     *
+     *      u32 code0;                  # Executable code
+     *      u32 code1;                  # Executable code
+     *      u64 text_offset;            # Image load offset, little endian
+     *      u64 image_size;             # Effective Image size, little endian
+     *      u64 flags;                  # kernel flags, little endian
+     *      u64 res2 = 0;               # reserved
+     *      u64 res3 = 0;               # reserved
+     *      u64 res4 = 0;               # reserved
+     *      u32 magic = 0x324d5241;     # Magic number, little endian, "ARM\x32"
+     *      u32 res5;                   # reserved (used for PE COFF offset)
      */
-    .rept 8
-    nop
-    .endr
-    b   tz_bootstrap
 
-    .word   ARM_IMAGE_HEADER
+    b       tz_bootstrap
+    .word   0
+
+    .rept   6
+    .word   0
+    .word   0
+    .endr
+
+    .word   ARM_IMAGE_MAGIC_AARCH32
+    .word   0
 
 tz_bootstrap:
 
     /* The bootloader has loaded the following registers:
-     *   r0: 0x00000000
-     *   r1: Machine ID
-     *   r2: Device tree memory location
-     *   r3: UART base
+     * - r0: 0x00000000
+     * - r1: Machine ID (primary CPU), 0 (secondary CPU)
+     * - r2: Device tree memory location (primary CPU), or 0 (secondary CPU)
+     * - r3: UART base (brcmstb specific)
      */
 
-    /*
-     * Figure out where we have been loaded in memory.
+    /* Calculate offset between load address and link address
+     * - r5: load-to-link offset
      */
-    ldr     r4, =tz_init   /* r4 now points to the Link address of 'tz_init' as set by the linker */
-    adr     r0, tz_init    /* r0 now points to the address where the boot-loader loaded 'tz_init' */
-    sub     r5, r0, r4     /* r5 is the offset between our link address and our load address.
-                            * We will obtain load addresses by adding r5 to link addresses.
-                            */
+    ldr     r4, =tz_init   /* Link address of tz_init */
+    adr     r0, tz_init    /* Load address of tz_init */
+    sub     r5, r0, r4     /* Load-to-link offset */
 
-    /* Figure out our CPU number in the multicore complex: Read MPIDR */
+    /* Figure out current CPU number from MPIDR
+     * - r4: CPU number
+     */
     mrc     p15, 0, r4, c0, c0, 5
     and     r4, r4, #3
-
-    /*
-     * Clear the BSS section
-     */
     cmp     r4, #0
-    bne     stack_setup
+    bne     2f
 
-    ldr     r8, =_bss_start
+    /* Clear BSS section */
+    ldr     r7, =_bss_start
+    add     r7, r5
+    ldr     r8, =_bss_end
     add     r8, r5
-    ldr     r9, =_bss_end
-    add     r9, r5
     mov     r6, #0
+1:
+    str     r6, [r7], #4
+    cmp     r7, r8
+    blo     1b
 2:
-    str     r6, [r8], #4
-    cmp     r8, r9
-    blo     2b
-
-stack_setup:
+    /* Setup bootstrap stack to load address */
     ldr     r6, =bootstrap_stack_start
     mov     r7, #INIT_STACK_SIZE
     mul     r7, r4
@@ -108,37 +120,47 @@ stack_setup:
     add     r6, r5
     mov     sp, r6
 
-    mov     r9, r2 /* r9 is device tree address */
+    /* Save device tree address
+     * - r9: Device tree memory location (primary CPU), or 0 (secondary CPU)
+     */
+    mov     r9, r2
 
+    /* Call bootstrap C-function
+     * - r0: Load-to-link offset
+     * - r1: Machine ID (primary CPU)
+     * - r2: Device tree memory location (primary CPU)
+     * - r3: UART base
+     */
     mov     r0, r5
     ldr     r6, =bootstrap_main
     add     r6, r5
     blx     r6
 
-    /* The MMU and cache are now on. We no longer need r5 based indirection for data accesses. */
-
+    /* Check boot mode */
     ldr     r6, =boot_mode
     ldr     r7, [r6]
     cmp     r7, #ARMV8_BOOT_MODE
-    beq     skip_monitor
+    beq     3f
 
-    cpsid   f, #Mode_MON  /* Switch to secure monitor mode */
+    /* Setup abt mode stack */
+    cpsid   f, #Mode_MON
     ldr     r6, =mon_stack_start
     mov     r7, #MON_STACK_SIZE
     mul     r7, r4
     sub     r6, r7
     mov     sp, r6
-    /* Setup the exception vector base address (MVBAR) */
+
+    /* Setup exception vector base address (MVBAR) */
     ldr     r8, =mon_mode_vectors
     mcr     p15, 0, r8, c12, c0, 1
 
+    /* Call monitor init function */
     mov     r0, r9
     mov     r1, r6
     ldr     r8, =tzMonitorInit
     blx     r8
-
-skip_monitor:
-    /*setup the fiq mode stack */
+3:
+    /* Setup fiq mode stack */
     cpsid   f, #Mode_FIQ
     ldr     r6, =fiq_stack_start
     mov     r7, #FIQ_STACK_SIZE
@@ -146,7 +168,7 @@ skip_monitor:
     sub     r6, r7
     mov     sp, r6
 
-    /*setup the abt mode stack */
+    /* Setup abt mode stack */
     cpsid   f, #Mode_ABT
     ldr     r6, =data_abt_stack_start
     mov     r8, #INIT_STACK_SIZE
@@ -154,29 +176,30 @@ skip_monitor:
     sub     r6, r8
     mov     sp, r6
 
-    /*setup the svc mode stack */
+    /* Setup svc mode stack (main stack) */
     cpsid   f, #Mode_SVC
-
-    /* Setup the exception vector base address (VBAR) */
-    ldr     r8, =secure_mode_vectors
-    mcr     p15, 0, r8, c12, c0, 0
-
-    /* enable floating register point access in CPACR */
-    mov     r6, #0x00f00000
-    mcr     p15, 0, r6, c1, c0, 2
-
-    /* enable SIMD instruction execution at all levels */
-    vmrs r0, fpexc
-    orr  r0, r0, #0x40000000
-    vmsr fpexc, r0
-
-    /* Now setup the main stack. */
     ldr     r6, =init_stack_start
     mov     r8, #INIT_STACK_SIZE
     mul     r8, r4
     sub     r6, r8
     mov     sp, r6
 
+    /* Setup exception vector base address (VBAR) */
+    ldr     r8, =secure_mode_vectors
+    mcr     p15, 0, r8, c12, c0, 0
+
+    /* Enable floating register point access in CPACR */
+    mov     r6, #0x00f00000
+    mcr     p15, 0, r6, c1, c0, 2
+
+    /* Enable SIMD instruction execution at all levels */
+    vmrs    r0, fpexc
+    orr     r0, r0, #0x40000000
+    vmsr    fpexc, r0
+
+    /* Call kernel init function
+     * - x0: Device tree memory location (priamry CPU), 0 (secondary CPU)
+     */
     mov     r0, r9
     ldr     r8, =tzKernelInit
     bx      r8
@@ -189,11 +212,11 @@ halt:
     /*
      * Monitor mode interrupt vectors
      */
-     .align 5
+    .align  5
 mon_mode_vectors:
     b       .                               /* Not defined for monitor mode */
     b       .                               /* Not defined for monitor mode */
-    b       mon_smc_handler              /*  SMC call handler */
+    b       mon_smc_handler                 /* SMC call handler */
     b       .                               /* Instruction fetch abort handler: Instruction fetch aborts are not routed to monitor mode */
     b       .                               /* Data fetch abort handler: Not routed to monitor mode */
     b       .                               /* Not defined for monitor mode */
@@ -204,7 +227,7 @@ mon_mode_vectors:
     /*
      * Secure mode vectors
      */
-     .align 5
+    .align  5
 secure_mode_vectors:
     b       tz_bootstrap
     b       .
@@ -223,28 +246,23 @@ tz_secure_undef_handler:
     b       tz_secure_undef_handler
 
 
-/* The stack during bootstrap */
 .section ".data.bootstrap"
-    .align 5
-    .space   INIT_STACK_SIZE*MAX_NUM_CPUS
+    .align  5
+    .space  INIT_STACK_SIZE*MAX_NUM_CPUS
 bootstrap_stack_start:
-
-.section ".data"
-    .align 5
-    .space   INIT_STACK_SIZE*MAX_NUM_CPUS
 init_stack_start:
 
 .section ".data"
-    .align 5
-    .space   FIQ_STACK_SIZE*MAX_NUM_CPUS
+    .align  5
+    .space  FIQ_STACK_SIZE*MAX_NUM_CPUS
 fiq_stack_start:
 
 .section ".data"
-    .align 5
-    .space   MON_STACK_SIZE*MAX_NUM_CPUS
+    .align  5
+    .space  MON_STACK_SIZE*MAX_NUM_CPUS
 mon_stack_start:
 
 .section ".data"
-    .align 5
-    .space   INIT_STACK_SIZE*MAX_NUM_CPUS
+    .align  5
+    .space  INIT_STACK_SIZE*MAX_NUM_CPUS
 data_abt_stack_start:

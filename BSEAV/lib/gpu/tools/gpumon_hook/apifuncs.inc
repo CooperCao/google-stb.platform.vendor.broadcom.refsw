@@ -834,8 +834,8 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglSetEventCollectionBRCM(EGLenum pname){ re
 DLLEXPORT EGLBoolean DLLEXPORTENTRY eglGetEventDataBRCM(EGLint dataBufferBytes, void *data, EGLint *bytesWritten, EGLBoolean *overflowed, EGLuint64BRCM *timebase){ return sAPIClassTable.map_eglGetEventDataBRCM(dataBufferBytes, data, bytesWritten, overflowed, timebase); }
 #endif /* EGL_BRCM_event_monitor*/
 
-#if EGL_BRCM_gl_framebuffer_image
-#endif /* EGL_BRCM_gl_framebuffer_image*/
+#if EGL_BRCM_image_nexus_striped_surface
+#endif /* EGL_BRCM_image_nexus_striped_surface*/
 
 #if EGL_BRCM_image_update_control
 DLLEXPORT EGLBoolean DLLEXPORTENTRY eglImageUpdateParameterivBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params){ return sAPIClassTable.map_eglImageUpdateParameterivBRCM(dpy, image, pname, params); }
@@ -921,6 +921,9 @@ DLLEXPORT void DLLEXPORTENTRY glTexStorage1DBRCM(GLenum target, GLsizei levels, 
 
 #if GL_BRCM_texture_unnormalised_coords
 #endif /* GL_BRCM_texture_unnormalised_coords*/
+
+#if GL_EXT_EGL_image_external_wrap_modes
+#endif /* GL_EXT_EGL_image_external_wrap_modes*/
 
 #if GL_EXT_base_instance
 DLLEXPORT void DLLEXPORTENTRY glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance){ sAPIClassTable.map_glDrawArraysInstancedBaseInstanceEXT(mode, first, count, instancecount, baseinstance); }

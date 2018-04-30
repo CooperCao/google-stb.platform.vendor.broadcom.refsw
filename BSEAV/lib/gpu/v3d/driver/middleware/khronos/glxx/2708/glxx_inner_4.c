@@ -8,8 +8,8 @@
 #include "middleware/khronos/glxx/glxx_hw.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"
 #include "middleware/khronos/glxx/2708/glxx_tu_4.h"
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <GLES2/gl2.h>
+#include <EGL/eglext.h>
 
 //XXXXXXXXXXXXXXXX
 #include "middleware/khronos/egl/egl_platform.h"
@@ -24,7 +24,7 @@
 #include "middleware/khronos/common/khrn_mem.h"
 
 #if defined(ANDROID)
-#include <log/log.h>
+#include <cutils/log.h>
 #endif
 
 /*************************************************************
@@ -384,21 +384,20 @@ bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *st
 
    if (useDrawRect)
    {
-      INCR_DRIVER_COUNTER(soft_clears);
+      khrn_driver_incr_counters(KHRN_PERF_SOFT_CLEARS);
 
       result = draw_rect(state, rs, &fb, color, depth, stencil, x, y, xmax, ymax);
    }
    else
    {
-      INCR_DRIVER_COUNTER(hard_clears);
+      khrn_driver_incr_counters(KHRN_PERF_HARD_CLEARS);
 
       if (color)
       {
          KHRN_IMAGE_FORMAT_T col_format;
          rs->color_buffer_valid = true;
          rs->color_load = false;
-         col_format = khrn_image_no_colorspace_format(fb.col_format);
-         col_format = khrn_image_to_tf_format(col_format);
+         col_format = khrn_image_to_tf_format(fb.col_format);
          if (tu_image_format_rb_swap(col_format))
          {
             rs->color_value = color_floats_to_rgba(
@@ -571,7 +570,7 @@ static bool create_master_cl(void)
       goto fail;
 
    KHRN_IMAGE_T *color = render_state->installed_fb.color;
-   KHRN_IMAGE_FORMAT_T col_format = khrn_image_no_colorspace_format(render_state->installed_fb.col_format);
+   KHRN_IMAGE_FORMAT_T col_format = render_state->installed_fb.col_format;
 
    // Clear colour and depth
    add_byte(&instr, KHRN_HW_INSTR_STATE_CLEARCOL);   //(14)
@@ -903,7 +902,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
    }
    assert(color_image->mh_storage != MEM_HANDLE_INVALID);
 
-   INCR_DRIVER_COUNTER(tb_grp_color_stores);
+   khrn_driver_incr_counters(KHRN_PERF_TB_GRP_COLOR_STORES);
 
    /* Decide how much room we need for an instruction */
    uint32_t alloc_tile = 11;
@@ -911,20 +910,20 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
    if (load_standard)
    {
       alloc_tile += 7;
-      INCR_DRIVER_COUNTER(tb_grp_color_loads);
+      khrn_driver_incr_counters(KHRN_PERF_TB_GRP_COLOR_LOADS);
    }
    if (load_full)
    {
       if (load_full_color)
       {
          alloc_tile += 5;
-         INCR_DRIVER_COUNTER(tb_grp_ms_color_loads);
+         khrn_driver_incr_counters(KHRN_PERF_TB_GRP_MS_COLOR_LOADS);
       }
 
       if (load_full_depth)
       {
          alloc_tile += 5;
-         INCR_DRIVER_COUNTER(tb_grp_ds_loads);
+         khrn_driver_incr_counters(KHRN_PERF_TB_GRP_DS_LOADS);
       }
 
       if (load_full_color && load_full_depth)
@@ -940,12 +939,12 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
       if (store_full_color)
       {
          alloc_tile += 8;
-         INCR_DRIVER_COUNTER(tb_grp_ms_color_stores);
+         khrn_driver_incr_counters(KHRN_PERF_TB_GRP_MS_COLOR_STORES);
       }
       if (store_full_depth)
       {
          alloc_tile += 8;
-         INCR_DRIVER_COUNTER(tb_grp_ds_stores);
+         khrn_driver_incr_counters(KHRN_PERF_TB_GRP_DS_STORES);
       }
    }
 
@@ -1024,7 +1023,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             if (load_standard)
                image = color_image;
 
-            INCR_DRIVER_COUNTER(tb_color_loads);
+            khrn_driver_incr_counters(KHRN_PERF_TB_COLOR_LOADS);
 
             add_byte(&instr, KHRN_HW_INSTR_LOAD_GENERAL);          /*(7) */
 
@@ -1036,8 +1035,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             else if ((khrn_workarounds.FB_TOP_DOWN) && (fb->flags & IMAGE_FLAG_DISPLAY) && khrn_image_is_rso(fb->col_format))
                flags |= (3 << 4);
 
-            col_format = khrn_image_no_colorspace_format(fb->col_format);
-            col_format = khrn_image_to_rso_format(col_format);
+            col_format = khrn_image_to_rso_format(fb->col_format);
 
             switch (col_format)
             {
@@ -1087,7 +1085,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             // Loading depth from multisample buffer
             if (load_full_depth)
             {
-               INCR_DRIVER_COUNTER(tb_ds_loads);
+               khrn_driver_incr_counters(KHRN_PERF_TB_DS_LOADS);
                assert(ds_offset + ds_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ds_handle));
 
                add_byte(&instr, KHRN_HW_INSTR_LOAD_FULL);          //(5)
@@ -1119,7 +1117,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             // Loading the colour form the multisample buffer
             if (load_full_color)
             {
-               INCR_DRIVER_COUNTER(tb_ms_color_loads);
+               khrn_driver_incr_counters(KHRN_PERF_TB_MS_COLOR_LOADS);
                assert(ms_color_offset + ms_color_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ms_color_handle));
 
                add_byte(&instr, KHRN_HW_INSTR_LOAD_FULL);          //(5)
@@ -1194,7 +1192,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
 
             if (store_full_depth)
             {
-               INCR_DRIVER_COUNTER(tb_ds_stores);
+               khrn_driver_incr_counters(KHRN_PERF_TB_DS_STORES);
 
                assert(ds_offset + ds_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ds_handle));
 
@@ -1218,7 +1216,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
 
             if (store_full_color)
             {
-               INCR_DRIVER_COUNTER(tb_ms_color_stores);
+               khrn_driver_incr_counters(KHRN_PERF_TB_MS_COLOR_STORES);
 
                assert(ms_color_offset + ms_color_stride * (y * render_state->num_tiles_x + x) < mem_get_size(ms_color_handle));
 
@@ -1250,7 +1248,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             add_byte(&instr, KHRN_HW_INSTR_STORE_SUBSAMPLE);
          }
 
-         INCR_DRIVER_COUNTER(tb_color_stores);
+         khrn_driver_incr_counters(KHRN_PERF_TB_COLOR_STORES);
       }
    }
 
@@ -1385,8 +1383,7 @@ static bool draw_rect(
    if (color && state->shader.common.blend.color_mask != 0xFFFFFFFF)
    {
       KHRN_IMAGE_FORMAT_T col_format;
-      col_format = khrn_image_no_colorspace_format(fb->col_format);
-      col_format = khrn_image_to_tf_format(col_format);
+      col_format = khrn_image_to_tf_format(fb->col_format);
       if (tu_image_format_rb_swap(col_format))
       {
          uint32_t color_mask = state->shader.common.blend.color_mask;
@@ -1416,8 +1413,7 @@ static bool draw_rect(
    if (color)
    {
       KHRN_IMAGE_FORMAT_T col_format;
-      col_format = khrn_image_no_colorspace_format(fb->col_format);
-      col_format = khrn_image_to_tf_format(col_format);
+      col_format = khrn_image_to_tf_format(fb->col_format);
       if (tu_image_format_rb_swap(col_format))
       {
          ((uint32_t *)locked_addr)[uniform_indx++] = color_floats_to_rgba(

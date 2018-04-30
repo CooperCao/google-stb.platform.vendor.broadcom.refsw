@@ -52,7 +52,7 @@
 
 #include "libfp/src/c_utils_internal.h"
 
-#if IS_TARGET(RaagaFP4015_haps) || IS_TARGET(RaagaFP4015_haps_bm)
+#if IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare) || IS_TARGET(RaagaFP4015_haps_bm)
 #  include "DSP_raaga_octave_haps.h"
 #elif IS_TARGET(RaagaFP4015_bm)
 #  include "DSP_raaga_octave_bm.h"

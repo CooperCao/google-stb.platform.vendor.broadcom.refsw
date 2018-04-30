@@ -48,7 +48,7 @@
 #include "bhsm_rsa.h"
 #include "bhsm_rv_rsa.h"
 #include "bhsm_hash.h"
-#include "bhsm_rv_region.h"
+#include "bhsm_rv_region_priv.h"
 #include "bsp_s_hw.h"
 
 BDBG_MODULE(BHSM);
@@ -100,7 +100,7 @@ BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
     rc = BHSM_HashHmac_Init( pHandle, NULL );
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
 
-    rc = BHSM_RvRegion_Init( pHandle, NULL );
+    rc = BHSM_RvRegion_Init_priv( pHandle, NULL );
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
 
     BDBG_LEAVE( BHSM_Open );
@@ -121,7 +121,7 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 
     if( pHandle == NULL ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
-    BHSM_RvRegion_Uninit( hHsm );
+    BHSM_RvRegion_Uninit_priv( hHsm );
     BHSM_HashHmac_Uninit( hHsm );
     BHSM_RvRsa_Uninit( hHsm );
     BHSM_OtpKey_Uninit( hHsm );
@@ -156,6 +156,9 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCap
     pCaps->version.bfw.major    = hHsm->bfwVersion.version.bfw.major;
     pCaps->version.bfw.minor    = hHsm->bfwVersion.version.bfw.minor;
     pCaps->version.bfw.subminor = hHsm->bfwVersion.version.bfw.subminor;
+
+    pCaps->firmwareEpoch.valid = hHsm->bfwVersion.firmwareEpoch.valid;
+    pCaps->firmwareEpoch.value = hHsm->bfwVersion.firmwareEpoch.value;
 
     rc = BHSM_P_KeyslotModule_GetCapabilities(hHsm, &keyslotCaps);
     if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }

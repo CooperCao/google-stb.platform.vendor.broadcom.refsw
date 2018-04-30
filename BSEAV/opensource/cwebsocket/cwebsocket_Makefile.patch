@@ -1,0 +1,22 @@
+--- cwebsocket.2016.04.22/Makefile	2018-04-17 12:20:35.622147479 -0700
++++ cwebsocket.2016.04.22.modified/Makefile	2018-04-17 12:23:08.882147353 -0700
+@@ -24,7 +24,7 @@
+               "target option '$${target_option-}' specified" >&2; \
+          exit 1;; \
+   esac; \
+-  has_opt=no; \
++  has_opt=yes; \
+   sane_makeflags=$$MAKEFLAGS; \
+   if $(am__is_gnu_make); then \
+     sane_makeflags=$$MFLAGS; \
+@@ -235,6 +235,10 @@
+ CC = PUT_ARCH_HERE-gcc
+ CCDEPMODE = depmode=gcc3
+ CFLAGS = -g -O2
++###Tell compiler where to find OPENSSL files and LIBEV files and where to put nexus/bin files
++CFLAGS += -IPUT_OBJ_OPENSOURCE_PATH_HERE/libev/PUT_ARCH_HERE.debug/libev-4.24
++CFLAGS += -IPUT_OBJ_OPENSOURCE_PATH_HERE/openssl/PUT_OPENSSL_PATH_HERE/include
++CFLAGS += -lcrypto -lssl -lpthread -lev -LPUT_NEXUS_BIN_PATH_HERE
+ CPP = PUT_ARCH_HERE-gcc -E
+ CPPFLAGS = 
+ CYGPATH_W = echo

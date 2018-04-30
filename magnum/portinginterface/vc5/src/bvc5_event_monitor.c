@@ -184,6 +184,31 @@ static void BVC5_P_SetEventTFU(
       BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "Dep");
 }
 
+static void BVC5_P_SetEventSchedWaitJob(
+   BVC5_P_EventMonitor    *ev)
+{
+   BVC5_P_EventDesc  *eventDesc = &ev->sEventDescs[BVC5_P_EVENT_MONITOR_SHED_JOB_WAIT];
+
+   BVC5_P_SetEvent(ev, BVC5_P_EVENT_MONITOR_SHED_JOB_WAIT, "WaitExtFence");
+
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "ClientID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt64, "JobID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "ExtFenceId");
+}
+
+static void BVC5_P_SetEventSchedFence(
+   BVC5_P_EventMonitor    *ev)
+{
+   BVC5_P_EventDesc  *eventDesc = &ev->sEventDescs[BVC5_P_EVENT_MONITOR_SHED_FENCE];
+
+   BVC5_P_SetEvent(ev, BVC5_P_EVENT_MONITOR_SHED_FENCE, "SchedFence");
+
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "ClientID");
+   BVC5_P_SetEventDesc(eventDesc, BVC5_EventUInt32, "SchedFenceId");
+}
+
+/***************************************************************************/
+
 void BVC5_P_InitEventMonitor(
    BVC5_Handle  hVC5
    )
@@ -197,6 +222,8 @@ void BVC5_P_InitEventMonitor(
 
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_SCHED_TRACK, "Scheduler");
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_TFU_TRACK,   "TFU");
+   BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_SCHED_FENCE_TRACK, "Sched Fence");
+   BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_SCHED_WAIT_TRACK,  "Wait Ext. Fence");
 
    BVC5_P_SetEvents(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_PROXY, "Proxy", numDeps);
 
@@ -236,6 +263,10 @@ void BVC5_P_InitEventMonitor(
 
    BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_FLUSH_CPU, "Flush CPU Cache");
    BVC5_P_SetEvent(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_PART_FLUSH_CPU, "Partial Flush CPU Cache");
+
+   BVC5_P_SetEventSchedFence(&hVC5->sEventMonitor);
+   BVC5_P_SetEventSchedWaitJob(&hVC5->sEventMonitor);
+
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
    BVC5_P_InitializeQueue(&hVC5->sEventMonitor.sRenderJobQueueCLE);
@@ -847,6 +878,118 @@ bool BVC5_P_AddTFUJobEvent(
    {
       LOCK_EVENTS();
       ok = BVC5_P_AddTFUJobEvent_isrsafe(hVC5, eEventType, psEventInfo, uiTimestamp);
+      UNLOCK_EVENTS();
+   }
+
+   return ok;
+}
+
+static bool BVC5_P_AddSchedWaitJobEvent_isrsafe(
+   BVC5_Handle          hVC5,
+   uint32_t             uiClientId,
+   BVC5_EventType       eEventType,
+   uint64_t             uiJobId,
+   uint32_t             uiFenceId,
+   uint64_t             uiTimestamp
+   )
+{
+   bool  ok = true;
+
+   BVC5_P_EventBuffer  *psBuf = &hVC5->sEventMonitor.sBuffer;
+   uint32_t             before;
+
+   before = psBuf->uiBytesUsed;
+   ok = BVC5_P_AddEvent_isrsafe(hVC5, BVC5_P_EVENT_MONITOR_SCHED_WAIT_TRACK,
+         (uint32_t) uiJobId, BVC5_P_EVENT_MONITOR_SHED_JOB_WAIT, eEventType,
+         uiTimestamp);
+   if (ok)
+   {
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiClientId);
+      ok = ok && BVC5_P_Add64_isrsafe(hVC5, uiJobId);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiFenceId);
+
+      BDBG_ASSERT(ok);
+      BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+            hVC5->sEventMonitor.sEventDescs[BVC5_P_EVENT_MONITOR_SHED_JOB_WAIT].uiSize);
+   }
+
+   if (!ok)
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
+
+   return ok;
+}
+
+bool BVC5_P_AddSchedWaitJobEvent(
+   BVC5_Handle          hVC5,
+   uint32_t             uiClientId,
+   BVC5_EventType       eEventType,
+   uint64_t             uiJobId,
+   uint32_t             uiFenceId,
+   uint64_t             uiTimestamp
+   )
+{
+   bool  ok = true;
+
+   if (hVC5->sEventMonitor.bActive)
+   {
+      LOCK_EVENTS();
+      ok = BVC5_P_AddSchedWaitJobEvent_isrsafe(hVC5, uiClientId, eEventType, uiJobId, uiFenceId, uiTimestamp);
+      UNLOCK_EVENTS();
+   }
+
+   return ok;
+}
+
+bool BVC5_P_AddSchedFenceEvent_isrsafe(
+   BVC5_Handle          hVC5,
+   uint32_t             uiClientId,
+   BVC5_EventType       eEventType,
+   uint32_t             uiFenceUid,
+   uint32_t             uiFenceId,
+   uint64_t             uiTimestamp
+   )
+{
+   bool  ok = true;
+
+   BVC5_P_EventBuffer  *psBuf   = &hVC5->sEventMonitor.sBuffer;
+   uint32_t             before;
+
+   before = psBuf->uiBytesUsed;
+   ok = BVC5_P_AddEvent_isrsafe(hVC5, BVC5_P_EVENT_MONITOR_SCHED_FENCE_TRACK,
+         (uint32_t) uiFenceUid, BVC5_P_EVENT_MONITOR_SHED_FENCE, eEventType,
+         uiTimestamp);
+   if (ok)
+   {
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiClientId);
+      ok = ok && BVC5_P_Add32_isrsafe(hVC5, uiFenceId);
+
+      BDBG_ASSERT(ok);
+      BDBG_ASSERT(psBuf->uiBytesUsed - before ==
+            hVC5->sEventMonitor.sEventDescs[BVC5_P_EVENT_MONITOR_SHED_FENCE].uiSize);
+   }
+
+   if (!ok)
+      BVC5_P_SetOverflow_isrsafe(hVC5, true);
+
+   return ok;
+}
+
+bool BVC5_P_AddSchedFenceEvent(
+   BVC5_Handle          hVC5,
+   uint32_t             uiClientId,
+   BVC5_EventType       eEventType,
+   uint32_t             uiFenceUid,
+   uint32_t             uiFenceId,
+   uint64_t             uiTimestamp
+   )
+{
+
+   bool  ok = true;
+
+   if (hVC5->sEventMonitor.bActive)
+   {
+      LOCK_EVENTS();
+      ok = BVC5_P_AddSchedFenceEvent_isrsafe(hVC5, uiClientId, eEventType, uiFenceUid, uiFenceId, uiTimestamp);
       UNLOCK_EVENTS();
    }
 

@@ -209,7 +209,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_STG                    (0)
 #define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_216_SYSCLK)
 
-#elif (BCHP_CHIP==7422) || (BCHP_CHIP==7425)
+#elif (BCHP_CHIP==7425)
 
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (0)
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (1)
@@ -286,14 +286,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_DRAIN_F                (3) /* Number of VNET_F_DRAIN_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_B                (1) /* Number of VNET_B_DRAIN_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
-#if (BCHP_CHIP==7422)
-#define BVDC_P_SUPPORT_MCDI_VER               (2) /* MCDI HW version */
-#define BVDC_P_SUPPORT_STG                    (0) /* Number of STG HW */
-#define BVDC_P_NUM_SHARED_STG                 (0)
-#define BVDC_P_ORTHOGONAL_VEC_VER             (0)
-#define BVDC_P_SUPPORT_IT_VER                 (3)
-#define BVDC_P_SUPPORT_3D_INDEP_SRC_CLIP      (0)
-#else
 #if (BCHP_VER >= BCHP_VER_B0)
 #define BVDC_P_SUPPORT_STG                    (2) /* Number of STG HW */
 #define BVDC_P_SUPPORT_STG_VER                (2) /* STG HW version */
@@ -310,7 +302,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_IT_VER                 (2)
 #define BVDC_P_SUPPORT_MCDI_VER               (3) /* MCDI HW version */
 #define BVDC_P_SUPPORT_3D_INDEP_SRC_CLIP      (0)
-#endif
 #endif
 #define BVDC_P_SUPPORT_MANR                   (1) /* Number of ANR HW in MCVP */
 #define BVDC_P_SUPPORT_MANR_VER               (2) /* ANR in MCVP version */
@@ -2718,7 +2709,7 @@ extern "C" {
     :(BVDC_P_WindowId_eComp2_G0==(window_id)) ? (BCHP_CMP_2_G0_SURFACE_SIZE - BCHP_CMP_2_REVISION) \
     :(BCHP_CMP_0_V0_SURFACE_SIZE - BCHP_CMP_0_REVISION))
 
-#elif (BCHP_CHIP==7422) || (BCHP_CHIP==7425)
+#elif (BCHP_CHIP==7425)
 #define BVDC_P_WIN_GET_REG_OFFSET(window_id) \
     ((BVDC_P_WindowId_eComp0_V1==(window_id)) ? (BCHP_CMP_0_V1_SURFACE_SIZE - BCHP_CMP_0_REVISION) \
     :(BVDC_P_WindowId_eComp0_G0==(window_id)) ? (BCHP_CMP_0_G0_SURFACE_SIZE - BCHP_CMP_0_REVISION) \

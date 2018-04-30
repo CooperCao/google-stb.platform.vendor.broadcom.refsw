@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/Dolby_Vision/DM_Boundary_Tests/L2DM/dvhe_dtr/UHD/23976/Ves_L2DM_23976_3840x2160_10000kbps_hevc_dvhe_dtr___dt.mp4
+forceRestart=on
+stcTrick=off
+commit

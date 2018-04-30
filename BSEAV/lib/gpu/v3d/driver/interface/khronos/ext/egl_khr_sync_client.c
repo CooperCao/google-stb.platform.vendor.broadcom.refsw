@@ -4,8 +4,8 @@
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/ext/egl_khr_sync_client.h"
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "middleware/khronos/glxx/glxx_hw.h"
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/common/khrn_mem.h"
@@ -18,8 +18,6 @@ static void egl_server_sync_term(void *p)
 
 static EGL_SYNC_T *egl_sync_create(EGLenum type, EGLint condition, EGLint status)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    EGL_SYNC_T *sync = KHRN_MEM_ALLOC_STRUCT(EGL_SYNC_T);                   // check
    if (sync == NULL)
       return NULL;
@@ -37,20 +35,18 @@ static EGL_SYNC_T *egl_sync_create(EGLenum type, EGLint condition, EGLint status
 
    if (type == EGL_SYNC_FENCE_KHR) {
       GLXX_SERVER_STATE_T *glstate = glxx_lock_server_state(OPENGL_ES_ANY);
-      bool inserted = false;
+
       if (glstate) {
-         inserted = glxx_hw_insert_sync(glstate, sync);
+         if (!glxx_hw_insert_sync(glstate, sync)) {
+            sync->status = EGL_SIGNALED_KHR;
+            vcos_semaphore_post(&sync->sem);
+         }
+
          glxx_unlock_server_state(OPENGL_ES_ANY);
       }
-      if (!inserted)
-         goto end;
    }
 
    return sync;
-
-end:
-   KHRN_MEM_ASSIGN(sync, NULL);
-   return NULL;
 }
 
 static EGLBoolean egl_sync_check_attribs(const EGLint *attrib_list, EGLenum type, EGLint *condition, EGLint *status)

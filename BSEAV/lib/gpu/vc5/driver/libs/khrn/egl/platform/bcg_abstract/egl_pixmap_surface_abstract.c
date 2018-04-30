@@ -31,12 +31,10 @@ static EGL_SURFACE_METHODS_T fns;
 static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *height)
 {
    EGL_PIXMAP_SURFACE_T  *surf = (EGL_PIXMAP_SURFACE_T *)surface;
-   BEGL_SurfaceInfo       surfInfo;
-
-   if (surface_get_info(surf->native_surface, &surfInfo))
+   if (surf->image)
    {
-      *width  = surfInfo.width;
-      *height = surfInfo.height;
+      *width = khrn_image_get_width(surf->image);
+      *height = khrn_image_get_height(surf->image);
    }
    else
    {
@@ -75,9 +73,7 @@ static EGLSurface egl_create_pixmap_surface_impl(
    EGLSurface            ret   = EGL_NO_SURFACE;
    EGL_PIXMAP_SURFACE_T *surface;
    unsigned int          width, height;
-   BEGL_SurfaceInfo      surfaceInfo;
    GFX_LFMT_T            gfx_format;
-   unsigned              num_mip_levels;
 
    if (!egl_initialized(dpy, true))
       return EGL_NO_SURFACE;
@@ -93,20 +89,14 @@ static EGLSurface egl_create_pixmap_surface_impl(
       goto end;
    }
 
-   /* Validate the pixmap */
-   if (!surface_get_info(pixmap, &surfaceInfo))
-   {
-      error = EGL_BAD_NATIVE_PIXMAP;
-      goto end;
-   }
-
    surface->base.fns        = &fns;
    surface->base.type       = EGL_SURFACE_TYPE_PIXMAP;
    surface->native_surface  = (void *)pixmap;
-   surface->image = image_from_surface_abstract(pixmap, true, &num_mip_levels);
+   surface->image = image_from_surface_abstract(BEGL_PIXMAP_BUFFER, pixmap,
+         true, "EGL pixmap", /*num_mip_levels=*/NULL, &error);
 
    if (!surface->image)
-      goto end;   /* BAD ALLOC */
+      goto end;   /* error set by image_from_surface_abstract() */
 
    khrn_image_invalidate(surface->image);
 
@@ -208,10 +198,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
       goto end;
    }
 
-   imageDst = image_from_surface_abstract(target, true, &num_mip_levels); /* TODO : Is this right? */
+   imageDst = image_from_surface_abstract(BEGL_PIXMAP_BUFFER, target, true,
+         "EGL pixmap", &num_mip_levels, &error); /* TODO : Is this right? */
    if (imageDst == NULL)
    {
-      error = EGL_BAD_NATIVE_PIXMAP;
       goto end;
    }
 

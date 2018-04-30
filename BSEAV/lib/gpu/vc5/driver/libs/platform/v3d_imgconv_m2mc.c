@@ -36,6 +36,12 @@ static BEGL_BufferFormat lfmt_to_begl_format(GFX_LFMT_T lfmt)
 #else
    case GFX_LFMT_BSTC_RGBA_UNORM:   return BEGL_BufferFormat_INVALID;
 #endif
+   case GFX_LFMT_Y8_UNORM:          return BEGL_BufferFormat_eY8;
+   case GFX_LFMT_U8_V8_2X2_UNORM:   return BEGL_BufferFormat_eCr8Cb8;
+   case GFX_LFMT_V8_U8_2X2_UNORM:   return BEGL_BufferFormat_eCb8Cr8;
+   case GFX_LFMT_Y10_UNORM:         return BEGL_BufferFormat_eY10;
+   case GFX_LFMT_U10V10_2X2_UNORM:  return BEGL_BufferFormat_eCr10Cb10;
+   case GFX_LFMT_V10U10_2X2_UNORM:  return BEGL_BufferFormat_eCb10Cr10;
    default:                         return BEGL_BufferFormat_INVALID;
    }
 }
@@ -61,6 +67,24 @@ static BEGL_Colorimetry convert_colorimetry(gfx_buffer_colorimetry_t cp)
    }
 }
 
+static void set_block_and_offset(gmem_handle_t handle, BEGL_MemHandle *block,
+      uint64_t *offset)
+{
+   if (handle)
+   {
+      *block = gmem_get_platform_handle(handle);
+      if (!*block) /* physical offset stored in gmem_addr */
+         *offset = gmem_get_addr(handle);
+      else
+         *offset = 0; /* physical offset must be obtained by the platform */
+   }
+   else
+   {
+      *block = NULL;
+      *offset = 0;
+   }
+}
+
 bool v3d_imgconv_m2mc_convert_surface(const v3d_imgconv_gmem_tgt *src, uint32_t src_off,
                                       const v3d_imgconv_gmem_tgt *dst, uint32_t dst_off,
                                       bool validateOnly)
@@ -69,19 +93,43 @@ bool v3d_imgconv_m2mc_convert_surface(const v3d_imgconv_gmem_tgt *src, uint32_t 
    info.width  = src->base.desc.width;
    info.height = src->base.desc.height;
    info.secure = dst->handles[0] && (gmem_get_usage(dst->handles[0]) & GMEM_USAGE_SECURE) != 0;
-   info.srcNativeSurface = src->handles[0] ? gmem_get_external_context(src->handles[0]) : NULL;
-   info.srcColorimetry   = convert_colorimetry(src->base.desc.colorimetry);
+   info.srcColorimetry = convert_colorimetry(src->base.desc.colorimetry);
+
+   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(
+         &src->base.desc.planes[0].lfmt);
+   info.stripeWidth = gfx_lfmt_sandcol_w_in_bytes(swizzling);
+
+   assert(src->base.desc.num_planes <= BEGL_MaxPlanes);
+   for (uint32_t plane = 0; plane < src->base.desc.num_planes; plane++)
+   {
+      info.secure |= src->handles[plane] &&
+            (gmem_get_usage(src->handles[plane]) & GMEM_USAGE_SECURE) != 0;
+
+      info.src[plane].format = lfmt_to_begl_format(src->base.desc.planes[plane].lfmt);
+      if (info.src[plane].format == BEGL_BufferFormat_INVALID)
+         return false;
+
+      set_block_and_offset(src->handles[plane],
+            &info.src[plane].block, &info.src[plane].offset);
+      info.src[plane].offset += src->base.desc.planes[plane].offset +
+            src->offset + src_off;
+      info.src[plane].pitch = src->base.desc.planes[plane].pitch;
+
+      GFX_LFMT_BASE_DETAIL_T bd;
+      gfx_lfmt_base_detail(&bd, src->base.desc.planes[plane].lfmt);
+      info.src[plane].stripeHeight = src->base.desc.planes[plane].pitch / bd.bytes_per_block;
+   }
 
    // We don't ever convert to sand, only from
    assert(!gfx_lfmt_is_sand_family(dst->base.desc.planes[0].lfmt));
-   info.dstFormat = lfmt_to_begl_format(dst->base.desc.planes[0].lfmt);
-   if (info.dstFormat == BEGL_BufferFormat_INVALID)
+   info.dst.format = lfmt_to_begl_format(dst->base.desc.planes[0].lfmt);
+   if (info.dst.format == BEGL_BufferFormat_INVALID)
       return false;
 
-   info.dstAlignment    = /*log2(4096)*/12;
-   info.dstPitch        = dst->base.desc.planes[0].pitch;
-   info.dstMemoryBlock  = dst->handles[0] ? gmem_get_platform_handle(dst->handles[0]) : NULL;
-   info.dstMemoryOffset = dst->offset + dst->base.desc.planes[0].offset + dst_off;
+   set_block_and_offset(dst->handles[0], &info.dst.block, &info.dst.offset);
+   info.dst.offset += dst->base.desc.planes[0].offset + dst->offset + dst_off;
+   info.dst.pitch = dst->base.desc.planes[0].pitch;
+   info.dst.stripeHeight = 0; /* dst is not SAND format */
 
    return gmem_convert_surface(&info, validateOnly);
 }
@@ -100,6 +148,11 @@ static bool claim_m2mc_conversion(
 
    /* Both src & dst must be in contiguous memory to use the M2MC */
    if (!info->contiguous_src || !info->contiguous_dst)
+      return false;
+
+   /* only claim conversion from SAND */
+   GFX_LFMT_T src_lfmt = src->desc.planes[0].lfmt;
+   if (!gfx_lfmt_is_sand_family(src_lfmt))
       return false;
 
    GFX_LFMT_T dst_lfmt = dst->desc.planes[0].lfmt;
@@ -131,7 +184,7 @@ static bool claim_m2mc_conversion(
    if (gfx_lfmt_has_depth(dst->desc.planes[0].lfmt) || gfx_lfmt_has_stencil(dst->desc.planes[0].lfmt))
       return false;
 
-   if (src->desc.num_planes <= 2 && dst->desc.num_planes == 1)
+   if (src->desc.num_planes == 2 && dst->desc.num_planes == 1)
    {
       v3d_imgconv_gmem_tgt src_gmem_tgt;
       memset(&src_gmem_tgt, 0, sizeof(src_gmem_tgt));

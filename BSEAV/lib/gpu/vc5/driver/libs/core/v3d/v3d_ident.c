@@ -25,7 +25,7 @@ int v3d_ver_from_ident(const V3D_IDENT_T *ident)
 int v3d_ver_from_hub_ident(const V3D_HUB_IDENT_T *ident)
 {
    uint32_t sub_rev = ident->sub_rev;
-#if V3D_VER == V3D_MAKE_VER(3,2,1,0)
+#if V3D_VER_EQ(3,2,1,0)
    if ((ident->tech_version == 3) && (ident->revision == 2) && (sub_rev == 0))
       /* 3.2.1 (special FPGA build) reports as 3.2.0 in hub; fix this up... */
       sub_rev = 1;

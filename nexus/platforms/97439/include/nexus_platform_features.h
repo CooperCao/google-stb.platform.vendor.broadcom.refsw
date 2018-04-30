@@ -96,9 +96,6 @@ upon the chip usage. See below */
 
 
 
-/* I2C Channels */
-#define NEXUS_NUM_I2C_CHANNELS 5
-
 /* I2C channel usage assignments. Refer to BSC table in the board schematics. */
 #define NEXUS_I2C_CHANNEL_HDMI_TX          0
 #define NEXUS_I2C_CHANNEL_LNA             5  /*  */

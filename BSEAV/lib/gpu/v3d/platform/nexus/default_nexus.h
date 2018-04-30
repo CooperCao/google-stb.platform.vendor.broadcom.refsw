@@ -27,7 +27,7 @@
 
 #include "nexus_core_utils.h"
 
-#include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,8 +81,6 @@ NXPL_EXPORT void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, 
 /* Unregister a display for exclusive use. The client application can the use the Nexus display again. */
 NXPL_EXPORT void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle);
 
-NXPL_EXPORT bool NXPL_BufferGetRequirements(NXPL_PlatformHandle handle, BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
-
 /* Generate a default NXPL_NativeWindowInfoEXT */
 NXPL_EXPORT void NXPL_GetDefaultNativeWindowInfoEXT(NXPL_NativeWindowInfoEXT *info);
 
@@ -99,15 +97,15 @@ NXPL_EXPORT void NXPL_UpdateNativeWindowDisplayType(void *native, NXPL_DisplayTy
 /* Destroy a 'native window' */
 NXPL_EXPORT void NXPL_DestroyNativeWindow(void *nativeWin);
 
-NXPL_EXPORT void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info);
-
-NXPL_EXPORT bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle,
-                                             NEXUS_SurfaceHandle *surface, BEGL_PixmapInfo *info) __attribute__((deprecated("Use NXPL_GetDefaultPixmapInfoEXT()/NXPL_CreateCompatiblePixmapEXT() instead")));
+NXPL_EXPORT void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
+   __attribute__((deprecated("Use Nexus surface with 3D compatibility flag instead")));
 
 NXPL_EXPORT bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHandle,
-                                                NEXUS_SurfaceHandle *surface, BEGL_PixmapInfoEXT *info);
+                                                NEXUS_SurfaceHandle *surface, BEGL_PixmapInfoEXT *info)
+   __attribute__((deprecated("Use Nexus surface with 3D compatibility flag instead")));
 
-NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle);
+NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle)
+   __attribute__((deprecated("Use Nexus surface with 3D compatibility flag instead")));
 
 /* only valid for surface compositor */
 /* gets the associated video pip window from the graphics window. */

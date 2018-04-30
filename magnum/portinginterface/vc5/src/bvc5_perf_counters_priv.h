@@ -48,37 +48,37 @@
 #define BVC5_P_PERF_COUNTER_NUM_GROUPS    3
 #else
 #define BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE 16
-#define BVC5_P_PERF_COUNTER_MEM_BW_GROUP  1
-#define BVC5_P_PERF_COUNTER_SCHED_GROUP   2
+#define BVC5_P_PERF_COUNTER_SCHED_GROUP   1
 #if V3D_VER_AT_LEAST(3,3,0,0)
-#define BVC5_P_PERF_COUNTER_MMU_GROUP     3
-#define BVC5_P_PERF_COUNTER_NUM_GROUPS    4
-#else
+#define BVC5_P_PERF_COUNTER_MMU_GROUP     2
 #define BVC5_P_PERF_COUNTER_NUM_GROUPS    3
+#else
+#define BVC5_P_PERF_COUNTER_NUM_GROUPS    2
 #endif
-#define BVC5_P_PERF_COUNTER_MAX_BW_CTRS_ACTIVE 1
 #endif
 
 #define BVC5_P_PERF_BIN_JOBS_SUBMITTED             0
 #define BVC5_P_PERF_BIN_JOBS_COMPLETED             1
 #define BVC5_P_PERF_RENDER_JOBS_SUBMITTED          2
 #define BVC5_P_PERF_RENDER_JOBS_COMPLETED          3
-#define BVC5_P_PERF_TFU_JOBS_SUBMITTED             4
-#define BVC5_P_PERF_TFU_JOBS_COMPLETED             5
-#define BVC5_P_PERF_INTERRUPTS                     6
-#define BVC5_P_PERF_BIN_OOMS                       7
-#define BVC5_P_PERF_BIN_MEMORY_RESERVED            8
-#define BVC5_P_PERF_BIN_MEMORY_IN_USE              9
-#define BVC5_P_PERF_LOCKUP_DETECTION               10
-#define BVC5_P_PERF_BINNER_LOAD_AVG                11
-#define BVC5_P_PERF_RENDERER_LOAD_AVG              12
-#define BVC5_P_PERF_TFU_LOAD_AVG                   13
-#define BVC5_P_PERF_POWERED_ON_AVG                 14
-#define BVC5_P_PERF_EVENT_MEMORY_RESERVED          15
-#define BVC5_P_PERF_EVENT_MEMORY_IN_USE            16
-#define BVC5_P_PERF_HEAP_MEMORY_IN_USE             17
-#define BVC5_P_PERF_HEAP_MEMORY_FREE               18
-#define BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE  19 /* Must come last */
+#define BVC5_P_PERF_COMPUTE_JOBS_SUBMITTED         4
+#define BVC5_P_PERF_COMPUTE_JOBS_COMPLETED         5
+#define BVC5_P_PERF_TFU_JOBS_SUBMITTED             6
+#define BVC5_P_PERF_TFU_JOBS_COMPLETED             7
+#define BVC5_P_PERF_INTERRUPTS                     8
+#define BVC5_P_PERF_BIN_OOMS                       9
+#define BVC5_P_PERF_BIN_MEMORY_RESERVED            10
+#define BVC5_P_PERF_BIN_MEMORY_IN_USE              11
+#define BVC5_P_PERF_LOCKUP_DETECTION               12
+#define BVC5_P_PERF_BINNER_LOAD_AVG                13
+#define BVC5_P_PERF_RENDERER_LOAD_AVG              14
+#define BVC5_P_PERF_TFU_LOAD_AVG                   15
+#define BVC5_P_PERF_POWERED_ON_AVG                 16
+#define BVC5_P_PERF_EVENT_MEMORY_RESERVED          17
+#define BVC5_P_PERF_EVENT_MEMORY_IN_USE            18
+#define BVC5_P_PERF_HEAP_MEMORY_IN_USE             19
+#define BVC5_P_PERF_HEAP_MEMORY_FREE               20
+#define BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE  21 /* Must come last */
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
 #define BVC5_P_PERF_MMU_TLB_MISSES                 0
@@ -105,9 +105,6 @@ typedef struct BVC5_P_PerfCounters
    BVC5_CounterGroupDesc    sGroupDescs[BVC5_P_PERF_COUNTER_NUM_GROUPS];
 
    BVC5_P_HwCounter         sHwCounters[BVC5_MAX_COUNTERS_PER_GROUP];
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   BVC5_P_HwCounter         sBwCounters[BVC5_MAX_COUNTERS_PER_GROUP];
-#endif
    BVC5_P_CounterValue      sSchedValues[BVC5_MAX_COUNTERS_PER_GROUP];
 #if V3D_VER_AT_LEAST(3,3,0,0)
    BVC5_P_CounterValue      sMMUValues[BVC5_MAX_COUNTERS_PER_GROUP];
@@ -117,7 +114,6 @@ typedef struct BVC5_P_PerfCounters
    uint32_t                 uiClientId;
    bool                     bCountersActive;
    uint32_t                 uiActiveHwCounters;
-   uint32_t                 uiActiveBwCounters;
 
    /* Used for load avg calculations */
    uint64_t                 uiBinnerCumIdleTime;
@@ -129,14 +125,15 @@ typedef struct BVC5_P_PerfCounters
    uint64_t                 uiTFUIdleStartTime;
    uint64_t                 uiPoweredOffStartTime;
    uint64_t                 uiLastCollectionTime;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   uint64_t                 uiComputeCumIdleTime;
+   uint64_t                 uiComputeIdleStartTime;
+#endif
 
    /* Shadow register writes, which need to be configured when the core powers */
    uint32_t                 uiPCTRSShadow[BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE];  /* mappings */
    uint32_t                 uiPCTRShadows[BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE];  /* counts */
    uint32_t                 uiPCTREShadow;
-
-   uint32_t                 uiMemBwCntShadow;
-   uint32_t                 uiGCAPMSelShadow;
 
 } BVC5_P_PerfCounters;
 

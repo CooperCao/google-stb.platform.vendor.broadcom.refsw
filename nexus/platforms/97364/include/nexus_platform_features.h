@@ -96,9 +96,6 @@ upon the chip usage. See below */
 #define NEXUS_3255_OOB_TUNER_IFFREQ (1250000)/* 1.25 MHz */
 #define NEXUS_SHARED_FRONTEND_INTERRUPT 1
 
-/* I2C Channels. Although, BSC-B shouldn't be used in 7364. Hence, there are 4 BSC cores, but only 3 are useable. */
-#define NEXUS_NUM_I2C_CHANNELS 4
-
 /* I2C channel usage assignments. Refer to BSC table in the board schematics. */
 #define NEXUS_I2C_CHANNEL_HDMI_TX         0
 #define NEXUS_I2C_CHANNEL_LNA             5  /*  */

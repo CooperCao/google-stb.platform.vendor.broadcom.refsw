@@ -77,7 +77,7 @@ BDBG_FILE_MODULE(nexus_statistics_api);
 
 #if defined(NEXUS_Time_DiffMicroseconds)
 #define NEXUS_P_BASE_STATS_TIME_UNITS  "usec"
-#define NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(x)  (x)*1000
+#define NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(x)  ((x)*1000)
 #else
 #define NEXUS_P_BASE_STATS_TIME_UNITS  "msec"
 #define NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(x)  (x)
@@ -349,10 +349,12 @@ typedef struct NEXUS_P_Base_Stats_ApiAggregateNode {
 
 #endif /* NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE  || NEXUS_P_BASE_ENABLE_API_AGGREGATE */
 
-
-
-static struct NEXUS_P_Base_Stats_State {
-    BKNI_MutexHandle lock; /* global lock for all statistics */
+struct NEXUS_P_Base_Stats_GroupState {
+    struct {
+        long callback;
+        long module;
+        long api;
+    } warningThreshold;
     NEXUS_P_Base_Stats_TimeList callbackTimeList;
     NEXUS_P_Base_Stats_TimeList moduleTimeList;
     NEXUS_P_Base_Stats_TimeList apiTimeList;
@@ -360,10 +362,10 @@ static struct NEXUS_P_Base_Stats_State {
     NEXUS_P_Base_Stats_StackList apiStackList;
     NEXUS_P_Base_Stats_StackList callbackStackList;
 #endif
-#if NEXUS_P_BASE_ENABLE_SCHEDULER_STATS  
+#if NEXUS_P_BASE_ENABLE_SCHEDULER_STATS
     NEXUS_P_Base_Stats_Scheduler schedulers[NEXUS_ModulePriority_eMax];
 #endif
-#if NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE   
+#if NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE
     NEXUS_P_Base_StateAggregateTrees callbackAggregate;
 #endif
 #if NEXUS_P_BASE_ENABLE_API_AGGREGATE
@@ -372,7 +374,7 @@ static struct NEXUS_P_Base_Stats_State {
     NEXUS_P_Base_Stats_CallbackTimeNode callbackTimeNodes[NEXUS_P_BASE_STATS_CALLBACK_TIME_NODES];
     NEXUS_P_Base_Stats_ModuleTimeNode moduleTimeNodes[NEXUS_P_BASE_STATS_MODULE_TIME_NODES];
     NEXUS_P_Base_Stats_ApiTimeNode apiTimeNodes[NEXUS_P_BASE_STATS_API_TIME_NODES];
-#if NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE   
+#if NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE
     NEXUS_P_Base_Stats_CallbackAggregateNode callbackAggregateNodes[NEXUS_P_BASE_STATS_CALLBACK_AGGREGATE_NODES];
 #endif
 #if NEXUS_P_BASE_ENABLE_API_AGGREGATE
@@ -382,13 +384,24 @@ static struct NEXUS_P_Base_Stats_State {
     NEXUS_P_Base_Stats_ApiStackNode apiStackNodes[NEXUS_P_BASE_STATS_API_STACK_NODES];
     NEXUS_P_Base_Stats_CallbackStackNode callbackStackNodes[NEXUS_P_BASE_STATS_CALLBACK_STACK_NODES];
 #endif
+};
+
+
+
+enum NEXUS_P_Base_Stats_Group {
+    NEXUS_P_Base_Stats_Group_eDefault,
+    NEXUS_P_Base_Stats_Group_eSlow,
+    NEXUS_P_Base_Stats_Group_eMax
+};
+
+static struct NEXUS_P_Base_Stats_State {
+    BKNI_MutexHandle lock; /* global lock for all statistics */
+    struct NEXUS_P_Base_Stats_GroupState group[NEXUS_P_Base_Stats_Group_eMax];
 } g_NEXUS_P_Base_Stats_State;
 
-
-static void NEXUS_P_Base_Stats_CallbackClear(void)
+static void NEXUS_P_Base_Stats_Group_CallbackClear(struct NEXUS_P_Base_Stats_GroupState *state)
 {
     unsigned i;
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
 
     BLST_Q_INIT(&state->callbackTimeList);
     for(i=0;i<NEXUS_P_BASE_STATS_CALLBACK_TIME_NODES;i++) {
@@ -409,10 +422,19 @@ static void NEXUS_P_Base_Stats_CallbackClear(void)
     return;
 }
 
-static void NEXUS_P_Base_Stats_ModuleTimeClear(void)
+static void NEXUS_P_Base_Stats_CallbackClear(void)
 {
     unsigned i;
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_CallbackClear(&state->group[i]);
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_Group_ModuleTimeClear(struct NEXUS_P_Base_Stats_GroupState *state)
+{
+    unsigned i;
 
     BLST_Q_INIT(&state->moduleTimeList);
     for(i=0;i<NEXUS_P_BASE_STATS_API_TIME_NODES;i++) {
@@ -424,10 +446,20 @@ static void NEXUS_P_Base_Stats_ModuleTimeClear(void)
     return;
 }
 
-static void NEXUS_P_Base_Stats_ApiClear(void)
+static void NEXUS_P_Base_Stats_ModuleTimeClear(void)
 {
     unsigned i;
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_ModuleTimeClear(&state->group[i]);
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_Group_ApiClear(struct NEXUS_P_Base_Stats_GroupState *state)
+{
+    unsigned i;
 
     BLST_Q_INIT(&state->apiTimeList);
     for(i=0;i<NEXUS_P_BASE_STATS_API_TIME_NODES;i++) {
@@ -445,6 +477,17 @@ static void NEXUS_P_Base_Stats_ApiClear(void)
         BLST_Q_INSERT_TAIL(&state->apiStackList, &node->stackNode, link);
     }
 #endif
+    return;
+}
+
+static void NEXUS_P_Base_Stats_ApiClear(void)
+{
+    unsigned i;
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_ApiClear(&state->group[i]);
+    }
     return;
 }
 
@@ -468,10 +511,9 @@ static const char *NEXUS_P_Base_Stats_PriorityName(NEXUS_ModulePriority priority
 #define NEXUS_P_BASE_STATS_REPORT_SEPARATOR(type) ("-------- %s ---------", type)
 
 #if NEXUS_P_BASE_ENABLE_SCHEDULER_STATS  
-static void NEXUS_P_Base_Stats_SchedulersClear(void)
+static void NEXUS_P_Base_Stats_Group_SchedulersClear(struct NEXUS_P_Base_Stats_GroupState *state)
 {
     unsigned i;
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         NEXUS_P_Base_Stats_Scheduler *scheduler = &state->schedulers[i];
         scheduler->count = 0;
@@ -481,21 +523,31 @@ static void NEXUS_P_Base_Stats_SchedulersClear(void)
     return;
 }
 
-void NEXUS_P_Base_Stats_SchedulersReport(void)
+static void NEXUS_P_Base_Stats_SchedulersClear(void)
 {
+    unsigned i;
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_SchedulersClear(&state->group[i]);
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_Group_SchedulersReport(const struct NEXUS_P_Base_Stats_GroupState *state)
+{
     unsigned i;
     bool printed[NEXUS_ModulePriority_eMax];
     bool separator = true;
+    const NEXUS_P_Base_Stats_Scheduler *maxScheduler;
 
-    NEXUS_P_Base_Stats_Scheduler *maxScheduler;
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         printed[i] = false;
     }
     for(;;) {
         unsigned priority;
         for(maxScheduler = NULL, i=0;i<NEXUS_ModulePriority_eMax;i++) {
-            NEXUS_P_Base_Stats_Scheduler *scheduler = &state->schedulers[i];
+            const NEXUS_P_Base_Stats_Scheduler *scheduler = &state->schedulers[i];
             if(!printed[i] &&  scheduler->count) {
                 if(maxScheduler == NULL || maxScheduler->totalTime < scheduler->totalTime) {
                     maxScheduler = scheduler;
@@ -517,6 +569,17 @@ void NEXUS_P_Base_Stats_SchedulersReport(void)
     return;
 }
 
+static void NEXUS_P_Base_Stats_SchedulersReport(void)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_SchedulersReport(&state->group[i]);
+    }
+    return;
+}
+
 #else
 #define NEXUS_P_Base_Stats_SchedulersClear()
 #define NEXUS_P_Base_Stats_SchedulersReport()
@@ -524,17 +587,25 @@ void NEXUS_P_Base_Stats_SchedulersReport(void)
 
 
 #if NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE   
-static void NEXUS_P_Base_Stats_CallbackAggregateClear(void)
+static void NEXUS_P_Base_Stats_Group_CallbackAggregateClear(struct NEXUS_P_Base_Stats_GroupState *state)
 {
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
-
     NEXUS_P_Base_Stats_AggregateClear(&state->callbackAggregate, (NEXUS_P_Base_Stats_AggregateNode *)state->callbackAggregateNodes, sizeof(state->callbackAggregateNodes[0]),NEXUS_P_BASE_STATS_CALLBACK_AGGREGATE_NODES);
     return;
 }
 
-static void NEXUS_P_Base_Stats_CallbackAggregateReport(void)
+static void NEXUS_P_Base_Stats_CallbackAggregateClear(void)
 {
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_CallbackAggregateClear(&state->group[i]);
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_Group_CallbackAggregateReport(struct NEXUS_P_Base_Stats_GroupState *state)
+{
     unsigned i;
     NEXUS_P_Base_Stats_CallbackAggregateNode *node;
 
@@ -577,23 +648,42 @@ static void NEXUS_P_Base_Stats_CallbackAggregateReport(void)
     return;
 }
 
+static void NEXUS_P_Base_Stats_CallbackAggregateReport(void)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_CallbackAggregateReport(&state->group[i]);
+    }
+    return;
+}
+
 #else /* NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE  */
 #define NEXUS_P_Base_Stats_CallbackAggregateClear()
 #define NEXUS_P_Base_Stats_CallbackAggregateReport()
 #endif /* NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE  */
 
-#if NEXUS_P_BASE_ENABLE_API_AGGREGATE   
-static void NEXUS_P_Base_Stats_ApiAggregateClear(void)
+#if NEXUS_P_BASE_ENABLE_API_AGGREGATE
+static void NEXUS_P_Base_Stats_Group_ApiAggregateClear(struct NEXUS_P_Base_Stats_GroupState *state)
 {
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
-
     NEXUS_P_Base_Stats_AggregateClear(&state->apiAggregate, (NEXUS_P_Base_Stats_AggregateNode *)state->apiAggregateNodes, sizeof(state->apiAggregateNodes[0]),NEXUS_P_BASE_STATS_API_AGGREGATE_NODES);
     return;
 }
 
-static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
+static void NEXUS_P_Base_Stats_ApiAggregateClear(void)
 {
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_ApiAggregateClear(&state->group[i]);
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_Group_ApiAggregateReport(struct NEXUS_P_Base_Stats_GroupState *state)
+{
     unsigned i;
     NEXUS_P_Base_Stats_ApiAggregateNode *node;
 
@@ -612,7 +702,6 @@ static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
     for(    i=0, node=(NEXUS_P_Base_Stats_ApiAggregateNode *)BLST_AA_TREE_FIRST(NEXUS_P_Base_Stats_AggregateTotalTimeTree, &state->apiAggregate.totalTimeTree);
             node && i<NEXUS_P_BASE_STATS_TOP_COUNT;
             i++, node=(NEXUS_P_Base_Stats_ApiAggregateNode *)BLST_AA_TREE_NEXT(NEXUS_P_Base_Stats_AggregateTotalTimeTree, &state->apiAggregate.totalTimeTree, &node->aggregateNode)) {
-        
         if(node->aggregateNode.key.totalTime < NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD)) {
             break;
         }
@@ -624,7 +713,6 @@ static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
     for(    i=0, node=(NEXUS_P_Base_Stats_ApiAggregateNode *)BLST_AA_TREE_FIRST(NEXUS_P_Base_Stats_AggregateMaxTimeTree, &state->apiAggregate.maxTimeTree);
             node && i<NEXUS_P_BASE_STATS_TOP_COUNT;
             i++, node=(NEXUS_P_Base_Stats_ApiAggregateNode *)BLST_AA_TREE_NEXT(NEXUS_P_Base_Stats_AggregateMaxTimeTree, &state->apiAggregate.maxTimeTree, &node->aggregateNode)) {
-        
         if(node->aggregateNode.key.totalTime < NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD)) {
             break;
         }
@@ -633,6 +721,17 @@ static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
         }
         BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, (char *)node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, (unsigned)node->aggregateNode.key.totalTime, (unsigned)node->aggregateNode.key.maxTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
 
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_ApiAggregateReport(&state->group[i]);
     }
     return;
 }
@@ -646,6 +745,7 @@ NEXUS_Error NEXUS_P_Base_Stats_Init(void)
 {
     NEXUS_Error rc;
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
 
     rc = BKNI_CreateMutex(&state->lock);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto err_lock;}
@@ -655,6 +755,17 @@ NEXUS_Error NEXUS_P_Base_Stats_Init(void)
     NEXUS_P_Base_Stats_ApiAggregateClear();
     NEXUS_P_Base_Stats_SchedulersClear();
     NEXUS_P_Base_Stats_ApiClear();
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        unsigned scale = 1;
+        if(i==NEXUS_P_Base_Stats_Group_eSlow) {
+            scale=4; /* slow could be 4x slower */
+        }
+        state->group[i].warningThreshold.callback = NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(scale*NEXUS_P_BASE_STATS_CALLBACK_WARNING_THRESHOLD);
+        state->group[i].warningThreshold.module = NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(scale*NEXUS_P_BASE_STATS_MODULE_WARNING_THRESHOLD);
+        state->group[i].warningThreshold.api = NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(scale*NEXUS_P_BASE_STATS_API_WARNING_THRESHOLD);
+    }
+
     return NEXUS_SUCCESS;
 
 err_lock:
@@ -678,10 +789,9 @@ void NEXUS_P_Base_Stats_GetCookie(NEXUS_P_Base_Stats_Cookie *cookie)
 #endif
 }
 
-static void NEXUS_P_Base_Stats_CallbackEventProcess(long time, NEXUS_ModulePriority priority, const char *kind, void *callback, void *destination, const char *file, unsigned lineNo)
+static void NEXUS_P_Base_Stats_CallbackEventProcess(struct NEXUS_P_Base_Stats_GroupState *state, long time, NEXUS_ModulePriority priority, const char *kind, void *callback, void *destination, const char *file, unsigned lineNo)
 {
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
-    if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_CALLBACK_WARNING_THRESHOLD)) {
+    if(time>=state->warningThreshold.callback) {
         BDBG_MODULE_WRN(nexus_statistics_callback, ("%s callback %p:%p from %s:%u %ld " NEXUS_P_BASE_STATS_TIME_UNITS, kind, callback, destination, file, lineNo, time));
     }
     if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD)) {
@@ -737,11 +847,33 @@ static long NEXUS_P_Base_Stats_TimeDiff(const NEXUS_Time *timeStart)
     return time;
 }
 
+static struct NEXUS_P_Base_Stats_GroupState *NEXUS_P_Base_Stats_GroupFromPriority(NEXUS_ModulePriority priority)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    enum NEXUS_P_Base_Stats_Group group;
+    switch(priority) {
+    case NEXUS_ModulePriority_eIdle:
+    case NEXUS_ModulePriority_eIdleActiveStandby:
+        group = NEXUS_P_Base_Stats_Group_eSlow;
+        break;
+    default:
+        group = NEXUS_P_Base_Stats_Group_eDefault;
+        break;
+    }
+    return &state->group[group];
+}
+
+static struct NEXUS_P_Base_Stats_GroupState *NEXUS_P_Base_Stats_GroupFromModule(NEXUS_ModuleHandle module)
+{
+    return NEXUS_P_Base_Stats_GroupFromPriority(module->settings.priority);
+}
+
 void NEXUS_P_Base_Stats_CallbackEvent(const NEXUS_P_Base_Stats_Cookie *cookie, NEXUS_ModulePriority priority, const char *kind, void *callback, void *destination, const char *file, unsigned lineNo)
 {
     long time;
     unsigned stackUsage = 0;
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    struct NEXUS_P_Base_Stats_GroupState *group;
 #if NEXUS_P_STACKDEPTH_STATS
     stackUsage = NEXUS_P_Base_StackCheck_CheckFrame(&cookie->stackFrame, cookie); 
     if(stackUsage>=NEXUS_P_BASE_STATS_STACKDEPTH_WARNING) {
@@ -753,11 +885,12 @@ void NEXUS_P_Base_Stats_CallbackEvent(const NEXUS_P_Base_Stats_Cookie *cookie, N
     time = NEXUS_P_Base_Stats_TimeDiff(&cookie->timeStart);
 
 #if !NEXUS_P_BASE_ENABLE_CALLBACK_AGGREGATE && !NEXUS_P_BASE_ENABLE_SCHEDULER_STATS  
-    if(time<NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD) && stackUsage<NEXUS_P_BASE_STATS_STACKDEPTH_THRESHOLD) { return;} /* if no agregate processing, then entries then 1 msec could be ignored */
+    if(time<NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD) && stackUsage<NEXUS_P_BASE_STATS_STACKDEPTH_THRESHOLD) { return;} /* if no aggregate processing, then entries then 1 msec could be ignored */
 #endif
+    group = NEXUS_P_Base_Stats_GroupFromPriority(priority);
     BKNI_AcquireMutex(state->lock);
     if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD)) {
-        NEXUS_P_Base_Stats_CallbackEventProcess(time, priority, kind, callback, destination, file, lineNo);
+        NEXUS_P_Base_Stats_CallbackEventProcess(group, time, priority, kind, callback, destination, file, lineNo);
     }
 #if NEXUS_P_STACKDEPTH_STATS
     if(stackUsage>NEXUS_P_BASE_STATS_STACKDEPTH_THRESHOLD) {
@@ -781,21 +914,24 @@ void NEXUS_P_Base_Stats_ModuleEvent(const NEXUS_Time *timeStart,NEXUS_ModuleHand
 {
     long time = NEXUS_P_Base_Stats_TimeDiff(timeStart);
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    struct NEXUS_P_Base_Stats_GroupState *group;
 
-    if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_MODULE_WARNING_THRESHOLD)) {
+    group = NEXUS_P_Base_Stats_GroupFromModule(module);
+
+    if(time>=group->warningThreshold.module) {
         BDBG_MODULE_WRN(nexus_statistics_module, ("%s[%s] %s:%u %ld " NEXUS_P_BASE_STATS_TIME_UNITS, module->pModuleName, NEXUS_P_Base_Stats_PriorityName(module->settings.priority), NEXUS_P_PrepareFileName(file), lineNo, time));
     }
     if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD)) {
         NEXUS_P_Base_Stats_ModuleTimeNode *node;
         BKNI_AcquireMutex(state->lock);
-        node = (NEXUS_P_Base_Stats_ModuleTimeNode *)BLST_Q_FIRST(&state->moduleTimeList);
+        node = (NEXUS_P_Base_Stats_ModuleTimeNode *)BLST_Q_FIRST(&group->moduleTimeList);
         if(time>node->timeNode.key.time) {
             node->timeNode.key.time = time;
             node->moduleName = module->pModuleName;
             node->modulePriority = module->settings.priority;
             node->file = file;
             node->lineNo = lineNo;
-            NEXUS_P_Base_Stats_Time_ReplaceSorted(&state->moduleTimeList, &node->timeNode);
+            NEXUS_P_Base_Stats_Time_ReplaceSorted(&group->moduleTimeList, &node->timeNode);
         }
 
         BKNI_ReleaseMutex(state->lock);
@@ -809,11 +945,14 @@ void NEXUS_P_Base_Stats_ApiEvent(const NEXUS_P_Base_Stats_Cookie *cookie, const 
     long time;
     struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
     unsigned stackUsage = 0;
+    struct NEXUS_P_Base_Stats_GroupState *group;
+
 
     BSTD_UNUSED(stackUsage);
     if(state->lock==NULL) { /* for some cases NEXUS_P_Base_Stats_ApiEvent could get called after NEXUS_P_Base_Stats_Uninit */ 
         return;
     }
+    group = NEXUS_P_Base_Stats_GroupFromModule(module);
 #if NEXUS_P_STACKDEPTH_STATS
     stackUsage = NEXUS_P_Base_StackCheck_CheckFrame(&cookie->stackFrame, cookie);
     if(stackUsage>=NEXUS_P_BASE_STATS_STACKDEPTH_WARNING) {
@@ -821,7 +960,7 @@ void NEXUS_P_Base_Stats_ApiEvent(const NEXUS_P_Base_Stats_Cookie *cookie, const 
     }
 #endif
     time = NEXUS_P_Base_Stats_TimeDiff(&cookie->timeStart);
-    if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_API_WARNING_THRESHOLD)) {
+    if(time>=group->warningThreshold.api) {
         BDBG_MODULE_WRN(nexus_statistics_api, ("%s[%s:%s] %ld " NEXUS_P_BASE_STATS_TIME_UNITS, api, module->pModuleName, NEXUS_P_Base_Stats_PriorityName(module->settings.priority), time));
     }
 #if !NEXUS_P_BASE_ENABLE_API_AGGREGATE
@@ -831,13 +970,13 @@ void NEXUS_P_Base_Stats_ApiEvent(const NEXUS_P_Base_Stats_Cookie *cookie, const 
 #endif
     BKNI_AcquireMutex(state->lock);
     if(time>=NEXUS_P_BASE_STATS_MS_TO_TIME_UNITS(NEXUS_P_BASE_STATS_TOP_THRESHOLD)) {
-        NEXUS_P_Base_Stats_ApiTimeNode *node = (NEXUS_P_Base_Stats_ApiTimeNode *)BLST_Q_FIRST(&state->apiTimeList);
+        NEXUS_P_Base_Stats_ApiTimeNode *node = (NEXUS_P_Base_Stats_ApiTimeNode *)BLST_Q_FIRST(&group->apiTimeList);
         if(time>node->timeNode.key.time) {
             node->timeNode.key.time = time;
             node->moduleName = module->pModuleName;
             node->modulePriority = module->settings.priority;
             node->apiName = api;
-            NEXUS_P_Base_Stats_Time_ReplaceSorted(&state->apiTimeList, &node->timeNode);
+            NEXUS_P_Base_Stats_Time_ReplaceSorted(&group->apiTimeList, &node->timeNode);
         }
     }
 #if NEXUS_P_BASE_ENABLE_API_AGGREGATE
@@ -848,7 +987,7 @@ void NEXUS_P_Base_Stats_ApiEvent(const NEXUS_P_Base_Stats_Cookie *cookie, const 
         key.file = NULL;
         key.lineNo = 0;
         key.totalTime = time;
-        node = (NEXUS_P_Base_Stats_ApiAggregateNode *)NEXUS_P_Base_Stats_AggregateNode_Replace(&state->apiAggregate,&key);
+        node = (NEXUS_P_Base_Stats_ApiAggregateNode *)NEXUS_P_Base_Stats_AggregateNode_Replace(&group->apiAggregate,&key);
         if(node) {
             node->moduleName = module->pModuleName;
         }
@@ -856,12 +995,12 @@ void NEXUS_P_Base_Stats_ApiEvent(const NEXUS_P_Base_Stats_Cookie *cookie, const 
 #endif 
 #if NEXUS_P_STACKDEPTH_STATS
     if(stackUsage>NEXUS_P_BASE_STATS_STACKDEPTH_THRESHOLD) {
-        NEXUS_P_Base_Stats_ApiStackNode *node = (NEXUS_P_Base_Stats_ApiStackNode *)BLST_Q_FIRST(&state->apiStackList);
+        NEXUS_P_Base_Stats_ApiStackNode *node = (NEXUS_P_Base_Stats_ApiStackNode *)BLST_Q_FIRST(&group->apiStackList);
         if(stackUsage>node->stackNode.key.stack) {
             node->stackNode.key.stack = stackUsage;
             node->moduleName = module->pModuleName;
             node->apiName = api;
-            NEXUS_P_Base_Stats_Stack_ReplaceSorted(&state->apiStackList, &node->stackNode);
+            NEXUS_P_Base_Stats_Stack_ReplaceSorted(&group->apiStackList, &node->stackNode);
         }
     }
 #endif
@@ -870,9 +1009,8 @@ void NEXUS_P_Base_Stats_ApiEvent(const NEXUS_P_Base_Stats_Cookie *cookie, const 
 }
 
 #if NEXUS_P_CALLBACK_STATS 
-static void NEXUS_P_Base_Stats_CallbackTimeReport(void)
+static void NEXUS_P_Base_Stats_Group_CallbackTimeReport(const struct NEXUS_P_Base_Stats_GroupState *state)
 {
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
     NEXUS_P_Base_Stats_CallbackTimeNode *node;
     bool separator = true;
 
@@ -890,12 +1028,22 @@ static void NEXUS_P_Base_Stats_CallbackTimeReport(void)
     }
     return;
 }
+
+static void NEXUS_P_Base_Stats_CallbackTimeReport(void)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_CallbackTimeReport(&state->group[i]);
+    }
+    return;
+}
 #endif /* NEXUS_P_CALLBACK_STATS */
 
 #if NEXUS_P_MODULE_STATS
-static void NEXUS_P_Base_Stats_ModuleTimeReport(void)
+static void NEXUS_P_Base_Stats_Group_ModuleTimeReport(const struct NEXUS_P_Base_Stats_GroupState *state)
 {
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
     NEXUS_P_Base_Stats_ModuleTimeNode *node;
     bool separator=true;
     for( node=(NEXUS_P_Base_Stats_ModuleTimeNode *)BLST_Q_LAST(&state->moduleTimeList);
@@ -912,12 +1060,22 @@ static void NEXUS_P_Base_Stats_ModuleTimeReport(void)
     }
     return;
 }
+
+static void NEXUS_P_Base_Stats_ModuleTimeReport(void)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_ModuleTimeReport(&state->group[i]);
+    }
+    return;
+}
 #endif /* NEXUS_P_MODULE_STATS */
 
 #if NEXUS_P_API_STATS
-static void NEXUS_P_Base_Stats_ApiTimeReport(void)
+static void NEXUS_P_Base_Stats_Group_ApiTimeReport(const struct NEXUS_P_Base_Stats_GroupState *state)
 {
-    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
     NEXUS_P_Base_Stats_ApiTimeNode *node;
     bool separator=true;
     for( node=(NEXUS_P_Base_Stats_ApiTimeNode *)BLST_Q_LAST(&state->apiTimeList);
@@ -931,6 +1089,17 @@ static void NEXUS_P_Base_Stats_ApiTimeReport(void)
             BDBG_MODULE_MSG(nexus_statistics_api,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("API execution time"));
         }
         BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s:%s] %ld " NEXUS_P_BASE_STATS_TIME_UNITS, node->apiName, node->moduleName, NEXUS_P_Base_Stats_PriorityName(node->modulePriority), node->timeNode.key.time));
+    }
+    return;
+}
+
+static void NEXUS_P_Base_Stats_ApiTimeReport(void)
+{
+    struct NEXUS_P_Base_Stats_State *state = &g_NEXUS_P_Base_Stats_State;
+    unsigned i;
+
+    for(i=0;i<NEXUS_P_Base_Stats_Group_eMax;i++) {
+        NEXUS_P_Base_Stats_Group_ApiTimeReport(&state->group[i]);
     }
     return;
 }

@@ -139,10 +139,8 @@ BERR_Code BSYNClib_VideoSource_TsmLockTimerExpired(void * pvParm1, int iParm2, B
 	BDBG_ASSERT(hTimer);
 	BDBG_MSG(("[%d] Video source %u tsm lock timer expired", psSource->sElement.hParent->iIndex, psSource->sElement.uiIndex));
 	psSource->sElement.sDelay.sResults.bAccepted = true;
-	rc = BSYNClib_Channel_P_TimerExpired(psSource->sElement.hParent, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(psSource->sElement.hParent, hTimer);
 	BSYNClib_Channel_P_Process(psSource->sElement.hParent, 0);
-	end:
 	BDBG_LEAVE(BSYNClib_VideoSource_TsmLockTimerExpired);
 	return rc;
 }

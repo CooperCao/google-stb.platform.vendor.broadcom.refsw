@@ -52,8 +52,6 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
 #if V3D_VER_AT_LEAST(4,1,34,0)
    gfx_lfmt_translate_pixel_format(p->lfmt, &ls->pixel_format, &ls->chan_reverse, &ls->rb_swap);
    ls->load_alpha_to_one = !gfx_lfmt_has_alpha(p->lfmt);
-#elif V3D_VER_AT_LEAST(4,1,34,0)
-   ls->pixel_format = gfx_lfmt_translate_pixel_format(p->lfmt);
 #else
    if (color)
       ls->output_format.pixel = gfx_lfmt_translate_pixel_format(p->lfmt);
@@ -104,8 +102,6 @@ void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
 static v3d_tfu_iformat_t buffer_desc_to_tfu_iformat(const GFX_BUFFER_DESC_T *desc,
       unsigned plane_idx)
 {
-   v3d_tfu_iformat_t tfu_iformat;
-
    assert(plane_idx < desc->num_planes);
 
    GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&desc->planes[plane_idx].lfmt);
@@ -122,26 +118,14 @@ static v3d_tfu_iformat_t buffer_desc_to_tfu_iformat(const GFX_BUFFER_DESC_T *des
 
       switch (gfx_lfmt_sandcol_w_in_bytes(swizzling))
       {
-      case 128:   tfu_iformat = V3D_TFU_IFORMAT_SAND_128; break;
-      case 256:   tfu_iformat = V3D_TFU_IFORMAT_SAND_256; break;
-      default:    unreachable();
+      case 128:   return V3D_TFU_IFORMAT_SAND_128;
+      case 256:   return V3D_TFU_IFORMAT_SAND_256;
+      default:    unreachable(); return V3D_TFU_IFORMAT_INVALID;
       }
    }
-   else switch (swizzling)
-   {
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-      tfu_iformat = V3D_TFU_IFORMAT_UIF_NO_XOR;
-      break;
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
-      tfu_iformat = V3D_TFU_IFORMAT_UIF_XOR;
-      break;
-   default:
-      tfu_iformat = v3d_tfu_iformat_from_memory_format(
-         gfx_buffer_translate_memory_format(desc, plane_idx));
-      break;
-   }
 
-   return tfu_iformat;
+   return v3d_tfu_iformat_from_memory_format(
+      gfx_buffer_translate_memory_format(desc, plane_idx));
 }
 
 v3d_tfu_iformat_t gfx_buffer_desc_get_tfu_iformat_and_stride(

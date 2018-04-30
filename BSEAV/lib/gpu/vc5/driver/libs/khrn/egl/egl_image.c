@@ -11,7 +11,6 @@
 #include "egl_thread.h"
 #include "egl_image_texture.h"
 #include "egl_image_renderbuffer.h"
-#include "egl_image_framebuffer.h"
 #include "egl_platform.h"
 #include "egl_attrib_list.h"
 
@@ -118,9 +117,6 @@ static EGLImageKHR egl_create_image_impl(EGLDisplay dpy,
       break;
    case EGL_GL_RENDERBUFFER_KHR:
       image = egl_image_renderbuffer_new(context, target, buffer);
-      break;
-   case EGL_GL_FRAMEBUFFER_BRCM:
-      image = egl_image_framebuffer_new(context, target, buffer, attrib_list, attrib_type);
       break;
    default:
       image = egl_platform_image_new(context, target, buffer, attrib_list, attrib_type);

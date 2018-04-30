@@ -80,35 +80,34 @@ static int copy(GLSLCopyContext *ctx, Dataflow *dataflow)
    return df.id;
 }
 
-static void cfg_block_term(CFGBlock *b) {
-   if (b == NULL) return;
+void glsl_ir_shader_init(IRShader *sh) {
+   sh->blocks         = NULL;
+   sh->num_cfg_blocks = 0;
+   sh->outputs        = NULL;
+   sh->num_outputs    = 0;
+}
 
-   free(b->dataflow);
-   free(b->outputs);
+void glsl_ir_shader_term(IRShader *sh) {
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      free(sh->blocks[i].dataflow);
+      free(sh->blocks[i].outputs);
+   }
+
+   free(sh->blocks);
+   free(sh->outputs);
 }
 
 IRShader *glsl_ir_shader_create() {
    IRShader *ret = malloc(sizeof(IRShader));
    if(!ret) return NULL;
 
-   ret->blocks         = NULL;
-   ret->num_cfg_blocks = 0;
-   ret->outputs        = NULL;
-   ret->num_outputs    = 0;
-
+   glsl_ir_shader_init(ret);
    return ret;
 }
 
 void glsl_ir_shader_free(IRShader *sh)  {
    if(!sh) return;
-
-   for (int i=0; i<sh->num_cfg_blocks; i++) {
-      cfg_block_term(&sh->blocks[i]);
-   }
-
-   free(sh->blocks);
-   free(sh->outputs);
-
+   glsl_ir_shader_term(sh);
    free(sh);
 }
 
@@ -151,36 +150,36 @@ bool glsl_ir_copy_block(CFGBlock *b, Dataflow **dataflow_in, int count) {
    return true;
 }
 
-IRShader *glsl_ir_shader_from_blocks(CFGBlock *blocks, int num_blocks, IROutput *outputs, int num_outputs) {
+IRShader *glsl_ir_shader_copy(const IRShader *in) {
    IRShader *sh_out = glsl_ir_shader_create();
    if (sh_out == NULL) goto fail;
 
    bool out_of_memory = false;
-   sh_out->blocks = malloc(num_blocks * sizeof(CFGBlock));
+   sh_out->blocks = malloc(in->num_cfg_blocks * sizeof(CFGBlock));
    if (sh_out->blocks == NULL) goto fail;
-   for (int i=0; i<num_blocks; i++) {
-      sh_out->blocks[i].dataflow = malloc(blocks[i].num_dataflow * sizeof(Dataflow));
-      sh_out->blocks[i].outputs  = malloc(blocks[i].num_outputs  * sizeof(int));
+   for (int i=0; i<in->num_cfg_blocks; i++) {
+      sh_out->blocks[i].dataflow = malloc(in->blocks[i].num_dataflow * sizeof(Dataflow));
+      sh_out->blocks[i].outputs  = malloc(in->blocks[i].num_outputs  * sizeof(int));
       out_of_memory = (!sh_out->blocks[i].dataflow || !sh_out->blocks[i].outputs);
 
       if (!out_of_memory) {
-         memcpy(sh_out->blocks[i].dataflow, blocks[i].dataflow, blocks[i].num_dataflow * sizeof(Dataflow));
-         memcpy(sh_out->blocks[i].outputs,  blocks[i].outputs,  blocks[i].num_outputs  * sizeof(int));
+         memcpy(sh_out->blocks[i].dataflow, in->blocks[i].dataflow, in->blocks[i].num_dataflow * sizeof(Dataflow));
+         memcpy(sh_out->blocks[i].outputs,  in->blocks[i].outputs,  in->blocks[i].num_outputs  * sizeof(int));
       }
-      sh_out->blocks[i].num_dataflow  = blocks[i].num_dataflow;
-      sh_out->blocks[i].num_outputs   = blocks[i].num_outputs;
-      sh_out->blocks[i].successor_condition = blocks[i].successor_condition;
-      sh_out->blocks[i].next_if_true  = blocks[i].next_if_true;
-      sh_out->blocks[i].next_if_false = blocks[i].next_if_false;
-      sh_out->blocks[i].barrier       = blocks[i].barrier;
+      sh_out->blocks[i].num_dataflow  = in->blocks[i].num_dataflow;
+      sh_out->blocks[i].num_outputs   = in->blocks[i].num_outputs;
+      sh_out->blocks[i].successor_condition = in->blocks[i].successor_condition;
+      sh_out->blocks[i].next_if_true  = in->blocks[i].next_if_true;
+      sh_out->blocks[i].next_if_false = in->blocks[i].next_if_false;
+      sh_out->blocks[i].barrier       = in->blocks[i].barrier;
    }
-   sh_out->num_cfg_blocks = num_blocks;
+   sh_out->num_cfg_blocks = in->num_cfg_blocks;
    if (out_of_memory) goto fail;
 
-   sh_out->outputs = malloc(num_outputs * sizeof(IROutput));
+   sh_out->outputs = malloc(in->num_outputs * sizeof(IROutput));
    if (sh_out->outputs == NULL) goto fail;
-   memcpy(sh_out->outputs, outputs, num_outputs * sizeof(IROutput));
-   sh_out->num_outputs = num_outputs;
+   memcpy(sh_out->outputs, in->outputs, in->num_outputs * sizeof(IROutput));
+   sh_out->num_outputs = in->num_outputs;
 
    return sh_out;
 

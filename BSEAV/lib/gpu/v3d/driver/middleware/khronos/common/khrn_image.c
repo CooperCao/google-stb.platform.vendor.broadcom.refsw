@@ -20,7 +20,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
 #include <arm_neon.h>
 #endif
 
@@ -160,7 +160,7 @@ KHRN_IMAGE_T *khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
       khrn_interlock_invalidate(&image->interlock);
    }
    image->v3dfence = 0;
-   image->platform_pixmap = NULL;
+   image->swapchain_buffer = NULL;
 
    /*
       set the terminator
@@ -277,13 +277,10 @@ KHRN_IMAGE_T *khrn_image_create_dup(const KHRN_IMAGE_T *src,
    if (src->mh_palette != MEM_HANDLE_INVALID) {
       size_t dst_size = mem_get_size(dst->mh_palette);
       assert(mem_get_size(src->mh_palette) == dst_size);
-      void *dst_palette = mem_lock(dst->mh_palette, NULL);
-      khrn_memcpy(dst_palette, mem_lock(src->mh_palette, NULL), dst_size);
-      khrn_hw_flush_dcache_range(dst_palette, dst_size);
-      mem_unlock(dst->mh_palette);
+      khrn_handlecpy(dst->mh_palette, 0, mem_lock(src->mh_palette, NULL), dst_size);
       mem_unlock(src->mh_palette);
    }
-   khrn_image_convert(dst, src, IMAGE_CONV_GL);
+   khrn_image_convert(dst, src);
 
    return dst;
 }
@@ -605,7 +602,7 @@ void khrn_image_wrap_put_etc1_block(KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_
    ((uint32_t *)ut_base)[x * 2 + y * 4 + 1] = word1;
 }
 
-uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel, KHRN_IMAGE_CONV_T conv)
+uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel)
 {
    uint32_t rgba = 0;
 
@@ -711,18 +708,8 @@ uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel, KH
    if (!(format & (IMAGE_FORMAT_RGB | IMAGE_FORMAT_L | IMAGE_FORMAT_YUV))) {
       /*
          in gl-land alpha-only textures are implicitly black
-         in vg-land alpha-only textures are implicitly white (i'll assume this is the odd behaviour)
       */
-
-      if (conv == IMAGE_CONV_VG) {
-         rgba |= 0x00ffffff;
-      } else {
-         rgba &= 0xff000000;
-      }
-   }
-
-   if ((conv == IMAGE_CONV_VG) && khrn_image_is_premultiplied(format)) {
-      rgba = khrn_color_rgba_clamp_to_a(rgba);
+      rgba &= 0xff000000;
    }
 
    return rgba;
@@ -756,7 +743,7 @@ static inline uint32_t to_6(uint32_t x)
    luminance values are taken from the red channel
 */
 
-uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba, KHRN_IMAGE_CONV_T conv)
+uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba)
 {
    uint32_t pixel = 0;
 
@@ -806,10 +793,6 @@ uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba, KHR
          (to_5((rgba >> 8) & 0xff) << 5) |
          (to_5((rgba >> 16) & 0xff) << 10) |
          (to_1((rgba >> 24) & 0xff) << 15);
-      if ((conv == IMAGE_CONV_VG) && khrn_image_is_premultiplied(format) && !(pixel & (1 << 15))) {
-         /* keep rgb <= a */
-         pixel = 0;
-      }
       if (format & IMAGE_FORMAT_XA) {
          pixel = ((pixel & 0x7fff) << 1) | (pixel >> 15);
       }
@@ -857,52 +840,10 @@ uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba, KHR
    return pixel;
 }
 
-uint32_t khrn_image_rgba_convert_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IMAGE_FORMAT_T src_format, uint32_t rgba)
-{
-   if (khrn_image_is_linear(dst_format ^ src_format) ||
-      khrn_image_is_premultiplied(dst_format ^ src_format)) {
-      if (khrn_image_is_premultiplied(src_format)) {
-         rgba = khrn_color_rgba_unpre(rgba);
-      }
-      if (khrn_image_is_linear(dst_format ^ src_format)) {
-         if (khrn_image_is_linear(dst_format)) {
-            rgba = khrn_color_rgba_s_to_lin(rgba);
-         } else {
-            rgba = khrn_color_rgba_lin_to_s(rgba);
-         }
-      }
-      if (khrn_image_is_premultiplied(dst_format)) {
-         rgba = khrn_color_rgba_pre(rgba);
-      }
-   }
-   return rgba;
-}
-
-uint32_t khrn_image_rgba_convert_l_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IMAGE_FORMAT_T src_format, uint32_t rgba)
-{
-   if ((dst_format & IMAGE_FORMAT_L) && !(src_format & IMAGE_FORMAT_L)) {
-      if (!khrn_image_is_linear(src_format) && khrn_image_is_premultiplied(src_format)) {
-         rgba = khrn_color_rgba_unpre(rgba);
-         src_format = (KHRN_IMAGE_FORMAT_T)(src_format & ~IMAGE_FORMAT_PRE);
-      }
-      if (khrn_image_is_linear(dst_format) || khrn_image_is_linear(src_format)) {
-         if (!khrn_image_is_linear(src_format)) {
-            rgba = khrn_color_rgba_s_to_lin(rgba);
-            src_format = khrn_image_to_linear_format(src_format);
-         }
-         rgba = khrn_color_rgba_to_la_lin(rgba);
-      } else {
-         rgba = khrn_color_rgba_to_la_s(rgba);
-      }
-   }
-   return khrn_image_rgba_convert_pre_lin(dst_format, src_format, rgba);
-}
-
 void khrn_image_wrap_clear_region(
    KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_t y,
    uint32_t width, uint32_t height,
-   uint32_t rgba, /* rgba non-lin, unpre */
-   KHRN_IMAGE_CONV_T conv)
+   uint32_t rgba /* rgba non-lin, unpre */)
 {
    uint32_t pixel, i, j;
 
@@ -910,13 +851,10 @@ void khrn_image_wrap_clear_region(
    assert((x + width) <= wrap->width);
    assert((y + height) <= wrap->height);
 
-   if (khrn_bf_clear_region(wrap, x, y, width, height, rgba, conv))
+   if (khrn_bf_clear_region(wrap, x, y, width, height, rgba))
       return;
 
-   if (conv == IMAGE_CONV_VG) {
-      rgba = khrn_image_rgba_convert_l_pre_lin(wrap->format, (KHRN_IMAGE_FORMAT_T)0 /* rgba, non-lin, non-pre */, rgba);
-   }
-   pixel = khrn_image_rgba_to_pixel(wrap->format, rgba, conv);
+   pixel = khrn_image_rgba_to_pixel(wrap->format, rgba);
 
    for (j = 0; j != height; ++j) {
       for (i = 0; i != width; ++i) {
@@ -948,8 +886,7 @@ static void copy_region_from_packed_mask_tf(
 
 static void copy_pixel(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
-   const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv)
+   const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y)
 {
    uint32_t pixel;
 
@@ -961,12 +898,7 @@ static void copy_pixel(
 
    pixel = khrn_image_wrap_get_pixel(src, src_x, src_y);
 
-   if (((dst->format ^ src->format) & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) ||
-      /* need khrn_image_pixel_to_rgba to clamp rgb to a */
-      ((conv == IMAGE_CONV_VG) &&
-       khrn_image_is_color(src->format) &&
-       khrn_image_is_premultiplied(src->format))
-       ) {
+   if ((dst->format ^ src->format) & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) {
       if (khrn_image_is_paletted(src->format) && khrn_image_is_color(dst->format)) {
          /* we can convert from paletted to non-paletted by doing palette lookups */
          uint32_t rgba;
@@ -976,17 +908,14 @@ static void copy_pixel(
 
          rgba = ((uint32_t *)src->palette)[pixel];
          /* TODO: would lum/pre/lin conversion make sense here? */
-         pixel = khrn_image_rgba_to_pixel(dst->format, rgba, conv);
+         pixel = khrn_image_rgba_to_pixel(dst->format, rgba);
       } else {
          uint32_t rgba;
 
          assert(khrn_image_is_color(dst->format) && khrn_image_is_color(src->format));
 
-         rgba = khrn_image_pixel_to_rgba(src->format, pixel, conv);
-         if (conv == IMAGE_CONV_VG) {
-            rgba = khrn_image_rgba_convert_l_pre_lin(dst->format, src->format, rgba);
-         }
-         pixel = khrn_image_rgba_to_pixel(dst->format, rgba, conv);
+         rgba = khrn_image_pixel_to_rgba(src->format, pixel);
+         pixel = khrn_image_rgba_to_pixel(dst->format, rgba);
       }
    }
 
@@ -1021,7 +950,6 @@ typedef struct
    const KHRN_IMAGE_WRAP_T *src;
    uint32_t                src_x;
    uint32_t                src_y;
-   KHRN_IMAGE_CONV_T       conv;
    const int32_t           *scissor_rects;
    uint32_t                scissor_rects_count;
    bool                    retCode;
@@ -1031,7 +959,6 @@ static void copy_scissor_regions(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
    const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv,
    const int32_t *scissor_rects, uint32_t scissor_rects_count)
 {
    int32_t begin_j, end_j, dir_j;
@@ -1073,8 +1000,7 @@ static void copy_scissor_regions(
          if (!scissor_rects || in_scissor_rect(dst_x + i, dst_y + j, scissor_rects, scissor_rects_count)) {
             copy_pixel(
                dst, dst_x + i, dst_y + j,
-               src, src_x + i, src_y + j,
-               conv);
+               src, src_x + i, src_y + j);
          }
       }
    }
@@ -1100,7 +1026,7 @@ static bool part_copy_scissor_regions(ABSTRACT_SERVER_ARGS_T *args)
       return true;
 
    copy_scissor_regions(copyArgs->dst, copyArgs->dst_x, dy, copyArgs->width, height,
-                        copyArgs->src, copyArgs->src_x, sy, copyArgs->conv,
+                        copyArgs->src, copyArgs->src_x, sy,
                         copyArgs->scissor_rects, copyArgs->scissor_rects_count);
 
    return true;
@@ -1110,7 +1036,6 @@ static void par_copy_scissor_regions(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
    const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv,
    const int32_t *scissor_rects, uint32_t scissor_rects_count)
 {
    uint32_t numWorkers = khrn_par_num_workers();
@@ -1126,7 +1051,6 @@ static void par_copy_scissor_regions(
    if (parallel && numWorkers > 1 && width * height >= 1024 && height >= numWorkers)   /* TODO : tune size */
    {
       KHRN_COPY_SCISSOR_REGIONS_ARGS_T   copyArgs;
-      copyArgs.conv     = conv;
       copyArgs.dst      = dst;
       copyArgs.dst_x    = dst_x;
       copyArgs.dst_y    = dst_y;
@@ -1141,7 +1065,7 @@ static void par_copy_scissor_regions(
       khrn_par_server_job(part_copy_scissor_regions, &copyArgs);
    }
    else
-      copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv, scissor_rects, scissor_rects_count);
+      copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, scissor_rects, scissor_rects_count);
 }
 
 /* TFORMAT ACCELERATION ROUTINES
@@ -1272,7 +1196,7 @@ const uint32_t  MAP_EVEN = 0x84c0;
    : "r" (base))
 #endif
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 #define fetch __builtin_prefetch
 #endif
 
@@ -1290,7 +1214,7 @@ const uint32_t  MAP_EVEN = 0x84c0;
     : "r" (base))
 #endif
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 #define store __builtin_prefetch
 #endif
 
@@ -1298,7 +1222,7 @@ const uint32_t  MAP_EVEN = 0x84c0;
 #define store(base)
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #define OPTIMIZE_FN __attribute__((optimize("-O3")))
 #else
 #define OPTIMIZE_FN
@@ -1397,7 +1321,7 @@ static bool OPTIMIZE_FN khrn_copy_8888_to_tf32(
 
                for (subtile = 0; subtile < 2; ++subtile)
                {
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                   uint32x4_t tmp0, tmp1, tmp2, tmp3;
                   tmp0 = vdupq_n_u32(0);
                   tmp1 = vdupq_n_u32(0);
@@ -1544,7 +1468,7 @@ static bool OPTIMIZE_FN khrn_copy_8888_to_tf32(
             }
             else if (fast)
             {
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                uint32x4_t tmp0, tmp1, tmp2, tmp3;
                tmp0 = vdupq_n_u32(0);
                tmp1 = vdupq_n_u32(0);
@@ -1695,7 +1619,7 @@ static bool OPTIMIZE_FN khrn_copy_YUYV_to_tf32(
    int   offX = srcStartX - dstStartX;
    int   offY = srcStartY - dstStartY;
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
     uint8x8_t swizzle = vcreate_u8(0x8003010280030100ULL);
 #endif
 
@@ -1736,12 +1660,10 @@ static bool OPTIMIZE_FN khrn_copy_YUYV_to_tf32(
             uint32_t  *rowAddr0  = (uint32_t *)(rowAddr + ((offset & 0x0f) << 8));
             uint32_t  *rowAddr1  = (uint32_t *)(rowAddr + ((offset & 0xf0) << 4));
             uint32_t  twoTexelsA, uv;
-#ifndef __ARM_NEON__
-            uint32_t  twoTexelsB;
-#endif
+
             if (fast)
             {
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                uint32x2_t twoTexelsA, twoTexelsB, twoTexelsC, twoTexelsD;
                uint32x4_t res0, res1;
 
@@ -1808,6 +1730,7 @@ static bool OPTIMIZE_FN khrn_copy_YUYV_to_tf32(
                vst1q_u32(&rowAddr1[0x20], res0);
                vst1q_u32(&rowAddr1[0x30], res1);
 #else
+               uint32_t  twoTexelsB;
                fetch(&src_texel[SRC_TILE_STRIDE32]);
 
                twoTexelsA = src_texel[0]; twoTexelsB = src_texel[1];
@@ -1914,7 +1837,7 @@ static bool OPTIMIZE_FN khrn_copy_YUYV_REV_to_tf32(
    int   offX = srcStartX - dstStartX;
    int   offY = srcStartY - dstStartY;
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
     uint8x8_t swizzle = vcreate_u8(0x8002000180020003ULL);
 #endif
 
@@ -1955,78 +1878,77 @@ static bool OPTIMIZE_FN khrn_copy_YUYV_REV_to_tf32(
             uint32_t  *rowAddr0  = (uint32_t *)(rowAddr + ((offset & 0x0f) << 8));
             uint32_t  *rowAddr1  = (uint32_t *)(rowAddr + ((offset & 0xf0) << 4));
             uint32_t  twoTexelsA, uv;
-#ifndef __ARM_NEON__
-            uint32_t  twoTexelsB;
-#endif
+
             if (fast)
             {
-#ifdef __ARM_NEON__
-                uint32x2_t twoTexelsA, twoTexelsB, twoTexelsC, twoTexelsD;
-                uint32x4_t res0, res1;
+#if defined(__arm__) || defined(__aarch64__)
+               uint32x2_t twoTexelsA, twoTexelsB, twoTexelsC, twoTexelsD;
+               uint32x4_t res0, res1;
 
-                twoTexelsA = vdup_n_u32(0);
-                twoTexelsB = vdup_n_u32(0);
-                twoTexelsC = vdup_n_u32(0);
-                twoTexelsD = vdup_n_u32(0);
+               twoTexelsA = vdup_n_u32(0);
+               twoTexelsB = vdup_n_u32(0);
+               twoTexelsC = vdup_n_u32(0);
+               twoTexelsD = vdup_n_u32(0);
 
-                fetch(&src_texel[SRC_TILE_STRIDE32]);
+               fetch(&src_texel[SRC_TILE_STRIDE32]);
 
-                /* batch 0 */
-                twoTexelsA = vld1_lane_u32(&src_texel[0], twoTexelsA, 0);
-                twoTexelsB = vld1_lane_u32(&src_texel[1], twoTexelsB, 0);
-                twoTexelsC = vld1_lane_u32(&src_texel[2], twoTexelsC, 0);
-                twoTexelsD = vld1_lane_u32(&src_texel[3], twoTexelsD, 0);
+               /* batch 0 */
+               twoTexelsA = vld1_lane_u32(&src_texel[0], twoTexelsA, 0);
+               twoTexelsB = vld1_lane_u32(&src_texel[1], twoTexelsB, 0);
+               twoTexelsC = vld1_lane_u32(&src_texel[2], twoTexelsC, 0);
+               twoTexelsD = vld1_lane_u32(&src_texel[3], twoTexelsD, 0);
 
-                res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
-                res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
+               res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
+               res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
 
-                vst1q_u32(&rowAddr0[0x00], res0);
-                vst1q_u32(&rowAddr0[0x10], res1);
+               vst1q_u32(&rowAddr0[0x00], res0);
+               vst1q_u32(&rowAddr0[0x10], res1);
 
-                /* batch 1 */
-                twoTexelsA = vld1_lane_u32(&src_texel[4], twoTexelsA, 0);
-                twoTexelsB = vld1_lane_u32(&src_texel[5], twoTexelsB, 0);
-                twoTexelsC = vld1_lane_u32(&src_texel[6], twoTexelsC, 0);
-                twoTexelsD = vld1_lane_u32(&src_texel[7], twoTexelsD, 0);
+               /* batch 1 */
+               twoTexelsA = vld1_lane_u32(&src_texel[4], twoTexelsA, 0);
+               twoTexelsB = vld1_lane_u32(&src_texel[5], twoTexelsB, 0);
+               twoTexelsC = vld1_lane_u32(&src_texel[6], twoTexelsC, 0);
+               twoTexelsD = vld1_lane_u32(&src_texel[7], twoTexelsD, 0);
 
-                res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
-                res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
+               res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
+               res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
 
-                vst1q_u32(&rowAddr0[0x20], res0);
-                vst1q_u32(&rowAddr0[0x30], res1);
+               vst1q_u32(&rowAddr0[0x20], res0);
+               vst1q_u32(&rowAddr0[0x30], res1);
 
-                /* batch 2 */
-                twoTexelsA = vld1_lane_u32(&src_texel[8], twoTexelsA, 0);
-                twoTexelsB = vld1_lane_u32(&src_texel[9], twoTexelsB, 0);
-                twoTexelsC = vld1_lane_u32(&src_texel[10], twoTexelsC, 0);
-                twoTexelsD = vld1_lane_u32(&src_texel[11], twoTexelsD, 0);
+               /* batch 2 */
+               twoTexelsA = vld1_lane_u32(&src_texel[8], twoTexelsA, 0);
+               twoTexelsB = vld1_lane_u32(&src_texel[9], twoTexelsB, 0);
+               twoTexelsC = vld1_lane_u32(&src_texel[10], twoTexelsC, 0);
+               twoTexelsD = vld1_lane_u32(&src_texel[11], twoTexelsD, 0);
 
-                res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
-                res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
+               res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
+               res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
 
-                vst1q_u32(&rowAddr1[0x00], res0);
-                vst1q_u32(&rowAddr1[0x10], res1);
+               vst1q_u32(&rowAddr1[0x00], res0);
+               vst1q_u32(&rowAddr1[0x10], res1);
 
-                /* batch 3 */
-                twoTexelsA = vld1_lane_u32(&src_texel[12], twoTexelsA, 0);
-                twoTexelsB = vld1_lane_u32(&src_texel[13], twoTexelsB, 0);
-                twoTexelsC = vld1_lane_u32(&src_texel[14], twoTexelsC, 0);
-                twoTexelsD = vld1_lane_u32(&src_texel[15], twoTexelsD, 0);
+               /* batch 3 */
+               twoTexelsA = vld1_lane_u32(&src_texel[12], twoTexelsA, 0);
+               twoTexelsB = vld1_lane_u32(&src_texel[13], twoTexelsB, 0);
+               twoTexelsC = vld1_lane_u32(&src_texel[14], twoTexelsC, 0);
+               twoTexelsD = vld1_lane_u32(&src_texel[15], twoTexelsD, 0);
 
-                res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
-                res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
-                                    vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
+               res0 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsA), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsB), swizzle)));
+               res1 = vcombine_u32(vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsC), swizzle)),
+                                   vreinterpret_u32_u8(vtbl1_u8(vreinterpret_u8_u32(twoTexelsD), swizzle)));
 
-                vst1q_u32(&rowAddr1[0x20], res0);
-                vst1q_u32(&rowAddr1[0x30], res1);
+               vst1q_u32(&rowAddr1[0x20], res0);
+               vst1q_u32(&rowAddr1[0x30], res1);
 #else
+               uint32_t  twoTexelsB;
                fetch(&src_texel[SRC_TILE_STRIDE32]);
 
                twoTexelsA = src_texel[0]; twoTexelsB = src_texel[1];
@@ -2144,7 +2066,7 @@ static bool khrn_copy_YUYV_to_rso(
 
 #endif
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
 #define uint32x4_to_8x8x2(v) ((uint8x8x2_t) { vget_low_u8(vreinterpretq_u8_u32(v)), vget_high_u8(vreinterpretq_u8_u32(v)) })
 #endif
 
@@ -2188,7 +2110,7 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
    int   offX = srcStartX - dstStartX;
    int   offY = srcStartY - dstStartY;
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
    uint8x16_t swizzle = vcombine_u8(vcreate_u8(0x8005040380020100ULL),
                                     vcreate_u8(0x800b0a0980080706ULL)
                                     );
@@ -2250,7 +2172,7 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
 
                for (subtile = 0; subtile < 2; ++subtile)
                {
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                   uint32x4_t tmp0, tmp1;
                   tmp0 = vdupq_n_u32(0);
                   tmp1 = vdupq_n_u32(0);
@@ -2476,7 +2398,7 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
             {
                uint32_t *src_texel = (uint32_t *)src_texel_8;
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                uint32x4_t tmp0, tmp1;
                tmp0 = vdupq_n_u32(0);
                tmp1 = vdupq_n_u32(0);
@@ -2740,7 +2662,7 @@ static bool OPTIMIZE_FN khrn_copy_16_to_tf16(
 
                for (subtile = 0; subtile < 2; ++subtile)
                {
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                   uint32x4_t tmp0, tmp1, tmp2, tmp3;
                   tmp0 = vdupq_n_u32(0);
                   tmp1 = vdupq_n_u32(0);
@@ -2883,7 +2805,7 @@ static bool OPTIMIZE_FN khrn_copy_16_to_tf16(
                uint32_t *rowAddr0  = (uint32_t *)rowAddr0_8;
                uint32_t *rowAddr1  = (uint32_t *)rowAddr1_8;
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                uint32x4_t tmp0, tmp1, tmp2, tmp3;
 
                fetch(&src_texel[SRC_TILE_STRIDE32]);
@@ -3102,7 +3024,7 @@ static bool OPTIMIZE_FN khrn_copy_8_to_tf8(
 
                for (subtile = 0; subtile < 2; ++subtile)
                {
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                   uint32x4_t tmp0, tmp1, tmp2, tmp3;
 
                   tmp0 = vdupq_n_u32(0);
@@ -3250,7 +3172,7 @@ static bool OPTIMIZE_FN khrn_copy_8_to_tf8(
                uint32_t *rowAddr0  = (uint32_t *)rowAddr0_8;
                uint32_t *rowAddr1  = (uint32_t *)rowAddr1_8;
 
-#ifdef __ARM_NEON__
+#if defined(__arm__) || defined(__aarch64__)
                uint32x2_t tmp0, tmp1, tmp2, tmp3;
 
                /* Prefetch next tiles data */
@@ -3360,7 +3282,6 @@ typedef struct
    const KHRN_IMAGE_WRAP_T *src;
    uint32_t                src_x;
    uint32_t                src_y;
-   KHRN_IMAGE_CONV_T       conv;
    bool                    retCode;
 } KHRN_FAST_COPY_TO_TF_ARGS_T;
 
@@ -3376,15 +3297,11 @@ static bool khrn_fast_copy_to_tf(
    uint32_t  dst_x, uint32_t dst_y,
    uint32_t  width,     uint32_t height,
    const KHRN_IMAGE_WRAP_T *src,
-   uint32_t  src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv)
+   uint32_t  src_x, uint32_t src_y)
 {
    bool     done        = false;
    int32_t  srcDir      = 1;
    uint8_t  *srcStorage = src->storage;
-
-   if (conv != IMAGE_CONV_GL)
-      return false;
 
    /* Special case whole buffer with no format or colour-space conversion */
    /* All sizes and strides must match, buffers must be tightly packed    */
@@ -3510,7 +3427,7 @@ static bool khrn_part_fast_copy_to_tf(ABSTRACT_SERVER_ARGS_T *args)
       return true;
 
    return khrn_fast_copy_to_tf(copyArgs->dst, copyArgs->dst_x, dy, copyArgs->width, height,
-                               copyArgs->src, copyArgs->src_x, sy, copyArgs->conv);
+                               copyArgs->src, copyArgs->src_x, sy);
 }
 
 static bool khrn_par_fast_copy_to_tf(
@@ -3518,16 +3435,12 @@ static bool khrn_par_fast_copy_to_tf(
    uint32_t  dst_x, uint32_t dst_y,
    uint32_t  width, uint32_t height,
    const KHRN_IMAGE_WRAP_T *src,
-   uint32_t  src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv)
+   uint32_t  src_x, uint32_t src_y)
 {
    bool parallel = false;
 
    if (khrn_par_num_workers() > 1)
    {
-      if (conv != IMAGE_CONV_GL)
-         return false;
-      else
       {
          /* Special case whole buffer with no format or colour-space conversion */
          /* All sizes and strides must match, buffers must be tightly packed    */
@@ -3592,7 +3505,6 @@ static bool khrn_par_fast_copy_to_tf(
    if (parallel)
    {
       KHRN_FAST_COPY_TO_TF_ARGS_T   copyArgs;
-      copyArgs.conv     = conv;
       copyArgs.dst      = dst;
       copyArgs.dst_x    = dst_x;
       copyArgs.dst_y    = dst_y;
@@ -3605,14 +3517,13 @@ static bool khrn_par_fast_copy_to_tf(
       return khrn_par_server_job(khrn_part_fast_copy_to_tf, &copyArgs);
    }
    else
-      return khrn_fast_copy_to_tf(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv);
+      return khrn_fast_copy_to_tf(dst, dst_x, dst_y, width, height, src, src_x, src_y);
 }
 
 void khrn_image_wrap_copy_region(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
-   const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv)
+   const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y)
 {
    if ((dst->format == src->format) &&
       (src->flags == dst->flags) &&
@@ -3655,21 +3566,21 @@ void khrn_image_wrap_copy_region(
          4 * src->stride, src->flags, false, src->storage);
       khrn_image_wrap_copy_region(
          &rgba_dst, dst_x/4, dst_y/4, 2*((width+3)/4), (height+3)/4,
-         &rgba_src, src_x/4, src_y/4, IMAGE_CONV_GL);
+         &rgba_src, src_x/4, src_y/4);
       goto done;
    }
 
    assert(khrn_image_is_uncomp(dst->format) && (khrn_image_is_uncomp(src->format) || (src->format == PACKED_MASK_TF)));
 
-   if (khrn_bf_copy_region(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv))
+   if (khrn_bf_copy_region(dst, dst_x, dst_y, width, height, src, src_x, src_y))
       goto done;
 
    /* Check for fast path special cases
     */
 
-   if (khrn_par_fast_copy_to_tf(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv))
+   if (khrn_par_fast_copy_to_tf(dst, dst_x, dst_y, width, height, src, src_x, src_y))
    {
-      INCR_DRIVER_COUNTER(tex_fast_paths);
+      khrn_driver_incr_counters(KHRN_PERF_TEX_FAST_PATHS);
       goto done;
    }
 
@@ -3678,17 +3589,16 @@ void khrn_image_wrap_copy_region(
       goto done;
    }
 
-   par_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv, NULL, 0);
+   par_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, NULL, 0);
 done:
    khrn_hw_flush_dcache_range(dst->storage, khrn_image_get_size(dst->format, dst->width, dst->height));
-   INCR_DRIVER_COUNTER(tex_submissions);
+   khrn_driver_incr_counters(KHRN_PERF_TEX_SUBMISSIONS);
 }
 
 void khrn_image_wrap_copy_scissor_regions(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
    const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv,
    const int32_t *scissor_rects, uint32_t scissor_rects_count)
 {
    if (scissor_rects_count == 4) {
@@ -3702,8 +3612,7 @@ void khrn_image_wrap_copy_scissor_regions(
       khrn_image_wrap_copy_region(
          dst, rect_x, rect_y,
          rect_width, rect_height,
-         src, src_x + (rect_x - dst_x), src_y + (rect_y - dst_y),
-         conv);
+         src, src_x + (rect_x - dst_x), src_y + (rect_y - dst_y));
       return;
    }
 
@@ -3713,16 +3622,16 @@ void khrn_image_wrap_copy_scissor_regions(
    assert((src_x + width) <= src->width);
    assert((src_y + height) <= src->height);
 
-   if (khrn_bf_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv, scissor_rects, scissor_rects_count))
+   if (khrn_bf_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, scissor_rects, scissor_rects_count))
       return;
 
-   par_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, conv, scissor_rects, scissor_rects_count);
+   par_copy_scissor_regions(dst, dst_x, dst_y, width, height, src, src_x, src_y, scissor_rects, scissor_rects_count);
 }
 
-void khrn_image_wrap_convert(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *src, KHRN_IMAGE_CONV_T conv)
+void khrn_image_wrap_convert(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *src)
 {
    assert((dst->width == src->width) && (dst->height == src->height));
-   khrn_image_wrap_copy_region(dst, 0, 0, dst->width, dst->height, src, 0, 0, conv);
+   khrn_image_wrap_copy_region(dst, 0, 0, dst->width, dst->height, src, 0, 0);
 }
 
 // This function takes two 32-bit depth/stencil images, assumed to be the same
@@ -4385,7 +4294,7 @@ void khrn_image_wrap_subsample(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *
 {
    uint32_t x, y;
 
-   assert(!((dst->format ^ src->format) & ~IMAGE_FORMAT_MEM_LAYOUT_MASK & ~IMAGE_FORMAT_PRE));
+   assert(!((dst->format ^ src->format) & ~IMAGE_FORMAT_MEM_LAYOUT_MASK));
    assert(khrn_image_is_color(src->format));
    assert(dst->width == _max(src->width >> 1, 1));
    assert(dst->height == _max(src->height >> 1, 1));
@@ -4395,7 +4304,7 @@ void khrn_image_wrap_subsample(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *
 
    if (image_wrap_subsample_fast(dst, src))
    {
-      INCR_DRIVER_COUNTER(mipmap_gens_fast);
+      khrn_driver_incr_counters(KHRN_PERF_MIPMAP_GENS_FAST);
       goto done;
    }
 
@@ -4418,39 +4327,37 @@ void khrn_image_wrap_subsample(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *
    }
 done:
    khrn_hw_flush_dcache_range(dst->storage, khrn_image_get_size(dst->format, dst->width, dst->height));
-   INCR_DRIVER_COUNTER(mipmap_gens);
+   khrn_driver_incr_counters(KHRN_PERF_MIPMAP_GENS);
 }
 
 void khrn_image_clear_region(
    KHRN_IMAGE_T *image, uint32_t x, uint32_t y,
    uint32_t width, uint32_t height,
-   uint32_t rgba, /* non-lin, unpre */
-   KHRN_IMAGE_CONV_T conv)
+   uint32_t rgba /* non-lin, unpre */)
 {
    KHRN_IMAGE_WRAP_T wrap;
    khrn_image_lock_wrap(image, &wrap);
-   khrn_image_wrap_clear_region(&wrap, x, y, width, height, rgba, conv);
+   khrn_image_wrap_clear_region(&wrap, x, y, width, height, rgba);
    khrn_image_unlock_wrap(image);
 }
 
 void khrn_image_copy_region(
    KHRN_IMAGE_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
-   const KHRN_IMAGE_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv)
+   const KHRN_IMAGE_T *src, uint32_t src_x, uint32_t src_y)
 {
    KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
    khrn_image_lock_wrap(dst, &dst_wrap);
    khrn_image_lock_wrap((KHRN_IMAGE_T *)src, &src_wrap);
-   khrn_image_wrap_copy_region(&dst_wrap, dst_x, dst_y, width, height, &src_wrap, src_x, src_y, conv);
+   khrn_image_wrap_copy_region(&dst_wrap, dst_x, dst_y, width, height, &src_wrap, src_x, src_y);
    khrn_image_unlock_wrap(src);
    khrn_image_unlock_wrap(dst);
 }
 
-void khrn_image_convert(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src, KHRN_IMAGE_CONV_T conv)
+void khrn_image_convert(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src)
 {
    assert((dst->width == src->width) && (dst->height == src->height));
-   khrn_image_copy_region(dst, 0, 0, dst->width, dst->height, src, 0, 0, conv);
+   khrn_image_copy_region(dst, 0, 0, dst->width, dst->height, src, 0, 0);
 }
 
 void khrn_image_copy_stencil_channel(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src)
@@ -4518,7 +4425,7 @@ bool khrn_image_alloc_storage(KHRN_IMAGE_T *image, const char *description)
          /* Fill image with known color rather than snow */
          if (khrn_image_is_color(image->format) && (khrn_image_is_rso(image->format) ||
             khrn_image_is_tformat(image->format) || khrn_image_is_lineartile(image->format)))
-            khrn_image_clear_region(image, 0, 0, image->width, image->height, 0xff0080ff, IMAGE_CONV_GL);
+            khrn_image_clear_region(image, 0, 0, image->width, image->height, 0xff0080ff);
       }
 #endif
    }

@@ -1,0 +1,75 @@
+--- cwebsocket.2016.04.22/src/cwebsocket/client.c	2016-04-22 14:08:52.000000000 -0700
++++ cwebsocket.2016.04.22.modified/src/cwebsocket/client.c	2018-04-16 18:41:59.715459205 -0700
+@@ -193,7 +193,7 @@
+ 		strcat(handshake, "Sec-WebSocket-Protocol: ");
+ 		for(i=0; i<websocket->subprotocol_len; i++) {
+ 			strcat(handshake, websocket->subprotocols[i]->name);
+-			if(i<websocket->subprotocol_len) {
++			if(i+1<websocket->subprotocol_len) {
+ 				strcat(handshake, " ");
+ 			}
+ 			else {
+@@ -283,7 +283,7 @@
+ 	websocket->state = WEBSOCKET_STATE_CONNECTED;
+ #endif
+ 
+-	if(cwebsocket_client_write(websocket, handshake, strlen(handshake)) == -1) {
++	if(cwebsocket_client_write((cwebsocket_client*)websocket, (void*)handshake, (int)strlen(handshake)) == -1) {
+ 		syslog(LOG_ERR, "cwebsocket_client_connect: %s", strerror(errno));
+ 		cwebsocket_client_onerror(websocket, strerror(errno));
+ 		return -1;
+@@ -354,7 +354,7 @@
+ 			}
+ 			if(strcasecmp(token, "Sec-WebSocket-Accept:") == 0) {
+ 				char* response = cwebsocket_create_key_challenge_response(seckey);
+-				if(strcmp(ptr+1, response) != 0) {
++				if(strncmp(ptr+1, response, 15) != 0) {
+ 					free(seckey);
+ 					if(websocket->subprotocol->onerror != NULL) {
+ 						char errmsg[255];
+--- cwebsocket.2016.04.22/config.h	2018-04-17 11:51:18.496651868 -0700
++++ cwebsocket.2016.04.22.modified/config.h	2018-04-16 18:34:11.615459589 -0700
+@@ -5,7 +5,7 @@
+ /* #undef ENABLE_DEBUG */
+ 
+ /* "Compile with SSL support" */
+-/* #undef ENABLE_SSL */
++#define ENABLE_SSL 1
+ 
+ /* "Compile with client multi-threading support" */
+ #define ENABLE_THREADS 1
+@@ -26,20 +26,20 @@
+ #define HAVE_INTTYPES_H 1
+ 
+ /* Define to 1 if you have the `crypto' library (-lcrypto). */
+-/* #undef HAVE_LIBCRYPTO */
++#define HAVE_LIBCRYPTO 1
+ 
+ /* Define to 1 if you have the `ev' library (-lev). */
+-/* #undef HAVE_LIBEV */
++#define HAVE_LIBEV 1
+ 
+ /* Define to 1 if you have the `pthread' library (-lpthread). */
+-/* #undef HAVE_LIBPTHREAD */
++#define HAVE_LIBPTHREAD 1
+ 
+ /* Define to 1 if you have the `ssl' library (-lssl). */
+-/* #undef HAVE_LIBSSL */
++#define HAVE_LIBSSL 1
+ 
+ /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
+    to 0 otherwise. */
+-#define HAVE_MALLOC 0
++#define HAVE_MALLOC 1
+ 
+ /* Define to 1 if you have the <memory.h> header file. */
+ #define HAVE_MEMORY_H 1
+@@ -154,7 +154,7 @@
+ #endif
+ 
+ /* Define to rpl_malloc if the replacement function should be used. */
+-#define malloc rpl_malloc
++#define malloc(arguments) calloc(1,arguments)
+ 
+ /* Define to `unsigned int' if <sys/types.h> does not define. */
+ /* #undef size_t */

@@ -13,11 +13,10 @@
 
 #include "Optional.h"
 #include "NodeBase.h"
-#include "NodeIndex.h"
-#include "Extractor.h"
 #include "ModuleAllocator.h"
 #include "NodeData.h"
 #include "Decoration.h"
+#include "Extractor.h"
 #include "ImageOperands.h"
 
 #ifdef WIN32
@@ -27,125 +26,136 @@
 namespace bvk
 {
 
-class DflowBuilder;
-class Module;
 class Extractor;
-class Decoration;
-
-//////////////////////////////////////////////
-// Node
-//
-// Common functionality to all concrete nodes
-//////////////////////////////////////////////
-class Node : public NodeBase
-{
-public:
-   Node() = default;
-   Node(const Node &) = delete;
-
-   // Return the instruction set that this node belongs to
-   spv::InstructionSet GetInstructionSet() const override
-   {
-      return spv::InstructionSet::Core;
-   }
-
-   // Result Id
-   uint32_t GetResultId() const
-   {
-      return m_resultId;
-   }
-
-   const NodeType *GetResultType() const
-   {
-      return m_resultType;
-   }
-
-   bool IsPointer() const;
-
-   template <typename T>
-   T TryAs() const
-   {
-      static_assert(std::is_base_of<NodeBase, typename std::remove_pointer<T>::type>(),
-               "TryAs() converts to 'const NodeBase *' derivatives only");
-      T ret = dynamic_cast<T>(this);
-      return ret;
-   }
-
-   template <typename T>
-   T As() const
-   {
-      T ret = TryAs<T>();
-      assert(ret != nullptr);
-      return ret;
-   }
-
-protected:
-   uint32_t        m_resultId   = 0;
-   const NodeType *m_resultType = nullptr;
-};
-
-// GLSL450 extended instructions derive from this
-class NodeGLSL : public Node
-{
-public:
-   NodeGLSL() = default;
-
-   // Always an OpExtInst
-   spv::Core GetOpCode() const override
-   {
-      return spv::Core::OpExtInst;
-   }
-
-   // Return the instruction set that this node belongs to
-   spv::InstructionSet GetInstructionSet() const override
-   {
-      return spv::InstructionSet::GLSL;
-   }
-};
-
-// Dummy node used for unsupported Ops
-class NodeDummy : public Node
-{
-public:
-   NodeDummy(Extractor &extr) : Node()
-   {}
-
-   void Accept(NodeVisitor &visitor) const override
-   {}
-
-   // Return the opcode within the instruction set for this node
-   spv::Core GetOpCode() const override
-   {
-      return spv::Core::OpNop;
-   }
-};
 
 ///////////////////////////////////////////////////////
-// NodeType
+// NodeVisitor
 //
-// Base class for all nodes that represent a SPIRV type
+// Base class for all visitors over nodes.
+// abstract declarations for every node
 ///////////////////////////////////////////////////////
-class NodeType : public Node
+class NodeVisitor
 {
 public:
-   NodeType() = default;
+   virtual ~NodeVisitor() {}
+   // Has a visitor for every type of node, in this form:
+   // virtual void Visit(const NodeNop *) = 0;
+   #include "NodeVisitorAbstract.auto.inc"
+};
 
-   virtual void AcceptType(NodeTypeVisitor &visitor) const = 0;
+template <class I>
+class NodeVisitorDefault : public NodeVisitor
+{
+public:
+   NodeVisitorDefault(I &impl) :
+      m_impl(impl)
+   {}
 
-   uint32_t GetTypeId() const
-   {
-      return m_typeId;
-   }
-
-   void SetTypeId(uint32_t id) const
-   {
-      m_typeId = id;
-   }
+   #include "NodeVisitorDefault.auto.inc"
 
 private:
-   // TODO: this could be held in a data field, but the effect is the same
-   // TODO: alternatively we could generate the type ids during parsing
-   mutable uint32_t m_typeId;
+   I &m_impl;
+};
+
+///////////////////////////////////////////////////////
+// NodeEmptyVisitor
+//
+// Has empty implementations for every node
+///////////////////////////////////////////////////////
+class NodeEmptyVisitor : public NodeVisitorDefault<NodeEmptyVisitor>
+{
+public:
+   NodeEmptyVisitor() :
+      NodeVisitorDefault<NodeEmptyVisitor>(*this)
+   {}
+
+   void Default(const Node *node) {}
+};
+
+///////////////////////////////////////////////////////
+// NodeAssertVisitor
+//
+// Has implementations for every node that assert(0)
+///////////////////////////////////////////////////////
+class NodeAssertVisitor : public NodeVisitorDefault<NodeAssertVisitor>
+{
+public:
+   NodeAssertVisitor() :
+      NodeVisitorDefault<NodeAssertVisitor>(*this)
+   {}
+
+   void Default(const Node *node) { assert(0); }
+};
+
+/////////////////////////////////////////////////////////
+// NodeTypeVisitor
+//
+// A visitor that only visits nodes derived from NodeType
+/////////////////////////////////////////////////////////
+class NodeTypeVisitor
+{
+public:
+   virtual ~NodeTypeVisitor() {}
+
+   virtual void Visit(const NodeTypeVoid *) = 0;
+   virtual void Visit(const NodeTypeBool *) = 0;
+   virtual void Visit(const NodeTypeInt *) = 0;
+   virtual void Visit(const NodeTypeFloat *) = 0;
+   virtual void Visit(const NodeTypeVector *) = 0;
+   virtual void Visit(const NodeTypeMatrix *) = 0;
+   virtual void Visit(const NodeTypeImage *) = 0;
+   virtual void Visit(const NodeTypeSampler *) = 0;
+   virtual void Visit(const NodeTypeSampledImage *) = 0;
+   virtual void Visit(const NodeTypeArray *) = 0;
+   virtual void Visit(const NodeTypeStruct *) = 0;
+   virtual void Visit(const NodeTypePointer *) = 0;
+   virtual void Visit(const NodeTypeFunction *) = 0;
+};
+
+/////////////////////////////////////////////////////////
+// NodeTypeVisitorAssert
+//
+// A visitor that only visits nodes derived from NodeType
+// and asserts for all types.  Helpful as a base-class
+// where the expected set of types is small.
+/////////////////////////////////////////////////////////
+class NodeTypeVisitorAssert : public NodeTypeVisitor
+{
+public:
+   void Visit(const NodeTypeVoid *)           override { assert(0); }
+   void Visit(const NodeTypeBool *)           override { assert(0); }
+   void Visit(const NodeTypeInt *)            override { assert(0); }
+   void Visit(const NodeTypeFloat *)          override { assert(0); }
+   void Visit(const NodeTypeVector *)         override { assert(0); }
+   void Visit(const NodeTypeMatrix *)         override { assert(0); }
+   void Visit(const NodeTypeImage *)          override { assert(0); }
+   void Visit(const NodeTypeSampler *)        override { assert(0); }
+   void Visit(const NodeTypeSampledImage *)   override { assert(0); }
+   void Visit(const NodeTypeArray *)          override { assert(0); }
+   void Visit(const NodeTypeStruct *)         override { assert(0); }
+   void Visit(const NodeTypePointer *)        override { assert(0); }
+   void Visit(const NodeTypeFunction *)       override { assert(0); }
+};
+
+/////////////////////////////////////////////////////////
+// NodeTypeVisitorEmpty
+/////////////////////////////////////////////////////////
+class NodeTypeVisitorEmpty : public NodeTypeVisitor
+{
+public:
+   void Visit(const NodeTypeVoid *)           override { }
+   void Visit(const NodeTypeBool *)           override { }
+   void Visit(const NodeTypeInt *)            override { }
+   void Visit(const NodeTypeFloat *)          override { }
+   void Visit(const NodeTypeVector *)         override { }
+   void Visit(const NodeTypeMatrix *)         override { }
+   void Visit(const NodeTypeImage *)          override { }
+   void Visit(const NodeTypeSampler *)        override { }
+   void Visit(const NodeTypeSampledImage *)   override { }
+   void Visit(const NodeTypeArray *)          override { }
+   void Visit(const NodeTypeStruct *)         override { }
+   void Visit(const NodeTypePointer *)        override { }
+   void Visit(const NodeTypeFunction *)       override { }
 };
 
 //////////////////////////////////////////////////////////
@@ -182,7 +192,7 @@ public:
       return m_literals;
    }
 
-   const NodeIndex &GetEntryPoint() const
+   const NodeConstPtr &GetEntryPoint() const
    {
       return m_entryPoint;
    }
@@ -198,7 +208,7 @@ public:
    }
 
 private:
-   NodeIndex               m_entryPoint;
+   NodeConstPtr            m_entryPoint;
    spv::ExecutionMode      m_mode;
    spv::vector<uint32_t>   m_literals;
 };
@@ -243,23 +253,23 @@ public:
       return spv::Core::OpSpecConstantOp;
    }
 
-   spv::Core GetOperation() const                     { return m_opcode;    }
-   const spv::vector<NodeIndex> &GetOperands() const  { return m_operands;  }
-   const spv::vector<uint32_t> &GetIndices() const    { return m_indices;   }
-   const NodeIndex &GetVector1() const                { return m_vector1;   }
-   const NodeIndex &GetVector2() const                { return m_vector2;   }
-   const NodeIndex &GetObject() const                 { return m_object;    }
-   const NodeIndex &GetComposite() const              { return m_composite; }
+   spv::Core GetOperation() const                        { return m_opcode;    }
+   const spv::vector<NodeConstPtr> &GetOperands() const  { return m_operands;  }
+   const spv::vector<uint32_t> &GetIndices() const       { return m_indices;   }
+   const NodeConstPtr &GetVector1() const                { return m_vector1;   }
+   const NodeConstPtr &GetVector2() const                { return m_vector2;   }
+   const NodeConstPtr &GetObject() const                 { return m_object;    }
+   const NodeConstPtr &GetComposite() const              { return m_composite; }
 
 private:
    spv::Core                 m_opcode;
-   spv::vector<NodeIndex>    m_operands;  // Operands for non-vector instructions
+   spv::vector<NodeConstPtr> m_operands;  // Operands for non-vector instructions
 
    // Vector op args
-   NodeIndex                 m_vector1;   // For shuffle
-   NodeIndex                 m_vector2;   // For shuffle
-   NodeIndex                 m_object;    // for insert
-   NodeIndex                 m_composite; // For insert and extract
+   NodeConstPtr              m_vector1;   // For shuffle
+   NodeConstPtr              m_vector2;   // For shuffle
+   NodeConstPtr              m_object;    // for insert
+   NodeConstPtr              m_composite; // For insert and extract
 
    spv::vector<uint32_t>     m_indices;   // Common to vector ops
 };
@@ -280,12 +290,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const spv::vector<NodeIndex> &GetIndices() const
+   const spv::vector<NodeConstPtr> &GetIndices() const
    {
       return m_indices;
    }
@@ -301,9 +311,59 @@ public:
    }
 
 private:
-   NodeIndex                 m_base;
-   spv::vector<NodeIndex>    m_indices;
+   NodeConstPtr              m_base;
+   spv::vector<NodeConstPtr> m_indices;
    bool                      m_inBounds;
+};
+
+class NodeTypeArray : public NodeType
+{
+public:
+   NodeTypeArray(Extractor &ext, bool runtime)
+      : NodeType()
+   {
+      ext >> m_resultId >> m_elementType;
+
+      if (!runtime)
+         ext >> m_length;
+      else
+         m_length = nullptr;
+   }
+
+   void AcceptType(NodeTypeVisitor &visitor) const override
+   {
+      visitor.Visit(this);
+   }
+
+   void Accept(NodeVisitor &visitor) const override
+   {
+      visitor.Visit(this);
+   }
+
+   const NodeConstPtr &GetElementType() const
+   {
+      return m_elementType;
+   }
+
+   const NodeConstPtr &GetLength() const
+   {
+      assert(m_length);
+      return m_length;
+   }
+
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpTypeArray;
+   }
+
+   bool IsRuntime() const
+   {
+      return !m_length;
+   }
+
+private:
+   NodeConstPtr m_elementType;
+   NodeConstPtr m_length;
 };
 
 } // namespace bvk

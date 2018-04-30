@@ -204,6 +204,7 @@
 #define PASTE_EXPANDED(x, y)        PASTE(x, y)
 #define PASTE3(x, y, z)             x ## y ## z
 #define PASTE3_EXPANDED(x, y, z)    PASTE3(x, y, z)
+#define MAKE_UNIQUE(x)              PASTE_EXPANDED(x, __COUNTER__)
 
 
 #endif /* _C_UTILS_INTERNAL_H_ */

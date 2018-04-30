@@ -6700,6 +6700,24 @@ BWL_EXIT:
     return( err );
 }
 
+int32_t BWL_GetPM2_rcv_dur(BWL_Handle hBwl, uint32_t *pm2rcvdur)
+{
+    int32_t             err = 0;
+    void                *wl = hBwl->wl;
+
+    BWL_LOCK();
+
+    BWL_CHECK_ERR(pm2rcvdur == NULL);
+        err = wlu_iovar_get( wl, "pm2_rcv_dur", pm2rcvdur, sizeof( uint32_t ) );
+    BWL_CHECK_ERR( err );
+
+    *pm2rcvdur = htod32(*pm2rcvdur);
+
+BWL_EXIT:
+    BWL_UNLOCK();
+    return( err );
+}
+
 
 /*******************************************************************************
 *

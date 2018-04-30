@@ -102,38 +102,10 @@ typedef struct BDSP_RaagaSettings
     BCHP_MemoryLayout memoryLayout; /* all addressable memory per MEMC */
 } BDSP_RaagaSettings;
 
-/***************************************************************************
-Summary:
-Use case scenario provided by APE
-***************************************************************************/
-typedef struct BDSP_RaagaUsageOptions
-{
-    bool           Codeclist[BDSP_Algorithm_eMax];  /* Total list containing the Codecs enabled or disabled */
-    BDSP_AudioDolbyCodecVersion DolbyCodecVersion;
-    BDSP_DataType IntertaskBufferDataType;
-    unsigned NumAudioDecoders;
-    unsigned NumAudioPostProcesses;
-    unsigned NumAudioEncoders;
-    unsigned NumAudioMixers;
-    unsigned NumAudioPassthru;
-    unsigned NumAudioEchocancellers;
-    unsigned NumVideoDecoders;
-    unsigned NumVideoEncoders;
-} BDSP_RaagaUsageOptions;
-
-/***************************************************************************
-Summary:
-Memory Requirement Status
-***************************************************************************/
-typedef struct BDSP_RaagaMemoryEstimate
-{
-    unsigned GeneralMemory; /* Number of bytes from the general system heap */
-    unsigned FirmwareMemory; /* Number of bytes from the firmware heap */
-} BDSP_RaagaMemoryEstimate;
-
 void BDSP_Raaga_GetDefaultSettings(
 	BDSP_RaagaSettings *pSettings
 );
+
 BERR_Code BDSP_Raaga_Open(
    BDSP_Handle *pDsp,                      /* [out] */
    BCHP_Handle chpHandle,
@@ -146,9 +118,9 @@ BERR_Code BDSP_Raaga_Open(
 );
 BERR_Code BDSP_Raaga_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
-    const BDSP_RaagaUsageOptions *pUsage,
+    const BDSP_UsageOptions      *pUsage,
     BBOX_Handle                   boxHandle,
-    BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
+    BDSP_MemoryEstimate          *pEstimate /*[out]*/
 );
 
 /***************************************************************************

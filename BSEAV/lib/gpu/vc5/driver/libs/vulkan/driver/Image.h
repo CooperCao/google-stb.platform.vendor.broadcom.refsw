@@ -56,14 +56,6 @@ public:
    // Implementation specific from this point on
 
 public:
-   // TLB configuration helper, replace plane 0 lfmt base, channels and type
-   // with those from lfmt if it isn't GFX_LFMT_NONE. Also ensure the format
-   // is correct for multisampled raw mode where necessary.
-   static void AdjustDescForTLBLfmt(
-      GFX_BUFFER_DESC_T *desc,
-      GFX_LFMT_T         lfmt,
-      bool               multisampled);
-
    void InitGMemTarget(
       struct v3d_imgconv_gmem_tgt   *target,
       const SchedDependencies       &deps,

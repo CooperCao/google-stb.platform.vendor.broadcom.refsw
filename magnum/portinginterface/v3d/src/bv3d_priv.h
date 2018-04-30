@@ -47,6 +47,8 @@
 #include "bv3d_callbackmap_priv.h"
 #include "bv3d_binmem_priv.h"
 #include "bv3d_fence_priv.h"
+#include "bv3d_perf_counters_priv.h"
+#include "bv3d_event_monitor_priv.h"
 #include "bv3d_os_priv.h"
 #include "bchp_common.h"
 
@@ -124,10 +126,10 @@ typedef struct BV3D_P_Handle {
    BV3D_Instruction    sRender;                    /* current Render instruction                                           */
    BV3D_Instruction    sUser;                      /* current User instruction                                             */
 
-   BV3D_PerfMonitorData sPerfData;                 /* Current performance data                                             */
-   bool                 bPerfMonitorActive;        /* True if we are gathering data                                        */
-   uint32_t             uiPerfMonitorHwBank;
-   uint32_t             uiPerfMonitorMemBank;
+   BV3D_P_PerfCounters  sPerfCounters;             /* Performance counters                                                 */
+
+   BV3D_P_EventMonitor  sEventMonitor;             /* Event monitor                                                        */
+   BKNI_MutexHandle     hEventMutex;               /* used to protect the event queue                                      */
 
    uint32_t             uiHeapOffset;              /* needs to be patched for SCB remap.  Get it once at BV3D_Open()       */
    uint32_t             uiHeapOffsetSecure;        /* needs to be patched for SCB remap.  Get it once at BV3D_Open()       */
@@ -145,8 +147,6 @@ typedef struct BV3D_P_Handle {
    uint64_t             sLastLoadCheckTimeUs;      /* Timestamp of last load check                                         */
    uint32_t             uiCurQpuSched0;            /* Shadow of the QPU0 scheduler register                                */
    uint32_t             uiCurQpuSched1;            /* Shadow of the QPU1 scheduler register                                */
-
-   uint32_t             uiMdiv;                    /* calculated Mdiv for the requested frequency                          */
 
    /* Fences */
    BV3D_FenceArrayHandle     hFences;              /* holds the fence pool                                                 */

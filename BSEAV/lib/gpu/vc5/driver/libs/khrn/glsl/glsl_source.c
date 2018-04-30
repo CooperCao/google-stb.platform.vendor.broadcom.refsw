@@ -23,13 +23,6 @@ static void format(const char *source, char *buffer)
    char        *dest = buffer;
 
    *dest++ = '\n';
-#if 0
-   *dest++ = ' ';
-   *dest++ = ' ';
-   *dest++ = '1';
-   *dest++ = ':';
-   *dest++ = ' ';
-#endif
    for (;;) {
       c = *head;
       ++head;
@@ -40,14 +33,6 @@ static void format(const char *source, char *buffer)
       }
 
       if (c == '\n') {
-#if 0
-         int   x100  = line / 100;
-         int   x10   = (line - (x100 * 100)) / 10;
-         int   x     = line - (x100 * 100) - (x10 * 10);
-         char  c100  = (x100 > 0) ? '0' + x100 : ' ';
-         char  c10   = ((x100 > 0) || (x10 > 0)) ? '0' + x10 : ' ';
-         char  c1    = '0' + x;
-#endif
          if (dest != buffer) {
             *dest = 0;
             debug_print(buffer);
@@ -55,13 +40,6 @@ static void format(const char *source, char *buffer)
          }
          ++line;
          *dest++ = '\n';
-#if 0
-         *dest++ = c100;
-         *dest++ = c10;
-         *dest++ = c1;
-         *dest++ = ':';
-         *dest++ = ' ';
-#endif
          continue;
       }
       if (c == '\r')
@@ -90,15 +68,5 @@ void glsl_shader_source_dump(const GLSL_SHADER_SOURCE_T *p)
                p->name, i);
       debug_print(buffer);
       debug_print("// -----------------------------------------------------------------\n");
-   }
-}
-
-void glsl_program_source_dump(const GLSL_PROGRAM_SOURCE_T *p, unsigned vertex_name, unsigned fragment_name) {
-   char buffer[10000];
-   snprintf(buffer, sizeof(buffer), "LINK: p %d <-- v %d, f %d\n", p->name, vertex_name, fragment_name);
-   debug_print(buffer);
-   for (unsigned i=0; i<p->num_tf_varyings; i++) {
-      snprintf(buffer, sizeof(buffer), "TF: %s\n", p->tf_varyings[i]);
-      debug_print(buffer);
    }
 }

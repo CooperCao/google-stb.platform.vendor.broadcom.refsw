@@ -102,35 +102,34 @@ ifeq ($(B_REFSW_MAKE_PART),)
 ###########################################################
 
 # Needed to get some basic definitions, such as BCHP_CHIP
+include ./splash_excludes.inc
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 # The following are necessary because the applicaton's source files
 # include magnum .h files. However some of these defines interfere with
 # nexus makefiles.
 MAGNUM := $(REPO_TOP)/magnum
-include $(REPO_TOP)/magnum/portinginterface/vdc/bvdc.inc
-include $(REPO_TOP)/magnum/commonutils/rdc/brdc.inc
-# include $(REPO_TOP)/magnum/portinginterface/pwm/bpwm.inc
-include $(REPO_TOP)/magnum/commonutils/fmt/bfmt.inc
-include $(REPO_TOP)/magnum/commonutils/sur/bsur.inc
-include $(REPO_TOP)/magnum/commonutils/avc/bavc.inc
-include $(REPO_TOP)/magnum/commonutils/pxl/bpxl.inc
-include $(REPO_TOP)/magnum/commonutils/mth/bmth.inc
-include $(REPO_TOP)/magnum/basemodules/mma/bmma.inc
-include $(REPO_TOP)/magnum/basemodules/int/bint.inc
-include $(REPO_TOP)/magnum/basemodules/tmr/btmr.inc
-include $(REPO_TOP)/magnum/basemodules/dtu/bdtu.inc
-include $(REPO_TOP)/magnum/portinginterface/i2c/bi2c.inc
-include $(REPO_TOP)/magnum/commonutils/mrc/bmrc.inc
-include $(REPO_TOP)/magnum/commonutils/box/bbox.inc
+
+BASEMODULES = dtu int mma tmr
+include $(foreach module, ${BASEMODULES}, ${MAGNUM}/basemodules/${module}/b${module}.inc)
+
+COMMONUTILS = avc box fmt mrc pxl rdc
+include $(foreach module, ${COMMONUTILS}, ${MAGNUM}/commonutils/${module}/b${module}.inc)
+
+PORTINGINTERFACE = i2c vdc
+
 ifneq ($(SPLASH_NOHDM),y)
+PORTINGINTERFACE += hdm
 MAGNUM_DEFINES_T += SPLASH_SUPPORT_HDM
-include $(REPO_TOP)/magnum/portinginterface/hdm/bhdm.inc
 endif
+
 ifneq ($(NEXUS_RFM_SUPPORT),n)
+PORTINGINTERFACE += rfm
 MAGNUM_DEFINES_T += SPLASH_SUPPORT_RFM
-include $(REPO_TOP)/magnum/portinginterface/rfm/brfm.inc
 endif
+
+include $(foreach module, ${PORTINGINTERFACE}, ${MAGNUM}/portinginterface/${module}/b${module}.inc)
+
 MAGNUM_INCLUDE_PATHS_T += \
 	$(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))
 MAGNUM_INCLUDE_PATHS += $(addprefix -I,$(MAGNUM_INCLUDE_PATHS_T))

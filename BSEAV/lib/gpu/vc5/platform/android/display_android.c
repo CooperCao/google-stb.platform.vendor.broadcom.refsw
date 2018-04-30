@@ -27,7 +27,7 @@
 #define MAX_DEQUEUE_BUFFERS   2
 
 /* Set this to get a lot of debug log info */
-#define VERBOSE_LOGGING 1
+#define VERBOSE_LOGGING 0
 
 #if VERBOSE_LOGGING
 #define DBGLOG(...)   ((void)ALOG(LOG_VERBOSE, LOG_TAG, __VA_ARGS__))
@@ -37,7 +37,7 @@
 
 static bool s_expose_fences = false;
 
-static bool AndroidToBeglFormat(BEGL_BufferFormat *result, int androidFormat, unsigned sandBits)
+static bool AndroidToBeglFormat(BEGL_BufferFormat *result, unsigned plane, int androidFormat, unsigned sandBits)
 {
    bool  ok = true;
 
@@ -52,8 +52,24 @@ static bool AndroidToBeglFormat(BEGL_BufferFormat *result, int androidFormat, un
       switch (sandBits)
       {
       case 0:  *result = BEGL_BufferFormat_eYV12;   break;
-      case 8:  *result = BEGL_BufferFormat_eSAND8;  break;
-      case 10: *result = BEGL_BufferFormat_eSAND10; break;
+      case 8:
+         switch (plane)
+         {
+         case 0: *result = BEGL_BufferFormat_eY8;     break;
+         case 1: *result = BEGL_BufferFormat_eCb8Cr8; break;
+         /* TODO: for Pierre: determine Cr-Cb ordering, add BEGL_BufferFormat_eCr8Cb8 */
+         default: ok = false; break;
+         }
+         break;
+      case 10:
+         switch (plane)
+         {
+         case 0: *result = BEGL_BufferFormat_eY10;     break;
+         case 1: *result = BEGL_BufferFormat_eCb10Cr10; break;
+         /* TODO: for Pierre: determine Cr-Cb ordering, add BEGL_BufferFormat_eCr10Cb10 */
+         default: ok = false; break;
+         }
+         break;
       default: ok = false; break;
       }
       break;
@@ -66,14 +82,18 @@ static bool BeglToAndroidFormat(int *androidFormat, BEGL_BufferFormat format)
 {
    bool  ok = true;
 
+   if (BeglFormatIsSand(format))
+   {
+      *androidFormat = HAL_PIXEL_FORMAT_YV12;
+      return true;
+   }
+
    switch (format)
    {
    case BEGL_BufferFormat_eA8B8G8R8 : *androidFormat = HAL_PIXEL_FORMAT_RGBA_8888;    break;
    case BEGL_BufferFormat_eX8B8G8R8 : *androidFormat = HAL_PIXEL_FORMAT_RGBX_8888;    break;
    case BEGL_BufferFormat_eR5G6B5   : *androidFormat = HAL_PIXEL_FORMAT_RGB_565;      break;
    case BEGL_BufferFormat_eYV12     : *androidFormat = HAL_PIXEL_FORMAT_YV12;         break;
-   case BEGL_BufferFormat_eSAND8    : *androidFormat = HAL_PIXEL_FORMAT_YV12;         break;
-   case BEGL_BufferFormat_eSAND10   : *androidFormat = HAL_PIXEL_FORMAT_YV12;         break;
    default:                            ok = false;                                    break;
    }
 
@@ -149,24 +169,6 @@ static BEGL_Error DispWindowGetInfo(void *context,
       info->swapchain_count = MAX_DEQUEUE_BUFFERS;
    }
 
-   if (flags & BEGL_WindowInfoBackBufferAge)
-   {
-      int res = anw->query(anw, NATIVE_WINDOW_BUFFER_AGE, (int *)&info->backBufferAge);
-      if (res == -ENODEV)
-         assert(0);
-   }
-
-   return BEGL_Success;
-}
-
-static BEGL_Error DispGetNativeSurface(void *context,
-      uint32_t eglTarget, void *eglSurface, void **nativeSurface)
-{
-   BSTD_UNUSED(context);
-
-   if (eglTarget != EGL_NATIVE_BUFFER_ANDROID)
-      return BEGL_Fail;
-   *nativeSurface = eglSurface;
    return BEGL_Success;
 }
 
@@ -195,21 +197,14 @@ static void GetBlockHandle(private_handle_t const *hnd, NEXUS_MemoryBlockHandle 
    }
 }
 
-static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_SurfaceInfo *info)
+static BEGL_Error GetInfo(ANativeWindowBuffer_t *buffer, uint32_t plane,
+      BEGL_SurfaceInfo *info)
 {
-   ANativeWindowBuffer_t  *buffer = (ANativeWindowBuffer_t*)nativeSurface;
-   bool                    ok = false;
+   bool                    ok = true;
    private_handle_t const *hnd;
    PSHARED_DATA            pSharedData;
    NEXUS_MemoryBlockHandle sharedBlockHandle = NULL;
    void                   *pMemory;
-
-   if (!isAndroidNativeBuffer(buffer) || info == NULL)
-   {
-      ALOGE("%s buf=%p hnd=%p info=%p, not native buffer",
-         __FUNCTION__, buffer, buffer?buffer->handle:NULL, info);
-      return BEGL_Fail;
-   }
 
    hnd = (private_handle_t const*)buffer->handle;
 
@@ -221,67 +216,75 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
       return BEGL_Fail;
    pSharedData = (PSHARED_DATA)pMemory;
 
-   AndroidToBeglFormat(&info->format, buffer->format, pSharedData->container.vDepth);
+   AndroidToBeglFormat(&info->format, plane, buffer->format, pSharedData->container.vDepth);
 
    info->width     = buffer->width;
    info->height    = buffer->height;
    info->miplevels = 1;
 
    // TODO Pierre : determine from the gralloc buffer (RGB, 601, 709, 2020)
-   if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10 ||
-       info->format == BEGL_BufferFormat_eYV12  || info->format == BEGL_BufferFormat_eYUV422)
+   if (BeglFormatIsSand(info->format) ||
+       info->format == BEGL_BufferFormat_eYV12  ||
+       info->format == BEGL_BufferFormat_eYUV422)
       info->colorimetry = BEGL_Colorimetry_BT_709;
    else
       info->colorimetry = BEGL_Colorimetry_RGB;
 
-   if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10)
+   if (BeglFormatIsSand(info->format))
    {
       uint32_t byteWidth = pSharedData->container.vsWidth *
          (pSharedData->container.vImageWidth + pSharedData->container.vsWidth - 1) / pSharedData->container.vsWidth;
 
       assert(info->width  == pSharedData->container.vImageWidth);
       assert(info->height == pSharedData->container.vImageHeight);
+      assert(plane < 2);
 
       info->contiguous     = true;
       info->pitchBytes     = 0;
-      info->physicalOffset = pSharedData->container.vLumaAddr + pSharedData->container.vLumaOffset;
-      info->chromaOffset   = pSharedData->container.vChromaAddr + pSharedData->container.vChromaOffset;
       info->cachedAddr     = NULL;   // Sand video can't be mapped
       info->secure         = false;  // TODO : if Android supports secure video
-      info->chromaByteSize = byteWidth * pSharedData->container.vsChromaHeight;
       info->stripeWidth    = pSharedData->container.vsWidth;
-      info->lumaStripedHeight   = pSharedData->container.vsLumaHeight;
-      info->chromaStripedHeight = pSharedData->container.vsChromaHeight;
-      info->lumaAndChromaInSameAllocation = pSharedData->container.vLumaBlock == pSharedData->container.vChromaBlock;
-      if (info->lumaAndChromaInSameAllocation)
+      switch (plane)
       {
-         // byteSize represents the combined luma/chroma buffer when lumaAndChromaInSameAllocation
-         info->byteSize = info->chromaOffset - info->physicalOffset + info->chromaByteSize;
+      case 0:
+         info->stripedHeight  = pSharedData->container.vsLumaHeight;
+         info->physicalOffset = pSharedData->container.vLumaAddr + pSharedData->container.vLumaOffset;
+         info->byteSize       = byteWidth * pSharedData->container.vsLumaHeight;
+         break;
+      case 1:
+         info->stripedHeight  = pSharedData->container.vsChromaHeight;
+         info->physicalOffset = pSharedData->container.vChromaAddr + pSharedData->container.vChromaOffset;
+         info->byteSize       = byteWidth * pSharedData->container.vsChromaHeight;
+         break;
+      default:
+         ok = false;
+         break;
       }
-      else
-         info->byteSize = byteWidth * pSharedData->container.vsLumaHeight;
 
-      DBGLOG("[sand2tex][NB]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
-         hnd,
-         pSharedData->container.vImageWidth,
-         pSharedData->container.vImageHeight,
-         pSharedData->container.vLumaAddr,
-         pSharedData->container.vLumaOffset,
-         pSharedData->container.vLumaBlock,
-         pSharedData->container.vChromaAddr,
-         pSharedData->container.vChromaOffset,
-         pSharedData->container.vChromaBlock,
-         pSharedData->container.vsWidth,
-         pSharedData->container.vsLumaHeight,
-         pSharedData->container.vsChromaHeight,
-         pSharedData->container.vDepth);
+      if (ok)
+      {
+         DBGLOG("[sand2tex][NB]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
+            hnd,
+            pSharedData->container.vImageWidth,
+            pSharedData->container.vImageHeight,
+            pSharedData->container.vLumaAddr,
+            pSharedData->container.vLumaOffset,
+            pSharedData->container.vLumaBlock,
+            pSharedData->container.vChromaAddr,
+            pSharedData->container.vChromaOffset,
+            pSharedData->container.vChromaBlock,
+            pSharedData->container.vsWidth,
+            pSharedData->container.vsLumaHeight,
+            pSharedData->container.vsChromaHeight,
+            pSharedData->container.vDepth);
 
-      ok = true;
-
-      pSharedData->container.vHwTex = 1;
+         pSharedData->container.vHwTex = 1;
+      }
    }
    else
    {
+      assert(plane == 0);
+
       info->contiguous     = true;
       info->physicalOffset = hnd->nxSurfacePhysicalAddress;
       info->cachedAddr     = (void*)(intptr_t)hnd->nxSurfaceAddress;
@@ -291,26 +294,63 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
 
    NEXUS_MemoryBlock_Unlock(sharedBlockHandle);
 
-   return BEGL_Success;
+   return ok ? BEGL_Success : BEGL_Fail;
 }
 
-static BEGL_Error DispSurfaceChangeRefCount(void *context, void *nativeBackBuffer, BEGL_RefCountMode incOrDec)
+static BEGL_NativeBuffer DispSurfaceAcquire(void *context, uint32_t target,
+      void *eglObject, uint32_t plane, BEGL_SurfaceInfo *info)
 {
-   ANativeWindowBuffer_t *buffer = (ANativeWindowBuffer_t*)nativeBackBuffer;
-
-   if (!isAndroidNativeBuffer(buffer))
+   switch (target)
    {
-      ALOGE("%s buf=%p, not native buffer", __FUNCTION__, buffer);
+   case EGL_NATIVE_BUFFER_ANDROID:
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      ANativeWindowBuffer_t *buffer = (ANativeWindowBuffer_t*)eglObject;
+      if (!isAndroidNativeBuffer(buffer))
+      {
+         ALOGE("%s buf=%p, not native buffer", __FUNCTION__, buffer);
+         return NULL;
+      }
+
+      if (GetInfo(buffer, plane, info) == BEGL_Fail)
+      {
+         ALOGE("%s buf=%p, can't get buffer info", __FUNCTION__, buffer);
+         return NULL;
+      }
+
+      buffer->common.incRef(&buffer->common);
+      return (BEGL_NativeBuffer)buffer;
+   }
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      ALOGE("%s invalid target", __FUNCTION__);
+      return NULL;
+   }
+}
+
+static BEGL_Error DispSurfaceRelease(void *context, uint32_t target,
+      uint32_t plane, BEGL_NativeBuffer nativeBuffer)
+{
+   switch (target)
+   {
+   case EGL_NATIVE_BUFFER_ANDROID:
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      ANativeWindowBuffer_t *buffer = (ANativeWindowBuffer_t*)nativeBuffer;
+      if (!isAndroidNativeBuffer(buffer))
+      {
+         ALOGE("%s buf=%p, not native buffer", __FUNCTION__, buffer);
+         return BEGL_Fail;
+      }
+
+      buffer->common.decRef(&buffer->common);
+      return BEGL_Success;
+   }
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      ALOGE("%s invalid target", __FUNCTION__);
       return BEGL_Fail;
    }
-
-   switch (incOrDec)
-   {
-   case BEGL_Increment : buffer->common.incRef(&buffer->common); break;
-   case BEGL_Decrement : buffer->common.decRef(&buffer->common); break;
-   default             : assert(0); return BEGL_Fail;
-   }
-   return BEGL_Success;
 }
 
 static void MaybeRemoveFence(int *fence)
@@ -323,31 +363,29 @@ static void MaybeRemoveFence(int *fence)
    }
 }
 
-static BEGL_Error DispGetNextSurface(
+static BEGL_SwapchainBuffer DispGetNextSurface(
    void *context,
    void *nativeWindow,
    BEGL_BufferFormat format,
-   BEGL_BufferFormat *actualFormat,
-   void **nativeBackBuffer,
    bool secure,
-   int *fence)
+   int *age,
+   int *fence
+   )
 {
    ANativeWindow  *anw = (ANativeWindow*) nativeWindow;
    ANativeWindowBuffer_t  *buffer;
-   BEGL_Error err = BEGL_Fail;
    int res;
-   *nativeBackBuffer = NULL;
 
    if (anw == NULL)
    {
       ALOGE("%s anw=%p", __FUNCTION__, anw);
-      return err;
+      return NULL;
    }
 
    if (!isAndroidNativeWindow(anw))
    {
       ALOGE("%s anw=%p, not native window", __FUNCTION__, anw);
-      return err;
+      return NULL;
    }
 
    do
@@ -363,16 +401,19 @@ static BEGL_Error DispGetNextSurface(
    while (res == -EBUSY);
 
    if (res != 0)
-      return err;
+      return NULL;
 
    MaybeRemoveFence(fence);
 
-   *nativeBackBuffer = buffer;
-   return  BEGL_Success;
+   res = anw->query(anw, NATIVE_WINDOW_BUFFER_AGE, age);
+   if (res == -ENODEV)
+      assert(0);
+
+   return (BEGL_SwapchainBuffer)buffer;
 }
 
 static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow,
-      void *nativeBackBuffer, int fence, int interval)
+      BEGL_SwapchainBuffer nativeBackBuffer, int fence, int interval)
 {
    BSTD_UNUSED(interval);
    ANativeWindow  *anw = (ANativeWindow*) nativeWindow;
@@ -398,8 +439,8 @@ static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow,
    return  BEGL_Success;
 }
 
-static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nativeBackBuffer,
-      int fence)
+static BEGL_Error DispCancelSurface(void *context, void *nativeWindow,
+      BEGL_SwapchainBuffer nativeBackBuffer, int fence)
 {
    ANativeWindow  *anw = (ANativeWindow*) nativeWindow;
    ANativeWindowBuffer_t  *buffer = (ANativeWindowBuffer_t*) nativeBackBuffer;
@@ -510,9 +551,9 @@ BEGL_DisplayInterface *CreateAndroidDisplayInterface(BEGL_SchedInterface *schedI
 
    disp->context                    = schedIface;
    disp->WindowGetInfo              = DispWindowGetInfo;
-   disp->GetNativeSurface           = DispGetNativeSurface;
-   disp->SurfaceGetInfo             = DispSurfaceGetInfo;
-   disp->SurfaceChangeRefCount      = DispSurfaceChangeRefCount;
+   disp->GetPixmapFormat            = NULL; /* Android doesn't have pixmaps */
+   disp->SurfaceAcquire             = DispSurfaceAcquire;
+   disp->SurfaceRelease             = DispSurfaceRelease;
    disp->GetNextSurface             = DispGetNextSurface;
    disp->DisplaySurface             = DispDisplaySurface;
    disp->CancelSurface              = DispCancelSurface;
@@ -527,103 +568,4 @@ BEGL_DisplayInterface *CreateAndroidDisplayInterface(BEGL_SchedInterface *schedI
 void DestroyAndroidDisplayInterface(BEGL_DisplayInterface *disp)
 {
    free(disp);
-}
-
-bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, NEXUS_SurfaceHandle *surf,
-                                       void *nativeSurface)
-{
-   ANativeWindowBuffer_t     *srcBuf = (ANativeWindowBuffer_t*)nativeSurface;
-   private_handle_t const    *srcHnd;
-   NEXUS_MemoryBlockHandle    sharedBlockHandle = NULL;
-   PSHARED_DATA               pSharedData = NULL;
-   void                      *pMemory = NULL;
-   bool                       result = false;
-
-   *stripedSurf = NULL;
-   *surf        = NULL; // We only need striped source support in Android right now, so this stays NULL
-
-   if (nativeSurface == NULL || !isAndroidNativeBuffer(srcBuf))
-   {
-      ALOGE("%s buf=%p hnd=%p, not native buffer",
-         __FUNCTION__, srcBuf, srcBuf?srcBuf->handle:NULL);
-      goto error;
-   }
-
-   srcHnd = (private_handle_t const*)srcBuf->handle;
-
-   GetBlockHandle(srcHnd, &sharedBlockHandle);
-   if (sharedBlockHandle == NULL)
-      goto error;
-   NEXUS_MemoryBlock_Lock(sharedBlockHandle, &pMemory);
-   if (pMemory == NULL)
-      goto error;
-
-   pSharedData = (PSHARED_DATA)pMemory;
-
-   BEGL_BufferFormat srcFormat;
-   AndroidToBeglFormat(&srcFormat, srcBuf->format, pSharedData->container.vDepth);
-   if (srcFormat != BEGL_BufferFormat_eSAND8 && srcFormat != BEGL_BufferFormat_eSAND10)
-      goto error;
-
-   // Wrap the source as a NEXUS_StripedSurface
-   NEXUS_StripedSurfaceCreateSettings   sscs;
-   NEXUS_StripedSurface_GetDefaultCreateSettings(&sscs);
-
-   sscs.imageWidth          = srcBuf->width;
-   sscs.imageHeight         = srcBuf->height;
-   sscs.stripedWidth        = pSharedData->container.vsWidth;
-   sscs.lumaPixelFormat     = srcFormat == BEGL_BufferFormat_eSAND8 ? NEXUS_PixelFormat_eY8 : NEXUS_PixelFormat_eY10;
-   sscs.chromaPixelFormat   = srcFormat == BEGL_BufferFormat_eSAND8 ? NEXUS_PixelFormat_eCb8_Cr8 : NEXUS_PixelFormat_eCb10_Cr10;
-   sscs.bufferType          = NEXUS_VideoBufferType_eFrame;
-   sscs.lumaStripedHeight   = pSharedData->container.vsLumaHeight;
-   sscs.chromaStripedHeight = pSharedData->container.vsChromaHeight;
-   sscs.lumaBuffer          = pSharedData->container.vLumaBlock;
-   sscs.chromaBuffer        = pSharedData->container.vChromaBlock;
-   sscs.lumaBufferOffset    = pSharedData->container.vLumaOffset;
-   sscs.chromaBufferOffset  = pSharedData->container.vChromaOffset;
-
-   // TODO: Pierre: these need to be preserved in the pSharedData and copied back here
-   // sccs.matrixCoefficients = ?????;
-
-   DBGLOG("[sand2tex][SS]:gr:%p::%ux%u::l:%" PRIx64 "::lo:%x:%p::c:%" PRIx64 ":co:%x:%p::%d,%d,%d::%d-bit",
-      srcHnd,
-      pSharedData->container.vImageWidth,
-      pSharedData->container.vImageHeight,
-      pSharedData->container.vLumaAddr,
-      pSharedData->container.vLumaOffset,
-      pSharedData->container.vLumaBlock,
-      pSharedData->container.vChromaAddr,
-      pSharedData->container.vChromaOffset,
-      pSharedData->container.vChromaBlock,
-      pSharedData->container.vsWidth,
-      pSharedData->container.vsLumaHeight,
-      pSharedData->container.vsChromaHeight,
-      pSharedData->container.vDepth);
-
-   *stripedSurf = NEXUS_StripedSurface_Create(&sscs);
-   if (*stripedSurf == NULL)
-      goto error;
-
-good:
-   result = true;
-   pSharedData->container.vHwTex = 1;
-   goto finish;
-
-error:
-   result = false;
-   if (*stripedSurf)
-      NEXUS_StripedSurface_Destroy(*stripedSurf);
-
-finish:
-   if (sharedBlockHandle != NULL)
-      NEXUS_MemoryBlock_Unlock(sharedBlockHandle);
-
-   return result;
-}
-
-void DisplayReleaseNexusSurfaceHandles(NEXUS_StripedSurfaceHandle stripedSurf, NEXUS_SurfaceHandle surf)
-{
-   BSTD_UNUSED(surf);
-   if (stripedSurf)
-      NEXUS_StripedSurface_Destroy(stripedSurf);
 }

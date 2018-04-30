@@ -40,6 +40,7 @@
 
 #include "file_manager.h"
 #include "blst_queue.h"
+#include "string_list.h"
 #include <dirent.h>
 #include <stdbool.h>
 
@@ -65,6 +66,7 @@ typedef struct FileManager
     char * name;
     FileManagerDirectory root;
     FileManagerFileList files;
+    StringListHandle baseNames;
     unsigned fileCount;
 } FileManager;
 

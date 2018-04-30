@@ -145,8 +145,10 @@ void DSP_pollInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interr
 {
     interrupts->host_intc_host_irq = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_HOST_IRQ_LATCHED));
 
+#if __FP4014_ONWARDS__ || __FPM1015__
     interrupts->obus_fault = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_STATUS));
     interrupts->obus_fault_address = DSP_readSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_ADDRESS));
+#endif
 }
 
 
@@ -155,18 +157,22 @@ void DSP_pollInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interr
 void DSP_clearInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interrupts)
 {
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_HOST_IRQ_CLEAR), interrupts->host_intc_host_irq);
+#if __FP4014_ONWARDS__ || __FPM1015__
     if(interrupts->obus_fault & MISC_BLOCK_INTERRUPT_OBUSFAULT_FAULT_PENDING)
     {
         DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_CLEAR), MISC_BLOCK_INTERRUPT_OBUSFAULT_CLEAR_FAULT);
         interrupts->obus_fault_address = 0;
     }
+#endif
 }
 
 
 void DSP_clearAllInterrupts(DSP *dsp, DSP_CORE core __unused)
 {
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_HOST_IRQ_CLEAR), 0xFFFFFFFF);
+#if __FP4014_ONWARDS__ || __FPM1015__
     DSP_writeSharedRegister(dsp, MISC_BLOCK(dsp, core, INTERRUPT_OBUSFAULT_CLEAR), MISC_BLOCK_INTERRUPT_OBUSFAULT_CLEAR_FAULT);
+#endif
 }
 
 #endif /* !FEATURE_IS(SW_HOST, RAAGA_MAGNUM) */

@@ -80,6 +80,8 @@ void BDSP_Arm_GetDefaultSettings(
     pSettings->maxAlgorithms[BDSP_AlgorithmType_eSecurity]           = 0;
 
     pSettings->NumDevices = BDSP_ARM_MAX_DSP;
+	pSettings->NumDsp  	     = BDSP_ARM_MAX_DSP;
+	pSettings->numCorePerDsp = BDSP_ARM_MAX_CORE_PER_DSP;
     BDBG_LEAVE( BDSP_Arm_GetDefaultSettings );
 }
 
@@ -122,8 +124,8 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getDefaultContextSettings = BDSP_Arm_P_GetDefaultContextSettings;
     pArm->device.createContext = BDSP_Arm_P_CreateContext;
     pArm->device.getStatus= BDSP_Arm_P_GetStatus;
-    pArm->device.powerStandby= NULL; /* BDSP_Arm_P_PowerStandby; */
-    pArm->device.powerResume= NULL; /* BDSP_Arm_P_PowerResume; */
+    pArm->device.powerStandby= BDSP_Arm_P_PowerStandby;
+    pArm->device.powerResume= BDSP_Arm_P_PowerResume;
     pArm->device.getAlgorithmInfo= BDSP_Arm_P_GetAlgorithmInfo;
     pArm->device.allocateExternalInterrupt = NULL; /* BDSP_Arm_P_AllocateExternalInterrupt;*/
     pArm->device.freeExternalInterrupt = NULL; /* BDSP_Arm_P_FreeExternalInterrupt;*/
@@ -166,6 +168,50 @@ BERR_Code BDSP_Arm_Open(
         goto error;
     }
 
+#if 0
+	{
+		BDSP_UsageOptions Usage;
+		BDSP_MemoryEstimate Estimate;
+		BKNI_Memset(&Usage,0, sizeof(BDSP_UsageOptions));
+		Usage.Codeclist[BDSP_Algorithm_eMpegAudioDecode]   =true;
+		Usage.Codeclist[BDSP_Algorithm_ePcmWavDecode]	   =true;
+		Usage.Codeclist[BDSP_Algorithm_eAacAdtsDecode]	   =true;
+		Usage.Codeclist[BDSP_Algorithm_eAacAdtsPassthrough]=true;
+		Usage.Codeclist[BDSP_Algorithm_eAacLoasDecode]	   =true;
+		Usage.Codeclist[BDSP_Algorithm_eAacLoasPassthrough]=true;
+		Usage.Codeclist[BDSP_Algorithm_eAc3Decode]		   =true;
+		Usage.Codeclist[BDSP_Algorithm_eAc3Passthrough]    =true;
+		Usage.Codeclist[BDSP_Algorithm_eAc3PlusDecode]	   =true;
+		Usage.Codeclist[BDSP_Algorithm_eAc3PlusPassthrough]=true;
+		Usage.Codeclist[BDSP_Algorithm_eUdcDecode]		   =true;
+		Usage.Codeclist[BDSP_Algorithm_eUdcPassthrough]    =true;
+		Usage.Codeclist[BDSP_Algorithm_eSrc]			   =true;
+		/*MS12 configurations*/
+		Usage.Codeclist[BDSP_Algorithm_eDpcmr]			   =true;
+		Usage.Codeclist[BDSP_Algorithm_eDDPEncode]		   =true;
+		Usage.Codeclist[BDSP_Algorithm_eMixerDapv2] 	   =true;
+
+		/*Transcode configurations*/
+		/*Usage.Codeclist[BDSP_Algorithm_eGenCdbItb]		 =true;
+		Usage.Codeclist[BDSP_Algorithm_eAacEncode]		   =true;
+		Usage.Codeclist[BDSP_Algorithm_eMixer]			   =true;*/
+
+		Usage.NumAudioDecoders=4;
+		Usage.NumAudioPostProcesses=4;
+		Usage.NumAudioPassthru=0;
+		Usage.NumAudioEncoders=1;
+		Usage.NumAudioMixers=1;
+		Usage.IntertaskBufferDataType=BDSP_DataType_ePcm7_1;
+
+		BDSP_Arm_GetMemoryEstimate(pSettings,
+			&Usage,
+			NULL,
+			&Estimate);
+		BDBG_MSG(("Memory Required FIRMWARE = %d bytes(%d KB)(%d MB)  GENERAL = %d bytes(%d KB)(%d MB)",Estimate.FirmwareMemory,(Estimate.FirmwareMemory/1024),(Estimate.FirmwareMemory/(1024*1024)),
+						Estimate.GeneralMemory,(Estimate.GeneralMemory/1024),(Estimate.GeneralMemory/(1024*1024))));
+	}
+#endif /* This is for memory estimate testing */
+
     errCode = BDSP_Arm_P_Open(pArm);
     if(errCode != BERR_SUCCESS)
     {
@@ -202,4 +248,42 @@ error:
 end:
     BDBG_LEAVE(BDSP_Arm_Open);
     return errCode;
+}
+
+/***********************************************************************
+Name        :   BDSP_Arm_GetMemoryEstimate
+
+Type        :   PI Interface
+
+Input       :   pSettings       -   Device Settings provided by the PI to open the Arm Open.
+                pUsage      -   Pointer to usage case scenario from which we determine the runtime memory.
+                boxHandle   -     BOX Mode Handle for which the memory needs to be estimated.
+                pEstimate   -   Pointer provided by the where the memory estimate from the BDSP is returned.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :
+    1)  Leaf function provided by the BDSP to higher layers to return the estimate of the memory required by BDSP
+***********************************************************************/
+BERR_Code BDSP_Arm_GetMemoryEstimate(
+    const BDSP_ArmSettings     *pSettings,
+    const BDSP_UsageOptions    *pUsage,
+    BBOX_Handle                 boxHandle,
+    BDSP_MemoryEstimate        *pEstimate /*[out]*/
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+
+	BDBG_ENTER(BDSP_Arm_GetMemoryEstimate);
+	BDBG_ASSERT(NULL != pSettings);
+	BDBG_ASSERT(NULL != pEstimate);
+	BDBG_ASSERT(NULL != pUsage);
+
+	errCode = BDSP_Arm_P_GetMemoryEstimate(pSettings, pUsage,boxHandle,pEstimate);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Arm_GetMemoryEstimate: Error in calculating Memory estimate"));
+	}
+	BDBG_LEAVE(BDSP_Arm_GetMemoryEstimate);
+	return errCode;
 }

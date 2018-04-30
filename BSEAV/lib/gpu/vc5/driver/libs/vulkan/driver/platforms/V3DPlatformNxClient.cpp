@@ -189,6 +189,9 @@ V3DPlatformNxClient::NxClientSurface::~NxClientSurface()
    // that are still in the "push" queue.
    NEXUS_SurfaceClient_Release(m_clientHandle);
 
+   // Current surface must be cleared from nxserver
+   NEXUS_SurfaceClient_Clear(m_clientHandle);
+
    // Destroy images that were still pushed for presentation on release
    for (auto h: m_presentedHandles)
       DestroySurfaceHandle(h);

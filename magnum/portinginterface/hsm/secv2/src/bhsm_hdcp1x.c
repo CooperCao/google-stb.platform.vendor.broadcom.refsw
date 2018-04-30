@@ -51,10 +51,13 @@ BDBG_MODULE(BHSM);
 
 BERR_Code BHSM_Hdcp1x_RouteKey( BHSM_Handle hHsm, const BHSM_Hdcp1xRouteKey *pParam )
 {
-    BERR_Code rc;
-
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_Hdcp1xGenAndRouteHdcp1x bspConfig;
+
     BDBG_ENTER( BHSM_Hdcp1x_RouteKey );
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
@@ -81,7 +84,7 @@ BERR_Code BHSM_Hdcp1x_RouteKey( BHSM_Handle hHsm, const BHSM_Hdcp1xRouteKey *pPa
                 case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp0: { bspConfig.in.globalKeyOwnerIdSelect = 0;  break; }
                 case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eMsp1: { bspConfig.in.globalKeyOwnerIdSelect = 1;  break; }
                 case BHSM_KeyLadderGlobalKeyOwnerIdSelect_eOne:  { bspConfig.in.globalKeyOwnerIdSelect = 2;  break; }
-                default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
+                default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
             }
             break;
         }

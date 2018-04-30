@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SBL 3_2_9
+## SAGE Binary Metadata - SBL 3_2_10
 ## unique_key checksum_type checksum url
-7366C0/dev/sage_bl_dev.bin sha1 4babe94152415ad644084b2ba5c0ca893744fec0 http://git-irv-03.irv.broadcom.com:88/files/SAGEBL/3_2_9/7366C0/ZD/sage_bl_dev.bin
+7366C0/dev/sage_bl_dev.bin sha1 892e2e711f05ab3b39c68773fd9620114941a844 http://git-irv-03.irv.broadcom.com:88/files/SAGEBL/3_2_10/7366C0/ZD/sage_bl_dev.bin

@@ -84,21 +84,10 @@ void CommandBuffer::ResolveImageRegionTMU(
    GFX_LFMT_T tmuLFMT = srcImage->LFMT();
    VkFilter filter = gfx_lfmt_contains_int(tmuLFMT) ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 
-   if (srcImage->Extent().width  > V3D_MAX_CLIP_WIDTH  || dstImage->Extent().width  > V3D_MAX_CLIP_WIDTH ||
-       dstImage->Extent().height > V3D_MAX_CLIP_HEIGHT || dstImage->Extent().height > V3D_MAX_CLIP_HEIGHT )
+   if (dstImage->Extent().width > V3D_MAX_CLIP_WIDTH || dstImage->Extent().height > V3D_MAX_CLIP_HEIGHT)
    {
       NOT_IMPLEMENTED_YET;
-      log_warn("\tResolving of images larger than will fit in the TLB is not supported yet");
-   }
-
-   if (gfx_lfmt_contains_float(tmuLFMT) && gfx_lfmt_red_bits(tmuLFMT) == 32)
-   {
-      // TODO: The TMU cannot linear filter float32 formats, we would need to
-      //       write a special shader that loaded the samples and did the maths
-      //       itself.
-      NOT_IMPLEMENTED_YET;
-      log_warn("\tSelecting sample 0 for float32 format");
-      filter = VK_FILTER_NEAREST;
+      log_warn("\tResolving to images larger than the maximum TLB size is not supported");
    }
 
    BlitImageRegion(srcImage, dstImage, blit, filter);
@@ -113,7 +102,6 @@ void CommandBuffer::CmdResolveImage(
    const VkImageResolve *pRegions) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    GFX_LFMT_T srcLFMT = srcImage->LFMT();
@@ -188,6 +176,11 @@ void CommandBuffer::CmdResolveImage(
          InsertExecutionBarrier();
 
       bool canUseTLB = true;
+      // If the source image is larger than the maximum TLB size then we need
+      // to do the resolve with a draw call via the TMU.
+      if (srcImage->Extent().width > V3D_MAX_CLIP_WIDTH || srcImage->Extent().height > V3D_MAX_CLIP_HEIGHT)
+         canUseTLB = false;
+
       // We can use the TLB directly for some partial resolves, but this will
       // not trigger very often, we are mostly allowing it to test the
       // underlying code that offsets the image start address and sets up the

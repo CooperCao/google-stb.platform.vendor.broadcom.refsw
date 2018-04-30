@@ -10,16 +10,14 @@
 #include "DflowLibrary.h"
 #include "DflowMatrix.h"
 #include "Nodes.h"
-#include "TypeBuilder.h"
 #include "Compiler.h"
 #include "Module.h"
-#include "PrimitiveTypes.h"
 #include "Composite.h"
 #include "Pointer.h"
 #include "Specialization.h"
 #include "TextureLookup.h"
 #include "Options.h"
-
+#include "InputOutput.h"
 #include "DescriptorInfo.h"
 
 #include "libs/platform/v3d_scheduler.h"
@@ -27,6 +25,7 @@
 #include "libs/util/log/log.h"
 #include "glsl_dataflow.h"
 #include "glsl_fastmem.h"
+#include "glsl_primitive_types.auto.h"
 
 LOG_DEFAULT_CAT("bvk::comp::DflowBuilder");
 
@@ -37,27 +36,10 @@ LOG_DEFAULT_CAT("bvk::comp::DflowBuilder");
 
 namespace bvk {
 
-// Some static helper functions
-static void FindMatrixInfo(const Node *node, uint32_t *cols, uint32_t *rows)
-{
-   auto matrixType = node->GetResultType()->As<const NodeTypeMatrix *>();
-   auto columnType = matrixType->GetColumnType()->As<const NodeTypeVector *>();
-
-   *cols = matrixType->GetColumnCount();
-   *rows = columnType->GetComponentCount();
-}
-
-static uint32_t VectorSize(const Node *node)
-{
-   auto vecType = node->GetResultType()->As<const NodeTypeVector *>();
-
-   return vecType->GetComponentCount();
-}
-
 ///////////////////////////////////////////////////////////////////////
-// ExecutionModes helper class
+// DflowBuilder
 ///////////////////////////////////////////////////////////////////////
-void ExecutionModes::Record(const NodeExecutionMode *node)
+void DflowBuilder::ExecutionModesRecord(const NodeExecutionMode *node)
 {
    const spv::vector<uint32_t> &literals = node->GetLiterals();
 
@@ -65,15 +47,15 @@ void ExecutionModes::Record(const NodeExecutionMode *node)
    {
    case spv::ExecutionMode::LocalSize :
       assert(literals.size() == 3);
-      SetWorkgroupSize(literals[0], literals[1], literals[2]);
-      break;
-   case spv::ExecutionMode::DepthReplacing:
-      m_depthReplacing = true;
+      for (int i = 0; i < 3; ++i)
+         m_executionModes.cs.wg_size[i] = literals[i];
       break;
    case spv::ExecutionMode::EarlyFragmentTests:
-      m_earlyFragmentTests = true;
+      m_executionModes.fs.early_tests = true;
       break;
+   case spv::ExecutionMode::DepthReplacing:
    case spv::ExecutionMode::OriginUpperLeft:
+      // Valid execution modes that we don't care about
       break;
    default:
       // TODO -- handle other modes we're interested in.
@@ -82,9 +64,6 @@ void ExecutionModes::Record(const NodeExecutionMode *node)
    }
 }
 
-///////////////////////////////////////////////////////////////////////
-// DflowBuilder proper
-///////////////////////////////////////////////////////////////////////
 DflowBuilder::DflowBuilder(DescriptorTables *tables,
                            const Module &module, const Specialization &specialization,
                            bool robustBufferAccess, bool multiSampled) :
@@ -95,16 +74,19 @@ DflowBuilder::DflowBuilder(DescriptorTables *tables,
    m_multiSampled(multiSampled),
    m_basicBlockPool(m_arenaAllocator),
    m_functionStack(*this),
-   m_dataflow(module.IdBound(), DflowScalars(*this), m_arenaAllocator),
+   m_dataflow(module.IdBound(), DflowScalars(m_arenaAllocator), m_arenaAllocator),
    m_extraDataflow(m_arenaAllocator),
    m_dataflowBlock(module.IdBound(), BasicBlockHandle(), m_arenaAllocator),
    m_symbolTypes(module.GetNumTypes(), SymbolTypeHandle(), m_arenaAllocator),
+   m_symbols(std::less<const NodeVariable *>(), m_arenaAllocator),
+   m_outputVariables(m_arenaAllocator),
    m_descriptorMaps(m_arenaAllocator, tables),
    m_usedSymbols(SymbolHandleCompare(), m_arenaAllocator),
    m_conditionals(m_arenaAllocator),
    m_loopMerge(m_arenaAllocator),
    m_specializations(specialization)
 {
+   m_executionModes.fs.early_tests = false;
 }
 
 DflowBuilder::~DflowBuilder()
@@ -204,7 +186,7 @@ void DflowBuilder::Visit(const NodeTypePointer *node)
 {
    auto  targetType = node->GetType()->As<const NodeType *>();
 
-   AddSymbolType(node, SymbolTypeHandle::Pointer(m_module, GetSymbolType(targetType)));
+   AddSymbolType(node, SymbolTypeHandle::Pointer(*this, GetSymbolType(targetType)));
 }
 
 
@@ -239,20 +221,39 @@ void DflowBuilder::Visit(const NodeTypeSampledImage *node)
    AddSymbolType(node, SymbolTypeHandle::CombinedSampledImage(sampledType, dim, arrayed, ms));
 }
 
+class MemberIter : public SymbolTypeHandle::MemberIter
+{
+public:
+   MemberIter(const DflowBuilder &builder, const spv::vector<NodeConstPtr> &types) :
+      m_builder(builder),
+      m_types(types)
+   {}
+
+   SymbolTypeHandle Type(uint32_t i) const override
+   {
+      return m_builder.GetSymbolType(m_types[i]->As<const NodeType *>());
+   }
+
+   uint32_t Size() const override
+   {
+      return m_types.size();
+   }
+
+private:
+   const DflowBuilder              &m_builder;
+   const spv::vector<NodeConstPtr> &m_types;
+};
+
 void DflowBuilder::Visit(const NodeTypeStruct *node)
 {
    MemberIter  mi(*this, node->GetMemberstype());
 
-   AddSymbolType(node, SymbolTypeHandle::Struct(m_module, mi));
+   AddSymbolType(node, SymbolTypeHandle::Struct(*this, node, mi));
 }
 
 void DflowBuilder::Visit(const NodeTypeMatrix *node)
 {
-   auto     columnType = node->GetColumnType()->As<const NodeTypeVector *>();
-   uint32_t cols       = node->GetColumnCount();
-   uint32_t rows       = columnType->GetComponentCount();
-
-   AddSymbolType(node, SymbolTypeHandle::Matrix(cols, rows));
+   AddSymbolType(node, SymbolTypeHandle::Matrix(node->GetColumnCount(), node->GetRowCount()));
 }
 
 void DflowBuilder::Visit(const NodeTypeSampler *node)
@@ -263,16 +264,10 @@ void DflowBuilder::Visit(const NodeTypeSampler *node)
 void DflowBuilder::Visit(const NodeTypeArray *node)
 {
    auto     elementType = node->GetElementType()->As<const NodeType *>();
-   uint32_t length = RequireConstantInt(node->GetLength());
 
-   AddSymbolType(node, SymbolTypeHandle::Array(m_module, GetSymbolType(elementType), length));
-}
+   uint32_t length = node->IsRuntime() ? 0 : RequireConstantInt(node->GetLength());
 
-void DflowBuilder::Visit(const NodeTypeRuntimeArray *node)
-{
-   auto elementType = node->GetElementType()->As<const NodeType *>();
-
-   AddSymbolType(node, SymbolTypeHandle::Array(m_module, GetSymbolType(elementType), 0));
+   AddSymbolType(node, SymbolTypeHandle::Array(*this, GetSymbolType(elementType), length));
 }
 
 uint32_t DflowBuilder::StructureOffset(const NodeTypeStruct *type, uint32_t index) const
@@ -291,7 +286,7 @@ uint32_t DflowBuilder::StructureOffset(const NodeTypeStruct *type, uint32_t inde
 ///////////////////////////////////////////////////////////////////////////////
 // Misc
 ///////////////////////////////////////////////////////////////////////////////
-void DflowBuilder::Visit(const NodeNop *node)
+void DflowBuilder::Visit(const NodeNop *)
 {
 }
 
@@ -303,8 +298,8 @@ void DflowBuilder::Visit(const NodeUndef *node)
    const NodeType   *type       = node->GetResultType();
    SymbolTypeHandle  symbolType = GetSymbolType(type);
 
-   DflowScalars result(*this, GetNumScalars(type));
-   AddDataflow(node, DflowScalars::Default(*this, symbolType));
+   DflowScalars result(m_arenaAllocator, GetNumScalars(type));
+   AddDataflow(node, DflowScalars::Default(m_arenaAllocator, symbolType));
 }
 
 void DflowBuilder::Visit(const NodeConstantNull *node)
@@ -312,20 +307,20 @@ void DflowBuilder::Visit(const NodeConstantNull *node)
    const NodeType   *type       = node->GetResultType();
    SymbolTypeHandle  symbolType = GetSymbolType(type);
 
-   DflowScalars result(*this, GetNumScalars(type));
-   AddDataflow(node, DflowScalars::Default(*this, symbolType));
+   DflowScalars result(m_arenaAllocator, GetNumScalars(type));
+   AddDataflow(node, DflowScalars::Default(m_arenaAllocator, symbolType));
 }
 
 void DflowBuilder::AddBoolConstant(const Node *node, bool value)
 {
-   AddDataflow(node, DflowScalars::ConstantBool(*this, value));
+   AddDataflow(node, DflowScalars::Bool(m_arenaAllocator, value));
 }
 
 void DflowBuilder::AddValueConstant(const Node *node, uint32_t value)
 {
    const NodeType *nodeType = node->GetResultType();
 
-   AddDataflow(node, DflowScalars::ConstantValue(*this, GetSymbolType(nodeType), value));
+   AddDataflow(node, DflowScalars::Value(m_arenaAllocator, GetSymbolType(nodeType), value));
 }
 
 // Constant
@@ -346,14 +341,14 @@ void DflowBuilder::Visit(const NodeConstantFalse *node)
    AddBoolConstant(node, false);
 }
 
-void DflowBuilder::AddComposite(const Node *node, const spv::vector<NodeIndex> &constituents)
+void DflowBuilder::AddComposite(const Node *node, const spv::vector<NodeConstPtr> &constituents)
 {
    const NodeType *type = node->GetResultType();
 
-   DflowScalars    result(*this, GetNumScalars(type));
+   DflowScalars    result(m_arenaAllocator, GetNumScalars(type));
 
    uint32_t offset = 0;
-   for (const NodeIndex &ni : constituents)
+   for (const NodeConstPtr &ni : constituents)
    {
       const DflowScalars &slice = GetDataflow(ni);
       result.SetSlice(offset, slice);
@@ -362,15 +357,14 @@ void DflowBuilder::AddComposite(const Node *node, const spv::vector<NodeIndex> &
 
    // Is this the workgroup size?
    spv::BuiltIn builtIn;
-   if (m_module.GetBuiltinDecoration(&builtIn, node))
+   if (DecorationQuery(node).Builtin(&builtIn))
    {
       if (builtIn == spv::BuiltIn::WorkgroupSize)
       {
          // Overwrite any previously set workgroup size
          assert(result.Size() == 3);
-         m_executionModes.SetWorkgroupSize(result[0].GetConstantInt(),
-                                           result[1].GetConstantInt(),
-                                           result[2].GetConstantInt());
+         for (int i = 0; i < 3; ++i)
+            m_executionModes.cs.wg_size[i] = result[i].GetConstantInt();
       }
    }
 
@@ -391,7 +385,7 @@ void DflowBuilder::AddBoolSpecConstant(const Node *node, bool def)
    uint32_t id;
    bool     value = def;
 
-   if (m_module.GetLiteralDecoration(&id, spv::Decoration::SpecId, node))
+   if (DecorationQuery(node).Literal(&id, spv::Decoration::SpecId))
       m_specializations.GetBool(&value, id);
 
    AddBoolConstant(node, value);
@@ -403,7 +397,7 @@ void DflowBuilder::Visit(const NodeSpecConstant *constant)
    uint32_t id;
    uint32_t value = constant->GetValue();
 
-   if (m_module.GetLiteralDecoration(&id, spv::Decoration::SpecId, constant))
+   if (DecorationQuery(constant).Literal(&id, spv::Decoration::SpecId))
       m_specializations.GetValue(&value, id);
 
    AddValueConstant(constant, value);
@@ -465,6 +459,8 @@ void DflowBuilder::Visit(const NodeSpecConstantOp *node)
       case 1: arg0 = &GetDataflow(operands[0]);
       }
 
+      DataflowType resultType = ResultDataflowType(node);
+
       // Constructing dataflow will call glsl_dataflow_simplify implicitly.
       // If everything is constant (as it should be), then the dataflow should
       // be simplified to a constant.
@@ -473,9 +469,9 @@ void DflowBuilder::Visit(const NodeSpecConstantOp *node)
       case spv::Core::OpSConvert             : result = *arg0; break;
       case spv::Core::OpFConvert             : result = *arg0; break;
 
-      case spv::Core::OpIAdd                 : result = *arg0 + *arg1; break;
-      case spv::Core::OpISub                 : result = *arg0 - *arg1; break;
-      case spv::Core::OpIMul                 : result = *arg0 * *arg1; break;
+      case spv::Core::OpIAdd                 : result = arg0->As(resultType) + arg1->As(resultType); break;
+      case spv::Core::OpISub                 : result = arg0->As(resultType) - arg1->As(resultType); break;
+      case spv::Core::OpIMul                 : result = arg0->As(resultType) * arg1->As(resultType); break;
 
       case spv::Core::OpUDiv                 : result = *arg0 / *arg1;      break;
       case spv::Core::OpUMod                 : result = umod(*arg0, *arg1); break;
@@ -590,7 +586,7 @@ void DflowBuilder::Visit(const NodeSampledImage *node)
    const DflowScalars &image   = GetDataflow(node->GetImage());
    const DflowScalars &sampler = GetDataflow(node->GetSampler());
 
-   DflowScalars   result(*this, { image[0], sampler[0] });
+   DflowScalars   result(m_arenaAllocator, { image[0], sampler[0] });
 
    AddDataflow(node, result);
 }
@@ -702,7 +698,7 @@ void DflowBuilder::Visit(const NodeImageQuerySize *node)
 {
    const DflowScalars &img        = GetDataflow(node->GetImage());
    uint32_t            numScalars = GetNumScalars(node->GetResultType());
-   DflowScalars        tSize      = DflowScalars::TextureSize(*this, numScalars, img[0]);
+   DflowScalars        tSize      = DflowScalars::TextureSize(m_arenaAllocator, numScalars, img[0]);
 
    AddDataflow(node, tSize);
 }
@@ -713,7 +709,7 @@ void DflowBuilder::Visit(const NodeImageQuerySizeLod *node)
    const DflowScalars  &lod        = GetDataflow(node->GetLevelofDetail());
    const NodeTypeImage *imageType  = GetImageType(node->GetImage());
    uint32_t             numScalars = GetNumScalars(node->GetResultType());
-   DflowScalars         tSize      = DflowScalars::TextureSize(*this, numScalars, img[0]);
+   DflowScalars         tSize      = DflowScalars::TextureSize(m_arenaAllocator, numScalars, img[0]);
 
    for (uint32_t i = 0; i < numScalars; i++)
    {
@@ -721,20 +717,20 @@ void DflowBuilder::Visit(const NodeImageQuerySizeLod *node)
          tSize[i] = tSize[i] >> lod[0];
    }
 
-   tSize = max(tSize, DflowScalars::ConstantInt(*this, 1));
+   tSize = max(tSize, DflowScalars::Int(m_arenaAllocator, 1));
 
    AddDataflow(node, tSize);
 }
 
 void DflowBuilder::Visit(const NodeImageQuerySamples *node)
 {
-   AddDataflow(node, DflowScalars::ConstantInt(*this, 4));
+   AddDataflow(node, DflowScalars::Int(m_arenaAllocator, 4));
 }
 
 void DflowBuilder::Visit(const NodeImageQueryLevels *node)
 {
    const DflowScalars &img    = GetDataflow(node->GetImage());
-   DflowScalars        levels = DflowScalars::TextureNumLevels(*this, img[0]);
+   DflowScalars        levels = DflowScalars::TextureNumLevels(m_arenaAllocator, img[0]);
 
    AddDataflow(node, levels);
 }
@@ -751,17 +747,19 @@ void DflowBuilder::Visit(const NodeImageQueryLod *node)
    const NodeTypeImage *imageType = GetImageType(node->GetSampledImage());
 
    DflowScalars p      = GetDataflow(node->GetCoordinate());
-   DflowScalars tSize  = DflowScalars::TextureSize(*this, p.Size(), sampler[0]);
+   DflowScalars tSize  = DflowScalars::TextureSize(m_arenaAllocator, p.Size(), sampler[0]);
    bool         isCube = imageType->GetDim() == spv::Dim::Cube;
-   DflowScalars lod    = calculateLod(tSize, p, dFdx(p), dFdy(p), isCube);
 
-   DflowScalars minLevel = DflowScalars::TextureNumLevels(*this, sampler[0]) -
-                           DflowScalars::ConstantInt(*this, 1);
+   // TODO -- make lod a Dflow
+   DflowScalars lod(m_arenaAllocator, calculateLod(tSize, p, dFdx(p), dFdy(p), isCube));
+
+   DflowScalars minLevel = DflowScalars::TextureNumLevels(m_arenaAllocator, sampler[0]) -
+                           DflowScalars::Int(m_arenaAllocator, 1);
 
    // Clamp the rounded lod to the actual mip-levels available
    DflowScalars mipLvl = clamp(round(lod), 0.0f, itof(minLevel));
 
-   DflowScalars result(*this, { mipLvl[0], lod[0] });
+   DflowScalars result(m_arenaAllocator, { mipLvl[0], lod[0] });
    AddDataflow(node, result);
 #endif
 }
@@ -824,7 +822,7 @@ void DflowBuilder::Visit(const NodeBranchConditional *node)
 
    if (trueBlock.IsSameBlock(current) || falseBlock.IsSameBlock(current))
    {
-      BasicBlockHandle newBlock(*this);
+      BasicBlockHandle newBlock(m_basicBlockPool);
 
       current->SetFallthroughTarget(newBlock);
       m_functionStack->SetCurrentBlock(newBlock);
@@ -901,7 +899,7 @@ void DflowBuilder::Visit(const NodeSwitch *node)
       DflowScalars   select = LoadFromSymbol(currentBlock, switchSym);
       DflowScalars   test   = select == literal;
 
-      BasicBlockHandle nextBlock(*this);
+      BasicBlockHandle nextBlock(m_basicBlockPool);
 
       currentBlock->SetControl(test[0], targetBlock, nextBlock);
       currentBlock = nextBlock;
@@ -916,7 +914,7 @@ void DflowBuilder::Visit(const NodeKill *node)
 {
    BasicBlockHandle current = m_functionStack->GetCurrentBlock();
 
-   StoreToSymbol(current, m_discard, DflowScalars::ConstantBool(*this, true));
+   StoreToSymbol(current, m_discard, DflowScalars::Bool(m_arenaAllocator, true));
 
    current->SetFallthroughTarget(m_functionStack->GetReturnBlock());
 }
@@ -926,8 +924,8 @@ void DflowBuilder::Visit(const NodePhi *node)
    SymbolTypeHandle  symbolType = GetSymbolType(node->GetResultType());
    assert(symbolType.GetNumScalars() != 0);
 
-   SymbolHandle phiSym   = SymbolHandle::Internal(m_module, "$$phi", symbolType);
-   DflowScalars defaults = DflowScalars::Default(*this, symbolType);
+   SymbolHandle phiSym   = SymbolHandle::Internal(*this, "$$phi", symbolType);
+   DflowScalars defaults = DflowScalars::Default(m_arenaAllocator, symbolType);
 
    StoreToSymbol(m_entryBlock, phiSym, defaults);
 
@@ -1024,9 +1022,9 @@ void DflowBuilder::Visit(const NodeFUnordNotEqual *node)
    const DflowScalars &lhs = GetDataflow(node->GetOperand1());
    const DflowScalars &rhs = GetDataflow(node->GetOperand2());
 
-   // Unordered OR NotEqual : this matches the negation of the IEEE == operation.
+   // Unordered OR NotEqual : this matches the IEEE != operation.
    // i.e. any NaNs yield 1
-   AddDataflow(node, !(lhs == rhs)); // Do not replace with lhs != rhs - it's not the same
+   AddDataflow(node, lhs != rhs);
 }
 
 void DflowBuilder::Visit(const NodeFUnordLessThan *node)
@@ -1115,7 +1113,7 @@ void DflowBuilder::Visit(const NodeIsFinite *node)
    const DflowScalars &x = GetDataflow(node->GetX());
 
    auto xint = reinterpu(fabs(x));
-   auto c    = DflowScalars::ConstantUInt(*this, 0x7F800000);
+   auto c    = DflowScalars::UInt(m_arenaAllocator, 0x7F800000);
    AddDataflow(node, xint != c);
 }
 
@@ -1125,8 +1123,8 @@ void DflowBuilder::Visit(const NodeIsNormal *node)
 
    // Normal means exponent is non-zero
    auto xint = reinterpu(x);
-   auto c    = DflowScalars::ConstantUInt(*this, 0x7F800000);
-   auto zero = DflowScalars::ConstantUInt(*this, 0);
+   auto c    = DflowScalars::UInt(m_arenaAllocator, 0x7F800000);
+   auto zero = DflowScalars::UInt(m_arenaAllocator, 0);
 
    AddDataflow(node, (xint & c) != zero);
 }
@@ -1139,15 +1137,15 @@ void DflowBuilder::Visit(const NodeBitReverse *node)
    bool isSigned = IsSigned::Get(node->GetResultType());
 
    // Assumes 32-bit width
-   auto c1        = DflowScalars::ConstantUInt(*this, 1);
-   auto c2        = DflowScalars::ConstantUInt(*this, 2);
-   auto c4        = DflowScalars::ConstantUInt(*this, 4);
-   auto c8        = DflowScalars::ConstantUInt(*this, 8);
-   auto c16       = DflowScalars::ConstantUInt(*this, 16);
-   auto x55555555 = DflowScalars::ConstantUInt(*this, 0x55555555u);
-   auto x33333333 = DflowScalars::ConstantUInt(*this, 0x33333333u);
-   auto x0F0F0F0F = DflowScalars::ConstantUInt(*this, 0x0F0F0F0Fu);
-   auto x00FF00FF = DflowScalars::ConstantUInt(*this, 0x00FF00FFu);
+   auto c1        = DflowScalars::UInt(m_arenaAllocator, 1);
+   auto c2        = DflowScalars::UInt(m_arenaAllocator, 2);
+   auto c4        = DflowScalars::UInt(m_arenaAllocator, 4);
+   auto c8        = DflowScalars::UInt(m_arenaAllocator, 8);
+   auto c16       = DflowScalars::UInt(m_arenaAllocator, 16);
+   auto x55555555 = DflowScalars::UInt(m_arenaAllocator, 0x55555555u);
+   auto x33333333 = DflowScalars::UInt(m_arenaAllocator, 0x33333333u);
+   auto x0F0F0F0F = DflowScalars::UInt(m_arenaAllocator, 0x0F0F0F0Fu);
+   auto x00FF00FF = DflowScalars::UInt(m_arenaAllocator, 0x00FF00FFu);
 
    DflowScalars v = isSigned ? reinterpu(x) : x;
 
@@ -1156,7 +1154,7 @@ void DflowBuilder::Visit(const NodeBitReverse *node)
    v = ((v >> c4) & x0F0F0F0F) | ((v & x0F0F0F0F) << c4);
    v = ((v >> c8) & x00FF00FF) | ((v & x00FF00FF) << c8);
 
-   v = (v >> c16) | (v << c16);
+   v = DflowScalars::BinaryOp(DATAFLOW_ROR, v, c16);
 
    if (isSigned)
       v = reinterpi(v);
@@ -1170,10 +1168,8 @@ void DflowBuilder::Visit(const NodeVectorTimesScalar *node)
    const DflowScalars &s = GetDataflow(node->GetScalar());
    assert(s.Size() == 1);
 
-   DflowScalars result(*this, v.Size());
-
-   for (uint32_t i = 0; i < v.Size(); ++i)
-      result[i] = v[i] * s[0];
+   auto result = DflowScalars::ForeachIndex(m_arenaAllocator, v.Size(),
+      [&v, &s](uint32_t i) { return v[i] * s[0]; } );
 
    AddDataflow(node, result);
 }
@@ -1216,11 +1212,11 @@ void DflowBuilder::Visit(const NodeCompositeConstruct *node)
 {
    uint32_t size = GetNumScalars(node->GetResultType());
 
-   DflowScalars   result = DflowScalars(*this, size);
+   DflowScalars   result = DflowScalars(m_arenaAllocator, size);
    uint32_t       offset = 0;
 
    // This is more general than the SPIR-V spec allows
-   for (const NodeIndex constituent : node->GetConstituents())
+   for (const NodeConstPtr constituent : node->GetConstituents())
    {
       const DflowScalars &scalars = GetDataflow(constituent);
 
@@ -1573,7 +1569,7 @@ void DflowBuilder::Visit(const NodeBitcast *node)
 
    const DflowScalars &op = GetDataflow(operand);
 
-   AddDataflow(node, DflowScalars::Reinterpret(ResultDataflowType(node), op));
+   AddDataflow(node, op.As(ResultDataflowType(node)));
 }
 
 void DflowBuilder::Visit(const NodeIEqual *node)
@@ -1757,22 +1753,8 @@ void DflowBuilder::Visit(const NodeBitFieldInsert *node)
 
 void DflowBuilder::Visit(const NodeBitCount *node)
 {
-   DflowScalars   value = GetDataflow(node->GetBase()).Unsigned();
-
-   const DflowScalars   u1        = constU(1, value);
-   const DflowScalars   u2        = constU(2, value);
-   const DflowScalars   u4        = constU(4, value);
-   const DflowScalars   u24       = constU(24, value);
-   const DflowScalars   x33333333 = constU(0x33333333, value);
-   const DflowScalars   x55555555 = constU(0x55555555, value);
-   const DflowScalars   x0F0F0F0F = constU(0x0F0F0F0F, value);
-   const DflowScalars   x01010101 = constU(0x01010101, value);
-
-   value = value - ((value >> u1) & x55555555);               // 2 bit counters
-   value = (value & x33333333) + ((value >> u2) & x33333333); // 4 bit counters
-   value = (value + (value >> u4)) & x0F0F0F0F;               // 8 bit counters
-
-   AddDataflow(node, lsr(value * x01010101, u24).Signed());
+   DflowScalars value = GetDataflow(node->GetBase()).Unsigned();
+   AddDataflow(node, bitCount(value));
 }
 
 void DflowBuilder::Visit(const NodeQuantizeToF16 *node)
@@ -1782,18 +1764,24 @@ void DflowBuilder::Visit(const NodeQuantizeToF16 *node)
    AddDataflow(node, quantizeToF16(value));
 }
 
+static NodeTypeMatrix::Size MatrixSize(const Node *node)
+{
+   auto matrixType = node->GetResultType()->As<const NodeTypeMatrix *>();
+
+   return matrixType->GetSize();
+}
+
 void DflowBuilder::Visit(const NodeTranspose *node)
 {
-   uint32_t rows, cols;
    // This gets the info on the result i.e. the dst
    // so the src will be the other way round.
-   FindMatrixInfo(node, &cols, &rows);
+   NodeTypeMatrix::Size sz = MatrixSize(node);
 
-   DflowMatrix src(rows, cols, GetDataflow(node->GetMatrix()));
-   DflowMatrix dst(*this, cols, rows);
+   DflowMatrix src(sz.rows, sz.cols, GetDataflow(node->GetMatrix()));
+   DflowMatrix dst(m_arenaAllocator, sz.cols, sz.rows);
 
-   for (uint32_t c = 0; c < cols; ++c)
-      for (uint32_t r = 0; r < rows; ++r)
+   for (uint32_t c = 0; c < sz.cols; ++c)
+      for (uint32_t r = 0; r < sz.rows; ++r)
          dst(c, r) = src(r, c);
 
    AddDataflow(node, dst.GetScalars());
@@ -1801,29 +1789,26 @@ void DflowBuilder::Visit(const NodeTranspose *node)
 
 void DflowBuilder::Visit(const NodeMatrixTimesScalar *node)
 {
-   uint32_t rows, cols;
-   FindMatrixInfo(node, &cols, &rows);
+   NodeTypeMatrix::Size sz = MatrixSize(node);
 
    const DflowScalars &matrix = GetDataflow(node->GetMatrix());
    const DflowScalars &scalar = GetDataflow(node->GetScalar());
 
-   DflowScalars result(*this, cols * rows);
+   uint32_t count = sz.cols * sz.rows;
 
-   for (uint32_t i = 0; i < rows * cols; ++i)
-      result[i] = matrix[i] * scalar[0];
+   auto result= DflowScalars::ForeachIndex(m_arenaAllocator, count,
+      [&matrix, &scalar](uint32_t i) { return matrix[i] * scalar[0]; });
 
    AddDataflow(node, result);
 }
 
 static inline DflowScalars MatXY_MatZYxMatXZ(const DflowMatrix &lhs, const DflowMatrix &rhs)
 {
-   const DflowBuilder &alloc = lhs.Builder();
-
    const uint32_t X = rhs.GetCols();
    const uint32_t Y = lhs.GetRows();
    const uint32_t Z = lhs.GetCols();
 
-   DflowMatrix    result(alloc, X, Y);
+   DflowMatrix    result(lhs.GetAllocator(), X, Y);
 
    for (uint32_t c = 0; c < X; ++c)
    {
@@ -1850,11 +1835,10 @@ void DflowBuilder::Visit(const NodeVectorTimesMatrix *node)
    const Node *vecOp = node->GetVector();
    const Node *matOp = node->GetMatrix();
 
-   uint32_t cols, rows;
-   FindMatrixInfo(matOp, &cols, &rows);
+   NodeTypeMatrix::Size sz = MatrixSize(matOp);
 
-   DflowMatrix lhs(rows, 1,    GetDataflow(vecOp));
-   DflowMatrix rhs(cols, rows, GetDataflow(matOp));
+   DflowMatrix lhs(sz.rows, 1,    GetDataflow(vecOp));
+   DflowMatrix rhs(sz.cols, sz.rows, GetDataflow(matOp));
 
    DflowScalars result = MatXY_MatZYxMatXZ(lhs, rhs);
 
@@ -1866,11 +1850,10 @@ void DflowBuilder::Visit(const NodeMatrixTimesVector *node)
    const Node *vecOp = node->GetVector();
    const Node *matOp = node->GetMatrix();
 
-   uint32_t cols, rows;
-   FindMatrixInfo(matOp, &cols, &rows);
+   NodeTypeMatrix::Size sz = MatrixSize(matOp);
 
-   DflowMatrix lhs(cols, rows, GetDataflow(matOp));
-   DflowMatrix rhs(1,    cols, GetDataflow(vecOp));
+   DflowMatrix lhs(sz.cols, sz.rows, GetDataflow(matOp));
+   DflowMatrix rhs(1,       sz.cols, GetDataflow(vecOp));
 
    DflowScalars result = MatXY_MatZYxMatXZ(lhs, rhs);
 
@@ -1882,16 +1865,22 @@ void DflowBuilder::Visit(const NodeMatrixTimesMatrix *node)
    const Node *lMatOp = node->GetLeftMatrix();
    const Node *rMatOp = node->GetRightMatrix();
 
-   uint32_t lCols, lRows, rCols, rRows;
-   FindMatrixInfo(lMatOp, &lCols, &lRows);
-   FindMatrixInfo(rMatOp, &rCols, &rRows);
+   NodeTypeMatrix::Size lsz = MatrixSize(lMatOp);
+   NodeTypeMatrix::Size rsz = MatrixSize(rMatOp);
 
-   const DflowMatrix lhs(lCols, lRows, GetDataflow(lMatOp));
-   const DflowMatrix rhs(rCols, rRows, GetDataflow(rMatOp));
+   const DflowMatrix lhs(lsz.cols, lsz.rows, GetDataflow(lMatOp));
+   const DflowMatrix rhs(rsz.cols, rsz.rows, GetDataflow(rMatOp));
 
    DflowScalars result = MatXY_MatZYxMatXZ(lhs, rhs);
 
    AddDataflow(node, result);
+}
+
+static uint32_t VectorSize(const Node *node)
+{
+   auto vecType = node->GetResultType()->As<const NodeTypeVector *>();
+
+   return vecType->GetComponentCount();
 }
 
 void DflowBuilder::Visit(const NodeOuterProduct *node)
@@ -1905,7 +1894,7 @@ void DflowBuilder::Visit(const NodeOuterProduct *node)
    const DflowScalars &lhs = GetDataflow(vecOp1);
    const DflowScalars &rhs = GetDataflow(vecOp2);
 
-   DflowMatrix  result(*this, cols, rows);
+   DflowMatrix  result(m_arenaAllocator, cols, rows);
 
    for (uint32_t c = 0; c < cols; ++c)
       for (uint32_t r = 0; r < rows; ++r)
@@ -1922,7 +1911,7 @@ static inline Dflow Det2x2(const DflowMatrix &m)
 
 static inline Dflow Det3x3(const DflowMatrix &m)
 {
-   const DflowBuilder &alloc = m.Builder();
+   const DflowScalars::Allocator &alloc = m.GetAllocator();
 
    DflowMatrix minor00(alloc, m(1, 1), m(1, 2),
                               m(2, 1), m(2, 2));
@@ -1938,7 +1927,7 @@ static inline Dflow Det3x3(const DflowMatrix &m)
 
 static inline Dflow Det4x4(const DflowMatrix &m)
 {
-   const DflowBuilder &alloc = m.Builder();
+   const DflowScalars::Allocator &alloc = m.GetAllocator();
 
    DflowMatrix minor00(alloc, m(1, 1), m(1, 2), m(1, 3),
                               m(2, 1), m(2, 2), m(2, 3),
@@ -1964,29 +1953,28 @@ static inline Dflow Det4x4(const DflowMatrix &m)
 
 void DflowBuilder::Visit(const NodeStdDeterminant *node)
 {
-   uint32_t cols, rows;
-   FindMatrixInfo(node->GetX(), &cols, &rows);
-   assert(rows == cols && rows >= 2 && rows <= 4);
+   NodeTypeMatrix::Size sz = MatrixSize(node->GetX());
+   assert(sz.rows == sz.cols && sz.rows >= 2 && sz.rows <= 4);
 
-   DflowMatrix m(cols, rows, GetDataflow(node->GetX()));
+   DflowMatrix m(sz.cols, sz.rows, GetDataflow(node->GetX()));
 
    Dflow result;
 
-   switch (cols)
+   switch (sz.cols)
    {
    case 2: result = Det2x2(m); break;
    case 3: result = Det3x3(m); break;
    case 4: result = Det4x4(m); break;
    }
 
-   AddDataflow(node, DflowScalars(*this, result));
+   AddDataflow(node, result);
 }
 
 inline DflowScalars InvMat2x2(const DflowMatrix &m)
 {
-   const DflowBuilder &alloc = m.Builder();
+   const DflowScalars::Allocator &alloc = m.GetAllocator();
 
-   Dflow scale = Dflow::ConstantFloat(1.0f) / Det2x2(m);
+   Dflow scale = 1.0f / Det2x2(m);
 
    DflowMatrix  result(alloc,  m(1, 1) * scale, -m(0, 1) * scale,
                               -m(1, 0) * scale,  m(0, 0) * scale);
@@ -1996,9 +1984,9 @@ inline DflowScalars InvMat2x2(const DflowMatrix &m)
 
 inline DflowScalars InvMat3x3(const DflowMatrix &m)
 {
-   const DflowBuilder &alloc = m.Builder();
+   const DflowScalars::Allocator &alloc = m.GetAllocator();
 
-   Dflow scale = Dflow::ConstantFloat(1.0f) / Det3x3(m);
+   Dflow scale = 1.0f / Det3x3(m);
 
    DflowMatrix    minor00(alloc, m(1, 1), m(1, 2),
                                  m(2, 1), m(2, 2));
@@ -2028,9 +2016,9 @@ inline DflowScalars InvMat3x3(const DflowMatrix &m)
 
 inline DflowScalars InvMat4x4(const DflowMatrix &m)
 {
-   const DflowBuilder &alloc = m.Builder();
+   const DflowScalars::Allocator &alloc = m.GetAllocator();
 
-   Dflow scale = Dflow::ConstantFloat(1.0f) / Det4x4(m);
+   Dflow scale = 1.0f / Det4x4(m);
 
    DflowMatrix    minor00(alloc, m(1, 1), m(1, 2), m(1, 3),
                                  m(2, 1), m(2, 2), m(2, 3),
@@ -2091,13 +2079,12 @@ inline DflowScalars InvMat4x4(const DflowMatrix &m)
 
 void DflowBuilder::Visit(const NodeStdMatrixInverse *node)
 {
-   uint32_t cols, rows;
-   FindMatrixInfo(node, &cols, &rows);
-   assert(rows == cols && rows >= 2 && rows <= 4);
+   NodeTypeMatrix::Size sz = MatrixSize(node);
+   assert(sz.rows == sz.cols && sz.rows >= 2 && sz.rows <= 4);
 
-   DflowMatrix m(cols, rows, GetDataflow(node->GetX()));
+   DflowMatrix m(sz.cols, sz.rows, GetDataflow(node->GetX()));
 
-   switch (cols)
+   switch (sz.cols)
    {
    case 2: AddDataflow(node, InvMat2x2(m)); break;
    case 3: AddDataflow(node, InvMat3x3(m)); break;
@@ -2109,26 +2096,14 @@ void DflowBuilder::Visit(const NodeAny *node)
 {
    const DflowScalars &v = GetDataflow(node->GetVector());
 
-   DflowScalars result(*this, 1);
-
-   result[0] = v[0];
-   for (uint32_t i = 1; i < v.Size(); ++i)
-      result[0] = result[0] || v[i];
-
-   AddDataflow(node, result);
+   AddDataflow(node, v.Fold([](const Dflow &l, const Dflow &r) { return l || r; }));
 }
 
 void DflowBuilder::Visit(const NodeAll *node)
 {
    const DflowScalars &v = GetDataflow(node->GetVector());
 
-   DflowScalars   result(*this, 1);
-
-   result[0] = v[0];
-   for (uint32_t i = 1; i < v.Size(); ++i)
-      result[0] = result[0] && v[i];
-
-   AddDataflow(node, result);
+   AddDataflow(node, v.Fold([](const Dflow &l, const Dflow &r) { return l && r; }));
 }
 
 void DflowBuilder::Visit(const NodeConvertUToF *node)
@@ -2630,7 +2605,7 @@ void DflowBuilder::Visit(const NodeStdInterpolateAtCentroid *node)
    auto sym = GetVariableSymbol(node->GetInterpolant()->As<const NodeVariable*>());
    assert(sym.GetFlavour() == SYMBOL_VAR_INSTANCE);
 
-   DflowScalars res = getValueAtOffset(p, getCentroidOffset(*this), sym.GetInterpQualifier());
+   DflowScalars res = getValueAtOffset(p, getCentroidOffset(m_arenaAllocator), sym.GetInterpQualifier());
 
    AddDataflow(node, res);
 }
@@ -2648,7 +2623,7 @@ void DflowBuilder::Visit(const NodeStdInterpolateAtSample *node)
       auto sym = GetVariableSymbol(node->GetInterpolant()->As<const NodeVariable*>());
       assert(sym.GetFlavour() == SYMBOL_VAR_INSTANCE);
 
-      DflowScalars res = getValueAtOffset(p, getSampleOffset(p.GetBuilder(), sample[0]),
+      DflowScalars res = getValueAtOffset(p, getSampleOffset(p.GetAllocator(), sample[0]),
                                           sym.GetInterpQualifier());
       AddDataflow(node, res);
    }
@@ -2735,27 +2710,21 @@ void DflowBuilder::Visit(const NodeArrayLength *node)
    auto  structType = ptrType->GetType()->As<const NodeTypeStruct *>();
 
    uint32_t arrayMemberIx = node->GetArraymember();
-   uint32_t offset        = 0;
 
-   m_module.GetLiteralMemberDecoration(&offset, spv::Decoration::Offset, structType, arrayMemberIx);
+   auto arrayType = structType->GetMemberstype()[arrayMemberIx]->As<const NodeTypeArray *>();
+   assert(arrayType->IsRuntime());
 
-   auto arrayType = structType->GetMemberstype()[arrayMemberIx]->As<const NodeTypeRuntimeArray *>();
-   auto elemType  = arrayType->GetElementType()->As<const NodeType *>();
+   DecorationQuery query(var);
 
-   Dflow elemSize   = Dflow::ConstantUInt(GetNumScalars(elemType) * 4);
-
-   uint32_t descriptorSet = m_module.RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
-   uint32_t binding       = m_module.RequireLiteralDecoration(spv::Decoration::Binding, var);
-   bool ssbo              = IsSSBO::Test(GetModule(), var);
+   uint32_t descriptorSet = query.RequireLiteral(spv::Decoration::DescriptorSet);
+   uint32_t binding       = query.RequireLiteral(spv::Decoration::Binding);
 
    DescriptorInfo dInfo(descriptorSet, binding, 0);
-   uint32_t descTableIndex = GetDescriptorMaps().FindBufferEntry(ssbo, dInfo);
+   uint32_t descTableIndex = GetDescriptorMaps().FindBuffer(/*ssbo=*/true, dInfo);
 
-   Dflow arrayBytes = Dflow::BufferSize(DF_UINT, offset,
-                                        descTableIndex, ssbo ? DATAFLOW_STORAGE_BUFFER : DATAFLOW_UNIFORM_BUFFER);
+   Dflow length = Dflow::BufferArrayLength(Dflow::Buffer(DATAFLOW_STORAGE_BUFFER, descTableIndex, 0), 0);
 
-   DflowScalars result(*this, arrayBytes / elemSize);
-   AddDataflow(node, result);
+   AddDataflow(node, DflowScalars(m_arenaAllocator, length));
 }
 
 void DflowBuilder::Visit(const NodeLabel *node)
@@ -2776,22 +2745,18 @@ void DflowBuilder::Visit(const NodeControlBarrier *node)
 {
    BasicBlockHandle currentBlock = m_functionStack->GetCurrentBlock();
 
-   if (m_flavour != SHADER_COMPUTE || glsl_wg_size_requires_barriers(m_executionModes.GetWorkgroupSize().data()))
+   if ((spv::Scope)RequireConstantInt(node->GetExecution()) == spv::Scope::Workgroup)
    {
       currentBlock->SetBarrier();
 
       // The barrier marks the end of the block so we need to start
       // a new one.
-      BasicBlockHandle newBlock(*this);
+      BasicBlockHandle newBlock(m_basicBlockPool);
       currentBlock->SetFallthroughTarget(newBlock);
       currentBlock->SetRedirect(newBlock);
 
       m_functionStack->SetCurrentBlock(newBlock);
    }
-
-   // TODO: ignoring scope -- does it mean anything for us?
-   // There's no dataflow associated with this instruction
-   // We do not need to take any notice of the memory semantics
 }
 
 void DflowBuilder::Visit(const NodeMemoryBarrier *node)
@@ -2810,15 +2775,15 @@ DflowScalars DflowBuilder::LoadFromSymbol(BasicBlockHandle block, SymbolHandle s
    uint32_t numScalars = symbol.GetType().GetNumScalars();
 
    if (scalarValues != nullptr)
-      return DflowScalars(*this, numScalars, scalarValues);
+      return DflowScalars(m_arenaAllocator, numScalars, scalarValues);
 
-   scalarValues = DflowScalars::Load(*this, symbol).Data();
+   scalarValues = DflowScalars::Load(m_arenaAllocator, symbol).Data();
 
    // Record the load array
    block->PutLoad(symbol, scalarValues);
 
    // Creates a new array with the same dataflows
-   DflowScalars result(*this, numScalars, scalarValues);
+   DflowScalars result(m_arenaAllocator, numScalars, scalarValues);
 
    // Record the dataflow array
    block->PutScalars(symbol, result.Data());
@@ -2839,7 +2804,7 @@ void DflowBuilder::StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol, co
    if (scalarValues == nullptr)
    {
       // Create new empty array
-      scalarValues = DflowScalars(*this, data.Size()).Data();
+      scalarValues = DflowScalars(m_arenaAllocator, data.Size()).Data();
 
       // Record the dataflow array
       block->PutScalars(symbol, scalarValues);
@@ -2862,13 +2827,13 @@ void DflowBuilder::StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol,
 
    if (scalarValues == nullptr)
    {
-      DflowScalars load = DflowScalars::Load(*this, symbol);
+      DflowScalars load = DflowScalars::Load(m_arenaAllocator, symbol);
 
       // Record dataflow array in load map
       block->PutLoad(symbol, load.Data());
 
       // Record a copy in the scalar map
-      scalarValues = DflowScalars(*this, load.Size(), load.Data()).Data();
+      scalarValues = DflowScalars(m_arenaAllocator, load.Size(), load.Data()).Data();
       block->PutScalars(symbol, scalarValues);
    }
 
@@ -2924,7 +2889,7 @@ void DflowBuilder::BuildAtomic(const N *node, DataflowFlavour flavour)
 
 void DflowBuilder::Visit(const NodeAtomicLoad *node)
 {
-   DflowScalars zero = DflowScalars::ConstantUInt(*this, 0);
+   DflowScalars zero = DflowScalars::UInt(m_arenaAllocator, 0);
 
    // This could be a float.  This also does a store which is inefficient.
    BuildAtomic(node, DATAFLOW_ATOMIC_OR, node->GetPointer(), zero);
@@ -2958,14 +2923,14 @@ void DflowBuilder::Visit(const NodeAtomicCompareExchange *node)
 
 void DflowBuilder::Visit(const NodeAtomicIIncrement *node)
 {
-   DflowScalars one = DflowScalars::ConstantUInt(*this, 1);
+   DflowScalars one = DflowScalars::UInt(m_arenaAllocator, 1);
 
    BuildAtomic(node, DATAFLOW_ATOMIC_ADD, node->GetPointer(), one);
 }
 
 void DflowBuilder::Visit(const NodeAtomicIDecrement *node)
 {
-   DflowScalars one = DflowScalars::ConstantUInt(*this, 1);
+   DflowScalars one = DflowScalars::UInt(m_arenaAllocator, 1);
 
    BuildAtomic(node, DATAFLOW_ATOMIC_SUB, node->GetPointer(), one);
 }
@@ -3026,7 +2991,7 @@ bool DflowBuilder::IsConstant(const spv::vector<const Node *> &indices)
 }
 
 // Allocate ids to the symbol and record in the symbol id map
-void DflowBuilder::AssignIds(SymbolHandle symbol, uint32_t *current)
+void DflowBuilder::AssignIds(SymbolHandle symbol, int *current)
 {
    uint32_t count = symbol.GetType().GetNumScalars();
 
@@ -3045,13 +3010,13 @@ void DflowBuilder::RecordInputSymbol(SymbolHandle symbol)
 {
    m_inputSymbols.push_back(symbol);
    if (strncmp(symbol.GetName(), "gl_", 3))
-      AssignIds(symbol, &m_curInputRow);
+      AssignIds(symbol, &m_curInputId);
 }
 
 void DflowBuilder::RecordOutputSymbol(SymbolHandle symbol)
 {
    m_outputSymbols.push_back(symbol);
-   AssignIds(symbol, &m_curOutputRow);
+   AssignIds(symbol, &m_curOutputId);
 }
 
 void DflowBuilder::RecordUniformSymbol(SymbolHandle symbol, int *ids)
@@ -3060,11 +3025,11 @@ void DflowBuilder::RecordUniformSymbol(SymbolHandle symbol, int *ids)
    m_symbolIdMap.Put(symbol, ids);
 }
 
-void DflowBuilder::RenameBuiltinSymbol(const Node *var, SymbolHandle symbol, bool *seenPointSize)
+void DflowBuilder::RenameBuiltinSymbol(const Node *var, SymbolHandle symbol)
 {
    // Set the expected name for builtins
-   spv::BuiltIn   builtin;
-   if (m_module.GetBuiltinDecoration(&builtin, var))
+   spv::BuiltIn builtin;
+   if (DecorationQuery(var).Builtin(&builtin))
    {
       switch(builtin)
       {
@@ -3072,25 +3037,21 @@ void DflowBuilder::RenameBuiltinSymbol(const Node *var, SymbolHandle symbol, boo
       case spv::BuiltIn::PointSize  : symbol.SetName("gl_PointSize");  break;
       case spv::BuiltIn::FragDepth  : symbol.SetName("gl_FragDepth");  break;
       case spv::BuiltIn::SampleMask : symbol.SetName("gl_SampleMask"); break;
-      default                   : break;
+      default                       : break;
       }
-
-      if (builtin == spv::BuiltIn::PointSize)
-         *seenPointSize = true;
    }
 }
 
 void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavour flavour)
 {
-   BasicBlockHandle exitBlock     = m_functionStack->GetCurrentBlock();
-   bool             seenPointSize = false;
+   BasicBlockHandle exitBlock = m_functionStack->GetCurrentBlock();
 
-   for (const NodeIndex index : entryPoint->GetInterface())
+   for (const NodeConstPtr index : entryPoint->GetInterface())
    {
       auto         var    = index->As<const NodeVariable *>();
       SymbolHandle symbol = GetVariableSymbol(var);
 
-      RenameBuiltinSymbol(var, symbol, &seenPointSize);
+      RenameBuiltinSymbol(var, symbol);
 
       if (flavour == SHADER_VERTEX && symbol == m_glPerVertex)
       {
@@ -3104,14 +3065,14 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
             uint32_t offset = ScalarOffsetStatic::Calculate(*this, structure, indices);
 
             spv::BuiltIn   builtin;
-            if (m_module.GetBuiltinMemberDecoration(&builtin, structure, i))
+            if (MemberDecorationQuery(structure, i).Builtin(&builtin))
             {
 
                if (builtin == spv::BuiltIn::Position)
                {
                   SymbolTypeHandle  floatType = SymbolTypeHandle::Float();
 
-                  auto glPosition = SymbolHandle::Builtin(m_module, "gl_Position",
+                  auto glPosition = SymbolHandle::Builtin(*this, "gl_Position",
                                                           spv::StorageClass::Output, SymbolTypeHandle::Vector(floatType, 4));
                   const DflowScalars scalars  = LoadFromSymbol(exitBlock, m_glPerVertex);
                   const DflowScalars position = scalars.Slice(offset, 4);
@@ -3123,36 +3084,23 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
                {
                   SymbolTypeHandle  floatType = SymbolTypeHandle::Float();
 
-                  auto glPointSize = SymbolHandle::Builtin(m_module, "gl_PointSize",
+                  auto glPointSize = SymbolHandle::Builtin(*this, "gl_PointSize",
                                                            spv::StorageClass::Output, floatType);
                   const DflowScalars scalars   = LoadFromSymbol(exitBlock, m_glPerVertex);
                   const DflowScalars pointSize = scalars.Slice(offset, 1);
 
                   StoreToSymbol(exitBlock, glPointSize, pointSize);
                   RecordOutputSymbol(glPointSize);
-
-                  seenPointSize = true;
                }
             }
          }
       }
    }
-
-   if (flavour == SHADER_VERTEX && !seenPointSize)
-   {
-      // We must always have a pointsize, so if it hasn't already turned up,
-      // create a fresh one
-      auto glPointSize = SymbolHandle::Builtin(m_module, "gl_PointSize",
-                                               spv::StorageClass::Output, SymbolTypeHandle::Float());
-      auto pointSize   = DflowScalars::ConstantFloat(*this, 1.0f);
-      StoreToSymbol(exitBlock, glPointSize, pointSize);
-      RecordOutputSymbol(glPointSize);
-   }
 }
 
 DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
 {
-   DflowScalars   result(*this);
+   DflowScalars   result(m_arenaAllocator);
 
    switch (builtin)
    {
@@ -3166,45 +3114,43 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    // These are all part of the Shader capability group which we must support
    case spv::BuiltIn::VertexId      :
    case spv::BuiltIn::VertexIndex   :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_GET_VERTEX_ID);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_VERTEX_ID);
       break;
 
    case spv::BuiltIn::InstanceId    :
    case spv::BuiltIn::InstanceIndex :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_GET_INSTANCE_ID);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_INSTANCE_ID);
       // On v4 h/w, the instance id doesn't include the baseInstance, so add it back in
-      result = result + DflowScalars::NullaryOp(*this, DATAFLOW_GET_BASE_INSTANCE);
+      result = result + DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_BASE_INSTANCE);
       break;
 
    case spv::BuiltIn::FragCoord     :
-      result = DflowScalars::NullaryOp(*this, { DATAFLOW_FRAG_GET_X,
-                                                DATAFLOW_FRAG_GET_Y,
-                                                DATAFLOW_FRAG_GET_Z,
-                                                DATAFLOW_FRAG_GET_W });
+      result = DflowScalars::NullaryOp(m_arenaAllocator,
+                                       { DATAFLOW_FRAG_GET_X, DATAFLOW_FRAG_GET_Y,
+                                         DATAFLOW_FRAG_GET_Z, DATAFLOW_FRAG_GET_W });
       break;
 
    case spv::BuiltIn::PointCoord :
-      result = DflowScalars::NullaryOp(*this, { DATAFLOW_GET_POINT_COORD_X,
-                                                DATAFLOW_GET_POINT_COORD_Y });
-      result[1] = Dflow::ConstantFloat(1.0f) - result[1];
+      result = DflowScalars::NullaryOp(m_arenaAllocator,
+                                       { DATAFLOW_GET_POINT_COORD_X,
+                                         DATAFLOW_GET_POINT_COORD_Y });
+      result[1] = 1.0f - result[1];
       break;
 
    case spv::BuiltIn::FrontFacing :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_FRAG_GET_FF);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_FRAG_GET_FF);
       break;
 
    case spv::BuiltIn::HelperInvocation :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_IS_HELPER);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_IS_HELPER);
       break;
 
-   // Part of Geometry and Tessellation
    case spv::BuiltIn::PrimitiveId :
-      // TODO
-      assert(0);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_PRIMITIVE_ID);
       break;
 
    case spv::BuiltIn::InvocationId :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_GET_INVOCATION_ID);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_INVOCATION_ID);
       break;
 
    // Geometry
@@ -3224,24 +3170,25 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
 
    // SampleRateShading
    case spv::BuiltIn::SampleId :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_SAMPLE_ID);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_SAMPLE_ID);
       break;
 
    case spv::BuiltIn::SamplePosition :
-      result = DflowScalars::NullaryOp(*this, { DATAFLOW_SAMPLE_POS_X, DATAFLOW_SAMPLE_POS_Y });
+      result = DflowScalars::NullaryOp(m_arenaAllocator, { DATAFLOW_SAMPLE_POS_X, DATAFLOW_SAMPLE_POS_Y });
       break;
 
    case spv::BuiltIn::SampleMask :
-      result = DflowScalars::NullaryOp(*this, DATAFLOW_SAMPLE_MASK);
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_SAMPLE_MASK);
       break;
 
    ////////////////////////////////////////////////////////////////////////////
    // Compute
    ////////////////////////////////////////////////////////////////////////////
    case spv::BuiltIn::NumWorkgroups :
-      result = DflowScalars::NullaryOp(*this, { DATAFLOW_GET_NUMWORKGROUPS_X,
-                                                DATAFLOW_GET_NUMWORKGROUPS_Y,
-                                                DATAFLOW_GET_NUMWORKGROUPS_Z });
+      result = DflowScalars::NullaryOp(m_arenaAllocator,
+                                       { DATAFLOW_GET_NUMWORKGROUPS_X,
+                                         DATAFLOW_GET_NUMWORKGROUPS_Y,
+                                         DATAFLOW_GET_NUMWORKGROUPS_Z });
       break;
 
    case spv::BuiltIn::WorkgroupSize        :
@@ -3256,13 +3203,23 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    case spv::BuiltIn::GlobalInvocationId   :
       // These symbols are set after the dflow has been constructed, so just put
       // some default values in here
-      result = DflowScalars::ConstantUInt(*this, 0, 3);
+      result = DflowScalars::UInt(m_arenaAllocator, 0, 3);
       break;
 
    case spv::BuiltIn::LocalInvocationIndex :
-      // This symbol is set after the dflow has been constructed, so just put
+   case spv::BuiltIn::SubgroupId:
+   case spv::BuiltIn::NumSubgroups:
+      // These symbols are set after the dflow has been constructed, so just put
       // a default value in here
-      result = DflowScalars::ConstantUInt(*this, 0, 1);
+      result = DflowScalars::UInt(m_arenaAllocator, 0);
+      break;
+
+   case spv::BuiltIn::SubgroupSize:
+      result = DflowScalars::UInt(m_arenaAllocator, 16);
+      break;
+
+   case spv::BuiltIn::SubgroupLocalInvocationId:
+      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_SG_LOCAL_IDX);
       break;
 
    case spv::BuiltIn::ClipDistance              : // We don't support ClipDistance
@@ -3274,13 +3231,9 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    case spv::BuiltIn::EnqueuedWorkgroupSize     :
    case spv::BuiltIn::GlobalOffset              :
    case spv::BuiltIn::GlobalLinearId            :
-   case spv::BuiltIn::SubgroupSize              :
    case spv::BuiltIn::SubgroupMaxSize           :
-   case spv::BuiltIn::NumSubgroups              :
    case spv::BuiltIn::NumEnqueuedSubgroups      :
-   case spv::BuiltIn::SubgroupId                :
-   case spv::BuiltIn::SubgroupLocalInvocationId :
-   default                                  :
+   default:
       unreachable();
       break;
    }
@@ -3288,16 +3241,106 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    return result;
 }
 
-DflowScalars DflowBuilder::CreateVariableDataflow(const NodeVariable *var, SymbolTypeHandle type)
+DflowScalars DflowBuilder::ImageSampler(
+   const SymbolTypeHandle type, bool relaxed, uint32_t descriptorSet, uint32_t binding, int *ids)
 {
-   DflowScalars      result(*this);
+   SymbolTypeHandle elemType   = type;
+   uint32_t         numElems   = 1;
+
+   if (type.GetFlavour() == SYMBOL_ARRAY_TYPE)
+   {
+      elemType = type.GetElementType();
+      numElems = type.GetElementCount();
+   }
+
+   uint32_t elemSize = elemType.GetNumScalars();
+   assert(elemSize == 1 || elemSize == 2);
+   DflowScalars result = DflowScalars(m_arenaAllocator, type.GetNumScalars());
+
+   for (uint32_t i = 0; i < numElems; i++)
+   {
+      DescriptorInfo descInfo(descriptorSet, binding, i);
+
+      // Combined image sampler?
+      if (elemSize == 2)
+      {
+         uint32_t imgTableIndex = GetDescriptorMaps().AddImage(descInfo);
+         result[i] = Dflow::ImageUniform(type.ToDataflowType(0), relaxed, imgTableIndex);
+         ids[i] = imgTableIndex;
+
+         uint32_t samplerTableIndex = GetDescriptorMaps().AddSampler(descInfo);
+         result[numElems + i] = Dflow::Sampler(samplerTableIndex);
+         ids[numElems + i] = samplerTableIndex;
+      }
+      else if (elemType.IsSampler())
+      {
+         uint32_t descTableIndex = GetDescriptorMaps().AddSampler(descInfo);
+         result[i] = Dflow::Sampler(descTableIndex);
+         ids[i] = descTableIndex;
+      }
+      else
+      {
+         // Should be an image
+         uint32_t descTableIndex = GetDescriptorMaps().AddImage(descInfo);
+         result[i] = Dflow::ImageUniform(type.ToDataflowType(0), relaxed, descTableIndex);
+         ids[i] = descTableIndex;
+      }
+   }
+
+   return result;
+}
+
+class ArrayDescription
+{
+public:
+   ArrayDescription(const Module &module, const NodeTypeStruct *type)
+   {
+      uint32_t lastIndex = type->GetMemberstype().size() - 1;
+      auto     lastType  = type->GetMemberstype().back();
+      auto     arrayType = lastType->TryAs<const NodeTypeArray *>();
+
+      if (arrayType != nullptr && arrayType->IsRuntime())
+      {
+         m_offset = MemberDecorationQuery(type, lastIndex).RequireLiteral(spv::Decoration::Offset);
+         m_stride = DecorationQuery(lastType).RequireLiteral(spv::Decoration::ArrayStride);
+      }
+   }
+
+   uint32_t GetOffset() const { return m_offset; }
+   uint32_t GetStride() const { return m_stride; }
+
+private:
+   uint32_t m_offset = ~0u;
+   uint32_t m_stride = 0;
+};
+
+DflowScalars DflowBuilder::CreateVariableDataflow(const NodeVariable *var, SymbolHandle symbol)
+{
+   SymbolTypeHandle  type    = symbol.GetType();
    spv::StorageClass stClass = var->GetStorageClass();
 
-   const Optional<NodeIndex> &init = var->GetInitializer();
-   DflowScalars               initScalars(*this);
+   DecorationQuery   query(var);
+   DflowScalars      result;
 
-   if (init.IsValid())
-      initScalars = GetDataflow(init.Get());
+   // Initialize if allowed
+   switch (stClass)
+   {
+   case spv::StorageClass::Output:
+   case spv::StorageClass::Function:
+   case spv::StorageClass::Private:
+      {
+         const Optional<NodeConstPtr> &init = var->GetInitializer();
+
+         if (init.IsValid())
+            result = GetDataflow(init.Get());
+         else
+            result = DflowScalars::Default(m_arenaAllocator, type);
+      }
+      break;
+
+   default:
+      break;
+   }
 
    switch (stClass)
    {
@@ -3305,55 +3348,102 @@ DflowScalars DflowBuilder::CreateVariableDataflow(const NodeVariable *var, Symbo
       {
          // Input variables from API or previous stage
          spv::BuiltIn builtin;
-         if (m_module.GetBuiltinDecoration(&builtin, var))
-            result = CreateBuiltinInputDataflow(builtin);
-         else
-            result = DflowScalars::In(*this, type, m_curInputRow);
 
-         if (result.Size() > 0)
-            RecordInputSymbol(GetVariableSymbol(var));
+         if (query.Builtin(&builtin))
+         {
+            result = CreateBuiltinInputDataflow(builtin);
+            if (result.Size() > 0)
+               RecordInputSymbol(symbol);
+         }
+         else
+         {
+            IORecorder::Record(*this, &m_inputMap, type.GetNumScalars(), &m_curInputId, var);
+         }
       }
       break;
 
    case spv::StorageClass::Output:
-      result = DflowScalars::Initialize(type, initScalars);
-      RecordOutputSymbol(GetVariableSymbol(var));
-      break;
+      {
 
-   case spv::StorageClass::Private:
-      result = DflowScalars::Initialize(type, initScalars);
+         // Pervertex structure is copied into output symbols later
+         if (!IsGLPervertexStruct(var))
+         {
+            // If it has a location, we need to record it and assign ids
+            uint32_t loc;
+            if (!query.Literal(&loc, spv::Decoration::Location))
+            {
+               RecordOutputSymbol(symbol);
+            }
+            else
+            {
+               IORecorder::Record(*this, &m_outputMap, type.GetNumScalars(), &m_curOutputId, var);
+               m_outputVariables.push_back(var);
+            }
+         }
+      }
       break;
 
    case spv::StorageClass::UniformConstant:
       {
-         SymbolHandle symbol = GetVariableSymbol(var);
          int *ids = static_cast<int *>(malloc_fast(symbol.GetNumScalars() * sizeof(int)));
 
-         uint32_t descriptorSet = m_module.RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
-         uint32_t binding       = m_module.RequireLiteralDecoration(spv::Decoration::Binding, var);
-         result = DflowScalars::ImageSampler(*this, type, descriptorSet, binding, ids);
+         uint32_t descriptorSet = query.RequireLiteral(spv::Decoration::DescriptorSet);
+         uint32_t binding       = query.RequireLiteral(spv::Decoration::Binding);
+         bool     relaxed       = query.Has(spv::Decoration::RelaxedPrecision);
+         result = ImageSampler(type, relaxed, descriptorSet, binding, ids);
 
-         RecordUniformSymbol(GetVariableSymbol(var), ids);
+         RecordUniformSymbol(symbol, ids);
       }
       break;
 
-   case spv::StorageClass::Uniform:
    case spv::StorageClass::StorageBuffer:
+   case spv::StorageClass::Uniform:
       // UBOs & SSBOs
-      break;
+      {
+         bool     ssbo       = IsSSBO::Test(var);
+         auto     targetType = var->TypeOfTarget();
+         auto     arrayType  = targetType->TryAs<const NodeTypeArray *>();
 
-   case spv::StorageClass::Function:
-      // Function local variables
-      result = DflowScalars::Initialize(type, initScalars);
-      break;
+         uint32_t              count;
+         const NodeTypeStruct *structType;
+         if (arrayType != nullptr)
+         {
+            count      = RequireConstantInt(arrayType->GetLength());
+            structType = arrayType->GetElementType()->As<const NodeTypeStruct *>();
+         }
+         else
+         {
+            count      = 1;
+            structType = targetType->As<const NodeTypeStruct *>();
+         }
 
-   case spv::StorageClass::PushConstant:
+         uint32_t descriptorSet = query.RequireLiteral(spv::Decoration::DescriptorSet);
+         uint32_t binding       = query.RequireLiteral(spv::Decoration::Binding);
+
+         for (uint32_t i = 0; i < count; ++i)
+         {
+            if (ssbo)
+            {
+               ArrayDescription  ad(m_module, structType);
+               DescriptorInfo    descInfo(descriptorSet, binding, i, ad.GetOffset(), ad.GetStride());
+               m_descriptorMaps.AddBuffer(ssbo, descInfo);
+            }
+            else
+            {
+               DescriptorInfo descInfo(descriptorSet, binding, i);
+               m_descriptorMaps.AddBuffer(ssbo, descInfo);
+            }
+         }
+      }
       break;
 
    case spv::StorageClass::Workgroup:
-      m_sharedSymbols.push_back(GetVariableSymbol(var));
+      m_sharedSymbols.push_back(symbol);
       break;
 
+   case spv::StorageClass::Function:
+   case spv::StorageClass::Private:
+   case spv::StorageClass::PushConstant:
    case spv::StorageClass::Image:
       break;
 
@@ -3368,20 +3458,28 @@ DflowScalars DflowBuilder::CreateVariableDataflow(const NodeVariable *var, Symbo
    return result;
 }
 
-static bool IsGLPervertexStruct(const NodeTypeStruct *node)
+bool DflowBuilder::IsGLPervertexStruct(const NodeVariable *var) const
 {
-   auto &memberDecorations = node->GetData()->GetMemberDecorations();
+   SymbolHandle      symbol;
+   const NodeType   *nodeType = var->TypeOfTarget();
+   SymbolTypeHandle  type     = GetSymbolType(var);
 
-   for (auto &memberDecoration : memberDecorations)
+   if (type.GetFlavour() == SYMBOL_STRUCT_TYPE)
    {
-      const Decoration *decoration = memberDecoration.second;
+      auto  structType        = nodeType->As<const NodeTypeStruct *>();
+      auto &memberDecorations = structType->GetData()->GetMemberDecorations();
 
-      if (decoration->Is(spv::Decoration::BuiltIn))
+      for (auto &memberDecoration : memberDecorations)
       {
-         spv::BuiltIn bi = decoration->GetBuiltIn();
+         const Decoration *decoration = memberDecoration.second;
 
-         if (bi == spv::BuiltIn::Position || bi == spv::BuiltIn::PointSize)
-            return true;
+         if (decoration->Is(spv::Decoration::BuiltIn))
+         {
+            spv::BuiltIn bi = decoration->GetBuiltIn();
+
+            if (bi == spv::BuiltIn::Position || bi == spv::BuiltIn::PointSize)
+               return true;
+         }
       }
    }
 
@@ -3396,42 +3494,48 @@ SymbolTypeHandle DflowBuilder::GetSymbolType(const NodeVariable *var) const
 SymbolHandle DflowBuilder::AddSymbol(const NodeVariable *var)
 {
    SymbolHandle      symbol;
-   const NodeType   *nodeType = var->TypeOfTarget();
-   SymbolTypeHandle  type     = GetSymbolType(var);
+   SymbolTypeHandle  type = GetSymbolType(var);
 
-   if (type.GetFlavour() == SYMBOL_STRUCT_TYPE)
+   if (IsGLPervertexStruct(var))
    {
-      auto  structType = nodeType->As<const NodeTypeStruct *>();
-
-      if (IsGLPervertexStruct(structType))
-      {
-         symbol = SymbolHandle::Variable(m_module, m_flavour, "$$gl_PerVertex", var, type);
-         // This symbol needs special treatment as the linker is looking for
-         // gl_Position and gl_PointSize, so record it for later (see SetupInterface)
-         m_glPerVertex = symbol;
-      }
+      symbol = SymbolHandle::Variable(*this, m_flavour, "$$gl_PerVertex", var, type);
+      // This symbol needs special treatment as the linker is looking for
+      // gl_Position and gl_PointSize, so record it for later (see SetupInterface)
+      m_glPerVertex = symbol;
    }
 
    if (m_flavour == SHADER_COMPUTE)
    {
       // Special compute builtins are handled post facto (see Compiler::Compile)
       spv::BuiltIn  builtin;
-      if (m_module.GetBuiltinDecoration(&builtin, var))
+      if (DecorationQuery(var).Builtin(&builtin))
       {
          switch (builtin)
          {
-         case spv::BuiltIn::WorkgroupId          : symbol = m_glWorkGroupID;          break;
-         case spv::BuiltIn::LocalInvocationId    : symbol = m_glLocalInvocationID;    break;
-         case spv::BuiltIn::GlobalInvocationId   : symbol = m_glGlobalInvocationID;   break;
-         case spv::BuiltIn::LocalInvocationIndex : symbol = m_glLocalInvocationIndex; break;
+         case spv::BuiltIn::WorkgroupId          : symbol = m_workGroupID;          break;
+         case spv::BuiltIn::LocalInvocationId    : symbol = m_localInvocationID;    break;
+         case spv::BuiltIn::GlobalInvocationId   : symbol = m_globalInvocationID;   break;
+         case spv::BuiltIn::LocalInvocationIndex : symbol = m_localInvocationIndex; break;
+         case spv::BuiltIn::SubgroupId           : symbol = m_subgroupID;           break;
+         case spv::BuiltIn::NumSubgroups         : symbol = m_numSubgroups;         break;
          default : break;
          }
       }
    }
 
    // If it's not a special symbol, create a variable symbol for it
-   if (symbol == nullptr)
-      symbol = SymbolHandle::Variable(m_module, m_flavour, m_module.GetName(var)->c_str(), var, type);
+   if (!symbol)
+   {
+      char name[12];
+      const char *n = nullptr;
+      if (DecorationQuery(var).Builtin(nullptr))
+      {
+         sprintf(name, "gl_%%%u", var->GetResultId());
+         n = name;
+      }
+
+      symbol = SymbolHandle::Variable(*this, m_flavour, n, var, type);
+   }
 
    SetVariableSymbol(var, symbol);
 
@@ -3441,10 +3545,11 @@ SymbolHandle DflowBuilder::AddSymbol(const NodeVariable *var)
 void DflowBuilder::Visit(const NodeVariable *var)
 {
    SymbolHandle symbol  = AddSymbol(var);
-   DflowScalars scalars = CreateVariableDataflow(var, symbol.GetType());
+   DflowScalars scalars = CreateVariableDataflow(var, symbol);
 
    // No scalars implies e.g. it is a buffer with no internal
-   // representation, only external memory.
+   // representation, only external memory or e.g. an input variable that
+   // is filled in later
    if (scalars.Size() > 0)
       // The back-end requires that all symbols are defined in the start block
       StoreToSymbol(m_entryBlock, symbol, scalars);
@@ -3510,6 +3615,11 @@ void DflowBuilder::Visit(const NodeReturnValue *node)
    m_functionStack.Return(&returnValue);
 }
 
+void DflowBuilder::Visit(const NodeGroupNonUniformElect *node)
+{
+   AddDataflow(node, DflowScalars::UnaryOp(DATAFLOW_SG_ELECT, DflowScalars::Bool(m_arenaAllocator, true)));
+}
+
 bool DflowBuilder::ConstantInt(const Node *node, uint32_t *value)
 {
    const DflowScalars &scalars = GetDataflow(node);
@@ -3566,9 +3676,9 @@ SymbolHandle DflowBuilder::CreateInternal(const char *name, const NodeType *type
 
    if (symbolType.GetNumScalars() != 0)
    {
-      symbol = SymbolHandle::Internal(m_module, name, symbolType);
+      symbol = SymbolHandle::Internal(*this, name, symbolType);
 
-      DflowScalars defaults = DflowScalars::Default(*this, symbolType);
+      DflowScalars defaults = DflowScalars::Default(m_arenaAllocator, symbolType);
 
       StoreToSymbol(m_entryBlock, symbol, defaults);
    }
@@ -3586,18 +3696,22 @@ void DflowBuilder::RecordExecutionModes(const NodeEntryPoint *entry)
    auto &modes = entry->GetData()->GetModes();
 
    for (const NodeExecutionMode *mode : modes)
-      m_executionModes.Record(mode);
+      ExecutionModesRecord(mode);
 }
 
-void DflowBuilder::InitCompute()
+void DflowBuilder::InitCompute(uint32_t sharedMemPerCore)
 {
    m_workgroup = SymbolHandle::SharedBlock(GetSharedSymbols());
 
+   const uint32_t *wgSize = m_executionModes.cs.wg_size;
+
    glsl_generate_compute_variables(
-      m_glLocalInvocationIndex, m_glLocalInvocationID, m_glWorkGroupID,
-      m_glGlobalInvocationID, m_entryBlock->GetBlock(), m_executionModes.GetWorkgroupSize().data(),
+      m_localInvocationIndex, m_localInvocationID,
+      m_workGroupID, m_globalInvocationID,
+      m_numSubgroups, m_subgroupID,
+      m_entryBlock->GetBlock(), wgSize,
       m_workgroup, /*TODO multicore=*/false, Options::autoclifEnabled,
-      v3d_scheduler_get_compute_shared_mem_size_per_core());
+      sharedMemPerCore);
 }
 
 Dflow DflowBuilder::WorkgroupAddress()
@@ -3606,7 +3720,75 @@ Dflow DflowBuilder::WorkgroupAddress()
    return addr[0];
 }
 
-void DflowBuilder::Build(const char *name, ShaderFlavour flavour)
+void DflowBuilder::AddInputSymbols()
+{
+   for (uint32_t i = 0; i < IOMap::NUM_LOCATIONS; ++i)
+   {
+      // If there is an entry for this location, we need to create a symbol
+      // to represent it.
+      uint32_t size = m_inputMap.Size(i);
+
+      if (size > 0)
+      {
+         SymbolTypeHandle     vectorType = m_inputMap.VectorType(i);
+         QualifierDecorations qualifiers = m_inputMap.Qualifiers(i);
+
+         SymbolHandle symbol = SymbolHandle::Variable(*this, m_flavour, qualifiers, i, vectorType);
+
+         DflowScalars scalars = DflowScalars::In(m_arenaAllocator, vectorType, m_inputMap.Ids(i));
+         StoreToSymbol(m_entryBlock, symbol, scalars);
+         m_inputMap.SetSymbol(i, symbol);
+         m_inputSymbols.push_back(symbol);
+         m_symbolIdMap.Put(symbol, m_inputMap.Ids(i));
+      }
+   }
+}
+
+void DflowBuilder::AddOutputSymbols()
+{
+   for (uint32_t i = 0; i < IOMap::NUM_LOCATIONS; ++i)
+   {
+      // If there is an entry for this location, we need to create a symbol
+      // to represent it.
+      uint32_t size = m_outputMap.Size(i);
+
+      if (size > 0)
+      {
+         SymbolTypeHandle     vectorType = m_outputMap.VectorType(i);
+         QualifierDecorations qualifiers = m_outputMap.Qualifiers(i);
+
+         SymbolHandle symbol = SymbolHandle::Variable(*this, m_flavour, qualifiers, i, vectorType);
+
+         DflowScalars scalars = DflowScalars::Default(m_arenaAllocator, vectorType);
+         StoreToSymbol(m_entryBlock, symbol, scalars);
+         m_outputMap.SetSymbol(i, symbol);
+         m_outputSymbols.push_back(symbol);
+         m_symbolIdMap.Put(symbol, m_outputMap.Ids(i));
+      }
+   }
+}
+
+DflowScalars DflowBuilder::LoadFromInputLocation(uint32_t location, BasicBlockHandle block)
+{
+   return LoadFromSymbol(block, m_inputMap.Symbol(location));
+}
+
+void DflowBuilder::StoreToOutputLocation(const DflowScalars &scalars, uint32_t location, uint32_t component, BasicBlockHandle block)
+{
+   StoreToSymbol(block, m_outputMap.Symbol(location), scalars, component);
+}
+
+void DflowBuilder::AssignOutputs()
+{
+   for (const NodeVariable *result : m_outputVariables)
+   {
+      DflowScalars   resultScalars = LoadFromSymbol(m_exitBlock, GetVariableSymbol(result));
+
+      OutputStorer::Store(*this, resultScalars, result, m_exitBlock);
+   }
+}
+
+void DflowBuilder::Build(const char *name, ShaderFlavour flavour, uint32_t sharedMemPerCore)
 {
    const NodeEntryPoint *entry = m_module.GetEntryPoint(name, ConvertExecutionModel(flavour));
    if (entry == nullptr)
@@ -3621,36 +3803,46 @@ void DflowBuilder::Build(const char *name, ShaderFlavour flavour)
    m_entryBlock = m_functionStack->GetCurrentBlock();
    m_flavour    = flavour;
 
-   // Create special symbols
-   if (flavour == SHADER_FRAGMENT)
-   {
-      // The linker looks for the $$discard variable
-      m_discard = SymbolHandle::Builtin(m_module, "$$discard", spv::StorageClass::Output, SymbolTypeHandle::Bool());
-      StoreToSymbol(m_entryBlock, m_discard, DflowScalars::ConstantBool(*this, false));
-      RecordOutputSymbol(m_discard);
-   }
-
    if (flavour == SHADER_COMPUTE)
    {
       SymbolTypeHandle  uintType  = SymbolTypeHandle::UInt();
       SymbolTypeHandle  uvec3Type = SymbolTypeHandle::Vector(uintType, 3);
 
       // The values associated with these variables are added post-facto
-      m_glWorkGroupID          = SymbolHandle::Builtin(m_module, "gl_WorkGroupID",          spv::StorageClass::Input, uvec3Type);
-      m_glLocalInvocationID    = SymbolHandle::Builtin(m_module, "gl_LocalInvocationID",    spv::StorageClass::Input, uvec3Type);
-      m_glGlobalInvocationID   = SymbolHandle::Builtin(m_module, "gl_GlobalInvocationID",   spv::StorageClass::Input, uvec3Type);
-      m_glLocalInvocationIndex = SymbolHandle::Builtin(m_module, "gl_LocalInvocationIndex", spv::StorageClass::Input, uintType);
+      m_workGroupID          = SymbolHandle::Builtin(*this, "gl_WorkGroupID",          spv::StorageClass::Input, uvec3Type);
+      m_localInvocationID    = SymbolHandle::Builtin(*this, "gl_LocalInvocationID",    spv::StorageClass::Input, uvec3Type);
+      m_globalInvocationID   = SymbolHandle::Builtin(*this, "gl_GlobalInvocationID",   spv::StorageClass::Input, uvec3Type);
+      m_localInvocationIndex = SymbolHandle::Builtin(*this, "gl_LocalInvocationIndex", spv::StorageClass::Input, uintType);
+      m_subgroupID           = SymbolHandle::Builtin(*this, "gl_SubgroupID",           spv::StorageClass::Input, uintType);
+      m_numSubgroups         = SymbolHandle::Builtin(*this, "gl_NumSubgroups",         spv::StorageClass::Input, uintType);
 
-      SymbolHandle comp_vary = SymbolHandle::Builtin(m_module, "$$comp_vary", spv::StorageClass::Input, uvec3Type);
+#if !V3D_USE_CSD
+      SymbolHandle comp_vary = SymbolHandle::Builtin(*this, "$$comp_vary", spv::StorageClass::Input, uvec3Type);
       RecordInputSymbol(comp_vary);
+#endif
    }
 
    // Create types and constants and global variables
    for (const Node *global : m_module.GetGlobals())
       global->Accept(*this);
 
+   // These symbols will be used for actual input output
+   // Internally we copy from these inputs
+   // The outputs are copied at the end by AssignOutputs
+   AddInputSymbols();
+   AddOutputSymbols();
+
+   // Create special fragment shader symbols
+   if (flavour == SHADER_FRAGMENT)
+   {
+      // The linker looks for the $$discard variable
+      m_discard = SymbolHandle::Builtin(*this, "$$discard", spv::StorageClass::Output, SymbolTypeHandle::Bool());
+      StoreToSymbol(m_entryBlock, m_discard, DflowScalars::Bool(m_arenaAllocator, false));
+      RecordOutputSymbol(m_discard);
+   }
+
    if (flavour == SHADER_COMPUTE)
-      InitCompute();
+      InitCompute(sharedMemPerCore);
 
    // Enter "main"
    CallFunction(function, nullptr);
@@ -3658,6 +3850,9 @@ void DflowBuilder::Build(const char *name, ShaderFlavour flavour)
    // The back-end does not currently handle "breaks" on the true-branch of a conditional
    // so this swaps these round to false branches and flips the condition.
    PatchConditionals();
+
+   // Assign to the real output variables
+   AssignOutputs();
 
    // Set up symbols for the interfaces
    SetupInterface(entry, flavour);

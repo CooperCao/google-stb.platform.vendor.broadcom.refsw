@@ -4,6 +4,7 @@
 #pragma once
 
 #include "libs/core/v3d/v3d_addr.h"
+#include "libs/core/v3d/v3d_ver.h"
 #include "libs/util/log/log.h"
 #include "libs/util/common.h"
 #include <stdbool.h>
@@ -175,6 +176,11 @@ GMEM_PLAT_INLINE char const* gmem_get_desc(gmem_handle_t handle);
 
 /* Find a gmem handle for the given v3d address. Returns NULL if no match. */
 gmem_handle_t gmem_find_handle_by_addr(v3d_addr_t addr);
+
+#if V3D_USE_L2T_LOCAL_MEM
+v3d_addr_t gmem_get_l2t_local_mem_addr(void);
+v3d_size_t gmem_get_l2t_local_mem_size(void);
+#endif
 
 /* Debug  ================================================================== */
 

@@ -42,10 +42,8 @@ static Backflow *adv_blend_multiply(Backflow *cs, Backflow *cd, Backflow *as, Ba
 
 static Backflow *adv_blend_screen(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
-   // (CsAd + CdAs) - CsCd
-   return sub(add(mul(cs, ad),
-                  mul(cd, as)),
-              mul(cs, cd));
+   // (CsAd + CdAs) - CsCd ==> Cs + Cd - CsCd
+   return sub(add(cs, cd), mul(cs, cd));
 }
 
 static Backflow *adv_blend_overlay_or_hardlight(
@@ -77,13 +75,15 @@ static Backflow *adv_blend_hardlight(Backflow *cs, Backflow *cd, Backflow *as, B
 static Backflow *adv_blend_darken(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
    // min(CsAd, CdAs)
-   return imin(mul(cs, ad), mul(cd, as));
+   // Including the + Cd(1-As) + Cs(1-Ad) term ==> Cs + Cd - max(CsAd, CdAs)
+   return sub(add(cs,cd), imax(mul(cs, ad), mul(cd, as)));
 }
 
 static Backflow *adv_blend_lighten(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
    // max(CsAd, CdAs)
-   return imax(mul(cs, ad), mul(cd, as));
+   // Including the + Cd(1-As) + Cs(1-Ad) term ==> Cs + Cd - min(CsAd, CdAs)
+   return sub(add(cs,cd), imin(mul(cs, ad), mul(cd, as)));
 }
 
 static Backflow *adv_blend_colordodge(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
@@ -116,37 +116,37 @@ static Backflow *adv_blend_colorburn(Backflow *cs, Backflow *cd, Backflow *as, B
 
 static Backflow *adv_blend_softlight(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
-   // AsCd + (2CsCd - AsCd) E, Where E is given by:
-   //       (1-D))          , S <= 0.5
-   //       ((16D-12)D + 3)), S > 0.5 && D <= 0.25
-   //       (rsqrt(D)-1))   , S > 0.5 && D >  0.25
+   // Cd (As + (2Cs - As) E), Where E is given by:
+   //       (1-D)          , S <= 0.5
+   //       ((16D-12)D + 3), S > 0.5 && D <= 0.25
+   //       (rsqrt(D)-1)   , S > 0.5 && D >  0.25
    Backflow *d = tr_blend_div(cd, ad);
    Backflow *one = tr_cfloat(1.0f);
 
    Backflow *e1 = sub(one, d);
    Backflow *e2 = add(mul(sub(mul(tr_cfloat(16.0f), d), tr_cfloat(12.0f)), d), tr_cfloat(3.0f));
-   Backflow *e3 = sub(tr_mov_to_reg(REG_MAGIC_RSQRT, d), one);
+   Backflow *e3 = sub(rsqrt(d), one);
 
    Backflow *s_lte_half = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, cs, mul(tr_cfloat(0.5f), as));
    Backflow *d_lte_qter = tr_binop_push(V3D_QPU_OP_FCMP, SETF_PUSHC, d, tr_cfloat(0.25f));
    Backflow *e = tr_cond(s_lte_half, e1, tr_cond(d_lte_qter, e2, e3, false), false);
 
-   Backflow *ascd = mul(as, cd);
-   Backflow *s2_one = sub(mul(mul(cs, cd), tr_cfloat(2.0f)), ascd);
-   return add(ascd, mul(s2_one, e));
+   Backflow *s2_one = sub(mul(cs, tr_cfloat(2.0f)), as);
+   return mul(cd, add(as, mul(s2_one, e)));
 }
 
 static Backflow *adv_blend_difference(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
    // abs(CdAs - CsAd)
-   return absf(sub(mul(cd, as), mul(cs, ad)));
+   // Including the + Cd(1-As) + Cs(1-Ad) term ==> Cs + Cd - 2 min(CsAd, CdAs)
+   return sub(add(cs, cd), mul(tr_cfloat(2.0f), imin(mul(cs, ad), mul(cd, as))));
 }
 
 static Backflow *adv_blend_exclusion(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad)
 {
    // (CsAd + CdAs) - 2CsCd
-   return sub(add(mul(cs, ad), mul(cd, as)),
-              mul(tr_cfloat(2.0f), mul(cs, cd)));
+   // Including the + Cd(1-As) + Cs(1-Ad) term ==> Cs + Cd - 2CsCd
+   return sub(add(cs, cd), mul(tr_cfloat(2.0f), mul(cs, cd)));
 }
 
 static Backflow *minv3(Backflow *c[3])
@@ -316,13 +316,13 @@ ADV_BLEND_HSL_FN adv_blend_hsl_fn(uint32_t mode)
    case GLSL_ADV_BLEND_HSL_SATURATION: return adv_blend_hsl_saturation;
    case GLSL_ADV_BLEND_HSL_COLOR:      return adv_blend_hsl_color;
    case GLSL_ADV_BLEND_HSL_LUMINOSITY: return adv_blend_hsl_luminosity;
-   default: unreachable();
+   default:                            return NULL;
    }
 }
 
 void adv_blend(Backflow *res[3], uint32_t mode, Backflow *cs[3], Backflow *cd[3], Backflow *as, Backflow *ad, Backflow *asad)
 {
-   ADV_BLEND_FN  blend_fn = adv_blend_fn(mode);
+   ADV_BLEND_FN blend_fn = adv_blend_fn(mode);
 
    for (uint32_t i = 0; i < 3; ++i)
       res[i] = blend_fn(cs[i], cd[i], as, ad, asad);
@@ -338,8 +338,7 @@ void adv_blend_hsl(Backflow *res[3], uint32_t mode, Backflow *cs[3], Backflow *c
    Backflow *ad_rcp  = recip(ad);
    Backflow *ad_zero = tr_uop_push(V3D_QPU_OP_FMOV, SETF_PUSHZ, ad);
 
-   for (uint32_t i = 0; i < 3; ++i)
-   {
+   for (uint32_t i = 0; i < 3; ++i) {
       bcs[i] = tr_cond(as_zero, as, mul(cs[i], as_rcp), false);
       bcd[i] = tr_cond(ad_zero, ad, mul(cd[i], ad_rcp), false);
    }
@@ -350,17 +349,7 @@ void adv_blend_hsl(Backflow *res[3], uint32_t mode, Backflow *cs[3], Backflow *c
       res[i] = mul(res[i], asad);
 }
 
-static bool is_hsl(uint32_t mode)
-{
-   switch (mode)
-   {
-   case GLSL_ADV_BLEND_HSL_HUE        :
-   case GLSL_ADV_BLEND_HSL_SATURATION :
-   case GLSL_ADV_BLEND_HSL_COLOR      :
-   case GLSL_ADV_BLEND_HSL_LUMINOSITY : return true;
-   default                            : return false;
-   }
-}
+static bool is_hsl(uint32_t mode) { return adv_blend_hsl_fn(mode) != NULL; }
 
 static Backflow *adv_blend_combine_alpha(Backflow *as, Backflow *ad, Backflow *asad)
 {
@@ -390,13 +379,18 @@ void adv_blend_blend(Backflow *res[4], Backflow *src[4], Backflow *dst[4], uint3
    else
       adv_blend_hsl(res, mode, cs, cd, as, ad, asad);
 
-   Backflow *one_minus_ad = sub(tr_cfloat(1.0f), ad);
-   Backflow *one_minus_as = sub(tr_cfloat(1.0f), as);
-
-   for (uint32_t i = 0; i < 3; ++i)
+   // These terms have been included in some of the equations. Add them for the rest here.
+   if (mode != GLSL_ADV_BLEND_EXCLUSION  && mode != GLSL_ADV_BLEND_SCREEN &&
+       mode != GLSL_ADV_BLEND_DIFFERENCE && mode != GLSL_ADV_BLEND_DARKEN &&
+       mode != GLSL_ADV_BLEND_LIGHTEN)
    {
-      res[i] = add(res[i], mul(cs[i], one_minus_ad)); // + Cs(1 - Ad)
-      res[i] = add(res[i], mul(cd[i], one_minus_as)); // + Cd(1 - As)
+      Backflow *one_minus_ad = sub(tr_cfloat(1.0f), ad);
+      Backflow *one_minus_as = sub(tr_cfloat(1.0f), as);
+
+      for (uint32_t i = 0; i < 3; ++i) {
+         res[i] = add(res[i], mul(cs[i], one_minus_ad)); // + Cs(1 - Ad)
+         res[i] = add(res[i], mul(cd[i], one_minus_as)); // + Cd(1 - As)
+      }
    }
 
    res[3] = adv_blend_combine_alpha(as, ad, asad);

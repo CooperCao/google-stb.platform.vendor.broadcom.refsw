@@ -695,5 +695,10 @@ void BDSP_Arm_P_UpdateReadPointer(
     dramaddr_t ui32ReadAddr, /* Value of read pointer to update with */
     BREG_Handle hReg /* [in] register handle */
     );
-
+BERR_Code BDSP_Arm_P_GetMemoryEstimate(
+	const BDSP_ArmSettings  *pSettings,
+	const BDSP_UsageOptions *pUsage,
+	BBOX_Handle              boxHandle,
+	BDSP_MemoryEstimate     *pEstimate /*[out]*/
+);
 #endif /* BDSP_ARM_PRIV_H_ */

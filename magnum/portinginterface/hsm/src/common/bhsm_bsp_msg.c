@@ -975,31 +975,3 @@ static char* cropStr( char* pStr )
     return pUnderScore;
 }
 #endif
-
-/* dump the send buffer */
-void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )
-{
-    unsigned wordOffset;
-    uint32_t value;
-
-    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
-    {
-        value = readOutbox( hMsg->pMod, wordOffset );
-        BDBG_LOG(("> %3d 0x%08X", wordOffset, value ));
-    }
-    return;
-}
-
-/* dump the receive buffer */
-void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg )
-{
-    unsigned wordOffset;
-    uint32_t value;
-
-    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
-    {
-        value = readInbox( hMsg->pMod, wordOffset );
-        BDBG_LOG(("< %3d 0x%08X", wordOffset, value ));
-    }
-    return;
-}

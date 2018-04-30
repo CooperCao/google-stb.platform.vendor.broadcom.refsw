@@ -58,7 +58,6 @@ void plat_early_s3_init(void);
 /*
  * Platform init functions
  */
-void plat_dvfs_init(void);
 void plat_init(void);
 void plat_s3_init(void);
 

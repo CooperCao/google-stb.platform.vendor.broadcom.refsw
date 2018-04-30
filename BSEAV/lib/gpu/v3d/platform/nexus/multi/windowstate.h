@@ -22,7 +22,8 @@ public:
       m_windowHandle(windowHandle),
       m_dispQ(),
       m_secure(secure),
-      m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this))) {}
+      m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this,
+            static_cast<NXPL_Display *>(context)->eventContext))) {}
    ~WindowState() = default;
 
    bool Init(void *context __attribute__((unused)), unsigned swapbuffers)

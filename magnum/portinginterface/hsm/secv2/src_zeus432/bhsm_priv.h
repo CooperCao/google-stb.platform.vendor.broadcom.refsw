@@ -63,6 +63,11 @@ typedef struct
         }zeus, bfw;
     }version;
 
+    struct{
+        bool valid;          /* true if the firmware EPOCH is available */
+        uint8_t value;       /* the EPOCH value ranging from 0 to 255*/
+    }firmwareEpoch;           /* the EPOCH of the BSECK Firmware (BFW) */
+
     bool verified;
 }BHSM_BfwVersion;
 

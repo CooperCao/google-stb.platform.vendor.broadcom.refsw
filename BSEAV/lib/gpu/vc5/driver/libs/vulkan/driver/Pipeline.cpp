@@ -4,10 +4,12 @@
 
 #include "AllObjects.h"
 #include "Common.h"
+#include "Extensions.h"
 
 #include "Module.h"
 #include "Specialization.h"
 #include "Viewport.h"
+#include "Options.h"
 
 #include <cmath>
 #include <algorithm>
@@ -15,6 +17,9 @@
 
 #include "libs/core/v3d/v3d_shadrec.h"
 #include "libs/core/v3d/v3d_tlb.h"
+#include "libs/core/v3d/v3d_align.h"
+#include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/platform/v3d_scheduler.h"
 #include "libs/khrn/glsl/glsl_backend_cfg.h"
 #include "glsl_tex_params.h"
 
@@ -60,9 +65,43 @@ Pipeline::Pipeline(DevMemHeap *devMemHeap, const VkAllocationCallbacks *pCallbac
                    VkPipelineBindPoint bindPoint) :
    Allocating(pCallbacks),
    m_devMemHeap(devMemHeap),
-   m_bindPoint(bindPoint),
-   m_linkResult(devMemHeap)
+   m_bindPoint(bindPoint)
 {
+}
+
+void Pipeline::CreateDefaultFragmentShader(CompiledShaderHandle compiledShaders[SHADER_FLAVOUR_COUNT],
+                                           const Compiler::Controls &controls)
+{
+   // SPIRV for "void main() {}"
+   static uint32_t defaultSPV[] =
+   {
+      0x07230203, 0x00010000, 0x00000000, 0x00000006, 0x00000000, // Header
+      0x00020011, 0x00000001,                                     // OpCapability Shader
+      0x0003000e, 0x00000000, 0x00000001,                         // OpMemoryModel Logical GLSL450
+      0x0005000f, 0x00000004, 0x00000004, 0x6e69616d, 0x00000000, // OpEntryPoint Fragment %main "main"
+      0x00030010, 0x00000004, 0x00000007,                         // OpExecutionMode %main OriginUpperLeft
+      0x00020013, 0x00000002,                                     // %void   = OpTypeVoid
+      0x00030021, 0x00000003, 0x00000002,                         // %voidfn = OpTypeFunction %void
+      0x00050036, 0x00000002, 0x00000004, 0x00000000, 0x00000003, // %main   = OpFunction %void None %voidfn
+      0x000200f8, 0x00000005,                                     // %start  = OpLabel
+      0x000100fd,                                                 // OpReturn
+      0x00010038                                                  // OpFunctionEnd
+   };
+
+   // If this is a graphics pipeline without a fragment shader
+   // use a default shader that sets no output colour and serves just
+   // to forward the depth.
+   // TODO: V3D version >= 4.3.5 supports null shader record for fragment shader, so this
+   // would not be necessary
+   if (compiledShaders[SHADER_VERTEX] && !compiledShaders[SHADER_FRAGMENT])
+   {
+      const Module module(GetCallbacks(), defaultSPV, sizeof(defaultSPV));
+
+      Compiler compiler(module, SHADER_FRAGMENT, "main", Specialization(nullptr), controls);
+      DescriptorTables *descriptorTables = m_linkResult->GetDescriptorTables(SHADER_FRAGMENT);
+
+      compiledShaders[SHADER_FRAGMENT] = compiler.Compile(descriptorTables, v3d_scheduler_get_compute_shared_mem_size_per_core());
+   }
 }
 
 void Pipeline::CompileAndLinkShaders(
@@ -70,47 +109,72 @@ void Pipeline::CompileAndLinkShaders(
    size_t numStages,
    const std::bitset<V3D_MAX_ATTR_ARRAYS> &attribRBSwaps,
    std::function<GLSL_BACKEND_CFG_T(const GLSL_PROGRAM_T *)> calcBackendKey,
-   bool robustBufferAccess, bool hasDepthStencil, bool multiSampled)
+   const Compiler::Controls &controls)
 {
-   try
+   bool unroll    = true;
+   bool succeeded = false;
+
+   while (!succeeded)
    {
-      // Take the giant mutex that prevents re-entrancy in the glsl backend.
-      // TODO : we should make the glsl parts thread-safe
-      std::lock_guard<std::mutex> lock(m_compLinkMutex);
-
-      CompiledShaderHandle compiledShaders[SHADER_FLAVOUR_COUNT];
-
-      // For each active stage
-      for (unsigned i = 0; i != numStages; ++i)
+      try
       {
-         const VkPipelineShaderStageCreateInfo &stage = stages[i];
+         // Take the giant mutex that prevents re-entrancy in the glsl backend.
+         // TODO : we should make the glsl parts thread-safe
+         std::lock_guard<std::mutex> lock(m_compLinkMutex);
 
-         const ShaderModule *module  = fromHandle<ShaderModule>(stage.module);
-         ShaderFlavour       flavour = VkStageToShaderFlavour(stage.stage);
-         const char         *name    = stage.pName;
+         m_linkResult = LinkResultHandle(*this, m_devMemHeap);
 
-         Specialization  specialisation(stage.pSpecializationInfo); // todo: historically and currently
-                                                                    // ignores allocator?
-         // Initialize compiler memory pools and configure settings.
-         Compiler compiler(*module, flavour, name, specialisation,
-                           robustBufferAccess, hasDepthStencil, multiSampled);
+         Compiler::Controls ctrls(controls);
+         ctrls.SetUnroll(unroll);
 
-         // Compile the shader for the given entry point
-         DescriptorTables *descriptorTables = m_linkResult.GetDescriptorTables(flavour);
+         CompiledShaderHandle compiledShaders[SHADER_FLAVOUR_COUNT];
 
-         compiledShaders[flavour] = compiler.Compile(descriptorTables);
+         // For each active stage
+         for (unsigned i = 0; i != numStages; ++i)
+         {
+            const VkPipelineShaderStageCreateInfo &stage = stages[i];
+
+            const ShaderModule *module  = fromHandle<ShaderModule>(stage.module);
+            ShaderFlavour       flavour = VkStageToShaderFlavour(stage.stage);
+            const char         *name    = stage.pName;
+
+            Specialization  specialisation(stage.pSpecializationInfo); // todo: historically and currently
+                                                                       // ignores allocator?
+
+            // Initialize compiler memory pools and configure settings.
+            Compiler compiler(*module, flavour, name, specialisation, ctrls);
+
+            // Compile the shader for the given entry point
+            DescriptorTables *descriptorTables = m_linkResult->GetDescriptorTables(flavour);
+
+            compiledShaders[flavour] = compiler.Compile(descriptorTables, v3d_scheduler_get_compute_shared_mem_size_per_core());
+         }
+
+         // If there isn't a fragment shader, then create one
+         CreateDefaultFragmentShader(compiledShaders, ctrls);
+
+         // Do the linking
+         m_linkResult->LinkShaders(compiledShaders, calcBackendKey, attribRBSwaps);
+         succeeded = true;
       }
-
-      // Do the linking
-      m_linkResult.LinkShaders(compiledShaders, calcBackendKey, attribRBSwaps);
-   }
-   catch (std::runtime_error &e)
-   {
-      // If we get here we've encountered an unrecoverable compile or link error.
-      // Vulkan doesn't have a mechanism for handling failed pipeline creation (other than
-      // out-of-memory) so we'll simply report the error here and exit.
-      fprintf(stderr, "FATAL : %s\n", e.what());
-      std::terminate();
+      catch (std::runtime_error &e)
+      {
+         // If we were unrolling loops then there is a chance we can recover the situation
+         // so try again with loop unrolling disabled.
+         if (unroll)
+         {
+            unroll = false;
+         }
+         else
+         {
+            // If we get here we've encountered an unrecoverable compile or link error.
+            // Vulkan doesn't have a mechanism for handling failed pipeline creation (other than
+            // out-of-memory) so we'll simply report the error here and rethrow which will flag the
+            // pipeline as broken.
+            fprintf(stderr, "******** Pipeline::CompileAndLinkShaders FAILED : %s\n", e.what());
+            throw;
+         }
+      }
    }
 }
 
@@ -146,8 +210,8 @@ void Pipeline::BuildUniforms(UniformData &uniforms, ShaderFlavour flavour, const
 
       case BACKEND_UNIFORM_UBO_ADDRESS:
       case BACKEND_UNIFORM_SSBO_ADDRESS:
-      case BACKEND_UNIFORM_ATOMIC_ADDRESS:
       case BACKEND_UNIFORM_SSBO_SIZE:
+      case BACKEND_UNIFORM_SSBO_ARRAY_LENGTH:
       case BACKEND_UNIFORM_UBO_SIZE:
       case BACKEND_UNIFORM_TEX_PARAM0:
       case BACKEND_UNIFORM_TEX_PARAM1:
@@ -166,12 +230,8 @@ void Pipeline::BuildUniforms(UniformData &uniforms, ShaderFlavour flavour, const
          BuildUniformSpecial(uniforms, offset, (BackendSpecialUniformFlavour)uValue);
          break;
 
+      case BACKEND_UNIFORM_ATOMIC_ADDRESS:
       case BACKEND_UNIFORM_ADDRESS:
-         NOT_IMPLEMENTED_YET;
-         //if (!backend_uniform_address(fmem, uValue, gl20_program_common_get(state), iu, ptr))
-         //   return 0;
-         break;
-
       case BACKEND_UNIFORM_UNASSIGNED:
       default:
          unreachable();
@@ -190,40 +250,51 @@ ComputePipeline::ComputePipeline(
    Pipeline(device->GetDevMemHeap(), pCallbacks, VK_PIPELINE_BIND_POINT_COMPUTE),
    m_uniforms(*this)
 {
-   // Set stuff in the base Pipeline class
-   m_layout = ci->layout;
-
-   // Compile and link shaders
-   auto calcBackendKey = [this](const GLSL_PROGRAM_T *program) -> GLSL_BACKEND_CFG_T
+   try
    {
-    #if !V3D_USE_CSD
-      uint32_t compute_flags = compute_backend_flags(program->ir->cs_wg_size[0] * program->ir->cs_wg_size[1] * program->ir->cs_wg_size[2]);
-    #else
-      uint32_t compute_flags = 0;
-    #endif
-      return GLSL_BACKEND_CFG_T{ compute_flags | GLSL_DISABLE_UBO_FETCH };
-   };
-   CompileAndLinkShaders(&ci->stage, 1, std::bitset<V3D_MAX_ATTR_ARRAYS>(), calcBackendKey,
-                         device->GetRequestedFeatures().robustBufferAccess, /*hasDepthStencil=*/false,
-                         /*multisampled=*/false);
+      // Set stuff in the base Pipeline class
+      m_layout = ci->layout;
 
-   // Build shader uniforms
-   BuildUniforms(m_uniforms, SHADER_FRAGMENT, m_linkResult.m_fs);
+      // Compile and link shaders
+      auto calcBackendKey = [this](const GLSL_PROGRAM_T *program) -> GLSL_BACKEND_CFG_T
+      {
+#if !V3D_USE_CSD
+         uint32_t compute_flags = compute_backend_flags(program->ir->cs_wg_size[0] * program->ir->cs_wg_size[1] * program->ir->cs_wg_size[2]);
+#else
+         uint32_t compute_flags = 0;
+#endif
+         return GLSL_BACKEND_CFG_T{ compute_flags | GLSL_DISABLE_UBO_FETCH };
+      };
 
-   m_preprocessPatchInfo.numWorkGroups.shrink_to_fit();
+      Compiler::Controls controls;
 
-   // Convert from min/max in uniforms to offset/size in bytes.
-   uint32_t min = m_preprocessPatchInfo.rangeOffset;
-   uint32_t max = m_preprocessPatchInfo.rangeSize;
-   if (min <= max)
-   {
-      m_preprocessPatchInfo.rangeOffset = min * sizeof(uint32_t);
-      m_preprocessPatchInfo.rangeSize   = uint32_t(max - min + 1u) * sizeof(uint32_t);
+      controls.SetRobustBufferAccess(device->GetRequestedFeatures().robustBufferAccess);
+
+      CompileAndLinkShaders(&ci->stage, 1, std::bitset<V3D_MAX_ATTR_ARRAYS>(), calcBackendKey, controls);
+
+      // Build shader uniforms
+      BuildUniforms(m_uniforms, SHADER_FRAGMENT, m_linkResult->m_fs);
+
+      m_preprocessPatchInfo.numWorkGroups.shrink_to_fit();
+
+      // Convert from min/max in uniforms to offset/size in bytes.
+      uint32_t min = m_preprocessPatchInfo.rangeOffset;
+      uint32_t max = m_preprocessPatchInfo.rangeSize;
+      if (min <= max)
+      {
+         m_preprocessPatchInfo.rangeOffset = min * sizeof(uint32_t);
+         m_preprocessPatchInfo.rangeSize = uint32_t(max - min + 1u) * sizeof(uint32_t);
+      }
+      else
+      {
+         m_preprocessPatchInfo.rangeOffset = 0;
+         m_preprocessPatchInfo.rangeSize = 0;
+      }
    }
-   else
+   catch (std::runtime_error &e)
    {
-      m_preprocessPatchInfo.rangeOffset = 0;
-      m_preprocessPatchInfo.rangeSize   = 0;
+      // Something went wrong. Mark the pipeline as broken.
+      m_broken = true;
    }
 }
 
@@ -246,10 +317,14 @@ void ComputePipeline::BuildUniformSpecial(UniformData &uniforms, uint32_t offset
 
    case BACKEND_SPECIAL_UNIFORM_SHARED_PTR:
    {
+    #if V3D_USE_L2T_LOCAL_MEM
+      uniforms.defaults[offset].u = v3d_scheduler_get_compute_shared_mem_addr();
+    #else
       gmem_handle_t handle = v3d_scheduler_get_compute_shared_mem(false /* TODO: secure_context */, /*alloc=*/true);
       if (!handle)
          throw bvk::bad_device_alloc();
       uniforms.defaults[offset].u = gmem_get_addr(handle);
+    #endif
       break;
    }
 
@@ -266,7 +341,7 @@ GraphicsPipeline::DynamicStateBits GraphicsPipeline::CalcDynamicStateBits(
 {
    DynamicStateBits bits;
    for (uint32_t i = 0; i < dynamicStateCount; i++)
-      bits.Set(dynamicStates[i]);
+      bits.set(dynamicStates[i]);
    return bits;
 }
 
@@ -341,88 +416,118 @@ GraphicsPipeline::GraphicsPipeline(
    m_vpsUniforms({ *this, *this, *this, *this, *this, *this, *this, *this }),
    m_fsUniforms( *this )
 {
-   // Set stuff in the base Pipeline class
-   m_layout = ci->layout;
-
-   // Copy optional parts
-   if (ci->pDepthStencilState != nullptr) // todo: not valid to check for null.
-      m_depthStencilState = *ci->pDepthStencilState;
-
-   if (ci->pDynamicState != nullptr)
-      m_dynamicStateBits = CalcDynamicStateBits(
-                              ci->pDynamicState->dynamicStateCount,
-                              ci->pDynamicState->pDynamicStates);
-
-   if (!ci->pRasterizationState->rasterizerDiscardEnable)
+   try
    {
-      // Viewport and scissor are only valid if not dynamic
-      if (!m_dynamicStateBits.IsSet(VK_DYNAMIC_STATE_VIEWPORT))
-         m_viewport.Set(ci->pViewportState->pViewports[0]);
+      // Set stuff in the base Pipeline class
+      m_layout = ci->layout;
 
-      if (!m_dynamicStateBits.IsSet(VK_DYNAMIC_STATE_SCISSOR))
-         m_scissorRect = ci->pViewportState->pScissors[0];
+      // Copy optional parts
+      if (ci->pDepthStencilState != nullptr) // todo: not valid to check for null.
+         m_depthStencilState = *ci->pDepthStencilState;
+
+      if (ci->pDynamicState != nullptr)
+         m_dynamicStateBits = CalcDynamicStateBits(
+                                 ci->pDynamicState->dynamicStateCount,
+                                 ci->pDynamicState->pDynamicStates);
+
+      if (!ci->pRasterizationState->rasterizerDiscardEnable)
+      {
+         // Viewport and scissor are only valid if not dynamic
+         if (!m_dynamicStateBits.test(VK_DYNAMIC_STATE_VIEWPORT))
+            m_viewport.Set(ci->pViewportState->pViewports[0]);
+
+         if (!m_dynamicStateBits.test(VK_DYNAMIC_STATE_SCISSOR))
+            m_scissorRect = ci->pViewportState->pScissors[0];
+      }
+
+      // Store which attributes require an RB swap in the shader (see SWVC5-801)
+      std::bitset<V3D_MAX_ATTR_ARRAYS> attributeRBSwaps;
+
+      // Populate m_vertexBindingDescriptions & m_vertexAttributeDescriptions
+      uint32_t bindingCount = ci->pVertexInputState->vertexBindingDescriptionCount;
+      uint32_t attrCount    = ci->pVertexInputState->vertexAttributeDescriptionCount;
+
+      for (uint32_t i = 0; i < bindingCount; i++)
+      {
+         const VkVertexInputBindingDescription *d = &ci->pVertexInputState->pVertexBindingDescriptions[i];
+         m_vertexBindingDescriptions[d->binding] = *d;
+      }
+
+      for (uint32_t i = 0; i < attrCount; i++)
+      {
+         const VkVertexInputAttributeDescription *d = &ci->pVertexInputState->pVertexAttributeDescriptions[i];
+         m_vertexAttributeDescriptions[d->location] = *d;
+         if (Formats::NeedsAttributeRBSwap(Formats::GetLFMT(d->format)))
+            attributeRBSwaps.set(d->location);
+      }
+
+      m_primitiveRestartEnable = ci->pInputAssemblyState->primitiveRestartEnable ? true : false;
+
+      // Build a bitmask of the shader types in this pipeline
+      VkFlags shaderStages = 0;
+      for (uint32_t i = 0; i < ci->stageCount; i++)
+         shaderStages = shaderStages | ci->pStages[i].stage;
+
+      uint32_t patchControlPoints = 0;
+      // ci->pTessellationState is only valid if both tessellation shader types are present
+      if ((shaderStages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) &&
+          (shaderStages & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT))
+      {
+         patchControlPoints = ci->pTessellationState->patchControlPoints;
+
+         // KHR_maintenance2 has an extension field for tessellation domain origin
+         // TODO - use domain origin during tessellation
+         //auto ext = Extensions::FindExtensionStruct<VkPipelineTessellationDomainOriginStateCreateInfoKHR>(
+         //                       VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO_KHR,
+         //                       ci->pTessellationState->pNext);
+         //if (ext)
+         //   m_tessDomainOrigin = ext->domainOrigin;
+      }
+
+      // Convert assembly and tess state into prim mode
+      m_drawPrimMode = CalculatePrimMode(ci->pInputAssemblyState->topology, patchControlPoints);
+
+      RenderPass *rp = fromHandle<RenderPass>(ci->renderPass);
+      m_depthBits = rp->DepthBits();
+
+      m_hasDepthStencil = rp->GroupForSubpass(ci->subpass)->m_dsAttachment != VK_ATTACHMENT_UNUSED;
+
+      // Compile and link shaders
+      bool multisampled = !ci->pRasterizationState->rasterizerDiscardEnable &&
+                           ci->pMultisampleState->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT;
+
+      auto calcBackendKey = [ci](const GLSL_PROGRAM_T *) -> GLSL_BACKEND_CFG_T
+      {
+         return GLSL_BACKEND_CFG_T{ CalcBackendKey(ci) };
+      };
+
+      Compiler::Controls controls;
+
+      controls.SetRobustBufferAccess(device->GetRequestedFeatures().robustBufferAccess)
+              .SetDepthStencil(m_hasDepthStencil)
+              .SetMultisampled(multisampled);
+
+      CompileAndLinkShaders(ci->pStages, ci->stageCount, attributeRBSwaps, calcBackendKey,
+                            controls);
+
+      // Is sample rate shading required?
+      bool sampleShading = (multisampled &&
+                            ci->pMultisampleState->sampleShadingEnable &&
+                            ci->pMultisampleState->minSampleShading >= 0.25f) ||
+                            m_linkResult->HasFlag(LINKRES_FLAG_PER_SAMPLE);
+
+      // Create as much of the shader record as we can
+      v3d_vpm_cfg_v vpmV[2];
+      CreateShaderRecord(ci->pRasterizationState->rasterizerDiscardEnable, sampleShading, vpmV,
+                         device->GetPlatform().GetVPMSize(), patchControlPoints);
+
+      CalcSetupCL(ci, rp->EarlyZCompatible(), vpmV);
    }
-
-   // Store which attributes require an RB swap in the shader (see SWVC5-801)
-   std::bitset<V3D_MAX_ATTR_ARRAYS> attributeRBSwaps;
-
-   // Populate m_vertexBindingDescriptions & m_vertexAttributeDescriptions
-   uint32_t bindingCount = ci->pVertexInputState->vertexBindingDescriptionCount;
-   uint32_t attrCount    = ci->pVertexInputState->vertexAttributeDescriptionCount;
-
-   for (uint32_t i=0; i < bindingCount; i++)
+   catch (std::runtime_error &e)
    {
-      const VkVertexInputBindingDescription *d = &ci->pVertexInputState->pVertexBindingDescriptions[i];
-      m_vertexBindingDescriptions[d->binding] = *d;
+      // Something went wrong. Mark the pipeline as broken
+      m_broken = true;
    }
-
-   for (uint32_t i=0; i < attrCount; i++)
-   {
-      const VkVertexInputAttributeDescription *d = &ci->pVertexInputState->pVertexAttributeDescriptions[i];
-      m_vertexAttributeDescriptions[d->location] = *d;
-      if (Formats::NeedsAttributeRBSwap(Formats::GetLFMT(d->format)))
-         attributeRBSwaps.set(d->location);
-   }
-
-   m_primitiveRestartEnable = ci->pInputAssemblyState->primitiveRestartEnable ? true : false;
-
-   if (ci->pTessellationState != nullptr) // todo: not valid to check for null.
-      m_patchControlPoints = ci->pTessellationState->patchControlPoints;
-   else
-      m_patchControlPoints = 0;
-
-   // Convert assembly and tess state into prim mode
-   m_drawPrimMode = CalculatePrimMode(ci->pInputAssemblyState->topology, m_patchControlPoints);
-
-   RenderPass *rp = fromHandle<RenderPass>(ci->renderPass);
-   m_depthBits = rp->DepthBits();
-
-   bool hasDepthStencil = rp->GroupForSubpass(ci->subpass)->m_dsAttachment != VK_ATTACHMENT_UNUSED;
-
-   // Compile and link shaders
-   bool multiSampled = !ci->pRasterizationState->rasterizerDiscardEnable &&
-                        ci->pMultisampleState->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT;
-
-   auto calcBackendKey = [ci](const GLSL_PROGRAM_T *) -> GLSL_BACKEND_CFG_T
-   {
-      return GLSL_BACKEND_CFG_T{ CalcBackendKey(ci) };
-   };
-   CompileAndLinkShaders(ci->pStages, ci->stageCount, attributeRBSwaps, calcBackendKey,
-                         device->GetRequestedFeatures().robustBufferAccess, hasDepthStencil,
-                         multiSampled);
-
-   // Is sample rate shading required?
-   bool sampleShading = (multiSampled &&
-                         ci->pMultisampleState->sampleShadingEnable &&
-                         ci->pMultisampleState->minSampleShading >= 0.25f) ||
-                         m_linkResult.HasFlag(LinkResult::PER_SAMPLE);
-
-   // Create as much of the shader record as we can
-   v3d_vpm_cfg_v vpmV[2];
-   CreateShaderRecord(ci->pRasterizationState->rasterizerDiscardEnable, sampleShading, vpmV,
-                      device->GetPlatform().GetVPMSize());
-
-   CalcSetupCL(ci, hasDepthStencil, vpmV);
 }
 
 static bool RequiresCColor(v3d_blend_mul_t src)
@@ -437,8 +542,8 @@ static bool RequiresCColor(const V3D_CL_BLEND_CFG_T &cfg)
           RequiresCColor(cfg.c_src) || RequiresCColor(cfg.c_dst);
 }
 
-void GraphicsPipeline::CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci, bool hasDepthStencil,
-                                   const v3d_vpm_cfg_v vpmV[2])
+void GraphicsPipeline::CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci,
+                                   bool rpEarlyZCompatible, const v3d_vpm_cfg_v vpmV[2])
 {
    uint8_t *clPtr = m_setupCL.data();
 
@@ -508,25 +613,24 @@ void GraphicsPipeline::CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci, bool 
 
    bool usesFlatShading = false;
    for (uint32_t i = 0; i < V3D_MAX_VARY_FLAG_WORDS; i++)
-      usesFlatShading = usesFlatShading || (m_linkResult.m_varyingFlat[i] != 0);
+      usesFlatShading = usesFlatShading || (m_linkResult->m_data.vary.flat[i] != 0);
 
-   V3D_CL_CFG_BITS_T cfg_bits;
-   CalcCfgBits(&cfg_bits, ci->pRasterizationState, ms, globalBlendEnable, hasDepthStencil, usesFlatShading);
-   v3d_cl_cfg_bits_indirect(&clPtr, &cfg_bits);
+   CalcCfgBits(&m_cfgBits, ci->pRasterizationState, ms, globalBlendEnable,
+               rpEarlyZCompatible, usesFlatShading);
 
    v3d_cl_vcm_cache_size(&clPtr, vpmV[0].vcm_cache_size, vpmV[1].vcm_cache_size);
 
-   v3d_cl_write_vary_flags(&clPtr, m_linkResult.m_varyingFlat,
+   v3d_cl_write_vary_flags(&clPtr, m_linkResult->m_data.vary.flat,
                            v3d_cl_flatshade_flags, v3d_cl_zero_all_flatshade_flags);
 
-   v3d_cl_write_vary_flags(&clPtr, m_linkResult.m_varyingCentroid,
+   v3d_cl_write_vary_flags(&clPtr, m_linkResult->m_data.vary.centroid,
                            v3d_cl_centroid_flags, v3d_cl_zero_all_centroid_flags);
 
-   v3d_cl_write_vary_flags(&clPtr, m_linkResult.m_varyingNoPerspective,
+   v3d_cl_write_vary_flags(&clPtr, m_linkResult->m_data.vary.noperspective,
                            v3d_cl_noperspective_flags, v3d_cl_zero_all_noperspective_flags);
 
    // When T+G is enabled, not writing a point size should have it default to 1.0
-   if (m_linkResult.m_hasTess || m_linkResult.m_hasGeom)
+   if (m_linkResult->m_data.has_tess || m_linkResult->m_data.has_geom)
       v3d_cl_point_size(&clPtr, 1.0f);
 
    m_setupCLSize = clPtr - m_setupCL.data();
@@ -538,6 +642,25 @@ GraphicsPipeline::~GraphicsPipeline()
    m_devMemHeap->Free(m_attribDefaultsMem);
 #endif
    m_devMemHeap->Free(m_dummyAttribMem);
+}
+
+bool GraphicsPipeline::UpdateEarlyZState(EARLY_Z_STATE_T *state)
+{
+   const auto &ds = m_depthStencilState;
+
+   v3d_compare_func_t depthFunc = (m_hasDepthStencil && ds.depthTestEnable) ?
+                                  TranslateCompareFunc(ds.depthCompareOp) : V3D_COMPARE_FUNC_ALWAYS;
+
+   bool depthUpdate = (ds.depthTestEnable && ds.depthWriteEnable);
+
+   bool ret = early_z_update_cfg(state, depthFunc, depthUpdate,
+      m_hasDepthStencil && ds.stencilTestEnable,
+      TranslateStencilOp(ds.front.failOp), TranslateStencilOp(ds.front.depthFailOp),
+      TranslateStencilOp(ds.back.failOp), TranslateStencilOp(ds.back.depthFailOp));
+
+   early_z_log(state);
+
+   return ret;
 }
 
 inline static v3d_blend_eqn_t TranslateBlendEqn(VkBlendOp eq)
@@ -606,16 +729,16 @@ uint32_t GraphicsPipeline::CalcBlendState(uint32_t *blendEnable, V3D_CL_BLEND_CF
 
 void GraphicsPipeline::CalcCfgBits(V3D_CL_CFG_BITS_T *cfg_bits,
                                    const VkPipelineRasterizationStateCreateInfo *rastCi,
-                                   bool ms, bool blendEnable, bool hasDepthStencil,
-                                   bool usesFlatShading) const
+                                   bool ms, bool blendEnable,
+                                   bool rpEarlyZCompatible, bool usesFlatShading)
 {
    const auto &ds = m_depthStencilState;
-   v3d_compare_func_t depthFunc = (hasDepthStencil && ds.depthTestEnable) ? TranslateCompareFunc(ds.depthCompareOp) :
+   v3d_compare_func_t depthFunc = (m_hasDepthStencil && ds.depthTestEnable) ? TranslateCompareFunc(ds.depthCompareOp) :
                                                        V3D_COMPARE_FUNC_ALWAYS;
    bool depthUpdate = (ds.depthTestEnable && ds.depthWriteEnable);
 
-   cfg_bits->blend             = blendEnable;
-   cfg_bits->stencil           = hasDepthStencil && ds.stencilTestEnable;
+   cfg_bits->blend   = blendEnable;
+   cfg_bits->stencil = m_hasDepthStencil && ds.stencilTestEnable;
 
    // The front and back_prims fields say whether we want them (i.e. !culled)
    cfg_bits->front_prims       = (rastCi->cullMode & VK_CULL_MODE_FRONT_BIT) ? false : true;
@@ -633,9 +756,9 @@ void GraphicsPipeline::CalcCfgBits(V3D_CL_CFG_BITS_T *cfg_bits,
    cfg_bits->rast_oversample   = ms ? V3D_MS_4X : V3D_MS_1X;
    cfg_bits->depth_test        = depthFunc;
    cfg_bits->depth_update      = depthUpdate;
-   cfg_bits->ez                = false;       // TODO - EZ
-   cfg_bits->ez_update         = false;       // TODO - EZ
-   cfg_bits->aa_lines          = ms;
+   cfg_bits->ez                = false;   // Updated by CmdBufState::BuildStateUpdateCL
+   cfg_bits->ez_update         = false;   // Updated by CmdBufState::BuildStateUpdateCL
+   cfg_bits->aa_lines          = true;
    cfg_bits->wireframe_tris    = (rastCi->polygonMode != VK_POLYGON_MODE_FILL);
    cfg_bits->wireframe_mode    = (rastCi->polygonMode == VK_POLYGON_MODE_POINT ?
                                  V3D_WIREFRAME_MODE_POINTS : V3D_WIREFRAME_MODE_LINES);
@@ -657,10 +780,10 @@ static void PackShaderArgs(V3D_SHADER_ARGS_T *args, const ShaderData &data)
 }
 
 void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleShading,
-                                          v3d_vpm_cfg_v vpmV[2], uint32_t vpmSize)
+                                          v3d_vpm_cfg_v vpmV[2], uint32_t vpmSize, uint32_t patchControlPoints)
 {
    // How big is our shader record going to be?
-   uint32_t numAttrs = std::max(1u, m_linkResult.m_attrCount);
+   uint32_t numAttrs = std::max(1u, m_linkResult->m_data.attr_count);
    uint32_t shaderRecordBytes =
       + V3D_SHADREC_GL_GEOM_PACKED_SIZE
       + V3D_SHADREC_GL_TESS_PACKED_SIZE
@@ -674,7 +797,7 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    v3d_addr_t vpShaderAddrs[LinkResult::SHADER_VPS_COUNT][MODE_COUNT];
    for (unsigned m = 0; m != MODE_COUNT; ++m)
       for (unsigned s = 0; s != LinkResult::SHADER_VPS_COUNT; ++s)
-         vpShaderAddrs[s][m] = m_linkResult.m_vps[s][m].shaderMemory.Phys();
+         vpShaderAddrs[s][m] = m_linkResult->m_vps[s][m].shaderMemory.Phys();
 
    // Bin/Render vertex pipeline uniforms
    for (unsigned m = 0; m != MODE_COUNT; ++m)
@@ -682,12 +805,12 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
       for (unsigned s = 0; s != LinkResult::SHADER_VPS_COUNT; ++s)
       {
          if (vpShaderAddrs[s][m] != 0)
-            BuildUniforms(m_vpsUniforms[s*MODE_COUNT + m], LinkResult::ConvertShaderFlavour(s), m_linkResult.m_vps[s][m]);
+            BuildUniforms(m_vpsUniforms[s*MODE_COUNT + m], LinkResult::ConvertShaderFlavour(s), m_linkResult->m_vps[s][m]);
       }
    }
 
    // Build fragment shader uniforms
-   BuildUniforms(m_fsUniforms, SHADER_FRAGMENT, m_linkResult.m_fs);
+   BuildUniforms(m_fsUniforms, SHADER_FRAGMENT, m_linkResult->m_fs);
 
    // Allocate system memory for the shader record
    m_shaderRecord.resize(shaderRecordBytes / sizeof(uint32_t));
@@ -695,68 +818,71 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    uint32_t *shadrecPtr = m_shaderRecord.data();
    uint32_t *baseShadrecPtr = shadrecPtr;
 
+   m_shaderPatchingData.hasT = m_linkResult->m_data.has_tess;
+   m_shaderPatchingData.hasG = m_linkResult->m_data.has_geom;
+
    // Record shader record parts for each T+G stage
    for (unsigned s = LinkResult::SHADER_VPS_VS + 1; s <= LinkResult::SHADER_VPS_TES; ++s)
    {
       if (vpShaderAddrs[s][MODE_RENDER] != 0)
       {
          V3D_SHADREC_GL_GEOM_T stageShadrec;
-         PackShaderArgs(&stageShadrec.gs_bin,    m_linkResult.m_vps[s][MODE_BIN]);
-         PackShaderArgs(&stageShadrec.gs_render, m_linkResult.m_vps[s][MODE_RENDER]);
+         PackShaderArgs(&stageShadrec.gs_bin,    m_linkResult->m_vps[s][MODE_BIN]);
+         PackShaderArgs(&stageShadrec.gs_render, m_linkResult->m_vps[s][MODE_RENDER]);
 
          v3d_pack_shadrec_gl_geom(shadrecPtr, &stageShadrec);
 
-         m_shaderPatchingData.offsetGLGeom[s][MODE_RENDER] = shadrecPtr - baseShadrecPtr;
+         m_shaderPatchingData.offsetGLGeom[s] = shadrecPtr - baseShadrecPtr;
 
          shadrecPtr += V3D_SHADREC_GL_GEOM_PACKED_SIZE / sizeof(uint32_t);
       }
    }
 
    // Write out tess or geom part
-   if (m_linkResult.m_hasTess || m_linkResult.m_hasGeom)
+   if (m_linkResult->m_data.has_tng)
    {
-      ComputeTnGVPMCfg(vpmV, shadrecPtr, vpmSize);
+      linkres_compute_tng_vpm_cfg(vpmV, shadrecPtr, &m_linkResult->m_data, patchControlPoints, vpmSize);
       shadrecPtr += V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE / sizeof(uint32_t);
    }
    else
    {
       // Calculate the VPM config
       bool zPrePass = false;   // TODO?
-      v3d_vpm_compute_cfg(vpmV, vpmSize / 512, m_linkResult.m_vsInputWords,
-                          m_linkResult.m_vsOutputWords, zPrePass);
+      v3d_vpm_compute_cfg(vpmV, vpmSize / 512, m_linkResult->m_data.vs_input_words,
+                          m_linkResult->m_data.vs_output_words, zPrePass);
    }
 
 #if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
    // Allocate memory for the attribute defaults. Filled in as attributes are created.
-   size_t defaultsSize = m_linkResult.m_attrCount * 4 * sizeof(uint32_t);
+   size_t defaultsSize = m_linkResult->m_data.attr_count * 4 * sizeof(uint32_t);
    m_devMemHeap->Allocate(&m_attribDefaultsMem, defaultsSize, V3D_ATTR_DEFAULTS_ALIGN);
 #endif
 
    // Make the main shader record
    V3D_SHADREC_GL_MAIN_T srec{};
 
-   srec.point_size_included      = m_linkResult.HasFlag(LinkResult::POINT_SIZE_SHADED_VERTEX_DATA);
-   srec.cs_vertex_id             = m_linkResult.HasFlag(LinkResult::VS_READS_VERTEX_ID_BIN);
-   srec.cs_instance_id           = m_linkResult.HasFlag(LinkResult::VS_READS_INSTANCE_ID_BIN);
-   srec.vs_vertex_id             = m_linkResult.HasFlag(LinkResult::VS_READS_VERTEX_ID_RENDER);
-   srec.vs_instance_id           = m_linkResult.HasFlag(LinkResult::VS_READS_INSTANCE_ID_RENDER);
-   srec.z_write                  = m_linkResult.HasFlag(LinkResult::FS_WRITES_Z);
-   srec.no_ez                    = m_linkResult.HasFlag(LinkResult::FS_EARLY_Z_DISABLE);
-   srec.cs_separate_blocks       = m_linkResult.HasFlag(LinkResult::VS_SEPARATE_I_O_VPM_BLOCKS_BIN);
-   srec.vs_separate_blocks       = m_linkResult.HasFlag(LinkResult::VS_SEPARATE_I_O_VPM_BLOCKS_RENDER);
-   srec.fs_needs_w               = m_linkResult.HasFlag(LinkResult::FS_NEEDS_W);
-   srec.scb_wait_on_first_thrsw  = m_linkResult.HasFlag(LinkResult::TLB_WAIT_FIRST_THRSW);
+   srec.point_size_included      = m_linkResult->HasFlag(LINKRES_FLAG_POINT_SIZE);
+   srec.cs_vertex_id             = m_linkResult->HasFlag(LINKRES_FLAG_VS_VERTEX_ID   << MODE_BIN);
+   srec.cs_instance_id           = m_linkResult->HasFlag(LINKRES_FLAG_VS_INSTANCE_ID << MODE_BIN);
+   srec.vs_vertex_id             = m_linkResult->HasFlag(LINKRES_FLAG_VS_VERTEX_ID   << MODE_RENDER);
+   srec.vs_instance_id           = m_linkResult->HasFlag(LINKRES_FLAG_VS_INSTANCE_ID << MODE_RENDER);
+   srec.z_write                  = m_linkResult->HasFlag(LINKRES_FLAG_FS_WRITES_Z);
+   srec.no_ez                    = m_linkResult->HasFlag(LINKRES_FLAG_FS_EARLY_Z_DISABLE);
+   srec.cs_separate_blocks       = m_linkResult->HasFlag(LINKRES_FLAG_VS_SEPARATE_VPM_BLOCKS << MODE_BIN);
+   srec.vs_separate_blocks       = m_linkResult->HasFlag(LINKRES_FLAG_VS_SEPARATE_VPM_BLOCKS << MODE_RENDER);
+   srec.fs_needs_w               = m_linkResult->HasFlag(LINKRES_FLAG_FS_NEEDS_W);
+   srec.scb_wait_on_first_thrsw  = m_linkResult->HasFlag(LINKRES_FLAG_TLB_WAIT_FIRST_THRSW);
 
    // No need to clip if everything is thrown away
    srec.clipping                 = !rasterizerDiscard;
 
-   srec.disable_implicit_varys = m_linkResult.HasFlag(LinkResult::DISABLE_IMPLICIT_VARYS);
-   srec.cs_baseinstance        = m_linkResult.HasFlag(LinkResult::VS_READS_BASE_INSTANCE_BIN);
-   srec.vs_baseinstance        = m_linkResult.HasFlag(LinkResult::VS_READS_BASE_INSTANCE_RENDER);
-   srec.prim_id_used           = m_linkResult.HasFlag(LinkResult::PRIM_ID_USED);
-   srec.prim_id_to_fs          = m_linkResult.HasFlag(LinkResult::PRIM_ID_TO_FS);
+   srec.disable_implicit_varys = m_linkResult->HasFlag(LINKRES_FLAG_DISABLE_IMPLICIT_VARYS);
+   srec.cs_baseinstance        = m_linkResult->HasFlag(LINKRES_FLAG_VS_BASE_INSTANCE << MODE_BIN);
+   srec.vs_baseinstance        = m_linkResult->HasFlag(LINKRES_FLAG_VS_BASE_INSTANCE << MODE_RENDER);
+   srec.prim_id_used           = m_linkResult->HasFlag(LINKRES_FLAG_PRIM_ID_USED);
+   srec.prim_id_to_fs          = m_linkResult->HasFlag(LINKRES_FLAG_PRIM_ID_TO_FS);
    srec.sample_rate_shading    = sampleShading;
-   srec.num_varys              = m_linkResult.m_numVarys;
+   srec.num_varys              = m_linkResult->m_data.vary.count;
    srec.cs_output_size         = vpmV[MODE_BIN].output_size;
    srec.cs_input_size          = vpmV[MODE_BIN].input_size;
    srec.vs_output_size         = vpmV[MODE_RENDER].output_size;
@@ -765,9 +891,9 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    srec.defaults               = m_attribDefaultsMem.Phys();
 #endif
 
-   PackShaderArgs(&srec.fs, m_linkResult.m_fs);
-   PackShaderArgs(&srec.vs, m_linkResult.m_vps[LinkResult::SHADER_VPS_VS][MODE_RENDER]);
-   PackShaderArgs(&srec.cs, m_linkResult.m_vps[LinkResult::SHADER_VPS_VS][MODE_BIN]);
+   PackShaderArgs(&srec.fs, m_linkResult->m_fs);
+   PackShaderArgs(&srec.vs, m_linkResult->m_vps[LinkResult::SHADER_VPS_VS][MODE_RENDER]);
+   PackShaderArgs(&srec.cs, m_linkResult->m_vps[LinkResult::SHADER_VPS_VS][MODE_BIN]);
 
    // Record the main shader record data
    v3d_pack_shadrec_gl_main(shadrecPtr, &srec);
@@ -777,10 +903,10 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    shadrecPtr += V3D_SHADREC_GL_MAIN_PACKED_SIZE / sizeof(uint32_t);
 
    // Write the attributes into the remaining part of the shader record memory block
-   if (m_linkResult.m_attrCount != 0)
+   if (m_linkResult->m_data.attr_count != 0)
    {
       CreateShaderRecordAttributes(
-         &m_linkResult,
+         m_linkResult.GetPtr(),
          m_vertexAttributeDescriptions,
          m_vertexBindingDescriptions,
 #if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
@@ -795,43 +921,6 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    }
    else
       CreateShaderRecordDummyAttribute(shadrecPtr);
-}
-
-void GraphicsPipeline::ComputeTnGVPMCfg(v3d_vpm_cfg_v vpmV[2], uint32_t *packedRes, uint32_t vpmSize) const
-{
-   V3D_VPM_CFG_TG_T vpmTg[2];
-   bool ok = v3d_vpm_compute_cfg_tg(
-      vpmV, vpmTg,
-      m_linkResult.m_hasTess,
-      m_linkResult.m_hasGeom,
-      vpmSize / 512,
-      m_linkResult.m_vsInputWords,
-      m_linkResult.m_vsOutputWords,
-      m_patchControlPoints,
-      m_linkResult.m_tcsOutputWordsPerPatch,
-      m_linkResult.m_tcsOutputWords,
-      m_linkResult.HasFlag(LinkResult::TCS_BARRIERS),
-      m_linkResult.m_tcsOutputVerticesPerPatch,
-      m_linkResult.m_tesOutputWords,
-      m_linkResult.m_tessType,
-      6u, // maximum number of vertices per GS primitive - TODO: use the real value from input topology
-      m_linkResult.m_gsOutputWords);
-   assert(ok);
-
-   V3D_SHADREC_GL_TESS_OR_GEOM_T shadrecTorG{};
-   shadrecTorG.tess_type            = m_linkResult.m_tessType;
-   shadrecTorG.tess_point_mode      = m_linkResult.m_tessPointMode;
-   shadrecTorG.tess_edge_spacing    = m_linkResult.m_tessEdgeSpacing;
-   shadrecTorG.tess_clockwise       = m_linkResult.m_tessClockwise;
-   //shadrecTorG.tcs_bypass         = todo_not_implemented;
-   //shadrecTorG.tcs_bypass_render  = todo_not_implemented;
-   shadrecTorG.tes_no_inp_verts     = true; // todo_not_implemented;
-   shadrecTorG.num_tcs_invocations  = std::max(m_linkResult.m_tcsOutputVerticesPerPatch, (uint8_t)1);
-   shadrecTorG.geom_output          = m_linkResult.m_geomPrimType;
-   shadrecTorG.geom_num_instances   = std::max(m_linkResult.m_geomInvocations, (uint8_t)1);
-   v3d_shadrec_gl_tg_set_vpm_cfg(&shadrecTorG, vpmTg);
-
-   v3d_pack_shadrec_gl_tess_or_geom(packedRes, &shadrecTorG);
 }
 
 void GraphicsPipeline::CreateShaderRecordDummyAttribute(uint32_t *dstPtr)
@@ -869,24 +958,24 @@ static void CreateShaderRecordAttributes(
    uint32_t *dstPtr)
 {
 #if !V3D_HAS_IMPLICIT_ATTR_DEFAULTS
-   memset(defaults, 0, lr->m_attrCount * 4 * sizeof(uint32_t));
+   memset(defaults, 0, lr->m_data.attr_count * 4 * sizeof(uint32_t));
 #endif
 
    uint32_t csTotalReads = 0;
    uint32_t vsTotalReads = 0;
    uint32_t recordCnt    = 0;
 
-   for (uint32_t n = 0; n < lr->m_attrCount; n++)
+   for (uint32_t n = 0; n < lr->m_data.attr_count; n++)
    {
-      csTotalReads += lr->m_attr[n].cScalarsUsed;
-      vsTotalReads += lr->m_attr[n].vScalarsUsed;
+      csTotalReads += lr->m_data.attr[n].c_scalars_used;
+      vsTotalReads += lr->m_data.attr[n].v_scalars_used;
    }
 
-   for (uint32_t n = 0; n < lr->m_attrCount; n++)
+   for (uint32_t n = 0; n < lr->m_data.attr_count; n++)
    {
-      uint32_t attrIndex  = lr->m_attr[n].idx;
-      uint32_t csNumReads = lr->m_attr[n].cScalarsUsed;
-      uint32_t vsNumReads = lr->m_attr[n].vScalarsUsed;
+      uint32_t attrIndex  = lr->m_data.attr[n].idx;
+      uint32_t csNumReads = lr->m_data.attr[n].c_scalars_used;
+      uint32_t vsNumReads = lr->m_data.attr[n].v_scalars_used;
 
       assert(csNumReads > 0 || vsNumReads > 0); // attribute entry shouldn't exist if there are no reads
 
@@ -909,7 +998,7 @@ static void CreateShaderRecordAttributes(
       V3D_SHADREC_GL_ATTR_T attr;
       attr.addr            = 0;
       attr.size            = gfx_lfmt_num_slots_from_channels(lfmt);
-      attr.type            = Formats::GetAttributeType(lfmt);
+      attr.type            = gfx_lfmt_translate_attr_type(lfmt, scaled);
       attr.signed_int      = gfx_lfmt_contains_int_signed(lfmt) || gfx_lfmt_contains_snorm(lfmt);
       attr.normalised_int  = gfx_lfmt_contains_unorm(lfmt) || gfx_lfmt_contains_snorm(lfmt);
       attr.read_as_int     = gfx_lfmt_contains_int(lfmt) && !scaled;
@@ -933,36 +1022,30 @@ static void CreateShaderRecordAttributes(
 
 void GraphicsPipeline::BuildUniformSpecial(UniformData &uniforms, uint32_t offset, BackendSpecialUniformFlavour special)
 {
-   VkDynamicState dynamic = VK_DYNAMIC_STATE_MAX_ENUM;
    Uniform uniform {};
 
    switch (special)
    {
    case BACKEND_SPECIAL_UNIFORM_VP_SCALE_X:
       uniform.f = m_viewport.internalScale[0];
-      dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Y:
       uniform.f = m_viewport.internalScale[1];
-      dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z:
    case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_NEAR:
       uniform.f = m_viewport.depthNear;
-      dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_FAR:
       uniform.f = m_viewport.depthFar;
-      dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    case BACKEND_SPECIAL_UNIFORM_VP_SCALE_Z:
    case BACKEND_SPECIAL_UNIFORM_DEPTHRANGE_DIFF:
       uniform.f = m_viewport.depthDiff;
-      dynamic = VK_DYNAMIC_STATE_VIEWPORT;
       break;
 
    default:
@@ -971,7 +1054,7 @@ void GraphicsPipeline::BuildUniformSpecial(UniformData &uniforms, uint32_t offse
 
    uniforms.defaults[offset] = uniform;
 
-   if (dynamic != VK_DYNAMIC_STATE_MAX_ENUM && m_dynamicStateBits.IsSet(dynamic))
+   if (m_dynamicStateBits.test(VK_DYNAMIC_STATE_VIEWPORT))
       uniforms.patches.emplace_back(BACKEND_UNIFORM_SPECIAL, offset, special);
 }
 
@@ -1016,7 +1099,7 @@ uint32_t GraphicsPipeline::CalcBackendKey(const VkGraphicsPipelineCreateInfo *ci
    if (multCi->alphaToCoverageEnable)
       key |= GLSL_SAMPLE_ALPHA;
 
-#if !V3D_HAS_SRS_CENTROID_FIX
+#if !V3D_VER_AT_LEAST(4,2,14,0)
    bool sampleShading = multCi != nullptr && multCi->sampleShadingEnable &&
                         multCi->rasterizationSamples != VK_SAMPLE_COUNT_1_BIT &&
                         multCi->minSampleShading >= 0.25f;

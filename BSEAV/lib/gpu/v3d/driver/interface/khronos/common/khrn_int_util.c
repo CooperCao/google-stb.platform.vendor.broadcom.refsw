@@ -4,9 +4,9 @@
 #include "interface/khronos/common/khrn_int_common.h"
 
 #include "interface/khronos/common/khrn_int_util.h"
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES/gl.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 void khrn_clip_range(
    int32_t *min_x0_io, int32_t *l0_io,

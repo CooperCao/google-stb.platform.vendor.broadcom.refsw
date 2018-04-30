@@ -40,11 +40,6 @@ public:
       m_valid = true;
    }
 
-   void Clear()
-   {
-      m_valid = false;
-   }
-
    bool IsValid() const
    {
       return m_valid;

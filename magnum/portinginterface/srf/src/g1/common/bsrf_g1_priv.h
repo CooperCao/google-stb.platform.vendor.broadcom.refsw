@@ -84,8 +84,9 @@ typedef struct BSRF_g1_P_ChannelHandle
    bool                 bOmitRfagcLut[BSRF_RFAGC_LUT_COUNT];   /* rfagc lut omissions */
    bool                 bEnableFastDecay;    /* enable fast decay mode */
    bool                 bAntennaSenseEnabled;   /* antenna sense enabled */
-   uint32_t             tunerFreq;           /* tuner freq */
+   bool                 bEnableNotch;        /* notch state */
    int32_t              notchFreq;           /* notch freq */
+   uint32_t             tunerFreq;           /* tuner freq */
    uint8_t              modeAoc;             /* antenna over-current mode */
    uint8_t              modeAd;              /* antenna detect mode */
    uint8_t              numRfagcLutOmitted;  /* number of rfagc lut elements omitted */
@@ -121,6 +122,7 @@ BERR_Code BSRF_g1_P_SetAntennaDetectThreshold(BSRF_ChannelHandle h, uint8_t mode
 BERR_Code BSRF_g1_P_GetAntennaDetectThreshold(BSRF_ChannelHandle h, uint8_t *pMode);
 BERR_Code BSRF_g1_P_GetAntennaStatus(BSRF_ChannelHandle h, BSRF_AntennaStatus *pStatus);
 BERR_Code BSRF_g1_P_Tune(BSRF_ChannelHandle h, uint32_t freqHz);
+BERR_Code BSRF_g1_P_Notch(BSRF_ChannelHandle h, bool bEnable, uint32_t freqHz, uint8_t bandwidth);
 BERR_Code BSRF_g1_P_GetTunerStatus(BSRF_ChannelHandle h, BSRF_TunerStatus *pStatus);
 BERR_Code BSRF_g1_P_ResetClipCount(BSRF_ChannelHandle h);
 BERR_Code BSRF_g1_P_GetClipCount(BSRF_ChannelHandle h, uint32_t *pClipCount);

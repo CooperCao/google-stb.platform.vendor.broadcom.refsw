@@ -55,6 +55,11 @@ void BV3D_P_GetTimeNow(
 );
 
 /***************************************************************************/
+uint64_t BV3D_P_GetEventTimestamp(
+   void
+);
+
+/***************************************************************************/
 void BV3D_P_Issue(
    BV3D_Handle hV3d
 );
@@ -73,21 +78,6 @@ void BV3D_P_PowerOff(
 void BV3D_P_SupplyBinner(
    BV3D_Handle hV3d,
    uint32_t    uiAddr
-);
-
-/***************************************************************************/
-void BV3D_P_InitPerfMonitor(
-   BV3D_Handle hV3d
-);
-
-/***************************************************************************/
-void BV3D_P_ResetPerfMonitorHWCounters(
-   BV3D_Handle hV3d
-);
-
-/***************************************************************************/
-void BV3D_P_GatherPerfMonitor(
-   BV3D_Handle hV3d
 );
 
 /***************************************************************************/
@@ -152,5 +142,15 @@ void BV3D_P_WakeWorkerThread_isr(
 );
 
 /***************************************************************************/
+
+void BV3D_P_RestorePerfCounters(
+   BV3D_Handle hV3d,
+   bool        bWriteSelectorsAndEnables
+   );
+
+void BV3D_P_UpdateShadowCounters(
+   BV3D_Handle hV3d
+   );
+
 
 #endif /* BV3D_WORKER_PRIV__H */

@@ -12,6 +12,7 @@
 #include "libs/core/v3d/v3d_shadrec.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/core/v3d/v3d_tmu.h"
+#include "libs/core/v3d/v3d_align.h"
 
 #include "libs/util/log/log.h"
 
@@ -24,11 +25,21 @@ LOG_DEFAULT_CAT("bvk::CommandBuffer");
 
 #include "libs/vulkan/nvshaders/vk_blit_shaders.h"
 
-static inline const inline_qasm *GetBlitShader(bool use32, bool signedClamp, uint32_t srcDim)
+static inline const inline_qasm *GetBlitShader(
+      bool     use16,
+      bool     msResolve32F,
+      bool     signedClamp,
+      uint32_t srcDim)
 {
+   if (msResolve32F)
+   {
+      assert(!use16);
+      return &blit_f32ms_f32tlb_2D;
+   }
+
    if (!signedClamp)
    {
-      const int writeIdx = use32;
+      const int writeIdx = use16 ? 0 : 1;
       static const inline_qasm *shader[2][3] = {
          { &blit_f16tlb_1D, &blit_f16tlb_2D, &blit_f16tlb_3D },
          { &blit_f32tlb_1D, &blit_f32tlb_2D, &blit_f32tlb_3D }
@@ -38,7 +49,7 @@ static inline const inline_qasm *GetBlitShader(bool use32, bool signedClamp, uin
    }
    else
    {
-      assert(use32);
+      assert(!use16);
       static const inline_qasm *shader[3] = { &blit_s32tlb_1D, &blit_s32tlb_2D, &blit_s32tlb_3D };
 
       return shader[srcDim-1];
@@ -122,7 +133,6 @@ public:
 
       gfx_buffer_uif_cfg uifCfg;
       gfx_buffer_get_tmu_uif_cfg(&uifCfg, &imgDesc, 0);
-      assert(!uifCfg.ub_noutile);
 
       V3D_TMU_TEX_STATE_T tsr;
       std::memset(&tsr, 0, sizeof(tsr));
@@ -208,6 +218,29 @@ public:
       unifPtr[idx++] = tlbConfig;
    }
 
+   void UniformsMSResolve(uint32_t tlbConfig)
+   {
+      V3D_TMU_PARAM2_T p2 = { 0 };
+      p2.op = V3D_TMU_OP_REGULAR;
+      p2.gather = 1;
+
+      m_nUniforms = 14;
+      NewDevMemRange(&m_uniformMem, m_nUniforms * sizeof(uint32_t), V3D_SHADREC_ALIGN);
+      uint32_t *unifPtr = static_cast<uint32_t*>(m_uniformMem.Ptr());
+
+      uint32_t idx = 0;
+      for (int i = 0; i < 4; i++)
+      {
+         unifPtr[idx++] = m_tmuCfg[0];
+         unifPtr[idx++] = m_tmuCfg[1];
+
+         p2.gather_comp = i;
+         unifPtr[idx++] = v3d_pack_tmu_param2(&p2);
+      }
+      unifPtr[idx++] = gfx_float_to_bits(0.25f);
+      unifPtr[idx++] = tlbConfig;
+   }
+
    void VertexData(const VkOffset3D *dstOffsets, const TexCoord *coords)
    {
       m_vdataMaxIndex = 3;
@@ -243,9 +276,6 @@ public:
 
       NewDevMemRange(&m_shadRecMem, srSize, V3D_SHADREC_ALIGN);
 
-      uint8_t *shadRecPtr = static_cast<uint8_t*>(m_shadRecMem.Ptr());
-      std::memset(shadRecPtr, 0, srSize);
-
       // Almost everything in an NV shader record is false or 0 in our current
       // usage.
       V3D_SHADREC_GL_MAIN_T shaderRec = { false };
@@ -268,6 +298,9 @@ public:
       shaderRec.fs.unifs_addr  = m_uniformMem.Phys();
       shaderRec.fs.single_seg  = false;
 
+      uint8_t *shadRecPtr = static_cast<uint8_t*>(m_shadRecMem.Ptr());
+      v3d_pack_shadrec_gl_main(reinterpret_cast<uint32_t *>(shadRecPtr), &shaderRec);
+
       // Xc, Yc, Zc, Wc - clipping is disabled so we just replicate the following attribute.
       MakeShaderAttr(&attr[0], 4, 4, 0, m_vdataMem.Phys(), m_vdataStride, m_vdataMaxIndex);
 
@@ -278,14 +311,10 @@ public:
       MakeShaderAttr(&attr[2], m_nVaryings, m_nVaryings, m_nVaryings,
             m_tcoordMem.Phys(), m_tcoordStride, m_tcoordMaxIndex);
 
-      // This allocation contains both main GL shader record,
-      // followed by variable number of attribute records.
       uint8_t *attrs_packed = shadRecPtr + V3D_SHADREC_GL_MAIN_PACKED_SIZE;
       for (uint32_t i = 0; i < m_nAttrArrays; i++)
          v3d_pack_shadrec_gl_attr(reinterpret_cast<uint32_t *>(attrs_packed + i * V3D_SHADREC_GL_ATTR_PACKED_SIZE),
                                   &attr[i]);
-
-      v3d_pack_shadrec_gl_main(reinterpret_cast<uint32_t *>(shadRecPtr), &shaderRec);
    }
 
    v3d_addr_t ShaderRecPhys() { return m_shadRecMem.Phys(); }
@@ -435,7 +464,7 @@ static inline TexCoord TexCoordAdjustment(
       {
          // Get the top left sample instead of bottom right which is what
          // you would normally get with the standard setup and a downscale by 2
-         return TexCoord {-0.5, -0.5f, 0.0 };
+         return TexCoord {-0.5f, -0.5f, 0.0 };
       }
    }
    else
@@ -493,12 +522,21 @@ void CommandBuffer::BlitImageRegion(
    const VkImageBlit &region,
    VkFilter           filter)
 {
-   const bool dstIs3D = gfx_lfmt_is_3d(dstImage->LFMT());
-   const bool srcIs3D = gfx_lfmt_is_3d(srcImage->LFMT());
-   const uint32_t srcMipLevel = region.srcSubresource.mipLevel;
-   const uint32_t dstMipLevel = region.dstSubresource.mipLevel;
+   const bool        dstIs3D     = gfx_lfmt_is_3d(dstImage->LFMT());
+   const bool        srcIs3D     = gfx_lfmt_is_3d(srcImage->LFMT());
+   const uint32_t    srcMipLevel = region.srcSubresource.mipLevel;
+   const uint32_t    dstMipLevel = region.dstSubresource.mipLevel;
+   const VkOffset3D *srcOffsets  = region.srcOffsets;
 
-   const auto &srcOffsets = region.srcOffsets;
+   const bool        srcIs32F    = (gfx_lfmt_contains_float(srcImage->LFMT()) &&
+                                    gfx_lfmt_red_bits(srcImage->LFMT()) == 32);
+
+   // Special case to internally implement 32F format multisample resolves as
+   // a blit operation, this is not valid usage via the blit API command.
+   const bool msResolve32F = srcIs32F && (srcImage->Samples() != VK_SAMPLE_COUNT_1_BIT);
+
+   if (msResolve32F)
+      log_trace("\t32bit Float Multisample resolve");
 
    VkOffset3D dstOffsets[2];
    SanitizeDestinationRegion(dstImage, region.dstOffsets, dstOffsets);
@@ -508,33 +546,32 @@ void CommandBuffer::BlitImageRegion(
    if (IsEmptyRegion(dstOffsets))
       return;
 
-   float scalew = CalculateScaleW(srcOffsets, dstOffsets);
+   const float scalew  = CalculateScaleW(srcOffsets, dstOffsets);
+
    TexCoord adjustment = TexCoordAdjustment(srcImage, filter);
    TexCoord coords[4];
-
    CreateTexCoords(adjustment, srcOffsets, dstOffsets, coords);
 
-   GFX_LFMT_T tlbLFMT = dstImage->LFMT();
-
    uint32_t clampVal1,clampVal2;
-   bool signedClamp;
-   GetClampValues(tlbLFMT, &clampVal1, &clampVal2, &signedClamp);
+   bool     signedClamp;
+   GetClampValues(dstImage->LFMT(), &clampVal1, &clampVal2, &signedClamp);
 
-   const int32_t layerCount  =
-         dstIs3D ? std::abs(dstOffsets[1].z - dstOffsets[0].z) : region.dstSubresource.layerCount;
-
-   const int32_t layerStep = dstIs3D && (dstOffsets[1].z < dstOffsets[0].z) ? -1 : 1;
-
-   int32_t dstBaseLayer;
+   int32_t dstBaseLayer, layerCount, layerStep;
    // For 3D destination images we draw into a slice at a time and move the
    // source z texture coordinate appropriately using the scale.
    if (dstIs3D)
    {
-      dstBaseLayer = (dstOffsets[1].z < dstOffsets[0].z) ? region.dstOffsets[0].z - 1 : region.dstOffsets[0].z;
+      const bool reversedZCoord = dstOffsets[1].z < dstOffsets[0].z;
+      dstBaseLayer = reversedZCoord ? region.dstOffsets[0].z - 1 : region.dstOffsets[0].z;
+      layerStep    = reversedZCoord ? -1 : 1;
+      layerCount   = std::abs(dstOffsets[1].z - dstOffsets[0].z);
    }
    else
    {
       dstBaseLayer = region.dstSubresource.baseArrayLayer;
+      layerCount   = region.dstSubresource.layerCount;
+      layerStep    = 1;
+
       // If copying from a 3D image to a 2D source then calculate the source
       // sample point in the w coordinate based on a destination "slice 0". This
       // will give us correct linear filtering between the 3D source slices.
@@ -550,7 +587,7 @@ void CommandBuffer::BlitImageRegion(
       // in the subresource and there can only be one array layer copied
       // if the source is 3D and the destination is a 2D array, otherwise it
       // is invalid usage.
-      uint32_t srcBaseLayer = dstIs3D ? 0 : region.srcSubresource.baseArrayLayer + l;
+      const uint32_t srcBaseLayer = dstIs3D ? 0 : region.srcSubresource.baseArrayLayer + l;
 
       log_trace("\tBlitNVShader bin/render job for:");
       log_trace("\tsrcMipLevel  = %u dstMipLevel = %u", srcMipLevel, dstMipLevel);
@@ -563,7 +600,7 @@ void CommandBuffer::BlitImageRegion(
       if (dstOffsets[0].x != 0 || dstOffsets[0].y != 0)
          cb.SetLoadDestination(); // We need to preserve what we are not drawing to
 
-      cb.SetImageSubresources(nullptr, dstImage, tlbLFMT,
+      cb.SetImageSubresources(nullptr, dstImage, GFX_LFMT_NONE,
             0, dstMipLevel, 0, dstBaseLayer, /* layerCount = */ 1,
             std::max(dstOffsets[0].x, dstOffsets[1].x),
             std::max(dstOffsets[0].y, dstOffsets[1].y));
@@ -573,23 +610,27 @@ void CommandBuffer::BlitImageRegion(
       cb.SetCurrentControlList(&drawList);
       drawList.SetStart(*cb.m_curDeviceBlock);
 
-      uint32_t srcDim = gfx_lfmt_dims_from_enum(srcImage->GetImageDims());
+      const uint32_t srcDim = gfx_lfmt_dims_from_enum(srcImage->GetImageDims());
       BlitNVShaderHelper nv { &m_devDataArena, &drawList, srcDim };
 
       /* TODO: The !IsInt is to force the old behaviour on new hardware until shaders, etc. catch up */
-      const bool use16  = cb.TLBUseWRCfg16() && !cb.TLBIsInt();
+      const bool use16  = cb.TLBUseWRCfg16() && !cb.TLBIsInt() && !msResolve32F;
       const bool useInt = cb.TLBIsInt();
 
-      const inline_qasm *shader = GetBlitShader(!use16, signedClamp, srcDim);
+      const inline_qasm *shader = GetBlitShader(use16, msResolve32F, signedClamp, srcDim);
 
       nv.TextureParameter(srcImage, srcMipLevel, srcBaseLayer, !use16);
       nv.SamplerParameter(filter, !use16);
       nv.VertexData(dstOffsets, coords);
 
-      uint32_t tlbConfig = 0xffffff00 | v3d_tlb_config_color(0, use16, useInt, use16 ? 2 : 4, false);
+      const uint32_t tlbVecSZ  = use16 ? 2 : 4;
+      const uint8_t  tlbRT0Cfg = v3d_tlb_config_color(0, use16, useInt, tlbVecSZ, false);
+      const uint32_t tlbConfig = 0xffffff00 | tlbRT0Cfg;
 
       if (use16)
          nv.Uniforms(tlbConfig);
+      else if (msResolve32F)
+         nv.UniformsMSResolve(tlbConfig);
       else
          nv.Uniforms(tlbConfig, clampVal1, clampVal2, signedClamp);
 
@@ -604,7 +645,7 @@ void CommandBuffer::BlitImageRegion(
       cb.SetDrawList(&drawList);
 
       auto cmd = NewObject<CmdBinRenderJobObj>(m_device->GetPhysicalDevice());
-      const v3d_barrier_flags binSyncFlags = V3D_BARRIER_NO_ACCESS; // Control list builder defaults are OK for blit binning
+      const v3d_barrier_flags binSyncFlags    = V3D_BARRIER_NO_ACCESS; // Control list builder defaults are OK for blit binning
       const v3d_barrier_flags renderSyncFlags = V3D_BARRIER_TMU_CONFIG_READ | V3D_BARRIER_TMU_DATA_READ;
 
       cb.CreateMasterControlLists(cmd, binSyncFlags, renderSyncFlags);
@@ -680,12 +721,7 @@ void CommandBuffer::CmdBlitImage(
    VkFilter           filter) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
-
-   // Blitting MS images is not allowed by the spec
-   assert(srcImage->Samples() == VK_SAMPLE_COUNT_1_BIT);
-   assert(dstImage->Samples() == VK_SAMPLE_COUNT_1_BIT);
 
    log_trace("CmdBlitImage: srcImage = %p dstImage = %p", srcImage, dstImage);
 
@@ -695,8 +731,7 @@ void CommandBuffer::CmdBlitImage(
    {
       // We can hit this case for example when using blit to take a snapshot
       // from a swapchain image, which is in RSO for efficient display interop.
-      GFX_LFMT_T tmuLFMT = srcImage->LFMT();
-      if (!gfx_lfmt_is_1d(tmuLFMT) && gfx_lfmt_is_rso(tmuLFMT))
+      if (!gfx_lfmt_is_1d(srcImage->LFMT()) && gfx_lfmt_is_rso(srcImage->LFMT()))
       {
          // We should never have a 2D or 3D mipmapped image in an RSO layout.
          assert(srcImage->MipLevels() == 1);
@@ -728,26 +763,15 @@ void CommandBuffer::CmdBlitImage(
          srcImage = bounceReleaseCmd->m_image;
       }
 
-      for (uint32_t i = 0; i < regionCount; i++)
+      // The spec says regionCount must be > 0 for this to be valid usage
+      BlitImageRegion(srcImage, dstImage, pRegions[0], filter);
+      for (uint32_t i = 1; i < regionCount; i++)
       {
-         assert(pRegions[i].srcSubresource.aspectMask == pRegions[i].dstSubresource.aspectMask);
-         assert(pRegions[i].srcSubresource.layerCount == pRegions[i].dstSubresource.layerCount);
-         if (gfx_lfmt_is_3d(dstImage->LFMT()))
-         {
-            assert(pRegions[i].dstSubresource.layerCount == 1);
-            assert(pRegions[i].dstSubresource.baseArrayLayer == 0);
-            // The spec does not allow blitting from a non-zero 1D or 2D array
-            // layer into a 3D slice
-            assert(pRegions[i].srcSubresource.baseArrayLayer == 0);
-         }
-
          // We need to add our own execution barriers between regions as each
          // job may be writing to portions of the same memory. On the multi-core
          // simulator this will cause rendering errors as tile writes fight
          // against each other.
-         if (i != 0)
-            InsertExecutionBarrier();
-
+         InsertExecutionBarrier();
          BlitImageRegion(srcImage, dstImage, pRegions[i], filter);
       }
 

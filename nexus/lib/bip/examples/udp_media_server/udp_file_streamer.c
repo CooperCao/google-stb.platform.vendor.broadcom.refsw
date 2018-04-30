@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "blst_queue.h"
 #include "bip.h"
@@ -79,6 +83,8 @@ typedef struct AppStreamerCtx
     unsigned                    trackGroupId;       /* Program Index to Stream out */
     bool                        enableXcode;
     char                        *xcodeProfile;
+    bool                        enableAllPass;
+    unsigned                    maxDataRate;
 } AppStreamerCtx;
 
 
@@ -176,12 +182,14 @@ static BIP_Status startStreamer(
         {
             fileInputSettings.enableContinousPlay = true;
         }
+        fileInputSettings.enableAllPass = pAppStreamerCtx->enableAllPass;
 
         bipStatus = BIP_UdpStreamer_SetFileInputSettings( pAppStreamerCtx->hUdpStreamer, BIP_String_GetString( pAppStreamerCtx->hMediaFileAbsolutePath), &streamerStreamInfo, &fileInputSettings );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_UdpStreamer_SetFileInputSettings Failed" ), error, bipStatus, bipStatus );
     }
 
     /* Now specify the Tracks that should be added for streaming. */
+    if (!pAppStreamerCtx->enableAllPass)
     {
         BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
         BIP_MediaInfoTrack      *pMediaInfoTrack = NULL;
@@ -252,6 +260,8 @@ static BIP_Status startStreamer(
         BIP_UdpStreamerOutputSettings streamerOutputSettings;
 
         BIP_UdpStreamer_GetDefaultOutputSettings( &streamerOutputSettings );
+        streamerOutputSettings.streamerSettings.enableStreamingUsingPlaybackCh = true;
+        streamerOutputSettings.streamerSettings.maxDataRate = pAppStreamerCtx->maxDataRate;
         bipStatus = BIP_UdpStreamer_SetOutputSettings(
                 pAppStreamerCtx->hUdpStreamer,
                 pAppStreamerCtx->streamerProtocol,
@@ -311,6 +321,11 @@ void printUsage( char *pCmdName )
             "  -ip          #   IP Address to which media is streamed out to (default : 224.1.1.10)\n"
             "  -port        #   Port to which media is streamed out to (default : 1234)\n"
             "  -proto       #   Protocol string: udp | rtp (default is udp)\n"
+            "  -enableAllPass   #   Enable streaming of all AV Tracks. \n"
+          );
+    printf(
+            "  -maxDataRate <num> # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))!\n"
+            "               #   Allows sender to stream out a certail user specified rate instead of pacing using PCRs.\n"
           );
     printf(
             "  -interface   #   Interface Name on which media is streamed out to (default : eth0)\n"
@@ -340,6 +355,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-mediaFile") && i+1<argc )
         {
             BIP_String_StrcpyChar( pAppStreamerCtx->hMediaFileAbsolutePath, argv[++i] );
+        }
+        else if ( !strcmp(argv[i], "-maxDataRate") && i+1<argc )
+        {
+            pAppStreamerCtx->maxDataRate = strtoul(argv[++i], NULL, 0);
         }
         else if ( !strcmp(argv[i], "-port") && i+1<argc )
         {
@@ -384,6 +403,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-xcodeProfile") )
         {
             pAppStreamerCtx->xcodeProfile = argv[++i];
+        }
+        else if ( !strcmp(argv[i], "-enableAllPass") )
+        {
+            pAppStreamerCtx->enableAllPass = true;
         }
         else
         {

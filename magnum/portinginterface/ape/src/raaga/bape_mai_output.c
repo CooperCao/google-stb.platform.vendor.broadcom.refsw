@@ -1700,7 +1700,10 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc, ui
             flags |= 0x40000000;
         }
         if (handle->spdif.clk == 0) {
-            flags |= 0xf;
+            flags |= 0x1; /* B */
+        }
+        else {
+            flags |= 0x4; /* M */
         }
         if (++handle->spdif.clk >= 192) {
             handle->spdif.clk = 0;
@@ -1739,6 +1742,7 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc, ui
             }
 #endif
             *(uint32_t *)pOut = samp;
+            flags = (flags & 0xfffffff0) | 0x2; /* W */
             pOut += 4;
         }
         framesToCopy--;

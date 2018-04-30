@@ -3,6 +3,8 @@
  ******************************************************************************/
 #ifndef BSG_STAND_ALONE
 
+#if NEXUS_HAS_GRAPHICS2D
+
 // Nexus or Magnum should really define this before using UINT32_C, but don't currently
 #define __STDC_CONSTANT_MACROS
 
@@ -2150,5 +2152,7 @@ private:
       (static_cast<NexusVideoDecoderPrivate * > (m_videoDecoderPrivate))->CreateFenceForSyncUpdate(dpy);
    }
 }
+
+#endif // NEXUS_HAS_GRAPHICS2D
 
 #endif // BSG_STAND_ALONE

@@ -159,4 +159,10 @@ void BV3D_P_BinMemDebugDump(
    BV3D_BinMemManagerHandle hBinMemManager
 );
 
+void BV3D_P_BinPoolStats(
+   BV3D_BinMemManagerHandle hBinMemManager,
+   size_t             *puiCapacityBytes,
+   size_t             *puiUsedBytes
+);
+
 #endif /* BV3D_BIN_MEM_PRIV__H */

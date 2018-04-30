@@ -54,9 +54,13 @@ APPS = \
     security_keyslot_playback_app \
     security_keyslot_mpeg_packet_crypto \
     security_keyslot_mpeg_packet_crypto_flexible_app \
+    security_keyslot_mpeg_stream_playback \
+    security_keyslot_mpeg_stream_record_from_playback \
     security_keyladder_otp_askm_key_app \
     security_keyladder_otp_global_key_app \
     security_keyladder_otp_customer_key_app \
+    security_keyladder_otp_direct_key_app \
+    security_keyladder_otp_direct_key_CP_CA_app \
     security_keyladder_aes_ecb_app \
     security_keyladder_aes_cbc_app \
     security_keyladder_aes_ecb_simple \
@@ -83,7 +87,10 @@ $(BINDIR)/security_keyslot_aes_cbc_iv_64_app        $(BINDIR)/security_keyslot_a
 $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple     $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple:$(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_app       $(BINDIR)/security_keyslot_external_keyiv_app:  $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_mpeg_packet_crypto       $(BINDIR)/security_keyslot_mpeg_packet_crypto:  $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_playback                 $(BINDIR)/security_keyslot_playback:            $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app       $(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app:  $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_mpeg_stream_playback     $(BINDIR)/security_keyslot_mpeg_stream_playback: $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_mpeg_stream_record_from_playback      $(BINDIR)/security_keyslot_mpeg_stream_record_from_playback: $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app       $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app:  $(EXTRA_SRC)
 # Sha app
 $(BINDIR)/security_hash_app							$(BINDIR)/security_hash_app:  					$(EXTRA_SRC)
@@ -96,3 +103,5 @@ $(BINDIR)/security_keyladder_aes_ecb_simple         $(BINDIR)/security_keyladder
 $(BINDIR)/security_keyladder_otp_askm_key_app       $(BINDIR)/security_keyladder_otp_askm_key_app:  $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_otp_global_key_app     $(BINDIR)/security_keyladder_otp_global_key_app:    $(EXTRA_SRC)
 $(BINDIR)/security_keyladder_otp_customer_key_app   $(BINDIR)/security_keyladder_otp_customer_key_app:  $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_direct_key_app     $(BINDIR)/security_keyladder_otp_direct_key_app:    $(EXTRA_SRC)
+$(BINDIR)/security_keyladder_otp_direct_key_CP_CA_app     $(BINDIR)/security_keyladder_otp_direct_key_CP_CA_app:    $(EXTRA_SRC)

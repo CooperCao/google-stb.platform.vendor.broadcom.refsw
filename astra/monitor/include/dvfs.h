@@ -47,6 +47,7 @@
  * DVFS functions
  */
 int dvfs_init(uint32_t num_cpus);
+int dvfs_activate(void);
 
 int dvfs_cpu_up(uint32_t cpu_index);
 int dvfs_cpu_down(uint32_t cpu_index);

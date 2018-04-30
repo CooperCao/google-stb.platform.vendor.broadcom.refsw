@@ -102,10 +102,6 @@ BERR_Code BHSM_BspMsg_Configure( BHSM_BspMsg_h hMsg, BHSM_BspMsgConfigure_t *pPa
 /* Submit the Message to the BSP interface. Function blocks until a response is received (or it times out) */
 BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus );
 
-/* debug fuctions. */
-void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg );
-void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg );
-
 #ifdef __cplusplus
 }
 #endif

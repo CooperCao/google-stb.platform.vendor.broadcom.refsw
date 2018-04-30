@@ -10,6 +10,32 @@
 
 namespace bvk {
 
+Dflow Dflow::Default(DataflowType dfType)
+{
+   switch (dfType)
+   {
+   case DF_BOOL:
+   case DF_INT:
+   case DF_UINT:
+   case DF_FLOAT:
+      return Dflow::Value(dfType, 0u);
+
+   case DF_SAMPLER:
+      return Dflow::Sampler(-1);
+
+   case DF_F_SAMP_IMG:
+   case DF_I_SAMP_IMG:
+   case DF_U_SAMP_IMG:
+   case DF_F_STOR_IMG:
+   case DF_I_STOR_IMG:
+   case DF_U_STOR_IMG:
+      return Dflow::ImageUniform(dfType, /*relaxed=*/true, -1);
+
+   default:
+      assert(0);
+      return Dflow();
+   }
+}
 
 Dflow Dflow::Vec4(const DflowScalars &coord)
 {

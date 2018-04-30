@@ -2457,14 +2457,17 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
 
     if (pSettings == NULL)
     {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        rc = NEXUS_INVALID_PARAMETER;
+        BERR_TRACE(rc);
+        goto end;
     }
 
     BDBG_MSG(("[%p] Disabling synclib", (void *)syncChannel));
     /* disable */
     BSYNClib_Channel_GetConfig(syncChannel->synclibChannel, &synclibConfig);
     synclibConfig.bEnabled = false;
-    BSYNClib_Channel_SetConfig(syncChannel->synclibChannel, &synclibConfig);
+    rc = BSYNClib_Channel_SetConfig(syncChannel->synclibChannel, &synclibConfig);
+    if (rc) { BERR_TRACE(rc); goto end; }
     BDBG_MSG(("[%p] Synclib disabled", (void *)syncChannel));
 
     if ((syncChannel->settings.videoInput && !pSettings->videoInput) /* disconnect old */
@@ -2481,17 +2484,17 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
     {
         /* connect video input */
         rc = NEXUS_SyncChannel_P_ConnectVideoInput(syncChannel, pSettings);
-        if (rc) goto end;
+        if (rc) { BERR_TRACE(rc); goto end; }
     }
 
     /* TODO: more external settings coming */
     rc = NEXUS_Synclib_P_SetVideoSource(syncChannel, pSettings, 0);
-    if (rc) goto end;
+    if (rc) { BERR_TRACE(rc); goto end; }
 
     for (i = 0; i < NEXUS_SYNC_CHANNEL_VIDEO_OUTPUTS; i++)
     {
         rc = NEXUS_Synclib_P_SetVideoSink(syncChannel, pSettings, i);
-        if (rc) goto end;
+        if (rc) { BERR_TRACE(rc); goto end; }
     }
 
     /* process all disconnections for all audio channels first
@@ -2517,7 +2520,7 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
         {
             /* connect audio input i */
             rc = NEXUS_SyncChannel_P_ConnectAudioInput(syncChannel, pSettings, i);
-            if (rc) goto end;
+            if (rc) { BERR_TRACE(rc); goto end; }
         }
     }
 
@@ -2525,13 +2528,13 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
     for (i = 0; i < NEXUS_SYNC_CHANNEL_AUDIO_INPUTS; i++)
     {
         rc = NEXUS_Synclib_P_SetAudioSource(syncChannel, pSettings, i);
-        if (rc) goto end;
+        if (rc) { BERR_TRACE(rc); goto end; }
     }
 
     for (i = 0; i < NEXUS_SYNC_CHANNEL_AUDIO_OUTPUTS; i++)
     {
         rc = NEXUS_Synclib_P_SetAudioSink(syncChannel, pSettings, i);
-        if (rc) goto end;
+        if (rc) { BERR_TRACE(rc); goto end; }
     }
 
     /* PR49294 20081125 bandrews - added precision lipsync flag */
@@ -2551,7 +2554,8 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
         synclibConfig.sMuteControl.bEnabled = pSettings->enableMuteControl;
         synclibConfig.sMuteControl.bSimultaneousUnmute = pSettings->simultaneousUnmute;
         synclibConfig.sMuteControl.bAllowIncrementalStart = pSettings->allowIncrementalStart;
-        BSYNClib_Channel_SetConfig(syncChannel->synclibChannel, &synclibConfig);
+        rc = BSYNClib_Channel_SetConfig(syncChannel->synclibChannel, &synclibConfig);
+        if (rc) { BERR_TRACE(rc); goto end; }
     }
 
     /* if changing mute control, need to tell decoders */
@@ -2567,6 +2571,7 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
             videoSettings.mute = pSettings->enableMuteControl;
             rc = NEXUS_VideoInput_SetSyncSettings_priv(pSettings->videoInput, &videoSettings);
             NEXUS_Module_Unlock(g_NEXUS_syncChannel.settings.modules.display);
+            if (rc) { BERR_TRACE(rc); goto end; }
         }
 
         for (i = 0; i < NEXUS_SYNC_CHANNEL_AUDIO_INPUTS; i++)
@@ -2578,6 +2583,7 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
                 audioSettings.mute = pSettings->enableMuteControl;
                 rc = NEXUS_AudioInput_SetSyncSettings_priv(pSettings->audioInput[i], &audioSettings);
                 NEXUS_Module_Unlock(g_NEXUS_syncChannel.settings.modules.audio);
+                if (rc) { BERR_TRACE(rc); goto end; }
             }
         }
     }
@@ -2598,19 +2604,20 @@ NEXUS_Error NEXUS_SyncChannel_SetSettings(NEXUS_SyncChannelHandle syncChannel, c
     for (i = 0; i < NEXUS_SYNC_CHANNEL_AUDIO_INPUTS; i++)
     {
         rc = NEXUS_SyncChannel_P_ApplyAudioConnectState(syncChannel, pSettings, i);
-        if (rc) goto end;
+        if (rc) { BERR_TRACE(rc); goto end; }
     }
 
     BDBG_MSG(("[%p] Enabling synclib", (void *)syncChannel));
     /* enable */
     BSYNClib_Channel_GetConfig(syncChannel->synclibChannel, &synclibConfig);
     synclibConfig.bEnabled = true;
-    BSYNClib_Channel_SetConfig(syncChannel->synclibChannel, &synclibConfig);
+    rc = BSYNClib_Channel_SetConfig(syncChannel->synclibChannel, &synclibConfig);
+    if (rc) { BERR_TRACE(rc); goto end; }
     BDBG_MSG(("[%p] Synclib enabled", (void *)syncChannel));
 
 end:
 
-    return 0;
+    return rc;
 }
 
 void NEXUS_SyncChannel_SimpleVideoConnected_priv(NEXUS_SyncChannelHandle syncChannel)

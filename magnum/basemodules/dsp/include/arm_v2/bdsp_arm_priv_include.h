@@ -66,6 +66,7 @@
 
 /* BDSP Arm includes */
 #include "bdsp_arm.h"
+#include "bdsp_arm_img.h"
 #include "bdsp_arm_fw_algo.h"
 #include "bdsp_arm_mm_priv.h"
 #include "bdsp_common_cmdresp_priv.h"

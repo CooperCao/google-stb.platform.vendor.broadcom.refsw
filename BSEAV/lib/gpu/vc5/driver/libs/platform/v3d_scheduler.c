@@ -36,7 +36,9 @@ typedef struct v3d_scheduler
    uint64_t max_submitted_job_id;               // the highest job id that we've submitted to the scheduler
    struct bcm_sched_job batched_jobs[MAX_BATCHED_JOBS];
    unsigned num_batched_jobs;
+#if !V3D_USE_L2T_LOCAL_MEM
    uintptr_t compute_shared_mem[2];
+#endif
 } v3d_scheduler;
 
 static v3d_scheduler scheduler;
@@ -83,8 +85,10 @@ void v3d_scheduler_shutdown(void)
    v3d_scheduler_wait_all();
    bcm_sched_register_update_oldest_nfid(NULL);
 
+ #if !V3D_USE_L2T_LOCAL_MEM
    for (unsigned i = 0; i != countof(scheduler.compute_shared_mem); ++i)
       gmem_free((gmem_handle_t)vcos_atomic_load_uintptr(&scheduler.compute_shared_mem[i], VCOS_MEMORY_ORDER_RELAXED));
+ #endif
 
    vcos_mutex_delete(&scheduler.lock);
    memset(&scheduler, 0, sizeof(scheduler));
@@ -313,6 +317,12 @@ uint64_t v3d_scheduler_submit_compute_job(
    bool secure,
    v3d_sched_completion_fn completion, void *data)
 {
+   for (unsigned s = 0; s != num_subjobs; ++s)
+   {
+      for (unsigned i = 0; i != 3; ++i)
+         assert((subjobs[s].num_wgs[i] - 1) <= 0xffff);
+   }
+
    struct bcm_sched_job job;
    memset(&job, 0, sizeof(job));
    job.job_type = BCM_SCHED_JOB_TYPE_V3D_COMPUTE;
@@ -365,7 +375,7 @@ uint64_t v3d_scheduler_submit_render_job(
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    job.driver.render.base.workaround_gfxh_1181 = info->workaround_gfxh_1181;
 #endif
-   job.driver.render.base.no_overlap = info->no_overlap;
+   job.driver.render.no_overlap = info->no_overlap;
 
    job.completion_fn = completion;
    job.completion_data = data;
@@ -391,7 +401,7 @@ void v3d_scheduler_submit_bin_render_job(
    jobs[0].job_type = BCM_SCHED_JOB_TYPE_V3D_BIN;
    v3d_scheduler_copy_deps(&jobs[0].completed_dependencies, bin_deps);
    jobs[0].driver.bin.subjobs_list = br_info->bin_subjobs;
-   jobs[0].driver.bin.base.no_overlap = br_info->details.bin_no_overlap;
+   jobs[0].driver.bin.no_overlap = br_info->details.bin_no_overlap;
    jobs[0].driver.bin.minInitialBinBlockSize = br_info->details.min_initial_bin_block_size;
    jobs[0].secure = br_info->details.secure;
 
@@ -409,7 +419,7 @@ void v3d_scheduler_submit_bin_render_job(
    jobs[1].driver.render.subjobs_list = br_info->render_subjobs;
    jobs[1].driver.render.num_layers = br_info->num_layers;
    jobs[1].driver.render.tile_alloc_layer_stride = br_info->details.tile_alloc_layer_stride;
-   jobs[1].driver.render.base.no_overlap = br_info->details.render_no_overlap;
+   jobs[1].driver.render.no_overlap = br_info->details.render_no_overlap;
    jobs[1].secure = br_info->details.secure;
 
    jobs[1].driver.render.base.gmp_table = br_info->details.render_gmp_table;
@@ -755,11 +765,19 @@ bool v3d_scheduler_query_event(bcm_sched_event_id event_id)
 
 uint32_t v3d_scheduler_get_compute_shared_mem_size_per_core(void)
 {
+ #if V3D_USE_L2T_LOCAL_MEM
+   // TBD: For small 32kb L2T we'll need to either reduce V3D_SCHEDULER_COMPUTE_MIN_SHARED_MEM_PER_CORE
+   // to 16kb or fall back to using memory backed addresses.
+   assert(gmem_get_l2t_local_mem_size() >= V3D_SCHEDULER_COMPUTE_MIN_SHARED_MEM_PER_CORE);
+   return gmem_get_l2t_local_mem_size();
+ #else
    // Use half the L2T size but at least COMPUTE_MIN_SHARED_MEM_PER_CORE.
    uint32_t l2t_size = v3d_l2t_size_from_ident(&scheduler.identity);
    return gfx_umax(l2t_size / 2, V3D_SCHEDULER_COMPUTE_MIN_SHARED_MEM_PER_CORE);
+ #endif
 }
 
+#if !V3D_USE_L2T_LOCAL_MEM
 gmem_handle_t v3d_scheduler_get_compute_shared_mem(bool secure, bool alloc)
 {
    // Allocate shared memory on demand.
@@ -782,3 +800,4 @@ gmem_handle_t v3d_scheduler_get_compute_shared_mem(bool secure, bool alloc)
    }
    return handle;
 }
+#endif

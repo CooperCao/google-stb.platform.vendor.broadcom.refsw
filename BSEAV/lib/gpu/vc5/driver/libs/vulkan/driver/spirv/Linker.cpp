@@ -69,11 +69,15 @@ void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
    if (shaders[SHADER_VERTEX])
    {
       // RB swap all attribute locations
-      int swap[4] = { 2, 1, 0, 3 };
+      unsigned swap[4] = { 2, 1, 0, 3 };
       for (int i=0; i<prog->ir->stage[SHADER_VERTEX].link_map->num_ins; i++)
       {
-         int loc  = prog->ir->stage[SHADER_VERTEX].link_map->ins[i] / 4;
-         int comp = prog->ir->stage[SHADER_VERTEX].link_map->ins[i] & 3;
+         int l = prog->ir->stage[SHADER_VERTEX].link_map->ins[i];
+         if (l == -1)
+            continue;
+
+         unsigned loc  = l / 4;
+         unsigned comp = l & 3;
          if (attribRBSwaps.test(loc))
             comp = swap[comp];
          prog->ir->stage[SHADER_VERTEX].link_map->ins[i] = 4 * loc + comp;
@@ -101,7 +105,7 @@ void Linker::LinkShaders(CompiledShaderHandle shaders[SHADER_FLAVOUR_COUNT],
    glsl_program_free(prog);
 
    if (binaryProg == nullptr)
-      throw std::runtime_error(std::string("CodeGen Error"));
+      throw std::runtime_error(std::string("CodeGen Error when linking shaders"));
 }
 
 } // namespace bvk

@@ -70,8 +70,8 @@ RenderPass::RenderPass(
    bvk::Device                   *pDevice,
    const VkRenderPassCreateInfo  *pCreateInfo) :
       Allocating(pCallbacks),
-      m_attachments(pCreateInfo->attachmentCount, GetObjScopeAllocator<Attachment>()),
-      m_subpasses(pCreateInfo->subpassCount, GetObjScopeAllocator<Subpass>()),
+      m_attachments(pCreateInfo->attachmentCount, Attachment(), GetObjScopeAllocator<Attachment>()),
+      m_subpasses(pCreateInfo->subpassCount, Subpass(), GetObjScopeAllocator<Subpass>()),
       m_subpassGroups(GetObjScopeAllocator<SubpassGroup>())
 {
    // Gather as much information about the attachments up-front as we can
@@ -574,6 +574,17 @@ void RenderPass::GetRenderAreaGranularity(
 {
    pGranularity->width  = m_maxTileWidth;
    pGranularity->height = m_maxTileHeight;
+}
+
+bool RenderPass::EarlyZCompatible() const
+{
+   // A render pass is early z compatible if it clears the depth buffer before first use
+   for (auto &spg : m_subpassGroups)
+   {
+      if (spg.m_hasDepth && spg.m_doDSInitialClear)
+         return true;
+   }
+   return false;
 }
 
 }

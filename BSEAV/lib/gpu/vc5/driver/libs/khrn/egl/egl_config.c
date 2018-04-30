@@ -21,72 +21,71 @@
 static const EGL_CONFIG_T egl_configs[] = {
    // EGLConfig
    // |    SAMPLES
-   // |    |  LOCKABLE
-   // |    |  |  COLOR                       DEPTH                      STENCIL           INVALID
-   /* 1*/ {0, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /* 2*/ {0, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /* 3*/ {0, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /* 4*/ {0, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /* 5*/ {0, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /* 6*/ {0, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /* 7*/ {0, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
-   /* 8*/ {0, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   // |    |  COLOR                       DEPTH                      STENCIL           INVALID
+   /* 1*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /* 2*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /* 3*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /* 4*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /* 5*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /* 6*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /* 7*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /* 8*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /* 9*/ {4, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*10*/ {4, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*11*/ {4, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*12*/ {4, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*13*/ {4, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*14*/ {4, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*15*/ {4, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
-   /*16*/ {4, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /* 9*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*10*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*11*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*12*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*13*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*14*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*15*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*16*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /*17*/ {0, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*18*/ {0, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*19*/ {0, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*20*/ {0, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*17*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*18*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*19*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*20*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /*21*/ {4, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*22*/ {4, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*23*/ {4, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*24*/ {4, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*21*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*22*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*23*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*24*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /*25*/ {0, 0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D16_UNORM,        GFX_LFMT_NONE,    },
+   /*25*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D16_UNORM,        GFX_LFMT_NONE,    },
 
-   /*26*/ {0, 0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*27*/ {0, 0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*28*/ {0, 0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*29*/ {0, 0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*26*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*27*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*28*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*29*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
    /* This config should look the same as config 1 except for having a larger
     * ID. So it should never be the top config returned by eglChooseConfig() or
     * eglGetConfigs() -- if it appears, config 1 will always appear earlier. */
-   /*30*/ {0, 0, GFX_LFMT_BSTC_RGBA_UNORM,   GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    !V3D_VER_AT_LEAST(3,3,0,0)},
+   /*30*/ {0, GFX_LFMT_BSTC_RGBA_UNORM,   GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    !V3D_VER_AT_LEAST(3,3,0,0)},
 
-   /*31*/ {0, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*32*/ {0, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*33*/ {0, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*34*/ {0, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*31*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*32*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*33*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*34*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /*35*/{ 4, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*36*/{ 4, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*37*/{ 4, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*38*/{ 4, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*35*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*36*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*37*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*38*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
 #if 0
    /* The 1-bit alpha component might cause some surprises if we add 5551 configs as it is internally
     * maintained at higher precision. This can sometimes lead to unexpected results, so for now, we won't
     * expose these formats.
     */
-   /*39*/ {0, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*40*/ {0, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*41*/ {0, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*42*/ {0, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*39*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*40*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*41*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*42*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /*43*/{ 4, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*44*/{ 4, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*45*/{ 4, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*46*/{ 4, 0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*43*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*44*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*45*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*46*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 #endif
 };
 

@@ -10,6 +10,8 @@ LOG_DEFAULT_CAT("bvk::Options")
 
 namespace bvk {
 
+std::once_flag Options::m_initFlag;
+
 uint32_t Options::renderSubjobs;
 uint32_t Options::binSubjobs;
 bool     Options::allCoresSameStOrder;
@@ -32,10 +34,12 @@ bool     Options::dumpTransferImages;
 bool     Options::dumpPresentedImages;
 char     Options::dumpPath[VCOS_PROPERTY_VALUE_MAX];
 uint32_t Options::numNxClientSurfaces;
-bool     Options::fullSymbolNames;
 bool     Options::dumpSPIRV;
+uint32_t Options::fakeDirectDisplayWidth;
+uint32_t Options::fakeDirectDisplayHeight;
 
-void Options::Initialise()
+
+void Options::InitialiseOnce()
 {
    // NOTE: In Android, these option names are converted to lower-case, and the underscores are replaced
    // with periods. So, "V3D_GL_ERROR_ASSIST" becomes "v3d.gl.error.assist" under Android for example.
@@ -76,9 +80,15 @@ void Options::Initialise()
 
    numNxClientSurfaces      = gfx_options_uint32("VK_NUM_NXCLIENT_SURFACES",      1);
 
-   fullSymbolNames          = gfx_options_bool("VK_FULL_SYMBOL_NAMES",            false);
-
    dumpSPIRV                = gfx_options_bool("VK_DUMP_SPIRV",                   false);
+
+   fakeDirectDisplayWidth   = gfx_options_uint32("VK_FAKE_DISPLAY_W",             512);
+   fakeDirectDisplayHeight  = gfx_options_uint32("VK_FAKE_DISPLAY_H",             512);
+}
+
+void Options::Initialise()
+{
+   std::call_once(m_initFlag, InitialiseOnce);
 }
 
 } // namespace bvk

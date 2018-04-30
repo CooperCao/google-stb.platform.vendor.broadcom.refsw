@@ -35,13 +35,13 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * Module Description: Application to generate RULs for splash screen. 
+ * Module Description: Application to generate RULs for splash screen.
  *                     This is a slightly modified copy of vdc_dump.c
  *                     ported to Nucleus
  *
  ***************************************************************************/
 
-/* #include "bchp_sec_it.h" 
+/* #include "bchp_sec_it.h"
 ##include "bchp_prim_it.h" */
 
 /* For register exclusions */
@@ -66,8 +66,8 @@
 #define BSPLASH_RDC_SCRATCH_DISP1_REG1  (BCHP_RDC_scratch_i_ARRAY_BASE + 4*49)
 
 /* These are the registers that need to be excluded from the register dump either
-   because they interrupt the CPU or disturb settings done elsewhere like the CFE 
-   If you do not want to program certain registers - add them to this macro. 
+   because they interrupt the CPU or disturb settings done elsewhere like the CFE
+   If you do not want to program certain registers - add them to this macro.
 */
 #define BSPLASH_ADDRESS_IN_RANGE(addr, rangeLow, rangeHigh) ((addr>=rangeLow) && (addr <=rangeHigh))
 
@@ -97,8 +97,7 @@
         BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS, BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_47) || \
         BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_RO_REGISTERS_1_POW_WDOG_FAILURE_STATUS, BCHP_AVS_RO_REGISTERS_1_RMT_ROSC_STATUS_27) || \
         BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_ROSC_THRESHOLD_1_THRESHOLD1_CEN_ROSC_0, BCHP_AVS_ROSC_THRESHOLD_1_INTERRUPT_STATUS_THRESHOLD1_FAULTY_SENSOR) || \
-        BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_ROSC_THRESHOLD_2_THRESHOLD2_CEN_ROSC_0, BCHP_AVS_ROSC_THRESHOLD_2_INTERRUPT_STATUS_THRESHOLD2_FAULTY_SENSOR)  || \
-        BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE , (BCHP_AON_CTRL_SYSTEM_DATA_RAMi_ARRAY_BASE + (15) * 4)) \
+        BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_ROSC_THRESHOLD_2_THRESHOLD2_CEN_ROSC_0, BCHP_AVS_ROSC_THRESHOLD_2_INTERRUPT_STATUS_THRESHOLD2_FAULTY_SENSOR) \
         )
 
 /* Removed  BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_BSCA_CHIP_ADDRESS, BCHP_BSCD_SCL_PARAM) || \ */
@@ -132,7 +131,7 @@
 
 /* surface 1 info */
 #define SPLASH_SURF1_MEM      0   /* idx to BMMA_Handle array */
-#define SPLASH_SURF1_PXL_FMT  BPXL_eR5_G6_B5 
+#define SPLASH_SURF1_PXL_FMT  BPXL_eR5_G6_B5
 #define SPLASH_SURF1_BMP      "splash.bmp"
 
 #define SPLASH_NUM_DISPLAY    2
@@ -143,10 +142,10 @@
 #if 0
 /* The default display for this board */
 #ifdef CFG_SPLASH_PAL
-#define SPLASH_CMP_0_PATH_DISPLAY   BFMT_VideoFmt_e720p_50Hz   
+#define SPLASH_CMP_0_PATH_DISPLAY   BFMT_VideoFmt_e720p_50Hz
 #define SPLASH_CMP_1_PATH_DISPLAY   BFMT_VideoFmt_ePAL_I
 #else
-#define SPLASH_CMP_0_PATH_DISPLAY   BFMT_VideoFmt_e720p 
+#define SPLASH_CMP_0_PATH_DISPLAY   BFMT_VideoFmt_e720p
 #define SPLASH_CMP_1_PATH_DISPLAY   BFMT_VideoFmt_eNTSC
 #endif
 #else
@@ -156,7 +155,7 @@
 #define SPLASH_DISP0_SUR      0   /* idx to splash surface buffer array */
 
 /* display 1 info */
-#define SPLASH_DISP1_FMT      BFMT_VideoFmt_ePAL_I 
+#define SPLASH_DISP1_FMT      BFMT_VideoFmt_ePAL_I
 #define SPLASH_DISP1_SUR      1   /* idx to splash surface buffer array */
 
 #else

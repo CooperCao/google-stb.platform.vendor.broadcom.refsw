@@ -46,6 +46,14 @@ static void printUsage(
     )
 {
     printf( "Usage: %s [Options] <URL> \n", pCmdName);
+    if (strcmp(pCmdName, "recorder") == 0)
+    {
+        printf(
+                "  -recordFile  <file path>     #   record received AV to this file. \n"
+                "  -enableHwOffload             #   Enable playing using ASP HW Offload Engine. \n"
+              );
+        return;
+    }
     printf(
             "  --help or -h for help\n"
             "  -interface       #   Optional Interface name to bind the player to\n"
@@ -115,184 +123,218 @@ BIP_Status parseOptions(
     bool urlIsSet = false;
 
     pAppCtx->ac3ServiceType = BIP_MediaInfoAudioAc3Bsmod_eMax;
-    for (i=1; i<argc; i++)
+    if (strcmp(argv[0], "recorder") == 0)
     {
-        if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
+        for (i=1; i<argc; i++)
         {
-            printUsage(argv[0]);
+            if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
+            {
+                printUsage(argv[0]);
+                return (bipStatus);
+            }
+            else if ( !strcmp(argv[i], "-recordFile") && i+1<argc )
+            {
+                BIP_String_StrcpyChar( pAppCtx->hRecordFile, argv[++i] );
+            }
+            else if ( i+1 == argc )
+            {
+                BIP_String_StrcpyChar( pAppCtx->hUrl, argv[i] );
+                urlIsSet = true;
+            }
+            else if ( !strcmp(argv[i], "-enableHwOffload") )
+            {
+                pAppCtx->enableHwOffload = true;
+            }
+            else
+            {
+                printf("Error: incorrect or unsupported option: %s\n", argv[i]);
+                printUsage(argv[0]);
+            }
         }
-        else if ( !strcmp(argv[i], "-interface") && i+1<argc )
-        {
-            BIP_String_StrcpyChar( pAppCtx->hInterfaceName, argv[++i] );
-        }
-        else if ( !strcmp(argv[i], "-dtcpIpKeyFormat") && i+1<argc )
-        {
-            BIP_String_StrcpyChar( pAppCtx->hDtcpIpKeyFormat, argv[++i] );
-        }
-        else if ( !strcmp(argv[i], "-loop") )
-        {
-            pAppCtx->enableContinousPlay = true;
-        }
-        else if ( !strcmp(argv[i], "-stats") )
-        {
-            pAppCtx->printStatus = true;
-        }
-        else if ( !strcmp(argv[i], "-sStats") )
-        {
-            pAppCtx->printServerStatus = true;
-        }
-        else if ( !strcmp(argv[i], "-pos") )
-        {
-            pAppCtx->initialPlaybackPositionInMs = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-jump") )
-        {
-            pAppCtx->jumpOffsetInMs = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-playtime") )
-        {
-            pAppCtx->playTimeInMs = strtoul(argv[++i], NULL, 0);
-        }
-        else if(!strcmp(argv[i], "-displayformat"))
-        {
-            pAppCtx->displayFormat = BIP_StrTo_NEXUS_VideoFormat(argv[++i]);
-        }
-        else if ( i+1 == argc )
-        {
-            BIP_String_StrcpyChar( pAppCtx->hUrl, argv[i] );
-            urlIsSet = true;
-        }
-        else if ( !strcmp(argv[i], "-disableVideo") )
-        {
-            pAppCtx->disableVideo = true;
-        }
-        else if ( !strcmp(argv[i], "-startPaused") )
-        {
-            pAppCtx->startPaused = true;
-        }
-        else if ( !strcmp(argv[i], "-disableAudio") )
-        {
-            pAppCtx->disableAudio = true;
-        }
-        else if ( !strcmp(argv[i], "-enableTimeshifting") )
-        {
-            pAppCtx->enableTimeshifting = true;
-        }
-        else if ( !strcmp(argv[i], "-timeshiftBufferMaxDurationInMs") )
-        {
-            pAppCtx->timeshiftBufferMaxDurationInMs = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-language") )
-        {
-            BIP_String_StrcpyChar( pAppCtx->hLanguage, argv[++i] );
-        }
-        else if ( !strcmp(argv[i], "-ac3ServiceType") )
-        {
-            pAppCtx->ac3ServiceType = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-usePlaypump") )
-        {
-            pAppCtx->usePlaypump = true;
-        }
-        else if ( !strcmp(argv[i], "-usePlayback") )
-        {
-            pAppCtx->usePlayback = true;
-        }
-        else if ( !strcmp(argv[i], "-enablePayloadScanning") )
-        {
-            pAppCtx->enablePayloadScanning = true;
-        }
-        else if ( !strcmp(argv[i], "-enableAutoPlayAfterStartingPaused") )
-        {
-            pAppCtx->enableAutoPlayAfterStartingPaused = true;
-        }
-        else if ( !strcmp(argv[i], "-stressTrick") )
-        {
-            pAppCtx->stressTrickModes = true;
-        }
-        else if ( !strcmp(argv[i], "-disableDynamicTrackSelection") )
-        {
-            pAppCtx->disableDynamicTrackSelection = true;
-        }
-        else if ( !strcmp(argv[i], "-enableLowLatencyMode") )
-        {
-            pAppCtx->enableLowLatencyMode =  true;
-        }
-        else if(!strcmp(argv[i], "-clockRecoveryMode"))
-        {
-            pAppCtx->clockRecoveryMode = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-bufDepthInMsec") )
-        {
-            pAppCtx->bufDepthInMsec = true;
-        }
-        else if ( !strcmp(argv[i], "-sineTone") )
-        {
-            pAppCtx->sineTone = true;
-        }
-        else if(!strcmp(argv[i], "-audioDecoderLatencyMode"))
-        {
-            pAppCtx->audioDecoderLatencyMode = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-maxIpNetworkJitterInMs") )
-        {
-            pAppCtx->maxIpNetworkJitterInMs = strtoul(argv[++i], NULL, 0);;
-        }
-        else if ( !strcmp(argv[i], "-disablePrecisionLipsync") )
-        {
-            pAppCtx->disablePrecisionLipsync = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-stcSyncMode") )
-        {
-            pAppCtx->stcSyncMode = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-disableTsm") )
-        {
-            pAppCtx->disableTsm =  true;
-        }
-        else if ( !strcmp(argv[i], "-enableAudioPrimer") )
-        {
-            pAppCtx->enableAudioPrimer =  true;
-        }
-        else if ( !strcmp(argv[i], "-trackGroupIndex") )
-        {
-            pAppCtx->trackGroupIndex = strtoul(argv[++i], NULL, 0);
-        }
-        else if ( !strcmp(argv[i], "-enableHwOffload") )
-        {
-            pAppCtx->enableHwOffload = true;
-        }
-        else
-        {
-            printf("Error: incorrect or unsupported option: %s\n", argv[i]);
-            printUsage(argv[0]);
-        }
+        bipStatus = BIP_SUCCESS;
     }
-    if (!urlIsSet) { BDBG_ERR((BIP_MSG_PRE_FMT "%s requires URL to be specified" BIP_MSG_PRE_ARG, argv[0])); printUsage(argv[0]);}
-    if (pAppCtx->jumpOffsetInMs == 0) pAppCtx->jumpOffsetInMs = JUMP_OFFSET_IN_MS;
-    if (pAppCtx->enableTimeshifting && !pAppCtx->timeshiftBufferMaxDurationInMs) { BDBG_ERR((BIP_MSG_PRE_FMT "%s enableTimeshifting option requires app to also specify timeshiftBufferMaxDurationInMs" BIP_MSG_PRE_ARG, argv[0])); printUsage(argv[0]);}
-    if (!pAppCtx->timeshiftBufferMaxDurationInMs) { pAppCtx->timeshiftBufferMaxDurationInMs = 3600000; }
-
-    if (pAppCtx->enableLowLatencyMode)
+    else
     {
-        if (pAppCtx->clockRecoveryMode == BIP_PlayerClockRecoveryMode_eInvalid) pAppCtx->clockRecoveryMode = BIP_PlayerClockRecoveryMode_ePull;
-        if (pAppCtx->audioDecoderLatencyMode == -1) pAppCtx->audioDecoderLatencyMode = NEXUS_AudioDecoderLatencyMode_eLowest;
-        if (pAppCtx->disablePrecisionLipsync == -1) pAppCtx->disablePrecisionLipsync = true;
-        /* TODO & Note: currently pAppCtx->stcSyncMode is left to default value of -1, which keeps it on, otherwise, this directly affects the TSM. */
+        for (i=1; i<argc; i++)
+        {
+            if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
+            {
+                printUsage(argv[0]);
+            }
+            else if ( !strcmp(argv[i], "-interface") && i+1<argc )
+            {
+                BIP_String_StrcpyChar( pAppCtx->hInterfaceName, argv[++i] );
+            }
+            else if ( !strcmp(argv[i], "-dtcpIpKeyFormat") && i+1<argc )
+            {
+                BIP_String_StrcpyChar( pAppCtx->hDtcpIpKeyFormat, argv[++i] );
+            }
+            else if ( !strcmp(argv[i], "-loop") )
+            {
+                pAppCtx->enableContinousPlay = true;
+            }
+            else if ( !strcmp(argv[i], "-stats") )
+            {
+                pAppCtx->printStatus = true;
+            }
+            else if ( !strcmp(argv[i], "-sStats") )
+            {
+                pAppCtx->printServerStatus = true;
+            }
+            else if ( !strcmp(argv[i], "-pos") )
+            {
+                pAppCtx->initialPlaybackPositionInMs = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-jump") )
+            {
+                pAppCtx->jumpOffsetInMs = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-playtime") )
+            {
+                pAppCtx->playTimeInMs = strtoul(argv[++i], NULL, 0);
+            }
+            else if(!strcmp(argv[i], "-displayformat"))
+            {
+                pAppCtx->displayFormat = BIP_StrTo_NEXUS_VideoFormat(argv[++i]);
+            }
+            else if ( i+1 == argc )
+            {
+                BIP_String_StrcpyChar( pAppCtx->hUrl, argv[i] );
+                urlIsSet = true;
+            }
+            else if ( !strcmp(argv[i], "-disableVideo") )
+            {
+                pAppCtx->disableVideo = true;
+            }
+            else if ( !strcmp(argv[i], "-startPaused") )
+            {
+                pAppCtx->startPaused = true;
+            }
+            else if ( !strcmp(argv[i], "-disableAudio") )
+            {
+                pAppCtx->disableAudio = true;
+            }
+            else if ( !strcmp(argv[i], "-enableTimeshifting") )
+            {
+                pAppCtx->enableTimeshifting = true;
+            }
+            else if ( !strcmp(argv[i], "-timeshiftBufferMaxDurationInMs") )
+            {
+                pAppCtx->timeshiftBufferMaxDurationInMs = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-language") )
+            {
+                BIP_String_StrcpyChar( pAppCtx->hLanguage, argv[++i] );
+            }
+            else if ( !strcmp(argv[i], "-ac3ServiceType") )
+            {
+                pAppCtx->ac3ServiceType = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-usePlaypump") )
+            {
+                pAppCtx->usePlaypump = true;
+            }
+            else if ( !strcmp(argv[i], "-usePlayback") )
+            {
+                pAppCtx->usePlayback = true;
+            }
+            else if ( !strcmp(argv[i], "-enablePayloadScanning") )
+            {
+                pAppCtx->enablePayloadScanning = true;
+            }
+            else if ( !strcmp(argv[i], "-enableAutoPlayAfterStartingPaused") )
+            {
+                pAppCtx->enableAutoPlayAfterStartingPaused = true;
+            }
+            else if ( !strcmp(argv[i], "-stressTrick") )
+            {
+                pAppCtx->stressTrickModes = true;
+            }
+            else if ( !strcmp(argv[i], "-disableDynamicTrackSelection") )
+            {
+                pAppCtx->disableDynamicTrackSelection = true;
+            }
+            else if ( !strcmp(argv[i], "-enableLowLatencyMode") )
+            {
+                pAppCtx->enableLowLatencyMode =  true;
+            }
+            else if(!strcmp(argv[i], "-clockRecoveryMode"))
+            {
+                pAppCtx->clockRecoveryMode = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-bufDepthInMsec") )
+            {
+                pAppCtx->bufDepthInMsec = true;
+            }
+            else if ( !strcmp(argv[i], "-sineTone") )
+            {
+                pAppCtx->sineTone = true;
+            }
+            else if(!strcmp(argv[i], "-audioDecoderLatencyMode"))
+            {
+                pAppCtx->audioDecoderLatencyMode = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-maxIpNetworkJitterInMs") )
+            {
+                pAppCtx->maxIpNetworkJitterInMs = strtoul(argv[++i], NULL, 0);;
+            }
+            else if ( !strcmp(argv[i], "-disablePrecisionLipsync") )
+            {
+                pAppCtx->disablePrecisionLipsync = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-stcSyncMode") )
+            {
+                pAppCtx->stcSyncMode = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-disableTsm") )
+            {
+                pAppCtx->disableTsm =  true;
+            }
+            else if ( !strcmp(argv[i], "-enableAudioPrimer") )
+            {
+                pAppCtx->enableAudioPrimer =  true;
+            }
+            else if ( !strcmp(argv[i], "-trackGroupIndex") )
+            {
+                pAppCtx->trackGroupIndex = strtoul(argv[++i], NULL, 0);
+            }
+            else if ( !strcmp(argv[i], "-enableHwOffload") )
+            {
+                pAppCtx->enableHwOffload = true;
+            }
+            else
+            {
+                printf("Error: incorrect or unsupported option: %s\n", argv[i]);
+                printUsage(argv[0]);
+            }
+        }
+        if (!urlIsSet) { BDBG_ERR((BIP_MSG_PRE_FMT "%s requires URL to be specified" BIP_MSG_PRE_ARG, argv[0])); printUsage(argv[0]);}
+        if (pAppCtx->jumpOffsetInMs == 0) pAppCtx->jumpOffsetInMs = JUMP_OFFSET_IN_MS;
+        if (pAppCtx->enableTimeshifting && !pAppCtx->timeshiftBufferMaxDurationInMs) { BDBG_ERR((BIP_MSG_PRE_FMT "%s enableTimeshifting option requires app to also specify timeshiftBufferMaxDurationInMs" BIP_MSG_PRE_ARG, argv[0])); printUsage(argv[0]);}
+        if (!pAppCtx->timeshiftBufferMaxDurationInMs) { pAppCtx->timeshiftBufferMaxDurationInMs = 3600000; }
 
-        BDBG_LOG(( BIP_MSG_PRE_FMT "LowLatencyMode Enabled: jitter=%u clockRecoveryMode=%s audioDecoderLatencyMode=%d disablePrecisionLipsync=%d stcSyncMode=%d bufDepthInMsec=%s"
-                    BIP_MSG_PRE_ARG, pAppCtx->maxIpNetworkJitterInMs, BIP_ToStr_BIP_PlayerClockRecoveryMode(pAppCtx->clockRecoveryMode),
-                    pAppCtx->audioDecoderLatencyMode, pAppCtx->disablePrecisionLipsync, pAppCtx->stcSyncMode, pAppCtx->bufDepthInMsec?"Y":"N"
+        if (pAppCtx->enableLowLatencyMode)
+        {
+            if (pAppCtx->clockRecoveryMode == BIP_PlayerClockRecoveryMode_eInvalid) pAppCtx->clockRecoveryMode = BIP_PlayerClockRecoveryMode_ePull;
+            if (pAppCtx->audioDecoderLatencyMode == -1) pAppCtx->audioDecoderLatencyMode = NEXUS_AudioDecoderLatencyMode_eLowest;
+            if (pAppCtx->disablePrecisionLipsync == -1) pAppCtx->disablePrecisionLipsync = true;
+            /* TODO & Note: currently pAppCtx->stcSyncMode is left to default value of -1, which keeps it on, otherwise, this directly affects the TSM. */
+
+            BDBG_LOG(( BIP_MSG_PRE_FMT "LowLatencyMode Enabled: jitter=%u clockRecoveryMode=%s audioDecoderLatencyMode=%d disablePrecisionLipsync=%d stcSyncMode=%d bufDepthInMsec=%s"
+                        BIP_MSG_PRE_ARG, pAppCtx->maxIpNetworkJitterInMs, BIP_ToStr_BIP_PlayerClockRecoveryMode(pAppCtx->clockRecoveryMode),
+                        pAppCtx->audioDecoderLatencyMode, pAppCtx->disablePrecisionLipsync, pAppCtx->stcSyncMode, pAppCtx->bufDepthInMsec?"Y":"N"
+                     ));
+        }
+
+        bipStatus = BIP_SUCCESS;
+        BDBG_LOG(( BIP_MSG_PRE_FMT "interface=%s, jumpOffsetInMs=%d url=%s dtcpIpKeyFormat=%s recordFile=%s" BIP_MSG_PRE_ARG,
+                    BIP_String_GetString( pAppCtx->hInterfaceName ),
+                    pAppCtx->jumpOffsetInMs,
+                    BIP_String_GetString( pAppCtx->hUrl),
+                    BIP_String_GetString( pAppCtx->hDtcpIpKeyFormat),
+                    BIP_String_GetString( pAppCtx->hRecordFile)
                  ));
     }
-
-    bipStatus = BIP_SUCCESS;
-    BDBG_LOG(( BIP_MSG_PRE_FMT "interface=%s, jumpOffsetInMs=%d url=%s dtcpIpKeyFormat=%s" BIP_MSG_PRE_ARG,
-                BIP_String_GetString( pAppCtx->hInterfaceName ),
-                pAppCtx->jumpOffsetInMs,
-                BIP_String_GetString( pAppCtx->hUrl),
-                BIP_String_GetString( pAppCtx->hDtcpIpKeyFormat)
-             ));
     return ( bipStatus );
 } /* parseOptions */
 
@@ -305,6 +347,7 @@ void unInitAppCtx(
     if (pAppCtx->hDtcpIpKeyFormat) BIP_String_Destroy( pAppCtx->hDtcpIpKeyFormat);
     if (pAppCtx->hUrl) BIP_String_Destroy( pAppCtx->hUrl);
     if (pAppCtx->hLanguage) BIP_String_Destroy( pAppCtx->hLanguage);
+    if (pAppCtx->hRecordFile) BIP_String_Destroy( pAppCtx->hRecordFile);
     if (pAppCtx) B_Os_Free( pAppCtx );
 } /* unInitAppCtx */
 
@@ -329,6 +372,9 @@ AppCtx *initAppCtx( void )
     pAppCtx->hLanguage = BIP_String_Create();
     BIP_CHECK_GOTO( (pAppCtx->hLanguage), ("BIP_String_Create() Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
 
+    pAppCtx->hRecordFile = BIP_String_Create();
+    BIP_CHECK_GOTO( (pAppCtx->hRecordFile), ("BIP_String_Create() Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
+
     pAppCtx->ac3ServiceType = BIP_MediaInfoAudioAc3Bsmod_eMax;
 
     pAppCtx->displayFormat = NEXUS_VideoFormat_eNtsc;
@@ -345,9 +391,9 @@ error:
 
 #define USER_INPUT_BUF_SIZE 256
 BIP_Status runTimeCmdParsing(
-    AppCtx *pAppCtx,
-    CmdOptions *pCmdOptions
-    )
+        AppCtx *pAppCtx,
+        CmdOptions *pCmdOptions
+        )
 {
     BIP_Status bipStatus = BIP_SUCCESS;
     char    buffer[USER_INPUT_BUF_SIZE];
@@ -388,7 +434,7 @@ BIP_Status runTimeCmdParsing(
                 "               For more details please see BIP_MediaInfoAudioAc3Bsmod enum definition in bip_media_info.h file.\n"
                 "               Eg: bsmod(2) for VisuallyImpaired\n"
                 "  chng(url) - play for the new url.\n"
-               );
+              );
     }
     else if (!strcmp(buffer, "q") || !strcmp(buffer, "quit"))
     {

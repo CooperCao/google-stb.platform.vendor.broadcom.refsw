@@ -1,8 +1,7 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef __PRIVATE_DIRECTFB_H__
-#define __PRIVATE_DIRECTFB_H__
+#pragma once
 
 #include "egl_platform_abstract.h"
 
@@ -15,5 +14,3 @@ typedef struct
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;
 } DBPL_InternalPlatformHandle;
-
-#endif /* __PRIVATE_DIRECTFB_H__ */

@@ -96,6 +96,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     printf(
     "  -secure\n"
     "  -compress                submit compressed surfaces\n"
+    "  -timeout SECONDS\n"
     );
     nxapps_cmdline_print_usage(cmdline);
 }

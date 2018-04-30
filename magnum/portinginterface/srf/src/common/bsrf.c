@@ -362,11 +362,22 @@ BERR_Code BSRF_PowerDownAntennaSense(BSRF_ChannelHandle h)
 /******************************************************************************
  BSRF_Tune
 ******************************************************************************/
-BERR_Code BSRF_Tune(BSRF_ChannelHandle h, uint32_t freq_hz)
+BERR_Code BSRF_Tune(BSRF_ChannelHandle h, uint32_t freqHz)
 {
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_Tune);
-   return (h->pDevice->settings.api.Tune(h, freq_hz));
+   return (h->pDevice->settings.api.Tune(h, freqHz));
+}
+
+
+/******************************************************************************
+ BSRF_Notch
+******************************************************************************/
+BERR_Code BSRF_Notch(BSRF_ChannelHandle h, bool bEnable, uint32_t freqHz, uint8_t bandwidth)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_Notch);
+   return (h->pDevice->settings.api.Notch(h, bEnable, freqHz, bandwidth));
 }
 
 

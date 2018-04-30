@@ -56,7 +56,7 @@ public:
    Command();
    ~Command();
 
-   bool Execute(SpyToolReplay *replay, bool timing);   // Returns true if cmd was eglSwapBuffers
+   bool Execute(SpyToolReplay *replay, bool timing);   // Returns true if cmd is eglSwapBuffers and we do not skip this frame
    void Clear();
 
    bool Valid() const { return m_packet.IsValid() &&
@@ -203,6 +203,7 @@ public:
    DECL_SPECIAL(eglGetCurrentContext)
    DECL_SPECIAL(eglGetCurrentDisplay)
    DECL_SPECIAL(eglSwapBuffers)
+   DECL_SPECIAL(eglSwapInterval)
    DECL_SPECIAL(eglCreateImageKHR)
    DECL_SPECIAL(eglCreateImage)
    DECL_SPECIAL(eglCreateSyncKHR)
@@ -236,6 +237,21 @@ public:
    DECL_SPECIAL(glVertexAttribI4ui)
    DECL_SPECIAL(glVertexAttribI4iv)
    DECL_SPECIAL(glVertexAttribI4uiv)
+   DECL_SPECIAL(glUniform1iv)
+   DECL_SPECIAL(glUniform2iv)
+   DECL_SPECIAL(glUniform3iv)
+   DECL_SPECIAL(glUniform4iv)
+   DECL_SPECIAL(glUniform1uiv)
+   DECL_SPECIAL(glUniform2uiv)
+   DECL_SPECIAL(glUniform3uiv)
+   DECL_SPECIAL(glUniform4uiv)
+   DECL_SPECIAL(glUniform1fv)
+   DECL_SPECIAL(glUniform2fv)
+   DECL_SPECIAL(glUniform3fv)
+   DECL_SPECIAL(glUniform4fv)
+   DECL_SPECIAL(glClearBufferiv)
+   DECL_SPECIAL(glClearBufferuiv)
+   DECL_SPECIAL(glClearBufferfv)
    DECL_SPECIAL(glGetUniformIndices)
    DECL_SPECIAL(glGetActiveUniformsiv)
    DECL_SPECIAL(glDrawArraysInstanced)
@@ -257,4 +273,9 @@ public:
    DECL_SPECIAL(glDispatchCompute)
    DECL_SPECIAL(glDispatchComputeIndirect)
 #endif // GL_ES_VERSION_3_0
+
+#if GL_ES_VERSION_3_1
+   DECL_SPECIAL(glGetProgramResourceiv)
+   DECL_SPECIAL(glGetProgramResourceLocation)
+#endif // GL_ES_VERSION_3_1
 };

@@ -35,11 +35,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetDamageRegionKHR(EGLDisplay dpy, EGLSurface s
 
       if (n_rects > 0)
       {
-         surface->damage_rects = (int*)malloc(sizeof(int) * n_rects);
+         surface->damage_rects = khrn_mem_alloc(sizeof(int) * 4 * n_rects, "damage_rects");
          if (surface->damage_rects)
          {
             surface->num_damage_rects = n_rects;
-            memcpy(surface->damage_rects, rects, sizeof(int) * n_rects);
+            memcpy(surface->damage_rects, rects, sizeof(int) * 4 * n_rects);
             error = EGL_SUCCESS;
          }
          else
@@ -50,6 +50,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetDamageRegionKHR(EGLDisplay dpy, EGLSurface s
          surface->num_damage_rects = 0;
          error = EGL_SUCCESS;
       }
+
+      // This ensures that the changed damage rects in the surface will propagate into
+      // the damage rects in the installed framebuffer
+      if (error == EGL_SUCCESS)
+         egl_context_reattach(context);
    }
 
    egl_surface_unlock(surface);

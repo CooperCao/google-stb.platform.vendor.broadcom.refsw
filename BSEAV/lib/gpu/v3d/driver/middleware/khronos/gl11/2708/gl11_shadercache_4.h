@@ -10,7 +10,7 @@
 #include "middleware/khronos/gl11/gl11_texunit.h"
 #include "middleware/khronos/gl11/gl11_server.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 #include "middleware/khronos/glxx/glxx_hw.h"
 
 extern void gl11_hw_shader_cache_reset(void);

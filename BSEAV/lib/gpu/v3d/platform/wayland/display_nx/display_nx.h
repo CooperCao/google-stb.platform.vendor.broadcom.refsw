@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 
 #include "default_wayland.h"
 
@@ -13,8 +13,7 @@ extern "C"
 #endif
 
 BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
-      BEGL_MemoryInterface *memIface, BEGL_HWInterface *hwIface,
-      BEGL_DisplayCallbacks *displayCallbacks);
+      BEGL_MemoryInterface *memIface, BEGL_HWInterface *hwIface);
 
 void WLPL_DestroyNexusDisplayInterface(BEGL_DisplayInterface *iface);
 

@@ -12,15 +12,12 @@ void gfx_lfmt_block_set_slot_bits(
    const GFX_LFMT_FMT_DETAIL_T *fd, uint32_t slot_idx, uint32_t bits)
 {
    const struct gfx_lfmt_slot_detail *slot = &fd->slts[slot_idx];
+   uint32_t word  = slot->shift / 32;
+   uint32_t shift = slot->shift & 31;
+   uint32_t mask  = gfx_mask(slot->bit_width) << shift;
+   assert(shift + slot->bit_width <= 32);  // Slots can't straddle a 32-bit boundary
 
-   switch (fd->bpw)
-   {
-   case  8: block->ui8[slot->word]  = (uint8_t )((block->ui8[slot->word]  & ~slot->mask) | (bits << slot->shift)); break;
-   case 16: block->ui16[slot->word] = (uint16_t)((block->ui16[slot->word] & ~slot->mask) | (bits << slot->shift)); break;
-   case 32: block->ui32[slot->word] = (uint32_t)((block->ui32[slot->word] & ~slot->mask) | (bits << slot->shift)); break;
-   case 64: block->ui64[slot->word] =            (block->ui64[slot->word] & ~slot->mask) | ((uint64_t)bits << slot->shift); break;
-   default: unreachable();
-   }
+   block->ui32[word] = (block->ui32[word] & ~mask) | (bits << shift);
 }
 
 uint32_t gfx_lfmt_block_get_slot_bits(
@@ -28,21 +25,12 @@ uint32_t gfx_lfmt_block_get_slot_bits(
    const GFX_LFMT_FMT_DETAIL_T *fd, uint32_t slot_idx)
 {
    const struct gfx_lfmt_slot_detail *slot = &fd->slts[slot_idx];
+   uint32_t word  = slot->shift / 32;
+   uint32_t shift = slot->shift & 31;
+   uint32_t mask  = gfx_mask(slot->bit_width) << shift;
+   assert(shift + slot->bit_width <= 32);  // Slots can't straddle a 32-bit boundary
 
-   uint64_t r;
-   switch (fd->bpw)
-   {
-   case  1: r = (block->ui8[slot->word]  & slot->mask) >> slot->shift; break;
-   case  4: r = (block->ui8[slot->word]  & slot->mask) >> slot->shift; break;
-   case  8: r = (block->ui8[slot->word]  & slot->mask) >> slot->shift; break;
-   case 16: r = (block->ui16[slot->word] & slot->mask) >> slot->shift; break;
-   case 32: r = (block->ui32[slot->word] & slot->mask) >> slot->shift; break;
-   case 64: r = (block->ui64[slot->word] & slot->mask) >> slot->shift; break;
-   default: unreachable();
-   }
-
-   // no slots are wider than 32 bits.
-   return (uint32_t)r;
+   return (block->ui32[word] & mask) >> shift;
 }
 
 static size_t sprint_slot_desc(char *buf, size_t buf_size, size_t offset,

@@ -194,9 +194,6 @@ public:
    //! Returns an estimate of the average CPU usage since this was last called as a percentage
    float EstimateCPUPercentage();
 
-   //! Return a single driver monitor value
-   int64_t GetDriverMonitorValue(const char *name, bool resetMonitor);
-
    //! Returns true if a USB mouse is detected
    bool IsMouseAttached() const;
 
@@ -293,10 +290,6 @@ private:
    void ShowFPS();
    void SetupEye(eStereoEye eye);
    void DoFrameGrab();
-   void DoMonitorStats();
-   void DumpMonitorStats();
-   void InitStatsSaving(const std::string &filename);
-   void SaveMonitorStats();
    void ResizeNativeWindow(uint32_t w, uint32_t h);
 
    void RenderFrameSequenceMono();
@@ -401,13 +394,6 @@ private:
    externalKeyEventHandlerCallback2          m_keyEvenHandler2;
    externalMouseButtonEventHandlerCallback   m_mouseButtonHandler;
    externalMouseMoveEventHandlerCallback     m_mouseMoveHandler;
-
-   // Driver monitor extension functions
-#if EGL_BRCM_driver_monitor
-   PFNEGLINITDRIVERMONITORBRCMPROC    m_eglInitDriverMonitorBRCM;
-   PFNEGLGETDRIVERMONITORXMLBRCMPROC  m_eglGetDriverMonitorXMLBRCM;
-   PFNEGLTERMDRIVERMONITORBRCMPROC    m_eglTermDriverMonitorBRCM;
-#endif
 };
 
 }

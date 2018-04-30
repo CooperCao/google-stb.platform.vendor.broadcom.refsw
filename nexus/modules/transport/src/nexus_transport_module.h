@@ -815,6 +815,12 @@ struct NEXUS_Transport_P_State {
         } xcbuff;
         unsigned inputBuffer;
     } overflow;
+
+#if BXPT_NUM_MTSIF
+    unsigned mtsifLengthErrors[BXPT_NUM_MTSIF];
+    unsigned mtsifBandDetect[BXPT_NUM_MTSIF];
+    unsigned mtsifStatus[BXPT_NUM_MTSIF];
+#endif
 };
 
 /* global module handle & data */

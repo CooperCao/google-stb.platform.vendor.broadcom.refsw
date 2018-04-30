@@ -3,7 +3,6 @@
  *****************************************************************************************************/
 
 #include "GatherNodes.h"
-#include "Nodes.h"
 #include "Module.h"
 
 namespace bvk {
@@ -174,6 +173,7 @@ static NodeKind Kind(const Node *node)
    case spv::Core::OpKill                           :
    case spv::Core::OpUnreachable                    :
    case spv::Core::OpLoopMerge                      :
+   case spv::Core::OpGroupNonUniformElect           :
       return NodeKind::Instruction;
 
    case spv::Core::OpConstant              :
@@ -236,7 +236,7 @@ void GatherNodes::Visit(const NodeSource *node)              { m_module.SetSourc
 void GatherNodes::Visit(const NodeDecorate *node)            { m_module.AddDecoration(node);            }
 void GatherNodes::Visit(const NodeDecorationGroup *node)     { m_module.AddDecorationGroup(node);       }
 void GatherNodes::Visit(const NodeGroupDecorate *node)       { m_module.AddGroupDecoration(node);       }
-void GatherNodes::Visit(const NodeName *node)                { m_module.SetName(node);                  }
+void GatherNodes::Visit(const NodeName *node)                {                                          }
 void GatherNodes::Visit(const NodeExecutionMode *node)       { m_module.AddExecutionMode(node);         }
 void GatherNodes::Visit(const NodeVariable *node)            { m_module.AddVariable(node);              }
 void GatherNodes::Visit(const NodeLabel *node)               { m_module.AddLabel(node);                 }
@@ -258,7 +258,6 @@ void GatherNodes::Visit(const NodeTypeImage *node)           { m_module.AddType(
 void GatherNodes::Visit(const NodeTypeSampler *node)         { m_module.AddType(node); }
 void GatherNodes::Visit(const NodeTypeSampledImage *node)    { m_module.AddType(node); }
 void GatherNodes::Visit(const NodeTypeArray *node)           { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeRuntimeArray *node)    { m_module.AddType(node); }
 void GatherNodes::Visit(const NodeTypeStruct *node)          { m_module.AddType(node); }
 void GatherNodes::Visit(const NodeTypePointer *node)         { m_module.AddType(node); }
 void GatherNodes::Visit(const NodeTypeFunction *node)        { m_module.AddType(node); }

@@ -216,24 +216,26 @@ void V3DPlatformBase::ConvertPresentSemaphoresToDeps(
 // These methods are only used in direct-display mode
 #if defined(VK_USE_PLATFORM_DISPLAY_KHR)
 
-static const uint32_t DirectDispW  = 640;
-static const uint32_t DirectDispH  = 360;
 static const uint32_t DisplayIdent = 1;
 
 V3DPlatformWithFakeDirectDisplay::V3DPlatformWithFakeDirectDisplay() :
    V3DPlatformBase()
 {
+   Options::Initialise();  // Ensure options are valid at this point
+
    m_numPlanes = 1;
 
    m_displayProperties.display               = (VkDisplayKHR)(uintptr_t)DisplayIdent;
    m_displayProperties.displayName           = "Fake Direct Display";
-   m_displayProperties.physicalResolution    = { DirectDispW, DirectDispH };
+   m_displayProperties.physicalResolution    = { Options::fakeDirectDisplayWidth,
+                                                 Options::fakeDirectDisplayHeight };
    m_displayProperties.physicalDimensions    = { 480, 270 };
    m_displayProperties.supportedTransforms   = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    m_displayProperties.planeReorderPossible  = false;
    m_displayProperties.persistentContent     = false;
 
-   m_displayModeProperties.parameters.visibleRegion = VkExtent2D{ DirectDispW, DirectDispH };
+   m_displayModeProperties.parameters.visibleRegion = VkExtent2D{ Options::fakeDirectDisplayWidth,
+                                                                  Options::fakeDirectDisplayHeight };
    m_displayModeProperties.parameters.refreshRate   = 60000;
    m_displayModeProperties.displayMode              = (VkDisplayModeKHR)1;
 }
@@ -296,12 +298,15 @@ VkResult V3DPlatformWithFakeDirectDisplay::GetDisplayPlaneCapabilities(
    pCapabilities->supportedAlpha = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR;
    pCapabilities->minSrcPosition = VkOffset2D{ 0, 0 };
    pCapabilities->maxSrcPosition = VkOffset2D{ 0, 0 };
-   pCapabilities->minSrcExtent   = VkExtent2D{ DirectDispW, DirectDispH };
-   pCapabilities->maxSrcExtent   = VkExtent2D{ DirectDispW, DirectDispH };
+   pCapabilities->minSrcExtent = VkExtent2D{ 1, 1 };
+   pCapabilities->maxSrcExtent = VkExtent2D{ Options::fakeDirectDisplayWidth,
+                                             Options::fakeDirectDisplayHeight };
    pCapabilities->minDstPosition = VkOffset2D{ 0, 0 };
    pCapabilities->maxDstPosition = VkOffset2D{ 0, 0 };
-   pCapabilities->minDstExtent   = VkExtent2D{ DirectDispW, DirectDispH };
-   pCapabilities->maxDstExtent   = VkExtent2D{ DirectDispW, DirectDispH };
+   pCapabilities->minDstExtent = VkExtent2D{ Options::fakeDirectDisplayWidth,
+                                             Options::fakeDirectDisplayHeight };
+   pCapabilities->maxDstExtent = VkExtent2D{ Options::fakeDirectDisplayWidth,
+                                             Options::fakeDirectDisplayHeight };
    return VK_SUCCESS;
 }
 

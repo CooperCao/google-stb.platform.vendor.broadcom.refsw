@@ -236,6 +236,7 @@ typedef struct BDSP_Arm_P_CommonMemory
 {
     BDSP_Arm_P_MemoryDescriptor sRODescriptor; /*sRdbVarsDescritor will be the first 1024 byte of RO memory, rest will be executable images*/
     BDSP_Arm_P_MemoryDescriptor sRWDescriptor;
+    BDSP_Arm_P_MemoryDescriptor sHostSharedRWDescriptor;
     BDSP_Arm_P_MemoryDescriptor sIoMemoryDescriptor;
 }BDSP_Arm_P_CommonMemory;
 

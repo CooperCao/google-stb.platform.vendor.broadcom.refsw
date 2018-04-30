@@ -109,7 +109,6 @@ struct common_opts_t {
     unsigned maxWidth, maxHeight;
     unsigned maxAudioRate;
     NEXUS_AudioLoudnessEquivalenceMode audioLoudnessMode;
-    bool secureAudio;
 
     /* asf wma drc */
 #if B_HAS_ASF

@@ -45,10 +45,11 @@
 
 extern "C" void schedule();
 
-#define TIME_SLICE_DURATION_MS      20
-#define TIME_SLICE_DELAY_MS         1000
-#define TIME_SLICE_STAGGER_PERCENT  1
-#define TIME_SLICE_EDF_PERCENT      60
+#define TIME_SLICE_DURATION_MS          20
+#define TIME_SLICE_DELAY_MS             1000
+#define TIME_SLICE_STAGGER_PERCENT      1
+#define TIME_SLICE_EDF_PERCENT          60
+#define TIME_SLICE_EDF_LIMIT_PERCENT    80
 
 class TzTask;
 extern "C" TzTask *currentTask[MAX_NUM_CPUS];
@@ -66,45 +67,53 @@ public:
 
     static void addTask(TzTask *);
     static void removeTask(TzTask *);
-
     static void currTaskStopped();
+    static void updateTimeSlice();
 
     static TzTask *cfsSchedule();
+    static TzTask *edfSchedule();
+
     static void scheduleClassType(Class scheduleClass);
     static Class scheduleClassType();
 
-    static PerCPU<uint64_t> cfsGlobalSlot;
-    static PerCPU<uint64_t> edfGlobalSlot;
-
-    static TzTask *edfSchedule();
-
-    static void setTimer();
-    static void updateTimeSlice();
-
-    static PerCPU<uint64_t> startWorldRunTime;
 #ifdef TASK_LOG // To print the CPU %
+    static PerCPU<uint64_t> worldRunTimeStart;
     static PerCPU<tzutils::PriorityQueue<TzTask>> idleQueue;
     static void updateTaskLog(uint64_t worldRunTime);
+    static void dumpTimerFired(Timer t, void *ctx);
 #endif
 
-    static uint32_t cpuFreq;
-    static PerCPU<uint32_t> cpuLoad;
-
 private:
+    static SpinLock schedLock;
+
+    static PerCPU<bool> newTimeSlice;
     static PerCPU<Class> scheduleClass;
-    static unsigned long TimeSliceDuration;
-    static unsigned long TimeSliceDelay;
-    static unsigned long TimeSliceStagger;
-    static unsigned long TimeSliceEDF;
+
+    static uint32_t TimeSliceDuration;
+    static uint32_t TimeSliceDelay;
+    static uint32_t TimeSliceStagger;
+    static uint32_t TimeSliceEDFLimit;
+    static PerCPU<uint32_t> TimeSliceEDF;
 
     static PerCPU<unsigned int> sumRunnablePriorities;
     static PerCPU<tzutils::PriorityQueue<TzTask>> runQueue;
     static PerCPU<Timer> preemptionTimer;
-    static SpinLock schedLock;
 
     static PerCPU<tzutils::PriorityQueue<TzTask>> edfQueue;
     static PerCPU<Timer> edfScheduleTimer;
     static PerCPU<Timer> edfPreemptionTimer;
+
+    static PerCPU<uint64_t> cfsGlobalSlot;
+    static PerCPU<uint64_t> edfGlobalSlot;
+
+    static uint32_t cpuFreq;
+    static PerCPU<uint32_t> cpuLoad;
+
+    static void startNewTimeSlice();
+
+    static void preemptionTimerFired(Timer t, void *ctx);
+    static void edfScheduleTimerFired(Timer t, void *ctx);
+    static void edfPreemptionTimerFired(Timer t, void *ctx);
 };
 
 #endif /* SCHEDULER_H_ */

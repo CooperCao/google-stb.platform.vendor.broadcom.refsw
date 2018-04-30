@@ -6,6 +6,8 @@
 #include "display_helpers.h"
 #include "display_surface.h"
 #include "nexus_heap_selection.h"
+#include "nexus_surface.h"
+#include "nexus_striped_surface.h"
 
 bool isNXPL_Surface(NXPL_Surface *s)
 {
@@ -20,19 +22,10 @@ bool CreateSurface(NXPL_Surface *s,
 {
    if (s)
    {
-      if (format == BEGL_BufferFormat_eSAND8 || format == BEGL_BufferFormat_eSAND10)
+      if (format == BEGL_BufferFormat_eY8 || format == BEGL_BufferFormat_eY10)
       {
-         // We don't actually create a surface here. A striped surface will be given to us
-         // which we will alias onto a NEXUS_SurfaceHandle. We just need this to wrap it.
-         s->magic          = NXPL_INFO_MAGIC;
-         s->surface        = 0;
-         s->physicalOffset = 0;
-         s->cachedPtr      = 0;
-         s->fence          = -1;
-         s->format         = format;
-         s->colorimetry    = BEGL_Colorimetry_BT_709;
-         s->secure         = secure;
-         return true;
+         // can't render into display surface in SAND format;
+         return false;
       }
       else
       {
@@ -45,6 +38,8 @@ bool CreateSurface(NXPL_Surface *s,
          // Note we allow NEXUS_Surface_Create to allocate the memory as
          // it will calculate the required size for UIF surfaces as well as
          // raster and we don't want to duplicate the logic for that here.
+         surfSettings.compatibility.graphicsv3d = true;
+
          surfSettings.width = width;
          surfSettings.height = height;
          // NEXUS surface creation specifies the mip level number at the beginning
@@ -87,27 +82,4 @@ void DestroySurface(NXPL_Surface *s)
    // Will destroy the memory backing the surface as well
    if (s && s->surface)
       NEXUS_Surface_Destroy(s->surface);
-}
-
-bool DisplayAcquireNexusSurfaceHandles(NEXUS_StripedSurfaceHandle *stripedSurf, NEXUS_SurfaceHandle *surf,
-                                       void *nativeSurface)
-{
-   NXPL_Surface *srcSurf = (NXPL_Surface*)nativeSurface;
-
-   if (srcSurf->magic != NXPL_INFO_MAGIC || srcSurf->surface == NULL)
-      return false;
-
-   if (srcSurf->format == BEGL_BufferFormat_eSAND8 || srcSurf->format == BEGL_BufferFormat_eSAND10)
-      *stripedSurf = (NEXUS_StripedSurfaceHandle)srcSurf->surface;
-   else
-      *surf = srcSurf->surface;
-
-   return true;
-}
-
-void DisplayReleaseNexusSurfaceHandles(NEXUS_StripedSurfaceHandle stripedSurf, NEXUS_SurfaceHandle surf)
-{
-   /* Nothing to do here */
-   BSTD_UNUSED(stripedSurf);
-   BSTD_UNUSED(surf);
 }

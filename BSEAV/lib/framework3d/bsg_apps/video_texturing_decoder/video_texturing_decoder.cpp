@@ -1010,7 +1010,6 @@ void VideoTexturingApp::DoBenchmarking()
       {
          s_benchStartTime = FrameTimestamp();
          EstimateCPUPercentage();   // Restart the estimation from now
-         s_platform->GetDriverMonitorValue("l3c_mem_read_bandwidth", true);
       }
 
       s_benchFrameCnt++;
@@ -1023,21 +1022,17 @@ void VideoTexturingApp::DoBenchmarking()
 
          printf("Average FPS = %f\n", fps);
          printf("Average CPU%% = %f\n", cpu);
-         int64_t bwMB = s_platform->GetDriverMonitorValue("l3c_mem_read_bandwidth", true) / (1024 * 1024);
-         printf("Average read bandwidth (MB/frame) = %f\n", (float)bwMB / (float)s_benchFrameCnt);
 
          if (s_benchFp)
          {
             fprintf(s_benchFp, "%f,", fps);
             fprintf(s_benchFp, "%f,", cpu);
-            fprintf(s_benchFp, "%f\n", (float)bwMB / (float)s_benchFrameCnt);
          }
 
          // Reset the counters
          s_benchFrameCnt = 0;
          s_benchStartTime = FrameTimestamp();
          EstimateCPUPercentage();   // Restart the estimation from now
-         s_platform->GetDriverMonitorValue("l3c_mem_read_bandwidth", true);
 
          Stop(255);
       }

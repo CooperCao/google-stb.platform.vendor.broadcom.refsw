@@ -344,6 +344,7 @@ void BDSP_Raaga_P_InterTaskBuffer_Destroy(
 	void *pInterTaskBufferHandle
 )
 {
+	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_P_InterTaskBuffer *pInterTaskBuffer;
     BDSP_RaagaContext *pRaagaContext;
     unsigned numFifos = 0;
@@ -366,7 +367,13 @@ void BDSP_Raaga_P_InterTaskBuffer_Destroy(
         FifoId = pInterTaskBuffer->PcmDetails[0].BuffersDetails.ui32FifoId;
         numFifos = pInterTaskBuffer->numChannels+pInterTaskBuffer->numTocData+
                    pInterTaskBuffer->numMetaData+pInterTaskBuffer->numObjectData;
-        BDSP_Raaga_P_ReleaseFIFO(pRaagaContext->pDevice, 0, &FifoId, numFifos);
+        errCode = BDSP_Raaga_P_ReleaseFIFO(pRaagaContext->pDevice, 0, &FifoId, numFifos);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_InterTaskBuffer_Destroy: Unable to release fifo %d for RDB Type Intertask buffer !!!!", FifoId));
+			errCode = BERR_TRACE(errCode);
+			BDBG_ASSERT(0);
+		}
     }
 
     BDSP_MMA_P_FreeMemory(&pInterTaskBuffer->MemoryPool.Memory);
@@ -638,6 +645,7 @@ void BDSP_Raaga_P_Queue_Destroy(
 	void *pQueueHandle
 )
 {
+	BERR_Code errCode=BERR_SUCCESS;
 	BDSP_RaagaQueue *pQueue;
 	unsigned i = 0;
 	uint32_t ui32FifoId;
@@ -658,8 +666,23 @@ void BDSP_Raaga_P_Queue_Destroy(
 		if(pQueue->hMsgQueue[i])
 		{
 			ui32FifoId = pQueue->hMsgQueue[i]->ui32FifoId;
-			BDSP_P_DestroyMsgQueue(pQueue->hMsgQueue[i]);
-			BDSP_Raaga_P_ReleaseFIFO(pQueue->pRaagaContext->pDevice, pQueue->dspIndex, &ui32FifoId, 1);
+			errCode = BDSP_P_DestroyMsgQueue(pQueue->hMsgQueue[i]);
+			if(errCode == BERR_SUCCESS)
+			{
+				errCode = BDSP_Raaga_P_ReleaseFIFO(pQueue->pRaagaContext->pDevice, pQueue->dspIndex, &ui32FifoId, 1);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_Queue_Destroy: Unable to release fifo %d for RDB Queue !!!!",ui32FifoId));
+					errCode = BERR_TRACE(errCode);
+					BDBG_ASSERT(0);
+				}
+			}
+			else
+			{
+				BDBG_ERR(("BDSP_Raaga_P_Queue_Destroy: Error in Destroying the Message Queue"));
+				errCode = BERR_TRACE(errCode);
+				BDBG_ASSERT(0);
+			}
 		}
 	}
 	BDBG_OBJECT_DESTROY(pQueue, BDSP_RaagaQueue);
@@ -1380,7 +1403,7 @@ void BDSP_Raaga_P_RemoveInput(
 		return;
 	}
 
-	if(pRaagaStage->running)
+	if((pRaagaStage->running)&&(!pRaagaStage->pContext->contextWatchdogFlag))
     {
         errCode = BDSP_Raaga_P_ReconfigCit(pRaagaStage,false,pStageInputDetails,inputIndex);
         if(errCode != BERR_SUCCESS)

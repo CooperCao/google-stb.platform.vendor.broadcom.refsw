@@ -52,7 +52,7 @@ void BDSP_P_CalculateDescriptorMemory(
 	MemoryRequired = (BDSP_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
     *pMemReqd = MemoryRequired;
 
-	BDBG_MSG(("Descriptor Memory = %d",MemoryRequired));
+	BDBG_MSG(("Descriptor Memory = %d (%d KB) (%d MB)",MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
     BDBG_LEAVE(BDSP_P_CalculateDescriptorMemory);
 }
 

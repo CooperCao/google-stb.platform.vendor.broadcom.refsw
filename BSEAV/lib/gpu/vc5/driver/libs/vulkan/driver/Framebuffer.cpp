@@ -12,13 +12,15 @@ Framebuffer::Framebuffer(
    bvk::Device                   *pDevice,
    const VkFramebufferCreateInfo *pCreateInfo) :
       Allocating(pCallbacks),
-      m_attachments(pCreateInfo->pAttachments,
-         pCreateInfo->pAttachments + pCreateInfo->attachmentCount,
-         GetObjScopeAllocator<VkImageView>())
+      m_attachments(GetObjScopeAllocator<ImageView*>())
 {
    m_width  = pCreateInfo->width;
    m_height = pCreateInfo->height;
    m_layers = pCreateInfo->layers;
+
+   m_attachments.resize(pCreateInfo->attachmentCount);
+   for (uint32_t i=0; i<pCreateInfo->attachmentCount; i++)
+      m_attachments[i] = fromHandle<ImageView>(pCreateInfo->pAttachments[i]);
 
    assert(m_width > 0 && m_height > 0 && m_layers > 0);
 }

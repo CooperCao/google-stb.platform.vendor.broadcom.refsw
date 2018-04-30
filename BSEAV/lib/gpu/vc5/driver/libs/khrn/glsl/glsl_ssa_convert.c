@@ -221,13 +221,14 @@ static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_id
    }
 }
 
-static void fill_ir_outputs(const SymbolList *outs, Map *symbol_final_values, Map *block_ids, Map **output_maps, Map *symbol_ids, IROutput **ir_outs, int *n_outputs) {
+static void fill_ir_outputs(const struct if_usage *outs, Map *symbol_final_values, Map *block_ids, Map **output_maps, Map *symbol_ids, IROutput **ir_outs, int *n_outputs) {
    int max_id = 0;
-   for (SymbolListNode *n = outs->head; n != NULL; n=n->next) {
-      int *ids = glsl_map_get(symbol_ids, n->s);
+   for (unsigned i=0; i<outs->n; i++) {
+      const Symbol *s = outs->v[i].symbol;
+      int *ids = glsl_map_get(symbol_ids, s);
       if (ids == NULL) continue;
 
-      for (unsigned i=0; i<n->s->type->scalar_count; i++) {
+      for (unsigned i=0; i<s->type->scalar_count; i++) {
          if (max_id < ids[i]) max_id = ids[i];
       }
    }
@@ -239,19 +240,20 @@ static void fill_ir_outputs(const SymbolList *outs, Map *symbol_final_values, Ma
       ir_outputs[i].output = -1;
    }
 
-   for (SymbolListNode *n = outs->head; n != NULL; n=n->next) {
-      int *ids = glsl_map_get(symbol_ids, n->s);
-      BasicBlock *b = glsl_map_get(symbol_final_values, n->s);
+   for (unsigned i=0; i<outs->n; i++) {
+      const Symbol *s = outs->v[i].symbol;
+      int *ids = glsl_map_get(symbol_ids, s);
+      BasicBlock *b = glsl_map_get(symbol_final_values, s);
       if (b == NULL) {
          /* Mark this as uninitialised in the symbol map. TODO: Possibly not needed? */
-         for (unsigned i=0; i<n->s->type->scalar_count; i++) ids[i] = -1;
+         for (unsigned i=0; i<s->type->scalar_count; i++) ids[i] = -1;
          continue;
       }
 
       int block_id = get_block_id(block_ids, b);
       Map *output_map = output_maps[block_id];
-      IROutput *o = glsl_map_get(output_map, n->s);
-      for (unsigned i=0; i<n->s->type->scalar_count; i++) {
+      IROutput *o = glsl_map_get(output_map, s);
+      for (unsigned i=0; i<s->type->scalar_count; i++) {
          ir_outputs[ids[i]] = o[i];
       }
    }
@@ -434,7 +436,7 @@ static Map *setup_ssa_information(BasicBlockList *l, BasicBlock **blocks, int n_
    return final_values;
 }
 
-void glsl_ssa_convert(SSAShader *sh, BasicBlock *entry_block, const SymbolList *outs, Map *symbol_ids)
+void glsl_ssa_convert(SSAShader *sh, BasicBlock *entry_block, const struct if_usage *outs, Map *symbol_ids)
 {
    BasicBlockList *bl = glsl_basic_block_get_reverse_postorder_list(entry_block);
 

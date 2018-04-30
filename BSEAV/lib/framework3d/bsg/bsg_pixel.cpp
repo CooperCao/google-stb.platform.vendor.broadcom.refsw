@@ -93,11 +93,11 @@ unsigned int Pixel::qpu_float_pack_uint8(unsigned int fl)
 
    rsh = (127 - exp) + 12;
    ans256 = mmt >> rsh;
-   if (mmt << (32 - rsh))
+   if ((mmt << (32 - rsh)) != 0)
       ans256 |= 1;
 
    ans = ans256 >> 8;
-   if (ans256 << 24)
+   if ((ans256 << 24) != 0)
       ans |= 1;
 
    // subtract 1/256th of ans from itself (so multiplying by 255 not 256)

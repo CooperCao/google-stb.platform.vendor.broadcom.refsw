@@ -31,7 +31,6 @@ void Visit(const NodeTypeImage *node) override { m_impl.Default(node); }
 void Visit(const NodeTypeSampler *node) override { m_impl.Default(node); }
 void Visit(const NodeTypeSampledImage *node) override { m_impl.Default(node); }
 void Visit(const NodeTypeArray *node) override { m_impl.Default(node); }
-void Visit(const NodeTypeRuntimeArray *node) override { m_impl.Default(node); }
 void Visit(const NodeTypeStruct *node) override { m_impl.Default(node); }
 void Visit(const NodeTypePointer *node) override { m_impl.Default(node); }
 void Visit(const NodeTypeFunction *node) override { m_impl.Default(node); }
@@ -208,6 +207,9 @@ void Visit(const NodeReturnValue *node) override { m_impl.Default(node); }
 void Visit(const NodeUnreachable *node) override { m_impl.Default(node); }
 void Visit(const NodeNoLine *node) override { m_impl.Default(node); }
 void Visit(const NodeModuleProcessed *node) override { m_impl.Default(node); }
+void Visit(const NodeExecutionModeId *node) override { m_impl.Default(node); }
+void Visit(const NodeDecorateId *node) override { m_impl.Default(node); }
+void Visit(const NodeGroupNonUniformElect *node) override { m_impl.Default(node); }
 void Visit(const NodeStdRound *node) override { m_impl.Default(node); }
 void Visit(const NodeStdRoundEven *node) override { m_impl.Default(node); }
 void Visit(const NodeStdTrunc *node) override { m_impl.Default(node); }

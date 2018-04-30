@@ -58,6 +58,7 @@ static BERR_Code BAPE_BufferGroup_P_ControlLock_isrsafe(BAPE_BufferGroupHandle h
 static BERR_Code BAPE_BufferGroup_P_ControlUnlock_isrsafe(BAPE_BufferGroupHandle handle);
 static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSource);
 static void BAPE_BufferGroup_P_DataReady_isr(BAPE_BufferGroupHandle handle, unsigned size);
+static void BAPE_BufferGroup_P_FreeSpaceAvailable_isr(BAPE_BufferGroupHandle handle, unsigned size);
 
 typedef struct BAPE_Buffer
 {
@@ -1861,6 +1862,11 @@ BERR_Code BAPE_BufferGroup_ReadComplete_isr(
         errCode = BERR_TRACE(BAPE_BufferGroup_P_FillOutputs_isr(handle->pSource));
     }
 
+    if ( size > 0 && errCode == BERR_SUCCESS )
+    {
+        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle, size);
+    }
+
     return errCode;
 }
 
@@ -1992,6 +1998,30 @@ static void BAPE_BufferGroup_P_DataReady_isr(
     if ( handle->interrupts.dataReady.pCallback_isr )
     {
         handle->interrupts.dataReady.pCallback_isr(handle->interrupts.dataReady.pParam1, handle->interrupts.dataReady.param2);
+    }
+}
+
+static void BAPE_BufferGroup_P_FreeSpaceAvailable_isr(
+    BAPE_BufferGroupHandle handle,
+    unsigned size
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+
+    BSTD_UNUSED(size);
+
+    #if 0 /* this is done by ReadComplete / FillOutputs */
+    /* pass upstream to parent buffer group */
+    if ( handle->pSource )
+    {
+        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle->pSource, size);
+    }
+    #endif
+
+    /* notify our direct consumer, if any exists */
+    if ( handle->interrupts.freeAvailable.pCallback_isr )
+    {
+        handle->interrupts.freeAvailable.pCallback_isr(handle->interrupts.freeAvailable.pParam1, handle->interrupts.freeAvailable.param2);
     }
 }
 

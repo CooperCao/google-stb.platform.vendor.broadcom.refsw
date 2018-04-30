@@ -136,14 +136,6 @@ void v3d_vpm_cfg_validate(
    unsigned max_input_vertices,
    unsigned tes_patch_vertices)
 {
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   if (t || g)
-   {
-      assert(tg[0].tcs_batch_flush == tg[1].tcs_batch_flush);
-      assert(tg[0].max_patches_per_tcs_batch == tg[1].max_patches_per_tcs_batch);
-      assert(tg[0].max_patches_per_tes_batch == tg[1].max_patches_per_tes_batch);
-   }
-#endif
    for (unsigned br = 0; br <= 1; ++br)
       v3d_vpm_cfg_validate_br(&v[br], tg ? &tg[br] : NULL, t, g, vpm_size_in_sectors, max_input_vertices, tes_patch_vertices);
 }
@@ -291,16 +283,6 @@ bool v3d_vpm_compute_cfg_tg(
       }
    }
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   // These start high and are decreased if necessary during phase 0. Note that
-   // they are common to bin and render...
-   unsigned Cp = max_sensible_Cp;
-   unsigned Ep = max_sensible_Ep;
-   if (t)
-      constrain_Cp_plus_Ep(&Cp, &Ep, Vn, Cn, gfx_umin(Pw[0], Pw[1]));
-
-   // Do render first as this is likely more constrained.
-#endif
    for (unsigned br = 2; br-- != 0; )
    {
       assert(vs_output_words[br] != 0);
@@ -317,12 +299,10 @@ bool v3d_vpm_compute_cfg_tg(
          assert(Gpk != V3D_CL_GEOM_OUTPUT_PACK_X1);
          Gpk += 1;
       }
-#if V3D_VER_AT_LEAST(4,1,34,0)
       unsigned Cp = max_sensible_Cp;
       unsigned Ep = max_sensible_Ep;
       if (t)
          constrain_Cp_plus_Ep(&Cp, &Ep, Vn, Cn, Pw[br]);
-#endif
 
       // We won't decrease Cpk/Epk/Gpk below these values
       v3d_cl_vpm_pack_t const min_Cpk = Cn >= 16 ? V3D_CL_VPM_PACK_X16 : Cn >= 8  ? V3D_CL_VPM_PACK_X8 : V3D_CL_VPM_PACK_X4;
@@ -434,24 +414,14 @@ bool v3d_vpm_compute_cfg_tg(
                   tg[br].tcs_output.pack                   = Cpk;
                   tg[br].tcs_output.size_sectors           = Cd;
                   tg[br].max_extra_vert_segs_per_tcs_batch = CV;
-#if V3D_VER_AT_LEAST(4,1,34,0)
                   tg[br].max_patches_per_tcs_batch         = Cp;
-#else
-                  tg[0].max_patches_per_tcs_batch          = Cp;
-                  tg[1].max_patches_per_tcs_batch          = Cp;
-#endif
                   tg[br].tcs_batch_flush                   = Cf;
                   tg[br].tes_output.pack                   = Epk;
                   tg[br].min_tcs_segs                      = Cs;
                   tg[br].tes_output.size_sectors           = Ed;
                   tg[br].max_extra_vert_segs_per_tes_batch = EV;
                   tg[br].max_tcs_segs_per_tes_batch        = EC;
-#if V3D_VER_AT_LEAST(4,1,34,0)
                   tg[br].max_patches_per_tes_batch         = Ep;
-#else
-                  tg[0].max_patches_per_tes_batch          = Ep;
-                  tg[1].max_patches_per_tes_batch          = Ep;
-#endif
                   tg[br].min_tes_segs                      = Es;
                }
 

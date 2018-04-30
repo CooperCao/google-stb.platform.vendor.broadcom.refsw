@@ -43,16 +43,16 @@
 #include "brcmstb_priv.h"
 #include "avs.h"
 
+bool avs_init_done;
+
 void plat_dvfs_init(void)
 {
     uintptr_t mbox_base    = BRCMSTB_RGROUP_BASE(AVS_CPU_DATA_MEM);
     uintptr_t host_l2_base = BRCMSTB_RGROUP_BASE(AVS_HOST_L2);
     uintptr_t avs_l2_base  = BRCMSTB_RGROUP_BASE(AVS_CPU_L2);
 
-    avs_init(
-        mbox_base,
-        host_l2_base,
-        avs_l2_base);
+    avs_init(mbox_base, host_l2_base, avs_l2_base);
+    avs_init_done = true;
 }
 
 int plat_cpu_pstate_set(uint32_t pstate)
@@ -63,6 +63,38 @@ int plat_cpu_pstate_set(uint32_t pstate)
 int plat_cpu_pstate_get(uint32_t *ppstate)
 {
     return avs_cpu_pstate_get(ppstate);
+}
+
+int plat_cpu_freq_get(uint32_t *pfreq)
+{
+    uint32_t cpu_freq;
+    int ret;
+
+    if (avs_init_done) {
+        /* AVS API rev2 */
+        uint32_t cpu_pstate;
+
+        ret = avs_cpu_pstate_get(&cpu_pstate);
+        if (ret)
+            return ret;
+
+        ret = avs_cpu_pstate_freq(cpu_pstate, &cpu_freq);
+        if (ret)
+            return ret;
+    }
+    else {
+        /* AVS API rev1 */
+        uintptr_t mbox_base = BRCMSTB_RGROUP_BASE(AVS_CPU_DATA_MEM);
+
+        ret = avs_rev1_cpu_freq(mbox_base, &cpu_freq);
+        if (ret)
+            return ret;
+    }
+
+    if (pfreq)
+        *pfreq = cpu_freq;
+
+    return MON_OK;
 }
 
 int plat_cpu_pstate_freqs(

@@ -263,6 +263,21 @@ void BVC5_P_DebugDump(
       BVC5_P_DumpInternalJob(hVC5->psCoreStates[uiCoreIndex].sRenderState.psJob[BVC5_P_HW_QUEUE_QUEUED]);
     }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+    BKNI_Printf("\n");
+    BKNI_Printf("Current Compute Job:\n");
+    if (hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[BVC5_P_HW_QUEUE_RUNNING] != NULL)
+    {
+      BKNI_Printf("JobId Running\t\t=\t" BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[BVC5_P_HW_QUEUE_RUNNING]->uiJobId));
+      BVC5_P_DumpInternalJob(hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[BVC5_P_HW_QUEUE_RUNNING]);
+    }
+    if (hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[BVC5_P_HW_QUEUE_QUEUED] != NULL)
+    {
+      BKNI_Printf("JobId Queued\t\t=\t" BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[BVC5_P_HW_QUEUE_QUEUED]->uiJobId));
+      BVC5_P_DumpInternalJob(hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[BVC5_P_HW_QUEUE_QUEUED]);
+    }
+#endif
+
     BKNI_Printf("\n");
     BKNI_Printf("Current TFU Job:\n");
     if (hVC5->sTFUState.psJob != NULL)
@@ -270,13 +285,13 @@ void BVC5_P_DebugDump(
     BVC5_P_DumpInternalJob(hVC5->sTFUState.psJob);
 
     BKNI_Printf("\n"
-       "CTL_INT_STS     %08X,  INT_MSK_STS   %08X\n"
-       "CT0CA           %08X,  CT0EA         %08X,  CT0CS      %08X\n"
-       "CT1CA           %08X,  CT1EA         %08X,  CT1CS      %08X\n"
-       "CT0RA0          %08X,  CT0LC         %08X,  CT0PC      %08X\n"
-       "CT1RA0          %08X,  CT1LC         %08X,  CT1PC      %08X\n"
-       "TFBC            %08X,  TFIT          %08X\n"
-       "CT1CFG          %08X,  CT1TILECT     %08X,  CT1TSKIP   %08X,  CT1PTCT    %08X\n",
+       "CTL_INT_STS   %08X,  INT_MSK_STS   %08X\n"
+       "CT0CA         %08X,  CT0EA         %08X,  CT0CS         %08X\n"
+       "CT1CA         %08X,  CT1EA         %08X,  CT1CS         %08X\n"
+       "CT0RA0        %08X,  CT0LC         %08X,  CT0PC         %08X\n"
+       "CT1RA0        %08X,  CT1LC         %08X,  CT1PC         %08X\n"
+       "TFBC          %08X,  TFIT          %08X\n"
+       "CT1CFG        %08X,  CT1TILECT     %08X,  CT1TSKIP      %08X,  CT1PTCT       %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_STS),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_MSK_STS),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0CA),      BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0EA),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0CS),      BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1CA),
@@ -290,8 +305,8 @@ void BVC5_P_DebugDump(
        );
 
     BKNI_Printf(
-       "CT0SYNC         %08X,  CT0QBA        %08X,  CT0QEA     %08X\n"
-       "CT1SYNC         %08X,  CT1QBA        %08X,  CT1QEA     %08X\n",
+       "CT0SYNC       %08X,  CT0QBA        %08X,  CT0QEA        %08X\n"
+       "CT1SYNC       %08X,  CT1QBA        %08X,  CT1QEA        %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0SYNC),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QBA),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QEA),     BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1SYNC),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QBA),     BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QEA)
@@ -306,14 +321,14 @@ void BVC5_P_DebugDump(
 #endif
 
     BKNI_Printf(
-       "CT0QMA          %08X,  CT0QMS        %08X\n"
-       "CT1QCFG         %08X,  CT1QTSKIP     %08X\n"
-       "CT1QBASE0       %08X,  CT1QBASE1     %08X,  CT1QBASE2  %08X,  CT1QBASE3  %08X\n"
-       "CT1QBASE4       %08X,  CT1QBASE5     %08X,  CT1QBASE6  %08X,  CT1QBASE7  %08X\n"
-       "CT0QSYNC        %08X,  CT0CAD        %08X\n"
-       "CT1QSYNC        %08X,  CT1CAD        %08X\n"
-       "PCS             %08X,  BFC           %08X,  RFC        %08X\n"
-       "BPCA            %08X,  BPCS          %08X,  BPOA       %08X,  BPOS       %08X\n",
+       "CT0QMA        %08X,  CT0QMS        %08X\n"
+       "CT1QCFG       %08X,  CT1QTSKIP     %08X\n"
+       "CT1QBASE0     %08X,  CT1QBASE1     %08X,  CT1QBASE2     %08X,  CT1QBASE3     %08X\n"
+       "CT1QBASE4     %08X,  CT1QBASE5     %08X,  CT1QBASE6     %08X,  CT1QBASE7     %08X\n"
+       "CT0QSYNC      %08X,  CT0CAD        %08X\n"
+       "CT1QSYNC      %08X,  CT1CAD        %08X\n"
+       "PCS           %08X,  BFC           %08X,  RFC           %08X\n"
+       "BPCA          %08X,  BPCS          %08X,  BPOA          %08X,  BPOS          %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QMA),     BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QMS),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QCFG),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QTSKIP),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QBASE0),  BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QBASE1),
@@ -328,14 +343,31 @@ void BVC5_P_DebugDump(
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_PTB_BPOS)
        );
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
     BKNI_Printf(
-       "VPMBASE         %08X,  VPACNTL       %08X\n"
-       "L2CACTL         %08X,  SLCACTL       %08X\n"
-       "SCRATCH         %08X,  BXCF          %08X\n"
-       "IDENT0          %08X,  IDENT1        %08X,  IDENT2     %08X,  IDENT3     %08X\n"
-       "HUBIDENT0       %08X,  HUBIDENT1     %08X,  HUBIDENT2  %08X,  HUBIDENT3  %08X\n"
-       "ERRSTAT         %08X,  DBGE          %08X,  FDBG0      %08X,  FDBGB      %08X\n"
-       "FDBGR           %08X,  FDBGS         %08X,  BXCF       %08X\n",
+       "CSD_CUR_CFG0  %08X,  CSD_CUR_CFG1  %08X,  CSD_CUR_CFG2  %08X,  CSD_CUR_CFG3  %08X\n"
+       "CSD_CUR_CFG4  %08X,  CSD_CUR_CFG5  %08X,  CSD_CUR_CFG6  %08X\n"
+       "CSD_CUR_ID0   %08X,  CSD_CUR_ID1   %08X,  CSD_STATUS    %08X\n",
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG0),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG1),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG2),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG3),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG4),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG5),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_CFG6),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_ID0),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_CURRENT_ID1),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_STATUS));
+#endif
+
+    BKNI_Printf(
+       "VPMBASE       %08X,  VPACNTL       %08X\n"
+       "L2CACTL       %08X,  SLCACTL       %08X\n"
+       "SCRATCH       %08X,  BXCF          %08X\n"
+       "IDENT0        %08X,  IDENT1        %08X,  IDENT2        %08X,  IDENT3        %08X\n"
+       "HUBIDENT0     %08X,  HUBIDENT1     %08X,  HUBIDENT2     %08X,  HUBIDENT3     %08X\n"
+       "ERRSTAT       %08X,  DBGE          %08X,  FDBG0         %08X,  FDBGB         %08X\n"
+       "FDBGR         %08X,  FDBGS         %08X,  BXCF          %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_VPM_VPMBASE),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_VPM_VPACNTL),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2CACTL),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_SLCACTL),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_SCRATCH),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_PTB_BXCF),
@@ -356,26 +388,26 @@ void BVC5_P_DebugDump(
        );
 
     BKNI_Printf(
-       "SQRSV0          %08X,  SQRSV1        %08X,  SQCNTL     %08X\n",
+       "SQRSV0        %08X,  SQRSV1        %08X,  SQCNTL        %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_QPS_SQRSV0),     BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_QPS_SQRSV1),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_QPS_SQCNTL)
        );
 
 #ifdef BCHP_V3D_MMU_0_CTRL
     BKNI_Printf(
-       "MMU_CTRL        %08X,  MMU_PTPABASE  %08X\n",
+       "MMU_CTRL      %08X,  MMU_PTPABASE  %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_MMU_0_CTRL),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_MMU_0_PT_PA_BASE)
        );
 #endif
 
     BKNI_Printf(
-       "TFUCS           %08X,  TFUSU         %08X\n"
-       "TFUICFG         %08X,  TFUIIA        %08X,  TFUICA     %08X,  TFUIIS     %08X\n"
-       "TFUIOA          %08X,  TFUIOS        %08X\n"
-       "TFUCOEF0        %08X,  TFUCOEF1      %08X,  TFUCOEF2   %08X,  TFUCOEF3   %08X\n"
-       "TFUCRC          %08X,  TFUINT_STS    %08X,  TFUINT_MSK_STS  %08X\n"
-       "TFUSYNC         %08X\n",
+       "TFUCS         %08X,  TFUSU         %08X\n"
+       "TFUICFG       %08X,  TFUIIA        %08X,  TFUICA        %08X,  TFUIIS        %08X\n"
+       "TFUIOA        %08X,  TFUIOS        %08X\n"
+       "TFUCOEF0      %08X,  TFUCOEF1      %08X,  TFUCOEF2      %08X,  TFUCOEF3      %08X\n"
+       "TFUCRC        %08X,  TFUINT_STS    %08X,  TFUINT_MSK_STS  %08X\n"
+       "TFUSYNC       %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUCS),            BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUSU),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUICFG),          BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUIIA),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUICA),           BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUIIS),
@@ -388,7 +420,7 @@ void BVC5_P_DebugDump(
 
 #ifdef BCHP_V3D_MMU_T_CTRL
     BKNI_Printf(
-       "MMUT_CTRL       %08X,  MMUT_PTPABASE %08X\n",
+       "MMUT_CTRL     %08X,  MMUT_PTPABASE %08X\n",
        BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_T_CTRL),
        BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_T_PT_PA_BASE)
        );

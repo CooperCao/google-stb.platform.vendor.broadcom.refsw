@@ -885,6 +885,7 @@ int32_t BWL_SetBridgeMode(BWL_Handle hBwl, uint32_t ulValue);
 int32_t BWL_GetAntennaCount(BWL_Handle hBwl, uint32_t *pulAntenna);
 int32_t BWL_SetAntenna(BWL_Handle hBwl, AntMode_t eAntMode, uint32_t ulAntenna);
 int32_t BWL_GetAntenna(BWL_Handle hBwl, AntMode_t eAntMode, uint32_t *pulAntenna);
+int32_t BWL_GetPM2_rcv_dur(BWL_Handle hBwl, uint32_t *pm2rcvdur);
 int32_t BWL_GetRssiPerAntenna(BWL_Handle  hBwl, RssiPerAntenna_t *pRssiPerAntenna);
 int32_t BWL_Disassoc(BWL_Handle hBwl);
 int32_t BWL_Out(BWL_Handle hBwl);

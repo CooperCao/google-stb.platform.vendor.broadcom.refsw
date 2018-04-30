@@ -71,7 +71,6 @@
 #endif
 
 /* I2C / SPI Channels */
-#define NEXUS_NUM_I2C_CHANNELS 4
 #define NEXUS_NUM_SPI_CHANNELS 3
 
 /* I2C channel usage assignments. Refer to BSC table in the board schematics. */

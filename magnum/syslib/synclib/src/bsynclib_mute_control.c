@@ -86,9 +86,10 @@ BERR_Code BSYNClib_MuteControl_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
+
 	BDBG_LEAVE(BSYNClib_MuteControl_ScheduleTask_isr);
 	return rc;
 }
@@ -190,7 +191,8 @@ BERR_Code BSYNClib_MuteControl_StartUnmuteTimers(BSYNClib_Channel_Handle hChn)
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
 
-	end:
+end:
+
 	return rc;
 }
 
@@ -206,12 +208,10 @@ BERR_Code BSYNClib_MuteControl_P_TaskTimerExpired(void * pvParm1, int iParm2, BS
 	BDBG_MSG(("[%d] Mute task timer expired", hChn->iIndex));
 
 	/* clean up this timer */
-	rc = BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
 
 	rc = BSYNClib_MuteControl_P_Process(hChn, 0);
 
-	end:
 	return rc;
 }
 
@@ -355,7 +355,8 @@ BERR_Code BSYNClib_MuteControl_P_Process(void * pvParm1, int iParm2)
 		BDBG_MSG(("[%d] Mute control process called while mute control disabled", hChn->iIndex));
 	}
 
-	end:
+end:
+
 	return rc;
 }
 
@@ -423,7 +424,7 @@ BERR_Code BSYNClib_MuteControl_P_HandleVideoSourceMutePending(BSYNClib_Channel_H
 		}
 	}
 
-	end:
+end:
 
 	return rc;
 }
@@ -492,7 +493,7 @@ BERR_Code BSYNClib_MuteControl_P_HandleAudioSourceMutePending(BSYNClib_Channel_H
 		}
 	}
 
-	end:
+end:
 
 	return rc;
 }
@@ -566,7 +567,8 @@ BERR_Code BSYNClib_MuteControl_P_UnmuteAll(BSYNClib_Channel_Handle hChn)
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
 
-	end:
+end:
+
 	return rc;
 }
 
@@ -586,8 +588,7 @@ BERR_Code BSYNClib_MuteControl_P_VideoSourceUnmuteTimerExpired(void * pvParm1, i
 	hChn = psSource->sElement.hParent;
 
 	/* clean up timer */
-	rc = BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
 
 	BDBG_MSG(("[%d] Video source %u unmute timer expired", hChn->iIndex, psSource->sElement.uiIndex));
 
@@ -602,7 +603,8 @@ BERR_Code BSYNClib_MuteControl_P_VideoSourceUnmuteTimerExpired(void * pvParm1, i
 		if (rc) goto end;
 	}
 
-	end:
+end:
+
 	BDBG_LEAVE(BSYNClib_MuteControl_P_VideoSourceUnmuteTimerExpired);
 	return rc;
 }
@@ -622,8 +624,7 @@ BERR_Code BSYNClib_MuteControl_P_AudioSourceUnmuteTimerExpired(void * pvParm1, i
 
 	hChn = psSource->sElement.hParent;
 
-	rc = BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
 
 	BDBG_MSG(("[%d] Audio source %u unmute timer expired", hChn->iIndex, psSource->sElement.uiIndex));
 
@@ -637,8 +638,6 @@ BERR_Code BSYNClib_MuteControl_P_AudioSourceUnmuteTimerExpired(void * pvParm1, i
 		/* unmute the audio */
 		rc = BSYNClib_AudioSource_SetMute(psSource, false);
 	}
-
-	end:
 
 	BDBG_LEAVE(BSYNClib_MuteControl_P_AudioSourceUnmuteTimerExpired);
 	return rc;
@@ -660,8 +659,7 @@ BERR_Code BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired(void
 
 	hChn = psSource->sElement.hParent;
 
-	rc = BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
 
 	BDBG_WRN(("[%d] Audio source %u unconditional unmute timer expired", hChn->iIndex, psSource->sElement.uiIndex));
 
@@ -675,8 +673,6 @@ BERR_Code BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired(void
 		/* unmute the audio */
 		rc = BSYNClib_AudioSource_SetMute(psSource, false);
 	}
-
-	end:
 
 	BDBG_LEAVE(BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired);
 	return rc;
@@ -699,8 +695,7 @@ BERR_Code BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired(void
 
 	hChn = psSource->sElement.hParent;
 
-	rc = BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
 
 	BDBG_WRN(("[%d] Video source %u unconditional unmute timer expired", hChn->iIndex, psSource->sElement.uiIndex));
 
@@ -714,8 +709,6 @@ BERR_Code BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired(void
 		/* unmute the video */
 		rc = BSYNClib_VideoSource_SetMute(psSource, false);
 	}
-
-	end:
 
 	BDBG_LEAVE(BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired);
 	return rc;

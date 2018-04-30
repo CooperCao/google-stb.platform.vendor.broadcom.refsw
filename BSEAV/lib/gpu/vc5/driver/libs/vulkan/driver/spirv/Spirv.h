@@ -83,6 +83,11 @@ enum class ExecutionMode : uint32_t
    Finalizer = 34,
    SubgroupSize = 35,
    SubgroupsPerWorkgroup = 36,
+   SubgroupsPerWorkgroupId = 37,
+   LocalSizeId = 38,
+   LocalSizeHintId = 39,
+   PostDepthCoverage = 4446,
+   StencilRefReplacingEXT = 5027,
 };
 
 enum class StorageClass : uint32_t
@@ -340,10 +345,15 @@ enum class Decoration : uint32_t
    InputAttachmentIndex = 43,
    Alignment = 44,
    MaxByteOffset = 45,
+   AlignmentId = 46,
+   MaxByteOffsetId = 47,
+   ExplicitInterpAMD = 4999,
    OverrideCoverageNV = 5248,
    PassthroughNV = 5250,
    ViewportRelativeNV = 5252,
    SecondaryViewportRelativeNV = 5256,
+   HlslCounterBufferGOOGLE = 5634,
+   HlslSemanticGOOGLE = 5635,
 };
 
 enum class BuiltIn : uint32_t
@@ -389,21 +399,35 @@ enum class BuiltIn : uint32_t
    SubgroupLocalInvocationId = 41,
    VertexIndex = 42,
    InstanceIndex = 43,
+   SubgroupEqMask = 4416,
    SubgroupEqMaskKHR = 4416,
+   SubgroupGeMask = 4417,
    SubgroupGeMaskKHR = 4417,
+   SubgroupGtMask = 4418,
    SubgroupGtMaskKHR = 4418,
+   SubgroupLeMask = 4419,
    SubgroupLeMaskKHR = 4419,
+   SubgroupLtMask = 4420,
    SubgroupLtMaskKHR = 4420,
    BaseVertex = 4424,
    BaseInstance = 4425,
    DrawIndex = 4426,
    DeviceIndex = 4438,
    ViewIndex = 4440,
+   BaryCoordNoPerspAMD = 4992,
+   BaryCoordNoPerspCentroidAMD = 4993,
+   BaryCoordNoPerspSampleAMD = 4994,
+   BaryCoordSmoothAMD = 4995,
+   BaryCoordSmoothCentroidAMD = 4996,
+   BaryCoordSmoothSampleAMD = 4997,
+   BaryCoordPullModelAMD = 4998,
+   FragStencilRefEXT = 5014,
    ViewportMaskNV = 5253,
    SecondaryPositionNV = 5257,
    SecondaryViewportMaskNV = 5258,
    PositionPerViewNV = 5261,
    ViewportMaskPerViewNV = 5262,
+   FullyCoveredEXT = 5264,
 };
 
 enum SelectionControlMask : uint32_t
@@ -511,6 +535,7 @@ enum class GroupOperation : uint32_t
    Reduce = 0,
    InclusiveScan = 1,
    ExclusiveScan = 2,
+   ClusteredReduce = 3,
 };
 
 enum class KernelEnqueueFlags : uint32_t
@@ -592,25 +617,45 @@ enum class Capability : uint32_t
    SubgroupDispatch = 58,
    NamedBarrier = 59,
    PipeStorage = 60,
+   GroupNonUniform = 61,
+   GroupNonUniformVote = 62,
+   GroupNonUniformArithmetic = 63,
+   GroupNonUniformBallot = 64,
+   GroupNonUniformShuffle = 65,
+   GroupNonUniformShuffleRelative = 66,
+   GroupNonUniformClustered = 67,
+   GroupNonUniformQuad = 68,
    SubgroupBallotKHR = 4423,
    DrawParameters = 4427,
    SubgroupVoteKHR = 4431,
    StorageBuffer16BitAccess = 4433,
    StorageUniformBufferBlock16 = 4433,
-   UniformAndStorageBuffer16BitAccess = 4434,
    StorageUniform16 = 4434,
+   UniformAndStorageBuffer16BitAccess = 4434,
    StoragePushConstant16 = 4435,
    StorageInputOutput16 = 4436,
    DeviceGroup = 4437,
    MultiView = 4439,
    VariablePointersStorageBuffer = 4441,
    VariablePointers = 4442,
+   AtomicStorageOps = 4445,
+   SampleMaskPostDepthCoverage = 4447,
+   Float16ImageAMD = 5008,
+   ImageGatherBiasLodAMD = 5009,
+   FragmentMaskAMD = 5010,
+   StencilExportEXT = 5013,
+   ImageReadWriteLodAMD = 5015,
    SampleMaskOverrideCoverageNV = 5249,
    GeometryShaderPassthroughNV = 5251,
+   ShaderViewportIndexLayerEXT = 5254,
    ShaderViewportIndexLayerNV = 5254,
    ShaderViewportMaskNV = 5255,
    ShaderStereoViewNV = 5259,
    PerViewAttributesNV = 5260,
+   FragmentFullyCoveredEXT = 5265,
+   SubgroupShuffleINTEL = 5568,
+   SubgroupBufferBlockIOINTEL = 5569,
+   SubgroupImageBlockIOINTEL = 5570,
 };
 
 
@@ -822,6 +867,9 @@ enum class Core : uint32_t
    OpUnreachable = 255,
    OpNoLine = 317,
    OpModuleProcessed = 330,
+   OpExecutionModeId = 331,
+   OpDecorateId = 332,
+   OpGroupNonUniformElect = 333,
 };
 
 enum class GLSL : uint32_t
@@ -915,8 +963,8 @@ enum class InstructionSet
 
 namespace con {
 constexpr uint32_t MagicNumber = 119734787;
-constexpr uint32_t Version = 65792;
-constexpr uint32_t Revision = 7;
+constexpr uint32_t Version = 66304;
+constexpr uint32_t Revision = 1;
 constexpr uint32_t OpCodeMask = 65535;
 constexpr uint32_t WordCountShift = 16;
 constexpr uint32_t HeaderWordCount = 5;

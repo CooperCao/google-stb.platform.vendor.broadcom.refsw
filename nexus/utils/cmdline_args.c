@@ -261,7 +261,7 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
         opts->useCompositeOutput = true;
         opts->useComponentOutput = true;
         opts->useHdmiOutput = true;
-        opts->displayFormat = NEXUS_VideoFormat_eNtsc;
+        opts->displayFormat = NEXUS_VideoFormat_eUnknown;
         opts->maxAudioRate = 48000;
         opts->audioUseLittle = true;
         opts->audioLoudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eNone;
@@ -519,9 +519,6 @@ int cmdline_parse(int argc, const char *argv[], struct util_opts_t *opts)
             opts->accurateSeek = true;
         }
 #endif
-        else if (!strcmp(argv[i], "-secure_audio")) {
-            opts->common.secureAudio = true;
-        }
         else if (!strcmp(argv[i], "-master") && i+1<argc) {
             opts->stcChannelMaster=lookup(g_stcChannelMasterStrs, argv[++i]);
         }
@@ -984,7 +981,14 @@ int cmdline_probe(struct common_opts_t *opts, const char *filename, const char *
                            to do it at the decoder, disable it at the host and use media_probe to
                            determine the correct decoder timestamp mode */
                         if (opts->playpumpTimestampReordering == false) {
-                            opts->decoderTimestampMode = track->info.video.timestamp_order;
+                            switch (track->info.video.timestamp_order) {
+                            case bmedia_timestamp_order_display:
+                                opts->decoderTimestampMode = NEXUS_VideoDecoderTimestampMode_eDisplay;
+                                break;
+                            case bmedia_timestamp_order_decode:
+                                opts->decoderTimestampMode = NEXUS_VideoDecoderTimestampMode_eDecode;
+                                break;
+                            }
                         }
 #endif
 #if B_HAS_ASF

@@ -35,8 +35,8 @@ typedef enum
                         samples we are using for that mode */
 }glxx_ms_mode;
 /* if we move to supporting 16x MS, we need to change the above enum and fix
- * the ms functions bellow */
-static_assrt(GLXX_4X_MS == GLXX_CONFIG_MAX_SAMPLES);
+ * the ms functions below */
+static_assrt(GLXX_4X_MS == V3D_MAX_SAMPLES);
 
 extern glxx_ms_mode glxx_max_ms_mode_for_internalformat(GLenum internalformat);
 extern glxx_ms_mode glxx_samples_to_ms_mode(unsigned samples);

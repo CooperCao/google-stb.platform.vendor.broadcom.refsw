@@ -1,45 +1,47 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ***************************************************************************/
 #include "nexus_platform_module.h"
 #include "priv/nexus_core.h"
 #include "nexus_platform_priv.h"
-#include "nexus_input_band.h"
 #if NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"
 #include "nexus_frontend_7552.h"
@@ -80,9 +82,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     deviceOpenSettings.externalFixedGain.bypassable = 1400; /* These are platform specific values given by the board designer. */
 
     parentDevice = NEXUS_FrontendDevice_Open3461(0, &deviceOpenSettings);
-    
+
     if(parentDevice == NULL){rc = BERR_TRACE(rc); goto done;}
-    
+
     NEXUS_FrontendDevice_GetDefault3461Settings(&deviceSettings);
     deviceSettings.rfDaisyChain = NEXUS_3461RfDaisyChain_eInternalLna;
     deviceSettings.rfInput = NEXUS_3461TunerRfInput_eInternalLna;
@@ -111,7 +113,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     BDBG_MSG(("version.buildId = 0x%x", type.chip.version.buildId ));
     BDBG_MSG(("bondoutOptions[0] = 0x%x", type.chip.bondoutOptions[0] ));
     BDBG_MSG(("bondoutOptions[1] = 0x%x", type.chip.bondoutOptions[1] ));
-    
+
     BDBG_MSG(("firmwareVersion.major = 0x%x", type.firmwareVersion.major ));
     BDBG_MSG(("firmwareVersion.major = 0x%x", type.firmwareVersion.minor ));
     BDBG_MSG(("firmwareVersion.buildType = 0x%x", type.firmwareVersion.buildType ));
@@ -148,7 +150,7 @@ void NEXUS_Platform_UninitFrontend(void)
             }
             if(!handleFound)
                 deviceHandles[j] = tempHandle;
-             NEXUS_Frontend_Close(pConfig->frontend[i]);    
+             NEXUS_Frontend_Close(pConfig->frontend[i]);
              pConfig->frontend[i] = NULL;
         }
     }
@@ -170,19 +172,19 @@ static NEXUS_GpioHandle gpioHandle = NULL;
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
-    NEXUS_PlatformStatus platformStatus;    
+    NEXUS_PlatformStatus platformStatus;
     int index=0;
     NEXUS_FrontendUserParameters userParams;
     NEXUS_Error rc;
     NEXUS_GpioSettings gpioSettings;
     NEXUS_FrontendDevice7552OpenSettings deviceOpenSettings;
-    NEXUS_Frontend7552Settings settings;        
+    NEXUS_Frontend7552Settings settings;
     NEXUS_FrontendDevice7552Settings deviceSettings;
 #if NEXUS_USE_3128_FRONTEND_DAUGHTER_CARD
     unsigned i=0;
     NEXUS_3128Settings st3128Settings;
     NEXUS_3128ProbeResults results;
-#endif        
+#endif
     rc = NEXUS_Platform_GetStatus(&platformStatus);
     if(rc != NEXUS_SUCCESS)
     {
@@ -215,7 +217,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendDevice_GetDefault7552Settings(&deviceSettings);
     deviceSettings.rfInput = NEXUS_7552TunerRfInput_eInternalLna;
     deviceSettings.enableRfLoopThrough = false;
-    rc = NEXUS_FrontendDevice_Set7552Settings(settings.device, &deviceSettings);    
+    rc = NEXUS_FrontendDevice_Set7552Settings(settings.device, &deviceSettings);
     if(rc) {
         rc = BERR_TRACE(rc); goto error;
     }
@@ -237,13 +239,13 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         userParams.param1 = NEXUS_InputBand_e1;
         userParams.pParam2 = 0;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[index], &userParams);
-    
+
         index++;
     }
 
     if((platformStatus.chipId == 0x7531) || (platformStatus.chipId == 0x7532) ||
         (platformStatus.chipId == 0x7541) || (platformStatus.chipId == 0x7542) ||
-        (platformStatus.chipId == 0x7551) || (platformStatus.chipId == 0x7552) ||        
+        (platformStatus.chipId == 0x7551) || (platformStatus.chipId == 0x7552) ||
         (platformStatus.chipId == 0x7591) || (platformStatus.chipId == 0x7592))
     {
         settings.type = NEXUS_7552ChannelType_eOfdm;
@@ -273,7 +275,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
            (void)BERR_TRACE(BERR_NOT_SUPPORTED);
            goto error;
         }
-        
+
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.param1 = NEXUS_InputBand_e9;
         userParams.pParam2 = 0;
@@ -323,7 +325,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
 
     /* set aon_gpio_04 to gpio output for external LNA */
-    NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings); 
+    NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
     gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
     gpioSettings.value = NEXUS_GpioValue_eHigh;
     gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
@@ -361,7 +363,7 @@ void NEXUS_Platform_UninitFrontend(void)
             }
             if(!handleFound)
                 deviceHandles[j] = tempHandle;
-             NEXUS_Frontend_Close(pConfig->frontend[i]);    
+             NEXUS_Frontend_Close(pConfig->frontend[i]);
              pConfig->frontend[i] = NULL;
         }
     }
@@ -375,11 +377,11 @@ void NEXUS_Platform_UninitFrontend(void)
         }
     }
 
-	if(gpioHandle)
+    if(gpioHandle)
     {
         NEXUS_Gpio_Close(gpioHandle);
         gpioHandle = NULL;
-    }	
+    }
 }
 
 #endif
@@ -408,7 +410,7 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BTRC_TRACE(ChnChange_TuneStreamer, START);
-#if (BCHP_VER >= BCHP_VER_B0)   
+#if (BCHP_VER >= BCHP_VER_B0)
     *pInputBand = NEXUS_InputBand_e5;
 #else
     *pInputBand = NEXUS_InputBand_e2;
@@ -419,7 +421,7 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
 
 NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     unsigned id /* platform assigned ID for this frontend. See NEXUS_FrontendUserParameters.id.
-                   See nexus_platform_frontend.c for ID assignment and/or see 
+                   See nexus_platform_frontend.c for ID assignment and/or see
                    nexus_platform_features.h for possible platform-specific macros.
                 */
     )
@@ -429,4 +431,3 @@ NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     BSTD_UNUSED(id);
     return NULL;
 }
-

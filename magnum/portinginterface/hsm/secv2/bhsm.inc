@@ -61,20 +61,12 @@ ifeq ($(BHSM_BSP_INTERRUPT_SUPPORT),y)
     BHSM_DEFINES += BHSM_BSP_INTERRUPT_SUPPORT=1
 endif
 
-ifeq ($(BHSM_DEBUG_SOA),y)
-    BHSM_DEFINES += BHSM_DEBUG_SOA=1
-endif
-
 ifeq ($(BHSM_DEBUG_BSP),y)
     BHSM_DEFINES += BHSM_DEBUG_BSP=1
 endif
 
 ifeq ($(BHSM_ELCAJON_SUPPORT),y)
     BHSM_DEFINES += BHSM_ELCAJON_SUPPORT=1
-endif
-
-ifeq ($(BHSM_SUPPORT_REGION_RESIZE), ON)
-    BHSM_DEFINES += BHSM_SUPPORT_REGION_RESIZE=1
 endif
 
 # Define this module
@@ -179,13 +171,7 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_rv_rsa.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_rv_region.c
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_exceptions.c
-        ifeq ($(_BHSM_BUILD_HSM_FOR_SAGE),y)
-            BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_sandbox_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_restricted_anti_rollback_sage.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_hdcp22_restricted.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_crypto_restricted_sage.c
-            BHSM_SOURCES += ${MAGNUM}/portinginterface/hsm/secv2/src_zeus432/bhsm_exceptions_restricted.c
-        endif
+
         ifeq ($(BHSM_POWAY_SUPPORT),y)
             BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/secv2/src_zeus432/bhsm_poway.c
         endif

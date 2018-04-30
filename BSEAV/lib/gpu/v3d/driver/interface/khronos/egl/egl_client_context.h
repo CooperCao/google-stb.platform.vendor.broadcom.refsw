@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/EGL/egl.h"
+#include <EGL/egl.h>
 #include "interface/khronos/egl/egl_int.h"
 #include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 

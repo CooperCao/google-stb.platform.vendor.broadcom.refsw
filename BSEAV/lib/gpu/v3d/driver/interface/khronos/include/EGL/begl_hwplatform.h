@@ -38,14 +38,6 @@ typedef enum
 
 typedef enum
 {
-   BEGL_HW_PERF_NONE   = 0,
-   BEGL_HW_PERF_START  = 1,
-   BEGL_HW_PERF_RESET  = 2,
-   BEGL_HW_PERF_STOP   = 4
-} BEGL_HWPerfMonitorFlags;
-
-typedef enum
-{
    BEGL_HW_SIG_BIN    = 1 << 0,
    BEGL_HW_SIG_RENDER = 1 << 1,
    BEGL_HW_SIG_USER   = 1 << 2,
@@ -116,18 +108,51 @@ typedef struct BEGL_HWCallbackRecord
    uint64_t    payload[15];
 } BEGL_HWCallbackRecord;
 
-typedef struct BEGL_HWPerfMonitorSettings
+typedef enum
 {
-   uint32_t    hwBank;        /* 0 = no bank, 1 = 1st bank, 2 = 2nd bank         */
-   uint32_t    memBank;       /* 0 = no bank, 1 = 1st bank, 2 = 2nd bank         */
-   uint32_t    flags;         /* Bitwise or of flags in BEGL_HWPerfMonitorFlags  */
-} BEGL_HWPerfMonitorSettings;
+   BEGL_CtrAcquire   = 0,
+   BEGL_CtrRelease   = 1,
+   BEGL_CtrStart     = 2,
+   BEGL_CtrStop      = 3
+} BEGL_SchedCounterState;
 
-typedef struct BEGL_HWPerfMonitorData
+/* Forwards declare types used in interface */
+struct bcm_sched_counter_group_desc;
+struct bcm_sched_counter;
+struct bcm_sched_group_counter_selector;
+
+typedef struct BEGL_SchedPerfCountInterface
 {
-   uint64_t    hwCounters[16];
-   uint64_t    memCounters[2];
-} BEGL_HWPerfMonitorData;
+   void               (*GetPerfNumCounterGroups)(void *context, void *session, uint32_t *numGroups);
+   bool               (*GetPerfCounterGroupInfo)(void *context, void *session, uint32_t group, struct bcm_sched_counter_group_desc *desc);
+   bool               (*SetPerfCounting)(void *context, void *session, BEGL_SchedCounterState state);
+   bool               (*ChoosePerfCounters)(void *context, void *session, const struct bcm_sched_group_counter_selector *selector);
+   uint32_t           (*GetPerfCounterData)(void *context, void *session, struct bcm_sched_counter  *counters, uint32_t max_counters, uint32_t reset_counts);
+} BEGL_SchedPerfCountInterface;
+
+typedef enum
+{
+   BEGL_EventAcquire = 0,
+   BEGL_EventRelease = 1,
+   BEGL_EventStart   = 2,
+   BEGL_EventStop    = 3
+} BEGL_SchedEventState;
+
+/* Forwards declare types used in interface */
+struct bcm_sched_event_track_desc;
+struct bcm_sched_event_desc;
+struct bcm_sched_event_field_desc;
+
+typedef struct BEGL_SchedEventTrackInterface
+{
+   /* Event timeline */
+   void               (*GetEventCounts)(void *context, void *session, uint32_t *numTracks, uint32_t *numEvents);
+   bool               (*GetEventTrackInfo)(void *context, void *session, uint32_t track, struct bcm_sched_event_track_desc *track_desc);
+   bool               (*GetEventInfo)(void *context, void *session, uint32_t event, struct bcm_sched_event_desc *event_desc);
+   bool               (*GetEventDataFieldInfo)(void *context, void *session, uint32_t event, uint32_t field, struct bcm_sched_event_field_desc *field_desc);
+   bool               (*SetEventCollection)(void *context, void *session, BEGL_SchedEventState state);
+   uint32_t           (*GetEventData)(void *context, void *session, uint32_t event_buffer_bytes, void *event_buffer, uint32_t *overflowed, uint64_t *timebase_us);
+} BEGL_SchedEventTrackInterface;
 
  /* The platform MUST provide an implementation of this interface in order that the EGL driver
  * can interact with platform hardware.
@@ -157,12 +182,6 @@ typedef struct BEGL_HWInterface
    /* Request bin memory */
    bool (*GetBinMemory)(void *context, const BEGL_HWBinMemorySettings *settings, BEGL_HWBinMemory *memory);
 
-   /* Setup or change performance monitoring */
-   void (*SetPerformanceMonitor)(void *context, const BEGL_HWPerfMonitorSettings *settings);
-
-   /* Get performance data */
-   void (*GetPerformanceData)(void *context, BEGL_HWPerfMonitorData *data);
-
    /* Create a fence */
    void (*FenceOpen)(void *context, int *fd, uint64_t *p, char type);
 
@@ -174,6 +193,12 @@ typedef struct BEGL_HWInterface
 
    /* Fence wait async */
    void (*FenceWaitAsync)(void *context, int fd, uint64_t *v3dfence);
+
+   /* Performance counters */
+   BEGL_SchedPerfCountInterface  perf_count_iface;
+
+   /* Event timeline */
+   BEGL_SchedEventTrackInterface event_track_iface;
 
 } BEGL_HWInterface;
 

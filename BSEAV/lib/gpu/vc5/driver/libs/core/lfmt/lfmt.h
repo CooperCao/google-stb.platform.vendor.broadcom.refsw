@@ -56,13 +56,7 @@ EXTERN_C_BEGIN
 
 /** UIF */
 
-/* A UIF-block is always 256 bytes.
- *
- * For all UIF swizzlings except UIF_NOUTILE, a UIF-block is formed from 2x2
- * utiles in raster order.
- *
- * For UIF_NOUTILE, a UIF-block is instead basically a big utile: twice as wide
- * and twice as high (so eg 8x8 for 4-byte blocks).
+/* A UIF-block is always 256 bytes and formed from 2x2 utiles in raster order.
  *
  * UIF is made up of 4-UIF-block-wide columns. Within a column, UIF-blocks are
  * stored in raster order.
@@ -133,8 +127,8 @@ typedef enum gfx_lfmt_dims
 
 /* BEGIN AUTO-GENERATED CODE (enum_swizzling) */
 #define GFX_LFMT_SWIZZLING_SHIFT 2
-#define GFX_LFMT_SWIZZLING_BITS 5
-#define GFX_LFMT_SWIZZLING_MASK (0x1f << 2)
+#define GFX_LFMT_SWIZZLING_BITS 4
+#define GFX_LFMT_SWIZZLING_MASK (0xf << 2)
 
 typedef enum gfx_lfmt_swizzling
 {
@@ -147,28 +141,26 @@ typedef enum gfx_lfmt_swizzling
    GFX_LFMT_SWIZZLING_LT                   = 2 << GFX_LFMT_SWIZZLING_SHIFT, /* Lineartile */
    GFX_LFMT_SWIZZLING_UIF                  = 3 << GFX_LFMT_SWIZZLING_SHIFT, /* Unified image format, no XORing */
    GFX_LFMT_SWIZZLING_UIF_XOR              = 4 << GFX_LFMT_SWIZZLING_SHIFT, /* XOR in odd columns */
-   GFX_LFMT_SWIZZLING_UIF_NOUTILE          = 5 << GFX_LFMT_SWIZZLING_SHIFT, /* Linear arrangement of pixels within UIF-block. See UIF spec "3.2: 4:2:0 and 4:2:2 YCbCr" */
-   GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR      = 6 << GFX_LFMT_SWIZZLING_SHIFT,
-   GFX_LFMT_SWIZZLING_UBLINEAR             = 7 << GFX_LFMT_SWIZZLING_SHIFT, /* UIF-blocks in raster order */
+   GFX_LFMT_SWIZZLING_UBLINEAR             = 5 << GFX_LFMT_SWIZZLING_SHIFT, /* UIF-blocks in raster order */
 
    /* Only valid for 2D */
-   GFX_LFMT_SWIZZLING_SAND_128_MAP2        = 8 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 2.0 */
-   GFX_LFMT_SWIZZLING_SAND_128_MAP5        = 9 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 5.0 */
-   GFX_LFMT_SWIZZLING_SAND_256_MAP2        = 10 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 2.0 */
-   GFX_LFMT_SWIZZLING_SAND_256_MAP5        = 11 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 5.0 */
+   GFX_LFMT_SWIZZLING_SAND_128_MAP2        = 6 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_128_MAP5        = 7 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 5.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP2        = 8 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP5        = 9 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 5.0 */
    /* Big endian (see GFXH-1344) */
-   GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND = 12 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 2.0 */
-   GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND = 13 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 5.0 */
-   GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND = 14 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 2.0 */
-   GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND = 15 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 5.0 */
-   GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND = 16 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 8.0 */
+   GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND = 10 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND = 11 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 5.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND = 12 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND = 13 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 5.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND = 14 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 8.0 */
 } GFX_LFMT_SWIZZLING_T;
 /* END AUTO-GENERATED CODE (enum_swizzling) */
 
 /* BEGIN AUTO-GENERATED CODE (enum_yflip) */
-#define GFX_LFMT_YFLIP_SHIFT 7
+#define GFX_LFMT_YFLIP_SHIFT 6
 #define GFX_LFMT_YFLIP_BITS 1
-#define GFX_LFMT_YFLIP_MASK (0x1 << 7)
+#define GFX_LFMT_YFLIP_MASK (0x1 << 6)
 
 typedef enum gfx_lfmt_yflip
 {
@@ -195,9 +187,9 @@ typedef enum gfx_lfmt_yflip
  * - the bytes in C8C8 are swapped on big-endian systems */
 
 /* BEGIN AUTO-GENERATED CODE (enum_base) */
-#define GFX_LFMT_BASE_SHIFT 8
+#define GFX_LFMT_BASE_SHIFT 7
 #define GFX_LFMT_BASE_BITS 7
-#define GFX_LFMT_BASE_MASK (0x7f << 8)
+#define GFX_LFMT_BASE_MASK (0x7f << 7)
 
 typedef enum gfx_lfmt_base
 {
@@ -253,7 +245,7 @@ typedef enum gfx_lfmt_base
 
    /* 10-bit YUV */
    GFX_LFMT_BASE_C10                     = 38 << GFX_LFMT_BASE_SHIFT, /* Block is 3 Y values packed into a 32-bit word like y0<<20|y1<<10|y2 */
-   GFX_LFMT_BASE_C10C10_2X2              = 39 << GFX_LFMT_BASE_SHIFT, /* Block is 3 UV pairs packed into 2 32-bit words like u0<<20|v0<<10|u1, v1<<20|u2<<10|v2 */
+   GFX_LFMT_BASE_C10C10_2X2              = 39 << GFX_LFMT_BASE_SHIFT, /* Block is 3 UV pairs packed into 2 32-bit words like u0<<20|v0<<10|u1, v1<<20|u2<<10|v2 for the UV ordering */
 
    /* D3D block compressed formats, AKA S3TC/DXTC */
    GFX_LFMT_BASE_BC1                     = 40 << GFX_LFMT_BASE_SHIFT,
@@ -265,39 +257,38 @@ typedef enum gfx_lfmt_base
    GFX_LFMT_BASE_EAC                     = 45 << GFX_LFMT_BASE_SHIFT,
    GFX_LFMT_BASE_EAC_EAC                 = 46 << GFX_LFMT_BASE_SHIFT,
    GFX_LFMT_BASE_ETC2                    = 47 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ETC1                    = 48 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_PUNCHTHROUGH_ETC2       = 49 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ETC2_EAC                = 50 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_PUNCHTHROUGH_ETC2       = 48 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ETC2_EAC                = 49 << GFX_LFMT_BASE_SHIFT,
 
-   GFX_LFMT_BASE_ASTC4X4                 = 51 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC5X4                 = 52 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC5X5                 = 53 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC6X5                 = 54 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC6X6                 = 55 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC8X5                 = 56 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC8X6                 = 57 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC8X8                 = 58 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC10X5                = 59 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC10X6                = 60 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC10X8                = 61 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC10X10               = 62 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC12X10               = 63 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_ASTC12X12               = 64 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC4X4                 = 50 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC5X4                 = 51 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC5X5                 = 52 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC6X5                 = 53 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC6X6                 = 54 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC8X5                 = 55 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC8X6                 = 56 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC8X8                 = 57 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC10X5                = 58 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC10X6                = 59 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC10X8                = 60 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC10X10               = 61 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC12X10               = 62 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_ASTC12X12               = 63 << GFX_LFMT_BASE_SHIFT,
 
-   GFX_LFMT_BASE_BSTC                    = 65 << GFX_LFMT_BASE_SHIFT, /* Broadcom Standard Texture Compression */
-   GFX_LFMT_BASE_BSTCYFLIP               = 66 << GFX_LFMT_BASE_SHIFT, /* BSTC with y-flipped blocks */
+   GFX_LFMT_BASE_BSTC                    = 64 << GFX_LFMT_BASE_SHIFT, /* Broadcom Standard Texture Compression */
+   GFX_LFMT_BASE_BSTCYFLIP               = 65 << GFX_LFMT_BASE_SHIFT, /* BSTC with y-flipped blocks */
 
    /* gl es1.1 paletted formats. note the P4BE's have 2 element wide blocks with element 0 in the 4 msbs (big-endian style) */
-   GFX_LFMT_BASE_P4BE_R8G8B8             = 67 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P4BE_R8G8B8A8           = 68 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P4BE_B5G6R5             = 69 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P4BE_A4B4G4R4           = 70 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P4BE_A1B5G5R5           = 71 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P8_R8G8B8               = 72 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P8_R8G8B8A8             = 73 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P8_B5G6R5               = 74 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P8_A4B4G4R4             = 75 << GFX_LFMT_BASE_SHIFT,
-   GFX_LFMT_BASE_P8_A1B5G5R5             = 76 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P4BE_R8G8B8             = 66 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P4BE_R8G8B8A8           = 67 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P4BE_B5G6R5             = 68 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P4BE_A4B4G4R4           = 69 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P4BE_A1B5G5R5           = 70 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P8_R8G8B8               = 71 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P8_R8G8B8A8             = 72 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P8_B5G6R5               = 73 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P8_A4B4G4R4             = 74 << GFX_LFMT_BASE_SHIFT,
+   GFX_LFMT_BASE_P8_A1B5G5R5             = 75 << GFX_LFMT_BASE_SHIFT,
 } GFX_LFMT_BASE_T;
 /* END AUTO-GENERATED CODE (enum_base) */
 
@@ -305,9 +296,9 @@ typedef enum gfx_lfmt_base
  * C32_C8X24 | FLOAT_UINT = FLOAT32_UINT8X24 */
 
 /* BEGIN AUTO-GENERATED CODE (enum_type) */
-#define GFX_LFMT_TYPE_SHIFT 15
+#define GFX_LFMT_TYPE_SHIFT 14
 #define GFX_LFMT_TYPE_BITS 4
-#define GFX_LFMT_TYPE_MASK (0xf << 15)
+#define GFX_LFMT_TYPE_MASK (0xf << 14)
 
 typedef enum gfx_lfmt_type
 {
@@ -338,9 +329,9 @@ typedef enum gfx_lfmt_type
  * C8_C8_C8_C8 | RGBX = R8_G8_B8_X8 */
 
 /* BEGIN AUTO-GENERATED CODE (enum_channels) */
-#define GFX_LFMT_CHANNELS_SHIFT 19
+#define GFX_LFMT_CHANNELS_SHIFT 18
 #define GFX_LFMT_CHANNELS_BITS 6
-#define GFX_LFMT_CHANNELS_MASK (0x3f << 19)
+#define GFX_LFMT_CHANNELS_MASK (0x3f << 18)
 
 typedef enum gfx_lfmt_channels
 {
@@ -530,16 +521,6 @@ static inline GFX_LFMT_T gfx_lfmt_to_uif_xor(GFX_LFMT_T lfmt)
 static inline bool gfx_lfmt_is_uif_xor(GFX_LFMT_T lfmt)
 { return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_UIF_XOR; }
 
-static inline GFX_LFMT_T gfx_lfmt_to_uif_noutile(GFX_LFMT_T lfmt)
-{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_UIF_NOUTILE); }
-static inline bool gfx_lfmt_is_uif_noutile(GFX_LFMT_T lfmt)
-{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_UIF_NOUTILE; }
-
-static inline GFX_LFMT_T gfx_lfmt_to_uif_noutile_xor(GFX_LFMT_T lfmt)
-{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR); }
-static inline bool gfx_lfmt_is_uif_noutile_xor(GFX_LFMT_T lfmt)
-{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR; }
-
 static inline GFX_LFMT_T gfx_lfmt_to_ublinear(GFX_LFMT_T lfmt)
 { return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_UBLINEAR); }
 static inline bool gfx_lfmt_is_ublinear(GFX_LFMT_T lfmt)
@@ -591,38 +572,6 @@ static inline bool gfx_lfmt_is_sand_256_map8_bigend(GFX_LFMT_T lfmt)
 { return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND; }
 /* END AUTO-GENERATED CODE (to_is_swizzling_funcs) */
 
-static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_to_uif_xor_family(GFX_LFMT_SWIZZLING_T swizzling)
-{
-   switch (swizzling)
-   {
-   case GFX_LFMT_SWIZZLING_UIF:
-   case GFX_LFMT_SWIZZLING_UIF_XOR:
-      return GFX_LFMT_SWIZZLING_UIF_XOR;
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
-      return GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR;
-   default:
-      unreachable();
-      return GFX_LFMT_SWIZZLING_NONE;
-   }
-}
-
-static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_to_uif_noutile_family(GFX_LFMT_SWIZZLING_T swizzling)
-{
-   switch (swizzling)
-   {
-   case GFX_LFMT_SWIZZLING_UIF:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-      return GFX_LFMT_SWIZZLING_UIF_NOUTILE;
-   case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
-      return GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR;
-   default:
-      unreachable();
-      return GFX_LFMT_SWIZZLING_NONE;
-   }
-}
-
 /** Misc helpers */
 
 static inline GFX_LFMT_YFLIP_T gfx_lfmt_invert_yflip(GFX_LFMT_YFLIP_T yflip)
@@ -648,8 +597,6 @@ static inline GFX_LFMT_YFLIP_T gfx_lfmt_invert_yflip(GFX_LFMT_YFLIP_T yflip)
 /* BEGIN AUTO-GENERATED CODE (misc_func_decls) */
 extern bool gfx_lfmt_dims_and_swizzling_compatible(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_uif_family(GFX_LFMT_T lfmt);
-extern bool gfx_lfmt_is_uif_xor_family(GFX_LFMT_T lfmt);
-extern bool gfx_lfmt_is_noutile_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_sand_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_bigend_sand_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_compressed(GFX_LFMT_T lfmt);
@@ -783,11 +730,6 @@ static inline GFX_LFMT_T gfx_lfmt_to_2d_rso(GFX_LFMT_T lfmt)
    return gfx_lfmt_to_2d(gfx_lfmt_to_rso(lfmt));
 }
 
-static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_collapse_uif_family(GFX_LFMT_SWIZZLING_T swizzling)
-{
-   return gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling) ? GFX_LFMT_SWIZZLING_UIF : swizzling;
-}
-
 static inline unsigned gfx_lfmt_sandcol_w_in_bytes(GFX_LFMT_SWIZZLING_T swizzling)
 {
    switch (swizzling)
@@ -826,13 +768,18 @@ static inline bool gfx_lfmt_pitch_is_vertical(GFX_LFMT_T lfmt)
 {
    if (gfx_lfmt_is_sand_family(lfmt))
       return true;
-   switch (gfx_lfmt_collapse_uif_family(gfx_lfmt_get_swizzling(&lfmt)))
+   switch (gfx_lfmt_get_swizzling(&lfmt))
    {
-   case GFX_LFMT_SWIZZLING_RSO:      return false;
-   case GFX_LFMT_SWIZZLING_LT:       return false;
-   case GFX_LFMT_SWIZZLING_UIF:      return true;
-   case GFX_LFMT_SWIZZLING_UBLINEAR: return false;
-   default:                          unreachable(); return false;
+   case GFX_LFMT_SWIZZLING_RSO:
+   case GFX_LFMT_SWIZZLING_LT:
+   case GFX_LFMT_SWIZZLING_UBLINEAR:
+      return false;
+   case GFX_LFMT_SWIZZLING_UIF:
+   case GFX_LFMT_SWIZZLING_UIF_XOR:
+      return true;
+   default:
+      unreachable();
+      return false;
    }
 }
 
@@ -890,16 +837,14 @@ typedef struct
    uint32_t bytes_per_block;
    uint32_t block_w, block_h, block_d; /* Block dimensions */
 
-   /* Blocks should be at least this aligned and should be accessed via
-    * pointers of this size (uint8_t * for bytes_per_word=1, uint16_t * for
-    * bytes_per_word=2, etc...) */
-   uint32_t bytes_per_word;
-
    /* Dimensions of utiles (not always valid -- may be 0) */
    uint32_t ut_w_in_blocks_1d;
    /* TODO Actually valid for 3D as well as 2D -- utiles are never deeper than
     * 1 block? Ditto the UIF _2d stuff below */
    uint32_t ut_w_in_blocks_2d, ut_h_in_blocks_2d;
+
+   // Dimensions of UIF-blocks (not always valid -- may be 0)
+   uint32_t ub_w_in_blocks_2d, ub_h_in_blocks_2d;
 } GFX_LFMT_BASE_DETAIL_T;
 
 /* Only looks at base format -- other lfmt fields are ignored */
@@ -910,13 +855,6 @@ static inline uint32_t gfx_lfmt_bytes_per_block(GFX_LFMT_T lfmt)
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, lfmt);
    return bd.bytes_per_block;
-}
-
-static inline uint32_t gfx_lfmt_bytes_per_word(GFX_LFMT_T lfmt)
-{
-   GFX_LFMT_BASE_DETAIL_T bd;
-   gfx_lfmt_base_detail(&bd, lfmt);
-   return bd.bytes_per_word;
 }
 
 static inline bool gfx_lfmt_block_dims_equal(GFX_LFMT_T lfmt,
@@ -963,66 +901,26 @@ static inline uint32_t gfx_lfmt_ut_h_2d(const GFX_LFMT_BASE_DETAIL_T *bd)
 #define GFX_UIF_COL_W_IN_UB 4
 #define GFX_UIF_UB_SIZE 256
 
-static inline uint32_t gfx_lfmt_ub_w_in_blocks_2d(
-   const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
+static inline uint32_t gfx_lfmt_ub_w_2d(const GFX_LFMT_BASE_DETAIL_T *bd)
 {
-   if (gfx_lfmt_is_noutile_family((GFX_LFMT_T)swizzling))
-   {
-      switch (bd->bytes_per_block)
-      {
-      case 1: return 16;
-      case 2: return 8;
-      default: unreachable(); return 0;
-      }
-   }
-   else
-   {
-      return bd->ut_w_in_blocks_2d * 2;
-   }
+   return bd->ub_w_in_blocks_2d * bd->block_w;
 }
 
-static inline uint32_t gfx_lfmt_ub_h_in_blocks_2d(
-   const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
+static inline uint32_t gfx_lfmt_ub_h_2d(const GFX_LFMT_BASE_DETAIL_T *bd)
 {
-   if (gfx_lfmt_is_noutile_family((GFX_LFMT_T)swizzling))
-   {
-      switch (bd->bytes_per_block)
-      {
-      case 1: return 16;
-      case 2: return 16;
-      default: unreachable(); return 0;
-      }
-   }
-   else
-   {
-      return bd->ut_h_in_blocks_2d * 2;
-   }
-}
-
-static inline uint32_t gfx_lfmt_ub_w_2d(
-   const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
-{
-   return gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling) * bd->block_w;
-}
-
-static inline uint32_t gfx_lfmt_ub_h_2d(
-   const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
-{
-   return gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling) * bd->block_h;
+   return bd->ub_h_in_blocks_2d * bd->block_h;
 }
 
 /* uifcolumns */
 
-static inline uint32_t gfx_lfmt_ucol_w_in_blocks_2d(
-   const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
+static inline uint32_t gfx_lfmt_ucol_w_in_blocks_2d(const GFX_LFMT_BASE_DETAIL_T *bd)
 {
-   return gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling) * GFX_UIF_COL_W_IN_UB;
+   return bd->ub_w_in_blocks_2d * GFX_UIF_COL_W_IN_UB;
 }
 
-static inline uint32_t gfx_lfmt_ucol_w_2d(
-   const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
+static inline uint32_t gfx_lfmt_ucol_w_2d(const GFX_LFMT_BASE_DETAIL_T *bd)
 {
-   return gfx_lfmt_ucol_w_in_blocks_2d(bd, swizzling) * bd->block_w;
+   return gfx_lfmt_ucol_w_in_blocks_2d(bd) * bd->block_w;
 }
 
 /* sand columns */

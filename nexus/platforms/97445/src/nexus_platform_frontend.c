@@ -39,9 +39,6 @@
 #include "nexus_platform_priv.h"
 #include "nexus_types.h"
 #include "priv/nexus_core.h"
-#if NEXUS_HAS_TRANSPORT
-#include "nexus_input_band.h"
-#endif
 #include "bchp_gio.h"
 #if NEXUS_HAS_FRONTEND
 #if NEXUS_USE_7445_VMS_SFF || NEXUS_USE_7445_SV

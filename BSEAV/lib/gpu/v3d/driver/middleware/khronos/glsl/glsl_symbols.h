@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 #include "middleware/khronos/glsl/glsl_fastmem.h"
 

@@ -552,7 +552,7 @@ BSAGElib_Rai_Platform_Install(
         else if((rc != BERR_SUCCESS) || (container->basicOut[0] != BERR_SUCCESS))
         {
             rc = BERR_UNKNOWN;
-            BDBG_ERR(("%s: Cannot register TA to the Anti-rollback TA\n", BSTD_FUNCTION));
+            BDBG_ERR(("%s: Cannot register TA to the Anti-rollback TA", BSTD_FUNCTION));
             goto err;
         }
     }

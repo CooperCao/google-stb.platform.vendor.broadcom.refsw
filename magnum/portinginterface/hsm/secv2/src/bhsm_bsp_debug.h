@@ -36,6 +36,10 @@
  *  ANY LIMITED REMEDY.
 
  ******************************************************************************/
+/*
+    This file containts types and function prototypes for the
+    BSP debug tool that will print BSP commands to the console.
+*/
 
 #ifndef BHSM_BSP_DEBUG__H_
 #define BHSM_BSP_DEBUG__H_

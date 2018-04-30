@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_platform_priv.h"
 #include "nexus_types.h"
@@ -252,6 +256,8 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_MemoryConfigurationSettings *pMemConfigSettings;
     NEXUS_MemoryRtsSettings rtsSettings;
     unsigned i;
+    unsigned buffer_size = 0;
+    const char *pEnv = NULL;
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings)); /* don't call BKNI_Memset prior to initializing magnum */
     if (!g_NEXUS_platformModule && g_NEXUS_platformSettings.heap[0].size) {
@@ -316,6 +322,51 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
             pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].enabled = true;
         }
     }
+
+    pEnv = NULL;
+    if ((NULL != (pEnv = NEXUS_GetEnv("audio_debug_buffer_size"))) &&
+        (true == pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eDramMessage].enabled))
+    {
+        buffer_size = NEXUS_atoi(pEnv);
+        if(buffer_size)
+        {
+            pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eDramMessage].bufferSize = (buffer_size * 1024);
+        }
+    }
+
+    pEnv = NULL;
+    if ((NULL != (pEnv = NEXUS_GetEnv("audio_uart_buffer_size"))) &&
+        (true == pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eUartMessage].enabled))
+    {
+        buffer_size = NEXUS_atoi(pEnv);
+        if(buffer_size)
+        {
+            pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eUartMessage].bufferSize = (buffer_size * 1024);
+        }
+    }
+
+    pEnv = NULL;
+    if ((NULL != (pEnv = NEXUS_GetEnv("audio_core_buffer_size"))) &&
+        (true == pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled))
+    {
+        buffer_size = NEXUS_atoi(pEnv);
+        if(buffer_size)
+        {
+            pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].bufferSize = (buffer_size * 1024);
+        }
+    }
+
+    pEnv = NULL;
+    if ((NULL != (pEnv = NEXUS_GetEnv("audio_target_print_buffer_size"))) &&
+        (true == pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].enabled))
+    {
+        buffer_size = NEXUS_atoi(pEnv);
+        if(buffer_size)
+        {
+            pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].bufferSize = (buffer_size * 1024);
+        }
+    }
+
     #endif
 #endif
 
@@ -676,6 +727,34 @@ cannot_create_heap:
 #endif
 
 #if NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX
+#include "bchp_gfd_0.h"
+static bool nexus_p_test_gfd_heap(unsigned displayIndex, unsigned heapIndex)
+{
+    BSTD_UNUSED(displayIndex); /* testing GFD_0 is sufficient for all */
+    if (!g_pCoreHandles->heap[heapIndex].nexus) {
+        return false;
+    }
+    else if (g_NEXUS_platformSettings.heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_HIGH_MEMORY) {
+#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
+        /* this silicon has 64 bit BCHP_GFD_0_SRC_START, but only supports 32 bit addresses */
+        return false;
+#elif ((BCHP_GFD_0_SRC_START > BCHP_GFD_0_SRC_START_R) && (BCHP_GFD_0_SRC_START - BCHP_GFD_0_SRC_START_R==4)) || \
+    ((BCHP_GFD_0_SRC_START_R > BCHP_GFD_0_SRC_START) && (BCHP_GFD_0_SRC_START_R - BCHP_GFD_0_SRC_START==4))
+        /* 32-bit register doesn't support high memory */
+        return false;
+#elif ((BCHP_GFD_0_SRC_START > BCHP_GFD_0_SRC_START_R) && (BCHP_GFD_0_SRC_START - BCHP_GFD_0_SRC_START_R==8)) || \
+      ((BCHP_GFD_0_SRC_START_R > BCHP_GFD_0_SRC_START) && (BCHP_GFD_0_SRC_START_R - BCHP_GFD_0_SRC_START==8))
+        /* 64-bit register does */
+        return true;
+#else
+#error "NOT SUPPORTED"
+#endif
+    }
+    else {
+        return true;
+    }
+}
+
 /* resolve GFD and off-screen graphics heaps using BBOX and Nexus heapType */
 static NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayIndex, unsigned *pHeapIndex)
 {
@@ -732,33 +811,33 @@ static NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayInde
     }
     switch (memcIndex) {
     case 0:
-        if (g_pCoreHandles->heap[NEXUS_MEMC0_GRAPHICS_HEAP].nexus) {
+        if (nexus_p_test_gfd_heap(displayIndex, NEXUS_MEMC0_GRAPHICS_HEAP)) {
             *pHeapIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
             break;
         }
-        if (g_pCoreHandles->heap[NEXUS_MEMC0_MAIN_HEAP].nexus) {
+        if (nexus_p_test_gfd_heap(displayIndex, NEXUS_MEMC0_MAIN_HEAP)) {
             *pHeapIndex = NEXUS_MEMC0_MAIN_HEAP;
             break;
         }
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         break;
     case 1:
-        if (g_pCoreHandles->heap[NEXUS_MEMC1_GRAPHICS_HEAP].nexus) {
+        if (nexus_p_test_gfd_heap(displayIndex, NEXUS_MEMC1_GRAPHICS_HEAP)) {
             *pHeapIndex = NEXUS_MEMC1_GRAPHICS_HEAP;
             break;
         }
-        if (g_pCoreHandles->heap[NEXUS_MEMC1_DRIVER_HEAP].nexus) {
+        if (nexus_p_test_gfd_heap(displayIndex, NEXUS_MEMC1_DRIVER_HEAP)) {
             *pHeapIndex = NEXUS_MEMC1_DRIVER_HEAP;
             break;
         }
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         break;
     case 2:
-        if (g_pCoreHandles->heap[NEXUS_MEMC2_GRAPHICS_HEAP].nexus) {
+        if (nexus_p_test_gfd_heap(displayIndex, NEXUS_MEMC2_GRAPHICS_HEAP)) {
             *pHeapIndex = NEXUS_MEMC2_GRAPHICS_HEAP;
             break;
         }
-        if (g_pCoreHandles->heap[NEXUS_MEMC2_DRIVER_HEAP].nexus) {
+        if (nexus_p_test_gfd_heap(displayIndex, NEXUS_MEMC2_DRIVER_HEAP)) {
             *pHeapIndex = NEXUS_MEMC2_DRIVER_HEAP;
             break;
         }

@@ -105,7 +105,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
    case GL_SAMPLE_COVERAGE_INVERT:
       booleans[0] = state->sample_coverage.invert;
       return glxx_get_bool_1;
-#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_SAMPLE_SHADING:
       booleans[0] = state->caps.sample_shading;
       return glxx_get_bool_1;
@@ -217,7 +217,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       uints[0] = state->hints.generate_mipmap;
       return glxx_get_uint_1;
    case GL_SUBPIXEL_BITS:
-      uints[0] = GLXX_CONFIG_SUBPIXEL_BITS;
+      uints[0] = V3D_COORD_SHIFT;
       return glxx_get_uint_1;
    case GL_MAX_TEXTURE_SIZE:
       uints[0] = MAX_TEXTURE_SIZE;
@@ -843,7 +843,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = 0;
       return glxx_get_uint_1;
    case GL_MAX_VERTEX_ATTRIBS:
-      uints[0] = GLXX_CONFIG_MAX_VERTEX_ATTRIBS;
+      uints[0] = V3D_MAX_ATTR_ARRAYS;
       return glxx_get_uint_1;
    case GL_MAX_VERTEX_UNIFORM_COMPONENTS:
    case GL_MAX_FRAGMENT_UNIFORM_COMPONENTS:
@@ -886,7 +886,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = GLXX_CONFIG_MAX_ELEMENT_INDEX;
       return glxx_get_uint_1;
    case GL_MAX_DRAW_BUFFERS:
-      uints[0] = GLXX_MAX_RENDER_TARGETS;
+      uints[0] = V3D_MAX_RENDER_TARGETS;
       return glxx_get_uint_1;
    case GL_TEXTURE_BINDING_3D:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_3D)->name;
@@ -895,7 +895,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_2D_ARRAY)->name;
       return glxx_get_uint_1;
    case GL_MAX_COLOR_ATTACHMENTS:
-      uints[0] = GLXX_MAX_RENDER_TARGETS;
+      uints[0] = V3D_MAX_RENDER_TARGETS;
       return glxx_get_uint_1;
    case GL_MAX_UNIFORM_BUFFER_BINDINGS:
       uints[0] = GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS;
@@ -968,7 +968,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
    }
    case GL_MAX_SAMPLES:
-      uints[0] = GLXX_CONFIG_MAX_SAMPLES;
+      uints[0] = V3D_MAX_SAMPLES;
       return glxx_get_uint_1;
    case GL_MAX_VERTEX_OUTPUT_COMPONENTS:
       uints[0] = GLXX_CONFIG_MAX_VARYING_SCALARS;
@@ -1008,7 +1008,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
    case GL_DRAW_BUFFER2:
    case GL_DRAW_BUFFER3:
    {
-      static_assrt(GLXX_MAX_RENDER_TARGETS >= 4);
+      static_assrt(V3D_MAX_RENDER_TARGETS >= 4);
       unsigned index = pname - GL_DRAW_BUFFER0;
       GLXX_FRAMEBUFFER_T *fb = state->bound_draw_framebuffer;
       if (fb->draw_buffer[index])
@@ -1038,12 +1038,12 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
          floats[i] = state->blend_color[i];
       return glxx_get_norm_float_0 + 4u;
    case GL_ALIASED_POINT_SIZE_RANGE:
-      floats[0] = GLXX_CONFIG_MIN_ALIASED_POINT_SIZE;
-      floats[1] = GLXX_CONFIG_MAX_ALIASED_POINT_SIZE;
+      floats[0] = V3D_POINT_LINE_GRANULARITY;   /* Smallest value resolvably != 0 */
+      floats[1] = V3D_MAX_POINT_SIZE;
       return glxx_get_float_0 + 2;
    case GL_ALIASED_LINE_WIDTH_RANGE:
-      floats[0] = GLXX_CONFIG_MIN_ALIASED_LINE_WIDTH;
-      floats[1] = GLXX_CONFIG_MAX_ALIASED_LINE_WIDTH;
+      floats[0] = 1.0f;                         /* Aliased line widths are rounded to integers */
+      floats[1] = V3D_MAX_LINE_WIDTH;
       return glxx_get_float_0 + 2;
    case GL_MAX_TEXTURE_LOD_BIAS:
       floats[0] = GLXX_CONFIG_MAX_TEXTURE_LOD_BIAS;
@@ -1076,7 +1076,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE;
       return glxx_get_uint_1;
    case GL_MAX_FRAMEBUFFER_SAMPLES:
-      uints[0] = GLXX_CONFIG_MAX_SAMPLES;
+      uints[0] = V3D_MAX_SAMPLES;
       return glxx_get_uint_1;
    case GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS:
       uints[0] = GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS;
@@ -1170,7 +1170,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
    case GL_MAX_COLOR_TEXTURE_SAMPLES:
    case GL_MAX_DEPTH_TEXTURE_SAMPLES:
-      uints[0] = GLXX_CONFIG_MAX_SAMPLES;
+      uints[0] = V3D_MAX_SAMPLES;
       return glxx_get_uint_1;
    case GL_MAX_INTEGER_SAMPLES:
       uints[0] = GLXX_CONFIG_MAX_INTEGER_SAMPLES;
@@ -1195,7 +1195,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_float_0 + 8;
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_PATCH_VERTICES:
       uints[0] = state->num_patch_vertices;
       return glxx_get_uint_1;
@@ -1287,7 +1287,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_int_1;
 
    case GL_MAX_FRAMEBUFFER_LAYERS:
-      uints[0] = GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS;
+      uints[0] = V3D_MAX_LAYERS;
       return glxx_get_uint_1;
 #endif
 
@@ -1314,15 +1314,15 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       floats[0] = 0.5f;
       return glxx_get_float_1;
    case GL_FRAGMENT_INTERPOLATION_OFFSET_BITS:
-      ints[0] = 4;
+      ints[0] = V3D_COORD_SHIFT;
       return glxx_get_int_1;
 
    case GL_MULTISAMPLE_LINE_WIDTH_RANGE:
-      floats[0] = GLXX_CONFIG_MIN_MULTISAMPLE_LINE_WIDTH;
-      floats[1] = GLXX_CONFIG_MAX_MULTISAMPLE_LINE_WIDTH;
+      floats[0] = V3D_POINT_LINE_GRANULARITY;
+      floats[1] = V3D_MAX_LINE_WIDTH;
       return glxx_get_float_0 + 2;
    case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
-      floats[0] = GLXX_CONFIG_MULTISAMPLE_LINE_WIDTH_GRANULARITY;
+      floats[0] = V3D_POINT_LINE_GRANULARITY;
       return glxx_get_float_1;
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -1990,7 +1990,7 @@ static int get_integer_vertex_attrib_internal(GLXX_SERVER_STATE_T *state,
 {
    GLXX_ATTRIB_CONFIG_T *attr;
    GLXX_VBO_BINDING_T *vbo;
-   assert(index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(index < V3D_MAX_ATTR_ARRAYS);
 
    attr = &state->vao.bound->attrib_config[index];
    vbo = &state->vao.bound->vbos[attr->vbo_index];
@@ -2045,7 +2045,7 @@ GL_API void GL_APIENTRY glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat 
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+   if (index >= V3D_MAX_ATTR_ARRAYS) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }
@@ -2075,7 +2075,7 @@ GL_API void GL_APIENTRY glGetVertexAttribiv(GLuint index, GLenum pname, GLint *p
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+   if (index >= V3D_MAX_ATTR_ARRAYS) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }
@@ -2105,7 +2105,7 @@ GL_API void GL_APIENTRY glGetVertexAttribIiv(GLuint index, GLenum pname, GLint* 
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+   if (index >= V3D_MAX_ATTR_ARRAYS)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
@@ -2138,7 +2138,7 @@ GL_API void GL_APIENTRY glGetVertexAttribIuiv(GLuint index, GLenum pname, GLuint
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+   if (index >= V3D_MAX_ATTR_ARRAYS)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
@@ -2433,7 +2433,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x_indexed(
    case GL_BLEND_DST_RGB:
    case GL_BLEND_DST_ALPHA:
    case GL_COLOR_WRITEMASK:
-      if (index >= GLXX_MAX_RENDER_TARGETS)
+      if (index >= V3D_MAX_RENDER_TARGETS)
          return glxx_get_invalid_index_0;
       switch (target)
       {

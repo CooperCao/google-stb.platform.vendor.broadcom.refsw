@@ -6,7 +6,7 @@
 #include "interface/khronos/common/khrn_int_image.h"
 #include "middleware/khronos/common/khrn_interlock.h"
 #include "vcfw/rtos/abstract/rtos_abstract_mem.h"
-#include "interface/khronos/include/EGL/egl.h"
+#include <EGL/egl.h>
 
 #include <string.h>
 
@@ -63,7 +63,7 @@ typedef struct {
    bool              secure;
 
    uint64_t          v3dfence;
-   void              *platform_pixmap;
+   void              *swapchain_buffer;
 
 } KHRN_IMAGE_T;
 
@@ -161,51 +161,27 @@ extern void khrn_image_lock_wrap(KHRN_IMAGE_T *image, KHRN_IMAGE_WRAP_T *wrap);
 blitting etc
 ******************************************************************************/
 
-typedef enum {
-   /*
-      alpha-only images are implicitly black
-      to convert rgb to luminance, just take the red channel
-      ignore premultiplied and linear flags
-   */
-
-   IMAGE_CONV_GL,
-
-   /*
-      alpha-only images are implicitly white
-      to convert rgb to luminance, take a weighted average
-      observe premultiplied and linear flags
-   */
-
-   IMAGE_CONV_VG
-} KHRN_IMAGE_CONV_T;
-
 extern uint32_t khrn_image_wrap_get_pixel(const KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_t y);
 extern void khrn_image_wrap_put_pixel(KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_t y, uint32_t pixel);
 extern void khrn_image_wrap_put_etc1_block(KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_t y, uint32_t word0, uint32_t word1);
 
-extern uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel, KHRN_IMAGE_CONV_T conv);
-extern uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba, KHRN_IMAGE_CONV_T conv);
-
-extern uint32_t khrn_image_rgba_convert_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IMAGE_FORMAT_T src_format, uint32_t rgba);
-extern uint32_t khrn_image_rgba_convert_l_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IMAGE_FORMAT_T src_format, uint32_t rgba);
+extern uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel);
+extern uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba);
 
 extern void khrn_image_wrap_clear_region(
    KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_t y,
    uint32_t width, uint32_t height,
-   uint32_t rgba, /* rgba non-lin, unpre */
-   KHRN_IMAGE_CONV_T conv);
+   uint32_t rgba /* rgba non-lin, unpre */);
 extern void khrn_image_wrap_copy_region(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
-   const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv);
+   const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y);
 extern void khrn_image_wrap_copy_scissor_regions(
    KHRN_IMAGE_WRAP_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
    const KHRN_IMAGE_WRAP_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv,
    const int32_t *scissor_rects, uint32_t scissor_rects_count);
-extern void khrn_image_wrap_convert(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *src, KHRN_IMAGE_CONV_T conv);
+extern void khrn_image_wrap_convert(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *src);
 extern void khrn_image_wrap_copy_stencil_channel(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *src);
 extern void khrn_image_wrap_subsample(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_WRAP_T *src);
 /*
@@ -215,14 +191,12 @@ extern void khrn_image_wrap_subsample(KHRN_IMAGE_WRAP_T *dst, const KHRN_IMAGE_W
 extern void khrn_image_clear_region(
    KHRN_IMAGE_T *image, uint32_t x, uint32_t y,
    uint32_t width, uint32_t height,
-   uint32_t rgba, /* non-lin, unpre */
-   KHRN_IMAGE_CONV_T conv);
+   uint32_t rgba /* non-lin, unpre */);
 extern void khrn_image_copy_region(
    KHRN_IMAGE_T *dst, uint32_t dst_x, uint32_t dst_y,
    uint32_t width, uint32_t height,
-   const KHRN_IMAGE_T *src, uint32_t src_x, uint32_t src_y,
-   KHRN_IMAGE_CONV_T conv);
-extern void khrn_image_convert(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src, KHRN_IMAGE_CONV_T conv);
+   const KHRN_IMAGE_T *src, uint32_t src_x, uint32_t src_y);
+extern void khrn_image_convert(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src);
 extern void khrn_image_copy_stencil_channel(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src);
 extern void khrn_image_subsample(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src);
 

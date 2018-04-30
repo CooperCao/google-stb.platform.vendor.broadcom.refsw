@@ -37,7 +37,7 @@ static NEXUS_DISPLAYHANDLE ToNexusDisplayHandle(BEGL_DisplayHandle handle)
 static const char * GetClientExtensions(void *context)
 {
    UNUSED(context);
-   return "EGL_PLATFORM_NEXUS_BRCM";
+   return "EGL_BRCM_platform_nexus";
 }
 
 int32_t GetDisplay(void *context, uint32_t eglPlatform,
@@ -231,7 +231,7 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
       if (platform->memoryInterface == NULL)
       {
          puts(err_msg);
-         exit(0);
+         abort();
       }
 
       platform->schedInterface = CreateSchedInterface(platform->memoryInterface, &platform->eventContext);

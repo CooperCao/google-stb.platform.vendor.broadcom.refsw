@@ -26,13 +26,12 @@
 #include "middleware/khronos/egl/egl_platform.h"
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
 #include "interface/khronos/egl/egl_client_surface.h"
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_client_config.h"
 #include "interface/khronos/ext/egl_khr_sync_client.h"
-#include "interface/khronos/ext/egl_brcm_driver_monitor_client.h"
 #include "interface/khronos/egl/egl_int_impl.h"
 
 #include <string.h>
@@ -51,7 +50,7 @@ static void server_process_attach(void);
 static void server_process_detach(void);
 
 /* register the driver interface */
-EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
+BEGLAPI void BEGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
 {
    bool term = false;
 
@@ -79,7 +78,8 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
             vcos_demand(driverInterfaces->displayInterface->BufferDequeue != NULL);
             vcos_demand(driverInterfaces->displayInterface->BufferQueue != NULL);
             vcos_demand(driverInterfaces->displayInterface->BufferCancel != NULL);
-            vcos_demand(driverInterfaces->displayInterface->SurfaceGetInfo != NULL);
+            vcos_demand(driverInterfaces->displayInterface->AcquireNativeBuffer != NULL);
+            vcos_demand(driverInterfaces->displayInterface->ReleaseNativeBuffer != NULL);
             vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateCreate != NULL);
             vcos_demand(driverInterfaces->displayInterface->WindowPlatformStateDestroy != NULL);
          }
@@ -137,21 +137,16 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
    }
 }
 
-EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void)
+BEGLAPI BEGL_DriverInterfaces* BEGLAPIENTRY BEGL_GetDriverInterfaces(void)
 {
    return &s_driverInterfacesStruct;
 }
 
-extern BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfoEXT *pixmapInfo);
-extern void BEGLint_intBufferGetRequirements(const BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements);
 extern void khrn_job_callback(void);
 
-EGLAPI void EGLAPIENTRY BEGL_GetDefaultDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
+BEGLAPI void BEGLAPIENTRY BEGL_GetDefaultDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
 {
    memset(driverInterfaces, 0, sizeof(BEGL_DriverInterfaces));
-
-   driverInterfaces->displayCallbacks.PixmapCreateCompatiblePixmap = BEGLint_PixmapCreateCompatiblePixmap;
-   driverInterfaces->displayCallbacks.BufferGetRequirements = BEGLint_intBufferGetRequirements;
 
    driverInterfaces->hardwareCallbacks.JobCallback = khrn_job_callback;
 }
@@ -176,7 +171,7 @@ void egl_server_surface_term(void *p)
          bool deps = write_would_block(&image->interlock);
          khrn_interlock_write_immediate(&image->interlock);
 
-         void *platform_pixmap = image->platform_pixmap;
+         void *swapchain_buffer = image->swapchain_buffer;
          uint64_t v3dfence = image->v3dfence;
          image->v3dfence = 0;
 
@@ -194,7 +189,7 @@ void egl_server_surface_term(void *p)
          // Issue a job to sync the pipe and actually display the buffer
          khrn_issue_swapbuffers_job(fd, internal, 'C');
 
-         egl_server_platform_cancel(surface->native_window_state, platform_pixmap, fd);
+         egl_server_platform_cancel(surface->native_window_state, swapchain_buffer, fd);
       }
 
       egl_server_platform_destroy_window_state(surface->native_window_state);
@@ -336,10 +331,6 @@ void server_process_state_term(void)
       khrn_map_term(&state->contexts);
       khrn_map_term(&state->syncs);
 
-#if EGL_BRCM_driver_monitor
-      egl_driver_monitor_term(state);
-#endif
-
       khrn_map_term(&state->surfaces);
       khrn_map_term(&state->eglimages);
 
@@ -363,8 +354,6 @@ static void server_process_detach(void)
  */
 static void egl_server_shutdown(void)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    /*
       we have to be careful here about shutting things down in the right order!
 
@@ -408,37 +397,36 @@ static KHRN_IMAGE_T *get_back_buffer_window_surface(void *p)
    if (surface->active_image == NULL)
    {
       int fd = -1;
+      void *swapchain_buffer = NULL;
 #ifdef ANDROID
       /* TODO: At some point isolate the various object types so egl can be re-entrant on itself */
       CLIENT_UNLOCK();
 #endif
-      void *platform_pixmap = egl_server_platform_dequeue(surface->native_window_state, surface->colorformat, &fd);
+      image = egl_server_platform_dequeue(surface->native_window_state, surface->colorformat, &swapchain_buffer, &fd);
 #ifdef ANDROID
       CLIENT_LOCK();
 #endif
-
-      image = egl_server_platform_create_pixmap_info(platform_pixmap, true);
 
       KHRN_MEM_ASSIGN(surface->active_image, image);
 
       /* image not wrapped to KHRN_IMAGE_T somehow, just return */
       if (surface->active_image == NULL)
       {
-         egl_server_platform_cancel(surface->native_window_state, platform_pixmap, fd);
+         egl_server_platform_cancel(surface->native_window_state, swapchain_buffer, fd);
          goto error;
       }
 
       KHRN_IMAGE_FORMAT_T format = image->format;
       if (!khrn_image_is_ok_for_render_target(format, false))
       {
-         egl_server_platform_cancel(surface->native_window_state, platform_pixmap, fd);
+         egl_server_platform_cancel(surface->native_window_state, swapchain_buffer, fd);
          KHRN_MEM_ASSIGN(surface->active_image, NULL);
       }
 
       /* do this late when everything is OK */
       /* turns native fence into a v3d async job which can be waited on in the scheduler */
       image->v3dfence = khrn_fence_wait_async(fd);
-      image->platform_pixmap = platform_pixmap;
+      image->swapchain_buffer = swapchain_buffer;
    }
 
 error:
@@ -447,25 +435,17 @@ error:
    return surface->active_image;
 }
 
-static bool create_surface_internal(
+bool egl_create_surface(
    EGL_SURFACE_T *surface,
    uintptr_t win,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
    bool secure,
-   KHRN_IMAGE_FORMAT_T colorformat,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisampleformat,
    uint32_t mipmap,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits,
    KHRN_IMAGE_T *pixmap_image,
    uint32_t type)
 {
-   UNUSED(maskformat);
-
    /* todo: these flags aren't entirely correct... */
 
    /* clear, but also mark as invalid */
@@ -477,6 +457,8 @@ static bool create_surface_internal(
       color_image_create_flags |= IMAGE_CREATE_FLAG_PAD_ROTATE | IMAGE_CREATE_FLAG_DISPLAY;
 
    /* support rendering to if format is ok (don't force the format) */
+   uint32_t configid = egl_config_to_id(surface->config);
+   KHRN_IMAGE_FORMAT_T colorformat = egl_config_get_color_format(configid);
    if (khrn_image_is_ok_for_render_target(colorformat, false)) {
       color_image_create_flags |= IMAGE_CREATE_FLAG_RENDER_TARGET;
 
@@ -494,8 +476,6 @@ static bool create_surface_internal(
    if (win != EGL_PLATFORM_WIN_NONE)
       image_create_flags |= IMAGE_CREATE_FLAG_PAD_ROTATE;
 
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    if (mipmap) {
       assert(width > 0 && height > 0);
       assert(width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT);
@@ -512,6 +492,12 @@ static bool create_surface_internal(
    surface->back_buffer_index = 0;
    assert(surface->bound_texture == NULL);
    surface->swap_interval = 1;
+
+   /* Find depth and stencil bits from chosen config (these may NOT be the same as the underlying format!) */
+   EGLint config_depth_bits, config_stencil_bits;
+   egl_config_get_attrib(configid, EGL_DEPTH_SIZE, &config_depth_bits);
+   egl_config_get_attrib(configid, EGL_STENCIL_SIZE, &config_stencil_bits);
+
    surface->config_depth_bits = config_depth_bits;
    surface->config_stencil_bits = config_stencil_bits;
    surface->native_window_state = NULL;
@@ -600,6 +586,8 @@ static bool create_surface_internal(
        big enough for the largest mipmap but which we reuse for all mipmaps.
    */
 
+   KHRN_IMAGE_FORMAT_T depthstencilformat = egl_config_get_depth_format(configid);
+   KHRN_IMAGE_FORMAT_T multisampleformat = egl_config_get_multisample_format(configid);
    if (depthstencilformat != IMAGE_FORMAT_INVALID) {
 
       KHRN_IMAGE_T *(*image_create)(KHRN_IMAGE_FORMAT_T format,
@@ -672,27 +660,6 @@ final:
    return result;
 }
 
-bool egl_create_surface(
-   EGL_SURFACE_T *surface,
-   uintptr_t win,
-   uint32_t buffers,
-   uint32_t width,
-   uint32_t height,
-   bool secure,
-   KHRN_IMAGE_FORMAT_T colorformat,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisampleformat,
-   uint32_t mipmap,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits,
-   uint32_t type)
-{
-    return create_surface_internal(surface, win, buffers, width, height, secure, colorformat,
-      depthstencilformat, maskformat, multisampleformat,
-      mipmap, config_depth_bits, config_stencil_bits, NULL, type);
-}
-
 /*
    EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
       void *pixmap,
@@ -712,31 +679,20 @@ bool egl_create_surface(
 
 bool egl_create_wrapped_surface(
    EGL_SURFACE_T *surface,
-   void *platform_pixmap,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisample,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits)
+   void *platform_pixmap)
 {
-   KHRN_IMAGE_T *pixmap_image = egl_server_platform_create_pixmap_info(platform_pixmap, false);
+   KHRN_IMAGE_T *pixmap_image = egl_server_platform_create_pixmap(platform_pixmap);
    if (pixmap_image == NULL)
       return false;
 
-   bool result = create_surface_internal(
+   bool result = egl_create_surface(
       surface,
       EGL_PLATFORM_WIN_NONE,
       1,
       pixmap_image->width,
       pixmap_image->height,
       false,
-      pixmap_image->format,
-      depthstencilformat,
-      maskformat,
-      multisample,
       0,
-      config_depth_bits,
-      config_stencil_bits,
       pixmap_image,
       PIXMAP);
 
@@ -761,7 +717,6 @@ static GLXX_SHARED_T *create_shared_context(void)
 // Create server states. To actually use these, call eglIntMakeCurrent.
 void *egl_create_glxx_server_state(void *sc, EGL_CONTEXT_TYPE_T share_type, bool secure)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
    GLXX_SERVER_STATE_T *share_context = sc;
 
    /*
@@ -829,8 +784,6 @@ void egl_update_gl_buffers(EGL_CURRENT_T *opengl)
       KHRN_IMAGE_T *_draw = draw->get_back_buffer(draw);
       KHRN_IMAGE_T *_read = read->get_back_buffer(read);
 
-      EGL_CONTEXT_T *context = opengl->context;
-
       attach_buffers_to_gl(
          _draw,
          _read,
@@ -856,8 +809,6 @@ void eglIntFinish_impl(bool finishgl)
 
 bool egl_back_buffer_dims(EGL_SURFACE_T *surface, uint32_t *width, uint32_t *height)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    KHRN_IMAGE_T *color = surface->get_back_buffer(surface);
    if (color != NULL) {
       if (width)
@@ -871,9 +822,7 @@ bool egl_back_buffer_dims(EGL_SURFACE_T *surface, uint32_t *width, uint32_t *hei
 
 void egl_swapbuffers(EGL_SURFACE_T *surface)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
-   INCR_DRIVER_COUNTER(num_swaps);
+   khrn_driver_incr_counters(KHRN_PERF_NUM_SWAPS);
 
    vcos_demand(surface->buffers >= 1);
 
@@ -890,7 +839,7 @@ void egl_swapbuffers(EGL_SURFACE_T *surface)
 
    KHRN_IMAGE_T *back_buffer = surface->get_back_buffer(surface);
    uint64_t v3dfence = 0;
-   void *platform_pixmap = NULL;
+   void *swapchain_buffer = NULL;
    bool deps = false;
    if (back_buffer != NULL)
    {
@@ -899,7 +848,7 @@ void egl_swapbuffers(EGL_SURFACE_T *surface)
       glxx_context_gl_lock();
       khrn_interlock_write(&back_buffer->interlock, KHRN_INTERLOCK_USER_NONE);
       glxx_context_gl_unlock();
-      platform_pixmap = back_buffer->platform_pixmap;
+      swapchain_buffer = back_buffer->swapchain_buffer;
       v3dfence = back_buffer->v3dfence;
       back_buffer->v3dfence = 0;
    }
@@ -944,7 +893,7 @@ void egl_swapbuffers(EGL_SURFACE_T *surface)
    /* TODO: At some point isolate the various object types so egl can be re-entrant on itself */
    CLIENT_UNLOCK();
 #endif
-   egl_server_platform_queue(surface->native_window_state, platform_pixmap, surface->swap_interval, fd);
+   egl_server_platform_queue(surface->native_window_state, swapchain_buffer, surface->swap_interval, fd);
 #ifdef ANDROID
    CLIENT_LOCK();
 #endif
@@ -958,8 +907,6 @@ void egl_swapbuffers(EGL_SURFACE_T *surface)
 
 void egl_select_mipmap(EGL_SURFACE_T *surface, int level)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    assert(surface->mipmap);
 
    // If the value of this attribute is outside the range of supported
@@ -976,13 +923,11 @@ void egl_select_mipmap(EGL_SURFACE_T *surface, int level)
    egl_update_gl_buffers(&surface->thread->opengl);
 }
 
-int egl_copybuffers(EGL_SURFACE_T *surface, void *platform_pixmap)
+int egl_copybuffers(EGL_SURFACE_T *surface, EGLNativePixmapType platform_pixmap)
 {
-   KHRN_IMAGE_T *dst = egl_server_platform_create_pixmap_info(platform_pixmap, false);
+   KHRN_IMAGE_T *dst = egl_server_platform_create_pixmap(platform_pixmap);
    if (dst == NULL)
       return EGL_BAD_NATIVE_PIXMAP;
-
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
 
    int error = EGL_SUCCESS;
 
@@ -1004,8 +949,7 @@ int egl_copybuffers(EGL_SURFACE_T *surface, void *platform_pixmap)
    khrn_image_wrap_copy_region(
       &dst_wrap, 0, 0,
       src->width, dst->width,
-      &src_wrap, 0, 0,
-      IMAGE_CONV_GL);
+      &src_wrap, 0, 0);
    khrn_image_unlock_wrap(src);
    khrn_image_unlock_wrap(dst);
 
@@ -1017,8 +961,6 @@ end:
 
 void egl_get_color_data(EGL_SURFACE_T *surface, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, void *data)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
    uint32_t flags = 0;
 
@@ -1041,15 +983,12 @@ void egl_get_color_data(EGL_SURFACE_T *surface, KHRN_IMAGE_FORMAT_T format, uint
    khrn_image_wrap_copy_region(
       &dst_wrap, 0, 0,
       width, height,
-      &src_wrap, 0, y_offset,
-      IMAGE_CONV_GL);
+      &src_wrap, 0, y_offset);
    khrn_image_unlock_wrap(src);
 }
 
 void egl_set_color_data(EGL_SURFACE_T *surface, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, const void *data)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
    uint32_t flags = 0;
 
@@ -1070,8 +1009,7 @@ void egl_set_color_data(EGL_SURFACE_T *surface, KHRN_IMAGE_FORMAT_T format, uint
       khrn_image_wrap_copy_region(
          &dst_wrap, 0, y_offset,
          width, height,
-         &src_wrap, 0, 0,
-         IMAGE_CONV_GL);
+         &src_wrap, 0, 0);
       khrn_image_unlock_wrap(dst);
    }
 }
@@ -1111,8 +1049,6 @@ bool egl_bind_tex_image(EGL_SURFACE_T *surface)
 
 void egl_release_tex_image(EGL_SURFACE_T *surface)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    if (surface->bound_texture != NULL)
    {
       GLXX_TEXTURE_T *texture = surface->bound_texture;

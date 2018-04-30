@@ -619,8 +619,8 @@ static NEXUS_Error setPcrOffsetSettings(
     pcr_offset_settings.CountMode = (NEXUS_IS_DSS_MODE(transportType) ||
         (NEXUS_StcChannel_PcrBits_eLegacy!=pSettings->pcrBits))?BXPT_PcrOffset_StcCountMode_eBinary:BXPT_PcrOffset_StcCountMode_eMod300;
 #if BXPT_HAS_MOSAIC_SUPPORT
-    if (!stcChannel->settings.modeSettings.pcr.disableJitterAdjustment != pcr_offset_settings.EnableJitterAdjustment) {
-        pcr_offset_settings.EnableJitterAdjustment = !stcChannel->settings.modeSettings.pcr.disableJitterAdjustment;
+    if (!pSettings->modeSettings.pcr.disableJitterAdjustment != pcr_offset_settings.EnableJitterAdjustment) {
+        pcr_offset_settings.EnableJitterAdjustment = !pSettings->modeSettings.pcr.disableJitterAdjustment;
         JitterAdjustmentChange = true;
     }
 #endif

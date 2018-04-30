@@ -95,9 +95,6 @@ typedef enum {
    IMAGE_FORMAT_YUYV = 6 << 16,
    IMAGE_FORMAT_YV12 = 7 << 16,
 
-   IMAGE_FORMAT_PRE = 1 << 19, /* premultiplied (for vg) */
-   IMAGE_FORMAT_LIN = 1 << 20, /* linear (for vg) */
-
    /* uncomp, depth */
 
    IMAGE_FORMAT_Z       = 1 << 10,
@@ -242,8 +239,6 @@ typedef enum {
 
    YV12_RSO        = YV12        | IMAGE_FORMAT_RSO,
 
-   ARGB_8888_PRE = ARGB_8888 | IMAGE_FORMAT_PRE,
-
    /* TLB dump formats */
    DEPTH_32_TLBD = DEPTH_32  | IMAGE_FORMAT_TLB_DUMP,
    DEPTH_COL_64_TLBD = DEPTH_64 | IMAGE_FORMAT_TLB_DUMP,
@@ -290,18 +285,6 @@ static inline KHRN_IMAGE_FORMAT_T khrn_image_to_lt_format(KHRN_IMAGE_FORMAT_T fo
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_LT);
-}
-
-static inline KHRN_IMAGE_FORMAT_T khrn_image_to_linear_format(KHRN_IMAGE_FORMAT_T format)
-{
-   assert(format != IMAGE_FORMAT_INVALID);
-   return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_LIN);
-}
-
-static inline KHRN_IMAGE_FORMAT_T khrn_image_to_premultiplied_format(KHRN_IMAGE_FORMAT_T format)
-{
-   assert(format != IMAGE_FORMAT_INVALID);
-   return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_PRE);
 }
 
 static inline bool khrn_image_is_uncomp(KHRN_IMAGE_FORMAT_T format)
@@ -354,25 +337,6 @@ static inline bool khrn_image_is_packed_mask(KHRN_IMAGE_FORMAT_T format)
 {
    assert(format != IMAGE_FORMAT_INVALID);
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_PACKED_MASK;
-}
-
-static inline bool khrn_image_is_linear(KHRN_IMAGE_FORMAT_T format)
-{
-   assert(format != IMAGE_FORMAT_INVALID);
-   return (format & IMAGE_FORMAT_LIN) != 0;
-}
-
-static inline bool khrn_image_is_premultiplied(KHRN_IMAGE_FORMAT_T format)
-{
-   assert(format != IMAGE_FORMAT_INVALID);
-   return (format & IMAGE_FORMAT_PRE) != 0;
-}
-
-/* returns the image stripped of its colorspace flags */
-static inline KHRN_IMAGE_FORMAT_T khrn_image_no_colorspace_format(KHRN_IMAGE_FORMAT_T format)
-{
-   assert(format != IMAGE_FORMAT_INVALID);
-   return (format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN));
 }
 
 static inline KHRN_IMAGE_FORMAT_T khrn_image_no_layout_format(KHRN_IMAGE_FORMAT_T format)

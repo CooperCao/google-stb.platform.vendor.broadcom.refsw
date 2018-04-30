@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: AudioDecoder
@@ -230,23 +234,29 @@ static void NEXUS_AudioDecoder_P_GetDefaultSettings(
 
 NEXUS_Error NEXUS_AudioDecoder_P_ConfigureRave(NEXUS_RaveHandle rave, const NEXUS_AudioDecoderStartSettings *pProgram, const NEXUS_PidChannelStatus * pPidStatus, bool isPlayback)
 {
+    NEXUS_RaveStatus raveStatus;
     NEXUS_RaveSettings raveSettings;
     NEXUS_Error errCode;
 
     LOCK_TRANSPORT();
-    NEXUS_Rave_GetDefaultSettings_priv(&raveSettings);
-    raveSettings.pidChannel = pProgram->pidChannel;
-    /* band hold must have both a pid channel playback source and be playback TSM or no TSM to be enabled */
-    raveSettings.bandHold = pPidStatus->playback && !(pProgram->stcChannel && !isPlayback);
-    /* CC should only be enabled for live pid channels */
-    raveSettings.continuityCountEnabled = !pPidStatus->playback;
-    raveSettings.numOutputBytesEnabled = true;
-    raveSettings.nonRealTime = pProgram->nonRealTime;
-    raveSettings.audioDescriptor = pProgram->secondaryDecoder; /* We need descriptor values for any secondary decoder */
-    errCode = NEXUS_Rave_ConfigureAudio_priv(rave, pProgram->codec, &raveSettings);
-    if (errCode)
+    errCode = NEXUS_Rave_GetStatus_priv(rave, &raveStatus);
+    if ( errCode == NEXUS_SUCCESS && !raveStatus.enabled )
     {
-        BERR_TRACE(errCode);
+        NEXUS_Rave_GetDefaultSettings_priv(&raveSettings);
+        raveSettings.pidChannel = pProgram->pidChannel;
+        /* band hold must have both a pid channel playback source and be playback TSM or no TSM to be enabled */
+        raveSettings.bandHold = pPidStatus->playback && !(pProgram->stcChannel && !isPlayback);
+        /* CC should only be enabled for live pid channels */
+        raveSettings.continuityCountEnabled = !pPidStatus->playback;
+        raveSettings.numOutputBytesEnabled = true;
+        raveSettings.nonRealTime = pProgram->nonRealTime;
+        raveSettings.audioDescriptor = pProgram->secondaryDecoder; /* We need descriptor values for any secondary decoder */
+        BDBG_MSG(("Configure Rave cxt %p", (void*)rave));
+        errCode = NEXUS_Rave_ConfigureAudio_priv(rave, pProgram->codec, &raveSettings);
+        if (errCode)
+        {
+            BERR_TRACE(errCode);
+        }
     }
     UNLOCK_TRANSPORT();
     return errCode;
@@ -4006,7 +4016,7 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     NEXUS_AudioInputPortStatus inputPortStatus;
     NEXUS_Error errCode;
     BAVC_AudioCompressionStd avcCodec;
-    BAPE_DecoderStatus decoderStatus;
+    BAPE_DecoderStatus *pDecoderStatus = &handle->apeStatus;
     bool stop=false, start=false;
 
     BDBG_MSG(("%s", BSTD_FUNCTION));
@@ -4021,15 +4031,15 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
         return;
     }
 
-    BAPE_Decoder_GetStatus(handle->channel, &decoderStatus);
+    BAPE_Decoder_GetStatus(handle->channel, pDecoderStatus);
 
     avcCodec = NEXUS_Audio_P_CodecToMagnum(inputPortStatus.codec);
 
     if ( handle->running )  /* If Nexus thinks that APE decoder is running. */
     {
-        BDBG_MSG(("Input Format Change - Decoder is running, running %d, halted %d, lastNumChs %d, newNumChs %d", decoderStatus.running, decoderStatus.halted, handle->inputPortStatus.numPcmChannels, inputPortStatus.numPcmChannels));
-        if ( decoderStatus.halted       ||      /* due to on-the-fly input format change. */
-             ! decoderStatus.running    ||      /* due to format change during APE decoder start. */
+        BDBG_MSG(("Input Format Change - Decoder is running, running %d, halted %d, lastNumChs %d, newNumChs %d", pDecoderStatus->running, pDecoderStatus->halted, handle->inputPortStatus.numPcmChannels, inputPortStatus.numPcmChannels));
+        if ( pDecoderStatus->halted       ||      /* due to on-the-fly input format change. */
+             ! pDecoderStatus->running    ||      /* due to format change during APE decoder start. */
              avcCodec != handle->apeStartSettings.codec )  /* due to on-the-fly codec change.    */
         {
             /* The APE decoder has stopped because of a format change that can't be handled on-the-fly. */

@@ -16017,11 +16017,12 @@ _Pragma("GCC diagnostic pop")
 	} else if (event == WLC_E_PROBREQ_MSG) {
 
 		/* Handle probe reqs frame
-		 * WPS-AP certification 4.2.13
+		 * WPS-AP certification 4.2.13, 4.2.9
 		 */
 		struct parsed_ies prbreq_ies;
 		u32 prbreq_ie_len = 0;
 		bool pbc = 0;
+		u32 wpsie_count = 0;
 
 		WL_DBG((" Event WLC_E_PROBREQ_MSG received\n"));
 		mgmt_frame = (u8 *)(data);
@@ -16039,11 +16040,14 @@ _Pragma("GCC diagnostic pop")
 			return 0;
 		}
 		if (prbreq_ies.wps_ie != NULL) {
+			wpsie_count = wl_cfgp2p_count_wpsie(&mgmt_frame[DOT11_MGMT_HDR_LEN], (u32)prbreq_ie_len); /* WPS-AP Cert. 4.2.9 */
+
 			wl_validate_wps_ie(
 				(const char *)prbreq_ies.wps_ie, prbreq_ies.wps_ie_len, &pbc);
 			WL_DBG((" wps_ie exist pbc = %d\n", pbc));
 			/* if pbc method, send prob_req mgmt frame to upper layer */
-			if (!pbc)
+
+			if (!pbc && wpsie_count!=2)
 				return 0;
 		} else
 			return 0;

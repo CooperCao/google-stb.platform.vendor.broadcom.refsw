@@ -78,28 +78,28 @@ static void   DeactivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_Ha
 #endif
 
 #define IS_HD(fmt) (\
-	(fmt == BFMT_VideoFmt_e480p)               || \
-	(fmt == BFMT_VideoFmt_e576p_50Hz)          || \
-	(fmt == BFMT_VideoFmt_e720p)               || \
-	(fmt == BFMT_VideoFmt_e720p_24Hz)          || \
-	(fmt == BFMT_VideoFmt_e720p_25Hz)          || \
-	(fmt == BFMT_VideoFmt_e720p_30Hz)          || \
-	(fmt == BFMT_VideoFmt_e720p_50Hz)          || \
-	(fmt == BFMT_VideoFmt_e1080i)              || \
-	(fmt == BFMT_VideoFmt_e1080i_50Hz)         || \
-	(fmt == BFMT_VideoFmt_e1250i_50Hz)         || \
-	(fmt == BFMT_VideoFmt_e1080p)              || \
-	(fmt == BFMT_VideoFmt_e1080p_24Hz)         || \
-	(fmt == BFMT_VideoFmt_e1080p_25Hz)         || \
-	(fmt == BFMT_VideoFmt_e1080p_30Hz)         || \
-	(fmt == BFMT_VideoFmt_e1080p_50Hz)         || \
-	(fmt == BFMT_VideoFmt_e720p_60Hz_3DOU_AS)  || \
-	(fmt == BFMT_VideoFmt_e720p_50Hz_3DOU_AS)  || \
-	(fmt == BFMT_VideoFmt_e1080p_24Hz_3DOU_AS) || \
-	(fmt == BFMT_VideoFmt_e1080p_30Hz_3DOU_AS) || \
-	(fmt == BFMT_VideoFmt_eCUSTOM_1366x768p)   || \
-	(fmt == BFMT_VideoFmt_eDVI_1600x1200p_60Hz)|| \
-	(fmt == BFMT_VideoFmt_eCustom2)               \
+    (fmt == BFMT_VideoFmt_e480p)               || \
+    (fmt == BFMT_VideoFmt_e576p_50Hz)          || \
+    (fmt == BFMT_VideoFmt_e720p)               || \
+    (fmt == BFMT_VideoFmt_e720p_24Hz)          || \
+    (fmt == BFMT_VideoFmt_e720p_25Hz)          || \
+    (fmt == BFMT_VideoFmt_e720p_30Hz)          || \
+    (fmt == BFMT_VideoFmt_e720p_50Hz)          || \
+    (fmt == BFMT_VideoFmt_e1080i)              || \
+    (fmt == BFMT_VideoFmt_e1080i_50Hz)         || \
+    (fmt == BFMT_VideoFmt_e1250i_50Hz)         || \
+    (fmt == BFMT_VideoFmt_e1080p)              || \
+    (fmt == BFMT_VideoFmt_e1080p_24Hz)         || \
+    (fmt == BFMT_VideoFmt_e1080p_25Hz)         || \
+    (fmt == BFMT_VideoFmt_e1080p_30Hz)         || \
+    (fmt == BFMT_VideoFmt_e1080p_50Hz)         || \
+    (fmt == BFMT_VideoFmt_e720p_60Hz_3DOU_AS)  || \
+    (fmt == BFMT_VideoFmt_e720p_50Hz_3DOU_AS)  || \
+    (fmt == BFMT_VideoFmt_e1080p_24Hz_3DOU_AS) || \
+    (fmt == BFMT_VideoFmt_e1080p_30Hz_3DOU_AS) || \
+    (fmt == BFMT_VideoFmt_eCUSTOM_1366x768p)   || \
+    (fmt == BFMT_VideoFmt_eDVI_1600x1200p_60Hz)|| \
+    (fmt == BFMT_VideoFmt_eCustom2)               \
 )
 
 /***************************************************************************
@@ -108,352 +108,352 @@ static void   DeactivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_Ha
  * updates should be intercepted and dumped.
  */
 BERR_Code  splash_vdc_setup(
-	BCHP_Handle         hChp,
-	BREG_Handle         hReg,
-	BINT_Handle         hInt,
-	BTMR_Handle         hTmr,
-	BBOX_Handle         hBox,
-	ModeHandles        *pState
-	)
+    BCHP_Handle         hChp,
+    BREG_Handle         hReg,
+    BINT_Handle         hInt,
+    BTMR_Handle         hTmr,
+    BBOX_Handle         hBox,
+    ModeHandles        *pState
+    )
 {
-	BERR_Code               eErr = BERR_SUCCESS;
-	BVDC_Handle             hVdc;
+    BERR_Code               eErr = BERR_SUCCESS;
+    BVDC_Handle             hVdc;
 #ifdef SPLASH_SUPPORT_HDM
-	BHDM_Handle             hHdm;
-	BHDM_Settings           HDMSettings;
+    BHDM_Handle             hHdm;
+    BHDM_Settings           HDMSettings;
 #endif
 #ifdef SPLASH_SUPPORT_RFM
-	BRFM_Handle             hRfm;
-	BRFM_Settings           rfmDevSettings;
+    BRFM_Handle             hRfm;
+    BRFM_Settings           rfmDevSettings;
 #endif
     BBOX_Config             stBoxConfig;
 
-	BVDC_Compositor_Handle  hCompositor;
-	BVDC_Display_Handle     hDisplay;
-	BFMT_VideoInfo          stVideoInfo;
-	BPXL_Plane              surface;
-	BVDC_Source_Handle      hGfxSource;
-	BVDC_Window_Handle      hGfxWindow;
-	BAVC_Gfx_Picture        pic;
-	uint32_t         surfWidth;
-	uint32_t         surfHeight;
-	BPXL_Format      surfPxlFmt;
-	void*            splashAddress;
-	uint32_t         splashPitch;
-	char  *bmpFileName = NULL;
-	uint8_t  *bmpBuf = NULL;
-	BMP_HEADER_INFO  myBmpInfo;
-	int x,y;
-	uint32_t  svideoDspIdx;
-	uint32_t  composite0DspIdx;
-	uint32_t  composite1DspIdx;
-	uint32_t  componentDspIdx;
-	uint32_t  hdmDspIdx;
-	uint32_t  winHeight;
-	BVDC_OpenSettings  stDefSettings;
-	int  ii;
-	uint8_t val = 0;
+    BVDC_Compositor_Handle  hCompositor;
+    BVDC_Display_Handle     hDisplay;
+    BFMT_VideoInfo          stVideoInfo;
+    BPXL_Plane              surface;
+    BVDC_Source_Handle      hGfxSource;
+    BVDC_Window_Handle      hGfxWindow;
+    BAVC_Gfx_Picture        pic;
+    uint32_t         surfWidth;
+    uint32_t         surfHeight;
+    BPXL_Format      surfPxlFmt;
+    void*            splashAddress;
+    uint32_t         splashPitch;
+    char  *bmpFileName = NULL;
+    uint8_t  *bmpBuf = NULL;
+    BMP_HEADER_INFO  myBmpInfo;
+    int x,y;
+    uint32_t  svideoDspIdx;
+    uint32_t  composite0DspIdx;
+    uint32_t  composite1DspIdx;
+    uint32_t  componentDspIdx;
+    uint32_t  hdmDspIdx;
+    uint32_t  winHeight;
+    BVDC_OpenSettings  stDefSettings;
+    int  ii;
+    uint8_t val = 0;
 
     eErr = BBOX_GetConfig(hBox, &stBoxConfig);
     if (eErr != BERR_SUCCESS)
         return eErr;
 
-	/* setup surfaces */
-	for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
-	{
-		if ( pState->surf[ii].hMma != NULL)
-		{
-			pState->iNumSurf++;
-			if ((bmpFileName == NULL) || strcmp(bmpFileName, &pState->surf[ii].bmpFile[0]))
-			{
-				if(bmpBuf)
-					BKNI_Free(bmpBuf);
+    /* setup surfaces */
+    for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
+    {
+        if ( pState->surf[ii].hMma != NULL)
+        {
+            pState->iNumSurf++;
+            if ((bmpFileName == NULL) || strcmp(bmpFileName, &pState->surf[ii].bmpFile[0]))
+            {
+                if(bmpBuf)
+                    BKNI_Free(bmpBuf);
 
-				bmpFileName = &pState->surf[ii].bmpFile[0];
-				bmpBuf = splash_open_bmp(bmpFileName);
-				if(bmpBuf)
-					splash_bmp_getinfo(bmpBuf, &myBmpInfo);
-				else
-					BDBG_ERR(("Missing file %s. could use BSEAV/app/splash/splashgen/splash.bmp", bmpFileName));
-			}
+                bmpFileName = &pState->surf[ii].bmpFile[0];
+                bmpBuf = splash_open_bmp(bmpFileName);
+                if(bmpBuf)
+                    splash_bmp_getinfo(bmpBuf, &myBmpInfo);
+                else
+                    BDBG_ERR(("Missing file %s. could use BSEAV/app/splash/splashgen/splash.bmp", bmpFileName));
+            }
 
-			/* scale up fullscreen AND gfd has scaler.  For vertical only scale
-			 * if HW is available */
-			if(pState->bScaleToFullScreen)
-			{
-				surfWidth  = myBmpInfo.info.width;
-				if(pState->disp[ii].bGfdHasVertScale)
-				{
-					surfHeight = myBmpInfo.info.height;
-				}
-				else
-				{
-					surfHeight = pState->surf[ii].ulHeight;
-				}
-			}
-			else
-			{
-				surfWidth  = pState->surf[ii].ulWidth;
-				surfHeight = pState->surf[ii].ulHeight;
-			}
+            /* scale up fullscreen AND gfd has scaler.  For vertical only scale
+             * if HW is available */
+            if(pState->bScaleToFullScreen)
+            {
+                surfWidth  = myBmpInfo.info.width;
+                if(pState->disp[ii].bGfdHasVertScale)
+                {
+                    surfHeight = myBmpInfo.info.height;
+                }
+                else
+                {
+                    surfHeight = pState->surf[ii].ulHeight;
+                }
+            }
+            else
+            {
+                surfWidth  = pState->surf[ii].ulWidth;
+                surfHeight = pState->surf[ii].ulHeight;
+            }
 
-			surfPxlFmt = pState->surf[ii].ePxlFmt;
-			if (0==surfWidth)
-				continue;
+            surfPxlFmt = pState->surf[ii].ePxlFmt;
+            if (0==surfWidth)
+                continue;
 
-			BPXL_Plane_Init(&surface, surfWidth, surfHeight, surfPxlFmt);
-			eErr = BPXL_Plane_AllocateBuffers(&surface, pState->surf[ii].hMma);
-			if (eErr != BERR_SUCCESS)
-			{
-				BDBG_ERR(("Out of memory"));
-				goto done;
-			}
-			pState->surf[ii].surface = surface;
+            BPXL_Plane_Init(&surface, surfWidth, surfHeight, surfPxlFmt);
+            eErr = BPXL_Plane_AllocateBuffers(&surface, pState->surf[ii].hMma);
+            if (eErr != BERR_SUCCESS)
+            {
+                BDBG_ERR(("Out of memory"));
+                goto done;
+            }
+            pState->surf[ii].surface = surface;
 
-			splashAddress = BMMA_Lock(surface.hPixels);
-			splashPitch = surface.ulPitch;
+            splashAddress = BMMA_Lock(surface.hPixels);
+            splashPitch = surface.ulPitch;
 
-			splash_set_surf_params(surfPxlFmt, splashPitch, surfWidth, surfHeight) ;
+            splash_set_surf_params(surfPxlFmt, splashPitch, surfWidth, surfHeight) ;
 
-			/* splash_fillbuffer(splashAddress, 0xF8, 0xE0, 0) ; */
-			splash_fillbuffer(splashAddress, 0x00, 0x00, 0x00);
+            /* splash_fillbuffer(splashAddress, 0xF8, 0xE0, 0) ; */
+            splash_fillbuffer(splashAddress, 0x00, 0x00, 0x00);
 
-			if(bmpBuf)
-			{
-				BDBG_MSG(("splash.bmp: Width = %d Height = %d", myBmpInfo.info.width, myBmpInfo.info.height));
-				BDBG_MSG(("rendered into surface %d",ii));
+            if(bmpBuf)
+            {
+                BDBG_MSG(("splash.bmp: Width = %d Height = %d", myBmpInfo.info.width, myBmpInfo.info.height));
+                BDBG_MSG(("rendered into surface %d",ii));
 
-				if(pState->bScaleToFullScreen)
-				{
-					x = 0;
-					if(pState->disp[ii].bGfdHasVertScale)
-					{
-						y = 0;
-					}
-					else
-					{
-						y = ((int)surfHeight- (int)myBmpInfo.info.height)/2;
-					}
-				}
-				else
-				{
-					x = ((int)surfWidth- (int)myBmpInfo.info.width)/2;
-					y = ((int)surfHeight- (int)myBmpInfo.info.height)/2;
-				}
-				splash_render_bmp_into_surface(x, y, bmpBuf, splashAddress) ;
-			}
+                if(pState->bScaleToFullScreen)
+                {
+                    x = 0;
+                    if(pState->disp[ii].bGfdHasVertScale)
+                    {
+                        y = 0;
+                    }
+                    else
+                    {
+                        y = ((int)surfHeight- (int)myBmpInfo.info.height)/2;
+                    }
+                }
+                else
+                {
+                    x = ((int)surfWidth- (int)myBmpInfo.info.width)/2;
+                    y = ((int)surfHeight- (int)myBmpInfo.info.height)/2;
+                }
+                splash_render_bmp_into_surface(x, y, bmpBuf, splashAddress) ;
+            }
 
-			/* flush cached addr */
-			BMMA_FlushCache(surface.hPixels, splashAddress, splashPitch * surfHeight);
-			BMMA_Unlock(surface.hPixels, splashAddress);
-		}
-	}
+            /* flush cached addr */
+            BMMA_FlushCache(surface.hPixels, splashAddress, splashPitch * surfHeight);
+            BMMA_Unlock(surface.hPixels, splashAddress);
+        }
+    }
 
-	if(bmpBuf)
-	{
-		BKNI_Free(bmpBuf);
-	}
+    if(bmpBuf)
+    {
+        BKNI_Free(bmpBuf);
+    }
 
-	/* open VDC
-	 * note: VDC default display format is 1080i, we must override it here
-	 * if we are compiling with B_PI_FOR_BOOTUPDATER and 1080i is not supported in bootloader
-	 */
-	BVDC_GetDefaultSettings(hBox, &stDefSettings);
+    /* open VDC
+     * note: VDC default display format is 1080i, we must override it here
+     * if we are compiling with B_PI_FOR_BOOTUPDATER and 1080i is not supported in bootloader
+     */
+    BVDC_GetDefaultSettings(hBox, &stDefSettings);
 
-	stDefSettings.eVideoFormat = BFMT_VideoFmt_e480p;
-	eErr = BVDC_Open(&pState->hVdc, hChp, hReg, pState->hRulMem, hInt,
-		pState->hRdc, hTmr, &stDefSettings);
-	hVdc = pState->hVdc;
+    stDefSettings.eVideoFormat = BFMT_VideoFmt_e480p;
+    eErr = BVDC_Open(&pState->hVdc, hChp, hReg, pState->hRulMem, hInt,
+        pState->hRdc, hTmr, &stDefSettings);
+    hVdc = pState->hVdc;
 
 #ifdef SPLASH_SUPPORT_HDM
-	eErr = BHDM_GetDefaultSettings(&HDMSettings);
-	HDMSettings.hTMR = hTmr;
-	eErr = BHDM_Open(&hHdm, hChp, hReg, hInt, pState->hRegI2c, &HDMSettings);
-	eErr =  BREG_I2C_Write(pState->hRegI2c, BHDM_SCDC_I2C_ADDR, BHDM_SCDC_TMDS_CONFIG, &val, 1) ;
+    eErr = BHDM_GetDefaultSettings(&HDMSettings);
+    HDMSettings.hTMR = hTmr;
+    eErr = BHDM_Open(&hHdm, hChp, hReg, hInt, pState->hRegI2c, &HDMSettings);
+    eErr =  BREG_I2C_Write(pState->hRegI2c, BHDM_SCDC_I2C_ADDR, BHDM_SCDC_TMDS_CONFIG, &val, 1) ;
 #endif
 
 #ifdef SPLASH_SUPPORT_RFM
-	BRFM_GetDefaultSettings( &rfmDevSettings, hChp );
-	rfmDevSettings.audioEncoding = BRFM_AudioEncoding_eStereo;
-	eErr = BRFM_Open( &hRfm, hChp, hReg, hInt, &rfmDevSettings );
-	eErr = BRFM_SetModulationType( hRfm, BRFM_ModulationType_eNtscOpenCable,
-	    BRFM_OutputChannel_eCh3 );
+    BRFM_GetDefaultSettings( &rfmDevSettings, hChp );
+    rfmDevSettings.audioEncoding = BRFM_AudioEncoding_eStereo;
+    eErr = BRFM_Open( &hRfm, hChp, hReg, hInt, &rfmDevSettings );
+    eErr = BRFM_SetModulationType( hRfm, BRFM_ModulationType_eNtscOpenCable,
+        BRFM_OutputChannel_eCh3 );
 #endif
 
-	/* which disp should drive which output interface? */
-	svideoDspIdx = 0;
-	composite0DspIdx = 0;
-	composite1DspIdx = 0;
-	componentDspIdx = 0;
-	hdmDspIdx = 0;
-	for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
-	{
+    /* which disp should drive which output interface? */
+    svideoDspIdx = 0;
+    composite0DspIdx = 0;
+    composite1DspIdx = 0;
+    componentDspIdx = 0;
+    hdmDspIdx = 0;
+    for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
+    {
         /* proceed to create display if available per box mode */
         if (!stBoxConfig.stVdc.astDisplay[ii].bAvailable)
             continue;
 
-		if (IS_HD(pState->disp[ii].eDispFmt))
-		{
-			componentDspIdx = ii;
-			hdmDspIdx = ii;
-		}
-		else
-		{
-			svideoDspIdx = ii;
-			composite0DspIdx = ii;
-			composite1DspIdx = ii;
-		}
-	}
+        if (IS_HD(pState->disp[ii].eDispFmt))
+        {
+            componentDspIdx = ii;
+            hdmDspIdx = ii;
+        }
+        else
+        {
+            svideoDspIdx = ii;
+            composite0DspIdx = ii;
+            composite1DspIdx = ii;
+        }
+    }
 
-	/* setup display */
-	for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
-	{
-		int32_t iTop, iLeft;
-		uint32_t ulWidth, ulHeight;
+    /* setup display */
+    for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
+    {
+        int32_t iTop, iLeft;
+        uint32_t ulWidth, ulHeight;
 
-		if (pState->disp[ii].pSurf->hMma != NULL)
-		{
-			pState->iNumDisp++;
-			BDBG_MSG(("***********display[%d]*************", ii));
+        if (pState->disp[ii].pSurf->hMma != NULL)
+        {
+            pState->iNumDisp++;
+            BDBG_MSG(("***********display[%d]*************", ii));
 
-			/* Create a compositor handle from our hVdc handle */
-			TestError( BVDC_Compositor_Create(
-				hVdc, &hCompositor, BVDC_CompositorId_eCompositor0 + ii, NULL),
-				"ERROR: BVDC_Compositor_Create" );
-			pState->disp[ii].hCompositor = hCompositor;
+            /* Create a compositor handle from our hVdc handle */
+            TestError( BVDC_Compositor_Create(
+                hVdc, &hCompositor, BVDC_CompositorId_eCompositor0 + ii, NULL),
+                "ERROR: BVDC_Compositor_Create" );
+            pState->disp[ii].hCompositor = hCompositor;
 
-			/* Create display handle */
+            /* Create display handle */
 #ifdef SPLASH_MASTERTG_DVI
-			if (hdmDspIdx == (uint32_t)ii)
-			{
-				BVDC_Display_CreateSettings  cfg_display;
+            if (hdmDspIdx == (uint32_t)ii)
+            {
+                BVDC_Display_CreateSettings  cfg_display;
 
-				BVDC_Display_GetDefaultCreateSettings(BVDC_DisplayId_eDisplay0, &cfg_display);
-				cfg_display.eMasterTg = BVDC_DisplayTg_eDviDtg;
-				eErr = BVDC_Display_Create(hCompositor,&hDisplay,
-					BVDC_DisplayId_eDisplay0, &cfg_display);
-			}
-			else
-			{
-				eErr = BVDC_Display_Create(hCompositor, &hDisplay, BVDC_DisplayId_eAuto, NULL);
-			}
+                BVDC_Display_GetDefaultCreateSettings(BVDC_DisplayId_eDisplay0, &cfg_display);
+                cfg_display.eMasterTg = BVDC_DisplayTg_eDviDtg;
+                eErr = BVDC_Display_Create(hCompositor,&hDisplay,
+                    BVDC_DisplayId_eDisplay0, &cfg_display);
+            }
+            else
+            {
+                eErr = BVDC_Display_Create(hCompositor, &hDisplay, BVDC_DisplayId_eAuto, NULL);
+            }
 #else
-			eErr = BVDC_Display_Create(hCompositor, &hDisplay, BVDC_DisplayId_eAuto, NULL);
+            eErr = BVDC_Display_Create(hCompositor, &hDisplay, BVDC_DisplayId_eAuto, NULL);
 #endif
-			if (eErr != BERR_SUCCESS)
-			{
-				BDBG_ERR(("BVDC_Display_Create failed"));
-				goto done;
-			}
-			pState->disp[ii].hDisplay = hDisplay;
+            if (eErr != BERR_SUCCESS)
+            {
+                BDBG_ERR(("BVDC_Display_Create failed"));
+                goto done;
+            }
+            pState->disp[ii].hDisplay = hDisplay;
 
-			/* Set display format */
-			TestError( BVDC_Display_SetVideoFormat(hDisplay, pState->disp[ii].eDispFmt),
-				"ERROR: BVDC_Display_SetVideoFormat" );
+            /* Set display format */
+            TestError( BVDC_Display_SetVideoFormat(hDisplay, pState->disp[ii].eDispFmt),
+                "ERROR: BVDC_Display_SetVideoFormat" );
 
-			/* Set the background color to blue */
-			TestError( BVDC_Compositor_SetBackgroundColor( hCompositor, 0x00, 0x00, 0x80 ),
-				"ERROR: BVDC_Compositor_SetBackgroundColor" );
+            /* Set the background color to blue */
+            TestError( BVDC_Compositor_SetBackgroundColor( hCompositor, 0x00, 0x00, 0x80 ),
+                "ERROR: BVDC_Compositor_SetBackgroundColor" );
 
-			/* set DAC configurations for specific display format
-			 * Dac setup is specified in bsplash_board.h */
+            /* set DAC configurations for specific display format
+             * Dac setup is specified in bsplash_board.h */
 #if (SPLASH_NUM_COMPONENT_OUTPUTS != 0) && !defined(SPLASH_MASTERTG_DVI)
-			if (componentDspIdx == (uint32_t)ii)
-			{
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_PR, BVDC_DacOutput_ePr),
-					"ERROR: BVDC_Display_SetDacConfiguration" );
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_Y, BVDC_DacOutput_eY),
-					"ERROR: BVDC_Display_SetDacConfiguration" );
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_PB, BVDC_DacOutput_ePb),
-					"ERROR: BVDC_Display_SetDacConfiguration" );
-				BDBG_MSG(("Set dac for component with display %d", ii));
-			}
+            if (componentDspIdx == (uint32_t)ii)
+            {
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_PR, BVDC_DacOutput_ePr),
+                    "ERROR: BVDC_Display_SetDacConfiguration" );
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_Y, BVDC_DacOutput_eY),
+                    "ERROR: BVDC_Display_SetDacConfiguration" );
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_PB, BVDC_DacOutput_ePb),
+                    "ERROR: BVDC_Display_SetDacConfiguration" );
+                BDBG_MSG(("Set dac for component with display %d", ii));
+            }
 #endif
 #if (SPLASH_NUM_SVIDEO_OUTPUTS != 0)
-			if ((svideoDspIdx == (uint32_t)ii) && !IS_HD(pState->disp[ii].eDispFmt))
-			{
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_SVIDEO_CHROMA, BVDC_DacOutput_eSVideo_Chroma),
-					"ERROR: BVDC_Display_SetDacConfiguration" );
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_SVIDEO_LUMA, BVDC_DacOutput_eSVideo_Luma),
-						   "ERROR: BVDC_Display_SetDacConfiguration" );
-				BDBG_MSG(("Set dac for svideo with display %d", ii));
-			}
+            if ((svideoDspIdx == (uint32_t)ii) && !IS_HD(pState->disp[ii].eDispFmt))
+            {
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_SVIDEO_CHROMA, BVDC_DacOutput_eSVideo_Chroma),
+                    "ERROR: BVDC_Display_SetDacConfiguration" );
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_SVIDEO_LUMA, BVDC_DacOutput_eSVideo_Luma),
+                           "ERROR: BVDC_Display_SetDacConfiguration" );
+                BDBG_MSG(("Set dac for svideo with display %d", ii));
+            }
 #endif
-			if ((composite0DspIdx == (uint32_t)ii) && !IS_HD(pState->disp[ii].eDispFmt))
-			{
+            if ((composite0DspIdx == (uint32_t)ii) && !IS_HD(pState->disp[ii].eDispFmt))
+            {
 #if (SPLASH_NUM_COMPOSITE_OUTPUTS != 0)
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_COMPOSITE_0, BVDC_DacOutput_eComposite),
-					"ERROR: BVDC_Display_SetDacConfiguration" );
-				BDBG_MSG(("Set dac for composite 0 with display %d", ii));
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_COMPOSITE_0, BVDC_DacOutput_eComposite),
+                    "ERROR: BVDC_Display_SetDacConfiguration" );
+                BDBG_MSG(("Set dac for composite 0 with display %d", ii));
 #endif
 #ifdef SPLASH_SUPPORT_RFM
-				pState->disp[ii].hRfm = hRfm;
-				TestError( BVDC_Display_SetRfmConfiguration( hDisplay,
-					BVDC_Rfm_0, BVDC_RfmOutput_eCVBS, 0),
-					"ERROR: BVDC_Display_SetRfmConfiguration" );
-				BDBG_MSG(("Set rfm output for composite 0 with display %d", ii));
+                pState->disp[ii].hRfm = hRfm;
+                TestError( BVDC_Display_SetRfmConfiguration( hDisplay,
+                    BVDC_Rfm_0, BVDC_RfmOutput_eCVBS, 0),
+                    "ERROR: BVDC_Display_SetRfmConfiguration" );
+                BDBG_MSG(("Set rfm output for composite 0 with display %d", ii));
 #endif
-			}
+            }
 #if (SPLASH_NUM_COMPOSITE_OUTPUTS > 1)
-			if ((composite1DspIdx == (uint32_t)ii) && !IS_HD(pState->disp[ii].eDispFmt))
-			{
-				TestError( BVDC_Display_SetDacConfiguration( hDisplay,
-					BRCM_DAC_COMPOSITE_1, BVDC_DacOutput_eComposite),
-						   "ERROR: BVDC_Display_SetDacConfiguration" );
-				BDBG_MSG(("Set dac for composite 1 with display %d", ii));
-			}
+            if ((composite1DspIdx == (uint32_t)ii) && !IS_HD(pState->disp[ii].eDispFmt))
+            {
+                TestError( BVDC_Display_SetDacConfiguration( hDisplay,
+                    BRCM_DAC_COMPOSITE_1, BVDC_DacOutput_eComposite),
+                           "ERROR: BVDC_Display_SetDacConfiguration" );
+                BDBG_MSG(("Set dac for composite 1 with display %d", ii));
+            }
 #endif
 
-			/* to determine size of display */
-			TestError( BFMT_GetVideoFormatInfo(pState->disp[ii].eDispFmt, &stVideoInfo),
-				"ERROR:BFMT_GetVideoFormatInfo" );
+            /* to determine size of display */
+            TestError( BFMT_GetVideoFormatInfo(pState->disp[ii].eDispFmt, &stVideoInfo),
+                "ERROR:BFMT_GetVideoFormatInfo" );
 
 #ifdef SPLASH_SUPPORT_HDM
-			if (hdmDspIdx == (uint32_t)ii)
-			{
-				pState->disp[hdmDspIdx].hHdm = hHdm;
-				eErr = ActivateHdmi(hVdc, hHdm, pState->disp[hdmDspIdx].hDisplay);
-				if (eErr != BERR_SUCCESS)
-				BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?"));
-				TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
-			}
+            if (hdmDspIdx == (uint32_t)ii)
+            {
+                pState->disp[hdmDspIdx].hHdm = hHdm;
+                eErr = ActivateHdmi(hVdc, hHdm, pState->disp[hdmDspIdx].hDisplay);
+                if (eErr != BERR_SUCCESS)
+                BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?"));
+                TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
+            }
 #endif
 
-			/* create a graphics source handle */
-			TestError( BVDC_Source_Create( hVdc, &hGfxSource, BAVC_SourceId_eGfx0 + ii, NULL),
-				"ERROR: BVDC_Source_Create" );
-			pState->disp[ii].hGfxSource = hGfxSource;
+            /* create a graphics source handle */
+            TestError( BVDC_Source_Create( hVdc, &hGfxSource, BAVC_SourceId_eGfx0 + ii, NULL),
+                "ERROR: BVDC_Source_Create" );
+            pState->disp[ii].hGfxSource = hGfxSource;
 
-			/* obtain RDC scratch registers */
-			BVDC_Test_Source_GetGfdScratchRegisters(pState->disp[ii].hGfxSource,
-				&pState->disp[ii].ulGfdScratchReg0, &pState->disp[ii].ulGfdScratchReg1);
+            /* obtain RDC scratch registers */
+            BVDC_Test_Source_GetGfdScratchRegisters(pState->disp[ii].hGfxSource,
+                &pState->disp[ii].ulGfdScratchReg0, &pState->disp[ii].ulGfdScratchReg1);
 
-			/* specify the source surface */
-			BKNI_Memset(&pic, 0, sizeof(pic));
-			pic.pSurface = &(pState->disp[ii].pSurf->surface);
-			splashAddress = BMMA_Lock(pic.pSurface->hPixels);
+            /* specify the source surface */
+            BKNI_Memset(&pic, 0, sizeof(pic));
+            pic.pSurface = &(pState->disp[ii].pSurf->surface);
+            splashAddress = BMMA_Lock(pic.pSurface->hPixels);
 
-			TestError( BVDC_Source_SetSurface( hGfxSource, &pic ),
-				"ERROR: BVDC_Source_SetSurface" );
+            TestError( BVDC_Source_SetSurface( hGfxSource, &pic ),
+                "ERROR: BVDC_Source_SetSurface" );
 
-			BDBG_MSG(("uses surface %d", pState->disp[ii].iSurfIdx));
-			BMMA_Unlock(pic.pSurface->hPixels, splashAddress);
+            BDBG_MSG(("uses surface %d", pState->disp[ii].iSurfIdx));
+            BMMA_Unlock(pic.pSurface->hPixels, splashAddress);
 
 #ifdef SPLASH_SUPPORT_HDM
-			if (hdmDspIdx == (uint32_t)ii)
-			{
-				pState->disp[hdmDspIdx].hHdm = hHdm;
-				eErr = ActivateHdmi(hVdc, hHdm, pState->disp[hdmDspIdx].hDisplay);
-				if (eErr != BERR_SUCCESS)
-				BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?"));
-				TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
-			}
+            if (hdmDspIdx == (uint32_t)ii)
+            {
+                pState->disp[hdmDspIdx].hHdm = hHdm;
+                eErr = ActivateHdmi(hVdc, hHdm, pState->disp[hdmDspIdx].hDisplay);
+                if (eErr != BERR_SUCCESS)
+                BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?"));
+                TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
+            }
 #endif
 
             /* proceed to create gfx window if available per box mode */
@@ -513,182 +513,182 @@ BERR_Code  splash_vdc_setup(
             {
                 continue;
             }
-		}
-	}
+        }
+    }
 
-	/***************************
-	 * Apply Changes
-	 */
-	TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
+    /***************************
+     * Apply Changes
+     */
+    TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
 
 done:
-	/* return status */
-	BDBG_ASSERT(!eErr) ;
-	return eErr;
+    /* return status */
+    BDBG_ASSERT(!eErr) ;
+    return eErr;
 }
 
 #ifndef BVDC_FOR_BOOTUPDATER
 BERR_Code  close_mode(
-	ModeHandles            *pState
-	)
+    ModeHandles            *pState
+    )
 {
-	BERR_Code  eErr = BERR_SUCCESS;
-	int  ii;
+    BERR_Code  eErr = BERR_SUCCESS;
+    int  ii;
 
-	for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
-	{
-		if (pState->disp[ii].pSurf->hMma != NULL)
-		{
+    for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
+    {
+        if (pState->disp[ii].pSurf->hMma != NULL)
+        {
 
 #ifdef SPLASH_SUPPORT_HDM
-			if (pState->disp[ii].hHdm)
-			{
-				DeactivateHdmi(pState->hVdc, pState->disp[ii].hHdm, pState->disp[ii].hDisplay);
-			}
+            if (pState->disp[ii].hHdm)
+            {
+                DeactivateHdmi(pState->hVdc, pState->disp[ii].hHdm, pState->disp[ii].hDisplay);
+            }
 #endif
-			TestError( BVDC_Window_Destroy(pState->disp[ii].hGfxWindow),
-				"BVDC_Window_Destroy");
-			TestError( BVDC_ApplyChanges(pState->hVdc),
-				"BVDC_ApplyChanges");
-			TestError( BVDC_Source_Destroy(pState->disp[ii].hGfxSource),
-				"BVDC_Source_Destroy");
-			TestError( BVDC_Display_Destroy(pState->disp[ii].hDisplay),
-				"BVDC_Display_Destroy");
-			TestError( BVDC_Compositor_Destroy(pState->disp[ii].hCompositor),
-				"BVDC_Compositor_Destroy");
+            TestError( BVDC_Window_Destroy(pState->disp[ii].hGfxWindow),
+                "BVDC_Window_Destroy");
+            TestError( BVDC_ApplyChanges(pState->hVdc),
+                "BVDC_ApplyChanges");
+            TestError( BVDC_Source_Destroy(pState->disp[ii].hGfxSource),
+                "BVDC_Source_Destroy");
+            TestError( BVDC_Display_Destroy(pState->disp[ii].hDisplay),
+                "BVDC_Display_Destroy");
+            TestError( BVDC_Compositor_Destroy(pState->disp[ii].hCompositor),
+                "BVDC_Compositor_Destroy");
 
 #ifdef SPLASH_SUPPORT_HDM
-			if (pState->disp[ii].hHdm)
-			{
-				BHDM_Close(pState->disp[ii].hHdm);
-			}
+            if (pState->disp[ii].hHdm)
+            {
+                BHDM_Close(pState->disp[ii].hHdm);
+            }
 #endif
 #ifdef SPLASH_SUPPORT_RFM
-			if (pState->disp[ii].hRfm)
-			{
-				BRFM_Close(pState->disp[ii].hRfm);
-				pState->disp[ii].hRfm = 0;
-			}
+            if (pState->disp[ii].hRfm)
+            {
+                BRFM_Close(pState->disp[ii].hRfm);
+                pState->disp[ii].hRfm = 0;
+            }
 #endif
 
-			TestError( BVDC_ApplyChanges(pState->hVdc),
-				"BVDC_ApplyChanges");
-		}
-	}
+            TestError( BVDC_ApplyChanges(pState->hVdc),
+                "BVDC_ApplyChanges");
+        }
+    }
 
-	for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
-	{
-		if (pState->surf[ii].hMma && pState->surf[ii].surface.hPixels)
-		{
-			BMMA_Free(pState->surf[ii].surface.hPixels);
-			pState->surf[ii].surface.hPixels = NULL;
-		}
-	}
+    for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
+    {
+        if (pState->surf[ii].hMma && pState->surf[ii].surface.hPixels)
+        {
+            BMMA_Free(pState->surf[ii].surface.hPixels);
+            pState->surf[ii].surface.hPixels = NULL;
+        }
+    }
 
-	TestError( BVDC_Close(pState->hVdc),
-		"BVDC_Close");
+    TestError( BVDC_Close(pState->hVdc),
+        "BVDC_Close");
 
 done:
-	return eErr;
+    return eErr;
 }
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
 #ifdef SPLASH_SUPPORT_HDM
 static BERR_Code ActivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_Handle hDisplay)
 {
-	BERR_Code  eErr = BERR_SUCCESS;
-	BFMT_VideoFmt           vidfmt;
-	BHDM_Settings           hdmiSettings;
-	BHDM_EDID_ColorimetryParams edidParameters ;
-	const BFMT_VideoInfo*   vidinfo;
-	bool                    hasHdmiSupport;
-	BVDC_Display_HdmiSettings stVdcHdmiSettings;
+    BERR_Code  eErr = BERR_SUCCESS;
+    BFMT_VideoFmt           vidfmt;
+    BHDM_Settings           hdmiSettings;
+    BHDM_EDID_ColorimetryParams edidParameters ;
+    const BFMT_VideoInfo*   vidinfo;
+    bool                    hasHdmiSupport;
+    BVDC_Display_HdmiSettings stVdcHdmiSettings;
 
-	BHDM_EDID_RxVendorSpecificDB    vsdb;
+    BHDM_EDID_RxVendorSpecificDB    vsdb;
 
-	/* Get Current Display format */
-	TestError(BVDC_Display_GetVideoFormat(hDisplay, &vidfmt),
-		"BVDC_Display_GetVideoFormat") ;
+    /* Get Current Display format */
+    TestError(BVDC_Display_GetVideoFormat(hDisplay, &vidfmt),
+        "BVDC_Display_GetVideoFormat") ;
 
-	/* Get video info */
-	vidinfo = BFMT_GetVideoFormatInfoPtr(vidfmt);
+    /* Get video info */
+    vidinfo = BFMT_GetVideoFormatInfoPtr(vidfmt);
 
-	/* Get Current Settings */
-	TestError(BHDM_GetHdmiSettings(hHDM, &hdmiSettings),
-		"BHDM_GetHdmiSettings");
+    /* Get Current Settings */
+    TestError(BHDM_GetHdmiSettings(hHDM, &hdmiSettings),
+        "BHDM_GetHdmiSettings");
 
-	/* Set the video format */
-	hdmiSettings.eInputVideoFmt = vidfmt;
+    /* Set the video format */
+    hdmiSettings.eInputVideoFmt = vidfmt;
 
-	if (hdmiSettings.eOutputPort == BHDM_OutputPort_eHDMI)
-	{
-		BHDM_EDID_IsRxDeviceHdmi(hHDM, &vsdb, &hasHdmiSupport);
-		if (SPLASH_HDMI_OUTPUTFORMAT_YCrCb /*hasHdmiSupport*/)
-		{
-			hdmiSettings.eOutputFormat = BHDM_OutputFormat_eHDMIMode;
-			hdmiSettings.eAspectRatio = vidinfo->eAspectRatio;
+    if (hdmiSettings.eOutputPort == BHDM_OutputPort_eHDMI)
+    {
+        BHDM_EDID_IsRxDeviceHdmi(hHDM, &vsdb, &hasHdmiSupport);
+        if (SPLASH_HDMI_OUTPUTFORMAT_YCrCb /*hasHdmiSupport*/)
+        {
+            hdmiSettings.eOutputFormat = BHDM_OutputFormat_eHDMIMode;
+            hdmiSettings.eAspectRatio = vidinfo->eAspectRatio;
 
-			/* Audio settings (for later):
-			set hdmi audio()
-			BAUD_GetClockSamplingRate(GetBAUD(), ??, &sampleRate);
-			hdmiSettings.eAudioSamplingRate = sampleRate;
-			hdmiSettings.AudioBits = BAVC_AudioBits_e16; */
-		}
-		else
-		{
-			/* Configure for DVI mode */
-			hdmiSettings.eOutputFormat = BHDM_OutputFormat_eDVIMode;
-		}
-	}
+            /* Audio settings (for later):
+            set hdmi audio()
+            BAUD_GetClockSamplingRate(GetBAUD(), ??, &sampleRate);
+            hdmiSettings.eAudioSamplingRate = sampleRate;
+            hdmiSettings.AudioBits = BAVC_AudioBits_e16; */
+        }
+        else
+        {
+            /* Configure for DVI mode */
+            hdmiSettings.eOutputFormat = BHDM_OutputFormat_eDVIMode;
+        }
+    }
 
-	edidParameters.eVideoFmt = vidfmt ;
-	edidParameters.xvYccEnabled = false ;
-	TestError(BHDM_EDID_GetPreferredColorimetry(hHDM, &edidParameters, &hdmiSettings.eColorimetry),
-		"BHDM_EDID_GetPreferredColorimetry");
+    edidParameters.eVideoFmt = vidfmt ;
+    edidParameters.xvYccEnabled = false ;
+    TestError(BHDM_EDID_GetPreferredColorimetry(hHDM, &edidParameters, &hdmiSettings.eColorimetry),
+        "BHDM_EDID_GetPreferredColorimetry");
 
     hdmiSettings.eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709;
     hdmiSettings.stVideoSettings.eColorSpace = BAVC_Colorspace_eYCbCr422;
 
-	TestError(BVDC_Display_GetHdmiSettings(hDisplay, &stVdcHdmiSettings),
-		"BVDC_Display_GetHdmiSettings");
-	stVdcHdmiSettings.ulPortId      = BVDC_Hdmi_0;
-	stVdcHdmiSettings.eMatrixCoeffs = hdmiSettings.eColorimetry;
+    TestError(BVDC_Display_GetHdmiSettings(hDisplay, &stVdcHdmiSettings),
+        "BVDC_Display_GetHdmiSettings");
+    stVdcHdmiSettings.ulPortId      = BVDC_Hdmi_0;
+    stVdcHdmiSettings.eMatrixCoeffs = hdmiSettings.eColorimetry;
     stVdcHdmiSettings.eColorComponent = BAVC_Colorspace_eYCbCr422;
     stVdcHdmiSettings.eColorRange = BAVC_ColorRange_eLimited;
     stVdcHdmiSettings.eEotf = BAVC_HDMI_DRM_EOTF_eSDR;
-	TestError(BVDC_Display_SetHdmiSettings(hDisplay, &stVdcHdmiSettings),
-		"BVDC_Display_SetHdmiSettings");
+    TestError(BVDC_Display_SetHdmiSettings(hDisplay, &stVdcHdmiSettings),
+        "BVDC_Display_SetHdmiSettings");
 
-	TestError(BVDC_ApplyChanges(hVDC),
-		"BVDC_ApplyChanges");
+    TestError(BVDC_ApplyChanges(hVDC),
+        "BVDC_ApplyChanges");
 
 #ifdef SPLASH_MASTERTG_DVI
-	BHDM_SetHdmiDataTransferMode(hHDM, true);
+    BHDM_SetHdmiDataTransferMode(hHDM, true);
 #endif
 
-	hdmiSettings.bForceEnableDisplay = true;
-	TestError(BHDM_EnableDisplay(hHDM, &hdmiSettings),
-		"BHDM_EnableDisplay");
+    hdmiSettings.bForceEnableDisplay = true;
+    TestError(BHDM_EnableDisplay(hHDM, &hdmiSettings),
+        "BHDM_EnableDisplay");
 
-	#ifndef BVDC_FOR_BOOTUPDATER
-	TestError(BVDC_Display_InstallCallback(hDisplay,
-		(BVDC_CallbackFunc_isr)BHDM_AudioVideoRateChangeCB_isr, hHDM,
-		BHDM_Callback_Type_eVideoChange),
-		"BVDC_Display_InstallCallback");
-	#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
+    #ifndef BVDC_FOR_BOOTUPDATER
+    TestError(BVDC_Display_InstallCallback(hDisplay,
+        (BVDC_CallbackFunc_isr)BHDM_AudioVideoRateChangeCB_isr, hHDM,
+        BHDM_Callback_Type_eVideoChange),
+        "BVDC_Display_InstallCallback");
+    #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
 done:
-	return eErr;
+    return eErr;
 }
 
 /* Activate HDMI to match the current video format */
 #ifndef BVDC_FOR_BOOTUPDATER
 static void DeactivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_Handle hDisplay)
 {
-	/* uninstall audio callback (later) */
-	BVDC_Display_InstallCallback(hDisplay, NULL, NULL, 0) ;
-	(void) BVDC_ApplyChanges(hVDC);
-	(void) BHDM_DisableDisplay(hHDM);
+    /* uninstall audio callback (later) */
+    BVDC_Display_InstallCallback(hDisplay, NULL, NULL, 0) ;
+    (void) BVDC_ApplyChanges(hVDC);
+    (void) BHDM_DisableDisplay(hHDM);
 }
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 #endif

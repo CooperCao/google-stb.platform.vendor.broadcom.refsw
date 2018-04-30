@@ -18,6 +18,22 @@
 #include "egl_platform_abstract.h"
 #include "egl_surface_common_abstract.h"
 
+static GFX_LFMT_T sand_lfmt(BEGL_BufferFormat format)
+{
+   switch (format)
+   {
+   case BEGL_BufferFormat_eY8:         return GFX_LFMT_Y8_UNORM_2D;
+   case BEGL_BufferFormat_eCr8Cb8:     return GFX_LFMT_U8_V8_2X2_UNORM_2D;
+   case BEGL_BufferFormat_eCb8Cr8:     return GFX_LFMT_V8_U8_2X2_UNORM_2D;
+   case BEGL_BufferFormat_eY10:        return GFX_LFMT_Y10_UNORM_2D;
+   case BEGL_BufferFormat_eCr10Cb10:   return GFX_LFMT_U10V10_2X2_UNORM_2D;
+   case BEGL_BufferFormat_eCb10Cr10:   return GFX_LFMT_V10U10_2X2_UNORM_2D;
+   default:
+      assert(0);
+      return GFX_LFMT_NONE;
+   }
+}
+
 static GFX_LFMT_SWIZZLING_T sand_swizzling(uint32_t stripeWidth)
 {
    uint32_t ddrMap = v3d_scheduler_get_ddr_map_ver();
@@ -64,27 +80,6 @@ static GFX_LFMT_SWIZZLING_T sand_swizzling(uint32_t stripeWidth)
       }
    }
 #endif
-}
-
-static void sand_lfmts_from_surface_info(GFX_LFMT_T *lfmts, const BEGL_SurfaceInfo *info)
-{
-   if (info->format == BEGL_BufferFormat_eSAND8)
-   {
-      lfmts[0] = GFX_LFMT_Y8_UNORM_2D;
-      lfmts[1] = GFX_LFMT_V8_U8_2X2_UNORM_2D;
-   }
-   else if (info->format == BEGL_BufferFormat_eSAND10)
-   {
-      lfmts[0] = GFX_LFMT_Y10_UNORM_2D;
-      lfmts[1] = GFX_LFMT_U10V10_2X2_UNORM_2D;
-   }
-   else
-      assert(0);
-
-   // Set the swizzle
-   GFX_LFMT_SWIZZLING_T swiz = sand_swizzling(info->stripeWidth);
-   gfx_lfmt_set_swizzling(&lfmts[0], swiz);
-   gfx_lfmt_set_swizzling(&lfmts[1], swiz);
 }
 
 static uint32_t lfmts_from_surface_info(
@@ -166,12 +161,19 @@ static uint32_t lfmts_from_surface_info(
       *api_fmt = GFX_LFMT_R8_G8_B8_A8_UNORM;
       lfmts[0] = GFX_LFMT_R8_G8_B8_A8_UNORM_2D_UIF;
       break;
-   case BEGL_BufferFormat_eSAND8:
-   case BEGL_BufferFormat_eSAND10:
+   case BEGL_BufferFormat_eY8:
+   case BEGL_BufferFormat_eY10:
+   {
       *api_fmt = GFX_LFMT_R8_G8_B8_A8_UNORM;
-      sand_lfmts_from_surface_info(lfmts, info);
       num_planes = 2;
+      lfmts[0] = sand_lfmt(info[0].format);
+      lfmts[1] = sand_lfmt(info[1].format);
+      // Set the swizzle
+      GFX_LFMT_SWIZZLING_T swiz = sand_swizzling(info->stripeWidth);
+      gfx_lfmt_set_swizzling(&lfmts[0], swiz);
+      gfx_lfmt_set_swizzling(&lfmts[1], swiz);
       break;
+   }
    default:
       unreachable();
       break;
@@ -251,32 +253,22 @@ static void buffer_desc_from_surface_info(GFX_BUFFER_DESC_T *descs, GFX_LFMT_T *
       p[1].offset = info->height * p[0].pitch;
       p[2].offset = p[1].offset + ((info->height / 2) * p[1].pitch);
    }
-   else if (info->format == BEGL_BufferFormat_eSAND8 || info->format == BEGL_BufferFormat_eSAND10)
+   else if (info[0].format == BEGL_BufferFormat_eY8 || info[0].format == BEGL_BufferFormat_eY10)
    {
       assert(descs->num_planes == 2);
       GFX_BUFFER_DESC_PLANE_T *p = descs->planes;
       GFX_LFMT_BASE_DETAIL_T   bd;
 
       gfx_lfmt_base_detail(&bd, descs->planes[0].lfmt);
-      p[0].pitch = info->lumaStripedHeight * bd.bytes_per_block;
+      p[0].pitch = info[0].stripedHeight * bd.bytes_per_block;
 
       gfx_lfmt_base_detail(&bd, descs->planes[1].lfmt);
-      p[1].pitch = info->chromaStripedHeight * bd.bytes_per_block;
+      p[1].pitch = info[1].stripedHeight * bd.bytes_per_block;
 
-      if (info->lumaAndChromaInSameAllocation)
-      {
-         p[0].offset = 0;
-         p[1].offset = info->chromaOffset - info->physicalOffset;
-         p[0].region = 0;
-         p[1].region = 0;
-      }
-      else
-      {
-         p[0].offset = 0;
-         p[1].offset = 0;
-         p[0].region = 0;
-         p[1].region = 1;
-      }
+      p[0].offset = 0;
+      p[1].offset = 0;
+      p[0].region = 0;
+      p[1].region = 1;
    }
    else
    {
@@ -292,108 +284,130 @@ static void buffer_desc_from_surface_info(GFX_BUFFER_DESC_T *descs, GFX_LFMT_T *
    descs->colorimetry = convert_colorimetry(info->colorimetry);
 }
 
-static void image_term_abstract(void *nativeSurface)
+struct NativeBuffer
 {
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
+   uint32_t type;
+   uint32_t plane;
+   BEGL_NativeBuffer buffer;
+};
 
-   if (platform->SurfaceChangeRefCount)
-      platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Decrement);
-}
-
-static void image_get_base_external_addr(uint64_t external_addr[GFX_BUFFER_MAX_PLANES],
-      const khrn_image *img)
+static void *acquire(uint32_t type, void *eglObject, uint32_t plane,
+      BEGL_SurfaceInfo *surfaceInfo, EGLint *error)
 {
-   memset(external_addr, 0, sizeof(uint64_t) * GFX_BUFFER_MAX_PLANES);
-
-   const khrn_resource *res = khrn_image_get_resource(img);
-   for (unsigned i = 0; i < res->num_handles; i++)
-      external_addr[i] = gmem_get_external_addr(res->handles[i]);
-}
-
-static bool surface_and_desc_equal_with_img(
-      const BEGL_SurfaceInfo *surfaceInfo, const GFX_BUFFER_DESC_T *new_desc,
-      const khrn_image *img)
-{
-   uint64_t base_addr_img[GFX_BUFFER_MAX_PLANES];
-   image_get_base_external_addr(base_addr_img, img);
-
-   uint64_t new_base_addr[GFX_BUFFER_MAX_PLANES];
-   new_base_addr[0] = surfaceInfo->physicalOffset;
-
-   if (!surfaceInfo->lumaAndChromaInSameAllocation &&
-       gfx_lfmt_is_sand_family(new_desc->planes[0].lfmt))
+   struct NativeBuffer *acquired = calloc(1, sizeof(*acquired));
+   if (!acquired)
    {
-      assert(new_desc->num_planes == 2 && new_desc->planes[1].region == 1);
-      new_base_addr[1] = surfaceInfo->chromaOffset;
-   }
-
-   /* check if new locations/fmt/size, etc */
-   return gfx_buffer_equal_with_bases(new_base_addr, new_desc,
-            base_addr_img, khrn_image_get_desc(img));
-}
-
-khrn_image *image_from_surface_abstract_with_existing(void *nativeSurface, bool flipY,
-      unsigned *num_mip_levels, khrn_image *existing_img)
-{
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
-   BEGL_SurfaceInfo       surfaceInfo;
-
-   if (!surface_get_info(nativeSurface, &surfaceInfo))
+      *error = EGL_BAD_ALLOC;
       return NULL;
-
-   GFX_BUFFER_DESC_T  buffer_descs[V3D_MAX_MIP_COUNT];
-   GFX_LFMT_T         api_fmt;
-   gfx_buffer_usage_t usage;
-   buffer_desc_from_surface_info(buffer_descs, &api_fmt, &usage, &surfaceInfo, flipY);
-
-   if (existing_img)
-   {
-      assert(surfaceInfo.miplevels == 1);
-      if (surface_and_desc_equal_with_img(&surfaceInfo, &buffer_descs[0], existing_img))
-      {
-         khrn_mem_acquire(existing_img);
-         return existing_img;
-      }
    }
+
+   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
+   assert(platform->SurfaceAcquire);
+   acquired->type = type;
+   acquired->plane = plane;
+   acquired->buffer = platform->SurfaceAcquire(platform->context, type,
+         eglObject, plane, surfaceInfo);
+   if (!acquired->buffer)
+   {
+      *error = type == BEGL_PIXMAP_BUFFER ?
+            EGL_BAD_NATIVE_PIXMAP : EGL_BAD_PARAMETER;
+      free(acquired);
+      acquired = NULL;
+   }
+   else
+   {
+      *error = EGL_SUCCESS;
+   }
+   return acquired;
+}
+
+static void release(void *nativeBuffer)
+{
+   struct NativeBuffer *acquired = (struct NativeBuffer *)nativeBuffer;
+   if (!acquired)
+      return;
+
+   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
+   assert(platform->SurfaceRelease);
+   platform->SurfaceRelease(platform->context, acquired->type, acquired->plane,
+         acquired->buffer);
+   free(acquired);
+}
+
+khrn_image *image_from_surface_abstract(uint32_t type, void *object, bool flipY,
+      const char *description, unsigned *num_mip_levels, EGLint *error)
+{
+   uint32_t          num_handles = 1;
+   BEGL_SurfaceInfo  surfaceInfo[GFX_BUFFER_MAX_PLANES];
+   gmem_handle_t     gmem_handles[GFX_BUFFER_MAX_PLANES];
+   void             *acquired[GFX_BUFFER_MAX_PLANES];
+   memset(surfaceInfo, 0, sizeof(BEGL_SurfaceInfo) * GFX_BUFFER_MAX_PLANES);
+   memset(gmem_handles, 0, sizeof(gmem_handle_t) * GFX_BUFFER_MAX_PLANES);
+   memset(acquired, 0, sizeof(*acquired) * GFX_BUFFER_MAX_PLANES);
+
+   EGLint dummy;
+   if (!error)
+      error = &dummy; /* to avoid checking for NULL */
+
+   acquired[0] = acquire(type, object, /*plane=*/0, &surfaceInfo[0], error);
+   if (!acquired[0])
+      goto oom;
 
    /* We must be given locked pointers */
-   assert(surfaceInfo.physicalOffset != 0);
+   assert(surfaceInfo[0].physicalOffset != 0);
 
-   if (platform->SurfaceChangeRefCount)
-      platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Increment);
-
-   uint32_t      num_handles = 1;
-   gmem_handle_t gmem_handles[GFX_BUFFER_MAX_PLANES];
-   memset(gmem_handles, 0, sizeof(gmem_handle_t) * GFX_BUFFER_MAX_PLANES);
-
-   gmem_handles[0] = gmem_from_external_memory(image_term_abstract, nativeSurface,
-                                               surfaceInfo.physicalOffset, surfaceInfo.cachedAddr,
-                                               surfaceInfo.byteSize, surfaceInfo.secure,
-                                               surfaceInfo.contiguous, "display_surface");
+   gmem_handles[0] = gmem_from_external_memory(release, acquired[0],
+                                               surfaceInfo[0].physicalOffset, surfaceInfo[0].cachedAddr,
+                                               surfaceInfo[0].byteSize, surfaceInfo[0].secure,
+                                               surfaceInfo[0].contiguous, description);
    if (gmem_handles[0] == GMEM_HANDLE_INVALID)
-      goto oom;
-
-   // Ensure we extract both planes for sand format surfaces with a separate alloc per plane
-   if (!surfaceInfo.lumaAndChromaInSameAllocation &&
-       gfx_lfmt_is_sand_family(buffer_descs[0].planes[0].lfmt))
    {
-      if (platform->SurfaceChangeRefCount)
-         platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Increment);
+      *error = EGL_BAD_ALLOC;
+      goto oom;
+   }
+   acquired[0] = NULL; /* now owned by gmem handle */
+
+   // Ensure we extract both planes for sand format surfaces
+   // which may have a separate alloc per plane
+   if (surfaceInfo[0].format == BEGL_BufferFormat_eY8 ||
+       surfaceInfo[0].format == BEGL_BufferFormat_eY10)
+   {
+      acquired[1] = acquire(type, object, /*plane=*/1, &surfaceInfo[1], error);
+      if (!acquired[1])
+         goto oom;
+
+      /* We must be given locked pointers */
+      assert(surfaceInfo[1].physicalOffset != 0);
+
+      assert(surfaceInfo[0].miplevels == surfaceInfo[1].miplevels);
 
       num_handles = 2;
-      gmem_handles[1] = gmem_from_external_memory(image_term_abstract, nativeSurface,
-                                                  surfaceInfo.chromaOffset, NULL,
-                                                  surfaceInfo.byteSize, surfaceInfo.secure,
-                                                  surfaceInfo.contiguous, "display_surface");
+      gmem_handles[1] = gmem_from_external_memory(release, acquired[1],
+                                                  surfaceInfo[1].physicalOffset, surfaceInfo[1].cachedAddr,
+                                                  surfaceInfo[1].byteSize, surfaceInfo[1].secure,
+                                                  surfaceInfo[1].contiguous, description);
       if (gmem_handles[1] == GMEM_HANDLE_INVALID)
+      {
+         *error = EGL_BAD_ALLOC;
          goto oom;
+      }
+      acquired[1] = NULL; /* now owned by gmem handle */
    }
 
+   GFX_BUFFER_DESC_T  buffer_descs[V3D_MAX_MIP_COUNT];
+   gfx_buffer_usage_t usage;
+   GFX_LFMT_T         api_fmt;
+   buffer_desc_from_surface_info(buffer_descs, &api_fmt, &usage, surfaceInfo, flipY);
+
    khrn_blob *image_blob = khrn_blob_create_from_handles(num_handles, gmem_handles, buffer_descs,
-                                                         surfaceInfo.miplevels, 1,
-                                                         surfaceInfo.byteSize, usage);
+                                                         surfaceInfo[0].miplevels,
+                                                         /*num_array_elems=*/1, /*array_pitch=*/0,
+                                                         usage);
    if (!image_blob)
+   {
+      *error = EGL_BAD_ALLOC;
       goto oom;
+   }
 
    // image_blob now owns gmem_handle
 
@@ -401,32 +415,26 @@ khrn_image *image_from_surface_abstract_with_existing(void *nativeSurface, bool 
                                          /*level=*/0, api_fmt);
    KHRN_MEM_ASSIGN(image_blob, NULL);
 
-   *num_mip_levels = surfaceInfo.miplevels;
+   if (image && num_mip_levels)
+      *num_mip_levels = surfaceInfo[0].miplevels;
+
+   *error = EGL_SUCCESS;
    return image;
 
 oom:
    for (uint32_t p = 0; p < GFX_BUFFER_MAX_PLANES; p++)
+   {
       gmem_free(gmem_handles[p]);
+      release(acquired[p]);
+   }
    return NULL;
 }
 
-khrn_image *image_from_surface_abstract(void *nativeSurface, bool flipY,
-      unsigned *num_mip_levels)
-{
-   return image_from_surface_abstract_with_existing(nativeSurface, flipY,
-         num_mip_levels, NULL);
-}
-
-bool surface_get_info(void *nativeSurface, BEGL_SurfaceInfo *surfaceInfo)
+BEGL_BufferFormat get_pixmap_format(void *nativePixmap)
 {
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
-   if (!platform->SurfaceGetInfo)
-      return false;
-
-   memset(surfaceInfo, 0, sizeof(BEGL_SurfaceInfo));
-
-   if (platform->SurfaceGetInfo(platform->context, nativeSurface, surfaceInfo) != BEGL_Success)
-      return false;
-
-   return true;
+   if (platform->GetPixmapFormat)
+      return platform->GetPixmapFormat(platform->context, nativePixmap);
+   else
+      return BEGL_BufferFormat_INVALID; /* pixmaps unsupported */
 }

@@ -54,8 +54,12 @@ BDBG_MODULE(bape_playback);
 
 BDBG_OBJECT_ID(BAPE_Playback);
 
+#define BAPE_PLAYBACK_USE_TIMER_BASED_INTERRUPTS    0
+
+#if BAPE_PLAYBACK_USE_TIMER_BASED_INTERRUPTS
 #define BAPE_PLAYBACK_INTERRUPT_TIMER_DURATION 10000 /* microseconds */
 static void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2);
+#endif
 static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback);
 static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
 static BERR_Code BAPE_Playback_P_StartPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection);
@@ -687,7 +691,20 @@ BERR_Code BAPE_Playback_Start(
         }
         else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
         {
-            /* TBD7211 - watermark interrupt - low priority, but some apps might want it. Use BTMR. */
+            if ( hPlayback->bufferGroupHandle )
+            {
+                BAPE_BufferGroupInterruptHandlers interrupts;
+
+                BAPE_BufferGroup_GetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                interrupts.freeAvailable.pCallback_isr = hPlayback->interrupts.watermark.pCallback_isr;
+                interrupts.freeAvailable.pParam1 = hPlayback->interrupts.watermark.pParam1;
+                interrupts.freeAvailable.param2 = hPlayback->interrupts.watermark.param2;
+                errCode = BAPE_BufferGroup_SetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                if ( errCode )
+                {
+                    return BERR_TRACE(errCode);
+                }
+            }
         }
     }
 
@@ -749,6 +766,19 @@ err_start_paths:
         /* Remove the interrupt handler */
         (void)BAPE_SfifoGroup_P_SetFreemarkInterrupt(hPlayback->pMaster->sfifoGroup, NULL, NULL, 0);
     }
+    else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+    {
+        if ( hPlayback->bufferGroupHandle )
+        {
+            BAPE_BufferGroupInterruptHandlers interrupts;
+
+            BAPE_BufferGroup_GetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+            interrupts.freeAvailable.pCallback_isr = NULL;
+            interrupts.freeAvailable.pParam1 = NULL;
+            interrupts.freeAvailable.param2 = 0;
+            (void)BAPE_BufferGroup_SetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+        }
+    }
 err_watermark:
 err_no_master:
     BAPE_PathNode_P_ReleasePathResources(&hPlayback->node);
@@ -781,6 +811,19 @@ void BAPE_Playback_Stop(
             if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
             {
                 (void)BAPE_SfifoGroup_P_SetFreemarkInterrupt(hPlayback->pMaster->sfifoGroup, NULL, NULL, 0);
+            }
+            else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+            {
+                if ( hPlayback->bufferGroupHandle )
+                {
+                    BAPE_BufferGroupInterruptHandlers interrupts;
+
+                    BAPE_BufferGroup_GetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                    interrupts.freeAvailable.pCallback_isr = NULL;
+                    interrupts.freeAvailable.pParam1 = NULL;
+                    interrupts.freeAvailable.param2 = 0;
+                    (void)BAPE_BufferGroup_SetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                }
             }
         }
     }
@@ -960,6 +1003,19 @@ void BAPE_Playback_Suspend(
         if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
         {
             (void)BAPE_SfifoGroup_P_SetFreemarkInterrupt(hPlayback->pMaster->sfifoGroup, NULL, NULL, 0);
+        }
+        else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
+        {
+            if ( hPlayback->bufferGroupHandle )
+            {
+                BAPE_BufferGroupInterruptHandlers interrupts;
+
+                BAPE_BufferGroup_GetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                interrupts.freeAvailable.pCallback_isr = NULL;
+                interrupts.freeAvailable.pParam1 = NULL;
+                interrupts.freeAvailable.param2 = 0;
+                (void)BAPE_BufferGroup_SetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+            }
         }
     }
     hPlayback->suspended = true;
@@ -1210,13 +1266,27 @@ BERR_Code BAPE_Playback_SetInterruptHandlers(
         }
         else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
         {
-            /* nothing to do here */
+            if ( hPlayback->bufferGroupHandle )
+            {
+                BAPE_BufferGroupInterruptHandlers interrupts;
+
+                BAPE_BufferGroup_GetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                interrupts.freeAvailable.pCallback_isr = pInterrupts->watermark.pCallback_isr;
+                interrupts.freeAvailable.pParam1 = pInterrupts->watermark.pParam1;
+                interrupts.freeAvailable.param2 = pInterrupts->watermark.param2;
+                errCode = BAPE_BufferGroup_SetInterruptHandlers(hPlayback->bufferGroupHandle, &interrupts);
+                if ( errCode )
+                {
+                    return BERR_TRACE(errCode);
+                }
+            }
         }
     }
 
     return BERR_TRACE(BAPE_Playback_P_ReArmWatermark(hPlayback));
 }
 
+#if BAPE_PLAYBACK_USE_TIMER_BASED_INTERRUPTS
 static void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2)
 {
     BAPE_PlaybackHandle handle = pParam1;
@@ -1238,11 +1308,14 @@ static void BAPE_P_CheckPlaybackStatus_isr (void *pParam1, int param2)
         }
     }
 
+    #if BAPE_PLAYBACK_USE_TIMER_BASED_INTERRUPTS
     if (handle->interruptTimer)
     {
         BERR_TRACE(BTMR_StartTimer_isr(handle->interruptTimer, (unsigned)param2));
     }
+    #endif
 }
+#endif
 
 static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
 {
@@ -1258,6 +1331,7 @@ static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
         }
         else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
         {
+            #if BAPE_PLAYBACK_USE_TIMER_BASED_INTERRUPTS
             BTMR_TimerSettings timerSettings;
 
             if ( hPlayback->interruptTimer )
@@ -1293,6 +1367,7 @@ static BERR_Code BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
                     BDBG_WRN(("Unable to start playback interrupt timer"));
                 }
             }
+            #endif
         }
     }
 

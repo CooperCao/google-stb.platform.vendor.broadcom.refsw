@@ -8,8 +8,9 @@
 #include <cstring>
 #include <cstdio>
 
-#include "EGL/egl.h"
-#include "EGL/eglext_brcm.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/begl_platform.h>
 
 #include "bitmap.h"
 #include "display_priv.h"
@@ -17,6 +18,8 @@
 #include "windowstate.h"
 #include "windowinfo.h"
 #include "../helpers/extent.h"
+#include "../common/nexus_begl_format.h"
+#include "../common/nexus_surface_memory.h"
 
 #define MAX_SWAP_BUFFERS 3
 
@@ -32,36 +35,18 @@ static BEGL_Error DispDefaultOrientation(void *context __attribute__((unused)))
    return BEGL_Fail;
 }
 
-/* Request creation of an appropriate display buffer. Only the 3D driver knows the size and alignment constraints, so the
-* buffer create request must come from the driver. settings->totalByteSize is the size of the memory that the driver needs.
-* We could have just requested a block of memory using the memory interface, but by having the platform layer create a 'buffer'
-* it can actually create whatever type it desires directly, and then only have to deal with that type. For example, in a Nexus
-* platform layer, this function might be implemented to create a NEXUS_Surface (with the correct memory constraints of course).
-* When the buffer handle is passed out during BufferDisplay, the platform layer can simply use it as a NEXUS_Surface. It
-* doesn't have to wrap the memory each time, or perform any lookups. Since the buffer handle is opaque to the 3d driver, the
-* platform layer has complete freedom. */
-static BEGL_BufferHandle DispBufferCreate(void *context, BEGL_PixmapInfoEXT const *bufferRequirements)
+static BEGL_SwapchainBuffer DispBufferDequeue(void *context, void *platformState,
+      BEGL_BufferFormat format, int *fd)
 {
-   auto data = static_cast<NXPL_Display*>(context);
-   auto bitmap = new nxpl::Bitmap(context, bufferRequirements);
-   return static_cast<BEGL_BufferHandle>(bitmap);
-}
+   auto data = static_cast<NXPL_Display *>(context);
+   assert(data != NULL);
 
-/* Destroy a buffer previously created with BufferCreate */
-static BEGL_Error DispBufferDestroy(void *context __attribute__((unused)), BEGL_BufferDisplayState *bufferState)
-{
-   auto bitmap = static_cast<nxpl::Bitmap *>(bufferState->buffer);
-   delete bitmap;
-   return BEGL_Success;
-}
-
-static BEGL_BufferHandle DispBufferDequeue(void *context, void *platformState, BEGL_BufferFormat format, int *fd)
-{
    auto windowState = static_cast<nxpl::WindowState *>(platformState);
+
+   uint64_t before = PerfGetTimeNow();
 
    auto nw = static_cast<nxpl::NativeWindowInfo*>(windowState->GetWindowHandle());
    auto windowExtent = nw->GetExtent2D();
-   auto windowType = nw->GetType();
 
    helper::Extent2D bitmapExtent;
 
@@ -72,18 +57,11 @@ static BEGL_BufferHandle DispBufferDequeue(void *context, void *platformState, B
    // resize or create
    if (windowExtent != bitmapExtent)
    {
-      auto data = static_cast<NXPL_Display *>(context);
-      assert(data != NULL);
-
-      BEGL_PixmapInfoEXT bufferRequirements = {};
-      bufferRequirements.width = windowExtent.GetWidth();
-      bufferRequirements.height = windowExtent.GetHeight();
-      bufferRequirements.format = format;
-      bufferRequirements.secure = windowState->IsSecure();
-
       //printf("create surface %d %d\n", windowExtent.GetWidth(), windowExtent.GetHeight());
 
-      std::unique_ptr<nxpl::Bitmap> tmp(static_cast<nxpl::Bitmap*>(DispBufferCreate(context, &bufferRequirements)));
+      std::unique_ptr<nxpl::Bitmap> tmp(
+            new nxpl::Bitmap(context, windowExtent.GetWidth(),
+                  windowExtent.GetHeight(), format, windowState->IsSecure()));
       bitmap = std::move(tmp);
    }
 
@@ -94,16 +72,32 @@ static BEGL_BufferHandle DispBufferDequeue(void *context, void *platformState, B
    bitmap->UpdateWindowInfo(*nw);
 
    auto buffer = bitmap.release();
-   return static_cast<BEGL_BufferHandle>(buffer);
+
+   static uint32_t eventID = 0;
+   NEXUS_SurfaceHandle surface = buffer->GetSurface();
+
+   PerfAddEventWithTime(data->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_DEQUEUE, eventID,
+                        BCM_EVENT_BEGIN, before, (uintptr_t)surface, *fd);
+   PerfAddEvent(data->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_DEQUEUE, eventID++,
+                BCM_EVENT_END, (uintptr_t)surface, *fd);
+
+   return static_cast<BEGL_SwapchainBuffer>(buffer);
 }
 
-static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_BufferHandle buffer, int swap_interval, int fd)
+static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_SwapchainBuffer buffer, int swap_interval, int fd)
 {
    if (buffer != NULL)
    {
       auto data = static_cast<NXPL_Display *>(context);
       auto windowState = static_cast<nxpl::WindowState *>(platformState);
       std::unique_ptr<nxpl::Bitmap> bitmap(static_cast<nxpl::Bitmap*>(buffer));
+
+      static uint32_t eventID = 0;
+      NEXUS_SurfaceHandle surface = bitmap->GetSurface();
+
+      PerfAddEvent(data->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_QUEUE, eventID, BCM_EVENT_BEGIN,
+                   (uintptr_t)surface, (int32_t)fd, (int32_t)swap_interval);
+
       std::unique_ptr<helper::Semaphore> fence;
       if (fd != -1)
          fence = std::move(std::unique_ptr<helper::Semaphore>(static_cast<helper::Semaphore*>(data->hwInterface->FenceGet(data->hwInterface->context, fd))));
@@ -112,16 +106,18 @@ static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_Buffe
 
       std::unique_ptr<nxpl::DispItem> dispItem(new nxpl::DispItem(std::move(bitmap), std::move(fence), swap_interval));
       windowState->PushDispQ(std::move(dispItem));
+
+      PerfAddEvent(data->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_QUEUE, eventID++, BCM_EVENT_END,
+                    (uintptr_t)surface, (int32_t)fd, (int32_t)swap_interval);
    }
 
    return BEGL_Success;
 }
 
-static BEGL_Error DispBufferCancel(void *context, void *platformState, BEGL_BufferHandle buffer, int fd __attribute__((unused)))
+static BEGL_Error DispBufferCancel(void *context __attribute__((unused)), void *platformState, BEGL_SwapchainBuffer buffer, int fd __attribute__((unused)))
 {
    if (buffer != NULL)
    {
-      auto data = static_cast<NXPL_Display *>(context);
       auto windowState = static_cast<nxpl::WindowState *>(platformState);
       std::unique_ptr<nxpl::Bitmap> bitmap(static_cast<nxpl::Bitmap*>(buffer));
 
@@ -160,18 +156,39 @@ static BEGL_Error DispWindowStateDestroy(void *context __attribute__((unused)), 
    return BEGL_Success;
 }
 
-static BEGL_Error DispSurfaceGetInfo(void *context __attribute__((unused)),
-   uint32_t target __attribute__((unused)),
-   void *buffer,
+static BEGL_NativeBuffer DispAcquireNativeBuffer(void *context __attribute__((unused)),
+   uint32_t target,
+   void *eglObject,
    BEGL_BufferSettings *settings)
 {
-   if (settings && buffer)
+   switch (target)
    {
-      *settings = static_cast<nxpl::Bitmap*>(buffer)->GetCreateSettings();
-      return BEGL_Success;
+   case BEGL_SWAPCHAIN_BUFFER:
+      return (BEGL_NativeBuffer)AcquireNexusSurfaceMemory(
+            static_cast<nxpl::Bitmap*>(eglObject)->GetSurface(), settings);
+   case EGL_NATIVE_PIXMAP_KHR:
+   case BEGL_PIXMAP_BUFFER:
+      return (BEGL_NativeBuffer)AcquireNexusSurfaceMemory(
+            static_cast<NEXUS_SurfaceHandle>(eglObject), settings);
+   default:
+      return NULL;
    }
-   else
+}
+
+static BEGL_Error DispReleaseNativeBuffer(void *context __attribute__((unused)),
+   uint32_t target,
+   BEGL_NativeBuffer buffer)
+{
+   switch (target)
+   {
+   case EGL_NATIVE_PIXMAP_KHR:
+   case BEGL_SWAPCHAIN_BUFFER:
+   case BEGL_PIXMAP_BUFFER:
+      ReleaseNexusSurfaceMemory(static_cast<NEXUS_MemoryBlockHandle>(buffer));
+      return BEGL_Success;
+   default:
       return BEGL_Fail;
+   }
 }
 
 typedef struct NXPL_DisplayInterface : BEGL_DisplayInterface
@@ -182,29 +199,26 @@ typedef struct NXPL_DisplayInterface : BEGL_DisplayInterface
 extern "C" BEGL_DisplayInterface *NXPL_CreateDisplayInterface(BEGL_MemoryInterface *memIface,
    BEGL_HWInterface     *hwIface,
    NEXUS_DISPLAYHANDLE display,
-   BEGL_DisplayCallbacks *displayCallbacks)
+   EventContext *eventContext)
 {
-   assert(displayCallbacks->BufferGetRequirements != NULL);
-
    std::unique_ptr<NXPL_DisplayInterface> disp(new NXPL_DisplayInterface());
    if (!disp)
       return NULL;
 
    disp->context = &disp->data;
-   disp->BufferCreate = DispBufferCreate;
    disp->BufferDequeue = DispBufferDequeue;
    disp->BufferQueue = DispBufferQueue;
    disp->BufferCancel = DispBufferCancel;
-   disp->BufferDestroy = DispBufferDestroy;
    disp->DefaultOrientation = DispDefaultOrientation;
    disp->WindowPlatformStateCreate = DispWindowStateCreate;
    disp->WindowPlatformStateDestroy = DispWindowStateDestroy;
-   disp->SurfaceGetInfo = DispSurfaceGetInfo;
+   disp->AcquireNativeBuffer = DispAcquireNativeBuffer;
+   disp->ReleaseNativeBuffer = DispReleaseNativeBuffer;
 
    disp->data.memInterface = memIface;
    disp->data.hwInterface = hwIface;
    disp->data.display = display;
-   disp->data.bufferGetRequirementsFunc = displayCallbacks->BufferGetRequirements;
+   disp->data.eventContext = eventContext;
 
    BEGL_HWInfo info;
    disp->data.hwInterface->GetInfo(disp->data.hwInterface->context, &info);
@@ -217,7 +231,7 @@ extern "C" BEGL_DisplayInterface *NXPL_CreateDisplayInterface(BEGL_MemoryInterfa
       if (ttstart != ttend)
       {
          printf("\n\nNXPL : NXPL_CreateDisplayInterface() ERROR.\nThe Heap you have selected in your platform layer straddles a 1GB boundary\n"
-                "Start 0x%llX, Size %p\n", memStatus.offset, memStatus.size);
+                "Start 0x%llX, Size 0x%x\n", memStatus.offset, memStatus.size);
          goto error;
       }
    }
@@ -231,21 +245,6 @@ error:
 extern "C" void NXPL_DestroyDisplayInterface(BEGL_DisplayInterface *p)
 {
    auto disp = std::unique_ptr<NXPL_DisplayInterface>(static_cast<NXPL_DisplayInterface *>(p));
-}
-
-extern "C" bool NXPL_BufferGetRequirements(NXPL_PlatformHandle handle,
-   BEGL_PixmapInfoEXT *bufferRequirements,
-   BEGL_BufferSettings * bufferConstrainedRequirements)
-{
-   auto data = static_cast<BEGL_DriverInterfaces*>(handle);
-
-   if (data != NULL && data->displayCallbacks.BufferGetRequirements != NULL)
-   {
-      data->displayCallbacks.BufferGetRequirements(bufferRequirements, bufferConstrainedRequirements);
-      return true;
-   }
-
-   return false;
 }
 
 extern "C" void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
@@ -267,49 +266,48 @@ extern "C" bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle,
 
    assert(info->magic == PIXMAP_INFO_MAGIC);
 
-   if (!(data != NULL && data->displayCallbacks.PixmapCreateCompatiblePixmap != NULL))
-      return false;
-
    if (surface == NULL)
       return false;
 
-   BEGL_BufferHandle buffer = data->displayCallbacks.PixmapCreateCompatiblePixmap(info);
-   if (buffer == NULL)
-      return false;
+   NEXUS_SurfaceCreateSettings surfSettings;
+   NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
 
-   *pixmapHandle = static_cast<void*>(buffer);
-   *surface = static_cast<nxpl::Bitmap*>(buffer)->GetSurface();
+   surfSettings.pixelFormat = BeglToNexusFormat(info->format);
+   if (surfSettings.pixelFormat == NEXUS_PixelFormat_eUnknown)
+   {
+      printf("%s: incompatible format!\n", __FUNCTION__);
+      return false;
+   }
+
+   surfSettings.heap = info->secure ?
+         NXPL_MemHeapSecure(data->memInterface) :
+         NXPL_MemHeap(data->memInterface);
+   if (!surfSettings.heap)
+   {
+      printf("%s: no heap!\n", __FUNCTION__);
+      return false;
+   }
+
+   surfSettings.width = info->width;
+   surfSettings.height = info->height;
+   surfSettings.compatibility.graphicsv3d = true;
+   NEXUS_SurfaceHandle nexusSurface = NEXUS_Surface_Create(&surfSettings);
+   if (!nexusSurface)
+   {
+      printf("%s: could not create compatible surface!\n", __FUNCTION__);
+      return false;
+   }
+
+   *pixmapHandle = nexusSurface;
+   *surface = nexusSurface;
    return true;
 }
 
-extern "C" bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle,
-   void **pixmapHandle, NEXUS_SurfaceHandle *surface,
-   BEGL_PixmapInfo *info)
+extern "C" void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle /*handle*/, void *pixmapHandle)
 {
-   BEGL_PixmapInfoEXT   infoEXT;
-
-   NXPL_GetDefaultPixmapInfoEXT(&infoEXT);
-
-   infoEXT.width = info->width;
-   infoEXT.height = info->height;
-   infoEXT.format = info->format;
-
-   return NXPL_CreateCompatiblePixmapEXT(handle, pixmapHandle, surface, &infoEXT);
-}
-
-extern "C" void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle)
-{
-   BEGL_DriverInterfaces *data = static_cast<BEGL_DriverInterfaces*>(handle);
-
-   if (data != NULL &&
-      data->displayInterface != NULL &&
-      data->displayInterface->BufferDestroy != NULL)
-   {
-      BEGL_BufferDisplayState state = {};
-      state.buffer = static_cast<BEGL_BufferHandle>(pixmapHandle);
-
-      data->displayInterface->BufferDestroy(data->displayInterface->context, &state);
-   }
+   auto nexusSurface = static_cast<NEXUS_SurfaceHandle>(pixmapHandle);
+   if (nexusSurface)
+      NEXUS_Surface_Destroy(nexusSurface);
 }
 
 extern "C" void NXPL_GetDefaultNativeWindowInfoEXT(NXPL_NativeWindowInfoEXT *info)

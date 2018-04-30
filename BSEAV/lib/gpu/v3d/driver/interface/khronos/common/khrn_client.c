@@ -8,10 +8,6 @@
 #include "interface/khronos/ext/egl_khr_sync_client.h"
 #endif
 
-#if EGL_BRCM_driver_monitor
-#include "interface/khronos/ext/egl_brcm_driver_monitor_client.h"
-#endif
-
 #include "middleware/khronos/egl/egl_server.h"
 
 #include "interface/vcos/vcos.h"
@@ -27,6 +23,9 @@ void client_thread_state_init(CLIENT_THREAD_STATE_T *state)
    state->opengl.context = NULL;
    state->opengl.draw = NULL;
    state->opengl.read = NULL;
+
+   state->events_acquired = false;
+   state->perf_counters_acquired = false;
 }
 
 extern void egl_current_release_surfaces(EGL_SERVER_STATE_T *state, CLIENT_THREAD_STATE_T *thread);
@@ -50,30 +49,6 @@ EGL_CONTEXT_T *egl_get_context(CLIENT_THREAD_STATE_T *thread, EGL_SERVER_STATE_T
 }
 
 EGL_SURFACE_T *egl_get_surface(CLIENT_THREAD_STATE_T *thread, EGL_SERVER_STATE_T *state, EGLSurface surf)
-{
-   EGL_SURFACE_T *surface = khrn_map_lookup(&state->surfaces, (uint32_t)(uintptr_t)surf);
-
-   if (surface == NULL)
-      thread->error = EGL_BAD_SURFACE;
-
-#if EGL_KHR_lock_surface
-   else
-   {
-      if (surface && surface->is_locked) {
-         thread->error = EGL_BAD_ACCESS;
-         surface = NULL;
-      }
-   }
-#endif
-
-   return surface;
-}
-
-/*
-   We don't actually insist that the surface is locked. But unlike client_egl_get_surface, we don't throw an
-   error if it isn't.
-*/
-EGL_SURFACE_T *egl_get_locked_surface(CLIENT_THREAD_STATE_T *thread, EGL_SERVER_STATE_T *state, EGLSurface surf)
 {
    EGL_SURFACE_T *surface = khrn_map_lookup(&state->surfaces, (uint32_t)(uintptr_t)surf);
 
@@ -138,8 +113,6 @@ void client_thread_detach(void * tls)
 
 void client_process_detach(void)
 {
-   EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
-
    client_thread_detach(NULL);
    server_process_state_term();
    platform_tls_destroy(client_tls);

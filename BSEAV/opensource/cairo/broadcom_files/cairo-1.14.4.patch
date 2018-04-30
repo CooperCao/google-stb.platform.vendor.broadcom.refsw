@@ -1,0 +1,82 @@
+diff --git a/build/configure.ac.features b/build/configure.ac.features
+index 77f2035..72b5465 100644
+--- a/build/configure.ac.features
++++ b/build/configure.ac.features
+@@ -386,6 +386,7 @@ AC_DEFUN([CAIRO_REPORT],
+ 	echo "  OpenGL ES 2.0: $use_glesv2"
+ 	echo "  BeOS:          $use_beos"
+ 	echo "  DirectFB:      $use_directfb"
++	echo "  Nexus:         $use_nexus"
+ 	echo "  OpenVG:        $use_vg"
+ 	echo "  DRM:           $use_drm"
+ 	echo "  Cogl:          $use_cogl"
+@@ -424,4 +425,3 @@ AC_DEFUN([CAIRO_REPORT],
+ 	echo "$CAIRO_WARNING_MESSAGE"
+ 	echo ""
+ ])dnl
+-
+diff --git a/configure.ac b/configure.ac
+index 2ce1959..e075976 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -401,6 +401,14 @@ CAIRO_ENABLE_SURFACE_BACKEND(directfb, directfb, no, [
+ 
+ dnl ===========================================================================
+ 
++CAIRO_ENABLE_SURFACE_BACKEND(nexus, Nexus, no, [
++  dnl There is no pkgconfig for Nexus; lets do a header check
++  save_CFLAGS="$CFLAGS"
++  CFLAGS="$CFLAGS $nexus_CFLAGS"
++  AC_CHECK_HEADER(nexus_graphics2d.h,, [use_nexus="no (Nexus headers not found)"])
++  CFLAGS="$save_CFLAGS"
++])
++
+ CAIRO_ENABLE_SURFACE_BACKEND(vg, OpenVG, no, [
+   dnl There is no pkgconfig for OpenVG; lets do a header check
+   AC_CHECK_HEADER(VG/openvg.h,, [use_vg="no (OpenVG headers not found)"])
+@@ -417,7 +425,7 @@ CAIRO_ENABLE_FUNCTIONS(egl, EGL, auto, [
+       egl_REQUIRES="egl"
+       PKG_CHECK_MODULES(egl, $egl_REQUIRES, ,
+ 		    [egl_REQUIRES=""
+-		     AC_CHECK_HEADER(EGL/egl.h,, [use_egl="no (EGL headers not found)"])
++             AC_CHECK_HEADER(EGL/egl.h,, [use_egl="no (EGL headers not found)"])
+ 		     if test "x$use_egl" = "xyes"; then
+ 			 egl_NONPKGCONFIG_CFLAGS=
+ 			 egl_NONPKGCONFIG_LIBS=
+@@ -438,7 +446,7 @@ CAIRO_ENABLE_FUNCTIONS(egl, EGL, auto, [
+ 			 fi
+ 			 LIBS="$save_LIBS"
+ 		     fi
+-  	])
++     ])
+   else
+       use_egl="no (not required by any backend)"
+   fi
+diff --git a/src/Makefile.sources b/src/Makefile.sources
+index fac24d7..2f47474 100644
+--- a/src/Makefile.sources
++++ b/src/Makefile.sources
+@@ -414,6 +414,9 @@ cairo_wgl_sources += cairo-wgl-context.c
+ cairo_directfb_headers = cairo-directfb.h
+ cairo_directfb_sources = cairo-directfb-surface.c
+ 
++cairo_nexus_headers = cairo-nexus.h CNexus.h
++cairo_nexus_sources = cairo-nexus-surface.c CNexus.c
++
+ cairo_drm_headers = cairo-drm.h
+ cairo_drm_private = drm/cairo-drm-private.h \
+ 		    drm/cairo-drm-ioctl-private.h \
+diff --git a/src/cairo.h b/src/cairo.h
+index 3104d47..bf5b972 100644
+--- a/src/cairo.h
++++ b/src/cairo.h
+@@ -2394,7 +2394,8 @@ typedef enum _cairo_surface_type {
+     CAIRO_SURFACE_TYPE_XML,
+     CAIRO_SURFACE_TYPE_SKIA,
+     CAIRO_SURFACE_TYPE_SUBSURFACE,
+-    CAIRO_SURFACE_TYPE_COGL
++    CAIRO_SURFACE_TYPE_COGL,
++    CAIRO_SURFACE_TYPE_NEXUS
+ } cairo_surface_type_t;
+ 
+ cairo_public cairo_surface_type_t

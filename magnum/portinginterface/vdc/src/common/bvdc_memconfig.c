@@ -358,6 +358,10 @@ BERR_Code BVDC_GetMemoryConfiguration
         (BKNI_Malloc(sizeof(BVDC_MemConfigSettings)));
     if(!pBoxMemConfigSettings)
     {
+        if(pSystemConfigInfo)
+        {
+            BKNI_Free((void*)pSystemConfigInfo);
+        }
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
     *pBoxMemConfigSettings = *pMemConfigSettings;
@@ -372,7 +376,17 @@ BERR_Code BVDC_GetMemoryConfiguration
     /* Validate input settings */
     err = BVDC_P_MemConfig_Validate(pBoxMemConfigSettings, pSystemConfigInfo);
     if(err != BERR_SUCCESS)
+    {
+        if(pSystemConfigInfo)
+        {
+            BKNI_Free((void*)pSystemConfigInfo);
+        }
+        if(pBoxMemConfigSettings)
+        {
+            BKNI_Free((void*)pBoxMemConfigSettings);
+        }
         return BERR_TRACE(err);
+    }
 
     if(pBoxConfig)
     {
@@ -429,7 +443,17 @@ BERR_Code BVDC_GetMemoryConfiguration
 #if BVDC_P_SUPPORT_VIP
     err = BVDC_P_Memconfig_GetVipSize(pBoxMemConfigSettings, pMemConfig);
     if(err != BERR_SUCCESS)
+    {
+        if(pSystemConfigInfo)
+        {
+            BKNI_Free((void*)pSystemConfigInfo);
+        }
+        if(pBoxMemConfigSettings)
+        {
+            BKNI_Free((void*)pBoxMemConfigSettings);
+        }
         return BERR_TRACE(err);
+    }
 #endif
 
 #if BVDC_P_CMP_CFC_VER >= 3

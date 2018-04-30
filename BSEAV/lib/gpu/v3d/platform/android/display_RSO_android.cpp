@@ -13,8 +13,11 @@
 #include "nexus_memory.h"
 #include "nexus_platform.h"
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
 #include <cutils/properties.h>
-#include <log/log.h>
+#include <cutils/log.h>
 
 #define NX_MMA "ro.nx.mma"
 
@@ -152,16 +155,9 @@ static BEGL_Error DispGetNativeFormat(void *context [[gnu::unused]],
    return res;
 }
 
-static BEGL_Error DispSurfaceGetInfo(void *context,
-   uint32_t target [[gnu::unused]],
-   void *buffer,
-   BEGL_BufferSettings *settings)
+
+static void GetSettings(ANativeWindowBuffer *abuf, BEGL_BufferSettings *settings)
 {
-   auto abuf = static_cast<ANativeWindowBuffer*>(buffer);
-
-   if (!isANativeWindowBuffer(abuf) || (settings == nullptr))
-      return BEGL_Fail;
-
    auto hnd = static_cast<private_handle_t const*>(abuf->handle);
 
    settings->physOffset = hnd->nxSurfacePhysicalAddress;
@@ -170,29 +166,56 @@ static BEGL_Error DispSurfaceGetInfo(void *context,
    settings->width = abuf->width;
    settings->height = abuf->height;
    AndroidToBeglFormat(abuf->format, &settings->format);
-
-   return BEGL_Success;
 }
 
-static BEGL_Error DispSurfaceChangeRefCount(void *context,
-   uint32_t target [[gnu::unused]],
-   void *buffer, BEGL_RefCountMode incOrDec)
+static BEGL_NativeBuffer DispAcquireNativeBuffer(void *context [[gnu::unused]],
+      uint32_t target, void *eglObject, BEGL_BufferSettings *settings)
 {
-   auto abuf = static_cast<ANativeWindowBuffer*>(buffer);
-
-   if (!isANativeWindowBuffer(abuf))
-      return BEGL_Fail;
-
-   switch (incOrDec)
+   switch (target)
    {
-   case BEGL_Increment: abuf->common.incRef(&abuf->common); break;
-   case BEGL_Decrement: abuf->common.decRef(&abuf->common); break;
-   default: assert(0); return BEGL_Fail;
+   case EGL_NATIVE_BUFFER_ANDROID:
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      auto abuf = static_cast<ANativeWindowBuffer*>(eglObject);
+
+      if (!isANativeWindowBuffer(abuf) || (settings == nullptr))
+         return NULL;
+
+      GetSettings(abuf, settings);
+      abuf->common.incRef(&abuf->common);
+
+      return static_cast<BEGL_NativeBuffer>(abuf);
    }
-   return BEGL_Success;
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      return NULL;
+   }
 }
 
-static BEGL_BufferHandle DispBufferDequeue(void *context, void *platformState, BEGL_BufferFormat format, int *fd)
+static BEGL_Error DispReleaseNativeBuffer(void *context [[gnu::unused]],
+      uint32_t target, BEGL_NativeBuffer native_buffer)
+{
+   switch (target)
+   {
+   case EGL_NATIVE_BUFFER_ANDROID:
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      auto abuf = static_cast<ANativeWindowBuffer*>(native_buffer);
+
+      if (!isANativeWindowBuffer(abuf))
+         return BEGL_Fail;
+
+      abuf->common.decRef(&abuf->common);
+      return BEGL_Success;
+   }
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      return BEGL_Fail;
+   }
+}
+
+static BEGL_SwapchainBuffer DispBufferDequeue(void *context,
+      void *platformState, BEGL_BufferFormat format, int *fd)
 {
    auto anw = static_cast<ANativeWindow*>(platformState);
    if (anw == NULL)
@@ -221,10 +244,10 @@ static BEGL_BufferHandle DispBufferDequeue(void *context, void *platformState, B
    if (res != 0)
       return nullptr;
 
-   return static_cast<BEGL_BufferHandle>(buffer);
+   return static_cast<BEGL_SwapchainBuffer>(buffer);
 }
 
-static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_BufferHandle buffer, int swap_interval, int fd)
+static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_SwapchainBuffer buffer, int swap_interval, int fd)
 {
    auto anw = static_cast<ANativeWindow*>(platformState);
    auto *abuf = static_cast<ANativeWindowBuffer*>(buffer);
@@ -243,7 +266,7 @@ static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_Buffe
    return BEGL_Success;
 }
 
-static BEGL_Error DispBufferCancel(void *context, void *platformState, BEGL_BufferHandle buffer, int fd)
+static BEGL_Error DispBufferCancel(void *context, void *platformState, BEGL_SwapchainBuffer buffer, int fd)
 {
    auto anw = static_cast<ANativeWindow*>(platformState);
    auto *abuf = static_cast<ANativeWindowBuffer*>(buffer);
@@ -264,8 +287,7 @@ static BEGL_Error DispBufferCancel(void *context, void *platformState, BEGL_Buff
 
 __attribute__((visibility("default")))
 extern "C" BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInterface *mem,
-   BEGL_HWInterface *hw,
-   BEGL_DisplayCallbacks *displayCallbacks)
+   BEGL_HWInterface *hw)
 {
    std::unique_ptr<BEGL_DisplayInterface> disp(new BEGL_DisplayInterface());
    if (disp == nullptr)
@@ -292,8 +314,8 @@ extern "C" BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInte
    disp->WindowPlatformStateCreate = DispWindowStateCreate;
    disp->WindowPlatformStateDestroy = DispWindowStateDestroy;
    disp->GetNativeFormat = DispGetNativeFormat;
-   disp->SurfaceGetInfo = DispSurfaceGetInfo;
-   disp->SurfaceChangeRefCount = DispSurfaceChangeRefCount;
+   disp->AcquireNativeBuffer = DispAcquireNativeBuffer;
+   disp->ReleaseNativeBuffer = DispReleaseNativeBuffer;
 
    return disp.release();
 }
@@ -307,20 +329,4 @@ extern "C" void RSOANPL_DestroyDisplayInterface(BEGL_DisplayInterface *disp)
       delete data;
       delete disp;
    }
-}
-
-__attribute__((visibility("default")))
-extern "C" bool RSOANPL_BufferGetRequirements(RSOANPL_PlatformHandle handle,
-   BEGL_PixmapInfoEXT *bufferRequirements,
-   BEGL_BufferSettings * bufferConstrainedRequirements)
-{
-   auto data = static_cast<BEGL_DriverInterfaces*>(handle);
-
-   if (data != nullptr && data->displayCallbacks.BufferGetRequirements != nullptr)
-   {
-      data->displayCallbacks.BufferGetRequirements(bufferRequirements, bufferConstrainedRequirements);
-      return true;
-   }
-
-   return false;
 }

@@ -386,10 +386,8 @@ bool v3d_tmu_output_32(v3d_tmu_type_t type, bool shadow)
    case V3D_TMU_TYPE_R32UI:
    case V3D_TMU_TYPE_RG32UI:
    case V3D_TMU_TYPE_RGBA32UI:
-#if !V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_TMU_TYPE_S8:
    case V3D_TMU_TYPE_S16:
-#endif
       return true;
    default:
       unreachable();
@@ -905,6 +903,10 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg, bool off_written
       }
    }
 #endif
+   /* Compressed textures not supported with large 1D */
+   if(gfx_lfmt_is_compressed(cfg->mip_levels[0].planes[0].lfmt)) {
+      assert(cfg->width <= V3D_MAX_TEXTURE_SIZE);
+   }
 
    /* Must not specify both; this will confuse HW!
     * fetch implies unnormalised (integer) coords. */
@@ -1089,7 +1091,9 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    }
    else
    {
+#if V3D_HAS_GFXH1734_FIX
       cfg->pix_mask = true;
+#endif
       assert(!sampler);
    }
 
@@ -1134,7 +1138,6 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    cfg->min_lod = cfg->max_lod = (tex_state->base_level << V3D_TMU_F_BITS);
    if (sampler)
    {
-#if V3D_VER_AT_LEAST(4,1,34,0)
       if (sampler->aniso_en)
       {
          switch (sampler->max_aniso)
@@ -1151,11 +1154,8 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->magfilt = sampler->magfilt;
       cfg->minfilt = sampler->minfilt;
       cfg->mipfilt = sampler->mipfilt;
-#else
-      set_filters(cfg, sampler->filters);
-#endif
       cfg->compare_func = sampler->compare_func;
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
       if (p2 && p2->sampler_lod_dis)
       {
          cfg->max_lod += 0xfff;
@@ -1176,11 +1176,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->aniso_level = 0;
       cfg->magfilt = V3D_TMU_FILTER_LINEAR;
       cfg->minfilt = V3D_TMU_FILTER_LINEAR;
-#if V3D_VER_AT_LEAST(4,1,34,0)
       cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
-#else
-      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
-#endif
       cfg->compare_func = V3D_COMPARE_FUNC_LEQUAL;
       cfg->max_lod += 0xfff;
       cfg->fixed_bias = 0;
@@ -1197,7 +1193,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    {
       assert(p2->gather_comp < 4);
       cfg->swizzles[0] = cfg->swizzles[p2->gather_comp];
-#if V3D_HAS_GATHER_NO_ANISO /* GFXH-1669 */
+#if V3D_VER_AT_LEAST(4,2,14,0) /* GFXH-1669 */
       cfg->aniso_level = 0;
 #endif
       cfg->magfilt = V3D_TMU_FILTER_LINEAR;
@@ -1209,14 +1205,9 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    if (!cfg->fetch && (tex_state->base_level == tex_state->max_level))
    {
       /* See GFXS-732 */
-#if V3D_VER_AT_LEAST(4,1,34,0)
       cfg->mipfilt = V3D_TMU_MIPFILT_NEAREST;
       cfg->min_lod = gfx_umin(cfg->min_lod, (tex_state->base_level << V3D_TMU_F_BITS) + 1);
       cfg->max_lod = gfx_umin(cfg->max_lod, (tex_state->base_level << V3D_TMU_F_BITS) + 1);
-#else
-      cfg->aniso_level = 0;
-      cfg->mipfilt = V3D_TMU_MIPFILT_BASE;
-#endif
    }
    else
    {

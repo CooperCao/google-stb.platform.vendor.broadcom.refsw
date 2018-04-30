@@ -113,7 +113,7 @@ void Buffer::FillBuffer(VkDeviceSize dstOffset, VkDeviceSize devSize, uint32_t d
    assert((dstOffset % sizeof(uint32_t)) == 0);
    assert(size == VK_WHOLE_SIZE || (size % sizeof(uint32_t)) == 0);
 
-   if (m_size != VK_WHOLE_SIZE)
+   if (size != VK_WHOLE_SIZE)
    {
       count = size / sizeof(uint32_t);
    }

@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+#ifdef NEXUS_HAS_CEC
 #include "cec_remote.h"
 #include "convert.h"
 #include "atlas.h"
@@ -382,3 +383,4 @@ CCecRemote::~CCecRemote()
 {
  close();
 }
+#endif

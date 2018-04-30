@@ -25,7 +25,8 @@ typedef enum
    BEGL_MemMmuUnsecureBinTranslation,
    BEGL_MemMmuSecureBinTranslation,
    BEGL_MemPlatformToken,
-   BEGL_MemTotal
+   BEGL_MemTotal,
+   BEGL_MemAllocsAreFlushed
 } BEGL_MemInfoType;
 
 /* These must match gmem usage flags */
@@ -41,20 +42,29 @@ typedef enum
 
 typedef void *BEGL_MemHandle;
 
+
+enum
+{
+   BEGL_MaxPlanes = 3
+};
+
 typedef struct
 {
    uint32_t            width;                 // Surface visible width
    uint32_t            height;                // Surface visible height
    bool                secure;                // Do a secure conversion
 
-   void               *srcNativeSurface;      // The source surface (opaque at this level)
    BEGL_Colorimetry    srcColorimetry;
+   uint32_t            stripeWidth;          // Stripe width (SAND format)
 
-   BEGL_BufferFormat   dstFormat;             // Format of the destination surface
-   uint32_t            dstAlignment;          // In log2(bytes)
-   uint32_t            dstPitch;              // Pitch of the dst surface
-   BEGL_MemHandle      dstMemoryBlock;        // The destination memory block
-   uint32_t            dstMemoryOffset;       // Offset from start of memory block
+   struct
+   {
+      BEGL_BufferFormat   format;             // Format of the destination surface
+      BEGL_MemHandle      block;              // Memory block, or NULL
+      uint64_t            offset;             // Physical offset or offset from the start of memory block
+      uint32_t            pitch;              // Pitch of the surface
+      uint32_t            stripeHeight;       // Stripe height (SAND format)
+   } src[BEGL_MaxPlanes], dst;
 } BEGL_SurfaceConversionInfo;
 
 typedef struct BEGL_MemoryInterface

@@ -107,7 +107,7 @@ protected:
    // specialized builder sub-classes
    virtual void CreateBinnerControlList(CmdBinRenderJobObj *brJob, v3d_barrier_flags syncFlags) = 0;
    virtual void CreateRenderControlList(CmdBinRenderJobObj *brJob, const ControlList  &genTileList,
-                                        v3d_barrier_flags syncFlags) = 0;
+                                        v3d_barrier_flags syncFlags, bool allowEarlyDSClear) = 0;
 
    // Bin job control list helpers
    void StartBinJobCL(
@@ -127,10 +127,10 @@ protected:
          CmdBinRenderJobObj *brJob,
          ControlList        *renderList);
 
-   void InsertInitialTLBClear(
-         bool doubleBuffer,
-         bool renderTargets,
-         bool depthStencil);
+   void InsertDummyTiles(
+         bool clearDoubleBuffer,
+         bool clearRenderTargets,
+         bool clearDepthStencil);
 
    void EndRenderJobCL(
          CmdBinRenderJobObj *brJob,
@@ -141,14 +141,14 @@ protected:
 
 private:
    // Generic Tile List generation
-   void CreateGenericTileList(CmdBinRenderJobObj *brJob, ControlList &gtl);
+   void CreateGenericTileList(CmdBinRenderJobObj *brJob, ControlList &gtl, bool *allowEarlyDSClear);
    void AddTileListBranches(CmdBinRenderJobObj *brJob);
 
 protected:
    // Custom Tile List load/store generation, implemented by the specialized
    // builder sub-classes.
-   virtual void AddTileListLoads() = 0;
-   virtual void AddTileListStores() = 0;
+   virtual void AddTileListLoads(bool *allowEarlyDSClear) = 0;
+   virtual void AddTileListStores(bool *allowEarlyDSClear) = 0;
 
 private:
    void ExpandDeviceMemory();
@@ -171,7 +171,6 @@ public:
    // Flags to control forced render target loads and stores (for intermediate flushes)
    bool               m_forceRTLoad  = false;
    bool               m_forceRTStore = false;
-
 };
 
 } // namespace bvk

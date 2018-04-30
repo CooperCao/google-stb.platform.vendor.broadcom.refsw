@@ -17,7 +17,6 @@ static const struct intrinsic_info_s intrinsic_info[INTRINSIC_COUNT] = {
    { INTRINSIC_TEXTURE,        "texture"        },
    { INTRINSIC_TEXTURE_SIZE,   "textureSize"    },
    { INTRINSIC_RSQRT,          "rsqrt"          },
-   { INTRINSIC_RCP,            "rcp"            },
    { INTRINSIC_LOG2,           "log2"           },
    { INTRINSIC_EXP2,           "exp2"           },
    { INTRINSIC_CEIL,           "ceil"           },
@@ -178,7 +177,6 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
       break;
 
    case INTRINSIC_RSQRT:
-   case INTRINSIC_RCP:
    case INTRINSIC_LOG2:
    case INTRINSIC_EXP2:
    case INTRINSIC_TRUNC:

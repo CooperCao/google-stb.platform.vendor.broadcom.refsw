@@ -313,6 +313,8 @@ void SysCalls::init() {
     dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
     dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
     dispatchTableExt[EXT_sched_runtask - EXT_SYS_CALL_BASE] = doSchedRunTask;
+    dispatchTableExt[EXT_critical_sec_enter - EXT_SYS_CALL_BASE] = doCriticalSecEnter;
+    dispatchTableExt[EXT_critical_sec_exit - EXT_SYS_CALL_BASE] = doCriticalSecExit;
 
     paramsPagePhys.cpuLocal() = TzMem::allocPage(KERNEL_PID);
     if (paramsPagePhys.cpuLocal() == nullptr) {

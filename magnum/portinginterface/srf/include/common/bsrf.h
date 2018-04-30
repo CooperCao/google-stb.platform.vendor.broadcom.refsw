@@ -267,6 +267,7 @@ typedef struct BSRF_ApiFunctTable
    BERR_Code (*PowerUpAntennaSense)(BSRF_ChannelHandle);
    BERR_Code (*PowerDownAntennaSense)(BSRF_ChannelHandle);
    BERR_Code (*Tune)(BSRF_ChannelHandle, uint32_t);
+   BERR_Code (*Notch)(BSRF_ChannelHandle h, bool, uint32_t, uint8_t);
    BERR_Code (*GetTunerStatus)(BSRF_ChannelHandle, BSRF_TunerStatus*);
    BERR_Code (*ResetClipCount)(BSRF_ChannelHandle);
    BERR_Code (*GetClipCount)(BSRF_ChannelHandle, uint32_t*);
@@ -673,6 +674,17 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BSRF_Tune(BSRF_ChannelHandle h, uint32_t freqHz);
+
+
+/******************************************************************************
+Summary:
+   Enables the notch filter
+Description:
+   The function will enable the notch at specified frequency and bandwidth.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_Notch(BSRF_ChannelHandle h, bool bEnable, uint32_t freqHz, uint8_t bandwidth);
 
 
 /******************************************************************************

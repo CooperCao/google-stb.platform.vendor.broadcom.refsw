@@ -277,15 +277,16 @@ static BERR_Code BCHP_PWR_P_Init(BCHP_Handle handle)
     const BCHP_PWR_P_Resource *resource = NULL;
     unsigned i, idx;
     unsigned *refcnt;
+    unsigned size = sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES;
     BERR_Code rc = BERR_SUCCESS;
 
     BDBG_MSG(("BCHP_PWR_P_Init: >"));
-    refcnt = BKNI_Malloc(sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+    refcnt = BKNI_Malloc(size);
     if (!refcnt) {
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto error;
     }
-    BKNI_Memset(refcnt, 0, sizeof(refcnt));
+    BKNI_Memset(refcnt, 0, size);
 
     /* power up all HW resources to guarantee an initial power state (everything powered up; this mimics a board reset) */
     for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
@@ -294,7 +295,7 @@ static BERR_Code BCHP_PWR_P_Init(BCHP_Handle handle)
         idx = BCHP_PWR_P_GetInternalIndex(resource->id);
         (void)BCHP_PWR_P_AcquireResource(handle, resource, true);
     }
-    BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, sizeof(refcnt));
+    BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, size);
 
     /* At this point all clocks should be acquired. So we can reset cores */
     if (!BCHP_PWR_P_SkipInitialReset(handle)) {

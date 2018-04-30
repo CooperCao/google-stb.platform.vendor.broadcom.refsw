@@ -606,6 +606,18 @@ typedef enum
 #if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_OP_RSQRT2           = 308,
 #endif
+#if V3D_HAS_SFU_ROTATE
+   V3D_QPU_OP_BALLOT           = 309,
+#endif
+#if V3D_HAS_SFU_ROTATE
+   V3D_QPU_OP_BCASTF           = 310,
+#endif
+#if V3D_HAS_SFU_ROTATE
+   V3D_QPU_OP_ALLEQ            = 311,
+#endif
+#if V3D_HAS_SFU_ROTATE
+   V3D_QPU_OP_ALLFEQ           = 312,
+#endif
    V3D_QPU_OP_FADD             = 512,
    V3D_QPU_OP_FADDNF           = 513,
    V3D_QPU_OP_FSUB             = 514,
@@ -635,11 +647,17 @@ typedef enum
    V3D_QPU_OP_AND              = 538,
    V3D_QPU_OP_OR               = 539,
    V3D_QPU_OP_XOR              = 540,
-   V3D_QPU_OP_STVPMV           = 541,
-   V3D_QPU_OP_STVPMD           = 542,
-   V3D_QPU_OP_STVPMP           = 543,
-   V3D_QPU_OP_LDVPMG_IN        = 544,
-   V3D_QPU_OP_LDVPMG_OUT       = 545,
+#if V3D_HAS_SFU_ROTATE
+   V3D_QPU_OP_ROT              = 541,
+#endif
+#if V3D_HAS_SFU_ROTATE
+   V3D_QPU_OP_ROTQ             = 542,
+#endif
+   V3D_QPU_OP_STVPMV           = 543,
+   V3D_QPU_OP_STVPMD           = 544,
+   V3D_QPU_OP_STVPMP           = 545,
+   V3D_QPU_OP_LDVPMG_IN        = 546,
+   V3D_QPU_OP_LDVPMG_OUT       = 547,
    V3D_QPU_OP_INVALID          = 1024
 } v3d_qpu_opcode_t;
 extern bool v3d_is_valid_qpu_opcode(v3d_qpu_opcode_t qpu_opcode);
@@ -719,95 +737,105 @@ extern const char *v3d_maybe_desc_qpu_pack(v3d_qpu_pack_t qpu_pack);
 extern const char *v3d_desc_qpu_pack(v3d_qpu_pack_t qpu_pack);
 typedef enum
 {
-   V3D_QPU_MAGIC_WADDR_R0         = 0,
-   V3D_QPU_MAGIC_WADDR_R1         = 1,
-   V3D_QPU_MAGIC_WADDR_R2         = 2,
-   V3D_QPU_MAGIC_WADDR_R3         = 3,
-   V3D_QPU_MAGIC_WADDR_R4         = 4,
-   V3D_QPU_MAGIC_WADDR_R5QUAD     = 5,
-   V3D_QPU_MAGIC_WADDR_NOP        = 6,
-   V3D_QPU_MAGIC_WADDR_TLB        = 7,
-   V3D_QPU_MAGIC_WADDR_TLBU       = 8,
+   V3D_QPU_MAGIC_WADDR_R0                              = 0,
+   V3D_QPU_MAGIC_WADDR_R1                              = 1,
+   V3D_QPU_MAGIC_WADDR_R2                              = 2,
+   V3D_QPU_MAGIC_WADDR_R3                              = 3,
+   V3D_QPU_MAGIC_WADDR_R4                              = 4,
+   V3D_QPU_MAGIC_WADDR_R5QUAD                          = 5,
+   V3D_QPU_MAGIC_WADDR_NOP                             = 6,
+   V3D_QPU_MAGIC_WADDR_TLB                             = 7,
+   V3D_QPU_MAGIC_WADDR_TLBU                            = 8,
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMU        = 9,
+   V3D_QPU_MAGIC_WADDR_TMU                             = 9,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_UNIFA      = 9,
+   V3D_QPU_MAGIC_WADDR_UNIFA                           = 9,
 #endif
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUL       = 10,
+   V3D_QPU_MAGIC_WADDR_TMUL                            = 10,
 #endif
-   V3D_QPU_MAGIC_WADDR_TMUD       = 11,
-   V3D_QPU_MAGIC_WADDR_TMUA       = 12,
-   V3D_QPU_MAGIC_WADDR_TMUAU      = 13,
+   V3D_QPU_MAGIC_WADDR_TMUD                            = 11,
+   V3D_QPU_MAGIC_WADDR_TMUA                            = 12,
+   V3D_QPU_MAGIC_WADDR_TMUAU                           = 13,
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_VPM        = 14,
+   V3D_QPU_MAGIC_WADDR_VPM                             = 14,
 #endif
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_VPMU       = 15,
+   V3D_QPU_MAGIC_WADDR_VPMU                            = 15,
 #endif
-   V3D_QPU_MAGIC_WADDR_SYNC       = 16,
-   V3D_QPU_MAGIC_WADDR_SYNCU      = 17,
+   V3D_QPU_MAGIC_WADDR_SYNC                            = 16,
+   V3D_QPU_MAGIC_WADDR_SYNCU                           = 17,
 #if V3D_VER_AT_LEAST(4,2,13,0)
-   V3D_QPU_MAGIC_WADDR_SYNCB      = 18,
+   V3D_QPU_MAGIC_WADDR_SYNCB                           = 18,
 #endif
-   V3D_QPU_MAGIC_WADDR_RECIP      = 19,
-   V3D_QPU_MAGIC_WADDR_RSQRT      = 20,
-   V3D_QPU_MAGIC_WADDR_EXP        = 21,
-   V3D_QPU_MAGIC_WADDR_LOG        = 22,
-   V3D_QPU_MAGIC_WADDR_SIN        = 23,
-#if V3D_VER_AT_LEAST(3,3,0,0)
-   V3D_QPU_MAGIC_WADDR_RSQRT2     = 24,
+#if !V3D_HAS_NO_SFU_MAGIC
+   V3D_QPU_MAGIC_WADDR_RECIP                           = 19,
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUC       = 32,
+#if !V3D_HAS_NO_SFU_MAGIC
+   V3D_QPU_MAGIC_WADDR_RSQRT                           = 20,
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUS       = 33,
+#if !V3D_HAS_NO_SFU_MAGIC
+   V3D_QPU_MAGIC_WADDR_EXP                             = 21,
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUT       = 34,
+#if !V3D_HAS_NO_SFU_MAGIC
+   V3D_QPU_MAGIC_WADDR_LOG                             = 22,
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUR       = 35,
+#if !V3D_HAS_NO_SFU_MAGIC
+   V3D_QPU_MAGIC_WADDR_SIN                             = 23,
+#endif
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_HAS_NO_SFU_MAGIC
+   V3D_QPU_MAGIC_WADDR_RSQRT2                          = 24,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUI       = 36,
+   V3D_QPU_MAGIC_WADDR_TMUC                            = 32,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUB       = 37,
+   V3D_QPU_MAGIC_WADDR_TMUS                            = 33,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUDREF    = 38,
+   V3D_QPU_MAGIC_WADDR_TMUT                            = 34,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUOFF     = 39,
+   V3D_QPU_MAGIC_WADDR_TMUR                            = 35,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUSCM     = 40,
+   V3D_QPU_MAGIC_WADDR_TMUI                            = 36,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUSFETCH  = 41,
+   V3D_QPU_MAGIC_WADDR_TMUB                            = 37,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUSLOD    = 42,
+   V3D_QPU_MAGIC_WADDR_TMUDREF                         = 38,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUHS      = 43,
+   V3D_QPU_MAGIC_WADDR_TMUOFF                          = 39,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUHSCM    = 44,
+   V3D_QPU_MAGIC_WADDR_TMUSCM                          = 40,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUHSFETCH = 45,
+   V3D_QPU_MAGIC_WADDR_TMUSFETCH                       = 41,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_TMUHSLOD   = 46,
+   V3D_QPU_MAGIC_WADDR_TMUSLOD                         = 42,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_QPU_MAGIC_WADDR_R5REP      = 55,
+   V3D_QPU_MAGIC_WADDR_TMUHS                           = 43,
 #endif
-   V3D_QPU_MAGIC_WADDR_INVALID    = 64
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   V3D_QPU_MAGIC_WADDR_TMUHSCM                         = 44,
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   V3D_QPU_MAGIC_WADDR_TMUHSFETCH                      = 45,
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   V3D_QPU_MAGIC_WADDR_TMUHSLOD                        = 46,
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   V3D_QPU_MAGIC_WADDR_R5REP                           = 55,
+#endif
+   V3D_QPU_MAGIC_WADDR_INVALID                         = 64
 } v3d_qpu_magic_waddr_t;
 extern bool v3d_is_valid_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr);
 extern const char *v3d_maybe_desc_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr);
@@ -1587,6 +1615,8 @@ typedef enum
    V3D_IUC_SIZE_1KB     = 6,
    V3D_IUC_SIZE_2KB     = 7,
    V3D_IUC_SIZE_4KB     = 8,
+   V3D_IUC_SIZE_8KB     = 9,
+   V3D_IUC_SIZE_16KB    = 10,
    V3D_IUC_SIZE_INVALID = 16
 } v3d_iuc_size_t;
 extern bool v3d_is_valid_iuc_size(v3d_iuc_size_t iuc_size);
@@ -1884,50 +1914,20 @@ extern const char *v3d_desc_axi_master_id(v3d_axi_master_id_t axi_master_id);
 #if V3D_VER_AT_LEAST(4,1,34,0)
 typedef enum
 {
-#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_L2T_MASTER_ID_TMU        = 0,
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_L2T_MASTER_ID_VCD        = 1,
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_L2T_MASTER_ID_TMU_CONFIG = 2,
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_L2T_MASTER_ID_SL0_CACHE  = 3,
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_L2T_MASTER_ID_SL1_CACHE  = 4,
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_L2T_MASTER_ID_SL2_CACHE  = 5,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_TMU        = 0,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_CLE        = 1,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_VCD        = 2,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_TMU_CONFIG = 3,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_SL0_CACHE  = 4,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_SL1_CACHE  = 5,
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   V3D_L2T_MASTER_ID_SL2_CACHE  = 6,
-#endif
    V3D_L2T_MASTER_ID_INVALID    = 16
 } v3d_l2t_master_id_t;
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-extern bool v3d_is_valid_l2t_master_id(v3d_l2t_master_id_t l2t_master_id);
+static inline bool v3d_is_valid_l2t_master_id(v3d_l2t_master_id_t l2t_master_id)
+{
+   return (uint32_t)l2t_master_id <= 5;
+}
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
 extern const char *v3d_maybe_desc_l2t_master_id(v3d_l2t_master_id_t l2t_master_id);
@@ -2520,7 +2520,7 @@ typedef struct
    v3d_tmu_op_t op;
 } V3D_TMU_PARAM2_T;
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 typedef int32_t V3D_TMU_PARAM2_OFFSETS_T[3];
 typedef struct
 {
@@ -2534,7 +2534,7 @@ typedef struct
    bool lod_query;
 } V3D_TMU_PARAM2_T;
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 typedef int32_t V3D_TMU_PARAM2_OFFSETS_T[3];
 typedef struct
 {
@@ -4440,10 +4440,10 @@ EXPORT_FOR_CLIF_CC void v3d_unpack_tmu_param1(V3D_TMU_PARAM1_T *unpacked, uint32
 #if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 EXPORT_FOR_CLIF_CC void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0);
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 EXPORT_FOR_CLIF_CC void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0);
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 EXPORT_FOR_CLIF_CC void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0);
 #endif
 EXPORT_FOR_CLIF_CC void v3d_unpack_tmu_general_config(V3D_TMU_GENERAL_CONFIG_T *unpacked, uint8_t packed0);
@@ -5084,7 +5084,7 @@ static inline uint32_t v3d_pack_tmu_param2(const V3D_TMU_PARAM2_T *unpacked)
       gfx_bits((*unpacked).op, 4) << 20;
 }
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 static inline uint32_t v3d_pack_tmu_param2(const V3D_TMU_PARAM2_T *unpacked)
 {
    return gfx_bits((*unpacked).tmuoff_4x, 1) |
@@ -5098,7 +5098,7 @@ static inline uint32_t v3d_pack_tmu_param2(const V3D_TMU_PARAM2_T *unpacked)
       gfx_bits((*unpacked).op, 4) << 20 | gfx_bits((*unpacked).lod_query, 1) << 24;
 }
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 static inline uint32_t v3d_pack_tmu_param2(const V3D_TMU_PARAM2_T *unpacked)
 {
    return gfx_bits((*unpacked).tmuoff_4x, 1) |
@@ -7447,8 +7447,8 @@ static inline uint32_t v3d_pack_tfuicfg(const V3D_TFUICFG_T *unpacked)
 }
 static inline uint32_t v3d_pack_tfuiis(const V3D_TFUIIS_T *unpacked)
 {
-   return gfx_bits((*unpacked).stride0, 16) |
-      gfx_bits((*unpacked).stride1, 16) << 16;
+   return gfx_bits((*unpacked).stride0, 15) |
+      gfx_bits((*unpacked).stride1, 15) << 16;
 }
 static inline uint32_t v3d_pack_tfuioa(const V3D_TFUIOA_T *unpacked)
 {
@@ -7938,10 +7938,10 @@ static inline uint32_t v3d_pack_umr_sysmon_infra_status(const V3D_UMR_SYSMON_INF
 #if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 #define V3D_TMU_PARAM2_PACKED_SIZE 4
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 #define V3D_TMU_PARAM2_PACKED_SIZE 4
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 #define V3D_TMU_PARAM2_PACKED_SIZE 4
 #endif
 #define V3D_TMU_GENERAL_CONFIG_PACKED_SIZE 1
@@ -8290,10 +8290,10 @@ extern void v3d_print_tmu_param1(uint32_t packed0, struct v3d_printer *printer);
 #if V3D_VER_AT_LEAST(4,1,34,0) && !V3D_VER_AT_LEAST(4,2,13,0)
 extern void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer);
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 extern void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer);
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 extern void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer);
 #endif
 extern void v3d_print_tmu_general_config(uint8_t packed0, struct v3d_printer *printer);

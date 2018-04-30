@@ -9,7 +9,8 @@
 
 namespace bvk {
 
-class Module;
+class DflowBuilder;
+class NodeTypeStruct;
 
 ////////////////////////////////////////////////////////
 // SymbolTypeHandle
@@ -23,6 +24,15 @@ class Module;
 class SymbolTypeHandle
 {
 public:
+   class MemberIter
+   {
+   public:
+      virtual ~MemberIter() {}
+
+      virtual uint32_t         Size()           const = 0;
+      virtual SymbolTypeHandle Type(uint32_t i) const = 0;
+   };
+
    SymbolTypeHandle() :
       m_symbolType(nullptr)
    {}
@@ -62,15 +72,14 @@ public:
    // Returns sampler symbol type
    static SymbolTypeHandle Sampler();
 
-   // Returns an array type (allocated in Module's arena as it must outlive the builder)
-   static SymbolTypeHandle Array(const Module &module, SymbolTypeHandle elementType, uint32_t size);
+   // Returns an array type
+   static SymbolTypeHandle Array(const DflowBuilder &builder, SymbolTypeHandle elementType, uint32_t size);
 
-   // Returns a struct symbol type (allocated in Module's arena as it must outlive the builder)
-   template <typename M>
-   static SymbolTypeHandle Struct(const Module &module, const M &members);
+   // Returns a struct symbol type
+   static SymbolTypeHandle Struct(const DflowBuilder &builder, const NodeTypeStruct *, const MemberIter &members);
 
-   // Returns a pointer symbol type (allocated in Module's arena as it must outlive the builder)
-   static SymbolTypeHandle Pointer(const Module &module, SymbolTypeHandle targetType);
+   // Returns a pointer symbol type
+   static SymbolTypeHandle Pointer(const DflowBuilder &builder, SymbolTypeHandle targetType);
 
    // Returns a sampled image symbol type
    static SymbolTypeHandle SampledImage(SymbolTypeHandle sampledType, spv::Dim dim, uint32_t arrayed, uint32_t ms);

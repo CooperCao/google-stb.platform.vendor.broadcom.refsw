@@ -75,7 +75,7 @@ bool glxx_tf_draw_mode_allowed(const GLXX_TRANSFORM_FEEDBACK_T *tf,
 {
    assert(glxx_tf_in_use(tf));
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    switch(tf->prim_mode)
    {
       case GL_POINTS:

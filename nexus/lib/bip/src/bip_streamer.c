@@ -1905,12 +1905,13 @@ static BIP_Status prepareStreamerForFileInput(
                 feedUsingPlaybackChannel = false;
             }
         }
-        BDBG_MSG(( BIP_MSG_PRE_FMT " FeedUsingPlaybackPath: %s, enableHwPacing %d, format %d, dropNullPackets %d tracksAdded %d, numberOfPrograms %d, enableAllPass %d"
+        BDBG_MSG(( BIP_MSG_PRE_FMT " FeedUsingPlaybackPath: %s, enableHwPacing %d, format %d, dropNullPackets %d tracksAdded %d, numberOfPrograms %d, enableAllPass %d maxDataRate=%u"
                     BIP_MSG_PRE_ARG,
                     (feedUsingPlaybackChannel == true) ? "Y":"N",
                     hStreamer->file.inputSettings.enableHwPacing, hStreamer->streamerStreamInfo.transportType,
                     hStreamer->file.inputSettings.dropNullPackets, hStreamer->track.inputState,
-                    hStreamer->streamerStreamInfo.numberOfTrackGroups, hStreamer->file.inputSettings.enableAllPass
+                    hStreamer->streamerStreamInfo.numberOfTrackGroups, hStreamer->file.inputSettings.enableAllPass,
+                    hStreamer->output.settings.maxDataRate
                  ));
         hStreamer->file.feedUsingPlaybackChannel = feedUsingPlaybackChannel;
     }

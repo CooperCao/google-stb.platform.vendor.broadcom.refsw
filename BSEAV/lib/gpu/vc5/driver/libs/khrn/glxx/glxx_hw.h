@@ -156,15 +156,19 @@ extern GLXX_HW_RENDER_STATE_T* glxx_install_rs(GLXX_SERVER_STATE_T *state,
 extern bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
                                       GLXX_HW_FRAMEBUFFER_T *hw_fb,
                                       glxx_context_fences *fences);
+extern bool glxx_init_hw_framebuffer_just_layer0(const GLXX_FRAMEBUFFER_T *fb,
+                                      GLXX_HW_FRAMEBUFFER_T *hw_fb,
+                                      glxx_context_fences *fences);
+
 extern void glxx_destroy_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *hw_fb);
 
 extern void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_FRAMEBUFFER_T *b);
 
 extern bool glxx_draw_rect(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
-      const GLXX_CLEAR_T *clear, const glxx_rect *rect);
+      const GLXX_CLEAR_T *clear, const gfx_rect *rect);
 
 v3d_addr_t glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem,
-      const glxx_rect *rect, uint32_t z);
+      const gfx_rect *rect, uint32_t z);
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 uint32_t glxx_workaround_gfxh_1313_size(void);

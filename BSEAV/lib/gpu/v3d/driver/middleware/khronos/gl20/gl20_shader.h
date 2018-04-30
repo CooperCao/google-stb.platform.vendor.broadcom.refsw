@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/GLES2/gl2.h"
+#include <GLES2/gl2.h>
 
 
 #define SIG_SHADER 0x0054ade7

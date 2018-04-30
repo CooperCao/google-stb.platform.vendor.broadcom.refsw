@@ -305,7 +305,7 @@ $(ATLAS_BIN_DIR):
 all: $(ATLAS_BIN_DIR) $(APP)
 	${Q_}$(CP) -f $(APP) $(ATLAS_BIN_DIR)
 
-clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools clean-bp3 $(PMLIB_CLEAN)
+clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools clean-bp3 clean-astra $(PMLIB_CLEAN)
 
 dist-clean: clean dist-clean-netapp dist-clean-openssl
 	@echo [Clean..... libraries]
@@ -1043,7 +1043,7 @@ vpath %.cpp $(VPATH)
 vpath %.c $(VPATH)
 
 # Implicit rule for building local app
-$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools bp3 $(PMLIB_BUILD) $(LIBJPEG_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
+$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools bp3 astra $(PMLIB_BUILD) $(LIBJPEG_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 	@echo [Linking... $(notdir $@)]
 	${Q_}$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
 
@@ -1358,6 +1358,26 @@ clean-bp3:
 endif
 
 #######################
+##### Astra / Audio on ARM
+#######################
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+$(B_REFSW_OBJ_ROOT)/astra/user:
+	${Q_}$(MAKE) -C $(BSEAV)/../astra/user
+astra: $(B_REFSW_OBJ_ROOT)/astra/user
+	${Q_}$(CP) -f $(B_REFSW_OBJ_ROOT)/astra/user/astra*.bin $(ATLAS_BIN_DIR)
+	${Q_}$(CP) -f $(B_REFSW_OBJ_ROOT)/astra/linux/bcm_astra/$(B_REFSW_ARCH)/bcm_astra.ko $(ATLAS_BIN_DIR)
+
+clean-astra:
+	${Q_}$(RM) -f $(ATLAS_BIN_DIR)/astra*.bin
+	${Q_}$(RM) -f $(ATLAS_BIN_DIR)/bcm_astra.ko
+else
+astra:
+#intentionally left empty
+clean-astra:
+#intentionally left empty
+endif
+
+#######################
 ##### BDSP_MS12_SUPPORT
 #######################
 ifeq ($(BDSP_MS12_SUPPORT),y)
@@ -1537,7 +1557,12 @@ ifeq ($(SAGE_SUPPORT),y)
 	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libz*.so* $(STAGING_DIR)
 	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libcurl*.so* $(STAGING_DIR)
 	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libcjson*.so* $(STAGING_DIR)
+	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libbp3*.so* $(STAGING_DIR)
 endif
+endif
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/astra*.bin $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm_astra.ko $(STAGING_DIR)
 endif
 	${Q_}$(CP) $(APP) $(STAGING_DIR)
 

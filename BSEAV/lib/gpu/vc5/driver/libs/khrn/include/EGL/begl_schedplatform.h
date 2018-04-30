@@ -52,6 +52,7 @@ struct bcm_sched_group_counter_selector;
 struct bcm_sched_event_track_desc;
 struct bcm_sched_event_desc;
 struct bcm_sched_event_field_desc;
+struct v3d_compute_subjob;
 
 typedef struct BEGL_SchedPerfCountInterface
 {
@@ -102,6 +103,9 @@ typedef struct BEGL_SchedInterface
    void               (*SetSchedEvent)(void *context, uint64_t event_id);
    void               (*ResetSchedEvent)(void *context, uint64_t event_id);
    bool               (*QuerySchedEvent)(void *context, uint64_t event_id);
+
+   uint32_t           (*NewComputeSubjobs)(void *context, unsigned max_subjobs);
+   void               (*UpdateComputeSubjobs)(void *context, uint32_t subjobs_id, const struct v3d_compute_subjob* subjobs, unsigned num_subjobs);
 
    /* Performance counters */
    BEGL_SchedPerfCountInterface  perf_count_iface;

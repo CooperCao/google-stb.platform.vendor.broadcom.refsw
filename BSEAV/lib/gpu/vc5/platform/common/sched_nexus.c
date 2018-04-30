@@ -6,6 +6,7 @@
 #include "gmem.h"
 #include "perf_event.h"
 #include "vcos.h"
+#include "libs/util/assert_helpers.h"
 
 #include <stdlib.h>
 #include <memory.h>
@@ -82,6 +83,7 @@ CHECK_ENUM(BCM_SCHED_JOB_TYPE_V3D_BARRIER,      NEXUS_Graphicsv3dJobType_eBarrie
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT,    NEXUS_Graphicsv3dJobType_eWaitOnEvent);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_SET_EVENT,        NEXUS_Graphicsv3dJobType_eSetEvent);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_RESET_EVENT,      NEXUS_Graphicsv3dJobType_eResetEvent);
+CHECK_ENUM(BCM_SCHED_JOB_TYPE_V3D_COMPUTE,      NEXUS_Graphicsv3dJobType_eCompute);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_NUM_JOB_TYPES,    NEXUS_Graphicsv3dJobType_eNumJobTypes);
 
 CHECK_ENUM(V3D_EMPTY_TILE_MODE_NONE, NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE);
@@ -327,7 +329,7 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       nexusBin.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
 
       CopyBinSubjobsList(&nexusBin, &jobs->driver.bin.subjobs_list);
-      nexusBin.uiFlags  = jobs->driver.bin.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+      nexusBin.uiFlags  = jobs->driver.bin.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
       nexusBin.uiFlags |= jobs->driver.bin.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 #endif
@@ -352,7 +354,7 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
 
       BDBG_ASSERT(jobs->driver.render.num_layers == 1);
       CopyRenderSubjobsList(&nexusRender, &jobs->driver.render.subjobs_list);
-      nexusRender.uiFlags  = jobs->driver.render.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+      nexusRender.uiFlags  = jobs->driver.render.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
     #if !V3D_VER_AT_LEAST(3,3,0,0)
       nexusRender.uiFlags |= jobs->driver.render.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
     #endif
@@ -462,6 +464,38 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       break;
    }
 
+#if V3D_USE_CSD
+   case BCM_SCHED_JOB_TYPE_V3D_COMPUTE:
+   {
+      NEXUS_Graphicsv3dJobCompute nexusCompute;
+
+      CopyJobBase(&nexusCompute.sBase, jobs);
+      nexusCompute.sBase.uiPagetablePhysAddr = context->pagetablePhysAddr;
+      nexusCompute.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
+      nexusCompute.uiSubjobsId = jobs->driver.compute.subjobs_id;
+
+      // Assert layout of these structures is the same.
+      static_assrt(sizeof(NEXUS_Graphicsv3dJobComputeSubjob) == sizeof(v3d_compute_subjob));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiNumWgs)           == offsetof(v3d_compute_subjob, num_wgs));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiWgSize)           == offsetof(v3d_compute_subjob, wg_size));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiWgPerSg)          == offsetof(v3d_compute_subjob, wgs_per_sg));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiMaxSgId)          == offsetof(v3d_compute_subjob, max_sg_id));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiShaderAddr)       == offsetof(v3d_compute_subjob, shader_addr));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiUnifsAddr)        == offsetof(v3d_compute_subjob, unifs_addr));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiSharedBlockSize)  == offsetof(v3d_compute_subjob, shared_block_size));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, uiThreading)        == offsetof(v3d_compute_subjob, threading));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, bSingleSeg)         == offsetof(v3d_compute_subjob, single_seg));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, bPropagateNans)     == offsetof(v3d_compute_subjob, propagate_nans));
+      static_assrt(offsetof(NEXUS_Graphicsv3dJobComputeSubjob, bNoOverlap)         == offsetof(v3d_compute_subjob, no_overlap));
+
+      uint32_t uiNumSubjobs = jobs->driver.compute.num_subjobs;
+      const NEXUS_Graphicsv3dJobComputeSubjob* pSubjobs = (const NEXUS_Graphicsv3dJobComputeSubjob*)jobs->driver.compute.subjobs;
+
+      err = NEXUS_Graphicsv3d_QueueCompute(session, &nexusCompute, uiNumSubjobs, pSubjobs);
+      break;
+   }
+#endif
+
    default:
       unreachable();
    }
@@ -500,7 +534,7 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
    nexusBin.sBase.uiMmuMaxVirtAddr = ctx->mmuMaxVirtAddr;
 
    CopyBinSubjobsList(&nexusBin, &bin->driver.bin.subjobs_list);
-   nexusBin.uiFlags  = bin->driver.bin.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+   nexusBin.uiFlags  = bin->driver.bin.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    nexusBin.uiFlags |= bin->driver.bin.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 #endif
@@ -520,7 +554,7 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
 
    BDBG_ASSERT(render->driver.render.num_layers == 1);
    CopyRenderSubjobsList(&nexusRender, &render->driver.render.subjobs_list);
-   nexusRender.uiFlags  = render->driver.render.base.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
+   nexusRender.uiFlags  = render->driver.render.no_overlap ? NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP : 0;
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    nexusRender.uiFlags |= render->driver.render.base.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 #endif
@@ -1189,6 +1223,24 @@ static bool QuerySchedEvent(void *context, bcm_sched_event_id event_id)
    return eventSet;
 }
 
+#if V3D_USE_CSD
+static uint32_t NewComputeSubjobs(void *context, unsigned max_subjobs)
+{
+   uint32_t subjobs_id;
+   NEXUS_Graphicsv3d_NewComputeSubjobs(((SchedContext*)context)->session, max_subjobs, &subjobs_id);
+   return subjobs_id;
+}
+
+static void UpdateComputeSubjobs(void *context, uint32_t subjobs_id, const v3d_compute_subjob* subjobs, unsigned num_subjobs)
+{
+   NEXUS_Graphicsv3d_UpdateComputeSubjobs(
+      ((SchedContext*)context)->session,
+      subjobs_id,
+      num_subjobs,
+      (const NEXUS_Graphicsv3dJobComputeSubjob*)subjobs);
+}
+#endif
+
 BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface, EventContext *eventContext)
 {
    SchedContext        *ctx   = NULL;
@@ -1264,6 +1316,10 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface, EventC
    iface->SetSchedEvent             = SetSchedEvent;
    iface->ResetSchedEvent           = ResetSchedEvent;
    iface->QuerySchedEvent           = QuerySchedEvent;
+#if V3D_USE_CSD
+   iface->NewComputeSubjobs         = NewComputeSubjobs;
+   iface->UpdateComputeSubjobs      = UpdateComputeSubjobs;
+#endif
 
    return iface;
 

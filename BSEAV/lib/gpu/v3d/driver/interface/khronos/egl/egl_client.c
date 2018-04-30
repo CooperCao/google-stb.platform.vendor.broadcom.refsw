@@ -173,7 +173,7 @@ static EGLDisplay eglGetDisplay_impl(EGLenum platform,
    if (!egl_ensure_init_once())
    {
       thread->error = EGL_NOT_INITIALIZED;
-      return EGL_FALSE;
+      return EGL_NO_DISPLAY;
    }
 
    CLIENT_LOCK();
@@ -651,7 +651,6 @@ is not one of the values described above.
 
    We support the following extensions but they can be removed from the driver if defined to zero.
       EGL_KHR_image extensions
-      EGL_KHR_lock_surface
 
    Preconditions:
 
@@ -721,14 +720,8 @@ EGLAPI const char * EGLAPIENTRY eglQueryString(EGLDisplay dpy, EGLint name)
 #if EGL_KHR_image
             "EGL_KHR_image EGL_KHR_image_base EGL_KHR_image_pixmap EGL_KHR_vg_parent_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image "
 #endif
-#if EGL_KHR_lock_surface
-            "EGL_KHR_lock_surface "
-#endif
 #if KHR_get_all_proc_addresses
             "KHR_get_all_proc_addresses "
-#endif
-#if EGL_ANDROID_swap_rectangle
-            "EGL_ANDROID_swap_rectangle "
 #endif
 #ifdef ANDROID
             "EGL_ANDROID_image_native_buffer "
@@ -924,11 +917,9 @@ static EGLSurface eglCreateWindowSurface_impl(EGLDisplay dpy, EGLConfig config, 
          thread->error = EGL_BAD_NATIVE_WINDOW;
          result = EGL_NO_SURFACE;
       } else {
-         bool linear = false;
-         bool premult = false;
          bool secure = false;
 
-         EGLint error = egl_surface_check_attribs(WINDOW, attrib_list, &linear, &premult,
+         EGLint error = egl_surface_check_attribs(WINDOW, attrib_list,
             0, 0, 0, 0, 0, 0, &secure);
          if (error != EGL_SUCCESS) {
             thread->error = error;
@@ -954,8 +945,6 @@ static EGLSurface eglCreateWindowSurface_impl(EGLDisplay dpy, EGLConfig config, 
                surface = egl_surface_create(
                                  (EGLSurface)(size_t)state->next_surface,
                                  WINDOW,
-                                 linear ? LINEAR : SRGB,
-                                 premult ? PRE : NONPRE,
                                  secure,
                                  3 /* num_buffers */,
                                  0 /* width */, 0 /* height */,
@@ -1167,11 +1156,9 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
          EGLenum texture_format = EGL_NO_TEXTURE;
          EGLenum texture_target = EGL_NO_TEXTURE;
          bool mipmap_texture = false;
-         bool linear = false;
-         bool premult = false;
          bool secure = false;
 
-         EGLint error = egl_surface_check_attribs(PBUFFER, attrib_list, &linear, &premult, &width, &height,
+         EGLint error = egl_surface_check_attribs(PBUFFER, attrib_list, &width, &height,
             &largest_pbuffer, &texture_format, &texture_target, &mipmap_texture, &secure);
          if (error != EGL_SUCCESS) {
             thread->error = error;
@@ -1214,8 +1201,6 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
             EGL_SURFACE_T *surface = egl_surface_create(
                              (EGLSurface)(size_t)state->next_surface,
                              PBUFFER,
-                             linear ? LINEAR : SRGB,
-                             premult ? PRE : NONPRE,
                              secure,
                              1,
                              width, height,
@@ -1295,9 +1280,9 @@ static EGLSurface eglCreatePixmapSurface_impl(EGLDisplay dpy, EGLConfig config,
       goto end;
    }
 
-   bool linear = false, premult = false, secure = false;
+   bool secure = false;
 
-   error = egl_surface_check_attribs(PIXMAP, attrib_list, &linear, &premult, 0, 0, 0, 0, 0, 0, &secure);
+   error = egl_surface_check_attribs(PIXMAP, attrib_list, 0, 0, 0, 0, 0, 0, &secure);
    if (error != EGL_SUCCESS)
       goto end;
 
@@ -1319,8 +1304,6 @@ static EGLSurface eglCreatePixmapSurface_impl(EGLDisplay dpy, EGLConfig config,
    EGL_SURFACE_T *surface = egl_surface_create(
                   (EGLSurface)(size_t)state->next_surface,
                   PIXMAP,
-                  linear ? LINEAR : SRGB,
-                  premult ? PRE : NONPRE,
                   secure,
                   1,
                   -1, -1,
@@ -1428,33 +1411,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface(EGLDisplay dpy, EGLSurface surf,
    {
       thread->error = EGL_SUCCESS;
 
-      EGL_SURFACE_T *surface = egl_get_locked_surface(thread, state, surf);
+      EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
       if (surface != NULL) {
-#if EGL_KHR_lock_surface
-         switch (attribute)
-         {
-         case EGL_BITMAP_POINTER_KHR:
-         case EGL_BITMAP_PITCH_KHR:
-         case EGL_BITMAP_ORIGIN_KHR:
-         case EGL_BITMAP_PIXEL_RED_OFFSET_KHR:
-         case EGL_BITMAP_PIXEL_GREEN_OFFSET_KHR:
-         case EGL_BITMAP_PIXEL_BLUE_OFFSET_KHR:
-         case EGL_BITMAP_PIXEL_ALPHA_OFFSET_KHR:
-         case EGL_BITMAP_PIXEL_LUMINANCE_OFFSET_KHR:
-            thread->error = egl_surface_get_mapped_buffer_attrib(surface, attribute, value);
-
-            CLIENT_UNLOCK();
-            return (thread->error == EGL_SUCCESS ? EGL_TRUE : EGL_FALSE );
-         default:
-            /* Other attributes can only be queried if the surface is unlocked */
-            if (surface->is_locked) {
-               thread->error = EGL_BAD_ACCESS;
-               CLIENT_UNLOCK();
-               return EGL_FALSE;
-            }
-         }
-#endif
          if (!egl_surface_get_attrib(surface, attribute, value))
             thread->error = EGL_BAD_ATTRIBUTE;
       }
@@ -1476,7 +1435,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglBindAPI(EGLenum api)
       return EGL_FALSE;
 
    switch (api) {
-   case EGL_OPENVG_API:
    case EGL_OPENGL_ES_API:
       thread->bound_api = api;
 
@@ -1749,8 +1707,7 @@ EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config,
             thread->error = error;
             result = EGL_NO_CONTEXT;
          } else if (!(egl_config_get_api_support(egl_config_to_id(config)) &
-            ((thread->bound_api == EGL_OPENVG_API) ? EGL_OPENVG_BIT :
-            ((version == 1) ? EGL_OPENGL_ES_BIT : EGL_OPENGL_ES2_BIT)))) {
+            ((version == 1) ? EGL_OPENGL_ES_BIT : EGL_OPENGL_ES2_BIT))) {
             thread->error = EGL_BAD_CONFIG;
             result = EGL_NO_CONTEXT;
          } else {
@@ -2002,14 +1959,14 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay dpy, EGLSurface dr, EGLS
 
             if (draw == NULL || read == NULL) {
                result = EGL_FALSE;
-            } else if (thread->bound_api == EGL_OPENVG_API && dr != rd) {
-               thread->error = EGL_BAD_MATCH;   //TODO: what error are we supposed to return here?
-               result = EGL_FALSE;
             } else {
                EGL_CURRENT_T *current = &thread->opengl;
 
                /* Check if nothing is changing */
-               changed = current->context != context || current->draw != draw || current->read != read;
+               EGLContext current_ctx = current->context ? current->context->name : EGL_NO_CONTEXT;
+               EGLSurface current_dr = current->draw ? current->draw->name : EGL_NO_SURFACE;
+               EGLSurface current_rd = current->read ? current->read->name : EGL_NO_SURFACE;
+               changed = current_ctx != ctx || current_dr != dr || current_rd != rd;
 
                if (!changed || egl_current_set_surfaces(state, thread, context, draw, read))
                {
@@ -2073,11 +2030,11 @@ EGLAPI EGLSurface EGLAPIENTRY eglGetCurrentSurface(EGLint readdraw)
 
    switch (readdraw) {
    case EGL_READ:
-      result = current->read->name;
+      result = current->read ? current->read->name : EGL_NO_SURFACE;
       thread->error = EGL_SUCCESS;
       break;
    case EGL_DRAW:
-      result = current->draw->name;
+      result = current->draw ? current->draw->name : EGL_NO_SURFACE;
       thread->error = EGL_SUCCESS;
       break;
    default:
@@ -2210,32 +2167,20 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
 
       EGL_SURFACE_T *surface = egl_get_surface(thread, state, surf);
 
-      if (surface != NULL) {
+      if (surface != NULL && surface->type == WINDOW)
+      {
+         /* the egl spec says eglSwapBuffers is supposed to be a no-op for
+            * single-buffered surfaces, but we pass it through as the
+            * semantics are potentially useful:
+            * - any ops outstanding on the surface are flushed
+            * - the surface is resubmitted to the display once the
+            *   outstanding ops complete (for displays which have their own
+            *   memory, this is useful)
+            * - the surface is resized to fit the backing window */
 
-#if !(EGL_KHR_lock_surface)
-         /* Surface to be displayed must be bound to current context and API */
-         /* This check is disabled if we have the EGL_KHR_lock_surface extension */
-         if (thread->bound_api == EGL_OPENGL_ES_API && surface != thread->opengl.draw && surface != thread->opengl.read
-          || thread->bound_api == EGL_OPENVG_API    && surface != thread->openvg.draw) {
-            thread->error = EGL_BAD_SURFACE;
-         } else
-#endif
-         {
-            if (surface->type == WINDOW) {
-               /* the egl spec says eglSwapBuffers is supposed to be a no-op for
-                * single-buffered surfaces, but we pass it through as the
-                * semantics are potentially useful:
-                * - any ops outstanding on the surface are flushed
-                * - the surface is resubmitted to the display once the
-                *   outstanding ops complete (for displays which have their own
-                *   memory, this is useful)
-                * - the surface is resized to fit the backing window */
+         /* TODO: raise EGL_BAD_ALLOC if we try to enlarge window and then run out of memory */
 
-               /* TODO: raise EGL_BAD_ALLOC if we try to enlarge window and then run out of memory */
-
-               egl_swapbuffers(surface);
-            }
-         }
+         egl_swapbuffers(surface);
       }
 
       result = (thread->error == EGL_SUCCESS);

@@ -433,14 +433,15 @@ BERR_Code BHSM_Keyslot_SetEntryKey (
 /*
 Description:
     Write an IV into a keyslot entry.
-    Note:
+    Notes:
        pEntry->polarity will be ignored for keylosts of type BHSM_KeyslotType_eIvPerBlock
        pEntry->block and pEntry->polarity will be ignored for keylosts of type BHSM_KeyslotType_eIvPerSlot
+       To set a 64bit IV2 (pIv2) you must also specify a regular 64bit IV (pIv).
 */
 BERR_Code BHSM_Keyslot_SetEntryIv(
     BHSM_KeyslotHandle handle,
     BHSM_KeyslotBlockEntry entry,   /* block (cps/ca/cpd) and entry (odd/even/clear) */
-    const BHSM_KeyslotIv *pIv,      /* regular IV, Set to NULL to update pIv2 independently */
+    const BHSM_KeyslotIv *pIv,      /* regular IV. */
     const BHSM_KeyslotIv *pIv2      /* secondary IV, required by some algorithm configurations for
                                         processing residual data. Set to NULL if not required. */
     );

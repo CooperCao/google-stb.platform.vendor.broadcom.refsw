@@ -82,6 +82,10 @@ static void print_usage(void)
     "  -background IMAGE       default is nxclient/desktop_background.png\n"
     "  -r                      scan subdirectories recursively\n"
     );
+    printf(
+    "  -timeout SECONDS\n"
+    );
+
 }
 
 struct file {
@@ -210,6 +214,14 @@ static void find_next(struct appcontext *pContext, int y_inc, int x_inc)
     }
 }
 
+#include <sys/time.h>
+static unsigned b_get_time(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec*1000 + tv.tv_usec/1000;
+}
+
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
@@ -230,6 +242,7 @@ int main(int argc, const char **argv)
     const char *fontname = "nxclient/arial_18_aa.bwin_font";
     const char *dir = NULL;
     bool done = false;
+    unsigned timeout = 0, starttime;
 
     memset(pContext, 0, sizeof(*pContext));
     pContext->view = b_viewmode_full;
@@ -261,6 +274,9 @@ int main(int argc, const char **argv)
             else {
                 pContext->view = b_viewmode_full;
             }
+        }
+        else if (!strcmp(argv[curarg], "-timeout") && curarg+1 < argc) {
+            timeout = atoi(argv[++curarg]);
         }
         else if (!dir) {
             dir = argv[curarg];
@@ -354,9 +370,14 @@ int main(int argc, const char **argv)
     }
 #endif
 
+    starttime = b_get_time();
     while (!done) {
         b_remote_key key;
         
+        if (timeout && b_get_time() - starttime > timeout * 1000) {
+            break;
+        }
+
         /* if a render is still pending, it was a background request */
         if (pContext->ui_update) {
             render_ui(pContext);

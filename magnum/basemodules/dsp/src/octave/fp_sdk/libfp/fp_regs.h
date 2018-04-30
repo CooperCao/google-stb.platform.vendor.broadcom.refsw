@@ -54,7 +54,7 @@
 /*FIXME: The USER_REG_NUM/PRED_REG_NUM macros used in the context_save_xx
  * structures is shared between the DSP and host code (for on-chip debug).
  * The host code doesn't know about the __MAESTRO__ macro
- * To accomodate the host, we have to use the SDK defined __FPM1015__
+ * To accommodate the host, we have to use the SDK defined __FPM1015__
  * macro. To add to the mess, this header file couldn't include
  * fp-sdk-config.h, because of our legacy to build libadi even for targets
  * which doesn't require them !!!

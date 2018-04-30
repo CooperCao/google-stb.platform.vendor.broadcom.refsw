@@ -26,6 +26,8 @@ BV3D_SOURCES += $(V3D_MAGNUM_TOP)/src/bv3d.c \
 				$(V3D_MAGNUM_TOP)/src/bv3d_callbackmap.c \
 				$(V3D_MAGNUM_TOP)/src/bv3d_worker.c \
 				$(V3D_MAGNUM_TOP)/src/bv3d_binmem.c \
+				$(V3D_MAGNUM_TOP)/src/bv3d_perf_counters.c \
+				$(V3D_MAGNUM_TOP)/src/bv3d_event_monitor.c \
 				$(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bv3d_os.c
 
 ifeq ($(B_REFSW_ANDROID),y)

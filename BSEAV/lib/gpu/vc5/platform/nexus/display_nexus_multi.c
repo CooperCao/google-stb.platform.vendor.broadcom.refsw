@@ -19,6 +19,7 @@ typedef struct display
 
    NEXUS_DISPLAYHANDLE        display;
    NXPL_DisplayType           displayType;
+   NXPL_DisplayType           prevDisplayType;
    unsigned int               numSurfaces;
    unsigned int               pushedSurfaces;
    uint32_t                   clientID;
@@ -53,12 +54,12 @@ static void recycledCallback(void *context, int param)
       NEXUS_SurfaceHandle surface_list[self->numSurfaces];
       NEXUS_SurfaceClient_RecycleSurface(self->surfaceClient, surface_list, self->numSurfaces, &numRecycled);
 
-      platform_dbg_message_add("%s, numRecycled %d", __FUNCTION__, numRecycled);
+      platform_dbg_message_add("%s, numRecycled %zd", __FUNCTION__, numRecycled);
 
       pthread_mutex_lock(&self->mutex);
       for (size_t i = 0; i < numRecycled; i++)
       {
-         platform_dbg_message_add("  %s %d - surface_list[%d] = %p", __FUNCTION__, __LINE__, i, surface_list[i]);
+         platform_dbg_message_add("  %s %d - surface_list[%zd] = %p", __FUNCTION__, __LINE__, i, surface_list[i]);
 
          int display_fence;
          if (fence_queue_dequeue(&self->fence_queue, &display_fence, false))
@@ -80,21 +81,27 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
    FenceInterface_WaitAndDestroy(
          self->fenceInterface, &render_fence);
 
-   NEXUS_SurfaceClientSettings clientSettings;
-   NEXUS_SurfaceClient_GetSettings(self->surfaceClient, &clientSettings);
-   if (self->displayType == NXPL_2D)
-      clientSettings.orientation = NEXUS_VideoOrientation_e2D;
-   else if (self->displayType == NXPL_3D_LEFT_RIGHT)
-      clientSettings.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
-   else if (self->displayType == NXPL_3D_OVER_UNDER)
-      clientSettings.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
-   else
-      FATAL_ERROR("Invalid displayType");
-   clientSettings.allowCompositionBypass = true;
+   NEXUS_Error err;
+   if (self->prevDisplayType != self->displayType)
+   {
+      NEXUS_SurfaceClientSettings clientSettings;
+      NEXUS_SurfaceClient_GetSettings(self->surfaceClient, &clientSettings);
+      if (self->displayType == NXPL_2D)
+         clientSettings.orientation = NEXUS_VideoOrientation_e2D;
+      else if (self->displayType == NXPL_3D_LEFT_RIGHT)
+         clientSettings.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
+      else if (self->displayType == NXPL_3D_OVER_UNDER)
+         clientSettings.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
+      else
+         FATAL_ERROR("Invalid displayType");
+      clientSettings.allowCompositionBypass = true;
 
-   NEXUS_Error err = NEXUS_SurfaceClient_SetSettings(self->surfaceClient, &clientSettings);
-   if (err != NEXUS_SUCCESS)
-      FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
+      err = NEXUS_SurfaceClient_SetSettings(self->surfaceClient, &clientSettings);
+      if (err != NEXUS_SUCCESS)
+         FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
+
+      self->prevDisplayType = self->displayType;
+   }
 
    ResetEvent(self->vsyncEvent);
 
@@ -147,6 +154,9 @@ static void stop(void *context)
       clientSettings.vsync.context = NULL;
 
       NEXUS_SurfaceClient_SetSettings(self->surfaceClient, &clientSettings);
+
+      /* current surface must be cleared from nxserver */
+      NEXUS_SurfaceClient_Clear(self->surfaceClient);
    }
 
    DestroyEvent(self->vsyncEvent);
@@ -244,6 +254,7 @@ bool DisplayInterface_InitNexusMulti(DisplayInterface *di,
       pthread_mutex_init(&self->mutex, NULL);
 
       self->displayType = displayType;
+      self->prevDisplayType = -1;
       self->numSurfaces = numSurfaces;
       self->clientID = clientID;
       self->surfaceClient = surfaceClient;

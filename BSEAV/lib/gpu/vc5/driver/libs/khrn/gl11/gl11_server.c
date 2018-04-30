@@ -191,7 +191,7 @@ bool gl11_get_pointerv(GLXX_SERVER_STATE_T *state, GLenum pname, void **params)
    if (attrib == GL11_IX_CLIENT_ACTIVE_TEXTURE)
       attrib = GL11_IX_TEXTURE_COORD + state->gl11.client_active_texture - GL_TEXTURE0;
 
-   assert(attrib < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(attrib < V3D_MAX_ATTR_ARRAYS);
 
    params[0] = glintAttribGetPointer(state, attrib);
 

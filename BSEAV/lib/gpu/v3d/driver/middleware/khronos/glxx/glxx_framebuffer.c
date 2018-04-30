@@ -225,7 +225,7 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
             format = image->format;
          }
 
-         format = khrn_image_no_colorspace_format(image->format);
+         format = image->format;
          if (!glxx_framebuffer_hw_support(format))
             result = ATTACHMENT_UNSUPPORTED;
       }
@@ -243,7 +243,7 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
          *secure = false;
          *samples = 0;
       } else {
-         KHRN_IMAGE_FORMAT_T format = khrn_image_no_colorspace_format(image->format);
+         KHRN_IMAGE_FORMAT_T format = image->format;
          switch (format)
          {
 #ifndef BIG_ENDIAN_CPU
@@ -298,11 +298,11 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
 GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer)
 {
    ATTACHMENT_STATUS_T ca, da, sa;
-   bool csecure, dsecure, ssecure;
+   bool csecure = false, dsecure = false, ssecure = false;
    //          width,   height,  sample
-   uint32_t    cw,      ch,      cs;
-   uint32_t    dw,      dh,      ds;
-   uint32_t    sw,      sh,      ss;
+   uint32_t    cw = 0,  ch = 0,  cs = 0;
+   uint32_t    dw = 0,  dh = 0,  ds = 0;
+   uint32_t    sw = 0,  sh = 0,  ss = 0;
    GLenum result = GL_FRAMEBUFFER_COMPLETE;
 
    assert(framebuffer);

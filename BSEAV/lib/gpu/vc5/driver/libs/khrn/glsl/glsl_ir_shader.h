@@ -70,10 +70,13 @@ typedef struct {
 
 bool glsl_ir_copy_block(CFGBlock *b, Dataflow **dataflow_in, int count);
 
-IRShader *glsl_ir_shader_create();
-void      glsl_ir_shader_free  (IRShader *shader);
+void glsl_ir_shader_init(IRShader *sh);
+void glsl_ir_shader_term(IRShader *sh);
 
-IRShader *glsl_ir_shader_from_blocks(CFGBlock *blocks, int num_blocks, IROutput *outputs, int num_outputs);
+IRShader *glsl_ir_shader_create();
+void      glsl_ir_shader_free  (IRShader *sh);
+
+IRShader *glsl_ir_shader_copy(const IRShader *in);
 
 IRShader *glsl_ir_shader_from_file(const char *fname);
 void      glsl_ir_shader_to_file  (const IRShader *sh, const char *fname);

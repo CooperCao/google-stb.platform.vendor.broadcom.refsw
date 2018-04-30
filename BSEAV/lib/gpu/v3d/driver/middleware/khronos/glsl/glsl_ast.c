@@ -2033,7 +2033,7 @@ Expr* glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr* left, 
       {
          if ((left_flags & PRIM_FLOAT_TYPE) && (left_flags & PRIM_MATRIX_TYPE)
             && (right_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_VECTOR_TYPE)
-            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[left_index])
+            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[right_index])
          {
             expr->type = right->type; // vector type
 
@@ -2075,7 +2075,7 @@ Expr* glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr* left, 
          }
          else if ((right_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_MATRIX_TYPE)
             && (left_flags & PRIM_FLOAT_TYPE) && (left_flags & PRIM_VECTOR_TYPE)
-            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[left_index])
+            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[right_index])
          {
             expr->type = left->type; // vector type
 

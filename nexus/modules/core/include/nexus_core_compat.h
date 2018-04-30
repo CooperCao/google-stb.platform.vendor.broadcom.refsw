@@ -81,8 +81,9 @@ typedef unsigned NEXUS_AudioAdvancedTsmSettings;
 typedef unsigned NEXUS_AmbisonicSettings;
 typedef unsigned NEXUS_AudioCapabilities;
 typedef unsigned NEXUS_AudioDecoderMixingMode;
-/* indirection needed to ignore compat structs in 32/64 bit bridging */
-#include "priv/nexus_core_audio_compat.h"
+typedef unsigned NEXUS_AudioDecoderStatus;
+typedef unsigned NEXUS_AudioDecoderTrickState;
+typedef unsigned NEXUS_AudioDecoderStartSettings;
 #endif
 
 #ifndef NEXUS_HAS_GRAPHICS2D
@@ -139,6 +140,13 @@ typedef unsigned NEXUS_HdmiOutputOpenSettings;
 typedef unsigned NEXUS_HdmiOutputStatus;
 typedef unsigned NEXUS_HdmiOutputHdcpStatus;
 typedef unsigned NEXUS_HdmiOutputCrcData;
+typedef unsigned NEXUS_HdmiOutputDolbyVisionMode;
+typedef unsigned NEXUS_HdmiOutputDolbyVisionPriorityMode;
+typedef unsigned NEXUS_HdmiOutputHdcpError;
+#endif
+
+#ifndef NEXUS_HAS_HDMI_INPUT
+typedef void *NEXUS_HdmiInputHandle;
 #endif
 
 #ifndef NEXUS_HAS_CEC

@@ -81,7 +81,7 @@ void DisplayFramework_SetSize(DisplayFramework *df,
       uint32_t width, uint32_t height);
 
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
-      BEGL_BufferFormat format, bool secure, int *fence, unsigned *age);
+      BEGL_BufferFormat format, bool secure, int *age, int *fence);
 
 void DisplayFramework_DisplaySurface(DisplayFramework *df,
       void *surface, int fence, uint32_t swap_interval);

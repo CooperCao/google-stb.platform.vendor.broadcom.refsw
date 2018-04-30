@@ -86,11 +86,15 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+    unsigned i;
     BSTD_UNUSED(boxMode);
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 160*MB;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 96*MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_HIGH_MEMORY | NEXUS_MEMORY_TYPE_MANAGED;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) pSettings->heap[i].placement.priority = 2;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].placement.priority = 1;
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)

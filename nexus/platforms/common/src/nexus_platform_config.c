@@ -160,6 +160,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 
 #if NEXUS_HAS_I2C
     BDBG_CASSERT(NEXUS_MAX_I2C_CHANNELS <= NEXUS_MAX_CONFIG_HANDLES);
+    BDBG_CASSERT(NEXUS_NUM_I2C_CHANNELS <= NEXUS_MAX_I2C_CHANNELS);
     /* Open I2C Channels */
     if (pSettings->openI2c)
     {

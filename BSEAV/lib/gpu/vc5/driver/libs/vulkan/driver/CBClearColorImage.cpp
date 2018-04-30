@@ -85,7 +85,6 @@ void CommandBuffer::CmdClearColorImage(
    const VkImageSubresourceRange *pRanges) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
    assert(gfx_lfmt_has_color(image->LFMT()));
    assert(!gfx_lfmt_is_compressed(image->LFMT()));

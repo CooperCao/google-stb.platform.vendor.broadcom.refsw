@@ -201,7 +201,7 @@ void v3d_rcfg_finalise(struct v3d_rcfg *rcfg)
       else if (gfx_lfmt_is_uif_family(lfmt))
          ls->stride = (r->pad == 15) ?
             r->clear3_uif_height_in_ub :
-            (gfx_udiv_round_up(frame_height_dec, gfx_lfmt_ub_h_2d(&bd, gfx_lfmt_get_swizzling(&lfmt))) + r->pad);
+            (gfx_udiv_round_up(frame_height_dec, gfx_lfmt_ub_h_2d(&bd)) + r->pad);
       else
          ls->stride = 0;
    }
@@ -296,7 +296,7 @@ static GFX_LFMT_T calc_tlb_ldst_lfmt(
 
 static uint32_t calc_tlb_ldst_pitch(
    const struct v3d_tlb_ldst_params *ls,
-   GFX_LFMT_T lfmt, const GFX_LFMT_BASE_DETAIL_T *bd,
+   const GFX_LFMT_BASE_DETAIL_T *bd,
    uint32_t width_dec, uint32_t height_dec)
 {
    switch (ls->memory_format)
@@ -315,12 +315,12 @@ static uint32_t calc_tlb_ldst_pitch(
          (height_dec <= (bd->ut_h_in_blocks_2d * bd->block_h)));
       return bd->ut_w_in_blocks_2d * bd->bytes_per_block;
    case V3D_MEMORY_FORMAT_UBLINEAR_1:
-      return gfx_lfmt_ub_w_in_blocks_2d(bd, gfx_lfmt_get_swizzling(&lfmt)) * bd->bytes_per_block;
+      return bd->ub_w_in_blocks_2d * bd->bytes_per_block;
    case V3D_MEMORY_FORMAT_UBLINEAR_2:
-      return 2 * gfx_lfmt_ub_w_in_blocks_2d(bd, gfx_lfmt_get_swizzling(&lfmt)) * bd->bytes_per_block;
+      return 2 * bd->ub_w_in_blocks_2d * bd->bytes_per_block;
    case V3D_MEMORY_FORMAT_UIF_NO_XOR:
    case V3D_MEMORY_FORMAT_UIF_XOR:
-      return ls->stride * gfx_lfmt_ub_h_in_blocks_2d(bd, gfx_lfmt_get_swizzling(&lfmt)) * bd->bytes_per_block;
+      return ls->stride * bd->ub_h_in_blocks_2d * bd->bytes_per_block;
    default:
       unreachable();
       return 0;
@@ -335,9 +335,6 @@ void v3d_calc_tlb_ldst_buffer_desc(
 #if V3D_VER_AT_LEAST(4,1,34,0)
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
       ls->memory_format, ls->pixel_format, ls->chan_reverse, ls->rb_swap, ls->flipy);
-#elif V3D_VER_AT_LEAST(4,1,34,0)
-   GFX_LFMT_T lfmt = gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
-      ls->memory_format, ls->pixel_format, ls->flipy);
 #else
    GFX_LFMT_T lfmt = calc_tlb_ldst_lfmt(buf, ls);
 #endif
@@ -352,7 +349,7 @@ void v3d_calc_tlb_ldst_buffer_desc(
    desc->depth = 1;
    desc->num_planes = 1;
    desc->planes[0].lfmt = lfmt;
-   uint32_t pitch = calc_tlb_ldst_pitch(ls, lfmt, &bd, desc->width, desc->height);
+   uint32_t pitch = calc_tlb_ldst_pitch(ls, &bd, desc->width, desc->height);
    desc->planes[0].pitch = pitch;
 
    assert(ls->addr);

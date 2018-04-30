@@ -46,9 +46,6 @@
 
 #define BDSP_TARGET_BUF_MEM_SIZE (4*1024*1024)
 
-#define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER         4
-#define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER 1
-
 #define BDSP_SIZE_OF_FIFOREG                   (BCHP_RAAGA_DSP_FW_CFG_SOFTWARE5 - BCHP_RAAGA_DSP_FW_CFG_SOFTWARE4)
 #define BDSP_ReadFIFOReg(hReg, addr)           ((BDSP_SIZE_OF_FIFOREG == 8)? BDSP_ReadReg64(hReg, addr): BDSP_ReadReg32(hReg, addr))
 #define BDSP_WriteFIFOReg(hReg, addr, data)    ((BDSP_SIZE_OF_FIFOREG == 8)? BDSP_WriteReg64(hReg, addr, data): BDSP_WriteReg32(hReg, addr, data))
@@ -82,7 +79,7 @@ void BDSP_Raaga_P_CalculateInitMemory(
     unsigned *pMemReqd
 );
 void BDSP_Raaga_P_CalculateDebugMemory(
-    BDSP_RaagaSettings *pSettings,
+    const BDSP_RaagaSettings *pSettings,
     unsigned           *pMemReqd
 );
 BERR_Code BDSP_Raaga_P_AssignTaskMemory(
@@ -112,8 +109,8 @@ BERR_Code BDSP_Raaga_P_ReleaseDescriptor(
 );
 BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	const BDSP_RaagaSettings     *pSettings,
-	const BDSP_RaagaUsageOptions *pUsage,
+	const BDSP_UsageOptions      *pUsage,
 	BBOX_Handle                   boxHandle,
-	BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
+	BDSP_MemoryEstimate          *pEstimate /*[out]*/
 );
 #endif /*BDSP_RAAGA_MM_PRIV_H_*/

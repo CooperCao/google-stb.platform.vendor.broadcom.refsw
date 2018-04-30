@@ -17,10 +17,17 @@
 #include "Viewport.h"
 
 #include "libs/compute/compute.h"
+#include "libs/util/early_z/early_z.h"
 
 #include <mutex>
 
 namespace bvk {
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// LinkResultHandle -- manages the lifetime of a link result
+/////////////////////////////////////////////////////////////////////////////////////////
+
+using LinkResultHandle = UniqueHandle<LinkResult, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Abstract base class for Pipelines
@@ -64,7 +71,9 @@ public:
 
    VkPipelineBindPoint   GetBindPoint() const      { return m_bindPoint; }
    const PipelineLayout *GetPipelineLayout() const { return fromHandle<PipelineLayout>(m_layout); }
-   const LinkResult     &GetLinkResult() const     { return m_linkResult; }
+   const LinkResult     &GetLinkResult() const     { return *m_linkResult.GetPtr(); }
+
+   bool IsBroken() const { return m_broken; }
 
 protected:
    void CompileAndLinkShaders(
@@ -72,7 +81,7 @@ protected:
       size_t numStages,
       const std::bitset<V3D_MAX_ATTR_ARRAYS> &attribRBSwaps,
       std::function<GLSL_BACKEND_CFG_T(GLSL_PROGRAM_T const*)> calcBackendKey,
-      bool robustBufferAccess, bool hasDepthStencil, bool multiSampled);
+      const Compiler::Controls &controls);
 
    void BuildUniforms(UniformData &uniforms, ShaderFlavour flavour, const ShaderData  &shaderData);
    virtual void BuildUniformSpecial(UniformData &uniforms, uint32_t offset, BackendSpecialUniformFlavour special) = 0;
@@ -83,10 +92,17 @@ protected:
    VkPipelineLayout        m_layout;
 
    // The linker results
-   LinkResult              m_linkResult;
+   LinkResultHandle        m_linkResult;
 
    // One giant mutex to protect the glsl bits of the compiler
    static std::mutex       m_compLinkMutex;
+
+   // True if the pipeline is in a broken state due to shader compile/link problems for example
+   bool                    m_broken = false;
+
+private:
+   void CreateDefaultFragmentShader(CompiledShaderHandle compiledShaders[SHADER_FLAVOUR_COUNT],
+                                    const Compiler::Controls &controls);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -100,11 +116,13 @@ protected:
 class GraphicsPipeline : public Pipeline
 {
 public:
-   using DynamicStateBits = Bitfield<VkDynamicState, VK_DYNAMIC_STATE_RANGE_SIZE, uint32_t>;
+   using DynamicStateBits = std::bitset<VK_DYNAMIC_STATE_RANGE_SIZE>;
 
    struct ShaderPatchingData
    {
-      uint32_t offsetGLGeom[LinkResult::SHADER_VPS_COUNT][MODE_COUNT]{};
+      bool hasT;
+      bool hasG;
+      uint32_t offsetGLGeom[LinkResult::SHADER_VPS_COUNT]{};
       uint32_t offsetGLMain{};
       uint32_t offsetGLAttr{};
    };
@@ -131,7 +149,7 @@ public:
 
    virtual ~GraphicsPipeline();
 
-   bool IsDynamic(VkDynamicState test) const { return m_dynamicStateBits.IsSet(test); }
+   bool IsDynamic(VkDynamicState test) const { return m_dynamicStateBits.test(test); }
 
    const Viewport  &GetViewport()    const { return m_viewport; }
    const VkRect2D  &GetScissorRect() const { return m_scissorRect; }
@@ -140,7 +158,6 @@ public:
 
    uint32_t                      GetDepthBits()           const { return m_depthBits; }
    const v3d_prim_mode_t        &GetDrawPrimMode()        const { return m_drawPrimMode; }
-   uint32_t                      NumPatchControlPoints()  const { return m_patchControlPoints; }
    bool                          PrimitiveRestartEnable() const { return m_primitiveRestartEnable; }
    bool                          GetDepthBiasEnable()     const { return m_depthBiasEnable; }
    const bvk::vector<uint32_t>  &GetShaderRecord()        const { return m_shaderRecord; }
@@ -171,6 +188,10 @@ public:
       return m_vertexAttributeDescriptions[attr];
    }
 
+   bool UpdateEarlyZState(EARLY_Z_STATE_T *state);
+
+   const V3D_CL_CFG_BITS_T &GetConfigBits() const { return m_cfgBits; }
+
 protected:
    void BuildUniformSpecial(UniformData &uniforms, uint32_t offset, BackendSpecialUniformFlavour special) override;
 
@@ -180,17 +201,17 @@ private:
       const VkDynamicState *dynamicStates);
 
    void CreateShaderRecord(bool rasterizerDiscard, bool sampleShading,
-                           v3d_vpm_cfg_v vpmV[2], uint32_t vpmSize);
-   void ComputeTnGVPMCfg(v3d_vpm_cfg_v vpmV[2], uint32_t *packedRes, uint32_t vpmSize) const;
+                           v3d_vpm_cfg_v vpmV[2], uint32_t vpmSize, uint32_t patchControlPoints);
    void CreateShaderRecordDummyAttribute(uint32_t *dstPtr);
    static uint32_t CalcBackendKey(const VkGraphicsPipelineCreateInfo *ci);
    uint32_t CalcBlendState(uint32_t *blendEnables, V3D_CL_BLEND_CFG_T *blendCfg,
                            const VkPipelineColorBlendStateCreateInfo *ci) const;
    void CalcCfgBits(V3D_CL_CFG_BITS_T *cfg_bits,
                     const VkPipelineRasterizationStateCreateInfo *rastCi,
-                    bool ms, bool blendEnable, bool hasDepthStencil, bool usesFlatShading) const;
-   void CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci, bool hasDepthStencil,
-                    const v3d_vpm_cfg_v vpmV[2]);
+                    bool ms, bool blendEnable,
+                    bool rpEarlyZCompatible, bool usesFlatShading);
+   void CalcSetupCL(const VkGraphicsPipelineCreateInfo *ci,
+                    bool rpEarlyZCompatible, const v3d_vpm_cfg_v vpmV[2]);
 
 private:
    ///////////////////////////////
@@ -206,7 +227,8 @@ private:
 
    v3d_prim_mode_t                        m_drawPrimMode;   // Primitive mode to pass to draw calls
    bool                                   m_primitiveRestartEnable;
-   uint32_t                               m_patchControlPoints;
+   bool                                   m_hasDepthStencil;
+   V3D_CL_CFG_BITS_T                      m_cfgBits;
 
    ////////////////
    // Internal data

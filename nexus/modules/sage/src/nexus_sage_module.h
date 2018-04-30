@@ -148,7 +148,6 @@ typedef struct NEXUS_SageModule_P_Handle
 
     BKNI_EventHandle hEventReceive; /* receive event to sync on channel destroy */
 
-    uint8_t reset;                  /* 0= no, SAGE CPU is running. ;  1= yes, SAGE CPU is in reset */
     NEXUS_SageSWState SWState;      /* Indicates SW state over boot process */
 
     NEXUS_SageChannelHandle waitingChannel; /* currently in a WaitForEvent on hEventReceive */

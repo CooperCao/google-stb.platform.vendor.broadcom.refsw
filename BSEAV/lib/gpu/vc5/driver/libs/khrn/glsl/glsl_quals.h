@@ -10,14 +10,14 @@
 QualList *qual_list_new(Qualifier *head);
 QualList *qual_list_append(QualList *list, Qualifier *q);
 
+Qualifier *new_qual(QualFlavour q);
+
 Qualifier *new_qual_storage(StorageQualifier q);
 Qualifier *new_qual_auxiliary(AuxiliaryQualifier q);
 Qualifier *new_qual_memory(MemoryQualifier q);
 Qualifier *new_qual_layout(LayoutIDList *q);
 Qualifier *new_qual_prec(PrecisionQualifier q);
 Qualifier *new_qual_interp(InterpolationQualifier q);
-Qualifier *new_qual_invariant(void);
-Qualifier *new_qual_precise(void);
 
 void qualifiers_from_list(Qualifiers *q, QualList *l);
 void qualifiers_from_list_context_sq(Qualifiers *q, QualList *l, StorageQualifier sq);

@@ -2,10 +2,10 @@
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES/glext.h"
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include "interface/khronos/glxx/glxx_int_config.h"
 
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"

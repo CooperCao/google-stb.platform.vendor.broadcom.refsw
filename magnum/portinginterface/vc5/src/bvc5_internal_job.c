@@ -190,6 +190,37 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
    return pJob;
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+BVC5_P_InternalJob *BVC5_P_JobCreateCompute(
+   BVC5_Handle             hVC5,
+   uint32_t                uiClientId,
+   const BVC5_JobCompute   *pComputeJob,
+   BVC5_P_ComputeSubjobs   *pSubjobs)
+{
+   BVC5_JobCompute *pComputeJobCopy = NULL;
+   BVC5_P_InternalJob *pJob = NULL;
+
+   /* Copy compute job./ */
+   pComputeJobCopy = BKNI_Malloc(sizeof(BVC5_JobCompute));
+   if (!pComputeJobCopy)
+      goto fail;
+   BKNI_Memcpy(pComputeJobCopy, pComputeJob, sizeof(BVC5_JobCompute));
+
+   pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, &pComputeJobCopy->sBase, &pComputeJob->sBase);
+   if (!pJob)
+      goto fail;
+   pJob->jobData.sCompute.pSubjobs = pSubjobs;
+   pJob->jobData.sCompute.uiNumIssued = 0;
+   pJob->jobData.sCompute.uiNumDone = 0;
+   return pJob;
+
+fail:
+   if (pComputeJobCopy)
+      BKNI_Free(pComputeJobCopy);
+   return NULL;
+}
+#endif
+
 static void BVC5_P_JobWaitCallback(void *context, uint64_t param)
 {
    BVC5_Handle        hVC5  = (BVC5_Handle)context;
@@ -354,6 +385,24 @@ void BVC5_P_JobDestroy(
       /* Need to free bin memory if still allocated */
          BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray);
          break;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      case BVC5_JobType_eCompute:
+         {
+            uint32_t uiSubjobsId = ((const BVC5_JobCompute*)pJobBase)->uiSubjobsId;
+            if (uiSubjobsId != 0)
+            {
+               /* If uiSubjobsId is non-zero, then need to clear out this pointer from the client's lookup table. */
+               BVC5_ClientHandle hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
+               BVC5_P_ClientDeleteComputeSubjobs(hClient, uiSubjobsId, pJob->jobData.sCompute.pSubjobs);
+            }
+            else
+            {
+               /* Otherwise we can just delete this object. */
+               BVC5_P_DeleteComputeSubjobs(pJob->jobData.sCompute.pSubjobs);
+            }
+         }
+         break;
+#endif
       case BVC5_JobType_eFenceWait:
          if (pJob->jobData.sWait.waitData)
             BVC5_P_FenceWaitAsyncCleanup(hVC5->hFences, pJob->uiClientId,
@@ -366,3 +415,31 @@ void BVC5_P_JobDestroy(
    BKNI_Free(pJobBase);
    BVC5_P_FreeInternalJob(pJob);
 }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+
+BVC5_P_ComputeSubjobs *BVC5_P_NewComputeSubjobs(uint32_t uiCapacity)
+{
+   /* Note that zero sized arrays are not supported in ancient C, so workaround this. */
+   BVC5_P_ComputeSubjobs *pSubjobs = BKNI_Malloc(offsetof(BVC5_P_ComputeSubjobs, pData) + sizeof(BVC5_JobComputeSubjob)*uiCapacity);
+   if (!pSubjobs)
+      return NULL;
+   pSubjobs->uiCapacity = uiCapacity;
+   pSubjobs->uiSize = 0;
+   return pSubjobs;
+}
+
+void BVC5_P_UpdateComputeSubjobs(BVC5_P_ComputeSubjobs *pSubjobs, uint32_t uiSize, const BVC5_JobComputeSubjob *pNewData)
+{
+   BDBG_ASSERT(uiSize <= pSubjobs->uiCapacity);
+   BKNI_Memcpy(pSubjobs->pData, pNewData, sizeof(BVC5_JobComputeSubjob) * uiSize);
+   pSubjobs->uiSize = uiSize;
+}
+
+void BVC5_P_DeleteComputeSubjobs(BVC5_P_ComputeSubjobs *pSubjobs)
+{
+   if (pSubjobs)
+      BKNI_Free(pSubjobs);
+}
+
+#endif

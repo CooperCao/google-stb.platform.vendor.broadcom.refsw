@@ -7,8 +7,8 @@
 #include "middleware/khronos/egl/egl_server.h"
 
 #include "middleware/khronos/ext/egl_khr_image.h"
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include "middleware/khronos/common/khrn_mem.h"
 
 /*

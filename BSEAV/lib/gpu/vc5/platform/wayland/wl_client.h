@@ -4,7 +4,8 @@
 #pragma once
 
 #include "wayland_nexus_client.h"
-#include <EGL/egl.h>
+#include "nexus_surface.h"
+#include <EGL/begl_displayplatform.h>
 #include <wayland-client.h>
 #include <stdbool.h>
 
@@ -15,6 +16,7 @@ extern "C"
 
 typedef struct WlSharedBuffer
 {
+   NEXUS_SurfaceHandle handle;
    BEGL_SurfaceInfo settings;
    struct wl_buffer *buffer;
    struct wl_buffer_listener listener;
@@ -42,7 +44,7 @@ extern bool CreateWlClient(WlClient *client, struct wl_display *display);
 extern void DestroyWlClient(WlClient *client);
 
 extern bool CreateWlSharedBuffer(WlSharedBuffer *buffer, WlClient *client,
-      const BEGL_SurfaceInfo *settings, bool secure,
+      uint32_t width, uint32_t height, BEGL_BufferFormat format, bool secure,
       void (*release)(void *data, struct wl_buffer *wl_buffer), void *data);
 extern void DestroyWlSharedBuffer(WlSharedBuffer *buffer);
 

@@ -45,7 +45,7 @@ static const Node *UnrollAccessChains(const Node *pointer, spv::vector<const Nod
 
       result = UnrollAccessChains(chain->GetBase(), accessChain);
 
-      for (const NodeIndex &ni : chain->GetIndices())
+      for (const NodeConstPtr &ni : chain->GetIndices())
          accessChain->push_back(ni);
    }
 
@@ -63,8 +63,7 @@ class SharedAccess
 public:
    SharedAccess() = delete;
    SharedAccess(const SharedAccess &) = delete;
-   SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout *layout, SymbolTypeHandle type,
-                const spv::vector<const Node *> &accessChain);
+   SharedAccess(DflowBuilder &builder, SymbolHandle symbol, const spv::vector<const Node *> &accessChain);
 
    const Dflow       &GetOffset() const { return m_offset; }
    MemLayout        *GetLayout()  const { return m_layout; }
@@ -76,9 +75,11 @@ private:
    SymbolTypeHandle  m_type;
 };
 
-SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout *layout, SymbolTypeHandle type, const spv::vector<const Node *> &accessChain)
+SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, const spv::vector<const Node *> &accessChain)
 {
-   Dflow offset = Dflow::ConstantUInt(symbol.GetOffset());
+   Dflow offset = Dflow::UInt(0);
+   MemLayout *layout = symbol.GetMemLayout();
+   SymbolTypeHandle type = symbol.GetType();
 
    for (uint32_t i = 0; i < accessChain.size(); ++i)
    {
@@ -89,7 +90,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
       {
       case LAYOUT_PRIM_NONMATRIX:
       {
-         offset = offset + index0 * Dflow::ConstantUInt(layout->u.prim_nonmatrix_layout.stride);
+         offset = offset + index0 * layout->u.prim_nonmatrix_layout.stride;
          layout = glsl_mem_prim_nonmatrix_layout(4);
          type   = type.IndexType();
          break;
@@ -99,7 +100,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
       {
          // We chose the layout for shared memory and its stride so make some assumptions here.
          assert(!layout->u.prim_matrix_layout.row_major);
-         offset = offset + index0 * Dflow::ConstantUInt(layout->u.prim_matrix_layout.stride);
+         offset = offset + index0 * layout->u.prim_matrix_layout.stride;
          layout = glsl_mem_prim_nonmatrix_layout(4);
          type   = type.MatrixSubscriptVector(1);
          break;
@@ -107,7 +108,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
 
       case LAYOUT_ARRAY :
       {
-         offset = offset + index0 * Dflow::ConstantUInt(layout->u.array_layout.stride);
+         offset = offset + index0 * layout->u.array_layout.stride;
          layout = layout->u.array_layout.member_layout;
          type   = type.GetElementType();
          break;
@@ -116,7 +117,7 @@ SharedAccess::SharedAccess(DflowBuilder &builder, SymbolHandle symbol, MemLayout
       case LAYOUT_STRUCT :
       {
          uint32_t constIndex = index0.GetConstantInt(); // Must be a constant
-         offset = offset + Dflow::ConstantUInt(layout->u.struct_layout.member_offsets[constIndex]);
+         offset = offset + layout->u.struct_layout.member_offsets[constIndex];
          layout = &layout->u.struct_layout.member_layouts[constIndex];
          type   = type.GetStructMemberType(constIndex);
          break;
@@ -156,7 +157,7 @@ LoadScalars::LoadScalars(DflowBuilder &builder, BasicBlockHandle block, const No
    m_block(block),
    m_resultType(resultType),
    m_accessChain(builder.GetArenaAllocator()),
-   m_result(builder)
+   m_result(builder.GetArenaAllocator())
 {
 }
 
@@ -229,10 +230,12 @@ void LoadScalars::LoadVariable(const DflowScalars &scalars, const NodeType *root
 
 void LoadScalars::LoadFromMemory(const NodeVariable *var, const NodeType *rootType)
 {
-   bool ssbo = IsSSBO::Test(m_builder.GetModule(), var);
+   bool ssbo = IsSSBO::Test(var);
 
-   uint32_t descriptorSet = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
-   uint32_t binding       = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::Binding,       var);
+   DecorationQuery   query(var);
+
+   uint32_t descriptorSet = query.RequireLiteral(spv::Decoration::DescriptorSet);
+   uint32_t binding       = query.RequireLiteral(spv::Decoration::Binding);
 
    uint32_t    arrayElement = BlockIndex::Get(m_builder, rootType, m_accessChain);
    LayoutInfo  layoutInfo   = MemoryLayout::Calculate(m_builder, rootType, m_accessChain);
@@ -243,26 +246,25 @@ void LoadScalars::LoadFromMemory(const NodeVariable *var, const NodeType *rootTy
 
    // Find or create a new table entry for the (set, binding, element) tuple
    DescriptorInfo dInfo(descriptorSet, binding, arrayElement);
-   uint32_t descTableIndex = m_builder.GetDescriptorMaps().FindBufferEntry(ssbo, dInfo);
+   uint32_t descTableIndex = m_builder.GetDescriptorMaps().FindBuffer(ssbo, dInfo);
 
-   Dflow dynOffset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain);
+   DataflowFlavour bufType = ssbo ? DATAFLOW_STORAGE_BUFFER : DATAFLOW_UNIFORM_BUFFER;
+   Dflow buf = Dflow::Buffer(bufType, descTableIndex, 0);
+   Dflow dynOffset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain, buf);
 
    // Calculate the types of all the scalars in the composite
    SymbolTypeHandle type = m_builder.GetSymbolType(m_resultType);
-   DflowScalars::BufferType bufType = ssbo ? DflowScalars::SSBO : DflowScalars::UBO;
-   m_result = DflowScalars::LoadFromBufferAddress(m_builder, type, accesses,
-                                                  dynOffset, descTableIndex, bufType);
+   m_result = DflowScalars::LoadFromBufferAddress(m_builder.GetArenaAllocator(), type, accesses,
+                                                  buf, dynOffset, m_builder.RobustBufferAccess());
 }
 
 void LoadScalars::LoadFromWorkgroup(const NodeVariable *var, const NodeType *rootType)
 {
-   SymbolHandle      symbol = m_builder.GetVariableSymbol(var);
-   SymbolTypeHandle  type   = symbol.GetType();
-   MemLayout        *layout = symbol.GetMemLayout();
-   Dflow             addr   = m_builder.WorkgroupAddress();
-   SharedAccess      access(m_builder, symbol, layout, type, m_accessChain);
+   SymbolHandle symbol = m_builder.GetVariableSymbol(var);
+   Dflow        addr   = m_builder.WorkgroupAddress();
+   SharedAccess access(m_builder, symbol, m_accessChain);
 
-   m_result = DflowScalars(m_builder, access.GetType().GetNumScalars());
+   m_result = DflowScalars(m_builder.GetArenaAllocator(), access.GetType().GetNumScalars());
 
    glsl_buffer_load_calculate_dataflow(m_block->GetBlock(), m_result.Data(),
                                        addr, access.GetOffset(),
@@ -274,24 +276,25 @@ void LoadScalars::LoadPushConstant(const NodeVariable *var, const NodeType *root
    // Calculate the types of all the scalars in the composite
    SymbolTypeHandle type = m_builder.GetSymbolType(m_resultType);
 
-   // TODO : not arena allocator here -- just use std for what are temp "stack-based" variables
-   spv::vector<MemAccess> accesses = MemoryOffsetsOfScalars::Calculate(m_builder, m_resultType,
-                                                                       LayoutInfo());
+   LayoutInfo  layoutInfo = MemoryLayout::Calculate(m_builder, rootType, m_accessChain);
 
-   if (m_builder.IsConstant(m_accessChain))
+   spv::vector<MemAccess> accesses = MemoryOffsetsOfScalars::Calculate(m_builder, m_resultType,
+                                                                       layoutInfo);
+
+   Dflow buf = Dflow::Buffer(DATAFLOW_UNIFORM_BUFFER, DriverLimits::ePushConstantIdentifier, 0);
+   Dflow offset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain, buf);
+
+   if (offset.GetFlavour() == DATAFLOW_CONST)
    {
-      uint32_t constOffset = MemoryOffset::CalculateStatic(m_builder, rootType, m_accessChain);
+      uint32_t constOffset = offset.GetConstantInt();
       assert((constOffset & 3) == 0);
 
-      m_result = DflowScalars::LoadFromPushConstants(m_builder, type, accesses, constOffset);
+      m_result = DflowScalars::LoadFromPushConstants(m_builder.GetArenaAllocator(), type, accesses, constOffset);
    }
    else
    {
-      Dflow dynOffset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain);
-
-      m_result = DflowScalars::LoadFromBufferAddress(m_builder, type, accesses, dynOffset,
-                                                     /*descTableIndex=*/DriverLimits::ePushConstantIdentifier,
-                                                     DflowScalars::UBO);
+      m_result = DflowScalars::LoadFromBufferAddress(m_builder.GetArenaAllocator(), type, accesses, buf, offset,
+                                                     m_builder.RobustBufferAccess());
    }
 }
 
@@ -313,11 +316,17 @@ void LoadScalars::Visit(const NodeVariable *var)
    case spv::StorageClass::Input:
       {
          SymbolHandle symbol = m_builder.GetVariableSymbol(var);
-         DflowScalars scalars = m_builder.LoadFromSymbol(m_block, symbol);
+
          if (!strncmp(symbol.GetName(), "gl_", 3))
+         {
+            DflowScalars scalars = m_builder.LoadFromSymbol(m_block, symbol);
             LoadVariable(scalars, rootType);
+         }
          else
+         {
+            DflowScalars scalars = InputLoader::Load(m_builder, var, m_block);
             LoadVariable(DflowScalars::InLoad(scalars), rootType);
+         }
       }
       break;
 
@@ -429,10 +438,12 @@ void StoreScalars::StoreToMemory(const NodeVariable *var) const
 {
    const NodeType *rootType = TypeOf(var);
 
-   bool ssbo = IsSSBO::Test(m_builder.GetModule(), var);
+   bool ssbo = IsSSBO::Test(var);
 
-   uint32_t descriptorSet = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
-   uint32_t binding       = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::Binding,       var);
+   DecorationQuery   query(var);
+
+   uint32_t descriptorSet = query.RequireLiteral(spv::Decoration::DescriptorSet);
+   uint32_t binding       = query.RequireLiteral(spv::Decoration::Binding);
 
    uint32_t    arrayElement = BlockIndex::Get(m_builder, rootType, m_accessChain);
    LayoutInfo  layoutInfo   = MemoryLayout::Calculate(m_builder, rootType, m_accessChain);
@@ -443,45 +454,42 @@ void StoreScalars::StoreToMemory(const NodeVariable *var) const
 
    // Find or create a new table entry for the (set, binding, element) tuple
    DescriptorInfo dInfo(descriptorSet, binding, arrayElement);
-   uint32_t descTableIndex = m_builder.GetDescriptorMaps().FindBufferEntry(ssbo, dInfo);
+   uint32_t descTableIndex = m_builder.GetDescriptorMaps().FindBuffer(ssbo, dInfo);
 
-   Dflow dynOffset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain);
-
-   SymbolTypeHandle type = m_builder.GetSymbolType(m_storeType);
-   m_scalars.StoreToBufferAddress(m_builder, m_block, type, accesses,
-                                  dynOffset, descTableIndex);
+   Dflow buf = Dflow::Buffer(DATAFLOW_STORAGE_BUFFER, descTableIndex, 0);
+   Dflow dynOffset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain, buf);
+   m_scalars.StoreToBufferAddress(m_block, accesses, buf, dynOffset,
+                                  m_builder.RobustBufferAccess());
 }
 
 void StoreScalars::StoreToWorkgroup(const NodeVariable *var) const
 {
-   SymbolHandle      symbol = m_builder.GetVariableSymbol(var);
-   SymbolTypeHandle  type   = symbol.GetType();
-   MemLayout        *layout = symbol.GetMemLayout();
-   Dflow             addr   = m_builder.WorkgroupAddress();
-   SharedAccess      access(m_builder, symbol, layout, type, m_accessChain);
+   SymbolHandle symbol = m_builder.GetVariableSymbol(var);
+   Dflow        addr   = m_builder.WorkgroupAddress();
+   SharedAccess access(m_builder, symbol, m_accessChain);
 
    glsl_buffer_store_calculate_dataflow(m_block->GetBlock(), m_scalars.Data(),
                                         addr, access.GetOffset(),
                                         access.GetLayout(), access.GetType(), STORAGE_SHARED);
 }
 
-void StoreScalars::Visit(const NodeVariable *node)
+void StoreScalars::Visit(const NodeVariable *var)
 {
-   switch (node->GetStorageClass())
+   switch (var->GetStorageClass())
    {
    case spv::StorageClass::Output:
    case spv::StorageClass::Function:
    case spv::StorageClass::Private:
-      StoreSymbol(m_builder.GetVariableSymbol(node), node);
+      StoreSymbol(m_builder.GetVariableSymbol(var), var);
       break;
 
    case spv::StorageClass::Uniform:
    case spv::StorageClass::StorageBuffer:
-      StoreToMemory(node);
+      StoreToMemory(var);
       break;
 
    case spv::StorageClass::Workgroup:
-      StoreToWorkgroup(node);
+      StoreToWorkgroup(var);
       break;
 
    case spv::StorageClass::UniformConstant:
@@ -543,11 +551,9 @@ AtomicAccess::AtomicAccess(DflowBuilder &builder, DataflowFlavour atomicOp, Basi
    m_atomicOp(atomicOp),
    m_block(block),
    m_storeType(storeType),
-   m_vec4(builder, 4),
+   m_vec4(builder.GetArenaAllocator(), { value[0], comp, Dflow(), Dflow() }),
    m_accessChain(builder.GetArenaAllocator())
 {
-   m_vec4[0] = value[0];
-   m_vec4[1] = comp;
 }
 
 void AtomicAccess::Visit(const NodeVariable *node)
@@ -582,43 +588,33 @@ void AtomicAccess::Visit(const NodeCopyObject *node)
 
 DflowScalars AtomicAccess::ReadWriteMemory(const NodeVariable *var) const
 {
-   DflowScalars   result;
-
    // The type of the composite
    const NodeType *rootType = TypeOf(var);
 
    SymbolTypeHandle type = m_builder.GetSymbolType(m_storeType);
 
-   uint32_t descriptorSet = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::DescriptorSet, var);
-   uint32_t binding       = m_builder.GetModule().RequireLiteralDecoration(spv::Decoration::Binding,       var);
+   DecorationQuery   query(var);
 
-   uint32_t    arrayElement = BlockIndex::Get(m_builder, rootType, m_accessChain);
-   LayoutInfo  layoutInfo   = MemoryLayout::Calculate(m_builder, rootType, m_accessChain);
+   uint32_t descriptorSet = query.RequireLiteral(spv::Decoration::DescriptorSet);
+   uint32_t binding       = query.RequireLiteral(spv::Decoration::Binding);
 
-   // Calculate the offset
-   spv::vector<MemAccess> accesses = MemoryOffsetsOfScalars::Calculate(m_builder, m_storeType,
-                                                                       layoutInfo);
+   uint32_t arrayElement  = BlockIndex::Get(m_builder, rootType, m_accessChain);
 
    // Find or create a new table entry for the (set, binding, element) tuple
    DescriptorInfo dInfo(descriptorSet, binding, arrayElement);
-   uint32_t descTableIndex = m_builder.GetDescriptorMaps().FindBufferEntry(/*ssbo=*/true, dInfo);
+   uint32_t descTableIndex = m_builder.GetDescriptorMaps().FindBuffer(/*ssbo=*/true, dInfo);
 
-   Dflow dynOffset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain);
-
-   assert(accesses.size() == 1);
-   result = DflowScalars::AtomicAtBufferAddress(m_atomicOp, m_block, m_vec4, type,
-                                                accesses[0], dynOffset, descTableIndex);
-
-   return result;
+   Dflow buf    = Dflow::Buffer(DATAFLOW_STORAGE_BUFFER, descTableIndex, 0);
+   Dflow offset = MemoryOffset::Calculate(m_builder, rootType, m_accessChain, buf);
+   return DflowScalars::AtomicAtBufferAddress(m_atomicOp, m_block, m_vec4, type,
+                                              buf, offset, m_builder.RobustBufferAccess());
 }
 
 DflowScalars AtomicAccess::ReadWriteWorkgroup(const NodeVariable *var) const
 {
-   SymbolHandle      symbol = m_builder.GetVariableSymbol(var);
-   SymbolTypeHandle  type   = symbol.GetType();
-   MemLayout        *layout = symbol.GetMemLayout();
-   Dflow             addr   = m_builder.WorkgroupAddress();
-   SharedAccess      access(m_builder, symbol, layout, type, m_accessChain);
+   SymbolHandle symbol = m_builder.GetVariableSymbol(var);
+   Dflow        addr   = m_builder.WorkgroupAddress();
+   SharedAccess access(m_builder, symbol, m_accessChain);
 
    return DflowScalars::AtomicAtAddress(m_atomicOp, m_block, m_vec4,
                                         addr + access.GetOffset(), access.GetType());

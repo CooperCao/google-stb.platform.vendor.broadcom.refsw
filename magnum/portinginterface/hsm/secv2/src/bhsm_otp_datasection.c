@@ -69,6 +69,9 @@ static void BHSM_OtpDataSectionCRC_Caculate( const unsigned char *data_section,
 
     BDBG_ENTER( BHSM_OtpDataSectionCRC_Caculate );
 
+    if( !data_section ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !crc ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+
     for( i = 0; i < 32; i++ ) {
         crcArray[i] = 0x01;
     }
@@ -121,7 +124,10 @@ BERR_Code BHSM_OtpDataSection_Write( BHSM_Handle hHsm, const BHSM_DataSectionWri
     BHSM_P_OtpDataSectionProg bspParam;
     uint8_t dataCrc[BHSM_CRC_DATA_LEN];
     unsigned i, j;
-    BERR_Code rc;
+    BERR_Code rc = BERR_UNKNOWN;
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_Otp_EnableProgram_priv( hHsm, !BHSM_OTP_CACHE_PROGRAM_REQUEST );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -130,7 +136,9 @@ BERR_Code BHSM_OtpDataSection_Write( BHSM_Handle hHsm, const BHSM_DataSectionWri
 
     bspParam.in.dataSectionIndex = pParam->index;
     BHSM_OtpDataSectionCRC_Caculate( pParam->data, dataCrc );
-    BHSM_MemcpySwap( &bspParam.in.dataSectionCrc, dataCrc, 4 );
+    rc = BHSM_MemcpySwap( &bspParam.in.dataSectionCrc, dataCrc, 4 );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
     bspParam.in.numErrorsMax = 0;
 
     /* app-to-hsm: 32-byte-array in big endian
@@ -156,6 +164,9 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
     BHSM_OtpMspRead readParam;
     BHSM_P_OtpDataSectionRead bspParam;
     BERR_Code rc;
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &readParam, 0, sizeof(readParam) );
     readParam.index = 95;
@@ -202,7 +213,8 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
               byteData[i + 1] = readData[BHSM_DATA_SECTION_LENGTH - i - 1];
           }
 
-          BHSM_MemcpySwap(pParam->data, byteData, BHSM_DATA_SECTION_LENGTH);
+          rc = BHSM_MemcpySwap(pParam->data, byteData, BHSM_DATA_SECTION_LENGTH);
+          if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
       }
 
     return BERR_SUCCESS;

@@ -48,12 +48,14 @@ BDBG_MODULE(BVDC_DISP);
  *  Tables
  ****************************************************************/
 
+#if (BFMT_PICK_eNTSC || BFMT_PICK_eNTSC_J || BFMT_PICK_eNTSC_443 || BFMT_PICK_ePAL_60 || BFMT_PICK_e720x482_NTSC || BFMT_PICK_e720x482_NTSC_J)
 static const uint32_t* const
     s_aulDtRamBVBInput_DVI_480i_DropTbl[BVDC_P_480i_DROP_TABLE_SIZE] =
 {
     s_aulDviMicrocode_NTSC_J,
     BVDC_P_MAKE_DROPTBL(s_aulDtRamBVBInput_DVI_480i_Drop1)
 };
+#endif
 
 static const uint32_t* const
     s_aulDtRamBVBInput_DVI_480p_DropTbl[BVDC_P_480p_DROP_TABLE_SIZE] =
@@ -354,44 +356,138 @@ static const BVDC_P_RateInfo s_HdmiRm[] =
     BVDC_P_MAKE_RMHL(denom, num, sample, phase, integrator_lo, 0)
 #endif
 
+#if BFMT_PICK_PXL_25_2MHz
 static const uint32_t s_aulRmTable_25_2[BVDC_P_RM_TABLE_SIZE]             = { BVDC_P_MAKE_RM(32760,  2340,    1, 0x1DDDDE, 0) }; /* 25.2MHz for Vesa 640x480p */
+#endif
+
+#if BFMT_PICK_PXL_25_2MHz_DIV_1_001
 static const uint32_t s_aulRmTable_25_2_Div_1001[BVDC_P_RM_TABLE_SIZE]    = { BVDC_P_MAKE_RM(32400,  2349,    1, 0x1DD63A, 0) }; /* 25.2/1.001 Mhz for Vesa 640x480p */
+#endif
+
 static const uint32_t s_aulRmTable_27[BVDC_P_RM_TABLE_SIZE]               = { BVDC_P_MAKE_RM(32764,     0,    1, 0x200000, 0) }; /* 27Mhz for NTSC, NTSC_J, PAL, PAL_M, PAL_N, PAL_NC, 480p, 576p_50Hz */
 static const uint32_t s_aulRmTable_27_Mul_1001[BVDC_P_RM_TABLE_SIZE]      = { BVDC_P_MAKE_RM(32032, 32000,    0, 0x200831, 0) }; /* 27*1.001 MHz for 480p @60Hz */
+
+#if BFMT_PICK_PXL_39_79MHz
 static const uint32_t s_aulRmTable_39_79[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(27632, 18750,    0, 0x2F289A, 0) }; /* 39.790080 Mhz for Vesa 00x600p @60Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_39_79MHz_DIV_1_001
 static const uint32_t s_aulRmTable_39_79_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(30144, 20475,    0, 0x2F1C8B, 0) }; /* 39.790080/1.001 Mhz for Vesa 800x600p @59.94Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_60_4656MHz
 static const uint32_t s_aulRmTable_60_4656[BVDC_P_RM_TABLE_SIZE]          = { BVDC_P_MAKE_RM(29393, 13125,    0,  0x47A9B, 0) }; /* 60.4656 Mhz for Vesa 1280x720p @50Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_64_022MHz
 static const uint32_t s_aulRmTable_64_0224[BVDC_P_RM_TABLE_SIZE]          = { BVDC_P_MAKE_RM(32604, 13750,    0, 0x4BE0DF, 0) }; /* 64.0224 Mhz for Vesa 1280x720p Reduced Blanking @60Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_64_022MHz_DIV_1_001
 static const uint32_t s_aulRmTable_64_0224_Div_1001[BVDC_P_RM_TABLE_SIZE] = { BVDC_P_MAKE_RM(31920, 13475,    0, 0x4BCD77, 0) }; /* 64.0224/1.001 Mhz for Vesa 1280x720p Reduced Blanking @59.94Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_65MHz
 static const uint32_t s_aulRmTable_65[BVDC_P_RM_TABLE_SIZE]               = { BVDC_P_MAKE_RM(32760, 13608,    0, 0x4D097B, 0) }; /* 64.995840 Mhz for Vesa 1024x768p @ 60Hz */
+#endif
+
+#if BFMT_PICK_PXL_65MHz_DIV_1_001
 static const uint32_t s_aulRmTable_65_Div_1001[BVDC_P_RM_TABLE_SIZE]      = { BVDC_P_MAKE_RM(30000, 12474,    0, 0x4CF5C7, 0) }; /* 64.995840/1.001 Mhz for Vesa 1024x768p @ 59.94Hz */
+#endif
+
+#if BFMT_PICK_PXL_65_286MHz
 static const uint32_t s_aulRmTable_65_286[BVDC_P_RM_TABLE_SIZE]           = { BVDC_P_MAKE_RM(32643, 13500,    0, 0x4D6041, 0) }; /* 65.286 Mhz for Vesa 1280x768 @60Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_65_286MHz_DIV_1_001
 static const uint32_t s_aulRmTable_65_286_Div_1001[BVDC_P_RM_TABLE_SIZE]  = { BVDC_P_MAKE_RM(32736, 13552,    0, 0x4D4C77, 0) }; /* 65.286/1.001 Mhz for Vesa 1280x768 @59.94Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_74_25MHz
 static const uint32_t s_aulRmTable_74_25[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(32758, 11912,    0, 0x580000, 0x0a02530) }; /* 74.25Mhz (1080i, 720p) */
+#endif
+
+#if BFMT_PICK_PXL_74_25MHz_DIV_1_001
 static const uint32_t s_aulRmTable_74_25_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(32750, 11921,    0, 0x57e97f, 0x229e910) }; /* 74.25/1.001 Mhz sample rate, 720p_5994Hz or 1080i_2997Hz */
+#endif
+
 #if 0
 static const uint32_t s_aulRmTable_74_48[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(77584, 28125,    0, 0x5845FA, 0) }; /* 74.480640 Mhz for vesa 1280x720p @60Hz refresh rate */
 static const uint32_t s_aulRmTable_74_48_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(47744, 17325,    0, 0x582F67, 0) }; /* 74.406234 Mhz for vesa 1280x720p @59.94Hz refresh rate */
 #endif
-static const uint32_t s_aulRmTable_148_5[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(32758,  5956,    0, 0xB00000, 0) }; /* 148.5 Mhz for 1080p @60Hz refresh rate */
-static const uint32_t s_aulRmTable_148_5_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(32500,  5915,    0, 0xAFD2FD, 0) }; /* 148.5 Mhz for 1080p @59.94Hz refresh rate */
-static const uint32_t s_aulRmTable_162[BVDC_P_RM_TABLE_SIZE]              = { BVDC_P_MAKE_RM(32766,  5461,    0, 0xc00000, 0) }; /* 162 Mhz for 1600x1200p @60Hz refresh rate */
-static const uint32_t s_aulRmTable_67_565[BVDC_P_RM_TABLE_SIZE]           = { BVDC_P_MAKE_RM(31280, 12500,    0, 0x5013A9, 0xCD870) }; /* 67.565 Mhz sample rate, 1366x768_60Hz */
-static const uint32_t s_aulRmTable_67_565_Div_1001[BVDC_P_RM_TABLE_SIZE]  = { BVDC_P_MAKE_RM(25024, 10010,    0, 0x4FFF2E, 0xCD870) }; /* 67.565/1.001 Mhz sample rate, 1366x768_5994Hz */
-static const uint32_t s_aulRmTable_56_304[BVDC_P_RM_TABLE_SIZE]           = { BVDC_P_MAKE_RM(32062, 15375,    0, 0x42BB0C, 0xCD870) }; /* 56.304 Mhz sample rate, 1366x768_50Hz */
-static const uint32_t s_aulRmTable_297[BVDC_P_RM_TABLE_SIZE]              = { BVDC_P_MAKE_RM(32758,  2978,    0, 0x1600000, 0) }; /* 297 Mhz for 4kx2k @60Hz refresh rate */
-static const uint32_t s_aulRmTable_297_Div_1001[BVDC_P_RM_TABLE_SIZE]     = { BVDC_P_MAKE_RM(32000,  2912,    0, 0x15FA5F9, 0) }; /* 297/1.001 Mhz for 4kx2k @59.94Hz refresh rate */
 
+#if BFMT_PICK_PXL_148_5MHz
+static const uint32_t s_aulRmTable_148_5[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(32758,  5956,    0, 0xB00000, 0) }; /* 148.5 Mhz for 1080p @60Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_148_5MHz_DIV_1_001
+static const uint32_t s_aulRmTable_148_5_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(32500,  5915,    0, 0xAFD2FD, 0) }; /* 148.5 Mhz for 1080p @59.94Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_162MHz
+static const uint32_t s_aulRmTable_162[BVDC_P_RM_TABLE_SIZE]              = { BVDC_P_MAKE_RM(32766,  5461,    0, 0xc00000, 0) }; /* 162 Mhz for 1600x1200p @60Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_67_565MHz
+static const uint32_t s_aulRmTable_67_565[BVDC_P_RM_TABLE_SIZE]           = { BVDC_P_MAKE_RM(31280, 12500,    0, 0x5013A9, 0xCD870) }; /* 67.565 Mhz sample rate, 1366x768_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_67_565MHz_MUL_1_001
+static const uint32_t s_aulRmTable_67_565_Div_1001[BVDC_P_RM_TABLE_SIZE]  = { BVDC_P_MAKE_RM(25024, 10010,    0, 0x4FFF2E, 0xCD870) }; /* 67.565/1.001 Mhz sample rate, 1366x768_5994Hz */
+#endif
+
+#if BFMT_PICK_PXL_56_304MHz
+static const uint32_t s_aulRmTable_56_304[BVDC_P_RM_TABLE_SIZE]           = { BVDC_P_MAKE_RM(32062, 15375,    0, 0x42BB0C, 0xCD870) }; /* 56.304 Mhz sample rate, 1366x768_50Hz */
+#endif
+
+#if BFMT_PICK_PXL_297MHz
+static const uint32_t s_aulRmTable_297[BVDC_P_RM_TABLE_SIZE]              = { BVDC_P_MAKE_RM(32758,  2978,    0, 0x1600000, 0) }; /* 297 Mhz for 4kx2k @60Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_297MHz_DIV_1_001
+static const uint32_t s_aulRmTable_297_Div_1001[BVDC_P_RM_TABLE_SIZE]     = { BVDC_P_MAKE_RM(32000,  2912,    0, 0x15FA5F9, 0) }; /* 297/1.001 Mhz for 4kx2k @59.94Hz refresh rate */
+#endif
+
+#if BFMT_PICK_PXL_23_75MHz
 static const uint32_t s_aulRmTable_23_75[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(32680,  4472,  0x1, 0x1C25ED, 0) }; /* 23.75 Mhz sample rate, VESA 640x480p_CVT @60Hz */
+#endif
+
+#if BFMT_PICK_PXL_23_75MHz_DIV_1_001
 static const uint32_t s_aulRmTable_23_75_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(23750,  3277,  0x1, 0x1C1EBA, 0) }; /* 23.75/1.001 Mhz sample rate, VESA 640x480p_CVT @60Hz */
+#endif
+
+#if BFMT_PICK_PXL_83_5MHz
 static const uint32_t s_aulRmTable_83_5[BVDC_P_RM_TABLE_SIZE]             = { BVDC_P_MAKE_RM(32732, 10584,  0x0, 0x62F684, 0) }; /* 83.5 Mhz sample rate, VESA 1280x800_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_83_5MHz_DIV_1_001
 static const uint32_t s_aulRmTable_83_5_Div_1001[BVDC_P_RM_TABLE_SIZE]    = { BVDC_P_MAKE_RM(83500, 27027,  0x0, 0x62DD35, 0) }; /* 83.5/1.001 Mhz sample rate, VESA 1280x800_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_108MHz
 static const uint32_t s_aulRmTable_108[BVDC_P_RM_TABLE_SIZE]              = { BVDC_P_MAKE_RM(32764,  8191,  0x0, 0x800000, 0) }; /* 108 Mhz sample rate, VESA 1280x1024_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_108MHz_DIV_1_001
 static const uint32_t s_aulRmTable_108_Div_1001[BVDC_P_RM_TABLE_SIZE]     = { BVDC_P_MAKE_RM(32000,  8008,  0x0, 0x7fdf43, 0) }; /* 108/1.001 Mhz sample rate, VESA 1280x1024_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_85_5MHz
 static const uint32_t s_aulRmTable_85_5[BVDC_P_RM_TABLE_SIZE]             = { BVDC_P_MAKE_RM(32756, 10344,  0x0, 0x655555, 0) }; /* 85.5 Mhz sample rate, VESA 1366x768_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_85_5MHz_DIV_1_001
 static const uint32_t s_aulRmTable_85_5_Div_1001[BVDC_P_RM_TABLE_SIZE]    = { BVDC_P_MAKE_RM(28500,  9009,  0x0, 0x653B6A, 0) }; /* 85.5/1.001 Mhz sample rate, VESA 1366x768_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_106_5MHz
 static const uint32_t s_aulRmTable_106_5[BVDC_P_RM_TABLE_SIZE]            = { BVDC_P_MAKE_RM(32731,  8298,  0x0, 0x7E38E3, 0) }; /* 106.5 Mhz sample rate, VESA 1440x900_60Hz */
+#endif
+
+#if BFMT_PICK_PXL_106_5MHz_DIV_1_001
 static const uint32_t s_aulRmTable_106_5_Div_1001[BVDC_P_RM_TABLE_SIZE]   = { BVDC_P_MAKE_RM(35500,  9009,  0x0, 0x7E189B, 0) }; /* 106.5/1.001 Mhz sample rate, VESA 1440x900_60Hz */
+#endif
+
 static const uint32_t s_aulRmTable_54[BVDC_P_RM_TABLE_SIZE]               = { BVDC_P_MAKE_RM(32766, 16383,    0, 0x400000, 0) }; /* 54Mhz for (480P or 576P) at double rate */
 static const uint32_t s_aulRmTable_54_Mul_1001[BVDC_P_RM_TABLE_SIZE]      = { BVDC_P_MAKE_RM(32032, 16000,    0, 0x401062, 0) }; /* 54Mhz for 480P at double rate */
 
@@ -445,12 +541,15 @@ static const uint32_t s_aulSmTable_PALM_YUV[BVDC_P_SM_TABLE_SIZE] =
     BVDC_P_MAKE_SM(ON, 0x22A, 0x0, 1, 1, 0x21E6EFA4, 0x400, COMPOSITE, ON, USE_SIN, USE_COS),
 };
 
+#if BFMT_PICK_ePAL_NC
 /* PAL_NC SVideo/CVBS */
 static const uint32_t s_aulSmTable_PALNC_YUV[BVDC_P_SM_TABLE_SIZE] =
 {
     BVDC_P_MAKE_SM(ON,  0xCB, 0x0, 1, 1, 0x21F69447, 0x400, COMPOSITE, ON, USE_SIN, USE_COS),
 };
+#endif
 
+#if BFMT_PICK_ePAL_N
 /* PAL_N SVideo/CVBS */
 static const uint32_t s_aulSmTable_PALN_YUV[BVDC_P_SM_TABLE_SIZE] =
 {
@@ -458,7 +557,9 @@ static const uint32_t s_aulSmTable_PALN_YUV[BVDC_P_SM_TABLE_SIZE] =
         ON, 0xFB, 0x0, 1, 1, 0x2A098ACB, 0x400, COMPOSITE, ON, USE_SIN,
         USE_COS),
 };
+#endif
 
+#if BFMT_PICK_ePAL_I
 /* PAL_I SVideo/CVBS */
 static const uint32_t s_aulSmTable_PALI_YUV[BVDC_P_SM_TABLE_SIZE] =
 {
@@ -472,6 +573,7 @@ static const uint32_t s_aulSmTable_PALI_YUV[BVDC_P_SM_TABLE_SIZE] =
         USE_COS),
 #endif
 };
+#endif
 
 /* All other PAL SVideo/CVBS */
 static const uint32_t s_aulSmTable_PAL_YUV[BVDC_P_SM_TABLE_SIZE] =
@@ -487,11 +589,13 @@ static const uint32_t s_aulSmTable_PAL_YUV[BVDC_P_SM_TABLE_SIZE] =
 #endif
 };
 
+#if BFMT_PICK_eSECAM_L
 /* SECAM SVideo/CVBS */
 static const uint32_t s_aulSmTable_SECAM[BVDC_P_SM_TABLE_SIZE] =
 {
     BVDC_P_MAKE_SM(ON, 0, 0x0, 0, 0, 0x284BDA12, 0x400, COMPOSITE, ON, USE_SIN, USE_COS),
 };
+#endif
 
 /* SM values for Component output */
 static const uint32_t s_aulSmTable_Component[BVDC_P_SM_TABLE_SIZE] =

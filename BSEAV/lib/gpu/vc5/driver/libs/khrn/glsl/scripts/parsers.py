@@ -76,11 +76,22 @@ def parse_source(lines, need_body=True):
                         # ignore blank lines here
                         active_string = ""
                         continue
-                    if active_string[0] != "{":
+                    if active_string[0] == "{":
+                        active_braces = 1
+                        active_string = active_string.strip("{")
+                    elif active_string[0] == ';':
+                        # This is the moment when a function is complete if there is a body
+                        functions.append((fn_name, active_return, active_params, None))
+                        fn_name          = None
+                        fn_body          = ""
+                        active_return    = []
+                        active_params    = []
+                        seen_open_paren  = False
+                        seen_close_paren = False
+                        break
+                    else:
                         sys.stderr.write("Error: parser wanted an open brace on this line and didn't get it in %s" % line)
                         sys.exit(1)
-                    active_braces = 1
-                    active_string = active_string.strip("{")
             if active_braces > 0:
                 # parsing a function body
                 for i in range(len(active_string)):

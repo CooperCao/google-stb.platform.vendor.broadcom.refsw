@@ -143,8 +143,8 @@ typedef struct BDSP_P_InterTaskBuffer
     BDSP_Context *pContext;
     bool inUse; /* Flag to indicate if the intertask buffer is in use */
     BDSP_DataType dataType; /* Type of data in the inter task buffer */
-    BDSP_DataType numChans; /* Number of channels in the intertask buffer */
-    BDSP_DataType distinctOp; /* Distinct output type of the intertask buffer */
+    unsigned numChans; /* Number of channels in the intertask buffer */
+    BDSP_AF_P_DistinctOpType distinctOp; /* Distinct output type of the intertask buffer */
     BDSP_MMA_Memory MsgQueueParams; /* Pointer to the multiple queue parameters used per channel + one for IO generic buffer*/
     BDSP_MMA_Memory IoBufferDesc; /* Io buffer descriptor pointer */
     BDSP_MMA_Memory IoBufferGenericDesc; /* Io generic buffer descriptor pointer */

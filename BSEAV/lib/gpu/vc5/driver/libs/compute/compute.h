@@ -18,6 +18,8 @@ typedef struct compute_params
    uint32_t shared_block_size;
    uint32_t num_threads;
    bool has_barrier;
+   bool has_subgroup_ops;
+   bool has_quad_ops;
 } compute_params;
 
 typedef struct compute_sg_config

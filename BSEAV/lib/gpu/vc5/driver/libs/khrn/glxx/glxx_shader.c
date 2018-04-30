@@ -169,41 +169,6 @@ static GLXX_UNIFORM_MAP_T *format_uniform_map(umap_entry *uniform_map,
    return ret;
 }
 
-static bool prog_has_vstage(const BINARY_PROGRAM_T *p, ShaderFlavour f) {
-   assert( ( p->vstages[f][MODE_RENDER] &&  p->vstages[f][MODE_BIN]) ||
-           (!p->vstages[f][MODE_RENDER] && !p->vstages[f][MODE_BIN])   );
-   return p->vstages[f][MODE_RENDER] != NULL;
-}
-
-static void write_vertex_shader_data(GLXX_LINK_RESULT_DATA_T  *data,
-                                     const BINARY_PROGRAM_T   *prog)
-{
-   for (unsigned m = 0; m != MODE_COUNT; ++m)
-   {
-      unsigned inputs  = prog->vstages[SHADER_VERTEX][m]->u.vertex.input_words;
-      unsigned outputs = prog->vstages[SHADER_VERTEX][m]->u.vertex.output_words;
-
-      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.combined_seg_ok) {
-         data->vs_output_words[m] = gfx_umax(inputs, outputs);
-         data->vs_input_words[m] = 0;
-      } else {
-         if (inputs > 0)
-            data->flags |= GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << m;
-         data->vs_output_words[m] = outputs;
-         data->vs_input_words[m] = inputs;
-      }
-
-      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.vertexid_used)
-         data->flags |= GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << m;
-      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.instanceid_used)
-         data->flags |= GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << m;
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.baseinstance_used)
-         data->flags |= GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << m;
-#endif
-   }
-}
-
 static bool write_common_data(GLXX_SHADER_DATA_T    *data,
                               void *code, v3d_size_t *code_offset,
                               const BINARY_SHADER_T *bin)
@@ -233,18 +198,11 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
 {
    memset(data, 0, sizeof(*data));
 
-#if GLXX_HAS_TNG
-   data->has_geom = prog_has_vstage(prog, SHADER_GEOMETRY);
-   data->has_tess = prog_has_vstage(prog, SHADER_TESS_CONTROL);
-   uint8_t has_tesse = prog_has_vstage(prog, SHADER_TESS_EVALUATION);
-   assert((data->has_tess ^ has_tesse) == 0);
-#endif
-
    // Map from vertex pipe stages to GLSL shader flavours.
    const ShaderFlavour flavours[GLXX_SHADER_VPS_COUNT] =
    {
       SHADER_VERTEX,             // GLXX_SHADER_VPS_VS
-     #if GLXX_HAS_TNG
+     #if V3D_VER_AT_LEAST(4,1,34,0)
       SHADER_GEOMETRY,           // GLXX_SHADER_VPS_GS
       SHADER_TESS_CONTROL,       // GLXX_SHADER_VPS_TCS
       SHADER_TESS_EVALUATION,    // GLXX_SHADER_VPS_TES
@@ -316,143 +274,10 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
    data->render_uses_control_flow = uses_control_flow[MODE_RENDER];
 #endif
 
-   assert(prog->vary_map.n <= GLXX_CONFIG_MAX_VARYING_SCALARS);
-   data->num_varys = prog->vary_map.n;
-   for (unsigned i = 0; i != prog->vary_map.n; ++i)
-      data->vary_map[i] = prog->vary_map.entries[i];
-
-   if (prog->fshader != NULL)
-   {
-      /* Fill in the LINK_RESULT_DATA based on the fshader compiler output */
-      if (prog->fshader->u.fragment.writes_z)
-         data->flags |= GLXX_SHADER_FLAGS_FS_WRITES_Z;
-
-      if (prog->fshader->u.fragment.ez_disable)
-         data->flags |= GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE;
-
-      if (prog->fshader->u.fragment.needs_w)
-         data->flags |= GLXX_SHADER_FLAGS_FS_NEEDS_W;
-
-      if (prog->fshader->u.fragment.tlb_wait_first_thrsw)
-         data->flags |= GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW;
-
-      if (ir->varyings_per_sample || prog->fshader->u.fragment.per_sample)
-         data->flags |= GLXX_SHADER_FLAGS_PER_SAMPLE;
-
-      if (prog->fshader->u.fragment.reads_prim_id && !prog_has_vstage(prog, SHADER_GEOMETRY))
-         data->flags |= (GLXX_SHADER_FLAGS_PRIM_ID_USED | GLXX_SHADER_FLAGS_PRIM_ID_TO_FS);
-   }
-
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   if (!prog->fshader || !prog->fshader->u.fragment.reads_implicit_varys)
-      data->flags |= GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS;
-#endif
-
-   /* Now fill in from any vertex pipeline stages that are present */
-   bool point_size_included = false;
-
-   if (prog_has_vstage(prog, SHADER_VERTEX))
-   {
-      if (!prog_has_vstage(prog, SHADER_TESS_EVALUATION) && !prog_has_vstage(prog, SHADER_GEOMETRY))
-         point_size_included = prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.has_point_size;
-
-      write_vertex_shader_data(data, prog);
-
-      data->attr_count = 0;
-      for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
-         if (prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.scalars_used[i]    > 0 ||
-             prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.scalars_used[i] > 0   )
-         {
-            int a = data->attr_count++;
-            data->attr[a].idx = i;
-            data->attr[a].c_scalars_used = prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.scalars_used[i];
-            data->attr[a].v_scalars_used = prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.scalars_used[i];
-         }
-      }
-
-      /* Data for bin load balancing, todo T+G */
-      data->num_bin_qpu_instructions = prog->vstages[SHADER_VERTEX][MODE_BIN]->code_size/8;
-   }
-
-   bool all_centroid = true;
-   bool centroids    = true;
-#if !V3D_HAS_SRS_CENTROID_FIX
-   centroids = !prog->fshader->u.fragment.ignore_centroids;
-#endif
-
-   for (unsigned i = 0; i < data->num_varys; i++) {
-      const VARYING_INFO_T *vary = &ir->varying[prog->vary_map.entries[i]];
-      uint32_t idx = i / V3D_VARY_FLAGS_PER_WORD;
-      uint32_t flag = 1 << (i % V3D_VARY_FLAGS_PER_WORD);
-
-      if (vary->flat)                  data->varying_flat[idx]          |= flag;
-      if (vary->centroid && centroids) data->varying_centroid[idx]      |= flag;
-      else                             all_centroid = false;
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      if (vary->noperspective)         data->varying_noperspective[idx] |= flag;
-#else
-      assert(!vary->noperspective);
-#endif
-   }
-   if (data->num_varys && all_centroid)
-      // HW can avoid calculating non-centroid w and passing to frag shader,
-      // but will only do so if *all* centroid flags are set. This includes
-      // unused ones...
-      for (unsigned i = data->num_varys; i < V3D_MAX_VARYING_COMPONENTS; i++)
-         data->varying_centroid[i / V3D_VARY_FLAGS_PER_WORD] |= 1 << (i % V3D_VARY_FLAGS_PER_WORD);
-
-#if GLXX_HAS_TNG
-   if (prog_has_vstage(prog, SHADER_TESS_CONTROL))
-   {
-      assert(prog_has_vstage(prog, SHADER_TESS_EVALUATION));
-
-      if (!prog_has_vstage(prog, SHADER_GEOMETRY))
-         point_size_included = prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER]->u.tess_e.has_point_size;
-
-      if (prog->vstages[SHADER_TESS_CONTROL   ][MODE_RENDER]->u.tess_c.prim_id_used ||
-          prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER]->u.tess_e.prim_id_used )
-      {
-         data->flags |= GLXX_SHADER_FLAGS_PRIM_ID_USED;
-      }
-
-      if (prog->vstages[SHADER_TESS_CONTROL][MODE_BIN]->u.tess_c.barrier)
-         data->flags |= GLXX_SHADER_FLAGS_TCS_BARRIERS;
-
-      data->tcs_output_vertices_per_patch = ir->tess_vertices;
-
-      data->tess_type         = ir->tess_mode;
-      data->tess_edge_spacing = ir->tess_spacing;
-      data->tess_point_mode   = ir->tess_point_mode;
-      data->tess_clockwise    = ir->tess_cw;
-
-      for (unsigned m = 0; m != MODE_COUNT; ++m) {
-         data->tcs_output_words_per_patch[m] = prog->vstages[SHADER_TESS_CONTROL][m]->u.tess_c.output_words_patch;
-         data->tcs_output_words[m] = prog->vstages[SHADER_TESS_CONTROL][m]->u.tess_c.output_words;
-         data->tes_output_words[m] = prog->vstages[SHADER_TESS_EVALUATION][m]->u.tess_e.output_words;
-      }
-   }
-
-   if (prog_has_vstage(prog, SHADER_GEOMETRY))
-   {
-      point_size_included = prog->vstages[SHADER_GEOMETRY][MODE_RENDER]->u.geometry.has_point_size;
-
-      if (prog->vstages[SHADER_GEOMETRY][MODE_RENDER]->u.geometry.prim_id_used)
-         data->flags |= GLXX_SHADER_FLAGS_PRIM_ID_USED;
-
-      data->geom_prim_type   = ir->gs_out;
-      data->geom_invocations = ir->gs_n_invocations;
-
-      for (unsigned m = 0; m != MODE_COUNT; ++m)
-         data->gs_output_words[m] = prog->vstages[SHADER_GEOMETRY][m]->u.geometry.output_words;
-   }
-#endif
-
-   if(point_size_included)
-      data->flags |= GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
-
+   linkres_fill_data(prog, ir, &data->data);
 
  #if V3D_VER_AT_LEAST(3,3,0,0)
-   if (ir->cs_shared_block_size != ~0u)
+   if (glsl_ir_program_has_stage(ir, SHADER_COMPUTE))
    {
       const V3D_IDENT_T* ident = v3d_scheduler_get_identity();
       const compute_params params = {
@@ -461,14 +286,10 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
          .wg_size = ir->cs_wg_size[0] * ir->cs_wg_size[1] * ir->cs_wg_size[2],
          .shared_block_size = ir->cs_shared_block_size,
          .num_threads = prog->fshader->n_threads,
-         .has_barrier = prog->fshader->u.fragment.barrier,
+         .has_barrier = prog->fshader->u.compute.barrier,
+         .has_subgroup_ops  = prog->fshader->u.compute.sg_ops,
+         .has_quad_ops      = prog->fshader->u.compute.q_ops,
       };
-      assert(!prog->fshader->u.fragment.writes_z);
-      assert(!prog->fshader->u.fragment.ez_disable);
-      assert(!prog->fshader->u.fragment.per_sample);
-    #if V3D_VER_AT_LEAST(4,1,34,0)
-      assert(!prog->fshader->u.fragment.reads_implicit_varys);
-    #endif
 
       compute_sg_config cfg = compute_choose_sg_config(&params);
       data->cs.allow_concurrent_jobs = compute_allow_concurrent_jobs(&params, cfg.wgs_per_sg);

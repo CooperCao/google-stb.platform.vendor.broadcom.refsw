@@ -137,8 +137,6 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state,
       GLXX_TEXTURE_T *texture = state->bound_texture[i].twod;
 
       if (texunit->target_enabled && texture != NULL) {
-         KHRN_IMAGE_FORMAT_T format = texture->format;
-
          if (ABGR_8888_RSO == texture->format &&
              texture->width == texture->height &&
              texture->width == (uint32_t)(1 << _msb(texture->width)) &&

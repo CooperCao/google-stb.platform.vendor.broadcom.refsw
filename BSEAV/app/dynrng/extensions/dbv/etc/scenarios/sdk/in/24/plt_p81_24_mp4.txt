@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/Dolby_Vision/Adaptive_Streaming_Tests/dvhe.sth/23976/mp4/Combined/combined_ves_graffiti_23976_dvhesth___st.mp4
+forceRestart=on
+stcTrick=off
+commit

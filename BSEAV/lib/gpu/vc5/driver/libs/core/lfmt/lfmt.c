@@ -30,77 +30,54 @@ void gfx_lfmt_base_detail(GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_ASTC12X10:
    case GFX_LFMT_BASE_ASTC12X12:
       bd->bytes_per_block = 16;
-      bd->bytes_per_word = 4;
       break;
    case GFX_LFMT_BASE_C32_C32_C32:
       bd->bytes_per_block = 12;
-      bd->bytes_per_word = 4;
       break;
    case GFX_LFMT_BASE_C32_C32:
+   case GFX_LFMT_BASE_C16C16C16C16:
    case GFX_LFMT_BASE_C16C16_C16C16:
+   case GFX_LFMT_BASE_C16_C16_C16_C16:
    case GFX_LFMT_BASE_C32_C8X24:
+   case GFX_LFMT_BASE_C15X1_C15X1_C15X1_C15X1:
    case GFX_LFMT_BASE_C10C10_2X2:
    case GFX_LFMT_BASE_BC1:
    case GFX_LFMT_BASE_BC4:
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
       bd->bytes_per_block = 8;
-      bd->bytes_per_word = 4;
       break;
    case GFX_LFMT_BASE_C32:
    case GFX_LFMT_BASE_C16C16:
+   case GFX_LFMT_BASE_C16_C16:
    case GFX_LFMT_BASE_C8C8C8C8:
+   case GFX_LFMT_BASE_C8_C8_C8_C8:
    case GFX_LFMT_BASE_C10C10C10C2:
    case GFX_LFMT_BASE_C11C11C10:
    case GFX_LFMT_BASE_C24C8:
    case GFX_LFMT_BASE_C8C24:
    case GFX_LFMT_BASE_C9C9C9SHAREDEXP5:
+   case GFX_LFMT_BASE_C8_C8_C8_C8_2X1:
    case GFX_LFMT_BASE_C10:
       bd->bytes_per_block = 4;
-      bd->bytes_per_word = 4;
-      break;
-   case GFX_LFMT_BASE_C16C16C16C16:
-      bd->bytes_per_block = 8;
-      bd->bytes_per_word = 8;
-      break;
-   case GFX_LFMT_BASE_C16_C16_C16_C16:
-   case GFX_LFMT_BASE_C15X1_C15X1_C15X1_C15X1:
-      bd->bytes_per_block = 8;
-      bd->bytes_per_word = 2;
       break;
    case GFX_LFMT_BASE_C16_C16_C16:
       bd->bytes_per_block = 6;
-      bd->bytes_per_word = 2;
-      break;
-   case GFX_LFMT_BASE_C16_C16:
-      bd->bytes_per_block = 4;
-      bd->bytes_per_word = 2;
       break;
    case GFX_LFMT_BASE_C16:
    case GFX_LFMT_BASE_C8C8:
+   case GFX_LFMT_BASE_C8_C8:
    case GFX_LFMT_BASE_C5C6C5:
    case GFX_LFMT_BASE_C5C5C5C1:
    case GFX_LFMT_BASE_C1C5C5C5:
    case GFX_LFMT_BASE_C4C4C4C4:
-      bd->bytes_per_block = 2;
-      bd->bytes_per_word = 2;
-      break;
-   case GFX_LFMT_BASE_C8_C8_C8_C8:
-   case GFX_LFMT_BASE_C8_C8_C8_C8_2X1:
-      bd->bytes_per_block = 4;
-      bd->bytes_per_word = 1;
-      break;
-   case GFX_LFMT_BASE_C8_C8_C8:
-      bd->bytes_per_block = 3;
-      bd->bytes_per_word = 1;
-      break;
-   case GFX_LFMT_BASE_C8_C8:
    case GFX_LFMT_BASE_C8_C8_2X2:
    case GFX_LFMT_BASE_C8_C8_2X1:
       bd->bytes_per_block = 2;
-      bd->bytes_per_word = 1;
+      break;
+   case GFX_LFMT_BASE_C8_C8_C8:
+      bd->bytes_per_block = 3;
       break;
    case GFX_LFMT_BASE_C8:
    case GFX_LFMT_BASE_C4:
@@ -120,12 +97,10 @@ void gfx_lfmt_base_detail(GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_P8_A4B4G4R4:
    case GFX_LFMT_BASE_P8_A1B5G5R5:
       bd->bytes_per_block = 1;
-      bd->bytes_per_word = 1;
       break;
    case GFX_LFMT_BASE_BSTC:
    case GFX_LFMT_BASE_BSTCYFLIP:
       bd->bytes_per_block = 32;
-      bd->bytes_per_word = 1;
       break;
    default:
       unreachable();
@@ -215,7 +190,6 @@ void gfx_lfmt_base_detail(GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -332,6 +306,9 @@ void gfx_lfmt_base_detail(GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_T lfmt)
       bd->ut_w_in_blocks_2d = 0;
       bd->ut_h_in_blocks_2d = 0;
    }
+
+   bd->ub_w_in_blocks_2d = bd->ut_w_in_blocks_2d * 2;
+   bd->ub_h_in_blocks_2d = bd->ut_h_in_blocks_2d * 2;
 }
 
 /* BEGIN AUTO-GENERATED CODE (misc_func_defns) */
@@ -345,8 +322,6 @@ bool gfx_lfmt_dims_and_swizzling_compatible(GFX_LFMT_T lfmt)
       case GFX_LFMT_SWIZZLING_LT:
       case GFX_LFMT_SWIZZLING_UIF:
       case GFX_LFMT_SWIZZLING_UIF_XOR:
-      case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-      case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
       case GFX_LFMT_SWIZZLING_UBLINEAR:
       case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
       case GFX_LFMT_SWIZZLING_SAND_128_MAP5:
@@ -369,8 +344,6 @@ bool gfx_lfmt_dims_and_swizzling_compatible(GFX_LFMT_T lfmt)
       case GFX_LFMT_SWIZZLING_LT:
       case GFX_LFMT_SWIZZLING_UIF:
       case GFX_LFMT_SWIZZLING_UIF_XOR:
-      case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-      case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
       case GFX_LFMT_SWIZZLING_UBLINEAR:
       case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
       case GFX_LFMT_SWIZZLING_SAND_128_MAP5:
@@ -393,8 +366,6 @@ bool gfx_lfmt_dims_and_swizzling_compatible(GFX_LFMT_T lfmt)
       case GFX_LFMT_SWIZZLING_LT:
       case GFX_LFMT_SWIZZLING_UIF:
       case GFX_LFMT_SWIZZLING_UIF_XOR:
-      case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-      case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
       case GFX_LFMT_SWIZZLING_UBLINEAR:
          return true;
       case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
@@ -435,60 +406,6 @@ bool gfx_lfmt_is_uif_family(GFX_LFMT_T lfmt)
       return false;
    case GFX_LFMT_SWIZZLING_UIF:
    case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
-      return true;
-   default:
-      unreachable();
-      return false;
-   }
-}
-bool gfx_lfmt_is_uif_xor_family(GFX_LFMT_T lfmt)
-{
-   switch (lfmt & GFX_LFMT_SWIZZLING_MASK) {
-   case GFX_LFMT_SWIZZLING_RSO:
-   case GFX_LFMT_SWIZZLING_LT:
-   case GFX_LFMT_SWIZZLING_UIF:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-   case GFX_LFMT_SWIZZLING_UBLINEAR:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP5:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP2:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP5:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND:
-      return false;
-   case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
-      return true;
-   default:
-      unreachable();
-      return false;
-   }
-}
-bool gfx_lfmt_is_noutile_family(GFX_LFMT_T lfmt)
-{
-   switch (lfmt & GFX_LFMT_SWIZZLING_MASK) {
-   case GFX_LFMT_SWIZZLING_RSO:
-   case GFX_LFMT_SWIZZLING_LT:
-   case GFX_LFMT_SWIZZLING_UIF:
-   case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UBLINEAR:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP5:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP2:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP5:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND:
-   case GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND:
-      return false;
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
       return true;
    default:
       unreachable();
@@ -502,8 +419,6 @@ bool gfx_lfmt_is_sand_family(GFX_LFMT_T lfmt)
    case GFX_LFMT_SWIZZLING_LT:
    case GFX_LFMT_SWIZZLING_UIF:
    case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
    case GFX_LFMT_SWIZZLING_UBLINEAR:
       return false;
    case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
@@ -528,8 +443,6 @@ bool gfx_lfmt_is_bigend_sand_family(GFX_LFMT_T lfmt)
    case GFX_LFMT_SWIZZLING_LT:
    case GFX_LFMT_SWIZZLING_UIF:
    case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
-   case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
    case GFX_LFMT_SWIZZLING_UBLINEAR:
    case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
    case GFX_LFMT_SWIZZLING_SAND_128_MAP5:
@@ -598,7 +511,6 @@ bool gfx_lfmt_is_compressed(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -683,7 +595,6 @@ bool gfx_lfmt_is_paletted(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -796,7 +707,6 @@ bool gfx_lfmt_is_etc_family(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
       return true;
@@ -855,7 +765,6 @@ bool gfx_lfmt_is_astc_family(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_BSTC:
@@ -936,7 +845,6 @@ bool gfx_lfmt_is_bc_family(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -1027,7 +935,6 @@ bool gfx_lfmt_is_bstc_family(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -1114,7 +1021,6 @@ bool gfx_lfmt_is_std(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -1195,7 +1101,6 @@ bool gfx_lfmt_is_std_with_subsample(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_EAC:
    case GFX_LFMT_BASE_EAC_EAC:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_PUNCHTHROUGH_ETC2:
    case GFX_LFMT_BASE_ETC2_EAC:
    case GFX_LFMT_BASE_ASTC4X4:
@@ -3447,6 +3352,7 @@ uint32_t gfx_lfmt_u_bits(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_C10C10_2X2:
       switch (lfmt & GFX_LFMT_CHANNELS_MASK) {
       case GFX_LFMT_CHANNELS_UV:
+      case GFX_LFMT_CHANNELS_VU:
          return 10;
       default:
          unreachable();
@@ -3577,6 +3483,7 @@ uint32_t gfx_lfmt_v_bits(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_C10C10_2X2:
       switch (lfmt & GFX_LFMT_CHANNELS_MASK) {
       case GFX_LFMT_CHANNELS_UV:
+      case GFX_LFMT_CHANNELS_VU:
          return 10;
       default:
          unreachable();
@@ -5658,7 +5565,6 @@ uint32_t gfx_lfmt_num_slots_from_base(GFX_LFMT_T lfmt)
    case GFX_LFMT_BASE_C5C6C5:
    case GFX_LFMT_BASE_C9C9C9SHAREDEXP5:
    case GFX_LFMT_BASE_ETC2:
-   case GFX_LFMT_BASE_ETC1:
    case GFX_LFMT_BASE_P4BE_R8G8B8:
    case GFX_LFMT_BASE_P4BE_B5G6R5:
    case GFX_LFMT_BASE_P8_R8G8B8:

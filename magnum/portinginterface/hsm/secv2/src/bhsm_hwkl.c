@@ -65,7 +65,8 @@ BERR_Code BHSM_Keyslot_RouteHWKlEntryKey ( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_RouteHWKlEntryKey );
 
-    if (pKey == NULL) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pKey ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
@@ -108,7 +109,9 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const 
 
     BDBG_ENTER( BHSM_Keyslot_GenerateHwKlRootKey );
 
-    if (pKey == NULL) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pKey ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     if(! BHSM_P_KeyLadder_CheckConfigured(handle) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BHSM_KeyLadder_GetSettings( handle, &settings );
@@ -171,7 +174,8 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlRootKey( BHSM_KeyLadderHandle handle, const 
          keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
          return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
-    BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, pKey->ladderKeySize/8 );
+    rc = BHSM_MemcpySwap( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, pKey->ladderKeySize/8 );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
     rc = BHSM_P_Hwkl_RootConfig( BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -189,7 +193,9 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlLevelKey( BHSM_KeyLadderHandle handle, const
 
     BDBG_ENTER( BHSM_Keyslot_GenerateHwKlLevelKey );
 
-    if (pKey == NULL) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pKey ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     if(! BHSM_P_KeyLadder_CheckConfigured(handle) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BHSM_KeyLadder_GetSettings( handle, &settings );
@@ -203,7 +209,8 @@ BERR_Code  BHSM_Keyslot_GenerateHwKlLevelKey( BHSM_KeyLadderHandle handle, const
              keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
              return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
-    BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, pKey->ladderKeySize/8 );
+    rc = BHSM_MemcpySwap( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, pKey->ladderKeySize/8 );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
     rc = BHSM_P_Hwkl_LayerSet(  BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }

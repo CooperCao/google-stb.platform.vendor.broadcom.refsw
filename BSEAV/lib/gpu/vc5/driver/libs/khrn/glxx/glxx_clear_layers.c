@@ -5,7 +5,6 @@
 #include "glxx_hw.h"
 #if V3D_VER_AT_LEAST(4,1,34,0)
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
 /* .vs
  * row 0 contains instance_id, and rows 1, 2, 3 vec3 pos (x, y, z);
  * use combined vpm segment and leave the data as is for gs
@@ -209,7 +208,7 @@ static uint32_t gs_render_unif[] =
 
 v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
       v3d_addr_t fshader_addr, v3d_addr_t funif_addr,
-      const glxx_rect *rect, float clear_depth_val)
+      const gfx_rect *rect, float clear_depth_val)
 {
    uint32_t *unif[2]; // 0 = gs_bin, 1 = gs_render
    v3d_addr_t unif_addr[2];
@@ -337,12 +336,5 @@ v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
 
    return sh_rec_addr;
 }
-#else
-v3d_addr_t glxx_create_clear_gl_g_shader_record(khrn_fmem *fmem,
-      v3d_addr_t fshader_addr, v3d_addr_t funif_addr,
-      const glxx_rect *rect, float clear_depth_val)
-{
-   not_impl();
-}
-#endif
+
 #endif

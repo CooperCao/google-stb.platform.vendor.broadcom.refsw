@@ -269,6 +269,8 @@ struct b_hdmi_drm_selector
 };
 #endif
 
+typedef struct nxserver_cec_ir_input *nxserver_cec_ir_input_t;
+
 /**
 A session is either local (with a display) or streaming (with an encoder)
 **/
@@ -348,6 +350,7 @@ struct b_session {
 #if NEXUS_HAS_HDMI_INPUT
     NEXUS_HdmiInputHandle hdmiInput;
 #endif
+#if NEXUS_HAS_HDMI_OUTPUT
     struct {
         NxClient_HdcpLevel level; /* currently applied settings */
         NxClient_HdcpVersion version_select;
@@ -365,6 +368,7 @@ struct b_session {
         NEXUS_HdmiOutputHdcpState prev_state;
         unsigned prev_state_cnt;
     } hdcp;
+#endif
     struct {
         struct {
             void *buffer;
@@ -397,6 +401,7 @@ struct b_session {
         NEXUS_KeypadSettings keypadSettings;
 #endif
         nxserver_evdev_t evdevInput;
+        nxserver_cec_ir_input_t cec;
     } input;
 #endif
 };
@@ -602,6 +607,10 @@ int  nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session);
 nxserverlib_input.c API
 ************/
 int init_input_devices(struct b_session *session);
+#if NEXUS_HAS_CEC
+nxserver_cec_ir_input_t nxserverlib_init_cec_ir_input(struct b_session *session);
+void nxserverlib_uninit_cec_ir_input(nxserver_cec_ir_input_t cec);
+#endif
 void uninit_input_devices(struct b_session *session);
 
 /************

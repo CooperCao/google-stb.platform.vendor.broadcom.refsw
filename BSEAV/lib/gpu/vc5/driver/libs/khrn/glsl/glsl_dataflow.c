@@ -323,11 +323,10 @@ Dataflow *glsl_dataflow_construct_buffer(DataflowFlavour flavour, DataflowType t
    return dataflow;
 }
 
-Dataflow *glsl_dataflow_construct_vector_load(DataflowType type, Dataflow *address) {
-   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_VECTOR_LOAD, type);
+Dataflow *glsl_dataflow_construct_vector_load(Dataflow *address) {
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_VECTOR_LOAD, DF_VOID);
    dataflow->d.unary_op.operand = address;
    dataflow->dependencies_count = 1;
-   dataflow->u.vector_load.required_components = 0;
    return dataflow;
 }
 
@@ -552,8 +551,7 @@ void glsl_dataflow_construct_frag_get_col(Dataflow **out, DataflowType type,
    Dataflow *dataflow = dataflow_construct_common(DATAFLOW_FRAG_GET_COL, type);
 
    dataflow->dependencies_count = 0;
-   dataflow->u.get_col.required_components = 0;
-   dataflow->u.get_col.render_target       = render_target;
+   dataflow->u.get_col.render_target = render_target;
 
    for (int i=0; i<4; i++)
       out[i] = glsl_dataflow_construct_get_vec4_component(i, dataflow, type);
@@ -585,7 +583,6 @@ void glsl_dataflow_construct_texture_lookup(Dataflow **out, unsigned n_out,
    dataflow->d.texture.image   = image;
    dataflow->d.texture.sampler = sampler;
 
-   dataflow->u.texture.required_components = 0;  /* Set up later */
    dataflow->u.texture.bits = bits;
 
    DataflowType component_type_index;

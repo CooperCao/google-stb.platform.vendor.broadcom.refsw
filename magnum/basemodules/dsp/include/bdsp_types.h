@@ -270,6 +270,35 @@ typedef struct BDSP_FmmBufferDescriptor
     unsigned delay; /* Independent delay in milli seconds */
 } BDSP_FmmBufferDescriptor;
 
+/***************************************************************************
+Summary:
+Use case scenario provided by APE
+***************************************************************************/
+typedef struct BDSP_UsageOptions
+{
+    bool           Codeclist[BDSP_Algorithm_eMax];  /* Total list containing the Codecs enabled or disabled */
+    BDSP_AudioDolbyCodecVersion DolbyCodecVersion;
+    BDSP_DataType IntertaskBufferDataType;
+    unsigned NumAudioDecoders;
+    unsigned NumAudioPostProcesses;
+    unsigned NumAudioEncoders;
+    unsigned NumAudioMixers;
+    unsigned NumAudioPassthru;
+    unsigned NumAudioEchocancellers;
+    unsigned NumVideoDecoders;
+    unsigned NumVideoEncoders;
+} BDSP_UsageOptions;
 
+/***************************************************************************
+Summary:
+Memory Requirement Status
+***************************************************************************/
+typedef struct BDSP_MemoryEstimate
+{
+    unsigned GeneralMemory; /* Number of bytes from the general system heap */
+    unsigned FirmwareMemory; /* Number of bytes from the firmware heap */
+} BDSP_MemoryEstimate;
 
+#define BDSP_RaagaUsageOptions   BDSP_UsageOptions
+#define BDSP_RaagaMemoryEstimate BDSP_MemoryEstimate
 #endif

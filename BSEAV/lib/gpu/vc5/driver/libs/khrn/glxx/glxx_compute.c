@@ -59,6 +59,9 @@ static inline v3d_addr_t build_shader_uniforms(
    static_assrt(GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE <= V3D_SCHEDULER_COMPUTE_MIN_SHARED_MEM_PER_CORE);
    if (shared_block_size != 0)
    {
+    #if V3D_USE_L2T_LOCAL_MEM
+      cu.shared_ptr = v3d_scheduler_get_compute_shared_mem_addr();
+    #else
       gmem_handle_t shared_mem = v3d_scheduler_get_compute_shared_mem(rs->fmem.br_info.details.secure, /*alloc=*/true);
       if (!shared_mem)
          return 0;
@@ -67,6 +70,7 @@ static inline v3d_addr_t build_shader_uniforms(
          shared_mem,
          0,
          V3D_BARRIER_TMU_DATA_READ | V3D_BARRIER_TMU_DATA_WRITE);
+    #endif
    }
 
    GL20_HW_INDEXED_UNIFORM_T iu = { .valid = false };
@@ -123,10 +127,15 @@ error:
 
 static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_groups const* num_work_groups)
 {
-   glxx_compute_render_state* rs = create_compute_render_state(state);
+   glxx_compute_render_state* rs = state->compute_render_state;
    if (!rs)
-      return false;
+   {
+      rs = create_compute_render_state(state);
+      if (!rs)
+         return false;
+   }
 
+   bool success = false;
    khrn_render_state_disallow_flush((khrn_render_state*)rs);
 
    if (  !khrn_fmem_record_fence_to_signal(&rs->fmem, state->fences.fence)
@@ -163,9 +172,6 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
    if (khrn_options.no_ubo_to_unif)
       backend_cfg.backend |= GLSL_DISABLE_UBO_FETCH;
  #endif
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   glxx_copy_gadgettypes_to_shader_key(&backend_cfg, &image_like_uniforms);
-#endif
 
    GLXX_LINK_RESULT_DATA_T* link_data = glxx_get_shaders(state, &backend_cfg);
    if (!link_data || !khrn_fmem_sync_res(&rs->fmem, link_data->res, 0, V3D_BARRIER_QPU_INSTR_READ))
@@ -234,13 +240,13 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
       program->max_wgs = link_data->cs.max_wgs;
       program->has_barrier = link_data->cs.has_barrier;
       program->has_shared = ir_program->cs_shared_block_size != 0;
-      program->num_varys = link_data->num_varys;
-      program->scb_wait_on_first_thrsw = link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW;
+      program->num_varys = link_data->data.vary.count;
+      program->scb_wait_on_first_thrsw = true;
       program->threading = link_data->fs.threading;
 
-      assert(link_data->num_varys <= countof(program->vary_map));
-      for (unsigned i = 0; i != link_data->num_varys; ++i)
-         program->vary_map[i] = link_data->vary_map[i];
+      assert(link_data->data.vary.count <= countof(program->vary_map));
+      for (unsigned i = 0; i != link_data->data.vary.count; ++i)
+         program->vary_map[i] = link_data->data.vary.map[i];
 
       dispatch->unifs_addr = unifs_addr;
       dispatch->dispatch_cl = dispatch_cl;
@@ -262,25 +268,22 @@ static bool dispatch_compute(GLXX_SERVER_STATE_T* state, glxx_compute_num_work_g
 
       if (!link_data->cs.allow_concurrent_jobs)
          rs->fmem.br_info.details.render_no_overlap = true;
-
-      // BETTER_BARRIER should have fixed all the barrier collisions, but TCS-bin can
-      // collide with non CSD compute. The simplest fix for these intermediate HW revisions
-      // is to disable binning alongside fragment compute shaders.
-      if (V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,13,0))
-         rs->fmem.br_info.details.render_no_overlap = true;
-
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-      /* If using flow control, then driver needs to work around GFXH-1181. */
-      if (link_data->render_uses_control_flow)
-         rs->fmem.br_info.details.render_workaround_gfxh_1181 = true;
-#endif
    }
    #endif
 
+   success = true;
+
 end:
-   // timh-todo: allow batching of smaller dispatches.
+
    khrn_render_state_allow_flush((khrn_render_state*)rs);
-   return glxx_compute_render_state_flush(rs);
+
+   // Check to see if we need to flush due to high client fmem use.
+   // timh-todo: allow batching of smaller dispatches for SW compute runtime.
+   // TODO: Batching currently breaks on multicore things such as Penrose.
+   if (1 || !V3D_USE_CSD || !success || khrn_fmem_should_flush(&rs->fmem))
+      glxx_compute_render_state_flush(rs);
+
+   return success;
 }
 
 static bool check_state(GLXX_SERVER_STATE_T* state)
@@ -429,10 +432,9 @@ end:
    glxx_unlock_server_state();
 }
 
-bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
+void glxx_compute_render_state_flush(glxx_compute_render_state* rs)
 {
-   bool do_flush = rs->fmem.persist->compute_dispatches.size;
-   if (do_flush)
+   if (rs->fmem.persist->compute_dispatches.size)
    {
       khrn_render_state_begin_flush((khrn_render_state*)rs);
 
@@ -458,8 +460,6 @@ bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
    assert(rs == rs->server_state->compute_render_state);
    rs->server_state->compute_render_state = NULL;
    khrn_render_state_delete((khrn_render_state*)rs);
-
-   return do_flush;
 }
 
 #if !V3D_USE_CSD

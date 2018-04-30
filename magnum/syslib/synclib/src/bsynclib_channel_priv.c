@@ -182,7 +182,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 
 	goto end;
 
-	error:
+error:
 
 	if (hChn)
 	{
@@ -190,7 +190,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 		*phChn = NULL;
 	}
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Create);
 	return rc;
@@ -361,9 +361,9 @@ BERR_Code BSYNClib_Channel_P_StartTimer_isr(
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_StartTimer_isr);
 	return rc;
@@ -374,12 +374,11 @@ BERR_Code BSYNClib_Channel_P_StartTimer_isr(
 Summary:
 Handles expiry of any channel timer except for the zero length context switching timer
  */
-BERR_Code BSYNClib_Channel_P_TimerExpired(
+void BSYNClib_Channel_P_TimerExpired(
 	BSYNClib_Channel_Handle hChn,
 	BSYSlib_Timer_Handle hTimer
 )
 {
-	BERR_Code rc = BERR_SUCCESS;
 	BSYSlib_List_IteratorHandle hIterator;
 	BDBG_ENTER(BSYNClib_Channel_P_TimerExpired);
 
@@ -405,7 +404,6 @@ BERR_Code BSYNClib_Channel_P_TimerExpired(
 	BSYSlib_List_ReleaseIterator(hIterator);
 
 	BDBG_LEAVE(BSYNClib_Channel_P_TimerExpired);
-	return rc;
 }
 
 BERR_Code BSYNClib_Channel_P_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
@@ -443,9 +441,10 @@ BERR_Code BSYNClib_Channel_P_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
+
 	BDBG_LEAVE(BSYNClib_Channel_P_ScheduleTask_isr);
 	return rc;
 }
@@ -508,12 +507,10 @@ BERR_Code BSYNClib_Channel_P_TaskTimerExpired(void * pvParm1, int iParm2, BSYSli
 
 	BDBG_MSG(("[%d] Sync task timer expired", hChn->iIndex));
 
-	rc = BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hChn, hTimer);
 
 	rc = BSYNClib_Channel_P_Process(hChn, 0);
 
-	end:
 	BDBG_LEAVE(BSYNClib_Channel_P_TaskTimerExpired);
 	return rc;
 }
@@ -747,9 +744,9 @@ BERR_Code BSYNClib_Channel_P_Process(void * pvParm1, int iParm2)
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Process);
 	return rc;
@@ -797,9 +794,9 @@ BERR_Code BSYNClib_Channel_P_ApplyDelays(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE((BSYNClib_Channel_P_ApplyDelays));
 	return rc;
@@ -964,9 +961,9 @@ BERR_Code BSYNClib_Channel_P_Synchronize(
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Synchronize);
 	return rc;
@@ -999,9 +996,9 @@ BERR_Code BSYNClib_Channel_P_GenerateDelayCallback(BSYNClib_Channel_SetDelay pfS
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_GenerateDelayCallback);
 	return rc;
@@ -1041,9 +1038,9 @@ BERR_Code BSYNClib_Channel_P_GenerateDelayNotificationCallback(BSYNClib_Channel_
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_GenerateDelayNotificationCallback);
 	return rc;
@@ -1142,9 +1139,9 @@ BERR_Code BSYNClib_Channel_P_GenerateCallbacks(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_GenerateCallbacks);
 	return rc;

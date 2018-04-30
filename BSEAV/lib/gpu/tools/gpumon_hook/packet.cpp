@@ -172,7 +172,19 @@ PacketItem::PacketItem(GLuint64 u) :
 
 void PacketItem::DebugPrint() const
 {
-   printf(" Item type %s, numBytes = %d, data = %08X\n", ItemTypeToName(m_type), m_numBytes, m_data.i);
+   printf(" Item type %s, numBytes = %d,", ItemTypeToName(m_type), m_numBytes);
+   switch (m_type)
+   {
+   case eCHAR_PTR:
+      printf(" data = %p:\"%s\"\n", m_data.p, (char*)m_data.p);
+      break;
+   case eVOID_PTR:
+      printf(" data = %p\n", m_data.p);
+      break;
+   default:
+      printf(" data = %08X\n", m_data.i);
+      break;
+   }
 }
 
 template< typename T >

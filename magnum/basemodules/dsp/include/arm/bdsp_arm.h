@@ -74,21 +74,6 @@ typedef struct BDSP_ArmSettings
 Summary:
 Use case scenario provided by APE
 ***************************************************************************/
-typedef struct BDSP_ArmUsageOptions
-{
-    bool           Codeclist[BDSP_Algorithm_eMax];  /* Total list containing the Codecs enabled or disabled */
-    BDSP_AudioDolbyCodecVersion DolbyCodecVersion;
-    BDSP_DataType IntertaskBufferDataType;
-    unsigned NumAudioDecoders;
-    unsigned NumAudioPostProcesses;
-    unsigned NumAudioEncoders;
-    unsigned NumAudioMixers;
-    unsigned NumAudioPassthru;
-    unsigned NumAudioEchocancellers;
-    unsigned NumVideoDecoders;
-    unsigned NumVideoEncoders;
-} BDSP_ArmUsageOptions;
-
 BERR_Code BDSP_Arm_Open(
     BDSP_Handle *pDsp,                      /* [out] */
     BCHP_Handle chpHandle,
@@ -98,9 +83,13 @@ BERR_Code BDSP_Arm_Open(
     BTMR_Handle tmrHandle,
     const BDSP_ArmSettings *pSettings
     );
-
-
 void BDSP_Arm_GetDefaultSettings(
     BDSP_ArmSettings *pSettings     /* [out] */
     );
+BERR_Code BDSP_Arm_GetMemoryEstimate(
+    const BDSP_ArmSettings     *pSettings,
+    const BDSP_UsageOptions    *pUsage,
+    BBOX_Handle                 boxHandle,
+    BDSP_MemoryEstimate        *pEstimate /*[out]*/
+);
 #endif /* BDSP_ARM_H_ */

@@ -23,8 +23,9 @@ typedef struct {
 
 
 BINARY_PROGRAM_T *glsl_binary_program_create(void);
+void              glsl_binary_program_free(BINARY_PROGRAM_T *prog);
+
 BINARY_PROGRAM_T *glsl_binary_program_from_dataflow(IR_PROGRAM_T                  *ir,
                                                     const struct glsl_backend_cfg *key);
-void glsl_binary_program_free(BINARY_PROGRAM_T *prog);
 
 EXTERN_C_END

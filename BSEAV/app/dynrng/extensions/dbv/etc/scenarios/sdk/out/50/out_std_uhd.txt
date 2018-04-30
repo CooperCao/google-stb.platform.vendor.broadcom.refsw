@@ -1,0 +1,6 @@
+format=2160p50
+sampling=422
+depth=12
+dynrng=dovi
+gamut=auto
+commit

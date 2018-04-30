@@ -514,3 +514,13 @@ uint32_t BV3D_P_BinMemGetChunkSize(
 }
 
 /***************************************************************************/
+
+void BV3D_P_BinPoolStats(
+   BV3D_BinMemManagerHandle  hBinMemManager,
+   size_t             *puiCapacityBytes,
+   size_t             *puiUsedBytes
+   )
+{
+   *puiCapacityBytes = hBinMemManager->uiNumChunks * hBinMemManager->uiChunkSize;
+   *puiUsedBytes     = *puiCapacityBytes - hBinMemManager->uiFreeChunks * hBinMemManager->uiChunkSize;
+}

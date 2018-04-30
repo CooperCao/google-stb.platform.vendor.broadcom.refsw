@@ -40,6 +40,8 @@
 #ifndef _SECURITY_TEST_FRAMEWORK_UTILITY__
 #define _SECURITY_TEST_FRAMEWORK_UTILITY__
 
+#if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 2)
+
 #include "nexus_platform.h"
 #include "nexus_dma.h"
 #include "stdio.h"
@@ -47,7 +49,10 @@
 
 BDBG_MODULE( secv2_examples );
 
-#define VIDEO_PID (2316 )
+/* Input stream file Pids */
+#define VIDEO_PID 0x21
+#define AUDIO_PID 0x22
+
 #define XPT_TS_PACKET_SIZE (188)
 #define XPT_TS_PACKET_HEAD_SIZE  (4)
 #define IN_XPT_TYPE  NEXUS_TransportType_eTs
@@ -115,4 +120,109 @@ void CompositTSPackets( uint8_t * xptTSPackets, unsigned int packetSize, unsigne
 size_t securityGetAlogrithmKeySize(
     NEXUS_CryptographicAlgorithm algorithm );
 
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD && NEXUS_HAS_VIDEO_DECODER
+
+#include "nexus_pid_channel.h"
+#include "nexus_parser_band.h"
+#include "nexus_video_decoder.h"
+#include "nexus_stc_channel.h"
+#include "nexus_display.h"
+#include "nexus_video_window.h"
+#include "nexus_audio_dac.h"
+#include "nexus_audio_decoder.h"
+#include "nexus_audio_output.h"
+#include "nexus_spdif_output.h"
+#include "nexus_composite_output.h"
+#include "nexus_component_output.h"
+#include "nexus_record.h"
+#include "nexus_memory.h"
+
+#define ALGORITHM_BLOCK_SIZE (16)
+
+/* Test stream information */
+#define TRANSPORT_TYPE                  NEXUS_TransportType_eTs
+#define TRANSPORT_TYPE                  NEXUS_TransportType_eTs
+#define VIDEO_CODEC                     NEXUS_VideoCodec_eMpeg2
+#define AUDIO_CODEC                     NEXUS_AudioCodec_eMpeg
+
+
+/* Random clear session keys for video and audio encryption AND decryption. */
+#define VIDEO_ENCRYPTION_KEY            "video encryptKey"
+#define AUDIO_ENCRYPTION_KEY            "audio encryptKey"
+
+typedef enum security_OtpDirectKeyId
+{
+    security_OtpDirectKeyId_eOtpKeyA = 0,
+    security_OtpDirectKeyId_eOtpKeyB,
+    security_OtpDirectKeyId_eOtpKeyC,
+    security_OtpDirectKeyId_eOtpKeyD,
+    security_OtpDirectKeyId_eOtpKeyE,
+    security_OtpDirectKeyId_eOtpKeyF,
+    security_OtpDirectKeyId_eOtpKeyG,
+    security_OtpDirectKeyId_eOtpKeyH,
+    security_OtpDirectKeyId_eMax
+}   security_OtpDirectKeyId;
+
+/* The misc setups for the video encryption/decryption, playback/record, and display. */
+typedef struct NEXUS_ExampleSecuritySettings
+{
+    /* Security configurations. */
+    NEXUS_SecurityKeySlotSettings keySlotSettings;
+    NEXUS_KeySlotHandle videoKeyHandle;
+    NEXUS_KeySlotHandle audioKeyHandle;
+
+    /* Platform config. */
+    NEXUS_PlatformConfiguration platformConfig;
+
+    /* Video output config, audio outputs are ingored. */
+    NEXUS_DisplayHandle display;
+    NEXUS_VideoWindowHandle window;
+
+    /* Audio and video decoders configs. */
+    NEXUS_StcChannelHandle stcChannel;
+    NEXUS_StcChannelSettings stcSettings;
+    NEXUS_PidChannelHandle videoPidChannel;
+    NEXUS_PidChannelHandle audioPidChannel;
+
+    NEXUS_VideoDecoderHandle videoDecoder;
+    NEXUS_VideoDecoderStartSettings videoProgram;
+    NEXUS_AudioDecoderHandle audioDecoder;
+    NEXUS_AudioDecoderStartSettings audioProgram;
+
+    /* PidChannelIndexs */
+    unsigned int    videoPID;
+    unsigned int    audioPID;
+
+    /* playpump and playback configs. */
+    NEXUS_PlaypumpHandle playpump;
+    NEXUS_PlaybackHandle playback;
+
+    NEXUS_FilePlayHandle playfile;
+    const char     *playfname;
+
+    /* record pump and record configs. */
+    NEXUS_RecpumpHandle recpump;
+    NEXUS_RecordHandle record;
+    NEXUS_RecordSettings recordCfg;
+    NEXUS_RecordPidChannelSettings pidSettings;
+    NEXUS_RecpumpOpenSettings recpumpOpenSettings;
+
+    NEXUS_FileRecordHandle recordfile;
+    const char     *recfname;
+
+} NEXUS_ExampleSecuritySettings;
+
+NEXUS_Error SecurityExampleInitPlatform ( NEXUS_ExampleSecuritySettings * videoSecSettings );
+NEXUS_Error SecurityExampleShutdown ( NEXUS_ExampleSecuritySettings * videoSecSettings );
+NEXUS_Error SecurityExampleSetupPlayback ( NEXUS_ExampleSecuritySettings * videoSecSettings );
+NEXUS_Error SecurityExampleSetupDecodersDisplays ( NEXUS_ExampleSecuritySettings * pSettings );
+NEXUS_Error SecurityExampleSetupDecoders ( NEXUS_ExampleSecuritySettings * pSettings );
+NEXUS_Error SecurityExampleSetupPlaybackPidChannels ( NEXUS_ExampleSecuritySettings * pSettings );
+NEXUS_Error SecurityExampleSetupRecord4Encrpytion ( NEXUS_ExampleSecuritySettings * videoSecSettings );
+NEXUS_Error SecurityExampleStartRecord ( NEXUS_ExampleSecuritySettings * pSettings );
+NEXUS_Error SecurityExampleStartPlayback ( NEXUS_ExampleSecuritySettings * pSettings );
+NEXUS_Error SecurityExampleStartDecoders ( NEXUS_ExampleSecuritySettings * pSettings );
+
+#endif /* #if NEXUS_HAS_PLAYBACK NEXUS_HAS_RECORD && NEXUS_HAS_VIDEO_DECODER */
+#endif
 #endif

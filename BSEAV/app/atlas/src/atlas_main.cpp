@@ -391,6 +391,7 @@ void CAtlas::irRemoteUninitialize()
     pRemote = NULL;
 }
 
+#if NEXUS_HAS_CEC
 CCecRemote * CAtlas::cecRemoteCreate()
 {
 	eRet ret = eRet_Ok;
@@ -442,6 +443,7 @@ void CAtlas::cecRemoteUninitialize()
 	pCecRemote->close();
 	cecRemoteDestroy(pCecRemote);
 }
+#endif
 
 #if RF4CE_SUPPORT
 CRf4ceRemote * CAtlas::rf4ceRemoteCreate()
@@ -2044,7 +2046,9 @@ void CAtlas::notificationsInitialize()
     CStillDecode *       pVideoDecodeStill = _model.getStillDecode();
     CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
     CGraphics *          pGraphics         = _model.getGraphics();
+#if NEXUS_HAS_CEC
 	CCecRemote *		 pCecRemote       = _model.getCecRemote();
+#endif
 
 #ifdef PLAYBACK_IP_SUPPORT
     CPlaylistDb *          pPlaylistDb          = _model.getPlaylistDb();
@@ -2100,7 +2104,9 @@ void CAtlas::notificationsInitialize()
         if (NULL != pUhfRemote) { pUhfRemote->registerObserver(_pControl); }
 #endif /* if NEXUS_HAS_UHF_INPUT */
         if (NULL != pIrRemote) { pIrRemote->registerObserver(_pControl); }
+#if NEXUS_HAS_CEC
 		if (NULL != pCecRemote) { pCecRemote->registerObserver(_pControl); }
+#endif
         for (int winType = 0; winType < eWindowType_Max; winType++)
         {
             pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
@@ -2299,7 +2305,9 @@ void CAtlas::notificationsUninitialize()
     CStillDecode *       pVideoDecodeStill = _model.getStillDecode();
     CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
     CGraphics *          pGraphics         = _model.getGraphics();
+#if NEXUS_HAS_CEC
 	CCecRemote *		 pCecRemote        = _model.getCecRemote();
+#endif
 
 #ifdef PLAYBACK_IP_SUPPORT
     CPlaylistDb *          pPlaylistDb          = _model.getPlaylistDb();
@@ -2352,7 +2360,9 @@ void CAtlas::notificationsUninitialize()
         if (NULL != pUhfRemote) { pUhfRemote->unregisterObserver(_pControl); }
 #endif /* if NEXUS_HAS_UHF_INPUT */
         if (NULL != pIrRemote) { pIrRemote->unregisterObserver(_pControl); }
+#if NEXUS_HAS_CEC
 		if (NULL != pCecRemote) { pCecRemote->unregisterObserver(_pControl); }
+#endif
 
         for (int winType = 0; winType < eWindowType_Max; winType++)
         {
@@ -2597,10 +2607,12 @@ eRet CAtlas::initialize(CConfig * pConfig)
     _pControl->initialize(this, _pConfig, _pChannelMgr, _pWidgetEngine);
 
     irRemoteInitialize();
+#if NEXUS_HAS_CEC
 	if (true == GET_BOOL(_pCfg, CEC_REMOTE_ENABLED))
     {
 		cecRemoteInitialize();
 	}
+#endif
 #if RF4CE_SUPPORT
     rf4ceRemoteInitialize();
 #endif
@@ -2993,10 +3005,12 @@ void CAtlas::uninitialize()
     rf4ceRemoteUninitialize();
 #endif
     irRemoteUninitialize();
+#if NEXUS_HAS_CEC
 	if (true == GET_BOOL(_pCfg, CEC_REMOTE_ENABLED))
     {
 		cecRemoteUninitialize();
 	}
+#endif
 #ifdef NETAPP_SUPPORT
     bluetoothRemoteUninitialize();
 #endif

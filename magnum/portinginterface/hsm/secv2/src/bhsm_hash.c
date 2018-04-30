@@ -75,7 +75,10 @@ typedef struct
 BHSM_HashHandle BHSM_Hash_Create( BHSM_Handle hHsm )
 {
     BHSM_P_Hash *pHandle = NULL;
+
     BDBG_ENTER( BHSM_Hash_Create );
+
+    if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return NULL; }
 
     pHandle = (BHSM_P_Hash*)BKNI_Malloc( sizeof(BHSM_P_Hash) );
     if( !pHandle ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
@@ -124,6 +127,7 @@ BERR_Code BHSM_Hash_SetSettings( BHSM_HashHandle handle, const BHSM_HashSettings
 
     BDBG_ENTER( BHSM_Hash_SetSettings );
 
+    if( !pInstance ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pSettings ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     pInstance->settings = *pSettings;
@@ -170,7 +174,9 @@ BERR_Code BHSM_Hash_SubmitData( BHSM_HashHandle handle, BHSM_HashSubmitData  *pD
             default: { return BERR_TRACE(BERR_INVALID_PARAMETER); }
         }
 
-        BHSM_MemcpySwap( bspConfig.in.userKey, pInstance->settings.key.softKey, keySize );
+        rc = BHSM_MemcpySwap( bspConfig.in.userKey, pInstance->settings.key.softKey, keySize );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
         bspConfig.in.userKeySize = _BspKeySize( pInstance->settings.key.softKeySize );
         bspConfig.in.isKeyAppend = 1;
     }
@@ -192,7 +198,9 @@ BERR_Code BHSM_Hash_SubmitData( BHSM_HashHandle handle, BHSM_HashSubmitData  *pD
 
     if( pData->last ) {
         BDBG_CASSERT( sizeof(pData->hash) == sizeof(bspConfig.out.sha_Digest) );
-        BHSM_MemcpySwap( (void*)pData->hash, (void*)bspConfig.out.sha_Digest, sizeof(pData->hash) );
+        rc = BHSM_MemcpySwap( (void*)pData->hash, (void*)bspConfig.out.sha_Digest, sizeof(pData->hash) );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
         pData->hashLength = _HashLength( pInstance->settings.hashType );
         pInstance->state = BHSM_P_HashState_eReady; /* Finished. revert to configured state. */
     }

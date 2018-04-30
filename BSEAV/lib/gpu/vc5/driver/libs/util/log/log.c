@@ -13,7 +13,7 @@
 #include <time.h>
 #ifdef ANDROID
 #include <limits.h>
-#include <android/log.h>
+#include <log/log.h>
 #endif
 #ifdef _WIN32
 #ifndef NOMINMAX

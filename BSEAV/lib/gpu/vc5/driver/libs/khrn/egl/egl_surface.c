@@ -247,10 +247,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
                error = EGL_BAD_ALLOC;
                goto end;
             }
-
-            if (surface->context)
-               egl_context_reattach(surface->context);
-
             break;
          }
       }
@@ -278,6 +274,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
 
       /* Reset any per-swap state in the surface */
       egl_surface_base_swap_done(surface, buffer_age);
+
+      if (surface->context)
+         egl_context_reattach(surface->context);
 
       error = EGL_SUCCESS;
    end:

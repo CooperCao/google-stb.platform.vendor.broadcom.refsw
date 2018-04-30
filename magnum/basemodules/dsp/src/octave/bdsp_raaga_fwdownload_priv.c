@@ -153,7 +153,7 @@ BERR_Code BDSP_Raaga_P_ComputeLoadbleSection(
 
 BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 	const BDSP_RaagaSettings      *pSettings,
-	const BDSP_RaagaUsageOptions  *pUsage,
+	const BDSP_UsageOptions       *pUsage,
 	BDSP_Raaga_P_CodeDownloadInfo *pCodeDownloadInfo,
 	unsigned *pMemReqd
 )
@@ -331,8 +331,8 @@ end:
 }
 
 BERR_Code BDSP_Raaga_P_AssignAlgoSize_APITool(
-	const BDSP_RaagaUsageOptions  *pUsage,
-	BDSP_P_FwBuffer 	          *pImgInfo
+	const BDSP_UsageOptions  *pUsage,
+	BDSP_P_FwBuffer 	     *pImgInfo
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
@@ -945,6 +945,7 @@ BERR_Code BDSP_Raaga_P_DumpImage(
     BKNI_Memset(pBuffer, 0, totalSize);
     Memory.pAddr = pBuffer;
     Memory.offset = 0;
+    Memory.hBlock = 0;
     for(i=0; i < BDSP_IMG_ID_MAX; i++)
     {
         pImgCachelocal = pImgCache+i;

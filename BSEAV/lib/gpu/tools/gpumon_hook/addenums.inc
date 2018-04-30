@@ -1919,13 +1919,9 @@ AddEnum(EGL_NUM_EVENTS_BRCM);
 AddEnum(EGL_MAX_EVENT_STRING_LEN_BRCM);
 #endif /* EGL_BRCM_event_monitor*/
 
-#if EGL_BRCM_gl_framebuffer_image
-AddEnum(EGL_GL_FRAMEBUFFER_BRCM);
-AddEnum(EGL_GL_FRAMEBUFFER_TARGET_BRCM);
-AddEnum(EGL_GL_FRAMEBUFFER_ATTACHMENT_BRCM);
-AddEnum(EGL_GL_FRAMEBUFFER_CONVERT_TO_COLOR_BRCM);
-AddEnum(EGL_GL_FRAMEBUFFER_CONVERT_TO_UIF);
-#endif /* EGL_BRCM_gl_framebuffer_image*/
+#if EGL_BRCM_image_nexus_striped_surface
+AddEnum(EGL_NEXUS_STRIPED_SURFACE_BRCM);
+#endif /* EGL_BRCM_image_nexus_striped_surface*/
 
 #if EGL_BRCM_image_update_control
 AddEnum(EGL_IMAGE_UPDATE_CONTROL_SET_MODE_BRCM);
@@ -2044,6 +2040,9 @@ AddEnum(GL_RGBA16_SNORM_BRCM);
 #if GL_BRCM_texture_unnormalised_coords
 AddEnum(GL_TEXTURE_UNNORMALISED_COORDS_BRCM);
 #endif /* GL_BRCM_texture_unnormalised_coords*/
+
+#if GL_EXT_EGL_image_external_wrap_modes
+#endif /* GL_EXT_EGL_image_external_wrap_modes*/
 
 #if GL_EXT_base_instance
 #endif /* GL_EXT_base_instance*/

@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/SDR/Conversion_Tests/HEVC/UHD/23976/Graffiti_SDR_3840x2160_23976fps__dvh1_st.mp4
+forceRestart=on
+stcTrick=off
+commit

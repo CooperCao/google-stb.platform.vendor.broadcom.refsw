@@ -3101,95 +3101,188 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkGetPhysicalDeviceWin32PresentationSupportKHR(
 
 #endif // VK_USE_PLATFORM_WIN32_KHR
 
-
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures2KHR(
-   VkPhysicalDevice               physicalDevice,
-   VkPhysicalDeviceFeatures2KHR  *pFeatures)
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures2(
+   VkPhysicalDevice            physicalDevice,
+   VkPhysicalDeviceFeatures2  *pFeatures)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   physicalDeviceObj->GetPhysicalDeviceFeatures2KHR(
+   physicalDeviceObj->GetPhysicalDeviceFeatures2(
       pFeatures
    );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties2KHR(
-   VkPhysicalDevice                  physicalDevice,
-   VkPhysicalDeviceProperties2KHR   *pProperties)
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFeatures2KHR(
+   VkPhysicalDevice            physicalDevice,
+   VkPhysicalDeviceFeatures2  *pFeatures)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   physicalDeviceObj->GetPhysicalDeviceProperties2KHR(
+   physicalDeviceObj->GetPhysicalDeviceFeatures2(
+      pFeatures
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties2(
+   VkPhysicalDevice               physicalDevice,
+   VkPhysicalDeviceProperties2   *pProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   physicalDeviceObj->GetPhysicalDeviceProperties2(
       pProperties
    );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties2KHR(
-   VkPhysicalDevice         physicalDevice,
-   VkFormat                 format,
-   VkFormatProperties2KHR  *pFormatProperties)
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceProperties2KHR(
+   VkPhysicalDevice               physicalDevice,
+   VkPhysicalDeviceProperties2   *pProperties)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   physicalDeviceObj->GetPhysicalDeviceFormatProperties2KHR(
+   physicalDeviceObj->GetPhysicalDeviceProperties2(
+      pProperties
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties2(
+   VkPhysicalDevice      physicalDevice,
+   VkFormat              format,
+   VkFormatProperties2  *pFormatProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   physicalDeviceObj->GetPhysicalDeviceFormatProperties2(
       format,
       pFormatProperties
    );
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties2KHR(
-   VkPhysicalDevice                           physicalDevice,
-   const VkPhysicalDeviceImageFormatInfo2KHR *pImageFormatInfo,
-   VkImageFormatProperties2KHR               *pImageFormatProperties)
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceFormatProperties2KHR(
+   VkPhysicalDevice      physicalDevice,
+   VkFormat              format,
+   VkFormatProperties2  *pFormatProperties)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   return physicalDeviceObj->GetPhysicalDeviceImageFormatProperties2KHR(
+   physicalDeviceObj->GetPhysicalDeviceFormatProperties2(
+      format,
+      pFormatProperties
+   );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties2(
+   VkPhysicalDevice                        physicalDevice,
+   const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+   VkImageFormatProperties2               *pImageFormatProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   return physicalDeviceObj->GetPhysicalDeviceImageFormatProperties2(
       pImageFormatInfo,
       pImageFormatProperties
    );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties2KHR(
-   VkPhysicalDevice               physicalDevice,
-   uint32_t                      *pQueueFamilyPropertyCount,
-   VkQueueFamilyProperties2KHR   *pQueueFamilyProperties)
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties2KHR(
+   VkPhysicalDevice                        physicalDevice,
+   const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+   VkImageFormatProperties2               *pImageFormatProperties)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   physicalDeviceObj->GetPhysicalDeviceQueueFamilyProperties2KHR(
+   return physicalDeviceObj->GetPhysicalDeviceImageFormatProperties2(
+      pImageFormatInfo,
+      pImageFormatProperties
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties2(
+   VkPhysicalDevice            physicalDevice,
+   uint32_t                   *pQueueFamilyPropertyCount,
+   VkQueueFamilyProperties2   *pQueueFamilyProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   physicalDeviceObj->GetPhysicalDeviceQueueFamilyProperties2(
       pQueueFamilyPropertyCount,
       pQueueFamilyProperties
    );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceMemoryProperties2KHR(
-   VkPhysicalDevice                        physicalDevice,
-   VkPhysicalDeviceMemoryProperties2KHR   *pMemoryProperties)
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceQueueFamilyProperties2KHR(
+   VkPhysicalDevice            physicalDevice,
+   uint32_t                   *pQueueFamilyPropertyCount,
+   VkQueueFamilyProperties2   *pQueueFamilyProperties)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   physicalDeviceObj->GetPhysicalDeviceMemoryProperties2KHR(
+   physicalDeviceObj->GetPhysicalDeviceQueueFamilyProperties2(
+      pQueueFamilyPropertyCount,
+      pQueueFamilyProperties
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceMemoryProperties2(
+   VkPhysicalDevice                     physicalDevice,
+   VkPhysicalDeviceMemoryProperties2   *pMemoryProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   physicalDeviceObj->GetPhysicalDeviceMemoryProperties2(
       pMemoryProperties
    );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
-   VkPhysicalDevice                                 physicalDevice,
-   const VkPhysicalDeviceSparseImageFormatInfo2KHR *pFormatInfo,
-   uint32_t                                        *pPropertyCount,
-   VkSparseImageFormatProperties2KHR               *pProperties)
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceMemoryProperties2KHR(
+   VkPhysicalDevice                     physicalDevice,
+   VkPhysicalDeviceMemoryProperties2   *pMemoryProperties)
 {
    bvk::APIScoper scope;
    auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
 
-   physicalDeviceObj->GetPhysicalDeviceSparseImageFormatProperties2KHR(
+   physicalDeviceObj->GetPhysicalDeviceMemoryProperties2(
+      pMemoryProperties
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceSparseImageFormatProperties2(
+   VkPhysicalDevice                              physicalDevice,
+   const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
+   uint32_t                                     *pPropertyCount,
+   VkSparseImageFormatProperties2               *pProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   physicalDeviceObj->GetPhysicalDeviceSparseImageFormatProperties2(
+      pFormatInfo,
+      pPropertyCount,
+      pProperties
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
+   VkPhysicalDevice                              physicalDevice,
+   const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
+   uint32_t                                     *pPropertyCount,
+   VkSparseImageFormatProperties2               *pProperties)
+{
+   bvk::APIScoper scope;
+   auto physicalDeviceObj = bvk::fromHandle<bvk::PhysicalDevice>(physicalDevice);
+
+   physicalDeviceObj->GetPhysicalDeviceSparseImageFormatProperties2(
       pFormatInfo,
       pPropertyCount,
       pProperties
@@ -3198,16 +3291,31 @@ VKAPI_ATTR void VKAPI_CALL vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
 
 
 
-VKAPI_ATTR void VKAPI_CALL vkTrimCommandPoolKHR(
-   VkDevice                    device,
-   VkCommandPool               commandPool,
-   VkCommandPoolTrimFlagsKHR   flags)
+VKAPI_ATTR void VKAPI_CALL vkTrimCommandPool(
+   VkDevice                 device,
+   VkCommandPool            commandPool,
+   VkCommandPoolTrimFlags   flags)
 {
    bvk::APIScoper scope;
    auto deviceObj = bvk::fromHandle<bvk::Device>(device);
    auto commandPoolObj = bvk::fromHandle<bvk::CommandPool>(commandPool);
 
-   commandPoolObj->TrimCommandPoolKHR(
+   commandPoolObj->TrimCommandPool(
+      deviceObj,
+      flags
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkTrimCommandPoolKHR(
+   VkDevice                 device,
+   VkCommandPool            commandPool,
+   VkCommandPoolTrimFlags   flags)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+   auto commandPoolObj = bvk::fromHandle<bvk::CommandPool>(commandPool);
+
+   commandPoolObj->TrimCommandPool(
       deviceObj,
       flags
    );
@@ -3215,45 +3323,250 @@ VKAPI_ATTR void VKAPI_CALL vkTrimCommandPoolKHR(
 
 
 
-
-VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements2KHR(
-   VkDevice                                   device,
-   const VkImageMemoryRequirementsInfo2KHR   *pInfo,
-   VkMemoryRequirements2KHR                  *pMemoryRequirements)
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateDescriptorUpdateTemplate(
+   VkDevice                                      device,
+   const VkDescriptorUpdateTemplateCreateInfo   *pCreateInfo,
+   const VkAllocationCallbacks                  *pAllocator,
+   VkDescriptorUpdateTemplate                   *pDescriptorUpdateTemplate)
 {
    bvk::APIScoper scope;
    auto deviceObj = bvk::fromHandle<bvk::Device>(device);
 
-   deviceObj->GetImageMemoryRequirements2KHR(
+   bvk::DescriptorUpdateTemplate *obj = nullptr;
+   try
+   {
+      obj = bvk::createObject<
+         bvk::DescriptorUpdateTemplate, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(
+         pAllocator,
+         deviceObj->GetCallbacks(),
+         deviceObj,
+         pCreateInfo
+      );
+   }
+   catch (const std::bad_alloc &)
+   {
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   }
+   catch (VkResult e)
+   {
+      return e;
+   }
+   catch (...)
+   {
+      std::terminate();
+   }
+   *pDescriptorUpdateTemplate = bvk::toHandle<VkDescriptorUpdateTemplate>(obj);
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateDescriptorUpdateTemplateKHR(
+   VkDevice                                      device,
+   const VkDescriptorUpdateTemplateCreateInfo   *pCreateInfo,
+   const VkAllocationCallbacks                  *pAllocator,
+   VkDescriptorUpdateTemplate                   *pDescriptorUpdateTemplate)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   bvk::DescriptorUpdateTemplate *obj = nullptr;
+   try
+   {
+      obj = bvk::createObject<
+         bvk::DescriptorUpdateTemplate, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(
+         pAllocator,
+         deviceObj->GetCallbacks(),
+         deviceObj,
+         pCreateInfo
+      );
+   }
+   catch (const std::bad_alloc &)
+   {
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   }
+   catch (VkResult e)
+   {
+      return e;
+   }
+   catch (...)
+   {
+      std::terminate();
+   }
+   *pDescriptorUpdateTemplate = bvk::toHandle<VkDescriptorUpdateTemplate>(obj);
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyDescriptorUpdateTemplate(
+   VkDevice                       device,
+   VkDescriptorUpdateTemplate     descriptorUpdateTemplate,
+   const VkAllocationCallbacks   *pAllocator)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+   auto descriptorUpdateTemplateObj = bvk::fromHandle<bvk::DescriptorUpdateTemplate>(descriptorUpdateTemplate);
+
+   bvk::destroyObject<VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(
+      descriptorUpdateTemplateObj,
+      pAllocator
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyDescriptorUpdateTemplateKHR(
+   VkDevice                       device,
+   VkDescriptorUpdateTemplate     descriptorUpdateTemplate,
+   const VkAllocationCallbacks   *pAllocator)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+   auto descriptorUpdateTemplateObj = bvk::fromHandle<bvk::DescriptorUpdateTemplate>(descriptorUpdateTemplate);
+
+   bvk::destroyObject<VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(
+      descriptorUpdateTemplateObj,
+      pAllocator
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkUpdateDescriptorSetWithTemplate(
+   VkDevice                    device,
+   VkDescriptorSet             descriptorSet,
+   VkDescriptorUpdateTemplate  descriptorUpdateTemplate,
+   const void                 *pData)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+   auto descriptorSetObj = bvk::fromHandle<bvk::DescriptorSet>(descriptorSet);
+   auto descriptorUpdateTemplateObj = bvk::fromHandle<bvk::DescriptorUpdateTemplate>(descriptorUpdateTemplate);
+
+   descriptorSetObj->UpdateDescriptorSetWithTemplate(
+      deviceObj,
+      descriptorUpdateTemplateObj,
+      pData
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkUpdateDescriptorSetWithTemplateKHR(
+   VkDevice                    device,
+   VkDescriptorSet             descriptorSet,
+   VkDescriptorUpdateTemplate  descriptorUpdateTemplate,
+   const void                 *pData)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+   auto descriptorSetObj = bvk::fromHandle<bvk::DescriptorSet>(descriptorSet);
+   auto descriptorUpdateTemplateObj = bvk::fromHandle<bvk::DescriptorUpdateTemplate>(descriptorUpdateTemplate);
+
+   descriptorSetObj->UpdateDescriptorSetWithTemplate(
+      deviceObj,
+      descriptorUpdateTemplateObj,
+      pData
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdPushDescriptorSetWithTemplateKHR(
+   VkCommandBuffer             commandBuffer,
+   VkDescriptorUpdateTemplate  descriptorUpdateTemplate,
+   VkPipelineLayout            layout,
+   uint32_t                    set,
+   const void                 *pData)
+{
+   bvk::APIScoper scope;
+   auto commandBufferObj = bvk::fromHandle<bvk::CommandBuffer>(commandBuffer);
+   auto descriptorUpdateTemplateObj = bvk::fromHandle<bvk::DescriptorUpdateTemplate>(descriptorUpdateTemplate);
+   auto layoutObj = bvk::fromHandle<bvk::PipelineLayout>(layout);
+
+   commandBufferObj->CmdPushDescriptorSetWithTemplateKHR(
+      descriptorUpdateTemplateObj,
+      layoutObj,
+      set,
+      pData
+   );
+}
+
+
+
+
+
+VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements2(
+   VkDevice                                device,
+   const VkImageMemoryRequirementsInfo2   *pInfo,
+   VkMemoryRequirements2                  *pMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetImageMemoryRequirements2(
+      pInfo,
+      pMemoryRequirements
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements2KHR(
+   VkDevice                                device,
+   const VkImageMemoryRequirementsInfo2   *pInfo,
+   VkMemoryRequirements2                  *pMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetImageMemoryRequirements2(
+      pInfo,
+      pMemoryRequirements
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetBufferMemoryRequirements2(
+   VkDevice                                device,
+   const VkBufferMemoryRequirementsInfo2  *pInfo,
+   VkMemoryRequirements2                  *pMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetBufferMemoryRequirements2(
       pInfo,
       pMemoryRequirements
    );
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetBufferMemoryRequirements2KHR(
-   VkDevice                                   device,
-   const VkBufferMemoryRequirementsInfo2KHR  *pInfo,
-   VkMemoryRequirements2KHR                  *pMemoryRequirements)
+   VkDevice                                device,
+   const VkBufferMemoryRequirementsInfo2  *pInfo,
+   VkMemoryRequirements2                  *pMemoryRequirements)
 {
    bvk::APIScoper scope;
    auto deviceObj = bvk::fromHandle<bvk::Device>(device);
 
-   deviceObj->GetBufferMemoryRequirements2KHR(
+   deviceObj->GetBufferMemoryRequirements2(
       pInfo,
       pMemoryRequirements
    );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetImageSparseMemoryRequirements2KHR(
-   VkDevice                                         device,
-   const VkImageSparseMemoryRequirementsInfo2KHR   *pInfo,
-   uint32_t                                        *pSparseMemoryRequirementCount,
-   VkSparseImageMemoryRequirements2KHR             *pSparseMemoryRequirements)
+VKAPI_ATTR void VKAPI_CALL vkGetImageSparseMemoryRequirements2(
+   VkDevice                                      device,
+   const VkImageSparseMemoryRequirementsInfo2   *pInfo,
+   uint32_t                                     *pSparseMemoryRequirementCount,
+   VkSparseImageMemoryRequirements2             *pSparseMemoryRequirements)
 {
    bvk::APIScoper scope;
    auto deviceObj = bvk::fromHandle<bvk::Device>(device);
 
-   deviceObj->GetImageSparseMemoryRequirements2KHR(
+   deviceObj->GetImageSparseMemoryRequirements2(
+      pInfo,
+      pSparseMemoryRequirementCount,
+      pSparseMemoryRequirements
+   );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetImageSparseMemoryRequirements2KHR(
+   VkDevice                                      device,
+   const VkImageSparseMemoryRequirementsInfo2   *pInfo,
+   uint32_t                                     *pSparseMemoryRequirementCount,
+   VkSparseImageMemoryRequirements2             *pSparseMemoryRequirements)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   deviceObj->GetImageSparseMemoryRequirements2(
       pInfo,
       pSparseMemoryRequirementCount,
       pSparseMemoryRequirements
@@ -3262,29 +3575,57 @@ VKAPI_ATTR void VKAPI_CALL vkGetImageSparseMemoryRequirements2KHR(
 
 
 
-VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory2KHR(
-   VkDevice                          device,
-   uint32_t                          bindInfoCount,
-   const VkBindBufferMemoryInfoKHR  *pBindInfos)
+VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory2(
+   VkDevice                       device,
+   uint32_t                       bindInfoCount,
+   const VkBindBufferMemoryInfo  *pBindInfos)
 {
    bvk::APIScoper scope;
    auto deviceObj = bvk::fromHandle<bvk::Device>(device);
 
-   return deviceObj->BindBufferMemory2KHR(
+   return deviceObj->BindBufferMemory2(
+      bindInfoCount,
+      pBindInfos
+   );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkBindBufferMemory2KHR(
+   VkDevice                       device,
+   uint32_t                       bindInfoCount,
+   const VkBindBufferMemoryInfo  *pBindInfos)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   return deviceObj->BindBufferMemory2(
+      bindInfoCount,
+      pBindInfos
+   );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory2(
+   VkDevice                       device,
+   uint32_t                       bindInfoCount,
+   const VkBindImageMemoryInfo   *pBindInfos)
+{
+   bvk::APIScoper scope;
+   auto deviceObj = bvk::fromHandle<bvk::Device>(device);
+
+   return deviceObj->BindImageMemory2(
       bindInfoCount,
       pBindInfos
    );
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkBindImageMemory2KHR(
-   VkDevice                          device,
-   uint32_t                          bindInfoCount,
-   const VkBindImageMemoryInfoKHR   *pBindInfos)
+   VkDevice                       device,
+   uint32_t                       bindInfoCount,
+   const VkBindImageMemoryInfo   *pBindInfos)
 {
    bvk::APIScoper scope;
    auto deviceObj = bvk::fromHandle<bvk::Device>(device);
 
-   return deviceObj->BindImageMemory2KHR(
+   return deviceObj->BindImageMemory2(
       bindInfoCount,
       pBindInfos
    );

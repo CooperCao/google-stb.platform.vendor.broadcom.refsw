@@ -41,11 +41,12 @@
 #include "bsp_types.h"
 #include "bhsm_rv_region.h"
 #include "bhsm_priv.h"
+#include "bhsm_p_rv.h"
 
 #ifndef  BHSM_RV_REGION_PRIV___H_
 #define  BHSM_RV_REGION_PRIV___H_
 
-typedef struct
+typedef struct BHSM_P_RvRegion
 {
     bool allocated;
     bool configured;
@@ -54,6 +55,11 @@ typedef struct
 
     BHSM_Handle hHsm;
     BHSM_RvRegionSettings settings;
+
+   #if BHSM_RV_REGION_EXTENSION
+    struct BHSM_P_RvRegionExtension *pExtension;
+   #endif
+
 }BHSM_P_RvRegion;
 
 typedef struct BHSM_RvRegionModule
@@ -63,5 +69,22 @@ typedef struct BHSM_RvRegionModule
     BHSM_P_RvRegion instances[BHSM_RegionId_eMax];
 
 }BHSM_RvRegionModule;
+
+typedef struct{
+    unsigned dummy;
+}BHSM_RvRegionModuleSettings;
+
+/* called internally on platform initialisation */
+BERR_Code BHSM_RvRegion_Init_priv( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings *pSettings );
+
+/* called internally on platform un-initialisation */
+void BHSM_RvRegion_Uninit_priv( BHSM_Handle hHsm );
+
+#if BHSM_RV_REGION_EXTENSION
+  void BHSM_RvRegionExtension_Free_priv( BHSM_RvRegionHandle handle );
+  BERR_Code BHSM_RvRegion_AllocateExtension_priv( BHSM_RvRegionHandle handle );
+  BERR_Code BHSM_RvRegion_CompileCommandExtension_priv( BHSM_RvRegionHandle handle, BHSM_P_RvEnableRegion *pRvCommand );
+#endif
+
 
 #endif

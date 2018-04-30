@@ -8,7 +8,7 @@
 
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/glxx_server_internal.h"
-#include "interface/khronos/include/GLES/glext.h"
+#include <GLES/glext.h>
 
 #include "middleware/khronos/glxx/glxx_texture.h"
 #include "middleware/khronos/glxx/glxx_buffer.h"
@@ -1020,24 +1020,12 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
       }
       break;
    case GL_ARRAY_BUFFER_BINDING:
-      if (IS_GL_11(state)) {
-         UNREACHABLE();//gl 2.0 only
-         result = 0;
-      }
-      else {
-         params[0] = state->bound_buffer.array_name;
-         result = 1;
-      }
+      params[0] = state->bound_buffer.array_name;
+      result = 1;
       break;
    case GL_ELEMENT_ARRAY_BUFFER_BINDING:
-      if (IS_GL_11(state)) {
-         UNREACHABLE();//gl 2.0 only
-         result = 0;
-      }
-      else {
-         params[0] = state->bound_buffer.element_array_name;
-         result = 1;
-      }
+      params[0] = state->bound_buffer.element_array_name;
+      result = 1;
       break;
    case GL_VIEWPORT:
       params[0] = state->viewport.x;
@@ -1790,24 +1778,24 @@ int glxx_get_integer_internal(GLXX_SERVER_STATE_T *state, GLenum pname, int *par
 void glxx_update_viewport_internal(GLXX_SERVER_STATE_T *state)
 {
    //was 3-8
-   state->viewport.internal[0] = (float)state->viewport.width / 2.0f;
-   state->viewport.internal[1] = (float)state->viewport.height / 2.0f;
-   state->viewport.internal[2] = (float)state->viewport.x + (float)state->viewport.width / 2.0f;
-   state->viewport.internal[3] = (float)state->viewport.y + (float)state->viewport.height / 2.0f;
+   state->viewport.internal[0].f = (float)state->viewport.width / 2.0f;
+   state->viewport.internal[1].f = (float)state->viewport.height / 2.0f;
+   state->viewport.internal[2].f = (float)state->viewport.x + (float)state->viewport.width / 2.0f;
+   state->viewport.internal[3].f = (float)state->viewport.y + (float)state->viewport.height / 2.0f;
 
-   state->viewport.internal[4] = (state->viewport.far - state->viewport.near) / 2.0f;
-   state->viewport.internal[5] = (state->viewport.far + state->viewport.near) / 2.0f;
+   state->viewport.internal[4].f = (state->viewport.far - state->viewport.near) / 2.0f;
+   state->viewport.internal[5].f = (state->viewport.far + state->viewport.near) / 2.0f;
 
    if (!IS_GL_11(state)) {//gl 2.0 specific
       //was 0-2
-      state->viewport.internal[6] = state->viewport.near;
-      state->viewport.internal[7] = state->viewport.far;
-      state->viewport.internal[8] = state->viewport.far - state->viewport.near;
+      state->viewport.internal[6].f = state->viewport.near;
+      state->viewport.internal[7].f = state->viewport.far;
+      state->viewport.internal[8].f = state->viewport.far - state->viewport.near;
    }
    //extra entries used by install_uniforms
-   state->viewport.internal[9] = 16.0f * state->viewport.internal[0];
-   state->viewport.internal[10] = 16.0f * state->viewport.internal[1];
-   state->viewport.internal[11] = state->viewport.internal[5] * 16777215.0f;
+   state->viewport.internal[9].f = 16.0f * state->viewport.internal[0].f;
+   state->viewport.internal[10].f = 16.0f * state->viewport.internal[1].f;
+   state->viewport.internal[11].f = state->viewport.internal[5].f * 16777215.0f;
 }
 
 //jeremyt 30/3/2010 glxx_server_state_set_error moved back from server_cr.c

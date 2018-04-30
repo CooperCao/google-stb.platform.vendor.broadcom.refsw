@@ -558,10 +558,8 @@ static void adjust_for_memcpy(
          modify = dst;
       }
 
-      static const GFX_LFMT_T mask = GFX_LFMT_FORMAT_MASK;
-      const GFX_LFMT_T match = keep->desc.planes[plane].lfmt & mask;
-      modify->desc.planes[plane].lfmt &= ~mask;
-      modify->desc.planes[plane].lfmt |= match;
+      modify->desc.planes[plane].lfmt = gfx_lfmt_set_format(modify->desc.planes[plane].lfmt,
+                                                            keep->desc.planes[plane].lfmt);
 
       /* if only one format is compressed, adjust the copy area accordingly */
       if (src_compressed != dst_compressed)

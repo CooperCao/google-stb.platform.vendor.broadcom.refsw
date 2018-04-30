@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/Dolby_Vision/Conversion_Tests/dvhe.sth/UHD/23976/Ves_Graffiti_23976_dvhesth_3840x2160_20000Kbps_hevc__dvh1_st.mp4
+forceRestart=on
+stcTrick=off
+commit

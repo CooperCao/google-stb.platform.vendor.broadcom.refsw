@@ -103,6 +103,7 @@ extern "C"
  #define NEXUS_OTPMSP_CP_AES_COUNTER_SOFTWARE_KEY_DISABLE  215
  #define NEXUS_OTPMSP_IP_LICENSING_CHECK_ENABLE  217
  #define NEXUS_OTPMSP_MARKET_ID0  313
+ #define NEXUS_OTPMSP_MARKET_ID1  314
  #define NEXUS_OTPMSP_SYSTEM_EPOCH0  326
  #define NEXUS_OTPMSP_SYSTEM_EPOCH1  327
  #define NEXUS_OTPMSP_SYSTEM_EPOCH2  328
@@ -170,6 +171,7 @@ extern "C"
  #define NEXUS_OTPMSP_CP_AES_COUNTER_SOFTWARE_KEY_DISABLE         (64)
  #define NEXUS_OTPMSP_IP_LICENSING_CHECK_ENABLE                   (70)
  #define NEXUS_OTPMSP_MARKET_ID0                                  (94)
+ #define NEXUS_OTPMSP_MARKET_ID1                                 (633)
  #define NEXUS_OTPMSP_SYSTEM_EPOCH0                               (87)
  #define NEXUS_OTPMSP_SYSTEM_EPOCH1                              (520)
  #define NEXUS_OTPMSP_SYSTEM_EPOCH2                              (519)

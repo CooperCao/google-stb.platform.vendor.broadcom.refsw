@@ -361,7 +361,7 @@ bool Command::Execute(SpyToolReplay *replay, bool timing)
 
    CheckError();
 
-   return cmd == cmd_eglSwapBuffers;
+   return (cmd == cmd_eglSwapBuffers && !replay->SkipFrame(m_curFrame));
 }
 
 
@@ -1194,6 +1194,7 @@ SPECIAL(eglSwapBuffers)
    m_replay->FrameDone(m_curFrame - 1);
    eglSwapBuffers(GetEGLDisplay(EGLDisplay, 0), GetEGLSurface(EGLSurface, 1));
 }
+SPECIAL(eglSwapInterval) { eglSwapInterval(GetEGLDisplay(EGLDisplay, 0), GetI32(EGLint, 1)); }
 
 SPECIAL(eglCreateImageKHR)
 {
@@ -1513,6 +1514,96 @@ SPECIAL(glVertexAttribI4uiv)
    glVertexAttribI4uiv(GetCurLocation(0), (GLuint*)array[0]);
 }
 
+SPECIAL(glUniform1iv)
+{
+   GetArray(3, array[0]);
+   glUniform1iv(GetI32(GLint, 0), GetI32(GLint, 1), (GLint*)array[0]);
+}
+
+SPECIAL(glUniform2iv)
+{
+   GetArray(3, array[0]);
+   glUniform2iv(GetI32(GLint, 0), GetI32(GLint, 1), (GLint*)array[0]);
+}
+
+SPECIAL(glUniform3iv)
+{
+   GetArray(3, array[0]);
+   glUniform3iv(GetI32(GLint, 0), GetI32(GLint, 1), (GLint*)array[0]);
+}
+
+SPECIAL(glUniform4iv)
+{
+   GetArray(3, array[0]);
+   glUniform4iv(GetI32(GLint, 0), GetI32(GLint, 1), (GLint*)array[0]);
+}
+
+SPECIAL(glUniform1uiv)
+{
+   GetArray(3, array[0]);
+   glUniform1uiv(GetI32(GLint, 0), GetI32(GLint, 1), (GLuint*)array[0]);
+}
+
+SPECIAL(glUniform2uiv)
+{
+   GetArray(3, array[0]);
+   glUniform2uiv(GetI32(GLint, 0), GetI32(GLint, 1), (GLuint*)array[0]);
+}
+
+SPECIAL(glUniform3uiv)
+{
+   GetArray(3, array[0]);
+   glUniform3uiv(GetI32(GLint, 0), GetI32(GLint, 1), (GLuint*)array[0]);
+}
+
+SPECIAL(glUniform4uiv)
+{
+   GetArray(3, array[0]);
+   glUniform4uiv(GetI32(GLint, 0), GetI32(GLint, 1), (GLuint*)array[0]);
+}
+
+SPECIAL(glUniform1fv)
+{
+   GetArray(3, array[0]);
+   glUniform1fv(GetI32(GLint, 0), GetI32(GLint, 1), (GLfloat*)array[0]);
+}
+
+SPECIAL(glUniform2fv)
+{
+   GetArray(3, array[0]);
+   glUniform2fv(GetI32(GLint, 0), GetI32(GLint, 1), (GLfloat*)array[0]);
+}
+
+SPECIAL(glUniform3fv)
+{
+   GetArray(3, array[0]);
+   glUniform3fv(GetI32(GLint, 0), GetI32(GLint, 1), (GLfloat*)array[0]);
+}
+
+SPECIAL(glUniform4fv)
+{
+   GetArray(3, array[0]);
+   glUniform4fv(GetI32(GLint, 0), GetI32(GLint, 1), (GLfloat*)array[0]);
+}
+
+SPECIAL(glClearBufferiv)
+{
+   GetArray(3, array[0]);
+   glClearBufferiv(GetU32(GLenum, 0), GetI32(GLint, 1), (GLint*)array[0]);
+}
+
+SPECIAL(glClearBufferuiv)
+{
+   GetArray(3, array[0]);
+   glClearBufferuiv(GetU32(GLenum, 0), GetI32(GLint, 1), (GLuint*)array[0]);
+}
+
+SPECIAL(glClearBufferfv)
+{
+   GetArray(3, array[0]);
+   glClearBufferfv(GetU32(GLenum, 0), GetI32(GLint, 1), (GLfloat*)array[0]);
+}
+
 SPECIAL(glGetUniformIndices)
 {
    int32_t numUniforms = GetI32(GLsizei, 1);
@@ -1811,6 +1902,40 @@ SPECIAL(glDispatchComputeIndirect)
 }
 
 #endif // GL_ES_VERSION_3_0
+
+
+#if GL_ES_VERSION_3_1
+SPECIAL(glGetProgramResourceiv)
+{
+   if (m_packet.NumItems() > 10)
+      WarnDataNotHandled("glGetProgramResourceiv");
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glGetProgramResourceiv)
+   {
+      GetArray(8, array[0]);
+      m_replay->GetDispatch().real_glGetProgramResourceiv(GetProgram(GLuint, 0), GetU32(GLenum, 1), GetU32(GLuint, 2),
+                                                          GetI32(GLsizei, 3), (GLenum*)array[0], GetI32(GLsizei, 5),
+                                                          dummyGLsizei, dummyGLint);
+   }
+   else
+      WarnNotAvailable("glGetProgramResourceiv");
+}
+
+SPECIAL(glGetProgramResourceLocation)
+{
+   if (m_packet.NumItems() > 4)
+      WarnDataNotHandled("glGetProgramResourceLocation");
+   if (m_replay->GetDeviceCaps().m_has_GL_ES_VERSION_3_1 && m_replay->GetDispatch().real_glGetProgramResourceLocation)
+   {
+      GLuint prog = GetProgram(GLuint, 0);
+      GLenum progIface = GetU32(GLenum, 1);
+      GLint loc = m_replay->GetDispatch().real_glGetProgramResourceLocation(prog, progIface, GetCP(const GLchar*, 2));
+      if (progIface == GL_UNIFORM)
+         m_replay->AddUniformMapping(m_retPacket.Item(1).GetInt32(), loc, prog);
+   }
+   else
+      WarnNotAvailable("glGetProgramResourceLocation");
+}
+#endif
 
 #if GL_OES_mapbuffer
 SPECIAL(glMapBufferOES)

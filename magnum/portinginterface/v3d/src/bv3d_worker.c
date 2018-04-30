@@ -78,6 +78,15 @@ void BV3D_P_GetTimeNow(BV3D_EventTime *t)
    t->uiMicrosecs = now - ((uint64_t)t->uiSecs * 1000000);
 }
 
+uint64_t BV3D_P_GetEventTimestamp(
+   void
+   )
+{
+   uint64_t val = 0;
+   BV3D_P_GetTime_isrsafe(&val);
+   return val;
+}
+
 /*********************************************************************************/
 static void BV3D_P_ResetBinner(BV3D_Handle hV3d)
 {
@@ -150,9 +159,6 @@ static void BV3D_P_DebugDump(BV3D_Handle hV3d)
    BKNI_Printf("UserVPM           = %d\n",   hV3d->uiUserVPM);
    BKNI_Printf("NextClientId      = %d\n",   hV3d->uiNextClientId);
    BKNI_Printf("ScheduleFirst     = %d\n",   hV3d->uiScheduleFirst);
-   BKNI_Printf("PerfMonitoring    = %d\n",   hV3d->bPerfMonitorActive ? 1 : 0);
-   BKNI_Printf("PerfMonHwBank     = %d\n",   hV3d->uiPerfMonitorHwBank);
-   BKNI_Printf("PerfMonMemBank    = %d\n",   hV3d->uiPerfMonitorMemBank);
    BKNI_Printf("Secure            = %d\n",   bSecure);
 
    BKNI_Printf("\n");
@@ -253,6 +259,15 @@ void BV3D_P_PowerOn(
       if (hV3d->callback_intctl)
          BINT_EnableCallback(hV3d->callback_intctl);
 #endif
+      if (hV3d->sPerfCounters.bCountersActive && hV3d->sPerfCounters.uiPoweredOffStartTime != 0)
+      {
+         uint64_t now;
+         BV3D_P_GetTime_isrsafe(&now);
+         hV3d->sPerfCounters.uiPoweredCumOffTime += now - hV3d->sPerfCounters.uiPoweredOffStartTime;
+         hV3d->sPerfCounters.uiPoweredOffStartTime = 0;
+      }
+
+      BV3D_P_RestorePerfCounters(hV3d, /*bWriteSelectorsAndEnables=*/true);
    }
 #endif
 
@@ -286,6 +301,8 @@ void BV3D_P_ReallyPowerOff(
    /* power off */
    if (hV3d->reallyPoweredOn)
    {
+      BV3D_P_UpdateShadowCounters(hV3d);
+
 #ifdef V3D_HANDLED_VIA_L2
       if (hV3d->callback_intctl)
          BINT_DisableCallback(hV3d->callback_intctl);
@@ -295,6 +312,9 @@ void BV3D_P_ReallyPowerOff(
       BCHP_PWR_ReleaseResource(hV3d->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D);
       BCHP_PWR_ReleaseResource(hV3d->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM);
       hV3d->reallyPoweredOn = false;
+
+      if (hV3d->sPerfCounters.bCountersActive)
+         BV3D_P_GetTime_isrsafe(&hV3d->sPerfCounters.uiPoweredOffStartTime);
    }
 #else
    BSTD_UNUSED(hV3d);
@@ -322,116 +342,6 @@ void BV3D_P_SupplyBinner(
 }
 
 /***************************************************************************/
-void BV3D_P_ResetPerfMonitorHWCounters(
-   BV3D_Handle hV3d
-)
-{
-   BV3D_P_PowerOn(hV3d);
-
-   BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRC, 0xFFFF);
-
-   BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, 1);
-   BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, 0);
-
-   BV3D_P_PowerOff(hV3d);
-}
-
-/***************************************************************************/
-void BV3D_P_GatherPerfMonitor(
-   BV3D_Handle hV3d
-)
-{
-   uint32_t i;
-
-   BV3D_P_PowerOn(hV3d);
-
-   if (hV3d->bPerfMonitorActive)
-   {
-      if (hV3d->uiPerfMonitorHwBank != 0)
-      {
-         for (i = 0; i < 16; i++)
-            hV3d->sPerfData.uiHwCounters[i] += BREG_Read32(hV3d->hReg, BCHP_V3D_PCTR_PCTR0 + (i * 8));
-      }
-
-      if (hV3d->uiPerfMonitorMemBank != 0)
-      {
-         hV3d->sPerfData.uiMemCounters[0] += BREG_Read32(hV3d->hReg, BCHP_V3D_GCA_V3D_BW_CNT);
-         hV3d->sPerfData.uiMemCounters[1] += BREG_Read32(hV3d->hReg, BCHP_V3D_GCA_MEM_BW_CNT);
-      }
-
-      /* Reset the h/w counters now we've captured them */
-      BV3D_P_ResetPerfMonitorHWCounters(hV3d);
-   }
-
-   BV3D_P_PowerOff(hV3d);
-}
-
-/***************************************************************************/
-void BV3D_P_InitPerfMonitor(
-   BV3D_Handle hV3d
-)
-{
-   BV3D_P_PowerOn(hV3d);
-
-   /* Setup the counters we will capture*/
-   if (hV3d->uiPerfMonitorHwBank == 1)
-   {
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS0,  13);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS1,  14);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS2,  15);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS3,  16);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS4,  17);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS5,  18);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS6,  19);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS7,  20);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS8,  21);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS9,  22);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS10, 23);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS11, 24);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS12, 25);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS13, 28);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS14, 29);
-   }
-   else if (hV3d->uiPerfMonitorHwBank == 2)
-   {
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS0,  0);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS1,  1);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS2,  2);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS3,  3);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS4,  4);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS5,  5);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS6,  6);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS7,  7);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS8,  8);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS9,  9);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS10, 10);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS11, 11);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS12, 12);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS13, 26);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS14, 27);
-   }
-
-   /* Enable counters */
-   if (hV3d->bPerfMonitorActive && hV3d->uiPerfMonitorHwBank != 0)
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRE, 0x80007FFF);
-   else
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRE, 0);
-
-   if (hV3d->uiPerfMonitorMemBank == 1)
-   {
-      BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, 1);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, 0);
-   }
-   else if (hV3d->uiPerfMonitorMemBank == 2)
-   {
-      BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, 1 | (1 << 2));
-      BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, (1 << 2));
-   }
-
-   BV3D_P_PowerOff(hV3d);
-}
-
-/***************************************************************************/
 void BV3D_P_ResetCore(
    BV3D_Handle hV3d,
    uint32_t    vpmBase
@@ -454,7 +364,7 @@ void BV3D_P_ResetCore(
    BV3D_P_PowerOn(hV3d);
 
    /* Gather any active counters prior to reset */
-   BV3D_P_GatherPerfMonitor(hV3d);
+   BV3D_P_UpdateShadowCounters(hV3d);
 
    /* SW7445-1174.  Suffers from spurious IRQ's.
       Stop the IRQ handler from functioning during reset to prevent GISB timeout */
@@ -571,17 +481,6 @@ void BV3D_P_ResetCore(
    BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_LOW_PRI_ID, 0xA40000);
 #endif
 
-#if (BCHP_CHIP == 7445)
-   if (hV3d->uiMdiv != 0)
-   {
-      uint32_t Reg;
-      Reg = BREG_Read32(hV3d->hReg, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
-      Reg |= BCHP_FIELD_DATA(CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3, hV3d->uiMdiv);
-      BREG_Write32(hV3d->hReg, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, Reg);
-      hV3d->uiMdiv = 0; /* only program once, which could allow it to be changed by BBS */
-   }
-#endif
-
    if (hV3d->uiNumSlices < 2)
       hV3d->bDisableAQA = true;
 
@@ -595,7 +494,7 @@ void BV3D_P_ResetCore(
    BREG_Write32(hV3d->hReg, BCHP_V3D_QPS_SQRSV1, hV3d->uiCurQpuSched1);
 
    /* Init performance counter banks */
-   BV3D_P_InitPerfMonitor(hV3d);
+   BV3D_P_RestorePerfCounters(hV3d, /*bWriteSelectorsAndEnables=*/true);
 
    /* Re-enable interrupts */
    BREG_Write32(hV3d->hReg, BCHP_V3D_CTL_INTCTL, ~0);
@@ -617,6 +516,9 @@ void BV3D_P_ClearV3dCaches(
    uint32_t uiCacheControl;
    BDBG_ENTER(BV3D_P_ClearV3dCaches);
 
+   BV3D_P_AddFlushEvent(hV3d, hV3d->sEventMonitor.uiSchedTrackNextId, BV3D_EventBegin,
+                        true, true, true, BV3D_P_GetEventTimestamp());
+
    /* L2 cache in v3d */
    BREG_Write32(hV3d->hReg, BCHP_V3D_CTL_L2CACTL, 1 << 2);
    /* slices cache control */
@@ -627,6 +529,9 @@ void BV3D_P_ClearV3dCaches(
    uiCacheControl &= ~(BCHP_MASK(V3D_GCA_CACHE_CTRL, FLUSH));
    BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_CACHE_CTRL, uiCacheControl | BCHP_FIELD_DATA(V3D_GCA_CACHE_CTRL, FLUSH, 1));
    BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_CACHE_CTRL, uiCacheControl | BCHP_FIELD_DATA(V3D_GCA_CACHE_CTRL, FLUSH, 0));
+
+   BV3D_P_AddFlushEvent(hV3d, hV3d->sEventMonitor.uiSchedTrackNextId++, BV3D_EventEnd,
+                        true, true, true, BV3D_P_GetEventTimestamp());
 
    BDBG_LEAVE(BV3D_P_ClearV3dCaches);
 }
@@ -788,10 +693,48 @@ static void BV3D_P_HardwareDone(
    BV3D_P_GetTime_isrsafe(&uiNowUs);
 
    if (psInstruction == &hV3d->sBin)
+   {
+      BV3D_P_EventInfo sEventInfo;
+
       hV3d->uiCumBinTimeUs += (uiNowUs - hV3d->uiBinStartTimeUs);
+      BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_BIN_JOBS_COMPLETED, 1);
+      if (hV3d->sPerfCounters.bCountersActive)
+         BV3D_P_GetTime_isrsafe(&hV3d->sPerfCounters.uiBinnerIdleStartTime);
+
+      BV3D_P_PopulateEventInfo(hV3d, psInstruction->psJob, &sEventInfo);
+      BV3D_P_AddJobEvent(hV3d, BV3D_P_EVENT_MONITOR_BIN_TRACK,
+            BV3D_P_EVENT_MONITOR_BINNING, BV3D_EventEnd, &sEventInfo,
+            BV3D_P_GetEventTimestamp());
+   }
 
    if (psInstruction == &hV3d->sRender)
+   {
+      BV3D_P_EventInfo sEventInfo;
+
       hV3d->uiCumRenderTimeUs += (uiNowUs - hV3d->uiRenderStartTimeUs);
+      BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_RENDER_JOBS_COMPLETED, 1);
+      if (hV3d->sPerfCounters.bCountersActive)
+         BV3D_P_GetTime_isrsafe(&hV3d->sPerfCounters.uiRendererIdleStartTime);
+
+      BV3D_P_PopulateEventInfo(hV3d, psInstruction->psJob, &sEventInfo);
+      BV3D_P_AddJobEvent(hV3d, BV3D_P_EVENT_MONITOR_RENDER_TRACK,
+            BV3D_P_EVENT_MONITOR_RENDERING, BV3D_EventEnd, &sEventInfo,
+            BV3D_P_GetEventTimestamp());
+   }
+
+   if (psInstruction == &hV3d->sUser)
+   {
+      BV3D_P_EventInfo sEventInfo;
+
+      BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_USER_JOBS_COMPLETED, 1);
+      if (hV3d->sPerfCounters.bCountersActive)
+         BV3D_P_GetTime_isrsafe(&hV3d->sPerfCounters.uiUserIdleStartTime);
+
+      BV3D_P_PopulateEventInfo(hV3d, psInstruction->psJob, &sEventInfo);
+      BV3D_P_AddJobEvent(hV3d, BV3D_P_EVENT_MONITOR_USER_TRACK,
+            BV3D_P_EVENT_MONITOR_USER, BV3D_EventEnd, &sEventInfo,
+            BV3D_P_GetEventTimestamp());
+   }
 
    if (hV3d->bCollectLoadStats || psInstruction->psJob->bCollectTimeline)
    {
@@ -886,6 +829,12 @@ void BV3D_P_OutOfBinMemory(
     * We make sure to capture the job so it doesn't disappear.
     */
 
+   BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_BIN_OOMS, 1);
+
+   BV3D_P_AddEvent(hV3d, BV3D_P_EVENT_MONITOR_BIN_TRACK, psJob->uiSequence,
+                       BV3D_P_EVENT_MONITOR_BOOM, BV3D_EventOneshot,
+                       BV3D_P_GetEventTimestamp());
+
    /* Kick off the binner again using the current overspill block */
    if (uiOverspill != 0 && (psJob == NULL || psJob->uiAbandon == 0))
    {
@@ -941,6 +890,8 @@ static void BV3D_P_IssueBin(
    if (psInstruction->psJob == NULL)
       return;
 
+   BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_BIN_JOBS_SUBMITTED, 1);
+
    if (psInstruction->psJob->uiAbandon)
    {
       BV3D_P_HardwareDone(hV3d, &hV3d->sBin); /* Fake completion of the task */
@@ -956,6 +907,22 @@ static void BV3D_P_IssueBin(
 
       if (psInstruction->psJob->bCollectTimeline && psInstruction->psJob->sTimelineData.sBinStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sBinStart);
+
+      if (hV3d->sPerfCounters.bCountersActive && hV3d->sPerfCounters.uiBinnerIdleStartTime != 0)
+      {
+         uint64_t now;
+         BV3D_P_GetTime_isrsafe(&now);
+         hV3d->sPerfCounters.uiBinnerCumIdleTime += now - hV3d->sPerfCounters.uiBinnerIdleStartTime;
+         hV3d->sPerfCounters.uiBinnerIdleStartTime = 0;
+      }
+
+      {
+         BV3D_P_EventInfo sEventInfo;
+         BV3D_P_PopulateEventInfo(hV3d, psInstruction->psJob, &sEventInfo);
+         BV3D_P_AddJobEvent(hV3d, BV3D_P_EVENT_MONITOR_BIN_TRACK,
+               BV3D_P_EVENT_MONITOR_BINNING, BV3D_EventBegin, &sEventInfo,
+               BV3D_P_GetEventTimestamp());
+      }
 
       BDBG_MSG(("Binner start = 0x%x, end = 0x%x", psInstruction->uiArg1, (uint32_t)psInstruction->uiArg2));
       BDBG_MSG(("BPCA = 0x%x, BPCS = 0x%x",
@@ -995,6 +962,8 @@ static void BV3D_P_IssueRender(
 
    hV3d->sRender = *psInstruction;
 
+   BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_RENDER_JOBS_SUBMITTED, 1);
+
    if (psInstruction->psJob->uiAbandon)
    {
       BV3D_P_HardwareDone(hV3d, &hV3d->sRender); /* Fake completion of the task */
@@ -1011,6 +980,22 @@ static void BV3D_P_IssueRender(
       if ((hV3d->bCollectLoadStats || psInstruction->psJob->bCollectTimeline) &&
            psInstruction->psJob->sTimelineData.sRenderStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sRenderStart);
+
+      if (hV3d->sPerfCounters.bCountersActive && hV3d->sPerfCounters.uiRendererIdleStartTime != 0)
+      {
+         uint64_t now;
+         BV3D_P_GetTime_isrsafe(&now);
+         hV3d->sPerfCounters.uiRendererCumIdleTime += now - hV3d->sPerfCounters.uiRendererIdleStartTime;
+         hV3d->sPerfCounters.uiRendererIdleStartTime = 0;
+      }
+
+      {
+         BV3D_P_EventInfo sEventInfo;
+         BV3D_P_PopulateEventInfo(hV3d, psInstruction->psJob, &sEventInfo);
+         BV3D_P_AddJobEvent(hV3d, BV3D_P_EVENT_MONITOR_RENDER_TRACK,
+               BV3D_P_EVENT_MONITOR_RENDERING, BV3D_EventBegin, &sEventInfo,
+               BV3D_P_GetEventTimestamp());
+      }
 
       BDBG_MSG(("Render start = 0x%x, end = 0x%x", psInstruction->uiArg1, (uint32_t)psInstruction->uiArg2));
 
@@ -1029,6 +1014,8 @@ static void BV3D_P_IssueUser(
 
    hV3d->sUser = *psInstruction;
 
+   BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_USER_JOBS_SUBMITTED, 1);
+
    if (psInstruction->psJob->uiAbandon)
    {
       BV3D_P_HardwareDone(hV3d, &hV3d->sUser); /* Fake completion of the task */
@@ -1041,6 +1028,22 @@ static void BV3D_P_IssueUser(
 
       if (psInstruction->psJob->bCollectTimeline && psInstruction->psJob->sTimelineData.sUserStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sUserStart);
+
+      if (hV3d->sPerfCounters.bCountersActive && hV3d->sPerfCounters.uiUserIdleStartTime != 0)
+      {
+         uint64_t now;
+         BV3D_P_GetTime_isrsafe(&now);
+         hV3d->sPerfCounters.uiUserCumIdleTime += now - hV3d->sPerfCounters.uiUserIdleStartTime;
+         hV3d->sPerfCounters.uiUserIdleStartTime = 0;
+      }
+
+      {
+         BV3D_P_EventInfo sEventInfo;
+         BV3D_P_PopulateEventInfo(hV3d, psInstruction->psJob, &sEventInfo);
+         BV3D_P_AddJobEvent(hV3d, BV3D_P_EVENT_MONITOR_USER_TRACK,
+               BV3D_P_EVENT_MONITOR_USER, BV3D_EventBegin, &sEventInfo,
+               BV3D_P_GetEventTimestamp());
+      }
 
       /* starts the shader */
       BREG_Write32(hV3d->hReg, BCHP_V3D_QPS_SRQUA, psInstruction->uiArg1);
@@ -1496,6 +1499,8 @@ static void BV3D_P_ProcessInterrupt(
 
    BKNI_AcquireMutex(hV3d->hModuleMutex);
 
+   BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_INTERRUPTS, 1);
+
    /* Reset the lockup detection state */
    hV3d->timeoutCount = 0;
    hV3d->quiescentTimeMs = 0;
@@ -1605,13 +1610,29 @@ static void BV3D_P_WatchdogTimeout(
 
             if (binnerStall || renderStall)
             {
+               BV3D_P_SchedPerfCounterAdd(hV3d, BV3D_P_PERF_LOCKUP_DETECTION, 1);
+
                if (binnerStall)
+               {
+                  struct BV3D_Job * psJob = hV3d->sBin.psJob;
                   BDBG_WRN(("Binner job %p lockupaddr 0x%x prev 0x%x end 0x%x",
                      (void *)hV3d->sBin.psJob, binAddr, hV3d->prevBinAddress, binEnd));
+                  BV3D_P_AddEventCJ(hV3d, BV3D_P_EVENT_MONITOR_SCHED_TRACK,
+                                        BV3D_P_EVENT_MONITOR_BIN_LOCKUP, BV3D_EventOneshot,
+                                        psJob->uiClientId, psJob->uiSequence,
+                                        BV3D_P_GetEventTimestamp());
+               }
 
                if (renderStall)
+               {
+                  struct BV3D_Job * psJob = hV3d->sRender.psJob;
                   BDBG_WRN(("Render job %p lockup addr 0x%x prev 0x%x end 0x%x",
                      (void *)hV3d->sRender.psJob, renderAddr, hV3d->prevRenderAddress, renderEnd));
+                  BV3D_P_AddEventCJ(hV3d, BV3D_P_EVENT_MONITOR_SCHED_TRACK,
+                                        BV3D_P_EVENT_MONITOR_RENDER_LOCKUP, BV3D_EventOneshot,
+                                        psJob->uiClientId, psJob->uiSequence,
+                                        BV3D_P_GetEventTimestamp());
+               }
 
                BV3D_P_DebugDump(hV3d);
 
@@ -1845,3 +1866,42 @@ void BV3D_Worker(
 }
 
 /***************************************************************************/
+
+void BV3D_P_RestorePerfCounters(
+   BV3D_Handle hV3d,
+   bool        bWriteSelectorsAndEnables
+)
+{
+   if (hV3d->reallyPoweredOn)
+   {
+      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRC, 0xFFFFFFFF);
+      BREG_Write32(hV3d->hReg, BCHP_V3D_GCA_PM_CTRL, 1);     /* Holds the counters in reset until de-asserted */
+
+      /* re-write the performance monitor selectors and enables */
+      if (bWriteSelectorsAndEnables && hV3d->sPerfCounters.uiPCTREShadow)
+      {
+         uint32_t c;
+         for (c = 0; c < BV3D_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE; c++)
+            BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRS0 + (c * 8), hV3d->sPerfCounters.uiPCTRSShadow[c]);
+
+         BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRE, hV3d->sPerfCounters.uiPCTREShadow | 0x80000000);
+      }
+   }
+}
+
+void BV3D_P_UpdateShadowCounters(
+   BV3D_Handle hV3d
+)
+{
+   if (hV3d->reallyPoweredOn)
+   {
+      /* capture the counters before taking away the power, only bother if any are on */
+      if (hV3d->sPerfCounters.uiPCTREShadow)
+      {
+         uint32_t c;
+         for (c = 0; c < BV3D_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE; c++)
+            hV3d->sPerfCounters.uiPCTRShadows[c] +=
+               BREG_Read32(hV3d->hReg, BCHP_V3D_PCTR_PCTR0 + ((BCHP_V3D_PCTR_PCTR1 - BCHP_V3D_PCTR_PCTR0) * c));
+      }
+   }
+}

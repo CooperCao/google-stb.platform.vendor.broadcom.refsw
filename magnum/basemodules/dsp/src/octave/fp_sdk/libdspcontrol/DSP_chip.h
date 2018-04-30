@@ -53,7 +53,9 @@
  */
 
 #include "libdspcontrol/CHIP.h"
-#include "libsyschip/tbuf_chips.h"
+#if !FEATURE_IS(TB_VARIANT, NONE)
+#  include "libsyschip/tbuf_chips.h"
+#endif
 #include "fp_sdk_config.h"
 
 #if !(FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))
@@ -74,7 +76,7 @@
 #    include "semphr.h"
 #  endif
 #endif
-#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
 #  include "umrbus.h"
 #endif
 
@@ -102,7 +104,7 @@ extern "C" {
 #endif
 
 
-#if IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
 #  define RAAGA_HAPS_MEMC_ARB_CLIENT_INFO_NUM_ENTRIES   2
 #endif
 
@@ -159,7 +161,7 @@ typedef struct
 #endif
 
 
-#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
 /** The (device, bus, address) coordinates describing an HAPS CAPIM */
 typedef struct
 {
@@ -260,7 +262,7 @@ typedef struct DSP_PARAMETERS_STRUCT
     DmaHandle_T *dmem2mcphy_dst_dma_handle;
 #endif
 
-#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
     /** CAPIM to drive the 'data' bus */
     DSP_HAPS_COORDS data_capim;
     /** CAPIM to drive the 'control' bus */
@@ -272,7 +274,7 @@ typedef struct DSP_PARAMETERS_STRUCT
     /** Reset the UMRBUS bridge after the end of every transaction */
     bool reset_bridge_on_transaction;
 #endif
-#if IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
     /** Reset the design when calling DSP_init */
     bool reset_design_on_init;
     /** Init-time configuration for the MEMC_ARB_CLIENT_INFO_i registers */
@@ -327,14 +329,14 @@ typedef struct DSP_STRUCT
      *  as we are in a simulated world on RHEL, not on silicon. */
     xSemaphoreHandle scp_mutex;
 #endif
-#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
     UMR_HANDLE data_capim;
     UMR_HANDLE control_capim;
     bool reset_bridge_on_init;
     bool reset_bridge_on_error;
     bool reset_bridge_on_transaction;
 #endif
-#if IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
     bool reset_design_on_init;
     /** Init-time configuration for the MEMC_ARB_CLIENT_INFO_i registers. We have to keep
      * this around as we might initialise the MEMC more than once (e.g. in DSP_reset). */
@@ -350,7 +352,7 @@ typedef struct DSP_STRUCT
     /** Virtual address of the first byte after the end of the secure region. */
     uint32_t secure_region_end;
 #endif
-#if IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_haps) || IS_TARGET(RaagaFP4015_haps_bm) || IS_TARGET(RaagaFP4015_si_magnum_permissive)
+#if IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare) || IS_TARGET(RaagaFP4015_haps_bm) || IS_TARGET(RaagaFP4015_si_magnum_permissive)
     /** Revision of ATU hardware */
     uint16_t atu_hw_revision;
     /** Cache of HW ATU entries. */
@@ -380,7 +382,7 @@ typedef struct DSP_STRUCT
 
 typedef struct
 {
-#if __FP4014_ONWARDS__ || __FPM1015__
+#if __FP4014_ONWARDS__ || __FPM1015_ONWARDS__
     uint32_t host_intc_host_irq;
 #if __FP4014_ONWARDS__ || __FPM1015__
     uint32_t obus_fault;
@@ -392,7 +394,7 @@ typedef struct
 
 typedef enum
 {
-#if IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_haps) || IS_TARGET(RaagaFP4015_haps_bm) || IS_TARGET(RaagaFP4015_si_magnum_permissive)
+#if IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare) || IS_TARGET(RaagaFP4015_haps_bm) || IS_TARGET(RaagaFP4015_si_magnum_permissive)
     /** Pseudo-option that, when set, triggers a refresh of the cached ATU status. */
     DSP_OPTION_REFRESH_ATU_INDEX,
 #endif

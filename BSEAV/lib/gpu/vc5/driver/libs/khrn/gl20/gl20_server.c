@@ -134,7 +134,7 @@ GL_APICALL void GL_APIENTRY glBindAttribLocation(GLuint p, GLuint index, const c
 
    if (!name) goto end;
 
-   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+   if (index >= V3D_MAX_ATTR_ARRAYS) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }
@@ -195,7 +195,7 @@ static void set_blend_eqn(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
 static void set_all_blend_eqns(GLXX_SERVER_STATE_T *state, glxx_blend_eqn_t ec, glxx_blend_eqn_t ea)
 {
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+   for (unsigned i = 0; i != V3D_MAX_RENDER_TARGETS; ++i)
       set_blend_eqn(state, &state->blend.rt_cfgs[i], ec, ea);
 #else
    set_blend_eqn(state, &state->blend.cfg, ec, ea);
@@ -258,7 +258,7 @@ static void blend_equation_separate_i(GLuint buf, GLenum modeRGB, GLenum modeAlp
    if (!state)
       return;
 
-   if (buf >= GLXX_MAX_RENDER_TARGETS)
+   if (buf >= V3D_MAX_RENDER_TARGETS)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
@@ -280,7 +280,7 @@ static void blend_equation_i(GLuint buf, GLenum mode)
    if (!state)
       return;
 
-   if (buf >= GLXX_MAX_RENDER_TARGETS)
+   if (buf >= V3D_MAX_RENDER_TARGETS)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
@@ -415,7 +415,7 @@ void gl20_server_try_delete_program(GLXX_SHARED_T *shared, GL20_PROGRAM_T *progr
       release_shader(shared, program->vertex);
       release_shader(shared, program->fragment);
       release_shader(shared, program->compute);
-   #if GLXX_HAS_TNG
+   #if V3D_VER_AT_LEAST(4,1,34,0)
       release_shader(shared, program->tess_control);
       release_shader(shared, program->tess_evaluation);
       release_shader(shared, program->geometry);
@@ -673,7 +673,7 @@ GL_APICALL void GL_APIENTRY glGetAttachedShaders(GLuint p, GLsizei maxcount, GLs
 
    if (shaders) {
       GL20_SHADER_T *attached[] = { program->vertex,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
                                     program->tess_control, program->tess_evaluation, program->geometry,
 #endif
                                     program->fragment, program->compute };
@@ -771,7 +771,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       break;
    case GL_ATTACHED_SHADERS:
       params[0] = (program->vertex != NULL) + (program->fragment != NULL) + (program->compute != NULL);
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       params[0] += (program->tess_control != NULL) + (program->tess_evaluation != NULL) + (program->geometry != NULL);
 #endif
       break;
@@ -859,7 +859,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       break;
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TESS_CONTROL_OUTPUT_VERTICES:
       if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
          goto invalid_op;
@@ -2310,7 +2310,7 @@ GL_APICALL void GL_APIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor)
 
    GLXX_VAO_T *vao = state->vao.bound;
 
-   if (index < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+   if (index < V3D_MAX_ATTR_ARRAYS)
    {
       /* This call also resets the attribute binding (see es3.1 spec, 10.3.2) */
       vao->attrib_config[index].vbo_index = index;

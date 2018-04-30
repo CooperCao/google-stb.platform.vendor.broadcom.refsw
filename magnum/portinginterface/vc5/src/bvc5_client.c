@@ -41,6 +41,7 @@
 #include "bvc5_jobq_priv.h"
 #include "bvc5_client_priv.h"
 #include "bvc5_hardware_priv.h"
+#include "bvc5_trace_jobs.h"
 
 /***************************************************************************/
 
@@ -144,6 +145,12 @@ static BERR_Code BVC5_P_ClientCreate(
    if (hClient->hRunnableRenderQ == NULL)
       goto exit;
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_JobQCreate(&hClient->hRunnableComputeQ);
+   if (hClient->hRunnableComputeQ == NULL)
+      goto exit;
+#endif
+
    BVC5_P_JobQCreate(&hClient->hRunnableTFUQ);
    if (hClient->hRunnableTFUQ == NULL)
       goto exit;
@@ -195,7 +202,10 @@ BERR_Code BVC5_P_ClientDestroy(
    BVC5_ClientHandle hClient
 )
 {
-   BERR_Code            err  = BERR_SUCCESS;
+   BERR_Code err = BERR_SUCCESS;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   uint32_t i;
+#endif
 
    if (hClient == NULL)
    {
@@ -214,6 +224,11 @@ BERR_Code BVC5_P_ClientDestroy(
 
    if (hClient->hRunnableRenderQ != NULL)
       BVC5_P_JobQDestroy(hVC5, hClient->hRunnableRenderQ);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   if (hClient->hRunnableComputeQ != NULL)
+      BVC5_P_JobQDestroy(hVC5, hClient->hRunnableComputeQ);
+#endif
 
    if (hClient->hRunnableTFUQ != NULL)
       BVC5_P_JobQDestroy(hVC5, hClient->hRunnableTFUQ);
@@ -243,6 +258,16 @@ BERR_Code BVC5_P_ClientDestroy(
    BVC5_P_DeleteAllSchedEvent(hClient->hEvents);
    /* Delete the event array */
    BVC5_P_EventArrayDestroy(hClient->hEvents);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   for (i = 0; i != hClient->uiComputeSubjobsMax; ++i)
+   {
+      if (hClient->pComputeSubjobs[i])
+         BVC5_P_DeleteComputeSubjobs(hClient->pComputeSubjobs[i]);
+   }
+   if (hClient->pComputeSubjobs)
+      BKNI_Free(hClient->pComputeSubjobs);
+#endif
 
    BKNI_Free(hClient);
 
@@ -483,6 +508,7 @@ void BVC5_P_ClientJobToWaiting(
    if (hClient->psOldestNotFinalized == NULL)
       hClient->psOldestNotFinalized = psJob;
 
+   internal_trace_job_start(psJob->pBase, hClient->uiClientId);
    BVC5_P_ActiveQInsert(hClient->hActiveJobs, psJob);
    BVC5_P_JobQInsert(hClient->hWaitQ, psJob);
 }
@@ -496,6 +522,9 @@ static BVC5_JobQHandle BVC5_P_RunQ(
    {
    case BVC5_JobType_eBin      : return hClient->hRunnableBinnerQ;
    case BVC5_JobType_eRender   : return hClient->hRunnableRenderQ;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case BVC5_JobType_eCompute  : return hClient->hRunnableComputeQ;
+#endif
    case BVC5_JobType_eTFU      : return hClient->hRunnableTFUQ;
    case BVC5_JobType_eUsermode : return hClient->hRunnableUsermodeQ;
    case BVC5_JobType_eBarrier  : return hClient->hRunnableBarrierQ;
@@ -516,6 +545,9 @@ void BVC5_P_ClientJobWaitingToRunnable(
    {
    case BVC5_JobType_eBin:
    case BVC5_JobType_eRender:
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case BVC5_JobType_eCompute:
+#endif
       psJob->uiNeedsCacheFlush = BVC5_P_HardwareDeferCacheFlush(
          hClient->hVC5,
          psJob->pBase->uiCacheOps & BVC5_CACHE_FLUSH_ALL,
@@ -529,6 +561,7 @@ void BVC5_P_ClientJobWaitingToRunnable(
 
    /* Add to client runnable list and remove from waitq */
    BVC5_P_JobQRemove(hClient->hWaitQ, psJob);
+   internal_trace_job_new_phase(psJob->pBase, hClient->uiClientId, BVC5_JobPhase_Runnable);
    BVC5_P_JobQInsert(hRunQ, psJob);
 }
 
@@ -544,6 +577,7 @@ void BVC5_P_ClientJobRunningToCompleted(
    BVC5_P_InternalJob  *psJob
 )
 {
+   internal_trace_job_new_phase(psJob->pBase, hClient->uiClientId, BVC5_JobPhase_Completed);
    BVC5_P_JobQInsert(hClient->hCompletedQ, psJob);
    BVC5_P_ActiveQRemove(hClient->hActiveJobs, psJob);
 
@@ -609,6 +643,7 @@ static void BVC5_P_ClientJobFinalized(
    BVC5_P_InternalJob  *psJob
 )
 {
+   internal_trace_job_new_phase(psJob->pBase, hClient->uiClientId, BVC5_JobPhase_Finalised);
    BVC5_P_UpdateOldestNotFinalized(hClient, psJob);
 
    while (psJob->psOnFinalizedFenceList)
@@ -811,6 +846,10 @@ static BVC5_P_JobDependentFence *BVC5_P_AllocJobDependentFence(
          return NULL;
       }
 
+      psFence->psSharedFenceInfo->uFenceUid = hVC5->sEventMonitor.uiSchedFenceTrackNextId++;
+      BVC5_P_AddSchedFenceEvent(hVC5, hClient->uiClientId, BVC5_EventBegin,
+            psFence->psSharedFenceInfo->uFenceUid, psFence->psSharedFenceInfo->iFence,
+            BVC5_P_GetEventTimestamp());
       psFence->psSharedFenceInfo->bSignalled = false;
    }
    else
@@ -819,6 +858,7 @@ static BVC5_P_JobDependentFence *BVC5_P_AllocJobDependentFence(
       psFence->psSharedFenceInfo->bSignalled = psSharedFenceInfo->bSignalled;
       psFence->psSharedFenceInfo->pFenceSignalData = psSharedFenceInfo->pFenceSignalData;
       psFence->psSharedFenceInfo->iFence = psSharedFenceInfo->iFence;
+      psFence->psSharedFenceInfo->uFenceUid = psSharedFenceInfo->uFenceUid;
    }
 
    psFence->psSharedFenceInfo->uNumberRequiredSignaled++;
@@ -855,9 +895,13 @@ static void BVC5_P_SignalAndFreeOrAddToJob(
    BDBG_ASSERT(psFence->psSharedFenceInfo != NULL);
    if (!psFence->psSharedFenceInfo->bSignalled)
    {
+      internal_trace_job_fence_signalled(psFence, psFence->psSharedFenceInfo->pFenceSignalData, hClient->uiClientId);
       BVC5_P_FenceSignalAndCleanup(hVC5->hFences, psFence->psSharedFenceInfo->pFenceSignalData);
       psFence->psSharedFenceInfo->pFenceSignalData = NULL;
       psFence->psSharedFenceInfo->bSignalled = true;
+      BVC5_P_AddSchedFenceEvent(hVC5, hClient->uiClientId, BVC5_EventEnd,
+            psFence->psSharedFenceInfo->uFenceUid,
+            psFence->psSharedFenceInfo->iFence, BVC5_P_GetEventTimestamp());
    }
    psFence->psSharedFenceInfo->uNumberRequiredSignaled--;
    if (psFence->psSharedFenceInfo->uNumberRequiredSignaled == 0)
@@ -893,6 +937,9 @@ BERR_Code BVC5_P_ClientMakeFenceForJobs(
       *piFence = psFence->psSharedFenceInfo->iFence;
       psFence->psNext = psJob->psOnCompletedFenceList;
       psJob->psOnCompletedFenceList = psFence;
+      internal_trace_job_fence_created(psFence,
+            psFence->psSharedFenceInfo->pFenceSignalData, hClient->uiClientId,
+            pCompletedDeps, pFinalizedDeps);
       return BERR_SUCCESS;
    }
 
@@ -906,6 +953,9 @@ BERR_Code BVC5_P_ClientMakeFenceForJobs(
       *piFence = psFence->psSharedFenceInfo->iFence;
       psFence->psNext = psJob->psOnFinalizedFenceList;
       psJob->psOnFinalizedFenceList = psFence;
+      internal_trace_job_fence_created(psFence,
+            psFence->psSharedFenceInfo->pFenceSignalData, hClient->uiClientId,
+            pCompletedDeps, pFinalizedDeps);
       return BERR_SUCCESS;
    }
 
@@ -1063,11 +1113,14 @@ void BVC5_P_ClientMarkJobsFlushedV3D(
    unsigned i;
    uint32_t mask = ~(1 << uiCoreIndex);
 
-   BVC5_JobQHandle queues[2];
+   BVC5_JobQHandle queues[V3D_VER_AT_LEAST(4,1,34,0) ? 3 : 2];
    queues[0] = hClient->hRunnableBinnerQ;
    queues[1] = hClient->hRunnableRenderQ;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   queues[2] = hClient->hRunnableComputeQ;
+#endif
 
-   for (i = 0; i < 2; i++)
+   for (i = 0; i < sizeof(queues)/sizeof(queues[0]); i++)
    {
       BVC5_P_InternalJob *pJob;
       for (pJob = BVC5_P_JobQFirst(queues[i]);
@@ -1104,6 +1157,9 @@ void BVC5_P_ClientSetWanted(
    hClient->uiWorkWanted = (BVC5_P_JobQSize(hClient->hRunnableBarrierQ) > 0 ? BVC5_CLIENT_BARRIER: 0) |
                            (BVC5_P_JobQSize(hClient->hRunnableBinnerQ)  > 0 ? BVC5_CLIENT_BIN    : 0) |
                            (BVC5_P_JobQSize(hClient->hRunnableRenderQ)  > 0 ? BVC5_CLIENT_RENDER : 0) |
+#if V3D_VER_AT_LEAST(4,1,34,0)
+                           (BVC5_P_JobQSize(hClient->hRunnableComputeQ) > 0 ? BVC5_CLIENT_COMPUTE: 0) |
+#endif
                            (BVC5_P_JobQSize(hClient->hRunnableTFUQ)     > 0 ? BVC5_CLIENT_TFU    : 0);
 }
 
@@ -1132,8 +1188,82 @@ bool BVC5_P_ClientHasHardJobs(
    return BVC5_P_JobQSize(hClient->hRunnableBarrierQ) > 0 ||
           BVC5_P_JobQSize(hClient->hRunnableBinnerQ)  > 0 ||
           BVC5_P_JobQSize(hClient->hRunnableRenderQ)  > 0 ||
+#if V3D_VER_AT_LEAST(4,1,34,0)
+          BVC5_P_JobQSize(hClient->hRunnableComputeQ) > 0 ||
+#endif
           BVC5_P_JobQSize(hClient->hRunnableTFUQ)     > 0;
 }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+
+uint32_t BVC5_P_ClientNewComputeSubjobs(
+   BVC5_ClientHandle    hClient,
+   uint32_t             uiMaxSubjobs)
+{
+   uint32_t i;
+
+   for (i = hClient->uiComputeSubjobsNext; i != hClient->uiComputeSubjobsMax; ++i)
+      if (!hClient->pComputeSubjobs[i])
+         goto found;
+
+   for (i = 0; i != hClient->uiComputeSubjobsNext; ++i)
+      if (!hClient->pComputeSubjobs[i])
+         goto found;
+
+   /* Apply sensible limit to number of compute sub-jobs objects. */
+   if (hClient->uiComputeSubjobsMax > 0xffffff)
+      return 0;
+
+   /* No space, reallocate */
+   {
+      uint32_t uiNewMax = hClient->uiComputeSubjobsMax ? (hClient->uiComputeSubjobsMax * 3) / 2 : 64;
+      BVC5_P_ComputeSubjobs **pComputeSubjobs = BKNI_Malloc(sizeof(BVC5_P_ComputeSubjobs*) * uiNewMax);
+      if (!pComputeSubjobs)
+         return 0;
+
+      /* Use next slot */
+      i = hClient->uiComputeSubjobsMax;
+
+      BKNI_Memcpy(pComputeSubjobs, hClient->pComputeSubjobs, sizeof(BVC5_P_ComputeSubjobs*) * i);
+      BKNI_Memset(pComputeSubjobs + i, 0, sizeof(BVC5_P_ComputeSubjobs*) * (uiNewMax - i));
+
+      if (hClient->pComputeSubjobs)
+         BKNI_Free(hClient->pComputeSubjobs);
+      hClient->pComputeSubjobs = pComputeSubjobs;
+      hClient->uiComputeSubjobsMax = uiNewMax;
+   }
+
+found:
+   hClient->uiComputeSubjobsNext = i + 1;
+
+   hClient->pComputeSubjobs[i] = BVC5_P_NewComputeSubjobs(uiMaxSubjobs);
+   if (!hClient->pComputeSubjobs[i])
+      return 0;
+
+   return i + 1;
+}
+
+void BVC5_P_ClientDeleteComputeSubjobs(
+   BVC5_ClientHandle       hClient,
+   uint32_t                uiSubjobsId,
+   BVC5_P_ComputeSubjobs   *pSubjobs)
+{
+   uint32_t uiSubjobIndex = uiSubjobsId - 1;
+   BDBG_ASSERT(uiSubjobIndex < hClient->uiComputeSubjobsMax);
+   BDBG_ASSERT(hClient->pComputeSubjobs[uiSubjobIndex] == pSubjobs);
+   BVC5_P_DeleteComputeSubjobs(pSubjobs);
+   hClient->pComputeSubjobs[uiSubjobIndex] = 0;
+}
+
+BVC5_P_ComputeSubjobs *BVC5_P_ClientGetComputeSubjobs(
+   BVC5_ClientHandle       hClient,
+   uint32_t                uiSubjobsId)
+{
+   uint32_t uiSubjobsIndex = uiSubjobsId - 1;
+   return uiSubjobsIndex < hClient->uiComputeSubjobsMax ? hClient->pComputeSubjobs[uiSubjobsIndex] : NULL;
+}
+
+#endif
 
 /***************************************************************************/
 /* Scheduler Event Sync Object                                             */

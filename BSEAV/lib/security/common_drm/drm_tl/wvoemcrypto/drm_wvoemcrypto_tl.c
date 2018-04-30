@@ -3673,7 +3673,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
             /* Allocate BTP buffer if needed */
             if (gHostSessionCtx[session].btp_sage_buffer == NULL)
             {
-                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
+                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
                 if(gHostSessionCtx[session].btp_sage_buffer == NULL)
                 {
                     BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
@@ -3979,7 +3979,7 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
             /* Allocate BTP buffer if needed */
             if (gHostSessionCtx[session].btp_sage_buffer == NULL)
             {
-                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
+                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
                 if(gHostSessionCtx[session].btp_sage_buffer == NULL)
                 {
                     BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));

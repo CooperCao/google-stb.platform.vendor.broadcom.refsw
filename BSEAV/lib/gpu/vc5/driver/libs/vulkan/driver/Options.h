@@ -5,6 +5,7 @@
 #pragma once
 
 #include "vcos.h"
+#include <mutex>
 
 namespace bvk {
 
@@ -46,12 +47,16 @@ public:
    static bool     dumpPresentedImages;               // output gfx buffer txt files on frame presentation
    static char     dumpPath[VCOS_PROPERTY_VALUE_MAX]; // directory path in which to output image dumps
 
-   static bool     fullSymbolNames;         // Retain full symbol names in the compiler
-
    static bool     dumpSPIRV;               // Output binary SPIR-V code for each module as supplied
 
    // Platform specific configuration
    static uint32_t numNxClientSurfaces;
+   static uint32_t fakeDirectDisplayWidth;
+   static uint32_t fakeDirectDisplayHeight;
+
+private:
+   static void InitialiseOnce();
+   static std::once_flag m_initFlag;
 };
 
 } // namespace bvk

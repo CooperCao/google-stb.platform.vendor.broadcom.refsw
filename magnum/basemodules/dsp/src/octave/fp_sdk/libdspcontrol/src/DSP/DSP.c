@@ -165,7 +165,7 @@ void DSP_initParameters(DSP_PARAMETERS *params __attribute__((unused)))
     params->dmem2mcphy_dst_dma_handle           = NULL;
 #endif
 
-#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
     params->data_capim.device           = DSP_HAPS_INVALID_COORD;
     params->data_capim.bus              = DSP_HAPS_INVALID_COORD;
     params->data_capim.address          = DSP_HAPS_INVALID_COORD;
@@ -177,7 +177,7 @@ void DSP_initParameters(DSP_PARAMETERS *params __attribute__((unused)))
     params->reset_bridge_on_transaction = false;
 #endif
 
-#if IS_TARGET(RaagaFP4015_haps)
+#if IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare)
     params->reset_design_on_init = true;
     for(unsigned i = 0; i < RAAGA_HAPS_MEMC_ARB_CLIENT_INFO_NUM_ENTRIES; i++)
         params->memc_arb_client_info[i].valid = false;

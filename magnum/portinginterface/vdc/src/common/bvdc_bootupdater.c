@@ -72,7 +72,9 @@ BERR_Code BVDC_Open
 {
     BVDC_P_Context *pVdc = NULL;
     BERR_Code eStatus = BERR_SUCCESS;
+#if BVDC_P_MAX_DACS
     uint32_t i;
+#endif
 
     /* The handle will be NULL if create fails. */
     *phVdc = NULL;
@@ -123,11 +125,13 @@ BERR_Code BVDC_Open
     BVDC_P_Resource_Create(&pVdc->hResource, pVdc);
 
     /* (8) Initialize all DACs to unused */
+#if BVDC_P_MAX_DACS
     for (i = 0; i < BVDC_P_MAX_DACS; i++ )
     {
         pVdc->aDacOutput[i] = BVDC_DacOutput_eUnused;
         pVdc->aulDacSyncSource[i] = i;
     }
+#endif
     pVdc->aulDacGrouping = s_aulDacGrouping;
     /* Default Auto = Off */
     pVdc->bDacDetectionEnable = (pVdc->stSettings.eDacDetection == BVDC_Mode_eOn) ? true : false;

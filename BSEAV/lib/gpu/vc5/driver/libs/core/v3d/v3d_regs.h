@@ -15,8 +15,6 @@ static inline bool v3d_is_noncore_reg(uint32_t addr)
 #if V3D_VER_AT_LEAST(4,1,34,0)
    return ((addr >= V3D_WRAP_REG_START) && (addr < V3D_MMU_REG_END)) ||
       ((addr >= V3D_TOP_GR_BRIDGE_REG_START) && (addr < V3D_TOP_GR_BRIDGE_REG_END));
-#elif V3D_VER_AT_LEAST(4,1,34,0)
-   return (addr >= V3D_TOP_GR_BRIDGE_REG_START) && (addr < V3D_MMU_REG_END);
 #elif V3D_VER_AT_LEAST(3,3,0,0)
    return (addr >= V3D_HUB_CTL_REG_START) && (addr < V3D_GCA_REG_END);
 #else

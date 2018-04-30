@@ -35,9 +35,9 @@ public:
       uint32_t                 commandBufferCount,
       const VkCommandBuffer   *pCommandBuffers) noexcept;
 
-   void TrimCommandPoolKHR(
-      bvk::Device                *device,
-      VkCommandPoolTrimFlagsKHR   flags) noexcept;
+   void TrimCommandPool(
+      bvk::Device             *device,
+      VkCommandPoolTrimFlags   flags) noexcept;
 
    // Implementation specific from this point on
    void AllocateCommandBuffers(

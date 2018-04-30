@@ -62,6 +62,7 @@ BERR_Code BHSM_SignedCommand_Set( BHSM_Handle hHsm, const BHSM_SignedCommand *pC
 
     BDBG_ENTER( BHSM_SignedCommand_Set );
 
+    if( !hHsm ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pCmd ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pCmd->pCommand ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 

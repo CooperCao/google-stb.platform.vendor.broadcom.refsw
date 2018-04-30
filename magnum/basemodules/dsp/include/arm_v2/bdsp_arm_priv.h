@@ -127,6 +127,7 @@ typedef struct BDSP_Arm_P_DeviceMemoryInfo
 {
     BDSP_P_MemoryPool           sROMemoryPool;
     BDSP_P_MemoryPool           sIOMemoryPool[BDSP_ARM_MAX_DSP];
+	BDSP_P_MemoryPool 			sHostSharedRWMemoryPool[BDSP_ARM_MAX_DSP];
     BDSP_P_MemoryPool           sRWMemoryPool[BDSP_ARM_MAX_DSP];
 
     BDSP_P_FwBuffer             DescriptorMemory[BDSP_ARM_MAX_DSP];
@@ -141,8 +142,9 @@ typedef struct BDSP_Arm_P_DeviceMemoryInfo
 typedef struct BDSP_Arm_P_HardwareStatus
 {
     bool deviceWatchdogFlag;
+    bool    powerStandby;
     bool softFifo[BDSP_ARM_MAX_DSP][BDSP_ARM_NUM_FIFOS];
-	bool descriptor[BDSP_ARM_MAX_DSP][BDSP_MAX_DESCRIPTORS];
+    bool descriptor[BDSP_ARM_MAX_DSP][BDSP_MAX_DESCRIPTORS];
 }BDSP_Arm_P_HardwareStatus;
 
 typedef struct BDSP_ArmDspApp{
@@ -284,7 +286,11 @@ typedef struct BDSP_ArmCapture
     BDSP_ArmCapturePointerInfo CapturePointerInfo[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture */
     BLST_S_ENTRY(BDSP_ArmCapture) node;
 } BDSP_ArmCapture;
-
+BERR_Code BDSP_Arm_P_GetNumberOfDspandCores(
+	BBOX_Handle boxHandle,
+	unsigned *pNumDsp,
+	unsigned *pNumCores
+);
 BERR_Code BDSP_Arm_P_InitDeviceSettings(
     BDSP_Arm *pArm
 );
@@ -304,10 +310,15 @@ void BDSP_Arm_P_CalculateStageMemory(
 	unsigned           *pMemReqd,
 	BDSP_AlgorithmType  algoType,
     bool                ifMemApiTool,
-	const BDSP_ArmUsageOptions *pUsage
+	const BDSP_UsageOptions *pUsage
 );
 void BDSP_Arm_P_CalculateTaskMemory(
 	unsigned *pMemReqd
+);
+void BDSP_Arm_P_CalculateHostFWsharedRWMemory(
+    const BDSP_ArmSettings *pdeviceSettings,
+    unsigned  dspIndex,
+    unsigned *pMemReqd
 );
 void BDSP_Arm_P_CalculateDeviceRWMemory(
     BDSP_Arm   *pDevice,
@@ -319,7 +330,6 @@ void BDSP_Arm_P_CalculateDeviceROMemory(
     unsigned *pMemReqd
 );
 void BDSP_Arm_P_CalculateDeviceIOMemory(
-    BDSP_Arm *pDevice,
     unsigned *pMemReqd
 );
 BERR_Code BDSP_Arm_P_AssignDeviceRWMemory(
@@ -396,6 +406,14 @@ BERR_Code BDSP_Arm_P_CreateStage(
 void BDSP_Arm_P_DestroyStage(
 	void *pStageHandle
 );
+
+BERR_Code BDSP_Arm_P_PowerStandby(
+	void *pDeviceHandle,
+	BDSP_StandbySettings *pSettings);
+
+BERR_Code BDSP_Arm_P_PowerResume(
+	void *pDeviceHandle);
+
 void BDSP_Arm_P_GetAlgorithmInfo(
 	BDSP_Algorithm algorithm,
 	BDSP_AlgorithmInfo *pInfo /* [out] */

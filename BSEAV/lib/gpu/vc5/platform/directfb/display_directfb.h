@@ -1,8 +1,7 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef __DISPLAY_DIRECTFB_H__
-#define __DISPLAY_DIRECTFB_H__
+#pragma once
 
 #include "default_directfb.h"
 #include "sched_abstract.h"
@@ -21,5 +20,3 @@ void DestroyDirectFBDisplayInterface(struct BEGL_DisplayInterface *disp);
 #ifdef __cplusplus
 }
 #endif
-
-#endif //__DISPLAY_DIRECTFB_H__

@@ -6,7 +6,7 @@
 
 LOG_DEFAULT_CAT("v3d_imgconv_tfu")
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 #include <arm_neon.h>
 #define USE_NEON_FAST_PATHS
 #endif
@@ -268,8 +268,8 @@ static void convert_async_tfu(
 
    const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
    v3d_cache_ops cache_ops =
-         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, hub_ident)
-       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, hub_ident);
+         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, hub_ident)
+       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, hub_ident);
 
    // This path is only claimed if dst is secure in secure context and
    // in unsecure context a secure dst is not allowed.
@@ -342,7 +342,9 @@ static bool convert_sand_m2mc_async_tfu(
    gfx_buffer_desc_gen(&tmp_desc, &size, &align, GFX_BUFFER_USAGE_NONE,
                        width, height, depth, /*mipLevels=*/1, /*num planes=*/1, &tmp_format);
 
-   gmem_handle_t handle = gmem_alloc(size, align, GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC |
+   // Note: use GMEM_USAGE_V3D_RW to ensure we get the CPU cache cleaned on the
+   // allocation, for the M2MC hardware to safely write into it.
+   gmem_handle_t handle = gmem_alloc(size, align, GMEM_USAGE_V3D_RW | GMEM_USAGE_HINT_DYNAMIC |
                                      GMEM_USAGE_CONTIGUOUS, "imgconv_m2mc_scratch");
    if (handle == GMEM_HANDLE_INVALID)
       return false;

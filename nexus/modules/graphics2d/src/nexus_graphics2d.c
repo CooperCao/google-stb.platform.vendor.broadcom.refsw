@@ -45,6 +45,7 @@
 #endif
 #include "bchp_common.h"
 #include "bchp_pwr.h"
+#include "bcfc.h"
 
 BDBG_MODULE(nexus_graphics2d);
 BTRC_MODULE(nexus_graphics2d_blit, ENABLE);
@@ -1502,6 +1503,30 @@ NEXUS_Error NEXUS_Graphics2D_PacketWriteComplete( NEXUS_Graphics2DHandle gfx, si
 NEXUS_Error NEXUS_Graphics2D_ConvertFilter( NEXUS_Graphics2DFilterCoeffs filter, size_t srcSize, size_t outSize, BM2MC_PACKET_FilterCoeffs *pCoeffs )
 {
     return BGRC_Packet_ConvertFilter(pCoeffs, filter, srcSize, outSize);
+}
+
+#define COLOR_MATRIX_SHIFT 10
+#define COLOR_MATRIX_ONE (1 << COLOR_MATRIX_SHIFT)
+
+void NEXUS_Graphics2D_GetColorMatrix( NEXUS_MatrixCoefficients matrixCoefficients, NEXUS_Graphics2DColorMatrix *pMatrixOut)
+{
+    BAVC_MatrixCoefficients coeffs =
+            NEXUS_P_MatrixCoefficients_ToMagnum_isrsafe(matrixCoefficients);
+    if (coeffs != BAVC_MatrixCoefficients_eUnknown) {
+        pMatrixOut->shift = COLOR_MATRIX_SHIFT;
+        BCFC_GetMatrixForGfxYCbCr2Rgb_isrsafe(coeffs, pMatrixOut->shift,
+                pMatrixOut->coeffMatrix);
+    }
+    else {
+       static const NEXUS_Graphics2DColorMatrix identity = {
+           COLOR_MATRIX_SHIFT,
+           { COLOR_MATRIX_ONE, 0, 0, 0, 0,
+             0, COLOR_MATRIX_ONE, 0, 0, 0,
+             0, 0, COLOR_MATRIX_ONE, 0, 0,
+             0, 0, 0, COLOR_MATRIX_ONE, 0 }
+       };
+       *pMatrixOut = identity;
+    }
 }
 
 NEXUS_Error NEXUS_Graphics2D_ConvertColorMatrix( const NEXUS_Graphics2DColorMatrix *pMatrixIn, BM2MC_PACKET_ColorMatrix *pMatrixOut )

@@ -43,7 +43,7 @@
 #include "bhsm_priv.h"
 #include "bhsm_keyslot_priv.h"
 #include "bhsm_rv_rsa.h"
-#include "bhsm_rv_region.h"
+#include "bhsm_rv_region_priv.h"
 #include "bhsm_otp_key.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_rsa.h"
@@ -101,7 +101,7 @@ BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
     rc = BHSM_RvRsa_Init( pHandle, NULL );
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
 
-    rc = BHSM_RvRegion_Init( pHandle, NULL );
+    rc = BHSM_RvRegion_Init_priv( pHandle, NULL );
     if( rc != BERR_SUCCESS ) { BERR_TRACE(rc); goto error; }
 
     rc = BHSM_Rsa_Init( pHandle, NULL );
@@ -129,7 +129,7 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 
     BHSM_OtpKey_Uninit( hHsm );
     BHSM_Rsa_Uninit( hHsm );
-    BHSM_RvRegion_Uninit( hHsm );
+    BHSM_RvRegion_Uninit_priv( hHsm );
     BHSM_RvRsa_Uninit( hHsm );
     BHSM_KeyLadder_Uninit( hHsm );
     BHSM_Keyslot_Uninit( hHsm );
@@ -185,11 +185,6 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCap
 
 BERR_Code BHSM_MemcpySwap( void* pDest, const void* pSrc, unsigned byteSize )
 {
-    return BHSM_Mem32cpy( (uint32_t*)pDest, (uint8_t*)pSrc, byteSize );
-}
-
-BERR_Code BHSM_Mem32cpy( uint32_t* pDest, const uint8_t* pSrc, unsigned byteSize )
-{
     unsigned wordSize = byteSize/4;
     uint32_t *pS = (uint32_t*)pSrc;
     uint32_t *pD = (uint32_t*)pDest;
@@ -197,7 +192,6 @@ BERR_Code BHSM_Mem32cpy( uint32_t* pDest, const uint8_t* pSrc, unsigned byteSize
 
     if( !pDest ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pSrc ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-
     if( byteSize % 4) return BERR_TRACE( BERR_INVALID_PARAMETER );
     if( wordSize == 0) return BERR_TRACE( BERR_INVALID_PARAMETER );
 

@@ -39,12 +39,15 @@
 # build env
 TZ_TOP := ..
 TZ_MOD := monitor
-TZ_IMG := mon64
+TZ_IMG := mon
 
 # 64-bit only
 TZ_ARCH := Arm64
 
 include $(TZ_TOP)/build/build_env.mk
+
+# add arch suffix to image name
+TZ_IMG := $(TZ_IMG)$(ARCH_SUFFIX)
 
 # build src
 SUBMOD_DIRS := \

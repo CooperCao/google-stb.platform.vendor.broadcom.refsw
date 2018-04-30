@@ -2365,37 +2365,40 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
     }
 #endif
 
-    /* now check how much data we can currently send */
-    if (ioctl(file->fd, SIOCOUTQ, &writeQueueDepth)) {
-        BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
-        writeQueueDepth = 0;
-    }
+    if (file->streamingProtocol == B_PlaybackIpProtocol_eHttp)
+    {
+        /* now check how much data we can currently send */
+        if (ioctl(file->fd, SIOCOUTQ, &writeQueueDepth)) {
+            BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
+            writeQueueDepth = 0;
+        }
 #ifdef SIOCOUTQNSD
-    if (ioctl(file->fd, SIOCOUTQNSD, &writeQueueNotSent)) {
-        BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
-        writeQueueNotSent = 0;
-    }
+        if (ioctl(file->fd, SIOCOUTQNSD, &writeQueueNotSent)) {
+            BDBG_WRN(("%s: failed to get tcp write q depth for socket %d", BSTD_FUNCTION, file->fd));
+            writeQueueNotSent = 0;
+        }
 #endif
-    writeQueueSpaceAvail = file->writeQueueSize - writeQueueDepth;
-    BDBG_MSG(("%s: Write %zu bytes for socket %d (wr q depth %d, notSent=%d, size %d, rem %zu)\n", BSTD_FUNCTION, length, file->fd, writeQueueDepth, writeQueueNotSent, file->writeQueueSize, writeQueueSpaceAvail));
-    file->writeQueueFullTimeouts = 0;
-    if (writeQueueSpaceAvail == 0) {
-        /* write q is full, check if there is a socket error. This can happen particularly for streaming to a local client */
-        /* server can pump out data at really high rate for a local client and thus have its write q always full. */
-        /* in such cases, if the client closes the connection, then the close event is not indicated to the streaming thread */
-        /* until it attempts to a send. This check will make sure that we proactively look for socket error during the q full scenario */
-        int socketErrno = 0;
-        socklen_t errnoSize = sizeof(socketErrno);
-        if (getsockopt(file->fd, SOL_SOCKET, SO_ERROR, &socketErrno, &errnoSize) == 0) {
-            if (socketErrno != 0) {
-                BDBG_WRN(("%s: Socket error %d when write q is full, returning", BSTD_FUNCTION, socketErrno));
-                return -1;
+        writeQueueSpaceAvail = file->writeQueueSize - writeQueueDepth;
+        BDBG_MSG(("%s: Write %zu bytes for socket %d (wr q depth %d, notSent=%d, size %d, rem %zu)\n", BSTD_FUNCTION, length, file->fd, writeQueueDepth, writeQueueNotSent, file->writeQueueSize, writeQueueSpaceAvail));
+        file->writeQueueFullTimeouts = 0;
+        if (writeQueueSpaceAvail == 0) {
+            /* write q is full, check if there is a socket error. This can happen particularly for streaming to a local client */
+            /* server can pump out data at really high rate for a local client and thus have its write q always full. */
+            /* in such cases, if the client closes the connection, then the close event is not indicated to the streaming thread */
+            /* until it attempts to a send. This check will make sure that we proactively look for socket error during the q full scenario */
+            int socketErrno = 0;
+            socklen_t errnoSize = sizeof(socketErrno);
+            if (getsockopt(file->fd, SOL_SOCKET, SO_ERROR, &socketErrno, &errnoSize) == 0) {
+                if (socketErrno != 0) {
+                    BDBG_WRN(("%s: Socket error %d when write q is full, returning", BSTD_FUNCTION, socketErrno));
+                    return -1;
+                }
             }
         }
-    }
-    else if (length > writeQueueSpaceAvail) {
-        BDBG_MSG(("Write trimming # of bytes to write (%zu) to the write q available space (%zu) for socket %d\n", length, writeQueueSpaceAvail, file->fd));
-        length = writeQueueSpaceAvail;
+        else if (length > writeQueueSpaceAvail) {
+            BDBG_MSG(("Write trimming # of bytes to write (%zu) to the write q available space (%zu) for socket %d\n", length, writeQueueSpaceAvail, file->fd));
+            length = writeQueueSpaceAvail;
+        }
     }
     if (length > 0) {
 #ifdef B_HAS_DTCP_IP

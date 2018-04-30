@@ -1,0 +1,11 @@
+prefix=%prefix%
+exec_prefix=${prefix}/bin/bme
+libdir=${prefix}/lib/
+includedir=${prefix}/include/bme
+
+Name: BME Media Player
+Description: BME Media Player
+Version: 3.0
+Requires:
+Libs: -lbme -lbmeDrm %libs% -L${libdir}
+Cflags: -I${includedir}

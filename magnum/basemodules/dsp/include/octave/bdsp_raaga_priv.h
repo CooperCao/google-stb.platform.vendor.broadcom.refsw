@@ -311,7 +311,7 @@ void BDSP_Raaga_P_CalculateStageMemory(
 	unsigned    *pMemReqd,
 	BDSP_AlgorithmType  algoType,
     bool        ifMemApiTool,
-	const BDSP_RaagaUsageOptions *pUsage
+	const BDSP_UsageOptions *pUsage
 );
 void BDSP_Raaga_P_CalculateTaskMemory(
 	unsigned *pMemReqd
@@ -322,7 +322,8 @@ void BDSP_Raaga_P_CalculateKernelRWMemory(
 );
 
 void BDSP_Raaga_P_CalculateHostFWsharedRWMemory(
-    BDSP_Raaga *pDevice,
+	const BDSP_RaagaSettings *pdeviceSettings,
+    unsigned    dspIndex,
     unsigned   *pMemReqd
 );
 

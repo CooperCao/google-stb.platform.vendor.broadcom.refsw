@@ -650,6 +650,14 @@ static void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int lev
                     }
                 }
                 break;
+            case  NEXUS_AudioInputType_eAudioProcessor:
+                {
+                    NEXUS_AudioProcessorHandle audioProcessor = downstreamObject->pObjectHandle;
+                    BDBG_LOG(("%*s%s (%p) %s", level*4, "", downstreamObject->pName, (void *)downstreamObject->pObjectHandle, NEXUS_AudioInputFormatToString(downstreamObject->format)));
+                    NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioProcessor_GetConnectorByType(audioProcessor, NEXUS_AudioConnectorType_eStereo), level+1);
+                    NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioProcessor_GetConnectorByType(audioProcessor, NEXUS_AudioConnectorType_eMultichannel), level+1);
+                }
+                break;
             default:
                 BDBG_LOG(("%*s%s (%p) %s", level*4, "", downstreamObject->pName, (void *)downstreamObject->pObjectHandle, NEXUS_AudioInputFormatToString(downstreamObject->format)));
                 NEXUS_AudioDebug_P_ConfigPrint(downstreamObject,level+1);

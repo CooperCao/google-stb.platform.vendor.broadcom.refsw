@@ -294,7 +294,7 @@ static Time Repeat(const Time &t, const Time &m)
    // Shift the number into the positive domain
    if (t64 < 0)
    {
-      int64_t div = abs(t64 / m64);
+      int64_t div = std::abs(t64 / m64);
       t64 += (div + 1) * m64;
    }
 
@@ -311,13 +311,13 @@ static Time Mirror(const Time &t, const Time &m)
    int64_t m64 = m.Milliseconds();
 
    // Have to shift by an even number or the zero will have been shifted
-   int64_t div = abs(t64 / m64);
+   int64_t div = std::abs(t64 / m64);
 
    bool down = (div & 1) == 1;
 
    if (t64 < 0)
    {
-      int64_t div = abs(t64 / m64);
+      int64_t div = std::abs(t64 / m64);
       t64 += (div + 2) * m64;
       down = !down;
    }

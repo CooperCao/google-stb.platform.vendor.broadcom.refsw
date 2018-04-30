@@ -366,7 +366,8 @@ public:
    void SetImageLayout(VkImage image, VkImageAspectFlags aspectMask,
                        VkImageLayout oldLayout, VkImageLayout newLayout,
                        VkAccessFlagBits srcAccessMask,
-                       VkPipelineStageFlags srcStages, VkPipelineStageFlags destStages) const;
+                       VkPipelineStageFlags srcStages, VkPipelineStageFlags destStages,
+                       uint32_t baseLevel = 0, uint32_t levelCount = 1) const;
 
    void SetViewport(uint32_t first, uint32_t count, const VkViewport *viewports) const;
    void SetScissor(uint32_t first, uint32_t count, const VkRect2D *scissors) const;

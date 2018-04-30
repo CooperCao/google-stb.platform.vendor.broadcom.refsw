@@ -14,6 +14,10 @@
 #include "gl20_program.h"
 #include "gl20_shader.h"
 
+#include "libs/util/log/log.h"
+
+LOG_DEFAULT_CAT("gl20_program")
+
 extern uint32_t glxx_get_element_count(GLenum type);
 
 static GLSL_BINDING_T *copy_binding_array  (const GLSL_BINDING_T *src_ary, unsigned src_len);
@@ -406,47 +410,8 @@ static bool save_linked_program_data(GL20_PROGRAM_T *program, GLSL_PROGRAM_T *pr
    return true;
 }
 
-static GLSL_PROGRAM_T *link_compute(GL20_PROGRAM_T *program) {
-   /* Assume this is a compute program */
-   if (program->vertex != NULL || program->fragment != NULL) {
-      gl20_program_save_error(program, "Link Error: Graphics shader cannot be linked with compute shader");
-      return NULL;
-   }
-
-#if GLXX_HAS_TNG
-   if (program->tess_control || program->tess_evaluation || program->geometry) {
-      gl20_program_save_error(program, "Link Error: Graphics shader cannot be linked with compute shader");
-      return NULL;
-   }
-#endif
-
-   if (program->compute->binary == NULL) {
-      gl20_program_save_error(program, "Link Error: Compute shader not compiled");
-      return NULL;
-   }
-
-   return glsl_link_compute_program(program->compute->binary);
-}
-
-static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
+static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program, const GL20_SHADER_T **shader)
 {
-   assert(program->compute == NULL);
-
-   const GL20_SHADER_T *shader[SHADER_FLAVOUR_COUNT] = { [SHADER_VERTEX]          = program->vertex,
-#if GLXX_HAS_TNG
-                                                         [SHADER_TESS_CONTROL]    = program->tess_control,
-                                                         [SHADER_TESS_EVALUATION] = program->tess_evaluation,
-                                                         [SHADER_GEOMETRY]        = program->geometry,
-#endif
-                                                         [SHADER_FRAGMENT]        = program->fragment };
-
-   for (ShaderFlavour f = SHADER_VERTEX; f <= SHADER_FRAGMENT; f++) {
-      if (shader[f] && shader[f]->binary == NULL) {
-         gl20_program_save_error(program, "Link Error: Attached shader not compiled");
-         return NULL;
-      }
-   }
-
    if ((program->transform_feedback.buffer_mode == GL_SEPARATE_ATTRIBS  &&
             program->transform_feedback.varying_count > GLXX_CONFIG_MAX_TF_SEPARATE_COMPONENTS) ||
         (program->transform_feedback.buffer_mode == GL_INTERLEAVED_ATTRIBS &&
@@ -459,7 +424,6 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
    GLSL_PROGRAM_T *ret = NULL;
 
    GLSL_PROGRAM_SOURCE_T source;
-   source.name            = program->name;
    source.bindings        = copy_binding_array(program->bindings, program->num_bindings);
    source.num_bindings    = source.bindings ? program->num_bindings : 0;
    source.num_tf_varyings = program->transform_feedback.varying_count;
@@ -472,10 +436,6 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
 
    for (unsigned i = 0; i < source.num_tf_varyings; i++)
       source.tf_varyings[i] = program->transform_feedback.name[i];
-
-#ifdef KHRN_SHADER_DUMP_SOURCE
-   glsl_program_source_dump(&source, program->vertex ? program->vertex->name : 0, program->fragment ? program->fragment->name : 0);
-#endif
 
    CompiledShader *stages[SHADER_FLAVOUR_COUNT] = { 0, };
    for (ShaderFlavour f = SHADER_VERTEX; f <= SHADER_FRAGMENT; f++)
@@ -497,15 +457,48 @@ end:
 void gl20_program_link(GL20_PROGRAM_T *program)
 {
    KHRN_MEM_ASSIGN(program->info, khrn_mem_empty_string);
+   program->common.link_status = false;
+
+   const GL20_SHADER_T *shader[SHADER_FLAVOUR_COUNT] = { [SHADER_VERTEX]          = program->vertex,
+#if V3D_VER_AT_LEAST(4,1,34,0)
+                                                         [SHADER_TESS_CONTROL]    = program->tess_control,
+                                                         [SHADER_TESS_EVALUATION] = program->tess_evaluation,
+                                                         [SHADER_GEOMETRY]        = program->geometry,
+#endif
+                                                         [SHADER_FRAGMENT]        = program->fragment,
+                                                         [SHADER_COMPUTE]         = program->compute  };
+
+   for (ShaderFlavour f = SHADER_VERTEX; f < SHADER_FLAVOUR_COUNT; f++) {
+      if (shader[f] && shader[f]->binary == NULL) {
+         gl20_program_save_error(program, "Link Error: Attached shader not compiled");
+         return;
+      }
+   }
+
+   if (shader[SHADER_COMPUTE]) {
+      for (ShaderFlavour f = SHADER_VERTEX; f < SHADER_COMPUTE; f++) {
+         if (shader[f]) {
+            gl20_program_save_error(program, "Link Error: Graphics shader cannot be linked with compute shader");
+            return;
+         }
+      }
+   }
+
+   log_trace("LINK: p %d", program->name);
+   for (ShaderFlavour f = SHADER_VERTEX; f < SHADER_FLAVOUR_COUNT; f++)
+      if (shader[f])
+         log_trace("    : %s %d", glsl_shader_flavour_name(f), shader[f]->name);
+   for (unsigned i=0; i<program->transform_feedback.varying_count; i++)
+      log_trace("    : TF: %s", program->transform_feedback.name[i]);
 
    GLSL_PROGRAM_T *program_ir;
-   if (program->compute != NULL) program_ir = link_compute(program);
-   else                          program_ir = link_graphics(program);
+   if (program->compute != NULL) program_ir = glsl_link_compute_program(program->compute->binary);
+   else                          program_ir = link_graphics(program, shader);
 
-   program->common.link_status = program_ir != NULL;
-
-   if (!program->common.link_status)
+   if (!program_ir)
       return;
+
+   program->common.link_status = true;
 
    unsigned samplers[SHADER_FLAVOUR_COUNT] = { 0, };
    unsigned images  [SHADER_FLAVOUR_COUNT] = { 0, };
@@ -701,7 +694,7 @@ static GL20_SHADER_T **get_shader(GL20_PROGRAM_T *program, GL20_SHADER_T *shader
       return &program->vertex;
    case GL_FRAGMENT_SHADER:
       return &program->fragment;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TESS_CONTROL_SHADER:
       return &program->tess_control;
    case GL_TESS_EVALUATION_SHADER:

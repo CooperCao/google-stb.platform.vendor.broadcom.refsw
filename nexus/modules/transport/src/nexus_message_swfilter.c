@@ -65,7 +65,7 @@ BDBG_MODULE(nexus_message);
 /* if you use one recpump per PES filter, you can just do HW filtering. faster and no possible SW parsing bugs */
 #define B_USE_HW_PES_FILTERING 0
 
-#if BCHP_CHIP == 7255
+#if BCHP_CHIP == 7255 || NEXUS_USE_OTT_TRANSPORT
 #define NO_PID2BUF 1 /* TODO evaluate */
 #endif
 
@@ -77,7 +77,7 @@ struct NEXUS_Message {
 
     uint8_t *buffer; /* actual buffer in use. cached addr. */
     unsigned bufferSize;
-    unsigned wptr, rptr, wrapptr; /* ringbuffer logic. wrapptr allows complete use of buffer, just like HW. and allows for 
+    unsigned wptr, rptr, wrapptr; /* ringbuffer logic. wrapptr allows complete use of buffer, just like HW. and allows for
         contiguous PSI msgs w/o memcpy. key logic is:
             empty buffer: wptr==rptr && !wrapptr
             full buffer:  wptr==rptr && wrapptr
@@ -848,7 +848,7 @@ static struct NEXUS_SwFilterPid *NEXUS_SwFilter_P_OpenPid(NEXUS_MessageHandle ms
         BERR_TRACE(rc);
         goto err_addpidchannel;
     }
-    
+
     if (!BLST_S_FIRST(&msg->stream->pids)) {
         rc = NEXUS_Recpump_Start(msg->stream->recpump);
         if (rc) {
@@ -931,14 +931,14 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
 #define CONTIGUOUS_SPACE(msg) ((msg)->wrapptr ? (msg)->rptr - (msg)->wptr : (msg)->bufferSize - (msg)->wptr)
 
     BDBG_MSG_TRACE(("add: %d to %d %d %d", msg_size, msg->rptr, msg->wptr, msg->wrapptr));
-    
+
     /* memcpy to ringbuffer in contiguous block */
     if (msg_size > CONTIGUOUS_SPACE(msg) && !msg->wrapptr) {
         /* wrap and try again */
         msg->wrapptr = msg->wptr;
         msg->wptr = 0;
     }
-    
+
     if (msg_size > CONTIGUOUS_SPACE(msg)) {
         goto overflow;
     }

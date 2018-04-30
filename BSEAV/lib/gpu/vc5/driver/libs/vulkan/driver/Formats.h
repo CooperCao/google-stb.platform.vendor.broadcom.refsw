@@ -45,7 +45,6 @@ public:
       }
    }
 
-   static v3d_attr_type_t GetAttributeType(GFX_LFMT_T fmt);
 
 private:
    struct Format

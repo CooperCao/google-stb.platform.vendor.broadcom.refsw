@@ -165,16 +165,16 @@ typedef struct BDSP_P_TaskMemoryInfo
 typedef struct BDSP_P_StageMemoryInfo
 {
 	BDSP_P_MemoryPool	  sMemoryPool;
-	BDSP_P_FwBuffer 	  sDataSyncSettings;
-	BDSP_P_FwBuffer 	  sTsmSettings;
-	BDSP_P_FwBuffer       sHostAlgoUserConfig;
-
-	BDSP_P_FwBuffer		  sCacheHole; /* 512 bytes of hole for cache coherency */
+	BDSP_P_FwBuffer       sInterframe;
 	BDSP_P_FwBuffer 	  sAlgoUserConfig;
 	BDSP_P_FwBuffer       sAlgoStatus;
 	BDSP_P_FwBuffer       sIdsStatus;
 	BDSP_P_FwBuffer       sTsmStatus;
-	BDSP_P_FwBuffer       sInterframe;
+
+	BDSP_P_FwBuffer		  sCacheHole; /* 512 bytes of hole for cache coherency */
+	BDSP_P_FwBuffer 	  sDataSyncSettings;
+	BDSP_P_FwBuffer 	  sTsmSettings;
+	BDSP_P_FwBuffer       sHostAlgoUserConfig;
 }BDSP_P_StageMemoryInfo;
 
 BERR_Code BDSP_P_PopulateSystemSchedulingDeatils(

@@ -8,11 +8,11 @@
 #include "interface/khronos/egl/egl_int_impl.h"
 #include "middleware/khronos/common/khrn_image.h"
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/EGL/eglext_brcm.h"
-#include "interface/khronos/include/EGL/eglext_wayland.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglext_brcm.h>
+#include <EGL/eglext_wayland.h>
+#include <GLES/gl.h>
 
 #if defined(ANDROID)
 #include <system/window.h>
@@ -42,7 +42,7 @@ EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR (EGLDisplay dpy, EGLContext ctx
    if (state) {
       EGL_CONTEXT_T *context;
       bool ctx_error;
-      if (target == EGL_NATIVE_PIXMAP_KHR || target == EGL_IMAGE_WRAP_BRCM_BCG || target == EGL_NATIVE_BUFFER_ANDROID || target == EGL_WAYLAND_BUFFER_WL) {
+      if (target == EGL_NATIVE_PIXMAP_KHR || target == EGL_NATIVE_BUFFER_ANDROID || target == EGL_WAYLAND_BUFFER_WL) {
          context = NULL;
          ctx_error = ctx != EGL_NO_CONTEXT;
       } else {

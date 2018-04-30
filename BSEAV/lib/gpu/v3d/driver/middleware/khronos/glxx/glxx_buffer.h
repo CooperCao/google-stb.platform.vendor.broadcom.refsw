@@ -3,7 +3,7 @@
 ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "vcfw/rtos/abstract/rtos_abstract_mem.h"

@@ -83,11 +83,12 @@ endif
 LDFLAGS += -L$(LIBDIR) -lv3ddriver
 
 SOURCES = default_directfb.c \
-			bitmap.cpp \
 			display_directfb.cpp \
+			display_helpers.c \
 			../common/memory_nexus.c \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
+			../common/perf_event.cpp \
 			../common/hardware_nexus.cpp \
 			../common/autoclif.c
 

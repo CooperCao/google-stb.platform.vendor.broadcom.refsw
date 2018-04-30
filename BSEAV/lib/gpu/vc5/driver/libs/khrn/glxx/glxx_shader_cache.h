@@ -13,6 +13,7 @@
 #include "libs/core/v3d/v3d_vpm.h"
 #include "libs/util/assert_helpers.h"
 #include "libs/compute/compute.h"
+#include "libs/linkres/linkres.h"
 
 typedef struct glxx_shader_general_uniform
 {
@@ -60,33 +61,10 @@ typedef struct
 #endif
 } GLXX_SHADER_DATA_T;
 
-#define GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA  (1<<0)
-#define GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID             (1<<2)   // 2 bits (bin/render)
-#define GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID           (1<<4)   // 2 bits (bin/render)
-#define GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE         (1<<6)   // 2 bits (bin/render)
-#define GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS     (1<<8)   // 2 bits (bin/render)
-#define GLXX_SHADER_FLAGS_FS_WRITES_Z                    (1<<10)
-#define GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE             (1<<11)
-#define GLXX_SHADER_FLAGS_FS_NEEDS_W                     (1<<12)
-#define GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW           (1<<13)
-#define GLXX_SHADER_FLAGS_PER_SAMPLE                     (1<<14)
-#define GLXX_SHADER_FLAGS_TCS_BARRIERS                   (1<<15)
-#define GLXX_SHADER_FLAGS_PRIM_ID_USED                   (1<<16)
-#define GLXX_SHADER_FLAGS_PRIM_ID_TO_FS                  (1<<17)
-#if V3D_VER_AT_LEAST(4,1,34,0)
-#define GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS         (1<<18)
-#endif
-
-struct attr_rec {
-   int idx;
-   uint8_t c_scalars_used;
-   uint8_t v_scalars_used;
-};
-
 typedef enum glxx_vertex_pipe_stage
 {
    GLXX_SHADER_VPS_VS,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GLXX_SHADER_VPS_GS,     // order of T+G stages matches shader record
    GLXX_SHADER_VPS_TCS,
    GLXX_SHADER_VPS_TES,
@@ -99,46 +77,12 @@ typedef struct glxx_link_result_data
    khrn_resource *res;
    GLXX_SHADER_DATA_T vps[GLXX_SHADER_VPS_COUNT][MODE_COUNT];
    GLXX_SHADER_DATA_T fs;
-   uint32_t num_varys;
-   uint8_t vary_map[GLXX_CONFIG_MAX_VARYING_SCALARS];
+
+   linkres_t data;
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    bool bin_uses_control_flow;
    bool render_uses_control_flow;
-#endif
-
-   uint32_t num_bin_qpu_instructions;
-
-   uint32_t        attr_count;
-   struct attr_rec attr[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-
-   uint32_t flags;
-   uint8_t vs_input_words[MODE_COUNT];
-   uint8_t vs_output_words[MODE_COUNT];
-#if GLXX_HAS_TNG
-   uint8_t tcs_output_vertices_per_patch;             // set to 0 if TCS doesn't write vertex data, glxx_hw will create 1 invocation for the patch.
-   uint8_t tcs_output_words_per_patch[MODE_COUNT];
-   uint8_t tcs_output_words[MODE_COUNT];
-   uint8_t tes_output_words[MODE_COUNT];
-   uint16_t gs_output_words[MODE_COUNT];
-
-   uint8_t geom_invocations;
-   uint8_t geom_prim_type    : 2; // v3d_cl_geom_prim_type_t
-
-   uint8_t tess_type         : 2; // v3d_cl_tess_type_t
-   uint8_t tess_point_mode   : 1; // bool
-   uint8_t tess_edge_spacing : 2; // v3d_cl_tess_edge_spacing_t
-   uint8_t tess_clockwise    : 1; // bool
-
-   union
-   {
-      struct
-      {
-         uint8_t has_tess : 1;
-         uint8_t has_geom : 1;
-      };
-      uint8_t has_tng;
-   };
 #endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -155,19 +99,13 @@ typedef struct glxx_link_result_data
    } cs;
 #endif
 
-   uint32_t varying_centroid[V3D_MAX_VARY_FLAG_WORDS];
-   uint32_t varying_flat[V3D_MAX_VARY_FLAG_WORDS];
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   uint32_t varying_noperspective[V3D_MAX_VARY_FLAG_WORDS];
-#endif
-
    struct
    {
       struct
       {
          union
          {
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
             struct { uint8_t num_patch_vertices; } tg;
 #endif
             struct { bool z_pre_pass; } v;
@@ -176,11 +114,10 @@ typedef struct glxx_link_result_data
       } key;
 
       v3d_vpm_cfg_v vpm_cfg_v[2];
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       uint32_t shadrec_tg_packed[V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE/4];
 #endif
    } cached_vpm_cfg;
-
 } GLXX_LINK_RESULT_DATA_T;
 
 typedef struct

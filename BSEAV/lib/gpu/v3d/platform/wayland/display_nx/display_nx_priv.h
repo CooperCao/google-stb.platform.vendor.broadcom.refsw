@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "EGL/egl.h"
+#include <EGL/begl_platform.h>
 #include "wl_server.h"
 
 #ifdef __cplusplus
@@ -11,13 +11,8 @@ extern "C"
 {
 #endif
 
-typedef void (*BufferGetRequirementsFunc)(
-      BEGL_PixmapInfoEXT const *bufferRequirements,
-      BEGL_BufferSettings *bufferConstrainedRequirements);
-
 typedef struct
 {
-   BufferGetRequirementsFunc bufferGetRequirementsFunc;
    BEGL_MemoryInterface *memInterface;
    BEGL_HWInterface *hwInterface;
    WlDisplayBinding binding;

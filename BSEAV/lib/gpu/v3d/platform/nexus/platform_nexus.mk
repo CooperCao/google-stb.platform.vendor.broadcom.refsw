@@ -1,5 +1,6 @@
 # make the Nexus platform layer
 #
+BUILD_DYNAMIC ?= 1
 
 ifeq ($(VERBOSE),)
 Q := @
@@ -84,7 +85,9 @@ SOURCES = \
 			../common/memory_nexus.c \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
+			../common/perf_event.cpp \
 			../common/hardware_nexus.cpp \
+			../common/nexus_surface_memory.c \
 			../common/autoclif.c
 
 ifeq ($(NXCLIENT_SUPPORT),y)
@@ -134,6 +137,10 @@ all: $(LIBDIR)/libnxpl.so
 .phony: OUTDIR
 OUTDIR :
 	$(Q)mkdir -p $(OBJDIR)
+
+.phony: V3DDriver
+V3DDriver:
+	$(Q)$(MAKE) --no-print-directory -C $(V3D_DIR) -f V3DDriver.mk $(MAKECMDGOALS)
 
 OBJS0 := $(patsubst %.cpp,%.o,$(filter %.cpp,$(SOURCES)))
 OBJS0 += $(patsubst %.c,%.o,$(filter %.c,$(SOURCES)))

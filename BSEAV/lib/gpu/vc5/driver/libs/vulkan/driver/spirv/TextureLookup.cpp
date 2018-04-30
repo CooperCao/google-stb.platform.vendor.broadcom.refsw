@@ -5,6 +5,7 @@
 #include "TextureLookup.h"
 #include "DflowScalars.h"
 #include "DflowLibrary.h"
+#include "DflowBuilder.h"
 #include "Module.h"
 
 #ifdef WIN32
@@ -90,7 +91,7 @@ void TextureLookup::ProjectCoords(DflowScalars &newCoords, uint32_t numCoordsOut
 
 void TextureLookup::MakeMSFetchCoords(DflowScalars &newCoords) const
 {
-   auto two = Dflow::ConstantInt(2);
+   auto two = Dflow::Int(2);
    newCoords[0] = newCoords[0] * two;
    newCoords[1] = newCoords[1] * two;
 
@@ -99,7 +100,7 @@ void TextureLookup::MakeMSFetchCoords(DflowScalars &newCoords) const
       const Node *sample = m_imageOperands->GetSample();
       if (sample)
       {
-         auto one = Dflow::ConstantInt(1);
+         auto one = Dflow::Int(1);
          const DflowScalars &sampleIndex = m_builder.GetDataflow(sample);
          newCoords[0] = newCoords[0] + (sampleIndex[0] & one);
          newCoords[1] = newCoords[1] + (sampleIndex[0] >> one);
@@ -117,7 +118,7 @@ void TextureLookup::MakeTexCoords(bool project, bool lodQuery, Dflow *recipDiv)
       // InputAttachments have implicit tex coords
       assert(m_fetch && !cube && !arrayed);
 
-      m_coords = reinterpi(DflowScalars::NullaryOp(m_coords.GetBuilder(),
+      m_coords = reinterpi(DflowScalars::NullaryOp(m_coords.GetAllocator(),
                            { DATAFLOW_FRAG_GET_X_UINT, DATAFLOW_FRAG_GET_Y_UINT }));
    }
 
@@ -129,7 +130,7 @@ void TextureLookup::MakeTexCoords(bool project, bool lodQuery, Dflow *recipDiv)
       numCoords++;   // Include the array index or the divisor
 
    // Make a deep copy of coords so we can swizzle the order if needed
-   DflowScalars newCoords(m_coords.GetBuilder(), 4);
+   DflowScalars newCoords(m_coords.GetAllocator(), 4);
    for (uint32_t i = 0; i < numCoords; i++)
       newCoords[i] = m_coords[i];
 
@@ -170,11 +171,11 @@ static Dflow PackTextureOffsets(const DflowScalars &values)
    uint32_t num = values.Size();
    assert(num > 0);
 
-   Dflow mask = Dflow::ConstantUInt(0xF);
+   Dflow mask = Dflow::UInt(0xF);
    Dflow packed = values[0] & mask;
 
    for (uint32_t i = 1; i < num; i++)
-      packed = packed | ((values[i] & mask) << Dflow::ConstantUInt(i * 4));
+      packed = packed | ((values[i] & mask) << Dflow::UInt(i * 4));
 
    return packed;
 }
@@ -246,10 +247,10 @@ Dflow TextureLookup::CalcTexGrad() const
          uint32_t numScalars = dPdx.Size();
          assert(dPdy.Size() == numScalars);
 
-         DflowScalars tSize  = DflowScalars::TextureSize(m_builder, numScalars, m_image);
+         DflowScalars tSize  = DflowScalars::TextureSize(m_builder.GetArenaAllocator(), numScalars, m_image);
          bool         isCube = m_imageType->GetDim() == spv::Dim::Cube;
 
-         result = calculateLod(tSize, m_coords, dPdx, dPdy, isCube)[0];
+         result = calculateLod(tSize, m_coords, dPdx, dPdy, isCube);
       }
    }
    return result;
@@ -261,7 +262,8 @@ DflowScalars TextureLookup::LodQuery() const
    uint32_t bits = ImageTextureBits(m_imageType) | DF_TEXBITS_LOD_QUERY;
    Dflow    bias = CalcTexBias(m_imageOperands);
 
-   return DflowScalars::Texture(m_builder, m_coords, m_dref, bias,
+   return DflowScalars::Texture(m_builder.GetArenaAllocator(),
+                                m_coords, m_dref, bias,
                                 m_offset, m_image, m_sampler, bits);
 }
 #endif
@@ -271,7 +273,7 @@ DflowScalars TextureLookup::ImplicitLodLookup() const
    uint32_t bits = ImageTextureBits(m_imageType);
    Dflow    bias = CalcTexBias(m_imageOperands);
 
-   return DflowScalars::Texture(m_builder, m_coords, m_dref, bias,
+   return DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, bias,
                                 m_offset, m_image, m_sampler, bits);
 }
 
@@ -284,7 +286,7 @@ DflowScalars TextureLookup::ExplicitLodLookup() const
    if (lod.IsNull())
       lod = CalcTexGrad();
 
-   return DflowScalars::Texture(m_builder, m_coords, m_dref, lod,
+   return DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, lod,
                                 m_offset, m_image, m_sampler, bits);
 }
 
@@ -298,11 +300,11 @@ DflowScalars TextureLookup::GatherLookup(uint32_t component) const
 
    // Hardware requires that we specify a LoD, but the SPIR-V defaults to 0
    if (lod.IsNull())
-      lod = Dflow::ConstantInt(0);
+      lod = Dflow::Int(0);
 
    bits |= (component & 0x3) << DF_TEXBITS_GATHER_COMP_SHIFT;
 
-   auto result = DflowScalars::Texture(m_builder, m_coords, m_dref, lod,
+   auto result = DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, lod,
                                        m_offset, m_image, m_sampler, bits);
 
    if (bits & DF_TEXBITS_I_OFF)
@@ -321,7 +323,7 @@ DflowScalars TextureLookup::ImageFetch() const
    uint32_t bits = DF_TEXBITS_FETCH;
    Dflow    lod  = CalcTexLod(m_imageOperands);
 
-   return DflowScalars::Texture(m_builder, m_coords, m_dref, lod,
+   return DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, lod,
                                 m_offset, m_image, Dflow(), bits);
 }
 
@@ -331,7 +333,7 @@ void TextureLookup::ImageWrite(const DflowScalars &data, BasicBlockHandle block)
    Dflow            addr = Dflow::CreateImageWriteAddress(m_image, m_coords);
 
    // We need to pack the data into the appropriate in-memory representation
-   Dflow d = Dflow::PackImageData(ConvertToFormatQualifier(fmt), data);
+   Dflow d = Dflow::PackImageData(ToFormatQualifier(fmt), data);
 
    Dflow::Atomic(DATAFLOW_ADDRESS_STORE, /*type=*/DF_VOID, addr, d, block);
 }
@@ -350,7 +352,7 @@ DflowScalars TextureLookup::Atomic(DataflowFlavour op, const DflowScalars &data,
    auto addr  = Dflow::CreateImageWriteAddress(m_image, m_coords);
    auto dflow = Dflow::Atomic(op, data[0].GetType(), addr, Dflow::Vec4(vs), block);
 
-   return DflowScalars(m_builder, dflow);
+   return DflowScalars(m_builder.GetArenaAllocator(), dflow);
 }
 
 }

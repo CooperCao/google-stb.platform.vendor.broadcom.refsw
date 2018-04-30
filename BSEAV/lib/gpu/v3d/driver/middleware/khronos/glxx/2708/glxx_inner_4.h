@@ -6,7 +6,7 @@
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/2708/khrn_fmem_4.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/common/khrn_image.h"
 

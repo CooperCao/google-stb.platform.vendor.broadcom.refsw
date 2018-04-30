@@ -188,8 +188,8 @@ struct _Symbol {
          int  layout_binding;
          bool layout_bind_specified;
 
-         int offset;
-         int offset_specified;
+         int  offset;
+         bool offset_specified;
 
          FormatQualifier    layout_format;
          bool layout_format_specified;
@@ -261,7 +261,7 @@ void glsl_symbol_construct_type(Symbol *result, SymbolType *type);
 void glsl_symbol_construct_interface_block  (Symbol *result, const char *name, SymbolType *ref_type,
                                              SymbolType *type, Qualifiers *q);
 void glsl_symbol_construct_var_instance     (Symbol *result, const char *name, SymbolType *type,
-                                             Qualifiers *q, void *compile_time_value, Symbol *block_symbol);
+                                             const Qualifiers *q, void *compile_time_value, Symbol *block_symbol);
 void glsl_symbol_construct_param_instance   (Symbol *result, const char *name, SymbolType *type,
                                              StorageQualifier sq, ParamQualifier pq, MemoryQualifier mq);
 void glsl_symbol_construct_function_instance(Symbol *result, const char *name, SymbolType *type,

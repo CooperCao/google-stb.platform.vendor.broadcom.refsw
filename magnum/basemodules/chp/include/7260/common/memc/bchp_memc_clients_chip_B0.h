@@ -90,8 +90,7 @@ BCHP_P_MEMC_DEFINE_CLIENT(HVD0_ILCPU,75)            /*      */
 BCHP_P_MEMC_DEFINE_CLIENT(HVD0_OLCPU,76)            /*      */
 BCHP_P_MEMC_DEFINE_CLIENT(HVD0_CAB,77)              /*      */
 BCHP_P_MEMC_DEFINE_CLIENT(HVD0_ILSI,78)             /*      */
-BCHP_P_MEMC_DEFINE_CLIENT(SID,87)                   /*     HVD0 SID */
-/*  */
+
 BCHP_P_MEMC_DEFINE_CLIENT(BVN_MAD_PIX_FD,94)        /*      */
 BCHP_P_MEMC_DEFINE_CLIENT(BVN_MAD_QUANT,95)         /*      */
 BCHP_P_MEMC_DEFINE_CLIENT(BVN_MAD_PIX_CAP,96)       /*      */

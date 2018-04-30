@@ -126,35 +126,8 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 			break ;
 		}
 
-		/* Set RGB or YCrCb Quantization Range (Limited vs Full) */
-		switch (hHDMI->DeviceSettings.eColorimetry)
-		{
-		case BAVC_MatrixCoefficients_eHdmi_RGB :
-			newAviInfoFrame.eRGBQuantizationRange = BAVC_HDMI_AviInfoFrame_RGBQuantizationRange_eDefault ;
-			break ;
-
-		case BAVC_MatrixCoefficients_eDvi_Full_Range_RGB :
-			newAviInfoFrame.eRGBQuantizationRange = BAVC_HDMI_AviInfoFrame_RGBQuantizationRange_eFullRange ;
-			break ;
-
-		case BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr :
-			newAviInfoFrame.eYccQuantizationRange = BAVC_HDMI_AviInfoFrame_YccQuantizationRange_eFull ;
-			break ;
-
-		default :
-		/* YCbCr output */
-		case BAVC_MatrixCoefficients_eItu_R_BT_709 :
-		case BAVC_MatrixCoefficients_eSmpte_170M :
-		case BAVC_MatrixCoefficients_eXvYCC_601 :
-		case BAVC_MatrixCoefficients_eXvYCC_709 :
-			newAviInfoFrame.eYccQuantizationRange = BAVC_HDMI_AviInfoFrame_YccQuantizationRange_eLimited ;
-			break ;
-		}
-
-
 		yCbCrColorspace =
 			hHDMI->DeviceSettings.stVideoSettings.eColorSpace != BAVC_Colorspace_eRGB ;
-
 
 		/* set RGB and YCC quantization (colorRange) to defaults;
 		    then update based on the in-use colorspace

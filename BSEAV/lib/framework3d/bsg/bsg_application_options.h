@@ -213,10 +213,6 @@ public:
 
    // @endcond
 
-   //! Dump performance monitoring statistics
-   void SetPerfMonitoring(bool set) { m_perfMonitoring = set;           }
-   bool GetPerfMonitoring() const   { return m_perfMonitoring;          }
-
    //! Show the run-time on exit.
    void SetShowRuntime(bool set)    { m_showRuntime = set;              }
    bool GetShowRuntime() const      { return m_showRuntime;             }
@@ -238,14 +234,6 @@ public:
       if (first != 0)
          *first = m_firstFrame;
    }
-
-   uint32_t GetMonitorInterval() const   { return m_monitorInterval; }
-   uint32_t GetMonitorHw() const         { return m_monitorHw; }
-   uint32_t GetMonitorL3c() const        { return m_monitorL3c; }
-
-   void SetMonitorInterval(uint32_t monitorInterval) { m_monitorInterval = monitorInterval; }
-   void SetMonitorHw(uint32_t monitorHw) { m_monitorHw = monitorHw; }
-   void SetMonitorL3c(uint32_t monitorL3c) { m_monitorL3c = monitorL3c; }
 
    bool GetHeadless() const { return m_headless; }
    void SetHeadless(bool val) { m_headless = val; }
@@ -296,7 +284,6 @@ private:
    bool           m_showFpsHUD;
    bool           m_log;
    bool           m_showRuntime;
-   bool           m_perfMonitoring;
    bool           m_stereo;
    eBSGAPIVersion m_apiVersion;
    bool           m_noAutoContext;
@@ -316,9 +303,6 @@ private:
    uint32_t       m_vpH;
    uint32_t       m_bpp;
    uint32_t       m_swapInterval;
-   uint32_t       m_monitorInterval;
-   uint32_t       m_monitorHw;
-   uint32_t       m_monitorL3c;
    uint32_t       m_bandwidth;
    uint32_t       m_memcFrequency;
    int32_t        m_clientID;

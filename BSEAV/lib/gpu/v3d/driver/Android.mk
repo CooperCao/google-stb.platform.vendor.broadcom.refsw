@@ -27,10 +27,6 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/platform/android \
 	$(V3D_DRIVER_TOP)/platform/nexus
 
-ifeq ($(BOARD_VNDK_VERSION),current)
-LOCAL_HEADER_LIBRARIES := liblog_headers
-endif
-
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
 	-std=c99 \
@@ -46,8 +42,7 @@ LOCAL_CFLAGS := \
 	-D_GNU_SOURCE \
 	-DANDROID \
 	-DLOGD=ALOGD \
-	-DLOGE=ALOGE \
-	-DNO_OPENVG
+	-DLOGE=ALOGE
 
 LOCAL_CFLAGS += ${V3D_ANDROID_DEFINES}
 LOCAL_CPPFLAGS += -std=c++11
@@ -141,11 +136,8 @@ LOCAL_SRC_FILES := \
 	driver/interface/khronos/egl/egl_client_config.c \
 	driver/interface/khronos/egl/egl_client.c \
 	driver/interface/khronos/egl/egl_client_get_proc.c \
-	driver/interface/khronos/ext/egl_android_ext.c \
 	driver/interface/khronos/ext/egl_khr_sync_client.c \
-	driver/interface/khronos/ext/egl_khr_lock_surface_client.c \
 	driver/interface/khronos/ext/egl_khr_image_client.c \
-	driver/interface/khronos/ext/egl_brcm_driver_monitor_client.c \
 	driver/middleware/khronos/common/2708/khrn_render_state_4.c \
 	driver/middleware/khronos/common/2708/khrn_nmem_4.c \
 	driver/middleware/khronos/common/2708/khrn_interlock_4.c \
@@ -159,23 +151,23 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/common/khrn_interlock.c \
 	driver/middleware/khronos/common/khrn_image.c \
 	driver/middleware/khronos/common/khrn_fleaky_map.c \
-	driver/middleware/khronos/common/khrn_color.c \
+	driver/middleware/khronos/common/khrn_counters.c \
 	driver/middleware/khronos/common/khrn_bf_dummy.c \
 	driver/middleware/khronos/common/khrn_workarounds.c \
 	driver/middleware/khronos/common/khrn_debug_helper.cpp \
 	driver/middleware/khronos/common/khrn_mem.c \
 	driver/middleware/khronos/common/khrn_map.c \
 	driver/middleware/khronos/egl/abstract_server/egl_platform_abstractserver.c \
-	driver/middleware/khronos/egl/abstract_server/egl_platform_abstractpixmap.c \
 	driver/middleware/khronos/egl/egl_server.c \
 	driver/middleware/khronos/ext/gl_oes_query_matrix.c \
 	driver/middleware/khronos/ext/gl_oes_egl_image.c \
 	driver/middleware/khronos/ext/gl_oes_draw_texture.c \
 	driver/middleware/khronos/ext/gl_oes_framebuffer_object.c \
 	driver/middleware/khronos/ext/ext_gl_multisample_render_to_texture.c \
-	driver/middleware/khronos/ext/egl_brcm_driver_monitor.c \
 	driver/middleware/khronos/ext/egl_khr_image.c \
 	driver/middleware/khronos/ext/ext_gl_debug_marker.c \
+	driver/middleware/khronos/ext/egl_brcm_event_monitor.c \
+	driver/middleware/khronos/ext/egl_brcm_perf_counters.c \
 	driver/middleware/khronos/gl11/2708/gl11_shader_4.c \
 	driver/middleware/khronos/gl11/2708/gl11_shadercache_4.c \
 	driver/middleware/khronos/gl11/2708/gl11_support_4.c \
@@ -253,6 +245,7 @@ LOCAL_SRC_FILES := \
 	platform/android/default_RSO_android.c \
 	platform/android/display_RSO_android.cpp \
 	platform/common/memory_nexus.c \
+	platform/common/perf_event.cpp \
 	platform/common/hardware_nexus.cpp \
 	platform/common/packet_rgba.c \
 	platform/common/packet_yv12.c \

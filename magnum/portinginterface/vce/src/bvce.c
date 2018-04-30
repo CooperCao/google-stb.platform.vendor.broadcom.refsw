@@ -2304,6 +2304,34 @@ BVCE_S_LevelHEVCLUT(
    }
 }
 
+static
+uint32_t
+BVCE_S_LevelVP9LUT(
+      BAVC_VideoCompressionLevel eLevel
+      )
+{
+#ifdef ENCODING_VP9_LEVEL_21
+   switch ( eLevel )
+   {
+      case BAVC_VideoCompressionLevel_e21:
+         return ENCODING_VP9_LEVEL_21;
+      case BAVC_VideoCompressionLevel_e30:
+         return ENCODING_VP9_LEVEL_30;
+      case BAVC_VideoCompressionLevel_e31:
+         return ENCODING_VP9_LEVEL_30;
+      case BAVC_VideoCompressionLevel_e40:
+         return ENCODING_VP9_LEVEL_40;
+      case BAVC_VideoCompressionLevel_e41:
+         return ENCODING_VP9_LEVEL_41;
+      default:
+         return BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED;
+   }
+#else
+   BSTD_UNUSED(eLevel);
+   return 0;
+#endif
+}
+
 static const uint32_t BVCE_P_InputTypeLUT[BAVC_ScanType_eProgressive + 1] =
 {
  ENCODER_INPUT_TYPE_INTERLACED, /* BAVC_ScanType_eInterlaced */
@@ -3036,7 +3064,7 @@ BVCE_S_SendCommand_ConfigChannel(
 
       case ENCODING_STD_VP9:
          hVce->fw.stCommand.type.stConfigChannel.Profile = ENCODING_VP9_PROFILE;
-         hVce->fw.stCommand.type.stConfigChannel.Level = 0;
+         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_S_LevelVP9LUT(hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel);
          break;
 
       case BVCE_P_VIDEOCOMPRESSIONSTD_UNSUPPORTED:
@@ -8975,7 +9003,7 @@ BVCE_GetA2PDelayInfo(
 
             case ENCODING_STD_VP9:
                uiProfile = ENCODING_VP9_PROFILE;
-               uiLevel = 0;
+               uiLevel = BVCE_S_LevelVP9LUT(pstChStartEncodeSettings->stProtocolInfo.eLevel);
                break;
 
             case BVCE_P_VIDEOCOMPRESSIONSTD_UNSUPPORTED:

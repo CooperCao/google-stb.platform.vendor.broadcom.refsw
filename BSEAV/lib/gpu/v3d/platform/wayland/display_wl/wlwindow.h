@@ -31,8 +31,7 @@ public:
    }
 
 
-   std::unique_ptr<WlBitmap> PopFreeQ(BEGL_BufferFormat format,
-         BufferGetRequirementsFunc getRequirements);
+   std::unique_ptr<WlBitmap> PopFreeQ(BEGL_BufferFormat format);
 
    void PushFreeQ(std::unique_ptr<WlBitmap> bitmap)
    {

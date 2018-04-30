@@ -849,7 +849,24 @@ static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHand
             }
             while ( bytesToCopy >= 4 )
             {
-                handle->pBuffer[handle->wptr] = (*pSource++) & 0xffffff00;
+                if ( bufferDescriptor.bitsPerSample == 24 && bufferDescriptor.samplesPerDword == 1 )
+                {
+                    handle->pBuffer[handle->wptr] = *pSource++;
+                }
+                else if ( bufferDescriptor.bitsPerSample == 24 && bufferDescriptor.samplesPerDword > 1 )
+                {
+                    BDBG_ERR(("24 bit (non-32 bit padded) samplesa re not currently supported"));
+                    BERR_TRACE(BERR_NOT_SUPPORTED);
+                    return;
+                }
+                else
+                {
+                    #if 1
+                    handle->pBuffer[handle->wptr] = (*pSource++) & 0xffffff00;
+                    #else
+                    handle->pBuffer[handle->wptr] = (*pSource++) >> 8;
+                    #endif
+                }
                 NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
                 copied += 4;
                 bufferSize -= 4;

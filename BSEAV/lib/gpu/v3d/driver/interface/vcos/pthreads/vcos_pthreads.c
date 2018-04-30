@@ -21,7 +21,7 @@
 #endif
 
 #ifdef ANDROID
-#include <log/log.h>
+#include <cutils/log.h>
 #endif
 
 #ifndef VCOS_DEFAULT_STACK_SIZE

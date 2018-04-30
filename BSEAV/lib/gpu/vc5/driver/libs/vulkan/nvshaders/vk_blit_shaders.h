@@ -35,6 +35,42 @@ static const uint64_t blit_f16tlb_3D_instrs[] = {
 0x3c003187b6824000ull, // [0x00000040] mov tlb, r4
 };
 struct inline_qasm blit_f16tlb_3D = { blit_f16tlb_3D_instrs, countof(blit_f16tlb_3D_instrs) };
+static const uint64_t blit_f32ms_f32tlb_2D_instrs[] = {
+0x3e80f186bb800000ull, // [0x00000000] nop                                         ; wrtmuc; ldvary.rf3
+0x3ea13186bb800000ull, // [0x00000008] nop                                         ; wrtmuc; ldvary.rf4; thrsw
+0x3e40102205f750c0ull, // [0x00000010] fadd tmut,rf3,r5     ; mov rf0, r5          ; wrtmuc
+0x3c00106105f75100ull, // [0x00000018] fadd tmus,rf4,r5     ; mov rf1, r5
+0x3c817186bb800000ull, // [0x00000020] nop                                         ; ldtmu.rf5
+0x3c913186bb800000ull, // [0x00000028] nop                                         ; ldtmu.r4
+0x3c91218505834140ull, // [0x00000030] fadd rf5, rf5, r4                           ; ldtmu.r4
+0x3c91218505834140ull, // [0x00000038] fadd rf5, rf5, r4                           ; ldtmu.r4
+0x3e60218505834140ull, // [0x00000040] fadd rf5, rf5, r4                           ; wrtmuc; thrsw
+0x3e4031a20583e003ull, // [0x00000048] fadd tmut, rf3, rf0                         ; wrtmuc
+0x3e4031a10583e044ull, // [0x00000050] fadd tmus, rf4, rf1                         ; wrtmuc
+0x3c81b186bb800000ull, // [0x00000058] nop                                         ; ldtmu.rf6
+0x3c913186bb800000ull, // [0x00000060] nop                                         ; ldtmu.r4
+0x3c91218605834180ull, // [0x00000068] fadd rf6, rf6, r4                           ; ldtmu.r4
+0x3c91218605834180ull, // [0x00000070] fadd rf6, rf6, r4                           ; ldtmu.r4
+0x3e60218605834180ull, // [0x00000078] fadd rf6, rf6, r4                           ; wrtmuc; thrsw
+0x3e4031a20583e003ull, // [0x00000080] fadd tmut, rf3, rf0                         ; wrtmuc
+0x3e4031a10583e044ull, // [0x00000088] fadd tmus, rf4, rf1                         ; wrtmuc
+0x3c81f186bb800000ull, // [0x00000090] nop                                         ; ldtmu.rf7
+0x3c913186bb800000ull, // [0x00000098] nop                                         ; ldtmu.r4
+0x3c912187058341c0ull, // [0x000000a0] fadd rf7, rf7, r4                           ; ldtmu.r4
+0x3c912187058341c0ull, // [0x000000a8] fadd rf7, rf7, r4                           ; ldtmu.r4
+0x3e602187058341c0ull, // [0x000000b0] fadd rf7, rf7, r4                           ; wrtmuc; thrsw
+0x3e6031a20583e003ull, // [0x000000b8] fadd tmut, rf3, rf0                         ; wrtmuc; thrsw
+0x3e4031a10583e044ull, // [0x000000c0] fadd tmus, rf4, rf1                         ; wrtmuc
+0x3c823186bb800000ull, // [0x000000c8] nop                                         ; ldtmu.rf8
+0x3c913186bb800000ull, // [0x000000d0] nop                                         ; ldtmu.r4
+0x3c91218805834200ull, // [0x000000d8] fadd rf8, rf8, r4                           ; ldtmu.r4
+0x3cd1218805834200ull, // [0x000000e0] fadd rf8, rf8, r4                           ; ldtmu.r4; ldunif
+0x5400220805bbc148ull, // [0x000000e8] fadd rf8, rf8, r4    ; fmul tlbu, rf5, r5
+0x542031c6bbb80180ull, // [0x000000f0] nop                  ; fmul tlb,  rf6, r5   ; thrsw
+0x540031c6bbb801c0ull, // [0x000000f8] nop                  ; fmul tlb,  rf7, r5
+0x540031c6bbb80200ull, // [0x00000100] nop                  ; fmul tlb,  rf8, r5
+};
+struct inline_qasm blit_f32ms_f32tlb_2D = { blit_f32ms_f32tlb_2D_instrs, countof(blit_f32ms_f32tlb_2D_instrs) };
 static const uint64_t blit_f32tlb_1D_instrs[] = {
 0x3eb0f186bb800000ull, // [0x00000000] nop                                    ; wrtmuc; ldvary; thrsw
 0x56603086bbcc0000ull, // [0x00000008] nop                  ; fmul r2, r3, w  ; wrtmuc        ; thrsw

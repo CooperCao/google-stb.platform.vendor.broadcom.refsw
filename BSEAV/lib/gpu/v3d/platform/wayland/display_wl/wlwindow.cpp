@@ -43,8 +43,7 @@ WlWindow::WlWindow(struct WlClient *client, wl_egl_window *window, unsigned swap
    m_worker = new WlWorker(*this);
 }
 
-std::unique_ptr<WlBitmap> WlWindow::PopFreeQ(BEGL_BufferFormat format,
-      BufferGetRequirementsFunc getRequirements)
+std::unique_ptr<WlBitmap> WlWindow::PopFreeQ(BEGL_BufferFormat format)
 {
    helper::Extent2D bitmapExtent;
 
@@ -59,15 +58,10 @@ std::unique_ptr<WlBitmap> WlWindow::PopFreeQ(BEGL_BufferFormat format,
    // resize or create
    if (m_windowSize != bitmapExtent)
    {
-      BEGL_PixmapInfoEXT info;
-      BEGL_BufferSettings settings;
-      info.width = m_windowSize.GetWidth();
-      info.height = m_windowSize.GetHeight();
-      info.format = format;
-      info.secure = m_secure;
-      getRequirements(&info, &settings);
       std::unique_ptr<WlBitmap> tmp(
-            new WlBitmap(m_client, &settings, BufferReleaseCb, this));
+            new WlBitmap(m_client, m_windowSize.GetWidth(),
+                  m_windowSize.GetHeight(), format, m_secure,
+                  BufferReleaseCb, this));
       // Copy requested window displacement to bitmap for later,
       // when the buffer is going to be displayed.
       tmp->SetWindowDisplacement(m_windowDx, m_windowDy);

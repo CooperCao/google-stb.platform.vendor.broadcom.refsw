@@ -799,7 +799,7 @@ NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const N
 
     BDBG_MSG(("  started job:%#lx nBlocks:%u", (unsigned long)handle, nBlocks));
 
-    if(!NEXUS_P_CpuAccessibleAddress(pSettings)) {
+    if(pSettings==NULL || !NEXUS_P_CpuAccessibleAddress(pSettings)) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 

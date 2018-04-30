@@ -63,11 +63,7 @@ CompiledShader *glsl_compiled_shader_create(ShaderFlavour f, int version) {
    ret->symbol_block        = NULL;
    ret->struct_member_block = NULL;
 
-   ret->blocks         = NULL;
-   ret->num_cfg_blocks = 0;
-
-   ret->outputs     = NULL;
-   ret->num_outputs = 0;
+   glsl_ir_shader_init(&ret->ir);
 
    ret->uniform.n_vars = 0;
    ret->uniform.var    = NULL;
@@ -99,12 +95,7 @@ void glsl_compiled_shader_free(CompiledShader *sh) {
    free(sh->symbol_block);
    free(sh->struct_member_block);
 
-   for (int i=0; i<sh->num_cfg_blocks; i++) {
-      free(sh->blocks[i].dataflow);
-      free(sh->blocks[i].outputs);
-   }
-   free(sh->blocks);
-   free(sh->outputs);
+   glsl_ir_shader_term(&sh->ir);
 
    free_shader_interface(&sh->uniform);
    free_shader_interface(&sh->in);
@@ -120,33 +111,29 @@ static int symbol_list_count(SymbolList *l) {
    return i;
 }
 
-struct symbol_usage {
-   const Symbol *symbol;
-   bool used;
-};
-
-static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct symbol_usage *l, Map *symbol_map, Map *symbol_ids, bool alloc_flags)
+static bool interface_from_symbols(ShaderInterface *iface, const struct if_usage *l,
+                                   Map *symbol_map, Map *symbol_ids, bool alloc_flags)
 {
    bool out_of_memory = false;
 
-   iface->n_vars = n_vars;
-   iface->var = malloc(n_vars * sizeof(InterfaceVar));
+   iface->n_vars = l->n;
+   iface->var    = malloc(l->n * sizeof(InterfaceVar));
    if (iface->var == NULL) {
       iface->n_vars = 0;
       return false;
    }
 
-   for (int i=0; i<n_vars; i++) {
+   for (unsigned i=0; i<l->n; i++) {
       InterfaceVar *v = &iface->var[i];
 
-      v->symbol = glsl_map_get(symbol_map, l[i].symbol);
+      v->symbol = glsl_map_get(symbol_map, l->v[i].symbol);
       v->active = false;
 #if V3D_VER_AT_LEAST(4,1,34,0)
       v->flags = NULL;
 #endif
 
-      v->static_use = l[i].used;
-      v->ids = malloc(l[i].symbol->type->scalar_count * sizeof(int));
+      v->static_use = l->v[i].used;
+      v->ids = malloc(l->v[i].symbol->type->scalar_count * sizeof(int));
       if (v->ids == NULL) {
          out_of_memory = true;
          continue;      /* We'll free all of these, continue ensures they are initialised */
@@ -154,7 +141,7 @@ static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct sy
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
       if (alloc_flags) {
-         v->flags = calloc(l[i].symbol->type->scalar_count, sizeof(InterfaceVarFlags));
+         v->flags = calloc(l->v[i].symbol->type->scalar_count, sizeof(InterfaceVarFlags));
          if (v->flags == NULL) {
             out_of_memory = true;
             continue;
@@ -162,61 +149,53 @@ static bool interface_from_symbols(ShaderInterface *iface, int n_vars, struct sy
       }
 #endif
 
-      for (unsigned j=0; j<l[i].symbol->type->scalar_count; j++) {
+      for (unsigned j=0; j<l->v[i].symbol->type->scalar_count; j++) {
          v->ids[j] = -1;
       }
 
-      int *ids = glsl_map_get(symbol_ids, l[i].symbol);
+      int *ids = glsl_map_get(symbol_ids, l->v[i].symbol);
       if (ids) {
-         for (unsigned j=0; j<l[i].symbol->type->scalar_count; j++)
+         for (unsigned j=0; j<l->v[i].symbol->type->scalar_count; j++)
             v->ids[j] = ids[j];
 
-         v->active = true;
+         /* Conservatively assume that anything statically used might be active.
+          * For everything except outputs this will be refined later */
+         v->active = v->static_use;
       }
    }
 
    return !out_of_memory;
 }
 
-struct static_usage_find {
-   int count;
-   struct symbol_usage *data;
-};
-
 static void find_static_use(Expr *e, void *data) {
-   struct static_usage_find *d = data;
+   struct if_usage *d = data;
 
    if (e->flavour == EXPR_INSTANCE) {
       assert(e->u.instance.symbol != NULL);
-      for (int i=0; i<d->count; i++) {
-         if (e->u.instance.symbol == d->data[i].symbol) d->data[i].used = true;
+      for (unsigned i=0; i<d->n; i++) {
+         if (e->u.instance.symbol == d->v[i].symbol) d->v[i].used = true;
          if (e->u.instance.symbol->flavour == SYMBOL_VAR_INSTANCE &&
              e->u.instance.symbol->u.var_instance.block_info_valid &&
-             e->u.instance.symbol->u.var_instance.block_info.block_symbol == d->data[i].symbol)
+             e->u.instance.symbol->u.var_instance.block_info.block_symbol == d->v[i].symbol)
          {
-            d->data[i].used = true;
+            d->v[i].used = true;
          }
       }
    }
 }
 
-static bool interface_from_symbol_list(ShaderInterface *iface, Statement *ast, SymbolList *l, Map *symbol_map, Map *symbol_ids, bool alloc_flags)
-{
-   int n_vars = symbol_list_count(l);
-   struct symbol_usage *symbs = glsl_safemem_malloc(n_vars * sizeof(struct symbol_usage));
-   int i;
+static void if_symbols_from_symbol_list(struct if_usage *i, SymbolList *l, Statement *ast) {
+   i->n = symbol_list_count(l);
+   i->v = glsl_safemem_malloc(i->n * sizeof(struct symbol_usage));
+
+   unsigned s;
    SymbolListNode *n;
-   for (i=0, n=l->head; i<n_vars; i++, n=n->next) {
-      symbs[i].symbol = n->s;
-      symbs[i].used = false;
+   for (s=0, n=l->head; s<i->n; s++, n=n->next) {
+      i->v[s].symbol = n->s;
+      i->v[s].used   = false;
    }
-   struct static_usage_find d = { .count = n_vars, .data = symbs };
 
-   glsl_statement_accept_postfix(ast, &d, NULL, find_static_use);
-
-   bool ret = interface_from_symbols(iface, n_vars, symbs, symbol_map, symbol_ids, alloc_flags);
-   glsl_safemem_free(symbs);
-   return ret;
+   glsl_statement_accept_postfix(ast, i, NULL, find_static_use);
 }
 
 InterfaceVar *interface_var_find(ShaderInterface *i, const char *name) {
@@ -312,16 +291,16 @@ static void dpostv_detect_dynamic_indexed_samplers(Dataflow *dataflow, void *dat
    if (dataflow->flavour != DATAFLOW_SAMPLER_UNNORMS)
       return;
 
-   Dataflow* sampler = dataflow->d.unary_op.operand;
+   Dataflow *sampler = dataflow->d.unary_op.operand;
    assert(sampler->flavour == DATAFLOW_CONST_SAMPLER);
-   assert(sampler->type == DF_SAMPLER);
+   assert(sampler->type    == DF_SAMPLER);
    unsigned loc = sampler->u.linkable_value.row;
    ((bool*)data)[loc] = true;
 }
 
 static void detect_dynamic_indexed_samplers(ShaderInterface *uniform, const SSABlock *blocks, unsigned n_blocks)
 {
-   bool* sampler_dynamic_indexing = glsl_safemem_calloc(interface_max_id(uniform)+1, sizeof(bool));
+   bool *sampler_dynamic_indexing = glsl_safemem_calloc(interface_max_id(uniform)+1, sizeof(bool));
 
    for (unsigned i = 0; i != n_blocks; ++i) {
       glsl_dataflow_visit_array(blocks[i].outputs, 0, blocks[i].n_outputs,
@@ -352,8 +331,8 @@ static void detect_dynamic_indexed_samplers(ShaderInterface *uniform, const SSAB
 
 #endif
 
-void glsl_mark_interface_actives(ShaderInterface *in, ShaderInterface *uniform, ShaderInterface *buffer,
-                                 const SSABlock *block, int n_blocks)
+static void mark_interface_actives(ShaderInterface *in, ShaderInterface *uniform, ShaderInterface *buffer,
+                                   const SSABlock *block, int n_blocks)
 {
    struct id_actives active;
    active.in      = glsl_safemem_calloc(interface_max_id(in)+1,      sizeof(bool));
@@ -450,10 +429,10 @@ static void record_type(struct shader_maps *m, SymbolType *t) {
    }
 }
 
-static void record_symbol(struct shader_maps *m, Symbol *s) {
+static void record_symbol(struct shader_maps *m, const Symbol *s) {
    if (glsl_map_get(m->symbol, s) != NULL) return;
 
-   glsl_map_put(m->symbol, s, s);
+   glsl_map_put(m->symbol, s, (Symbol *)s); /* XXX Cast away const. This value is ignored */
 
    record_string(m, s->name);
    record_type(m, s->type);
@@ -461,22 +440,21 @@ static void record_symbol(struct shader_maps *m, Symbol *s) {
    if (s->flavour == SYMBOL_INTERFACE_BLOCK) record_type(m, s->u.interface_block.block_data_type);
 }
 
-static void record_interface(struct shader_maps *m, SymbolList *iface) {
-   for (SymbolListNode *l = iface->head; l != NULL; l = l->next) {
-      record_symbol(m, l->s);
-   }
+static void record_interface(struct shader_maps *m, const struct if_usage *iface) {
+   for (unsigned i=0; i<iface->n; i++)
+      record_symbol(m, iface->v[i].symbol);
 }
 
-bool glsl_copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, Map *symbol_map) {
+static bool copy_compiled_shader(CompiledShader *sh, const struct sh_usage *ifaces, Map *symbol_map) {
    struct shader_maps maps;
    struct shader_maps output;
 
    shader_maps_init(&maps);
 
-   record_interface(&maps, ifaces->uniforms);
-   record_interface(&maps, ifaces->ins);
-   record_interface(&maps, ifaces->outs);
-   record_interface(&maps, ifaces->buffers);
+   record_interface(&maps, &ifaces->uniform);
+   record_interface(&maps, &ifaces->in);
+   record_interface(&maps, &ifaces->out);
+   record_interface(&maps, &ifaces->buffer);
 
    shader_maps_init(&output);
 
@@ -947,7 +925,7 @@ static Dataflow *dprev_promote_constants(Dataflow *d, void *data) {
             if (u->flavour == DATAFLOW_UNIFORM_BUFFER) {
                Dataflow *buf_copy = glsl_dataflow_construct_buffer(DATAFLOW_UNIFORM_BUFFER, u->type, u->u.buffer.index, u->u.buffer.offset);
                Dataflow *addr_copy = glsl_dataflow_construct_address(buf_copy);
-               Dataflow *load_copy = glsl_dataflow_construct_vector_load(out->d.unary_op.operand->type, addr_copy);
+               Dataflow *load_copy = glsl_dataflow_construct_vector_load(addr_copy);
                Dataflow *promoted = glsl_dataflow_construct_get_vec4_component(out->u.get_vec4_component.component_index, load_copy, out->type);
                glsl_map_put(dat->map, d, promoted);
             }
@@ -1009,31 +987,6 @@ void simplify_dataflow(SSABlock *blocks, int n_blocks) {
 
 void dpostv_find_externals(Dataflow *df, void *data) {
    if (df->flavour == DATAFLOW_EXTERNAL) glsl_dataflow_chain_append(data, df);
-}
-
-void dpostv_setup_required_components(Dataflow *df, void *data)
-{
-   if (df->flavour != DATAFLOW_GET_VEC4_COMPONENT) return;
-
-   /* Set the correct bit in required_components */
-   Dataflow *df_operand = df->d.unary_op.operand;
-   int comp_mask = 1 << df->u.get_vec4_component.component_index;
-   assert(df->u.get_vec4_component.component_index < 4);
-
-   switch (df_operand->flavour) {
-      case DATAFLOW_TEXTURE: df_operand->u.texture.required_components |= comp_mask; break;
-      case DATAFLOW_FRAG_GET_COL: df_operand->u.get_col.required_components |= comp_mask; break;
-      case DATAFLOW_TEXTURE_SIZE: /* Do nothing. Not sure why */ break;
-      case DATAFLOW_VECTOR_LOAD: df_operand->u.vector_load.required_components |= comp_mask; break;
-      default: unreachable(); break;
-   }
-}
-
-static void setup_required_components(SSABlock *blocks, int n_blocks) {
-   for (int i=0; i<n_blocks; i++) {
-      SSABlock *b = &blocks[i];
-      glsl_dataflow_visit_array(b->outputs, 0, b->n_outputs, NULL, NULL, dpostv_setup_required_components);
-   }
 }
 
 static void block_find_active_externals(SSABlock *b, DataflowVisitor *dfv, bool *is_output, DataflowChain *externals) {
@@ -1139,22 +1092,22 @@ static void eliminate_dead_code(SSAShader *sh)
    }
 }
 
-bool glsl_copy_shader_ir(CompiledShader *ret, const SSAShader *sh)
+static bool copy_shader_ir(IRShader *ir, const SSAShader *sh)
 {
-   ret->num_outputs = sh->n_outputs;
-   ret->outputs = malloc(ret->num_outputs * sizeof(IROutput));
-   if (ret->num_outputs > 0 && ret->outputs == NULL) return false;
+   ir->num_outputs = sh->n_outputs;
+   ir->outputs = malloc(ir->num_outputs * sizeof(IROutput));
+   if (ir->num_outputs > 0 && ir->outputs == NULL) return false;
 
-   memcpy(ret->outputs, sh->outputs, sh->n_outputs * sizeof(IROutput));
+   memcpy(ir->outputs, sh->outputs, sh->n_outputs * sizeof(IROutput));
 
-   ret->blocks = calloc(sh->n_blocks, sizeof(CFGBlock));
-   if (!ret->blocks) return false;
-   ret->num_cfg_blocks = sh->n_blocks;
+   ir->blocks = calloc(sh->n_blocks, sizeof(CFGBlock));
+   if (!ir->blocks) return false;
+   ir->num_cfg_blocks = sh->n_blocks;
 
    /* Now do the actual copying out */
    for (int i=0; i<sh->n_blocks; i++) {
       SSABlock *b = &sh->blocks[i];
-      CFGBlock *b_out = &ret->blocks[i];
+      CFGBlock *b_out = &ir->blocks[i];
 
       if (!glsl_ir_copy_block(b_out, b->outputs, b->n_outputs))
          continue;
@@ -1191,7 +1144,10 @@ static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size
    const Symbol *s_wg_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_WORKGROUPID);
    const Symbol *s_g_id  = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_GLOBALINVOCATIONID);
 
-   glsl_generate_compute_variables(s_l_idx, s_l_id, s_wg_id, s_g_id,
+   const Symbol *s_n_sgs = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__HIGHP__UINT____NUMSUBGROUPS);
+   const Symbol *s_sg_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__HIGHP__UINT____SUBGROUPID);
+
+   glsl_generate_compute_variables(s_l_idx, s_l_id, s_wg_id, s_g_id, s_n_sgs, s_sg_id,
                                    entry_block, wg_size, shared_block, multicore, clamp_shared_idx, shared_mem_per_core);
 }
 
@@ -1220,7 +1176,9 @@ static void uint15_div_by_constant(Dataflow** div, Dataflow** rem, Dataflow* num
    }
 }
 
-void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id, const Symbol *s_wg_id, const Symbol *s_g_id,
+void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id,
+                                     const Symbol *s_wg_id, const Symbol *s_g_id,
+                                     const Symbol *s_n_sgs, const Symbol *s_sg_id,
                                      BasicBlock *entry_block, const unsigned *wg_size, const Symbol *shared_block,
                                      bool multicore, bool clamp_shared_idx, uint32_t shared_mem_per_core)
 {
@@ -1228,16 +1186,16 @@ void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id
    unsigned items_per_wg = wg_size[0]*wg_size[1]*wg_size[2];
 
 #if V3D_USE_CSD
-   Dataflow* id0 = glsl_dataflow_construct_nullary_op(DATAFLOW_COMP_GET_ID0);
-   Dataflow* id1 = glsl_dataflow_construct_nullary_op(DATAFLOW_COMP_GET_ID1);
+   Dataflow *id0 = glsl_dataflow_construct_nullary_op(DATAFLOW_COMP_GET_ID0);
+   Dataflow *id1 = glsl_dataflow_construct_nullary_op(DATAFLOW_COMP_GET_ID1);
 
-   Dataflow* wg_id[3];
+   Dataflow *wg_id[3];
    wg_id[0] = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, id0, glsl_dataflow_construct_const_uint(UINT16_MAX));
    wg_id[1] = glsl_dataflow_construct_binary_op(DATAFLOW_SHR,         id0, glsl_dataflow_construct_const_uint(16));
    wg_id[2] = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, id1, glsl_dataflow_construct_const_uint(UINT16_MAX));
 
-   Dataflow* l_idx = glsl_dataflow_construct_const_uint(0);
-   Dataflow* m_idx = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, id1, glsl_dataflow_construct_const_uint(16));
+   Dataflow *l_idx = glsl_dataflow_construct_const_uint(0);
+   Dataflow *m_idx = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, id1, glsl_dataflow_construct_const_uint(16));
    if (items_per_wg > 1)
    {
       unsigned bits_for_l_idx = gfx_msb(gfx_umax(items_per_wg, 64) - 1) + 1;
@@ -1275,9 +1233,9 @@ void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id
 #endif
 
    // Compute local ID from local invocation index.
-   Dataflow* zero = glsl_dataflow_construct_const_uint(0);
-   Dataflow* rem = l_idx;
-   Dataflow* l_id[3] = { zero, zero, zero };
+   Dataflow *zero = glsl_dataflow_construct_const_uint(0);
+   Dataflow *rem = l_idx;
+   Dataflow *l_id[3] = { zero, zero, zero };
    if (wg_size[2] > 1)
       uint15_div_by_constant(&l_id[2], &rem, rem, wg_size[0] * wg_size[1]);
    if (wg_size[1] > 1)
@@ -1293,10 +1251,16 @@ void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id
       g_id[i] = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, g_id[i], l_id[i]);
    }
 
+   Dataflow *n_sgs = glsl_dataflow_construct_const_uint((items_per_wg + 15) / 16);
+   Dataflow *sg_id = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, l_idx, glsl_dataflow_construct_const_uint(4));
+
    glsl_basic_block_set_scalar_values(entry_block, s_l_idx, &l_idx);
    glsl_basic_block_set_scalar_values(entry_block, s_g_id, g_id);
    glsl_basic_block_set_scalar_values(entry_block, s_l_id, l_id);
    glsl_basic_block_set_scalar_values(entry_block, s_wg_id, wg_id);
+
+   glsl_basic_block_set_scalar_values(entry_block, s_n_sgs, &n_sgs);
+   glsl_basic_block_set_scalar_values(entry_block, s_sg_id, &sg_id);
 
    Dataflow *shared_block_start = glsl_dataflow_construct_const_uint(0u);
    if (shared_block_size > 0)
@@ -1308,12 +1272,14 @@ void glsl_generate_compute_variables(const Symbol *s_l_idx, const Symbol *s_l_id
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, m_idx, glsl_dataflow_construct_const_uint(shared_block_size));
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, glsl_dataflow_construct_nullary_op(DATAFLOW_SHARED_PTR));
 
+#if !V3D_HAS_L2T_LOCAL_MEM
       if (multicore) {
          Dataflow *core_offset = glsl_dataflow_construct_nullary_op(DATAFLOW_GET_THREAD_INDEX);
          core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, core_offset, glsl_dataflow_construct_const_uint(6));
          core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL24, core_offset, glsl_dataflow_construct_const_uint(shared_mem_per_core));
          shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, core_offset);
       }
+#endif
    }
    glsl_basic_block_set_scalar_values(entry_block, shared_block, &shared_block_start);
 }
@@ -1388,48 +1354,19 @@ static void init_compiler_common(void)
    glsl_compile_error_reset();
 }
 
-typedef union {
-   struct {
-      unsigned wg_size[3];
-   } compute;
-
-   struct {
-      unsigned vertices;
-   } tess_control;
-
-   struct {
-      v3d_cl_tess_type_t         mode;
-      v3d_cl_tess_edge_spacing_t spacing;
-      bool cw;
-      bool points;
-   } tess_eval;
-
-   struct {
-      enum gs_in_type         in;
-      v3d_cl_geom_prim_type_t out;
-      unsigned n_invocations;
-      unsigned max_vertices;
-   } geometry;
-
-   struct {
-      bool early_fragment_tests;
-      AdvancedBlendQualifier abq;
-   } fragment;
-} IFaceData;
-
 static void iface_data_fill_default(IFaceData *data, ShaderFlavour flavour) {
    memset(data, 0, sizeof(IFaceData));
 
    switch(flavour) {
       case SHADER_COMPUTE:
-         for (int i=0; i<3; i++) data->compute.wg_size[i] = 1;
+         for (int i=0; i<3; i++) data->cs.wg_size[i] = 1;
          break;
       case SHADER_TESS_EVALUATION:
-         data->tess_eval.mode    = V3D_CL_TESS_TYPE_INVALID;
-         data->tess_eval.spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;
+         data->tes.mode    = V3D_CL_TESS_TYPE_INVALID;
+         data->tes.spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;
          break;
       case SHADER_GEOMETRY:
-         data->geometry.n_invocations = 1;
+         data->gs.n_invocations = 1;
          break;
       default:
          break;
@@ -1444,37 +1381,37 @@ static void set_iface_unsigned(unsigned *loc, unsigned new, bool *declared) {
 }
 
 static void set_gs_in_type(IFaceData *data, enum gs_in_type type, bool *declared) {
-   if (*declared && data->geometry.in != type)
+   if (*declared && data->gs.in != type)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent geometry shader input declarations");
-   data->geometry.in = type;
+   data->gs.in = type;
    *declared = true;
 }
 
 static void set_gs_out_type(IFaceData *data, v3d_cl_geom_prim_type_t type, bool *declared) {
-   if (*declared && data->geometry.out != type)
+   if (*declared && data->gs.out != type)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent geometry shader output declarations");
-   data->geometry.out = type;
+   data->gs.out = type;
    *declared = true;
 }
 
 static void set_tess_spacing(IFaceData *data, v3d_cl_tess_edge_spacing_t spacing, bool *declared) {
-   if (*declared && data->tess_eval.spacing != spacing)
+   if (*declared && data->tes.spacing != spacing)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent tessellation spacing declarations");
-   data->tess_eval.spacing = spacing;
+   data->tes.spacing = spacing;
    *declared = true;
 }
 
 static void set_tess_winding(IFaceData *data, bool cw, bool *declared) {
-   if (*declared && data->tess_eval.cw != cw)
+   if (*declared && data->tes.cw != cw)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent tessellation winding mode declarations");
-   data->tess_eval.cw = cw;
+   data->tes.cw = cw;
    *declared = true;
 }
 
 static void set_tess_eval_mode(IFaceData *data, v3d_cl_tess_type_t mode) {
-   if (data->tess_eval.mode != V3D_CL_TESS_TYPE_INVALID && data->tess_eval.mode != mode)
+   if (data->tes.mode != V3D_CL_TESS_TYPE_INVALID && data->tes.mode != mode)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "Inconsistent tessellation mode declarations");
-   data->tess_eval.mode = mode;
+   data->tes.mode = mode;
 }
 
 static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour flavour) {
@@ -1507,18 +1444,18 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
          for (LayoutIDList *idn = qn->q->u.layout; idn; idn=idn->next) {
             if (sq == STORAGE_IN) {
                switch(idn->l->id) {
-                  case LQ_SIZE_X:                  data->compute.wg_size[0] = idn->l->argument; break;
-                  case LQ_SIZE_Y:                  data->compute.wg_size[1] = idn->l->argument; break;
-                  case LQ_SIZE_Z:                  data->compute.wg_size[2] = idn->l->argument; break;
-                  case LQ_EARLY_FRAGMENT_TESTS:    data->fragment.early_fragment_tests = true;  break;
+                  case LQ_SIZE_X:                  data->cs.wg_size[0] = idn->l->argument; break;
+                  case LQ_SIZE_Y:                  data->cs.wg_size[1] = idn->l->argument; break;
+                  case LQ_SIZE_Z:                  data->cs.wg_size[2] = idn->l->argument; break;
+                  case LQ_EARLY_FRAGMENT_TESTS:    data->fs.early_tests = true;            break;
                   case LQ_SPACING_EQUAL:           set_tess_spacing(data, V3D_CL_TESS_EDGE_SPACING_EQUAL,           &tess_spacing_declared); break;
                   case LQ_SPACING_FRACTIONAL_EVEN: set_tess_spacing(data, V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN, &tess_spacing_declared); break;
                   case LQ_SPACING_FRACTIONAL_ODD:  set_tess_spacing(data, V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD,  &tess_spacing_declared); break;
                   case LQ_CW:                      set_tess_winding(data, true,  &tess_winding_declared); break;
                   case LQ_CCW:                     set_tess_winding(data, false, &tess_winding_declared); break;
-                  case LQ_POINT_MODE:              data->tess_eval.points  = true;                        break;
+                  case LQ_POINT_MODE:              data->tes.point_mode  = true;                          break;
                   case LQ_INVOCATIONS:
-                     set_iface_unsigned(&data->geometry.n_invocations, idn->l->argument, &gs_n_invocations_declared);
+                     set_iface_unsigned(&data->gs.n_invocations, idn->l->argument, &gs_n_invocations_declared);
                      break;
                   case LQ_POINTS:                  set_gs_in_type(data, GS_IN_POINTS,    &gs_in_type_declared); break;
                   case LQ_LINES:                   set_gs_in_type(data, GS_IN_LINES,     &gs_in_type_declared); break;
@@ -1541,9 +1478,9 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                   case LQ_LINE_STRIP:     set_gs_out_type(data, V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP,     &gs_out_type_declared); break;
                   case LQ_TRIANGLE_STRIP: set_gs_out_type(data, V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP, &gs_out_type_declared); break;
                   case LQ_MAX_VERTICES:
-                     set_iface_unsigned(&data->geometry.max_vertices, idn->l->argument, &gs_max_vertices_declared); break;
+                     set_iface_unsigned(&data->gs.max_vertices, idn->l->argument, &gs_max_vertices_declared); break;
                   case LQ_VERTICES:
-                     set_iface_unsigned(&data->tess_control.vertices, idn->l->argument, &tess_vertices_declared);   break;
+                     set_iface_unsigned(&data->tcs.vertices, idn->l->argument, &tess_vertices_declared);      break;
 
                   case LQ_BLEND_SUPPORT_MULTIPLY:
                   case LQ_BLEND_SUPPORT_SCREEN:
@@ -1560,9 +1497,9 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                   case LQ_BLEND_SUPPORT_HSL_SATURATION:
                   case LQ_BLEND_SUPPORT_HSL_COLOR:
                   case LQ_BLEND_SUPPORT_HSL_LUMINOSITY:
-                  case LQ_BLEND_SUPPORT_ALL_EQUATIONS: data->fragment.abq |= glsl_lq_to_abq(idn->l->id); break;
+                  case LQ_BLEND_SUPPORT_ALL_EQUATIONS: data->fs.abq |= glsl_lq_to_abq(idn->l->id); break;
 
-                  default: /* Do nothing */                                                break;
+                  default: /* Do nothing */ break;
                }
             }
          }
@@ -1571,18 +1508,18 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
    if (flavour == SHADER_TESS_CONTROL) {
       if (!tess_vertices_declared)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
-      if (data->tess_control.vertices <= 0 || data->tess_control.vertices > V3D_MAX_PATCH_VERTICES)
+      if (data->tcs.vertices <= 0 || data->tcs.vertices > V3D_MAX_PATCH_VERTICES)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "'vertices' declaration must be in the range [1, %d]", V3D_MAX_PATCH_VERTICES);
    }
    if (flavour == SHADER_GEOMETRY) {
       if (!gs_in_type_declared)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires input type declaration");
-      if (data->geometry.n_invocations < 1 || data->geometry.n_invocations > V3D_MAX_GEOMETRY_INVOCATIONS)
+      if (data->gs.n_invocations < 1 || data->gs.n_invocations > V3D_MAX_GEOMETRY_INVOCATIONS)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare invocations in the range [1, %d]",
                                                   V3D_MAX_GEOMETRY_INVOCATIONS);
       if (!gs_out_type_declared)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires output type declaration");
-      if (!gs_max_vertices_declared || data->geometry.max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES)
+      if (!gs_max_vertices_declared || data->gs.max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES)
       {
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare max_vertices in the range [0, %d]",
                                                   GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES);
@@ -1595,11 +1532,11 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                                             GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
 
       for (int i=0; i<3; i++) {
-         if (data->compute.wg_size[i] == 0 || data->compute.wg_size[i] > max_size[i])
-            glsl_compile_error(ERROR_CUSTOM, 15, -1, "local size %d should be in the range (0, %d]", data->compute.wg_size[i], max_size[i]);
+         if (data->cs.wg_size[i] == 0 || data->cs.wg_size[i] > max_size[i])
+            glsl_compile_error(ERROR_CUSTOM, 15, -1, "local size %d should be in the range (0, %d]", data->cs.wg_size[i], max_size[i]);
       }
 
-      unsigned total_invocations = data->compute.wg_size[0] * data->compute.wg_size[1] * data->compute.wg_size[2];
+      unsigned total_invocations = data->cs.wg_size[0] * data->cs.wg_size[1] * data->cs.wg_size[2];
       if (total_invocations > GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "Compute invocations %d exceeds maximum %d",
                                                   total_invocations,
@@ -1608,10 +1545,47 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
    }
    /* No error for not declaring a size -- that must be deferred until link time */
    if (flavour == SHADER_COMPUTE && !size_declared)
-      for (int i=0; i<3; i++) data->compute.wg_size[i] = 0;
+      for (int i=0; i<3; i++) data->cs.wg_size[i] = 0;
 }
 
-void glsl_ssa_shader_optimise(SSAShader *sh, bool flatten) {
+void validate_fshader_out_interface(const struct if_usage *out, const IFaceData *iface_data) {
+   bool frag_color = false, frag_data = false, frag_depth = false;
+   for (unsigned i = 0; i<out->n; i++) {
+      if (out->v[i].used && strcmp(out->v[i].symbol->name, "gl_FragColor") == 0) frag_color = true;
+      if (out->v[i].used && strcmp(out->v[i].symbol->name, "gl_FragData" ) == 0) frag_data  = true;
+      if (out->v[i].used && strcmp(out->v[i].symbol->name, "gl_FragDepth") == 0) frag_depth = true;
+   }
+
+   if (frag_color && frag_data)
+      glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of both gl_FragColor and gl_FragData");
+
+   if (iface_data->fs.early_tests && frag_depth)
+      glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of gl_FragDepth while early_fragment_tests specified");
+}
+
+void validate_fshader_in_interface(const struct if_usage *in, const IFaceData *iface_data) {
+   bool last_depth = false, last_stencil = false;
+   for (unsigned i = 0; i<in->n; i++) {
+      if (in->v[i].used && strcmp(in->v[i].symbol->name, "gl_LastFragDepthBRCM"  ) == 0) last_depth   = true;
+      if (in->v[i].used && strcmp(in->v[i].symbol->name, "gl_LastFragStencilBRCM") == 0) last_stencil = true;
+   }
+   if ((last_depth || last_stencil) && iface_data->fs.early_tests)
+      glsl_compile_error(ERROR_CUSTOM, 5, -1, "Reading depth or stencil buffer while early_fragment_tests specified");
+}
+
+void validate_gshader_out_interface(const struct if_usage *out, const IFaceData *iface_data) {
+   unsigned output_word_count = 0;
+   for (unsigned i=0; i<out->n; i++)
+      if (out->v[i].used && strcmp(out->v[i].symbol->name, "__brcm_stdlib_header_words"))
+         output_word_count += out->v[i].symbol->type->scalar_count;
+
+   output_word_count *= iface_data->gs.max_vertices;
+   if (output_word_count > GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS)
+      glsl_compile_error(ERROR_CUSTOM, 5, -1, "Found %d geometry shader output components, max %d",
+                                              output_word_count, GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
+}
+
+static void ssa_shader_optimise(SSAShader *sh, bool flatten) {
    if (flatten)
       flatten_and_predicate(sh);
 
@@ -1625,15 +1599,13 @@ void glsl_ssa_shader_optimise(SSAShader *sh, bool flatten) {
    eliminate_dead_code(sh);
 
    glsl_dataflow_cse(sh->blocks, sh->n_blocks);
-
-   setup_required_components(sh->blocks, sh->n_blocks);
 }
 
 static void dpostv_find_loads(Dataflow *df, void *data) {
    if (df->flavour == DATAFLOW_IN_LOAD) glsl_dataflow_chain_append(data, df);
 }
 
-void glsl_ssa_shader_hoist_loads(SSAShader *sh) {
+static void hoist_loads(SSAShader *sh) {
    /* TODO: Hoist input loads into the first block. This isn't required, but for now we're going to
     * do it because it matches the old system, works for the new system and is simple. */
    for (int i=1; i<sh->n_blocks; i++) {
@@ -1718,7 +1690,7 @@ static bool loop_or_barrier(BasicBlockList *l, Map *seen) {
    return false;
 }
 
-bool glsl_ssa_flattening_supported(BasicBlock *entry) {
+static bool ssa_flattening_supported(BasicBlock *entry) {
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry);
    Map *seen = glsl_map_new();
    bool ret = !loop_or_barrier(l, seen);
@@ -1726,13 +1698,28 @@ bool glsl_ssa_flattening_supported(BasicBlock *entry) {
    return ret;
 }
 
+static bool use_early_fragment_tests(const IRShader *s, bool requested) {
+   bool visible_effects     = false;
+   bool reads_depth_stencil = false;
+   bool reads_sample_mask   = false;
+   for (int i=0; i<s->num_cfg_blocks; i++) {
+      const CFGBlock *b = &s->blocks[i];
+      for (int j=0; j<b->num_dataflow; j++) {
+         if (glsl_dataflow_affects_memory(b->dataflow[j].flavour)) visible_effects = true;
+         if (b->dataflow[j].flavour == DATAFLOW_SAMPLE_MASK) reads_sample_mask = true;
+         if (b->dataflow[j].flavour == DATAFLOW_FRAG_GET_DEPTH || b->dataflow[j].flavour == DATAFLOW_FRAG_GET_STENCIL)
+            reads_depth_stencil = true;
+      }
+   }
+
+   return (requested || !(visible_effects || reads_depth_stencil || reads_sample_mask));
+}
+
 #ifdef ANDROID
 __attribute__((optimize("-O0")))
 #endif
 CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *src, bool multicore, bool clamp_shared_idx, uint32_t shared_mem_per_core)
 {
-   CompiledShader *ret = NULL;
-
 #ifdef KHRN_SHADER_DUMP_SOURCE
    glsl_shader_source_dump(src);
 #endif
@@ -1744,13 +1731,14 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    // Set long jump point in case of error.
    if (setjmp(g_ErrorHandlerEnv) != 0)
    {
-      // We must be jumping back from an error.
-      glsl_term_lexer(); // FIXME: This is just bad; we have no real guarantee it has even been initted
+      /* Jumping back from an error. These functions must be safe to be called
+       * even if the thing is not started or already shut down because we don't
+       * know when error may occur. */
+      glsl_term_lexer();
       glsl_stack_cleanup();
       glsl_fastmem_term();
       glsl_dataflow_end_construction();
       glsl_safemem_cleanup();
-      glsl_compiled_shader_free(ret);
       return NULL;
    }
 
@@ -1767,6 +1755,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    ShaderInterfaces *interfaces = glsl_shader_interfaces_new();
 
+#if !V3D_USE_CSD
    if (flavour == SHADER_COMPUTE) {
       SymbolType *type = &primitiveTypes[PRIM_UVEC3];
       Qualifiers quals = { .invariant = false,
@@ -1780,6 +1769,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       glsl_symbol_construct_var_instance(compute_vary, glsl_intern("$$comp_vary", false), type, &quals, NULL, NULL);
       glsl_shader_interfaces_update(interfaces, compute_vary);
    }
+#endif
 
    uint64_t active_mask = glsl_stdlib_get_property_mask(flavour, version) | glsl_ext_get_symbol_mask();
    glsl_stdlib_interfaces_update(interfaces, active_mask);
@@ -1806,8 +1796,6 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    /* Build basic block graph */
    BasicBlock *shader_start_block = glsl_basic_block_build(nast);
 
-   glsl_basic_block_elim_dead(shader_start_block);
-
    /* Add interface definitions to a basic block prior to the shader */
    BasicBlock *entry_block = glsl_basic_block_construct();
    entry_block->fallthrough_target = shader_start_block;
@@ -1816,128 +1804,123 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    initialise_interface_symbols(entry_block, initial_values);
    glsl_map_delete(initial_values);
    if (flavour == SHADER_COMPUTE)
-      generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block, multicore, clamp_shared_idx, shared_mem_per_core);
+      generate_compute_variables(entry_block, iface_data.cs.wg_size, shared_block, multicore, clamp_shared_idx, shared_mem_per_core);
+
+   struct sh_usage symbs;
+   if_symbols_from_symbol_list(&symbs.in,      interfaces->ins,      ast);
+   if_symbols_from_symbol_list(&symbs.out,     interfaces->outs,     ast);
+   if_symbols_from_symbol_list(&symbs.uniform, interfaces->uniforms, ast);
+   if_symbols_from_symbol_list(&symbs.buffer,  interfaces->buffers,  ast);
+
+   if (flavour == SHADER_FRAGMENT) {
+      validate_fshader_out_interface(&symbs.out, &iface_data);
+      validate_fshader_in_interface(&symbs.in, &iface_data);
+   }
+
+   if (flavour == SHADER_GEOMETRY)
+      validate_gshader_out_interface(&symbs.out, &iface_data);
+
+   if (flavour == SHADER_COMPUTE)
+      iface_data.cs.shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
+
+   CompiledShader *ret = glsl_compile_common(flavour, version, entry_block, &iface_data, &symbs, symbol_ids,
+                                             /*unroll=*/true, /*activity_supported=*/true);
+
+   /* No errors should be generated here because the error handler is no longer valid */
+
+   glsl_safemem_free(symbs.in.v);
+   glsl_safemem_free(symbs.out.v);
+   glsl_safemem_free(symbs.uniform.v);
+   glsl_safemem_free(symbs.buffer.v);
+
+   glsl_map_delete(symbol_ids);
+
+   glsl_dataflow_end_construction();
+   glsl_fastmem_term();
+   if (ret == NULL)
+      glsl_safemem_cleanup();
+#ifndef NDEBUG
+   glsl_safemem_verify();
+#endif
+
+   return ret;
+}
+
+CompiledShader *glsl_compile_common(ShaderFlavour flavour, int version, BasicBlock *entry_block,
+                                    const IFaceData *iface_data, const struct sh_usage *symbs,
+                                    Map *symbol_ids, bool loop_unroll, bool activity_supported)
+{
+   CompiledShader *ret = NULL;
+
+   if (setjmp(g_ErrorHandlerEnv) != 0) {
+      /* Jumping back from an error. Only free the shader and signal an error.
+       * The caller already needs to clean up memory, so leaving safemem is OK */
+      glsl_compiled_shader_free(ret);
+      return NULL;
+   }
+
+   glsl_basic_block_elim_dead(entry_block);
 
    if (flavour == SHADER_COMPUTE) {
-      if (!glsl_wg_size_requires_barriers(iface_data.compute.wg_size)) {
+      if (!glsl_wg_size_requires_barriers(iface_data->cs.wg_size)) {
          BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry_block);
          for (BasicBlockList *n = l; n != NULL; n=n->next)
             n->v->barrier = false;
       }
    }
 
-   bool ssa_flattening = glsl_ssa_flattening_supported(entry_block);
+   bool ssa_flattening = ssa_flattening_supported(entry_block);
    if (!ssa_flattening)
-      entry_block = glsl_basic_block_flatten(entry_block);
+      entry_block = glsl_basic_block_flatten(entry_block, loop_unroll);
 
    /* Do the conversion to SSA form */
    SSAShader ir_sh;
 
-   glsl_ssa_convert(&ir_sh, entry_block, interfaces->outs, symbol_ids);
+   glsl_ssa_convert(&ir_sh, entry_block, &symbs->out, symbol_ids);
    glsl_basic_block_delete_reachable(entry_block);
 
-   glsl_ssa_shader_optimise(&ir_sh, ssa_flattening);
+   ssa_shader_optimise(&ir_sh, ssa_flattening);
 
    if (flavour == SHADER_VERTEX || flavour == SHADER_FRAGMENT || flavour == SHADER_COMPUTE)
-      glsl_ssa_shader_hoist_loads(&ir_sh);
+      hoist_loads(&ir_sh);
 
    ret = glsl_compiled_shader_create(flavour, version);
-   if (ret == NULL) { return NULL; }
+   if (ret == NULL) return NULL;
 
    Map *symbol_map = glsl_map_new();
-   if (!glsl_copy_compiled_shader(ret, interfaces, symbol_map)) {
+   if (!copy_compiled_shader(ret, symbs, symbol_map)) {
       glsl_compiled_shader_free(ret);
       return NULL;
    }
 
-   if (!interface_from_symbol_list(&ret->uniform, ast, interfaces->uniforms, symbol_map, symbol_ids, true)  ||
-       !interface_from_symbol_list(&ret->in,      ast, interfaces->ins,      symbol_map, symbol_ids, false) ||
-       !interface_from_symbol_list(&ret->out,     ast, interfaces->outs,     symbol_map, symbol_ids, false) ||
-       !interface_from_symbol_list(&ret->buffer,  ast, interfaces->buffers,  symbol_map, symbol_ids, false)   )
+   if (!interface_from_symbols(&ret->in,      &symbs->in,      symbol_map, symbol_ids, false) ||
+       !interface_from_symbols(&ret->out,     &symbs->out,     symbol_map, symbol_ids, false) ||
+       !interface_from_symbols(&ret->uniform, &symbs->uniform, symbol_map, symbol_ids, true ) ||
+       !interface_from_symbols(&ret->buffer,  &symbs->buffer,  symbol_map, symbol_ids, false)   )
    {
       glsl_compiled_shader_free(ret);
       return NULL;
    }
 
    glsl_map_delete(symbol_map);
-   glsl_map_delete(symbol_ids);
 
-   glsl_mark_interface_actives(&ret->in, &ret->uniform, &ret->buffer, ir_sh.blocks, ir_sh.n_blocks);
+   /* TODO: The vulkan driver does not currently support activity information because the
+    * information in the interface variables is not complete. We skip generating for that
+    * case and just leave it as it was. (Likely leaving everything marked as active) */
+   if (activity_supported)
+      mark_interface_actives(&ret->in, &ret->uniform, &ret->buffer, ir_sh.blocks, ir_sh.n_blocks);
 
-   if (!glsl_copy_shader_ir(ret, &ir_sh)) {
+   if (!copy_shader_ir(&ret->ir, &ir_sh)) {
       glsl_compiled_shader_free(ret);
       return NULL;
    }
 
-   if (flavour == SHADER_FRAGMENT) {
-      InterfaceVar *frag_color = interface_var_find(&ret->out, "gl_FragColor");
-      InterfaceVar *frag_data  = interface_var_find(&ret->out, "gl_FragData");
+   ret->u = *iface_data;
 
-      if (frag_color && frag_data && frag_color->static_use && frag_data->static_use)
-         glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of both gl_FragColor and gl_FragData");
-
-      InterfaceVar *frag_depth = interface_var_find(&ret->out, "gl_FragDepth");
-      if (iface_data.fragment.early_fragment_tests && frag_depth->static_use)
-         glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of gl_FragDepth while early_fragment_tests specified");
-
-      bool visible_effects = false;
-      bool reads_depth_stencil = false;
-      for (int i=0; i<ret->num_cfg_blocks; i++) {
-         CFGBlock *b = &ret->blocks[i];
-         for (int j=0; j<b->num_dataflow; j++) {
-            if (glsl_dataflow_affects_memory(b->dataflow[j].flavour)) visible_effects = true;
-            if (b->dataflow[j].flavour == DATAFLOW_FRAG_GET_DEPTH || b->dataflow[j].flavour == DATAFLOW_FRAG_GET_STENCIL)
-               reads_depth_stencil = true;
-         }
-      }
-
-      if (iface_data.fragment.early_fragment_tests && reads_depth_stencil)
-         glsl_compile_error(ERROR_CUSTOM, 5, -1, "Reading depth or stencil buffer while early_fragment_tests specified");
-
-      ret->early_fragment_tests = iface_data.fragment.early_fragment_tests || !(visible_effects || reads_depth_stencil);
-      ret->abq = iface_data.fragment.abq;
-   }
-
-   if (flavour == SHADER_TESS_CONTROL) {
-      ret->tess_vertices = iface_data.tess_control.vertices;
-   }
-
-   if (flavour == SHADER_TESS_EVALUATION) {
-      ret->tess_mode       = iface_data.tess_eval.mode;
-      ret->tess_spacing    = iface_data.tess_eval.spacing;
-      ret->tess_cw         = iface_data.tess_eval.cw;
-      ret->tess_point_mode = iface_data.tess_eval.points;
-   }
-
-   if (flavour == SHADER_GEOMETRY) {
-      ret->gs_max_known_layers = 1;
-      unsigned output_word_count = 0;
-      for (int i=0; i<ret->out.n_vars; i++)
-         if (ret->out.var[i].static_use && strcmp(ret->out.var[i].symbol->name, "__brcm_stdlib_header_words"))
-            output_word_count += ret->out.var[i].symbol->type->scalar_count;
-
-      output_word_count *= iface_data.geometry.max_vertices;
-      if (output_word_count > GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS)
-         glsl_compile_error(ERROR_CUSTOM, 5, -1, "Found %d geometry shader output components, max %d",
-                                                 output_word_count, GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
-      ret->gs_in  = iface_data.geometry.in;
-      ret->gs_out = iface_data.geometry.out;
-      ret->gs_n_invocations = iface_data.geometry.n_invocations;
-      ret->gs_max_vertices  = iface_data.geometry.max_vertices;
-   }
-
-   if (flavour == SHADER_COMPUTE) {
-      for (int i=0; i<3; i++) ret->cs_wg_size[i] = iface_data.compute.wg_size[i];
-      ret->cs_shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
-   }
+   if (flavour == SHADER_FRAGMENT)
+      ret->u.fs.early_tests = use_early_fragment_tests(&ret->ir, ret->u.fs.early_tests);
 
    glsl_ssa_shader_term(&ir_sh);
-
-   glsl_dataflow_end_construction();
-   glsl_fastmem_term();
-#ifndef NDEBUG
-   glsl_safemem_verify();
-#endif
 
    return ret;
 }

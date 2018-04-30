@@ -131,9 +131,6 @@ typedef struct BDSP_Version
     uint32_t branchSubVersion;                   /* Branch SubVersion of BDSP Release */
 } BDSP_Version;
 
-
-
-
 /***************************************************************************
 Summary:
 DSP Status

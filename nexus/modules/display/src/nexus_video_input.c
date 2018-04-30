@@ -773,6 +773,7 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
         link->info.mfd.ulMaxContentLight,
         link->info.mfd.ulAvgContentLight);
 
+#if NEXUS_HAS_HDMI_OUTPUT
     if (BKNI_Memcmp_isr(&drmInfoFrame, &link->drm.inputInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
     {
         NEXUS_VideoWindowHandle windows[NEXUS_NUM_DISPLAYS];
@@ -792,6 +793,7 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
         }
         BKNI_SetEvent_isr(link->drm.inputInfoUpdatedEvent);
     }
+#endif
 }
 
 static void NEXUS_Display_P_VerifyDisplayTimebase_isr(NEXUS_VideoInput_P_Link *link)
@@ -1624,7 +1626,6 @@ void NEXUS_VideoInput_P_UpdateSyncLockDisplay(NEXUS_VideoInput_P_Link *link)
     return;
 #else
     BSTD_UNUSED(link);
-    BSTD_UNUSED(window);
     return;
 #endif
 }

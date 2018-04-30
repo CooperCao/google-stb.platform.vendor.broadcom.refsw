@@ -112,7 +112,7 @@ Application::Application(int argc, const char *argv[]) :
 #else
       m_decodeBuffers(3),
 #endif
-      m_decodeFormat(BEGL_BufferFormat_eA8B8G8R8),
+      m_decodeFormat(NEXUS_PixelFormat_eA8_B8_G8_R8),
       m_mode(Demo),
       m_360Format(FORMAT_EQUIRECT),
       m_nexusDisplay(), m_eglDisplay(EGL_NO_DISPLAY),
@@ -162,9 +162,9 @@ Application::Application(int argc, const char *argv[]) :
       m_decodeBuffers  = 3;
 #endif
 #if VC5 && M2MC_HAS_UIF_SUPPORT
-      m_decodeFormat   = BEGL_BufferFormat_eTILED;
+      m_decodeFormat   = NEXUS_PixelFormat_eUIF_R8_G8_B8_A8;
 #else
-      m_decodeFormat   = BEGL_BufferFormat_eA8B8G8R8;
+      m_decodeFormat   = NEXUS_PixelFormat_eA8_B8_G8_R8;
 #endif
    }
 
@@ -798,7 +798,7 @@ void Application::InitGraphics2D()
    // Prepare the graphics2D module for destriping the video frames into our texture surface
    // Currently the mipmap M2MC is artifically limited to writing only UIF.
 #if VC5
-   if (m_decodeFormat == BEGL_BufferFormat_eTILED)
+   if (m_decodeFormat == NEXUS_PixelFormat_eUIF_R8_G8_B8_A8)
    {
       graphics2dOpenSettings.mode = NEXUS_Graphics2DMode_eMipmap;
       m_gfx2d = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &graphics2dOpenSettings);
@@ -952,19 +952,19 @@ void Application::ProcessArgs(int argc, const char *argv[])
             littleEndian = false;
 #endif
             if (fmt == "YUV422")
-               m_decodeFormat = BEGL_BufferFormat_eYUV422;
+               m_decodeFormat = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
             else if (fmt == "RGB565")
-               m_decodeFormat = BEGL_BufferFormat_eR5G6B5;
+               m_decodeFormat = NEXUS_PixelFormat_eR5_G6_B5;
             else if (fmt == "RGBA8888")
-               m_decodeFormat = littleEndian ? BEGL_BufferFormat_eA8B8G8R8 : BEGL_BufferFormat_eR8G8B8A8;
+               m_decodeFormat = littleEndian ? NEXUS_PixelFormat_eA8_B8_G8_R8 : NEXUS_PixelFormat_eR8_G8_B8_A8;
 #if VC5
             else if (fmt == "RGBA4444")
-               m_decodeFormat = littleEndian ? BEGL_BufferFormat_eA4B4G4R4 : BEGL_BufferFormat_eR4G4B4A4;
+               m_decodeFormat = littleEndian ? NEXUS_PixelFormat_eR4_G4_B4_A4 : NEXUS_PixelFormat_eA4_B4_G4_R4;
             else if (fmt == "RGBA5551")
-               m_decodeFormat = littleEndian ? BEGL_BufferFormat_eA1B5G5R5 : BEGL_BufferFormat_eR5G5B5A1;
+               m_decodeFormat = littleEndian ? NEXUS_PixelFormat_eR5_G5_B5_A1 : NEXUS_PixelFormat_eA1_B5_G5_R5;
 #if M2MC_HAS_UIF_SUPPORT
             else if (fmt == "TILED")
-               m_decodeFormat = BEGL_BufferFormat_eTILED;
+               m_decodeFormat = NEXUS_PixelFormat_eUIF_R8_G8_B8_A8;
 #endif
 #endif
             else
@@ -1118,7 +1118,7 @@ void Application::CreateVideoTextures()
    uint32_t mipLevels = 1;
 
 #if VC5
-   if (m_usingMipmapM2MC && m_decodeFormat == BEGL_BufferFormat_eTILED)
+   if (m_usingMipmapM2MC && m_decodeFormat == NEXUS_PixelFormat_eUIF_R8_G8_B8_A8)
    {
 #if GL_ES_VERSION_3_0
       while (mipLevels < m_maxMiplevels && ((m_texW >> mipLevels) != 0 || (m_texH >> mipLevels) != 0))

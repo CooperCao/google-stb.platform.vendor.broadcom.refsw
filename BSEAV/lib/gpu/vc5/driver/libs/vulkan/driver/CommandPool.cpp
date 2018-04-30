@@ -74,9 +74,9 @@ void CommandPool::FreeCommandBuffers(
    }
 }
 
-void CommandPool::TrimCommandPoolKHR(
-   bvk::Device                *device,
-   VkCommandPoolTrimFlagsKHR   flags) noexcept
+void CommandPool::TrimCommandPool(
+   bvk::Device             *device,
+   VkCommandPoolTrimFlags   flags) noexcept
 {
    m_sysMemPool.CleanupFreeBlocks();
    m_devMemPool.CleanupFreeBlocks();

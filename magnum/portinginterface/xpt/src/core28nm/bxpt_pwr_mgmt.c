@@ -1296,18 +1296,6 @@ void BXPT_P_Mcpb_Resume(BXPT_Handle hXpt)
     uint32_t addr, *p;
 
     if (!hXpt->mcpbBackup) { return; }
-
-    /* BOLT / linux may make use of MCPB channels. stop them before restoring anything */
-    for (i=0; i<BXPT_NUM_PLAYBACKS; i++) {
-        uint32_t reg = 0;
-        BCHP_SET_FIELD_DATA(reg, XPT_MCPB_RUN_SET_CLEAR, MCPB_CHANNEL_NUM, i);
-        BCHP_SET_FIELD_DATA(reg, XPT_MCPB_RUN_SET_CLEAR, SET_CLEAR, 0);
-        BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_RUN_SET_CLEAR, reg);
-#if BXPT_DMA_HAS_MEMDMA_MCPB
-        BREG_Write32(hXpt->hRegister, BCHP_XPT_MEMDMA_MCPB_RUN_SET_CLEAR, reg);
-#endif
-    }
-
     p = hXpt->mcpbBackup;
 
     for (j=0; j<MCPB_TOP_REG_SAVELIST_COUNT; j++) {

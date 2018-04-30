@@ -4,9 +4,11 @@
 
 #include "default_wayland.h"
 #include "nxclient.h"
+#include "../common/perf_event.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <EGL/begl_platform.h>
 
 #include <malloc.h>
 #include <memory.h>
@@ -18,7 +20,7 @@
 #define UNUSED(x) (void)(x)
 
 BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface);
-BEGL_HWInterface *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *callbacks);
+BEGL_HWInterface *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *callbacks, EventContext *eventContext);
 
 void NXPL_DestroyMemInterface(BEGL_MemoryInterface *iface);
 void NXPL_DestroyHWInterface(BEGL_HWInterface *iface);
@@ -51,13 +53,13 @@ static bool CreateDisplayInterface(WLPL_Display *display,
    {
    case EGL_PLATFORM_WAYLAND_EXT:
       display->interface = WLPL_CreateWaylandDisplayInterface(memInterface,
-            hwInterface, &temp.displayCallbacks, display->nativeDisplay);
+            hwInterface, display->nativeDisplay);
       break;
 
    case BEGL_DEFAULT_PLATFORM:
    default:
       display->interface = WLPL_CreateNexusDisplayInterface(memInterface,
-            hwInterface, &temp.displayCallbacks);
+            hwInterface);
       break;
    }
    return display->interface != NULL;
@@ -87,7 +89,7 @@ static void CreatePlatform(WLPL_Platform *platform)
    BEGL_GetDefaultDriverInterfaces(&temp);
 
    memset(platform, 0, sizeof(*platform));
-   platform->hwInterface = NXPL_CreateHWInterface(&temp.hardwareCallbacks);
+   platform->hwInterface = NXPL_CreateHWInterface(&temp.hardwareCallbacks, NULL);
    platform->memInterface = NXPL_CreateMemInterface(platform->hwInterface);
 
    BEGL_DriverInterfaces interfaces;
@@ -172,7 +174,7 @@ static BEGL_Error AddPlatformDisplay(WLPL_Platform *platform,
 }
 
 static BEGL_Error GetDisplay(void *context, uint32_t eglPlatform,
-      void *nativeDisplay, const EGLint *attribList, BEGL_DisplayHandle *handle)
+      void *nativeDisplay, const int32_t *attribList, BEGL_DisplayHandle *handle)
 {
    WLPL_Platform *platform = (WLPL_Platform *)context;
 

@@ -106,6 +106,7 @@ BDBG_OBJECT_ID(BVDC_WIN);
     BVDC_P_WindowId_e##win_id,                                              \
 }
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /* INDEX: by BVDC_P_WindowId. */
 static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
 {
@@ -221,10 +222,10 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
 
 #elif (BCHP_CHIP==7278)
     BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0, Vfd0, Scl0, Unknown),
-    BVDC_P_MAKE_RES(Comp0_V1, 1, 1, 0, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp2_V0 */
+    BVDC_P_MAKE_RES(Comp0_V1, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp2_V0 */
     BVDC_P_MAKE_RES(Comp1_V0, 1, 1, 1, 0, 0, Cap2, Vfd2, Scl2, Unknown),
     BVDC_P_MAKE_RES(Comp1_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
-    BVDC_P_MAKE_RES(Comp2_V0, 1, 1, 0, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp0_V1 */
+    BVDC_P_MAKE_RES(Comp2_V0, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp0_V1 */
     BVDC_P_MAKE_RES(Comp3_V0, 1, 1, 1, 0, 0, Cap3, Vfd3, Scl3, Unknown),
     BVDC_P_MAKE_RES(Comp4_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
@@ -244,6 +245,7 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
     BVDC_P_MAKE_RES(Comp5_G0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp6_G0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
 };
+#endif
 
 #define FTR_SD     (BVDC_P_Able_eSd)
 #define FTR_HD     (BVDC_P_Able_eHd)
@@ -264,6 +266,7 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
 /* this will cause acquire to fail */
 #define FTR___     (BVDC_P_Able_eInvalid)
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /* INDEX: by BVDC_P_WindowId. */
 static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 {
@@ -461,6 +464,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 
 #define BVDC_P_RESOURCE_FEATURE_TABLE_COUNT \
     (sizeof(s_aResourceFeatureTable) / sizeof(BVDC_P_ResourceFeature))
+#endif
 
 #if (BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT < 2)
 #undef  BCHP_VNET_B_CMP_0_V1_SRC
@@ -522,6 +526,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 #endif
 #endif
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /* compositor's win src mux addr: index by eWinId */
 static const uint32_t s_aulWinOutMuxAddr[] =
 {
@@ -560,6 +565,7 @@ static const uint32_t s_aulBlendAddr[] =
 #endif
 #endif
 };
+#endif
 
 /***************************************************************************
  * Window Id lookup table with compostior id, and source id.  This
@@ -571,6 +577,7 @@ typedef struct BVDC_P_Window_SelectedId
     BVDC_P_WindowId eWindowId;
 } BVDC_P_Window_SelectedId;
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /* INDEX: by BAVC_SourceId & BVDC_P_CompositorId. */
 static const BVDC_P_Window_SelectedId s_aaWindowIdSelectTable
     [BVDC_P_MAX_COMPOSITOR_COUNT /* compositor id (0,1,bypass) */]
@@ -786,6 +793,7 @@ static const BVDC_P_Window_SelectedId s_aaWindowIdSelectTable
      {true,  BVDC_P_WindowId_eComp6_V0},  /* Vfd6 */
      {true,  BVDC_P_WindowId_eComp6_V0}}, /* Vfd7 */
 };
+#endif
 
 #define BVDC_P_CMP_GET_REG_ADDR_IDX(reg) \
     ((reg- BCHP_CMP_0_REG_START) / sizeof(uint32_t))
@@ -1906,6 +1914,7 @@ static void BVDC_P_Window_GetCoverageInfo
     int32_t     lLeft, lRight, lTop, lBottom;
     BVDC_P_Window_CoverageInfo   stCoverageInfo;
 
+    BKNI_Memset((void*)&stCoverageInfo, 0x0, sizeof(BVDC_P_Window_CoverageInfo));
     ulMosaicCount = hWindow->stNewInfo.ulMaxMosaicCount;
 
     lLeft = hWindow->stNewInfo.astMosaicRect[0].lLeft;
@@ -5177,13 +5186,16 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         if(pUserInfo->ulMosaicTrackChannelId == pMvdFieldData->ulChannelId)
         {
             hSource->eFrameRateCode = pMvdFieldData->eFrameRateCode;
-            hSource->eMatrixCoefficients = pMvdFieldData->eMatrixCoefficients;
             /* Correct way is to convert indivisual input color space from
              * pFieldData->eMatrixCoefficients to tracked channel color space
              * defined by hSource->eMatrixCoefficients. Since we don't have all
              * the matrices yet, just convert all to HD.
              */
+#if 0
+            hSource->eMatrixCoefficients = pMvdFieldData->eMatrixCoefficients;
+#else
             hSource->eMatrixCoefficients = BAVC_MatrixCoefficients_eItu_R_BT_709;
+#endif
         }
         if(pUserInfo->ulMosaicCount > 1)
             pPicture->bMosaicIntra = hSource->stCurInfo.stDirty.stBits.bMosaicIntra;

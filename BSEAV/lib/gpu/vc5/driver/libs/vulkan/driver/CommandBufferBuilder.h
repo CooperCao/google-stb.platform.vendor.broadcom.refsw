@@ -7,7 +7,7 @@
 #include "ControlListBuilder.h"
 #include "RenderPass.h"
 #include "LinkResult.h"
-#include "QueryManager.h"
+#include "QueryPool.h"
 
 namespace bvk {
 
@@ -81,8 +81,6 @@ public:
 
    void DisableOcclusionQuery();
 
-   QueryManager *GetQueryManager() { return &m_queryManager; }
-
    const bvk::vector<uint8_t>   &PushConstants() const { return m_pushConstants; }
    DevMemRange &PushConstantsDevMem() { return m_pushConstantsDevMem; }
 
@@ -113,18 +111,18 @@ private:
          :  m_descTables(descTables), m_descSetBindings(descSetBindings) {}
 
       uint32_t CalcBufferAddress(uint32_t value, bool ssbo) const;
+      uint32_t CalcBufferArrayLength(uint32_t value) const;
       uint32_t CalcPushConstantAddress(uint32_t value, const DevMemRange &pcsDevMem) const;
       uint32_t CalcBufferUsableSpace(uint32_t value, bool ssbo, const CommandBufferBuilder &builder) const;
       uint32_t GetTextureNumLevels(uint32_t uValue) const;
       VkExtent3D GetTextureBaseExtent(uint32_t uValue) const;
 
-      uint32_t AssembleIMGParam0(uint32_t uValue) const;
-      uint32_t AssembleTMUParam1(uint32_t uValue) const;
-
-      const DescriptorInfo &GetIMGParamImageDescriptorSetInfo(uint32_t uValue) const;
-      const DescriptorInfo &GetTMUParamSamplerDescriptorSetInfo(uint32_t uValue) const;
+      uint32_t AssembleTMUParam(uint32_t uValue, uint32_t p) const;
 
    private:
+      uint32_t GetTMUParamImageDescriptorBits(uint32_t uValue) const;
+      uint32_t GetTMUParamSamplerDescriptorBits(uint32_t uValue) const;
+
       const DescriptorTables                   &m_descTables;
       const CmdBufState::DescriptorSetBindings &m_descSetBindings;
    };
@@ -142,11 +140,11 @@ private:
    void InsertColorClearValues();
    void InsertDepthStencilClearValues();
    void CreateRenderControlList(CmdBinRenderJobObj *brJob, const ControlList  &genTileList,
-                                v3d_barrier_flags syncFlags) override;
+                                v3d_barrier_flags syncFlags, bool allowEarlyDSClear) override;
    void AddStore(uint32_t rpIndex, v3d_ldst_buf_t buf, bool resolve);
    void AddLoad(uint32_t rpIndex, v3d_ldst_buf_t buf);
-   void AddTileListLoads() override;
-   void AddTileListStores() override;
+   void AddTileListLoads(bool *allowEarlyDSClear) override;
+   void AddTileListStores(bool *allowEarlyDSClear) override;
    void CopyAndPatchGraphicsUniformBuffers(GraphicsUniformBufferData& unifBufs,
                                            const GraphicsPipeline &pipe);
    void PatchTNGUniformAddresses(const uint32_t *srcPtr, uint32_t *dstPtr,
@@ -163,6 +161,7 @@ public:
 
    // Current command buffer dynamic state
    CmdBufState                      m_curState;
+   bool                             m_isSecondary = false;
 
    // Current push constant state and backing memory (when needed)
    bvk::vector<uint8_t>             m_pushConstants;
@@ -180,8 +179,9 @@ public:
    SubPass                         *m_curSubpass = nullptr;
    const RenderPass::SubpassGroup  *m_curSubpassGroup = nullptr;
 
-   // Query state management
-   QueryManager                     m_queryManager;
+   // Occlusion query state management
+   v3d_addr_t                       m_curQueryCounter = 0;
+   bvk::set<QueryID>                m_dirtyQueries;
 
    // List of commands from a secondary buffer which must execute after the primary
    // binRender job that branches into the secondary has completed.

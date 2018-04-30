@@ -224,6 +224,9 @@ BERR_Code BSRF_g1_P_OpenChannel(
 
    chG1->bEnableFastDecay = false;
    chG1->bAntennaSenseEnabled = false;
+   chG1->bEnableNotch = false;
+   chG1->notchFreq = BSRF_DEFAULT_FNOTCH_HZ;
+   chG1->tunerFreq = BSRF_DEFAULT_FC_HZ;
    chG1->modeAoc = 2;
    chG1->modeAd = 1;
    chG1->fastDecayGainThr = 0;
@@ -879,10 +882,56 @@ BERR_Code BSRF_g1_P_Tune(BSRF_ChannelHandle h, uint32_t freqHz)
    /* save center freq if valid */
    hChn->tunerFreq = freqHz;
 
-   BSRF_g1_Tuner_P_SetNotchFcw(h, BSRF_NOTCH_FREQ_HZ);
-   BSRF_g1_Tuner_P_SetFcw(h, BSRF_MPLL_FREQ_HZ - freqHz - BSRF_NOTCH_FREQ_HZ);
+   /* f_lo = f_notch + f_mixer = f_tune - f_mpll */
+   /* f_notch = f_mpll - f_spur */
+   /* f_mixer = f_mpll - f_notch - f_tune = f_spur - f_tune */
+
+   BSRF_g1_Tuner_P_SetNotchFcw(h, hChn->notchFreq);
+   BSRF_g1_Tuner_P_SetFcw(h, BSRF_MPLL_FREQ_HZ - hChn->notchFreq - freqHz);
+   /*BKNI_Printf("BSRF_g1_P_Tune:f_notch=%d, f_mixer=%d\n", hChn->notchFreq, BSRF_MPLL_FREQ_HZ - hChn->notchFreq - freqHz);*/
 
    BDBG_LEAVE(BSRF_g1_P_Tune);
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_Notch
+******************************************************************************/
+BERR_Code BSRF_g1_P_Notch(BSRF_ChannelHandle h, bool bEnable, uint32_t freqHz, uint8_t bandwidth)
+{
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_g1_P_Notch);
+
+   if (!h->bEnabled)
+      return BSRF_ERR_POWERED_DOWN;
+
+   if (bEnable)
+      BSRF_P_AndRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, ~0x00000300);
+   else
+      BSRF_P_OrRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, 0x00000300);  /* bypass freeze notch if zero */
+
+   /* verify range of notch freq */
+   if ((freqHz > (BSRF_DEFAULT_FC_HZ + 12500000)) || (freqHz < (BSRF_DEFAULT_FC_HZ - 12500000)))
+      return BERR_INVALID_PARAMETER;
+   if (bandwidth > 29)
+      return BERR_INVALID_PARAMETER;
+
+   /* save notch freq if valid */
+   /* f_notch = f_mpll - f_spur */
+   hChn->notchFreq = BSRF_MPLL_FREQ_HZ - freqHz;
+
+   /* f_mixer = f_mpll - f_notch - f_tune = f_spur - f_tune */
+   BSRF_g1_Tuner_P_SetNotchFcw(h, hChn->notchFreq);
+   BSRF_g1_Tuner_P_SetFcw(h, freqHz - hChn->tunerFreq);
+   /*BKNI_Printf("BSRF_g1_P_Notch:f_notch=%d, f_mixer=%d\n", hChn->notchFreq, freqHz - hChn->tunerFreq);*/
+
+   /* set notch bandwidth */
+   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, ~0x0000001F, bandwidth & 0x1F);
+
+   BDBG_LEAVE(BSRF_g1_P_Notch);
    return BERR_SUCCESS;
 }
 

@@ -834,8 +834,8 @@ map_eglSetEventCollectionBRCM = base_eglSetEventCollectionBRCM;
 map_eglGetEventDataBRCM = base_eglGetEventDataBRCM;
 #endif /* EGL_BRCM_event_monitor*/
 
-#if EGL_BRCM_gl_framebuffer_image
-#endif /* EGL_BRCM_gl_framebuffer_image*/
+#if EGL_BRCM_image_nexus_striped_surface
+#endif /* EGL_BRCM_image_nexus_striped_surface*/
 
 #if EGL_BRCM_image_update_control
 map_eglImageUpdateParameterivBRCM = base_eglImageUpdateParameterivBRCM;
@@ -921,6 +921,9 @@ map_glTexStorage1DBRCM = base_glTexStorage1DBRCM;
 
 #if GL_BRCM_texture_unnormalised_coords
 #endif /* GL_BRCM_texture_unnormalised_coords*/
+
+#if GL_EXT_EGL_image_external_wrap_modes
+#endif /* GL_EXT_EGL_image_external_wrap_modes*/
 
 #if GL_EXT_base_instance
 map_glDrawArraysInstancedBaseInstanceEXT = base_glDrawArraysInstancedBaseInstanceEXT;

@@ -254,7 +254,7 @@ BERR_Code BSID_P_LoadCode(BSID_Handle hSid)
     }
 done:
     pImgInterface->close(pImage);
-
+    /* coverity[leaked_storage] - coverity mismatches open and close, resulting in false detection */
     return retCode;
 }
 

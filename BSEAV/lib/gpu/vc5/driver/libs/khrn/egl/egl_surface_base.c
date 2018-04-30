@@ -37,8 +37,8 @@ static EGLint init_attribs(EGL_SURFACE_T *surface, const void *attrib_list,
 void egl_surface_base_swap_done(EGL_SURFACE_T *surface, int new_buffer_age)
 {
    /* Reset the per-swap state in the surface and set the age */
-   free(surface->damage_rects);
-   surface->damage_rects       = NULL;
+   KHRN_MEM_ASSIGN(surface->damage_rects, NULL);
+
    surface->num_damage_rects   = -1;
    surface->buffer_age         = new_buffer_age;
    surface->buffer_age_queried = false;
@@ -83,8 +83,8 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
    surface->buffer_age         = 0;
    surface->buffer_age_queried = false;
    surface->buffer_age_enabled = false;
-   surface->damage_rects       = NULL;
    surface->num_damage_rects   = -1;
+   surface->damage_rects       = NULL;
 
    EGLint status = init_attribs(surface, attrib_list, attrib_type);
    if (status != EGL_SUCCESS) return status;
@@ -106,6 +106,7 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
 
 void egl_surface_base_destroy(EGL_SURFACE_T *surface)
 {
+   KHRN_MEM_ASSIGN(surface->damage_rects, NULL);
    egl_surface_base_delete_aux_bufs(surface);
    vcos_mutex_delete(&surface->lock);
 }
@@ -369,7 +370,7 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
       {
          config->depth_stencil_api_fmt,
          config->depth_stencil_api_fmt,
-         GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL,
+         GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_TLB,
          1,
          egl_config_get_attrib(config, EGL_DEPTH_SIZE, NULL),
       },
@@ -378,7 +379,7 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
       {
          config->stencil_api_fmt,
          config->stencil_api_fmt,
-         GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL,
+         GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_TLB,
          1,
          egl_config_get_attrib(config, EGL_STENCIL_SIZE, NULL),
       },
@@ -388,11 +389,14 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
          color_format,
 #if V3D_VER_AT_LEAST(4,1,34,0)
          color_format,
-         GFX_BUFFER_USAGE_V3D_RENDER_TARGET,
 #else
          gfx_lfmt_translate_internal_raw_mode(color_format),
-         GFX_BUFFER_USAGE_V3D_RENDER_TARGET | GFX_BUFFER_USAGE_V3D_TLB_RAW,
 #endif
+         GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_RENDER_TARGET
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+         | GFX_BUFFER_USAGE_V3D_TLB_RAW
+#endif
+         ,
          2,
          0,
       }
@@ -411,10 +415,6 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
    else
    {
       assert(config->samples == 0);
-
-      for (egl_aux_buf_t i = AUX_DEPTH; i <= AUX_STENCIL; i++)
-         /* For glBlitFramebuffer */
-         params[i].flags |= GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_RENDER_TARGET;
 
       params[AUX_MULTISAMPLE].api_fmt = GFX_LFMT_NONE;
       params[AUX_MULTISAMPLE].image_fmt = GFX_LFMT_NONE;

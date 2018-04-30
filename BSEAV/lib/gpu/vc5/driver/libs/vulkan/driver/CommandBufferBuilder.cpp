@@ -61,9 +61,14 @@ CommandBufferBuilder::CommandBufferBuilder(
    m_curRenderPassState(pCallbacks),
    m_tlbAttachmentInfo(GetObjScopeAllocator<TLBAttachmentInfo>()),
    m_subpasses(GetObjScopeAllocator<SubPass>()),
-   m_queryManager(cmdBuf, this, pCallbacks),
    m_delayedPostCommands(GetObjScopeAllocator<Command*>())
 {
+   m_isSecondary = cmdBuf->m_level == VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+
+   // Init the early z state manager
+   // Note: we currently disable early z handling for secondary command buffers. It just doesn't
+   // fit with the way we handle them at the moment.
+   m_curState.InitEarlyZState(!m_isSecondary && Options::earlyZ);
 }
 
 void CommandBufferBuilder::GetTLBDataForAttachment(
@@ -76,8 +81,7 @@ void CommandBufferBuilder::GetTLBDataForAttachment(
       // Find the format of the attachment and convert to v3d types
       assert(m_curRenderPassState.framebuffer != nullptr);
 
-      VkImageView  vkImgView = m_curRenderPassState.framebuffer->Attachments()[attachmentIndex];
-      ImageView   *imgView   = fromHandle<ImageView>(vkImgView);
+      ImageView *imgView = m_curRenderPassState.framebuffer->Attachments()[attachmentIndex];
       imgView->GetTLBParams(&out->ldstParams);
 
       out->layerStride    = imgView->GetLayerStride();
@@ -99,8 +103,7 @@ void CommandBufferBuilder::GatherTLBInfo()
 
 void CommandBufferBuilder::AllocateLazyMemory(uint32_t attIndex)
 {
-   VkImageView  vkImgView = m_curRenderPassState.framebuffer->Attachments()[attIndex];
-   ImageView   *imgView = fromHandle<ImageView>(vkImgView);
+   ImageView *imgView = m_curRenderPassState.framebuffer->Attachments()[attIndex];
 
    if (imgView->HasUnallocatedLazyMemory())
    {
@@ -149,6 +152,13 @@ void CommandBufferBuilder::BeginRenderPass(
    // Gather some v3d specific data for each attachment
    GatherTLBInfo();
 
+   // Init the early z state manager at the beginning of a new render pass
+   // Note: we currently disable early z handling for secondary command buffers. It just doesn't
+   // fit with the way we handle them at the moment.
+   m_curState.InitEarlyZState(contents != VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS &&
+                              !m_curRenderPassState.needRectBasedClears &&
+                              !m_isSecondary && renderPass.EarlyZCompatible() && Options::earlyZ);
+
    BeginSubpass();
 }
 
@@ -160,7 +170,7 @@ void CommandBufferBuilder::DrawClearRectForAttachmentIfNeeded(uint32_t rpIndex, 
    const RenderPass::Attachment& attachment = m_curRenderPassState.renderPass->Attachments()[rpIndex];
    if (attachment.vkClearRectAspectMask)
    {
-      ImageView *imgView = fromHandle<ImageView>(m_curRenderPassState.framebuffer->Attachments()[rpIndex]);
+      ImageView *imgView = m_curRenderPassState.framebuffer->Attachments()[rpIndex];
       auto &srr = imgView->GetSubresourceRange();
 
       VkClearAttachment ca;
@@ -297,19 +307,19 @@ void CommandBufferBuilder::InsertDepthStencilClearValues()
 void CommandBufferBuilder::CreateRenderControlList(
    CmdBinRenderJobObj *brJob,
    const ControlList  &genTileList,
-   v3d_barrier_flags   syncFlags)
+   v3d_barrier_flags   syncFlags,
+   bool                allowEarlyDSClear)
 {
    uint32_t core = 0; // TODO - multi core
 
    ControlList renderList;
 
    constexpr bool doubleBuffer = false; // TODO - double buffer
-   constexpr bool earlyDSClear = false; // TODO - early DS clear
 
    StartRenderJobCL(brJob, &renderList);
 
    // Output the rendering config
-   InsertRenderTargetCfg(doubleBuffer, earlyDSClear);
+   InsertRenderTargetCfg(doubleBuffer, allowEarlyDSClear);
 
    // Clear values
    InsertColorClearValues();
@@ -317,8 +327,7 @@ void CommandBufferBuilder::CreateRenderControlList(
 
    bool clearRTs = CurSubpassGroup()->m_numColorRenderTargets > 0;
 
-   // Initial clears
-   InsertInitialTLBClear(doubleBuffer, clearRTs, !earlyDSClear);
+   InsertDummyTiles(doubleBuffer, clearRTs, !allowEarlyDSClear);
 
    EndRenderJobCL(brJob, &renderList, genTileList, core, syncFlags);
 }
@@ -386,17 +395,17 @@ void CommandBufferBuilder::WriteGraphicsShaderRecord()
 
    // Choose which control list function to use
    std::function<void(uint8_t**, uint32_t, v3d_addr_t)> clShaderRecFn;
-   if (linkData.m_hasGeom && linkData.m_hasTess)
+   if (linkData.m_data.has_geom && linkData.m_data.has_tess)
       clShaderRecFn = v3d_cl_gl_tg_shader;
-   else if (linkData.m_hasGeom)
+   else if (linkData.m_data.has_geom)
       clShaderRecFn = v3d_cl_gl_g_shader;
-   else if (linkData.m_hasTess)
+   else if (linkData.m_data.has_tess)
       clShaderRecFn = v3d_cl_gl_t_shader;
    else
       clShaderRecFn = v3d_cl_gl_shader;
 
    // Add the shader record to the control list
-   uint32_t numAttrs = gfx_umax(1u, linkData.m_attrCount);  // Zero attrs not allowed
+   uint32_t numAttrs = gfx_umax(1u, linkData.m_data.attr_count);  // Zero attrs not allowed
    clShaderRecFn(CLPtr(), numAttrs, shadrecMem.Phys());
 }
 
@@ -435,9 +444,10 @@ void CommandBufferBuilder::PatchMainShadrecUniformAddresses(
 {
    // Patch the main shader record (unpack from sysMem, patch, pack to devMem)
    const GraphicsPipeline *pipe = m_curState.BoundGraphicsPipeline();
+   uint32_t offset = pipe->GetShaderPatchingData().offsetGLMain;
 
    V3D_SHADREC_GL_MAIN_T srec;
-   v3d_unpack_shadrec_gl_main(&srec, srcPtr);
+   v3d_unpack_shadrec_gl_main(&srec, srcPtr + offset);
 
    // TODO : would be nice if we could do this without unpacking and repacking
    // the record. Any way we can just patch the required words?
@@ -451,7 +461,7 @@ void CommandBufferBuilder::PatchMainShadrecUniformAddresses(
    assert(srec.cs.unifs_addr == pipe->UNIFORM_PATCHTAG);
    srec.cs.unifs_addr = unifBufs.vpUniformMem[LinkResult::SHADER_VPS_VS][MODE_BIN].Phys();
 
-   v3d_pack_shadrec_gl_main(dstPtr, &srec);
+   v3d_pack_shadrec_gl_main(dstPtr + offset, &srec);
 }
 
 void CommandBufferBuilder::PatchMainShadrecAttributeAddressesAndMaxIndex(
@@ -461,9 +471,9 @@ void CommandBufferBuilder::PatchMainShadrecAttributeAddressesAndMaxIndex(
    const GraphicsPipeline *pipe = m_curState.BoundGraphicsPipeline();
    const LinkResult       &linkData = pipe->GetLinkResult();
 
-   for (uint32_t n = 0; n < linkData.m_attrCount; n++)
+   for (uint32_t n = 0; n < linkData.m_data.attr_count; n++)
    {
-      uint32_t attrIndex  = linkData.m_attr[n].idx;
+      uint32_t attrIndex  = linkData.m_data.attr[n].idx;
 
       const auto &attDesc = pipe->GetVertexAttributeDesc(attrIndex);
       const auto &vBuf    = m_cmdBuf->CurState().BoundVertexBuffer(attDesc.binding);
@@ -490,32 +500,93 @@ void CommandBufferBuilder::PatchMainShadrecAttributeAddressesAndMaxIndex(
    }
 }
 
+class BuffBounds
+{
+public:
+   BuffBounds(const DescriptorInfo &descInfo, const CmdBufState::DescriptorSetBinding &ds);
+
+   uint32_t GetStart() const { return m_start; }
+   uint32_t GetEnd()   const { return m_end;   }
+
+private:
+   uint32_t m_start;
+   uint32_t m_end;
+};
+
+BuffBounds::BuffBounds(const DescriptorInfo &descInfo, const CmdBufState::DescriptorSetBinding &ds)
+{
+   uint32_t binding = descInfo.GetBindingPoint();
+   uint32_t element = descInfo.GetElement();
+
+   uint32_t   dynOffset = ds.GetDynamicOffset(binding, element);
+   uint32_t   buffRange = ds.GetBufferRange(binding, element);
+   uint32_t   buffSize  = ds.GetBufferSize(binding, element);
+   v3d_addr_t buffAddr  = ds.GetBufferAddress(binding, element);
+
+   m_start = buffAddr + dynOffset;
+   // Did we overflow?
+   if (m_start < buffAddr)
+   {
+      m_start = buffAddr;
+      dynOffset = 0;
+   }
+
+   m_end = std::min(buffAddr + buffSize, buffAddr + dynOffset + buffRange);
+}
+
+static uint32_t RuntimeArrayLength(const BuffBounds &bounds, const DescriptorInfo &descInfo)
+{
+   v3d_addr_t arrayStart = bounds.GetStart() + descInfo.GetArrayOffset();
+
+   if (arrayStart > bounds.GetEnd())
+      return 0;
+
+   return (bounds.GetEnd() - arrayStart) / descInfo.GetArrayStride();
+}
+
 uint32_t CommandBufferBuilder::UniformPatcher::CalcBufferAddress(uint32_t value, bool ssbo) const
 {
    uint32_t descTableIndex = value & DriverLimits::eBufferTableIndexMask;
-   uint32_t byteOffset = (value >> DriverLimits::eBufferTableIndexBits) & DriverLimits::eBufferOffsetMask;
+   uint32_t byteOffset     = (value >> DriverLimits::eBufferTableIndexBits) & DriverLimits::eBufferOffsetMask;
 
    // Get the descriptor info from the table in the linkResult
-   const DescriptorInfo &descInfo = m_descTables.GetBuffer(ssbo, descTableIndex);
+   const DescriptorInfo                    &descInfo = m_descTables.GetBuffer(ssbo, descTableIndex);
+   const CmdBufState::DescriptorSetBinding &binding  = m_descSetBindings[descInfo.GetDescriptorSet()];
 
-   // Get the physical address of the UBO from the bound descriptor set
-   auto &ds = m_descSetBindings[descInfo.descriptorSet];
+   BuffBounds bounds(descInfo, binding);
 
-   uint32_t   dynamicOffset = ds.GetDynamicOffset(descInfo.bindingPoint, descInfo.element);
-   uint32_t   range = ds.descriptorSet->GetBufferRange(descInfo.bindingPoint, descInfo.element);
-   uint32_t   size  = ds.descriptorSet->GetBufferSize(descInfo.bindingPoint, descInfo.element);
-   v3d_addr_t base  = ds.descriptorSet->GetBufferAddress(descInfo.bindingPoint, descInfo.element);
-   v3d_addr_t addr;
+   if (ssbo)
+   {
+      uint32_t arrayOffset = descInfo.GetArrayOffset();
+      uint32_t arrayStride = descInfo.GetArrayStride();
 
-   if (byteOffset >= range || dynamicOffset + byteOffset >= size)
-      addr = base;
-   else
-      addr = base + dynamicOffset + byteOffset;
+      // Access to the runtime array at the end of an SSBO is handled specially.  This
+      // code is analagous to the code in glxx_hw_install_uniforms() from glxx_hw.c
+      if (arrayOffset != ~0u && byteOffset >= (arrayOffset + arrayStride))
+      {
+         uint32_t offsetInArray = byteOffset - arrayOffset;
+         uint32_t arrayLength   = RuntimeArrayLength(bounds, descInfo);
+         uint32_t arraySize     = arrayLength * arrayStride;
+         if (offsetInArray >= arraySize)
+            byteOffset -= (((offsetInArray - arraySize) / arrayStride) + 1) * arrayStride;
+      }
+   }
 
-   if (addr < base)  // In case of overflow
-      addr = base;
+   return bounds.GetStart() + byteOffset;
+}
 
-   return addr;
+uint32_t CommandBufferBuilder::UniformPatcher::CalcBufferArrayLength(uint32_t value) const
+{
+   uint32_t descTableIndex = value & DriverLimits::eBufferTableIndexMask;
+   uint32_t indexOffset    = (value >> DriverLimits::eBufferTableIndexBits) & DriverLimits::eBufferOffsetMask;
+
+   // Get the descriptor info from the table in the linkResult
+   const DescriptorInfo                    &descInfo = m_descTables.GetBuffer(/*ssbo=*/true, descTableIndex);
+   const CmdBufState::DescriptorSetBinding &binding  = m_descSetBindings[descInfo.GetDescriptorSet()];
+
+   BuffBounds bounds(descInfo, binding);
+
+   return RuntimeArrayLength(bounds, descInfo) - indexOffset;
 }
 
 uint32_t CommandBufferBuilder::UniformPatcher::CalcPushConstantAddress(uint32_t value,
@@ -548,11 +619,14 @@ uint32_t CommandBufferBuilder::UniformPatcher::CalcBufferUsableSpace(uint32_t va
       // Get the descriptor info from the table in the linkResult
       const DescriptorInfo &descInfo = m_descTables.GetBuffer(ssbo, descTableIndex);
 
-      auto &ds = m_descSetBindings[descInfo.descriptorSet];
+      auto &ds = m_descSetBindings[descInfo.GetDescriptorSet()];
 
-      dynamicOffset = ds.GetDynamicOffset(descInfo.bindingPoint, descInfo.element);
-      range = ds.descriptorSet->GetBufferRange(descInfo.bindingPoint, descInfo.element);
-      size  = ds.descriptorSet->GetBufferSize(descInfo.bindingPoint, descInfo.element);
+      uint32_t binding = descInfo.GetBindingPoint();
+      uint32_t element = descInfo.GetElement();
+
+      dynamicOffset = ds.GetDynamicOffset(binding, element);
+      range         = ds.GetBufferRange(binding, element);
+      size          = ds.GetBufferSize(binding, element);
    }
 
    if (byteOffset >= range || dynamicOffset + byteOffset >= size)
@@ -561,32 +635,36 @@ uint32_t CommandBufferBuilder::UniformPatcher::CalcBufferUsableSpace(uint32_t va
    return range - byteOffset;
 }
 
-const DescriptorInfo &CommandBufferBuilder::UniformPatcher::GetTMUParamSamplerDescriptorSetInfo(uint32_t uValue) const
+uint32_t CommandBufferBuilder::UniformPatcher::GetTMUParamSamplerDescriptorBits(uint32_t uValue) const
 {
    // Sampler
    uint32_t samplerTableIndex = backend_uniform_get_sampler(uValue) & DriverLimits::eSamplerTableIndexMask;
-   return m_descTables.GetSampler(samplerTableIndex);
+   const DescriptorInfo &descInfo = m_descTables.GetSampler(samplerTableIndex);
+   auto &ds = m_descSetBindings[descInfo.GetDescriptorSet()];
+   return ds.descriptorSet->GetSamplerParam(descInfo.GetBindingPoint(), descInfo.GetElement());
 }
 
-const DescriptorInfo &CommandBufferBuilder::UniformPatcher::GetIMGParamImageDescriptorSetInfo(uint32_t uValue) const
+uint32_t CommandBufferBuilder::UniformPatcher::GetTMUParamImageDescriptorBits(uint32_t uValue) const
 {
    // Sampled or Storage image
    uint32_t imageTableIndex = backend_uniform_get_sampler(uValue) & DriverLimits::eImageTableIndexMask;
-   return m_descTables.GetImage(imageTableIndex);
+   const DescriptorInfo &descInfo = m_descTables.GetImage(imageTableIndex);
+   auto &ds = m_descSetBindings[descInfo.GetDescriptorSet()];
+   return ds.descriptorSet->GetImageParam(descInfo.GetBindingPoint(), descInfo.GetElement());
 }
 
 uint32_t CommandBufferBuilder::UniformPatcher::GetTextureNumLevels(uint32_t uValue) const
 {
    const DescriptorInfo &descInfo = m_descTables.GetImage(uValue);
-   auto &ds = m_descSetBindings[descInfo.descriptorSet];
-   return ds.descriptorSet->GetNumLevels(descInfo.bindingPoint, descInfo.element);
+   auto &ds = m_descSetBindings[descInfo.GetDescriptorSet()];
+   return ds.descriptorSet->GetNumLevels(descInfo.GetBindingPoint(), descInfo.GetElement());
 }
 
 VkExtent3D CommandBufferBuilder::UniformPatcher::GetTextureBaseExtent(uint32_t uValue) const
 {
    const DescriptorInfo &descInfo = m_descTables.GetImage(uValue);
-   auto &ds = m_descSetBindings[descInfo.descriptorSet];
-   return ds.descriptorSet->GetTextureSize(descInfo.bindingPoint, descInfo.element);
+   auto &ds = m_descSetBindings[descInfo.GetDescriptorSet()];
+   return ds.descriptorSet->GetTextureSize(descInfo.GetBindingPoint(), descInfo.GetElement());
 }
 
 void CommandBufferBuilder::SetPushConstants(uint32_t bytesRequired, uint32_t offset,
@@ -697,6 +775,9 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
       case BACKEND_UNIFORM_SSBO_ADDRESS:
          ptr->u = patcher.CalcBufferAddress(patch.value, /*ssbo=*/true);
          break;
+      case BACKEND_UNIFORM_SSBO_ARRAY_LENGTH:
+         ptr->u = patcher.CalcBufferArrayLength(patch.value);
+         break;
       case BACKEND_UNIFORM_SSBO_SIZE:
          ptr->u = patcher.CalcBufferUsableSpace(patch.value, /*ssbo=*/true, *this);
          break;
@@ -705,10 +786,10 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
          break;
       case BACKEND_UNIFORM_TEX_PARAM0:  // Sampled image
       case BACKEND_UNIFORM_IMG_PARAM0:  // Storage image
-         ptr->u = patcher.AssembleIMGParam0(patch.value);
+         ptr->u = patcher.AssembleTMUParam(patch.value, 0);
          break;
       case BACKEND_UNIFORM_TEX_PARAM1:  // Sampler
-         ptr->u = patcher.AssembleTMUParam1(patch.value);
+         ptr->u = patcher.AssembleTMUParam(patch.value, 1);
          break;
       case BACKEND_UNIFORM_TEX_SIZE_X:
       case BACKEND_UNIFORM_IMG_SIZE_X:
@@ -725,7 +806,6 @@ void CommandBufferBuilder::CopyAndPatchUniformBuffer(
       case BACKEND_UNIFORM_TEX_LEVELS:
          ptr->u = patcher.GetTextureNumLevels(patch.value);
          break;
-      case BACKEND_UNIFORM_ATOMIC_ADDRESS: // Don't exist in Vulkan
       default:
          unreachable();
       }
@@ -754,8 +834,8 @@ void CommandBufferBuilder::InsertRenderTargetCfg(bool doubleBuffer, bool earlyDS
       m_curSubpassGroup->m_multisampled,
       doubleBuffer,
       /*coverage=*/false,
-      V3D_EZ_DIRECTION_LT_LE,    // TODO - earlyZ
-      /*earlyZDisable=*/true,    // TODO - earlyZ
+      m_curState.GetEarlyZState().rcfg_ez_direction,
+      m_curState.GetEarlyZState().rcfg_ez_disable,
       depthType,
       earlyDSClear
    );
@@ -833,7 +913,7 @@ void CommandBufferBuilder::AddLoad(uint32_t rpIndex, v3d_ldst_buf_t buf)
       ls.stride, ls.flipy_height_px, ls.addr);
 }
 
-void CommandBufferBuilder::AddTileListLoads()
+void CommandBufferBuilder::AddTileListLoads(bool *allowEarlyDSClear)
 {
    for (unsigned rt = 0; rt < m_curSubpassGroup->m_numColorRenderTargets; ++rt)
    {
@@ -845,10 +925,10 @@ void CommandBufferBuilder::AddTileListLoads()
          AddLoad(rpIndex, v3d_ldst_buf_color(rt));
    }
 
-   bool loadDepth = NeedToLoad(m_curSubpassGroup->m_depthLoadOp);
+   bool loadDepth   = NeedToLoad(m_curSubpassGroup->m_depthLoadOp);
    bool loadStencil = NeedToLoad(m_curSubpassGroup->m_stencilLoadOp);
 
-   loadDepth = m_curSubpassGroup->m_hasDepth && (loadDepth || m_forceRTLoad);
+   loadDepth   = m_curSubpassGroup->m_hasDepth   && (loadDepth   || m_forceRTLoad);
    loadStencil = m_curSubpassGroup->m_hasStencil && (loadStencil || m_forceRTLoad);
 
    if (m_curSubpassGroup->m_dsAttachment != VK_ATTACHMENT_UNUSED && (loadDepth || loadStencil))
@@ -857,14 +937,16 @@ void CommandBufferBuilder::AddTileListLoads()
       v3d_ldst_buf_t buf = v3d_ldst_buf_ds(loadDepth, loadStencil);
 
       AddLoad(rpIndex, buf);
+
+      *allowEarlyDSClear = false;
    }
 }
 
-void CommandBufferBuilder::AddTileListStores()
+void CommandBufferBuilder::AddTileListStores(bool *allowEarlyDSClear)
 {
-   bool doneStore = false;
+   bool doneStore  = false;
    bool colorClear = false;
-   bool dsClear = false;
+   bool dsClear    = false;
 
    // Note: we don't clear during store, since we may be storing to multiple locations
    for (unsigned rt = 0; rt < m_curSubpassGroup->m_numColorRenderTargets; ++rt)
@@ -889,13 +971,13 @@ void CommandBufferBuilder::AddTileListStores()
       }
    }
 
-   dsClear |= (m_curSubpassGroup->m_depthLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
-      m_curSubpassGroup->m_stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR);
+   dsClear |= (m_curSubpassGroup->m_depthLoadOp   == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+               m_curSubpassGroup->m_stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR);
 
-   bool storeDepth = m_curSubpassGroup->m_depthStoreOp == VK_ATTACHMENT_STORE_OP_STORE;
+   bool storeDepth   = m_curSubpassGroup->m_depthStoreOp   == VK_ATTACHMENT_STORE_OP_STORE;
    bool storeStencil = m_curSubpassGroup->m_stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE;
-   storeDepth = m_curSubpassGroup->m_hasDepth && (storeDepth || m_forceRTStore);
-   storeStencil = m_curSubpassGroup->m_hasStencil && (storeStencil || m_forceRTStore);
+   storeDepth        = m_curSubpassGroup->m_hasDepth   && (storeDepth   || m_forceRTStore);
+   storeStencil      = m_curSubpassGroup->m_hasStencil && (storeStencil || m_forceRTStore);
 
    if (m_curSubpassGroup->m_dsAttachment != VK_ATTACHMENT_UNUSED && (storeDepth || storeStencil))
    {
@@ -904,6 +986,8 @@ void CommandBufferBuilder::AddTileListStores()
 
       AddStore(rpIndex, buf, /*resolve=*/false);
       doneStore = true;
+
+      *allowEarlyDSClear = false;
    }
 
    if (!doneStore)
@@ -916,7 +1000,7 @@ void CommandBufferBuilder::AddTileListStores()
    }
 
    if (!m_forceRTStore && (colorClear || dsClear))
-      v3d_cl_clear(CLPtr(), colorClear, dsClear);
+      v3d_cl_clear(CLPtr(), colorClear, dsClear && !*allowEarlyDSClear);
 }
 
 void CommandBufferBuilder::PatchTNGUniformAddresses(
@@ -929,45 +1013,34 @@ void CommandBufferBuilder::PatchTNGUniformAddresses(
    // Patch the uniform addresses in the T+G records
    for (unsigned s = LinkResult::SHADER_VPS_VS + 1; s <= LinkResult::SHADER_VPS_TES; ++s)
    {
-      uint32_t offset = pipe->GetShaderPatchingData().offsetGLGeom[s][MODE_RENDER];
-      if (offset != 0)
-      {
-         // Unpack from sysMem
-         V3D_SHADREC_GL_GEOM_T stageShadrec;
-         v3d_unpack_shadrec_gl_geom(&stageShadrec, srcPtr + offset);
+      if ((s == LinkResult::SHADER_VPS_GS && !pipe->GetShaderPatchingData().hasG) ||
+          (s != LinkResult::SHADER_VPS_GS && !pipe->GetShaderPatchingData().hasT)  )
+         continue;
 
-         // TODO : would be nice if we could do this without unpacking and repacking
-         // the record. Any way we can just patch the required words?
+      uint32_t offset = pipe->GetShaderPatchingData().offsetGLGeom[s];
 
-         assert(stageShadrec.gs_bin.unifs_addr == pipe->UNIFORM_PATCHTAG);
-         stageShadrec.gs_bin.unifs_addr = unifBufs.vpUniformMem[s][MODE_BIN].Phys();
+      // Unpack from sysMem
+      V3D_SHADREC_GL_GEOM_T stageShadrec;
+      v3d_unpack_shadrec_gl_geom(&stageShadrec, srcPtr + offset);
 
-         assert(stageShadrec.gs_render.unifs_addr == pipe->UNIFORM_PATCHTAG);
-         stageShadrec.gs_render.unifs_addr = unifBufs.vpUniformMem[s][MODE_RENDER].Phys();
+      // TODO : would be nice if we could do this without unpacking and repacking
+      // the record. Any way we can just patch the required words?
 
-         // Pack to devMem
-         v3d_pack_shadrec_gl_geom(dstPtr + offset, &stageShadrec);
-      }
+      assert(stageShadrec.gs_bin.unifs_addr == pipe->UNIFORM_PATCHTAG);
+      stageShadrec.gs_bin.unifs_addr = unifBufs.vpUniformMem[s][MODE_BIN].Phys();
+
+      assert(stageShadrec.gs_render.unifs_addr == pipe->UNIFORM_PATCHTAG);
+      stageShadrec.gs_render.unifs_addr = unifBufs.vpUniformMem[s][MODE_RENDER].Phys();
+
+      // Pack to devMem
+      v3d_pack_shadrec_gl_geom(dstPtr + offset, &stageShadrec);
    }
 }
 
-uint32_t CommandBufferBuilder::UniformPatcher::AssembleIMGParam0(uint32_t uValue) const
+uint32_t CommandBufferBuilder::UniformPatcher::AssembleTMUParam(uint32_t uValue, uint32_t p) const
 {
-   // Sampled or Storage image
-   const DescriptorInfo &descInfo = GetIMGParamImageDescriptorSetInfo(uValue);
-   auto &ds = m_descSetBindings[descInfo.descriptorSet];
-   uint32_t bits = ds.descriptorSet->GetImageParam(descInfo.bindingPoint, descInfo.element);
-   uint32_t extraBits = backend_uniform_get_extra(uValue);
-   assert(!(bits & extraBits));
-   return (bits | extraBits);
-}
-
-uint32_t CommandBufferBuilder::UniformPatcher::AssembleTMUParam1(uint32_t uValue) const
-{
-   // Sampler
-   const DescriptorInfo &descInfo = GetTMUParamSamplerDescriptorSetInfo(uValue);
-   auto    &ds = m_descSetBindings[descInfo.descriptorSet];
-   uint32_t bits = ds.descriptorSet->GetSamplerParam(descInfo.bindingPoint, descInfo.element);
+   uint32_t bits = (p == 0) ? GetTMUParamImageDescriptorBits(uValue) :
+                              GetTMUParamSamplerDescriptorBits(uValue);
    uint32_t extraBits = backend_uniform_get_extra(uValue);
    assert(!(bits & extraBits));
    return (bits | extraBits);

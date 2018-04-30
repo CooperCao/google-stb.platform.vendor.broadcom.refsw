@@ -21,11 +21,11 @@
 /* Our own representation of an egl_window_surface */
 struct egl_window_surface
 {
-   EGL_SURFACE_T  base;                      /* The driver's internal surface data */
-   int            interval;                  /* pushed as part of buffer queue */
-   khrn_image    *active_image;              /* The current back buffer as a khrn_image */
-   void          *native_back_buffer;        /* The current back buffer surface (opaque) */
-   void          *native_window_state;       /* Opaque data that the platform ties to the native window */
+   EGL_SURFACE_T        base;                /* The driver's internal surface data */
+   int                  interval;            /* pushed as part of buffer queue */
+   khrn_image          *active_image;        /* The current back buffer as a khrn_image */
+   BEGL_SwapchainBuffer native_back_buffer;  /* The current back buffer surface (opaque) */
+   void                *native_window_state; /* Opaque data that the platform ties to the native window */
 };
 
 static EGL_SURFACE_METHODS_T fns;
@@ -56,13 +56,17 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
 
    /* Get our initial buffer */
    int fence = -1;
+
    assert(platform->GetNextSurface);
-   if (platform->GetNextSurface(platform->context, surf->native_window_state, format,
-                                &format, &surf->native_back_buffer, surf->base.secure, &fence) != BEGL_Success)
+   surf->native_back_buffer = platform->GetNextSurface(platform->context,
+         surf->native_window_state, format, surf->base.secure,
+         &surf->base.buffer_age, &fence);
+   if (!surf->native_back_buffer)
       return EGL_RES_BAD_NATIVE_WINDOW;
 
-   unsigned num_mip_levels;
-   surf->active_image = image_from_surface_abstract(surf->native_back_buffer, true, &num_mip_levels);
+   surf->active_image = image_from_surface_abstract(BEGL_SWAPCHAIN_BUFFER,
+         surf->native_back_buffer, /*flipY=*/true, "swapchain buffer",
+         /*num_mip_levels=*/NULL, /*error=*/NULL);
 
    if (surf->active_image == NULL)
    {
@@ -80,16 +84,6 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
             surf->native_back_buffer, fence);
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
       return EGL_RES_BAD_NATIVE_WINDOW;
-   }
-
-   /* Get age of dequeued buffer */
-   surf->base.buffer_age = 0;
-   if (platform->WindowGetInfo)
-   {
-      BEGL_WindowInfo info;
-      if (platform->WindowGetInfo(platform->context, surf->native_window_state,
-                                  BEGL_WindowInfoBackBufferAge, &info) == BEGL_Success)
-         surf->base.buffer_age = info.backBufferAge;
    }
 
    if (fence == -1)

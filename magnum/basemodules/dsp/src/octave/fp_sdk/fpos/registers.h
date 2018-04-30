@@ -40,7 +40,7 @@
 
 /* Include register definitions for the appropriate architecture. */
 
-#if defined(__MAESTRO__)
+#if  __FPM1015__ || __FPM1017__
 #include "registers_maestro.h"
 #elif __FP4015__ || __FP4017__
 #include "registers_octv2.h"

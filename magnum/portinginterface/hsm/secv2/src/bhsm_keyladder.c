@@ -107,6 +107,8 @@ BERR_Code BHSM_KeyLadder_Init( BHSM_Handle hHsm, BHSM_KeyLadderModuleSettings *p
     BDBG_ENTER( BHSM_KeyLadder_Init );
     BSTD_UNUSED( pSettings );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     hHsm->modules.pKeyLadders = BKNI_Malloc( sizeof(BHSM_KeyLadderModule) );
     if( !hHsm->modules.pKeyLadders ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
 
@@ -124,10 +126,8 @@ void BHSM_KeyLadder_Uninit( BHSM_Handle hHsm )
 
     BDBG_ENTER( BHSM_KeyLadder_Uninit );
 
-    if( !hHsm->modules.pKeyLadders ) {
-        BERR_TRACE( BERR_NOT_INITIALIZED );
-        return;
-    }
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !hHsm->modules.pKeyLadders ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return; }
 
     BKNI_Memset( hHsm->modules.pKeyLadders, 0, sizeof(BHSM_KeyLadderModule) );
     BKNI_Free( hHsm->modules.pKeyLadders );
@@ -154,6 +154,9 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm,
     unsigned i;
 
     BDBG_ENTER( BHSM_KeyLadder_Allocate );
+
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     pModule = hHsm->modules.pKeyLadders;
     if( !pModule ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit;  }
@@ -200,17 +203,20 @@ BHSM_KeyLadderHandle BHSM_KeyLadder_Allocate( BHSM_Handle hHsm,
 
 exit:
 
-    if (pKeyLadder)
+    if( pKeyLadder )
     {
         /* no invalidation for HWKL */
-        if(pSettings->index != BHSM_HWKL_ID)
+        if( pSettings->index != BHSM_HWKL_ID )
         {
+            BERR_Code rc = BERR_UNKNOWN;
+
             /* Invalid the FWKL of the vklId being used. */
             BKNI_Memset( &invFwkl, 0, sizeof(invFwkl) );
             invFwkl.in.vklId = pKeyLadder->index;
             invFwkl.in.clearAllKeyLayer = 1;
             invFwkl.in.freeOwnership = 1;
-            BHSM_P_KeyLadder_FwklInvalidate( pKeyLadder->hHsm, &invFwkl );
+            rc = BHSM_P_KeyLadder_FwklInvalidate( pKeyLadder->hHsm, &invFwkl );
+            if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); }
         }
     }
 
@@ -225,14 +231,12 @@ void BHSM_KeyLadder_Free( BHSM_KeyLadderHandle handle )
 {
     BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
     BHSM_P_KeyLadderFwklInvalidate invFwkl;
+    BERR_Code rc = BERR_SUCCESS;
 
     BDBG_ENTER( BHSM_KeyLadder_Free );
 
-    if( pkeyLadder->allocated == false )
-    {
-        BERR_TRACE( BERR_NOT_AVAILABLE );
-        return;
-    }
+    if( !pkeyLadder ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !pkeyLadder->allocated ) { BERR_TRACE( BERR_NOT_AVAILABLE ); return; }
 
     pkeyLadder->allocated = false;
 
@@ -241,7 +245,8 @@ void BHSM_KeyLadder_Free( BHSM_KeyLadderHandle handle )
     invFwkl.in.vklId = pkeyLadder->index;
     invFwkl.in.clearAllKeyLayer = 1;
     invFwkl.in.freeOwnership = 1;
-    BHSM_P_KeyLadder_FwklInvalidate( pkeyLadder->hHsm, &invFwkl );
+    rc = BHSM_P_KeyLadder_FwklInvalidate( pkeyLadder->hHsm, &invFwkl );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_KeyLadder_Free );
     return;
@@ -257,6 +262,7 @@ void BHSM_KeyLadder_GetSettings( BHSM_KeyLadderHandle handle,
 
     BDBG_ENTER( BHSM_KeyLadder_GetSettings );
 
+    if( !pkeyLadder ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return;  }
     if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return;  }
 
     *pSettings = pkeyLadder->settings;
@@ -275,7 +281,7 @@ BERR_Code BHSM_KeyLadder_SetSettings( BHSM_KeyLadderHandle handle,
 
     BDBG_ENTER( BHSM_KeyLadder_SetSettings );
 
-    if( !pSettings )  { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pSettings ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pkeyLadder ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if ((pSettings->mode == BHSM_KeyLadderMode_eHwlk) && (pkeyLadder->index != HWKL_INDEX))
@@ -307,6 +313,9 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle,
     BERR_Code rc = BERR_SUCCESS;
 
     BDBG_ENTER( BHSM_KeyLadder_GenerateLevelKey );
+
+    if( !pkeyLadder ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pKey )  { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( pKey->level == 3 )
     {
@@ -400,9 +409,11 @@ BERR_Code BHSM_KeyLadder_Invalidate( BHSM_KeyLadderHandle handle, const BHSM_Key
 {
     BHSM_P_KeyLadder *pKeyLadder = (BHSM_P_KeyLadder*)handle;
     BHSM_P_KeyLadderFwklInvalidate invFwkl;
+    BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_KeyLadder_Invalidate );
 
+    if( !pKeyLadder ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pInvalidate ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &invFwkl, 0, sizeof(invFwkl) );
@@ -411,7 +422,8 @@ BERR_Code BHSM_KeyLadder_Invalidate( BHSM_KeyLadderHandle handle, const BHSM_Key
     invFwkl.in.clearAllKeyLayer = 1;
     invFwkl.in.freeOwnership = pInvalidate->clearOwnership?1:0;
 
-    BHSM_P_KeyLadder_FwklInvalidate( pKeyLadder->hHsm, &invFwkl );
+    rc = BHSM_P_KeyLadder_FwklInvalidate( pKeyLadder->hHsm, &invFwkl );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_KeyLadder_Invalidate );
 
@@ -430,8 +442,10 @@ BERR_Code BHSM_GetKeyLadderInfo( BHSM_KeyLadderHandle handle, BHSM_KeyLadderInfo
 BERR_Code BHSM_KeyLadder_GetInfo( BHSM_KeyLadderHandle handle, BHSM_KeyLadderInfo *pInfo )
 {
     BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
+
     BDBG_ENTER( BHSM_KeyLadder_GetInfo );
 
+    if( !pkeyLadder ) { return  BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pInfo->index = pkeyLadder->index;
@@ -559,7 +573,8 @@ static BERR_Code  _GenerateRootKey( BHSM_KeyLadderHandle handle, const BHSM_KeyL
         keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
         return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
-    BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
+    rc = BHSM_MemcpySwap( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
     rc = BHSM_P_KeyLadder_RootConfig( pkeyLadder->hHsm, &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -614,7 +629,8 @@ static BERR_Code  _GenerateLevelKey( BHSM_KeyLadderHandle handle, const BHSM_Key
         keyOffset*4 + pKey->ladderKeySize/8 > sizeof(bspConfig.in.procIn) ) {
         return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
-    BHSM_Mem32cpy( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
+    rc = BHSM_MemcpySwap( &bspConfig.in.procIn[keyOffset], pKey->ladderKey, (pKey->ladderKeySize/8) );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
     rc = BHSM_P_KeyLadder_LayerSet( pKeySlot->hHsm, &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -738,7 +754,7 @@ BHSM_Handle BHSM_P_KeyLadder_GetHsmHandle( BHSM_KeyLadderHandle handle )
 {
     BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
 
-    if( !handle ) { return NULL; }
+    if( !handle ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     return pkeyLadder->hHsm;
 }
@@ -747,7 +763,7 @@ bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle )
 {
     BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
 
-    if( !handle ) { return false; }
+    if( !handle ) { return BERR_TRACE(false); }
 
     return pkeyLadder->configured;
 }

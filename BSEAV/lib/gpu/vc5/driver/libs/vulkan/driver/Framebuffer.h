@@ -23,11 +23,11 @@ public:
    ~Framebuffer() noexcept;
 
    // Implementation specific from this point on
-   const bvk::vector<VkImageView> &Attachments() const { return m_attachments; }
+   const bvk::vector<ImageView*> &Attachments() const { return m_attachments; }
    void Dimensions(VkExtent3D *dims) const;
 
 private:
-   bvk::vector<VkImageView>    m_attachments;
+   bvk::vector<ImageView*>     m_attachments;
    uint32_t                    m_width;
    uint32_t                    m_height;
    uint32_t                    m_layers;

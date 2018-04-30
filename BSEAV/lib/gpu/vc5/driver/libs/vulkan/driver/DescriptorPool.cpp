@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "libs/util/log/log.h"
+#include "libs/core/v3d/v3d_align.h"
 
 namespace bvk {
 
@@ -61,7 +62,8 @@ static const size_t DescriptorTypeDevMemSize[VK_DESCRIPTOR_TYPE_RANGE_SIZE] = {
 size_t DescriptorPool::CalcDescriptorTypeBytes(VkDescriptorType type)
 {
    assert(type <= VK_DESCRIPTOR_TYPE_END_RANGE);
-   return DescriptorTypeSysMemSize[type];
+   // Ensure we account for the alignment
+   return gfx_zround_up(DescriptorTypeSysMemSize[type], SysMemAlignment);
 }
 
 size_t DescriptorPool::CalcDescriptorTypeDevMemBytes(VkDescriptorType type)

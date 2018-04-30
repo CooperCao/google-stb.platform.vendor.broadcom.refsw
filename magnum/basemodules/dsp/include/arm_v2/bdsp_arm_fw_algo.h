@@ -44,4 +44,6 @@ const BDSP_P_AlgorithmCodeInfo *BDSP_Arm_P_LookupAlgorithmCodeInfo(
 const BDSP_P_AlgorithmSupportInfo *BDSP_Arm_P_LookupAlgorithmSupportInfo(
     BDSP_Algorithm algorithm
 );
+
+extern  const uint32_t  BDSP_ARM_SystemID_MemoryReqd[BDSP_ARM_SystemImgId_eMax];
 #endif /*BDSP_ARM_FW_ALGO_H_*/

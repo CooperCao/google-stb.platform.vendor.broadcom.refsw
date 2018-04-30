@@ -7,7 +7,7 @@
 #include "middleware/khronos/glsl/2708/glsl_qdisasm_4.h"
 #include "middleware/khronos/glsl/2708/glsl_allocator_4.h"
 #include "vcfw/rtos/abstract/rtos_abstract_mem.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2ext.h>
 //#include "v3d/verification/sw/tools/v3d/simpenrose/simpenrose.h"
 #include "middleware/khronos/glxx/2708/glxx_shader_4.h"
 #include "middleware/khronos/common/khrn_mem.h"
@@ -1278,10 +1278,7 @@ bool glxx_schedule(Dataflow *root, uint32_t type, MEM_HANDLE_T *mh_code, void **
          return false;
       }
 
-      void *code = mem_lock(hcode, NULL);
-      khrn_memcpy(code, glsl_allocator_get_shader_pointer(), code_size);
-      khrn_hw_flush_dcache_range(code, code_size);
-      mem_unlock(hcode);
+      khrn_handlecpy(hcode, 0, glsl_allocator_get_shader_pointer(), code_size);
       MEM_ASSIGN(*mh_code, hcode);
       mem_release(hcode);
 

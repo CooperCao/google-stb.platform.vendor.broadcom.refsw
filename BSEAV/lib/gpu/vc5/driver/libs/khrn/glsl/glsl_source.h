@@ -17,12 +17,10 @@ typedef struct {
 
 typedef struct {
    /* Inputs to link */
-   unsigned              num_bindings;
-   GLSL_BINDING_T       *bindings;
-   unsigned              num_tf_varyings;
-   const char          **tf_varyings;
-   int                   name;
+   unsigned         num_bindings;
+   GLSL_BINDING_T  *bindings;
+   unsigned         num_tf_varyings;
+   const char     **tf_varyings;
 } GLSL_PROGRAM_SOURCE_T;
 
 void glsl_shader_source_dump(const GLSL_SHADER_SOURCE_T *src);
-void glsl_program_source_dump(const GLSL_PROGRAM_SOURCE_T *p, unsigned vertex_name, unsigned fragmnt_name);

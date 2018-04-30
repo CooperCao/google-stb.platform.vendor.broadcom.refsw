@@ -100,6 +100,7 @@ public:
 
    uint32_t DepthBits() const { return m_depthBits; }
    uint32_t ColorWriteMasks(uint32_t subpass) const { return m_subpasses[subpass].colorWriteMask; }
+   bool     EarlyZCompatible() const;
 
    bool PreBarrierExternal() const  { return m_preBarrierExternal; }
    bool PostBarrierExternal() const { return m_postBarrierExternal; }

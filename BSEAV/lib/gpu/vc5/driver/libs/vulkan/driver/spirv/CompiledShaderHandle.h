@@ -49,11 +49,11 @@ public:
    explicit operator bool()     { return m_shader != nullptr; }
    CompiledShader *operator->() { return m_shader;            }
 
-private:
    explicit CompiledShaderHandle(CompiledShader *shader) :
       m_shader(shader)
    {}
 
+private:
    void Free();
 
 private:

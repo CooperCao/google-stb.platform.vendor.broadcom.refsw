@@ -603,8 +603,8 @@ bool khrn_image_generate_mipmaps_tfu(khrn_image* src_image,
 
    const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
    v3d_cache_ops cache_ops =
-         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, false, hub_ident)
-       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, false, hub_ident);
+         v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE, hub_ident)
+       | v3d_barrier_cache_cleans(V3D_BARRIER_TFU_WRITE, V3D_BARRIER_MEMORY_READ, hub_ident);
 
    // todo, ideally the kernel API would support batch submission of TFU jobs.
 

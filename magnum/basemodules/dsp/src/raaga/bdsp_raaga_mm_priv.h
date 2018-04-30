@@ -323,7 +323,7 @@ BERR_Code BDSP_Raaga_P_FreeTaskMemory(
 BERR_Code BDSP_Raaga_P_CalculateStageMemory(
     BDSP_AlgorithmType AlgorithmType,
     unsigned *pMemoryReq,
-    const BDSP_RaagaUsageOptions *pUsage
+    const BDSP_UsageOptions *pUsage
     );
 
 BERR_Code BDSP_Raaga_P_AllocateStageMemory(
@@ -343,7 +343,7 @@ BERR_Code BDSP_Raaga_P_GetFwMemRequired(
     BDSP_Raaga_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
     void                      *pImgCache,
     bool                       UseBDSPMacro,
-    const BDSP_RaagaUsageOptions *pUsage
+    const BDSP_UsageOptions   *pUsage
     );
 
 BERR_Code BDSP_Raaga_P_CalculateInitMemory (
@@ -357,7 +357,7 @@ BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI(
         uint32_t *pui32InterstageIOGenMem,
         uint32_t *pui32Numch,
         BDSP_AF_P_eSchedulingGroup eSchedulingGroup,
-        const BDSP_RaagaUsageOptions *pUsage
+        const BDSP_UsageOptions *pUsage
 );
 
 BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq(

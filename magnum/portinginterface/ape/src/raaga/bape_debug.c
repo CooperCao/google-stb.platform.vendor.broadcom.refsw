@@ -65,12 +65,12 @@ BDBG_OBJECT_ID(BAPE_Debug);
 
 typedef struct BAPE_Debug
 {
-    BDBG_OBJECT(BAPE_Debug)       
+    BDBG_OBJECT(BAPE_Debug)
     BAPE_Handle deviceHandle;
-#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 
+#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
     BAPE_OutputPort spdif[BAPE_CHIP_MAX_SPDIF_OUTPUTS];
 #endif
-#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0 
+#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
     BAPE_OutputPort hdmi[BAPE_CHIP_MAX_MAI_OUTPUTS];
 #endif
 #if BAPE_CHIP_MAX_DACS > 0
@@ -86,18 +86,18 @@ typedef struct BAPE_Debug
 
 BERR_Code BAPE_Debug_Open(
     BAPE_Handle deviceHandle,
-    const BAPE_DebugOpenSettings * pSettings, 
+    const BAPE_DebugOpenSettings * pSettings,
     BAPE_DebugHandle * pHandle /* [out] */
     )
 {
 
     BERR_Code errCode = BERR_SUCCESS;
-    BAPE_DebugHandle handle;   
+    BAPE_DebugHandle handle;
     BSTD_UNUSED(pSettings);
-    
+
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
-    
+
     BDBG_MSG(("%s opening Debug",BSTD_FUNCTION));
 
     *pHandle = NULL;
@@ -111,7 +111,7 @@ BERR_Code BAPE_Debug_Open(
 
     BKNI_Memset(handle, 0, sizeof(BAPE_Debug));
     BDBG_OBJECT_SET(handle, BAPE_Debug);
-    handle->deviceHandle = deviceHandle;    
+    handle->deviceHandle = deviceHandle;
     *pHandle = handle;
     return errCode;
 
@@ -119,10 +119,10 @@ BERR_Code BAPE_Debug_Open(
 
 void BAPE_Debug_Close(BAPE_DebugHandle handle)
 {
-    
+
     /* destroy the handle*/
     BDBG_OBJECT_DESTROY(handle, BAPE_Debug);
-    BKNI_Free(handle); 
+    BKNI_Free(handle);
 
 }
 
@@ -134,8 +134,8 @@ BERR_Code BAPE_Debug_GetStatus(
     )
 
 {
-    BERR_Code errCode = BERR_SUCCESS;   
-    
+    BERR_Code errCode = BERR_SUCCESS;
+
     BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
     BKNI_Memset(pStatus, 0, sizeof(BAPE_DebugStatus));
 
@@ -159,19 +159,19 @@ BERR_Code BAPE_Debug_GetStatus(
 }
 
 BERR_Code BAPE_Debug_GetOutputStatus(
-    BAPE_DebugHandle handle,    
+    BAPE_DebugHandle handle,
     BAPE_DebugStatus * pStatus /* out */
     )
 
 {
-    BERR_Code errCode = BERR_SUCCESS;  
+    BERR_Code errCode = BERR_SUCCESS;
     int i;
 
     BSTD_UNUSED(handle);
     BSTD_UNUSED(pStatus);
     BSTD_UNUSED(i);
-    
-#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 
+
+#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
     for (i = 0; i < BAPE_CHIP_MAX_SPDIF_OUTPUTS; i++)
     {
         if (handle->spdif[i])
@@ -180,13 +180,13 @@ BERR_Code BAPE_Debug_GetOutputStatus(
         }
     }
 #endif
-#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0 
+#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
     for (i = 0; i < BAPE_CHIP_MAX_MAI_OUTPUTS; i++)    {
         if (handle->hdmi[i])
         {
            errCode |= BAPE_Debug_GetChannelStatus(handle,handle->hdmi[i],&pStatus->status.outputStatus.hdmi[i]);
         }
-    }    
+    }
 #endif
     return errCode;
 }
@@ -209,12 +209,12 @@ BERR_Code BAPE_Debug_GetChannelStatus(
     status->index = output->index;
     if (output->mixer) {
         pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
-        status->type = pFormat->type;        
+        status->type = pFormat->type;
         status->compressedAsPcm = BAPE_FMT_P_IsDtsCdCompressed_isrsafe(pFormat);
         status->sampleRate = pFormat->sampleRate;
     }
 
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START     
+#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START
     switch (output->type) {
     case BAPE_OutputPortType_eMaiOutput:
         if (status->index == 0) {
@@ -262,12 +262,14 @@ BERR_Code BAPE_Debug_GetChannelStatus(
         BDBG_ERR(("%s INVALID TYPE %d",BSTD_FUNCTION,output->type));
         return BERR_INVALID_PARAMETER;
     }
+#elif defined BCHP_DVP_CFG_REG_START /* Ott */
+    lowRegAddr = highRegAddr = 0;
 #else
 #warning " NO MAI/SPDIF SUPPORT FOUND "
 #endif
 
-    status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, lowRegAddr);
-    status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, highRegAddr);
+    status->cbits[0] = lowRegAddr ? BAPE_Reg_P_Read(handle->deviceHandle, lowRegAddr) : 0;
+    status->cbits[1] = highRegAddr ? BAPE_Reg_P_Read(handle->deviceHandle, highRegAddr) : 0;
     status->formatId = BAPE_Debug_BitRangeValue(status->cbits[0],0,0);
     if (status->formatId == 0) { /* Consumer */
         status->channelStatus.consumer.audio = BAPE_Debug_BitRangeValue(status->cbits[0], 1, 1);
@@ -416,7 +418,7 @@ BERR_Code BAPE_Debug_AddOutput(
     BAPE_DebugHandle handle,
     BAPE_OutputPort output)
 {
-    BERR_Code errCode = BERR_SUCCESS;   
+    BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
@@ -454,7 +456,7 @@ BERR_Code BAPE_Debug_RemoveOutput(
     BAPE_DebugHandle handle,
     BAPE_OutputPort output)
 {
-    BERR_Code errCode = BERR_SUCCESS;   
+    BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
@@ -484,7 +486,7 @@ BERR_Code BAPE_Debug_RemoveOutput(
         default:
             break;
     }
-    
+
     return errCode;
 }
 
@@ -494,7 +496,7 @@ uint32_t BAPE_Debug_BitRangeValue(
     unsigned start,
     unsigned stop)
 {
-    int temp;    
+    int temp;
     if (start > 31 || stop > 31)
     {
         return 0;
@@ -506,15 +508,15 @@ uint32_t BAPE_Debug_BitRangeValue(
         stop = temp;
     }
 
-    
+
     value = value >> start;
     temp = 0;
     while (start <= stop)
     {
         temp = temp <<1;
-        temp |= 0x1;        
+        temp |= 0x1;
         start++;
-    }    
+    }
     return (temp & value);
 }
 
@@ -522,13 +524,13 @@ char* BAPE_Debug_IntToBinaryString(
     unsigned value,
     unsigned signifDigits,
     char* ptr)
-{  
+{
     unsigned i;
 
     for (i=0;i<signifDigits;i++)
     {
         ptr[i]= (((value>>i)&1)?'1':'0');
-    }         
-    ptr[signifDigits]=0;    
+    }
+    ptr[signifDigits]=0;
     return ptr;
 }

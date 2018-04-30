@@ -86,9 +86,6 @@ upon the chip usage. See below */
 
 
 
-/* I2C Channels */
-#define NEXUS_NUM_I2C_CHANNELS 5
-
 #if defined NEXUS_USE_7445_DBS
 /* SPI Channels */
 #define NEXUS_NUM_SPI_CHANNELS 3

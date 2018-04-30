@@ -179,9 +179,9 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getDownloadStatus= BDSP_Arm_P_GetDownloadStatus;
     pArm->device.initialize = BDSP_Arm_P_Initialize;
 #if !B_REFSW_MINIMAL
-    pArm->device.getDefaultDatasyncSettings = NULL;/*BDSP_Raaga_P_GetDefaultDatasyncSettings;*/
+    pArm->device.getDefaultDatasyncSettings = NULL;/*BDSP_Arm_P_GetDefaultDatasyncSettings;*/
 #endif /*!B_REFSW_MINIMAL*/
-    pArm->device.getDefaultTsmSettings = NULL; /*BDSP_Raaga_P_GetDefaultTsmSettings;*/
+    pArm->device.getDefaultTsmSettings = NULL; /*BDSP_Arm_P_GetDefaultTsmSettings;*/
 
     /* Init context lists */
     BLST_S_INIT(&pArm->contextList);
@@ -195,6 +195,23 @@ BERR_Code BDSP_Arm_Open(
 
     BDBG_OBJECT_SET(pArm, BDSP_Arm);
 
+#if 0
+	{
+		BDSP_UsageOptions Usage;
+		BDSP_MemoryEstimate Estimate;
+		BKNI_Memset(&Usage,0, sizeof(BDSP_UsageOptions));
+		Usage.Codeclist[BDSP_Algorithm_eDDPEncode]		   =true;
+
+		Usage.NumAudioEncoders = 1; /* DDP Encode Offload scenario only */
+
+		BDSP_Arm_GetMemoryEstimate(pSettings,
+			&Usage,
+			NULL,
+			&Estimate);
+		BDBG_ERR(("Memory Required FIRMWARE = %d bytes(%d KB)(%d MB)  GENERAL = %d bytes(%d KB)(%d MB)",Estimate.FirmwareMemory,(Estimate.FirmwareMemory/1024),(Estimate.FirmwareMemory/(1024*1024)),
+						Estimate.GeneralMemory,(Estimate.GeneralMemory/1024),(Estimate.GeneralMemory/(1024*1024))));
+	}
+#endif /* This is for memory estimate testing */
 
     ret = BDSP_Arm_P_Open(pArm->device.pDeviceHandle);
     if(ret != BERR_SUCCESS)
@@ -214,5 +231,37 @@ err_open:
 open_success:
 
     BDBG_LEAVE( BDSP_Arm_Open );
+    return ret;
+}
+
+/***********************************************************************
+Name        :   BDSP_Arm_GetMemoryEstimate
+
+Type        :   PI Interface
+
+Input       :   pSettings       -   Device Settings provided by the PI to open the Arm Open.
+                pUsage      -   Pointer to usage case scenario from which we determine the runtime memory.
+                boxHandle   -     BOX Mode Handle for which the memory needs to be estimated.
+                pEstimate   -   Pointer provided by the where the memory estimate from the BDSP is returned.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :
+    1)  Leaf function provided by the BDSP to higher layers to return the estimate of the memory required by BDSP
+***********************************************************************/
+BERR_Code BDSP_Arm_GetMemoryEstimate(
+    const BDSP_ArmSettings     *pSettings,
+    const BDSP_UsageOptions    *pUsage,
+    BBOX_Handle                 boxHandle,
+    BDSP_MemoryEstimate        *pEstimate /*[out]*/
+)
+{
+    BERR_Code ret= BERR_SUCCESS;
+    BDBG_ASSERT(NULL != pSettings);
+    BDBG_ASSERT(NULL != pEstimate);
+    BDBG_ASSERT(NULL != pUsage);
+
+    ret = BDSP_Arm_P_GetMemoryEstimate(pSettings,pUsage,boxHandle, pEstimate);
+
     return ret;
 }

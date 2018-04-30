@@ -161,8 +161,8 @@ void framebuffer_init(GLXX_FRAMEBUFFER_T *fb, int32_t name)
    fb->draw_buffer[0] = true;
    fb->default_ms_mode = GLXX_NO_MS;
    fb->debug_label = NULL;
+   fb->damage_rects = NULL;
 }
-
 
 static void framebuffer_term(void *v)
 {
@@ -174,6 +174,8 @@ static void framebuffer_term(void *v)
 
    free(fb->debug_label);
    fb->debug_label = NULL;
+
+   KHRN_MEM_ASSIGN(fb->damage_rects, NULL);
 }
 
 GLXX_FRAMEBUFFER_T* glxx_fb_create(uint32_t name)
@@ -194,7 +196,7 @@ static glxx_att_index_t attachment_point_to_att_index(glxx_attachment_point_t at
    glxx_att_index_t att_index;
 
    if (att_point >= GL_COLOR_ATTACHMENT0 &&
-       att_point < GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS)
+       att_point < GL_COLOR_ATTACHMENT0 + V3D_MAX_RENDER_TARGETS)
    {
       return GLXX_COLOR0_ATT + att_point - GL_COLOR_ATTACHMENT0;
    }
@@ -409,6 +411,9 @@ void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
            ms ? stencil : NULL, ms_mode);
 
    KHRN_MEM_ASSIGN(color, NULL);
+
+   fb->num_damage_rects = gfx_smax(0, surface->num_damage_rects);
+   KHRN_MEM_ASSIGN(fb->damage_rects, surface->damage_rects);
 }
 
 void glxx_fb_detach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,
@@ -613,7 +618,7 @@ static bool image_is_gl_renderable(const khrn_image *image,
 static glxx_renderable_cond get_renderable_condition(glxx_att_index_t att_index)
 {
    if (att_index >= GLXX_COLOR0_ATT &&
-      att_index < GLXX_COLOR0_ATT + GLXX_MAX_RENDER_TARGETS)
+      att_index < GLXX_COLOR0_ATT + V3D_MAX_RENDER_TARGETS)
          return GLXX_COLOR_RENDERABLE;
    if (att_index == GLXX_DEPTH_ATT)
          return GLXX_DEPTH_RENDERABLE;
@@ -652,7 +657,7 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
                break;
 
             /* samples must be <= glGetInteger(GL_MAX_FRAMEBUFFER_SAMPLES) */
-            if (attachment_get_ms_mode(att) >  GLXX_CONFIG_MAX_SAMPLES)
+            if (attachment_get_ms_mode(att) >  V3D_MAX_SAMPLES)
                break;
 
             /* image dimensions must be <= glGetInteger(GL_MAX_FRAMEBUFFER_WIDTH)
@@ -663,7 +668,7 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
                  (khrn_image_get_height(img)/scale) > GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE )
                break;
             if ((khrn_image_get_depth(img) * khrn_image_get_num_elems(img))
-                  > GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS)
+                  > V3D_MAX_LAYERS)
                break;
 
             if (image_is_gl_renderable(img, renderable_cond))
@@ -821,8 +826,30 @@ bool glxx_fb_is_valid_draw_buf(const GLXX_FRAMEBUFFER_T *fb,
       glxx_att_index_t att_index)
 {
    assert(att_index >= GLXX_COLOR0_ATT &&
-          att_index < (GLXX_COLOR0_ATT + GLXX_MAX_RENDER_TARGETS));
+          att_index < (GLXX_COLOR0_ATT + V3D_MAX_RENDER_TARGETS));
 
    return fb->draw_buffer[att_index - GLXX_COLOR0_ATT] &&
       fb->attachment[att_index].obj_type != GL_NONE;
+}
+
+uint32_t glxx_fb_get_write_disable_mask(const GLXX_FRAMEBUFFER_T *fb, uint32_t color_write)
+{
+   uint32_t w_disable_mask = ~color_write & gfx_mask(V3D_MAX_RENDER_TARGETS * 4);
+
+   /* Disable alpha writes for buffers which don't have alpha channels. We need
+    * the alpha in the TLB to be 1 to get correct blending in the case where
+    * the buffer doesn't have alpha. The TLB will set alpha to 1 when it loads
+    * an alpha-less buffer, but we need to explicitly mask alpha writes after
+    * that to prevent it changing. */
+   unsigned i = 0;
+   glxx_att_index_t att_index;
+   while (glxx_fb_iterate_valid_draw_bufs(fb, &i, &att_index))
+   {
+      unsigned b = att_index - GLXX_COLOR0_ATT;
+      const GLXX_ATTACHMENT_T *att = glxx_fb_get_attachment_by_index(fb, att_index);
+      GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
+      if (!gfx_lfmt_has_alpha(api_fmt))
+         w_disable_mask |= 1u << ((b * 4) + 3);
+   }
+   return w_disable_mask;
 }

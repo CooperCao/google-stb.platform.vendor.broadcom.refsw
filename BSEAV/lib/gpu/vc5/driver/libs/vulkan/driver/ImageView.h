@@ -41,7 +41,8 @@ public:
 
 private:
    void CreateTSR(const Image *image, VkFormat format, VkImageViewType viewType,
-                  VkComponentMapping m_components, const VkImageSubresourceRange &subresourceRange);
+                  VkComponentMapping m_components, const VkImageSubresourceRange &subresourceRange,
+                  uint32_t widthDivide, uint32_t heightDivide);
 
 private:
    VkExtent3D                 m_baseExtent;  // Sizes for texture size

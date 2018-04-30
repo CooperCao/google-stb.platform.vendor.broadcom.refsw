@@ -100,6 +100,9 @@ typedef struct BVC5_P_Client
    BVC5_JobQHandle      hRunnableUsermodeQ;     /* Usermode callback jobs ready to run */
    BVC5_JobQHandle      hRunnableBinnerQ;       /* Bin jobs ready to run               */
    BVC5_JobQHandle      hRunnableRenderQ;       /* Render jobs ready to run            */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_JobQHandle      hRunnableComputeQ;      /* Compute jobs ready to run           */
+#endif
    BVC5_JobQHandle      hRunnableTFUQ;          /* TFU jobs ready to run               */
    BVC5_JobQHandle      hRunnableBarrierQ;      /* Barriers ready to run               */
 
@@ -118,6 +121,12 @@ typedef struct BVC5_P_Client
 
    BVC5_P_LoadStats     sLoadStats;
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_ComputeSubjobs **pComputeSubjobs;
+   uint32_t              uiComputeSubjobsMax;
+   uint32_t              uiComputeSubjobsNext;
+#endif
+
    BLST_S_ENTRY(BVC5_P_Client) sChain;
 } BVC5_P_Client;
 
@@ -125,8 +134,11 @@ enum
 {
    BVC5_CLIENT_BIN      = 1,
    BVC5_CLIENT_RENDER   = 2,
-   BVC5_CLIENT_TFU      = 4,
-   BVC5_CLIENT_BARRIER  = 8
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_CLIENT_COMPUTE  = 4,
+#endif
+   BVC5_CLIENT_TFU      = 8,
+   BVC5_CLIENT_BARRIER  = 16
 };
 
 typedef struct BVC5_P_Client     *BVC5_ClientHandle;
@@ -433,5 +445,22 @@ bool BVC5_P_ClientWaitOnSchedEventDone(
       BVC5_ClientHandle hClient,
       uint64_t uiSchedEventId
 );
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+
+uint32_t BVC5_P_ClientNewComputeSubjobs(
+   BVC5_ClientHandle    hClient,
+   uint32_t             uiMaxSubjobs);
+
+void BVC5_P_ClientDeleteComputeSubjobs(
+   BVC5_ClientHandle       hClient,
+   uint32_t                uiSubjobsId,
+   BVC5_P_ComputeSubjobs   *pSubjobs);
+
+BVC5_P_ComputeSubjobs *BVC5_P_ClientGetComputeSubjobs(
+   BVC5_ClientHandle       hClient,
+   uint32_t                uiSubjobsId);
+
+#endif
 
 #endif /* BVC5_CLIENT_H__ */

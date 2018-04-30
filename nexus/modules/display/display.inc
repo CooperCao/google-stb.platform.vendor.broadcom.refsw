@@ -160,9 +160,11 @@ endif
 
 BCHP_DBV_HW_DEF=$(NEXUS_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER)/bchp_hdr_cmp_0_dbv.h
 NEXUS_DISPLAY_DBV_IMPL=$(NEXUS_TOP)/modules/display/src/nexus_display_dbv.c
+ifneq ($(NEXUS_HDMI_OUTPUT_SUPPORT),n)
 ifneq ("$(wildcard $(BCHP_DBV_HW_DEF))","")
 ifneq ("$(wildcard $(NEXUS_DISPLAY_DBV_IMPL))","")
 NEXUS_DBV_SUPPORT?=y
+endif
 endif
 endif
 ifeq ($(NEXUS_DBV_SUPPORT),y)

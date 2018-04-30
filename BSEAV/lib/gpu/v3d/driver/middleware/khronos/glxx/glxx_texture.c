@@ -4,8 +4,8 @@
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/glxx/glxx_int_config.h"
 #include "interface/khronos/common/khrn_int_util.h"
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES/glext.h"
+#include <GLES/gl.h>
+#include <GLES/glext.h>
 #include "middleware/khronos/ext/egl_khr_image.h"
 #include "middleware/khronos/common/khrn_hw.h"
 #include "middleware/khronos/glxx/glxx_texture.h"
@@ -723,7 +723,7 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
 
       mip_lock_wrap(texture, buffer, level, &dst_wrap);
       if (!dst_wrap.secure)
-         khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
+         khrn_image_wrap_convert(&dst_wrap, &src_wrap);
       mip_unlock_wrap(texture, buffer, level);
    }
 
@@ -788,7 +788,7 @@ void glxx_texture_etc1_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
       KHRN_IMAGE_WRAP_T src_wrap;
 
       khrn_image_wrap(&src_wrap, ETC1, width, height, width / 2, 0, false, (void *)data);
-      khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, 0, 0, IMAGE_CONV_GL);
+      khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, 0, 0);
    }
    else
    {
@@ -852,7 +852,7 @@ bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t le
       assert(srcy < srcy+height && srcy+height <= src->height);
 
       khrn_image_lock_wrap((KHRN_IMAGE_T *)src, &src_wrap);
-      khrn_image_wrap_copy_region(&mipmap_wrap, dstx, dsty, width, height, &src_wrap, srcx, srcy, IMAGE_CONV_GL);
+      khrn_image_wrap_copy_region(&mipmap_wrap, dstx, dsty, width, height, &src_wrap, srcx, srcy);
       khrn_image_unlock_wrap(src);
    }
    mip_unlock_wrap(texture, buffer, level);
@@ -903,8 +903,7 @@ bool glxx_texture_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t lev
       khrn_image_wrap_copy_region(
          &dst_wrap, dstx, dsty,
          width, height,
-         &src_wrap, 0, 0,
-         IMAGE_CONV_GL);
+         &src_wrap, 0, 0);
    }
 
    mip_unlock_wrap(texture, buffer, level);
@@ -945,7 +944,7 @@ bool glxx_texture_copy_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
 
    assert(dstx < dstx+width  && dstx+width  <= dst_wrap.width);
    assert(dsty < dsty+height && dsty+height <= dst_wrap.height);
-   khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, srcx, srcy, IMAGE_CONV_GL);
+   khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, srcx, srcy);
 
    khrn_image_unlock_wrap(src);
    mip_unlock_wrap(texture, buffer, level);
@@ -1215,7 +1214,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_new_blob(GLXX_TEXTURE_T *text
 
             if (dst_wrap.width == src_wrap.width && dst_wrap.height == src_wrap.height
                 && convert_to_lt_format(dst_wrap.format) == convert_to_lt_format(src_wrap.format) ) {
-               khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
+               khrn_image_wrap_convert(&dst_wrap, &src_wrap);
                mip_unlock_wrap(texture, buffer, level);
 
                if (texture->mipmaps[buffer][level] != NULL) {
@@ -1299,7 +1298,7 @@ static GLXX_TEXTURE_COMPLETENESS_T copy_mipmaps_to_current_blob(GLXX_TEXTURE_T *
 
                   if (dst_wrap.width == src->width && dst_wrap.height == src->height && khrn_image_to_tf_format(dst_wrap.format) == khrn_image_to_tf_format(src->format)) {
                      khrn_image_lock_wrap(src, &src_wrap);
-                     khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
+                     khrn_image_wrap_convert(&dst_wrap, &src_wrap);
                      khrn_image_unlock_wrap(src);
                      ok = true;
 
@@ -1801,7 +1800,6 @@ KHRN_IMAGE_FORMAT_T glxx_texture_get_tformat(GLXX_TEXTURE_T *texture)
 {
    KHRN_IMAGE_FORMAT_T format;
    format = khrn_image_is_rso(texture->format) ? texture->format : khrn_image_to_tf_format(texture->format);
-   format = khrn_image_no_colorspace_format(format);
    return format;
 }
 

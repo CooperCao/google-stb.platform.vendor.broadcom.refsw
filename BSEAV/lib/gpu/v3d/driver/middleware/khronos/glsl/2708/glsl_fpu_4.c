@@ -8,6 +8,8 @@
 
 #include <limits.h>
 #ifdef NATIVE_FLOATS
+typedef union { unsigned u; float f; } reinterpret_cast_uf;
+vcos_static_assert(sizeof(unsigned) == sizeof(float));
 #include <math.h>
 #endif
 
@@ -15,12 +17,10 @@
 
 #include "middleware/khronos/glsl/2708/glsl_fpu_4.h"
 
-static void float_unpack (uint64_t *mantissa, int *exponent, int *sign, unsigned input);
-static int float_pack (unsigned *r, uint64_t mantissa, int exponent, int sign, int round_info);
-
 static int float_to_int (unsigned *r, unsigned a, unsigned b, int round_to_nearest);
 static int float_to_unsigned (unsigned *r, unsigned a, unsigned b, int round_to_nearest);
 
+#ifndef NATIVE_FLOATS
 static int fn_recip (unsigned *r, unsigned f);
 static int fn_rsqrt (unsigned *r, unsigned f);
 static int fn_log2 (unsigned *r, unsigned f);
@@ -117,14 +117,15 @@ static int float_pack (unsigned *r, uint64_t mantissa, int exponent, int sign, i
    *r = (unsigned)((sign << 31) | (exponent << 23) | mantissa);
    return exceptions;
 }
+#endif
 
 extern int glsl_fpu_mul (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b }, ra;
 
-   *(float *)r = fa * fb;
+   ra.f = fa.f * fb.f;
+   *r = ra.u;
    return 0;
 #else
    uint64_t m1, m2, m;
@@ -173,10 +174,10 @@ extern int glsl_fpu_mul (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_muln (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b }, ra;
 
-   *(float *)r = -(fa * fb);
+   ra.f = -(fa.f * fb.f);
+   *r = ra.u;
    return 0;
 #else
    return glsl_fpu_mul (r, a ^ (1 << 31), b);
@@ -186,10 +187,10 @@ extern int glsl_fpu_muln (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_add (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b }, ra;
 
-   *(float *)r = fa + fb;
+   ra.f = fa.f + fb.f;
+   *r = ra.u;
    return 0;
 #else
    const uint64_t one = 1;
@@ -318,10 +319,10 @@ extern int glsl_fpu_add (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_sub (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b }, ra;
 
-   *(float *)r = fa - fb;
+   ra.f = fa.f - fb.f;
+   *r = ra.u;
    return 0;
 #else
    return glsl_fpu_add (r, a, b ^ (1 << 31));
@@ -331,10 +332,10 @@ extern int glsl_fpu_sub (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_rsub (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b }, ra;
 
-   *(float *)r = fb - fa;
+   ra.f = fb.f - fa.f;
+   *r = ra.u;
    return 0;
 #else
    return glsl_fpu_add (r, a ^ (1 << 31), b);
@@ -344,10 +345,10 @@ extern int glsl_fpu_rsub (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_div (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b }, ra;
 
-   *(float *)r = fa / fb;
+   ra.f = fa.f / fb.f;
+   *r = ra.u;
    return 0;
 #else
    int s1, s2, s;
@@ -427,9 +428,10 @@ extern int glsl_fpu_div (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_recip (unsigned *r, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fb = { .u = b }, ra;
 
-   *(float *)r = (float) (1.0 / fb);
+   ra.f = (float) (1.0 / fb.f);
+   *r = ra.u;
    return 0;
 #else
    if ((b & ~(1 << 31)) > (0xFF << 23)) {
@@ -444,9 +446,10 @@ extern int glsl_fpu_recip (unsigned *r, unsigned b)
 extern int glsl_fpu_rsqrt (unsigned *r, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fb = { .u = b }, ra;
 
-   *(float *)r = (float) (1.0 /sqrt (fb));
+   ra.f = (float) (1.0 /sqrt (fb.f));
+   *r = ra.u;
    return 0;
 #else
    if (IS_NAN (b)) {
@@ -461,13 +464,12 @@ extern int glsl_fpu_rsqrt (unsigned *r, unsigned b)
 extern int glsl_fpu_min (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b };
 
-   if (fa > fb)
-      *(float *)r = fb;
+   if (fa.f > fb.f)
+      *r = fb.u;
    else
-      *(float *)r = fa;
+      *r = fa.u;
 
    return 0;
 #else
@@ -502,13 +504,12 @@ extern int glsl_fpu_min (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_max (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fa = { .u = a }, fb = { .u = b };
 
-   if (fa < fb)
-      *(float *)r = fb;
+   if (fa.f < fb.f)
+      *r = fb.u;
    else
-      *(float *)r = fa;
+      *r = fa.u;
 
    return 0;
 #else
@@ -559,9 +560,10 @@ extern void glsl_fpu_maxabs (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_ceil (unsigned *r, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fb = { .u = b }, ra;
 
-   *(float *)r = (float) (ceil (fb));
+   ra.f = (float) (ceil (fb.f));
+   *r = ra.u;
    return 0;
 #else
    int s;
@@ -618,9 +620,10 @@ extern int glsl_fpu_ceil (unsigned *r, unsigned b)
 extern int glsl_fpu_floor (unsigned *r, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fb = { .u = b }, ra;
 
-   *(float *)r = (float) (floor (fb));
+   ra.f = (float) (floor (fb.f));
+   *r = ra.u;
    return 0;
 #else
    int s;
@@ -677,9 +680,10 @@ extern int glsl_fpu_floor (unsigned *r, unsigned b)
 extern int glsl_fpu_log2 (unsigned *r, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fb = { .u = b }, ra;
 
-   *(float *)r = (float) (log (fb) / log (2.0));
+   ra.f = (float) (log (fb.f) / log (2.0));
+   *r = ra.u;
    return 0;
 #else
    if ((b & ~(1 << 31)) > (0xFF << 23)
@@ -696,9 +700,10 @@ extern int glsl_fpu_log2 (unsigned *r, unsigned b)
 extern int glsl_fpu_exp2 (unsigned *r, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   float fb = *(float *)&b;
+   reinterpret_cast_uf fb = { .u = b }, ra;
 
-   *(float *)r = (float) (exp (fb * log (2.0)));
+   ra.f = (float) (exp (fb.f * log (2.0)));
+   *r = ra.u;
    return 0;
 #else
    if (IS_NAN (b)) {
@@ -713,16 +718,16 @@ extern int glsl_fpu_exp2 (unsigned *r, unsigned b)
 static int float_to_int (unsigned *r, unsigned a, unsigned b, int round_to_nearest)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
+   reinterpret_cast_uf fa = { .u = a };
 
    if (round_to_nearest) {
-      if (fa > 0)
-         fa += 0.5f;
+      if (fa.f > 0)
+         fa.f += 0.5f;
       else
-         fa -= 0.5f;
+         fa.f -= 0.5f;
    }
 
-   *r = (int) (fa * pow (2.0f, (float) (int) b));
+   *r = (int) (fa.f * pow (2.0f, (float) (int) b));
    return 0;
 #else
    int s = !! (a & (1 << 31));
@@ -819,16 +824,16 @@ extern void glsl_fpu_floattointn (unsigned *r, unsigned a, unsigned b)
 static int float_to_unsigned (unsigned *r, unsigned a, unsigned b, int round_to_nearest)
 {
 #ifdef NATIVE_FLOATS
-   float fa = *(float *)&a;
+   reinterpret_cast_uf fa = { .u = a };
 
    if (round_to_nearest) {
-      if (fa > 0)
-         fa += 0.5f;
+      if (fa.f > 0)
+         fa.f += 0.5f;
       else
-         fa -= 0.5f;
+         fa.f -= 0.5f;
    }
 
-   *r = (unsigned) (fa * pow (2.0f, (float) (int) b));
+   *r = (unsigned) (fa.f * pow (2.0f, (float) (int) b));
    return 0;
 #else
    int s = (a & (1 << 31));
@@ -940,7 +945,9 @@ extern void glsl_fpu_floattouintn (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_inttofloat (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   *(float *)r = (float) (((int) a) / pow (2.0f, (double) (int) b));
+   reinterpret_cast_uf ra;
+   ra.f = (float) (((int) a) / pow (2.0f, (double) (int) b));
+   *r = ra.u;
    return 0;
 #else
    int sb = b;
@@ -967,7 +974,9 @@ extern int glsl_fpu_inttofloat (unsigned *r, unsigned a, unsigned b)
 extern int glsl_fpu_uinttofloat (unsigned *r, unsigned a, unsigned b)
 {
 #ifdef NATIVE_FLOATS
-   *(float *)r = (float) (((unsigned int) a) / pow (2.0f, (double) (int) b));
+   reinterpret_cast_uf ra;
+   ra.f = (float) (((unsigned int) a) / pow (2.0f, (double) (int) b));
+   *r = ra.u;
    return 0;
 #else
    int sb = b;
@@ -983,6 +992,7 @@ extern int glsl_fpu_uinttofloat (unsigned *r, unsigned a, unsigned b)
 #endif /* ! defined (NATIVE_FLOATS) */
 }
 
+#ifndef NATIVE_FLOATS
 /* LUT-based stuff.  A more-or-less straight port from Gary's verilog.  */
 
 static unsigned square[64] = {
@@ -1278,3 +1288,4 @@ static int fn_exp2 (unsigned *r, unsigned f)
    *r = f;
    return 0;
 }
+#endif

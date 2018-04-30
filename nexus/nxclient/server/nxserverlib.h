@@ -177,6 +177,7 @@ struct nxserver_settings
             uint64_t standby_filter;
 #define NXSERVER_IR_INPUTS 2
             NEXUS_IrInputMode mode[NXSERVER_IR_INPUTS]; /* support up to two. eMax if unused. */
+            bool cec;
         } ir_input;
 #endif
         bool evdevInput;
@@ -258,10 +259,12 @@ struct nxserver_settings
     struct {
         char *thermal_config_file;
     } thermal;
+#if NEXUS_HAS_HDMI_OUTPUT
     struct {
         bool set[NEXUS_HDMI_OUTPUT_TMDS_RANGES];
         NEXUS_HdmiOutputPreEmphasisConfiguration config;
     } hdmiPreEmphasis;
+#endif
     bool watchdog; /* enable HW watchdog from at least one nxserver thread. this means if nxserver hangs or is killed, the system will reset. */
 };
 

@@ -1115,16 +1115,17 @@ static BIP_Status openAndAddPidChannelToTrackList(
         {
             nrc = NEXUS_Playpump_GetAllPassPidChannelIndex(hPlayer->hPlaypump, &hTrackEntry->settings.pidSettings.pidSettings.pidSettings.pidChannelIndex);
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playpump_GetAllPassPidChannelIndex Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added AllPassPidChannel Index!" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
 
         if (hPlayer->streamInfo.usePlaypump)
         {
-            hTrackEntry->hPidChannel = NEXUS_Playpump_OpenPidChannel(hPlayer->hPlaypump, trackId, &pSettings->pidSettings.pidSettings);
+            hTrackEntry->hPidChannel = NEXUS_Playpump_OpenPidChannel(hPlayer->hPlaypump, trackId, &hTrackEntry->settings.pidSettings.pidSettings);
             BIP_CHECK_GOTO(( hTrackEntry->hPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
         }
         else
         {
-            hTrackEntry->hPidChannel = NEXUS_Playback_OpenPidChannel(hPlayer->hPlayback, trackId, &pSettings->pidSettings);
+            hTrackEntry->hPidChannel = NEXUS_Playback_OpenPidChannel(hPlayer->hPlayback, trackId, &hTrackEntry->settings.pidSettings);
             BIP_CHECK_GOTO(( hTrackEntry->hPidChannel ), ( "NEXUS_Playback_OpenPidChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
         }
 

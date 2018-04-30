@@ -69,9 +69,15 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_IDS(BDSP_Algorithm_ePcmWavDecode):                 return BDSP_IMG_aids_wavformatex;
 #endif /* BDSP_PCMWAV_SUPPORT */
 #ifdef BDSP_UDC_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_udc;
-    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_udc_tables;
-    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_udc_inter_frame;
+#ifdef BDSP_MS11PLUS_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_ms11plus_udc;
+    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_ms11plus_udc_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_ms11plus_udc_inter_frame;
+#else
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_udc;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_adec_udc_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eUdcDecode): 				return BDSP_IMG_adec_udc_inter_frame;
+#endif
     case BDSP_IMG_ID_IDS(BDSP_Algorithm_eUdcDecode):					return BDSP_IMG_aids_ddp;
 #endif /* BDSP_UDC_SUPPORT */
 #ifdef BDSP_UDC_PASSTHRU_SUPPORT
@@ -114,10 +120,16 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
 	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eSrc): 						return BDSP_IMG_app_src_inter_frame;
 #endif /* BDSP_SRC_SUPPORT */
 #ifdef BDSP_MIXERDAPV2_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT/* Mixer without DAP */
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eMixerDapv2):                  return BDSP_IMG_app_ms11plus_mixer;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eMixerDapv2):                 return BDSP_IMG_app_ms11plus_mixer_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eMixerDapv2):                return BDSP_IMG_app_ms11plus_mixer_inter_frame;
+#else/* Mixer with DAP */
 	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eMixerDapv2):					return BDSP_IMG_app_mixer_dapv2;
 	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eMixerDapv2):					return BDSP_IMG_app_mixer_dapv2_tables;
 	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eMixerDapv2): 				return BDSP_IMG_app_mixer_dapv2_inter_frame;
-#endif /* BDSP_MIXERDAPV2_SUPPORT */
+#endif
+#endif/*BDSP_MIXERDAPV2_SUPPORT*/
 #ifdef BDSP_FWMIXER_SUPPORT
 	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eMixer):					    return BDSP_IMG_app_fw_mixer;
 	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eMixer):					    return BDSP_IMG_app_fw_mixer_tables;
@@ -134,12 +146,21 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_IDS(BDSP_Algorithm_eAacLoasDecode):				return BDSP_IMG_aids_loas;
 #endif /* BDSP_AACSBR_SUPPORT */
 #ifdef BDSP_DOLBY_AACHE_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_dolby_aache;
-    case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_dolby_aache;
-    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_dolby_aache_tables;
-    case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_dolby_aache_tables;
-    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_dolby_aache_inter_frame;
-    case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_dolby_aache_inter_frame;
+#ifdef BDSP_MS11PLUS_SUPPORT
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_ms11plus_dolby_aache;
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_ms11plus_dolby_aache;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_ms11plus_dolby_aache_tables;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_ms11plus_dolby_aache_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_ms11plus_dolby_aache_inter_frame;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_ms11plus_dolby_aache_inter_frame;
+#else
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_dolby_aache;
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_dolby_aache;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_dolby_aache_tables;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_dolby_aache_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheAdtsDecode):		return BDSP_IMG_adec_dolby_aache_inter_frame;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDolbyAacheLoasDecode):		return BDSP_IMG_adec_dolby_aache_inter_frame;
+#endif
     case BDSP_IMG_ID_IDS(BDSP_Algorithm_eDolbyAacheAdtsDecode):			return BDSP_IMG_aids_adts;
     case BDSP_IMG_ID_IDS(BDSP_Algorithm_eDolbyAacheLoasDecode):			return BDSP_IMG_aids_loas;
 #endif /* BDSP_DOLBY_AACSBR_SUPPORT */
@@ -155,14 +176,26 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
 	case BDSP_IMG_ID_IDS(BDSP_Algorithm_eAacAdtsPassthrough):			return BDSP_IMG_aids_adts;
 #endif /*BDSP_AACSBR_PASSTHRU_SUPPORT*/
 #ifdef BDSP_DPCMR_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDpcmr):						return BDSP_IMG_app_ms11plus_dpcmr;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDpcmr):						return BDSP_IMG_app_ms11plus_dpcmr_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDpcmr): 					return BDSP_IMG_app_ms11plus_dpcmr_inter_frame;
+#else
 	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDpcmr):						return BDSP_IMG_app_dpcmr;
 	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDpcmr):						return BDSP_IMG_app_dpcmr_tables;
 	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDpcmr): 					return BDSP_IMG_app_dpcmr_inter_frame;
+#endif
 #endif /* BDSP_DPCMR_SUPPORT */
 #ifdef BDSP_DDPENC_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDDPEncode):					return BDSP_IMG_aenc_ms11plus_dd;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDDPEncode):					return BDSP_IMG_aenc_ms11plus_dd_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDDPEncode): 				return BDSP_IMG_aenc_ms11plus_dd_inter_frame;
+#else
 	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eDDPEncode):					return BDSP_IMG_aenc_ddp;
 	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eDDPEncode):					return BDSP_IMG_aenc_ddp_tables;
 	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eDDPEncode): 				return BDSP_IMG_aenc_ddp_inter_frame;
+#endif
 #endif /* BDSP_DDPENC_SUPPORT */
 #ifdef BDSP_AACHEENC_SUPPORT
 	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eAacEncode):					return BDSP_IMG_aenc_aache;
@@ -201,6 +234,12 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
 		case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eAC4Decode):				return BDSP_IMG_adec_ac4_inter_frame;
 		case BDSP_IMG_ID_IDS(BDSP_Algorithm_eAC4Decode):				return BDSP_IMG_aids_ac4;
 #endif /* BDSP_AC4_SUPPORT */
+#ifdef BDSP_MPEG_PASSTHRU_SUPPORT
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eMpegAudioPassthrough):				return BDSP_IMG_adec_passthru;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eMpegAudioPassthrough): 			return BDSP_IMG_adec_passthru_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eMpegAudioPassthrough):			return BDSP_IMG_adec_passthru_inter_frame;
+	case BDSP_IMG_ID_IDS(BDSP_Algorithm_eMpegAudioPassthrough):				return BDSP_IMG_aids_mpeg1;
+#endif /*BDSP_MPEG_PASSTHRU_SUPPORT*/
     default:
         BDBG_WRN(("IMG %u not supported (algo %u)", imgId, BDSP_IMG_ID_TO_ALGO(imgId)));
         return NULL;

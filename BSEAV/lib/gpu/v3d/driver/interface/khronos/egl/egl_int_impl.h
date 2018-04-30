@@ -3,8 +3,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "interface/khronos/common/khrn_int_image.h"
 #include "interface/khronos/egl/egl_int.h"
 #include "interface/khronos/egl/egl_client_surface.h"
@@ -18,23 +18,13 @@ extern bool egl_create_surface(
    uint32_t width,
    uint32_t height,
    bool secure,
-   KHRN_IMAGE_FORMAT_T colorformat,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisampleformat,
    uint32_t mipmap,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits,
+   KHRN_IMAGE_T *pixmap_image,
    uint32_t type);
 
 extern bool egl_create_wrapped_surface(
    EGL_SURFACE_T *surface,
-   void *pixmap,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   KHRN_IMAGE_FORMAT_T multisample,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits);
+   void *pixmap);
 
 // Create server states. To actually use these, call, eglIntMakeCurrent.
 extern void *egl_create_glxx_server_state(void *share_context, EGL_CONTEXT_TYPE_T share_type, bool secure);
@@ -50,7 +40,7 @@ extern bool egl_back_buffer_dims(EGL_SURFACE_T *surface, uint32_t *width, uint32
 extern void egl_swapbuffers(EGL_SURFACE_T *surface);
 extern void egl_select_mipmap(EGL_SURFACE_T *surface, int level);
 
-extern int egl_copybuffers(EGL_SURFACE_T *surface, void *pixmap);
+extern int egl_copybuffers(EGL_SURFACE_T *surface, EGLNativePixmapType pixmap);
 extern void egl_get_color_data(EGL_SURFACE_T *surface, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, void *data);
 extern void egl_set_color_data(EGL_SURFACE_T *surface, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t y_offset, const void *data);
 
@@ -62,12 +52,6 @@ extern void egl_update_gl_buffers(EGL_CURRENT_T *opengl);
 #if EGL_KHR_image
 extern EGLImageKHR eglCreateImageKHR_impl(EGLenum target, EGLClientBuffer buffer, EGLint texture_level, EGLint *results);
 extern EGLBoolean eglDestroyImageKHR_impl(EGLImageKHR image);
-#endif
-
-#if EGL_BRCM_driver_monitor
-extern bool eglInitDriverMonitorBRCM_impl(EGLint hw_bank, EGLint l3c_bank);
-extern void eglTermDriverMonitorBRCM_impl(void);
-extern void eglGetDriverMonitorXMLBRCM_impl(EGLint bufSize, char *xmlStats);
 #endif
 
 #ifdef WAYLAND

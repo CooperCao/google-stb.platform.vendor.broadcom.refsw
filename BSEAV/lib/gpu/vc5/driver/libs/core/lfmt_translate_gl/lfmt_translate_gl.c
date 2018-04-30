@@ -90,14 +90,12 @@ static const FORMAT_TYPE_LFMT_T gl_to_lfmt_map[] = {
    {GL_DEPTH_STENCIL,        GL_UNSIGNED_INT_24_8,           GFX_LFMT_S8D24_UINT_UNORM},
    {GL_DEPTH_STENCIL,        GL_FLOAT_32_UNSIGNED_INT_24_8_REV,GFX_LFMT_D32_S8X24_FLOAT_UINT},
 
-#if GL_BRCM_texture_norm16
    {GL_RED,                  GL_UNSIGNED_SHORT,              GFX_LFMT_R16_UNORM},
    {GL_RG,                   GL_UNSIGNED_SHORT,              GFX_LFMT_R16_G16_UNORM},
    {GL_RGBA,                 GL_UNSIGNED_SHORT,              GFX_LFMT_R16_G16_B16_A16_UNORM},
    {GL_RED,                  GL_SHORT,                       GFX_LFMT_R16_SNORM},
    {GL_RG,                   GL_SHORT,                       GFX_LFMT_R16_G16_SNORM},
    {GL_RGBA,                 GL_SHORT,                       GFX_LFMT_R16_G16_B16_A16_SNORM},
-#endif
 
    /* GL ES spec 3.0.2, Table 3.3 "Valid combinations of format, type, and unsized
       internalformat." (overlaps with above) */
@@ -108,9 +106,7 @@ static const FORMAT_TYPE_LFMT_T gl_to_lfmt_map[] = {
    /* OES_texture_stencil8 */
    {GL_STENCIL_INDEX,        GL_UNSIGNED_BYTE,               GFX_LFMT_S8_UINT},
 
-#if GL_EXT_texture_format_BGRA8888
    {GL_BGRA_EXT,             GL_UNSIGNED_BYTE,               GFX_LFMT_B8_G8_R8_A8_UNORM},
-#endif
 };
 
 static const FORMAT_TYPE_LFMT_T gl_to_lfmt_map_srgb[] = {
@@ -264,14 +260,12 @@ static const SIZED_INTERNALFORMAT_LFMT_T sized_internalformat_to_lfmt_map[] = {
    { GL_DEPTH24_STENCIL8,    GFX_LFMT_S8D24_UINT_UNORM},
    { GL_DEPTH32F_STENCIL8,   GFX_LFMT_D32_S8X24_FLOAT_UINT},
 
-#if GL_BRCM_texture_norm16
    { GL_R16_BRCM,            GFX_LFMT_R16_UNORM},
    { GL_RG16_BRCM,           GFX_LFMT_R16_G16_UNORM},
    { GL_RGBA16_BRCM,         GFX_LFMT_R16_G16_B16_A16_UNORM},
    { GL_R16_SNORM_BRCM,      GFX_LFMT_R16_SNORM},
    { GL_RG16_SNORM_BRCM,     GFX_LFMT_R16_G16_SNORM},
    { GL_RGBA16_SNORM_BRCM,   GFX_LFMT_R16_G16_B16_A16_SNORM},
-#endif
 
    /* See GL ES spec 3.0.2 "Required Renderbuffer Formats" and OES_texture_stencil8 */
    { GL_STENCIL_INDEX8,      GFX_LFMT_S8_UINT},
@@ -296,9 +290,7 @@ static const UNSIZED_INTERNALFORMAT_LFMT_T unsized_internalformat_to_lfmt_map[] 
    { GL_LUMINANCE,           GFX_LFMT_L8_UNORM },
    { GL_ALPHA,               GFX_LFMT_A8_UNORM },
 
-#if GL_EXT_texture_format_BGRA8888
    { GL_BGRA_EXT,            GFX_LFMT_B8_G8_R8_A8_UNORM },
-#endif
 };
 
 /* return GFX_LFMT_NONE if not a sized internalformat. */
@@ -396,9 +388,7 @@ bool gfx_gl_is_unsized_internalformat(GLenum internalformat)
    case GL_LUMINANCE_ALPHA:
    case GL_LUMINANCE:
    case GL_ALPHA:
-#if GL_EXT_texture_format_BGRA8888
    case GL_BGRA_EXT:
-#endif
       return true;
    default:
       return false;
@@ -418,7 +408,7 @@ typedef struct {
 
 static const COMPRESSED_FORMAT_LFMT_T gfx_compressed_format_lfmt_map[] =
 {
-   {0,                              GL_ETC1_RGB8_OES,                               GFX_LFMT_ETC1_RGB_UNORM},
+   {0,                              GL_ETC1_RGB8_OES,                               GFX_LFMT_ETC2_RGB_UNORM},
    {0,                              GL_COMPRESSED_R11_EAC,                          GFX_LFMT_EAC_R_UNORM},
    {0,                              GL_COMPRESSED_SIGNED_R11_EAC,                   GFX_LFMT_EAC_R_SNORM},
    {0,                              GL_COMPRESSED_RG11_EAC,                         GFX_LFMT_EAC_EAC_RG_UNORM},
@@ -614,18 +604,14 @@ static const FORMAT_TYPE_INTERNALFORMAT_T valid_format_type_internalformat_combi
    { GL_LUMINANCE,        GL_UNSIGNED_BYTE,                   GL_LUMINANCE},
    { GL_ALPHA,            GL_UNSIGNED_BYTE,                   GL_ALPHA},
 
-#if GL_BRCM_texture_norm16
    { GL_RED,              GL_UNSIGNED_SHORT,                  GL_R16_BRCM},
    { GL_RG,               GL_UNSIGNED_SHORT,                  GL_RG16_BRCM},
    { GL_RGBA,             GL_UNSIGNED_SHORT,                  GL_RGBA16_BRCM},
    { GL_RED,              GL_SHORT,                           GL_R16_SNORM_BRCM},
    { GL_RG,               GL_SHORT,                           GL_RG16_SNORM_BRCM},
    { GL_RGBA,             GL_SHORT,                           GL_RGBA16_SNORM_BRCM},
-#endif
 
-#if GL_EXT_texture_format_BGRA8888
    { GL_BGRA_EXT,         GL_UNSIGNED_BYTE,                   GL_BGRA_EXT},
-#endif
 
    /* OES_texture_stencil8 */
    { GL_STENCIL_INDEX,    GL_UNSIGNED_BYTE,                   GL_STENCIL_INDEX8},

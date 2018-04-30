@@ -47,7 +47,6 @@
 
 NEXUS_DisplayHandle nexus_display;
 EGLNativeDisplayType native_display = 0;
-void                *nxpl_pixmap_handle;
 NEXUS_SurfaceHandle nexus_gl_surface;
 NEXUS_SurfaceHandle nexus_framebuffer[2]; /* Double buffering */
 NEXUS_Graphics2DHandle nexus_gfx;
@@ -245,7 +244,6 @@ bool InitEGL(unsigned int w, unsigned int h)
    EGLint     minor_version;
    int        i = 0;
    int        configs;
-   BEGL_PixmapInfoEXT pix_info = { 0 };
 
    /*
       Step 1 - Get the default display.
@@ -368,24 +366,28 @@ bool InitEGL(unsigned int w, unsigned int h)
 
    /*
       Make a Nexus surface to render into.
-      NOTE: We use a function from the 3D library to ensure the surface is valid for rendering 3D.
    */
-   NXPL_GetDefaultPixmapInfoEXT(&pix_info);
-   pix_info.width = w;
-   pix_info.height = h;
-   pix_info.secure = secure;
-#if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
-   pix_info.format = BEGL_BufferFormat_eR8G8B8A8;
-#else
-   pix_info.format = BEGL_BufferFormat_eA8B8G8R8;
-#endif
-   if (!NXPL_CreateCompatiblePixmapEXT(nxpl_handle, &nxpl_pixmap_handle, &nexus_gl_surface, &pix_info))
+   NEXUS_SurfaceCreateSettings surfSettings;
+   NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
+   surfSettings.compatibility.graphicsv3d = true;
+   surfSettings.width = w;
+   surfSettings.height = h;
+   surfSettings.pixelFormat = NEXUS_PixelFormat_eA8_B8_G8_R8;
+   surfSettings.heap = NEXUS_Platform_GetFramebufferHeap(secure ?
+         NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE : NEXUS_OFFSCREEN_SURFACE);
+   if (!surfSettings.heap)
    {
-      printf("NXPL_CreateCompatiblePixmap() failed\n");
+      printf("No heap\n");
+      return false;
+   }
+   nexus_gl_surface = NEXUS_Surface_Create(&surfSettings);
+   if (!nexus_gl_surface)
+   {
+      printf("NEXUS_Surface_Create() failed\n");
       return false;
    }
 
-   egl_surface = eglCreatePixmapSurface(egl_display, egl_config[configs], nxpl_pixmap_handle, NULL);
+   egl_surface = eglCreatePixmapSurface(egl_display, egl_config[configs], nexus_gl_surface, NULL);
    if (egl_surface == EGL_NO_SURFACE)
    {
       printf("eglCreatePixmapSurface() failed\n");
@@ -774,7 +776,7 @@ int main(int argc, char** argv)
    /* Terminate EGL */
    eglTerminate(eglDisplay);
 
-   NXPL_DestroyCompatiblePixmap(nxpl_handle, nxpl_pixmap_handle);
+   NEXUS_Surface_Destroy(nexus_gl_surface);
 
    NXPL_UnregisterNexusDisplayPlatform(nxpl_handle);
 

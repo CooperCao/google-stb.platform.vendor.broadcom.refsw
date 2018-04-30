@@ -286,6 +286,9 @@ wl_cfgp2p_find_wpaie(u8 *parse, u32 len);
 extern wpa_ie_fixed_t *
 wl_cfgp2p_find_wpsie(u8 *parse, u32 len);
 
+extern int
+wl_cfgp2p_count_wpsie(u8 *parse, u32 len);
+
 extern wifi_p2p_ie_t *
 wl_cfgp2p_find_p2pie(u8 *parse, u32 len);
 

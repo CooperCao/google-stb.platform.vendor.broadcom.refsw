@@ -66,12 +66,16 @@ GLint textureunit_loc;
 
 GLint program_object;
 
+#define DEPRECATED_PIXMAP 0
+
 typedef struct
 {
    unsigned int  egl_image_height;
    unsigned int  egl_image_width;
 
+#if DEPRECATED_PIXMAP
    EGLNativePixmapType  eglPixmap;
+#endif
    IDirectFBSurface    *dfbSurface;
 
    EGLImageKHR          eglimage;
@@ -95,10 +99,14 @@ static image_ctx* load_image(char * filename)
       IDirectFBSurface *tmpSurface;
       DFBSurfaceDescription dsc;
       EGLint attr_list[] = { EGL_NONE };
-      BEGL_PixmapInfo      pixInfo;
+      BEGL_PixmapInfoEXT pixInfo;
 
       DFBCHECK (dfb->CreateImageProvider(dfb, filename, &provider));
       DFBCHECK (provider->GetSurfaceDescription(provider, &dsc));
+
+#if DEPRECATED_PIXMAP
+      /* deprecated mode for reference */
+      DBPL_GetDefaultPixmapInfoEXT(&pixInfo);
 
       /* create a pixmap */
       p->egl_image_width =
@@ -107,8 +115,17 @@ static image_ctx* load_image(char * filename)
          pixInfo.height = dsc.height;
       pixInfo.format = BEGL_BufferFormat_eA8B8G8R8;
       /* this image will have the correct stride for 3d core */
-      if (!DBPL_CreateCompatiblePixmap(dbpl_handle, &p->eglPixmap, &p->dfbSurface, &pixInfo))
+      if (!DBPL_CreateCompatiblePixmapEXT(dbpl_handle, &p->eglPixmap, &p->dfbSurface, &pixInfo))
          goto error0;
+#else
+      DFBSurfaceDescription desc = {};
+      desc.flags = DSDESC_CAPS | DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+      desc.caps = DSCAPS_GL;
+      desc.width = p->egl_image_width = dsc.width;
+      desc.height = p->egl_image_height = dsc.height;
+      desc.pixelformat = DSPF_ABGR;
+      DFBCHECK( dfb->CreateSurface( dfb, &desc, &p->dfbSurface ));
+#endif
 
       /* scratch surface to decode into, as it needs flipping */
       DFBCHECK (dfb->CreateSurface(dfb, &dsc, &tmpSurface));
@@ -123,7 +140,11 @@ static image_ctx* load_image(char * filename)
       tmpSurface->Release(tmpSurface);
 
       /* create the egl image */
+#if DEPRECATED_PIXMAP
       p->eglimage = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)p->eglPixmap, attr_list);
+#else
+      p->eglimage = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, p->dfbSurface, attr_list);
+#endif
       if (p->eglimage == EGL_NO_IMAGE_KHR)
       {
          printf("eglCreateImageKHR() failed\n");
@@ -144,7 +165,11 @@ static image_ctx* load_image(char * filename)
    return p;
 
 error1:
+#if DEPRECATED_PIXMAP
    DBPL_DestroyCompatiblePixmap(dbpl_handle, p->eglPixmap);
+#else
+   DFBCHECK( p->dfbSurface->Release( p->dfbSurface ));
+#endif
 
 error0:
    provider->Release(provider);
@@ -255,7 +280,11 @@ void TerminateGLState(void)
    for (i = 0; i < IMAGES; i++)
    {
       eglDestroyImageKHR(eglGetCurrentDisplay(), images[i]->eglimage);
+#if DEPRECATED_PIXMAP
       DBPL_DestroyCompatiblePixmap(dbpl_handle, images[i]->eglPixmap);
+#else
+      DFBCHECK( images[i]->dfbSurface->Release( images[i]->dfbSurface ));
+#endif
       glDeleteTextures(1, &images[i]->texture);
    }
 }

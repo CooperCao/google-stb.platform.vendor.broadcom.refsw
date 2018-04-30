@@ -3,17 +3,15 @@
  ******************************************************************************/
 #pragma once
 
-#include "EGL/egl.h"
+#include <EGL/begl_platform.h>
 #include "default_nexus.h"
 #include "display_nexus.h"
 
-typedef void(*BufferGetRequirementsFunc)(const BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements);
-
 typedef struct
 {
-   BufferGetRequirementsFunc  bufferGetRequirementsFunc;
    NEXUS_DISPLAYHANDLE        display;
    BEGL_MemoryInterface       *memInterface;
    BEGL_HWInterface           *hwInterface;
    bool                       useMMA;
+   EventContext               *eventContext;
 } NXPL_Display;

@@ -256,9 +256,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
       goto end;
    }
 
-   flags = GFX_BUFFER_USAGE_V3D_RENDER_TARGET;
-   if (surface->texture_format != EGL_NO_TEXTURE)
-      flags |= GFX_BUFFER_USAGE_V3D_TEXTURE;
+   //pbuffers can end up being used as textures via glBlitFramebuffer
+   flags = GFX_BUFFER_USAGE_V3D_RENDER_TARGET |GFX_BUFFER_USAGE_V3D_TEXTURE;
 
    // TODO: we should check that color_lfmt matches texture_format(RGB/ RGBA)
    if (surface->mipmap && surface->texture_format != EGL_NO_TEXTURE)

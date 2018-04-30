@@ -1,5 +1,5 @@
 ############################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,6 +53,7 @@ endif
 BTHD_DEFINES += BTHD_3461_VER=BCHP_VER_$(BCHP_3461_VER)
 
 BCHP_VER_UPPER ?= $(shell awk 'BEGIN{print toupper("$(BCHP_VER)")}')
+BTHD_3461_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3461_VER)")}')
 
 # Module Includes
 BTHD_INCLUDES += $(MAGNUM)/portinginterface/thd/include/common
@@ -63,7 +64,7 @@ BTHD_SOURCES +=	$(MAGNUM)/portinginterface/thd/src/common/bthd.c
 # Handle 3461
 #
 ifeq ($(findstring 3461,$(BTHD_CHIP)),3461)
-BTHD_INCLUDES += $(MAGNUM)/basemodules/chp/include/3461/common
+BTHD_INCLUDES += $(MAGNUM)/basemodules/chp/include/3461/hab/$(BTHD_3461_VER_LOWER)
 BTHD_INCLUDES += $(MAGNUM)/portinginterface/thd/include/3461
 BTHD_INCLUDES += $(MAGNUM)/commonutils/fec/include
 
@@ -106,5 +107,3 @@ BTHD_SOURCES += \
 	$(MAGNUM)/portinginterface/thd/src/3x7x/bthd_acq.c \
 	$(MAGNUM)/portinginterface/thd/src/3x7x/bthd_api.c
 endif
-
-

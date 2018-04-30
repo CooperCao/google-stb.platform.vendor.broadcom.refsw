@@ -1000,34 +1000,6 @@ char* cropStr( char* pStr )
     return pUnderScore;
 }
 
-/* dump the send buffer */
-void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )
-{
-    unsigned wordOffset;
-    uint32_t value;
-
-    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
-    {
-        value = readOutbox( hMsg->pMod, wordOffset );
-        BDBG_LOG(("> %3d 0x%08X", wordOffset, value ));
-    }
-    return;
-}
-
-/* dump the receive buffer */
-void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg )
-{
-    unsigned wordOffset;
-    uint32_t value;
-
-    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
-    {
-        value = readInbox( hMsg->pMod, wordOffset );
-        BDBG_LOG(("< %3d 0x%08X", wordOffset, value ));
-    }
-    return;
-}
-
 static void  _ParseBfwVersion( BHSM_BfwVersion *pVersion,
                                uint8_t epochScheme,  /* epoch and scheme. scheme */
                                uint32_t version )
@@ -1070,8 +1042,12 @@ static void  _ParseBfwVersion( BHSM_BfwVersion *pVersion,
 
     if( scheme == 2 )
     {
-        BKNI_Snprintf( strBuf, sizeof(strBuf), " epoch[%d]", epochScheme >> 4 );
+        pVersion->firmwareEpoch.valid = true;
+        pVersion->firmwareEpoch.value = epochScheme >> 4;
+
+        BKNI_Snprintf( strBuf, sizeof(strBuf), " epoch[%d]", pVersion->firmwareEpoch.value );
     }
+
     BDBG_LOG(("SECURITY VERSION: Zeus[%d.%d.%d] BFW[%d.%d.%d]%s%s", pVersion->version.zeus.major
                                                                  , pVersion->version.zeus.minor
                                                                  , pVersion->version.zeus.subminor

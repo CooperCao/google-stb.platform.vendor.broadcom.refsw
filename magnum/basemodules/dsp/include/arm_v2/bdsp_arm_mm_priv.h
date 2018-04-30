@@ -72,4 +72,10 @@ BERR_Code BDSP_Arm_P_ReleaseDescriptor(
 	dramaddr_t *pOffset,
 	unsigned numDescriptors
 );
+BERR_Code BDSP_Arm_P_GetMemoryEstimate(
+	const BDSP_ArmSettings     *pSettings,
+	const BDSP_UsageOptions    *pUsage,
+	BBOX_Handle                 boxHandle,
+	BDSP_MemoryEstimate        *pEstimate /*[out]*/
+);
 #endif /*BDSP_ARM_MM_PRIV_H_*/

@@ -49,49 +49,67 @@ DescriptorSet::~DescriptorSet() noexcept
 {
 }
 
-void DescriptorSet::WriteImage(const VkWriteDescriptorSet *writeInfo,
-                               size_t sysOffset, size_t devOffset)
+void DescriptorSet::WriteImageEntry(const VkDescriptorImageInfo *srcImageInfo,
+                                    VkDescriptorType descType, uint32_t binding,
+                                    DescriptorPool::ImageInfo *dstSysData, uint8_t *dstDevData,
+                                    v3d_addr_t devAddr)
 {
-   size_t elemSize = DescriptorPool::CalcDescriptorTypeBytes(writeInfo->descriptorType);
-   size_t size     = elemSize * writeInfo->descriptorCount;
-   assert(sysOffset + size <= m_dataSize);
+   size_t physOffset = 0;
 
-   size_t elemDevSize = DescriptorPool::CalcDescriptorTypeDevMemBytes(writeInfo->descriptorType);
-   size_t devSize     = elemDevSize * writeInfo->descriptorCount;
+   dstSysData->imageView = fromHandle<ImageView>(srcImageInfo->imageView);
+
+   if (descType != VK_DESCRIPTOR_TYPE_SAMPLER)
+   {
+      // Everything but Sampler needs a texture state record, so write this first
+      dstSysData->imageView->WriteTextureStateRecord(dstDevData, descType);
+      physOffset += DescriptorPool::GetDevMemRecordSize();
+   }
+
+   if (descType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+       descType == VK_DESCRIPTOR_TYPE_SAMPLER)
+   {
+      // Only write the sampler if it's not an immutable one. Immutable ones are written
+      // during construction.
+      if (!m_layout->HasImmutableSamplers(binding))
+      {
+         Sampler *s = fromHandle<Sampler>(srcImageInfo->sampler);
+         s->WriteSamplerRecord(dstDevData + physOffset);
+
+         V3D_TMU_PARAM1_T p1 = {};
+         p1.unnorm = s->UnnormalizedCoordinates();
+         p1.sampler_addr = devAddr + physOffset;
+
+         dstSysData->samplerParam = v3d_pack_tmu_param1(&p1);
+      }
+   }
+}
+
+void DescriptorSet::TemplateWriteImage(const VkDescriptorUpdateTemplateEntry *entry,
+                                       const void *pData, size_t sysOffset, size_t devOffset)
+{
+   size_t elemSize    = DescriptorPool::CalcDescriptorTypeBytes(entry->descriptorType);
+   size_t elemDevSize = DescriptorPool::CalcDescriptorTypeDevMemBytes(entry->descriptorType);
+   size_t devSize     = elemDevSize * entry->descriptorCount;
    assert(devOffset + devSize <= m_devDataSize);
 
-   for (uint32_t i = 0; i < writeInfo->descriptorCount; i++)
+   uint8_t   *dstSysData = m_data + sysOffset;
+   size_t     physOffset = m_devMemOffset + devOffset;
+   uint8_t   *devPtr     = static_cast<uint8_t*>(gmem_get_ptr(m_devMemHandle)) + physOffset;
+   v3d_addr_t devAddr    = gmem_get_addr(m_devMemHandle) + physOffset;
+   auto       srcPtr     = static_cast<const uint8_t *>(pData) + entry->offset;
+
+   for (uint32_t i = 0; i < entry->descriptorCount; i++)
    {
-      auto data       = reinterpret_cast<DescriptorPool::ImageInfo*>(m_data + sysOffset + i * elemSize);
-      data->imageView = fromHandle<ImageView>(writeInfo->pImageInfo[i].imageView);
+      auto dstImageInfo = reinterpret_cast<DescriptorPool::ImageInfo*>(dstSysData);
+      auto srcData      = reinterpret_cast<const VkDescriptorImageInfo *>(srcPtr);
 
-      size_t   physOffset = m_devMemOffset + devOffset + i * elemDevSize;
-      uint8_t *devPtr     = static_cast<uint8_t*>(gmem_get_ptr(m_devMemHandle));
+      WriteImageEntry(srcData, entry->descriptorType, entry->dstBinding,
+                      dstImageInfo, devPtr, devAddr);
 
-      if (writeInfo->descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER)
-      {
-         // Everything but Sampler needs a texture state record, so write this first
-         data->imageView->WriteTextureStateRecord(devPtr + physOffset, writeInfo->descriptorType);
-         physOffset += DescriptorPool::GetDevMemRecordSize();
-      }
-
-      if (writeInfo->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-          writeInfo->descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-      {
-         // Only write the sampler if it's not an immutable one. Immutable ones are written
-         // during construction.
-         if (!m_layout->HasImmutableSamplers(writeInfo->dstBinding))
-         {
-            Sampler *s = fromHandle<Sampler>(writeInfo->pImageInfo[i].sampler);
-            s->WriteSamplerRecord(devPtr + physOffset);
-
-            V3D_TMU_PARAM1_T p1 = {};
-            p1.unnorm       = s->UnnormalizedCoordinates();
-            p1.sampler_addr = gmem_get_addr(m_devMemHandle) + physOffset;
-
-            data->samplerParam = v3d_pack_tmu_param1(&p1);
-         }
-      }
+      dstSysData += elemSize;
+      devPtr     += elemDevSize;
+      devAddr    += elemDevSize;
+      srcPtr     += entry->stride;
    }
 
    gmem_flush_mapped_range(m_devMemHandle, m_devMemOffset + devOffset, devSize);
@@ -122,61 +140,89 @@ uint32_t DescriptorSet::GetSamplerParam(uint32_t binding, uint32_t element) cons
    return reinterpret_cast<DescriptorPool::ImageInfo*>(m_data + offset)->samplerParam;
 }
 
-void DescriptorSet::WriteTexelBuffer(const VkWriteDescriptorSet *writeInfo,
-                                     size_t sysOffset, size_t devOffset)
+void DescriptorSet::WriteTexelBufferEntry(VkBufferView srcData,
+                                          uint8_t *dstSysData, uint8_t *dstDevData)
 {
-   size_t elemSize = DescriptorPool::CalcDescriptorTypeBytes(writeInfo->descriptorType);
-   size_t size     = elemSize * writeInfo->descriptorCount;
-   assert(sysOffset + size <= m_dataSize);
+   // Write the texture state record
+   const BufferView *bv = fromHandle<const BufferView>(srcData);
+   bv->WriteTextureStateRecord(dstDevData);
 
-   size_t elemDevSize = DescriptorPool::CalcDescriptorTypeDevMemBytes(writeInfo->descriptorType);
-   size_t devSize     = elemDevSize * writeInfo->descriptorCount;
-   assert(devOffset + devSize <= m_devDataSize);
-
-   for (uint32_t i = 0; i < writeInfo->descriptorCount; i++)
-   {
-      size_t   physOffset = m_devMemOffset + devOffset + i * elemDevSize;
-      uint8_t *devPtr     = static_cast<uint8_t*>(gmem_get_ptr(m_devMemHandle)) + physOffset;
-
-      // Write the texture state record
-      BufferView *bv = fromHandle<BufferView>(writeInfo->pTexelBufferView[i]);
-      bv->WriteTextureStateRecord(devPtr);
-
-      auto data = reinterpret_cast<uint32_t *>(m_data + sysOffset + i * elemSize);
-      *data     = bv->GetNumElems();
-   }
-
-   gmem_flush_mapped_range(m_devMemHandle, m_devMemOffset + devOffset, devSize);
+   // And the sysmem data
+   auto dstSysData32 = reinterpret_cast<uint32_t *>(dstSysData);
+   *dstSysData32 = bv->GetNumElems();
 }
 
-void DescriptorSet::WriteBuffer(const VkWriteDescriptorSet *writeInfo,
-                                size_t sysOffset, size_t devOffset)
+void DescriptorSet::TemplateWriteTexelBuffer(const VkDescriptorUpdateTemplateEntry *entry,
+                                             const void *pData, size_t sysOffset, size_t devOffset)
+{
+   size_t elemSize    = DescriptorPool::CalcDescriptorTypeBytes(entry->descriptorType);
+   size_t elemDevSize = DescriptorPool::CalcDescriptorTypeDevMemBytes(entry->descriptorType);
+   size_t totDevSize  = elemDevSize * entry->descriptorCount;
+   assert(devOffset + totDevSize <= m_devDataSize);
+
+   uint8_t *devPtr = static_cast<uint8_t*>(gmem_get_ptr(m_devMemHandle)) + m_devMemOffset + devOffset;
+   uint8_t *sysPtr = m_data + sysOffset;
+   auto     srcPtr = static_cast<const uint8_t *>(pData) + entry->offset;
+
+   for (uint32_t i = 0; i < entry->descriptorCount; i++)
+   {
+      auto srcData = reinterpret_cast<const VkBufferView *>(srcPtr);
+
+      WriteTexelBufferEntry(*srcData, sysPtr, devPtr);
+
+      srcPtr += entry->stride;
+      sysPtr += elemSize;
+      devPtr += elemDevSize;
+   }
+
+   gmem_flush_mapped_range(m_devMemHandle, m_devMemOffset + devOffset, totDevSize);
+}
+
+void DescriptorSet::WriteBufferEntry(const VkDescriptorBufferInfo *srcData,
+                                     DescriptorPool::BufferInfo   *dstData)
 {
    // The size is the amount of bytes in the buffer after taking the
    // bufInfo->offset into account. The range may be further restricted. The
    // range does not include any dynamicOffset.
    // [<--bufInfo.offset--><---------------size------------->]
    // [<--bufInfo.offset--><--dynamicOffset--><--range-->----]
-   auto data = reinterpret_cast<DescriptorPool::BufferInfo *>(m_data + sysOffset);
 
-   for (uint32_t i = 0; i < writeInfo->descriptorCount; i++)
+   Buffer      *b = fromHandle<Buffer>(srcData->buffer);
+   VkDeviceSize offset = srcData->offset;
+   assert(offset <= b->Size());
+
+   dstData->addr = b->CalculateBufferOffsetAddr(offset);
+   dstData->size = static_cast<uint32_t>(b->Size() - offset);
+
+   if (srcData->range == VK_WHOLE_SIZE)
+      dstData->range = dstData->size;
+   else
+      dstData->range = std::min(static_cast<uint32_t>(srcData->range), dstData->size);
+}
+
+void DescriptorSet::TemplateWriteBuffer(const VkDescriptorUpdateTemplateEntry *entry,
+                                        const void *pData, size_t sysOffset)
+{
+   auto dstData = reinterpret_cast<DescriptorPool::BufferInfo *>(m_data + sysOffset);
+   auto srcPtr = static_cast<const uint8_t *>(pData) + entry->offset;
+
+   for (uint32_t i = 0; i < entry->descriptorCount; i++)
    {
-      Buffer      *b      = fromHandle<Buffer>(writeInfo->pBufferInfo[i].buffer);
-      VkDeviceSize offset = writeInfo->pBufferInfo[i].offset;
-      assert(offset <= b->Size());
-
-      data[i].addr = b->CalculateBufferOffsetAddr(offset);
-      data[i].size = static_cast<uint32_t>(b->Size() - offset);
-
-      if (writeInfo->pBufferInfo[i].range == VK_WHOLE_SIZE)
-         data[i].range = data[i].size;
-      else
-         data[i].range = std::min(static_cast<uint32_t>(writeInfo->pBufferInfo[i].range), data[i].size);
+      auto srcData = reinterpret_cast<const VkDescriptorBufferInfo*>(srcPtr);
+      WriteBufferEntry(srcData, &dstData[i]);
+      srcPtr += entry->stride;
    }
 }
 
 void DescriptorSet::Write(const VkWriteDescriptorSet *writeInfo)
 {
+   VkDescriptorUpdateTemplateEntry e;
+   e.dstBinding      = writeInfo->dstBinding;
+   e.dstArrayElement = writeInfo->dstArrayElement;
+   e.descriptorCount = writeInfo->descriptorCount;
+   e.descriptorType  = writeInfo->descriptorType;
+   e.offset          = 0;
+
    // Find the offsets into the data block for the binding and element
    size_t sysOffset = m_layout->OffsetFor(writeInfo->dstBinding, writeInfo->dstArrayElement);
    size_t devOffset = m_layout->DeviceOffsetFor(writeInfo->dstBinding, writeInfo->dstArrayElement);
@@ -191,23 +237,70 @@ void DescriptorSet::Write(const VkWriteDescriptorSet *writeInfo)
    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE          :
    case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE          :
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT       :
-      WriteImage(writeInfo, sysOffset, devOffset);
+      e.stride = sizeof(VkDescriptorImageInfo);
+      TemplateWriteImage(&e, writeInfo->pImageInfo, sysOffset, devOffset);
       break;
 
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER         :
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER         :
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC :
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC :
-      WriteBuffer(writeInfo, sysOffset, devOffset);
+      e.stride = sizeof(VkDescriptorBufferInfo);
+      TemplateWriteBuffer(&e, writeInfo->pBufferInfo, sysOffset);
       break;
 
    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   :
    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   :
-      WriteTexelBuffer(writeInfo, sysOffset, devOffset);
+      e.stride = sizeof(VkBufferView);
+      TemplateWriteTexelBuffer(&e, writeInfo->pTexelBufferView, sysOffset, devOffset);
       break;
 
    default:
       unreachable();
+   }
+}
+
+void DescriptorSet::UpdateDescriptorSetWithTemplate(
+   bvk::Device                   *device,
+   bvk::DescriptorUpdateTemplate *updateTemplate,
+   const void                    *pData) noexcept
+{
+   assert(updateTemplate->GetTemplateType() == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET);
+
+   for (auto &entry : updateTemplate->GetUpdateEntries())
+   {
+      // Find the offsets into the data block for the binding and element
+      size_t sysOffset = m_layout->OffsetFor(entry.dstBinding, entry.dstArrayElement);
+      size_t devOffset = m_layout->DeviceOffsetFor(entry.dstBinding, entry.dstArrayElement);
+
+      assert(m_layout->BindingType(entry.dstBinding) == entry.descriptorType);
+
+      // Copy the data
+      switch (entry.descriptorType)
+      {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+      case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+         TemplateWriteImage(&entry, pData, sysOffset, devOffset);
+         break;
+
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+         TemplateWriteBuffer(&entry, pData, sysOffset);
+         break;
+
+      case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+         TemplateWriteTexelBuffer(&entry, pData, sysOffset, devOffset);
+         break;
+
+      default:
+         unreachable();
+      }
    }
 }
 

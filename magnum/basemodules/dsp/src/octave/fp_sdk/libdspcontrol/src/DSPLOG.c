@@ -114,6 +114,10 @@ __attribute__((constructor))
 static void DSPLOG_init(void)
 {
 #if FEATURE_IS(DSPLOG_SINK, STDIO)
+    /* Force line buffering to avoid interspering of logs with other data that
+     * is written to stderr. When stderr is redirected to a file, libc will
+     * often default to full buffering. */
+    setvbuf(DSPLOG_DEFAULT_SINK, (char *) NULL, _IOLBF, 0);
     DSPLOG_setFileSink(NULL);
 #endif
     DSPLOG_IO_LOCK_CREATE();

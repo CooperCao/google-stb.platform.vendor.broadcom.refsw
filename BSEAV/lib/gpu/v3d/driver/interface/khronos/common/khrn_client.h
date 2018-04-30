@@ -9,7 +9,7 @@ typedef struct CLIENT_THREAD_STATE CLIENT_THREAD_STATE_T;
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/egl/egl_client_context.h"
 #include "interface/khronos/egl/egl_client_surface.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/eglext.h>
 #include "interface/khronos/common/khrn_client_pointermap.h"
 #include "middleware/khronos/egl/egl_server.h"
 
@@ -55,6 +55,9 @@ struct CLIENT_THREAD_STATE {
    */
 
    EGL_CURRENT_T opengl;
+
+   bool events_acquired;
+   bool perf_counters_acquired;
 };
 
 extern void client_thread_state_init(CLIENT_THREAD_STATE_T *state);
@@ -74,7 +77,6 @@ static inline CLIENT_THREAD_STATE_T *CLIENT_GET_THREAD_STATE(void)
 EGL_SERVER_STATE_T *egl_get_process_state(CLIENT_THREAD_STATE_T *thread, EGLDisplay dpy, EGLBoolean check_inited);
 EGL_CONTEXT_T *egl_get_context(CLIENT_THREAD_STATE_T *thread, EGL_SERVER_STATE_T *state, EGLContext ctx);
 EGL_SURFACE_T *egl_get_surface(CLIENT_THREAD_STATE_T *thread, EGL_SERVER_STATE_T *state, EGLSurface surf);
-EGL_SURFACE_T *egl_get_locked_surface(CLIENT_THREAD_STATE_T *thread, EGL_SERVER_STATE_T *state, EGLSurface surf);
 
 /*
    client state

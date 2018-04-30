@@ -9,44 +9,66 @@
 namespace bvk {
 
 // Wraps up a tuple of (set, binding and arrayElement)
-struct DescriptorInfo
+class DescriptorInfo
 {
+public:
    DescriptorInfo() = default;
 
    DescriptorInfo(uint32_t ds, uint32_t bp, uint32_t element) :
-      descriptorSet(ds), bindingPoint(bp), element(element)
+      m_descriptorSet(ds), m_bindingPoint(bp), m_element(element)
    {}
+
+   DescriptorInfo(uint32_t ds, uint32_t bp, uint32_t element,
+                  uint32_t offset, uint32_t stride) :
+      DescriptorInfo(ds, bp, element)
+   {
+      m_arrayOffset = offset;
+      m_arrayStride = stride;
+   }
 
    bool operator==(const DescriptorInfo &other) const
    {
-      return element == other.element &&
-             bindingPoint == other.bindingPoint &&
-             descriptorSet == other.descriptorSet;
+      return m_element       == other.m_element &&
+             m_bindingPoint  == other.m_bindingPoint &&
+             m_descriptorSet == other.m_descriptorSet;
    }
 
    bool operator!=(const DescriptorInfo &other) const
    {
-      return element != other.element ||
-             bindingPoint != other.bindingPoint ||
-             descriptorSet != other.descriptorSet;
+      return m_element       != other.m_element ||
+             m_bindingPoint  != other.m_bindingPoint ||
+             m_descriptorSet != other.m_descriptorSet;
    }
 
    bool operator<(const DescriptorInfo &other) const
    {
-      if (descriptorSet == other.descriptorSet)
+      if (m_descriptorSet == other.m_descriptorSet)
       {
-         if (bindingPoint == other.bindingPoint)
-            return element < other.element;
+         if (m_bindingPoint == other.m_bindingPoint)
+            return m_element < other.m_element;
          else
-            return bindingPoint < other.bindingPoint;
+            return m_bindingPoint < other.m_bindingPoint;
       }
       else
-         return descriptorSet < other.descriptorSet;
+         return m_descriptorSet < other.m_descriptorSet;
    }
 
-   uint32_t descriptorSet = 0;
-   uint32_t bindingPoint = 0;
-   uint32_t element = 0;
+   uint32_t GetDescriptorSet() const { return m_descriptorSet; }
+   uint32_t GetBindingPoint()  const { return m_bindingPoint;  }
+   uint32_t GetElement()       const { return m_element;       }
+
+   uint32_t GetArrayOffset()   const { return m_arrayOffset;   }
+   uint32_t GetArrayStride()   const { return m_arrayStride;    }
+
+private:
+   uint32_t m_descriptorSet = 0;
+   uint32_t m_bindingPoint  = 0;
+   uint32_t m_element       = 0;
+
+   // In SSBOs this is the stride and byte offset of the trailing runtime array (if any)
+   // If there is no such array offset will be ~0u and stride will be 0
+   uint32_t m_arrayStride   = 0;
+   uint32_t m_arrayOffset   = ~0u;
 };
 
 using DescriptorTable = bvk::vector<DescriptorInfo>;

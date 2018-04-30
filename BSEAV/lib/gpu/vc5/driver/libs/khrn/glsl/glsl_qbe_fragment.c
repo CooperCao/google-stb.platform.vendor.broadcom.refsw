@@ -80,11 +80,20 @@ static void fragment_backend(
    if (discard && is_const(discard) && discard->unif == CONST_BOOL_TRUE)
       discard = NULL;
 
+   Backflow *first_cov = NULL;
    if (coverage != NULL)
-      cov_dep = coverage_and(coverage, cov_dep);
+      cov_dep = first_cov = coverage_and(coverage, cov_dep);
 
-   if (discard != NULL)
+   if (discard != NULL) {
       cov_dep = tr_discard(cov_dep, discard);
+      if (first_cov == NULL) first_cov = cov_dep;
+   }
+
+   /* All msf reads must happen before the first coverage operation */
+   if (first_cov != NULL) {
+      for (BackflowChainNode *n=block->msf_reads.head; n; n=n->next)
+         glsl_iodep(cov_dep, n->val);
+   }
 
    /* Sort out TLB storing dependencies */
    bool does_discard = (discard != NULL || coverage != NULL);
@@ -131,10 +140,14 @@ static void fragment_backend(
          if (s->rt[i].alpha_16_workaround) rt_channels = 4;
 #endif
 
-         bool block_per_sample = !V3D_VER_AT_LEAST(4,1,34,0) && block->per_sample;
          bool ms_adv_blend     = s->ms && s->adv_blend;
-         bool per_sample       = block_per_sample || ms_adv_blend;
-         bool shared_frag      = !block_per_sample && ms_adv_blend;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+         bool per_sample       = ms_adv_blend;
+         bool shared_frag      = ms_adv_blend;
+#else
+         bool per_sample       = block->per_sample || ms_adv_blend;
+         bool shared_frag      = !block->per_sample && ms_adv_blend;
+#endif
 
          /* We set this up once per render target. The config byte is
           * emitted with the first sample that's written
@@ -186,16 +199,11 @@ static void fragment_backend(
 #if !V3D_VER_AT_LEAST(4,1,34,0)
    /* QPU restrictions prevent us writing nothing to the TLB. Write some fake data */
    if (s->requires_sbwait && block->first_tlb_read == NULL && tlb_node_count == 0) {
-# if V3D_VER_AT_LEAST(4,1,34,0)
-      int vec_sz = 1;
-# else
       /* Check rt[0] for the workaround. If the target is present but the output from
        * the shader uninitialised then the setting will be valid. If the target is not
        * present then the setting will be off, which is correct for the drivers default
        * RT. This would break were the default to change to 16 bits with alpha. */
-      bool alpha16 = s->rt[0].alpha_16_workaround;
-      int vec_sz = alpha16 ? 4 : 1;
-# endif
+      int vec_sz = s->rt[0].alpha_16_workaround ? 4 : 1;
       unif_byte[tlb_node_count] = v3d_tlb_config_color(/*rt=*/0, /*is_16=*/false, /*is_int=*/false, vec_sz, /*per_sample=*/false);
       tlb_nodes[tlb_node_count++] = tr_const(0);
       for (int i=1; i<vec_sz; i++) {
@@ -275,7 +283,11 @@ static void collect_shader_outputs(SchedBlock *block, int block_id, const IRShad
       if (out_idx == -1) continue;
       if (!shader_outputs_used[out_idx]) continue;
 
-      int samples = (!V3D_VER_AT_LEAST(4,1,34,0) && block->per_sample) ? 4 : 1;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      int samples = 1;
+#else
+      int samples = block->per_sample ? 4 : 1;
+#endif
       int out_samples = 4;
       IROutput *o = &sh->outputs[out_idx];
       if (o->block == block_id) {
@@ -295,8 +307,8 @@ void glsl_fragment_backend(
    const LinkMap *link_map,
    const FragmentBackendState *s,
    const bool *shader_outputs_used,
-   bool *does_discard_out,
-   bool *does_z_change_out)
+   bool *writes_z,
+   bool *ez_disable)
 {
    /* If block->per_sample the outputs are at 4*id + sample_num */
    Backflow *bnodes[4*DF_BLOB_FRAGMENT_COUNT] = { 0, };
@@ -307,5 +319,5 @@ void glsl_fragment_backend(
                     bnodes[4*DF_FNODE_DISCARD],
                     bnodes[4*DF_FNODE_DEPTH],
                     bnodes[4*DF_FNODE_SAMPLE_MASK],
-                    does_discard_out, does_z_change_out);
+                    writes_z, ez_disable);
 }

@@ -16,7 +16,7 @@ static bool                            s_initialise_group_desc = false;
 /*                      Helper functions                                            */
 
 static void SetCounterNamesEx(khrn_perf_counter_group_desc    *grp,
-                              khrn_perf_counter_name        index,
+                              khrn_perf_counter_name          index,
                               const char                      *name,
                               const char                      *unit,
                               uint64_t                        minVal,
@@ -39,7 +39,7 @@ static void SetCounterNamesEx(khrn_perf_counter_group_desc    *grp,
 }
 
 static void SetCounterNames(khrn_perf_counter_group_desc *grpDesc,
-                           khrn_perf_counter_name      index,
+                           khrn_perf_counter_name        index,
                            const char                    *name,
                            const char                    *unit
                            )

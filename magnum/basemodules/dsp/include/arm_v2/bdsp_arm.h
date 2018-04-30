@@ -80,26 +80,10 @@ typedef struct BDSP_ArmSettings
     bool preloadImages;         /* If true, all firmware images will be loaded on startup.  Default=false. */
     unsigned maxAlgorithms[BDSP_AlgorithmType_eMax] ;
     BTEE_InstanceHandle hBteeInstance;
-} BDSP_ArmSettings;
+    unsigned NumDsp;    /*Number of DSP supported in the System, currently used for estimation of Memory*/
 
-/***************************************************************************
-Summary:
-Use case scenario provided by APE
-***************************************************************************/
-typedef struct BDSP_ArmUsageOptions
-{
-    bool           Codeclist[BDSP_Algorithm_eMax];  /* Total list containing the Codecs enabled or disabled */
-    BDSP_AudioDolbyCodecVersion DolbyCodecVersion;
-    BDSP_DataType IntertaskBufferDataType;
-    unsigned NumAudioDecoders;
-    unsigned NumAudioPostProcesses;
-    unsigned NumAudioEncoders;
-    unsigned NumAudioMixers;
-    unsigned NumAudioPassthru;
-    unsigned NumAudioEchocancellers;
-    unsigned NumVideoDecoders;
-    unsigned NumVideoEncoders;
-} BDSP_ArmUsageOptions;
+    unsigned numCorePerDsp;  /* Number of cores per DSP supported in the System, Used for estimation of Memory for newer chips */
+} BDSP_ArmSettings;
 
 void BDSP_Arm_GetDefaultSettings(
     BDSP_ArmSettings *pSettings     /* [out] */
@@ -113,5 +97,10 @@ BERR_Code BDSP_Arm_Open(
     BTMR_Handle              tmrHandle,
     const BDSP_ArmSettings  *pSettings
 );
-
+BERR_Code BDSP_Arm_GetMemoryEstimate(
+    const BDSP_ArmSettings     *pSettings,
+    const BDSP_UsageOptions    *pUsage,
+    BBOX_Handle                 boxHandle,
+    BDSP_MemoryEstimate        *pEstimate /*[out]*/
+);
 #endif /*BDSP_ARM_H_*/

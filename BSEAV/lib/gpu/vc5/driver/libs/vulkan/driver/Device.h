@@ -76,26 +76,26 @@ public:
       const VkCommandBufferAllocateInfo   *pAllocateInfo,
       VkCommandBuffer                     *pCommandBuffers) noexcept;
 
-   void GetImageMemoryRequirements2KHR(
-      const VkImageMemoryRequirementsInfo2KHR   *pInfo,
-      VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept;
+   void GetImageMemoryRequirements2(
+      const VkImageMemoryRequirementsInfo2   *pInfo,
+      VkMemoryRequirements2                  *pMemoryRequirements) noexcept;
 
-   void GetBufferMemoryRequirements2KHR(
-      const VkBufferMemoryRequirementsInfo2KHR  *pInfo,
-      VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept;
+   void GetBufferMemoryRequirements2(
+      const VkBufferMemoryRequirementsInfo2  *pInfo,
+      VkMemoryRequirements2                  *pMemoryRequirements) noexcept;
 
-   void GetImageSparseMemoryRequirements2KHR(
-      const VkImageSparseMemoryRequirementsInfo2KHR   *pInfo,
-      uint32_t                                        *pSparseMemoryRequirementCount,
-      VkSparseImageMemoryRequirements2KHR             *pSparseMemoryRequirements) noexcept;
+   void GetImageSparseMemoryRequirements2(
+      const VkImageSparseMemoryRequirementsInfo2   *pInfo,
+      uint32_t                                     *pSparseMemoryRequirementCount,
+      VkSparseImageMemoryRequirements2             *pSparseMemoryRequirements) noexcept;
 
-   VkResult BindBufferMemory2KHR(
-      uint32_t                          bindInfoCount,
-      const VkBindBufferMemoryInfoKHR  *pBindInfos) noexcept;
+   VkResult BindBufferMemory2(
+      uint32_t                       bindInfoCount,
+      const VkBindBufferMemoryInfo  *pBindInfos) noexcept;
 
-   VkResult BindImageMemory2KHR(
-      uint32_t                          bindInfoCount,
-      const VkBindImageMemoryInfoKHR   *pBindInfos) noexcept;
+   VkResult BindImageMemory2(
+      uint32_t                       bindInfoCount,
+      const VkBindImageMemoryInfo   *pBindInfos) noexcept;
 
    VkResult CreateSharedSwapchainsKHR(
       uint32_t                          swapchainCount,

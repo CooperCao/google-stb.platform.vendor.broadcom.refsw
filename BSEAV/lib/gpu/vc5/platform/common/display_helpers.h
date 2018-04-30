@@ -9,6 +9,6 @@
 
 bool NexusToBeglFormat(BEGL_BufferFormat *result, NEXUS_PixelFormat format);
 bool BeglToNexusFormat(NEXUS_PixelFormat *result, BEGL_BufferFormat format);
-int BeglFormatNumBytes(BEGL_BufferFormat format);
+bool BeglFormatIsSand(BEGL_BufferFormat format);
 
 #endif /* __DISPLAY_HELPERS__H__ */

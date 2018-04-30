@@ -6,7 +6,7 @@ static void length__const_float__const_float(const_float* result, const_float* x
 }
 static void length__const_float__const_vec2(const_float* result, const_vec2* x)
 {
-   // return $$rcp($$rsqrt(dot(x, x)));
+   // return sqrt(dot(x, x));
 
    const_float t1;
 
@@ -16,7 +16,7 @@ static void length__const_float__const_vec2(const_float* result, const_vec2* x)
 }
 static void length__const_float__const_vec3(const_float* result, const_vec3* x)
 {
-   // return $$rcp($$rsqrt(dot(x, x)));
+   // return sqrt(dot(x, x));
 
    const_float t1;
 
@@ -26,7 +26,7 @@ static void length__const_float__const_vec3(const_float* result, const_vec3* x)
 }
 static void length__const_float__const_vec4(const_float* result, const_vec4* x)
 {
-   // return $$rcp($$rsqrt(dot(x, x)));
+   // return sqrt(dot(x, x));
 
    const_float t1;
 

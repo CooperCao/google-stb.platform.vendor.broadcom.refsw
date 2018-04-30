@@ -490,48 +490,6 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     return BERR_SUCCESS;
 }
 
-
-/* dump the send buffer */
-void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )
-{
-    BHSM_Handle hHsm;
-    unsigned wordOffset;
-    uint32_t value;
-
-    if( !hMsg ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
-    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
-
-    hHsm = hMsg->hHsm;
-
-    for( wordOffset = 0; wordOffset < BHSM_P_MAILBOX_WORD_SIZE; wordOffset++ )
-    {
-        value = readOutbox( hHsm->regHandle, wordOffset );
-        BDBG_LOG(("> %3d 0x%08X", wordOffset, value ));
-    }
-    return;
-}
-
-/* dump the receive buffer */
-void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg )
-{
-    BHSM_Handle hHsm;
-    unsigned wordOffset;
-    uint32_t value;
-
-    if( !hMsg ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
-    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
-
-    hHsm = hMsg->hHsm;
-
-    for( wordOffset = 0; wordOffset < BHSM_P_MAILBOX_WORD_SIZE; wordOffset++ )
-    {
-        value = readInbox( hHsm->regHandle, wordOffset );
-        BDBG_LOG(("< %3d 0x%08X", wordOffset, value ));
-    }
-    return;
-}
-
-
 static void  _ParseBfwVersion( BHSM_BfwVersion *pVersion, uint32_t bspFwReleaseVer )
 {
     unsigned verifiedBits;
@@ -546,8 +504,8 @@ static void  _ParseBfwVersion( BHSM_BfwVersion *pVersion, uint32_t bspFwReleaseV
 
     pVersion->version.bfw.major     = (bspFwReleaseVer >> 18) & 0x0f;  /*Bit[21:18], 4 bits */
     pVersion->version.bfw.minor     = (bspFwReleaseVer >> 12) & 0x3f;  /*Bit[17:12], 6 bits */
-    pVersion->version.bfw.subminor  = (bspFwReleaseVer >> 8) & 0x0f;  /*Bit[11:8],  4 bits */
-                                                                           /*Bit[7:6],  2 bits reserved */
+    pVersion->version.bfw.subminor  = (bspFwReleaseVer >> 8) & 0x0f;   /*Bit[11:8],  4 bits */
+                                                                       /*Bit[7:6],  2 bits reserved */
     verifiedBits                    = (bspFwReleaseVer >> 4) & 0x03;   /*Bit[5:4],  2 bits */
     pVersion->verified = (verifiedBits == 0)?true:false;
 

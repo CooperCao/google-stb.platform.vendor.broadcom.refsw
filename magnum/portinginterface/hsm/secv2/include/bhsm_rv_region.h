@@ -60,35 +60,36 @@ extern "C"
 #define BHSM_RV_REGION_ANY_SUBTYPE_INDEX 0xFF
 
 #if (BHSM_ZEUS_VER_MAJOR >= 5)
-#define BHSM_RV_REGION_STATUS_ENABLED                 (1<<0)
-#define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<1)
-#define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<2)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<3)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED       (1<<4)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<5)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<7)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<8)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED       (1<<9)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<6)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<10)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<11)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_FAILED         (1<<12)
+ #define BHSM_RV_REGION_STATUS_ENABLED                 (1<<0)
+ #define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<1)
+ #define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<2)
+ #define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<3)
+ #define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED       (1<<4)
+ #define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<5)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<7)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<8)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED       (1<<9)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<6)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<10)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<11)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_FAILED         (1<<12)
 #else
-#define BHSM_RV_REGION_STATUS_REGION_DEFINED          (1<<0)
-#define BHSM_RV_REGION_STATUS_REGION_VERIFIED         (1<<1)
-#define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<2)
-#define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<3)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<4)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED       (1<<5)
-#define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<6)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<7)
-#define BHSM_RV_REGION_STATUS_ENABLED                 (1<<8)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<9)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<10)
-#define BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED       (1<<12)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<13)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<14)
-#define BHSM_RV_REGION_STATUS_BG_CHECK_FAILED         (1<<15)
+ #define BHSM_RV_REGION_STATUS_REGION_DEFINED          (1<<0)
+ #define BHSM_RV_REGION_STATUS_REGION_VERIFIED         (1<<1)
+ #define BHSM_RV_REGION_STATUS_AUTH_ENFORCED           (1<<2)
+ #define BHSM_RV_REGION_STATUS_SAGE_OWNED              (1<<3)
+ #define BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS  (1<<4)
+ #define BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED       (1<<5)
+ #define BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS         (1<<6)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED        (1<<7)
+ #define BHSM_RV_REGION_STATUS_ENABLED                 (1<<8)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED      (1<<9)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED     (1<<10)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_PADDING_FAILED  (1<<11)
+ #define BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED       (1<<12)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_STARTED        (1<<13)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED       (1<<14)
+ #define BHSM_RV_REGION_STATUS_BG_CHECK_FAILED         (1<<15)
 #endif
 
 typedef struct BHSM_P_RvRegion* BHSM_RvRegionHandle;
@@ -158,20 +159,20 @@ typedef struct
     struct
     {
         unsigned size;                    /* The size of memory region to be verified. */
-        BMMA_DeviceOffset address;        /* The address of the memory region. Valid if "size" is > 0. */
-        BMMA_DeviceOffset destAddress;    /* Some regions will need to be decryted into a
+        BSTD_DeviceOffset address;        /* The address of the memory region. Valid if "size" is > 0. */
+        BSTD_DeviceOffset destAddress;    /* Some regions will need to be decryted into a
                                              different location where it will be authenticated. */
     }range[2];                            /* memory range(s) to be authenticated. */
 
     struct
     {
-        BMMA_DeviceOffset address;        /* Valid if "size" is > 0. */
+        BSTD_DeviceOffset address;        /* Valid if "size" is > 0. */
         unsigned size;                    /* the size of the signature/parameters. */
     }signature;                           /* the signature.  */
 
     struct
     {
-        BMMA_DeviceOffset address;
+        BSTD_DeviceOffset address;
     }parameters;                          /* the paramters.  */
 
     BHSM_RvRsaHandle rvRsaHandle;         /* handle to RV RSA key slot. */
@@ -247,21 +248,6 @@ BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm,
 /* Return RvRegion information.  */
 BERR_Code BHSM_GetRvRegionInfo( BHSM_RvRegionHandle handle,
                                 BHSM_RvRegionInfo *pInfo );
-
-
-
-
-/* ###################   private to HSM   ################# */
-
-typedef struct{
-        unsigned dummy;
-}BHSM_RvRegionModuleSettings;
-
-/* called internally on platform initialisation */
-BERR_Code BHSM_RvRegion_Init( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings *pSettings );
-
-/* called internally on platform un-initialisation */
-void BHSM_RvRegion_Uninit( BHSM_Handle hHsm );
 
 
 #ifdef __cplusplus

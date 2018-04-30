@@ -505,7 +505,6 @@ static v3d_tmu_type_t try_get_tmu_type_and_out_fmt(
       *tmu_out_fmt = GFX_LFMT_CHANNELS_RXXX | GFX_LFMT_TYPE_UINT;
       return V3D_TMU_TYPE_RGBA8UI;
    }
-   case GFX_LFMT_ETC1_UNORM:              return V3D_TMU_TYPE_C_RGB8_ETC2; /* ETC1 textures are valid ETC2 textures */
    case GFX_LFMT_ETC2_UNORM:              return V3D_TMU_TYPE_C_RGB8_ETC2;
    case GFX_LFMT_PUNCHTHROUGH_ETC2_UNORM: return V3D_TMU_TYPE_C_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
    case GFX_LFMT_EAC_UNORM:               return V3D_TMU_TYPE_C_R11_EAC;
@@ -871,6 +870,73 @@ GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
    }
 
    return lfmt;
+}
+
+/** VCD */
+
+v3d_attr_type_t gfx_lfmt_maybe_translate_attr_type(GFX_LFMT_T fmt, bool int_as_float)
+{
+   GFX_LFMT_TYPE_T type = gfx_lfmt_get_type(&fmt);
+   unsigned bits;
+   switch (gfx_lfmt_get_base(&fmt))
+   {
+      case GFX_LFMT_BASE_C8:
+      case GFX_LFMT_BASE_C8_C8:
+      case GFX_LFMT_BASE_C8_C8_C8:
+      case GFX_LFMT_BASE_C8_C8_C8_C8:
+         bits = 8;
+         break;
+      case GFX_LFMT_BASE_C16:
+      case GFX_LFMT_BASE_C16_C16:
+      case GFX_LFMT_BASE_C16_C16_C16:
+      case GFX_LFMT_BASE_C16_C16_C16_C16:
+         bits = 16;
+         break;
+      case GFX_LFMT_BASE_C32:
+      case GFX_LFMT_BASE_C32_C32:
+      case GFX_LFMT_BASE_C32_C32_C32:
+      case GFX_LFMT_BASE_C32_C32_C32_C32:
+         bits = 32;
+         break;
+      case GFX_LFMT_BASE_C10C10C10C2:
+         bits = 10;
+         break;
+      default:
+         return V3D_ATTR_TYPE_INVALID;
+   }
+
+   switch (type)
+   {
+   case GFX_LFMT_TYPE_FLOAT:
+      if      (bits == 16) return V3D_ATTR_TYPE_HALF_FLOAT;
+      else if (bits == 32) return V3D_ATTR_TYPE_FLOAT;
+      else                 return V3D_ATTR_TYPE_INVALID;
+   case GFX_LFMT_TYPE_UINT:
+   case GFX_LFMT_TYPE_INT:
+#if !V3D_VER_AT_LEAST(4,2,14,0)
+      if (!int_as_float && bits == 10) return V3D_ATTR_TYPE_INVALID;
+      /* Fallthrough */
+#endif
+   case GFX_LFMT_TYPE_UNORM:
+   case GFX_LFMT_TYPE_SNORM:
+      switch (bits)
+      {
+      case 8:  return V3D_ATTR_TYPE_BYTE;
+      case 10: return V3D_ATTR_TYPE_INT2_10_10_10;
+      case 16: return V3D_ATTR_TYPE_SHORT;
+      case 32: return V3D_ATTR_TYPE_INT;
+      default: return V3D_ATTR_TYPE_INVALID;
+      }
+   default:
+      return V3D_ATTR_TYPE_INVALID;
+   }
+}
+
+v3d_attr_type_t gfx_lfmt_translate_attr_type(GFX_LFMT_T fmt, bool int_as_float)
+{
+   v3d_attr_type_t ret = gfx_lfmt_maybe_translate_attr_type(fmt, int_as_float);
+   assert(ret != V3D_ATTR_TYPE_INVALID);
+   return ret;
 }
 
 /** TFU */

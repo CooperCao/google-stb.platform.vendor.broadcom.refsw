@@ -22,7 +22,6 @@
 #include "ArenaAllocator.h"
 #include "LinkResult.h"
 #include "Linker.h"
-#include "PrimitiveTypes.h"
 #include "Options.h"
 #include "DescriptorInfo.h"
 #include "CompiledShaderHandle.h"
@@ -33,10 +32,12 @@
 #include "glsl_backend_cfg.h"
 #include "glsl_binary_shader.h"
 #include "glsl_errors.h"
+#include "glsl_primitive_types.auto.h"
 #include "libs/tools/dqasmc/dqasmc.h"
 
-static bool sQuietMode = false;
-static bool sRobustMode = false;
+static bool sQuietMode           = false;
+static bool sRobustMode          = false;
+static bool sFallbackNoUnrolling = true;
 
 class ModuleData
 {
@@ -155,7 +156,7 @@ bool HasEntryPoint(const std::vector<ModuleData> &modules, const EntryPointLocat
 }
 
 bvk::CompiledShaderHandle CompileEntryPoint(
-   std::vector<ModuleData> &modules, ShaderFlavour flavour, const EntryPointLocator &loc)
+   std::vector<ModuleData> &modules, ShaderFlavour flavour, const EntryPointLocator &loc, bool unroll)
 {
    bvk::CompiledShaderHandle result;
 
@@ -167,14 +168,19 @@ bvk::CompiledShaderHandle CompileEntryPoint(
 
          try
          {
-            bvk::DescriptorTables                             tables;
-            bvk::Specialization                               specialization(nullptr);
+            bvk::DescriptorTables   tables;
+            bvk::Specialization     specialization(nullptr);
+            bvk::Compiler::Controls controls;
+
+            controls.SetRobustBufferAccess(sRobustMode)
+                    .SetDepthStencil(true)
+                    .SetMultisampled(false)
+                    .SetUnroll(unroll);
 
             bvk::Compiler compiler(*moduleData.m_module, flavour, loc.m_entryPoint.c_str(),
-                                    specialization, sRobustMode, /*hasDepthStencil=*/true,
-                                    /*multiSampled=*/false);
+                                    specialization, controls);
 
-            result = compiler.Compile(&tables);
+            result = compiler.Compile(&tables, 128*1024);
          }
          catch (std::runtime_error &e)
          {
@@ -286,6 +292,11 @@ bool ParseArgument(const char *argument)
          sRobustMode = true;
          return true;
       }
+      else if (arg[1] == 'u')
+      {
+         sFallbackNoUnrolling = false;
+         return true;
+      }
 
       assert(!s_needEntryPoint);
 
@@ -323,6 +334,7 @@ void PrintUsageExit(const char *exe)
       "  Where [options] can contain:\n"
       "    '-q' : (quiet - suppress assembler and ir file output)\n"
       "    '-r' : (with robust buffer access features)\n"
+      "    '-u' : (disable no-unroll fallback)\n"
       ;
    exit(1);
 }
@@ -411,39 +423,53 @@ int main(int argc, char *argv[])
    if (!haveEntryPoints)
       FindDefaultEntryPoints(spirvModules);
 
-   bvk::CompiledShaderHandle compiledShaders[SHADER_FLAVOUR_COUNT];
+   bool unroll    = true;
+   bool succeeded = false;
 
-   // Compile the specified entry points
-   for (auto &entryPoint : s_entryPoints)
+   while (!succeeded)
    {
-      if (HasEntryPoint(spirvModules, entryPoint))
+      bvk::CompiledShaderHandle compiledShaders[SHADER_FLAVOUR_COUNT];
+
+      // Compile the specified entry points
+      for (auto &entryPoint : s_entryPoints)
       {
-         ShaderFlavour flavour = ConvertModel(entryPoint.m_model);
+         if (HasEntryPoint(spirvModules, entryPoint))
+         {
+            ShaderFlavour flavour = ConvertModel(entryPoint.m_model);
 
-         compiledShaders[flavour] = CompileEntryPoint(spirvModules, flavour, entryPoint);
+            compiledShaders[flavour] = CompileEntryPoint(spirvModules, flavour, entryPoint, unroll);
+         }
+         else
+            std::cerr << "ERROR : " << entryPoint.AsString().c_str() << " does not exist" << std::endl;
       }
-      else
-         std::cerr << "ERROR : " << entryPoint.AsString().c_str() << " does not exist" << std::endl;
-   }
 
-   // Time to link
-   std::cout << "Linking..." << std::endl;
+      // Time to link
+      std::cout << "Linking..." << std::endl;
 
-   // Backend shader key (one render target of type F16)
-   auto backendKey = [](const GLSL_PROGRAM_T *program) -> GLSL_BACKEND_CFG_T
-   {
-      return GLSL_BACKEND_CFG_T{ ((GLSL_FB_16 | GLSL_FB_PRESENT) << GLSL_FB_GADGET_S) | GLSL_DISABLE_UBO_FETCH };
-   };
+      // Backend shader key (one render target of type F16)
+      auto backendKey = [](const GLSL_PROGRAM_T *program) -> GLSL_BACKEND_CFG_T
+      {
+         return GLSL_BACKEND_CFG_T{ ((GLSL_FB_16 | GLSL_FB_PRESENT) << GLSL_FB_GADGET_S) | GLSL_DISABLE_UBO_FETCH };
+      };
 
-   try
-   {
-      std::bitset<V3D_MAX_ATTR_ARRAYS> attributeRBSwaps;
-      bvk::Linker::LinkShaders(compiledShaders, backendKey, OutputFn, attributeRBSwaps);
-   }
-   catch (std::runtime_error &e)
-   {
-      std::cerr << "Linking FAILED" << std::endl << e.what() << std::endl;
-      return 1;
+      try
+      {
+         std::bitset<V3D_MAX_ATTR_ARRAYS> attributeRBSwaps;
+         bvk::Linker::LinkShaders(compiledShaders, backendKey, OutputFn, attributeRBSwaps);
+         succeeded = true;
+      }
+      catch (std::runtime_error &e)
+      {
+         if (unroll && sFallbackNoUnrolling)
+         {
+            unroll = false;
+         }
+         else
+         {
+            std::cerr << "Linking FAILED" << std::endl << e.what() << std::endl;
+            return 1;
+         }
+      }
    }
    std::cout << "   Linked OK" << std::endl;
 

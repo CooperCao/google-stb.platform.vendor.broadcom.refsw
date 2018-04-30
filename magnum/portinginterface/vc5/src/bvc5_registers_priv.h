@@ -85,6 +85,7 @@
 #if V3D_VER_AT_LEAST(4,1,34,0)
 #include "bchp_v3d_mmu.h"
 #include "bchp_v3d_mmuc.h"
+#include "bchp_v3d_csd_0.h"
 #else
 #include "bchp_v3d_mmu_0.h"
 #include "bchp_v3d_mmu_t.h"

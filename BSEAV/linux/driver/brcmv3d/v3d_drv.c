@@ -48,174 +48,15 @@
 
 #define DRIVER_NAME	"brcmv3d"
 #define DRIVER_DESC	"Broadcom V3D GEM provider"
-#define DRIVER_DATE	"20180313"
+#define DRIVER_DATE	"20180321"
 #define DRIVER_MAJOR	2
 #define DRIVER_MINOR	0
-#define DRIVER_PATCH	0
+#define DRIVER_PATCH	1
 
 static gfp_t shm_mapping_mask;
 
 /* Do not use Broadcom CMA regions even if we find any */
 unsigned int ignore_cma;
-
-/*
- * General helpers
- */
-static inline size_t v3d_nr_hwpages(size_t size)
-{
-	if (WARN_ON((size & ~V3D_HW_PAGE_MASK) != 0))
-		return 0;
-
-	return size >> V3D_HW_PAGE_SHIFT;
-}
-
-/*
- * v3d_hw_virtual_mem implementation
- */
-static inline
-void v3d_hw_pagetable_clear_range(u32 *pt, u32 hw_vaddr, size_t size)
-{
-	loff_t pg_offset = hw_vaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
-	int npages = size >> V3D_HW_SMALLEST_PAGE_SHIFT;
-
-	memset(pt + pg_offset, 0, npages * V3D_HW_PAGE_TABLE_ENTRY_SIZE);
-
-	/* No cache flush for dma coherent memory, but it should be buffered */
-	dma_wmb();
-}
-
-static void v3d_hw_pagetable_map_page(u32 *pt, u32 hw_vaddr,
-				      phys_addr_t hw_physaddr, bool readonly)
-{
-	loff_t pg_offset = hw_vaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
-	u32 *page = pt + pg_offset;
-	u32 entry = hw_physaddr >> V3D_HW_SMALLEST_PAGE_SHIFT;
-	/*
-	 * The hardware can potentially handle 40bit physical output addresses
-	 * which when shifted down by the 4K page size occupy the low bits
-	 * of the pagetable entry.
-	 *
-	 * Note that not all the instantiations of the hardware actually
-	 * output the top four bits, limiting them to generating 32bit
-	 * addresses only.
-	 */
-	BUG_ON((entry & V3D_PAGE_FLAG_MASK) != 0);
-
-	if (readonly)
-		entry |= V3D_HW_DEFAULT_PAGE_FLAGS;
-	else
-		entry |= V3D_HW_DEFAULT_PAGE_FLAGS | V3D_PAGE_FLAG_WRITE;
-
-	*page = entry;
-	/* No cache flush for dma coherent memory, but it should be buffered */
-	dma_wmb();
-}
-
-static int v3d_hw_virtual_mem_init(struct v3d_hw_virtual_mem *hw_vmem,
-				   struct drm_device *dev)
-{
-	const size_t pt_size = V3D_HW_PAGE_TABLE_SIZE;
-	struct gen_pool *pool;
-	u32 *pt;
-	dma_addr_t dma_handle;
-	int err;
-
-	/* Do nothing if already created */
-	if (hw_vmem->virtual_pool)
-		return 0;
-
-	pool = gen_pool_create(V3D_HW_PAGE_SHIFT, -1);
-	if (!pool)
-		return -ENOMEM;
-
-	err = gen_pool_add(pool,
-			   V3D_HW_VIRTUAL_ADDR_BASE,
-			   V3D_HW_VIRTUAL_ADDR_SIZE - V3D_HW_VIRTUAL_ADDR_BASE,
-			   -1);
-
-	if (err)
-		goto pool_out;
-
-	DRM_DEBUG_DRIVER("Created virtual pool min_order=%d, base=0x%p, size=0x%zx\n",
-			 pool->min_alloc_order,
-			 (void *)V3D_HW_VIRTUAL_ADDR_BASE,
-			 (size_t)V3D_HW_VIRTUAL_ADDR_SIZE);
-
-	/*
-	 * Allocate the pagetable from the global linux cma pool, not from
-	 * the Broadcom CMA devices. They do not have a valid dma mask
-	 * set and are not intended to be used with the standard Linux
-	 * interfaces. As we need to have a kernel mapping for the pagetables
-	 * we must use the proper API, so we are forced to allocate from
-	 * the default global pool which can be resized from the 16MB default
-	 * size using the "cma=" kernel boot parameter.
-	 */
-	pt = dma_zalloc_coherent(dev->dev, pt_size, &dma_handle, GFP_KERNEL);
-	if (!pt) {
-		err = -ENOMEM;
-		goto pool_out;
-	}
-
-	hw_vmem->virtual_pool = pool;
-	hw_vmem->pt_kaddr = pt;
-	hw_vmem->pt_phys = (phys_addr_t)dma_handle;
-	hw_vmem->clear_entries_on_free = true;
-
-	DRM_DEBUG_DRIVER("Created pagetable @ %pa (entries %zu, %zu bytes)\n",
-			 &hw_vmem->pt_phys,
-			 (size_t)V3D_HW_PAGE_TABLE_ENTRIES, pt_size);
-
-	if (WARN_ON((unsigned long)pt & (V3D_HW_PAGE_TABLE_ALIGN - 1))) {
-		err = -ENOMEM;
-		goto pool_out;
-	}
-
-	return 0;
-
-pool_out:
-	DRM_DEBUG_DRIVER("Failed to pagetable from CMA\n");
-	gen_pool_destroy(pool);
-	return err;
-}
-
-static void v3d_hw_virtual_mem_destroy(struct v3d_hw_virtual_mem *hw_vmem,
-				       struct drm_device *dev)
-{
-	DRM_DEBUG_DRIVER("hw_vmem=0x%pK drm_device=0x%pK dev=0x%pK\n",
-			 hw_vmem, dev, dev ? dev->dev : NULL);
-
-	if (hw_vmem->pt_kaddr) {
-		dma_free_coherent(dev->dev, V3D_HW_PAGE_TABLE_SIZE,
-				  hw_vmem->pt_kaddr,
-				  (dma_addr_t)hw_vmem->pt_phys);
-		hw_vmem->pt_kaddr = NULL;
-	}
-
-	if (hw_vmem->virtual_pool) {
-		gen_pool_destroy(hw_vmem->virtual_pool);
-		hw_vmem->virtual_pool = NULL;
-	}
-}
-
-static inline
-unsigned long v3d_hw_virtual_mem_allocate(struct v3d_hw_virtual_mem *hw_vmem,
-					  size_t size)
-{
-	return gen_pool_alloc(hw_vmem->virtual_pool, size);
-}
-
-static inline
-void v3d_hw_virtual_mem_free(struct v3d_hw_virtual_mem *hw_vmem,
-			     unsigned long addr,
-			     size_t size)
-{
-	if (hw_vmem->clear_entries_on_free) {
-		v3d_hw_pagetable_clear_range(hw_vmem->pt_kaddr,
-					     addr, size);
-	}
-
-	return gen_pool_free(hw_vmem->virtual_pool, addr, size);
-}
 
 /*
  * v3d_drm_file_private implementation
@@ -259,7 +100,7 @@ static void v3d_drm_file_private_release(struct kref *kref)
 
 	DRM_DEBUG_DRIVER("fp=0x%pK\n", fp);
 
-	v3d_hw_virtual_mem_destroy(&fp->hw_vmem, fp->dev);
+	v3d_vmem_destroy(&fp->hw_vmem, fp->dev);
 	v3d_release_cma_blocks(fp, dp);
 
 	if (!list_empty(&fp->dead_pages)) {
@@ -505,8 +346,6 @@ static void v3d_gem_put_pages(struct v3d_drm_gem_object *obj)
 	}
 
 	if (obj->cma_pages) {
-		size_t num_pages = v3d_nr_hwpages(obj->base.size);
-
 		DRM_DEBUG_ALLOC("Free CMA pages for obj=0x%pK\n", obj);
 		v3d_free_cma_pages(num_pages, obj->cma_pages);
 		vfree(obj->cma_pages);
@@ -535,11 +374,9 @@ static void v3d_gem_free_object(struct drm_gem_object *obj)
 	drm_gem_free_mmap_offset(obj);
 
 	if (!WARN_ON(!v3d_obj->fp)) {
-		struct v3d_hw_virtual_mem *hw_vmem;
+		struct v3d_hw_virtual_mem *vmem  = &v3d_obj->fp->hw_vmem;
 
-		hw_vmem = &v3d_obj->fp->hw_vmem;
-		v3d_hw_virtual_mem_free(hw_vmem, v3d_obj->hw_virt_addr,
-					obj->size);
+		v3d_vmem_free(vmem, v3d_obj->hw_virt_addr, obj->size);
 	}
 
 	v3d_obj->hw_virt_addr = 0;
@@ -553,58 +390,20 @@ static void v3d_gem_free_object(struct drm_gem_object *obj)
 	kfree(v3d_obj);
 }
 
-static void v3d_gem_add_pages_to_pagetable(struct v3d_drm_gem_object *obj)
-{
-	struct v3d_drm_file_private *fp = obj->fp;
-	const size_t num_pages = v3d_nr_hwpages(obj->base.size);
-	const bool readonly = !!(obj->alloc_flags & V3D_CREATE_HW_READONLY);
-	u32 virt = obj->hw_virt_addr;
-	int i;
-
-	for (i = 0; i < num_pages; i++) {
-		phys_addr_t pa = dma_to_phys(obj->base.dev->dev,
-					     obj->dma_addrs[i]);
-
-		v3d_hw_pagetable_map_page(fp->hw_vmem.pt_kaddr,
-					  virt, pa, readonly);
-		virt += V3D_HW_PAGE_SIZE;
-	}
-}
-
-static void v3d_gem_add_extobj_to_pagetable(struct v3d_drm_gem_object *obj,
-					    phys_addr_t phys)
-{
-	struct v3d_drm_file_private *fp = obj->fp;
-	const size_t num_pages = v3d_nr_hwpages(obj->base.size);
-	const bool readonly = !!(obj->alloc_flags & V3D_CREATE_HW_READONLY);
-	u32 virt;
-	int i;
-
-	phys &= V3D_HW_PAGE_MASK;
-	virt = obj->hw_virt_addr;
-
-	for (i = 0; i < num_pages; i++) {
-		v3d_hw_pagetable_map_page(fp->hw_vmem.pt_kaddr,
-					  virt, phys, readonly);
-
-		phys += V3D_HW_PAGE_SIZE;
-		virt += V3D_HW_PAGE_SIZE;
-	}
-}
-
 static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 {
 	struct v3d_drm_file_private *fp = obj->fp;
 	struct v3d_drm_dev_private *dp = fp->dev->dev_private;
 	struct device *dev = obj->base.dev->dev;
 	size_t size = obj->base.size;
-	size_t num_pages = v3d_nr_hwpages(size);
+	size_t num_pages = size >> PAGE_SHIFT;
+	bool readonly = !!(obj->alloc_flags & V3D_CREATE_HW_READONLY);
 	int i, err;
 
 	/*
 	 * First try and allocate a region in the hardware virtual space
 	 */
-	obj->hw_virt_addr = v3d_hw_virtual_mem_allocate(&fp->hw_vmem, size);
+	obj->hw_virt_addr = v3d_vmem_allocate(&fp->hw_vmem, size);
 	if (!obj->hw_virt_addr) {
 		err = -ENOMEM;
 		goto out;
@@ -667,7 +466,8 @@ static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 		}
 	}
 
-	v3d_gem_add_pages_to_pagetable(obj);
+	v3d_vmem_add_pages_to_pagetable(&fp->hw_vmem, dev, obj->dma_addrs,
+					num_pages, obj->hw_virt_addr, readonly);
 
 	return 0;
 
@@ -686,7 +486,7 @@ free_pages:
 		obj->shm_pages = NULL;
 	}
 free_virtual:
-	v3d_hw_virtual_mem_free(&fp->hw_vmem, obj->hw_virt_addr, size);
+	v3d_vmem_free(&fp->hw_vmem, obj->hw_virt_addr, size);
 	obj->hw_virt_addr = 0;
 out:
 	return err;
@@ -707,7 +507,7 @@ v3d_gem_create(struct drm_device *dev,
 	if (WARN_ON(!fp))
 		return ERR_PTR(-EFAULT);
 
-	alloc_size = roundup(args->size, V3D_HW_PAGE_SIZE);
+	alloc_size = roundup(args->size, PAGE_SIZE);
 
 	obj = kzalloc(sizeof(*obj), GFP_KERNEL);
 	if (!obj)
@@ -757,8 +557,7 @@ v3d_gem_create(struct drm_device *dev,
 	return gem_object;
 
 pages_out:
-	v3d_hw_virtual_mem_free(&fp->hw_vmem,
-				obj->hw_virt_addr, gem_object->size);
+	v3d_vmem_free(&fp->hw_vmem, obj->hw_virt_addr, gem_object->size);
 
 	v3d_gem_put_pages(obj);
 gemobject_out:
@@ -779,6 +578,7 @@ v3d_gem_create_ext(struct drm_device *dev,
 	struct v3d_drm_gem_object *obj;
 	struct drm_gem_object *gem_object;
 	u32 alloc_size, page_offset;
+	bool readonly = !!(args->flags & V3D_CREATE_HW_READONLY);
 	int err;
 
 	if (WARN_ON(!fp))
@@ -806,7 +606,7 @@ v3d_gem_create_ext(struct drm_device *dev,
 	 * pages are aligned or sized to the V3D HW page boundaries.
 	 */
 	page_offset = args->phys & ~V3D_HW_PAGE_MASK;
-	alloc_size = roundup(args->size + page_offset, V3D_HW_PAGE_SIZE);
+	alloc_size = roundup(args->size + page_offset, PAGE_SIZE);
 
 	obj = kzalloc(sizeof(*obj), GFP_KERNEL);
 	if (!obj)
@@ -822,14 +622,15 @@ v3d_gem_create_ext(struct drm_device *dev,
 	if (args->desc)
 		obj->desc = strndup_user(args->desc, 32);
 
-	obj->hw_virt_addr = v3d_hw_virtual_mem_allocate(&fp->hw_vmem,
-							alloc_size);
+	obj->hw_virt_addr = v3d_vmem_allocate(&fp->hw_vmem, alloc_size);
 	if (!obj->hw_virt_addr) {
 		err = -ENOMEM;
 		goto object_out;
 	}
 
-	v3d_gem_add_extobj_to_pagetable(obj, args->phys);
+	v3d_vmem_add_extobj_to_pagetable(&fp->hw_vmem, args->phys,
+					 (alloc_size >> PAGE_SHIFT),
+					 obj->hw_virt_addr, readonly);
 
 	err = drm_gem_handle_create(file, gem_object, &args->handle);
 	if (err)
@@ -851,8 +652,7 @@ v3d_gem_create_ext(struct drm_device *dev,
 	return gem_object;
 
 virtual_out:
-	v3d_hw_virtual_mem_free(&fp->hw_vmem,
-				obj->hw_virt_addr, gem_object->size);
+	v3d_vmem_free(&fp->hw_vmem, obj->hw_virt_addr, gem_object->size);
 
 object_out:
 	v3d_drm_file_private_unreference(obj->fp);
@@ -926,7 +726,7 @@ static int v3d_mmu_pagetable_ioctl(struct drm_device *dev, void *data,
 
 	mutex_lock(&dev->struct_mutex);
 
-	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
+	err = v3d_vmem_init(&fp->hw_vmem, dev);
 	if (!err) {
 		args->pt_phys = fp->hw_vmem.pt_phys;
 		args->va_size = V3D_HW_VIRTUAL_ADDR_SIZE;
@@ -1034,7 +834,7 @@ static int v3d_gem_create_ioctl(struct drm_device *dev, void *data,
 
 	mutex_lock(&dev->struct_mutex);
 
-	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
+	err = v3d_vmem_init(&fp->hw_vmem, dev);
 	if (!err) {
 		gem_object = v3d_gem_create(dev, file, args);
 
@@ -1065,7 +865,7 @@ static int v3d_gem_create_ext_ioctl(struct drm_device *dev, void *data,
 
 	mutex_lock(&dev->struct_mutex);
 
-	err = v3d_hw_virtual_mem_init(&fp->hw_vmem, dev);
+	err = v3d_vmem_init(&fp->hw_vmem, dev);
 	if (!err) {
 		gem_object = v3d_gem_create_ext(dev, file, args);
 
@@ -1112,7 +912,7 @@ static int v3d_gem_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	err = vm_insert_mixed(vma, (unsigned long)vmf->virtual_address, pfn);
 #else
 	err = vm_insert_mixed(vma, (unsigned long)vmf->virtual_address,
-			 __pfn_to_pfn_t(pfn, PFN_DEV));
+			      __pfn_to_pfn_t(pfn, PFN_DEV));
 #endif
 
 	mutex_unlock(&obj->dev->struct_mutex);
@@ -1158,8 +958,7 @@ static int v3d_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	wc = !!(obj->alloc_flags & V3D_CREATE_CPU_WRITECOMBINE);
 
 	DRM_DEBUG_ALLOC("obj=0x%pK vma 0x%lx -> 0x%lx (%s)\n",
-			 obj, vma->vm_start, vma->vm_end,
-			 wc ? "wc" : "cached");
+			obj, vma->vm_start, vma->vm_end, wc ? "wc" : "cached");
 
 	if (!wc)
 		vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);

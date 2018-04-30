@@ -524,6 +524,12 @@ typedef struct BAPE_BufferGroupInterruptHandlers
         void *pParam1;
         int param2;
     } dataReady;
+    struct
+    {
+        void (*pCallback_isr)(void *pParam1, int param2);
+        void *pParam1;
+        int param2;
+    } freeAvailable;
 } BAPE_BufferGroupInterruptHandlers;
 
 /***************************************************************************

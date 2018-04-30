@@ -16,7 +16,7 @@
 
 #include "middleware/khronos/glsl/glsl_const_operators.h"
 
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2ext.h>
 #include "interface/khronos/common/khrn_options.h"
 
 #include "middleware/khronos/glsl/glsl_backend.h"
@@ -3452,7 +3452,7 @@ static inline void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scala
       {
          if ((left_flags & PRIM_FLOAT_TYPE) && (left_flags & PRIM_MATRIX_TYPE)
             && (right_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_VECTOR_TYPE)
-            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[left_index])
+            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[right_index])
          {
             /* Linear algebraic mat * vec. */
             int j, k, d = primitiveTypeSubscriptDimensions[expr->type->u.primitive_type.index];
@@ -3496,7 +3496,7 @@ static inline void expr_calculate_dataflow_binary_op_arithmetic(Dataflow** scala
          }
          else if ((right_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_MATRIX_TYPE)
             && (left_flags & PRIM_FLOAT_TYPE) && (left_flags & PRIM_VECTOR_TYPE)
-            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[left_index])
+            && primitiveTypeSubscriptDimensions[left_index] == primitiveTypeSubscriptDimensions[right_index])
          {
             /* Linear algebraic vec * mat. */
             int i, k, d = primitiveTypeSubscriptDimensions[expr->type->u.primitive_type.index];

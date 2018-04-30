@@ -3,6 +3,7 @@
  ******************************************************************************/
 
 #include "egl_wl_bind_display.h"
+#include <EGL/begl_platform.h>
 
 EGLBoolean eglBindWaylandDisplayWL_impl(
       EGLDisplay dpy,

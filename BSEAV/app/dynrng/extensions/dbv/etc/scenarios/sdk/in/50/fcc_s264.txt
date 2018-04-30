@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/SDR/Conversion_Tests/AVC/FHD/50/Graffiti_SDR_1920x1080_50fps__avc3_st.mp4
+forceRestart=on
+stcTrick=off
+commit

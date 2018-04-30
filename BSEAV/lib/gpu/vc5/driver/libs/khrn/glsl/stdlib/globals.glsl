@@ -1,12 +1,12 @@
 // All versions
-const mediump int gl_MaxVertexAttribs             = GLXX_CONFIG_MAX_VERTEX_ATTRIBS;
+const mediump int gl_MaxVertexAttribs             = V3D_MAX_ATTR_ARRAYS;
 const mediump int gl_MaxVertexUniformVectors      = GLXX_CONFIG_MAX_UNIFORM_VECTORS;
 const mediump int gl_MaxVaryingVectors            = GLXX_CONFIG_MAX_VARYING_VECTORS;
 const mediump int gl_MaxVertexTextureImageUnits   = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
 const mediump int gl_MaxCombinedTextureImageUnits = GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
 const mediump int gl_MaxTextureImageUnits         = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
 const mediump int gl_MaxFragmentUniformVectors    = GLXX_CONFIG_MAX_UNIFORM_VECTORS;
-const mediump int gl_MaxDrawBuffers               = GLXX_MAX_RENDER_TARGETS;
+const mediump int gl_MaxDrawBuffers               = V3D_MAX_RENDER_TARGETS;
 
 in  mediump float __brcm_LineCoord = DATAFLOW_GET_LINE_COORD;
     lowp    uint  __brcm_stdlib_fb_max_layer = DATAFLOW_GET_FB_MAX_LAYER;
@@ -147,4 +147,4 @@ const mediump int gl_MaxGeometryTotalOutputComponents      = GLXX_CONFIG_MAX_GEO
 const mediump int gl_MaxGeometryUniformComponents          = GLXX_CONFIG_MAX_UNIFORM_SCALARS;
 const mediump int gl_MaxGeometryAtomicCounters             = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS;
 const mediump int gl_MaxGeometryAtomicCounterBuffers       = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS;
-const mediump int gl_MaxSamples                            = GLXX_CONFIG_MAX_SAMPLES;
+const mediump int gl_MaxSamples                            = V3D_MAX_SAMPLES;

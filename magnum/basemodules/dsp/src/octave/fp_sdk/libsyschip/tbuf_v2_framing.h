@@ -277,7 +277,7 @@ TB_id_zipped TB_create_id_for_service(TB_service_id service);
  */
 typedef
 #if defined(RAAGA) || defined(MCPHY) || defined(PIKE) || \
-    defined(BSP) || defined(LEAP_PHY_BCM3465) ||         \
+    defined(LEAP_PHY_BCM3465) ||         \
     defined(GENERIC) || defined(__COMPILE_HEADER__)
 uint8_t
 #else
@@ -295,7 +295,7 @@ TB_prologue;
 
 
 #if   defined(RAAGA) || defined(MCPHY) || defined(PIKE) || \
-      defined(BSP) || defined(LEAP_PHY_BCM3465) ||         \
+      defined(LEAP_PHY_BCM3465) ||         \
       defined(GENERIC) || defined(__COMPILE_HEADER__)
 #  define TB_PROLOGUE_INIT(prologue)                (prologue) = 0
 #  define TB_PROLOGUE_GET_ID(prologue)              (((prologue) & 0xF0) >> 4)

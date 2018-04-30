@@ -75,7 +75,10 @@ typedef struct
 BHSM_HmacHandle BHSM_Hmac_Create( BHSM_Handle hHsm )
 {
     BHSM_P_Hmac *pHandle = NULL;
+
     BDBG_ENTER( BHSM_Hmac_Create );
+
+    if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return NULL; }
 
     pHandle = (BHSM_P_Hmac*)BKNI_Malloc( sizeof(BHSM_P_Hmac) );
     if( !pHandle ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
@@ -92,6 +95,7 @@ BHSM_HmacHandle BHSM_Hmac_Create( BHSM_Handle hHsm )
 void BHSM_Hmac_Destroy( BHSM_HmacHandle handle )
 {
     BHSM_P_Hmac *pInstance = (BHSM_P_Hmac*)handle;
+
     BDBG_ENTER( BHSM_Hmac_Destroy );
 
     if( !pInstance ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
@@ -122,6 +126,7 @@ BERR_Code BHSM_Hmac_SetSettings( BHSM_HmacHandle handle, const BHSM_HmacSettings
 
     BDBG_ENTER( BHSM_Hmac_SetSettings );
 
+    if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     pInstance->settings = *pSettings;
@@ -140,6 +145,8 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
 
     BDBG_ENTER( BHSM_Hmac_SubmitData );
 
+    if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( pInstance->state == BHSM_P_HmacState_eInitial ) { return BERR_TRACE(BHSM_STATUS_STATE_ERROR); }
         /* ready and inprogress allowed.  */
 
@@ -176,7 +183,9 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
 
             BDBG_CASSERT( sizeof(pInstance->settings.key.softKey) <= sizeof(bspConfig.in.userHmacKey) );
             if( keySize > sizeof(pInstance->settings.key.softKey) ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-            BHSM_MemcpySwap( bspConfig.in.userHmacKey, pInstance->settings.key.softKey, keySize );
+            rc = BHSM_MemcpySwap( bspConfig.in.userHmacKey, pInstance->settings.key.softKey, keySize );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
             bspConfig.in.keyType = Bsp_Crypto_HmacKeyType_eUser;
             break;
         }
@@ -202,7 +211,9 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
     if( pData->last ) {
         BDBG_CASSERT( sizeof(pData->hmac) == sizeof(bspConfig.out.hmac_Signature) );
         pData->hmacLength = _HashLength( pInstance->settings.hashType );
-        BHSM_MemcpySwap( pData->hmac, bspConfig.out.hmac_Signature, pData->hmacLength );
+        rc = BHSM_MemcpySwap( pData->hmac, bspConfig.out.hmac_Signature, pData->hmacLength );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
         pInstance->state = BHSM_P_HmacState_eReady;
     }
     else {

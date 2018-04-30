@@ -510,6 +510,24 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 			false
 		}
 	},
+	{
+		/* Algorithm */ 				   /* Type */						      /* Name */
+		BDSP_Algorithm_eMpegAudioPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "MPEG Passthru",
+		/* Default User Config */			 /* User config size */
+		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
+		/* Stream Info Size */					 /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_MpegStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_MpegStreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */	  /* samples per channel */
+		1,								 1152,
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{
 		BDSP_Algorithm_eMax, BDSP_AlgorithmType_eMax, "Invalid",

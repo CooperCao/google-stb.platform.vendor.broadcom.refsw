@@ -7822,9 +7822,9 @@ Functionality   :   Following are the operations performed.
 
 BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	const BDSP_RaagaSettings     *pSettings,
-	const BDSP_RaagaUsageOptions *pUsage,
+	const BDSP_UsageOptions      *pUsage,
 	BBOX_Handle                   boxHandle,
-	BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
+	BDSP_MemoryEstimate          *pEstimate /*[out]*/
 )
 {
 	BERR_Code ret= BERR_SUCCESS;
@@ -7855,6 +7855,10 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	if(NULL != boxHandle)
 	{
 		ret = BDSP_Raaga_P_GetNumberOfDsp(boxHandle,&NumDsp);
+		if(ret != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_GetMemoryEstimate: Error in retreiving the Number of RAAGA DSP from BOX MODE, hence using the default value"));
+		}
 	}
 	else
 	{
@@ -7868,6 +7872,10 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	for(i32SchedulingGroupIndex=0; i32SchedulingGroupIndex<(int32_t)BDSP_AF_P_eSchedulingGroup_Max; i32SchedulingGroupIndex++)
 	{
 	    ret = BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI(&ui32Scratch[i32SchedulingGroupIndex], &ui32InterStageIO[i32SchedulingGroupIndex], &ui32InterStageIOGen[i32SchedulingGroupIndex], &ui32NumCh[i32SchedulingGroupIndex], i32SchedulingGroupIndex, pUsage);
+		if(ret != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_GetMemoryEstimate: Error in retreiving the Scratch and InterStage buffer for Scheduling index %d", i32SchedulingGroupIndex));
+		}
 	}
 	/* Allocation is done per DSP basis
 		Scratch buffer - 1

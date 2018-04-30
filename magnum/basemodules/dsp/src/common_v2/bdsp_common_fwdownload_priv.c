@@ -65,7 +65,6 @@ BERR_Code BDSP_P_GetFWSize (
     }
 
     rc = iface->next(image, 0, &data, 8);
-
     if (rc != BERR_SUCCESS)
     {
         BDBG_ERR(("Error in fetching next chunk in Image Interface"));
@@ -120,7 +119,7 @@ BERR_Code BDSP_P_CopyFWImageToMem(
     ui32numOfChunks = ((uint32_t *) data)[1];
     pMemAddr = (uint8_t *)pMemory->pAddr;
 
-   BDBG_MSG(("Downloading Algorithm at PhyAddr = "BDSP_MSG_FMT,BDSP_MSG_ARG(pMemory->offset)));
+    BDBG_MSG(("Downloading Algorithm at PhyAddr = "BDSP_MSG_FMT,BDSP_MSG_ARG(pMemory->offset)));
 
     BDBG_MSG(("Total Size = %d",ui32Size));
     for (ui32Count = 1;ui32Count <= ui32numOfChunks; ui32Count++)

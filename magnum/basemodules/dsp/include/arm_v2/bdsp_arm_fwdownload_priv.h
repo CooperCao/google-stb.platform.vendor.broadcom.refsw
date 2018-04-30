@@ -76,6 +76,16 @@ BERR_Code BDSP_Arm_P_GetDownloadStatus(
     void                    *pDeviceHandle,
     BDSP_DownloadStatus     *pStatus /* [out] */
 );
+BERR_Code BDSP_Arm_P_ComputeLoadbleSection_APITool(
+	const BDSP_ArmSettings      *pSettings,
+	const BDSP_UsageOptions     *pUsage,
+	BDSP_Arm_P_CodeDownloadInfo *pCodeDownloadInfo,
+	unsigned *pMemReqd
+);
+BERR_Code BDSP_Arm_P_AssignAlgoSize_APITool(
+	const BDSP_UsageOptions  *pUsage,
+	BDSP_P_FwBuffer 	     *pImgInfo
+);
 
 extern BDSP_Arm_P_LibDescriptor sResidentLibDescriptor[BDSP_ARM_MAX_NUM_ROMFS_LIB];
 

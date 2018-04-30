@@ -56,21 +56,21 @@ extern "C" {
 
 ****************************************************************************/
 
-#define BVC5_MAX_BIN_SUBJOBS           8
-#define BVC5_MAX_RENDER_SUBJOBS        16
-#define BVC5_MAX_QPU_SUBJOBS           12
-#define BVC5_MAX_DEPENDENCIES          8
-#define BVC5_MAX_CORES                 8
-#define BVC5_MAX_IDENTS                4
-#define BVC5_MAX_HUB_IDENTS            4
+#define BVC5_MAX_BIN_SUBJOBS       8
+#define BVC5_MAX_RENDER_SUBJOBS    16
+#define BVC5_MAX_QPU_SUBJOBS       12
+#define BVC5_MAX_DEPENDENCIES      8
+#define BVC5_MAX_CORES             8
+#define BVC5_MAX_IDENTS            4
+#define BVC5_MAX_HUB_IDENTS        4
 
-#define BVC5_EMPTY_TILE_MODE_NONE      0u
-#define BVC5_EMPTY_TILE_MODE_SKIP      1u
-#define BVC5_EMPTY_TILE_MODE_FILL      2u
+#define BVC5_EMPTY_TILE_MODE_NONE  0u
+#define BVC5_EMPTY_TILE_MODE_SKIP  1u
+#define BVC5_EMPTY_TILE_MODE_FILL  2u
 
 /* Workaround flags */
-#define BVC5_NO_BIN_RENDER_OVERLAP     1
-#define BVC5_GFXH_1181                 2
+#define BVC5_NO_BIN_RENDER_OVERLAP 1
+#define BVC5_GFXH_1181             2
 
 /* Cache operations */
 #define BVC5_CACHE_CLEAR_SIC  (1 << 0)
@@ -123,10 +123,10 @@ See Also:
 ****************************************************************************/
 typedef struct BVC5_Info
 {
-   uint32_t    uiIdent[BVC5_MAX_CORES * BVC5_MAX_IDENTS];
-   uint32_t    uiHubIdent[BVC5_MAX_HUB_IDENTS];
-   uint32_t    uiDDRMapVer;
-   uint32_t    uiSocQuirks;
+   uint32_t uiIdent[BVC5_MAX_CORES * BVC5_MAX_IDENTS];
+   uint32_t uiHubIdent[BVC5_MAX_HUB_IDENTS];
+   uint32_t uiDDRMapVer;
+   uint32_t uiSocQuirks;
 } BVC5_Info;
 
 typedef enum BVC5_JobType
@@ -143,22 +143,23 @@ typedef enum BVC5_JobType
    BVC5_JobType_eWaitOnEvent,
    BVC5_JobType_eSetEvent,
    BVC5_JobType_eResetEvent,
+   BVC5_JobType_eCompute,
    BVC5_JobType_eNumJobTypes
 } BVC5_JobType;
 
 typedef struct BVC5_SchedDependencies
 {
-   uint64_t                uiDep[BVC5_MAX_DEPENDENCIES];
-   uint32_t                uiNumDeps;
+   uint64_t uiDep[BVC5_MAX_DEPENDENCIES];
+   uint32_t uiNumDeps;
 } BVC5_SchedDependencies;
 
 typedef struct BVC5_SyncListItem
 {
-   int32_t                 iMemHandle;
-   void                    *pMemSyncPtr;
-   uint32_t                uiFlag;
-   uint32_t                uiOffset;
-   uint32_t                uiLength;
+   int32_t   iMemHandle;
+   void     *pMemSyncPtr;
+   uint32_t  uiFlag;
+   uint32_t  uiOffset;
+   uint32_t  uiLength;
 } BVC5_SyncListItem;
 
 typedef struct BVC5_QueryResponse
@@ -175,138 +176,159 @@ typedef enum BVC5_JobStatus
 
 typedef struct BVC5_Completion
 {
-   uint64_t          uiJobId;
-   uint64_t          uiCallback;
-   uint64_t          uiData;
-   BVC5_JobStatus    eStatus;
-   BVC5_JobType      eType;
+   uint64_t       uiJobId;
+   uint64_t       uiCallback;
+   uint64_t       uiData;
+   BVC5_JobStatus eStatus;
+   BVC5_JobType   eType;
 } BVC5_Completion;
 
 typedef struct BVC5_CompletionInfo
 {
-   uint64_t          uiOldestNotFinalized;
+   uint64_t uiOldestNotFinalized;
 } BVC5_CompletionInfo;
 
 typedef struct BVC5_JobBase
 {
-   uint64_t                uiJobId;
-   BVC5_JobType            eType;
-   BVC5_SchedDependencies  sCompletedDependencies;
-   BVC5_SchedDependencies  sFinalizedDependencies;
-   uint64_t                uiCompletion;
-   uint64_t                uiData;
-   uint32_t                uiCacheOps;
-   bool                    bSecure;
-   uint64_t                uiPagetablePhysAddr;
-   uint32_t                uiMmuMaxVirtAddr;
+   uint64_t               uiJobId;
+   BVC5_JobType           eType;
+   BVC5_SchedDependencies sCompletedDependencies;
+   BVC5_SchedDependencies sFinalizedDependencies;
+   uint64_t               uiCompletion;
+   uint64_t               uiData;
+   uint32_t               uiCacheOps;
+   bool                   bSecure;
+   uint64_t               uiPagetablePhysAddr;
+   uint32_t               uiMmuMaxVirtAddr;
 } BVC5_JobBase;
 
 typedef struct BVC5_JobNull
 {
-   BVC5_JobBase            sBase;
+   BVC5_JobBase sBase;
 } BVC5_JobNull;
 
 typedef struct BVC5_JobBin
 {
-   BVC5_JobBase            sBase;
-   uint32_t                uiNumSubJobs;
-   uint32_t                uiStart[BVC5_MAX_BIN_SUBJOBS];
-   uint32_t                uiEnd[BVC5_MAX_BIN_SUBJOBS];
-   uint32_t                uiOffset;
-   uint32_t                uiFlags;
-   uint32_t                uiMinInitialBinBlockSize;
-   uint32_t                uiTileStateSize;
+   BVC5_JobBase sBase;
+   uint32_t     uiNumSubJobs;
+   uint32_t     uiStart[BVC5_MAX_BIN_SUBJOBS];
+   uint32_t     uiEnd[BVC5_MAX_BIN_SUBJOBS];
+   uint32_t     uiOffset;
+   uint32_t     uiFlags;
+   uint32_t     uiMinInitialBinBlockSize;
+   uint32_t     uiTileStateSize;
 } BVC5_JobBin;
 
 typedef struct BVC5_JobRender
 {
-   BVC5_JobBase            sBase;
-   uint32_t                uiNumSubJobs;
-   uint32_t                uiStart[BVC5_MAX_RENDER_SUBJOBS];
-   uint32_t                uiEnd[BVC5_MAX_RENDER_SUBJOBS];
-   uint32_t                uiFlags;
-   uint32_t                uiEmptyTileMode;
+   BVC5_JobBase sBase;
+   uint32_t     uiNumSubJobs;
+   uint32_t     uiStart[BVC5_MAX_RENDER_SUBJOBS];
+   uint32_t     uiEnd[BVC5_MAX_RENDER_SUBJOBS];
+   uint32_t     uiFlags;
+   uint32_t     uiEmptyTileMode;
 } BVC5_JobRender;
+
+typedef struct BVC5_JobCompute
+{
+   BVC5_JobBase sBase;
+   uint32_t     uiSubjobsId;
+} BVC5_JobCompute;
+
+typedef struct BVC5_JobComputeSubjob
+{
+   uint32_t uiNumWgs[3];
+   uint16_t uiWgSize;
+   uint8_t  uiWgsPerSg;
+   uint8_t  uiMaxSgId;
+   uint32_t uiShaderAddr;
+   uint32_t uiUnifsAddr;
+   uint16_t uiSharedBlockSize;
+   uint8_t  uiThreading;
+   bool     bSingleSeg;
+   bool     bPropagateNans;
+   bool     bNoOverlap;
+} BVC5_JobComputeSubjob;
 
 typedef struct BVC5_JobBarrier
 {
-   BVC5_JobBase            sBase;
+   BVC5_JobBase sBase;
 } BVC5_JobBarrier;
 
 typedef struct BVC5_JobUser
 {
-   BVC5_JobBase            sBase;
-   uint32_t                uiNumSubJobs;
-   uint32_t                uiPC[BVC5_MAX_QPU_SUBJOBS];
-   uint32_t                uiUnif[BVC5_MAX_QPU_SUBJOBS];
+   BVC5_JobBase sBase;
+   uint32_t     uiNumSubJobs;
+   uint32_t     uiPC[BVC5_MAX_QPU_SUBJOBS];
+   uint32_t     uiUnif[BVC5_MAX_QPU_SUBJOBS];
 } BVC5_JobUser;
 
 typedef struct BVC5_JobFenceWait
 {
-   BVC5_JobBase            sBase;
-   int32_t                 iFence;
+   BVC5_JobBase sBase;
+   int32_t      iFence;
 } BVC5_JobFenceWait;
 
 typedef struct BVC5_JobTFU
 {
-   BVC5_JobBase            sBase;
+   BVC5_JobBase sBase;
 
    struct
    {
-      uint16_t    uiTextureType;
-      uint16_t    uiByteFormat;
-      uint16_t    uiEndianness;
-      uint16_t    uiComponentOrder;
-      uint32_t    uiRasterStride;
-      uint32_t    uiChromaStride;
-      uint32_t    uiAddress;
-      uint32_t    uiChromaAddress;
-      uint32_t    uiUPlaneAddress;
-      uint64_t    uiFlags;
+      uint16_t uiTextureType;
+      uint16_t uiByteFormat;
+      uint16_t uiEndianness;
+      uint16_t uiComponentOrder;
+      uint32_t uiRasterStride;
+      uint32_t uiChromaStride;
+      uint32_t uiAddress;
+      uint32_t uiChromaAddress;
+      uint32_t uiUPlaneAddress;
+      uint64_t uiFlags;
    } sInput;
 
    struct
    {
-      uint32_t    uiMipmapCount;
-      uint32_t    uiVerticalPadding;
-      uint32_t    uiWidth;
-      uint32_t    uiHeight;
-      uint16_t    uiEndianness;
-      uint16_t    uiByteFormat;
-      uint32_t    uiAddress;
-      uint32_t    uiFlags;
+      uint32_t uiMipmapCount;
+      uint32_t uiVerticalPadding;
+      uint32_t uiWidth;
+      uint32_t uiHeight;
+      uint16_t uiEndianness;
+      uint16_t uiByteFormat;
+      uint32_t uiAddress;
+      uint32_t uiFlags;
    } sOutput;
 
    struct
    {
-      uint16_t    uiY;
-      uint16_t    uiRC;
-      uint16_t    uiBC;
-      uint16_t    uiGC;
-      uint16_t    uiRR;
-      uint16_t    uiGR;
-      uint16_t    uiGB;
-      uint16_t    uiBB;
+      uint16_t uiY;
+      uint16_t uiRC;
+      uint16_t uiBC;
+      uint16_t uiGC;
+      uint16_t uiRR;
+      uint16_t uiGR;
+      uint16_t uiGB;
+      uint16_t uiBB;
    } sCustomCoefs;
 } BVC5_JobTFU;
 
 typedef struct BVC5_JobTest
 {
-   BVC5_JobBase            sBase;
-   uint32_t                uiDelay;
+   BVC5_JobBase sBase;
+   uint32_t     uiDelay;
 } BVC5_JobTest;
 
 typedef struct BVC5_JobUsermode
 {
-   BVC5_JobBase            sBase;
-   uint64_t                uiUsermode;
-   uint64_t                uiData;
+   BVC5_JobBase sBase;
+   uint64_t     uiUsermode;
+   uint64_t     uiData;
 } BVC5_JobUsermode;
 
 typedef struct BVC5_JobSchedJob
 {
-   BVC5_JobBase            sBase;
-   uint64_t                uiEventId;
+   BVC5_JobBase sBase;
+   uint64_t     uiEventId;
 } BVC5_JobSchedJob;
 
 /**
@@ -315,10 +337,10 @@ Usermode callback jobs record returned by query function NEXUS_Graphicsv3d_GetUs
 **/
 typedef struct BVC5_Usermode
 {
-   uint64_t          uiJobId;
-   uint64_t          uiCallback;
-   uint64_t          uiData;
-   bool              bHaveJob;
+   uint64_t uiJobId;
+   uint64_t uiCallback;
+   uint64_t uiData;
+   bool     bHaveJob;
 } BVC5_Usermode;
 
 /**************************************************************************
@@ -327,16 +349,16 @@ Summary:
 ***************************************************************************/
 typedef struct BVC5_OpenParameters
 {
-   bool  bUsePowerGating;    /* Use power gating or not       */
-   bool  bUseClockGating;    /* Use clock gating or not       */
-   bool  bUseNexusMMA;       /* Use Nexus MMA for allocations */
-   bool  bUseStallDetection; /* Use watchdog stall detection  */
-   bool  bGPUMonDeps;        /* Report dependency information to GPUMonitor  */
-   bool  bNoQueueAhead;      /* Prevent queue ahead of render jobs           */
-   bool  bResetOnStall;      /* Reset & recover when a h/w stall is detected */
-   bool  bMemDumpOnStall;    /* Dump heap when a stall is detected            */
-   bool  bNoBurstSplitting;  /* Disable burst splitting in the wrapper? */
-   uint32_t uiDRMDevice;     /* DRM device to open if signalling client termination */
+   bool     bUsePowerGating;    /* Use power gating or not                             */
+   bool     bUseClockGating;    /* Use clock gating or not                             */
+   bool     bUseNexusMMA;       /* Use Nexus MMA for allocations                       */
+   bool     bUseStallDetection; /* Use watchdog stall detection                        */
+   bool     bGPUMonDeps;        /* Report dependency information to GPUMonitor         */
+   bool     bNoQueueAhead;      /* Prevent queue ahead of render jobs                  */
+   bool     bResetOnStall;      /* Reset & recover when a h/w stall is detected        */
+   bool     bMemDumpOnStall;    /* Dump heap when a stall is detected                  */
+   bool     bNoBurstSplitting;  /* Disable burst splitting in the wrapper?             */
+   uint32_t uiDRMDevice;        /* DRM device to open if signalling client termination */
 } BVC5_OpenParameters;
 
 /**************************************************************************
@@ -345,8 +367,8 @@ Summary:
 ***************************************************************************/
 typedef struct BVC5_Callbacks
 {
-   void (*fpUsermodeHandler)(void *pVc5);    /* Issue a usermode callback           */
-   void (*fpCompletionHandler)(void *pVC5);  /* Issue a completion callback         */
+   void (*fpUsermodeHandler)(void *pVc5);       /* Issue a usermode callback           */
+   void (*fpCompletionHandler)(void *pVC5);     /* Issue a completion callback         */
    void (*fpSecureToggleHandler)(bool bEnter);  /* Transition to/from secure operation */
 } BVC5_Callbacks;
 
@@ -380,16 +402,16 @@ See Also:
    BVC5_UnregisterClient
 ****************************************************************************/
 BERR_Code BVC5_Open(
-   BVC5_Handle         *phVC5,        /* [out] Pointer to returned VC5 handle.  */
-   BCHP_Handle          hChp,         /* [in] Chip handle.                      */
-   BREG_Handle          hReg,         /* [in] Register access handle.           */
-   BMMA_Heap_Handle     hMMAHeap,     /* [in] Unsecure heap handles.            */
+   BVC5_Handle         *phVC5,          /* [out] Pointer to returned VC5 handle.  */
+   BCHP_Handle          hChp,           /* [in] Chip handle.                      */
+   BREG_Handle          hReg,           /* [in] Register access handle.           */
+   BMMA_Heap_Handle     hMMAHeap,       /* [in] Unsecure heap handles.            */
    BMMA_Heap_Handle     hSecureMMAHeap, /* [in] Secure heap handles.              */
    uint64_t             ulDbgHeapOffset,/* [in] used for debug memory dump only   */
-   unsigned             uDbgHeapSize, /* [in] used for debug memory dump only   */
-   BINT_Handle          bint,         /* [in] Interrupt handle.                 */
-   BVC5_OpenParameters *sOpenParams,  /* [in] Options                           */
-   BVC5_Callbacks      *sCallbacks    /* [in] Callback fn pointers              */
+   unsigned             uDbgHeapSize,   /* [in] used for debug memory dump only   */
+   BINT_Handle          bint,           /* [in] Interrupt handle.                 */
+   BVC5_OpenParameters *sOpenParams,    /* [in] Options                           */
+   BVC5_Callbacks      *sCallbacks      /* [in] Callback fn pointers              */
 );
 
 /***************************************************************************
@@ -412,7 +434,7 @@ See Also:
    BVC5_UnregisterClient
 ****************************************************************************/
 BERR_Code BVC5_Close(
-   BVC5_Handle hVC5              /* [in] Handle to VC5 module.             */
+   BVC5_Handle hVC5        /* [in] Handle to VC5 module. */
 );
 
 /***************************************************************************
@@ -490,7 +512,8 @@ See Also:
    BVC5_Open
 ****************************************************************************/
 void BVC5_Scheduler(
-   void * p                      /* [in] BVC5_SchedulerSettings pointer.  Called as a worker thread function, never in the main thread */
+   void *p     /* [in] BVC5_SchedulerSettings pointer. */
+               /* Called as a worker thread function, never in the main thread */
 );
 
 /***************************************************************************
@@ -542,113 +565,121 @@ BERR_Code BVC5_Resume(
    );
 
 BERR_Code BVC5_BinRenderJob(
-   BVC5_Handle                 hVC5,            /* [in] Handle to VC5 module. */
-   uint32_t                    uiClientId,      /* [in]                       */
-   const BVC5_JobBin          *pBin,            /* [in]                       */
-   const BVC5_JobRender       *pRender          /* [in]                       */
+   BVC5_Handle           hVC5,            /* [in] Handle to VC5 module. */
+   uint32_t              uiClientId,      /* [in]                       */
+   const BVC5_JobBin    *pBin,            /* [in]                       */
+   const BVC5_JobRender *pRender          /* [in]                       */
+   );
+
+BERR_Code BVC5_ComputeJob(
+   BVC5_Handle                  hVC5,         /* [in] Handle to VC5 module. */
+   uint32_t                     uiClientId,   /* [in]                       */
+   const BVC5_JobCompute       *pCompute,     /* [in]                       */
+   uint32_t                     uiNumSubjobs, /* [in]                       */
+   const BVC5_JobComputeSubjob *pSubjobs      /* [in]                       */
    );
 
 BERR_Code BVC5_FenceWaitJob(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module. */
-   uint32_t                    uiClientId, /* [in]                       */
-   const BVC5_JobFenceWait    *pWait       /* [in]                       */
+   BVC5_Handle              hVC5,       /* [in] Handle to VC5 module. */
+   uint32_t                 uiClientId, /* [in]                       */
+   const BVC5_JobFenceWait *pWait       /* [in]                       */
    );
 
 BERR_Code BVC5_NullJob(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module. */
-   uint32_t                    uiClientId, /* [in]                       */
-   const BVC5_JobNull         *pNull       /* [in]                       */
+   BVC5_Handle         hVC5,            /* [in] Handle to VC5 module. */
+   uint32_t            uiClientId,      /* [in]                       */
+   const BVC5_JobNull *pNull            /* [in]                       */
    );
 
 BERR_Code BVC5_BarrierJob(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
-   uint32_t                    uiClientId, /* [in]                       */
-   const BVC5_JobBarrier      *pBarrierJobs/* [in]                       */
+   BVC5_Handle            hVC5,         /* [in] Handle to VC5 module  */
+   uint32_t               uiClientId,   /* [in]                       */
+   const BVC5_JobBarrier *pBarrierJobs  /* [in]                       */
    );
 
 BERR_Code BVC5_TFUJobs(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
-   uint32_t                    uiClientId, /* [in]                       */
-   uint32_t                    uiNumJobs,  /* [in]                       */
-   const BVC5_JobTFU          *pTFUJobs    /* [in]                       */
+   BVC5_Handle        hVC5,             /* [in] Handle to VC5 module  */
+   uint32_t           uiClientId,       /* [in]                       */
+   uint32_t           uiNumJobs,        /* [in]                       */
+   const BVC5_JobTFU *pTFUJobs          /* [in]                       */
    );
 
 BERR_Code BVC5_TestJob(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
-   uint32_t                    uiClientId, /* [in]                       */
-   const BVC5_JobTest         *pTest       /* [in]                       */
+   BVC5_Handle         hVC5,            /* [in] Handle to VC5 module  */
+   uint32_t            uiClientId,      /* [in]                       */
+   const BVC5_JobTest *pTest            /* [in]                       */
    );
 
 BERR_Code BVC5_UsermodeJob(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
-   uint32_t                    uiClientId, /* [in]                       */
-   const BVC5_JobUsermode     *pUsermode   /* [in]                       */
+   BVC5_Handle             hVC5,        /* [in] Handle to VC5 module  */
+   uint32_t                uiClientId,  /* [in]                       */
+   const BVC5_JobUsermode *pUsermode    /* [in]                       */
    );
 
 /* Will call pfnCallback(pContext, pParam) when signalled */
 BERR_Code BVC5_FenceRegisterWaitCallback(
-   BVC5_Handle                 hVC5,                          /* [in]          */
-   int                         iFence,                        /* [in]          */
-   uint32_t                    uiClientId,                    /* [in]          */
-   void                      (*pfnCallback)(void *, uint64_t),/* [in]          */
-   void                       *pContext,                      /* [in]          */
-   uint64_t                    uiParam                        /* [in]          */
+   BVC5_Handle   hVC5,                           /* [in] */
+   int           iFence,                         /* [in] */
+   uint32_t      uiClientId,                     /* [in] */
+   void        (*pfnCallback)(void *, uint64_t), /* [in] */
+   void         *pContext,                       /* [in] */
+   uint64_t      uiParam                         /* [in] */
    );
 
 BERR_Code BVC5_FenceUnregisterWaitCallback(
-   BVC5_Handle                 hVC5,                          /* [in]          */
-   int                         iFence,                        /* [in]          */
-   uint32_t                    uiClientId,                    /* [in]          */
-   void                      (*pfnCallback)(void *, uint64_t),/* [in]          */
-   void                       *pContext,                      /* [in]          */
-   uint64_t                    uiParam,                       /* [in]          */
-   bool                       *bSignalled                     /* [out]         */
+   BVC5_Handle   hVC5,                           /* [in]  */
+   int           iFence,                         /* [in]  */
+   uint32_t      uiClientId,                     /* [in]  */
+   void        (*pfnCallback)(void *, uint64_t), /* [in]  */
+   void         *pContext,                       /* [in]  */
+   uint64_t      uiParam,                        /* [in]  */
+   bool         *bSignalled                      /* [out] */
    );
 
 BERR_Code BVC5_Query(
-   BVC5_Handle                 hVC5,                   /* [in]          */
-   uint32_t                    uiClientId,             /* [in]          */
-   BVC5_SchedDependencies     *pCompletedDeps,         /* [in]          */
-   BVC5_SchedDependencies     *pFinalizedDeps,         /* [in]          */
-   BVC5_QueryResponse         *pResponse               /* [out]         */
+   BVC5_Handle                 hVC5,             /* [in]  */
+   uint32_t                    uiClientId,       /* [in]  */
+   BVC5_SchedDependencies     *pCompletedDeps,   /* [in]  */
+   BVC5_SchedDependencies     *pFinalizedDeps,   /* [in]  */
+   BVC5_QueryResponse         *pResponse         /* [out] */
    );
 
 BERR_Code BVC5_MakeFenceForJobs(
-   BVC5_Handle                   hVC5,             /* [in] */
-   uint32_t                      uiClientId,       /* [in] */
-   const BVC5_SchedDependencies *pCompletedDeps,   /* [in] */
-   const BVC5_SchedDependencies *pFinalizedDeps,   /* [in] */
-   bool                          bForceCreate,     /* [in] */
-   int                          *piFence           /* [out] */
+   BVC5_Handle                   hVC5,           /* [in]  */
+   uint32_t                      uiClientId,     /* [in]  */
+   const BVC5_SchedDependencies *pCompletedDeps, /* [in]  */
+   const BVC5_SchedDependencies *pFinalizedDeps, /* [in]  */
+   bool                          bForceCreate,   /* [in]  */
+   int                          *piFence         /* [out] */
    );
 
 BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
-   BVC5_Handle hVC5,       /* [in] */
-   uint32_t    uiClientId, /* [in] */
-   int        *piFence     /* [out] */
+   BVC5_Handle hVC5,                             /* [in]  */
+   uint32_t    uiClientId,                       /* [in]  */
+   int        *piFence                           /* [out] */
    );
 
 BERR_Code BVC5_MakeFenceForAnyJob(
-   BVC5_Handle                   hVC5,             /* [in] */
-   uint32_t                      uiClientId,       /* [in] */
-   const BVC5_SchedDependencies *pCompletedDeps,   /* [in] */
-   const BVC5_SchedDependencies *pFinalizedDeps,   /* [in] */
-   int                          *piFence           /* [out] */
+   BVC5_Handle                   hVC5,           /* [in]  */
+   uint32_t                      uiClientId,     /* [in]  */
+   const BVC5_SchedDependencies *pCompletedDeps, /* [in]  */
+   const BVC5_SchedDependencies *pFinalizedDeps, /* [in]  */
+   int                          *piFence         /* [out] */
    );
 
 BERR_Code BVC5_FenceKeep(
-   BVC5_Handle                 hVC5,                   /* [in]           */
-   int                         iFence                  /* [in]           */
-   );
+   BVC5_Handle hVC5,        /* [in] */
+   int         iFence       /* [in] */
+);
 
 BERR_Code BVC5_FenceSignal(
-   BVC5_Handle                 hVC5,                   /* [in]           */
-   int                         iFence                  /* [in]           */
-   );
+   BVC5_Handle hVC5,        /* [in] */
+   int         iFence       /* [in] */
+);
 
 BERR_Code BVC5_FenceClose(
-   BVC5_Handle                 hVC5,                   /* [in]           */
-   int                         iFence                  /* [in]           */
+   BVC5_Handle hVC5,        /* [in] */
+   int         iFence       /* [in] */
    );
 
 /* BVC5_FenceMakeLocal
@@ -659,9 +690,9 @@ BERR_Code BVC5_FenceClose(
 
  */
 BERR_Code BVC5_FenceMakeLocal(
-   BVC5_Handle                 hVC5,                   /* [in]           */
-   uint32_t                    uiClientId,             /* [in]           */
-   int                        *piFence                 /* [out]          */
+   BVC5_Handle  hVC5,         /* [in]  */
+   uint32_t     uiClientId,   /* [in]  */
+   int         *piFence       /* [out] */
    );
 
 
@@ -671,10 +702,10 @@ BERR_Code BVC5_FenceMakeLocal(
 
  */
 BERR_Code BVC5_GetUsermode(
-   BVC5_Handle                 hVC5,                   /* [in]           */
-   uint32_t                    uiClientId,             /* [in]           */
-   uint64_t                    uiPrevJobId,            /* [in]           */
-   BVC5_Usermode              *psUsermode              /* [out]          */
+   BVC5_Handle    hVC5,        /* [in]  */
+   uint32_t       uiClientId,  /* [in]  */
+   uint64_t       uiPrevJobId, /* [in]  */
+   BVC5_Usermode *psUsermode   /* [out] */
    );
 
 
@@ -690,18 +721,18 @@ BERR_Code BVC5_GetCompletions(
    BVC5_Handle          hGfx,
    uint32_t             uiClientId,
    uint32_t             uiNumFinalizedJobs,
-   const uint64_t       *puiFinalizedJobs,
+   const uint64_t      *puiFinalizedJobs,
    uint32_t             uiMaxCompletionsOut,
-   BVC5_CompletionInfo  *psCompletionInfo,
-   uint32_t             *puiCompletionsOut,
-   BVC5_Completion      *psCompletions
+   BVC5_CompletionInfo *psCompletionInfo,
+   uint32_t            *puiCompletionsOut,
+   BVC5_Completion     *psCompletions
    );
 
 /* BVC5_GetInfo
  */
 void BVC5_GetInfo(
-   BVC5_Handle                 hVC5,                   /* [in]           */
-   BVC5_Info                  *psInfo                  /* [out]          */
+   BVC5_Handle  hVC5,      /* [in]  */
+   BVC5_Info   *psInfo     /* [out] */
    );
 
 /* BVC5_HasBrcmv3dko
@@ -729,74 +760,74 @@ typedef enum BVC5_CounterState
 
 typedef struct BVC5_CounterDesc
 {
-   char        caName[BVC5_MAX_COUNTER_NAME_LEN];
-   char        caUnitName[BVC5_MAX_COUNTER_UNIT_NAME_LEN];
-   uint64_t    uiMinValue;
-   uint64_t    uiMaxValue;
-   uint64_t    uiDenominator;
+   char     caName[BVC5_MAX_COUNTER_NAME_LEN];
+   char     caUnitName[BVC5_MAX_COUNTER_UNIT_NAME_LEN];
+   uint64_t uiMinValue;
+   uint64_t uiMaxValue;
+   uint64_t uiDenominator;
 } BVC5_CounterDesc;
 
 typedef struct BVC5_CounterGroupDesc
 {
-   char              caName[BVC5_MAX_GROUP_NAME_LEN];
-   uint32_t          uiTotalCounters;
-   uint32_t          uiMaxActiveCounters;
-   BVC5_CounterDesc  saCounters[BVC5_MAX_COUNTERS_PER_GROUP];
+   char             caName[BVC5_MAX_GROUP_NAME_LEN];
+   uint32_t         uiTotalCounters;
+   uint32_t         uiMaxActiveCounters;
+   BVC5_CounterDesc saCounters[BVC5_MAX_COUNTERS_PER_GROUP];
 } BVC5_CounterGroupDesc;
 
 typedef struct BVC5_CounterSelector
 {
-   uint32_t    uiGroupIndex;
-   uint32_t    uiEnable;
-   uint32_t    uiaCounters[BVC5_MAX_COUNTERS_PER_GROUP];
-   uint32_t    uiNumCounters;
+   uint32_t uiGroupIndex;
+   uint32_t uiEnable;
+   uint32_t uiaCounters[BVC5_MAX_COUNTERS_PER_GROUP];
+   uint32_t uiNumCounters;
 } BVC5_CounterSelector;
 
 typedef struct BVC5_Counter
 {
-   uint32_t   uiGroupIndex;
-   uint32_t   uiCounterIndex;
-   uint64_t   uiValue;
+   uint32_t uiGroupIndex;
+   uint32_t uiCounterIndex;
+   uint64_t uiValue;
 } BVC5_Counter;
 
 void BVC5_GetPerfNumCounterGroups(
-   BVC5_Handle  hVC5,
-   uint32_t     *puiNumGroups
+   BVC5_Handle hVC5,
+   uint32_t    *puiNumGroups
    );
 
 void BVC5_GetPerfCounterDesc(
-   BVC5_Handle             hVC5,
-   uint32_t                uiGroup,
-   uint32_t                uiCounter,
-   BVC5_CounterDesc        *psDesc
+   BVC5_Handle       hVC5,
+   uint32_t          uiGroup,
+   uint32_t          uiCounter,
+   BVC5_CounterDesc *psDesc
    );
 
 void BVC5_GetPerfCounterGroupInfo(
-   BVC5_Handle             hVC5,
-   uint32_t                uiGroup,
-   uint32_t                uiGrpNameSize,
-   char                    *chGrpName,
-   uint32_t                *uiMaxActiveCounter,
-   uint32_t                *uiTotalCounter
+   BVC5_Handle  hVC5,
+   uint32_t     uiGroup,
+   uint32_t     uiGrpNameSize,
+   char        *chGrpName,
+   uint32_t    *uiMaxActiveCounter,
+   uint32_t    *uiTotalCounter
    );
 
 BERR_Code BVC5_SetPerfCounting(
-   BVC5_Handle             hVC5,
-   uint32_t                uiClientId,
-   BVC5_CounterState       eState
+   BVC5_Handle       hVC5,
+   uint32_t          uiClientId,
+   BVC5_CounterState eState
    );
 
 void BVC5_ChoosePerfCounters(
-   BVC5_Handle                hVC5,
-   uint32_t                   uiClientId,
+   BVC5_Handle                 hVC5,
+   uint32_t                    uiClientId,
    const BVC5_CounterSelector *psSelector
    );
 
 uint32_t BVC5_GetPerfCounterData(
-   BVC5_Handle    hVC5,
-   uint32_t       uiMaxCounters,
-   uint32_t       uiResetCounts,
-   BVC5_Counter   *psCounters
+   BVC5_Handle   hVC5,
+   uint32_t      uiMaxCounters,
+   uint32_t      uiResetCounts,
+   BVC5_Counter *psCounters
    );
 
 typedef struct BVC5_ClientLoadData
@@ -808,8 +839,8 @@ typedef struct BVC5_ClientLoadData
 } BVC5_ClientLoadData;
 
 BERR_Code BVC5_SetGatherLoadData(
-   BVC5_Handle    hVC5,
-   bool           bCollect
+   BVC5_Handle hVC5,
+   bool        bCollect
 );
 
 BERR_Code BVC5_GetLoadData(
@@ -855,32 +886,32 @@ typedef struct BVC5_EventDesc
 
 typedef struct BVC5_EventFieldDesc
 {
-   char              caName[BVC5_MAX_EVENT_STRING_LEN];
-   BVC5_FieldType    eDataType;
+   char           caName[BVC5_MAX_EVENT_STRING_LEN];
+   BVC5_FieldType eDataType;
 } BVC5_EventFieldDesc;
 
 typedef struct BVC5_EventTrackDesc
 {
-   char     caName[BVC5_MAX_EVENT_STRING_LEN];
+   char caName[BVC5_MAX_EVENT_STRING_LEN];
 } BVC5_EventTrackDesc;
 
 void BVC5_GetEventCounts(
    BVC5_Handle  hVC5,
-   uint32_t     *uiNumTracks,
-   uint32_t     *uiNumEvents
+   uint32_t    *uiNumTracks,
+   uint32_t    *uiNumEvents
    );
 
 BERR_Code BVC5_GetEventTrackInfo(
-   BVC5_Handle           hVC5,
-   uint32_t              uiTrack,
-   BVC5_EventTrackDesc   *psTrackDesc
+   BVC5_Handle          hVC5,
+   uint32_t             uiTrack,
+   BVC5_EventTrackDesc *psTrackDesc
    );
 
 
 BERR_Code BVC5_GetEventInfo(
-   BVC5_Handle       hVC5,
-   uint32_t          uiEvent,
-   BVC5_EventDesc   *psEventDesc
+   BVC5_Handle     hVC5,
+   uint32_t        uiEvent,
+   BVC5_EventDesc *psEventDesc
    );
 
 
@@ -888,22 +919,22 @@ BERR_Code BVC5_GetEventDataFieldInfo(
    BVC5_Handle          hVC5,
    uint32_t             uiEvent,
    uint32_t             uiField,
-   BVC5_EventFieldDesc  *psFieldDesc
+   BVC5_EventFieldDesc *psFieldDesc
    );
 
 BERR_Code BVC5_SetEventCollection(
-   BVC5_Handle       hVC5,
-   uint32_t          uiClientId,
-   BVC5_EventState   eState
+   BVC5_Handle     hVC5,
+   uint32_t        uiClientId,
+   BVC5_EventState eState
    );
 
 uint32_t BVC5_GetEventData(
-   BVC5_Handle    hVC5,
-   uint32_t       uiClientId,
-   uint32_t       uiEventBufferBytes,
-   void           *pvEventBuffer,
-   uint32_t       *puiLostData,
-   uint64_t       *puiTimeStamp
+   BVC5_Handle  hVC5,
+   uint32_t     uiClientId,
+   uint32_t     uiEventBufferBytes,
+   void        *pvEventBuffer,
+   uint32_t    *puiLostData,
+   uint64_t    *puiTimeStamp
    );
 
 /************************************************************************/
@@ -911,40 +942,55 @@ uint32_t BVC5_GetEventData(
 /************************************************************************/
 
 BERR_Code BVC5_SchedEventJob(
-      BVC5_Handle                 hVC5,
-      uint32_t                    uiClientId,
-      const BVC5_JobSchedJob     *pSchedEvent
+      BVC5_Handle             hVC5,
+      uint32_t                uiClientId,
+      const BVC5_JobSchedJob *pSchedEvent
       );
 
 BERR_Code BVC5_NewSchedEvent(
-      BVC5_Handle          hVC5,
-      uint32_t             uiClientId,
-      uint64_t             *pSchedEventId
+      BVC5_Handle  hVC5,
+      uint32_t     uiClientId,
+      uint64_t    *pSchedEventId
       );
 
 BERR_Code BVC5_DeleteSchedEvent(
-      BVC5_Handle          hVC5,
-      uint32_t             uiClientId,
-      uint64_t             uiSchedEventId
+      BVC5_Handle hVC5,
+      uint32_t    uiClientId,
+      uint64_t    uiSchedEventId
       );
 
 BERR_Code BVC5_SetSchedEvent(
-      BVC5_Handle          hVC5,
-      uint32_t             uiClientId,
-      uint64_t             uiSchedEventId
+      BVC5_Handle hVC5,
+      uint32_t    uiClientId,
+      uint64_t    uiSchedEventId
       );
 
 BERR_Code BVC5_ResetSchedEvent(
-      BVC5_Handle          hVC5,
-      uint32_t             uiClientId,
-      uint64_t             uiSchedEventId
+      BVC5_Handle hVC5,
+      uint32_t    uiClientId,
+      uint64_t    uiSchedEventId
       );
 
 BERR_Code BVC5_QuerySchedEvent(
-      BVC5_Handle          hVC5,
-      uint32_t             uiClientId,
-      uint64_t             uiSchedEventId,
-      bool                 *bEventSet
+      BVC5_Handle  hVC5,
+      uint32_t     uiClientId,
+      uint64_t     uiSchedEventId,
+      bool        *bEventSet
+      );
+
+BERR_Code BVC5_NewComputeSubjobs(
+      BVC5_Handle  hVC5,
+      uint32_t     uiClientId,
+      uint32_t     uiMaxSubjobs,
+      uint32_t    *puiSubjobsId
+      );
+
+BERR_Code BVC5_UpdateComputeSubjobs(
+      BVC5_Handle                  hVC5,
+      uint32_t                     uiClientId,
+      uint32_t                     uiSubjobsId,
+      uint32_t                     uiNumSubjobs,
+      const BVC5_JobComputeSubjob *pSubjobs
       );
 
 #ifdef __cplusplus

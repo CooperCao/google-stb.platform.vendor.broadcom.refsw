@@ -16,21 +16,11 @@
 typedef struct native_egl_image
 {
    EGL_IMAGE_T base;          /* must be the 1st element to allow type casting */
-   void *buffer;              /* some platforms may require acquire/release */
 } NATIVE_EGL_IMAGE_T;
 
 static khrn_image *get_native_egl_image(EGL_IMAGE_T *p)
 {
    NATIVE_EGL_IMAGE_T *egl_image = (NATIVE_EGL_IMAGE_T *)p;
-
-   unsigned num_mip_levels;
-   khrn_image *image = image_from_surface_abstract_with_existing(egl_image->buffer, false,
-         &num_mip_levels, egl_image->base.image);
-   if (!image)
-      return NULL;
-
-   KHRN_MEM_ASSIGN(egl_image->base.image, NULL);
-   egl_image->base.image = image;
 
    return egl_image->base.image;
 }
@@ -54,31 +44,26 @@ EGL_IMAGE_T *egl_image_native_buffer_abstract_new(EGL_CONTEXT_T *context,
       EGLenum egl_target, EGLClientBuffer egl_buffer, const void *attrib_list,
       EGL_AttribType attrib_type)
 {
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    NATIVE_EGL_IMAGE_T *egl_image = NULL;
-   EGLenum error = EGL_BAD_ALLOC;
+   EGLint error = EGL_BAD_ALLOC;
    unused(context);
 
    unused(attrib_list);
    unused(attrib_type);
-
-   void *buffer;
-   if (!platform->GetNativeSurface || platform->GetNativeSurface(
-         platform->context, egl_target, egl_buffer, &buffer) != BEGL_Success)
-   {
-      error = EGL_BAD_PARAMETER;
-      goto end;
-   }
 
    egl_image = calloc(1, sizeof(*egl_image));
    if (!egl_image)
       goto end;
 
    unsigned num_mip_levels;
-   khrn_image *image = image_from_surface_abstract(buffer, false, &num_mip_levels);
+   khrn_image *image = image_from_surface_abstract(egl_target, egl_buffer,
+         false, "EGL image", &num_mip_levels, &error);
    if (!image)
+   {
+      free(egl_image);
+      egl_image = NULL;
       goto end;
-   egl_image->buffer = buffer;
+   }
 
    egl_image_init(&egl_image->base, image, num_mip_levels, destroy_native_egl_image, get_native_egl_image);
    KHRN_MEM_ASSIGN(image, NULL);

@@ -1,0 +1,6 @@
+stream=/mnt/hd/Test_Vectors/Dolby_Vision/Graphics_Blending_Tests/dvav.ser/FHD/23976/Ves_GraphicBlending_23976_1920x1080_5000kbps_avc_dvav_ser___st.mp4
+image=/mnt/hd/Test_Vectors/Dolby_Vision/Graphics_Blending_Tests/rgba/interleaved/03_colorSquare_FHD_Rec709_Gamma2.2.intl.bmp
+priority=graphics
+forceRestart=on
+stcTrick=off
+commit

@@ -273,6 +273,8 @@ end:
    if (error != EGL_SUCCESS)
    {
       glxx_server_state_destroy(server);
+      if (ret)
+         egl_context_base_term(&ret->base);
       free(ret);
       ret = NULL;
    }
@@ -434,7 +436,7 @@ static int client_version(const EGL_CONTEXT_T *context)
    return 0;
 }
 
-static void invalidate(EGL_CONTEXT_T *context)
+static void term(EGL_CONTEXT_T *context)
 {
    assert(context->type == EGL_CONTEXT_TYPE_GL);
    EGL_GL_CONTEXT_T *ctx = (EGL_GL_CONTEXT_T *) context;
@@ -447,6 +449,7 @@ static void invalidate(EGL_CONTEXT_T *context)
       egl_context_gl_lock();
       glxx_server_state_destroy(&ctx->server);
       egl_context_gl_unlock();
+      egl_context_base_term(&ctx->base);
    }
 }
 
@@ -458,5 +461,5 @@ static EGL_CONTEXT_METHODS_T fns =
    attach,
    detach,
    client_version,
-   invalidate
+   term
 };

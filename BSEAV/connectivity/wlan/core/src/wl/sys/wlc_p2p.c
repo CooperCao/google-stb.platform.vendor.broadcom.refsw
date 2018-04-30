@@ -1916,6 +1916,9 @@ wlc_p2p_doiovar(void *context, uint32 actionid,
 			flags = bsscfg->flags;
 		}
 
+		if (P2P_GO(wlc, bsscfg) && !go)
+			wlc_bsscfg_bcmcscbfree(wlc, bsscfg);
+
 		/* reinit the bsscfg to the specified role */
 		if (wlc_bsscfg_reset(wlc, bsscfg, &type, flags, ea) != BCME_OK) {
 			WL_ERROR(("wl%d: cannot init bsscfg (GO=%d)\n", wlc->pub->unit, go));

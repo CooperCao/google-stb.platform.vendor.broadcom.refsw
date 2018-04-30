@@ -10,11 +10,8 @@
 #include "FunctionContext.h"
 #include "SymbolHandle.h"
 #include "DescriptorMap.h"
-
-#include "glsl_basic_block.h"
-
+#include "InputOutput.h"
 #include "DescriptorInfo.h"
-
 #include "Map.h"
 
 #include <vector>
@@ -25,34 +22,6 @@ namespace bvk {
 class Module;
 class Node;
 class Specialization;
-
-class ExecutionModes
-{
-public:
-   ExecutionModes() :
-      m_workgroupSize({1, 1, 1})
-   {
-   }
-
-   void Record(const NodeExecutionMode *node);
-
-   void SetWorkgroupSize(uint32_t x, uint32_t y, uint32_t z)
-   {
-      m_workgroupSize[0] = x;
-      m_workgroupSize[1] = y;
-      m_workgroupSize[2] = z;
-   }
-
-   const std::array<uint32_t, 3> &GetWorkgroupSize() const { return m_workgroupSize; }
-
-   bool IsDepthReplacing()      const { return m_depthReplacing;     }
-   bool HasEarlyFragTests()     const { return m_earlyFragmentTests; }
-
-private:
-   std::array<uint32_t, 3> m_workgroupSize;
-   bool                    m_depthReplacing = false;
-   bool                    m_earlyFragmentTests = false;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // DflowBuilder
@@ -84,7 +53,7 @@ public:
    ~DflowBuilder();
 
    // Main entry point
-   void Build(const char *name, ShaderFlavour flavour);
+   void Build(const char *name, ShaderFlavour flavour, uint32_t sharedMemPerCore);
 
    DescriptorMaps &GetDescriptorMaps() { return m_descriptorMaps; }
    const Module   &GetModule() const   { return m_module;         }
@@ -99,7 +68,6 @@ public:
    void Visit(const NodeTypeSampler *) override;
    void Visit(const NodeTypeSampledImage *) override;
    void Visit(const NodeTypeArray *) override;
-   void Visit(const NodeTypeRuntimeArray *) override;
    void Visit(const NodeTypeStruct *) override;
    void Visit(const NodeTypePointer *) override;
    void Visit(const NodeTypeFunction *) override;
@@ -411,6 +379,8 @@ public:
    void Visit(const NodeControlBarrier *node);
    void Visit(const NodeMemoryBarrier *node);
 
+   void Visit(const NodeGroupNonUniformElect *node);
+
    // Compiler interface
    BasicBlockHandle GetEntryBlock()     const { return m_entryBlock;     }
    SymbolListHandle GetOutputSymbols()  const { return m_outputSymbols;  }
@@ -453,6 +423,11 @@ public:
       m_dataflowBlock[ix] = m_functionStack->GetCurrentBlock();
    }
 
+   void AddDataflow(const Node *at, const Dflow &df)
+   {
+      AddDataflow(at, DflowScalars(m_arenaAllocator, df));
+   }
+
    SymbolTypeHandle GetSymbolType(const NodeType *node) const
    {
       return m_symbolTypes[node->GetTypeId()];
@@ -466,21 +441,9 @@ public:
       return GetSymbolType(node).GetNumScalars();
    }
 
-   SymbolHandle GetVariableSymbol(const NodeVariable *var)
-   {
-      if (var->GetStorageClass() == spv::StorageClass::Function)
-         return m_functionStack->GetSymbol(var);
+   SymbolHandle GetVariableSymbol(const NodeVariable *var) { return m_symbols[var]; }
 
-      return m_functionStack.GlobalContext()->GetSymbol(var);
-   }
-
-   void SetVariableSymbol(const NodeVariable *var, SymbolHandle symbol)
-   {
-      if (var->GetStorageClass() == spv::StorageClass::Function)
-         m_functionStack->SetSymbol(var, symbol);
-      else
-         m_functionStack.GlobalContext()->SetSymbol(var, symbol);
-   }
+   void SetVariableSymbol(const NodeVariable *var, SymbolHandle symbol) { m_symbols[var] = symbol; }
 
    // Load/store helpers
    void         StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol, const DflowScalars &data);
@@ -497,8 +460,9 @@ public:
 
    static const NodeTypeImage *GetImageType(const Node *sampledImage);
 
-   const ExecutionModes &GetExecutionModes() const { return m_executionModes; }
-   void InitCompute();
+   const IFaceData &GetExecutionModes() const { return m_executionModes; }
+   void ExecutionModesRecord(const NodeExecutionMode *node);
+   void InitCompute(uint32_t sharedMemPerCore);
 
    bool RobustBufferAccess() const { return m_robustBufferAccess; }
    uint32_t RequireConstantInt(const Node *node);
@@ -510,15 +474,19 @@ public:
 
    const BasicBlockPool &GetBasicBlockPool() const { return m_basicBlockPool; }
 
+   DflowScalars LoadFromInputLocation(uint32_t location, BasicBlockHandle block);
+   void         StoreToOutputLocation(const DflowScalars &scalars, uint32_t location, uint32_t component, BasicBlockHandle block);
+   DflowScalars ImageSampler(const SymbolTypeHandle type, bool relaxed, uint32_t descriptorSet, uint32_t binding, int *ids);
+
 private:
    DataflowType ResultDataflowType(const Node *node) const;
 
-   void RenameBuiltinSymbol(const Node *var, SymbolHandle symbol, bool *seenPointSize);
+   void RenameBuiltinSymbol(const Node *var, SymbolHandle symbol);
    void SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavour flavour);
 
    // Helper functions
    DflowScalars CreateBuiltinInputDataflow(spv::BuiltIn builtin);
-   DflowScalars CreateVariableDataflow(const NodeVariable *var, SymbolTypeHandle type);
+   DflowScalars CreateVariableDataflow(const NodeVariable *var, SymbolHandle symbol);
 
    void  RecordInputSymbol(SymbolHandle symbol);
    void  RecordOutputSymbol(SymbolHandle symbol);
@@ -534,7 +502,7 @@ private:
    void AddBoolConstant(const Node *node, bool value);
    void AddValueConstant(const Node *node, uint32_t value);
    void AddBoolSpecConstant(const Node *node, bool value);
-   void AddComposite(const Node *node,const spv::vector<NodeIndex> &constituents);
+   void AddComposite(const Node *node,const spv::vector<NodeConstPtr> &constituents);
 
    void AddSymbolType(const NodeType *node, SymbolTypeHandle type)
    {
@@ -548,9 +516,15 @@ private:
    template <class N> void BuildAtomic(const N *node, DataflowFlavour df);
 
    // Allocate ids to the symbol and record in the symbol id map
-   void AssignIds(SymbolHandle symbol, uint32_t *current);
+   void AssignIds(SymbolHandle symbol, int *current);
 
    void PatchConditionals() const;
+
+   void AddInputSymbols();
+   void AddOutputSymbols();
+   void AssignOutputs();
+
+   bool IsGLPervertexStruct(const NodeVariable *var) const;
 
 private:
    const Module                             &m_module;
@@ -569,6 +543,12 @@ private:
    spv::vector<BasicBlockHandle> m_dataflowBlock;  // Records which block a particular dataflow belongs to
    spv::vector<SymbolTypeHandle> m_symbolTypes;    // Types indexed by the type's internal id.
 
+   spv::map<const NodeVariable *, SymbolHandle> m_symbols;
+
+   IOMap                            m_inputMap;
+   IOMap                            m_outputMap;
+   spv::list<const NodeVariable *>  m_outputVariables;   // Variables decorated for output, to be copied to the variables in m_outputMap
+
    DescriptorMaps                m_descriptorMaps; // Tables of unique (set, binding, element) tuples for UBOs, SSBOs etc.
 
    SymbolListHandle              m_inputSymbols;
@@ -579,13 +559,13 @@ private:
    spv::set<SymbolHandle, SymbolHandleCompare>
                                  m_usedSymbols;    // Contains all symbols that are statically used
 
-   // Current linkable rows for each storage class
-   uint32_t                      m_curInputRow   = 0;
-   uint32_t                      m_curOutputRow  = 0;
+   // Current linkable id for input and output
+   int                           m_curInputId  = 0;
+   int                           m_curOutputId = 0;
 
    BasicBlockHandle              m_entryBlock;
    BasicBlockHandle              m_exitBlock;
-   ExecutionModes                m_executionModes;
+   IFaceData                     m_executionModes;
 
    // Some data used to patch up conditions in loops
    spv::vector<std::pair<BasicBlockHandle, BasicBlockHandle>>  m_conditionals;
@@ -603,10 +583,12 @@ private:
    std::bitset<V3D_MAX_ATTR_ARRAYS>  m_attributeRBSwaps;  // All zero by default
 
    // Compute data TODO -- bundle in a class?
-   SymbolHandle                  m_glWorkGroupID;
-   SymbolHandle                  m_glLocalInvocationID;
-   SymbolHandle                  m_glGlobalInvocationID;
-   SymbolHandle                  m_glLocalInvocationIndex;
+   SymbolHandle                  m_workGroupID;
+   SymbolHandle                  m_localInvocationID;
+   SymbolHandle                  m_globalInvocationID;
+   SymbolHandle                  m_localInvocationIndex;
+   SymbolHandle                  m_subgroupID;
+   SymbolHandle                  m_numSubgroups;
    SymbolHandle                  m_workgroup;
 };
 

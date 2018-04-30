@@ -522,7 +522,9 @@ int main(int argc, const char *argv[])
     /* bring up display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = opts.common.displayType;
-    displaySettings.format = opts.common.displayFormat;
+    if (opts.common.displayFormat) {
+        displaySettings.format = opts.common.displayFormat;
+    }
     display = NEXUS_Display_Open(0, &displaySettings);
 #endif
 

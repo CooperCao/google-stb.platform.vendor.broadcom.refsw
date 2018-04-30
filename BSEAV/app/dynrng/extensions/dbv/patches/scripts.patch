@@ -1,0 +1,55 @@
+--- gen_dovi_conv_mp4.bat.orig	2018-02-28 11:32:57.000000000 -0800
++++ gen_dovi_conv_mp4.bat	2018-04-13 17:14:44.105527178 -0700
+@@ -42,7 +42,9 @@
+ rem xcopy /q /e /i /y %CONV_DIR%\audio\50fps.ec3 %CONV_DIR%\dvhe.stn\UHD\50\
+ rem xcopy /q /e /i /y %CONV_DIR%\audio\5994fps.ec3 %CONV_DIR%\dvhe.stn\UHD\5994\
+ 
+-call %MP4MuxBin% --input-dir %CONV_DIR%\dvhe.stn\ --num-track 1 --dv-profile dvhe.stn %MUX_FLAGS% --ves-conc-times 7
++call %MP4MuxBin% --input-dir %CONV_DIR%\dvhe.stn\UHD\5994\ --num-track 1 --dv-profile dvhe.stn %MUX_FLAGS% --ves-conc-times 7
++call %MP4MuxBin% --input-dir %CONV_DIR%\dvhe.stn\UHD\50\ --num-track 1 --dv-profile dvhe.stn %MUX_FLAGS% --ves-conc-times 7
++call %MP4MuxBin% --input-dir %CONV_DIR%\dvhe.stn\UHD\23976\ --num-track 1 --dv-profile dvhe.stn %MUX_FLAGS%
+ 
+ 
+ :: Profile 8.1
+--- gen_dovi_md_mp4.bat.orig	2018-02-28 11:32:57.000000000 -0800
++++ gen_dovi_md_mp4.bat	2018-04-13 17:05:24.972426279 -0700
+@@ -19,27 +19,27 @@
+ 
+ 
+ :: Profile 4
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvhe_dtr\ --num-track %PROFILE_FOUR_MP4_NUM_TRACK% --dv-profile dvhe.dtr --ves-conc-times 7 %MUX_FLAGS%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvhe_dtr\ --num-track %PROFILE_FOUR_MP4_NUM_TRACK% --dv-profile dvhe.dtr --ves-conc-times 7 %MUX_FLAGS%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvhe_dtr\ --num-track %PROFILE_FOUR_MP4_NUM_TRACK% --dv-profile dvhe.dtr --ves-conc-times 7 %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvhe_dtr\ --num-track %PROFILE_FOUR_MP4_NUM_TRACK% --dv-profile dvhe.dtr %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvhe_dtr\ --num-track %PROFILE_FOUR_MP4_NUM_TRACK% --dv-profile dvhe.dtr %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvhe_dtr\ --num-track %PROFILE_FOUR_MP4_NUM_TRACK% --dv-profile dvhe.dtr --ves-conc-times 3 %MUX_FLAGS%
+ 
+ 
+ :: Profile 5
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvhe_stn\ --num-track 1 --dv-profile dvhe.stn --ves-conc-times 7 %MUX_FLAGS%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvhe_stn\ --num-track 1 --dv-profile dvhe.stn --ves-conc-times 7 %MUX_FLAGS%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvhe_stn\ --num-track 1 --dv-profile dvhe.stn --ves-conc-times 7 %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvhe_stn\ --num-track 1 --dv-profile dvhe.stn %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvhe_stn\ --num-track 1 --dv-profile dvhe.stn %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvhe_stn\ --num-track 1 --dv-profile dvhe.stn --ves-conc-times 3 %MUX_FLAGS%
+ 
+ 
+ :: Profile 8.1
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvhe_sth\ --num-track 1 --dv-profile dvhe.sth --ves-conc-times 7 %MUX_FLAGS%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvhe_sth\ --num-track 1 --dv-profile dvhe.sth --ves-conc-times 7 %MUX_FLAGS%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvhe_sth\ --num-track 1 --dv-profile dvhe.sth --ves-conc-times 7 %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvhe_sth\ --num-track 1 --dv-profile dvhe.sth %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvhe_sth\ --num-track 1 --dv-profile dvhe.sth %MUX_FLAGS%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvhe_sth\ --num-track 1 --dv-profile dvhe.sth --ves-conc-times 3 %MUX_FLAGS%
+ 
+ 
+ :: Profile 9
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvav_ser\ --num-track 1 --dv-profile dvav.ser --ves-conc-times 7 %MUX_FLAGS_AVC3%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvav_ser\ --num-track 1 --dv-profile dvav.ser --ves-conc-times 7 %MUX_FLAGS_AVC3%
+-call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvav_ser\ --num-track 1 --dv-profile dvav.ser --ves-conc-times 7 %MUX_FLAGS_AVC3%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L0DM\dvav_ser\ --num-track 1 --dv-profile dvav.ser %MUX_FLAGS_AVC3%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L1DM\dvav_ser\ --num-track 1 --dv-profile dvav.ser %MUX_FLAGS_AVC3%
++call %MP4MuxBin% --input-dir %DM_MD_DIR%\L2DM\dvav_ser\ --num-track 1 --dv-profile dvav.ser --ves-conc-times 3 %MUX_FLAGS_AVC3%
+ 
+ 
+ :: SECTION Metadata alignment tests

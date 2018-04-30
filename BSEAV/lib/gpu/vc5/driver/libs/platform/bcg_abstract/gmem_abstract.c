@@ -20,6 +20,7 @@ static struct
    BEGL_MemoryInterface mem_iface;
    void*                talloc;
    v3d_size_t           non_coherent_atom_size;
+   bool                 needs_flush_on_alloc;
 } s_context;
 
 
@@ -143,7 +144,10 @@ bool gmem_init(void)
 
    /* Get the real value if possible */
    if (mem_interface_has_get_info())
+   {
       cpuCacheLine = (uint32_t)mem_interface_get_info(BEGL_MemCacheLineSize);
+      s_context.needs_flush_on_alloc = !mem_interface_get_info(BEGL_MemAllocsAreFlushed);
+   }
 
    s_context.non_coherent_atom_size = gfx_umax(V3D_MAX_CACHE_LINE_SIZE, cpuCacheLine);
 
@@ -227,7 +231,7 @@ gmem_alloc_item* gmem_alloc_internal(size_t size, v3d_size_t align, gmem_usage_f
 
    gmem_alloc_item* item = (gmem_alloc_item *)calloc(1, sizeof(gmem_alloc_item));
    if (item == NULL)
-      goto error;
+      return GMEM_HANDLE_INVALID;
 
 #ifndef NDEBUG
    item->magic = GMEM_HANDLE_MAGIC;
@@ -267,6 +271,24 @@ gmem_alloc_item* gmem_alloc_internal(size_t size, v3d_size_t align, gmem_usage_f
       if (!item->v3d_addr)
          goto error;
 
+      /* On some ARM cache architectures there may still be dirty cachelines
+       * associated with the new allocation from previous uses of the memory.
+       *
+       * If we are expecting to write to the memory with V3D before being
+       * accessed by the CPU (if at all) then we have to make sure these are
+       * flushed out now.
+       */
+      if (s_context.needs_flush_on_alloc &&
+          (usage_flags & GMEM_USAGE_V3D_WRITE) &&
+          !(usage_flags & GMEM_USAGE_SECURE))
+      {
+         void *ptr = mem_interface_map(item->memory_handle, 0, size, usage_flags);
+         if (!ptr)
+            goto error;
+
+         mem_interface_flush_cache(item->memory_handle, ptr, size);
+         mem_interface_unmap(item->memory_handle, ptr, size);
+      }
       log_trace("%s addr=0x%08x", __FUNCTION__, item->v3d_addr);
    }
 
@@ -284,6 +306,9 @@ gmem_alloc_item* gmem_alloc_internal(size_t size, v3d_size_t align, gmem_usage_f
    return (gmem_handle_t)item;
 
 error:
+   if (item->v3d_addr)
+      mem_interface_unlock(item->memory_handle);
+
    if (item->memory_handle != NULL)
       mem_interface_free(item->memory_handle);
 
@@ -412,19 +437,6 @@ error:
    vcos_mutex_unlock(&s_context.api_mutex);
 
    return GMEM_HANDLE_INVALID;
-}
-
-void *gmem_get_external_context(gmem_handle_t handle)
-{
-   if (handle == GMEM_HANDLE_INVALID)
-      return NULL;
-
-   gmem_alloc_item *item = gmem_validate_handle(handle);
-
-   if (item->type == GMEM_ALLOC_EXTERNAL)
-      return item->external_context;
-
-   return NULL;
 }
 
 BEGL_MemHandle gmem_get_platform_handle(gmem_handle_t handle)
@@ -729,13 +741,4 @@ bool gmem_convert_surface(BEGL_SurfaceConversionInfo *info, bool validateOnly)
 
    return s_context.mem_iface.ConvertSurface(s_context.mem_iface.context,
                                              info, validateOnly) == BEGL_Success;
-}
-
-uint64_t gmem_get_external_addr(gmem_handle_t handle)
-{
-   if (handle == GMEM_HANDLE_INVALID)
-      return 0;
-
-   gmem_alloc_item *item = gmem_validate_handle(handle);
-   return item->external_addr;
 }

@@ -20,7 +20,6 @@ bool khrn_image_is_ok_for_render_target(KHRN_IMAGE_FORMAT_T format, bool ignore_
    assert(khrn_image_is_color(format));
 
    format = khrn_image_no_layout_format(format);
-   format = khrn_image_no_colorspace_format(format);
 
    switch (format) {
    case ABGR_8888:

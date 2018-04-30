@@ -58,6 +58,8 @@ my $num_aud_dacs = 0;
 my $num_aud_plls = 0;
 my $num_vcxo_plls = 0;
 
+my $perf;
+
 my %parent_map;
 
 my %xpt_wakeup = (
@@ -217,6 +219,7 @@ sub verify_tree {
 			} else {
 				print "$src does not exist in tree. Removing it from $_"."'s source\n";
                 splice(@{$clk_tree->{$_}{_srcs}}, $cnt, 1);
+                delete $parent_map{$src};
 			}
             $cnt++;
 		}
@@ -408,8 +411,10 @@ sub rename_function {
     $func =~ s/\bBVN(.*?)_PDA(R|W)\b/BVN_PDA$2/g;
     $func =~ s/\bXPTWAKEUP\b/XPT_WAKEUP/g;
     $func =~ s/\bAIFSAT\b/AIFSAT0/g;
-    $func =~ s/\bSEC\b//g;
     $func =~ s/OBSERVE//g;
+    if(not defined $perf) {
+        $func =~ s/\bSEC\b//g;
+    }
 
     @func_arr = split(/\s+/, $func);
     foreach (@func_arr) {
@@ -713,6 +718,48 @@ sub print_power_tree {
             print $fh "\n\n";
         }
 	}
+
+	close($fh);
+    return 0;
+}
+
+sub print_power_p_clk_tree {
+	my ($fh, $clk_tree, $src, $level) = @_;
+
+    if($level > 0) {print $fh "|       ";}
+    foreach (2..$level) {print $fh "        ";}
+    if($level > 0) {print $fh "|_______";}
+    print $fh "$clk_tree->{$src}{_reg}:$clk_tree->{$src}{_field}";
+    if($clk_tree->{$src}{_polarity}) {print $fh    ":$clk_tree->{$src}{_polarity}";}
+    if($clk_tree->{$src}{_div}) {print $fh    ":$clk_tree->{$src}{_div}";}
+    print $fh "\n";
+
+    if (!exists $parent_map{$src}) {
+        return;
+    }
+
+	foreach (@{$parent_map{$src}}) {
+        print_power_p_clk_tree($fh, $clk_tree, $_, $level+1);
+    }
+}
+
+sub print_power_clk_tree {
+    my ($clk_tree, $chip) = @_;
+    my @values = map {@$_} values(%parent_map);
+    my @top_plls;
+    my $file = "bpower_".$chip."_clk_tree.txt";
+
+	open(my $fh, ">$file") or die "Can't open output file";
+    foreach my $key (keys %parent_map) {
+        if (!grep(/$key/, @values)) {
+            push(@top_plls, $key);
+        }
+    }
+
+    foreach (sort @top_plls) {
+        print_power_p_clk_tree($fh, $clk_tree, $_, 0);
+        print $fh "\n\n";
+    }
 
 	close($fh);
     return 0;
@@ -2236,7 +2283,7 @@ sub get_rdb_path {
 
 sub main {
 	my (%clk_tree, %functions, %nodes, %hw_desc, %featuredef, %reg_desc);
-    my ($chp, $ver, $dir, $perf, $dbg);
+    my ($chp, $ver, $dir, $dbg);
 
     foreach (@ARGV) {
         if(/^\d\d\d\d\d?$/) {
@@ -2340,6 +2387,7 @@ sub main {
         }
     } else {
         print_power_tree(\%clk_tree, \%functions, $chp);
+        print_power_clk_tree(\%clk_tree, $chp);
     }
 }
 

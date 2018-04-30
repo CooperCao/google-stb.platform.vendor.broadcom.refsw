@@ -262,7 +262,9 @@ int main(int argc, const char *argv[])
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = opts.common.displayType;
-    displaySettings.format = opts.common.displayFormat;
+    if (opts.common.displayFormat) {
+        displaySettings.format = opts.common.displayFormat;
+    }
     display = NEXUS_Display_Open(0, &displaySettings);
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     if (opts.common.useCompositeOutput) {
@@ -283,6 +285,7 @@ int main(int argc, const char *argv[])
         rc = NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
         BDBG_ASSERT(!rc);
 
+        hotplug_context.set_initial_preferred_format = !opts.common.displayFormat;
         hotplug_context.hdmi = platformConfig.outputs.hdmi[0];
         hotplug_context.display = display;
         hotplug_context.ignore_edid = opts.common.ignore_edid;

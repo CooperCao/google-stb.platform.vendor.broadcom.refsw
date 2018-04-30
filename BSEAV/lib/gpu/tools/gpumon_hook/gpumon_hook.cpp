@@ -22,6 +22,8 @@
 #include <string>
 #include <array>
 #include <chrono>
+#include <sstream>
+#include <vector>
 
 #include "packet.h"
 #include "remote.h"
@@ -37,21 +39,20 @@
 // The version of the SpyHook API (SpyHook<->SpyTool)
 // Update this when the interface between the SpyHook & SpyTool changes
 #define SPYHOOK_MAJOR_VER 2
-#define SPYHOOK_MINOR_VER 5
+#define SPYHOOK_MINOR_VER 6
 
 // The version of the binary capture format
 // Update this when the capture data changes
 #define CAPTURE_MAJOR_VER 1
-#define CAPTURE_MINOR_VER 5
+#define CAPTURE_MINOR_VER 6
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
 const unsigned int GLESVER = 31;
-#else
+#elif V3D_VER_AT_LEAST(3,0,0,0)
 const unsigned int GLESVER = 3;
+#else
+const unsigned int GLESVER = 2;
 #endif
-
-// Set the XML buffer size to a reasonable amount
-#define XML_BUFSIZE     ( 5 * 1024 )
 
 #define FOURCC(a,b,c,d)		(((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
 
@@ -104,13 +105,6 @@ static PFNEGLGETEVENTINFOBRCMPROC              sGetEventInfoBRCM;
 static PFNEGLGETEVENTDATAFIELDINFOBRCMPROC     sGetEventDataFieldInfoBRCM;
 static PFNEGLSETEVENTCOLLECTIONBRCMPROC        sSetEventCollectionBRCM;
 static PFNEGLGETEVENTDATABRCMPROC              sGetEventDataBRCM;
-
-// VC4-style event monitor
-static PFNEGLINITDRIVERMONITORBRCMPROC    sEglInitDriverMonitorBRCM   = 0;
-static PFNEGLGETDRIVERMONITORXMLBRCMPROC  sEglGetDriverMonitorXMLBRCM = 0;
-static PFNEGLTERMDRIVERMONITORBRCMPROC    sEglTermDriverMonitorBRCM   = 0;
-// Set the XML buffer size to a reasonable amount
-#define XML_BUFSIZE     ( 5 * 1024 )
 
 extern "C"
 {
@@ -184,7 +178,7 @@ public:
    {
       bool threadChanged = false;
 
-      m_needsUnlock = plGlobalLock(funcName, &threadChanged);
+      plGlobalLock(funcName, &threadChanged);
       gpumon_initialize();
 
       gLastFuncName = funcName;
@@ -222,12 +216,8 @@ public:
 
    ~APIInitAndLock()
    {
-      if (m_needsUnlock)
-         plGlobalUnlock();
+      plGlobalUnlock();
    }
-
-private:
-   bool m_needsUnlock;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -306,11 +296,6 @@ static void InitExtensions()
    sGetEventDataFieldInfoBRCM = (PFNEGLGETEVENTDATAFIELDINFOBRCMPROC)Real(eglGetProcAddress)("eglGetEventDataFieldInfoBRCM");
    sSetEventCollectionBRCM = (PFNEGLSETEVENTCOLLECTIONBRCMPROC)Real(eglGetProcAddress)("eglSetEventCollectionBRCM");
    sGetEventDataBRCM = (PFNEGLGETEVENTDATABRCMPROC)Real(eglGetProcAddress)("eglGetEventDataBRCM");
-
-   // VC4-style driver monitor
-   sEglInitDriverMonitorBRCM =   (PFNEGLINITDRIVERMONITORBRCMPROC  )Real(eglGetProcAddress)("eglInitDriverMonitorBRCM");
-   sEglGetDriverMonitorXMLBRCM = (PFNEGLGETDRIVERMONITORXMLBRCMPROC)Real(eglGetProcAddress)("eglGetDriverMonitorXMLBRCM");
-   sEglTermDriverMonitorBRCM =   (PFNEGLTERMDRIVERMONITORBRCMPROC  )Real(eglGetProcAddress)("eglTermDriverMonitorBRCM");
 
    if (!sGetPerfCounterConstantBRCM || !sGetPerfCounterGroupInfoBRCM || !sGetPerfCounterInfoBRCM ||
        !sSetPerfCountingBRCM || !sChoosePerfCountersBRCM || !sGetPerfCounterDataBRCM ||
@@ -433,10 +418,12 @@ static uint32_t TextureSize(uint32_t w, uint32_t h, uint32_t format, uint32_t ty
    return bytesPerRow * h;
 }
 
+#if GL_ES_VERSION_3_0
 static uint32_t TextureSize3D(uint32_t w, uint32_t h, uint32_t depth, uint32_t format, uint32_t type, uint32_t unpackAlignment)
 {
    return TextureSize(w, h, format, type, unpackAlignment) * depth;
 }
+#endif
 
 static uint32_t UnpackAlignment()
 {
@@ -734,7 +721,7 @@ static void GetGLBuffer(const Packet &packet)
       }
       else
 #endif
-         assert(readBuffer == GL_BACK);
+         assert(readBuffer == GL_BACK || readBuffer == GL_COLOR_ATTACHMENT0);
    }
 
    if (fb == 0)   // Main framebuffer
@@ -804,18 +791,15 @@ static void GetGLBufferObjectData(const Packet &packet)
    uint32_t context  = packet.Item(2).GetUInt32();
    uint32_t bufferId = packet.Item(3).GetUInt32();
    uint32_t target   = packet.Item(4).GetUInt32();
+#if GL_ES_VERSION_3_0
    uint32_t size     = packet.Item(5).GetUInt32();
+#endif
 
    Packet dataPacket(eBUFFER_OBJECT_DATA);
    dataPacket.AddItem(1);        // v1 response
    dataPacket.AddItem(context);
    dataPacket.AddItem(bufferId);
    dataPacket.AddItem(target);
-
-   GLint mapped;
-   GLint oldBoundBuffer;
-   void *ptr = nullptr;
-   GLenum errCode;
 
    SavedContextState scs = SaveAndChangeContext(context);
 
@@ -826,11 +810,13 @@ static void GetGLBufferObjectData(const Packet &packet)
       goto err;
 
 #if GL_ES_VERSION_3_0
+   GLint oldBoundBuffer;
    Real(glGetIntegerv)(TargetToBinding(target), &oldBoundBuffer);
    if (oldBoundBuffer != 0)
    {
+      GLint mapped;
       Real(glGetBufferParameteriv)(target, GL_BUFFER_MAPPED, &mapped);
-      errCode = Real(glGetError)();
+      GLenum errCode = Real(glGetError)();
       if (errCode != GL_NO_ERROR)
          goto err;
 
@@ -840,15 +826,19 @@ static void GetGLBufferObjectData(const Packet &packet)
 
    Real(glBindBuffer)(target, bufferId);
 
-   ptr = Real(glMapBufferRange(target, 0, size, GL_MAP_READ_BIT));
-   if (ptr != nullptr)
    {
-      dataPacket.AddItem(size);
-      dataPacket.AddItem(PacketItem(ptr, size));
+      void *ptr = Real(glMapBufferRange(target, 0, size, GL_MAP_READ_BIT));
+      if (ptr != nullptr)
+      {
+         dataPacket.AddItem(size);
+         dataPacket.AddItem(PacketItem(ptr, size));
+      }
+      else
+         dataPacket.AddItem(0);
    }
-   else
+#else
+   dataPacket.AddItem(0);
 #endif
-      dataPacket.AddItem(0);
 
    // Send before the data gets unmapped
    if (remote)
@@ -896,16 +886,6 @@ static void SendPerfDataPacket()
       p.AddItem(PacketItem((uint32_t)(nowUs & 0xFFFFFFFF)));
       p.AddItem(PacketItem(numBytes));
       p.AddItem(PacketItem(buf, numBytes));
-   }
-   else if (sEglGetDriverMonitorXMLBRCM)
-   {
-      EGLDisplay disp = Real(eglGetDisplay)(EGL_DEFAULT_DISPLAY);
-      char xml[XML_BUFSIZE];
-
-      sEglGetDriverMonitorXMLBRCM(disp, sizeof(xml), NULL, (char*)&xml);
-
-      p.AddItem(PacketItem(&xml, strlen(xml) + 1));
-      p.AddItem(PacketItem(GetTimeNowUs() / 1000));
    }
 
    if (remote)
@@ -957,10 +937,6 @@ static void GetPerfData(const Packet &packet)
 
          sSetPerfCountingBRCM(EGL_START_COUNTERS_BRCM);
       }
-      else if (sEglInitDriverMonitorBRCM) // VC4
-      {
-         sEglInitDriverMonitorBRCM(disp, packet.Item(2).GetUInt32(), packet.Item(3).GetUInt32());
-      }
       if (remote)
          dataPacket.Send(remote);
    }
@@ -972,37 +948,12 @@ static void GetPerfData(const Packet &packet)
          sSetPerfCountingBRCM(EGL_STOP_COUNTERS_BRCM);
          sSetPerfCountingBRCM(EGL_RELEASE_COUNTERS_BRCM);
       }
-      else if (sEglTermDriverMonitorBRCM) // VC4
-      {
-         sEglTermDriverMonitorBRCM(disp);
-      }
       if (remote)
          dataPacket.Send(remote);
    }
    else if (action == Control::ePerfGet)
    {
-      if (sGetPerfCounterDataBRCM) // VC5
-      {
-         debug_log(DEBUG_ERROR, "ERROR: gpumon_hook received legacy ePerfGet request");
-      }
-      else if (sEglInitDriverMonitorBRCM && sEglTermDriverMonitorBRCM && sEglGetDriverMonitorXMLBRCM) // VC4
-      {
-         Packet dataPacket(ePERF_DATA);
-
-         char xml[XML_BUFSIZE];
-
-         sEglGetDriverMonitorXMLBRCM(disp, sizeof(xml), NULL, (char*)&xml);
-
-         // Restart the counters
-         sEglTermDriverMonitorBRCM(disp);
-         sEglInitDriverMonitorBRCM(disp, packet.Item(2).GetUInt32(), packet.Item(3).GetUInt32());
-
-         dataPacket.AddItem(PacketItem(&xml, strlen(xml) + 1));
-         dataPacket.AddItem(PacketItem(GetTimeNowUs() / 1000));
-
-         if (remote)
-            dataPacket.Send(remote);
-      }
+      debug_log(DEBUG_ERROR, "ERROR: gpumon_hook received legacy ePerfGet request");
    }
    else if (action == Control::ePerfNames)
    {
@@ -1070,22 +1021,6 @@ static void GetPerfData(const Packet &packet)
 
          delete[] name1;
          delete[] name2;
-      }
-      else if (sEglInitDriverMonitorBRCM && sEglTermDriverMonitorBRCM && sEglGetDriverMonitorXMLBRCM) // VC4
-      {
-         char xml[XML_BUFSIZE];
-
-         sEglTermDriverMonitorBRCM(disp);
-         sEglInitDriverMonitorBRCM(disp, packet.Item(2).GetUInt32(), packet.Item(3).GetUInt32());
-         sEglGetDriverMonitorXMLBRCM(disp, sizeof(xml), NULL, (char*)&xml);
-         sEglTermDriverMonitorBRCM(disp);
-
-         p.AddItem(PacketItem(packet.Item(2).GetUInt32()));
-         p.AddItem(PacketItem(packet.Item(3).GetUInt32()));
-         p.AddItem(PacketItem(&xml, strlen(xml) + 1));
-
-         if (remote)
-            p.Send(remote);
       }
    }
 }
@@ -1816,14 +1751,6 @@ static void GetProgramPipelineData(const Packet &packet)
 }
 #endif
 
-static void AddInfoStr(std::vector<std::string> &strs, const char *s)
-{
-   if (s != NULL)
-      strs.push_back(std::string(s));
-   else
-      strs.push_back(std::string(""));
-}
-
 static void GetInfoData(const Packet &packet)
 {
    uint32_t context = packet.Item(1).GetUInt32();
@@ -1834,64 +1761,57 @@ static void GetInfoData(const Packet &packet)
 
    SavedContextState scs = SaveAndChangeContext(context);
 
-   std::vector<std::string> strs;
-
    // Add the GL version
    GLint major = 0, minor = 0;
 #if GL_ES_VERSION_3_0
    Real(glGetIntegerv)(GL_MAJOR_VERSION, &major);
    Real(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+#else
+   major = GetESMajorVersion();
+   minor = 0; //don't know
 #endif
 
    dataPacket.AddItem(PacketItem(major));
    dataPacket.AddItem(PacketItem(minor));
 
    // Add the gl strings
-   AddInfoStr(strs, (const char *)Real(glGetString)(GL_VENDOR));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
-
-   AddInfoStr(strs, (const char *)Real(glGetString)(GL_RENDERER));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
-
-   AddInfoStr(strs, (const char *)Real(glGetString)(GL_VERSION));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
-
-   AddInfoStr(strs, (const char *)Real(glGetString)(GL_SHADING_LANGUAGE_VERSION));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+   dataPacket.AddItem(PacketItem((const char *)Real(glGetString)(GL_VENDOR)));
+   dataPacket.AddItem(PacketItem((const char *)Real(glGetString)(GL_RENDERER)));
+   dataPacket.AddItem(PacketItem((const char *)Real(glGetString)(GL_VERSION)));
+   dataPacket.AddItem(PacketItem((const char *)Real(glGetString)(GL_SHADING_LANGUAGE_VERSION)));
 
    // Add the GL extensions
    GLint numExts = 0;
 #if GL_ES_VERSION_3_0
    Real(glGetIntegerv)(GL_NUM_EXTENSIONS, &numExts);
-#endif
    dataPacket.AddItem(PacketItem(numExts));
-#if GL_ES_VERSION_3_0
    for (GLint i = 0; i < numExts; i++)
-   {
-      AddInfoStr(strs, (const char *)Real(glGetStringi)(GL_EXTENSIONS, i));
-      dataPacket.AddItem(PacketItem(strs.back().c_str()));
-   }
+      dataPacket.AddItem(PacketItem((const char *)Real(glGetStringi)(GL_EXTENSIONS, i)));
+#else
+   const char *combined = (const char *)Real(glGetString)(GL_EXTENSIONS);
+   std::istringstream f(combined ? combined : "");
+   std::vector<std::string> exts;
+   std::string s;
+   while (getline(f, s, ' '))
+      exts.push_back(s);
+   numExts = exts.size();
+   dataPacket.AddItem(PacketItem(numExts));
+   for(auto i = exts.cbegin(); i != exts.cend(); ++i)
+      dataPacket.AddItem(PacketItem(i->c_str()));
 #endif
 
    // Add the EGL strings
    EGLDisplay disp = Real(eglGetDisplay(EGL_DEFAULT_DISPLAY));
 
-   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_VENDOR)));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
-
-   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_VERSION)));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
-
-   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_CLIENT_APIS)));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+   dataPacket.AddItem(PacketItem((const char *)Real(eglQueryString(disp, EGL_VENDOR))));
+   dataPacket.AddItem(PacketItem((const char *)Real(eglQueryString(disp, EGL_VERSION))));
+   dataPacket.AddItem(PacketItem((const char *)Real(eglQueryString(disp, EGL_CLIENT_APIS))));
 
    // And EGL display extensions
-   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_EXTENSIONS)));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+   dataPacket.AddItem(PacketItem((const char *)Real(eglQueryString(disp, EGL_EXTENSIONS))));
 
    // And EGL client extensions
-   AddInfoStr(strs, (const char *)Real(eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS)));
-   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+   dataPacket.AddItem(PacketItem((const char *)Real(eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS))));
 
    RestoreContext(scs);
 
@@ -1995,7 +1915,7 @@ static void GetVertexArrayObjData(const Packet &packet)
 
    if (isVao)
    {
-      GLint    maxAttribs;
+      GLint    maxAttribs = 0;
       GLint    curBinding = 0;
 
       // Save current binding and then change
@@ -2691,6 +2611,8 @@ static bool PostPacketize(Packet *p)
          case Control::eGetInfoData           : GetInfoData(retPacket); break;
          case Control::eGetFramebufferInfo    : GetFramebufferInfo(retPacket); break;
          case Control::eGetRenderbufferInfo   : GetRenderbufferInfo(retPacket); break;
+         default:
+            break;
          }
       }
    }
@@ -2841,11 +2763,14 @@ static bool WantCommand(eGLCommand cmd)
          if (sEventBuffer.Size() == bytes)\
          {\
             sFirstApiCapTime = GetTimeNowUs(); \
-            *((uint64_t*)p) = sFirstApiCapTime; p += 2; \
+            *p++ = (uint32_t)(sFirstApiCapTime & 0xFFFFFFFF); \
+            *p++ = (uint32_t)(sFirstApiCapTime >> 32); \
          }\
          else\
          {\
-            *((uint64_t*)p) = GetTimeNowUs(); p += 2; \
+            uint64_t timeNow = GetTimeNowUs(); \
+            *p++ = (uint32_t)(timeNow & 0xFFFFFFFF); \
+            *p++ = (uint32_t)(timeNow >> 32); \
          }\
          *p++ = sEventApiTrack; \
          *p++ = (id); \
@@ -5277,7 +5202,6 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glTexSubImage2D (GLenum target, GLint 
                       pixels, TextureSize(width, height, format, type, UnpackAlignment()), target, level, TinyTexSubImage2D)
 DLLEXPORT void DLLEXPORTENTRY specialized_glUniform1fv (GLint location, GLsizei count, const GLfloat* v)
    FuncExtra1(GL, glUniform1fv, (location, count, v), ((void*)v, count * sizeof(GLfloat)))
-DLLEXPORT void DLLEXPORTENTRY specialized_glUniform1i (GLint location, GLint x) Func(GL, glUniform1i, (location, x))
 DLLEXPORT void DLLEXPORTENTRY specialized_glUniform1iv (GLint location, GLsizei count, const GLint* v)
    FuncExtra1(GL, glUniform1iv, (location, count, v), ((void*)v, count * sizeof(GLint)))
 DLLEXPORT void DLLEXPORTENTRY specialized_glUniform2fv (GLint location, GLsizei count, const GLfloat* v)
@@ -5513,8 +5437,6 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
       bool ret = PostPacketize(&__p);
       if (ret)
       {
-         std::vector<std::string> names;
-
          TimePoint __start, __end;
          __start = Clock::now();
          Real(glLinkProgram)(program);
@@ -5553,9 +5475,6 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
 #endif
 
             GLsizei bufSize = maxBlockLen + 1;
-            GLchar *name = new GLchar[bufSize];
-            name[bufSize - 1] = '\0';
-
             uint32_t version = 1;
             p.AddItem(version);
             p.AddItem(activeBlocks);
@@ -5565,16 +5484,16 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
             // Query each uniform block
             for (GLint i = 0; i < activeBlocks; i++)
             {
-               GLsizei len;
+               std::shared_ptr<uint8_t> buf = p.AddBuffer(bufSize * sizeof(GLchar));
+               GLchar *name = reinterpret_cast<GLchar *>(buf.get());
+               name[bufSize - 1] = '\0';
 
+               GLsizei len;
                Real(glGetActiveUniformBlockName)(program, i, bufSize, &len, name);
 
-               names.push_back(name);
-               p.AddItem(names.back().c_str());
+               p.AddItem(name);
             }
 #endif
-
-            delete[] name;
          }
 
          p.AddItem(TimeDiffNano(__start, __end));
@@ -6072,6 +5991,15 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glUniformMatrix3x4fv (GLint location, 
    FuncExtra1(GL, glUniformMatrix3x4fv, (location, count, transpose, value), ((void*)value, count * 3 * 4 * sizeof(GLfloat)))
 DLLEXPORT void DLLEXPORTENTRY specialized_glUniformMatrix4x3fv (GLint location, GLsizei count, GLboolean transpose, const GLfloat* value)
    FuncExtra1(GL, glUniformMatrix4x3fv, (location, count, transpose, value), ((void*)value, count * 4 * 3 * sizeof(GLfloat)))
+
+DLLEXPORT void DLLEXPORTENTRY specialized_glUniform1uiv (GLint location, GLsizei count, const GLuint* value)
+   FuncExtra1(GL, glUniform1uiv, (location, count, value), ((void*)value, count * 1 * sizeof(GLuint)))
+DLLEXPORT void DLLEXPORTENTRY specialized_glUniform2uiv (GLint location, GLsizei count, const GLuint* value)
+   FuncExtra1(GL, glUniform2uiv, (location, count, value), ((void*)value, count * 2 * sizeof(GLuint)))
+DLLEXPORT void DLLEXPORTENTRY specialized_glUniform3uiv (GLint location, GLsizei count, const GLuint* value)
+   FuncExtra1(GL, glUniform3uiv, (location, count, value), ((void*)value, count * 3 * sizeof(GLuint)))
+DLLEXPORT void DLLEXPORTENTRY specialized_glUniform4uiv (GLint location, GLsizei count, const GLuint* value)
+   FuncExtra1(GL, glUniform4uiv, (location, count, value), ((void*)value, count * 4 * sizeof(GLuint)))
 #endif
 
 #if GL_OES_mapbuffer
@@ -6252,14 +6180,6 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glVertexAttribI4iv (GLuint index, cons
    FuncExtra1(GL, glVertexAttribI4iv, (index, v), ((void*)v, 4 * sizeof(GLint)))
 DLLEXPORT void DLLEXPORTENTRY specialized_glVertexAttribI4uiv (GLuint index, const GLuint* v)
    FuncExtra1(GL, glVertexAttribI4uiv, (index, v), ((void*)v, 4 * sizeof(GLuint)))
-DLLEXPORT void DLLEXPORTENTRY specialized_glUniform1uiv (GLint location, GLsizei count, const GLuint* value)
-   FuncExtra1(GL, glUniform1uiv, (location, count, value), ((void*)value, 1 * sizeof(GLuint)))
-DLLEXPORT void DLLEXPORTENTRY specialized_glUniform2uiv (GLint location, GLsizei count, const GLuint* value)
-   FuncExtra1(GL, glUniform2uiv, (location, count, value), ((void*)value, 2 * sizeof(GLuint)))
-DLLEXPORT void DLLEXPORTENTRY specialized_glUniform3uiv (GLint location, GLsizei count, const GLuint* value)
-   FuncExtra1(GL, glUniform3uiv, (location, count, value), ((void*)value, 3 * sizeof(GLuint)))
-DLLEXPORT void DLLEXPORTENTRY specialized_glUniform4uiv (GLint location, GLsizei count, const GLuint* value)
-   FuncExtra1(GL, glUniform4uiv, (location, count, value), ((void*)value, 4 * sizeof(GLuint)))
 DLLEXPORT void DLLEXPORTENTRY specialized_glClearBufferiv (GLenum buffer, GLint drawbuffer, const GLint* value)
    FuncExtra1(GL, glClearBufferiv, (buffer, drawbuffer, value), ((void*)value, ((buffer == GL_DEPTH || buffer == GL_STENCIL) ? sizeof(GLint) : 4 * sizeof(GLint))))
 DLLEXPORT void DLLEXPORTENTRY specialized_glClearBufferuiv (GLenum buffer, GLint drawbuffer, const GLuint* value)
@@ -6299,6 +6219,7 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glGetUniformIndices (GLuint program, G
 
 DLLEXPORT void DLLEXPORTENTRY specialized_glGetActiveUniformsiv (GLuint program, GLsizei uniformCount, const GLuint* uniformIndices, GLenum pname, GLint* params)
    FuncExtra1(GL, glGetActiveUniformsiv, (program, uniformCount, uniformIndices, pname, params), ((void*)uniformIndices, uniformCount * sizeof(GLuint)))
+
 DLLEXPORT void DLLEXPORTENTRY specialized_glDrawArraysInstanced (GLenum mode, GLint first, GLsizei count, GLsizei instanceCount)
 {
    APIInitAndLock locker(PL_FUNCTION);
@@ -6651,6 +6572,12 @@ DLLEXPORT GLuint DLLEXPORTENTRY specialized_glCreateShaderProgramv(GLenum type, 
       RetRealApiEvent(GLuint, glCreateShaderProgramv, (type, count, strings));
 }
 
+DLLEXPORT void DLLEXPORTENTRY specialized_glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index,
+                                                                 GLsizei propCount, const GLenum *props,
+                                                                 GLsizei bufSize, GLsizei *length, GLint *params)
+   FuncExtra1(GL, glGetProgramResourceiv, (program, programInterface, index, propCount, props, bufSize, length, params),
+                                          ((void*)props, propCount * sizeof(GLenum)))
+
 DLLEXPORT void DLLEXPORTENTRY specialized_glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines) FuncExtra1(GL, glDeleteProgramPipelines, (n, pipelines), ((void*)pipelines, n * sizeof(GLuint)))
 DLLEXPORT void DLLEXPORTENTRY specialized_glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint *value) FuncExtra1(GL, glProgramUniform1iv, (program, location, count, value), ((void*)value, count * sizeof(GLint)))
 DLLEXPORT void DLLEXPORTENTRY specialized_glProgramUniform2iv(GLuint program, GLint location, GLsizei count, const GLint *value) FuncExtra1(GL, glProgramUniform2iv, (program, location, count, value), ((void*)value, count * sizeof(GLint)))
@@ -6845,7 +6772,6 @@ public:
       SPECIAL(glTexParameterxv);
       SPECIAL(glTexSubImage2D);
       SPECIAL(glUniform1fv);
-      SPECIAL(glUniform1i);
       SPECIAL(glUniform1iv);
       SPECIAL(glUniform2fv);
       SPECIAL(glUniform2iv);
@@ -6929,6 +6855,8 @@ public:
       SPECIAL(glProgramUniformMatrix4x2fv);
       SPECIAL(glProgramUniformMatrix3x4fv);
       SPECIAL(glProgramUniformMatrix4x3fv);
+
+      SPECIAL(glGetProgramResourceiv);
 #endif
       SPECIAL(glCompileShader);
       SPECIAL(glLinkProgram);
@@ -6978,48 +6906,4 @@ static CApiClassTable sAPIClassTable;
 
 extern "C" {
 #include "apifuncs.inc"
-
-
-#ifdef BCG_ABSTRACT_PLATFORM
-/* These entry points are only available with BCG's runtime loadable platforms */
-/* NOTE: These aren't strictly necessary when using LD_PRELOAD to manage the intercept
-   since it will look for these in the original khronos dll anyway and therefore
-   will implicitly bypass the gpumon_hooks. I've left them in place in case someone
-   needs to replace the khronos dll with a renamed gpumon_hook.dll rather than use
-   LD_PRELOAD.
-*/
-struct BEGL_SchedInterface;
-struct BEGL_DisplayInterface;
-struct BEGL_MemoryInterface;
-
-DLLEXPORT void DLLEXPORTENTRY BEGL_RegisterSchedInterface(BEGL_SchedInterface *iface)
-{
-   // Pass through
-   APIInitAndLock locker(PL_FUNCTION, false);
-   Real(BEGL_RegisterSchedInterface)(iface);
-}
-
-DLLEXPORT void DLLEXPORTENTRY BEGL_RegisterDisplayInterface(BEGL_DisplayInterface *iface)
-{
-   // Pass through
-   APIInitAndLock locker(PL_FUNCTION, false);
-   Real(BEGL_RegisterDisplayInterface)(iface);
-}
-
-DLLEXPORT void DLLEXPORTENTRY BEGL_RegisterMemoryInterface(BEGL_MemoryInterface *iface)
-{
-   // Pass through
-   APIInitAndLock locker(PL_FUNCTION, false);
-   Real(BEGL_RegisterMemoryInterface)(iface);
-}
-
-DLLEXPORT void DLLEXPORTENTRY BEGL_PlatformAboutToShutdown(void)
-{
-   // Pass through
-   APIInitAndLock locker(PL_FUNCTION, false);
-   Real(BEGL_PlatformAboutToShutdown)();
-}
-
-#endif
-
 }

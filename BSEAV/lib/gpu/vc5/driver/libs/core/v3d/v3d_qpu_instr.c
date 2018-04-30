@@ -84,6 +84,7 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_SYNCB:
 #endif
       return V3D_QPU_MAGIC_WADDR_CLASS_SYNC;
+#if !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_RECIP:
    case V3D_QPU_MAGIC_WADDR_RSQRT:
    case V3D_QPU_MAGIC_WADDR_EXP:
@@ -93,6 +94,7 @@ v3d_qpu_magic_waddr_class_t v3d_qpu_classify_magic_waddr(uint32_t addr)
    case V3D_QPU_MAGIC_WADDR_RSQRT2:
 #endif
       return V3D_QPU_MAGIC_WADDR_CLASS_SFU;
+#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_MAGIC_WADDR_UNIFA:
       return V3D_QPU_MAGIC_WADDR_CLASS_UNIF;
@@ -184,14 +186,12 @@ uint64_t v3d_qpu_instr_unused_mask(const struct v3d_qpu_instr *in)
    switch(in->type)
    {
       case V3D_QPU_INSTR_TYPE_ALU:
+#if !V3D_HAS_SFU_ROTATE
          if(in->u.alu.sig.sigbits & V3D_QPU_SIG_ROTATE)
-         {
             return gfx_mask64(2) << 4;
-         }
          else
-         {
+#endif
             return 0;
-         }
 
       case V3D_QPU_INSTR_TYPE_BRANCH:
          return (gfx_mask64(4) << 17) | gfx_mask64(6);
@@ -358,6 +358,18 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
       op->opcode = V3D_QPU_OP_FCMP;
    else switch (op_add)
    {
+#if V3D_HAS_SFU_ROTATE
+   case 50:
+      switch (add_b)
+      {
+      case 0: op->opcode = V3D_QPU_OP_ALLEQ; break;
+      case 1: op->opcode = V3D_QPU_OP_ALLFEQ; break;
+      default: return false;
+      }
+      break;
+   case 51:    op->opcode = V3D_QPU_OP_ROTQ; break;
+   case 52:    op->opcode = V3D_QPU_OP_ROT;  break;
+#endif
    case 53: case 54: case 55:
    case 57: case 58: case 59:
    case 61: case 62: case 63:
@@ -435,7 +447,7 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
          case 5:  op->opcode = V3D_QPU_OP_TMUWT; break;
 #if V3D_VER_AT_LEAST(4,1,34,0)
          case 6:  op->opcode = V3D_QPU_OP_VPMWT; break;
-         case 7: op->opcode = V3D_QPU_OP_FLAFIRST; break;
+         case 7:  op->opcode = V3D_QPU_OP_FLAFIRST; break;
 #endif
          default: return false;
          }
@@ -461,6 +473,10 @@ static bool decode_add_op(struct v3d_qpu_op *op, uint32_t op_add, uint32_t add_a
 #if !V3D_VER_AT_LEAST(4,1,34,0)
       case 6: op->opcode = V3D_QPU_OP_VPMWRCFG; break;
 #endif
+#endif
+#if V3D_HAS_SFU_ROTATE
+      case 6: op->opcode = V3D_QPU_OP_BALLOT; break;
+      case 7: op->opcode = V3D_QPU_OP_BCASTF; break;
 #endif
       default:
          return false;
@@ -754,6 +770,12 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 
    switch(op->opcode)
    {
+#if V3D_HAS_SFU_ROTATE
+      case V3D_QPU_OP_ALLEQ: *op_add = 50; *add_b = 0; return true;
+      case V3D_QPU_OP_ALLFEQ: *op_add = 50; *add_b = 1; return true;
+      case V3D_QPU_OP_ROTQ: *op_add = 51; return true;
+      case V3D_QPU_OP_ROT:  *op_add = 52; return true;
+#endif
       case V3D_QPU_OP_ADD: *op_add = 56; return true;
       case V3D_QPU_OP_SUB: *op_add = 60; return true;
       case V3D_QPU_OP_MIN: *op_add = 120; return true;
@@ -807,6 +829,10 @@ static bool encode_add_op(struct v3d_qpu_op const* op, uint32_t* op_add, uint32_
 #if !V3D_VER_AT_LEAST(4,1,34,0)
       case V3D_QPU_OP_VPMWRCFG: *op_add = 187; *add_b = 6; return true;
 #endif
+#endif
+#if V3D_HAS_SFU_ROTATE
+      case V3D_QPU_OP_BALLOT: *op_add = 187; *add_b = 6; return true;
+      case V3D_QPU_OP_BCASTF: *op_add = 187; *add_b = 7; return true;
 #endif
 
       case V3D_QPU_OP_VFMOV: *op_add = 190; *add_b = 0; return true;
@@ -1023,7 +1049,11 @@ static const v3d_qpu_sigbits_t valid_sigs[] = {
 /* 21 */   ~0u,
 #endif
 /* 22 */   S(UCB),
+#if V3D_HAS_SFU_ROTATE
+/* 23 */   ~0u,
+#else
 /* 23 */   S(ROTATE),
+#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
 /* 24 */                                             S(LDUNIFA),
 /* 25 */                                             S(LDUNIFARF),
@@ -1237,11 +1267,13 @@ bool v3d_qpu_instr_try_unpack(struct v3d_qpu_instr *in, uint64_t bits,
       }
 #endif
 
+#if !V3D_HAS_SFU_ROTATE
       if((in->u.alu.sig.sigbits & V3D_QPU_SIG_ROTATE) && in->u.alu.raddr_b >= V3D_VPAR)
       {
          set_err(err, "Bad mul rotation %u", in->u.alu.raddr_b);
          return false;
       }
+#endif
 
       if((in->u.alu.sig.sigbits & V3D_QPU_SIG_SMALL_IMM) && in->u.alu.raddr_b >= countof(v3d_qpu_small_imms))
       {
@@ -1508,9 +1540,7 @@ bool v3d_qpu_instr_try_pack(struct v3d_qpu_instr const* in, uint64_t* bits)
          if(v3d_qpu_sig_has_result_write(in->u.alu.sig.sigbits))
          {
             if (cond != 0)
-            {
                return false;
-            }
             cond = (in->u.alu.sig.magic ? 0x40 : 0) | in->u.alu.sig.waddr;
          }
 #endif
@@ -1533,10 +1563,12 @@ bool v3d_qpu_instr_try_pack(struct v3d_qpu_instr const* in, uint64_t* bits)
             return false;
          }
 
+#if !V3D_HAS_SFU_ROTATE
          if((in->u.alu.sig.sigbits & V3D_QPU_SIG_ROTATE) && in->u.alu.raddr_b >= V3D_VPAR)
          {
             return false;
          }
+#endif
          if((in->u.alu.sig.sigbits & V3D_QPU_SIG_SMALL_IMM) && in->u.alu.raddr_b >= countof(v3d_qpu_small_imms))
          {
             /* reserved */
@@ -1743,6 +1775,14 @@ v3d_qpu_res_type_t v3d_qpu_res_type_from_opcode(v3d_qpu_opcode_t opcode)
    case V3D_QPU_OP_SIN:
    case V3D_QPU_OP_RSQRT:
    case V3D_QPU_OP_RSQRT2:
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ROT:
+   case V3D_QPU_OP_ROTQ:
+   case V3D_QPU_OP_BALLOT:
+   case V3D_QPU_OP_BCASTF:
+   case V3D_QPU_OP_ALLEQ:
+   case V3D_QPU_OP_ALLFEQ:
 #endif
    case V3D_QPU_OP_LDVPMV_IN:
    case V3D_QPU_OP_LDVPMD_IN:

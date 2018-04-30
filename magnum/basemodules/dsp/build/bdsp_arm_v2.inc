@@ -49,11 +49,55 @@
 #
 # Derive the architecture of ARM compilation to determine the firmware version
 #
-ifeq ($(B_REFSW_ARCH),arm-linux)
-AONA_VER = v7
-else ifeq ($(B_REFSW_ARCH),aarch64-linux)
-AONA_VER = v8
+
+BDSP_ASTRA_MODE = $(notdir $(LINUX))
+
+ifeq ($(BDSP_ASTRA_MODE),arm)
+AONA_VER = v8/32
+else ifeq ($(BDSP_ASTRA_MODE),arm64)
+AONA_VER = v8/64
 endif
+
+
+
+# Select the Audio firmware binaries
+ifeq ($(BDSP_AONA_CLEAR),y)
+ifeq ($(wildcard "$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/cl"),)
+BDSP_AONA_FILE_TYPE = _clear
+BDSP_AONA_FOLDER_TYPE = cl
+else
+$(warning "BDSP_AONA_CLEAR requires clear files")
+endif
+else ifeq ($(BDSP_AONA_ZD),y)
+ifeq ($(wildcard "$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zd"),)
+BDSP_AONA_FILE_TYPE = _ZD
+BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zd
+else
+$(warning "BDSP_AONA_ZD requires ZD files")
+endif
+else ifeq ($(BDSP_AONA_ZB),y)
+ifeq ($(wildcard "$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zb"),)
+BDSP_AONA_FILE_TYPE = _ZB
+BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zb
+else
+$(warning "BDSP_AONA_ZB requires ZB files")
+endif
+else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/cl/.*),)
+BDSP_AONA_FILE_TYPE = _clear
+BDSP_AONA_FOLDER_TYPE = cl
+else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zd/.*),)
+BDSP_AONA_FILE_TYPE = _ZD
+BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zd
+else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zb/.*),)
+BDSP_AONA_FILE_TYPE = _ZB
+BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zb
+else
+$(warning "Audio codec binaries are not available")
+endif
+
+#$(warning $(AONA_VER))
+#$(warning $(BDSP_AONA_FILE_TYPE))
+#$(warning $(BDSP_AONA_FOLDER_TYPE))
 
 # Include standard files
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/include/arm_v2
@@ -65,7 +109,7 @@ BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)
 # Include standard files
 ifneq ($(BDSP_IMG_ONLY),y)
 BDSP_SOURCES += \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_resident_img_desc.c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_resident_img_desc.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fwdownload_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fwinterface_priv.c \

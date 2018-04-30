@@ -121,8 +121,8 @@ public:
    VkSystemAllocationScope Scope() const { return m_scope; }
 
 private:
-   const VkAllocationCallbacks   *m_callbacks = &g_defaultAllocCallbacks;
-   VkSystemAllocationScope       m_scope = VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE;
+   const VkAllocationCallbacks  *m_callbacks = &g_defaultAllocCallbacks;
+   VkSystemAllocationScope       m_scope     = VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE;
 };
 
 template< class T1, class T2 >

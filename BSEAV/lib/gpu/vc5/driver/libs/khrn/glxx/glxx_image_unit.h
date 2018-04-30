@@ -62,11 +62,5 @@ void glxx_image_unit_deinit(glxx_image_unit *image_unit);
 GL_APICALL void GL_APIENTRY glBindImageTexture (GLuint unit, GLuint texture,
       GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format);
 
-typedef enum glxx_unit_acess
-{
-   GLXX_ACC_INVALID,
-   GLXX_ACC_UNDEFINED,
-   GLXX_ACC_OK
-} glxx_unit_access;
-extern glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
+extern bool glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
       const GLSL_IMAGE_T *glsl_image_info, glxx_calc_image_unit *calc_image_unit);

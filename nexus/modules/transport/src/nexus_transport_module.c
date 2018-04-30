@@ -63,6 +63,10 @@
 #include "bxpt_rave_ihex.h"
 #endif
 
+#if BXPT_NUM_MTSIF
+    #include "bchp_xpt_fe.h"
+#endif
+
 #if NEXUS_USE_OTT_TRANSPORT
 #define BXPT_GetDefaultSettings BOTT_BXPT_GetDefaultSettings
 #define BXPT_Open BOTT_BXPT_Open
@@ -310,6 +314,86 @@ static void pipeline_checker_stop(void)
 #define pipeline_checker_stop()
 #endif /* BXPT_HAS_PIPELINE_ERROR_REPORTING */
 
+#if BXPT_NUM_MTSIF
+static NEXUS_TimerHandle mtsif_error_checker_timer;
+
+static void mtsif_checker_timer(void *arg)
+{
+    unsigned i;
+    uint32_t regAddr;
+
+    uint32_t step = 0;
+
+    BSTD_UNUSED(arg);
+
+    mtsif_error_checker_timer = NULL;
+    if(pTransport->standby.postResumePending) {
+        goto resched;
+    }
+
+    BDBG_MSG(("Checking MTSIF status"));
+#ifdef BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG
+    pTransport->mtsifLengthErrors[0] = BREG_Read32(g_pCoreHandles->reg, BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG, 0);
+#elif defined BCHP_XPT_FE_MTSIF_RX0_INTR_STATUS0_REG
+    {
+        unsigned i;
+
+        #ifdef BCHP_XPT_FE_MTSIF_RX1_INTR_STATUS0_REG
+        step = BCHP_XPT_FE_MTSIF_RX1_INTR_STATUS0_REG - BCHP_XPT_FE_MTSIF_RX0_INTR_STATUS0_REG;
+        #else
+        step = 0;
+        #endif
+
+        for(i = 0; i < BXPT_NUM_MTSIF; i++) {
+            regAddr = BCHP_XPT_FE_MTSIF_RX0_INTR_STATUS0_REG + i * step;
+            pTransport->mtsifLengthErrors[i] = BREG_Read32(g_pCoreHandles->reg, regAddr);
+            BREG_Write32(g_pCoreHandles->reg, regAddr, 0);
+        }
+    }
+#endif
+
+#ifdef BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT
+#ifdef BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT
+    step = BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT - BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT;
+#endif
+    for(i = 0; i < BXPT_NUM_MTSIF; i++) {
+        regAddr = BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT + i * step;
+        pTransport->mtsifBandDetect[i] = BREG_Read32(g_pCoreHandles->reg, regAddr);
+        BREG_Write32(g_pCoreHandles->reg, regAddr, 0);
+    }
+#endif
+
+#ifdef BCHP_XPT_FE_MTSIF_RX1_CTRL1
+    step = BCHP_XPT_FE_MTSIF_RX1_CTRL1 - BCHP_XPT_FE_MTSIF_RX0_CTRL1;
+#endif
+    for(i = 0; i < BXPT_NUM_MTSIF; i++) {
+        regAddr = BCHP_XPT_FE_MTSIF_RX0_CTRL1 + i * step;
+        pTransport->mtsifStatus[i] = BREG_Read32(g_pCoreHandles->reg, regAddr);
+    }
+
+    resched:
+    mtsif_error_checker_timer = NEXUS_ScheduleTimer(2000, mtsif_checker_timer, NULL);
+}
+
+static void mtsif_checker_start(void)
+{
+    BDBG_ASSERT(!mtsif_error_checker_timer);
+    mtsif_error_checker_timer = NEXUS_ScheduleTimer(2000, mtsif_checker_timer, NULL);
+}
+
+static void mtsif_checker_stop(void)
+{
+    if(mtsif_error_checker_timer) {
+        NEXUS_CancelTimer(mtsif_error_checker_timer);
+        mtsif_error_checker_timer = NULL;
+    }
+}
+#else
+#define mtsif_checker_start()
+#define mtsif_checker_stop()
+#endif
+
 #if BXPT_HAS_WAKEUP_PKT_SUPPORT
 static void NEXUS_Transport_P_PacketFound_isr(void *context, int param)
 {
@@ -542,6 +626,21 @@ static void NEXUS_TransportModule_P_Print(void)
                 pb->pidChannels, pb->ccErrorCount, pb->teiErrorCount, pb->lengthErrorCount, status.rsBufferStatus.overflowErrors));
         }
     }
+    #endif
+
+    #if BXPT_NUM_MTSIF
+    #ifdef BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG
+        /* Hardware will OR the status from each MTSIF receiver. */
+        BDBG_LOG(("MTSIF RX parser length errors 0x%08X", pTransport->mtsifLengthErrors[0]));
+        for(i = 0; i < BXPT_NUM_MTSIF; i++) {
+            BDBG_LOG(("MTSIF RX%u: Band Detect 0x%08X, Decrypt %u, Enable %u", i, pTransport->mtsifBandDetect[i], BCHP_GET_FIELD_DATA(pTransport->mtsifStatus[i], XPT_FE_MTSIF_RX0_CTRL1, MTSIF_RX_DECRYPTION_ENABLE_STATUS), BCHP_GET_FIELD_DATA(pTransport->mtsifStatus[i], XPT_FE_MTSIF_RX0_CTRL1, PARSER_ENABLE) ));
+        }
+    #elif defined BCHP_XPT_FE_MTSIF_RX0_INTR_STATUS0_REG
+        /* Seperate status regs for each MTSIF receiver. */
+        for(i = 0; i < BXPT_NUM_MTSIF; i++) {
+            BDBG_LOG(("MTSIF RX%u: Length Error 0x%08X, Enable %u", i, pTransport->mtsifLengthErrors[i], BCHP_GET_FIELD_DATA(pTransport->mtsifStatus[i], XPT_FE_MTSIF_RX0_CTRL1, PARSER_ENABLE) ));
+        }
+    #endif
     #endif
 
     #if NEXUS_NUM_PLAYPUMPS
@@ -931,6 +1030,7 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     timer_start();
     pipeline_checker_start();
     dpcr_integrator_workaround_start();
+    mtsif_checker_start();
 
     NEXUS_Vcxo_Init();
 
@@ -976,6 +1076,7 @@ void NEXUS_TransportModule_Uninit(void)
     timer_stop();
     pipeline_checker_stop();
     dpcr_integrator_workaround_stop();
+    mtsif_checker_stop();
 
 #if BXPT_HAS_WAKEUP_PKT_SUPPORT
     BINT_DestroyCallback(pTransport->wakeup.intPacketFoundCallback);

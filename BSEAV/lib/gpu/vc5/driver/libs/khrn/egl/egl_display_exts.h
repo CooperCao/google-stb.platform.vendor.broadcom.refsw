@@ -8,15 +8,12 @@
 #include "libs/core/v3d/v3d_ver.h"
 #include <EGL/eglext.h>
 #include <EGL/eglext_brcm.h>
-#define EGL_DISPLAY_EXTS_STR_MAX_SIZE 543
+#define EGL_DISPLAY_EXTS_STR_MAX_SIZE 513
 static inline char *egl_display_exts_str(char *s_in)
 {
    char *s = s_in;
    memcpy(s, "EGL_BRCM_event_monitor", 22);
    s += 22;
-   *(s++) = ' ';
-   memcpy(s, "EGL_BRCM_gl_framebuffer_image", 29);
-   s += 29;
    *(s++) = ' ';
    memcpy(s, "EGL_BRCM_performance_counters", 29);
    s += 29;
@@ -93,12 +90,11 @@ static inline char *egl_display_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define EGL_DISPLAY_MAX_EXTS 22
+#define EGL_DISPLAY_MAX_EXTS 21
 static inline unsigned egl_display_exts(const char **e_in)
 {
    const char **e = e_in;
    *(e++) = "EGL_BRCM_event_monitor";
-   *(e++) = "EGL_BRCM_gl_framebuffer_image";
    *(e++) = "EGL_BRCM_performance_counters";
    if (!khrn_options.disable_buffer_age)
       *(e++) = "EGL_EXT_buffer_age";

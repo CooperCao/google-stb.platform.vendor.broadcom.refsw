@@ -172,6 +172,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     /* Check the selected box mode is compatible with the chip type. */
     switch (platformStatus.chipId) {
         case 0x72554:
+        case 0x72528:
             /* 72554 supports all box modes, but not all box modes can be used with all pmaps, check SCB freq. */
 
             NEXUS_Platform_P_ReadPllChannel("PLL SYS0 PLL", "SCB" ,BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2, BCHP_CLKGEN_PLL_SYS0_PLL_DIV, &config);

@@ -19,8 +19,6 @@
 
 namespace bvk {
 
-v3d_compare_func_t TranslateCompareFunc(VkCompareOp op);
-
 class CmdBufState
 {
 public:
@@ -39,7 +37,7 @@ public:
       eNumDirtyBits        // Must be last entry
    };
 
-   using DirtyBits = Bitfield<DirtyBitType, eNumDirtyBits, uint32_t>;
+   using DirtyBits = std::bitset<eNumDirtyBits>;
 
    class IndexBufferBinding
    {
@@ -96,6 +94,21 @@ public:
             return dynamicOffsets[dynamicIndex];
          }
          return 0;
+      }
+
+      uint32_t GetBufferRange(uint32_t binding, uint32_t element) const
+      {
+         return descriptorSet->GetBufferRange(binding, element);
+      }
+
+      uint32_t GetBufferSize(uint32_t binding, uint32_t element) const
+      {
+         return descriptorSet->GetBufferSize(binding, element);
+      }
+
+      v3d_addr_t GetBufferAddress(uint32_t binding, uint32_t element) const
+      {
+         return descriptorSet->GetBufferAddress(binding, element);
       }
    };
 
@@ -213,17 +226,13 @@ public:
       }
    }
 
-   DirtyBits GetDirtyBits()               { return m_dirtyBits; }
-   const DirtyBits &GetDirtyBits() const  { return m_dirtyBits; }
-   bool IsDirty(DirtyBitType type) const  { return m_dirtyBits.IsSet(type); }
+   void InitEarlyZState(bool enable);
+   void DisableEarlyZ();
 
-   void SetDirty(DirtyBitType type)       { m_dirtyBits.Set(type);   }
-   void SetAllDirty()                     { m_dirtyBits.SetAll();    }
-   void SetDirty(std::initializer_list<DirtyBitType> types) { m_dirtyBits.Set(types); }
+   const EARLY_Z_STATE_T &GetEarlyZState() const { return m_ezState; }
 
-   void ClearDirty(DirtyBitType type)     { m_dirtyBits.Clear(type); }
-   void ClearAllDirty()                   { m_dirtyBits.ClearAll();  }
-   void ClearDirty(std::initializer_list<DirtyBitType> types) { m_dirtyBits.Clear(types); }
+   void SetDirty(DirtyBitType type)       { m_dirtyBits.set(type); }
+   void SetAllDirty()                     { m_dirtyBits.set();     }
 
    void BuildStateUpdateCL(CommandBuffer *cb);
 
@@ -257,6 +266,9 @@ private:
    StencilState         m_frontStencilState;
    StencilState         m_backStencilState;
    v3d_addr_t           m_occlusionCounterAddr = 0;
+
+   // Early Z state
+   EARLY_Z_STATE_T      m_ezState;
 
    // A bit-mask of dirty bits (dirty with respect to the control list being built)
    DirtyBits            m_dirtyBits;

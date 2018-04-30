@@ -4,8 +4,8 @@
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_color.h"
 #include "interface/khronos/common/khrn_options.h"
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/2708/khrn_interlock_priv_4.h"
 #include "middleware/khronos/common/2708/khrn_render_state_4.h"
@@ -438,7 +438,6 @@ bool do_vcd_setup(
    uint32_t *attr_count
    )
 {
-   bool anything = false;
    uint32_t i, j;
    uint32_t n = 0, nv = 0, nc = 0;
    uint32_t last_vattrib = -1;
@@ -547,8 +546,6 @@ bool do_vcd_setup(
 
          nv++;
          n++;
-
-         anything = true;
       }
    }
 
@@ -606,8 +603,6 @@ bool do_vcd_setup(
 
          nc++;
          n++;
-
-         anything = true;
       }
    }
 
@@ -875,9 +870,9 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
          gl11_matrix_invert_4x4(inv, state->projection.body[state->projection.pos]);
          gl11_matrix_mult(blah, inv, state->projection.body[state->projection.pos]);
          gl11_matrix_mult_row(state->projected_clip_plane, state->planes[0], inv);
-         state->projected_clip_plane[0] /= state->viewport.internal[0];    /* xscale */
-         state->projected_clip_plane[1] /= state->viewport.internal[1];    /* yscale */
-         state->projected_clip_plane[2] /= (16777215.0f * state->viewport.internal[4]);    /* zscale */
+         state->projected_clip_plane[0] /= state->viewport.internal[0].f;    /* xscale */
+         state->projected_clip_plane[1] /= state->viewport.internal[1].f;    /* yscale */
+         state->projected_clip_plane[2] /= (16777215.0f * state->viewport.internal[4].f);    /* zscale */
       }
    }
    else
@@ -1782,15 +1777,15 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
             break;
          case BACKEND_UNIFORM_DEPTHRANGE_NEAR:
             assert(!IS_GL_11(state));
-            *ptr = *(uint32_t *)&state->viewport.internal[6];
+            *ptr = state->viewport.internal[6].u;
             break;
          case BACKEND_UNIFORM_DEPTHRANGE_FAR:
             assert(!IS_GL_11(state));
-            *ptr = *(uint32_t *)&state->viewport.internal[7];
+            *ptr = state->viewport.internal[7].u;
             break;
          case BACKEND_UNIFORM_DEPTHRANGE_DIFF:
             assert(!IS_GL_11(state));
-            *ptr = *(uint32_t *)&state->viewport.internal[8];
+            *ptr = state->viewport.internal[8].u;
             break;
          default:
             UNREACHABLE();
@@ -1956,15 +1951,12 @@ static KHRN_IMAGE_T *image_for_texturing(GLXX_SERVER_STATE_T *state,
 
    if (eglimage)
    {
-      /* if the image is an underlying platform client buffer, then it may have resized since it
-         originally was mapped */
+      /* if the image is an underlying platform client buffer, then its contents
+       *  may have changed since it originally was mapped */
       if ((eglimage->platform_client_buffer) &&
           (eglimage->image != NULL) &&
           (eglimage->tf_image != NULL))
       {
-         KHRN_IMAGE_T *image = egl_server_platform_image_wrap(
-            eglimage->target, eglimage->native_buffer);
-
          KHRN_IMAGE_T *src = eglimage->image;
          KHRN_IMAGE_T *dst = eglimage->tf_image;
 
@@ -1972,11 +1964,7 @@ static KHRN_IMAGE_T *image_for_texturing(GLXX_SERVER_STATE_T *state,
          uintptr_t dst_offset = mem_lock_offset(dst->mh_storage);
 
          if (src_offset != dst_offset)
-         {
-            KHRN_MEM_ASSIGN(eglimage->image, image);
             KHRN_MEM_ASSIGN(eglimage->tf_image, NULL);
-         }
-         KHRN_MEM_ASSIGN(image, NULL);
 
          mem_unlock(src->mh_storage);
          mem_unlock(dst->mh_storage);
@@ -2329,8 +2317,6 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    uint32_t i;
    GLXX_HW_FRAMEBUFFER_T fb;
    void *cunif_map, *vunif_map, *funif_map;
-   uint32_t cattribs_live;
-   uint32_t vattribs_live;
 
    uint32_t cunif_count;
    uint32_t vunif_count;
@@ -2479,9 +2465,6 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    if (!shader_record) goto fail;
 
    /* create or retrieve shaders from cache and setup attribs_live */
-
-   cattribs_live = state->batch.cattribs_live;
-   vattribs_live = state->batch.vattribs_live;
    if (!vcos_verify(get_shaders(
          program,
          shader_record,

@@ -60,10 +60,10 @@ BDBG_MODULE(nexus_platform_thermal_local);
 #define MAX_TRIP_POINTS  8
 
 typedef struct NEXUS_Platform_P_ThermalEventMsg {
-	unsigned temperature_change; /* temperature change event */
-	unsigned zone;               /* Zone number in /sys/class/thermal/thermal_zoneX */
-	unsigned tripnum;            /* Trip point number in /sys/class/thermal/thermal_zoneX/trip_point_Y */
-	unsigned temperature;       /* Temperature, in millidegrees celsius */
+    unsigned temperature_change; /* temperature change event */
+    unsigned zone;               /* Zone number in /sys/class/thermal/thermal_zoneX */
+    unsigned tripnum;            /* Trip point number in /sys/class/thermal/thermal_zoneX/trip_point_Y */
+    unsigned temperature;       /* Temperature, in millidegrees celsius */
 } NEXUS_Platform_P_ThermalEventMsg;
 
 typedef struct NEXUS_Platform_P_ThermalState {
@@ -75,6 +75,7 @@ typedef struct NEXUS_Platform_P_ThermalState {
     unsigned numTripPoints;
     unsigned initialThermalPoint;
     bool exit;
+    int exit_fd[2];
 } NEXUS_Platform_P_ThermalState;
 
 static NEXUS_Platform_P_ThermalState g_NEXUS_Platform_P_ThermalState;
@@ -84,41 +85,41 @@ static NEXUS_Platform_P_ThermalState g_NEXUS_Platform_P_ThermalState;
  */
 static bool NEXUS_Platform_P_ParseThermalEvent_priv(NEXUS_Platform_P_ThermalEventMsg *msg, const char *line)
 {
-	const char *key;
-	char *val;
+    const char *key;
+    char *val;
 
-	val = strchr(line, '=');
-	/* Only care about 'KEY=value' lines */
-	if (!val)
-		return false;
-	/* Split key/value */
-	*(val++) = '\0';
-	key = line;
+    val = strchr(line, '=');
+    /* Only care about 'KEY=value' lines */
+    if (!val)
+        return false;
+    /* Split key/value */
+    *(val++) = '\0';
+    key = line;
 
-	if (!strcmp("ACTION", key)) {
-		if (!strcmp("change", val))
-			msg->temperature_change = 1;
-		return false;
-	}
-	if (!strcmp("DEVPATH", key)) {
-		size_t devpath_len = strlen(DEV_PATH);
-		if (!strncmp(DEV_PATH, val, devpath_len))
-			msg->zone = atoi(val + devpath_len);
-		return false;
-	}
-	if (!strcmp("SUBSYSTEM", key)) {
-		return !strcmp("thermal", val);
-	}
-	if (!strncmp("TRIP", key, 4)) {
-		msg->tripnum = atoi(val);
-		return false;
-	}
-	if (!strncmp("TEMP", key, 4)) {
-		msg->temperature = atoi(val);
-		return false;
-	}
+    if (!strcmp("ACTION", key)) {
+        if (!strcmp("change", val))
+            msg->temperature_change = 1;
+        return false;
+    }
+    if (!strcmp("DEVPATH", key)) {
+        size_t devpath_len = strlen(DEV_PATH);
+        if (!strncmp(DEV_PATH, val, devpath_len))
+            msg->zone = atoi(val + devpath_len);
+        return false;
+    }
+    if (!strcmp("SUBSYSTEM", key)) {
+        return !strcmp("thermal", val);
+    }
+    if (!strncmp("TRIP", key, 4)) {
+        msg->tripnum = atoi(val);
+        return false;
+    }
+    if (!strncmp("TEMP", key, 4)) {
+        msg->temperature = atoi(val);
+        return false;
+    }
 
-	return false;
+    return false;
 }
 
 /*
@@ -166,7 +167,7 @@ static void *NEXUS_Platform_P_ThermalMonitorThread(void *pParam)
 {
     int fd, rc;
     struct sockaddr_nl nls;
-	struct pollfd pfd;
+	struct pollfd pfd[2];
     int len;
 	char buf[512];
 
@@ -190,15 +191,19 @@ static void *NEXUS_Platform_P_ThermalMonitorThread(void *pParam)
 	}
 
     memset(&pfd, 0, sizeof(pfd));
-	pfd.events = POLLIN;
-	pfd.fd = fd;
+	pfd[0].events = POLLIN;
+	pfd[0].fd = fd;
+	pfd[1].events = POLLIN;
+	pfd[1].fd = g_NEXUS_Platform_P_ThermalState.exit_fd[0];
 
     BDBG_MSG(("Starting Thermal Monitor Thread ..."));
 
     while (!g_NEXUS_Platform_P_ThermalState.exit) {
 		struct NEXUS_Platform_P_ThermalEventMsg msg;
 
-        rc = poll(&pfd, 1, 1000);
+        rc = poll(pfd, 2, 1000);
+        if (pfd[1].revents & POLLIN)
+            continue;
         if(!rc)
             continue;
         if(rc == -1)
@@ -265,6 +270,7 @@ NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void)
     size_t syslen = strlen(THERMAL_SYSFS);
 
     memset(&g_NEXUS_Platform_P_ThermalState, 0, sizeof(g_NEXUS_Platform_P_ThermalState));
+    pipe(g_NEXUS_Platform_P_ThermalState.exit_fd);
 
     if (!NEXUS_StrCmp(NEXUS_GetEnv("disable_thermal_monitor"), "y"))
         return NEXUS_SUCCESS;
@@ -339,8 +345,11 @@ NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void)
 void NEXUS_Platform_P_UninitThermalMonitor(void)
 {
     g_NEXUS_Platform_P_ThermalState.exit = true;
+    write(g_NEXUS_Platform_P_ThermalState.exit_fd[1],"",1);
     if(g_NEXUS_Platform_P_ThermalState.thermalThread)
         pthread_join(g_NEXUS_Platform_P_ThermalState.thermalThread, NULL);
+    close(g_NEXUS_Platform_P_ThermalState.exit_fd[0]);
+    close(g_NEXUS_Platform_P_ThermalState.exit_fd[1]);
 }
 #else
 NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void)

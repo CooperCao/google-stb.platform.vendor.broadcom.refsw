@@ -8,9 +8,9 @@ float dot(vec3  x, vec3  y) { return x[0]*y[0] + x[1]*y[1] + x[2]*y[2]; }
 float dot(vec4  x, vec4  y) { return x[0]*y[0] + x[1]*y[1] + x[2]*y[2] + x[3]*y[3]; }
 
 float length(float x) { return abs(x); }
-float length(vec2  x) { return $$rcp($$rsqrt(dot(x, x))); }
-float length(vec3  x) { return $$rcp($$rsqrt(dot(x, x))); }
-float length(vec4  x) { return $$rcp($$rsqrt(dot(x, x))); }
+float length(vec2  x) { return sqrt(dot(x, x)); }
+float length(vec3  x) { return sqrt(dot(x, x)); }
+float length(vec4  x) { return sqrt(dot(x, x)); }
 
 float distance(float p0, float p1) { return length(p0 - p1); }
 float distance(vec2  p0, vec2  p1) { return length(p0 - p1); }

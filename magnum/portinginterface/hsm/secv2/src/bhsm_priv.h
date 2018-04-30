@@ -93,6 +93,4 @@ BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 /* function to copy byte array into uint32_t array. */
 BERR_Code BHSM_MemcpySwap( void* pDest, const void* pSrc, unsigned byteSize );
 
-BERR_Code BHSM_Mem32cpy( uint32_t* pDest, const uint8_t* pSrc, unsigned byteSize );
-
 #endif

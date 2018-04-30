@@ -82,8 +82,8 @@ include $(MAGNUM_TOP)/portinginterface/hsm/bhsm_defs.inc
 
 # Application source file list, include path, C flags, and link
 # flags
-LIB_SOURCES = bp3_host.c quick_ssdp.c civetweb.c
-APP_SOURCES = bp3.c bp3_features.c
+LIB_SOURCES = bp3_host.c quick_ssdp.c civetweb.c bp3.c bp3_features.c
+APP_SOURCES = bp3_main.c
 
 APP_CFLAGS = -DWITH_POSIX -Wno-pedantic -Wno-variadic-macros -fPIC -I$(APP_TOP)/app -I${APP_TOP}/utils
 

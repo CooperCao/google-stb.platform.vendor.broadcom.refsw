@@ -612,16 +612,29 @@ int scenario_player_play_scenario(ScenarioPlayerHandle player, const char * scen
     Scenario scenario;
     const char * path;
     char * fullname;
+    unsigned len;
+    bool addExt = true;
     unsigned i;
 
     assert(player);
 
     player->aborted = false;
 
-    fullname = malloc(strlen(scenarioName) + 4 + 1);
+    len = strlen(scenarioName);
+    if (len > 4 && !strncmp(".txt", scenarioName + len - 4, 4))
+    {
+        len += 1;
+        addExt = false;
+    }
+    else
+    {
+        len += 4 + 1;
+    }
+
+    fullname = malloc(len);
     if (!fullname) { printf("scenario_player: out of memory\n"); result = -ERR_OOM; goto end; }
     strcpy(fullname, scenarioName);
-    strcat(fullname, ".txt");
+    if (addExt) strcat(fullname, ".txt");
 
     memset(&scenario, 0, sizeof(scenario));
 

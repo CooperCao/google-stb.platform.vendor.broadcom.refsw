@@ -100,27 +100,26 @@ static bool formats_compatible(glxx_image_unit_fmt unit_internalformat, GFX_LFMT
    return false;
 }
 
-glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
+/* Set up the calc_image_unit. Return whether it is OK to proceed with access */
+bool glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
       const GLSL_IMAGE_T *info, glxx_calc_image_unit *calc_image_unit)
 {
-   glxx_unit_access acc = GLXX_ACC_INVALID;
-
    if (image_unit->texture == NULL)
-      goto end;
+      return false;
 
    unsigned base_level, num_levels;
    GLXX_TEXTURE_T *texture = image_unit->texture;
 
    /* there is no imageStore/load for multisample textures */
    if (glxx_tex_target_is_multisample(texture->target))
-      goto end;
+      return false;
 
    if (!glxx_texture_check_completeness(texture, false, &base_level,
             &num_levels))
-      goto end;
+      return false;
    if (image_unit->level < base_level ||
          image_unit->level >= (base_level + num_levels))
-      goto end;
+      return false;
 
    calc_image_unit->level = image_unit->level;
    calc_image_unit->use_face_layer = false;
@@ -130,7 +129,7 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
       {
       case GL_TEXTURE_CUBE_MAP:
          if (image_unit->layer >= 6)
-            goto end;
+            return false;
          calc_image_unit->face = image_unit->layer;
          calc_image_unit->layer = 0;
          break;
@@ -138,33 +137,31 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
       case GL_TEXTURE_2D_ARRAY:
       case GL_TEXTURE_3D:
          if (!glxx_texture_is_legal_layer(texture->target, image_unit->layer))
-            goto end;
+            return false;
          calc_image_unit->face = 0;
          calc_image_unit->layer = image_unit->layer;
          break;
       default:
          unreachable();
-         goto end;
+         return false;
       }
       calc_image_unit->use_face_layer = true;
    }
 
    if (!formats_compatible(image_unit->internalformat,
             texture->target == GL_TEXTURE_BUFFER ? texture->tex_buffer.api_fmt : texture->immutable_format))
-      goto end;
-
-    acc = GLXX_ACC_UNDEFINED;
+      return false;
 
    /* check if the fmtlayout qualifier used for the image variable in the shader matches
-    * the one specified when for the image unit
+    * the one specified for the image unit
     */
    assert(is_allowed_image_unit_format(info->internalformat));
    if (info->internalformat != image_unit->internalformat)
-      goto end;
+      return false;
 
    enum glxx_tex_target target = calc_image_unit->use_face_layer ? GL_TEXTURE_2D : texture->target;
    if (info->sampler.texture_type != target)
-      goto end;
+      return false;
 
    GFX_LFMT_T api_fmt = gfx_api_fmt_from_sized_internalformat(image_unit->internalformat);
    unsigned       num_planes;
@@ -174,21 +171,9 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    assert(api_fmt == fmts[0]);
    calc_image_unit->fmt = fmts[0];
 
-   assert(gfx_lfmt_num_slots_from_type(calc_image_unit->fmt) == 1);
-   GFX_LFMT_TYPE_T unit_lfmt_type;
-   unit_lfmt_type = calc_image_unit->fmt & GFX_LFMT_TYPE_MASK;
-   if (unit_lfmt_type == GFX_LFMT_TYPE_UNORM ||
-       unit_lfmt_type == GFX_LFMT_TYPE_SNORM ||
-       unit_lfmt_type == GFX_LFMT_TYPE_UFLOAT )
-      unit_lfmt_type = GFX_LFMT_TYPE_FLOAT;
-   if (info->lfmt_type != unit_lfmt_type)
-      goto end;
-
     /* TODO: get info from the shader if this image is used in an imageStore */
    calc_image_unit->write = (image_unit->access != GL_READ_ONLY);
-   acc = GLXX_ACC_OK;
-end:
-   return acc;
+   return true;
 }
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
