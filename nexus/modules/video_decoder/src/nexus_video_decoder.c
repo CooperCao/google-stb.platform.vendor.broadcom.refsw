@@ -5047,13 +5047,6 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     videoDecoder->externalTsm.pDecoderPrivateContext = videoDecoder->dec;
     displayInterrupt = videoDecoder->device->hXdmDih[videoDecoder->xdmIndex + BXVD_DisplayInterrupt_eZero];
 
-    if ( videoDecoder->dec ) {
-        /* Must close/re-open the XVD channel to release its picture provider TODO: Optimize this */
-        NEXUS_VideoDecoder_P_CloseChannel(videoDecoder);
-        rc = NEXUS_VideoDecoder_P_OpenChannel(videoDecoder);
-        if ( rc ) { return BERR_TRACE(rc); }
-    }
-
     rc = BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings (&addPictureProviderSettings);
     if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings Failed "));}
 
@@ -5402,6 +5395,7 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
     NEXUS_VideoDecoderPictureContext *pContext
     )
 {
+    bool releasePic=false;
     BDBG_ASSERT(false == pContext->inFreeQueue);
     BDBG_MSG(("Discard Frame %u", pContext->serialNumber));
     if ( pContext->inDecodeQueue )
@@ -5409,6 +5403,7 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
         BLST_Q_REMOVE(&videoDecoder->externalTsm.decoderPictureQueue.queue, pContext, decodeNode);
         BDBG_ASSERT(videoDecoder->externalTsm.decoderPictureQueue.count > 0);
         videoDecoder->externalTsm.decoderPictureQueue.count--;
+        releasePic = true;  /* The picture must be released to xvd */
         pContext->inDecodeQueue = false;
     }
     switch ( pContext->display )
@@ -5421,6 +5416,7 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
         BLST_Q_REMOVE(&videoDecoder->externalTsm.displayPictureQueue.queue, pContext, displayNode);
         BDBG_ASSERT(videoDecoder->externalTsm.displayPictureQueue.count > 0);
         videoDecoder->externalTsm.displayPictureQueue.count--;
+        releasePic = true;  /* The picture may have already been released from the decoder queue but still pending display, this still must be released to xvd */
         break;
     case NEXUS_VideoDecoderPictureDisplay_eActive:
         /* This should have been cleaned up before this function is called ... */
@@ -5428,6 +5424,12 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
         break;
     }
     pContext->display = NEXUS_VideoDecoderPictureDisplay_eNone;
+
+    if ( releasePic )
+    {
+        BDBG_MSG_APPDM(("Return Frame %u (%p) to XVD on discard", pContext->serialNumber, (void *)pContext->pUnifiedPicture));
+        videoDecoder->externalTsm.decoderInterface.releasePicture_isr(videoDecoder->externalTsm.pDecoderPrivateContext, pContext->pUnifiedPicture, NULL);
+    }
 
     BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.freePictureQueue.queue, pContext, freeNode);
     pContext->inFreeQueue = true;
