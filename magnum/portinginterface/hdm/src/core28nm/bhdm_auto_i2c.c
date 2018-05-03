@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
- ******************************************************************************/#include "bstd.h"
+ ******************************************************************************/
+#include "bstd.h"
 
 #include "bhdm.h"
 #include "../common/bhdm_priv.h"
@@ -60,7 +60,7 @@ BERR_Code BHDM_AUTO_I2C_GetEventHandle(
 	BDBG_ENTER(BHDM_AUTO_I2C_GetEventHandle) ;
 	BDBG_ASSERT( hHDMI );
 
-	/* See BHDM_AUTO_I2C_P_CHANNEL for channel mapping */
+	/* See BHDM_AUTO_I2C_CHANNEL for channel mapping */
 
 	switch (eEventChannel)
 	{
@@ -130,25 +130,33 @@ BERR_Code BHDM_AUTO_I2C_GetHdcp22RxStatusData(const BHDM_Handle hHDMI,
 #endif
 
 void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+	BHDM_AUTO_I2C_CHANNEL eChannel, uint8_t enable
 )
 {
-	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfiguration ;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfiguration ;
+
+	/* enable/disable Auto I2c channel */
+	BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
+		if (stTriggerConfiguration.enable == enable)
+		{
+			/* requested setting is already set; no change required */
+			goto done ;
+		}
+
+		stTriggerConfiguration.enable = enable ;
+		stTriggerConfiguration.activePolling = enable ;
+	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
 
 	BDBG_MSG(("Auto I2C Read Channel %d: %s",
 		eChannel, enable ? "ENABLED" : "DISABLED")) ;
 
-	BKNI_Memset(&stTriggerConfiguration, 0, sizeof(BHDM_AUTO_I2C_P_TriggerConfiguration)) ;
+done:
+	/* finished */ ;
 
-	/* enable/disable Auto I2c channel */
-	BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
-		stTriggerConfiguration.enable = enable ;
-		stTriggerConfiguration.activePolling = enable ;
-	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
 }
 
 void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+	BHDM_AUTO_I2C_CHANNEL eChannel, uint8_t enable
 )
 {
 	BKNI_EnterCriticalSection() ;
@@ -162,10 +170,10 @@ void BHDM_AUTO_I2C_SetChannels_isr(const BHDM_Handle hHDMI,
 	uint8_t enable
 )
 {
-	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfiguration ;
-	BHDM_AUTO_I2C_P_CHANNEL eChannel ;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfiguration ;
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
 
-	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_P_CHANNEL_eMax ; eChannel++)
+	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
 	{
 		/* all I2c transactions triggerred by timer are Auto Poll configurations
 		    enable/disable as requested
@@ -184,6 +192,24 @@ void BHDM_AUTO_I2C_SetChannels_isr(const BHDM_Handle hHDMI,
 			stTriggerConfiguration.enable = enable ;
 		BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
 	}
+}
+
+
+
+void BHDM_AUTO_I2C_GetTriggerConfiguration(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig
+)
+{
+	*pstTriggerConfig = hHDMI->AutoI2CChannel_TriggerConfig[eChannel] ;
+}
+
+void  BHDM_AUTO_I2C_SetTriggerConfiguration(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	const BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig
+)
+{
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, pstTriggerConfig) ;
+	BKNI_LeaveCriticalSection() ;
 }
 
 

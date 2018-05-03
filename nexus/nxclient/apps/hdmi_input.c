@@ -683,8 +683,6 @@ static void hdmiTxHdcpStateChanged(void)
 
 
 uploadDownstreamInfo:
-    BDBG_LOG(("%s Uploading downstream info...", BSTD_FUNCTION));
-
     /* Load Rx KSV FIFO for upstream device */
     NEXUS_HdmiOutput_GetHdcpSettings(g_app.hdmiOutput, &hdmiTxHdcpSettings);
 
@@ -698,6 +696,8 @@ uploadDownstreamInfo:
     }
     else
     {
+        BDBG_LOG(("%s Uploading downstream info...", BSTD_FUNCTION));
+
         /* HDCP 1.x */
         NEXUS_HdmiOutput_HdcpGetDownstreamInfo(g_app.hdmiOutput, &downStream) ;
 

@@ -135,6 +135,7 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	BHDM_SCDC_ManufacturerData manufacturerData ;
+	bool  bActivePolling = false ;
 	uint8_t i, items;
 
 #define SCDC_MANUFACTURER_DATA_OFFSET(structure, field) \
@@ -180,10 +181,14 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 	i = 0 ;
 	items = sizeof(scdcManufacturerDataMap) / sizeof(BHDM_SCDC_DataMap) ;
 
-	/* Disable Auto I2C while reading SCDC registers */
-	BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	/* Disable Auto I2C if enabled, prior to reading SCDC registers */
+	bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 
 	for ( i = 0 ; i < items ; i++)
 	{
@@ -232,9 +237,12 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 
 done:
 	/* ReEnable  Auto I2C after reading SCDC registers */
-	BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-	BKNI_LeaveCriticalSection() ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 	return rc ;
 }
 
@@ -270,6 +278,8 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 
 	uint8_t checksum ;
 	uint8_t i, items, temp ;
+	bool  bActivePolling = false ;
+
 
 #define SCDC_DATA_OFFSET(structure, field) \
 	((uint8_t *) &structure.field - (uint8_t *) &structure )
@@ -318,10 +328,14 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	items = sizeof(scdcStatusControlDataMap) / sizeof(BHDM_SCDC_DataMap) ;
 	i2cHandle = hHDMI->hI2cRegHandle ;
 
-	/* Disable Auto I2C while reading SCDC registers */
-	BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	/* Disable Auto I2C if enabled, prior to reading SCDC registers */
+	bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 
 	for ( i = 0 ; i < items ; i++)
 	{
@@ -439,9 +453,12 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 
 done:
 	/* ReEnable  Auto I2C after reading SCDC registers */
-	BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-	BKNI_LeaveCriticalSection() ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 
 	return rc ;
 }
@@ -476,10 +493,25 @@ void BHDM_SCDC_GetScrambleConfiguration(BHDM_Handle hHDMI, BHDM_ScrambleConfig *
 	if ((hHDMI->AttachedEDID.RxHdmiForumVsdb.exists)
 	&& (hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport))
 	{
-		rc =  BHDM_P_BREG_I2C_Read(hHDMI,
-			BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
-			&rxStatusFlags, 1) ;
-		if (rc) {(void)BERR_TRACE(rc); return ;}
+		bool  bActivePolling = false ;
+
+		/* if Auto I2C enabled and Auto Read of SCDC is enabled, copy the
+		   current scramble status which is read whenever SCDC_UPDATE0 is updated */
+		bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
+		if ((bActivePolling) && (hHDMI->AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0].enable))
+		{
+			BDBG_MSG(("Last Rx SCDC Scrambler Status: %x", hHDMI->ScrambleConfig.rxStatusFlags_Scramble)) ;
+			BKNI_Memcpy(pstScrambleConfig, &hHDMI->ScrambleConfig, sizeof(*pstScrambleConfig)) ;
+			goto done ;
+		}
+		else
+		{
+			rc = BREG_I2C_Read(hHDMI->hI2cRegHandle,
+				BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
+				&rxStatusFlags, 1) ;
+			if (rc) {(void)BERR_TRACE(rc); goto done ;}
+			BDBG_MSG(("Rx SCDC Scrambler Status: %x", rxStatusFlags)) ;
+		}
 	}
 
 	pstScrambleConfig->rxStatusFlags_Scramble =
@@ -494,6 +526,9 @@ void BHDM_SCDC_GetScrambleConfiguration(BHDM_Handle hHDMI, BHDM_ScrambleConfig *
 
 		hHDMI->ScrambleConfig = *pstScrambleConfig ;
 	}
+
+done:
+	return ;
 }
 
 
@@ -506,8 +541,7 @@ void BHDM_SCDC_DisableScrambleTx(BHDM_Handle hHDMI)
 	BKNI_Memset(&scrambleSettings, 0, sizeof(BHDM_ScrambleConfig)) ;
 	BHDM_SCDC_P_ConfigureScramblingTx(hHDMI, &scrambleSettings) ;
 
-	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
-		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, 0) ;
+	BHDM_SCDC_SetStatusMonitor(hHDMI, 0) ;
 }
 
 static void BHDM_SCDC_P_ReadStatusUpdates_isr(BHDM_Handle hHDMI)
@@ -560,7 +594,7 @@ static void BHDM_SCDC_P_ReadStatusUpdates_isr(BHDM_Handle hHDMI)
 
 	/* clear status that was indicated as updated */
 	rc = BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(hHDMI,
-		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0,
+		BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0,
 		slaveAddress, slaveOffset, &maskBuffer, 1) ;
 	if (rc)
 	{
@@ -660,7 +694,7 @@ void BHDM_SCDC_P_ReadUpdate0Data_isr(const BHDM_Handle hHDMI)
 	ulOffset = hHDMI->ulOffset ;
 
 	autoI2cChxOffset =
-		BHDM_AUTO_I2C_P_NUM_CHX_REGISTERS * BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0 ;
+		BHDM_AUTO_I2C_P_NUM_CHX_REGISTERS * BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0 ;
 
 	RegAddr = BCHP_HDMI_TX_AUTO_I2C_CH0_RD_0 + ulOffset + autoI2cChxOffset ;
 
@@ -808,17 +842,6 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isr(
 
 	hHDMI->ScrambleConfig = *pstScrambleConfig ;
 
-
-	if (hHDMI->DeviceSettings.bEnableScdcMonitoring)
-	{
-		BDBG_MSG(("%s Auto I2c Channel %d for SCDC",
-			pstScrambleConfig->txScrambleEnable ? "Enable" : "Disable",
-			BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0)) ;
-
-		/* enable Auto I2c only if Scrambling is being turned on */
-		BHDM_AUTO_I2C_EnableReadChannel_isr(hHDMI,
-			BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, pstScrambleConfig->txScrambleEnable) ;
-	}
 }
 
 
@@ -858,4 +881,16 @@ done:
 	BDBG_LEAVE(BHDM_SCDC_ConfigureScrambling);
 	return rc;
 }
+
+void BHDM_SCDC_SetStatusMonitor(const BHDM_Handle hHDMI, uint8_t enable)
+{
+	if (hHDMI->AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0].enable == enable)
+	{
+		return ;
+	}
+
+	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
+		BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0, enable) ;
+}
+
 #endif

@@ -1204,22 +1204,6 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
     }
 
 
-    pStatus->eotf = output->drm.outputInfoFrame.eotf;
-
-#if BHDM_HAS_HDMI_20_SUPPORT
-    {
-        BHDM_ScrambleConfig stScrambleConfig ;
-        BHDM_SCDC_GetScrambleConfiguration(output->hdmHandle, &stScrambleConfig) ;
-            pStatus->txHardwareStatus.scrambling = stScrambleConfig.txScrambleEnable ;
-            pStatus->rxHardwareStatus.descrambling = stScrambleConfig.rxStatusFlags_Scramble ;
-
-        output->txHwStatus.scrambling = stScrambleConfig.txScrambleEnable ;
-        output->rxHwStatus.descrambling = stScrambleConfig.rxStatusFlags_Scramble ;
-    }
-#endif
-
-    pStatus->eotf = output->drm.outputInfoFrame.eotf;
-
 done:
     /* always copy txHwStatus counters */
     {
@@ -1241,6 +1225,8 @@ done:
             output->txHwStatus.unstableFormatDetectedCounter = txStatus.UnstableFormatDetectedCounter ;
 
             output->hdcpMonitor.hdcp1x.bCapsReadFailureCounter = txStatus.hdcp1x.BCapsReadFailures ;
+            output->hdcpMonitor.hdcp1x.bksvReadFailureCounter = txStatus.hdcp1x.BksvReadFailures ;
+            output->hdcpMonitor.hdcp1x.invalidBksvCounter = txStatus.hdcp1x.InvalidBksvFailures ;
 
             BKNI_Memcpy(&pStatus->txHardwareStatus, &output->txHwStatus,
                 sizeof(NEXUS_HdmiOutputTxHardwareStatus)) ;
@@ -1796,6 +1782,11 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
     {
         NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
 
+        /* make sure all Auto I2c channels are disabled */
+        BKNI_EnterCriticalSection() ;
+            BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
+        BKNI_LeaveCriticalSection() ;
+
         /* Update RxCaps */
         NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
         errCode = NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(output->hdmiInput, false);
@@ -2115,6 +2106,9 @@ static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
         goto done ;
 
     }
+
+	/* enable/disable start Auto I2c based on Scrambling setting */
+	BHDM_SCDC_SetStatusMonitor(hdmiOutput->hdmHandle, scdc.RxScramblerStatus) ;
 
 notifyApp:
     BDBG_LOG(("HDMI Link Scramble Status: %s",
@@ -2485,6 +2479,14 @@ static void NEXUS_HdmiOutput_P_RxSenseTimerExpiration(void *pContext)
                     if (errCode) { errCode = BERR_TRACE(errCode) ; }
                 }
             }
+
+#if BHDM_HAS_HDMI_20_SUPPORT
+            /* make sure all Auto I2c channels are disabled */
+            BKNI_EnterCriticalSection() ;
+                BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
+            BKNI_LeaveCriticalSection() ;
+#endif
+
 #endif
         }
     }

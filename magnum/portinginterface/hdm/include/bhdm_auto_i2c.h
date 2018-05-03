@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,14 +44,14 @@ extern "C" {
 
 
 /* i2c channel (0..3) channel assignments */
-typedef enum BHDM_AUTO_I2C_P_CHANNEL
+typedef enum BHDM_AUTO_I2C_CHANNEL
 {
-	BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus ,
-	BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0,
-	BHDM_AUTO_I2C_P_CHANNEL_eRead,
-	BHDM_AUTO_I2C_P_CHANNEL_eWrite,
-	BHDM_AUTO_I2C_P_CHANNEL_eMax
-} BHDM_AUTO_I2C_P_CHANNEL ;
+	BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,
+	BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0,
+	BHDM_AUTO_I2C_CHANNEL_eRead,
+	BHDM_AUTO_I2C_CHANNEL_eWrite,
+	BHDM_AUTO_I2C_CHANNEL_eMax
+} BHDM_AUTO_I2C_CHANNEL ;
 
 /******************************************************************************
 Summary:
@@ -71,6 +71,46 @@ typedef enum
 	BHDM_AUTO_I2C_EVENT_eWrite,
 	BHDM_AUTO_I2C_EVENT_eRead
 } BHDM_AUTO_I2C_EVENT ;
+
+
+/******************************************************************************
+Summary:
+Enumerated Type of different Auto I2c Modes available
+NOTE: These enums are mapped to the MODE field within the RDB register HDMI_AUTO_I2C_CH0_CFG
+
+Description:
+The HDMI core can support up to four automated I2c modes
+
+See Also:
+*******************************************************************************/
+typedef enum BHDM_AUTO_I2C_MODE
+{
+	BHDM_AUTO_I2C_MODE_eWrite,
+	BHDM_AUTO_I2C_MODE_eRead,
+	BHDM_AUTO_I2C_MODE_ePollScdcUpdate0,
+	BHDM_AUTO_I2C_MODE_ePollHdcp22RxStatus,
+	BHDM_AUTO_I2C_MODE_eMax
+} BHDM_AUTO_I2C_MODE ;
+
+
+typedef struct BHDM_AUTO_I2C_TriggerConfiguration
+{
+	uint8_t timerMs ;
+	uint8_t bscxDataOffset ;
+	BHDM_AUTO_I2C_MODE eMode ;
+	uint8_t triggerSource ;  /* RDB Write (0) or Timer (1) */
+	uint8_t enable ;
+	bool activePolling ;
+} BHDM_AUTO_I2C_TriggerConfiguration ;
+
+
+
+void  BHDM_AUTO_I2C_SetTriggerConfiguration(BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	const BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig) ;
+
+void BHDM_AUTO_I2C_GetTriggerConfiguration(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig) ;
+
 
 
 /***************************************************************************
@@ -161,7 +201,7 @@ See Also:
 *******************************************************************************/
 
 void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+	BHDM_AUTO_I2C_CHANNEL eChannel, uint8_t enable
 ) ;
 
 /******************************************************************************

@@ -54,6 +54,7 @@
 
 BDBG_MODULE(bhdcplib_hdcp2x);
 
+#define coreText(coreType)  ((coreType==BHDCPlib_CoreType_eTx) ? "Tx" : "Rx")
 
 #if BHDCPLIB_HAS_HDCP_2X_SUPPORT && defined(BHDCPLIB_HAS_SAGE)
 
@@ -92,11 +93,15 @@ static void BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr(
 	int parm2
 );
 
+static void BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr(
+	BHDCPlib_Handle hHDCPlib,
+	int parm2
+);
+
 static BERR_Code BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(
 	const BHDCPlib_Handle hHDCPlib,
 	const BHDCPlib_ReceiverIdListData *stReceiverIdListData
 );
-
 
 #if BHDCPLIB_HDR_SUPPORT
 static void BHDCPlib_P_Hdcp2x_DisconnectNotifyCallback(
@@ -155,7 +160,9 @@ typedef struct
 static const BHDCPlib_Hdcp2x_AuthenticationStatusText  authenticationStatusTextTable[] =
 {
 	{Hdcp22_AuthenticationStatus_eUnAuthenticated,		BDBG_STRING("UnAuthenticated")},
-	{Hdcp22_AuthenticationStatus_eSessionKeyLoaded,		BDBG_STRING("Session Key Loaded")},
+	{Hdcp22_AuthenticationStatus_eSessionKeyLoaded,		BDBG_STRING("Session Key Loaded (authenticating with Receiver)")},
+	{Hdcp22_AuthenticationStatus_eSessionKeyLoadedWithRepeater,		BDBG_STRING("Session Key Loaded (authenticating with Repeater")},
+	{Hdcp22_AuthenticationStatus_eRASMSent,		BDBG_STRING("RASM Message Sent")},
 	{Hdcp22_AuthenticationStatus_eAuthenticated,	BDBG_STRING("Authenticated")},
 	{Hdcp22_AuthenticationStatus_eRxAuthenticated,		BDBG_STRING("Receiver Authenticated")},
 	{Hdcp22_AuthenticationStatus_eRepeaterAuthenticated, 	BDBG_STRING("Repeater Authenticated")},
@@ -234,7 +241,8 @@ static const BHDCPlib_Hdcp2x_ResponseErrorText  hdcp2xResponseErrorTextTable[] =
 	{HDCP22_ERR_OPEN_BINFILEMANGER_HANDLE,		BDBG_STRING("Error opening SAGE BinFileManager Handle")},
 	{HDCP22_ERR_UPSTREAM_UNAUTHENTICATED,		BDBG_STRING("Invalid Request to SendReceiverIdList. Not yet authenticated with upstream transmitter")},
 	{HDCP22_ERR_INVALID_HOST_REQUEST,		BDBG_STRING("Invalid command/request from host")},
-	{HDCP22_ERR_FEATURE_CERT_ERROR,		BDBG_STRING("Invalid feature certificate file from host")}
+	{HDCP22_ERR_FEATURE_CERT_ERROR,		BDBG_STRING("Invalid feature certificate file from host")},
+	{HDCP22_ERR_INVALID_SESSIONID_HOST_REQUEST,		BDBG_STRING("Invalid sessionId provided from host command/request")}
 };
 
 static const char * BHDCPlib_Hdcp2x_P_ResponseErrorToStr(
@@ -464,7 +472,6 @@ done:
 	return rc;
 }
 
-
 static BERR_Code BHDCPlib_P_Hdcp2x_CreateTimer(
 	const BHDCPlib_Handle hHDCPlib,
 	BTMR_TimerHandle *timerHandle,
@@ -601,6 +608,50 @@ static void BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr(BHDCPlib_Handle 
 }
 
 
+static void BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr(BHDCPlib_Handle hHDCPlib, int parm2)
+{
+	BERR_Code rc = BERR_SUCCESS;
+
+	BDBG_ENTER(BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr);
+	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
+	BSTD_UNUSED(parm2);
+
+
+	/* stop timer */
+	BTMR_StopTimer_isr(hHDCPlib->hReadyToEnableEncryptionTimer);
+
+	BDBG_LOG(("%s: EnableEncryption Timer expired after %dms - current state %s", BSTD_FUNCTION,
+		BHDCPLIB_HDCP2X_ENABLEENCRYPTION_TIMER, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+
+	if ((hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eAuthenticated)
+	&& (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eSessionKeyLoaded))
+	{
+		BDBG_LOG(("%s: Not ready for encryption to be enabled - current state %s", BSTD_FUNCTION,
+			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+		return;
+	}
+
+	rc = BHDM_HDCP_EnableHdcp2xEncryption_isr(hHDCPlib->stDependencies.hHdm, true);
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error enable HDCP 2.x encryption"));
+		rc = BERR_TRACE(rc);
+
+		/* Error enable encryption - most likely because HDCP cipher is not authenticated.
+		 Set encryption state to unencrypted*/
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+	}
+	else {
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eEncrypted;
+	}
+
+	/* fire event informing HDCP authentication result */
+	BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
+
+	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr);
+}
+
+
 #if BHDCPLIB_HDR_SUPPORT
 static void BHDCPlib_P_Hdcp2x_DisconnectNotifyCallback(
 	void *context,
@@ -692,6 +743,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ModuleInit(const BHDCPlib_Handle hHDCPlib)
 	BDBG_MSG(("Initialize SAGE Hdcp2x Module: receivedSageModuleHandle [0x%p], assignedAsyncId [0x%x]",
 		(void *)hHDCPlib->hSagelibRpcModuleHandle, hHDCPlib->uiLastAsyncId));
 
+	/* save asyncId command */
+	hHDCPlib->uiModuleInitAsyncId = hHDCPlib->uiLastAsyncId;
+
 	if (rc != BERR_SUCCESS)
 	{
 		BDBG_ERR(("Error initializing SAGE hdcp2.2 module, hdcplib(0x%p), error [0x%x] '%s'",
@@ -699,6 +753,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ModuleInit(const BHDCPlib_Handle hHDCPlib)
 		BERR_TRACE(rc);
 		goto done;
 	}
+
 
 done:
 	if (rc != BERR_SUCCESS)
@@ -750,9 +805,12 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 		hHDCPlib->sageContainer->basicIn[3] = 2000; /* long interval, in ms */
 		hHDCPlib->sageContainer->basicIn[4] = 0; /* long interval retry count */
 
-		/* specify number of *locality check* retry - up to 1023 per HDCP 2.2 spec
-		Each locality check process/phase takes about 20ms to complete, i.e. 25x20=500ms */
-		hHDCPlib->sageContainer->basicIn[5] = 25;
+		/* Provide sessionId for host and sage communication */
+		/* check rollover sessionId */
+		if (hHDCPlib->uiSageSessionId>=0xFF) {
+			hHDCPlib->uiSageSessionId = 0;
+		}
+		hHDCPlib->sageContainer->basicIn[5] = ++hHDCPlib->uiSageSessionId;
 
 		/* pass the ContentStreamControl to hdcp22 Module in SAGE to use in RASM message */
 		switch (hHDCPlib->stHdcpConfiguration.eHdcp2xContentStreamControl)
@@ -831,11 +889,10 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 		/* Send command to SAGE request to start HDCP authentication */
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
 				Hdcp22_CommandId_Tx_eStartAuthentication, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
-		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Tx_eStartAuthentication, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x], sessionId[%d]",
+			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Tx_eStartAuthentication,
+			hHDCPlib->uiLastAsyncId, hHDCPlib->uiSageSessionId));
 
-		/* Save StartAuthentication async Id */
-		hHDCPlib->uiStartAuthenticationId = hHDCPlib->uiLastAsyncId;
 		if (rc != BERR_SUCCESS)
 		{
 			BDBG_ERR(("Error sending command to SAGE Hdcp2x Tx Module - hdcplib(0x%p), error [0x%x] '%s'",
@@ -851,11 +908,15 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 		/* reconfigure SageContainer for next SAGE communications */
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
 
+		/* Session Id */
+		hHDCPlib->sageContainer->basicIn[0] = hHDCPlib->uiSageSessionId;
+
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
 				Hdcp22_CommandId_Tx_eStopAuthentication, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
 
-		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Tx_eStopAuthentication, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x], sessionId [%d]",
+			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Tx_eStopAuthentication,
+			hHDCPlib->uiLastAsyncId, hHDCPlib->uiSageSessionId));
 
 		if (rc != BERR_SUCCESS)
 		{
@@ -871,6 +932,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 	case Hdcp22_CommandId_Tx_eGetReceiverIdlist:
 		/* reconfigure SageContainer for next SAGE communications */
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
+
+		/* Session Id */
+		hHDCPlib->sageContainer->basicIn[0] = hHDCPlib->uiSageSessionId;
 
 		/* Allocate memory for receiverIdList */
 		hHDCPlib->sageContainer->blocks[0].data.ptr =
@@ -890,8 +954,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
 				Hdcp22_CommandId_Tx_eGetReceiverIdlist, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
 
-		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Tx_eGetReceiverIdlist, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x], sessionId [%d]",
+			(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Tx_eGetReceiverIdlist,
+			hHDCPlib->uiLastAsyncId, hHDCPlib->uiSageSessionId));
 
 		/* Save GetReceiverIdList async Id */
 		hHDCPlib->uiGetReceiverIdListId = hHDCPlib->uiLastAsyncId;
@@ -1009,6 +1074,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 	/* Set initial state */
 	hHandle->currentHdcp2xState = BHDCPlib_Hdcp2xState_eSagePlatformOpen;
 	hHandle->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+	hHandle->uiSageSessionId = 0;
 
 	/* open platform */
 	rc = BSAGElib_Rai_Platform_Open(pstDependencies->hSagelibClientHandle, BSAGE_PLATFORM_ID_HDCP22,
@@ -1066,9 +1132,22 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 			goto done ;
 		}
 
+		/* create timer to countdown when to enable HDCP 2.x encryption instead of using HW interrupts */
+		rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hReadyToEnableEncryptionTimer,
+			(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr, BHDCPlib_P_Timer_eEncryptionEnable);
+		if (rc != BERR_SUCCESS)
+		{
+			BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hReadyToEnableEncryptionTimer));
+			rc = BERR_TRACE(rc);
+			goto done ;
+		}
+
+		/* TODO: Test HDCP 2.2 Compliance with Auto i2c disabled until Auth starts */
+#if 0
 		/* Enable/Configure AutoI2C settings for Hdcp2.x */
 		BHDM_AUTO_I2C_EnableReadChannel(hHandle->stDependencies.hHdm,
-							BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 1);
+			BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 1);
+#endif
 	}
 #if BHDCPLIB_HDR_SUPPORT
 	else {
@@ -1114,8 +1193,26 @@ done:
 			}
 
 			/* destroy timers */
-			BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hTimer, BHDCPlib_P_Timer_eAutoI2c);
-			BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
+			rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hTimer, BHDCPlib_P_Timer_eAutoI2c);
+			if (rc != BERR_SUCCESS)
+			{
+				BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAutoI2c));
+				rc = BERR_TRACE(rc);
+			}
+
+			rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
+			if (rc != BERR_SUCCESS)
+			{
+				BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAuthentication));
+				rc = BERR_TRACE(rc);
+			}
+
+			rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hReadyToEnableEncryptionTimer, BHDCPlib_P_Timer_eEncryptionEnable);
+			if (rc != BERR_SUCCESS)
+			{
+				BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eEncryptionEnable));
+				rc = BERR_TRACE(rc);
+			}
 
 #if BHDCPLIB_HDR_SUPPORT
 			if (pstDependencies->eCoreType == BHDCPlib_CoreType_eRx) {
@@ -1156,11 +1253,18 @@ BERR_Code BHDCPlib_P_Hdcp2x_Close(BHDCPlib_Handle hHDCPlib)
 		rc = BERR_TRACE(rc);
 	}
 
+	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, &hHDCPlib->hReadyToEnableEncryptionTimer, BHDCPlib_P_Timer_eEncryptionEnable);
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eEncryptionEnable));
+		rc = BERR_TRACE(rc);
+	}
+
 	if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx)
 	{
 		/* Disable AutoI2C settings for Hdcp2.x */
 		BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
-							BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 0);
+			BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 0);
 	}
 
 #if BHDCPLIB_HDR_SUPPORT
@@ -1297,6 +1401,8 @@ BERR_Code BHDCPlib_Hdcp2x_ProcessWatchDog(BHDCPlib_Handle hHDCPlib)
 	/* Reinitialize SAGE rpc handles */
 	/* Reset initial state */
 	hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eSagePlatformOpen;
+	hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+	hHDCPlib->uiSageSessionId = 0;
 
 	/* open platform */
 	rc = BSAGElib_Rai_Platform_Open(hHDCPlib->stDependencies.hSagelibClientHandle, BSAGE_PLATFORM_ID_HDCP22,
@@ -1327,6 +1433,9 @@ BERR_Code BHDCPlib_Hdcp2x_ProcessWatchDog(BHDCPlib_Handle hHDCPlib)
 		/* Clean up sage container before exiting */
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
 
+		/* Session Id */
+		hHDCPlib->sageContainer->basicIn[0] = hHDCPlib->uiSageSessionId;
+
 		hHDCPlib->sageContainer->blocks[0].data.ptr = hHDCPlib->stBinKey.pBuffer;
 		hHDCPlib->sageContainer->blocks[0].len = hHDCPlib->stBinKey.uiSize;
 
@@ -1334,8 +1443,9 @@ BERR_Code BHDCPlib_Hdcp2x_ProcessWatchDog(BHDCPlib_Handle hHDCPlib)
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
 				Hdcp22_CommandId_Rx_eSetBinFile, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
 
-		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-			(void *)hHDCPlib->hSagelibRpcModuleHandle, Hdcp22_CommandId_Rx_eSetBinFile, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x], sessionId [%d]",
+			(void *)hHDCPlib->hSagelibRpcModuleHandle, Hdcp22_CommandId_Rx_eSetBinFile,
+			hHDCPlib->uiLastAsyncId, hHDCPlib->uiSageSessionId));
 
 		if (rc != BERR_SUCCESS)
 		{
@@ -1377,6 +1487,7 @@ done:
 BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 {
 	BERR_Code rc = BERR_SUCCESS;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
 	bool bReauthReqPending = false;
 	uint8_t ucDeviceAttached = 0;
 
@@ -1479,6 +1590,10 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 	BKNI_Memset(&hHDCPlib->stReceiverIdListData,0, sizeof(BHDCPlib_ReceiverIdListData));
 
+	if (hHDCPlib->hReadyToEnableEncryptionTimer) {
+		BTMR_StopTimer(hHDCPlib->hReadyToEnableEncryptionTimer);
+	}
+
 	/* Disable HDCP2.x encryption bit */
 	rc = BHDM_HDCP_EnableHdcp2xEncryption(hHDCPlib->stDependencies.hHdm, false);
 	if (rc != BERR_SUCCESS)
@@ -1489,11 +1604,29 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 	}
 	hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
 
+	/* Enable/Configure AutoI2C settings for Hdcp2.x */
+	/* configure AutoI2c for polling every 1ms */
+	BHDM_AUTO_I2C_GetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+		stTriggerConfig.timerMs = 1 ;
+
+	BHDM_AUTO_I2C_SetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+	/* enable the AutoI2c Channel */
+	BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 1);
+
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
-					BHDCPlib_P_Hdcp2xRequest_eHost_StartAuthentication);
+		BHDCPlib_P_Hdcp2xRequest_eHost_StartAuthentication);
 	if (rc != BERR_SUCCESS)
 	{
 		BDBG_ERR(("Error [0x%x] starting Hdcp2.2 authentication", rc ));
+		/* disable the just enabled AutoI2c Channel */
+		BHDM_AUTO_I2C_EnableReadChannel(hHDCPlib->stDependencies.hHdm,
+			BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 0);
+
 		rc = BERR_TRACE(rc);
 		goto done;
 	}
@@ -1501,7 +1634,11 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 	/* start timer as a fail-safe mechanism to prevent system locked up */
 	if (hHDCPlib->hAuthenticationTimer) {
 		BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
-		BTMR_StartTimer(hHDCPlib->hAuthenticationTimer, BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT * 1000);
+		rc = BTMR_StartTimer(hHDCPlib->hAuthenticationTimer, BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT * 1000);
+		if (rc) {
+			rc = BERR_TRACE(rc);
+			goto done ;
+		}
 	}
 
 done:
@@ -1515,6 +1652,7 @@ done:
 BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 {
 	BERR_Code rc = BERR_SUCCESS;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
 
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_StopAuthentication);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
@@ -1564,6 +1702,15 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	}
 
 	/* Disable HDCP2.x encryption bit */
+	BHDM_AUTO_I2C_GetTriggerConfiguration(
+
+		hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+		stTriggerConfig.enable = 0 ;
+		stTriggerConfig.activePolling = false ;
+
+	BHDM_AUTO_I2C_SetTriggerConfiguration(
+		hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
 	rc = BHDM_HDCP_EnableHdcp2xEncryption(hHDCPlib->stDependencies.hHdm, false);
 	if (rc != BERR_SUCCESS)
 	{
@@ -1583,6 +1730,10 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 
 	if (hHDCPlib->hTimer) {
 		BTMR_StopTimer(hHDCPlib->hTimer);
+	}
+
+	if (hHDCPlib->hReadyToEnableEncryptionTimer) {
+		BTMR_StopTimer(hHDCPlib->hReadyToEnableEncryptionTimer);
 	}
 
 	/* Send request to stop authentication */
@@ -1636,8 +1787,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 
 		/* Wait for response */
 		waitForSageResponse = true;
-		BDBG_LOG(("Process request [%s] - current state [%s] - next state [%s] - ",
-			BHDCPlib_Hdcp2x_RequestToStr(eHdcp2xRequest),
+		BDBG_LOG(("%s: Process request [%s] - current state [%s] - next state [%s] - ",
+			coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_RequestToStr(eHdcp2xRequest),
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 		break;
 
@@ -1656,8 +1807,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 		/* Wait for response */
 		waitForSageResponse = true;
 
-		BDBG_LOG(("Process request [%s] - current state [%s] - next state [%s] - ",
-			BHDCPlib_Hdcp2x_RequestToStr(eHdcp2xRequest),
+		BDBG_LOG(("%s: Process request [%s] - current state [%s] - next state [%s] - ",
+			coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_RequestToStr(eHdcp2xRequest),
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 		break;
 
@@ -1677,8 +1828,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 		/* wait for response */
 		waitForSageResponse = true;
 
-		BDBG_LOG(("Process request [%s] - current state [%s] - next state [%s] - ",
-			BHDCPlib_Hdcp2x_RequestToStr(eHdcp2xRequest),
+		BDBG_LOG(("%s: Process request [%s] - current state [%s] - next state [%s] - ",
+			coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_RequestToStr(eHdcp2xRequest),
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
 		break;
@@ -1691,8 +1842,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 		case Hdcp22_IndicationType_eSecurityViolation:
 			BDBG_ERR(("**********************************************"));
 			BDBG_ERR(("Hdcp22 SAGE module security violation"));
-			BDBG_ERR(("- Code (0x%04x):  %s", hHDCPlib->stIndicationData.value,
-				BHDCPlib_Hdcp2x_P_SecurityViolationErrorToStr(hHDCPlib->stIndicationData.value)));
+			BDBG_ERR(("- [%s] - Code (0x%04x):  %s", coreText(hHDCPlib->stDependencies.eCoreType),
+				hHDCPlib->stIndicationData.value, BHDCPlib_Hdcp2x_P_SecurityViolationErrorToStr(hHDCPlib->stIndicationData.value)));
 			BDBG_ERR(("**********************************************"));
 			break;
 		case Hdcp22_IndicationType_eAuthenticationError:
@@ -1703,8 +1854,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 
 			BDBG_ERR(("**********************************************"));
 			BDBG_ERR(("Hdcp22 SAGE module authentication error"));
-			BDBG_ERR(("- Code (0x%04x):  %s", hHDCPlib->stIndicationData.value,
-				BHDCPlib_Hdcp2x_P_AuthenticationErrorToStr(hHDCPlib->stIndicationData.value)));
+			BDBG_ERR(("- [%s] - Code (0x%04x):  %s", coreText(hHDCPlib->stDependencies.eCoreType),
+				hHDCPlib->stIndicationData.value, BHDCPlib_Hdcp2x_P_AuthenticationErrorToStr(hHDCPlib->stIndicationData.value)));
 			BDBG_ERR(("**********************************************"));
 
 			switch (hHDCPlib->stIndicationData.value)
@@ -1759,9 +1910,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				break;
 			}
 
-			BDBG_LOG(("Indication Received [ContentStreamType] Update to [Type%d] - current state [%s] - next state [%s]",
-				hHDCPlib->eContentStreamTypeReceived, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState),
-				BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+			BDBG_LOG(("%s: Indication Received [ContentStreamType] Update to [Type%d] - SessionId [%d] - current state [%s] - next state [%s]",
+				coreText(hHDCPlib->stDependencies.eCoreType), hHDCPlib->eContentStreamTypeReceived, hHDCPlib->uiSageSessionId,
+				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
 			break;
 
@@ -1771,8 +1922,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 			/* Authentication process failed or link no longer authenticated */
 			case Hdcp22_AuthenticationStatus_eUnAuthenticated:
 				nextState = BHDCPlib_Hdcp2xState_eUnauthenticated;
-				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] - ",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+				BDBG_LOG(("%s: Indication Received [%s] - sessionId [%d] - current state [%s] - next state [%s] - ", coreText(hHDCPlib->stDependencies.eCoreType),
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 				hHDCPlib->hdcp2xLinkAuthenticated = false;
 
@@ -1781,16 +1932,32 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
 				}
 
+				if (hHDCPlib->hReadyToEnableEncryptionTimer) {
+					BTMR_StopTimer(hHDCPlib->hReadyToEnableEncryptionTimer);
+				}
+
 				/* Set event informing HDCP authentication result */
 				BKNI_SetEvent(hHDCPlib->hdcp2xIndicationEvent);
 				break;
+
+
+			case Hdcp22_AuthenticationStatus_eSessionKeyLoadedWithRepeater:
+				if (hHDCPlib->uiSageVersionId < SAGE_TX_HDCP22_API_VERSION_ID_02)
+				{
+					BDBG_ERR(("%s: Indication Received [%s] (Invalid for HDCP22_API_VERSION_ID 0x%08x) - sessionId [%d] - current state[%s] - next state [%s]",
+						coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+						hHDCPlib->uiSageVersionId, hHDCPlib->uiSageSessionId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState),
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+					break;
+				}
+				/* intentionally fall-through */
 
 			/* Session key loaded, now wait for OK_TO_ENC_EN intterupt before enable HDCP 2.2 encryption */
 			case Hdcp22_AuthenticationStatus_eSessionKeyLoaded:
 				if (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eAuthenticating) {
 					/* no state change */
-					BDBG_WRN(("Indication Received [%s] (Invalid) - current state[%s] - next state [%s]",
-						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+					BDBG_WRN(("%s: Indication Received [%s] (Invalid) - sessionId [%d] - current state[%s] - next state [%s]", coreText(hHDCPlib->stDependencies.eCoreType),
+						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 					break;
 				}
@@ -1808,54 +1975,49 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					BTMR_StopTimer(hHDCPlib->hTimer);
 				}
 
-				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] ",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+				/* Arm timer here if authenticating with receiver devices */
+				if (hHDCPlib->stIndicationData.value == Hdcp22_AuthenticationStatus_eSessionKeyLoaded)
+				{
+					if (hHDCPlib->hReadyToEnableEncryptionTimer) {
+						BTMR_StopTimer(hHDCPlib->hReadyToEnableEncryptionTimer);
+						rc = BTMR_StartTimer(hHDCPlib->hReadyToEnableEncryptionTimer, BHDCPLIB_HDCP2X_ENABLEENCRYPTION_TIMER * 1000);
+						if (rc) {
+							rc = BERR_TRACE(rc);
+							goto done ;
+						}
+					}
+				}
+
+				BDBG_LOG(("Indication Received [%s] - sessionId [%d] - current state [%s] - next state [%s] ",
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 				break;
 
-
-			case Hdcp22_AuthenticationStatus_eAutoI2CTimerUnavailable:
-				/* no state change */
-				BDBG_WRN(("****: Indication Received [%s] - Schedule timer to recheck in %dms - current state [%s] - next state [%s] ******",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER,
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-
-				if (hHDCPlib->hTimer) {
-					BTMR_StopTimer(hHDCPlib->hTimer);
-					BTMR_StartTimer(hHDCPlib->hTimer, BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER * 1000) ;
-				}
-				break;
-
-
-			/* Start HDCP 2.x authentication process. Make sure to disable SERIAL_KEY_RAM */
-			case Hdcp22_AuthenticationStatus_eReadyToDisableKeyRamSerial:
-#if BHDCPLIB_HDR_SUPPORT
-				/* no state change */
-				rc = BHDR_HDCP_EnableSerialKeyRam(hHDCPlib->stDependencies.hHdr, false);
-				if (rc != BERR_SUCCESS) {
-					BDBG_ERR(("Error disabling Serial Key Ram in HDMI RX HW - current state [%s] - next state  [%s]",
-						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-					rc = BERR_TRACE(rc) ;
+			case Hdcp22_AuthenticationStatus_eRASMSent:
+				if (hHDCPlib->uiSageVersionId < SAGE_TX_HDCP22_API_VERSION_ID_02)
+				{
+					BDBG_ERR(("%s: Indication Received [%s] (Invalid for HDCP22_API_VERSION_ID 0x%08x) - sessionId [%d] - current state[%s] - next state [%s]",
+						coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+						hHDCPlib->uiSageVersionId, hHDCPlib->uiSageSessionId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState),
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+					break;
 				}
 
-				nextState = BHDCPlib_Hdcp2xState_eAuthenticating;
-
-				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] ",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
-#endif
-
-				break;
-
-
-			/* Authentication process succeed */
-			case Hdcp22_AuthenticationStatus_eAuthenticated:
 				if (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eSessionKeyLoaded) {
-					/* No state change */
-					BDBG_WRN(("Indication Received [%s](Invalid) - currentState[%s] - next state [%s]",
-						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+					BDBG_WRN(("%s: Indication Received [%s](Invalid) - sessionId [%d] - currentState[%s] - next state [%s]",
+						coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 					break;
+				}
+
+				/* Arm ENC_EN Timer - has to be no earlier than 100ms after RASM and no earlier than 200ms after Eks */
+				if (hHDCPlib->hReadyToEnableEncryptionTimer) {
+					BTMR_StopTimer(hHDCPlib->hReadyToEnableEncryptionTimer);
+					rc = BTMR_StartTimer(hHDCPlib->hReadyToEnableEncryptionTimer, BHDCPLIB_HDCP2X_ENABLEENCRYPTION_TIMER * 1000);
+					if (rc) {
+						rc = BERR_TRACE(rc);
+						goto done ;
+					}
 				}
 
 				/* Request downstream info in connection topology */
@@ -1873,25 +2035,132 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					goto done;
 				}
 
+				BDBG_LOG(("Indication Received [%s] - sessionId [%d] - current state [%s] - next state [%s] ",
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+				break;
+
+			case Hdcp22_AuthenticationStatus_eAutoI2CTimerUnavailable:
+				/* no state change */
+				BDBG_WRN(("**** %s: Indication Received [%s] - sessionId [%d] - Schedule timer to recheck in %dms - current state [%s] - next state [%s] ******",
+					coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+					hHDCPlib->uiSageSessionId, BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState),
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+
+				if (hHDCPlib->hTimer) {
+					BTMR_StopTimer(hHDCPlib->hTimer);
+					rc = BTMR_StartTimer(hHDCPlib->hTimer, BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER * 1000) ;
+					if (rc) {
+						rc = BERR_TRACE(rc);
+						goto done ;
+					}
+				}
+				break;
+
+
+			/* Start HDCP 2.x authentication process. Make sure to disable SERIAL_KEY_RAM */
+			case Hdcp22_AuthenticationStatus_eReadyToDisableKeyRamSerial:
+#if BHDCPLIB_HDR_SUPPORT
+				/* no state change */
+				rc = BHDR_HDCP_EnableSerialKeyRam(hHDCPlib->stDependencies.hHdr, false);
+				if (rc != BERR_SUCCESS) {
+					BDBG_ERR(("Error disabling Serial Key Ram in HDMI RX HW - current state [%s] - next state  [%s]",
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+					rc = BERR_TRACE(rc) ;
+				}
+
+				nextState = BHDCPlib_Hdcp2xState_eAuthenticating;
+
+				/* save sessionId provided to host by SAGE - SAGE HDCP Rx manage the sessionId */
+				hHDCPlib->uiSageSessionId = hHDCPlib->stIndicationData.sessionId;
+
+				BDBG_LOG(("%s: Indication Received [%s] - sessionId[%d], current state [%s] - next state [%s] ", coreText(hHDCPlib->stDependencies.eCoreType),
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+#endif
+
+				break;
+
+
+			/* Authentication process succeed */
+			case Hdcp22_AuthenticationStatus_eAuthenticated:
+				if (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eSessionKeyLoaded) {
+					/* No state change */
+					BDBG_WRN(("%s: Indication Received [%s](Invalid) - sessionId [%d] - currentState[%s] - next state [%s]",
+						coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+					break;
+				}
+
+				/*******************************
+				* This portion of code is for backward compatibility with older SAGE releases - HDCP22_API version 1 and 0 in particular
+				* When authenticating with repeater devices, we have to re-arm the timer to ensure we don't miss enabling HDCP encryption
+				* since the previous armed timer might be expired before the authentication is completed.
+				********************************/
+				if (hHDCPlib->uiSageVersionId < SAGE_TX_HDCP22_API_VERSION_ID_02)
+				{
+					/* Arm ENC_EN Timer */
+					if (hHDCPlib->hReadyToEnableEncryptionTimer) {
+						BTMR_StopTimer(hHDCPlib->hReadyToEnableEncryptionTimer);
+						rc = BTMR_StartTimer(hHDCPlib->hReadyToEnableEncryptionTimer, BHDCPLIB_HDCP2X_ENABLEENCRYPTION_TIMER * 1000);
+						if (rc) {
+							rc = BERR_TRACE(rc);
+							goto done ;
+						}
+					}
+
+					/* Request downstream info in connection topology */
+					rc = BHDCPlib_P_Hdcp2x_SendSageCommand(hHDCPlib,
+								Hdcp22_CommandId_Tx_eGetReceiverIdlist);
+					if (rc != BERR_SUCCESS) {
+						rc = BERR_TRACE(rc);
+						goto done;
+					}
+
+					/* Wait for SAGE command to be completed */
+					rc = BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
+					if (rc != BERR_SUCCESS) {
+						rc = BERR_TRACE(rc);
+						goto done;
+					}
+				}
+
 				nextState = BHDCPlib_Hdcp2xState_eAuthenticated;
 				hHDCPlib->hdcp2xLinkAuthenticated = true;
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 
-				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] - ",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+				/* Update authentication status in HW */
+				rc = BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(hHDCPlib->stDependencies.hHdm, true);
+				if (rc != BERR_SUCCESS) {
+					BDBG_ERR(("Error updating Hdcp2x Authentication status in HDMI HW"));
+					BERR_TRACE(rc) ;
+				}
+
+				BDBG_LOG(("%s: Indication Received [%s] - sessionId [%d] - current state [%s] - next state [%s] - ", coreText(hHDCPlib->stDependencies.eCoreType),
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
-				/* fire event informing HDCP authentication result */
-				BKNI_SetEvent(hHDCPlib->hdcp2xIndicationEvent);
+				/* slow down auto polling rate */
+				{
+					BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
+					BHDM_AUTO_I2C_GetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+						BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+						stTriggerConfig.enable = 1 ;
+						stTriggerConfig.timerMs = 250 ;
+
+					BHDM_AUTO_I2C_SetTriggerConfiguration(hHDCPlib->stDependencies.hHdm,
+						BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+				}
 				break;
 
 
 			case Hdcp22_AuthenticationStatus_eRxAuthenticated:
 				if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx)
 				{
-					BDBG_ERR(("Rx: Indication Received [%s] (INVALID for Hdcp_Tx core) - current state [%s] - next state [%s]",
-						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
-						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+					BDBG_ERR(("%s: Indication Received [%s] (INVALID for Hdcp_Tx core) - sessionId [%d] - current state [%s] - next state [%s]",
+						coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+						hHDCPlib->uiSageSessionId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 					BERR_TRACE(BERR_INVALID_PARAMETER);
 					goto done;
 				}
@@ -1900,8 +2169,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				hHDCPlib->hdcp2xLinkAuthenticated = true;
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 
-				BDBG_LOG(("Rx: Indication Received [%s] - current state [%s] - next state [%s] - ",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+				BDBG_LOG(("%s: Indication Received [%s] - sessionId [%d] - current state [%s] - next state [%s] - ", coreText(hHDCPlib->stDependencies.eCoreType),
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
 				/* Stop authentication timer */
@@ -1916,9 +2185,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 			case Hdcp22_AuthenticationStatus_eRepeaterAuthenticated:
 				if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx)
 				{
-					BDBG_ERR(("Rx: Indication Received [%s] (INVALID for Hdcp_Tx core) - current state [%s] - next state [%s]",
-						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
-						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+					BDBG_ERR(("%s: Indication Received [%s] (INVALID for Hdcp_Tx core) - sessionId [%d] - current state [%s] - next state [%s]",
+						coreText(hHDCPlib->stDependencies.eCoreType), BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+						hHDCPlib->uiSageSessionId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 					BERR_TRACE(BERR_INVALID_PARAMETER);
 					goto done;
 				}
@@ -1927,8 +2196,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				&& (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eRepeaterAuthenticated))
 				{
 					/* No state change */
-					BDBG_WRN(("Indication Received [%s](Invalid) - currentState[%s] - next state [%s]",
-						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+					BDBG_WRN(("%s: Indication Received [%s](Invalid) - sessionId [%d] - currentState[%s] - next state [%s]", coreText(hHDCPlib->stDependencies.eCoreType),
+						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 					break;
 				}
@@ -1937,8 +2206,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				hHDCPlib->hdcp2xLinkAuthenticated = true;
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 
-				BDBG_LOG(("Rx: Indication Received [%s] - current state [%s] - next state [%s] - ",
-					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+				BDBG_LOG(("%s: Indication Received [%s] - sessionId [%d] - current state [%s] - next state [%s] - ", coreText(hHDCPlib->stDependencies.eCoreType),
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value), hHDCPlib->uiSageSessionId,
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
 				/* Stop authentication timer */
@@ -1951,7 +2220,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				break;
 
 			default:
-				BDBG_ERR(("Receive Indication from SAGE with invalid status - current state [%s] - next state [%s]",
+				BDBG_ERR(("%s: Receive Indication from SAGE with invalid status - current state [%s] - next state [%s]", coreText(hHDCPlib->stDependencies.eCoreType),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 
 				rc = BERR_OS_ERROR;
@@ -1963,7 +2232,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 			break;	/* done process indication type *AuthenticationStatus* */
 
 		default:
-			BDBG_ERR(("Invalid Indication callback (Id 0x%x) received from SAGE - current state [%s] - next state [%s]",
+			BDBG_ERR(("%s: Invalid Indication callback (Id 0x%x) received from SAGE - current state [%s] - next state [%s]", coreText(hHDCPlib->stDependencies.eCoreType),
 					hHDCPlib->stIndicationData.indication_id, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState),
 					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
 			rc = BERR_INVALID_PARAMETER;
@@ -2054,7 +2323,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				break;
 			}
 
-			BDBG_LOG(("Process SAGE Response, current state [%s] - next state [%s]",
+			BDBG_LOG(("%s: Process SAGE Response, current state [%s] - next state [%s]", coreText(hHDCPlib->stDependencies.eCoreType),
 				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
 		break;
@@ -2137,9 +2406,26 @@ BERR_Code BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
 	/* Make sure system is ready for the request */
+
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
+		{
+		/* slow down auto i2c polling */
+		BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
+		BHDM_AUTO_I2C_GetTriggerConfiguration(
+			hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+
+			stTriggerConfig.enable = 1 ;
+			stTriggerConfig.timerMs = 250 ;
+			BDBG_MSG(("Start Auto I2c HDCP 2.2 RxStatus Polling; Set Polling Interval: %d",
+				stTriggerConfig.timerMs)) ;
+
+		BHDM_AUTO_I2C_SetTriggerConfiguration(
+			hHDCPlib->stDependencies.hHdm, BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus,  &stTriggerConfig) ;
+		}
+		break ;
+
 	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
@@ -2444,6 +2730,13 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 			goto done;
 		}
 		else {
+			/* save Sage version Id */
+			if (hHDCPlib->uiModuleInitAsyncId == sageResponseData->async_id)
+			{
+				hHDCPlib->uiSageVersionId = hHDCPlib->sageContainer->basicOut[1];
+				BDBG_LOG(("** %s: HDCP22_API_VERSION_ID: 0x%08x **", coreText(hHDCPlib->stDependencies.eCoreType), hHDCPlib->uiSageVersionId));
+			}
+
 			eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_ProcessResponse;
 
 			/* reset initRetryCounter*/
@@ -2472,11 +2765,38 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageIndication(
 
 	BDBG_ENTER(BHDCPlib_Hdcp2x_ReceiveSageIndication);
 
-	BKNI_Memcpy(&hHDCPlib->stIndicationData, sageIndicationData, sizeof(BHDCPlib_SageIndicationData));
+	/* Sage TA version is up-to-date */
+	if (hHDCPlib->uiSageVersionId >= SAGE_TX_HDCP22_API_VERSION_ID_01)
+	{
+		BDBG_MSG(("%s: sessionId=%d, sessionIdFromSage=%d", coreText(hHDCPlib->stDependencies.eCoreType),
+			hHDCPlib->uiSageSessionId, sageIndicationData->sessionId));
+
+		/* if receive indication that does not match sessionId (between host & sage), ignore */
+		if ((hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx) &&
+			(sageIndicationData->sessionId != hHDCPlib->uiSageSessionId))
+		{
+			BDBG_LOG(("%s: Received Sage indication [id %d] with non-matching sessionId, expect:%d - received:%d, current State [%s].Ignore....",
+				coreText(hHDCPlib->stDependencies.eCoreType), sageIndicationData->indication_id, hHDCPlib->uiSageSessionId,
+				sageIndicationData->sessionId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			goto done;
+		}
+
+		BKNI_Memcpy(&hHDCPlib->stIndicationData, sageIndicationData, sizeof(BHDCPlib_SageIndicationData));
+	}
+	else {
+		BDBG_MSG(("%s: Using older hdcp sage TA - version [0x%08x]. Skip sessionID check",
+			coreText(hHDCPlib->stDependencies.eCoreType), hHDCPlib->uiSageVersionId));
+
+		hHDCPlib->stIndicationData.rpcRemoteHandle = sageIndicationData->rpcRemoteHandle;
+		hHDCPlib->stIndicationData.sessionId = hHDCPlib->uiSageSessionId = 0;
+		hHDCPlib->stIndicationData.indication_id = sageIndicationData->sessionId;
+		hHDCPlib->stIndicationData.value = sageIndicationData->value;
+	}
 
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
 							BHDCPlib_P_Hdcp2xRequest_eSage_ProcessIndication);
 
+done:
 	BDBG_LEAVE(BHDCPlib_Hdcp2x_ReceiveSageIndication);
 	return rc;
 
@@ -2733,6 +3053,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SetBinFile(
 		/* reconfigure SageContainer for next SAGE communications */
 		BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
 
+		/* Session Id */
+		hHDCPlib->sageContainer->basicIn[0] = hHDCPlib->uiSageSessionId;
+
 		hHDCPlib->sageContainer->blocks[0].data.ptr = binFileBuffer;
 		hHDCPlib->sageContainer->blocks[0].len = uiSize;
 
@@ -2740,8 +3063,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SetBinFile(
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
 				command, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
 
-		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-			(void *)(hHDCPlib->hSagelibRpcModuleHandle), command, hHDCPlib->uiLastAsyncId));
+		BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x], sessionId [%d]",
+			(void *)(hHDCPlib->hSagelibRpcModuleHandle), command,
+			hHDCPlib->uiLastAsyncId, hHDCPlib->uiSageSessionId));
 
 		if (rc != BERR_SUCCESS)
 		{
@@ -2835,6 +3159,7 @@ BERR_Code BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(
 		goto done;
 		break;
 	}
+
 
 	rc = BHDCPlib_P_Hdcp2x_ProcessRequest(hHDCPlib,
 					BHDCPlib_P_Hdcp2xRequest_eHost_GetReceiverIdList);
@@ -2941,6 +3266,8 @@ static BERR_Code BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(
 	hHDCPlib->sageContainer->basicIn[5] = stReceiverIdListData->hdcp1DeviceDownstream;
 	hHDCPlib->sageContainer->basicIn[6] = stReceiverIdListData->downstreamIsRepeater;
 
+	/* Session Id */
+	hHDCPlib->sageContainer->basicIn[7] = hHDCPlib->uiSageSessionId;
 
 	if (stReceiverIdListData->deviceCount + stReceiverIdListData->downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
 	{
@@ -2997,8 +3324,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_Rx_SendReceiverIdListToUpstreamDevice(
 	rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
 			Hdcp22_CommandId_Rx_eSendReceiverIdList, hHDCPlib->sageContainer, &hHDCPlib->uiLastAsyncId);
 
-	BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x]",
-		(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Rx_eSendReceiverIdList, hHDCPlib->uiLastAsyncId));
+	BDBG_MSG(("Sending command to SAGE: sageModuleHandle [0x%p], commandId [%d], assignedAsyncId [0x%x], sessionId [%d]",
+		(void *)(hHDCPlib->hSagelibRpcModuleHandle), Hdcp22_CommandId_Rx_eSendReceiverIdList,
+		hHDCPlib->uiLastAsyncId, hHDCPlib->uiSageSessionId));
 
 	if (rc != BERR_SUCCESS)
 	{

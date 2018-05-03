@@ -668,7 +668,7 @@ static const BHDM_P_InterruptCbTable BHDM_Interrupts_1[] = BHDM_P_CREATE_TABLE(_
 
 #define BHDM_P_CREATE_HAE_TABLE(instance) \
 { \
-	BHDM_HAE_INT_CB_DEF(instance, OK_TO_ENC_EN, eOK_TO_ENC_EN, true), \
+	BHDM_HAE_INT_CB_DEF(instance, OK_TO_ENC_EN, eOK_TO_ENC_EN, false), \
 	BHDM_HAE_INT_CB_DEF(instance, REAUTH_REQ_INTR, eREAUTH_REQ, true), \
 \
 }
@@ -1026,12 +1026,17 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
-
 #if BHDM_CONFIG_HAS_HDCP22
-	/* make sure polling Auto I2C channels are disabled; prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	bool  bActivePolling = false ;
+
+	/* disable Auto I2C polling if enabled; prior to the read */
+	bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	rc = BREG_I2C_Read(hHDMI->hI2cRegHandle, chipAddr, subAddr, pData, length) ;
@@ -1039,9 +1044,12 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-	BKNI_LeaveCriticalSection() ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	return rc;
@@ -1058,10 +1066,25 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 	BERR_Code rc = BERR_SUCCESS;
 
 #if BHDM_CONFIG_HAS_HDCP22
-	/* make sure polling Auto I2C channels are disabled; prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-	BKNI_LeaveCriticalSection() ;
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
+	bool  bActivePolling = false ;
+
+	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
+	{
+		if (hHDMI->AutoI2CChannel_TriggerConfig[eChannel].activePolling)
+		{
+			bActivePolling = true ;
+			break ;
+		}
+	}
+
+	/* disable Auto I2C polling if enabled prior to the read */
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	rc = BREG_I2C_ReadNoAddr(hHDMI->hI2cRegHandle, chipAddr, pData, length) ;
@@ -1069,9 +1092,12 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	BKNI_EnterCriticalSection() ;
-	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-	BKNI_LeaveCriticalSection() ;
+	if (bActivePolling)
+	{
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
 #endif
 
 	return rc;

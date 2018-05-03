@@ -2057,9 +2057,13 @@ static void nxserver_check_hdcp(struct b_session *session)
         goto done;
     }
 
+#if NEXUS_HAS_SECURITY
     rc = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, &hdcpStatus);
+    if (rc) BERR_TRACE(rc);
+#else
+    rc = NEXUS_NOT_SUPPORTED;
+#endif
     if (rc) {
-        BERR_TRACE(rc);
         BKNI_Memset(&hdcpStatus, 0, sizeof(hdcpStatus));
         hdcpStatus.hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
         hdcpStatus.hdcpError = NEXUS_HdmiOutputHdcpError_eMax; /* unknown, but non-zero */
@@ -2131,7 +2135,6 @@ static void nxserver_check_hdcp(struct b_session *session)
     switch (hdcpStatus.hdcpState) {
     case NEXUS_HdmiOutputHdcpState_eUnpowered :
     case NEXUS_HdmiOutputHdcpState_eEncryptionEnabled :
-    case NEXUS_HdmiOutputHdcpState_eLinkAuthenticated :
     case NEXUS_HdmiOutputHdcpState_eUnauthenticated :
     case NEXUS_HdmiOutputHdcpState_eR0LinkFailure :
     case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure :
@@ -2587,6 +2590,7 @@ static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_Hdm
 
 static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient_HdcpVersion version_select)
 {
+#if NEXUS_HAS_SECURITY
     NEXUS_Error rc;
     NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
     NEXUS_HdmiOutputHdcpVersion hdcp_version;
@@ -2627,7 +2631,10 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
             /* fall through for HDCP 1.x */
         }
     }
-
+#else
+    BSTD_UNUSED(session);
+    BSTD_UNUSED(version_select);
+#endif
 }
 #endif
 
@@ -4243,8 +4250,10 @@ NEXUS_Error NxClient_P_GetDisplayStatus(struct b_session *session, NxClient_Disp
 #if NEXUS_HAS_HDMI_OUTPUT
     if (session->hdmiOutput) {
         NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &pStatus->hdmi.status);
+#if NEXUS_HAS_SECURITY
         NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &pStatus->hdmi.hdcp);
         pStatus->hdmi.lastHdcpError = session->hdcp.lastHdcpError;
+#endif
     }
 #endif
     return 0;
@@ -4742,9 +4751,11 @@ static void standby_thread(void *context)
                     if (rc) rc = BERR_TRACE(rc);
 
                     NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
-                    hdmiOutputHdcpSettings.stateChangedCallback.callback = NULL;
-                    rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
-                    if (rc) rc = BERR_TRACE(rc);
+                    if (hdmiOutputHdcpSettings.stateChangedCallback.callback) {
+                        hdmiOutputHdcpSettings.stateChangedCallback.callback = NULL;
+                        rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
+                        if (rc) rc = BERR_TRACE(rc);
+                    }
                 }
 #endif
                 bserver_acquire_audio_mixers(session->main_audio, false);

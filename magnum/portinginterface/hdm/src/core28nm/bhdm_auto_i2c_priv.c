@@ -294,9 +294,9 @@ BERR_Code  BHDM_AUTO_I2C_P_FreeResources(const BHDM_Handle hHDMI)
 
 	/* disable any auto transactions that may be in progress */
 	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
-		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, 0) ;
+		BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0, 0) ;
 	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
-		BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus, 0) ;
+		BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus, 0) ;
 
 	for (i = 0; i < MAKE_AUTO_I2C_INTR_ENUM(LAST); i++)
 	{
@@ -356,7 +356,7 @@ BERR_Code BHDM_AUTO_I2C_P_EnableInterrupts(BHDM_Handle hHDMI)
 {
 	BERR_Code rc = BERR_SUCCESS ;
 
-	/* disable the auto i2c channels */
+	/* enable the auto i2c channels */
 	BKNI_EnterCriticalSection() ;
 		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
 	BKNI_LeaveCriticalSection() ;
@@ -378,8 +378,8 @@ BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI)
 }
 
 
-void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
-	const BHDM_AUTO_I2C_P_TriggerConfiguration *pstTriggerConfig
+void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	const BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig
 )
 {
 	BREG_Handle hRegister ;
@@ -407,23 +407,31 @@ void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(const BHDM_Handle hHDMI, BHDM_
 			| BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_CH0_CFG, ENABLE, pstTriggerConfig->enable) ;
 	BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_CH0_CFG + ulOffset + autoI2cChxOffset, Register) ;
 
+	BDBG_MSG(("AutoI2c %s %s  Polling Interval: %dms",
+		pstTriggerConfig->enable ? "ENABLE " : "DISABLE",
+		pstTriggerConfig->eMode == BHDM_AUTO_I2C_MODE_ePollScdcUpdate0 ? "SCDC Status" :
+		pstTriggerConfig->eMode == BHDM_AUTO_I2C_MODE_ePollHdcp22RxStatus ? "HDCP 2.2 RxStatus" :
+		pstTriggerConfig->eMode == BHDM_AUTO_I2C_MODE_eRead ? "Read" :
+		pstTriggerConfig->eMode == BHDM_AUTO_I2C_MODE_eWrite ? "Write" : "Unknown",
+		pstTriggerConfig->triggerSource == 1 ? pstTriggerConfig->timerMs : 0)) ;
+
 	hHDMI->AutoI2CChannel_TriggerConfig[eChannel] = *pstTriggerConfig ;
 
 }
 
 
-void BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
-	BHDM_AUTO_I2C_P_TriggerConfiguration *pstTriggerConfig
+void BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_CHANNEL eChannel,
+	BHDM_AUTO_I2C_TriggerConfiguration *pstTriggerConfig
 )
 {
-	BKNI_Memset(pstTriggerConfig, 0, sizeof(BHDM_AUTO_I2C_P_TriggerConfiguration)) ;
+	BKNI_Memset(pstTriggerConfig, 0, sizeof(BHDM_AUTO_I2C_TriggerConfiguration)) ;
 	*pstTriggerConfig = hHDMI->AutoI2CChannel_TriggerConfig[eChannel] ;
 }
 
 
 static BERR_Code BHDM_AUTO_I2C_P_SetBSCx_isr(const BHDM_Handle hHDMI,
 
-	BHDM_AUTO_I2C_P_CHANNEL eChannel,  /* channel: CH0, CH1, CH2, or CH3 */
+	BHDM_AUTO_I2C_CHANNEL eChannel,  /* channel: CH0, CH1, CH2, or CH3 */
 	BHDM_AUTO_I2C_P_CHANNEL_OFFSET eRegOffset, /* CHy_REGx it can range from 0 to 13 */
 	uint8_t writeEnable,
 	uint8_t bscxOffset, /* BSCx offset register can range from 0 to 21; Maps to BSCx registers*/
@@ -487,27 +495,27 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel_isr(const BHDM_Handle hHDMI,
 	uint16_t pollingInterval ;
 	uint8_t triggerSource ;
 	uint8_t eAutoI2cConfig ;
-	BHDM_AUTO_I2C_P_CHANNEL eChannel ;
-	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfig ;
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
 
 	switch (eAutoI2cMode)
 	{
 		case BHDM_AUTO_I2C_MODE_ePollScdcUpdate0 :
 			triggerSource = BHDM_AUTO_I2C_P_TRIGGER_BY_TIMER ; /* 1 = TIMER  */
 			pollingInterval = BHDM_AUTO_I2C_P_POLL_SCDC_UPDATE ;
-			eChannel = BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0 ;
+			eChannel = BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0 ;
 			break ;
 
 		case BHDM_AUTO_I2C_MODE_ePollHdcp22RxStatus :
 			triggerSource = BHDM_AUTO_I2C_P_TRIGGER_BY_TIMER ; /* 1 = TIMER  */
 			pollingInterval = BHDM_AUTO_I2C_P_POLL_HDCP_RX_STATUS ;
-			eChannel = BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus;
+			eChannel = BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus;
 			break ;
 
 		case BHDM_AUTO_I2C_MODE_eRead :
 			triggerSource = BHDM_AUTO_I2C_P_TRIGGER_BY_SW ; /* 0 = SOFTWARE */
 			pollingInterval = BHDM_AUTO_I2C_P_POLL_HDCP_RX_STATUS ;
-			eChannel = BHDM_AUTO_I2C_P_CHANNEL_eRead ;
+			eChannel = BHDM_AUTO_I2C_CHANNEL_eRead ;
 			break ;
 
 		case BHDM_AUTO_I2C_MODE_eWrite :
@@ -632,7 +640,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel_isr(const BHDM_Handle hHDMI,
 		goto done ;
 	}
 
-	BKNI_Memset(&stTriggerConfig, 0, sizeof(BHDM_AUTO_I2C_P_TriggerConfiguration )) ;
+	BKNI_Memset(&stTriggerConfig, 0, sizeof(BHDM_AUTO_I2C_TriggerConfiguration )) ;
 		stTriggerConfig.timerMs = pollingInterval ;
 		stTriggerConfig.bscxDataOffset = BHDM_AUTO_I2C_P_BSCx_DATA_OUT0 ;
 		stTriggerConfig.eMode = eAutoI2cMode ;
@@ -664,7 +672,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel(const BHDM_Handle hHDMI,
 
 
 BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel,
+	BHDM_AUTO_I2C_CHANNEL eChannel,
 	uint8_t slaveAddress, uint8_t slaveOffset,
 	uint8_t *buffer, uint8_t length)
 {
@@ -674,7 +682,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
 	uint8_t index ;
 
 	BHDM_AUTO_I2C_P_CHANNEL_OFFSET eAutoI2cConfig ;
-	BHDM_AUTO_I2C_P_TriggerConfiguration stTriggerConfig ;
+	BHDM_AUTO_I2C_TriggerConfiguration stTriggerConfig ;
 
 	ulOffset = hHDMI->ulOffset ;
 
@@ -817,7 +825,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
 
 
 
-	BKNI_Memset(&stTriggerConfig, 0, sizeof(BHDM_AUTO_I2C_P_TriggerConfiguration)) ;
+	BKNI_Memset(&stTriggerConfig, 0, sizeof(BHDM_AUTO_I2C_TriggerConfiguration)) ;
 		/*
 		    stTriggerConfig.timerMs and
 		    stTriggerConfig.bscxDataOffset
@@ -834,7 +842,7 @@ done:
 
 
 BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel,
+	BHDM_AUTO_I2C_CHANNEL eChannel,
 	uint8_t slaveAddress, uint8_t slaveOffset,
 	uint8_t *buffer, uint8_t length)
 {
@@ -848,10 +856,26 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel(const BHDM_Handle hHDMI,
 	return rc ;
 }
 
+bool BHDM_AUTO_I2C_P_IsPollingEnabled(const BHDM_Handle hHDMI)
+{
+	BHDM_AUTO_I2C_CHANNEL eChannel ;
+	bool bActivePolling = false ;
+
+	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
+	{
+		if (hHDMI->AutoI2CChannel_TriggerConfig[eChannel].activePolling)
+		{
+			bActivePolling = true ;
+			break ;
+		}
+	}
+
+	return bActivePolling ;
+}
 
 #if !B_REFSW_MINIMAL
 static void BHDM_AUTO_I2C_P_EnableChannelWrite(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel
+	BHDM_AUTO_I2C_CHANNEL eChannel
 )
 {
 	BREG_Handle hRegister ;
@@ -864,19 +888,19 @@ static void BHDM_AUTO_I2C_P_EnableChannelWrite(const BHDM_Handle hHDMI,
 		switch (hHDMI->AutoI2CChannel_Read)
 		{
 
-		case BHDM_AUTO_I2C_P_CHANNEL_ePollHdcp22RxStatus :
+		case BHDM_AUTO_I2C_CHANNEL_ePollHdcp22RxStatus :
 			Register |=  BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_START, CH0, 1) ;
 			break ;
 
-		case BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0 :
+		case BHDM_AUTO_I2C_CHANNEL_ePollScdcUpdate0 :
 			Register |=  BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_START, CH1, 1) ;
 			break ;
 
-		case BHDM_AUTO_I2C_P_CHANNEL_eRead :
+		case BHDM_AUTO_I2C_CHANNEL_eRead :
 			Register |=  BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_START, CH2, 1) ;
 			break ;
 
-		case BHDM_AUTO_I2C_P_CHANNEL_eWrite :
+		case BHDM_AUTO_I2C_CHANNEL_eWrite :
 			Register |=  BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_START, CH3, 1) ;
 			break ;
 		default :
@@ -888,7 +912,7 @@ static void BHDM_AUTO_I2C_P_EnableChannelWrite(const BHDM_Handle hHDMI,
 
 
 BERR_Code BHDM_AUTO_I2C_EnableWriteChannel(const BHDM_Handle hHDMI,
-	BHDM_AUTO_I2C_P_CHANNEL eChannel)
+	BHDM_AUTO_I2C_CHANNEL eChannel)
 {
 	/* TODO Debug for now */
 	BDBG_WRN(("Enable/Start Write transaction on Auto i2c Channel %d... ", eChannel)) ;
@@ -1017,14 +1041,14 @@ static void BHDM_AUTO_I2C_P_isr(
 	switch (parm2)
 	{
 	case MAKE_AUTO_I2C_INTR_ENUM(ScdcUpdate) :
-		BHDM_SCDC_P_ReadUpdate0Data_isr(hHDMI) ;
 		BDBG_MSG(("AUTO I2C SCDC Update")) ;
+		BHDM_SCDC_P_ReadUpdate0Data_isr(hHDMI) ;
 		BKNI_SetEvent_isr(hHDMI->AutoI2CEvent_ScdcUpdate) ;
 		break ;
 
 	case MAKE_AUTO_I2C_INTR_ENUM(Hdcp22RxStatus) :
-		BHDM_HDCP_P_ReadHdcp22RxStatus_isr(hHDMI) ;
 		BDBG_MSG(("AUTO I2C HDCP Rx Status Update")) ;
+		BHDM_HDCP_P_ReadHdcp22RxStatus_isr(hHDMI) ;
 		BKNI_SetEvent_isr(hHDMI->AutoI2CEvent_Hdcp22RxStatusUpdate) ;
 		break ;
 
