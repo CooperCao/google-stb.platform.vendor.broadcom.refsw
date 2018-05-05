@@ -2,89 +2,76 @@ bp3 is a tool which directly provisions a Broadcom chip by securely enabling/dis
 
 Source Location:
     BSEAV/tools/bp3
+
+Source dependency location:
     BSEAV/opensource/openssl
     BSEAV/opensource/zlib
     BSEAV/opensource/curl
+    BSEAV/opensource/cjson
 
-How to build:
-    make install (this builds bp3 app)
+1. TO BUILD BP3 HOST APP
+  BP3 host is a nexus app. There are four modes that nexus and nexus apps run: kernel or user mode, and with or without nxclient support for apps.
 
-How to run:
-	1) For example, to provision licenses 3 and 4 from broadcom internal test server,
-       on the set top box, type:
-       a) STB> cd ../nexus/bin
-       b) STB> nexus nxserver &
-       b) STB> ./nexus.client bp3 provision -portal http://bbs-test-rack1.broadcom.com:1800 -user < your username> -password <your password> -license 3,4
+  These modes can be configured via environment variables:
 
-    You should see sample following messages on the console:
-            00:00:00.035 bp3_curl: Server: http://bbs-test-rack1.broadcom.com:1800
-        *** 00:00:00.168 srai: _srai_get_heap: given heap (nil) is not valid. Consider using SRAI_SetSettings() with proper heap indexes.
-        *** 00:00:00.168 srai: _srai_init_settings: export secure heap is not configured
-            00:00:00.178 bp3_curl: License ID: 3
-            00:00:00.178 bp3_curl: License ID: 4
-            00:00:00.213 bp3_main: pBp3BinBuff 0x817ad000
-            00:00:00.213 bp3_main: bp3bin filePath ./bp3.bin
-            00:00:00.214 bp3_main: oem provisioning
-            00:00:00.214 bp3_main: pEncryptedCcfBuff 0x817ab000, size 912
-        *** 00:00:00.315 srai: BKNI_WaitForEvent TIMEOUT 100 ms
-        *** 00:00:00.415 srai: BKNI_WaitForEvent TIMEOUT 200 ms
-        *** 00:00:00.515 srai: BKNI_WaitForEvent TIMEOUT 300 ms
-        *** 00:00:00.615 srai: BKNI_WaitForEvent TIMEOUT 400 ms
-            00:00:00.617 bp3_module_host: bp3.bin size=720, log size=316, rc=0
-            00:00:00.617 bp3_module_host: CCF block 0 or header status 0
-            00:00:00.617 bp3_module_host: CCF block 1 status 0
-            00:00:00.617 bp3_module_host: CCF block 2 status 0
-            00:00:00.617 bp3_module_host: CCF block 3 status 0
-            00:00:00.617 bp3_module_host: CCF block 4 status 0
-        *** 00:00:00.625 kernelinterface: Event 0x156bd6b0 still in the group 0x156bcdb0, removing it
-        *** 00:00:00.625 kernelinterface: Event 0x156bd610 still in the group 0x156bcdb0, removing it
-        *** 00:00:00.625 kernelinterface: Event 0x156bd3e0 still in the group 0x156bcdb0, removing it
-        *** 00:00:00.625 kernelinterface: Event 0x156bd340 still in the group 0x156bcdb0, removing it
-        Provision succeeded
+  a). kernel mode, nxclient support:
+    export NEXUS_MODE=proxy
+    export NXCLIENT_SUPPORT=y
 
-    2) For example, to check what features has been provisioned on the set top box, type:
-        a) STB> ./nexus.client bp3 status
+  b). kernel mode, no nxclient support:
+    export NEXUS_MODE=proxy
+    unset NXCLIENT_SUPPORT
 
-    You should see sample following messages on the console:
-        Broadcom - H264/AVC
-        Broadcom - MPEG-2
-        Broadcom - H263
-        Broadcom - VC1
-        Broadcom - MPEG1
-        Broadcom - MPEG2DTV
-        Broadcom - MPEG-4 Part2/Divx
-        Broadcom - AVS
-        Broadcom - MPEG2 DSS PES
-        Broadcom - H264/SVC
-        Broadcom - H264/MVC
-        Broadcom - VP6
-        Broadcom - WebM/VP8
-        Broadcom - RV9
-        Broadcom - SPARK
-        Broadcom - H265 (HEVC)
-        Broadcom - VP9
-        Broadcom - HD Decode
-        Broadcom - 10-bit
-        Broadcom - 4Kp30
-        Broadcom - 4Kp60
-        Broadcom - Dolby Vision HDR
-        Broadcom - DPA
-        Broadcom - CA Multi2
-        Broadcom - CA DVB-CSA3
-        Broadcom - DAP
-        Broadcom - Dolby Digital
-        Broadcom - Dolby Digital Plus
-        Broadcom - Dolby AC4
-        Broadcom - Dolby TrueHD
-        Broadcom - Dolby MS10/11
-        Broadcom - Dolby MS12v1
-        Broadcom - Dolby MS12v2
-        Dolby - Post Proc: DAP
-        Dolby - Decode Dolby Digital
-        Dolby - Decode Dolby Digital Plus
-        Dolby - Decode AC4
-        Dolby - Decode TrueHD
-        Dolby - MS10/11
-        Dolby - MS12 v1
-        Dolby - MS12 v2
-        Dolby - Decode Dolby Vision
+  c). user mode, nxclient support:
+    unset NEXUS_MODE
+    export NXCLIENT_SUPPORT=y
+
+  d). user mode, no nxclient support:
+    unset NEXUS_MODE
+    unset NXCLIENT_SUPPORT
+
+  All modes require BP3 to be enabled:
+  export BP3_PROVISIONING=y
+
+  For example, to build bp3 host with kernel mode, nxclient support, export the following variables:
+    export NEXUS_MODE=proxy
+    export NXCLIENT_SUPPORT=y
+    export BP3_PROVISIONING=y
+
+  To start the build (using 7268 b0 as an example):
+    cd <refsw folder>
+    plat 97268 b0
+    cd BSEAV/tools/bp3
+    make -j install
+
+  Executables is generated in <refsw folder>/$(B_REFSW_OBJ_DIR)/nexus/bin, where B_REFSW_OBJ_DIR is an environment variable created by plat script.
+
+2. TO RUN BP3 APP
+  Because there are four build configurations, the steps to run bp3 host app are slightly different:
+
+  cd nexus/bin
+  # if nxclient support
+  ./nexus nxserver &
+  ./nexus.client bp3
+  # if no nxclient support
+  ./nexus bp3
+
+  The above command should print bp3 usage. The following examples assume nxclient support is enabled
+
+  1) To provision licenses 3 and 4 from broadcom bp3 portal site, on the set top box, type:
+        STB> ./nexus.client bp3 provision -portal https://bp3.broadcom.com -key e906224b7cca497da11c1433c7157d4f -license 3,4
+
+     You should see sample following messages on the console:
+            00:00:00.035 bp3_curl: Server: https://bp3.broadcom.com
+            ...
+
+  2) To check what features has been provisioned on the set top box, type:
+       STB> ./nexus.client bp3 status
+
+  3) To run bp3 in host service mode on the set top box, type:
+       STB> ./nexus.client bp3 service
+
+     You should see something like this in the console, among other nexus messages:
+     SSDP listening on <your boards ip>:80
+
+     Now you should be able to search and provision the STB from Provision Server remotely. The port # can be modifed in bp3_host.c, #define PORT 80.

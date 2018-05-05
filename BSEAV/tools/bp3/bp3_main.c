@@ -34,68 +34,41 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
+#include <stdio.h>
+#include <string.h>
 
-#ifndef BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_
-#define BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_
+#include "sage_app_utils.h"
+#include "bp3.h"
 
-#include "nexus_base_types.h"
+int _usage(const char *appName);
 
-int bp3_session_start(uint8_t **token, uint32_t *size);
-int bp3_get_otp_id (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow);
-int bp3_get_chip_info (
-    uint8_t  *pfeatureList,
-    uint32_t  featureListByteSize,
-    uint32_t *pProductID,
-    uint32_t *pSecurityCode,
-    uint32_t *pBondOption,
-    bool     *pProvisioned);
-
-
-int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize);
-int bp3_ta_start();
-void bp3_ta_end();
-
-
-typedef enum BP3_Otp_KeyType
+int main(int argc, char *argv[])
 {
-    BP3_OTPKeyTypeA,
-    BP3_OTPKeyTypeB,
-    BP3_OTPKeyTypeC,
-    BP3_OTPKeyTypeD,
-    BP3_OTPKeyTypeE,
-    BP3_OTPKeyTypeF,
-    BP3_OTPKeyTypeG,
-    BP3_OTPKeyTypeH,
-    BP3_OTPKeyMax
-} BP3_Otp_KeyType;
+  if (argc < 2)
+    return _usage(argv[0]);
 
-#define MAP_MEM_START \
-  int memfd = open("/dev/mem", O_RDONLY | O_SYNC); \
-  if (memfd > 0) { \
-    fcntl(memfd, F_SETFD, FD_CLOEXEC); \
-  } else { \
-    perror("open /dev/mem"); \
-    return 1; \
-  } \
-  uint32_t addr, aliged;\
-  size_t size; \
-  void *page;
+  int rc = 0;
 
+  /* Join Nexus: Initialize platform ... */
+  rc = SAGE_app_join_nexus();
+  if (rc) goto leave_nexus;
 
-#define MAP_MEM_END close(memfd);
+  if (strcmp(argv[1], "provision") == 0)
+    rc = provision(argc, argv);
+  else if (strcmp(argv[1], "status") == 0)
+    rc = status();
+  else if (strcmp(argv[1], "service") == 0)
+    rc = bp3_host(argc, argv);
+  else
+    _usage(argv[0]);
 
-#define MAP_START(reg, num) \
-  addr = BCHP_PHYSICAL_OFFSET + reg; \
-  aliged = addr & ~(sysconf(_SC_PAGE_SIZE) - 1); \
-  addr -= aliged; \
-  size = addr + num * sizeof(uint32_t); \
-  page = mmap(NULL, size, PROT_READ, MAP_PRIVATE, memfd, aliged); \
-  if (page == MAP_FAILED) { \
-    perror("mmap " #reg); \
-    return 1; \
-  }
-
-#define MAP_END munmap(page, size);
-
-#endif /* BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_ */
+leave:
+  /* Leave Nexus: Finalize platform ... */
+  SAGE_app_leave_nexus();
+leave_nexus:
+  if (rc)
+    fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
+  return rc;
+}

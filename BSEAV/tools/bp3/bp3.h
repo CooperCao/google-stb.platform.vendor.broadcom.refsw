@@ -34,68 +34,22 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
 
-#ifndef BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_
-#define BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_
+#ifndef BSEAV_TOOLS_BP3_BP3_H_
+#define BSEAV_TOOLS_BP3_BP3_H_
 
-#include "nexus_base_types.h"
+int status();
+int provision(int argc, char *argv[]); // in android, failed error can be obtained from get_output()
 
-int bp3_session_start(uint8_t **token, uint32_t *size);
-int bp3_get_otp_id (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow);
-int bp3_get_chip_info (
-    uint8_t  *pfeatureList,
-    uint32_t  featureListByteSize,
-    uint32_t *pProductID,
-    uint32_t *pSecurityCode,
-    uint32_t *pBondOption,
-    bool     *pProvisioned);
+int bp3_host(int argc, char **argv); // start bp3 host and block
+int start_bp3_host(int argc, char **argv); // start bp3 host in a thread and return
+void stop_bp3_host();
 
+#ifdef CATCH_OUTPUT
+char* get_output();
+void free_output();
+#endif
 
-int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize);
-int bp3_ta_start();
-void bp3_ta_end();
-
-
-typedef enum BP3_Otp_KeyType
-{
-    BP3_OTPKeyTypeA,
-    BP3_OTPKeyTypeB,
-    BP3_OTPKeyTypeC,
-    BP3_OTPKeyTypeD,
-    BP3_OTPKeyTypeE,
-    BP3_OTPKeyTypeF,
-    BP3_OTPKeyTypeG,
-    BP3_OTPKeyTypeH,
-    BP3_OTPKeyMax
-} BP3_Otp_KeyType;
-
-#define MAP_MEM_START \
-  int memfd = open("/dev/mem", O_RDONLY | O_SYNC); \
-  if (memfd > 0) { \
-    fcntl(memfd, F_SETFD, FD_CLOEXEC); \
-  } else { \
-    perror("open /dev/mem"); \
-    return 1; \
-  } \
-  uint32_t addr, aliged;\
-  size_t size; \
-  void *page;
-
-
-#define MAP_MEM_END close(memfd);
-
-#define MAP_START(reg, num) \
-  addr = BCHP_PHYSICAL_OFFSET + reg; \
-  aliged = addr & ~(sysconf(_SC_PAGE_SIZE) - 1); \
-  addr -= aliged; \
-  size = addr + num * sizeof(uint32_t); \
-  page = mmap(NULL, size, PROT_READ, MAP_PRIVATE, memfd, aliged); \
-  if (page == MAP_FAILED) { \
-    perror("mmap " #reg); \
-    return 1; \
-  }
-
-#define MAP_END munmap(page, size);
-
-#endif /* BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_SESSION_H_ */
+#endif /* BSEAV_TOOLS_BP3_BP3_H_ */
