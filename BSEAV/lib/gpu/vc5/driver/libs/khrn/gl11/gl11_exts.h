@@ -9,10 +9,13 @@
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_int_config.h"
 #include "../common/khrn_process.h"
-#define GL11_EXTS_STR_MAX_SIZE 642
+#define GL11_EXTS_STR_MAX_SIZE 679
 static inline char *gl11_exts_str(char *s_in)
 {
    char *s = s_in;
+   memcpy(s, "GL_EXT_EGL_image_external_wrap_modes", 36);
+   s += 36;
+   *(s++) = ' ';
    memcpy(s, "GL_EXT_debug_marker", 19);
    s += 19;
    *(s++) = ' ';
@@ -99,10 +102,11 @@ static inline char *gl11_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define GL11_MAX_EXTS 27
+#define GL11_MAX_EXTS 28
 static inline unsigned gl11_exts(const char **e_in)
 {
    const char **e = e_in;
+   *(e++) = "GL_EXT_EGL_image_external_wrap_modes";
    *(e++) = "GL_EXT_debug_marker";
    *(e++) = "GL_EXT_discard_framebuffer";
    *(e++) = "GL_EXT_multisampled_render_to_texture";

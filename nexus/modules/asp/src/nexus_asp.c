@@ -902,12 +902,14 @@ NEXUS_ModuleHandle NEXUS_AspModule_Init(
             envVarValue = NEXUS_atoi(pEnvVar);
             g_enableTcpTimestamps = envVarValue ? true:false;
         }
+#if !defined(NEXUS_MODE_driver) && !defined(NEXUS_BASE_OS_linuxkernel)
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableTcpSack")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);
             g_enableTcpSack = envVarValue ? true:false;
             if (g_enableTcpSack) system("echo 1 > /proc/sys/net/ipv4/tcp_sack"); else system("echo 0 > /proc/sys/net/ipv4/tcp_sack");
         }
+#endif
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableAch")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);

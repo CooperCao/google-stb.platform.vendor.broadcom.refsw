@@ -1,48 +1,54 @@
  /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ***************************************************************************/
 #include "nexus_platform_module.h"
 #if NEXUS_PLATFORM == 97231
 #include "priv/nexus_core.h"
+
+#if NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"
+#endif
 #include "nexus_platform_features.h"
 #include "nexus_platform_priv.h"
 #include "nexus_base.h"
-#include "nexus_input_band.h"
 #include "bchp_gio.h"
 #if NEXUS_PLATFORM_7231_3520
 #include "nexus_frontend_3520.h"
@@ -51,7 +57,9 @@
 #elif NEXUS_PLATFORM_7231_CSFF
 #include "nexus_frontend_31xx.h"
 #else /* NEXUS_PLATFORM_7231_EUSFF && CVBS boards */
+#if NEXUS_HAS_FRONTEND
 #include "nexus_frontend_3461.h"
+#endif
 #endif
 
 BDBG_MODULE(nexus_platform_frontend);
@@ -96,7 +104,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     if (NULL == pConfig->frontend[1])
     {
         BDBG_ERR(("Unable to open onboard 3520 demodulator "));
-        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;        
+        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;
     }
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[1], &userParams);
@@ -173,7 +181,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     {
         BDBG_ERR(("Unable to open first 3461 tuner/demodulator device"));
         rc = BERR_TRACE(BERR_NOT_INITIALIZED); goto done;
-    }    
+    }
     NEXUS_FrontendDevice_GetDefault3461Settings(&deviceSettings);
     deviceSettings.rfDaisyChain = NEXUS_3461RfDaisyChain_eInternalLna;
     deviceSettings.rfInput = NEXUS_3461TunerRfInput_eInternalLna;
@@ -205,7 +213,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
 #if NEXUS_PLATFORM_7231_EUSFF_V20
     deviceOpenSettings.isrNumber = 9;
-#endif  
+#endif
     deviceOpenSettings.i2cAddr = 0x6d;
 
     st3461Settings.device = NEXUS_FrontendDevice_Open3461(0, &deviceOpenSettings);
@@ -275,7 +283,7 @@ void NEXUS_Platform_UninitFrontend(void)
             pConfig->frontend[i] = NULL;
         }
     }
-    
+
     for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
     {
         if (deviceHandles[i])
@@ -309,9 +317,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_FrontendDevice_GetDefault31xxOpenSettings(&st31xxDeviceOpenSettings);
     st31xxDeviceOpenSettings.isrNumber = 9;
-    st31xxDeviceOpenSettings.i2cDevice = pConfig->i2c[1];    /* Onboard tuner/demod use BSC_M1.*/    
+    st31xxDeviceOpenSettings.i2cDevice = pConfig->i2c[1];    /* Onboard tuner/demod use BSC_M1.*/
     st31xxDeviceOpenSettings.i2cAddr = 0x66;
-    st31xxDeviceOpenSettings.outOfBand.ifFrequency = 0;     
+    st31xxDeviceOpenSettings.outOfBand.ifFrequency = 0;
     st31xxDeviceOpenSettings.inBandOpenDrain=true;
     st31xxDeviceOpenSettings.loadAP = true;
     st31xxDeviceOpenSettings.configureWatchdog = false;
@@ -335,7 +343,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     st31xxSettings.type = NEXUS_31xxChannelType_eInBand;
     st31xxSettings.channelNumber = 0;
 
-    pConfig->frontend[0] = NEXUS_Frontend_Open31xx(&st31xxSettings);    
+    pConfig->frontend[0] = NEXUS_Frontend_Open31xx(&st31xxSettings);
     if (NULL == pConfig->frontend[0])
     {
         BDBG_ERR(("Unable to open onboard 3109 tuner/demodulator 0"));
@@ -376,7 +384,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     st31xxSettings.type = NEXUS_31xxChannelType_eInBand;
     st31xxSettings.channelNumber = 0;
 
-    pConfig->frontend[1] = NEXUS_Frontend_Open31xx(&st31xxSettings);    
+    pConfig->frontend[1] = NEXUS_Frontend_Open31xx(&st31xxSettings);
     if (NULL == pConfig->frontend[1])
     {
         BDBG_ERR(("Unable to open onboard 3109 tuner/demodulator 1"));
@@ -404,7 +412,7 @@ void NEXUS_Platform_UninitFrontend(void)
         frontendCnt = NEXUS_MAX_FRONTENDS-1;
     else
         frontendCnt = NEXUS_MAX_FRONTENDS;
-    
+
     BKNI_Memset(deviceHandles, 0, sizeof(deviceHandles));
 
     for (i=0; i<frontendCnt; i++)
@@ -426,7 +434,7 @@ void NEXUS_Platform_UninitFrontend(void)
             pConfig->frontend[i] = NULL;
         }
     }
-    
+
     for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
     {
         if (deviceHandles[i])
@@ -455,14 +463,14 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_Frontend_GetDefault3128Settings(&st3128Settings);
 
     NEXUS_FrontendDevice_GetDefault3128OpenSettings(&st3128DeviceOpenSettings);
-    st3128DeviceOpenSettings.isrNumber = 9;    
-    st3128DeviceOpenSettings.i2cDevice = pConfig->i2c[1];    /* Onboard tuner/demod use BSC_M1.*/    
+    st3128DeviceOpenSettings.isrNumber = 9;
+    st3128DeviceOpenSettings.i2cDevice = pConfig->i2c[1];    /* Onboard tuner/demod use BSC_M1.*/
     st3128DeviceOpenSettings.i2cAddr = 0x6c ;
-    st3128DeviceOpenSettings.outOfBand.ifFrequency = 0;     
+    st3128DeviceOpenSettings.outOfBand.ifFrequency = 0;
     st3128DeviceOpenSettings.inBandOpenDrain=true;
     st3128DeviceOpenSettings.loadAP = true;
     st3128DeviceOpenSettings.configureWatchdog = false;
-#if (BCHP_VER >= BCHP_VER_B0)   
+#if (BCHP_VER >= BCHP_VER_B0)
     st3128DeviceOpenSettings.isMtsif = true;
 #else
     st3128DeviceOpenSettings.isMtsif = false;
@@ -485,7 +493,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     for (i=0; i < (results.chip.id & 0xF); i++)
     {
         BDBG_WRN(("Waiting for frontend(7231_FBTSFF) %d to initialize", i));
-        
+
         st3128Settings.channelNumber = i;
 
         pConfig->frontend[i] = NEXUS_Frontend_Open3128(&st3128Settings);
@@ -517,7 +525,7 @@ void NEXUS_Platform_UninitFrontend(void)
     for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
     {
         handleFound = false;
-        if (pConfig->frontend[i]){          
+        if (pConfig->frontend[i]){
             tempHandle = NEXUS_Frontend_GetDevice(pConfig->frontend[i]);
             for( j = 0; j<i; j++){
                 if(tempHandle == deviceHandles[j])
@@ -525,7 +533,7 @@ void NEXUS_Platform_UninitFrontend(void)
             }
             if(!handleFound)
                 deviceHandles[j] = tempHandle;
-             NEXUS_Frontend_Close(pConfig->frontend[i]);    
+             NEXUS_Frontend_Close(pConfig->frontend[i]);
              pConfig->frontend[i] = NULL;
         }
     }
@@ -543,6 +551,8 @@ void NEXUS_Platform_UninitFrontend(void)
 }
 
 #else /* SILICON VERIFICATION BOARD */
+
+#if NEXUS_HAS_FRONTEND
 
 #if NEXUS_NUM_FRONTEND_CARD_SLOTS
 static NEXUS_FrontendCardHandle g_frontendCards[NEXUS_NUM_FRONTEND_CARD_SLOTS];
@@ -604,7 +614,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif /* NEXUS_NUM_FRONTEND_CARD_SLOTS */
     return BERR_SUCCESS;
 }
-    
+
 void NEXUS_Platform_UninitFrontend(void)
 {
 #if NEXUS_NUM_FRONTEND_CARD_SLOTS
@@ -618,6 +628,17 @@ void NEXUS_Platform_UninitFrontend(void)
     return;
 }
 
+#else
+/* stubbed out */
+NEXUS_Error NEXUS_Platform_InitFrontend(void)
+{
+    return BERR_SUCCESS;
+}
+
+void NEXUS_Platform_UninitFrontend(void)
+{
+}
+#endif /* NEXUS_HAS_FRONTEND */
 #endif
 
 BTRC_MODULE(ChnChange_TuneStreamer, ENABLE);
@@ -638,7 +659,7 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
 
 NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     unsigned id /* platform assigned ID for this frontend. See NEXUS_FrontendUserParameters.id.
-                   See nexus_platform_frontend.c for ID assignment and/or see 
+                   See nexus_platform_frontend.c for ID assignment and/or see
                    nexus_platform_features.h for possible platform-specific macros.
                 */
     )
@@ -693,7 +714,7 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
 
 NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     unsigned id /* platform assigned ID for this frontend. See NEXUS_FrontendUserParameters.id.
-                   See nexus_platform_frontend.c for ID assignment and/or see 
+                   See nexus_platform_frontend.c for ID assignment and/or see
                    nexus_platform_features.h for possible platform-specific macros.
                 */
     )
@@ -704,5 +725,3 @@ NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     return NULL;
 }
 #endif
-
-

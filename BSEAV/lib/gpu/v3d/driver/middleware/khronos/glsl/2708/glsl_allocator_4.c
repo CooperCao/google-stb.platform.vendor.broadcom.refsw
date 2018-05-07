@@ -803,13 +803,11 @@ static uint32_t find_dest_acc(OP_T op)
 {
    uint32_t i;
    uint32_t timestamp;
-   uint32_t half;
    INSTR_STRUCT_T *instr;
    INSTR_CONFLICT_T conflict;
 
    timestamp = get_op_timestamp(op);
    instr = get_op_instr(op);
-   half = get_op_half(op);
 
    /* Check that we can use acc destination here (i.e. it won't conflict with pack mode) */
    /* TODO: dirty as we're choosing an arbitrary dest here */
@@ -829,14 +827,12 @@ static uint32_t find_dest_a(OP_T op)
 {
    uint32_t i;
    uint32_t timestamp;
-   uint32_t half;
    uint32_t result;
    int latest_timestamp;
    INSTR_STRUCT_T *instr;
    INSTR_CONFLICT_T conflict;
 
    timestamp = get_op_timestamp(op);
-   half = get_op_half(op);
    instr = get_op_instr(op);
 
    result = ~0;
@@ -863,14 +859,12 @@ static uint32_t find_dest_b(OP_T op)
 {
    uint32_t i;
    uint32_t timestamp;
-   uint32_t half;
    uint32_t result;
    int latest_timestamp;
    INSTR_STRUCT_T *instr;
    INSTR_CONFLICT_T conflict;
 
    timestamp = get_op_timestamp(op);
-   half = get_op_half(op);
    instr = get_op_instr(op);
 
    result = ~0;

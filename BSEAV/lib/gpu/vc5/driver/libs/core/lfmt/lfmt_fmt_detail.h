@@ -13,17 +13,14 @@ EXTERN_C_BEGIN
 
 struct gfx_lfmt_slot_detail
 {
-   uint32_t word; /* Which word is this slot in (0-based index) */
-   uint32_t shift; /* Bit offset within word that this slot starts at */
+   uint32_t shift; /* Bit offset that this slot starts at */
    uint32_t bit_width; /* Bit width of slot */
-   uint64_t mask; /* gfx_mask64(bit_width) << shift */
    GFX_LFMT_TYPE_T type;
    GFX_LFMT_CHANNELS_T channel;
 };
 
 typedef struct
 {
-   uint32_t bpw; /* Bits per word */
    uint32_t num_slots;
    struct gfx_lfmt_slot_detail slts[GFX_LFMT_MAX_SLOTS];
 } GFX_LFMT_FMT_DETAIL_T;

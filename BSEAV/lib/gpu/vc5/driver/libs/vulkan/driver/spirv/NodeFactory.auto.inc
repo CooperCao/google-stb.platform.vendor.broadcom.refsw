@@ -221,9 +221,9 @@ case spv::Core::OpTypeSampler:
 case spv::Core::OpTypeSampledImage:
    node = New<NodeTypeSampledImage>(extr); break;
 case spv::Core::OpTypeArray:
-   node = New<NodeTypeArray>(extr); break;
+   node = New<NodeTypeArray>(extr, false); break;
 case spv::Core::OpTypeRuntimeArray:
-   node = New<NodeTypeRuntimeArray>(extr); break;
+   node = New<NodeTypeArray>(extr, true); break;
 case spv::Core::OpTypeStruct:
    node = New<NodeTypeStruct>(extr); break;
 case spv::Core::OpTypePointer:
@@ -578,6 +578,12 @@ case spv::Core::OpNoLine:
    node = New<NodeNoLine>(extr); break;
 case spv::Core::OpModuleProcessed:
    node = New<NodeModuleProcessed>(extr); break;
+case spv::Core::OpExecutionModeId:
+   node = New<NodeExecutionModeId>(extr); break;
+case spv::Core::OpDecorateId:
+   node = New<NodeDecorateId>(extr); break;
+case spv::Core::OpGroupNonUniformElect:
+   node = New<NodeGroupNonUniformElect>(extr); break;
 default:
    log_warn("Unhandled SPIRV instruction (%u)", static_cast<uint32_t>(extr.GetOpCode())); break;
 }

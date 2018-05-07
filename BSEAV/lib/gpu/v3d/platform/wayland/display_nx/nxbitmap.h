@@ -3,9 +3,11 @@
  ******************************************************************************/
 #pragma once
 
-#include "EGL/egl.h"
+#include <EGL/begl_platform.h>
 #include "../helpers/extent.h"
 #include "display_nx/nxwindowinfo.h"
+#include "nexus_surface.h"
+#include <stdint.h>
 
 namespace wlpl
 {
@@ -13,12 +15,8 @@ namespace wlpl
 class NxBitmap
 {
 public:
-   NxBitmap() :
-         m_surface(NULL)
-   {
-   }
-
-   NxBitmap(NEXUS_HeapHandle heap, const BEGL_BufferSettings *settings);
+   NxBitmap(NEXUS_HeapHandle heap, uint32_t width, uint32_t height,
+         BEGL_BufferFormat format);
 
    ~NxBitmap();
 

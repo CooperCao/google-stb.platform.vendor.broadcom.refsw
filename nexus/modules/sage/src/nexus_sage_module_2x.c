@@ -1221,7 +1221,9 @@ NEXUS_Error NEXUS_Sage_P_GetEncKey(uint8_t *pKeyBuff, uint32_t inputKeyBufSize,u
     }
 
     pSageLogBuffer = NEXUS_Sage_P_OffsetToAddr(g_sage_module.logBufferHeapOffset);
+    if (!pSageLogBuffer) return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     pEncAESBuffer = NEXUS_Sage_P_OffsetToAddr(pSageLogBuffer->encAESKeyOffset);
+    if (!pEncAESBuffer) return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 
     *pOutKeySize = NEXUS_SAGE_RSA2048_SIZE;
     BKNI_Memcpy((void *)pKeyBuff, (void *)pEncAESBuffer, *pOutKeySize);

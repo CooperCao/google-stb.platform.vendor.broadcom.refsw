@@ -56,11 +56,11 @@ extern "C" void tzKernelSecondary();
 
 void tzKernelSecondary() {
 
-	System::initSecondaryCpu();
+    System::initSecondaryCpu();
 
-	ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
-	schedule();
+    schedule();
 }
 
 void tzKernelInit(const void *devTree) {
@@ -72,10 +72,10 @@ void tzKernelInit(const void *devTree) {
         return;
     }
 
-	System::init(devTree);
+    System::init(devTree);
 
-	// Enable user control of performance monitoring
-	ARCH_SPECIFIC_ENABLE_USER_PERF_MON;
+    // Enable user control of performance monitoring
+    ARCH_SPECIFIC_ENABLE_USER_PERF_MON;
 
     IDirectory *root = System::root();
     IFile *uappdFile;
@@ -102,20 +102,20 @@ void tzKernelInit(const void *devTree) {
     Scheduler::addTask(uappdTask);
     printf("%s: added uappd task to scheduler\n", __FUNCTION__);
 #ifdef TASK_LOG
-	TraceLog::init();
-	TraceLog::inval();
+    TraceLog::init();
+    TraceLog::inval();
 #endif
-	ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
-	schedule();
+    schedule();
 }
 
 void kernelHalt(const char *reason) {
-	ATA_LogErr("%s\n", reason);
-	while (true) {}
+    ATA_LogErr("%s\n", reason);
+    while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-	ATA_LogErr("Pure virtual function called !\n");
-	kernelHalt("Pure virtual function call");
+    ATA_LogErr("Pure virtual function called !\n");
+    kernelHalt("Pure virtual function call");
 }

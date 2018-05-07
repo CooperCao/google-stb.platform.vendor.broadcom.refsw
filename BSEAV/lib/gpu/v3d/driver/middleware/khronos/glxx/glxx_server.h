@@ -5,10 +5,10 @@
 
 #include "middleware/khronos/egl/egl_server.h"
 
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES/glext.h"
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <GLES/gl.h>
+#include <GLES/glext.h>
 #include "interface/khronos/egl/egl_client_context.h"
 
 #include "middleware/khronos/common/khrn_image.h"
@@ -694,7 +694,7 @@ typedef struct {
       GLclampf near;                                        // I
       GLclampf far;                                         // I
 
-      GLfloat internal[12];
+      reinterpret_cast_uf internal[12];
    } viewport;
 
    struct {

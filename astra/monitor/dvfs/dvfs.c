@@ -48,6 +48,7 @@ dvfs_system_t dvfs_system;
 dvfs_island_t dvfs_islands[MAX_NUM_ISLANDS];
 dvfs_core_t dvfs_cores[MAX_NUM_CORES];
 dvfs_cpu_t dvfs_cpus[MAX_NUM_CPUS];
+bool dvfs_active;
 
 static int cpu_pstate_update(void)
 {
@@ -55,7 +56,7 @@ static int cpu_pstate_update(void)
     uint32_t min_pstate = DVFS_PSTATE_INVALID;
     size_t i;
 
-    /* find the mininum of required pstates of all CPUs */
+    /* Find the mininum of required pstates of all CPUs */
     for (i = 0; i < pcore->num_cpus; i++) {
         dvfs_cpu_t *pcpu = &dvfs_cpus[i];
         uint32_t cpu_load = 0; /* in KHz */
@@ -135,14 +136,17 @@ int dvfs_init(uint32_t num_cpus)
     pcore->master_cpu = get_cpu_index();
     pcore->nsec_pstate = DVFS_PSTATE_INVALID;
 
-    /* Get current CPU pstate */
-    plat_cpu_pstate_get(&pcore->cur_pstate);
-
-    /* Get CPU pstate frequencies */
-    pcore->num_pstates = MAX_NUM_PSTATES;
-    plat_cpu_pstate_freqs(
-        &pcore->num_pstates,
-        pcore->pstate_freqs);
+    /*
+     * Before DVFS is active, DVFS operates passively
+     *
+     * - CPU pstate update is done externally;
+     * - DVFS is only allowed to read current CPU frequency values;
+     * - DVFS still needs to interacts with the secure world, presenting
+     *   a single pstate corresponding to current CPU frequency.
+     */
+    pcore->cur_pstate = 0;
+    pcore->num_pstates = 1;
+    plat_cpu_freq_get(&pcore->pstate_freqs[0]);
 
     for (i = 0; i < num_cpus; i++) {
         dvfs_cpu_t *pcpu = &dvfs_cpus[i];
@@ -153,6 +157,29 @@ int dvfs_init(uint32_t num_cpus)
     }
 
     INFO_MSG("DVFS init done");
+    return MON_OK;
+}
+
+int dvfs_activate(void)
+{
+    dvfs_core_t *pcore = &dvfs_cores[0];
+
+    /* Init platform DVFS */
+    plat_dvfs_init();
+
+    /* Get current CPU pstate */
+    plat_cpu_pstate_get(&pcore->cur_pstate);
+
+    /* Get CPU pstate frequencies */
+    pcore->num_pstates = MAX_NUM_PSTATES;
+    plat_cpu_pstate_freqs(
+        &pcore->num_pstates,
+        pcore->pstate_freqs);
+
+    /* Mark DVFS active */
+    dvfs_active = true;
+
+    INFO_MSG("DVFS late init done");
     return MON_OK;
 }
 
@@ -231,8 +258,9 @@ int dvfs_set_sec_load(uint32_t load)
 
     spin_lock(&psystem->lock);
 
-    /* Update CPU pstate on master CPU */
-    if (cpu_index == pcore->master_cpu)
+    /* Update CPU pstate on master CPU if DVFS is active */
+    if (dvfs_active &&
+        cpu_index == pcore->master_cpu)
         cpu_pstate_update();
 
     /* Remember secure CPU load in KHz */
@@ -248,6 +276,10 @@ int dvfs_get_sec_freq(uint32_t *pfreq)
     dvfs_core_t *pcore = &dvfs_cores[0];
 
     spin_lock(&psystem->lock);
+
+    /* Update current CPU frequency if DVFS is not active */
+    if (!dvfs_active)
+        plat_cpu_freq_get(&pcore->pstate_freqs[0]);
 
     /* Return (secure) CPU frequency in KHz */
     if (pfreq)

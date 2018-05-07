@@ -150,7 +150,17 @@ typedef struct
 } GFX_LFMT_TMU_TRANSLATION_T;
 
 /* These only pay attention to format.
- * false is returned on failure. */
+ *
+ * Only R/G/B/A/X channels are accepted. The QPU receives R,G,B,A from the TMU.
+ * If R/G/B/A is not present, the QPU receives 0/0/0/1 instead. If you have a
+ * depth/stencil format, translate the channels to R/G/B/A/X to specify the
+ * order in which you want the depth/stencil channels returned to the QPU. eg
+ * Passing gfx_lfmt_ds_to_red(gfx_lfmt_depth_to_x(lfmt)) will result in depth
+ * being discarded, stencil being returned to the QPU in the first slot, and
+ * 0,0,1 being returned in the remaining slots.
+ *
+ * gfx_lfmt_maybe_translate_tmu returns false on failure,
+ * gfx_lfmt_translate_tmu asserts. */
 extern bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
    GFX_LFMT_T lfmt
 #if !V3D_HAS_TMU_R32F_R16_SHAD
@@ -166,6 +176,11 @@ extern void gfx_lfmt_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
 
 /* Returns just format */
 extern GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb);
+
+/** VCD */
+
+extern v3d_attr_type_t gfx_lfmt_maybe_translate_attr_type(GFX_LFMT_T fmt, bool int_as_float);
+extern v3d_attr_type_t gfx_lfmt_translate_attr_type(GFX_LFMT_T fmt, bool int_as_float);
 
 /** TFU */
 

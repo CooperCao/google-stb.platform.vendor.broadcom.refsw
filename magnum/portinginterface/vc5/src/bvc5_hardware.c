@@ -47,6 +47,8 @@
 #endif
 
 #include "bmma_system.h"
+#include "bvc5_trace_jobs.h"
+
 
 BDBG_MODULE(BVC5_P);
 
@@ -421,13 +423,6 @@ void BVC5_P_UpdateShadowCounters(
                BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTR0 + ((BCHP_V3D_PCTR_PCTR1 - BCHP_V3D_PCTR_PCTR0) * c));
       }
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      if (hVC5->sPerfCounters.uiActiveBwCounters > 0)
-      {
-         hVC5->sPerfCounters.uiMemBwCntShadow += BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_GCA_MEM_BW_CNT);
-      }
-#endif
-
 #if V3D_VER_AT_LEAST(3,3,0,0)
       if (hVC5->sPerfCounters.bCountersActive)
       {
@@ -765,14 +760,6 @@ void BVC5_P_RestorePerfCounters(
 
          BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRE, hVC5->sPerfCounters.uiPCTREShadow);
       }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      if (hVC5->sPerfCounters.uiActiveBwCounters > 0)
-      {
-         /* Must also clear the bottom two bits to enable the counters */
-         BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_PM_CTRL, hVC5->sPerfCounters.uiGCAPMSelShadow & (~3));
-      }
-#endif
    }
 }
 
@@ -857,6 +844,9 @@ static void BVC5_P_SetupGMP_isr(
    uiMask = BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, OUTOMEM, 1) |
             BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FLDONE, 1) |
             BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FRDONE, 1) |
+#if V3D_VER_AT_LEAST(4,1,34,0)
+            BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, COMPUTE_DONE, 1) |
+#endif
             BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, GMPV, 1);
    BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_MSK_CLR, uiMask);
 
@@ -995,6 +985,9 @@ void BVC5_P_HardwareSetDefaultRegisterState(
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_CLR, 0xFFFFFFFF);
 
    uiIntMask = BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, OUTOMEM, 1) |
+#if V3D_VER_AT_LEAST(4,1,34,0)
+               BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, COMPUTE_DONE, 1) |
+#endif
                BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FLDONE, 1) |
                BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FRDONE, 1);
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_MSK_CLR, uiIntMask);
@@ -1015,7 +1008,6 @@ void BVC5_P_HardwareSetDefaultRegisterState(
       uiHighPriMask |= 1 << V3D_AXI_ID_L2C;
 #endif
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
       BVC5_P_WriteNonCoreRegister(hVC5,
          BCHP_V3D_GCA_CACHE_ID,
          BCHP_FIELD_DATA(V3D_GCA_CACHE_ID, CACHE_ID_EN, uiCachedMask));
@@ -1024,7 +1016,6 @@ void BVC5_P_HardwareSetDefaultRegisterState(
          BCHP_V3D_GCA_LOW_PRI_ID,
          BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, LOW_PRI_ID_EN, uiHighPriMask)
        | BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, INVERT_FUNCTION, 1));
-#endif
    }
 #endif
 
@@ -1033,7 +1024,6 @@ void BVC5_P_HardwareSetDefaultRegisterState(
    if (hVC5->sOpenParams.bNoBurstSplitting || !V3D_VER_AT_LEAST(3,3,1,0))
       BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_SCB_8_0_CMD_SPLIT_CTL,
                    BCHP_FIELD_DATA(V3D_GCA_SCB_8_0_CMD_SPLIT_CTL, SCB_8_0_CMD_SPLIT_DIS, 1));
-#endif
 
    /* Set up OVRTMUOUT mode (this doesn't work in v3dv3.2) */
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_MISCCFG, 1);
@@ -1042,6 +1032,7 @@ void BVC5_P_HardwareSetDefaultRegisterState(
    BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_AXICFG,
       (BCHP_V3D_HUB_CTL_AXICFG_QOS_DEFAULT << BCHP_V3D_HUB_CTL_AXICFG_QOS_SHIFT)
     | (BCHP_V3D_HUB_CTL_AXICFG_MAXLEN_DEFAULT << BCHP_V3D_HUB_CTL_AXICFG_MAXLEN_SHIFT) );
+#endif
 
    /* Turn on the MMU Cache once here as it is shared by all MMUs */
    BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_MMUC_CONTROL,
@@ -1068,6 +1059,17 @@ void BVC5_P_HardwareSetDefaultRegisterState(
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_RFC, 1);
       renderState->uiLastRFC = 0;
    }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   {
+      BVC5_P_ComputeState *computeState = BVC5_P_HardwareGetComputeState(hVC5, uiCoreIndex);
+
+      /* Clear the dispatch completed count to 0 */
+      BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_STATUS, BCHP_FIELD_DATA(V3D_CSD_0_STATUS, NUM_COMPLETED_DISPATCHES, 1));
+      computeState->uiLastNCD = 0;
+      computeState->uiLastSharedBlockSize = 0;
+   }
+#endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
    /* Enable & clear the cycle counters in the core and the TFU*/
@@ -1106,6 +1108,7 @@ static void BVC5_P_HardwareResetV3D(
    while (BREG_Read32(hVC5->hReg, BCHP_V3D_GCA_SAFE_SHUTDOWN_ACK) != 0x3)
       ;
 #endif
+
 #ifdef BCHP_V3D_TOP_GR_BRIDGE_REG_START
    BREG_Write32(hVC5->hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, ASSERT));
    BREG_Write32(hVC5->hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, DEASSERT));
@@ -1213,6 +1216,17 @@ bool BVC5_P_HardwareIsBinnerAvailable(
    return hVC5->psCoreStates[uiCoreIndex].sBinnerState.psJob == NULL;
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+bool BVC5_P_HardwareIsComputeAvailable(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+)
+{
+   uint32_t uiPos = hVC5->sOpenParams.bNoQueueAhead ? BVC5_P_HW_QUEUE_RUNNING : BVC5_P_HW_QUEUE_QUEUED;
+   return hVC5->psCoreStates[uiCoreIndex].sComputeState.psJob[uiPos] == NULL;
+}
+#endif
+
 bool BVC5_P_HardwareIsTFUAvailable(
    BVC5_Handle hVC5
 )
@@ -1229,6 +1243,9 @@ BVC5_P_HardwareUnitType BVC5_P_HardwareIsUnitStalled(
    BVC5_P_CoreState        *psCoreState   = &hVC5->psCoreStates[uiCoreIndex];
    BVC5_P_BinnerState      *psBinnerState = &psCoreState->sBinnerState;
    BVC5_P_RenderState      *psRenderState = &psCoreState->sRenderState;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_ComputeState     *psComputeState = &psCoreState->sComputeState;
+#endif
    BVC5_P_HardwareUnitType  uiUnits       = 0;
 
    if (!hVC5->sOpenParams.bUseStallDetection)
@@ -1287,6 +1304,17 @@ BVC5_P_HardwareUnitType BVC5_P_HardwareIsUnitStalled(
       psRenderState->uiPrevAddr = uiRenderAddr;
    }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   /* Is a compute job running? */
+   if (psComputeState->psJob[BVC5_P_HW_QUEUE_RUNNING] != NULL)
+   {
+      if (psComputeState->bPrevRunning)
+         uiUnits |= BVC5_P_HardwareUnit_eCompute;
+
+      psComputeState->bPrevRunning = true;
+   }
+#endif
+
    /* TODO: Can TFU stall?  How to detect? */
 
    return uiUnits;
@@ -1344,10 +1372,16 @@ void BVC5_P_HardwareResetWatchdog(
    BVC5_P_CoreState        *psCoreState   = &hVC5->psCoreStates[uiCoreIndex];
    BVC5_P_BinnerState      *psBinnerState = &psCoreState->sBinnerState;
    BVC5_P_RenderState      *psRenderState = &psCoreState->sRenderState;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_ComputeState     *psComputeState = &psCoreState->sComputeState;
+#endif
 
    psCoreState->uiTimeoutCount    = 0;
    psBinnerState->uiPrevAddr      = 0;
    psRenderState->uiPrevAddr      = 0;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   psComputeState->bPrevRunning   = false;
+#endif
 }
 
 static void BVC5_P_HardwareFakeInterrupt(
@@ -1385,7 +1419,8 @@ static bool BVC5_P_IssueBinJob(
    BVC5_BinBlockHandle    hBinBlock;
    BVC5_JobBin           *pBinJob;
    BVC5_P_InternalJob    *psRenderJob;
-   BVC5_P_BinnerState    *pBinnerState = &hVC5->psCoreStates[uiCoreIndex].sBinnerState;
+   BVC5_P_CoreState      *pCoreState = &hVC5->psCoreStates[uiCoreIndex];
+   BVC5_P_BinnerState    *pBinnerState = &pCoreState->sBinnerState;
 
    BDBG_ASSERT(psJob != NULL);
 
@@ -1424,6 +1459,14 @@ static bool BVC5_P_IssueBinJob(
          return false; /* Couldn't get enough bin memory */
 
       pBinnerState->psJob = psJob;
+
+      pCoreState->uiUnitsBusy |= BVC5_P_HardwareUnit_eBinner;
+      if (pBinJob->uiFlags & BVC5_NO_BIN_RENDER_OVERLAP)
+      {
+         /* Binner can't be blocked or we shouldn't be here. */
+         BDBG_ASSERT(!(pCoreState->uiUnitsBusyNoOverlap & ~BVC5_P_HardwareUnit_eBinner));
+         pCoreState->uiUnitsBusyNoOverlap = BVC5_P_HardwareUnit_eBinner;
+      }
 
       BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_JOBS_SUBMITTED, 1);
 
@@ -1488,7 +1531,7 @@ static bool BVC5_P_IssueBinJob(
                              BVC5_EventBegin, &sBinJobEventInfo, BVC5_P_GetEventTimestamp());
       }
 #endif
-
+      internal_trace_job_new_phase(psJob->pBase, psJob->uiClientId, BVC5_JobPhase_HwQueued);
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QEA, pBinJob->uiEnd[uiCoreIndex]);
 
       /* The binner is off and running, so now reallocate memory. */
@@ -1511,7 +1554,8 @@ static void BVC5_P_IssueRenderJob(
 )
 {
    BVC5_JobRender       *pRenderJob;
-   BVC5_P_RenderState   *pRenderState = &hVC5->psCoreStates[uiCoreIndex].sRenderState;
+   BVC5_P_CoreState     *pCoreState = &hVC5->psCoreStates[uiCoreIndex];
+   BVC5_P_RenderState   *pRenderState = &pCoreState->sRenderState;
    bool                  bUseRunning;
 
    BDBG_ASSERT(psJob != NULL);
@@ -1524,6 +1568,14 @@ static void BVC5_P_IssueRenderJob(
       pRenderState->psJob[BVC5_P_HW_QUEUE_RUNNING] = psJob;
    else
       pRenderState->psJob[BVC5_P_HW_QUEUE_QUEUED] = psJob;
+
+   pCoreState->uiUnitsBusy |= BVC5_P_HardwareUnit_eRenderer;
+   if (pRenderJob->uiFlags & BVC5_NO_BIN_RENDER_OVERLAP)
+   {
+      /* Renderer can't be blocked or we shouldn't be here. */
+      BDBG_ASSERT(!(pCoreState->uiUnitsBusyNoOverlap & ~BVC5_P_HardwareUnit_eRenderer));
+      pCoreState->uiUnitsBusyNoOverlap = BVC5_P_HardwareUnit_eRenderer;
+   }
 
    BDBG_ASSERT(pRenderJob->uiStart[uiCoreIndex] != 0);
    BDBG_ASSERT(pRenderJob->uiEnd[uiCoreIndex] != 0);
@@ -1627,6 +1679,7 @@ static void BVC5_P_IssueRenderJob(
       }
 #endif
 
+      internal_trace_job_new_phase(psJob->pBase, psJob->uiClientId, BVC5_JobPhase_HwQueued);
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QEA, pRenderJob->uiEnd[uiCoreIndex]);
    }
    else
@@ -1635,6 +1688,127 @@ static void BVC5_P_IssueRenderJob(
       BVC5_P_HardwareFakeInterrupt(hVC5, BCHP_FIELD_DATA(V3D_CTL_INT_STS_INT, FRDONE, 1));
    }
 }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#if !V3D_VER_AT_LEAST(4,2,2,0)
+#define BCHP_V3D_CSD_0_QUEUED_CFG5_THREADING_MASK                  BCHP_V3D_CSD_0_QUEUED_CFG5_FOUR_THREAD_MASK
+#define BCHP_V3D_CSD_0_QUEUED_CFG5_THREADING_SHIFT                 BCHP_V3D_CSD_0_QUEUED_CFG5_FOUR_THREAD_SHIFT
+#define BCHP_V3D_CSD_0_QUEUED_CFG5_THREADING_DEFAULT               BCHP_V3D_CSD_0_QUEUED_CFG5_FOUR_THREAD_DEFAULT
+#endif
+#endif
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+static bool BVC5_P_IssueComputeJob(
+   BVC5_Handle           hVC5,
+   uint32_t              uiCoreIndex,
+   BVC5_P_InternalJob   *psJob
+)
+{
+   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[uiCoreIndex];
+   BVC5_P_ComputeState *pComputeState = &pCoreState->sComputeState;
+   uint32_t uiSubjobIndex = psJob->jobData.sCompute.uiNumIssued;
+
+   bool bNoOverlap = psJob->jobData.sCompute.pSubjobs->uiSize != 0
+                  && psJob->jobData.sCompute.pSubjobs->pData[uiSubjobIndex].bNoOverlap;
+
+   bool bNoWork = psJob->bAbandon || psJob->jobData.sCompute.pSubjobs->uiSize == 0;
+
+   uint32_t uiCfg[7];
+
+   if (!bNoWork)
+   {
+      BVC5_JobComputeSubjob *pSubjob = psJob->jobData.sCompute.pSubjobs->pData + uiSubjobIndex;
+      uint32_t uiBatchesPerSg = ((uint32_t)pSubjob->uiWgsPerSg * (uint32_t)pSubjob->uiWgSize + 15) / 16;
+      uint64_t uiNumWgs = (uint64_t)pSubjob->uiNumWgs[0] * pSubjob->uiNumWgs[1] * pSubjob->uiNumWgs[2];
+      uint64_t uiNumWholeSgs = uiNumWgs / pSubjob->uiWgsPerSg;
+      uint32_t uiRemWgs = (uint32_t)(uiNumWgs - uiNumWholeSgs*pSubjob->uiWgsPerSg);
+      uint64_t uiNumBatches = uiBatchesPerSg*uiNumWholeSgs + (uiRemWgs * pSubjob->uiWgSize + 15)/16;
+      uint32_t uiOverlapWithPrev = 0;
+
+      /* If number of batches is this large it will far exceed the job time-out, so just fail now. */
+      if (uiNumBatches > 0xffffffff)
+      {
+         psJob->bAbandon = true;
+         if (pComputeState->psJob[BVC5_P_HW_QUEUE_RUNNING])
+            return false; /* Can't queue an abandoned job. */
+         bNoWork = true;
+      }
+      else
+      {
+         if (  pComputeState->uiLastSharedBlockSize == pSubjob->uiSharedBlockSize
+            || pComputeState->uiLastSharedBlockSize == 0
+            || pSubjob->uiSharedBlockSize == 0)
+         {
+            uiOverlapWithPrev = 1;
+         }
+         pComputeState->uiLastSharedBlockSize = pSubjob->uiSharedBlockSize;
+
+         uiCfg[0] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG0, WG_X_OFFSET, 0)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG0, NUM_WGS_X, pSubjob->uiNumWgs[0] & 0xffff); /* Uint_0_is_max(16) */
+         uiCfg[1] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG1, WG_Y_OFFSET, 0)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG1, NUM_WGS_Y, pSubjob->uiNumWgs[1] & 0xffff); /* Uint_0_is_max(16) */
+         uiCfg[2] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG2, WG_Z_OFFSET, 0)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG2, NUM_WGS_Z, pSubjob->uiNumWgs[2] & 0xffff); /* Uint_0_is_max(16) */
+         uiCfg[3] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG3, WG_SIZE, pSubjob->uiWgSize & 0xff)         /* Uint_0_is_max(16) */
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG3, WGS_PER_SG, pSubjob->uiWgsPerSg & 0xf)     /* Uint_0_is_max(16) */
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG3, BATCHES_PER_SG_M1, uiBatchesPerSg-1)       /* Uint_minus_1(8) */
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG3, MAX_SG_ID, pSubjob->uiMaxSgId)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG3, OVERLAP_WITH_PREV, uiOverlapWithPrev);
+         uiCfg[4] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG4, NUM_BATCHES_M1, uiNumBatches-1);           /* Uint_minus_1(4) */
+         uiCfg[5] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG5, THREADING, pSubjob->uiThreading)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG5, SINGLE_SEG, pSubjob->bSingleSeg)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG5, PROPAGATE_NANS, pSubjob->bPropagateNans)
+                  | BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG5, SHADER_ADDR, pSubjob->uiShaderAddr>>3);    /* Addr(shift=3) */
+         uiCfg[6] = BCHP_FIELD_DATA(V3D_CSD_0_QUEUED_CFG6, UNIFS_ADDR, pSubjob->uiUnifsAddr>>2);      /* Addr(shift=2) */
+      }
+   }
+
+   if (!pComputeState->psJob[BVC5_P_HW_QUEUE_RUNNING])
+      pComputeState->psJob[BVC5_P_HW_QUEUE_RUNNING] = psJob;
+   else
+   {
+      /* Can't queue an abandoned or empty job. */
+      BDBG_ASSERT(!bNoWork);
+
+      pComputeState->psJob[BVC5_P_HW_QUEUE_QUEUED] = psJob;
+      pComputeState->bQueuedNoOverlap = bNoOverlap;
+   }
+
+   pCoreState->uiUnitsBusy |= BVC5_P_HardwareUnit_eCompute;
+   if (bNoOverlap)
+   {
+      /* Compute can't be blocked or we shouldn't be here. */
+      BDBG_ASSERT(!(pCoreState->uiUnitsBusyNoOverlap & ~BVC5_P_HardwareUnit_eCompute));
+      pCoreState->uiUnitsBusyNoOverlap = BVC5_P_HardwareUnit_eCompute;
+   }
+
+   BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_COMPUTE_JOBS_SUBMITTED, 1);
+
+   if (hVC5->sPerfCounters.bCountersActive && hVC5->sPerfCounters.uiComputeIdleStartTime != 0)
+   {
+      uint64_t now;
+      BVC5_P_GetTime_isrsafe(&now);
+      hVC5->sPerfCounters.uiComputeCumIdleTime += now - hVC5->sPerfCounters.uiComputeIdleStartTime;
+      hVC5->sPerfCounters.uiComputeIdleStartTime = 0;
+   }
+
+   if (!bNoWork)
+   {
+      uint32_t i;
+      for (i = sizeof(uiCfg)/4; i-- != 0; )
+         BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_QUEUED_CFG0 + i*4, uiCfg[i]);
+
+      psJob->jobData.sCompute.uiNumIssued += 1;
+      return psJob->jobData.sCompute.uiNumIssued == psJob->jobData.sCompute.pSubjobs->uiSize;
+   }
+   else
+   {
+      __sync_add_and_fetch(&pComputeState->uiCapturedNCD, 1);
+      BVC5_P_HardwareFakeInterrupt(hVC5, BCHP_FIELD_DATA(V3D_CTL_INT_STS_INT, COMPUTE_DONE, 1));
+      return true;
+   }
+}
+#endif
 
 static void BVC5_P_IssueTFUJob(
    BVC5_Handle          hVC5,
@@ -1756,6 +1930,7 @@ static void BVC5_P_IssueTFUJob(
    }
 #endif
 
+   internal_trace_job_new_phase(psJob->pBase, psJob->uiClientId, BVC5_JobPhase_HwQueued);
    BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUICFG, uiVal);
 
    BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_TFU_JOBS_SUBMITTED, 1);
@@ -1889,7 +2064,9 @@ static void BVC5_P_HardwareCoreFlush(BVC5_Handle hVC5, uint32_t uiCoreIndex)
       if (uiFlushes & BVC5_CACHE_CLEAR_L1TC) uiVal |= BCHP_FIELD_DATA(V3D_CTL_SLCACTL, TVCCS0_to_TVCCS3, 0xF);
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_SLCACTL, uiVal);
 
+ #if !V3D_VER_AT_LEAST(3,3,0,0)
       BDBG_ASSERT(!(uiFlushes & BVC5_CACHE_CLEAR_SUC) || !BVC5_P_HardwareCacheClearBlocked(hVC5, uiCoreIndex));
+ #endif
    }
 
    /* Record on ready bin/render jobs that cache flushes have happened on this core. */
@@ -1998,6 +2175,18 @@ void BVC5_P_HardwareIssueRenderJob(
    BVC5_P_IssueRenderJob(hVC5, uiCoreIndex, pJob);
 }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+bool BVC5_P_HardwareIssueComputeJob(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex,
+   BVC5_P_InternalJob  *pJob
+)
+{
+   BVC5_P_HardwarePrepareForJob(hVC5, uiCoreIndex, pJob);
+   return BVC5_P_IssueComputeJob(hVC5, uiCoreIndex, pJob);
+}
+#endif
+
 void BVC5_P_HardwareIssueTFUJob(
    BVC5_Handle          hVC5,
    BVC5_P_InternalJob  *pJob
@@ -2051,39 +2240,57 @@ BVC5_P_RenderState *BVC5_P_HardwareGetRenderState(
    return &hVC5->psCoreStates[uiCoreIndex].sRenderState;
 }
 
-void BVC5_P_HardwareJobDone(
+#if V3D_VER_AT_LEAST(4,1,34,0)
+BVC5_P_ComputeState *BVC5_P_HardwareGetComputeState(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+)
+{
+   return &hVC5->psCoreStates[uiCoreIndex].sComputeState;
+}
+#endif
+
+bool BVC5_P_HardwareJobDone(
    BVC5_Handle             hVC5,
    uint32_t                uiCoreIndex,
    BVC5_P_HardwareUnitType eHardwareType
 )
 {
+   bool bJobCompleted = true;
+   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[uiCoreIndex];
+
    switch (eHardwareType)
    {
-   case BVC5_P_HardwareUnit_eBinner   :
+   case BVC5_P_HardwareUnit_eBinner:
       {
          BVC5_P_BinnerState *pState = BVC5_P_HardwareGetBinnerState(hVC5, uiCoreIndex);
          BVC5_P_InternalJob *pJob = pState->psJob;
 
          pState->psJob      = NULL;
-         pState->uiPrevAddr = 0;
+         pCoreState->uiUnitsBusy &= ~BVC5_P_HardwareUnit_eBinner;
+         pCoreState->uiUnitsBusyNoOverlap = 0;
 
          if (hVC5->sPerfCounters.bCountersActive)
             BVC5_P_GetTime_isrsafe(&hVC5->sPerfCounters.uiBinnerIdleStartTime);
 
+         internal_trace_job_new_phase(pJob->pBase, pJob->uiClientId, BVC5_JobPhase_HwDone);
          BVC5_P_HardwareCoreClean(hVC5, uiCoreIndex, pJob->pBase->uiCacheOps & BVC5_CACHE_CLEAN_ALL);
       }
       break;
 
-   case BVC5_P_HardwareUnit_eRenderer :
+   case BVC5_P_HardwareUnit_eRenderer:
       {
          BVC5_P_RenderState *pState = BVC5_P_HardwareGetRenderState(hVC5, uiCoreIndex);
          BVC5_P_InternalJob *pJob = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
+         BVC5_P_InternalJob *pQueuedJob = pState->psJob[BVC5_P_HW_QUEUE_QUEUED];
 
-         pState->psJob[BVC5_P_HW_QUEUE_RUNNING] = pState->psJob[BVC5_P_HW_QUEUE_QUEUED];
+         pState->psJob[BVC5_P_HW_QUEUE_RUNNING] = pQueuedJob;
          pState->psJob[BVC5_P_HW_QUEUE_QUEUED] = NULL;
-         pState->uiPrevAddr = 0;
 
-         if (pState->psJob[BVC5_P_HW_QUEUE_RUNNING] != NULL)
+         if (!pQueuedJob || !(((const BVC5_JobRender*)pQueuedJob->pBase)->uiFlags & BVC5_NO_BIN_RENDER_OVERLAP))
+            pCoreState->uiUnitsBusyNoOverlap = 0;
+
+         if (pQueuedJob != NULL)
          {
 #if !V3D_VER_AT_LEAST(3,3,0,0)
             BVC5_P_InternalJob   *pRunning = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
@@ -2100,17 +2307,56 @@ void BVC5_P_HardwareJobDone(
          }
          else
          {
+            pCoreState->uiUnitsBusy &= ~BVC5_P_HardwareUnit_eRenderer;
+
             if (hVC5->sPerfCounters.bCountersActive)
                BVC5_P_GetTime_isrsafe(&hVC5->sPerfCounters.uiRendererIdleStartTime);
          }
 
+         internal_trace_job_new_phase(pJob->pBase, pJob->uiClientId, BVC5_JobPhase_HwDone);
          BVC5_P_HardwareCoreClean(hVC5, uiCoreIndex, pJob->pBase->uiCacheOps & BVC5_CACHE_CLEAN_ALL);
       }
       break;
 
-   case BVC5_P_HardwareUnit_eTFU      :
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case BVC5_P_HardwareUnit_eCompute:
+      {
+         BVC5_P_ComputeState *pState = BVC5_P_HardwareGetComputeState(hVC5, uiCoreIndex);
+         BVC5_P_InternalJob *pJob = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
+         BVC5_P_InternalJob *pQueuedJob = pState->psJob[BVC5_P_HW_QUEUE_QUEUED];
+
+         if (!pState->bQueuedNoOverlap)
+            pCoreState->uiUnitsBusyNoOverlap = 0;
+
+         pState->psJob[BVC5_P_HW_QUEUE_RUNNING] = pQueuedJob;
+         pState->psJob[BVC5_P_HW_QUEUE_QUEUED] = NULL;
+         pState->bQueuedNoOverlap = false;
+
+         if (!pQueuedJob)
+         {
+            pCoreState->uiUnitsBusy &= ~BVC5_P_HardwareUnit_eCompute;
+
+            if (hVC5->sPerfCounters.bCountersActive)
+               BVC5_P_GetTime_isrsafe(&hVC5->sPerfCounters.uiComputeIdleStartTime);
+         }
+
+         BDBG_ASSERT(   pJob->jobData.sCompute.pSubjobs->uiSize == 0
+                     || pJob->jobData.sCompute.pSubjobs->uiSize > pJob->jobData.sCompute.uiNumDone);
+
+         bJobCompleted =   pJob->bAbandon
+                        || pJob->jobData.sCompute.pSubjobs->uiSize == 0
+                        || pJob->jobData.sCompute.pSubjobs->uiSize == ++pJob->jobData.sCompute.uiNumDone;
+         if (bJobCompleted)
+            BVC5_P_HardwareCoreClean(hVC5, uiCoreIndex, pJob->pBase->uiCacheOps & BVC5_CACHE_CLEAN_ALL);
+      }
+      break;
+#endif
+
+   case BVC5_P_HardwareUnit_eTFU:
       {
          BVC5_P_TFUState  *pState  = &hVC5->sTFUState;
+
+         internal_trace_job_new_phase(pState->psJob->pBase, pState->psJob->uiClientId, BVC5_JobPhase_HwDone);
 
          /* Clear out */
          pState->psJob = NULL;
@@ -2123,6 +2369,7 @@ void BVC5_P_HardwareJobDone(
 
    BVC5_P_HardwareResetWatchdog(hVC5, uiCoreIndex);
    BVC5_P_HardwarePowerRelease(hVC5, 1 << uiCoreIndex);
+   return bJobCompleted;
 }
 
 void BVC5_P_HardwareGetInfo(
@@ -2230,6 +2477,25 @@ void BVC5_P_InterruptHandler_isr(
          __sync_fetch_and_add(&renderState->uiCapturedRFC, 0xFF & (uiRFC - renderState->uiLastRFC));
          renderState->uiLastRFC = uiRFC;
       }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      /* Acknowledge compute done interrupt and capture count */
+      if (BCHP_GET_FIELD_DATA(uiIntStatus, V3D_CTL_INT_STS, INT_COMPUTE_DONE) != 0)
+      {
+         BVC5_P_ComputeState *computeState = BVC5_P_HardwareGetComputeState(hVC5, uiCoreIndex);
+         uint32_t            uiNCD;
+
+         BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_CLR, BCHP_FIELD_DATA(V3D_CTL_INT_CLR, INT_COMPUTE_DONE, 1));
+
+         /* This must be read after clearing interrupt condition. See above. */
+         uiNCD = BCHP_GET_FIELD_DATA(
+            BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_CSD_0_STATUS),
+            V3D_CSD_0_STATUS, NUM_COMPLETED_DISPATCHES);
+
+         __sync_fetch_and_add(&computeState->uiCapturedNCD, 0xff & (uiNCD - computeState->uiLastNCD));
+         computeState->uiLastNCD = uiNCD;
+      }
+#endif
 
       if (BCHP_GET_FIELD_DATA(uiIntStatus, V3D_CTL_INT_STS_INT, OUTOMEM) != 0)
       {
@@ -2401,6 +2667,18 @@ void BVC5_P_InterruptHandlerHub_isr(
    }
 }
 
+#if (BCHP_CHIP == 7211)
+void BVC5_P_InterruptCombinedHandler_isr(
+   void *pParm,
+   int   iValue
+)
+{
+   /* 7211 is a single IRQ line for both hub and v3d */
+   BVC5_P_InterruptHandler_isr(pParm, iValue);
+   BVC5_P_InterruptHandlerHub_isr(pParm, iValue);
+}
+#endif
+
 void BVC5_P_HardwareSupplyBinner(
    BVC5_Handle  hVC5,
    uint32_t     uiCoreIndex,
@@ -2462,12 +2740,19 @@ void BVC5_P_HardwareAbandonJobs(
    BVC5_P_CoreState     *psCoreState   = &hVC5->psCoreStates[uiCoreIndex];
    BVC5_P_BinnerState   *psBinnerState = &psCoreState->sBinnerState;
    BVC5_P_RenderState   *psRenderState = &psCoreState->sRenderState;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_ComputeState  *psComputeState = &psCoreState->sComputeState;
+#endif
    uint32_t              uiReason      = 0;
    uint32_t              uiHubReason   = 0;
 
    BVC5_P_InternalJob   *psBinJob           = psBinnerState->psJob;
    BVC5_P_InternalJob   *psRunningRenderJob = psRenderState->psJob[BVC5_P_HW_QUEUE_RUNNING];
    BVC5_P_InternalJob   *psQueuedRenderJob  = psRenderState->psJob[BVC5_P_HW_QUEUE_QUEUED];
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_InternalJob   *psRunningComputeJob = psComputeState->psJob[BVC5_P_HW_QUEUE_RUNNING];
+   BVC5_P_InternalJob   *psQueuedComputeJob = psComputeState->psJob[BVC5_P_HW_QUEUE_QUEUED];
+#endif
    BVC5_P_InternalJob   *psTFUJob           = hVC5->sTFUState.psJob;
 
    if (psBinJob != NULL)
@@ -2502,6 +2787,27 @@ void BVC5_P_HardwareAbandonJobs(
          __sync_add_and_fetch(&psRenderState->uiCapturedRFC, 1);
       }
    }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   if (psRunningComputeJob != NULL || psQueuedComputeJob != NULL)
+   {
+      uiReason |= BCHP_FIELD_DATA(V3D_CTL_INT_STS, INT_COMPUTE_DONE, 1);
+
+      if (psRunningComputeJob != NULL)
+      {
+         psRunningComputeJob->bAbandon = true;
+         psRunningComputeJob->eStatus  = BVC5_JobStatus_eERROR;
+         __sync_add_and_fetch(&psComputeState->uiCapturedNCD, 1);
+      }
+
+      if (psQueuedComputeJob != NULL)
+      {
+         psQueuedComputeJob->bAbandon  = true;
+         psQueuedComputeJob->eStatus   = BVC5_JobStatus_eERROR;
+         __sync_add_and_fetch(&psComputeState->uiCapturedNCD, 1);
+      }
+   }
+#endif
 
    if (psTFUJob != NULL)
    {
@@ -2595,6 +2901,7 @@ void BVC5_P_HardwareResume(
    }
 }
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 /* For workaround GFXH-1181 */
 bool BVC5_P_HardwareCacheClearBlocked(
    BVC5_Handle hVC5,
@@ -2632,53 +2939,7 @@ bool BVC5_P_HardwareCacheClearBlocked(
 
    return false;
 }
-
-bool BVC5_P_HardwareBinBlocked(
-   BVC5_Handle hVC5,
-   uint32_t    uiCoreIndex,
-   BVC5_P_InternalJob *pNewJob
-)
-{
-   uint32_t i;
-
-   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[uiCoreIndex];
-   BVC5_JobBin *pBin = (BVC5_JobBin *)pNewJob->pBase;
-
-   for (i = 0; i < BVC5_P_HW_QUEUE_STAGES; ++i)
-   {
-      BVC5_P_InternalJob *pRenderJob = pCoreState->sRenderState.psJob[i];
-      if (pRenderJob != NULL)
-      {
-         BVC5_JobRender *pRender = (BVC5_JobRender *)pRenderJob->pBase;
-
-         if ((pRender->uiFlags | pBin->uiFlags) & BVC5_NO_BIN_RENDER_OVERLAP)
-            return true;
-      }
-   }
-   return false;
-}
-
-bool BVC5_P_HardwareRenderBlocked(
-   BVC5_Handle hVC5,
-   uint32_t    uiCoreIndex,
-   BVC5_P_InternalJob *pNewJob
-)
-{
-   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[uiCoreIndex];
-   BVC5_JobRender *pRender = (BVC5_JobRender *)pNewJob->pBase;
-
-   {
-      BVC5_P_InternalJob *pBinJob = pCoreState->sBinnerState.psJob;
-      if (pBinJob != NULL)
-      {
-         BVC5_JobBin *pBin = (BVC5_JobBin *)pBinJob->pBase;
-
-         if ((pRender->uiFlags | pBin->uiFlags) & BVC5_NO_BIN_RENDER_OVERLAP)
-            return true;
-      }
-   }
-   return false;
-}
+#endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
 

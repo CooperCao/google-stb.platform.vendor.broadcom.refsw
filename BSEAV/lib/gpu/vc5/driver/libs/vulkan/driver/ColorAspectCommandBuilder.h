@@ -119,12 +119,12 @@ private:
 
    void CreateBinnerControlList(CmdBinRenderJobObj *brJob, v3d_barrier_flags syncFlags) override;
    void CreateRenderControlList(CmdBinRenderJobObj *brJob, const ControlList &gtl,
-                                v3d_barrier_flags syncFlags) override;
+                                v3d_barrier_flags syncFlags, bool allowEarlyDSClear) override;
 
    // These helpers have conditional implementations based on the HW version
    // They insert commands directly into the current "open" control list
-   void AddTileListLoads() override;
-   void AddTileListStores() override;
+   void AddTileListLoads(bool *allowEarlyDSClear) override;
+   void AddTileListStores(bool *allowEarlyDSClear) override;
 
    void InsertRenderTargetCfg();
 

@@ -282,13 +282,13 @@
  ************************************************************************/
 
 /* SDK version - raw and decoded */
-#define SDK_VERSION         0xff014500
-#define SDK_VERSION_DECODED "release 1.45"
+#define SDK_VERSION         0xff014700
+#define SDK_VERSION_DECODED "release 1.47"
 
 /* Tools used for buildind the SDK */
 #define FP_GCC_VERSION      "2.7.9.1"
-#define FP_BINUTILS_VERSION "7.1"
-#define RALL_VERSION        "2.5.2"
+#define FP_BINUTILS_VERSION "7.3"
+#define RALL_VERSION        "2.5.4"
 
 
 /************************************************************************
@@ -296,7 +296,17 @@
  ************************************************************************/
 
 /* Are FATAL/DEBUG exceptions fully handled or should only stubs be provided? */
-#define EXCEPTIONS_HANDLING 1
+#if 1
+#  define EXCEPTIONS_HANDLING 1
+#endif
+
+/*Is there an IPH handler installed - Disabled by default - EXCEPTIONS HANDLING is
+ a pre-requsite */
+#if defined (EXCEPTIONS_HANDLING)
+#  if 0
+#    define LOCAL_IPH_SUPPORT 1
+#  endif
+#endif
 
 /* Interrupt vector version */
 #define IRQ_VECTOR_VERSION 3
@@ -336,6 +346,13 @@
 #if 0
 #  define MULTI_STAGE_BOOT 1
 #endif
+
+/* The reset vector will zero memories content between boundaries
+ * defined by linker-script provided symbol values. */
+#if 0
+#  define RUNTIME_ZERO_MEMORIES 1
+#endif
+#define RUNTIME_ZERO_MEMORIES_NUM_AREAS 0
 
 /* At runtime init, read the entries from the __loadtable_zero and
  * __loadtable_copy tables and appropriately zero/copy memory regions. */
@@ -552,7 +569,7 @@
 #    undef TARGET_PRINT_INLINE
 #  endif
 #else
-#  if 1
+#  if 0
 #    define TARGET_PRINT_INLINE 1
 #  endif
 #endif
@@ -644,6 +661,17 @@
 #  endif
 #endif
 
+/* FPOS support for profiling */
+#if defined(FPOS_PROFILING_SUPPORT)
+#  if FPOS_PROFILING_SUPPORT == 0
+#    undef FPOS_PROFILING_SUPPORT
+#  endif
+#else
+#  if 0
+#    define FPOS_PROFILING_SUPPORT 1
+#  endif
+#endif
+
 
 /************************************************************************
  * SDK features selection - context switching options
@@ -725,5 +753,13 @@
 #  define __FPM1017_ONWARDS__   1
 #endif
 
+/************************************************************************
+ * If using the ROM shared library scheme, include any necessary header
+ * files for the ROM build here.
+************************************************************************/
+#if 0
+#  define SHLIB_ROM_SUPPORT 1
+#  include "fp_sdk_rom_includes.h"
+#endif
 
 #endif /* _FP_SDK_CONFIG_H_ */

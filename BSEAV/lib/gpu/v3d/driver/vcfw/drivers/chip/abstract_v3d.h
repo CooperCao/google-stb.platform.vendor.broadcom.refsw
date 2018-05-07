@@ -3,8 +3,6 @@
  ******************************************************************************/
 #pragma once
 
-EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void);
-
 #define v3d_read(REG) (0)
 #define v3d_write(REG, X) (void)(X)
 

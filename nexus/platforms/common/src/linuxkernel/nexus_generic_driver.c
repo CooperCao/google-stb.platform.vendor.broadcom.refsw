@@ -1012,14 +1012,7 @@ nexus_driver_disable_client_lock(struct nexus_driver_client_state *client)
         client->pid = 0;
         BDBG_MSG(("client disconnect: %p(%s)", client, client->process_name));
         if (client == nexus_driver_state.server) {
-            /* If open_count is non-zero and active is false, then we are in the middle of a clean NEXUS_Platform_Uninit and
-            should not add the server to the cleanup_clients list.
-            Otherwise, this was deferred with uninit_pending; we must clean the server as a client. */
-            if (nexus_driver_state.open_count && !nexus_driver_state.active) {
-                BLST_S_INSERT_HEAD(&nexus_driver_state.allowed_clients, client, link);
-                client->list = nexus_driver_allowed_clients_list;
-            }
-            else {
+            {
                 /* insert server at end of cleanup_clients list. equivalent to BLST_S_INSERT_TAIL. */
                 struct nexus_driver_client_state *c;
                 for (c = BLST_S_FIRST(&nexus_driver_state.cleanup_clients); c; ) {
@@ -1130,7 +1123,7 @@ nexus_driver_create_client_lock(const NEXUS_Certificate *pCertificate, const NEX
     }
 
     /* if dynamic is true, it can be deleted after it is closed */
-    client->dynamic = (pCertificate == NULL);
+    client->dynamic = (pConfig == &nexus_driver_state.serverSettings.unauthenticatedConfiguration);
 
     BLST_S_INSERT_HEAD(&nexus_driver_state.allowed_clients, client, link);
     client->list = nexus_driver_allowed_clients_list;
@@ -1235,7 +1228,7 @@ nexus_driver_process_cleanup_queue_lock(void)
             b_objdb_module_uninit_client_callbacks(&header->objdb, &client->client);
         }
 
-        if (!client->refcnt) {
+        if (!client->refcnt || (nexus_driver_state.uninit_in_progress && client == nexus_driver_state.server)) {
             /* finalize */
             BDBG_ASSERT(client->list == nexus_driver_cleanup_clients_list);
             BLST_S_REMOVE(&nexus_driver_state.cleanup_clients, client, nexus_driver_client_state, link);
@@ -1423,7 +1416,9 @@ static void nexus_driver_server_preuninit_lock(void)
     while (1) {
         unsigned refcnt = 0;
         for (client = BLST_S_FIRST(&nexus_driver_state.cleanup_clients); client; client = BLST_S_NEXT(client, link)) {
-            refcnt += client->refcnt;
+            if (client != nexus_driver_state.server) {
+                refcnt += client->refcnt;
+            }
         }
         if (!refcnt) break;
         UNLOCK();

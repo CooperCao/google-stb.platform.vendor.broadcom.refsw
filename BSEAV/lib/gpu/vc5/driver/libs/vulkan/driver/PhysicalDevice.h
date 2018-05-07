@@ -148,31 +148,31 @@ public:
 
 #endif // VK_USE_PLATFORM_WIN32_KHR
 
-   void GetPhysicalDeviceFeatures2KHR(
-      VkPhysicalDeviceFeatures2KHR  *pFeatures) noexcept;
+   void GetPhysicalDeviceFeatures2(
+      VkPhysicalDeviceFeatures2  *pFeatures) noexcept;
 
-   void GetPhysicalDeviceProperties2KHR(
-      VkPhysicalDeviceProperties2KHR   *pProperties) noexcept;
+   void GetPhysicalDeviceProperties2(
+      VkPhysicalDeviceProperties2   *pProperties) noexcept;
 
-   void GetPhysicalDeviceFormatProperties2KHR(
+   void GetPhysicalDeviceFormatProperties2(
       VkFormat                 format,
-      VkFormatProperties2KHR  *pFormatProperties) noexcept;
+      VkFormatProperties2  *pFormatProperties) noexcept;
 
-   VkResult GetPhysicalDeviceImageFormatProperties2KHR(
-      const                          VkPhysicalDeviceImageFormatInfo2KHR*pImageFormatInfo,
-      VkImageFormatProperties2KHR   *pImageFormatProperties) noexcept;
+   VkResult GetPhysicalDeviceImageFormatProperties2(
+      const                       VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+      VkImageFormatProperties2   *pImageFormatProperties) noexcept;
 
-   void GetPhysicalDeviceQueueFamilyProperties2KHR(
-      uint32_t                      *pQueueFamilyPropertyCount,
-      VkQueueFamilyProperties2KHR   *pQueueFamilyProperties) noexcept;
+   void GetPhysicalDeviceQueueFamilyProperties2(
+      uint32_t                   *pQueueFamilyPropertyCount,
+      VkQueueFamilyProperties2   *pQueueFamilyProperties) noexcept;
 
-   void GetPhysicalDeviceMemoryProperties2KHR(
-      VkPhysicalDeviceMemoryProperties2KHR   *pMemoryProperties) noexcept;
+   void GetPhysicalDeviceMemoryProperties2(
+      VkPhysicalDeviceMemoryProperties2   *pMemoryProperties) noexcept;
 
-   void GetPhysicalDeviceSparseImageFormatProperties2KHR(
-      const                                VkPhysicalDeviceSparseImageFormatInfo2KHR*pFormatInfo,
-      uint32_t                            *pPropertyCount,
-      VkSparseImageFormatProperties2KHR   *pProperties) noexcept;
+   void GetPhysicalDeviceSparseImageFormatProperties2(
+      const                             VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
+      uint32_t                         *pPropertyCount,
+      VkSparseImageFormatProperties2   *pProperties) noexcept;
 
    // Implementation specific from this point on
 public:

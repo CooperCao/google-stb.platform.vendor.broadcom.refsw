@@ -508,7 +508,7 @@ void glsl_symbol_construct_interface_block(Symbol *result, const char *name, Sym
    }
 }
 
-void glsl_symbol_construct_var_instance(Symbol *result, const char *name, SymbolType *type, Qualifiers *q, void *compile_time_value, Symbol *block_symbol)
+void glsl_symbol_construct_var_instance(Symbol *result, const char *name, SymbolType *type, const Qualifiers *q, void *compile_time_value, Symbol *block_symbol)
 {
    symbol_construct_common(result, SYMBOL_VAR_INSTANCE, name, type);
 

@@ -54,4 +54,28 @@ void Union(VkRect2D *result, const VkRect2D &r1, const VkRect2D &r2)
    *result = res;
 }
 
+v3d_compare_func_t TranslateCompareFunc(VkCompareOp op)
+{
+   assert(op >= VK_COMPARE_OP_NEVER && op <= VK_COMPARE_OP_ALWAYS);
+   return static_cast<v3d_compare_func_t>(op);
+}
+
+v3d_stencil_op_t TranslateStencilOp(VkStencilOp op)
+{
+   switch (op)
+   {
+   case VK_STENCIL_OP_ZERO:                  return V3D_STENCIL_OP_ZERO;
+   case VK_STENCIL_OP_KEEP:                  return V3D_STENCIL_OP_KEEP;
+   case VK_STENCIL_OP_REPLACE:               return V3D_STENCIL_OP_REPLACE;
+   case VK_STENCIL_OP_INCREMENT_AND_CLAMP:   return V3D_STENCIL_OP_INCR;
+   case VK_STENCIL_OP_DECREMENT_AND_CLAMP:   return V3D_STENCIL_OP_DECR;
+   case VK_STENCIL_OP_INVERT:                return V3D_STENCIL_OP_INVERT;
+   case VK_STENCIL_OP_INCREMENT_AND_WRAP:    return V3D_STENCIL_OP_INCWRAP;
+   case VK_STENCIL_OP_DECREMENT_AND_WRAP:    return V3D_STENCIL_OP_DECWRAP;
+   default:
+      unreachable();
+      return V3D_STENCIL_OP_INVALID;
+   }
+}
+
 } // namespace bvk

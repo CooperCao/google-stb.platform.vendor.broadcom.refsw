@@ -48,6 +48,8 @@
 
 #include "fp_sdk_config.h"
 
+/*#include "libfp/asm_macros.h"*/
+
 #include "libsyschip/memmap.h"
 
 
@@ -61,6 +63,8 @@
 
 #define HB_PHASE_ENTRY_SETUP                        0x10
 #define     HB_SUBPHASE_ENTRY_SETUP_BEGINNING           0x00
+#define     HB_SUBPHASE_BEFORE_MEMS_ZEROING             0x08
+#define     HB_SUBPHASE_BEFORE_GOT_COPY                 0x0a
 #define     HB_SUBPHASE_BEFORE_STACK_INIT               0x10
 #define     HB_SUBPHASE_BEFORE_CTXT_INIT                0x18
 #define     HB_SUBPHASE_BEFORE_ENABLE_SIRQS             0x20
@@ -143,8 +147,14 @@
  * and C world, invoking this macro will squash r0, r1, r2 and link (r58) content.
  */
 #ifdef ENABLE_HEARTBEAT
-#  if   defined(ASMCPP)
+#  if   __FP2012_ONWARDS__ && defined(ASMCPP)
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   heartbeat_int_update phase, subphase, argument
+
+#  elif __FPM1015_ONWARDS__ && defined(ASMCPP)
+#    error "Not implemented"
+
+#  elif defined(ASMCPP) && __PIC__
+#    error "Not implemented"
 
 #  elif defined(__RALL2__) && __FP4014_ONWARDS__ && MNO_USE_MB
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   movb r0, phase : movb r1, subphase : movh r2, argument $ b heartbeat_int_update<! 3>, r58
@@ -152,8 +162,14 @@
 #  elif defined(__RALL2__) && __FP4014_ONWARDS__ && !MNO_USE_MB
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   mb heartbeat_int_update<! 3> : movb r0, phase : movb r1, subphase : movh r2, argument
 
+#  elif defined(__RALL2__) && __FP4014_ONWARDS__ && __PIC__
+#    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   movb r0, phase : movb r1, subphase : movh r2, argument $ sbl [r3 TICK]<! 3>, r58 : m_addr_of_func(r3, heartbeat_int_update)
+
 #  elif defined(__RALL2__) && __FPM1015_ONWARDS__
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   movw r0, phase $ movw r1, subphase $ movw r2, argument $ b heartbeat_int_update<! 3>, r15
+
+#  elif defined(__RALL2__) && __FPM1015_ONWARDS__ && PIC
+#    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   movw r0, phase $ movw r1, subphase $ movw r2, argument $ m_addr_of_func(r3, heartbeat_int_update) $ sbl [r3 TICK]<! 3>, r15
 
 #  else
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   heartbeat_int_update(phase, subphase, argument)

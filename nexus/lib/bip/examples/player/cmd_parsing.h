@@ -168,6 +168,7 @@ typedef struct AppCtx
     bool                            bufDepthInMsec;
     bool                            sineTone;
     bool                            enableHwOffload;
+    BIP_StringHandle                hRecordFile;
 } AppCtx;
 
 void unInitAppCtx( AppCtx *pAppCtx);

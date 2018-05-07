@@ -7,8 +7,8 @@
 #include "middleware/khronos/common/khrn_map.h"
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/common/khrn_hw.h"
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "interface/khronos/common/khrn_client_pointermap.h"
 
 #include "vcfw/rtos/abstract/rtos_abstract_mem.h"
@@ -26,11 +26,6 @@ typedef struct
    uint32_t next_eglimage;
    uint32_t next_context;
    uint32_t next_sync;
-
-#if EGL_BRCM_driver_monitor
-   uint32_t driver_monitor_refcount;
-   KHRN_DRIVER_COUNTERS_T driver_monitor_counters;
-#endif
 
    /*
    * EGL display this state belongs to
@@ -67,14 +62,6 @@ typedef struct
    */
    bool platform_inited;
 
-#if EGL_BRCM_driver_monitor
-   /*
-   driver_monitor_inited
-
-   Validity: inited is true
-   */
-   bool driver_monitor_inited_;
-#endif
 } EGL_SERVER_STATE_T;
 
 typedef struct

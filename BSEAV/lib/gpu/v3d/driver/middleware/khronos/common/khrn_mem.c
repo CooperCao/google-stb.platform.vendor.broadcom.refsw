@@ -30,7 +30,7 @@ void khrn_mem_release(const void *p)
       return;
 
    khrn_mem_header *header = khrn_mem_get_header(p);
-   int dec = vcos_atomic_decrement(&header->ref_count);
+   int dec = vcos_atomic_decrement((volatile unsigned int *)&header->ref_count);
    assert(dec >= 0);
 
    if (dec == 0)

@@ -42,13 +42,14 @@
 
 #define BDSP_MAX_CHAR_LENGTH  80
 
-#define BDSP_P_Analyse_CIT_TSMConfig BDSP_P_Analyse_CIT_TSMConfig_isr
-
 void BDSP_P_Analyse_CIT_PortDetails(
 	BDSP_AF_P_sIoPort *pPortDetails,
 	BDSP_P_FwBuffer   *pDescriptorMemory
 );
 void BDSP_P_Analyse_CIT_TSMConfig_isr(
+	BDSP_MMA_Memory Memory
+);
+void BDSP_P_Analyse_CIT_TSMConfig(
 	BDSP_MMA_Memory Memory
 );
 void BDSP_P_Analyse_CIT_GateOpenConfig(

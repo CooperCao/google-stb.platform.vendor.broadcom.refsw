@@ -98,4 +98,8 @@ void glsl_link_map_free(LinkMap *l);
 IR_PROGRAM_T *glsl_ir_program_create();
 void          glsl_ir_program_free(IR_PROGRAM_T *bin);
 
+static inline bool glsl_ir_program_has_stage(const IR_PROGRAM_T *ir, ShaderFlavour f) {
+   return ir->stage[f].ir != NULL;
+}
+
 EXTERN_C_END

@@ -97,6 +97,9 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
     pCaps->version.bfw.minor     = hsmCaps.version.bfw.minor;
     pCaps->version.bfw.subminor  = hsmCaps.version.bfw.subminor;
 
+    pCaps->firmwareEpoch.valid = hsmCaps.firmwareEpoch.valid;
+    pCaps->firmwareEpoch.value = hsmCaps.firmwareEpoch.value;
+
     BDBG_CASSERT( (unsigned)NEXUS_KeySlotType_eMax == (unsigned)BHSM_KeyslotType_eMax );
 
     for( x = 0; x < NEXUS_KeySlotType_eMax; x++ )

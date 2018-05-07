@@ -282,6 +282,10 @@ static inline void gfx_buffer_pad(GFX_BUFFER_DESC_T *desc)
 extern size_t gfx_buffer_sprint_desc(char *buf, size_t buf_size, size_t offset,
    const GFX_BUFFER_DESC_T *desc);
 
+/* Includes pitch */
+extern size_t gfx_buffer_sprint_desc_full(char *buf, size_t buf_size, size_t offset,
+   const GFX_BUFFER_DESC_T *desc);
+
 #define GFX_BUFFER_SPRINT_DESC(BUF_NAME, DESC) \
    VCOS_SAFE_STRFUNC_TO_LOCAL_BUF(BUF_NAME, 512, gfx_buffer_sprint_desc, DESC)
 

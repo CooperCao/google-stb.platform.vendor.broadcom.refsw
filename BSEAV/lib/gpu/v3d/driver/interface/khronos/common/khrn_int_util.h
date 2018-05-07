@@ -411,3 +411,9 @@ static inline void khrn_barrier(void) {
    __sync_synchronize();
 #endif
 }
+
+/******************************************************************************
+forces a bit pattern from float/unsigned types
+******************************************************************************/
+typedef union { unsigned u; float f; } reinterpret_cast_uf;
+vcos_static_assert(sizeof(unsigned) == sizeof(float));

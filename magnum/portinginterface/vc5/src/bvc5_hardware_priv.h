@@ -82,6 +82,22 @@ typedef struct BVC5_P_RenderState
 }
 BVC5_P_RenderState;
 
+/* BVC5_P_ComputeState
+   The software state of the CSD
+ */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+typedef struct BVC5_P_ComputeState
+{
+   BVC5_P_InternalJob *psJob[BVC5_P_HW_QUEUE_STAGES];
+   bool bQueuedNoOverlap;
+   bool bPrevRunning;
+   uint32_t uiCapturedNCD;
+   uint32_t uiLastNCD;
+   uint32_t uiLastSharedBlockSize;
+}
+BVC5_P_ComputeState;
+#endif
+
 /* BVC5_P_TFUState
 
    The software state of the TFU unit
@@ -104,6 +120,11 @@ typedef struct BVC5_P_CoreState
 {
    BVC5_P_BinnerState   sBinnerState;
    BVC5_P_RenderState   sRenderState;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   BVC5_P_ComputeState  sComputeState;
+#endif
+   uint8_t              uiUnitsBusy;            /* Mask of busy units. */
+   uint8_t              uiUnitsBusyNoOverlap;   /* Mask of busy units with NoOverlap jobs. */
 
    int32_t              uiRegOffset;   /* Add to core 0 register address to get address for this core */
 
@@ -131,6 +152,13 @@ bool BVC5_P_HardwareIsBinnerAvailable(
    BVC5_Handle hVC5,
    uint32_t    uiCoreIndex
 );
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+bool BVC5_P_HardwareIsComputeAvailable(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+);
+#endif
 
 bool BVC5_P_HardwareIsTFUAvailable(
    BVC5_Handle hVC5
@@ -215,6 +243,16 @@ void BVC5_P_HardwareIssueRenderJob(
    BVC5_P_InternalJob  *pJob
 );
 
+/* BVC5_P_HardwareIssueComputeJob
+   Submit a compute job to V3D.  Increments power-on count.
+ */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+bool BVC5_P_HardwareIssueComputeJob(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex,
+   BVC5_P_InternalJob  *pJob
+);
+#endif
 
 /* BVC5_P_HardwareProcessBarrierJob
 
@@ -250,12 +288,20 @@ BVC5_P_RenderState *BVC5_P_HardwareGetRenderState(
    uint32_t    uiCoreIndex
 );
 
-/* BVC5_P_HardwareJobDone
-
-   A job has completed.  Reset the hardware structures and decrement power-on count.
-
+/* BVC5_P_HardwareGetComputeState
  */
-void BVC5_P_HardwareJobDone(
+#if V3D_VER_AT_LEAST(4,1,34,0)
+BVC5_P_ComputeState *BVC5_P_HardwareGetComputeState(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+);
+#endif
+
+/* BVC5_P_HardwareJobDone
+   A job has completed.  Reset the hardware structures and decrement power-on count.
+   Returns true if all sub-jobs in the job have completed.
+ */
+bool BVC5_P_HardwareJobDone(
    BVC5_Handle             hVC5,
    uint32_t                uiCoreIndex,
    BVC5_P_HardwareUnitType eHardwareType
@@ -384,6 +430,11 @@ void BVC5_P_WriteNonCoreRegister(
    uint32_t     uiValue
    );
 
+void BVC5_P_InterruptCombinedHandler_isr(
+   void *pParm,
+   int   iValue
+);
+
 void BVC5_P_InterruptHandler_isr(
    void *pParm,
    int   iValue
@@ -410,23 +461,13 @@ void BVC5_P_HardwareResetCoreAndState(
    uint32_t    uiCoreIndex
    );
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 /* For workaround GFXH-1181 */
 bool BVC5_P_HardwareCacheClearBlocked(
    BVC5_Handle hVC5,
    uint32_t    uiCoreIndex
    );
-
-bool BVC5_P_HardwareBinBlocked(
-   BVC5_Handle hVC5,
-   uint32_t    uiCoreIndex,
-   BVC5_P_InternalJob *pNewJob
-);
-
-bool BVC5_P_HardwareRenderBlocked(
-   BVC5_Handle hVC5,
-   uint32_t    uiCoreIndex,
-   BVC5_P_InternalJob *pNewJob
-);
+#endif
 
 uint64_t BVC5_P_GetEventTimestamp(
    void

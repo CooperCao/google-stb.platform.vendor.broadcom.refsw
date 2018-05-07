@@ -5,6 +5,7 @@
 #define GLXX_ENUM_TYPES_H
 
 #include "gl_public_api.h"
+#include "libs/core/v3d/v3d_ver.h"
 
 #define enumify(x) E_##x=x
 
@@ -24,7 +25,7 @@ typedef enum
    enumify(GL_TRIANGLES),
    enumify(GL_TRIANGLE_STRIP),
    enumify(GL_TRIANGLE_FAN),
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    enumify(GL_PATCHES),
    enumify(GL_LINES_ADJACENCY),
    enumify(GL_LINE_STRIP_ADJACENCY),

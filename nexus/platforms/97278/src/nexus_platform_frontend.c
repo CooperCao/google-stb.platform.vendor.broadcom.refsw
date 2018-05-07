@@ -41,9 +41,6 @@
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
 #include "nexus_base.h"
-#if NEXUS_HAS_TRANSPORT
-#include "nexus_input_band.h"
-#endif
 #if NEXUS_HAS_SPI
 #include "nexus_spi.h"
 #endif

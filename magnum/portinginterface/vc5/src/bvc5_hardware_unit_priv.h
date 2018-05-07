@@ -40,7 +40,10 @@
 
 #define BVC5_P_HardwareUnit_eBinner    1
 #define BVC5_P_HardwareUnit_eRenderer  2
-#define BVC5_P_HardwareUnit_eTFU       4
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#define BVC5_P_HardwareUnit_eCompute   4
+#endif
+#define BVC5_P_HardwareUnit_eTFU       8
 
 /* In its own file to avoid circular include problem */
 typedef uint32_t BVC5_P_HardwareUnitType;

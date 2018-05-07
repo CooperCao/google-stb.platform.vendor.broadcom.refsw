@@ -117,13 +117,13 @@ BERR_Code BDSP_Raaga_P_InitDeviceSettings(
 	unsigned dspIndex;
 	unsigned lowerDspClkRate;
 
-	BERR_Code err = BERR_SUCCESS;
+	BERR_Code errCode = BERR_SUCCESS;
 
 	pRaaga->numDsp       = BDSP_RAAGA_MAX_DSP;
 	pRaaga->numCorePerDsp= BDSP_RAAGA_MAX_CORE_PER_DSP;
 
-	err = BDSP_Raaga_P_GetNumberOfDspandCores( pRaaga->boxHandle, &pRaaga->numDsp, &pRaaga->numCorePerDsp);
-	if(err != BERR_SUCCESS)
+	errCode = BDSP_Raaga_P_GetNumberOfDspandCores( pRaaga->boxHandle, &pRaaga->numDsp, &pRaaga->numCorePerDsp);
+	if(errCode != BERR_SUCCESS)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_InitDeviceSettings: Error in retreiving the Number of DSPs and CorePerDsp from BOX MODE"));
 		BDBG_ERR(("Falling back to default value, DSP (%d) CorePerDsp(%d)",pRaaga->numDsp,pRaaga->numCorePerDsp));
@@ -131,8 +131,8 @@ BERR_Code BDSP_Raaga_P_InitDeviceSettings(
 
 	for (dspIndex=0 ; dspIndex < pRaaga->numDsp; dspIndex++)
 	{
-		err = BDSP_Raaga_P_GetDefaultClkRate(pRaaga, dspIndex, &pRaaga->hardwareStatus.dpmInfo.defaultDspClkRate[dspIndex] );
-		if( err == BERR_SUCCESS )
+		errCode = BDSP_Raaga_P_GetDefaultClkRate(pRaaga, dspIndex, &pRaaga->hardwareStatus.dpmInfo.defaultDspClkRate[dspIndex] );
+		if( errCode == BERR_SUCCESS )
 		{
 			BDSP_Raaga_P_GetLowerDspClkRate(pRaaga->hardwareStatus.dpmInfo.defaultDspClkRate[dspIndex], &lowerDspClkRate);
 			BDSP_Raaga_P_SetDspClkRate( pRaaga, lowerDspClkRate, dspIndex );
@@ -200,9 +200,11 @@ static void BDSP_Raaga_P_InitDevice(
 
 		for (index=0 ; index< BDSP_MAX_FW_TASK_PER_DSP; index++)
 		{
+			BKNI_AcquireMutex(pDevice->deviceMutex);
 			pDevice->taskDetails[dspindex].taskId[index] = false;
 			pDevice->taskDetails[dspindex].pTask[index]  = NULL;
 			pDevice->taskDetails[dspindex].numActiveTasks= 0;
+			BKNI_ReleaseMutex(pDevice->deviceMutex);
 		}
 	}
 
@@ -223,7 +225,6 @@ static void BDSP_Raaga_P_DeInitDevice( BDSP_Raaga *pDevice)
 
 	BDBG_ENTER(BDSP_Raaga_P_DeInitDevice);
 
-	BKNI_DestroyMutex(pDevice->deviceMutex);
 	for (dspindex=0; dspindex<pDevice->numDsp; dspindex++)
 	{
 	    BKNI_DestroyEvent(pDevice->hEvent[dspindex]);
@@ -241,11 +242,14 @@ static void BDSP_Raaga_P_DeInitDevice( BDSP_Raaga *pDevice)
 		}
 		for (index=0 ; index< BDSP_MAX_FW_TASK_PER_DSP; index++)
 		{
+			BKNI_AcquireMutex(pDevice->deviceMutex);
 			pDevice->taskDetails[dspindex].taskId[index] = false;
 			pDevice->taskDetails[dspindex].pTask[index]  = NULL;
 			pDevice->taskDetails[dspindex].numActiveTasks= 0;
+			BKNI_ReleaseMutex(pDevice->deviceMutex);
 		}
 	}
+	BKNI_DestroyMutex(pDevice->deviceMutex);
 	BDBG_LEAVE(BDSP_Raaga_P_DeInitDevice);
 }
 
@@ -523,36 +527,24 @@ static BERR_Code BDSP_Raaga_P_InitAtTaskCreate(
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
-	BDSP_Raaga *pDevice = (BDSP_Raaga *)pRaagaTask->pContext->pDevice;
-	unsigned dspIndex =0;
 	BDBG_ENTER(BDSP_Raaga_P_InitAtTaskCreate);
-	BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
 
-	dspIndex = pRaagaTask->createSettings.dspIndex;
 	pRaagaTask->taskParams.isRunning 	   = false;
 	pRaagaTask->taskParams.paused	 	   = false;
 	pRaagaTask->taskParams.frozen	 	   = false;
 	pRaagaTask->taskParams.commandCounter  = 0;
 	pRaagaTask->taskParams.lastCommand     = BDSP_P_CommandID_INVALID;
 	pRaagaTask->taskParams.masterTaskId    = BDSP_P_INVALID_TASK_ID;
-	BKNI_AcquireMutex(pDevice->deviceMutex);
-	pRaagaTask->taskParams.taskId          = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
-	BKNI_ReleaseMutex(pDevice->deviceMutex);
+	pRaagaTask->taskParams.taskId          = BDSP_P_INVALID_TASK_ID;
 
 	errCode = BKNI_CreateEvent(&pRaagaTask->hEvent);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_InitAtTaskCreate: Unable to create event for TASK %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_InitAtTaskCreate: Unable to create event for TASK %p", (void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 		BDBG_ASSERT(0);
 	}
 	BKNI_ResetEvent(pRaagaTask->hEvent);
-
-	if(pRaagaTask->taskParams.taskId == BDSP_P_INVALID_TASK_ID)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_InitAtTaskCreate: Cannot create task as already Max(%d) tasks created on DSP",BDSP_MAX_FW_TASK_PER_DSP));
-		BDBG_ASSERT(0);
-	}
 
 	BKNI_Memset(&pRaagaTask->audioInterruptHandlers, 0, sizeof(pRaagaTask->audioInterruptHandlers));
 
@@ -572,7 +564,6 @@ static void BDSP_Raaga_P_UnInitAtTaskDestroy(
 	BKNI_Memset(&pRaagaTask->audioInterruptHandlers, 0, sizeof(pRaagaTask->audioInterruptHandlers));
 	BKNI_DestroyEvent(pRaagaTask->hEvent);
 	BKNI_AcquireMutex(pDevice->deviceMutex);
-	BDSP_P_ReleaseTaskId(&pDevice->taskDetails[pRaagaTask->createSettings.dspIndex], &pRaagaTask->taskParams.taskId);
 	BLST_S_REMOVE(&pRaagaTask->pContext->taskList,pRaagaTask,BDSP_RaagaTask,node);
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
 
@@ -588,6 +579,7 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 	BDSP_RaagaTask    *pMasterRaagaTask;
     BDSP_RaagaContext *pRaagaContext;
 	BDSP_Raaga        *pDevice;
+	unsigned dspIndex =0;
 	BDSP_RaagaStage   *pRaagaPrimaryStage;
 	unsigned stageIndex = 0;
 
@@ -599,15 +591,15 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 
 	if(pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks >= BDSP_MAX_NUM_TASKS)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_InitAtStartTask: Max tasks(%d) already running on DSP(%d), cannot start task (%d)",BDSP_MAX_NUM_TASKS,
-			pRaagaTask->createSettings.dspIndex, pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_InitAtStartTask: Max tasks(%d) already running on DSP(%d), cannot start task!!!!",BDSP_MAX_NUM_TASKS,
+			pRaagaTask->createSettings.dspIndex));
 		BDBG_ASSERT(0);
 	}
 
 	errCode = BDSP_P_CopyStartTaskSettings(pRaagaContext->settings.contextType, &pRaagaTask->startSettings, pStartSettings);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_InitAtStartTask: Start Settings couldn't be copied for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_InitAtStartTask: Start Settings couldn't be copied for Task %p !!!!",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 		goto end;
 	}
@@ -621,6 +613,7 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 	}
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
+	pRaagaTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
 	if( !pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks )
 	{
 		BDSP_Raaga_P_SetDspClkRate( (void *)pDevice, pDevice->hardwareStatus.dpmInfo.defaultDspClkRate[pRaagaTask->createSettings.dspIndex], pRaagaTask->createSettings.dspIndex );
@@ -682,6 +675,7 @@ static void BDSP_Raaga_P_UnInitAtStopTask(
 		BDSP_Raaga_P_SetDspClkRate( (void * )pDevice, lowerDspClkRate, pRaagaTask->createSettings.dspIndex );
 	}
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].pTask[pRaagaTask->taskParams.taskId] = NULL;
+	BDSP_P_ReleaseTaskId(&pDevice->taskDetails[pRaagaTask->createSettings.dspIndex], &pRaagaTask->taskParams.taskId);
 	BKNI_ReleaseMutex(pRaagaTask->pContext->pDevice->deviceMutex);
 
 	BDSP_P_DeleteStartTaskSettings(&pRaagaTask->startSettings);
@@ -848,34 +842,33 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
     /* calculate FW RW memory size */
 		for(dspindex=0; dspindex<pDevice->numDsp; dspindex++)
 		{
-	    BDSP_Raaga_P_CalculateKernelRWMemory(&kernel_rw_memory_size);
+		    BDSP_Raaga_P_CalculateKernelRWMemory(&kernel_rw_memory_size);
 			errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
 									kernel_rw_memory_size,
 									&(pDevice->memInfo.sKernelRWMemoryPool[dspindex].Memory),
 									BDSP_MMA_Alignment_4KByte);
 			if(errCode != BERR_SUCCESS)
 			{
-				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Kernel Read Write Memory for Raaga"));
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Kernel Read Write Memory for Raaga(KERNAL RW)"));
 				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 				BDBG_ASSERT(0);
 			}
-			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory Required for Dsp(%d)= %d",dspindex, kernel_rw_memory_size));
+			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory(KERNAL RW) Required for Dsp(%d)= %d",dspindex, kernel_rw_memory_size));
 			pDevice->memInfo.sKernelRWMemoryPool[dspindex].ui32Size     = kernel_rw_memory_size;
 			pDevice->memInfo.sKernelRWMemoryPool[dspindex].ui32UsedSize = 0;
 
-
-	    BDSP_Raaga_P_CalculateHostFWsharedRWMemory(pDevice, &host_fw_shared_rw_memory_size);
+            BDSP_Raaga_P_CalculateHostFWsharedRWMemory((const BDSP_RaagaSettings*)&pDevice->deviceSettings, dspindex, &host_fw_shared_rw_memory_size);
 			errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
 									host_fw_shared_rw_memory_size,
 									&(pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].Memory),
 									BDSP_MMA_Alignment_4KByte);
 			if(errCode != BERR_SUCCESS)
 			{
-				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Kernel Read Write Memory for Raaga"));
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Kernel Read Write Memory for Raaga(HOST/FIRMWARE shared)"));
 				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 				BDBG_ASSERT(0);
 			}
-			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory Required for Dsp(%d)= %d",dspindex, host_fw_shared_rw_memory_size));
+			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory(HOST/FIRMWARE shared) Required for Dsp(%d)= %d",dspindex, host_fw_shared_rw_memory_size));
 			pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32Size     = host_fw_shared_rw_memory_size;
 			pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32UsedSize = 0;
 
@@ -886,11 +879,11 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
 									BDSP_MMA_Alignment_4KByte);
 			if(errCode != BERR_SUCCESS)
 			{
-				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Read Write Memory for Raaga"));
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Allocate Read Write Memory for Raaga(DEVICE RW)"));
 				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 				BDBG_ASSERT(0);
 			}
-			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory Required for Dsp(%d)= %d",dspindex, MemoryRequired));
+			BDBG_MSG(("BDSP_Raaga_P_Open: RW Memory(DEVICE RW) Required for Dsp(%d)= %d",dspindex, MemoryRequired));
 			pDevice->memInfo.sRWMemoryPool[dspindex].ui32Size     = MemoryRequired;
 			pDevice->memInfo.sRWMemoryPool[dspindex].ui32UsedSize = 0;
 		}
@@ -945,6 +938,14 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 BDBG_ASSERT(0);
             }
+
+			errCode = BDSP_Raaga_P_DeviceInterruptInstall((void *)pDevice, dspindex);
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Install Device Interrupt callback for Raaga DSP %d", dspindex));
+				errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+				BDBG_ASSERT(0);
+			}
         }
 
         errCode = BDSP_Raaga_P_InitMsgQueue(pDevice->hCmdQueue[dspindex]);
@@ -960,14 +961,6 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
         {
             BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Initialise Generic Response Queue for Raaga DSP %d", dspindex));
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            BDBG_ASSERT(0);
-        }
-
-		errCode = BDSP_Raaga_P_DeviceInterruptInstall((void *)pDevice, dspindex);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Install Device Interrupt callback for Raaga DSP %d", dspindex));
-            errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
             BDBG_ASSERT(0);
         }
 
@@ -1285,7 +1278,7 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 	errCode = BDSP_Raaga_P_InitAtTaskCreate(pRaagaTask);
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Initialise Parameters for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Initialise Parameters for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 		BDBG_ASSERT(0);
 	}
@@ -1297,7 +1290,7 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 							BDSP_MMA_Alignment_4KByte);
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Allocate Memory for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Allocate Memory for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 		BDBG_ASSERT(0);
 	}
@@ -1307,7 +1300,7 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 	errCode = BDSP_Raaga_P_AssignTaskMemory((void *)pRaagaTask);
 	if (errCode != BERR_SUCCESS )
 	{
-		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to assign Task memory for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to assign Task memory for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 		BDBG_ASSERT(0);
 	}
@@ -1319,7 +1312,7 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 			&pRaagaTask->hSyncQueue);
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Create Sync Resp Queue for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Create Sync Resp Queue for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 		BDBG_ASSERT(0);
 	}
@@ -1331,7 +1324,7 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 			&pRaagaTask->hAsyncQueue);
 	if(errCode != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Create ASync Resp Queue for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_CreateTask: Unable to Create ASync Resp Queue for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 		BDBG_ASSERT(0);
 	}
@@ -1339,7 +1332,7 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 	errCode = BDSP_Raaga_P_TaskInterruptInstall((void *)pRaagaTask);
 	if ( BERR_SUCCESS!= errCode )
 	{
-		BDBG_ERR(("Unable to Install Interrupt for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("Unable to Install Interrupt for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 		BDBG_ASSERT(0);
 	}
@@ -1364,17 +1357,17 @@ void BDSP_Raaga_P_DestroyTask(
 	BDBG_ENTER(BDSP_Raaga_P_DestroyTask);
 	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
-    BDBG_MSG(("Enter destroy Task for task id = %d",pRaagaTask->taskParams.taskId ));
+    BDBG_MSG(("Enter destroy Task for task %p",(void *)pRaagaTask));
 	if(pRaagaTask->taskParams.isRunning == true)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: Task (%d) is still running, Stopping it by force",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: Task (%p) is still running, Stopping it by force",(void *)pRaagaTask));
 		BDSP_Raaga_P_StopTask(pTaskHandle);
 	}
 
 	errCode = BDSP_Raaga_P_TaskInterruptUninstall(pTaskHandle);
 	if ( BERR_SUCCESS!=errCode )
 	{
-		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: Unable to Un-Install Interrupt for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: Unable to Un-Install Interrupt for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 		BDBG_ASSERT(0);
 	}
@@ -1382,21 +1375,21 @@ void BDSP_Raaga_P_DestroyTask(
 	errCode = BDSP_P_DestroyMsgQueue(pRaagaTask->hSyncQueue);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: SYNC queue destroy failed for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: SYNC queue destroy failed for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 	}
 
 	errCode = BDSP_P_DestroyMsgQueue(pRaagaTask->hAsyncQueue);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: ASYNC queue destroy failed for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: ASYNC queue destroy failed for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 	}
 
 	errCode = BDSP_Raaga_P_ReleaseTaskMemory((void *)pRaagaTask);
 	if ( BERR_SUCCESS !=errCode )
 	{
-		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: Unable to Release Memory for Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_DestroyTask: Unable to Release Memory for Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 	}
 	BDSP_MMA_P_FreeMemory(&pRaagaTask->taskMemInfo.sMemoryPool.Memory);
@@ -1458,15 +1451,15 @@ BERR_Code BDSP_Raaga_P_StartTask(
 
 	BKNI_Memset(&sPayload,0,sizeof(BDSP_P_StartTaskCommand));
 
-	BDBG_MSG(("Start task (%d) on DSP %d",pRaagaTask->taskParams.taskId, dspIndex));
-
 	errCode = BDSP_Raaga_P_InitAtStartTask(pRaagaTask, pStartSettings);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_StartTask: Unable to Initialise the Task %d",pRaagaTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Raaga_P_StartTask: Unable to Initialise the Task %p",(void *)pRaagaTask));
 		errCode = BERR_TRACE(errCode);
 		goto end;
 	}
+
+	BDBG_MSG(("Start task ID (%d) on DSP %d",pRaagaTask->taskParams.taskId, dspIndex));
 
 	errCode = BDSP_Raaga_P_InitMsgQueue(pRaagaTask->hSyncQueue);
 	if (BERR_SUCCESS != errCode)
@@ -1565,6 +1558,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
 	BDBG_ENTER(BDSP_Raaga_P_StopTask);
 	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
+	BDBG_MSG(("BDSP_Raaga_P_StopTask: STOP task ID (%d) on DSP %d",pRaagaTask->taskParams.taskId, pRaagaTask->createSettings.dspIndex));
 	if(pRaagaTask->pContext->contextWatchdogFlag == false)
 	{
 		errCode = BDSP_Raaga_P_ProcessStopTaskCommand(pRaagaTask);
@@ -2100,7 +2094,7 @@ BERR_Code BDSP_Raaga_P_SetStageSettings(
     }
 
 	BDSP_MMA_P_CopyDataToDram(&pRaagaStage->stageMemInfo.sHostAlgoUserConfig.Buffer, (void *)pSettingsBuffer, settingsSize);
-	if(pRaagaStage->running)
+	if((pRaagaStage->running)&&(!pRaagaStage->pContext->contextWatchdogFlag))
 	{
 		BDSP_P_AlgoReconfigCommand sPayload;
 		BDSP_RaagaTask *pRaagaTask;
@@ -2190,7 +2184,7 @@ BERR_Code BDSP_Raaga_P_SetDatasyncSettings(
 	BDBG_ASSERT(pSettingsBuffer);
 
 	BDSP_MMA_P_CopyDataToDram(&pRaagaStage->stageMemInfo.sDataSyncSettings.Buffer, (void *)pSettingsBuffer, sizeof(BDSP_AudioTaskDatasyncSettings));
-	if(pRaagaStage->running)
+	if((pRaagaStage->running)&&(!pRaagaStage->pContext->contextWatchdogFlag))
 	{
 		BDSP_RaagaTask	*pRaagaTask = pRaagaStage->pRaagaTask;
 		BDSP_P_DataSyncReconfigCommand sPayload;
@@ -2245,7 +2239,7 @@ BERR_Code BDSP_Raaga_P_SetTsmSettings_isr(
 	BDSP_MMA_P_CopyDataToDram_isr(&pRaagaStage->stageMemInfo.sTsmSettings.Buffer, (void *)pSettingsBuffer, sizeof(BDSP_AudioTaskTsmSettings));
 	BDBG_MSG(("TSM RE-CONFIG"));
 	BDSP_P_Analyse_CIT_TSMConfig_isr(pRaagaStage->stageMemInfo.sTsmSettings.Buffer);
-	if(pRaagaStage->running)
+	if((pRaagaStage->running)&&(!pRaagaStage->pContext->contextWatchdogFlag))
 	{
 		BDSP_RaagaTask  *pRaagaTask = pRaagaStage->pRaagaTask;
 		BDSP_P_TsmReconfigCommand sPayload;

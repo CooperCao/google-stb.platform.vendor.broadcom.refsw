@@ -1,40 +1,43 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  Except as expressly set forth in the Authorized License,
  *
- * Except as expressly set forth in the Authorized License,
+ *1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btmr.h"
@@ -316,7 +319,7 @@ static void BTNR_P_TunerSetMXR(BTNR_3x7x_ChnHandle h)
 static void BTNR_P_TunerSetLO(BTNR_3x7x_ChnHandle h)
 {
 	/*local variables*/
-	uint8_t		index, M, N, ndiv, pdiv;
+	uint8_t		index, M, N, ndiv, pdiv, PLL_Timeout = 0;
 	uint32_t	ulMultA, ulMultB, ulNrmHi, ulNrmLo, Freq;
 	uint16_t	temp;
 
@@ -415,6 +418,7 @@ static void BTNR_P_TunerSetLO(BTNR_3x7x_ChnHandle h)
 	Freq = (h->pTunerParams->BTNR_Acquire_Params.RF_Freq);
 	if (h->pTunerStatus->LO_index == 10) {h->pTunerStatus->REFPLL = 1;} else {h->pTunerStatus->REFPLL = 0;}
 	if ((Freq > (719143000-3000000)) && (Freq < (719143000+3000000))) {h->pTunerStatus->REFPLL = 0;}
+	if ((Freq > (315000000-3000000)) && (Freq < (315000000+3000000))) {h->pTunerStatus->REFPLL = 1;}
 	BDBG_MSG(("BTNR_P_TunerSetLO: index %d",index));
 	BDBG_MSG(("BTNR_P_TunerSetFreq: M=%d, N=%d",M, N));
 
@@ -509,14 +513,44 @@ else
 		BKNI_Sleep(1);
 		BREG_WriteField(h->hRegister, UFE_AFE_TNR0_MXRPLL_05, LO_SMtuner_tune_en, 0x1);
 		BKNI_Sleep(1);
+        PLL_Timeout = 0;
+        while (((BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_FREQ_LOCK) == 0) ||
+                (BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_SM_FREQ_LOCK) == 0) ||
+                (BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_SM_done) == 0)) &&
+                (PLL_Timeout < 20))
+        {
+            BKNI_Sleep(1);
+            PLL_Timeout+=1;
+        }
 		BREG_WriteField(h->hRegister, UFE_AFE_TNR0_MXRPLL_05, LO_SMtuner_tune_en, 0x0);
-	}
-	else if (h->pTunerParams->BTNR_Local_Params.hardware_tune == 0) {BTNR_P_TunerSearchCapSoftware(h);}
 
-  /*Power down state machine clock*/
+        if ((BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_FREQ_LOCK) == 0) ||
+            (BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_SM_FREQ_LOCK) == 0) ||
+            (BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_SM_done) == 0))
+        {
+            h->pTunerParams->BTNR_Local_Params.hardware_tune = 0;
+        }
+	}
+    /*Power down state machine clock*/
 	temp = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_PWRUP_02, i_pwrup_PHYPLL_ch);
 	temp = temp & 0x3B ;
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PWRUP_02, i_pwrup_PHYPLL_ch, temp);
+	if (h->pTunerParams->BTNR_Local_Params.hardware_tune == 0)
+    {
+        BTNR_P_TunerSearchCapSoftware(h);
+    }
+
+    if (h->pTunerParams->BTNR_Local_Params.hardware_tune == 1){
+        BDBG_MSG(("hardware tuning: wait time %d",PLL_Timeout+1));
+    }
+    else {
+        BDBG_MSG(("software tuning"));
+    }
+    BDBG_MSG(("MXRPLL_FREQ_LOCK:%d, MXRPLL_SM_FREQ_LOCK:%d, MXRPLL_SM_done:%d",
+    BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_FREQ_LOCK),
+    BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_SM_FREQ_LOCK),
+    BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_SM_done)));
+
 	/*Lock Status*/
 	temp = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXRPLL_07, MXRPLL_FREQ_LOCK);
 	if (temp == 1)
@@ -1004,6 +1038,8 @@ void BTNR_P_TunerSetDither(BTNR_3x7x_ChnHandle h)
 ******************************************************************************/
 void BTNR_P_TunerAGCMonitor(BTNR_3x7x_ChnHandle h)
 {
+	uint32_t Freq;
+	Freq = (h->pTunerParams->BTNR_Acquire_Params.RF_Freq);
 	if (h->pTunerStatus->LO_index == 10) {BTNR_P_TunerReadIQIMB(h);}
 	if (((h->pTunerStatus->g_IQ_phs_DEG)*(h->pTunerStatus->g_IQ_phs_DEG) > 50) && (h->pTunerStatus->LO_index == 10))
 	{
@@ -1039,8 +1075,10 @@ void BTNR_P_TunerAGCMonitor(BTNR_3x7x_ChnHandle h)
 
 			if (h->pTunerParams->BTNR_Acquire_Params.Application == BTNR_TunerApplicationMode_eCable)
 			{
+				if ((Freq > 132900000) && (Freq < 138100000)) {h->pTunerStatus->RFAGC_dither = 1; BTNR_P_TunerSetDither(h);}
+				else {
 				if ((h->pTunerStatus->EstChannelPower_dbm_i32 > -16640) && (h->pTunerStatus->RFAGC_dither == 0)) {h->pTunerStatus->RFAGC_dither = 1; BTNR_P_TunerSetDither(h);}
-				if ((h->pTunerStatus->EstChannelPower_dbm_i32 < -17920) && (h->pTunerStatus->RFAGC_dither == 1)) {h->pTunerStatus->RFAGC_dither = 0; BTNR_P_TunerSetDither(h);}
+				if ((h->pTunerStatus->EstChannelPower_dbm_i32 < -17920) && (h->pTunerStatus->RFAGC_dither == 1)) {h->pTunerStatus->RFAGC_dither = 0; BTNR_P_TunerSetDither(h);}}
 			}
 			if (h->pTunerParams->BTNR_Acquire_Params.Application == BTNR_TunerApplicationMode_eTerrestrial)
 			{

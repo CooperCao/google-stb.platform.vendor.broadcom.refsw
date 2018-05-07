@@ -54,7 +54,6 @@
 BDBG_MODULE(BHSM);
 
 #define BHSM_MAX_KEYSLOTS               (228)/*(1024)*/   /* TODO move to headerfile  */
-/* External Keys */
 #define BHSM_EXTERNAL_KEYSLOT_KEY_SIZE  (2)      /* 2*64bits */
 #define BHSM_EXTERNAL_KEYSLOT_SLOT_SIZE (8)      /* number of 64bit locations per slot  */
 #define BHSM_EXTERNAL_KEYSLOTS_MAX      (512/BHSM_EXTERNAL_KEYSLOT_SLOT_SIZE)
@@ -115,13 +114,14 @@ BERR_Code BHSM_Keyslot_Init( BHSM_Handle hHsm, BHSM_KeyslotModuleSettings *pSett
     BERR_Code rc = BERR_SUCCESS;
     BHSM_KeySlotModule* pModule;
     unsigned i;
-#ifdef BHSM_BUILD_HSM_FOR_HOST
+   #ifdef BHSM_BUILD_HSM_FOR_HOST
     unsigned count = 0;
-#else
+   #else
     BSTD_UNUSED(pSettings);
-#endif
+   #endif
     BDBG_ENTER( BHSM_Keyslot_Init );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_NOT_AVAILABLE ); }
     if( !pSettings ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( hHsm->modules.pKeyslots ) { return BERR_TRACE( BERR_NOT_AVAILABLE ); } /* keyslot module already initialised. */
 
@@ -134,7 +134,6 @@ BERR_Code BHSM_Keyslot_Init( BHSM_Handle hHsm, BHSM_KeyslotModuleSettings *pSett
     hHsm->modules.pKeyslots = pModule;
 
    #ifdef BHSM_BUILD_HSM_FOR_HOST
-
     /* reserve keyslot for bypass. */
     pSettings->numKeySlotsForType[BHSM_KeyslotType_eIvPerSlot] += BHSM_NUM_BYPASS_KEYSLOTS;
 
@@ -181,9 +180,8 @@ void BHSM_Keyslot_Uninit( BHSM_Handle hHsm )
 {
     BDBG_ENTER( BHSM_Keyslot_Uninit );
 
-    if ( hHsm->modules.pKeyslots == NULL ) {
-        BERR_TRACE( BERR_INVALID_PARAMETER ); return;
-    }
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !hHsm->modules.pKeyslots ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
     if( hHsm->modules.pKeyslots->hBypassKeyslotG2GR ){
         BHSM_Keyslot_Free( hHsm->modules.pKeyslots->hBypassKeyslotG2GR );
@@ -235,7 +233,6 @@ BERR_Code BHSM_P_KeyslotModule_GetCapabilities( BHSM_Handle hHsm, BHSM_KeyslotMo
         BERR_TRACE( BERR_UNKNOWN ); /*flag and error. */
     }
 
-
     BDBG_LEAVE( BHSM_P_KeyslotModule_GetCapabilities );
 
     return BERR_SUCCESS;
@@ -245,6 +242,8 @@ void BHSM_Keyslot_GetDefaultAllocateSettings( BHSM_KeyslotAllocateSettings *pSet
 {
     BDBG_ENTER( BHSM_Keyslot_GetDefaultAllocateSettings );
 
+    if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+
     BKNI_Memset( pSettings, 0, sizeof(*pSettings) );
 
     BDBG_LEAVE( BHSM_Keyslot_GetDefaultAllocateSettings );
@@ -253,7 +252,7 @@ void BHSM_Keyslot_GetDefaultAllocateSettings( BHSM_KeyslotAllocateSettings *pSet
 
 BHSM_KeyslotHandle BHSM_Keyslot_Allocate( BHSM_Handle hHsm, const BHSM_KeyslotAllocateSettings *pSettings )
 {
-    BHSM_KeySlotModule* pModule;
+    BHSM_KeySlotModule* pModule = NULL;
     BERR_Code rc = BERR_SUCCESS;
     BHSM_P_KeySlot *pSlot = NULL;
     unsigned offset; /* offset to keyslot type */
@@ -263,16 +262,22 @@ BHSM_KeyslotHandle BHSM_Keyslot_Allocate( BHSM_Handle hHsm, const BHSM_KeyslotAl
    #endif
     BDBG_ENTER( BHSM_Keyslot_Allocate );
 
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !hHsm->modules.pKeyslots ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
     if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
     if( pSettings->slotType >= BHSM_KeyslotType_eMax ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
-    if((pSettings->owner != BHSM_SecurityCpuContext_eHost) && (pSettings->owner != BHSM_SecurityCpuContext_eSage))
-        { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( (pSettings->owner != BHSM_SecurityCpuContext_eHost) &&
+        (pSettings->owner != BHSM_SecurityCpuContext_eSage) ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     pModule = hHsm->modules.pKeyslots;
 
     /* find a free slot. */
     offset    = pModule->types[pSettings->slotType].offset;
     maxNumber = pModule->types[pSettings->slotType].maxNumber;
+
+    if( offset >= BHSM_MAX_KEYSLOTS ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto error; }
+    if( maxNumber >= BHSM_MAX_KEYSLOTS ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto error; }
+    if( offset+maxNumber >= BHSM_MAX_KEYSLOTS ) { BERR_TRACE( BERR_INVALID_PARAMETER ); goto error; }
 
    #ifdef BHSM_BUILD_HSM_FOR_HOST
     /* search for a free slot.*/
@@ -362,6 +367,8 @@ void BHSM_Keyslot_Free( BHSM_KeyslotHandle handle )
 
     BDBG_ENTER( BHSM_Keyslot_Free );
 
+    if( !handle ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+
     pSlot = (BHSM_P_KeySlot*)handle;
 
     if( pSlot->slotType >= BHSM_KeyslotType_eMax ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
@@ -417,6 +424,7 @@ BERR_Code BHSM_Keyslot_SetSettings( BHSM_KeyslotHandle handle, const BHSM_Keyslo
 
     BDBG_ENTER( BHSM_Keyslot_SetSettings );
 
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSettings ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pSlot->settings = *pSettings;
@@ -434,6 +442,7 @@ void BHSM_Keyslot_GetEntrySettings( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_GetEntrySettings );
 
+    if( !handle ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
     if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
     if( entry >= BHSM_KeyslotBlockEntry_eMax ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
@@ -459,6 +468,7 @@ BERR_Code BHSM_Keyslot_SetEntrySettings( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_SetEntrySettings );
 
+    if( !handle )                              { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSettings )                           { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( entry >= BHSM_KeyslotBlockEntry_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
@@ -519,6 +529,7 @@ BERR_Code BHSM_Keyslot_SetEntryKey ( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_SetEntryKey );
 
+    if( !handle )                              { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pKey )                                { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( entry >= BHSM_KeyslotBlockEntry_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
@@ -544,6 +555,7 @@ BERR_Code BHSM_Keyslot_SetEntryIv( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_SetEntryIv );
 
+    if( !handle )                              { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pIv && !pIv2 )                        { return BERR_TRACE( BERR_INVALID_PARAMETER ); } /* we need one IV */
     if( entry >= BHSM_KeyslotBlockEntry_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
@@ -562,7 +574,8 @@ BERR_Code BHSM_Keyslot_Invalidate( BHSM_KeyslotHandle handle )
 {
     BERR_Code rc = BERR_SUCCESS;
     BDBG_ENTER( BHSM_Keyslot_Invalidate );
-    BSTD_UNUSED(handle);
+
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = _InvalidateSlot( handle, BHSM_PRESERVE_OWNERSHIP );
     if( rc != BERR_SUCCESS ) return BERR_TRACE(rc);
@@ -581,6 +594,7 @@ BERR_Code BHSM_Keyslot_GetEntryExternalKeySettings( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_Keyslot_GetEntryExternalKeySettings );
 
+    if( !handle )                              { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pData )                               { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( entry >= BHSM_KeyslotBlockEntry_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( pSlot->configured == false )           { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
@@ -613,6 +627,8 @@ BERR_Code BHSM_Keyslot_InvalidateEntry( BHSM_KeyslotHandle handle,
 {
     BERR_Code rc = BERR_SUCCESS;
     BDBG_ENTER( BHSM_Keyslot_InvalidateEntry );
+
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = _InvalidateEntry( handle, entry );
     if( rc != BERR_SUCCESS ) return BERR_TRACE(rc);
@@ -711,7 +727,6 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
     BHSM_P_KeySlot *pSlot = (BHSM_P_KeySlot*)handle;
     BHSM_P_KeyEntry *pEntry;
     BHSM_P_KeySlotClearIvSet bspSetIv;
-    unsigned keyOffset = 0;
 
     BDBG_ENTER( _SetEntryIv );
 
@@ -719,6 +734,9 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
     if( pEntry == NULL ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( !pIv && !pIv2 ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( (pIv && pIv2) && (pIv->size != pIv2->size) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( pIv && (pIv->size != 8) && (pIv->size != 16) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( pIv2 && (pIv2->size != 8) && (pIv2->size != 16) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspSetIv, 0, sizeof(bspSetIv) );
 
@@ -727,35 +745,46 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
     bspSetIv.in.keySlotType = BHSM_P_ConvertSlotType(pSlot->slotType);
     bspSetIv.in.keySlotNumber = pSlot->number;
 
-    if( pIv )
+    if( pIv2 && (pIv2->size == 8) ) /* Pack the two IVs together */
     {
-        switch( pIv->size ) {
-            case 16: { break;}
-            case 8:  { break;}
-            default: return BERR_TRACE( BERR_INVALID_PARAMETER );
-        }
+        if( !pIv ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); } /* we need pIv if pIv2 is 8 bytes! */
 
-        keyOffset = 0; /* offset of Iv1 in bytes */
-        BHSM_Mem32cpy( &bspSetIv.in.iv[keyOffset], pIv->iv, pIv->size );
+        rc = BHSM_MemcpySwap( &bspSetIv.in.iv[0], pIv->iv, pIv->size );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+        rc = BHSM_MemcpySwap( &bspSetIv.in.iv[2], pIv2->iv, pIv2->size );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
         bspSetIv.in.ivType = Bsp_KeySlotIvType_eIv;
 
         rc = BHSM_P_KeySlot_ClearIvSet( _Keyslot_GetHsmHandle(handle), &bspSetIv );
         if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
     }
+    else{ /* Send separately */
 
-    if( pIv2 )
-    {
-        switch( pIv2->size ) {
-            case 16: { break;}
-            case 8:  { break;}
-            default: return BERR_TRACE( BERR_INVALID_PARAMETER );
+        if( pIv )
+        {
+            rc = BHSM_MemcpySwap( &bspSetIv.in.iv[0], pIv->iv, pIv->size );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+            bspSetIv.in.ivType = Bsp_KeySlotIvType_eIv;
+
+            rc = BHSM_P_KeySlot_ClearIvSet( _Keyslot_GetHsmHandle(handle), &bspSetIv );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
         }
-        keyOffset = 0; /* offset of Iv2 in bytes */
-        BHSM_Mem32cpy( &bspSetIv.in.iv[keyOffset], pIv2->iv, pIv2->size ) ;
-        bspSetIv.in.ivType = Bsp_KeySlotIvType_eAesShortIv;
 
-        rc = BHSM_P_KeySlot_ClearIvSet( _Keyslot_GetHsmHandle(handle), &bspSetIv );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+        if( pIv2 )
+        {
+            BDBG_ASSERT( pIv2->size == 16 ); /* logically bound to be true. */
+
+            rc = BHSM_MemcpySwap( &bspSetIv.in.iv[0], pIv2->iv, pIv2->size ) ;
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+            bspSetIv.in.ivType = Bsp_KeySlotIvType_eAesShortIv;
+
+            rc = BHSM_P_KeySlot_ClearIvSet( _Keyslot_GetHsmHandle(handle), &bspSetIv );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+        }
     }
 
     BDBG_LEAVE( _SetEntryIv );
@@ -797,7 +826,8 @@ static BERR_Code _SetEntryKey( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry
             keyOffset*4 + pKey->size > sizeof(bspSetKey.in.keyData) ) {
             return BERR_TRACE( BERR_INVALID_PARAMETER );
         }
-        BHSM_Mem32cpy( &bspSetKey.in.keyData[keyOffset], pKey->key, pKey->size );
+        rc = BHSM_MemcpySwap( &bspSetKey.in.keyData[keyOffset], pKey->key, pKey->size );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
         if( pKey->size  == 8 ) {
             keyOffset -= 2;
@@ -805,7 +835,8 @@ static BERR_Code _SetEntryKey( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry
                 keyOffset*4 + pKey->size > sizeof(bspSetKey.in.keyData) ) {
                 return BERR_TRACE( BERR_INVALID_PARAMETER );
             }
-            BHSM_Mem32cpy( &bspSetKey.in.keyData[keyOffset], pKey->key, pKey->size ) ;
+            rc = BHSM_MemcpySwap( &bspSetKey.in.keyData[keyOffset], pKey->key, pKey->size ) ;
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
         }
     }
     else {
@@ -1254,7 +1285,6 @@ static BERR_Code _Keyslot_LoadConfigurationFromBsp( BHSM_Handle hHsm )
 
 static BHSM_KeyslotBlockType _GetEntryBlockType( BHSM_KeyslotBlockEntry entry )
 {
-
     BDBG_CASSERT( BHSM_KeyslotBlockType_eCpd == 0 );
     BDBG_CASSERT( BHSM_KeyslotBlockType_eCa  == 1 );
     BDBG_CASSERT( BHSM_KeyslotBlockType_eCps == 2 );
@@ -1263,22 +1293,13 @@ static BHSM_KeyslotBlockType _GetEntryBlockType( BHSM_KeyslotBlockEntry entry )
     {
         case BHSM_KeyslotBlockEntry_eCpdOdd:
         case BHSM_KeyslotBlockEntry_eCpdEven:
-        case BHSM_KeyslotBlockEntry_eCpdClear:
-        {
-            return BHSM_KeyslotBlockType_eCpd;
-        }
+        case BHSM_KeyslotBlockEntry_eCpdClear: { return BHSM_KeyslotBlockType_eCpd; }
         case BHSM_KeyslotBlockEntry_eCaOdd:
         case BHSM_KeyslotBlockEntry_eCaEven:
-        case BHSM_KeyslotBlockEntry_eCaClear:
-        {
-            return BHSM_KeyslotBlockType_eCa;
-        }
+        case BHSM_KeyslotBlockEntry_eCaClear: { return BHSM_KeyslotBlockType_eCa; }
         case BHSM_KeyslotBlockEntry_eCpsOdd:
         case BHSM_KeyslotBlockEntry_eCpsEven:
-        case BHSM_KeyslotBlockEntry_eCpsClear:
-        {
-            return BHSM_KeyslotBlockType_eCps;
-        }
+        case BHSM_KeyslotBlockEntry_eCpsClear: { return BHSM_KeyslotBlockType_eCps; }
         default: { BERR_TRACE( entry ); }
     }
 
@@ -1295,22 +1316,13 @@ static BHSM_KeyslotPolarity _GetEntryPolarity( BHSM_KeyslotBlockEntry entry )
     {
         case BHSM_KeyslotBlockEntry_eCpdOdd:
         case BHSM_KeyslotBlockEntry_eCaOdd:
-        case BHSM_KeyslotBlockEntry_eCpsOdd:
-        {
-            return  BHSM_KeyslotPolarity_eOdd;
-        }
+        case BHSM_KeyslotBlockEntry_eCpsOdd: { return  BHSM_KeyslotPolarity_eOdd; }
         case BHSM_KeyslotBlockEntry_eCpdEven:
         case BHSM_KeyslotBlockEntry_eCaEven:
-        case BHSM_KeyslotBlockEntry_eCpsEven:
-        {
-            return  BHSM_KeyslotPolarity_eEven;
-        }
+        case BHSM_KeyslotBlockEntry_eCpsEven: { return  BHSM_KeyslotPolarity_eEven; }
         case BHSM_KeyslotBlockEntry_eCpdClear:
         case BHSM_KeyslotBlockEntry_eCaClear:
-        case BHSM_KeyslotBlockEntry_eCpsClear:
-        {
-            return  BHSM_KeyslotPolarity_eClear;
-        }
+        case BHSM_KeyslotBlockEntry_eCpsClear: { return  BHSM_KeyslotPolarity_eClear; }
         default: { BERR_TRACE( entry ); }
     }
 
@@ -1329,7 +1341,9 @@ BERR_Code BHSM_KeySlot_SetMulti2Key( BHSM_Handle hHsm, const BHSM_KeySlotSetMult
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
     BDBG_CASSERT( sizeof(bspConfig.in.systemKeys) == sizeof(pKeyData->key) );
-    BHSM_Mem32cpy( (void*)bspConfig.in.systemKeys, (void*)pKeyData->key, sizeof(pKeyData->key) );
+    rc = BHSM_MemcpySwap( (void*)bspConfig.in.systemKeys, (void*)pKeyData->key, sizeof(pKeyData->key) );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
     bspConfig.in.whichSysKey = pKeyData->keySelect;
 
     rc = BHSM_P_KeySlot_Multi2SysKeySet( hHsm, &bspConfig );
@@ -1487,7 +1501,7 @@ static BERR_Code _InitBypassKeyslot( BHSM_Handle hHsm, BHSM_KeyslotHandle *phByp
     if( rc != BERR_SUCCESS ) { rc = BERR_TRACE( BERR_NOT_AVAILABLE ); goto error; }
 
     /* Using LOG for now. TODO disabled. */
-    BDBG_LOG(("Bypass Keyslot initialised. Type[%d] Number[%u] [%s%s%s->%s%s%s]", keyslotInfo.type, keyslotInfo.number
+    BDBG_MSG(("Bypass Keyslot initialised. Type[%d] Number[%u] [%s%s%s->%s%s%s]", keyslotInfo.type, keyslotInfo.number
                                                                                 , pConfig->srcG  ? "G":"", pConfig->srcR  ? "R":"", pConfig->srcT  ? "T":""
                                                                                 , pConfig->destG ? "G":"", pConfig->destR ? "R":"", pConfig->destT ? "T":"" ));
     *phBypassKeyslot = hKeyslot;
@@ -1505,9 +1519,14 @@ BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm )
     BHSM_KeySlotModule* pModule = NULL;
     BHSM_P_KeySlotPidAdd hsmAddPid;
 
+    BDBG_ENTER( BHSM_InitialiseBypassKeyslots );
+
     #define BYPASS_KEYSLOT_NUMBER_G2GR (0)  /* the default */
     #define BYPASS_KEYSLOT_NUMBER_GR2R (1)
     #define BYPASS_KEYSLOT_NUMBER_GT2T (2)
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     pModule = hHsm->modules.pKeyslots;
     if( !pModule ) { return BERR_TRACE( BERR_NOT_INITIALIZED ); }
 
@@ -1559,6 +1578,8 @@ BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm )
     rc = BHSM_P_KeySlot_PidAdd( hHsm, &hsmAddPid );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto error; }
 
+    BDBG_LEAVE( BHSM_InitialiseBypassKeyslots );
+
     return BERR_SUCCESS;
 
 error:
@@ -1573,6 +1594,8 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot( BHSM_Handle hHsm,
 {
     BERR_Code rc = BERR_UNKNOWN;
     BHSM_KeySlotModule* pModule = NULL;
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pModule = hHsm->modules.pKeyslots;
     if( !pModule ) { return BERR_TRACE( BERR_NOT_INITIALIZED ); }
@@ -1621,6 +1644,9 @@ BERR_Code  BHSM_GetPidChannelBypassKeyslot( BHSM_Handle hHsm,
     return 0;
 }
 
+/*
+    DEPRECATED use BHSM_P_Keyslot_GetSlotDetails or BHSM_P_Keyslot_GetEntryDetails
+*/
 BERR_Code BHSM_P_Keyslot_GetDetails( BHSM_KeyslotHandle handle,
                                      BHSM_KeyslotBlockEntry entry,
                                      BHSM_KeyslotDetails *pDetails )
@@ -1629,6 +1655,7 @@ BERR_Code BHSM_P_Keyslot_GetDetails( BHSM_KeyslotHandle handle,
 
     BDBG_ENTER( BHSM_P_Keyslot_GetDetails );
 
+    if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSlot->configured ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset(pDetails, 0, sizeof(BHSM_KeyslotDetails));
@@ -1684,6 +1711,7 @@ BERR_Code BHSM_P_Keyslot_GetSlotDetails( BHSM_KeyslotHandle handle, BHSM_Keyslot
 
     BDBG_ENTER( BHSM_P_Keyslot_GetSlotDetails );
 
+    if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSlot->configured ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( pInfo, 0, sizeof(*pInfo) );
@@ -1708,6 +1736,7 @@ BERR_Code BHSM_P_Keyslot_GetEntryDetails( BHSM_KeyslotHandle handle,
 
     if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSlot->configured ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pEntry = _GetEntry( handle, entry );
     if( !pEntry ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
@@ -1736,7 +1765,7 @@ BERR_Code BHSM_P_Keyslot_GetEntryDetails( BHSM_KeyslotHandle handle,
 
     if( pEntry->settings.external.iv ) {
 
-        if( !pEntry->pExternalSlot )return BERR_TRACE( BERR_INVALID_PARAMETER );
+        if( !pEntry->pExternalSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
         pInfo->bspMapped.externalIvValid = true;
         pInfo->bspMapped.externalIvOffset = pEntry->pExternalSlot->offsetIv + pEntry->pExternalSlot->slotPtr;
@@ -1793,10 +1822,8 @@ BHSM_KeyslotHandle BHSM_P_GetKeySlotHandle( BHSM_Handle hHsm, BHSM_KeyslotType s
     unsigned offset;
     unsigned maxNumber;
 
-    if( slotType >= BHSM_KeyslotType_eMax ) {
-        BERR_TRACE( BERR_INVALID_PARAMETER );
-        return NULL;
-    }
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( slotType >= BHSM_KeyslotType_eMax ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     pModule = hHsm->modules.pKeyslots;
     offset = pModule->types[slotType].offset;

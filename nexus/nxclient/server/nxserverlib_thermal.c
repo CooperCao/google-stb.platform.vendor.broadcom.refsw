@@ -509,6 +509,7 @@ err:
     return rc;
 }
 
+#if NEXUS_HAS_HDMI_OUTPUT
 static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
 {
     NEXUS_Error rc;
@@ -559,6 +560,7 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
 err:
     return rc;
 }
+#endif
 
 static NEXUS_Error stop_pip_decode(cooling_agent *agent, unsigned level)
 {
@@ -611,7 +613,9 @@ cooling_agent g_cooling_agents[] = {
 };
 
 cooling_agent g_forced_agents[] = {
+#if NEXUS_HAS_HDMI_OUTPUT
     COOLING_AGENT(display, set_display_format),
+#endif
     COOLING_AGENT(pip, stop_pip_decode),
 };
 

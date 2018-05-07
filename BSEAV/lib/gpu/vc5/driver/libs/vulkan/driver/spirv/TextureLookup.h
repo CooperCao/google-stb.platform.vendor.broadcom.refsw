@@ -13,7 +13,6 @@ namespace bvk
 class DflowBuilder;
 class Node;
 class ImageOperands;
-class NodeIndex;
 class NodeTypeImage;
 
 class TextureLookup

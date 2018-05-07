@@ -3,8 +3,10 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/begl_platform.h>
+
 #include "interface/khronos/egl/egl_int.h"
 
 #include "interface/khronos/common/khrn_client_platform.h"
@@ -26,26 +28,6 @@ typedef struct
    EGL_SURFACE_TYPE_T type;
 
    /*
-      colorspace
-
-      Invariants:
-
-      (EGL_SURFACE_COLORSPACE)
-      colorspace in {SRGB, LINEAR}
-   */
-   EGL_SURFACE_COLORSPACE_T colorspace;
-
-   /*
-      alphaformat
-
-      Invariants:
-
-      (EGL_SURFACE_ALPHAFORMAT)
-      alphaformat in {NONPRE, PRE}
-   */
-   EGL_SURFACE_ALPHAFORMAT_T alphaformat;
-
-   /*
       config
 
       Invariants:
@@ -54,9 +36,6 @@ typedef struct
       config is a valid EGLConfig
    */
    EGLConfig config;
-
-   uint32_t base_width;
-   uint32_t base_height;
 
    /*
       buffers
@@ -91,11 +70,6 @@ typedef struct
    uint32_t height;
 
    struct CLIENT_THREAD_STATE *thread;    // If we are current, which the EGL client state for the thread are we associated with.
-
-#if EGL_KHR_lock_surface
-   bool is_locked;
-   void *mapped_buffer;
-#endif
 
    /*
       swap_behavior
@@ -204,7 +178,7 @@ typedef struct
    KHRN_IMAGE_T *(*get_back_buffer)(void *p);
    KHRN_IMAGE_T *active_image;
 
-   BEGL_WindowState *native_window_state;
+   void *native_window_state;
    KHRN_IMAGE_FORMAT_T colorformat;
 
 } EGL_SURFACE_T;
@@ -212,8 +186,6 @@ typedef struct
 extern EGLint egl_surface_check_attribs(
    EGL_SURFACE_TYPE_T type,
    const EGLint *attrib_list,
-   bool *linear,
-   bool *premult,
    int *width,
    int *height,
    bool *largest_pbuffer,
@@ -227,8 +199,6 @@ struct CLIENT_PROCESS_STATE;
 extern EGL_SURFACE_T *egl_surface_create(
    EGLSurface name,
    EGL_SURFACE_TYPE_T type,
-   EGL_SURFACE_COLORSPACE_T colorspace,
-   EGL_SURFACE_ALPHAFORMAT_T alphaformat,
    bool secure,
    uint32_t buffers,
    uint32_t width,
@@ -246,7 +216,3 @@ extern EGL_SURFACE_T *egl_surface_create(
 extern EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
 extern EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint value);
 extern EGLint egl_surface_get_render_buffer(EGL_SURFACE_T *surface);
-
-#if EGL_KHR_lock_surface
-extern EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value);
-#endif

@@ -86,6 +86,6 @@
 
 
 #define ARMV8_BOOT_MODE  0
-#define ARMV7_BOOT_MODE  0xffffffff
+#define ARMV7_BOOT_MODE  1
 
 #endif

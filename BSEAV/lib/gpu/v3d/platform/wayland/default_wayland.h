@@ -22,7 +22,7 @@
 
 #include "nexus_core_utils.h"
 
-#include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 #include <wayland-client.h>
 
 #ifdef __cplusplus

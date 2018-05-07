@@ -48,8 +48,8 @@ VkOffset2D ColorAspectCommandBuilder::GetImageOffsetAlignments(
    {
       // With no XOR we can offset horizontally by the column width and
       // vertically by the UIF block height.
-      align.x = gfx_lfmt_ucol_w_2d(&bd, gfx_lfmt_get_swizzling(&lfmt));
-      align.y = gfx_lfmt_ub_h_2d(&bd, gfx_lfmt_get_swizzling(&lfmt));
+      align.x = gfx_lfmt_ucol_w_2d(&bd);
+      align.y = gfx_lfmt_ub_h_2d(&bd);
 
       if (gfx_lfmt_is_uif_xor(lfmt))
       {
@@ -129,8 +129,7 @@ uint32_t ColorAspectCommandBuilder::OffsetToBytes(
 
       // offset.y must be a multiple of the block size and XOR padding
       // size (if an XOR format).
-      GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&lfmt);
-      const uint32_t yInUIFBlocks = offset.y / gfx_lfmt_ub_h_2d(&bd, swizzling);
+      const uint32_t yInUIFBlocks = offset.y / gfx_lfmt_ub_h_2d(&bd);
 
       // The total number of UIF blocks we want to shift the address offset by
       // is the number of blocks in the y direction multiplied by the number
@@ -199,7 +198,9 @@ void ColorAspectCommandBuilder::ImageParams(
    log_trace("\tbasePhys= %#x", (unsigned)basePhys);
 
    GFX_BUFFER_DESC_T desc = img->GetDescriptor(mipLevel);
-   Image::AdjustDescForTLBLfmt(&desc, altTLBFmt, ms);
+   if (altTLBFmt != GFX_LFMT_NONE)
+      desc.planes[0].lfmt = gfx_lfmt_set_format(desc.planes[0].lfmt, altTLBFmt);
+
    uint32_t byteOffset = OffsetToBytes(&desc, imgOffset, ms);
 
    bool is3D = gfx_lfmt_is_3d(desc.planes[0].lfmt);
@@ -253,7 +254,8 @@ void ColorAspectCommandBuilder::SetupFrameConfig(Image *img, GFX_LFMT_T altTLBFm
                                                  uint32_t fbWidth, uint32_t fbHeight)
 {
    GFX_BUFFER_DESC_T desc = img->GetDescriptor(mipLevel);
-   Image::AdjustDescForTLBLfmt(&desc, altTLBFmt, m_dstMS);
+   if (altTLBFmt != GFX_LFMT_NONE)
+      desc.planes[0].lfmt = gfx_lfmt_set_format(desc.planes[0].lfmt, altTLBFmt);
 
    // Construct some generic information needed by the control list generation
    // based on the first layer descriptor.
@@ -285,7 +287,7 @@ void ColorAspectCommandBuilder::CreateBinnerControlList(
    EndBinJobCL(brJob, &binList, syncFlags);
 }
 
-void ColorAspectCommandBuilder::AddTileListLoads()
+void ColorAspectCommandBuilder::AddTileListLoads(bool *allowEarlyDSClear)
 {
    if (m_needsLoads || m_loadDestination)
    {
@@ -309,7 +311,7 @@ void ColorAspectCommandBuilder::AddTileListLoads()
    }
 }
 
-void ColorAspectCommandBuilder::AddTileListStores()
+void ColorAspectCommandBuilder::AddTileListStores(bool *allowEarlyDSClear)
 {
    for (uint32_t rt = 0; rt < m_numRenderTargets; rt++)
    {
@@ -371,7 +373,8 @@ void ColorAspectCommandBuilder::InsertRenderTargetCfg()
 void ColorAspectCommandBuilder::CreateRenderControlList(
       CmdBinRenderJobObj *brJob,
       const ControlList  &gtl,
-      v3d_barrier_flags   syncFlags)
+      v3d_barrier_flags   syncFlags,
+      bool                allowEarlyDSClear)
 {
    assert(m_numRenderTargets > 0);
    ControlList renderList;
@@ -384,8 +387,7 @@ void ColorAspectCommandBuilder::CreateRenderControlList(
    v3d_cl_tile_rendering_mode_cfg_zs_clear_values(CLPtr(),
       0, v3d_snap_depth(1.0f, V3D_DEPTH_TYPE_32F));
 
-   if (m_needsClears)
-      InsertInitialTLBClear(/* doubleBuffer */ false, /* renderTargets */ true, /* depthStencil */ false);
+   InsertDummyTiles(/*clearDoubleBuffer*/false, /*clearRenderTargets*/m_needsClears, /*clearDepthStencil*/false);
 
    if (m_needsLoads || m_loadDestination)
       syncFlags |= V3D_BARRIER_TLB_IMAGE_READ;

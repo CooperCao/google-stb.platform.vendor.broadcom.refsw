@@ -191,11 +191,8 @@ static bool config_check_attrib(EGLint attrib, EGLint value)
    switch (attrib)
    {
    case EGL_MATCH_NATIVE_PIXMAP :
-   case EGL_NATIVE_BUFFER_ANDROID :
       {
-         BEGL_SurfaceInfo      surfaceInfo;
          EGLNativePixmapType   pixmap = (EGLNativePixmapType)(uintptr_t)value;
-
          if (sizeof(uintptr_t) == 8)
          {
             // TODO : fixme
@@ -205,7 +202,7 @@ static bool config_check_attrib(EGLint attrib, EGLint value)
          }
 
          /* Check that value is a valid pixmap */
-         if (surface_get_info(pixmap, &surfaceInfo))
+         if (get_pixmap_format(pixmap) != BEGL_BufferFormat_INVALID)
             return true;
       }
       break;

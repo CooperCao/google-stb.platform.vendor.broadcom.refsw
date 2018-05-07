@@ -154,27 +154,6 @@ typedef struct NEXUS_Graphicsv3dBinMemory
    uint32_t    uiSize;     /* The size in bytes of the memory block         */
 } NEXUS_Graphicsv3dBinMemory;
 
-/**
-Summary:
-Setup performance monitoring using these settings.
-**/
-typedef struct NEXUS_Graphicsv3dPerfMonitorSettings
-{
-   uint32_t    uiHwBank;        /* 0 = no bank, 1 = 1st bank, 2 = 2nd bank         */
-   uint32_t    uiMemBank;       /* 0 = no bank, 1 = 1st bank, 2 = 2nd bank         */
-   uint32_t    uiFlags;         /* Bitwise or of flags in BEGL_HWPerfMonitorFlags  */
-} NEXUS_Graphicsv3dPerfMonitorSettings;
-
-/**
-Summary:
-Performance monitoring data returned by NEXUS_Graphicsv3d_GetPerformanceData.
-**/
-typedef struct NEXUS_Graphicsv3dPerfMonitorData
-{
-   uint64_t    uiHwCounters[16];      /* The hardware counters for the currently selected h/w banks */
-   uint64_t    uiMemCounters[2];      /* The counters for the memory monitors                       */
-} NEXUS_Graphicsv3dPerfMonitorData;
-
 #define NEXUS_GRAPHICSV3D_JOB_MAX_INSTRUCTIONS  (8)
 
 /**
@@ -258,10 +237,18 @@ void NEXUS_Graphicsv3d_GetDefaultCreateSettings(
 
 /**
 Summary:
-Create a GraphicsV3D interface for OpenGLES and OpenVG use.
+Set frequency scaling percentage for Graphics 3D
+**/
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(
+   uint32_t percent                                   /* [in] */
+   );
+
+/**
+Summary:
+Create a GraphicsV3D interface for OpenGLES use.
 
 Description:
-This module is only designed to be used by the OpenGLES & OpenVG driver.
+This module is only designed to be used by the OpenGLES driver.
 It should not be used directly.
 **/
 NEXUS_Graphicsv3dHandle NEXUS_Graphicsv3d_Create(  /* attr{destructor=NEXUS_Graphicsv3d_Destroy}  */
@@ -368,30 +355,104 @@ NEXUS_Error NEXUS_Graphicsv3d_GetBinMemory(
    NEXUS_Graphicsv3dBinMemory                *psMemory     /* [out] */
    );
 
-/**
-Summary:
-Sets the parameters for the performance monitoring module.
+/************************************************************************/
+/* Performance counters                                                 */
+/************************************************************************/
 
-Description:
-Changes the performance monitoring modes of the 3D core.
-**/
-void NEXUS_Graphicsv3d_SetPerformanceMonitor(
-   NEXUS_Graphicsv3dHandle                      hGfx,
-   const NEXUS_Graphicsv3dPerfMonitorSettings   *psSettings
+#define NEXUS_GRAPHICSV3D_MAX_GROUP_NAME_LEN         64
+#define NEXUS_GRAPHICSV3D_MAX_COUNTER_NAME_LEN       64
+#define NEXUS_GRAPHICSV3D_MAX_COUNTER_UNIT_NAME_LEN  32
+#define NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP     96
+
+typedef enum NEXUS_Graphicsv3dCounterState
+{
+   NEXUS_Graphicsv3dCtrAcquire = 0,
+   NEXUS_Graphicsv3dCtrRelease = 1,
+   NEXUS_Graphicsv3dCtrStart   = 2,
+   NEXUS_Graphicsv3dCtrStop    = 3
+} NEXUS_Graphicsv3dCounterState;
+
+/* Descriptor structure for a counter.
+ * Examples of unit_name : cycles, %, bytes, frames, hits, misses, etc.
+*/
+typedef struct NEXUS_Graphicsv3dCounterDesc
+{
+   char        caName[NEXUS_GRAPHICSV3D_MAX_COUNTER_NAME_LEN];
+   char        caUnitName[NEXUS_GRAPHICSV3D_MAX_COUNTER_UNIT_NAME_LEN];
+   uint64_t    uiMinValue;
+   uint64_t    uiMaxValue;
+   uint64_t    uiDenominator;
+} NEXUS_Graphicsv3dCounterDesc;
+
+/* Descriptor for a counter group */
+typedef struct NEXUS_Graphicsv3dCounterGroupDesc
+{
+   char                          caName[NEXUS_GRAPHICSV3D_MAX_GROUP_NAME_LEN];
+   uint32_t                      uiTotalCounters;
+   uint32_t                      uiMaxActiveCounters;
+   NEXUS_Graphicsv3dCounterDesc  saCounters[NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP];
+} NEXUS_Graphicsv3dCounterGroupDesc;
+
+/* Holds a list of counter values to be enabled/disabled for a given group */
+typedef struct NEXUS_Graphicsv3dCounterSelector
+{
+   uint32_t    uiGroupIndex;
+   uint32_t    uiEnable;
+   uint32_t    uiaCounters[NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP];
+   uint32_t    uiNumCounters;
+} NEXUS_Graphicsv3dCounterSelector;
+
+/* A single counter entry */
+typedef struct NEXUS_Graphicsv3dCounter
+{
+   uint32_t   uiGroupIndex;
+   uint32_t   uiCounterIndex;  /* Within group */
+   uint64_t   uiValue;
+} NEXUS_Graphicsv3dCounter;
+
+
+void NEXUS_Graphicsv3d_GetPerfNumCounterGroups(
+   NEXUS_Graphicsv3dHandle  hGfx,                              /* [in]  */
+   uint32_t                *puiNumGroups                       /* [out] */
    );
 
-/**
-Summary:
-Gets performance data.
-
-Description:
-Retrieves the current state of the performance counters in the 3D core.
-**/
-void NEXUS_Graphicsv3d_GetPerformanceData(
-   NEXUS_Graphicsv3dHandle            hGfx,
-   NEXUS_Graphicsv3dPerfMonitorData   *psSettings /* [out] */
+void NEXUS_Graphicsv3d_GetPerfCounterDesc(
+   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
+   uint32_t                            uiGroup,                /* [in]  */
+   uint32_t                            uiCounter,              /* [in]  */
+   NEXUS_Graphicsv3dCounterDesc        *psDesc                 /* [out] */
    );
 
+void NEXUS_Graphicsv3d_GetPerfCounterGroupInfo(
+   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
+   uint32_t                            uiGroup,                /* [in]  */
+   uint32_t                            uiGrpNameSize,          /* [in]  */
+   char                                *chGrpName,             /* [out] attr{nelem=uiGrpNameSize}*/
+   uint32_t                            *uiMaxActiveCounter,    /* [out] */
+   uint32_t                            *uiTotalCounter         /* [out] */
+   );
+
+NEXUS_Error NEXUS_Graphicsv3d_SetPerfCounting(
+   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
+   NEXUS_Graphicsv3dCounterState       eState                  /* [in]  */
+   );
+
+void NEXUS_Graphicsv3d_ChoosePerfCounters(
+   NEXUS_Graphicsv3dHandle                hGfx,                /* [in]  */
+   const NEXUS_Graphicsv3dCounterSelector *psSelector          /* [in]  */
+   );
+
+/*
+   NOTE:
+   debug API, so no reserved property for nelem
+*/
+void NEXUS_Graphicsv3d_GetPerfCounterData(
+   NEXUS_Graphicsv3dHandle    hGfx,                            /* [in]  */
+   uint32_t                   uiMaxCounters,                   /* [in]  */
+   uint32_t                   uiResetCounts,                   /* [in]  */
+   uint32_t                   *puiCountersOut,                 /* [out] */
+   NEXUS_Graphicsv3dCounter   *psCounters                      /* [out] attr{nelem=uiMaxCounters;nelem_out=puiCountersOut;null_allowed=y} */
+   );
 
 /**
 Summary:
@@ -419,6 +480,104 @@ NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
    NEXUS_Graphicsv3dClientLoadData *pLoadData,     /* [out] attr{nelem=uiNumClients;nelem_out=pValidClients;null_allowed=y} */
    uint32_t                         uiNumClients,
    uint32_t                        *pValidClients
+   );
+
+/************************************************************************/
+/* Event timeline                                                       */
+/************************************************************************/
+#define NEXUS_GRAPHICSV3D_MAX_EVENT_STRING_LEN   64
+
+typedef enum NEXUS_Graphicsv3dEventState
+{
+   NEXUS_Graphicsv3dEventAcquire = 0,
+   NEXUS_Graphicsv3dEventRelease = 1,
+   NEXUS_Graphicsv3dEventStart   = 2,
+   NEXUS_Graphicsv3dEventStop    = 3
+} NEXUS_Graphicsv3dEventState;
+
+typedef enum NEXUS_Graphicsv3dEventType
+{
+   NEXUS_Graphicsv3dEventBegin   = 0,
+   NEXUS_Graphicsv3dEventEnd     = 1,
+   NEXUS_Graphicsv3dEventOneshot = 2
+} NEXUS_Graphicsv3dEventType;
+
+typedef enum NEXUS_Graphicsv3dFieldType
+{
+   NEXUS_Graphicsv3dEventInt32   = 0,
+   NEXUS_Graphicsv3dEventUInt32  = 1,
+   NEXUS_Graphicsv3dEventInt64   = 2,
+   NEXUS_Graphicsv3dEventUInt64  = 3
+} NEXUS_Graphicsv3dFieldType;
+
+/* Contains an event description. */
+typedef struct NEXUS_Graphicsv3dEventDesc
+{
+   char     caName[NEXUS_GRAPHICSV3D_MAX_EVENT_STRING_LEN];
+   uint32_t uiNumDataFields;  /* How many optional extra fields there are */
+} NEXUS_Graphicsv3dEventDesc;
+
+/* Contains an event data field description. */
+typedef struct NEXUS_Graphicsv3dEventFieldDesc
+{
+   char                       caName[NEXUS_GRAPHICSV3D_MAX_EVENT_STRING_LEN];
+   NEXUS_Graphicsv3dFieldType eDataType;
+} NEXUS_Graphicsv3dEventFieldDesc;
+
+/* Contains an event track description.
+* The track is used to group related events. You can think of it as the row
+* in an event table to which the event belongs. All binner related events
+* should have a common track for example. This means they will all get displayed
+* in the binner row in an event graphing tool.
+*/
+typedef struct NEXUS_Graphicsv3dEventTrackDesc
+{
+   char     caName[NEXUS_GRAPHICSV3D_MAX_EVENT_STRING_LEN];
+} NEXUS_Graphicsv3dEventTrackDesc;
+
+void NEXUS_Graphicsv3d_GetEventCounts(
+   NEXUS_Graphicsv3dHandle  hGfx,                        /* [in]  */
+   uint32_t                 *uiNumTracks,                /* [out] */
+   uint32_t                 *uiNumEvents                 /* [out] */
+   );
+
+NEXUS_Error NEXUS_Graphicsv3d_GetEventTrackInfo(
+   NEXUS_Graphicsv3dHandle           hGfx,               /* [in]  */
+   uint32_t                          uiTrack,            /* [in]  */
+   NEXUS_Graphicsv3dEventTrackDesc   *psTrackDesc        /* [out] */
+   );
+
+
+NEXUS_Error NEXUS_Graphicsv3d_GetEventInfo(
+   NEXUS_Graphicsv3dHandle       hGfx,                   /* [in]  */
+   uint32_t                      uiEvent,                /* [in]  */
+   NEXUS_Graphicsv3dEventDesc   *psEventDesc             /* [out] */
+   );
+
+
+NEXUS_Error NEXUS_Graphicsv3d_GetEventDataFieldInfo(
+   NEXUS_Graphicsv3dHandle          hGfx,                /* [in]  */
+   uint32_t                         uiEvent,             /* [in]  */
+   uint32_t                         uiField,             /* [in]  */
+   NEXUS_Graphicsv3dEventFieldDesc  *psFieldDesc         /* [out] */
+   );
+
+NEXUS_Error NEXUS_Graphicsv3d_SetEventCollection(
+   NEXUS_Graphicsv3dHandle       hGfx,                   /* [in]  */
+   NEXUS_Graphicsv3dEventState   eState                  /* [in]  */
+   );
+
+/*
+   NOTE:
+   debug API, so no reserved property for nelem
+*/
+void NEXUS_Graphicsv3d_GetEventData(
+   NEXUS_Graphicsv3dHandle    hGfx,                      /* [in]  */
+   uint32_t                   uiEventBufferBytes,        /* [in]  */
+   void                       *pvEventBuffer,            /* [out] attr{nelem=uiEventBufferBytes;nelem_out=puiBytesCopiedOut;null_allowed=y} */
+   uint32_t                   *puiLostData,              /* [out] */
+   uint64_t                   *puiTimeStamp,             /* [out] */
+   uint32_t                   *puiBytesCopiedOut         /* [out] */
    );
 
 /**
@@ -456,14 +615,6 @@ returns number of microseconds since module boot.
 void NEXUS_Graphicsv3d_GetTime(
    uint64_t *pMicroseconds                         /* [out] time in microseconds */
    );
-
-/**
-Summary:
-Set frequency scaling percentage for Graphics 3D
-**/
-NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(
-        unsigned percent                            /* [in] percentage of max frequency */
-        );
 #ifdef __cplusplus
 }
 #endif

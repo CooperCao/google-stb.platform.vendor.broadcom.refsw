@@ -22,7 +22,8 @@ public:
       assert(table->size() == 0);
    }
 
-   uint32_t FindEntry(const DescriptorInfo &descInfo);
+   uint32_t Add(const DescriptorInfo &descInfo);
+   uint32_t Find(const DescriptorInfo &descInfo) const;
 
 private:
    DescriptorTable                     *m_table; // Table of unique (set, binding, element) tuples
@@ -34,29 +35,34 @@ class DescriptorMaps
 public:
    DescriptorMaps(spv::ModuleAllocator<uint32_t> &allocator, DescriptorTables *tables);
 
-   uint32_t FindUBOEntry(const DescriptorInfo &descInfo)
+   uint32_t AddSampler(const DescriptorInfo &descInfo)
    {
-      return m_ubo.FindEntry(descInfo);
+      return m_sampler.Add(descInfo);
    }
 
-   uint32_t FindSSBOEntry(const DescriptorInfo &descInfo)
+   uint32_t FindSampler(const DescriptorInfo &descInfo) const
    {
-      return m_ssbo.FindEntry(descInfo);
+      return m_sampler.Find(descInfo);
    }
 
-   uint32_t FindSamplerEntry(const DescriptorInfo &descInfo)
+   uint32_t AddImage(const DescriptorInfo &descInfo)
    {
-      return m_sampler.FindEntry(descInfo);
+      return m_image.Add(descInfo);
    }
 
-   uint32_t FindImageEntry(const DescriptorInfo &descInfo)
+   uint32_t FindImage(const DescriptorInfo &descInfo) const
    {
-      return m_image.FindEntry(descInfo);
+      return m_image.Find(descInfo);
    }
 
-   uint32_t FindBufferEntry(bool ssbo, const DescriptorInfo &descInfo)
+   uint32_t AddBuffer(bool ssbo, const DescriptorInfo &descInfo)
    {
-      return ssbo ? FindSSBOEntry(descInfo) : FindUBOEntry(descInfo);
+      return (ssbo ? m_ssbo : m_ubo).Add(descInfo);
+   }
+
+   uint32_t FindBuffer(bool ssbo, const DescriptorInfo &descInfo) const
+   {
+      return (ssbo ? m_ssbo : m_ubo).Find(descInfo);
    }
 
 private:

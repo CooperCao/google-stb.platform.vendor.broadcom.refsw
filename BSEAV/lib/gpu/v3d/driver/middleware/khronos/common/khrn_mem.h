@@ -41,7 +41,7 @@ static inline void khrn_mem_set_term(void *p, khrn_mem_term_t term)
 static inline void khrn_mem_acquire(const void *p)
 {
    khrn_mem_header *header = khrn_mem_get_header(p);
-   int inc = vcos_atomic_increment(&header->ref_count);
+   int inc = vcos_atomic_increment((volatile unsigned int *)&header->ref_count);
    UNUSED(inc);
    assert(inc < INT_MAX);
 }

@@ -3,11 +3,12 @@
  ******************************************************************************/
 #pragma once
 
-#include "EGL/egl.h"
+#include <EGL/begl_platform.h>
 #include "display_priv.h"
 #include "../helpers/extent.h"
 #include "display_nexus.h"
 #include "windowinfo.h"
+#include <stdint.h>
 
 namespace nxpl
 {
@@ -15,14 +16,18 @@ namespace nxpl
 class Bitmap
 {
 public:
-   Bitmap(void *context, NEXUS_HeapHandle heap, BEGL_PixmapInfoEXT const *bufferRequirements);
-   Bitmap(void *context, BEGL_PixmapInfoEXT const *bufferRequirements);
+   Bitmap(void *context, NEXUS_HeapHandle heap, uint32_t width, uint32_t height,
+         BEGL_BufferFormat format);
 
-   void Init(void *context, NEXUS_HeapHandle heap, BEGL_PixmapInfoEXT const *bufferRequirements);
+   Bitmap(void *context, uint32_t width, uint32_t height,
+         BEGL_BufferFormat format, bool secure);
+
+   void Init(void *context, NEXUS_HeapHandle heap, uint32_t width,
+         uint32_t height, BEGL_BufferFormat format);
+
    ~Bitmap();
 
    int GetBpp() const;
-   NEXUS_PixelFormat GetNativeFormat() const;
 
    const BEGL_BufferSettings & GetCreateSettings() const
    {

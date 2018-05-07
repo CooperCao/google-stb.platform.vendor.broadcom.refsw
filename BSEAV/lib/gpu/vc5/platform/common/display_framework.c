@@ -51,22 +51,11 @@ static void *display_thread_func(void *p)
 
       assert(surface->display_fence == df->fence_interface->invalid_fence);
 
-      switch (DisplayInterface_Display(df->display_interface, surface->native_surface,
-            render_fence, (surface->swap_interval > 0), &surface->display_fence))
-      {
-      case eDisplayFailed:
-         /* display fence shouldn't be set */
-         assert(surface->display_fence == df->fence_interface->invalid_fence);
-         wait_sync(df, surface->swap_interval);
-         break;
-      case eDisplaySuccessful: /* on display now */
-         if (surface->swap_interval > 1)
-            wait_sync(df, surface->swap_interval - 1);
-         break;
-      case eDisplayPending: /* will be on display after next sync */
-         wait_sync(df, surface->swap_interval);
-         break;
-      }
+      DisplayInterface_Display(df->display_interface, surface->native_surface,
+            render_fence, (surface->swap_interval > 0), &surface->display_fence);
+
+      wait_sync(df, surface->swap_interval);
+
       SwapchainEnqueueRenderSurface(&df->swapchain, surface);
       sem_post(&df->latency);
    }
@@ -163,7 +152,7 @@ void DisplayFramework_SetSize(DisplayFramework *df,
 }
 
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
-      BEGL_BufferFormat format, bool secure, int *fence, unsigned *age)
+      BEGL_BufferFormat format, bool secure, int *age, int *fence)
 {
    assert(df != NULL);
    assert(format != BEGL_BufferFormat_INVALID);

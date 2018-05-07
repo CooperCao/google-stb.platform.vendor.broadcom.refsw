@@ -82,7 +82,7 @@ $(info ****************************************************)
 
 	ifneq ($(PROFILING),0)
 		CFLAGS += -O3 -g -DNDEBUG
-		LDFLAGS += --export-dynamic
+		LDFLAGS += -Wl,--export-dynamic
 	else
 		CFLAGS += -O0 -g -fvisibility=hidden
 	endif
@@ -101,7 +101,7 @@ else
 		LDFLAGS += -s
 	else
 		CFLAGS += -g
-		LDFLAGS += -g --export-dynamic
+		LDFLAGS += -g -Wl,--export-dynamic
 	endif
 
 	OBJDIR ?= obj_$(NEXUS_PLATFORM)_release
@@ -133,6 +133,7 @@ CFLAGS += \
 	-D_GNU_SOURCE \
 	-DHAVE_ZLIB \
 	-DKHRN_GLES32_DRIVER=0 \
+	-DV3D_PLATFORM_ABSTRACT=1 \
 	-DV3D_PLATFORM_SIM=0 \
 	-DSECURE_SUPPORT=1 \
 	-Wno-unused-function \

@@ -4,7 +4,7 @@
 #pragma once
 
 #include "middleware/khronos/common/khrn_map.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 #include "middleware/khronos/glxx/glxx_buffer.h"
 #include "middleware/khronos/glxx/glxx_texture.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"

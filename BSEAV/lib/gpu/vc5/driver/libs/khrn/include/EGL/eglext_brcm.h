@@ -41,7 +41,7 @@ typedef khronos_uint64_t EGLuint64BRCM;
    typedef EGLBoolean (EGLAPIENTRYP PFNEGLCHOOSEPERFCOUNTERSBRCMPROC) (EGLBoolean enable, EGLint group, EGLint numCounters, EGLint *counterList);
    typedef EGLBoolean (EGLAPIENTRYP PFNEGLGETPERFCOUNTERDATABRCMPROC) (EGLint dataBufferBytes, void *data, EGLint *bytesWritten, EGLBoolean resetCounters);
 
-#ifdef GL_GLEXT_PROTOTYPES
+#ifdef EGL_EGLEXT_PROTOTYPES
    EGLAPI EGLint     EGLAPIENTRY eglGetPerfCounterConstantBRCM(EGLenum pname);
    EGLAPI EGLBoolean EGLAPIENTRY eglGetPerfCounterGroupInfoBRCM(EGLint group, EGLint nameStrSize, char *groupNameStr, EGLint *numCounters, EGLint *maxActiveCounters);
    EGLAPI EGLBoolean EGLAPIENTRY eglGetPerfCounterInfoBRCM(EGLint group, EGLint counter, EGLuint64BRCM *minValue, EGLuint64BRCM *maxValue, EGLuint64BRCM *denominator, EGLint nameStrSize, char *nameStr, EGLint unitStrSize, char *unitStr);
@@ -72,7 +72,7 @@ typedef khronos_uint64_t EGLuint64BRCM;
    typedef EGLBoolean (EGLAPIENTRYP PFNEGLSETEVENTCOLLECTIONBRCMPROC) (EGLenum pname);
    typedef EGLBoolean (EGLAPIENTRYP PFNEGLGETEVENTDATABRCMPROC) (EGLint dataBufferBytes, void *data, EGLint *bytesWritten, EGLBoolean *overflowed, EGLuint64BRCM *timebase);
 
-#ifdef GL_GLEXT_PROTOTYPES
+#ifdef EGL_EGLEXT_PROTOTYPES
    EGLAPI EGLint     EGLAPIENTRY eglGetEventConstantBRCM(EGLenum pname);
    EGLAPI EGLBoolean EGLAPIENTRY eglGetEventTrackInfoBRCM(EGLint track, EGLint nameStrSize, char *trackNameStr);
    EGLAPI EGLBoolean EGLAPIENTRY eglGetEventInfoBRCM(EGLint event, EGLint nameStrSize, char *nameStr, EGLint *numDataFields);
@@ -85,34 +85,15 @@ typedef khronos_uint64_t EGLuint64BRCM;
 
 #endif /* KHRONOS_SUPPORT_INT64 */
 
-#ifndef EGL_BRCM_gl_framebuffer_image
-#define EGL_BRCM_gl_framebuffer_image              1
-#define EGL_GL_FRAMEBUFFER_BRCM                    0x70B9
-#define EGL_GL_FRAMEBUFFER_TARGET_BRCM             0x70BA
-#define EGL_GL_FRAMEBUFFER_ATTACHMENT_BRCM         0x70BB
-#define EGL_GL_FRAMEBUFFER_CONVERT_TO_COLOR_BRCM   0x70BC
-#define EGL_GL_FRAMEBUFFER_CONVERT_TO_UIF          0x70BD
-#endif
-
 #ifndef EGL_BRCM_platform_nexus
 #define EGL_BRCM_platform_nexus 1
 #define EGL_PLATFORM_NEXUS_BRCM                    0x32F0
 #endif /* EGL_BRCM_platform_nexus */
 
-/* This is old driver monitor extension still in use by VC4.
- * It will be deleted when VC4 implements VC5-style events and timers.
- */
-#ifndef EGL_BRCM_driver_monitor
-#define EGL_BRCM_driver_monitor 1
-#ifdef EGL_EGLEXT_PROTOTYPES
-EGLAPI EGLBoolean EGLAPIENTRY eglInitDriverMonitorBRCM(EGLDisplay display, EGLint hw_bank, EGLint l3c_bank);
-EGLAPI void EGLAPIENTRY eglGetDriverMonitorXMLBRCM(EGLDisplay display, EGLint bufSize, EGLint *length, char *xmlStats);
-EGLAPI EGLBoolean EGLAPIENTRY eglTermDriverMonitorBRCM(EGLDisplay display);
-#endif /* EGL_EGLEXT_PROTOTYPES */
-typedef void (EGLAPIENTRYP PFNEGLINITDRIVERMONITORBRCMPROC)(EGLDisplay display, EGLint hw_bank, EGLint l3c_bank);
-typedef void (EGLAPIENTRYP PFNEGLGETDRIVERMONITORXMLBRCMPROC)(EGLDisplay display, EGLint bufSize, EGLint *length, char *xmlStats);
-typedef void (EGLAPIENTRYP PFNEGLTERMDRIVERMONITORBRCMPROC)(EGLDisplay display);
-#endif
+#ifndef EGL_BRCM_image_nexus_striped_surface
+#define EGL_BRCM_image_nexus_striped_surface 1
+#define EGL_NEXUS_STRIPED_SURFACE_BRCM             0x32F1
+#endif /* EGL_BRCM_image_nexus_striped_surface */
 
 #ifdef __cplusplus
 }

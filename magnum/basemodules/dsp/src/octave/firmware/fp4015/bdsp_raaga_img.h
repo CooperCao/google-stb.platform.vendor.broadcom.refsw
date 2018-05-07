@@ -70,8 +70,11 @@ extern const void * BDSP_IMG_init_romfs[];
 extern const void * BDSP_IMG_system_code[];
 extern const void * BDSP_IMG_system_lib[];
 
+#if defined (BDSP_MPEG_SUPPORT) || defined (BDSP_MPEG_PASSTHRU_SUPPORT)
+extern const void * BDSP_IMG_aids_mpeg1[];
+#endif
+
 #ifdef BDSP_MPEG_SUPPORT
-extern const void * BDSP_IMG_aids_mpeg1[]; /* Move this to passthru like others when mpeg passthru support comes in */
 extern const void * BDSP_IMG_adec_mpeg1[];
 extern const void * BDSP_IMG_adec_mpeg1_tables[];
 extern const void * BDSP_IMG_adec_mpeg1_inter_frame[];
@@ -82,9 +85,15 @@ extern const void * BDSP_IMG_aids_ddp[];
 #endif /*BDSP_UDC_PASSTHRU_SUPPORT*/
 
 #ifdef BDSP_UDC_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT
+extern const void * BDSP_IMG_adec_ms11plus_udc[];
+extern const void * BDSP_IMG_adec_ms11plus_udc_tables[];
+extern const void * BDSP_IMG_adec_ms11plus_udc_inter_frame[];
+#else
 extern const void * BDSP_IMG_adec_udc[];
 extern const void * BDSP_IMG_adec_udc_tables[];
 extern const void * BDSP_IMG_adec_udc_inter_frame[];
+#endif
 #endif /*BDSP_UDC_SUPPORT*/
 
 #if defined (BDSP_AC3_PASSTHRU_SUPPORT) || defined (BDSP_AC3_SUPPORT)
@@ -119,9 +128,15 @@ extern const void * BDSP_IMG_adec_aache_inter_frame[];
 #endif /*BDSP_AACSBR_SUPPORT*/
 
 #ifdef BDSP_DOLBY_AACHE_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT
+extern const void * BDSP_IMG_adec_ms11plus_dolby_aache [];
+extern const void * BDSP_IMG_adec_ms11plus_dolby_aache_tables[];
+extern const void * BDSP_IMG_adec_ms11plus_dolby_aache_inter_frame[];
+#else
 extern const void * BDSP_IMG_adec_dolby_aache [];
 extern const void * BDSP_IMG_adec_dolby_aache_tables[];
 extern const void * BDSP_IMG_adec_dolby_aache_inter_frame[];
+#endif
 #endif /* DOLBY ACCHE BDSP_AACSBR_SUPPORT*/
 
 #ifdef BDSP_SRC_SUPPORT
@@ -131,9 +146,15 @@ extern const void * BDSP_IMG_app_src_inter_frame[];
 #endif /*BDSP_SRC_SUPPORT*/
 
 #ifdef BDSP_MIXERDAPV2_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT/* Mixer without DAP */
+extern const void * BDSP_IMG_app_ms11plus_mixer[];
+extern const void * BDSP_IMG_app_ms11plus_mixer_tables[];
+extern const void * BDSP_IMG_app_ms11plus_mixer_inter_frame[];
+#else/* Mixer with DAP */
 extern const void * BDSP_IMG_app_mixer_dapv2[];
 extern const void * BDSP_IMG_app_mixer_dapv2_tables[];
 extern const void * BDSP_IMG_app_mixer_dapv2_inter_frame[];
+#endif
 #endif /*BDSP_MIXERDAPV2_SUPPORT*/
 
 #ifdef BDSP_FWMIXER_SUPPORT
@@ -156,15 +177,27 @@ extern const void * BDSP_IMG_adec_passthru_inter_frame[];
 #endif /*BDSP_PASSTHRU_SUPPORT*/
 
 #ifdef BDSP_DPCMR_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT
+extern const void * BDSP_IMG_app_ms11plus_dpcmr[];
+extern const void * BDSP_IMG_app_ms11plus_dpcmr_tables[];
+extern const void * BDSP_IMG_app_ms11plus_dpcmr_inter_frame[];
+#else
 extern const void * BDSP_IMG_app_dpcmr[];
 extern const void * BDSP_IMG_app_dpcmr_tables[];
 extern const void * BDSP_IMG_app_dpcmr_inter_frame[];
+#endif
 #endif /*BDSP_DPCMR_SUPPORT*/
 
 #ifdef BDSP_DDPENC_SUPPORT
+#ifdef BDSP_MS11PLUS_SUPPORT
+extern const void * BDSP_IMG_aenc_ms11plus_dd[];
+extern const void * BDSP_IMG_aenc_ms11plus_dd_tables[];
+extern const void * BDSP_IMG_aenc_ms11plus_dd_inter_frame[];
+#else
 extern const void * BDSP_IMG_aenc_ddp[];
 extern const void * BDSP_IMG_aenc_ddp_tables[];
 extern const void * BDSP_IMG_aenc_ddp_inter_frame[];
+#endif
 #endif /*BDSP_DDPENC_SUPPORT*/
 
 #ifdef BDSP_AACHEENC_SUPPORT

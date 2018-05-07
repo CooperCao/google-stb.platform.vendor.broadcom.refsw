@@ -508,18 +508,18 @@ static void submit_bin_render(
       v3d_barrier_flags rdr_flags = fmem->render_rw_flags;
 
       // Pre-bin barrier between memory and bin-readers.
-      fmem->br_info.details.bin_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, bin_flags, false, hub_ident);
+      fmem->br_info.details.bin_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, bin_flags, hub_ident);
       fmem->br_info.details.bin_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
 
       // Post-bin barrier between bin-writers and memory.
-      fmem->br_info.details.bin_cache_ops |= v3d_barrier_cache_cleans(bin_flags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
+      fmem->br_info.details.bin_cache_ops |= v3d_barrier_cache_cleans(bin_flags, V3D_BARRIER_MEMORY_READ, hub_ident);
 
       // Pre-render barrier between memory and render-readers.
-      fmem->br_info.details.render_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, rdr_flags, false, hub_ident);
+      fmem->br_info.details.render_cache_ops = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, rdr_flags, hub_ident);
       fmem->br_info.details.render_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in CL
 
       // Post-render barrier between render-writers and memory.
-      fmem->br_info.details.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
+      fmem->br_info.details.render_cache_ops |= v3d_barrier_cache_cleans(rdr_flags, V3D_BARRIER_MEMORY_READ, hub_ident);
    }
 
    unsigned bin_index = gfx_log2(KHRN_STAGE_BIN);
@@ -567,8 +567,8 @@ static job_t submit_compute(khrn_fmem* fmem, v3d_scheduler_deps* deps)
 
    // Pre-render barrier between memory and compute-readers.
    // Post-render barrier between compute-writers and memory.
-   v3d_cache_ops cache_flushes = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, fmem->render_rw_flags, false, hub_ident);
-   v3d_cache_ops cache_cleans = v3d_barrier_cache_cleans(fmem->render_rw_flags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
+   v3d_cache_ops cache_flushes = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, fmem->render_rw_flags, hub_ident);
+   v3d_cache_ops cache_cleans = v3d_barrier_cache_cleans(fmem->render_rw_flags, V3D_BARRIER_MEMORY_READ, hub_ident);
    v3d_cache_ops cache_ops = cache_flushes | cache_cleans;
 
    uint64_t job_id;
@@ -659,10 +659,13 @@ static void khrn_fmem_preprocess_job(void* data)
    {
       glxx_compute_process_indirect_dispatches(&persist->compute_dispatches, &persist->compute_indirect);
 
-      v3d_scheduler_update_compute_subjobs(
-         persist->compute_subjobs_id,
-         khrn_vector_data(v3d_compute_subjob, &persist->compute_dispatches),
-         persist->compute_dispatches.size);
+      if (persist->compute_dispatches.size != 0) // no need to set if 0.
+      {
+         v3d_scheduler_update_compute_subjobs(
+            persist->compute_subjobs_id,
+            khrn_vector_data(v3d_compute_subjob, &persist->compute_dispatches),
+            persist->compute_dispatches.size);
+      }
    }
  #endif
 }
@@ -674,7 +677,7 @@ static void add_fmem_rw_flags(khrn_fmem* fmem)
    v3d_barrier_flags render_rw_flags;
 
 #if V3D_USE_CSD
-   if (fmem->persist->compute_dispatches.size != 0)
+   if (fmem->render_state->type == KHRN_RENDER_STATE_TYPE_GLXX_COMPUTE)
    {
       bin_rw_flags = V3D_BARRIER_NO_ACCESS;
       render_rw_flags = V3D_BARRIER_QPU_UNIF_READ | V3D_BARRIER_TMU_CONFIG_READ;
@@ -759,6 +762,10 @@ void khrn_fmem_flush(khrn_fmem *fmem)
    #endif
  #endif
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   bool is_compute = fmem->render_state->type == KHRN_RENDER_STATE_TYPE_GLXX_COMPUTE;
+#endif
+
    job_t stage_jobs[KHRN_RESOURCE_NUM_STAGES] = { 0, };
    if (needs_preprocess)
    {
@@ -769,7 +776,7 @@ void khrn_fmem_flush(khrn_fmem *fmem)
       v3d_scheduler_deps finalised_deps;
       v3d_scheduler_deps_init(&finalised_deps);
     #if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_USE_CSD
-      if (fmem->persist->compute_dispatches.size != 0 && khrn_fmem_compute_jobs[0] != 0)
+      if (is_compute && khrn_fmem_compute_jobs[0] != 0)
          v3d_scheduler_add_dep(&finalised_deps, khrn_fmem_compute_jobs[0]);
     #endif
 
@@ -798,7 +805,7 @@ void khrn_fmem_flush(khrn_fmem *fmem)
       v3d_scheduler_merge_deps(&stage_deps[s], &stage_deps[s-1]);
 
  #if V3D_USE_CSD
-   if (fmem->persist->compute_dispatches.size)
+   if (is_compute)
    {
       assert(!fmem->br_info.bin_subjobs.num_subjobs && !fmem->br_info.render_subjobs.num_subjobs);
 
@@ -821,7 +828,7 @@ void khrn_fmem_flush(khrn_fmem *fmem)
 
  #if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_USE_CSD
    // Store compute jobs for throttling purposes.
-   if (fmem->persist->compute_dispatches.size != 0)
+   if (is_compute)
    {
       for (unsigned i = 1; i != countof(khrn_fmem_compute_jobs); ++i)
          khrn_fmem_compute_jobs[i-1] = khrn_fmem_compute_jobs[i];
@@ -838,7 +845,7 @@ void khrn_fmem_flush(khrn_fmem *fmem)
       // Wait for preprocess before using memaccess.
       v3d_scheduler_wait_jobs(&stage_deps[KHRN_STAGE_PREPROCESS], V3D_SCHED_DEPS_COMPLETED);
 #if V3D_USE_CSD
-      if (fmem->persist->compute_dispatches.size)
+      if (is_compute)
          khrn_save_crc_checksums_compute(fmem->persist->memaccess,
             khrn_vector_data(v3d_compute_subjob, &fmem->persist->compute_dispatches),
             fmem->persist->compute_dispatches.size);
@@ -1064,8 +1071,8 @@ bool khrn_fmem_cle_barrier_flush(khrn_fmem *fmem,
    v3d_barrier_flags src, v3d_barrier_flags dst,
    v3d_cache_ops *done_ops_from_src)
 {
-   v3d_cache_ops ops = v3d_barrier_cache_flushes_within_core(src, dst);
-   assert(!(v3d_barrier_cache_cleans_within_core(src, dst) &
+   v3d_cache_ops ops = v3d_barrier_cache_flushes_within_v3d(src, dst);
+   assert(!(v3d_barrier_cache_cleans_within_v3d(src, dst) &
       ~(done_ops_from_src ? *done_ops_from_src : 0)));
    if (done_ops_from_src)
    {
@@ -1088,7 +1095,12 @@ bool khrn_fmem_cle_barrier_flush(khrn_fmem *fmem,
 
    if (ops & V3D_CACHE_FLUSH_L2T)
    {
-      v3d_cl_flush_l2t(&instr, 0, ~0, V3D_L2T_FLUSH_MODE_FLUSH, /*deferred=*/false);
+#if V3D_USE_L2T_LOCAL_MEM
+      v3d_addr_t end_addr = gmem_get_l2t_local_mem_addr()-1;  // L2T local mem must be the end of address space.
+#else
+      v3d_addr_t end_addr = ~(v3d_addr_t)0;
+#endif
+      v3d_cl_flush_l2t(&instr, 0, end_addr, V3D_L2T_FLUSH_MODE_FLUSH, /*deferred=*/false);
       ops &= ~V3D_CACHE_FLUSH_L2T;
    }
 

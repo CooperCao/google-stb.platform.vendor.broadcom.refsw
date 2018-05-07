@@ -43,10 +43,23 @@ typedef enum v3d_barrier_flags
    V3D_BARRIER_TFU_READ            = 1 << 19,
    V3D_BARRIER_TFU_WRITE           = 1 << 20,
 
+   /* Access via a non-specific unit (core/tfu/etc) attached to the
+    * point-of-coherency between cores (this is the L3C if there is one,
+    * otherwise main memory) */
+   V3D_BARRIER_POC_READ            = 1 << 24,
+   V3D_BARRIER_POC_WRITE           = 1 << 25,
+
    /* Access via a non-specific unit attached to the memory */
-   V3D_BARRIER_MEMORY_READ         = 1 << 24,
-   V3D_BARRIER_MEMORY_WRITE        = 1 << 25,
+   V3D_BARRIER_MEMORY_READ         = 1 << 26,
+   V3D_BARRIER_MEMORY_WRITE        = 1 << 27,
 } v3d_barrier_flags;
+
+/* To sync between accesses on different cores, use
+ * V3D_BARRIER_POC_READ/V3D_BARRIER_POC_WRITE. eg To sync between a TMU write
+ * on one core and a TMU read on another, perform
+ * v3d_barrier_cache_cleans(V3D_BARRIER_TMU_DATA_WRITE, V3D_BARRIER_POC_READ)
+ * on the first core and then on the second core,
+ * v3d_barrier_cache_flushes(V3D_BARRIER_POC_WRITE, V3D_BARRIER_TMU_DATA_READ). */
 
 #define V3D_BARRIER_CORE_READ (\
    V3D_BARRIER_CLE_CL_READ\
@@ -70,10 +83,11 @@ typedef enum v3d_barrier_flags
  | V3D_BARRIER_TLB_IMAGE_WRITE\
  | V3D_BARRIER_TLB_OQ_WRITE)
 
-#define V3D_BARRIER_V3D_READ (V3D_BARRIER_CORE_READ | V3D_BARRIER_TFU_READ)
-#define V3D_BARRIER_V3D_WRITE (V3D_BARRIER_CORE_WRITE | V3D_BARRIER_TFU_WRITE)
+#define V3D_BARRIER_V3D_READ (V3D_BARRIER_CORE_READ | V3D_BARRIER_TFU_READ | V3D_BARRIER_POC_READ)
+#define V3D_BARRIER_V3D_WRITE (V3D_BARRIER_CORE_WRITE | V3D_BARRIER_TFU_WRITE | V3D_BARRIER_POC_WRITE)
 
 #define V3D_BARRIER_CORE_RW (V3D_BARRIER_CORE_READ | V3D_BARRIER_CORE_WRITE)
+#define V3D_BARRIER_POC_RW (V3D_BARRIER_POC_READ | V3D_BARRIER_POC_WRITE)
 #define V3D_BARRIER_V3D_RW (V3D_BARRIER_V3D_READ | V3D_BARRIER_V3D_WRITE)
 #define V3D_BARRIER_TFU_RW (V3D_BARRIER_TFU_READ | V3D_BARRIER_TFU_WRITE)
 #define V3D_BARRIER_MEMORY_RW (V3D_BARRIER_MEMORY_READ | V3D_BARRIER_MEMORY_WRITE)
@@ -121,7 +135,7 @@ typedef enum v3d_cache_ops
       V3D_CACHE_IF_AT_LEAST_33(V3D_CACHE_CLEAN_L1TD)\
    |  V3D_CACHE_CLEAN_L2T)
 
-#define V3D_CACHE_FLUSH_HUB (V3D_CACHE_IF_HAS_L3C(V3D_CACHE_FLUSH_L3C) | V3D_CACHE_IF_NOT_NEW_WRAPPER(V3D_CACHE_CLEAR_GCA))
+#define V3D_CACHE_FLUSH_HUB (V3D_CACHE_IF_HAS_L3C(V3D_CACHE_FLUSH_L3C) | V3D_CACHE_IF_NOT_AT_LEAST_41(V3D_CACHE_CLEAR_GCA))
 #define V3D_CACHE_CLEAN_HUB (V3D_CACHE_IF_HAS_L3C(V3D_CACHE_CLEAN_L3C))
 #define V3D_CACHE_FLUSH_ALL (V3D_CACHE_FLUSH_CORE | V3D_CACHE_FLUSH_HUB)
 #define V3D_CACHE_CLEAN_ALL (V3D_CACHE_CLEAN_CORE | V3D_CACHE_CLEAN_HUB)
@@ -130,32 +144,30 @@ typedef enum v3d_cache_ops
 v3d_cache_ops v3d_barrier_cache_cleans(
    v3d_barrier_flags src,
    v3d_barrier_flags dst,
-   bool cross_core,                 // src and dst are on different cores.
    const V3D_HUB_IDENT_T* ident);
 
-//! Compute set of caches to be cleaned for barrier within the same core.
-static inline v3d_cache_ops v3d_barrier_cache_cleans_within_core(
+//! Compute set of caches to be cleaned for barrier within V3D.
+static inline v3d_cache_ops v3d_barrier_cache_cleans_within_v3d(
    v3d_barrier_flags src,
    v3d_barrier_flags dst)
 {
    assert(!((src | dst) & (V3D_BARRIER_MEMORY_READ | V3D_BARRIER_MEMORY_WRITE)));
-   return v3d_barrier_cache_cleans(src, dst, false, NULL);
+   return v3d_barrier_cache_cleans(src, dst, NULL);
 }
 
 //! Compute set of caches to be flushed/cleared for barrier.
 v3d_cache_ops v3d_barrier_cache_flushes(
    v3d_barrier_flags src,
    v3d_barrier_flags dst,
-   bool cross_core,                 // src and dst are on different cores.
    const V3D_HUB_IDENT_T* ident);
 
-//! Compute set of caches to be flushed/cleared for barrier within the same core.
-static inline v3d_cache_ops v3d_barrier_cache_flushes_within_core(
+//! Compute set of caches to be flushed/cleared for barrier within V3D.
+static inline v3d_cache_ops v3d_barrier_cache_flushes_within_v3d(
    v3d_barrier_flags src,
    v3d_barrier_flags dst)
 {
    assert(!((src | dst) & (V3D_BARRIER_MEMORY_READ | V3D_BARRIER_MEMORY_WRITE)));
-   return v3d_barrier_cache_flushes(src, dst, false, NULL);
+   return v3d_barrier_cache_flushes(src, dst, NULL);
 }
 
 #ifdef __cplusplus
@@ -233,9 +245,9 @@ static inline v3d_cache_ops operator&=(v3d_cache_ops& a, v3d_cache_ops b)
 #endif
 
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-#define V3D_CACHE_IF_NOT_NEW_WRAPPER(x) x
+#define V3D_CACHE_IF_NOT_AT_LEAST_41(x) x
 #else
-#define V3D_CACHE_IF_NOT_NEW_WRAPPER(x) V3D_CACHE_OPS_NONE
+#define V3D_CACHE_IF_NOT_AT_LEAST_41(x) V3D_CACHE_OPS_NONE
 #endif
 
 #if V3D_HAS_L3C

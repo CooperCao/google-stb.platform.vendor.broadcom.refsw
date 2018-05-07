@@ -1425,6 +1425,7 @@ wlc_lq_rssi_bss_sta_event_upd(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 		wlc_bss_mac_event(wlc, cfg, WLC_E_RSSI, NULL, 0, 0, 0, &value, sizeof(value));
 		if (blqi->rssi_event_timer && blqi->rssi_event->rate_limit_msec) {
 			/* rate limit rssi events */
+			blqi->rssi_event_timer_active = TRUE;
 			wl_del_timer(wlc->wl, blqi->rssi_event_timer);
 			wl_add_timer(wlc->wl, blqi->rssi_event_timer,
 				blqi->rssi_event->rate_limit_msec, FALSE);
@@ -2783,17 +2784,16 @@ wlc_lq_chanim_phy_noise(wlc_info_t *wlc)
 			rxiq_core[1] &= 0xff;
 			rxiq_core[0] &= 0xff;
 			rxiq = (int32)(rxiq_core[1]<<16) + (int32)rxiq_core[0];
-		}
 
-		if (rxiq >> 8)
-			result = (int8)MAX((rxiq >> 8) & 0xff, (rxiq & 0xff));
-		else
-			result = (int8)(rxiq & 0xff);
-		if (result) {
-			sum += result;
-			valid_cnt++;
+			if (rxiq >> 8)
+				result = (int8)MAX((rxiq >> 8) & 0xff, (rxiq & 0xff));
+			else
+				result = (int8)(rxiq & 0xff);
+			if (result) {
+				sum += result;
+				valid_cnt++;
+			}
 		}
-
 		if (valid_cnt)
 			result = sum/valid_cnt;
 	}

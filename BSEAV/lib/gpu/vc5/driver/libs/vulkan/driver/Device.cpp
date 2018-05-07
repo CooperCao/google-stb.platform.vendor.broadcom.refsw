@@ -4,6 +4,7 @@
 
 #include "AllObjects.h"
 #include "Common.h"
+#include "Extensions.h"
 #include "libs/core/v3d/v3d_barrier.h"
 
 namespace bvk {
@@ -60,8 +61,8 @@ Device::Device(
    barrier_flags |= compute_mem_access_flags();
 #endif
    const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
-   m_computeCacheOps = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_RW, barrier_flags, false, hub_ident)
-                     | v3d_barrier_cache_cleans(barrier_flags, V3D_BARRIER_MEMORY_RW, false, hub_ident);
+   m_computeCacheOps = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_RW, barrier_flags, hub_ident)
+                     | v3d_barrier_cache_cleans(barrier_flags, V3D_BARRIER_MEMORY_RW, hub_ident);
 #if !V3D_USE_CSD
    m_computeCacheOps &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in the control list
 #endif
@@ -225,50 +226,47 @@ VkResult Device::AllocateCommandBuffers(
    return VK_SUCCESS;
 }
 
-static void FillDedicatedAllocProps(void *pExt)
+static void FillDedicatedAllocProps(void *ext)
 {
-   while (pExt != nullptr)
+   auto p = Extensions::FindExtensionStruct<VkMemoryDedicatedRequirements>(
+                        VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, ext);
+   if (p)
    {
-      auto p = static_cast<VkMemoryDedicatedRequirementsKHR *>(pExt);
-      if (p->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR)
-      {
-         p->prefersDedicatedAllocation  = false;
-         p->requiresDedicatedAllocation = false;
-      }
-      pExt = p->pNext;
+      p->prefersDedicatedAllocation  = false;
+      p->requiresDedicatedAllocation = false;
    }
 }
 
-void Device::GetImageMemoryRequirements2KHR(
-   const VkImageMemoryRequirementsInfo2KHR   *pInfo,
-   VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept
+void Device::GetImageMemoryRequirements2(
+   const VkImageMemoryRequirementsInfo2   *pInfo,
+   VkMemoryRequirements2                  *pMemoryRequirements) noexcept
 {
    Image *imageObj = bvk::fromHandle<bvk::Image>(pInfo->image);
    imageObj->GetImageMemoryRequirements(this, &pMemoryRequirements->memoryRequirements);
    FillDedicatedAllocProps(pMemoryRequirements->pNext);
 }
 
-void Device::GetBufferMemoryRequirements2KHR(
-   const VkBufferMemoryRequirementsInfo2KHR  *pInfo,
-   VkMemoryRequirements2KHR                  *pMemoryRequirements) noexcept
+void Device::GetBufferMemoryRequirements2(
+   const VkBufferMemoryRequirementsInfo2  *pInfo,
+   VkMemoryRequirements2                  *pMemoryRequirements) noexcept
 {
    Buffer *bufferObj = bvk::fromHandle<bvk::Buffer>(pInfo->buffer);
    bufferObj->GetBufferMemoryRequirements(this, &pMemoryRequirements->memoryRequirements);
    FillDedicatedAllocProps(pMemoryRequirements->pNext);
 }
 
-void Device::GetImageSparseMemoryRequirements2KHR(
-   const VkImageSparseMemoryRequirementsInfo2KHR   *pInfo,
-   uint32_t                                        *pSparseMemoryRequirementCount,
-   VkSparseImageMemoryRequirements2KHR             *pSparseMemoryRequirements) noexcept
+void Device::GetImageSparseMemoryRequirements2(
+   const VkImageSparseMemoryRequirementsInfo2   *pInfo,
+   uint32_t                                     *pSparseMemoryRequirementCount,
+   VkSparseImageMemoryRequirements2             *pSparseMemoryRequirements) noexcept
 {
    /* Valid usage prevents this function from actually being uesd */
    unreachable();
 }
 
-VkResult Device::BindBufferMemory2KHR(
-   uint32_t                          bindInfoCount,
-   const VkBindBufferMemoryInfoKHR  *pBindInfos) noexcept
+VkResult Device::BindBufferMemory2(
+   uint32_t                       bindInfoCount,
+   const VkBindBufferMemoryInfo  *pBindInfos) noexcept
 {
    for (uint32_t i=0; i<bindInfoCount; i++)
    {
@@ -280,9 +278,9 @@ VkResult Device::BindBufferMemory2KHR(
    return VK_SUCCESS;
 }
 
-VkResult Device::BindImageMemory2KHR(
-   uint32_t                          bindInfoCount,
-   const VkBindImageMemoryInfoKHR   *pBindInfos) noexcept
+VkResult Device::BindImageMemory2(
+   uint32_t                       bindInfoCount,
+   const VkBindImageMemoryInfo   *pBindInfos) noexcept
 {
    for (uint32_t i=0; i<bindInfoCount; i++)
    {

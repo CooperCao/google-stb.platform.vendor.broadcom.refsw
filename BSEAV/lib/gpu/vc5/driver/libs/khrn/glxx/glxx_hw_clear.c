@@ -51,7 +51,7 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
       clear->stencil = false;
 
    // Disable clears of buffers if writes to them are entirely masked
-   for (unsigned b = 0; b != GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b != V3D_MAX_RENDER_TARGETS; ++b)
       if (!(state->color_write & (0xf << (b * 4))))
          clear->color_buffer_mask &= ~(1u << b);
    if (!state->depth_mask)
@@ -68,10 +68,10 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
       return false;
 
    // Intersect FB rect with scissor rect
-   glxx_rect rect = {0, 0, hw_fb.width, hw_fb.height};
+   gfx_rect rect = {0, 0, hw_fb.width, hw_fb.height};
    if (state->caps.scissor_test)
    {
-      glxx_rect_intersect(&rect, &state->scissor);
+      gfx_rect_intersect(&rect, &state->scissor);
       if (rect.width == 0 || rect.height == 0)
       {
          glxx_destroy_hw_framebuffer(&hw_fb);

@@ -1,1109 +1,1139 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#include <EGL/egl.h>
-
-/* TODO: This is a hack moved from old version of eglext.h to keep using
- * the EGL extensions directly here (i.e. not via eglGetProcAddress()).
- * This hack should be removed and code should be reworked to access the
- * relevant functionality properly (i.e. via eglGetProcAdderss()).
- */
-#define EGL_EGLEXT_PROTOTYPES 1
-#include <EGL/eglext.h>
-#undef EGL_EGLEXT_PROTOTYPES
-
-#include <EGL/eglext_brcm.h>
-#include <GLES/glplatform.h>
-#include <GLES3/gl3.h>
-#include "vcos.h"
-#include "../egl/egl_types.h"
-#include "../egl/egl_thread.h"
-#include "../egl/egl_display.h"
-#include "../egl/egl_image.h"
-#include "../egl/egl_image_framebuffer.h"
-#include "../egl/egl_context_gl.h"
-#include "glxx_server.h"
 #include "glxx_tmu_blit.h"
+#include "glxx_server.h"
+#include "glxx_hw.h"
+#include "../common/khrn_render_state.h"
+#include "libs/core/v3d/v3d_tlb.h"
 #include "glxx_ds_to_color.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "glxx_tmu_blit_shaders.h"
+#include "libs/util/log/log.h"
+#include "libs/util/gfx_util/gfx_util_rect.h"
 
-typedef GLfloat fpoint_t[2];
-struct fbox
+typedef struct
 {
-   fpoint_t    inf;
-   fpoint_t    sup;
-};
+   float x;
+   float y;
+}fpoint;
 
-enum cmp_type
+typedef struct
 {
-   CMP_FLOAT,
-   CMP_INT,
-   CMP_UINT,
-   N_CMP_TYPES,
-};
+   float inf[2];
+   float sup[2];
+}fbox;
 
-struct gl_state
+
+// vtx layout
+// 2------3
+// |      |
+// |      |
+// 0------1
+static void fbox_to_fpoints(const fbox *rect, fpoint vtx[4])
 {
-   GLuint fb;
-   GLuint program[N_CMP_TYPES];
-   GLuint vertex_buf;
-};
+   vtx[0].x = rect->inf[0];
+   vtx[0].y = rect->inf[1];
 
-struct scissor_state
+   vtx[3].x = rect->sup[0];
+   vtx[3].y = rect->sup[1];
+
+   vtx[1].x = vtx[3].x;
+   vtx[1].y = vtx[0].y;
+
+   vtx[2].x = vtx[0].x;
+   vtx[2].y = vtx[3].y;
+}
+
+static void fswap(float *x, float *y)
 {
-   GLboolean enabled;
-   GLint     box[4];// Only set if scissor_enabled
-};
+   float temp = *x;
+   *x = *y;
+   *y = temp;
+}
 
-struct context
+void normalize_fbox(fbox *rect, unsigned width, unsigned height)
 {
-   EGLContext  context;
+   unsigned size[2] = {width, height};
+   for (unsigned i = 0; i < 2; i++)
+   {
+      rect->inf[i]/= size[i];
+      rect->sup[i]/= size[i];
+   }
+}
 
-   /*
-    * This is just the config_id of the EGLContext, but it saves us looking it
-    * up over and over again.
-    */
-   EGLint      config_id;
-   EGLSurface  draw;
-   EGLSurface  read;
-};
+static void gfx_rect_to_fbox(fbox *box, const gfx_rect *rect)
+{
+   box->inf[0] = (float)rect->x;
+   box->inf[1] = (float)rect->y;
+   box->sup[0] = (float)(rect->x + rect->width);
+   box->sup[1] = (float)(rect->y + rect->height);
+}
 
-/*
- * Anything in here can potentially be re-used on the next call to
- * glBlitFramebuffer
+static void clip_fbox(fbox *src_rect, const fbox *clip,
+         const bool flip[2], fbox *dst_rect)
+{
+   for (unsigned i = 0; i < 2; i++)
+   {
+      float out_left, out_right, scale;
+
+      out_left = out_right = 0.0f;
+      scale = (dst_rect->sup[i] - dst_rect->inf[i]) /
+         (src_rect->sup[i] - src_rect->inf[i]);
+
+      if (src_rect->inf[i] < clip->inf[i])
+      {
+         out_left = (clip->inf[i] - src_rect->inf[i]);
+         src_rect->inf[i] = clip->inf[i];
+      }
+      if (src_rect->sup[i] > clip->sup[i])
+      {
+         out_right = (src_rect->sup[i] - clip->sup[i]);
+         src_rect->sup[i] = clip->sup[i];
+      }
+
+      //if flip, swap left with right
+      if (flip[i])
+         fswap(&out_left, &out_right);
+
+      dst_rect->inf[i] += out_left * scale;
+      dst_rect->sup[i] -= out_right * scale;
+   }
+}
+
+// vtx_pos and tex_coord layout
+// 2 -- 3
+// |    |
+// 0 -- 1
+static void pos_and_tex_coords(const gfx_rect blit_rect[2], const bool flip[2],
+      const gfx_rect clip[2], fpoint vtx_pos[4], fpoint tex_coord[4])
+{
+   fbox f_blit_rect[2];
+   fbox f_clip[2];
+   for (unsigned i = 0; i < 2 ; i++)
+   {
+      gfx_rect_to_fbox(&f_blit_rect[i], &blit_rect[i]);
+      gfx_rect_to_fbox(&f_clip[i], &clip[i]);
+   }
+
+   clip_fbox(&f_blit_rect[0], &f_clip[0], flip, &f_blit_rect[1]);
+   clip_fbox(&f_blit_rect[1], &f_clip[1], flip, &f_blit_rect[0]);
+
+   normalize_fbox(&f_blit_rect[0], clip[0].width, clip[0].height);
+   for (unsigned i = 0; i < 2; i++)
+   {
+      if (flip[i])
+         fswap(&f_blit_rect[0].inf[i], &f_blit_rect[0].sup[i]);
+   }
+
+   fbox_to_fpoints(&f_blit_rect[0], tex_coord);
+   for (unsigned i = 0; i < 4; i++)
+   {
+      assert(tex_coord[i].x >= 0.0f && tex_coord[i].x <= 1.0f);
+      assert(tex_coord[i].y >= 0.0f && tex_coord[i].y <= 1.0f);
+   }
+   fbox_to_fpoints(&f_blit_rect[1], vtx_pos);
+}
+
+typedef struct
+{
+   bool is_used;
+
+   bool is_16;
+   bool is_int;
+   uint8_t config_byte;
+}rt_info_t;
+
+//return true if any rt is configured for 32 bit access
+static bool color_buffers_rt_info(rt_info_t rt_info[4],
+      const GLXX_HW_FRAMEBUFFER_T *dst_hw_fb, uint32_t draw_bufs_mask,
+      unsigned components_to_write)
+{
+   bool any_rt_is_32bit = false;
+
+   for (unsigned i = 0; i < 4; i++)
+      rt_info[i].is_used = false;
+
+   for (unsigned i = 0; draw_bufs_mask; i++, draw_bufs_mask >>= 1)
+   {
+      if (draw_bufs_mask & 0x1)
+      {
+         rt_info[i].is_used = true;
+         v3d_rt_type_t rt_type = dst_hw_fb->color_rt_format[i].type;
+         rt_info[i].is_16 = v3d_tlb_rt_type_use_rw_cfg_16(rt_type);
+         rt_info[i].is_int = v3d_tlb_rt_type_is_int(rt_type);
+
+         unsigned vec_sz = rt_info[i].is_16 ? (components_to_write + 1)/2 : components_to_write;
+         rt_info[i].config_byte = v3d_tlb_config_color(i, rt_info[i].is_16,
+               rt_info[i].is_int, vec_sz, /*per_sample*/ true);
+
+         if (!rt_info[i].is_16)
+            any_rt_is_32bit = true;
+      }
+   }
+   return any_rt_is_32bit;
+}
+
+// vtx_pos and tex_coord layout
+// 2 -- 3
+// |    |
+// 0 -- 1
+#define NUM_ATTRS 3
+static v3d_addr_t nvshader(khrn_fmem *fmem,
+      v3d_addr_t fshader_addr, v3d_addr_t funifs_addr,
+      const fpoint vtx_pos[4], const fpoint tex_coord[4])
+{
+   size_t size = V3D_SHADREC_GL_MAIN_PACKED_SIZE + NUM_ATTRS * V3D_SHADREC_GL_ATTR_PACKED_SIZE;
+
+   v3d_addr_t rec_addr;
+   uint32_t *rec_packed = khrn_fmem_data(&rec_addr, fmem, size, V3D_SHADREC_ALIGN);
+   if (!rec_packed)
+      return 0;
+
+   V3D_SHADREC_GL_MAIN_T rec = {0, };
+   V3D_SHADREC_GL_ATTR_T attr[NUM_ATTRS];
+   memset(attr, 0, sizeof(attr));
+
+   rec.clipping = 0;
+   rec.num_varys = 2;
+   //xc, yc, zc, wc
+   uint32_t cs_out_sectors = 1;
+   // 6 (xs, ys, zs, 1/wc + 2 varyings)
+   uint32_t vs_out_sectors = 1;
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   rec.cs_input_size  = (V3D_IN_SEG_ARGS_T){ /*.sectors = */0, /*.min_req = */1 };
+   rec.cs_output_size = (V3D_OUT_SEG_ARGS_T){ cs_out_sectors, 0 };
+   rec.vs_input_size  = (V3D_IN_SEG_ARGS_T){ /*.sectors = */0, /*.min_req = */1 };
+   rec.vs_output_size = (V3D_OUT_SEG_ARGS_T){ vs_out_sectors, 0 };
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   rec.fs.single_seg  = false;
+#endif
+#else
+   rec.cs_output_size = cs_out_sectors;
+   rec.vs_output_size = vs_out_sectors;
+#endif
+   rec.fs.threading   = V3D_THREADING_4;
+   rec.fs.addr        = fshader_addr;
+   rec.fs.unifs_addr  = funifs_addr;
+
+   v3d_addr_t data_addr;
+   unsigned vtx_count = 4;
+   unsigned num_entries = 6;
+   uint32_t *data = khrn_fmem_data(&data_addr, fmem, vtx_count * num_entries * sizeof(float), V3D_ATTR_ALIGN);
+   for (unsigned i = 0, pos = 0; i < vtx_count; i++)
+   {
+      //xs
+      data[pos++] = gfx_float_to_uint32(vtx_pos[i].x * (1 << 8));
+      //ys
+      data[pos++] = gfx_float_to_uint32(vtx_pos[i].y * (1<< 8));
+      //zs
+      data[pos++] = gfx_float_to_bits(1.0f);
+      //1/wcs
+      data[pos++] = gfx_float_to_bits(1.0f);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      //vary 0 - t coord
+      data[pos++] = gfx_float_to_bits(tex_coord[i].y);
+      //vary 1 - s coord
+      data[pos++] = gfx_float_to_bits(tex_coord[i].x);
+#else
+      //we need to write first s and then t
+      //vary 0 - s coord
+      data[pos++] = gfx_float_to_bits(tex_coord[i].x);
+      //vary 1 - t coord
+      data[pos++] = gfx_float_to_bits(tex_coord[i].y);
+#endif
+    }
+
+   // xc, yc, zc, wc - clipping is disabled so we just use any 4 values(use the
+   // same as xs, ys, zs, 1/wc)
+   attr[0].addr = data_addr;
+   attr[0].size = 4;
+   attr[0].type = V3D_ATTR_TYPE_FLOAT;
+   attr[0].cs_num_reads = 4;
+   attr[0].vs_num_reads = 0;
+   attr[0].stride = 0;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   attr[0].max_index = 0;
+#endif
+
+   //xs, ys, zs, 1/wc
+   attr[1].addr = data_addr;
+   attr[1].size = 4;
+   attr[1].type = V3D_ATTR_TYPE_FLOAT;
+   attr[1].cs_num_reads = 4;
+   attr[1].vs_num_reads = 4;
+   attr[1].stride = num_entries * sizeof(float);
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   attr[1].max_index = 3;
+#endif
+
+   //vary 0, vary 1 (s, t texture coords)
+   attr[2].addr = data_addr + 4 * sizeof(float);
+   attr[2].size = 2;
+   attr[2].type = V3D_ATTR_TYPE_FLOAT;
+   attr[2].cs_num_reads = 0;
+   attr[2].vs_num_reads = 2;
+   attr[2].stride =  num_entries * sizeof(float);
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   attr[2].max_index = 3;
+#endif
+
+   uint32_t *curr = rec_packed;
+   v3d_pack_shadrec_gl_main(curr, &rec);
+   curr += V3D_SHADREC_GL_MAIN_PACKED_SIZE / sizeof(*rec_packed);
+   for (unsigned i = 0; i < 3; i++)
+   {
+      v3d_pack_shadrec_gl_attr(curr, &attr[i]);
+      curr += V3D_SHADREC_GL_ATTR_PACKED_SIZE / sizeof(*rec_packed);
+
+   }
+   return rec_addr;
+}
+
+static bool clip_and_cfgbits_instr(glxx_dirty_set_t *dirty,
+      uint32_t draw_bufs_mask, const GLXX_HW_FRAMEBUFFER_T *dst_hw_fb,
+      const gfx_rect *clip_rect,
+      GLXX_HW_RENDER_STATE_T *rs)
+{
+   unsigned size = V3D_CL_CLIP_SIZE + V3D_CL_CLIPZ_SIZE + V3D_CL_CFG_BITS_SIZE
+      + V3D_CL_COLOR_WMASKS_SIZE + V3D_CL_VIEWPORT_OFFSET_SIZE
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      + V3D_CL_BLEND_ENABLES_SIZE
+#endif
+      + V3D_CL_SAMPLE_STATE_SIZE;
+
+   if (!rs->clist_start && !(rs->clist_start = khrn_fmem_begin_clist(&rs->fmem)))
+      return false;
+
+   // Set up control list
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, size);
+   if (!instr)
+      return false;
+
+   //  Emit scissor/clipper/viewport instructions
+   v3d_cl_clip(&instr, clip_rect->x, clip_rect->y, clip_rect->width, clip_rect->height);
+   v3d_cl_clipz(&instr, 0.0f, 1.0f);
+   khrn_render_state_set_add(&dirty->viewport, rs);
+
+   //cfg bits
+   early_z_update_cfg(&rs->ez, V3D_COMPARE_FUNC_ALWAYS,
+      /*depth_update*/ false, /*stencil_update*/ false,
+      V3D_STENCIL_OP_ZERO, V3D_STENCIL_OP_ZERO,
+      V3D_STENCIL_OP_ZERO, V3D_STENCIL_OP_ZERO);
+   v3d_cl_cfg_bits(&instr, /*front_prims*/ true, /*back_prims*/ true,
+      /*cwise_is_front*/ false, /*depth offset*/ false,
+      /*aa_lines*/ false, /*rast_oversample*/ V3D_MS_1X,
+      /*cov_pipe*/ false, /*cov_update*/ V3D_COV_UPDATE_NONZERO,
+      /*wireframe_tris*/ false,
+      /*depth_test - zfunc*/ V3D_COMPARE_FUNC_ALWAYS, /*depth_update - enzu*/ false,
+      /*cfg_bits_ez*/ false, /* cfg_bits_ez_update */ false,
+      /*stencil */ false, /* blend */ false,
+      V3D_WIREFRAME_MODE_LINES, /*d3d_prov_vtx*/ false);
+   khrn_render_state_set_add(&dirty->cfg, rs);
+
+   /* Disable alpha writes for buffers which don't have alpha channels. We need
+    * the alpha in the TLB to be 1 to get correct blending in the case where
+    * the buffer doesn't have alpha. The TLB will set alpha to 1 when it loads
+    * an alpha-less buffer, but we need to explicitly mask alpha writes after
+    * that to prevent it changing. */
+   uint32_t w_disable_mask = 0;
+   for (unsigned i = 0; draw_bufs_mask; i++, draw_bufs_mask >>= 1)
+   {
+      if (draw_bufs_mask & 0x1)
+      {
+         khrn_image *image = dst_hw_fb->color[i].image;
+         if (image && !gfx_lfmt_has_alpha(image->api_fmt))
+            w_disable_mask |= 1u << ((i * 4) + 3);
+      }
+   }
+   v3d_cl_color_wmasks(&instr, w_disable_mask);
+   khrn_render_state_set_add(&dirty->color_write, rs);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   v3d_cl_viewport_offset(&instr, 0, 0, 0, 0);
+#else
+   v3d_cl_viewport_offset(&instr, 0, 0);
+#endif
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   //no blending
+   v3d_cl_blend_enables(&instr, 0);
+   khrn_render_state_set_add(&dirty->blend_enables, rs);
+#endif
+
+   float sample_coverage = 1.0f; /* Disable */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   uint8_t mask = 0xf;     /* Disable */
+   v3d_cl_sample_state(&instr, mask, sample_coverage);
+#else
+   v3d_cl_sample_state(&instr, sample_coverage);
+#endif
+   khrn_render_state_set_add(&dirty->sample_state, rs);
+
+   khrn_fmem_end_cle(&rs->fmem, instr);
+   return true;
+}
+
+static bool draw_quad(v3d_addr_t fshader_addr, v3d_addr_t funifs_addr,
+      const fpoint vtx_pos[4], const fpoint tex_coord[4],
+      GLXX_HW_RENDER_STATE_T *rs)
+{
+   v3d_addr_t shadrec_addr = nvshader(&rs->fmem, fshader_addr,
+         funifs_addr, vtx_pos, tex_coord);
+   if (shadrec_addr == 0)
+      return false;
+
+   //provoking vertex = last --> indices (0, 1, 2) (1, 3, 2)
+   uint8_t indices[] = {0, 1, 2, 1, 3, 2};
+   unsigned indices_size = sizeof(indices);
+   unsigned num_indices = indices_size/sizeof(indices[0]);
+
+   v3d_addr_t indices_addr;
+   uint32_t *indices_ptr = khrn_fmem_data(&indices_addr, &rs->fmem, indices_size,
+         V3D_INDICES_REC_ALIGN);
+   if (!indices_ptr)
+      return false;
+   memcpy(indices_ptr, indices, indices_size);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   glxx_prim_drawn_by_us_record(rs, 2);
+   if (!glxx_tf_record_disable(rs))
+      return false;
+#endif
+
+   // cache + shader_rec + draw_elems
+   unsigned size = V3D_CL_VCM_CACHE_SIZE_SIZE + V3D_CL_GL_SHADER_SIZE +
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      V3D_CL_INDEX_BUFFER_SETUP_SIZE +
+#endif
+      V3D_CL_INDEXED_PRIM_LIST_SIZE;
+
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, size);
+   if (!instr)
+      return false;
+   v3d_cl_vcm_cache_size(&instr, 4, 4);
+   v3d_cl_nv_shader(&instr, NUM_ATTRS, shadrec_addr);
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   //setup index buffer
+   v3d_cl_index_buffer_setup(&instr, indices_addr, indices_size);
+#endif
+   V3D_CL_INDEXED_PRIM_LIST_T indexed_prim_list =
+   {
+      .prim_mode = V3D_PRIM_MODE_TRIS, .index_type = V3D_INDEX_TYPE_8BIT,
+      .num_indices = num_indices, .prim_restart = false,
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      .indices_offset = 0,
+#else
+      .indices_addr = indices_addr,
+      .max_index = 3,
+#endif
+   };
+   v3d_cl_indexed_prim_list_indirect(&instr, &indexed_prim_list);
+   khrn_fmem_end_cle_exact(&rs->fmem, instr);
+
+   return true;
+}
+
+/* Create a new image/blob that uses the same resource as the passed in
+ * depth/stencil image. The new image will describe only one plane in the
+ * original image (if the original image has more than one plane).
+ * We also change the fmt of the new image from DS to R8/16/32UI
  */
-struct persist
+static khrn_image* to_color_img(const khrn_image *image, unsigned plane)
 {
-   struct context    context;
-   struct gl_state   gl_state;
-};
-static struct persist g_persist;
+   GFX_LFMT_T img_plane_lfmt = khrn_image_get_lfmt(image, plane);
 
-enum buf_type
-{
-   COLOR,
-   DEPTH,
-   STENCIL,
-   N_BUF_TYPES,
-};
+   assert(gfx_lfmt_has_depth(img_plane_lfmt) || gfx_lfmt_has_stencil(img_plane_lfmt));
+   assert(khrn_image_get_num_planes(image) > plane);
 
-struct target_buf
-{
-   GLint          type;       /* either GL_RENDERBUFFER or GL_TEXTURE */
-   GLuint         name;
+   const khrn_blob *blob = image->blob;
+   GFX_BUFFER_DESC_T desc[KHRN_MAX_MIP_LEVELS];
 
-   /*
-    * Aux-buf targets need their own image to make a texture attachment from
-    */
-   EGLImageKHR    image;
-   unsigned color_mask;
-
-   /* Only meaningful for GL_TEXTURE */
-   struct
+   GFX_LFMT_T color_lfmt = glxx_ds_lfmt_to_color(img_plane_lfmt);
+   memset(desc, 0, sizeof(desc));
+   for (unsigned i = 0; i < blob->num_mip_levels; i++)
    {
-      GLint       target;
-      GLint       level;
-      GLint       layer;
-   }
-   tex;
-};
-
-struct target
-{
-   enum buf_type     buf_type;
-   struct target_buf buffers[GLXX_MAX_RENDER_TARGETS];
-   unsigned          count;
-};
-
-struct src_buf
-{
-   enum buf_type  buf_type;
-   enum cmp_type  cmp_type;
-   EGLImageKHR    image;
-};
-
-struct src
-{
-   struct src_buf    src_bufs[N_BUF_TYPES];
-   unsigned          count;
-};
-
-static bool init_target_buf(struct target_buf *tb,
-                            enum buf_type buf_type,
-                            unsigned render_target, /* valid only for COLOR buf_type */
-                            EGLContext ctx);
-
-static void apply_context(const struct context *context)
-{
-   EGLDisplay dpy = eglGetCurrentDisplay();
-   eglMakeCurrent(dpy, context->draw, context->read, context->context);
-}
-
-/*
- * Turn box which is a subrectangle of (0,0)->size into a floating-point box
- * fitting [0, size) into the range [0.0f, 1.0f).
- */
-static void make_fbox(struct fbox *fbox,
-      const struct box *box, const int size[2])
-{
-   int i;
-
-   for (i = 0; i < 2; i++)
-   {
-      GLfloat fsize = (GLfloat) size[i];
-      fbox->inf[i] = box->inf[i] / fsize;
-      fbox->sup[i] = box->sup[i] / fsize;
-   }
-}
-
-static GLfloat *append_vertex(GLfloat *buf, GLfloat v0, GLfloat v1)
-{
-   buf[0] = v0;
-   buf[1] = v1;
-
-   return buf + 2;
-}
-
-static GLfloat *append_tex_coord(GLfloat *buf, GLfloat t0, GLfloat t1)
-{
-   buf[0] = t0;
-   buf[1] = t1;
-
-   return buf + 2;
-}
-
-static void fill_vertex_buf_from_blit_geom(const struct blit_geom *blit_geom)
-{
-   /* 2D vertex followed by a 2D tex-coord for 6 vertices */
-   /* We set the geometry up for individual triangles because the hardware
-    * needs the final vertex to be the same for the two triangles in order
-    * not to generate a diagonal seam where the texture coordinates are
-    * interpolated differently. Neither STRIP nor FAN allows that. */
-   GLfloat data[(2 + 2) * 6 * sizeof (GLfloat)], *p = data;
-   struct fbox src, dst = {
-      {0.f, 0.f},
-      {1.f, 1.f}
-   };
-   int i;
-
-   make_fbox(&src, &blit_geom->src, blit_geom->src_size);
-
-   for(i = 0; i < 2; i++)
-   {
-      float srcwidth = src.sup[i] - src.inf[i];
-      if(src.inf[i] < 0.f)
-      {
-         float shiftdst = -src.inf[i] / srcwidth;
-
-         // Make destination geometry smaller
-         if(blit_geom->flip[i])
-            dst.sup[i] -= shiftdst;
-         else
-            dst.inf[i] += shiftdst;
-
-         // Clamp source coordinate to [0 1] range
-         src.inf[i] = 0.f;
-      }
-      // Same but for opposite bound
-      if(src.sup[i] > 1.f)
-      {
-         float shiftdst = (src.sup[i] - 1.f) / srcwidth;
-
-         if(blit_geom->flip[i])
-            dst.inf[i] += shiftdst;
-         else
-            dst.sup[i] -= shiftdst;
-
-         src.sup[i] = 1.f;
-      }
-
-      // Convert to normalized device coordinates
-      dst.inf[i] = dst.inf[i]*2.f - 1.f;
-      dst.sup[i] = dst.sup[i]*2.f - 1.f;
+      desc[i].width = blob->desc[i].width;
+      desc[i].height = blob->desc[i].height;
+      desc[i].depth = blob->desc[i].depth;
+      desc[i].num_planes = 1;
+      desc[i].planes[0] = blob->desc[i].planes[plane];
+      /* change lfmt to color; since we wrap the original resource, do it for
+       * each mip level */
+      assert(gfx_lfmt_fmt(desc[i].planes[0].lfmt) == gfx_lfmt_fmt(img_plane_lfmt));
+      desc[i].planes[0].lfmt = gfx_lfmt_set_format(desc[i].planes[0].lfmt, color_lfmt);
    }
 
-   p = append_vertex(p, dst.inf[0], dst.sup[1]);
-   p = append_tex_coord(p, blit_geom->flip[0] ? src.sup[0] : src.inf[0],
-                           blit_geom->flip[1] ? src.inf[1] : src.sup[1]);
+   khrn_blob *new_blob = khrn_blob_create_from_resource(blob->res,
+         desc, blob->num_mip_levels, blob->num_array_elems,
+         blob->array_pitch, blob->usage, blob->secure);
 
-   p = append_vertex(p, dst.inf[0], dst.inf[1]);
-   p = append_tex_coord(p, blit_geom->flip[0] ? src.sup[0] : src.inf[0],
-                           blit_geom->flip[1] ? src.sup[1] : src.inf[1]);
+   if (!new_blob)
+      return NULL;
 
-   p = append_vertex(p, dst.sup[0], dst.sup[1]);
-   p = append_tex_coord(p, blit_geom->flip[0] ? src.inf[0] : src.sup[0],
-                           blit_geom->flip[1] ? src.inf[1] : src.sup[1]);
+   khrn_image *plane_img;
+   assert(khrn_image_is_one_elem_slice(image));
+   plane_img = khrn_image_create_one_elem_slice(new_blob,
+             image->start_elem, image->start_slice, image->level, color_lfmt);
 
-   p = append_vertex(p, dst.sup[0], dst.inf[1]);
-   p = append_tex_coord(p, blit_geom->flip[0] ? src.inf[0] : src.sup[0],
-                           blit_geom->flip[1] ? src.sup[1] : src.inf[1]);
+   KHRN_MEM_ASSIGN(new_blob, NULL); /* plane_img has a reference to the new_blob */
 
-   p = append_vertex(p, dst.inf[0], dst.inf[1]);
-   p = append_tex_coord(p, blit_geom->flip[0] ? src.sup[0] : src.inf[0],
-                           blit_geom->flip[1] ? src.sup[1] : src.inf[1]);
-
-   p = append_vertex(p, dst.sup[0], dst.sup[1]);
-   p = append_tex_coord(p, blit_geom->flip[0] ? src.inf[0] : src.sup[0],
-                           blit_geom->flip[1] ? src.inf[1] : src.sup[1]);
-
-   glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STATIC_DRAW);
+   return plane_img;
 }
 
-/* Attribute locations that will be bound for the program */
-static const unsigned int vertex_attrib = 0;
-static const unsigned int tex_attrib = 1;
-
-static void enable_attribs()
+static bool to_color_img_plane(khrn_image_plane *color, const khrn_image_plane *ds)
 {
-   glEnableVertexAttribArray(vertex_attrib);
-   glVertexAttribPointer(vertex_attrib, 2, GL_FLOAT, GL_FALSE,
-         4*sizeof(float), 0);
-
-   glEnableVertexAttribArray(tex_attrib);
-   glVertexAttribPointer(tex_attrib, 2, GL_FLOAT, GL_FALSE,
-         4*sizeof(float), (void *)(2 * sizeof (GLfloat)));
+   color->image = to_color_img(ds->image, ds->plane_idx);
+   if (!color->image)
+      return false;
+   color->plane_idx = 0;
+   return true;
 }
 
-static GLuint create_program(enum cmp_type cmp_type)
+#if V3D_VER_AT_LEAST(4,1,34,0)
+static v3d_addr_t sampler_state_addr(khrn_fmem *fmem, GLenum filter)
 {
-   GLuint vshader, fshader;
-   GLuint program;
+   V3D_TMU_SAMPLER_T s;
+   memset(&s, 0, sizeof(V3D_TMU_SAMPLER_T));
+   s.wrap_s = s.wrap_t = V3D_TMU_WRAP_CLAMP;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   glxx_set_tmu_filters(&s, filter, filter, 1.0f);
+#else
+   s.filters = glxx_get_tmu_filters(filter, filter, 1.0f);
+#endif
 
-   static const char *vshader_source =
-      "#version 300 es\n"
-      "in vec2 vertex;\n"
-      "in vec2 tex_coord;\n"
-      "out vec2 vtex_coord;\n"
-      "void main(void)\n"
-      "{\n"
-      "   gl_Position = vec4(vertex, 0, 1);\n"
-      "   vtex_coord = tex_coord;\n"
-      "}\n";
-
-   static const char *fshader_version = "#version 300 es\n";
-   static const char *sampler_decls[N_CMP_TYPES] = {
-      "uniform highp sampler2D tex;\n",
-      "uniform highp isampler2D tex;\n",
-      "uniform highp usampler2D tex;\n"
-   };
-   static const char *output_decls[N_CMP_TYPES] = {
-      "out highp vec4 FragColor;\n",
-      "out ivec4 FragColor;\n",
-      "out uvec4 FragColor;\n"
-   };
-
-   static const char *fshader_src =
-      "in highp vec2 vtex_coord;\n"
-      "void main(void)\n"
-      "{\n"
-      "   FragColor = texture(tex, vtex_coord);\n"
-      "}\n";
-
-   const char *(fshader_source[4]) = { fshader_version, sampler_decls[cmp_type], output_decls[cmp_type], fshader_src };
-
-   vshader = glCreateShader(GL_VERTEX_SHADER);
-   glShaderSource(vshader, 1, &vshader_source, NULL);
-   glCompileShader(vshader);
-
-   fshader = glCreateShader(GL_FRAGMENT_SHADER);
-   glShaderSource(fshader, 4, fshader_source, NULL);
-   glCompileShader(fshader);
-
-   program = glCreateProgram();
-
-   glAttachShader(program, vshader);
-   glAttachShader(program, fshader);
-   glBindAttribLocation(program, vertex_attrib, "vertex");
-   glBindAttribLocation(program, tex_attrib,    "tex_coord");
-   glLinkProgram(program);
-
-   glDeleteShader(vshader);
-   glDeleteShader(fshader);
-
-   return program;
+   uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE];
+   v3d_pack_tmu_sampler(hw_sampler, &s);
+   return khrn_fmem_add_tmu_sampler(fmem, hw_sampler, /*sampler_extended*/ false, false);
 }
 
-static void get_scissor_state(struct scissor_state *scissor)
+static v3d_addr_t texture_state_addr(khrn_fmem *fmem, const glxx_hw_tex_params *tp)
 {
-   // If the outside context has scissor testing enabled, we need to save the scissor box.
-   scissor->enabled = glIsEnabled(GL_SCISSOR_TEST);
-   if(scissor->enabled)
-      glGetIntegerv(GL_SCISSOR_BOX, scissor->box);
+   uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE];
+   bool tex_state_extended = glxx_pack_tex_state(hw_tex_state, tp);
+   return khrn_fmem_add_tmu_tex_state(fmem, hw_tex_state, tex_state_extended, false);
 }
-
-static void create_persistent_gl_resources(struct gl_state *state)
+#else
+static v3d_addr_t texture_state_addr(khrn_fmem *fmem, const glxx_hw_tex_params *tp,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      bool tmu_output_32bit,
+#endif
+      GLenum filter)
 {
-   if(!state->vertex_buf)
-      glGenBuffers(1, &state->vertex_buf);
-
-   /*
-    * The program doesn't depend on the geometry or anything specific to a
-    * particular blit, so can safely be re-used
-    */
-   for (int i=0; i<N_CMP_TYPES; i++) {
-      if (!state->program[i])
-         state->program[i] = create_program(i);
+   V3D_TMU_INDIRECT_T ind;
+   memset(&ind, 0, sizeof(V3D_TMU_INDIRECT_T));
+   ind.filters = glxx_get_tmu_filters(filter, filter, 1.0f);
+   ind.base = tp->l0_addr;
+   ind.arr_str = tp->arr_str;
+   ind.width   = tp->w;
+   ind.height  = tp->h;
+   ind.depth   = tp->d;
+   ind.ttype   = tp->tmu_trans.type;
+   ind.srgb    = tp->tmu_trans.srgb;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   if (tp->tmu_trans.shader_swizzle)
+   {
+      ind.swizzles[0] = V3D_TMU_SWIZZLE_R;
+      ind.swizzles[1] = V3D_TMU_SWIZZLE_G;
+      ind.swizzles[2] = V3D_TMU_SWIZZLE_B;
+      ind.swizzles[3] = V3D_TMU_SWIZZLE_A;
    }
+   else
+#endif
+      memcpy(ind.swizzles, tp->composed_swizzles, sizeof(ind.swizzles));
+   ind.flipy     = tp->yflip;
+   ind.base_level = tp->base_level;
+   assert(tp->base_level < V3D_MAX_MIP_COUNT);
+   assert(tp->base_level == tp->max_level);
+   ind.min_lod = tp->base_level << V3D_TMU_F_BITS;
+   ind.max_lod = ind.min_lod;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   ind.output_32 = tmu_output_32bit;
+#endif
+   ind.ub_pad = tp->uif_cfg.ub_pads[0];
+   ind.ub_xor = tp->uif_cfg.ub_xor;
+   ind.uif_top = tp->uif_cfg.force;
+   ind.xor_dis = tp->uif_cfg.xor_dis;
 
-   if (!state->fb)
-      glGenFramebuffers(1, &state->fb);
+   uint32_t hw_indirect[V3D_TMU_INDIRECT_PACKED_SIZE / sizeof(uint32_t)];
+   v3d_pack_tmu_indirect(hw_indirect, &ind);
+   return khrn_fmem_add_tmu_indirect(fmem, hw_indirect);
+}
+#endif
+
+/* converts img to an image we can texture from */
+static bool texture_view(glxx_texture_view *tex_view,
+      khrn_image *img, unsigned plane, bool ds_to_color,
+      glxx_context_fences *fences)
+{
+   khrn_image *tex_img = glxx_get_image_for_texturing(img, fences);
+   if (!tex_img)
+      return false;
+
+   assert(khrn_image_get_depth(tex_img) * khrn_image_get_num_elems(tex_img) == 1);
+
+   tex_view->img_base = tex_img;
+   tex_view->plane = plane;
+   tex_view->num_levels = 1;
+
+   tex_view->dims = 2;
+   tex_view->cubemap_mode = false;
+
+   tex_view->fmt = gfx_lfmt_fmt(khrn_image_get_lfmt(tex_img, plane));
+   if (ds_to_color)
+      tex_view->fmt = glxx_ds_lfmt_to_color(tex_view->fmt);
+
+   tex_view->need_depth_type = false;
+   //swizzle RGBA
+   for (unsigned i = 0; i < 4; i++)
+      tex_view->swizzle[i] = 2 + i;
+
+   return true;
 }
 
-static void apply_gl_state(struct gl_state *state,
-      const struct scissor_state *scissor,
-      const struct blit_geom *blit_geom)
+static uint32_t get_words_enable(const glxx_hw_tex_params *tp,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      bool tmu_output_32bit,
+#endif
+      unsigned required_components)
 {
-   const struct box* dst = &blit_geom->dst;
-
-   glBindBuffer(GL_ARRAY_BUFFER, state->vertex_buf);
-   fill_vertex_buf_from_blit_geom(blit_geom);
-
-   glViewport(dst->inf[0], dst->inf[1],
-         dst->sup[0] - dst->inf[0],
-         dst->sup[1] - dst->inf[1]);
-
-   glDisable(GL_DEPTH_TEST);
-   glDepthMask(GL_FALSE);
-   glStencilMask(GL_FALSE);
-   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, state->fb);
-
-   if(scissor->enabled)
+   unsigned words = 0;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   words = tmu_output_32bit ? required_components : (required_components + 1)/2;
+#else
+   if (!tp->tmu_trans.shader_swizzle)
    {
-      // Enable scissor testing on the inside context, and apply the box.
-      glEnable(GL_SCISSOR_TEST);
-      glScissor(scissor->box[0],
-                scissor->box[1],
-                scissor->box[2],
-                scissor->box[3]);
-   }
-}
-
-static void destroy_gl_persistent_resources(struct gl_state *state)
-{
-   for (int i=0; i<N_CMP_TYPES; i++) {
-      if (state->program[i])
-      {
-         glDeleteProgram(state->program[i]);
-         state->program[i] = 0;
-      }
-   }
-
-   if (state->vertex_buf)
-   {
-      glDeleteBuffers(1, &state->vertex_buf);
-      state->vertex_buf = 0;
-   }
-
-   if (state->fb)
-   {
-      glDeleteFramebuffers(1, &state->fb);
-      state->fb = 0;
-   }
-}
-
-static void destroy_src(struct src *src)
-{
-   unsigned i;
-   struct src_buf *sb;
-   EGLDisplay dpy = eglGetCurrentDisplay();
-
-   for (i = 0; i < src->count; i++)
-   {
-      sb = src->src_bufs + i;
-
-      if (sb->image)
-      {
-         eglDestroyImageKHR(dpy, sb->image);
-         sb->image = EGL_NO_IMAGE_KHR;
-      }
-   }
-
-   src->count = 0;
-}
-
-static GLuint texture_from_image(EGLImageKHR image, GLenum filter)
-{
-   GLuint ret = 0;
-
-   glGenTextures(1, &ret);
-   glBindTexture(GL_TEXTURE_2D, ret);
-   glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
-
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-
-   return ret;
-}
-
-/*
- * Set up the source for the blit. This is some combination of source buffers
- * from ctx (so ctx should be the "outside" context). The source buffers are
- * packed into src_buf from the beginning, and there are between 0 and 3 of
- * them.
- */
-static bool init_src(struct src *src, EGLContext ctx, GLbitfield mask)
-{
-   EGLDisplay dpy = eglGetCurrentDisplay();
-   EGLint attribs[] =
-   {
-      EGL_GL_FRAMEBUFFER_TARGET_BRCM, GL_READ_FRAMEBUFFER,
-      EGL_GL_FRAMEBUFFER_ATTACHMENT_BRCM, 0 /* to be poked */,
-      EGL_NONE,
-   };
-
-   /* We're going to be poking in different values for this attribute */
-   EGLint *att_attrib = attribs + 3;
-
-   /*
-    * The attachment attribute values corresponding to all the differents bits
-    * in mask.
-    */
-   static const struct
-   {
-      enum buf_type  buf_type;
-      GLbitfield     bits;
-   }
-   attachments[] =
-   {
-      { COLOR, GL_COLOR_BUFFER_BIT },
-      { DEPTH, GL_DEPTH_BUFFER_BIT },
-      { STENCIL, GL_STENCIL_BUFFER_BIT },
-   };
-
-   bool ok = false;
-
-   memset(src, 0, sizeof *src);
-
-   for (unsigned i = 0; i < sizeof(attachments)/sizeof(attachments[0]); i++)
-   {
-      struct src_buf *sb = src->src_bufs + src->count;
-      if (mask & attachments[i].bits)
-      {
-         GLint fb_name;
-         glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &fb_name);
-
-         switch( attachments[i].buf_type)
-         {
-            case COLOR:
-               {
-                  glGetIntegerv(GL_READ_BUFFER, att_attrib);
-                  /* This is a hack, since this should be GL_BACK */
-                  if (*att_attrib == GL_BACK)
-                  {
-                     assert (fb_name == 0);
-                    *att_attrib = GL_COLOR_ATTACHMENT0;
-                  }
-               }
-               break;
-            case DEPTH:
-               *att_attrib = GL_DEPTH_ATTACHMENT;
-               break;
-            case STENCIL:
-               *att_attrib = GL_STENCIL_ATTACHMENT;
-               break;
-            default:
-               unreachable();
-               break;
-         }
-
-         sb->image = eglCreateImageKHR(dpy, ctx, EGL_GL_FRAMEBUFFER_BRCM, NULL, attribs);
-
-         if (sb->image == EGL_NO_IMAGE_KHR)
-         {
-            /* TODO: Is clearing the error the correct thing here? The existing code is not consistent. */
-            EGLint error = eglGetError();
-            assert(error == EGL_BAD_ALLOC);
-            goto end;
-         }
-
-         sb->buf_type = attachments[i].buf_type;
-         sb->cmp_type = CMP_FLOAT;
-         ++src->count;
-
-         if (sb->buf_type == COLOR) {
-            if (fb_name != 0) {
-               GLint cmp_type;
-               glGetFramebufferAttachmentParameteriv(GL_READ_FRAMEBUFFER, *att_attrib,
-                                                     GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE, &cmp_type);
-               switch(cmp_type) {
-                  case GL_INT:          sb->cmp_type = CMP_INT; break;
-                  case GL_UNSIGNED_INT: sb->cmp_type = CMP_UINT; break;
-                  default:              sb->cmp_type = CMP_FLOAT; break;
-               }
-            }
-         }
-      }
-   }
-
-   ok = true;
-end:
-   if (!ok) destroy_src(src);
-   return ok;
-}
-
-static void attach_texture(const struct target_buf *tb, GLint attachment)
-{
-   assert(tb->type == GL_TEXTURE);
-
-   if (tb->tex.target == GL_TEXTURE_3D)
-   {
-      glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER,
-            attachment, tb->name, tb->tex.level, tb->tex.layer);
+      bool out_32bit = v3d_tmu_output_32(tp->tmu_trans.type, /*shadow=*/false);
+      words = out_32bit ? required_components : (required_components + 1)/2;
    }
    else
    {
-      glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER,
-            attachment, tb->tex.target, tb->name, tb->tex.level);
-   }
-}
 
-static void attach_renderbuffer(const struct target_buf *tb,
-      GLint attachment)
-{
-   assert(tb->type == GL_RENDERBUFFER);
-
-   glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER,
-         attachment, GL_RENDERBUFFER, tb->name);
-}
-
-/*
- * Set up the currently bound framebuffer to draw to the buffer(s) specified
- * by target. Note that we're always attaching to colour targets even if we're
- * blitting a depth/stencil buffer, because the shader program that we're
- * using to do the blit outputs to the colour attachment.
- */
-static void apply_target(const struct target *target)
-{
-   unsigned i;
-
-   for (i = 0; i < target->count; i++)
-   {
-      const struct target_buf *tb = target->buffers + i;
-
-      assert(tb->color_mask != 0);
-
-      glColorMask((tb->color_mask & (0xff<<24)) > 0,
-            (tb->color_mask & (0xff<<16)) > 0,
-            (tb->color_mask & (0xff<<8)) > 0,
-            (tb->color_mask & 0xff) > 0);
-
-      switch (tb->type)
+#define SWIZZLES_EQ(R, G, B, A) (                 \
+      tp->composed_swizzles[0] == V3D_TMU_SWIZZLE_##R && \
+      tp->composed_swizzles[1] == V3D_TMU_SWIZZLE_##G && \
+      tp->composed_swizzles[2] == V3D_TMU_SWIZZLE_##B && \
+      tp->composed_swizzles[3] == V3D_TMU_SWIZZLE_##A)
+      unsigned read_components = 0;
+      switch(required_components)
       {
-      case GL_TEXTURE:
-         attach_texture(tb, GL_COLOR_ATTACHMENT0 + i);
+      case 4:
+         if (SWIZZLES_EQ(R,0,0,1))
+            read_components = 1;
+         else if(SWIZZLES_EQ(R,G,0,1))
+            read_components = 2;
+         else
+         {
+            assert(SWIZZLES_EQ(R,G,B,A));
+            read_components = 4;
+         }
          break;
-
-      case GL_RENDERBUFFER:
-         attach_renderbuffer(tb, GL_COLOR_ATTACHMENT0 + i);
-         break;
-
-      case GL_FRAMEBUFFER_DEFAULT:
-         /* we've created a an eglimage with texture for this case, so we
-          * shouldn't get here */
-         assert(0);
+      case 1:
+         assert(SWIZZLES_EQ(R,0,0,1));
+         read_components = 1;
          break;
       default:
-         assert(0);
+         unreachable();
       }
-   }
-}
+#undef  SWIZZLES_EQ
 
-static void query_texture(struct target_buf *out, GLint attachment)
-{
-   glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, attachment,
-         GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-         &out->tex.target);
-
-   glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, attachment,
-         GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-         &out->tex.level);
-
-   if (out->tex.target == GL_NONE)
-   {
-      glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, attachment,
-            GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-            &out->tex.layer);
-
-      if (out->tex.layer == 0)
-         out->tex.target = GL_TEXTURE_2D;
-      else
-         out->tex.target = GL_TEXTURE_3D;
-   }
-}
-
-static bool init_color_target(struct target *target, EGLContext ctx)
-{
-   memset(target, 0, sizeof *target);
-   target->buf_type = COLOR;
-
-   for (unsigned i = 0; i < GLXX_MAX_RENDER_TARGETS; i++)
-   {
-      struct target_buf *tb = target->buffers + target->count;
-
-      GLint buf;
-      glGetIntegerv(GL_DRAW_BUFFER0 + i, &buf);
-      if (buf == GL_NONE) continue;
-
-      glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, buf,
-            GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &tb->type);
-
-      if(tb->type == GL_NONE)
-         continue;
-
-
-      tb->color_mask = 0xffffffff;
-
-      switch (tb->type)
+      switch (tp->tmu_trans.ret)
       {
-      case GL_TEXTURE:
-         glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, buf,
-            GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *) &tb->name);
-         query_texture(tb, buf);
+      case GFX_LFMT_TMU_RET_8:
+      case GFX_LFMT_TMU_RET_1010102:
+         words = 1;
          break;
-      case GL_RENDERBUFFER:
-         glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, buf,
-            GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *) &tb->name);
+      case GFX_LFMT_TMU_RET_16:
+         words = (read_components + 1)/2;
          break;
-      case GL_FRAMEBUFFER_DEFAULT:
-         if (!init_target_buf(tb, COLOR, i, ctx))
-            return false;
-         assert(tb->type == GL_TEXTURE);
+      case GFX_LFMT_TMU_RET_32:
+         words = read_components;
          break;
       default:
-         assert(0);
+         unreachable();
       }
-      ++target->count;
    }
-   return true;
+#endif
+
+   uint32_t words_en = 0;
+   for (unsigned i = 0; i < words; i++)
+      words_en |= 1 << i;
+   return words_en;
 }
 
-static bool init_aux_target(struct target *target, enum buf_type buf_type, EGLContext ctx)
+static bool get_tmu_config(uint32_t tmu_config[2],
+      const glxx_hw_tex_params *tp,
+      GLenum filter,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      bool tmu_output_32bit,
+#endif
+      unsigned required_components, GLXX_HW_RENDER_STATE_T *rs)
 {
-   memset(target, 0, sizeof *target);
+   uint32_t words_en = get_words_enable(tp,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         tmu_output_32bit,
+#endif
+         required_components);
 
-   if (!init_target_buf(&target->buffers[0], buf_type, 0, ctx))
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   v3d_addr_t tex_state_addr = texture_state_addr(&rs->fmem, tp);
+   if (!tex_state_addr)
       return false;
+   tmu_config[0] = tex_state_addr | words_en;
 
-   target->buf_type = buf_type;
-   target->count++;
-   return true;
-}
+   V3D_TMU_PARAM1_T p1;
+   p1.sampler_addr = sampler_state_addr(&rs->fmem, filter);
+   if (!p1.sampler_addr)
+      return false;
+   p1.pix_mask = true,
+   p1.output_32 = tmu_output_32bit;
+   p1.unnorm = false;
+   tmu_config[1] = v3d_pack_tmu_param1(&p1);
+#else
+   V3D_TMU_PARAM0_CFG1_T p0;
+   memset(&p0, 0, sizeof(p0));
+   p0.ltype = V3D_TMU_LTYPE_2D;
+   p0.pix_mask = 1;
+   p0.wrap_s = p0.wrap_t = p0.wrap_r = V3D_TMU_WRAP_CLAMP;
+   tmu_config[0] = v3d_pack_tmu_param0_cfg1(&p0);
 
-static void destroy_target_buf(struct target_buf *target)
-{
-   EGLDisplay dpy = eglGetCurrentDisplay();
-
-   if (target->image == EGL_NO_IMAGE_KHR)
-      return;
-
-   assert(target->type == GL_TEXTURE);
-
-   eglDestroyImageKHR(dpy, target->image);
-   glDeleteTextures(1, &target->name);
-
-   /*
-    * target_bufs that didn't have an EGLImage got their textures or
-    * renderbuffers from the context that glBlitFramebuffer was originally
-    * called in. We don't own them and have no business destroying them.
+   /* on 3.3 hw, OVRTMUOUT(in MISCCFG Register) is set to 1, so field
+    * output_type from texture state is used to specify the type/precision of
+    * the return data; in our case, output_type was set to requested
+    * tmu_output_32bit in glxx_texture_key_and_uniforms */
+   /* on 3.2 hw, we cannot ask for a certain tmu return precision,
+    * (texture_state output_type is set to AUTO)
     */
-}
-
-static void destroy_target(struct target *target)
-{
-   unsigned i;
-
-   for (i = 0; i < target->count; i++)
-      destroy_target_buf(target->buffers + i);
-}
-
-/*
- * creates a texture (through an egl_image) from the draw framebuffer buffer
- * buf_type, or if buf_type = COLOR, from the color attachment for render_target;
- */
-static bool init_target_buf(struct target_buf *tb,
-                            enum buf_type buf_type,
-                            unsigned render_target, /* valid only for COLOR buf_type */
-                            EGLContext ctx)
-{
-   EGL_IMAGE_T *egl_image = NULL;
-   EGLint attribs[] =
-   {
-      EGL_GL_FRAMEBUFFER_TARGET_BRCM, GL_DRAW_FRAMEBUFFER,
-      EGL_GL_FRAMEBUFFER_ATTACHMENT_BRCM, 0,
-      EGL_NONE,
-   };
-   int *att_attribs = attribs + 3;
-
-   switch(buf_type)
-   {
-      case COLOR:
-         *att_attribs = GL_COLOR_ATTACHMENT0 + render_target;
-         break;
-      case DEPTH:
-         *att_attribs = GL_DEPTH_ATTACHMENT;
-         break;
-      case STENCIL:
-         *att_attribs = GL_STENCIL_ATTACHMENT;
-         break;
-      default:
-         assert(0);
-   }
-
-   bool ok = false;
-
-   memset(tb, 0, sizeof *tb);
-
-   EGLDisplay dpy = eglGetCurrentDisplay();
-   tb->image = eglCreateImageKHR(dpy, ctx, EGL_GL_FRAMEBUFFER_BRCM, NULL,
-         attribs);
-
-   if (tb->image == EGL_NO_IMAGE_KHR)
+   v3d_addr_t tex_state_addr = texture_state_addr(&rs->fmem, tp,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         tmu_output_32bit,
+#endif
+         filter);
+   if (!tex_state_addr)
       return false;
-
-   egl_image = egl_get_image_refinc(tb->image);
-   khrn_image * image = egl_image_get_image(egl_image);
-
-   assert(khrn_image_get_num_planes(image) == 1);
-
-   switch(buf_type)
-   {
-      case COLOR:
-         tb->color_mask = 0xffffffff;
-         break;
-      case DEPTH:
-         tb->color_mask = glxx_ds_color_lfmt_get_depth_mask(khrn_image_get_lfmt(image, 0));
-         break;
-      case STENCIL:
-         tb->color_mask = glxx_ds_color_lfmt_get_stencil_mask(khrn_image_get_lfmt(image, 0));
-         break;
-      default:
-         assert(0);
-   }
-
-   egl_image_refdec(egl_image);
-
-   tb->name = texture_from_image(tb->image, GL_NEAREST);
-   if (tb->name == 0) goto end;
-   tb->type = GL_TEXTURE;
-   tb->tex.target = GL_TEXTURE_2D;
-
-   ok = true;
-end:
-   if (!ok)
-      destroy_target_buf(tb);
-   return ok;
-}
-
-/* If src has a buffer matching target's buf_type, blit it */
-static void blit_src(struct gl_state *gl,
-      const struct target *target,
-      const struct src *src,
-      GLenum filter)
-{
-   unsigned i;
-   const struct src_buf *sb = src->src_bufs;
-   GLuint src_tex;
-
-   assert(target->count);
-
-   for (i = 0; i < src->count; i++)
-   {
-      sb = src->src_bufs + i;
-      if (sb->buf_type == target->buf_type)
-         break;
-   }
-
-   if (i == src->count)
-      return;
-
-   apply_target(target);
-
-   glUseProgram(gl->program[sb->cmp_type]);
-
-   // Texture is returned already bound.
-   src_tex = texture_from_image(sb->image, filter);
-
-   /* Blit the source buffer */
-   /* See comment in geometry setup for why we use triangles, not a strip/fan */
-   glDrawArrays(GL_TRIANGLES, 0, 6);
-
-   glDeleteTextures(1, &src_tex);
-}
-
-/*
- * Create a new context in out with the same config as in, also which can share
- * all in's shareables.
- */
-static bool clone_context(struct context *out, const struct context *in)
-{
-   EGLConfig config;
-   EGLint num_config = 0;
-   EGLDisplay dpy = eglGetCurrentDisplay();
-   EGLint config_attrs[] = { EGL_CONFIG_ID, in->config_id, EGL_NONE };
-   EGLint attrs[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
-
-   memset(out, 0, sizeof *out);
-
-   eglChooseConfig(dpy, config_attrs, &config, 1, &num_config);
-   out->context = eglCreateContext(dpy, config, in->context, attrs);
-   if (out->context == EGL_NO_CONTEXT) return false;
-
-   out->config_id = in->config_id;
+   tmu_config[1] = tex_state_addr | words_en;
+#endif
    return true;
 }
 
-static void destroy_context(struct context *ctx)
+/* the image must be usable as texture */
+static bool blit_color(glxx_dirty_set_t *dirty,
+      const glxx_texture_view *tex_view, uint32_t draw_bufs_mask,
+      GLXX_HW_FRAMEBUFFER_T *dst_hw_fb,
+      const uint32_t *mask_comp_word, GLenum filter,
+      const fpoint vtx_pos[4], const fpoint tex_coord[4], const gfx_rect *clip_rect,
+      GLXX_HW_RENDER_STATE_T *rs)
 {
-   EGLDisplay dpy = eglGetCurrentDisplay();
+   unsigned required_components = mask_comp_word ? 1 : 4;
 
-   if (ctx->context == EGL_NO_CONTEXT)
-      return;
+   rt_info_t rt_info[4];
+   bool any_rt_is_32bit = color_buffers_rt_info(rt_info, dst_hw_fb,
+         draw_bufs_mask, required_components);
 
-   eglDestroyContext(dpy, ctx->context);
+   /* if not texture filterable, always use GL_NEAREST */
+   if (!glxx_is_texture_filterable_api_fmt(tex_view->img_base->api_fmt))
+      filter = GL_NEAREST;
+
+   /* set src image as a 2D texture and get tmu config uniforms + record
+    * reading from image in rs; */
+   if (!khrn_fmem_sync_res(&rs->fmem, khrn_image_get_resource(tex_view->img_base),
+            0, V3D_BARRIER_TMU_DATA_READ))
+      return false;
+
+   glxx_hw_tex_params tp;
+   glxx_get_hw_tex_params(&tp, tex_view);
+
+   /* request tmu output type to be the highest precisions needed for all rt types;
+    * on hw 3.2 tmu we cannot ask for a certain tmu output precision,
+    * return type varies with different texture types
+    */
+   uint32_t tmu_config[2];
+   if (!get_tmu_config(tmu_config, &tp, filter,
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         any_rt_is_32bit,
+#endif
+         required_components, rs))
+      return false;
+
+   if (!clip_and_cfgbits_instr(dirty, draw_bufs_mask, dst_hw_fb, clip_rect, rs))
+      return false;
+
+   for (unsigned i = 0; i < 4; i++)
+   {
+      if (rt_info[i].is_used)
+      {
+         v3d_addr_t fshader_addr, funifs_addr;
+         uint32_t *fshader_ptr = khrn_fmem_data(&fshader_addr, &rs->fmem,
+               V3D_TMU_BLIT_SHADER_MAX_SIZE, V3D_QPU_INSTR_ALIGN);
+         uint32_t *funifs_ptr = khrn_fmem_data(&funifs_addr, &rs->fmem,
+               V3D_TMU_BLIT_SHADER_MAX_UNIFS_SIZE, V3D_QPU_UNIFS_ALIGN);
+         if (!fshader_ptr || !funifs_ptr)
+            return false;
+
+         if (mask_comp_word)
+         {
+            //assert we have only only red channel, uint
+            assert(gfx_lfmt_get_type(&tp.tex_fmt)== GFX_LFMT_TYPE_UINT);
+            assert(gfx_lfmt_present_channels(tp.tex_fmt) == GFX_LFMT_CHAN_R_BIT);
+            glxx_blit_fshader_and_unifs_red_uint_with_mask(fshader_ptr, funifs_ptr,
+                  *mask_comp_word, tmu_config, rt_info[i].config_byte);
+         }
+         else
+         {
+             bool tmu_output_32bit = any_rt_is_32bit;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+            tmu_output_32bit = v3d_tmu_output_32(tp.tmu_trans.type, /*shadow=*/false);
+
+            if (tp.tmu_trans.shader_swizzle)
+            {
+               assert(!rt_info[i].is_16);
+               glxx_blit_int_fshader_and_unifs(fshader_ptr, funifs_ptr,
+                     gfx_lfmt_get_type(&tp.tex_fmt), tp.tmu_trans.ret, tp.composed_swizzles,
+                     tmu_config, rt_info[i].config_byte);
+            }
+            else
+#endif
+            {
+               glxx_blit_fshader_and_unifs(fshader_ptr, funifs_ptr,
+                     gfx_lfmt_get_type(&tp.tex_fmt), tmu_output_32bit, !rt_info[i].is_16,
+                     tmu_config, rt_info[i].config_byte);
+            }
+         }
+
+         if (!draw_quad(fshader_addr, funifs_addr, vtx_pos, tex_coord, rs))
+            return false;
+
+         rs->has_rasterization = true;
+         glxx_bufstate_rw(&rs->color_buffer_state[i]);
+      }
+   }
+   return true;
 }
 
-/*
- * Obtain a context for doing the blit with, based on current (which is the
- * context in which glBlitFramebuffer is being called).
- */
-static struct context *get_blit_context(const struct context *current)
+static bool make_color_hw_fb_from_ds(GLXX_HW_FRAMEBUFFER_T *hw_fb,
+      uint32_t mask_word[2], unsigned *num_targets,
+      bool use_depth, const khrn_image_plane *depth,
+      bool use_stencil, const khrn_image_plane *stencil)
 {
-   if (g_persist.context.config_id != current->config_id)
+   assert(use_depth || use_stencil);
+
+   memset(hw_fb, 0, sizeof(GLXX_HW_FRAMEBUFFER_T));
+
+   *num_targets = 0;
+   if (use_depth)
    {
-      destroy_context(&g_persist.context);
-      if (!clone_context(&g_persist.context, current))
-         return NULL;
+      if (!to_color_img_plane(&hw_fb->color[0], depth))
+         return false;
+      GFX_LFMT_T lfmt_d = khrn_image_get_lfmt(depth->image, depth->plane_idx);
+      mask_word[0] = glxx_ds_color_lfmt_get_depth_mask(lfmt_d);
+      hw_fb->rt_count = 1;
+      (*num_targets)++;
+      if (use_stencil && depth->plane_idx == stencil->plane_idx)
+      {
+         // packed depth stencil
+         assert(depth->image->api_fmt == stencil->image->api_fmt);
+         GFX_LFMT_T lfmt_s = khrn_image_get_lfmt(stencil->image, stencil->plane_idx);
+         assert(lfmt_s == lfmt_d);
+         mask_word[0] |= glxx_ds_color_lfmt_get_stencil_mask(lfmt_s);
+         use_stencil = false;
+      }
    }
 
-   g_persist.context.read = current->read;
-   g_persist.context.draw = current->draw;
-
-   return &g_persist.context;
-}
-
-static void egl_image_get_size(GLint size[2], EGLImageKHR im)
-{
-   EGL_IMAGE_T *egl_image = NULL;
-   khrn_image *kim = NULL;
-   unsigned w, h;
-
-   egl_image= egl_get_image_refinc(im);
-   assert(egl_image);
-
-   kim = egl_image_get_image(egl_image);
-   khrn_image_get_dimensions(kim, &w, &h, NULL, NULL);
-   size[0] = w;
-   size[1] = h;
-
-   egl_image_refdec(egl_image);
-}
-
-/*
- * Make a valid box (i.e. inf <= sup) from two points p0 and p1. If p0 > p1 in
- * either dimension, record that by toggling the flip value for that
- * dimension.
- */
-static void make_box(struct box *box, bool flip[2], point_t p0, point_t p1)
-{
-   int i;
-
-   for (i = 0; i < 2; i++)
+   if (use_stencil)
    {
-      if (p0[i] <= p1[i])
+      if (!to_color_img_plane(&hw_fb->color[1], stencil))
       {
-         box->inf[i] = p0[i];
-         box->sup[i] = p1[i];
+         KHRN_MEM_ASSIGN(hw_fb->color[0].image, NULL);
+         return false;
+      }
+      GFX_LFMT_T lfmt = khrn_image_get_lfmt(stencil->image, stencil->plane_idx);
+      mask_word[1] = glxx_ds_color_lfmt_get_stencil_mask(lfmt);
+      hw_fb->rt_count = 2;
+      (*num_targets)++;
+   }
+   assert(hw_fb->rt_count >= 1);
+
+   // complete info about hw_fb
+   hw_fb->width = hw_fb->height = hw_fb->layers = UINT32_MAX;
+   for (unsigned i = 0; i < hw_fb->rt_count; i++)
+   {
+      const khrn_image_plane *image_plane = &hw_fb->color[i];
+      if (image_plane->image)
+      {
+         unsigned w = khrn_image_get_width(image_plane->image);
+         unsigned h = khrn_image_get_height(image_plane->image);
+         unsigned layers = khrn_image_get_depth(image_plane->image) *
+            khrn_image_get_num_elems(image_plane->image);
+         assert(layers == 1);
+         hw_fb->width = gfx_umin(hw_fb->width, w);
+         hw_fb->height = gfx_umin(hw_fb->height, h);
+         hw_fb->layers = gfx_umin(hw_fb->layers, layers);
+         gfx_lfmt_translate_rt_format(&hw_fb->color_rt_format[i],
+               khrn_image_plane_lfmt(image_plane));
       }
       else
       {
-         box->inf[i] = p1[i];
-         box->sup[i] = p0[i];
-         flip[i] = !flip[i];
+         hw_fb->color_rt_format[i].bpp = V3D_RT_BPP_32;
+         hw_fb->color_rt_format[i].type = V3D_RT_TYPE_8;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+         hw_fb->color_rt_format[i].clamp = V3D_RT_CLAMP_NONE;
+#endif
+      }
+   }
+   return true;
+}
+
+/*
+ * if we have packed depth stencil, and mask is DEPTH | STENCIL, we have one
+ * tex_view at index 1; otherwise, depth tex_view is at index 1 and stencil
+ * tex_view is at index 2 */
+static bool make_texture_views(glxx_texture_view tex_view[3], bool *ms,
+      const GLXX_FRAMEBUFFER_T *fb, GLbitfield mask, glxx_context_fences *fences)
+{
+   bool res;
+
+   for (unsigned i = 0; i < 3; i++)
+      tex_view[i].img_base = NULL;
+
+   if (mask & GL_COLOR_BUFFER_BIT)
+   {
+      khrn_image *img;
+      if(!glxx_fb_acquire_read_image(fb, GLXX_PREFER_MULTISAMPLED, &img, ms))
+         return false;
+      res = texture_view(&tex_view[0], img, 0, false, fences);
+      KHRN_MEM_ASSIGN(img, NULL);
+      if (!res)
+         return false;
+   }
+
+   if (mask & GL_DEPTH_BUFFER_BIT)
+   {
+      khrn_image *img;
+      if (!glxx_attachment_acquire_image(&fb->attachment[GLXX_DEPTH_ATT],
+               GLXX_PREFER_MULTISAMPLED, /*use_0_if_layered */ true, fences,
+               &img, ms))
+         goto fail;
+      res = texture_view(&tex_view[1], img, 0, true, fences);
+      KHRN_MEM_ASSIGN(img, NULL);
+      if (!res)
+         goto fail;
+   }
+
+   if (mask & GL_STENCIL_BUFFER_BIT)
+   {
+      khrn_image *img;
+      if (!glxx_attachment_acquire_image(&fb->attachment[GLXX_STENCIL_ATT],
+               GLXX_PREFER_MULTISAMPLED, /*use_0_if_layered */ true, fences,
+               &img, ms))
+         goto fail;
+
+      // stencil is always in the last plane
+      unsigned stencil_plane_idx = khrn_image_get_num_planes(img) - 1;
+      /* if packed depth stencil, we  use the tex_view[1], so nothing to do here */
+      if (tex_view[1].img_base && stencil_plane_idx == 0)
+         res = true;
+      else
+         res = texture_view(&tex_view[2], img, stencil_plane_idx, true, fences);
+      KHRN_MEM_ASSIGN(img, NULL);
+      if (!res)
+         goto fail;
+   }
+   return true;
+
+fail:
+   for (unsigned i = 0; i < 3; i++)
+      KHRN_MEM_ASSIGN(tex_view[i].img_base, NULL);
+   return false;
+}
+
+static void calc_dimensions(unsigned dim[2],
+      const glxx_texture_view tex_view[3], bool ms)
+{
+   dim[0]= UINT_MAX;
+   dim[1]= UINT_MAX;
+   for (unsigned i = 0; i < 3; i++)
+   {
+      if (tex_view[i].img_base)
+      {
+         unsigned w = khrn_image_get_width(tex_view[i].img_base);
+         unsigned h = khrn_image_get_height(tex_view[i].img_base);
+         if (ms)
+         {
+            w = w/2;
+            h = h/2;
+         }
+         dim[0] = gfx_umin(dim[0], w);
+         dim[1] = gfx_umin(dim[1], h);
       }
    }
 }
 
-static void init_blit_geom(struct blit_geom *geom,
-      const struct src_buf *src,
-      GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1)
+/* Format conversion:
+   - integer formats can only be converted to integer formats with the same signedness
+   - fixed point or floating point formats can be converted to fixed point or floating point
+   - for color buffers, pixel groups are converted to match the destination format.
+     However, colors are clamped only if all draw color buffers have fixed-point components.
+   - source and destination depth and stencil formats must match if mask includes DEPTH or STENCIL
+*/
+static bool tmu_blit(GLXX_SERVER_STATE_T *state,
+      const gfx_rect blit_rect[2], const bool flip[2],
+      GLbitfield mask, GLenum filter)
 {
-   point_t src0 = {srcX0, srcY0};
-   point_t src1 = {srcX1, srcY1};
+   GLXX_HW_FRAMEBUFFER_T dst_hw_fb;
+   const GLXX_FRAMEBUFFER_T *dst_fb = state->bound_draw_framebuffer;
+   if (!glxx_init_hw_framebuffer_just_layer0(dst_fb, &dst_hw_fb,
+            &state->fences))
+      return false;
 
-   point_t dst0 = {dstX0, dstY0};
-   point_t dst1 = {dstX1, dstY1};
+   bool ms_src;
+   glxx_texture_view tex_view[3];
+   if (!make_texture_views(tex_view, &ms_src, state->bound_read_framebuffer,
+            mask, &state->fences))
+   {
+      glxx_destroy_hw_framebuffer(&dst_hw_fb);
+      return false;
+   }
 
-   memset(geom, 0, sizeof *geom);
-   make_box(&geom->src, geom->flip, src0, src1);
-   make_box(&geom->dst, geom->flip, dst0, dst1);
-   egl_image_get_size(geom->src_size, src->image);
+   unsigned dim_src[2];
+   calc_dimensions(dim_src, tex_view, ms_src);
+
+   bool res = false;
+   gfx_rect clip_rect[2];
+   clip_rect[0] = (gfx_rect){0, 0, dim_src[0], dim_src[1]};
+   clip_rect[1] = (gfx_rect){0, 0, dst_hw_fb.width, dst_hw_fb.height};
+
+   if (state->caps.scissor_test)
+   {
+      gfx_rect_intersect(&clip_rect[1], &state->scissor);
+      if(!clip_rect[1].width || !clip_rect[1].height)
+      {
+         //noting to do
+         res = true;
+         goto out;
+      }
+   }
+
+   fpoint tex_coord[4], vtx_pos[4];
+   pos_and_tex_coords(blit_rect, flip, clip_rect, vtx_pos, tex_coord);
+
+   //blit color to draw buffers
+   if (tex_view[0].img_base)
+   {
+      if (ms_src)
+         filter = GL_LINEAR;
+
+      bool existing;
+      GLXX_HW_RENDER_STATE_T *rs = glxx_install_rs(state, &dst_hw_fb, &existing, false);
+      if (!rs)
+         goto out;
+
+      khrn_render_state_disallow_flush((khrn_render_state*)rs);
+
+      uint32_t draw_bufs_mask = glxx_fb_get_valid_draw_buf_mask(dst_fb);
+      res = blit_color(&state->dirty, &tex_view[0], draw_bufs_mask, &dst_hw_fb,
+               NULL, filter, vtx_pos, tex_coord, &clip_rect[1], rs);
+      if (!res)
+      {
+         glxx_hw_discard_frame(rs);
+         goto out;
+      }
+
+      khrn_render_state_allow_flush((khrn_render_state*)rs);
+   }
+
+   //blit depth and/or stencil
+   if (tex_view[1].img_base || tex_view[2].img_base)
+   {
+      /* we've already checked that src and dst formats match */
+      //create a dst fb using depth/stencil buffers pretending to be color buffers
+      GLXX_HW_FRAMEBUFFER_T ds_dst_hw_fb;
+      uint32_t mask_rw[2];
+      unsigned num_rts;
+      bool use_depth = mask & GL_DEPTH_BUFFER_BIT;
+      bool use_stencil = mask & GL_STENCIL_BUFFER_BIT;
+      res = make_color_hw_fb_from_ds(&ds_dst_hw_fb, mask_rw, &num_rts,
+            use_depth, &dst_hw_fb.depth, use_stencil, &dst_hw_fb.stencil);
+      if (!res)
+         goto out;
+
+      bool existing;
+      GLXX_HW_RENDER_STATE_T *rs = glxx_install_rs(state, &ds_dst_hw_fb, &existing, false);
+      if (!rs)
+      {
+         res = false;
+         goto inner;
+      }
+      khrn_render_state_disallow_flush((khrn_render_state*)rs);
+
+      assert(ds_dst_hw_fb.rt_count >= 1);
+      for (unsigned rt = 0; rt < 2; rt++)
+      {
+         if (ds_dst_hw_fb.color[rt].image == NULL)
+            continue;
+
+         assert(ds_dst_hw_fb.color[rt].plane_idx == 0);
+
+         //used src and dst fmts are equal
+         assert(gfx_lfmt_fmt(khrn_image_get_lfmt(ds_dst_hw_fb.color[rt].image, 0)) ==
+                  tex_view[1 + rt].fmt);
+
+         uint32_t draw_bufs_mask = 1 << rt;
+         res = blit_color(&state->dirty, &tex_view[1 + rt], draw_bufs_mask, &ds_dst_hw_fb,
+               &mask_rw[rt], GL_NEAREST,
+               vtx_pos, tex_coord, &clip_rect[1], rs);
+         if (!res)
+         {
+            glxx_hw_discard_frame(rs);
+            goto inner;
+         }
+      }
+      khrn_render_state_allow_flush((khrn_render_state*)rs);
+inner:
+      glxx_destroy_hw_framebuffer(&ds_dst_hw_fb);
+      if (!res)
+         goto out;
+   }
+
+   res = true;
+out:
+   for (unsigned i = 0; i < 3; i++)
+      KHRN_MEM_ASSIGN(tex_view[i].img_base, NULL);
+   glxx_destroy_hw_framebuffer(&dst_hw_fb);
+   return res;
 }
 
-static void query_context(struct context *context)
+static void points_to_rect(int x0, int x1, int y0, int y1, gfx_rect *rect)
 {
-   EGLDisplay dpy = eglGetCurrentDisplay();
-
-   memset(context, 0, sizeof *context);
-   context->context = eglGetCurrentContext();
-   eglQueryContext(dpy, context->context, EGL_CONFIG_ID, &context->config_id);
-   context->draw = eglGetCurrentSurface(EGL_DRAW);
-   context->read = eglGetCurrentSurface(EGL_READ);
+   rect->x = gfx_smin(x0, x1);
+   rect->y = gfx_smin(y0, y1);
+   rect->width = gfx_smax(x0, x1) - rect->x;
+   rect->height = gfx_smax(y0, y1) - rect->y;
 }
 
-void glxx_tmu_blit_framebuffer(
-      GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+void glxx_tmu_blit_framebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
       GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
       GLbitfield mask, GLenum filter)
 {
-   GLenum error = GL_OUT_OF_MEMORY;
-   struct blit_geom geom;
-   struct src src;
-   struct target dst[N_BUF_TYPES];
-   struct gl_state *gl = &g_persist.gl_state;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
+   if (!state)
+      return;
 
-   /*
-    * The "outside" context is the one in which glBlitFramebuffer was called.
-    * The "inside" context is one we create internally (and keep in g_persist)
-    * for doing the blit. Having an inside context was considered easier than
-    * guaranteeing that all side-effects on the outside context were undone
-    * when we return from glBlitFramebuffer
-    */
-   struct context outside, *inside;
-   GLenum colour_filter = filter;
+   gfx_rect blit_rect[2];
+   points_to_rect(srcX0, srcX1, srcY0, srcY1, &blit_rect[0]);
+   points_to_rect(dstX0, dstX1, dstY0, dstY1, &blit_rect[1]);
 
-   src.count = 0;/* In case we break early to the fail label. */
-   memset(dst, 0 , N_BUF_TYPES * sizeof(struct target));
+   bool flip[2];
+   flip[0] = srcX0 > srcX1 ? true : false;
+   if (dstX0 > dstX1)
+      flip[0] = !flip[0];
+   flip[1] = srcY0 > srcY1 ? true : false;
+   if (dstY0 > dstY1)
+      flip[1] = !flip[1];
 
-   {
-      GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
+   if (!tmu_blit(state, blit_rect, flip, mask, filter))
+      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
-      const GLXX_FRAMEBUFFER_T *src_fb = state->bound_read_framebuffer;
-      bool ms_src_fb = glxx_fb_get_ms_mode(src_fb);
-      if (ms_src_fb)
-      {
-         srcX0 *= 2;
-         srcY0 *= 2;
-         srcX1 *= 2;
-         srcY1 *= 2;
-      }
-      if (mask & GL_COLOR_BUFFER_BIT)
-      {
-         khrn_image *src_img = NULL;
-         if (!glxx_fb_acquire_read_image(src_fb, GLXX_PREFER_MULTISAMPLED, &src_img, NULL))
-         {
-            glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-            glxx_unlock_server_state();
-            return;
-         }
-         assert(src_img);
-         if (!glxx_is_texture_filterable_api_fmt(src_img->api_fmt))
-            colour_filter = GL_NEAREST;
-         else
-         {
-            //for multisample, filter is ignored and linear is used (if texture filterable)
-            if (ms_src_fb)
-               colour_filter = GL_LINEAR;
-         }
-         KHRN_MEM_ASSIGN(src_img, NULL);
-      }
-
-      glxx_unlock_server_state();
-   }
-
-   query_context(&outside);
-   inside = get_blit_context(&outside);
-   if (!inside) goto end;
-
-   if (!init_src(&src, outside.context, mask))
-      goto end;
-
-   /* we've decided to do the blit, we must have something in the src */
-   assert(src.count != 0);
-
-   if (mask & GL_COLOR_BUFFER_BIT)
-   {
-      if (!init_color_target(&dst[COLOR], outside.context))
-         goto end;
-   }
-
-   if (mask & GL_DEPTH_BUFFER_BIT)
-   {
-      if (!init_aux_target(&dst[DEPTH], DEPTH, outside.context))
-         goto end;
-   }
-
-   if (mask & GL_STENCIL_BUFFER_BIT)
-   {
-      if (!init_aux_target(&dst[STENCIL], STENCIL, outside.context))
-         goto end;
-   }
-
-   init_blit_geom(&geom, &src.src_bufs[0],
-         srcX0, srcY0, srcX1, srcY1,
-         dstX0, dstY0, dstX1, dstY1);
-
-   /* Get the scissor setting from the outside context so we can apply it inside */
-   struct scissor_state scissor;
-   get_scissor_state(&scissor);
-
-   apply_context(inside);
-   create_persistent_gl_resources(gl);
-   apply_gl_state(gl, &scissor, &geom);
-
-   enable_attribs();
-
-   /* Do the blitting. */
-   if (mask & GL_COLOR_BUFFER_BIT)
-      blit_src(gl, &dst[COLOR], &src, colour_filter);
-
-   if (mask & GL_DEPTH_BUFFER_BIT)
-   {
-      assert(filter == GL_NEAREST);
-      blit_src(gl, &dst[DEPTH], &src, filter);
-   }
-
-   if (mask & GL_STENCIL_BUFFER_BIT)
-   {
-      assert(filter == GL_NEAREST);
-      blit_src(gl, &dst[STENCIL], &src, filter);
-   }
-
-   destroy_gl_persistent_resources(&g_persist.gl_state);
-
-   apply_context(&outside);
-   if (glGetError() != GL_NO_ERROR)
-      goto end;
-
-   error = GL_NO_ERROR;
-end:
-   destroy_src(&src);
-   for (unsigned i =0; i < N_BUF_TYPES; i++)
-      destroy_target(&dst[i]);
-
-   if (error != GL_NO_ERROR)
-   {
-      GLXX_SERVER_STATE_T *state;
-
-      egl_context_gl_lock();
-      state = egl_context_gl_server_state(NULL);
-      glxx_server_state_set_error(state, error);
-      egl_context_gl_unlock();
-   }
-
-   /*
-    * Destroy all the persistent data every time. Because we share everything
-    * with the outside context, this potentially may use a lot of memory. The
-    * optimization is worth exploring later, but, for now, it's simpler like
-    * this.
-    */
-   glxx_blitframebuffer_shutdown();
-}
-
-void glxx_blitframebuffer_shutdown(void)
-{
-   destroy_context(&g_persist.context);
-   memset(&g_persist, 0, sizeof g_persist);
+   glxx_unlock_server_state();
 }

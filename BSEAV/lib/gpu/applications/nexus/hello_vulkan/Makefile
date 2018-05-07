@@ -72,11 +72,11 @@ LDFLAGS += -L$(LIBVULKAN_LIB_FOLDER) -lvulkan
 endif
 
 ifneq ($(wildcard $(V3D_DIR)),)
-api: nexus_api vulkan
+api: nexus_api
 	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
 	$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) NO_V3DDRIVER_BUILD=y
 else
-api: nexus_api
+api: nexus_api vulkan
 	@echo "This platform does not have V3D hardware"
 endif
 

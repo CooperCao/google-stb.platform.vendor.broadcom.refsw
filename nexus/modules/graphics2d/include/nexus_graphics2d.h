@@ -1026,6 +1026,16 @@ NEXUS_Error NEXUS_Graphics2D_ConvertFilter(
 
 /**
 Summary:
+Get NEXUS_Graphics2DColorMatrix for video color space standard
+Returns unity matrix if 'matrixCoefficients' is eUnknown or an invalid value.
+**/
+void NEXUS_Graphics2D_GetColorMatrix(
+    NEXUS_MatrixCoefficients matrixCoefficients,   /* video color space standard */
+    NEXUS_Graphics2DColorMatrix *pMatrixOut        /* [out] */
+    );
+
+/**
+Summary:
 Convert NEXUS_Graphics2DColorMatrix to BM2MC_PACKET_ColorMatrix
 **/
 NEXUS_Error NEXUS_Graphics2D_ConvertColorMatrix(

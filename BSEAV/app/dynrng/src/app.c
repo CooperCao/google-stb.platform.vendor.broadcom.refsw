@@ -523,7 +523,7 @@ static void app_p_usage_notification(void * context, int param)
     static const char * messages[] =
     {
         NULL,
-        "UNSUPPORTED_USAGE",
+        "BLOCKED USAGE MODE",
         NULL
     };
     AppHandle app = context;
@@ -1048,17 +1048,24 @@ static int app_p_unrecognized_console_syntax(void * ctx, const char * line)
     int result = -ERR_NOT_FOUND;
 
     assert(app);
+#if DYNRNG_HAS_PLAYLIST
     if (app->playlist.handle)
     {
         printf("Attempting to run playlist '%s'\n", line);
         result = playlist_play_list(app->playlist.handle, line);
     }
+#endif
     if (result == -ERR_NOT_FOUND)
     {
         printf("Attempting to run scenario '%s'\n", line);
         result = app_p_run_scenario(app, line);
     }
     return result;
+}
+static StringListHandle app_p_get_scenario_list(AppHandle app)
+{
+    assert(app);
+    return file_manager_get_base_names(app->scenario.filer);
 }
 static int app_p_create_console(AppHandle app)
 {
@@ -1068,6 +1075,7 @@ static int app_p_create_console(AppHandle app)
     consoleCreateSettings.inputEvent.context = app;
     consoleCreateSettings.unrecognizedSyntax.callback = &app_p_unrecognized_console_syntax;
     consoleCreateSettings.unrecognizedSyntax.context = app;
+    consoleCreateSettings.tabCompletionList = app_p_get_scenario_list(app);
     app->console.handle = console_create(&consoleCreateSettings);
     if (!app->console.handle) return -ERR_DEPENDENCY;
     return 0;

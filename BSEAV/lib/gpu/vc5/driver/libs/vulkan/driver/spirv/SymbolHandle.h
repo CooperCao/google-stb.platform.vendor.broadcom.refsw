@@ -7,16 +7,13 @@
 #include "glsl_common.h"
 #include "glsl_symbols.h"
 #include "SymbolTypeHandle.h"
-#include "ModuleAllocator.h"
-#include "Spirv.h"
+#include "Qualifier.h"
 
 namespace bvk {
 
 class NodeVariable;
-class Module;
+class DflowBuilder;
 class SymbolListHandle;
-
-FormatQualifier ConvertToFormatQualifier(spv::ImageFormat fmt);
 
 ////////////////////////////////////////////////////
 // SymbolHandle
@@ -32,13 +29,16 @@ public:
    explicit SymbolHandle(Symbol *symbol);
 
    // Named constructors
-   static SymbolHandle Variable(const Module &module, ShaderFlavour flavour, const char *name,
+   static SymbolHandle Variable(const DflowBuilder &builder, ShaderFlavour flavour, const char *name,
                                 const NodeVariable *var, SymbolTypeHandle type);
 
-   static SymbolHandle Builtin(const Module &module, const char *name,
+   static SymbolHandle Variable(const DflowBuilder &builder, ShaderFlavour flavour,
+                                const QualifierDecorations &qualifiers, uint32_t location, SymbolTypeHandle type);
+
+   static SymbolHandle Builtin(const DflowBuilder &builder, const char *name,
                                spv::StorageClass storageClass, SymbolTypeHandle type);
 
-   static SymbolHandle Internal(const Module &module, const char *name, SymbolTypeHandle type);
+   static SymbolHandle Internal(const DflowBuilder &builder, const char *name, SymbolTypeHandle type);
 
    static SymbolHandle SharedBlock(const SymbolListHandle &symbols);
 
@@ -53,7 +53,6 @@ public:
    StorageQualifier       GetStorageQualifier() const;
    InterpolationQualifier GetInterpQualifier()  const;
    MemLayout             *GetMemLayout()        const;
-   uint32_t               GetOffset()           const;
    uint32_t               GetBlockSize()        const;
    SymbolTypeHandle       GetType()             const;
    uint32_t               GetNumScalars()       const;
@@ -62,12 +61,13 @@ public:
 
    // Setters
    void                   SetName(const char *newName);
+   void                   SetLocation(uint32_t location);
 
    // Debug
    void                   DebugPrint() const;
 
 private:
-   SymbolHandle(const Module &module);
+   SymbolHandle(const DflowBuilder &builder);
 
 private:
    Symbol   *m_symbol = nullptr;
@@ -206,12 +206,6 @@ inline MemLayout *SymbolHandle::GetMemLayout() const
 {
    assert(m_symbol->flavour == SYMBOL_VAR_INSTANCE);
    return m_symbol->u.var_instance.block_info.layout;
-}
-
-inline uint32_t SymbolHandle::GetOffset() const
-{
-   assert(m_symbol->flavour == SYMBOL_VAR_INSTANCE);
-   return m_symbol->u.var_instance.offset;
 }
 
 inline uint32_t SymbolHandle::GetBlockSize() const

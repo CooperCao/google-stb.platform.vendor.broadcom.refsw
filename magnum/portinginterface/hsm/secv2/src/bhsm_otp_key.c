@@ -80,10 +80,8 @@ void BHSM_OtpKey_Uninit( BHSM_Handle hHsm )
 
     BDBG_ENTER( BHSM_OtpKey_Uninit );
 
-    if( !hHsm->modules.pOtpKey ) {
-        BERR_TRACE( BERR_NOT_INITIALIZED );
-        return;
-    }
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !hHsm->modules.pOtpKey ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return; }
 
     BKNI_Memset( hHsm->modules.pOtpKey, 0, sizeof(BHSM_OtpKeyModule) );
     BKNI_Free( hHsm->modules.pOtpKey );
@@ -99,10 +97,12 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
     BHSM_P_OtpMode0KeyMc0Read keyRead;
     BDBG_ENTER( BHSM_OtpKey_GetInfo );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pKeyInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( pKeyInfo->index >= Bsp_Otp_KeyType_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     if(hHsm->modules.pOtpKey->cached[pKeyInfo->index] == false)
     {
-        hHsm->modules.pOtpKey->cached[pKeyInfo->index] = true;
-
         /* KeyHash */
         pKeyInfo->hashValid = _isHashValid( hHsm, pKeyInfo->index );
         if( pKeyInfo->hashValid )
@@ -112,8 +112,12 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
             keyRead.in.field = Bsp_Otp_KeyField_eKeyHash;
             rc = BHSM_P_OtpMode0_KeyMc0Read( hHsm, &keyRead );
             if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
-            BHSM_MemcpySwap( &pKeyInfo->hash[4], &keyRead.out.data[0], 4 );
-            BHSM_MemcpySwap( &pKeyInfo->hash[0], &keyRead.out.data[1], 4 );
+
+            rc = BHSM_MemcpySwap( &pKeyInfo->hash[4], &keyRead.out.data[0], 4 );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+            rc = BHSM_MemcpySwap( &pKeyInfo->hash[0], &keyRead.out.data[1], 4 );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
         }
 
         /* KeyId */
@@ -122,8 +126,12 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
         keyRead.in.field = Bsp_Otp_KeyField_eKeyID;
         rc = BHSM_P_OtpMode0_KeyMc0Read( hHsm, &keyRead );
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
-        BHSM_MemcpySwap( &pKeyInfo->id[4], &keyRead.out.data[0], 4 );
-        BHSM_MemcpySwap( &pKeyInfo->id[0], &keyRead.out.data[1], 4 );
+
+        rc = BHSM_MemcpySwap( &pKeyInfo->id[4], &keyRead.out.data[0], 4 );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
+        rc = BHSM_MemcpySwap( &pKeyInfo->id[0], &keyRead.out.data[1], 4 );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
         /* blackBoxId */
         BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
@@ -131,7 +139,9 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
         keyRead.in.field = Bsp_Otp_KeyField_eMc0BlackBoxId;
         rc = BHSM_P_OtpMode0_KeyMc0Read( hHsm, &keyRead );
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
-        BHSM_MemcpySwap( &pKeyInfo->blackBoxId, &keyRead.out.data[0], 4 );
+
+        rc = BHSM_MemcpySwap( &pKeyInfo->blackBoxId, &keyRead.out.data[0], 4 );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
         /* ca Keyladder allowed*/
         BKNI_Memset( &keyRead, 0, sizeof(keyRead) );
@@ -205,6 +215,8 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
         if( rc != BERR_SUCCESS ) { goto BHSM_P_DONE_LABEL; }
         pKeyInfo->customerMode = keyRead.out.data[0];
 
+        hHsm->modules.pOtpKey->cached[pKeyInfo->index] = true;
+
         BKNI_Memcpy(&hHsm->modules.pOtpKey->KeyInfo[pKeyInfo->index],pKeyInfo, sizeof(*pKeyInfo));
     }
     else
@@ -228,8 +240,10 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_OtpKey_Program( BHSM_Handle hHsm, const BHSM_OtpKeyProgram *pKeyConfig )
 {
-    BSTD_UNUSED( hHsm );
-    BSTD_UNUSED( pKeyConfig );
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pKeyConfig ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( pKeyConfig->index >= Bsp_Otp_KeyType_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     hHsm->modules.pOtpKey->cached[pKeyConfig->index] = false;
 

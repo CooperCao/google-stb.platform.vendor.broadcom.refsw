@@ -65,9 +65,9 @@
 #define BSRF_AGC_SAMPLE_FREQ_KHZ 432000   /* Fs / 4 */
 #define BSRF_DAC_SAMPLE_FREQ_KHZ 288000   /* Fs / 6 */
 
-#define BSRF_DEFAULT_FC_HZ 2332500000
-#define BSRF_MPLL_FREQ_HZ  2307500000
-#define BSRF_NOTCH_FREQ_HZ 0
+#define BSRF_MPLL_FREQ_HZ        2307500000
+#define BSRF_DEFAULT_FC_HZ       2332500000
+#define BSRF_DEFAULT_FNOTCH_HZ   0
 
 
 /* wfe channel 0 interrupts */

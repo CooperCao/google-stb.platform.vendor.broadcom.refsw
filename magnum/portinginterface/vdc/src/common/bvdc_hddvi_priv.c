@@ -3820,7 +3820,10 @@ void BVDC_P_Source_HdDviDataReady_isr
         /* Extract the information from callback. */
         pCurInfo->pfPicCallbackFunc(pCurInfo->pvParm1, pCurInfo->iParm2,
         hSource->eNextFieldId, BAVC_SourceState_eActive, &pvNewPic);
-        *pNewPic = *((BAVC_VDC_HdDvi_Picture*)pvNewPic);
+        if(pvNewPic)
+        {
+            *pNewPic = *((BAVC_VDC_HdDvi_Picture*)pvNewPic);
+        }
 
         /* If there is a change?  Let's get the new colorspace? */
         if(BVDC_P_FIELD_DIFF(pCurPic, pNewPic, eCscMode) ||

@@ -479,9 +479,9 @@ BERR_Code BDSP_Raaga_P_CreateTask(
 
 BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
-    const BDSP_RaagaUsageOptions *pUsage,
+    const BDSP_UsageOptions      *pUsage,
     BBOX_Handle                   boxHandle,
-    BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
+    BDSP_MemoryEstimate          *pEstimate /*[out]*/
 );
 
 void BDSP_Raaga_P_EnableAllPwrResource(

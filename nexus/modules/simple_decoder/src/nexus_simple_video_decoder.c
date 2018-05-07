@@ -1274,6 +1274,27 @@ static void nexus_simplevideodecoder_p_disable_tsm_extensions( NEXUS_SimpleVideo
     }
 }
 
+/* returns non-zero if NEXUS_VideoDecoderSettings was modifed with NEXUS_SimpleVideoDecoderStartSettings */
+static int nexus_simplevideodecoder_p_apply_start_settings(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoDecoderSettings *settings /* in/out */)
+{
+    int rc = 0;
+    /* if startSettings causes any increase in resolution, or causes decrease from 4K to non-4K */
+    if (handle->startSettings.maxWidth && handle->startSettings.maxHeight) {
+        if (handle->startSettings.maxWidth > settings->maxWidth ||
+            handle->startSettings.maxHeight > settings->maxHeight ||
+            (settings->maxHeight > 1088 && handle->startSettings.maxHeight <= 1088)) {
+            rc = 1;
+        }
+        settings->maxWidth = handle->startSettings.maxWidth;
+        settings->maxHeight = handle->startSettings.maxHeight;
+    }
+    if (!settings->supportedCodecs[handle->startSettings.settings.codec]) {
+        settings->supportedCodecs[handle->startSettings.settings.codec] = true;
+        rc = 1;
+    }
+    return rc;
+}
+
 static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHandle handle )
 {
     NEXUS_Error rc;
@@ -1285,12 +1306,18 @@ static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHan
 
     /* Force re-connect if we must enable codec support or increase memory use.
     Also re-connect if decreasing memory use, but only when going from 4K to non-4K. */
-    if (!handle->settings.supportedCodecs[handle->startSettings.settings.codec] ||
-        handle->startSettings.maxWidth > handle->settings.maxWidth ||
-        handle->startSettings.maxHeight > handle->settings.maxHeight ||
-        (handle->settings.maxHeight > 1088 && handle->startSettings.maxHeight <= 1088))
-    {
-        nexus_simplevideodecoder_p_disconnect(handle, false);
+    if (handle->connected) {
+        NEXUS_VideoDecoderSettings *settings = &handle->functionData.nexus_simplevideodecoder_p_setdecodersettings.settings;
+        NEXUS_VideoDecoder_GetSettings(handle->serverSettings.videoDecoder, settings);
+        if (nexus_simplevideodecoder_p_apply_start_settings(handle, settings)) {
+            BDBG_WRN(("reconnect on start: supportedCodecs[%u] %u->%u, settings %ux%u -> %ux%u, ",
+                handle->startSettings.settings.codec,
+                settings->supportedCodecs[handle->startSettings.settings.codec],
+                handle->settings.supportedCodecs[handle->startSettings.settings.codec],
+                settings->maxWidth, settings->maxHeight,
+                handle->startSettings.maxWidth, handle->startSettings.maxHeight));
+            nexus_simplevideodecoder_p_disconnect(handle, false);
+        }
     }
     rc = nexus_simplevideodecoder_p_connect(handle);
     if (rc) return BERR_TRACE(rc);
@@ -1633,12 +1660,9 @@ static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVid
         rc = NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &handle->playbackSettings);
         if (rc) return BERR_TRACE(rc);
 
-        /* this modifies the stored copy. requires app to not cache settings. */
-        if (handle->startSettings.maxWidth && handle->startSettings.maxHeight) {
-            settings->maxWidth = handle->startSettings.maxWidth;
-            settings->maxHeight = handle->startSettings.maxHeight;
-        }
-        settings->supportedCodecs[handle->startSettings.settings.codec] = true;
+        rc = nexus_simplevideodecoder_p_apply_start_settings(handle, settings);
+        BSTD_UNUSED(rc); /* doesn't matter if there's a change or not */
+
         rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, settings);
         if (rc) return BERR_TRACE(rc);
 

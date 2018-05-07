@@ -193,7 +193,8 @@ static int test_keyladder_DMATransferUsingLevelKey(
     rc = test_keyladder_SetKeyslot( config->levelKey.route.keySlot.entry,
                                     config->settings.algorithm,
                                     config->algorithmMode, &config->levelKey.route.keySlot.handle );
-    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
+    SECURITY_CHECK_RC( rc );
+
     if( !config->levelKey.route.keySlot.handle ) { BERR_TRACE( rc ); goto exit; }
 
     rc = test_keyladder_GenerateLevelKeyIv( config->levelKey.route.keySlot.handle,
@@ -202,12 +203,13 @@ static int test_keyladder_DMATransferUsingLevelKey(
                                             config->rootType,
                                             config->settings.mode,
                                             config->levelKey.route.destination, &config->handle );
-    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
+    SECURITY_CHECK_RC( rc );
+
     if( !config->handle ) { BERR_TRACE( rc ); goto exit; }
 
     rc = securityUtil_DmaTransfer( config->levelKey.route.keySlot.handle, config->pSrc, config->pDest,
                                    NEXUS_DmaDataFormat_eBlock, config->data_size, false );
-    if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); }
+    SECURITY_CHECK_RC( rc );
 
 exit:
     NEXUS_KeySlot_Free( config->levelKey.route.keySlot.handle );
@@ -244,6 +246,8 @@ int main(int argc, char **argv)
 
     BKNI_Memset( &config, 0, sizeof( config ) );
     config.data_size = sizeof( plainText );
+
+    /* Use Global key as root key */
     config.rootType = NEXUS_KeyLadderRootType_eGlobalKey;
 
     NEXUS_Memory_Allocate( config.data_size, NULL, ( void ** ) &config.pSrc );
@@ -258,7 +262,7 @@ int main(int argc, char **argv)
             /* AES Ecb mode */
             config.algorithmMode = NEXUS_CryptographicAlgorithmMode_eEcb;
 
-            /* Using Otp key as the root key to encrypt the plain text. */
+            /* Using Global Otp key as the root key to encrypt the plain text. */
             config.levelKey.route.keySlot.entry = NEXUS_KeySlotBlockEntry_eCpsClear;
             config.levelKey.route.destination = NEXUS_KeyLadderDestination_eKeyslotKey;
 
@@ -277,7 +281,7 @@ int main(int argc, char **argv)
                 goto exit;
             }
 
-            /* Using Otp key as the root key to decrypt the cipher text. */
+            /* Using Global Otp key as the root key to decrypt the cipher text. */
             config.levelKey.route.keySlot.entry = NEXUS_KeySlotBlockEntry_eCpdClear;
             BKNI_Memcpy( config.pSrc, config.pDest, config.data_size );
             BKNI_Memset( config.pDest, 0, config.data_size );
@@ -296,7 +300,7 @@ int main(int argc, char **argv)
                 DEBUG_PRINT_ARRAY( "PlainText:", config.data_size, plainText );
                 DEBUG_PRINT_ARRAY( "Destination", config.data_size, config.pDest );
                 rc = NEXUS_INVALID_PARAMETER;
-                goto exit;
+                SECURITY_CHECK_RC( rc );
             }
             else {
                 printf( "    Test PASSED with algorithm [%d], keyladder mode [%d]!\n", config.settings.algorithm,

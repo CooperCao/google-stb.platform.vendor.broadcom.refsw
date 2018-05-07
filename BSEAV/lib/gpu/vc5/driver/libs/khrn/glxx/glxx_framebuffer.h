@@ -74,8 +74,8 @@ typedef enum
    GLXX_DEPTH_ATT,
    GLXX_STENCIL_ATT,
    GLXX_COLOR0_ATT,  /* do not add any entries here;
-                      * we have GLXX_MAX_RENDER_TARGETS colour attachments */
-   GLXX_ATT_COUNT = GLXX_COLOR0_ATT + GLXX_MAX_RENDER_TARGETS,
+                      * we have V3D_MAX_RENDER_TARGETS colour attachments */
+   GLXX_ATT_COUNT = GLXX_COLOR0_ATT + V3D_MAX_RENDER_TARGETS,
 
    GLXX_INVALID_ATT
 }glxx_att_index_t;
@@ -87,7 +87,7 @@ typedef enum
    enumify(GL_DEPTH_STENCIL_ATTACHMENT),
    enumify(GL_COLOR_ATTACHMENT0),
    /* enumify(GL_COLOR_ATTACHMENTi) = enumify(GL_COLOR_ATTACHMENT0) + i,
-    * where i = 1.. GLXX_MAX_RENDER_TARGETS */
+    * where i = 1.. V3D_MAX_RENDER_TARGETS */
 }glxx_attachment_point_t;
 
 typedef struct
@@ -98,7 +98,7 @@ typedef struct
 
    /* for each color attachement, specifies if drawing to that buffer is
     * enabled or disabled */
-   bool  draw_buffer[GLXX_MAX_RENDER_TARGETS];
+   bool  draw_buffer[V3D_MAX_RENDER_TARGETS];
 
    glxx_att_index_t read_buffer; /* can be any of GLXX_COLORx_ATT or
                                     GLXX_INVALID_ATT */
@@ -111,6 +111,9 @@ typedef struct
                                     we need to keep default_samples because the user can
                                     enquire that value */
    bool default_fixed_sample_locations;
+
+   int *damage_rects;       /* A khrn_mem_alloc'ed list of damage rects, or NULL if none set */
+   int  num_damage_rects;   /* Number of rects in damage_rects */
 
    char *debug_label;
 
@@ -176,7 +179,7 @@ extern bool glxx_fb_is_valid_draw_buf(const GLXX_FRAMEBUFFER_T *fb,
 static inline bool glxx_fb_iterate_valid_draw_bufs(const GLXX_FRAMEBUFFER_T *fb, unsigned *i,
       glxx_att_index_t *att_index)
 {
-   for ( ; *i < GLXX_MAX_RENDER_TARGETS; (*i)++)
+   for ( ; *i < V3D_MAX_RENDER_TARGETS; (*i)++)
    {
       if (glxx_fb_is_valid_draw_buf(fb, GLXX_COLOR0_ATT + *i))
       {
@@ -276,5 +279,8 @@ typedef enum
 
 extern glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T
       *fb, glxx_context_fences *fences);
+
+extern uint32_t glxx_fb_get_write_disable_mask(const GLXX_FRAMEBUFFER_T *fb,
+      uint32_t color_write);
 
 #endif

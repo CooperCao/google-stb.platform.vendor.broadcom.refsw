@@ -1007,37 +1007,37 @@ static uint32_t BVDC_P_GetVecCfgSrc_isr
         case BVDC_CompositorId_eCompositor0:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_0;
             break;
-#if (BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT > 0)
+#if (BVDC_P_CMP_1_MAX_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor1:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_1;
             break;
 #endif
 
-#if (BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT > 0)
+#if (BVDC_P_CMP_2_MAX_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor2:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_2;
             break;
 #endif
 
-#if (BVDC_P_CMP_3_MAX_VIDEO_WINDOW_COUNT > 0)
+#if (BVDC_P_CMP_3_MAX_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor3:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_3;
             break;
 #endif
 
-#if (BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT > 0)
+#if (BVDC_P_CMP_4_MAX_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor4:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_4;
             break;
 #endif
 
-#if (BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT > 0)
+#if (BVDC_P_CMP_5_MAX_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor5:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_5;
             break;
 #endif
 
-#if (BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT > 0)
+#if (BVDC_P_CMP_6_MAX_WINDOW_COUNT > 0)
         case BVDC_CompositorId_eCompositor6:
             ulSrc = BCHP_VEC_CFG_IT_0_SOURCE_SOURCE_S_6;
             break;
@@ -2544,14 +2544,22 @@ static void BVDC_P_ProgramAnalogChan_isr
     if(pstChan->ulId == 0)
     {
         eOutputCS = hDisplay->stCurInfo.eAnlg_0_OutputColorSpace;
+#if (BDBG_DEBUG_BUILD)
         BDBG_ASSERT(stVDC_P_Output_InfoTbl[eOutputCS].eVdcOutput == hDisplay->stCurInfo.eAnlg_0_OutputColorSpace);
+#endif
     }
     else
     {
         eOutputCS = hDisplay->stCurInfo.eAnlg_1_OutputColorSpace;
+#if (BDBG_DEBUG_BUILD)
         BDBG_ASSERT(stVDC_P_Output_InfoTbl[eOutputCS].eVdcOutput == hDisplay->stCurInfo.eAnlg_1_OutputColorSpace);
+#endif
     }
+
+#if (BDBG_DEBUG_BUILD)
     BDBG_MSG(("Display %d Anlg %d using %s", hDisplay->eId, pstChan->ulId, stVDC_P_Output_InfoTbl[eOutputCS].pcVdcOutputStr));
+#endif
+
     BVDC_P_Vec_Build_CSC_SRC_SM_isr(hDisplay, pstChan, eOutputCS, pList);
     BVDC_P_Vec_Build_VF_isr(hDisplay, pstChan, eOutputCS, pList);
     return;
@@ -3457,9 +3465,12 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     if(pstChan->bCfcProgrammed) return;
     else pstChan->bCfcProgrammed = true;
 
+#if (BDBG_DEBUG_BUILD)
     BDBG_ASSERT(stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].eAvcCs == hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs);
     BDBG_MSG(("Display %d Hdmi %d using %s",
         hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].pcAvcCsStr));
+#endif
+
 #if BCHP_DVI_MISC_0_REG_START
     bDviCscPassThrough = (hDisplay->hCompositor->bBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
     BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d %s DVI_CSC (due to %d || %d)", hDisplay->eId, (bDviCscPassThrough)? "bypass" : "not bypass",

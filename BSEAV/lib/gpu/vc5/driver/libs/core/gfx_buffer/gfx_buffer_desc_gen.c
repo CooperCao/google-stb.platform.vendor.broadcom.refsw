@@ -67,7 +67,7 @@ static GFX_LFMT_SWIZZLING_T choose_swizzling_for_tex(
    assert(gfx_lfmt_have_ut_dims(bd));
    if ((w_in_blocks <= bd->ut_w_in_blocks_2d) || (h_in_blocks <= bd->ut_h_in_blocks_2d))
       return GFX_LFMT_SWIZZLING_LT;
-   if (w_in_blocks <= (2 * gfx_lfmt_ub_w_in_blocks_2d(bd, GFX_LFMT_SWIZZLING_UBLINEAR)))
+   if (w_in_blocks <= (2 * bd->ub_w_in_blocks_2d))
       return GFX_LFMT_SWIZZLING_UBLINEAR;
    return GFX_LFMT_SWIZZLING_UIF;
 }
@@ -145,13 +145,7 @@ static void adjust_lfmt_and_padding(
    /* Figure out what swizzling to use */
    GFX_LFMT_SWIZZLING_T swizzling;
    if (ml_cfg->uif.force)
-   {
-      swizzling = GFX_LFMT_SWIZZLING_UIF;
-      if (ml_cfg->uif.ub_xor)
-         swizzling = gfx_lfmt_to_uif_xor_family(swizzling);
-      if (ml_cfg->uif.ub_noutile)
-         swizzling = gfx_lfmt_to_uif_noutile_family(swizzling);
-   }
+      swizzling = ml_cfg->uif.ub_xor ? GFX_LFMT_SWIZZLING_UIF_XOR : GFX_LFMT_SWIZZLING_UIF;
 #if !V3D_VER_AT_LEAST(4,1,34,0)
    else if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       swizzling = GFX_LFMT_SWIZZLING_UIF;
@@ -205,13 +199,13 @@ static void adjust_lfmt_and_padding(
    /* Figure out padded dims & adjust UIF XOR-ness */
    if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
-      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_ucol_w_in_blocks_2d(bd, swizzling));
-      bool single_col = *padded_w_in_blocks <= gfx_lfmt_ucol_w_in_blocks_2d(bd, swizzling);
+      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_ucol_w_in_blocks_2d(bd));
+      bool single_col = *padded_w_in_blocks <= gfx_lfmt_ucol_w_in_blocks_2d(bd);
 
-      uint32_t padded_height_in_ub = gfx_udiv_round_up(*padded_h_in_blocks, gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling));
+      uint32_t padded_height_in_ub = gfx_udiv_round_up(*padded_h_in_blocks, bd->ub_h_in_blocks_2d);
       if (ml_cfg->uif.force)
          padded_height_in_ub += ml_cfg->uif.ub_pads[plane];
-      else if (!gfx_lfmt_is_uif_xor_family((GFX_LFMT_T)swizzling))
+      else if (swizzling != GFX_LFMT_SWIZZLING_UIF_XOR)
          padded_height_in_ub += choose_ub_pad(padded_height_in_ub);
       else if (!single_col)
          /* Pad to a multiple of the page cache size */
@@ -221,7 +215,7 @@ static void adjust_lfmt_and_padding(
       if (usage & GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT)
          padded_height_in_ub = gfx_uround_up_p2(padded_height_in_ub, 2);
 
-      *padded_h_in_blocks = padded_height_in_ub * gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling);
+      *padded_h_in_blocks = padded_height_in_ub * bd->ub_h_in_blocks_2d;
 
       bool xor_ok = !ml_cfg->uif.xor_dis &&
          /* M2MC does not generate or read XOR'd data */
@@ -233,13 +227,13 @@ static void adjust_lfmt_and_padding(
           * of the page cache size, as block addresses might otherwise end up
           * outside of the buffer */
          ((padded_height_in_ub % PC_IN_UB_ROWS) == 0));
-      if (gfx_lfmt_is_uif_xor_family((GFX_LFMT_T)swizzling))
+      if (swizzling == GFX_LFMT_SWIZZLING_UIF_XOR)
          assert(xor_ok);
       else if (!ml_cfg->uif.force && xor_ok && !single_col)
          /* Activate XOR mode if possible. But only if we're wider than a
           * single UIF column -- XOR mode only affects odd columns, so it's
           * pointless to enable unless there's more than one column. */
-         swizzling = gfx_lfmt_to_uif_xor_family(swizzling);
+         swizzling = GFX_LFMT_SWIZZLING_UIF_XOR;
    }
    else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
       *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_sandcol_w_in_blocks_2d(bd, swizzling));
@@ -270,8 +264,8 @@ static void adjust_lfmt_and_padding(
       *padded_h_in_blocks = gfx_uround_up_p2(*padded_h_in_blocks, bd->ut_h_in_blocks_2d);
       break;
    case GFX_LFMT_SWIZZLING_UBLINEAR:
-      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling));
-      *padded_h_in_blocks = gfx_uround_up_p2(*padded_h_in_blocks, gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling));
+      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ub_w_in_blocks_2d);
+      *padded_h_in_blocks = gfx_uround_up_p2(*padded_h_in_blocks, bd->ub_h_in_blocks_2d);
       break;
    default:
       unreachable();
@@ -281,15 +275,13 @@ static void adjust_lfmt_and_padding(
     * passed through unmodified */
    if (swizzling_provided && (provided_swizzling != swizzling))
    {
-      /* Exception: UIF swizzlings may be adjusted to their XOR equivalents */
-      assert(gfx_lfmt_is_uif_family((GFX_LFMT_T)provided_swizzling));
-      assert(gfx_lfmt_to_uif_xor_family(provided_swizzling) == swizzling);
+      /* Exception: UIF may be adjusted to UIF_XOR */
+      assert(provided_swizzling == GFX_LFMT_SWIZZLING_UIF);
+      assert(swizzling == GFX_LFMT_SWIZZLING_UIF_XOR);
    }
    gfx_lfmt_set_swizzling(lfmt, swizzling);
 
-
    bool do_yflip = (usage & GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE) && gfx_lfmt_is_2d(*lfmt);
-
    if (usage & (GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_TLB))
    {
       assert(gfx_lfmt_yflip_consistent(*lfmt));
@@ -306,7 +298,6 @@ static void adjust_lfmt_and_padding(
          do_yflip = false;
       }
    }
-
    if (do_yflip)
    {
       gfx_lfmt_set_yflip(lfmt, gfx_lfmt_invert_yflip(gfx_lfmt_get_yflip(lfmt)));
@@ -558,7 +549,6 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
          adjust_lfmt_and_padding(&dplane->lfmt, &p->bd,
             &ml_pad_w_in_blocks, &ml_pad_h_in_blocks, &ml_pad_d_in_blocks,
             ml->height, usage, ml_cfg, i);
-         GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&dplane->lfmt);
 
          dplane->region = 0;
 
@@ -572,8 +562,8 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
           * page alignment for as long as is necessary, so we only actually
           * need to pad level 1 here. */
          if ((usage & GFX_BUFFER_USAGE_V3D_TEXTURE) && (mip_level == 1) &&
-            (ml_pad_w_in_blocks > gfx_lfmt_ucol_w_in_blocks_2d(&p->bd, swizzling)) &&
-            (ml_pad_h_in_blocks > (PCM15_IN_UB_ROWS * gfx_lfmt_ub_h_in_blocks_2d(&p->bd, swizzling))))
+            (ml_pad_w_in_blocks > gfx_lfmt_ucol_w_in_blocks_2d(&p->bd)) &&
+            (ml_pad_h_in_blocks > (PCM15_IN_UB_ROWS * p->bd.ub_h_in_blocks_2d)))
          {
             p->ml_sizes[mip_level] = gfx_zround_up(p->ml_sizes[mip_level], GFX_UIF_PAGE_SIZE);
          }
@@ -661,22 +651,21 @@ void gfx_buffer_get_tmu_uif_cfg(
 
    if (gfx_lfmt_is_uif_family(p->lfmt))
    {
-      GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&p->lfmt);
+      bool xor = gfx_lfmt_get_swizzling(&p->lfmt) == GFX_LFMT_SWIZZLING_UIF_XOR;
       GFX_LFMT_BASE_DETAIL_T bd;
       gfx_lfmt_base_detail(&bd, p->lfmt);
       uint32_t w_in_blocks = gfx_udiv_round_up(ml0->width, bd.block_w);
       uint32_t h_in_blocks = gfx_udiv_round_up(ml0->height, bd.block_h);
-      uint32_t height_in_ub = gfx_udiv_round_up(h_in_blocks, gfx_lfmt_ub_h_in_blocks_2d(&bd, swizzling));
+      uint32_t height_in_ub = gfx_udiv_round_up(h_in_blocks, bd.ub_h_in_blocks_2d);
       uint32_t padded_height_in_ub = gfx_buffer_uif_height_in_ub(ml0, plane_i);
 
       if ((choose_swizzling_for_tex(&bd, w_in_blocks, h_in_blocks) != GFX_LFMT_SWIZZLING_UIF) ||
-         ((w_in_blocks > gfx_lfmt_ucol_w_in_blocks_2d(&bd, swizzling)) &&
-            (((padded_height_in_ub % PC_IN_UB_ROWS) == 0) != gfx_lfmt_is_uif_xor_family(p->lfmt))) ||
+         ((w_in_blocks > gfx_lfmt_ucol_w_in_blocks_2d(&bd)) &&
+            (((padded_height_in_ub % PC_IN_UB_ROWS) == 0) != xor)) ||
          ((height_in_ub + choose_ub_pad(height_in_ub)) != padded_height_in_ub))
       {
          uif_cfg->force = true;
-         uif_cfg->ub_xor = gfx_lfmt_is_uif_xor_family(p->lfmt);
-         assert(!gfx_lfmt_is_noutile_family(p->lfmt));
+         uif_cfg->ub_xor = xor;
          uif_cfg->ub_pads[0] = padded_height_in_ub - height_in_ub;
       }
    }

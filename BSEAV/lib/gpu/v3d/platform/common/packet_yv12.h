@@ -1,19 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  Default Nexus platform API for EGL driver
-Module   :  Nexus platform
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef PACKET_YV12_H
-#define PACKET_YV12_H
+/******************************************************************************
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+******************************************************************************/
+#pragma once
 
 #include "memory_nexus_priv.h"
-#include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 
 void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params);
-
-#endif /* PACKET_YV12_H */

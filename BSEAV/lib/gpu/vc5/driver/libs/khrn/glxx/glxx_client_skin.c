@@ -140,7 +140,7 @@ GL_API void GL_APIENTRY glGetVertexAttribPointerv(GLuint index, GLenum pname, vo
       goto end;
    }
 
-   if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
+   if (index >= V3D_MAX_ATTR_ARRAYS) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
    }

@@ -134,7 +134,6 @@ void NEXUS_Sage_RemoveWatchdogEvent_priv(BKNI_EventHandle event)
 /* The ISR callback is registered in HSI and will be fire uppon watchdog interrupt */
 static void NEXUS_Sage_P_WatchdogIntHandler_isr(void)
 {
-    g_NEXUS_sageModule.reset = 1;
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
 
     BDBG_MSG(("%s: Reset interrupt", BSTD_FUNCTION));

@@ -11,7 +11,7 @@
 #include "middleware/khronos/gl20/gl20_shader.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
 #include "middleware/khronos/glxx/glxx_framebuffer.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2ext.h>
 
 #include "middleware/khronos/glxx/glxx_texture.h"
 #include "middleware/khronos/glxx/glxx_buffer.h"

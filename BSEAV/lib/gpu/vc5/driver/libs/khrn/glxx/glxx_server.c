@@ -196,7 +196,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->hints.fshader_derivative = GL_DONT_CARE;
 
    state->line_width = 1.0f;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    state->num_patch_vertices = 3u;
 #endif
 
@@ -247,7 +247,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
    state->blend.rt_enables = 0;
-   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+   for (unsigned i = 0; i != V3D_MAX_RENDER_TARGETS; ++i)
       init_blend_cfg(&state->blend.rt_cfgs[i]);
 #else
    state->blend.enable = false;
@@ -260,7 +260,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->blend_color[2] = 0.0f;
    state->blend_color[3] = 0.0f;
 
-   state->color_write = gfx_mask(GLXX_MAX_RENDER_TARGETS * 4);
+   state->color_write = gfx_mask(V3D_MAX_RENDER_TARGETS * 4);
 
    state->viewport.x = 0;
    state->viewport.y = 0;
@@ -326,7 +326,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
       goto end;
 
    // Generic attribute default values.
-   for (unsigned i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   for (unsigned i = 0; i < V3D_MAX_ATTR_ARRAYS; i++)
    {
       GLXX_GENERIC_ATTRIBUTE_T* ga = &state->generic_attrib[i];
       ga->f[0] = 0.0f;
@@ -378,7 +378,11 @@ void glxx_server_state_flush(GLXX_SERVER_STATE_T *state, bool wait)
    khrn_fence_flush(state->fences.fence);
    if (wait)
    {
-      khrn_fence_wait(state->fences.fence, V3D_SCHED_DEPS_FINALISED);
+      /* Can't use khrn_fence_wait(state->fences.fence, V3D_SCHED_DEPS_FINALISED);
+       * as it doesn't wait for deferred_free_callback()
+       */
+      v3d_scheduler_wait_all();
+
 #if GMEM_FINISH
       gmem_finish();
 #endif
@@ -452,10 +456,6 @@ void glxx_server_state_destroy(GLXX_SERVER_STATE_T *state)
    if (!state)
       return;
 
-   // We want to make sure that any external buffers modified by this context
-   // get updated.
-   glxx_server_state_flush(state, true); /* todo: do we need to wait here? */
-
    if (!IS_GL_11(state))
    {
       if (state->current_program != NULL)
@@ -508,13 +508,18 @@ void glxx_server_state_destroy(GLXX_SERVER_STATE_T *state)
    glxx_vao_uninitialise(state);
 
    queries_deinit(&state->queries);
-   khrn_fence_refdec(state->fences.fence);
-   khrn_fence_refdec(state->fences.fence_to_depend_on);
 
    khrn_map_term(&state->framebuffers);
 
    for (i = 0; i < GLXX_CONFIG_MAX_IMAGE_UNITS; ++i)
       glxx_image_unit_deinit(&state->image_unit[i]);
+
+   // We want to make sure that any external buffers modified by this context
+   // get updated and released.
+   glxx_server_state_flush(state, true);
+
+   khrn_fence_refdec(state->fences.fence);
+   khrn_fence_refdec(state->fences.fence_to_depend_on);
 }
 
 static void set_blend_func(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
@@ -546,7 +551,7 @@ static void set_all_blend_funcs(GLXX_SERVER_STATE_T *state,
    v3d_blend_mul_t sc, v3d_blend_mul_t dc, v3d_blend_mul_t sa, v3d_blend_mul_t da)
 {
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+   for (unsigned i = 0; i != V3D_MAX_RENDER_TARGETS; ++i)
       set_blend_func(state, &state->blend.rt_cfgs[i], sc, dc, sa, da);
 #else
    set_blend_func(state, &state->blend.cfg, sc, dc, sa, da);
@@ -657,7 +662,7 @@ static void blend_func_i(GLuint buf, GLenum src, GLenum dst)
    if (!state)
       return;
 
-   if (buf >= GLXX_MAX_RENDER_TARGETS)
+   if (buf >= V3D_MAX_RENDER_TARGETS)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
@@ -680,7 +685,7 @@ static void blend_func_separate_i(GLuint buf,
    if (!state)
       return;
 
-   if (buf >= GLXX_MAX_RENDER_TARGETS)
+   if (buf >= V3D_MAX_RENDER_TARGETS)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
@@ -769,7 +774,7 @@ GL_API void GL_APIENTRY glClear(GLbitfield mask)
    }
 
    GLXX_CLEAR_T clear;
-   clear.color_buffer_mask = (mask & GL_COLOR_BUFFER_BIT) ? gfx_mask(GLXX_MAX_RENDER_TARGETS) : 0;
+   clear.color_buffer_mask = (mask & GL_COLOR_BUFFER_BIT) ? gfx_mask(V3D_MAX_RENDER_TARGETS) : 0;
    clear.depth = !!(mask & GL_DEPTH_BUFFER_BIT);
    clear.stencil = !!(mask & GL_STENCIL_BUFFER_BIT);
    clear.color_value[0] = gfx_float_to_bits(state->clear.color_value[0]);
@@ -795,7 +800,7 @@ static bool clear_buffer_drawbuffer_valid(GLenum buffer, int drawbuffer) {
    switch (buffer)
    {
    case GL_COLOR:
-      if ((drawbuffer < 0) || (drawbuffer >= GLXX_MAX_RENDER_TARGETS))
+      if ((drawbuffer < 0) || (drawbuffer >= V3D_MAX_RENDER_TARGETS))
          return false;
       break;
    case GL_DEPTH:
@@ -1152,7 +1157,7 @@ static bool is_valid_server_cap(const GLXX_SERVER_STATE_T *state, GLenum cap)
    case GL_PRIMITIVE_RESTART_FIXED_INDEX:
    case GL_RASTERIZER_DISCARD:
       return !IS_GL_11(state);
-#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_SAMPLE_SHADING:
 #endif
    case GL_SAMPLE_MASK:
@@ -1292,7 +1297,7 @@ static void set_enabled(GLenum cap, bool enabled)
       break;
    case GL_BLEND:
 #if V3D_VER_AT_LEAST(4,1,34,0)
-      state->blend.rt_enables = enabled ? gfx_mask(GLXX_MAX_RENDER_TARGETS) : 0;
+      state->blend.rt_enables = enabled ? gfx_mask(V3D_MAX_RENDER_TARGETS) : 0;
       state->dirty.blend_enables = KHRN_RENDER_STATE_SET_ALL;
 #else
       state->blend.enable = enabled;
@@ -1332,7 +1337,7 @@ static void set_enabled(GLenum cap, bool enabled)
    case GL_BLEND_ADVANCED_COHERENT_KHR:
       state->blend.advanced_coherent = enabled;
       break;
-#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_SAMPLE_SHADING:
       state->caps.sample_shading = enabled;
       break;
@@ -1366,7 +1371,7 @@ static void set_enabled_i(GLenum target, GLuint index, bool enabled)
 
    if (target != GL_BLEND)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-   else if (index >= GLXX_MAX_RENDER_TARGETS)
+   else if (index >= V3D_MAX_RENDER_TARGETS)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
@@ -1809,7 +1814,7 @@ GL_API void GL_APIENTRY glLineWidthx(GLfixed width)
    glxx_unlock_server_state();
 }
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 
 static void glxx_patch_parameter(GLenum pname, GLint value)
 {
@@ -2377,7 +2382,7 @@ static bool is_vertex_attrib_int_type(GLenum type)
 
 static bool attrib_index_valid(GLXX_SERVER_STATE_T *state, uint32_t indx)
 {
-   if (indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+   if (indx < V3D_MAX_ATTR_ARRAYS)
       return true;
    else {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -2447,7 +2452,7 @@ static void vertex_attrib_pointer(GLXX_SERVER_STATE_T *state, GLuint index, GLin
 static void vertex_attrib_pointer_chk(GLXX_SERVER_STATE_T *state, GLuint index, GLint size,
    GLenum type, GLboolean normalized, GLsizei stride, GLintptr ptr, bool integer)
 {
-   if(!is_vertex_attrib_size(size) || index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+   if(!is_vertex_attrib_size(size) || index >= V3D_MAX_ATTR_ARRAYS)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       return;
@@ -2492,7 +2497,7 @@ static void vertex_attrib_format(GLuint attribindex, GLint size, GLenum type, GL
    if (!state)
       return;
 
-   if(attribindex >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS
+   if(attribindex >= V3D_MAX_ATTR_ARRAYS
       || relativeoffset > GLXX_CONFIG_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET
       || !is_vertex_attrib_size(size))
    {
@@ -2573,7 +2578,7 @@ GL_API void GL_APIENTRY glVertexAttribBinding (GLuint attribindex, GLuint bindin
       return;
 
 
-   if(attribindex >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS
+   if(attribindex >= V3D_MAX_ATTR_ARRAYS
       || bindingindex >= GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -2757,7 +2762,7 @@ void glintColor(float red, float green, float blue, float alpha)
 
 void *glintAttribGetPointer(GLXX_SERVER_STATE_T *state, uint32_t indx)
 {
-   assert(indx < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(indx < V3D_MAX_ATTR_ARRAYS);
    return (void *)state->vao.bound->attrib_config[indx].pointer;
 }
 
@@ -2794,7 +2799,7 @@ static void color_mask_i(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLbo
    if (!state)
       return;
 
-   if (buf >= GLXX_MAX_RENDER_TARGETS)
+   if (buf >= V3D_MAX_RENDER_TARGETS)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
@@ -3025,7 +3030,7 @@ GL_API void GL_APIENTRY glPrimitiveBoundingBoxOES(GLfloat minX, GLfloat minY, GL
 }
 #endif
 
-#if KHRN_GLES32_DRIVER || V3D_VER_AT_LEAST(4,1,34,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static void min_sample_shading(float value) {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;

@@ -81,7 +81,7 @@ static inline uint32_t glsl_unpack_fb_gadget(uint32_t packed, int i) {
 #define GLSL_ADV_BLEND_HSL_COLOR      14
 #define GLSL_ADV_BLEND_HSL_LUMINOSITY 15
 
-#if !V3D_HAS_SRS_CENTROID_FIX
+#if !V3D_VER_AT_LEAST(4,2,14,0)
 #define GLSL_SAMPLE_SHADING_ENABLED    (1<<30)
 #endif
 
@@ -131,8 +131,7 @@ static inline glsl_gadgettype_t glsl_make_tmu_swizzled_gadgettype(
 }
 #endif
 
-typedef struct glsl_backend_cfg
-{
+typedef struct glsl_backend_cfg {
    uint32_t backend;
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)

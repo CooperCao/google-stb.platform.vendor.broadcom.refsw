@@ -3019,6 +3019,35 @@ BMUXlib_TS_P_ProcessNewBuffers(
                      continue;
                   }
                }
+               else
+               {
+                  /* Insert NULL packet to consume non-video EOS descriptor */
+                  if ( BERR_SUCCESS != BERR_TRACE(BMUXlib_TS_P_InsertNULLTransportDescriptor(
+                           hMuxTS,
+                           pInputMetadata->uiTransportChannelIndex,
+                           BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor ),
+                           0,
+                           BMUXlib_TS_P_DataType_eCDB,
+                           BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )],
+                           pInputMetadata->uiInputIndex,
+                           true
+                           )))
+                  {
+                     BDBG_ERR(("Transport descriptors not available.  Will be processed next time."));
+                     BMUXlib_InputGroup_ActivateInput(hMuxTS->hInputGroup, hSelectedInput, false);
+
+                     if ( true == hMuxTS->pstSettings->stStartSettings.bSupportTTS )
+                     {
+                        /* SW7425-659: Since MUX_TIMESTAMP_UPDATE BTP/BPP requires descriptors to be processed in ESCR sequential
+                         * order, if an input is stalled, we don't want to process any inputs.
+                         */
+
+                        break;
+                     }
+
+                     continue;
+                  }
+               }
 
                BDBG_MODULE_MSG( BMUXLIB_TS_EOS, ("%s[%d] EOS Seen",
                   ( BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) == BMUXlib_Input_Type_eAudio ) ? "AUDIO" : "VIDEO",

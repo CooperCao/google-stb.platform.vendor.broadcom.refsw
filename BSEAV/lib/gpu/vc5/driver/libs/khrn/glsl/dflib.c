@@ -36,48 +36,28 @@ static inline Dataflow *df_float(float a) {
    return glsl_dataflow_construct_const_float(a);
 }
 
-static inline Dataflow *df_min(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_MIN, a, b);
+static inline Dataflow *df_uop(DataflowFlavour f, Dataflow *a) {
+   return glsl_dataflow_construct_unary_op(f, a);
 }
 
-static inline Dataflow *df_max(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_MAX, a, b);
+static inline Dataflow *df_binop(DataflowFlavour f, Dataflow *a, Dataflow *b) {
+   return glsl_dataflow_construct_binary_op(f, a, b);
 }
+
+static inline Dataflow *df_add(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_ADD, a, b); }
+static inline Dataflow *df_mul(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_MUL, a, b); }
+static inline Dataflow *df_min(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_MIN, a, b); }
+static inline Dataflow *df_max(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_MAX, a, b); }
+static inline Dataflow *df_shl(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_SHL, a, b); }
+static inline Dataflow *df_shr(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_SHR, a, b); }
+
+static inline Dataflow *df_fpack(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_FPACK, a, b); }
+static inline Dataflow *df_vfmul(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_VFMUL, a, b); }
+static inline Dataflow *df_vfmin(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_VFMIN, a, b); }
+static inline Dataflow *df_vfmax(Dataflow *a, Dataflow *b) { return df_binop(DATAFLOW_VFMAX, a, b); }
 
 static inline Dataflow *df_clamp(Dataflow *x, Dataflow *min_val, Dataflow *max_val) {
    return df_min(df_max(x, min_val), max_val);
-}
-
-static inline Dataflow *df_add(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, a, b);
-}
-
-static inline Dataflow *df_mul(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_MUL, a, b);
-}
-
-static inline Dataflow *df_fpack(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_FPACK, a, b);
-}
-
-static inline Dataflow *df_shl(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_SHL, a, b);
-}
-
-static inline Dataflow *df_shr(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_SHR, a, b);
-}
-
-static inline Dataflow *df_vfmul(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_VFMUL, a, b);
-}
-
-static inline Dataflow *df_vfmin(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_VFMIN, a, b);
-}
-
-static inline Dataflow *df_vfmax(Dataflow *a, Dataflow *b) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_VFMAX, a, b);
 }
 
 static inline Dataflow *df_vfsat(Dataflow *a) {
@@ -102,11 +82,11 @@ static inline Dataflow *df_and_const(Dataflow *a, unsigned b) {
 
 static inline Dataflow *df_combineu(Dataflow *a, Dataflow *b, unsigned bshift) {
    /* Since we know the channels are disjoint we can use 'add' instead of 'or' */
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, a, df_shl_const(b, bshift));
+   return df_add(a, df_shl_const(b, bshift));
 }
 
 static inline Dataflow *df_combines(Dataflow *a, Dataflow *b, unsigned bshift) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, df_and_const(a, gfx_mask(bshift)), df_shl_const(b, bshift));
+   return df_add(df_and_const(a, gfx_mask(bshift)), df_shl_const(b, bshift));
 }
 
 // Unused bits are zero.
@@ -147,7 +127,7 @@ static Dataflow *packs(Dataflow *v[4], unsigned n, bool norm, unsigned num_bits)
       if (norm) {
          x = df_clamp(x, df_float(-1.0f), df_float(1.0f));
          x = df_mul(x, df_float((float)gfx_mask(num_bits - 1)));
-         x = glsl_dataflow_construct_unary_op(DATAFLOW_FTOI_NEAREST, x);
+         x = df_uop(DATAFLOW_FTOI_NEAREST, x);
       }
       else {
          x = df_clamp(x, df_int(~gfx_mask(num_bits-1)), df_int(gfx_mask(num_bits-1)));
@@ -190,19 +170,19 @@ static Dataflow *pack_unorm8_xz(Dataflow *x, Dataflow *z) {
 }
 
 static Dataflow *pack_snorm8_xz(Dataflow *x, Dataflow *z) {
-   return glsl_dataflow_construct_binary_op(DATAFLOW_VFMULDENFTOI, df_vfsatn(df_fpack(x, z)), df_uint(0x007F007F));
+   return df_binop(DATAFLOW_VFMULDENFTOI, df_vfsatn(df_fpack(x, z)), df_uint(0x007F007F));
 }
 
 static Dataflow *unpack_unorm(Dataflow *p, unsigned num_bits) {
    Dataflow *r;
-   r = glsl_dataflow_construct_unary_op(DATAFLOW_UTOF, p);
+   r = df_uop(DATAFLOW_UTOF, p);
    r = df_mul(r, df_float(1.0f / (float)gfx_mask(num_bits)));
    return r;
 }
 
 static Dataflow *unpack_snorm(Dataflow *p, unsigned num_bits) {
    Dataflow *r;
-   r = glsl_dataflow_construct_unary_op(DATAFLOW_ITOF, df_reinterp_int(p));
+   r = df_uop(DATAFLOW_ITOF, df_reinterp_int(p));
    r = df_max(r, df_float((-(float)gfx_mask(num_bits - 1))));
    r = df_mul(r, df_float(1.0f / (float)gfx_mask(num_bits - 1)));
    return r;
@@ -234,7 +214,7 @@ static void unpack_snorm8_xz(Dataflow *r[2], Dataflow *p) {
    const float scale = (float)(1u << 24u >> UNPACK_BYTE_SHIFT) / 127.0f;
 
    p = df_and_const(p, mask);
-   p = glsl_dataflow_construct_unary_op(DATAFLOW_VITODENF, p);
+   p = df_uop(DATAFLOW_VITODENF, p);
    p = df_vfmax(p, df_uint(0x80008000u | 0x007f007fu << UNPACK_BYTE_SHIFT));  // make 0x80(-128) byte equivalent to 0x81(-127).
 
    if (UNPACK_BYTE_MEDP) {
@@ -268,7 +248,7 @@ Dataflow *dflib_packSnorm2x16(Dataflow *x, Dataflow *y) {
 // Upper 16-bits are undefined.
 static Dataflow *packUnorm2x8_undef(Dataflow *x, Dataflow *y) {
    Dataflow *pxy = pack_unorm8_xz(x, y);
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, pxy, df_shr_const(pxy, 8));
+   return df_add(pxy, df_shr_const(pxy, 8));
 }
 
 Dataflow *dflib_packUnorm4x8(Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *w) {
@@ -280,7 +260,7 @@ Dataflow *dflib_packUnorm4x8(Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *w)
 // Upper 16-bits are undefined.
 static Dataflow *packSnorm2x8_undef(Dataflow *x, Dataflow *y) {
    Dataflow *pxy = pack_snorm8_xz(x, y);
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, pxy, df_shr_const(pxy, 8));
+   return df_add(pxy, df_shr_const(pxy, 8));
 }
 
 Dataflow *dflib_packSnorm4x8(Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *w) {
@@ -364,8 +344,8 @@ Dataflow *dflib_pack_format(FormatQualifier f, Dataflow *v[4]) {
 
 
 void dflib_unpackHalf2x16(Dataflow *r[2], Dataflow *p) {
-   r[0] = glsl_dataflow_construct_unary_op(DATAFLOW_FUNPACKA, p);
-   r[1] = glsl_dataflow_construct_unary_op(DATAFLOW_FUNPACKB, p);
+   r[0] = df_uop(DATAFLOW_FUNPACKA, p);
+   r[1] = df_uop(DATAFLOW_FUNPACKB, p);
 }
 
 void dflib_unpackUnorm2x16(Dataflow *r[2], Dataflow *p) {

@@ -5,6 +5,6 @@
 
 #include "middleware/khronos/gl20/gl20_config.h"
 #include "middleware/khronos/glxx/glxx_server.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2ext.h>
 
 extern bool gl20_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared, bool secure);

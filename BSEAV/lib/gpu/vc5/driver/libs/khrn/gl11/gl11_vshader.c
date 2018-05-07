@@ -321,8 +321,7 @@ static void matrix_palette_unit_result(GLXX_VEC4_T       *unit_vertex,
    unit_idx = glxx_add    ( unit_idx, base_ptr  );              /* Not really an index now, more a pointer */
 
    for (int i=0; i<4; i++) {
-      Dataflow *vec = glsl_dataflow_construct_vector_load(DF_FLOAT, glxx_add(unit_idx, glxx_cint(16*i)));
-      vec->u.vector_load.required_components = 0xf;
+      Dataflow *vec = glsl_dataflow_construct_vector_load(glxx_add(unit_idx, glxx_cint(16*i)));
       for (unsigned j=0; j<4; j++)
          unit_matrix[4*i+j] = glsl_dataflow_construct_get_vec4_component(j, vec, DF_FLOAT);
    }

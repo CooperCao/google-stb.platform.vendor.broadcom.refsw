@@ -499,7 +499,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
                 }
             }
             if (i < NXCLIENT_MAX_IDS) {
-                /* need to recreate for mismatch */
+                BDBG_WRN(("recreate for reconfig %p: connect %p, index %d", (void*)r, (void*)connect, index));
                 video_decoder_destroy(r);
                 r = NULL;
             }
@@ -648,6 +648,11 @@ static void video_decoder_release(struct video_decoder_resource *r, struct b_con
         r->index >= NEXUS_NUM_VIDEO_DECODERS /* SID or DSP decoder */
         )
     {
+        BDBG_WRN(("destroy on release: mosaic %u, external %u, dynamic %u, SID/DSP %u",
+            IS_MOSAIC_DECODER(r->connect),
+            server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder],
+            server->settings.videoDecoder.dynamicPictureBuffers,
+            (r->index >= NEXUS_NUM_VIDEO_DECODERS)));
         video_decoder_destroy_for_connect(r, connect);
     }
     else {

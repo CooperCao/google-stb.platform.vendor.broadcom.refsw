@@ -34,11 +34,7 @@
  * by filing a bug against product "EGL" component "Registry".
  */
 
-#include "../KHR/khrplatform.h"
-
-#include "begl_memplatform.h"
-#include "begl_hwplatform.h"
-#include "begl_dispplatform.h"
+#include <KHR/khrplatform.h>
 
 /* Macros used in EGL function prototype declarations.
  *
@@ -54,6 +50,7 @@
 #endif
 #ifndef EGLAPIENTRYP
 #define EGLAPIENTRYP EGLAPIENTRY*
+
 #endif
 #ifndef EGLAPI
 #ifdef KHAPI
@@ -96,113 +93,5 @@ typedef EGLNativeWindowType  NativeWindowType;
  * integer type.
  */
 typedef khronos_int32_t EGLint;
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-/* A BEGL_RegisterInitInterface() should be called by the platform library
- * constructor in order to set EGL initialisation callbacks. Those are called
- * by the driver in response to eglGetDisplay(), eglInitialize(display)
- * and eglTerminate(display).
- *
- * Alternatively (legacy mode) BEGL_RegisterDriverInterfaces() may be called
- * at platform startup in cases where only one display is ever present
- * on a given platform.
- */
-
-/*
- * The client application, or default platform library must register valid
- * versions of each of these interfaces before any EGL or GL functions are
- * invoked.
- *
- * This is either done by returning the structure
-*/
-typedef struct
-{
-   BEGL_MemoryInterface  *memInterface;      /* Memory interface which will called by the 3d driver   */
-   BEGL_HWInterface      *hwInterface;       /* Hardware interface which will be called by the driver */
-   BEGL_DisplayInterface *displayInterface;  /* Display interface which will be called by the driver  */
-
-   BEGL_DisplayCallbacks  displayCallbacks;  /* Callback pointers set by BEGL_GetDefaultDriverInterfaces, for client to call into driver */
-   BEGL_HardwareCallbacks hardwareCallbacks; /* Callback pointers set by BEGL_GetDefaultDriverInterfaces, for client to call into driver */
-
-   int hwInterfaceCloned;
-   int memInterfaceCloned;
-   void *memInterfaceFn;
-   void *hwInterfaceFn;
-} BEGL_DriverInterfaces;
-
-/* Register application level overrides for any or all of the abstract API calls made by the 3D driver. */
-EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *iface);
-
-/* Get a pointer to the registered driver interfaces, can be used to override partial defaults - see android platform layer(s) for example */
-EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void);
-
-/* Initializes all interfaces in the structure to NULL, fills out Callbacks with appropriate function pointers */
-EGLAPI void EGLAPIENTRY BEGL_GetDefaultDriverInterfaces(BEGL_DriverInterfaces *iface);
-
-typedef void  *BEGL_DisplayHandle;    /* Opaque 'display' handle */
-
-typedef struct BEGL_InitInterface
-{
-   /* Context pointer - opaque to the 3d driver code, but passed out in all
-    * function pointer calls. Prevents the client code needing to perform
-    * context lookups.
-    */
-   void *context;
-
-   /* Called from eglGetDisplay().
-    *
-    * Returns BEGL_Success if platform parameter is valid, BEGL_Fail otherwise.
-    *
-    * Sets opaque native display handle to a non-NULL value if a display
-    * matching passed-in parameters could be found or created.
-    * Multiple calls with the same parameters must always return the same
-    * display handle.
-    *
-    * In case of a valid platform but non-existing display the implementation
-    * should set display handle to NULL and return BEGL_Success.
-    */
-   BEGL_Error (*GetDisplay)(void *context, uint32_t platform,
-         void *nativeDisplay, const EGLint *attribList,
-         BEGL_DisplayHandle *handle);
-
-   /*
-    * Called from eglInitialize().
-    *
-    * The display handle is the value passed in to eglInitialize()
-    * and must be validated before use.
-    *
-    * A successful initialisation must call BEGL_RegisterDriverInterfaces()
-    * with non-NULL hardware, memory and display interfaces.
-    */
-   BEGL_Error (*Initialize)(void *context, BEGL_DisplayHandle handle);
-
-   /*
-    * Called from eglTerminate().
-    *
-    * The display handle is the value passed in to eglTerminate().
-    * and must be validated before use.
-    *
-    * A successful termination must call BEGL_RegisterDriverInterfaces()
-    * with the same hardware and memory interfaces as already registered
-    * in Initialize() and with a NULL display interface.
-    */
-   BEGL_Error (*Terminate)(void *context, BEGL_DisplayHandle handle);
-
-} BEGL_InitInterface;
-
-EGLAPI void EGLAPIENTRY BEGL_RegisterInitInterface(BEGL_InitInterface *iface);
-
-
-#ifdef __cplusplus
-}
-#endif
-
-#if 0
-#include "interface/khronos/common/khrn_client_mangle.h"
-#endif
 
 #endif /* __eglplatform_h */

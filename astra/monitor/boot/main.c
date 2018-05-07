@@ -331,10 +331,10 @@ void mon_early_init(uintptr_t mon_params_addr)
 
         if (is_img_arm_aarch64(pimg))
             /* Linux uses ARM image header only for 64-bit */
-            mon_params.tz_img_info.flags &= ~IMG_AARCH32_MASK;
+            mon_params.nw_img_info.flags &= ~IMG_AARCH32_MASK;
         else if (is_img_zimage(pimg))
             /* Linux uses zImage header for 32-bit */
-            mon_params.tz_img_info.flags |= IMG_AARCH32_MASK;
+            mon_params.nw_img_info.flags |= IMG_AARCH32_MASK;
     }
 
 #ifdef DEBUG
@@ -368,9 +368,6 @@ void mon_main(void)
     /* Init platform s3 in warm boot */
     if (warm_boot())
         plat_s3_init();
-
-    /* Init platform DVFS */
-    plat_dvfs_init();
 
     /* Init platform */
     plat_init();

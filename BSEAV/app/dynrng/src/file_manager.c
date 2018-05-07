@@ -78,6 +78,8 @@ FileManagerHandle file_manager_create(const FileManagerCreateSettings * pSetting
     strcpy(manager->root.path, pSettings->path);
     BLST_Q_INIT(&manager->files);
     memcpy(&manager->createSettings, pSettings, sizeof(*pSettings));
+    manager->baseNames = string_list_create(true);
+    if (!manager->baseNames) goto error;
 
     if (file_manager_p_load(manager, pSettings->filter)) goto error;
 
@@ -117,6 +119,7 @@ void file_manager_destroy(FileManagerHandle manager)
         closedir(manager->root.dp);
         manager->root.dp = NULL;
     }
+    if (manager->baseNames) string_list_destroy(manager->baseNames);
     free(manager);
 }
 
@@ -190,6 +193,7 @@ int file_manager_p_load(FileManagerHandle manager, FileFilter filter)
         strcat(buf, "/");
         strcat(buf, de->d_name);
         if (file_manager_p_add_path(manager, buf, filter)) continue;
+        string_list_add(manager->baseNames, de->d_name);
     }
 
     return 0;
@@ -221,4 +225,10 @@ const char * file_manager_find(FileManagerHandle manager, const char * path)
     }
 
     return found;
+}
+
+StringListHandle file_manager_get_base_names(FileManagerHandle manager)
+{
+    assert(manager);
+    return manager->baseNames;
 }

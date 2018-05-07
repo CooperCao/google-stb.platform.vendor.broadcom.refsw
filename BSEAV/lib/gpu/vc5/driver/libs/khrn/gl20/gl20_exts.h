@@ -9,7 +9,7 @@
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_int_config.h"
 #include "../common/khrn_process.h"
-#define GL20_EXTS_STR_MAX_SIZE 2057
+#define GL20_EXTS_STR_MAX_SIZE 2094
 static inline char *gl20_exts_str(char *s_in)
 {
    char *s = s_in;
@@ -59,6 +59,9 @@ static inline char *gl20_exts_str(char *s_in)
    s += 35;
    *(s++) = ' ';
 #endif
+   memcpy(s, "GL_EXT_EGL_image_external_wrap_modes", 36);
+   s += 36;
+   *(s++) = ' ';
 #if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_EXT_base_instance", 20);
    s += 20;
@@ -84,12 +87,12 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_EXT_draw_elements_base_vertex", 32);
    s += 32;
    *(s++) = ' ';
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_EXT_geometry_point_size", 26);
    s += 26;
    *(s++) = ' ';
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_EXT_geometry_shader", 22);
    s += 22;
    *(s++) = ' ';
@@ -126,7 +129,7 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_EXT_shader_integer_mix", 25);
    s += 25;
    *(s++) = ' ';
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_EXT_shader_io_blocks", 23);
    s += 23;
    *(s++) = ' ';
@@ -134,12 +137,12 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_EXT_shader_texture_lod", 25);
    s += 25;
    *(s++) = ' ';
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_EXT_tessellation_point_size", 30);
    s += 30;
    *(s++) = ' ';
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_EXT_tessellation_shader", 26);
    s += 26;
    *(s++) = ' ';
@@ -228,12 +231,12 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_OES_draw_elements_base_vertex", 32);
    s += 32;
    *(s++) = ' ';
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_OES_geometry_point_size", 26);
    s += 26;
    *(s++) = ' ';
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_OES_geometry_shader", 22);
    s += 22;
    *(s++) = ' ';
@@ -270,7 +273,7 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_OES_shader_image_atomic", 26);
    s += 26;
    *(s++) = ' ';
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_OES_shader_io_blocks", 23);
    s += 23;
    *(s++) = ' ';
@@ -286,12 +289,12 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_OES_surfaceless_context", 26);
    s += 26;
    *(s++) = ' ';
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_OES_tessellation_point_size", 30);
    s += 30;
    *(s++) = ' ';
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    memcpy(s, "GL_OES_tessellation_shader", 26);
    s += 26;
    *(s++) = ' ';
@@ -333,7 +336,7 @@ static inline char *gl20_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define GL20_MAX_EXTS 78
+#define GL20_MAX_EXTS 79
 static inline unsigned gl20_exts(const char **e_in)
 {
    const char **e = e_in;
@@ -363,6 +366,7 @@ static inline unsigned gl20_exts(const char **e_in)
 #if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_BRCM_texture_unnormalised_coords";
 #endif
+   *(e++) = "GL_EXT_EGL_image_external_wrap_modes";
 #if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_EXT_base_instance";
 #endif
@@ -374,10 +378,10 @@ static inline unsigned gl20_exts(const char **e_in)
    *(e++) = "GL_EXT_draw_buffers_indexed";
 #endif
    *(e++) = "GL_EXT_draw_elements_base_vertex";
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_EXT_geometry_point_size";
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_EXT_geometry_shader";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -396,14 +400,14 @@ static inline unsigned gl20_exts(const char **e_in)
    *(e++) = "GL_EXT_protected_textures";
    *(e++) = "GL_EXT_robustness";
    *(e++) = "GL_EXT_shader_integer_mix";
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_EXT_shader_io_blocks";
 #endif
    *(e++) = "GL_EXT_shader_texture_lod";
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_EXT_tessellation_point_size";
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_EXT_tessellation_shader";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -442,10 +446,10 @@ static inline unsigned gl20_exts(const char **e_in)
    *(e++) = "GL_OES_draw_buffers_indexed";
 #endif
    *(e++) = "GL_OES_draw_elements_base_vertex";
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_OES_geometry_point_size";
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_OES_geometry_shader";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -464,7 +468,7 @@ static inline unsigned gl20_exts(const char **e_in)
    *(e++) = "GL_OES_sample_variables";
 #endif
    *(e++) = "GL_OES_shader_image_atomic";
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_OES_shader_io_blocks";
 #endif
 #if KHRN_GLES32_DRIVER && V3D_VER_AT_LEAST(4,1,34,0)
@@ -472,10 +476,10 @@ static inline unsigned gl20_exts(const char **e_in)
 #endif
    *(e++) = "GL_OES_standard_derivatives";
    *(e++) = "GL_OES_surfaceless_context";
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_OES_tessellation_point_size";
 #endif
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    *(e++) = "GL_OES_tessellation_shader";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)

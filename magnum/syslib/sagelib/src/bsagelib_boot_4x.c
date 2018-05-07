@@ -72,7 +72,7 @@
 #include "priv/bsagelib_shared_types.h"
 #include "priv/suif_sbl.h"
 
-BDBG_MODULE(BSAGElib);
+BDBG_MODULE(BSAGElib_boot_4x);
 
 #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0))
 #define RV_CONTROLLING_PARAMETERS_REVERSED (1)
@@ -460,6 +460,35 @@ end:
     return rc;
 }
 
+static BERR_Code BSAGElib_P_WaitSBL(BSAGElib_Handle hSAGElib)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    uint32_t val,i;
+
+    for (i=0; i<SAGEBL_TIMEOUT_MS; i++)
+    {
+        _BSAGElib_P_Boot_GetBootParam(HostSageComControl,val);
+
+        if ((val & HOSTSAGE_CONTROL_SRdy_MASK)>> HOSTSAGE_CONTROL_SRdy_SHIFT == 1 )
+        {
+            break;
+        } else {
+            BKNI_Sleep(1);
+        }
+        if (((i+1) % 1000) == 0) {
+            BDBG_LOG(("* SBL state(0x%x) waiting to be ready",val));
+        }
+    }
+
+    if ((val & HOSTSAGE_CONTROL_SRdy_MASK)>> HOSTSAGE_CONTROL_SRdy_SHIFT == 0 )
+    {
+        BDBG_ERR(("%s - SAGEBL boot timeout, status 0x%x", BSTD_FUNCTION,val));
+        rc = BERR_TRACE(BERR_TIMEOUT);
+    }
+
+    return rc;
+}
+
 static BERR_Code
 BSAGElib_P_Boot_Framework(
     BSAGElib_Handle hSAGElib,
@@ -473,6 +502,9 @@ BSAGElib_P_Boot_Framework(
     uint32_t offset = 0,val = 0,i = 0;
     volatile struct sagebl_inout_container *io_container = NULL;
 
+    BDBG_ENTER(BSAGElib_P_Boot_Framework);
+
+    BSAGElib_P_WaitSBL(hSAGElib);
 
     /* SAGE < -- > Host communication buffers */
     offset = hSAGElib->i_memory_map.addr_to_offset(hSAGElib->hsi_buffers);
@@ -608,35 +640,7 @@ end:
         hSAGElib->i_memory_alloc.free((void *)io_container);
     }
 
-    return rc;
-}
-
-static BERR_Code BSAGElib_P_WaitSBL(BSAGElib_Handle hSAGElib)
-{
-    BERR_Code rc = BERR_SUCCESS;
-    uint32_t val,i;
-
-    for (i=0; i<SAGEBL_TIMEOUT_MS; i++)
-    {
-        _BSAGElib_P_Boot_GetBootParam(HostSageComControl,val);
-
-        if ((val & HOSTSAGE_CONTROL_SRdy_MASK)>> HOSTSAGE_CONTROL_SRdy_SHIFT == 1 )
-        {
-            break;
-        } else {
-            BKNI_Sleep(1);
-        }
-        if (((i+1) % 1000) == 0) {
-            BDBG_LOG(("* 0x%x",val));
-        }
-    }
-
-    if ((val & HOSTSAGE_CONTROL_SRdy_MASK)>> HOSTSAGE_CONTROL_SRdy_SHIFT == 0 )
-    {
-        BDBG_ERR(("%s - SAGEBL boot timeout, status 0x%x", BSTD_FUNCTION,val));
-        rc = BERR_TRACE(BERR_TIMEOUT);
-    }
-
+    BDBG_LEAVE(BSAGElib_P_Boot_Framework);
     return rc;
 }
 
@@ -1322,11 +1326,14 @@ BSAGElib_P_Boot_SUIF(
         hSAGElib->i_memory_sync.flush(pBootSettings-> pRegionMap, pBootSettings->regionMapNum * sizeof(BSAGElib_RegionInfo));
     }
 
-    /* Take SAGE out of reset */
-    rc = BSAGElib_P_Boot_ResetSage(hSAGElib, &blHolder);
-    if(rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGElib_P_Boot_ResetSage() failed to launch SAGE Bootloader [0x%x]", BSTD_FUNCTION, rc));
-        goto end;
+    if(BCHP_SAGE_GetStatus(hSAGElib->core_handles.hReg) == BSAGElibBootStatus_eNotStarted)
+    {    /* Take SAGE out of reset */
+        _BSAGElib_P_Boot_SetBootParam(HostSageComControl, 0);/* clear Host Sage communication state */
+        rc = BSAGElib_P_Boot_ResetSage(hSAGElib, &blHolder);
+        if(rc != BERR_SUCCESS) {
+            BDBG_ERR(("%s - BSAGElib_P_Boot_ResetSage() failed to launch SAGE Bootloader [0x%x]", BSTD_FUNCTION, rc));
+            goto end;
+        }
     }
 
     /* Boot frameworks  */

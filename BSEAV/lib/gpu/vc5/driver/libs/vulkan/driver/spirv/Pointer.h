@@ -5,14 +5,13 @@
 #pragma once
 
 #include "DflowScalars.h"
-#include "NodeBase.h"
-#include "NodeIndex.h"
+#include "Nodes.h"
 #include "SymbolHandle.h"
 #include "BasicBlock.h"
 
 namespace bvk {
 
-class DFlowBuilder;
+class DflowBuilder;
 class NodeVariable;
 
 //////////////////////////////////////////////////////////////////

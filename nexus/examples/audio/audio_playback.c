@@ -248,9 +248,8 @@ static void data_callback(void *pParam1, int param2)
     BSTD_UNUSED(param2);
 
     dataCBParams = (dataCallbackParameters *)pParam1;
-    /*
-    printf("Data callback - channel 0x%08x\n", (unsigned)dataCBParams->playback);
-    */
+
+    /*printf("Data callback - channel %p\n", (void*)dataCBParams->playback);*/
 
     BKNI_SetEvent(dataCBParams->event);
 }
@@ -264,6 +263,9 @@ int main(int argc, char **argv)
     NEXUS_AudioOutputSettings outputSettings;
     NEXUS_AudioPlaybackHandle handle;
     NEXUS_AudioPlaybackStartSettings settings;
+    #if AUDIO_CAPTURE_TO_FILE
+    NEXUS_AudioCaptureOpenSettings captureOpenSettings;
+    #endif
     dataCallbackParameters dataCBParams;
     NEXUS_AudioCapabilities audioCapabilities;
     #if NEXUS_HAS_HDMI_OUTPUT
@@ -312,15 +314,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Unable to open '%s' for writing\n", "pb_capture.pcm");
         return -1;
     }
-    audioCapture = NEXUS_AudioCapture_Open(0, NULL);
-    if ( !audioCapture )
-    {
-        fprintf(stderr, "Unable to open Audio Capture\n");
-        return -1;
-    }
-    audioOutCapHandle = NEXUS_AudioCapture_GetConnector(audioCapture);
-    BKNI_CreateEvent(&captureEvent);
-    pthread_create(&captureThread, NULL, capture_thread, NULL);
     #else
     if (audioCapabilities.numPlaybacks == 0)
     {
@@ -388,21 +381,6 @@ int main(int argc, char **argv)
         NEXUS_AudioOutput_AddInput(audioSpdifHandle,
                                    NEXUS_AudioPlayback_GetConnector(handle));
     }
-    #if AUDIO_CAPTURE_TO_FILE
-    if ( audioOutCapHandle )
-    {
-        NEXUS_AudioCaptureStartSettings capStartSettings;
-        NEXUS_AudioCapture_GetDefaultStartSettings(&capStartSettings);
-
-        NEXUS_AudioOutput_AddInput(audioOutCapHandle,
-                                   NEXUS_AudioPlayback_GetConnector(handle));
-
-        capStartSettings.dataCallback.callback = capture_dataready;
-        capStartSettings.dataCallback.context = NULL;
-        capStartSettings.dataCallback.param = 0;
-        NEXUS_AudioCapture_Start(audioCapture, &capStartSettings);
-    }
-    #endif
 
     NEXUS_AudioPlayback_GetDefaultStartSettings(&settings);
     if ( argc > 2 )
@@ -716,6 +694,34 @@ int main(int argc, char **argv)
         break;
     }
 
+    #if AUDIO_CAPTURE_TO_FILE
+    NEXUS_AudioCapture_GetDefaultOpenSettings(&captureOpenSettings);
+    captureOpenSettings.format = (settings.bitsPerSample == 32 || settings.bitsPerSample == 24) ? NEXUS_AudioCaptureFormat_e24BitStereo : NEXUS_AudioCaptureFormat_e16BitStereo;
+    audioCapture = NEXUS_AudioCapture_Open(0, &captureOpenSettings);
+    if ( !audioCapture )
+    {
+        fprintf(stderr, "Unable to open Audio Capture\n");
+        return -1;
+    }
+    audioOutCapHandle = NEXUS_AudioCapture_GetConnector(audioCapture);
+    BKNI_CreateEvent(&captureEvent);
+    pthread_create(&captureThread, NULL, capture_thread, NULL);
+
+    if ( audioOutCapHandle )
+    {
+        NEXUS_AudioCaptureStartSettings capStartSettings;
+        NEXUS_AudioCapture_GetDefaultStartSettings(&capStartSettings);
+
+        NEXUS_AudioOutput_AddInput(audioOutCapHandle,
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+
+        capStartSettings.dataCallback.callback = capture_dataready;
+        capStartSettings.dataCallback.context = NULL;
+        capStartSettings.dataCallback.param = 0;
+        NEXUS_AudioCapture_Start(audioCapture, &capStartSettings);
+    }
+    #endif
+
     errCode = NEXUS_AudioPlayback_Start(handle, &settings);
     BDBG_ASSERT(!errCode);
     #if AUDIO_CAPTURE_TO_FILE
@@ -745,9 +751,11 @@ int main(int argc, char **argv)
 
         if (bufferSize)
         {
-            if (bytesToPlay < bytesPlayed + bufferSize)
+            bool endOfBuffer = false;
+            if (bytesToPlay < (bytesPlayed + bufferSize) )
             {
                 bufferSize = bytesToPlay - bytesPlayed;
+                endOfBuffer = true;
             }
 
             if ( pFile )
@@ -759,43 +767,55 @@ int main(int argc, char **argv)
                     {
                         break;
                     }
+                    bytesPlayed += bufferSize;
                 }
-                else
+                else /* 24 bit */
                 {
                     size_t bytesCopied = 0;
                     size_t calculatedBufferSize = (bufferSize/4)*3;
 
-                    pCopyBuffer=BKNI_Malloc(calculatedBufferSize*sizeof(uint8_t));
-                    if (pCopyBuffer == NULL)
+                    if ( calculatedBufferSize > 0 )
                     {
-                        bufferSize = 0;
-                        break;;
-                    }
+                        pCopyBuffer = BKNI_Malloc(calculatedBufferSize);
+                        if (pCopyBuffer == NULL)
+                        {
+                            bufferSize = 0;
+                            break;
+                        }
 
-                    bufferSize = fread(pCopyBuffer, 1, calculatedBufferSize, pFile);
-                    if ( 0 == bufferSize )
+                        bufferSize = fread(pCopyBuffer, 1, calculatedBufferSize, pFile);
+                        if ( 0 == bufferSize )
+                        {
+                            BKNI_Free(pCopyBuffer);
+                            break;
+                        }
+                        else
+                        {
+                            for (i = 0; i < bufferSize/3; i++)
+                            {
+    #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
+                                pBuffer[(i*2)] = pCopyBuffer[(i*3)] << 8 | pCopyBuffer[(i*3)+1];
+                                pBuffer[(i*2)+1] = pCopyBuffer[(i*3)+2] << 8 | 0x00;
+    #else
+                                pBuffer[(i*2)] = pCopyBuffer[(i*3)] << 8 | 0x0;
+                                pBuffer[(i*2)+1] = pCopyBuffer[(i*3)+2] << 8 | pCopyBuffer[(i*3)+1];
+    #endif
+                                bytesCopied += 4;
+                            }
+                            bufferSize = bytesCopied;
+                            BKNI_Free(pCopyBuffer);
+                        }
+                    }
+                    else if ( endOfBuffer )
                     {
-                        BKNI_Free(pCopyBuffer);
                         break;
                     }
                     else
                     {
-                        for (i = 0; i < bufferSize/3; i++)
-                        {
-#if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
-                            pBuffer[(i*2)] = pCopyBuffer[(i*3)] << 8 | pCopyBuffer[(i*3)+1];
-                            pBuffer[(i*2)+1] = pCopyBuffer[(i*3)+2] << 8 | 0x00;
-#else
-                            pBuffer[(i*2)] = pCopyBuffer[(i*3)] << 8 | 0x0;
-                            pBuffer[(i*2)+1] = pCopyBuffer[(i*3)+2] << 8 | pCopyBuffer[(i*3)+1];
-#endif
-                            bytesCopied +=4;
-                        }
-                        bufferSize = bytesCopied;
-                        BKNI_Free(pCopyBuffer);
+                        continue;
                     }
+                    bytesPlayed += bufferSize/4*3;
                 }
-                bytesPlayed += bufferSize;
             }
             else
             {
@@ -826,6 +846,8 @@ int main(int argc, char **argv)
             errCode = BKNI_WaitForEvent(event, 5000);
         }
     } while ( BERR_SUCCESS == errCode && bytesPlayed < bytesToPlay );
+
+    printf("errCode %u, bytesPlayed %u, bytesToPlay %u\n", (unsigned)errCode, (unsigned)bytesPlayed, (unsigned)bytesToPlay);
 
     printf("Waiting for buffer to empty\n");
     for ( ;; )

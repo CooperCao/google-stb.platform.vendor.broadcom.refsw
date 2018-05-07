@@ -9,9 +9,9 @@
 #include "middleware/khronos/gl20/gl20_server.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
 #include "interface/khronos/common/khrn_client_platform.h"
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/EGL/eglext_brcm.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglext_brcm.h>
 #include "middleware/khronos/common/2708/khrn_tfconvert_4.h"
 #include "middleware/khronos/common/khrn_mem.h"
 
@@ -442,7 +442,6 @@ EGLImageKHR eglCreateImageKHR_impl (
 
    khrn_mem_set_term(eglimage, egl_image_term);
 
-   void *native_buffer = NULL;
    bool platform_client_buffer = false;
    switch (target) {
    case EGL_NATIVE_PIXMAP_KHR:
@@ -451,7 +450,7 @@ EGLImageKHR eglCreateImageKHR_impl (
          if we get this far, we know we're dealing with a server-side pixmap
       */
 
-      image = egl_server_platform_create_pixmap_info((void *)egl_buffer, false);
+      image = egl_server_platform_create_pixmap((EGLNativePixmapType)egl_buffer);
 
       break;
    }
@@ -496,8 +495,7 @@ EGLImageKHR eglCreateImageKHR_impl (
       break;
    }
    default:
-      native_buffer = egl_server_platform_get_native_buffer(target, egl_buffer);
-      image = egl_server_platform_image_new(target, native_buffer, error);
+      image = egl_server_platform_image_new(target, egl_buffer, error);
       if ((image != NULL) && (*error == EGL_SUCCESS))
          platform_client_buffer = true;
       break;
@@ -521,8 +519,6 @@ EGLImageKHR eglCreateImageKHR_impl (
    if (*error == EGL_SUCCESS) {
       assert(image != NULL);
 
-      eglimage->target = target;
-      eglimage->native_buffer = native_buffer;
       eglimage->platform_client_buffer = platform_client_buffer;
 
       KHRN_MEM_ASSIGN(eglimage->image, image);

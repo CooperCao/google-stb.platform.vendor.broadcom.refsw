@@ -1030,15 +1030,15 @@ BERR_Code BDSP_Arm_P_CreateContext(
     pArmContext->context.createTask = BDSP_Arm_P_CreateTask;
 
 
-    pArmContext->context.getInterruptHandlers = NULL; /*BDSP_Raaga_P_GetInterruptHandlers*/
-    pArmContext->context.setInterruptHandlers = NULL; /*BDSP_Raaga_P_SetInterruptHandlers*/
+    pArmContext->context.getInterruptHandlers = NULL; /*BDSP_Arm_P_GetInterruptHandlers*/
+    pArmContext->context.setInterruptHandlers = NULL; /*BDSP_Arm_P_SetInterruptHandlers*/
     pArmContext->context.processWatchdogInterrupt = BDSP_Arm_P_ProcessWatchdogInterrupt;
-    pArmContext->context.createInterTaskBuffer = NULL; /*BDSP_Raaga_P_InterTaskBuffer_Create*/
+    pArmContext->context.createInterTaskBuffer = NULL; /*BDSP_Arm_P_InterTaskBuffer_Create*/
     pArmContext->context.createCapture = BDSP_Arm_P_AudioCaptureCreate;
 
     /* Support for RDB Queue Addition */
-    pArmContext->context.getDefaultQueueSettings = NULL; /*BDSP_Raaga_P_GetDefaultCreateQueueSettings;*/
-    pArmContext->context.createQueue = NULL; /*BDSP_Raaga_P_Queue_Create;*/
+    pArmContext->context.getDefaultQueueSettings = NULL; /*BDSP_Arm_P_GetDefaultCreateQueueSettings;*/
+    pArmContext->context.createQueue = NULL; /*BDSP_Arm_P_Queue_Create;*/
 
     pArmContext->settings = *pSettings;
 
@@ -2158,7 +2158,7 @@ BERR_Code BDSP_Arm_P_AddOutputStage(
 
     /*We have allocated one descriptor for every input and output,
     so for a connection we have one o/p descriptor from the input stage and one i/p descriptor for the output stage*/
-    /*ONE DESCRIPTOR FOR ONE CONNECTION AND LET THAT BE THE INPUT(SRC) STAGE'S OUTPUT DESCRIPTOR ie pRaagaSrcStage->sStageOutput*/
+    /*ONE DESCRIPTOR FOR ONE CONNECTION AND LET THAT BE THE INPUT(SRC) STAGE'S OUTPUT DESCRIPTOR ie pArmSrcStage->sStageOutput*/
 
     /*the actual buffers itself allocated will be assigned during start time as we dont know the node network now*/
 	/* copy the address descriptor for IO and IO GEN of the source stage directly to destination stage*/
@@ -2722,9 +2722,9 @@ BERR_Code BDSP_Arm_P_CreateStage(
     pStage->stage.setStageSettings = BDSP_Arm_P_SetStageSettings;
 
     pStage->stage.getStageStatus = NULL; /*BDSP_Arm_P_GetStageStatus;*/
-    pStage->stage.getTsmSettings_isr = NULL; /*BDSP_Raaga_P_GetTsmSettings_isr;*/
-    pStage->stage.setTsmSettings_isr = NULL; /*BDSP_Raaga_P_SetTsmSettings_isr;*/
-    pStage->stage.getTsmStatus_isr = NULL; /*BDSP_Raaga_P_GetTsmStatus_isr;*/
+    pStage->stage.getTsmSettings_isr = NULL; /*BDSP_Arm_P_GetTsmSettings_isr;*/
+    pStage->stage.setTsmSettings_isr = NULL; /*BDSP_Arm_P_SetTsmSettings_isr;*/
+    pStage->stage.getTsmStatus_isr = NULL; /*BDSP_Arm_P_GetTsmStatus_isr;*/
 
     pStage->stage.getDatasyncSettings = BDSP_Arm_P_GetDatasyncSettings;
     pStage->stage.setDatasyncSettings = BDSP_Arm_P_SetDatasyncSettings;
@@ -5755,4 +5755,126 @@ BERR_Code BDSP_Arm_P_GetAudioOutputPointers(BDSP_StageSrcDstDetails *pDstDetails
 	BDBG_LEAVE(BDSP_Arm_P_GetAudioOutputPointers);
 
 	return err;
+}
+/***********************************************************************
+Name        :   BDSP_Arm_P_GetMemoryEstimate
+
+Type        :   PI Interface
+
+Input       :   pSettings       -   Handle of the Stage whose settings needs to be retrieved.
+				pUsage      -   Pointer to usage case scenario from which we determine the runtime memory.
+				boxHandle   -     BOX Mode Handle for which the memory needs to be estimated.
+				pEstimate   -   Pointer to the memory where the Stage Settings are filled.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   Following are the operations performed.
+		1)  Calculate the Init memory required for the system.
+		2)  Calculate Scratch, InterstageIO and InterstageIOGen for the system.
+		3)  Calculate the Firware memory requied by the system.
+		4)  Return the Firmware memory and the Heap memory required by the system.
+***********************************************************************/
+BERR_Code BDSP_Arm_P_GetMemoryEstimate(
+	const BDSP_ArmSettings  *pSettings,
+	const BDSP_UsageOptions *pUsage,
+	BBOX_Handle              boxHandle,
+	BDSP_MemoryEstimate     *pEstimate /*[out]*/
+)
+{
+	BERR_Code ret= BERR_SUCCESS;
+	BDSP_Arm_P_DwnldMemInfo   *psDwnldMemInfo;
+	BDSP_ArmImgCacheEntry     *pImgCache;
+	unsigned AudioEncoderMemory = 0;
+	unsigned TaskMemory = 0;
+
+	/* This allocation is done to reuse the functionality of BDSP_MM_P_GetFwMemRequired and nothing else*/
+	psDwnldMemInfo = BKNI_Malloc(sizeof(BDSP_Arm_P_DwnldMemInfo));
+	BKNI_Memset(psDwnldMemInfo, 0 , sizeof(BDSP_Arm_P_DwnldMemInfo));
+
+	pImgCache = BKNI_Malloc(sizeof(BDSP_ArmImgCacheEntry)*BDSP_ARM_IMG_ID_MAX);
+	BKNI_Memset(pImgCache, 0 , sizeof(BDSP_ArmImgCacheEntry)*BDSP_ARM_IMG_ID_MAX);
+
+	/* Initialise the values */
+	pEstimate->FirmwareMemory = 0;
+	pEstimate->GeneralMemory  = 0;
+	BDSP_Arm_P_CalculateInitMemory(&pEstimate->GeneralMemory);
+
+	/*Calculate the FIRMWARE heap memory required by the system */
+	ret = BDSP_Arm_P_GetFwMemRequired(pSettings, psDwnldMemInfo,(void *) pImgCache, false, pUsage);
+	pEstimate->FirmwareMemory = psDwnldMemInfo->ui32AllocwithGuardBand;
+
+	/* Memory Allocated for Task per task is calculated.
+		 Worst Case Estimate is taken for 4 tasks */
+	BDSP_Arm_P_CalculateTaskMemory(&TaskMemory);
+	pEstimate->GeneralMemory += (TaskMemory * BDSP_ARM_MAX_FW_TASK_PER_DSP);
+
+#if 0
+	/* Memory Allocation associated with Decoder */
+	if(pUsage->NumAudioDecoders)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eAudioDecode, &DecodeMemory, pUsage);
+		pEstimate->GeneralMemory += (DecodeMemory*pUsage->NumAudioDecoders);
+	}
+
+	/* Memory Allocation associated with Post Processing */
+	if(pUsage->NumAudioPostProcesses)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eAudioProcessing, &PostProcessingMemory, pUsage);
+		pEstimate->GeneralMemory += (PostProcessingMemory*pUsage->NumAudioPostProcesses);
+	}
+
+	/* Memory Allocation associated with Passthru */
+	if(pUsage->NumAudioPassthru)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eAudioPassthrough, &PassthruMemory, pUsage);
+		pEstimate->GeneralMemory += (PassthruMemory*pUsage->NumAudioPassthru);
+	}
+#endif
+
+	/* Memory Allocation associated with Audio Encoder */
+	if(pUsage->NumAudioEncoders)
+	{
+		BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eAudioEncode, &AudioEncoderMemory, pUsage);
+		pEstimate->GeneralMemory += (AudioEncoderMemory*pUsage->NumAudioEncoders);
+	}
+
+#if 0
+	/* Memory Allocation associated with Mixer
+		 We estimate that we can connect atmost 3 Intertask buffers per Mixer*/
+	if(pUsage->NumAudioMixers)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eAudioMixer, &MixerMemory, pUsage);
+		pEstimate->GeneralMemory += (MixerMemory*pUsage->NumAudioMixers);
+		pEstimate->GeneralMemory += (IntertaskBufferMemory*pUsage->NumAudioMixers*BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER);
+	}
+
+	/* Memory Allocation associated with Echocanceller
+		 We estimate that we can connect atmost 1 Intertask buffers per Echocanceller*/
+	if(pUsage->NumAudioEchocancellers)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eAudioEchoCanceller, &EchocancellerMemory, pUsage);
+		pEstimate->GeneralMemory += (EchocancellerMemory*pUsage->NumAudioEchocancellers);
+		pEstimate->GeneralMemory += (IntertaskBufferMemory*pUsage->NumAudioEchocancellers*BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER);
+	}
+
+	/* Memory Allocation associated with Video Decoder */
+	if(pUsage->NumVideoDecoders)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eVideoDecode, &VideoDecodeMemory, pUsage);
+		pEstimate->GeneralMemory += (VideoDecodeMemory*pUsage->NumVideoDecoders);
+	}
+
+	/* Memory Allocation associated with Video Encoder */
+	if(pUsage->NumVideoEncoders)
+	{
+		ret = BDSP_Arm_P_CalculateStageMemory(BDSP_AlgorithmType_eVideoEncode, &VideoEncodeMemory, pUsage);
+		pEstimate->GeneralMemory += (VideoEncodeMemory*pUsage->NumVideoEncoders);
+	}
+#endif
+
+	BDBG_MSG(("Memory Required FIRMWARE = %d      GENERAL = %d",pEstimate->FirmwareMemory, pEstimate->GeneralMemory));
+	BKNI_Free(psDwnldMemInfo);
+	BKNI_Free(pImgCache);
+	BSTD_UNUSED(boxHandle);
+	return ret;
 }

@@ -47,7 +47,6 @@ typedef struct
 typedef struct v3d_core_job
 {
    const void* gmp_table;
-   bool no_overlap;              // If true, do not run this sub concurrently on the same core with other job types.
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    bool workaround_gfxh_1181;   /* GFXH-1181 */
 #endif
@@ -56,6 +55,7 @@ typedef struct v3d_core_job
 typedef struct v3d_bin_job
 {
    v3d_core_job base;
+   bool no_overlap;                 // If true, do not run this sub concurrently on the same core with other job types.
    uint32_t minInitialBinBlockSize;
    uint32_t tile_state_size;
    v3d_subjobs_list subjobs_list;
@@ -64,6 +64,7 @@ typedef struct v3d_bin_job
 typedef struct v3d_render_job
 {
    v3d_core_job base;
+   bool no_overlap;                 // If true, do not run this sub concurrently on the same core with other job types.
    v3d_empty_tile_mode empty_tile_mode;
    uint32_t tile_alloc_layer_stride;
    uint32_t num_layers;
@@ -73,7 +74,12 @@ typedef struct v3d_render_job
 
 #if V3D_USE_CSD
 
-typedef struct v3d_compute_subjobs* v3d_compute_subjobs_id; // 0 is not a valid ID.
+// 0 is not a valid ID.
+#if V3D_PLATFORM_SIM
+typedef struct v3d_compute_subjobs* v3d_compute_subjobs_id;
+#else
+typedef uint32_t v3d_compute_subjobs_id;
+#endif
 
 typedef struct v3d_compute_subjob
 {
@@ -93,10 +99,10 @@ typedef struct v3d_compute_subjob
    v3d_addr_t shader_addr;
    v3d_addr_t unifs_addr;
    uint16_t shared_block_size;
-   v3d_threading_t threading;
-   bool single_seg;
-   bool propagate_nans;
-   bool no_overlap;                 // If true, do not run this csd subjob concurrently on the same core with other job types.
+   uint8_t threading;            // v3d_threading_t
+   uint8_t single_seg;           // bool
+   uint8_t propagate_nans;       // bool
+   uint8_t no_overlap;           // bool : Do not run this csd subjob concurrently on the same core with other job types.
 } v3d_compute_subjob;
 
 // Note this function may assert if subjob is very large. For that reason, it
@@ -110,7 +116,7 @@ static inline V3D_CSD_CFG_T v3d_compute_subjob_to_single_csd_cfg(const v3d_compu
    cfg.wg_size = subjob->wg_size;
    cfg.wgs_per_sg = subjob->wgs_per_sg;
    cfg.max_sg_id = subjob->max_sg_id;
-   cfg.threading = subjob->threading;
+   cfg.threading = (v3d_threading_t)subjob->threading;
    cfg.single_seg = subjob->single_seg;
    cfg.propagate_nans = subjob->propagate_nans;
    cfg.shader_addr = subjob->shader_addr;
@@ -368,9 +374,7 @@ enum bcm_sched_job_type
    BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT,
    BCM_SCHED_JOB_TYPE_SET_EVENT,
    BCM_SCHED_JOB_TYPE_RESET_EVENT,
-#if V3D_USE_CSD
    BCM_SCHED_JOB_TYPE_V3D_COMPUTE,
-#endif
    BCM_SCHED_JOB_TYPE_NUM_JOB_TYPES
 };
 

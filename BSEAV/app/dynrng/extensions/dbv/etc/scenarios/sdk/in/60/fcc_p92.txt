@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/Dolby_Vision/Conversion_Tests/dvav.ser/FHD/5994/Ves_cat_Graffiti_5994_dvavser_1920x1080_20000Kbps_avc__avc3_st.mp4
+forceRestart=on
+stcTrick=off
+commit

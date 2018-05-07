@@ -571,16 +571,20 @@ const namevalue_t g_videoEotfStrs[] = {
 };
 
 const namevalue_t g_dbvPriorityModeStrs[] = {
+#if NEXUS_HAS_HDMI_OUTPUT
     {"auto", NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto},
     {"video", NEXUS_HdmiOutputDolbyVisionPriorityMode_eVideo},
     {"gfx", NEXUS_HdmiOutputDolbyVisionPriorityMode_eGraphics},
+#endif
     {NULL, 0}
 };
 
 const namevalue_t g_dolbyVisionModeStrs[] = {
+#if NEXUS_HAS_HDMI_OUTPUT
     {"auto", NEXUS_HdmiOutputDolbyVisionMode_eAuto},
     {"on", NEXUS_HdmiOutputDolbyVisionMode_eEnabled},
     {"off", NEXUS_HdmiOutputDolbyVisionMode_eDisabled},
+#endif
     {NULL, 0}
 };
 

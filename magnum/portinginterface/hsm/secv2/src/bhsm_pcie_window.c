@@ -55,6 +55,7 @@ BERR_Code BHSM_PcieWindow_Set( BHSM_Handle hHsm, BHSM_PcieWindowSettings *pSetti
 
     BDBG_ENTER( BHSM_PcieWindow_Set );
 
+    if( !hHsm ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     /* currently only PCIe interface index 0 and 1 supported. */
@@ -62,7 +63,7 @@ BERR_Code BHSM_PcieWindow_Set( BHSM_Handle hHsm, BHSM_PcieWindowSettings *pSetti
     /* offset must be 1024 byte aligned */
     if( pSettings->baseOffset & 0xFF ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     /* size must be a multiple of 1024 byte */
-    if( pSettings->size % 0xFF ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if( pSettings->size & 0xFF ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     addressStart = (uint32_t)(pSettings->baseOffset >> 8);
     addressEnd = addressStart + (pSettings->size >> 8) - 1;

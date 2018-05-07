@@ -85,19 +85,16 @@ uint8_t *ccfbuf = NULL;
 uint32_t ccfsize = 0;
 uint8_t *logbuf = NULL;
 uint32_t logsize = 0;
-uint32_t* status = NULL; /* status by IP owner */
+uint32_t *_status = NULL; /* status by IP owner */
 uint32_t statusSize = 0;
 int errorCode = 0;
+pthread_t ssdpThread = 0;
 
 extern char bp3_bin_file_name[];
 extern char bp3_bin_file_path[];
 
 // TODO: Partners should define this port
-#define PORT 80
-
-#define STR_(x) #x
-#define STR(x) STR_(x)
-
+int port = 80;
 int quit = 0;
 
 /* SIGINT handler: set quit to 1 for graceful termination */
@@ -142,13 +139,13 @@ static int web_post_bp3_handler(struct mg_connection *conn, void *cbdata)
     errorCode = -1;
     return 500;
   }
-  if (status) {
-    free(status);
-    status = NULL;
+  if (_status) {
+    free(_status);
+    _status = NULL;
   }
   for (int i = mg_read(conn, ccfbuf, ccfsize), l = i; i > 0 && l < ccfsize; l += i > 0 ? i : 0)
     i = mg_read(conn, ccfbuf + l, ccfsize - l);
-  errorCode = bp3_session_end(ccfbuf, ccfsize, &logbuf, &logsize, &status, &statusSize);
+  errorCode = bp3_session_end(ccfbuf, ccfsize, &logbuf, &logsize, &_status, &statusSize);
   free(ccfbuf);
   ccfbuf = NULL;
   ccfsize = 0;
@@ -203,7 +200,7 @@ static int web_get_status_handler(struct mg_connection *conn, void *cbdata)
 {
   mg_write_header(conn, "text/plain");
   for (size_t i = 0; i < statusSize; i++)
-    mg_printf(conn, "%d,", status[i]);
+    mg_printf(conn, "%d,", _status[i]);
   mg_printf(conn, "%d", errorCode);
   return 200;
 }
@@ -286,9 +283,12 @@ void uuid_unparse(const uuid_t uu, char *out)
 
 static struct mg_context *start_webserver()
 {
+    char port_str[11];
+    snprintf(port_str, sizeof(port_str), "%d", port);
+
     const char *options[] = {
         "listening_ports",
-        STR(PORT),
+        port_str,
         0};
     mg_init_library(MG_FEATURES_DEFAULT);
     struct mg_context *ctx = mg_start(NULL, NULL, options);
@@ -323,25 +323,27 @@ static void *ssdpProc(void *args UNUSED_PARAM) {
   uuid_unparse(uu, usn);
   strncpy(usn, "bp30", 4); // last digit is version number
   struct mg_context *ctx = start_webserver();
-  run_ssdp(PORT, buf, model, usn);
+  run_ssdp(port, buf, model, usn);
   mg_stop(ctx);
   mg_exit_library();
   printf("\nWeb server exited\n");
   return NULL;
 }
 
-int run( int argc, char **argv )
+static int run( int argc, char **argv  )
 {
   int result;
   char addr_str[NI_MAXHOST] = "::";
-  pthread_t ssdpThread = 0;
   int opt;
 
-  while ((opt = getopt(argc, argv, "A:")) != -1) {
+  while ((opt = getopt(argc, argv, "AP:")) != -1) {
     switch (opt) {
     case 'A':
       strncpy(addr_str, optarg, NI_MAXHOST - 1);
       addr_str[NI_MAXHOST - 1] = '\0';
+      break;
+    case 'P':
+      port = atoi(optarg);
       break;
     }
   }
@@ -356,17 +358,10 @@ int run( int argc, char **argv )
     printf("Can't create thread :[%s]", strerror(result));
     return result;
   }
-
-  signal(SIGINT, handle_sigint);
-
-  if (ssdpThread)
-    pthread_join(ssdpThread, NULL);
-
   return 0;
 }
 
-int bp3_host( int argc, char **argv )
-{
+int start_bp3_host( int argc, char **argv ) {
   int rc = NEXUS_Platform_ReadRegister(BCHP_SUN_TOP_CTRL_PRODUCT_ID, &chipProdID);
   if (rc) {
     perror("BCHP_SUN_TOP_CTRL_PRODUCT_ID");
@@ -399,4 +394,19 @@ int bp3_host( int argc, char **argv )
     bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
 
   return run(argc, argv);
+}
+
+int bp3_host( int argc, char **argv )
+{
+  signal(SIGINT, handle_sigint);
+  int rc = start_bp3_host(argc, argv);
+  if (ssdpThread)
+    pthread_join(ssdpThread, NULL);
+  return rc;
+}
+
+void stop_bp3_host() {
+  quit = 1;
+  if (ssdpThread)
+    pthread_join(ssdpThread, NULL);
 }

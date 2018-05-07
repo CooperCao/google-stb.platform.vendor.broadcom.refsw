@@ -25,8 +25,9 @@ Worker::~Worker()
    NEXUS_SurfaceClient_Clear(nw->GetSurfaceClient());
 }
 
-Worker::Worker(void *platformState) :
+Worker::Worker(void *platformState, EventContext *eventContext) :
    m_platformState(platformState),
+   m_eventContext(eventContext),
    m_done(false)
 {
    auto windowState = static_cast<nxpl::WindowState *>(m_platformState);

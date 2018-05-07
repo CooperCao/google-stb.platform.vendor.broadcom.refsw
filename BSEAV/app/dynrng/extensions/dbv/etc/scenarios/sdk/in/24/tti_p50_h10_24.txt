@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/Dolby_Vision/Transition_Tests/implicit/dvhe.stn/UHD/23976/DOVI_to_HDR10/Transition_Test_dvhestn_to_HDR10_UHD_23976_st.ts
+forceRestart=on
+stcTrick=off
+commit

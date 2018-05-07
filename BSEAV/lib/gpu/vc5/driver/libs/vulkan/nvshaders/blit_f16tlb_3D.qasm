@@ -1,5 +1,5 @@
 # Uniforms: tmu param0, tmu param1, tlb cfg
-# Varyings: s,t,r
+# Varyings: t,r,s
 nop                                 ; wrtmuc; ldvary
 nop               ; fmul r2, r3, w  ; wrtmuc; ldvary
 fadd tmut,r2,r5   ; fmul r2, r3, w  ; thrsw ; ldvary

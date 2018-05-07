@@ -23,7 +23,6 @@ typedef struct GLSL_SAMPLER_T {
 
 typedef struct GLSL_IMAGE_T {
    GLSL_SAMPLER_T    sampler;
-   GFX_LFMT_TYPE_T   lfmt_type;
    GLenum            internalformat;
 } GLSL_IMAGE_T;
 
@@ -153,10 +152,7 @@ void            glsl_program_shrink(GLSL_PROGRAM_T *program);
 
 static inline bool glsl_program_has_stage(GLSL_PROGRAM_T const* program, ShaderFlavour flavour)
 {
-   if (flavour == SHADER_COMPUTE)
-      return program->ir->cs_shared_block_size != ~0u;
-   else
-      return program->ir->stage[flavour].ir != NULL;
+   return glsl_ir_program_has_stage(program->ir, flavour);
 }
 
 EXTERN_C_END

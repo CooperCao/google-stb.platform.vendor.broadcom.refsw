@@ -216,10 +216,7 @@ NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=$(NEXUS_ENDIAN)
 
 ifeq ($(B_REFSW_ANDROID),y)
 NEXUS_CFLAGS += -DB_REFSW_ANDROID
-ifneq ($(LINUX_VER_GE_4_9),y)
-   NEXUS_KERNEL_CFLAGS += \
-      -I$(LINUX)/drivers/staging/android
-endif
+NEXUS_KERNEL_CFLAGS += -I$(LINUX)/drivers/staging/android
 endif
 
 # Flag to generate dependencies

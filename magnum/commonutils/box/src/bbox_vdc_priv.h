@@ -80,7 +80,7 @@ extern "C" {
 #define BBOX_P_VDC_MTG_DISABLE              0
 #define BBOX_P_VDC_MTG_ENABLE               1
 
-BERR_Code BBOX_P_Vdc_SetSourceLimits
+void BBOX_P_Vdc_SetSourceLimits
     ( BBOX_Vdc_Source_Capabilities *pSourceCap,
       BAVC_SourceId                 eSourceId,
       uint32_t                      ulMtg,
@@ -92,7 +92,7 @@ BERR_Code BBOX_P_Vdc_SetSourceLimits
       BBOX_Vdc_SourceRateLimit      eRate,
       BBOX_Vdc_SourceClass          eClass );
 
-BERR_Code BBOX_P_Vdc_SetDisplayLimits
+void BBOX_P_Vdc_SetDisplayLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId,
       BFMT_VideoFmt                  eMaxVideoFmt,
@@ -102,7 +102,7 @@ BERR_Code BBOX_P_Vdc_SetDisplayLimits
       uint32_t                       ulEncoderChannel,
       BBOX_Vdc_MosaicModeClass       eMosaicClass );
 
-BERR_Code BBOX_P_Vdc_SetWindowLimits
+void BBOX_P_Vdc_SetWindowLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId,
@@ -116,36 +116,36 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_SclCapBias            eSclCapBias,
       BBOX_Vdc_WindowClass           eClass );
 
-BERR_Code BBOX_P_Vdc_SetDeinterlacerLimits
+void BBOX_P_Vdc_SetDeinterlacerLimits
     ( BBOX_Vdc_Deinterlacer_Capabilities *pDeinterlacerCap,
       BBOX_Vdc_DeinterlacerId             eId,
       uint32_t                            ulWidth,
       uint32_t                            ulHeight,
       uint32_t                            ulHsclThreshold );
 
-BERR_Code BBOX_P_Vdc_SetXcodeLimits
+void BBOX_P_Vdc_SetXcodeLimits
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap,
       uint32_t                     ulNumXcodeCapVfd,
       uint32_t                     ulNumXcodeGfd );
 
-BERR_Code BBOX_P_Vdc_ResetSourceLimits
+void BBOX_P_Vdc_ResetSourceLimits
     ( BBOX_Vdc_Source_Capabilities *pSourceCap,
       BAVC_SourceId                 eSourceId );
 
-BERR_Code BBOX_P_Vdc_ResetDisplayLimits
+void BBOX_P_Vdc_ResetDisplayLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId );
 
-BERR_Code BBOX_P_Vdc_ResetWindowLimits
+void BBOX_P_Vdc_ResetWindowLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId );
 
-BERR_Code BBOX_P_Vdc_ResetDeinterlacerLimits
+void BBOX_P_Vdc_ResetDeinterlacerLimits
     ( BBOX_Vdc_Deinterlacer_Capabilities *pDeinterlacerCap,
       BBOX_Vdc_DeinterlacerId             eId );
 
-BERR_Code BBOX_P_Vdc_ResetXcodeLimits
+void BBOX_P_Vdc_ResetXcodeLimits
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap );
 
 #define BBOX_P_VDC_SET_LEGACY_SRC_LIMIT( capabilities, src )  BBOX_P_Vdc_SetSourceLimits( \
@@ -274,7 +274,7 @@ BERR_Code BBOX_P_Vdc_ResetXcodeLimits
 void BBOX_P_Vdc_SetDefaultCapabilities
     ( BBOX_Vdc_Capabilities *pBoxVdc );
 
-BERR_Code BBOX_P_Vdc_SetCapabilities
+void BBOX_P_Vdc_SetCapabilities
     ( uint32_t               ulBoxId,
       BBOX_Vdc_Capabilities *pBoxVdc );
 

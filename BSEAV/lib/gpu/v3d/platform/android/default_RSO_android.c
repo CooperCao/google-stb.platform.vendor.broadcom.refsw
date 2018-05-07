@@ -1,23 +1,17 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  Default RSO Android platform API for EGL driver
-Module   :  RSO Android platform on NEXUS
-
-FILE DESCRIPTION
-DESC
-=============================================================================*/
+/******************************************************************************
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+******************************************************************************/
 
 #include "default_RSO_android.h"
+#include "../common/perf_event.h"
 
-#include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 #include <malloc.h>
 #include <string.h>
 
 BEGL_MemoryInterface  *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface);
-BEGL_HWInterface      *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *callbacks);
-BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInterface *mem, BEGL_HWInterface *hw, BEGL_DisplayCallbacks *displayCallbacks);
+BEGL_HWInterface      *NXPL_CreateHWInterface(BEGL_HardwareCallbacks *callbacks, EventContext *eventContext);
+BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInterface *mem, BEGL_HWInterface *hw);
 
 void NXPL_DestroyMemInterface(BEGL_MemoryInterface *iface);
 void NXPL_DestroyHWInterface(BEGL_HWInterface *iface);
@@ -38,13 +32,13 @@ void RSOANPL_RegisterAndroidDisplayPlatform(RSOANPL_PlatformHandle *handle, ANat
    {
       BEGL_GetDefaultDriverInterfaces(data);
 
-      data->hwInterface = NXPL_CreateHWInterface(&data->hardwareCallbacks);
+      data->hwInterface = NXPL_CreateHWInterface(&data->hardwareCallbacks, NULL);
       data->hwInterfaceFn = (void *) NXPL_CreateHWInterface;
 
       data->memInterface = NXPL_CreateMemInterface(data->hwInterface);
       data->memInterfaceFn = (void *) NXPL_CreateMemInterface;
 
-      data->displayInterface = RSOANPL_CreateDisplayInterface(data->memInterface, data->hwInterface, &data->displayCallbacks);
+      data->displayInterface = RSOANPL_CreateDisplayInterface(data->memInterface, data->hwInterface);
 
       *handle = (RSOANPL_PlatformHandle)data;
 

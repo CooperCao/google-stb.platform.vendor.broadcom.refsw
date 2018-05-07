@@ -577,7 +577,7 @@ const static GLenum valid_uniform_props[] =
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
    GL_TYPE,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GL_REFERENCED_BY_TESS_CONTROL_SHADER,
    GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
    GL_REFERENCED_BY_GEOMETRY_SHADER,
@@ -594,7 +594,7 @@ const static GLenum valid_buffer_props[] =
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GL_REFERENCED_BY_TESS_CONTROL_SHADER,
    GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
    GL_REFERENCED_BY_GEOMETRY_SHADER,
@@ -610,7 +610,7 @@ const static GLenum valid_atomic_props[] =
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GL_REFERENCED_BY_TESS_CONTROL_SHADER,
    GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
    GL_REFERENCED_BY_GEOMETRY_SHADER,
@@ -626,7 +626,7 @@ const static GLenum valid_inout_props[] =
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
    GL_TYPE,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GL_IS_PER_PATCH,
    GL_REFERENCED_BY_TESS_CONTROL_SHADER,
    GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
@@ -656,7 +656,7 @@ const static GLenum valid_buffer_var_props[] =
    GL_TOP_LEVEL_ARRAY_SIZE,
    GL_TOP_LEVEL_ARRAY_STRIDE,
    GL_TYPE,
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    GL_REFERENCED_BY_TESS_CONTROL_SHADER,
    GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
    GL_REFERENCED_BY_GEOMETRY_SHADER,
@@ -687,7 +687,7 @@ static GLenum valid_props_combination(GLenum interface, GLenum prop)
    case GL_BUFFER_DATA_SIZE:
    case GL_TOP_LEVEL_ARRAY_SIZE:
    case GL_TOP_LEVEL_ARRAY_STRIDE:
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_IS_PER_PATCH:
    case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
    case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
@@ -759,7 +759,7 @@ static int get_block_member_prop(const GLSL_BLOCK_MEMBER_T *v, int block_index, 
    case GL_REFERENCED_BY_VERTEX_SHADER:          return v->used_in_vs;
    case GL_REFERENCED_BY_FRAGMENT_SHADER:        return v->used_in_fs;
    case GL_REFERENCED_BY_COMPUTE_SHADER:         return v->used_in_cs;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return v->used_in_tcs;
    case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return v->used_in_tes;
    case GL_REFERENCED_BY_GEOMETRY_SHADER:        return v->used_in_gs;
@@ -781,7 +781,7 @@ static int get_block_resource_prop(const GLSL_BLOCK_T *block, GLenum prop)
    case GL_REFERENCED_BY_VERTEX_SHADER:          return block->used_in_vs;
    case GL_REFERENCED_BY_FRAGMENT_SHADER:        return block->used_in_fs;
    case GL_REFERENCED_BY_COMPUTE_SHADER:         return block->used_in_cs;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return block->used_in_tcs;
    case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return block->used_in_tes;
    case GL_REFERENCED_BY_GEOMETRY_SHADER:        return block->used_in_gs;
@@ -861,7 +861,7 @@ static int inout_var_resource_prop(GLSL_INOUT_T *v, GLenum prop) {
    case GL_REFERENCED_BY_VERTEX_SHADER:   return v->used_in_vs;
    case GL_REFERENCED_BY_FRAGMENT_SHADER: return v->used_in_fs;
    case GL_REFERENCED_BY_COMPUTE_SHADER:  return v->used_in_cs;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return v->used_in_tcs;
    case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return v->used_in_tes;
    case GL_REFERENCED_BY_GEOMETRY_SHADER:        return v->used_in_gs;
@@ -911,7 +911,7 @@ static int get_atomic_counter_buffer_resource_prop(const GLSL_PROGRAM_T *p, unsi
    case GL_REFERENCED_BY_COMPUTE_SHADER:
       params[0] = buf->used_in_cs;
       return 1;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
       params[0] = buf->used_in_tcs;
       return 1;

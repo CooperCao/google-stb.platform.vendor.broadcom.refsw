@@ -14,6 +14,7 @@
 #include "middleware/khronos/egl/egl_server.h"
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/2708/glxx_inner_4.h"  /* for GL render state */
+#include "bcm_perf_api.h"
 
 #ifndef WIN32
 #include <sys/times.h>
@@ -27,12 +28,14 @@
 #include "tools/v3d/autoclif/autoclif.h"
 #endif
 
-static KHRN_DRIVER_COUNTERS_T s_driverCounters;
+#include <stdbool.h>
+
 static uint32_t               s_jobCallbacksPending;
 static VCOS_MUTEX_T           s_callbackMutex;
 static uint64_t               s_jobSequenceIssued = 0;
 static uint64_t               s_jobSequenceDone   = 0;
 static VCOS_EVENT_T           s_jobDoneEvent;
+static void                  *s_sessionId         = NULL;
 
 void khrn_send_job(BEGL_HWJob *job);
 
@@ -453,112 +456,202 @@ uint64_t khrn_get_last_done_seq(void)
    return s_jobSequenceDone;
 }
 
-void khrn_init_driver_counters(int32_t hw_bank, int32_t l3c_bank)
+uint32_t bcm_sched_get_num_counter_groups(void)
 {
-   BEGL_HWPerfMonitorSettings settings;
-
-#ifdef __linux__
-   struct timeval curTime;
-   unsigned int nowMs;
-   struct tms cput;
-   uint32_t cputime;
-   clock_t ticks;
-#endif
-   memset(&s_driverCounters, 0, sizeof(KHRN_DRIVER_COUNTERS_T));
-
-#ifdef __linux__
-   /* reset the time */
-   gettimeofday(&curTime, NULL);
-   nowMs = curTime.tv_usec / 1000;
-   nowMs += curTime.tv_sec * 1000;
-
-   s_driverCounters.reset_time = nowMs;
-
-   ticks = times(&cput);
-   cputime = cput.tms_utime + cput.tms_stime + cput.tms_cutime + cput.tms_cstime;
-
-   s_driverCounters.last_cpu_time = cputime;
-   s_driverCounters.last_cpu_ticks = (uint32_t)ticks;
-#endif
-
-   s_driverCounters.hw_group_active = hw_bank;
-   s_driverCounters.l3c_group_active = l3c_bank;
-
-   settings.hwBank  = hw_bank + 1;
-   settings.memBank = l3c_bank + 1;
-
-   if (hw_bank < 0 && l3c_bank < 0)
-      settings.flags = BEGL_HW_PERF_STOP;
-   else
-      settings.flags = BEGL_HW_PERF_START | BEGL_HW_PERF_RESET;
-
+   uint32_t numGroups = 0;
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
-   if (driverInterfaces->hwInterface->SetPerformanceMonitor)
-      driverInterfaces->hwInterface->SetPerformanceMonitor(driverInterfaces->hwInterface->context,
-                                                                     &settings);
+   BEGL_SchedPerfCountInterface *pci = &driverInterfaces->hwInterface->perf_count_iface;
+   if (pci->GetPerfNumCounterGroups)
+      pci->GetPerfNumCounterGroups(driverInterfaces->hwInterface->context, s_sessionId, &numGroups);
+
+   return numGroups;
 }
 
-KHRN_DRIVER_COUNTERS_T *khrn_driver_counters(void)
+bool bcm_sched_enumerate_group_counters(
+   uint32_t                              group,
+   struct bcm_sched_counter_group_desc  *group_desc)
 {
-   return &s_driverCounters;
+   bool status = false;
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedPerfCountInterface *pci = &driverInterfaces->hwInterface->perf_count_iface;
+
+   if (pci->GetPerfCounterGroupInfo)
+      status = pci->GetPerfCounterGroupInfo(driverInterfaces->hwInterface->context, s_sessionId,
+                                            group, group_desc);
+
+   return status;
 }
 
-void khrn_update_perf_counters(void)
+bool bcm_sched_select_group_counters(
+   const struct bcm_sched_group_counter_selector *selector)
 {
-   BEGL_HWPerfMonitorData data;
+   bool status = false;
+
    BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
-   if (driverInterfaces->hwInterface->GetPerformanceData)
-      driverInterfaces->hwInterface->GetPerformanceData(driverInterfaces->hwInterface->context, &data);
-   else
-      memset(&data, 0, sizeof(BEGL_HWPerfMonitorData));
+   BEGL_SchedPerfCountInterface *pci = &driverInterfaces->hwInterface->perf_count_iface;
 
-   if (s_driverCounters.hw_group_active == 0)
-   {
-      s_driverCounters.hw.hw_0.qpu_cycles_idle                    += data.hwCounters[0];
-      s_driverCounters.hw.hw_0.qpu_cycles_vert_shade              += data.hwCounters[1];
-      s_driverCounters.hw.hw_0.qpu_cycles_frag_shade              += data.hwCounters[2];
-      s_driverCounters.hw.hw_0.qpu_cycles_exe_valid               += data.hwCounters[3];
-      s_driverCounters.hw.hw_0.qpu_cycles_wait_tmu                += data.hwCounters[4];
-      s_driverCounters.hw.hw_0.qpu_cycles_wait_scb                += data.hwCounters[5];
-      s_driverCounters.hw.hw_0.qpu_cycles_wait_vary               += data.hwCounters[6];
-      s_driverCounters.hw.hw_0.qpu_icache_hits                    += data.hwCounters[7];
-      s_driverCounters.hw.hw_0.qpu_icache_miss                    += data.hwCounters[8];
-      s_driverCounters.hw.hw_0.qpu_ucache_hits                    += data.hwCounters[9];
-      s_driverCounters.hw.hw_0.qpu_ucache_miss                    += data.hwCounters[10];
-      s_driverCounters.hw.hw_0.tmu_total_quads                    += data.hwCounters[11];
-      s_driverCounters.hw.hw_0.tmu_cache_miss                     += data.hwCounters[12];
-      s_driverCounters.hw.hw_0.l2c_hits                           += data.hwCounters[13];
-      s_driverCounters.hw.hw_0.l2c_miss                           += data.hwCounters[14];
-   }
-   else if (s_driverCounters.hw_group_active == 1)
-   {
-      s_driverCounters.hw.hw_1.fep_valid_prims                    += data.hwCounters[0];
-      s_driverCounters.hw.hw_1.fep_valid_prims_no_pixels          += data.hwCounters[1];
-      s_driverCounters.hw.hw_1.fep_earlyz_clipped_quads           += data.hwCounters[2];
-      s_driverCounters.hw.hw_1.fep_valid_quads                    += data.hwCounters[3];
-      s_driverCounters.hw.hw_1.tlb_quads_no_stencil_pass_pixels   += data.hwCounters[4];
-      s_driverCounters.hw.hw_1.tlb_quads_no_z_stencil_pass_pixels += data.hwCounters[5];
-      s_driverCounters.hw.hw_1.tlb_quads_z_stencil_pass_pixels    += data.hwCounters[6];
-      s_driverCounters.hw.hw_1.tlb_quads_all_pixels_zero_cvg      += data.hwCounters[7];
-      s_driverCounters.hw.hw_1.tlb_quads_all_pixels_nonzero_cvg   += data.hwCounters[8];
-      s_driverCounters.hw.hw_1.tlb_quads_valid_pixels_written     += data.hwCounters[9];
-      s_driverCounters.hw.hw_1.ptb_prims_viewport_discarded       += data.hwCounters[10];
-      s_driverCounters.hw.hw_1.ptb_prims_needing_clip             += data.hwCounters[11];
-      s_driverCounters.hw.hw_1.pse_prims_reverse_discarded        += data.hwCounters[12];
-      s_driverCounters.hw.hw_1.vpm_cycles_vdw_stalled             += data.hwCounters[13];
-      s_driverCounters.hw.hw_1.vpm_cycles_vcd_stalled             += data.hwCounters[14];
-   }
+   if (pci->ChoosePerfCounters)
+      status = pci->ChoosePerfCounters(driverInterfaces->hwInterface->context, s_sessionId, selector);
 
-#ifndef CARBON
-   if (s_driverCounters.l3c_group_active == 0)
-   {
-      s_driverCounters.l3c.l3c_read_bw_0          += data.memCounters[0];
-      s_driverCounters.l3c_mem.l3c_mem_read_bw_0  += data.memCounters[1];
-   }
-   else if (s_driverCounters.l3c_group_active == 1)
-   {
-      s_driverCounters.l3c.l3c_write_bw_1         += data.memCounters[0];
-      s_driverCounters.l3c_mem.l3c_mem_write_bw_1 += data.memCounters[1];
-   }
+   return status;
+}
+
+bool bcm_sched_set_counter_collection(
+   enum bcm_sched_counter_state  state)
+{
+   bool status = true;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedPerfCountInterface *pci = &driverInterfaces->hwInterface->perf_count_iface;
+
+   if (pci->SetPerfCounting)
+      status = pci->SetPerfCounting(driverInterfaces->hwInterface->context,
+                                    s_sessionId, (BEGL_SchedCounterState)state);
+
+   return status;
+}
+
+uint32_t bcm_sched_get_counters(
+   struct bcm_sched_counter  *counters,
+   uint32_t                   max_counters,
+   bool                       reset_counts)
+{
+   uint32_t ctrs = 0;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedPerfCountInterface *pci = &driverInterfaces->hwInterface->perf_count_iface;
+
+   if (pci->GetPerfCounterData)
+      ctrs = pci->GetPerfCounterData(driverInterfaces->hwInterface->context, s_sessionId, counters,
+                                     max_counters, reset_counts);
+
+   return ctrs;
+}
+
+uint32_t bcm_sched_get_num_event_tracks(void)
+{
+   uint32_t numTracks = 0;
+   uint32_t numEvents = 0;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->GetEventCounts)
+      eti->GetEventCounts(driverInterfaces->hwInterface->context, s_sessionId, &numTracks, &numEvents);
+
+   return numTracks;
+}
+
+bool bcm_sched_describe_event_track(
+   uint32_t                            track_index,
+   struct bcm_sched_event_track_desc   *track_desc)
+{
+   bool status = false;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->GetEventTrackInfo)
+      status = eti->GetEventTrackInfo(driverInterfaces->hwInterface->context, s_sessionId, track_index,
+                                      track_desc);
+
+   return status;
+}
+
+uint32_t bcm_sched_get_num_events(void)
+{
+   uint32_t numTracks = 0;
+   uint32_t numEvents = 0;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->GetEventCounts)
+      eti->GetEventCounts(driverInterfaces->hwInterface->context, s_sessionId, &numTracks, &numEvents);
+
+   return numEvents;
+}
+
+bool bcm_sched_describe_event(
+   uint32_t                      event_index,
+   struct bcm_sched_event_desc   *event_desc)
+{
+   bool status = false;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->GetEventInfo)
+      status = eti->GetEventInfo(driverInterfaces->hwInterface->context, s_sessionId, event_index,
+                                 event_desc);
+
+   return status;
+}
+
+bool bcm_sched_describe_event_data(
+   uint32_t                            event_index,
+   uint32_t                            field_index,
+   struct bcm_sched_event_field_desc   *field_desc)
+{
+   bool status = false;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->GetEventDataFieldInfo)
+      status = eti->GetEventDataFieldInfo(driverInterfaces->hwInterface->context, s_sessionId,
+                                          event_index, field_index, field_desc);
+
+   return status;
+}
+
+bool bcm_sched_set_event_collection(
+   enum bcm_sched_event_state    state)
+{
+   bool status = false;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->SetEventCollection)
+      status = eti->SetEventCollection(driverInterfaces->hwInterface->context,
+                                       s_sessionId, (BEGL_SchedEventState)state);
+
+   return status;
+}
+
+uint32_t bcm_sched_poll_event_timeline(
+   size_t                   event_buffer_bytes,
+   void                     *event_buffer,
+   bool                     *lost_data,
+   uint64_t                 *timestamp_us)
+{
+   uint32_t         oflow = 0;
+   uint32_t         bytesCopied = 0;
+
+   BEGL_DriverInterfaces *driverInterfaces = BEGL_GetDriverInterfaces();
+   BEGL_SchedEventTrackInterface *eti = &driverInterfaces->hwInterface->event_track_iface;
+
+   if (eti->GetEventData)
+      bytesCopied = eti->GetEventData(driverInterfaces->hwInterface->context, s_sessionId,
+                                      event_buffer_bytes, event_buffer, &oflow, timestamp_us);
+
+   *lost_data = oflow != 0;
+
+   return bytesCopied;
+}
+
+void khrn_handlecpy(MEM_HANDLE_T hDst, size_t dstOffset, const void *src, size_t size)
+{
+#ifndef NDEBUG
+   MEM_HEADER_T *h = (MEM_HEADER_T *)hDst;
+   assert(hDst != MEM_HANDLE_INVALID);
+   assert(h->magic == MAGIC);
+   assert(dstOffset + size <= h->size);
 #endif
+
+   void *dst = (uint8_t *)mem_lock(hDst, NULL) + dstOffset;
+   khrn_memcpy(dst, src, size);
+   khrn_hw_flush_dcache_range(dst, size);
+   mem_unlock(hDst);
 }

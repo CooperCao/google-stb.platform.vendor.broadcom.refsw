@@ -5,7 +5,6 @@
 #pragma once
 
 #include "ModuleAllocator.h"
-#include "NodeIndex.h"
 #include "SymbolHandle.h"
 #include "BasicBlock.h"
 
@@ -94,16 +93,6 @@ public:
       return m_blockMap[label];
    }
 
-   void SetSymbol(const NodeVariable *var, SymbolHandle symbol)
-   {
-      m_symbols[var] = symbol;
-   }
-
-   SymbolHandle GetSymbol(const NodeVariable *var)
-   {
-      return m_symbols[var];
-   }
-
    void SetDataflowSymbol(const Node *node, SymbolHandle symbol)
    {
       m_dataflowSymbols[node] = symbol;
@@ -122,7 +111,7 @@ public:
    void ResolvePhis(DflowBuilder &builder);
 
 private:
-   FunctionContext(DflowBuilder &builder, nullptr_t);
+   FunctionContext(const spv::ModuleAllocator<uint32_t> &allocator);
 
 private:
    // Basic blocks for this function -- one per label.
@@ -134,8 +123,7 @@ private:
    spv::map<const NodeFunctionParameter *, SymbolHandle>  m_params;
 
    // Variable map
-   spv::map<const NodeVariable *, SymbolHandle> m_symbols;
-   spv::map<const Node *,         SymbolHandle> m_dataflowSymbols;
+   spv::map<const Node *, SymbolHandle> m_dataflowSymbols;
 
    // Current block.  Instructions will be added into this block.
    uint32_t                       m_currentIndex = 0;

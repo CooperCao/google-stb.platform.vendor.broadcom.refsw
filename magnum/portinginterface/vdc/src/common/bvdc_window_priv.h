@@ -57,19 +57,19 @@
 #include "bchp_cmp_2.h"
 #endif
 
-#if BVDC_P_CMP_3_MAX_VIDEO_WINDOW_COUNT
+#if BVDC_P_CMP_3_MAX_WINDOW_COUNT
 #include "bchp_cmp_3.h"
 #endif
 
-#if BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT
+#if BVDC_P_CMP_4_MAX_WINDOW_COUNT
 #include "bchp_cmp_4.h"
 #endif
 
-#if BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT
+#if BVDC_P_CMP_5_MAX_WINDOW_COUNT
 #include "bchp_cmp_5.h"
 #endif
 
-#if BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT
+#if BVDC_P_CMP_6_MAX_WINDOW_COUNT
 #include "bchp_cmp_6.h"
 #endif
 

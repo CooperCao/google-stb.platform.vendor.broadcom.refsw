@@ -46,6 +46,59 @@ BDBG_OBJECT_ID(BDSP_ArmStage);
 BDBG_OBJECT_ID(BDSP_P_InterTaskBuffer);
 BDBG_OBJECT_ID(BDSP_ArmCapture);
 
+/***********************************************************************
+ Name		 :	 BDSP_Arm_P_GetNumberOfDspandCores
+
+ Type		 :	 BDSP Internal
+
+ Input		 :	 boxHandle	 -	 Box Handle provided by the PI.
+				 pNumDsp       -	 Pointer to return the number of DSP in the System.
+				 pNumCores    -	 Pointer to return the number of Cores per DSP in the System.
+
+ Return 	 :	 Error Code to return SUCCESS or FAILURE
+
+ Functionality	 :	 Following are the operations performed.
+		 1)  Calculate the Number of DSP  and Number of cores based on the BOX MODE.
+ ***********************************************************************/
+BERR_Code BDSP_Arm_P_GetNumberOfDspandCores(
+	BBOX_Handle boxHandle,
+	unsigned *pNumDsp,
+	unsigned *pNumCores
+)
+{
+#if 0
+	BBOX_Config *pConfig;
+	BERR_Code ret = BERR_SUCCESS;
+
+	pConfig = (BBOX_Config *)BKNI_Malloc(sizeof(BBOX_Config));
+    if(pConfig == NULL)
+    {
+        BDBG_ERR(("BDSP_Arm_P_GetNumberOfDspandCores: Unable to allocate memory for BOX Config"));
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
+	BKNI_Memset(pConfig, 0 , sizeof(BBOX_Config));
+
+	ret = BBOX_GetConfig(boxHandle, pConfig);
+	if(BERR_SUCCESS != ret)
+	{
+		BDBG_ERR(("BDSP_Arm_P_GetNumberOfDsp: Error in retrieving the Num DSP from BOX MODE"));
+	}
+	else
+	{
+		*pNumDsp = pConfig->stAudio.numDsps;
+		/*TODO CDN: Derive the number of cores after updating the BOX Mode API */
+		*pNumCores = BDSP_RAAGA_MAX_CORE_PER_DSP;
+	}
+	BKNI_Free(pConfig);
+	return ret;
+#else
+	/* BOX Mode usage not yet decided. Hence keeping the function empty and setting it to default*/
+	BSTD_UNUSED(boxHandle);
+	*pNumDsp   = BDSP_ARM_MAX_DSP;
+	*pNumCores = BDSP_ARM_MAX_CORE_PER_DSP;
+    return BERR_SUCCESS;
+#endif
+}
 
 BERR_Code BDSP_Arm_P_ValidateVersion(
     BDSP_ArmSettings *pSettings
@@ -153,8 +206,17 @@ BERR_Code BDSP_Arm_P_InitDeviceSettings(
     BDSP_Arm *pArm
 )
 {
+	BERR_Code errCode = BERR_SUCCESS;
+
     pArm->numDsp       = BDSP_ARM_MAX_DSP;
 	pArm->numCorePerDsp= BDSP_ARM_MAX_CORE_PER_DSP;
+
+	errCode = BDSP_Arm_P_GetNumberOfDspandCores(pArm->boxHandle, &pArm->numDsp, &pArm->numCorePerDsp);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Arm_P_InitDeviceSettings: Error in retreiving the Number of DSPs and CorePerDsp from BOX MODE"));
+		BDBG_ERR(("Falling back to default value, DSP (%d) CorePerDsp(%d)",pArm->numDsp,pArm->numCorePerDsp));
+	}
 
     return BERR_SUCCESS;
 }
@@ -334,36 +396,24 @@ static BERR_Code BDSP_Arm_P_InitAtTaskCreate(
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
-	BDSP_Arm *pDevice = (BDSP_Arm*)pArmTask->pContext->pDevice;
-	unsigned dspIndex =0;
 	BDBG_ENTER(BDSP_Arm_P_InitAtTaskCreate);
-	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
 
-	dspIndex = pArmTask->createSettings.dspIndex;
 	pArmTask->taskParams.isRunning 	   = false;
 	pArmTask->taskParams.paused	 	   = false;
 	pArmTask->taskParams.frozen	 	   = false;
 	pArmTask->taskParams.commandCounter  = 0;
 	pArmTask->taskParams.lastCommand     = BDSP_P_CommandID_INVALID;
 	pArmTask->taskParams.masterTaskId    = BDSP_P_INVALID_TASK_ID;
-	BKNI_AcquireMutex(pDevice->deviceMutex);
-	pArmTask->taskParams.taskId          = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
-	BKNI_ReleaseMutex(pDevice->deviceMutex);
+	pArmTask->taskParams.taskId		  	 = BDSP_P_INVALID_TASK_ID;
 
 	errCode = BKNI_CreateEvent(&pArmTask->hEvent);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("Unable to create event for TASK %d",pArmTask->taskParams.taskId));
+		BDBG_ERR(("Unable to create event for TASK %p",(void *)pArmTask));
 		errCode = BERR_TRACE(errCode);
 		BDBG_ASSERT(0);
 	}
 	BKNI_ResetEvent(pArmTask->hEvent);
-
-	if(pArmTask->taskParams.taskId == BDSP_P_INVALID_TASK_ID)
-	{
-		BDBG_ERR(("BDSP_Arm_P_InitAtTaskCreate: Cannot create task as already Max(%d) tasks created on DSP",BDSP_MAX_FW_TASK_PER_DSP));
-		BDBG_ASSERT(0);
-	}
 
 	BKNI_Memset(&pArmTask->audioInterruptHandlers, 0, sizeof(pArmTask->audioInterruptHandlers));
 
@@ -383,7 +433,6 @@ static void BDSP_Arm_P_UnInitAtTaskDestroy(
 	BKNI_Memset(&pArmTask->audioInterruptHandlers, 0, sizeof(pArmTask->audioInterruptHandlers));
 	BKNI_DestroyEvent(pArmTask->hEvent);
 	BKNI_AcquireMutex(pDevice->deviceMutex);
-	BDSP_P_ReleaseTaskId(&pDevice->taskDetails[pArmTask->createSettings.dspIndex], &pArmTask->taskParams.taskId);
 	BLST_S_REMOVE(&pArmTask->pContext->taskList,pArmTask,BDSP_ArmTask,node);
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
 
@@ -399,6 +448,7 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 	BDSP_ArmTask    *pMasterArmTask;
     BDSP_ArmContext *pArmContext;
 	BDSP_Arm        *pDevice;
+	unsigned         dspIndex=0;
 	BDSP_ArmStage   *pArmPrimaryStage;
 	unsigned stageIndex = 0;
 
@@ -410,15 +460,15 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 
 	if(pDevice->taskDetails[pArmTask->createSettings.dspIndex].numActiveTasks >= BDSP_MAX_NUM_TASKS)
 	{
-		BDBG_ERR(("BDSP_Arm_P_InitAtStartTask: Max tasks(%d) already running on DSP(%d), cannot start task (%d)",BDSP_MAX_NUM_TASKS,
-			pArmTask->createSettings.dspIndex, pArmTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Arm_P_InitAtStartTask: Max tasks(%d) already running on DSP(%d), cannot start task!!!!",BDSP_MAX_NUM_TASKS,
+			pArmTask->createSettings.dspIndex));
 		BDBG_ASSERT(0);
 	}
 
 	errCode = BDSP_P_CopyStartTaskSettings(pArmContext->settings.contextType, &pArmTask->startSettings, pStartSettings);
 	if (BERR_SUCCESS != errCode)
 	{
-		BDBG_ERR(("BDSP_Arm_P_InitAtStartTask: Start Settings couldn't be copied for Task %d",pArmTask->taskParams.taskId));
+		BDBG_ERR(("BDSP_Arm_P_InitAtStartTask: Start Settings couldn't be copied for Task %p",(void *)pArmTask));
 		errCode = BERR_TRACE(errCode);
 		goto end;
 	}
@@ -432,6 +482,7 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 	}
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
+	pArmTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
 	pDevice->taskDetails[pArmTask->createSettings.dspIndex].numActiveTasks++;
 	pDevice->taskDetails[pArmTask->createSettings.dspIndex].pTask[pArmTask->taskParams.taskId] = (void *)pArmTask;
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
@@ -483,6 +534,7 @@ static void BDSP_Arm_P_UnInitAtStopTask(
 	BKNI_AcquireMutex(pArmTask->pContext->pDevice->deviceMutex);
 	pDevice->taskDetails[pArmTask->createSettings.dspIndex].numActiveTasks--;
 	pDevice->taskDetails[pArmTask->createSettings.dspIndex].pTask[pArmTask->taskParams.taskId] = NULL;
+	BDSP_P_ReleaseTaskId(&pDevice->taskDetails[pArmTask->createSettings.dspIndex], &pArmTask->taskParams.taskId);
 	BKNI_ReleaseMutex(pArmTask->pContext->pDevice->deviceMutex);
 
 	BDSP_P_DeleteStartTaskSettings(&pArmTask->startSettings);
@@ -530,9 +582,11 @@ static void BDSP_Arm_P_InitDevice(
 
         for (index=0 ; index< BDSP_MAX_FW_TASK_PER_DSP; index++)
         {
+			BKNI_AcquireMutex(pDevice->deviceMutex);
             pDevice->taskDetails[dspindex].taskId[index] = false;
             pDevice->taskDetails[dspindex].pTask[index]  = NULL;
             pDevice->taskDetails[dspindex].numActiveTasks= 0;
+			BKNI_ReleaseMutex(pDevice->deviceMutex);
         }
     }
 
@@ -555,7 +609,6 @@ static void BDSP_Arm_P_DeInitDevice(
 
     BDBG_ENTER(BDSP_Arm_P_DeInitDevice);
 
-	BKNI_DestroyMutex(pDevice->deviceMutex);
 	for (dspindex=0; dspindex<pDevice->numDsp; dspindex++)
 	{
 	    BKNI_DestroyEvent(pDevice->hEvent[dspindex]);
@@ -569,11 +622,14 @@ static void BDSP_Arm_P_DeInitDevice(
 		}
 		for (index=0 ; index< BDSP_MAX_FW_TASK_PER_DSP; index++)
 		{
+			BKNI_AcquireMutex(pDevice->deviceMutex);
 			pDevice->taskDetails[dspindex].taskId[index] = false;
 			pDevice->taskDetails[dspindex].pTask[index]  = NULL;
 			pDevice->taskDetails[dspindex].numActiveTasks= 0;
+			BKNI_ReleaseMutex(pDevice->deviceMutex);
 		}
 	}
+	BKNI_DestroyMutex(pDevice->deviceMutex);
     BDBG_LEAVE(BDSP_Arm_P_DeInitDevice);
 }
 
@@ -590,16 +646,19 @@ static BERR_Code BDSP_Arm_P_InitDebugInfrastructure(
 	{
 		for(index=0; index< BDSP_DebugType_eLast;index++)
 		{
-			errCode = BDSP_P_CreateMsgQueue(
-				&pDevice->memInfo.debugQueueParams[dspIndex][index],
-				pDevice->regHandle,
-				0,
-				&(pDevice->hDebugQueue[dspIndex][index]));
-			if(errCode != BERR_SUCCESS)
+			if(pDevice->hardwareStatus.deviceWatchdogFlag == false)
 			{
-				BDBG_ERR(("BDSP_Arm_P_InitDebugInfrastructure: Unable to Create Queue for debug(%d) for Arm DSP %d", index, dspIndex));
-				errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-				BDBG_ASSERT(0);
+				errCode = BDSP_P_CreateMsgQueue(
+					&pDevice->memInfo.debugQueueParams[dspIndex][index],
+					pDevice->regHandle,
+					0,
+					&(pDevice->hDebugQueue[dspIndex][index]));
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Arm_P_InitDebugInfrastructure: Unable to Create Queue for debug(%d) for Arm DSP %d", index, dspIndex));
+					errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+					BDBG_ASSERT(0);
+				}
 			}
 			if(pDevice->deviceSettings.debugSettings[index].enabled)
 			{
@@ -701,7 +760,7 @@ static BERR_Code BDSP_Arm_P_ProgramRDB(
 }
 
 static BERR_Code BDSP_Arm_P_DownloadRuntimeAlgorithm(
-		BDSP_ArmTask	*pArmTask
+	BDSP_ArmTask	*pArmTask
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
@@ -711,12 +770,11 @@ static BERR_Code BDSP_Arm_P_DownloadRuntimeAlgorithm(
 	pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
     BDBG_OBJECT_ASSERT(pArmPrimaryStage, BDSP_ArmStage);
 
-    BDBG_ERR(("BDSP_Arm_P_DownloadRuntimeAlgorithm: Runtime Code Download not implemented"));
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmPrimaryStage, pStageIterator)
     BSTD_UNUSED(macroStId);
     BSTD_UNUSED(macroBrId);
     {
-        /*errCode = BDSP_Arm_P_DownloadAlgorithm(pArmTask->pContext->pDevice, pStageIterator->eAlgorithm);*/
+        errCode = BDSP_Arm_P_DownloadAlgorithm(pArmTask->pContext->pDevice, pStageIterator->eAlgorithm);
         if (errCode != BERR_SUCCESS)
         {
             errCode = BERR_TRACE(errCode);
@@ -732,7 +790,7 @@ end:
 }
 
 static BERR_Code BDSP_Arm_P_ReleaseRuntimeAlgorithm(
-		BDSP_ArmTask	*pArmTask
+	BDSP_ArmTask	*pArmTask
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
@@ -742,12 +800,11 @@ static BERR_Code BDSP_Arm_P_ReleaseRuntimeAlgorithm(
 	pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
     BDBG_OBJECT_ASSERT(pArmPrimaryStage, BDSP_ArmStage);
 
-    BDBG_ERR(("BDSP_Arm_P_ReleaseRuntimeAlgorithm: Runtime Code Download not implemented"));
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmPrimaryStage, pStageIterator)
     BSTD_UNUSED(macroStId);
     BSTD_UNUSED(macroBrId);
     {
-        /*errCode = BDSP_Arm_P_ReleaseAlgorithm(pArmTask->pContext->pDevice, pStageIterator->eAlgorithm);*/
+        errCode = BDSP_Arm_P_ReleaseAlgorithm(pArmTask->pContext->pDevice, pStageIterator->eAlgorithm);
         if (errCode != BERR_SUCCESS)
         {
             errCode = BERR_TRACE(errCode);
@@ -865,7 +922,7 @@ BERR_Code BDSP_Arm_P_Open(
 
         for(dspindex=0; dspindex<pDevice->numDsp; dspindex++)
         {
-            BDSP_Arm_P_CalculateDeviceIOMemory(pDevice, &MemoryRequired);
+            BDSP_Arm_P_CalculateDeviceIOMemory(&MemoryRequired);
             errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
                                     MemoryRequired,
                                     &(pDevice->memInfo.sIOMemoryPool[dspindex].Memory),
@@ -880,6 +937,21 @@ BERR_Code BDSP_Arm_P_Open(
             pDevice->memInfo.sIOMemoryPool[dspindex].ui32Size     = MemoryRequired;
             pDevice->memInfo.sIOMemoryPool[dspindex].ui32UsedSize = 0;
 
+            BDSP_Arm_P_CalculateHostFWsharedRWMemory((const BDSP_ArmSettings*)&pDevice->deviceSettings, dspindex, &MemoryRequired);
+            errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+                                     MemoryRequired,
+                                     &(pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].Memory),
+                                     BDSP_MMA_Alignment_4KByte);
+            if(errCode != BERR_SUCCESS)
+            {
+                BDBG_ERR(("BDSP_Arm_P_Open: Unable to Allocate Read Write Memory for Arm(HOST/FIRMWARE shared)"));
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                BDBG_ASSERT(0);
+            }
+            BDBG_MSG(("BDSP_Arm_P_Open: RW Memory(HOST/FIRMWARE shared) Required for Dsp(%d)= %d",dspindex, MemoryRequired));
+            pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32Size     = MemoryRequired;
+            pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32UsedSize = 0;
+
             BDSP_Arm_P_CalculateDeviceRWMemory(pDevice, dspindex, &MemoryRequired);
             errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
                                      MemoryRequired,
@@ -887,11 +959,11 @@ BERR_Code BDSP_Arm_P_Open(
                                      BDSP_MMA_Alignment_4KByte);
             if(errCode != BERR_SUCCESS)
             {
-                BDBG_ERR(("BDSP_Arm_P_Open: Unable to Allocate Read Write Memory for Arm"));
+                BDBG_ERR(("BDSP_Arm_P_Open: Unable to Allocate Read Write Memory for Arm(DEVICE RW)"));
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 BDBG_ASSERT(0);
             }
-            BDBG_MSG(("BDSP_Arm_P_Open: RW Memory Required for Dsp(%d)= %d",dspindex, MemoryRequired));
+            BDBG_MSG(("BDSP_Arm_P_Open: RW Memory(DEVICE RW) Required for Dsp(%d)= %d",dspindex, MemoryRequired));
             pDevice->memInfo.sRWMemoryPool[dspindex].ui32Size     = MemoryRequired;
             pDevice->memInfo.sRWMemoryPool[dspindex].ui32UsedSize = 0;
         }
@@ -937,6 +1009,14 @@ BERR_Code BDSP_Arm_P_Open(
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 BDBG_ASSERT(0);
             }
+
+			errCode = BDSP_Arm_P_DeviceInterruptInstall((void *)pDevice, dspindex);
+			if(errCode != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_P_Open: Unable to Install Device Interrupt callback for Arm DSP %d", dspindex));
+				errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+				BDBG_ASSERT(0);
+			}
         }
 
         errCode = BDSP_Arm_P_InitMsgQueue(pDevice->hCmdQueue[dspindex], pDevice->memInfo.softFifo[dspindex].Buffer);
@@ -953,14 +1033,6 @@ BERR_Code BDSP_Arm_P_Open(
          BDBG_ERR(("BDSP_Arm_P_Open: Unable to Initialise Generic Response Queue for Arm DSP %d", dspindex));
          errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
          BDBG_ASSERT(0);
-        }
-
-		errCode = BDSP_Arm_P_DeviceInterruptInstall((void *)pDevice, dspindex);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Arm_P_Open: Unable to Install Device Interrupt callback for Arm DSP %d", dspindex));
-            errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
-            BDBG_ASSERT(0);
         }
 
         errCode = BDSP_Arm_P_ProgramRDB(pDevice, dspindex);
@@ -1066,7 +1138,7 @@ void BDSP_Arm_P_Close(
         }
 
         BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sRWMemoryPool[dspIndex].Memory));
-
+        BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex].Memory));
 		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sIOMemoryPool[dspIndex].Memory));
     }
 
@@ -1266,7 +1338,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
     errCode = BDSP_Arm_P_InitAtTaskCreate(pArmTask);
     if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Initialise Parameters for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Initialise Parameters for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         BDBG_ASSERT(0);
     }
@@ -1278,7 +1350,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
                             BDSP_MMA_Alignment_4KByte);
     if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Allocate Memory for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Allocate Memory for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         BDBG_ASSERT(0);
     }
@@ -1288,7 +1360,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
     errCode = BDSP_Arm_P_AssignTaskMemory((void *)pArmTask);
     if (errCode != BERR_SUCCESS )
     {
-        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to assign Task memory for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to assign Task memory for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         BDBG_ASSERT(0);
     }
@@ -1300,7 +1372,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
             &pArmTask->hSyncQueue);
     if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Create Sync Resp Queue for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Create Sync Resp Queue for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         BDBG_ASSERT(0);
     }
@@ -1312,7 +1384,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
             &pArmTask->hAsyncQueue);
     if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Create ASync Resp Queue for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Create ASync Resp Queue for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         BDBG_ASSERT(0);
     }
@@ -1321,7 +1393,7 @@ BERR_Code BDSP_Arm_P_CreateTask(
     errCode = BDSP_Arm_P_TaskInterruptInstall((void *)pArmTask);
     if ( BERR_SUCCESS!= errCode )
     {
-        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Install Interrupt for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_CreateTask: Unable to Install Interrupt for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(errCode);
         BDBG_ASSERT(0);
     }
@@ -1352,7 +1424,7 @@ void BDSP_Arm_P_DestroyTask(
 
     if(pArmTask->taskParams.isRunning == true)
     {
-        BDBG_ERR(("BDSP_Arm_P_DestroyTask: Task (%d) is still running, Stopping it by force",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_DestroyTask: Task (%p) is still running, Stopping it by force", (void *)pArmTask));
         BDSP_Arm_P_StopTask(pTaskHandle);
     }
 
@@ -1360,7 +1432,7 @@ void BDSP_Arm_P_DestroyTask(
     errCode = BDSP_Arm_P_TaskInterruptUninstall(pTaskHandle);
     if ( BERR_SUCCESS!=errCode )
     {
-        BDBG_ERR(("BDSP_Arm_P_DestroyTask: Unable to Un-Install Interrupt for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_DestroyTask: Unable to Un-Install Interrupt for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(errCode);
         BDBG_ASSERT(0);
     }
@@ -1370,21 +1442,21 @@ void BDSP_Arm_P_DestroyTask(
     errCode = BDSP_P_DestroyMsgQueue(pArmTask->hSyncQueue);
     if (BERR_SUCCESS != errCode)
     {
-        BDBG_ERR(("BDSP_Arm_P_DestroyTask: SYNC queue destroy failed for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_DestroyTask: SYNC queue destroy failed for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(errCode);
     }
 
     errCode = BDSP_P_DestroyMsgQueue(pArmTask->hAsyncQueue);
     if (BERR_SUCCESS != errCode)
     {
-        BDBG_ERR(("BDSP_Arm_P_DestroyTask: ASYNC queue destroy failed for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_DestroyTask: ASYNC queue destroy failed for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(errCode);
     }
 
     errCode = BDSP_Arm_P_ReleaseTaskMemory((void *)pArmTask);
     if ( BERR_SUCCESS !=errCode )
     {
-        BDBG_ERR(("BDSP_Arm_P_DestroyTask: Unable to Release Memory for Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_DestroyTask: Unable to Release Memory for Task %p",(void *)pArmTask));
         errCode = BERR_TRACE(errCode);
     }
     BDSP_MMA_P_FreeMemory(&pArmTask->taskMemInfo.sMemoryPool.Memory);
@@ -1450,15 +1522,15 @@ BERR_Code BDSP_Arm_P_StartTask(
 
     BKNI_Memset(&sPayload,0,sizeof(BDSP_P_StartTaskCommand));
 
-    BDBG_MSG(("Start task (%d) on DSP %d",pArmTask->taskParams.taskId, dspIndex));
-
     errCode = BDSP_Arm_P_InitAtStartTask(pArmTask, pStartSettings);
     if (BERR_SUCCESS != errCode)
     {
-        BDBG_ERR(("BDSP_Arm_P_StartTask: Unable to Initialise the Task %d",pArmTask->taskParams.taskId));
+        BDBG_ERR(("BDSP_Arm_P_StartTask: Unable to Initialise the Task %p", (void *)pArmTask));
         errCode = BERR_TRACE(errCode);
         goto end;
     }
+
+    BDBG_MSG(("Start task (%d) on DSP %d",pArmTask->taskParams.taskId, dspIndex));
 
     errCode = BDSP_Arm_P_InitMsgQueue(pArmTask->hSyncQueue, pDevice->memInfo.softFifo[dspIndex].Buffer);
     if (BERR_SUCCESS != errCode)
@@ -1556,6 +1628,8 @@ BERR_Code BDSP_Arm_P_StopTask(
 
 	BDBG_ENTER(BDSP_Arm_P_StopTask);
 	BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
+
+	BDBG_MSG(("BDSP_Arm_P_StopTask: STOP task ID (%d) on DSP %d",pArmTask->taskParams.taskId, pArmTask->createSettings.dspIndex));
 
 	if(pArmTask->pContext->contextWatchdogFlag == false)
 	{
@@ -1802,6 +1876,142 @@ void BDSP_Arm_P_DestroyStage(
 	BDBG_OBJECT_DESTROY(pArmStage, BDSP_ArmStage);
 	BKNI_Free(pArmStage);
 }
+
+
+/***********************************************************************
+Name        :   BDSP_Arm_P_PowerStandby
+
+Type        :   PI Interface
+
+Input       :   pDeviceHandle -Device Handle which needs to be closed.
+				pSettings - pointer where the Default Data will be filled and returned to PI.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   To check if all the task for the ArmDSP is closed.
+                    Then stops the ArmDsp Sytem running on Arm.
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_PowerStandby(
+	void *pDeviceHandle,
+	BDSP_StandbySettings    *pSettings)
+{
+	BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
+	BERR_Code err=BERR_SUCCESS;
+
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
+	BDBG_ENTER(BDSP_Arm_P_PowerStandby);
+
+	if (pSettings)
+		BSTD_UNUSED(pSettings);
+
+	if (!pDevice->hardwareStatus.powerStandby)
+	{
+		BDSP_ArmContext *pArmContext=NULL;
+		BDSP_ArmTask  *pArmTask=NULL;
+		for ( pArmContext = BLST_S_FIRST(&pDevice->contextList);
+			pArmContext != NULL;
+			pArmContext = BLST_S_NEXT(pArmContext, node))
+		{
+			for ( pArmTask = BLST_S_FIRST(&pArmContext->taskList);
+				pArmTask != NULL;
+				pArmTask = BLST_S_NEXT(pArmTask, node) )
+			{
+				if (pArmTask->taskParams.isRunning == true)
+				{
+					BDBG_ERR(("Task %p is not stopped. Can not go in standby",(void *)pArmTask));
+					err = BERR_INVALID_PARAMETER;
+					goto end;
+				}
+			}
+		}
+
+		/*BDSP_Arm_P_Close(pDeviceHandle);*/
+		BDSP_Arm_P_CloseUserApp(pDeviceHandle);
+
+		pDevice->hardwareStatus.powerStandby = true;
+
+	}
+	else
+	{
+		BDBG_WRN(("Already in standby mode"));
+		err = BERR_INVALID_PARAMETER;
+		goto end;
+	}
+
+	end:
+	BDBG_LEAVE(("BDSP_Arm_P_PowerStandby"));
+
+	return err;
+}
+
+/***********************************************************************
+Name        :   BDSP_Arm_P_PowerResume
+
+Type        :   PI Interface
+
+Input       :   pDeviceHandle -Device Handle which needs to be closed.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   Initialize ArmDSP, then Enable the Watchdog timer.
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_PowerResume(
+	void *pDeviceHandle)
+{
+	BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
+	BERR_Code err=BERR_SUCCESS;
+
+	BDBG_ENTER(BDSP_Arm_P_PowerResume);
+	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
+
+	if (pDevice->hardwareStatus.powerStandby)
+	{
+		/* Initialize ArmDSP and its configurations*/
+		pDevice->hardwareStatus.deviceWatchdogFlag = true;
+		err = BDSP_Arm_P_TeeInit(pDevice);
+        if(err != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Arm_P_PowerResume: Unable to instantiate TEE Client"));
+            BDBG_ASSERT(0);
+        }
+		BDSP_Arm_P_Open(pDevice);
+		if(pDevice->deviceSettings.authenticationEnabled == false)
+		{
+			err = BDSP_Arm_P_OpenUserApp(pDevice);
+			if(err != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_Open: Unable to Open the Arm User App"));
+				err = BERR_TRACE(err);
+				goto end;
+			}
+
+			err = BDSP_Arm_P_CheckDspAlive(pDevice);
+			if (err!=BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_Open: DSP not alive"));
+				err = BERR_TRACE(err);
+				goto end;
+			}
+		}
+
+		pDevice->hardwareStatus.deviceWatchdogFlag = false;
+		pDevice->hardwareStatus.powerStandby = false;
+	}
+	else
+	{
+		BDBG_WRN(("Not in standby mode"));
+		err = BERR_INVALID_PARAMETER;
+		goto end;
+	}
+	BDBG_LEAVE(BDSP_Arm_P_PowerResume);
+	end:
+
+	return err;
+}
+
+
 
 /***********************************************************************
 Name        :   BDSP_Arm_P_GetAlgorithmInfo
@@ -2088,7 +2298,7 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
     }
 
 	BDSP_MMA_P_CopyDataToDram(&pArmStage->stageMemInfo.sHostAlgoUserConfig.Buffer, (void *)pSettingsBuffer, settingsSize);
-	if(pArmStage->running)
+	if((pArmStage->running)&&(!pArmStage->pContext->contextWatchdogFlag))
 	{
 		BDSP_P_AlgoReconfigCommand sPayload;
 		BDSP_ArmTask *pArmTask;
@@ -2178,7 +2388,7 @@ BERR_Code BDSP_Arm_P_SetDatasyncSettings(
 	BDBG_ASSERT(pSettingsBuffer);
 
 	BDSP_MMA_P_CopyDataToDram(&pArmStage->stageMemInfo.sDataSyncSettings.Buffer, (void *)pSettingsBuffer, sizeof(BDSP_AudioTaskDatasyncSettings));
-	if(pArmStage->running)
+	if((pArmStage->running)&&(!pArmStage->pContext->contextWatchdogFlag))
 	{
 		BDSP_ArmTask  *pArmTask = pArmStage->pArmTask;
 		BDSP_P_DataSyncReconfigCommand sPayload;
@@ -2233,7 +2443,7 @@ BERR_Code BDSP_Arm_P_SetTsmSettings_isr(
 	BDSP_MMA_P_CopyDataToDram_isr(&pArmStage->stageMemInfo.sTsmSettings.Buffer, (void *)pSettingsBuffer, sizeof(BDSP_AudioTaskTsmSettings));
 	BDBG_MSG(("TSM RE-CONFIG"));
 	BDSP_P_Analyse_CIT_TSMConfig_isr(pArmStage->stageMemInfo.sTsmSettings.Buffer);
-	if(pArmStage->running)
+	if((pArmStage->running)&&(!pArmStage->pContext->contextWatchdogFlag))
 	{
 		BDSP_ArmTask  *pArmTask = pArmStage->pArmTask;
 		BDSP_P_TsmReconfigCommand sPayload;

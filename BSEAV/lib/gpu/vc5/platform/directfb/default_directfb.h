@@ -1,8 +1,7 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#ifndef _DBPL_DEFAULT_DIRECTFB_H__
-#define _DBPL_DEFAULT_DIRECTFB_H__
+#pragma once
 
 #include <directfb_version.h>
 #include <directfb.h>
@@ -29,5 +28,3 @@ extern void DBPL_DestroyCompatiblePixmap(DBPL_PlatformHandle handle, void *pixma
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _DBPL_DEFAULT_DIRECTFB_H__ */

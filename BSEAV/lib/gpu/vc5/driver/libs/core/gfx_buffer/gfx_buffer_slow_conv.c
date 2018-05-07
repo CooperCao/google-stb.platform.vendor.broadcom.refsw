@@ -18,8 +18,6 @@ size_t gfx_buffer_block_offset(
    uint32_t height)
 {
    uint32_t dims = gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&plane->lfmt));
-   const GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&plane->lfmt);
-
    assert((dims >= 2) || (y_in_blocks == 0));
    assert((dims >= 3) || (z_in_blocks == 0));
 
@@ -29,6 +27,8 @@ size_t gfx_buffer_block_offset(
       assert(y_in_blocks < h_in_blocks);
       y_in_blocks = h_in_blocks - y_in_blocks - 1;
    }
+
+   const GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&plane->lfmt);
 
    if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
    {
@@ -67,7 +67,7 @@ size_t gfx_buffer_block_offset(
       return offset;
    }
 
-   switch (gfx_lfmt_collapse_uif_family(swizzling))
+   switch (swizzling)
    {
    case GFX_LFMT_SWIZZLING_RSO:
       return plane->offset +
@@ -75,73 +75,50 @@ size_t gfx_buffer_block_offset(
          (y_in_blocks * plane->pitch) +
          (z_in_blocks * plane->slice_pitch);
    case GFX_LFMT_SWIZZLING_LT:
+   case GFX_LFMT_SWIZZLING_UIF:
+   case GFX_LFMT_SWIZZLING_UIF_XOR:
+   case GFX_LFMT_SWIZZLING_UBLINEAR:
    {
       uint32_t x_in_utiles = x_in_blocks / bd->ut_w_in_blocks_2d;
       uint32_t y_in_utiles = y_in_blocks / bd->ut_h_in_blocks_2d;
-      uint32_t ut_offset;
+      uint32_t block_x_within_ut = x_in_blocks % bd->ut_w_in_blocks_2d;
+      uint32_t block_y_within_ut = y_in_blocks % bd->ut_h_in_blocks_2d;
 
-      ut_offset = (y_in_utiles * bd->ut_h_in_blocks_2d * plane->pitch) +
-         (x_in_utiles * GFX_LFMT_UTILE_SIZE);
-
-      return plane->offset + ut_offset +
-         ((((y_in_blocks % bd->ut_h_in_blocks_2d) * bd->ut_w_in_blocks_2d) +
-         (x_in_blocks % bd->ut_w_in_blocks_2d)) * bd->bytes_per_block) +
-         z_in_blocks * plane->slice_pitch;
-   }
-   case GFX_LFMT_SWIZZLING_UIF:
-   case GFX_LFMT_SWIZZLING_UBLINEAR:
-   {
-      const uint32_t ub_w_in_blocks = gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling);
-      const uint32_t ub_h_in_blocks = gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling);
-      const uint32_t x_in_ub = x_in_blocks / ub_w_in_blocks;
-      const uint32_t y_in_ub = y_in_blocks / ub_h_in_blocks;
-      uint32_t ub_number;
-
-      if (swizzling == GFX_LFMT_SWIZZLING_UBLINEAR) {
-         if (plane->pitch == bd->bytes_per_block * gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling)) {
-            assert(x_in_ub == 0);
-            ub_number = y_in_ub;
-         } else if (plane->pitch == 2 * bd->bytes_per_block * gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling)) {
-            assert(x_in_ub <= 1);
-            ub_number = y_in_ub * 2 + x_in_ub;
-         } else {
-            unreachable(); /* ubl only ever 1 or 2 ub wide. */
-         }
-      } else {
-         const uint32_t sdram_page_width_in_ub = GFX_UIF_COL_W_IN_UB;
-         const bool xor_mode = gfx_lfmt_is_uif_xor_family((GFX_LFMT_T)swizzling);
-         const uint32_t y_in_ub_xor = y_in_ub ^ GFX_UIF_XOR_ADDR;
-         const uint32_t padded_image_h_in_ub =
-            plane->pitch * gfx_lfmt_ucol_w_in_blocks_2d(bd, swizzling) /
-            (GFX_UIF_COL_W_IN_UB * GFX_UIF_UB_SIZE);
-         const bool odd_col = (x_in_ub / sdram_page_width_in_ub) % 2;
-
-         /* from uif spreadsheet */
-         ub_number = (x_in_ub / sdram_page_width_in_ub)
-            * (padded_image_h_in_ub - 1) * sdram_page_width_in_ub
-            + sdram_page_width_in_ub * (odd_col && xor_mode ? y_in_ub_xor : y_in_ub)
-            + x_in_ub;
-      }
-
-      if (gfx_lfmt_is_noutile_family((GFX_LFMT_T)swizzling))
-      {
-         assert(z_in_blocks == 0);
-         return plane->offset + ub_number * GFX_UIF_UB_SIZE +
-            ((y_in_blocks % ub_h_in_blocks) * ub_w_in_blocks +
-            (x_in_blocks % ub_w_in_blocks)) * bd->bytes_per_block;
-      }
+      uint32_t ut_offset; // Offset to start of utile containing block, in bytes
+      if (swizzling == GFX_LFMT_SWIZZLING_LT)
+         ut_offset = (y_in_utiles * bd->ut_h_in_blocks_2d * plane->pitch) +
+            (x_in_utiles * GFX_LFMT_UTILE_SIZE);
       else
       {
-         /* 2x2 utiles in a uifblock, raster order */
-         const uint32_t ut_x_within_ub = (x_in_blocks / bd->ut_w_in_blocks_2d) % 2;
-         const uint32_t ut_y_within_ub = (y_in_blocks / bd->ut_h_in_blocks_2d) % 2;
+         // 2x2 utiles in a UIF-block
+         uint32_t x_in_ub = x_in_utiles / 2;
+         uint32_t y_in_ub = y_in_utiles / 2;
+         uint32_t ut_x_within_ub = x_in_utiles % 2;
+         uint32_t ut_y_within_ub = y_in_utiles % 2;
 
-         return plane->offset + ub_number * GFX_UIF_UB_SIZE +
-            (ut_y_within_ub * 2 + ut_x_within_ub) * GFX_LFMT_UTILE_SIZE +
-            ((((y_in_blocks % bd->ut_h_in_blocks_2d) * bd->ut_w_in_blocks_2d) +
-            (x_in_blocks % bd->ut_w_in_blocks_2d)) * bd->bytes_per_block) +
-            z_in_blocks * plane->slice_pitch;
+         uint32_t ub_offset; // Offset to start of UIF-block containing utile, in bytes
+         if (swizzling == GFX_LFMT_SWIZZLING_UBLINEAR)
+            ub_offset = (y_in_ub * bd->ub_h_in_blocks_2d * plane->pitch) +
+               (x_in_ub * GFX_UIF_UB_SIZE);
+         else
+         {
+            uint32_t x_in_cols = x_in_ub / GFX_UIF_COL_W_IN_UB;
+            uint32_t col_offset = x_in_cols * GFX_UIF_COL_W_IN_UB * bd->ub_w_in_blocks_2d * plane->pitch;
+
+            if ((swizzling == GFX_LFMT_SWIZZLING_UIF_XOR) && (x_in_cols % 2))
+               y_in_ub ^= GFX_UIF_XOR_ADDR;
+            uint32_t ub_num_within_col = (y_in_ub * GFX_UIF_COL_W_IN_UB) + (x_in_ub % GFX_UIF_COL_W_IN_UB);
+
+            ub_offset = col_offset + (ub_num_within_col * GFX_UIF_UB_SIZE);
+         }
+
+         // Utiles in raster order within UIF-block
+         ut_offset = ub_offset + (((ut_y_within_ub * 2) + ut_x_within_ub) * GFX_LFMT_UTILE_SIZE);
       }
+
+      uint32_t block_num_within_ut = (block_y_within_ut * bd->ut_w_in_blocks_2d) + block_x_within_ut;
+      return plane->offset + ut_offset + (block_num_within_ut * bd->bytes_per_block) +
+         (z_in_blocks * plane->slice_pitch);
    }
    default:
       unreachable();
@@ -357,9 +334,6 @@ void gfx_buffer_subsample_func(
    assert(bd.block_w == 1);
    assert(bd.block_h == 1);
    assert(bd.block_d == 1);
-
-   assert(dst->write || gfx_aligned((uint8_t *)dst->p + dst_plane->offset, bd.bytes_per_word));
-   assert(src->read || gfx_aligned((uint8_t *)src->p + src_plane->offset, bd.bytes_per_word));
 
    assert(dst->desc.width == gfx_umax(src->desc.width >> 1, 1));
    assert(dst->desc.height == gfx_umax(src->desc.height >> 1, 1));

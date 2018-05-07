@@ -437,19 +437,30 @@ bool InitEGL(IDirectFBSurface* egl_win, const AppConfig *config)
       handle to create a window surface.
    */
 
-   BEGL_PixmapInfo pixmapInfo;
-   memset(&pixmapInfo, 0, sizeof(BEGL_PixmapInfo));
+#if 0
+   /* deprecated way - included for reference */
+   BEGL_PixmapInfoEXT pixmapInfo;
+   DBPL_GetDefaultPixmapInfoEXT(&pixmapInfo);
    DFBCHECK(egl_win->GetSize(egl_win, &pixmapInfo.width, &pixmapInfo.height));
    pixmapInfo.format = BEGL_BufferFormat_eA8B8G8R8;
 
-   if (!DBPL_CreateCompatiblePixmap(
+   if (!DBPL_CreateCompatiblePixmapEXT(
        dbpl_handle, &dbpl_surface, &offscreen_surface, &pixmapInfo))
    {
       printf("DBPL_CreateCompatiblePixmap() failed\n");
       return false;
    }
-
    egl_surface = eglCreatePixmapSurface(egl_display, egl_config[config_select], dbpl_surface, NULL);
+#else
+   DFBSurfaceDescription desc = {};
+   desc.flags = DSDESC_CAPS | DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+   desc.caps = DSCAPS_GL;
+   DFBCHECK(egl_win->GetSize(egl_win, &desc.width, &desc.height));
+   desc.pixelformat = DSPF_ABGR;
+   DFBCHECK( dfb->CreateSurface( dfb, &desc, &offscreen_surface ));
+   egl_surface = eglCreatePixmapSurface(egl_display, egl_config[config_select], offscreen_surface, NULL);
+#endif
+
    if (egl_surface == EGL_NO_SURFACE)
    {
       printf("eglCreateContext() failed");

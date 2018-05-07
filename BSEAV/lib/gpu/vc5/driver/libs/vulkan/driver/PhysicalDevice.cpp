@@ -6,13 +6,15 @@
 #include "Common.h"
 #include "Extensions.h"
 #include "DriverLimits.h"
-#include "PrimitiveTypes.h"
 
 #include "libs/platform/gmem.h"
 #include "libs/platform/v3d_scheduler.h"
 #include "libs/util/demand.h"
 #include "libs/core/v3d/v3d_ident.h"
 #include "libs/core/v3d/v3d_gen.h"
+
+#include "glsl_primitive_types.auto.h"
+
 
 #if VK_USE_PLATFORM_ANDROID_KHR
 #include "vulkan/vk_android_native_buffer.h"
@@ -85,14 +87,12 @@ PhysicalDevice::~PhysicalDevice() noexcept
 {
 }
 
-void PhysicalDevice::GetPhysicalDeviceFeatures(
-   VkPhysicalDeviceFeatures   *pFeatures) noexcept
+void PhysicalDevice::GetPhysicalDeviceFeatures(VkPhysicalDeviceFeatures *pFeatures) noexcept
 {
    *pFeatures = m_features;
 }
 
-void PhysicalDevice::GetPhysicalDeviceFeatures2KHR(
-   VkPhysicalDeviceFeatures2KHR  *pFeatures) noexcept
+void PhysicalDevice::GetPhysicalDeviceFeatures2(VkPhysicalDeviceFeatures2 *pFeatures) noexcept
 {
    GetPhysicalDeviceFeatures(&pFeatures->features);
 }
@@ -104,9 +104,9 @@ void PhysicalDevice::GetPhysicalDeviceFormatProperties(
    *pFormatProperties = FormatProperty(format);
 }
 
-void PhysicalDevice::GetPhysicalDeviceFormatProperties2KHR(
-   VkFormat                 format,
-   VkFormatProperties2KHR  *pFormatProperties) noexcept
+void PhysicalDevice::GetPhysicalDeviceFormatProperties2(
+   VkFormat              format,
+   VkFormatProperties2  *pFormatProperties) noexcept
 {
    GetPhysicalDeviceFormatProperties(format, &pFormatProperties->formatProperties);
 }
@@ -119,14 +119,16 @@ VkResult PhysicalDevice::GetPhysicalDeviceImageFormatProperties(
    VkImageCreateFlags       flags,
    VkImageFormatProperties *pImageFormatProperties) noexcept
 {
-   // NOTE: If you decide to change any of the properties or format limitations
-   //       in here, be sure that any corresponding asserts are removed/added to
-   //       the Image class constructor as well.
-
    // If the combination of parameters to vkGetPhysicalDeviceImageFormatProperties
    // is not supported by the implementation for use in vkCreateImage, then all
    // members of VkImageFormatProperties will be filled with zero.
    memset(pImageFormatProperties, 0, sizeof(VkImageFormatProperties));
+
+   // At the moment, there are a number of issues when using imageViews over
+   // block-compressed images. They also don't seem very useful, so we will just
+   // report no support for them at present.
+   if ((flags & VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT))
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
    const bool isLinear = (tiling == VK_IMAGE_TILING_LINEAR);
 
@@ -161,11 +163,17 @@ VkResult PhysicalDevice::GetPhysicalDeviceImageFormatProperties(
       (ff & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == 0)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
-   if ((usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) && (ff & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR) == 0)
+   if ((usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) && (ff & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT) == 0)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
-   if ((usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) && (ff & VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR) == 0)
+   if ((usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) && (ff & VK_FORMAT_FEATURE_TRANSFER_DST_BIT) == 0)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+#if !V3D_HAS_COMP_1D_TEX
+   // Block compressed formats do not work correctly with 1D textures (GFXH-1676, 1718, 1719, 1720)
+   if (type == VK_IMAGE_TYPE_1D && gfx_lfmt_is_compressed(Formats::GetLFMT(format)))
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
+#endif
 
    switch (type)
    {
@@ -223,9 +231,9 @@ VkResult PhysicalDevice::GetPhysicalDeviceImageFormatProperties(
    return VK_SUCCESS;
 }
 
-VkResult PhysicalDevice::GetPhysicalDeviceImageFormatProperties2KHR(
-   const VkPhysicalDeviceImageFormatInfo2KHR *pImageFormatInfo,
-   VkImageFormatProperties2KHR               *pImageFormatProperties) noexcept
+VkResult PhysicalDevice::GetPhysicalDeviceImageFormatProperties2(
+   const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+   VkImageFormatProperties2               *pImageFormatProperties) noexcept
 {
    return GetPhysicalDeviceImageFormatProperties(pImageFormatInfo->format, pImageFormatInfo->type,
                                                  pImageFormatInfo->tiling, pImageFormatInfo->usage,
@@ -337,10 +345,29 @@ void PhysicalDevice::GetPhysicalDeviceProperties(
    log_trace("DeviceName    = %s",     pProperties->deviceName);
 }
 
-void PhysicalDevice::GetPhysicalDeviceProperties2KHR(
-   VkPhysicalDeviceProperties2KHR   *pProperties) noexcept
+void PhysicalDevice::GetPhysicalDeviceProperties2(
+   VkPhysicalDeviceProperties2   *pProperties) noexcept
 {
    GetPhysicalDeviceProperties(&pProperties->properties);
+
+   for (void *p = pProperties->pNext; p; p=Extensions::GetNext(p))
+   {
+      VkStructureType sType = Extensions::GetStructureType(p);
+
+      if (sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES)
+      {
+         auto q = static_cast<VkPhysicalDevicePointClippingProperties *>(p);
+         q->pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_USER_CLIP_PLANES_ONLY;
+      }
+      else if (sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES)
+      {
+         auto q = static_cast<VkPhysicalDeviceSubgroupProperties *>(p);
+         q->subgroupSize              = 16;
+         q->supportedStages           = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT;
+         q->supportedOperations       = VK_SUBGROUP_FEATURE_BASIC_BIT;
+         q->quadOperationsInAllStages = true;
+      }
+   }
 }
 
 void PhysicalDevice::GetPhysicalDeviceQueueFamilyProperties(
@@ -360,9 +387,9 @@ void PhysicalDevice::GetPhysicalDeviceQueueFamilyProperties(
       *pQueueFamilyPropertyCount = 1;
 }
 
-void PhysicalDevice::GetPhysicalDeviceQueueFamilyProperties2KHR(
-   uint32_t                     *pQueueFamilyPropertyCount,
-   VkQueueFamilyProperties2KHR  *pQueueFamilyProperties) noexcept
+void PhysicalDevice::GetPhysicalDeviceQueueFamilyProperties2(
+   uint32_t                  *pQueueFamilyPropertyCount,
+   VkQueueFamilyProperties2  *pQueueFamilyProperties) noexcept
 {
    if (pQueueFamilyProperties == nullptr)
    {
@@ -386,8 +413,8 @@ void PhysicalDevice::GetPhysicalDeviceMemoryProperties(
    *pMemoryProperties = m_memProps;
 }
 
-void PhysicalDevice::GetPhysicalDeviceMemoryProperties2KHR(
-   VkPhysicalDeviceMemoryProperties2KHR   *pMemoryProperties) noexcept
+void PhysicalDevice::GetPhysicalDeviceMemoryProperties2(
+   VkPhysicalDeviceMemoryProperties2   *pMemoryProperties) noexcept
 {
    GetPhysicalDeviceMemoryProperties(&pMemoryProperties->memoryProperties);
 }
@@ -400,10 +427,12 @@ VkResult PhysicalDevice::EnumerateDeviceExtensionProperties(
    static VkExtensionProperties exts[] = {
       { VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION },
       { VK_KHR_MAINTENANCE1_EXTENSION_NAME,                 VK_KHR_MAINTENANCE1_SPEC_VERSION                 },
+      { VK_KHR_MAINTENANCE2_EXTENSION_NAME,                 VK_KHR_MAINTENANCE2_SPEC_VERSION                 },
       { VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,                VK_KHR_BIND_MEMORY_2_SPEC_VERSION                },
       { VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,    VK_KHR_GET_MEMORY_REQUIREMENTS_2_SPEC_VERSION    },
       { VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,         VK_KHR_DEDICATED_ALLOCATION_SPEC_VERSION         },
       { VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME, VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_SPEC_VERSION },
+      { VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,   VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_SPEC_VERSION   },
 
       { VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,         VK_KHR_RELAXED_BLOCK_LAYOUT_SPEC_VERSION         },
 #if EMBEDDED_SETTOP_BOX && !defined(VK_USE_PLATFORM_WAYLAND) && !defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -440,10 +469,10 @@ void PhysicalDevice::GetPhysicalDeviceSparseImageFormatProperties(
    *pPropertyCount = 0;
 }
 
-void PhysicalDevice::GetPhysicalDeviceSparseImageFormatProperties2KHR(
-   const VkPhysicalDeviceSparseImageFormatInfo2KHR *pFormatInfo,
-   uint32_t                                        *pPropertyCount,
-   VkSparseImageFormatProperties2KHR               *pProperties) noexcept
+void PhysicalDevice::GetPhysicalDeviceSparseImageFormatProperties2(
+   const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
+   uint32_t                                     *pPropertyCount,
+   VkSparseImageFormatProperties2               *pProperties) noexcept
 {
    *pPropertyCount = 0;
 }
@@ -688,13 +717,7 @@ void PhysicalDevice::InitFeatures()
    m_features.sparseResidency16Samples                = false;
    m_features.sparseResidencyAliased                  = false;
    m_features.variableMultisampleRate                 = false;
-
-   // We can't really support this the way we have secondary command buffers working right now.
-   // When inside a render pass they just make control lists which are branched to from the
-   // primary buffer. Supporting this probably requires unrolling a 2ndary when the primary is
-   // being recorded, so that it just looks like one big primary. This could be done but would
-   // be less efficient when not using queries.
-   m_features.inheritedQueries                        = false;
+   m_features.inheritedQueries                        = true;
 }
 
 bool PhysicalDevice::ValidateRequestedFeatures(const VkPhysicalDeviceFeatures &test) const
@@ -841,7 +864,7 @@ void PhysicalDevice::InitLimits()
    m_limits.maxComputeWorkGroupSize[1]                       = 128;
    m_limits.maxComputeWorkGroupSize[2]                       = 128;
 #endif
-   m_limits.subPixelPrecisionBits                            = 4;
+   m_limits.subPixelPrecisionBits                            = V3D_COORD_SHIFT;
    m_limits.subTexelPrecisionBits                            = 8;
    m_limits.mipmapPrecisionBits                              = 8;
    m_limits.maxDrawIndexedIndexValue                         = 0xFFFFFF; // When fullDrawIndexUint32 supported 0xFFFFFFFF;
@@ -867,7 +890,7 @@ void PhysicalDevice::InitLimits()
    m_limits.maxTexelGatherOffset                             = 7;
    m_limits.minInterpolationOffset                           = -0.5f;
    m_limits.maxInterpolationOffset                           = 0.5f;
-   m_limits.subPixelInterpolationOffsetBits                  = 4;
+   m_limits.subPixelInterpolationOffsetBits                  = V3D_COORD_SHIFT;
    m_limits.maxFramebufferWidth                              = V3D_MAX_CLIP_WIDTH;
    m_limits.maxFramebufferHeight                             = V3D_MAX_CLIP_HEIGHT;
    m_limits.maxFramebufferLayers                             = V3D_MAX_LAYERS;
@@ -888,14 +911,14 @@ void PhysicalDevice::InitLimits()
    m_limits.maxCullDistances                                 = 0; // When shaderCullDistance supported 8
    m_limits.maxCombinedClipAndCullDistances                  = 0; // When shaderCullDistance supported 8
    m_limits.discreteQueuePriorities                          = 2;
-   m_limits.pointSizeRange[0]                                = 1.0f;
+   m_limits.pointSizeRange[0]                                = V3D_POINT_LINE_GRANULARITY;
    m_limits.pointSizeRange[1]                                = V3D_MAX_POINT_SIZE;
-   m_limits.lineWidthRange[0]                                = 1.0f;
+   m_limits.lineWidthRange[0]                                = V3D_POINT_LINE_GRANULARITY;
    m_limits.lineWidthRange[1]                                = V3D_MAX_LINE_WIDTH;
-   m_limits.pointSizeGranularity                             = 0.001953125f;
-   m_limits.lineWidthGranularity                             = 0.001953125f;
-   m_limits.strictLines                                      = false;
-   m_limits.standardSampleLocations                          = V3D_HAS_STD_4X_RAST_PATT;
+   m_limits.pointSizeGranularity                             = V3D_POINT_LINE_GRANULARITY;
+   m_limits.lineWidthGranularity                             = V3D_POINT_LINE_GRANULARITY;
+   m_limits.strictLines                                      = true; // Wide lines rasterised with perp end caps
+   m_limits.standardSampleLocations                          = V3D_VER_AT_LEAST(4,2,14,0);
    m_limits.optimalBufferCopyOffsetAlignment                 = 32;  // TODO : what should this be
    m_limits.optimalBufferCopyRowPitchAlignment               = 32;  // TODO : what should this be
    m_limits.nonCoherentAtomSize                              = gmem_non_coherent_atom_size();
@@ -1005,8 +1028,8 @@ void PhysicalDevice::FPSet(VkFormat fmt, VkFormatProperties flags)
    // on formats that we cannot otherwise use with V3D.
    if (flags.linearTilingFeatures != 0 || flags.optimalTilingFeatures != 0)
    {
-      const VkFormatFeatureFlags transferFeatures = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR |
-                                                    VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR;
+      const VkFormatFeatureFlags transferFeatures = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
+                                                    VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
 
       // Always allow transfer functions in the linear flags for color
       // and compressed formats, we want to be able to copy out of and
@@ -1109,12 +1132,12 @@ void PhysicalDevice::InitFormatProperties()
    FPSet(VK_FORMAT_R8G8B8_UINT,                      Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
    FPSet(VK_FORMAT_R8G8B8_SINT,                      Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
    FPSet(VK_FORMAT_R8G8B8_SRGB,                      Flags(0, 0, 0, 0, 0, L, L, L, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8_UNORM,                     Flags(0, 0, 0, 0, 0, L, L, L, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8_SNORM,                     Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8_USCALED,                   Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8_SSCALED,                   Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8_UINT,                      Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8_SINT,                      Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8_UNORM,                     Flags(0, 0, 0, 0, 0, L, L, L, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8_SNORM,                     Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8_USCALED,                   Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8_SSCALED,                   Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8_UINT,                      Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8_SINT,                      Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
    FPSet(VK_FORMAT_B8G8R8_SRGB,                      Flags(0, 0, 0, 0, 0, L, L, L, 0, 0, 0, 0, 0));
 
    // Table 31.15: Mandatory format support: 4 byte-sized channels
@@ -1126,11 +1149,11 @@ void PhysicalDevice::InitFormatProperties()
    FPSet(VK_FORMAT_R8G8B8A8_SINT,                    Flags(U, U, 0, U, 0, I, I, 0, 0, B, B, B, 0));
    FPSet(VK_FORMAT_R8G8B8A8_SRGB,                    Flags(U, U, U, 0, 0, I, I, I, 0, 0, B, 0, 0));
    FPSet(VK_FORMAT_B8G8R8A8_UNORM,                   Flags(U, U, U, 0, 0, I, I, I, 0, B, B, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8A8_SNORM,                   Flags(U, U, U, 0, 0, 0, 0, 0, 0, 0, B, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8A8_USCALED,                 Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8A8_SSCALED,                 Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8A8_UINT,                    Flags(U, U, 0, 0, 0, I, I, 0, 0, 0, B, 0, 0));
-   FPSet(VK_FORMAT_B8G8R8A8_SINT,                    Flags(U, U, 0, 0, 0, I, I, 0, 0, 0, B, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8A8_SNORM,                   Flags(U, U, U, 0, 0, 0, 0, 0, 0, B, B, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8A8_USCALED,                 Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8A8_SSCALED,                 Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8A8_UINT,                    Flags(U, U, 0, 0, 0, I, I, 0, 0, B, B, 0, 0));
+   FPSet(VK_FORMAT_B8G8R8A8_SINT,                    Flags(U, U, 0, 0, 0, I, I, 0, 0, B, B, 0, 0));
    FPSet(VK_FORMAT_B8G8R8A8_SRGB,                    Flags(U, U, U, 0, 0, I, I, I, 0, 0, B, 0, 0));
    FPSet(VK_FORMAT_A8B8G8R8_UNORM_PACK32,            Flags(U, U, U, 0, 0, I, I, I, 0, B, B, B, 0));
    FPSet(VK_FORMAT_A8B8G8R8_SNORM_PACK32,            Flags(U, U, U, 0, 0, 0, 0, 0, 0, B, B, B, 0));
@@ -1141,17 +1164,22 @@ void PhysicalDevice::InitFormatProperties()
    FPSet(VK_FORMAT_A8B8G8R8_SRGB_PACK32,             Flags(U, U, U, 0, 0, I, I, I, 0, 0, B, 0, 0));
 
    // Table 31.16: Mandatory format support : 10-bit channels
-   FPSet(VK_FORMAT_A2R10G10B10_UNORM_PACK32,         Flags(U, U, U, U, 0, I, I, I, 0, 0, B, 0, 0));
-   FPSet(VK_FORMAT_A2R10G10B10_SNORM_PACK32,         Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_A2R10G10B10_USCALED_PACK32,       Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-   FPSet(VK_FORMAT_A2R10G10B10_SSCALED_PACK32,       Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+   FPSet(VK_FORMAT_A2R10G10B10_UNORM_PACK32,         Flags(U, U, U, U, 0, I, I, I, 0, B, B, 0, 0));
+   FPSet(VK_FORMAT_A2R10G10B10_SNORM_PACK32,         Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_A2R10G10B10_USCALED_PACK32,       Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+   FPSet(VK_FORMAT_A2R10G10B10_SSCALED_PACK32,       Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+#if V3D_VER_AT_LEAST(4,2,14,0)
+   FPSet(VK_FORMAT_A2R10G10B10_UINT_PACK32,          Flags(U, U, 0, U, 0, I, I, 0, 0, B, B, 0, 0));
+   FPSet(VK_FORMAT_A2R10G10B10_SINT_PACK32,          Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
+#else
    FPSet(VK_FORMAT_A2R10G10B10_UINT_PACK32,          Flags(U, U, 0, U, 0, I, I, 0, 0, 0, B, 0, 0));
    FPSet(VK_FORMAT_A2R10G10B10_SINT_PACK32,          Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+#endif
    FPSet(VK_FORMAT_A2B10G10R10_UNORM_PACK32,         Flags(U, U, U, 0, 0, I, I, I, 0, B, B, B, 0));
    FPSet(VK_FORMAT_A2B10G10R10_SNORM_PACK32,         Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
    FPSet(VK_FORMAT_A2B10G10R10_USCALED_PACK32,       Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
    FPSet(VK_FORMAT_A2B10G10R10_SSCALED_PACK32,       Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
-#if V3D_HAS_GFXH1696_FIX
+#if V3D_VER_AT_LEAST(4,2,14,0)
    FPSet(VK_FORMAT_A2B10G10R10_UINT_PACK32,          Flags(U, U, 0, 0, 0, I, I, 0, 0, B, B, B, 0));
    FPSet(VK_FORMAT_A2B10G10R10_SINT_PACK32,          Flags(0, 0, 0, 0, 0, 0, 0, 0, 0, B, 0, 0, 0));
 #else

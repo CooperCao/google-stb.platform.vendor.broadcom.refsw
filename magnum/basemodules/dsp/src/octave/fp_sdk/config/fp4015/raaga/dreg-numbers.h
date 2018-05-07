@@ -42,7 +42,7 @@
 
   Generated for
     - machine architecture: fp4015
-    - binutils release: 7.1
+    - binutils release: 7.3
     - excluded features: MPU_DTCM
 */
 
@@ -266,16 +266,6 @@
 #define APPC_DELTA_APPC_D_MASK               0x1fff
 #define APPC_DELTA_APPC_D_BIT0               0
 #define APPC_DELTA_APPC_D_WIDTH              13
-
-/* BPRED_CTRL::RANDOM: Branch predictor contol: 0 = default, 1 = random, 2 = always untaken, 3 = always taken */
-#define BPRED_CTRL_RANDOM_MASK               0x3
-#define BPRED_CTRL_RANDOM_BIT0               0
-#define BPRED_CTRL_RANDOM_WIDTH              2
-
-/* BPRED_CTRL::LFSR: Seed for random branch prediction */
-#define BPRED_CTRL_LFSR_MASK                 0x1ffffffff00
-#define BPRED_CTRL_LFSR_BIT0                 8
-#define BPRED_CTRL_LFSR_WIDTH                33
 
 /* BREAKPOINT::ENABLE: Breakpoint enable */
 #define BREAKPOINT_ENABLE_MASK               0x1
@@ -651,18 +641,9 @@
 #define PPU_AUTO_START_ENABLE_BIT            0
 
 /* PPU_AUTO_START::PC: PC of start instruction */
-#define PPU_AUTO_START_PC_MASK               0xfffffffffffffffc
+#define PPU_AUTO_START_PC_MASK               0xfffffffc
 #define PPU_AUTO_START_PC_BIT0               2
-#define PPU_AUTO_START_PC_WIDTH              62
-
-/* PPU_AUTO_START_V2::ENABLE: Enable starting on start instruction */
-#define PPU_AUTO_START_V2_ENABLE_MASK        0x1
-#define PPU_AUTO_START_V2_ENABLE_BIT         0
-
-/* PPU_AUTO_START_V2::PC: PC of start instruction */
-#define PPU_AUTO_START_V2_PC_MASK            0xfffffffc
-#define PPU_AUTO_START_V2_PC_BIT0            2
-#define PPU_AUTO_START_V2_PC_WIDTH           30
+#define PPU_AUTO_START_PC_WIDTH              30
 
 /* PPU_AUTO_STOP::ENABLE: Enable stoppin on stop instruction */
 #define PPU_AUTO_STOP_ENABLE_MASK            0x1
@@ -673,22 +654,9 @@
 #define PPU_AUTO_STOP_EXCEPTION_BIT          1
 
 /* PPU_AUTO_STOP::PC: PC of stop instruction */
-#define PPU_AUTO_STOP_PC_MASK                0xfffffffffffffffc
+#define PPU_AUTO_STOP_PC_MASK                0xfffffffc
 #define PPU_AUTO_STOP_PC_BIT0                2
-#define PPU_AUTO_STOP_PC_WIDTH               62
-
-/* PPU_AUTO_STOP_V2::ENABLE: Enable stoppin on stop instruction */
-#define PPU_AUTO_STOP_V2_ENABLE_MASK         0x1
-#define PPU_AUTO_STOP_V2_ENABLE_BIT          0
-
-/* PPU_AUTO_STOP_V2::EXCEPTION: Raise exception when the stop instruction triggers */
-#define PPU_AUTO_STOP_V2_EXCEPTION_MASK      0x2
-#define PPU_AUTO_STOP_V2_EXCEPTION_BIT       1
-
-/* PPU_AUTO_STOP_V2::PC: PC of stop instruction */
-#define PPU_AUTO_STOP_V2_PC_MASK             0xfffffffc
-#define PPU_AUTO_STOP_V2_PC_BIT0             2
-#define PPU_AUTO_STOP_V2_PC_WIDTH            30
+#define PPU_AUTO_STOP_PC_WIDTH               30
 
 /* PPU_COMMAND::START_COUNTERS: Start counters (write 1 to start counters) */
 #define PPU_COMMAND_START_COUNTERS_MASK      0x1
@@ -1099,38 +1067,6 @@
 #define PROTMAP_PROT_WRITE_31_MASK           0x8000000000000000
 #define PROTMAP_PROT_WRITE_31_BIT            63
 
-/* PROT_CFG::ST_FAULT_ENABLE_0: Enable faulting on stores for region 0 */
-#define PROT_CFG_ST_FAULT_ENABLE_0_MASK      0x1
-#define PROT_CFG_ST_FAULT_ENABLE_0_BIT       0
-
-/* PROT_CFG::LD_FAULT_ENABLE_0: Enable faulting on loads  for region 0 */
-#define PROT_CFG_LD_FAULT_ENABLE_0_MASK      0x2
-#define PROT_CFG_LD_FAULT_ENABLE_0_BIT       1
-
-/* PROT_CFG::ST_FAULT_ENABLE_1: Enable faulting on stores for region 1 */
-#define PROT_CFG_ST_FAULT_ENABLE_1_MASK      0x4
-#define PROT_CFG_ST_FAULT_ENABLE_1_BIT       2
-
-/* PROT_CFG::LD_FAULT_ENABLE_1: Enable faulting on loads  for region 1 */
-#define PROT_CFG_LD_FAULT_ENABLE_1_MASK      0x8
-#define PROT_CFG_LD_FAULT_ENABLE_1_BIT       3
-
-/* PROT_CFG::ST_FAULT_ENABLE_2: Enable faulting on stores for region 2 */
-#define PROT_CFG_ST_FAULT_ENABLE_2_MASK      0x10
-#define PROT_CFG_ST_FAULT_ENABLE_2_BIT       4
-
-/* PROT_CFG::LD_FAULT_ENABLE_2: Enable faulting on loads  for region 2 */
-#define PROT_CFG_LD_FAULT_ENABLE_2_MASK      0x20
-#define PROT_CFG_LD_FAULT_ENABLE_2_BIT       5
-
-/* PROT_CFG::ST_FAULT_ENABLE_3: Enable faulting on stores for region 3 */
-#define PROT_CFG_ST_FAULT_ENABLE_3_MASK      0x40
-#define PROT_CFG_ST_FAULT_ENABLE_3_BIT       6
-
-/* PROT_CFG::LD_FAULT_ENABLE_3: Enable faulting on loads  for region 3 */
-#define PROT_CFG_LD_FAULT_ENABLE_3_MASK      0x80
-#define PROT_CFG_LD_FAULT_ENABLE_3_BIT       7
-
 /* PSR::IRQ_DISABLE: Interrupt disable */
 #define PSR_IRQ_DISABLE_MASK                 0x2
 #define PSR_IRQ_DISABLE_BIT                  1
@@ -1167,59 +1103,9 @@
 #define PSR_IGNOREDREGS_MASK                 0x400
 #define PSR_IGNOREDREGS_BIT                  10
 
-/* PSR_V2::IRQ_DISABLE: Interrupt disable */
-#define PSR_V2_IRQ_DISABLE_MASK              0x2
-#define PSR_V2_IRQ_DISABLE_BIT               1
-
-/* PSR_V2::SIRQ_DISABLE: Super interrupt disable */
-#define PSR_V2_SIRQ_DISABLE_MASK             0x4
-#define PSR_V2_SIRQ_DISABLE_BIT              2
-
-/* PSR_V2::CB_DISABLE: Callback disable */
-#define PSR_V2_CB_DISABLE_MASK               0x8
-#define PSR_V2_CB_DISABLE_BIT                3
-
-/* PSR_V2::RECOV_DISABLE: Recov disable */
-#define PSR_V2_RECOV_DISABLE_MASK            0x20
-#define PSR_V2_RECOV_DISABLE_BIT             5
-
-/* PSR_V2::DEBUG_DISABLE: Debug disable */
-#define PSR_V2_DEBUG_DISABLE_MASK            0x40
-#define PSR_V2_DEBUG_DISABLE_BIT             6
-
-/* PSR_V2::FATAL_DISABLE: Fatal disable */
-#define PSR_V2_FATAL_DISABLE_MASK            0x80
-#define PSR_V2_FATAL_DISABLE_BIT             7
-
-/* PSR_V2::PRIVILEGED: Privilege */
-#define PSR_V2_PRIVILEGED_MASK               0x100
-#define PSR_V2_PRIVILEGED_BIT                8
-
-/* PSR_V2::SINGLE_STEP: Enable single step */
-#define PSR_V2_SINGLE_STEP_MASK              0x200
-#define PSR_V2_SINGLE_STEP_BIT               9
-
-/* PSR_V2::IGNOREDREGS: Disregard implicit state except PC and PSR */
-#define PSR_V2_IGNOREDREGS_MASK              0x400
-#define PSR_V2_IGNOREDREGS_BIT               10
-
-/* PSR_V2::IGNORELOOP: Disregard LOOP match */
-#define PSR_V2_IGNORELOOP_MASK               0x800
-#define PSR_V2_IGNORELOOP_BIT                11
-
-/* RANDOM_STALL::ENABLE: Enable random stalling */
-#define RANDOM_STALL_ENABLE_MASK             0x1
-#define RANDOM_STALL_ENABLE_BIT              0
-
-/* RANDOM_STALL::DERATE: Proportion of random stalls to inject */
-#define RANDOM_STALL_DERATE_MASK             0x6
-#define RANDOM_STALL_DERATE_BIT0             1
-#define RANDOM_STALL_DERATE_WIDTH            2
-
-/* RANDOM_STALL::LFSR: Seed for random stalling */
-#define RANDOM_STALL_LFSR_MASK               0x1ffffffff00
-#define RANDOM_STALL_LFSR_BIT0               8
-#define RANDOM_STALL_LFSR_WIDTH              33
+/* PSR::IGNORELOOP: Disregard LOOP match */
+#define PSR_IGNORELOOP_MASK                  0x800
+#define PSR_IGNORELOOP_BIT                   11
 
 /* RECOV::PARITY: I-mem parity interupt */
 #define RECOV_PARITY_MASK                    0x1
@@ -1252,14 +1138,6 @@
 #define SIRQ_EXT_SW_MASK                     0x300
 #define SIRQ_EXT_SW_BIT0                     8
 #define SIRQ_EXT_SW_WIDTH                    2
-
-/* SOFT_BIST_CONTROL::PASS: Control pins */
-#define SOFT_BIST_CONTROL_PASS_MASK          0x1
-#define SOFT_BIST_CONTROL_PASS_BIT           0
-
-/* SOFT_BIST_CONTROL::DONE: Control pins */
-#define SOFT_BIST_CONTROL_DONE_MASK          0x2
-#define SOFT_BIST_CONTROL_DONE_BIT           1
 
 /* UARCH_CFG::BRANCH_PREDICTION: Branch prediction enable */
 #define UARCH_CFG_BRANCH_PREDICTION_MASK     0x1

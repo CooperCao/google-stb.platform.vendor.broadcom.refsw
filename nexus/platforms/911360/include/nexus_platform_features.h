@@ -100,9 +100,6 @@ upon the chip usage. See below */
 
 #define NEXUS_MAX_FRONTENDS NEXUS_NUM_PARSER_BANDS
 
-#define NEXUS_NUM_I2C_CHANNELS 0
-#define NEXUS_MAX_I2C_CHANNELS 0
-
 /* Memory features */
 #define NEXUS_NUM_MEMC 1
 

@@ -755,17 +755,21 @@ BERR_Code BVDC_Open
 #if (BVDC_P_CMP_CFC_VER >= 3)
     /* check BP3 license and code consistency */
     {
-        bool bBp3Support;
+        bool bBp3Support, bMisMatch;
         bBp3Support = (BERR_SUCCESS == BCHP_HasLicensedFeature_isrsafe(hChip,
             BCHP_LicensedFeature_eDolbyVision));
-        if((bBp3Support && !BVDC_P_DBV_SUPPORT) ||
-           (!bBp3Support && BVDC_P_DBV_SUPPORT))
+#if(BVDC_P_DBV_SUPPORT)
+        bMisMatch = !bBp3Support;
+#else
+        bMisMatch = bBp3Support;
+#endif
+        if(bMisMatch)
         {
             BDBG_LOG(("############################"));
             BDBG_LOG(("#"));
             BDBG_LOG(("# Dolby Vision license   : %c", bBp3Support? 'Y' : 'N'));
             BDBG_LOG(("# Dolby Vision SW support: %c", BVDC_P_DBV_SUPPORT? 'Y' : 'N'));
-            if(bBp3Support && !BVDC_P_DBV_SUPPORT) {
+            if(bBp3Support) {
                 BDBG_LOG(("# You have DolbyVision license but not source code! "));
             } else {
                 BDBG_LOG(("# You have DolbyVision source code but not license! "));
@@ -776,14 +780,18 @@ BERR_Code BVDC_Open
 
         bBp3Support = (BERR_SUCCESS == BCHP_HasLicensedFeature_isrsafe(hChip,
             BCHP_LicensedFeature_eTchPrime));
-        if((bBp3Support && !BVDC_P_TCH_SUPPORT) ||
-           (!bBp3Support && BVDC_P_TCH_SUPPORT))
+#if (BVDC_P_TCH_SUPPORT)
+        bMisMatch = !bBp3Support;
+#else
+        bMisMatch = bBp3Support;
+#endif
+        if(bMisMatch)
         {
             BDBG_LOG(("############################"));
             BDBG_LOG(("#"));
             BDBG_LOG(("# Techni Prime license   : %c", bBp3Support? 'Y' : 'N'));
             BDBG_LOG(("# Techni Prime SW support: %c", BVDC_P_TCH_SUPPORT? 'Y' : 'N'));
-            if(bBp3Support && !BVDC_P_TCH_SUPPORT) {
+            if(bBp3Support) {
                 BDBG_LOG(("# You have Technicolor Prime license but not source code! "));
             } else {
                 BDBG_LOG(("# You have Technicolor Prime source code but not license! "));

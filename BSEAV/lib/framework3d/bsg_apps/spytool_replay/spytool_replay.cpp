@@ -19,6 +19,8 @@
 #include "Command.h"
 #include "GetProcAddress.h"
 
+#include "GLStdCommand.h"
+
 #ifdef HAS_MD5
 #include "md5.h"
 #endif
@@ -56,6 +58,7 @@ static bool        sWaitEachFrame = false;
 static bool        sTiming = false;
 static bool        sTimingToFiles = false;
 static uint32_t    sDisplaySurface = 0;
+static bool        sPrintAPIs = false;
 static Command     *sExecutingCmd = NULL;
 static std::set<uint32_t>  sSpecificFrames;
 static std::set<uint32_t>  sSpecificDraws;
@@ -229,6 +232,16 @@ public:
          GetIntegerParamSet(arg, sSpecificShaderReplacement);
          return true;
       }
+      else if (ApplicationOptions::ArgMatch(arg.c_str(), "printApis="))
+      {
+         if (sscanf(arg.c_str(), "printApis=%d", &d) == 1)
+         {
+            sPrintAPIs = (d != 0);
+            if (sPrintAPIs)
+               sBufferMB = 1;
+            return true;
+         }
+      }
 #ifndef BSG_STAND_ALONE
       else if (ApplicationOptions::ArgMatch(arg.c_str(), "savepng="))
       {
@@ -245,44 +258,31 @@ public:
    //! Return a string containing usage descriptions of the extra arguments you can handle.
    virtual std::string UsageString() const
    {
+      std::string usage =
+         "replay=<filename>              set the capture file to use\n"
+         "v=XxY                          rescale viewport for an XxY screen\n"
+         "skipFrames=N                   don't render first N frames\n"
+         "skipDraws=N                    ignore the first N draw calls\n"
+         "waitEachFrame=[0|1]            wait for a key-press between frames\n"
+         "frames=<N,M,A-B,..>            only render frames in list\n"
+         "draws=<N,M,A-B,..>             only process draw calls numbers in list\n"
+         "bufferMB=N                     use N MB for replay buffer (default 64MB)\n"
+         "ioBufferKB=N                   use N KB as read chunk size (default 64KB)\n"
+         "maxCmds=N                      set maximum number of commands in replay buffer (default 200000)\n"
+         "lowBuffer=<REPRIME|CONTINUE>   re-prime buffers when low (default) or carry on running in background\n"
+         "rematchConfigs=[0|1]           if 1 will try to find a matching config. Will use the original config id otherwise\n"
+         "displaySurface=N               if multiple surfaces are created, which one should be on the display (0 is the first)\n"
+         "timing=[0|1]                   show the timing of each API call as it is executed\n"
+         "timingToFiles=[0|1]            autogenerate the timing data into seperate frames as CSV files\n"
+         "replaceShaders=<N,M,A-B,..>    load shaders from file <replace%d.shader>\n"
+         "printApis=[0|1]                don't run anything, just dump the API calls to the console";
+
 #ifndef BSG_STAND_ALONE
-      return "replay=<filename>              set the capture file to use\n"
-             "v=XxY                          rescale viewport for an XxY screen\n"
-             "skipFrames=N                   don't render first N frames\n"
-             "skipDraws=N                    ignore the first N draw calls\n"
-             "waitEachFrame=[0|1]            wait for a key-press between frames\n"
-             "frames=<N,M,A-B,..>            only render frames in list\n"
-             "draws=<N,M,A-B,..>             only process draw calls numbers in list\n"
-             "bufferMB=N                     use N MB for replay buffer (default 64MB)\n"
-             "ioBufferKB=N                   use N KB as read chunk size (default 64KB)\n"
-             "maxCmds=N                      set maximum number of commands in replay buffer (default 200000)\n"
-             "lowBuffer=<REPRIME|CONTINUE>   re-prime buffers when low (default) or carry on running in background\n"
-             "rematchConfigs=[0|1]           if 1 will try to find a matching config. Will use the original config id otherwise\n"
-             "savepng=[0|1]                  if 1 will take a hash of the frame data and save as <hash>.png\n"
-             "displaySurface=N               if multiple surfaces are created, which one should be on the display (0 is the first)\n"
-             "timing=[0|1]                   show the timing of each API call as it is executed\n"
-             "timingToFiles=[0|1]            autogenerate the timing data into seperate frames as CSV files\n"
-             "replaceShaders=<N,M,A-B,..>    load shaders from file <replace%d.shader>\n"
-         ;
-#else
-      return "replay=<filename>              set the capture file to use\n"
-             "v=XxY                          rescale viewport for an XxY screen\n"
-             "skipFrames=N                   don't render first N frames\n"
-             "skipDraws=N                    ignore the first N draw calls\n"
-             "waitEachFrame=[0|1]            wait for a key-press between frames\n"
-             "frames=<N,M,A-B,..>            only render frames in list\n"
-             "draws=<N,M,A-B,..>             only process draw calls numbers in list\n"
-             "bufferMB=N                     use N MB for replay buffer (default 64MB)\n"
-             "ioBufferKB=N                   use N KB as read chunk size (default 64KB)\n"
-             "maxCmds=N                      set maximum number of commands in replay buffer (default 200000)\n"
-             "lowBuffer=<REPRIME|CONTINUE>   re-prime buffers when low (default) or carry on running in background\n"
-             "rematchConfigs=[0|1]           if 1 will try to find a matching config. Will use the original config id otherwise\n"
-             "displaySurface=N               if multiple surfaces are created, which one should be on the display (0 is the first)\n"
-             "timing=[0|1]                   show the timing of each API call as it is executed\n"
-             "timingToFiles=[0|1]            autogenerate the timing data into seperate frames as CSV files\n"
-             "replaceShaders=<N,M,A-B,..>    load shaders from file <replace%d.shader>\n"
-         ;
+      usage = usage +
+         "savepng=[0|1]                  if 1 will take a hash of the frame data and save as <hash>.png\n";
 #endif // BSG_STAND_ALONE
+
+      return usage;
    }
 };
 
@@ -452,7 +452,16 @@ GLuint SpyToolReplay::MapUniform(uint32_t handle, uint32_t program)
 {
    if (handle == (uint32_t)-1)
       return (uint32_t)-1;
-   return m_uniformMap[std::make_pair(program, handle)];
+
+   // If the uniform is in the map, look it up and use it.
+   // If not, use the handle as is - ES3.1 can use explicit uniform locations, so this is the only
+   // sensible thing to do.
+   auto p = std::make_pair(program, handle);
+   auto iter = m_uniformMap.find(p);
+   if (iter == m_uniformMap.end())
+      return handle;
+   else
+      return iter->second;
 }
 
 #if V3D_TECH_VERSION >= 3
@@ -717,6 +726,18 @@ void SpyToolReplay::RenderFrame()
 
       while (m_loader->LoadCommand(&cmd))
       {
+         if (sPrintAPIs)
+         {
+            // Just decode the API from the packet and print it
+            const Packet &packet = cmd->GetPacket();
+            if (packet.Type() == eAPI_FUNCTION)
+            {
+               GLStdCommand glc(packet, 0);
+               printf("%s\n", glc.AsString().c_str());
+            }
+            continue;
+         }
+
          // Count the number of swaps we load
          if (cmd->GetPacket().Item(0).GetFunc() == cmd_eglSwapBuffers)
             m_loadedSwapCount++;

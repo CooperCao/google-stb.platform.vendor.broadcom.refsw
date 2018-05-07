@@ -49,6 +49,6 @@ compute_job_mem* glxx_compute_process_dispatches(const khrn_vector* dispatches_v
 
 #endif
 
-bool glxx_compute_render_state_flush(glxx_compute_render_state* rs);
+void glxx_compute_render_state_flush(glxx_compute_render_state* rs);
 
 #endif

@@ -68,6 +68,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "Usage: blit_client OPTIONS\n"
     "  --help or -h for help\n"
     "  -move\n"
+    "  -timeout SECONDS\n"
     );
     nxapps_cmdline_print_usage(cmdline);
 }

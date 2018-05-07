@@ -3,10 +3,10 @@
  *****************************************************************************************************/
 
 #include "SymbolTypeHandle.h"
-#include "ModuleAllocator.h"
+#include "DflowBuilder.h"
 #include "Module.h"
-#include "PrimitiveTypes.h"
-#include "TypeBuilder.h"
+
+#include "glsl_primitive_types.auto.h"
 
 namespace bvk {
 
@@ -48,6 +48,9 @@ SymbolTypeHandle SymbolTypeHandle::Float()
 
 SymbolTypeHandle SymbolTypeHandle::Vector(SymbolTypeHandle elemType, uint32_t size)
 {
+   if (size == 1)
+      return elemType;
+
    return glsl_prim_vector_type(elemType.GetIndex(), size);
 }
 
@@ -73,10 +76,10 @@ bool SymbolTypeHandle::IsImage() const
    return (primitiveTypeFlags[m_symbolType->u.primitive_type.index] & PRIM_STOR_IMAGE_TYPE) != 0;
 }
 
-static SymbolType *NewSymbolType(const Module &module, SymbolTypeFlavour flavour, const char *name,
+static SymbolType *NewSymbolType(const DflowBuilder &builder, SymbolTypeFlavour flavour, const char *name,
                                  uint32_t numScalars)
 {
-   SymbolType *type = module.New<SymbolType>();
+   auto type = builder.New<SymbolType>();
 
    type->flavour      = flavour;
    type->name         = name;
@@ -85,9 +88,9 @@ static SymbolType *NewSymbolType(const Module &module, SymbolTypeFlavour flavour
    return type;
 }
 
-SymbolTypeHandle SymbolTypeHandle::Array(const Module &module, SymbolTypeHandle elementType, uint32_t size)
+SymbolTypeHandle SymbolTypeHandle::Array(const DflowBuilder &builder, SymbolTypeHandle elementType, uint32_t size)
 {
-   SymbolType *type = NewSymbolType(module, SYMBOL_ARRAY_TYPE, "array", size * elementType.GetNumScalars());
+   SymbolType *type = NewSymbolType(builder, SYMBOL_ARRAY_TYPE, "array", size * elementType.GetNumScalars());
 
    type->u.array_type.member_count = size;
    type->u.array_type.member_type  = elementType.m_symbolType;
@@ -95,41 +98,44 @@ SymbolTypeHandle SymbolTypeHandle::Array(const Module &module, SymbolTypeHandle 
    return type;
 }
 
-template <class M>
-SymbolTypeHandle SymbolTypeHandle::Struct(const Module &module, const M &members)
+SymbolTypeHandle SymbolTypeHandle::Struct(const DflowBuilder &builder, const NodeTypeStruct *node, const SymbolTypeHandle::MemberIter &members)
 {
    uint32_t scalarCount = 0;
-   uint32_t numMembers  = members.size();
+   uint32_t numMembers  = members.Size();
 
-   StructMember *memb = module.NewArray<StructMember>(numMembers);
+   StructMember *memb = builder.NewArray<StructMember>(numMembers);
 
    for (uint32_t i = 0; i < numMembers; ++i)
    {
       StructMember &structMember = memb[i];
 
-      structMember.layout = nullptr;        // TODO
-      structMember.memq   = MEMORY_NONE;    // TODO
-      structMember.name   = "field";        // TODO
-      structMember.prec   = PREC_NONE;      // TODO
-      structMember.interp = INTERP_SMOOTH;  // TODO
-      structMember.auxq   = AUXILIARY_NONE; // TODO
-      structMember.type   = members[i];
+      QualifierDecorations q;
+
+      MemberDecorationQuery query(node, i);
+      for (const Decoration *dec : query)
+         q.UpdateWith(dec);
+
+      structMember.layout = q.lq;
+      structMember.memq   = q.mq;
+      structMember.name   = "field";
+      structMember.prec   = q.pq;
+      structMember.interp = q.iq;
+      structMember.auxq   = q.aq;
+      structMember.type   = members.Type(i);
 
       scalarCount += structMember.type->scalar_count;
    }
 
-   SymbolType *type = NewSymbolType(module, SYMBOL_STRUCT_TYPE, "struct", scalarCount);
+   SymbolType *type = NewSymbolType(builder, SYMBOL_STRUCT_TYPE, "struct", scalarCount);
    type->u.struct_type.member_count = numMembers;
    type->u.struct_type.member       = memb;
 
    return type;
 }
 
-template SymbolTypeHandle SymbolTypeHandle::Struct<MemberIter>(const Module &module, const MemberIter &members);
-
-SymbolTypeHandle SymbolTypeHandle::Pointer(const Module &module, SymbolTypeHandle targetType)
+SymbolTypeHandle SymbolTypeHandle::Pointer(const DflowBuilder &builder, SymbolTypeHandle targetType)
 {
-   SymbolType *type = NewSymbolType(module, SYMBOL_ARRAY_TYPE, "pointer", 1);
+   SymbolType *type = NewSymbolType(builder, SYMBOL_ARRAY_TYPE, "pointer", 1);
 
    type->u.array_type.member_count = 1;
    type->u.array_type.member_type  = targetType.m_symbolType;

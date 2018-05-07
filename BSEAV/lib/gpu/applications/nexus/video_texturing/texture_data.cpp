@@ -25,7 +25,7 @@ static void BufferReleaseThread(TextureData *texture)
 void TextureData::Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gfx2d,
                          BKNI_EventHandle m2mcDone, uint32_t numBuffers,
                          uint32_t mediaW, uint32_t mediaH, uint32_t texW, uint32_t texH,
-                         uint32_t numMiplevels, BEGL_BufferFormat format,
+                         uint32_t numMiplevels, NEXUS_PixelFormat format,
                          bool aniso, bool secure)
 {
    m_platform = platform;
@@ -36,14 +36,18 @@ void TextureData::Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gf
    // Init the EGLimage extensions we need
    InitGLExtensions();
 
-   BEGL_PixmapInfoEXT pixInfo{};
-   NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
-   pixInfo.width  = texW;
-   pixInfo.height = texH;
-   pixInfo.secure = secure;
-   pixInfo.format = format;
+   NEXUS_SurfaceCreateSettings surfSettings;
+   NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
+   surfSettings.compatibility.graphicsv3d = true;
+   surfSettings.width = texW;
+   surfSettings.height = texH;
+   surfSettings.heap = NEXUS_Platform_GetFramebufferHeap(secure ?
+         NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE : NEXUS_OFFSCREEN_SURFACE);
+   if (!surfSettings.heap)
+      throw "No heap\n";
+   surfSettings.pixelFormat = format;
 #if VC5
-   pixInfo.miplevels = numMiplevels;
+   surfSettings.mipLevel = numMiplevels - 1;
 #endif
 
    // Make data for each buffer
@@ -54,7 +58,8 @@ void TextureData::Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gf
    {
       glGenTextures(1, &it->textureID);
 
-      if (!NXPL_CreateCompatiblePixmapEXT(platform, &it->eglPixmap, &it->nativePixmap, &pixInfo))
+      it->nativePixmap = NEXUS_Surface_Create(&surfSettings);
+      if (!it->nativePixmap)
          throw "Failed during NXPL_CreateCompatiblePixmapEXT";
 
       // Fill the buffers so we don't draw garbage in the first frame or two
@@ -71,7 +76,7 @@ void TextureData::Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gf
 
       // Wrap the native pixmap (actually a NEXUS_Surface) as an EGLImage
       it->eglImage = m_eglCreateImageKHRFunc(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR,
-                                             (EGLClientBuffer)it->eglPixmap, attrList);
+                                             (EGLClientBuffer)it->nativePixmap, attrList);
       if (it->eglImage == EGL_NO_IMAGE_KHR)
          throw "Failed to create EGLImage";
 
@@ -116,7 +121,7 @@ void TextureData::Destroy()
       it->fence.Destroy();
       glDeleteTextures(1, &it->textureID);
       m_eglDestroyImageKHRFunc(eglGetCurrentDisplay(), it->eglImage);
-      NXPL_DestroyCompatiblePixmap(m_platform, it->eglPixmap);
+      NEXUS_Surface_Destroy(it->nativePixmap);
    }
 }
 

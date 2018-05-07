@@ -62,6 +62,11 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 
 #define NEXUS_NUM_UARTS 3
 
+#ifndef NEXUS_NUM_I2C_CHANNELS
+/* unused in nexus. should default to same as NEXUS_MAX_I2C_CHANNELS. */
+#define NEXUS_NUM_I2C_CHANNELS 7
+#endif
+
 /* undefine NEXUS_HAS_GRAPHICSV3D by compiling with V3D_SUPPORT=n */
 #ifdef NEXUS_HAS_GRAPHICSV3D
 #define NEXUS_NUM_3D_ENGINES 1

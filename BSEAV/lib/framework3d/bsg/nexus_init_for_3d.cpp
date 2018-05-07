@@ -34,8 +34,8 @@ static void maximise_graphics_heap(NEXUS_PlatformSettings *settings, unsigned gr
       if ((mem.osRegion[i].memcIndex == memc) && (size < mem.osRegion[i].length))
          size = mem.osRegion[i].length;
 
-   // Shrink heaps other than the primary graphics heap on the memc, track how
-   // much space we will have left after all of these heaps have been allocated
+   // Shrink heaps other than the primary graphics and the Sage heaps on the memc,
+   // track how much space we will have left after all of these heaps have been allocated
    for (unsigned i = 0; i != sizeof(settings->heap) / sizeof(settings->heap[0]); ++i)
    {
       NEXUS_PlatformHeapSettings *h = &settings->heap[i];
@@ -43,8 +43,10 @@ static void maximise_graphics_heap(NEXUS_PlatformSettings *settings, unsigned gr
       {
          if (i == NEXUS_MEMC0_MAIN_HEAP)
             h->size = 64 * 1024 * 1024;
-         else if (i != NEXUS_MEMC0_DRIVER_HEAP)
-            h->size = 0;
+         else
+            if ((i != NEXUS_MEMC0_DRIVER_HEAP) && (i != NEXUS_SAGE_SECURE_HEAP))
+               h->size = 0;
+
          size -= h->size;
       }
    }

@@ -49,11 +49,8 @@
  * DRM driver, when using Linux shared memory backed GEM objects the
  * MMU page size must be the same as the CPU page size.
  */
-#define V3D_HW_PAGE_SHIFT (PAGE_SHIFT)
-#define V3D_HW_PAGE_SIZE  (PAGE_SIZE)
-#define V3D_HW_PAGE_MASK  (~((phys_addr_t)V3D_HW_PAGE_SIZE - 1))
+#define V3D_HW_PAGE_MASK  (~((phys_addr_t)PAGE_SIZE - 1))
 
-#define V3D_HW_DEFAULT_PAGE_FLAGS (V3D_PAGE_FLAG_VALID)
 /*
  * v3d_alloc_block Represents a physically contiguous block allocated
  * from a CMA device, from which we are going to allocate memory in 4k
@@ -64,7 +61,7 @@
  * platform supports multiple memory controllers.
  */
 #define V3D_CMA_ALLOC_BLOCK_SIZE (2UL * 1024 * 1024)
-#define V3D_CMA_ALLOC_MAP_SIZE (V3D_CMA_ALLOC_BLOCK_SIZE / V3D_HW_PAGE_SIZE)
+#define V3D_CMA_ALLOC_MAP_SIZE (V3D_CMA_ALLOC_BLOCK_SIZE / PAGE_SIZE)
 
 struct v3d_alloc_block {
 	struct list_head node;
@@ -104,15 +101,13 @@ struct v3d_page_allocation {
  * is currently running or is queued in the hardware pipeline.
  *
  */
-#define V3D_HW_VIRTUAL_ADDR_BASE (V3D_HW_PAGE_SIZE)
+#define V3D_HW_VIRTUAL_ADDR_BASE (PAGE_SIZE)
 #define V3D_HW_VIRTUAL_ADDR_SIZE (1UL << 30)
 
 #define V3D_HW_PAGE_TABLE_ALIGN		(4096)
 #define V3D_HW_PAGE_TABLE_ENTRY_SIZE	(4)
-#define V3D_HW_SMALLEST_PAGE_SHIFT	(12)
 
-#define V3D_HW_PAGE_TABLE_ENTRIES \
-	(V3D_HW_VIRTUAL_ADDR_SIZE >> V3D_HW_SMALLEST_PAGE_SHIFT)
+#define V3D_HW_PAGE_TABLE_ENTRIES (V3D_HW_VIRTUAL_ADDR_SIZE >> PAGE_SHIFT)
 
 #define V3D_HW_PAGE_TABLE_SIZE \
 	(V3D_HW_PAGE_TABLE_ENTRY_SIZE * V3D_HW_PAGE_TABLE_ENTRIES)
@@ -231,6 +226,26 @@ void v3d_free_cma_pages(size_t num_pages, struct v3d_page_allocation *pages);
 int v3d_allocate_cma_pages(struct v3d_drm_file_private *fp, size_t num_pages,
 			   struct v3d_page_allocation *pages);
 
+
+/*
+ * Hardware virtual memory/pagetable helpers
+ */
+int v3d_vmem_init(struct v3d_hw_virtual_mem *vmem, struct drm_device *dev);
+void v3d_vmem_destroy(struct v3d_hw_virtual_mem *vmem, struct drm_device *dev);
+
+unsigned long v3d_vmem_allocate(struct v3d_hw_virtual_mem *vmem, size_t size);
+
+void v3d_vmem_free(struct v3d_hw_virtual_mem *hw_vmem,
+		   unsigned long addr, size_t size);
+
+void v3d_vmem_add_pages_to_pagetable(struct v3d_hw_virtual_mem *vmem,
+				     struct device *dev,
+				     dma_addr_t *dma_addrs, size_t pages,
+				     u32 va, bool readonly);
+
+void v3d_vmem_add_extobj_to_pagetable(struct v3d_hw_virtual_mem *vmem,
+				      phys_addr_t pa, size_t pages,
+				      u32 va, bool readonly);
 
 /*
  * DebugFS file open/close helpers

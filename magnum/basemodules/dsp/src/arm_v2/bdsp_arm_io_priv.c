@@ -348,6 +348,7 @@ void BDSP_Arm_P_InterTaskBuffer_Destroy(
 	void *pInterTaskBufferHandle
 )
 {
+	BERR_Code errCode = BERR_SUCCESS;
 	BDSP_P_InterTaskBuffer *pInterTaskBuffer;
     BDSP_ArmContext *pArmContext;
     unsigned numFifos = 0;
@@ -370,7 +371,13 @@ void BDSP_Arm_P_InterTaskBuffer_Destroy(
         FifoId = pInterTaskBuffer->PcmDetails[0].BuffersDetails.ui32FifoId;
         numFifos = pInterTaskBuffer->numChannels+pInterTaskBuffer->numTocData+
                    pInterTaskBuffer->numMetaData+pInterTaskBuffer->numObjectData;
-        BDSP_Arm_P_ReleaseFIFO(pArmContext->pDevice, 0, &FifoId, numFifos);
+        errCode = BDSP_Arm_P_ReleaseFIFO(pArmContext->pDevice, 0, &FifoId, numFifos);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Arm_P_InterTaskBuffer_Destroy: Unable to release fifo %d for RDB Type Intertask buffer !!!!",FifoId));
+			errCode = BERR_TRACE(errCode);
+			BDBG_ASSERT(0);
+		}
     }
 
     BDSP_MMA_P_FreeMemory(&pInterTaskBuffer->MemoryPool.Memory);
@@ -912,7 +919,7 @@ void BDSP_Arm_P_RemoveInput(
 		return;
 	}
 
-	if(pArmStage->running)
+	if((pArmStage->running)&&(!pArmStage->pContext->contextWatchdogFlag))
     {
         errCode = BDSP_Arm_P_ReconfigCit(pArmStage,false,pStageInputDetails,inputIndex);
         if(errCode != BERR_SUCCESS)

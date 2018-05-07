@@ -69,6 +69,35 @@ void BDSP_P_Analyse_CIT_TSMConfig_isr(
 	BDBG_LEAVE(BDSP_P_Analyse_CIT_TSMConfig_isr);
 }
 
+void BDSP_P_Analyse_CIT_TSMConfig(
+	BDSP_MMA_Memory Memory
+)
+{
+	BDSP_AudioTaskTsmSettings *pTsmSettings;
+	BDBG_ENTER(BDSP_P_Analyse_CIT_TSMConfig);
+
+	pTsmSettings = (BDSP_AudioTaskTsmSettings *)Memory.pAddr;
+	BDBG_MSG(("TSM CONFIG"));
+	BDBG_MSG(("-------------------- "));
+	BDBG_MSG(("\t Smooth Threshold      = %d",pTsmSettings->i32TSMSmoothThreshold));
+	BDBG_MSG(("\t Sync Limit Threshold  = %d",pTsmSettings->i32TSMSyncLimitThreshold));
+	BDBG_MSG(("\t Gross Threshold       = %d",pTsmSettings->i32TSMGrossThreshold));
+	BDBG_MSG(("\t Discard Threshold     = %d",pTsmSettings->i32TSMDiscardThreshold));
+	BDBG_MSG(("\t Transaction Threshold = %d",pTsmSettings->i32TsmTransitionThreshold));
+	BDBG_MSG(("\t STC ADDR              = 0x%x",pTsmSettings->ui32STCAddr));
+	BDBG_MSG(("\t AV Offset             = %d",pTsmSettings->ui32AVOffset));
+	BDBG_MSG(("\t SW STC Offset         = %d",pTsmSettings->ui32SwSTCOffset));
+	BDBG_MSG(("\t Audio Offset          = %d",pTsmSettings->ui32AudioOffset));
+	BDBG_MSG(("\t Enable Recovery       = %s",DisableEnable[pTsmSettings->eEnableTSMErrorRecovery]));
+	BDBG_MSG(("\t STC Valid             = %s",TrueFalse[pTsmSettings->eSTCValid]));
+	BDBG_MSG(("\t Playback On           = %s",TrueFalse[pTsmSettings->ePlayBackOn]));
+	BDBG_MSG(("\t TSM Enable            = %s",DisableEnable[pTsmSettings->eTsmEnable]));
+	BDBG_MSG(("\t TSM Log Enable        = %s",DisableEnable[pTsmSettings->eTsmLogEnable]));
+	BDBG_MSG(("\t ASTM Enable           = %s",DisableEnable[pTsmSettings->eAstmEnable]));
+	BDBG_MSG(("-------------------- "));
+	BDBG_LEAVE(BDSP_P_Analyse_CIT_TSMConfig);
+}
+
 void BDSP_P_Analyse_CIT_GateOpenConfig(
 	BDSP_MMA_Memory Memory
 )

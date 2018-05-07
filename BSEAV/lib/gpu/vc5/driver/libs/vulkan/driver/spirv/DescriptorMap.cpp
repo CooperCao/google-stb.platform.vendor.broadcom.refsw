@@ -6,22 +6,24 @@
 
 namespace bvk {
 
-uint32_t DescriptorMap::FindEntry(const DescriptorInfo &descInfo)
+uint32_t DescriptorMap::Add(const DescriptorInfo &descInfo)
 {
-   uint32_t tableIndex;
+   assert(m_map.find(descInfo) == m_map.end());
 
-   // Find the index for descInfo if it exists, otherwise add a new entry
-   const auto &iter = m_map.find(descInfo);
-   if (iter == m_map.end())
-   {
-      m_table->push_back(descInfo);
-      tableIndex = m_table->size() - 1;
-      m_map[descInfo] = tableIndex;
-   }
-   else
-      tableIndex = iter->second;
+   uint32_t index = m_table->size();
+   m_table->push_back(descInfo);
 
-   return tableIndex;
+   m_map[descInfo] = index;
+
+   return index;
+}
+
+uint32_t DescriptorMap::Find(const DescriptorInfo &descInfo) const
+{
+   auto iter = m_map.find(descInfo);
+   assert(iter != m_map.end());
+
+   return iter->second;
 }
 
 DescriptorMaps::DescriptorMaps(spv::ModuleAllocator<uint32_t> &allocator, DescriptorTables *tables) :

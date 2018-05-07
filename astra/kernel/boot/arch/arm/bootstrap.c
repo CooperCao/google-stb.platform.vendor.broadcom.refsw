@@ -65,49 +65,6 @@ extern unsigned int _bootstrap_img_end;
 extern unsigned int _kernel_img_start;
 extern unsigned int _kernel_img_end;
 
-__bootstrap static inline void enable_mmu(void *page_table0, void *page_table1) {
-
-    /* Setup the memory indirection attribute registers */
-    register unsigned int mair0 = MAIR0;
-    register unsigned int mair1 = MAIR1;
-    asm volatile("mcr p15, 0, %[val], c10, c2, 0" : :[val] "r" (mair0));
-    asm volatile("mcr p15, 0, %[val], c10, c2, 1" : :[val] "r" (mair1));
-
-    /* Setup TTBCR: LPAE format page tables, Use both TTBR0 (0 -> 2GB) and
-        TTBR1 (2GB -> 4GB ), Normal cacheable memory */
-    register unsigned int ttbcr = 0xa5012501;  /* TTBCR_LPAE_ENABLE | TTBCR_OUTER_SHAREABLE0 | TTBCR_OUTER_CACHEABLE0_NORMAL |
-                                                  TTBCR_INNER_CACHEABLE0_NORMAL; */
-    asm volatile("mcr p15, 0, %[val], c2, c0, 2" : :[val] "r" (ttbcr));
-
-    /* Point TTBR0 to the page table */
-    register unsigned int ttbr0_low = (unsigned int)page_table0;
-    register unsigned int ttbr0_high = 0;
-    asm volatile("mcrr p15, 0, %[low], %[high], c2" : : [low] "r" (ttbr0_low), [high] "r" (ttbr0_high));
-
-    /* Point TTBR1 to the page table */
-    register unsigned int ttbr1_low = (unsigned int)page_table1;
-    register unsigned int ttbr1_high = 0;
-    asm volatile("mcrr p15, 1, %[low], %[high], c2" : : [low] "r" (ttbr1_low), [high] "r" (ttbr1_high));
-
-
-
-    /* Invalidate TLB, ICache and branch predictor */
-    register unsigned int zero = 0;
-    asm volatile("mcr p15, 0, %[val], c8, c7, 0\r\n"
-                 "mcr p15, 0, %[val], c7, c5, 0\r\n"
-                 "mcr p15, 0, %[val], c7, c5, 6\r\n"
-                 "dsb\r\n"
-                 "isb\r\n"
-             : : [val] "r" (zero));
-
-    /* Turn MMU on (along with cache and branch prediction) */
-    register unsigned int sctlr = CORTEX_A15_SCTLR_DEFAULT | 0x1805;
-    asm volatile("dsb\r\n"
-                 "mcr p15, 0, %[val], c1, c0, 0\r\n"
-                 "isb\r\n"
-                : : [val] "r" (sctlr));
-}
-
 __bootstrap static inline uint64_t *bootstrap_block_alloc(ptrdiff_t load_link_offset) {
 
     uint8_t *pt_blocks_raw = (uint8_t *)(bootstrap_pt_blocks) + load_link_offset;
@@ -116,7 +73,7 @@ __bootstrap static inline uint64_t *bootstrap_block_alloc(ptrdiff_t load_link_of
     int *next_block = (int *)next_block_raw;
 
     if (*next_block == NUM_BOOTSTRAP_BLOCKS) {
-        while (1) {}
+        ARCH_HALT();
         return NULL;
     }
 
@@ -130,19 +87,17 @@ __bootstrap static inline uint64_t *bootstrap_block_alloc(ptrdiff_t load_link_of
 __bootstrap static inline void bootstrap_map_mem_range(uint8_t *range_begin, uint8_t *range_end,
             int memory_attr, uint8_t *translated_range_begin, ptrdiff_t load_link_offset) {
 
-    uint64_t **pg_table;
+    uint64_t **ppg_table;
 
-    if ((uintptr_t)range_begin & PAGE_TABLE_SELECTION_MASK) {
-        pg_table = (uint64_t **)((uint32_t)&pgTableTTBR1 + load_link_offset);
-    }
-    else {
-        pg_table = (uint64_t **)((uint32_t)&pgTableTTBR0+ load_link_offset);
-    }
+    if ((uintptr_t)range_begin & PAGE_TABLE_SELECTION_MASK)
+        ppg_table = (uint64_t **)((uint32_t)&pgTableTTBR1 + load_link_offset);
+    else
+        ppg_table = (uint64_t **)((uint32_t)&pgTableTTBR0 + load_link_offset);
 
-    if (*pg_table == NULL) {
-        *pg_table = bootstrap_block_alloc(load_link_offset);
+    if (*ppg_table == NULL) {
+        *ppg_table = bootstrap_block_alloc(load_link_offset);
 
-        uint64_t *pt_entry = *pg_table;
+        uint64_t *pt_entry = *ppg_table;
         for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++)
             pt_entry[i] = 0;
     }
@@ -150,7 +105,7 @@ __bootstrap static inline void bootstrap_map_mem_range(uint8_t *range_begin, uin
     uint8_t *curr_page = range_begin;
     uint8_t *translated_page = translated_range_begin;
 
-    uint64_t *l1_page_table = *pg_table;
+    uint64_t *l1_page_table = *ppg_table;
 
     while (curr_page <= range_end) {
 
@@ -163,7 +118,6 @@ __bootstrap static inline void bootstrap_map_mem_range(uint8_t *range_begin, uin
             for (int i=0; i<L2_PAGE_NUM_ENTRIES; i++)
                 pt_block[i] = 0;
 
-
             uint64_t l1_entry = (uint64_t)((uint32_t)pt_block & L2_BLOCK_ADDR_MASK);
             l1_entry |= 0x3;
             l1_page_table[l1_idx] = l1_entry;
@@ -175,7 +129,6 @@ __bootstrap static inline void bootstrap_map_mem_range(uint8_t *range_begin, uin
 
         int l2_idx = (uint64_t)(((uint32_t)curr_page >> L2_BLOCK_SHIFT) & L2_BLOCK_MASK);
         if (l2_page_table[l2_idx] == 0) {
-
             uint64_t *pt_block = bootstrap_block_alloc(load_link_offset);
 
             for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++)
@@ -242,7 +195,52 @@ __bootstrap static inline void prepare_bootstrap_page_table(ptrdiff_t load_link_
         MAIR_MEMORY, translated_dt_start, load_link_offset);
 }
 
-__bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t _boot_mode, void *dtree_phys_addr, void *uart_addr) {
+__bootstrap static inline void enable_mmu(ptrdiff_t load_link_offset) {
+
+
+    register uint64_t *pg_table0 = *(uint64_t **)((uint32_t)&pgTableTTBR0 + load_link_offset);
+    register uint64_t *pg_table1 = *(uint64_t **)((uint32_t)&pgTableTTBR1 + load_link_offset);
+
+    /* Setup the memory indirection attribute registers */
+    register unsigned int mair0 = MAIR0;
+    register unsigned int mair1 = MAIR1;
+    asm volatile("mcr p15, 0, %[val], c10, c2, 0" : :[val] "r" (mair0));
+    asm volatile("mcr p15, 0, %[val], c10, c2, 1" : :[val] "r" (mair1));
+
+    /* Setup TTBCR: LPAE format page tables, Use both TTBR0 (0 -> 2GB) and
+        TTBR1 (2GB -> 4GB ), Normal cacheable memory */
+    register unsigned int ttbcr = 0xa5012501;  /* TTBCR_LPAE_ENABLE | TTBCR_OUTER_SHAREABLE0 | TTBCR_OUTER_CACHEABLE0_NORMAL |
+                                                  TTBCR_INNER_CACHEABLE0_NORMAL; */
+    asm volatile("mcr p15, 0, %[val], c2, c0, 2" : :[val] "r" (ttbcr));
+
+    /* Point TTBR0 to the page table */
+    register unsigned int ttbr0_low  = (unsigned int)pg_table0;
+    register unsigned int ttbr0_high = 0;
+    asm volatile("mcrr p15, 0, %[low], %[high], c2" : : [low] "r" (ttbr0_low), [high] "r" (ttbr0_high));
+
+    /* Point TTBR1 to the page table */
+    register unsigned int ttbr1_low  = (unsigned int)pg_table1;
+    register unsigned int ttbr1_high = 0;
+    asm volatile("mcrr p15, 1, %[low], %[high], c2" : : [low] "r" (ttbr1_low), [high] "r" (ttbr1_high));
+
+    /* Invalidate TLB, ICache and branch predictor */
+    register unsigned int zero = 0;
+    asm volatile("mcr p15, 0, %[val], c8, c7, 0\r\n"
+                 "mcr p15, 0, %[val], c7, c5, 0\r\n"
+                 "mcr p15, 0, %[val], c7, c5, 6\r\n"
+                 "dsb\r\n"
+                 "isb\r\n"
+                 : : [val] "r" (zero));
+
+    /* Turn MMU on (along with cache and branch prediction) */
+    register unsigned int sctlr = CORTEX_A15_SCTLR_DEFAULT | 0x1805;
+    asm volatile("dsb\r\n"
+                 "mcr p15, 0, %[val], c1, c0, 0\r\n"
+                 "isb\r\n"
+                 : : [val] "r" (sctlr));
+}
+
+__bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t machine_id, void *dtree_phys_addr, void *uart_addr) {
 
     // If this is not the boot CPU, enable the MMU using the page table
     // prepared by the boot CPU.
@@ -251,30 +249,18 @@ __bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t _boot_mod
     asm volatile("mrc p15, 0, %[result], c0, c0, 5" : [result] "=r" (mpidr) : :);
     cpu_num = (mpidr & MPIDR_CPUID_MASK);
     if (cpu_num != 0) {
-        uint64_t **ptr_k_page_table = (uint64_t **)((uint32_t)&pgTableTTBR0 + load_link_offset);
-        register uint64_t *pg_table0 = *ptr_k_page_table;
-
-        ptr_k_page_table = (uint64_t **)((uint32_t)&pgTableTTBR1 + load_link_offset);
-        register uint64_t *pg_table1 = *ptr_k_page_table;
-
-        enable_mmu(pg_table0, pg_table1);
+        enable_mmu(load_link_offset);
         return;
     }
 
     prepare_bootstrap_page_table(load_link_offset, uart_addr, dtree_phys_addr);
 
-    uint64_t **ptr_k_page_table = (uint64_t **)((uint32_t)&pgTableTTBR0 + load_link_offset);
-    register uint64_t *pg_table0 = *ptr_k_page_table;
-
-    ptr_k_page_table = (uint64_t **)((uint32_t)&pgTableTTBR1 + load_link_offset);
-    register uint64_t *pg_table1 = *ptr_k_page_table;
-
-    enable_mmu(pg_table0, pg_table1);
+    enable_mmu(load_link_offset);
 
     phys_to_virt_offset = ULONG_MAX - load_link_offset + 1;
     virt_to_phys_offset = load_link_offset;
 
     // Save system uart base
     uart_base = (uint32_t)uart_addr;
-    boot_mode = _boot_mode;
+    boot_mode = (machine_id) ? ARMV7_BOOT_MODE : ARMV8_BOOT_MODE;
 }

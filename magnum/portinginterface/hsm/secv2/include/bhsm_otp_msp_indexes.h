@@ -102,6 +102,7 @@ extern "C"
 #define BHSM_OTPMSP_CP_AES_COUNTER_SOFTWARE_KEY_DISABLE  215
 #define BHSM_OTPMSP_IP_LICENSING_CHECK_ENABLE  217
 #define BHSM_OTPMSP_MARKET_ID0  313
+#define BHSM_OTPMSP_MARKET_ID1  314
 #define BHSM_OTPMSP_SYSTEM_EPOCH0  326
 #define BHSM_OTPMSP_SYSTEM_EPOCH1  327
 #define BHSM_OTPMSP_SYSTEM_EPOCH2  328
@@ -170,6 +171,7 @@ extern "C"
  #define BHSM_OTPMSP_CP_AES_COUNTER_SOFTWARE_KEY_DISABLE         (64)
  #define BHSM_OTPMSP_IP_LICENSING_CHECK_ENABLE                   (70)
  #define BHSM_OTPMSP_MARKET_ID0                                  (94)
+ #define BHSM_OTPMSP_MARKET_ID1                                 (633)
  #define BHSM_OTPMSP_SYSTEM_EPOCH0                               (87)
  #define BHSM_OTPMSP_SYSTEM_EPOCH1                              (520)
  #define BHSM_OTPMSP_SYSTEM_EPOCH2                              (519)

@@ -134,9 +134,13 @@ void BVDC_P_Compositor_GetCfcCapabilities
     uint32_t ulRegOffset = 0;
 #if defined(BCHP_CMP_0_HW_CONFIGURATION) && !defined(BVDC_FOR_BOOTUPDATER)
     uint32_t ulHwCfg;
+#else
+    BSTD_UNUSED(hRegister);
+    BSTD_UNUSED(eWinId);
+    BSTD_UNUSED(ulRegOffset);
 #endif
 
-    BKNI_Memset((void*)pCapability, 0x0, sizeof(pCapability));
+    BKNI_Memset((void*)pCapability, 0x0, sizeof(BCFC_Capability));
     pCapability->stBits.bMc = 1;
 
     switch(eCmpId)
@@ -403,7 +407,7 @@ BERR_Code BVDC_P_Compositor_Create
     }
 
     BVDC_P_Compositor_GetCfcCapabilities(hVdc->hRegister, eCompositorId, BVDC_WindowId_eVideo0, &pCompositor->stCfcCapability[0]);
-    BVDC_P_Compositor_GetCfcCapabilities(hVdc->hRegister, eCompositorId, BVDC_WindowId_eVideo1, &pCompositor->stCfcCapability[1]);
+    BVDC_P_Compositor_GetCfcCapabilities(hVdc->hRegister, eCompositorId, BVDC_WindowId_eVideo1, &(pCompositor->stCfcCapability[1]));
 
 #ifndef BVDC_FOR_BOOTUPDATER
 

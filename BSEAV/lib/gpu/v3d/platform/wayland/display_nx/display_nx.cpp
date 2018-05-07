@@ -10,9 +10,10 @@
 #include <atomic>
 #include <string.h>
 
-#include "EGL/egl.h"
-#include "EGL/eglext_brcm.h"
-#include "EGL/eglext_wayland.h"
+#include <EGL/egl.h>
+#include <EGL/eglext_wayland.h>
+#include <EGL/begl_platform.h>
+#include "../../common/nexus_surface_memory.h"
 
 #include "nxbitmap.h"
 #include "nxwindowinfo.h"
@@ -20,7 +21,7 @@
 #include "nxworker.h"
 #include "../helpers/extent.h"
 #include "wl_server.h"
-#include "native_format.h"
+#include "../common/nexus_begl_format.h"
 
 #define MAX_SWAP_BUFFERS 3
 
@@ -36,27 +37,7 @@ static BEGL_Error NxDefaultOrientation(void *context [[gnu::unused]])
    return BEGL_Fail;
 }
 
-static BEGL_BufferHandle NxBufferCreate(void *context,
-      BEGL_PixmapInfoEXT const *bufferRequirements)
-{
-   auto display = static_cast<WLPL_NexusDisplay*>(context);
-   auto heap = NXPL_MemHeap(display->memInterface);
-   BEGL_BufferSettings settings;
-   display->bufferGetRequirementsFunc(bufferRequirements, &settings);
-   auto bitmap = new wlpl::NxBitmap(heap, &settings);
-   return static_cast<BEGL_BufferHandle>(bitmap);
-}
-
-/* Destroy a buffer previously created with BufferCreate */
-static BEGL_Error NxBufferDestroy(void *context [[gnu::unused]],
-      BEGL_BufferDisplayState *bufferState)
-{
-   auto bitmap = static_cast<wlpl::NxBitmap *>(bufferState->buffer);
-   delete bitmap;
-   return BEGL_Success;
-}
-
-static BEGL_BufferHandle NxBufferDequeue(void *context, void *platformState,
+static BEGL_SwapchainBuffer NxBufferDequeue(void *context, void *platformState,
       BEGL_BufferFormat format, int *fd)
 {
    auto windowState = static_cast<wlpl::NxWindowState *>(platformState);
@@ -73,18 +54,13 @@ static BEGL_BufferHandle NxBufferDequeue(void *context, void *platformState,
    // resize or create
    if (windowExtent != bitmapExtent)
    {
-      auto data = static_cast<WLPL_NexusDisplay *>(context);
-      assert(data != NULL);
+      auto display = static_cast<WLPL_NexusDisplay *>(context);
+      assert(display != NULL);
 
-      BEGL_PixmapInfoEXT bufferRequirements =
-      { };
-      bufferRequirements.width = windowExtent.GetWidth();
-      bufferRequirements.height = windowExtent.GetHeight();
-      bufferRequirements.format = format;
+      auto heap = NXPL_MemHeap(display->memInterface);
 
-      std::unique_ptr<wlpl::NxBitmap> tmp(
-            static_cast<wlpl::NxBitmap*>(NxBufferCreate(context,
-                  &bufferRequirements)));
+      std::unique_ptr<wlpl::NxBitmap> tmp(new wlpl::NxBitmap(heap,
+            windowExtent.GetWidth(), windowExtent.GetHeight(), format));
       bitmap = std::move(tmp);
    }
 
@@ -95,11 +71,11 @@ static BEGL_BufferHandle NxBufferDequeue(void *context, void *platformState,
    bitmap->UpdateWindowInfo(*nw);
 
    auto buffer = bitmap.release();
-   return static_cast<BEGL_BufferHandle>(buffer);
+   return static_cast<BEGL_SwapchainBuffer>(buffer);
 }
 
 static BEGL_Error NxBufferQueue(void *context, void *platformState,
-      BEGL_BufferHandle buffer, int swap_interval, int fd)
+      BEGL_SwapchainBuffer buffer, int swap_interval, int fd)
 {
    if (buffer)
    {
@@ -124,7 +100,7 @@ static BEGL_Error NxBufferQueue(void *context, void *platformState,
 }
 
 static BEGL_Error NxBufferCancel(void *context, void *platformState,
-      BEGL_BufferHandle buffer, int fd [[gnu::unused]])
+      BEGL_SwapchainBuffer buffer, int fd [[gnu::unused]])
 {
    if (buffer)
    {
@@ -171,65 +147,46 @@ static BEGL_Error NxWindowStateDestroy(void *context [[gnu::unused]],
    return BEGL_Success;
 }
 
-static BEGL_Error NxGetNativeBuffer(void *context [[gnu::unused]],
-      uint32_t eglTarget, void *eglClientBuffer, void **buffer)
+static BEGL_NativeBuffer NxAcquireNativeBuffer(void *context [[gnu::unused]],
+      uint32_t target, void *eglObject,
+      BEGL_BufferSettings *outSettings)
 {
-   switch (eglTarget)
+   switch (target)
    {
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      wlpl::NxBitmap* bitmap = static_cast<wlpl::NxBitmap*>(eglObject);
+      NEXUS_MemoryBlockHandle memory = bitmap ? AcquireNexusSurfaceMemory(
+            bitmap->GetSurface(), outSettings) : NULL;
+      return static_cast<BEGL_NativeBuffer>(memory);
+   }
    case EGL_WAYLAND_BUFFER_WL:
    {
       struct wl_resource *resource =
-            static_cast<struct wl_resource*>(eglClientBuffer);
-      WlBufferMemory *memory = GetWlBufferMemory(resource);
+            static_cast<struct wl_resource*>(eglObject);
+      NEXUS_MemoryBlockHandle memory = AcquireWlBufferMemory(resource);
       if (memory)
-      {
-         *buffer = memory;
-         return BEGL_Success;
-      }
-      else
-         return BEGL_Fail;
+         GetWlBufferSettings(resource, outSettings);
+      return static_cast<BEGL_NativeBuffer>(memory);
    }
-   case BEGL_DEFAULT_BUFFER:
-   {
-      *buffer = eglClientBuffer;
-      return BEGL_Success;
-   }
+   case BEGL_PIXMAP_BUFFER:
    default:
-      return BEGL_Fail;
+      return NULL;
    }
 }
 
-static BEGL_Error NxSurfaceGetInfo(void *context [[gnu::unused]],
-      uint32_t target, void *buffer, BEGL_BufferSettings *settings)
+static BEGL_Error NxReleaseNativeBuffer(void *context [[gnu::unused]],
+      uint32_t target, BEGL_NativeBuffer buffer)
 {
    switch (target)
    {
+   case BEGL_SWAPCHAIN_BUFFER:
+      ReleaseNexusSurfaceMemory(static_cast<NEXUS_MemoryBlockHandle>(buffer));
+      return BEGL_Success;
    case EGL_WAYLAND_BUFFER_WL:
-      *settings = static_cast<WlBufferMemory *>(buffer)->settings;
+      ReleaseWlBufferMemory(static_cast<NEXUS_MemoryBlockHandle>(buffer));
       return BEGL_Success;
-
-   case BEGL_DEFAULT_BUFFER:
-      static_cast<wlpl::NxBitmap*>(buffer)->GetCreateSettings(settings);
-      return BEGL_Success;
-
-   default:
-      return BEGL_Fail;
-   }
-}
-
-static BEGL_Error NxSurfaceChangeRefCount(void *context [[gnu::unused]],
-      uint32_t target, void *buffer, BEGL_RefCountMode incOrDec)
-{
-   switch (target)
-   {
-   case EGL_WAYLAND_BUFFER_WL:
-      if (incOrDec == BEGL_Increment)
-         WlBufferMemoryRefInc(static_cast<WlBufferMemory *>(buffer));
-      else
-         WlBufferMemoryRefDec(static_cast<WlBufferMemory *>(buffer));
-      return BEGL_Success;
-   case BEGL_DEFAULT_BUFFER:
-      return BEGL_Success;
+   case BEGL_PIXMAP_BUFFER:
    default:
       return BEGL_Fail;
    }
@@ -240,9 +197,7 @@ static bool NxBindWaylandDisplay(void *context,
 {
    WLPL_NexusDisplay *display = static_cast<WLPL_NexusDisplay *>(context);
    return BindWlDisplay(&display->binding,
-         static_cast<struct wl_display*>(wl_display),
-         NXPL_MemHeap(display->memInterface),
-         NXPL_MemHeapSecure(display->memInterface));
+         static_cast<struct wl_display*>(wl_display));
 }
 
 static bool NxUnbindWaylandDisplay(void *context,
@@ -258,22 +213,22 @@ static bool NxQueryBuffer(void *context [[gnu::unused]],
       int32_t *value)
 {
    struct wl_resource *resource = static_cast<struct wl_resource*>(buffer);
-   WlBufferMemory *memory = GetWlBufferMemory(resource);
-   if (!memory)
+   BEGL_BufferSettings settings = {};
+   if (!GetWlBufferSettings(resource, &settings))
       return false;
 
    switch (attribute)
    {
    case EGL_WIDTH:
-      *value = memory->settings.width;
+      *value = settings.width;
       break;
 
    case EGL_HEIGHT:
-      *value = memory->settings.height;
+      *value = settings.height;
       break;
 
    case EGL_TEXTURE_FORMAT:
-      *value = GetNativeFormat(memory->settings.format);
+      *value = BeglToNexusFormat(settings.format);
       break;
 
    case EGL_WAYLAND_Y_INVERTED_WL:
@@ -292,36 +247,28 @@ struct WLPL_NexusDisplayInterface: BEGL_DisplayInterface
 };
 
 extern "C" BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
-      BEGL_MemoryInterface *memIface, BEGL_HWInterface *hwIface,
-      BEGL_DisplayCallbacks *displayCallbacks)
+      BEGL_MemoryInterface *memIface, BEGL_HWInterface *hwIface)
 {
-   assert(displayCallbacks->BufferGetRequirements);
-
    std::unique_ptr<WLPL_NexusDisplayInterface> disp(
          new WLPL_NexusDisplayInterface());
    if (!disp)
       return NULL;
 
    disp->context = &disp->display;
-   disp->BufferCreate = NxBufferCreate;
-   disp->BufferDestroy = NxBufferDestroy;
    disp->BufferDequeue = NxBufferDequeue;
    disp->BufferQueue = NxBufferQueue;
    disp->BufferCancel = NxBufferCancel;
    disp->DefaultOrientation = NxDefaultOrientation;
    disp->WindowPlatformStateCreate = NxWindowStateCreate;
    disp->WindowPlatformStateDestroy = NxWindowStateDestroy;
-   disp->GetNativeBuffer = NxGetNativeBuffer;
-   disp->SurfaceGetInfo = NxSurfaceGetInfo;
-   disp->SurfaceChangeRefCount = NxSurfaceChangeRefCount;
+   disp->AcquireNativeBuffer = NxAcquireNativeBuffer;
+   disp->ReleaseNativeBuffer = NxReleaseNativeBuffer;
    disp->BindWaylandDisplay = NxBindWaylandDisplay;
    disp->UnbindWaylandDisplay = NxUnbindWaylandDisplay;
    disp->QueryBuffer = NxQueryBuffer;
 
    disp->display.memInterface = memIface;
    disp->display.hwInterface = hwIface;
-   disp->display.bufferGetRequirementsFunc =
-         displayCallbacks->BufferGetRequirements;
 
    BEGL_HWInfo info;
    disp->display.hwInterface->GetInfo(disp->display.hwInterface->context,

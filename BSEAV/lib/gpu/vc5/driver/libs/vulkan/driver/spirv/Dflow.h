@@ -43,28 +43,37 @@ public:
 
    // The template here prevents any implicit casting to uint32_t at the call-sites
    template <typename T>
-   static inline Dflow ConstantValue(DataflowType type, T value)
+   static inline Dflow Value(DataflowType type, T value)
    {
-      static_assert(std::is_same<T, uint32_t>::value, "ConstantValue only accepts uint32_t");
+      static_assert(std::is_same<T, uint32_t>::value, "Value only accepts uint32_t");
       return Dflow(glsl_dataflow_construct_const_value(type, value));
    }
 
-   static inline Dflow ConstantBool(bool value)
+   static inline Dflow Bool(bool value)
    {
       return Dflow(glsl_dataflow_construct_const_bool(value));
    }
 
-   static inline Dflow ConstantInt(int32_t i)
+   static inline Dflow Int(int32_t i)
    {
       return Dflow(glsl_dataflow_construct_const_int(i));
    }
 
-   static inline Dflow ConstantUInt(uint32_t u)
+   static inline Dflow UInt(uint32_t u)
    {
       return Dflow(glsl_dataflow_construct_const_uint(u));
    }
 
-   static inline Dflow ConstantFloat(float f)
+   static Dflow Default(DataflowType dfType);
+
+   template <typename I>
+   static inline Dflow TypedInt(const Dflow &proto, I val)
+   {
+      assert(proto.GetType() == DF_INT || proto.GetType() == DF_UINT);
+      return Dflow(glsl_dataflow_construct_const_value(proto.GetType(), val));
+   }
+
+   static inline Dflow Float(float f)
    {
       return Dflow(glsl_dataflow_construct_const_float(f));
    }
@@ -87,38 +96,39 @@ public:
       return glsl_dataflow_construct_address_load(DATAFLOW_IN_LOAD, t, ret);
    }
 
-   static inline Dflow Uniform(DataflowType type, uint32_t descTableIndex)
+   static inline Dflow Sampler(uint32_t descTableIndex)
    {
-      // TODO:
-         /* Shadow lookups are always 16-bit */
-         //!psi->shadow && (symbol->u.var_instance.prec_qual == PREC_HIGHP));
-      if (glsl_dataflow_type_is_sampled_image(type) || glsl_dataflow_type_is_storage_image(type))
-         return Dflow(glsl_dataflow_construct_const_image(type, descTableIndex, /*is32bit=*/true));
-      else if (type == DF_SAMPLER)
-         return Dflow(glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, descTableIndex));
-      else
-      {
-         assert(0);
-         return Dflow(glsl_dataflow_construct_linkable_value(DATAFLOW_UNIFORM, type, descTableIndex));
-      }
+      return Dflow(glsl_dataflow_construct_linkable_value(DATAFLOW_CONST_SAMPLER, DF_SAMPLER, descTableIndex));
+   }
+
+   static inline Dflow ImageUniform(DataflowType type, bool relaxed, uint32_t descTableIndex)
+   {
+      assert(glsl_dataflow_type_is_sampled_image(type) || glsl_dataflow_type_is_storage_image(type));
+      return Dflow(glsl_dataflow_construct_const_image(type, descTableIndex, !relaxed));
+   }
+
+   static inline Dflow Buffer(DataflowFlavour bufFlavour, uint32_t id, uint32_t offset)
+   {
+      return glsl_dataflow_construct_buffer(bufFlavour, DF_UINT, id, offset);
    }
 
    // Get dataflow for the start address of the buffer plus offset
-   static inline Dflow BufferAddress(DataflowType type, uint32_t offset,
-                                     uint32_t descTableIndex, DataflowFlavour bufFlavour)
+   static inline Dflow BufferAddress(const Dflow &buf)
    {
-      Dflow buf = glsl_dataflow_construct_buffer(bufFlavour, type, descTableIndex, offset);
       return Dflow(glsl_dataflow_construct_address(buf));
    }
 
    static Dflow CreateImageWriteAddress(const Dflow &image, const DflowScalars &coord);
 
    // Get dataflow for the size of the buffer (minus subtractOffset)
-   static inline Dflow BufferSize(DataflowType type, uint32_t subtractOffset,
-                                  uint32_t descTableIndex, DataflowFlavour bufFlavour)
+   static inline Dflow BufferSize(const Dflow &buf, uint32_t subtractOffset)
    {
-      Dflow buf = glsl_dataflow_construct_buffer(bufFlavour, type, descTableIndex, 0);
       return glsl_dataflow_construct_buf_size(buf, subtractOffset);
+   }
+
+   static inline Dflow BufferArrayLength(const Dflow &buf, uint32_t subtractOffset)
+   {
+      return glsl_dataflow_construct_buf_array_length(buf, subtractOffset);
    }
 
    static inline Dflow NullaryOp(DataflowFlavour flavour)
@@ -164,30 +174,6 @@ public:
    static Dflow Atomic(DataflowFlavour flavour, DataflowType type, const Dflow &addr,
                        const Dflow &data, BasicBlockHandle block);
 
-   Dflow operator*(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_MUL, *this, rhs);    }
-   Dflow operator/(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_DIV, *this, rhs);    }
-   Dflow operator+(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_ADD, *this, rhs);    }
-   Dflow operator-(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_SUB, *this, rhs);    }
-
-   Dflow operator-() const                  { return UnaryOp(DATAFLOW_ARITH_NEGATE, *this); }
-   Dflow operator!() const                  { return UnaryOp(DATAFLOW_LOGICAL_NOT,  *this); }
-
-   Dflow operator&(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_BITWISE_AND, *this, rhs); }
-   Dflow operator|(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_BITWISE_OR,  *this, rhs); }
-   Dflow operator^(const Dflow &rhs) const  { return BinaryOp(DATAFLOW_BITWISE_XOR, *this, rhs); }
-
-   Dflow operator&&(const Dflow &rhs) const { return BinaryOp(DATAFLOW_LOGICAL_AND, *this, rhs); }
-   Dflow operator||(const Dflow &rhs) const { return BinaryOp(DATAFLOW_LOGICAL_OR,  *this, rhs); }
-   Dflow operator<<(const Dflow &rhs) const { return BinaryOp(DATAFLOW_SHL,         *this, rhs); }
-   Dflow operator>>(const Dflow &rhs) const { return BinaryOp(DATAFLOW_SHR,         *this, rhs); }
-
-   Dflow operator==(const Dflow &rhs) const { return BinaryOp(DATAFLOW_EQUAL,              *this, rhs); }
-   Dflow operator!=(const Dflow &rhs) const { return BinaryOp(DATAFLOW_NOT_EQUAL,          *this, rhs); }
-   Dflow operator< (const Dflow &rhs) const { return BinaryOp(DATAFLOW_LESS_THAN,          *this, rhs); }
-   Dflow operator> (const Dflow &rhs) const { return BinaryOp(DATAFLOW_GREATER_THAN,       *this, rhs); }
-   Dflow operator<=(const Dflow &rhs) const { return BinaryOp(DATAFLOW_LESS_THAN_EQUAL,    *this, rhs); }
-   Dflow operator>=(const Dflow &rhs) const { return BinaryOp(DATAFLOW_GREATER_THAN_EQUAL, *this, rhs); }
-
    template <typename T> Dflow Equals(T n) const;
 
    DataflowType    GetType()        const { return m_dflow->type; }
@@ -218,14 +204,75 @@ private:
    Dataflow *m_dflow;
 };
 
+inline Dflow operator*(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_MUL, lhs, rhs);    }
+inline Dflow operator/(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_DIV, lhs, rhs);    }
+inline Dflow operator+(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_ADD, lhs, rhs);    }
+inline Dflow operator-(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_SUB, lhs, rhs);    }
+
+inline Dflow operator-(const Dflow &arg)                    { return Dflow::UnaryOp(DATAFLOW_ARITH_NEGATE, arg); }
+inline Dflow operator!(const Dflow &arg)                    { return Dflow::UnaryOp(DATAFLOW_LOGICAL_NOT,  arg); }
+
+inline Dflow operator&(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_BITWISE_AND, lhs, rhs); }
+inline Dflow operator|(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_BITWISE_OR,  lhs, rhs); }
+inline Dflow operator^(const Dflow &lhs, const Dflow &rhs)  { return Dflow::BinaryOp(DATAFLOW_BITWISE_XOR, lhs, rhs); }
+
+inline Dflow operator&&(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_LOGICAL_AND, lhs, rhs); }
+inline Dflow operator||(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_LOGICAL_OR,  lhs, rhs); }
+inline Dflow operator<<(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_SHL,         lhs, rhs); }
+inline Dflow operator>>(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_SHR,         lhs, rhs); }
+
+inline Dflow operator==(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_EQUAL,              lhs, rhs); }
+inline Dflow operator!=(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_NOT_EQUAL,          lhs, rhs); }
+inline Dflow operator< (const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_LESS_THAN,          lhs, rhs); }
+inline Dflow operator> (const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_GREATER_THAN,       lhs, rhs); }
+inline Dflow operator<=(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_LESS_THAN_EQUAL,    lhs, rhs); }
+inline Dflow operator>=(const Dflow &lhs, const Dflow &rhs) { return Dflow::BinaryOp(DATAFLOW_GREATER_THAN_EQUAL, lhs, rhs); }
+
+inline Dflow operator+(const Dflow &lhs, uint32_t rhs)      { return lhs + Dflow::TypedInt(lhs, rhs); }
+inline Dflow operator-(const Dflow &lhs, uint32_t rhs)      { return lhs - Dflow::TypedInt(lhs, rhs); }
+inline Dflow operator*(const Dflow &lhs, uint32_t rhs)      { return lhs * Dflow::TypedInt(lhs, rhs); }
+inline Dflow operator/(const Dflow &lhs, uint32_t rhs)      { return lhs / Dflow::TypedInt(lhs, rhs); }
+
+inline Dflow operator+(const Dflow &lhs, int32_t rhs)       { return lhs + Dflow::TypedInt(lhs, rhs); }
+inline Dflow operator-(const Dflow &lhs, int32_t rhs)       { return lhs - Dflow::TypedInt(lhs, rhs); }
+inline Dflow operator*(const Dflow &lhs, int32_t rhs)       { return lhs * Dflow::TypedInt(lhs, rhs); }
+inline Dflow operator/(const Dflow &lhs, int32_t rhs)       { return lhs / Dflow::TypedInt(lhs, rhs); }
+
+inline Dflow operator+(const Dflow &lhs, float rhs)         { return lhs + Dflow::Float(rhs); }
+inline Dflow operator-(const Dflow &lhs, float rhs)         { return lhs - Dflow::Float(rhs); }
+inline Dflow operator*(const Dflow &lhs, float rhs)         { return lhs * Dflow::Float(rhs); }
+inline Dflow operator/(const Dflow &lhs, float rhs)         { return lhs / Dflow::Float(rhs); }
+
+inline Dflow operator+(uint32_t lhs, const Dflow &rhs)      { return Dflow::TypedInt(rhs, lhs) + rhs; }
+inline Dflow operator-(uint32_t lhs, const Dflow &rhs)      { return Dflow::TypedInt(rhs, lhs) - rhs; }
+inline Dflow operator*(uint32_t lhs, const Dflow &rhs)      { return Dflow::TypedInt(rhs, lhs) * rhs; }
+inline Dflow operator/(uint32_t lhs, const Dflow &rhs)      { return Dflow::TypedInt(rhs, lhs) / rhs; }
+
+inline Dflow operator+(int32_t lhs, const Dflow &rhs)       { return Dflow::TypedInt(rhs, lhs) + rhs; }
+inline Dflow operator-(int32_t lhs, const Dflow &rhs)       { return Dflow::TypedInt(rhs, lhs) - rhs; }
+inline Dflow operator*(int32_t lhs, const Dflow &rhs)       { return Dflow::TypedInt(rhs, lhs) * rhs; }
+inline Dflow operator/(int32_t lhs, const Dflow &rhs)       { return Dflow::TypedInt(rhs, lhs) / rhs; }
+
+inline Dflow operator+(float lhs, const Dflow &rhs)         { return Dflow::Float(lhs) + rhs; }
+inline Dflow operator-(float lhs, const Dflow &rhs)         { return Dflow::Float(lhs) - rhs; }
+inline Dflow operator*(float lhs, const Dflow &rhs)         { return Dflow::Float(lhs) * rhs; }
+inline Dflow operator/(float lhs, const Dflow &rhs)         { return Dflow::Float(lhs) / rhs; }
+
+inline Dflow operator&(const Dflow &lhs, uint32_t rhs)      { assert(lhs.GetType() == DF_UINT); return lhs & Dflow::UInt(rhs); }
+inline Dflow operator&(const Dflow &lhs, int32_t rhs)       { assert(lhs.GetType() == DF_INT);  return lhs & Dflow::Int(rhs);  }
+inline Dflow operator|(const Dflow &lhs, uint32_t rhs)      { assert(lhs.GetType() == DF_UINT); return lhs | Dflow::UInt(rhs); }
+inline Dflow operator|(const Dflow &lhs, int32_t rhs)       { assert(lhs.GetType() == DF_INT);  return lhs | Dflow::Int(rhs);  }
+inline Dflow operator^(const Dflow &lhs, uint32_t rhs)      { assert(lhs.GetType() == DF_UINT); return lhs ^ Dflow::UInt(rhs); }
+inline Dflow operator^(const Dflow &lhs, int32_t rhs)       { assert(lhs.GetType() == DF_INT);  return lhs ^ Dflow::Int(rhs);  }
+
 template <typename T> Dflow Dflow::Equals(T n) const
 {
    switch (m_dflow->type)
    {
-   case DF_BOOL  : return *this == Dflow::ConstantBool(static_cast<bool>(n != (T)0));
-   case DF_INT   : return *this == Dflow::ConstantInt(static_cast<int32_t>(n));
-   case DF_UINT  : return *this == Dflow::ConstantUInt(static_cast<uint32_t>(n));
-   case DF_FLOAT : return *this == Dflow::ConstantFloat(static_cast<float>(n));
+   case DF_BOOL  : return *this == Dflow::Bool(static_cast<bool>(n != (T)0));
+   case DF_INT   : return *this == Dflow::Int(static_cast<int32_t>(n));
+   case DF_UINT  : return *this == Dflow::UInt(static_cast<uint32_t>(n));
+   case DF_FLOAT : return *this == Dflow::Float(static_cast<float>(n));
    default       : assert(0); return *this;
    }
 }

@@ -213,7 +213,7 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
                 const BIMG_Interface *pImageInterface,
                 void **pImageContext,
                 BDSP_RaagaImgCacheEntry * pImgCache,
-                const BDSP_RaagaUsageOptions *pUsage,
+                const BDSP_UsageOptions *pUsage,
                 bool UseBDSPMacro)
 {
     unsigned i=0;
@@ -357,7 +357,7 @@ BERR_Code BDSP_Raaga_P_DumpImage(
 {
     BERR_Code errCode = BERR_SUCCESS;
     BDSP_RaagaImgCacheEntry *pImgCache, *pImgCachelocal;
-    const BDSP_RaagaUsageOptions Usage;
+    const BDSP_UsageOptions Usage;
     bool bUseBDSPMacro = true;
     unsigned i;
     unsigned uiFwBinSize, uiFwBinSizeWithGuardBand;
@@ -408,6 +408,7 @@ BERR_Code BDSP_Raaga_P_DumpImage(
     BKNI_Memset( pBuffer, 0, uiFwBinSizeWithGuardBand );
     Memory.pAddr = pBuffer;
     Memory.offset = 0;
+    Memory.hBlock = 0;
     errCode = BDSP_Raaga_P_PreLoadFwImages(
                 pImageInterface,
                 pImageContext,

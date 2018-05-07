@@ -42,7 +42,7 @@
 #ifdef NEXUS_HAS_HDMI_INPUT
 #include "nexus_hdmi_input.h"
 #else
-typedef void *NEXUS_HdmiInputHandle;
+#include "nexus_core_compat.h"
 #endif
 
 #ifdef __cplusplus

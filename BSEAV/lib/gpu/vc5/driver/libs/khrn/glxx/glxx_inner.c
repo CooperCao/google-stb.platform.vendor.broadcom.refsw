@@ -54,7 +54,7 @@ static void log_trace_rs(const GLXX_HW_RENDER_STATE_T *rs, const char *context)
       fb->rt_count,
       fb->width, fb->height,
       fb->ms ? "ms" : "non-ms");
-   for (unsigned b = 0; b < GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; ++b)
       if (rs->color_buffer_state[b] != GLXX_BUFSTATE_MISSING)
       {
          GFX_LFMT_SPRINT(lfmt_desc, khrn_image_plane_lfmt_maybe(&fb->color[b]));
@@ -136,7 +136,7 @@ void glxx_hw_render_state_reset_z_prepass(GLXX_HW_RENDER_STATE_T *rs)
    rs->z_prepass_allowed = khrn_options.z_prepass && rs->installed_fb.depth.image != NULL;
 }
 
-static void init_clear_colors(uint32_t clear_colors[GLXX_MAX_RENDER_TARGETS][4])
+static void init_clear_colors(uint32_t clear_colors[V3D_MAX_RENDER_TARGETS][4])
 {
 #if !defined(NDEBUG)
    // Bright pink background indicates undefined framebuffer contents.
@@ -146,7 +146,7 @@ static void init_clear_colors(uint32_t clear_colors[GLXX_MAX_RENDER_TARGETS][4])
    float color[4] = {0.0, 0.0, 0.0, 1.0}; /*R,G,B,A */
 #endif
 
-   for (unsigned b = 0; b < GLXX_MAX_RENDER_TARGETS; b++)
+   for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; b++)
    {
       for (unsigned i = 0; i < 4; i++)
          clear_colors[b][i] = gfx_float_to_bits(color[i]);
@@ -167,7 +167,7 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
 
    glxx_assign_hw_framebuffer(&rs->installed_fb, fb);
 
-   for (unsigned b = 0; b < GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; ++b)
    {
       glxx_bufstate_t nonms_bufstate;
       if (!begin_img_plane_write(&nonms_bufstate, &rs->fmem, &fb->color[b], KHRN_CHANGRP_ALL))
@@ -219,7 +219,7 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
    rs->depth_value   = 1.0f;
    rs->stencil_value = 0;
 
-   glxx_ez_init(&rs->ez, khrn_options.early_z);
+   early_z_init(&rs->ez, khrn_options.early_z);
 
    // initialise record keeping (assume rs is zero filled already)
    if (GLXX_MULTICORE_BIN_ENABLED)
@@ -243,15 +243,15 @@ struct glxx_hw_tile_cfg
    bool ms, double_buffer;
    v3d_rt_bpp_t max_rt_bpp;
    unsigned num_tiles_x, num_tiles_y;
-
+   unsigned tile_w, tile_h;
 };
 
 struct glxx_hw_supertile_cfg
 {
    unsigned frame_w_in_supertiles, frame_h_in_supertiles;
    unsigned supertile_w_in_tiles, supertile_h_in_tiles;
+   unsigned supertile_w, supertile_h;
 };
-
 
 static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
    const struct glxx_hw_tile_cfg *tile_cfg,
@@ -277,16 +277,21 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
       r_size += v3d_cl_rcfg_clear_colors_size(fb->color_rt_format[b].bpp);
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // zs clear values
 
-   // Initial TLB clear
+   // Dummy tiles for clearing the TLB and working around HW bugs
 #if V3D_VER_AT_LEAST(4,1,34,0)
+   unsigned clear_tiles = tile_cfg->double_buffer ? 2 : 1;
+   unsigned dummy_tiles = clear_tiles;
+#if !V3D_HAS_GFXH1742_FIX
+   // Need at least 2 dummy tiles to workaround GFXH-1742
+   dummy_tiles = gfx_umax(dummy_tiles, 2);
+#endif
    {
-      size_t clear_size =
+      size_t dummy_size =
          V3D_CL_TILE_COORDS_SIZE +
          V3D_CL_END_LOADS_SIZE +
          V3D_CL_STORE_SIZE +
-         V3D_CL_CLEAR_SIZE +
          V3D_CL_END_TILE_SIZE;
-      r_size += (tile_cfg->double_buffer ? 2 : 1) * clear_size;
+      r_size += (dummy_tiles * dummy_size) + (clear_tiles * V3D_CL_CLEAR_SIZE);
    }
 #else
    r_size += V3D_CL_TILE_COORDS_SIZE;
@@ -352,9 +357,7 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
          {
             i.u.color.rt_formats[b].bpp = V3D_RT_BPP_32;
             i.u.color.rt_formats[b].type = V3D_RT_TYPE_8;
-#if V3D_VER_AT_LEAST(4,1,34,0)
             i.u.color.rt_formats[b].clamp = V3D_RT_CLAMP_NONE;
-#endif
          }
       }
       v3d_cl_tile_rendering_mode_cfg_indirect(&instr, &i);
@@ -460,9 +463,9 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
       ~0, khrn_hw_render_state_allocated_order(rs));
 #endif
 
-   // Initial TLB clear
+   // Dummy tiles for clearing the TLB and working around HW bugs
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   for (unsigned i = 0; i != (tile_cfg->double_buffer ? 2 : 1); ++i)
+   for (unsigned i = 0; i != dummy_tiles; ++i)
    {
       v3d_cl_tile_coords(&instr, 0, 0);
       v3d_cl_end_loads(&instr);
@@ -478,19 +481,19 @@ static bool create_render_cl_common(GLXX_HW_RENDER_STATE_T *rs,
          V3D_DECIMATE_SAMPLE0,
          V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
          /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
          /*chan_reverse=*/false,
          /*rb_swap=*/false,
-#endif
          /*stride=*/0,
          /*height=*/0,
          /*addr=*/0);
-      v3d_cl_clear(&instr, /*rts=*/true, /*depth_stencil=*/!rcfg->early_ds_clear);
+      if (i < clear_tiles)
+         v3d_cl_clear(&instr, /*rts=*/true, /*depth_stencil=*/!rcfg->early_ds_clear);
       v3d_cl_end_tile(&instr);
    }
 #else
    // GFXH-1668 means we cannot do the ocq cache filling in the first tile on
-   // 3.3, so need two dummy tiles...
+   // 3.3, so need two dummy tiles. Note we always want at least one dummy tile
+   // to workaround GFXH-1742.
    unsigned dummy_tiles = (fill_ocq_cache && V3D_VER_AT_LEAST(3,3,0,0)) ? 2 : 1;
    for (unsigned i = 0; i != dummy_tiles; ++i)
    {
@@ -594,14 +597,10 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
          rs->installed_fb.height);
 #else
       v3d_cl_tile_binning_mode_cfg_part1(&instr,
-         !V3D_VER_AT_LEAST(4,1,34,0), // auto_init_tile_state (!V3D_VER_AT_LEAST(4,1,34,0)) / set_tile_state_addr (V3D_VER_AT_LEAST(4,1,34,0))
+         /*auto_init_tile_state=*/true,
          v3d_translate_tile_alloc_block_size(c_initial_tile_alloc_block_size),
          v3d_translate_tile_alloc_block_size(c_tile_alloc_block_size),
-       #if !V3D_VER_AT_LEAST(4,1,34,0)
          tile_state_addr,
-       #else
-         0,
-       #endif
          tile_cfg->num_tiles_x,
          tile_cfg->num_tiles_y,
          rs->installed_fb.rt_count,
@@ -721,10 +720,36 @@ static bool create_render_subjob_cl(GLXX_HW_RENDER_STATE_T *rs,
          gfx_morton_init(&morton, supertile_cfg->frame_w_in_supertiles,
                supertile_cfg->frame_h_in_supertiles, morton_flags);
 
+         GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
+
+         uint32_t st_w = supertile_cfg->supertile_w;
+         uint32_t st_h = supertile_cfg->supertile_h;
+
          uint32_t x, y;
          for (unsigned i = 0; gfx_morton_next(&morton, &x, &y, NULL); ++i)
             if (i >= begin_supertile && i < end_supertile)
-               v3d_cl_supertile_coords(&instr, x, y);
+            {
+               bool want_supertile = (fb->num_damage_rects <= 0);
+
+               if (!want_supertile)
+               {
+                  gfx_rect supertile_rect = { x * st_w, y * st_h, st_w, st_h };
+
+                  for (int32_t r = 0; r < fb->num_damage_rects; r++)
+                  {
+                     gfx_rect damage_rect = { fb->damage_rects[r * 4 + 0], fb->damage_rects[r * 4 + 1],
+                                               fb->damage_rects[r * 4 + 2], fb->damage_rects[r * 4 + 3] };
+
+                     want_supertile = gfx_do_rects_intersect(&supertile_rect, &damage_rect);
+
+                     if (want_supertile)
+                        break;
+                  }
+               }
+
+               if (want_supertile)
+                  v3d_cl_supertile_coords(&instr, x, y);
+            }
       }
    }
 
@@ -742,6 +767,9 @@ static void calc_supertile_cfg(struct glxx_hw_supertile_cfg *supertile_cfg,
          khrn_options.min_supertile_w, khrn_options.min_supertile_h,
          khrn_options.max_supertiles, &supertile_cfg->supertile_w_in_tiles,
          &supertile_cfg->supertile_h_in_tiles);
+
+   supertile_cfg->supertile_w = supertile_cfg->supertile_w_in_tiles * tile_cfg->tile_w;
+   supertile_cfg->supertile_h = supertile_cfg->supertile_h_in_tiles * tile_cfg->tile_h;
 
    supertile_cfg->frame_w_in_supertiles =
       gfx_udiv_round_up(tile_cfg->num_tiles_x, supertile_cfg->supertile_w_in_tiles);
@@ -961,7 +989,7 @@ static void invalidate_resources_based_on_bufstates(GLXX_HW_RENDER_STATE_T *rs)
 {
    GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
 
-   for (unsigned int b = 0; b < GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned int b = 0; b < V3D_MAX_RENDER_TARGETS; ++b)
    {
       bool undefined = glxx_bufstate_is_undefined(rs->color_buffer_state[b]);
       if (undefined)
@@ -1004,12 +1032,11 @@ static bool calc_tile_cfg_and_prep_tile_list_fb_ops(
       if (rs->installed_fb.color_rt_format[b].bpp > tile_cfg->max_rt_bpp) /* Assume V3D_RT_BPP_* values are sensibly ordered... */
          tile_cfg->max_rt_bpp = rs->installed_fb.color_rt_format[b].bpp;
 
-   uint32_t tile_w, tile_h;
-   v3d_tile_size_pixels(&tile_w, &tile_h,
+   v3d_tile_size_pixels(&tile_cfg->tile_w, &tile_cfg->tile_h,
       tile_cfg->ms, tile_cfg->double_buffer,
       rs->installed_fb.rt_count, tile_cfg->max_rt_bpp);
-   tile_cfg->num_tiles_x = gfx_udiv_round_up(rs->installed_fb.width, tile_w);
-   tile_cfg->num_tiles_y = gfx_udiv_round_up(rs->installed_fb.height, tile_h);
+   tile_cfg->num_tiles_x = gfx_udiv_round_up(rs->installed_fb.width, tile_cfg->tile_w);
+   tile_cfg->num_tiles_y = gfx_udiv_round_up(rs->installed_fb.height, tile_cfg->tile_h);
 
    return true;
 }

@@ -5,6 +5,8 @@
 #include "AllObjects.h"
 #include "Common.h"
 
+#include "libs/core/v3d/v3d_align.h"
+
 namespace bvk {
 
 LOG_DEFAULT_CAT("bvk::DeviceMemory");
@@ -22,13 +24,15 @@ DeviceMemory::DeviceMemory(
    assert(m_props & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
    m_usage = GMEM_USAGE_V3D_RW;
 
-   log_trace("%s: size = %zu, mem type index = %u", __FUNCTION__,
+   log_trace("%s: mem = %p size = %zu, mem type index = %u", __FUNCTION__, this,
          (size_t)pAllocateInfo->allocationSize, pAllocateInfo->memoryTypeIndex);
 
+   bool roundToNonCoherentAtomSize = true;
    if (m_props & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
    {
       assert((m_props & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == 0);
       m_usage |= GMEM_USAGE_COHERENT;
+      roundToNonCoherentAtomSize = false;
       log_trace("   Coherent allocation");
    }
 
@@ -37,6 +41,11 @@ DeviceMemory::DeviceMemory(
    constexpr size_t padding = 64;
 
    m_size = (size_t)pAllocateInfo->allocationSize + padding;
+   if (roundToNonCoherentAtomSize)
+   {
+      size_t nonCoherentAtomSize = pDevice->GetPhysicalDevice()->Limits().nonCoherentAtomSize;
+      m_size = gfx_zround_up(m_size, nonCoherentAtomSize);
+   }
 
    if (!IsLazy())
    {
@@ -48,6 +57,8 @@ DeviceMemory::DeviceMemory(
 
       if (m_handle == nullptr)
          throw bvk::bad_device_alloc();
+
+      log_trace("   Phys = %08X", gmem_get_addr(m_handle));
    }
    else
       log_trace("   Lazy allocation");
@@ -65,6 +76,9 @@ DeviceMemory::DeviceMemory(
 
 DeviceMemory::~DeviceMemory() noexcept
 {
+   if (m_handle)
+      log_trace("Free DeviceMemory : mem = %p, phys = %08X, mapPtr = %p", this,
+                gmem_get_addr(m_handle), m_mapPtr);
    gmem_free(m_handle);
 }
 
@@ -105,7 +119,8 @@ VkResult DeviceMemory::MapMemory(
          return VK_ERROR_MEMORY_MAP_FAILED;
    }
 
-   log_trace("%s: mem = %p mapPtr=%p", __FUNCTION__, this, m_mapPtr);
+   log_trace("%s: mem = %p, phys = %08X, mapPtr = %p", __FUNCTION__, this,
+             gmem_get_addr(m_handle), m_mapPtr);
 
    // We can safely ignore size (& VK_WHOLE_SIZE) & flags
    *ppData = (void*)((uintptr_t)m_mapPtr + offset);
@@ -116,6 +131,9 @@ VkResult DeviceMemory::MapMemory(
 void DeviceMemory::UnmapMemory(
    bvk::Device *device) noexcept
 {
+   log_trace("%s (no-op): mem = %p, phys = %08X, mapPtr = %p", __FUNCTION__, this,
+             gmem_get_addr(m_handle), m_mapPtr);
+
    assert(m_mapPtr != nullptr);
 }
 
@@ -144,22 +162,27 @@ static inline size_t GetRangeSize(
 void DeviceMemory::FlushMappedRange(
    const VkMappedMemoryRange &range) noexcept
 {
-   log_trace("%s: mem=%p offset = %zu size = %zu", __FUNCTION__, this,
-             (size_t)range.offset, GetRangeSize(m_handle, range));
-   if (range.size > 0)
-      gmem_flush_mapped_range(m_handle, (size_t)range.offset,
-                                     GetRangeSize(m_handle, range));
+   if ((m_usage & GMEM_USAGE_COHERENT) == 0)
+   {
+      log_trace("%s: mem = %p, base_phys = %08X, offset = %zu, size = %zu", __FUNCTION__, this,
+                gmem_get_addr(m_handle), (size_t)range.offset, GetRangeSize(m_handle, range));
+      if (range.size > 0)
+         gmem_flush_mapped_range(m_handle, (size_t)range.offset,
+            GetRangeSize(m_handle, range));
+   }
 }
 
 void DeviceMemory::InvalidateMappedRange(
    const VkMappedMemoryRange &range) noexcept
 {
-   log_trace("%s: mem=%p offset = %zu size = %zu", __FUNCTION__, this,
-             (size_t)range.offset, GetRangeSize(m_handle, range));
-   if (range.size > 0)
-      gmem_invalidate_mapped_range(m_handle, (size_t)range.offset,
-                                     GetRangeSize(m_handle, range));
+   if ((m_usage & GMEM_USAGE_COHERENT) == 0)
+   {
+      log_trace("%s: mem = %p, base_phys = %08X, offset = %zu, size = %zu", __FUNCTION__, this,
+                gmem_get_addr(m_handle), (size_t)range.offset, GetRangeSize(m_handle, range));
+      if (range.size > 0)
+         gmem_invalidate_mapped_range(m_handle, (size_t)range.offset,
+                                        GetRangeSize(m_handle, range));
+   }
 }
-
 
 } // namespace bvk

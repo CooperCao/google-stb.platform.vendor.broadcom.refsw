@@ -80,7 +80,11 @@ static void print_node(FILE *f, Backflow *backflow)
             case V3D_QPU_SIG_LDVARY:     /* will use a different node type (not SIG) */
             case V3D_QPU_SIG_THRSW:
             case V3D_QPU_SIG_UCB:
-            case V3D_QPU_SIG_ROTATE:  assert(0);  break;
+#if !V3D_HAS_SFU_ROTATE
+            case V3D_QPU_SIG_ROTATE:
+#endif
+               assert(0);
+               break;
 #if V3D_VER_AT_LEAST(4,1,34,0)
             case V3D_QPU_SIG_WRTMUC: fprintf(f, "wrtmuc");  break;
 #else
@@ -121,12 +125,14 @@ static void print_node(FILE *f, Backflow *backflow)
             case REG_MAGIC_NOP:     fprintf(f, " -> [nop]");   break;
             case REG_MAGIC_TLB:     fprintf(f, " -> tlb");     break;
             case REG_MAGIC_TLBU:    fprintf(f, " -> tlbu");    break;
+#if !V3D_HAS_NO_SFU_MAGIC
             case REG_MAGIC_RECIP:   fprintf(f, " -> rcp");     break;
             case REG_MAGIC_RSQRT:   fprintf(f, " -> rsqrt");   break;
             case REG_MAGIC_EXP:     fprintf(f, " -> exp2");    break;
             case REG_MAGIC_LOG:     fprintf(f, " -> log2");    break;
             case REG_MAGIC_SIN:     fprintf(f, " -> sin");     break;
             case REG_MAGIC_RSQRT2:  fprintf(f, " -> rsqrt2");  break;
+#endif
             case REG_MAGIC_TMUD:    fprintf(f, " -> tmud");    break;
             case REG_MAGIC_TMUA:    fprintf(f, " -> tmua");    break;
             case REG_MAGIC_TMUAU:   fprintf(f, " -> tmuau");   break;

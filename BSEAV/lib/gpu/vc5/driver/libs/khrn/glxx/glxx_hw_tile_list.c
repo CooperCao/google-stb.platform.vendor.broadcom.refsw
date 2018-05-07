@@ -169,9 +169,7 @@ static void write_load(uint8_t **instr,
       v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, uint32_t layer_offset)
 {
    v3d_cl_load(instr, buf, ls->memory_format, ls->flipy, ls->decimate, ls->pixel_format,
-#if V3D_VER_AT_LEAST(4,1,34,0)
          ls->load_alpha_to_one, ls->chan_reverse, ls->rb_swap,
-#endif
          ls->stride, ls->flipy_height_px, ls->addr + layer_offset);
 }
 
@@ -180,7 +178,7 @@ static bool write_begin_and_loads(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_
 {
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
          V3D_CL_IMPLICIT_TILE_COORDS_SIZE +
-         ((GLXX_MAX_RENDER_TARGETS + 2) * V3D_CL_LOAD_SIZE) +
+         ((V3D_MAX_RENDER_TARGETS + 2) * V3D_CL_LOAD_SIZE) +
          V3D_CL_END_LOADS_SIZE);
    if (!instr)
       return false;
@@ -217,12 +215,12 @@ static bool write_begin_and_loads(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_
 }
 
 static void count_ops(
-      unsigned num_rt_stores[GLXX_MAX_RENDER_TARGETS],
+      unsigned num_rt_stores[V3D_MAX_RENDER_TARGETS],
       uint32_t *rt_store_mask, bool *ds_load, bool *ds_store,
       const GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_list_fb_ops *fb_ops,
       unsigned layer)
 {
-   memset(num_rt_stores, 0, GLXX_MAX_RENDER_TARGETS * sizeof(*num_rt_stores));
+   memset(num_rt_stores, 0, V3D_MAX_RENDER_TARGETS * sizeof(*num_rt_stores));
    *rt_store_mask = 0;
    *ds_load = false;
    *ds_store = false;
@@ -262,21 +260,18 @@ static void write_store(uint8_t **instr,
       v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, uint32_t layer_offset, bool clear)
 {
    v3d_cl_store(instr, buf, ls->memory_format, ls->flipy, ls->dither,
-         ls->decimate, ls->pixel_format, clear,
-#if V3D_VER_AT_LEAST(4,1,34,0)
-         ls->chan_reverse, ls->rb_swap,
-#endif
+         ls->decimate, ls->pixel_format, clear, ls->chan_reverse, ls->rb_swap,
          ls->stride, ls->flipy_height_px, ls->addr + layer_offset);
 }
 
-static void write_rt_store(uint8_t **instr, unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS],
+static void write_rt_store(uint8_t **instr, unsigned remaining_rt_stores[V3D_MAX_RENDER_TARGETS],
       unsigned b, const struct v3d_tlb_ldst_params *ls, uint32_t layer_offset)
 {
    write_store(instr, v3d_ldst_buf_color(b), ls, layer_offset, --remaining_rt_stores[b] == 0);
 }
 
 //blits use only layer 0 when src or dst layer are layered
-static bool write_blit_stores(uint8_t **instr, unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS],
+static bool write_blit_stores(uint8_t **instr, unsigned remaining_rt_stores[V3D_MAX_RENDER_TARGETS],
       GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, const GLXX_BLIT_T *blit)
 {
    if (blit->color)
@@ -308,7 +303,7 @@ static bool write_blit_stores(uint8_t **instr, unsigned remaining_rt_stores[GLXX
    return true;
 }
 
-static void write_fb_stores(uint8_t **instr, unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS],
+static void write_fb_stores(uint8_t **instr, unsigned remaining_rt_stores[V3D_MAX_RENDER_TARGETS],
       const struct glxx_hw_tile_list_fb_ops *fb_ops, uint32_t layer)
 {
    for (uint32_t b = 0, nonms_mask = fb_ops->rt_nonms_store_mask, ms_mask = fb_ops->rt_ms_store_mask;
@@ -336,14 +331,14 @@ static bool write_stores_clears_end_and_rcfg(
       GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, bool double_buffer,
       const struct glxx_hw_tile_list_fb_ops *fb_ops, uint32_t layer)
 {
-   unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS];
+   unsigned remaining_rt_stores[V3D_MAX_RENDER_TARGETS];
    uint32_t rt_store_mask;
    bool ds_load, ds_store;
    count_ops(remaining_rt_stores, &rt_store_mask, &ds_load, &ds_store, rs, fb_ops, layer);
 
    size_t size =
-      (layer == 0 ? (rs->num_blits * ((GLXX_MAX_RENDER_TARGETS + 1) * V3D_CL_STORE_SIZE)) : 0) + /* Blit stores */
-      (((2 * GLXX_MAX_RENDER_TARGETS) + 2) * V3D_CL_STORE_SIZE) + /* Framebuffer stores */
+      (layer == 0 ? (rs->num_blits * ((V3D_MAX_RENDER_TARGETS + 1) * V3D_CL_STORE_SIZE)) : 0) + /* Blit stores */
+      (((2 * V3D_MAX_RENDER_TARGETS) + 2) * V3D_CL_STORE_SIZE) + /* Framebuffer stores */
       V3D_CL_CLEAR_SIZE +
       V3D_CL_END_TILE_SIZE +
       V3D_CL_RETURN_SIZE;
@@ -375,28 +370,21 @@ static bool write_stores_clears_end_and_rcfg(
             V3D_DECIMATE_SAMPLE0,
             V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
             /*clear=*/false,
-#if V3D_VER_AT_LEAST(4,1,34,0)
             /*chan_reverse=*/false,
             /*rb_swap=*/false,
-#endif
             /*stride=*/0,
             /*height=*/0,
             /*addr=*/0);
+
+   /* Can enable early depth/stencil clear optimisation in HW if we are not
+    * loading or storing depth/stencil. Never enable in double-buffer mode --
+    * doesn't make sense. */
+   rcfg->early_ds_clear = !double_buffer && !ds_load && !ds_store;
 
    /* We always set the clear flag on the last store of each RT. If an RT is
     * not stored but needs to be cleared we do a full clear of all RTs at the
     * end. */
    bool clear_all_rts_at_end = (fb_ops->rt_clear_mask & ~rt_store_mask) != 0;
-
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   /* Can enable early depth/stencil clear optimisation in HW if we are not
-    * loading or storing depth/stencil. Never enable in double-buffer mode --
-    * doesn't make sense. */
-   rcfg->early_ds_clear = !double_buffer && !ds_load && !ds_store;
-#else
-   rcfg->early_ds_clear = false;
-#endif
-
    if (clear_all_rts_at_end || !rcfg->early_ds_clear)
       v3d_cl_clear(&instr, clear_all_rts_at_end, !rcfg->early_ds_clear);
 
@@ -433,7 +421,7 @@ static bool write_begin_and_loads(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_
 
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
          V3D_CL_LOAD_SIZE +
-         (GLXX_MAX_RENDER_TARGETS * (V3D_CL_IMPLICIT_TILE_COORDS_SIZE + V3D_CL_STORE_GENERAL_SIZE + V3D_CL_LOAD_GENERAL_SIZE)) + /* Multisample color loads */
+         (V3D_MAX_RENDER_TARGETS * (V3D_CL_IMPLICIT_TILE_COORDS_SIZE + V3D_CL_STORE_GENERAL_SIZE + V3D_CL_LOAD_GENERAL_SIZE)) + /* Multisample color loads */
          V3D_CL_IMPLICIT_TILE_COORDS_SIZE);
    if (!instr)
       return false;
@@ -497,7 +485,7 @@ static void rcfg_init_unused_params(struct v3d_tlb_ldst_params *ls, bool color)
 
 static void rcfg_init(struct glxx_hw_tile_list_rcfg *rcfg, const struct glxx_hw_tile_list_fb_ops *fb_ops)
 {
-   for (unsigned b = 0; b != GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b != V3D_MAX_RENDER_TARGETS; ++b)
       if ((fb_ops->rt_nonms_load_mask | fb_ops->rt_nonms_store_mask) & (1u << b))
          rcfg->rt_ls[b] = fb_ops->rt_nonms_ls[b];
       else
@@ -556,7 +544,7 @@ static void rcfg_finalise(struct glxx_hw_tile_list_rcfg *rcfg)
          assert(!v3d_depth_format_has_stencil(rcfg->depth_ls.output_format.depth));
    }
 
-   for (unsigned b = 0; b != GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b != V3D_MAX_RENDER_TARGETS; ++b)
       rcfg_finalise_params(&rcfg->rt_ls[b], /*color=*/true);
    rcfg_finalise_params(&rcfg->depth_ls, /*color=*/false);
    rcfg_finalise_params(&rcfg->sep_stencil_ls, /*color=*/false);
@@ -669,8 +657,8 @@ static bool write_stores_clears_end_and_rcfg(
    rcfg_init(rcfg, fb_ops);
 
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
-         (rs->num_blits * ((GLXX_MAX_RENDER_TARGETS + 1) * (V3D_CL_STORE_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE))) + /* Blit stores */
-         (GLXX_MAX_RENDER_TARGETS * (V3D_CL_STORE_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE)) + /* Multisample color stores */
+         (rs->num_blits * ((V3D_MAX_RENDER_TARGETS + 1) * (V3D_CL_STORE_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE))) + /* Blit stores */
+         (V3D_MAX_RENDER_TARGETS * (V3D_CL_STORE_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE)) + /* Multisample color stores */
          V3D_CL_STORE_SUBSAMPLE_SIZE +
          V3D_CL_RETURN_SIZE);
    if (!instr)

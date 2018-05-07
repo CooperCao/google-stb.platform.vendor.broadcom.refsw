@@ -49,8 +49,22 @@ static_assrt((1u << V3D_VP_COARSE_OFFSET_SHIFT) >= V3D_MAX_TLB_HEIGHT_PX);
 
 #define V3D_MAX_SAMPLES          4
 
+/* Number of bits of sub-pixel precision in the rasterizer */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#define V3D_COORD_SHIFT 6
+#else
+#define V3D_COORD_SHIFT 4
+#endif
+static_assrt(V3D_COORD_SHIFT >= 4);
+static_assrt(V3D_COORD_SHIFT <= 8);
+
+#define V3D_COORD_SCALE (1 << V3D_COORD_SHIFT)
+
 #define V3D_MAX_POINT_SIZE 512.0f
 #define V3D_MAX_LINE_WIDTH 32.0f
+
+/* Point and line *half* widths are resolved at rasteriser precision */
+#define V3D_POINT_LINE_GRANULARITY (2.0f / V3D_COORD_SCALE)
 
 #define V3D_MAX_VERTS_PER_PRIM 32
 
@@ -106,7 +120,7 @@ static_assrt((1u << V3D_VP_COARSE_OFFSET_SHIFT) >= V3D_MAX_TLB_HEIGHT_PX);
 
 #define V3D_TFU_MAX_WIDTH 16384
 #define V3D_TFU_MAX_HEIGHT 16384
-#define V3D_TFU_MAX_STRIDE 65535
+#define V3D_TFU_MAX_STRIDE 32767
 #define V3D_TFU_MAX_JOBS 32
 
 #define V3D_MMU_PAGE_SIZE (4096)
@@ -117,19 +131,8 @@ static_assrt((1u << V3D_VP_COARSE_OFFSET_SHIFT) >= V3D_MAX_TLB_HEIGHT_PX);
 
 #define V3D_MAX_GEOMETRY_INVOCATIONS 32u
 
-/* Number of bits of sub-pixel precision in the rasterizer */
-#if V3D_VER_AT_LEAST(4,1,34,0)
-#define V3D_COORD_SHIFT 6
-#else
-#define V3D_COORD_SHIFT 4
-#endif
-static_assrt(V3D_COORD_SHIFT >= 4);
-static_assrt(V3D_COORD_SHIFT <= 8);
-
 #define V3D_MAX_TEXTURE_DIM_BITS 14
 #define V3D_MAX_TEXTURE_SIZE (1 << V3D_MAX_TEXTURE_DIM_BITS)
-
-#define V3D_COORD_SCALE (1 << V3D_COORD_SHIFT)
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
 #define V3D_MAX_PCTR_SRC 32

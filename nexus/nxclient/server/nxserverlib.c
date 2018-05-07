@@ -1612,6 +1612,7 @@ NEXUS_Error NxClient_P_HdmiOutput_GetCrcData(nxclient_t client, NxClient_HdmiOut
                                            &pData->numEntries);
     }
 #else
+    BSTD_UNUSED(pData);
     return NEXUS_NOT_AVAILABLE;
 #endif
 }
@@ -1674,6 +1675,11 @@ NEXUS_Error NxClient_P_LoadHdcpKeys(nxclient_t client, NxClient_HdcpType hdcpTyp
     }
     return nxserver_load_hdcp_keys(client->session, hdcpType, block, blockOffset, size);
 #else
+    BSTD_UNUSED(client);
+    BSTD_UNUSED(hdcpType);
+    BSTD_UNUSED(block);
+    BSTD_UNUSED(blockOffset);
+    BSTD_UNUSED(size);
     return NEXUS_NOT_AVAILABLE;
 #endif
 }
@@ -1686,6 +1692,8 @@ NEXUS_Error NxClient_P_SetHdmiInputRepeater(nxclient_t client, NEXUS_HdmiInputHa
     }
     return nxserver_set_hdmi_input_repeater(client, hdmiInput);
 #else
+    BSTD_UNUSED(client);
+    BSTD_UNUSED(hdmiInput);
     return NEXUS_NOT_AVAILABLE;
 #endif
 }
@@ -1930,9 +1938,14 @@ bool nxserverlib_p_native_3d_active(struct b_session *session)
 
 bool nxserverlib_p_dolby_vision_active(struct b_session *session)
 {
+#if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_HdmiOutputExtraStatus status;
     NEXUS_HdmiOutput_GetExtraStatus(session->hdmiOutput, &status);
     return status.dolbyVision.enabled;
+#else
+    BSTD_UNUSED(session);
+    return false;
+#endif
 }
 
 static void make_cursor(NEXUS_SurfaceHandle surface, const NEXUS_SurfaceCreateSettings *settings)
@@ -2354,6 +2367,8 @@ static void hotplug_callback_locked(void *pParam, int iParam)
                 if (bvnFormat && bvnFormat != session->nxclient.displaySettings.format) {
                     NxClient_DisplaySettings settings = session->nxclient.displaySettings;
                     settings.format = status.preferredVideoFormat;
+                    settings.hdmiPreferences.colorSpace = NEXUS_ColorSpace_eAuto;
+                    settings.hdmiPreferences.colorDepth = 0;
                     NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
                 }
             }
@@ -2366,6 +2381,8 @@ static void hotplug_callback_locked(void *pParam, int iParam)
             NxClient_DisplaySettings settings = session->nxclient.displaySettings;
             if (settings.format != session->server->settings.display.defaultSdFormat) {
                 settings.format = session->server->settings.display.defaultSdFormat;
+                settings.hdmiPreferences.colorSpace = NEXUS_ColorSpace_eAuto;
+                settings.hdmiPreferences.colorDepth = 0;
                 rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
                 if (!rc) {
                     session->hdmi.defaultSdActive = true;
@@ -2777,7 +2794,9 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
     settings->framebuffers = 0;
     settings->pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
     settings->client_mode = NEXUS_ClientMode_eMax; /* don't change */
+#if NEXUS_HAS_HDMI_OUTPUT
     settings->hdmi.dolbyVision.blendInIpt = true;
+#endif
     settings->display.display3DSettings.orientation = NEXUS_VideoOrientation_e2D;
     settings->display.format = NEXUS_VideoFormat_eUnknown; /* use HDMI preferred format, else 720p if supported, else SD */
     settings->display.defaultSdFormat = NEXUS_VideoFormat_eMax; /* allow cmdline or pick default in init_session() */
@@ -3079,6 +3098,7 @@ static int init_session(nxserver_t server, unsigned index)
         session->numWindows = NEXUS_NUM_VIDEO_WINDOWS;
         session->window[0].capabilities.deinterlaced = true; /* for now, only one MAD for session 0 main */
 
+#if NEXUS_HAS_HDMI_OUTPUT
         {
             NEXUS_DisplayPrivateSettings privateSettings;
             NEXUS_Display_GetPrivateSettings(session->display[session_display_index].display, &privateSettings);
@@ -3088,7 +3108,6 @@ static int init_session(nxserver_t server, unsigned index)
             if (rc) { rc = BERR_TRACE(rc); goto error; }
         }
 
-#if NEXUS_HAS_HDMI_OUTPUT
         if (session->hdmiOutput) {
             NEXUS_HdmiOutputSettings hdmiSettings;
             NEXUS_HdmiSpdInfoFrame hdmiSpdInfoFrame;
@@ -3337,7 +3356,9 @@ after_display_open:
         NEXUS_DisplaySettings displaySettings;
         NEXUS_Display_GetSettings(session->display[0].display, &displaySettings);
         settings.format = displaySettings.format;
+#if NEXUS_HAS_HDMI_OUTPUT
         settings.hdmiPreferences.version = session->hdcp.version_select;
+#endif
         rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
         if (rc) {
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -3349,6 +3370,8 @@ after_display_open:
                     settings.format = nxserver_p_supported_bvn_format(session, status.preferredVideoFormat);
                     if (!settings.format) {
                         settings.format = nxserver_p_default_sd_format(session);
+                        settings.hdmiPreferences.colorSpace = NEXUS_ColorSpace_eAuto;
+                        settings.hdmiPreferences.colorDepth = 0;
                     }
                     (void)NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
                 }

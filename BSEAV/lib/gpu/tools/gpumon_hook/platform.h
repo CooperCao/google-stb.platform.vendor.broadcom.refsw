@@ -52,12 +52,7 @@ typedef HANDLE MutexHandle;
 # define PL_FUNCTION __func__
 #endif
 
-extern void plCreateMutex(MutexHandle *handle);
-extern void plDestroyMutex(MutexHandle *handle);
-extern void plLockMutex(MutexHandle *handle);
-extern void plUnlockMutex(MutexHandle *handle);
-
-extern bool plGlobalLock(const char *funcName, bool *threadChanged);
+extern void plGlobalLock(const char *funcName, bool *threadChanged);
 extern void plGlobalUnlock();
 extern unsigned int plGetThreadID();
 

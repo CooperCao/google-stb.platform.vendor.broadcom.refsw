@@ -55,7 +55,7 @@
  */
 
 /** Size of the physmem for the debug buffer that should be passed to process
- * manager under the UUID of TX_UUID_DEBUG_CHANNEL_PHYSMEM, which will be used
+ * manager under the UUID of FPOS_UUID_DEBUG_CHANNEL_PHYSMEM, which will be used
  * for debug communications with the host.
  */
 #define PM_HOST_DEBUG_BUFFER_SIZE 4096
@@ -75,5 +75,5 @@ typedef enum
     PM_NO_RESOURCE,  /**< There is no resource with the given value */
     PM_BUFFER,       /**< There isn't room in the message buffer for the result */
     PM_ERRNO,        /**< The call failed due to an error and errno is set */
-    PM_TX_ERROR      /**< The call failed due to an error and txt_status returned where available */
+    PM_FPOS_ERROR      /**< The call failed due to an error and txt_status returned where available */
 } pm_status_t;

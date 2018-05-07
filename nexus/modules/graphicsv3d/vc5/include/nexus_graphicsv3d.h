@@ -66,9 +66,9 @@ typedef struct NEXUS_Graphicsv3d *NEXUS_Graphicsv3dHandle;
 #define NEXUS_GRAPHICSV3D_MAX_IDENTS            4
 #define NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS        4
 
-#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE 0
-#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP 1
-#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL 2
+#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE  0
+#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP  1
+#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL  2
 
 
 /* Workaround flags */
@@ -100,10 +100,10 @@ Filled by NEXUS_GraphicsVC5_GetInfo to report essential information about the co
 **/
 typedef struct NEXUS_Graphicsv3dInfo
 {
-   uint32_t    uiIdent[NEXUS_GRAPHICSV3D_MAX_CORES * NEXUS_GRAPHICSV3D_MAX_IDENTS];
-   uint32_t    uiHubIdent[NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS];
-   uint32_t    uiDDRMapVer;
-   uint32_t    uiSocQuirks;
+   uint32_t uiIdent[NEXUS_GRAPHICSV3D_MAX_CORES * NEXUS_GRAPHICSV3D_MAX_IDENTS];
+   uint32_t uiHubIdent[NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS];
+   uint32_t uiDDRMapVer;
+   uint32_t uiSocQuirks;
 } NEXUS_Graphicsv3dInfo;
 
 typedef enum NEXUS_Graphicsv3dJobType
@@ -120,6 +120,7 @@ typedef enum NEXUS_Graphicsv3dJobType
    NEXUS_Graphicsv3dJobType_eWaitOnEvent,
    NEXUS_Graphicsv3dJobType_eSetEvent,
    NEXUS_Graphicsv3dJobType_eResetEvent,
+   NEXUS_Graphicsv3dJobType_eCompute,
    NEXUS_Graphicsv3dJobType_eNumJobTypes
 } NEXUS_Graphicsv3dJobType;
 
@@ -161,11 +162,11 @@ Structure returned from a completion callback query NEXUS_Graphicsv3d_GetComplet
 **/
 typedef struct NEXUS_Graphicsv3dCompletion
 {
-   uint64_t                      uiJobId;
-   uint64_t                      uiCallback;
-   uint64_t                      uiData;
-   NEXUS_Graphicsv3dJobStatus    eStatus;
-   NEXUS_Graphicsv3dJobType      eType;
+   uint64_t                   uiJobId;
+   uint64_t                   uiCallback;
+   uint64_t                   uiData;
+   NEXUS_Graphicsv3dJobStatus eStatus;
+   NEXUS_Graphicsv3dJobType   eType;
 } NEXUS_Graphicsv3dCompletion;
 
 /**
@@ -187,16 +188,16 @@ Contained at the start of all concrete jobs.
 **/
 typedef struct NEXUS_Graphicsv3dJobBase
 {
-   uint64_t                            uiJobId;
-   NEXUS_Graphicsv3dJobType            eType;
-   NEXUS_Graphicsv3dSchedDependencies  sCompletedDependencies;
-   NEXUS_Graphicsv3dSchedDependencies  sFinalizedDependencies;
-   uint64_t                            uiCompletion;
-   uint64_t                            uiCompletionData;
-   uint32_t                            uiCacheOps;
-   bool                                bSecure;
-   uint64_t                            uiPagetablePhysAddr;
-   uint32_t                            uiMmuMaxVirtAddr;
+   uint64_t                           uiJobId;
+   NEXUS_Graphicsv3dJobType           eType;
+   NEXUS_Graphicsv3dSchedDependencies sCompletedDependencies;
+   NEXUS_Graphicsv3dSchedDependencies sFinalizedDependencies;
+   uint64_t                           uiCompletion;
+   uint64_t                           uiCompletionData;
+   uint32_t                           uiCacheOps;
+   bool                               bSecure;
+   uint64_t                           uiPagetablePhysAddr;
+   uint32_t                           uiMmuMaxVirtAddr;
 } NEXUS_Graphicsv3dJobBase;
 
 /**
@@ -205,7 +206,7 @@ A null job (does nothing but can be used to chain dependencies)
 **/
 typedef struct NEXUS_Graphicsv3dJobNull
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
+   NEXUS_Graphicsv3dJobBase sBase;
 } NEXUS_Graphicsv3dJobNull;
 
 /**
@@ -214,14 +215,14 @@ A binning job.
 **/
 typedef struct NEXUS_Graphicsv3dJobBin
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
-   uint32_t                            uiNumSubJobs;
-   uint32_t                            uiStart[NEXUS_GRAPHICSV3D_MAX_BIN_SUBJOBS];
-   uint32_t                            uiEnd[NEXUS_GRAPHICSV3D_MAX_BIN_SUBJOBS];
-   uint32_t                            uiOffset;
-   uint32_t                            uiFlags;
-   uint32_t                            uiMinInitialBinBlockSize;
-   uint32_t                            uiTileStateSize;
+   NEXUS_Graphicsv3dJobBase sBase;
+   uint32_t                 uiNumSubJobs;
+   uint32_t                 uiStart[NEXUS_GRAPHICSV3D_MAX_BIN_SUBJOBS];
+   uint32_t                 uiEnd[NEXUS_GRAPHICSV3D_MAX_BIN_SUBJOBS];
+   uint32_t                 uiOffset;
+   uint32_t                 uiFlags;
+   uint32_t                 uiMinInitialBinBlockSize;
+   uint32_t                 uiTileStateSize;
 } NEXUS_Graphicsv3dJobBin;
 
 /**
@@ -230,13 +231,43 @@ A render job.
 **/
 typedef struct NEXUS_Graphicsv3dJobRender
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
-   uint32_t                            uiNumSubJobs;
-   uint32_t                            uiStart[NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS];
-   uint32_t                            uiEnd[NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS];
-   uint32_t                            uiFlags;
-   uint32_t                            uiEmptyTileMode;
+   NEXUS_Graphicsv3dJobBase sBase;
+   uint32_t                 uiNumSubJobs;
+   uint32_t                 uiStart[NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS];
+   uint32_t                 uiEnd[NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS];
+   uint32_t                 uiFlags;
+   uint32_t                 uiEmptyTileMode;
 } NEXUS_Graphicsv3dJobRender;
+
+/**
+Summary:
+A compute sub-job.
+**/
+typedef struct NEXUS_Graphicsv3dJobComputeSubjob
+{
+   uint32_t uiNumWgs[3];
+   uint16_t uiWgSize;
+   uint8_t  uiWgPerSg;
+   uint8_t  uiMaxSgId;
+   uint32_t uiShaderAddr;
+   uint32_t uiUnifsAddr;
+   uint16_t uiSharedBlockSize;
+   uint8_t  uiThreading;
+   bool     bSingleSeg;
+   bool     bPropagateNans;
+   bool     bNoOverlap;     /* If true, do not run this csd subjob concurrently
+                               on the same core with other job types. */
+} NEXUS_Graphicsv3dJobComputeSubjob;
+
+/**
+Summary:
+A compute job.
+**/
+typedef struct NEXUS_Graphicsv3dJobCompute
+{
+   NEXUS_Graphicsv3dJobBase   sBase;
+   uint32_t                   uiSubjobsId;
+} NEXUS_Graphicsv3dJobCompute;
 
 /**
 Summary:
@@ -244,7 +275,7 @@ A barrier job.
 **/
 typedef struct NEXUS_Graphicsv3dJobBarrier
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
+   NEXUS_Graphicsv3dJobBase sBase;
 } NEXUS_Graphicsv3dJobBarrier;
 
 /**
@@ -253,10 +284,10 @@ A user job.
 **/
 typedef struct NEXUS_Graphicsv3dJobUser
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
-   uint32_t                            uiNumSubJobs;
-   uint32_t                            uiPC[NEXUS_GRAPHICSV3D_MAX_QPU_SUBJOBS];
-   uint32_t                            uiUnif[NEXUS_GRAPHICSV3D_MAX_QPU_SUBJOBS];
+   NEXUS_Graphicsv3dJobBase sBase;
+   uint32_t                 uiNumSubJobs;
+   uint32_t                 uiPC[NEXUS_GRAPHICSV3D_MAX_QPU_SUBJOBS];
+   uint32_t                 uiUnif[NEXUS_GRAPHICSV3D_MAX_QPU_SUBJOBS];
 } NEXUS_Graphicsv3dJobUser;
 
 /**
@@ -269,8 +300,8 @@ Any jobs which depend on this job will therefore block until the signal fires.
 **/
 typedef struct NEXUS_Graphicsv3dJobFenceWait
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
-   int32_t                             iFence;
+   NEXUS_Graphicsv3dJobBase sBase;
+   int32_t                  iFence;
 } NEXUS_Graphicsv3dJobFenceWait;
 
 /**
@@ -282,8 +313,8 @@ Description:
 **/
 typedef struct NEXUS_Graphicsv3dJobSchedEvent
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
-   uint64_t                            uiEventId;
+   NEXUS_Graphicsv3dJobBase sBase;
+   uint64_t                 uiEventId;
 } NEXUS_Graphicsv3dJobSchedEvent;
 
 /**
@@ -292,44 +323,44 @@ A TFU job.
 **/
 typedef struct NEXUS_Graphicsv3dJobTFU
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
+   NEXUS_Graphicsv3dJobBase sBase;
 
    struct
    {
-      uint16_t    uiTextureType;
-      uint16_t    uiByteFormat;
-      uint16_t    uiEndianness;
-      uint16_t    uiComponentOrder;
-      uint32_t    uiRasterStride;
-      uint32_t    uiChromaStride;
-      uint32_t    uiAddress;
-      uint32_t    uiChromaAddress;
-      uint32_t    uiUPlaneAddress;
-      uint64_t    uiFlags;
+      uint16_t uiTextureType;
+      uint16_t uiByteFormat;
+      uint16_t uiEndianness;
+      uint16_t uiComponentOrder;
+      uint32_t uiRasterStride;
+      uint32_t uiChromaStride;
+      uint32_t uiAddress;
+      uint32_t uiChromaAddress;
+      uint32_t uiUPlaneAddress;
+      uint64_t uiFlags;
    } sInput;
 
    struct
    {
-      uint32_t    uiMipmapCount;
-      uint32_t    uiVerticalPadding;
-      uint32_t    uiWidth;
-      uint32_t    uiHeight;
-      uint16_t    uiEndianness;
-      uint16_t    uiByteFormat;
-      uint32_t    uiAddress;
-      uint32_t    uiFlags;
+      uint32_t uiMipmapCount;
+      uint32_t uiVerticalPadding;
+      uint32_t uiWidth;
+      uint32_t uiHeight;
+      uint16_t uiEndianness;
+      uint16_t uiByteFormat;
+      uint32_t uiAddress;
+      uint32_t uiFlags;
    } sOutput;
 
    struct
    {
-      uint16_t    uiY;
-      uint16_t    uiRC;
-      uint16_t    uiBC;
-      uint16_t    uiGC;
-      uint16_t    uiRR;
-      uint16_t    uiGR;
-      uint16_t    uiGB;
-      uint16_t    uiBB;
+      uint16_t uiY;
+      uint16_t uiRC;
+      uint16_t uiBC;
+      uint16_t uiGC;
+      uint16_t uiRR;
+      uint16_t uiGR;
+      uint16_t uiGB;
+      uint16_t uiBB;
    } sCustomCoefs;
 } NEXUS_Graphicsv3dJobTFU;
 
@@ -339,8 +370,8 @@ A test job.
 **/
 typedef struct NEXUS_Graphicsv3dJobTest
 {
-   NEXUS_Graphicsv3dJobBase            sBase;
-   uint32_t                            uiDelay;
+   NEXUS_Graphicsv3dJobBase sBase;
+   uint32_t                 uiDelay;
 } NEXUS_Graphicsv3dJobTest;
 
 /**
@@ -349,10 +380,10 @@ Usermode callback jobs record returned by query function NEXUS_Graphicsv3d_GetUs
 **/
 typedef struct NEXUS_Graphicsv3dUsermode
 {
-   uint64_t                      uiJobId;
-   uint64_t                      uiCallback;
-   uint64_t                      uiData;
-   bool                          bHaveJob;
+   uint64_t uiJobId;
+   uint64_t uiCallback;
+   uint64_t uiData;
+   bool     bHaveJob;
 } NEXUS_Graphicsv3dUsermode;
 
 /**
@@ -361,9 +392,9 @@ Usermode callback jobs hold a closure to invoke back in user space
 **/
 typedef struct NEXUS_Graphicsv3dJobUsermode
 {
-   NEXUS_Graphicsv3dJobBase      sBase;
-   uint64_t                      uiFunction;
-   uint64_t                      uiData;
+   NEXUS_Graphicsv3dJobBase sBase;
+   uint64_t                 uiFunction;
+   uint64_t                 uiData;
 } NEXUS_Graphicsv3dJobUsermode;
 
 /**
@@ -372,13 +403,14 @@ Settings used when creating the V3D module
 **/
 typedef struct NEXUS_Graphicsv3dCreateSettings
 {
-   uint32_t             uiClientPID;         /* The process id of the client. Used for debug purposes when querying client loads */
-   NEXUS_CallbackDesc   sUsermode;           /* Callbacks for user jobs            */
-   NEXUS_CallbackDesc   sFenceDone;          /* Callbacks for fences               */
-   NEXUS_CallbackDesc   sCompletion;         /* Callbacks for completion callbacks */
-   int64_t              iUnsecureBinTranslation;
-   int64_t              iSecureBinTranslation;
-   uint64_t             uiPlatformToken;
+   uint32_t           uiClientPID;         /* The process id of the client. Used for debug
+                                              purposes when querying client loads */
+   NEXUS_CallbackDesc sUsermode;           /* Callbacks for user jobs            */
+   NEXUS_CallbackDesc sFenceDone;          /* Callbacks for fences               */
+   NEXUS_CallbackDesc sCompletion;         /* Callbacks for completion callbacks */
+   int64_t            iUnsecureBinTranslation;
+   int64_t            iSecureBinTranslation;
+   uint64_t           uiPlatformToken;
 } NEXUS_Graphicsv3dCreateSettings;
 
 /**
@@ -386,7 +418,15 @@ Summary:
 Get default settings for NEXUS_Graphicsv3d_Create
 **/
 void NEXUS_Graphicsv3d_GetDefaultCreateSettings(
-   NEXUS_Graphicsv3dCreateSettings     *psSettings        /* [out] */
+   NEXUS_Graphicsv3dCreateSettings *psSettings  /* [out] */
+   );
+
+/**
+Summary:
+Set frequency scaling percentage for Graphics 3D
+**/
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(
+   uint32_t percent  /* [in] */
    );
 
 /**
@@ -406,7 +446,7 @@ Summary:
 Close the Graphicsv3d interface.
 **/
 void NEXUS_Graphicsv3d_Destroy(
-   NEXUS_Graphicsv3dHandle             hGfx           /* [in]  */
+   NEXUS_Graphicsv3dHandle hGfx  /* [in]  */
    );
 
 /**
@@ -414,9 +454,9 @@ Summary:
 Queue a bin render job.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueBinRender(
-   NEXUS_Graphicsv3dHandle              hGfx,            /* [in]  */
-   const NEXUS_Graphicsv3dJobBin       *pBin,            /* [in]  */
-   const NEXUS_Graphicsv3dJobRender    *pRender          /* [in]  */
+   NEXUS_Graphicsv3dHandle           hGfx,   /* [in]  */
+   const NEXUS_Graphicsv3dJobBin    *pBin,   /* [in]  */
+   const NEXUS_Graphicsv3dJobRender *pRender /* [in]  */
    );
 
 /**
@@ -424,8 +464,8 @@ Summary:
 Queue a bin job.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueBin(
-   NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
-   const NEXUS_Graphicsv3dJobBin       *pBin          /* [in]  */
+   NEXUS_Graphicsv3dHandle        hGfx,      /* [in]  */
+   const NEXUS_Graphicsv3dJobBin *pBin       /* [in]  */
    );
 
 /**
@@ -433,9 +473,20 @@ Summary:
 Queue a render job.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueRender(
-   NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
-   const NEXUS_Graphicsv3dJobRender    *pRender       /* [in]  */
+   NEXUS_Graphicsv3dHandle           hGfx,   /* [in]  */
+   const NEXUS_Graphicsv3dJobRender *pRender /* [in]  */
    );
+
+/**
+Summary:
+Queue a compute job.
+**/
+NEXUS_Error NEXUS_Graphicsv3d_QueueCompute(
+   NEXUS_Graphicsv3dHandle                  hGfx,         /* [in] */
+   const NEXUS_Graphicsv3dJobCompute       *pCompute,     /* [in] */
+   uint32_t                                 uiNumSubjobs, /* [in] */
+   const NEXUS_Graphicsv3dJobComputeSubjob *pSubjobs      /* [in] attr{null_allowed=y;nelem=uiNumSubjobs;nelem_out=0} */
+);
 
 /**
 Summary:
@@ -446,9 +497,9 @@ Queue a TFU job.
    reserved hint is from maxBatchSize in sched_nexus.c
 */
 NEXUS_Error NEXUS_Graphicsv3d_QueueTFU(
-   NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
-   uint32_t                             uiNumJobs,    /* [in]  */
-   const NEXUS_Graphicsv3dJobTFU       *pTFUJobs      /* [in]  attr{nelem=uiNumJobs;nelem_out=0;reserved=16} */
+   NEXUS_Graphicsv3dHandle        hGfx,      /* [in]  */
+   uint32_t                       uiNumJobs, /* [in]  */
+   const NEXUS_Graphicsv3dJobTFU *pTFUJobs   /* [in]  attr{nelem=uiNumJobs;nelem_out=0;reserved=16} */
    );
 
 /**
@@ -456,8 +507,8 @@ Summary:
 Queue a barrier job.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueBarrier(
-   NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
-   const NEXUS_Graphicsv3dJobBarrier   *pBarrier      /* [in]  */
+   NEXUS_Graphicsv3dHandle            hGfx,     /* [in]  */
+   const NEXUS_Graphicsv3dJobBarrier *pBarrier  /* [in]  */
    );
 
 /**
@@ -465,8 +516,8 @@ Summary:
 Queue a null job.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueNull(
-   NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
-   const NEXUS_Graphicsv3dJobNull      *pNull         /* [in]  */
+   NEXUS_Graphicsv3dHandle         hGfx,        /* [in]  */
+   const NEXUS_Graphicsv3dJobNull *pNull        /* [in]  */
    );
 
 /**
@@ -476,8 +527,8 @@ Create a test job.
 Description:
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueTest(
-   NEXUS_Graphicsv3dHandle                   hGfx,       /* [in]  */
-   const NEXUS_Graphicsv3dJobTest           *pTest       /* [in]  */
+   NEXUS_Graphicsv3dHandle         hGfx,       /* [in]  */
+   const NEXUS_Graphicsv3dJobTest *pTest       /* [in]  */
    );
 
 /**
@@ -487,8 +538,8 @@ Create a usermode job.
 Description:
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueUsermode(
-   NEXUS_Graphicsv3dHandle                   hGfx,       /* [in]  */
-   const NEXUS_Graphicsv3dJobUsermode       *pUsermode   /* [in]  */
+   NEXUS_Graphicsv3dHandle             hGfx,       /* [in]  */
+   const NEXUS_Graphicsv3dJobUsermode *pUsermode   /* [in]  */
    );
 
 /**
@@ -519,8 +570,8 @@ Summary:
 Create a fence to wait for any non-finalized job
 **/
 NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(
-   NEXUS_Graphicsv3dHandle hGfx,    /* [in]  */
-   int                     *piFence /* [out] */
+   NEXUS_Graphicsv3dHandle hGfx,     /* [in]  */
+   int                     *piFence  /* [out] */
    );
 
 /**
@@ -543,8 +594,8 @@ Description:
 This job will not complete until the fence has been signaled.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_QueueFenceWait(
-   NEXUS_Graphicsv3dHandle                   hGfx,       /* [in]  */
-   const NEXUS_Graphicsv3dJobFenceWait      *pJob        /* [in]  */
+   NEXUS_Graphicsv3dHandle              hGfx,   /* [in]  */
+   const NEXUS_Graphicsv3dJobFenceWait *pJob    /* [in]  */
    );
 
 /**
@@ -552,8 +603,8 @@ Summary:
 Create a new fence object.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_FenceMake(
-   NEXUS_Graphicsv3dHandle  hGfx,                      /* [in]  */
-   int                     *piFence                    /* [out] */
+   NEXUS_Graphicsv3dHandle  hGfx,   /* [in]  */
+   int                     *piFence /* [out] */
    );
 
 /**
@@ -561,8 +612,8 @@ Summary:
 Create another reference to a fence object.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_FenceKeep(
-   NEXUS_Graphicsv3dHandle  hGfx,                      /* [in] */
-   int                      iFence                     /* [in] */
+   NEXUS_Graphicsv3dHandle hGfx,    /* [in] */
+   int                     iFence   /* [in] */
    );
 
 /**
@@ -574,9 +625,9 @@ The callback will be triggered when the fence is signaled, or immediately
 if the fence is already in a signaled state.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
-   NEXUS_Graphicsv3dHandle             hGfx,           /* [in]  */
-   int                                 iFence,         /* [in]  */
-   uint64_t                            uiEvent         /* [in]  */
+   NEXUS_Graphicsv3dHandle hGfx,    /* [in]  */
+   int                     iFence,  /* [in]  */
+   uint64_t                uiEvent  /* [in]  */
    );
 
 /**
@@ -584,10 +635,10 @@ Summary:
 Remove a previously registered fence wait callback.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_UnregisterFenceWait(
-   NEXUS_Graphicsv3dHandle             hGfx,           /* [in]  */
-   int                                 iFence,         /* [in]  */
-   uint64_t                            uiEvent,        /* [in]  */
-   bool                               *signalled       /* [out] attr{null_allowed=y} */
+   NEXUS_Graphicsv3dHandle  hGfx,      /* [in]  */
+   int                      iFence,    /* [in]  */
+   uint64_t                 uiEvent,   /* [in]  */
+   bool                    *signalled  /* [out] attr{null_allowed=y} */
    );
 
 /**
@@ -598,18 +649,18 @@ Description:
 This does not queue a job. The fence is signaled right away.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_FenceSignal(
-   NEXUS_Graphicsv3dHandle  hGfx,                      /* [in] */
-   int                      iFence                     /* [in] */
+   NEXUS_Graphicsv3dHandle hGfx,       /* [in] */
+   int                     iFence      /* [in] */
    );
 
 NEXUS_Error NEXUS_Graphicsv3d_FenceClose(
-   NEXUS_Graphicsv3dHandle  hGfx,                      /* [in] */
-   int                      fence                      /* [in] */
+   NEXUS_Graphicsv3dHandle hGfx,       /* [in] */
+   int                     fence       /* [in] */
    );
 
 NEXUS_Error NEXUS_Graphicsv3d_GetPendingFenceEvent(
-   NEXUS_Graphicsv3dHandle              hGfx,          /* [in] */
-   uint64_t                            *puiEvent       /* [out] */
+   NEXUS_Graphicsv3dHandle  hGfx,      /* [in]  */
+   uint64_t                *puiEvent   /* [out] */
    );
 
 /************************************************************************/
@@ -622,9 +673,9 @@ Get next usermode record (if any)
 Also acknowledges that previous jobId has finished its usermode job
 **/
 NEXUS_Error NEXUS_Graphicsv3d_GetUsermode(
-   NEXUS_Graphicsv3dHandle       hGfx,                 /* [in]  */
-   uint64_t                      uiPrevJobId,          /* [in]  */
-   NEXUS_Graphicsv3dUsermode    *psUsermode            /* [out] */
+   NEXUS_Graphicsv3dHandle    hGfx,          /* [in]  */
+   uint64_t                   uiPrevJobId,   /* [in]  */
+   NEXUS_Graphicsv3dUsermode *psUsermode     /* [out] */
    );
 
 /************************************************************************/
@@ -643,11 +694,11 @@ Also acknowledges that previous jobId has finished its completion
 NEXUS_Error NEXUS_Graphicsv3d_GetCompletions(
    NEXUS_Graphicsv3dHandle          hGfx,                 /* [in]  */
    uint32_t                         uiNumFinalizedJobs,   /* [in]  */
-   const uint64_t                   *puiFinalizedJobs,    /* [in] attr{nelem=uiNumFinalizedJobs;null_allowed=y;reserved=40} */
+   const uint64_t                  *puiFinalizedJobs,     /* [in] attr{nelem=uiNumFinalizedJobs;null_allowed=y;reserved=40} */
    uint32_t                         uiMaxCompletionsOut,  /* [in]  */
-   NEXUS_Graphicsv3dCompletionInfo  *psCompletionInfo,    /* [out] */
-   uint32_t                         *puiCompletionsOut,   /* [out] */
-   NEXUS_Graphicsv3dCompletion      *psCompletions        /* [out] attr{nelem=uiMaxCompletionsOut;nelem_out=puiCompletionsOut;null_allowed=y;reserved=40} */
+   NEXUS_Graphicsv3dCompletionInfo *psCompletionInfo,     /* [out] */
+   uint32_t                        *puiCompletionsOut,    /* [out] */
+   NEXUS_Graphicsv3dCompletion     *psCompletions         /* [out] attr{nelem=uiMaxCompletionsOut;nelem_out=puiCompletionsOut;null_allowed=y;reserved=40} */
    );
 
 /************************************************************************/
@@ -659,7 +710,7 @@ Summary:
 Get information about the vc5 cores in the system.
 **/
 void NEXUS_Graphicsv3d_GetInfo(
-   NEXUS_Graphicsv3dInfo   *pInfo                      /* [out] */
+   NEXUS_Graphicsv3dInfo *pInfo  /* [out] */
    );
 
 /************************************************************************/
@@ -684,69 +735,69 @@ typedef enum NEXUS_Graphicsv3dCounterState
 */
 typedef struct NEXUS_Graphicsv3dCounterDesc
 {
-   char        caName[NEXUS_GRAPHICSV3D_MAX_COUNTER_NAME_LEN];
-   char        caUnitName[NEXUS_GRAPHICSV3D_MAX_COUNTER_UNIT_NAME_LEN];
-   uint64_t    uiMinValue;
-   uint64_t    uiMaxValue;
-   uint64_t    uiDenominator;
+   char     caName[NEXUS_GRAPHICSV3D_MAX_COUNTER_NAME_LEN];
+   char     caUnitName[NEXUS_GRAPHICSV3D_MAX_COUNTER_UNIT_NAME_LEN];
+   uint64_t uiMinValue;
+   uint64_t uiMaxValue;
+   uint64_t uiDenominator;
 } NEXUS_Graphicsv3dCounterDesc;
 
 /* Descriptor for a counter group */
 typedef struct NEXUS_Graphicsv3dCounterGroupDesc
 {
-   char                          caName[NEXUS_GRAPHICSV3D_MAX_GROUP_NAME_LEN];
-   uint32_t                      uiTotalCounters;
-   uint32_t                      uiMaxActiveCounters;
-   NEXUS_Graphicsv3dCounterDesc  saCounters[NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP];
+   char                         caName[NEXUS_GRAPHICSV3D_MAX_GROUP_NAME_LEN];
+   uint32_t                     uiTotalCounters;
+   uint32_t                     uiMaxActiveCounters;
+   NEXUS_Graphicsv3dCounterDesc saCounters[NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP];
 } NEXUS_Graphicsv3dCounterGroupDesc;
 
 /* Holds a list of counter values to be enabled/disabled for a given group */
 typedef struct NEXUS_Graphicsv3dCounterSelector
 {
-   uint32_t    uiGroupIndex;
-   uint32_t    uiEnable;
-   uint32_t    uiaCounters[NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP];
-   uint32_t    uiNumCounters;
+   uint32_t uiGroupIndex;
+   uint32_t uiEnable;
+   uint32_t uiaCounters[NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP];
+   uint32_t uiNumCounters;
 } NEXUS_Graphicsv3dCounterSelector;
 
 /* A single counter entry */
 typedef struct NEXUS_Graphicsv3dCounter
 {
-   uint32_t   uiGroupIndex;
-   uint32_t   uiCounterIndex;  /* Within group */
-   uint64_t   uiValue;
+   uint32_t uiGroupIndex;
+   uint32_t uiCounterIndex;  /* Within group */
+   uint64_t uiValue;
 } NEXUS_Graphicsv3dCounter;
 
 
 void NEXUS_Graphicsv3d_GetPerfNumCounterGroups(
-   NEXUS_Graphicsv3dHandle  hGfx,                              /* [in]  */
-   uint32_t                *puiNumGroups                       /* [out] */
+   NEXUS_Graphicsv3dHandle  hGfx,         /* [in]  */
+   uint32_t                *puiNumGroups  /* [out] */
    );
 
 void NEXUS_Graphicsv3d_GetPerfCounterDesc(
-   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
-   uint32_t                            uiGroup,                /* [in]  */
-   uint32_t                            uiCounter,              /* [in]  */
-   NEXUS_Graphicsv3dCounterDesc        *psDesc                 /* [out] */
+   NEXUS_Graphicsv3dHandle       hGfx,       /* [in]  */
+   uint32_t                      uiGroup,    /* [in]  */
+   uint32_t                      uiCounter,  /* [in]  */
+   NEXUS_Graphicsv3dCounterDesc *psDesc      /* [out] */
    );
 
 void NEXUS_Graphicsv3d_GetPerfCounterGroupInfo(
-   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
-   uint32_t                            uiGroup,                /* [in]  */
-   uint32_t                            uiGrpNameSize,          /* [in]  */
-   char                                *chGrpName,             /* [out] attr{nelem=uiGrpNameSize}*/
-   uint32_t                            *uiMaxActiveCounter,    /* [out] */
-   uint32_t                            *uiTotalCounter         /* [out] */
+   NEXUS_Graphicsv3dHandle  hGfx,               /* [in]  */
+   uint32_t                 uiGroup,            /* [in]  */
+   uint32_t                 uiGrpNameSize,      /* [in]  */
+   char                    *chGrpName,          /* [out] attr{nelem=uiGrpNameSize}*/
+   uint32_t                *uiMaxActiveCounter, /* [out] */
+   uint32_t                *uiTotalCounter      /* [out] */
    );
 
 NEXUS_Error NEXUS_Graphicsv3d_SetPerfCounting(
-   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
-   NEXUS_Graphicsv3dCounterState       eState                  /* [in]  */
+   NEXUS_Graphicsv3dHandle       hGfx,    /* [in]  */
+   NEXUS_Graphicsv3dCounterState eState   /* [in]  */
    );
 
 void NEXUS_Graphicsv3d_ChoosePerfCounters(
-   NEXUS_Graphicsv3dHandle                hGfx,                /* [in]  */
-   const NEXUS_Graphicsv3dCounterSelector *psSelector          /* [in]  */
+   NEXUS_Graphicsv3dHandle                 hGfx,      /* [in]  */
+   const NEXUS_Graphicsv3dCounterSelector *psSelector /* [in]  */
    );
 
 /*
@@ -754,11 +805,11 @@ void NEXUS_Graphicsv3d_ChoosePerfCounters(
    debug API, so no reserved property for nelem
 */
 void NEXUS_Graphicsv3d_GetPerfCounterData(
-   NEXUS_Graphicsv3dHandle    hGfx,                            /* [in]  */
-   uint32_t                   uiMaxCounters,                   /* [in]  */
-   uint32_t                   uiResetCounts,                   /* [in]  */
-   uint32_t                   *puiCountersOut,                 /* [out] */
-   NEXUS_Graphicsv3dCounter   *psCounters                      /* [out] attr{nelem=uiMaxCounters;nelem_out=puiCountersOut;null_allowed=y} */
+   NEXUS_Graphicsv3dHandle   hGfx,           /* [in]  */
+   uint32_t                  uiMaxCounters,  /* [in]  */
+   uint32_t                  uiResetCounts,  /* [in]  */
+   uint32_t                 *puiCountersOut, /* [out] */
+   NEXUS_Graphicsv3dCounter *psCounters      /* [out] attr{nelem=uiMaxCounters;nelem_out=puiCountersOut;null_allowed=y} */
    );
 
 /**
@@ -796,9 +847,9 @@ Call again with a real pData array to retrieve the data.
 The load data statistics will be reset when the client data has been retrieved.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
-   NEXUS_Graphicsv3dClientLoadData *pLoadData,     /* [out] attr{nelem=uiNumClients;nelem_out=pValidClients;null_allowed=y} */
+   NEXUS_Graphicsv3dClientLoadData *pLoadData,  /* [out] attr{nelem=uiNumClients;nelem_out=pValidClients;null_allowed=y} */
    uint32_t                         uiNumClients,
-   uint32_t                         *pValidClients
+   uint32_t                        *pValidClients
    );
 
 /************************************************************************/
@@ -855,35 +906,35 @@ typedef struct NEXUS_Graphicsv3dEventTrackDesc
 } NEXUS_Graphicsv3dEventTrackDesc;
 
 void NEXUS_Graphicsv3d_GetEventCounts(
-   NEXUS_Graphicsv3dHandle  hGfx,                        /* [in]  */
-   uint32_t                 *uiNumTracks,                /* [out] */
-   uint32_t                 *uiNumEvents                 /* [out] */
+   NEXUS_Graphicsv3dHandle  hGfx,               /* [in]  */
+   uint32_t                *uiNumTracks,        /* [out] */
+   uint32_t                *uiNumEvents         /* [out] */
    );
 
 NEXUS_Error NEXUS_Graphicsv3d_GetEventTrackInfo(
-   NEXUS_Graphicsv3dHandle           hGfx,               /* [in]  */
-   uint32_t                          uiTrack,            /* [in]  */
-   NEXUS_Graphicsv3dEventTrackDesc   *psTrackDesc        /* [out] */
+   NEXUS_Graphicsv3dHandle          hGfx,       /* [in]  */
+   uint32_t                         uiTrack,    /* [in]  */
+   NEXUS_Graphicsv3dEventTrackDesc *psTrackDesc /* [out] */
    );
 
 
 NEXUS_Error NEXUS_Graphicsv3d_GetEventInfo(
-   NEXUS_Graphicsv3dHandle       hGfx,                   /* [in]  */
-   uint32_t                      uiEvent,                /* [in]  */
-   NEXUS_Graphicsv3dEventDesc   *psEventDesc             /* [out] */
+   NEXUS_Graphicsv3dHandle     hGfx,            /* [in]  */
+   uint32_t                    uiEvent,         /* [in]  */
+   NEXUS_Graphicsv3dEventDesc *psEventDesc      /* [out] */
    );
 
 
 NEXUS_Error NEXUS_Graphicsv3d_GetEventDataFieldInfo(
-   NEXUS_Graphicsv3dHandle          hGfx,                /* [in]  */
-   uint32_t                         uiEvent,             /* [in]  */
-   uint32_t                         uiField,             /* [in]  */
-   NEXUS_Graphicsv3dEventFieldDesc  *psFieldDesc         /* [out] */
+   NEXUS_Graphicsv3dHandle          hGfx,       /* [in]  */
+   uint32_t                         uiEvent,    /* [in]  */
+   uint32_t                         uiField,    /* [in]  */
+   NEXUS_Graphicsv3dEventFieldDesc *psFieldDesc /* [out] */
    );
 
 NEXUS_Error NEXUS_Graphicsv3d_SetEventCollection(
-   NEXUS_Graphicsv3dHandle       hGfx,                   /* [in]  */
-   NEXUS_Graphicsv3dEventState   eState                  /* [in]  */
+   NEXUS_Graphicsv3dHandle     hGfx,            /* [in]  */
+   NEXUS_Graphicsv3dEventState eState           /* [in]  */
    );
 
 /*
@@ -891,12 +942,12 @@ NEXUS_Error NEXUS_Graphicsv3d_SetEventCollection(
    debug API, so no reserved property for nelem
 */
 void NEXUS_Graphicsv3d_GetEventData(
-   NEXUS_Graphicsv3dHandle    hGfx,                      /* [in]  */
-   uint32_t                   uiEventBufferBytes,        /* [in]  */
-   void                       *pvEventBuffer,            /* [out] attr{nelem=uiEventBufferBytes;nelem_out=puiBytesCopiedOut;null_allowed=y} */
-   uint32_t                   *puiLostData,              /* [out] */
-   uint64_t                   *puiTimeStamp,             /* [out] */
-   uint32_t                   *puiBytesCopiedOut         /* [out] */
+   NEXUS_Graphicsv3dHandle  hGfx,               /* [in]  */
+   uint32_t                 uiEventBufferBytes, /* [in]  */
+   void                    *pvEventBuffer,      /* [out] attr{nelem=uiEventBufferBytes;nelem_out=puiBytesCopiedOut;null_allowed=y} */
+   uint32_t                *puiLostData,        /* [out] */
+   uint64_t                *puiTimeStamp,       /* [out] */
+   uint32_t                *puiBytesCopiedOut   /* [out] */
    );
 
 
@@ -909,43 +960,48 @@ void NEXUS_Graphicsv3d_GetEventData(
 */
 
 NEXUS_Error NEXUS_Graphicsv3d_QueueSchedEvent(
-      NEXUS_Graphicsv3dHandle             hGfx,
-      const NEXUS_Graphicsv3dJobSchedEvent  *schedEvent
+      NEXUS_Graphicsv3dHandle               hGfx,
+      const NEXUS_Graphicsv3dJobSchedEvent *schedEvent
       );
 
 NEXUS_Error NEXUS_Graphicsv3d_NewSchedEvent(
-      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
-      uint64_t                      *puiSchedEventId  /* [out] */
+      NEXUS_Graphicsv3dHandle  hGfx,            /* [in]  */
+      uint64_t                *puiSchedEventId  /* [out] */
       );
 
 NEXUS_Error NEXUS_Graphicsv3d_DeleteSchedEvent(
-      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
-      uint64_t                      uiSchedEvent      /* [in]  */
+      NEXUS_Graphicsv3dHandle hGfx,             /* [in]  */
+      uint64_t                uiSchedEvent      /* [in]  */
       );
 
 NEXUS_Error NEXUS_Graphicsv3d_SetSchedEvent(
-      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
-      uint64_t                      uiSchedEvent      /* [in]  */
+      NEXUS_Graphicsv3dHandle hGfx,             /* [in]  */
+      uint64_t                uiSchedEvent      /* [in]  */
       );
 
 NEXUS_Error NEXUS_Graphicsv3d_ResetSchedEvent(
-      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
-      uint64_t                      uiSchedEvent      /* [in]  */
+      NEXUS_Graphicsv3dHandle hGfx,             /* [in]  */
+      uint64_t                uiSchedEvent      /* [in]  */
       );
 
 NEXUS_Error NEXUS_Graphicsv3d_QuerySchedEvent(
-      NEXUS_Graphicsv3dHandle       hGfx,             /* [in]  */
-      uint64_t                      uiSchedEvent,     /* [in]  */
-      bool                          *bEventSet        /* [out] */
+      NEXUS_Graphicsv3dHandle  hGfx,            /* [in]  */
+      uint64_t                 uiSchedEvent,    /* [in]  */
+      bool                    *bEventSet        /* [out] */
+      );
+NEXUS_Error NEXUS_Graphicsv3d_NewComputeSubjobs(
+      NEXUS_Graphicsv3dHandle  hGfx,            /* [in]  */
+      uint32_t                 uiMaxSubjobs,    /* [in]  */
+      uint32_t                *puiSubjobsId     /* [out] */
       );
 
-/**
-Summary:
-Set frequency scaling percentage for Graphics 3D
-**/
-NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(
-        unsigned percent                              /* [in] percentage of max frequency */
-        );
+NEXUS_Error NEXUS_Graphicsv3d_UpdateComputeSubjobs(
+      NEXUS_Graphicsv3dHandle                  hGfx,          /* [in] */
+      uint32_t                                 uiSubjobsId,   /* [in] */
+      uint32_t                                 uiNumSubjobs,  /* [in] */
+      const NEXUS_Graphicsv3dJobComputeSubjob *pSubjobs       /* [in] attr{nelem=uiNumSubjobs;nelem_out=0} */
+      );
+
 #ifdef __cplusplus
 }
 #endif

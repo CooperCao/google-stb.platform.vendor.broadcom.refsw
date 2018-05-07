@@ -6,10 +6,10 @@
 #include "vcos_chrono.h"
 #include <string.h>
 #include <string>
+#include <array>
 #include <vector>
 #include <mutex>
 #include <atomic>
-#include <array>
 
 // A ring-buffer of a certain byte size.
 // The caller is expected to check that new data will fit prior to pushing it.

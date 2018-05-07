@@ -338,28 +338,47 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
   return 0;
 }
 
+#if NEXUS_HAS_GRAPHICS2D
+static inline uint64_t GetPhysicalAddress(void *context, BEGL_MemHandle handle,
+      uint64_t offset)
+{
+   if (handle)
+   {
+      uint32_t phys = MemLockBlock(context, handle);
+      MemUnlockBlock(context, handle); // driver holds another lock
+      return phys ? phys + offset : 0;
+   }
+   else //offset already contains physical address
+      return offset;
+}
+#endif
+
 // The memory interface is the only sensible place for this. The display interface is really part
 // of EGL and therefore doesn't exist in Vulkan.
 static BEGL_Error MemConvertSurface(void *context, const BEGL_SurfaceConversionInfo *info,
                                     bool validateOnly)
 {
-   NEXUS_StripedSurfaceHandle  striped = NULL;
-   NEXUS_SurfaceHandle         surf = NULL;
+#if NEXUS_HAS_GRAPHICS2D
    BEGL_Error                  ret;
    NXPL_MemoryContext         *ctx = (NXPL_MemoryContext*)context;;
 
    if (validateOnly)
-      return MemoryConvertSurface(info, /*striped=*/NULL, /*surf=*/NULL, validateOnly,
-                                  &ctx->mem_convert_cache);
+      return MemoryConvertSurface(info, validateOnly, &ctx->mem_convert_cache);
 
-   if (!DisplayAcquireNexusSurfaceHandles(&striped, &surf, info->srcNativeSurface))
-      return BEGL_Fail;
+   // Convert the memory block handle + offset into physical address
+   BEGL_SurfaceConversionInfo infoCopy = *info;
+   for (int plane = 0; plane < BEGL_MaxPlanes; plane++)
+      infoCopy.src[plane].offset = GetPhysicalAddress(context,
+            info->src[plane].block, info->src[plane].offset);
+   infoCopy.dst.offset = GetPhysicalAddress(context,
+         info->dst.block, info->dst.offset);
 
-   ret = MemoryConvertSurface(info, striped, surf, validateOnly, &ctx->mem_convert_cache);
-
-   DisplayReleaseNexusSurfaceHandles(striped, surf);
+   ret = MemoryConvertSurface(&infoCopy, validateOnly, &ctx->mem_convert_cache);
 
    return ret;
+#else
+   return BEGL_Fail;
+#endif
 }
 
 //static void DebugHeap(NEXUS_HeapHandle heap)
@@ -480,7 +499,9 @@ void DestroyMemoryInterface(BEGL_MemoryInterface *mem)
       {
          NXPL_MemoryContext *ctx = (NXPL_MemoryContext*)mem->context;
 
+#if NEXUS_HAS_GRAPHICS2D
          MemoryConvertClearCache(&ctx->mem_convert_cache);
+#endif
          free(ctx);
       }
 

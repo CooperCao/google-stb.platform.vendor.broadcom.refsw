@@ -341,6 +341,34 @@ bool bcm_sched_query_event(bcm_sched_event_id event_id)
       s_context.sched_iface.context, event_id);
 }
 
+#if V3D_USE_CSD
+
+v3d_compute_subjobs_id v3d_scheduler_new_compute_subjobs(unsigned max_subjobs)
+{
+   demand(s_context.sched_iface.NewComputeSubjobs);
+   return s_context.sched_iface.NewComputeSubjobs(
+      s_context.sched_iface.context, max_subjobs);
+}
+
+void v3d_scheduler_update_compute_subjobs(
+   v3d_compute_subjobs_id subjobs_id,
+   const v3d_compute_subjob* subjobs,
+   unsigned num_subjobs)
+{
+   assert(num_subjobs != 0);
+   for (unsigned s = 0; s != num_subjobs; ++s)
+   {
+      for (unsigned i = 0; i != 3; ++i)
+         assert((subjobs[s].num_wgs[i] - 1) <= 0xffff);
+   }
+
+   demand(s_context.sched_iface.UpdateComputeSubjobs);
+   return s_context.sched_iface.UpdateComputeSubjobs(
+      s_context.sched_iface.context, subjobs_id, subjobs, num_subjobs);
+}
+
+#endif
+
 // ===================================================================
 
 bool v3d_platform_init(void)

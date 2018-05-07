@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+#if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_platform_client.h"
 #include "nxclient.h"
 #include "namevalue.h"
@@ -300,3 +301,11 @@ int main(int argc, char **argv)  {
 done:
     return 0;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

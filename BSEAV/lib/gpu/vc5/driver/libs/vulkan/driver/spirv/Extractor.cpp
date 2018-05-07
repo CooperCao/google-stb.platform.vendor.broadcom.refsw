@@ -7,19 +7,19 @@
 
 namespace bvk {
 
-Extractor &Extractor::operator>>(NodeIndex &index)
+Extractor &Extractor::operator>>(const Node *&node)
 {
-   uint32_t i = m_instr[m_index];
-   index = m_module.GetNodePtr(i);
+   m_module.FillNodePointer(&node, m_instr[m_index]);
    m_index++;
+
    return *this;
 }
 
-Extractor &Extractor::operator>>(const NodeType *&type)
+Extractor &Extractor::operator>>(const NodeType *&node)
 {
-   uint32_t i = m_instr[m_index];
-   type = (*m_module.GetNodePtr(i))->As<const NodeType *>();
+   m_module.FillNodePointer(reinterpret_cast<const Node **>(&node), m_instr[m_index]);
    m_index++;
+
    return *this;
 }
 

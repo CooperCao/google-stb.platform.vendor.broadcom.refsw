@@ -31,3 +31,4 @@
 #include "ShaderModule.h"
 #include "SwapchainKHR.h"
 #include "DebugReportCallbackEXT.h"
+#include "DescriptorUpdateTemplate.h"

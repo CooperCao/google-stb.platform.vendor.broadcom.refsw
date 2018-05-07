@@ -254,6 +254,7 @@ static const BVDC_P_DisplayCscMatrix s_HsyncMatrix = BVDC_P_MAKE_VEC_CSC_MATRIX
 Calculated by post-multiplying SDYCbCr_to_XXX matrix by the inverse
 of s_CMP_NtscSDYCbCr_to_XvYCCSDYCbCr which strips XvYCC from the source */
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /* SDYCrCb_to_SDRGB_480i */
 static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_RGB = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
@@ -335,6 +336,7 @@ static const BVDC_P_DisplayCscMatrix s_XvYCC_SDYCbCr_to_YIQ_M = BVDC_P_MAKE_VEC_
        0.0000, -0.2887,  0.7070,  -53.5375,
        0.0000,  0.4657,  0.4554, -117.9042 )
 );
+#endif
 
 
 #if (BVDC_P_SUPPORT_ITU656_OUT)
@@ -375,6 +377,7 @@ static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_MatrixTbl[BVDC_P_Output_
     &s_SDYCbCr_to_RGB,       /* RGBSRGB, CRGB, SCRGB, RGB */
 };
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /* xvYCC SDYCbCr CSC table, based on BVDC_P_Output */
 static const BVDC_P_DisplayCscMatrix* const s_apXvYCC_SDYCbCr_MatrixTbl[BVDC_P_Output_eMax] =
 {
@@ -389,6 +392,7 @@ static const BVDC_P_DisplayCscMatrix* const s_apXvYCC_SDYCbCr_MatrixTbl[BVDC_P_O
     &s_XvYCC_SDYCbCr_to_SDYPbPr,   /* SYPbPr, CYPbPr, SCYPbPr, SDYPbPr */
     &s_XvYCC_SDYCbCr_to_RGB,       /* RGBSRGB, CRGB, SCRGB, RGB */
 };
+#endif
 
 static const BVDC_P_DisplayCscMatrix* const s_apHDYCbCr_MatrixTbl[] =
 {

@@ -173,7 +173,7 @@ int __tzioc_mem_free(
         if (ulBuffOffset >= pHeap->ulHeapOffset &&
             ulBuffOffset <  pHeap->ulHeapOffset +
                             pHeap->ulBuffSize * pHeap->ulBuffCount) {
-            uint32_t *pMagic;
+            uintptr_t *pMagic;
 
             j = (ulBuffOffset - pHeap->ulHeapOffset) / pHeap->ulBuffSize;
 
@@ -184,7 +184,7 @@ int __tzioc_mem_free(
             }
 
             ulBuffOffset = pHeap->ulHeapOffset + pHeap->ulBuffSize * j;
-            pMagic = (uint32_t *)_tzioc_offset2addr(ulBuffOffset);
+            pMagic = (uintptr_t *)_tzioc_offset2addr(ulBuffOffset);
 
             *pMagic   = TZIOC_MEM_MAGIC_WORD;
             pTable[j] = TZIOC_CLIENT_ID_MAX;

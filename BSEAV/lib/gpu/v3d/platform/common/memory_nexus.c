@@ -18,7 +18,7 @@
 /* Turn on to log memory access pattern to text file from 3D driver */
 /*#define LOG_MEMORY_PATTERN*/
 
-#include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 
 #include <malloc.h>
 #include <memory.h>
@@ -58,26 +58,25 @@ static FILE *sLogFile = NULL;
  * Memory interface
  *****************************************************************************/
 
-static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool secure)
+static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment __attribute__((unused)), bool secure)
 {
    NXPL_MemoryData               *data = (NXPL_MemoryData*)context;
    NEXUS_MemoryBlockHandle       allocedBlock;
    NEXUS_HeapHandle              heap = secure ? data->heapMapSecure.heap : data->heapMap.heap;
-   UNUSED(alignment);
    allocedBlock = NEXUS_MemoryBlock_Allocate(heap, numBytes, 4096/*alignment*/, NULL);
    if (!allocedBlock)
    {
       int growRC = NEXUS_SUCCESS;
       while (allocedBlock == NULL && growRC == NEXUS_SUCCESS)
       {
+#ifdef NXCLIENT_SUPPORT
+         growRC = NxClient_GrowHeap(NXCLIENT_DYNAMIC_HEAP);
+#else
          uint32_t numGrowBlocks = 1;
 
          if (numBytes > data->heapGrow)
             numGrowBlocks = numBytes / data->heapGrow + 1;
 
-#ifdef NXCLIENT_SUPPORT
-         growRC = NxClient_GrowHeap(NXCLIENT_DYNAMIC_HEAP);
-#else
          growRC = NEXUS_Platform_GrowHeap(heap, numGrowBlocks * data->heapGrow);
 #endif
          if (growRC == NEXUS_SUCCESS)
@@ -98,10 +97,8 @@ static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool s
 }
 
 /* Free a previously allocated block of device memory. Pass a cached address.*/
-static void MemFree(void *context, void *pCached)
+static void MemFree(void *context __attribute__((unused)), void *pCached)
 {
-   NXPL_MemoryData *data = (NXPL_MemoryData*)context;
-
    NEXUS_MemoryBlockHandle alloced = (NEXUS_MemoryBlockHandle)pCached;
 
 #ifdef LOG_MEMORY_PATTERN
@@ -116,9 +113,8 @@ static void MemFree(void *context, void *pCached)
 }
 
 /* Flush the cache for the given address range.*/
-static void MemFlushCache(void *context, void *pCached, size_t numBytes)
+static void MemFlushCache(void *context __attribute__((unused)), void *pCached, size_t numBytes)
 {
-   UNUSED(context);
    NEXUS_FlushCache(pCached, numBytes);
 }
 
@@ -169,9 +165,8 @@ static uint32_t MemGetInfo(void *context, BEGL_MemInfoType type)
 }
 
 #if NEXUS_HAS_GRAPHICS2D
-static void completeCallback(void *pParam, int iParam)
+static void completeCallback(void *pParam, int iParam __attribute__((unused)))
 {
-   UNUSED(iParam);
    BKNI_SetEvent(pParam);
 }
 
@@ -192,50 +187,24 @@ static void MemCopy2d(void *context, BEGL_MemCopy2d *params)
 }
 #endif
 
-static void DebugHeap(NEXUS_HeapHandle heap)
-{
-   NEXUS_MemoryStatus   status;
-   NEXUS_Error          rc;
-
-   rc = NEXUS_Heap_GetStatus(heap, &status);
-   BDBG_ASSERT(!rc);
-
-   printf("MEMC%d, physical addr " BDBG_UINT64_FMT ", size %9d (0x%08x), alignment %2d, base ptr %p, high water %9d, guardbanding? %c\n",
-         status.memcIndex, BDBG_UINT64_ARG(status.offset), status.size, status.size, status.alignment, status.addr,
-         status.highWatermark,
-         status.guardBanding?'y':'n');
-}
-
-static void *MemLock(void *context, void *handle)
+static void *MemLock(void *context __attribute__((unused)), void *handle)
 {
    void *res = NULL;
-   NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
-
-   NEXUS_Addr  devPtr;
-   NEXUS_Error err;
-
-   err = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)handle, &res);
+   NEXUS_Error err = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)handle, &res);
 
    return (err != NEXUS_SUCCESS) ? NULL : res;
 }
 
-static uintptr_t MemLockOffset(void *context, void *handle)
+static uintptr_t MemLockOffset(void *context __attribute__((unused)), void *handle)
 {
-   uintptr_t res = 0;
-   NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
-
    NEXUS_Addr  devPtr;
-   NEXUS_Error err;
-
-   err = NEXUS_MemoryBlock_LockOffset((NEXUS_MemoryBlockHandle)handle, &devPtr);
+   NEXUS_Error err = NEXUS_MemoryBlock_LockOffset((NEXUS_MemoryBlockHandle)handle, &devPtr);
 
    return (err != NEXUS_SUCCESS) ? 0 : (uintptr_t)devPtr;
 }
 
-static void MemUnlock(void *context, void *handle)
+static void MemUnlock(void *context __attribute__((unused)), void *handle)
 {
-   NXPL_MemoryData   *data = (NXPL_MemoryData*)context;
-
    NEXUS_MemoryBlock_UnlockOffset((NEXUS_MemoryBlockHandle)handle);
    NEXUS_MemoryBlock_Unlock((NEXUS_MemoryBlockHandle)handle);
 
@@ -243,11 +212,10 @@ static void MemUnlock(void *context, void *handle)
 }
 
 /* Not a complete implementation, just enough to match what nx_ashmem is doing */
-static unsigned long long memparse(const char *ptr, char **retptr)
+static unsigned long long memparse(const char *ptr, char **retptr __attribute__((unused)))
 {
    char *endptr;
    char mod;
-   UNUSED(retptr);
 
    unsigned long long ret = strtoull(ptr, &endptr, 0);
    mod = toupper(*endptr);
@@ -310,11 +278,10 @@ static void free_scratch(NEXUS_MemoryBlockHandle block, NEXUS_Addr offset)
 #endif
 
 __attribute__((visibility("default")))
-BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
+BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface __attribute__((unused)))
 {
    NXPL_MemoryData *data;
    BEGL_MemoryInterface *mem = (BEGL_MemoryInterface*)malloc(sizeof(BEGL_MemoryInterface));
-   UNUSED(hwIface);
 
 #ifdef LOG_MEMORY_PATTERN
    sLogFile = fopen("MemoryLog.txt", "w");
@@ -423,9 +390,9 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
          data->heapMap.heapSize = memStatus.size;
 
 #ifndef NDEBUG
-         printf("NXPL : NXPL_CreateMemInterface() INFO.\nVirtual (cached) %p, Physical %p, Size %p, Alignment %d\n",
+         printf("NXPL : NXPL_CreateMemInterface() INFO.\nVirtual (cached) %p, Physical %p, Size 0x%x, Alignment %d\n",
             data->heapMap.heapStartCached,
-            data->heapMap.heapStartPhys,
+            (void *)(uintptr_t)data->heapMap.heapStartPhys,
             data->heapMap.heapSize,
             data->l2CacheSize);
 #endif

@@ -37,6 +37,8 @@ SOURCES := \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
 			../common/hardware_nexus.cpp \
+			../common/nexus_surface_memory.c \
+			../common/perf_event.cpp \
 			../common/autoclif.c \
 			$(WAYLAND_CODE)
 

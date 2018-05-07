@@ -763,19 +763,20 @@ void CommandBuffer::SetImageLayout(
    VkImage image, VkImageAspectFlags aspectMask,
    VkImageLayout oldLayout, VkImageLayout newLayout,
    VkAccessFlagBits srcAccessMask,
-   VkPipelineStageFlags srcStages, VkPipelineStageFlags destStages) const
+   VkPipelineStageFlags srcStages, VkPipelineStageFlags destStages,
+   uint32_t baseLevel, uint32_t levelCount) const
 {
    VkImageMemoryBarrier imageMemoryBarrier{};
-   imageMemoryBarrier.sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-   imageMemoryBarrier.srcAccessMask = srcAccessMask;
-   imageMemoryBarrier.dstAccessMask = 0;
-   imageMemoryBarrier.oldLayout     = oldLayout;
-   imageMemoryBarrier.newLayout     = newLayout;
-   imageMemoryBarrier.image         = image;
+   imageMemoryBarrier.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+   imageMemoryBarrier.srcAccessMask    = srcAccessMask;
+   imageMemoryBarrier.dstAccessMask    = 0;
+   imageMemoryBarrier.oldLayout        = oldLayout;
+   imageMemoryBarrier.newLayout        = newLayout;
+   imageMemoryBarrier.image            = image;
 
    imageMemoryBarrier.subresourceRange.aspectMask     = aspectMask;
-   imageMemoryBarrier.subresourceRange.baseMipLevel   = 0;
-   imageMemoryBarrier.subresourceRange.levelCount     = 1;
+   imageMemoryBarrier.subresourceRange.baseMipLevel   = baseLevel;
+   imageMemoryBarrier.subresourceRange.levelCount     = levelCount;
    imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
    imageMemoryBarrier.subresourceRange.layerCount     = 1;
 
@@ -982,12 +983,12 @@ void Texture::TransferFrom(const CommandBuffer &commandBuffer, const Texture &fr
    commandBuffer.SetImageLayout(from.m_image, VK_IMAGE_ASPECT_COLOR_BIT,
                   VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_HOST_WRITE_BIT, VK_PIPELINE_STAGE_HOST_BIT,
-                  VK_PIPELINE_STAGE_TRANSFER_BIT);
+                  VK_PIPELINE_STAGE_TRANSFER_BIT, 0);
 
    commandBuffer.SetImageLayout(m_image, VK_IMAGE_ASPECT_COLOR_BIT,
-                  VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                   (VkAccessFlagBits)0, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                  VK_PIPELINE_STAGE_TRANSFER_BIT);
+                  VK_PIPELINE_STAGE_TRANSFER_BIT, 0);
 
    VkImageCopy imageCopy =
    {
@@ -1000,7 +1001,7 @@ void Texture::TransferFrom(const CommandBuffer &commandBuffer, const Texture &fr
 
    // Copy the base level
    commandBuffer.CopyImage(from.m_image, VK_IMAGE_LAYOUT_GENERAL,
-                           m_image,      VK_IMAGE_LAYOUT_GENERAL,
+                           m_image,      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                            1, &imageCopy);
 
    VkImageBlit imageBlit =
@@ -1027,20 +1028,33 @@ void Texture::TransferFrom(const CommandBuffer &commandBuffer, const Texture &fr
       imageBlit.dstOffsets[1].y = h;
 
       commandBuffer.SetImageLayout(m_image, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
+                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                    VK_ACCESS_TRANSFER_WRITE_BIT,
                                    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
-                                   VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+                                   VK_PIPELINE_STAGE_TRANSFER_BIT, i - 1);
+
+      commandBuffer.SetImageLayout(m_image, VK_IMAGE_ASPECT_COLOR_BIT,
+                                   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                   VK_ACCESS_TRANSFER_WRITE_BIT,
+                                   VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+                                   VK_PIPELINE_STAGE_TRANSFER_BIT, i);
 
       commandBuffer.BlitImage(m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                               m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                               1, &imageBlit, VK_FILTER_LINEAR);
+
    }
 
    commandBuffer.SetImageLayout(m_image, VK_IMAGE_ASPECT_COLOR_BIT,
-                  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                 VK_ACCESS_TRANSFER_WRITE_BIT,
+                                 VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, GetNumMipLevels() - 1);
+
+   commandBuffer.SetImageLayout(m_image, VK_IMAGE_ASPECT_COLOR_BIT,
+                  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, VK_REMAINING_MIP_LEVELS);
 }
 
 Texture::~Texture()

@@ -38,5 +38,5 @@ void glsl_fragment_backend(
    const LinkMap *link_map,
    const FragmentBackendState *s,
    const bool *shader_outputs_used,
-   bool *does_discard_out,
-   bool *does_z_change_out);
+   bool *writes_z,
+   bool *ez_disable);

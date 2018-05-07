@@ -5,7 +5,6 @@
 #include "Module.h"
 #include "Nodes.h"
 #include "GatherNodes.h"
-#include "TypeBuilder.h"
 #include "Extractor.h"
 #include "Options.h"
 
@@ -32,14 +31,6 @@ std::vector<uint32_t> SwapArray(uint32_t sizeInWords, const uint32_t *ptr)
       i = SwapBytes(*ptr++);
 
    return result;
-}
-
-void DecorationVisitor::Foreach(const Node *node)
-{
-   const std::list<const Decoration *> &decoNodes = m_module.GetDecorations(node);
-
-   for (const Decoration *decoration : decoNodes)
-      Visit(*decoration);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -221,7 +212,6 @@ Module::Module(const VkAllocationCallbacks *cbs, const uint32_t *code, uint32_t 
    m_globals(m_arenaAllocator),
    m_functions(m_arenaAllocator),
    m_entryPoints(m_arenaAllocator),
-   m_names(m_arenaAllocator),
    m_decorations(m_arenaAllocator)
 {
    assert((sizeInBytes & 3) == 0); // Must be multiple of 4
@@ -255,11 +245,15 @@ Module::Module(const VkAllocationCallbacks *cbs, const uint32_t *code, uint32_t 
    while (ptr < end)
       ptr = ParseInstruction(ptr);
 
+   // Patch in forwards references
+   for (auto &p : m_forwards)
+      *p.first = *p.second;
+
+   // It's done its job
+   m_forwards.clear();
+
    // Fill out the lists of vars, types, functions etc. held in this module
    GatherNodes::Gather(*this);
-
-   // SPIR-V files don't have to name any symbols. Make sure we have names where needed.
-   PopulateNames();
 }
 
 Module::~Module()
@@ -298,33 +292,16 @@ void Module::AllocateArrays(const ModuleInfo &info)
    uint32_t size = info.m_maxId + 1;
 
    m_allNodes.reserve(info.m_nodeCount);
-   m_results.resize(size);
-   m_names.resize(size);
+   m_results.resize(size, nullptr);
+
    m_decorations.resize(size);
+   for (uint32_t i = 0; i < size; ++i)
+      m_decorations[i] = New<spv::list<const Decoration *>>(m_arenaAllocator);
+
    m_variables.reserve(info.m_variableCount);
    m_globals.reserve(info.m_globalCount),
    m_functions.reserve(info.m_functionCount);
    m_entryPoints.reserve(info.m_entryPointCount);
-}
-
-void Module::PopulateNames()
-{
-   for (const NodeVariable *v : m_variables)
-   {
-      uint32_t nodeId = v->GetResultId();
-
-      if (m_names[nodeId] == nullptr)
-      {
-         char     name[24];
-
-         if (GetBuiltinDecoration(nullptr, v))
-            sprintf(name, "gl_%%%u", nodeId);   // Backend needs to see these as builtins
-         else
-            sprintf(name, "%%%u", nodeId);
-
-         m_names[nodeId] = New<spv::string>(name, m_arenaAllocator);
-      }
-   }
 }
 
 void Module::AddLabel(const NodeLabel *node)
@@ -365,7 +342,10 @@ void Module::AddNode(Node *node)
    uint32_t id = node->GetResultId();
 
    if (id != 0)
+   {
       m_results[id] = node;
+      node->SetDecorations(m_decorations[id]);
+   }
 
    m_allNodes.push_back(node);
 }
@@ -425,11 +405,6 @@ void Module::AddExecutionMode(const NodeExecutionMode *mode) // uint32_t entryPo
    entryPoint->GetData()->AddMode(mode);
 }
 
-void Module::SetName(const NodeName *node)
-{
-   m_names[node->GetTarget()->GetResultId()] = &node->GetName();
-}
-
 const NodeFunction *Module::GetEntryPointFunction(const NodeEntryPoint *entryPoint) const
 {
    return m_results[entryPoint->GetEntryPoint()->GetResultId()]->As<const NodeFunction *>();
@@ -451,70 +426,9 @@ bool Module::GetVarLocation(int *loc, const NodeVariable *var) const
    return false;
 }
 
-bool Module::GetBuiltinDecoration(spv::BuiltIn *builtin, const Node *node) const
-{
-   auto &decorations = GetDecorations(node);
-
-   for (const Decoration *decoration : decorations)
-   {
-      if (decoration->Is(spv::Decoration::BuiltIn))
-      {
-         if (builtin != nullptr)
-            *builtin = decoration->GetBuiltIn();
-         return true;
-      }
-   }
-
-   return false;
-}
-
-bool Module::GetBuiltinMemberDecoration(spv::BuiltIn *builtin, const NodeTypeStruct *node,
-                                        uint32_t memberIndex) const
-{
-   auto &memberDecorations = node->GetData()->GetMemberDecorations();
-
-   for (auto &memberDecoration : memberDecorations)
-   {
-      const Decoration *decoration = memberDecoration.second;
-
-      if (memberDecoration.first == memberIndex && decoration->Is(spv::Decoration::BuiltIn))
-      {
-         if (builtin != nullptr)
-            *builtin = decoration->GetBuiltIn();
-         return true;
-      }
-   }
-
-   return false;
-}
-
-bool Module::GetLiteralDecoration(uint32_t *literal, spv::Decoration decoType, const Node *node) const
-{
-   auto &decorations = GetDecorations(node);
-
-   for (const Decoration *decoration : decorations)
-   {
-      if (decoration->Is(decoType))
-      {
-         *literal = decoration->GetLiteral();
-         return true;
-      }
-   }
-
-   return false;
-}
-
-uint32_t Module::RequireLiteralDecoration(spv::Decoration dec, const Node *n) const
-{
-   uint32_t l = 0;      /* Value never used */
-   bool ok = GetLiteralDecoration(&l, dec, n);
-   assert(ok);
-   return l;
-}
-
 void Module::AddDecoration(const NodeDecorate *node)
 {
-   m_decorations[node->GetTarget()->GetResultId()].push_back(&node->GetDecoration());
+   m_decorations[node->GetTarget()->GetResultId()]->push_back(&node->GetDecoration());
 }
 
 void Module::AddGroupDecoration(const NodeGroupDecorate *node)
@@ -522,13 +436,13 @@ void Module::AddGroupDecoration(const NodeGroupDecorate *node)
    const Node *decorationGroup = node->GetDecorationGroup();
    auto &targets               = node->GetTargets();
 
-   for (const NodeIndex &target : targets)
+   for (const NodeConstPtr &target : targets)
    {
       uint32_t  targetId    = target->GetResultId();
       auto     &decorations = GetDecorations(decorationGroup);
 
       for (const Decoration *decoration : decorations)
-         m_decorations[targetId].push_back(decoration);
+         m_decorations[targetId]->push_back(decoration);
    }
 }
 
@@ -547,12 +461,12 @@ void Module::AddMemberDecoration(const NodeMemberDecorate *node)
 
 void Module::AddGroupMemberDecoration(const NodeGroupMemberDecorate *decorate)
 {
-   const NodeIndex &decorationGroup = decorate->GetDecorationGroup();
+   const NodeConstPtr &decorationGroup = decorate->GetDecorationGroup();
    auto &targets                    = decorate->GetTargets();
 
    for (auto &target : targets)
    {
-      NodeIndex targetIx = target.first;
+      NodeConstPtr targetIx = target.first;
       uint32_t  memberIx = target.second;
 
       auto  structure   = targetIx->As<const NodeTypeStruct *>();
@@ -561,61 +475,6 @@ void Module::AddGroupMemberDecoration(const NodeGroupMemberDecorate *decorate)
       for (const Decoration *decoration : decorations)
          structure->GetData()->SetMemberDecoration(memberIx, decoration);
    }
-}
-
-bool Module::GetLiteralMemberDecoration(uint32_t *literal, spv::Decoration decoType,
-                                        const NodeTypeStruct *node, uint32_t memberIndex) const
-{
-   auto &memberDecorations = node->GetData()->GetMemberDecorations();
-
-   for (auto &memberDecoration : memberDecorations)
-   {
-      const Decoration *decoration = memberDecoration.second;
-      if (memberDecoration.first == memberIndex && decoration->Is(decoType))
-      {
-         *literal = decoration->GetLiteral();
-         return true;
-      }
-   }
-
-   return false;
-}
-
-uint32_t Module::RequireLiteralMemberDecoration(spv::Decoration decoType,
-                                                const NodeTypeStruct *node, uint32_t memberIndex) const
-{
-   uint32_t ret = 0; // Value never used
-   bool ok = GetLiteralMemberDecoration(&ret, decoType, node, memberIndex);
-   assert(ok);
-   return ret;
-}
-
-bool Module::HasDecoration(spv::Decoration decoType, const Node *node) const
-{
-   for (const Decoration *decoration : GetDecorations(node))
-   {
-      if (decoration->Is(decoType))
-         return true;
-   }
-
-   return false;
-}
-
-bool Module::HasMemberDecoration(spv::Decoration decoType, const NodeTypeStruct *node,
-                                 uint32_t memberIndex) const
-{
-   auto &memberDecorations = node->GetData()->GetMemberDecorations();
-
-   for (auto &memberDecoration : memberDecorations)
-   {
-      uint32_t          index      = memberDecoration.first;
-      const Decoration *decoration = memberDecoration.second;
-
-      if (index == memberIndex && decoration->Is(decoType))
-         return true;
-   }
-
-   return false;
 }
 
 void Module::DebugPrint() const

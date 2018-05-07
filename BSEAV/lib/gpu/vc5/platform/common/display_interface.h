@@ -16,7 +16,6 @@ extern "C"
 typedef enum DisplayInterfaceResult
 {
    eDisplayFailed,
-   eDisplaySuccessful,
    eDisplayPending /* have to wait on a display_fence before reuse */
 } DisplayInterfaceResult;
 

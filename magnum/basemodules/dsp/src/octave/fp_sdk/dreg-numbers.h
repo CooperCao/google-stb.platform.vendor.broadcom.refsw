@@ -51,44 +51,64 @@
  ************************************************************************/
 
 
-#if defined(__FP4014__) && defined(PIKE)
-#  include "config/fp4014/pike/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(DTP)
+#  include "config/fpm1017/dtp/dreg-numbers.h"
 #endif
 
-#if defined(__FP4015__) && defined(OFDX_DSP)
-#  include "config/fp4015/ofdx_dsp/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(SAGE)
+#  include "config/fpm1017/sage/dreg-numbers.h"
+#endif
+
+#if defined(__FPM1017__) && defined(GENERIC)
+#  include "config/fpm1017/generic/dreg-numbers.h"
 #endif
 
 #if defined(__FPM1015__) && defined(PMC3_2_ICA_ITCM)
 #  include "config/fpm1015/pmc3_2_ica_itcm/dreg-numbers.h"
 #endif
 
+#if defined(__FPM1017__) && defined(VIPER2_TP0)
+#  include "config/fpm1017/viper2_tp0/dreg-numbers.h"
+#endif
+
 #if defined(__FP4015__) && defined(RAAGA)
 #  include "config/fp4015/raaga/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(DSLCPE)
-#  include "config/fpm1015/dslcpe/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(OFDX_RX)
+#  include "config/fpm1017/ofdx_rx/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(VIPER2_TP0)
-#  include "config/fpm1015/viper2_tp0/dreg-numbers.h"
+#if defined(__FP4014__) && defined(PIKE)
+#  include "config/fp4014/pike/dreg-numbers.h"
+#endif
+
+#if defined(__FPM1017__) && defined(DSLCPE)
+#  include "config/fpm1017/dslcpe/dreg-numbers.h"
 #endif
 
 #if defined(__FPM1015__) && defined(PMC3)
 #  include "config/fpm1015/pmc3/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(OFDX_RX)
-#  include "config/fpm1015/ofdx_rx/dreg-numbers.h"
+#if defined(__FP4017__) && defined(GENERIC)
+#  include "config/fp4017/generic/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(SAGE)
-#  include "config/fpm1015/sage/dreg-numbers.h"
+#if defined(__FP4017__) && defined(VIPER2_TP1)
+#  include "config/fp4017/viper2_tp1/dreg-numbers.h"
 #endif
 
-#if defined(__FP2012__) && defined(MCPHY)
-#  include "config/fp2012/mcphy/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(GFAP_EP)
+#  include "config/fpm1017/gfap_ep/dreg-numbers.h"
+#endif
+
+#if defined(__FPM1017__) && defined(GFAP_PP)
+#  include "config/fpm1017/gfap_pp/dreg-numbers.h"
+#endif
+
+#if defined(__FPM1017__) && defined(AVS)
+#  include "config/fpm1017/avs/dreg-numbers.h"
 #endif
 
 #if defined(__FPM1015__) && defined(GENERIC)
@@ -99,20 +119,16 @@
 #  include "config/fpm1015/pmc3_2_ica_rom/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(AVS)
-#  include "config/fpm1015/avs/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(SMC)
+#  include "config/fpm1017/smc/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(LEAP_SOC)
-#  include "config/fpm1015/leap_soc/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(LEAP_SOC)
+#  include "config/fpm1017/leap_soc/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(SMC)
-#  include "config/fpm1015/smc/dreg-numbers.h"
-#endif
-
-#if defined(__FPM1015__) && defined(UTP)
-#  include "config/fpm1015/utp/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(BSP)
+#  include "config/fpm1017/bsp/dreg-numbers.h"
 #endif
 
 #if defined(__FPM1015__) && defined(PMC3_2_ICA)
@@ -123,85 +139,74 @@
 #  include "config/fpm1015/leap_phy_bcm3465/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(GFAP_PP)
-#  include "config/fpm1015/gfap_pp/dreg-numbers.h"
-#endif
-
-#if defined(__FP4015__) && defined(VIPER2_TP1)
-#  include "config/fp4015/viper2_tp1/dreg-numbers.h"
-#endif
-
-#if defined(__FPM1015__) && defined(CMTS_PHY)
-#  include "config/fpm1015/cmts_phy/dreg-numbers.h"
-#endif
-
-#if defined(__FPM1015__) && defined(LEAP_PHY)
-#  include "config/fpm1015/leap_phy/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(CMTS_PHY)
+#  include "config/fpm1017/cmts_phy/dreg-numbers.h"
 #endif
 
 #if defined(__FPM1015__) && defined(PMC3_2_ITCM)
 #  include "config/fpm1015/pmc3_2_itcm/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(DTP)
-#  include "config/fpm1015/dtp/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(LEAP_PHY)
+#  include "config/fpm1017/leap_phy/dreg-numbers.h"
 #endif
 
 #if defined(__FPM1015__) && defined(LEAP_PHY_BCM45402)
 #  include "config/fpm1015/leap_phy_bcm45402/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1017__) && defined(GENERIC)
-#  include "config/fpm1017/generic/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(UTP)
+#  include "config/fpm1017/utp/dreg-numbers.h"
 #endif
 
-#if defined(__FP4017__) && defined(GENERIC)
-#  include "config/fp4017/generic/dreg-numbers.h"
+#if defined(__FP2012__) && defined(MCPHY)
+#  include "config/fp2012/mcphy/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(WOD)
-#  include "config/fpm1015/wod/dreg-numbers.h"
+#if defined(__FPM1017__) && defined(WOD)
+#  include "config/fpm1017/wod/dreg-numbers.h"
+#endif
+
+#if defined(__FP4017__) && defined(OFDX_DSP)
+#  include "config/fp4017/ofdx_dsp/dreg-numbers.h"
 #endif
 
 #if defined(__FP4015__) && defined(GENERIC)
 #  include "config/fp4015/generic/dreg-numbers.h"
 #endif
 
-#if defined(__FPM1015__) && defined(GFAP_EP)
-#  include "config/fpm1015/gfap_ep/dreg-numbers.h"
-#endif
-
 #if !( \
-     (defined(__FP4014__) && defined(PIKE)) || \
-     (defined(__FP4015__) && defined(OFDX_DSP)) || \
+     (defined(__FPM1017__) && defined(DTP)) || \
+     (defined(__FPM1017__) && defined(SAGE)) || \
+     (defined(__FPM1017__) && defined(GENERIC)) || \
      (defined(__FPM1015__) && defined(PMC3_2_ICA_ITCM)) || \
+     (defined(__FPM1017__) && defined(VIPER2_TP0)) || \
      (defined(__FP4015__) && defined(RAAGA)) || \
-     (defined(__FPM1015__) && defined(DSLCPE)) || \
-     (defined(__FPM1015__) && defined(VIPER2_TP0)) || \
+     (defined(__FPM1017__) && defined(OFDX_RX)) || \
+     (defined(__FP4014__) && defined(PIKE)) || \
+     (defined(__FPM1017__) && defined(DSLCPE)) || \
      (defined(__FPM1015__) && defined(PMC3)) || \
-     (defined(__FPM1015__) && defined(OFDX_RX)) || \
-     (defined(__FPM1015__) && defined(SAGE)) || \
-     (defined(__FP2012__) && defined(MCPHY)) || \
+     (defined(__FP4017__) && defined(GENERIC)) || \
+     (defined(__FP4017__) && defined(VIPER2_TP1)) || \
+     (defined(__FPM1017__) && defined(GFAP_EP)) || \
+     (defined(__FPM1017__) && defined(GFAP_PP)) || \
+     (defined(__FPM1017__) && defined(AVS)) || \
      (defined(__FPM1015__) && defined(GENERIC)) || \
      (defined(__FPM1015__) && defined(PMC3_2_ICA_ROM)) || \
-     (defined(__FPM1015__) && defined(AVS)) || \
-     (defined(__FPM1015__) && defined(LEAP_SOC)) || \
-     (defined(__FPM1015__) && defined(SMC)) || \
-     (defined(__FPM1015__) && defined(UTP)) || \
+     (defined(__FPM1017__) && defined(SMC)) || \
+     (defined(__FPM1017__) && defined(LEAP_SOC)) || \
+     (defined(__FPM1017__) && defined(BSP)) || \
      (defined(__FPM1015__) && defined(PMC3_2_ICA)) || \
      (defined(__FPM1015__) && defined(LEAP_PHY_BCM3465)) || \
-     (defined(__FPM1015__) && defined(GFAP_PP)) || \
-     (defined(__FP4015__) && defined(VIPER2_TP1)) || \
-     (defined(__FPM1015__) && defined(CMTS_PHY)) || \
-     (defined(__FPM1015__) && defined(LEAP_PHY)) || \
+     (defined(__FPM1017__) && defined(CMTS_PHY)) || \
      (defined(__FPM1015__) && defined(PMC3_2_ITCM)) || \
-     (defined(__FPM1015__) && defined(DTP)) || \
+     (defined(__FPM1017__) && defined(LEAP_PHY)) || \
      (defined(__FPM1015__) && defined(LEAP_PHY_BCM45402)) || \
-     (defined(__FPM1017__) && defined(GENERIC)) || \
-     (defined(__FP4017__) && defined(GENERIC)) || \
-     (defined(__FPM1015__) && defined(WOD)) || \
+     (defined(__FPM1017__) && defined(UTP)) || \
+     (defined(__FP2012__) && defined(MCPHY)) || \
+     (defined(__FPM1017__) && defined(WOD)) || \
+     (defined(__FP4017__) && defined(OFDX_DSP)) || \
      (defined(__FP4015__) && defined(GENERIC)) || \
-     (defined(__FPM1015__) && defined(GFAP_EP)) || \
      0 )
 #  error "Missing or unsupported chip and/or architecture version definition."
 #endif

@@ -335,6 +335,7 @@ typedef enum
     BSAGElibBootStatus_eStarted    = 0x0000,
     BSAGElibBootStatus_eBlStarted  = 0x0001,
     BSAGElibBootStatus_eNotStarted = 0x00FF,
+    BSAGElibBootStatus_ePolling    = 0x38e7,
     BSAGElibBootStatus_eError      = 0xFFFF
 } BSAGElib_BootStatus;
 

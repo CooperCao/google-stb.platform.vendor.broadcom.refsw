@@ -70,7 +70,7 @@ BERR_Code BDSP_Raaga_P_InitMsgQueue(
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
 
     FifoRegisterStartAddr = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + hMsgQueue->ui32DspOffset +
-            (ui32RegOffset * hMsgQueue->ui32FifoId);
+            ((dramaddr_t)ui32RegOffset * hMsgQueue->ui32FifoId);
 
     hMsgQueue->QueueAddress.BaseOffset =  FifoRegisterStartAddr + BDSP_RAAGA_P_FIFO_BASE_OFFSET;
     hMsgQueue->QueueAddress.ReadOffset =  FifoRegisterStartAddr + BDSP_RAAGA_P_FIFO_READ_OFFSET;

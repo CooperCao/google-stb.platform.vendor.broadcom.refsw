@@ -43,7 +43,6 @@ typedef struct WLPL_WaylandWindow
    SurfaceInterface surface_interface;
    DisplayInterface display_interface;
    DisplayFramework display_framework;
-   uint32_t ageOfLastDequeuedSurface;
 } WLPL_WaylandWindow;
 
 static BEGL_Error WlWindowGetInfo(void *context, void *nativeWindow,
@@ -62,78 +61,87 @@ static BEGL_Error WlWindowGetInfo(void *context, void *nativeWindow,
          info->height = height;
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = SWAPCHAIN_COUNT;
-      if (flags & BEGL_WindowInfoBackBufferAge)
-         info->backBufferAge = window->ageOfLastDequeuedSurface;
       return BEGL_Success;
    }
    return BEGL_Fail;
 }
 
-static BEGL_Error WlGetNativeSurface(void *context, uint32_t eglTarget,
-      void *eglSurface, void **nativeSurface)
+static BEGL_NativeBuffer WlSurfaceAcquire(void *context, uint32_t target,
+      void *eglObject, uint32_t plane, BEGL_SurfaceInfo *info)
 {
    BSTD_UNUSED(context);
+   BSTD_UNUSED(plane);
 
-   if (eglTarget != EGL_NATIVE_PIXMAP_KHR)
-      return BEGL_Fail;
-   *nativeSurface = eglSurface;
-   return BEGL_Success;
+   switch (target)
+   {
+   case EGL_WAYLAND_BUFFER_WL:
+   {
+      struct wl_resource *resource = (struct wl_resource *)eglObject;
+      NEXUS_MemoryBlockHandle memory = AcquireWlBufferMemory(resource);
+      if (memory)
+         GetWlBufferSettings(resource, info);
+      return (BEGL_NativeBuffer)memory;
+   }
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      WlWindowBuffer *buffer = (WlWindowBuffer *)eglObject;
+      if (buffer)
+         *info = buffer->buffer.settings;
+      /* TODO: implement reference counting */
+      return (BEGL_NativeBuffer)buffer;
+   }
+   case EGL_NATIVE_PIXMAP_KHR:
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      return NULL;
+   }
 }
 
-static BEGL_Error WlSurfaceGetInfo(void *context,
-      void *surface, BEGL_SurfaceInfo *info)
+static BEGL_Error WlSurfaceRelease(void *context, uint32_t target,
+      uint32_t plane, BEGL_NativeBuffer buffer)
 {
    BSTD_UNUSED(context);
+   BSTD_UNUSED(plane);
 
-   if (surface != NULL && surface != (void*)0xFFFFFFFF && info != NULL)
+   switch (target)
    {
-      WlWindowBuffer *buffer = (WlWindowBuffer *)surface;
-      *info = buffer->buffer.settings;
+   case EGL_WAYLAND_BUFFER_WL:
+   {
+      ReleaseWlBufferMemory((NEXUS_MemoryBlockHandle)buffer);
       return BEGL_Success;
    }
-   else
+   case BEGL_SWAPCHAIN_BUFFER:
+   {
+      /* TODO: implement reference counting */
+      return BEGL_Success;
+   }
+   case EGL_NATIVE_PIXMAP_KHR:
+   case BEGL_PIXMAP_BUFFER:
+   default:
       return BEGL_Fail;
+   }
 }
 
-static BEGL_Error WlSurfaceChangeRefCount(void *context, void *nativeSurface,
-      BEGL_RefCountMode incOrDec)
-{
-   BSTD_UNUSED(context);
-   BSTD_UNUSED(nativeSurface);
-   BSTD_UNUSED(incOrDec);
-
-   /* Nothing to do in Wayland client platform */
-   return BEGL_Success;
-}
-
-static BEGL_Error WlGetNextSurface(void *context, void *nativeWindow,
-      BEGL_BufferFormat format, BEGL_BufferFormat *actualFormat,
-      void **nativeSurface, bool secure, int *fence)
+static BEGL_SwapchainBuffer WlGetNextSurface(void *context, void *nativeWindow,
+      BEGL_BufferFormat format, bool secure,
+      int *age, int *fence)
 {
    UNUSED(context);
    UNUSED(secure);
 
    WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
 
-   if (window == NULL || nativeSurface == NULL || actualFormat == NULL)
-      return BEGL_Fail;
+   if (window == NULL)
+      return NULL;
 
-   *nativeSurface = DisplayFramework_GetNextSurface(&window->display_framework,
-         format, secure, fence, &window->ageOfLastDequeuedSurface);
+   WlWindowBuffer *buffer = DisplayFramework_GetNextSurface(&window->display_framework,
+         format, secure, age, fence);
 
-   if (*nativeSurface)
-   {
-      return BEGL_Success;
-   }
-   else
-   {
-      *actualFormat = BEGL_BufferFormat_INVALID;
-      return BEGL_Fail;
-   }
+   return (BEGL_SwapchainBuffer)buffer;
 }
 
 static BEGL_Error WlDisplaySurface(void *context, void *nativeWindow,
-      void *nativeSurface, int fence, int interval)
+      BEGL_SwapchainBuffer nativeSurface, int fence, int interval)
 {
    UNUSED(context);
    WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
@@ -148,7 +156,7 @@ static BEGL_Error WlDisplaySurface(void *context, void *nativeWindow,
 }
 
 static BEGL_Error WlCancelSurface(void *context, void *nativeWindow,
-      void *nativeSurface, int fence)
+      BEGL_SwapchainBuffer nativeSurface, int fence)
 {
    UNUSED(context);
    WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
@@ -263,9 +271,7 @@ static bool WlBindWaylandDisplay(void *context, void *egl_display,
 {
    WLPL_WaylandDisplay *display = (WLPL_WaylandDisplay *)context;
    BSTD_UNUSED(egl_display);
-   NEXUS_HeapHandle heap = GetDefaultHeap();
-   NEXUS_HeapHandle secure_heap = GetSecureHeap();
-   return BindWlDisplay(&display->binding, wl_display, heap, secure_heap);
+   return BindWlDisplay(&display->binding, wl_display);
 }
 
 static bool WlUnbindWaylandDisplay(void *context, void *egl_display,
@@ -282,24 +288,25 @@ static bool WlQueryBuffer(void *context, void *display, void* buffer,
    BSTD_UNUSED(context);
    BSTD_UNUSED(display);
 
-   WlBufferMemory *memory = GetWlBufferMemory((struct wl_resource*)buffer);
-   if (!memory)
+   struct wl_resource *resource = (struct wl_resource*)buffer;
+   BEGL_SurfaceInfo settings = {};
+   if (!GetWlBufferSettings(resource, &settings))
       return false;
 
    switch (attribute)
    {
    case EGL_WIDTH:
-      *value = memory->settings.width;
+      *value = settings.width;
       break;
 
    case EGL_HEIGHT:
-      *value = memory->settings.height;
+      *value = settings.height;
       break;
 
    case EGL_TEXTURE_FORMAT:
    {
       NEXUS_PixelFormat result = NEXUS_PixelFormat_eUnknown;
-      BeglToNexusFormat(&result, memory->settings.format);
+      BeglToNexusFormat(&result, settings.format);
       switch (result)
       {
       case NEXUS_PixelFormat_eA8_B8_G8_R8:
@@ -336,9 +343,9 @@ struct BEGL_DisplayInterface *WLPL_CreateWaylandDisplayInterface(
 
       iface->context = display;
       iface->WindowGetInfo                = WlWindowGetInfo;
-      iface->GetNativeSurface             = WlGetNativeSurface;
-      iface->SurfaceGetInfo               = WlSurfaceGetInfo;
-      iface->SurfaceChangeRefCount        = WlSurfaceChangeRefCount;
+      iface->GetPixmapFormat              = NULL; /* Wayland doesn't have pixmaps */
+      iface->SurfaceAcquire               = WlSurfaceAcquire;
+      iface->SurfaceRelease               = WlSurfaceRelease;
       iface->GetNextSurface               = WlGetNextSurface;
       iface->DisplaySurface               = WlDisplaySurface;
       iface->CancelSurface                = WlCancelSurface;

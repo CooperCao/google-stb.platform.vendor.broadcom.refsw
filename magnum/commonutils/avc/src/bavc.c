@@ -39,6 +39,7 @@
 #include "bstd.h"
 #include "bavc.h"
 #include "bkni.h"
+#include "bchp_common.h"
 
 BDBG_MODULE( BAVC );
 
@@ -124,7 +125,7 @@ unsigned BAVC_VCE_GetRequiredBufferCount_isrsafe(
       BAVC_VCE_BufferType eBufferType
       )
 {
-#if ( BCHP_CHIP != 7425 ) && ( BCHP_CHIP != 7435 ) && ( BCHP_CHIP != 7445 ) && ( BCHP_CHIP != 7439 ) && ( BCHP_CHIP != 7366 )
+#if ( BCHP_CHIP != 7425 ) && ( BCHP_CHIP != 7435 ) && ( BCHP_CHIP != 7445 ) && ( BCHP_CHIP != 7439 ) && ( BCHP_CHIP != 7366 ) && !defined(BCHP_RAAGA_AX_MISC_REG_START)
    unsigned uiNumberOfBFrames = pstBufferConfig->uiNumberOfBFrames;
 
    switch ( pstBufferConfig->eScanType )
@@ -163,7 +164,12 @@ unsigned BAVC_VCE_GetRequiredBufferCount_isrsafe(
    BSTD_UNUSED( pstBufferConfig );
    BSTD_UNUSED( eBufferType );
 #endif
+   /* RAAGA soft encoder uses 8 capture buffers */
+#ifdef BCHP_RAAGA_AX_MISC_REG_START
+   return 8;
+#else
    return 0;
+#endif
 }
 
 

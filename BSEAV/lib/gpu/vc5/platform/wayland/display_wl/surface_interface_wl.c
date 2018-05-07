@@ -33,19 +33,9 @@ static bool create_surface(void *context, void *surface, uint32_t width,
    WlSurfaceInterface *self = (WlSurfaceInterface *)context;
    WlWindowBuffer *buffer = (WlWindowBuffer *)surface;
 
-   BEGL_SurfaceInfo settings;
-   memset(&settings, 0, sizeof(settings));
-   settings.width = width;
-   settings.height = height;
-   settings.format = (BEGL_BufferFormat)format;
-   settings.pitchBytes = width * BeglFormatNumBytes((BEGL_BufferFormat)format);
-   settings.byteSize = settings.pitchBytes * height;
-   settings.miplevels = 1;
-   settings.contiguous = true;
-
    memset(buffer, 0, sizeof(*buffer));
-   return CreateWlSharedBuffer(&buffer->buffer, self->client, &settings,
-         secure, self->release, self->data);
+   return CreateWlSharedBuffer(&buffer->buffer, self->client, width, height,
+         (BEGL_BufferFormat)format, secure, self->release, self->data);
 }
 
 static void destroy(void *context)

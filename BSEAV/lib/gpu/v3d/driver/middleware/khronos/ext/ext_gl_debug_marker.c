@@ -4,7 +4,7 @@
 #define GL_GLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_int_common.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 
 GL_API void GL_APIENTRY glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 {

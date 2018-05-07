@@ -1895,38 +1895,32 @@ NativePixmap::NativePixmap(uint32_t w, uint32_t h, ePixmapFormat format) :
 {
    m_priv = new NexusPixmapData;
 
-   BEGL_PixmapInfoEXT   pixInfo;
-   EGLNativePixmapType  eglPixmap;
-   NEXUS_SurfaceHandle  nexusSurf;
+   NEXUS_SurfaceCreateSettings surfSettings;
+   NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
 
-   NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
-   pixInfo.width  = w;
-   pixInfo.height = h;
-   pixInfo.secure = Platform::Instance()->GetOptions().GetSecure();
+   surfSettings.compatibility.graphicsv3d = true;
 
-#ifdef BIG_ENDIAN_CPU
+   surfSettings.width = w;
+   surfSettings.height = h;
+
    switch (format)
    {
-   case RGB565_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eR5G6B5; break;
-   case ABGR8888_TEXTURE   : pixInfo.format = BEGL_BufferFormat_eR8G8B8A8; break;
+   case RGB565_TEXTURE     : surfSettings.pixelFormat = NEXUS_PixelFormat_eR5_G6_B5; break;
+   case ABGR8888_TEXTURE   : surfSettings.pixelFormat = NEXUS_PixelFormat_eA8_B8_G8_R8; break;
    default:
       BSG_THROW("Format not supported");
    }
-#else
-   switch (format)
-   {
-   case RGB565_TEXTURE     : pixInfo.format = BEGL_BufferFormat_eR5G6B5; break;
-   case ABGR8888_TEXTURE   : pixInfo.format = BEGL_BufferFormat_eA8B8G8R8; break;
-   default:
-      BSG_THROW("Format not supported");
-   }
-#endif
 
-   if (NXPL_CreateCompatiblePixmapEXT(
-                  ((PlatformDataNexus*)Platform::Instance()->GetPlatformData())->m_platformHandle,
-                  &eglPixmap, &nexusSurf, &pixInfo))
+   bool secure = Platform::Instance()->GetOptions().GetSecure();
+   surfSettings.heap = NEXUS_Platform_GetFramebufferHeap(secure ?
+         NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE : NEXUS_OFFSCREEN_SURFACE);
+   if (!surfSettings.heap)
+      BSG_THROW("No heap");
+
+   NEXUS_SurfaceHandle  nexusSurf = NEXUS_Surface_Create(&surfSettings);
+   if (nexusSurf)
    {
-      m_eglPixmap = eglPixmap;
+      m_eglPixmap = nexusSurf;
       ((NexusPixmapData*)m_priv)->m_surface = nexusSurf;
 
       NEXUS_SurfaceStatus status;
@@ -1936,7 +1930,7 @@ NativePixmap::NativePixmap(uint32_t w, uint32_t h, ePixmapFormat format) :
       m_height = status.height;
       m_stride = status.pitch;
 
-      if (!pixInfo.secure)
+      if (!secure)
       {
          NEXUS_SurfaceMemory  memory;
          NEXUS_Surface_GetMemory(nexusSurf, &memory);
@@ -1964,8 +1958,7 @@ void *NativePixmap::GetPixelDataPtr() const
 NativePixmap::~NativePixmap()
 {
    if (m_eglPixmap)
-      NXPL_DestroyCompatiblePixmap(((PlatformDataNexus*)Platform::Instance()->GetPlatformData())->m_platformHandle,
-                                    m_eglPixmap);
+      NEXUS_Surface_Destroy(((NexusPixmapData*)m_priv)->m_surface);
 
    delete m_priv;
 }

@@ -43,6 +43,9 @@ TZ_IMG := astra
 
 include $(TZ_TOP)/build/build_env.mk
 
+# add arch suffix to image name
+TZ_IMG := $(TZ_IMG)$(ARCH_SUFFIX)
+
 # build src
 # use local init module (to build image)
 SRC_DIRS := init
@@ -198,7 +201,7 @@ initramfs: $(USER_LIBS) $(USER_APPS)
 		echo $$uapp.elf >> $(TZ_OBJ_DIR)/initramfs/initramfs.files; \
 	done
 	@cd $(TZ_OBJ_DIR)/initramfs; \
-	cat initramfs.files | cpio -ov > initramfs.cpio; \
+	cat initramfs.files | cpio -o --quiet -O initramfs.cpio; \
 	$(TZ_ARMGNU)-objcopy -I binary -O $(OBJ_TARGET) -B $(ARCH) --rename-section .data=.initramfs initramfs.cpio initramfs.o
 
 $(USER_APPS): $(USER_LIBS)

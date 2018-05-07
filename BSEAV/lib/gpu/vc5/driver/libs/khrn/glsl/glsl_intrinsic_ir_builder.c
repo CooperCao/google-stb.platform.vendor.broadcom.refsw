@@ -21,7 +21,6 @@ static const struct intrinsic_ir_info_s intrinsic_ir_info[INTRINSIC_COUNT] = {
    { INTRINSIC_TEXTURE,        DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_TEXTURE_SIZE,   DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_RSQRT,          DATAFLOW_RSQRT,          1 },
-   { INTRINSIC_RCP,            DATAFLOW_RCP,            1 },
    { INTRINSIC_LOG2,           DATAFLOW_LOG2,           1 },
    { INTRINSIC_EXP2,           DATAFLOW_EXP2,           1 },
    { INTRINSIC_CEIL,           DATAFLOW_CEIL,           1 },
@@ -267,7 +266,7 @@ static void calculate_dataflow_atomic_load(BasicBlock *ctx, Dataflow **scalar_va
 
    Dataflow *addr;
    glsl_expr_calculate_dataflow(ctx, &addr, counter);
-   Dataflow *data = glsl_dataflow_construct_vector_load(DF_UINT, addr);
+   Dataflow *data = glsl_dataflow_construct_vector_load(addr);
    scalar_values[0] = glsl_dataflow_construct_get_vec4_component(0, data, DF_UINT);
 }
 

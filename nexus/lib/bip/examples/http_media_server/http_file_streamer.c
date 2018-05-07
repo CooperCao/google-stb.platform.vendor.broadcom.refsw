@@ -571,7 +571,11 @@ nextTrack:
         streamerOutputSettings.streamerSettings.mpeg2Ts.enableTransportTimestamp = pAppStreamerCtx->enableTransportTimestamp;
         streamerOutputSettings.disableAvHeadersInsertion = pAppStreamerCtx->pAppCtx->disableAvHeadersInsertion;
         streamerOutputSettings.disableContentLengthInsertion = pAppStreamerCtx->pAppCtx->disableContentLengthInsertion;
-        streamerOutputSettings.streamerSettings.maxDataRate = pAppStreamerCtx->pAppCtx->maxDataRate;
+        if (pAppStreamerCtx->pAppCtx->maxDataRate > 0)
+        {
+            streamerOutputSettings.streamerSettings.maxDataRate = pAppStreamerCtx->pAppCtx->maxDataRate;
+            streamerOutputSettings.streamerSettings.enableStreamingUsingPlaybackCh = true;
+        }
         streamerOutputSettings.enableHttpChunkXferEncoding = pAppStreamerCtx->pAppCtx->enableHttpChunkXferEncoding;
         streamerOutputSettings.chunkSize = pAppStreamerCtx->pAppCtx->chunkSizeInBytes;
 
@@ -1372,17 +1376,21 @@ static void printUsage(
             "  -interface       #   Optional Interface name to bind the server to\n"
             "  -mediaDir        #   Media Directory Path (default is /data/videos). Note: URL names is fileName path under this directory.\n"
             "  -infoDir         #   Info Files Directory Path (default is /data/info)\n"
-            "  -pace            #   Pace streaming content using Playback Channel\n"
-            "  -trackGroupId    #   Use a particular program in MPTS case (defaults to 1st program)\n"
+            "  -stats           #   Print Periodic stats. \n"
+            "  -loop            #   ContinousLoop after reach EOF\n"
           );
-    printf( "  -disableTrickmode#   Disable trickmode support in server (defaults is enabled)\n"
+    printf(
+            "  -trackGroupId    #   Use a particular program in MPTS case (defaults to 1st program)\n"
             "  -disableAudio    #   Disable sending audio track (defaults is enabled)\n"
+          );
+    printf(
+            "  -disableTrickmode#   Disable trickmode support in server (defaults is enabled)\n"
+            "                   #   NAV files are NOT generated during startup.\n"
             "  -dontAddAvInfo   #   Dont insert AV Track Info in the HTTP Response (default: Insert it)\n"
             "  -dontAddContentLength #   Dont insert HTTP Content-Length header in the HTTP Response (default: Insert it)\n"
-            "  -slave           #   Start Server in slave mode (Client in Nexus Multi-Process)\n"
+            "                   #   Forces Client to determine AV info from either HTTP Response Headers or basic PAT/PMT parsing.\n"
             );
     printf(
-            "  -loop            #   ContinousLoop after reach EOF\n"
             "  -dtcpIp          #   Start DTCP/IP Server\n"
             "  -akePort         #   DTCP/IP Ake Port# (default 8000)\n"
             "  -dtcpIpKeyFormat <keyFormat> # keyFormat values are: [commonDrm | test]. Default is commonDrm \n"
@@ -1392,23 +1400,34 @@ static void printUsage(
     printf(
             "  -xcode           #   Xcode the input using XcodeProfile (default No xcode)\n"
             "  -xcodeProfile    #   Pre-defined xcode profile string: 720pAvc (default), 480pAvc, \n"
-            "  -stats           #   Print Periodic stats. \n"
-            "  -hls             #   Enable HLS Output. \n"
-            "  -enableAllPass   #   Enable streaming of all AV Tracks. \n"
-            "  -enableHwOffload #   Enable streaming using ASP HW Offload Engine. \n"
-            "  -streamUsingPlaybackCh #   Enable streaming using Nexus Playback -> Recpump -> PBIP Streaming Path.\n"
-          );
-    printf(
-            "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!"
-            "  -maxDataRate <num>           # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))!"
-            "  -enableChunkXferEncoding     # Enable HTTP Chunk Transfer Encoding\n"
-            "  -chunkSizeInBytes   <num>    # Size of each chunk in bytes. \n"
+            "  .xcode           #   For enabling xcode. .e.g AbcMpeg2HD.mpg.xcode \n"
           );
     printf( "To enable some of the above options at runtime via the URL Request, add following suffix extension to the URL: \n");
     printf(
-            "  .xcode           #   For enabling xcode. .e.g AbcMpeg2HD.mpg.xcode \n"
             "  .m3u8            #   For enabling HLS Streamer Protocol. e.g. AbcMpeg2HD.m3u8 \n"
             "  .dtcpIp          #   For enabling DTCP/IP Encryption. e.g. AbcMpeg2HD.dtcpIp \n"
+            "  -hls             #   Enable HLS Output. \n"
+          );
+    printf(
+            "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!\n"
+            "  -enableChunkXferEncoding     # Enable HTTP Chunk Transfer Encoding\n"
+            "  -chunkSizeInBytes   <num>    # Size of each chunk in bytes. \n"
+          );
+    printf(
+            "  -pace            #   Pace Streaming out using PCRs (stream is fed thru Playback Channel.\n"
+            "                   #   Cann't be used if enableAllPass option is also used. Instead, use maxDataRate option.\n"
+            "  -maxDataRate <num> # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))!\n"
+            "                   #   Allows sender to stream out a certail user specified rate instead of pacing using PCRs.\n"
+          );
+    printf(
+            "  -streamUsingPlaybackCh #   Enable streaming using Nexus Playback -> Recpump -> PBIP Streaming Path.\n"
+            "                   #   Option is internally enabled if -pace or -maxDataRate options are used.\n"
+            "  -enableAllPass   #   Enable streaming of all AV Tracks. \n"
+            "                   #   By default, app will insert PAT, PMT, All Audio & Video Tracks for streaming.\n"
+          );
+    printf(
+            "  -enableHwOffload #   Enable streaming using ASP HW Offload Engine. \n"
+            "                   #   User can specify either -pace or -maxDataRate options to control the rate of Playback channel.\n"
           );
     exit(0);
 } /* printUsage */
@@ -1422,7 +1441,6 @@ BIP_Status parseOptions(
     int i;
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
 
-    pAppCtx->maxDataRate = 40*1000*1000;
     pAppCtx->chunkSizeInBytes = 192*5461; /* ~1MB */
     pAppCtx->pcpPayloadLengthInBytes = 192*5461; /* ~1MB */
     pAppCtx->dtcpIpCopyControlInfo = B_CCI_eCopyNever;
@@ -1551,6 +1569,14 @@ BIP_Status parseOptions(
             printUsage(argv[0]);
         }
     }
+
+    if (pAppCtx->enablePacing && pAppCtx->enableAllPass)
+    {
+        printf("Error: incorrect options: can't specify -pace along with -enableAllPass option, use -maxDataRate instead of -pace if -enableAllPass needs to be enabled\n");
+        printUsage(argv[0]);
+        return (bipStatus);
+    }
+
     if ( !pAppCtx->xcodeProfile ) pAppCtx->xcodeProfile = TRANSCODE_PROFILE_720p_AVC;
     if (pAppCtx->inactivityTimeoutInMs == 0) pAppCtx->inactivityTimeoutInMs = 60000; /* 60sec default. */
     bipStatus = BIP_SUCCESS;

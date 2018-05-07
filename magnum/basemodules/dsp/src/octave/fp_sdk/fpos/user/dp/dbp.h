@@ -144,7 +144,7 @@ typedef enum
     DBP_ERR_NO_RESOURCE = PM_NO_RESOURCE, /* There is no resource with the given value*/
     DBP_ERR_NO_BUFFER   = PM_BUFFER,      /* There isn't room in the message buffer for the result*/
     DBP_ERR_ERRNO       = PM_ERRNO,       /* The call failed due to an error and errno is set*/
-    DBP_ERR_TX_ERROR    = PM_TX_ERROR,    /* The call failed due to an error and tx_status returned*/
+    DBP_ERR_TX_ERROR    = PM_FPOS_ERROR,    /* The call failed due to an error and tx_status returned*/
 
     /* Non-pm errors*/
     DBP_ERR_BAD_COMMAND,                  /* The DBP message specified an unknown command id*/

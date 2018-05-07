@@ -35,29 +35,6 @@ typedef struct display
 static void vsyncCallback(void *context, int param)
 {
    display *self = (display *)context;
-
-   int terminating = __sync_fetch_and_and(&self->terminating, 1);
-   if (!terminating)
-   {
-      BKNI_AcquireMutex(self->mutex);
-      if (!self->pending.surface)
-      {
-         /* This is the 2nd and subsequent vsync after DisplaySurface().
-          * We have to skip the 1st one because frameBufferCallback may arrive
-          * after vsyncCallback and we use the event to first wait until the
-          * buffers are swapped and then to wait for subsequent vsyncs.
-          *
-          * The 1st vsync is signalled from frameBufferCallback().
-          */
-         SetEvent(self->vsyncEvent);
-      }
-      BKNI_ReleaseMutex(self->mutex);
-   }
-}
-
-static void frameBufferCallback(void *context, int param)
-{
-   display *self = (display *)context;
    UNUSED(param);
 
    int terminating = __sync_fetch_and_and(&self->terminating, 1);
@@ -73,30 +50,43 @@ static void frameBufferCallback(void *context, int param)
        */
       BKNI_AcquireMutex(self->mutex);
 
-      FenceInterface_Signal(self->fenceInterface, self->active.fence);
-
       platform_dbg_message_add("%s %d - surface = %p", __FUNCTION__, __LINE__, self->active.surface);
 
       if (self->active.surface != NULL)
       {
-         PerfAddEvent(self->eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, self->active.debugId,
-                      BCM_EVENT_END, (uintptr_t)self->active.surface);
+         NEXUS_GraphicsFramebufferStatus status;
+         NEXUS_Display_GetGraphicsFramebufferStatus(self->display, self->active.surface, &status);
+
+         if (status.state == NEXUS_GraphicsFramebufferState_eUnused)
+         {
+            FenceInterface_Signal(self->fenceInterface, self->active.fence);
+
+            PerfAddEvent(self->eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, self->active.debugId,
+                         BCM_EVENT_END, (uintptr_t)self->active.surface);
+
+            self->active.surface = NULL;
+            self->active.fence = self->fenceInterface->invalid_fence;
+         }
       }
 
       if (self->pending.surface != NULL)
       {
-         self->pending.debugId++;
-         PerfAddEvent(self->eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, self->pending.debugId,
-                      BCM_EVENT_BEGIN, (uintptr_t)self->pending.surface);
+         NEXUS_GraphicsFramebufferStatus status;
+         NEXUS_Display_GetGraphicsFramebufferStatus(self->display, self->pending.surface, &status);
+
+         if (status.state == NEXUS_GraphicsFramebufferState_eDisplayed)
+         {
+            // Copy all fields from pending to active surface
+            self->active = self->pending;
+
+            PerfAddEvent(self->eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, self->pending.debugId,
+                         BCM_EVENT_BEGIN, (uintptr_t)self->pending.surface);
+
+            self->pending.surface = NULL;
+            self->pending.fence = self->fenceInterface->invalid_fence;
+         }
       }
 
-      // Copy all fields from pending to active surface
-      self->active = self->pending;
-
-      self->pending.surface = NULL;
-      self->pending.fence = self->fenceInterface->invalid_fence;
-
-      /* that's the 1st "vsync" after DisplaySurface() */
       SetEvent(self->vsyncEvent);
 
       BKNI_ReleaseMutex(self->mutex);
@@ -157,6 +147,9 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
    else
       self->pending.fence = self->fenceInterface->invalid_fence;
    *display_fence = self->pending.fence;
+
+   static uint32_t debugId = 0;
+   self->pending.debugId = debugId++;
 
    BKNI_ReleaseMutex(self->mutex);
    return eDisplayPending;
@@ -254,18 +247,6 @@ static void SetVsyncCallback(NEXUS_DISPLAYHANDLE display,
       FATAL_ERROR("NEXUS_Display_SetVsyncCallback failed");
 }
 
-static void SetFrameBufferCallback(NEXUS_DISPLAYHANDLE display,
-      NEXUS_Callback callback, void *context)
-{
-   NEXUS_GraphicsSettings  graphicsSettings;
-   NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
-   graphicsSettings.frameBufferCallback.callback = callback;
-   graphicsSettings.frameBufferCallback.context = context;
-   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-   if (err != NEXUS_SUCCESS)
-      FATAL_ERROR("SetDisplayFrameBufferCallback failed");
-}
-
 bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       const FenceInterface *fi,
       const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
@@ -298,7 +279,6 @@ bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
          __sync_fetch_and_add(self->bound, 1);
          SetDisplayComposition(self->display, windowInfo);
          SetVsyncCallback(self->display, vsyncCallback, self);
-         SetFrameBufferCallback(self->display, frameBufferCallback, self);
       }
 
       di->base.context = self;

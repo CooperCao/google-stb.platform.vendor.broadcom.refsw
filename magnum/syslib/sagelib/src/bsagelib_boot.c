@@ -782,6 +782,7 @@ BSAGElib_P_Boot_GetSageOtpMspParams(
     rc = BSAGElib_P_GetOtp(hSAGElib, BCMD_Otp_CmdMsp_eSystemEpoch, &ctx->otp_system_epoch0, NULL, "system epoch 0");
 #else
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_0, &ctx->otp_system_epoch0, NULL, "epoch");
+    if (rc != BERR_SUCCESS) { goto end; }
     rc = BSAGElib_P_GetOtp(hSAGElib, OTP_SYSTEM_EPOCH_3, &ctx->otp_system_epoch3, NULL, "system epoch 3");
 #endif
     if (rc != BERR_SUCCESS) { goto end; }

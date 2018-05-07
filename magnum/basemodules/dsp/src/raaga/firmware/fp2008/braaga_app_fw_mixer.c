@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2066,7 +2066,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x94104fcf,
 	0x94147fcf,
 	0x94187fcb,
-	0xa72109d7,
+	0xa7218dd7,
 	0x001ffd28,
 	0x0850da2f,
 	0x07b47e0f,
@@ -2237,7 +2237,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x7512114b,
 	0x972393cb,
 	0x941411cb,
-	0xa74389d7,
+	0xa7440dd7,
 	0x001ffd27,
 	0x741c11cf,
 	0x772393cf,

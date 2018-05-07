@@ -4,8 +4,8 @@
 #pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "middleware/khronos/egl/egl_server.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/khrn_image.h"
@@ -31,7 +31,5 @@ typedef struct EGL_IMAGE {
    KHRN_IMAGE_T *tf_image;
 
    /* used for platforms which may have reference counting on mapping */
-   EGLenum         target;
-   void           *native_buffer;
    bool            platform_client_buffer;
 } EGL_IMAGE_T;

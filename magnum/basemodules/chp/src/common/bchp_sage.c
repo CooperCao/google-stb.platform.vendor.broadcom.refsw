@@ -72,10 +72,50 @@ bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg)
     return (BREG_Read32(hReg, SAGE_CRR_START_REG) != 0x0);
 }
 
-bool BCHP_SAGE_IsStarted(BREG_Handle hReg)
+uint32_t BCHP_SAGE_GetStatus(BREG_Handle hReg)
 {
-    return ((BREG_Read32(hReg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
-            & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK)==0);
+    uint32_t sage_status = BSAGElibBootStatus_eNotStarted;
+
+    if((BREG_Read32(hReg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+            & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK) == 0)
+    {
+        uint32_t val;
+        uint32_t totalBootTimeUs = 0;
+
+        /* SAGE is started, SAGE Bootloader or SAGE Framework is up */
+        do
+        {
+            val = BREG_Read32(hReg, SAGE_BOOT_STATUS_REG);
+            BDBG_MSG(("%s %d SAGE_BOOT_STATUS_REG %d",BSTD_FUNCTION,__LINE__,val));
+            if(val == BSAGElibBootStatus_eBlStarted
+             ||val == BSAGElibBootStatus_eNotStarted
+             ||val == BSAGElibBootStatus_eError)
+            {
+                /* Need to wait till SBL/SSF success or failure or timeout */
+                BKNI_Sleep(SAGE_STEP_BOOT_TIME_US/1000); /* BKNI_Sleep() takes ms; convert from us to ms */
+                totalBootTimeUs += SAGE_STEP_BOOT_TIME_US;
+                if (totalBootTimeUs > SAGE_MAX_BOOT_TIME_US) {
+                    BDBG_WRN(("SAGE takes too long to boot, it might be stuck. Keep going..."));
+                    break;
+                }
+            }else if(val == BSAGElibBootStatus_eStarted)
+            {
+                BDBG_MSG(("SAGE SSF up sucessfuly"));
+                break;
+            }else if(val == BSAGElibBootStatus_ePolling)
+            {
+                BDBG_MSG(("SAGE SBL up, waiting to boot SSF"));
+                break;
+            }else
+            {
+                BDBG_WRN(("SAGE status 0x%x, May be stuck in an error. Keep going...",val));
+                break;
+            }
+        } while (1);
+        sage_status = val;
+    }
+    BDBG_MSG(("%s %d sage_status 0x%x",BSTD_FUNCTION,__LINE__,sage_status));
+    return sage_status;
 }
 
 BERR_Code
@@ -89,37 +129,15 @@ BCHP_SAGE_Reset(
 
     BDBG_ASSERT(hReg);
 
-    if (!BCHP_SAGE_IsStarted(hReg)) {
-        BDBG_MSG(("SAGE is not started. Continue...."));
+    if (BCHP_SAGE_GetStatus(hReg) != BSAGElibBootStatus_eStarted) {
+        /* BSAGElibBootStatus_eNotStarted: SAGE already in reset, don't need to reset */
+        /* BSAGElibBootStatus_ePolling:    SBL running, can not reset */
+        /* BSAGElibBootStatus_eStarted:    SSF running, send command to reset */
+        BDBG_MSG(("SAGE SSF is not started. Continue...."));
         goto end;
     }
 
     BDBG_WRN(("Waiting for SAGE to complete boot"));
-
-    {
-        uint32_t totalBootTimeUs = 0;
-        do {
-            val = BREG_Read32(hReg, SAGE_BOOT_STATUS_REG);
-            if ((val == BSAGElibBootStatus_eBlStarted) ||
-                (val == BSAGElibBootStatus_eNotStarted) ||
-                (val == BSAGElibBootStatus_eError)) {
-                /* Need to wait till OS/App success or failure or timeout */
-                BKNI_Sleep(SAGE_STEP_BOOT_TIME_US/1000); /* BKNI_Sleep() takes ms; convert from us to ms */
-                totalBootTimeUs += SAGE_STEP_BOOT_TIME_US;
-                if (totalBootTimeUs > SAGE_MAX_BOOT_TIME_US) {
-                    BDBG_WRN(("SAGE takes too long to boot, it might be stuck. Keep going..."));
-                    break;
-                }
-            }
-            else {
-                if (val != BSAGElibBootStatus_eStarted) {
-                    BDBG_WRN(("SAGE May be stuck in an error. Keep going..."));
-                }
-                break;
-            }
-        /* exit the loop, move to restart check logic */
-        } while (1);
-    }
 
     val = BREG_Read32(hReg, SAGE_RESET_REG);
 
@@ -157,7 +175,7 @@ BCHP_SAGE_Reset(
             {
                 /* SAGE has indicated it's done, but BSP may not have powered off yet...
                  * wait for SAGE to be put in reset */
-                if(BCHP_SAGE_IsStarted(hReg))
+                if(BCHP_SAGE_GetStatus(hReg) == BSAGElibBootStatus_eStarted)
                 {
                     continue;
                 }

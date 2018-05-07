@@ -44,7 +44,7 @@ public:
    void Create(NXPL_PlatformHandle platform, NEXUS_Graphics2DHandle gfx2d,
                BKNI_EventHandle destripeDone, uint32_t numBuffers,
                uint32_t mediaW, uint32_t mediaH, uint32_t texW, uint32_t texH,
-               uint32_t numMiplevels, BEGL_BufferFormat format,
+               uint32_t numMiplevels, NEXUS_PixelFormat format,
                bool aniso, bool secure);
    void Destroy();
 
@@ -75,7 +75,6 @@ private:
 private:
    struct PerBufferData
    {
-      EGLNativePixmapType eglPixmap;
       NEXUS_SurfaceHandle nativePixmap;
       EGLImageKHR         eglImage;
       GLuint              textureID;
@@ -89,7 +88,7 @@ private:
    int32_t                     m_curIndex;
    int32_t                     m_oldestBuffer;
    uint32_t                    m_buffersAcquired;
-   BEGL_BufferFormat           m_format;
+   NEXUS_PixelFormat           m_format;
    bool                        m_colorimetryValid;
 
    BKNI_EventHandle            m_m2mcDone;

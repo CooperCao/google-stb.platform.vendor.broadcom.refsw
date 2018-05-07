@@ -179,11 +179,6 @@ static void texture_lookup(GLXX_VEC4_T *result, Dataflow *image, Dataflow *sampl
    Dataflow *coords = glsl_dataflow_construct_vec4(coord->x, coord->y, NULL, NULL);
    Dataflow *c[4];
    glsl_dataflow_construct_texture_lookup(c, 4, DF_TEXBITS_NONE, image, coords, NULL, NULL, NULL, sampler);
-
-   Dataflow *l = c[0]->d.unary_op.operand;
-   assert(l->flavour == DATAFLOW_TEXTURE);
-   l->u.texture.required_components = 0xF;
-
    glxx_v_vec4(result, c[0], c[1], c[2], c[3]);
 }
 
@@ -407,17 +402,11 @@ static void apply_logic_op(GLXX_VEC4_T *result, const GLXX_VEC4_T *col_in, uint3
    Dataflow *cur[4];
    Dataflow *out[4];
 
-   /* Get the existing fb color. 0xf -> all components, 0 -> rt 0 */
-   glsl_dataflow_construct_frag_get_col(cur, DF_FLOAT, 0);
-
-   Dataflow *g = cur[0]->d.unary_op.operand;
-   assert(g->flavour == DATAFLOW_FRAG_GET_COL);
-   g->u.texture.required_components = 0xF;
-
+   glsl_dataflow_construct_frag_get_col(cur, DF_FLOAT, /* rt = */0);
 
    /* The colours come back as floats in [0,1] so convert back to int */
    for (int i=0; i<4; i++) {
-      in[i] = glxx_f_to_in(glxx_mul(in[i], glxx_cfloat(255.0f)));
+      in[i]  = glxx_f_to_in(glxx_mul(in[i],  glxx_cfloat(255.0f)));
       cur[i] = glxx_f_to_in(glxx_mul(cur[i], glxx_cfloat(255.0f)));
    }
 

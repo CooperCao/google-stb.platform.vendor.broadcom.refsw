@@ -152,6 +152,16 @@ typedef struct BDSP_Arm_P_TaskMemoryInfo
 
 }BDSP_Arm_P_TaskMemoryInfo;
 
+BERR_Code BDSP_Arm_P_GetFwMemRequired(
+        const BDSP_ArmSettings  *pSettings,
+        BDSP_Arm_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
+        void                    *pImg,
+        bool                     UseBDSPMacro,
+        const BDSP_UsageOptions *pUsage
+);
+void BDSP_Arm_P_CalculateInitMemory(
+	unsigned *pMemoryReq
+);
 BERR_Code BDSP_Arm_P_AllocateInitMemory (
     void *pDeviceHandle
     );
@@ -172,6 +182,10 @@ BERR_Code BDSP_Arm_P_FreeContextMemory(
     void *pContextHandle
     );
 
+void BDSP_Arm_P_CalculateTaskMemory(
+    unsigned *pMemoryReq
+);
+
 BERR_Code BDSP_Arm_P_AllocateTaskMemory(
     void *pTaskHandle,
     const BDSP_TaskCreateSettings *pSettings
@@ -180,7 +194,11 @@ BERR_Code BDSP_Arm_P_AllocateTaskMemory(
 BERR_Code BDSP_Arm_P_FreeTaskMemory(
     void *pTaskHandle
     );
-
+void BDSP_Arm_P_CalculateStageMemory(
+    BDSP_AlgorithmType AlgorithmType,
+    unsigned          *pMemoryReq,
+    const BDSP_UsageOptions *pUsage
+    );
 BERR_Code BDSP_Arm_P_AllocateStageMemory(
     void *pStageHandle
     );

@@ -226,8 +226,10 @@ bool egl_context_try_delete(EGL_CONTEXT_T *context)
    if (context->bound_thread)
       return false;
 
-   if (context->fns->invalidate)
-      context->fns->invalidate(context);
+   if (context->fns->term == NULL)
+      egl_context_base_term(context);
+   else
+      context->fns->term(context);
 
    free(context);
    return true;

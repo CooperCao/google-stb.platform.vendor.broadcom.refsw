@@ -66,6 +66,8 @@ BERR_Code BDSP_Arm_P_ProcessInitCommand(
     sCommand.uCommand.sArmInitCommand.sCommonMemory.sRODescriptor.ui64Size         = pDevice->memInfo.sROMemoryPool.ui32Size;
     sCommand.uCommand.sArmInitCommand.sCommonMemory.sRWDescriptor.ui64StartAddress = pDevice->memInfo.sRWMemoryPool[dspindex].Memory.offset;
     sCommand.uCommand.sArmInitCommand.sCommonMemory.sRWDescriptor.ui64Size         = pDevice->memInfo.sRWMemoryPool[dspindex].ui32Size;
+    sCommand.uCommand.sArmInitCommand.sCommonMemory.sHostSharedRWDescriptor.ui64StartAddress = pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].Memory.offset;
+    sCommand.uCommand.sArmInitCommand.sCommonMemory.sHostSharedRWDescriptor.ui64Size         = pDevice->memInfo.sHostSharedRWMemoryPool[dspindex].ui32Size;
     sCommand.uCommand.sArmInitCommand.sCommonMemory.sIoMemoryDescriptor.ui64StartAddress = pDevice->memInfo.sIOMemoryPool[dspindex].Memory.offset;
     sCommand.uCommand.sArmInitCommand.sCommonMemory.sIoMemoryDescriptor.ui64Size         = pDevice->memInfo.sIOMemoryPool[dspindex].ui32Size;
 

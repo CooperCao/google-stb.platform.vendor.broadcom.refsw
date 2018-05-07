@@ -100,6 +100,11 @@ void ControlListBuilder::InsertNVShaderRenderState(
    v3d_cl_zero_all_centroid_flags(CLPtr());
    v3d_cl_color_wmasks(CLPtr(), colorWriteMasks);
 
+   // If we are writing to the depth buffer we must disable early Z, both for this,
+   // and for any subsequent drawing until the TLB is cleared again.
+   if (updateDepth)
+      m_cmdBuf->DisableEarlyZ();
+
    v3d_cl_cfg_bits(CLPtr(),
          true,                     // front_prims
          true,                     // back_prims
@@ -156,9 +161,9 @@ void ControlListBuilder::EndBinJobCL(
    syncFlags |= defaultFlags;
 
    const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
-   brJob->m_brDetails.bin_cache_ops  = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, syncFlags, false, hub_ident);
+   brJob->m_brDetails.bin_cache_ops  = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE, syncFlags, hub_ident);
    brJob->m_brDetails.bin_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in the control list
-   brJob->m_brDetails.bin_cache_ops |= v3d_barrier_cache_cleans(syncFlags, V3D_BARRIER_MEMORY_READ, false, hub_ident);
+   brJob->m_brDetails.bin_cache_ops |= v3d_barrier_cache_cleans(syncFlags, V3D_BARRIER_MEMORY_READ, hub_ident);
 }
 
 void ControlListBuilder::StartRenderJobCL(
@@ -171,12 +176,19 @@ void ControlListBuilder::StartRenderJobCL(
    brJob->SetRenderStart(renderList->Start());
 }
 
-void ControlListBuilder::InsertInitialTLBClear(
-      bool doubleBuffer,
-      bool renderTargets,
-      bool depthStencil)
+void ControlListBuilder::InsertDummyTiles(
+      bool clearDoubleBuffer,
+      bool clearRenderTargets,
+      bool clearDepthStencil)
 {
-   for (unsigned i = 0; i != (doubleBuffer ? 2 : 1); ++i)
+   unsigned clearTiles = (clearRenderTargets || clearDepthStencil) ?
+      (clearDoubleBuffer ? 2 : 1) : 0;
+   unsigned dummyTiles = clearTiles;
+#if !V3D_HAS_GFXH1742_FIX
+   // Need at least 2 dummy tiles to workaround GFXH-1742
+   dummyTiles = std::max(dummyTiles, 2u);
+#endif
+   for (unsigned i = 0; i != dummyTiles; ++i)
    {
       v3d_cl_tile_coords(CLPtr(), 0, 0);
       v3d_cl_end_loads(CLPtr());
@@ -193,7 +205,8 @@ void ControlListBuilder::InsertInitialTLBClear(
          /*stride=*/0,
          /*height=*/0,
          /*addr=*/0);
-      v3d_cl_clear(CLPtr(), renderTargets, depthStencil);
+      if (i < clearTiles)
+         v3d_cl_clear(CLPtr(), clearRenderTargets, clearDepthStencil);
       v3d_cl_end_tile(CLPtr());
    }
 }
@@ -292,10 +305,10 @@ void ControlListBuilder::EndRenderJobCL(
    const V3D_HUB_IDENT_T* hub_ident = v3d_scheduler_get_hub_identity();
    syncFlags |= defaultSyncFlags;
    brJob->m_brDetails.render_cache_ops  = v3d_barrier_cache_flushes(V3D_BARRIER_MEMORY_WRITE,
-                                                                    syncFlags, false, hub_ident);
+                                                                    syncFlags, hub_ident);
    brJob->m_brDetails.render_cache_ops &= ~V3D_CACHE_CLEAR_VCD; // VCD cache flushed in the control list
    brJob->m_brDetails.render_cache_ops |= v3d_barrier_cache_cleans(syncFlags, V3D_BARRIER_MEMORY_READ,
-                                                                   false, hub_ident);
+                                                                   hub_ident);
 }
 
 void ControlListBuilder::AddTileListBranches(CmdBinRenderJobObj *brJob)
@@ -317,17 +330,18 @@ void ControlListBuilder::AddTileListBranches(CmdBinRenderJobObj *brJob)
 
 // Create the generic tile list (must be done after binning control lists
 // have been created - why?)
-void ControlListBuilder::CreateGenericTileList(CmdBinRenderJobObj *brJob, ControlList &gtl)
+void ControlListBuilder::CreateGenericTileList(CmdBinRenderJobObj *brJob, ControlList &gtl,
+                                               bool *allowEarlyDSClear)
 {
    gtl.SetStart(*m_curDeviceBlock);
    SetCurrentControlList(&gtl);
 
    v3d_cl_implicit_tile_coords(CLPtr());
 
-   AddTileListLoads();
+   AddTileListLoads(allowEarlyDSClear);
    v3d_cl_end_loads(CLPtr());
    AddTileListBranches(brJob);
-   AddTileListStores();
+   AddTileListStores(allowEarlyDSClear);
    v3d_cl_end_tile(CLPtr());
 
    // Add the final return
@@ -348,11 +362,12 @@ void ControlListBuilder::CreateMasterControlLists(
    v3d_barrier_flags   binSyncFlags,
    v3d_barrier_flags   renderSyncFlags)
 {
+   bool allowEarlyDSClear = true;
+
    ControlList genTileList;
    CreateBinnerControlList(brJob, binSyncFlags);
-   CreateGenericTileList(brJob, genTileList);
-   CreateRenderControlList(brJob, genTileList, renderSyncFlags);
+   CreateGenericTileList(brJob, genTileList, &allowEarlyDSClear);
+   CreateRenderControlList(brJob, genTileList, renderSyncFlags, allowEarlyDSClear);
 }
-
 
 } // namespace bvk

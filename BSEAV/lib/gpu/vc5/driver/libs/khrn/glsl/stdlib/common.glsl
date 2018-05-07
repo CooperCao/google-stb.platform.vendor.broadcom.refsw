@@ -403,10 +403,10 @@ vec2  uintBitsToFloat(uvec2 value) { return $$reinterpf(value); }
 vec3  uintBitsToFloat(uvec3 value) { return $$reinterpf(value); }
 vec4  uintBitsToFloat(uvec4 value) { return $$reinterpf(value); }
 
-float sqrt(float x) { return $$rcp($$rsqrt(x)); }
-vec2  sqrt(vec2  x) { return $$rcp($$rsqrt(x)); }
-vec3  sqrt(vec3  x) { return $$rcp($$rsqrt(x)); }
-vec4  sqrt(vec4  x) { return $$rcp($$rsqrt(x)); }
+float sqrt(float x) { return 1.0/$$rsqrt(x); }
+vec2  sqrt(vec2  x) { return 1.0/$$rsqrt(x); }
+vec3  sqrt(vec3  x) { return 1.0/$$rsqrt(x); }
+vec4  sqrt(vec4  x) { return 1.0/$$rsqrt(x); }
 
 float inversesqrt(float x) { return $$rsqrt(x); }
 vec2  inversesqrt(vec2  x) { return $$rsqrt(x); }

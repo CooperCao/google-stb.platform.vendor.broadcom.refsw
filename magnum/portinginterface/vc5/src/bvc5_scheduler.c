@@ -40,6 +40,7 @@
 #include "bvc5_priv.h"
 #include "bvc5_registers_priv.h"
 #include "bvc5_hardware_debug.h"
+#include "bvc5_trace_jobs.h"
 
 BDBG_MODULE(BVC5_P);
 
@@ -141,6 +142,35 @@ static void BVC5_P_ProcessInterrupt(
       }
    }
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   /* Compute done? */
+   if (BCHP_GET_FIELD_DATA(uiCapturedReason, V3D_CTL_INT_STS_INT, COMPUTE_DONE))
+   {
+      BVC5_P_ComputeState *pState  = BVC5_P_HardwareGetComputeState(hVC5, uiCoreIndex);
+
+      if (__sync_add_and_fetch(&pState->uiCapturedNCD, 0) > 0)
+      {
+         do
+         {
+            BVC5_ClientHandle hClient = NULL;
+
+            pJob = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
+            if (pJob != NULL)
+            {
+               BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_COMPUTE_JOBS_COMPLETED, 1);
+
+               if (BVC5_P_HardwareJobDone(hVC5, uiCoreIndex, BVC5_P_HardwareUnit_eCompute))
+               {
+                  /* This job is done, so add to completed queue and remove from job state map */
+                  hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
+                  BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
+               }
+            }
+         } while (__sync_sub_and_fetch(&pState->uiCapturedNCD, 1) != 0);
+      }
+   }
+#endif
+
    if (BCHP_GET_FIELD_DATA(uiCapturedReason, V3D_CTL_INT_STS_INT, OUTOMEM))
    {
       BVC5_P_BinnerState  *pState     = BVC5_P_HardwareGetBinnerState(hVC5, uiCoreIndex);
@@ -167,6 +197,7 @@ static void BVC5_P_ProcessInterrupt(
 #endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_OOMS, 1);
+         internal_trace_job_bin_oom(pJob->pBase, pJob->uiClientId);
 
          pBlock = BVC5_P_BinMemArrayAdd(&pRenderJob->jobData.sRender.sBinMemArray, 0, &uiPhysical);
 
@@ -411,7 +442,7 @@ static bool BVC5_P_CoreJobIsRunnable(
 )
 {
    /* Workaround for GFXH-1181 */
-   if (!V3D_VER_AT_LEAST(3,3,0,0))
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    {
       BDBG_ASSERT(hVC5->uiNumCores == 1);
       if (  (pJob->uiNeedsCacheFlush & 1)
@@ -421,6 +452,7 @@ static bool BVC5_P_CoreJobIsRunnable(
          return false;
       }
    }
+#endif
 
    if (!BVC5_P_SwitchSecurityMode(hVC5, pJob->pBase->bSecure))
       return false;
@@ -436,7 +468,16 @@ static bool BVC5_P_RenderJobIsRunnable(
    BVC5_P_InternalJob *pJob
 )
 {
-   if (BVC5_P_HardwareRenderBlocked(hVC5, 0, pJob))
+   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[0];
+   BVC5_P_RenderState *pRenderState = &pCoreState->sRenderState;
+   bool bNoOverlap = (((const BVC5_JobRender*)pJob->pBase)->uiFlags & BVC5_NO_BIN_RENDER_OVERLAP) != 0;
+
+   uint32_t uiUnitsBusy = bNoOverlap ? pCoreState->uiUnitsBusy : pCoreState->uiUnitsBusyNoOverlap;
+   if (uiUnitsBusy & ~BVC5_P_HardwareUnit_eRenderer)
+      return false;
+
+   /* No mechanism to queue an abandoned job. */
+   if (pJob->bAbandon && pRenderState->psJob[BVC5_P_HW_QUEUE_RUNNING])
       return false;
 
    /* CoreJobIsRunnable has MMU and security side effects so it must be last */
@@ -448,14 +489,46 @@ static bool BVC5_P_BinnerJobIsRunnable(
    BVC5_P_InternalJob *pJob
 )
 {
-   if (BVC5_P_HardwareBinBlocked(hVC5, 0, pJob))
+   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[0];
+   bool bNoOverlap = (((const BVC5_JobBin*)pJob->pBase)->uiFlags & BVC5_NO_BIN_RENDER_OVERLAP) != 0;
+
+   uint32_t uiUnitsBusy = bNoOverlap ? pCoreState->uiUnitsBusy : pCoreState->uiUnitsBusyNoOverlap;
+   if (uiUnitsBusy & ~BVC5_P_HardwareUnit_eBinner)
       return false;
+
    if (!BVC5_P_BinPoolReplenish(BVC5_P_GetBinPool(hVC5)))
       return false;
 
    /* CoreJobIsRunnable has MMU and security side effects so it must be last */
    return BVC5_P_CoreJobIsRunnable(hVC5, pJob);
 }
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+static bool BVC5_P_ComputeJobIsRunnable(
+   BVC5_Handle         hVC5,
+   BVC5_P_InternalJob *pJob
+)
+{
+   BVC5_P_CoreState *pCoreState = &hVC5->psCoreStates[0];
+   BVC5_P_ComputeState *pComputeState = &pCoreState->sComputeState;
+
+   uint32_t uiSubjobIndex = pJob->jobData.sCompute.uiNumIssued;
+
+   bool bNoOverlap = pJob->jobData.sCompute.pSubjobs->uiSize != 0
+                  && pJob->jobData.sCompute.pSubjobs->pData[uiSubjobIndex].bNoOverlap;
+
+   uint32_t uiUnitsBusy = bNoOverlap ? pCoreState->uiUnitsBusy : pCoreState->uiUnitsBusyNoOverlap;
+   if (uiUnitsBusy & ~BVC5_P_HardwareUnit_eCompute)
+      return false;
+
+   /* No mechanism to queue an abandoned or empty job. */
+   if ((pJob->bAbandon || pJob->jobData.sCompute.pSubjobs->uiSize == 0) && pComputeState->psJob[BVC5_P_HW_QUEUE_RUNNING])
+      return false;
+
+   /* CoreJobIsRunnable has MMU and security side effects so it must be last */
+   return BVC5_P_CoreJobIsRunnable(hVC5, pJob);
+}
+#endif
 
 /* BVC5_P_TFUJobIsRunnable
 
@@ -578,6 +651,50 @@ static void BVC5_P_ScheduleBinnerJobs(
       }
    }
 }
+
+/* BVC5_P_ScheduleComputeJobs
+
+   Issue compute job if available and runnable in the current mode
+   Prefer the current client
+
+   POWER MUST BE ON
+
+ */
+#if V3D_VER_AT_LEAST(4,1,34,0)
+static void BVC5_P_ScheduleComputeJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients
+)
+{
+   BVC5_P_SchedulerState *psState = &hVC5->sSchedulerState;
+
+   uint32_t uiClient;
+   bool     bComputeAvailable = BVC5_P_HardwareIsComputeAvailable(hVC5, 0);
+
+   for (uiClient = 0; bComputeAvailable && uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle     hClient   = BVC5_P_SchedulerStateGetClient(psState, uiClient);
+      BVC5_P_InternalJob   *computeJob = BVC5_P_JobQTop(hClient->hRunnableComputeQ);
+
+      if (computeJob)
+      {
+         if (BVC5_P_ComputeJobIsRunnable(hVC5, computeJob))
+         {
+            if (BVC5_P_HardwareIssueComputeJob(hVC5, 0, computeJob))
+               BVC5_P_JobQPop(hClient->hRunnableComputeQ);
+            BVC5_P_ClientSetGiven(hClient, BVC5_CLIENT_COMPUTE);
+            bComputeAvailable = BVC5_P_HardwareIsComputeAvailable(hVC5, 0);
+         }
+         else
+         {
+            /* The current client wanted to compute but was denied */
+            if (uiClient == 0)
+               break;
+         }
+      }
+   }
+}
+#endif
 
 /* BVC5_P_ScheduleTFUJobs
 
@@ -744,7 +861,10 @@ static void BVC5_P_ScheduleRunnableJobs(
 
       BVC5_P_ScheduleRenderJobs(hVC5, uiNumClients);
       BVC5_P_ScheduleBinnerJobs(hVC5, uiNumClients);
-      BVC5_P_ScheduleTFUJobs   (hVC5, uiNumClients);
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      BVC5_P_ScheduleComputeJobs(hVC5, uiNumClients);
+#endif
+      BVC5_P_ScheduleTFUJobs(hVC5, uiNumClients);
 
       /* TODO: If power is off then barrier jobs can be discarded. */
       BVC5_P_ScheduleBarrierJobs(hVC5, uiNumClients);
@@ -926,6 +1046,8 @@ static bool BVC5_P_IsRunnable(
       }
 
       bIsRunnable = pInternalJob->jobData.sWait.signaled;
+      if (bIsRunnable)
+         BVC5_P_AddSchedWaitJobEvent(hVC5, pInternalJob->uiClientId, BVC5_EventEnd, pInternalJob->uiJobId, 0, BVC5_P_GetEventTimestamp());
       break;
 
    case BVC5_JobType_eWaitOnEvent:

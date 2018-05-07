@@ -343,7 +343,6 @@ static BERR_Code BDSP_Arm_P_FillNodeCfg(
                                 BDSP_MMA_P_FlushCache(pArmConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
                                 BDSP_MMA_P_FlushCache(pArmConnectStage->sStageInput[ui32Ip].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
 
-                                pTempIoGenBuffer_Cached =(BDSP_AF_P_sIO_GENERIC_BUFFER *)pArmConnectStage->sIdsStageOutput.IoGenBuffDesc.pAddr;
                                 ui32IOGenPhysAddr = pArmConnectStage->sStageInput[ui32Ip].IoGenBuffDesc.offset;
                                 BDBG_MSG(("FMM,RAVE,RDB i/p connection,ui32Ip=%d",ui32Ip));
                                 break;
@@ -648,7 +647,8 @@ static BERR_Code BDSP_Arm_P_FillGblTaskCfg (
 	if(NULL == psFmmDestCfg)
 	{
 		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Couldn't Allocate Memory for FMM DEST CONFIG"));
-		return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        ui32Error = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_fmmdesc_alloc;
 	}
 
 	BDSP_P_InitializeFmmDstCfg(psFmmDestCfg);
@@ -835,8 +835,9 @@ static BERR_Code BDSP_Arm_P_FillGblTaskCfg (
     psGblTaskCfg->eTimeBaseType = pArmTask->startSettings.timeBaseType;
 
 end:
-	BKNI_Free(psTaskFmmGateOpenConfig);
 	BKNI_Free(psFmmDestCfg);
+err_fmmdesc_alloc:
+	BKNI_Free(psTaskFmmGateOpenConfig);
 
     BDBG_LEAVE(BDSP_Arm_P_FillGblTaskCfg);
     return ui32Error;

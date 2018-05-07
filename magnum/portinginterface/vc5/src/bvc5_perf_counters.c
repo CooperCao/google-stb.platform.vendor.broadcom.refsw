@@ -103,16 +103,6 @@ void BVC5_P_InitPerfCounters(
    #include "bvc5_perf_counters_hw_4_0.inc"
 #else
    #include "bvc5_perf_counters_hw_3_x.inc"
-
-   d = &hVC5->sPerfCounters.sGroupDescs[BVC5_P_PERF_COUNTER_MEM_BW_GROUP];
-
-   _strncpy(d->caName, "V3D Memory B/W", BVC5_MAX_GROUP_NAME_LEN);
-
-   BVC5_P_SetCounterNamesEx(d, 0, "memory_read_bandwidth", "MB", 0, ~0, 1024 * 1024 / 32);
-   BVC5_P_SetCounterNamesEx(d, 1, "memory_write_bandwidth", "MB", 0, ~0, 1024 * 1024 / 32);
-
-   d->uiMaxActiveCounters = BVC5_P_PERF_COUNTER_MAX_BW_CTRS_ACTIVE;
-
 #endif
 
    d = &hVC5->sPerfCounters.sGroupDescs[BVC5_P_PERF_COUNTER_SCHED_GROUP];
@@ -286,20 +276,6 @@ static BERR_Code BVC5_P_SetPerfCounting(
          BDBG_ASSERT(c == psPerf->uiActiveHwCounters);
          psPerf->uiPCTREShadow = BCHP_FIELD_DATA(V3D_PCTR_PCTRE, CTEN, 1) | ((1 << psPerf->uiActiveHwCounters) - 1);
 
-         c = 0; /* always reset for assert below */
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-         for (i = 0; i < psPerf->sGroupDescs[BVC5_P_PERF_COUNTER_MEM_BW_GROUP].uiTotalCounters; i++)
-         {
-            if (psPerf->sBwCounters[i].bEnabled)
-            {
-               psPerf->uiGCAPMSelShadow = BCHP_FIELD_DATA(V3D_GCA_PM_CTRL, PM_SEL, i);
-               c++;
-            }
-         }
-#endif
-
-         BDBG_ASSERT(c == psPerf->uiActiveBwCounters);
-
          /* update the counters, but only if the core is on - otherwise they'll get set at next power on */
          BVC5_P_RestorePerfCounters(hVC5, 0, /*bWriteSelectorsAndEnables=*/true);
       }
@@ -312,9 +288,6 @@ static BERR_Code BVC5_P_SetPerfCounting(
       {
          psPerf->bCountersActive = false;
          psPerf->uiPCTREShadow = 0;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-         psPerf->uiGCAPMSelShadow |= BCHP_FIELD_DATA(V3D_GCA_PM_CTRL, PM_CNT_FREEZE, 1);
-#endif
       }
       else
          err = BERR_NOT_AVAILABLE;
@@ -384,34 +357,6 @@ void BVC5_ChoosePerfCounters(
       /* Clear the counters */
       BKNI_Memset(hVC5->sPerfCounters.uiPCTRShadows, 0, sizeof(hVC5->sPerfCounters.uiPCTRShadows));
    }
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   if (psSelector->uiGroupIndex == BVC5_P_PERF_COUNTER_MEM_BW_GROUP)
-   {
-      for (i = 0; i < psSelector->uiNumCounters; i++)
-      {
-         BDBG_ASSERT(psSelector->uiaCounters[i] < hVC5->sPerfCounters.sGroupDescs[BVC5_P_PERF_COUNTER_MEM_BW_GROUP].uiTotalCounters);
-
-         if (psSelector->uiEnable && hVC5->sPerfCounters.uiActiveBwCounters < BVC5_P_PERF_COUNTER_MAX_BW_CTRS_ACTIVE)
-         {
-            if (!hVC5->sPerfCounters.sBwCounters[psSelector->uiaCounters[i]].bEnabled)
-               hVC5->sPerfCounters.uiActiveBwCounters++;
-
-            hVC5->sPerfCounters.sBwCounters[psSelector->uiaCounters[i]].bEnabled = true;
-         }
-         else if (!psSelector->uiEnable)
-         {
-            if (hVC5->sPerfCounters.sBwCounters[psSelector->uiaCounters[i]].bEnabled)
-               hVC5->sPerfCounters.uiActiveBwCounters--;
-            hVC5->sPerfCounters.sBwCounters[psSelector->uiaCounters[i]].bEnabled = false;
-         }
-      }
-
-      BDBG_ASSERT(hVC5->sPerfCounters.uiActiveBwCounters <= BVC5_P_PERF_COUNTER_MAX_BW_CTRS_ACTIVE);
-
-      /* Clear the counters */
-      hVC5->sPerfCounters.uiMemBwCntShadow = 0;
-   }
-#endif
    else if (psSelector->uiGroupIndex == BVC5_P_PERF_COUNTER_SCHED_GROUP)
    {
       BDBG_ASSERT(psSelector->uiNumCounters <= BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE);
@@ -604,7 +549,7 @@ uint32_t BVC5_GetPerfCounterData(
    if (uiMaxCounters == 0 || psCounters == NULL)
    {
       /* Get number of counters */
-      uint32_t counters = psPerf->uiActiveHwCounters + psPerf->uiActiveBwCounters;
+      uint32_t counters = psPerf->uiActiveHwCounters;
 
       for (i = 0; i < BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE; i++)
       {
@@ -644,24 +589,6 @@ uint32_t BVC5_GetPerfCounterData(
          if (c >= psPerf->uiActiveHwCounters || c >= uiMaxCounters)
             break;
       }
-
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      for (i = 0; i < BVC5_MAX_COUNTERS_PER_GROUP; i++)
-      {
-         if (psPerf->sBwCounters[i].bEnabled)
-         {
-            psCounters[c].uiGroupIndex = BVC5_P_PERF_COUNTER_MEM_BW_GROUP;
-            psCounters[c].uiCounterIndex = i;
-            psCounters[c].uiValue = psPerf->uiMemBwCntShadow;
-
-            c++;
-         }
-
-         if (c >= (psPerf->uiActiveHwCounters + psPerf->uiActiveBwCounters) ||
-             c >= uiMaxCounters)
-            break;
-      }
-#endif
 
       /* Scheduler counters */
       BVC5_P_UpdateCalculatedCounters(hVC5, uiResetCounts);
@@ -710,7 +637,6 @@ uint32_t BVC5_GetPerfCounterData(
 
       /* TODO multi core */
       BKNI_Memset(psPerf->uiPCTRShadows, 0, sizeof(psPerf->uiPCTRShadows));
-      psPerf->uiMemBwCntShadow = 0;
 
       for (i = 0; i < BVC5_P_PERF_COUNTER_MAX_SCHED_CTRS_ACTIVE; i++)
          psPerf->sSchedValues[i].uiValue = 0;

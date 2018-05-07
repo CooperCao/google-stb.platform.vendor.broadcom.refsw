@@ -7,7 +7,7 @@
 
 #include "middleware/khronos/glxx/glxx_server.h"
 #include "middleware/khronos/glxx/glxx_server_internal.h"
-#include "interface/khronos/include/GLES/glext.h"
+#include <GLES/glext.h>
 
 #include "middleware/khronos/glxx/glxx_texture.h"
 #include "middleware/khronos/glxx/glxx_buffer.h"
@@ -894,7 +894,7 @@ GL_API void GL_APIENTRY glCompressedTexSubImage2D(GLenum target, GLint level, GL
 
 static int format_is_copy_compatible(GLenum internalformat, KHRN_IMAGE_FORMAT_T srcformat)
 {
-   switch (srcformat & ~IMAGE_FORMAT_PRE)
+   switch (srcformat)
    {
    case ABGR_8888_TF:
    case RGBA_4444_TF:
@@ -1445,7 +1445,7 @@ static void draw_elements (GLXX_SERVER_STATE_T *state, GLenum mode,
       goto fail_or_done;
    }
 
-   INCR_DRIVER_COUNTER(draw_calls);
+   khrn_driver_incr_counters(KHRN_PERF_DRAW_CALLS);
 
    { /* block kept to avoid changing indentation of every line below */
       bool indices_ok;
@@ -2093,9 +2093,9 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
    switch (name) {
    case GL_VENDOR:
 #ifndef NDEBUG
-      result = "Broadcom DEBUG";
+      result = (const GLubyte *)"Broadcom DEBUG";
 #else
-      result = "Broadcom";
+      result = (const GLubyte *)"Broadcom";
 #endif
       break;
    case GL_RENDERER:
@@ -2247,7 +2247,7 @@ int glxx_get_texparameter_internal(GLenum target, GLenum pname, GLint *params)
 
 GL_API void GL_APIENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
 {
-   GLint temp[4];
+   GLint temp[4] = { 0 };
    int count = glxx_get_texparameter_internal(target, pname, temp);
 
    if (count) {
@@ -2467,7 +2467,6 @@ GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei he
    else
    {
       uint32_t a, n, s, k;
-      char *cpixels;
       KHRN_IMAGE_WRAP_T src_wrap, dst_wrap;
       uint32_t dstx = 0, dsty = 0;
 
@@ -2487,8 +2486,6 @@ GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei he
          k = n * width;
 
       khrn_interlock_read_immediate(&src->interlock);
-
-      cpixels = (char*)pixels;
 
       if (x < 0) { dstx -= x; width += x;  x = 0; }
       if (y < 0) { dsty -= y; height += y; y = 0; }
@@ -2524,7 +2521,7 @@ GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei he
 
          khrn_image_wrap_copy_region(
             &dst_wrap, dstx, dsty, width, height,
-            &src_wrap, x, y, IMAGE_CONV_GL);
+            &src_wrap, x, y);
       }
 
       khrn_image_unlock_wrap(src);
@@ -3445,7 +3442,7 @@ void get_renderbuffer_parameteriv_internal(GLenum target, GLenum pname, GLint* p
                 params[0] = GL_RGBA4;  //The initial value is GL_RGBA4.
              else
              {
-                KHRN_IMAGE_FORMAT_T format = khrn_image_no_colorspace_format(storage->format);
+                KHRN_IMAGE_FORMAT_T format = storage->format;
                 format = khrn_image_no_layout_format(format);
                 switch (format) {
                 case ABGR_8888:
@@ -4236,7 +4233,7 @@ static void drawarrays_or_elements(GLenum mode, GLint first, GLsizei count, bool
       goto end;
    }
 
-#if (__mips__) || (__arm__ && __ARM_FEATURE_UNALIGNED != 1)
+#if (__mips__) || (__arm__ && __ARM_FEATURE_UNALIGNED != 1) || (__aarch64__ && __ARM_FEATURE_UNALIGNED != 1)
    if (check_type && !glxx_is_aligned(type, (size_t)indices)) {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;

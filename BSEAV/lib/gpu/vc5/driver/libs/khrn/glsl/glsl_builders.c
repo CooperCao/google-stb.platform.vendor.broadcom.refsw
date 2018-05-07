@@ -802,8 +802,8 @@ static void validate_member_layout(LayoutQualifier *member_lq, StorageQualifier 
    }
 }
 
-static void glsl_map_member(Map *struct_map, StorageQualifier valid_sq,
-                            const char *name, SymbolType *type, Qualifiers *quals)
+static void map_member(Map *struct_map, StorageQualifier valid_sq,
+                       const char *name, SymbolType *type, Qualifiers *quals)
 {
    StructMember *member = malloc_fast(sizeof(StructMember));
    member->name   = name;
@@ -821,8 +821,8 @@ static void glsl_map_member(Map *struct_map, StorageQualifier valid_sq,
    glsl_map_put(struct_map, name, member);
 }
 
-static void glsl_map_and_check_members(Map *struct_map, StorageQualifier valid_sq,
-                                       Statement *statement, LayoutQualifier *block_lq)
+static void map_and_check_members(Map *struct_map, StorageQualifier valid_sq,
+                                  Statement *statement, LayoutQualifier *block_lq)
 {
    assert(statement->flavour==STATEMENT_STRUCT_DECL);
    SymbolType *type = statement->u.struct_decl.type;
@@ -850,22 +850,22 @@ static void glsl_map_and_check_members(Map *struct_map, StorageQualifier valid_s
       if (node->statement->u.struct_member_decl.array_specifier != NULL)
          type = glsl_build_array_type(type, node->statement->u.struct_member_decl.array_specifier);
 
-      glsl_map_member(struct_map, valid_sq, node->statement->u.struct_member_decl.name, type, &q);
+      map_member(struct_map, valid_sq, node->statement->u.struct_member_decl.name, type, &q);
    }
 }
 
-static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
-                                                   const char *name,
-                                                   StatementChain *chain,
-                                                   StorageQualifier valid_sq,
-                                                   LayoutQualifier *block_lq)
+static SymbolType *build_struct_or_block_type(SymbolTypeFlavour flavour,
+                                              const char *name,
+                                              StatementChain *chain,
+                                              StorageQualifier valid_sq,
+                                              LayoutQualifier *block_lq)
 {
    assert(flavour==SYMBOL_STRUCT_TYPE || flavour==SYMBOL_BLOCK_TYPE);
 
    Map *members = glsl_map_new();
 
    for(StatementChainNode *node=chain->first; node; node=node->next) {
-      glsl_map_and_check_members(members, valid_sq, node->statement, block_lq);
+      map_and_check_members(members, valid_sq, node->statement, block_lq);
    }
 
    SymbolType *resultType   = malloc_fast(sizeof(SymbolType));
@@ -912,13 +912,13 @@ static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
 
 SymbolType *glsl_build_struct_type(const char *name, StatementChain *chain)
 {
-   return glsl_build_struct_or_block_type(SYMBOL_STRUCT_TYPE, name, chain, STORAGE_NONE, NULL);
+   return build_struct_or_block_type(SYMBOL_STRUCT_TYPE, name, chain, STORAGE_NONE, NULL);
 }
 
 SymbolType *glsl_build_block_type(Qualifiers *quals, const char *name, StatementChain *chain)
 {
-   SymbolType *type = glsl_build_struct_or_block_type(SYMBOL_BLOCK_TYPE, name, chain,
-                                                      quals->sq, quals->lq);
+   SymbolType *type = build_struct_or_block_type(SYMBOL_BLOCK_TYPE, name, chain,
+                                                 quals->sq, quals->lq);
    if(glsl_type_contains_opaque(type))
       glsl_compile_error(ERROR_CUSTOM, 20, g_LineNumber, NULL);
 

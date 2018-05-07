@@ -74,7 +74,7 @@ typedef struct
 {
 /* The upper and lower addressed of a memory region */
     struct {
-        BMMA_DeviceOffset address;
+        BSTD_DeviceOffset address;
         unsigned size;
     } region,signature;
 
@@ -108,9 +108,9 @@ static uint8_t _BspCpuType( BHSM_RegionId regionId );
 
 
 /* called internally on platform initialisation */
-BERR_Code BHSM_RvRegion_Init( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings *pSettings )
+BERR_Code BHSM_RvRegion_Init_priv( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings *pSettings )
 {
-    BDBG_ENTER( BHSM_RvRegion_Init );
+    BDBG_ENTER( BHSM_RvRegion_Init_priv );
     BSTD_UNUSED( pSettings );
 
     hHsm->modules.pRvRegions = (BHSM_RvRegionModule*)BKNI_Malloc( sizeof(BHSM_RvRegionModule) );
@@ -119,15 +119,15 @@ BERR_Code BHSM_RvRegion_Init( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings *pSe
     BKNI_Memset( hHsm->modules.pRvRegions, 0, sizeof(BHSM_RvRegionModule) );
     hHsm->modules.pRvRegions->hHsm = hHsm;
 
-    BDBG_LEAVE( BHSM_RvRegion_Init );
+    BDBG_LEAVE( BHSM_RvRegion_Init_priv );
     return BERR_SUCCESS;
 }
 
 
 /* called internally on platform un-initialisation */
-void BHSM_RvRegion_Uninit( BHSM_Handle hHsm )
+void BHSM_RvRegion_Uninit_priv( BHSM_Handle hHsm )
 {
-    BDBG_ENTER( BHSM_RvRegion_Uninit );
+    BDBG_ENTER( BHSM_RvRegion_Uninit_priv );
 
     if( !hHsm->modules.pRvRegions ){
         BERR_TRACE( BERR_INVALID_PARAMETER );
@@ -137,7 +137,7 @@ void BHSM_RvRegion_Uninit( BHSM_Handle hHsm )
     BKNI_Free( hHsm->modules.pRvRegions );
     hHsm->modules.pRvRegions = NULL;
 
-    BDBG_LEAVE( BHSM_RvRegion_Uninit );
+    BDBG_LEAVE( BHSM_RvRegion_Uninit_priv );
     return;
 }
 
@@ -149,6 +149,9 @@ BHSM_RvRegionHandle BHSM_RvRegion_Allocate( BHSM_Handle hHsm, const BHSM_RvRegio
 
     BDBG_ENTER( BHSM_RvRegion_Allocate );
 
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !hHsm->modules.pRvRegions ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
     if( pSettings->regionId >= BHSM_RegionId_eMax ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     pRegion = &(((BHSM_RvRegionModule*)hHsm->modules.pRvRegions)->instances[pSettings->regionId]);
@@ -187,6 +190,8 @@ void  BHSM_RvRegion_GetSettings( BHSM_RvRegionHandle handle, BHSM_RvRegionSettin
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
     BDBG_ENTER( BHSM_RvRegion_GetSettings );
 
+    if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !pRegion ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
     if( !pRegion->allocated ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
     *pSettings = pRegion->settings;
@@ -205,6 +210,7 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
 
     BDBG_ENTER( BHSM_RvRegion_SetSettings );
 
+    if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSettings ) return BERR_TRACE(BERR_INVALID_PARAMETER );
     if( !pSettings->rvRsaHandle ) return BERR_TRACE(BERR_INVALID_PARAMETER );
@@ -252,7 +258,7 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
         case BERR_SUCCESS:
         case BHSM_STATUS_REGION_ALREADY_CONFIGURED:
         case BHSM_STATUS_REGION_VERIFICATION_NOT_ENABLED: break;
-        default: BERR_TRACE( rc ); break;
+        default: return BERR_TRACE( rc );
     }
 
     pRegion->configured = true;
@@ -266,9 +272,11 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    uint8_t status = 0;
+    uint8_t status = BHSM_P_BSP_INVALID_STATUS;
 
     BDBG_ENTER( BHSM_RvRegion_Enable );
+
+    if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_BspMsg_Create( pRegion->hHsm, &hMsg );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -300,15 +308,16 @@ exit:
 
 BERR_Code BHSM_RvRegion_QueryAll( BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStatus)
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    uint8_t status = 0;
+    uint8_t status = BHSM_P_BSP_INVALID_STATUS;
     uint16_t regionStatus = 0;
     unsigned regionId = 0;
 
     BDBG_ENTER( BHSM_RvRegion_QueryAll );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_BspMsg_Create( hHsm, &hMsg );
@@ -345,16 +354,17 @@ exit:
 
 BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStatus *pStatus )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
-    uint8_t status = 0;
+    uint8_t status = BHSM_P_BSP_INVALID_STATUS;
     uint16_t regionStatus = 0;
     unsigned regionId;
 
     BDBG_ENTER( BHSM_RegionVerification_QueryStatus );
 
+    if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
@@ -394,13 +404,15 @@ exit:
 
 BERR_Code BHSM_RvRegion_Disable( BHSM_RvRegionHandle handle )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    uint8_t status = 0;
+    uint8_t status = BHSM_P_BSP_INVALID_STATUS;
 
     BDBG_ENTER( BHSM_RegionVerification_Disable );
+
+    if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_BspMsg_Create( pRegion->hHsm, &hMsg );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -448,6 +460,7 @@ BERR_Code BHSM_GetRvRegionInfo( BHSM_RvRegionHandle handle, BHSM_RvRegionInfo *p
     BDBG_ENTER( BHSM_GetRvRegionInfo );
 
     if( !pInfo ) return BERR_TRACE( BERR_INVALID_PARAMETER );
+    if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pInfo->regionId = pRegion->regionId;
@@ -459,17 +472,20 @@ BERR_Code BHSM_GetRvRegionInfo( BHSM_RvRegionHandle handle, BHSM_RvRegionInfo *p
 
 BERR_Code _RvRegionConfigure( BHSM_RvRegionHandle hRegion, _RvRegionConfigure_t *pConf )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)hRegion;
     BHSM_BspMsg_h hMsg = NULL;
     BHSM_BspMsgHeader_t header;
-    uint8_t status = 0;
+    uint8_t status = BHSM_P_BSP_INVALID_STATUS;
     BCMD_ScbBurstSize_e scbBurstSize = 0;
     BCMD_MemAuth_CpuType_e cpuType;
     BCMD_SignatureType_e signatureType;
-    BMMA_DeviceOffset endAddress;
+    BSTD_DeviceOffset endAddress;
 
     BDBG_ENTER( _RvRegionConfigure );
+
+    if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pConf ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_BspMsg_Create( pRegion->hHsm, &hMsg );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -572,7 +588,7 @@ BERR_Code _RvRegionConfigure( BHSM_RvRegionHandle hRegion, _RvRegionConfigure_t 
             break;
         }
         default: {
-            rc = BHSM_STATUS_BSP_ERROR;
+            rc = BERR_TRACE( BHSM_STATUS_BSP_ERROR );
             BDBG_WRN(("%s: ERROR[0x%0X] region[0x%0X]", BSTD_FUNCTION, status, pRegion->regionId ));
             break;
         }
@@ -584,8 +600,6 @@ exit:
     BDBG_LEAVE( _RvRegionConfigure );
     return rc;
 }
-
-
 
 static uint8_t _BspCpuType( BHSM_RegionId regionId )
 {

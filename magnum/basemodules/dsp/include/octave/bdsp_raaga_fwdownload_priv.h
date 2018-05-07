@@ -54,12 +54,12 @@ BERR_Code BDSP_Raaga_P_AssignAlgoSize(
     BDSP_P_FwBuffer      *pImgInfo
 );
 BERR_Code BDSP_Raaga_P_AssignAlgoSize_APITool(
-	const BDSP_RaagaUsageOptions  *pUsage,
-	BDSP_P_FwBuffer 	          *pImgInfo
+	const BDSP_UsageOptions  *pUsage,
+	BDSP_P_FwBuffer 	     *pImgInfo
 );
 BERR_Code BDSP_Raaga_P_ComputeLoadbleSection_APITool(
 	const BDSP_RaagaSettings      *pSettings,
-	const BDSP_RaagaUsageOptions  *pUsage,
+	const BDSP_UsageOptions       *pUsage,
 	BDSP_Raaga_P_CodeDownloadInfo *pCodeDownloadInfo,
 	unsigned *pMemReqd
 );

@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_15
+## SAGE Binary Metadata - SSF 3_2_16
 ## unique_key checksum_type checksum url
-7445D0/dev/sage_ta_ssd_dev.bin sha1 4e03aac44ba55670103c74bd9168f2db1c897fd5 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_15/7445D0/ZD/sage_ta_ssd_dev.bin
+7445D0/dev/sage_ta_ssd_dev.bin sha1 df93389bd579380083eca2f76e7bd4c104596368 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_16/7445D0/ZD/sage_ta_ssd_dev.bin

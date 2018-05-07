@@ -35,23 +35,16 @@ void v3d_bcfg_collect(
    {
       const V3D_CL_TILE_BINNING_MODE_CFG_PART1_T *part1 = &i->u.part1;
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
       assert(part1->auto_init_tile_state);
-#endif
 
       bcfg->tile_alloc_ibs = v3d_translate_from_tile_alloc_block_size(
          part1->tile_alloc_initial_block_size);
       bcfg->tile_alloc_bs = v3d_translate_from_tile_alloc_block_size(
          part1->tile_alloc_block_size);
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      if (part1->set_tile_state_addr)
-#endif
-      {
-         assert(part1->tile_state_addr);
-         assert(v3d_addr_aligned(part1->tile_state_addr, V3D_TILE_STATE_ALIGN));
-         bcfg->tile_state_addr = part1->tile_state_addr;
-      }
+      assert(part1->tile_state_addr);
+      assert(v3d_addr_aligned(part1->tile_state_addr, V3D_TILE_STATE_ALIGN));
+      bcfg->tile_state_addr = part1->tile_state_addr;
 
       bcfg->ms_mode = part1->ms_mode;
       v3d_log2_tile_size_pixels(&bcfg->log2_tile_w_px, &bcfg->log2_tile_h_px,

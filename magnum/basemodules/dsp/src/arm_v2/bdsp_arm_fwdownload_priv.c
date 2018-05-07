@@ -237,6 +237,96 @@ BERR_Code BDSP_Arm_P_ComputeLoadbleSection(
 	return errCode;
 }
 
+BERR_Code BDSP_Arm_P_ComputeLoadbleSection_APITool(
+	const BDSP_ArmSettings      *pSettings,
+	const BDSP_UsageOptions     *pUsage,
+	BDSP_Arm_P_CodeDownloadInfo *pCodeDownloadInfo,
+	unsigned *pMemReqd
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_Algorithm algorithm;
+	const BDSP_P_AlgorithmInfo *pAlgoInfo;
+	unsigned totalSupportedMemory = 0, minRequiredMemory = 0;
+	BDBG_ENTER(BDSP_Arm_P_ComputeLoadbleSection_APITool);
+
+	for(algorithm = 0; algorithm < BDSP_Algorithm_eMax; algorithm++)
+	{
+		if(pUsage->Codeclist[algorithm])
+		{
+			totalSupportedMemory += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_CODE(algorithm)].ui32Size;
+			totalSupportedMemory += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_IDS(algorithm)].ui32Size;
+			totalSupportedMemory += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_TABLE(algorithm)].ui32Size;
+			totalSupportedMemory += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_IFRAME(algorithm)].ui32Size;
+		}
+	}
+
+	if(pSettings->authenticationEnabled == true)
+	{
+		BDBG_MSG(("BDSP_Arm_P_ComputeLoadbleSection_APITool: Authentication is enabled hence preloading total requirement %d",totalSupportedMemory));
+		*pMemReqd = totalSupportedMemory;
+		minRequiredMemory = totalSupportedMemory;
+	}
+	else
+	{
+		unsigned AlgorithmSize = 0;
+		BDSP_P_LoadableImageInfo *pLoadableImageInfo;
+		BDSP_AlgorithmType algoType;
+		pLoadableImageInfo = &pCodeDownloadInfo->sLoadableImageInfo;
+		BKNI_Memset(pLoadableImageInfo, 0, sizeof(BDSP_P_LoadableImageInfo));
+		for(algoType=0; algoType<BDSP_AlgorithmType_eMax; algoType++)
+		{
+			pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].numImageBlock = pSettings->maxAlgorithms[algoType];
+		}
+
+		for(algorithm = 0; algorithm < BDSP_Algorithm_eMax; algorithm++)
+		{
+			AlgorithmSize = 0;
+			if(pUsage->Codeclist[algorithm])
+			{
+				pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
+				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_CODE(algorithm)].ui32Size;
+				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_IDS(algorithm)].ui32Size;
+				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_TABLE(algorithm)].ui32Size;
+				AlgorithmSize += pCodeDownloadInfo->imgInfo[BDSP_ARM_IMG_ID_IFRAME(algorithm)].ui32Size;
+				BDBG_MSG(("Algo Size for Algorithm (%d) %s = %d",algorithm,pAlgoInfo->pName, AlgorithmSize));
+				if(pAlgoInfo->type == BDSP_AlgorithmType_eAudioProcessing)
+				{
+					/* All PP are downloaded together as single Image, hence adding */
+					pLoadableImageInfo->sAlgoTypeSplitInfo[pAlgoInfo->type].maxImageSize += AlgorithmSize;
+				}
+				else if(pAlgoInfo->type < BDSP_AlgorithmType_eMax)
+				{
+					if(pLoadableImageInfo->sAlgoTypeSplitInfo[pAlgoInfo->type].maxImageSize < AlgorithmSize)
+						pLoadableImageInfo->sAlgoTypeSplitInfo[pAlgoInfo->type].maxImageSize = AlgorithmSize;
+				}
+			}
+		}
+
+		/*Calculate the minimum memory required */
+		for(algoType=0; algoType<BDSP_AlgorithmType_eMax; algoType++)
+		{
+			BDBG_MSG(("BDSP_Arm_P_ComputeLoadbleSection_APITool: Algo Type (%d) - Max Image Size (%d) and Number of Image containers(%d)",
+				algoType, pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].maxImageSize, pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].numImageBlock));
+			minRequiredMemory += (pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].maxImageSize *
+				pLoadableImageInfo->sAlgoTypeSplitInfo[algoType].numImageBlock);
+		}
+
+		if(minRequiredMemory >= totalSupportedMemory)
+		{
+			BDBG_MSG(("BDSP_Arm_P_ComputeLoadbleSection_APITool: Total supported Memory is less than allocation requirement, hence enabling preloading"));
+			minRequiredMemory = totalSupportedMemory;
+		}
+		*pMemReqd = minRequiredMemory;
+	}
+	pCodeDownloadInfo->sLoadableImageInfo.allocatedSize = minRequiredMemory;
+	pCodeDownloadInfo->sLoadableImageInfo.supportedSize = totalSupportedMemory;
+
+	BDBG_MSG(("BDSP_Arm_P_ComputeLoadbleSection_APITool: Minimun Reqd Memory (%d) Total Supported Memory (%d)",minRequiredMemory,totalSupportedMemory));
+	BDBG_LEAVE(BDSP_Arm_P_ComputeLoadbleSection_APITool);
+	return errCode;
+}
+
 BERR_Code BDSP_Arm_P_AssignAlgoSize(
     const BIMG_Interface *pImageInterface,
     void                **pImageContext,
@@ -324,6 +414,56 @@ end:
 
     BDBG_LEAVE(BDSP_Arm_P_AssignAlgoSize);
     return errCode;
+}
+
+BERR_Code BDSP_Arm_P_AssignAlgoSize_APITool(
+	const BDSP_UsageOptions  *pUsage,
+	BDSP_P_FwBuffer 	     *pImgInfo
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned i = 0;
+	BDSP_Algorithm algorithm;
+	BDSP_P_FwBuffer *pTempImgInfo;
+	const BDSP_P_AlgorithmInfo *pAlgoInfo;
+	const BDSP_P_AlgorithmCodeInfo *pAlgoCodeInfo;
+	BDBG_ENTER(BDSP_Arm_P_AssignAlgoSize_APITool);
+
+	BKNI_Memset(pImgInfo, 0, (sizeof(BDSP_P_FwBuffer)*BDSP_ARM_IMG_ID_MAX));
+	for (i=0; i < BDSP_ARM_SystemImgId_eMax; i++)
+	{
+		pTempImgInfo = &pImgInfo[i];
+		pTempImgInfo->ui32Size = BDSP_ARM_SystemID_MemoryReqd[i];
+		BDBG_MSG(("Size of Resident Algo(%d) %d", i, pTempImgInfo->ui32Size));
+	}
+
+	for(algorithm = 0; algorithm < BDSP_Algorithm_eMax; algorithm++)
+	{
+		if(pUsage->Codeclist[algorithm])
+		{
+			pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
+            pAlgoCodeInfo = BDSP_Arm_P_LookupAlgorithmCodeInfo(algorithm);
+			BDBG_MSG(("Algorithm(%d) %s is supported and hence accounted for sizing and assigning",pAlgoInfo->algorithm, pAlgoInfo->pName));
+			pTempImgInfo = &pImgInfo[BDSP_ARM_IMG_ID_CODE(algorithm)];
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->algoCodeSize;
+			BDBG_MSG(("\t Code Size  %d",pTempImgInfo->ui32Size));
+
+			pTempImgInfo = &pImgInfo[BDSP_ARM_IMG_ID_IDS(algorithm)];
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->idsCodeSize;
+			BDBG_MSG(("\t IDS Code Size  %d",pTempImgInfo->ui32Size));
+
+			pTempImgInfo = &pImgInfo[BDSP_ARM_IMG_ID_TABLE(algorithm)];
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->romTableSize;
+			BDBG_MSG(("\t ROM Table Size %d",pTempImgInfo->ui32Size));
+
+			pTempImgInfo = &pImgInfo[BDSP_ARM_IMG_ID_IFRAME(algorithm)];
+			pTempImgInfo->ui32Size = pAlgoCodeInfo->compressedInterFrameSize;
+			BDBG_MSG(("\t Interframe Size  %d",pTempImgInfo->ui32Size));
+		}
+	}
+
+	BDBG_LEAVE(BDSP_Arm_P_AssignAlgoSize_APITool);
+	return errCode;
 }
 
 BERR_Code BDSP_Arm_P_RequestImg(

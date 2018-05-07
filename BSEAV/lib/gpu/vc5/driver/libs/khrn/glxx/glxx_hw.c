@@ -138,24 +138,28 @@ void glxx_hw_invalidate_default_draw_framebuffer(
 
 void glxx_destroy_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *hw_fb)
 {
-   for (unsigned b = 0; b < GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; ++b)
    {
       KHRN_MEM_ASSIGN(hw_fb->color[b].image, NULL);
       KHRN_MEM_ASSIGN(hw_fb->color_ms[b].image, NULL);
    }
    KHRN_MEM_ASSIGN(hw_fb->depth.image, NULL);
    KHRN_MEM_ASSIGN(hw_fb->stencil.image, NULL);
+
+   KHRN_MEM_ASSIGN(hw_fb->damage_rects, NULL);
 }
 
 void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_FRAMEBUFFER_T *b)
 {
-   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+   for (unsigned i = 0; i != V3D_MAX_RENDER_TARGETS; ++i)
    {
       KHRN_MEM_ASSIGN(a->color[i].image, b->color[i].image);
       KHRN_MEM_ASSIGN(a->color_ms[i].image, b->color_ms[i].image);
    }
    KHRN_MEM_ASSIGN(a->depth.image, b->depth.image);
    KHRN_MEM_ASSIGN(a->stencil.image, b->stencil.image);
+
+   KHRN_MEM_ASSIGN(a->damage_rects, b->damage_rects);
 
    /* Copy the rest of the fields (this will also re-copy the image handles but
     * that is harmless) */
@@ -184,7 +188,7 @@ static void update_hw_fb_with_image(
    }
    assert(w <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
    assert(h <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
-   assert(layers <= GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS);
+   assert(layers <= V3D_MAX_LAYERS);
 
    hw_fb->width = gfx_umin(hw_fb->width, w);
    hw_fb->height = gfx_umin(hw_fb->height, h);
@@ -192,9 +196,11 @@ static void update_hw_fb_with_image(
    hw_fb->layers = gfx_umin(hw_fb->layers, layers);
 }
 
-bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
-                               GLXX_HW_FRAMEBUFFER_T *hw_fb,
-                               glxx_context_fences *fences)
+
+static bool init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
+                              bool use_0_if_layered,
+                              GLXX_HW_FRAMEBUFFER_T *hw_fb,
+                              glxx_context_fences *fences)
 {
    assert(glxx_fb_is_complete(fb, fences));
    memset(hw_fb, 0, sizeof(*hw_fb));
@@ -204,15 +210,15 @@ bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
    // we always configure tilebuffer based on all attached images in fb,
    // regardless of any draw buffers setting.
    hw_fb->rt_count = 1;
-   for (unsigned b = 0; b < GLXX_MAX_RENDER_TARGETS; ++b)
+   for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; ++b)
    {
       const GLXX_ATTACHMENT_T *att = &fb->attachment[GLXX_COLOR0_ATT + b];
 
-      if (!glxx_attachment_acquire_image(att, GLXX_DOWNSAMPLED, false, fences,
+      if (!glxx_attachment_acquire_image(att, GLXX_DOWNSAMPLED, use_0_if_layered, fences,
                &hw_fb->color[b].image, NULL))
          goto error_out;
 
-      if (!glxx_attachment_acquire_image(att, GLXX_MULTISAMPLED, false, fences,
+      if (!glxx_attachment_acquire_image(att, GLXX_MULTISAMPLED, use_0_if_layered, fences,
                &hw_fb->color_ms[b].image, NULL))
          goto error_out;
 
@@ -251,7 +257,7 @@ bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
    {
       bool depth_ms;
       if (!glxx_attachment_acquire_image(&fb->attachment[GLXX_DEPTH_ATT],
-               GLXX_PREFER_DOWNSAMPLED, false, fences, &hw_fb->depth.image, &depth_ms))
+               GLXX_PREFER_DOWNSAMPLED, use_0_if_layered, fences, &hw_fb->depth.image, &depth_ms))
          goto error_out;
       if (hw_fb->depth.image)
          assert(hw_fb->ms == depth_ms);
@@ -260,7 +266,7 @@ bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
    {
       bool stencil_ms;
       if (!glxx_attachment_acquire_image(&fb->attachment[GLXX_STENCIL_ATT],
-               GLXX_PREFER_DOWNSAMPLED, false, fences, &hw_fb->stencil.image, &stencil_ms))
+               GLXX_PREFER_DOWNSAMPLED, use_0_if_layered, fences, &hw_fb->stencil.image, &stencil_ms))
          goto error_out;
       if (hw_fb->stencil.image)
       {
@@ -298,11 +304,28 @@ bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
       hw_fb->layers = gfx_umax(fb->default_layers, 1);
    }
 
+   hw_fb->num_damage_rects = fb->num_damage_rects;
+   KHRN_MEM_ASSIGN(hw_fb->damage_rects, fb->damage_rects);
+
    return true;
 
 error_out:
    glxx_destroy_hw_framebuffer(hw_fb);
    return false;
+}
+
+bool glxx_init_hw_framebuffer_just_layer0(const GLXX_FRAMEBUFFER_T *fb,
+                              GLXX_HW_FRAMEBUFFER_T *hw_fb,
+                              glxx_context_fences *fences)
+{
+   return init_hw_framebuffer(fb, true, hw_fb, fences);
+}
+
+bool glxx_init_hw_framebuffer(const GLXX_FRAMEBUFFER_T *fb,
+                              GLXX_HW_FRAMEBUFFER_T *hw_fb,
+                              glxx_context_fences *fences)
+{
+   return init_hw_framebuffer(fb, false, hw_fb, fences);
 }
 
 static bool compare_hw_fb(const GLXX_HW_FRAMEBUFFER_T *a,
@@ -674,13 +697,9 @@ static bool setup_dummy_texture_for_texture_unif(GLXX_TEXTURE_UNIF_T *texture_un
    {
       V3D_TMU_SAMPLER_T sampler;
       memset(&sampler, 0, sizeof(sampler));
-#if V3D_VER_AT_LEAST(4,1,34,0)
       sampler.magfilt = V3D_TMU_FILTER_NEAREST;
       sampler.minfilt = V3D_TMU_FILTER_NEAREST;
       sampler.mipfilt = V3D_TMU_MIPFILT_NEAREST;
-#else
-      sampler.filters = V3D_TMU_FILTERS_MIN_NEAR_MAG_NEAR;
-#endif
       uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE];
       v3d_pack_tmu_sampler(hw_sampler, &sampler);
       texture_unif->hw_param[1] = khrn_fmem_add_tmu_sampler(fmem, hw_sampler, /*extended=*/false, glsl_sampler->in_array);
@@ -763,7 +782,7 @@ static unsigned compute_image_uniforms(GLXX_SERVER_STATE_T *state, glxx_render_s
          assert(images[i].internalformat != GL_NONE);
 
          glxx_calc_image_unit calc_image_unit;
-         if (glxx_get_calc_image_unit(image_unit, image, &calc_image_unit) == GLXX_ACC_OK)
+         if (glxx_get_calc_image_unit(image_unit, image, &calc_image_unit))
          {
             enum glxx_tex_completeness complete = glxx_texture_key_and_uniforms(
                   image_unit->texture, &calc_image_unit, khrn_get_image_unit_default_sampler(),
@@ -853,7 +872,7 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
    if (state->sample_mask.enable && fb->ms) backend |= GLSL_SAMPLE_MASK;
 #endif
 
-   for (uint32_t i = 0, cw = state->color_write; i < GLXX_MAX_RENDER_TARGETS; i++, cw >>= 4)
+   for (uint32_t i = 0, cw = state->color_write; i < V3D_MAX_RENDER_TARGETS; i++, cw >>= 4)
    {
       if ((cw & 0xf) && glxx_fb_is_valid_draw_buf(state->bound_draw_framebuffer, GLXX_COLOR0_ATT + i))
       {
@@ -877,7 +896,7 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
       backend |= GLSL_DISABLE_UBO_FETCH;
 #endif
 
-#if !V3D_HAS_SRS_CENTROID_FIX
+#if !V3D_VER_AT_LEAST(4,2,14,0)
    if (state->caps.sample_shading)
       backend |= GLSL_SAMPLE_SHADING_ENABLED;
 #endif
@@ -987,6 +1006,40 @@ static void write_blend_cfg(uint8_t **instr,
 #endif
 }
 
+static void write_changed_blend_setup(uint8_t **instr, GLXX_HW_RENDER_STATE_T *rs,
+                                      GLXX_SERVER_STATE_T *state)
+{
+   GLXX_CL_RECORD_T *cl_record = glxx_hw_render_state_current_cl_record(rs);
+
+   if (khrn_render_state_set_contains(state->dirty.blend_cfg, rs) &&
+       !glxx_advanced_blend_eqn_set(state))
+   {
+      glxx_cl_record_begin(cl_record, GLXX_CL_STATE_BLEND_CFG, *instr);
+      write_blend_cfg(instr, rs, state);
+      glxx_cl_record_end(cl_record, GLXX_CL_STATE_BLEND_CFG, *instr);
+   }
+
+   /* GFXH-1431: Prior to v4.0 writing to blend config reset the colours, so
+    * we must write them out again here */
+   if (khrn_render_state_set_contains(state->dirty.blend_color, rs)
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+         || khrn_render_state_set_contains(state->dirty.blend_cfg, rs)
+#endif
+         )
+   {
+      glxx_cl_record_begin(cl_record, GLXX_CL_STATE_BLEND_COLOR, *instr);
+      v3d_cl_blend_ccolor(instr,
+         state->blend_color[0],
+         state->blend_color[1],
+         state->blend_color[2],
+         state->blend_color[3]);
+      glxx_cl_record_end(cl_record, GLXX_CL_STATE_BLEND_COLOR, *instr);
+   }
+
+   khrn_render_state_set_remove(&state->dirty.blend_color, rs);
+   khrn_render_state_set_remove(&state->dirty.blend_cfg, rs);
+}
+
 static void write_changed_color_write(uint8_t **instr,
    GLXX_HW_RENDER_STATE_T *rs, GLXX_SERVER_STATE_T *state)
 {
@@ -998,25 +1051,8 @@ static void write_changed_color_write(uint8_t **instr,
    GLXX_CL_RECORD_T *cl_record = glxx_hw_render_state_current_cl_record(rs);
    glxx_cl_record_begin(cl_record, GLXX_CL_STATE_COLOR_WRITE, *instr);
 
-   uint32_t w_disable_mask = ~state->color_write & gfx_mask(V3D_MAX_RENDER_TARGETS * 4);
-
-   /* Disable alpha writes for buffers which don't have alpha channels. We need
-    * the alpha in the TLB to be 1 to get correct blending in the case where
-    * the buffer doesn't have alpha. The TLB will set alpha to 1 when it loads
-    * an alpha-less buffer, but we need to explicitly mask alpha writes after
-    * that to prevent it changing. */
-   const GLXX_FRAMEBUFFER_T *fb = state->bound_draw_framebuffer;
-   unsigned i = 0;
-   glxx_att_index_t att_index;
-   while (glxx_fb_iterate_valid_draw_bufs(fb, &i, &att_index))
-   {
-      unsigned b = att_index - GLXX_COLOR0_ATT;
-      const GLXX_ATTACHMENT_T *att = glxx_fb_get_attachment_by_index(fb, att_index);
-      GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
-      if (!gfx_lfmt_has_alpha(api_fmt))
-         w_disable_mask |= 1u << ((b * 4) + 3);
-   }
-
+   uint32_t w_disable_mask = glxx_fb_get_write_disable_mask(state->bound_draw_framebuffer,
+            state->color_write);
    v3d_cl_color_wmasks(instr, w_disable_mask);
 
    glxx_cl_record_end(cl_record, GLXX_CL_STATE_COLOR_WRITE, *instr);
@@ -1074,13 +1110,13 @@ static bool do_changed_cfg(
       khrn_render_state_set_remove(&state->dirty.viewport, rs);
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
-      glxx_rect clip = {0, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE};
+      gfx_rect clip = {0, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE};
 #else
-      glxx_rect clip = {0, 0, hw_fb->width, hw_fb->height};
+      gfx_rect clip = {0, 0, hw_fb->width, hw_fb->height};
 #endif
-      glxx_rect_intersect(&clip, &state->viewport);
+      gfx_rect_intersect(&clip, &state->viewport);
       if (state->caps.scissor_test)
-         glxx_rect_intersect(&clip, &state->scissor);
+         gfx_rect_intersect(&clip, &state->scissor);
 
       bool empty_clip = clip.width == 0 || clip.height == 0;
 #if !V3D_VER_AT_LEAST(4,1,34,0)
@@ -1171,31 +1207,7 @@ static bool do_changed_cfg(
    }
 #endif
 
-   if (khrn_render_state_set_contains(state->dirty.blend_cfg, rs))
-   {
-      khrn_render_state_set_remove(&state->dirty.blend_cfg, rs);
-
-      if (!glxx_advanced_blend_eqn_set(state))
-      {
-         glxx_cl_record_begin(cl_record, GLXX_CL_STATE_BLEND_CFG, instr);
-         write_blend_cfg(&instr, rs, state);
-         glxx_cl_record_end(cl_record, GLXX_CL_STATE_BLEND_CFG, instr);
-      }
-   }
-
-   if (khrn_render_state_set_contains(state->dirty.blend_color, rs))
-   {
-      khrn_render_state_set_remove(&state->dirty.blend_color, rs);
-
-      glxx_cl_record_begin(cl_record, GLXX_CL_STATE_BLEND_COLOR, instr);
-      v3d_cl_blend_ccolor(&instr,
-         state->blend_color[0],
-         state->blend_color[1],
-         state->blend_color[2],
-         state->blend_color[3]);
-      glxx_cl_record_end(cl_record, GLXX_CL_STATE_BLEND_COLOR, instr);
-   }
-
+   write_changed_blend_setup(&instr, rs, state);
    write_changed_color_write(&instr, rs, state);
 
    if (stencil_test && khrn_render_state_set_contains(state->dirty.stencil, rs))
@@ -1230,7 +1242,7 @@ static bool do_changed_cfg(
    }
 
    /* TODO It might be a worthwhile optimisation to put this in an if (state->changed.ez) */
-   if (glxx_ez_update_cfg(&rs->ez,
+   if (early_z_update_cfg(&rs->ez,
       depth_func, depth_update,
       stencil_test,
       translate_stencil_op(state->stencil_op.front.fail),
@@ -1373,21 +1385,21 @@ static bool update_vary_flags(GLXX_HW_RENDER_STATE_T *rs, const uint32_t *flags,
 
 static bool insert_flat_shading_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data)
 {
-   return update_vary_flags(rs, link_data->varying_flat, rs->prev_flat_shading_flags,
+   return update_vary_flags(rs, link_data->data.vary.flat, rs->prev_flat_shading_flags,
                             &rs->flat_shading_flags_set, GLXX_CL_STATE_FLAT_SHADING_FLAGS);
 }
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
 static bool insert_noperspective_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data)
 {
-   return update_vary_flags(rs, link_data->varying_noperspective, rs->prev_noperspective_flags,
+   return update_vary_flags(rs, link_data->data.vary.noperspective, rs->prev_noperspective_flags,
                             &rs->noperspective_flags_set, GLXX_CL_STATE_NOPERSPECTIVE_FLAGS);
 }
 #endif
 
 static bool insert_centroid_flags(GLXX_HW_RENDER_STATE_T *rs, const GLXX_LINK_RESULT_DATA_T *link_data)
 {
-   return update_vary_flags(rs, link_data->varying_centroid, rs->prev_centroid_flags,
+   return update_vary_flags(rs, link_data->data.vary.centroid, rs->prev_centroid_flags,
                             &rs->centroid_flags_set, GLXX_CL_STATE_CENTROID_FLAGS);
 }
 
@@ -1652,8 +1664,8 @@ bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
    if (!glxx_server_queries_install(state, rs))
       goto fail;
 
-   bool point_size_used = (link_data->flags & GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA) ==
-      GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
+   bool point_size_used = (link_data->data.flags & LINKRES_FLAG_POINT_SIZE) ==
+      LINKRES_FLAG_POINT_SIZE;
    if (!glxx_server_tf_install(state, rs, point_size_used))
       goto fail;
 
@@ -1689,7 +1701,7 @@ bool glxx_hw_draw_triangles(GLXX_SERVER_STATE_T *state,
       rs->workaround_gfxh_1313 = true;
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (!IS_GL_11(state))
    {
       IR_PROGRAM_T *ir = gl20_program_common_get(state)->linked_glsl_program->ir;
@@ -1778,17 +1790,17 @@ static uint64_t estimate_bin_cost(
    // - assume whole vertex is fetched in each buffer (even unused attributes)
    // - ignore effect of VCD cache and cache-line size (so we assume fetching whole vertex for each vertex processed)
    uint32_t vertex_size = 0;
-   uint32_t attrib_remaining = (1 << link_data->attr_count) - 1;
+   uint32_t attrib_remaining = (1 << link_data->data.attr_count) - 1;
    while (attrib_remaining)
    {
       uint32_t this_vbo = UINT32_MAX;
       uint32_t this_stride = 0;
 
-      for (unsigned n = 0; n != link_data->attr_count; ++n)
+      for (unsigned n = 0; n != link_data->data.attr_count; ++n)
       {
-         if (link_data->attr[n].c_scalars_used > 0 && attrib_remaining & (1 << n))
+         if (link_data->data.attr[n].c_scalars_used > 0 && attrib_remaining & (1 << n))
          {
-            const int i = link_data->attr[n].idx;
+            const int i = link_data->data.attr[n].idx;
             if (attribs[i].enabled)
             {
                if (this_vbo == UINT32_MAX)
@@ -1841,7 +1853,7 @@ static uint64_t estimate_bin_cost(
 
    // estimate number of cycles for draw
    uint64_t bandwidth_cycles = (vertex_size*est_num_vertices + index_size*num_indices) / c_bytes_per_cycle;
-   uint64_t instr_cycles = (link_data->num_bin_qpu_instructions * est_num_vertices) / c_instr_per_cycle;
+   uint64_t instr_cycles = (link_data->data.num_bin_qpu_instructions * est_num_vertices) / c_instr_per_cycle;
    uint64_t bin_cost = gfx_umax64(bandwidth_cycles, instr_cycles);
    return bin_cost;
 }
@@ -2105,7 +2117,7 @@ v3d_addr_t glxx_hw_install_uniforms(
                uint32_t array_length = get_dynamic_array_length(binding, dynamic_array);
                uint32_t array_size = array_length * dynamic_array->stride;
                if (offset_in_array >= array_size)
-                  offset -= ((offset_in_array - array_size) / dynamic_array->stride) + 1;
+                  offset -= (((offset_in_array - array_size) / dynamic_array->stride) + 1) * dynamic_array->stride;
             }
             write = true;
          } else if (u_type == BACKEND_UNIFORM_UBO_ADDRESS) {
@@ -2125,6 +2137,8 @@ v3d_addr_t glxx_hw_install_uniforms(
          khrn_resource *res = binding->buffer.obj->resource;
 
          v3d_barrier_flags rw_flags = V3D_BARRIER_TMU_DATA_READ | (write ? V3D_BARRIER_TMU_DATA_WRITE : 0);
+         if (u_type == BACKEND_UNIFORM_UBO_ADDRESS && !write)
+            rw_flags |= V3D_BARRIER_QPU_UNIF_READ;    /* UBO reads might get converted to unifa */
          v3d_barrier_flags bin_rw_flags = mode == MODE_BIN ? rw_flags : V3D_BARRIER_NO_ACCESS;
          if (((khrn_render_state *)rs)->type == KHRN_RENDER_STATE_TYPE_GLXX)
          {
@@ -2374,11 +2388,9 @@ static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, 
       case GL_LINE_STRIP_ADJACENCY:     return V3D_PRIM_MODE_LINE_STRIP_ADJ;
       case GL_TRIANGLES_ADJACENCY:      return V3D_PRIM_MODE_TRIS_ADJ;
       case GL_TRIANGLE_STRIP_ADJACENCY: return V3D_PRIM_MODE_TRI_STRIP_ADJ;
-#if GLXX_HAS_TNG
       case GL_PATCHES:
          assert((state->num_patch_vertices - 1u) < 32);
          return V3D_PRIM_MODE_PATCH1-1u + state->num_patch_vertices;
-#endif
 
       default:
           assert(mode <= GL_TRIANGLE_FAN);
@@ -2424,17 +2436,17 @@ static bool write_gl_shader_record_defaults(
    uint32_t *defaults = NULL;
    *defaults_addr = 0;
 
-   assert(link_data->attr_count <= GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(link_data->data.attr_count <= V3D_MAX_ATTR_ARRAYS);
 
    // Iterate backwards, we'll allocate space for all defaults
    // from the last default down when required.
-   for (unsigned n = link_data->attr_count; n-- != 0; )
+   for (unsigned n = link_data->data.attr_count; n-- != 0; )
    {
-      const GLXX_ATTRIB_CONFIG_T *attrib = &attribs[link_data->attr[n].idx];
+      const GLXX_ATTRIB_CONFIG_T *attrib = &attribs[link_data->data.attr[n].idx];
       if (attrib->enabled)
       {
-         if (  link_data->attr[n].c_scalars_used > attrib->size
-            || link_data->attr[n].v_scalars_used > attrib->size )
+         if (  link_data->data.attr[n].c_scalars_used > attrib->size
+            || link_data->data.attr[n].v_scalars_used > attrib->size )
          {
             if (!defaults)
             {
@@ -2463,7 +2475,7 @@ static bool write_gl_shader_record_attribs(
    const GLXX_GENERIC_ATTRIBUTE_T*     generic_attrs)
 {
    // Workaround GFXH-930, must have at least 1 attribute:
-   if (link_data->attr_count == 0)
+   if (link_data->data.attr_count == 0)
    {
       v3d_addr_t dummy_addr;
       uint32_t *dummy_data = khrn_fmem_data(&dummy_addr, fmem, sizeof(uint32_t), V3D_ATTR_ALIGN);
@@ -2493,16 +2505,16 @@ static bool write_gl_shader_record_attribs(
    // Workaround GFXH-930: First count the total number of reads in VS and CS
    unsigned cs_total_reads = 0;
    unsigned vs_total_reads = 0;
-   for (unsigned n = 0; n < link_data->attr_count; n++)
+   for (unsigned n = 0; n < link_data->data.attr_count; n++)
    {
-      cs_total_reads += link_data->attr[n].c_scalars_used;
-      vs_total_reads += link_data->attr[n].v_scalars_used;
+      cs_total_reads += link_data->data.attr[n].c_scalars_used;
+      vs_total_reads += link_data->data.attr[n].v_scalars_used;
    }
 
-   for (unsigned n = 0; n < link_data->attr_count; n++)
+   for (unsigned n = 0; n < link_data->data.attr_count; n++)
    {
-      unsigned cs_num_reads = link_data->attr[n].c_scalars_used;
-      unsigned vs_num_reads = link_data->attr[n].v_scalars_used;
+      unsigned cs_num_reads = link_data->data.attr[n].c_scalars_used;
+      unsigned vs_num_reads = link_data->data.attr[n].v_scalars_used;
       assert(cs_num_reads > 0 || vs_num_reads > 0); // attribute entry shouldn't exist if there are no reads.
 
       // Workaround GFXH-930:
@@ -2515,7 +2527,7 @@ static bool write_gl_shader_record_attribs(
          vs_num_reads = cs_num_reads;
       }
 
-      const unsigned i = link_data->attr[n].idx;
+      const unsigned i = link_data->data.attr[n].idx;
       const GLXX_ATTRIB_CONFIG_T *attrib = &attribs[i];
       if (attrib->enabled)
       {
@@ -2579,51 +2591,6 @@ static bool write_gl_shader_record_attribs(
    return true;
 }
 
-#if GLXX_HAS_TNG
-static void compute_tng_vpm_cfg(
-   v3d_vpm_cfg_v cfg_v[2],
-   uint32_t shadrec_tg_packed[],
-   GLXX_LINK_RESULT_DATA_T const* link_data,
-   unsigned num_patch_vertices)
-{
-   V3D_VPM_CFG_TG_T cfg_tg[2];
-   bool ok = v3d_vpm_compute_cfg_tg(
-      cfg_v, cfg_tg,
-      link_data->has_tess,
-      link_data->has_geom,
-      khrn_get_vpm_size() / 512,
-      link_data->vs_input_words,
-      link_data->vs_output_words,
-      num_patch_vertices,
-      link_data->tcs_output_words_per_patch,
-      link_data->tcs_output_words,
-      !!(link_data->flags & GLXX_SHADER_FLAGS_TCS_BARRIERS),
-      link_data->tcs_output_vertices_per_patch,
-      link_data->tes_output_words,
-      link_data->tess_type,
-      6u, // maximum number of vertices per GS primitive
-      link_data->gs_output_words);
-   assert(ok); // GL requirements mean this should always succeed.
-
-   V3D_SHADREC_GL_TESS_OR_GEOM_T shadrec_tg =
-   {
-      .tess_type           = link_data->tess_type,
-      .tess_point_mode     = link_data->tess_point_mode,
-      .tess_edge_spacing   = link_data->tess_edge_spacing,
-      .tess_clockwise      = link_data->tess_clockwise,
-      //.tcs_bypass        = todo_not_implemented,
-      //.tcs_bypass_render = todo_not_implemented,
-      .tes_no_inp_verts    = true, // todo_not_implemented
-      .num_tcs_invocations = gfx_umax(link_data->tcs_output_vertices_per_patch, 1u),
-      .geom_output         = link_data->geom_prim_type,
-      .geom_num_instances  = gfx_umax(link_data->geom_invocations, 1u),
-   };
-   v3d_shadrec_gl_tg_set_vpm_cfg(&shadrec_tg, cfg_tg);
-
-   v3d_pack_shadrec_gl_tess_or_geom(shadrec_tg_packed, &shadrec_tg);
-}
-#endif
-
 static bool write_gl_shader_record(
    GLXX_HW_RENDER_STATE_T *rs,
    const GLXX_SERVER_STATE_T *state,
@@ -2658,7 +2625,7 @@ static bool write_gl_shader_record(
       }
    }
 
-#if V3D_HAS_NULL_FS
+#if V3D_VER_AT_LEAST(4,2,14,0)
    const bool null_fs = link_data->fs.code_offset == ~(v3d_size_t)0;
 #else
    assert(link_data->fs.code_offset != ~(v3d_size_t)0);
@@ -2683,14 +2650,14 @@ static bool write_gl_shader_record(
    }
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    // Treat tessellation part of record as two geometry shaders.
    static_assrt(V3D_SHADREC_GL_GEOM_PACKED_SIZE*2 == V3D_SHADREC_GL_TESS_PACKED_SIZE);
 #endif
 
-   unsigned num_attrs = gfx_umax(1u, link_data->attr_count);
+   unsigned num_attrs = gfx_umax(1u, link_data->data.attr_count);
    unsigned shadrec_size =
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       +  V3D_SHADREC_GL_GEOM_PACKED_SIZE
       +  V3D_SHADREC_GL_TESS_PACKED_SIZE
       +  V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE
@@ -2712,13 +2679,11 @@ static bool write_gl_shader_record(
    fmem_debug_info_insert(&rs->fmem, shadrec_addr, ((GLXX_SERVER_STATE_T*)state)->debug.draw_id++, khrn_hw_render_state_allocated_order(rs));
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    static_assrt(GLXX_SHADER_VPS_GS == (GLXX_SHADER_VPS_VS + 1));
    static_assrt(GLXX_SHADER_VPS_TCS  == (GLXX_SHADER_VPS_VS + 2));
    static_assrt(GLXX_SHADER_VPS_TES  == (GLXX_SHADER_VPS_VS + 3));
-#endif
 
-#if GLXX_HAS_TNG
    // Write out shader record parts for each T+G stage.
    for (unsigned s = GLXX_SHADER_VPS_VS+1; s <= GLXX_SHADER_VPS_TES; ++s)
    {
@@ -2747,20 +2712,20 @@ static bool write_gl_shader_record(
    }
 
    // Write out tess or geom part.
-   if (link_data->has_tng)
+   if (link_data->data.has_tng)
    {
-      unsigned num_patch_vertices = link_data->has_tess ? state->num_patch_vertices : 0u;
+      unsigned num_patch_vertices = link_data->data.has_tess ? state->num_patch_vertices : 0u;
 
       if (!link_data->cached_vpm_cfg.key.valid || link_data->cached_vpm_cfg.key.tg.num_patch_vertices != num_patch_vertices)
       {
          link_data->cached_vpm_cfg.key.valid = true;
          link_data->cached_vpm_cfg.key.tg.num_patch_vertices = num_patch_vertices;
 
-         compute_tng_vpm_cfg(
+         linkres_compute_tng_vpm_cfg(
             link_data->cached_vpm_cfg.vpm_cfg_v,
             link_data->cached_vpm_cfg.shadrec_tg_packed,
-            link_data,
-            state->num_patch_vertices);
+            &link_data->data,
+            state->num_patch_vertices, khrn_get_vpm_size());
       }
 
 
@@ -2788,8 +2753,8 @@ static bool write_gl_shader_record(
          v3d_vpm_compute_cfg(
             link_data->cached_vpm_cfg.vpm_cfg_v,
             khrn_get_vpm_size() / 512,
-            link_data->vs_input_words,
-            link_data->vs_output_words,
+            link_data->data.vs_input_words,
+            link_data->data.vs_output_words,
             z_pre_pass);
       }
    }
@@ -2798,32 +2763,32 @@ static bool write_gl_shader_record(
 
    V3D_SHADREC_GL_MAIN_T main_shadrec =
    {
-      .point_size_included       = !!(link_data->flags & GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA),
+      .point_size_included       = !!(link_data->data.flags & LINKRES_FLAG_POINT_SIZE),
       .clipping                  = !state->caps.rasterizer_discard,     /* No need to clip if everything is thrown away */
-      .cs_vertex_id              = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << MODE_BIN)),
-      .cs_instance_id            = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << MODE_BIN)),
-      .vs_vertex_id              = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << MODE_RENDER)),
-      .vs_instance_id            = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << MODE_RENDER)),
-      .z_write                   = !!(link_data->flags & GLXX_SHADER_FLAGS_FS_WRITES_Z),
-      .no_ez                     = !!(link_data->flags & GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE),
-      .cs_separate_blocks        = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << MODE_BIN)),
-      .vs_separate_blocks        = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << MODE_RENDER)),
-      .fs_needs_w                = !!(link_data->flags & GLXX_SHADER_FLAGS_FS_NEEDS_W),
-      .scb_wait_on_first_thrsw   = !!(link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW),
+      .cs_vertex_id              = !!(link_data->data.flags & (LINKRES_FLAG_VS_VERTEX_ID << MODE_BIN)),
+      .cs_instance_id            = !!(link_data->data.flags & (LINKRES_FLAG_VS_INSTANCE_ID << MODE_BIN)),
+      .vs_vertex_id              = !!(link_data->data.flags & (LINKRES_FLAG_VS_VERTEX_ID << MODE_RENDER)),
+      .vs_instance_id            = !!(link_data->data.flags & (LINKRES_FLAG_VS_INSTANCE_ID << MODE_RENDER)),
+      .z_write                   = !!(link_data->data.flags & LINKRES_FLAG_FS_WRITES_Z),
+      .no_ez                     = !!(link_data->data.flags & LINKRES_FLAG_FS_EARLY_Z_DISABLE),
+      .cs_separate_blocks        = !!(link_data->data.flags & (LINKRES_FLAG_VS_SEPARATE_VPM_BLOCKS << MODE_BIN)),
+      .vs_separate_blocks        = !!(link_data->data.flags & (LINKRES_FLAG_VS_SEPARATE_VPM_BLOCKS << MODE_RENDER)),
+      .fs_needs_w                = !!(link_data->data.flags & LINKRES_FLAG_FS_NEEDS_W),
+      .scb_wait_on_first_thrsw   = !!(link_data->data.flags & LINKRES_FLAG_TLB_WAIT_FIRST_THRSW),
       .disable_scb               = false,
 #if V3D_VER_AT_LEAST(4,1,34,0)
-      .disable_implicit_varys    = !!(link_data->flags & GLXX_SHADER_FLAGS_DISABLE_IMPLICIT_VARYS),
-      .cs_baseinstance = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_BIN)),
-      .vs_baseinstance = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_RENDER)),
-      .prim_id_used  = !!(link_data->flags & GLXX_SHADER_FLAGS_PRIM_ID_USED),
-      .prim_id_to_fs = !!(link_data->flags & GLXX_SHADER_FLAGS_PRIM_ID_TO_FS),
+      .disable_implicit_varys    = !!(link_data->data.flags & LINKRES_FLAG_DISABLE_IMPLICIT_VARYS),
+      .cs_baseinstance = !!(link_data->data.flags & (LINKRES_FLAG_VS_BASE_INSTANCE << MODE_BIN)),
+      .vs_baseinstance = !!(link_data->data.flags & (LINKRES_FLAG_VS_BASE_INSTANCE << MODE_RENDER)),
+      .prim_id_used  = !!(link_data->data.flags & LINKRES_FLAG_PRIM_ID_USED),
+      .prim_id_to_fs = !!(link_data->data.flags & LINKRES_FLAG_PRIM_ID_TO_FS),
       /* We must only set sample_rate_shading if multisample is on */
-      .sample_rate_shading = ( (link_data->flags & GLXX_SHADER_FLAGS_PER_SAMPLE) ||
+      .sample_rate_shading = ( (link_data->data.flags & LINKRES_FLAG_PER_SAMPLE) ||
                                (state->caps.sample_shading && state->sample_shading_fraction >= 0.25f) ||
                                khrn_options_make_sample_rate_shaded() ) &&
                              (khrn_options.force_multisample || rs->installed_fb.ms),
 #endif
-      .num_varys = link_data->num_varys,
+      .num_varys = link_data->data.vary.count,
       .cs_output_size = vpm_cfg_v[MODE_BIN].output_size,
       .cs_input_size = vpm_cfg_v[MODE_BIN].input_size,
       .vs_output_size = vpm_cfg_v[MODE_RENDER].output_size,
@@ -2878,9 +2843,9 @@ static bool write_gl_shader_record(
 
    // Convert bits from active stage mask to CL opcode.
    unsigned tng_stage_mask = 0;
-#if GLXX_HAS_TNG
-   tng_stage_mask |= link_data->has_tess;
-   tng_stage_mask |= link_data->has_geom << 1;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   tng_stage_mask |= link_data->data.has_tess;
+   tng_stage_mask |= link_data->data.has_geom << 1;
    static_assrt(V3D_CL_GL_T_SHADER == V3D_CL_GL_SHADER+1);
    static_assrt(V3D_CL_GL_G_SHADER == V3D_CL_GL_SHADER+2);
    static_assrt(V3D_CL_GL_TG_SHADER == V3D_CL_GL_SHADER+3);
@@ -2941,7 +2906,7 @@ static v3d_addr_t create_nv_shader_record(
 }
 
 /* Allocate vertex data for draw_rect in fmem */
-v3d_addr_t glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem, const glxx_rect *rect, uint32_t z)
+v3d_addr_t glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem, const gfx_rect *rect, uint32_t z)
 {
    *vdata_max_index = 3;
    v3d_addr_t addr;
@@ -2960,11 +2925,11 @@ v3d_addr_t glxx_draw_rect_vertex_data(uint32_t *vdata_max_index, khrn_fmem *fmem
    return addr;
 }
 
-static bool glxx_draw_rect_write_state_changes(
+static bool draw_rect_write_state_changes(
    GLXX_SERVER_STATE_T *state,
    GLXX_HW_RENDER_STATE_T *rs,
    const GLXX_CLEAR_T *clear,
-   const glxx_rect *rect)
+   const gfx_rect *rect)
 {
    // Set up control list
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
@@ -2983,7 +2948,7 @@ static bool glxx_draw_rect_write_state_changes(
    khrn_render_state_set_add(&state->dirty.viewport, rs); /* Clear and render might end up with different clip rectangles - clear doesn't clip to viewport */
 
    //  Emit a Configuration record
-   glxx_ez_update_cfg(&rs->ez,
+   early_z_update_cfg(&rs->ez,
       V3D_COMPARE_FUNC_ALWAYS, clear->depth,
       clear->stencil,
       V3D_STENCIL_OP_ZERO, V3D_STENCIL_OP_ZERO,
@@ -3048,13 +3013,13 @@ static bool glxx_draw_rect_write_state_changes(
    return true;
 }
 
-static v3d_addr_t copy_shader_to_fmem(khrn_fmem* fmem, uint32_t shaderSize, uint32_t *shaderCode)
+static v3d_addr_t copy_shader_to_fmem(khrn_fmem* fmem, uint32_t size, const void *code)
 {
    v3d_addr_t addr;
-   uint32_t *ptr = khrn_fmem_data(&addr, fmem, shaderSize, V3D_QPU_INSTR_ALIGN);
+   uint32_t *ptr = khrn_fmem_data(&addr, fmem, size, V3D_QPU_INSTR_ALIGN);
    if (!ptr)
       return 0;
-   memcpy(ptr, shaderCode, shaderSize);
+   memcpy(ptr, code, size);
    return addr;
 }
 
@@ -3066,7 +3031,7 @@ bool glxx_draw_rect(
    GLXX_SERVER_STATE_T     *state,
    GLXX_HW_RENDER_STATE_T  *rs,
    const GLXX_CLEAR_T      *clear,
-   const glxx_rect         *rect)
+   const gfx_rect         *rect)
 {
    assert(clear->color_buffer_mask || clear->depth || clear->stencil);
 
@@ -3141,7 +3106,7 @@ bool glxx_draw_rect(
    if (!sh_rec_addr)
       return false;
 
-   if (!glxx_draw_rect_write_state_changes(state, rs, clear, rect))
+   if (!draw_rect_write_state_changes(state, rs, clear, rect))
       return false;
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -3190,27 +3155,30 @@ static uint32_t setup_render_dummy_point_no_shader_no_query_addr_size(void)
       + V3D_CL_PRIM_LIST_FORMAT_SIZE
       + V3D_CL_SAMPLE_STATE_SIZE
       + V3D_CL_CLIPZ_SIZE
-      + V3D_CL_CFG_BITS_SIZE
-      + V3D_CL_COLOR_WMASKS_SIZE;
+      + V3D_CL_CFG_BITS_SIZE;
 }
 
-static uint32_t clear_shader_no_color_point[] =
+static uint64_t dummy_point_fshader[] =
 {
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   0xbb800000, 0x3c203186, // nop ; thrsw
-   0xbb800000, 0x3d203186, // nop ; thrsw ; ldvary[.rf0]
-   0xbb800000, 0x3c003186, // nop
+   0x3c203186bb800000ull, // nop ; thrsw
+   0x3c203186bb800000ull, // nop ; thrsw
+   0x3c003186bb800000ull, // nop
+   0x3c203188b7800000ull, // xor tlbu, r0, r0 ; thrsw
+   0x3c003186bb800000ull, // nop
+   0x3c003186bb800000ull, // nop
 #else
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    // Extra varying from working around GFXH-1276
-   0xbb800000, 0x3d003186, // nop; ldvary
+   0x3d003186bb800000ull, // nop ; ldvary
 #endif
-   0xbb800000, 0x3d003186, // nop; ldvary
+   // Must load implicit point varyings. They aren't used.
+   0x3d003186bb800000ull, // nop ; ldvary
+   0x3d003188b7800000ull, // xor tlbu, r0, r0 ; ldvary
+   0x3c203186bb800000ull, // nop ; thrsw
+   0x3c003186bb800000ull, // nop
+   0x3c003186bb800000ull, // nop
 #endif
-   0xb683f000, 0x3dc03188, // mov tlbu, 0     ; ldvary[.rf0]
-   0xb7800000, 0x3c203187, // xor tlb, r0, r0 ; thrsw
-   0x00000000, 0x030031c6, // mov tlb, 0
-   0x00000000, 0x030031c6, // mov tlb, 0
 };
 
 /* The center of the dummy point will be at (0,0).
@@ -3224,19 +3192,10 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
    if (funif_ptr == NULL)
       return false;
    {
-      /* Set up the TLB config uniform */
-      /* Configure tlb for f32 color writes, but disable the write masks later */
-      /* GFXH-1212 means we must write 4 values to prevent a lockup (if !V3D_VER_AT_LEAST(4,1,34,0) at least) */
-      V3D_TLB_CONFIG_COLOR_32_T cfg = {
-         .num_words = 4,
-         .all_samples_same_data = true,
-         .rt = 0,
-#if !V3D_VER_AT_LEAST(4,2,13,0)
-         .as_int = false
-#endif
-         };
+      /* Set up the TLB config uniform for a single Z write */
+      V3D_TLB_CONFIG_Z_T cfg = {.use_written_z = false};
       /* Unused config entries must be all 1s */
-      funif_ptr[0] = 0xffffff00 | v3d_pack_tlb_config_color_32(&cfg);
+      funif_ptr[0] = 0xffffff00 | v3d_pack_tlb_config_z(&cfg);
    }
 
    /* create single point vertex */
@@ -3248,11 +3207,11 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
    v3d_nv_vertex(vdata_ptr, 0, 0, 0, 0);
 
    /* Install the shader and shader record. */
-   v3d_addr_t fshader_addr = copy_shader_to_fmem(fmem, sizeof(clear_shader_no_color_point), clear_shader_no_color_point);
+   v3d_addr_t fshader_addr = copy_shader_to_fmem(fmem, sizeof(dummy_point_fshader), dummy_point_fshader);
    if (!fshader_addr)
       return false;
    *shader_addr = create_nv_shader_record(fmem, fshader_addr, funif_addr,
-         vdata_addr, vdata_max_index, false,
+         vdata_addr, vdata_max_index, /*does_z_writes=*/true,
 #if V3D_VER_AT_LEAST(4,1,34,0)
          V3D_THREADING_4
 #else
@@ -3302,9 +3261,6 @@ static bool setup_render_dummy_point_no_shader_no_query_addr(uint8_t** instr_ptr
       V3D_WIREFRAME_MODE_LINES,  /* wireframe_mode */
       false                      /* d3d_prov_vtx */
       );
-
-   /* Disable all color writes */
-   v3d_cl_color_wmasks(&instr, gfx_mask(V3D_MAX_RENDER_TARGETS * 4));
 
    assert((*instr_ptr + setup_render_dummy_point_no_shader_no_query_addr_size()) == instr);
    *instr_ptr = instr;
@@ -3452,9 +3408,9 @@ static bool glxx_hw_update_z_prepass_state(
       goto disallowed;
    }
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    // disable z-only for TnG
-   if (link_data->has_tng)
+   if (link_data->data.has_tng)
       goto disallowed;
 #endif
 
@@ -3481,7 +3437,7 @@ static bool glxx_hw_update_z_prepass_state(
       }
 
       // disable z-prepass if using discard or shader z write
-      if (state->depth_mask && (link_data->flags & GLXX_SHADER_FLAGS_FS_WRITES_Z) != 0)
+      if (state->depth_mask && (link_data->data.flags & LINKRES_FLAG_FS_WRITES_Z) != 0)
       {
          goto disallowed;
       }

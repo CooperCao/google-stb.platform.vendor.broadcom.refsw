@@ -51,17 +51,26 @@
 
 BDBG_MODULE(nexus_keyslot);
 
+#define BHSM_KEYSLOT_64BIT_IV_SIZE (8)
+#define BHSM_KEYSLOT_128BIT_IV_SIZE (16)
+
+
+typedef struct{
+        bool configured;
+        NEXUS_KeySlotEntrySettings settings;
+        struct{
+            bool set;
+            uint8_t ivData[BHSM_KEYSLOT_64BIT_IV_SIZE];
+        }cached64bitIv, cached64bitIv2;  /* a cache for 64 bit IVs64 bit IVs*/
+}keySlotEntry;
+
 typedef struct keySlotInstance_t{
     NEXUS_OBJECT(keySlotInstance_t);
 
     bool configured;
     NEXUS_KeySlotSettings settings;
 
-    struct
-    {
-        bool configured;
-        NEXUS_KeySlotEntrySettings settings;
-    }entry[NEXUS_KeySlotBlockEntry_eMax];
+    keySlotEntry entry[NEXUS_KeySlotBlockEntry_eMax];
 
     NEXUS_PidChannelHandle dmaPidChannelHandle;
 
@@ -71,6 +80,7 @@ typedef struct keySlotInstance_t{
 
 
 static BHSM_KeyslotType _convertSlotTypeToHsm(NEXUS_KeySlotType type);
+static keySlotEntry* _getEntry( NEXUS_KeySlotHandle handle, NEXUS_KeySlotBlockEntry entry );
 
 /* called on platform initialisation from NEXUS_SecurityModule_Init */
 NEXUS_Error NEXUS_KeySlot_Init( void )
@@ -198,8 +208,6 @@ void NEXUS_KeySlot_Free_priv( NEXUS_KeySlotHandle handle )
     BDBG_LEAVE(NEXUS_KeySlot_Free_priv);
     return;
 }
-
-
 
 
 /*
@@ -411,13 +419,24 @@ NEXUS_Error NEXUS_KeySlot_SetEntryIv ( NEXUS_KeySlotHandle handle,
                                        const NEXUS_KeySlotIv *pIv,
                                        const NEXUS_KeySlotIv *pIv2 )
 {
-    keySlotInstance_t *pKeySlot = (keySlotInstance_t*)handle->security.data;
+    keySlotInstance_t *pKeySlot = NULL;
+    keySlotEntry *pEntry = NULL;
     BHSM_KeyslotIv hsmIv;
     BHSM_KeyslotIv hsmIv2;
-    BERR_Code rcHsm;
+    BHSM_KeyslotIv *pHsmIv = NULL;
+    BHSM_KeyslotIv *pHsmIv2 = NULL;
+    BERR_Code rcHsm = BERR_UNKNOWN;
 
+    if( !handle ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+    if( !handle->security.data ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
     if( entry >= NEXUS_KeySlotBlockEntry_eMax ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
     if( !pIv && !pIv2 ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+    if( pIv && pIv2 && ( pIv->size != pIv2->size ) ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+
+    pKeySlot = (keySlotInstance_t*)handle->security.data;
+    pEntry = _getEntry( handle, entry );
+    if( !pEntry ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+    if( !pEntry->configured ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
 
     BDBG_CASSERT( BHSM_KEYSLOT_MAX_IV_SIZE == NEXUS_KEYSLOT_MAX_IV_SIZE );
 
@@ -429,6 +448,20 @@ NEXUS_Error NEXUS_KeySlot_SetEntryIv ( NEXUS_KeySlotHandle handle,
 
         hsmIv.size = pIv->size;
         BKNI_Memcpy( hsmIv.iv, pIv->iv, pIv->size );
+        pHsmIv = &hsmIv;
+
+        if( pIv->size == BHSM_KEYSLOT_64BIT_IV_SIZE )
+        {
+            pEntry->cached64bitIv.set = true;
+            BKNI_Memcpy( pEntry->cached64bitIv.ivData, pIv->iv, BHSM_KEYSLOT_64BIT_IV_SIZE );
+
+            if( !pIv2 && pEntry->cached64bitIv2.set )
+            {
+                hsmIv2.size = BHSM_KEYSLOT_64BIT_IV_SIZE;
+                BKNI_Memcpy( hsmIv2.iv, pEntry->cached64bitIv2.ivData, BHSM_KEYSLOT_64BIT_IV_SIZE );
+                pHsmIv2 = &hsmIv2;
+            }
+        }
     }
 
     if( pIv2 ) {
@@ -436,13 +469,26 @@ NEXUS_Error NEXUS_KeySlot_SetEntryIv ( NEXUS_KeySlotHandle handle,
 
         hsmIv2.size = pIv2->size;
         BKNI_Memcpy( hsmIv2.iv, pIv2->iv, pIv2->size );
-        rcHsm = BHSM_Keyslot_SetEntryIv( pKeySlot->hsmKeyslotHandle, entry, pIv ? &hsmIv : NULL, &hsmIv2 );
-    }
-    else
-    {
-        rcHsm = BHSM_Keyslot_SetEntryIv( pKeySlot->hsmKeyslotHandle, entry, &hsmIv, NULL );
+        pHsmIv2 = &hsmIv2;
+
+        if( pIv2->size == BHSM_KEYSLOT_64BIT_IV_SIZE )
+        {
+            pEntry->cached64bitIv2.set = true;
+            BKNI_Memcpy( pEntry->cached64bitIv2.ivData, pIv2->iv, BHSM_KEYSLOT_64BIT_IV_SIZE );
+
+            if( !pIv )
+            {
+                if( pEntry->cached64bitIv.set ) /* is not set, null iv will be used. */
+                {
+                    BKNI_Memcpy( hsmIv.iv, pEntry->cached64bitIv.ivData, BHSM_KEYSLOT_64BIT_IV_SIZE );
+                }
+                hsmIv.size = BHSM_KEYSLOT_64BIT_IV_SIZE;
+                pHsmIv = &hsmIv;
+            }
+        }
     }
 
+    rcHsm = BHSM_Keyslot_SetEntryIv( pKeySlot->hsmKeyslotHandle, entry, pHsmIv, pHsmIv2 );
     if( rcHsm != BERR_SUCCESS ){ return BERR_TRACE(rcHsm); }
 
     return NEXUS_SUCCESS;
@@ -624,4 +670,18 @@ NEXUS_Error NEXUS_KeySlot_SetMulti2Key( const NEXUS_KeySlotSetMulti2Key *pKeyDat
     if( rcHsm != BERR_SUCCESS ){ return BERR_TRACE(rcHsm); }
 
     return BERR_SUCCESS;
+}
+
+
+static keySlotEntry* _getEntry( NEXUS_KeySlotHandle handle, NEXUS_KeySlotBlockEntry entry )
+{
+    keySlotInstance_t *pKeySlot = NULL;
+
+    if( !handle ) {  BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+    if( entry >= NEXUS_KeySlotBlockEntry_eMax ) {  BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+
+    pKeySlot = (keySlotInstance_t*)handle->security.data;
+    if( !pKeySlot ) {  BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
+
+    return  &pKeySlot->entry[entry];
 }

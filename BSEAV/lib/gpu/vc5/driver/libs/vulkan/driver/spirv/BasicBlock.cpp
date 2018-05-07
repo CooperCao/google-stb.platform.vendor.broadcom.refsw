@@ -4,7 +4,7 @@
 
 #include "BasicBlock.h"
 #include "SymbolHandle.h"
-#include "DflowBuilder.h"
+#include "Dflow.h"
 
 #include "libs/util/log/log.h"
 #include "glsl_dataflow_print.h"
@@ -12,6 +12,8 @@
 LOG_DEFAULT_CAT("bvk::comp::BasicBlock");
 
 namespace bvk {
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 BasicBlockPool::BasicBlockPool(const spv::ModuleAllocator<uint32_t> &allocator) :
    m_allocator(allocator)
@@ -54,6 +56,8 @@ void BasicBlockPool::RetainReachableBlocks(BasicBlock *entry)
                         return used.find(block) != used.end();
                      });
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 void BasicBlockData::SetControl(const Dflow &cond, BasicBlockHandle branch, BasicBlockHandle fallthrough)
 {
@@ -103,10 +107,13 @@ void BasicBlockData::DebugPrint() const
    }
 }
 
-BasicBlockHandle::BasicBlockHandle(const DflowBuilder &builder):
-   m_blockData(builder.New<BasicBlockData>(builder.GetBasicBlockPool()))
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+BasicBlockHandle::BasicBlockHandle(const BasicBlockPool &pool):
+   m_blockData(pool.ConstructBlockData())
 {
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace bvk

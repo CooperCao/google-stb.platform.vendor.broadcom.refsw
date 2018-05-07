@@ -59,7 +59,7 @@
 
 #ifdef __FIREPATH__
 
-#if defined(__PIC__) && (__FP4015_ONWARDS__ || __FPM1015_ONWARDS__)
+#if (defined(__PIC__) || defined(__PID__)) && (__FP4015_ONWARDS__ || __FPM1015_ONWARDS__)
 /* On builds using SBA-relative addressing for PIC binaries, we just need the
  * absolute attribute to specify that a data symbol is _NOT_ SBA-relative.
  * Such variables must not be not be in a section marked PID and are shared
@@ -188,6 +188,9 @@
 # define __protected_shared_volatile    __protected_shared
 #endif
 
+#if defined(YELLOWSTONE)
+#  define __llmem            __attribute__((section_prefix(".llmem"))) __absolute
+#endif
 /** Force a 'default' symbol visibility, that is not 'hidden' */
 #define __export                        __attribute__((export))
 

@@ -9,7 +9,7 @@
 #include "rtos_abstract_mem.h"
 #include "talloc.h"
 
-#include "interface/khronos/include/EGL/begl_memplatform.h"
+#include <EGL/begl_memplatform.h>
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/khrn_hw.h"           /* For stats recording */
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
@@ -125,19 +125,9 @@ uint32_t mem_cacheline_size(void)
       return CACHELINE_SIZE;
 }
 
-static void record_allocation(MEM_HEADER_T *hdr) { UNUSED(hdr); }
-static void remove_allocation(MEM_HEADER_T *hdr) { UNUSED(hdr); }
-
-static bool mem_defrag(void)
-{
-   return true;
-}
-
 /* allocate_direct
 *
 * Helper function for allocating device memory
-* Attempts to allocate memory, if this fails, then trigger a defragmentation and try again.
-* If second allocation fails, then give up.
 */
 static void *allocate_direct(MEM_HEADER_T *h)
 {
@@ -149,15 +139,6 @@ static void *allocate_direct(MEM_HEADER_T *h)
 
       /* Always try to allocate */
       ptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, h->allocedSize, h->align, secure);
-
-      /* If the allocation failed, then defrag and try again */
-      if (ptr == NULL)
-      {
-         if (mem_defrag())
-         {
-            ptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, h->allocedSize, h->align, secure);
-         }
-      }
    }
 
    return ptr;
@@ -221,9 +202,6 @@ static void init_header(MEM_HEADER_T *h, uint32_t size, uint32_t align, MEM_FLAG
             mem_flush_cache_range(p, h->allocedSize);
             mem_unlock((MEM_HANDLE_T)h);
          }
-
-         /* Record this allocation for defrag purposes */
-         record_allocation(h);
       }
 #ifdef ASSERT_ON_ALLOC_FAIL
       else
@@ -379,8 +357,6 @@ void mem_release_inner(MEM_HANDLE_T handle)
             if (g_mgr.memInterface != NULL && g_mgr.memInterface->Free != NULL)
                g_mgr.memInterface->Free(g_mgr.memInterface->context, h->ptr);
          }
-
-         remove_allocation(h);
       }
    }
    free(h);

@@ -20,6 +20,7 @@
 #include "nexus_base_types.h"
 #include "nexus_display.h"
 
+#include <EGL/eglext.h>
 #include <EGL/eglext_wayland.h>
 #include <wayland-util.h>
 #include <wayland-server.h>
@@ -42,17 +43,22 @@ typedef struct WLPL_NexusDisplay
 {
    /* inherited from Nexus platform */
    NXPL_DisplayContext parent; /* for functions inherited from Nexus platform */
-   BEGL_Error (*GetNativeSurface)(void *context, uint32_t eglTarget,
-         void *eglClientBuffer, void **opaqueNativeSurface);
-   BEGL_Error (*SurfaceChangeRefCount)(void *context, void *opaqueNativeSurface,
-         BEGL_RefCountMode inOrDec);
-   BEGL_Error (*SurfaceGetInfo)(void *context, void *opaqueNativeSurface,
-         BEGL_SurfaceInfo *info);
+   BEGL_NativeBuffer (*SurfaceAcquire)(void *context, uint32_t target,
+         void *eglObject, uint32_t plane, BEGL_SurfaceInfo *info);
+   BEGL_Error (*SurfaceRelease)(void *context, uint32_t target,
+         uint32_t plane, BEGL_NativeBuffer buffer);
 
    FenceInterface fence_interface;
    SurfaceInterface surface_interface;
    WlDisplayBinding binding;
 } WLPL_NexusDisplay;
+
+static WLPL_NexusDisplay *ToWlplNexusDisplay(NXPL_DisplayContext *context)
+{
+   WLPL_NexusDisplay *display =
+         context ? wl_container_of(context, display, parent) : NULL;
+   return display;
+}
 
 static BEGL_Error NxWindowGetInfo(void *context, void *nativeWindow,
       BEGL_WindowInfoFlags flags, BEGL_WindowInfo *info)
@@ -71,41 +77,30 @@ static BEGL_Error NxWindowGetInfo(void *context, void *nativeWindow,
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = nw->numSurfaces;
 
-      if (flags & BEGL_WindowInfoBackBufferAge)
-         info->backBufferAge = nw->ageOfLastDequeuedSurface;
-
       return BEGL_Success;
    }
 
    return BEGL_Fail;
 }
 
-static BEGL_Error NxGetNextSurface(void *context, void *nativeWindow,
-      BEGL_BufferFormat format, BEGL_BufferFormat *actualFormat,
-      void **nativeSurface, bool secure, int *fence)
+static BEGL_SwapchainBuffer NxGetNextSurface(void *context, void *nativeWindow,
+      BEGL_BufferFormat format, bool secure,
+      int *age, int *fence)
 {
-   UNUSED(context);
+   WLPL_NexusDisplay *display = ToWlplNexusDisplay(context);
    WLPL_NexusWindow *window = (WLPL_NexusWindow *)nativeWindow;
 
-   if (window == NULL || nativeSurface == NULL || actualFormat == NULL)
-      return BEGL_Fail;
+   if (window == NULL)
+      return NULL;
 
-   *nativeSurface = DisplayFramework_GetNextSurface(&window->display_framework,
-            format, secure, fence, &window->native_window->ageOfLastDequeuedSurface);
+   NXPL_Surface *nxpl_surface = DisplayFramework_GetNextSurface(
+         &window->display_framework, format, secure, age, fence);
 
-   if (*nativeSurface)
-   {
-      return BEGL_Success;
-   }
-   else
-   {
-      *actualFormat = BEGL_BufferFormat_INVALID;
-      return BEGL_Fail;
-   }
+   return (BEGL_SwapchainBuffer)nxpl_surface;
 }
 
 static BEGL_Error NxDisplaySurface(void *context, void *nativeWindow,
-      void *nativeSurface, int fence, int interval)
+      BEGL_SwapchainBuffer nativeSurface, int fence, int interval)
 {
    UNUSED(context);
    WLPL_NexusWindow *window = (WLPL_NexusWindow *)nativeWindow;
@@ -120,7 +115,7 @@ static BEGL_Error NxDisplaySurface(void *context, void *nativeWindow,
 }
 
 static BEGL_Error NxCancelSurface(void *context, void *nativeWindow,
-      void *nativeSurface, int fence)
+      BEGL_SwapchainBuffer nativeSurface, int fence)
 {
    UNUSED(context);
    WLPL_NexusWindow *state = (WLPL_NexusWindow *)nativeWindow;
@@ -150,13 +145,6 @@ static BEGL_Error NxWindowPlatformStateDestroy(void *context, void *windowState)
       free(window);
    }
    return BEGL_Success;
-}
-
-WLPL_NexusDisplay *ToWlplNexusDisplay(NXPL_DisplayContext *context)
-{
-   WLPL_NexusDisplay *display =
-         context ? wl_container_of(context, display, parent) : NULL;
-   return display;
 }
 
 static void *NxWindowPlatformStateCreate(void *context, void *native)
@@ -199,64 +187,48 @@ static const char *NxGetDisplayExtensions(void *context)
    return "EGL_WL_bind_wayland_display";
 }
 
-static BEGL_Error NxGetNativeSurface(void *context, uint32_t eglTarget,
-      void *eglSurface, void **nativeSurface)
+static BEGL_NativeBuffer NxSurfaceAcquire(void *context, uint32_t target,
+      void *eglObject, uint32_t plane, BEGL_SurfaceInfo *info)
 {
    WLPL_NexusDisplay *display = ToWlplNexusDisplay(context);
 
-   if (eglTarget == EGL_WAYLAND_BUFFER_WL)
+   switch (target)
    {
-      *nativeSurface = GetWlBufferMemory((struct wl_resource*)eglSurface);
-      return BEGL_Success;
+   case EGL_WAYLAND_BUFFER_WL:
+   {
+      struct wl_resource *resource = (struct wl_resource *)eglObject;
+      NEXUS_MemoryBlockHandle memory = AcquireWlBufferMemory(resource);
+      if (memory)
+         GetWlBufferSettings(resource, info);
+      return (BEGL_NativeBuffer)memory;
    }
-   else /* call inherited function */
-   {
-      return display->GetNativeSurface(context, eglTarget, eglSurface,
-            nativeSurface);
+   case EGL_NATIVE_PIXMAP_KHR:
+   case BEGL_SWAPCHAIN_BUFFER:
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      /* call inherited function */
+      return display->SurfaceAcquire(context, target, eglObject, plane, info);
    }
 }
 
-static BEGL_Error NxSurfaceChangeRefCount(void *context,
-      void *opaqueNativeSurface, BEGL_RefCountMode incOrDec)
+static BEGL_Error NxSurfaceRelease(void *context, uint32_t target,
+      uint32_t plane, BEGL_NativeBuffer buffer)
 {
    WLPL_NexusDisplay *display = ToWlplNexusDisplay(context);
 
-   if (isNXPL_Surface(opaqueNativeSurface))
+   switch (target)
    {
-      return display->SurfaceChangeRefCount(context, opaqueNativeSurface,
-            incOrDec);
-   }
-   else
+   case EGL_WAYLAND_BUFFER_WL:
    {
-      WlBufferMemory *memory = (WlBufferMemory *)opaqueNativeSurface;
-      if (incOrDec == BEGL_Increment)
-         WlBufferMemoryRefInc(memory);
-      else
-         WlBufferMemoryRefDec(memory);
+      ReleaseWlBufferMemory((NEXUS_MemoryBlockHandle)buffer);
       return BEGL_Success;
    }
-}
-
-static BEGL_Error NxSurfaceGetInfo(void *context,
-      void *opaqueNativeSurface, BEGL_SurfaceInfo *info)
-{
-   WLPL_NexusDisplay *display = ToWlplNexusDisplay(context);
-
-   NXPL_Surface *surface;
-   if (isNXPL_Surface(opaqueNativeSurface))
-   {
-      surface = (NXPL_Surface *)opaqueNativeSurface;
-      return display->SurfaceGetInfo(context, surface, info);
-   }
-   else if (opaqueNativeSurface)
-   {
-      WlBufferMemory *memory = (WlBufferMemory *)opaqueNativeSurface;
-      *info = memory->settings;
-      return BEGL_Success;
-   }
-   else
-   {
-      return BEGL_Fail;
+   case EGL_NATIVE_PIXMAP_KHR:
+   case BEGL_SWAPCHAIN_BUFFER:
+   case BEGL_PIXMAP_BUFFER:
+   default:
+      /* call inherited function */
+      return display->SurfaceRelease(context, target, plane, buffer);
    }
 }
 
@@ -265,12 +237,7 @@ static bool NxBindWaylandDisplay(void *context, void *egl_display,
 {
    WLPL_NexusDisplay *display = ToWlplNexusDisplay(context);
    BSTD_UNUSED(egl_display);
-   NEXUS_HeapHandle heap = GetDefaultHeap();
-   NEXUS_HeapHandle secure_heap = GetSecureHeap();
-   return BindWlDisplay(&display->binding, wl_display, heap, secure_heap);
-
-   WlBufferMemory *GetWlBufferMemory(struct wl_resource *buffer);
-
+   return BindWlDisplay(&display->binding, wl_display);
 }
 
 static bool NxUnbindWaylandDisplay(void *context, void *egl_display,
@@ -287,24 +254,25 @@ static bool NxQueryBuffer(void *context, void *display, void* buffer,
    BSTD_UNUSED(context);
    BSTD_UNUSED(display);
 
-   WlBufferMemory *memory = GetWlBufferMemory((struct wl_resource*)buffer);
-   if (!memory)
+   struct wl_resource *resource = (struct wl_resource*)buffer;
+   BEGL_SurfaceInfo settings = {};
+   if (!GetWlBufferSettings(resource, &settings))
       return false;
 
    switch (attribute)
    {
    case EGL_WIDTH:
-      *value = memory->settings.width;
+      *value = settings.width;
       break;
 
    case EGL_HEIGHT:
-      *value = memory->settings.height;
+      *value = settings.height;
       break;
 
    case EGL_TEXTURE_FORMAT:
    {
       NEXUS_PixelFormat result = NEXUS_PixelFormat_eUnknown;
-      BeglToNexusFormat(&result, memory->settings.format);
+      BeglToNexusFormat(&result, settings.format);
       switch (result)
       {
       case NEXUS_PixelFormat_eA8_B8_G8_R8:
@@ -340,7 +308,6 @@ BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
    if (iface)
    {
       iface->WindowGetInfo                = NxWindowGetInfo;
-      iface->GetNativeSurface             = NxGetNativeSurface;
       iface->GetNextSurface               = NxGetNextSurface;
       iface->DisplaySurface               = NxDisplaySurface;
       iface->CancelSurface                = NxCancelSurface;
@@ -351,15 +318,14 @@ BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
       iface->UnbindWaylandDisplay         = NxUnbindWaylandDisplay;
       iface->QueryBuffer                  = NxQueryBuffer;
 
+      /* iface->GetPixmapFormat           = use Nexus platform function */;
+
       /* override but allow calling the inherited function */
-      display->GetNativeSurface = iface->GetNativeSurface;
-      iface->GetNativeSurface = NxGetNativeSurface;
+      display->SurfaceAcquire = iface->SurfaceAcquire;
+      iface->SurfaceAcquire = NxSurfaceAcquire;
 
-      display->SurfaceGetInfo = iface->SurfaceGetInfo;
-      iface->SurfaceGetInfo = NxSurfaceGetInfo;
-
-      display->SurfaceChangeRefCount = iface->SurfaceChangeRefCount;
-      iface->SurfaceChangeRefCount = NxSurfaceChangeRefCount;
+      display->SurfaceRelease = iface->SurfaceRelease;
+      iface->SurfaceRelease = NxSurfaceRelease;
 
       InitFenceInterface(&display->fence_interface, schedIface);
       SurfaceInterface_InitNexus(&display->surface_interface);

@@ -327,7 +327,6 @@ CASE(glPointSizePointerOES, 0xa8681224);
 // GL_OES_query_matrix
 CASE(glQueryMatrixxOES, 0x06ffa6b6);
 
-#if 0 //not implemented in VC4
 // EGL_BRCM_event_monitor
 #if EGL_BRCM_event_monitor
 CASE(eglGetEventConstantBRCM, 0xf5aadd26);
@@ -347,7 +346,6 @@ CASE(eglSetPerfCountingBRCM, 0xc4bc4ed2);
 CASE(eglChoosePerfCountersBRCM, 0xca4c1037);
 CASE(eglGetPerfCounterDataBRCM, 0x6c3ee535);
 #endif /* EGL_BRCM_performance_counters*/
-#endif
 
 // EGL_EXT_client_extensions
 

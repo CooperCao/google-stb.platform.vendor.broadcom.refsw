@@ -11,8 +11,9 @@
 #include "glxx_query.h"
 #include "glxx_shader_cache.h"
 #include "glxx_draw.h"
-#include "glxx_ez.h"
 #include "glxx_tf.h"
+
+#include "libs/util/early_z/early_z.h"
 
 typedef struct {
    uint32_t color;
@@ -116,7 +117,7 @@ static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
    [GLXX_CL_STATE_NOPERSPECTIVE_FLAGS] = V3D_MAX_VARY_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   [GLXX_CL_STATE_BLEND_CFG]           = GLXX_MAX_RENDER_TARGETS * V3D_CL_BLEND_CFG_SIZE,
+   [GLXX_CL_STATE_BLEND_CFG]           = V3D_MAX_RENDER_TARGETS * V3D_CL_BLEND_CFG_SIZE,
 #endif
 };
 
@@ -175,7 +176,7 @@ typedef struct glxx_hw_render_state
    /* If color_load_from_ms[i] then RT i will be loaded from
     * installed_fb.color_ms[i]. Otherwise RT i will be loaded from
     * installed_fb.color[i]. */
-   bool                    color_load_from_ms[GLXX_MAX_RENDER_TARGETS];
+   bool                    color_load_from_ms[V3D_MAX_RENDER_TARGETS];
 
    /* If color_discard_ms then we will only store to installed_fb.color[].
     * Otherwise we will store to both installed_fb.color[] *and*
@@ -185,7 +186,7 @@ typedef struct glxx_hw_render_state
    // True if rendering was done without rasterizer discard.
    bool                    has_rasterization;
 
-   glxx_bufstate_t         color_buffer_state[GLXX_MAX_RENDER_TARGETS];
+   glxx_bufstate_t         color_buffer_state[V3D_MAX_RENDER_TARGETS];
 
    /* Even if we have a packed depth/stencil buffer, we have completely
     * independent bufstates for depth and stencil. We can do this because the
@@ -195,7 +196,7 @@ typedef struct glxx_hw_render_state
    glxx_bufstate_t         stencil_buffer_state;
 
    /* Store the clear colors in raw 32-bit format */
-   uint32_t                clear_colors[GLXX_MAX_RENDER_TARGETS][4];
+   uint32_t                clear_colors[V3D_MAX_RENDER_TARGETS][4];
 
    float                   depth_value;
    uint8_t                 stencil_value;
@@ -250,7 +251,7 @@ typedef struct glxx_hw_render_state
       bool enabled;
    }tf;
 
-   GLXX_EZ_STATE_T         ez;
+   EARLY_Z_STATE_T ez;
 
    uint64_t cl_record_threshold;   // bin-cycle count threshold to create a new entry
    uint64_t cl_record_remaining;   // bin-cycle count remaining before creating new record

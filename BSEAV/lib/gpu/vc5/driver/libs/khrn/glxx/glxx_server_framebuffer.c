@@ -155,7 +155,7 @@ static void invalidate_framebuffer(GLXX_SERVER_STATE_T *state, GLenum target_e,
          {
             unsigned int b = attachments[i] - GL_COLOR_ATTACHMENT0;
 
-            if (b >= GLXX_MAX_RENDER_TARGETS)
+            if (b >= V3D_MAX_RENDER_TARGETS)
             {
                glxx_server_state_set_error(state, GL_INVALID_OPERATION);
                return;
@@ -274,7 +274,7 @@ static bool is_valid_attachment(GLXX_SERVER_STATE_T *state, GLenum attachment, G
 {
    if (attachment >= GL_COLOR_ATTACHMENT0 && attachment <= GL_COLOR_ATTACHMENT31)
    {
-      if (attachment < (GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS))
+      if (attachment < (GL_COLOR_ATTACHMENT0 + V3D_MAX_RENDER_TARGETS))
          return true;
 
       *error = GL_INVALID_OPERATION;
@@ -296,7 +296,7 @@ GL_API void GL_APIENTRY glDrawBuffers(GLsizei n_signed, const GLenum* bufs)
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (n_signed < 0 || n_signed > GLXX_MAX_RENDER_TARGETS)
+   if (n_signed < 0 || n_signed > V3D_MAX_RENDER_TARGETS)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       goto end;
@@ -342,7 +342,7 @@ GL_API void GL_APIENTRY glDrawBuffers(GLsizei n_signed, const GLenum* bufs)
       else
          fb->draw_buffer[i] = false;
    }
-   for ( ; i < GLXX_MAX_RENDER_TARGETS; i++)
+   for ( ; i < V3D_MAX_RENDER_TARGETS; i++)
          fb->draw_buffer[i] = false;
 
 end:
@@ -366,7 +366,7 @@ GL_API void GL_APIENTRY glReadBuffer(GLenum src)
    }
 
    // GL_INVALID_ENUM is generated if src is not GL_BACK, GL_NONE, or GL_COLOR_ATTACHMENTi
-   // (max possible value of i is 31). Note: the check for GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS
+   // (max possible value of i is 31). Note: the check for GL_COLOR_ATTACHMENT0 + V3D_MAX_RENDER_TARGETS
    // appears lower down and gives GL_INVALID_OPERATION instead.
    if (src != GL_BACK && (src < GL_COLOR_ATTACHMENT0 ||
                           src > (GL_COLOR_ATTACHMENT0 + 31)))
@@ -387,7 +387,7 @@ GL_API void GL_APIENTRY glReadBuffer(GLenum src)
    else
    {
       if (src < GL_COLOR_ATTACHMENT0 ||
-          src >= (GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS))
+          src >= (GL_COLOR_ATTACHMENT0 + V3D_MAX_RENDER_TARGETS))
       {
          error = GL_INVALID_OPERATION;
          goto end;
@@ -989,7 +989,7 @@ GL_API void GL_APIENTRY glFramebufferTexture2DMultisampleEXT(GLenum fb_target_e,
       goto end;
    }
 
-   if (samples > GLXX_CONFIG_MAX_SAMPLES)
+   if (samples > V3D_MAX_SAMPLES)
    {
       err = GL_INVALID_VALUE;
       goto end;
@@ -1391,7 +1391,7 @@ GL_API void GL_APIENTRY glGetFramebufferAttachmentParameteriv(GLenum target_e,
             else
               params[0] = 0;
             goto end;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
          case GL_FRAMEBUFFER_ATTACHMENT_LAYERED:
             params[0] = !tex_info->use_face_layer;
             goto end;
@@ -1464,9 +1464,9 @@ GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target_e,
       }
       fb->default_height = param;
       break;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_FRAMEBUFFER_DEFAULT_LAYERS:
-      if (param > GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS)
+      if (param > V3D_MAX_LAYERS)
       {
          error = GL_INVALID_VALUE;
          goto end;
@@ -1475,7 +1475,7 @@ GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target_e,
       break;
 #endif
    case GL_FRAMEBUFFER_DEFAULT_SAMPLES:
-      if (param > GLXX_CONFIG_MAX_SAMPLES)
+      if (param > V3D_MAX_SAMPLES)
       {
          error = GL_INVALID_VALUE;
          goto end;
@@ -1526,7 +1526,7 @@ GL_APICALL void GL_APIENTRY glGetFramebufferParameteriv(GLenum target_e,
    case GL_FRAMEBUFFER_DEFAULT_HEIGHT:
       params[0] = fb->default_height;
       break;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_FRAMEBUFFER_DEFAULT_LAYERS:
       params[0] = fb->default_layers;
       break;
@@ -1549,7 +1549,7 @@ end:
 }
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static void fb_texture(GLenum fb_target_e, GLenum att_e, GLuint tex_id, GLint level)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
@@ -1614,7 +1614,7 @@ glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint lev
 }
 #endif
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 GL_APICALL void GL_APIENTRY
 glFramebufferTextureOES(GLenum target, GLenum attachment, GLuint texture, GLint level)
 {

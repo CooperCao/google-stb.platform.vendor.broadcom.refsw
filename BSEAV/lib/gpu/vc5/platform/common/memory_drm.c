@@ -121,6 +121,7 @@ typedef struct
 {
    uint32_t handle;
    uint32_t hw_addr;
+   uint64_t phys_addr;
    uint32_t flags;
    uint32_t real_size;
    bool     secure;
@@ -183,7 +184,7 @@ static inline bool opt_bool(const char *option)
  *****************************************************************************/
 #define DRM_INFO_MAX_SIZE 62
 
-static void PrintDRMDriverInfo(int fd)
+static int DRMDriverInfo(int fd)
 {
    char name[DRM_INFO_MAX_SIZE+1];
    char date[DRM_INFO_MAX_SIZE+1];
@@ -198,7 +199,7 @@ static void PrintDRMDriverInfo(int fd)
    if (ioctl(fd, DRM_IOCTL_VERSION, &v) < 0)
    {
       perror("Unable to get DRM driver version information");
-      return;
+      return -1;
    }
 
    v.name[v.name_len] = '\0';
@@ -208,6 +209,8 @@ static void PrintDRMDriverInfo(int fd)
    fprintf(stderr, "DRM: %s Version %d.%d.%d %s, %s\n",
       v.name, v.version_major, v.version_minor, v.version_patchlevel,
       v.date, v.desc);
+
+   return v.version_major;
 }
 
 static uint64_t GetMemTotal(int fd)
@@ -336,7 +339,9 @@ error:
    return NULL;
 }
 
-static DRM_MemoryBlock *AllocateContiguousBlock(DRM_MemoryContext *ctx, size_t numBytes, size_t align, const char *desc)
+static DRM_MemoryBlock *AllocateContiguousBlock(
+      DRM_MemoryContext *ctx, size_t numBytes, size_t align,
+      bool flush_alloc, const char *desc)
 {
    NEXUS_Addr addr;
    NEXUS_MemoryBlockHandle handle;
@@ -349,6 +354,16 @@ static DRM_MemoryBlock *AllocateContiguousBlock(DRM_MemoryContext *ctx, size_t n
 
    if (NEXUS_MemoryBlock_LockOffset(handle, &addr) != NEXUS_SUCCESS)
       goto error;
+
+   if (flush_alloc)
+   {
+      void *cpu_ptr;
+      if (NEXUS_MemoryBlock_Lock(handle, &cpu_ptr) != NEXUS_SUCCESS)
+            goto error;
+
+      NEXUS_FlushCache(cpu_ptr, numBytes);
+      NEXUS_MemoryBlock_Unlock(handle);
+   }
 
    block = MemWrapExternal(ctx, addr, numBytes, desc);
    if (!block)
@@ -380,7 +395,8 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
       if (flags & BEGL_USAGE_COHERENT)
          return NULL; // We don't current have coherent contiguous memory
 
-      return AllocateContiguousBlock(ctx, numBytes, alignment, desc);
+      bool flush_alloc = !!(flags & BEGL_USAGE_V3D_WRITE);
+      return AllocateContiguousBlock(ctx, numBytes, alignment, flush_alloc, desc);
    }
 
    block = (DRM_MemoryBlock*)malloc(sizeof(DRM_MemoryBlock));
@@ -422,6 +438,7 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
    block->secure = false;
    block->contiguous = false;
    block->mmap_offset = 0;
+   block->phys_addr = 0;
 
    if (ctx->clear_on_alloc)
       ClearMemoryBlock(ctx, block);
@@ -479,6 +496,7 @@ static BEGL_MemHandle MemWrapExternal(void *context, uint64_t physaddr, size_t l
    block->contiguous = false;
    block->flags = 0;
    block->mmap_offset = 0;
+   block->phys_addr = physaddr;
 
    if (use_memory_log)
       fprintf(sLogFile, "W %#llx %zu = %p (%u, %#x)\n", (unsigned long long)physaddr, length, block, block->handle, block->hw_addr);
@@ -503,13 +521,6 @@ static void *MemMapBlock(void *context, BEGL_MemHandle h, size_t offset, size_t 
       return NULL;
    }
 
-   if (block->contiguous)
-   {
-      if (use_memory_log)
-         fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED CONTIGUOUS BLOCK\n", block, block->handle, offset, length);
-
-      return NULL;
-   }
 
    /*
     * This maps the entire object, which is actually what the abstract
@@ -537,25 +548,38 @@ static void *MemMapBlock(void *context, BEGL_MemHandle h, size_t offset, size_t 
       return NULL;
    }
 
-   if (!block->mmap_offset)
-      block->mmap_offset = GemMapOffset(ctx->fd, block->handle);
-
-   if (!block->mmap_offset)
+   if (block->contiguous)
    {
-      if (use_memory_log)
-         fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED TO GET DRM OFFSET\n", block, block->handle, offset, length);
+      if (NEXUS_MemoryBlock_Lock(block->nexus_handle, &ptr) != NEXUS_SUCCESS)
+      {
+         if (use_memory_log)
+            fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED NEXUS BLOCK LOCK\n", block, block->handle, offset, length);
 
-      return NULL;
+         return NULL;
+      }
    }
-
-   ptr = mmap(NULL, block->real_size, (PROT_READ | PROT_WRITE), MAP_SHARED, ctx->fd, block->mmap_offset);
-
-   if (ptr == MAP_FAILED)
+   else
    {
-      if (use_memory_log)
-         fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED MMAP\n", block, block->handle, offset, length);
+      if (!block->mmap_offset)
+         block->mmap_offset = GemMapOffset(ctx->fd, block->handle);
 
-      return NULL;
+      if (!block->mmap_offset)
+      {
+         if (use_memory_log)
+            fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED TO GET DRM OFFSET\n", block, block->handle, offset, length);
+
+         return NULL;
+      }
+
+      ptr = mmap(NULL, block->real_size, (PROT_READ | PROT_WRITE), MAP_SHARED, ctx->fd, block->mmap_offset);
+
+      if (ptr == MAP_FAILED)
+      {
+         if (use_memory_log)
+            fprintf(sLogFile, "M %p (%u) %zu %zu = FAILED MMAP\n", block, block->handle, offset, length);
+
+         return NULL;
+      }
    }
 
    if (use_memory_log)
@@ -572,7 +596,10 @@ static void MemUnmapBlock(void *context, BEGL_MemHandle h, void *cpu_ptr, size_t
    if (use_memory_log)
       fprintf(sLogFile, "m %p (%u) %p %zu\n", block, block->handle, cpu_ptr, length);
 
-   munmap(cpu_ptr, block->real_size);
+   if (block->contiguous)
+      NEXUS_MemoryBlock_Unlock(block->nexus_handle);
+   else
+      munmap(cpu_ptr, block->real_size);
 }
 
 static uint32_t MemLockBlock(void *context, BEGL_MemHandle h)
@@ -597,20 +624,20 @@ static void MemUnlockBlock(void *context, BEGL_MemHandle h)
 /* Flush the cache for the given address range.*/
 static void MemFlushCache(void *context, BEGL_MemHandle h, void *pCached, size_t numBytes)
 {
-   DRM_MemoryBlock *block = (DRM_MemoryBlock *)h;
+   DRM_MemoryBlock   *block = (DRM_MemoryBlock *)h;
+   DRM_MemoryContext *ctx   = (DRM_MemoryContext*)context;
 
-   UNUSED(context);
    BDBG_ASSERT(pCached != NULL);
 
    /*
-    * Optimize the write combined cases, we don't want to take the penalty of
+    * Optimize the forced full write combined case, we don't want to take the penalty of
     * of flushing things that cannot be in the cache, but we do need an
     * ARM bufferable memory barrier to be technically correct.
     *
     * Note that we must flush virtual ranges in externally wrapped objects
     * because we do not know where they came from and what mapping they have.
     */
-   if (block && (block->flags & V3D_CREATE_CPU_WRITECOMBINE))
+   if (ctx->force_writecombine)
    {
       if (use_memory_log)
          fprintf(sLogFile, "B %p (%u) %p %zu\n", block, block ? block->handle : 0, pCached, numBytes);
@@ -674,8 +701,11 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
       return GetMemTotal(ctx->fd);
 
    case BEGL_MemPrintHeapData:
-      PrintDRMDriverInfo(ctx->fd);
+      (void)DRMDriverInfo(ctx->fd);
       break;
+
+   case BEGL_MemAllocsAreFlushed:
+      return (uint64_t)true; /* For v2.0.0 and later kernel drivers */
 
    default:
       break;
@@ -779,7 +809,11 @@ static int Init(void *context)
       goto error;
    }
 
-   PrintDRMDriverInfo(ctx->fd);
+   if (DRMDriverInfo(ctx->fd) < 2)
+   {
+      fprintf(stderr,"DRM: kernel driver version out of date, v2.0.0+ required\n");
+      goto error;
+   }
 
 #ifdef SINGLE_PROCESS
    /*
@@ -815,42 +849,46 @@ error:
    return -1;
 }
 
-static void *GetNexusMemoryBlockHandle(BEGL_MemHandle handle)
+#if NEXUS_HAS_GRAPHICS2D
+static uint64_t GetPhysicalAddress(BEGL_MemHandle handle, uint64_t offset)
 {
    DRM_MemoryBlock *block = (DRM_MemoryBlock *)handle;
-   if (block->secure || block->contiguous)
-      return (void*)block->nexus_handle;
-   else
-      return (void*)handle;
+   return block->phys_addr ? block->phys_addr + offset : 0;
 }
+#endif
 
 // The memory interface is the only sensible place for this. The display interface is really part
 // of EGL and therefore doesn't exist in Vulkan.
 static BEGL_Error MemConvertSurface(void *context, const BEGL_SurfaceConversionInfo *info,
                                     bool validateOnly)
 {
-   NEXUS_StripedSurfaceHandle  striped = NULL;
-   NEXUS_SurfaceHandle         surf = NULL;
-   BEGL_Error                  ret;
-   DRM_MemoryContext          *ctx = (DRM_MemoryContext*)context;
+#if NEXUS_HAS_GRAPHICS2D
+   DRM_MemoryContext *ctx = (DRM_MemoryContext*)context;
 
    if (validateOnly)
-      return MemoryConvertSurface(info, /*striped=*/NULL, /*surf=*/NULL, validateOnly,
-                                  &ctx->mem_convert_cache);
+      return MemoryConvertSurface(info, validateOnly, &ctx->mem_convert_cache);
 
-   if (!DisplayAcquireNexusSurfaceHandles(&striped, &surf, info->srcNativeSurface))
+   // Convert the memory block handle + offset into physical address
+   BEGL_SurfaceConversionInfo infoCopy = *info;
+   for (int plane = 0; plane < BEGL_MaxPlanes; plane++)
+   {
+      if (info->src[plane].block)
+      {
+         infoCopy.src[plane].offset = GetPhysicalAddress(info->src[plane].block,
+               infoCopy.src[plane].offset);
+         if (!infoCopy.src[plane].offset)
+            return BEGL_Fail;
+      }
+   }
+
+   infoCopy.dst.offset = GetPhysicalAddress(info->dst.block, infoCopy.dst.offset);
+   if (!infoCopy.dst.offset)
       return BEGL_Fail;
 
-   // Convert the dst memory block handle into something that Nexus understands (it might be a
-   // DRM_MemoryBlock block for example)
-   BEGL_SurfaceConversionInfo infoCopy = *info;
-   infoCopy.dstMemoryBlock = GetNexusMemoryBlockHandle(info->dstMemoryBlock);
-
-   ret = MemoryConvertSurface(&infoCopy, striped, surf, validateOnly, &ctx->mem_convert_cache);
-
-   DisplayReleaseNexusSurfaceHandles(striped, surf);
-
-   return ret;
+   return MemoryConvertSurface(&infoCopy, validateOnly, &ctx->mem_convert_cache);
+#else
+   return BEGL_Fail;
+#endif
 }
 
 BEGL_MemoryInterface *CreateDRMMemoryInterface(void)
@@ -937,7 +975,9 @@ void DestroyDRMMemoryInterface(BEGL_MemoryInterface *mem)
    {
       DRM_MemoryContext *ctx = (DRM_MemoryContext*)mem->context;
 
+#if NEXUS_HAS_GRAPHICS2D
       MemoryConvertClearCache(&ctx->mem_convert_cache);
+#endif
 
       /* ctx->fd close is now done in Term() */
       free(ctx);

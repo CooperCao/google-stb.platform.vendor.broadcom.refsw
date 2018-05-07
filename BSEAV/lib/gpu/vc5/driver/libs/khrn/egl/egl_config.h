@@ -22,7 +22,6 @@
 typedef struct
 {
    int         samples;
-   bool        lockable;
    GFX_LFMT_T  color_api_fmt;
    GFX_LFMT_T  depth_stencil_api_fmt;
    GFX_LFMT_T  stencil_api_fmt;

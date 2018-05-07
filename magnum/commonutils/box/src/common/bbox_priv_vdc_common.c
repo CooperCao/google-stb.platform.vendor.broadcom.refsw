@@ -150,12 +150,10 @@ void BBOX_P_Vdc_SetDefaultCapabilities
     BBOX_P_Vdc_SetDefaultXcodeCapabilities(&pBoxVdc->stXcode);
 }
 
-BERR_Code BBOX_P_Vdc_SetCapabilities
+void BBOX_P_Vdc_SetCapabilities
     ( uint32_t                      ulBoxId,
       BBOX_Vdc_Capabilities        *pBoxVdc )
 {
-    BERR_Code eStatus = BERR_SUCCESS;
-
     BBOX_P_Vdc_SetSourceCapabilities(ulBoxId, &pBoxVdc->astSource[0]);
 
     BBOX_P_Vdc_SetDisplayCapabilities(ulBoxId, &pBoxVdc->astDisplay[0]);
@@ -163,8 +161,6 @@ BERR_Code BBOX_P_Vdc_SetCapabilities
     BBOX_P_Vdc_SetDeinterlacerCapabilities(ulBoxId, &pBoxVdc->astDeinterlacer[0]);
 
     BBOX_P_Vdc_SetXcodeCapabilities(ulBoxId, &pBoxVdc->stXcode);
-
-    return eStatus;
 }
 
 BERR_Code BBOX_P_Vdc_SetBoxMode
@@ -187,11 +183,11 @@ BERR_Code BBOX_P_Vdc_SetBoxMode
     }
 
     /* Set box specific limits */
-    eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pBoxVdc);
+    BBOX_P_Vdc_SetCapabilities(ulBoxId, pBoxVdc);
 
     return eStatus;
 }
-BERR_Code BBOX_P_Vdc_SetSourceLimits
+void BBOX_P_Vdc_SetSourceLimits
     ( BBOX_Vdc_Source_Capabilities *pSourceCap,
       BAVC_SourceId                 eSourceId,
       uint32_t                      ulMtg,
@@ -203,17 +199,8 @@ BERR_Code BBOX_P_Vdc_SetSourceLimits
       BBOX_Vdc_SourceRateLimit      eRate,
       BBOX_Vdc_SourceClass          eClass )
 {
-    BERR_Code err = BERR_SUCCESS;
-
-    if (eSourceId > BAVC_SourceId_eMax)
-    {
-        return BERR_INVALID_PARAMETER;
-        BDBG_ERR(("Unknown source"));
-    }
-    else
-    {
-        pSourceCap += eSourceId;
-    }
+    BDBG_ASSERT(eSourceId < BAVC_SourceId_eMax);
+    pSourceCap += eSourceId;
 
     if (BBOX_P_SRC_IS_MPEG(eSourceId))
     {
@@ -260,10 +247,9 @@ BERR_Code BBOX_P_Vdc_SetSourceLimits
         pSourceCap->bMtgCapable = false;
         pSourceCap->bCompressed = false;
     }
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_SetDisplayLimits
+void BBOX_P_Vdc_SetDisplayLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId,
       BFMT_VideoFmt                  eMaxVideoFmt,
@@ -273,8 +259,6 @@ BERR_Code BBOX_P_Vdc_SetDisplayLimits
       uint32_t                       ulEncoderChannel,
       BBOX_Vdc_MosaicModeClass       eMosaicClass )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pDisplayCap += eDisplayId;
     pDisplayCap->bAvailable = true;
     pDisplayCap->eMaxVideoFmt = eMaxVideoFmt;
@@ -284,11 +268,9 @@ BERR_Code BBOX_P_Vdc_SetDisplayLimits
     pDisplayCap->stStgEnc.ulEncoderCoreId = ulEncoderCoreId;
     pDisplayCap->stStgEnc.ulEncoderChannel = ulEncoderChannel;
     pDisplayCap->eMosaicModeClass = eMosaicClass;
-
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_SetWindowLimits
+void BBOX_P_Vdc_SetWindowLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId,
@@ -302,8 +284,6 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
       BBOX_Vdc_SclCapBias            eSclCapBias,
       BBOX_Vdc_WindowClass           eClass )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pDisplayCap += eDisplayId;
     pDisplayCap->astWindow[eWinId].bAvailable = (eWinId <= BBOX_Vdc_Window_eGfx0) ? true : false;
     pDisplayCap->astWindow[eWinId].stResource.ulMad = ulMad;
@@ -315,18 +295,15 @@ BERR_Code BBOX_P_Vdc_SetWindowLimits
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulHeightFraction = ulWinHeightFraction;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulWidthFraction = ulWinWidthFraction;
     pDisplayCap->astWindow[eWinId].eClass = eClass;
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_SetDeinterlacerLimits
+void BBOX_P_Vdc_SetDeinterlacerLimits
     ( BBOX_Vdc_Deinterlacer_Capabilities *pDeinterlacerCap,
       BBOX_Vdc_DeinterlacerId             eId,
       uint32_t                            ulWidth,
       uint32_t                            ulHeight,
       uint32_t                            ulHsclThreshold )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pDeinterlacerCap += eId;
 
     if (eId != BBOX_Vdc_Deinterlacer_eInvalid)
@@ -335,36 +312,23 @@ BERR_Code BBOX_P_Vdc_SetDeinterlacerLimits
         pDeinterlacerCap->stPictureLimits.ulHeight = ulHeight;
         pDeinterlacerCap->ulHsclThreshold = ulHsclThreshold;
     }
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_SetXcodeLimits
+void BBOX_P_Vdc_SetXcodeLimits
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap,
       uint32_t                     ulNumXcodeCapVfd,
       uint32_t                     ulNumXcodeGfd )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pXcodeCap->ulNumXcodeCapVfd = ulNumXcodeCapVfd;
     pXcodeCap->ulNumXcodeGfd = ulNumXcodeGfd;
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_ResetSourceLimits
+void BBOX_P_Vdc_ResetSourceLimits
     ( BBOX_Vdc_Source_Capabilities *pSourceCap,
       BAVC_SourceId                 eSourceId )
 {
-    BERR_Code err = BERR_SUCCESS;
-
-    if (eSourceId > BAVC_SourceId_eMax)
-    {
-        return BERR_INVALID_PARAMETER;
-        BDBG_ERR(("Unknown source"));
-    }
-    else
-    {
-        pSourceCap += eSourceId;
-    }
+    BDBG_ASSERT(eSourceId < BAVC_SourceId_eMax);
+    pSourceCap += eSourceId;
 
     pSourceCap->bAvailable = false;
     pSourceCap->bMtgCapable = false;
@@ -372,16 +336,12 @@ BERR_Code BBOX_P_Vdc_ResetSourceLimits
     pSourceCap->stSizeLimits.ulHeight = BBOX_VDC_DISREGARD;
     pSourceCap->stSizeLimits.ulWidth = BBOX_VDC_DISREGARD;
     pSourceCap->eColorSpace = BBOX_VDC_DISREGARD;
-
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_ResetDisplayLimits
+void BBOX_P_Vdc_ResetDisplayLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pDisplayCap += eDisplayId;
     pDisplayCap->bAvailable = false;
     pDisplayCap->eMaxVideoFmt = BBOX_VDC_DISREGARD;
@@ -390,17 +350,13 @@ BERR_Code BBOX_P_Vdc_ResetDisplayLimits
     pDisplayCap->stStgEnc.ulStgId = BBOX_FTR_INVALID;
     pDisplayCap->stStgEnc.ulEncoderCoreId = BBOX_FTR_INVALID;
     pDisplayCap->stStgEnc.ulEncoderChannel = BBOX_FTR_INVALID;
-
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_ResetWindowLimits
+void BBOX_P_Vdc_ResetWindowLimits
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap,
       BBOX_Vdc_DisplayId             eDisplayId,
       BBOX_Vdc_WindowId              eWinId )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pDisplayCap += eDisplayId;
     pDisplayCap->astWindow[eWinId].bAvailable = false;
     pDisplayCap->astWindow[eWinId].stSizeLimits.ulHeightFraction = BBOX_VDC_DISREGARD;
@@ -410,33 +366,24 @@ BERR_Code BBOX_P_Vdc_ResetWindowLimits
     pDisplayCap->astWindow[eWinId].stResource.eVfd = BBOX_VDC_DISREGARD;
     pDisplayCap->astWindow[eWinId].stResource.eScl = BBOX_VDC_DISREGARD;
     pDisplayCap->astWindow[eWinId].eSclCapBias = BBOX_VDC_DISREGARD;
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_ResetDeinterlacerLimits
+void BBOX_P_Vdc_ResetDeinterlacerLimits
     ( BBOX_Vdc_Deinterlacer_Capabilities *pDeinterlacerCap,
       BBOX_Vdc_DeinterlacerId             eId )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pDeinterlacerCap += eId;
 
     pDeinterlacerCap->stPictureLimits.ulWidth = BBOX_VDC_DISREGARD;
     pDeinterlacerCap->stPictureLimits.ulHeight = BBOX_VDC_DISREGARD;
     pDeinterlacerCap->ulHsclThreshold = BBOX_VDC_DISREGARD;
-
-    return err;
 }
 
-BERR_Code BBOX_P_Vdc_ResetXcodeLimits
+void BBOX_P_Vdc_ResetXcodeLimits
     ( BBOX_Vdc_Xcode_Capabilities *pXcodeCap )
 {
-    BERR_Code err = BERR_SUCCESS;
-
     pXcodeCap->ulNumXcodeCapVfd = BBOX_VDC_DISREGARD;
     pXcodeCap->ulNumXcodeGfd = BBOX_VDC_DISREGARD;
-
-    return err;
 }
 
 BERR_Code BBOX_P_Vdc_SelfCheck
@@ -653,11 +600,7 @@ BERR_Code BBOX_P_Vdc_ValidateBoxModes
         if (ulBoxId != 0)
         {
             /* Set box specific limits */
-            eStatus = BBOX_P_Vdc_SetCapabilities(ulBoxId, pstVdcCap);
-            if (eStatus != BERR_SUCCESS)
-            {
-                goto BBOX_Validate_Done;
-            }
+            BBOX_P_Vdc_SetCapabilities(ulBoxId, pstVdcCap);
 
             eStatus = BBOX_P_SetMemConfig(ulBoxId, pstMemConfig);
             if (eStatus != BERR_SUCCESS)

@@ -5,21 +5,24 @@
 #pragma once
 
 #include <cassert>
+#include <list>
 #include "Spirv.h"
+#include "ModuleAllocator.h"
 
 namespace bvk
 {
 
-// Include forward decls for every node type
-#include "NodeDecls.auto.inc"
-
 class Node;
-class NodeType;   // Base class for types
-class DflowBuilder;
+class NodeType;
+
 class NodeVisitor;
 class NodeTypeVisitor;
-class Module;
+class Decoration;
+class DecorationQuery;
 class Extractor;
+
+// Include forward decls for every node type
+#include "NodeDecls.auto.inc"
 
 /////////////////////////////////////////////////////////////////////////////
 // NodeBase
@@ -44,137 +47,136 @@ public:
    virtual spv::Core GetOpCode() const = 0;
 };
 
-///////////////////////////////////////////////////////
-// NodeVisitor
+//////////////////////////////////////////////
+// Node
 //
-// Base class for all visitors over nodes.
-// abstract declarations for every node
-///////////////////////////////////////////////////////
-class NodeVisitor
+// Common functionality to all concrete nodes
+//////////////////////////////////////////////
+class Node : public NodeBase
 {
 public:
-   virtual ~NodeVisitor() {}
-   // Has a visitor for every type of node, in this form:
-   // virtual void Visit(const NodeNop *) = 0;
-   #include "NodeVisitorAbstract.auto.inc"
-};
+   Node() = default;
+   Node(const Node &) = delete;
 
-template <class I>
-class NodeVisitorDefault : public NodeVisitor
-{
-public:
-   NodeVisitorDefault(I &impl) :
-      m_impl(impl)
-   {}
+   // Return the instruction set that this node belongs to
+   spv::InstructionSet GetInstructionSet() const override
+   {
+      return spv::InstructionSet::Core;
+   }
 
-   #include "NodeVisitorDefault.auto.inc"
+   // Result Id
+   uint32_t GetResultId() const
+   {
+      return m_resultId;
+   }
+
+   const NodeType *GetResultType() const
+   {
+      return m_resultType;
+   }
+
+   bool IsPointer() const;
+
+   template <typename T>
+   T TryAs() const
+   {
+      static_assert(std::is_base_of<NodeBase, typename std::remove_pointer<T>::type>(),
+               "TryAs() converts to 'const NodeBase *' derivatives only");
+      T ret = dynamic_cast<T>(this);
+      return ret;
+   }
+
+   template <typename T>
+   T As() const
+   {
+      T ret = TryAs<T>();
+      assert(ret != nullptr);
+      return ret;
+   }
+
+   const spv::list<const Decoration *> *GetDecorations() const
+   {
+      return m_decorations;
+   }
+
+   void SetDecorations(const spv::list<const Decoration *> *decorations)
+   {
+      m_decorations = decorations;
+   }
+
+protected:
+   uint32_t        m_resultId    = 0;
+   const NodeType *m_resultType  = nullptr;
 
 private:
-   I &m_impl;
+   // Set by the module after Node has been constructed.
+   const spv::list<const Decoration *> *m_decorations = nullptr;
 };
 
-///////////////////////////////////////////////////////
-// NodeEmptyVisitor
-//
-// Has empty implementations for every node
-///////////////////////////////////////////////////////
-class NodeEmptyVisitor : public NodeVisitorDefault<NodeEmptyVisitor>
+using NodeConstPtr = const Node *;
+
+// GLSL450 extended instructions derive from this
+class NodeGLSL : public Node
 {
 public:
-   NodeEmptyVisitor() :
-      NodeVisitorDefault<NodeEmptyVisitor>(*this)
+   NodeGLSL() = default;
+
+   // Always an OpExtInst
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpExtInst;
+   }
+
+   // Return the instruction set that this node belongs to
+   spv::InstructionSet GetInstructionSet() const override
+   {
+      return spv::InstructionSet::GLSL;
+   }
+};
+
+// Dummy node used for unsupported Ops
+class NodeDummy : public Node
+{
+public:
+   NodeDummy(Extractor &extr) : Node()
    {}
 
-   void Default(const Node *node) {}
-};
-
-///////////////////////////////////////////////////////
-// NodeAssertVisitor
-//
-// Has implementations for every node that assert(0)
-///////////////////////////////////////////////////////
-class NodeAssertVisitor : public NodeVisitorDefault<NodeAssertVisitor>
-{
-public:
-   NodeAssertVisitor() :
-      NodeVisitorDefault<NodeAssertVisitor>(*this)
+   void Accept(NodeVisitor &visitor) const override
    {}
 
-   void Default(const Node *node) { assert(0); }
+   // Return the opcode within the instruction set for this node
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpNop;
+   }
 };
 
-/////////////////////////////////////////////////////////
-// NodeTypeVisitor
+///////////////////////////////////////////////////////
+// NodeType
 //
-// A visitor that only visits nodes derived from NodeType
-/////////////////////////////////////////////////////////
-class NodeTypeVisitor
+// Base class for all nodes that represent a SPIRV type
+///////////////////////////////////////////////////////
+class NodeType : public Node
 {
 public:
-   virtual ~NodeTypeVisitor() {}
+   NodeType() = default;
 
-   virtual void Visit(const NodeTypeVoid *) = 0;
-   virtual void Visit(const NodeTypeBool *) = 0;
-   virtual void Visit(const NodeTypeInt *) = 0;
-   virtual void Visit(const NodeTypeFloat *) = 0;
-   virtual void Visit(const NodeTypeVector *) = 0;
-   virtual void Visit(const NodeTypeMatrix *) = 0;
-   virtual void Visit(const NodeTypeImage *) = 0;
-   virtual void Visit(const NodeTypeSampler *) = 0;
-   virtual void Visit(const NodeTypeSampledImage *) = 0;
-   virtual void Visit(const NodeTypeArray *) = 0;
-   virtual void Visit(const NodeTypeRuntimeArray *) = 0;
-   virtual void Visit(const NodeTypeStruct *) = 0;
-   virtual void Visit(const NodeTypePointer *) = 0;
-   virtual void Visit(const NodeTypeFunction *) = 0;
-};
+   virtual void AcceptType(NodeTypeVisitor &visitor) const = 0;
 
-/////////////////////////////////////////////////////////
-// NodeTypeVisitorAssert
-//
-// A visitor that only visits nodes derived from NodeType
-// and asserts for all types.  Helpful as a base-class
-// where the expected set of types is small.
-/////////////////////////////////////////////////////////
-class NodeTypeVisitorAssert : public NodeTypeVisitor
-{
-public:
-   void Visit(const NodeTypeVoid *)           override { assert(0); }
-   void Visit(const NodeTypeBool *)           override { assert(0); }
-   void Visit(const NodeTypeInt *)            override { assert(0); }
-   void Visit(const NodeTypeFloat *)          override { assert(0); }
-   void Visit(const NodeTypeVector *)         override { assert(0); }
-   void Visit(const NodeTypeMatrix *)         override { assert(0); }
-   void Visit(const NodeTypeImage *)          override { assert(0); }
-   void Visit(const NodeTypeSampler *)        override { assert(0); }
-   void Visit(const NodeTypeSampledImage *)   override { assert(0); }
-   void Visit(const NodeTypeArray *)          override { assert(0); }
-   void Visit(const NodeTypeRuntimeArray *)   override { assert(0); }
-   void Visit(const NodeTypeStruct *)         override { assert(0); }
-   void Visit(const NodeTypePointer *)        override { assert(0); }
-   void Visit(const NodeTypeFunction *)       override { assert(0); }
-};
+   uint32_t GetTypeId() const
+   {
+      return m_typeId;
+   }
 
-/////////////////////////////////////////////////////////
-// NodeTypeVisitorEmpty
-/////////////////////////////////////////////////////////
-class NodeTypeVisitorEmpty : public NodeTypeVisitor
-{
-public:
-   void Visit(const NodeTypeVoid *)           override { }
-   void Visit(const NodeTypeBool *)           override { }
-   void Visit(const NodeTypeInt *)            override { }
-   void Visit(const NodeTypeFloat *)          override { }
-   void Visit(const NodeTypeVector *)         override { }
-   void Visit(const NodeTypeMatrix *)         override { }
-   void Visit(const NodeTypeImage *)          override { }
-   void Visit(const NodeTypeSampler *)        override { }
-   void Visit(const NodeTypeSampledImage *)   override { }
-   void Visit(const NodeTypeArray *)          override { }
-   void Visit(const NodeTypeRuntimeArray *)   override { }
-   void Visit(const NodeTypeStruct *)         override { }
-   void Visit(const NodeTypePointer *)        override { }
-   void Visit(const NodeTypeFunction *)       override { }
+   void SetTypeId(uint32_t id) const
+   {
+      m_typeId = id;
+   }
+
+private:
+   // TODO: this could be held in a data field, but the effect is the same
+   // TODO: alternatively we could generate the type ids during parsing
+   mutable uint32_t m_typeId;
 };
 
 } // namespace bvk

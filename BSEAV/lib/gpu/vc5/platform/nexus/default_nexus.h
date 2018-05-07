@@ -18,7 +18,9 @@
 
 #include "nexus_display.h"
 #include "nexus_surface.h"
+#if NEXUS_HAS_GRAPHICS2D
 #include "nexus_graphics2d.h"
+#endif
 #include "nexus_memory.h"
 
 #define NEXUS_DISPLAYHANDLE NEXUS_DisplayHandle
@@ -68,8 +70,10 @@ typedef struct
    bool                 stretch;
    uint32_t             clientID;
    uint32_t             zOrder;
+#if NEXUS_HAS_GRAPHICS2D
    NEXUS_BlendEquation  colorBlend;
    NEXUS_BlendEquation  alphaBlend;
+#endif
    uint32_t             magic;
 } NXPL_NativeWindowInfoEXT;
 
@@ -113,19 +117,14 @@ NXPL_EXPORT void NXPL_DestroyNativeWindow(void *nativeWin);
 /* Generate a default BEGL_PixmapInfoEXT */
 NXPL_EXPORT void NXPL_GetDefaultPixmapInfoEXT(struct BEGL_PixmapInfoEXT *info);
 
-NXPL_EXPORT bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle,
-                                             NEXUS_SURFACEHANDLE *surface, struct BEGL_PixmapInfo *info)
-   __attribute__((deprecated("Use NXPL_GetDefaultPixmapInfoEXT()/NXPL_CreateCompatiblePixmapEXT() instead")));
-
 NXPL_EXPORT bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHandle,
-                                                NEXUS_SURFACEHANDLE *surface, struct BEGL_PixmapInfoEXT *info);
+                                                NEXUS_SURFACEHANDLE *surface, struct BEGL_PixmapInfoEXT *info)
+   __attribute__((deprecated("Use Nexus surface with 3D compatibility flag instead")));
 
-NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle);
+NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle)
+   __attribute__((deprecated("Use Nexus surface with 3D compatibility flag instead")));
 
 NXPL_EXPORT void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayType type);
-
-NXPL_EXPORT void NXPL_SetStripedSurface(void *pixmapHandle, NEXUS_StripedSurfaceHandle striped,
-                                        BEGL_Colorimetry srcColorimetry);
 
 #ifndef SINGLE_PROCESS
 /* only valid for surface compositor */

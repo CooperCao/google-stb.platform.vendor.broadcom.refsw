@@ -201,7 +201,6 @@ static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data)
    DataflowChain deps;
    int value = 0;
    int minb, maxb;
-   uint32_t schedule_type;
    uint32_t count;
    uint32_t tmu_dependencies[TMU_DEP_WORD_COUNT];
 
@@ -211,8 +210,6 @@ static void dpostv_calculate_bushiness(Dataflow* dataflow, void* data)
    minb = 0x7fffffff;
    maxb = -0x7fffffff;
    count = 0;
-
-   schedule_type = glsl_backend_get_schedule_type(dataflow);
 
    clear_tmu_dependencies(tmu_dependencies);
    get_dependencies(&deps, dataflow);

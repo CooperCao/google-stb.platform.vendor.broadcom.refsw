@@ -70,7 +70,6 @@ typedef struct {
    /* these are filled in on MMA systems when the block is first locked */
    uintptr_t blockOffset;      /* cached offset for this block */
    void * blockPtr;           /* cached virtual for this block */
-
 } MEM_HEADER_T;
 
 typedef struct {

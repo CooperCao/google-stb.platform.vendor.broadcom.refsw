@@ -1343,15 +1343,12 @@ static bool is_min_filter(GLenum target, int i)
    return false;
 }
 
-static bool is_wrap(GLenum target, int i)
+static bool is_wrap(int i)
 {
    switch (i)
    {
    case GL_MIRRORED_REPEAT:
    case GL_REPEAT:
-      if (target != GL_TEXTURE_EXTERNAL_OES)
-         return true;
-      break;
    case GL_CLAMP_TO_EDGE:
 #if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_CLAMP_TO_BORDER:
@@ -1483,19 +1480,19 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_TEXTURE_WRAP_S:
-      if (is_wrap(target, *i))
+      if (is_wrap(*i))
          sampler->wrap.s = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_TEXTURE_WRAP_T:
-      if (is_wrap(target, *i))
+      if (is_wrap(*i))
          sampler->wrap.t = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_TEXTURE_WRAP_R:
-      if (!IS_GL_11(state) && is_wrap(target, *i))
+      if (!IS_GL_11(state) && is_wrap(*i))
          sampler->wrap.r = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -2038,7 +2035,7 @@ end:
    glxx_unlock_server_state();
 }
 
-#if V3D_VER_AT_LEAST(4,1,34,0) || KHRN_GLES32_DRIVER
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool is_allowed_texbuffer_internalformat(GLenum internalformat)
 {
    switch(internalformat)

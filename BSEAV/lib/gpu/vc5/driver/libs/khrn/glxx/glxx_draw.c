@@ -33,7 +33,7 @@ static bool get_indices(glxx_hw_indices *indices,
    GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
    const glxx_hw_draw *draw, const void *raw_indices);
 
-static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+static bool get_vbs(bool *skip, glxx_hw_vb vbs[V3D_MAX_ATTR_ARRAYS],
    GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
    const glxx_hw_draw *draw, const void *raw_indices,
    bool prim_restart, uint32_t attribs_live);
@@ -45,7 +45,7 @@ static inline GLboolean is_index_type(GLenum type)
           (type == GL_UNSIGNED_INT);
 }
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static inline bool is_prim_mode_with_adj(GLenum mode)
 {
    switch(mode)
@@ -73,7 +73,7 @@ static inline bool is_mode(GLenum mode, bool is_gl11)
       case GL_TRIANGLE_STRIP:
       case GL_TRIANGLE_FAN:
          return true;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       case GL_PATCHES:
       case GL_LINES_ADJACENCY:
       case GL_LINE_STRIP_ADJACENCY:
@@ -170,7 +170,7 @@ static void hw_draw_params_from_raw(glxx_hw_draw *draw, const GLXX_DRAW_RAW_T *r
 
 static bool all_enabled_attrs_have_vbo_bound(const GLXX_VAO_T *vao)
 {
-   for (unsigned i = 0; i != GLXX_CONFIG_MAX_VERTEX_ATTRIBS; ++i)
+   for (unsigned i = 0; i != V3D_MAX_ATTR_ARRAYS; ++i)
    {
       const GLXX_ATTRIB_CONFIG_T *attr = &vao->attrib_config[i];
       if (attr->enabled && !vao->vbos[attr->vbo_index].buffer)
@@ -313,7 +313,7 @@ static bool get_draw_index_range(uint32_t *min, uint32_t *max, const GLXX_VAO_T*
 }
 
 static bool get_client_vbs(
-   glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+   glxx_hw_vb vbs[V3D_MAX_ATTR_ARRAYS],
    khrn_fmem *fmem,
    const GLXX_VAO_T *vao,
    uint32_t attribs_live,
@@ -327,7 +327,7 @@ static bool get_client_vbs(
       const char *end;
       const char *orig_start;
       unsigned merged;
-   } pointers[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   } pointers[V3D_MAX_ATTR_ARRAYS];
 
    assert(instance_count > 0);
 
@@ -422,7 +422,7 @@ static bool get_client_vbs(
    return true;
 }
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static GLXX_PRIMITIVE_T glxx_get_gs_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE_T input_mode)
 {
    if (glsl_program_has_stage(p, SHADER_TESS_EVALUATION))
@@ -440,7 +440,7 @@ static GLXX_PRIMITIVE_T glxx_get_gs_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIM
 
 GLXX_PRIMITIVE_T glxx_get_rast_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE_T input_mode)
 {
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (glsl_program_has_stage(p, SHADER_GEOMETRY))
    {
       switch(p->ir->gs_out) {
@@ -471,7 +471,7 @@ static bool check_valid_tf_draw(GLXX_SERVER_STATE_T *state, const glxx_hw_draw *
    assert(state->transform_feedback.in_use);
    assert(gl20_program_common_get(state)->transform_feedback.varying_count > 0);
 
-#if !GLXX_HAS_TNG
+#if !V3D_VER_AT_LEAST(4,1,34,0)
    if(draw->is_indirect || !draw->is_draw_arrays)
       return false;
 #endif
@@ -525,7 +525,7 @@ static bool check_valid_advanced_blend(const GLXX_SERVER_STATE_T *state, const G
 
    GLXX_FRAMEBUFFER_T *fb = state->bound_draw_framebuffer;
 
-   for (uint32_t i = 1; i < GLXX_MAX_RENDER_TARGETS; ++i)
+   for (uint32_t i = 1; i < V3D_MAX_RENDER_TARGETS; ++i)
       if (fb->draw_buffer[i] != GL_NONE)
          return false;
 
@@ -537,7 +537,7 @@ static bool check_valid_advanced_blend(const GLXX_SERVER_STATE_T *state, const G
    return true;
 }
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 static bool check_gs_input_mode(GLXX_PRIMITIVE_T draw_mode, const GLSL_PROGRAM_T *program)
 {
    if (!glsl_program_has_stage(program, SHADER_GEOMETRY))
@@ -591,7 +591,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const glxx_hw_draw *dr
       return false;
    }
 
-   for (int i=0; i<GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
+   for (int i=0; i<V3D_MAX_ATTR_ARRAYS; i++) {
       if (vao->vbos[i].buffer && vao->vbos[i].buffer->mapped_pointer) {
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          return false;
@@ -675,7 +675,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const glxx_hw_draw *dr
 
    if (!linked_program)
    {
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (draw->mode == GL_PATCHES || is_prim_mode_with_adj(draw->mode))
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 #endif
@@ -694,7 +694,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const glxx_hw_draw *dr
       return false;
    }
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    // Must have both TCS and TES for patches, otherwise neither.
    unsigned has_ts_mask = (unsigned)glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL) << 0
                         | (unsigned)glsl_program_has_stage(linked_program, SHADER_TESS_EVALUATION) << 1;
@@ -915,7 +915,7 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state,
    }
 
    bool skip;
-   glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   glxx_hw_vb vbs[V3D_MAX_ATTR_ARRAYS];
    if (!get_vbs(&skip, vbs, rs, vao, draw, raw_indices,
             state->caps.primitive_restart && draw->mode != GL_PATCHES, attribs_live))
    {
@@ -1160,7 +1160,7 @@ static bool calc_attribs_max(glxx_attribs_max *attribs_max,
    unsigned max_index = GLXX_CONFIG_MAX_ELEMENT_INDEX;
    unsigned max_instance = UINT_MAX;
 
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++)
    {
       const GLXX_ATTRIB_CONFIG_T *attr = &vao->attrib_config[i];
       const GLXX_VBO_BINDING_T *vbo = &vao->vbos[attr->vbo_index];
@@ -1234,12 +1234,12 @@ static bool get_indices(glxx_hw_indices *indices,
    return true;
 }
 
-static bool get_vbs(bool *skip, glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
+static bool get_vbs(bool *skip, glxx_hw_vb vbs[V3D_MAX_ATTR_ARRAYS],
    GLXX_HW_RENDER_STATE_T *rs, const GLXX_VAO_T *vao,
    const glxx_hw_draw *draw, const void *raw_indices,
    bool prim_restart, uint32_t attribs_live)
 {
-   assert(!(attribs_live & ~gfx_mask(GLXX_CONFIG_MAX_VERTEX_ATTRIBS)));
+   assert(!(attribs_live & ~gfx_mask(V3D_MAX_ATTR_ARRAYS)));
    *skip = false;
 
    uint32_t client_attribs_live = 0;
@@ -1321,8 +1321,8 @@ static bool create_and_record_drawtex_attribs(
       khrn_fmem *fmem,
       const struct screen_rect *screen, float z_w,
       const struct tex_rect tex_rects[GL11_CONFIG_MAX_TEXTURE_UNITS],
-      GLXX_ATTRIB_CONFIG_T attribs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS],
-      glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS])
+      GLXX_ATTRIB_CONFIG_T attribs[V3D_MAX_ATTR_ARRAYS],
+      glxx_hw_vb vbs[V3D_MAX_ATTR_ARRAYS])
 {
    unsigned n_valid_textures = 0;
    for (unsigned i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
@@ -1548,8 +1548,8 @@ bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float x_s, float y_s, float z_w,
                                  .dw = 2.0f * w_s/state->viewport.width,
                                  .dh = 2.0f * h_s/state->viewport.height };
 
-   GLXX_ATTRIB_CONFIG_T attribs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
-   glxx_hw_vb vbs[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   GLXX_ATTRIB_CONFIG_T attribs[V3D_MAX_ATTR_ARRAYS];
+   glxx_hw_vb vbs[V3D_MAX_ATTR_ARRAYS];
    memset(attribs, 0, sizeof(attribs));
    memset(vbs, 0, sizeof(vbs));
    if (!create_and_record_drawtex_attribs(&rs->fmem, &s_rect, z_w, tex_rects, attribs, vbs))

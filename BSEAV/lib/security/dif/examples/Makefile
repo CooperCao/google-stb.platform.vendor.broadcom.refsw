@@ -111,7 +111,10 @@ endif
 CFLAGS += -Wall -fexceptions -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 CFLAGS += -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC -DPIC
 CFLAGS += -D_GNU_SOURCE=1
-CFLAGS += $(FLAGS) $(NEXUS_CFLAGS)  $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += $(FLAGS) $(NEXUS_CFLAGS) $(addprefix -D,$(NEXUS_APP_DEFINES))
+
+# namevalue
+INCLUDES += -I${NEXUS_TOP}/utils
 
 CFLAGS += $(COMMON_DRM_CFLAGS)
 CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
@@ -119,12 +122,15 @@ CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 CFLAGS := $(filter-out -std=c89 -Wstrict-prototypes, $(CFLAGS))
 
 ifeq ($(NXCLIENT_SUPPORT),y)
-TARGET_SRCS := ./$(target)/$(target).cpp
-TARGET_SRCS += ./$(target)/bgui.c
+TARGET_SRCS := $(target)/$(target).cpp
+TARGET_SRCS += $(target)/bgui.c
 INCLUDES += -I$(NEXUS_TOP)/modules/graphics2d/include
-TARGET_SINGLE_SRCS := ./$(target)/$(target)_single.cpp
+TARGET_SINGLE_SRCS := $(target)/$(target)_single.cpp
+TARGET_SINGLE_SRCS += $(NEXUS_TOP)/utils/namevalue.c
 else
-TARGET_SRCS := ./$(target)/$(target)_single.cpp
+#TARGET_SRCS := ./$(target)/$(target)_single.cpp
+TARGET_SRCS := $(target)/$(target)_single.cpp
+TARGET_SRCS += $(NEXUS_TOP)/utils/namevalue.c
 endif
 
 DIF_SCATTER_GATHER ?= n
@@ -147,11 +153,11 @@ endif
 # Make object files to use as dependencies
 TARGET_OBJS := $(patsubst %.cpp, %.o, $(TARGET_SRCS))
 TARGET_OBJS := $(patsubst %.c, %.o, $(TARGET_OBJS))
-TARGET_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(TARGET_OBJS))
+TARGET_OBJS := $(addprefix $(OUT_ROOT_DIR)/, $(TARGET_OBJS))
 ifeq ($(NXCLIENT_SUPPORT),y)
 TARGET_SINGLE_OBJS := $(patsubst %.cpp, %.o, $(TARGET_SINGLE_SRCS))
 TARGET_SINGLE_OBJS := $(patsubst %.c, %.o, $(TARGET_SINGLE_OBJS))
-TARGET_SINGLE_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(TARGET_SINGLE_OBJS))
+TARGET_SINGLE_OBJS := $(addprefix $(OUT_ROOT_DIR)/, $(TARGET_SINGLE_OBJS))
 endif
 
 LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
@@ -161,6 +167,7 @@ endif
 
 LDFLAGS += -ldif
 LDFLAGS += -Wl,-rpath-link=$(NEXUS_BIN_DIR)
+LDFLAGS += -lpthread
 
 .PHONY: clean all $(target)_dif $(target)_dif_single
 

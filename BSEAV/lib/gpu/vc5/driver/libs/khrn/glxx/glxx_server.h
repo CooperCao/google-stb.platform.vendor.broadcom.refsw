@@ -28,7 +28,6 @@
 #include "glxx_hw_framebuffer.h"
 #include "glxx_hw_render_state.h"
 #include "glxx_debug.h"
-#include "glxx_rect.h"
 
 #include "../gl11/gl11_matrix.h"
 #include "../gl11/gl11_texunit.h"
@@ -38,6 +37,7 @@
 
 #include "../egl/egl_context_gl.h"
 
+#include "libs/util/gfx_util/gfx_util_rect.h"
 #include "libs/util/profile/profile.h"
 #include "glxx_tf.h"
 
@@ -113,7 +113,7 @@ typedef struct
 typedef struct GLXX_VAO_T_ {
    int32_t                 name;
    bool                    enabled;
-   GLXX_ATTRIB_CONFIG_T    attrib_config[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   GLXX_ATTRIB_CONFIG_T    attrib_config[V3D_MAX_ATTR_ARRAYS];
    GLXX_VBO_BINDING_T      vbos[GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS];
    GLXX_BUFFER_BINDING_T   element_array_binding;
    char                    *debug_label;
@@ -375,7 +375,7 @@ struct GLXX_SERVER_STATE_T_
    struct {
 #if V3D_VER_AT_LEAST(4,1,34,0)
       uint32_t             rt_enables; /* Bit i for RT i */
-      glxx_blend_cfg       rt_cfgs[GLXX_MAX_RENDER_TARGETS];
+      glxx_blend_cfg       rt_cfgs[V3D_MAX_RENDER_TARGETS];
 #else
       bool enable;
       glxx_blend_cfg       cfg;
@@ -464,8 +464,8 @@ struct GLXX_SERVER_STATE_T_
       uint32_t mask[GLXX_CONFIG_MAX_SAMPLE_WORDS];
    } sample_mask;
 
-   glxx_rect scissor;
-   glxx_rect viewport; // width/height <= GLXX_CONFIG_MAX_VIEWPORT_SIZE (clamped on set)
+   gfx_rect scissor;
+   gfx_rect viewport; // width/height <= GLXX_CONFIG_MAX_VIEWPORT_SIZE (clamped on set)
 
    struct {
       // It would be nice to just call these near and far but the Windows
@@ -613,13 +613,13 @@ struct GLXX_SERVER_STATE_T_
       bool              counters_acquired;
    } perf_counters;
 
-   GLXX_GENERIC_ATTRIBUTE_T generic_attrib[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
+   GLXX_GENERIC_ATTRIBUTE_T generic_attrib[V3D_MAX_ATTR_ARRAYS];
 
    GLenum fill_mode;
 
    GLenum provoking_vtx;
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    unsigned num_patch_vertices;
 #endif
 

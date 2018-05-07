@@ -58,7 +58,7 @@ BERR_Code BDSP_Raaga_P_GetFwMemRequired(
         BDSP_Raaga_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
         void                      *pImg,
         bool                       UseBDSPMacro,
-        const BDSP_RaagaUsageOptions *pUsage
+        const BDSP_UsageOptions   *pUsage
 )
 {
     BERR_Code ret= BERR_SUCCESS;
@@ -807,7 +807,7 @@ BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI(
         uint32_t *pui32InterstageIOGenMem,
         uint32_t *pui32Numch,
         BDSP_AF_P_eSchedulingGroup eSchedulingGroup,
-        const BDSP_RaagaUsageOptions *pUsage
+        const BDSP_UsageOptions *pUsage
 )
 {
     BERR_Code err = BERR_SUCCESS;
@@ -1259,6 +1259,8 @@ BERR_Code BDSP_Raaga_P_FreeContextMemory(
     BDBG_ENTER(BDSP_Raaga_P_FreeContextMemory);
 
     BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+    BDBG_MSG(("BDSP_Raaga_P_FreeContextMemory: Right now no memory needs to be freed for RAAGA under a CONTEXT"));
+
     BDBG_LEAVE(BDSP_Raaga_P_FreeContextMemory);
 
     return err;
@@ -1267,7 +1269,7 @@ BERR_Code BDSP_Raaga_P_FreeContextMemory(
 BERR_Code BDSP_Raaga_P_CalculateStageMemory(
     BDSP_AlgorithmType AlgorithmType,
     unsigned *pMemoryReq,
-    const BDSP_RaagaUsageOptions *pUsage
+    const BDSP_UsageOptions *pUsage
     )
 {
     BERR_Code err = BERR_SUCCESS;
@@ -1972,11 +1974,7 @@ BERR_Code BDSP_Raaga_P_AllocateContextMemory(
 
     BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
-
-    if(err != BERR_SUCCESS)
-    {
-        BDSP_Raaga_P_FreeContextMemory(pContextHandle);
-    }
+    BDBG_MSG(("BDSP_Raaga_P_AllocateContextMemory: Right now no memory needs to be allocated for RAAGA under a CONTEXT"));
     BDBG_LEAVE(BDSP_Raaga_P_AllocateContextMemory);
     return err;
 }

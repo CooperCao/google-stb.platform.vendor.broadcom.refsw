@@ -6,7 +6,7 @@
 
 #include "middleware/khronos/gl11/gl11_server.h"
 #include "middleware/khronos/glxx/glxx_server_internal.h"
-#include "interface/khronos/include/GLES/glext.h"
+#include <GLES/glext.h>
 
 #include "middleware/khronos/glxx/glxx_texture.h"
 #include "middleware/khronos/glxx/glxx_buffer.h"

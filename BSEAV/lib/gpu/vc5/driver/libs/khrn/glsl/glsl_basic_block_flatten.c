@@ -16,7 +16,6 @@
 
 #include <stdio.h>
 
-#define LOOP_UNROLL_ENABLED 1
 #define LOOP_UNROLL_MAX_ITERATIONS 512
 
 typedef struct {
@@ -27,6 +26,9 @@ typedef struct {
    BasicBlockList *failed_loop_unrolls;   // loop heads which could not be unrolled
    Map *block_age_offsets;                // Offset to apply to age in blocks during flattening
    bool generate_new_ids;
+   uint32_t total_iters;
+   uint32_t loop_nesting;
+   bool unroll;
 } flatten_context_t;
 
 static bool copy_basic_blocks(flatten_context_t *ctx, bool is_loop_head, BasicBlock *end);
@@ -237,25 +239,45 @@ static void copy_basic_block(BasicBlock *dst_block, const BasicBlock *src_block,
 }
 
 // unroll a loop by copying all the blocks and flattening
-static bool copy_static_loop(flatten_context_t *ctx, BasicBlock *src_loop_end_block)
+static bool copy_static_loop_inner(flatten_context_t *ctx, BasicBlock *src_loop_end_block)
 {
    const BasicBlockList *src_loop_head = ctx->src_basic_block;
+
    Symbol *loop_head_guard = glsl_map_get(ctx->guard_symbols, src_loop_head->v);
    ctx->generate_new_ids = true;
-   for (int iteration = 0; iteration < LOOP_UNROLL_MAX_ITERATIONS; iteration++) {
+
+   for ( ; ctx->total_iters < LOOP_UNROLL_MAX_ITERATIONS; ctx->total_iters++) {
       Dataflow *guard_value;
       if (!copy_basic_blocks(ctx, true, src_loop_end_block))
          return false;
 
       guard_value = glsl_basic_block_get_scalar_value(ctx->dst_block, loop_head_guard, 0);
+
       if (guard_is_always_false(guard_value))
-         return true; // unroll succeeded
+         return true;
 
       ctx->src_basic_block = src_loop_head;
    }
+
    // unroll failed
    glsl_basic_block_list_add(&ctx->failed_loop_unrolls, src_loop_head->v);
    return false;
+}
+
+// unroll a loop by copying all the blocks and flattening
+// tracks loop nesting level so that the unroll limits apply to nested loops,
+// not just individual ones
+static bool copy_static_loop(flatten_context_t *ctx, BasicBlock *src_loop_end_block)
+{
+   ctx->loop_nesting++;
+   bool ret = copy_static_loop_inner(ctx, src_loop_end_block);
+   ctx->loop_nesting--;
+
+   // Reset total_iters for any subsequent non-nested loops
+   if (ctx->loop_nesting == 0)
+      ctx->total_iters = 0;
+
+   return ret;
 }
 
 // copy a loop
@@ -298,7 +320,7 @@ static bool copy_basic_blocks(flatten_context_t *ctx, bool is_loop_head, BasicBl
       BasicBlock *src_loop_end_block = glsl_map_get(ctx->loops, src_loop_head);
       // recurse into loop (unless we are already being called from that loop)
       if (src_loop_end_block && !is_loop_head) {
-         if (!glsl_basic_block_list_contains(ctx->failed_loop_unrolls, src_loop_head) && LOOP_UNROLL_ENABLED) {
+         if (!glsl_basic_block_list_contains(ctx->failed_loop_unrolls, src_loop_head) && ctx->unroll) {
             if (!copy_static_loop(ctx, src_loop_end_block))
                return false;
          } else {
@@ -324,7 +346,7 @@ static bool copy_basic_blocks(flatten_context_t *ctx, bool is_loop_head, BasicBl
    return true;
 }
 
-static BasicBlock *flatten(BasicBlock *entry, Map *block_age_offsets)
+static BasicBlock *flatten(BasicBlock *entry, Map *block_age_offsets, bool unroll)
 {
    BasicBlockList *basic_blocks = glsl_basic_block_get_reverse_postorder_list(entry);
    Map *guard_symbols = create_guards(basic_blocks);
@@ -334,7 +356,10 @@ static BasicBlock *flatten(BasicBlock *entry, Map *block_age_offsets)
                              .loops               = loops,
                              .failed_loop_unrolls = NULL,
                              .block_age_offsets   = block_age_offsets,
-                             .generate_new_ids    = true };
+                             .generate_new_ids    = true,
+                             .total_iters         = 0,
+                             .loop_nesting        = 0,
+                             .unroll              = unroll };
    BasicBlock *copy = NULL;
    do {
       ctx.src_basic_block = basic_blocks;
@@ -494,7 +519,7 @@ static bool flatten_a_bit(BasicBlock *entry, Map *block_age_offsets) {
    return true;
 }
 
-BasicBlock *glsl_basic_block_flatten(BasicBlock *entry) {
+BasicBlock *glsl_basic_block_flatten(BasicBlock *entry, bool unroll) {
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry);
    Map *offsets = glsl_map_new();
    for (BasicBlockList *n = l ; n != NULL; n=n->next) {
@@ -508,7 +533,7 @@ BasicBlock *glsl_basic_block_flatten(BasicBlock *entry) {
    if (c < 1000)
       while (flatten_a_bit(entry, offsets)) /* Do nothing */;
 
-   entry = flatten(entry, offsets);
+   entry = flatten(entry, offsets, unroll);
 
    glsl_map_delete(offsets);
 

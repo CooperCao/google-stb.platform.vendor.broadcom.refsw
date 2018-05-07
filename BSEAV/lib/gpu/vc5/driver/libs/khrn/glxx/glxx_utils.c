@@ -136,13 +136,13 @@ glxx_ms_mode glxx_max_ms_mode_for_internalformat(GLenum internalformat)
    default:
       break;
    }
-   return glxx_samples_to_ms_mode(GLXX_CONFIG_MAX_SAMPLES);
+   return glxx_samples_to_ms_mode(V3D_MAX_SAMPLES);
 }
 
 glxx_ms_mode glxx_samples_to_ms_mode(unsigned samples)
 {
    glxx_ms_mode ms_mode = GLXX_NO_MS;
-   assert(samples <= GLXX_CONFIG_MAX_SAMPLES);
+   assert(samples <= V3D_MAX_SAMPLES);
 
    if (samples == 0)
       ms_mode = GLXX_NO_MS;
@@ -212,7 +212,7 @@ bool glxx_is_color_renderable_from_api_fmt(GFX_LFMT_T fmt)
    case GFX_LFMT_R16_G16_B16_A16_FLOAT:
    case GFX_LFMT_R16_G16_FLOAT:
    case GFX_LFMT_R16_FLOAT:
-#if GL_EXT_texture_format_BGRA8888
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GFX_LFMT_B8_G8_R8_A8_UNORM:
 #endif
       res = true;

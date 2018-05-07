@@ -16,24 +16,28 @@ static void init_varying_info(VARYING_INFO_T *varying) {
    varying->flat          = false;
 }
 
+static void alloc(int count, int *o_count, int **o_buf) {
+   *o_count = count;
+   *o_buf = malloc(count * sizeof(int));
+   if (*o_buf == NULL) return;
+
+   for (int i=0; i<count; i++) (*o_buf)[i] = -1;
+}
+
 LinkMap *glsl_link_map_alloc(int num_ins, int num_outs, int num_unifs, int num_buffers) {
    LinkMap *ret = malloc(sizeof(LinkMap));
    if (!ret) return NULL;
 
-   ret->num_ins      = num_ins;
-   ret->num_outs     = num_outs;
-   ret->num_uniforms = num_unifs;
-   ret->num_buffers  = num_buffers;
-
-   ret->ins      = malloc(ret->num_ins      * sizeof(int));
-   ret->outs     = malloc(ret->num_outs     * sizeof(int));
-   ret->uniforms = malloc(ret->num_uniforms * sizeof(int));
-   ret->buffers  = malloc(ret->num_buffers  * sizeof(int));
+   alloc(num_ins,     &ret->num_ins,      &ret->ins);
+   alloc(num_outs,    &ret->num_outs,     &ret->outs);
+   alloc(num_unifs,   &ret->num_uniforms, &ret->uniforms);
+   alloc(num_buffers, &ret->num_buffers,  &ret->buffers);
 
    if (!ret->ins || !ret->outs || !ret->uniforms || !ret->buffers) {
       glsl_link_map_free(ret);
       return NULL;
    }
+
    return ret;
 }
 

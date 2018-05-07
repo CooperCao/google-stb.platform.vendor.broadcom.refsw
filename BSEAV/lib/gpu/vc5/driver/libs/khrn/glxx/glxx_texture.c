@@ -503,11 +503,9 @@ static bool convertable(GFX_LFMT_T lfmt)
    return gfx_lfmt_is_rso(lfmt) || gfx_lfmt_is_sand_family(lfmt);
 }
 
-static khrn_image* get_image_for_texturing(EGL_IMAGE_T *egl_image,
+khrn_image* glxx_get_image_for_texturing(khrn_image *image,
       glxx_context_fences *fences)
 {
-   khrn_image *image = egl_image_get_image(egl_image);
-
    const GFX_BUFFER_DESC_T *desc = &image->blob->desc[image->level];
 
    bool needs_conversion = convertable(desc->planes[0].lfmt);
@@ -1463,15 +1461,12 @@ static bool filtering_ok(const GLXX_TEXTURE_T *texture, bool shadow_compare)
    else
       api_fmt = egl_image_get_image(texture->source)->api_fmt;
 
-   if (gfx_sized_internalformat_from_api_fmt_maybe(api_fmt) != GL_NONE)
-   {
-      if ((gfx_lfmt_has_color(api_fmt) && !glxx_is_texture_filterable_api_fmt(api_fmt)) ||
-          (V3D_VER_AT_LEAST(3,3,0,0) && gfx_lfmt_has_depth_stencil(api_fmt) &&
-            texture->ds_texture_mode == GL_STENCIL_INDEX) ||
-          (gfx_lfmt_has_depth(api_fmt) && !shadow_compare) ||
-          (gfx_lfmt_has_stencil(api_fmt) && !gfx_lfmt_has_depth(api_fmt)))
-         return false;
-   }
+   if ((gfx_lfmt_has_color(api_fmt) && !glxx_is_texture_filterable_api_fmt(api_fmt)) ||
+         (V3D_VER_AT_LEAST(3,3,0,0) && gfx_lfmt_has_depth_stencil(api_fmt) &&
+          texture->ds_texture_mode == GL_STENCIL_INDEX) ||
+         (gfx_lfmt_has_depth(api_fmt) && !shadow_compare) ||
+         (gfx_lfmt_has_stencil(api_fmt) && !gfx_lfmt_has_depth(api_fmt)))
+      return false;
 
    return true;
 }
@@ -1568,7 +1563,8 @@ get_base_level_image_and_num_levels(khrn_image **image, uint32_t *num_levels,
 
       if (texture->source && *num_levels == 1)
       {
-         *image = get_image_for_texturing(texture->source, fences);
+         khrn_image *img_curr = egl_image_get_image(texture->source);
+         *image = glxx_get_image_for_texturing(img_curr, fences);
          if (!*image)
             return OUT_OF_MEMORY;
       }
@@ -1636,7 +1632,7 @@ static void clamp_to_base_level(V3D_TMU_SAMPLER_T *s)
    s->max_lod = gfx_umin(s->max_lod, 1);
 }
 
-static void set_tmu_filters(V3D_TMU_SAMPLER_T *s, GLenum mag_filter, GLenum min_filter, float anisotropy)
+void glxx_set_tmu_filters(V3D_TMU_SAMPLER_T *s, GLenum mag_filter, GLenum min_filter, float anisotropy)
 {
    switch (mag_filter)
    {
@@ -1679,7 +1675,7 @@ static void set_tmu_filters(V3D_TMU_SAMPLER_T *s, GLenum mag_filter, GLenum min_
    s->max_aniso = s->aniso_en ? v3d_tmu_translate_max_aniso(anisotropy) : V3D_MAX_ANISO_2;
 }
 #else
-static v3d_tmu_filters_t get_tmu_filters(GLenum mag_filter, GLenum min_filter, float anisotropy)
+v3d_tmu_filters_t glxx_get_tmu_filters(GLenum mag_filter, GLenum min_filter, float anisotropy)
 {
    if (anisotropy > 1.0f)
       return v3d_tmu_filters_anisotropic(anisotropy);
@@ -1836,38 +1832,6 @@ static glsl_imgunit_swizzling to_glsl_imgunit_swizzling(GFX_LFMT_T lfmt)
 }
 #endif
 
-typedef struct
-{
-   khrn_image *img_base;
-   unsigned plane;
-   unsigned num_levels;
-
-   unsigned dims;
-   bool cubemap_mode; /* set to true if we are going to use this image in cube
-                         mapping mode (== we write to i?, r, t, scm) */
-
-   GFX_LFMT_T fmt;
-   bool need_depth_type;
-
-   unsigned swizzle[4];
-
-}glxx_texture_view;
-
-struct hw_tex_params
-{
-   v3d_addr_t l0_addr;
-
-   uint32_t w, h, d;
-   uint32_t arr_str;
-
-   struct gfx_buffer_uif_cfg uif_cfg;
-   GFX_LFMT_TMU_TRANSLATION_T tmu_trans;
-   v3d_tmu_swizzle_t composed_swizzles[4]; // tmu_trans.swizzles composed with swizzles from texture object
-   bool yflip;
-   uint32_t base_level, max_level;
-   GFX_LFMT_T tex_fmt;
-};
-
 static enum glxx_tex_completeness make_texture_view(glxx_texture_view *tex_view,
       GLXX_TEXTURE_T *texture, const glxx_calc_image_unit *image_unit,
       const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, glxx_context_fences *fences)
@@ -1907,7 +1871,7 @@ static enum glxx_tex_completeness make_texture_view(glxx_texture_view *tex_view,
    return COMPLETE;
 }
 
-static void get_hw_tex_params(struct hw_tex_params *tp,
+void glxx_get_hw_tex_params(glxx_hw_tex_params *tp,
       const glxx_texture_view *tex_view)
 {
    const khrn_image *img_base = tex_view->img_base;
@@ -2037,7 +2001,7 @@ static bool record_tex_usage(const khrn_image *img_base,
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
 static glsl_gadgettype_t get_glsl_gadgettype_and_adjust_composed_swizzles(
-   struct hw_tex_params *tp, bool is_32bit)
+   glxx_hw_tex_params *tp, bool is_32bit)
 {
    if (v3d_tmu_is_depth_type(tp->tmu_trans.type) &&
       (tp->tmu_trans.type != V3D_TMU_TYPE_DEPTH_COMP32F))
@@ -2072,9 +2036,9 @@ static glsl_gadgettype_t get_glsl_gadgettype_and_adjust_composed_swizzles(
 #if V3D_VER_AT_LEAST(4,1,34,0)
 
 /* Returns true iff state extension needed */
-static bool pack_tex_state(
+bool glxx_pack_tex_state(
    uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE],
-   const struct hw_tex_params *tp)
+   const glxx_hw_tex_params *tp)
 {
    V3D_TMU_TEX_STATE_T s;
    s.flipx = false;
@@ -2099,7 +2063,6 @@ static bool pack_tex_state(
       V3D_TMU_TEX_EXTENSION_T e;
       e.ub_pad = tp->uif_cfg.ub_pads[0];
       e.ub_xor = tp->uif_cfg.ub_xor;
-      assert(!tp->uif_cfg.ub_noutile);
       e.uif_top = tp->uif_cfg.force;
       e.xor_dis = tp->uif_cfg.xor_dis;
       v3d_pack_tmu_tex_extension(hw_tex_state + V3D_TMU_TEX_STATE_PACKED_SIZE, &e);
@@ -2178,7 +2141,7 @@ static bool swizzles_01_or(const v3d_tmu_swizzle_t swizzles[4],
 
 // TODO Not entirely correct if V3D_HAS_TMU_R32F_R16_SHAD. See GFXH-1498.
 static void get_hw_border(uint32_t hw[4], const uint32_t in[4],
-   const struct hw_tex_params *tp, bool is_32bit)
+   const glxx_hw_tex_params *tp, bool is_32bit)
 {
    uint32_t clamped[4];
    clamp_border_color(clamped, in, tp->tex_fmt);
@@ -2271,7 +2234,7 @@ static void get_hw_border(uint32_t hw[4], const uint32_t in[4],
 static bool pack_sampler(
    uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE + 16],
    const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
-   const struct hw_tex_params *tp, bool is_32bit)
+   const glxx_hw_tex_params *tp, bool is_32bit)
 {
    V3D_TMU_SAMPLER_T s;
    s.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
@@ -2285,11 +2248,7 @@ static bool pack_sampler(
       min_filter = filter_disable_mipmapping(min_filter);
       anisotropy = 0.0f;
    }
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   set_tmu_filters(&s, sampler->filter.mag, min_filter, anisotropy); // Must call after min_lod/max_lod set
-#else
-   s.filters = get_tmu_filters(sampler->filter.mag, min_filter, anisotropy);
-#endif
+   glxx_set_tmu_filters(&s, sampler->filter.mag, min_filter, anisotropy); // Must call after min_lod/max_lod set
    s.fixed_bias = 0;
    s.wrap_s = get_hw_wrap(sampler->wrap.s);
    s.wrap_t = get_hw_wrap(sampler->wrap.t);
@@ -2309,11 +2268,11 @@ static bool pack_sampler(
 }
 
 static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
-   const struct hw_tex_params *tp, const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
+   const glxx_hw_tex_params *tp, const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
    const GLSL_SAMPLER_T *glsl_sampler, bool is_image)
 {
    uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE];
-   bool tex_state_extended = pack_tex_state(hw_tex_state, tp);
+   bool tex_state_extended = glxx_pack_tex_state(hw_tex_state, tp);
    /* Everything else in param 0 comes from the shader */
    texture_unif->hw_param[0] = khrn_fmem_add_tmu_tex_state(fmem, hw_tex_state, tex_state_extended, glsl_sampler->in_array);
    if (!texture_unif->hw_param[0])
@@ -2340,7 +2299,7 @@ static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem 
 #else
 
 static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem *fmem,
-   const struct hw_tex_params *tp, const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
+   const glxx_hw_tex_params *tp, const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
    const GLSL_SAMPLER_T *glsl_sampler, enum glxx_tex_target tex_target)
 {
    bool is_cube_map = tex_target == GL_TEXTURE_CUBE_MAP;
@@ -2410,7 +2369,7 @@ static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem 
       }
 #endif
 
-      filters = get_tmu_filters(mag_filter, min_filter, anisotropy);
+      filters = glxx_get_tmu_filters(mag_filter, min_filter, anisotropy);
    }
 
    V3D_TMU_INDIRECT_T ind;
@@ -2439,7 +2398,6 @@ static bool set_tex_unif_hw_params(GLXX_TEXTURE_UNIF_T *texture_unif, khrn_fmem 
 #endif
    ind.ub_pad = tp->uif_cfg.ub_pads[0];
    ind.ub_xor = tp->uif_cfg.ub_xor;
-   assert(!tp->uif_cfg.ub_noutile);
    ind.uif_top = tp->uif_cfg.force;
    ind.xor_dis = tp->uif_cfg.xor_dis;
 
@@ -2523,8 +2481,8 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
       return OUT_OF_MEMORY;
    }
 
-   struct hw_tex_params tp;
-   get_hw_tex_params(&tp, &tex_view);
+   glxx_hw_tex_params tp;
+   glxx_get_hw_tex_params(&tp, &tex_view);
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    texture_unif->gadgettype = get_glsl_gadgettype_and_adjust_composed_swizzles(&tp, glsl_sampler->is_32bit);
@@ -2841,22 +2799,17 @@ bool glxx_texture_compressed_subimage(GLXX_TEXTURE_T *texture, unsigned face,
    return true;
 }
 
-static bool is_luminance_or_alpha(GFX_LFMT_T lfmt)
+static bool is_luminance_and_or_alpha(GFX_LFMT_T api_fmt)
 {
-   bool res;
-   switch (lfmt & GFX_LFMT_FORMAT_MASK)
+   switch (api_fmt)
    {
-      case GFX_LFMT_L1_UNORM:
-      case GFX_LFMT_L4_UNORM:
-      case GFX_LFMT_L8_UNORM:
       case GFX_LFMT_L8_A8_UNORM:
+      case GFX_LFMT_L8_UNORM:
       case GFX_LFMT_A8_UNORM:
-         res = true;
-         break;
+         return true;
       default:
-         res = false;
+         return false;
    }
-   return res;
 }
 
 bool check_or_create_images(GLXX_TEXTURE_T *texture,
@@ -2920,19 +2873,13 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
       return false;
    }
    khrn_image *img_base = texture->img[0][base_level];
-   GFX_LFMT_T lfmt = khrn_image_get_lfmt(texture->img[0][base_level], 0);
 
-   /* if lfmt is not luminance, alpha or luminance alpha the format must be
-    * sized internal format,  color renderable and texture filterable */
-   if (!is_luminance_or_alpha(lfmt))
+   if (!glxx_is_texture_filterable_api_fmt(img_base->api_fmt) ||
+       (!is_luminance_and_or_alpha(img_base->api_fmt) &&
+        !glxx_is_color_renderable_from_api_fmt(img_base->api_fmt)))
    {
-      if (gfx_sized_internalformat_from_api_fmt_maybe(img_base->api_fmt) == GL_NONE ||
-          !glxx_is_color_renderable_from_api_fmt(img_base->api_fmt) ||
-          !glxx_is_texture_filterable_api_fmt(img_base->api_fmt))
-      {
          *error = GL_INVALID_OPERATION;
          return false;
-      }
    }
 
    /* nothing to do */

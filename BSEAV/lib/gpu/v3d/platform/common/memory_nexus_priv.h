@@ -7,7 +7,7 @@
 
 #include "nexus_memory.h"
 #include "nexus_platform.h"
-#include <EGL/eglplatform.h>
+#include <EGL/begl_platform.h>
 
 enum
 {

@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES2/gl2.h"
+#include <GLES/gl.h>
+#include <GLES2/gl2.h>
 #include "middleware/khronos/glxx/glxx_buffer.h"
 
 #include <stddef.h>

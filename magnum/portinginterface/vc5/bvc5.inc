@@ -53,7 +53,7 @@ BVC5_SOURCES += \
    $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_fences.c
 else
 BVC5_SOURCES += \
-   $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_linux_fences.c
+   $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_fences.c
 endif
 else
 BVC5_SOURCES += \

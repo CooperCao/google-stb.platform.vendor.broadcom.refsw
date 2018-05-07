@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -48,7 +52,6 @@
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
 #include "nexus_base.h"
-#include "nexus_input_band.h"
 
 #if NEXUS_HAS_SPI
 #include "nexus_spi.h"
@@ -146,7 +149,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     /* board types */
     bool sv = false;
-    bool cdt = false; /* C, D, T have the same frontend layout */
+    bool hb = false; /* C, D, T, HB have the same frontend layout */
     bool dv = false;
     bool pktOverride = false;
 
@@ -178,7 +181,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             dv = true;
         } else if (platformStatus.boardId.major == HB_BOARD_ID) {
             BDBG_MSG(("C/D/T/HB"));
-            cdt = true;
+            hb = true;
             intGpio = HB_INT_GPIO;
             intGpioType = HB_INT_GPIO_TYPE;
         } else {
@@ -219,7 +222,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     ConfigureIntGpioPin(intGpio);
 
-    if (dv || sv || cdt) {
+    if (dv || sv || hb) {
         NEXUS_GpioHandle gpio;
         NEXUS_GpioStatus gpioStatus;
         BREG_Handle hReg = g_pCoreHandles->reg;
@@ -249,7 +252,8 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             }
         }
 
-        if (cdt) {
+#if (BCHP_CHIP==7271) /* Only 7271 HB needs to adjust for BCM9TS connector */
+        if (hb) {
             reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
             BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_2: %08x",reg));
             if ((reg & 0xFFFF0000) != 0x66660000 ) {
@@ -271,6 +275,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 BDBG_MSG(("SUN_TOP_CTRL_PIN_MUX_CTRL_2: %08x",reg));
             }
         }
+#endif
 
         reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0);
         BDBG_MSG(("AON_PIN_CTRL_PIN_MUX_CTRL_0: %08x",reg));
@@ -419,7 +424,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                     bool pktUseAlt2 = false;
 #if (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
                     /* 7268/71 HB boards use different ALT routing for the PKT interface */
-                    if (cdt) pktUseAlt2 = true;
+                    if (hb) pktUseAlt2 = true;
 #endif
                     /* 3 sync
                      * 2 data 0
@@ -513,17 +518,21 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
 
     if (!pConfig->frontend[0]) {
-        uint32_t reg;
-        /* If no frontend, set pinmux for PKT3 to enable BCM9TS_DC streamer input. may require board rework. */
         BDBG_WRN(("No frontend found."));
-        reg = BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
-        reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013) |
-                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014) |
-                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015) );
-        reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013, 5) |
-                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014, 5) |
-                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015, 5) );
-        BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, reg);
+#if (BCHP_CHIP==7271) /* Only 7271 HB needs to adjust for BCM9TS connector */
+        if (hb) {
+            uint32_t reg;
+            /* If no frontend, set pinmux for PKT3 to enable BCM9TS_DC streamer input. may require board rework. */
+            reg = BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013) |
+                     BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014) |
+                     BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015) );
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013, 5) |
+                    BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014, 5) |
+                    BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015, 5) );
+            BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, reg);
+        }
+#endif
     }
 
     return NEXUS_SUCCESS;

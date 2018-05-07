@@ -58,11 +58,6 @@ gmem_handle_t gmem_from_external_memory(GMEM_TERM_T external_term, void *externa
                                         size_t length, bool secure, bool contiguous,
                                         const char *desc);
 
-uint64_t gmem_get_external_addr(gmem_handle_t handle);
-
-/* Retrieve the external context if there is one. May return NULL. */
-void *gmem_get_external_context(gmem_handle_t handle);
-
 /* Retrieve the platform memory handle */
 BEGL_MemHandle gmem_get_platform_handle(gmem_handle_t handle);
 

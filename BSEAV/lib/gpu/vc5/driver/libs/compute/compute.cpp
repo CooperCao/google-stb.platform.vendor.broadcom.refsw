@@ -29,6 +29,10 @@ static constexpr unsigned MAX_SGS = V3D_MAX_TLB_HEIGHT_PX / 4u;
 
 static uint32_t choose_max_wgs_per_sg(const compute_params* p)
 {
+   // If using subgroups then we can't pack into supergroups at all.
+   if (p->has_subgroup_ops || (p->has_quad_ops && (p->wg_size & 3) != 0))
+      return 1;
+
    // If using barriers then restrict super-group size to allow ideally at least two in flight.
    uint32_t max_sg_size = V3D_USE_CSD ? (V3D_VPAR * p->wg_size) : (V3D_MAX_TLB_WIDTH_PX * 2u);
    if (p->has_barrier)
@@ -76,20 +80,31 @@ compute_sg_config compute_choose_sg_config(const compute_params* p)
 {
    uint32_t max_wgs_per_sg = choose_max_wgs_per_sg(p);
    uint32_t wgs_per_sg = choose_wgs_per_sg(max_wgs_per_sg, p->wg_size);
+   uint32_t max_qpu_threads = p->num_qpus * p->num_threads;
 
    // Compute the maximum number of work-groups from HW constraints and shared-memory constraints.
    uint32_t max_wgs = MAX_SGS * wgs_per_sg;
    uint32_t max_wgs_in_mem = ~0u;
    if (p->shared_block_size > 0)
+   {
       max_wgs_in_mem = p->shared_mem_per_core / p->shared_block_size;
-   max_wgs = gfx_umin(max_wgs, max_wgs_in_mem);
+      max_wgs = gfx_umin(max_wgs, max_wgs_in_mem);
 
-   // Try to increase the super-group size if we wouldn't saturate all the QPU threads due to the limit of 16 super-groups.
+      // Compute the maximum number of super-groups in flight and limit max_wgs to that.
+      // This allows the driver to know the maximum amount of local memory used.
+      if (V3D_USE_CSD)
+      {
+         uint32_t qpu_threads_per_sg = gfx_udiv_round_up(wgs_per_sg * p->wg_size, V3D_VPAR);
+         assert(max_qpu_threads >= qpu_threads_per_sg);
+         uint32_t max_sgs = max_qpu_threads/qpu_threads_per_sg + 1;
+         max_wgs = gfx_umin(max_wgs, max_sgs * wgs_per_sg);
+      }
+   }
+
    if (!V3D_USE_CSD)
    {
-      uint32_t max_qpu_threads = p->num_qpus * p->num_threads * V3D_VPAR;
-
-      while (max_wgs * p->wg_size < max_qpu_threads
+      // Try to increase the super-group size if we wouldn't saturate all the QPU threads due to the limit of 16 super-groups.
+      while ((max_wgs * p->wg_size) < (max_qpu_threads * V3D_VPAR)
           && max_wgs < max_wgs_in_mem
           && wgs_per_sg < max_wgs_per_sg)
       {
@@ -834,6 +849,7 @@ static bool write_shader_record(
 
    V3D_SHADREC_GL_MAIN_T shader_record{};
    shader_record.no_ez = true;
+   shader_record.z_write = true;
    shader_record.scb_wait_on_first_thrsw = program.scb_wait_on_first_thrsw;
    shader_record.num_varys = program.num_varys + program.has_barrier;
 #if V3D_VER_AT_LEAST(4,1,34,0)

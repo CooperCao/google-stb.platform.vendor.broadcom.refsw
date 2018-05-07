@@ -146,7 +146,8 @@ static void blob_init_from_resource(khrn_blob *blob,
       unsigned array_pitch,
       gfx_buffer_usage_t blob_usage, bool secure)
 {
-   assert(num_mip_levels > 0 && num_array_elems > 0 && array_pitch > 0);
+   assert(num_mip_levels > 0 && num_array_elems > 0 &&
+         (num_array_elems == 1 || array_pitch > 0));
    if (khrn_resource_has_storage(res))
       for (unsigned i = 0; i != res->num_handles; ++i)
          assert(((gmem_get_usage(res->handles[i]) & GMEM_USAGE_SECURE) != 0) == secure);

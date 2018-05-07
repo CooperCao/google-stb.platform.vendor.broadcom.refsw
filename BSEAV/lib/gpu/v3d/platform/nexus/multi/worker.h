@@ -17,7 +17,7 @@ namespace nxpl
 class Worker
 {
 public:
-   Worker(void *platformState);
+   Worker(void *platformState, EventContext *eventContext);
    ~Worker();
 
    static void VSyncCallback(void *ctx, int param);
@@ -32,6 +32,7 @@ public:
 
 private:
    void                                      *m_platformState;
+   EventContext                              *m_eventContext;
    nxpl::NativeWindowInfo                    m_info;
    std::thread                               m_worker;
    std::atomic<bool>                         m_done;

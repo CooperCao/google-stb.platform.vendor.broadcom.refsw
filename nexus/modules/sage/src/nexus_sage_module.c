@@ -780,12 +780,6 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
 
     BKNI_Memset(&g_NEXUS_sageModule, 0, sizeof(g_NEXUS_sageModule));
 
-    if((BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
-        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
-    {
-        g_NEXUS_sageModule.reset = 1;
-    }
-
     rc = BKNI_CreateEvent(&g_NEXUS_sageModule.sageReadyEvent);
     if (rc != BERR_SUCCESS) {
         BDBG_ERR(( "Error creating sage sageReadyEvent" ));
@@ -929,11 +923,9 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
 #ifdef NO_BP3_TA
     uint32_t bondOptionReg = 0xFFFFFFFF;
 #endif
+    uint32_t sage_status = BCHP_SAGE_GetStatus(g_pCoreHandles->reg);
 
     g_NEXUS_sageModule.SWState = NEXUS_SageSWState_eUnknown;
-
-    /* Check again (may be called for watchdog/standby) */
-    g_NEXUS_sageModule.reset = !BCHP_SAGE_IsStarted(g_pCoreHandles->reg);
 
     frameworkImg.raw = &g_sage_module.framework;
     blImg.raw = &bl;
@@ -1001,20 +993,23 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         /* If SAGE_RESET_REG is "DOWN", then sage has shut down, it is expected that it will be in reset */
         /* This check may not be necessary, but good to double check */
         /* If SAGE is still running (!reset) but GSRAM is "DOWN", then some unknown state.. cannot proceed */
-        while(!g_NEXUS_sageModule.reset) {
+        while(sage_status != BSAGElibBootStatus_eNotStarted) {
             if(cnt++ > 10) {
                 BDBG_ERR(("Timeout waiting for SAGE to be in RESET, cannot cleanly start"));
                 rc = NEXUS_TIMEOUT;
                 goto err;
             }
             BKNI_Sleep(100);
-            g_NEXUS_sageModule.reset = !BCHP_SAGE_IsStarted(g_pCoreHandles->reg);
+            sage_status = BCHP_SAGE_GetStatus(g_pCoreHandles->reg);
         }
     }
 
-    BDBG_MSG(("SAGE is %s", g_NEXUS_sageModule.reset ? "STOPPED" : "RUNNING"));
+    BDBG_MSG(("SAGE is %s(%d)", sage_status == BSAGElibBootStatus_eNotStarted? "STOPPED" : "RUNNING",sage_status));
 
-    if(g_NEXUS_sageModule.reset) {
+    switch(sage_status)
+    {
+    case BSAGElibBootStatus_eNotStarted:
+    case BSAGElibBootStatus_ePolling:
         /* Take SAGE CPU out of reset */
         magnum_rc = BSAGElib_Boot_Launch(g_NEXUS_sageModule.hSAGElib, &bootSettings);
         if(magnum_rc != BERR_SUCCESS) {
@@ -1025,7 +1020,8 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
             BDBG_ERR(("* Please check your sage_bl%s.bin", _flavor));
             BDBG_ERR(("*******  SAGE ERROR  <<<<<"));
         }
-    } else {
+        break;
+    case BSAGElibBootStatus_eStarted:
         /* Can't assume that just because SAGE is running, it's ready to reconnect with HOST */
         if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG) != SAGE_RESETVAL_S2H_READYTORESTART) {
             BDBG_ERR(("SAGE is running, but NOT ready for host reconnect. Cannot continue"));
@@ -1036,6 +1032,11 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         /* Do some checks, that we can restart w/ SAGE already running */
         magnum_rc = BSAGElib_Boot_HostReset(g_NEXUS_sageModule.hSAGElib, &bootSettings);
         reconnect = true; /* Need a 2nd step for the reconnect to complete */
+        break;
+    default:
+        BDBG_ERR(("*******  SAGE in wrong status(%d), can not boot  <<<<<",sage_status));
+        magnum_rc = BERR_UNKNOWN;
+        break;
     }
 
     if(magnum_rc != BERR_SUCCESS) {
@@ -1044,7 +1045,6 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     }
 
     /* success */
-    g_NEXUS_sageModule.reset = 0;
     /* end of init is deferred in first NEXUS_Sage_Open() call */
 
     /* Check if SAGE BOOT happened and unblock BSageLib */
@@ -1542,7 +1542,9 @@ NEXUS_Error NEXUS_Sage_P_GetEncKey(uint8_t *pKeyBuff, uint32_t inputKeyBufSize,u
     }
 
     pSageLogBuffer = NEXUS_Sage_P_OffsetToAddr(g_sage_module.logBufferHeapOffset);
+    if (!pSageLogBuffer) return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     pEncAESBuffer = NEXUS_Sage_P_OffsetToAddr(pSageLogBuffer->encAESKeyOffset);
+    if (!pEncAESBuffer) return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 
     *pOutKeySize = NEXUS_SAGE_RSA2048_SIZE;
     BKNI_Memcpy((void *)pKeyBuff, (void *)pEncAESBuffer, *pOutKeySize);

@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_15
+## SAGE Binary Metadata - SSF 3_2_16
 ## unique_key checksum_type checksum url
-7439B0/dev/sage_ta_secure_log_dev.bin sha1 5eb8d38b1e15885ae14566f71292ef7fa55fc345 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_15/7439B0/ZD/sage_ta_secure_log_dev.bin
+7439B0/dev/sage_ta_secure_log_dev.bin sha1 73846da0237d2c29a711070c2de0f68515422f94 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_16/7439B0/ZD/sage_ta_secure_log_dev.bin

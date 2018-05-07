@@ -54,6 +54,7 @@ typedef struct BVC5_P_SharedFenceInfo
    uint32_t       uNumberRequiredSignaled;        /* Number of times the fence need to be signalled before deleting the struct */
    void           *pFenceSignalData;
    int            iFence;
+   uint32_t       uFenceUid;                      /* Unique id for the fence used for debug and GPUMonitor events */
 } BVC5_P_SharedFenceInfo;
 
 typedef struct BVC5_P_JobDependentFence
@@ -109,6 +110,15 @@ typedef struct BVC5_P_InternalJob
          uint32_t                   uiTileStateSize;
       } sBin;
 
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      struct BVC5_P_InternalCompute
+      {
+         struct BVC5_P_ComputeSubjobs *pSubjobs;
+         uint32_t uiNumIssued;
+         uint32_t uiNumDone;
+      } sCompute;
+#endif
+
       struct BVC5_P_InternalWait
       {
          bool signaled;
@@ -134,6 +144,15 @@ typedef struct BVC5_P_InternalJob
    BLST_Q_ENTRY(BVC5_P_InternalJob) sActiveqChain;
 
 } BVC5_P_InternalJob;
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+typedef struct BVC5_P_ComputeSubjobs
+{
+   uint32_t uiSize;
+   uint32_t uiCapacity;
+   BVC5_JobComputeSubjob pData[1];
+} BVC5_P_ComputeSubjobs;
+#endif
 
 /* CONSTRUCTORS AND DESTRUCTOR */
 
@@ -161,6 +180,14 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
    uint32_t                 uiClientId,
    const BVC5_JobRender    *psJob
 );
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+BVC5_P_InternalJob *BVC5_P_JobCreateCompute(
+   BVC5_Handle             hVC5,
+   uint32_t                uiClientId,
+   const BVC5_JobCompute   *pComputeJob,
+   BVC5_P_ComputeSubjobs   *pSubjobs);
+#endif
 
 BVC5_P_InternalJob *BVC5_P_JobCreateFenceWait(
    BVC5_Handle              hVC5,
@@ -196,5 +223,11 @@ void BVC5_P_JobDestroy(
    BVC5_Handle           hVC5,
    BVC5_P_InternalJob   *psJob
 );
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+BVC5_P_ComputeSubjobs *BVC5_P_NewComputeSubjobs(uint32_t uiCapacity);
+void BVC5_P_UpdateComputeSubjobs(BVC5_P_ComputeSubjobs *pSubjobs, uint32_t uiSize, const BVC5_JobComputeSubjob *pNewData);
+void BVC5_P_DeleteComputeSubjobs(BVC5_P_ComputeSubjobs *pSubjobs);
+#endif
 
 #endif /* BVC5_INTERNAL_JOB_H__ */

@@ -635,7 +635,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eDDPEncode */
 		{
 			0x00000b50,
-			0x00000bd9,
+			0x00000bd7,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioEncodeAlgos */
@@ -983,7 +983,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eMixerDapv2FrameSync */
 		{
 			0x00000cd1,
-			0x00000cd4,
+			0x00000cd5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfPpFsAlgos */

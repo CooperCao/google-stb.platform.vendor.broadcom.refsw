@@ -48,7 +48,7 @@ extern "C"{
 /* used in bxpt.c and bxpt_rsbuf_priv.c */
 #define RS_BUFFER_PTR_REG_STEPSIZE     (BCHP_XPT_RSBUFF_BASE_POINTER_IBP1 - BCHP_XPT_RSBUFF_BASE_POINTER_IBP0)
 
-#if BXPT_NUM_TSIO
+#ifdef BXPT_P_TSIO_BUILT
 /* used in bxpt_tsio.c */
 void BXPT_P_SetupShareRsBufferRegs(
     BXPT_Handle hXpt,
@@ -61,8 +61,8 @@ void BXPT_P_SetupShareRsBufferRegs(
 unsigned BXPT_P_GetMpodRsBufferIndex(
     unsigned WhichInstance
     );
-#endif
 
+#endif
 /*
 ** These functions are called internally from BXPT_Open() and BXPT_Close().
 ** Users should NOT uses these functions directly.

@@ -320,7 +320,6 @@ static uint8_t BVDC_P_cadence_detection_isr(BVDC_P_ITFP_vice_cd_fw_regs_t *fw,
     /* Update lock status and find lock */
     for (phase = 0; phase < cad_info->control.length; phase+=1)
     {
-        cad_index = (fcnt - phase + cad_info->control.length + 1) % cad_info->control.length;
         cad_index = phase;
         if (GET_CAD_PHASE_COUNTER(cad_chan, cad_index) <= cad_chan->exit_ll)
         {

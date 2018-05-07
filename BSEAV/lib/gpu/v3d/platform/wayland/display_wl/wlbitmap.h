@@ -3,7 +3,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "EGL/egl.h"
+#include <EGL/begl_platform.h>
 #include "../helpers/extent.h"
 #include "wl_client.h"
 
@@ -16,12 +16,14 @@ namespace wlpl
 class WlBitmap
 {
 public:
-   WlBitmap(WlClient *wlc, const BEGL_BufferSettings *settings,
+   WlBitmap(WlClient *wlc, uint32_t width, uint32_t height,
+         BEGL_BufferFormat format, bool secure,
          void (*release)(void *data, struct wl_buffer *wl_buffer), void *data) :
          m_dx(0),
          m_dy(0)
    {
-      if (!CreateWlSharedBuffer(&m_sharedBuffer, wlc, settings, release, data))
+      if (!CreateWlSharedBuffer(&m_sharedBuffer, wlc, width, height, format,
+            secure, release, data))
       {
          fprintf(stderr, "failed to create Wayland shared buffer\n");
          exit(1);

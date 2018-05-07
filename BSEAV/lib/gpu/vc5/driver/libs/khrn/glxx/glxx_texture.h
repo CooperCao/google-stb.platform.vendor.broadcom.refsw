@@ -22,6 +22,7 @@
 #include "glxx_texture_utils.h"
 #include "glxx_utils.h"
 #include "glxx_render_state.h"
+#include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 #define enumify(x) E_##x=x
 
@@ -428,5 +429,56 @@ extern void glxx_compressed_paletted_teximageX(GLenum target, GLint level,
  * for immutable textures, we can always calculate num_levels */
 extern bool glxx_texture_try_get_num_levels(const GLXX_TEXTURE_T *texture,
       bool only_base_level, unsigned *base_level, unsigned *num_levels);
+
+typedef struct
+{
+   khrn_image *img_base;
+   unsigned plane;
+   unsigned num_levels;
+
+   unsigned dims;
+   bool cubemap_mode; /* set to true if we are going to use this image in cube
+                         mapping mode (== we write to i?, r, t, scm) */
+
+   GFX_LFMT_T fmt;
+   bool need_depth_type;
+
+   unsigned swizzle[4];
+
+}glxx_texture_view;
+
+typedef struct
+{
+   v3d_addr_t l0_addr;
+
+   uint32_t w, h, d;
+   uint32_t arr_str;
+
+   struct gfx_buffer_uif_cfg uif_cfg;
+   GFX_LFMT_TMU_TRANSLATION_T tmu_trans;
+   v3d_tmu_swizzle_t composed_swizzles[4]; // tmu_trans.swizzles composed with swizzles from texture object
+   bool yflip;
+   uint32_t base_level, max_level;
+   GFX_LFMT_T tex_fmt;
+}glxx_hw_tex_params;
+
+void glxx_get_hw_tex_params(glxx_hw_tex_params *tp, const glxx_texture_view *tex_view);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+/* Returns true iff state extension needed */
+bool glxx_pack_tex_state(
+   uint8_t hw_tex_state[V3D_TMU_TEX_STATE_PACKED_SIZE + V3D_TMU_TEX_EXTENSION_PACKED_SIZE],
+   const glxx_hw_tex_params *tp);
+#endif
+
+khrn_image* glxx_get_image_for_texturing(khrn_image *image, glxx_context_fences *fences);
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+void glxx_set_tmu_filters(V3D_TMU_SAMPLER_T *s, GLenum mag_filter, GLenum min_filter,
+      float anisotropy);
+#else
+v3d_tmu_filters_t glxx_get_tmu_filters(GLenum mag_filter, GLenum min_filter,
+      float anisotropy);
+#endif
 
 #endif

@@ -1,27 +1,53 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bstd.h"
 #include "btmn.h"
 #include "bchp_tmon.h"
+#if defined(BCHP_IRQ0_REG_START)
 #include "bchp_irq0.h"
+#endif
 
 #if BTMN_SUPPORTS_ONCHIPTEMP
 #include "bchp_int_id_upg_aux_intr2.h"
@@ -169,7 +195,7 @@ BERR_Code BTMN_Open(
 	BREG_Write32 (hDev->hRegister, BCHP_TMON_TEST_CTRL_1, lval);
 
 	/* Clear data ready bit in case it was left over. */
-	BREG_Write32 (hDev->hRegister, BCHP_TMON_STATUS, BCHP_TMON_STATUS_data_ready_MASK); 
+	BREG_Write32 (hDev->hRegister, BCHP_TMON_STATUS, BCHP_TMON_STATUS_data_ready_MASK);
 
 	/* Register and enable L2 Data Ready interrupt. */
 	BTMN_CHK_RETCODE( retCode, BINT_CreateCallback(
@@ -189,7 +215,7 @@ done:
 	if ((retCode != BERR_SUCCESS) && hDev)
 	{
 #ifdef BCHP_PWR_RESOURCE_TEMP_MONITOR
-		BCHP_PWR_ReleaseResource(hDev->hChip, BCHP_PWR_RESOURCE_TEMP_MONITOR);    
+		BCHP_PWR_ReleaseResource(hDev->hChip, BCHP_PWR_RESOURCE_TEMP_MONITOR);
 #endif
 		BKNI_Free( (void *) hDev );
 		*pTmn = NULL;
@@ -211,7 +237,7 @@ BERR_Code BTMN_Close(
 
 	/* Power down ADC, bandgap */
 #if ((BCHP_CHIP==7420) || (BCHP_CHIP==7340) || (BCHP_CHIP==7342))
-	BREG_Write32 (hDev->hRegister, BCHP_TMON_AFE_CTRL, 
+	BREG_Write32 (hDev->hRegister, BCHP_TMON_AFE_CTRL,
 		(BCHP_TMON_AFE_CTRL_bg_pwrdn_MASK | BCHP_TMON_AFE_CTRL_adc_pwrdn_MASK));
 #else
 	BREG_Write32 (hDev->hRegister, BCHP_TMON_AFE_CTRL, BCHP_TMON_AFE_CTRL_adc_pwrdn_MASK);
@@ -597,4 +623,3 @@ BERR_Code BTMN_GetOnChipTemp (
 	return BERR_SUCCESS;
 }
 #endif
-

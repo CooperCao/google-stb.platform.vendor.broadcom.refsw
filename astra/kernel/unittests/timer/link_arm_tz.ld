@@ -55,6 +55,20 @@ SECTIONS
     . = ALIGN(4096); /* align to page boundary */
     _bootstrap_text_end = .;
 
+    _kernel_img_start = .;
+
+    /* Bootstrap data are included in both bootstrap image and kernel image
+     * sections. They are mapped twice during bootstrapping:
+     *
+     * - bootstrap on-spot mapping to be use before MMU is enabled;
+     * - kernel space mapping to be used after MMU is enabled.
+     *
+     * This allows bootstrap stacks to be doubled as kernel init stacks.
+     *
+     * The bootstrap mapping is eventually unmapped after kernel PageTable
+     * is initialized.
+     */
+
     _bootstrap_data_start = .;
     .data.bootstrap :
     {
@@ -66,7 +80,6 @@ SECTIONS
 
     . = ALIGN(4096);
 
-    _kernel_img_start = .;
     _text_start = .;
     .text :
     {

@@ -163,7 +163,7 @@ NEXUS_Graphicsv3dModule_Init(
       return BERR_TRACE(NEXUS_INVALID_PARAMETER);
    }
 
-   /* any addresses passed to the kernel must be checked as accessible
+   /* any addresses passed to the kernel must be checked as acessable
       otherwise the kernel silently fails */
    if (!NEXUS_P_CpuAccessibleAddress(userSettings->address))
    {
@@ -183,8 +183,6 @@ NEXUS_Graphicsv3dModule_Init(
       const char  *pcBinMemChunkPow    = NEXUS_GetEnv("V3D_BIN_MEM_CHUNK_POW");
       uint32_t    uiBinMemChunkPow     = pcBinMemChunkPow != NULL ? NEXUS_atoi(pcBinMemChunkPow) : 0;
       const char  *pcDisableAQA        = NEXUS_GetEnv("V3D_DISABLE_AQA");  /* AQA = Adaptive QPU assignment */
-      const char  *pcClockFreq         = NEXUS_GetEnv("V3D_CLOCK_FREQ");
-      uint32_t    uiClockFreq          = pcClockFreq != NULL ? NEXUS_atoi(pcClockFreq) : 0; /* 0 = default for device, do not change */
       bool        bDisableAQA          = false;
       NEXUS_MemoryStatus heapStatus;
       NEXUS_MemoryStatus heapStatusSecure;
@@ -222,15 +220,11 @@ NEXUS_Graphicsv3dModule_Init(
          }
       }
 
-      err = NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle, &heapStatus);
-      if (err != BERR_SUCCESS)
-         goto error1;
+      NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle, &heapStatus);
 
       if (g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure)
       {
-         err = NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure, &heapStatusSecure);
-         if (err != BERR_SUCCESS)
-            goto error1;
+         NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure, &heapStatusSecure);
          hSecureOffset = heapStatusSecure.offset;
          hSecureHeapHandle = NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure);
       }
@@ -247,8 +241,7 @@ NEXUS_Graphicsv3dModule_Init(
                       uiBinMemChunkPow,
                       uiBinMemMegsSecure,
                       graphics3d_secure_toggle,
-                      bDisableAQA,
-                      uiClockFreq);
+                      bDisableAQA);
    }
 
    if (err != BERR_SUCCESS)
@@ -563,45 +556,216 @@ NEXUS_Graphicsv3d_GetBinMemory(
    return err == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
-void
-NEXUS_Graphicsv3d_SetPerformanceMonitor(
-   NEXUS_Graphicsv3dHandle                    gfx,
-   const NEXUS_Graphicsv3dPerfMonitorSettings *settings)
+void NEXUS_Graphicsv3d_GetPerfNumCounterGroups(
+   NEXUS_Graphicsv3dHandle  hGfx,
+   uint32_t                *puiNumGroups
+   )
 {
-   BV3D_PerfMonitorSettings   bSettings;
+   BSTD_UNUSED(hGfx);
 
-   BSTD_UNUSED(gfx);
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetPerfNumCounterGroups);
 
-   if (settings == NULL)
-      return;
+   BV3D_GetPerfNumCounterGroups(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, puiNumGroups);
 
-   bSettings.uiHWBank  = settings->uiHwBank;
-   bSettings.uiMemBank = settings->uiMemBank;
-   bSettings.uiFlags   = settings->uiFlags;
-
-   BV3D_SetPerformanceMonitor(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, &bSettings);
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetPerfNumCounterGroups);
 }
 
-void
-NEXUS_Graphicsv3d_GetPerformanceData(
-   NEXUS_Graphicsv3dHandle          gfx,
-   NEXUS_Graphicsv3dPerfMonitorData *data)
+void NEXUS_Graphicsv3d_GetPerfCounterDesc(
+   NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
+   uint32_t                            uiGroup,                /* [in]  */
+   uint32_t                            uiCounter,              /* [in]  */
+   NEXUS_Graphicsv3dCounterDesc        *psDesc                 /* [out] */
+   )
 {
-   BV3D_PerfMonitorData bData;
-   uint32_t             i;
+   BSTD_UNUSED(hGfx);
 
-   BSTD_UNUSED(gfx);
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetPerfCounterDesc);
 
-   if (data == NULL)
-      return;
+   BV3D_GetPerfCounterDesc(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiGroup, uiCounter, (BV3D_CounterDesc *)psDesc);
 
-   BV3D_GetPerformanceData(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, &bData);
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetPerfCounterDesc);
+}
 
-   for (i = 0; i < 16; i++)
-      data->uiHwCounters[i] = bData.uiHwCounters[i];
+void NEXUS_Graphicsv3d_GetPerfCounterGroupInfo(
+   NEXUS_Graphicsv3dHandle             hGfx,
+   uint32_t                            uiGroup,
+   uint32_t                            uiGrpNameSize,
+   char                                *chGrpName,
+   uint32_t                            *uiMaxActiveCounter,
+   uint32_t                            *uiTotalCounter
+   )
+{
+   BSTD_UNUSED(hGfx);
 
-   for (i = 0; i < 2; i++)
-      data->uiMemCounters[i] = bData.uiMemCounters[i];
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetPerfCounterGroupInfo);
+
+   BV3D_GetPerfCounterGroupInfo(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiGroup, uiGrpNameSize, chGrpName, uiMaxActiveCounter, uiTotalCounter);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetPerfCounterGroupInfo);
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_SetPerfCounting(
+   NEXUS_Graphicsv3dHandle             hGfx,
+   NEXUS_Graphicsv3dCounterState       eState
+   )
+{
+   BERR_Code            err;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_SetPerfCounting);
+
+   err = BV3D_SetPerfCounting(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, hGfx->clientId, (BV3D_CounterState)eState);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_SetPerfCounting);
+
+   switch (err)
+   {
+   case BERR_NOT_AVAILABLE:      return NEXUS_NOT_AVAILABLE;
+   case BERR_INVALID_PARAMETER:  return NEXUS_INVALID_PARAMETER;
+   case BERR_SUCCESS:            return NEXUS_SUCCESS;
+   default:                      return NEXUS_UNKNOWN;
+   }
+}
+
+void NEXUS_Graphicsv3d_ChoosePerfCounters(
+   NEXUS_Graphicsv3dHandle                hGfx,
+   const NEXUS_Graphicsv3dCounterSelector *psSelector
+   )
+{
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_ChoosePerfCounters);
+
+   BV3D_ChoosePerfCounters(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, hGfx->clientId, (BV3D_CounterSelector *)psSelector);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_ChoosePerfCounters);
+}
+
+void NEXUS_Graphicsv3d_GetPerfCounterData(
+   NEXUS_Graphicsv3dHandle    hGfx,
+   uint32_t                   uiMaxCounters,
+   uint32_t                   uiResetCounts,
+   uint32_t                   *puiCountersOut,
+   NEXUS_Graphicsv3dCounter   *psCounters
+   )
+{
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetPerfCounterData);
+
+   *puiCountersOut = BV3D_GetPerfCounterData(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiMaxCounters,
+                                             uiResetCounts, (BV3D_Counter *)psCounters);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetPerfCounterData);
+}
+
+void NEXUS_Graphicsv3d_GetEventCounts(
+   NEXUS_Graphicsv3dHandle  hGfx,
+   uint32_t                 *uiNumTracks,
+   uint32_t                 *uiNumEvents
+   )
+{
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetEventCounts);
+
+   BV3D_GetEventCounts(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiNumTracks, uiNumEvents);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetEventCounts);
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_GetEventTrackInfo(
+   NEXUS_Graphicsv3dHandle           hGfx,
+   uint32_t                          uiTrack,
+   NEXUS_Graphicsv3dEventTrackDesc   *psTrackDesc
+   )
+{
+   BERR_Code            berr;
+
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetEventTrackInfo);
+
+   berr = BV3D_GetEventTrackInfo(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiTrack, (BV3D_EventTrackDesc *)psTrackDesc);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetEventTrackInfo);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_GetEventInfo(
+   NEXUS_Graphicsv3dHandle       hGfx,
+   uint32_t                      uiEvent,
+   NEXUS_Graphicsv3dEventDesc   *psEventDesc
+   )
+{
+   BERR_Code        berr;
+
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetEventInfo);
+
+   berr = BV3D_GetEventInfo(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiEvent, (BV3D_EventDesc *)psEventDesc);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetEventInfo);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_GetEventDataFieldInfo(
+   NEXUS_Graphicsv3dHandle          hGfx,
+   uint32_t                         uiEvent,
+   uint32_t                         uiField,
+   NEXUS_Graphicsv3dEventFieldDesc  *psFieldDesc
+   )
+{
+   BERR_Code            berr;
+
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetEventDataFieldInfo);
+
+   berr = BV3D_GetEventDataFieldInfo(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, uiEvent, uiField, (BV3D_EventFieldDesc *)psFieldDesc);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetEventDataFieldInfo);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_SetEventCollection(
+   NEXUS_Graphicsv3dHandle       hGfx,
+   NEXUS_Graphicsv3dEventState   eState
+   )
+{
+   BERR_Code        berr;
+
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_SetEventCollection);
+
+   berr = BV3D_SetEventCollection(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, hGfx->clientId, (BV3D_EventState)eState);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_SetEventCollection);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+void NEXUS_Graphicsv3d_GetEventData(
+   NEXUS_Graphicsv3dHandle    hGfx,
+   uint32_t                   uiEventBufferBytes,
+   void                       *pvEventBuffer,
+   uint32_t                   *puiLostData,
+   uint64_t                   *puiTimeStamp,
+   uint32_t                   *puiBytesCopiedOut
+   )
+{
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_GetEventData);
+
+   *puiBytesCopiedOut = BV3D_GetEventData(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, hGfx->clientId,
+                                          uiEventBufferBytes, pvEventBuffer, puiLostData, puiTimeStamp);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_GetEventData);
 }
 
 NEXUS_Error NEXUS_Graphicsv3d_Standby_priv(bool enabled, const NEXUS_StandbySettings *pSettings)
@@ -733,25 +897,27 @@ void NEXUS_Graphicsv3d_GetTime(uint64_t *pMicroseconds)
    BV3D_GetTime(pMicroseconds);
 }
 
-NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(unsigned percent)
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(uint32_t percent)
 {
 #if NEXUS_POWER_MANAGEMENT && BCHP_PWR_RESOURCE_GRAPHICS3D
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    unsigned clkRate;
+   NEXUS_Error rc = NEXUS_SUCCESS;
+   uint32_t clkRate;
 
-    if(percent > 100) {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
+   if (percent > 100)
+      return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
-    rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, &clkRate);
-    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
-    clkRate = percent*(clkRate/100);
-    rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, clkRate);
-    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+   rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, &clkRate);
+   if (rc)
+      return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
-    return rc;
+   clkRate = percent * (clkRate / 100);
+   rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, clkRate);
+   if (rc)
+      return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+
+   return rc;
 #else
-    BSTD_UNUSED(percent);
-    return NEXUS_NOT_SUPPORTED;
+   BSTD_UNUSED(percent);
+   return NEXUS_NOT_SUPPORTED;
 #endif
 }

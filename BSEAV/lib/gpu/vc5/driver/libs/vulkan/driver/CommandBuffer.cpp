@@ -15,7 +15,6 @@
 #include "Command.h"
 #include "CommandBufferBuilder.h"
 #include "DSAspectCommandBuilder.h"
-#include "QueryManager.h"
 
 #include "libs/core/v3d/v3d_tile_size.h"
 #include "libs/util/log/log.h"
@@ -134,25 +133,25 @@ VkResult CommandBuffer::BeginCommandBuffer(
 {
    try
    {
-      assert(m_mode != eRECORDING);
-
       if (m_pool->PoolCreateFlags() & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
          ResetCommandBuffer(0);
-      else
-         assert(m_mode != eEXECUTABLE);
 
       m_commandList.reserve(64);
 
-      m_mode = eRECORDING;
       m_status = VK_SUCCESS;
-      m_usageFlags = pBeginInfo->flags;
+      m_simultaneous = (pBeginInfo->flags & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+      // We only allow occlusion state changes in primary buffers, or secondary ones
+      // that aren't inheriting occlusions from the primary
+      m_occlusionAllowed = ((m_level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) ||
+                           !pBeginInfo->pInheritanceInfo->occlusionQueryEnable);
 
       assert(m_td == nullptr);
 
       m_td = createObject<CommandBufferBuilder, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(
                                        GetCallbacks(), GetCallbacks(), m_device, this);
 
-      if (m_usageFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)
+      if (pBeginInfo->flags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)
       {
          // Indicates a secondary buffer that lives entirely inside a render pass.
          // Set state to emulate being in that particular render pass and subpass. We
@@ -160,9 +159,6 @@ VkResult CommandBuffer::BeginCommandBuffer(
          assert(m_level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
          m_td->BeginSecondaryCommandBuffer(pBeginInfo->pInheritanceInfo);
-
-         // We do not support inherited occlusion queries
-         assert(!pBeginInfo->pInheritanceInfo->occlusionQueryEnable);
       }
    }
    catch (const std::bad_alloc &)        { return VK_ERROR_OUT_OF_HOST_MEMORY;   }
@@ -193,8 +189,6 @@ void CommandBuffer::SplitSecondaryControlList()
 
 VkResult CommandBuffer::EndCommandBuffer() noexcept
 {
-   assert(m_mode == eRECORDING);
-
    if (m_status == VK_SUCCESS)
    {
       // This may be a secondary command buffer which still needs to be flushed
@@ -230,7 +224,6 @@ VkResult CommandBuffer::EndCommandBuffer() noexcept
    destroyObject<VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(m_td, GetCallbacks());
    m_td = nullptr;
 
-   m_mode = eEXECUTABLE;
    return m_status;
 }
 
@@ -265,7 +258,6 @@ VkResult CommandBuffer::ResetCommandBuffer(
       destroyObject<VK_SYSTEM_ALLOCATION_SCOPE_OBJECT>(m_td, GetCallbacks());
       m_td = nullptr;
 
-      m_mode = eINITIAL;
       m_status = VK_SUCCESS;
    }
    catch (const std::bad_alloc &)        { return VK_ERROR_OUT_OF_HOST_MEMORY;   }
@@ -282,7 +274,6 @@ void CommandBuffer::CmdBindPipeline(
    bvk::Pipeline        *pipeline) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    if (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
       CurState().BindGraphicsPipeline(dynamic_cast<GraphicsPipeline*>(pipeline));
@@ -297,7 +288,6 @@ void CommandBuffer::CmdSetViewport(
    const VkViewport  *pViewports) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    CurState().SetViewport(pViewports[0]);
 
@@ -310,7 +300,6 @@ void CommandBuffer::CmdSetScissor(
    const VkRect2D *pScissors) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    CurState().SetScissorRect(pScissors[0]);
 
@@ -321,7 +310,6 @@ void CommandBuffer::CmdSetLineWidth(
    float  lineWidth) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().SetLineWidth(lineWidth);
    CMD_END
 }
@@ -332,7 +320,6 @@ void CommandBuffer::CmdSetDepthBias(
    float  depthBiasSlopeFactor) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().SetDepthBias(depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor);
    CMD_END
 }
@@ -341,7 +328,6 @@ void CommandBuffer::CmdSetBlendConstants(
    const float  blendConstants[4]) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().SetBlendConstants(blendConstants);
    CMD_END
 }
@@ -358,7 +344,6 @@ void CommandBuffer::CmdSetStencilCompareMask(
    uint32_t           compareMask) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().SetStencilCompareMask(faceMask, compareMask);
    CMD_END
 }
@@ -368,7 +353,6 @@ void CommandBuffer::CmdSetStencilWriteMask(
    uint32_t           writeMask) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().SetStencilWriteMask(faceMask, writeMask);
    CMD_END
 }
@@ -378,7 +362,6 @@ void CommandBuffer::CmdSetStencilReference(
    uint32_t           reference) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().SetStencilReference(faceMask, reference);
    CMD_END
 }
@@ -393,7 +376,6 @@ void CommandBuffer::CmdBindDescriptorSets(
    const uint32_t          *pDynamicOffsets) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    uint32_t dynamicOffset = 0;
    for (uint32_t i = 0; i < descriptorSetCount; i++)
@@ -416,7 +398,6 @@ void CommandBuffer::CmdBindIndexBuffer(
    VkIndexType  indexType) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CurState().BindIndexBuffer(buffer, offset, indexType);
    CMD_END
 }
@@ -428,7 +409,6 @@ void CommandBuffer::CmdBindVertexBuffers(
    const VkDeviceSize   *pOffsets) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    for (uint32_t i = 0; i < bindingCount; i++)
       CurState().BindVertexBuffer(firstBinding + i, fromHandle<Buffer>(pBuffers[i]), pOffsets[i]);
@@ -444,7 +424,6 @@ void CommandBuffer::CmdPushConstants(
    const void           *pValues) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    m_td->SetPushConstants(layout->GetPushConstantBytesRequired(), offset, size, pValues);
    CMD_END
 }
@@ -453,14 +432,12 @@ void CommandBuffer::CmdDebugMarkerBeginEXT(
    const VkDebugMarkerMarkerInfoEXT *pMarkerInfo) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CMD_END
 }
 
 void CommandBuffer::CmdDebugMarkerEndEXT() noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CMD_END
 }
 
@@ -468,8 +445,17 @@ void CommandBuffer::CmdDebugMarkerInsertEXT(
    const VkDebugMarkerMarkerInfoEXT *pMarkerInfo) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    CMD_END
+}
+
+void CommandBuffer::CmdPushDescriptorSetWithTemplateKHR(
+   bvk::DescriptorUpdateTemplate *descriptorUpdateTemplate,
+   bvk::PipelineLayout           *layout,
+   uint32_t                       set,
+   const void                    *pData) noexcept
+{
+   // Needed when we support VK_KHR_push_descriptor
+   NOT_IMPLEMENTED_YET;
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -482,12 +468,24 @@ void CommandBuffer::DrawCallPreamble()
    m_td->NeedControlList();
 
    // Set the latest occlusion address
-   CurState().SetOcclusionCounter(m_td->GetQueryManager()->GetCurHWCounterAddr());
+   if (m_occlusionAllowed)
+      CurState().SetOcclusionCounter(m_td->m_curQueryCounter);
 
    // Update any changed state into the control list
    CurState().BuildStateUpdateCL(this);
 
    m_td->WriteGraphicsShaderRecord();
+}
+
+bool CommandBuffer::SkipDrawOrCompute(const Pipeline &pipe) const
+{
+   if (pipe.IsBroken())
+   {
+      log_warn("Skipping %s cmd due to broken pipeline",
+               pipe.GetBindPoint() == VK_PIPELINE_BIND_POINT_GRAPHICS ? "DRAW" : "COMPUTE");
+      return true;
+   }
+   return false;
 }
 
 void CommandBuffer::CmdDraw(
@@ -497,13 +495,15 @@ void CommandBuffer::CmdDraw(
    uint32_t  firstInstance) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    if (vertexCount == 0 || instanceCount == 0)
       return;
 
    const GraphicsPipeline *pipe = m_td->m_curState.BoundGraphicsPipeline();
    v3d_prim_mode_t         primMode = pipe->GetDrawPrimMode();
+
+   if (SkipDrawOrCompute(*pipe))
+      return;
 
    // Output draw call preamble control list items
    DrawCallPreamble();
@@ -527,13 +527,15 @@ void CommandBuffer::CmdDrawIndexed(
    uint32_t  firstInstance) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    if (indexCount == 0 || instanceCount == 0)
       return;
 
    const GraphicsPipeline *pipe = m_td->m_curState.BoundGraphicsPipeline();
    v3d_prim_mode_t         primMode = pipe->GetDrawPrimMode();
+
+   if (SkipDrawOrCompute(*pipe))
+      return;
 
    // Output draw call preamble control list items
    DrawCallPreamble();
@@ -585,13 +587,15 @@ void CommandBuffer::CmdDrawIndirect(
    uint32_t     stride) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    if (drawCount == 0)
       return;
 
    const GraphicsPipeline *pipe = m_td->m_curState.BoundGraphicsPipeline();
    v3d_prim_mode_t         primMode = pipe->GetDrawPrimMode();
+
+   if (SkipDrawOrCompute(*pipe))
+      return;
 
    // Output draw call preamble control list items
    DrawCallPreamble();
@@ -621,13 +625,15 @@ void CommandBuffer::CmdDrawIndexedIndirect(
    uint32_t     stride) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    if (drawCount == 0)
       return;
 
    const GraphicsPipeline *pipe     = m_td->m_curState.BoundGraphicsPipeline();
    v3d_prim_mode_t         primMode = pipe->GetDrawPrimMode();
+
+   if (SkipDrawOrCompute(*pipe))
+      return;
 
    // Output draw call preamble control list items
    DrawCallPreamble();
@@ -667,13 +673,15 @@ void CommandBuffer::CmdDispatchCommon(
    CmdComputeJobObj& cmd,
    DevMemRange& uniformMem) noexcept
 {
+   assert(!pipe.IsBroken());
+
    m_td->CopyAndPatchUniformBuffer(uniformMem, SHADER_COMPUTE, pipe, pipe.GetUniforms());
 
 #if V3D_USE_CSD
    cmd.m_subjob = pipe.GetLinkResult().m_cs.subjob;
    cmd.m_subjob.unifs_addr = uniformMem.Phys();
 #else
-   if (m_usageFlags & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT)
+   if (m_simultaneous)
       cmd.m_last.reset(NewObject<CmdComputeJobObj::Last>());
 
    cmd.m_computeShader = &pipe.GetLinkResult().m_cs;
@@ -738,12 +746,14 @@ void CommandBuffer::CmdDispatch(
    uint32_t z) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    UniquePtr<CmdComputeImmediateJobObj> cmdPtr(NewCmd(CmdComputeImmediateJob));
    CmdComputeImmediateJobObj& cmd = *cmdPtr.get();
 
    const ComputePipeline &pipe = *m_td->m_curState.BoundComputePipeline();
+   if (SkipDrawOrCompute(pipe))
+      return;
+
    DevMemRange uniformMem;
    CmdDispatchCommon(pipe, cmd, uniformMem);
 
@@ -773,7 +783,6 @@ void CommandBuffer::CmdDispatchIndirect(
    VkDeviceSize offset) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    UniquePtr<CmdComputeIndirectJobObj> cmdPtr(NewCmd(CmdComputeIndirectJob));
    CmdComputeIndirectJobObj& cmd = *cmdPtr.get();
@@ -786,6 +795,9 @@ void CommandBuffer::CmdDispatchIndirect(
       throw bvk::bad_device_alloc();
 
    const ComputePipeline &pipe = *m_td->m_curState.BoundComputePipeline();
+   if (SkipDrawOrCompute(pipe))
+      return;
+
    DevMemRange uniformMem;
    CmdDispatchCommon(pipe, cmd, uniformMem);
 
@@ -794,7 +806,7 @@ void CommandBuffer::CmdDispatchIndirect(
    if (!patchInfo.numWorkGroups.empty())
    {
     #if V3D_USE_CSD
-      if (m_usageFlags & VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT)
+      if (m_simultaneous)
          cmd.m_last.reset(NewObject<CmdComputeJobObj::Last>());
     #endif
 
@@ -815,7 +827,6 @@ void CommandBuffer::CmdCopyBuffer(
    const VkBufferCopy   *pRegions) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    auto cmd = NewCmd(CmdCopyBuffer);
@@ -838,7 +849,6 @@ void CommandBuffer::CmdCopyImage(
    const VkImageCopy *pRegions) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    auto cmd = NewCmd(CmdCopyImage);
@@ -862,7 +872,6 @@ void CommandBuffer::CmdCopyBufferToImage(
    const VkBufferImageCopy *pRegions) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    auto cmd = NewCmd(CmdCopyBufferToImage);
@@ -885,7 +894,6 @@ void CommandBuffer::CmdCopyImageToBuffer(
    const VkBufferImageCopy *pRegions) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    auto cmd = NewCmd(CmdCopyImageToBuffer);
@@ -907,7 +915,6 @@ void CommandBuffer::CmdUpdateBuffer(
    const void     *pData) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    auto cmd = NewCmd(CmdUpdateBuffer);
@@ -932,7 +939,6 @@ void CommandBuffer::CmdFillBuffer(
    uint32_t     data) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    auto cmd = NewCmd(CmdFillBuffer);
@@ -953,7 +959,6 @@ void CommandBuffer::CmdClearDepthStencilImage(
    const VkImageSubresourceRange    *pRanges) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(!InRenderPass());
 
    // Stencil only format S8_UINT is optional and not currently supported
@@ -1037,7 +1042,8 @@ void CommandBuffer::ClearAttachments(
    m_td->NeedControlList();
 
    // Do not record occlusion counters during clear
-   m_td->DisableOcclusionQuery();
+   if (m_occlusionAllowed)
+      m_td->DisableOcclusionQuery();
 
    for (uint32_t a = 0; a < attachmentCount; a++)
    {
@@ -1056,8 +1062,7 @@ void CommandBuffer::ClearAttachments(
       {
          GFX_LFMT_T fmt = m_td->m_curRenderPassState.renderPass->Attachments()[rpAttachmentIndex].format;
 
-         ImageView *imgView = fromHandle<ImageView>(m_td->m_curRenderPassState.framebuffer->
-                                                    Attachments()[rpAttachmentIndex]);
+         ImageView *imgView = m_td->m_curRenderPassState.framebuffer->Attachments()[rpAttachmentIndex];
 
          DrawClearRects(colAttIndex, pAttachments[a], rectCount, pRects, fmt,
                         imgView->GetSubresourceRange());
@@ -1072,7 +1077,6 @@ void CommandBuffer::CmdClearAttachments(
    const VkClearRect       *pRects) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(InRenderPass());
 
    if (m_level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
@@ -1104,16 +1108,9 @@ void CommandBuffer::CmdBeginQuery(
    VkQueryControlFlags   flags) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
-   auto cmd = NewCmd(CmdZeroQueryHWCounters);
-
-   m_td->GetQueryManager()->Begin(queryPool, query, cmd);
-
-   m_commandList.push_back(cmd);
-
-   // Ensure we wait for the h/w counter zeroing to complete before continuing
-   InsertExecutionBarrier();
+   m_td->m_curQueryCounter = queryPool->Begin(query);
+   m_td->m_dirtyQueries.insert(QueryID(queryPool, query));
 
    CMD_END
 }
@@ -1122,17 +1119,13 @@ void CommandBuffer::CmdBeginQuery(
 // an execution barrier
 void CommandBuffer::AddQueryPoolUpdateCommands(bvk::vector<Command*> &cmdList)
 {
-   QueryDataEntryPtrList qdePtrList = m_td->GetQueryManager()->MakeQueryDataForJob(m_sysMemArena);
-   if (qdePtrList.NumEntries() > 0)
+   if (!m_td->m_dirtyQueries.empty())
    {
       // Ensure we wait for the previous jobs to complete before getting counter values
       InsertExecutionBarrier(cmdList);
 
-      CmdUpdateQueryPoolObj *updateJob = NewObject<CmdUpdateQueryPoolObj>(qdePtrList);
+      CmdUpdateQueryPoolObj *updateJob = NewObject<CmdUpdateQueryPoolObj>(m_td->m_dirtyQueries);
       cmdList.push_back(updateJob);
-
-      // Ensure we don't use the same h/w counters again
-      m_td->GetQueryManager()->RemoveFinishedQueries();
    }
 }
 
@@ -1141,27 +1134,24 @@ void CommandBuffer::CmdEndQuery(
    uint32_t        query) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
-   m_td->GetQueryManager()->End(queryPool, query, m_sysMemArena);
+   queryPool->End(query);
+   m_td->m_curQueryCounter = 0;
 
-   if (m_td->GetQueryManager()->HasQueries())
+   if (InRenderPass())
    {
-      if (InRenderPass())
+      if (m_level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
       {
-         if (m_level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
-         {
-            // Record any query counter updates now into the 2ndary post command list
-            AddQueryPoolUpdateCommands(m_secondaryPostCommandList);
-         }
+         // Record any query counter updates now into the 2ndary post command list
+         AddQueryPoolUpdateCommands(m_secondaryPostCommandList);
       }
-      else
-      {
-         // The queries outside of the render pass will not have finished when the bin/render
-         // job was made, and therefore won't have any query data blocks and won't trigger
-         // update jobs. We need to manually trigger an update.
-         AddQueryPoolUpdateCommands();
-      }
+   }
+   else
+   {
+      // The queries outside of the render pass will not have finished when the bin/render
+      // job was made, and therefore won't have any query data blocks and won't trigger
+      // update jobs. We need to manually trigger an update.
+      AddQueryPoolUpdateCommands();
    }
 
    CMD_END
@@ -1173,12 +1163,11 @@ void CommandBuffer::CmdResetQueryPool(
    uint32_t        queryCount) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    // Make sure we don't execute too early and dump on pending results
    InsertExecutionBarrier();
 
-   // Insert a user mode job that will zero the s/w pool counters as requested
+   // Insert a user mode job that will zero the pool counters as requested
    auto cmd = NewObject<CmdResetQueryPoolObj>(queryPool, firstQuery, queryCount);
    m_commandList.push_back(cmd);
 
@@ -1194,7 +1183,6 @@ void CommandBuffer::CmdWriteTimestamp(
    uint32_t                 query) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    auto cmd = NewCmd(CmdWriteTimestamp);
    cmd->m_pipelineStage = pipelineStage;
@@ -1215,7 +1203,6 @@ void CommandBuffer::CmdCopyQueryPoolResults(
    VkQueryResultFlags flags) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    if ((flags & VK_QUERY_RESULT_WAIT_BIT) != 0)
       InsertExecutionBarrier();
@@ -1240,7 +1227,6 @@ void CommandBuffer::CmdBeginRenderPass(
 {
    CMD_BEGIN
 
-   assert(m_mode == eRECORDING);
    assert(m_level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
    auto *rp = fromHandle<RenderPass>(pRenderPassBegin->renderPass);
@@ -1297,8 +1283,7 @@ void CommandBuffer::BuildHardwareJob() noexcept
    // Add the bin/render job to the command list now
    m_commandList.push_back(brJob);
 
-   if (m_td->GetQueryManager()->HasQueries())
-      AddQueryPoolUpdateCommands();
+   AddQueryPoolUpdateCommands();
 
    // m_td->m_delayedPostCommands contains a list of commands from a secondary command
    // buffer that must run after the binRender job that branches to the secondary runs.
@@ -1322,7 +1307,6 @@ void CommandBuffer::CmdNextSubpass(
 {
    CMD_BEGIN
 
-   assert(m_mode == eRECORDING);
    assert(m_level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
    // Close the previous subpass control list
@@ -1352,7 +1336,6 @@ void CommandBuffer::CmdNextSubpass(
 void CommandBuffer::CmdEndRenderPass() noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(m_level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
    assert(InRenderPass());
 
@@ -1375,11 +1358,7 @@ void CommandBuffer::CmdExecuteCommands(
    const VkCommandBuffer   *pCommandBuffers) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
    assert(m_level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-
-   // We do not support inheritedQueries
-   assert(!m_td->GetQueryManager()->HasActiveQueries());
 
    // Run over all the secondary command buffers referencing all of their
    // commands into this primary one. Commands which have control-lists attached
@@ -1393,6 +1372,10 @@ void CommandBuffer::CmdExecuteCommands(
       {
          if (cb->CommandList().size() > 0)
             m_td->NeedControlList();
+
+         // Ensure any current active occlusion query gets used
+         assert(m_occlusionAllowed); // Must be true as we are a primary
+         v3d_cl_occlusion_query_counter_enable(CLPtr(), m_td->m_curQueryCounter);
 
          // Add the pre-execute commands to the primary list first.
          // This will be query counter zeroing and pipeline barriers.
@@ -1455,7 +1438,6 @@ void CommandBuffer::CmdSetEvent(
    VkPipelineStageFlags  stageMask) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    auto cmd = NewCmd(CmdSetEvent);
    cmd->m_event     = event;
@@ -1471,7 +1453,6 @@ void CommandBuffer::CmdResetEvent(
    VkPipelineStageFlags  stageMask) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    auto cmd = NewCmd(CmdResetEvent);
    cmd->m_event     = event;
@@ -1539,7 +1520,6 @@ void CommandBuffer::CmdWaitEvents(
    const VkImageMemoryBarrier    *pImageMemoryBarriers) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    auto cmd = NewCmd(CmdWaitEvents);
 
@@ -1571,7 +1551,6 @@ void CommandBuffer::CmdPipelineBarrier(
    const VkImageMemoryBarrier    *pImageMemoryBarriers) noexcept
 {
    CMD_BEGIN
-   assert(m_mode == eRECORDING);
 
    // If vkCmdPipelineBarrier is called outside a render pass instance, then the first set
    // of commands is all prior commands submitted to the queue and recorded in the command

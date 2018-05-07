@@ -1183,6 +1183,34 @@ wl_cfgp2p_find_wpsie(u8 *parse, u32 len)
 	return NULL;
 }
 
+int
+wl_cfgp2p_count_wpsie(u8 *parse, u32 len)
+{
+	int count = 0;
+	bcm_tlv_t *ie;
+	u8 *pie;
+	u32 *tlvs_len;
+	while ((ie = bcm_parse_tlvs(parse, (u32)len, DOT11_MNG_VS_ID))) {
+		/* If the contents match the OUI and the type */
+		tlvs_len = &len;
+		pie = (u8*)ie;
+		if (pie[TLV_LEN_OFF] >= WPS_OUI_LEN + 1 &&
+			!bcmp(&pie[TLV_BODY_OFF], WPS_OUI, WPS_OUI_LEN) &&
+			WPS_OUI_TYPE == pie[TLV_BODY_OFF + WPS_OUI_LEN]) {
+			count++;
+		}
+
+		/* point to the next ie */
+		pie += pie[TLV_LEN_OFF] + TLV_HDR_LEN;
+		/* calculate the length of the rest of the buffer */
+		*tlvs_len -= (int)(pie - parse);
+		/* update the pointer to the start of the buffer */
+		parse = pie;
+
+	}
+	return count;
+}
+
 wifi_p2p_ie_t *
 wl_cfgp2p_find_p2pie(u8 *parse, u32 len)
 {

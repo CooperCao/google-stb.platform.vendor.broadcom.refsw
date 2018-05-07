@@ -66,10 +66,10 @@ uint64_t v3d_scheduler_submit_compute_job(
    bool secure,
    v3d_sched_completion_fn completion, void *data);
 
-/* Returns a new kernel object that holds compute subjobs. */
+/* Returns a new kernel object that holds compute subjobs. The number of subjobs defaults to 0. */
 v3d_compute_subjobs_id v3d_scheduler_new_compute_subjobs(unsigned max_subjobs);
 
-/* Update the subjobs in the kernel object. */
+/* Update the subjobs in the kernel object. Must specify num_subjobs > 0. */
 void v3d_scheduler_update_compute_subjobs(v3d_compute_subjobs_id subjobs_id, const v3d_compute_subjob* subjobs, unsigned num_subjobs);
 
 /* Submits an indirect compute shader job.
@@ -312,9 +312,19 @@ uint64_t v3d_scheduler_submit_reset_event_job(const v3d_scheduler_deps* deps, bc
 //! Return amount of shared memory per-core for this process.
 uint32_t v3d_scheduler_get_compute_shared_mem_size_per_core(void);
 
+#if !V3D_USE_L2T_LOCAL_MEM
 //! Return compute shared memory for this process. If !alloc, will return
 //! GMEM_INVALID_HANDLE unless shared memory already allocated.
 gmem_handle_t v3d_scheduler_get_compute_shared_mem(bool secure, bool alloc);
+#endif
+
+#if V3D_USE_L2T_LOCAL_MEM
+//! Return compute shared memory address.
+static inline v3d_addr_t v3d_scheduler_get_compute_shared_mem_addr(void)
+{
+   return gmem_get_l2t_local_mem_addr();
+}
+#endif
 
 #ifdef __cplusplus
 }

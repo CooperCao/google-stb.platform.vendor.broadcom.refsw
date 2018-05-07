@@ -4,7 +4,9 @@
 #include "wl_client.h"
 
 #include "wayland_egl/wayland_egl_priv.h"
+#include "../common/nexus_begl_format.h"
 #include "nexus_base_mmap.h"
+#include "nexus_platform.h"
 
 #include <wayland-client.h>
 #include <stdint.h>
@@ -14,83 +16,111 @@
 
 #define UNUSED(x) (void)(x)
 
-static void BufferCreated(void *data, struct wl_nexus *wl_nexus,
-      struct wl_buffer *wl_buffer, struct wl_array *physical)
-{
-   UNUSED(data);
-   UNUSED(wl_nexus);
-   WlSharedBuffer *buffer = wl_buffer_get_user_data(wl_buffer);
-
-   buffer->settings.physOffset = *(const uint64_t *)physical->data;
-   buffer->settings.cachedAddr = NEXUS_OffsetToCachedAddr(
-         buffer->settings.physOffset);
-}
-
-static void BufferOutOfMemory(void *data, struct wl_nexus *wl_nexus,
-      struct wl_buffer *wl_buffer)
-{
-   UNUSED(data);
-   UNUSED(wl_nexus);
-   WlSharedBuffer *buffer = wl_buffer_get_user_data(wl_buffer);
-
-   buffer->settings.physOffset = 0;
-   buffer->settings.cachedAddr = NULL;
-}
-
 bool CreateWlSharedBuffer(WlSharedBuffer *buffer, WlClient *client,
-      const BEGL_BufferSettings *settings,
+      uint32_t width, uint32_t height, BEGL_BufferFormat format, bool secure,
       void (*release)(void *data, struct wl_buffer *wl_buffer), void *data)
 {
-   bool result = false;
-
    assert(buffer != NULL);
 
    memset(buffer, 0, sizeof(*buffer));
 
-   buffer->buffer = wl_nexus_buffer_create(client->nexus, settings->format,
-         settings->width, settings->height, settings->pitchBytes,
-         settings->alignment, settings->totalByteSize, settings->secure);
+   NEXUS_SurfaceCreateSettings surfSettings;
+   NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
+   surfSettings.pixelFormat = BeglToNexusFormat(format);
+   surfSettings.width = width;
+   surfSettings.height = height;
+   surfSettings.compatibility.graphicsv3d = true;
+
+   if (secure)
+   {
+      surfSettings.heap = NEXUS_Platform_GetFramebufferHeap(
+            NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
+      if (!surfSettings.heap)
+         goto failed;
+   }
+
+   buffer->handle = NEXUS_Surface_Create(&surfSettings);
+   if (!buffer->handle)
+   {
+      fprintf(stderr, "%s: unable to create Nexus surface\n", __FUNCTION__);
+      goto failed;
+   }
+
+   NEXUS_Addr devPtr;
+   NEXUS_SurfaceMemoryProperties memProperties;
+   NEXUS_Surface_GetMemoryProperties(buffer->handle, &memProperties);
+   NEXUS_Error err = NEXUS_MemoryBlock_LockOffset(memProperties.pixelMemory, &devPtr);
+   if (err != NEXUS_SUCCESS)
+   {
+      printf("%s: unable to lock physical offset\n", __FUNCTION__);
+      goto failed;
+   }
+
+   NEXUS_SurfaceMemory surfMemory;
+   err = NEXUS_Surface_GetMemory(buffer->handle, &surfMemory);
+   if (err != NEXUS_SUCCESS)
+   {
+      printf("%s: unable to get surface memory\n", __FUNCTION__);
+      goto failed;
+   }
+
+   NEXUS_SurfaceStatus surfStatus;
+   NEXUS_Surface_GetStatus(buffer->handle, &surfStatus);
+
+   NEXUS_Surface_Flush(buffer->handle);
+
+   NEXUS_MemoryBlockTokenHandle token = NEXUS_MemoryBlock_CreateToken(
+         memProperties.pixelMemory);
+
+   /* store a possibly 64-bit memory token in wl_array due to
+    * a lack of 64-bit integer type in Wayland protocol */
+   struct wl_array wrapped_token;
+   wl_array_init(&wrapped_token);
+   uint64_t *value = (uint64_t *)wl_array_add(&wrapped_token, sizeof(*value));
+   assert(sizeof(token) <= sizeof(value));
+   *value = (uint64_t)(uintptr_t)token;
+
+   buffer->buffer = wl_nexus_buffer_create(client->nexus, format, width, height,
+         secure, surfStatus.pitch, surfMemory.bufferSize, &wrapped_token);
    if (!buffer->buffer)
-      goto end;
+      goto failed;
 
-   buffer->settings = *settings;
-   buffer->settings.cachedAddr = NULL;
-   buffer->settings.physOffset = 0;
-
-   /* The "user_data" pointer is shared between several mechanisms and gets
-    * overwritten, for example, when a listener is added. This is temporary.
-    */
-   wl_buffer_set_user_data(buffer->buffer, buffer);
-
-   /* trigger the event callback now */
-   wl_proxy_set_queue((struct wl_proxy *)buffer->buffer, client->buffer_events);
-   wl_display_roundtrip_queue(client->display, client->buffer_events);
-
-   if (!buffer->settings.physOffset)
-      goto no_physical;
-
-   /* Attaching a listener overwrites the user_data pointer set above in the
-    * wl_buffer_set_user_data(). We're past the callback so it's safe now.
-    */
    if (release)
    {
       buffer->listener.release = release;
       wl_buffer_add_listener(buffer->buffer, &buffer->listener, data);
    }
 
-   result = true;
-   goto end;
+   buffer->settings.cachedAddr = surfMemory.buffer;
+   buffer->settings.physOffset = (uint32_t)devPtr;
 
-   no_physical: DestroyWlSharedBuffer(buffer);
-   end: return result;
+   buffer->settings.width = surfStatus.width;
+   buffer->settings.height = surfStatus.height;
+   buffer->settings.pitchBytes = surfStatus.pitch;
+   buffer->settings.totalByteSize = surfMemory.bufferSize;
+   buffer->settings.secure = surfMemory.buffer == NULL;
+   buffer->settings.format = format;
+
+   return true;
+
+failed:
+   if (buffer->handle)
+      NEXUS_Surface_Destroy(buffer->handle);
+   buffer->handle = NULL;
+   return false;
 }
 
 void DestroyWlSharedBuffer(WlSharedBuffer *buffer)
 {
    assert(buffer != NULL);
 
-   if (buffer->buffer)
-      wl_buffer_destroy(buffer->buffer);
+   wl_buffer_destroy(buffer->buffer);
+
+   NEXUS_SurfaceMemoryProperties memProperties;
+   NEXUS_Surface_GetMemoryProperties(buffer->handle, &memProperties);
+   NEXUS_MemoryBlock_UnlockOffset(memProperties.pixelMemory);
+
+   NEXUS_Surface_Destroy(buffer->handle);
 
 #ifndef NDEBUG
    memset(buffer, 0, sizeof(*buffer));
@@ -194,13 +224,6 @@ bool CreateWlClient(WlClient *client, struct wl_display *display)
             "ERROR: Wayland server doesn't support the wl_nexus protocol\n");
       goto error;
    }
-
-   static const struct wl_nexus_listener nexusListener =
-   {
-         .buffer_created = BufferCreated,
-         .buffer_out_of_memory = BufferOutOfMemory,
-   };
-   wl_nexus_add_listener(client->nexus, &nexusListener, NULL);
 
    return true;
 

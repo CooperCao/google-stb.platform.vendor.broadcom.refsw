@@ -153,7 +153,7 @@ static int v3d_file_cma_info(struct seq_file *m, void *data)
 	seq_printf(m,
 		   "%18s:	 %2dK %s\n",
 		   "CMA Block Physcal",
-		   (int)V3D_HW_PAGE_SIZE / 1024,
+		   (int)PAGE_SIZE / 1024,
 		   "Page Allocation Mask");
 
 	seq_puts(m, "====================================================\n");
@@ -168,6 +168,7 @@ static int v3d_file_cma_info(struct seq_file *m, void *data)
 	mutex_unlock(&dev->struct_mutex);
 	return 0;
 }
+
 static int v3d_file_objs_info(struct seq_file *m, void *data)
 {
 	struct drm_info_node *node = (struct drm_info_node *)m->private;
@@ -279,7 +280,6 @@ static int v3d_file_pagetable_cooked_info(struct seq_file *m, void *data)
 	struct dentry *root = node->dent->d_parent;
 	struct drm_file *file = root->d_fsdata;
 	struct v3d_drm_file_private *fp = file->driver_priv;
-	const int stride = V3D_HW_PAGE_SIZE >> V3D_HW_SMALLEST_PAGE_SHIFT;
 	int i, ret;
 
 	if (!fp->hw_vmem.pt_kaddr)
@@ -297,17 +297,17 @@ static int v3d_file_pagetable_cooked_info(struct seq_file *m, void *data)
 		   "Perm",
 		   "Physical");
 
-	for (i = 0; i < V3D_HW_PAGE_TABLE_ENTRIES; i += stride) {
+	for (i = 0; i < V3D_HW_PAGE_TABLE_ENTRIES; i++) {
 		u32 entry = fp->hw_vmem.pt_kaddr[i];
-		phys_addr_t phys = (phys_addr_t)(entry & ~V3D_PAGE_FLAG_MASK) <<
-				V3D_HW_SMALLEST_PAGE_SHIFT;
 		bool valid = entry & V3D_PAGE_FLAG_VALID;
 		bool write = entry & V3D_PAGE_FLAG_WRITE;
+		phys_addr_t phys = (phys_addr_t)(entry & ~V3D_PAGE_FLAG_MASK);
 
+		phys = phys << PAGE_SHIFT;
 		seq_printf(m,
 			   "0x%.8x 0x%.8x %5c %5s %pa\n",
 			   i * V3D_HW_PAGE_TABLE_ENTRY_SIZE,
-			   i << V3D_HW_SMALLEST_PAGE_SHIFT,
+			   i << PAGE_SHIFT,
 			   valid ? 'y' : 'n',
 			   valid ? (write ? "rw" : "ro") : "--",
 			   &phys);

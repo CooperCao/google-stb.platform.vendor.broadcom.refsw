@@ -76,6 +76,7 @@ static const BSRF_Settings defDevSettings =
       BSRF_g1_Ana_P_PowerUpAntennaSense,
       BSRF_g1_Ana_P_PowerDownAntennaSense,
       BSRF_g1_P_Tune,
+      BSRF_g1_P_Notch,
       BSRF_g1_P_GetTunerStatus,
       BSRF_g1_P_ResetClipCount,
       BSRF_g1_P_GetClipCount,

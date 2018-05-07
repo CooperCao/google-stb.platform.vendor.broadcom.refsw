@@ -227,12 +227,12 @@ static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)
 
         errCode = BI2C_OpenBSCChannel(g_NEXUS_i2cHandle, &magnumI2cHandle->channel, i2cHandle->index, &channelSettings);
         if ( errCode == NEXUS_NOT_AVAILABLE){
-            BDBG_WRN(("Channel %d is not available on this platform.", i2cHandle->index));
+            BDBG_MSG(("Channel %u not available", i2cHandle->index));
             goto done;
         }
         else if ( errCode )
         {
-            BDBG_ERR(("Unable to open I2C Device Channel"));
+            BDBG_ERR(("Unable to open Channel %u", i2cHandle->index));
             BERR_TRACE(errCode); goto done;
         }
 

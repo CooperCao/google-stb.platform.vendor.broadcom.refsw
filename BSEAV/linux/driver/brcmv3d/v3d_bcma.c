@@ -80,7 +80,6 @@ void v3d_cma_put_mem_unmapped(struct v3d_drm_dev_private *dp,
 	cma_dev_put_mem(dp->cma_devs[cmadev], phys, size);
 }
 
-
 static int v3d_add_cma_alloc_block(struct v3d_drm_file_private *fp,
 				   struct v3d_alloc_block **new_block)
 {
@@ -160,24 +159,16 @@ void v3d_release_cma_blocks(struct v3d_drm_file_private *fp,
  * Device page allocation from CMA blocks for GEM objects
  */
 static inline int v3d_alloc_cma_page(struct v3d_alloc_block *alloc_block,
-			     struct v3d_page_allocation *page)
+				     struct v3d_page_allocation *page)
 {
 	int block_page_nr;
-	phys_addr_t paddr;
 
 	block_page_nr = find_first_zero_bit(alloc_block->alloc_map,
 					    V3D_CMA_ALLOC_MAP_SIZE);
 
 	set_bit(block_page_nr, alloc_block->alloc_map);
-	paddr = alloc_block->phys_addr + (block_page_nr << V3D_HW_PAGE_SHIFT);
-	/*
-	 * Get the Linux pfn for this physical address. If there are multiple
-	 * (continuous) CPU pages per HW page then the mmap fault handler will
-	 * calculate the correct sub-page pfn for a page fault from this.
-	 *
-	 * Note: PHYS_PFN macro not yet defined in 4.1 (is in 4.4)
-	 */
-	page->cpu_pfn = paddr >> PAGE_SHIFT;
+
+	page->cpu_pfn = (alloc_block->phys_addr >> PAGE_SHIFT) + block_page_nr;
 	page->alloc_block = alloc_block;
 	page->block_page_nr = block_page_nr;
 	alloc_block->n_allocs++;

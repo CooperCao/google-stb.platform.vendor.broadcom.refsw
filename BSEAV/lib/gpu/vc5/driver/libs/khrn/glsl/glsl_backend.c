@@ -59,7 +59,7 @@ static void translate_write(uint32_t *waddr_out, bool *is_magic, backend_reg reg
    *is_magic = !IS_RF(reg);
 
    if (IS_RF(reg))     *waddr_out = reg - REG_RF0;
-   else if (IS_R(reg)) *waddr_out = reg - REG_R0;
+   else if (IS_R(reg)) *waddr_out = reg - REG_R0_;
    else                *waddr_out = reg - REG_MAGIC_BASE;
 }
 
@@ -68,7 +68,7 @@ static v3d_qpu_in_source_t translate_mux(backend_reg reg, const backend_reg *rea
 
    assert(IS_R(reg) || (IS_RF(reg) && (reg == reads[0] || reg == reads[1])));
 
-   if (IS_R(reg))            return reg - REG_R0;
+   if (IS_R(reg))            return reg - REG_R0_;
    else if (reg == reads[0]) return V3D_QPU_IN_SOURCE_A;
    else                      return V3D_QPU_IN_SOURCE_B;
 }
@@ -159,24 +159,18 @@ static void gen_op(struct v3d_qpu_op *out, const GLSL_OP_T *op_struct, bool add,
 }
 
 static bool sig_requires_read_b(v3d_qpu_sigbits_t sigbits) {
+#if V3D_HAS_SFU_ROTATE
+   return sigbits & V3D_QPU_SIG_SMALL_IMM;
+#else
    return sigbits & (V3D_QPU_SIG_SMALL_IMM | V3D_QPU_SIG_ROTATE);
+#endif
 }
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
 static void gen_sig(struct v3d_qpu_sig *sig, v3d_qpu_sigbits_t sigbits, backend_reg sig_waddr) {
    sig->sigbits = sigbits;
-
-   if (v3d_qpu_sig_has_result_write(sigbits)) {
-# if V3D_VER_AT_LEAST(4,1,34,0)
+   if (v3d_qpu_sig_has_result_write(sigbits))
       translate_write(&sig->waddr, &sig->magic, sig_waddr);
-# else
-      assert(IS_RF(sig_waddr) || sig_waddr == REG_R(v3d_qpu_sig_default_reg(sigbits)));
-
-      bool magic = false;
-      translate_write(&sig->waddr, &magic, sig_waddr);
-      sig->sig_reg = !magic;
-# endif
-   }
 }
 #endif
 
@@ -283,13 +277,10 @@ static bool conflicts_ok(QBEConflict conflicts_a, QBEConflict conflicts_b) {
 #if V3D_VER_AT_LEAST(4,1,34,0)
    static const QBEConflict cond_reg_conflict = CONFLICT_TLB_R   | CONFLICT_TMU_R   | CONFLICT_VARY | CONFLICT_UNIFRF |
                                                 CONFLICT_ADDFLAG | CONFLICT_MULFLAG | CONFLICT_SETFLAG;
+   static const QBEConflict tlb_acc           = CONFLICT_TLB_R | CONFLICT_TLB_W | CONFLICT_FIRST_INSTR;
 #else
    static const QBEConflict cond_reg_conflict = CONFLICT_NONE;
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   static const QBEConflict tlb_acc = CONFLICT_TLB_R | CONFLICT_TLB_W | CONFLICT_FIRST_INSTR;
-#else
-   static const QBEConflict tlb_acc = CONFLICT_TLB_R | CONFLICT_TLB_W | CONFLICT_FIRST_INSTR | CONFLICT_POST_THRSW;
+   static const QBEConflict tlb_acc           = CONFLICT_TLB_R | CONFLICT_TLB_W | CONFLICT_FIRST_INSTR | CONFLICT_POST_THRSW;
 #endif
 
    QBEConflict bad_accesses = conflicts_a;
@@ -331,20 +322,18 @@ static bool can_add_sigbits(v3d_qpu_sigbits_t a, v3d_qpu_sigbits_t b) {
 static QBEConflict sig_conflicts(v3d_qpu_sigbits_t sigbits) {
    switch (sigbits)
    {
+   case V3D_QPU_SIG_LDUNIF:    return CONFLICT_UNIF;
+   case V3D_QPU_SIG_LDTLBU:    return CONFLICT_TLB_R | CONFLICT_UNIF;
+   case V3D_QPU_SIG_LDTLB:     return CONFLICT_TLB_R;
+   case V3D_QPU_SIG_LDTMU:     return CONFLICT_TMU_R;
+   case V3D_QPU_SIG_LDVARY:    return CONFLICT_VARY;
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_SIG_WRTMUC: return CONFLICT_TMU_C | CONFLICT_UNIF;
-#else
-   case V3D_QPU_SIG_LDVPM:  return CONFLICT_VPM;
-#endif
-   case V3D_QPU_SIG_LDUNIF: return CONFLICT_UNIF;
-   case V3D_QPU_SIG_LDTLBU: return CONFLICT_TLB_R | CONFLICT_UNIF;
-   case V3D_QPU_SIG_LDTLB:  return CONFLICT_TLB_R;
-   case V3D_QPU_SIG_LDTMU:  return CONFLICT_TMU_R;
-   case V3D_QPU_SIG_LDVARY: return CONFLICT_VARY;
-#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_QPU_SIG_WRTMUC:    return CONFLICT_TMU_C | CONFLICT_UNIF;
    case V3D_QPU_SIG_LDUNIFA:   return CONFLICT_UNIFA;
    case V3D_QPU_SIG_LDUNIFRF:  return CONFLICT_UNIFRF | CONFLICT_UNIF;
    case V3D_QPU_SIG_LDUNIFARF: return CONFLICT_UNIFRF | CONFLICT_UNIFA;
+#else
+   case V3D_QPU_SIG_LDVPM:     return CONFLICT_VPM;
 #endif
    default: return 0;
    }
@@ -381,6 +370,8 @@ static QBEConflict get_output_conflicts(uint32_t output)
       case REG_MAGIC_TMUHSF:
       case REG_MAGIC_TMUHSLOD:
          return CONFLICT_TMU_W;
+      case REG_MAGIC_UNIFA:
+         return CONFLICT_UNIFA_W;
 #else
       case REG_MAGIC_VPM:
       case REG_MAGIC_VPMU:
@@ -390,6 +381,7 @@ static QBEConflict get_output_conflicts(uint32_t output)
       case REG_MAGIC_TMUL:
          return CONFLICT_TMU_W;
 #endif
+#if !V3D_HAS_NO_SFU_MAGIC
       case REG_MAGIC_RECIP:
       case REG_MAGIC_RSQRT:
       case REG_MAGIC_RSQRT2:
@@ -397,9 +389,6 @@ static QBEConflict get_output_conflicts(uint32_t output)
       case REG_MAGIC_LOG:
       case REG_MAGIC_SIN:
          return CONFLICT_SFU;
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      case REG_MAGIC_UNIFA:
-         return CONFLICT_UNIFA_W;
 #endif
       }
    }
@@ -480,6 +469,7 @@ static uint32_t fit_sig(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, v3d_qpu_si
    return time;
 }
 
+#if !V3D_HAS_NO_SFU_MAGIC
 static inline bool reg_is_sfu(uint32_t output) {
    return output == REG_MAGIC_RECIP  ||
           output == REG_MAGIC_RSQRT  ||
@@ -488,10 +478,14 @@ static inline bool reg_is_sfu(uint32_t output) {
           output == REG_MAGIC_LOG    ||
           output == REG_MAGIC_SIN;
 }
+#endif
 
 static uint32_t get_output_delay(uint32_t output) {
+#if !V3D_HAS_NO_SFU_MAGIC
    if (reg_is_sfu(output)) return 2;
-   else return 1;
+   else
+#endif
+      return 1;
 }
 
 static QBEConflict get_cond_setf_conflicts(uint32_t cond_setf, AluPipe pipe)
@@ -534,9 +528,7 @@ static QBEConflict get_special_instruction_conflicts(v3d_qpu_opcode_t op) {
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
    if (v3d_qpu_op_is_sfu(op)) return CONFLICT_SFU;
-#endif
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    if (op == V3D_QPU_OP_VPMWT) return CONFLICT_VPMWT;
    if (is_vpm_load(op) || is_vpm_store(op))  return CONFLICT_VPM;
 #else
@@ -601,7 +593,14 @@ static inline bool can_place_alu(const INSTR_T *ci, AluPipe pipe, bool rot, QBEC
    instr_get_reads(ci, instr_read);
 
    unsigned max_reads = (sig_requires_read_b(ci->sigbits) || rot) ? 1 : 2;
-   bool can_place = !rot || can_add_sigbits(ci->sigbits, V3D_QPU_SIG_ROTATE);
+   bool can_place = true;
+#if V3D_HAS_SFU_ROTATE
+   assert(!rot);
+#else
+   if(rot) {
+      can_place &= can_add_sigbits(ci->sigbits, V3D_QPU_SIG_ROTATE);
+   }
+#endif
    can_place &= !ci->op[pipe].used;
    can_place &= conflicts_ok(ci->conflicts, conflicts);
    can_place &= no_read_clashes(max_reads, instr_read, read);
@@ -854,18 +853,18 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backen
 
    GLSL_OP_T v_ops[3][2] = {
       /* Default */
-      { { true, V3D_QPU_OP_FMUL, { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3,   w_reg,  SETF_NONE},
-        { true, V3D_QPU_OP_FADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5, SETF_NONE} },
+      { { true, V3D_QPU_OP_FMUL, { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3_,   w_reg,  SETF_NONE},
+        { true, V3D_QPU_OP_FADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5_, SETF_NONE} },
       /* Line Coord */
-      { { true, V3D_QPU_OP_MOV,  { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3,   0,      SETF_NONE},
-        { true, V3D_QPU_OP_FADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5, SETF_NONE} },
+      { { true, V3D_QPU_OP_MOV,  { UNPACK_NONE, UNPACK_NONE }, temp_reg, REG_R3_,   0,      SETF_NONE},
+        { true, V3D_QPU_OP_FADD, { UNPACK_NONE, UNPACK_NONE }, output,   temp_reg, REG_R5_, SETF_NONE} },
       /* Flat */
       { { false, 0,                                                                              },
-        { true,  V3D_QPU_OP_OR, { UNPACK_NONE, UNPACK_NONE }, output, REG_R5, REG_R5, SETF_NONE} } };
+        { true,  V3D_QPU_OP_OR, { UNPACK_NONE, UNPACK_NONE }, output, REG_R5_, REG_R5_, SETF_NONE} } };
    GLSL_OP_T *v = v_ops[varying_type-1];
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   time = fit_sig(sched, time, V3D_QPU_SIG_LDVARY, UNIF_NONE, REG_R3);
+   time = fit_sig(sched, time, V3D_QPU_SIG_LDVARY, UNIF_NONE, REG_R3_);
 #else
    time = fit_sig(sched, time, V3D_QPU_SIG_LDVARY, UNIF_NONE);
 #endif
@@ -886,37 +885,42 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backen
    }
 
    /* Update our temporary registers. Main code updates inputs/outputs */
-   assert(sched->reg[REG_R3].user == NULL);
-   assert(sched->reg[REG_R5].user == NULL);
-   write_register(sched, NULL, REG_R3, time + 1);
-   write_register(sched, NULL, REG_R5, time + 2);
+   assert(sched->reg[REG_R3_].user == NULL);
+   assert(sched->reg[REG_R5_].user == NULL);
+   write_register(sched, NULL, REG_R3_, time + 1);
+   write_register(sched, NULL, REG_R5_, time + 2);
    if (varying_type != VARYING_FLAT) {
       assert(sched->reg[temp_reg].user == NULL);
       write_register(sched, NULL, temp_reg, t[0] + 1);
-      read_register(sched, REG_R3,   t[0]);
+      read_register(sched, REG_R3_,   t[0]);
       read_register(sched, temp_reg, t[1]);
    }
-   read_register(sched, REG_R5, t[1]);
+   read_register(sched, REG_R5_, t[1]);
 
    return t[1];
 }
 
 static uint32_t fit_imul32(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output,
-                           backend_reg left, backend_reg right, uint64_t unif)
+                           backend_reg left, backend_reg right, uint64_t unif, uint32_t cond_setf)
 {
-   uint32_t multop_time = time_alu(sched, time, PIPE_MUL, false, V3D_QPU_OP_MULTOP, REG_MAGIC_NOP,
-                                                                 left, right, UNIF_NONE, SETF_NONE);
-   place_alu(sched, multop_time, PIPE_MUL, V3D_QPU_OP_MULTOP, UNPACK_NONE, UNPACK_NONE, REG_MAGIC_NOP,
-                                           left, right, UNIF_NONE, SETF_NONE, MOV_EXCUSE_NONE);
+   /* The multop instruction needs the same cond as the mul24 because rtop will
+    * not be cleared in masked lanes. For setf we only need flags on the mul24 */
+   uint32_t multop_cond = cs_is_cond(cond_setf) ? cond_setf : SETF_NONE;
 
-   time = time_alu(sched, multop_time+1, PIPE_MUL, false, V3D_QPU_OP_UMUL24, output, left, right, unif, SETF_NONE);
-   place_alu(sched, time, PIPE_MUL, V3D_QPU_OP_UMUL24, UNPACK_NONE, UNPACK_NONE, output, left, right, unif, SETF_NONE, MOV_EXCUSE_NONE);
+   uint32_t multop_time = time_alu(sched, time, PIPE_MUL, false, V3D_QPU_OP_MULTOP, REG_MAGIC_NOP,
+                                                                 left, right, UNIF_NONE, multop_cond);
+   place_alu(sched, multop_time, PIPE_MUL, V3D_QPU_OP_MULTOP, UNPACK_NONE, UNPACK_NONE, REG_MAGIC_NOP,
+                                           left, right, UNIF_NONE, multop_cond, MOV_EXCUSE_NONE);
+
+   time = time_alu(sched, multop_time+1, PIPE_MUL, false, V3D_QPU_OP_UMUL24, output, left, right, unif, cond_setf);
+   place_alu(sched, time, PIPE_MUL, V3D_QPU_OP_UMUL24, UNPACK_NONE, UNPACK_NONE, output, left, right, unif, cond_setf, MOV_EXCUSE_NONE);
 
    /* Update our temporary registers. Main code updates inputs/outputs */
    read_register(sched, REG_RTOP, time);
    return time;
 }
 
+#if !V3D_HAS_SFU_ROTATE
 static uint32_t fit_rotate(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output,
                            backend_reg input_a, uint32_t amount)
 {
@@ -928,6 +932,7 @@ static uint32_t fit_rotate(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend
                                     UNIF_NONE, SETF_NONE, MOV_EXCUSE_NONE);
    return time;
 }
+#endif
 
 /* May or may not choose a register in r0-r4.
    If insist is true then it will always choose something.  */
@@ -935,47 +940,59 @@ static backend_reg choose_acc(const GLSL_SCHEDULER_STATE_T *sched, bool insist, 
 {
    uint32_t oldest = ~0u;
    backend_reg oldest_r = REG_UNDECIDED;
+   uint32_t best = ~0u;
+   backend_reg best_r = REG_UNDECIDED;
 
    /* Choose a free register, failing that one that wasn't used recently */
-   for (int i = 0; i < 5; i++) {
-      if ( sched->reg[REG_R(i)].user == NULL ) return REG_R(i);
+   for (unsigned i = 0; i < 5; i++) {
+      const REG_T *reg = &sched->reg[REG_R(i)];
+      if (reg->user == NULL && ((best >  time && reg->available < best) ||
+                                (best <= time && best < reg->available && reg->available <= time)))
+      {
+         best = reg->available;
+         best_r = REG_R(i);
+      }
 
-      if (sched->reg[REG_R(i)].written < oldest) {
-         oldest = sched->reg[REG_R(i)].written;
+      if (reg->written < oldest) {
+         oldest = reg->written;
          oldest_r = REG_R(i);
       }
    }
    assert(oldest_r != REG_UNDECIDED);
-   if (oldest + 4 < time) return oldest_r;
 
-   /* If we've insisted, then return the least recently used */
-   if (insist) return oldest_r;
-   else return REG_UNDECIDED;
+   if (best_r != REG_UNDECIDED)     return best_r;
+   if (oldest + 4 < time || insist) return oldest_r;
+   else                             return REG_UNDECIDED;
 }
 
 static backend_reg choose_regfile(GLSL_SCHEDULER_STATE_T *sched, uint32_t time)
 {
-   uint32_t best_time = ~0u;
-   backend_reg best = REG_UNDECIDED;
-   for (unsigned j = 0; j != sched->regfile_max; ++j)
-   {
+   uint32_t best = ~0u;
+   backend_reg best_r = REG_UNDECIDED;
+
+   for (unsigned j = 0; j < sched->regfile_max; j++) {
       // permute priority of regfile to avoid likelyhood of rf0-2 near thrend
       unsigned i = (j + 3) % sched->regfile_max;
 
       if (sched->register_blackout & (1ull << i)) continue;
 
-      if (sched->reg[REG_RF(i)].user == NULL) {
-         if (sched->reg[REG_RF(i)].available < best_time) {
-            best_time = sched->reg[REG_RF(i)].available;
-            best = REG_RF(i);
-         }
+      const REG_T *reg = &sched->reg[REG_RF(i)];
+      if (reg->user == NULL && ((best >  time && reg->available < best) ||
+                                (best <= time && best < reg->available && reg->available <= time)))
+      {
+         best = reg->available;
+         best_r = REG_RF(i);
       }
-      if (best_time <= time) break;
+
+      /* Before wrapping to consider rf0-2 stop if the existing choice won't
+       * delay the schedule. This prevents us using rf0-2 too often near the
+       * end of shaders, delaying the thread end */
+      if (i == sched->regfile_max - 1 && best <= time) break;
    }
 
-   if (best == REG_UNDECIDED) backend_error(sched->error_abort, "No regfile space");
+   if (best_r == REG_UNDECIDED) backend_error(sched->error_abort, "No regfile space");
 
-   return best;
+   return best_r;
 }
 
 /*
@@ -1031,23 +1048,21 @@ static uint64_t node_get_unif(const Backflow *node)
 
 static backend_reg find_output_reg_sig(v3d_qpu_sigbits_t sigbit) {
    switch (sigbit) {
-      case V3D_QPU_SIG_LDUNIF: return REG_R5;
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-      case V3D_QPU_SIG_LDTMU:  return REG_R4;
-      case V3D_QPU_SIG_LDTLB:  return REG_R3;
-      case V3D_QPU_SIG_LDTLBU: return REG_R3;
-      case V3D_QPU_SIG_LDVPM:  return REG_R3;
-#else
-      case V3D_QPU_SIG_LDTMU:  return REG_UNDECIDED;
-      case V3D_QPU_SIG_LDTLB:  return REG_UNDECIDED;
-      case V3D_QPU_SIG_LDTLBU: return REG_UNDECIDED;
-#endif
+      case V3D_QPU_SIG_LDUNIF:    return REG_R5_;
 #if V3D_VER_AT_LEAST(4,1,34,0)
-      case V3D_QPU_SIG_LDUNIFA:   return REG_R5;
+      case V3D_QPU_SIG_LDUNIFA:   return REG_R5_;
       case V3D_QPU_SIG_LDUNIFRF:  return REG_UNDECIDED;
       case V3D_QPU_SIG_LDUNIFARF: return REG_UNDECIDED;
+      case V3D_QPU_SIG_LDTMU:     return REG_UNDECIDED;
+      case V3D_QPU_SIG_LDTLB:     return REG_UNDECIDED;
+      case V3D_QPU_SIG_LDTLBU:    return REG_UNDECIDED;
+#else
+      case V3D_QPU_SIG_LDTMU:     return REG_R4_;
+      case V3D_QPU_SIG_LDTLB:     return REG_R3_;
+      case V3D_QPU_SIG_LDTLBU:    return REG_R3_;
+      case V3D_QPU_SIG_LDVPM:     return REG_R3_;
 #endif
-      default:            return REG_MAGIC_NOP; /* Other SIGS have no output */
+      default:                    return REG_MAGIC_NOP; /* Other SIGS have no output */
    }
 }
 
@@ -1055,17 +1070,19 @@ static backend_reg find_output_reg_magic(backend_reg waddr) {
    switch (waddr) {
       /* Node genuinely has no output */
       case REG_MAGIC_NOP:   return REG_MAGIC_NOP;
+#if !V3D_HAS_NO_SFU_MAGIC
       /* Output to the SFU comes back in r4 */
       case REG_MAGIC_RECIP:
       case REG_MAGIC_RSQRT:
       case REG_MAGIC_RSQRT2:
       case REG_MAGIC_LOG:
       case REG_MAGIC_EXP:
-      case REG_MAGIC_SIN:   return REG_R4;
+      case REG_MAGIC_SIN:   return REG_R4_;
+#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
       case REG_MAGIC_R5REP:
 #endif
-      case REG_R5:          return REG_R5;
+      case REG_R5_:          return REG_R5_;
       /* These are shader output so the results aren't returned */
       case REG_MAGIC_TMUA:
       case REG_MAGIC_TMUAU:
@@ -1086,14 +1103,12 @@ static backend_reg find_output_reg_magic(backend_reg waddr) {
       case REG_MAGIC_TMUHSCM:
       case REG_MAGIC_TMUHSF:
       case REG_MAGIC_TMUHSLOD:
+      case REG_MAGIC_UNIFA:
 #else
       case REG_MAGIC_TMU:
       case REG_MAGIC_TMUL:
       case REG_MAGIC_VPM:
       case REG_MAGIC_VPMU:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-      case REG_MAGIC_UNIFA:
 #endif
       case REG_MAGIC_TLBU:
       case REG_MAGIC_TLB:
@@ -1174,7 +1189,7 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
 
    v3d_qpu_sigbits_t sigbits = node->type == SIG ? node->u.sigbits : 0;
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   if (sigbits == V3D_QPU_SIG_LDUNIF && (sched->reg[REG_R5].user != NULL || node->magic_write != REG_UNDECIDED))
+   if (sigbits == V3D_QPU_SIG_LDUNIF && (sched->reg[REG_R5_].user != NULL || node->magic_write != REG_UNDECIDED))
       sigbits = V3D_QPU_SIG_LDUNIFRF;
    else if (sigbits == V3D_QPU_SIG_LDUNIFA)
       sigbits = V3D_QPU_SIG_LDUNIFARF; // always prefer LDUNIFARF
@@ -1235,15 +1250,16 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
 
       /* We can't write to r5 */
       uint32_t cur_reg = output_dep->reg;
-      if (cur_reg == REG_R5) move_result(sched, cur_reg, MOV_EXCUSE_R5_WRITE);
+      if (cur_reg == REG_R5_) move_result(sched, cur_reg, MOV_EXCUSE_R5_WRITE);
       if (IS_RF(cur_reg) && ((1ull << (cur_reg - REG_RF0)) & sched->register_blackout) != 0)
          move_result(sched, cur_reg, MOV_EXCUSE_COPY_ON_WRITE);
    }
 
+#if !V3D_HAS_SFU_ROTATE
    if (node->type == SPECIAL_ROTATE) {
-      if (node->u.rotate.amount == 0 && input_dep[1]->reg != REG_R5) {
-         move_result(sched, REG_R5, MOV_EXCUSE_OUT_OF_THE_WAY);
-         move_to_register(sched, input_dep[1]->reg, REG_R5, MOV_EXCUSE_R_RF_INPUT);
+      if (node->u.rotate.amount == 0 && input_dep[1]->reg != REG_R5_) {
+         move_result(sched, REG_R5_, MOV_EXCUSE_OUT_OF_THE_WAY);
+         move_to_register(sched, input_dep[1]->reg, REG_R5_, MOV_EXCUSE_R_RF_INPUT);
       }
 
       if (!node->u.rotate.quad && !IS_R(input_dep[0]->reg)) {
@@ -1254,6 +1270,7 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
          move_result(sched, input_dep[0]->reg, MOV_EXCUSE_R_RF_INPUT);
       }
    }
+#endif
 
    if (node->type == ALU && v3d_qpu_op_requires_read_a(node->u.alu.op) &&
        !IS_RF(input_dep[0]->reg) )
@@ -1300,8 +1317,8 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
    */
    backend_reg temp_reg = REG_UNDECIDED;
    if (node->type == SPECIAL_VARYING) {
-      move_result(sched, REG_R5, MOV_EXCUSE_OUT_OF_THE_WAY);
-      move_result(sched, REG_R3, MOV_EXCUSE_OUT_OF_THE_WAY);
+      move_result(sched, REG_R5_, MOV_EXCUSE_OUT_OF_THE_WAY);
+      move_result(sched, REG_R3_, MOV_EXCUSE_OUT_OF_THE_WAY);
       if (node->u.varying.type != VARYING_FLAT) {
          temp_reg = choose_acc(sched, true, 0);   /* Insist on acc. Not sure why. Time doesn't matter when insisting */
          move_result(sched, temp_reg, MOV_EXCUSE_OUT_OF_THE_WAY);
@@ -1316,8 +1333,8 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
    uint32_t timestamp = 0, delay;
 
    if (node->type == SPECIAL_VARYING) {
-      timestamp = gfx_umax(timestamp, sched->reg[REG_R3].available);
-      timestamp = gfx_smax(timestamp, sched->reg[REG_R5].available-1);
+      timestamp = gfx_umax(timestamp, sched->reg[REG_R3_].available);
+      timestamp = gfx_smax(timestamp, sched->reg[REG_R5_].available-1);
       if (node->u.varying.type != VARYING_FLAT)
          timestamp = gfx_smax(timestamp, sched->reg[temp_reg].available-1);
    }
@@ -1327,12 +1344,14 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       timestamp = gfx_umax(timestamp, sched->reg[REG_RTOP].available + 1);
    }
 
+#if !V3D_HAS_SFU_ROTATE
    if (node->type == SPECIAL_ROTATE) {
       if (node->u.rotate.amount == 0)
-         timestamp = gfx_umax(timestamp, sched->reg[REG_R5].written + 1);
+         timestamp = gfx_umax(timestamp, sched->reg[REG_R5_].written + 1);
       if (!node->u.rotate.quad)
          timestamp = gfx_umax(timestamp, sched->reg[input_a].written + 1);
    }
+#endif
 
    if (node->type == SPECIAL_IMUL32)
       timestamp = gfx_umax(timestamp, sched->reg[REG_RTOP].available);
@@ -1399,7 +1418,7 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       delay = get_output_delay(waddr);
       break;
    case SPECIAL_IMUL32:
-      timestamp = fit_imul32(sched, timestamp, waddr, input_a, input_b, unif);
+      timestamp = fit_imul32(sched, timestamp, waddr, input_a, input_b, unif, cond_setf);
       delay = get_output_delay(waddr);
       break;
    case ALU:
@@ -1417,10 +1436,12 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, const Backflow *node, B
       /* timestamp = timestamp; */
       delay = 0;
       break;
+#if !V3D_HAS_SFU_ROTATE
    case SPECIAL_ROTATE:
       timestamp = fit_rotate(sched, timestamp, waddr, input_a, node->u.rotate.amount);
       delay = get_output_delay(waddr);
       break;
+#endif
    default:
       unreachable();
    }
@@ -1812,8 +1833,9 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain  *iodeps,
     * in the varyings map (that might break the vertex shader). The compiler doesn't use
     * these values for anything else, so the lie is safe. */
    if (extra_vary) {
-      uint32_t t = fit_varying(sched, gfx_umax(hw_vary_time+1, sched->reg[REG_R5].available), REG_MAGIC_NOP,
-                               UNIF_NONE, REG_UNDECIDED, REG_UNDECIDED, VARYING_ID_HW_1, VARYING_FLAT);
+      uint32_t r5_time = sched->reg[REG_R5_].available > 1 ? sched->reg[REG_R5_].available - 1 : 0;
+      uint32_t t = fit_varying(sched, gfx_umax(hw_vary_time+1, gfx_umax(sched->reg[REG_R3_].available, r5_time)),
+                               REG_MAGIC_NOP, UNIF_NONE, REG_UNDECIDED, REG_UNDECIDED, VARYING_ID_HW_1, VARYING_FLAT);
       instr_count = gfx_umax(instr_count, t);
    }
 #endif

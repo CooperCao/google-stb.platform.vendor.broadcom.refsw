@@ -15,8 +15,6 @@
 EGLint egl_surface_check_attribs(
    EGL_SURFACE_TYPE_T type,
    const EGLint *attrib_list,
-   bool *linear,
-   bool *premult,
    int *width,
    int *height,
    bool *largest_pbuffer,
@@ -26,9 +24,6 @@ EGLint egl_surface_check_attribs(
    bool *secure
    )
 {
-   UNUSED(linear);
-   UNUSED(premult);
-
    if (!attrib_list)
       return EGL_SUCCESS;
 
@@ -121,8 +116,6 @@ extern void egl_server_surface_term(void *p);
 EGL_SURFACE_T *egl_surface_create(
    EGLSurface name,
    EGL_SURFACE_TYPE_T type,
-   EGL_SURFACE_COLORSPACE_T colorspace,
-   EGL_SURFACE_ALPHAFORMAT_T alphaformat,
    bool secure,
    uint32_t buffers,
    uint32_t width,
@@ -137,9 +130,6 @@ EGL_SURFACE_T *egl_surface_create(
    EGLNativePixmapType pixmap,
    int *result)
 {
-   UNUSED(colorspace);
-   UNUSED(alphaformat);
-
    assert((type == WINDOW) || (width > 0 && height > 0));
    assert((type == PIXMAP) || (width <= EGL_CONFIG_MAX_WIDTH && height <= EGL_CONFIG_MAX_HEIGHT) || largest_pbuffer);
 
@@ -151,9 +141,6 @@ EGL_SURFACE_T *egl_surface_create(
 
    surface->name = name;
    surface->type = type;
-
-   surface->colorspace = colorspace;
-   surface->alphaformat = alphaformat;
 
    surface->config = config;
    surface->win = win;
@@ -167,24 +154,6 @@ EGL_SURFACE_T *egl_surface_create(
    surface->swap_behavior = EGL_BUFFER_DESTROYED;
    surface->multisample_resolve = EGL_MULTISAMPLE_RESOLVE_DEFAULT;
 
-#if EGL_KHR_lock_surface
-   surface->is_locked = false;
-   surface->mapped_buffer = 0;
-#endif
-
-   uint32_t configid = egl_config_to_id(config);
-   KHRN_IMAGE_FORMAT_T color = egl_config_get_color_format(configid);
-   KHRN_IMAGE_FORMAT_T depth = egl_config_get_depth_format(configid);
-   KHRN_IMAGE_FORMAT_T mask = egl_config_get_mask_format(configid);
-   KHRN_IMAGE_FORMAT_T multi = egl_config_get_multisample_format(configid);
-
-   /* Find depth and stencil bits from chosen config (these may NOT be the same as the underlying format!) */
-   EGLint config_depth_bits, config_stencil_bits;
-   egl_config_get_attrib(configid, EGL_DEPTH_SIZE, &config_depth_bits);
-   egl_config_get_attrib(configid, EGL_STENCIL_SIZE, &config_stencil_bits);
-
-   assert(color != IMAGE_FORMAT_INVALID);
-
    surface->buffers = buffers;
 
    bool create_surface_result = false;
@@ -192,12 +161,7 @@ EGL_SURFACE_T *egl_surface_create(
       assert(type == PIXMAP);
       create_surface_result = egl_create_wrapped_surface(
          surface,
-         (void *)pixmap,
-         depth,
-         mask,
-         multi,
-         config_depth_bits,
-         config_stencil_bits);
+         pixmap);
    } else {
       create_surface_result = egl_create_surface(
          surface,
@@ -206,13 +170,8 @@ EGL_SURFACE_T *egl_surface_create(
          width,
          height,
          secure,
-         color,
-         depth,
-         mask,
-         multi,
          mipmap_texture,
-         config_depth_bits,
-         config_stencil_bits,
+         NULL,
          type);
    }
 
@@ -222,8 +181,6 @@ EGL_SURFACE_T *egl_surface_create(
       if (egl_back_buffer_dims(surface, &width, &height)) {
          surface->width = width;
          surface->height = height;
-         surface->base_width = width;
-         surface->base_height = height;
          if (result)
             *result = 0;
       } else {
@@ -264,22 +221,16 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
 {
    switch (attrib) {
    case EGL_VG_ALPHA_FORMAT:
-      if (surface->alphaformat == NONPRE)
-         *value = EGL_VG_ALPHA_FORMAT_NONPRE;
-      else
-         *value = EGL_VG_ALPHA_FORMAT_PRE;
+      *value = EGL_VG_ALPHA_FORMAT_NONPRE;
       return EGL_TRUE;
    case EGL_VG_COLORSPACE:
-      if (surface->colorspace == SRGB)
-         *value = EGL_VG_COLORSPACE_sRGB;
-      else
-         *value = EGL_VG_COLORSPACE_LINEAR;
+      *value = EGL_VG_COLORSPACE_sRGB;
       return EGL_TRUE;
    case EGL_CONFIG_ID:
       *value = (EGLint)(intptr_t)surface->config;
       return EGL_TRUE;
    case EGL_HEIGHT:
-      if (!egl_back_buffer_dims(surface, NULL, value))
+      if (!egl_back_buffer_dims(surface, NULL, (uint32_t *)value))
          *value = surface->height;
       return EGL_TRUE;
    case EGL_HORIZONTAL_RESOLUTION:
@@ -328,7 +279,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
          *value = surface->texture_target;
       return EGL_TRUE;
    case EGL_WIDTH:
-      if (!egl_back_buffer_dims(surface, value, NULL))
+      if (!egl_back_buffer_dims(surface, (uint32_t *)value, NULL))
          *value = surface->width;
       return EGL_TRUE;
    default:
@@ -380,80 +331,3 @@ EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint valu
       return EGL_BAD_ATTRIBUTE;
    }
 }
-
-#if EGL_KHR_lock_surface
-
-EGLint egl_surface_get_mapped_buffer_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
-{
-   KHRN_IMAGE_FORMAT_T format;
-   bool is565;
-   uint32_t configid;
-
-   assert(surface);
-
-   configid = egl_config_to_id(surface->config);
-
-   if (attrib == EGL_BITMAP_POINTER_KHR || attrib == EGL_BITMAP_PITCH_KHR) {
-      // Querying either of these causes the buffer to be mapped (if it isn't already)
-      // They also require that the surface is locked
-
-      if (!surface->is_locked) {
-         return EGL_BAD_ACCESS;   // TODO is this the right error?
-      }
-
-      if (!surface->mapped_buffer) {
-         uint32_t size;
-         void *buffer;
-         format = egl_config_get_mapped_format(configid); // type juggling to avoid pointer truncation warnings
-         size = khrn_image_get_size(format, surface->width, surface->height);
-         buffer = malloc(size);
-
-         if (!buffer) {
-            return EGL_BAD_ALLOC;
-         }
-
-         surface->mapped_buffer = buffer;
-      }
-   }
-
-   if (!egl_config_is_lockable(configid)) {    // type juggling to avoid pointer truncation warnings
-      // Calling any of these on unlockable surfaces is allowed but returns undefined results
-      *value = 0;
-      return EGL_SUCCESS;
-   }
-
-   format = egl_config_get_mapped_format(configid);  // type juggling to avoid pointer truncation warnings
-   assert(format == RGB_565_RSO || format == ARGB_8888_RSO);
-   is565 = (format == RGB_565_RSO);       // else 888
-
-   switch (attrib) {
-   case EGL_BITMAP_POINTER_KHR:
-      *value = (EGLint)(intptr_t)surface->mapped_buffer; // type juggling to avoid pointer truncation warnings
-      return EGL_SUCCESS;
-   case EGL_BITMAP_PITCH_KHR:
-      *value = khrn_image_get_stride(format, surface->width);
-      return EGL_SUCCESS;
-   case EGL_BITMAP_ORIGIN_KHR:
-      *value = EGL_LOWER_LEFT_KHR;     // TODO: is this correct?
-      return EGL_SUCCESS;
-   case EGL_BITMAP_PIXEL_RED_OFFSET_KHR:
-      *value = is565 ? 11 : 0;         // TODO: I've probably got these wrong too
-      return EGL_SUCCESS;
-   case EGL_BITMAP_PIXEL_GREEN_OFFSET_KHR:
-      *value = is565 ? 5 : 8;
-      return EGL_SUCCESS;
-   case EGL_BITMAP_PIXEL_BLUE_OFFSET_KHR:
-      *value = is565 ? 0 : 16;
-      return EGL_SUCCESS;
-   case EGL_BITMAP_PIXEL_ALPHA_OFFSET_KHR:
-      *value = is565 ? 0 : 24;
-      return EGL_SUCCESS;
-   case EGL_BITMAP_PIXEL_LUMINANCE_OFFSET_KHR:
-      *value = 0;
-      return EGL_SUCCESS;
-   default:
-      UNREACHABLE();
-      return EGL_BAD_PARAMETER;
-   }
-}
-#endif

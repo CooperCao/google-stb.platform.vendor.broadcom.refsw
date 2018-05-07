@@ -64,13 +64,5 @@ void platform_tls_remove(PLATFORM_TLS_T tls)
    vcos_tls_set(tls, NULL);
 }
 
-bool platform_match_pixmap_api_support(EGLNativePixmapType pixmap, uint32_t api_support)
-{
-   UNUSED(pixmap);
-   UNUSED(api_support);
-
-   return true;
-}
-
 uint32_t platform_memcmp(const void * aLeft, const void * aRight, size_t aLen) { return khrn_par_memcmp(aLeft, aRight, aLen); }
 void platform_memcpy(void * aTrg, const void * aSrc, size_t aLength) { khrn_par_memcpy(aTrg, aSrc, aLength); }

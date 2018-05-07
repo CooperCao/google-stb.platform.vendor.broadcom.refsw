@@ -28,7 +28,6 @@ typedef struct
    /* Main thread data */
    NXPL_NativeWindowInfoEXT   windowInfo;
    unsigned int               numSurfaces;
-   uint32_t                   ageOfLastDequeuedSurface;
 
    bool                       initialized;
 

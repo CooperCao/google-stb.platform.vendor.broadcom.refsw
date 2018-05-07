@@ -99,27 +99,6 @@ typedef enum BV3D_Signaller
 
 /***************************************************************************
 Summary:
-   Used to control the performance monitoring hardware counters.
-
-Description:
-   The hardware monitor counters can be enabled, disabled and reset using
-   these values.
-
-See Also:
-   BV3D_SetPerformanceMonitor,
-   BV3D_PerfMonitorSettings,
-   BV3D_PerfMonitorData
-****************************************************************************/
-typedef enum BV3D_PerfMonitorFlags
-{
-   BV3D_PerfMonitor_None   = 0,        /* No action           */
-   BV3D_PerfMonitor_Start  = 1 << 0,   /* Starts the counters */
-   BV3D_PerfMonitor_Reset  = 1 << 1,   /* Resets the counters */
-   BV3D_PerfMonitor_Stop   = 1 << 2    /* Stops the counters  */
-} BV3D_PerfMonitorFlags;
-
-/***************************************************************************
-Summary:
    Used to hold a timestamp.
 
 Description:
@@ -277,8 +256,7 @@ BERR_Code BV3D_Open(
    uint32_t    uiBinMemChunkPow,    /* [in] (1 << pow) * 256k                    */
    uint32_t    uiBinMemMegsSecure,  /* [in] Amount of memory for binning secure  */
    void (*pfnSecureToggle)(bool),   /* [in] Callback up the stack for toggle     */
-   bool        bDisableAQA,         /* [in] Disable adaptive QPU assignment      */
-   uint32_t    uiClockFreq          /* [in] Clock freq <= requested,0=default    */
+   bool        bDisableAQA          /* [in] Disable adaptive QPU assignment      */
 );
 
 /***************************************************************************
@@ -394,48 +372,94 @@ typedef struct BV3D_Job
    void              *psClientJob;           /* Opaque pointer to a client's view of the job             */
 } BV3D_Job;
 
-/***************************************************************************
-Summary:
-   Setup performance monitoring using these settings.
+/************************************************************************/
+/* Performance counters                                                 */
+/************************************************************************/
 
-Description:
-   Hardware counters are notionally split into 2 banks, only one of which
-   can be active at a time. The same applies to memory counters.
+#define BV3D_MAX_GROUP_NAME_LEN         64
+#define BV3D_MAX_COUNTER_NAME_LEN       64
+#define BV3D_MAX_COUNTER_UNIT_NAME_LEN  32
+#define BV3D_MAX_COUNTERS_PER_GROUP     96
 
-   This structure selects which (if any) of the counter banks is active.
-
-   uiFlags is a combination of values from BV3D_PerfMonitorFlags.
-
-See Also:
-   BV3D_PerfMonitorFlags,
-   BV3D_SetPerformanceMonitor,
-   BV3D_GetPerformanceData
-****************************************************************************/
-typedef struct BV3D_PerfMonitorSettings
+typedef enum BV3D_CounterState
 {
-   uint32_t    uiHWBank;        /* 0 = no bank, 1 = 1st bank, 2 = 2nd bank          */
-   uint32_t    uiMemBank;       /* 0 = no bank, 1 = 1st bank, 2 = 2nd bank          */
-   uint32_t    uiFlags;         /* Combination of values from BV3D_PerfMonitorFlags */
-} BV3D_PerfMonitorSettings;
+   BV3D_CtrAcquire = 0,
+   BV3D_CtrRelease = 1,
+   BV3D_CtrStart   = 2,
+   BV3D_CtrStop    = 3
+} BV3D_CounterState;
 
-/***************************************************************************
-Summary:
-   Performance monitoring data returned by BV3D_GetPerformanceData.
-
-Description:
-   The current set of active performance monitor counters are returned in this
-   structure by BV3D_GetPerformanceData.
-
-See Also:
-   BV3D_PerfMonitorFlags,
-   BV3D_PerfMonitorSettings,
-   BV3D_GetPerformanceData
-****************************************************************************/
-typedef struct BV3D_PerfMonitorData
+typedef struct BV3D_CounterDesc
 {
-   uint64_t    uiHwCounters[16];  /* The hardware counters for the currently selected h/w banks */
-   uint64_t    uiMemCounters[2]; /* The counters for the selected memory monitors              */
-} BV3D_PerfMonitorData;
+   char        caName[BV3D_MAX_COUNTER_NAME_LEN];
+   char        caUnitName[BV3D_MAX_COUNTER_UNIT_NAME_LEN];
+   uint64_t    uiMinValue;
+   uint64_t    uiMaxValue;
+   uint64_t    uiDenominator;
+} BV3D_CounterDesc;
+
+typedef struct BV3D_CounterGroupDesc
+{
+   char              caName[BV3D_MAX_GROUP_NAME_LEN];
+   uint32_t          uiTotalCounters;
+   uint32_t          uiMaxActiveCounters;
+   BV3D_CounterDesc  saCounters[BV3D_MAX_COUNTERS_PER_GROUP];
+} BV3D_CounterGroupDesc;
+
+typedef struct BV3D_CounterSelector
+{
+   uint32_t    uiGroupIndex;
+   uint32_t    uiEnable;
+   uint32_t    uiaCounters[BV3D_MAX_COUNTERS_PER_GROUP];
+   uint32_t    uiNumCounters;
+} BV3D_CounterSelector;
+
+typedef struct BV3D_Counter
+{
+   uint32_t   uiGroupIndex;
+   uint32_t   uiCounterIndex;
+   uint64_t   uiValue;
+} BV3D_Counter;
+
+void BV3D_GetPerfNumCounterGroups(
+   BV3D_Handle  hV3d,
+   uint32_t     *puiNumGroups
+   );
+
+void BV3D_GetPerfCounterDesc(
+   BV3D_Handle             hV3d,
+   uint32_t                uiGroup,
+   uint32_t                uiCounter,
+   BV3D_CounterDesc        *psDesc
+   );
+
+void BV3D_GetPerfCounterGroupInfo(
+   BV3D_Handle             hV3d,
+   uint32_t                uiGroup,
+   uint32_t                uiGrpNameSize,
+   char                    *chGrpName,
+   uint32_t                *uiMaxActiveCounter,
+   uint32_t                *uiTotalCounter
+   );
+
+BERR_Code BV3D_SetPerfCounting(
+   BV3D_Handle             hV3d,
+   uint32_t                uiClientId,
+   BV3D_CounterState       eState
+   );
+
+void BV3D_ChoosePerfCounters(
+   BV3D_Handle                hV3d,
+   uint32_t                   uiClientId,
+   const BV3D_CounterSelector *psSelector
+   );
+
+uint32_t BV3D_GetPerfCounterData(
+   BV3D_Handle    hV3d,
+   uint32_t       uiMaxCounters,
+   uint32_t       uiResetCounts,
+   BV3D_Counter   *psCounters
+   );
 
 /***************************************************************************
 Summary:
@@ -455,6 +479,93 @@ typedef struct BV3D_ClientLoadData
    uint32_t uiNumRenders;
    uint8_t  sRenderPercent;
 } BV3D_ClientLoadData;
+
+/************************************************************************/
+/* Event timeline                                                       */
+/************************************************************************/
+#define BV3D_MAX_EVENT_STRING_LEN   64
+
+typedef enum BV3D_EventState
+{
+   BV3D_EventAcquire = 0,
+   BV3D_EventRelease = 1,
+   BV3D_EventStart   = 2,
+   BV3D_EventStop    = 3
+} BV3D_EventState;
+
+typedef enum BV3D_EventType
+{
+   BV3D_EventBegin   = 0,
+   BV3D_EventEnd     = 1,
+   BV3D_EventOneshot = 2
+} BV3D_EventType;
+
+typedef enum BV3D_FieldType
+{
+   BV3D_EventInt32   = 0,
+   BV3D_EventUInt32  = 1,
+   BV3D_EventInt64   = 2,
+   BV3D_EventUInt64  = 3
+} BV3D_FieldType;
+
+typedef struct BV3D_EventDesc
+{
+   char     caName[BV3D_MAX_EVENT_STRING_LEN];
+   uint32_t uiNumDataFields;
+} BV3D_EventDesc;
+
+typedef struct BV3D_EventFieldDesc
+{
+   char              caName[BV3D_MAX_EVENT_STRING_LEN];
+   BV3D_FieldType    eDataType;
+} BV3D_EventFieldDesc;
+
+typedef struct BV3D_EventTrackDesc
+{
+   char     caName[BV3D_MAX_EVENT_STRING_LEN];
+} BV3D_EventTrackDesc;
+
+void BV3D_GetEventCounts(
+   BV3D_Handle  hV3d,
+   uint32_t     *uiNumTracks,
+   uint32_t     *uiNumEvents
+   );
+
+BERR_Code BV3D_GetEventTrackInfo(
+   BV3D_Handle           hV3d,
+   uint32_t              uiTrack,
+   BV3D_EventTrackDesc   *psTrackDesc
+   );
+
+
+BERR_Code BV3D_GetEventInfo(
+   BV3D_Handle       hV3d,
+   uint32_t          uiEvent,
+   BV3D_EventDesc   *psEventDesc
+   );
+
+
+BERR_Code BV3D_GetEventDataFieldInfo(
+   BV3D_Handle          hV3d,
+   uint32_t             uiEvent,
+   uint32_t             uiField,
+   BV3D_EventFieldDesc  *psFieldDesc
+   );
+
+BERR_Code BV3D_SetEventCollection(
+   BV3D_Handle       hV3d,
+   uint32_t          uiClientId,
+   BV3D_EventState   eState
+   );
+
+uint32_t BV3D_GetEventData(
+   BV3D_Handle    hV3d,
+   uint32_t       uiClientId,
+   uint32_t       uiEventBufferBytes,
+   void           *pvEventBuffer,
+   uint32_t       *puiLostData,
+   uint64_t       *puiTimeStamp
+   );
 
 /***************************************************************************
 Summary:
@@ -630,48 +741,6 @@ BERR_Code BV3D_GetBinMemory(
    const BV3D_BinMemorySettings  *settings,  /* [in]  */
    uint32_t                      clientId,   /* [in]  */
    BV3D_BinMemory                *mem        /* [out] */
-);
-
-/***************************************************************************
-Summary:
-   Sets the parameters for the performance monitoring module.
-
-Description:
-   Changes the performance monitoring mode of the 3D core.
-
-Returns:
-   BERR_SUCCESS - Bin memory was assigned.
-   BERR_INVALID_PARAMETER - One of the input parameters was invalid.
-
-See Also:
-   BV3D_PerfMonitorSettings,
-   BV3D_GetPerformanceData,
-   BV3D_PerfMonitorData
-****************************************************************************/
-BERR_Code BV3D_SetPerformanceMonitor(
-   BV3D_Handle                    hV3d,       /* [in]  */
-   const BV3D_PerfMonitorSettings *settings   /* [out] */
-);
-
-/***************************************************************************
-Summary:
-   Gets performance data.
-
-Description:
-   Retrieves the current state of the performance counters in the 3D core.
-
-Returns:
-   BERR_SUCCESS - Bin memory was assigned.
-   BERR_INVALID_PARAMETER - One of the input parameters was invalid.
-
-See Also:
-   BV3D_PerfMonitorSettings,
-   BV3D_SetPerformanceMonitor,
-   BV3D_PerfMonitorData
-****************************************************************************/
-BERR_Code BV3D_GetPerformanceData(
-   BV3D_Handle            hV3d,  /* [in]  */
-   BV3D_PerfMonitorData   *data  /* [out] */
 );
 
 /***************************************************************************

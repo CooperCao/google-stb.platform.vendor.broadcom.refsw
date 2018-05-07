@@ -74,7 +74,6 @@ typedef struct NEXUS_SecurityCapabilities
         uint8_t value;       /* the EPOCH value ranging from 0 to 255*/
    }firmwareEpoch;           /* the EPOCH of the BSECK Firmware (BFW) */
 
-
    unsigned numKeySlotsForType[NEXUS_KeySlotType_eMax];   /* Number of each type of keyslot. */
 
 } NEXUS_SecurityCapabilities;

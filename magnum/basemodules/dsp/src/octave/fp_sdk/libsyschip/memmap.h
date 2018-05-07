@@ -79,10 +79,6 @@
 #  include "libsyschip/memmap-pike.h"
 #endif
 
-#ifdef BSP
-#  include "libsyschip/memmap-bsp.h"
-#endif
-
 #ifdef PMC3
 #  include "libsyschip/memmap-pmc3.h"
 #endif
@@ -165,6 +161,10 @@
 
 #ifdef DSLCPE
 #  include "libsyschip/memmap-dslcpe.h"
+#endif
+
+#ifdef BSP
+#  include "libsyschip/memmap-bsp.h"
 #endif
 
 #ifdef SAGE

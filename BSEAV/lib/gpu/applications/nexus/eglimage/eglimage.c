@@ -68,7 +68,6 @@ typedef struct
    unsigned int  egl_image_height;
    unsigned int  egl_image_width;
 
-   EGLNativePixmapType  eglPixmap;
    NEXUS_SurfaceHandle  nexusSurf;
 
    EGLImageKHR          eglimage;
@@ -91,7 +90,6 @@ static image_ctx* load_image(const char *filename)
    png_byte pixel_depth, color_type;
    int w, h;
    png_bytep *row_pointers = NULL;
-   BEGL_PixmapInfoEXT pixInfo = { 0 };
    EGLint attr_list[] = { EGL_NONE };
 
    image_ctx *p = (image_ctx *)malloc(sizeof(image_ctx));
@@ -153,14 +151,18 @@ static image_ctx* load_image(const char *filename)
    p->egl_image_height = h;
 
    /* create a pixmap */
-   NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
-   pixInfo.width = p->egl_image_width;
-   pixInfo.height = p->egl_image_height;
-   /* need CPU access for the PNG decoder to work */
-   pixInfo.secure = false;
-   pixInfo.format = BEGL_BufferFormat_eA8B8G8R8;
-   /* this image will have the correct stride for 3d core */
-   if (!NXPL_CreateCompatiblePixmapEXT(nxpl_handle, &p->eglPixmap, &p->nexusSurf, &pixInfo))
+   NEXUS_SurfaceCreateSettings surfSettings;
+   NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
+   surfSettings.compatibility.graphicsv3d = true;
+   surfSettings.width = w;
+   surfSettings.height = h;
+   surfSettings.pixelFormat = NEXUS_PixelFormat_eA8_B8_G8_R8;
+   surfSettings.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+   if (!surfSettings.heap)
+      goto error4;
+
+   p->nexusSurf = NEXUS_Surface_Create(&surfSettings);
+   if (!p->nexusSurf)
       goto error4;
 
    /* get a pointer to the underlying nexus surface */
@@ -189,7 +191,7 @@ static image_ctx* load_image(const char *filename)
    NEXUS_Surface_Flush(p->nexusSurf);
 
    /* create the egl image */
-   p->eglimage = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)p->eglPixmap, attr_list);
+   p->eglimage = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)p->nexusSurf, attr_list);
    if (p->eglimage == EGL_NO_IMAGE_KHR)
    {
       printf("eglCreateImageKHR() failed\n");
@@ -208,7 +210,7 @@ static image_ctx* load_image(const char *filename)
    return p;
 
 error5:
-   NXPL_DestroyCompatiblePixmap(nxpl_handle, p->eglPixmap);
+   NEXUS_Surface_Destroy(p->nexusSurf);
 
 error4:
    free(row_pointers);
@@ -331,7 +333,7 @@ void TerminateGLState(void)
    {
       eglDestroyImageKHR(eglGetCurrentDisplay(), images[i]->eglimage);
       glDeleteTextures(1, &images[i]->texture);
-      NXPL_DestroyCompatiblePixmap(nxpl_handle, images[i]->eglPixmap);
+      NEXUS_Surface_Destroy(images[i]->nexusSurf);
    }
 }
 

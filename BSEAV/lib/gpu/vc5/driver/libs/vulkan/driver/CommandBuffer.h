@@ -312,6 +312,12 @@ public:
    void CmdDebugMarkerInsertEXT(
       const VkDebugMarkerMarkerInfoEXT *pMarkerInfo) noexcept;
 
+   void CmdPushDescriptorSetWithTemplateKHR(
+      bvk::DescriptorUpdateTemplate *descriptorUpdateTemplate,
+      bvk::PipelineLayout           *layout,
+      uint32_t                       set,
+      const void                    *pData) noexcept;
+
    // Implementation specific from this point on
    const bvk::vector<Command*> &CommandList() const { return m_commandList; }
 
@@ -327,6 +333,8 @@ public:
    void DrawClearRects(uint32_t rtIndex, const VkClearAttachment &ca,
                        uint32_t rectCount, const VkClearRect *rects, GFX_LFMT_T format,
                        const VkImageSubresourceRange &srr);
+
+   void DisableEarlyZ() { CurState().DisableEarlyZ(); }
 
    // Called when a device memory data region is needed (for things like
    // uniforms and attributes) - not for control list commands.
@@ -366,14 +374,6 @@ public:
    friend class ComputePipeline;
    friend class CmdBufState;
    friend class CommandBufferBuilder;
-
-public:
-   enum CmdBufferMode
-   {
-      eINITIAL,
-      eRECORDING,
-      eEXECUTABLE
-   };
 
 private:
    // These methods work on the system memory blocks
@@ -421,6 +421,7 @@ private:
       CmdComputeJobObj& cmd,
       DevMemRange& uniformMem) noexcept;
    void DrawCallPreamble();
+   bool SkipDrawOrCompute(const Pipeline &pipe) const;
    void BuildHardwareJob() noexcept;
    void DrawRectVertexData(DevMemRange *devMem, uint32_t *dataMaxIndex,
                            uint32_t rectCount, const VkRect2D *rects, uint32_t z);
@@ -477,11 +478,11 @@ private:
    uint8_t **CLPtr(size_t addSize)                   { return m_td->CLPtr(addSize); }
 
 private:
-   Device                          *m_device;         // Our device
-   CommandPool                     *m_pool;           // The pool our memory comes from
-   CmdBufferMode                    m_mode = eINITIAL;// Current mode
-   VkCommandBufferUsageFlags        m_usageFlags = 0; // Usage flags
-   VkCommandBufferLevel             m_level;          // Primary or secondary
+   Device                    *m_device;               // Our device
+   CommandPool               *m_pool;                 // The pool our memory comes from
+   bool                       m_simultaneous;         // Whether simultaneous use is allowed
+   VkCommandBufferLevel       m_level;                // Primary or secondary
+   bool                       m_occlusionAllowed = 0; // Can we issue occlusion commands?
 
    // An arena allocator for system memory that will use the CommandPool
    ArenaAllocator<SysMemCmdBlock, void*>  m_sysMemArena;

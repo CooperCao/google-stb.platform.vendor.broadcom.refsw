@@ -67,6 +67,7 @@ static BERR_Code NEXUS_CompositeOutput_P_Connect(void *output,  NEXUS_DisplayHan
 static BERR_Code NEXUS_SvideoOutput_P_Connect(void *output,  NEXUS_DisplayHandle display);
 static BERR_Code NEXUS_Ccir656Output_P_Connect(void *output,  NEXUS_DisplayHandle display);
 
+#if NEXUS_HAS_HDMI_OUTPUT
 static void NEXUS_VideoOutputs_P_HdmiCfcHeap(BVDC_Display_HdmiSettings *pSettings)
 {
     /* cfc LUT heap */
@@ -74,6 +75,7 @@ static void NEXUS_VideoOutputs_P_HdmiCfcHeap(BVDC_Display_HdmiSettings *pSetting
         pSettings->hCfcHeap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId-BVDC_Hdmi_0]].mma;
     }
 }
+#endif
 
 void
 NEXUS_VideoOutputs_P_Init(void)
@@ -1215,7 +1217,6 @@ static const char * const dynrngProcessingStrings[] =
 NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(NEXUS_DisplayHandle display)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-#if NEXUS_NUM_HDMI_OUTPUTS
     unsigned i;
     unsigned j;
     bool openWindows;
@@ -1269,7 +1270,6 @@ NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(
     if (rc) { BERR_TRACE(rc); goto error; }
 
 error:
-#endif
     return rc;
 }
 
@@ -1753,6 +1753,12 @@ NEXUS_VideoOutput_P_OpenHdmi(NEXUS_VideoOutputHandle output)
         link->displayOutput = BVDC_DisplayOutput_eDvo;
     }
     return link;
+}
+#else
+NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(NEXUS_DisplayHandle display)
+{
+    BSTD_UNUSED(display);
+    return NEXUS_SUCCESS;
 }
 #endif
 

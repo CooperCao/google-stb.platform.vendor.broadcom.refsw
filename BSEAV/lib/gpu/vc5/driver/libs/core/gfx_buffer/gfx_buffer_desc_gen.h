@@ -81,7 +81,6 @@ struct gfx_buffer_uif_cfg
    bool force;
    /* Only valid if force set: */
    bool ub_xor; /* UIF XOR mode? */
-   bool ub_noutile;
    uint32_t ub_pads[GFX_BUFFER_MAX_PLANES]; /* Padding, in UIF-blocks */
 };
 

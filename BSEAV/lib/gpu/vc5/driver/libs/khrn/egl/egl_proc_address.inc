@@ -649,13 +649,13 @@ CASE(glGetFramebufferAttachmentParameterivOES, 0x3f04d322);
 CASE(glGenerateMipmapOES, 0x8e7ccc07);
 
 // GL_OES_geometry_point_size
-#if GLXX_HAS_TNG
-#endif /* GLXX_HAS_TNG*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_geometry_shader
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glFramebufferTextureOES, 0x333d4f37);
-#endif /* GLXX_HAS_TNG*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_gpu_shader5
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -699,8 +699,8 @@ CASE(glMinSampleShadingOES, 0x9326b44c);
 // GL_OES_shader_image_atomic
 
 // GL_OES_shader_io_blocks
-#if GLXX_HAS_TNG
-#endif /* GLXX_HAS_TNG*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_shader_multisample_interpolation
 #if KHRN_GLES32_DRIVER && V3D_VER_AT_LEAST(4,1,34,0)
@@ -715,13 +715,13 @@ CASE(glMinSampleShadingOES, 0x9326b44c);
 // GL_OES_surfaceless_context
 
 // GL_OES_tessellation_point_size
-#if GLXX_HAS_TNG
-#endif /* GLXX_HAS_TNG*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_tessellation_shader
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glPatchParameteriOES, 0x64c6a79c);
-#endif /* GLXX_HAS_TNG*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_OES_texture_border_clamp
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -771,8 +771,6 @@ CASE(eglGetEventInfoBRCM, 0x2dc29354);
 CASE(eglGetEventDataFieldInfoBRCM, 0xe4be8c54);
 CASE(eglSetEventCollectionBRCM, 0xd9ea7590);
 CASE(eglGetEventDataBRCM, 0x9dbcd50e);
-
-// EGL_BRCM_gl_framebuffer_image
 
 // EGL_BRCM_performance_counters
 CASE(eglGetPerfCounterConstantBRCM, 0xb719d8fc);
@@ -842,6 +840,8 @@ CASE(glTexStorage1DBRCM, 0x88036b85);
 #if V3D_VER_AT_LEAST(4,1,34,0)
 #endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
+// GL_EXT_EGL_image_external_wrap_modes
+
 // GL_EXT_base_instance
 #if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glDrawArraysInstancedBaseInstanceEXT, 0x688001ef);
@@ -880,13 +880,13 @@ CASE(glDrawRangeElementsBaseVertexEXT, 0x1d1082d1);
 CASE(glDrawElementsInstancedBaseVertexEXT, 0xdba6dcfb);
 
 // GL_EXT_geometry_point_size
-#if GLXX_HAS_TNG
-#endif /* GLXX_HAS_TNG*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_geometry_shader
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glFramebufferTextureEXT, 0x2e63cbcd);
-#endif /* GLXX_HAS_TNG*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_gpu_shader5
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -923,19 +923,19 @@ CASE(glGetnUniformivEXT, 0x6ee5c818);
 // GL_EXT_shader_integer_mix
 
 // GL_EXT_shader_io_blocks
-#if GLXX_HAS_TNG
-#endif /* GLXX_HAS_TNG*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_shader_texture_lod
 
 // GL_EXT_tessellation_point_size
-#if GLXX_HAS_TNG
-#endif /* GLXX_HAS_TNG*/
+#if V3D_VER_AT_LEAST(4,1,34,0)
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_tessellation_shader
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
 CASE(glPatchParameteriEXT, 0x5fed7313);
-#endif /* GLXX_HAS_TNG*/
+#endif /* V3D_VER_AT_LEAST(4,1,34,0)*/
 
 // GL_EXT_texture_border_clamp
 #if V3D_VER_AT_LEAST(4,1,34,0)

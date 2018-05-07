@@ -3,8 +3,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 #include "middleware/khronos/common/khrn_image.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"

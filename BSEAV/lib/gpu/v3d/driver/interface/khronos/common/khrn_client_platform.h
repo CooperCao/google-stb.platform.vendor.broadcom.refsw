@@ -3,8 +3,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_image.h"
 #include "vcfw/rtos/abstract/rtos_abstract_mem.h"
@@ -23,8 +23,6 @@ static inline uintptr_t platform_get_handle(EGLNativeWindowType win)
 {
    return (uintptr_t)win;
 }
-
-extern bool platform_match_pixmap_api_support(EGLNativePixmapType pixmap, uint32_t api_support);
 
 /* Platform optimised versions of memcpy and memcmp */
 extern uint32_t platform_memcmp(const void * aLeft, const void * aRight, size_t aLen);

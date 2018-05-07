@@ -55,7 +55,7 @@ extern const inline_qasm tcs_barrier_lthrsw_bin;
 extern const inline_qasm tcs_barrier_lthrsw_rdr;
 extern const inline_qasm tcs_barrier_mem_only;
 
-#if V3D_HAS_NULL_FS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 extern const inline_qasm fs_null;
 #endif
 

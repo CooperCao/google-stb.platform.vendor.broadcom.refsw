@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "NodeBase.h"
+#include "Nodes.h"
 
 namespace bvk {
 
@@ -54,7 +54,6 @@ private:
    void Visit(const NodeTypeSampler *node)      override;
    void Visit(const NodeTypeSampledImage *node) override;
    void Visit(const NodeTypeArray *node)        override;
-   void Visit(const NodeTypeRuntimeArray *node) override;
    void Visit(const NodeTypeStruct *node)       override;
    void Visit(const NodeTypePointer *node)      override;
    void Visit(const NodeTypeFunction *node)     override;

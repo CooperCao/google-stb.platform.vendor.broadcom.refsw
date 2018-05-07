@@ -9,7 +9,7 @@
 //
 // #define TESTING
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 #include <arm_neon.h>
 #define USE_NEON_FAST_PATHS
 #endif
@@ -1557,12 +1557,9 @@ static const CopyAlgorithm_t *find_fast_algorithm(
       }
       break;
 
-   case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB):
    case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_RSO, YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB):
       switch ((uint32_t)dst_lfmt)
       {
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB):
-      case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_ETC1, TYPE_UNORM, CHANNELS_RGB):
       case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF_XOR, YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB):
       case GFX_LFMT_MAKE(DIMS_2D, SWIZZLING_UIF,     YFLIP_NOYFLIP, BASE_ETC2, TYPE_UNORM, CHANNELS_RGB):
          alg = &copy_etc64rso_to_etc64uif;

@@ -98,7 +98,7 @@ BIT64 = $(findstring aarch64,${COMPILER})
 all:source
 	@echo "================ TARGET all: CJSON $(CJSON_VER) ============================="
 	@echo "================ Compiling CJSON $(CJSON_VER) ==============================="
-	@CC=${COMPILER} AR=${ARCHIVER} ${MAKE} ${MAKE_OPTIONS} -C ${CJSON_TAR_PATH}/cJSON-$(CJSON_VER) -j10 ${MAKE_SUFFIX} >/dev/null
+	@CC=${COMPILER} AR=${ARCHIVER} ${MAKE} ${MAKE_OPTIONS} -C ${CJSON_TAR_PATH}/cJSON-$(CJSON_VER) ${MAKE_SUFFIX} >/dev/null
 	@echo "================ Installing CJSON $(CJSON_VER) to nexus/bin ================="
 	@mkdir -p ${NEXUS_BIN_DIR}
 	@(cd $(CJSON_LIB_FOLDER) && tar cBf - libcjson*.so*) | (cd ${NEXUS_BIN_DIR} && tar xBf -)

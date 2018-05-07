@@ -1451,7 +1451,9 @@ int main(int argc, const char *argv[])
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = opts.common.displayType;
-    displaySettings.format = opts.common.displayFormat;
+    if (opts.common.displayFormat) {
+        displaySettings.format = opts.common.displayFormat;
+    }
     if(opts.common.displayAspectRatio != NEXUS_DisplayAspectRatio_eSar) {
         displaySettings.aspectRatio = opts.common.displayAspectRatio;
     }
@@ -1510,6 +1512,7 @@ int main(int argc, const char *argv[])
 
         /* Install hotplug callback -- video only for now */
         NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
+        hotplug_context.set_initial_preferred_format = !opts.common.displayFormat;
         hotplug_context.hdmi = platformConfig.outputs.hdmi[0];
         hotplug_context.display = display;
         hotplug_context.ignore_edid = opts.common.ignore_edid;
@@ -1838,10 +1841,6 @@ int main(int argc, const char *argv[])
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
     audioProgram.maxOutputRate = opts.common.maxAudioRate;
-    if ( opts.common.secureAudio )
-    {
-        audioProgram.secureAudio = NEXUS_AudioDecoderSecureType_eSecure;
-    }
 #endif
 
     /* Start decoders */
@@ -2301,6 +2300,7 @@ int main(int argc, const char *argv[])
             else if (!strcmp(buf, "st")) {
                 NEXUS_VideoDecoderStatus vstatus;
                 NEXUS_AudioDecoderStatus astatus;
+                unsigned astatus_pts;
                 NEXUS_AudioDecoderStatus acstatus;
                 NEXUS_PlaybackStatus pstatus;
                 NEXUS_PlaypumpStatus pumpstatus;
@@ -2319,9 +2319,11 @@ int main(int argc, const char *argv[])
                     rc = NEXUS_AudioDecoder_GetStatus(compressedDecoder, &acstatus);
                     BDBG_ASSERT(!rc);
                 }
+                astatus_pts = astatus.pts;
 #else
                 BKNI_Memset(&astatus, 0, sizeof(astatus));
                 BKNI_Memset(&acstatus, 0, sizeof(acstatus));
+                astatus_pts = 0;
 #endif
 
                 rc = NEXUS_Playback_GetStatus(playback, &pstatus);
@@ -2387,6 +2389,7 @@ int main(int argc, const char *argv[])
                     }
                     /* else { printf("no 3dtv metadata\n"); } */
                 }
+#if NEXUS_HAS_AUDIO
                 if (opts.common.audioPid) {
                     if(opts.common.decodedAudio) {
                         printf("audio %u/%u (%u%%) pts=%#x, stc=%#x (diff %d), queuedFrames=%d %uKbps\n", astatus.fifoDepth, astatus.fifoSize,
@@ -2403,13 +2406,14 @@ int main(int argc, const char *argv[])
                             astatus.queuedFrames);
                     }
                 }
+#endif
                 printf("playback %u/%u (%u%%) pos=%u:%02u.%03u(%d:%d) last=%u:%02u.%03u\n", pstatus.fifoDepth, pstatus.fifoSize,
                     pstatus.fifoSize ? pstatus.fifoDepth * 100 / pstatus.fifoSize : 0,
                     (unsigned)pstatus.position/60000,
                     (unsigned)(pstatus.position%60000)/1000,
                     (unsigned)pstatus.position%1000,
                     (int)(pstatus.readPosition - pstatus.position),
-                    (int)(pumpstatus.mediaPts - (opts.common.videoPid?vstatus.pts:astatus.pts))/45,
+                    (int)(pumpstatus.mediaPts - (opts.common.videoPid?vstatus.pts:astatus_pts))/45,
                     (unsigned)pstatus.last/60000,
                     (unsigned)(pstatus.last%60000)/1000,
                     (unsigned)pstatus.last%1000

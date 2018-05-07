@@ -19,7 +19,8 @@ WindowState::WindowState(void *context, BEGL_WindowHandle windowHandle, bool sec
    m_gfdbacking(),
    m_isBouncing(false),
    m_secure(secure),
-   m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this)))
+   m_worker(std::unique_ptr<nxpl::Worker>(new nxpl::Worker(this,
+         static_cast<NXPL_Display *>(context)->eventContext)))
 {}
 
 WindowState::~WindowState()
@@ -46,14 +47,11 @@ bool WindowState::Init(void *context, unsigned swapbuffers)
       auto nw = static_cast<nxpl::NativeWindowInfo*>(m_windowHandle);
       auto windowExtent = nw->GetExtent2D();
 
-      BEGL_PixmapInfoEXT pixmapInfoEXT = {};
-      pixmapInfoEXT.width = windowExtent.GetWidth();
-      pixmapInfoEXT.height = windowExtent.GetHeight();
-      pixmapInfoEXT.format = BEGL_BufferFormat_eA8B8G8R8;
-
       for (int i = 0; i < 3; i++)
       {
-         auto tmp = std::unique_ptr<nxpl::Bitmap>(new nxpl::Bitmap(context, gfd0Heap, &pixmapInfoEXT));
+         auto tmp = std::unique_ptr<nxpl::Bitmap>(
+               new nxpl::Bitmap(context, gfd0Heap, windowExtent.GetWidth(),
+                     windowExtent.GetHeight(), BEGL_BufferFormat_eA8B8G8R8));
          if (!tmp)
             return false;
          m_gfdbacking.Push(std::move(tmp));

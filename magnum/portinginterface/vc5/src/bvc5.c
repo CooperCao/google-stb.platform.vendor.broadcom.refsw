@@ -358,6 +358,11 @@ BERR_Code BVC5_Open(
    hVC5->bInStandby = false;
 
 #ifdef BVC5_HARDWARE_REAL
+#if (BCHP_CHIP == 7211)
+   /* 7211 has only hooked up a single IRQ for the V3D which is an | of the hub and v3d IRQ */
+   BINT_CreateCallback(&hVC5->callback_intctl, hInt,
+                       BCHP_INT_ID_V3D_INTR, BVC5_P_InterruptCombinedHandler_isr, hVC5, 0);
+#else
    /* TODO: connect up interrupts for the TFU however it is configured */
    /* install an IRQ handler for the module */
    BINT_CreateCallback(&hVC5->callback_intctl, hInt,
@@ -366,6 +371,7 @@ BERR_Code BVC5_Open(
    /* Leave inplace for TFU, this is a HUB interrupt */
    BINT_CreateCallback(&hVC5->callback_hub_intctl, hInt,
                        BCHP_INT_ID_V3D_HUB_INTR, BVC5_P_InterruptHandlerHub_isr, hVC5, 0);
+#endif
 #endif
 
    *phVC5 = hVC5;
@@ -544,8 +550,8 @@ BERR_Code BVC5_RegisterClient(
 
    if (hVC5 == NULL)
    {
-      err = BERR_INVALID_PARAMETER;
-      goto exit;
+      BDBG_LEAVE(BVC5_RegisterClient);
+      return BERR_INVALID_PARAMETER;
    }
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
@@ -580,16 +586,14 @@ BERR_Code BVC5_RegisterClient(
 
    err = BVC5_P_ClientMapCreateAndInsert(hVC5, hVC5->hClientMap, pContext, *puiClientId, uiPlatformToken, uiClientPID);
    if (err != BERR_SUCCESS)
-      goto exit1;
+      goto exit;
 
    err = BVC5_P_SchedulerStateRegisterClient(&hVC5->sSchedulerState, BVC5_P_ClientMapSize(hVC5->hClientMap));
    if (err != BERR_SUCCESS)
       BVC5_P_ClientMapRemoveAndDestroy(hVC5, hVC5->hClientMap, *puiClientId);
 
-exit1:
-   BKNI_ReleaseMutex(hVC5->hModuleMutex);
-
 exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
    BDBG_LEAVE(BVC5_RegisterClient);
 
    return err;
@@ -912,6 +916,106 @@ exit:
    return err;
 }
 
+BERR_Code BVC5_ComputeJob(
+   BVC5_Handle                   hVC5,            /* [in] Handle to VC5 module. */
+   uint32_t                      uiClientId,      /* [in]                       */
+   const BVC5_JobCompute        *pCompute,        /* [in]                       */
+   uint32_t                      uiNumSubjobs,    /* [in]                       */
+   const BVC5_JobComputeSubjob  *pSubjobs         /* [in]                       */
+   )
+{
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   BSTD_UNUSED(hVC5);
+   BSTD_UNUSED(uiClientId);
+   BSTD_UNUSED(pCompute);
+   BSTD_UNUSED(uiNumSubjobs);
+   BSTD_UNUSED(pSubjobs);
+   return BERR_INVALID_PARAMETER;
+#else
+   BERR_Code err = BERR_SUCCESS;
+   BVC5_P_InternalJob *pJob = NULL;
+   BVC5_P_ComputeSubjobs *pIntSubjobs;
+   BVC5_ClientHandle hClient;
+
+   BDBG_ENTER(BVC5_ComputeJob);
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   if (pCompute == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   /* Must provide either some immediate subjobs, or pointer to previously created object. */
+   if (!(!!pCompute->uiSubjobsId ^ !!uiNumSubjobs))
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+   if (hClient == NULL || !BVC5_P_ClientSetMaxJobId(hClient, pCompute->sBase.uiJobId))
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   if (uiNumSubjobs != 0)
+   {
+      /* Validate subjobs. */
+      uint32_t s, i;
+      for (s = 0; s != uiNumSubjobs; ++s)
+      {
+         for (i = 0; i != 3; ++i)
+         {
+            if ((pSubjobs[s].uiNumWgs[i] - 1) > 0xffff)
+            {
+               err = BERR_INVALID_PARAMETER;
+               goto exit;
+            }
+         }
+      }
+
+      /* Copy subjobs. */
+      pIntSubjobs = BVC5_P_NewComputeSubjobs(uiNumSubjobs);
+      if (!pIntSubjobs)
+      {
+         err = BERR_OUT_OF_SYSTEM_MEMORY;
+         goto exit;
+      }
+      BVC5_P_UpdateComputeSubjobs(pIntSubjobs, uiNumSubjobs, pSubjobs);
+   }
+   else
+   {
+      /* Lookup subjobs object. */
+      pIntSubjobs = BVC5_P_ClientGetComputeSubjobs(hClient, pCompute->uiSubjobsId);
+      if (!pIntSubjobs)
+      {
+         err = BERR_INVALID_PARAMETER;
+         goto exit;
+      }
+   }
+
+   /* Take a copy of the job */
+   pJob = BVC5_P_JobCreateCompute(hVC5, uiClientId, pCompute, pIntSubjobs);
+   if (pJob == NULL)
+   {
+      if (uiNumSubjobs != 0)
+         BVC5_P_DeleteComputeSubjobs(pIntSubjobs);
+      err = BERR_OUT_OF_SYSTEM_MEMORY;
+      goto exit;
+   }
+
+   BVC5_P_AddJob(hVC5, hClient, pJob);
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+   BDBG_LEAVE(BVC5_ComputeJob);
+   return err;
+#endif
+}
+
 BERR_Code BVC5_BarrierJob(
    BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
    uint32_t                    uiClientId, /* [in]                       */
@@ -1034,6 +1138,7 @@ BERR_Code BVC5_FenceWaitJob(
       goto exit;
    }
 
+   BVC5_P_AddSchedWaitJobEvent(hVC5, uiClientId, BVC5_EventBegin, pWaitJob->uiJobId, pJob->iFence, BVC5_P_GetEventTimestamp());
    BVC5_P_AddJob(hVC5, hClient, pWaitJob);
 
    err = BERR_SUCCESS;
@@ -1657,6 +1762,100 @@ exit:
    return err;
 }
 
+BERR_Code BVC5_NewComputeSubjobs(
+      BVC5_Handle          hVC5,
+      uint32_t             uiClientId,
+      uint32_t             uiMaxSubjobs,
+      uint32_t             *puiSubjobsId)
+{
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   BSTD_UNUSED(hVC5);
+   BSTD_UNUSED(uiClientId);
+   BSTD_UNUSED(uiMaxSubjobs);
+   BSTD_UNUSED(puiSubjobsId);
+   return BERR_INVALID_PARAMETER;
+#else
+   BERR_Code err = BERR_SUCCESS;
+   BVC5_ClientHandle hClient;
+
+   BDBG_ENTER(BVC5_NewComputeSubjobs);
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+   if (hClient == NULL || puiSubjobsId == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   *puiSubjobsId = BVC5_P_ClientNewComputeSubjobs(hClient, uiMaxSubjobs);
+   if (!*puiSubjobsId)
+      err = BERR_OUT_OF_SYSTEM_MEMORY;
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+   BDBG_LEAVE(BVC5_NewComputeSubjobs);
+   return err;
+#endif
+}
+
+BERR_Code BVC5_UpdateComputeSubjobs(
+      BVC5_Handle                   hVC5,
+      uint32_t                      uiClientId,
+      uint32_t                      uiSubjobsId,
+      uint32_t                      uiNumSubjobs,
+      const BVC5_JobComputeSubjob   *pSubjobs)
+{
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+   BSTD_UNUSED(hVC5);
+   BSTD_UNUSED(uiClientId);
+   BSTD_UNUSED(uiSubjobsId);
+   BSTD_UNUSED(uiNumSubjobs);
+   BSTD_UNUSED(pSubjobs);
+   return BERR_INVALID_PARAMETER;
+#else
+   BERR_Code err = BERR_SUCCESS;
+   BVC5_ClientHandle hClient;
+   BVC5_P_ComputeSubjobs *pIntSubjobs;
+   uint32_t s, i;
+
+   BDBG_ENTER(BVC5_UpdateComputeSubjobs);
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+   if (hClient == NULL)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   pIntSubjobs = BVC5_P_ClientGetComputeSubjobs(hClient, uiSubjobsId);
+   if (pIntSubjobs == NULL || uiNumSubjobs > pIntSubjobs->uiCapacity)
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   for (s = 0; s != uiNumSubjobs; ++s)
+   {
+      for (i = 0; i != 3; ++i)
+      {
+         if ((pSubjobs[s].uiNumWgs[i] - 1) > 0xffff)
+         {
+            err = BERR_INVALID_PARAMETER;
+            goto exit;
+         }
+      }
+   }
+
+   BVC5_P_UpdateComputeSubjobs(pIntSubjobs, uiNumSubjobs, pSubjobs);
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+   BDBG_LEAVE(BVC5_UpdateComputeSubjobs);
+   return err;
+#endif
+}
 
 /***************************************************************************/
 

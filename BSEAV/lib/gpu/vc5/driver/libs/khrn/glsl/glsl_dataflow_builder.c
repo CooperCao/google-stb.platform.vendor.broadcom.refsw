@@ -204,7 +204,7 @@ static void build_loads(BasicBlock *b, const struct buf_ref *buf, Dataflow *offs
             {
                Dataflow *vec_offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, glsl_dataflow_construct_const_uint(i*matrix_stride));
                Dataflow *vec_address = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, buf->address, vec_offset);
-               Dataflow *vec = glsl_dataflow_construct_vector_load(df_scalar_type(type, 0), vec_address);
+               Dataflow *vec = glsl_dataflow_construct_vector_load(vec_address);
 
                for(unsigned j=0; j<vec_size; j++)
                   matrix_scalars[i][j] = glsl_dataflow_construct_get_vec4_component(j, vec, df_scalar_type(type, 0));
@@ -231,12 +231,12 @@ static void build_loads(BasicBlock *b, const struct buf_ref *buf, Dataflow *offs
                for(unsigned i=0; i<type->scalar_count; i++) {
                   Dataflow *o = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, glsl_dataflow_construct_const_uint(i*stride));
                   Dataflow *address = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, buf->address, o);
-                  Dataflow *data    = glsl_dataflow_construct_vector_load(df_scalar_type(type, 0), address);
+                  Dataflow *data    = glsl_dataflow_construct_vector_load(address);
                   scalar_offsets[i] = glsl_dataflow_construct_get_vec4_component(0, data, df_scalar_type(type, 0));
                }
             } else {
                Dataflow *vec_addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, buf->address, offset);
-               Dataflow *vec = glsl_dataflow_construct_vector_load(df_scalar_type(type, 0), vec_addr);
+               Dataflow *vec = glsl_dataflow_construct_vector_load(vec_addr);
                for (unsigned i=0; i<type->scalar_count; i++) {
                   scalar_offsets[i] = glsl_dataflow_construct_get_vec4_component(i, vec, df_scalar_type(type, 0));
                }
@@ -993,153 +993,89 @@ static inline void construct_dataflow_matXxY_mul_matZxY_matXxZ(int X, int Y, int
 
 static inline void expr_calculate_dataflow_binary_op_arithmetic(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
 {
-   Expr *left = expr->u.binary_op.left;
+   Expr *left  = expr->u.binary_op.left;
    Expr *right = expr->u.binary_op.right;
    ExprFlavour flavour = expr->flavour;
-   Dataflow **left_scalar_values  = alloc_dataflow(left->type->scalar_count);
-   Dataflow **right_scalar_values = alloc_dataflow(right->type->scalar_count);
+   Dataflow **left_scalars  = alloc_dataflow(left->type->scalar_count);
+   Dataflow **right_scalars = alloc_dataflow(right->type->scalar_count);
 
    // Recurse.
-   glsl_expr_calculate_dataflow(ctx, left_scalar_values, left);
-   glsl_expr_calculate_dataflow(ctx, right_scalar_values, right);
+   glsl_expr_calculate_dataflow(ctx, left_scalars, left);
+   glsl_expr_calculate_dataflow(ctx, right_scalars, right);
 
-   DataflowFlavour dataflow_flavour;
+   DataflowFlavour df_flavour;
    switch (flavour) {
-   case EXPR_MUL: dataflow_flavour = DATAFLOW_MUL; break;
-   case EXPR_DIV: dataflow_flavour = DATAFLOW_DIV; break;
-   case EXPR_REM: dataflow_flavour = DATAFLOW_REM; break;
-   case EXPR_ADD: dataflow_flavour = DATAFLOW_ADD; break;
-   case EXPR_SUB: dataflow_flavour = DATAFLOW_SUB; break;
+   case EXPR_MUL: df_flavour = DATAFLOW_MUL; break;
+   case EXPR_DIV: df_flavour = DATAFLOW_DIV; break;
+   case EXPR_REM: df_flavour = DATAFLOW_REM; break;
+   case EXPR_ADD: df_flavour = DATAFLOW_ADD; break;
+   case EXPR_SUB: df_flavour = DATAFLOW_SUB; break;
    default: unreachable(); return;
    }
 
-   int left_index = left->type->u.primitive_type.index;
-   int right_index = right->type->u.primitive_type.index;
-   PRIMITIVE_TYPE_FLAGS_T left_flags = primitiveTypeFlags[left_index];
+   PrimitiveTypeIndex left_index  = left->type->u.primitive_type.index;
+   PrimitiveTypeIndex right_index = right->type->u.primitive_type.index;
+   PRIMITIVE_TYPE_FLAGS_T left_flags  = primitiveTypeFlags[left_index];
    PRIMITIVE_TYPE_FLAGS_T right_flags = primitiveTypeFlags[right_index];
 
-   // Infer type, and value if possible.
-   // From spec (1.00 rev 14 p46), the two operands must be:
+   // From spec, the two operands must be:
    // 1 - the same type (the type being integer scalar/vector, float scalar/vector/matrix),
    // 2 - or one can be a scalar float and the other a float vector or matrix,
    // 3 - or one can be a scalar integer and the other an integer vector,
    // 4 - or, for multiply, one can be a float vector and the other a float matrix with the same dimensional size.
-   // All operations are component-wise except EXPR_MUL involving at least one matrix (cases 1 and 4).
+   // All operations are component-wise except EXPR_MUL involving at least one matrix (case 4).
+   // The AST has checked that all combinations are valid, so we assert that usage is correct.
 
-   assert( ((left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE)) ||
-           ((left_flags & PRIM_INT_TYPE)   && (right_flags & PRIM_INT_TYPE))   ||
-           ((left_flags & PRIM_UINT_TYPE)   && (right_flags & PRIM_UINT_TYPE))   );
-
-   // Case 1.
-   if (left->type == right->type)
+   // Case 1. Matrix * Matrix gets dealt with in case 4.
+   if (left->type == right->type && !(flavour == EXPR_MUL && (left_flags & PRIM_MATRIX_TYPE)))
    {
-      if (flavour == EXPR_MUL && (left_flags & PRIM_MATRIX_TYPE))
-      {
-         int d = primitiveTypeSubscriptDimensions[expr->type->u.primitive_type.index];
-         // Linear algebraic mat * mat.
-         construct_dataflow_matXxY_mul_matZxY_matXxZ(d,
-                                                     d,
-                                                     d,
-                                                     scalar_values,
-                                                     left_scalar_values,
-                                                     right_scalar_values);
-      }
-      else
-      {
-         // Component-wise on same scalar type, same scalar count.
-         for (unsigned i = 0; i < expr->type->scalar_count; i++)
-         {
-            assert(left_scalar_values[i]);
-            assert(right_scalar_values[i]);
-
-            scalar_values[i] = glsl_dataflow_construct_binary_op(
-               dataflow_flavour,
-               left_scalar_values[i],
-               right_scalar_values[i]);
-         }
-      }
-      free_dataflow(right_scalar_values);
-      free_dataflow(left_scalar_values);
-      return;
-   }
-
-   // Cases 2 and 3.
-   if ( (left_flags & PRIM_SCALAR_TYPE) &&
-        (right_flags & (PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)))
-   {
-      // Component-wise on same scalar type, different scalar counts.
+      // Component-wise on same scalar type, same scalar count.
       for (unsigned i = 0; i < expr->type->scalar_count; i++)
-      {
-         scalar_values[i] = glsl_dataflow_construct_binary_op(
-            dataflow_flavour,
-            left_scalar_values[0],
-            right_scalar_values[i]);
-      }
-
-      free_dataflow(right_scalar_values);
-      free_dataflow(left_scalar_values);
-      return;
+         scalar_values[i] = glsl_dataflow_construct_binary_op(df_flavour, left_scalars[i], right_scalars[i]);
    }
-   else if ( (right_flags & PRIM_SCALAR_TYPE) &&
-             (left_flags & (PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)))
+   // Cases 2 and 3. Component-wise on same scalar type, different scalar counts.
+   else if ( (left_flags & PRIM_SCALAR_TYPE) && (right_flags & (PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)))
    {
-      // Component-wise on same scalar type, different scalar counts.
       for (unsigned i = 0; i < expr->type->scalar_count; i++)
-      {
-         scalar_values[i] = glsl_dataflow_construct_binary_op(
-            dataflow_flavour,
-            left_scalar_values[i],
-            right_scalar_values[0]);
-      }
-
-      free_dataflow(right_scalar_values);
-      free_dataflow(left_scalar_values);
-      return;
+         scalar_values[i] = glsl_dataflow_construct_binary_op(df_flavour, left_scalars[0], right_scalars[i]);
    }
-
-   // Case 4.
-   if (flavour == EXPR_MUL) {
+   else if ( (right_flags & PRIM_SCALAR_TYPE) && (left_flags & (PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)))
+   {
+      for (unsigned i = 0; i < expr->type->scalar_count; i++)
+         scalar_values[i] = glsl_dataflow_construct_binary_op(df_flavour, left_scalars[i], right_scalars[0]);
+   }
+   // Case 4. Multiplication with matrices.
+   else {
+      assert(flavour == EXPR_MUL);
       int X, Y, Z;
-      if ( (left_flags & PRIM_MATRIX_TYPE) && (right_flags & PRIM_VECTOR_TYPE)
-         && glsl_prim_matrix_type_subscript_dimensions(left_index, 0) == primitiveTypeSubscriptDimensions[left_index])
-      {
+      if ( (left_flags & PRIM_MATRIX_TYPE) && (right_flags & PRIM_VECTOR_TYPE) ) {
          /* Linear algebraic mat * vec. */
+         assert(glsl_prim_matrix_type_subscript_dimensions(left_index, 0) == primitiveTypeSubscriptDimensions[right_index]);
          X = 1;
          Y = primitiveTypeSubscriptDimensions[expr->type->u.primitive_type.index];
          Z = glsl_prim_matrix_type_subscript_dimensions(left_index, 0);
-      } else if ( (right_flags & PRIM_MATRIX_TYPE) && (left_flags & PRIM_VECTOR_TYPE)
-         && primitiveTypeSubscriptDimensions[left_index] == glsl_prim_matrix_type_subscript_dimensions(right_index, 1))
-      {
+      } else if ( (right_flags & PRIM_MATRIX_TYPE) && (left_flags & PRIM_VECTOR_TYPE) ) {
          /* Linear algebraic vec * mat. */
+         assert(primitiveTypeSubscriptDimensions[left_index] == glsl_prim_matrix_type_subscript_dimensions(right_index, 1));
          X = primitiveTypeSubscriptDimensions[expr->type->u.primitive_type.index];
          Y = 1;
          Z = glsl_prim_matrix_type_subscript_dimensions(right_index, 1);
-      }
-      else if ( (right_flags & PRIM_MATRIX_TYPE) && (left_flags & PRIM_MATRIX_TYPE)
-         && glsl_prim_matrix_type_subscript_dimensions(left_index, 0) == glsl_prim_matrix_type_subscript_dimensions(right_index, 1))
-      {
+      } else if ( (right_flags & PRIM_MATRIX_TYPE) && (left_flags & PRIM_MATRIX_TYPE) ) {
          /* Linear algebraic mat * mat. */
+         assert(glsl_prim_matrix_type_subscript_dimensions(left_index, 0) == glsl_prim_matrix_type_subscript_dimensions(right_index, 1));
          X = glsl_prim_matrix_type_subscript_dimensions(expr->type->u.primitive_type.index, 0);
          Y = glsl_prim_matrix_type_subscript_dimensions(expr->type->u.primitive_type.index, 1);
          Z = glsl_prim_matrix_type_subscript_dimensions(right_index, 1);
       }
       else
-         unreachable();    /* AST should have checked that this is valid */
+         unreachable();
 
-      construct_dataflow_matXxY_mul_matZxY_matXxZ(X,
-                                                  Y,
-                                                  Z,
-                                                  scalar_values,
-                                                  left_scalar_values,
-                                                  right_scalar_values);
-
-      free_dataflow(right_scalar_values);
-      free_dataflow(left_scalar_values);
-      return;
+      construct_dataflow_matXxY_mul_matZxY_matXxZ(X, Y, Z, scalar_values, left_scalars, right_scalars);
    }
 
-   // All valid instances of expr should have been handled above.
-   unreachable();
+   free_dataflow(right_scalars);
+   free_dataflow(left_scalars);
+   return;
 }
 
 static void expr_calculate_dataflow_binary_op_common(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)

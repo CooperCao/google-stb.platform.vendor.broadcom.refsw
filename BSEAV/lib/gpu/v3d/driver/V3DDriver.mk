@@ -49,6 +49,7 @@ CFLAGS += \
 	-fpic -DPIC \
 	-std=c99 \
 	-I. \
+	-I./interface/khronos/include \
 	-I./interface/vcos/pthreads
 
 ifeq ($(VC5_GPUMON_HOOK),)
@@ -120,6 +121,12 @@ CFLAGS += $(V3D_EXTRA_CFLAGS)
 
 LDFLAGS = -lpthread -ldl
 
+# Bind references to global functions to the definitions within the khronos
+# library. This in particular means eglGetProcAddress will always return the
+# khronos library function pointers, even if a GL wrapper library is in
+# LD_PRELOAD.
+LDFLAGS += -Wl,-Bsymbolic-functions
+
 # Add any customer specific ldflags from the command line
 LDFLAGS += $(V3D_EXTRA_LDFLAGS)
 
@@ -137,7 +144,7 @@ $(info ****************************************************)
 
 ifneq ($(PROFILING),0)
 CFLAGS += -Os -DNDEBUG
-LDFLAGS += --export-dynamic
+LDFLAGS += -Wl,--export-dynamic
 else
 CFLAGS += -O0
 endif
@@ -161,7 +168,7 @@ CFLAGS += -fvisibility=hidden
 LDFLAGS += -s
 else
 CFLAGS += -g
-LDFLAGS += -g --export-dynamic
+LDFLAGS += -g -Wl,--export-dynamic
 endif
 
 OBJDIR ?= obj_$(NEXUS_PLATFORM)_release
@@ -183,11 +190,8 @@ SOURCES = \
 	interface/khronos/egl/egl_client_config.c \
 	interface/khronos/egl/egl_client.c \
 	interface/khronos/egl/egl_client_get_proc.c \
-	interface/khronos/ext/egl_android_ext.c \
 	interface/khronos/ext/egl_khr_sync_client.c \
-	interface/khronos/ext/egl_khr_lock_surface_client.c \
 	interface/khronos/ext/egl_khr_image_client.c \
-	interface/khronos/ext/egl_brcm_driver_monitor_client.c \
 	interface/khronos/ext/egl_wl_bind_display_client.c \
 	middleware/khronos/common/2708/khrn_render_state_4.c \
 	middleware/khronos/common/2708/khrn_nmem_4.c \
@@ -202,24 +206,24 @@ SOURCES = \
 	middleware/khronos/common/khrn_interlock.c \
 	middleware/khronos/common/khrn_image.c \
 	middleware/khronos/common/khrn_fleaky_map.c \
-	middleware/khronos/common/khrn_color.c \
+	middleware/khronos/common/khrn_counters.c \
 	middleware/khronos/common/khrn_bf_dummy.c \
 	middleware/khronos/common/khrn_workarounds.c \
 	middleware/khronos/common/khrn_debug_helper.cpp \
 	middleware/khronos/common/khrn_mem.c \
 	middleware/khronos/common/khrn_map.c \
 	middleware/khronos/egl/abstract_server/egl_platform_abstractserver.c \
-	middleware/khronos/egl/abstract_server/egl_platform_abstractpixmap.c \
 	middleware/khronos/egl/egl_server.c \
 	middleware/khronos/ext/gl_oes_query_matrix.c \
 	middleware/khronos/ext/gl_oes_egl_image.c \
 	middleware/khronos/ext/gl_oes_draw_texture.c \
 	middleware/khronos/ext/gl_oes_framebuffer_object.c \
 	middleware/khronos/ext/ext_gl_multisample_render_to_texture.c \
-	middleware/khronos/ext/egl_brcm_driver_monitor.c \
 	middleware/khronos/ext/egl_khr_image.c \
 	middleware/khronos/ext/ext_gl_debug_marker.c \
 	middleware/khronos/ext/egl_wl_bind_display.c \
+	middleware/khronos/ext/egl_brcm_event_monitor.c \
+	middleware/khronos/ext/egl_brcm_perf_counters.c \
 	middleware/khronos/gl11/2708/gl11_shader_4.c \
 	middleware/khronos/gl11/2708/gl11_shadercache_4.c \
 	middleware/khronos/gl11/2708/gl11_support_4.c \

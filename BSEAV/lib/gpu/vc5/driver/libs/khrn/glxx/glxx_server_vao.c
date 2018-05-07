@@ -42,7 +42,7 @@ static void vao_enable(GLXX_SERVER_STATE_T *state, GLXX_VAO_T *vao)
    vao->element_array_binding.buffer = 0;
    vao->element_array_binding.obj = NULL;
 
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++)
    {
       GLXX_ATTRIB_CONFIG_T* attrib = &vao->attrib_config[i];
       attrib->gl_type = GL_FLOAT;

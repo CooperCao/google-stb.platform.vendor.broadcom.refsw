@@ -9,10 +9,10 @@
 
 struct glxx_hw_tile_list_fb_ops
 {
-   struct v3d_tlb_ldst_params rt_nonms_ls[GLXX_MAX_RENDER_TARGETS];
-   struct v3d_tlb_ldst_params rt_ms_ls[GLXX_MAX_RENDER_TARGETS];
-   uint32_t rt_nonms_layer_stride[GLXX_MAX_RENDER_TARGETS];
-   uint32_t rt_ms_layer_stride[GLXX_MAX_RENDER_TARGETS];
+   struct v3d_tlb_ldst_params rt_nonms_ls[V3D_MAX_RENDER_TARGETS];
+   struct v3d_tlb_ldst_params rt_ms_ls[V3D_MAX_RENDER_TARGETS];
+   uint32_t rt_nonms_layer_stride[V3D_MAX_RENDER_TARGETS];
+   uint32_t rt_ms_layer_stride[V3D_MAX_RENDER_TARGETS];
 
    uint32_t rt_clear_mask;
    uint32_t rt_nonms_load_mask, rt_ms_load_mask;
@@ -34,7 +34,7 @@ struct glxx_hw_tile_list_rcfg
    /* if adding more data members, change rcfgs_not_equal*/
    bool early_ds_clear;
 #else
-   struct v3d_tlb_ldst_params rt_ls[GLXX_MAX_RENDER_TARGETS];
+   struct v3d_tlb_ldst_params rt_ls[V3D_MAX_RENDER_TARGETS];
    uint32_t rt_store_mask;
 
    struct v3d_tlb_ldst_params depth_ls, sep_stencil_ls;

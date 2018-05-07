@@ -877,7 +877,7 @@ unsigned BDSP_Arm_P_AssignAlgoSizes(
                 const BIMG_Interface *pImageInterface,
                 void **pImageContext,
                 BDSP_ArmImgCacheEntry * pImgCache,
-                const BDSP_ArmUsageOptions *pUsage,
+                const BDSP_UsageOptions *pUsage,
                 bool UseBDSPMacro)
 {
     unsigned i=0;

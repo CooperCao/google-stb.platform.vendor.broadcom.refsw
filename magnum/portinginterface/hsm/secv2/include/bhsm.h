@@ -125,6 +125,11 @@ typedef struct BHSM_ModuleCapabilities
        }zeus,bfw;
    } version;                 /* version information */
 
+    struct{
+        bool valid;          /* true if the firmware EPOCH is available */
+        uint8_t value;       /* the EPOCH value ranging from 0 to 255*/
+    }firmwareEpoch;           /* the EPOCH of the BSECK Firmware (BFW) */
+
    unsigned numKeyslotsForType[BHSM_KeyslotType_eMax];   /* Number of each type of keyslot. */
 
    unsigned archesPerMemc;                               /* the number of arches per MemC */

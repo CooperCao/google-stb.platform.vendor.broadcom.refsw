@@ -70,11 +70,18 @@ define set_gl_vk_common_local_variables
 		-DHAVE_ZLIB \
 		-DEMBEDDED_SETTOP_BOX=1 \
 		-DKHRN_GLES32_DRIVER=0 \
+		-DV3D_PLATFORM_ABSTRACT=1 \
 		-DV3D_PLATFORM_SIM=0 \
 		-DSECURE_SUPPORT=0 \
 		-Wno-unused-function \
 		-Wno-unused-variable \
 		-Wno-unused-but-set-variable
+
+	LOCAL_CPPFLAGS := -std=gnu++0x
+
+	ifeq ($(BOARD_VNDK_VERSION),current)
+		LOCAL_HEADER_LIBRARIES := liblog_headers
+	endif
 
 	ifeq ($(TARGET_2ND_ARCH),arm)
 		LOCAL_CFLAGS_arm64 += ${V3D_ANDROID_DEFINES_1ST_ARCH}
@@ -146,6 +153,14 @@ define set_gl_vk_common_local_variables
 	# LD_PRELOAD.
 	LOCAL_LDFLAGS += -Wl,-Bsymbolic-functions
 
+   COMMON_PLAT_SRC_FILES :=              \
+      platform/android/display_android.c \
+      platform/android/memory_android.c \
+      platform/android/sched_android.c \
+      platform/common/memory_convert.c \
+      platform/common/display_helpers.c
+
+
 endef
 
 # ----------------------------------------
@@ -157,6 +172,8 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 # Android needs this to be set
 LOCAL_PATH := $(V3D_DRIVER_TOP_REL_PATH)
+
+include $(V3D_DRIVER_TOP_ABS_PATH)/driver/common.mk
 
 # definition order matters here for intermediate (generated) modules.
 LOCAL_MODULE_TAGS := optional
@@ -171,42 +188,7 @@ DGLENUM_INTERMEDIATE_ABS_PATH := $(GENERATED_SRC_DIR)/driver/libs/util/dglenum
 GLSL_INTERMEDIATE_REL_PATH := $(intermediates)/driver/libs/khrn/glsl
 DGLENUM_INTERMEDIATE_REL_PATH := $(intermediates)/driver/libs/util/dglenum
 
-LOCAL_C_INCLUDES := \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/interface/khronos/include \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/core/vcos/posix \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/core/vcos/generic \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/core/vcos/include \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/core/vcos \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/khrn/egl/platform/bcg_abstract \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/platform \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/platform/bcg_abstract \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/khrn/egl/bcg_abstract/egl \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/khrn/glsl \
-	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/khrn/include \
-	$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
-	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include
-
-ifeq ($(BOARD_VNDK_VERSION),current)
-LOCAL_HEADER_LIBRARIES := liblog_headers
-endif
-
-LOCAL_CFLAGS := \
-	-fpic -DPIC \
-	-fwrapv \
-	-Dkhronos_EXPORTS \
-	-D_POSIX_C_SOURCE=200112 \
-	-D_GNU_SOURCE \
-	-DHAVE_ZLIB \
-	-DEMBEDDED_SETTOP_BOX=1 \
-	-DKHRN_GLES32_DRIVER=0 \
-	-DV3D_PLATFORM_SIM=0 \
-	-Wno-unused-function \
-	-Wno-unused-variable \
-	-Wno-unused-but-set-variable
-
-LOCAL_CPPFLAGS := -std=gnu++0x
-
+$(eval $(call set_gl_vk_common_local_variables))
 
 ifeq ($(TARGET_2ND_ARCH),arm)
 	LOCAL_CFLAGS_arm64 += ${V3D_ANDROID_DEFINES_1ST_ARCH}
@@ -221,8 +203,6 @@ endif
 LOCAL_C_INCLUDES += \
 	$(DGLENUM_INTERMEDIATE_REL_PATH) \
 	$(GLSL_INTERMEDIATE_REL_PATH)
-
-include $(V3D_DRIVER_TOP_ABS_PATH)/driver/common.mk
 
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/driver/libs/khrn/glsl/, $(COMMON_GENERATED_SRC_FILES) $(GLES_GENERATED_SRC_FILES))
 
@@ -278,20 +258,12 @@ LOCAL_C_INCLUDES += \
 	$(DGLENUM_INTERMEDIATE_REL_PATH) \
 	$(GLSL_INTERMEDIATE_REL_PATH)
 
-ifeq ($(BOARD_VNDK_VERSION),current)
-LOCAL_HEADER_LIBRARIES := liblog_headers
-endif
-
 LOCAL_SRC_FILES := \
 	$(addprefix driver/, $(COMMON_SRC_FILES) $(GLES_SRC_FILES)) \
+	$(COMMON_PLAT_SRC_FILES) \
 	platform/android/default_android.c \
-	platform/android/display_android.c \
-	platform/android/memory_android.c \
 	platform/common/memory_drm.c \
-	platform/common/memory_convert.c \
-	platform/common/display_helpers.c \
 	driver/libs/khrn/egl/platform/bcg_abstract/egl_native_fence_sync_android.c \
-	platform/android/sched_android.c \
 	platform/common/sched_nexus.c \
 	platform/android/android_platform_library_loader.c \
 	platform/common/perf_event.cpp
@@ -340,15 +312,10 @@ LOCAL_C_INCLUDES += \
 	$(V3D_DRIVER_TOP_ABS_PATH)/driver/libs/vulkan/driver/platforms \
 	$(ANDROID_TOP)/frameworks/native/vulkan/include
 
-ifeq ($(BOARD_VNDK_VERSION),current)
-LOCAL_HEADER_LIBRARIES := liblog_headers
-endif
-
 LOCAL_SRC_FILES := \
-	$(addprefix driver/, $(COMMON_SRC_FILES) $(VULKAN_SRC_FILES)) \
-	platform/android/display_android.c \
-	platform/android/memory_android.c \
-	platform/android/sched_android.c
+        $(addprefix driver/, $(COMMON_SRC_FILES) $(VULKAN_SRC_FILES)) \
+        $(COMMON_PLAT_SRC_FILES)
+
 
 LOCAL_PROPRIETARY_MODULE := true
 

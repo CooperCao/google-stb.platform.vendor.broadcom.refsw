@@ -120,7 +120,7 @@ void DSAspectCommandBuilder::CreateBinnerControlList(
    EndBinJobCL(brJob, &binList, syncFlags);
 }
 
-void DSAspectCommandBuilder::AddTileListLoads()
+void DSAspectCommandBuilder::AddTileListLoads(bool *allowEarlyDSClear)
 {
    if (m_loadDestination)
    {
@@ -134,10 +134,12 @@ void DSAspectCommandBuilder::AddTileListLoads()
             m_TLBParams.stride,
             m_TLBParams.flipy_height_px,
             m_TLBParams.addr);
+
+      *allowEarlyDSClear = false;
    }
 }
 
-void DSAspectCommandBuilder::AddTileListStores()
+void DSAspectCommandBuilder::AddTileListStores(bool *allowEarlyDSClear)
 {
    const bool stencilStore = m_hasStencil && !!(m_aspect & VK_IMAGE_ASPECT_STENCIL_BIT);
    const bool depthStore   = m_hasDepth && !!(m_aspect & VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -154,6 +156,8 @@ void DSAspectCommandBuilder::AddTileListStores()
          m_TLBParams.stride,
          m_TLBParams.flipy_height_px,
          m_TLBParams.addr);
+
+   *allowEarlyDSClear = false;
 
    if (m_needsClears)
       v3d_cl_clear(CLPtr(), false, true);
@@ -185,7 +189,8 @@ void DSAspectCommandBuilder::InsertRenderTargetCfg()
 void DSAspectCommandBuilder::CreateRenderControlList(
       CmdBinRenderJobObj *brJob,
       const ControlList  &gtl,
-      v3d_barrier_flags   syncFlags)
+      v3d_barrier_flags   syncFlags,
+      bool                allowEarlyDSClear)
 {
    ControlList renderList;
 
@@ -198,8 +203,8 @@ void DSAspectCommandBuilder::CreateRenderControlList(
          m_stencilClear,
          v3d_snap_depth(m_depthClear, m_depthType));
 
-   if (m_needsClears)
-      InsertInitialTLBClear(/*doubleBuffer=*/false, /*renderTargets=*/false, /*depthStencil=*/true);
+   InsertDummyTiles(/*clearDoubleBuffer=*/false, /*clearRenderTargets=*/false,
+                    /*clearDepthStencil=*/m_needsClears && !allowEarlyDSClear);
 
    if (m_loadDestination)
       syncFlags |= V3D_BARRIER_TLB_IMAGE_READ;

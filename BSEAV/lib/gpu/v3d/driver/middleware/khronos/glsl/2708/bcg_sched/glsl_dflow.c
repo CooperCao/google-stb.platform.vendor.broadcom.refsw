@@ -1414,7 +1414,8 @@ DFlowNode_ScheduleStatus DFlowNode_DoConstInt(DFlowNode *self, InstrState *state
 
 DFlowNode_ScheduleStatus DFlowNode_DoConstFloat(DFlowNode *self, InstrState *state)
 {
-   float val = *(float*)&self->m_uniform.m_constFloat.m_cfValue;
+   reinterpret_cast_uf v = { .u = self->m_uniform.m_constFloat.m_cfValue };
+   float val = v.f;
 
    bool fsUniformConsts =  InstrState_IsFragmentShader(state) && khrn_options.fs_uniform_consts;
    bool vsUniformConsts = !InstrState_IsFragmentShader(state) && khrn_options.vs_uniform_consts;

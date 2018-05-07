@@ -11,7 +11,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/khrn/common/khrn_options.c                             \
 	libs/util/dglenum/dglenum.c                                 \
 	libs/util/log/log.c                                         \
-	libs/khrn/glsl/dflib.c													\
+	libs/khrn/glsl/dflib.c                                      \
 	libs/khrn/glsl/glsl_unique_index_queue.c                    \
 	libs/khrn/glsl/glsl_mem_layout.c                            \
 	libs/khrn/glsl/glsl_symbols.c                               \
@@ -81,6 +81,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/khrn/glsl/prepro/glsl_prepro_eval.c                    \
 	libs/khrn/glsl/prepro/glsl_prepro_macro.c                   \
 	libs/util/desc_map/desc_map.c                               \
+	libs/util/early_z/early_z.c                                 \
 	libs/util/gfx_util/gfx_util_conv.c                          \
 	libs/util/gfx_util/gfx_util_morton.c                        \
 	libs/util/gfx_util/gfx_util_hrsize.c                        \
@@ -88,6 +89,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/util/gfx_util/gfx_util.c                               \
 	libs/util/gfx_util/gfx_util_term_col.c                      \
 	libs/util/gfx_util/gfx_util_wildcard.c                      \
+	libs/util/gfx_util/gfx_util_rect.c                          \
 	libs/util/gfx_options/gfx_options.c                         \
 	libs/core/lfmt/lfmt_translate_v3d.c                         \
 	libs/core/lfmt/lfmt_fmt_detail.c                            \
@@ -125,6 +127,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/core/v3d/v3d_tmu.c                                     \
 	libs/core/v3d/v3d_vpm.c                                     \
 	libs/compute/compute.cpp                                    \
+	libs/linkres/linkres.c                                      \
 	libs/platform/v3d_imgconv.c                                 \
 	libs/platform/v3d_imgconv_c.c                               \
 	libs/platform/v3d_imgconv_neon.c                            \
@@ -172,6 +175,7 @@ STDLIB_SOURCES :=                                               \
 	stdlib/interpolate.glsl                                     \
 	stdlib/matrix.glsl                                          \
 	stdlib/packing.glsl                                         \
+	stdlib/subgroup.glsl                                        \
 	stdlib/synchronisation.glsl                                 \
 	stdlib/texture_gather.glsl                                  \
 	stdlib/trigonometry.glsl                                    \
@@ -256,7 +260,6 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/egl/egl_image.c                                              \
 	libs/khrn/egl/egl_image_texture.c                                      \
 	libs/khrn/egl/egl_image_renderbuffer.c                                 \
-	libs/khrn/egl/egl_image_framebuffer.c                                  \
 	libs/khrn/egl/egl_sync.c                                               \
 	libs/khrn/egl/egl_synckhr.c                                            \
 	libs/khrn/egl/egl_partial_update.c                                     \
@@ -287,7 +290,6 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/gl20/gl20_program.c                                          \
 	libs/khrn/gl20/gl20_server.c                                           \
 	libs/khrn/gl20/gl20_shader.c                                           \
-	libs/khrn/glxx/glxx_ez.c                                               \
 	libs/khrn/glxx/glxx_hw.c                                               \
 	libs/khrn/glxx/glxx_inner.c                                            \
 	libs/khrn/glxx/glxx_shader_ops.c                                       \
@@ -324,6 +326,8 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/glxx/glxx_fencesync.c                                        \
 	libs/khrn/glxx/glxx_blit.c                                             \
 	libs/khrn/glxx/glxx_tmu_blit.c                                         \
+	libs/khrn/glxx/glxx_tmu_blit_shaders.c                                 \
+	libs/khrn/glxx/glxx_tmu_blit_int_shaders.c                             \
 	libs/khrn/glxx/glxx_tlb_blit.c                                         \
 	libs/khrn/glxx/glxx_utils.c                                            \
 	libs/khrn/glxx/glxx_compute.c                                          \
@@ -331,7 +335,6 @@ GLES_SRC_FILES :=                                                          \
 	libs/khrn/glxx/glxx_image_unit.c                                       \
 	libs/khrn/glxx/glxx_tf.c                                               \
 	libs/khrn/glxx/glxx_debug.c                                            \
-	libs/khrn/glxx/glxx_rect.c                                             \
 	libs/khrn/glxx/glxx_clear_layers.c                                     \
 	libs/khrn/egl/platform/bcg_abstract/egl_platform_abstract.c            \
 	libs/khrn/egl/platform/bcg_abstract/egl_window_surface_abstract.c      \
@@ -363,6 +366,7 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/DescriptorPool.cpp                       \
 	libs/vulkan/driver/DescriptorSet.cpp                        \
 	libs/vulkan/driver/DescriptorSetLayout.cpp                  \
+	libs/vulkan/driver/DescriptorUpdateTemplate.cpp             \
 	libs/vulkan/driver/Device.cpp                               \
 	libs/vulkan/driver/DeviceMemory.cpp                         \
 	libs/vulkan/driver/DevMemCmdBlock.cpp                       \
@@ -387,7 +391,6 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/Pipeline.cpp                             \
 	libs/vulkan/driver/PipelineLayout.cpp                       \
 	libs/vulkan/driver/ProcAddressFinder.cpp                    \
-	libs/vulkan/driver/QueryManager.cpp                         \
 	libs/vulkan/driver/QueryPool.cpp                            \
 	libs/vulkan/driver/Queue.cpp                                \
 	libs/vulkan/driver/RenderPass.cpp                           \
@@ -404,7 +407,6 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/spirv/Dflow.cpp                          \
 	libs/vulkan/driver/spirv/DflowScalars.cpp                   \
 	libs/vulkan/driver/spirv/DflowBuilder.cpp                   \
-	libs/vulkan/driver/spirv/TypeBuilder.cpp                    \
 	libs/vulkan/driver/spirv/GatherNodes.cpp                    \
 	libs/vulkan/driver/spirv/SymbolHandle.cpp                   \
 	libs/vulkan/driver/spirv/SymbolTypeHandle.cpp               \
@@ -414,7 +416,6 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/spirv/Decoration.cpp                     \
 	libs/vulkan/driver/spirv/ImageOperands.cpp                  \
 	libs/vulkan/driver/spirv/Extractor.cpp                      \
-	libs/vulkan/driver/spirv/NodeIndex.cpp                      \
 	libs/vulkan/driver/spirv/Composite.cpp                      \
 	libs/vulkan/driver/spirv/FunctionContext.cpp                \
 	libs/vulkan/driver/spirv/Pointer.cpp                        \
@@ -422,6 +423,8 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/spirv/Specialization.cpp                 \
 	libs/vulkan/driver/spirv/TextureLookup.cpp                  \
 	libs/vulkan/driver/spirv/CompiledShaderHandle.cpp           \
+	libs/vulkan/driver/spirv/InputOutput.cpp                    \
+	libs/vulkan/driver/spirv/Qualifier.cpp                      \
 	libs/vulkan/driver/platforms/BVKPlatform.cpp                \
 	libs/vulkan/driver/platforms/V3DPlatformBase.cpp            \
 	libs/vulkan/driver/platforms/V3DPlatformNexusCommon.cpp     \
@@ -430,7 +433,5 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/platforms/V3DPlatformWayland.cpp         \
 	libs/vulkan/driver/platforms/V3DPlatformAndroid.cpp         \
 	../platform/common/memory_drm.c                             \
-	../platform/common/memory_convert.c                         \
-	../platform/common/display_helpers.c                        \
 	../platform/common/perf_event.cpp                           \
 	../platform/common/sched_nexus.c

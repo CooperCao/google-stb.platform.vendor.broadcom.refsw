@@ -92,7 +92,7 @@ Summary:
 */
 typedef struct
 {
-	bool bEnabled; 
+	bool bEnabled;
 } BSYNClib_Channel_Data;
 
 /*
@@ -121,7 +121,7 @@ struct BSYNClib_Channel_Impl
 	BSYNClib_Channel_Settings sSettings;
 	BSYNClib_Channel_Config sConfig;
 	BSYNClib_Channel_Status sStatus;
-	
+
 	BSYNClib_Channel_Path sVideo;
 	BSYNClib_Channel_Path sAudio;
 
@@ -170,7 +170,7 @@ Summary:
 */
 BERR_Code BSYNClib_Channel_P_StartTimer_isr(
 	BSYNClib_Channel_Handle hChn,
-	BSYNClib_Timer * psTimer, 
+	BSYNClib_Timer * psTimer,
 	unsigned long ulTimeout,
 	BSYSlib_Timer_ExpiryHandler pfTimerExpired,
 	void * pvParm1,
@@ -186,7 +186,7 @@ void BSYNClib_Channel_P_CancelTimer_isr(
 Summary:
 Handles expiry of a sync timer
 */
-BERR_Code BSYNClib_Channel_P_TimerExpired(
+void BSYNClib_Channel_P_TimerExpired(
 	BSYNClib_Channel_Handle hChn,
 	BSYSlib_Timer_Handle hTimer
 );
@@ -237,7 +237,7 @@ bool BSYNClib_Channel_P_Enabled_isrsafe(
 Summary:
 */
 bool BSYNClib_Channel_P_PredictMadStateChange_isr(
-	BSYNClib_Channel_Handle hChn, 
+	BSYNClib_Channel_Handle hChn,
 	BSYNClib_VideoSink * psSink
 );
 

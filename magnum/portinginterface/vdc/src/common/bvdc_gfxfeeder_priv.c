@@ -154,7 +154,7 @@ void BVDC_P_GfxFeeder_GetCfcCapabilities
 {
     uint32_t ulRegOffset = 0;
 
-    BKNI_Memset((void*)pCapability, 0x0, sizeof(pCapability));
+    BKNI_Memset((void*)pCapability, 0x0, sizeof(BCFC_Capability));
     pCapability->stBits.bMc = 1;
 
     switch(eGfdId)

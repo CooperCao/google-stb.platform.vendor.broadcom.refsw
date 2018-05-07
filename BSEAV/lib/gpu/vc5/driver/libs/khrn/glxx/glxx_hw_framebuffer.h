@@ -17,9 +17,9 @@ typedef struct
    /* all the color images from the fb are stored here, irrespective of enabled
     * draw buffers */
    uint32_t rt_count; /* Index of highest used RT + 1 or 1 if no used RTs */
-   khrn_image_plane color[GLXX_MAX_RENDER_TARGETS]; // Always downsampled
-   khrn_image_plane color_ms[GLXX_MAX_RENDER_TARGETS]; // Always multisampled
-   V3D_RT_FORMAT_T color_rt_format[GLXX_MAX_RENDER_TARGETS];
+   khrn_image_plane color[V3D_MAX_RENDER_TARGETS]; // Always downsampled
+   khrn_image_plane color_ms[V3D_MAX_RENDER_TARGETS]; // Always multisampled
+   V3D_RT_FORMAT_T color_rt_format[V3D_MAX_RENDER_TARGETS];
 
    /* if ms = true, depth and stencil are multisampled images */
    khrn_image_plane depth;
@@ -28,6 +28,9 @@ typedef struct
    unsigned width; /* min width of all images */
    unsigned height; /* min height of all images */
    unsigned layers; /* min layers of all images */
+
+   int *damage_rects;     /* A khrn_mem_alloc'ed list of damage rects, or NULL if none set */
+   int  num_damage_rects; /* Number of rects in damage_rects */
 
 } GLXX_HW_FRAMEBUFFER_T;
 

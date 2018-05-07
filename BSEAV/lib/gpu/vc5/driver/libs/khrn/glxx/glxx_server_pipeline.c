@@ -293,9 +293,12 @@ GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stage
          GL_VERTEX_SHADER_BIT
       |  GL_FRAGMENT_SHADER_BIT
       |  GL_COMPUTE_SHADER_BIT
-      |  (GLXX_HAS_TNG ? GL_TESS_CONTROL_SHADER_BIT : 0u)
-      |  (GLXX_HAS_TNG ? GL_TESS_EVALUATION_SHADER_BIT : 0u)
-      |  (GLXX_HAS_TNG ? GL_GEOMETRY_SHADER_BIT : 0u);
+#if V3D_VER_AT_LEAST(4,1,34,0)
+      |  GL_TESS_CONTROL_SHADER_BIT
+      |  GL_TESS_EVALUATION_SHADER_BIT
+      |  GL_GEOMETRY_SHADER_BIT
+#endif
+      ;
    if (stages != GL_ALL_SHADER_BITS && (stages & ~valid_stages) != 0)
    {
       error = GL_INVALID_VALUE;
@@ -321,12 +324,13 @@ GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stage
       IR_PROGRAM_T *p = program_object->common.linked_glsl_program->ir;
       uint32_t p_stages = 0;
       if (p->stage[SHADER_VERTEX].ir)           p_stages |= GL_VERTEX_SHADER_BIT;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       if (p->stage[SHADER_TESS_CONTROL].ir)     p_stages |= GL_TESS_CONTROL_SHADER_BIT;
       if (p->stage[SHADER_TESS_EVALUATION].ir)  p_stages |= GL_TESS_EVALUATION_SHADER_BIT;
       if (p->stage[SHADER_GEOMETRY].ir)         p_stages |= GL_GEOMETRY_SHADER_BIT;
 #endif
-      if (p->stage[SHADER_FRAGMENT].ir)         p_stages |= (GL_FRAGMENT_SHADER_BIT | GL_COMPUTE_SHADER_BIT);
+      if (p->stage[SHADER_FRAGMENT].ir)         p_stages |= GL_FRAGMENT_SHADER_BIT;
+      if (p->stage[SHADER_COMPUTE].ir)          p_stages |= GL_COMPUTE_SHADER_BIT;
 
       stages &= p_stages;
 
@@ -337,7 +341,7 @@ GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stage
    if (stages & GL_VERTEX_SHADER_BIT)
       stage_assign(state, &object->stage[GRAPHICS_STAGE_VERTEX], program_object);
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (stages & GL_TESS_CONTROL_SHADER_BIT)
       stage_assign(state, &object->stage[GRAPHICS_STAGE_TESS_CONTROL], program_object);
    if (stages & GL_TESS_EVALUATION_SHADER_BIT)
@@ -520,7 +524,7 @@ GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname
       *params = object->stage[GRAPHICS_STAGE_VERTEX].program != NULL ? object->stage[GRAPHICS_STAGE_VERTEX].program->name : 0;
       break;
 
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    case GL_TESS_CONTROL_SHADER:
       *params = object->stage[GRAPHICS_STAGE_TESS_CONTROL].program != NULL ? object->stage[GRAPHICS_STAGE_TESS_CONTROL].program->name : 0;
       break;
@@ -656,12 +660,6 @@ static LinkMap *copy_link_map(LinkMap *map)
    return res;
 }
 
-/* Move to ir_shader implementation? */
-static IRShader *copy_ir_shader(IRShader *shader)
-{
-   return glsl_ir_shader_from_blocks(shader->blocks, shader->num_cfg_blocks, shader->outputs, shader->num_outputs);
-}
-
 /* TODO -- this will need generalising for 3.2 */
 void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PROGRAM_T *glsl_fprog)
 {
@@ -672,7 +670,7 @@ void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PRO
       return;
 
    unsigned out_index = 0;
-   unsigned out_index_map[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   unsigned out_index_map[GFX_MAX(V3D_MAX_ATTR_ARRAYS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
 
    for (unsigned i = 0; i < glsl_vprog->num_outputs; ++i) {
       GLSL_INOUT_T *out = &glsl_vprog->outputs[i];
@@ -714,7 +712,7 @@ static const struct {
    STAGE_T stage;
    ShaderFlavour flavour;
 } gfx[] = { { GRAPHICS_STAGE_VERTEX,          SHADER_VERTEX          },
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
             { GRAPHICS_STAGE_TESS_CONTROL,    SHADER_TESS_CONTROL    },
             { GRAPHICS_STAGE_TESS_EVALUATION, SHADER_TESS_EVALUATION },
             { GRAPHICS_STAGE_GEOMETRY,        SHADER_GEOMETRY        },
@@ -733,12 +731,12 @@ static IR_PROGRAM_T *combine_ir_programs(GLSL_PROGRAM_T **progs)
       if (!gp) continue;
 
       IR_PROGRAM_T *p = gp->ir;
-      result->stage[gfx[i].flavour].ir       = copy_ir_shader(p->stage[gfx[i].flavour].ir);
+      result->stage[gfx[i].flavour].ir       = glsl_ir_shader_copy(p->stage[gfx[i].flavour].ir);
       result->stage[gfx[i].flavour].link_map = copy_link_map(p->stage[gfx[i].flavour].link_map);
    }
 
    result->max_known_layers = 1;
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
    if (progs[GRAPHICS_STAGE_GEOMETRY]) {
       IR_PROGRAM_T* gs_ir = progs[GRAPHICS_STAGE_GEOMETRY]->ir;
       result->max_known_layers = gs_ir->max_known_layers;
@@ -844,8 +842,8 @@ static void calculate_ordinals(int *ordinal_map, GLSL_INOUT_T *inouts, unsigned 
 }
 
 static bool validate_in_out_interface(GLSL_INOUT_T *outs, unsigned num_outs, GLSL_INOUT_T *ins, unsigned num_ins) {
-   int  in_ordinal[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
-   int out_ordinal[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   int  in_ordinal[GFX_MAX(V3D_MAX_ATTR_ARRAYS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   int out_ordinal[GFX_MAX(V3D_MAX_ATTR_ARRAYS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
 
    calculate_ordinals(in_ordinal, ins, num_ins);
    calculate_ordinals(out_ordinal, outs, num_outs);
@@ -911,7 +909,7 @@ bool glxx_pipeline_validate(const GLXX_PIPELINE_T *pipeline)
       return false;
 
    if (haveGraphics) {
-#if GLXX_HAS_TNG
+#if V3D_VER_AT_LEAST(4,1,34,0)
       // If there is a TES or a TCS then both must be present
       bool tcs = (pipeline->stage[GRAPHICS_STAGE_TESS_CONTROL].program != NULL);
       bool tes = (pipeline->stage[GRAPHICS_STAGE_TESS_EVALUATION].program != NULL);

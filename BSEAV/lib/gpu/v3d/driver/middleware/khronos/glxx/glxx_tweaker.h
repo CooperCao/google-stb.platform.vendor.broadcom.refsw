@@ -4,7 +4,7 @@
 #pragma once
 
 #include <stdbool.h>
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 
 typedef struct
 {

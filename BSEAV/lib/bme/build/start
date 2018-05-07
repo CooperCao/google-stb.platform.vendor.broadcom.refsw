@@ -1,0 +1,36 @@
+#!/bin/sh
+# this script sets the runtime environment variables
+export LD_LIBRARY_PATH=./../../lib/:${LD_LIBRARY_PATH}
+export PATH=.:${PATH}
+
+if [ $UID -ne "0" ]; then
+	echo "You need to run $@ as root."
+	exit 1
+fi
+
+# install the driver
+rmmod bcmdriver
+rmmod nexus
+
+TEST=`lsmod|grep brcmv3d >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod brcmv3d
+fi
+
+if [ -e ./../../lib/modules/brcmv3d.ko ]; then
+    insmod ./../../lib/modules/brcmv3d.ko
+fi
+
+if [ -e ./../../lib/modules/nexus.ko ]; then \
+	insmod ./../../lib/modules/nexus.ko config="${config}"; \
+elif [ -e ./../../lib/modules/bcmdriver.ko ]; then \
+	insmod ./../../lib/modules/bcmdriver.ko; \
+	mknod /dev/brcm0 c 30 0; \
+else \
+	echo "Drivers are missing"; \
+fi
+
+# Start whatever application is requested
+target=$1;
+shift
+exec env ${config} ${target} "$@"

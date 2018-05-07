@@ -212,9 +212,9 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 
 #if 0
 	{
-		BDSP_RaagaUsageOptions Usage;
-		BDSP_RaagaMemoryEstimate Estimate;
-		BKNI_Memset(&Usage,0, sizeof(BDSP_RaagaUsageOptions));
+		BDSP_UsageOptions Usage;
+		BDSP_MemoryEstimate Estimate;
+		BKNI_Memset(&Usage,0, sizeof(BDSP_UsageOptions));
 		Usage.Codeclist[BDSP_Algorithm_eMpegAudioDecode]   =true;
 		Usage.Codeclist[BDSP_Algorithm_ePcmWavDecode]      =true;
 		Usage.Codeclist[BDSP_Algorithm_eAacAdtsDecode]     =true;
@@ -328,9 +328,9 @@ Functionality   :
 ***********************************************************************/
 BERR_Code BDSP_Raaga_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
-    const BDSP_RaagaUsageOptions *pUsage,
+    const BDSP_UsageOptions      *pUsage,
     BBOX_Handle                   boxHandle,
-    BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
+    BDSP_MemoryEstimate          *pEstimate /*[out]*/
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;

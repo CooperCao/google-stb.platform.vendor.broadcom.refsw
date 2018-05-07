@@ -30,6 +30,47 @@ static bool fmts_same_block_size_and_dims(GFX_LFMT_T a, GFX_LFMT_T b)
       (bd_a.block_d == bd_b.block_d);
 }
 
+static bool pitch_relevant(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
+{
+   assert(plane_i < desc->num_planes);
+   const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
+
+   if (gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&p->lfmt)) < 2)
+      return false;
+
+   GFX_LFMT_BASE_DETAIL_T bd;
+   gfx_lfmt_base_detail(&bd, p->lfmt);
+
+   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&p->lfmt);
+
+   if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
+      return desc->width > gfx_lfmt_sandcol_w_2d(&bd, swizzling);
+
+   switch (swizzling)
+   {
+   case GFX_LFMT_SWIZZLING_RSO:        return desc->height > bd.block_h;
+   case GFX_LFMT_SWIZZLING_LT:         return desc->height > gfx_lfmt_ut_h_2d(&bd);
+   case GFX_LFMT_SWIZZLING_UIF:
+   case GFX_LFMT_SWIZZLING_UIF_XOR:    return desc->width > gfx_lfmt_ucol_w_2d(&bd);
+   case GFX_LFMT_SWIZZLING_UBLINEAR:   return desc->height > gfx_lfmt_ub_h_2d(&bd);
+   default:                            unreachable(); return false;
+   }
+}
+
+static bool slice_pitch_relevant(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
+{
+   assert(plane_i < desc->num_planes);
+   const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
+
+   if (gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&p->lfmt)) < 3)
+      return false;
+
+   GFX_LFMT_BASE_DETAIL_T bd;
+   gfx_lfmt_base_detail(&bd, p->lfmt);
+
+   return desc->depth > bd.block_d;
+}
+
 static bool gfx_buffer_equal_with_bases_internal(
    const uint64_t *base_addr_lhs, const GFX_BUFFER_DESC_T *lhs,
    const uint64_t *base_addr_rhs, const GFX_BUFFER_DESC_T *rhs,
@@ -60,12 +101,10 @@ static bool gfx_buffer_equal_with_bases_internal(
             base_addr_rhs[rhs->planes[i].region] + rhs->planes[i].offset)
          return false;
 
-      if ((gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&lhs->planes[i].lfmt)) >= 2) &&
-         (lhs->planes[i].pitch != rhs->planes[i].pitch))
+      if (pitch_relevant(lhs, i) && (lhs->planes[i].pitch != rhs->planes[i].pitch))
          return false;
 
-      if ((gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&lhs->planes[i].lfmt)) >= 3) &&
-         (lhs->planes[i].slice_pitch != rhs->planes[i].slice_pitch))
+      if (slice_pitch_relevant(lhs, i) && (lhs->planes[i].slice_pitch != rhs->planes[i].slice_pitch))
          return false;
    }
 
@@ -116,7 +155,7 @@ bool gfx_buffer_equal_slice_with_bases_permit_diff_fmt(
       if (!fmts_same_block_size_and_dims(plane_2d->lfmt, plane_3d->lfmt))
          return false;
 
-      if (plane_2d->pitch != plane_3d->pitch)
+      if (pitch_relevant(desc_2d, i) && (plane_2d->pitch != plane_3d->pitch))
          return false;
 
       uint64_t addr_2d = base_addr_2d + plane_2d->offset;
@@ -158,28 +197,7 @@ uint32_t gfx_buffer_size_plane(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
    GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&plane->lfmt);
 
    uint32_t size;
-   if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
-   {
-      if (gfx_lfmt_is_uif_xor_family(plane->lfmt))
-      {
-         // TODO Padding is included here...
-         uint32_t padded_width, padded_height;
-         gfx_buffer_padded_width_height(&padded_width, &padded_height, desc, plane_i);
-         uint32_t num_blocks = gfx_udiv_exactly(padded_height * padded_width, bd.block_h * bd.block_w);
-         size = num_blocks * bd.bytes_per_block;
-      }
-      else
-      {
-         uint32_t w_in_col = gfx_udiv_round_up(desc->width, gfx_lfmt_ucol_w_2d(&bd, swizzling));
-         uint32_t w_in_ub = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd, swizzling));
-         uint32_t last_col_w_in_ub = w_in_ub - ((w_in_col - 1) * GFX_UIF_COL_W_IN_UB);
-         uint32_t h_in_ub = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
-         size = (plane->pitch * (w_in_col - 1) * gfx_lfmt_ucol_w_in_blocks_2d(&bd, swizzling)) +
-            ((h_in_ub - 1) * GFX_UIF_COL_W_IN_UB * GFX_UIF_UB_SIZE) +
-            (last_col_w_in_ub * GFX_UIF_UB_SIZE);
-      }
-   }
-   else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
+   if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
    {
       assert(gfx_lfmt_is_2d(plane->lfmt));
 
@@ -217,11 +235,31 @@ uint32_t gfx_buffer_size_plane(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
       size = (plane->pitch * (h_in_ut - 1) * bd.ut_h_in_blocks_2d) + (w_in_ut * GFX_LFMT_UTILE_SIZE);
       break;
    }
+   case GFX_LFMT_SWIZZLING_UIF:
+   {
+      uint32_t w_in_col = gfx_udiv_round_up(desc->width, gfx_lfmt_ucol_w_2d(&bd));
+      uint32_t w_in_ub = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd));
+      uint32_t last_col_w_in_ub = w_in_ub - ((w_in_col - 1) * GFX_UIF_COL_W_IN_UB);
+      uint32_t h_in_ub = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd));
+      size = (plane->pitch * (w_in_col - 1) * gfx_lfmt_ucol_w_in_blocks_2d(&bd)) +
+         ((h_in_ub - 1) * GFX_UIF_COL_W_IN_UB * GFX_UIF_UB_SIZE) +
+         (last_col_w_in_ub * GFX_UIF_UB_SIZE);
+      break;
+   }
+   case GFX_LFMT_SWIZZLING_UIF_XOR:
+   {
+      // TODO Padding is included here...
+      uint32_t padded_width, padded_height;
+      gfx_buffer_padded_width_height(&padded_width, &padded_height, desc, plane_i);
+      uint32_t num_blocks = gfx_udiv_exactly(padded_height * padded_width, bd.block_h * bd.block_w);
+      size = num_blocks * bd.bytes_per_block;
+      break;
+   }
    case GFX_LFMT_SWIZZLING_UBLINEAR:
    {
-      uint32_t w_in_ub = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd, swizzling));
-      uint32_t h_in_ub = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
-      size = (plane->pitch * (h_in_ub - 1) * gfx_lfmt_ub_h_in_blocks_2d(&bd, swizzling)) + (w_in_ub * GFX_UIF_UB_SIZE);
+      uint32_t w_in_ub = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd));
+      uint32_t h_in_ub = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd));
+      size = (plane->pitch * (h_in_ub - 1) * bd.ub_h_in_blocks_2d) + (w_in_ub * GFX_UIF_UB_SIZE);
       break;
    }
    default:
@@ -247,9 +285,8 @@ uint32_t gfx_buffer_lt_width_in_ut(
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
    uint32_t w_in_ut_min = gfx_udiv_round_up(desc->width, gfx_lfmt_ut_w_2d(&bd));
-   if (desc->height <= gfx_lfmt_ut_h_2d(&bd)) {
+   if (desc->height <= gfx_lfmt_ut_h_2d(&bd))
       return w_in_ut_min;
-   }
 
    uint32_t w_in_ut_from_pitch = gfx_udiv_exactly(p->pitch,
       bd.ut_w_in_blocks_2d * bd.bytes_per_block);
@@ -269,15 +306,12 @@ uint32_t gfx_buffer_ublinear_width_in_ub(
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
-   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&p->lfmt);
-
-   uint32_t w_in_ub_min = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd, swizzling));
-   if (desc->height <= gfx_lfmt_ub_h_2d(&bd, swizzling)) {
+   uint32_t w_in_ub_min = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd));
+   if (desc->height <= gfx_lfmt_ub_h_2d(&bd))
       return w_in_ub_min;
-   }
 
    uint32_t w_in_ub_from_pitch = gfx_udiv_exactly(p->pitch,
-      gfx_lfmt_ub_w_in_blocks_2d(&bd, swizzling) * bd.bytes_per_block);
+      bd.ub_w_in_blocks_2d * bd.bytes_per_block);
    /* If this fires, it means that p->pitch is too small for the size of the
     * image */
    assert(w_in_ub_from_pitch >= w_in_ub_min);
@@ -294,19 +328,17 @@ uint32_t gfx_buffer_uif_height_in_ub(
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
-   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&p->lfmt);
-
-   uint32_t h_in_ub_min = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
-   if (desc->width <= gfx_lfmt_ucol_w_2d(&bd, swizzling))
+   uint32_t h_in_ub_min = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd));
+   if (desc->width <= gfx_lfmt_ucol_w_2d(&bd))
       return h_in_ub_min;
 
    uint32_t h_in_ub_from_pitch = gfx_udiv_exactly(p->pitch,
-      gfx_lfmt_ub_h_in_blocks_2d(&bd, swizzling) * bd.bytes_per_block);
+      bd.ub_h_in_blocks_2d * bd.bytes_per_block);
    /* If this fires, it means that p->pitch is too small for the size of the
     * image */
    assert(h_in_ub_from_pitch >= h_in_ub_min);
 
-   if (gfx_lfmt_is_uif_xor_family(p->lfmt))
+   if (gfx_lfmt_get_swizzling(&p->lfmt) == GFX_LFMT_SWIZZLING_UIF_XOR)
    {
       uint32_t b = gfx_msb(GFX_UIF_XOR_ADDR) + 1;
       /* XORing will swap things around within blocks of height 2^b. We require
@@ -326,12 +358,8 @@ uint32_t gfx_buffer_uif_height_pad_in_ub(
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, plane->lfmt);
 
-   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&plane->lfmt);
-
-   uint32_t h_in_ub_min = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
-
+   uint32_t h_in_ub_min = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd));
    uint32_t h_in_ub = gfx_buffer_uif_height_in_ub(desc, plane_i);
-
    return h_in_ub - h_in_ub_min;
 }
 
@@ -346,9 +374,8 @@ uint32_t gfx_buffer_rso_padded_width(
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
    uint32_t w_block_pad = gfx_uround_up(desc->width, bd.block_w);
-   if (desc->height <= bd.block_h) {
+   if (desc->height <= bd.block_h)
       return w_block_pad;
-   }
 
    uint32_t w_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_w;
    /* Note that we allow w_from_pitch < w_block_pad. This is possible with VG
@@ -366,10 +393,13 @@ uint32_t gfx_buffer_sand_padded_height(
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, p->lfmt);
 
-   assert(p->pitch > 0);
-   uint32_t h_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_h;
-   assert(h_from_pitch >= desc->height);
+   if (desc->width <= gfx_lfmt_sandcol_w_2d(&bd, gfx_lfmt_get_swizzling(&p->lfmt)))
+      return gfx_uround_up(desc->height, bd.block_h);
 
+   uint32_t h_from_pitch = gfx_udiv_exactly(p->pitch, bd.bytes_per_block) * bd.block_h;
+   /* If this fires, it means that p->pitch is too small for the size of the
+    * image */
+   assert(h_from_pitch >= desc->height);
    return h_from_pitch;
 }
 
@@ -389,8 +419,8 @@ void gfx_buffer_padded_width_height(
 
    if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
-      *width = gfx_uround_up(desc->width, gfx_lfmt_ucol_w_2d(&bd, swizzling));
-      *height = gfx_buffer_uif_height_in_ub(desc, plane_i) * gfx_lfmt_ub_h_2d(&bd, swizzling);
+      *width = gfx_uround_up(desc->width, gfx_lfmt_ucol_w_2d(&bd));
+      *height = gfx_buffer_uif_height_in_ub(desc, plane_i) * gfx_lfmt_ub_h_2d(&bd);
    }
    else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
    {
@@ -408,23 +438,24 @@ void gfx_buffer_padded_width_height(
       *height = gfx_uround_up(desc->height, gfx_lfmt_ut_h_2d(&bd));
       break;
    case GFX_LFMT_SWIZZLING_UBLINEAR:
-      *width = gfx_buffer_ublinear_width_in_ub(desc, plane_i) * gfx_lfmt_ub_w_2d(&bd, swizzling);
-      *height = gfx_uround_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
+      *width = gfx_buffer_ublinear_width_in_ub(desc, plane_i) * gfx_lfmt_ub_w_2d(&bd);
+      *height = gfx_uround_up(desc->height, gfx_lfmt_ub_h_2d(&bd));
       break;
    default:
       unreachable();
    }
 }
 
-size_t gfx_buffer_sprint_desc(char *buf, size_t buf_size, size_t offset,
-   const GFX_BUFFER_DESC_T *desc)
+static size_t sprint_desc(char *buf, size_t buf_size, size_t offset,
+   const GFX_BUFFER_DESC_T *desc, bool include_pitch)
 {
+   uint32_t const dims = gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&desc->planes[0].lfmt));
    offset = vcos_safe_sprintf(buf, buf_size, offset, "%" PRIu32, desc->width);
-   if (gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&desc->planes[0].lfmt)) >= 2)
+   if (dims >= 2)
       offset = vcos_safe_sprintf(buf, buf_size, offset, " x %" PRIu32, desc->height);
    else
       assert(desc->height == 1);
-   if (gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&desc->planes[0].lfmt)) >= 3)
+   if (dims >= 3)
       offset = vcos_safe_sprintf(buf, buf_size, offset, " x %" PRIu32, desc->depth);
    else
       assert(desc->depth == 1);
@@ -436,9 +467,26 @@ size_t gfx_buffer_sprint_desc(char *buf, size_t buf_size, size_t offset,
    {
       offset = vcos_safe_sprintf(buf, buf_size, offset, " ");
       offset = gfx_lfmt_sprint(buf, buf_size, offset, desc->planes[i].lfmt);
+      if(include_pitch) {
+         offset = vcos_safe_sprintf(buf, buf_size, offset, " pitch %" PRIu32, desc->planes[i].pitch);
+         if(dims >= 3)
+            offset = vcos_safe_sprintf(buf, buf_size, offset, " slice_pitch %" PRIu32, desc->planes[i].slice_pitch);
+      }
    }
 
    return offset;
+}
+
+size_t gfx_buffer_sprint_desc(char *buf, size_t buf_size, size_t offset,
+   const GFX_BUFFER_DESC_T *desc)
+{
+   return sprint_desc(buf, buf_size, offset, desc, false);
+}
+
+size_t gfx_buffer_sprint_desc_full(char *buf, size_t buf_size, size_t offset,
+   const GFX_BUFFER_DESC_T *desc)
+{
+   return sprint_desc(buf, buf_size, offset, desc, true);
 }
 
 const char *gfx_buffer_desc(const GFX_BUFFER_DESC_T *desc)
@@ -454,13 +502,15 @@ size_t gfx_buffer_get_align(GFX_LFMT_T lfmt, gfx_buffer_align_t a)
    GFX_LFMT_BASE_DETAIL_T bd;
    gfx_lfmt_base_detail(&bd, lfmt);
 
-   size_t align = bd.bytes_per_word;
+   /* Whole pixel alignment (bytes_per_block) for power of 2 sizes, RGB8 has
+    * 1 byte alignment */
+   size_t align = gfx_lowest_bit(bd.bytes_per_block);
 
    GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&lfmt);
    if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
       align = gfx_zmax(align,
-         ((a == GFX_BUFFER_ALIGN_RECOMMENDED) && gfx_lfmt_is_uif_xor_family(lfmt)) ?
+         ((a == GFX_BUFFER_ALIGN_RECOMMENDED) && (swizzling == GFX_LFMT_SWIZZLING_UIF_XOR)) ?
          GFX_UIF_PAGE_SIZE : GFX_UIF_UB_SIZE);
    }
    else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
@@ -492,9 +542,6 @@ size_t gfx_buffer_get_align(GFX_LFMT_T lfmt, gfx_buffer_align_t a)
    default:
       break;
    }
-
-   if (gfx_lfmt_is_bstc_family(lfmt))
-      align = gfx_zmax(align, 32);
 
    return align;
 }

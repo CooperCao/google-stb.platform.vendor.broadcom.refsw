@@ -65,11 +65,11 @@ Formats::Format Formats::m_fmts[] =
    FMT (R8G8B8_SINT,                false, GFX_LFMT_R8_G8_B8_INT                                ),
    FMT (R8G8B8_SRGB,                false, GFX_LFMT_R8_G8_B8_SRGB                               ),
    FMT (B8G8R8_UNORM,               false, GFX_LFMT_B8_G8_R8_UNORM                              ),
-   FMT (B8G8R8_SNORM,               false, GFX_LFMT_NONE                                        ),
-   FMT (B8G8R8_USCALED,             true,  GFX_LFMT_NONE                                        ),
-   FMT (B8G8R8_SSCALED,             true,  GFX_LFMT_NONE                                        ),
-   FMT (B8G8R8_UINT,                false, GFX_LFMT_NONE                                        ),
-   FMT (B8G8R8_SINT,                false, GFX_LFMT_NONE                                        ),
+   FMT (B8G8R8_SNORM,               false, GFX_LFMT_B8_G8_R8_SNORM                              ),
+   FMT (B8G8R8_USCALED,             true,  GFX_LFMT_B8_G8_R8_UINT                               ),
+   FMT (B8G8R8_SSCALED,             true,  GFX_LFMT_B8_G8_R8_INT                                ),
+   FMT (B8G8R8_UINT,                false, GFX_LFMT_B8_G8_R8_UINT                               ),
+   FMT (B8G8R8_SINT,                false, GFX_LFMT_B8_G8_R8_INT                                ),
    FMT (B8G8R8_SRGB,                false, GFX_LFMT_B8_G8_R8_SRGB                               ),
    FMT (R8G8B8A8_UNORM,             false, GFX_LFMT_R8_G8_B8_A8_UNORM                           ),
    FMT (R8G8B8A8_SNORM,             false, GFX_LFMT_R8_G8_B8_A8_SNORM                           ),
@@ -81,8 +81,8 @@ Formats::Format Formats::m_fmts[] =
 
    FMT (B8G8R8A8_UNORM,             false, GFX_LFMT_B8_G8_R8_A8_UNORM                           ),
    FMT (B8G8R8A8_SNORM,             false, GFX_LFMT_B8_G8_R8_A8_SNORM                           ),
-   FMT (B8G8R8A8_USCALED,           true,  GFX_LFMT_NONE                                        ),
-   FMT (B8G8R8A8_SSCALED,           true,  GFX_LFMT_NONE                                        ),
+   FMT (B8G8R8A8_USCALED,           true,  GFX_LFMT_B8_G8_R8_A8_UINT                            ),
+   FMT (B8G8R8A8_SSCALED,           true,  GFX_LFMT_B8_G8_R8_A8_INT                             ),
    FMT (B8G8R8A8_UINT,              false, GFX_LFMT_B8_G8_R8_A8_UINT                            ),
    FMT (B8G8R8A8_SINT,              false, GFX_LFMT_B8_G8_R8_A8_INT                             ),
    FMT (B8G8R8A8_SRGB,              false, GFX_LFMT_B8_G8_R8_A8_SRGB_SRGB_SRGB_UNORM            ),
@@ -94,11 +94,11 @@ Formats::Format Formats::m_fmts[] =
    FMT (A8B8G8R8_SINT_PACK32,       false, GFX_LFMT_R8_G8_B8_A8_INT   /* LE only */             ),
    FMT (A8B8G8R8_SRGB_PACK32,       false, GFX_LFMT_R8_G8_B8_A8_SRGB_SRGB_SRGB_UNORM/*LE only*/ ),
    FMT (A2R10G10B10_UNORM_PACK32,   false, GFX_LFMT_B10G10R10A2_UNORM                           ),
-   FMT (A2R10G10B10_SNORM_PACK32,   false, GFX_LFMT_NONE                                        ),
-   FMT (A2R10G10B10_USCALED_PACK32, true,  GFX_LFMT_NONE                                        ),
-   FMT (A2R10G10B10_SSCALED_PACK32, true,  GFX_LFMT_NONE                                        ),
+   FMT (A2R10G10B10_SNORM_PACK32,   false, GFX_LFMT_B10G10R10A2_SNORM                           ),
+   FMT (A2R10G10B10_USCALED_PACK32, true,  GFX_LFMT_B10G10R10A2_UINT                            ),
+   FMT (A2R10G10B10_SSCALED_PACK32, true,  GFX_LFMT_B10G10R10A2_INT                             ),
    FMT (A2R10G10B10_UINT_PACK32,    false, GFX_LFMT_B10G10R10A2_UINT                            ),
-   FMT (A2R10G10B10_SINT_PACK32,    false, GFX_LFMT_NONE                                        ),
+   FMT (A2R10G10B10_SINT_PACK32,    false, GFX_LFMT_B10G10R10A2_INT                             ),
    FMT (A2B10G10R10_UNORM_PACK32,   false, GFX_LFMT_R10G10B10A2_UNORM                           ),
    FMT (A2B10G10R10_SNORM_PACK32,   false, GFX_LFMT_R10G10B10A2_SNORM                           ),
    FMT (A2B10G10R10_USCALED_PACK32, true,  GFX_LFMT_R10G10B10A2_UINT                            ),
@@ -259,20 +259,6 @@ bool Formats::HasTLBSupport(GFX_LFMT_T lfmt)
    v3d_pixel_format_t pf;
    bool rev, swap;
    return gfx_lfmt_maybe_translate_pixel_format(lfmt, &pf, &rev, &swap);
-}
-
-v3d_attr_type_t Formats::GetAttributeType(GFX_LFMT_T fmt)
-{
-   switch (gfx_lfmt_red_bits(fmt))
-   {
-   case 8:  return V3D_ATTR_TYPE_BYTE;
-   case 10: return V3D_ATTR_TYPE_INT2_10_10_10;
-   case 16: return gfx_lfmt_contains_float(fmt) ? V3D_ATTR_TYPE_HALF_FLOAT : V3D_ATTR_TYPE_SHORT;
-   case 32: return gfx_lfmt_contains_float(fmt) ? V3D_ATTR_TYPE_FLOAT      : V3D_ATTR_TYPE_INT;
-   default:
-      unreachable();
-      return V3D_ATTR_TYPE_INVALID;
-   }
 }
 
 // Make one so that the constructor (which checks the array) will be called

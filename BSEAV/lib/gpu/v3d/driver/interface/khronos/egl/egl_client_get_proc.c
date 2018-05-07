@@ -1,10 +1,14 @@
 /******************************************************************************
 *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 ******************************************************************************/
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES/glext.h"
-#include "interface/khronos/include/GLES2/gl2.h"
-#include "interface/khronos/include/GLES2/gl2ext.h"
+
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_options.h"
@@ -65,22 +69,6 @@ EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY
 
    if (res == NULL)
    {
-#if EGL_KHR_lock_surface
-      if (!strcmp(procname, "eglLockSurfaceKHR"))
-         return (__eglMustCastToProperFunctionPointerType)eglLockSurfaceKHR;
-      if (!strcmp(procname, "eglUnlockSurfaceKHR"))
-         return (__eglMustCastToProperFunctionPointerType)eglUnlockSurfaceKHR;
-#endif
-
-#if EGL_BRCM_driver_monitor
-      if (!strcmp(procname, "eglInitDriverMonitorBRCM"))
-         return (__eglMustCastToProperFunctionPointerType)eglInitDriverMonitorBRCM;
-      if (!strcmp(procname, "eglGetDriverMonitorXMLBRCM"))
-         return (__eglMustCastToProperFunctionPointerType)eglGetDriverMonitorXMLBRCM;
-      if (!strcmp(procname, "eglTermDriverMonitorBRCM"))
-         return (__eglMustCastToProperFunctionPointerType)eglTermDriverMonitorBRCM;
-#endif
-
 #ifdef WAYLAND
       if (!strcmp(procname, "eglBindWaylandDisplayWL"))
          return (__eglMustCastToProperFunctionPointerType)eglBindWaylandDisplayWL;

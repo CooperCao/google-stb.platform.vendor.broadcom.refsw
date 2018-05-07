@@ -465,32 +465,6 @@ private:
    uint32_t     m_data;
 };
 
-// Zeros all the h/w counters associated with a single query
-class CmdZeroQueryHWCountersObj : public CPUCommand
-{
-public:
-   friend class CommandBuffer;
-
-   // Will be called on a separate thread
-   void Execute() const
-   {
-      m_qde->pool->ZeroHWCounters(m_qde);
-   }
-
-   QueryDataEntry **GetQueryDataEntryPtrPtr()
-   {
-      return &m_qde;
-   }
-
-   void RecordInPrimary(CommandBuffer &cmdBuf) const
-   {
-      cmdBuf.AppendCommandReference(*this);
-   }
-
-private:
-   QueryDataEntry *m_qde = nullptr;
-};
-
 // Zeros the query pool result values (not the h/w counters)
 class CmdResetQueryPoolObj : public CPUCommand
 {
@@ -527,18 +501,15 @@ class CmdUpdateQueryPoolObj : public CPUCommand
 public:
    friend class CommandBuffer;
 
-   CmdUpdateQueryPoolObj(const QueryDataEntryPtrList &qdePtrList) :
-      m_qdePtrList(qdePtrList)
+   CmdUpdateQueryPoolObj(const bvk::set<QueryID> &dirtyQueries) :
+      m_dirtyQueries(dirtyQueries)
    {}
 
    // Will be called on a separate thread
    void Execute() const
    {
-      for (uint32_t n = 0; n < m_qdePtrList.NumEntries(); n++)
-      {
-         QueryDataEntry *entry = m_qdePtrList.PtrAt(n);
-         entry->pool->UpdateQuery(*entry);
-      }
+      for (const QueryID &id : m_dirtyQueries)
+         id.GetPool()->UpdateQuery(id.GetQuery());
    }
 
    JobID Schedule(Queue &queue, const SchedDependencies &deps) const override
@@ -546,11 +517,8 @@ public:
       CPUTask *task = new CPUTask(this);
       JobID    updateJob = task->ScheduleTask(deps);
 
-      for (uint32_t n = 0; n < m_qdePtrList.NumEntries(); n++)
-      {
-         QueryDataEntry *entry = m_qdePtrList.PtrAt(n);
-         entry->pool->SetUpdateDependency(entry->queryID, updateJob);
-      }
+      for (const QueryID &id : m_dirtyQueries)
+         id.GetPool()->SetUpdateDependency(id.GetQuery(), updateJob);
 
       return updateJob;
    }
@@ -561,7 +529,7 @@ public:
    }
 
 private:
-   QueryDataEntryPtrList   m_qdePtrList;
+   bvk::set<QueryID> m_dirtyQueries;
 };
 
 // Copies the query pool results into a device memory buffer

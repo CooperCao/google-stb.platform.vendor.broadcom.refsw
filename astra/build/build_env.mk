@@ -54,9 +54,9 @@ endif
 
 # TZ arch is derived from refsw arch if defined
 ifeq ($(B_REFSW_ARCH),arm-linux)
-TZ_ARCH := Arm32
+TZ_ARCH ?= Arm32
 else ifeq ($(B_REFSW_ARCH),aarch64-linux)
-TZ_ARCH := Arm64
+TZ_ARCH ?= Arm64
 endif
 
 # TZ arch defaults to 64-bit ARM
@@ -70,6 +70,7 @@ TZ_ARMGNU       ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musleabi
 
 ARCH        := arm
 ARCH_DIR    := arm
+ARCH_SUFFIX := 32
 ARCHFLAGS   += -mcpu=cortex-a15 -mfpu=vfpv3
 OBJ_TARGET  := elf32-littlearm
 else
@@ -79,15 +80,16 @@ TZ_ARMGNU       ?= $(TZ_TOOLCHAIN)/bin/aarch64-tzos-musleabi
 
 ARCH        := aarch64
 ARCH_DIR    := aarch64
+ARCH_SUFFIX := 64
 ARCHFLAGS   += -mcpu=cortex-a53+crypto
 OBJ_TARGET  := elf64-littleaarch64
 endif
 
 # TZ obj top is derived from refsw obj root if defined
 ifneq (,$(B_REFSW_OBJ_ROOT))
-TZ_OBJ_TOP := $(B_REFSW_OBJ_ROOT)/astra
+TZ_OBJ_TOP ?= $(B_REFSW_OBJ_ROOT)/astra
 else ifneq (,$(B_REFSW_OBJ_DIR))
-TZ_OBJ_TOP := $(TZ_TOP)/../$(B_REFSW_OBJ_DIR)/astra
+TZ_OBJ_TOP ?= $(TZ_TOP)/../$(B_REFSW_OBJ_DIR)/astra
 endif
 
 # TZ obj top default

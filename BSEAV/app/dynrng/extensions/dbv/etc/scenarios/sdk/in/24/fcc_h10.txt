@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/HDR10/Conversion_Tests/UHD/23976/Graffiti_23976_3840x2160_2000_2000kbps_HDR10__dvh1_st.mp4
+forceRestart=on
+stcTrick=off
+commit

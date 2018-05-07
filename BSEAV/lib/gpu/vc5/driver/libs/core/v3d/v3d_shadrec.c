@@ -73,10 +73,15 @@ void v3d_create_nv_shader_record(
    shader_record.fs.threading = threading;
    shader_record.fs.addr = fshader_addr;
    shader_record.fs.unifs_addr = funif_addr;
+   shader_record.z_write = does_z_writes;
 
-   // Modify the shader record to avoid specifying 0 varyings
 #if !V3D_VER_AT_LEAST(3,3,0,0)
+   // Modify the shader record to avoid specifying 0 varyings
    v3d_workaround_gfxh_1276(&shader_record);
+#endif
+
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   shader_record.disable_implicit_varys = true;
 #endif
 
    // This allocation contains both main GL shader record,

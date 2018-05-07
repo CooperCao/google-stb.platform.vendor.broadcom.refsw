@@ -39,9 +39,7 @@ static const char *type_name(enum bcm_sched_job_type type)
    case BCM_SCHED_JOB_TYPE_WAIT_ON_EVENT : return "WAIT_EVENT";
    case BCM_SCHED_JOB_TYPE_SET_EVENT     : return "SET_EVENT";
    case BCM_SCHED_JOB_TYPE_RESET_EVENT   : return "RESET_EVENT";
-#if V3D_USE_CSD
    case BCM_SCHED_JOB_TYPE_V3D_COMPUTE   : return "COMPUTE";
-#endif
    default                               : return "error";
    }
 }

@@ -69,7 +69,9 @@ class CAudioDecode;
 class CSimpleAudioDecode;
 class CSimplePcmPlayback;
 class CIrRemote;
+#if NEXUS_HAS_CEC
 class CCecRemote;
+#endif
 class CPlayback;
 class CRecord;
 class CPower;
@@ -127,9 +129,11 @@ public:
     void                                 addStc(CStc * pStc, eWindowType windowType = eWindowType_Main ) { _pStc[windowType] = pStc; }
     void                                 removeStc(eWindowType windowType = eWindowType_Main) { _pStc[windowType] = NULL; }
     CStc *                               getStc(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _pStc[_fullScreenWindowType] : _pStc[windowType]); }
+#if NEXUS_HAS_CEC
 	void                                 addCecRemote(CCecRemote * pCecRemote) { _pCecRemote = pCecRemote; }
     void                                 removeCecRemote(CCecRemote * pCecRemote) { BSTD_UNUSED(pCecRemote); _pCecRemote = NULL; }
     CCecRemote *                         getCecRemote(void) { return(_pCecRemote); }
+#endif
     void                                 addVideoDecode(CVideoDecode * pVideoDecode) { _pVideoDecode = pVideoDecode; }
     void                                 removeVideoDecode(CVideoDecode * pVideoDecode) { BSTD_UNUSED(pVideoDecode); _pVideoDecode = NULL; }
     CVideoDecode *                       getVideoDecode(void) { return(_pVideoDecode); }
@@ -277,7 +281,9 @@ protected:
 #endif
     MList<CDisplay>                      _displayList;
     CGraphics *                          _pGraphics;
+#if NEXUS_HAS_CEC
 	CCecRemote *						 _pCecRemote;
+#endif
     eWindowType                          _fullScreenWindowType;
     CVideoDecode *                       _pVideoDecode;
     CStillDecode *                       _pStillDecode;

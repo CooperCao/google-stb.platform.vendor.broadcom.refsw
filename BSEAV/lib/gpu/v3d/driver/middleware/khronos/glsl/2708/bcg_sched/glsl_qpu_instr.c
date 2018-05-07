@@ -1596,12 +1596,14 @@ bool QPUGenericInstr_SetMovIntOp(QPUGenericInstr *self, int32_t immed, const QPU
 
 bool QPUGenericInstr_SetMovFloatRes(QPUGenericInstr *self, float immed, QPUResource *to)
 {
-   return QPUGenericInstr_SetMovIntRes(self, *(int32_t*)&immed, to);
+   reinterpret_cast_uf i = { .f = immed };
+   return QPUGenericInstr_SetMovIntRes(self, i.u, to);
 }
 
 bool QPUGenericInstr_SetMovFloatOp(QPUGenericInstr *self, float immed, const QPUOperand *to)
 {
-   return QPUGenericInstr_SetMovIntOp(self, *(int32_t*)&immed, to);
+   reinterpret_cast_uf i = { .f = immed };
+   return QPUGenericInstr_SetMovIntOp(self, i.u, to);
 }
 
 bool QPUGenericInstr_SetUnpack(QPUGenericInstr *self, VirtualUnpack_Enum mode, UnpackSource_Enum src)

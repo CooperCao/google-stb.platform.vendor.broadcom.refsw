@@ -139,11 +139,11 @@ BERR_Code BSYNClib_RateMismatchDetector_Open(
 
 	goto end;
 
-	error:
+error:
 
 	*phDetector = NULL;
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_Open);
 	return rc;
@@ -311,9 +311,9 @@ BERR_Code BSYNClib_RateMismatchDetector_P_ProcessConfig(
 
 	goto end;
 
-	error:
+error:
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_ProcessConfig);
 	return rc;
@@ -683,12 +683,13 @@ BERR_Code BSYNClib_RateMismatchDetector_MismatchTimerExpired(void * pvParm1, int
 		if (rc) goto error;
 	}
 
-	error:
-	end:
+error:
 
-	rc = BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
+end:
 
-	BSYNClib_Channel_P_Process(hDetector->hParent, 0);
+	BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
+
+	(void)BSYNClib_Channel_P_Process(hDetector->hParent, 0);
 
 	BDBG_LEAVE((BSYNClib_RateMismatchDetector_MismatchTimerExpired));
 	return rc;
@@ -711,9 +712,9 @@ BERR_Code BSYNClib_RateMismatchDetector_RematchTimerExpired(void * pvParm1, int 
 	/* TODO: check params */
 	hDetector->sStatus.bSourceSinkMatched = true;
 
-	rc = BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
+	BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
 
-	BSYNClib_Channel_P_Process(hDetector->hParent, 0);
+	(void)BSYNClib_Channel_P_Process(hDetector->hParent, 0);
 
 	BDBG_LEAVE((BSYNClib_RateMismatchDetector_RematchTimerExpired));
 	return rc;
@@ -990,12 +991,11 @@ BERR_Code BSYNClib_RateMismatchDetector_P_StaticRateMatchTimerExpired(void * pvP
 	rc = BSYNClib_VideoSource_RateRematchDetected(psSource);
 	if (rc) goto end;
 
-	rc = BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
 
 	BSYNClib_Channel_P_Process(hDetector->hParent, 0);
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_StaticRateMatchTimerExpired);
 	return rc;
@@ -1020,12 +1020,11 @@ BERR_Code BSYNClib_RateMismatchDetector_P_StaticRateMismatchTimerExpired(void * 
 	rc = BSYNClib_VideoSource_RateMismatchDetected(psSource);
 	if (rc) goto end;
 
-	rc = BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
-	if (rc) goto end;
+	BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
 
 	BSYNClib_Channel_P_Process(hDetector->hParent, 0);
 
-	end:
+end:
 
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_StaticRateMismatchTimerExpired);
 	return rc;

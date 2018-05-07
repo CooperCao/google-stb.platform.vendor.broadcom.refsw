@@ -54,8 +54,13 @@ extern uint32_t v3d_qpu_op_num_inputs(v3d_qpu_opcode_t opcode);
 
 static inline bool v3d_qpu_op_is_sfu(v3d_qpu_opcode_t op) {
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   return op == V3D_QPU_OP_RECIP || op == V3D_QPU_OP_LOG   || op == V3D_QPU_OP_EXP ||
-          op == V3D_QPU_OP_SIN   || op == V3D_QPU_OP_RSQRT || op == V3D_QPU_OP_RSQRT2;
+   return op == V3D_QPU_OP_RECIP  || op == V3D_QPU_OP_LOG   || op == V3D_QPU_OP_EXP ||
+          op == V3D_QPU_OP_SIN    || op == V3D_QPU_OP_RSQRT || op == V3D_QPU_OP_RSQRT2
+# if V3D_HAS_SFU_ROTATE
+       || op == V3D_QPU_OP_ROT    || op == V3D_QPU_OP_ROTQ  || op == V3D_QPU_OP_BALLOT ||
+          op == V3D_QPU_OP_BCASTF || op == V3D_QPU_OP_ALLEQ || op == V3D_QPU_OP_ALLFEQ
+# endif
+          ;
 #else
    return false;
 #endif
@@ -88,7 +93,9 @@ typedef enum
    V3D_QPU_SIG_LDTLB     = (1<<6),
    V3D_QPU_SIG_LDTLBU    = (1<<7),
    V3D_QPU_SIG_UCB       = (1<<8),
+#if !V3D_HAS_SFU_ROTATE
    V3D_QPU_SIG_ROTATE    = (1<<9),
+#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_SIG_LDUNIFRF  = (1<<10),
    V3D_QPU_SIG_LDUNIFA   = (1<<11),
@@ -101,11 +108,7 @@ struct v3d_qpu_sig
    v3d_qpu_sigbits_t sigbits;
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
-#if V3D_VER_AT_LEAST(4,1,34,0)
    bool magic;
-#else
-   bool sig_reg;
-#endif
    uint32_t waddr;
 #endif
 };
@@ -247,7 +250,9 @@ typedef enum
    V3D_QPU_MAGIC_WADDR_CLASS_VPM,
 #endif
    V3D_QPU_MAGIC_WADDR_CLASS_SYNC,
+#if !V3D_HAS_NO_SFU_MAGIC
    V3D_QPU_MAGIC_WADDR_CLASS_SFU,
+#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
    V3D_QPU_MAGIC_WADDR_CLASS_UNIF,
 #endif

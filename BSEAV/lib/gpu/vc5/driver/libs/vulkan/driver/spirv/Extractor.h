@@ -8,7 +8,7 @@
 
 #include "Spirv.h"
 #include "Optional.h"
-#include "NodeIndex.h"
+#include "NodeBase.h"
 #include "ModuleAllocator.h"
 
 namespace bvk {
@@ -33,8 +33,9 @@ struct NumberOfWords
    static const uint32_t value = 1;
 };
 
+// "Node *" is translated from a result id which is one word
 template <>
-struct NumberOfWords<NodeIndex>
+struct NumberOfWords<const Node *>
 {
    static const uint32_t value = 1;
 };
@@ -71,19 +72,21 @@ public:
       return static_cast<spv::GLSL>(m_instr[4]);
    }
 
+   // Catch all for non-pointer classes
    template <class T>
    Extractor &operator>>(T &x)
    {
       // Must be a word sized thing
       assert(sizeof(T) == sizeof(uint32_t));
+      assert(!std::is_pointer<T>::value);
 
       x = *reinterpret_cast<const T *>(&m_instr[m_index]);
       m_index++;
       return *this;
    }
 
-   Extractor &operator>>(NodeIndex &index);
-   Extractor &operator>>(const NodeType *&type);
+   Extractor &operator>>(const Node *&node);
+   Extractor &operator>>(const NodeType *&node);
 
    // Skip a word (if it's not needed or used)
    Extractor &operator>>(std::nullptr_t)

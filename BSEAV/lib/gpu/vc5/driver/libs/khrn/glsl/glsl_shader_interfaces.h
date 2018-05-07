@@ -6,8 +6,6 @@
 #include "glsl_symbols.h"
 #include "glsl_map.h"
 
-EXTERN_C_BEGIN
-
 typedef struct _ShaderInterfaces {
    SymbolList *uniforms;
    SymbolList *ins;
@@ -23,5 +21,3 @@ Dataflow **glsl_shader_interface_create_symbol_dataflow(StorageQualifier sq, con
 
 Map *glsl_shader_interfaces_id_map(const ShaderInterfaces *interfaces);
 Map *glsl_shader_interfaces_create_dataflow(const ShaderInterfaces *interfaces, Map *symbol_ids);
-
-EXTERN_C_END

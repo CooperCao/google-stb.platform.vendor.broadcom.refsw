@@ -6,9 +6,9 @@
 
 #include "interface/khronos/common/khrn_client_platform.h"
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/EGL/eglext_android.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglext_android.h>
 
 #include "interface/khronos/common/khrn_int_image.h"
 
@@ -98,7 +98,6 @@ extern void egl_config_install_configs(int type);
 
 extern KHRN_IMAGE_FORMAT_T egl_config_get_color_format(int id);
 extern KHRN_IMAGE_FORMAT_T egl_config_get_depth_format(int id);
-extern KHRN_IMAGE_FORMAT_T egl_config_get_mask_format(int id);
 extern KHRN_IMAGE_FORMAT_T egl_config_get_multisample_format(int id);
 extern bool egl_config_get_multisample(int id);
 extern bool egl_config_bindable(int id, EGLenum format);
@@ -106,11 +105,6 @@ extern bool egl_config_match_pixmap_info(int id, KHRN_IMAGE_WRAP_T *image);
 extern uint32_t egl_config_get_api_support(int id);
 extern bool egl_config_bpps_match(int id0, int id1); /* bpps of all buffers match */
 extern uint32_t egl_config_get_api_conformance(int id);
-
-#if EGL_KHR_lock_surface
-extern KHRN_IMAGE_FORMAT_T egl_config_get_mapped_format(int id);
-extern bool egl_config_is_lockable(int id);
-#endif
 
 #if EGL_ANDROID_framebuffer_target
 extern bool egl_config_is_framebuffer_target(int id);

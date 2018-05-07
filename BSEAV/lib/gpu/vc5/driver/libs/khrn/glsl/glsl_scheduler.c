@@ -64,8 +64,6 @@ static void dpostv_init_backend_fields(Backflow *backend, void *data) {
    if (backend->type == SIG) {
 #if V3D_VER_AT_LEAST(4,1,34,0)
       v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF | V3D_QPU_SIG_LDUNIFA;
-#elif V3D_VER_AT_LEAST(4,1,34,0)
-      v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF;
 #else
       v3d_qpu_sigbits_t sigbits = V3D_QPU_SIG_LDUNIF | V3D_QPU_SIG_LDVPM;
 #endif

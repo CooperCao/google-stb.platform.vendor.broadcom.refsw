@@ -62,6 +62,7 @@ BERR_Code BHSM_Rsa_Init( BHSM_Handle hHsm, BHSM_RsaModuleSettings *pSettings )
     BDBG_ENTER( BHSM_Rsa_Init );
     BSTD_UNUSED( pSettings );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( hHsm->modules.pRsa != NULL ) { return BERR_TRACE(BERR_UNKNOWN); }
 
     pRsa = (BHSM_Rsa*)BKNI_Malloc( sizeof(BHSM_Rsa) );
@@ -80,6 +81,7 @@ void BHSM_Rsa_Uninit( BHSM_Handle hHsm )
 {
     BDBG_ENTER( BHSM_Rsa_Uninit );
 
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
     if( !hHsm->modules.pRsa ) { BERR_TRACE(BERR_UNKNOWN); return; }
 
     BKNI_Free( hHsm->modules.pRsa );
@@ -90,16 +92,16 @@ void BHSM_Rsa_Uninit( BHSM_Handle hHsm )
 }
 
 
-
-
 BHSM_RsaHandle BHSM_Rsa_Open( BHSM_Handle hHsm )
 {
     BHSM_Rsa *pRsa;
 
     BDBG_ENTER( BHSM_Rsa_Open );
 
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !hHsm->modules.pRsa ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return NULL; }
+
     pRsa = hHsm->modules.pRsa; /* there is only one RSA instance in the system/chip. */
-    if( !pRsa ) { BERR_TRACE(BERR_UNKNOWN); return NULL; }
 
     if( pRsa->inUse == true) { BERR_TRACE(BERR_NOT_AVAILABLE); return NULL; }
 
@@ -116,6 +118,7 @@ void BHSM_Rsa_Close( BHSM_RsaHandle handle )
 
     BDBG_ENTER( BHSM_Rsa_Close );
 
+    if( !pRsa ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
     if( !pRsa->inUse ) { BERR_TRACE(BERR_NOT_INITIALIZED); return; }
 
     pRsa->inUse = false;
@@ -125,13 +128,15 @@ void BHSM_Rsa_Close( BHSM_RsaHandle handle )
 }
 
 
-
 BERR_Code BHSM_Rsa_Exponentiate( BHSM_RsaHandle handle, const BHSM_RsaExponentiateSettings *pSettings )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_CryptoRsa bspParam;
 
     BDBG_ENTER( BHSM_Rsa_Exponentiate );
+
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pSettings ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
 
@@ -145,15 +150,18 @@ BERR_Code BHSM_Rsa_Exponentiate( BHSM_RsaHandle handle, const BHSM_RsaExponentia
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_Rsa_Exponentiate );
-    return rc;
+    return BERR_SUCCESS;
 }
 
 BERR_Code BHSM_Rsa_GetResult( BHSM_RsaHandle handle, BHSM_RsaExponentiateResult *pResult )
 {
     BHSM_P_CryptoPollRsa bspParam;
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_Rsa_GetResult );
+
+    if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pResult ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
 
@@ -176,7 +184,7 @@ BERR_Code BHSM_Rsa_GetResult( BHSM_RsaHandle handle, BHSM_RsaExponentiateResult 
     pResult->dataLength = sizeof(bspParam.out.outputData);
 
     BDBG_LEAVE( BHSM_Rsa_GetResult );
-    return rc;
+    return BERR_SUCCESS;
 }
 
 static uint8_t _BspRsaKeySize( BHSM_RsaKeySize rsaKeySize )

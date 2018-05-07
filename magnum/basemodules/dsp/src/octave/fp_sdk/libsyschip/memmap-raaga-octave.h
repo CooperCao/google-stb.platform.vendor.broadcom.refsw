@@ -66,13 +66,19 @@ extern __absolute Misc_Block taddr_Misc_Block;
  * The base of FP0's CCS area, cast to a volatile uint8_t* (so pointer
  * arithmetic is just the same as it would be on the address)
  */
-#define FPMISC_CORE_BASE_0          ((volatile uint8_t *) & taddr_Misc_Block)
+#if !defined(ASMCPP) && !defined(__LINKER_SCRIPT__)
+#  define FPMISC_CORE_BASE_0        ((volatile uint8_t *) & taddr_Misc_Block)
+#else
+#  define FPMISC_CORE_BASE_0        taddr_Misc_Block
+#endif
 
 /*
  * Spacing between sets of register for one core and the same ones for the next
  * core
  */
 #define FPMISC_CORE_SPACING         0x200
+
+#define FPMISC_CORE_SPACING_LOG2    9
 
 /*
  * The misc block structure for the N'th core.
@@ -81,9 +87,11 @@ extern __absolute Misc_Block taddr_Misc_Block;
     ((Misc_Block*)(FPMISC_CORE_BASE_0 + (n) * FPMISC_CORE_SPACING))
 
 /*
- * Macro for compatibility with other targets
+ * Macros for compatibility with other targets
  */
 #define MISC_BLOCK                  (*FPMISC_BLOCK_FOR_CORE(FIREPATH_NUM))
+#define MISC_BLOCK_MULTI_BASE       FPMISC_CORE_BASE_0
+#define MISC_BLOCK_MULTI_SPACING    FPMISC_CORE_SPACING
 
 /*
  * L1 cache parameters.

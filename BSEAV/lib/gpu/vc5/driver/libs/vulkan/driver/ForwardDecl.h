@@ -33,5 +33,6 @@ class Semaphore;
 class ShaderModule;
 class SwapchainKHR;
 class DebugReportCallbackEXT;
+class DescriptorUpdateTemplate;
 
 }

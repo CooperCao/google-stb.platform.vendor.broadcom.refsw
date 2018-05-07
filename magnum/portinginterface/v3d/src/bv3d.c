@@ -158,12 +158,14 @@ BERR_Code BV3D_Open(
    uint32_t    uiBinMemChunkPow,
    uint32_t    uiBinMemMegsSecure,
    void (*pfnSecureToggle)(bool),
-   bool        bDisableAQA,
-   uint32_t    uiClockFreq
+   bool        bDisableAQA
 )
 {
    BERR_Code   err  = BERR_SUCCESS;
    BV3D_Handle hV3d = NULL;
+#ifdef BCHP_PWR_SUPPORT
+   unsigned int rateHz;
+#endif
 
    BDBG_ENTER(BV3D_Open);
 
@@ -193,37 +195,25 @@ BERR_Code BV3D_Open(
 
    hV3d->reallyPoweredOn = false;
    hV3d->isStandby = false;
-   hV3d->bPerfMonitorActive = false;
    hV3d->bCollectLoadStats = false;
+
+#ifdef BCHP_PWR_SUPPORT
+   err = BCHP_PWR_GetClockRate(hV3d->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D, &rateHz);
+   if (err == BERR_SUCCESS)
+      BDBG_WRN(("ClockRate - %dMhz", rateHz / (1000 * 1000)));
+   else if (err == BERR_NOT_SUPPORTED)
+      BDBG_WRN(("ClockRate - <UNKNOWN>Mhz"));
+   else
+      goto error;
+#endif
 
    hV3d->bDisableAQA = bDisableAQA;
 
-#if (BCHP_CHIP == 7445)
-   if (uiClockFreq == 0)
-#if (BCHP_VER>=BCHP_VER_B0)
-      /* E0 powers up with a lower default clock speed.  Restore to correct frequency */
-      hV3d->uiMdiv = 0x8;
-#else
-      hV3d->uiMdiv = BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_MDIV_CH3_DEFAULT;
-#endif
-   else
-   {
-      uint32_t div = 5;
-      /* clamp to some sensible values */
-      uiClockFreq = BV3D_P_MIN(BV3D_P_MAX(uiClockFreq, 257), 720);
-
-      while (uiClockFreq < (3600 / div))
-         div++;
-
-      hV3d->uiMdiv = div;
-      BKNI_Printf("V3D Clock frequency %d, MDIV %d\n", 3600 / hV3d->uiMdiv, hV3d->uiMdiv);
-   }
-#else
-   BSTD_UNUSED(uiClockFreq);
-   hV3d->uiMdiv = 0;
-#endif
-
    err = BKNI_CreateMutex(&hV3d->hModuleMutex);
+   if (err != BERR_SUCCESS)
+      goto error;
+
+   err = BKNI_CreateMutex(&hV3d->hEventMutex);
    if (err != BERR_SUCCESS)
       goto error;
 
@@ -263,6 +253,9 @@ BERR_Code BV3D_Open(
    if (err != BERR_SUCCESS)
       goto error;
 
+   BV3D_P_InitPerfCounters(hV3d);
+   BV3D_P_InitEventMonitor(hV3d);
+
    BV3D_P_ResetCore(hV3d, 0);
 
 #ifdef V3D_HANDLED_VIA_L2
@@ -288,7 +281,7 @@ BERR_Code BV3D_Open(
 error:
    BV3D_Close(hV3d);
 
-   BDBG_LEAVE(BV3D_Close);
+   BDBG_LEAVE(BV3D_Open);
 
    return err;
 }
@@ -379,8 +372,12 @@ BERR_Code BV3D_Close(
 
    BDBG_ASSERT(hV3d->powerOnCount == 0);
 
+   if (hV3d->hEventMutex != NULL)
+      BKNI_DestroyMutex(hV3d->hEventMutex);
+
    if (hV3d->hModuleMutex != NULL)
       BKNI_DestroyMutex(hV3d->hModuleMutex);
+
    BV3D_P_OsUninit(hV3d);
    BKNI_Free(hV3d);
 
@@ -617,6 +614,10 @@ BERR_Code BV3D_UnregisterClient(
    /* Remove any pending fences */
    BV3D_P_FenceClientDestroy(hV3d->hFences, uiClientId);
 
+   /* Remove any acquire locks current held be event or perf counters */
+   BV3D_P_PerfCountersRemoveClient(hV3d, uiClientId);
+   BV3D_P_EventsRemoveClient(hV3d, uiClientId);
+
    /* if this was the last removed client, make the device mode unsecure */
    if ((hV3d->bSecure) && (BV3D_P_IQMapSize(hV3d->hIQMap) == 0))
       BV3D_P_SwitchMode(hV3d, false);
@@ -766,85 +767,6 @@ BERR_Code BV3D_GetBinMemory(
    BDBG_LEAVE(BV3D_GetBinMemory);
 
    return rc;
-}
-
-BERR_Code BV3D_SetPerformanceMonitor(
-   BV3D_Handle                    hV3d,
-   const BV3D_PerfMonitorSettings *settings
-)
-{
-   BDBG_ENTER(BV3D_SetPerformanceMonitor);
-
-   if ((settings == NULL) || (hV3d == NULL))
-   {
-      BDBG_LEAVE(BV3D_SetPerformanceMonitor);
-      return BERR_INVALID_PARAMETER;
-   }
-
-   BKNI_AcquireMutex(hV3d->hModuleMutex);
-
-   if ((settings->uiFlags & BV3D_PerfMonitor_Reset) != 0)
-   {
-      /* Reset h/w and cumulative counters */
-      BDBG_MSG(("Resetting performance counters"));
-      BV3D_P_ResetPerfMonitorHWCounters(hV3d);
-      BKNI_Memset(&hV3d->sPerfData, 0, sizeof(BV3D_PerfMonitorData));
-   }
-
-   if ((settings->uiFlags & BV3D_PerfMonitor_Stop) != 0)
-   {
-      /* Disable performance counters */
-      BDBG_MSG(("Stopping performance counters"));
-      hV3d->bPerfMonitorActive = false;
-      BV3D_P_PowerOn(hV3d);
-      BREG_Write32(hV3d->hReg, BCHP_V3D_PCTR_PCTRE, 0);
-      BV3D_P_PowerOff(hV3d);
-   }
-
-   if ((settings->uiFlags & BV3D_PerfMonitor_Start) != 0)
-   {
-      BDBG_MSG(("Starting performance counters"));
-
-      hV3d->bPerfMonitorActive = true;
-      hV3d->uiPerfMonitorHwBank = settings->uiHWBank;
-      hV3d->uiPerfMonitorMemBank = settings->uiMemBank;
-
-      BV3D_P_InitPerfMonitor(hV3d);
-   }
-
-   BKNI_ReleaseMutex(hV3d->hModuleMutex);
-
-   BDBG_LEAVE(BV3D_SetPerformanceMonitor);
-
-   return BERR_SUCCESS;
-}
-
-/***************************************************************************/
-BERR_Code BV3D_GetPerformanceData(
-   BV3D_Handle            hV3d,
-   BV3D_PerfMonitorData   *data
-)
-{
-   BDBG_ENTER(BV3D_GetPerformanceData);
-
-   if (hV3d == NULL)
-   {
-      BDBG_LEAVE(BV3D_GetPerformanceData);
-      return BERR_INVALID_PARAMETER;
-   }
-
-   BKNI_AcquireMutex(hV3d->hModuleMutex);
-
-   BV3D_P_GatherPerfMonitor(hV3d);
-
-   BDBG_ASSERT(data != NULL);
-   *data = hV3d->sPerfData;
-
-   BKNI_ReleaseMutex(hV3d->hModuleMutex);
-
-   BDBG_LEAVE(BV3D_GetPerformanceData);
-
-   return BERR_SUCCESS;
 }
 
 /***************************************************************************/

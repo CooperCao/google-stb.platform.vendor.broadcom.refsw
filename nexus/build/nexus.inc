@@ -130,7 +130,7 @@ MAGNUM_OS_ABSTRACTION += \
     MAGNUM/bvc5_android_fences.c
 else
 MAGNUM_OS_ABSTRACTION += \
-   MAGNUM/bvc5_linux_fences.c
+   MAGNUM/bvc5_android_fences.c
 endif
 endif
 

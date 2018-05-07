@@ -20,21 +20,20 @@ namespace bvk
 
 // Private helper constructor
 // The nullptr_t is just there to disambiguate this function
-FunctionContext::FunctionContext(DflowBuilder &builder, nullptr_t) :
-   m_blocks(builder.GetArenaAllocator()),
-   m_blockMap(std::less<const Node *>(), builder.GetArenaAllocator()),                 // gcc doesn't like not
-   m_params(std::less<const NodeFunctionParameter *>(), builder.GetArenaAllocator()),  // being given the std::less
-   m_symbols(std::less<const NodeVariable *>(), builder.GetArenaAllocator()),          // for some reason
-   m_dataflowSymbols(std::less<const Node *>(), builder.GetArenaAllocator()),          // so we have to be explicit
-   m_phis(builder.GetArenaAllocator())
+FunctionContext::FunctionContext(const spv::ModuleAllocator<uint32_t> &allocator) :
+   m_blocks(allocator),
+   m_blockMap(std::less<const Node *>(), allocator),                 // gcc doesn't like not
+   m_params(std::less<const NodeFunctionParameter *>(), allocator),  // being given the std::less
+   m_dataflowSymbols(std::less<const Node *>(), allocator),          // so we have to be explicit
+   m_phis(allocator)
 {
 }
 
 // Create a default context with a single block -- for the entry point ("main") to be called from
 FunctionContext::FunctionContext(DflowBuilder &builder) :
-   FunctionContext(builder, nullptr)
+   FunctionContext(builder.GetArenaAllocator())
 {
-   m_startBlock = BasicBlockHandle(builder);
+   m_startBlock = BasicBlockHandle(builder.GetBasicBlockPool());
    m_blocks.push_back(m_startBlock);
 }
 
@@ -42,9 +41,9 @@ FunctionContext::FunctionContext(DflowBuilder &builder) :
 // Note when the function call is nullptr, this would be an entry point
 FunctionContext::FunctionContext(const NodeFunction *function, const NodeFunctionCall *call,
                                  DflowBuilder &builder) :
-   FunctionContext(builder, nullptr)
+   FunctionContext(builder.GetArenaAllocator())
 {
-   m_returnBlock  = BasicBlockHandle(builder);
+   m_returnBlock  = BasicBlockHandle(builder.GetBasicBlockPool());
    m_functionCall = call;
 
    const spv::vector<const NodeLabel *> &blocks = function->GetData()->GetBlocks();
@@ -55,7 +54,7 @@ FunctionContext::FunctionContext(const NodeFunction *function, const NodeFunctio
 
    for (const NodeLabel *label : blocks)
    {
-      m_blocks.push_back(BasicBlockHandle(builder));
+      m_blocks.push_back(BasicBlockHandle(builder.GetBasicBlockPool()));
       // Record label's block
       m_blockMap[label] = m_blocks.back();
    }

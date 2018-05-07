@@ -1,5 +1,5 @@
 # Uniforms: tmu param 0, tmu param 1, clampVal1 (RGB), tlb cfg, clampVal2 (Alpha)
-# Varyings: s,t,r
+# Varyings: t,r,s
 nop                                 ; wrtmuc; ldvary
 nop               ; fmul r2, r3, w  ; wrtmuc; ldvary
 fadd tmut,r2,r5   ; fmul r2, r3, w  ; thrsw; ldvary

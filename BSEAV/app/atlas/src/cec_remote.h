@@ -38,6 +38,7 @@
 #ifndef __CEC_REMOTE_H
 #define __CEC_REMOTE_H
 
+#if NEXUS_HAS_CEC
 #include "bwidgets.h"
 #include "widget_engine.h"
 #include "mvc.h"
@@ -84,6 +85,8 @@ protected:
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif /* __CEC_REMOTE_H */

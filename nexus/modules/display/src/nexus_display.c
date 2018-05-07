@@ -1242,10 +1242,10 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
     BDBG_ASSERT(NULL == display->hdmi.rateChangeCb_isr);
     NEXUS_CallbackHandler_Init(display->hdmi.outputNotifyDisplay,NEXUS_VideoOutput_P_SetHdmiSettings, display );
     display->hdmi.outputNotify = NULL;
-#endif
 
     display->private.hdrInfoChangedCallback = NEXUS_TaskCallback_Create(display, NULL);
     if(!display->private.hdrInfoChangedCallback) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_registerhdrInfoChange;}
+#endif
 
     rc = NEXUS_Display_P_Open(display, displayIndex, pSettings);
     if (rc) {rc = BERR_TRACE(rc); goto err_open;}
@@ -1444,9 +1444,8 @@ NEXUS_Display_P_Finalizer(NEXUS_DisplayHandle display)
         display->customFormatInfo = NULL;
     }
 
+#if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_TaskCallback_Destroy(display->private.hdrInfoChangedCallback);
-
-#if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_CallbackHandler_Shutdown(display->hdmi.outputNotifyDisplay);
     NEXUS_UnregisterEvent(display->hdmi.hdrInfoChange.handler);
     BKNI_DestroyEvent(display->hdmi.hdrInfoChange.event);
@@ -2784,7 +2783,9 @@ NEXUS_Error NEXUS_Display_SetPrivateSettings(NEXUS_DisplayHandle display, const 
 {
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
     display->private.settings = *pSettings;
+#if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_TaskCallback_Set(display->private.hdrInfoChangedCallback, &display->private.settings.hdrInfoChanged);
+#endif
     return NEXUS_SUCCESS;
 }
 

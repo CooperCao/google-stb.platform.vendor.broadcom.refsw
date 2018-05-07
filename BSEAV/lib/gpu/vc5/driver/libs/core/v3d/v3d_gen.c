@@ -924,6 +924,18 @@ bool v3d_is_valid_qpu_opcode(v3d_qpu_opcode_t qpu_opcode)
 #if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_OP_RSQRT2:
 #endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_BALLOT:
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_BCASTF:
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ALLEQ:
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ALLFEQ:
+#endif
    case V3D_QPU_OP_FADD:
    case V3D_QPU_OP_FADDNF:
    case V3D_QPU_OP_FSUB:
@@ -953,6 +965,12 @@ bool v3d_is_valid_qpu_opcode(v3d_qpu_opcode_t qpu_opcode)
    case V3D_QPU_OP_AND:
    case V3D_QPU_OP_OR:
    case V3D_QPU_OP_XOR:
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ROT:
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ROTQ:
+#endif
    case V3D_QPU_OP_STVPMV:
    case V3D_QPU_OP_STVPMD:
    case V3D_QPU_OP_STVPMP:
@@ -1054,6 +1072,18 @@ const char *v3d_maybe_desc_qpu_opcode(v3d_qpu_opcode_t qpu_opcode)
 #if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_QPU_OP_RSQRT2:     return "rsqrt2";
 #endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_BALLOT:     return "ballot";
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_BCASTF:     return "bcastf";
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ALLEQ:      return "alleq";
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ALLFEQ:     return "allfeq";
+#endif
    case V3D_QPU_OP_FADD:       return "fadd";
    case V3D_QPU_OP_FADDNF:     return "faddnf";
    case V3D_QPU_OP_FSUB:       return "fsub";
@@ -1083,6 +1113,12 @@ const char *v3d_maybe_desc_qpu_opcode(v3d_qpu_opcode_t qpu_opcode)
    case V3D_QPU_OP_AND:        return "and";
    case V3D_QPU_OP_OR:         return "or";
    case V3D_QPU_OP_XOR:        return "xor";
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ROT:        return "rot";
+#endif
+#if V3D_HAS_SFU_ROTATE
+   case V3D_QPU_OP_ROTQ:       return "rotq";
+#endif
    case V3D_QPU_OP_STVPMV:     return "stvpmv";
    case V3D_QPU_OP_STVPMD:     return "stvpmd";
    case V3D_QPU_OP_STVPMP:     return "stvpmp";
@@ -1213,12 +1249,22 @@ bool v3d_is_valid_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
 #if V3D_VER_AT_LEAST(4,2,13,0)
    case V3D_QPU_MAGIC_WADDR_SYNCB:
 #endif
+#if !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_RECIP:
+#endif
+#if !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_RSQRT:
+#endif
+#if !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_EXP:
+#endif
+#if !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_LOG:
+#endif
+#if !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_SIN:
-#if V3D_VER_AT_LEAST(3,3,0,0)
+#endif
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_HAS_NO_SFU_MAGIC
    case V3D_QPU_MAGIC_WADDR_RSQRT2:
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -1277,95 +1323,105 @@ bool v3d_is_valid_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
 const char *v3d_maybe_desc_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
 {
    switch (qpu_magic_waddr) {
-   case V3D_QPU_MAGIC_WADDR_R0:         return "r0";
-   case V3D_QPU_MAGIC_WADDR_R1:         return "r1";
-   case V3D_QPU_MAGIC_WADDR_R2:         return "r2";
-   case V3D_QPU_MAGIC_WADDR_R3:         return "r3";
-   case V3D_QPU_MAGIC_WADDR_R4:         return "r4";
-   case V3D_QPU_MAGIC_WADDR_R5QUAD:     return "r5quad";
-   case V3D_QPU_MAGIC_WADDR_NOP:        return "nop";
-   case V3D_QPU_MAGIC_WADDR_TLB:        return "tlb";
-   case V3D_QPU_MAGIC_WADDR_TLBU:       return "tlbu";
+   case V3D_QPU_MAGIC_WADDR_R0:                        return "r0";
+   case V3D_QPU_MAGIC_WADDR_R1:                        return "r1";
+   case V3D_QPU_MAGIC_WADDR_R2:                        return "r2";
+   case V3D_QPU_MAGIC_WADDR_R3:                        return "r3";
+   case V3D_QPU_MAGIC_WADDR_R4:                        return "r4";
+   case V3D_QPU_MAGIC_WADDR_R5QUAD:                    return "r5quad";
+   case V3D_QPU_MAGIC_WADDR_NOP:                       return "nop";
+   case V3D_QPU_MAGIC_WADDR_TLB:                       return "tlb";
+   case V3D_QPU_MAGIC_WADDR_TLBU:                      return "tlbu";
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMU:        return "tmu";
+   case V3D_QPU_MAGIC_WADDR_TMU:                       return "tmu";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_UNIFA:      return "unifa";
+   case V3D_QPU_MAGIC_WADDR_UNIFA:                     return "unifa";
 #endif
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUL:       return "tmul";
+   case V3D_QPU_MAGIC_WADDR_TMUL:                      return "tmul";
 #endif
-   case V3D_QPU_MAGIC_WADDR_TMUD:       return "tmud";
-   case V3D_QPU_MAGIC_WADDR_TMUA:       return "tmua";
-   case V3D_QPU_MAGIC_WADDR_TMUAU:      return "tmuau";
+   case V3D_QPU_MAGIC_WADDR_TMUD:                      return "tmud";
+   case V3D_QPU_MAGIC_WADDR_TMUA:                      return "tmua";
+   case V3D_QPU_MAGIC_WADDR_TMUAU:                     return "tmuau";
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_VPM:        return "vpm";
+   case V3D_QPU_MAGIC_WADDR_VPM:                       return "vpm";
 #endif
 #if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_VPMU:       return "vpmu";
+   case V3D_QPU_MAGIC_WADDR_VPMU:                      return "vpmu";
 #endif
-   case V3D_QPU_MAGIC_WADDR_SYNC:       return "sync";
-   case V3D_QPU_MAGIC_WADDR_SYNCU:      return "syncu";
+   case V3D_QPU_MAGIC_WADDR_SYNC:                      return "sync";
+   case V3D_QPU_MAGIC_WADDR_SYNCU:                     return "syncu";
 #if V3D_VER_AT_LEAST(4,2,13,0)
-   case V3D_QPU_MAGIC_WADDR_SYNCB:      return "syncb";
+   case V3D_QPU_MAGIC_WADDR_SYNCB:                     return "syncb";
 #endif
-   case V3D_QPU_MAGIC_WADDR_RECIP:      return "recip";
-   case V3D_QPU_MAGIC_WADDR_RSQRT:      return "rsqrt";
-   case V3D_QPU_MAGIC_WADDR_EXP:        return "exp";
-   case V3D_QPU_MAGIC_WADDR_LOG:        return "log";
-   case V3D_QPU_MAGIC_WADDR_SIN:        return "sin";
-#if V3D_VER_AT_LEAST(3,3,0,0)
-   case V3D_QPU_MAGIC_WADDR_RSQRT2:     return "rsqrt2";
+#if !V3D_HAS_NO_SFU_MAGIC
+   case V3D_QPU_MAGIC_WADDR_RECIP:                     return "recip";
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUC:       return "tmuc";
+#if !V3D_HAS_NO_SFU_MAGIC
+   case V3D_QPU_MAGIC_WADDR_RSQRT:                     return "rsqrt";
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUS:       return "tmus";
+#if !V3D_HAS_NO_SFU_MAGIC
+   case V3D_QPU_MAGIC_WADDR_EXP:                       return "exp";
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUT:       return "tmut";
+#if !V3D_HAS_NO_SFU_MAGIC
+   case V3D_QPU_MAGIC_WADDR_LOG:                       return "log";
 #endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUR:       return "tmur";
+#if !V3D_HAS_NO_SFU_MAGIC
+   case V3D_QPU_MAGIC_WADDR_SIN:                       return "sin";
+#endif
+#if V3D_VER_AT_LEAST(3,3,0,0) && !V3D_HAS_NO_SFU_MAGIC
+   case V3D_QPU_MAGIC_WADDR_RSQRT2:                    return "rsqrt2";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUI:       return "tmui";
+   case V3D_QPU_MAGIC_WADDR_TMUC:                      return "tmuc";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUB:       return "tmub";
+   case V3D_QPU_MAGIC_WADDR_TMUS:                      return "tmus";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUDREF:    return "tmudref";
+   case V3D_QPU_MAGIC_WADDR_TMUT:                      return "tmut";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUOFF:     return "tmuoff";
+   case V3D_QPU_MAGIC_WADDR_TMUR:                      return "tmur";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUSCM:     return "tmuscm";
+   case V3D_QPU_MAGIC_WADDR_TMUI:                      return "tmui";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUSFETCH:  return "tmusfetch";
+   case V3D_QPU_MAGIC_WADDR_TMUB:                      return "tmub";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUSLOD:    return "tmuslod";
+   case V3D_QPU_MAGIC_WADDR_TMUDREF:                   return "tmudref";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUHS:      return "tmuhs";
+   case V3D_QPU_MAGIC_WADDR_TMUOFF:                    return "tmuoff";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUHSCM:    return "tmuhscm";
+   case V3D_QPU_MAGIC_WADDR_TMUSCM:                    return "tmuscm";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUHSFETCH: return "tmuhsfetch";
+   case V3D_QPU_MAGIC_WADDR_TMUSFETCH:                 return "tmusfetch";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_TMUHSLOD:   return "tmuhslod";
+   case V3D_QPU_MAGIC_WADDR_TMUSLOD:                   return "tmuslod";
 #endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_QPU_MAGIC_WADDR_R5REP:      return "r5rep";
+   case V3D_QPU_MAGIC_WADDR_TMUHS:                     return "tmuhs";
 #endif
-   default:                             return NULL;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_QPU_MAGIC_WADDR_TMUHSCM:                   return "tmuhscm";
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_QPU_MAGIC_WADDR_TMUHSFETCH:                return "tmuhsfetch";
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_QPU_MAGIC_WADDR_TMUHSLOD:                  return "tmuhslod";
+#endif
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   case V3D_QPU_MAGIC_WADDR_R5REP:                     return "r5rep";
+#endif
+   default:                                            return NULL;
    }
 }
 const char *v3d_desc_qpu_magic_waddr(v3d_qpu_magic_waddr_t qpu_magic_waddr)
@@ -2603,6 +2659,8 @@ bool v3d_is_valid_iuc_size(v3d_iuc_size_t iuc_size)
    case V3D_IUC_SIZE_1KB:
    case V3D_IUC_SIZE_2KB:
    case V3D_IUC_SIZE_4KB:
+   case V3D_IUC_SIZE_8KB:
+   case V3D_IUC_SIZE_16KB:
    return true;
    default:
       return false;
@@ -2611,10 +2669,12 @@ bool v3d_is_valid_iuc_size(v3d_iuc_size_t iuc_size)
 const char *v3d_maybe_desc_iuc_size(v3d_iuc_size_t iuc_size)
 {
    switch (iuc_size) {
-   case V3D_IUC_SIZE_1KB: return "1kb";
-   case V3D_IUC_SIZE_2KB: return "2kb";
-   case V3D_IUC_SIZE_4KB: return "4kb";
-   default:               return NULL;
+   case V3D_IUC_SIZE_1KB:  return "1kb";
+   case V3D_IUC_SIZE_2KB:  return "2kb";
+   case V3D_IUC_SIZE_4KB:  return "4kb";
+   case V3D_IUC_SIZE_8KB:  return "8kb";
+   case V3D_IUC_SIZE_16KB: return "16kb";
+   default:                return NULL;
    }
 }
 const char *v3d_desc_iuc_size(v3d_iuc_size_t iuc_size)
@@ -3089,98 +3149,15 @@ const char *v3d_desc_axi_master_id(v3d_axi_master_id_t axi_master_id)
    return desc;
 }
 #if V3D_VER_AT_LEAST(4,1,34,0)
-bool v3d_is_valid_l2t_master_id(v3d_l2t_master_id_t l2t_master_id)
-{
-   switch (l2t_master_id)
-   {
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_TMU:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_VCD:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_TMU_CONFIG:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL0_CACHE:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL1_CACHE:
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL2_CACHE:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_TMU:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_CLE:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_VCD:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_TMU_CONFIG:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL0_CACHE:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL1_CACHE:
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL2_CACHE:
-#endif
-   return true;
-   default:
-      return false;
-   }
-}
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
 const char *v3d_maybe_desc_l2t_master_id(v3d_l2t_master_id_t l2t_master_id)
 {
    switch (l2t_master_id) {
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU:        return "tmu";
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_VCD:        return "vcd";
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_TMU_CONFIG: return "tmu_config";
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL0_CACHE:  return "sl0_cache";
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL1_CACHE:  return "sl1_cache";
-#endif
-#if V3D_VER_AT_LEAST(4,1,34,0)
    case V3D_L2T_MASTER_ID_SL2_CACHE:  return "sl2_cache";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_TMU:        return "tmu";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_CLE:        return "cle";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_VCD:        return "vcd";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_TMU_CONFIG: return "tmu_config";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL0_CACHE:  return "sl0_cache";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL1_CACHE:  return "sl1_cache";
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   case V3D_L2T_MASTER_ID_SL2_CACHE:  return "sl2_cache";
-#endif
    default:                           return NULL;
    }
 }
@@ -4087,7 +4064,7 @@ void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
    (*unpacked).op = (v3d_tmu_op_t)(packed0 >> 20 & 15);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
 {
    (*unpacked).tmuoff_4x = packed0 & 1;
@@ -4102,7 +4079,7 @@ void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
    (*unpacked).lod_query = packed0 >> 24 & 1;
 }
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 void v3d_unpack_tmu_param2(V3D_TMU_PARAM2_T *unpacked, uint32_t packed0)
 {
    (*unpacked).tmuoff_4x = packed0 & 1;
@@ -6235,8 +6212,8 @@ void v3d_unpack_tfuicfg(V3D_TFUICFG_T *unpacked, uint32_t packed0)
 }
 void v3d_unpack_tfuiis(V3D_TFUIIS_T *unpacked, uint32_t packed0)
 {
-   (*unpacked).stride0 = packed0 & 0xffff;
-   (*unpacked).stride1 = packed0 >> 16;
+   (*unpacked).stride0 = packed0 & 0x7fff;
+   (*unpacked).stride1 = packed0 >> 16 & 0x7fff;
 }
 void v3d_unpack_tfuioa(V3D_TFUIOA_T *unpacked, uint32_t packed0)
 {
@@ -7478,7 +7455,7 @@ void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,13,0) && !V3D_VER_AT_LEAST(4,2,14,0)
 void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -7501,7 +7478,7 @@ void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
    printer->vtbl->end(printer);
 }
 #endif
-#if V3D_HAS_SAMPLER_LOD_DIS
+#if V3D_VER_AT_LEAST(4,2,14,0)
 void v3d_print_tmu_param2(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
@@ -10110,8 +10087,8 @@ void v3d_print_tfuicfg(uint32_t packed0, struct v3d_printer *printer)
 void v3d_print_tfuiis(uint32_t packed0, struct v3d_printer *printer)
 {
    printer->vtbl->begin(printer, V3D_PRINTER_STRUCT, NULL, false);
-   printer->vtbl->field(printer, "stride0", "%" PRIu32 "", packed0 & 0xffff);
-   printer->vtbl->field(printer, "stride1", "%" PRIu32 "", packed0 >> 16);
+   printer->vtbl->field(printer, "stride0", "%" PRIu32 "", packed0 & 0x7fff);
+   printer->vtbl->field(printer, "stride1", "%" PRIu32 "", packed0 >> 16 & 0x7fff);
    printer->vtbl->end(printer);
 }
 void v3d_print_tfuioa(uint32_t packed0, struct v3d_printer *printer)

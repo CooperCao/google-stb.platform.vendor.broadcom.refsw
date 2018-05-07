@@ -32,8 +32,12 @@ typedef enum
    /* non renderable input formats */
    BEGL_BufferFormat_eYV12,                  /* 3 planes layed out in Google format */
    BEGL_BufferFormat_eYUV422,                /* Single plane YUYV */
-   BEGL_BufferFormat_eSAND8,                 /* 2 plane 8-bit striped video format */
-   BEGL_BufferFormat_eSAND10,                /* 2 plane 10-bit striped video format */
+   BEGL_BufferFormat_eY8,                    /* 2 plane 8-bit striped video format - luma plane */
+   BEGL_BufferFormat_eCr8Cb8,                /* 2 plane 8-bit striped video format - chroma plane */
+   BEGL_BufferFormat_eCb8Cr8,                /* 2 plane 8-bit striped video format - chroma plane */
+   BEGL_BufferFormat_eY10,                   /* 2 plane 10-bit striped video format - luma plane */
+   BEGL_BufferFormat_eCr10Cb10,              /* 2 plane 10-bit striped video format - chroma plane */
+   BEGL_BufferFormat_eCb10Cr10,              /* 2 plane 10-bit striped video format - chroma plane */
 
    /* renderable, but can only be used by the display and not re-read */
    BEGL_BufferFormat_eBSTC,

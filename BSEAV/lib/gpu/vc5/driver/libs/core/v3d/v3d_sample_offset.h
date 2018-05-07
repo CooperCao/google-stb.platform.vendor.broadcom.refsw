@@ -8,7 +8,7 @@
 /* Sample x offset from pixel center, in 1/8ths of a pixel */
 static inline int v3d_sample_x_offset(unsigned i)
 {
-#if V3D_HAS_STD_4X_RAST_PATT
+#if V3D_VER_AT_LEAST(4,2,14,0)
    static const int offsets[] = {-1, 3, -3, 1};
 #else
    static const int offsets[] = {1, -3, 3, -1};

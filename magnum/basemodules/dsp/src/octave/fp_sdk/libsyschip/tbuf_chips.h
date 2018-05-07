@@ -84,7 +84,7 @@
 #if defined(MCPHY) || (defined(RAAGA) && !__FP4015_ONWARDS__)
 #  define TB_ASYNC_TRANSFERS
 #elif defined(PIKE) || defined(GENERIC) || \
-      defined(BSP) || defined(LEAP_PHY_BCM3465) || defined(PMC3) || defined(PMC3_2_ICA) || \
+      defined(LEAP_PHY_BCM3465) || defined(PMC3) || defined(PMC3_2_ICA) || \
       (defined(RAAGA) && __FP4015_ONWARDS__) || defined(YELLOWSTONE) || defined(SHASTA)
 #  define TB_SYNC_TRANSFERS
 #elif defined(__COMPILE_HEADER__)
@@ -149,10 +149,6 @@
 #elif defined(PIKE) || defined(YELLOWSTONE) || defined(SHASTA)  /* We are currently using the approach where           */
 #  define TB_TRANSFER_ALIGNMENT         1                       /* the DSP stores TB data into a shared memory.        */
 #  define TB_TRANSFER_SIZE_MULTIPLE     1                       /* TODO: change once we switch to DMA-based transfers. */
-#  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
-#elif defined(BSP) && __FPM1015__
-#  define TB_TRANSFER_ALIGNMENT         1               /* We dump (memcpy) data directly to DRAM  */
-#  define TB_TRANSFER_SIZE_MULTIPLE     1               /* through $$, so no transfer constraints  */
 #  define TB_TRANSFER_SIZE_MAX          TB_TRANSFER_UNLIMITED_SIZE
 #elif defined(LEAP_PHY_BCM3465) && __FPM1015__ /* Shared buffers in SMEM require naturally aligned     */
 #  define TB_TRANSFER_ALIGNMENT         8               /* accesses, enforce dword size/aligment so that memcpy */

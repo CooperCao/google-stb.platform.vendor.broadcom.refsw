@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,9 +36,9 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608200)
-#define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)216776)
+#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608000)
+#define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)216760)
 #define BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE                          ((uint32_t)26752)
-#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)43672)
+#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)44836)
 #define BDSP_ARM_IMG_LIBDMA_CODE_SIZE                                ((uint32_t)22016)
 #define BDSP_ARM_IMG_HBC_MONITOR_CODE_SIZE                           ((uint32_t)6268)

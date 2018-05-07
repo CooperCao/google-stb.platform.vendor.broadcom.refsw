@@ -89,16 +89,10 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 
 	ReceiverSense = Clock + Ch2 + Ch1 + Ch0 ;
 
-	/* If all ReceiverSense lines are all enabled */
-	if (ReceiverSense == 4)
+	if ((hHDMI->bCrcTestMode) /* if test mode,  */
+	||  (ReceiverSense == 4)  /* or if clock + 3 data lines enabled, */
+	||  (Clock))              /* or if clock only, report RxSense on */
 	{
-		ReceiverSense = 0x0F;
-		*RxSense = true ;
-	}
-	/* If only the Clock is enabled, consider all TMDS lines enabled */
-	else if (Clock)
-	{
-		ReceiverSense = 0x08;
 		*RxSense = true ;
 	}
 	else
@@ -106,11 +100,6 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 		*RxSense = false ;
 	}
 
-	if (hHDMI->bCrcTestMode)
-	{
-		ReceiverSense = 0x0F;
-		*RxSense = true ;
-	}
 
 	if (*RxSense != hHDMI->rxSensePowerDetected)
 	{
@@ -212,7 +201,7 @@ BERR_Code BHDM_Standby(
 	BDBG_ENTER(BHDM_Standby) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 	if (hHDMI->standby) {
-		BDBG_LOG(("Tx%d: Already in standby", hHDMI->eCoreId));
+		BDBG_MSG(("Tx%d: Already in standby", hHDMI->eCoreId));
 		goto done ;
 	}
 

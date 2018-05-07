@@ -14,9 +14,6 @@
 
 namespace bvk {
 
-class DflowBuilder;
-
-class BufferLoadData;
 class BufferStoreData;
 
 // Because we rudely pun an array of Dflows to an array of Dataflow *
@@ -31,11 +28,6 @@ public:
       m_size(size)
    {
       assert(size <= 4);
-   }
-
-   MemAccess Add(uint32_t offset) const
-   {
-      return MemAccess(m_offset + offset, m_size);
    }
 
    uint32_t GetOffset() const { return m_offset; }
@@ -58,20 +50,19 @@ private:
 class DflowScalars
 {
 public:
-   enum BufferType
-   {
-      UBO,
-      SSBO
-   };
+   // TODO (maybe) make the allocators more flexible so we can use
+   // different allocators in different contexts e.g. use a temporary
+   // allocator for intermediate results
+   using Allocator = spv::ModuleAllocator<uint32_t>;
 
    DflowScalars() :
-      m_builder(nullptr),
+      m_allocator(nullptr),
       m_scalars(nullptr),
       m_size(0)
    {}
 
-   DflowScalars(const DflowBuilder &builder) :
-      m_builder(&builder),
+   DflowScalars(const Allocator &allocator) :
+      m_allocator(&allocator),
       m_scalars(nullptr),
       m_size(0)
    {}
@@ -79,10 +70,11 @@ public:
    DflowScalars(const DflowScalars &rhs);
    DflowScalars(DflowScalars &&rhs);
 
-   DflowScalars(const DflowBuilder &builder, uint32_t size);
-   DflowScalars(const DflowBuilder &builder, const Dflow &dflow);
-   DflowScalars(const DflowBuilder &builder, uint32_t size, Dataflow **scalars);
-   DflowScalars(const DflowBuilder &builder, std::initializer_list<Dflow> dflow);
+   DflowScalars(const Allocator &allocator, uint32_t size);
+   DflowScalars(const Allocator &allocator, uint32_t size, const Dflow &dflow);
+   DflowScalars(const Allocator &allocator, const Dflow &dflow);
+   DflowScalars(const Allocator &allocator, uint32_t size, Dataflow **scalars);
+   DflowScalars(const Allocator &allocator, std::initializer_list<Dflow> dflow);
 
    DflowScalars &operator=(const DflowScalars &rhs);
    DflowScalars &operator=(DflowScalars &&rhs);
@@ -90,115 +82,101 @@ public:
    const Dflow  &operator[](uint32_t i) const { assert(i < m_size); return m_scalars[i]; }
    Dflow        &operator[](uint32_t i)       { assert(i < m_size); return m_scalars[i]; }
 
+   Dflow       *begin()       { return m_scalars;          }
+   Dflow       *end()         { return m_scalars + m_size; }
+   const Dflow *begin() const { return m_scalars;          }
+   const Dflow *end()   const { return m_scalars + m_size; }
+
    bool IsNull() const { return m_scalars == nullptr; }
 
    Dataflow **Data() const { return reinterpret_cast<Dataflow **>(m_scalars); }
 
-   static DflowScalars Initialize(const SymbolTypeHandle type, const DflowScalars &init);
-   static DflowScalars Default(const DflowBuilder &builder, SymbolTypeHandle type);
-
-   void Clear()
+   // Creates a DflowScalars objects of size, using fn :: uint32_t -> Dflow
+   template <typename FN>
+   static DflowScalars ForeachIndex(const Allocator &allocator, uint32_t size, const FN &fn)
    {
-      for (uint32_t i = 0; i < Size(); ++i)
-         m_scalars[i] = nullptr;
+      DflowScalars   ret(allocator, size);
+
+      for (uint32_t i = 0; i < size; ++i)
+         ret.m_scalars[i] = fn(i);
+
+      return ret;
    }
 
-   static DflowScalars ConstantValue(const DflowBuilder &builder, const SymbolTypeHandle type, uint32_t value)
+   // Fold elements together with fn :: (Dflow, Dflow) -> Dflow
+   template <typename FN>
+   Dflow Fold(const FN &fn) const
    {
-      DflowScalars   result(builder, type.GetNumScalars());
-      for (uint32_t i = 0; i < result.Size(); ++i)
-         result[i] = Dflow::ConstantValue(type.ToDataflowType(i), value);
-      return result;
+      Dflow res = m_scalars[0];
+
+      for (uint32_t i = 1; i < m_size; ++i)
+         res = fn(res, m_scalars[i]);
+
+      return res;
    }
 
-   static DflowScalars ConstantInt(const DflowBuilder &builder, int32_t value, uint32_t count = 1)
+   static DflowScalars Default(const Allocator &allocator, SymbolTypeHandle type);
+
+   static DflowScalars Value(const Allocator &allocator, const SymbolTypeHandle type, uint32_t value)
    {
-      DflowScalars   result(builder, count);
-      for (uint32_t i = 0; i < count; ++i)
-         result[i] = Dflow::ConstantInt(value);
-      return result;
+      return DflowScalars(allocator, type.GetNumScalars(), Dflow::Value(type.ToDataflowType(0), value));
    }
 
-   static DflowScalars ConstantUInt(const DflowBuilder &builder, uint32_t value, uint32_t count = 1)
+   static DflowScalars Int(const Allocator &allocator, int32_t value, uint32_t count = 1)
    {
-      DflowScalars   result(builder, count);
-      for (uint32_t i = 0; i < count; ++i)
-         result[i] = Dflow::ConstantUInt(value);
-      return result;
+      return DflowScalars(allocator, count, Dflow::Int(value));
    }
 
-   static DflowScalars ConstantBool(const DflowBuilder &builder, bool value, uint32_t count = 1)
+   static DflowScalars UInt(const Allocator &allocator, uint32_t value, uint32_t count = 1)
    {
-      DflowScalars   result(builder, count);
-      for (uint32_t i = 0; i < count; ++i)
-         result[i] = Dflow::ConstantBool(value);
-      return result;
+      return DflowScalars(allocator, count, Dflow::UInt(value));
    }
 
-   static DflowScalars ConstantFloat(const DflowBuilder &builder, float value, uint32_t count = 1)
+   static DflowScalars Bool(const Allocator &allocator, bool value, uint32_t count = 1)
    {
-      DflowScalars   result(builder, count);
-      for (uint32_t i = 0; i < count; ++i)
-         result[i] = Dflow::ConstantFloat(value);
-      return result;
+      return DflowScalars(allocator, count, Dflow::Bool(value));
    }
 
-   static DflowScalars In(const DflowBuilder &builder, const SymbolTypeHandle type,
-                          uint32_t startRow)
+   static DflowScalars Float(const Allocator &allocator, float value, uint32_t count = 1)
    {
-      DflowScalars   result(builder, type.GetNumScalars());
+      return DflowScalars(allocator, count, Dflow::Float(value));
+   }
 
-      for (uint32_t i = 0; i < result.Size(); ++i)
-         result.m_scalars[i] = Dflow::In(type.ToDataflowType(i), startRow++);
-
-      return result;
+   static DflowScalars In(const Allocator &allocator, const SymbolTypeHandle type, int *ids)
+   {
+      return ForeachIndex(allocator, type.GetNumScalars(),
+         [&type, ids](uint32_t i) { return Dflow::In(type.ToDataflowType(i), ids[i]); });
    }
 
    static DflowScalars InLoad(const DflowScalars &scalars)
    {
-      DflowScalars s(scalars.GetBuilder(), scalars.Size());
-
-      for (unsigned i = 0; i < s.Size(); i++)
-         s[i] = Dflow::InLoad(scalars[i]);
-
-      return s;
+      return ForeachIndex(scalars.GetAllocator(), scalars.Size(),
+         [&scalars](uint32_t i) { return Dflow::InLoad(scalars[i]); });
    }
 
-   static DflowScalars ImageSampler(DflowBuilder &builder, const SymbolTypeHandle type,
-                                    uint32_t descriptorSet, uint32_t binding, int *ids);
-
-   static Dflow CreateBufferAddress(
-      uint32_t numElems, uint32_t offset, Dflow dynOff,
-      uint32_t descTableIndex, BufferType bufType, bool robust);
-
-   static DflowScalars CreateImageVecLoadDataflow(const DflowScalars &coord, uint32_t descTableIndex,
-                                                  bool robust);
+   static Dflow OffsetBufferAddress(const Dflow &buf, uint32_t numElems, Dflow offset, bool clamp);
 
    static void CreateBufferVecLoadDataflow(
-      BufferLoadData *result, SymbolTypeHandle type,
-      const MemAccess &access, const Dflow &dynOffset,
-      uint32_t descTableIndex, BufferType bufType,
+      DflowScalars &result, uint32_t index, const Dflow &buf,
+      const Dflow &offset, SymbolTypeHandle type, uint32_t numElems,
       bool robust);
 
    static void CreateBufferVecStoreDataflow(
-      BufferStoreData *data, const MemAccess &access,
-      const Dflow &dynOffset, uint32_t descTableIndex,
-      bool robust);
+      BufferStoreData *data, const Dflow &buf, const Dflow &dynOffset,
+      uint32_t numElems, bool robust);
 
    static DflowScalars LoadFromBufferAddress(
-      const DflowBuilder &builder, const SymbolTypeHandle type,
+      const Allocator &allocator, const SymbolTypeHandle type,
       const spv::vector<MemAccess> &accesses,
-      const Dflow &dynOffset, uint32_t descTableIndex,
-      BufferType bufType);
+      const Dflow &buf, const Dflow &dynOffset, bool robust);
 
    static DflowScalars LoadFromPushConstants(
-      const DflowBuilder &builder, const SymbolTypeHandle type,
+      const Allocator &allocator, const SymbolTypeHandle type,
       const spv::vector<MemAccess> &accesses, uint32_t constOffset);
 
    void StoreToBufferAddress(
-      const DflowBuilder &builder, BasicBlockHandle block,
-      SymbolTypeHandle type, const spv::vector<MemAccess> &accesses,
-      const Dflow &dynOffset, uint32_t descTableIndex) const;
+      BasicBlockHandle block, const spv::vector<MemAccess> &accesses,
+      const Dflow &buf, const Dflow &dynOffset, bool robust) const;
 
    static DflowScalars AtomicAtAddress(
       DataflowFlavour op, BasicBlockHandle block,
@@ -208,53 +186,32 @@ public:
    static DflowScalars AtomicAtBufferAddress(
       DataflowFlavour op, BasicBlockHandle block,
       const DflowScalars &data, SymbolTypeHandle type,
-      const MemAccess &access,
-      const Dflow &dynOffset, uint32_t descTableIndex);
+      const Dflow &buf, const Dflow &dynOffset,
+      bool robust);
 
-   static DflowScalars NullaryOp(const DflowBuilder &builder, DataflowFlavour flavour)
+   static DflowScalars NullaryOp(const Allocator &allocator, DataflowFlavour flavour)
    {
-      auto result = DflowScalars(builder, 1);
-      result[0] = Dflow::NullaryOp(flavour);
-      return result;
+      return DflowScalars(allocator, Dflow::NullaryOp(flavour));
    }
 
-   static DflowScalars NullaryOp(const DflowBuilder &builder, std::initializer_list<DataflowFlavour> flavours)
+   static DflowScalars NullaryOp(const Allocator &allocator, std::initializer_list<DataflowFlavour> flavours)
    {
-      auto result = DflowScalars(builder, flavours.size());
+      auto fIter = flavours.begin();
 
-      uint32_t i = 0;
-      for (auto f : flavours)
-      {
-         result[i] = Dflow::NullaryOp(f);
-         ++i;
-      }
-
-      return result;
+      return ForeachIndex(allocator, flavours.size(),
+         [&fIter](uint32_t i) { return Dflow::NullaryOp(*fIter++); } );
    }
 
-   static DflowScalars UnaryOp(DataflowFlavour flavour, const DflowScalars &operand)
+   static DflowScalars UnaryOp(DataflowFlavour f, const DflowScalars &op)
    {
-      auto result = DflowScalars(*operand.m_builder, operand.Size());
-
-      for (uint32_t i = 0; i < operand.Size(); ++i)
-         result[i] = Dflow::UnaryOp(flavour, operand[i]);
-
-      return result;
-   }
-
-   static DflowScalars Reinterpret(DataflowType newType, const DflowScalars &operand)
-   {
-      auto result = DflowScalars(*operand.m_builder, operand.Size());
-
-      for (uint32_t i = 0; i < operand.Size(); ++i)
-         result[i] = operand[i].As(newType);
-
-      return result;
+      return ForeachIndex(op.GetAllocator(), op.Size(),
+         [f, &op](uint32_t i) { return Dflow::UnaryOp(f, op[i]); });
    }
 
    DflowScalars As(DataflowType type) const
    {
-      return Reinterpret(type, *this);
+      return ForeachIndex(*m_allocator, Size(),
+         [this, type](uint32_t i) { return m_scalars[i].As(type); } );
    }
 
    DflowScalars Signed() const
@@ -271,26 +228,16 @@ public:
                                 const DflowScalars &lhs, const DflowScalars &rhs)
    {
       if (lhs.Size() == rhs.Size())
-      {
-         auto result = DflowScalars(lhs.GetBuilder(), lhs.Size());
-         for (uint32_t i = 0; i < lhs.Size(); ++i)
-            result[i] = Dflow::BinaryOp(flavour, lhs[i], rhs[i]);
-         return result;
-      }
+         return ForeachIndex(lhs.GetAllocator(), lhs.Size(),
+            [flavour, &lhs, &rhs](uint32_t i) { return Dflow::BinaryOp(flavour, lhs[i], rhs[i]); });
+
       else if (lhs.Size() == 1)
-      {
-         auto result = DflowScalars(lhs.GetBuilder(), rhs.Size());
-         for (uint32_t i = 0; i < rhs.Size(); ++i)
-            result[i] = Dflow::BinaryOp(flavour, lhs[0], rhs[i]);
-         return result;
-      }
+         return ForeachIndex(lhs.GetAllocator(), rhs.Size(),
+            [flavour, &lhs, &rhs](uint32_t i) { return Dflow::BinaryOp(flavour, lhs[0], rhs[i]); });
+
       else if (rhs.Size() == 1)
-      {
-         auto result = DflowScalars(lhs.GetBuilder(), lhs.Size());
-         for (uint32_t i = 0; i < lhs.Size(); ++i)
-            result[i] = Dflow::BinaryOp(flavour, lhs[i], rhs[0]);
-         return result;
-      }
+         return ForeachIndex(lhs.GetAllocator(), lhs.Size(),
+            [flavour, &lhs, &rhs](uint32_t i) { return Dflow::BinaryOp(flavour, lhs[i], rhs[0]); });
 
       unreachable();
    }
@@ -298,58 +245,41 @@ public:
    static DflowScalars TypedBinaryOp(DataflowType type, DataflowFlavour flavour,
       const DflowScalars &lhs, const DflowScalars &rhs)
    {
-      return BinaryOp(flavour, Reinterpret(type, lhs), Reinterpret(type, rhs));
+      return BinaryOp(flavour, lhs.As(type), rhs.As(type));
    }
 
-   static DflowScalars CondOp(const DflowScalars &cond,
-                              const DflowScalars &t, const DflowScalars &f)
+   static DflowScalars CondOp(const DflowScalars &cond, const DflowScalars &t, const DflowScalars &f)
    {
       uint32_t tsize = t.Size();
       uint32_t fsize = f.Size();
       uint32_t csize = cond.Size();
-
       uint32_t size  = std::max(std::max(csize, tsize), fsize);
 
-      auto result = DflowScalars(*cond.m_builder, size);
+      return ForeachIndex(cond.GetAllocator(), size,
+         [&](uint32_t i)
+         {
+            return Dflow::CondOp(cond[i >= csize ? 0 : i], t[i >= tsize ? 0 : i], f[i >= fsize ? 0 : i]);
+         });
+   }
 
-      for (uint32_t i = 0; i < size; ++i)
-         result[i] = Dflow::CondOp(cond[i >= csize ? 0 : i], t[i >= tsize ? 0 : i], f[i >= fsize ? 0 : i]);
+   static DflowScalars CondOp(const Dflow &cond, const DflowScalars &t, const DflowScalars &f)
+   {
+      assert(t.Size() == f.Size());
 
-      return result;
+      return ForeachIndex(t.GetAllocator(), t.Size(),
+         [&t, &f, &cond](uint32_t i) { return Dflow::CondOp(cond, t[i], f[i]); });
+
    }
 
    static DflowScalars Join(const DflowScalars &op1, const DflowScalars &op2)
    {
-      auto     result = DflowScalars(*op1.m_builder, op1.Size() + op2.Size());
       uint32_t size1  = op1.Size();
 
-      for (uint32_t i = 0; i < result.Size(); ++i)
-         result[i] = i < size1 ? op1[i] : op2[i - size1];
-
-      return result;
+      return ForeachIndex(op1.GetAllocator(), op1.Size() + op2.Size(),
+         [&op1, &op2, size1](uint32_t i) { return i < size1 ? op1[i] : op2[i - size1]; });
    }
 
-   static DflowScalars Zip(const DflowScalars &op1, const DflowScalars &op2)
-   {
-      assert(op1.Size() == op2.Size());
-      auto     result = DflowScalars(*op1.m_builder, op1.Size() * 2);
-
-      uint32_t j = 0;
-      for (uint32_t i = 0; i < op1.Size(); ++i)
-      {
-         result[j++] = op1[i];
-         result[j++] = op2[i];
-      }
-
-      return result;
-   }
-
-   static DflowScalars IsNaN(const DflowScalars &x)
-   {
-      return DflowScalars::UnaryOp(DATAFLOW_ISNAN, x);
-   }
-
-   static DflowScalars Texture(const DflowBuilder &builder, const DflowScalars &coords, const Dflow &depthRef,
+   static DflowScalars Texture(const Allocator &allocator, const DflowScalars &coords, const Dflow &depthRef,
                                const Dflow &bias, const Dflow &offset, const Dflow &image, const Dflow &sampler,
                                uint32_t bits)
    {
@@ -361,9 +291,8 @@ public:
       if (q) numResultScalars = 2;
 #endif
 
-      DflowScalars result = DflowScalars(builder, numResultScalars);
+      DflowScalars result = DflowScalars(allocator, numResultScalars);
 
-      // required_components gets filled in the later compiler stages, when the usage of the texture is known
       glsl_dataflow_construct_texture_lookup(result.Data(), numResultScalars, bits,
                                              image.m_dflow, Dflow::Vec4(coords).m_dflow, depthRef.m_dflow,
                                              bias.m_dflow,  offset.m_dflow, sampler.m_dflow);
@@ -371,37 +300,28 @@ public:
       return result;
    }
 
-   static DflowScalars TextureSize(const DflowBuilder &builder, uint32_t numScalars, const Dflow &image)
+   static DflowScalars TextureSize(const Allocator &allocator, uint32_t numScalars, const Dflow &image)
    {
-      DflowScalars result = DflowScalars(builder, numScalars);
-      Dflow        tSize  = Dflow::TextureSize(image);
+      Dflow tSize  = Dflow::TextureSize(image);
 
-      for (uint32_t i = 0; i < numScalars; i++)
-         result[i] = glsl_dataflow_construct_get_vec4_component(i, tSize, DF_INT);
-
-      return result;
+      return ForeachIndex(allocator, numScalars,
+         [&tSize](uint32_t i) { return glsl_dataflow_construct_get_vec4_component(i, tSize, DF_INT); } );
    }
 
-   static DflowScalars TextureNumLevels(const DflowBuilder &builder, const Dflow &sampler)
+   static DflowScalars TextureNumLevels(const Allocator &allocator, const Dflow &sampler)
    {
-      DflowScalars result = DflowScalars(builder, 1);
-      result[0] = Dflow::TextureNumLevels(sampler);
-      return result;
+      return DflowScalars(allocator, Dflow::TextureNumLevels(sampler));
    }
 
-   static DflowScalars Load(DflowBuilder &builder, SymbolHandle symbol);
+   static DflowScalars Load(const Allocator &allocator, SymbolHandle symbol);
 
    DflowScalars Slice(uint32_t offset, uint32_t numScalars) const
    {
       assert(offset < m_size);
       assert(offset + numScalars <= m_size);
 
-      auto result = DflowScalars(*m_builder, numScalars);
-
-      for (uint32_t i = 0; i < numScalars; ++i)
-         result[i] = m_scalars[i + offset];
-
-      return result;
+      return ForeachIndex(*m_allocator, numScalars,
+         [this, offset](uint32_t i) { return m_scalars[i + offset]; } );
    }
 
    // Easier single slicers
@@ -413,37 +333,26 @@ public:
    DflowScalars XYZ() const { return Slice(0, 3); }
    DflowScalars ZW() const  { return Slice(2, 2); }
 
+   const Dflow &x() const   { return m_scalars[0]; }
+   const Dflow &y() const   { return m_scalars[1]; }
+   const Dflow &z() const   { return m_scalars[2]; }
+   const Dflow &w() const   { return m_scalars[3]; }
+
+   uint32_t Size()  const   { return m_size; }
+
    DflowScalars Swizzle(uint32_t x, uint32_t y) const
    {
-      DflowScalars result(*m_builder, 2);
-
-      result[0] = m_scalars[x];
-      result[1] = m_scalars[y];
-
-      return result;
+      return DflowScalars(*m_allocator, { m_scalars[x], m_scalars[y] });
    }
 
    DflowScalars Swizzle(uint32_t x, uint32_t y, uint32_t z) const
    {
-      DflowScalars result(*m_builder, 3);
-
-      result[0] = m_scalars[x];
-      result[1] = m_scalars[y];
-      result[2] = m_scalars[z];
-
-      return result;
+      return DflowScalars(*m_allocator, { m_scalars[x], m_scalars[y], m_scalars[z] });
    }
 
    DflowScalars Swizzle(uint32_t x, uint32_t y, uint32_t z, uint32_t w) const
    {
-      DflowScalars result(*m_builder, 4);
-
-      result[0] = m_scalars[x];
-      result[1] = m_scalars[y];
-      result[2] = m_scalars[z];
-      result[3] = m_scalars[w];
-
-      return result;
+      return DflowScalars(*m_allocator, { m_scalars[x], m_scalars[y], m_scalars[z], m_scalars[w] });
    }
 
    void SetSlice(uint32_t offset, const DflowScalars &sliceData) const
@@ -455,40 +364,20 @@ public:
           m_scalars[i + offset] = sliceData[i];
    }
 
-   // Easier single setters
-   void SetX(const DflowScalars &v)   const { assert(v.Size() == 1); SetSlice(0, v); }
-   void SetY(const DflowScalars &v)   const { assert(v.Size() == 1); SetSlice(1, v); }
-   void SetZ(const DflowScalars &v)   const { assert(v.Size() == 1); SetSlice(2, v); }
-   void SetW(const DflowScalars &v)   const { assert(v.Size() == 1); SetSlice(3, v); }
-   void SetXY(const DflowScalars &v)  const { assert(v.Size() == 2); SetSlice(0, v); }
-   void SetXYZ(const DflowScalars &v) const { assert(v.Size() == 3); SetSlice(0, v); }
-
-   void Set4(const DflowScalars &x, const DflowScalars &y, const DflowScalars &z, const DflowScalars &w) const
-   {
-      assert(x.Size() == 1);
-      assert(y.Size() == 1);
-      assert(z.Size() == 1);
-      assert(w.Size() == 1);
-
-      SetX(x);
-      SetY(y);
-      SetZ(z);
-      SetW(w);
-   }
-
-   uint32_t Size() const
-   {
-      return m_size;
-   }
-
    void DebugPrint() const;
 
-   const DflowBuilder &GetBuilder() const { return *m_builder; }
+   const Allocator &GetAllocator() const { return *m_allocator; }
 
 private:
-   const DflowBuilder  *m_builder;  // Can be null
-   Dflow               *m_scalars;
-   uint32_t             m_size;
+   Dflow *NewArray(uint32_t numElems) const
+   {
+      return spv::ModuleAllocator<Dflow>(*m_allocator).NewArray(numElems);
+   }
+
+private:
+   const Allocator *m_allocator;  // Can be null
+   Dflow           *m_scalars;
+   uint32_t         m_size;
 };
 
 static inline DflowScalars operator*(const DflowScalars &lhs, const DflowScalars &rhs)  { return DflowScalars::BinaryOp(DATAFLOW_MUL, lhs, rhs); }
@@ -514,95 +403,72 @@ static inline DflowScalars operator>=(const DflowScalars &lhs, const DflowScalar
 
 static inline DflowScalars operator*(float lhs, const DflowScalars &rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_MUL, DflowScalars::ConstantFloat(rhs.GetBuilder(), lhs), rhs);
+   return DflowScalars::BinaryOp(DATAFLOW_MUL, DflowScalars::Float(rhs.GetAllocator(), lhs), rhs);
 }
 static inline DflowScalars operator*(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_MUL, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_MUL, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator/(float lhs, const DflowScalars &rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_DIV, DflowScalars::ConstantFloat(rhs.GetBuilder(), lhs), rhs);
+   return DflowScalars::BinaryOp(DATAFLOW_DIV, DflowScalars::Float(rhs.GetAllocator(), lhs), rhs);
 }
 static inline DflowScalars operator/(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_DIV, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_DIV, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator+(float lhs, const DflowScalars &rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_ADD, DflowScalars::ConstantFloat(rhs.GetBuilder(), lhs), rhs);
+   return DflowScalars::BinaryOp(DATAFLOW_ADD, DflowScalars::Float(rhs.GetAllocator(), lhs), rhs);
 }
 static inline DflowScalars operator+(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_ADD, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_ADD, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator-(float lhs, const DflowScalars &rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_SUB, DflowScalars::ConstantFloat(rhs.GetBuilder(), lhs), rhs);
+   return DflowScalars::BinaryOp(DATAFLOW_SUB, DflowScalars::Float(rhs.GetAllocator(), lhs), rhs);
 }
 static inline DflowScalars operator-(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_SUB, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_SUB, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator==(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_EQUAL, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_EQUAL, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
-
 static inline DflowScalars operator==(const DflowScalars &lhs, int rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_EQUAL, lhs.As(DF_INT), DflowScalars::ConstantInt(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_EQUAL, lhs.As(DF_INT), DflowScalars::Int(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator!=(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_NOT_EQUAL, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_NOT_EQUAL, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
-
 static inline DflowScalars operator<(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_LESS_THAN, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_LESS_THAN, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator>(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_GREATER_THAN, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_GREATER_THAN, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator<=(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_LESS_THAN_EQUAL, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_LESS_THAN_EQUAL, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
 
 static inline DflowScalars operator>=(const DflowScalars &lhs, float rhs)
 {
-   return DflowScalars::BinaryOp(DATAFLOW_GREATER_THAN_EQUAL, lhs, DflowScalars::ConstantFloat(lhs.GetBuilder(), rhs));
+   return DflowScalars::BinaryOp(DATAFLOW_GREATER_THAN_EQUAL, lhs, DflowScalars::Float(lhs.GetAllocator(), rhs));
 }
-
-// BufferLoadData
-//
-// Results from buffer loads are accumulated into
-// this buffer.
-class BufferLoadData
-{
-public:
-   BufferLoadData(const DflowBuilder &builder, uint32_t numScalars) :
-      m_result(builder, numScalars)
-   {}
-
-   const DflowScalars &GetResult() const { return m_result; }
-
-   void     Push(const Dflow &dflow) { m_result[m_index++] = dflow; }
-   uint32_t Index() const            { return m_index;              }
-
-private:
-   DflowScalars m_result;
-   uint32_t     m_index = 0;
-};
 
 class BufferStoreData
 {

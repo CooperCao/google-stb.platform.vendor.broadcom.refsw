@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -7,6 +7,7 @@
 #include <directfb.h>
 
 #include <EGL/egl.h>
+#include <EGL/begl_platform.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,13 +21,14 @@ extern void DBPL_RegisterDirectFBDisplayPlatform(DBPL_PlatformHandle *handle, ID
 /* Unregister directFB */
 extern void DBPL_UnregisterDirectFBDisplayPlatform(DBPL_PlatformHandle handle);
 
-extern bool DBPL_BufferGetRequirements(DBPL_PlatformHandle handle,
-                                       BEGL_PixmapInfoEXT *bufferRequirements,
-                                       BEGL_BufferSettings *bufferConstrainedRequirements);
+extern void DBPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
+   __attribute__((deprecated("Use DFB surface with DSCAPS_GL compatibility flag instead")));
 
-extern bool DBPL_CreateCompatiblePixmap(DBPL_PlatformHandle handle, void **pixmapHandle, IDirectFBSurface **surface, BEGL_PixmapInfo *info);
+extern bool DBPL_CreateCompatiblePixmapEXT(DBPL_PlatformHandle handle, void **pixmapHandle, IDirectFBSurface **surface, BEGL_PixmapInfoEXT *info)
+   __attribute__((deprecated("Use DFB surface with DSCAPS_GL compatibility flag instead")));
 
-extern void DBPL_DestroyCompatiblePixmap(DBPL_PlatformHandle handle, void *pixmapHandle);
+extern void DBPL_DestroyCompatiblePixmap(DBPL_PlatformHandle handle, void *pixmapHandle)
+   __attribute__((deprecated("Use DFB surface with DSCAPS_GL compatibility flag instead")));
 
 #ifdef __cplusplus
 }

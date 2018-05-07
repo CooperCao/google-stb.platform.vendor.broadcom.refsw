@@ -35,6 +35,11 @@ typedef struct {
 #endif
    union {
       struct {
+         bool barrier;
+         bool sg_ops;
+         bool q_ops;
+      } compute;
+      struct {
          bool writes_z;
          bool ez_disable;
          bool needs_w; // Need (non-centroid) W for anything other than varyings?
@@ -44,10 +49,6 @@ typedef struct {
 #if V3D_VER_AT_LEAST(4,1,34,0)
          bool reads_implicit_varys;
 #endif
-#if !V3D_HAS_SRS_CENTROID_FIX
-         bool ignore_centroids;
-#endif
-         bool barrier;
       } fragment;
       struct {
          bool     prim_id_used;

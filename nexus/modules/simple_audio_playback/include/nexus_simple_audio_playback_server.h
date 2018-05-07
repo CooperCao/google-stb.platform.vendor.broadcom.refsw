@@ -48,6 +48,7 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C" {

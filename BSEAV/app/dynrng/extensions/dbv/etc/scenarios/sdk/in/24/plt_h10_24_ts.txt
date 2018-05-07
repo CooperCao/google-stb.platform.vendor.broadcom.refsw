@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/HDR10/Adaptive_Streaming_Tests/23976/TS/Combined/combined_ves_graffiti_23976_hdr10__st.ts
+forceRestart=on
+stcTrick=off
+commit

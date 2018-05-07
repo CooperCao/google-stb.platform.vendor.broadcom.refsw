@@ -16,9 +16,6 @@ typedef struct {
    GFX_BUFFER_DESC_T descs[GFX_BUFFER_MAX_MIP_LEVELS];
    uint32_t num_mip_levels;
    size_t size;
-   /* TODO Remove this field. It doesn't really make sense -- malloc() does not
-    * take an align argument. */
-   size_t align;
    void *p;
 } GFX_BUFFER_RAW_T;
 
@@ -64,7 +61,8 @@ static inline void gfx_buffer_raw_create_no_storage(GFX_BUFFER_RAW_T *br,
    }
    assert(br->num_mip_levels < GFX_BUFFER_MAX_MIP_LEVELS);
 
-   gfx_buffer_desc_gen(br->descs, &br->size, &br->align,
+   size_t unused;
+   gfx_buffer_desc_gen(br->descs, &br->size, &unused,
       usage,
       w, h, d,
       br->num_mip_levels,
@@ -113,7 +111,6 @@ static inline void gfx_buffer_raw_create_from_desc(
    br->num_mip_levels = 1;
 
    br->size = gfx_buffer_size(desc);
-   br->align = bd.bytes_per_word;
 
    gfx_buffer_raw_malloc(br);
 }
@@ -139,7 +136,6 @@ static inline void gfx_buffer_raw_from_blit_tgt(GFX_BUFFER_RAW_T *br,
    br->descs[0] = bt->desc;
    br->p = bt->p;
    br->size = ~0U; //TODO
-   br->align = 1;
    br->num_mip_levels = 1;
 }
 

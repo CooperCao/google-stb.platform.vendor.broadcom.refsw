@@ -52,6 +52,7 @@
 #include "nexus_picture_quality_types.h"
 #include "nexus_video_image_input.h"
 #include "nexus_video_decoder_extra.h"
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C" {

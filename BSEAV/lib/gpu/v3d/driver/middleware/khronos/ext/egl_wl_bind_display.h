@@ -3,9 +3,9 @@
  ******************************************************************************/
 #pragma once
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/EGL/eglext_wayland.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglext_wayland.h>
 
 EGLBoolean eglBindWaylandDisplayWL_impl(
       EGLDisplay dpy,

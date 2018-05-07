@@ -271,9 +271,6 @@ static void validate_function_call(const Expr *e, struct validate_data *d) {
    const Symbol *f = e->u.function_call.function;
    bool memq_template = false;
 
-   if (f->u.function_instance.function_def == NULL)
-      glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", f->name);
-
    if (glsl_stdlib_is_stdlib_function(f)) {
       if (glsl_stdlib_function_index(f) == GLSL_STDLIB_FN__BARRIER__VOID) {
          bool in_control_flow = (d->loop_depth > 0 || d->selection_depth > 0 || d->switch_depth > 0);
@@ -311,7 +308,8 @@ static void validate_function_call(const Expr *e, struct validate_data *d) {
          glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "in argument to function %s", f->name);
 
       memq_template = (fn_props & GLSL_STDLIB_PROPERTY_MEMQ_TEMPLATE);
-   }
+   } else if (f->u.function_instance.function_def == NULL)
+      glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", f->name);
 
    check_args_valid(f->type, e->u.function_call.args, memq_template, d->flavour);
 }
@@ -800,7 +798,8 @@ static void epostv_check_recursion(Expr *e, void *data) {
       if (glsl_symbol_list_contains(active, e->u.function_call.function))
          glsl_compile_error(ERROR_SEMANTIC, 18, e->line_num, "recursive call to function <%s>", e->u.function_call.function->name);
 
-      function_check_recursion(e->u.function_call.function, active);
+      if (!glsl_stdlib_is_stdlib_function(e->u.function_call.function))
+         function_check_recursion(e->u.function_call.function, active);
    }
 }
 

@@ -16,7 +16,6 @@
 #include "Dispatchable.h"
 #include "NonCopyable.h"
 #include "APIVersion.h"
-#include "Bitfield.h"
 
 #include "libs/core/v3d/v3d_gen.h"
 #include "libs/util/common.h"
@@ -134,6 +133,9 @@ class nothing_to_do {};
 
 void Intersect(VkRect2D *result, const VkRect2D &r1, const VkRect2D &r2);
 void Union(VkRect2D *result, const VkRect2D &r1, const VkRect2D &r2);
+
+v3d_compare_func_t TranslateCompareFunc(VkCompareOp op);
+v3d_stencil_op_t   TranslateStencilOp(VkStencilOp op);
 
 // Helper for debug log messages to save some pointless typing
 inline const char *TF(bool b) noexcept { return b ? "true" : "false"; }

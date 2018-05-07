@@ -104,7 +104,9 @@
       if (e->flavour == EXPR_FUNCTION_CALL) {
          Symbol *function = e->u.function_call.function;
          if (glsl_stdlib_is_stdlib_function(function)) {
-            glsl_unique_index_queue_add(q, glsl_stdlib_function_index(function));
+            glsl_stdlib_function_index_t f = glsl_stdlib_function_index(function);
+            if (glsl_stdlib_function_bodies[f] != NULL)
+               glsl_unique_index_queue_add(q, f);
          }
       }
    }
@@ -1177,8 +1179,8 @@ single_type_qualifier
    | layout_qualifier         { $$ = new_qual_layout($1); }
    | precision_qualifier      { $$ = new_qual_prec($1); }
    | interpolation_qualifier  { $$ = new_qual_interp($1); }
-   | invariant_qualifier      { $$ = new_qual_invariant(); }
-   | precise_qualifier        { $$ = new_qual_precise(); }
+   | invariant_qualifier      { $$ = new_qual(QUAL_INVARIANT); }
+   | precise_qualifier        { $$ = new_qual(QUAL_PRECISE); }
    ;
 
 storage_qualifier

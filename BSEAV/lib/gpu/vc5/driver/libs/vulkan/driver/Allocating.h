@@ -34,7 +34,7 @@ public:
 
    // Return an allocator for type T
    template <class T>
-   Allocator<T> GetAllocator(VkSystemAllocationScope scope)
+   Allocator<T> GetAllocator(VkSystemAllocationScope scope) const
    {
       return Allocator<T>(m_allocCallbacks, scope);
    }
@@ -148,5 +148,68 @@ std::shared_ptr<_Ty> allocate_shared(const Allocator<_Ty>& _Al_arg, _Types&&... 
 {
    return std::allocate_shared<_Ty, Allocator<_Ty>,  _Types&&...>(_Al_arg, std::forward<_Types>(_Args)...);
 }
+
+template <typename T, VkSystemAllocationScope SCOPE>
+class UniqueHandle
+{
+public:
+   UniqueHandle() = default;
+
+   // Allocate memory for a T and construct it therein.
+   template <typename ...Arg>
+   UniqueHandle(const Allocating &alloc, Arg... args) :
+      m_allocator(alloc.GetAllocator<T>(SCOPE)),
+      m_ptr(m_allocator.allocate(1))
+   {
+      m_allocator.construct(m_ptr, args...);
+   }
+
+   UniqueHandle(UniqueHandle &&rhs) :
+      m_ptr(rhs.m_ptr),
+      m_allocator(rhs.m_allocator)
+   {
+      rhs.m_ptr = nullptr;
+   }
+
+   // No duplication allowed
+   UniqueHandle(const UniqueHandle &rhs)            = delete;
+   UniqueHandle &operator=(const UniqueHandle &rhs) = delete;
+
+   // Pass ownership on
+   UniqueHandle &operator=(UniqueHandle &&rhs)
+   {
+      DestroyOwned();
+      m_ptr       = rhs.m_ptr;
+      m_allocator = rhs.m_allocator;
+      rhs.m_ptr   = nullptr;
+      return *this;
+   }
+
+   const T *GetPtr() const { return m_ptr; }
+         T *GetPtr()       { return m_ptr; }
+
+   ~UniqueHandle()
+   {
+      DestroyOwned();
+   }
+
+   const T *operator->() const { return m_ptr; }
+         T *operator->()       { return m_ptr; }
+
+private:
+   void DestroyOwned()
+   {
+     if (m_ptr != nullptr)
+      {
+         m_allocator.destroy(m_ptr);
+         m_allocator.deallocate(m_ptr, 1);
+      }
+   }
+
+private:
+   Allocator<T>  m_allocator;
+   T            *m_ptr{};
+};
+
 
 } // namespace bvk

@@ -3,7 +3,7 @@
  ******************************************************************************/
 #include "middleware/khronos/glxx/glxx_tweaker.h"
 #include "interface/khronos/common/khrn_options.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 
 void glxx_tweaker_init(TWEAK_STATE_T *ts, bool es2)
 {

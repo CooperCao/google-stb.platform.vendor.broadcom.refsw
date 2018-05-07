@@ -97,7 +97,8 @@ SOURCES =   default_directfb.c \
             ../common/memory_convert.c \
             ../common/display_helpers.c \
             ../common/perf_event.cpp \
-            display_directfb.c
+            directfb_helpers.c \
+            display_directfb.cpp
 
 CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++0x
 

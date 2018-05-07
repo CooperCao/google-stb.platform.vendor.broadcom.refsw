@@ -182,41 +182,6 @@ static GLenum image_type_to_texture_type(GLenum glsl_image_type)
    }
 }
 
-static GFX_LFMT_TYPE_T image_type_to_lfmt_type(GLenum glsl_image_type)
-{
-   GLenum type;
-   switch (glsl_image_type)
-   {
-   case GL_INT_IMAGE_2D:
-   case GL_INT_IMAGE_2D_ARRAY:
-   case GL_INT_IMAGE_3D:
-   case GL_INT_IMAGE_CUBE:
-   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-   case GL_INT_IMAGE_BUFFER:
-      type = GFX_LFMT_TYPE_INT;
-      break;
-   case GL_IMAGE_2D:
-   case GL_IMAGE_2D_ARRAY:
-   case GL_IMAGE_3D:
-   case GL_IMAGE_CUBE:
-   case GL_IMAGE_CUBE_MAP_ARRAY:
-   case GL_IMAGE_BUFFER:
-      type = GFX_LFMT_TYPE_FLOAT;
-      break;
-   case GL_UNSIGNED_INT_IMAGE_2D:
-   case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-   case GL_UNSIGNED_INT_IMAGE_3D:
-   case GL_UNSIGNED_INT_IMAGE_CUBE:
-   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-   case GL_UNSIGNED_INT_IMAGE_BUFFER:
-      type = GFX_LFMT_TYPE_UINT;
-      break;
-   default:
-      unreachable();
-   }
-   return type;
-}
-
 static int pack_sampler_array(
    pack_uniform_t *ctx,
    const int **ids,
@@ -317,7 +282,6 @@ static int pack_image_array(pack_uniform_t *ctx, const int **ids, int **maps, in
          .sampler.texture_type   = image_type_to_texture_type(image_type),
          .sampler.is_32bit       = false,              /* XXX: Overridden later */
          .sampler.in_binning     = in_vertex_pipeline, /* Remove this? */
-         .lfmt_type              = image_type_to_lfmt_type(image_type),
          .internalformat         = GL_NONE,           /* Potentially overridden later */
       };
       ctx->program->images[location] = image;
@@ -1082,7 +1046,7 @@ static inline int get_binding(const GLSL_PROGRAM_SOURCE_T *source, const Symbol 
 }
 
 /* The used masks are only 32 bits, so we need this */
-static_assrt(GLXX_CONFIG_MAX_VERTEX_ATTRIBS <= 32);
+static_assrt(V3D_MAX_ATTR_ARRAYS <= 32);
 
 /* A vector takes up 1 location. Matrices, one location per column, and *
  * arrays and structs places each member consecutively.                 */
@@ -1168,7 +1132,7 @@ static inline int row_offset(const SymbolType *type, int index)
 
 static void bind_attribute(const SymbolType *t, const int *ids, int binding, int *id_ptr)
 {
-   assert(binding >= 0 && binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(binding >= 0 && binding < V3D_MAX_ATTR_ARRAYS);
 
    // For every scalar set the link map to the correct location
    for (unsigned i = 0; i < t->scalar_count; i++)
@@ -1217,7 +1181,7 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
 
       int binding = get_binding(source, attribute->symbol);
 
-      if (binding >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+      if (binding >= V3D_MAX_ATTR_ARRAYS)
          link_error(4, "Invalid attribute binding %s: %d",
                        attribute->symbol->name, binding);
 
@@ -1225,7 +1189,7 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
          /* Althrough these have already been validated by the generic code, API-side
           * bindings mean that we have to do it again here.                            */
          validate_in_out_loc(attribute->symbol->name, attribute->symbol->type, binding,
-                             &attribs_used_mask, GLXX_CONFIG_MAX_VERTEX_ATTRIBS, aliasing_ok);
+                             &attribs_used_mask, V3D_MAX_ATTR_ARRAYS, aliasing_ok);
          attr_locs[i].handled = true;
          attr_locs[i].loc = binding;
       }
@@ -1239,16 +1203,16 @@ static void bind_attributes(GLSL_PROGRAM_T *program, const GLSL_PROGRAM_SOURCE_T
       if (!attribute->active || is_builtin(attribute->symbol) || attr_locs[i].handled) continue;
 
       int binding;
-      for (binding = 0; binding < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; binding++) {
+      for (binding = 0; binding < V3D_MAX_ATTR_ARRAYS; binding++) {
          if ( !(attribs_used_mask & gfx_mask(get_locs_used(attribute->symbol->type)) << binding) )
             break;
       }
 
-      if (binding == GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+      if (binding == V3D_MAX_ATTR_ARRAYS)
          link_error(4, "No possible location assignment for %s", attribute->symbol->name);
 
       validate_in_out_loc(attribute->symbol->name, attribute->symbol->type, binding,
-                          &attribs_used_mask, GLXX_CONFIG_MAX_VERTEX_ATTRIBS, aliasing_ok);
+                          &attribs_used_mask, V3D_MAX_ATTR_ARRAYS, aliasing_ok);
       attr_locs[i].handled = true;
       attr_locs[i].loc = binding;
    }
@@ -1319,20 +1283,14 @@ static void pack_f_in(pack_varying_t *context, const InterfaceVar *f_in)
 
       // record varying interpolation information
       switch (f_in->symbol->u.var_instance.interp_qual) {
-         case INTERP_NOPERSPECTIVE:
-            vary_info[row + i].noperspective = true; break;
-         case INTERP_FLAT:
-            vary_info[row + i].flat          = true; break;
-         default:
-            /* No action */ break;
+         case INTERP_NOPERSPECTIVE: vary_info[row + i].noperspective = true; break;
+         case INTERP_FLAT:          vary_info[row + i].flat          = true; break;
+         default:                   /* No action */                          break;
       }
       switch (f_in->symbol->u.var_instance.aux_qual) {
-         case AUXILIARY_CENTROID:
-            vary_info[row + i].centroid     = true; break;
-         case AUXILIARY_SAMPLE:
-            context->any_varying_per_sample = true; break;
-         default:
-            /* No action */ break;
+         case AUXILIARY_CENTROID: vary_info[row + i].centroid     = true; break;
+         case AUXILIARY_SAMPLE:   context->any_varying_per_sample = true; break;
+         default:                 /* No action */                         break;
       }
    }
 }
@@ -1435,10 +1393,10 @@ static const InterfaceVar *interface_var_find_by_location(const ShaderInterface 
 typedef unsigned (*if_array_size_fn)(const CompiledShader *sh);
 
 static unsigned get_tcs_input_size (const CompiledShader *sh) { return V3D_MAX_PATCH_VERTICES; }
-static unsigned get_tcs_output_size(const CompiledShader *sh) { return sh->tess_vertices; }
+static unsigned get_tcs_output_size(const CompiledShader *sh) { return sh->u.tcs.vertices; }
 static unsigned get_tes_input_size (const CompiledShader *sh) { return V3D_MAX_PATCH_VERTICES; }
 static unsigned get_gs_input_size  (const CompiledShader *sh) {
-   switch (sh->gs_in) {
+   switch (sh->u.gs.in) {
       case GS_IN_POINTS:      return 1;
       case GS_IN_LINES:       return 2;
       case GS_IN_TRIANGLES:   return 3;
@@ -1655,7 +1613,7 @@ static void copy_outs(pack_varying_t *context,const GLSL_PROGRAM_SOURCE_T *sourc
       InterfaceVar *out = &outs->var[i];
 
       if (is_builtin(out->symbol))
-         /* Skip builtins unless this is point size and TF requires point size  or this is gl_Layer  */
+         /* Skip builtins unless this is point size and TF requires point size or this is gl_Layer  */
          if ((strcmp(out->symbol->name, "gl_PointSize") != 0 || !tf_requires_point_size(source)) &&
                strcmp(out->symbol->name, "gl_Layer") != 0)
             continue;
@@ -1670,11 +1628,10 @@ static void copy_ins(pack_varying_t *context, const GLSL_PROGRAM_SOURCE_T *sourc
    for (int i=0; i<ins->n_vars; i++) {
       InterfaceVar *in = &ins->var[i];
 
+      /* Skip all builtins except gl_Layer */
       if (is_builtin(in->symbol))
-      {
          if(strcmp(in->symbol->name, "gl_Layer") != 0)
             continue;
-      }
 
       copy_in(context, in);
    }
@@ -1737,30 +1694,28 @@ static void pack_tf(pack_tf_t *tf_ctx, const pack_varying_t *vary_ctx, const GLS
       if (!strcmp(source->tf_varyings[i], "gl_Position")) continue;
 
       /* Create the TF varying map */
-      int *ids = out->ids;
-      for (int i=var_starts[v_num]; i<res_num; i++) ids += resources[i].type->scalar_count;
+      int scalar_offset = 0;
+      for (int i=var_starts[v_num]; i<res_num; i++) scalar_offset += resources[i].type->scalar_count;
       int output_count = v->type->scalar_count;
       if (!whole_array) {
          output_count = v->type->u.array_type.member_type->scalar_count;
-         ids += v->type->u.array_type.member_type->scalar_count * offset;
+         scalar_offset += v->type->u.array_type.member_type->scalar_count * offset;
       }
 
-      for (int j=0; j<output_count; j++) {
-         int varying_id = -1;
-         GLSL_VARY_MAP_T *tf_vary_map = tf_ctx->tf_vary_map;
-         /* It's possible that this loop finds a previous output of the same
-          * thing, which is ok, but the varying map may contain repeats
-          */
-         for (unsigned i=0; i<vary_ctx->num_scalar_varyings; i++) {
-            if (vary_ctx->scalar_varyings[i] == ids[j]) {
-               varying_id = i;
-               break;
-            }
+      int varying_id = -1;
+      GLSL_VARY_MAP_T *tf_vary_map = tf_ctx->tf_vary_map;
+      /* It's possible that this loop finds a previous output of the same
+       * thing, which is ok, but the varying map may contain repeats */
+      for (unsigned i=0; i<vary_ctx->num_scalar_varyings; i++) {
+         if (vary_ctx->scalar_varyings[i] == out->ids[0]) {
+            varying_id = i;
+            break;
          }
-         assert(varying_id >= 0);
-
-         tf_vary_map->entries[tf_vary_map->n++] = varying_id;
       }
+      assert(varying_id >= 0);
+
+      for (int i=0; i<output_count; i++)
+         tf_vary_map->entries[tf_vary_map->n++] = varying_id + scalar_offset + i;
    }
    glsl_safemem_free(resources);
    glsl_safemem_free(var_starts);
@@ -1774,14 +1729,17 @@ static void pack_fragment_output_nodes(const SymbolType *type, const int *ids, i
 
 static void fill_last_vtx_out_nodes(const pack_varying_t *context, ShaderInterface *outs, int *out_nodes)
 {
-   InterfaceVar *position   = interface_var_find(outs, "gl_Position");
-   InterfaceVar *point_size = interface_var_find(outs, "gl_PointSize");
+   InterfaceVar *position = interface_var_find(outs, "gl_Position");
+   if (position) {
+      out_nodes[DF_VNODE_X] = position->ids[0];
+      out_nodes[DF_VNODE_Y] = position->ids[1];
+      out_nodes[DF_VNODE_Z] = position->ids[2];
+      out_nodes[DF_VNODE_W] = position->ids[3];
+   }
 
-   out_nodes[DF_VNODE_X] = position->ids[0];
-   out_nodes[DF_VNODE_Y] = position->ids[1];
-   out_nodes[DF_VNODE_Z] = position->ids[2];
-   out_nodes[DF_VNODE_W] = position->ids[3];
-   out_nodes[DF_VNODE_POINT_SIZE] = point_size->ids[0];
+   InterfaceVar *point_size = interface_var_find(outs, "gl_PointSize");
+   if (point_size)
+      out_nodes[DF_VNODE_POINT_SIZE] = point_size->ids[0];
 
    for (unsigned i = 0; i < context->num_scalar_varyings; i++) {
       out_nodes[DF_VNODE_VARY(i)] = context->scalar_varyings[i];
@@ -1903,11 +1861,11 @@ GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *csh) {
    if(!program) return NULL;
 
    IR_PROGRAM_T *ir = program->ir;
-   ir->stage[SHADER_FRAGMENT].link_map = allocate_link_map(csh, 0);
-   if (!ir->stage[SHADER_FRAGMENT].link_map) goto exit_with_error;
+   ir->stage[SHADER_COMPUTE].link_map = allocate_link_map(csh, 0);
+   if (!ir->stage[SHADER_COMPUTE].link_map) goto exit_with_error;
 
-   for (int i=0; i<ir->stage[SHADER_FRAGMENT].link_map->num_ins; i++)
-      ir->stage[SHADER_FRAGMENT].link_map->ins[i] = i;
+   for (int i=0; i<ir->stage[SHADER_COMPUTE].link_map->num_ins; i++)
+      ir->stage[SHADER_COMPUTE].link_map->ins[i] = i;
 
    glsl_fastmem_init();
    glsl_compile_error_reset();
@@ -1918,36 +1876,33 @@ GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *csh) {
       goto exit_with_error;
    }
 
-   if (csh->cs_wg_size[0] == 0)
+   if (csh->u.cs.wg_size[0] == 0)
       link_error(10, "Compute program must declare workgroup size");
 
    for (int i=0; i<3; i++) {
-      assert(csh->cs_wg_size[i] != 0);
-      ir->cs_wg_size[i] = csh->cs_wg_size[i];
+      assert(csh->u.cs.wg_size[i] != 0);
+      ir->cs_wg_size[i] = csh->u.cs.wg_size[i];
    }
 
-   if (csh->cs_shared_block_size > GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE)
+   if (csh->u.cs.shared_block_size > GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE)
       link_error(10, "Compute program requires %u bytes of shared memory, %d available",
-                     csh->cs_shared_block_size, GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE);
+                     csh->u.cs.shared_block_size, GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE);
 
-   ir->cs_shared_block_size = csh->cs_shared_block_size;
+   ir->cs_shared_block_size = csh->u.cs.shared_block_size;
 
    /* Pack uniforms and samplers. */
    ShaderFlavour f = SHADER_COMPUTE;
    ShaderInterface *u = &csh->uniform;
-   pack_uniforms(program, &f, &u, &ir->stage[SHADER_FRAGMENT].link_map->uniforms, 1);
-   pack_shader_buffers(SHADER_COMPUTE, program, &csh->buffer, ir->stage[SHADER_FRAGMENT].link_map->buffers);
+   pack_uniforms(program, &f, &u, &ir->stage[SHADER_COMPUTE].link_map->uniforms, 1);
+   pack_shader_buffers(SHADER_COMPUTE, program, &csh->buffer, ir->stage[SHADER_COMPUTE].link_map->buffers);
 
-   ir->stage[SHADER_FRAGMENT].ir = glsl_ir_shader_from_blocks(csh->blocks,  csh->num_cfg_blocks,
-                                                              csh->outputs, csh->num_outputs);
-   if (ir->stage[SHADER_FRAGMENT].ir == NULL)
+   ir->stage[SHADER_COMPUTE].ir = glsl_ir_shader_copy(&csh->ir);
+   if (ir->stage[SHADER_COMPUTE].ir == NULL)
       goto exit_with_error;
-
-   ir->early_fragment_tests = true;
 
    const static bool used[SHADER_FLAVOUR_COUNT] = { false, false, false, false, false, true };
    record_inout_interface(&program->num_inputs, program->inputs, &csh->in, used);
-   extract_sampler_info(program, ir->stage[SHADER_FRAGMENT].ir, ir->stage[SHADER_FRAGMENT].link_map->uniforms);
+   extract_sampler_info(program, ir->stage[SHADER_COMPUTE].ir, ir->stage[SHADER_COMPUTE].link_map->uniforms);
 
    glsl_fastmem_term();
 
@@ -2019,10 +1974,10 @@ static void validate_link(CompiledShader**sh, const GLSL_PROGRAM_SOURCE_T *sourc
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       if (sh[i] == NULL) continue;
 
-      static const unsigned  in_maxima[SHADER_FLAVOUR_COUNT] = { GLXX_CONFIG_MAX_VERTEX_ATTRIBS, GLXX_CONFIG_MAX_TESS_CONTROL_INPUT_COMPONENTS / 4,
+      static const unsigned  in_maxima[SHADER_FLAVOUR_COUNT] = { V3D_MAX_ATTR_ARRAYS, GLXX_CONFIG_MAX_TESS_CONTROL_INPUT_COMPONENTS / 4,
             GLXX_CONFIG_MAX_TESS_EVALUATION_INPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_GEOMETRY_INPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_VARYING_VECTORS };
       static const unsigned out_maxima[SHADER_FLAVOUR_COUNT] = { GLXX_CONFIG_MAX_VARYING_VECTORS, GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS / 4,
-            GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_COMPONENTS / 4, GLXX_MAX_RENDER_TARGETS };
+            GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS / 4, GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_COMPONENTS / 4, V3D_MAX_RENDER_TARGETS };
 
       validate_in_out_locations(&sh[i]->in,   inputs_arrayed(i),  in_maxima[i]);
       validate_in_out_locations(&sh[i]->out, outputs_arrayed(i), out_maxima[i]);
@@ -2041,9 +1996,8 @@ static void validate_link(CompiledShader**sh, const GLSL_PROGRAM_SOURCE_T *sourc
          }
       }
 
-      if (next != -1) {
+      if (next != -1)
          validate_outs_ins_match(&sh[i]->out, &sh[next]->in, i, next);
-      }
    }
 
    /* Validate that the interface rules have been followed */
@@ -2070,12 +2024,12 @@ static void validate_link(CompiledShader**sh, const GLSL_PROGRAM_SOURCE_T *sourc
    }
 
    if (sh[SHADER_TESS_EVALUATION]) {
-      if (sh[SHADER_TESS_EVALUATION]->tess_mode == V3D_CL_TESS_TYPE_INVALID)
+      if (sh[SHADER_TESS_EVALUATION]->u.tes.mode == V3D_CL_TESS_TYPE_INVALID)
          link_error(6, "Tessellation evaluation shader must specify a valid mode");
 
       if (sh[SHADER_GEOMETRY]) {
          CompiledShader *te = sh[SHADER_TESS_EVALUATION], *gs = sh[SHADER_GEOMETRY];
-         validate_tess_geom_match(te->tess_mode, te->tess_point_mode, gs->gs_in);
+         validate_tess_geom_match(te->u.tes.mode, te->u.tes.point_mode, gs->u.gs.in);
       }
    }
 }
@@ -2104,24 +2058,26 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
     * data below safe in the knowledge that we'll succeed (barring out of memory).
     * TODO: This isn't yet true and there are errors hidden in various places */
    if (sh[SHADER_TESS_CONTROL] != NULL) {
-      ir->tess_vertices = sh[SHADER_TESS_CONTROL]->tess_vertices;
+      ir->tess_vertices = sh[SHADER_TESS_CONTROL]->u.tcs.vertices;
    }
    if (sh[SHADER_TESS_EVALUATION] != NULL) {
       CompiledShader *te = sh[SHADER_TESS_EVALUATION];
-      ir->tess_mode       = te->tess_mode;
-      ir->tess_spacing    = te->tess_spacing;
-      ir->tess_cw         = te->tess_cw;
-      ir->tess_point_mode = te->tess_point_mode;
+      ir->tess_mode       = te->u.tes.mode;
+      ir->tess_spacing    = te->u.tes.spacing;
+      ir->tess_cw         = te->u.tes.cw;
+      ir->tess_point_mode = te->u.tes.point_mode;
    }
 
    ir->max_known_layers = 1;
    if (sh[SHADER_GEOMETRY] != NULL) {
       CompiledShader *gs = sh[SHADER_GEOMETRY];
-      ir->gs_in  = gs->gs_in;
-      ir->gs_out = gs->gs_out;
-      ir->gs_n_invocations = gs->gs_n_invocations;
-      ir->gs_max_vertices  = gs->gs_max_vertices;
-      ir->max_known_layers = gs->gs_max_known_layers;
+      ir->gs_in  = gs->u.gs.in;
+      ir->gs_out = gs->u.gs.out;
+      ir->gs_n_invocations = gs->u.gs.n_invocations;
+      ir->gs_max_vertices  = gs->u.gs.max_vertices;
+
+      InterfaceVar *layer = interface_var_find(&sh[SHADER_GEOMETRY]->out, "gl_Layer");
+      if (layer->active) ir->max_known_layers = V3D_MAX_LAYERS;
    }
 
    static const int num_outs[SHADER_FLAVOUR_COUNT] = { DF_BLOB_VERTEX_COUNT, DF_BLOB_VERTEX_COUNT,
@@ -2131,11 +2087,6 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
       if (sh[i] != NULL) {
          ir->stage[i].link_map = allocate_link_map(sh[i], num_outs[i]);
          if (ir->stage[i].link_map == NULL) goto exit_with_error;
-
-         /* The out interface differs from the others because it has a fixed layout,
-          * meaning we must write -1 where there are no variables. Others only have
-          * link map entries where variables actually exist                         */
-         for (int j=0; j<num_outs[i]; j++) ir->stage[i].link_map->outs[j] = -1;
       }
    }
 
@@ -2190,8 +2141,8 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
       if (sample_mask != NULL && sample_mask->static_use)
          ir->stage[SHADER_FRAGMENT].link_map->outs[DF_FNODE_SAMPLE_MASK] = sample_mask->ids[0];
 
-      ir->early_fragment_tests = fsh->early_fragment_tests;
-      ir->abq = fsh->abq;
+      ir->early_fragment_tests = fsh->u.fs.early_tests;
+      ir->abq                  = fsh->u.fs.abq;
    }
 
    /* Pack varyings. */
@@ -2272,8 +2223,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    /* Set up the IR */
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       if (sh[i] != NULL) {
-         ir->stage[i].ir = glsl_ir_shader_from_blocks(sh[i]->blocks,  sh[i]->num_cfg_blocks,
-                                                      sh[i]->outputs, sh[i]->num_outputs);
+         ir->stage[i].ir = glsl_ir_shader_copy(&sh[i]->ir);
          if (ir->stage[i].ir == NULL)
             goto exit_with_error;
 

@@ -4,7 +4,7 @@
 #pragma once
 
 #include "interface/khronos/common/khrn_int_common.h"
-#include "interface/khronos/include/GLES/gl.h"
+#include <GLES/gl.h>
 #include <limits.h>
 
 #define MAX_OPTION_PATHLEN 1024

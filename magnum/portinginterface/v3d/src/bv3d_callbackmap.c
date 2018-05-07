@@ -256,8 +256,8 @@ BERR_Code BV3D_P_CallbackMapGetStats(
                             psRenderInstr->psJob->sTimelineData.sRenderStart.uiMicrosecs);
       }
 
-      uiElapsedUs = (sTimeNow.uiSecs * 1000000 + sTimeNow.uiMicrosecs) -
-                    (psCallbackMap->sLoadStats.sLastCollectedTime.uiSecs * 1000000 + psCallbackMap->sLoadStats.sLastCollectedTime.uiMicrosecs);
+      uiElapsedUs = ((uint64_t)sTimeNow.uiSecs * 1000000 + sTimeNow.uiMicrosecs) -
+                    ((uint64_t)psCallbackMap->sLoadStats.sLastCollectedTime.uiSecs * 1000000 + psCallbackMap->sLoadStats.sLastCollectedTime.uiMicrosecs);
 
       pLoadData[i].uiClientId = psCallbackMap->uiClientId;
       pLoadData[i].uiClientPID = psCallbackMap->uiClientPID;

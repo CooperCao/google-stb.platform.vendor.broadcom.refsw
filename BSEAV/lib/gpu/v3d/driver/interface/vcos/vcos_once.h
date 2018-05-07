@@ -1,7 +1,9 @@
 /******************************************************************************
  *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#pragma once
+
+#ifndef VCOS_ONCE_H
+#define VCOS_ONCE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,4 +30,5 @@ VCOS_STATUS_T vcos_once(VCOS_ONCE_T *once_control,
 
 #ifdef __cplusplus
 }
+#endif
 #endif

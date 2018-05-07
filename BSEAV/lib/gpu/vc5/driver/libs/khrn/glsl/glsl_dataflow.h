@@ -344,18 +344,12 @@ struct _Dataflow
       } buffer;
 
       struct {
-         uint32_t required_components; /* bitmask - which of r,g,b,a are actually needed. Filled in by copy(). In ES1.1, assume we need all components. */
          DFTexbits bits;
       } texture;
 
       struct {
-         uint32_t required_components; /* bitmask - which of r,g,b,a are actually needed. Filled in by copy(). In ES1.1, assume we need all components. */
          int render_target;
       } get_col;
-
-      struct {
-         uint32_t required_components;
-      } vector_load;
 
       struct {
          uint32_t component_index;
@@ -397,7 +391,7 @@ Dataflow *glsl_dataflow_construct_const_image(DataflowType type, const_value loc
 Dataflow *glsl_dataflow_construct_linkable_value(DataflowFlavour flavour, DataflowType type, const_value row);
 Dataflow *glsl_dataflow_construct_buffer(DataflowFlavour flavour, DataflowType type, const_value index, const_value offset);
 Dataflow *glsl_dataflow_construct_address_load(DataflowFlavour f, DataflowType type, Dataflow *address);
-Dataflow *glsl_dataflow_construct_vector_load(DataflowType type, Dataflow *address);
+Dataflow *glsl_dataflow_construct_vector_load(Dataflow *address);
 // cond can be NULL
 Dataflow *glsl_dataflow_construct_atomic(DataflowFlavour flavour, DataflowType type, Dataflow *address, Dataflow *arg,
       Dataflow *cond, Dataflow *prev);
@@ -450,6 +444,12 @@ static inline bool glsl_dataflow_type_is_sampled_image(DataflowType t) {
 }
 static inline bool glsl_dataflow_type_is_storage_image(DataflowType t) {
    return t == DF_F_STOR_IMG || t == DF_I_STOR_IMG || t == DF_U_STOR_IMG;
+}
+
+static inline bool glsl_dataflow_requires_per_sample(DataflowFlavour f) {
+   return (f == DATAFLOW_FRAG_GET_COL     || f == DATAFLOW_FRAG_GET_DEPTH ||
+           f == DATAFLOW_FRAG_GET_STENCIL || f == DATAFLOW_SAMPLE_ID      ||
+           f == DATAFLOW_SAMPLE_POS_X     || f == DATAFLOW_SAMPLE_POS_Y);
 }
 
 bool glsl_dataflow_affects_memory(DataflowFlavour f);

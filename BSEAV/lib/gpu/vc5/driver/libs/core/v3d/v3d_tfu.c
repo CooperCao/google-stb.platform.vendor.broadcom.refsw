@@ -278,15 +278,14 @@ static uint32_t calc_pitch(
          (height <= (bd.ut_h_in_blocks_2d * bd.block_h)));
       return bd.ut_w_in_blocks_2d * bd.bytes_per_block;
    case V3D_MEMORY_FORMAT_UBLINEAR_1:
-      return gfx_lfmt_ub_w_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(&lfmt)) * bd.bytes_per_block;
+      return bd.ub_w_in_blocks_2d * bd.bytes_per_block;
    case V3D_MEMORY_FORMAT_UBLINEAR_2:
-      return 2 * gfx_lfmt_ub_w_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(&lfmt)) * bd.bytes_per_block;
+      return 2 * bd.ub_w_in_blocks_2d * bd.bytes_per_block;
    case V3D_MEMORY_FORMAT_UIF_NO_XOR:
    case V3D_MEMORY_FORMAT_UIF_XOR:
    {
       uint32_t height_in_blocks = gfx_udiv_round_up(height, bd.block_h);
-      height_in_blocks = gfx_uround_up_p2(height_in_blocks,
-         gfx_lfmt_ub_h_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(&lfmt)));
+      height_in_blocks = gfx_uround_up_p2(height_in_blocks, bd.ub_h_in_blocks_2d);
       return height_in_blocks * bd.bytes_per_block;
    }
    default:
@@ -324,11 +323,28 @@ void v3d_tfu_calc_src_desc(
    gfx_lfmt_translate_from_tfu_type(fmts, &desc->num_planes, yuv_col_space,
       cmd->src_ttype, cmd->src_channel_order, cmd->srgb, gfx_lfmt_is_bigend_sand_family(layout));
 
-   /* ref: arch spec "Texture Formatting Unit (TFU)": "input formats: [...]
-    * Packed YUYV 4:2:2 images in raster format"
-    * 3-plane YUV 4:2:0 also always raster (YV12) */
-   if (v3d_is_tfu_ttype_yuv(cmd->src_ttype) && ((desc->num_planes == 1) || (desc->num_planes == 3)))
-      assert(cmd->src_memory_format == V3D_TFU_IFORMAT_RASTER);
+   if (v3d_is_tfu_ttype_yuv(cmd->src_ttype))
+   {
+      switch (desc->num_planes)
+      {
+      case 1:
+      case 3:
+         assert(cmd->src_memory_format == V3D_TFU_IFORMAT_RASTER);
+         break;
+      case 2:
+         // The TFU HW does support 2-plane YUV input in a UIF-like format, but
+         // we have no use for this in BCG so the code to support it has been
+         // removed
+         assert((cmd->src_memory_format == V3D_TFU_IFORMAT_RASTER) ||
+            (cmd->src_memory_format == V3D_TFU_IFORMAT_SAND_128) ||
+            (cmd->src_memory_format == V3D_TFU_IFORMAT_SAND_256));
+         break;
+      default:
+         unreachable();
+      }
+   }
+   else
+      assert(desc->num_planes == 1);
 
    /* src addrs from APB registers are always to start of the plane's memory
     * (i.e. lowest address).
@@ -351,32 +367,6 @@ void v3d_tfu_calc_src_desc(
 
       plane->lfmt = gfx_lfmt_set_format(layout, fmts[p]);
 
-      /* src_memory_format from APB reg isn't enough to determine lfmt layout:
-         2-plane YUV is NOUTILE */
-      if (desc->num_planes == 2)
-      {
-         switch (cmd->src_memory_format)
-         {
-         case V3D_TFU_IFORMAT_LINEARTILE:
-         case V3D_TFU_IFORMAT_UBLINEAR_1:
-         case V3D_TFU_IFORMAT_UBLINEAR_2:
-            /* can't see a case where this would happen */
-            not_impl();
-            break;
-         case V3D_TFU_IFORMAT_UIF_NO_XOR:
-            plane->lfmt = gfx_lfmt_set_format(GFX_LFMT_2D_UIF_NOUTILE, plane->lfmt);
-            break;
-         case V3D_TFU_IFORMAT_UIF_XOR:
-            plane->lfmt = gfx_lfmt_set_format(GFX_LFMT_2D_UIF_NOUTILE_XOR, plane->lfmt);
-            break;
-         case V3D_TFU_IFORMAT_RASTER:
-         case V3D_TFU_IFORMAT_SAND_128:
-         case V3D_TFU_IFORMAT_SAND_256:
-            break;
-         default: unreachable();
-         }
-      }
-
       if (cmd->src_memory_format == V3D_TFU_IFORMAT_RASTER && cmd->flip_y)
       {
          assert(gfx_lfmt_yflip_base_is_nop(gfx_lfmt_get_base(&plane->lfmt)));
@@ -396,8 +386,7 @@ void v3d_tfu_calc_src_desc(
       case V3D_TFU_IFORMAT_UIF_NO_XOR:
       case V3D_TFU_IFORMAT_UIF_XOR:
          /* APB register gives stride (image height) in uif blocks */
-         plane->pitch = cmd_stride * gfx_lfmt_ub_h_in_blocks_2d(&bd,
-               gfx_lfmt_get_swizzling(&plane->lfmt)) * bd.bytes_per_block;
+         plane->pitch = cmd_stride * bd.ub_h_in_blocks_2d * bd.bytes_per_block;
          break;
       case V3D_TFU_IFORMAT_RASTER:
       case V3D_TFU_IFORMAT_SAND_128:
@@ -484,8 +473,7 @@ void v3d_tfu_calc_dst_descs(
 
          descs[0].planes[0].pitch +=
             cmd->dst_pad_in_uif_blocks *
-            gfx_lfmt_ub_h_in_blocks_2d(&bd, gfx_lfmt_get_swizzling(
-                  &descs[0].planes[0].lfmt)) *
+            bd.ub_h_in_blocks_2d *
             bd.bytes_per_block;
       }
    }

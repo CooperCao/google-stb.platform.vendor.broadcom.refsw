@@ -4,6 +4,7 @@
 
 #include "AllObjects.h"
 #include "Common.h"
+#include "Extensions.h"
 #include "ControlListBuilder.h"
 
 #include "libs/core/gfx_buffer/gfx_buffer_translate_v3d.h"
@@ -45,6 +46,14 @@ ImageView::ImageView(
       Allocating(pCallbacks)
 {
    m_image = fromHandle<Image>(pCreateInfo->image);
+
+   // KHR_maintenance2 allows the usage to be restricted for ImageViews
+   VkImageUsageFlags usage = m_image->Usage();
+   auto p = Extensions::FindExtensionStruct<VkImageViewUsageCreateInfoKHR>(
+                        VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO_KHR, pCreateInfo->pNext);
+   if (p)
+      usage = p->usage;
+
    m_isCubeArray = pCreateInfo->viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 
    m_subresourceRange = pCreateInfo->subresourceRange;
@@ -57,7 +66,20 @@ ImageView::ImageView(
 
    GFX_BUFFER_DESC_T desc = m_image->GetDescriptor(m_subresourceRange.baseMipLevel);
 
-   // Cache the dimensions
+   // Creating an imageView over a block-compressed image will effectively change the size
+   // of the image, so take that into account.
+   GFX_LFMT_BASE_DETAIL_T origDetail, viewDetail;
+   gfx_lfmt_base_detail(&origDetail, m_image->LFMT());
+   gfx_lfmt_base_detail(&viewDetail, Formats::GetLFMT(pCreateInfo->format));
+   assert(origDetail.block_d == 1 && viewDetail.block_d == 1);
+
+   uint32_t widthDivide  = origDetail.block_w / viewDetail.block_w;
+   uint32_t heightDivide = origDetail.block_h / viewDetail.block_h;
+
+   desc.width  = gfx_udiv_round_up(desc.width, widthDivide);
+   desc.height = gfx_udiv_round_up(desc.height, heightDivide);
+
+   // Cache the dimensions, we will need to return them in uniforms
    m_baseExtent.width  = desc.width;
    m_baseExtent.height = desc.height;
    m_baseExtent.depth  = desc.depth;
@@ -96,23 +118,23 @@ ImageView::ImageView(
    const VkImageUsageFlags requiresTMU = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
                                          VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
-   if (m_image->Usage() & requiresTMU)
+   if (usage & requiresTMU)
    {
       // Create lazy texture memory now - it can't stay empty if we're going to texture from it
       m_image->AllocateLazyMemory();
 
       CreateTSR(m_image, pCreateInfo->format, pCreateInfo->viewType, pCreateInfo->components,
-                m_subresourceRange);
+                m_subresourceRange, widthDivide, heightDivide);
    }
 
-   if (m_image->Usage() & requiresTLB)
+   if (usage & requiresTLB)
    {
       bool ms = m_image->Samples() != VK_SAMPLE_COUNT_1_BIT;
 
-      // Replace the native lfmt in the descriptor with the HW lfmt of the
+      // Replace the native lfmt in the descriptor with the lfmt of the
       // image view format (which may be different from the image).
-      GFX_LFMT_T tlbLfmt = Formats::GetLFMT(pCreateInfo->format);
-      Image::AdjustDescForTLBLfmt(&desc, tlbLfmt, ms);
+      desc.planes[0].lfmt = gfx_lfmt_set_format(desc.planes[0].lfmt,
+                                                Formats::GetLFMT(pCreateInfo->format));
 
       m_layerStride = m_image->LayerOffset(1);
 
@@ -241,9 +263,14 @@ static void GetTMUTranslation(GFX_LFMT_TMU_TRANSLATION_T *t,
 }
 
 void ImageView::CreateTSR(const Image *image, VkFormat format, VkImageViewType viewType,
-                          VkComponentMapping components, const VkImageSubresourceRange &subresourceRange)
+                          VkComponentMapping components, const VkImageSubresourceRange &subresourceRange,
+                          uint32_t widthDivide, uint32_t heightDivide)
 {
-   const auto &imgDesc = image->GetDescriptor(/*baseMip=*/0);
+   auto imgDesc = image->GetDescriptor(/*baseMip=*/0);
+
+   // Size isn't necessarily the same as the parent image (for block-compressed parents)
+   imgDesc.width  = gfx_udiv_round_up(imgDesc.width,  widthDivide);
+   imgDesc.height = gfx_udiv_round_up(imgDesc.height, heightDivide);
 
    V3D_TMU_TEX_STATE_T tsr = {};
 
@@ -283,8 +310,6 @@ void ImageView::CreateTSR(const Image *image, VkFormat format, VkImageViewType v
 
    if (tsr.extended)
    {
-      assert(!uifCfg.ub_noutile);
-
       V3D_TMU_TEX_EXTENSION_T e;
       e.ub_pad  = uifCfg.ub_pads[0];
       e.ub_xor  = uifCfg.ub_xor;

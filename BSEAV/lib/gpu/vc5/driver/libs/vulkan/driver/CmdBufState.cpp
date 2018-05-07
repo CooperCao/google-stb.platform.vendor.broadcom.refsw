@@ -50,30 +50,6 @@ CHECK_ENUMS(VK_COMPARE_OP_NOT_EQUAL,                  V3D_COMPARE_FUNC_NOTEQUAL)
 CHECK_ENUMS(VK_COMPARE_OP_GREATER_OR_EQUAL,           V3D_COMPARE_FUNC_GEQUAL);
 CHECK_ENUMS(VK_COMPARE_OP_ALWAYS,                     V3D_COMPARE_FUNC_ALWAYS);
 
-v3d_compare_func_t TranslateCompareFunc(VkCompareOp op)
-{
-   assert(op >= VK_COMPARE_OP_NEVER && op <= VK_COMPARE_OP_ALWAYS);
-   return static_cast<v3d_compare_func_t>(op);
-}
-
-static v3d_stencil_op_t TranslateStencilOp(VkStencilOp op)
-{
-   switch (op)
-   {
-   case VK_STENCIL_OP_ZERO:                  return V3D_STENCIL_OP_ZERO;
-   case VK_STENCIL_OP_KEEP:                  return V3D_STENCIL_OP_KEEP;
-   case VK_STENCIL_OP_REPLACE:               return V3D_STENCIL_OP_REPLACE;
-   case VK_STENCIL_OP_INCREMENT_AND_CLAMP:   return V3D_STENCIL_OP_INCR;
-   case VK_STENCIL_OP_DECREMENT_AND_CLAMP:   return V3D_STENCIL_OP_DECR;
-   case VK_STENCIL_OP_INVERT:                return V3D_STENCIL_OP_INVERT;
-   case VK_STENCIL_OP_INCREMENT_AND_WRAP:    return V3D_STENCIL_OP_INCWRAP;
-   case VK_STENCIL_OP_DECREMENT_AND_WRAP:    return V3D_STENCIL_OP_DECWRAP;
-   default:
-      unreachable();
-      return V3D_STENCIL_OP_INVALID;
-   }
-}
-
 v3d_addr_t CmdBufState::IndexBufferBinding::CalculateBufferOffsetAddr(VkDeviceSize offset) const
 {
    // Include our own internal offset in the address calculation
@@ -123,13 +99,13 @@ CmdBufState::CmdBufState(Device *device)
    assert(countof(m_curVertexBufferBindings) >=
           device->GetPhysicalDevice()->Limits().maxVertexInputBindings);
 
-   m_dirtyBits.ClearAll();
+   m_dirtyBits.reset();
 }
 
 void CmdBufState::BindGraphicsPipeline(GraphicsPipeline *pipe)
 {
    m_curBoundPipelines[VK_PIPELINE_BIND_POINT_GRAPHICS] = pipe;
-   m_dirtyBits.Set(eGraphicsPipeline);
+   m_dirtyBits.set(eGraphicsPipeline);
 
    // Overwrite all the non-dynamic state with the current pipeline values
    if (!pipe->IsDynamic(VK_DYNAMIC_STATE_VIEWPORT))
@@ -270,36 +246,59 @@ void CmdBufState::BuildStencilCL(
       state.writeMask & 0xff);
 }
 
+void CmdBufState::InitEarlyZState(bool enable)
+{
+   early_z_init(&m_ezState, enable);
+}
+
+void CmdBufState::DisableEarlyZ()
+{
+   early_z_disable(&m_ezState);
+}
+
+// This is called as a preamble to all draw calls being added to a command buffer
+// to update any dynamically changing state.
 void CmdBufState::BuildStateUpdateCL(CommandBuffer *cb)
 {
    GraphicsPipeline *pipe = dynamic_cast<GraphicsPipeline*>(
                             m_curBoundPipelines[VK_PIPELINE_BIND_POINT_GRAPHICS]);
    assert(pipe != nullptr);
 
-   if (m_dirtyBits.IsSet(eGraphicsPipeline))
+   if (m_dirtyBits.test(eGraphicsPipeline))
    {
+      // Update m_ezState based on the new pipeline state
+      pipe->UpdateEarlyZState(&m_ezState);
+
+      // The pipeline has changed, so write the config bits.
+      // We have to do this here, rather than as part of the pipeline construction since
+      // the early z flags can't be calculated up-front as an earlier non-ez pipeline must
+      // block ez for the entire render pass.
+      V3D_CL_CFG_BITS_T cfgBits = pipe->GetConfigBits();
+      cfgBits.ez        = m_ezState.cfg_bits_ez;
+      cfgBits.ez_update = m_ezState.cfg_bits_ez_update;
+      v3d_cl_cfg_bits_indirect(cb->CLPtr(), &cfgBits);
+
+      // Now write the static setup control list from the pipeline
       const uint8_t *setupCL;
       size_t size;
       pipe->GetSetupCL(&setupCL, &size);
       uint8_t **clPtr = cb->CLPtr(size);
       memcpy(*clPtr, setupCL, size);
       *clPtr += size;
-
-      m_dirtyBits.Clear(eGraphicsPipeline);
    }
 
-   if (m_dirtyBits.IsSet(eViewport) || m_dirtyBits.IsSet(eScissor))
+   if (m_dirtyBits.test(eViewport) || m_dirtyBits.test(eScissor))
       BuildScissorCL(cb, m_scissorRect, m_viewport);
 
-   if (m_dirtyBits.IsSet(eViewport))
+   if (m_dirtyBits.test(eViewport))
       BuildViewportCL(cb, m_viewport);
 
    // Line width
-   if (m_dirtyBits.IsSet(eLineWidth))
+   if (m_dirtyBits.test(eLineWidth))
       v3d_cl_line_width(cb->CLPtr(), m_lineWidth);
 
    // Depth bias
-   if (pipe->GetDepthBiasEnable() && m_dirtyBits.IsSet(eDepthBias))
+   if (pipe->GetDepthBiasEnable() && m_dirtyBits.test(eDepthBias))
    {
       v3d_cl_set_depth_offset(cb->CLPtr(), m_depthBiasSlopeFactor, m_depthBiasConstantFactor,
                                            m_depthBiasClamp,
@@ -307,22 +306,22 @@ void CmdBufState::BuildStateUpdateCL(CommandBuffer *cb)
    }
 
    // Blend constants
-   if (m_dirtyBits.IsSet(eBlendConsts))
+   if (m_dirtyBits.test(eBlendConsts))
       v3d_cl_blend_ccolor(cb->CLPtr(), m_blendConstants[0], m_blendConstants[1],
                                        m_blendConstants[2], m_blendConstants[3]);
 
    // Stencil state
-   if (m_dirtyBits.IsSet(eStencil))
+   if (m_dirtyBits.test(eStencil))
    {
       BuildStencilCL(cb, pipe->GetDepthStencilState().front, m_frontStencilState, true);
       BuildStencilCL(cb, pipe->GetDepthStencilState().back, m_backStencilState, false);
    }
 
-   if (m_dirtyBits.IsSet(eOcclusionCounter))
+   if (m_dirtyBits.test(eOcclusionCounter) && cb->m_occlusionAllowed)
       v3d_cl_occlusion_query_counter_enable(cb->CLPtr(), m_occlusionCounterAddr);
 
    // Clear all the dirty bits we've dealt with
-   m_dirtyBits.ClearAll();
+   m_dirtyBits.reset();
 }
 
 } // namespace bvk

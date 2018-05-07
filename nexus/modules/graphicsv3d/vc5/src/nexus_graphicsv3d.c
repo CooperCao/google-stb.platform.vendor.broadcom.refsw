@@ -107,6 +107,7 @@ CHECK_ENUM(NEXUS_Graphicsv3dJobType_eBarrier,      BVC5_JobType_eBarrier);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eWaitOnEvent,  BVC5_JobType_eWaitOnEvent);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eSetEvent,     BVC5_JobType_eSetEvent);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eResetEvent,   BVC5_JobType_eResetEvent);
+CHECK_ENUM(NEXUS_Graphicsv3dJobType_eCompute,      BVC5_JobType_eCompute);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eNumJobTypes,  BVC5_JobType_eNumJobTypes);
 
 CHECK_ENUM(NEXUS_Graphicsv3dCtrAcquire,            BVC5_CtrAcquire);
@@ -143,6 +144,8 @@ CHECK_STRUCT(NEXUS_Graphicsv3dJobBase,             BVC5_JobBase);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobNull,             BVC5_JobNull);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobBin,              BVC5_JobBin);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobRender,           BVC5_JobRender);
+CHECK_STRUCT(NEXUS_Graphicsv3dJobCompute,          BVC5_JobCompute);
+CHECK_STRUCT(NEXUS_Graphicsv3dJobComputeSubjob,    BVC5_JobComputeSubjob);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobUser,             BVC5_JobUser);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobFenceWait,        BVC5_JobFenceWait);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobTFU,              BVC5_JobTFU);
@@ -699,6 +702,29 @@ NEXUS_Error NEXUS_Graphicsv3d_QueueRender(
                             (const BVC5_JobRender *)render);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_QueueRender);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_QueueCompute(
+   NEXUS_Graphicsv3dHandle                    hGfx,
+   const NEXUS_Graphicsv3dJobCompute         *pCompute,
+   uint32_t                                   uiNumSubjobs,
+   const NEXUS_Graphicsv3dJobComputeSubjob   *pSubjobs
+   )
+{
+   BERR_Code berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_QueueCompute);
+
+   berr = BVC5_ComputeJob(
+         g_NEXUS_Graphicsv3d_P_ModuleState.hVc5,
+         hGfx->uiClientId,
+         (const BVC5_JobCompute *)pCompute,
+         uiNumSubjobs,
+         (const BVC5_JobComputeSubjob *)pSubjobs);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_QueueCompute);
 
    return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
@@ -1438,6 +1464,42 @@ NEXUS_Error NEXUS_Graphicsv3d_QuerySchedEvent(
    return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
 }
 
+NEXUS_Error NEXUS_Graphicsv3d_NewComputeSubjobs(
+      NEXUS_Graphicsv3dHandle      hGfx,
+      unsigned                     uiMaxSubjobs,
+      uint32_t                     *puiSubjobsId
+      )
+{
+   BERR_Code berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_NewComputeSubjobs);
+
+   berr = BVC5_NewComputeSubjobs(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId, uiMaxSubjobs, puiSubjobsId);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_NewComputeSubjobs);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_UpdateComputeSubjobs(
+      NEXUS_Graphicsv3dHandle                  hGfx,
+      uint32_t                                 uiSubjobsId,
+      uint32_t                                 uiNumSubjobs,
+      const NEXUS_Graphicsv3dJobComputeSubjob  *pSubjobs
+      )
+{
+   BERR_Code berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_UpdateComputeSubjobs);
+
+   berr = BVC5_UpdateComputeSubjobs(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5,
+         hGfx->uiClientId, uiSubjobsId, uiNumSubjobs, (const BVC5_JobComputeSubjob*)pSubjobs);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_UpdateComputeSubjobs);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
+}
+
 void NEXUS_Graphicsv3d_SetGatherLoadData(
    bool bCollect
    )
@@ -1487,25 +1549,27 @@ NEXUS_Error NEXUS_Graphicsv3d_GetLoadData(
    return err == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
-NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(unsigned percent)
+NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(uint32_t percent)
 {
 #if NEXUS_POWER_MANAGEMENT && BCHP_PWR_RESOURCE_GRAPHICS3D
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    unsigned clkRate;
+   NEXUS_Error rc = NEXUS_SUCCESS;
+   uint32_t clkRate;
 
-    if(percent > 100) {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
+   if (percent > 100)
+      return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
-    rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, &clkRate);
-    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
-    clkRate = percent*(clkRate/100);
-    rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, clkRate);
-    if(rc) {return BERR_TRACE(NEXUS_INVALID_PARAMETER);}
+   rc = BCHP_PWR_GetMaxClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, &clkRate);
+   if (rc)
+      return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
-    return rc;
+   clkRate = percent * (clkRate / 100);
+   rc = BCHP_PWR_SetClockRate(g_NEXUS_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, clkRate);
+   if (rc)
+      return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+
+   return rc;
 #else
-    BSTD_UNUSED(percent);
-    return NEXUS_NOT_SUPPORTED;
+   BSTD_UNUSED(percent);
+   return NEXUS_NOT_SUPPORTED;
 #endif
 }

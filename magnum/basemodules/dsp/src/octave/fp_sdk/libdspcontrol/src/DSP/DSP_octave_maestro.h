@@ -51,8 +51,10 @@
 
 #if __FP4014__
 #  include "libsyschip/memmap-octave-v1.h"
-#elif __FP4015_ONWARDS__ || __FPM1015_ONWARDS__
+#elif __FP4015__ || __FPM1015__
 #  include "libsyschip/memmap-octave-v2-maestro-v1.h"
+#elif __FP4017_ONWARDS__ || __FPM1017_ONWARDS__
+#  include "libsyschip/memmap-octave-v5-maestro-v3.h"
 #else
 #  error "This module targets only Octave and Maestro based systems"
 #endif
@@ -177,15 +179,17 @@
 #  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     SHARED_ADDR_CAST(0x000d0000)
 #elif defined(PMC3)
 #  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     SHARED_ADDR_CAST(0xffb20400)
+#elif defined(SMC)
+#  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     SHARED_ADDR_CAST(0x00100400)
 #elif IS_TARGET(RaagaFP4015_barebone)
 #  define MISC_BLOCK_BASE_ADDR(dsp_p, core)     ((core) == 0 ? (dsp_p)->misc_block_addr_fp0 : (dsp_p)->misc_block_addr_fp1)
-#elif IS_TARGET(RaagaFP4015_haps) || IS_TARGET(RaagaFP4015_haps_bm) || \
+#elif IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare) || IS_TARGET(RaagaFP4015_haps_bm) || \
       IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_si_magnum_permissive) ||\
       CHIP_CLASS_DSL
 #  if IS_TARGET(RaagaFP4015_bm)     /* FIXME: these addresses are BCM7278A0 specific, make it generic */
 #    define MISC_BLOCK_BASE_ADDR_0              SHARED_ADDR_CAST(0x09034000)
 #    define MISC_BLOCK_BASE_ADDR_1              SHARED_ADDR_CAST(0x09034200)
-#  elif IS_TARGET(RaagaFP4015_haps) || IS_TARGET(RaagaFP4015_haps_bm)
+#  elif IS_TARGET(RaagaFP4015_haps_fpos) || IS_TARGET(RaagaFP4015_haps_bare) || IS_TARGET(RaagaFP4015_haps_bm)
 #    define MISC_BLOCK_BASE_ADDR_0              SHARED_ADDR_CAST(0xf0c34000)
 #    define MISC_BLOCK_BASE_ADDR_1              SHARED_ADDR_CAST(0xf0c34200)
 #  elif IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_si_magnum_permissive)

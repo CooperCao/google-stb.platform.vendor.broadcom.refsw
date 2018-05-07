@@ -2,7 +2,7 @@
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "interface/khronos/common/khrn_int_common.h"
-#include "interface/khronos/include/EGL/egl.h"
+#include <EGL/begl_platform.h>
 #include "vcfw/drivers/chip/abstract_v3d.h"
 
 #include <stdio.h>

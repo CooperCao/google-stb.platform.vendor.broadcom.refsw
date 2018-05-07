@@ -6,8 +6,9 @@
 #include "interface/khronos/common/khrn_int_common.h"
 #include "middleware/khronos/common/khrn_image.h"
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/begl_platform.h>
 
 #define EGL_PLATFORM_WIN_NONE 0xffffffff
 
@@ -21,16 +22,15 @@ EGLint egl_server_platform_term(EGLDisplay display);
    information about a pixmap.
 */
 
-extern KHRN_IMAGE_T *egl_server_platform_create_pixmap_info(void *platform_pixmap, bool invalid);
+extern KHRN_IMAGE_T *egl_server_platform_create_pixmap(EGLNativePixmapType platform_pixmap);
 
-extern void *egl_server_platform_dequeue(BEGL_WindowState *windowState, KHRN_IMAGE_FORMAT_T colorformat, int *fd);
-extern bool egl_server_platform_queue(BEGL_WindowState *windowState, void * opaque_buffer_handle, int swap_interval, int fd);
-extern bool egl_server_platform_cancel(BEGL_WindowState *windowState, void * opaque_buffer_handle, int fd);
-extern bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uintptr_t window, bool secure);
-extern void egl_server_platform_destroy_window_state(BEGL_WindowState  *windowState);
+extern KHRN_IMAGE_T *egl_server_platform_dequeue(void *native_window_state, KHRN_IMAGE_FORMAT_T colorformat, void **swapchain_buffer, int *fd);
+extern bool egl_server_platform_queue(void *native_window_state, void *swapchain_buffer, int swap_interval, int fd);
+extern bool egl_server_platform_cancel(void *native_window_state, void *swapchain_buffer, int fd);
 
-extern void *egl_server_platform_get_native_buffer(EGLenum target, EGLClientBuffer *egl_buffer);
-extern KHRN_IMAGE_T *egl_server_platform_image_wrap(EGLenum target, void *native_buffer);
-extern KHRN_IMAGE_T *egl_server_platform_image_new(EGLenum target, void *native_buffer, EGLint *error);
+extern bool egl_server_platform_create_window_state(void **native_window_state, uintptr_t window, bool secure);
+extern void egl_server_platform_destroy_window_state(void *native_window_state);
+
+extern KHRN_IMAGE_T *egl_server_platform_image_new(EGLenum target, EGLClientBuffer egl_buffer, EGLint *error);
+
 extern uint32_t egl_server_platform_get_color_format(KHRN_IMAGE_FORMAT_T format);
-extern bool egl_server_platform_get_info(EGLenum target, void *native_buffer, uint32_t *w, uint32_t *h, uint32_t *stride, KHRN_IMAGE_FORMAT_T *format, uint32_t *offset, void **p);

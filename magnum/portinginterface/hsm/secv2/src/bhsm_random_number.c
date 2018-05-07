@@ -50,7 +50,7 @@ BDBG_MODULE( BHSM );
 BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm,
                                 BHSM_GetRandomNumberData *pData )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_CryptoRng bspConfig;
     unsigned itterations; /* # of time we'll call BSP for full load. */
     unsigned residual;    /* # of bytes required from last call */
@@ -58,6 +58,10 @@ BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm,
     uint8_t  *pDest;
 
     BDBG_ENTER( BHSM_GetRandomNumber );
+
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pData->pRandomNumber ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pDest = pData->pRandomNumber;
 
@@ -69,9 +73,11 @@ BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm,
         bspConfig.in.randomNumberLength = sizeof( bspConfig.out.randomNumber);
 
         rc = BHSM_P_Crypto_Rng( hHsm, &bspConfig );
-        if( rc != BERR_SUCCESS ) {BERR_TRACE(rc ); goto end; }
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
-        BHSM_MemcpySwap( (void*)pDest, (void*)bspConfig.out.randomNumber, sizeof( bspConfig.out.randomNumber) );
+        rc = BHSM_MemcpySwap( (void*)pDest, (void*)bspConfig.out.randomNumber, sizeof( bspConfig.out.randomNumber) );
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
         pDest += sizeof( bspConfig.out.randomNumber );
     }
 
@@ -85,13 +91,13 @@ BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm,
         }
 
         rc = BHSM_P_Crypto_Rng( hHsm, &bspConfig );
-        if( rc != BERR_SUCCESS ) {BERR_TRACE(rc ); goto end; }
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
-        BHSM_Mem32cpy( (void*)bspConfig.out.randomNumber, (void*)bspConfig.out.randomNumber, bspConfig.in.randomNumberLength);
+        rc = BHSM_MemcpySwap( (void*)bspConfig.out.randomNumber, (void*)bspConfig.out.randomNumber, bspConfig.in.randomNumberLength);
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+
         BKNI_Memcpy(pDest, bspConfig.out.randomNumber, residual);
     }
-
-end:
 
     BDBG_LEAVE( BHSM_GetRandomNumber );
     return rc;

@@ -37,9 +37,10 @@
  *****************************************************************************/
 #include "config.h"
 #include "plat_config.h"
-#include "arm.h"
+#include "arch.h"
 
-#define ARM_IMAGE_HEADER      0x644d5241  /* ARM image header for 64bit ("ARM\x64") */
+/* ARM image header for AARCH64 ("ARM\x64") */
+#define ARM_IMAGE_MAGIC_AARCH64         0x644d5241
 
 .global tz_init
 .global tz_bootstrap
@@ -48,247 +49,112 @@
 
 tz_init:
 
-    /* The image must begin with a ARM image header. This helps
-     * monitor to find the arch mode of astra
+    /* The image must begin with a ARM image header as used by Linux
+     *
+     *      u32 code0;                  # Executable code
+     *      u32 code1;                  # Executable code
+     *      u64 text_offset;            # Image load offset, little endian
+     *      u64 image_size;             # Effective Image size, little endian
+     *      u64 flags;                  # kernel flags, little endian
+     *      u64 res2 = 0;               # reserved
+     *      u64 res3 = 0;               # reserved
+     *      u64 res4 = 0;               # reserved
+     *      u32 magic = 0x644d5241;     # Magic number, little endian, "ARM\x64"
+     *      u32 res5;                   # reserved (used for PE COFF offset)
      */
-    .rept 8
-    nop
-    .endr
-    b   tz_bootstrap
 
-    .word   ARM_IMAGE_HEADER
+    b       tz_bootstrap
+    .word   0
+
+    .rept   6
+    .word   0
+    .word   0
+    .endr
+
+    .word   ARM_IMAGE_MAGIC_AARCH64
+    .word   0
 
 tz_bootstrap:
-	// What EL are we in ?
-    mrs x1, CurrentEL
-    and x1, x1, #(0xC)
-    cmp x1, #0xC //EL3
-    beq el3_start
 
-    cmp x1, #0x8 //EL2
-    beq el2_start
+    /* The bootloader has loaded the following registers:
+     * - x0: Device tree memory location (primary CPU), or 0 (secondary CPU)
+     * - x1: UART base (brcmstb specific)
+     * - x2: 0
+     * - x3: 0
+     */
+    mov     x20, x0
+    mov     x21, x1
 
-	cmp x1, #0x4 //EL1
-    beq el1_start
+    /* What EL are we in? */
+    mrs     x0, CurrentEL
+    and     x0, x0, #(0xC)
 
-el0_start:
-	// EL0 boot cannot work !
-el3_start:
-	// EL3 boot not supported
-	wfi
-	b el3_start
+    /* Halt if not in EL1 */
+    cmp     x0, #0x4
+    bne     .
 
-el2_start:
-	// We are EL2 (hypervisor) mode and need to hand-off to a 64-bit OS running in EL1 mode.
-	// 		Do not trap anything in hypervisor.
-	//		Setup EL1 for AARCH64
-	mov	x6, #((1 << 31)| ( 1 << 32) | ( 1 << 33))
-	msr	HCR_EL2, x6
+    /* Calculate offset between load address and link address */
+    adr     x0, tz_init     /* Load address of tz_init */
+    ldr     x1, =tz_init    /* Link address of tz_init */
+    sub     x22, x0, x1     /* Load-to-link offset */
 
+    /* Figure out current CPU number from MPIDR */
+    mrs     x0, mpidr_el1
+    and     x23, x0, #0x3
+    cmp     x23, #0
+    bne     2f
 
-	// VTTBR_EL2 needs to be initialized with a zero VMID. Even in the
-	// absence of a hypervisor, the VMID still tags cache lines.
-	msr VTTBR_EL2, xzr
-
-	// Setup VMPIDR_EL2 and VPIDR_EL2  to match the MPIDR/MIDR respectively.
-	// This ensures that MPIDI/MIDR read from EL1 does not return uninitialized values
-	mrs x7, MPIDR_EL1
-	msr VMPIDR_EL2, x7
-	mrs x7, MIDR_EL1
-	msr VPIDR_EL2, x7
-
-	// Do not trap any floating point operations in EL2 mode.
-	msr	CPTR_EL2, xzr
-	mov x7, #((1 << 0) | \
-              (1 << 1) | \
-              (1 << 4) | \
-              (1 << 5) | \
-              (1 << 6))
-    msr ACTLR_EL2, x7
-
-    // Finally drop to EL1 in the OS entry point:
-    //		Disable all interrupts in EL1.
-    adr x1, el1_start
-	msr ELR_EL2, x1
-	mov x1, #0
-	mov x2, #0
-	mov x3, #0
-
-	mov x7, #(0b0101 | \
-              (1 << 6)  | \
-              (1 << 7)  | \
-              (1 << 8))
-    msr	SPSR_EL2, x7
-
-    isb
-    eret
-
-el1_start:
-	// This module is intended to be position independent:
-	//		The linker script links all kernel symbols starting at
-	//		_system_link_base. The OS loader however is free to load
-	//		the OS anywhere in system memory. Use the MMU to remap the
-	//		load addresses to the link addresses.
-	//
-	//		Before the MMU is enabled, all symbols refer to link addresses.
-	//		Convert them to load addresses by adding the difference between
-	//		_system_link_base and the address at which this module was loaded.
-
-	adr	x1, tz_init		// This is the load address of the init symbol.
-	ldr x2, =tz_init		// This is the link address of the init symbol.
-	sub	x3, x1, x2		// From this point forwards until the MMU is enabled,
-						// all symbol accesses must be offset with x3.
-
-	// Carve out a stack from the init_stacks region for this CPU core
-	ldr	x5, =bootstrap_stacks_start
-	add	x5, x5, x3
-	add x5, x5, #(INIT_STACK_SIZE-16)
-	mov	sp, x5
-
-	mrs     x5, mpidr_el1
-	and     x5, x5, #0x3
-	cmp     x5, #0
-	bne     2f
-
-	ldr	x5, =_bss_start
-	add	x5, x5, x3
-	ldr	x6, =_bss_end
-	add x6, x6, x3
+    /* Clear BSS section */
+    ldr     x0, =_bss_start
+    add     x0, x0, x22
+    ldr     x1, =_bss_end
+    add     x1, x1, x22
 1:
-	cmp	x5, x6
-	beq 2f
-
-	str xzr, [x5], #8
-	ble 1b
-
+    stp     xzr, xzr, [x0], #16
+    cmp     x0, x1
+    blo     1b
 2:
-	// Enable floating point
-	mov x6, #(3 << 20)
-	msr CPACR_EL1, x6
+    /* Set bootstrap stack to load address */
+    ldr     x0, =bootstrap_stacks_start
+    add     x0, x0, x22
+    mov     x1, #INIT_STACK_SIZE
+    mul     x1, x1, x23
+    sub     x0, x0, x1
+    mov     sp, x0
 
-	// Setup 64bit exception vectors
-	ldr x1, =el1Vectors
-	msr VBAR_EL1, x1
+    /* Call bootstrap C-function
+     * - x0: Device tree memory location (primary CPU), or 0 (secondary CPU)
+     * - x1: UART base
+     * - x2: Load-to-link offset
+     */
+    mov     x0, x20
+    mov     x1, x21
+    mov     x2, x22
+    bl      bootstrapMain
 
-	// Enable SError but leave interrupts masked
-	mov x1,  #((1 << 7) | ( 1 << 6))
-	msr DAIF, x1
+    /* Set init stack to link address by adjusting bootstrap stack */
+    sub     sp, sp, x22
 
-	// Call the C function to setup the MMU
-	stp	x0, x1, [sp, #-16]!
-	stp	x2, x3, [sp, #-16]!
-	mov	x1, x3
-	ldr	x2, =bootstrap
-	add	x2, x2, x3
-	blr	x2
-	ldp x2, x3, [sp], #16
-	ldp x0, x1, [sp], #16
+    /* Enable floating point */
+    mov     x0, #CPACR_EL1_FPEN(CPACR_EL1_FP_TRAP_NONE)
+    msr     CPACR_EL1, x0
 
-	ldr	x5, =init_stacks_start
-	add	x5, x5, #(INIT_STACK_SIZE-16)
-	mov	sp, x5
+    /* Setup 64bit exception vectors */
+    ldr     x0, =el1Vectors
+    msr     VBAR_EL1, x0
 
-	mov	x1, x3
-	ldr x2, =tzKernelInit
-	br	x2
+    /* Enable SError interrupts */
+    msr     daifclr, #DAIF_ABT_BIT
 
-aarch64InitSecondaryCpu:
-	// What EL are we in ?
-    mrs x1, CurrentEL
-    and x1, x1, #(0xC)
-    cmp x1, #0xC //EL3
-    beq el3_sec_start
-
-    cmp x1, #0x8 //EL2
-    beq el2_sec_start
-
-	cmp x1, #0x4 //EL1
-    beq el1_sec_start
-
-el0_sec_start:
-	// EL0 boot cannot work !
-el3_sec_start:
-	// EL3 boot not supported
-	wfi
-	b el3_start
-
-el2_sec_start:
-	// SPF has put the stack physical address in X0
-	// Do not change X0.
-
-	// We are EL2 (hypervisor) mode and need to hand-off to a 64-bit OS running in EL1 mode.
-	// 		Do not trap anything in hypervisor.
-	//		Setup EL1 for AARCH64
-	mov	x6, #((1 << 31)| ( 1 << 32) | ( 1 << 33))
-	msr	HCR_EL2, x6
-
-
-	// VTTBR_EL2 needs to be initialized with a zero VMID. Even in the
-	// absence of a hypervisor, the VMID still tags cache lines.
-	msr VTTBR_EL2, xzr
-
-	// Setup VMPIDR_EL2 and VPIDR_EL2  to match the MPIDR/MIDR respectively.
-	// This ensures that MPIDI/MIDR read from EL1 does not return uninitialized values
-	mrs x7, MPIDR_EL1
-	msr VMPIDR_EL2, x7
-	mrs x7, MIDR_EL1
-	msr VPIDR_EL2, x7
-
-	// Do not trap any floating point operations in EL2 mode.
-	msr	CPTR_EL2, xzr
-	mov x7, #((1 << 0) | \
-              (1 << 1) | \
-              (1 << 4) | \
-              (1 << 5) | \
-              (1 << 6))
-    msr ACTLR_EL2, x7
-
-    // Finally drop to EL1 in the OS entry point:
-    //		Disable all interrupts in EL1.
-    adr x1, el1_sec_start
-	msr ELR_EL2, x1
-	mov x1, #0
-	mov x2, #0
-	mov x3, #0
-
-	mov x7, #(0b0101 | \
-              (1 << 6)  | \
-              (1 << 7)  | \
-              (1 << 8))
-    msr	SPSR_EL2, x7
-
-    isb
-    eret
-
-el1_sec_start:
-
-	// SPF has put the stack physical address in X0 ?
-	mov sp, x0
-
-	adr	x2, bootstrapSecondary
-	blr	x2
-
-	// switch stack to VA
-	ldr x1, =ARCH_KERNEL_BASE
-	add sp, sp, x1
-
-	// Setup the exception handlers
-	ldr x1, =el1Vectors
-	msr VBAR_EL1, x1
-
-	// Enable SError but leave interrupts masked
-	mov x1,  #((1 << 7) | ( 1 << 6))
-	msr DAIF, x1
-
-	ldr x2, =tzKernelSecondary
-	br	x2
+    /* Call kernel init function
+     * - x0: Device tree memory location
+     */
+    mov     x0, x20
+    ldr     x1, =tzKernelInit
+    br      x1
 
 .section ".data.bootstrap"
-	.align 5
+    .align  5
+    .space  INIT_STACK_SIZE*MAX_NUM_CPUS
 bootstrap_stacks_start:
-	.space INIT_STACK_SIZE
-
-.section ".data"
-	.align 5
 init_stacks_start:
-	.space INIT_STACK_SIZE

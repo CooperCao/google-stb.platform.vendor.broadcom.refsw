@@ -103,7 +103,7 @@ public:
       return m_version;
    }
 
-   const Optional<NodeIndex> &GetFile() const
+   const Optional<NodeConstPtr> &GetFile() const
    {
       return m_file;
    }
@@ -119,10 +119,10 @@ public:
    }
 
 private:
-   spv::SourceLanguage    m_sourceLanguage;
-   uint32_t               m_version;
-   Optional<NodeIndex>    m_file;
-   spv::string            m_source;
+   spv::SourceLanguage       m_sourceLanguage;
+   uint32_t                  m_version;
+   Optional<NodeConstPtr>    m_file;
+   spv::string               m_source;
 };
 
 class NodeSourceExtension : public Node
@@ -169,7 +169,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetTarget() const
+   const NodeConstPtr &GetTarget() const
    {
       return m_target;
    }
@@ -185,8 +185,8 @@ public:
    }
 
 private:
-   NodeIndex      m_target;
-   spv::string    m_name;
+   NodeConstPtr    m_target;
+   spv::string     m_name;
 };
 
 class NodeMemberName : public Node
@@ -204,7 +204,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetType() const
+   const NodeConstPtr &GetType() const
    {
       return m_type;
    }
@@ -225,9 +225,9 @@ public:
    }
 
 private:
-   NodeIndex      m_type;
-   uint32_t       m_member;
-   spv::string    m_name;
+   NodeConstPtr    m_type;
+   uint32_t        m_member;
+   spv::string     m_name;
 };
 
 class NodeString : public Node
@@ -273,7 +273,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetFile() const
+   const NodeConstPtr &GetFile() const
    {
       return m_file;
    }
@@ -294,9 +294,9 @@ public:
    }
 
 private:
-   NodeIndex    m_file;
-   uint32_t     m_line;
-   uint32_t     m_column;
+   NodeConstPtr    m_file;
+   uint32_t        m_line;
+   uint32_t        m_column;
 };
 
 class NodeExtension : public Node
@@ -372,7 +372,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSet() const
+   const NodeConstPtr &GetSet() const
    {
       return m_set;
    }
@@ -382,7 +382,7 @@ public:
       return m_instruction;
    }
 
-   const spv::vector<NodeIndex> &GetOperands() const
+   const spv::vector<NodeConstPtr> &GetOperands() const
    {
       return m_operands;
    }
@@ -393,9 +393,9 @@ public:
    }
 
 private:
-   NodeIndex                 m_set;
-   uint32_t                  m_instruction;
-   spv::vector<NodeIndex>    m_operands;
+   NodeConstPtr                 m_set;
+   uint32_t                     m_instruction;
+   spv::vector<NodeConstPtr>    m_operands;
 };
 
 class NodeMemoryModel : public Node
@@ -454,7 +454,7 @@ public:
       return m_executionModel;
    }
 
-   const NodeIndex &GetEntryPoint() const
+   const NodeConstPtr &GetEntryPoint() const
    {
       return m_entryPoint;
    }
@@ -464,7 +464,7 @@ public:
       return m_name;
    }
 
-   const spv::vector<NodeIndex> &GetInterface() const
+   const spv::vector<NodeConstPtr> &GetInterface() const
    {
       return m_interface;
    }
@@ -478,10 +478,10 @@ public:
    }
 
 private:
-   spv::ExecutionModel       m_executionModel;
-   NodeIndex                 m_entryPoint;
-   spv::string               m_name;
-   spv::vector<NodeIndex>    m_interface;
+   spv::ExecutionModel          m_executionModel;
+   NodeConstPtr                 m_entryPoint;
+   spv::string                  m_name;
+   spv::vector<NodeConstPtr>    m_interface;
 
    DataEntryPoint *m_data;
 };
@@ -659,7 +659,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetComponentType() const
+   const NodeConstPtr &GetComponentType() const
    {
       return m_componentType;
    }
@@ -675,8 +675,8 @@ public:
    }
 
 private:
-   NodeIndex    m_componentType;
-   uint32_t     m_componentCount;
+   NodeConstPtr    m_componentType;
+   uint32_t        m_componentCount;
 };
 
 class NodeTypeMatrix : public NodeType
@@ -698,7 +698,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetColumnType() const
+   const NodeConstPtr &GetColumnType() const
    {
       return m_columnType;
    }
@@ -713,9 +713,32 @@ public:
       return spv::Core::OpTypeMatrix;
    }
 
+   uint32_t GetRowCount() const
+   {
+      auto columnType = GetColumnType()->As<const NodeTypeVector *>();
+
+      return columnType->GetComponentCount();
+   }
+
+   struct Size
+   {
+      Size(uint32_t cols, uint32_t rows) :
+         cols(cols),
+         rows(rows)
+      {}
+
+      uint32_t cols;
+      uint32_t rows;
+   };
+
+   Size GetSize() const
+   {
+      return Size(GetColumnCount(), GetRowCount());
+   }
+
 private:
-   NodeIndex    m_columnType;
-   uint32_t     m_columnCount;
+   NodeConstPtr    m_columnType;
+   uint32_t        m_columnCount;
 };
 
 class NodeTypeImage : public NodeType
@@ -737,7 +760,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledType() const
+   const NodeConstPtr &GetSampledType() const
    {
       return m_sampledType;
    }
@@ -783,7 +806,7 @@ public:
    }
 
 private:
-   NodeIndex                         m_sampledType;
+   NodeConstPtr                      m_sampledType;
    spv::Dim                          m_dim;
    uint32_t                          m_depth;
    uint32_t                          m_arrayed;
@@ -839,7 +862,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImageType() const
+   const NodeConstPtr &GetImageType() const
    {
       return m_imageType;
    }
@@ -850,79 +873,7 @@ public:
    }
 
 private:
-   NodeIndex    m_imageType;
-};
-
-class NodeTypeArray : public NodeType
-{
-public:
-   NodeTypeArray(Extractor &ext)
-      : NodeType()
-   {
-      ext >> m_resultId >> m_elementType >> m_length;
-   }
-
-   void AcceptType(NodeTypeVisitor &visitor) const override
-   {
-      visitor.Visit(this);
-   }
-
-   void Accept(NodeVisitor &visitor) const override
-   {
-      visitor.Visit(this);
-   }
-
-   const NodeIndex &GetElementType() const
-   {
-      return m_elementType;
-   }
-
-   const NodeIndex &GetLength() const
-   {
-      return m_length;
-   }
-
-   spv::Core GetOpCode() const override
-   {
-      return spv::Core::OpTypeArray;
-   }
-
-private:
-   NodeIndex    m_elementType;
-   NodeIndex    m_length;
-};
-
-class NodeTypeRuntimeArray : public NodeType
-{
-public:
-   NodeTypeRuntimeArray(Extractor &ext)
-      : NodeType()
-   {
-      ext >> m_resultId >> m_elementType;
-   }
-
-   void AcceptType(NodeTypeVisitor &visitor) const override
-   {
-      visitor.Visit(this);
-   }
-
-   void Accept(NodeVisitor &visitor) const override
-   {
-      visitor.Visit(this);
-   }
-
-   const NodeIndex &GetElementType() const
-   {
-      return m_elementType;
-   }
-
-   spv::Core GetOpCode() const override
-   {
-      return spv::Core::OpTypeRuntimeArray;
-   }
-
-private:
-   NodeIndex    m_elementType;
+   NodeConstPtr    m_imageType;
 };
 
 class NodeTypeStruct : public NodeType
@@ -946,7 +897,7 @@ public:
       visitor.Visit(this);
    }
 
-   const spv::vector<NodeIndex> &GetMemberstype() const
+   const spv::vector<NodeConstPtr> &GetMemberstype() const
    {
       return m_memberstype;
    }
@@ -960,7 +911,7 @@ public:
    }
 
 private:
-   spv::vector<NodeIndex>    m_memberstype;
+   spv::vector<NodeConstPtr>    m_memberstype;
 
    DataTypeStruct *m_data;
 };
@@ -989,7 +940,7 @@ public:
       return m_storageClass;
    }
 
-   const NodeIndex &GetType() const
+   const NodeConstPtr &GetType() const
    {
       return m_type;
    }
@@ -1001,7 +952,7 @@ public:
 
 private:
    spv::StorageClass    m_storageClass;
-   NodeIndex            m_type;
+   NodeConstPtr         m_type;
 };
 
 class NodeTypeFunction : public NodeType
@@ -1024,12 +975,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetReturnType() const
+   const NodeConstPtr &GetReturnType() const
    {
       return m_returnType;
    }
 
-   const spv::vector<NodeIndex> &GetParametersType() const
+   const spv::vector<NodeConstPtr> &GetParametersType() const
    {
       return m_parametersType;
    }
@@ -1040,8 +991,8 @@ public:
    }
 
 private:
-   NodeIndex                 m_returnType;
-   spv::vector<NodeIndex>    m_parametersType;
+   NodeConstPtr                 m_returnType;
+   spv::vector<NodeConstPtr>    m_parametersType;
 };
 
 class NodeConstantTrue : public Node
@@ -1131,7 +1082,7 @@ public:
       visitor.Visit(this);
    }
 
-   const spv::vector<NodeIndex> &GetConstituents() const
+   const spv::vector<NodeConstPtr> &GetConstituents() const
    {
       return m_constituents;
    }
@@ -1142,7 +1093,7 @@ public:
    }
 
 private:
-   spv::vector<NodeIndex>    m_constituents;
+   spv::vector<NodeConstPtr>    m_constituents;
 };
 
 class NodeConstantNull : public Node
@@ -1254,7 +1205,7 @@ public:
       visitor.Visit(this);
    }
 
-   const spv::vector<NodeIndex> &GetConstituents() const
+   const spv::vector<NodeConstPtr> &GetConstituents() const
    {
       return m_constituents;
    }
@@ -1265,7 +1216,7 @@ public:
    }
 
 private:
-   spv::vector<NodeIndex>    m_constituents;
+   spv::vector<NodeConstPtr>    m_constituents;
 };
 
 class NodeFunction : public Node
@@ -1288,7 +1239,7 @@ public:
       return m_functionControl;
    }
 
-   const NodeIndex &GetFunctionType() const
+   const NodeConstPtr &GetFunctionType() const
    {
       return m_functionType;
    }
@@ -1303,7 +1254,7 @@ public:
 
 private:
    spv::FunctionControlMask    m_functionControl;
-   NodeIndex                   m_functionType;
+   NodeConstPtr                m_functionType;
 
    DataFunction *m_data;
 };
@@ -1366,12 +1317,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetFunction() const
+   const NodeConstPtr &GetFunction() const
    {
       return m_function;
    }
 
-   const spv::vector<NodeIndex> &GetArguments() const
+   const spv::vector<NodeConstPtr> &GetArguments() const
    {
       return m_arguments;
    }
@@ -1382,8 +1333,8 @@ public:
    }
 
 private:
-   NodeIndex                 m_function;
-   spv::vector<NodeIndex>    m_arguments;
+   NodeConstPtr                 m_function;
+   spv::vector<NodeConstPtr>    m_arguments;
 };
 
 class NodeVariable : public Node
@@ -1406,7 +1357,7 @@ public:
       return m_storageClass;
    }
 
-   const Optional<NodeIndex> &GetInitializer() const
+   const Optional<NodeConstPtr> &GetInitializer() const
    {
       return m_initializer;
    }
@@ -1426,8 +1377,8 @@ public:
    }
 
 private:
-   spv::StorageClass      m_storageClass;
-   Optional<NodeIndex>    m_initializer;
+   spv::StorageClass         m_storageClass;
+   Optional<NodeConstPtr>    m_initializer;
 
    DataVariable *m_data;
 };
@@ -1446,17 +1397,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetSample() const
+   const NodeConstPtr &GetSample() const
    {
       return m_sample;
    }
@@ -1467,9 +1418,9 @@ public:
    }
 
 private:
-   NodeIndex    m_image;
-   NodeIndex    m_coordinate;
-   NodeIndex    m_sample;
+   NodeConstPtr    m_image;
+   NodeConstPtr    m_coordinate;
+   NodeConstPtr    m_sample;
 };
 
 class NodeLoad : public Node
@@ -1486,7 +1437,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
@@ -1502,7 +1453,7 @@ public:
    }
 
 private:
-   NodeIndex             m_pointer;
+   NodeConstPtr          m_pointer;
    Optional<uint32_t>    m_memoryAccess;
 };
 
@@ -1520,12 +1471,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   const NodeIndex &GetObject() const
+   const NodeConstPtr &GetObject() const
    {
       return m_object;
    }
@@ -1541,8 +1492,8 @@ public:
    }
 
 private:
-   NodeIndex             m_pointer;
-   NodeIndex             m_object;
+   NodeConstPtr          m_pointer;
+   NodeConstPtr          m_object;
    Optional<uint32_t>    m_memoryAccess;
 };
 
@@ -1560,12 +1511,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetTarget() const
+   const NodeConstPtr &GetTarget() const
    {
       return m_target;
    }
 
-   const NodeIndex &GetSource() const
+   const NodeConstPtr &GetSource() const
    {
       return m_source;
    }
@@ -1581,8 +1532,8 @@ public:
    }
 
 private:
-   NodeIndex             m_target;
-   NodeIndex             m_source;
+   NodeConstPtr          m_target;
+   NodeConstPtr          m_source;
    Optional<uint32_t>    m_memoryAccess;
 };
 
@@ -1600,7 +1551,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetStructure() const
+   const NodeConstPtr &GetStructure() const
    {
       return m_structure;
    }
@@ -1616,8 +1567,8 @@ public:
    }
 
 private:
-   NodeIndex    m_structure;
-   uint32_t     m_arraymember;
+   NodeConstPtr    m_structure;
+   uint32_t        m_arraymember;
 };
 
 class NodeDecorate : public Node
@@ -1634,7 +1585,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetTarget() const
+   const NodeConstPtr &GetTarget() const
    {
       return m_target;
    }
@@ -1650,8 +1601,8 @@ public:
    }
 
 private:
-   NodeIndex     m_target;
-   Decoration    m_decoration;
+   NodeConstPtr    m_target;
+   Decoration      m_decoration;
 };
 
 class NodeMemberDecorate : public Node
@@ -1669,7 +1620,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetStructureType() const
+   const NodeConstPtr &GetStructureType() const
    {
       return m_structureType;
    }
@@ -1693,9 +1644,9 @@ public:
    }
 
 private:
-   NodeIndex     m_structureType;
-   uint32_t      m_member;
-   Decoration    m_decoration;
+   NodeConstPtr    m_structureType;
+   uint32_t        m_member;
+   Decoration      m_decoration;
 
    DataMemberDecorate *m_data;
 };
@@ -1737,12 +1688,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetDecorationGroup() const
+   const NodeConstPtr &GetDecorationGroup() const
    {
       return m_decorationGroup;
    }
 
-   const spv::vector<NodeIndex> &GetTargets() const
+   const spv::vector<NodeConstPtr> &GetTargets() const
    {
       return m_targets;
    }
@@ -1753,8 +1704,8 @@ public:
    }
 
 private:
-   NodeIndex                 m_decorationGroup;
-   spv::vector<NodeIndex>    m_targets;
+   NodeConstPtr                 m_decorationGroup;
+   spv::vector<NodeConstPtr>    m_targets;
 };
 
 class NodeGroupMemberDecorate : public Node
@@ -1772,12 +1723,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetDecorationGroup() const
+   const NodeConstPtr &GetDecorationGroup() const
    {
       return m_decorationGroup;
    }
 
-   const spv::vector<std::pair<NodeIndex, uint32_t>> &GetTargets() const
+   const spv::vector<std::pair<NodeConstPtr, uint32_t>> &GetTargets() const
    {
       return m_targets;
    }
@@ -1788,8 +1739,8 @@ public:
    }
 
 private:
-   NodeIndex                                      m_decorationGroup;
-   spv::vector<std::pair<NodeIndex, uint32_t>>    m_targets;
+   NodeConstPtr                                      m_decorationGroup;
+   spv::vector<std::pair<NodeConstPtr, uint32_t>>    m_targets;
 };
 
 class NodeVectorExtractDynamic : public Node
@@ -1806,12 +1757,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
 
-   const NodeIndex &GetIndex() const
+   const NodeConstPtr &GetIndex() const
    {
       return m_index;
    }
@@ -1822,8 +1773,8 @@ public:
    }
 
 private:
-   NodeIndex    m_vector;
-   NodeIndex    m_index;
+   NodeConstPtr    m_vector;
+   NodeConstPtr    m_index;
 };
 
 class NodeVectorInsertDynamic : public Node
@@ -1840,17 +1791,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
 
-   const NodeIndex &GetComponent() const
+   const NodeConstPtr &GetComponent() const
    {
       return m_component;
    }
 
-   const NodeIndex &GetIndex() const
+   const NodeConstPtr &GetIndex() const
    {
       return m_index;
    }
@@ -1861,9 +1812,9 @@ public:
    }
 
 private:
-   NodeIndex    m_vector;
-   NodeIndex    m_component;
-   NodeIndex    m_index;
+   NodeConstPtr    m_vector;
+   NodeConstPtr    m_component;
+   NodeConstPtr    m_index;
 };
 
 class NodeVectorShuffle : public Node
@@ -1881,12 +1832,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector1() const
+   const NodeConstPtr &GetVector1() const
    {
       return m_vector1;
    }
 
-   const NodeIndex &GetVector2() const
+   const NodeConstPtr &GetVector2() const
    {
       return m_vector2;
    }
@@ -1902,8 +1853,8 @@ public:
    }
 
 private:
-   NodeIndex                m_vector1;
-   NodeIndex                m_vector2;
+   NodeConstPtr             m_vector1;
+   NodeConstPtr             m_vector2;
    spv::vector<uint32_t>    m_components;
 };
 
@@ -1922,7 +1873,7 @@ public:
       visitor.Visit(this);
    }
 
-   const spv::vector<NodeIndex> &GetConstituents() const
+   const spv::vector<NodeConstPtr> &GetConstituents() const
    {
       return m_constituents;
    }
@@ -1933,7 +1884,7 @@ public:
    }
 
 private:
-   spv::vector<NodeIndex>    m_constituents;
+   spv::vector<NodeConstPtr>    m_constituents;
 };
 
 class NodeCompositeExtract : public Node
@@ -1951,7 +1902,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetComposite() const
+   const NodeConstPtr &GetComposite() const
    {
       return m_composite;
    }
@@ -1967,7 +1918,7 @@ public:
    }
 
 private:
-   NodeIndex                m_composite;
+   NodeConstPtr             m_composite;
    spv::vector<uint32_t>    m_indices;
 };
 
@@ -1986,12 +1937,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetObject() const
+   const NodeConstPtr &GetObject() const
    {
       return m_object;
    }
 
-   const NodeIndex &GetComposite() const
+   const NodeConstPtr &GetComposite() const
    {
       return m_composite;
    }
@@ -2007,8 +1958,8 @@ public:
    }
 
 private:
-   NodeIndex                m_object;
-   NodeIndex                m_composite;
+   NodeConstPtr             m_object;
+   NodeConstPtr             m_composite;
    spv::vector<uint32_t>    m_indices;
 };
 
@@ -2026,7 +1977,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand() const
+   const NodeConstPtr &GetOperand() const
    {
       return m_operand;
    }
@@ -2037,7 +1988,7 @@ public:
    }
 
 private:
-   NodeIndex    m_operand;
+   NodeConstPtr    m_operand;
 };
 
 class NodeTranspose : public Node
@@ -2054,7 +2005,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetMatrix() const
+   const NodeConstPtr &GetMatrix() const
    {
       return m_matrix;
    }
@@ -2065,7 +2016,7 @@ public:
    }
 
 private:
-   NodeIndex    m_matrix;
+   NodeConstPtr    m_matrix;
 };
 
 class NodeSampledImage : public Node
@@ -2082,12 +2033,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
 
-   const NodeIndex &GetSampler() const
+   const NodeConstPtr &GetSampler() const
    {
       return m_sampler;
    }
@@ -2098,8 +2049,8 @@ public:
    }
 
 private:
-   NodeIndex    m_image;
-   NodeIndex    m_sampler;
+   NodeConstPtr    m_image;
+   NodeConstPtr    m_sampler;
 };
 
 class NodeImageSampleImplicitLod : public Node
@@ -2116,12 +2067,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2137,8 +2088,8 @@ public:
    }
 
 private:
-   NodeIndex                  m_sampledImage;
-   NodeIndex                  m_coordinate;
+   NodeConstPtr               m_sampledImage;
+   NodeConstPtr               m_coordinate;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2156,12 +2107,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2177,8 +2128,8 @@ public:
    }
 
 private:
-   NodeIndex        m_sampledImage;
-   NodeIndex        m_coordinate;
+   NodeConstPtr     m_sampledImage;
+   NodeConstPtr     m_coordinate;
    ImageOperands    m_imageOperands;
 };
 
@@ -2196,17 +2147,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetDref() const
+   const NodeConstPtr &GetDref() const
    {
       return m_dref;
    }
@@ -2222,9 +2173,9 @@ public:
    }
 
 private:
-   NodeIndex                  m_sampledImage;
-   NodeIndex                  m_coordinate;
-   NodeIndex                  m_dref;
+   NodeConstPtr               m_sampledImage;
+   NodeConstPtr               m_coordinate;
+   NodeConstPtr               m_dref;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2242,17 +2193,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetDref() const
+   const NodeConstPtr &GetDref() const
    {
       return m_dref;
    }
@@ -2268,9 +2219,9 @@ public:
    }
 
 private:
-   NodeIndex        m_sampledImage;
-   NodeIndex        m_coordinate;
-   NodeIndex        m_dref;
+   NodeConstPtr     m_sampledImage;
+   NodeConstPtr     m_coordinate;
+   NodeConstPtr     m_dref;
    ImageOperands    m_imageOperands;
 };
 
@@ -2288,12 +2239,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2309,8 +2260,8 @@ public:
    }
 
 private:
-   NodeIndex                  m_sampledImage;
-   NodeIndex                  m_coordinate;
+   NodeConstPtr               m_sampledImage;
+   NodeConstPtr               m_coordinate;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2328,12 +2279,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2349,8 +2300,8 @@ public:
    }
 
 private:
-   NodeIndex        m_sampledImage;
-   NodeIndex        m_coordinate;
+   NodeConstPtr     m_sampledImage;
+   NodeConstPtr     m_coordinate;
    ImageOperands    m_imageOperands;
 };
 
@@ -2368,17 +2319,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetDref() const
+   const NodeConstPtr &GetDref() const
    {
       return m_dref;
    }
@@ -2394,9 +2345,9 @@ public:
    }
 
 private:
-   NodeIndex                  m_sampledImage;
-   NodeIndex                  m_coordinate;
-   NodeIndex                  m_dref;
+   NodeConstPtr               m_sampledImage;
+   NodeConstPtr               m_coordinate;
+   NodeConstPtr               m_dref;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2414,17 +2365,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetDref() const
+   const NodeConstPtr &GetDref() const
    {
       return m_dref;
    }
@@ -2440,9 +2391,9 @@ public:
    }
 
 private:
-   NodeIndex        m_sampledImage;
-   NodeIndex        m_coordinate;
-   NodeIndex        m_dref;
+   NodeConstPtr     m_sampledImage;
+   NodeConstPtr     m_coordinate;
+   NodeConstPtr     m_dref;
    ImageOperands    m_imageOperands;
 };
 
@@ -2460,12 +2411,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2481,8 +2432,8 @@ public:
    }
 
 private:
-   NodeIndex                  m_image;
-   NodeIndex                  m_coordinate;
+   NodeConstPtr               m_image;
+   NodeConstPtr               m_coordinate;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2500,17 +2451,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetComponent() const
+   const NodeConstPtr &GetComponent() const
    {
       return m_component;
    }
@@ -2526,9 +2477,9 @@ public:
    }
 
 private:
-   NodeIndex                  m_sampledImage;
-   NodeIndex                  m_coordinate;
-   NodeIndex                  m_component;
+   NodeConstPtr               m_sampledImage;
+   NodeConstPtr               m_coordinate;
+   NodeConstPtr               m_component;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2546,17 +2497,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetDref() const
+   const NodeConstPtr &GetDref() const
    {
       return m_dref;
    }
@@ -2572,9 +2523,9 @@ public:
    }
 
 private:
-   NodeIndex                  m_sampledImage;
-   NodeIndex                  m_coordinate;
-   NodeIndex                  m_dref;
+   NodeConstPtr               m_sampledImage;
+   NodeConstPtr               m_coordinate;
+   NodeConstPtr               m_dref;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2592,12 +2543,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2613,8 +2564,8 @@ public:
    }
 
 private:
-   NodeIndex                  m_image;
-   NodeIndex                  m_coordinate;
+   NodeConstPtr               m_image;
+   NodeConstPtr               m_coordinate;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2632,17 +2583,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
 
-   const NodeIndex &GetTexel() const
+   const NodeConstPtr &GetTexel() const
    {
       return m_texel;
    }
@@ -2658,9 +2609,9 @@ public:
    }
 
 private:
-   NodeIndex                  m_image;
-   NodeIndex                  m_coordinate;
-   NodeIndex                  m_texel;
+   NodeConstPtr               m_image;
+   NodeConstPtr               m_coordinate;
+   NodeConstPtr               m_texel;
    Optional<ImageOperands>    m_imageOperands;
 };
 
@@ -2678,7 +2629,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
@@ -2689,7 +2640,7 @@ public:
    }
 
 private:
-   NodeIndex    m_sampledImage;
+   NodeConstPtr    m_sampledImage;
 };
 
 class NodeImageQuerySizeLod : public Node
@@ -2706,12 +2657,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
 
-   const NodeIndex &GetLevelofDetail() const
+   const NodeConstPtr &GetLevelofDetail() const
    {
       return m_levelofDetail;
    }
@@ -2722,8 +2673,8 @@ public:
    }
 
 private:
-   NodeIndex    m_image;
-   NodeIndex    m_levelofDetail;
+   NodeConstPtr    m_image;
+   NodeConstPtr    m_levelofDetail;
 };
 
 class NodeImageQuerySize : public Node
@@ -2740,7 +2691,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
@@ -2751,7 +2702,7 @@ public:
    }
 
 private:
-   NodeIndex    m_image;
+   NodeConstPtr    m_image;
 };
 
 class NodeImageQueryLod : public Node
@@ -2768,12 +2719,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSampledImage() const
+   const NodeConstPtr &GetSampledImage() const
    {
       return m_sampledImage;
    }
 
-   const NodeIndex &GetCoordinate() const
+   const NodeConstPtr &GetCoordinate() const
    {
       return m_coordinate;
    }
@@ -2784,8 +2735,8 @@ public:
    }
 
 private:
-   NodeIndex    m_sampledImage;
-   NodeIndex    m_coordinate;
+   NodeConstPtr    m_sampledImage;
+   NodeConstPtr    m_coordinate;
 };
 
 class NodeImageQueryLevels : public Node
@@ -2802,7 +2753,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
@@ -2813,7 +2764,7 @@ public:
    }
 
 private:
-   NodeIndex    m_image;
+   NodeConstPtr    m_image;
 };
 
 class NodeImageQuerySamples : public Node
@@ -2830,7 +2781,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetImage() const
+   const NodeConstPtr &GetImage() const
    {
       return m_image;
    }
@@ -2841,7 +2792,7 @@ public:
    }
 
 private:
-   NodeIndex    m_image;
+   NodeConstPtr    m_image;
 };
 
 class NodeConvertFToU : public Node
@@ -2858,7 +2809,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetFloatValue() const
+   const NodeConstPtr &GetFloatValue() const
    {
       return m_floatValue;
    }
@@ -2869,7 +2820,7 @@ public:
    }
 
 private:
-   NodeIndex    m_floatValue;
+   NodeConstPtr    m_floatValue;
 };
 
 class NodeConvertFToS : public Node
@@ -2886,7 +2837,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetFloatValue() const
+   const NodeConstPtr &GetFloatValue() const
    {
       return m_floatValue;
    }
@@ -2897,7 +2848,7 @@ public:
    }
 
 private:
-   NodeIndex    m_floatValue;
+   NodeConstPtr    m_floatValue;
 };
 
 class NodeConvertSToF : public Node
@@ -2914,7 +2865,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSignedValue() const
+   const NodeConstPtr &GetSignedValue() const
    {
       return m_signedValue;
    }
@@ -2925,7 +2876,7 @@ public:
    }
 
 private:
-   NodeIndex    m_signedValue;
+   NodeConstPtr    m_signedValue;
 };
 
 class NodeConvertUToF : public Node
@@ -2942,7 +2893,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetUnsignedValue() const
+   const NodeConstPtr &GetUnsignedValue() const
    {
       return m_unsignedValue;
    }
@@ -2953,7 +2904,7 @@ public:
    }
 
 private:
-   NodeIndex    m_unsignedValue;
+   NodeConstPtr    m_unsignedValue;
 };
 
 class NodeUConvert : public Node
@@ -2970,7 +2921,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetUnsignedValue() const
+   const NodeConstPtr &GetUnsignedValue() const
    {
       return m_unsignedValue;
    }
@@ -2981,7 +2932,7 @@ public:
    }
 
 private:
-   NodeIndex    m_unsignedValue;
+   NodeConstPtr    m_unsignedValue;
 };
 
 class NodeSConvert : public Node
@@ -2998,7 +2949,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSignedValue() const
+   const NodeConstPtr &GetSignedValue() const
    {
       return m_signedValue;
    }
@@ -3009,7 +2960,7 @@ public:
    }
 
 private:
-   NodeIndex    m_signedValue;
+   NodeConstPtr    m_signedValue;
 };
 
 class NodeFConvert : public Node
@@ -3026,7 +2977,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetFloatValue() const
+   const NodeConstPtr &GetFloatValue() const
    {
       return m_floatValue;
    }
@@ -3037,7 +2988,7 @@ public:
    }
 
 private:
-   NodeIndex    m_floatValue;
+   NodeConstPtr    m_floatValue;
 };
 
 class NodeQuantizeToF16 : public Node
@@ -3054,7 +3005,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -3065,7 +3016,7 @@ public:
    }
 
 private:
-   NodeIndex    m_value;
+   NodeConstPtr    m_value;
 };
 
 class NodeBitcast : public Node
@@ -3082,7 +3033,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand() const
+   const NodeConstPtr &GetOperand() const
    {
       return m_operand;
    }
@@ -3093,7 +3044,7 @@ public:
    }
 
 private:
-   NodeIndex    m_operand;
+   NodeConstPtr    m_operand;
 };
 
 class NodeSNegate : public Node
@@ -3110,7 +3061,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand() const
+   const NodeConstPtr &GetOperand() const
    {
       return m_operand;
    }
@@ -3121,7 +3072,7 @@ public:
    }
 
 private:
-   NodeIndex    m_operand;
+   NodeConstPtr    m_operand;
 };
 
 class NodeFNegate : public Node
@@ -3138,7 +3089,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand() const
+   const NodeConstPtr &GetOperand() const
    {
       return m_operand;
    }
@@ -3149,7 +3100,7 @@ public:
    }
 
 private:
-   NodeIndex    m_operand;
+   NodeConstPtr    m_operand;
 };
 
 class NodeIAdd : public Node
@@ -3166,12 +3117,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3182,8 +3133,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFAdd : public Node
@@ -3200,12 +3151,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3216,8 +3167,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeISub : public Node
@@ -3234,12 +3185,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3250,8 +3201,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFSub : public Node
@@ -3268,12 +3219,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3284,8 +3235,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeIMul : public Node
@@ -3302,12 +3253,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3318,8 +3269,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFMul : public Node
@@ -3336,12 +3287,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3352,8 +3303,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeUDiv : public Node
@@ -3370,12 +3321,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3386,8 +3337,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSDiv : public Node
@@ -3404,12 +3355,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3420,8 +3371,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFDiv : public Node
@@ -3438,12 +3389,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3454,8 +3405,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeUMod : public Node
@@ -3472,12 +3423,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3488,8 +3439,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSRem : public Node
@@ -3506,12 +3457,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3522,8 +3473,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSMod : public Node
@@ -3540,12 +3491,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3556,8 +3507,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFRem : public Node
@@ -3574,12 +3525,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3590,8 +3541,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFMod : public Node
@@ -3608,12 +3559,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3624,8 +3575,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeVectorTimesScalar : public Node
@@ -3642,12 +3593,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
 
-   const NodeIndex &GetScalar() const
+   const NodeConstPtr &GetScalar() const
    {
       return m_scalar;
    }
@@ -3658,8 +3609,8 @@ public:
    }
 
 private:
-   NodeIndex    m_vector;
-   NodeIndex    m_scalar;
+   NodeConstPtr    m_vector;
+   NodeConstPtr    m_scalar;
 };
 
 class NodeMatrixTimesScalar : public Node
@@ -3676,12 +3627,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetMatrix() const
+   const NodeConstPtr &GetMatrix() const
    {
       return m_matrix;
    }
 
-   const NodeIndex &GetScalar() const
+   const NodeConstPtr &GetScalar() const
    {
       return m_scalar;
    }
@@ -3692,8 +3643,8 @@ public:
    }
 
 private:
-   NodeIndex    m_matrix;
-   NodeIndex    m_scalar;
+   NodeConstPtr    m_matrix;
+   NodeConstPtr    m_scalar;
 };
 
 class NodeVectorTimesMatrix : public Node
@@ -3710,12 +3661,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
 
-   const NodeIndex &GetMatrix() const
+   const NodeConstPtr &GetMatrix() const
    {
       return m_matrix;
    }
@@ -3726,8 +3677,8 @@ public:
    }
 
 private:
-   NodeIndex    m_vector;
-   NodeIndex    m_matrix;
+   NodeConstPtr    m_vector;
+   NodeConstPtr    m_matrix;
 };
 
 class NodeMatrixTimesVector : public Node
@@ -3744,12 +3695,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetMatrix() const
+   const NodeConstPtr &GetMatrix() const
    {
       return m_matrix;
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
@@ -3760,8 +3711,8 @@ public:
    }
 
 private:
-   NodeIndex    m_matrix;
-   NodeIndex    m_vector;
+   NodeConstPtr    m_matrix;
+   NodeConstPtr    m_vector;
 };
 
 class NodeMatrixTimesMatrix : public Node
@@ -3778,12 +3729,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetLeftMatrix() const
+   const NodeConstPtr &GetLeftMatrix() const
    {
       return m_leftMatrix;
    }
 
-   const NodeIndex &GetRightMatrix() const
+   const NodeConstPtr &GetRightMatrix() const
    {
       return m_rightMatrix;
    }
@@ -3794,8 +3745,8 @@ public:
    }
 
 private:
-   NodeIndex    m_leftMatrix;
-   NodeIndex    m_rightMatrix;
+   NodeConstPtr    m_leftMatrix;
+   NodeConstPtr    m_rightMatrix;
 };
 
 class NodeOuterProduct : public Node
@@ -3812,12 +3763,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector1() const
+   const NodeConstPtr &GetVector1() const
    {
       return m_vector1;
    }
 
-   const NodeIndex &GetVector2() const
+   const NodeConstPtr &GetVector2() const
    {
       return m_vector2;
    }
@@ -3828,8 +3779,8 @@ public:
    }
 
 private:
-   NodeIndex    m_vector1;
-   NodeIndex    m_vector2;
+   NodeConstPtr    m_vector1;
+   NodeConstPtr    m_vector2;
 };
 
 class NodeDot : public Node
@@ -3846,12 +3797,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector1() const
+   const NodeConstPtr &GetVector1() const
    {
       return m_vector1;
    }
 
-   const NodeIndex &GetVector2() const
+   const NodeConstPtr &GetVector2() const
    {
       return m_vector2;
    }
@@ -3862,8 +3813,8 @@ public:
    }
 
 private:
-   NodeIndex    m_vector1;
-   NodeIndex    m_vector2;
+   NodeConstPtr    m_vector1;
+   NodeConstPtr    m_vector2;
 };
 
 class NodeIAddCarry : public Node
@@ -3880,12 +3831,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3896,8 +3847,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeISubBorrow : public Node
@@ -3914,12 +3865,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3930,8 +3881,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeUMulExtended : public Node
@@ -3948,12 +3899,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3964,8 +3915,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSMulExtended : public Node
@@ -3982,12 +3933,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -3998,8 +3949,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeAny : public Node
@@ -4016,7 +3967,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
@@ -4027,7 +3978,7 @@ public:
    }
 
 private:
-   NodeIndex    m_vector;
+   NodeConstPtr    m_vector;
 };
 
 class NodeAll : public Node
@@ -4044,7 +3995,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetVector() const
+   const NodeConstPtr &GetVector() const
    {
       return m_vector;
    }
@@ -4055,7 +4006,7 @@ public:
    }
 
 private:
-   NodeIndex    m_vector;
+   NodeConstPtr    m_vector;
 };
 
 class NodeIsNan : public Node
@@ -4072,7 +4023,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
@@ -4083,7 +4034,7 @@ public:
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeIsInf : public Node
@@ -4100,7 +4051,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
@@ -4111,7 +4062,7 @@ public:
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeLogicalEqual : public Node
@@ -4128,12 +4079,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4144,8 +4095,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeLogicalNotEqual : public Node
@@ -4162,12 +4113,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4178,8 +4129,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeLogicalOr : public Node
@@ -4196,12 +4147,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4212,8 +4163,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeLogicalAnd : public Node
@@ -4230,12 +4181,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4246,8 +4197,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeLogicalNot : public Node
@@ -4264,7 +4215,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand() const
+   const NodeConstPtr &GetOperand() const
    {
       return m_operand;
    }
@@ -4275,7 +4226,7 @@ public:
    }
 
 private:
-   NodeIndex    m_operand;
+   NodeConstPtr    m_operand;
 };
 
 class NodeSelect : public Node
@@ -4292,17 +4243,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetCondition() const
+   const NodeConstPtr &GetCondition() const
    {
       return m_condition;
    }
 
-   const NodeIndex &GetObject1() const
+   const NodeConstPtr &GetObject1() const
    {
       return m_object1;
    }
 
-   const NodeIndex &GetObject2() const
+   const NodeConstPtr &GetObject2() const
    {
       return m_object2;
    }
@@ -4313,9 +4264,9 @@ public:
    }
 
 private:
-   NodeIndex    m_condition;
-   NodeIndex    m_object1;
-   NodeIndex    m_object2;
+   NodeConstPtr    m_condition;
+   NodeConstPtr    m_object1;
+   NodeConstPtr    m_object2;
 };
 
 class NodeIEqual : public Node
@@ -4332,12 +4283,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4348,8 +4299,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeINotEqual : public Node
@@ -4366,12 +4317,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4382,8 +4333,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeUGreaterThan : public Node
@@ -4400,12 +4351,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4416,8 +4367,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSGreaterThan : public Node
@@ -4434,12 +4385,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4450,8 +4401,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeUGreaterThanEqual : public Node
@@ -4468,12 +4419,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4484,8 +4435,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSGreaterThanEqual : public Node
@@ -4502,12 +4453,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4518,8 +4469,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeULessThan : public Node
@@ -4536,12 +4487,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4552,8 +4503,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSLessThan : public Node
@@ -4570,12 +4521,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4586,8 +4537,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeULessThanEqual : public Node
@@ -4604,12 +4555,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4620,8 +4571,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeSLessThanEqual : public Node
@@ -4638,12 +4589,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4654,8 +4605,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFOrdEqual : public Node
@@ -4672,12 +4623,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4688,8 +4639,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFUnordEqual : public Node
@@ -4706,12 +4657,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4722,8 +4673,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFOrdNotEqual : public Node
@@ -4740,12 +4691,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4756,8 +4707,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFUnordNotEqual : public Node
@@ -4774,12 +4725,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4790,8 +4741,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFOrdLessThan : public Node
@@ -4808,12 +4759,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4824,8 +4775,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFUnordLessThan : public Node
@@ -4842,12 +4793,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4858,8 +4809,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFOrdGreaterThan : public Node
@@ -4876,12 +4827,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4892,8 +4843,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFUnordGreaterThan : public Node
@@ -4910,12 +4861,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4926,8 +4877,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFOrdLessThanEqual : public Node
@@ -4944,12 +4895,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4960,8 +4911,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFUnordLessThanEqual : public Node
@@ -4978,12 +4929,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -4994,8 +4945,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFOrdGreaterThanEqual : public Node
@@ -5012,12 +4963,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -5028,8 +4979,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeFUnordGreaterThanEqual : public Node
@@ -5046,12 +4997,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -5062,8 +5013,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeShiftRightLogical : public Node
@@ -5080,12 +5031,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const NodeIndex &GetShift() const
+   const NodeConstPtr &GetShift() const
    {
       return m_shift;
    }
@@ -5096,8 +5047,8 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
-   NodeIndex    m_shift;
+   NodeConstPtr    m_base;
+   NodeConstPtr    m_shift;
 };
 
 class NodeShiftRightArithmetic : public Node
@@ -5114,12 +5065,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const NodeIndex &GetShift() const
+   const NodeConstPtr &GetShift() const
    {
       return m_shift;
    }
@@ -5130,8 +5081,8 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
-   NodeIndex    m_shift;
+   NodeConstPtr    m_base;
+   NodeConstPtr    m_shift;
 };
 
 class NodeShiftLeftLogical : public Node
@@ -5148,12 +5099,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const NodeIndex &GetShift() const
+   const NodeConstPtr &GetShift() const
    {
       return m_shift;
    }
@@ -5164,8 +5115,8 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
-   NodeIndex    m_shift;
+   NodeConstPtr    m_base;
+   NodeConstPtr    m_shift;
 };
 
 class NodeBitwiseOr : public Node
@@ -5182,12 +5133,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -5198,8 +5149,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeBitwiseXor : public Node
@@ -5216,12 +5167,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -5232,8 +5183,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeBitwiseAnd : public Node
@@ -5250,12 +5201,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand1() const
+   const NodeConstPtr &GetOperand1() const
    {
       return m_operand1;
    }
 
-   const NodeIndex &GetOperand2() const
+   const NodeConstPtr &GetOperand2() const
    {
       return m_operand2;
    }
@@ -5266,8 +5217,8 @@ public:
    }
 
 private:
-   NodeIndex    m_operand1;
-   NodeIndex    m_operand2;
+   NodeConstPtr    m_operand1;
+   NodeConstPtr    m_operand2;
 };
 
 class NodeNot : public Node
@@ -5284,7 +5235,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetOperand() const
+   const NodeConstPtr &GetOperand() const
    {
       return m_operand;
    }
@@ -5295,7 +5246,7 @@ public:
    }
 
 private:
-   NodeIndex    m_operand;
+   NodeConstPtr    m_operand;
 };
 
 class NodeBitFieldInsert : public Node
@@ -5312,22 +5263,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const NodeIndex &GetInsert() const
+   const NodeConstPtr &GetInsert() const
    {
       return m_insert;
    }
 
-   const NodeIndex &GetOffset() const
+   const NodeConstPtr &GetOffset() const
    {
       return m_offset;
    }
 
-   const NodeIndex &GetCount() const
+   const NodeConstPtr &GetCount() const
    {
       return m_count;
    }
@@ -5338,10 +5289,10 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
-   NodeIndex    m_insert;
-   NodeIndex    m_offset;
-   NodeIndex    m_count;
+   NodeConstPtr    m_base;
+   NodeConstPtr    m_insert;
+   NodeConstPtr    m_offset;
+   NodeConstPtr    m_count;
 };
 
 class NodeBitFieldSExtract : public Node
@@ -5358,17 +5309,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const NodeIndex &GetOffset() const
+   const NodeConstPtr &GetOffset() const
    {
       return m_offset;
    }
 
-   const NodeIndex &GetCount() const
+   const NodeConstPtr &GetCount() const
    {
       return m_count;
    }
@@ -5379,9 +5330,9 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
-   NodeIndex    m_offset;
-   NodeIndex    m_count;
+   NodeConstPtr    m_base;
+   NodeConstPtr    m_offset;
+   NodeConstPtr    m_count;
 };
 
 class NodeBitFieldUExtract : public Node
@@ -5398,17 +5349,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
 
-   const NodeIndex &GetOffset() const
+   const NodeConstPtr &GetOffset() const
    {
       return m_offset;
    }
 
-   const NodeIndex &GetCount() const
+   const NodeConstPtr &GetCount() const
    {
       return m_count;
    }
@@ -5419,9 +5370,9 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
-   NodeIndex    m_offset;
-   NodeIndex    m_count;
+   NodeConstPtr    m_base;
+   NodeConstPtr    m_offset;
+   NodeConstPtr    m_count;
 };
 
 class NodeBitReverse : public Node
@@ -5438,7 +5389,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
@@ -5449,7 +5400,7 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
+   NodeConstPtr    m_base;
 };
 
 class NodeBitCount : public Node
@@ -5466,7 +5417,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetBase() const
+   const NodeConstPtr &GetBase() const
    {
       return m_base;
    }
@@ -5477,7 +5428,7 @@ public:
    }
 
 private:
-   NodeIndex    m_base;
+   NodeConstPtr    m_base;
 };
 
 class NodeDPdx : public Node
@@ -5494,7 +5445,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5505,7 +5456,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeDPdy : public Node
@@ -5522,7 +5473,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5533,7 +5484,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeFwidth : public Node
@@ -5550,7 +5501,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5561,7 +5512,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeDPdxFine : public Node
@@ -5578,7 +5529,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5589,7 +5540,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeDPdyFine : public Node
@@ -5606,7 +5557,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5617,7 +5568,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeFwidthFine : public Node
@@ -5634,7 +5585,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5645,7 +5596,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeDPdxCoarse : public Node
@@ -5662,7 +5613,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5673,7 +5624,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeDPdyCoarse : public Node
@@ -5690,7 +5641,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5701,7 +5652,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeFwidthCoarse : public Node
@@ -5718,7 +5669,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
@@ -5729,7 +5680,7 @@ public:
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeControlBarrier : public Node
@@ -5746,17 +5697,17 @@ public:
       visitor.Visit(this);
    }
 
-   spv::Scope GetExecution() const
+   const NodeConstPtr &GetExecution() const
    {
       return m_execution;
    }
 
-   spv::Scope GetMemory() const
+   const NodeConstPtr &GetMemory() const
    {
       return m_memory;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
@@ -5767,9 +5718,9 @@ public:
    }
 
 private:
-   spv::Scope                  m_execution;
-   spv::Scope                  m_memory;
-   spv::MemorySemanticsMask    m_semantics;
+   NodeConstPtr    m_execution;
+   NodeConstPtr    m_memory;
+   NodeConstPtr    m_semantics;
 };
 
 class NodeMemoryBarrier : public Node
@@ -5786,12 +5737,12 @@ public:
       visitor.Visit(this);
    }
 
-   spv::Scope GetMemory() const
+   const NodeConstPtr &GetMemory() const
    {
       return m_memory;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
@@ -5802,8 +5753,8 @@ public:
    }
 
 private:
-   spv::Scope                  m_memory;
-   spv::MemorySemanticsMask    m_semantics;
+   NodeConstPtr    m_memory;
+   NodeConstPtr    m_semantics;
 };
 
 class NodeAtomicLoad : public Node
@@ -5820,17 +5771,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
@@ -5841,9 +5792,9 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
 };
 
 class NodeAtomicStore : public Node
@@ -5860,22 +5811,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -5886,10 +5837,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicExchange : public Node
@@ -5906,22 +5857,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -5932,10 +5883,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicCompareExchange : public Node
@@ -5952,32 +5903,32 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetEqual() const
+   const NodeConstPtr &GetEqual() const
    {
       return m_equal;
    }
 
-   spv::MemorySemanticsMask GetUnequal() const
+   const NodeConstPtr &GetUnequal() const
    {
       return m_unequal;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
 
-   const NodeIndex &GetComparator() const
+   const NodeConstPtr &GetComparator() const
    {
       return m_comparator;
    }
@@ -5988,12 +5939,12 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_equal;
-   spv::MemorySemanticsMask    m_unequal;
-   NodeIndex                   m_value;
-   NodeIndex                   m_comparator;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_equal;
+   NodeConstPtr    m_unequal;
+   NodeConstPtr    m_value;
+   NodeConstPtr    m_comparator;
 };
 
 class NodeAtomicIIncrement : public Node
@@ -6010,17 +5961,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
@@ -6031,9 +5982,9 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
 };
 
 class NodeAtomicIDecrement : public Node
@@ -6050,17 +6001,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
@@ -6071,9 +6022,9 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
 };
 
 class NodeAtomicIAdd : public Node
@@ -6090,22 +6041,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6116,10 +6067,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicISub : public Node
@@ -6136,22 +6087,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6162,10 +6113,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicSMin : public Node
@@ -6182,22 +6133,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6208,10 +6159,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicUMin : public Node
@@ -6228,22 +6179,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6254,10 +6205,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicSMax : public Node
@@ -6274,22 +6225,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6300,10 +6251,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicUMax : public Node
@@ -6320,22 +6271,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6346,10 +6297,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicAnd : public Node
@@ -6366,22 +6317,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6392,10 +6343,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicOr : public Node
@@ -6412,22 +6363,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6438,10 +6389,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodeAtomicXor : public Node
@@ -6458,22 +6409,22 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetPointer() const
+   const NodeConstPtr &GetPointer() const
    {
       return m_pointer;
    }
 
-   spv::Scope GetScope() const
+   const NodeConstPtr &GetScope() const
    {
       return m_scope;
    }
 
-   spv::MemorySemanticsMask GetSemantics() const
+   const NodeConstPtr &GetSemantics() const
    {
       return m_semantics;
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6484,10 +6435,10 @@ public:
    }
 
 private:
-   NodeIndex                   m_pointer;
-   spv::Scope                  m_scope;
-   spv::MemorySemanticsMask    m_semantics;
-   NodeIndex                   m_value;
+   NodeConstPtr    m_pointer;
+   NodeConstPtr    m_scope;
+   NodeConstPtr    m_semantics;
+   NodeConstPtr    m_value;
 };
 
 class NodePhi : public Node
@@ -6505,7 +6456,7 @@ public:
       visitor.Visit(this);
    }
 
-   const spv::vector<std::pair<NodeIndex, NodeIndex>> &GetVariable() const
+   const spv::vector<std::pair<NodeConstPtr, NodeConstPtr>> &GetVariable() const
    {
       return m_variable;
    }
@@ -6516,7 +6467,7 @@ public:
    }
 
 private:
-   spv::vector<std::pair<NodeIndex, NodeIndex>>    m_variable;
+   spv::vector<std::pair<NodeConstPtr, NodeConstPtr>>    m_variable;
 };
 
 class NodeLoopMerge : public Node
@@ -6533,12 +6484,12 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetMergeBlock() const
+   const NodeConstPtr &GetMergeBlock() const
    {
       return m_mergeBlock;
    }
 
-   const NodeIndex &GetContinueTarget() const
+   const NodeConstPtr &GetContinueTarget() const
    {
       return m_continueTarget;
    }
@@ -6554,8 +6505,8 @@ public:
    }
 
 private:
-   NodeIndex               m_mergeBlock;
-   NodeIndex               m_continueTarget;
+   NodeConstPtr            m_mergeBlock;
+   NodeConstPtr            m_continueTarget;
    spv::LoopControlMask    m_loopControl;
 };
 
@@ -6573,7 +6524,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetMergeBlock() const
+   const NodeConstPtr &GetMergeBlock() const
    {
       return m_mergeBlock;
    }
@@ -6589,7 +6540,7 @@ public:
    }
 
 private:
-   NodeIndex                    m_mergeBlock;
+   NodeConstPtr                 m_mergeBlock;
    spv::SelectionControlMask    m_selectionControl;
 };
 
@@ -6635,7 +6586,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetTargetLabel() const
+   const NodeConstPtr &GetTargetLabel() const
    {
       return m_targetLabel;
    }
@@ -6646,7 +6597,7 @@ public:
    }
 
 private:
-   NodeIndex    m_targetLabel;
+   NodeConstPtr    m_targetLabel;
 };
 
 class NodeBranchConditional : public Node
@@ -6664,17 +6615,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetCondition() const
+   const NodeConstPtr &GetCondition() const
    {
       return m_condition;
    }
 
-   const NodeIndex &GetTrueLabel() const
+   const NodeConstPtr &GetTrueLabel() const
    {
       return m_trueLabel;
    }
 
-   const NodeIndex &GetFalseLabel() const
+   const NodeConstPtr &GetFalseLabel() const
    {
       return m_falseLabel;
    }
@@ -6690,9 +6641,9 @@ public:
    }
 
 private:
-   NodeIndex                m_condition;
-   NodeIndex                m_trueLabel;
-   NodeIndex                m_falseLabel;
+   NodeConstPtr             m_condition;
+   NodeConstPtr             m_trueLabel;
+   NodeConstPtr             m_falseLabel;
    spv::vector<uint32_t>    m_branchweights;
 };
 
@@ -6711,17 +6662,17 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetSelector() const
+   const NodeConstPtr &GetSelector() const
    {
       return m_selector;
    }
 
-   const NodeIndex &GetDefault() const
+   const NodeConstPtr &GetDefault() const
    {
       return m_default;
    }
 
-   const spv::vector<std::pair<uint32_t, NodeIndex>> &GetTarget() const
+   const spv::vector<std::pair<uint32_t, NodeConstPtr>> &GetTarget() const
    {
       return m_target;
    }
@@ -6732,9 +6683,9 @@ public:
    }
 
 private:
-   NodeIndex                                      m_selector;
-   NodeIndex                                      m_default;
-   spv::vector<std::pair<uint32_t, NodeIndex>>    m_target;
+   NodeConstPtr                                      m_selector;
+   NodeConstPtr                                      m_default;
+   spv::vector<std::pair<uint32_t, NodeConstPtr>>    m_target;
 };
 
 class NodeKill : public Node
@@ -6793,7 +6744,7 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
@@ -6804,7 +6755,7 @@ public:
    }
 
 private:
-   NodeIndex    m_value;
+   NodeConstPtr    m_value;
 };
 
 class NodeUnreachable : public Node
@@ -6878,6 +6829,102 @@ private:
    spv::string    m_process;
 };
 
+class NodeExecutionModeId : public Node
+{
+public:
+   NodeExecutionModeId(Extractor &ext)
+      : Node()
+   {
+      ext >> m_entryPoint >> m_mode;
+   }
+
+   void Accept(NodeVisitor &visitor) const override
+   {
+      visitor.Visit(this);
+   }
+
+   const NodeConstPtr &GetEntryPoint() const
+   {
+      return m_entryPoint;
+   }
+
+   spv::ExecutionMode GetMode() const
+   {
+      return m_mode;
+   }
+
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpExecutionModeId;
+   }
+
+private:
+   NodeConstPtr          m_entryPoint;
+   spv::ExecutionMode    m_mode;
+};
+
+class NodeDecorateId : public Node
+{
+public:
+   NodeDecorateId(Extractor &ext)
+      : Node()
+   {
+      ext >> m_target >> m_decoration;
+   }
+
+   void Accept(NodeVisitor &visitor) const override
+   {
+      visitor.Visit(this);
+   }
+
+   const NodeConstPtr &GetTarget() const
+   {
+      return m_target;
+   }
+
+   const Decoration &GetDecoration() const
+   {
+      return m_decoration;
+   }
+
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpDecorateId;
+   }
+
+private:
+   NodeConstPtr    m_target;
+   Decoration      m_decoration;
+};
+
+class NodeGroupNonUniformElect : public Node
+{
+public:
+   NodeGroupNonUniformElect(Extractor &ext)
+      : Node()
+   {
+      ext >> m_resultType >> m_resultId >> m_execution;
+   }
+
+   void Accept(NodeVisitor &visitor) const override
+   {
+      visitor.Visit(this);
+   }
+
+   const NodeConstPtr &GetExecution() const
+   {
+      return m_execution;
+   }
+
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpGroupNonUniformElect;
+   }
+
+private:
+   NodeConstPtr    m_execution;
+};
+
 class NodeStdRound : public NodeGLSL
 {
 public:
@@ -6892,13 +6939,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdRoundEven : public NodeGLSL
@@ -6915,13 +6962,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdTrunc : public NodeGLSL
@@ -6938,13 +6985,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFAbs : public NodeGLSL
@@ -6961,13 +7008,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdSAbs : public NodeGLSL
@@ -6984,13 +7031,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFSign : public NodeGLSL
@@ -7007,13 +7054,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdSSign : public NodeGLSL
@@ -7030,13 +7077,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFloor : public NodeGLSL
@@ -7053,13 +7100,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdCeil : public NodeGLSL
@@ -7076,13 +7123,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFract : public NodeGLSL
@@ -7099,13 +7146,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdRadians : public NodeGLSL
@@ -7122,13 +7169,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetDegrees() const
+   const NodeConstPtr &GetDegrees() const
    {
       return m_degrees;
    }
 
 private:
-   NodeIndex    m_degrees;
+   NodeConstPtr    m_degrees;
 };
 
 class NodeStdDegrees : public NodeGLSL
@@ -7145,13 +7192,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetRadians() const
+   const NodeConstPtr &GetRadians() const
    {
       return m_radians;
    }
 
 private:
-   NodeIndex    m_radians;
+   NodeConstPtr    m_radians;
 };
 
 class NodeStdSin : public NodeGLSL
@@ -7168,13 +7215,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdCos : public NodeGLSL
@@ -7191,13 +7238,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdTan : public NodeGLSL
@@ -7214,13 +7261,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAsin : public NodeGLSL
@@ -7237,13 +7284,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAcos : public NodeGLSL
@@ -7260,13 +7307,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAtan : public NodeGLSL
@@ -7283,13 +7330,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetY_over_x() const
+   const NodeConstPtr &GetY_over_x() const
    {
       return m_y_over_x;
    }
 
 private:
-   NodeIndex    m_y_over_x;
+   NodeConstPtr    m_y_over_x;
 };
 
 class NodeStdSinh : public NodeGLSL
@@ -7306,13 +7353,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdCosh : public NodeGLSL
@@ -7329,13 +7376,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdTanh : public NodeGLSL
@@ -7352,13 +7399,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAsinh : public NodeGLSL
@@ -7375,13 +7422,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAcosh : public NodeGLSL
@@ -7398,13 +7445,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAtanh : public NodeGLSL
@@ -7421,13 +7468,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdAtan2 : public NodeGLSL
@@ -7444,19 +7491,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_y;
-   NodeIndex    m_x;
+   NodeConstPtr    m_y;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdPow : public NodeGLSL
@@ -7473,19 +7520,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdExp : public NodeGLSL
@@ -7502,13 +7549,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdLog : public NodeGLSL
@@ -7525,13 +7572,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdExp2 : public NodeGLSL
@@ -7548,13 +7595,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdLog2 : public NodeGLSL
@@ -7571,13 +7618,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdSqrt : public NodeGLSL
@@ -7594,13 +7641,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdInverseSqrt : public NodeGLSL
@@ -7617,13 +7664,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdDeterminant : public NodeGLSL
@@ -7640,13 +7687,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdMatrixInverse : public NodeGLSL
@@ -7663,13 +7710,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdModf : public NodeGLSL
@@ -7686,19 +7733,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetI() const
+   const NodeConstPtr &GetI() const
    {
       return m_i;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_i;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_i;
 };
 
 class NodeStdModfStruct : public NodeGLSL
@@ -7715,13 +7762,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFMin : public NodeGLSL
@@ -7738,19 +7785,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdUMin : public NodeGLSL
@@ -7767,19 +7814,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdSMin : public NodeGLSL
@@ -7796,19 +7843,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdFMax : public NodeGLSL
@@ -7825,19 +7872,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdUMax : public NodeGLSL
@@ -7854,19 +7901,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdSMax : public NodeGLSL
@@ -7883,19 +7930,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdFClamp : public NodeGLSL
@@ -7912,25 +7959,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetMinVal() const
+   const NodeConstPtr &GetMinVal() const
    {
       return m_minVal;
    }
 
-   const NodeIndex &GetMaxVal() const
+   const NodeConstPtr &GetMaxVal() const
    {
       return m_maxVal;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_minVal;
-   NodeIndex    m_maxVal;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_minVal;
+   NodeConstPtr    m_maxVal;
 };
 
 class NodeStdUClamp : public NodeGLSL
@@ -7947,25 +7994,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetMinVal() const
+   const NodeConstPtr &GetMinVal() const
    {
       return m_minVal;
    }
 
-   const NodeIndex &GetMaxVal() const
+   const NodeConstPtr &GetMaxVal() const
    {
       return m_maxVal;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_minVal;
-   NodeIndex    m_maxVal;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_minVal;
+   NodeConstPtr    m_maxVal;
 };
 
 class NodeStdSClamp : public NodeGLSL
@@ -7982,25 +8029,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetMinVal() const
+   const NodeConstPtr &GetMinVal() const
    {
       return m_minVal;
    }
 
-   const NodeIndex &GetMaxVal() const
+   const NodeConstPtr &GetMaxVal() const
    {
       return m_maxVal;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_minVal;
-   NodeIndex    m_maxVal;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_minVal;
+   NodeConstPtr    m_maxVal;
 };
 
 class NodeStdFMix : public NodeGLSL
@@ -8017,25 +8064,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
-   const NodeIndex &GetA() const
+   const NodeConstPtr &GetA() const
    {
       return m_a;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
-   NodeIndex    m_a;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
+   NodeConstPtr    m_a;
 };
 
 class NodeStdIMix : public NodeGLSL
@@ -8052,25 +8099,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
-   const NodeIndex &GetA() const
+   const NodeConstPtr &GetA() const
    {
       return m_a;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
-   NodeIndex    m_a;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
+   NodeConstPtr    m_a;
 };
 
 class NodeStdStep : public NodeGLSL
@@ -8087,19 +8134,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetEdge() const
+   const NodeConstPtr &GetEdge() const
    {
       return m_edge;
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_edge;
-   NodeIndex    m_x;
+   NodeConstPtr    m_edge;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdSmoothStep : public NodeGLSL
@@ -8116,25 +8163,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetEdge0() const
+   const NodeConstPtr &GetEdge0() const
    {
       return m_edge0;
    }
 
-   const NodeIndex &GetEdge1() const
+   const NodeConstPtr &GetEdge1() const
    {
       return m_edge1;
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_edge0;
-   NodeIndex    m_edge1;
-   NodeIndex    m_x;
+   NodeConstPtr    m_edge0;
+   NodeConstPtr    m_edge1;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFma : public NodeGLSL
@@ -8151,25 +8198,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetA() const
+   const NodeConstPtr &GetA() const
    {
       return m_a;
    }
 
-   const NodeIndex &GetB() const
+   const NodeConstPtr &GetB() const
    {
       return m_b;
    }
 
-   const NodeIndex &GetC() const
+   const NodeConstPtr &GetC() const
    {
       return m_c;
    }
 
 private:
-   NodeIndex    m_a;
-   NodeIndex    m_b;
-   NodeIndex    m_c;
+   NodeConstPtr    m_a;
+   NodeConstPtr    m_b;
+   NodeConstPtr    m_c;
 };
 
 class NodeStdFrexp : public NodeGLSL
@@ -8186,19 +8233,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetExp() const
+   const NodeConstPtr &GetExp() const
    {
       return m_exp;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_exp;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_exp;
 };
 
 class NodeStdFrexpStruct : public NodeGLSL
@@ -8215,13 +8262,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdLdexp : public NodeGLSL
@@ -8238,19 +8285,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetExp() const
+   const NodeConstPtr &GetExp() const
    {
       return m_exp;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_exp;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_exp;
 };
 
 class NodeStdPackSnorm4x8 : public NodeGLSL
@@ -8267,13 +8314,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetV() const
+   const NodeConstPtr &GetV() const
    {
       return m_v;
    }
 
 private:
-   NodeIndex    m_v;
+   NodeConstPtr    m_v;
 };
 
 class NodeStdPackUnorm4x8 : public NodeGLSL
@@ -8290,13 +8337,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetV() const
+   const NodeConstPtr &GetV() const
    {
       return m_v;
    }
 
 private:
-   NodeIndex    m_v;
+   NodeConstPtr    m_v;
 };
 
 class NodeStdPackSnorm2x16 : public NodeGLSL
@@ -8313,13 +8360,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetV() const
+   const NodeConstPtr &GetV() const
    {
       return m_v;
    }
 
 private:
-   NodeIndex    m_v;
+   NodeConstPtr    m_v;
 };
 
 class NodeStdPackUnorm2x16 : public NodeGLSL
@@ -8336,13 +8383,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetV() const
+   const NodeConstPtr &GetV() const
    {
       return m_v;
    }
 
 private:
-   NodeIndex    m_v;
+   NodeConstPtr    m_v;
 };
 
 class NodeStdPackHalf2x16 : public NodeGLSL
@@ -8359,13 +8406,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetV() const
+   const NodeConstPtr &GetV() const
    {
       return m_v;
    }
 
 private:
-   NodeIndex    m_v;
+   NodeConstPtr    m_v;
 };
 
 class NodeStdUnpackSnorm2x16 : public NodeGLSL
@@ -8382,13 +8429,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeStdUnpackUnorm2x16 : public NodeGLSL
@@ -8405,13 +8452,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeStdUnpackHalf2x16 : public NodeGLSL
@@ -8428,13 +8475,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetV() const
+   const NodeConstPtr &GetV() const
    {
       return m_v;
    }
 
 private:
-   NodeIndex    m_v;
+   NodeConstPtr    m_v;
 };
 
 class NodeStdUnpackSnorm4x8 : public NodeGLSL
@@ -8451,13 +8498,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeStdUnpackUnorm4x8 : public NodeGLSL
@@ -8474,13 +8521,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP() const
+   const NodeConstPtr &GetP() const
    {
       return m_p;
    }
 
 private:
-   NodeIndex    m_p;
+   NodeConstPtr    m_p;
 };
 
 class NodeStdLength : public NodeGLSL
@@ -8497,13 +8544,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdDistance : public NodeGLSL
@@ -8520,19 +8567,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetP0() const
+   const NodeConstPtr &GetP0() const
    {
       return m_p0;
    }
 
-   const NodeIndex &GetP1() const
+   const NodeConstPtr &GetP1() const
    {
       return m_p1;
    }
 
 private:
-   NodeIndex    m_p0;
-   NodeIndex    m_p1;
+   NodeConstPtr    m_p0;
+   NodeConstPtr    m_p1;
 };
 
 class NodeStdCross : public NodeGLSL
@@ -8549,19 +8596,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdNormalize : public NodeGLSL
@@ -8578,13 +8625,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
 private:
-   NodeIndex    m_x;
+   NodeConstPtr    m_x;
 };
 
 class NodeStdFaceForward : public NodeGLSL
@@ -8601,25 +8648,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetN() const
+   const NodeConstPtr &GetN() const
    {
       return m_n;
    }
 
-   const NodeIndex &GetI() const
+   const NodeConstPtr &GetI() const
    {
       return m_i;
    }
 
-   const NodeIndex &GetNref() const
+   const NodeConstPtr &GetNref() const
    {
       return m_nref;
    }
 
 private:
-   NodeIndex    m_n;
-   NodeIndex    m_i;
-   NodeIndex    m_nref;
+   NodeConstPtr    m_n;
+   NodeConstPtr    m_i;
+   NodeConstPtr    m_nref;
 };
 
 class NodeStdReflect : public NodeGLSL
@@ -8636,19 +8683,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetI() const
+   const NodeConstPtr &GetI() const
    {
       return m_i;
    }
 
-   const NodeIndex &GetN() const
+   const NodeConstPtr &GetN() const
    {
       return m_n;
    }
 
 private:
-   NodeIndex    m_i;
-   NodeIndex    m_n;
+   NodeConstPtr    m_i;
+   NodeConstPtr    m_n;
 };
 
 class NodeStdRefract : public NodeGLSL
@@ -8665,25 +8712,25 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetI() const
+   const NodeConstPtr &GetI() const
    {
       return m_i;
    }
 
-   const NodeIndex &GetN() const
+   const NodeConstPtr &GetN() const
    {
       return m_n;
    }
 
-   const NodeIndex &GetEta() const
+   const NodeConstPtr &GetEta() const
    {
       return m_eta;
    }
 
 private:
-   NodeIndex    m_i;
-   NodeIndex    m_n;
-   NodeIndex    m_eta;
+   NodeConstPtr    m_i;
+   NodeConstPtr    m_n;
+   NodeConstPtr    m_eta;
 };
 
 class NodeStdFindILsb : public NodeGLSL
@@ -8700,13 +8747,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
 
 private:
-   NodeIndex    m_value;
+   NodeConstPtr    m_value;
 };
 
 class NodeStdFindSMsb : public NodeGLSL
@@ -8723,13 +8770,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
 
 private:
-   NodeIndex    m_value;
+   NodeConstPtr    m_value;
 };
 
 class NodeStdFindUMsb : public NodeGLSL
@@ -8746,13 +8793,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetValue() const
+   const NodeConstPtr &GetValue() const
    {
       return m_value;
    }
 
 private:
-   NodeIndex    m_value;
+   NodeConstPtr    m_value;
 };
 
 class NodeStdInterpolateAtCentroid : public NodeGLSL
@@ -8769,13 +8816,13 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetInterpolant() const
+   const NodeConstPtr &GetInterpolant() const
    {
       return m_interpolant;
    }
 
 private:
-   NodeIndex    m_interpolant;
+   NodeConstPtr    m_interpolant;
 };
 
 class NodeStdInterpolateAtSample : public NodeGLSL
@@ -8792,19 +8839,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetInterpolant() const
+   const NodeConstPtr &GetInterpolant() const
    {
       return m_interpolant;
    }
 
-   const NodeIndex &GetSample() const
+   const NodeConstPtr &GetSample() const
    {
       return m_sample;
    }
 
 private:
-   NodeIndex    m_interpolant;
-   NodeIndex    m_sample;
+   NodeConstPtr    m_interpolant;
+   NodeConstPtr    m_sample;
 };
 
 class NodeStdInterpolateAtOffset : public NodeGLSL
@@ -8821,19 +8868,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetInterpolant() const
+   const NodeConstPtr &GetInterpolant() const
    {
       return m_interpolant;
    }
 
-   const NodeIndex &GetOffset() const
+   const NodeConstPtr &GetOffset() const
    {
       return m_offset;
    }
 
 private:
-   NodeIndex    m_interpolant;
-   NodeIndex    m_offset;
+   NodeConstPtr    m_interpolant;
+   NodeConstPtr    m_offset;
 };
 
 class NodeStdNMin : public NodeGLSL
@@ -8850,19 +8897,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdNMax : public NodeGLSL
@@ -8879,19 +8926,19 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetY() const
+   const NodeConstPtr &GetY() const
    {
       return m_y;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_y;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_y;
 };
 
 class NodeStdNClamp : public NodeGLSL
@@ -8908,23 +8955,23 @@ public:
       visitor.Visit(this);
    }
 
-   const NodeIndex &GetX() const
+   const NodeConstPtr &GetX() const
    {
       return m_x;
    }
 
-   const NodeIndex &GetMinVal() const
+   const NodeConstPtr &GetMinVal() const
    {
       return m_minVal;
    }
 
-   const NodeIndex &GetMaxVal() const
+   const NodeConstPtr &GetMaxVal() const
    {
       return m_maxVal;
    }
 
 private:
-   NodeIndex    m_x;
-   NodeIndex    m_minVal;
-   NodeIndex    m_maxVal;
+   NodeConstPtr    m_x;
+   NodeConstPtr    m_minVal;
+   NodeConstPtr    m_maxVal;
 };

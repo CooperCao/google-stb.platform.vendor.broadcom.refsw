@@ -349,14 +349,17 @@ BERR_Code BVDC_P_Buffer_Create
     }
     BLST_CQ_INIT(pBuffer->pBufList);
 
+
     /* (3) Create picture nodes */
     for(i = 0; i < pBuffer->ulBufCnt; i++)
     {
+
         pPicture = (BVDC_P_PictureNode*)BKNI_Malloc(sizeof(BVDC_P_PictureNode));
         if(!pPicture)
         {
             goto oom_err;
         }
+
 
         /* Clear out, insert it into the list. */
         BKNI_Memset((void*)pPicture, 0x0, sizeof(BVDC_P_PictureNode));
@@ -364,6 +367,7 @@ BERR_Code BVDC_P_Buffer_Create
         /* Initialize non-changing fields. */
         pPicture->hBuffer    = (BVDC_P_Buffer_Handle)pBuffer;
         pPicture->ulBufferId = i;
+
 
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT /* alloc DBV or TCH metadata buffer */
         if(hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bDbvToneMapping ||
@@ -380,6 +384,7 @@ BERR_Code BVDC_P_Buffer_Create
 #endif
                 {
                     BDBG_ERR(("Win[%d] failed to allocate HDR metadata buffer[%d]", hWindow->eId, i));
+                    BKNI_Free(pPicture);
                     goto oom_err;
                 }
             }
@@ -409,6 +414,7 @@ oom_err:
     {
         pPicture = BLST_CQ_FIRST(pBuffer->pBufList);
         BLST_CQ_REMOVE_HEAD(pBuffer->pBufList, link);
+
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
         if(hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bDbvToneMapping ||
            hWindow->hCompositor->stCfcCapability[hWindow->eId - BVDC_P_CMP_GET_V0ID(hWindow->hCompositor)].stBits.bTpToneMapping) {
@@ -428,8 +434,8 @@ oom_err:
 #endif
         BKNI_Free(pPicture);
     }
-    BDBG_OBJECT_DESTROY(pBuffer, BVDC_BUF);
     BKNI_Free(pBuffer->pBufList);
+    BDBG_OBJECT_DESTROY(pBuffer, BVDC_BUF);
     BKNI_Free(pBuffer);
     return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 }

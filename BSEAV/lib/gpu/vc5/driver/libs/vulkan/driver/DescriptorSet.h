@@ -23,6 +23,11 @@ public:
    void Write(const VkWriteDescriptorSet *writeInfo);
    void Copy(const VkCopyDescriptorSet *copyInfo);
 
+   void UpdateDescriptorSetWithTemplate(
+      bvk::Device                   *device,
+      bvk::DescriptorUpdateTemplate *descriptorUpdateTemplate,
+      const void                    *pData) noexcept;
+
    uint32_t   GetImageParam   (uint32_t binding, uint32_t element) const;
    uint32_t   GetSamplerParam (uint32_t binding, uint32_t element) const;
    v3d_addr_t GetBufferAddress(uint32_t binding, uint32_t element) const;
@@ -43,10 +48,24 @@ public:
    }
 
 private:
+   void WriteImageEntry(const VkDescriptorImageInfo *srcImageInfo, VkDescriptorType descType,
+                        uint32_t binding, DescriptorPool::ImageInfo *dstSysData,
+                        uint8_t *dstDevData, v3d_addr_t devAddr);
    void WriteImage(const VkWriteDescriptorSet *writeInfo, size_t sysOffset, size_t devOffset);
+   void TemplateWriteImage(const VkDescriptorUpdateTemplateEntry *entry, const void *pData,
+                           size_t sysOffset, size_t devOffset);
+
+   void WriteTexelBufferEntry(VkBufferView srcData, uint8_t *dstSysData, uint8_t *dstDevData);
    void WriteTexelBuffer(const VkWriteDescriptorSet *writeInfo, size_t sysOffset, size_t devOffset);
-   void WriteBuffer(const VkWriteDescriptorSet *writeInfo, size_t sysOffset, size_t devOffset);
-   const ImageView  *GetImageView (uint32_t binding, uint32_t element) const;
+   void TemplateWriteTexelBuffer(const VkDescriptorUpdateTemplateEntry *entry, const void *pData,
+                                 size_t sysOffset, size_t devOffset);
+
+   void WriteBufferEntry(const VkDescriptorBufferInfo *srcData, DescriptorPool::BufferInfo *dstData);
+   void WriteBuffer(const VkWriteDescriptorSet *writeInfo, size_t sysOffset);
+   void TemplateWriteBuffer(const VkDescriptorUpdateTemplateEntry *entry, const void *pData,
+                            size_t sysOffset);
+
+   const ImageView  *GetImageView(uint32_t binding, uint32_t element) const;
 
 private:
    // The layout state is shared with the DescriptorSetLayout because the lifetime of the

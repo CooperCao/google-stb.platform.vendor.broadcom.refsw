@@ -72,8 +72,6 @@
 #include "priv/bsagelib_shared_globalsram.h"
 #include "bp3_features.h"
 
-int bp3_host(int, char **);
-
 #define BP3_Error_(x) #x
 const char * const bp3_errors[] = {
     BP3_Error_(None),
@@ -194,6 +192,26 @@ const char * const bp3_errors[] = {
 
 BDBG_MODULE(bp3_curl);
 
+#ifdef CATCH_OUTPUT
+static char *output = NULL;
+#define PRINTF(fmt, ...) do { \
+    int _c, _l = 0; \
+    printf(fmt "%n", ##__VA_ARGS__, &_c); \
+    if (output == NULL) output = (char*) malloc((_c + 1) * sizeof(char)); \
+    else { \
+      _l = strlen(output); \
+      output = realloc(output, (_l + _c + 1) * sizeof(char)); \
+    } \
+    sprintf(output + _l, fmt, ##__VA_ARGS__); \
+  } while (0)
+#define FREE_OUTPUT do { if (output == NULL) free(output); output = NULL; } while (0);
+char* get_output() { return output; }
+void free_output() {  FREE_OUTPUT }
+#else
+#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#define FREE_OUTPUT
+#endif
+
 extern char bp3_bin_file_name[];
 extern char bp3_bin_file_path[];
 extern bp3featuresStruct bp3_features[];
@@ -313,7 +331,7 @@ static void reset(CURL *curl, struct curl_httppost **post, struct curl_httppost 
 
 #define CHECK_ERROR(rc, fmt, ...) \
   if (rc) { \
-      fprintf(stderr, "Error: " fmt, ##__VA_ARGS__); \
+      PRINTF("Error: " fmt, ##__VA_ARGS__); \
       goto leave; \
    }
 
@@ -421,13 +439,14 @@ static int parse_provision_file(const char *filename, inputfile_params *params)
   return 0;
 }
 
-static int _usage(const char *appName)
+int _usage(const char *appName)
 {
   printf("\nusage:\n");
   printf("%s status\n", appName);
   printf("  list features already provisioned on this device\n\n");
-  printf("%s service [-A ip_address]\n", appName);
-  printf("  Run bp3 in host service mode, aka bp3 host. Optionally specify the ip address if more than one NIC.\n\n");
+  printf("%s service [-A ip_address] [-P port_number]\n", appName);
+  printf("  Run bp3 in host service mode, aka bp3 host. Optionally specify the ip address if more than one NIC,\n");
+  printf("  and port number if not the default 80.\n\n");
   printf("%s provision\n", appName);
   printf("  provisions the device using input file bp3.provision.config\n\n");
   printf("%s provision -portal <server url> [ -key <key> ] -license <comma delimited license IDs>\n", appName);
@@ -441,8 +460,9 @@ static int _usage(const char *appName)
   return -1;
 }
 
-static int status(int argc, char *argv[])
+int status()
 {
+  FREE_OUTPUT
   uint32_t feats[GlobalSram_IPLicensing_Info_size];
   int rc = read_features(feats);
   CHECK_ERROR(rc, "Unable to read global SRAM for features\n")
@@ -455,7 +475,7 @@ static int status(int argc, char *argv[])
   CHECK_ERROR(rc, "Unable to start bp3 session\n")
   rc = bp3_get_otp_id(&otpIdHi, &otpIdLo);
   CHECK_ERROR(rc, "Unable to read Chip ID\n")
-  printf("UId = 0x%08x%08x\n\n", otpIdHi, otpIdLo);
+  PRINTF("UId = 0x%08x%08x\n\n", otpIdHi, otpIdLo);
   if (session)
     bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
 
@@ -472,11 +492,11 @@ static int status(int argc, char *argv[])
   for (int i = 0; i < BP3_FEATURES_NUM; i++) {
     if (isOn(bp3_features[i].OwnerId, bp3_features[i].Bit))
     {
-      printf("%s - %s [Enabled]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name);
+      PRINTF("%s - %s [Enabled]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name);
     }
     else
     {
-      printf("%s - %s [Disabled]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name);
+      PRINTF("%s - %s [Disabled]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name);
     }
   }
 
@@ -490,7 +510,7 @@ static int status(int argc, char *argv[])
   bool     provisioned = false;
 
   rc = bp3_ta_start();
-  CHECK_ERROR(rc, "Unable to start BP3 TA\n")
+   (rc, "Unable to start BP3 TA\n")
 
   rc = bp3_get_chip_info (
     (uint8_t *)featureList,
@@ -514,7 +534,6 @@ static int status(int argc, char *argv[])
   bp3_ta_end();
 #endif
 
-
 leave:
   return rc;
 }
@@ -529,8 +548,9 @@ enum api_ver {v0 = 0, v1};
     headers = curl_slist_append(headers, buf); \
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
-static int provision(int argc, char *argv[])
+int provision(int argc, char *argv[])
 {
+  FREE_OUTPUT
   char buf[2048];
   char apiVersion[] = "v1";
   uint32_t otpIdHi = 0, otpIdLo = 0;
@@ -732,7 +752,7 @@ static int provision(int argc, char *argv[])
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_hi, &otpIdHi);
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo, &otpIdLo);
   }
-  printf("UId = 0x%08x%08x\n", otpIdHi, otpIdLo);
+  PRINTF("UId = 0x%08x%08x\n", otpIdHi, otpIdLo);
 
 #if 0 // to be enabled with BP3 TA v4.0.9
     uint32_t bp3SageStatus;
@@ -846,7 +866,7 @@ static int provision(int argc, char *argv[])
   session = NULL; // bp3_session_end freed bp3_session_end
   if (ccf.memory) free(ccf.memory);
   if (errCode != 0)
-    fprintf(stderr, "Provision failed with error: %s\n", errCode < 0 ? "Unexpected" : errCode < sizeof(bp3_errors)/sizeof(bp3_errors[0]) ? bp3_errors[errCode] : "Other new error");
+    PRINTF("Provision failed with error: %s\n", errCode < 0 ? "Unexpected" : errCode < sizeof(bp3_errors)/sizeof(bp3_errors[0]) ? bp3_errors[errCode] : "Other new error");
 
   // upload log and bp3.bin
   if (apiVer == v0)
@@ -928,35 +948,6 @@ leave:
   curl_slist_free_all(headers);
   if (curl) curl_easy_cleanup(curl);
   curl_global_cleanup();
-  if (rc)
-    fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
-  return rc;
-}
-
-int main(int argc, char *argv[])
-{
-  if (argc < 2)
-    return _usage(argv[0]);
-
-  int rc = 0;
-
-  /* Join Nexus: Initialize platform ... */
-  rc = SAGE_app_join_nexus();
-  if (rc) goto leave_nexus;
-
-  if (strcmp(argv[1], "provision") == 0)
-    rc = provision(argc, argv);
-  else if (strcmp(argv[1], "status") == 0)
-    rc = status(argc, argv);
-  else if (strcmp(argv[1], "service") == 0)
-    rc = bp3_host(argc, argv);
-  else
-    _usage(argv[0]);
-
-leave:
-  /* Leave Nexus: Finalize platform ... */
-  SAGE_app_leave_nexus();
-leave_nexus:
   if (rc)
     fprintf(stderr, "%s ERROR #%d\n", __FUNCTION__, rc);
   return rc;

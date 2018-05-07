@@ -11,7 +11,9 @@ extern "C" {
 #endif
 
 #define BEGL_DEFAULT_PLATFORM 0
-#define BEGL_DEFAULT_BUFFER 0
+
+#define BEGL_SWAPCHAIN_BUFFER 0
+#define BEGL_PIXMAP_BUFFER 1
 
 typedef enum
 {
@@ -24,24 +26,6 @@ typedef enum
    BEGL_BufferFormat_eYUV422,
    BEGL_BufferFormat_eYV12,
 
-   BEGL_BufferFormat_eA8B8G8R8_sRGB_PRE,
-   BEGL_BufferFormat_eR8G8B8A8_sRGB_PRE,  /* For big-endian platforms */
-   BEGL_BufferFormat_eX8B8G8R8_sRGB_PRE,
-   BEGL_BufferFormat_eR8G8B8X8_sRGB_PRE,  /* For big-endian platforms */
-   BEGL_BufferFormat_eR5G6B5_sRGB_PRE,
-
-   BEGL_BufferFormat_eA8B8G8R8_LIN_NON,
-   BEGL_BufferFormat_eR8G8B8A8_LIN_NON,   /* For big-endian platforms */
-   BEGL_BufferFormat_eX8B8G8R8_LIN_NON,
-   BEGL_BufferFormat_eR8G8B8X8_LIN_NON,   /* For big-endian platforms */
-   BEGL_BufferFormat_eR5G6B5_LIN_NON,
-
-   BEGL_BufferFormat_eA8B8G8R8_LIN_PRE,
-   BEGL_BufferFormat_eR8G8B8A8_LIN_PRE,   /* For big-endian platforms */
-   BEGL_BufferFormat_eX8B8G8R8_LIN_PRE,
-   BEGL_BufferFormat_eR8G8B8X8_LIN_PRE,   /* For big-endian platforms */
-   BEGL_BufferFormat_eR5G6B5_LIN_PRE,
-
    BEGL_BufferFormat_INVALID
 } BEGL_BufferFormat;
 
@@ -51,20 +35,9 @@ typedef enum
    BEGL_Fail
 } BEGL_Error;
 
-typedef enum
-{
-   BEGL_Increment = 0,
-   BEGL_Decrement
-} BEGL_RefCountMode;
-
-typedef void  *BEGL_BufferHandle;     /* Opaque as far as driver is concerned. Only the app/lib knows the actual type. */
+typedef void  *BEGL_SwapchainBuffer;  /* Opaque as far as driver is concerned. Only the platform knows the actual type. */
+typedef void  *BEGL_NativeBuffer;     /* Opaque as far as driver is concerned. Only the platform knows the actual type. */
 typedef void  *BEGL_WindowHandle;     /* Opaque 'window' handle (required by EGL) */
-
-typedef struct
-{
-   void                *platformState;/* abstract state created by the platform layer */
-   BEGL_WindowHandle   window;        /* The native window handle */
-} BEGL_WindowState;
 
 typedef struct
 {
@@ -76,10 +49,8 @@ typedef struct
    uint32_t            height;        /* Visible height of buffer in pixels */
    uint32_t            pitchBytes;    /* Actual bytes per row of the buffer, including padding */
    uint32_t            totalByteSize; /* Actual bytes allocated for the entire image */
-   uint32_t            alignment;     /* Buffer alignment specified as a power of 2. 1 = 2 bytes, 2 = 4 bytes etc. */
    uint32_t            secure;        /* used to signal whether the buffer is allocated in the secure heap or not */
    BEGL_BufferFormat   format;        /* Pixel format of the buffer */
-   BEGL_WindowState    windowState;   /* State relating to the window to which this buffer is related */
 } BEGL_BufferSettings;
 
 typedef enum
@@ -104,7 +75,6 @@ typedef struct
 {
    uint32_t            width;         /* Visible width of pixmap in pixels */
    uint32_t            height;        /* Visible height of pixmap in pixels */
-   uint32_t            openvg;        /* used to signal whether the buffer is used by VG or not */
    BEGL_BufferFormat   format;        /* Pixel format of the pixmap */
 } BEGL_PixmapInfo;
 
@@ -118,40 +88,23 @@ typedef struct
    uint32_t            magic;
 } BEGL_PixmapInfoEXT;
 
-typedef struct
-{
-   BEGL_BufferHandle   buffer;         /* The buffer to be/having been displayed */
-   BEGL_WindowState    windowState;    /* State for this buffer's window */
-   bool                waitVSync;      /* Should we wait for a vSync after displaying the buffer? */
-} BEGL_BufferDisplayState;
-
 typedef struct BEGL_DisplayInterface
 {
    /* Context pointer - opaque to the 3d driver code, but passed out in all function pointer calls.
     * Prevents the client code needing to perform context lookups. */
    void *context;
 
-   /* Request creation of an appropriate buffer (for pixmaps, FBOs or pbuffers, but NOT swap-chain buffers).
-    * settings->totalByteSize is the size of the memory that the driver needs.
-    * We could have just requested a block of memory using the memory interface, but by having the platform layer create a 'buffer'
-    * it can actually create whatever type it desires directly, and then only have to deal with that type. For example, in a Nexus
-    * platform layer, this function might be implemented to create a NEXUS_Surface (with the correct memory constraints of course).
-    */
-   BEGL_BufferHandle (*BufferCreate)(void *context, const BEGL_PixmapInfoEXT *bufferRequirements);
-
-   /* Destroy a buffer previously created with BufferCreate */
-   BEGL_Error (*BufferDestroy)(void *context, BEGL_BufferDisplayState *bufferState);
-
    /* Request a buffer from a pre-allocated swap chain.  The swap chain must contain the correct number of
     * buffers to match the swap chain length.
     * Swap chains are always retrieved using this method, and are never created directly by the driver.
     * This is different to earlier versions of the driver.
     */
-   BEGL_BufferHandle (*BufferDequeue)(void *context, void *platformState, BEGL_BufferFormat format, int *fd);
+   BEGL_SwapchainBuffer (*BufferDequeue)(void *context, void *platformState,
+         BEGL_BufferFormat format, int *fd);
 
-   BEGL_Error (*BufferQueue)(void *context, void *platformState, BEGL_BufferHandle buffer, int swapInterval, int fd);
+   BEGL_Error (*BufferQueue)(void *context, void *platformState, BEGL_SwapchainBuffer buffer, int swapInterval, int fd);
 
-   BEGL_Error (*BufferCancel)(void *context, void *platformState, BEGL_BufferHandle buffer, int fd);
+   BEGL_Error (*BufferCancel)(void *context, void *platformState, BEGL_SwapchainBuffer buffer, int fd);
 
    /* Called prior to a swapchain being created for the given window, if you need to store any global state (per window/swapchain)
     * then do it in this structure. You can allocate a structure of your own creation which will be associated with the window/swapchain. */
@@ -163,53 +116,41 @@ typedef struct BEGL_DisplayInterface
    /* Return true if display requires default orientation (bottom up rasterization) */
    BEGL_Error (*DefaultOrientation)(void *context);
 
-   /* Called to get access to an underlying native buffer. */
-   BEGL_Error (*GetNativeBuffer)(void *context, uint32_t eglTarget, void *eglClientBuffer, void **buffer);
-
-   /*
-    * Used to decode a native format when you have an eglImage provided by the system.
-    * For buffers obtained via BufferCreate() or BufferDeque() target is set to
-    * BEGL_DEFAULT_BUFFER and buffer is BEGL_BufferHandle.
+   /* Get a new reference to the underlying native buffer.
+    *
+    * For swapchain buffers the target is set to BEGL_SWAPCHAIN_BUFFER and
+    * buffer is the BEGL_SwapchainBuffer obtained from BufferDequeue().
+    * The plane is always 0.
+    *
+    * For pixmaps the target is set to BEGL_PIXMAP_BUFFER and buffer
+    * is the platform-specific EGLNativePixmapType.
+    *
     * For platform-specific EGL client buffers target and buffer parameters
-    * are those of the corresponding eglCreateImage() call. The target is passed
-    * down directly, buffer is obtained from GetNativeBuffer(), if available,
-    * otherwise passed down directly.
+    * are those of the corresponding eglCreateImage() call.
+    *
+    * On success it returns a new, non-NULL reference to the native buffer
+    * and fills-in BEGL_BufferSettings structure. The returned reference must
+    * remain valid until it's released by calling ReleaseNativeBuffer().
+    * The destruction of the eglObject must not free or invalidate the native
+    * buffer unless it was already released by the driver.
     */
-   BEGL_Error (*SurfaceGetInfo)(void *context, uint32_t target, void *buffer, BEGL_BufferSettings *outSettings);
+   BEGL_NativeBuffer (*AcquireNativeBuffer)(void *context, uint32_t target,
+         void *eglObject, BEGL_BufferSettings *outSettings);
+
+   /* Release a reference obtained from AcquireNativeBuffer().
+    *
+    * After all references are released the buffer may be freed.
+    */
+   BEGL_Error (*ReleaseNativeBuffer)(void *context, uint32_t target, BEGL_NativeBuffer buffer);
 
    /* used for EGL_NATIVE_VISUAL_ID, returns a platform dependent visual ID from the config */
    BEGL_Error (*GetNativeFormat)(void *context, BEGL_BufferFormat bufferFormat, uint32_t *outNativeFormat);
-
-   /* some platforms require resources to be locked/unlocked on taking references */
-   BEGL_Error (*SurfaceChangeRefCount)(void *context, uint32_t target, void *buffer, BEGL_RefCountMode incOrDec);
 
    bool (*BindWaylandDisplay)(void *context, void *egl_display, void *wl_display);
    bool (*UnbindWaylandDisplay)(void *context, void *egl_display, void *wl_display);
    bool (*QueryBuffer)(void *context, void *display, void* buffer, int32_t attribute, int32_t *value);
 
 } BEGL_DisplayInterface;
-
-/* The client application, or default platform library must register valid versions of each
-   of these interfaces before any EGL or GL functions are invoked, using the following functions
-   provided by the 3D driver.
-*/
-typedef struct
-{
-   /* Called by app/lib to create a pixmap buffer with the correct alignment/size constraints for EGL to use.
-    * This will call back into the application's BufferCreate() function to actually allocate the buffer, after
-    * calculating the appropriate alignment/size constraints.
-    *
-    * There should be no real need to use pixmap rendering in EGL, since the swap chain is exposed via this API anyway.
-    * However, we must still keep pixmap rendering functional, and thus need this API call.
-    *
-    * The buffer should be destroyed using BEGL_DisplayInterface->BufferDestroy() */
-   BEGL_BufferHandle (*PixmapCreateCompatiblePixmap)(BEGL_PixmapInfoEXT *pixmapInfo);
-
-   /* Function to return the requirements of a given buffer size, so the application can make its own swap
-    * chain and provide it back to GL */
-   void (*BufferGetRequirements)(const BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements);
-
-} BEGL_DisplayCallbacks;
 
 #ifdef __cplusplus
 }

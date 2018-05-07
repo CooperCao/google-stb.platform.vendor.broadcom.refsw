@@ -13,7 +13,9 @@
 
 #include "glsl_sched_node_helpers.h"
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 #include "../glxx/glxx_int_config.h"
+#endif
 
 #include "libs/core/v3d/v3d_gen.h"
 #include "libs/core/v3d/v3d_tlb.h"
@@ -139,6 +141,22 @@ Backflow *create_node(SchedNodeType type) {
    return node;
 }
 
+static Backflow *create_alulike(SchedNodeType type, uint32_t cond_setf, Backflow *flag,
+                                Backflow *l, Backflow *r, Backflow *output)
+{
+   Backflow *node = create_node(type);
+
+   node->cond_setf = cond_setf;
+
+   assert(output == NULL || cond_setf == COND_IFFLAG || cond_setf == COND_IFNFLAG);
+
+   dep(node, 0, flag);
+   dep(node, 1, l);
+   dep(node, 2, r);
+   dep(node, 3, output);
+   return node;
+}
+
 Backflow *create_sig(uint32_t sigbits) {
    Backflow *node = create_node(SIG);
    node->u.sigbits = sigbits;
@@ -156,46 +174,44 @@ Backflow *create_varying(VaryingType vary_type, uint32_t vary_row, Backflow *w)
    return node;
 }
 
-Backflow *create_imul32(Backflow *l, Backflow *r) {
-   Backflow *node = create_node(SPECIAL_IMUL32);
-   dep(node, 1, l);
-   dep(node, 2, r);
-   return node;
+Backflow *create_imul32(uint32_t cond_setf, Backflow *flag, Backflow *l, Backflow *r, Backflow *output) {
+   return create_alulike(SPECIAL_IMUL32, cond_setf, flag, l, r, output);
 }
 
 Backflow *create_alu(v3d_qpu_opcode_t op, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
                      Backflow *left, Backflow *right, Backflow *output)
 {
-   Backflow *node = create_node(ALU);
+   Backflow *node = create_alulike(ALU, cond_setf, flag, left, right, output);
+
+   /* Verify that the flag field is used correctly */
+   assert(flag == NULL || op_uses_flag(op)          || cs_is_updt(cond_setf) ||
+                          cond_setf == COND_IFFLAG  || cond_setf == COND_IFNFLAG);
 
    node->u.alu.op        = op;
    node->u.alu.unpack[0] = unpack;
    node->u.alu.unpack[1] = UNPACK_NONE;
 
-   node->cond_setf = cond_setf;
-
-   /* Verify that the flag field is used correctly */
-   assert(flag == NULL || op_uses_flag(op)          || cs_is_updt(cond_setf) ||
-                          cond_setf == COND_IFFLAG  || cond_setf == COND_IFNFLAG);
-   assert(output == NULL || cond_setf == COND_IFFLAG || cond_setf == COND_IFNFLAG);
-   /* Could further validate that left and right are used consistently with the operation */
-
-   dep(node, 0, flag);
-   dep(node, 1, left);
-   dep(node, 2, right);
-   dep(node, 3, output);
    return node;
 }
 
-Backflow *create_rotate(Backflow *input, uint32_t amount, bool quad, Backflow *r5_amount) {
-   assert((amount == 0 && r5_amount != NULL) || (amount != 0 && r5_amount == NULL));
+Backflow *create_rotate(Backflow *input, Backflow *amount, bool quad) {
+#if V3D_HAS_SFU_ROTATE
+   return tr_binop(quad ? V3D_QPU_OP_ROTQ : V3D_QPU_OP_ROT, input, amount);
+#else
+   uint32_t  c_amnt  = 0;
+   Backflow *r5_amnt = NULL;
+   if (is_const(amount)) c_amnt  = (16 - amount->unif) & 0xF;
+   else                  r5_amnt = tr_binop(V3D_QPU_OP_SUB, tr_const(16), amount);
+
+   assert((c_amnt == 0 && r5_amnt != NULL) || (c_amnt != 0 && r5_amnt == NULL));
 
    Backflow *ret = create_node(SPECIAL_ROTATE);
    dep(ret, 1, input);
-   dep(ret, 2, r5_amount);
-   ret->u.rotate.amount = amount;
+   dep(ret, 2, r5_amnt);
+   ret->u.rotate.amount = c_amnt;
    ret->u.rotate.quad   = quad;
    return ret;
+#endif
 }
 
 
@@ -250,7 +266,7 @@ typedef struct {
    int sample_num;      /* Which sample we're currently translating */
 #endif
 
-   const bool *per_quad;
+   const DFInfo *df_info;
 
    struct tlb_read_s tlb_read[V3D_MAX_RENDER_TARGETS + 2];
 
@@ -286,7 +302,11 @@ static Backflow *tr_sin(Backflow *angle)
 {
    Backflow *x = tr_binop(V3D_QPU_OP_FMUL, angle, tr_const(0x3ea2f983 /* 1 / pi */));
    Backflow *y = tr_uop(V3D_QPU_OP_FROUND, x);
+#if V3D_HAS_NO_SFU_MAGIC
+   Backflow *sfu_sin = tr_uop(V3D_QPU_OP_SIN, tr_binop(V3D_QPU_OP_FSUB, x, y));
+#else
    Backflow *sfu_sin = tr_mov_to_reg(REG_MAGIC_SIN, tr_binop(V3D_QPU_OP_FSUB, x, y));
+#endif
    Backflow *i = tr_uop(V3D_QPU_OP_FTOIN, y);
    Backflow *il31 = tr_binop(V3D_QPU_OP_SHL, i, tr_const(31));
 
@@ -300,9 +320,7 @@ static Backflow *tr_cos(Backflow *angle)
 
 static Backflow *tr_tan(Backflow *angle)
 {
-   Backflow *sin = tr_sin(angle);
-   Backflow *one_on_cos = tr_mov_to_reg(REG_MAGIC_RECIP, tr_cos(angle));
-   return tr_binop(V3D_QPU_OP_FMUL, sin, one_on_cos);
+   return fdiv(tr_sin(angle), tr_cos(angle));
 }
 
 /*
@@ -375,7 +393,7 @@ static Backflow *tr_div(DataflowType type, Backflow *l, Backflow *r) {
          unsigned_div_rem(&div, &rem, l, r);
          return div;
       case DF_FLOAT:
-         return tr_binop(V3D_QPU_OP_FMUL, l, tr_mov_to_reg(REG_MAGIC_RECIP, r));
+         return fdiv(l, r);
       default:
          unreachable();
          return NULL;
@@ -595,14 +613,14 @@ static struct tmu_lookup_s *new_tmu_lookup(SchedBlock *block) {
    new_lookup->next = NULL;
    new_lookup->done = false;
 
-   /* It would be easiest to add these at the head of the list, but we want
-    * them to stay in order (I think) for sorting purposes                  */
+   /* We want them to stay in order (I think) for sorting purposes, so insert at tail */
    if (block->tmu_lookups == NULL) {
       block->tmu_lookups = new_lookup;
+      block->tmu_lookups_tail = new_lookup;
    } else {
-      struct tmu_lookup_s *last = block->tmu_lookups;
-      while(last->next != NULL) last = last->next;
+      struct tmu_lookup_s *last = block->tmu_lookups_tail;
       last->next = new_lookup;
+      block->tmu_lookups_tail = new_lookup;
    }
 
    return new_lookup;
@@ -1357,7 +1375,6 @@ static void fetch_all_attribs(SchedShaderInputs *ins, const ATTRIBS_USED_T *attr
 
    for (unsigned i=0; i<reads_total; i++) attrs[i] = create_sig(V3D_QPU_SIG_LDVPM);
 
-   assert(reads_total < MAX_VPM_DEPENDENCY);
    for (unsigned i=0; i<reads_total; i++) ins->vpm_dep[i] = attrs[i];
 
    unsigned attr_count = 0;
@@ -1403,7 +1420,6 @@ static v3d_qpu_opcode_t translate_flavour(DataflowFlavour flavour, DataflowType 
       case DATAFLOW_SAMPLE_ID:         *params = 0; return V3D_QPU_OP_SAMPID;
       case DATAFLOW_GET_INVOCATION_ID: *params = 0; return V3D_QPU_OP_IID;
 #endif
-      case DATAFLOW_SAMPLE_MASK:       *params = 0; return V3D_QPU_OP_MSF;
       case DATAFLOW_FRAG_GET_X:        *params = 0; return V3D_QPU_OP_FXCD;
       case DATAFLOW_FRAG_GET_Y:        *params = 0; return V3D_QPU_OP_FYCD;
       case DATAFLOW_FRAG_GET_X_UINT:   *params = 0; return V3D_QPU_OP_XCD;
@@ -1424,6 +1440,12 @@ static v3d_qpu_opcode_t translate_flavour(DataflowFlavour flavour, DataflowType 
       case DATAFLOW_NEAREST:           *params = 1; return V3D_QPU_OP_FROUND;
       case DATAFLOW_CEIL:              *params = 1; return V3D_QPU_OP_FCEIL;
       case DATAFLOW_FLOOR:             *params = 1; return V3D_QPU_OP_FFLOOR;
+#if V3D_HAS_NO_SFU_MAGIC
+      case DATAFLOW_RSQRT:             *params = 1; return V3D_QPU_OP_RSQRT;
+      case DATAFLOW_RCP:               *params = 1; return V3D_QPU_OP_RECIP;
+      case DATAFLOW_LOG2:              *params = 1; return V3D_QPU_OP_LOG;
+      case DATAFLOW_EXP2:              *params = 1; return V3D_QPU_OP_EXP;
+#endif
       case DATAFLOW_MUL24:             *params = 2; return type == DF_UINT ? V3D_QPU_OP_UMUL24 : V3D_QPU_OP_SMUL24;
       case DATAFLOW_ADD:               *params = 2; return type == DF_FLOAT ? V3D_QPU_OP_FADD : V3D_QPU_OP_ADD;
       case DATAFLOW_SUB:               *params = 2; return type == DF_FLOAT ? V3D_QPU_OP_FSUB : V3D_QPU_OP_SUB;
@@ -1445,6 +1467,7 @@ static v3d_qpu_opcode_t translate_flavour(DataflowFlavour flavour, DataflowType 
    }
 }
 
+#if !V3D_HAS_NO_SFU_MAGIC
 static uint32_t get_magic_reg(DataflowFlavour flavour) {
    switch (flavour) {
       case DATAFLOW_RSQRT:  return REG_MAGIC_RSQRT;
@@ -1454,6 +1477,7 @@ static uint32_t get_magic_reg(DataflowFlavour flavour) {
       default: unreachable(); return 0;
    }
 }
+#endif
 
 static void push_phi(const Dataflow *d, PhiList **list) {
    PhiList *new = malloc_fast(sizeof(PhiList));
@@ -1596,20 +1620,20 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       case DATAFLOW_TEXTURE:
          {
             const Dataflow *image = relocate_dataflow(ctx, dataflow->d.reloc_deps[4]);
-            uint32_t required_components = dataflow->u.texture.required_components;
+            uint32_t required_components = ctx->df_info[dataflow->id].required_components;
 
             assert(d[0]->type == GLSL_TRANSLATION_VEC4);
             for (int i=1; i<6; i++) assert(d[i] == NULL || d[i]->type == GLSL_TRANSLATION_WORD);
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
             tr_texture_lookup(ctx, r, d[4]->node[0], d[5] ? d[5]->node[0] : NULL, image->type, image->u.const_image.is_32bit,
-                              ctx->per_quad[dataflow->id],
+                              ctx->df_info[dataflow->id].per_quad,
                               dataflow->age, required_components, dataflow->u.texture.bits,
                               d[0]->node[0], d[0]->node[1], d[0]->node[2], d[0]->node[3],
                               d[1] ? d[1]->node[0] : NULL, d[2] ? d[2]->node[0] : NULL, d[3] ? d[3]->node[0] : NULL);
 #else
             tr_texture_gadget(ctx, r, d[4]->node[0], d[5] ? d[5]->node[0] : NULL, image->type, image->u.const_image.is_32bit,
-                              ctx->per_quad[dataflow->id],
+                              ctx->df_info[dataflow->id].per_quad,
                               dataflow->age, required_components, dataflow->u.texture.bits,
                               d[0]->node[0], d[0]->node[1], d[0]->node[2], d[0]->node[3],
                               d[1] ? d[1]->node[0] : NULL, d[2] ? d[2]->node[0] : NULL, d[3] ? d[3]->node[0] : NULL);
@@ -1628,7 +1652,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
              * Base and max level make up the top byte, so load the highest 32-bits of the TSR */
             Backflow *addr = tr_binop(V3D_QPU_OP_ADD, d[0]->node[0], tr_const(12));
             Backflow *rec[4];
-            tr_indexed_read_vector_gadget(ctx->block, rec, dataflow->age, addr, 1, ctx->per_quad[dataflow->id]);
+            tr_indexed_read_vector_gadget(ctx->block, rec, dataflow->age, addr, 1, ctx->df_info[dataflow->id].per_quad);
             /* Extract the max and base levels */
             Backflow *max = bitand(shr(rec[0], 24), tr_const(0xF));
             Backflow *base = shr(rec[0], 28);
@@ -1663,7 +1687,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       {
          bool is_16 = (dataflow->type == DF_FLOAT);
          bool is_int = (dataflow->type != DF_FLOAT);
-         tr_get_col_gadget(ctx, r, is_16, is_int, dataflow->u.get_col.required_components,
+         tr_get_col_gadget(ctx, r, is_16, is_int, ctx->df_info[dataflow->id].required_components,
                                                   dataflow->u.get_col.render_target);
          break;
       }
@@ -1698,7 +1722,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             assert(d[0]->type == GLSL_TRANSLATION_WORD);
             r->type = GLSL_TRANSLATION_VEC4;
 
-            Backflow* addr = d[0]->node[0];
+            Backflow *addr = d[0]->node[0];
             if (!ctx->disable_ubo_fetch && is_ubo_addr(addr)) {
                uint32_t index = d[0]->node[0]->unif & 0x1f;
                uint32_t offset = d[0]->node[0]->unif >> 5;
@@ -1708,11 +1732,11 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
             if (is_ubo_addr(addr)) {
-               tr_indexed_read_uniform_vector_gadget(ctx->block, r->node, dataflow->age, addr, dataflow->u.vector_load.required_components);
+               tr_indexed_read_uniform_vector_gadget(ctx->block, r->node, dataflow->age, addr, ctx->df_info[dataflow->id].required_components);
                break;
             }
 #endif
-            tr_indexed_read_vector_gadget(ctx->block, r->node, dataflow->age, addr, dataflow->u.vector_load.required_components, ctx->per_quad[dataflow->id]);
+            tr_indexed_read_vector_gadget(ctx->block, r->node, dataflow->age, addr, ctx->df_info[dataflow->id].required_components, ctx->df_info[dataflow->id].per_quad);
             break;
          }
 
@@ -1762,9 +1786,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_TEX_PARAM1_UNNORMS, d[0]->node[0]->unif >> 4);
          break;
       }
-#endif
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
       case DATAFLOW_TEXTURE_ADDR:
 #endif
       case DATAFLOW_UNIFORM_BUFFER:
@@ -1806,7 +1828,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = GLSL_TRANSLATION_WORD;
 
          uint32_t id = o->u.buffer.index;
-         uint32_t offset = dataflow->u.constant.value;
+         uint32_t offset = dataflow->u.constant.value + (flavour == DATAFLOW_BUF_SIZE ? o->u.buffer.offset : 0);
          BackendUniformFlavour unif_flavour;
 
          if (o->flavour == DATAFLOW_UNIFORM_BUFFER) {
@@ -1865,10 +1887,12 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = GLSL_TRANSLATION_BOOL_FLAG;
          r->node[0] = tr_nullary(V3D_QPU_OP_REVF);
          break;
+      case DATAFLOW_SAMPLE_MASK:
       case DATAFLOW_IS_HELPER:
-         r->type = GLSL_TRANSLATION_BOOL_FLAG;
          /* For BOOL_FLAG non-zero means false, so MSF is good enough */
+         r->type = flavour == DATAFLOW_IS_HELPER ? GLSL_TRANSLATION_BOOL_FLAG : GLSL_TRANSLATION_WORD;
          r->node[0] = tr_nullary(V3D_QPU_OP_MSF);
+         glsl_backflow_chain_push_back(&ctx->block->msf_reads, r->node[0]);
          break;
       case DATAFLOW_SAMPLE_POS_X:
          r->type = GLSL_TRANSLATION_WORD;
@@ -1927,7 +1951,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          break;
       case DATAFLOW_FRAG_GET_W:
          r->type = GLSL_TRANSLATION_WORD;
-         r->node[0] = tr_mov_to_reg(REG_MAGIC_RECIP, ctx->in->rf0);
+         r->node[0] = recip(ctx->in->rf0);
          break;
 
       case DATAFLOW_COMP_GET_ID0:
@@ -1955,7 +1979,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          if (dataflow->type == DF_FLOAT)
             r->node[0] = tr_binop(V3D_QPU_OP_FMUL, d[0]->node[0], d[1]->node[0]);
          else
-            r->node[0] = create_imul32(d[0]->node[0], d[1]->node[0]);
+            r->node[0] = tr_imul32(d[0]->node[0], d[1]->node[0]);
          break;
       case DATAFLOW_DIV:
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
@@ -1997,6 +2021,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = GLSL_TRANSLATION_WORD;
          r->node[0] = tr_sqrt(d[0]->node[0]);
          break;
+#if !V3D_HAS_NO_SFU_MAGIC
       case DATAFLOW_RSQRT:
       case DATAFLOW_RCP:
       case DATAFLOW_LOG2:
@@ -2005,6 +2030,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          r->type = GLSL_TRANSLATION_WORD;
          r->node[0] = tr_mov_to_reg(get_magic_reg(dataflow->flavour), d[0]->node[0]);
          break;
+#endif
       case DATAFLOW_ABS:
       case DATAFLOW_FUNPACKA:
       case DATAFLOW_FUNPACKB:
@@ -2110,8 +2136,6 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
                                   tr_const(gfx_float_to_bits(0.5)),
                                   r->node[0]);
          }
-#endif
-#if !V3D_VER_AT_LEAST(4,1,34,0)
          if (flavour == DATAFLOW_SAMPLE_MASK) {
             if (!ctx->ms)
                r->node[0] = bitand(r->node[0], tr_const(1));
@@ -2121,10 +2145,8 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       }
    }
 
-   bool df_per_sample = (flavour == DATAFLOW_FRAG_GET_COL     || flavour == DATAFLOW_FRAG_GET_DEPTH ||
-                         flavour == DATAFLOW_FRAG_GET_STENCIL || flavour == DATAFLOW_SAMPLE_ID      ||
-                         flavour == DATAFLOW_SAMPLE_POS_X     || flavour == DATAFLOW_SAMPLE_POS_Y);
 #if !V3D_VER_AT_LEAST(4,1,34,0)
+   bool df_per_sample = glsl_dataflow_requires_per_sample(flavour);
    r->per_sample = df_per_sample;
    for (int i = 0; i < dataflow->dependencies_count; i++) {
       if (dataflow->d.reloc_deps[i] != -1) {
@@ -2139,14 +2161,13 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       node->next = ctx->per_sample_clear_list;
       ctx->per_sample_clear_list = node;
    }
-#else
-   ctx->block->per_sample = ctx->block->per_sample || df_per_sample;
 #endif
 }
 
 void init_sched_block(SchedBlock *block) {
    memset(block, 0, sizeof(SchedBlock));
    glsl_backflow_chain_init(&block->iodeps);
+   glsl_backflow_chain_init(&block->msf_reads);
 }
 
 static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
@@ -2154,7 +2175,7 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
                                      int dataflow_count,
                                      const LinkMap *link_map,
                                      SchedShaderInputs *ins,
-                                     const bool *per_quad,
+                                     const DFInfo *info,
                                      SchedBlock *block,
                                      const GLSL_BACKEND_CFG_T *key)
 {
@@ -2166,7 +2187,7 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
 
    memset(ctx->tlb_read, 0, sizeof(struct tlb_read_s) * (V3D_MAX_RENDER_TARGETS + 2));
 
-   ctx->per_quad = per_quad;
+   ctx->df_info  = info;
    ctx->link_map = link_map;
    ctx->in       = ins;
    ctx->block    = block;
@@ -2178,8 +2199,9 @@ static void init_translation_context(GLSL_TRANSLATE_CONTEXT_T *ctx,
       ctx->img_gadgettype[i] = key->img_gadgettype[i];
 #endif
 
-   ctx->ms = (key->backend & GLSL_SAMPLE_MS);
+   ctx->ms                = (key->backend & GLSL_SAMPLE_MS);
    ctx->disable_ubo_fetch = (key->backend & GLSL_DISABLE_UBO_FETCH);
+
 #if !V3D_VER_AT_LEAST(4,1,34,0)
    /* Stuff used to do framebuffer fetch on multisample targets */
    ctx->sample_num = 0;
@@ -2240,23 +2262,27 @@ static void translate_node_array(GLSL_TRANSLATE_CONTEXT_T *ctx, const CFGBlock *
 
 SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
                             const bool *output_active, SchedShaderInputs *ins,
-                            const GLSL_BACKEND_CFG_T *key, const bool *per_quad)
+                            const GLSL_BACKEND_CFG_T *key, const DFInfo *info)
 {
    SchedBlock *ret = malloc_fast(sizeof(SchedBlock));
    init_sched_block(ret);
 
    GLSL_TRANSLATE_CONTEXT_T ctx;
-   init_translation_context(&ctx, b_in->dataflow, b_in->num_dataflow, link_map, ins, per_quad, ret, key);
+   init_translation_context(&ctx, b_in->dataflow, b_in->num_dataflow, link_map, ins, info, ret, key);
 
    ret->branch_per_quad = false;
    ret->num_outputs     = b_in->num_outputs;
 
    if (b_in->successor_condition != -1) {
       const Dataflow *o = &b_in->dataflow[b_in->outputs[b_in->successor_condition]];
-      ret->branch_per_quad = per_quad[o->id];
+      ret->branch_per_quad = info[o->id].per_quad;
    }
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   ret->outputs = malloc_fast(b_in->num_outputs * sizeof(Backflow *));
+   memset(ret->outputs, 0, b_in->num_outputs * sizeof(Backflow *));
+   translate_node_array(&ctx, b_in, output_active, ret->outputs, &ret->branch_cond, &ret->branch_invert);
+#else
    int max_samples = (key->backend & GLSL_SAMPLE_MS) ? 4 : 1;
    Backflow **nodes_out[4] = { NULL, };
    for (int i=0; i<max_samples; i++) nodes_out[i] = glsl_safemem_calloc(b_in->num_outputs, sizeof(Backflow *));
@@ -2289,10 +2315,6 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
    for (int i=0; i<max_samples; i++) glsl_safemem_free(nodes_out[i]);
 
    validate_tlb_loads(ctx.tlb_read, max_samples > 1);
-#else
-   ret->outputs = malloc_fast(b_in->num_outputs * sizeof(Backflow *));
-   memset(ret->outputs, 0, b_in->num_outputs * sizeof(Backflow *));
-   translate_node_array(&ctx, b_in, output_active, ret->outputs, &ret->branch_cond, &ret->branch_invert);
 #endif
 
    resolve_tlb_loads(ret, ctx.tlb_read);
@@ -2306,7 +2328,7 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
 static uint32_t get_reads_total(const ATTRIBS_USED_T *attr) {
    uint32_t reads_total = 0;
 
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
+   for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++) {
       assert(attr->scalars_used[i] <= 4);
       reads_total += attr->scalars_used[i];
    }
@@ -2322,6 +2344,7 @@ unsigned vertex_shader_inputs(SchedShaderInputs *ins, const ATTRIBS_USED_T *attr
    memset(ins, 0, sizeof(SchedShaderInputs));
 
    unsigned reads_total = get_reads_total(attr_info);
+   assert(reads_total <= MAX_VPM_DEPENDENCY);
    fetch_all_attribs(ins, attr_info, reads_total);
    return reads_total;
 }

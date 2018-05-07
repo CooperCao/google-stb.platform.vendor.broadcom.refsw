@@ -978,9 +978,9 @@ void NEXUS_SimpleAudioDecoder_GetDefaultStartSettings( NEXUS_SimpleAudioDecoderS
     NEXUS_AudioDecoder_GetDefaultStartSettings(&pSettings->primary);
     NEXUS_AudioDecoder_GetDefaultStartSettings(&pSettings->secondary);
     NEXUS_AudioDecoder_GetDefaultStartSettings(&pSettings->description);
-#endif
     pSettings->secondary.secondaryDecoder = true;
     pSettings->description.secondaryDecoder = true;
+#endif
     NEXUS_CallbackDesc_Init(&pSettings->passthroughBuffer.dataCallback);
 }
 

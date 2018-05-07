@@ -39,10 +39,6 @@ else #VC4
 LOCAL_C_INCLUDES += $(V3D_DRIVER_TOP)/driver/helpers/v3d
 endif
 
-ifeq ($(BOARD_VNDK_VERSION),current)
-LOCAL_HEADER_LIBRARIES := liblog_headers
-endif
-
 LOCAL_CFLAGS := \
         -I$(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
         -DEMBEDDED_SETTOP_BOX=1 \

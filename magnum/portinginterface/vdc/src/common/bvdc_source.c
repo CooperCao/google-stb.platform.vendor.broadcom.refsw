@@ -4247,9 +4247,11 @@ void BVDC_Source_MpegDataReady_isr
 #endif
         }
         else
+        {
             /* write bit 1 to indicate src isr done with programming */
             hSource->hSyncLockCompositor->hDisplay->ulStgTriggerToBeArmed = 2;
             BDBG_MSG(("Src[%u] to host arm", hSource->eId));
+        }
     }
 #endif
 

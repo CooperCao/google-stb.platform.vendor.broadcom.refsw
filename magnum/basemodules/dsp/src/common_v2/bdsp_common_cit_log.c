@@ -108,10 +108,18 @@ const char Algorithm2Name[BDSP_Algorithm_eMax][BDSP_MAX_CHAR_LENGTH] =
 	{"ALS LOAS DECODE"},
 	{"AC4 DECODE"},
 	{"OPUS ENCODE"},
+#ifdef BDSP_MS11PLUS_SUPPORT
+	{"DD ENCODE"},
+#else
 	{"DDP ENCODE"},
+#endif
 	{"GENERIC PASSTHRU"},
-	{"MIXER"},
+	{"FW MIXER"},
+#ifdef BDSP_MS11PLUS_SUPPORT
+	{"MIXER "},
+#else
 	{"MIXER DAPV2"},
+#endif
 	{"SAMPLE RATE CONVERTER"},
 	{"DSOLA"},
 	{"GEN CDB ITB"},

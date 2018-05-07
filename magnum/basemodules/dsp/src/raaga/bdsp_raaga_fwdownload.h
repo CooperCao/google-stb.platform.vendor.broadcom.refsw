@@ -70,7 +70,7 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
                 const BIMG_Interface *pImageInterface,
                 void **pImageContext,
                 BDSP_RaagaImgCacheEntry * pImgCache,
-                const BDSP_RaagaUsageOptions *pUsage,
+                const BDSP_UsageOptions *pUsage,
                 bool UseBDSPMacro);
 
 /******************************************************************************

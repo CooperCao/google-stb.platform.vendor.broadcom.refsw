@@ -56,7 +56,6 @@ typedef struct BHSM_P_RvRsa{
 
     BHSM_Handle hHsm;
     bool allocated;
-
     unsigned rsaKeyId;
 
 }BHSM_P_RvRsa;
@@ -77,6 +76,9 @@ BERR_Code BHSM_RvRsa_Init( BHSM_Handle hHsm, BHSM_RvRsaModuleSettings *pSettings
 
     BSTD_UNUSED( pSettings );
 
+    if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( hHsm->modules.pRvRsa ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     hHsm->modules.pRvRsa = (BHSM_RvRsaModule*)BKNI_Malloc( sizeof(BHSM_RvRsaModule) );
     if( !hHsm->modules.pRvRsa ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
 
@@ -90,10 +92,8 @@ void BHSM_RvRsa_Uninit( BHSM_Handle hHsm )
 {
     BDBG_ENTER( BHSM_RvRsa_Uninit );
 
-    if( !hHsm->modules.pRvRsa ){
-        BERR_TRACE( BERR_INVALID_PARAMETER );
-        return;  /* function called out of sequence.  */
-    }
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    if( !hHsm->modules.pRvRsa ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
     BKNI_Free( hHsm->modules.pRvRsa );
     hHsm->modules.pRvRsa = NULL;
@@ -106,21 +106,20 @@ void BHSM_RvRsa_Uninit( BHSM_Handle hHsm )
 BHSM_RvRsaHandle BHSM_RvRsa_Allocate( BHSM_Handle hHsm, const BHSM_RvRsaAllocateSettings *pSettings )
 {
     BHSM_P_RvRsa *pRvRsa = NULL;
-    BHSM_RvRsaModule *pModule;
+    BHSM_RvRsaModule *pModule = NULL;
     unsigned i;
     unsigned rsaKeyId;
 
     BDBG_ENTER( BHSM_RvRsa_Allocate );
 
+    if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    if( !hHsm->modules.pRvRsa ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+
     pModule = hHsm->modules.pRvRsa;
 
     /* valid rsaKeyId are from 1 to BHSM_MAX_RV_RSA_KEYS */
     if( pSettings->rsaKeyId < 1 ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
-    if( (pSettings->rsaKeyId > BHSM_MAX_RV_RSA_KEYS) && (pSettings->rsaKeyId != BHSM_ANY_ID) )
-    {
-        BERR_TRACE( BERR_INVALID_PARAMETER );
-        return NULL;
-    }
 
     if( pSettings->rsaKeyId <= BHSM_MAX_RV_RSA_KEYS )
     {
@@ -128,12 +127,12 @@ BHSM_RvRsaHandle BHSM_RvRsa_Allocate( BHSM_Handle hHsm, const BHSM_RvRsaAllocate
         if( pModule->rsaSlots[pSettings->rsaKeyId-1].allocated )
         {
             BERR_TRACE( BERR_NOT_AVAILABLE );
-            goto error;
+            return NULL;
         }
         pRvRsa = &pModule->rsaSlots[pSettings->rsaKeyId-1];
         rsaKeyId = pSettings->rsaKeyId;
     }
-    else
+    else if( pSettings->rsaKeyId == BHSM_ANY_ID )
     {
         /* search for a free slot. */
         for( i = 0; i < BHSM_MAX_RV_RSA_KEYS; i++ )
@@ -146,11 +145,13 @@ BHSM_RvRsaHandle BHSM_RvRsa_Allocate( BHSM_Handle hHsm, const BHSM_RvRsaAllocate
             }
         }
 
-        if( !pRvRsa )
-        {
-            BERR_TRACE( BERR_NOT_AVAILABLE );
-            goto error;
-        }
+        if( !pRvRsa ) { BERR_TRACE( BERR_NOT_AVAILABLE ); return NULL; }
+    }
+    else
+    {
+        /* invalid pSettings->rsaKeyId */
+        BERR_TRACE( BERR_INVALID_PARAMETER );
+        return NULL;
     }
 
     BKNI_Memset( pRvRsa, 0, sizeof(*pRvRsa) );
@@ -161,10 +162,6 @@ BHSM_RvRsaHandle BHSM_RvRsa_Allocate( BHSM_Handle hHsm, const BHSM_RvRsaAllocate
 
     BDBG_LEAVE( BHSM_RvRsa_Allocate );
     return (BHSM_RvRsaHandle)pRvRsa;
-
-error:
-
-    return NULL;
 }
 
 
@@ -202,6 +199,9 @@ BERR_Code BHSM_RvRsa_SetSettings( BHSM_RvRsaHandle handle, const BHSM_RvRsaSetti
 
     BDBG_ENTER( BHSM_RvRsa_SetSettings );
 
+    if( !pRvRsa ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pSettings ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     BKNI_Memset( &bspRsaSet, 0, sizeof(bspRsaSet) );
 
     bspRsaSet.in.rsaKeyId = pRvRsa->rsaKeyId;
@@ -238,6 +238,9 @@ BERR_Code BHSM_RvRsa_GetInfo( BHSM_RvRsaHandle handle, BHSM_RvRsaInfo *pRvRsaInf
 
     BDBG_ENTER( BHSM_RvRsa_GetInfo );
 
+    if( !pRvRsa ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pRvRsaInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
     BKNI_Memset( pRvRsaInfo, 0, sizeof(*pRvRsaInfo) );
 
     pRvRsaInfo->rsaKeyId = pRvRsa->rsaKeyId;
@@ -249,5 +252,7 @@ BERR_Code BHSM_RvRsa_GetInfo( BHSM_RvRsaHandle handle, BHSM_RvRsaInfo *pRvRsaInf
 
 static BHSM_Handle _RvRsa_GetHsmHandle( BHSM_RvRsaHandle handle )
 {
+    if( !handle ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+
     return handle->hHsm;
 }

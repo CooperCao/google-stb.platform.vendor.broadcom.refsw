@@ -8,7 +8,7 @@ typedef enum backend_reg
 {
    REG_UNDECIDED,
 
-   REG_R0, REG_R1, REG_R2, REG_R3, REG_R4, REG_R5,
+   REG_R0_, REG_R1_, REG_R2_, REG_R3_, REG_R4_, REG_R5_,
 
    REG_RF0,  REG_RF1,  REG_RF2,  REG_RF3,  REG_RF4,  REG_RF5,  REG_RF6,  REG_RF7,  REG_RF8,  REG_RF9,
    REG_RF10, REG_RF11, REG_RF12, REG_RF13, REG_RF14, REG_RF15, REG_RF16, REG_RF17, REG_RF18, REG_RF19,
@@ -29,12 +29,11 @@ typedef enum backend_reg
    REG_MAGIC_NOP        = REG_MAGIC_BASE + 6,
    REG_MAGIC_TLB        = REG_MAGIC_BASE + 7,
    REG_MAGIC_TLBU       = REG_MAGIC_BASE + 8,
-#if !V3D_VER_AT_LEAST(4,1,34,0)
-   REG_MAGIC_TMU        = REG_MAGIC_BASE + 9,
-   REG_MAGIC_TMUL       = REG_MAGIC_BASE + 10,
-#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
    REG_MAGIC_UNIFA      = REG_MAGIC_BASE + 9,
+#else
+   REG_MAGIC_TMU        = REG_MAGIC_BASE + 9,
+   REG_MAGIC_TMUL       = REG_MAGIC_BASE + 10,
 #endif
    REG_MAGIC_TMUD       = REG_MAGIC_BASE + 11,
    REG_MAGIC_TMUA       = REG_MAGIC_BASE + 12,
@@ -48,12 +47,14 @@ typedef enum backend_reg
 #if V3D_VER_AT_LEAST(4,2,13,0)
    REG_MAGIC_SYNCB      = REG_MAGIC_BASE + 18,
 #endif
+#if !V3D_HAS_NO_SFU_MAGIC
    REG_MAGIC_RECIP      = REG_MAGIC_BASE + 19,
    REG_MAGIC_RSQRT      = REG_MAGIC_BASE + 20,
    REG_MAGIC_EXP        = REG_MAGIC_BASE + 21,
    REG_MAGIC_LOG        = REG_MAGIC_BASE + 22,
    REG_MAGIC_SIN        = REG_MAGIC_BASE + 23,
    REG_MAGIC_RSQRT2     = REG_MAGIC_BASE + 24,
+#endif
 #if V3D_VER_AT_LEAST(4,1,34,0)
    REG_MAGIC_TMUC       = REG_MAGIC_BASE + 32,
    REG_MAGIC_TMUS       = REG_MAGIC_BASE + 33,
@@ -70,18 +71,15 @@ typedef enum backend_reg
    REG_MAGIC_TMUHSCM    = REG_MAGIC_BASE + 44,
    REG_MAGIC_TMUHSF     = REG_MAGIC_BASE + 45,
    REG_MAGIC_TMUHSLOD   = REG_MAGIC_BASE + 46,
-#endif
 
-#if V3D_VER_AT_LEAST(4,1,34,0)
    REG_MAGIC_R5REP      = REG_MAGIC_BASE + 55,
 #endif
-
 } backend_reg;
 
-static inline backend_reg REG_R(unsigned n)  { assert(n <= 5); return (backend_reg)(REG_R0 + n); }
+static inline backend_reg REG_R(unsigned n)  { assert(n <= 5);  return (backend_reg)(REG_R0_ + n); }
 static inline backend_reg REG_RF(unsigned n) { assert(n <= 63); return (backend_reg)(REG_RF0 + n); }
 
-static inline bool IS_R(backend_reg r)       { return r >= REG_R0 && r <= REG_R5; }
+static inline bool IS_R(backend_reg r)       { return r >= REG_R0_ && r <= REG_R5_; }
 static inline bool IS_RF(backend_reg  r)     { return r >= REG_RF0 && r <= REG_RF63; }
 static inline bool IS_RRF(backend_reg r)     { return IS_R(r) || IS_RF(r); }
 static inline bool IS_FLAG(backend_reg r)    { return r == REG_FLAG_A || r == REG_FLAG_B; }

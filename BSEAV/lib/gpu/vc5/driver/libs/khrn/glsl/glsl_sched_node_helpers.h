@@ -50,6 +50,8 @@ static inline Backflow *tr_binop_cond(v3d_qpu_opcode_t op, uint32_t cond_setf, B
    return create_alu(op, UNPACK_NONE, cond_setf, flags, l, r, NULL);
 }
 
+static inline Backflow *tr_imul32(Backflow *l, Backflow *r) { return create_imul32(SETF_NONE, NULL, l, r, NULL); }
+
 static inline Backflow *tr_sig_io_offset(uint32_t sigbits, Backflow *dep, int io_offset) {
    Backflow *res = create_sig(sigbits);
    glsl_iodep_offset(res, dep, io_offset);
@@ -119,17 +121,33 @@ static inline Backflow *asr(Backflow *a, uint32_t b)     { return tr_binop(V3D_Q
 static inline Backflow *imin(Backflow *a, Backflow *b)   { return tr_binop(V3D_QPU_OP_FMIN, a, b); }
 static inline Backflow *imax(Backflow *a, Backflow *b)   { return tr_binop(V3D_QPU_OP_FMAX, a, b); }
 
-static inline Backflow *fdiv(Backflow *a, Backflow *b)    { return mul(a, tr_mov_to_reg(REG_MAGIC_RECIP, b)); }
-
-static inline Backflow *recip(Backflow *x) { return tr_mov_to_reg(REG_MAGIC_RECIP, x); }
 static inline Backflow *absf(Backflow *x)  { return create_alu(V3D_QPU_OP_FMOV, UNPACK_ABS, SETF_NONE, NULL, x, NULL, NULL); }
+
+static inline Backflow *recip(Backflow *x) {
+#if V3D_HAS_NO_SFU_MAGIC
+   return tr_uop(V3D_QPU_OP_RECIP, x);
+#else
+   return tr_mov_to_reg(REG_MAGIC_RECIP, x);
+#endif
+}
+static inline Backflow *rsqrt(Backflow *x) {
+#if V3D_HAS_NO_SFU_MAGIC
+   return tr_uop(V3D_QPU_OP_RSQRT, x);
+#else
+   return tr_mov_to_reg(REG_MAGIC_RSQRT, x);
+#endif
+}
 static inline Backflow *tr_sqrt(Backflow *operand) {
-#if V3D_VER_AT_LEAST(3,3,0,0)
+#if V3D_HAS_NO_SFU_MAGIC
+   return mul(operand, tr_uop(V3D_QPU_OP_RSQRT2, operand));
+#elif V3D_VER_AT_LEAST(3,3,0,0)
    return mul(operand, tr_mov_to_reg(REG_MAGIC_RSQRT2, operand));
 #else
    return tr_mov_to_reg(REG_MAGIC_RECIP, tr_mov_to_reg(REG_MAGIC_RSQRT, operand));
 #endif
 }
+
+static inline Backflow *fdiv(Backflow *a, Backflow *b) { return mul(a, recip(b)); }
 
 /* Used by glsl_scheduler_4.c */
 static inline Backflow *glsl_backflow_thrsw(void) { return create_node(SPECIAL_THRSW); }

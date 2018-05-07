@@ -4,10 +4,12 @@
 
 #pragma once
 
-#include "Extractor.h"
 #include <array>
+#include "NodeBase.h"
 
 namespace bvk {
+
+class Extractor;
 
 ///////////////////////////////////////////////////////////////////
 // ImageOperands
@@ -19,7 +21,7 @@ namespace bvk {
 class ImageOperands
 {
 public:
-   using Payload = std::array<NodeIndex, 2>;
+   using Payload = std::array<NodeConstPtr, 2>;
 
    friend Extractor &operator>>(Extractor &ext, ImageOperands &ops);
 

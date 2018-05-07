@@ -20,7 +20,6 @@ static void collect_shader_outputs(SchedBlock *block, int block_id, const IRShad
       if (out_idx == -1) continue;
       if (!shader_outputs_used[out_idx]) continue;
 
-      assert(!block->per_sample);
       IROutput *o = &sh->outputs[out_idx];
       if (o->block == block_id) {
          nodes[i] = block->outputs[o->output];
@@ -39,16 +38,22 @@ static Backflow *get_win_coord(Backflow *clip, Backflow *recip_w, int i) {
    if (!is_const(recip_w) || !(recip_w->unif == gfx_float_to_bits(1.0f)))
       win = mul(win, recip_w);
 
-   if (i == 2) return add(win, tr_special_uniform(BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z));
-   else        return tr_uop(V3D_QPU_OP_FTOIN, win);
+   Backflow *ret;
+   if (i == 2) ret = add(win, tr_special_uniform(BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z));
+   else        ret = tr_uop(V3D_QPU_OP_FTOIN, win);
+   ret->age = win->age = clip->age;
+   return ret;
 }
 
 static Backflow *get_recip_w(Backflow *clip_w) {
+   Backflow *ret;
    if (is_const(clip_w)) {
       float w_val = gfx_float_from_bits(clip_w->unif);
-      return tr_cfloat(1.0f/w_val);
+      ret = tr_cfloat(1.0f/w_val);
    } else
-      return tr_mov_to_reg(REG_MAGIC_RECIP, clip_w);
+      ret = recip(clip_w);
+   ret->age = clip_w->age;
+   return ret;
 }
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
@@ -237,8 +242,6 @@ void glsl_vertex_backend(
    const VertexBackendState *s,
    const bool *shader_outputs_used)
 {
-   assert(!block->per_sample);
-
    Backflow *bnodes[DF_BLOB_VERTEX_COUNT] = { 0, };
    collect_shader_outputs(block, block_id, sh, link_map, shader_outputs_used, bnodes);
 

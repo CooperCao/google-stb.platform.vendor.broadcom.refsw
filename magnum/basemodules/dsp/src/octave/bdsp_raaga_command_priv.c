@@ -86,7 +86,7 @@ BERR_Code BDSP_Raaga_P_ProcessInitCommand(
 
     BDSP_Raaga_P_CalculateInitMemory(&MemoryRequired);
     sCommand.uCommand.sRaagaInitCommand.sRWImageSizeInfo.ui32RWCommonMemSize += MemoryRequired;
-    BDSP_Raaga_P_CalculateDebugMemory(&pDevice->deviceSettings, &MemoryRequired);
+    BDSP_Raaga_P_CalculateDebugMemory((const BDSP_RaagaSettings*)&pDevice->deviceSettings, &MemoryRequired);
     sCommand.uCommand.sRaagaInitCommand.sRWImageSizeInfo.ui32RWCommonMemSize += MemoryRequired;
     sCommand.uCommand.sRaagaInitCommand.sRWImageSizeInfo.ui32RWSystemProcessMemSize= BDSP_IMG_TOPLEVEL_PROCESS_MEM_SIZE;
     sCommand.uCommand.sRaagaInitCommand.sRWImageSizeInfo.ui32RWDefaultMMMemSize    = BDSP_IMG_DEFAULT_MM_PROC_HEAP_SIZE;

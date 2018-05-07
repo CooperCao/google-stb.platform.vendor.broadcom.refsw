@@ -495,7 +495,6 @@ static BERR_Code BDSP_Raaga_P_FillNodeCfg(
                                 BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
                                 BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
 
-                                pTempIoGenBuffer_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pRaagaConnectStage->sIdsStageOutput.IoGenBuffDesc.pAddr;
                                 ui32IOGenPhysAddr = pRaagaConnectStage->sIdsStageOutput.StageIOGenericBuffDescAddr;
                                 BDBG_MSG(("FMM,RAVE,RDB i/p connection,ui32Ip=%d",ui32Ip));
                                 break;
@@ -773,7 +772,8 @@ static BERR_Code BDSP_Raaga_P_FillAudioGblTaskCfg (
     if(NULL == psFmmDestCfg)
     {
         BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Couldn't Allocate Memory for FMM DEST CONFIG"));
-        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        ui32Error = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_fmmdesc_alloc;
     }
 
     BDSP_P_InitializeFmmDstCfg(psFmmDestCfg);
@@ -967,8 +967,9 @@ static BERR_Code BDSP_Raaga_P_FillAudioGblTaskCfg (
     psGblTaskCfg->eTimeBaseType = pRaagaTask->startSettings.timeBaseType;
 
 end:
-    BKNI_Free(psTaskFmmGateOpenConfig);
     BKNI_Free(psFmmDestCfg);
+err_fmmdesc_alloc:
+	BKNI_Free(psTaskFmmGateOpenConfig);
 
     BDBG_LEAVE(BDSP_Raaga_P_FillAudioGblTaskCfg);
     return ui32Error;;

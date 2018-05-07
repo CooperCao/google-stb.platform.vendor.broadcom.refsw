@@ -15,7 +15,6 @@ struct glsl_intrinsic_data_s;
 texture,       INTRINSIC_TEXTURE
 textureSize,   INTRINSIC_TEXTURE_SIZE
 rsqrt,         INTRINSIC_RSQRT
-rcp,           INTRINSIC_RCP
 log2,          INTRINSIC_LOG2
 exp2,          INTRINSIC_EXP2
 ceil,          INTRINSIC_CEIL

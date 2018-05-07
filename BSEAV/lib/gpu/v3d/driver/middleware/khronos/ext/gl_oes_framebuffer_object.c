@@ -4,8 +4,8 @@
 #define GL_GLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_int_common.h"
-#include "interface/khronos/include/GLES/gl.h"
-#include "interface/khronos/include/GLES/glext.h"
+#include <GLES/gl.h>
+#include <GLES/glext.h>
 
 #include "middleware/khronos/glxx/glxx_server.h"
 

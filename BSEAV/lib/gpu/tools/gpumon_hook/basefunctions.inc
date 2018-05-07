@@ -1420,8 +1420,8 @@ static EGLBoolean base_eglGetEventDataBRCM(EGLint dataBufferBytes, void *data, E
    FuncRet(EGL, EGLBoolean , eglGetEventDataBRCM, (dataBufferBytes, data, bytesWritten, overflowed, timebase))
 #endif /* EGL_BRCM_event_monitor*/
 
-#if EGL_BRCM_gl_framebuffer_image
-#endif /* EGL_BRCM_gl_framebuffer_image*/
+#if EGL_BRCM_image_nexus_striped_surface
+#endif /* EGL_BRCM_image_nexus_striped_surface*/
 
 #if EGL_BRCM_image_update_control
 static EGLBoolean base_eglImageUpdateParameterivBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params)
@@ -1526,6 +1526,9 @@ static void base_glTexStorage1DBRCM(GLenum target, GLsizei levels, GLenum intern
 
 #if GL_BRCM_texture_unnormalised_coords
 #endif /* GL_BRCM_texture_unnormalised_coords*/
+
+#if GL_EXT_EGL_image_external_wrap_modes
+#endif /* GL_EXT_EGL_image_external_wrap_modes*/
 
 #if GL_EXT_base_instance
 static void base_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)

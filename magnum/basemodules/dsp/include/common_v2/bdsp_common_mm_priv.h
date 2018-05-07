@@ -56,6 +56,9 @@
 #define BDSP_MAX_DESCRIPTORS			   200
 #define BDSP_MAX_HOST_DSP_L2C_SIZE         512
 
+#define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER         4
+#define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER 1
+
 #define BDSP_ReadReg32(hReg, addr)             BREG_Read32(hReg, addr)
 #define BDSP_WriteReg32(hReg, addr, data)      BREG_Write32(hReg, addr, data)
 #define BDSP_ReadReg32_isr(hReg, addr)         BREG_Read32_isr(hReg, addr)

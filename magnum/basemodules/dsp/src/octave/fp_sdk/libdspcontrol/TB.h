@@ -135,6 +135,8 @@
 
 #include "libdspcontrol/CHIP.h"
 
+#if !FEATURE_IS(TB_VARIANT, NONE)
+
 #include "fp_sdk_config.h"
 
 #if !FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
@@ -757,5 +759,5 @@ TB_BUFF_SIZE TB_readSingleFrames(TB_data_descriptor *descriptor,
 }
 #endif
 
-
+#endif  /* !defined (TB_VARIANT, NONE)*/
 #endif /* _TB_H_ */

@@ -1,7 +1,7 @@
 /******************************************************************************
  *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
-#include <log/log.h>
+#include <cutils/log.h>
 #include "default_RSO_android.h"
 
 void __attribute__ ((constructor)) v3d_android_load(void);

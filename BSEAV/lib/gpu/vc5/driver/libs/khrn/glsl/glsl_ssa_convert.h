@@ -10,6 +10,6 @@
 
 EXTERN_C_BEGIN
 
-void glsl_ssa_convert(SSAShader *sh, BasicBlock *entry_block, const SymbolList *outs, Map *symbol_ids);
+void glsl_ssa_convert(SSAShader *sh, BasicBlock *entry_block, const struct if_usage *outs, Map *symbol_ids);
 
 EXTERN_C_END

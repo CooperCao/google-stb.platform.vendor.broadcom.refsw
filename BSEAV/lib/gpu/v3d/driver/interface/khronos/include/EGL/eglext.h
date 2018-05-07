@@ -30,11 +30,6 @@ extern "C" {
 
 #include "eglplatform.h"
 
-/* We want this */
-#ifndef EGL_EGLEXT_PROTOTYPES
-#define EGL_EGLEXT_PROTOTYPES
-#endif
-
 /* Weston uses EGLuint64KHR  */
 typedef khronos_uint64_t EGLuint64KHR;
 
@@ -95,6 +90,23 @@ EGLAPI EGLBoolean EGLAPIENTRY eglDestroyImageKHR (EGLDisplay dpy, EGLImageKHR im
 typedef EGLImageKHR (EGLAPIENTRYP PFNEGLCREATEIMAGEKHRPROC) (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLDESTROYIMAGEKHRPROC) (EGLDisplay dpy, EGLImageKHR image);
 #endif
+
+#ifndef EGL_KHR_create_context
+#define EGL_KHR_create_context 1
+#define EGL_CONTEXT_MAJOR_VERSION_KHR     0x3098
+#define EGL_CONTEXT_MINOR_VERSION_KHR     0x30FB
+#define EGL_CONTEXT_FLAGS_KHR             0x30FC
+#define EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR 0x30FD
+#define EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR 0x31BD
+#define EGL_NO_RESET_NOTIFICATION_KHR     0x31BE
+#define EGL_LOSE_CONTEXT_ON_RESET_KHR     0x31BF
+#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR  0x00000001
+#define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR 0x00000002
+#define EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR 0x00000004
+#define EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR 0x00000001
+#define EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR 0x00000002
+#define EGL_OPENGL_ES3_BIT_KHR            0x00000040
+#endif /* EGL_KHR_create_context */
 
 #ifndef EGL_KHR_vg_parent_image
 #define EGL_KHR_vg_parent_image 1
@@ -224,6 +236,11 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy,
 #define EGL_PLATFORM_WAYLAND_EXT          0x31D8
 #endif /* EGL_EXT_platform_wayland */
 
+#ifndef EGL_EXT_platform_x11
+#define EGL_EXT_platform_x11 1
+#define EGL_PLATFORM_X11_EXT              0x31D5
+#define EGL_PLATFORM_X11_SCREEN_EXT       0x31D6
+#endif /* EGL_EXT_platform_x11 */
 
 #ifdef __cplusplus
 }

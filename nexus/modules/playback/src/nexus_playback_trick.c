@@ -45,14 +45,17 @@ BDBG_MODULE(nexus_playback_trick);
 
 static void b_play_stc_rate(NEXUS_PlaybackHandle p, unsigned increment, unsigned prescale);
 static void b_play_stc_invalidate(NEXUS_PlaybackHandle p);
+#if NEXUS_HAS_AUDIO
 static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts);
 static void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
-static void NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
 static void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState);
 static NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState);
+#endif
+static void NEXUS_P_Playback_VideoDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid);
 static void NEXUS_P_Playback_VideoDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_VideoDecoderTrickState *pState);
 static NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_VideoDecoderTrickState *pState);
 
+#if NEXUS_HAS_AUDIO
 static void b_play_advance_audio_once(NEXUS_PlaybackHandle p)
 {
     BERR_Code rc;
@@ -94,6 +97,12 @@ b_play_trick_monitor(void *p_)
     p->trick.rap_monitor_timer = NEXUS_ScheduleTimer(100, b_play_trick_monitor, p);
     return;
 }
+#else
+static void b_play_advance_audio_once(NEXUS_PlaybackHandle p)
+{
+    BSTD_UNUSED(p);
+}
+#endif
 
 void
 b_play_flush(NEXUS_PlaybackHandle playback)
@@ -114,7 +123,9 @@ b_play_flush(NEXUS_PlaybackHandle playback)
         switch(pid->cfg.pidSettings.pidType) {
         default: break;
         case NEXUS_PidType_eVideo: NEXUS_P_Playback_VideoDecoder_Flush(pid); break;
+#if NEXUS_HAS_AUDIO
         case NEXUS_PidType_eAudio: NEXUS_P_Playback_AudioDecoder_Flush(pid); break;
+#endif
         }
     }
 
@@ -164,6 +175,7 @@ b_play_trick_get(NEXUS_PlaybackHandle p, b_trick_settings *cfg)
     *cfg = p->trick.settings;
 }
 
+#if NEXUS_HAS_AUDIO
 static NEXUS_Error
 b_play_trick_set_each_audio(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidChannel *pid, const b_trick_settings *settings)
 {
@@ -241,6 +253,7 @@ b_play_trick_set_each_audio(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidCh
 error:
     return rc;
 }
+#endif
 
 void NEXUS_Playback_P_VideoDecoderFirstPtsPassed(void *context)
 {
@@ -353,10 +366,12 @@ b_play_trick_set_pid(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidChannel *
         }
         break;
 
+#if NEXUS_HAS_AUDIO
     case NEXUS_PidType_eAudio:
         rc = b_play_trick_set_each_audio(p, pid, settings);
         if (rc)  return BERR_TRACE(rc);
         break;
+#endif
 
     default:
         break;
@@ -741,6 +756,7 @@ NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(const NEXUS_Playba
     return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 }
 
+#if NEXUS_HAS_AUDIO
 static void NEXUS_P_Playback_AudioDecoderStatus_Convert(const NEXUS_AudioDecoderStatus *audioStatus, NEXUS_P_Playback_AudioDecoderStatus *pStatus)
 {
     pStatus->started = audioStatus->started;
@@ -757,7 +773,6 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
     NEXUS_Error rc=NEXUS_SUCCESS;
     NEXUS_AudioDecoderStatus audioStatus;
 
-#if NEXUS_HAS_AUDIO
     /* primary and simple are mutually exclusive for status */
     if (pid->cfg.pidTypeSettings.audio.primary) {
         rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.primary, &audioStatus);
@@ -765,7 +780,6 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
         NEXUS_P_Playback_AudioDecoderStatus_Convert(&audioStatus, pStatus);
     }
     else
-#endif
 #if NEXUS_HAS_SIMPLE_DECODER
     if (pid->cfg.pidTypeSettings.audio.simpleDecoder) {
         rc = NEXUS_SimpleAudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.simpleDecoder, &audioStatus);
@@ -779,14 +793,12 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
     }
 
     if (pSecondaryStatus) {
-#if NEXUS_HAS_AUDIO
         if (pid->cfg.pidTypeSettings.audio.secondary) {
             rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.secondary, &audioStatus);
             if (rc) return BERR_TRACE(rc);
             NEXUS_P_Playback_AudioDecoderStatus_Convert(&audioStatus, pSecondaryStatus);
         }
         else
-#endif
         {
             BKNI_Memset(pSecondaryStatus, 0, sizeof(*pSecondaryStatus));
         }
@@ -810,7 +822,6 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
 static void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 {
     BSTD_UNUSED(pid);
-#if NEXUS_HAS_AUDIO
     if(pid->cfg.pidTypeSettings.audio.primary) {
         (void)NEXUS_AudioDecoder_Flush(pid->cfg.pidTypeSettings.audio.primary);
     }
@@ -823,7 +834,6 @@ static void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChanne
     if (pid->cfg.pidTypeSettings.audio.secondaryPrimer) {
         NEXUS_AudioDecoderPrimer_Flush(pid->cfg.pidTypeSettings.audio.secondaryPrimer);
     }
-#endif
 #if NEXUS_HAS_SIMPLE_DECODER
     if (pid->cfg.pidTypeSettings.audio.simpleDecoder) {
         NEXUS_SimpleAudioDecoder_Flush(pid->cfg.pidTypeSettings.audio.simpleDecoder);
@@ -837,7 +847,6 @@ static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChan
     BSTD_UNUSED(video_pts);
     BSTD_UNUSED(pid);
 
-#if NEXUS_HAS_AUDIO
     if(pid->cfg.pidTypeSettings.audio.primary) {
         if (pid->playback->state.audioTrick.primary) {
             rc = NEXUS_AudioDecoder_Advance(pid->cfg.pidTypeSettings.audio.primary, video_pts);
@@ -850,9 +859,6 @@ static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChan
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
         }
     }
-#else
-    BSTD_UNUSED(rc);
-#endif
 #if NEXUS_HAS_SIMPLE_DECODER
     if (pid->cfg.pidTypeSettings.audio.simpleDecoder) {
         rc = NEXUS_SimpleAudioDecoder_Advance(pid->cfg.pidTypeSettings.audio.simpleDecoder, video_pts);
@@ -860,17 +866,27 @@ static void NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChan
     }
 #endif
 }
+#else
+NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_P_Playback_AudioDecoderStatus *pStatus, NEXUS_P_Playback_AudioDecoderStatus *pSecondaryStatus)
+{
+    BSTD_UNUSED(pid);
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    if (pSecondaryStatus) {
+        BKNI_Memset(pSecondaryStatus, 0, sizeof(*pSecondaryStatus));
+    }
+    return NEXUS_SUCCESS;
+}
+#endif
 
+#if NEXUS_HAS_AUDIO
 static void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState)
 {
     BSTD_UNUSED(pid);
-#if NEXUS_HAS_AUDIO
     /* primary and simple are mutually exclusive for getting state */
     if (pid->cfg.pidTypeSettings.audio.primary) {
         NEXUS_AudioDecoder_GetTrickState(pid->cfg.pidTypeSettings.audio.primary, pState);
     }
     else 
-#endif
 #if NEXUS_HAS_SIMPLE_DECODER
     if (pid->cfg.pidTypeSettings.audio.simpleDecoder) {
         NEXUS_SimpleAudioDecoder_GetTrickState(pid->cfg.pidTypeSettings.audio.simpleDecoder, pState);
@@ -882,12 +898,10 @@ static void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_P
     }
 
     if (pSecondaryState) {
-#if NEXUS_HAS_AUDIO
         if (pid->cfg.pidTypeSettings.audio.secondary) {
             NEXUS_AudioDecoder_GetTrickState(pid->cfg.pidTypeSettings.audio.secondary, pSecondaryState);
         }
         else 
-#endif
         {
             BKNI_Memset(pSecondaryState, 0, sizeof(*pSecondaryState));
         }
@@ -902,7 +916,6 @@ static NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playb
     /* set any available */
     pid->playback->state.audioTrick.primary = 
     pid->playback->state.audioTrick.secondary = false;
-#if NEXUS_HAS_AUDIO
     if (pid->cfg.pidTypeSettings.audio.primary) {
         NEXUS_AudioDecoderStatus status;
         rc = NEXUS_AudioDecoder_GetStatus(pid->cfg.pidTypeSettings.audio.primary, &status);
@@ -921,7 +934,6 @@ static NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playb
             pid->playback->state.audioTrick.secondary = true;
         }
     }
-#endif
 #if NEXUS_HAS_SIMPLE_DECODER
     if (pid->cfg.pidTypeSettings.audio.simpleDecoder) {
         rc = NEXUS_SimpleAudioDecoder_SetTrickState(pid->cfg.pidTypeSettings.audio.simpleDecoder, pState);
@@ -930,6 +942,7 @@ static NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playb
 #endif
     return rc;
 }
+#endif
 
 /**
 abstraction for StcChannel and SimpleStcChannel

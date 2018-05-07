@@ -111,12 +111,8 @@ static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, cons
       at this point buffer->mh_storage is guaranteed to have size size
    */
 
-   if (data) {
-      void *storage = mem_lock(item->mh_storage, NULL);
-      khrn_memcpy(storage, data, size);
-      khrn_hw_flush_dcache_range(storage, size);
-      mem_unlock(item->mh_storage);
-   }
+   if (data)
+      khrn_handlecpy(item->mh_storage, 0, data, size);
 
    return true;
 }
@@ -163,12 +159,8 @@ static void glxx_buffer_inner_subdata(GLXX_BUFFER_INNER_T *item, int32_t offset,
 
    khrn_interlock_write_immediate(&item->interlock);
 
-   if(size>0) {
-      void *storage = (uint8_t *)mem_lock(item->mh_storage, NULL) + offset;
-      khrn_memcpy(storage, data, size);
-      khrn_hw_flush_dcache_range(storage, size);
-      mem_unlock(item->mh_storage);
-   }
+   if(size>0)
+      khrn_handlecpy(item->mh_storage, offset, data, size);
 }
 
 void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, const void *data)

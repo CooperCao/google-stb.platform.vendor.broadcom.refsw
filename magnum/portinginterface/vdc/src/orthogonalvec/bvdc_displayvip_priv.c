@@ -460,7 +460,7 @@ uint32_t BVDC_P_MemConfig_GetVipBufSizes ( const BVDC_P_VipMemSettings *pstMemSe
 
     /*2) Allocate Stack of buffers for the Original Shifted 4:2:2 top field Chroma for interlaced */
     if(bInterlaced) {
-        size_of_shifted_422_chroma_buffer = bInterlaced? size_of_420_chroma_buffer : 0;
+        size_of_shifted_422_chroma_buffer = size_of_420_chroma_buffer;
         pstMemConfig->ulShiftedChromaBufSize = size_of_shifted_422_chroma_buffer;
         pstMemConfig->ulNumShiftedBuf        = BAVC_VCE_GetRequiredBufferCount_isrsafe( &stVceBufferConfig, BAVC_VCE_BufferType_eShiftedChroma);
         BDBG_MODULE_MSG(BVDC_VIP_MEM,("# Shifted CrCb Bufs : %u", pstMemConfig->ulNumShiftedBuf));
@@ -973,8 +973,8 @@ void BVDC_P_Vip_GetBuffer_isr
             char path[40];
 
             hVip->bDumped = (++hVip->dumpCnt) >= hVip->numPicsToCapture;/* only capture ten */
-            pY = (void*)((uint32_t)hVip->pY + pPicture->ulLumaOffset);
-            pC = (void*)((uint32_t)hVip->pY + pPicture->ulChromaOffset);
+            pY = (void*)((uint8_t*)hVip->pY + pPicture->ulLumaOffset);
+            pC = (void*)((uint8_t*)hVip->pY + pPicture->ulChromaOffset);
             BMMA_FlushCache_isr(pPicture->hLumaBlock, pY, ulLumaBufSize);
             BMMA_FlushCache_isr(pPicture->hChromaBlock, pC, ulChromaBufSize);
 
@@ -1009,8 +1009,8 @@ void BVDC_P_Vip_GetBuffer_isr
             if(hVip->stMemSettings.bDecimatedLuma) {
                 uint32_t ulH1VBufSize = pPicture->ul1VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
                 uint32_t ulH2VBufSize = pPicture->ul2VLumaNMBY * totalStripes * pPicture->ulStripeWidth * 16;
-                pY1V = (void*)((uint32_t)hVip->pY + pPicture->ul1VLumaOffset);
-                pY2V = (void*)((uint32_t)hVip->pY + pPicture->ul2VLumaOffset);
+                pY1V = (void*)((uint8_t*)hVip->pY + pPicture->ul1VLumaOffset);
+                pY2V = (void*)((uint8_t*)hVip->pY + pPicture->ul2VLumaOffset);
                 BDBG_MSG(("2H1V pointer   = %p, offset = %#x, size = %u", pY1V, pPicture->ul1VLumaOffset, ulH1VBufSize));
                 BDBG_MSG(("2H2V pointer   = %p, offset = %#x, size = %u", pY2V, pPicture->ul2VLumaOffset, ulH2VBufSize));
                 BMMA_FlushCache_isr(pPicture->h1VLumaBlock, pY1V, ulH1VBufSize);
@@ -1037,7 +1037,7 @@ void BVDC_P_Vip_GetBuffer_isr
                 }
             }
             if(BAVC_Polarity_eTopField == pBuffer->stPicture.ePolarity) {
-                pCshift = (void*)((uint32_t)hVip->pY + pPicture->ulShiftedChromaOffset);
+                pCshift = (void*)((uint8_t*)hVip->pY + pPicture->ulShiftedChromaOffset);
                 BMMA_FlushCache_isr(pPicture->hShiftedChromaBlock, pCshift, ulChromaBufSize);
                 BDBG_MSG(("shifted chroma pointer   = %p, offset = %#x, size = %u", pCshift, pPicture->ulShiftedChromaOffset, ulChromaBufSize));
                 if(hVip->pfCshifted) {
@@ -1636,8 +1636,10 @@ void BVDC_P_Vip_BuildRul_isr
             BLST_SQ_REMOVE_HEAD(&hVip->stFreeQdecim2v, link);
             hVip->pToCaptureDecim2v = pBufferDecim2v;
             /* update decimated luma NMBY */
-            pBuffer->stPicture.ul1VLumaNMBY = BVDC_P_VIP_CalcNMBY_isr(DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight), hVip->stMemSettings.X, hVip->stMemSettings.Y);
-            pBuffer->stPicture.ul2VLumaNMBY = BVDC_P_VIP_CalcNMBY_isr(DIV32_ROUNDUP(pFmtInfo->ulDigitalHeight), hVip->stMemSettings.X, hVip->stMemSettings.Y);
+            pBuffer->stPicture.ul1VLumaNMBY = BVDC_P_VIP_CalcDcxvNMBY_isr(DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight),
+            hVip->stMemSettings.DcxvEnable, pFmtInfo->bInterlaced, false, hVip->stMemSettings.X, hVip->stMemSettings.Y);
+            pBuffer->stPicture.ul2VLumaNMBY = BVDC_P_VIP_CalcDcxvNMBY_isr(DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight),
+            hVip->stMemSettings.DcxvEnable, pFmtInfo->bInterlaced, false, hVip->stMemSettings.X, hVip->stMemSettings.Y);
         }
 
         BDBG_MODULE_MSG(BVDC_DISP_VIP,("[%u] display %d stg_id %d:", hVip->eId, hDisplay->eId, hDisplay->stStgChan.ulStg));

@@ -273,18 +273,21 @@ def output_sources(outf, functions):
     for fn in functions:
         fn_name, fn_return, fn_params, fn_body = fn
 
-        header = " ".join(fn_return) + " " + fn_name + "(" + ", ".join([param_string(p) for p in fn_params]) + ") {"
-
-        lines = fn_body.strip().rstrip().split("\n")
-        lines = [ header ] + lines
-
         body = ""
-        for line in lines:
-            if len(line.strip()) == 0:
-                body += "\n"
-            else:
-                body += "      \"" + line.replace("\"", "\\\"") + "\\n\"" + "\n"
-        body += "      \"}\\n\",\n\n"
+        if fn_body:
+            header = " ".join(fn_return) + " " + fn_name + "(" + ", ".join([param_string(p) for p in fn_params]) + ") {"
+
+            lines = fn_body.strip().rstrip().split("\n")
+            lines = [ header ] + lines
+
+            for line in lines:
+                if len(line.strip()) == 0:
+                    body += "\n"
+                else:
+                    body += "      \"" + line.replace("\"", "\\\"") + "\\n\"" + "\n"
+            body += "      \"}\\n\",\n\n"
+        else:
+            body = "      NULL,\n\n"
 
         print("      /* %s */" % manglename(fn), file=outf)
         outf.write(body)
@@ -794,7 +797,10 @@ def output_var_scalar_values(outf, var, map_name):
         for i,v in enumerate(rhs_values):
             v = v.strip().rstrip()
             comp_type = find_component_type(make_type_from_var(var),i,primtypemap, structmap)
-            outf.write("   scalar_values[%d] = glsl_dataflow_construct_nullary_op(%s);\n" % (i, v))
+            if v.isdigit():
+                outf.write("   scalar_values[%d] = glsl_dataflow_construct_const_value(DF_%s, %s);\n" % (i, comp_type[0].upper(), v))
+            else:
+                outf.write("   scalar_values[%d] = glsl_dataflow_construct_nullary_op(%s);\n" % (i, v))
         outf.write("   glsl_map_put(%s, &glsl_stdlib_variables[%s], scalar_values);\n" % (map_name, var_index(var)))
 
 def output_functions_enum(outf, functions):

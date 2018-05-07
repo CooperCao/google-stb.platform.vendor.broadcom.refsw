@@ -130,7 +130,7 @@
 )
 
 /* number of mem heap handles  */
-#define SPLASH_NUM_MEM        1
+#define SPLASH_NUM_MEM        2
 
 /* heap for RUL bufs */
 #define SPLASH_RUL_MEM        0   /* idx to BMMA_Handle array */

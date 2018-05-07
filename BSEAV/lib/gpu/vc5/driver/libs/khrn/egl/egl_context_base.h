@@ -41,7 +41,7 @@ typedef struct
 
    /* Destroy any resources inside the context (but don't free it-- that's
     * done in the base class along with allocation). */
-   void (*invalidate)(EGL_CONTEXT_T *context);
+   void (*term)(EGL_CONTEXT_T *context);
 }
 EGL_CONTEXT_METHODS_T;
 
@@ -60,7 +60,6 @@ struct egl_context_base
    EGLDisplay              display;
    egl_api_t               api;
    bool                    valid;
-   bool                    attached;
    bool                    debug;
    bool                    robustness;
    bool                    secure;
@@ -90,6 +89,9 @@ extern void egl_context_base_init(EGL_CONTEXT_T *context, EGLDisplay dpy,
       egl_api_t api, const EGL_CONFIG_T *config, bool debug,
       bool robustness, bool reset_notification,
       bool secure);
+
+/* Common termination for a context. */
+extern void egl_context_base_term(EGL_CONTEXT_T *context);
 
 /* Sets context's draw and read surfaces. */
 extern void egl_context_base_attach(EGL_CONTEXT_T *context,

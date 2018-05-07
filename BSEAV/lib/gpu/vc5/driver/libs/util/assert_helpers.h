@@ -16,7 +16,7 @@
 
 /* This shouldn't be called directly. It is exposed for use by demand.h. */
 #ifdef ANDROID
-#include <android/log.h>
+#include <log/log.h>
 #define assertion_failure(...)                                           \
    do                                                                    \
    {                                                                     \

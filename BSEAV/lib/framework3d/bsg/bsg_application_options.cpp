@@ -26,7 +26,6 @@ ApplicationOptions::ApplicationOptions() :
    m_showFpsHUD(false),
    m_log(true),
    m_showRuntime(false),
-   m_perfMonitoring(false),
    m_stereo(false),
 #ifdef BSG_USE_ES3
    m_apiVersion(eGLES_3_0),
@@ -50,9 +49,6 @@ ApplicationOptions::ApplicationOptions() :
    m_vpH(512),
    m_bpp(24),
    m_swapInterval(1),
-   m_monitorInterval(1),
-   m_monitorHw(0),
-   m_monitorL3c(0),
    m_bandwidth(0),
    m_memcFrequency(288),
    m_clientID(-1),
@@ -407,31 +403,6 @@ bool ApplicationOptions::ProcessArg(char *arg)
       return true;
 
    if (FloatMatch(&m_rateMultiplier, arg, "rate=%f"))
-      return true;
-
-   uint32_t d = 0;
-
-   if (UIntMatch(&d, arg, "dump_stats=%d"))
-   {
-      switch (d)
-      {
-      case 0:
-         m_perfMonitoring = true;
-         m_monitorHw = 0;
-         m_monitorL3c = 0;
-         return true;
-
-      case 1:
-         m_perfMonitoring = true;
-         m_monitorHw = 1;
-         m_monitorL3c = 1;
-         return true;
-      }
-
-      return false;
-   }
-
-   if (UIntMatch(&m_monitorInterval, arg, "stats_interval=%d"))
       return true;
 
    if (UIntMatch(&m_bandwidth, arg, "bandwidth=%d"))

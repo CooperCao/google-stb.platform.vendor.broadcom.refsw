@@ -130,13 +130,10 @@ bool glsl_map_clear_to_checkpoint(Map* map)
 void* glsl_map_pop(Map* map)
 {
    void* ret = NULL;
-   MapNode* old_head = NULL;
 
    if (map->head)
    {
       ret = map->head->v;
-
-      old_head = map->head;
       map->head = map->head->next;
    }
 

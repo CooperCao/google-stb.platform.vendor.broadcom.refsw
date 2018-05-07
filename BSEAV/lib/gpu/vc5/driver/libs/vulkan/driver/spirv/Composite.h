@@ -4,13 +4,11 @@
 
 #pragma once
 
-#include "NodeBase.h"
-#include "NodeIndex.h"
+#include "Nodes.h"
 #include "DflowScalars.h"
 
 namespace bvk {
 
-class Module;
 class DflowBuilder;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,7 +22,7 @@ class LayoutInfo
 {
 public:
    // Fills in the stride and layout
-   void CaptureMemberLayout(const Module &builder, const NodeTypeStruct *node, uint32_t index);
+   void CaptureMemberLayout(const NodeTypeStruct *node, uint32_t index);
 
    // Fills in rows and columns and sets "in matrix" flag
    void CaptureMatrixDetail(const NodeTypeMatrix *mat);
@@ -69,7 +67,6 @@ public:
    void Visit(const NodeTypeVector       *node) override;
    void Visit(const NodeTypeMatrix       *node) override;
    void Visit(const NodeTypeArray        *node) override;
-   void Visit(const NodeTypeRuntimeArray *node) override;
    void Visit(const NodeTypeStruct       *node) override;
 
 private:
@@ -91,32 +88,27 @@ class MemoryOffset : public NodeTypeVisitorAssert
 {
 public:
    static Dflow Calculate(DflowBuilder &builder, const NodeType *type,
-                          const spv::vector<const Node *> &indices);
-   static uint32_t CalculateStatic(DflowBuilder &builder, const NodeType *type,
-                                   const spv::vector<const Node *> &indices);
+                          const spv::vector<const Node *> &indices, const Dflow &buf);
 
    void Visit(const NodeTypeVector       *node) override;
    void Visit(const NodeTypeMatrix       *node) override;
    void Visit(const NodeTypeArray        *node) override;
-   void Visit(const NodeTypeRuntimeArray *node) override;
    void Visit(const NodeTypeStruct       *node) override;
 
 private:
-   MemoryOffset(DflowBuilder &builder, const NodeType *elem);
+   MemoryOffset(DflowBuilder &builder, const NodeType *elem, const Dflow &buf);
 
-   void ApplyIndex(uint32_t stride);
-   void VisitArray(const Node *array);
+   void ApplyIndex(uint32_t stride, const Dflow &last);
    void AcceptElement(const Node *index);
-   Dflow Result() const;
 
 private:
-   DflowBuilder    &m_builder;
+   DflowBuilder   &m_builder;
+   const Dflow    &m_buf;
    LayoutInfo      m_layoutInfo;
    const NodeType *m_elem;         // Current element
    const Node     *m_index;        // Current index node
 
-   Dflow           m_dynOffset;    // Accumulated dynamic offset (result)
-   uint32_t        m_constOffset;  // Accumulated constant offset (result)
+   Dflow           m_offset;       // Accumulated offset (result)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -193,7 +185,6 @@ public:
                                const spv::vector<const Node *> &indices);
 
    void Visit(const NodeTypeArray        *node) override;
-   void Visit(const NodeTypeRuntimeArray *node) override;
    void Visit(const NodeTypeMatrix       *node) override;
    void Visit(const NodeTypeStruct       *node) override;
 
@@ -300,7 +291,6 @@ public:
    void Visit(const NodeTypeInt *type)           override;
    void Visit(const NodeTypeVector *type)        override;
    void Visit(const NodeTypeArray *type)         override;
-   void Visit(const NodeTypeRuntimeArray *type)  override;
 
 private:
    IsSigned() {}
@@ -343,20 +333,18 @@ private:
 class IsSSBO : public NodeTypeVisitorEmpty
 {
 public:
-   static bool Test(const Module &m, const NodeVariable *v);
+   static bool Test(const NodeVariable *v);
 
    void Visit(const NodeTypeArray  *type) override;
    void Visit(const NodeTypeStruct *type) override;
 
 private:
-   IsSSBO(const Module &m) :
-      m_module(m),
+   IsSSBO() :
       m_isSSBO(false)
    {}
 
 private:
-   const Module &m_module;
-   bool          m_isSSBO;
+   bool m_isSSBO;
 };
 
 } // namespace bvk

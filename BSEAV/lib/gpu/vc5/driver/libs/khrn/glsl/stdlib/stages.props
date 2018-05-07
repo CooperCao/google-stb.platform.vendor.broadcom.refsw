@@ -110,6 +110,9 @@ compute:
   in    uvec3 gl_GlobalInvocationID;
   in    uint  gl_LocalInvocationIndex;
 
+  highp in uint __NumSubgroups;
+  highp in uint __SubgroupID;
+
   void barrier();
   void memoryBarrierShared();
   void groupMemoryBarrier();

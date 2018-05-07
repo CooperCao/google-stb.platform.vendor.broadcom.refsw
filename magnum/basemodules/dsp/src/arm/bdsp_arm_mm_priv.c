@@ -246,12 +246,12 @@ Function Name: BDSP_MM_P_GetFwMemRequired
                 and the required cumulative memory requirement is found out.
 
 *****************************************************************************/
-static BERR_Code BDSP_Arm_P_GetFwMemRequired(
+BERR_Code BDSP_Arm_P_GetFwMemRequired(
         const BDSP_ArmSettings  *pSettings,
         BDSP_Arm_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
-        void                      *pImg,
-        bool                       UseBDSPMacro,
-        const BDSP_ArmUsageOptions *pUsage
+        void                    *pImg,
+        bool                     UseBDSPMacro,
+        const BDSP_UsageOptions *pUsage
 )
 {
     BERR_Code ret= BERR_SUCCESS;
@@ -304,8 +304,8 @@ static BERR_Code BDSP_Arm_P_GetFwMemRequired(
         ui32AlgorithmSize = 0;
         for ( i = 0; i < algoExecInfo.NumNodes; i++ )
         {
-            BDSP_AF_P_AlgoId algoId = algoExecInfo.eAlgoIds[i];
-            if ( algoId < BDSP_AF_P_AlgoId_eMax )
+            BDSP_ARM_AF_P_AlgoId algoId = algoExecInfo.eAlgoIds[i];
+            if ( algoId < BDSP_ARM_AF_P_AlgoId_eMax )
             {
                 ui32AlgorithmSize += pImgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size;
                 ui32AlgorithmSize += pImgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size;
@@ -382,6 +382,24 @@ static BERR_Code BDSP_Arm_P_GetFwMemRequirement(BDSP_Arm *pDevice)
     pDevice->pFwHeapMemory = pDwnldMemInfo->ImgBuf.pAddr;
 	pDevice->FwHeapOffset = pDwnldMemInfo->ImgBuf.offset;
     return errCode;
+}
+
+void BDSP_Arm_P_CalculateInitMemory(
+	unsigned *pMemoryReq
+)
+{
+    /*Interface Queue Memory */
+    *pMemoryReq += (BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE * sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER));
+    /* Max tasks that can supported 12 in case of 6x Passthru */
+    *pMemoryReq += (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Command)*BDSP_ARM_MAX_FW_TASK_PER_DSP);
+    /* Single Response Queue is allocated for whole of DSP */
+    *pMemoryReq += (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response));
+    /* Memory Requirement of MAP TABLE */
+    *pMemoryReq += sizeof(BDSP_MAP_Table);
+    /* HBC Memory*/
+    *pMemoryReq += sizeof(BDSP_Arm_P_HbcInfo);
+
+	BDBG_MSG((" INIT Memory = %d",*pMemoryReq ));
 }
 
 BERR_Code BDSP_Arm_P_AllocateInitMemory (
@@ -922,6 +940,44 @@ BERR_Code BDSP_Arm_P_FreeContextMemory(
     return err;
 }
 
+void BDSP_Arm_P_CalculateTaskMemory(
+    unsigned *pMemoryReq
+)
+{
+    /* Task Port Config Memory Allocation */
+    *pMemoryReq += (BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE + /*BDSP_CIT_P_TASK_SPDIF_USER_CFG_MEM_SIZE*/
+                    BDSP_CIT_P_TASK_FMM_GATE_OPEN_CONFIG +
+                    BDSP_CIT_P_TASK_HW_FW_CONFIG +
+                    BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE +
+                    BDSP_CIT_P_TASK_STC_TRIG_CONFIG_SIZE);
+
+    /*Memory for Sync Response Queue */
+    *pMemoryReq += (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response));
+
+    /*Memory for Async Response Queue */
+    *pMemoryReq += (BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg));
+
+    /*Memory for Task Swapping */
+    *pMemoryReq += BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES;
+
+    /*Memory for Task  Gate Open Buffer Configuration */
+    *pMemoryReq += (BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER));
+
+    /*Memory for Task Parameters */
+    *pMemoryReq += sizeof(BDSP_P_TaskParamInfo);
+
+    /* Memory for CIT structure */
+    *pMemoryReq += sizeof(BDSP_AF_P_sTASK_CONFIG);
+
+    /* Memory for SPARE CIT structure */
+    *pMemoryReq += sizeof(BDSP_AF_P_sTASK_CONFIG);
+
+    /*Memory for Feedback buffer for Master Task */
+    *pMemoryReq += (BDSP_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4);
+
+	BDBG_MSG((" TASK Memory = %d",*pMemoryReq ));
+}
+
 BERR_Code BDSP_Arm_P_AllocateTaskMemory(
     void *pTaskHandle,
     const BDSP_TaskCreateSettings *pSettings
@@ -1232,6 +1288,101 @@ BERR_Code BDSP_Arm_P_FreeTaskMemory(
 
     BDBG_LEAVE(BDSP_Arm_P_FreeTaskMemory);
     return err;
+}
+
+void BDSP_Arm_P_CalculateStageMemory(
+    BDSP_AlgorithmType AlgorithmType,
+    unsigned          *pMemoryReq,
+    const BDSP_UsageOptions *pUsage
+    )
+{
+    BDSP_ARM_AF_P_AlgoId algoId;
+
+    uint32_t ui32AlgoIf = 0, ui32AlgoCfgBuf = 0, ui32AlgoStatusBuf = 0;
+    uint32_t ui32FsIf = 0, ui32FsCfgBuf = 0, ui32FsStatusBuf = 0;
+    uint32_t ui32TempIf = 0, ui32TempCfgBuf = 0, ui32TempStatusBuf =0;
+
+    unsigned int i = 0, j = 0;
+
+    BDBG_ENTER(BDSP_Arm_P_CalculateStageMemory);
+
+    for ( i=0; i < BDSP_Algorithm_eMax; i++ )
+    {
+        const BDSP_Arm_P_AlgorithmSupportInfo *pInfo;
+        pInfo = BDSP_Arm_P_LookupAlgorithmSupported(i,pUsage->DolbyCodecVersion);
+        if (( pUsage->Codeclist[i]!= true)||( pInfo->type != AlgorithmType))
+        {
+            continue;
+        }
+
+        ui32TempIf = 0;
+        ui32TempCfgBuf = 0;
+        ui32TempStatusBuf =0;
+
+        /* Framesync buffer requirement is computed separately */
+        algoId = pInfo->algoExecInfo.eAlgoIds[0];
+        if ( algoId < BDSP_ARM_AF_P_AlgoId_eMax )
+        {
+            if (ui32FsIf < BDSP_ARM_sNodeInfo[algoId].ui32InterFrmBuffSize)
+            {
+                ui32FsIf = BDSP_ARM_sNodeInfo[algoId].ui32InterFrmBuffSize;
+            }
+            if (ui32FsCfgBuf < BDSP_ARM_sNodeInfo[algoId].ui32UserCfgBuffSize)
+            {
+                ui32FsCfgBuf = BDSP_ARM_sNodeInfo[algoId].ui32UserCfgBuffSize;
+            }
+            if (ui32FsStatusBuf < BDSP_ARM_sNodeInfo[algoId].ui32StatusBuffSize)
+            {
+                ui32FsStatusBuf = BDSP_ARM_sNodeInfo[algoId].ui32StatusBuffSize;
+            }
+        }
+
+        /* Buffer requirement for the rest of the nodes */
+        for( j=1; j < pInfo->algoExecInfo.NumNodes; j++ )
+        {
+            algoId = pInfo->algoExecInfo.eAlgoIds[j];
+            if(algoId < BDSP_ARM_AF_P_AlgoId_eMax)
+            {
+                ui32TempIf += BDSP_ARM_sNodeInfo[algoId].ui32InterFrmBuffSize;
+                ui32TempCfgBuf += BDSP_ARM_sNodeInfo[algoId].ui32UserCfgBuffSize;
+                ui32TempStatusBuf += BDSP_ARM_sNodeInfo[algoId].ui32StatusBuffSize;
+            }
+        }
+
+        if ( ui32TempIf > ui32AlgoIf )
+        {
+            ui32AlgoIf = ui32TempIf;
+        }
+        if ( ui32TempCfgBuf > ui32AlgoCfgBuf )
+        {
+            ui32AlgoCfgBuf = ui32TempCfgBuf;
+        }
+        if ( ui32TempStatusBuf > ui32AlgoStatusBuf )
+        {
+            ui32AlgoStatusBuf = ui32TempStatusBuf;
+        }
+    }
+
+    /* Accounting Interframe */
+    *pMemoryReq += (ui32AlgoIf + ui32FsIf);
+
+    /* Accounting DSP User Config */
+    *pMemoryReq += (ui32AlgoCfgBuf + ui32FsCfgBuf);
+
+    /* Accounting HOST User Config */
+    *pMemoryReq += (ui32AlgoCfgBuf + ui32FsCfgBuf);
+
+    /* Accounting Status Buffer */
+    *pMemoryReq += (ui32AlgoStatusBuf + ui32FsStatusBuf);
+
+    /*Configuration structure allocations for a stage*/
+    *pMemoryReq += (SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER))*(BDSP_AF_P_MAX_IP_FORKS+BDSP_AF_P_MAX_OP_FORKS);
+
+    /* For IDS output buffer descriptors */
+    *pMemoryReq += (SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
+
+	BDBG_MSG((" STAGE Memory = %d",*pMemoryReq ));
+    BDBG_LEAVE(BDSP_Arm_P_CalculateStageMemory);
 }
 
 BERR_Code BDSP_Arm_P_AllocateStageMemory(

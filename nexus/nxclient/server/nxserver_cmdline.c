@@ -93,10 +93,13 @@ static void print_full_usage(void)
     "  -ignore_video_edid \tdon't consider HDMI EDID for video output\n"
     "  -dolby_vision_blend_in_lms   dolby vision gfx blend in LMS instead of ICtCp color space\n"
     );
-    printf(
 #if NEXUS_HAS_IR_INPUT
+    printf(
     "  -ir {silver|black|a|b|rcmm|gisat|rstep|none} \tIR remote mode, comma-separated list of two supported, default is \"silver,none\"\n"
+    "  -cec_ir        \tProcess CEC string as an equivalent IR code\n"
+    );
 #endif
+    printf(
     "  -evdev off     \tdisable evdev input\n"
     "  -keypad on     \tenable keypad input\n"
     "  -transcode {on|off|sd} \toff = no transcode, sd = steal SD display when starting DSP transcode\n"
@@ -875,6 +878,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
                 settings->session[0].ir_input.mode[0] = nxserver_ir_input_mode(argv[curarg]);
             }
         }
+        else if (!strcmp(argv[curarg], "-cec_ir")) {
+            settings->session[0].ir_input.cec = true;
+        }
         else if (!strcmp(argv[curarg], "-ir_standby_filter") && curarg+1 < argc) {
             settings->session[0].ir_input.standby_filter = strtoul(argv[++curarg], NULL, 0);
         }
@@ -1191,6 +1197,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if(!strcmp(argv[curarg], "-thermal_config_file") && curarg+1<argc) {
             settings->thermal.thermal_config_file = argv[++curarg];
         }
+#if NEXUS_HAS_HDMI_OUTPUT
         else if(!strcmp(argv[curarg], "-hdmi_preemphasis") && curarg+1<argc) {
             unsigned index, arg[5];
             if (sscanf(argv[++curarg], "%u,%u,%u,%x,%x,%x", &index, &arg[0], &arg[1], &arg[2], &arg[3], &arg[4]) != 6 ||
@@ -1205,6 +1212,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             settings->hdmiPreEmphasis.config.tmdsRange[index].HDMI_TX_PHY_CTL_1 = arg[3];
             settings->hdmiPreEmphasis.config.tmdsRange[index].HDMI_TX_PHY_CTL_2 = arg[4];
         }
+#endif
         else if (!strcmp(argv[curarg], "-watchdog")) {
             settings->watchdog = true;
         }
@@ -1283,7 +1291,14 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
         }
     }
 #endif
-    pPlatformSettings->openCec = false; /* clients may open it */
+    if( settings->session[0].ir_input.cec )
+    {
+        pPlatformSettings->openCec = true;
+    }
+    else
+    {
+        pPlatformSettings->openCec = false; /* clients may open it */
+    }
     if (!cmdline_settings->frontend) {
         pPlatformSettings->openFrontend = false;
     }

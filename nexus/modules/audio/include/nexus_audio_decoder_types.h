@@ -102,19 +102,6 @@ typedef enum NEXUS_AudioDecoderLatencyMode
 
 /***************************************************************************
 Summary:
-Audio decoder secure type settings (for CDB/ITB)
-***************************************************************************/
-typedef enum NEXUS_AudioDecoderSecureType
-{
-    NEXUS_AudioDecoderSecureType_eAuto,         /* GLR or CRR - specificed by cdbHeap in NEXUS_AudioDecoderOpenSettings */
-    NEXUS_AudioDecoderSecureType_eSecure,       /* Must be set when the content source is DRM protected, and ARR secure memory is availabe.
-                                                   Host based Audio decoders will use protected memory (ARR) when this is set.
-                                                   Non-host based decoders will use the heap specified by cdbHeap in NEXUS_AudioDecoderOpenSettings. */
-    NEXUS_AudioDecoderSecureType_eMax
-} NEXUS_AudioDecoderSecureType;
-
-/***************************************************************************
-Summary:
 Audio decoder program settings
 ***************************************************************************/
 typedef struct NEXUS_AudioDecoderStartSettings
@@ -146,7 +133,6 @@ typedef struct NEXUS_AudioDecoderStartSettings
                                            Note, setting maxOutputRate = 96000 requires NEXUS_AudioModuleSettings->maxPcmSampleRate to
                                            also be increased to 96000 at Init time. */
     bool karaokeModeEnabled;            /* If true, karaoke postprocess is enabled. */
-    NEXUS_AudioDecoderSecureType secureAudio; /* deprecated */
 } NEXUS_AudioDecoderStartSettings;
 
 /***************************************************************************

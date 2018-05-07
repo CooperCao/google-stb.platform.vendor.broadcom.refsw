@@ -40,9 +40,11 @@
 
 #include "bvc5_registers_priv.h"
 
-#define BVC5_P_EVENT_MONITOR_SCHED_TRACK     0
-#define BVC5_P_EVENT_MONITOR_TFU_TRACK       1
-#define BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS 2
+#define BVC5_P_EVENT_MONITOR_SCHED_TRACK        0
+#define BVC5_P_EVENT_MONITOR_TFU_TRACK          1
+#define BVC5_P_EVENT_MONITOR_SCHED_WAIT_TRACK   2
+#define BVC5_P_EVENT_MONITOR_SCHED_FENCE_TRACK  3
+#define BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS    4
 
 /* These are per core, so are actually offsets */
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -72,7 +74,9 @@
 #define BVC5_P_EVENT_MONITOR_FLUSH_VC5       10
 #define BVC5_P_EVENT_MONITOR_FLUSH_CPU       11
 #define BVC5_P_EVENT_MONITOR_PART_FLUSH_CPU  12
-#define BVC5_P_EVENT_MONITOR_NUM_EVENTS      13
+#define BVC5_P_EVENT_MONITOR_SHED_FENCE      13
+#define BVC5_P_EVENT_MONITOR_SHED_JOB_WAIT   14
+#define BVC5_P_EVENT_MONITOR_NUM_EVENTS      15
 
 #define BVC5_P_EVENT_MONITOR_MAX_FIELDS      (7 + BVC5_MAX_DEPENDENCIES)
 
@@ -152,6 +156,7 @@ typedef struct BVC5_P_EventMonitor
 
    bool                    bActive;
    uint32_t                uiSchedTrackNextId;
+   uint32_t                uiSchedFenceTrackNextId;
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
    BVC5_P_JobQueue         sRenderJobQueueCLE;
@@ -198,6 +203,24 @@ bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
    BVC5_EventType       eEventType,
    BVC5_P_EventInfo    *psEventInfo,
+   uint64_t             uiTimestamp
+   );
+
+bool BVC5_P_AddSchedWaitJobEvent(
+   BVC5_Handle          hVC5,
+   uint32_t             uiClientId,
+   BVC5_EventType       eEventType,
+   uint64_t             uiJobId,
+   uint32_t             uiFenceId,
+   uint64_t             uiTimestamp
+   );
+
+bool BVC5_P_AddSchedFenceEvent(
+   BVC5_Handle          hVC5,
+   uint32_t             uiClientId,
+   BVC5_EventType       eEventType,
+   uint32_t             uiFenceUid,
+   uint32_t             uiFenceId,
    uint64_t             uiTimestamp
    );
 

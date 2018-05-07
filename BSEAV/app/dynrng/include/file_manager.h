@@ -38,6 +38,7 @@
 #ifndef FILE_MANAGER_H__
 #define FILE_MANAGER_H__ 1
 
+#include "string_list.h"
 #include <stdbool.h>
 
 typedef struct FileManager * FileManagerHandle;
@@ -55,5 +56,6 @@ FileManagerHandle file_manager_create(const FileManagerCreateSettings * pSetting
 void file_manager_destroy(FileManagerHandle manager);
 const char * file_manager_find(FileManagerHandle manager, const char * path);
 unsigned file_manager_get_count(FileManagerHandle manager);
+StringListHandle file_manager_get_base_names(FileManagerHandle manager);
 
 #endif /* FILE_MANAGER_H__ */

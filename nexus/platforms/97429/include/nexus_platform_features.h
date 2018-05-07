@@ -79,7 +79,6 @@ upon the chip usage. See below */
 #define NEXUS_NUM_VIDEO_WINDOWS   2
 
 /* I2C Channels */
-#define NEXUS_NUM_I2C_CHANNELS 5
 #define NEXUS_I2C_CHANNEL_HDMI_TX 2
 
 /* Smartcard Channels */

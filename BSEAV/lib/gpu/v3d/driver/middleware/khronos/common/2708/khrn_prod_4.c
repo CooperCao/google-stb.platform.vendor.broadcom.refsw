@@ -11,13 +11,14 @@
 #include "middleware/khronos/common/2708/khrn_cle_debug_4.h"
 #endif
 
-#include "interface/khronos/include/EGL/egl.h"
+#include <EGL/egl.h>
 #include "vcfw/drivers/chip/abstract_v3d.h"
 
 #include <stddef.h> /* for offsetof */
 #include <stdio.h>
 #ifdef __mips__
 #include <dlfcn.h>
+#include <stdlib.h>
 #endif /* __mips__ */
 
 static VCOS_MUTEX_T  backtrace_mutex;
@@ -59,7 +60,6 @@ int backtrace_mips32(void **buffer, int size)
    size_t ra_offset;
    size_t stack_size = 0;
    int depth;
-   void *x;
 
    if (!((buffer != NULL) && (size > 0)))
       return 0;

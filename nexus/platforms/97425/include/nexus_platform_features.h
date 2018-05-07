@@ -106,7 +106,7 @@ upon the chip usage. See below */
 #endif
 #endif 
 
-#if NEXUS_USE_FRONTEND_DAUGHTER_CARD
+#if defined NEXUS_USE_FRONTEND_DAUGHTER_CARD
 #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
 #endif
 #endif
@@ -119,9 +119,6 @@ upon the chip usage. See below */
 #define NEXUS_NUM_SPI_CHANNELS 2
 
 
-
-/* I2C Channels */
-#define NEXUS_NUM_I2C_CHANNELS 5
 
 /* I2C channel usage assignments. Refer to BSC table in the board schematics. */
 #if (BCHP_VER >= BCHP_VER_B0)

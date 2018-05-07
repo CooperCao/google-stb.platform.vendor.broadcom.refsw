@@ -96,34 +96,13 @@ static void WriteBufferDetails(
    s << "_off_" << offset;
 }
 
-// Public helper used by various command implementations to replace the
-// format in a buffer descriptor with a different one suitable for the TLB.
-// This is used to allow a wider range of operations and formats to use the
-// TLB (for example clears of all TMU supported formats), even though the
-// Vulkan image format is not directly supported by the TLB hardware.
-void Image::AdjustDescForTLBLfmt(
-   GFX_BUFFER_DESC_T *desc,
-   GFX_LFMT_T         lfmt,
-   bool               multisampled)
-{
-   // Mask the parts of the lfmt that we need to transplant
-   // into the descriptor to get a valid TLB format.
-   const auto mask = GFX_LFMT_BASE_MASK | GFX_LFMT_TYPE_MASK | GFX_LFMT_CHANNELS_MASK;
-   GFX_LFMT_T srcLFMT;
-
-   if (lfmt == GFX_LFMT_NONE)
-      srcLFMT = static_cast<GFX_LFMT_T>(desc->planes[0].lfmt & mask);
-   else
-      srcLFMT = static_cast<GFX_LFMT_T>(lfmt & mask);
-
-   desc->planes[0].lfmt = static_cast<GFX_LFMT_T>((desc->planes[0].lfmt & ~mask) | srcLFMT);
-}
-
 // Helper for the image constructor to translate the Vulkan create info into
 // GFX usage flags for gfx_buffer_desc_gen()
 static gfx_buffer_usage_t CalcGfxBufferUsage(VkImageCreateFlags flags, GFX_LFMT_T lfmt,
                                              VkImageTiling tiling, VkImageUsageFlags usage)
 {
+   uint32_t gfxUsage = GFX_BUFFER_USAGE_NONE;
+
    // Map the Vulkan usage flags into GFX flags
    constexpr uint32_t textureFlags =
       VK_IMAGE_USAGE_SAMPLED_BIT |
@@ -133,8 +112,6 @@ static gfx_buffer_usage_t CalcGfxBufferUsage(VkImageCreateFlags flags, GFX_LFMT_
    // TODO: fit in transient attachments into the render target configuration
    constexpr uint32_t rtFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
    constexpr uint32_t dsFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-   uint32_t gfxUsage = GFX_BUFFER_USAGE_NONE;
 
    if ((usage & textureFlags) != 0)
       gfxUsage |= GFX_BUFFER_USAGE_V3D_TEXTURE;
@@ -172,6 +149,7 @@ static gfx_buffer_usage_t CalcGfxBufferUsage(VkImageCreateFlags flags, GFX_LFMT_
       // We will therefore deal with any blits from raster images in the blit
       // code as and when needed.
    }
+
    return (gfx_buffer_usage_t)gfxUsage;
 }
 
@@ -204,82 +182,6 @@ void Image::UseImageCreateInfoExtension(const VkImageCreateInfo *pci)
       m_boundOffset = 0;
       m_externalImage = true;
 #endif
-   }
-}
-
-// Debug helper for the image constructor to trap invalid API usage
-static void CheckValidUsage(const VkImageCreateInfo *ci)
-{
-   // NOTE: If you change any of the asserts make sure that this is also
-   //       reflected in what is returned by:
-   //       PhysicalDevice::GetPhysicalDeviceImageFormatProperties()
-
-   GFX_LFMT_T lfmt = Formats::GetLFMT(ci->format);
-
-   // Tiling mode
-   if (ci->tiling == VK_IMAGE_TILING_LINEAR)
-   {
-      // Spec v1.0.26: 31.4.1 Supported Sample Counts. Linear multi-sampled
-      // images are not allowed.
-      assert(ci->samples == VK_SAMPLE_COUNT_1_BIT);
-
-      // Spec v1.0.26: 11.3 Images, linear images are only required to be
-      // supported with 1 miplevel. As they cannot be used as textures with
-      // our devices there is no point supporting more.
-      assert(ci->mipLevels == 1);
-
-      // Spec v1.0.32: 11.3 Images, depth/stencil linear images are optional.
-      // The physical device image format properties will report these formats
-      // as not supported for tiling linear usage.
-      assert(!gfx_lfmt_has_depth(lfmt) && !gfx_lfmt_has_stencil(lfmt));
-   }
-   else
-   {
-      assert((ci->samples & VK_SAMPLE_COUNT_1_BIT) != 0 ||
-             (ci->samples & VK_SAMPLE_COUNT_4_BIT) != 0);
-   }
-
-   // Trap incompatible cubemap configuration
-   if (ci->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
-   {
-      assert(ci->imageType == VK_IMAGE_TYPE_2D);
-      assert(ci->arrayLayers >= 6);
-      assert(ci->extent.width == ci->extent.height);
-      assert(ci->samples == VK_SAMPLE_COUNT_1_BIT);
-      assert(ci->tiling == VK_IMAGE_TILING_OPTIMAL);
-   }
-
-   // Multisample config
-   if (ci->samples == VK_SAMPLE_COUNT_4_BIT)
-   {
-      assert(!gfx_lfmt_is_compressed(lfmt));
-
-      // Spec v1.0.26:
-      // - 31.4.1 Supported Sample Counts. Only 2D, tiling optimal
-      assert(ci->imageType == VK_IMAGE_TYPE_2D);
-      assert(ci->tiling == VK_IMAGE_TILING_OPTIMAL);
-      // - 11.3 Images. Valid usage table for vkCreateImage, mipLevels must be 1
-      //        if samples != VK_SAMPLE_COUNT_1_BIT
-      assert(ci->mipLevels == 1);
-   }
-
-   switch (ci->imageType)
-   {
-   case VK_IMAGE_TYPE_1D:
-      // This is listed as required valid usage on image creation
-      assert(ci->extent.height == 1);
-      assert(ci->extent.depth  == 1);
-      break;
-   case VK_IMAGE_TYPE_2D:
-      // This is listed as required valid usage on image creation
-      assert(ci->extent.depth == 1);
-      break;
-   case VK_IMAGE_TYPE_3D:
-      // No arrays of 3D
-      assert(ci->arrayLayers == 1);
-      break;
-   default:
-      unreachable();
    }
 }
 
@@ -318,10 +220,6 @@ Image::Image(
       m_transient = pCreateInfo->usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
    else
       m_transient = false;
-
-#ifndef NDEBUG
-   CheckValidUsage(pCreateInfo);
-#endif
 
    // Note: we will NEVER set a y-flip on any formats in the Vulkan driver.
    // The first data in memory represents the top-left corner of the image (which matches
@@ -518,13 +416,6 @@ void Image::InitGMemTarget(
 
 //////////////////////////////////////////////////////////////////////////////
 // CmdImageCopy implementation
-static inline void AdjustDescForCopyCompatibility(
-   GFX_BUFFER_DESC_T       *dstDesc,
-   const GFX_BUFFER_DESC_T &srcDesc)
-{
-   dstDesc->planes[0].lfmt = gfx_lfmt_set_format(dstDesc->planes[0].lfmt, srcDesc.planes[0].lfmt);
-}
-
 static inline void Adjust3DDescTo2DSlice(GFX_BUFFER_DESC_T *desc, size_t slice)
 {
    assert(desc->num_planes == 1);
@@ -536,6 +427,89 @@ static inline void Adjust3DDescTo2DSlice(GFX_BUFFER_DESC_T *desc, size_t slice)
    desc->depth = 1;
    desc->planes[0].offset += desc->planes[0].slice_pitch * slice;
    desc->planes[0].slice_pitch = 0;
+}
+
+static v3d_imgconv_conversion_op CopyAspectToImgconvOp(
+   VkImageAspectFlags aspectMask, GFX_LFMT_T srcLFMT, GFX_LFMT_T dstLFMT)
+{
+   v3d_imgconv_conversion_op dstConversion = V3D_IMGCONV_CONVERSION_FORMAT;
+   switch (aspectMask)
+   {
+      // Combined depth/stencil formats need special treatment when copying
+      // just one aspect as the other aspect must be preserved in the
+      // destination.
+      //
+      // Note that we do not support D32S8 in the physical device properites.
+      case VK_IMAGE_ASPECT_DEPTH_BIT:
+         assert(gfx_lfmt_has_depth(dstLFMT));
+         dstConversion = V3D_IMGCONV_CONVERSION_DEPTH_ONLY;
+         break;
+      case VK_IMAGE_ASPECT_STENCIL_BIT:
+         assert(gfx_lfmt_has_stencil(dstLFMT));
+         dstConversion = V3D_IMGCONV_CONVERSION_STENCIL_ONLY;
+         break;
+      case VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT:
+         assert(gfx_lfmt_has_depth_stencil(dstLFMT));
+         break;
+      case VK_IMAGE_ASPECT_COLOR_BIT:
+      {
+         assert(!gfx_lfmt_has_depth(srcLFMT) && !gfx_lfmt_has_stencil(srcLFMT));
+         assert(!gfx_lfmt_has_depth(dstLFMT) && !gfx_lfmt_has_stencil(dstLFMT));
+         break;
+      }
+      default:
+         // Any other aspect bit combination is invalid
+         unreachable();
+   }
+   return dstConversion;
+}
+
+static void CalculateCopyExtentAndOffsets(
+   const VkImageCopy    &region,
+   VkSampleCountFlagBits samples,
+   GFX_LFMT_T            srcLFMT,
+   GFX_LFMT_T            dstLFMT,
+   VkExtent2D           *extent,
+   VkOffset3D           *srcOffset,
+   VkOffset3D           *dstOffset)
+{
+   // The source and dest sample counts must match, we need to multiply
+   // the extent and offsets by 2 for 4x multisampled images.
+   int sampleAdjust;
+   switch(samples)
+   {
+      case VK_SAMPLE_COUNT_1_BIT: sampleAdjust = 1; break;
+      case VK_SAMPLE_COUNT_4_BIT: sampleAdjust = 2; break;
+      default: unreachable();
+   }
+
+   extent->width  = region.extent.width  * sampleAdjust;
+   extent->height = region.extent.height * sampleAdjust;
+
+   srcOffset->x = region.srcOffset.x * sampleAdjust;
+   srcOffset->y = region.srcOffset.y * sampleAdjust;
+   srcOffset->z = 0;
+
+   dstOffset->x = region.dstOffset.x * sampleAdjust;
+   dstOffset->y = region.dstOffset.y * sampleAdjust;
+   dstOffset->z = 0;
+
+   // We cannot trust the height in the extent or the y offsets will be
+   // valid values for 1D images.
+   //
+   // Note: 1-D multisampled images are not allowed by the spec (see 31.4.1
+   //       supported sample counts) so the height is set explicitly to 1
+   if (gfx_lfmt_is_1d(srcLFMT))
+   {
+      extent->height = 1;
+      srcOffset->y   = 0;
+   }
+
+   if (gfx_lfmt_is_1d(dstLFMT))
+   {
+      extent->height = 1;
+      dstOffset->y   = 0;
+   }
 }
 
 JobID Image::CopyOneImageRegion(
@@ -570,28 +544,13 @@ JobID Image::CopyOneImageRegion(
    // Pull out some useful info about the image formats
    const auto srcLFMT         = pSrcImg->LFMT();
    const auto dstLFMT         = LFMT();
-   const bool srcIsCompressed = gfx_lfmt_is_compressed(srcLFMT);
-   const bool dstIsCompressed = gfx_lfmt_is_compressed(dstLFMT);
    const bool srcIs3D         = gfx_lfmt_is_3d(srcLFMT);
    const bool dstIs3D         = gfx_lfmt_is_3d(dstLFMT);
 
-   // The source and dest sample counts must match, we need to multiply
-   // the extent and offsets by 2 for 4x multisampled images.
-   int sampleAdjust;
-   switch(m_samples)
-   {
-      case VK_SAMPLE_COUNT_1_BIT: sampleAdjust = 1; break;
-      case VK_SAMPLE_COUNT_4_BIT: sampleAdjust = 2; break;
-      default: unreachable();
-   }
-
    // Copy the src and dst descriptors so we can modify them for this
    // specific transfer job.
-   GFX_BUFFER_DESC_T srcDesc      = pSrcImg->GetDescriptor(region.srcSubresource.mipLevel);
-   uint32_t          srcImgOffset = pSrcImg->LayerOffset(region.srcSubresource.baseArrayLayer);
-
-   GFX_BUFFER_DESC_T dstDesc      = GetDescriptor(region.dstSubresource.mipLevel);
-   uint32_t          dstImgOffset = LayerOffset(region.dstSubresource.baseArrayLayer);
+   GFX_BUFFER_DESC_T srcDesc  = pSrcImg->GetDescriptor(region.srcSubresource.mipLevel);
+   GFX_BUFFER_DESC_T dstDesc  = GetDescriptor(region.dstSubresource.mipLevel);
 
    // For a 3D source or destination we convert them to 2D image arrays starting
    // at the slice specified as their respective z offsets. This allows
@@ -632,146 +591,42 @@ JobID Image::CopyOneImageRegion(
       assert(arrayCount == region.dstSubresource.layerCount);
    }
 
-   // Working copies which may get adjusted for compatible copies where
-   // the image format of the source or destination gets re-interpreted
-   VkExtent2D extent = {
-         region.extent.width  * sampleAdjust,
-         region.extent.height * sampleAdjust
-   };
+   VkExtent2D extent;
+   VkOffset3D srcOffset, dstOffset;
 
-   VkOffset3D srcOffset = {
-         region.srcOffset.x * sampleAdjust,
-         region.srcOffset.y * sampleAdjust,
-         0
-   };
-
-   VkOffset3D dstOffset = {
-         region.dstOffset.x * sampleAdjust,
-         region.dstOffset.y * sampleAdjust,
-         0
-   };
-
-   // We cannot trust the height in the extent or the y offsets will be
-   // valid values for 1D images.
-   if (gfx_lfmt_is_1d(srcLFMT))
-   {
-      extent.height = 1;
-      srcOffset.y   = 0;
-   }
-
-   if (gfx_lfmt_is_1d(dstLFMT))
-   {
-      extent.height = 1;
-      dstOffset.y   = 0;
-   }
-
-   v3d_imgconv_conversion_op dstConversion = V3D_IMGCONV_CONVERSION_FORMAT;
-   switch (region.dstSubresource.aspectMask)
-   {
-      // Combined depth/stencil formats need special treatment when copying
-      // just one aspect as the other aspect must be preserved in the
-      // destination.
-      //
-      // Note that we do not support D32S8 in the physical device properites.
-      case VK_IMAGE_ASPECT_DEPTH_BIT:
-         assert(gfx_lfmt_has_depth(dstLFMT));
-         dstConversion = V3D_IMGCONV_CONVERSION_DEPTH_ONLY;
-         break;
-      case VK_IMAGE_ASPECT_STENCIL_BIT:
-         assert(gfx_lfmt_has_stencil(dstLFMT));
-         dstConversion = V3D_IMGCONV_CONVERSION_STENCIL_ONLY;
-         break;
-      case VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT:
-         assert(gfx_lfmt_has_depth_stencil(dstLFMT));
-         break;
-      case VK_IMAGE_ASPECT_COLOR_BIT:
-      {
-         assert(!gfx_lfmt_has_depth(srcLFMT) && !gfx_lfmt_has_stencil(srcLFMT));
-         assert(!gfx_lfmt_has_depth(dstLFMT) && !gfx_lfmt_has_stencil(dstLFMT));
-         // If the formats do not match
-         if (dstLFMT != srcLFMT)
-         {
-            if (!srcIsCompressed && !dstIsCompressed)
-            {
-               // Easy cases, we just need to do a "memcpy" here.
-               log_trace("CopyImage: Compatible color copy");
-               AdjustDescForCopyCompatibility(&dstDesc, srcDesc);
-            }
-            else
-            {
-               // When copying between compatible compressed and uncompressed
-               // formats, change the uncompressed descriptor to match the
-               // compressed descriptor. We need to do it this way in order
-               // to get the correct UIF swizzle for compressed data when
-               // going between linear and tiled images.
-               //
-               // Note: if the uncompressed descriptor is one of the
-               //       special formats that do not have native support in the
-               //       TLB and is in tiling optimal, we have no idea what we
-               //       can or should do, so we are ignoring it.
-               GFX_LFMT_BASE_DETAIL_T bd;
-               gfx_lfmt_base_detail(&bd, srcDesc.planes[0].lfmt);
-
-               if (srcIsCompressed)
-               {
-                  AdjustDescForCopyCompatibility(&dstDesc, srcDesc);
-                  // If this isn't a copy between two compatible compressed
-                  // formats (which should have the same dimensions) adjust
-                  // the destination width, height and offsets by the
-                  // compressed block size
-                  if (!dstIsCompressed)
-                  {
-                     dstDesc.width  *= bd.block_w;
-                     dstDesc.height *= bd.block_h;
-                     dstOffset.x    *= static_cast<int32_t>(bd.block_w);
-                     dstOffset.y    *= static_cast<int32_t>(bd.block_h);
-                  }
-               }
-               else
-               {
-                  AdjustDescForCopyCompatibility(&srcDesc, dstDesc);
-                  // The src offset and the extent need to be multiplied
-                  // by the compressed block size now we are treating it
-                  // as compressed data.
-                  srcOffset.x   *= static_cast<int32_t>(bd.block_w);
-                  srcOffset.y   *= static_cast<int32_t>(bd.block_h);
-                  extent.width  *= bd.block_w;
-                  extent.height *= bd.block_h;
-               }
-            }
-         }
-         break;
-      }
-      default:
-         // Any other aspect bit combination is invalid
-         assert(0);
-         return 0;
-   }
+   CalculateCopyExtentAndOffsets(region, m_samples, srcLFMT, dstLFMT,
+                                 &extent, &srcOffset, &dstOffset);
 
    // Create imgconv targets and adjust the array slice pitch if the original
    // image was 3D.
    struct v3d_imgconv_gmem_tgt srcTarget;
-   struct v3d_imgconv_gmem_tgt dstTarget;
+   const uint32_t srcImgOffset = pSrcImg->LayerOffset(region.srcSubresource.baseArrayLayer);
 
    pSrcImg->InitGMemTarget(&srcTarget, deps, srcDesc, srcImgOffset, srcOffset);
    if (srcIs3D)
       srcTarget.base.array_pitch = srcSlicePitch;
 
+   struct v3d_imgconv_gmem_tgt dstTarget;
+   const uint32_t dstImgOffset = LayerOffset(region.dstSubresource.baseArrayLayer);
+
    this->InitGMemTarget(&dstTarget, deps, dstDesc, dstImgOffset, dstOffset);
    if (dstIs3D)
       dstTarget.base.array_pitch = dstSlicePitch;
 
-   dstTarget.base.conversion = dstConversion;
+   dstTarget.base.conversion =
+      CopyAspectToImgconvOp(region.dstSubresource.aspectMask, srcLFMT, dstLFMT);
 
    JobID jobId = 0;
-   bool ret = v3d_imgconv_convert(
-      &dstTarget, &srcTarget, &jobId,
-      extent.width,
-      extent.height,
-      1,
-      arrayCount,
-      false /* TODO: secure_context */);
-
+   // Use v3d_imgconv_memcpy which will handle all compatible color format
+   // copies, including compressed<->uncompressed copies, for us when the
+   // source is not equal to the destination format.
+   //
+   // Note: the "memcpy" refers to the image data values, it will still
+   //       swizzle between UIF and RSO layouts and honour the depth/stencil
+   //       destination write masking.
+   bool ret = v3d_imgconv_memcpy(&dstTarget, &srcTarget, &jobId,
+                                 extent.width, extent.height, /* depth */ 1,
+                                 arrayCount, false /* TODO: secure_context */);
    assert(ret);
 
    if (Options::dumpTransferImages)
@@ -902,19 +757,16 @@ static inline bool IsValidBufferCopyAspect(
    return true;
 }
 
-JobID Image::CopyOneBufferRegion(
-      Buffer                  *pSrcBuf,
-      const VkBufferImageCopy &region,
-      const SchedDependencies &deps)
+static bool LogCopyBufferRegion(
+   const Image             *image,
+   const VkBufferImageCopy &region,
+   const char              *prefix)
 {
-   auto srcMemory = pSrcBuf->GetBoundMemory();
-   assert(srcMemory != nullptr);
-
-   auto srcMemoryOffset = pSrcBuf->GetBoundMemoryOffset();
-
-   log_trace("CopyFromBuffer: buffer offset = %#" PRIx64 ", image = %p",
+   log_trace("%s: fmt = %s, buffer offset = %#" PRIx64 ", image = %p",
+         prefix,
+         gfx_lfmt_desc(image->LFMT()),
          region.bufferOffset,
-         this);
+         image);
    log_trace("\tmiplevel = %u, %u@%u layers",
          region.imageSubresource.mipLevel,
          region.imageSubresource.layerCount,
@@ -929,96 +781,91 @@ JobID Image::CopyOneBufferRegion(
          region.imageOffset.x,
          region.imageOffset.y,
          region.imageOffset.z);
+   return true;
+}
+
+JobID Image::CopyOneBufferRegion(
+      Buffer                  *pSrcBuf,
+      const VkBufferImageCopy &region,
+      const SchedDependencies &deps)
+{
+   log_trace_enabled() && LogCopyBufferRegion(this, region, "CopyFromBuffer");
+
+   const bool dstIs1D           = gfx_lfmt_is_1d(LFMT());
+   const bool dstIs3D           = gfx_lfmt_is_3d(LFMT());
+   // We cannot trust the height in the extent or the y offset will be a
+   // valid value for 1D images. There is no need to sanitize depth and Z as
+   // their use is guarded by dstIs3D.
+   const uint32_t extentHeight  = dstIs1D ? 1 : region.imageExtent.height;
+   const int32_t  offsetY       = dstIs1D ? 0 : region.imageOffset.y;
+
+   VkDeviceSize srcMemoryOffset = pSrcBuf->GetBoundMemoryOffset();
+   DeviceMemory *srcMemory      = pSrcBuf->GetBoundMemory();
+   assert(srcMemory != nullptr);
 
    GFX_BUFFER_DESC_T dstDesc = GetDescriptor(region.imageSubresource.mipLevel);
-   uint32_t dstImgOffset     = LayerOffset(region.imageSubresource.baseArrayLayer);
-   const bool dstIs3D        = gfx_lfmt_is_3d(LFMT());
-   const bool dstIs1D        = gfx_lfmt_is_1d(LFMT());
-
    assert(dstDesc.num_planes == 1); // No planar formats yet
 
    // Start with the lfmt of the destination image and modify it for the
    // correct interpretation of the buffer data.
-   GFX_LFMT_T srcLFMT = dstDesc.planes[0].lfmt;
+   GFX_LFMT_T srcLFMT = LFMT();
    AdjustBufferFormatForCopy(region.imageSubresource.aspectMask, &srcLFMT, /* isSrc */ true);
 
-   // We cannot trust the height in the extent or the y offset will be a
-   // valid value for 1D images.
-   uint32_t extentHeight = dstIs1D ? 1 : region.imageExtent.height;
-   int32_t  offsetY = dstIs1D ? 0 : region.imageOffset.y;
-   uint32_t layerCount;
-
+   uint32_t layerCount, dstArraySize;
    if (dstIs3D)
    {
       assert(region.imageSubresource.layerCount == 1);
       assert(region.imageSubresource.baseArrayLayer == 0);
-      // We are going to turn 3D slices into array layers for imgconv
+
+      // Turn 3D slices into array layers for imgconv TFU path
+      layerCount   = region.imageExtent.depth;
+      dstArraySize = dstDesc.planes[0].slice_pitch;
+
+      Adjust3DDescTo2DSlice(&dstDesc, region.imageOffset.z);
       gfx_lfmt_set_dims(&srcLFMT, GFX_LFMT_DIMS_2D);
-      layerCount = region.imageExtent.depth;
    }
    else
    {
-      layerCount = region.imageSubresource.layerCount;
+      layerCount   = region.imageSubresource.layerCount;
+      dstArraySize = m_arrayStride;
    }
 
-   // Generate the buffer desc for the source buffer
-   auto sw = (region.bufferRowLength > 0) ? region.bufferRowLength :
-                                            region.imageExtent.width;
-   auto sh = (region.bufferImageHeight > 0) ? region.bufferImageHeight :
-                                              extentHeight;
+   // Generate a buffer desc for the source buffer
+   const uint32_t w = (region.bufferRowLength > 0) ? region.bufferRowLength :
+                                                     region.imageExtent.width;
+   const uint32_t h = (region.bufferImageHeight > 0) ? region.bufferImageHeight :
+                                                       extentHeight;
    GFX_BUFFER_DESC_T srcDesc;
    size_t srcArraySize, align;
 
    gfx_buffer_desc_gen(&srcDesc, &srcArraySize, &align, GFX_BUFFER_USAGE_NONE,
-                       sw, sh, 1, 1, 1, &srcLFMT);
+                       w, h, 1, 1, 1, &srcLFMT);
 
    // Fixup the offset into the memory block
    srcDesc.planes[0].offset = static_cast<uint32_t>(srcMemoryOffset + region.bufferOffset);
 
-   uint32_t dstArraySize;
-   if (dstIs3D)
-   {
-      dstArraySize = dstDesc.planes[0].slice_pitch;
-      Adjust3DDescTo2DSlice(&dstDesc, region.imageOffset.z);
-   }
-   else
-   {
-      dstArraySize = m_arrayStride;
-   }
-
+   // Create src and dest imgconv targets and do the copy
    struct v3d_imgconv_gmem_tgt srcTarget;
-   struct v3d_imgconv_gmem_tgt dstTarget;
-
    v3d_imgconv_init_gmem_tgt(&srcTarget, srcMemory->Handle(), 0, &deps, &srcDesc,
                              0, 0, 0, 0, static_cast<unsigned int>(srcArraySize));
 
    AllocateLazyMemory();
 
-   v3d_imgconv_init_gmem_tgt(&dstTarget, m_boundMemory->Handle(), dstImgOffset,
+   struct v3d_imgconv_gmem_tgt dstTarget;
+   v3d_imgconv_init_gmem_tgt(&dstTarget, m_boundMemory->Handle(),
+                             LayerOffset(region.imageSubresource.baseArrayLayer),
                              &deps, &dstDesc,
                              static_cast<unsigned int>(region.imageOffset.x),
                              static_cast<unsigned int>(offsetY),
                              0, 0, static_cast<unsigned int>(dstArraySize));
 
-   if (gfx_lfmt_has_depth_stencil(dstDesc.planes[0].lfmt))
-   {
-      switch(region.imageSubresource.aspectMask)
-      {
-         case VK_IMAGE_ASPECT_DEPTH_BIT:
-            dstTarget.base.conversion = V3D_IMGCONV_CONVERSION_DEPTH_ONLY;
-            break;
-         case VK_IMAGE_ASPECT_STENCIL_BIT:
-            dstTarget.base.conversion = V3D_IMGCONV_CONVERSION_STENCIL_ONLY;
-            break;
-         default:
-            unreachable();
-      }
-   }
+   dstTarget.base.conversion =
+      CopyAspectToImgconvOp(region.imageSubresource.aspectMask, srcLFMT, dstDesc.planes[0].lfmt);
 
    JobID jobId = 0;
    bool ret = v3d_imgconv_convert(&dstTarget, &srcTarget, &jobId,
-                               region.imageExtent.width, extentHeight, 1,
-                               layerCount, false /* TODO: secure_context */);
+                                  region.imageExtent.width, extentHeight, /* depth */ 1,
+                                  layerCount, false /* TODO: secure_context */);
 
    assert(ret);
 
@@ -1053,10 +900,8 @@ JobID Image::CopyFromBuffer(
 
    for (uint32_t i = 0; i < regionCount; i++)
    {
-      if (!IsValidBufferCopyAspect(regions[i].imageSubresource.aspectMask, m_mipDescs[0].planes[0].lfmt))
-         continue;
-
-      waitJobs += CopyOneBufferRegion(pSrcBuf, regions[i], deps);
+      if (IsValidBufferCopyAspect(regions[i].imageSubresource.aspectMask, m_mipDescs[0].planes[0].lfmt))
+         waitJobs += CopyOneBufferRegion(pSrcBuf, regions[i], deps);
    }
 
    return waitJobs.Amalgamate();
@@ -1086,71 +931,59 @@ JobID Image::CopyToBuffer(
    SchedDependencies waitJobs;
    for (uint32_t i = 0; i < regionCount; i++)
    {
-      log_trace("CopyToBuffer: buffer offset = %#" PRIx64 ", image = %p, miplevel = %u, %u@%u layers, [%u, %u, %u] pixels @ [%d, %d, %d]",
-            regions[i].bufferOffset,
-            this,
-            regions[i].imageSubresource.mipLevel,
-            regions[i].imageSubresource.layerCount,
-            regions[i].imageSubresource.baseArrayLayer,
-            regions[i].imageExtent.width,
-            regions[i].imageExtent.height,
-            regions[i].imageExtent.depth,
-            regions[i].imageOffset.x,
-            regions[i].imageOffset.y,
-            regions[i].imageOffset.z);
+      const VkBufferImageCopy &region = regions[i];
+      log_trace_enabled() && LogCopyBufferRegion(this, region, "CopyToBuffer");
 
-      GFX_BUFFER_DESC_T srcDesc = GetDescriptor(regions[i].imageSubresource.mipLevel);
-      uint32_t srcImgOffset     = LayerOffset(regions[i].imageSubresource.baseArrayLayer);
+      if (!IsValidBufferCopyAspect(region.imageSubresource.aspectMask, LFMT()))
+         continue;
 
+      // We cannot trust the height and depth in the extent will contain valid
+      // values if the image type doesn't need them.
+      const uint32_t extentHeight = srcIs1D ? 1 : region.imageExtent.height;
+      const uint32_t extentDepth  = srcIs3D ? region.imageExtent.depth : 1;
+
+      GFX_BUFFER_DESC_T srcDesc = GetDescriptor(region.imageSubresource.mipLevel);
       assert(srcDesc.num_planes == 1); // No planar formats yet
 
       if (srcIs3D)
       {
-         assert(regions[i].imageSubresource.layerCount == 1);
-         assert(regions[i].imageSubresource.baseArrayLayer == 0);
+         assert(region.imageSubresource.layerCount == 1);
+         assert(region.imageSubresource.baseArrayLayer == 0);
       }
 
-      if (!IsValidBufferCopyAspect(regions[i].imageSubresource.aspectMask, LFMT()))
-         continue;
-
-      GFX_LFMT_T dstLFMT = srcDesc.planes[0].lfmt;
-      AdjustBufferFormatForCopy(regions[i].imageSubresource.aspectMask, &dstLFMT, /* isSrc */ false);
-
-      // We cannot trust the height and depth in the extent will contain valid
-      // values if the image type doesn't need them.
-      uint32_t extentHeight = srcIs1D ? 1 : regions[i].imageExtent.height;
-      uint32_t extentDepth = srcIs3D ? regions[i].imageExtent.depth : 1;
+      GFX_LFMT_T dstLFMT = LFMT();
+      AdjustBufferFormatForCopy(region.imageSubresource.aspectMask, &dstLFMT, /* isSrc */ false);
 
       // Generate the buffer desc for the destination buffer
       GFX_BUFFER_DESC_T dstDesc;
       size_t size, align;
 
-      auto sw = (regions[i].bufferRowLength > 0) ? regions[i].bufferRowLength :
-                                                   regions[i].imageExtent.width;
-      auto sh = (regions[i].bufferImageHeight > 0) ? regions[i].bufferImageHeight :
-                                                     extentHeight;
+      const uint32_t w = (region.bufferRowLength > 0) ? region.bufferRowLength :
+                                                        region.imageExtent.width;
+      const uint32_t h = (region.bufferImageHeight > 0) ? region.bufferImageHeight :
+                                                          extentHeight;
 
       gfx_buffer_desc_gen(&dstDesc, &size, &align, GFX_BUFFER_USAGE_NONE,
-                          sw, sh, extentDepth, 1, 1, &dstLFMT);
+                          w, h, extentDepth, 1, 1, &dstLFMT);
 
       // Fixup the offset into the memory block
-      dstDesc.planes[0].offset = static_cast<uint32_t>(dstMemoryOffset + regions[i].bufferOffset);
+      dstDesc.planes[0].offset = static_cast<uint32_t>(dstMemoryOffset + region.bufferOffset);
 
       // Create imgconv source and destination targets and do the copy
       struct v3d_imgconv_gmem_tgt srcTarget;
+      const uint32_t srcImgOffset = LayerOffset(region.imageSubresource.baseArrayLayer);
+      this->InitGMemTarget(&srcTarget, deps, srcDesc, srcImgOffset, region.imageOffset);
+
       struct v3d_imgconv_gmem_tgt dstTarget;
-
-      this->InitGMemTarget(&srcTarget, deps, srcDesc, srcImgOffset, regions[i].imageOffset);
-
       v3d_imgconv_init_gmem_tgt(&dstTarget, dstMemory->Handle(), 0,
                                 &deps, &dstDesc, 0, 0, 0, 0, size);
 
       JobID jobId = 0;
       bool ret = v3d_imgconv_convert(&dstTarget, &srcTarget, &jobId,
-                                  regions[i].imageExtent.width,
+                                  region.imageExtent.width,
                                   extentHeight,
                                   extentDepth,
-                                  regions[i].imageSubresource.layerCount,
+                                  region.imageSubresource.layerCount,
                                   false /* TODO: secure_context */);
 
       assert(ret);
@@ -1162,8 +995,8 @@ JobID Image::CopyToBuffer(
 
          WriteImageDetails(details, "src",
             this,
-            regions[i].imageSubresource.mipLevel,
-            srcIs3D ? regions[i].imageOffset.z : regions[i].imageSubresource.baseArrayLayer);
+            region.imageSubresource.mipLevel,
+            srcIs3D ? region.imageOffset.z : region.imageSubresource.baseArrayLayer);
 
          WriteBufferDetails(details, "_dst", pDstBuf, dstDesc.planes[0].offset);
 

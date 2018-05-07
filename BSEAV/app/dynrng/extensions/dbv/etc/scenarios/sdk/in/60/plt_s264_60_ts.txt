@@ -1,0 +1,4 @@
+stream=/mnt/hd/Test_Vectors/SDR/Adaptive_Streaming_Tests/AVC/5994/TS/Combined/combined_ves_graffiti_5994_avc__st.ts
+forceRestart=on
+stcTrick=off
+commit

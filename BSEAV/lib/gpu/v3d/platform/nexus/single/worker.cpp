@@ -21,9 +21,12 @@ Worker::~Worker()
    m_worker.join();
 }
 
-Worker::Worker(void *platformState) :
+Worker::Worker(void *platformState, EventContext *eventContext) :
    m_platformState(platformState),
-   m_done(false)
+   m_eventContext(eventContext),
+   m_done(false),
+   m_displayedSurfaceDebugId(0),
+   m_pendingSurfaceDebugId(0)
 {
    auto windowState = static_cast<nxpl::WindowState *>(m_platformState);
 
@@ -61,6 +64,9 @@ void Worker::VSyncHandler()
 
       if (status.state == NEXUS_GraphicsFramebufferState_eUnused)
       {
+         PerfAddEvent(m_eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, m_displayedSurfaceDebugId,
+                      BCM_EVENT_END, (uintptr_t)m_displayedSurface->GetSurface());
+
          if (windowState->IsBouncing())
             windowState->PushGFDBackingQ(std::move(m_displayedSurface));
          else
@@ -74,7 +80,14 @@ void Worker::VSyncHandler()
       NEXUS_Display_GetGraphicsFramebufferStatus(windowState->GetDisplay(), m_pendingSurface->GetSurface(), &status);
 
       if (status.state == NEXUS_GraphicsFramebufferState_eDisplayed)
+      {
          m_displayedSurface = std::move(m_pendingSurface);
+         m_displayedSurfaceDebugId = m_pendingSurfaceDebugId;
+         m_pendingSurfaceDebugId++;
+
+         PerfAddEvent(m_eventContext, PERF_EVENT_TRACK_DISPLAY, PERF_EVENT_ON_DISPLAY, m_displayedSurfaceDebugId,
+                      BCM_EVENT_BEGIN, (uintptr_t)m_displayedSurface->GetSurface());
+      }
    }
 
    m_vsync.notify();
@@ -225,10 +238,13 @@ void Worker::mainThread(void)
                   m_displayedSurface = std::move(m_pendingSurface);
                }
 
-               if (windowState->IsBouncing())
-                  windowState->PushGFDBackingQ(std::move(handleToRelease));
-               else
-                  windowState->PushFreeQ(std::move(handleToRelease));
+               if (handleToRelease)
+               {
+                  if (windowState->IsBouncing())
+                     windowState->PushGFDBackingQ(std::move(handleToRelease));
+                  else
+                     windowState->PushFreeQ(std::move(handleToRelease));
+               }
             }
             m_pendingSurface = std::move(bitmap);
 
