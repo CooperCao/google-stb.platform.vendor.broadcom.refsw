@@ -921,3 +921,16 @@ NEXUS_Error NEXUS_Graphicsv3d_SetFrequencyScaling(uint32_t percent)
    return NEXUS_NOT_SUPPORTED;
 #endif
 }
+
+NEXUS_Error NEXUS_Graphicsv3dModule_GetStatus_priv(NEXUS_Graphicsv3dModuleStatus *pStatus)
+{
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+#if BCHP_PWR_RESOURCE_GRAPHICS3D
+    pStatus->power.core.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+    BCHP_PWR_GetClockRate(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D, &pStatus->power.core.frequency);
+#endif
+#if BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM
+    pStatus->power.core.sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+    return NEXUS_SUCCESS;
+}

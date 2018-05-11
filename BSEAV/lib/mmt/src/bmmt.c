@@ -180,13 +180,13 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
     bmmt_packet_header mmt_header;
 
     BDBG_OBJECT_ASSERT(mmt,bmmt);
+    BKNI_AcquireMutex(mmt->mutex);
     rc=btlv_ip_parser_process(&mmt->ip_parser, cursor, &ip_result);
     if (rc)
     {
         BDBG_ERR(("IP parsing error"));
         goto done;
     }
-    BKNI_AcquireMutex(mmt->mutex);
     if(ip_result.type == btlv_ip_parser_result_signaling)
     {
         batom_cursor tlv_si_payload;

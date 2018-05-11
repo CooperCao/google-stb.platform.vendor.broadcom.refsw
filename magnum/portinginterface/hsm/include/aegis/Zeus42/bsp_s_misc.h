@@ -37,6 +37,7 @@
 
  ******************************************************************************/
 
+
 #ifndef BSP_S_MISC_H__
 #define BSP_S_MISC_H__
 
@@ -152,15 +153,43 @@ typedef enum BCMD_MISC_SetArchField_InCmdField_e
     BCMD_MISC_SetArchField_InCmdField_eAddrRangeLow = (6 << 2) + 0,
     BCMD_MISC_SetArchField_InCmdField_eAddrRangeHighMsb = (7 << 2) + 0,
     BCMD_MISC_SetArchField_InCmdField_eAddrRangeHigh = (8 << 2) + 0,
+    BCMD_MISC_SetArchField_InCmdField_eReserved_9_0  =  (9<<2),
     BCMD_MISC_SetArchField_InCmdField_eDramSel = (9 << 2) + 1,
     BCMD_MISC_SetArchField_InCmdField_ePCIWin = (9 << 2) + 2,
     BCMD_MISC_SetArchField_InCmdField_eArchSel = (9 << 2) + 3,
+    BCMD_MISC_SetArchField_InCmdField_eReserved_10_1  =  (10<<2)+1,
+
     BCMD_MISC_SetArchField_InCmdField_eReserved_10_2  =  (10<<2)+2,
     BCMD_MISC_SetArchField_InCmdField_eReserved_10_3  =  (10<<2)+3,
-    BCMD_MISC_SetArchField_InCmdField_eReserved_11_0  =  (11<<2),
     BCMD_MISC_SetArchField_InCmdField_eReserved_11_1  =  (11<<2)+1,
+
     BCMD_MISC_SetArchField_InCmdField_eReserved_11_2  =  (11<<2)+2,
     BCMD_MISC_SetArchField_InCmdField_eReserved_11_3  =  (11<<2)+3,
+
+    BCMD_MISC_SetArchField_InCmdField_eReserved_12_0  =  (12<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_13_0  =  (13<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_14_0  =  (14<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_15_0  =  (15<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_16_0  =  (16<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_17_0  =  (17<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_18_0  =  (18<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_19_0  =  (19<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_20_0  =  (20<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_21_0  =  (21<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_22_0  =  (22<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_23_0  =  (23<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_24_0  =  (24<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_25_0  =  (25<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_26_0  =  (26<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_27_0  =  (27<<2),
+
+    BCMD_MISC_SetArchField_InCmdField_eReserved_28_3  =  (28<<2)+3,
+    BCMD_MISC_SetArchField_InCmdField_eReserved_28_2  =  (28<<2)+2,
+
+    BCMD_MISC_SetArchField_InCmdField_eReserved_29_0  =  (29<<2),
+    BCMD_MISC_SetArchField_InCmdField_eReserved_30_0  =  (30<<2),
+
+
     BCMD_MISC_SetArchField_InCmdField_eMax
 } BCMD_MISC_SetArchField_InCmdField_e;
 
@@ -169,6 +198,7 @@ typedef enum BCMD_MISC_SetArchField_OutCmdField_e
     BCMD_MISC_SetArchField_OutCmdField_eStatus = (5 << 2) + 3,
     BCMD_MISC_SetArchField_OutCmdField_eMax
 }BCMD_MISC_SetArchField_OutCmdField_e;
+
 
 typedef enum BCMD_EncoderDecoder_e
 {
@@ -243,6 +273,14 @@ typedef enum BCMD_MISC_PowerMgmtField_InCmdField_e
     BCMD_MISC_PowerMgmtField_InCmdField_eBkGndPeriod = (6 << 2) + 3,
     BCMD_MISC_PowerMgmtField_InCmdField_eMax
 } BCMD_MISC_PowerMgmtField_InCmdField_e;
+
+
+
+
+
+
+
+
 
 
 

@@ -281,7 +281,7 @@ static void BVDC_P_Memconfig_GetCfcSize
     uint32_t   ulHdmiCfcLutSize, ulCmpCfcLutSize, ulGfdCfcLutSize;
 
     BDBG_MSG(("---CFC LUT Size Per Display---"));
-    BDBG_MSG(("            VEC_HDMI          CMP            GFD"));
+    BDBG_MSG(("              CMP             GFD          VEC_HDMI"));
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
     {
         BVDC_DispMemConfigSettings  *pDisplay;
@@ -314,10 +314,19 @@ static void BVDC_P_Memconfig_GetCfcSize
 
         if(ulHdmiCfcLutSize || ulCmpCfcLutSize || ulGfdCfcLutSize)
         {
-            BDBG_MSG(("Disp[%d]: %6d(Memc_%d) %6d(Memc_%d) %6d(Memc_%d)", ulDispIndex,
-                ulHdmiCfcLutSize, pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex,
-                ulCmpCfcLutSize, pDisplay->cfc.ulCmpMemcIndex,
-                ulGfdCfcLutSize, pDisplay->cfc.ulGfdMemcIndex));
+            if(ulDispIndex < BBOX_VDC_HDMI_DISPLAY_COUNT)
+            {
+                BDBG_MSG(("Disp[%d]: %6d(Memc_%d) %6d(Memc_%d) %6d(Memc_%d)", ulDispIndex,
+                    ulCmpCfcLutSize, pDisplay->cfc.ulCmpMemcIndex,
+                    ulGfdCfcLutSize, pDisplay->cfc.ulGfdMemcIndex,
+                    ulHdmiCfcLutSize, pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex));
+            }
+            else
+            {
+                BDBG_MSG(("Disp[%d]: %6d(Memc_%d) %6d(Memc_%d)", ulDispIndex,
+                    ulCmpCfcLutSize, pDisplay->cfc.ulCmpMemcIndex,
+                    ulGfdCfcLutSize, pDisplay->cfc.ulGfdMemcIndex));
+            }
         }
     }
 

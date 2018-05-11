@@ -119,6 +119,8 @@ typedef struct priority_list {
     BLST_Q_ENTRY(priority_list) link;
     cooling_agent *agent;
     unsigned level;
+    unsigned last_applied_time;
+    unsigned last_removed_time;
 } priority_list;
 
 

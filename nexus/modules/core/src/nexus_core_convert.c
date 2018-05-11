@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 /* this file should not #include nexus_core_modules.h so that it can be used locally.
 this means it cannot have public API's. */
@@ -679,7 +683,7 @@ BAVC_HDMI_DRM_EOTF NEXUS_P_VideoEotf_ToMagnum_isrsafe(NEXUS_VideoEotf eotf)
     switch (eotf) {
     case NEXUS_VideoEotf_eSdr:         return BAVC_HDMI_DRM_EOTF_eSDR;
     case NEXUS_VideoEotf_eHdr10:       return BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084;
-    case NEXUS_VideoEotf_eHlg:         return BAVC_HDMI_DRM_EOTF_eFuture;
+    case NEXUS_VideoEotf_eHlg:         return BAVC_HDMI_DRM_EOTF_eHLG;
     default: return BAVC_HDMI_DRM_EOTF_eMax;
     }
 }
@@ -689,7 +693,7 @@ NEXUS_VideoEotf NEXUS_P_VideoEotf_FromMagnum_isrsafe(BAVC_HDMI_DRM_EOTF eotf)
     switch (eotf) {
     case BAVC_HDMI_DRM_EOTF_eSDR:                 return NEXUS_VideoEotf_eSdr;
     case BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084:       return NEXUS_VideoEotf_eHdr10;
-    case BAVC_HDMI_DRM_EOTF_eFuture:              return NEXUS_VideoEotf_eHlg;
+    case BAVC_HDMI_DRM_EOTF_eHLG:                 return NEXUS_VideoEotf_eHlg;
     default: return NEXUS_VideoEotf_eMax;
     }
 }
@@ -915,104 +919,103 @@ NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(NEXUS_TransferChar
 void
 NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(
     const NEXUS_ContentLightLevel * pCll,
-    uint32_t *ulMaxContentLight,
-    uint32_t *ulAvgContentLight)
+    BAVC_ContentLightLevel * pMagnum)
 {
-    *ulMaxContentLight = pCll->max;
-    *ulAvgContentLight = pCll->maxFrameAverage;
+    pMagnum->ulMax = pCll->max;
+    pMagnum->ulMaxFrameAvg = pCll->maxFrameAverage;
 }
 
 void
 NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
     NEXUS_ContentLightLevel * pCll,
-    uint32_t ulMaxContentLight,
-    uint32_t ulAvgContentLight)
+    const BAVC_ContentLightLevel * pMagnum)
 {
-    pCll->max = ulMaxContentLight;
-    pCll->maxFrameAverage = ulAvgContentLight;
+    pCll->max = pMagnum->ulMax;
+    pCll->maxFrameAverage = pMagnum->ulMaxFrameAvg;
 }
 
 void
 NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(
     const NEXUS_MasteringDisplayColorVolume * pMdcv,
-    BAVC_Point * pstDisplayPrimaries,
-    BAVC_Point * pstWhitePoint,
-    uint32_t *ulMaxDispMasteringLuma,
-    uint32_t *ulMinDispMasteringLuma)
+    BAVC_MasteringDisplayColorVolume * pMagnum)
 {
-    const NEXUS_Point * primaries[3];
+    const NEXUS_Point * npoints[4];
+    BAVC_Point * mpoints[4];
     unsigned i = 0;
 
-    primaries[0] = &pMdcv->greenPrimary;
-    primaries[1] = &pMdcv->bluePrimary;
-    primaries[2] = &pMdcv->redPrimary;
+    npoints[0] = &pMdcv->greenPrimary;
+    npoints[1] = &pMdcv->bluePrimary;
+    npoints[2] = &pMdcv->redPrimary;
+    npoints[3] = &pMdcv->whitePoint;
+    mpoints[0] = &pMagnum->stColorVolume.stPrimaries.stGreen;
+    mpoints[1] = &pMagnum->stColorVolume.stPrimaries.stBlue;
+    mpoints[2] = &pMagnum->stColorVolume.stPrimaries.stRed;
+    mpoints[3] = &pMagnum->stColorVolume.stWhitePoint;
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 4; i++)
     {
-        pstDisplayPrimaries[i].ulX = primaries[i]->x;
-        pstDisplayPrimaries[i].ulY = primaries[i]->y;
+        mpoints[i]->ulX = npoints[i]->x;
+        mpoints[i]->ulY = npoints[i]->y;
     }
 
-    pstWhitePoint->ulX = pMdcv->whitePoint.x;
-    pstWhitePoint->ulY = pMdcv->whitePoint.y;
-
-    *ulMaxDispMasteringLuma = pMdcv->luminance.max*10000;
-    *ulMinDispMasteringLuma = pMdcv->luminance.min;
+    pMagnum->stLuminance.uiMax = pMdcv->luminance.max;
+    pMagnum->stLuminance.uiMin = pMdcv->luminance.min;
 }
 
 void
 NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
     NEXUS_MasteringDisplayColorVolume * pMdcv,
-    const BAVC_Point * pstDisplayPrimaries,
-    const BAVC_Point * pstWhitePoint,
-    uint32_t ulMaxDispMasteringLuma,
-    uint32_t ulMinDispMasteringLuma)
+    const BAVC_MasteringDisplayColorVolume * pMagnum)
 {
-    NEXUS_Point * primaries[3];
+    NEXUS_Point * npoints[4];
+    const BAVC_Point * mpoints[4];
     unsigned i = 0;
 
-    primaries[0] = &pMdcv->greenPrimary;
-    primaries[1] = &pMdcv->bluePrimary;
-    primaries[2] = &pMdcv->redPrimary;
+    npoints[0] = &pMdcv->greenPrimary;
+    npoints[1] = &pMdcv->bluePrimary;
+    npoints[2] = &pMdcv->redPrimary;
+    npoints[3] = &pMdcv->whitePoint;
+    mpoints[0] = &pMagnum->stColorVolume.stPrimaries.stGreen;
+    mpoints[1] = &pMagnum->stColorVolume.stPrimaries.stBlue;
+    mpoints[2] = &pMagnum->stColorVolume.stPrimaries.stRed;
+    mpoints[3] = &pMagnum->stColorVolume.stWhitePoint;
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 4; i++)
     {
-        primaries[i]->x = pstDisplayPrimaries[i].ulX;
-        if (primaries[i]->x > 50000 || primaries[i]->x < 0)
+        npoints[i]->x = mpoints[i]->ulX;
+        if (npoints[i]->x > 50000 || npoints[i]->x < 0)
         {
-            primaries[i]->x = 0;
+            npoints[i]->x = 0;
         }
 
-        primaries[i]->y = pstDisplayPrimaries[i].ulY;
-        if (primaries[i]->y  > 50000 || primaries[i]->y < 0)
+        npoints[i]->y = mpoints[i]->ulY;
+        if (npoints[i]->y  > 50000 || npoints[i]->y < 0)
         {
-            primaries[i]->y  = 0;
+            npoints[i]->y  = 0;
         }
     }
 
-    pMdcv->whitePoint.x = pstWhitePoint->ulX;
-    if (pMdcv->whitePoint.x > 50000 || pMdcv->whitePoint.x < 0)
-    {
-        pMdcv->whitePoint.x = 0;
-    }
-
-    pMdcv->whitePoint.y = pstWhitePoint->ulY;
-    if (pMdcv->whitePoint.y > 50000 || pMdcv->whitePoint.y < 0)
-    {
-        pMdcv->whitePoint.y = 0;
-    }
-
-    pMdcv->luminance.max = ulMaxDispMasteringLuma;
+    pMdcv->luminance.max = pMagnum->stLuminance.uiMax;
     if (pMdcv->luminance.max == 0xffffffff)
     {
         pMdcv->luminance.max = 0;
     }
-    /* convert units from 0.0001 cd/m2 to 1 cd/m2 to match CEA */
-    pMdcv->luminance.max /= 10000;
 
-    pMdcv->luminance.min = ulMinDispMasteringLuma;
+    pMdcv->luminance.min = pMagnum->stLuminance.uiMin;
     if (pMdcv->luminance.min == 0xffffffff)
     {
         pMdcv->luminance.min = 0;
     }
+}
+
+void NEXUS_P_StaticHdrMetadata_FromMagnum_isrsafe(NEXUS_StaticHdrMetadata * pNexus, const BAVC_StaticHdrMetadata * pMagnum)
+{
+    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(&pNexus->masteringDisplayColorVolume, &pMagnum->stMasteringDisplayColorVolume);
+    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(&pNexus->contentLightLevel, &pMagnum->stContentLightLevel);
+}
+
+void NEXUS_P_StaticHdrMetadata_ToMagnum_isrsafe(const NEXUS_StaticHdrMetadata * pNexus, BAVC_StaticHdrMetadata * pMagnum)
+{
+    NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(&pNexus->masteringDisplayColorVolume, &pMagnum->stMasteringDisplayColorVolume);
+    NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(&pNexus->contentLightLevel, &pMagnum->stContentLightLevel);
 }

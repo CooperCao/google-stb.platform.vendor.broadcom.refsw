@@ -57,6 +57,8 @@ extern "C"
  * a type, by using the high four bits (of an implied 32-bit unsigned enum value) to specify up to
  * 16 data types.  These values are ORed with tag IDs to generate the final tag ID values.
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 typedef enum {
     SKM_INVALID = 0 << SKM_TAG_TYPE_SHIFT, /* Invalid type, used to designate a tag as uninitialized */
     SKM_ENUM = 1 << SKM_TAG_TYPE_SHIFT,
@@ -70,6 +72,7 @@ typedef enum {
     SKM_BYTES = 9 << SKM_TAG_TYPE_SHIFT,
     SKM_ULONG_REP = 10 << SKM_TAG_TYPE_SHIFT, /* Repeatable long value */
 } km_tag_type_t;
+#pragma GCC diagnostic pop
 
 typedef enum {
     SKM_TAG_INVALID = SKM_INVALID | 0,

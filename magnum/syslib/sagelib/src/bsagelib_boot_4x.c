@@ -90,25 +90,13 @@ typedef struct {
     uint32_t binarySize;
 } BSAGElib_Sage_ImageHolder;
 
-struct sagebl_inout_container {
-    uint32_t command;
-    uint32_t signed_image_start;
-    uint32_t signed_image_size;
-    uint32_t restrict_reg_start;
-    uint32_t restrict_reg_size;
-    uint32_t basic_in_spare[3];
-    uint32_t status;
-    uint32_t basic_out_spare[3];
-    uint64_t shared_blocks[8];
-};
-
 #define SAGEBL_TIMEOUT_MS 10000
 
 #define SAGEBL_STATUS_OK    0x00000000
 
 /* build code for writing all _SageGlobalSram_e* register value
  * used in BSAGElib_P_SetBootParams() and BSAGElib_Sage_P_CleanBootVars() */
-#if 0
+#if 1
 #define BootParamDbgPrintf(format) BDBG_MSG(format)
 #else
 #define BootParamDbgPrintf(format)
@@ -500,7 +488,7 @@ BSAGElib_P_Boot_Framework(
     uint16_t *pHeader_length_BE  = (uint16_t *)(header->common.headerLength_BE);
     uint32_t header_length  = SUIF_Get16(pHeader_length,BE);
     uint32_t offset = 0,val = 0,i = 0;
-    volatile struct sagebl_inout_container *io_container = NULL;
+    BSAGElib_InOutContainer *io_container = NULL;
 
     BDBG_ENTER(BSAGElib_P_Boot_Framework);
 
@@ -557,7 +545,8 @@ BSAGElib_P_Boot_Framework(
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
-    hSAGElib->i_memory_sync.flush(header, header_length);
+
+    hSAGElib->i_memory_sync.flush(header, frameworkHolder->binarySize);
     _BSAGElib_P_Boot_SetBootParam(SageFrameworkHeader, offset);
     _BSAGElib_P_Boot_SetBootParam(SageFrameworkHeaderSize, header_length);
 
@@ -570,7 +559,11 @@ BSAGElib_P_Boot_Framework(
         goto end;
     }
 
-    io_container->command            = Hsc_LoadSSF;
+    BKNI_Memset(io_container, 0, sizeof(*io_container));
+    io_container->basicIn[0] = Hsc_LoadSSF;
+    io_container->basicIn[1] = 0;   /* reserved */
+    io_container->basicIn[2] = offset;
+    io_container->basicIn[3] = frameworkHolder->binarySize;
 
     offset = hSAGElib->i_memory_map.addr_to_offset((void *)io_container);
     if(offset == 0) {
@@ -621,11 +614,11 @@ BSAGElib_P_Boot_Framework(
 
     if (((val & HOSTSAGE_CONTROL_SRdy_MASK)>> HOSTSAGE_CONTROL_SRdy_SHIFT == 1) /* sage ready */
       &&((val & HOSTSAGE_CONTROL_ORdy_MASK)>> HOSTSAGE_CONTROL_ORdy_SHIFT == 1) /* sage out ready */
-      &&(io_container->status == SAGEBL_STATUS_OK)) /* boot status,sucess; */
+      &&(io_container->basicOut[0] == SAGEBL_STATUS_OK)) /* boot status,sucess; */
     {
         rc = BERR_SUCCESS;
     } else {
-        BDBG_ERR(("%s - boot framework ready 0x%x, status 0x%x wrong", BSTD_FUNCTION,val,io_container->status));
+        BDBG_ERR(("%s - boot framework ready 0x%x, status 0x%x wrong", BSTD_FUNCTION,val,io_container->basicOut[0]));
         rc = BERR_UNKNOWN;
     }
 
@@ -1050,7 +1043,7 @@ end:
         ladderConf.operation = BHSM_CryptographicOperation_eDecrypt;
         ladderConf.mode = BHSM_KeyLadderMode_eSageBlDecrypt;
         ladderConf.numLevels = 5;
-        ladderConf.root.askm.caVendorIdScope    = BHSM_KeyladderCaVendorIdScope_eFixed;
+        ladderConf.root.askm.caVendorIdScope    = BHSM_KeyLadderCaVendorIdScope_eFixed;
         ladderConf.root.askm.stbOwnerSelect     = SUIF_Get32(pStbOwnerId,BE);
         ladderConf.root.askm.caVendorId         = SUIF_Get32(pCaVendorId,BE);
 

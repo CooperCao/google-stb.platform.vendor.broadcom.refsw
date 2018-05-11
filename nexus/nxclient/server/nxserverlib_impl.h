@@ -461,7 +461,9 @@ struct b_server {
         NxClient_StandbySettings standbySettings;
         enum b_standby_state state;
         NEXUS_ThreadHandle thread_id;
-        void *pm_ctx;
+        unsigned last_standby_timestamp;
+        unsigned last_resume_timestamp;
+        NEXUS_StandbyMode last_standby_mode;
     } standby;
     struct {
         BLST_D_HEAD(b_stc_list, b_stc) stcs;
@@ -644,6 +646,7 @@ void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClie
 /* get the index into req->handles.XXXX[] that matches the id */
 typedef unsigned (*get_req_id_func)(struct b_req *req, unsigned i);
 int get_req_index(struct b_req *req, get_req_id_func func, unsigned id, unsigned *pIndex);
+unsigned nxserver_p_millisecond_tick(void);
 
 /************
 nxserverlib_transport.c API

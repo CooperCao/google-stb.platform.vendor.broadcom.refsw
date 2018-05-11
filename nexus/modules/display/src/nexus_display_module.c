@@ -44,6 +44,7 @@
 #include "priv/nexus_core.h"
 #include "bkni.h"
 #include "priv/nexus_core_preinit.h"
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_display_module);
 BDBG_FILE_MODULE(display_proc);
@@ -1011,6 +1012,62 @@ NEXUS_Error NEXUS_DisplayModule_GetStatus_priv(NEXUS_DisplayModuleStatus *pStatu
     pStatus->rulCapture.offset = 0; /* dedicated MemoryBlock */
     pStatus->rulCapture.size = g_rdc_capture.bufferSize;
     pStatus->rulCapture.elementSize = NEXUS_RDC_CAPTURE_SIZE;
+#endif
+
+#ifdef BCHP_PWR_RESOURCE_BVN
+    pStatus->power.bvn.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_BVN)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#ifdef BCHP_PWR_RESOURCE_VDC_VEC
+    {
+        NEXUS_PowerState state = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_VDC_VEC)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        unsigned i;
+        for (i=0; i<NEXUS_NUM_DISPLAYS; i++) {
+            pStatus->power.vec[i].clock = state;
+        }
+    }
+#endif
+#if NEXUS_NUM_COMPONENT_OUTPUTS || NEXUS_NUM_COMPOSITE_OUTPUTS
+    {
+        NEXUS_PowerState state = NEXUS_PowerState_eInvalid;
+        unsigned i, num_dacs=0;
+#ifdef BCHP_PWR_RESOURCE_VDC_DAC
+         state = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_VDC_DAC)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#if NEXUS_NUM_COMPONENT_OUTPUTS
+        for (i=0; i<NEXUS_NUM_COMPONENT_OUTPUTS; i++) {
+            struct NEXUS_ComponentOutput *component = &g_NEXUS_DisplayModule_State.outputs.component[i];
+            switch(component->cfg.type) {
+                case NEXUS_ComponentOutputType_eYPrPb:
+                    if (component->cfg.dacs.YPrPb.dacY) num_dacs++;
+                    if (component->cfg.dacs.YPrPb.dacPr) num_dacs++;
+                    if (component->cfg.dacs.YPrPb.dacPb) num_dacs++;
+                    break;
+                case NEXUS_ComponentOutputType_eRGB:
+                    if (component->cfg.dacs.RGB.dacGreen) num_dacs++;
+                    if (component->cfg.dacs.RGB.dacRed) num_dacs++;
+                    if (component->cfg.dacs.RGB.dacBlue) num_dacs++;
+                    if (component->cfg.dacs.RGB.dacHSync != NEXUS_VideoDac_eNone && !component->cfg.dacs.RGB.noSync) num_dacs++;
+                    break;
+                default:
+                    break;
+            }
+        }
+#endif
+#if NEXUS_NUM_COMPOSITE_OUTPUTS
+        for (i=0; i<NEXUS_NUM_COMPOSITE_OUTPUTS; i++) {
+            struct NEXUS_CompositeOutput *composite = &g_NEXUS_DisplayModule_State.outputs.composite[i];
+            if (composite->cfg.dac) num_dacs++;
+        }
+#endif
+        BDBG_ASSERT(num_dacs<=NEXUS_MAX_VIDEO_DACS);
+        for (i=0; i<num_dacs; i++) {
+            pStatus->power.dacs[i].phy = g_NEXUS_DisplayModule_State.dacOn[i]?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+            pStatus->power.dacs[i].clock = state;
+        }
+    }
+#endif
+#ifdef BCHP_PWR_RESOURCE_VDC_656_OUT
+        pStatus->power.ccir656Output.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_VDC_656_OUT)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
 #endif
 
     return 0;

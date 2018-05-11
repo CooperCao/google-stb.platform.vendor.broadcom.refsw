@@ -250,3 +250,10 @@ NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const NEXUS_DmaJobB
     BSTD_UNUSED(nBlocks);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
+
+void
+NEXUS_GetDmaCapabilities( NEXUS_DmaCapabilities *capabilities)
+{
+    capabilities->numChannels = 0;
+    return;
+}

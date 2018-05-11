@@ -99,8 +99,6 @@ void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode);
 NEXUS_Error NEXUS_Sage_P_SystemCritRestartCheck(void *pSettings);
 NEXUS_Error NEXUS_SageModule_P_AddRegion(uint32_t id, NEXUS_Addr offset, uint32_t size);
 NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void);
-NEXUS_Error NEXUS_Sage_P_SARMInit(NEXUS_SageModuleSettings *pSettings);
-void NEXUS_Sage_P_SARMUninit(void);
 
 /* All NEXUS_Sage_P_Test_xxx api's are for internal developer testing ONLY */
 /* Not enabled by default (i.e. NOP), they should never impact real SVP code and always have void returns */

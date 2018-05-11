@@ -166,20 +166,29 @@ $(warning Common DRM TL will not overwrite Type 1 or Type 2 DRM bin files on the
 CFLAGS += -DCMNDRM_SKIP_BINFILE_OVERWRITE=1
 endif
 
+########################################
+# Determine core size and ZEUS version
+########################################
+include ${NEXUS_TOP}/modules/security/security_defs.inc
+
 ############################################################################
 # Go through all <DRM>_SAGE variables from config.inc and include those
 # <drm>.inc files
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 ifeq ($(SAGE_SUPPORT),y)
-ifeq ($(findstring $(BCHP_CHIP), 7445 7366 7439 7364 7250 74371 7268 7271 7260), $(BCHP_CHIP))
-include config/config_zeus4x.inc
-else ifeq ($(findstring $(BCHP_CHIP), 7435 7584 75845), $(BCHP_CHIP))
-include config/config_zeus30.inc
-else ifeq ($(findstring $(BCHP_CHIP), 7278), $(BCHP_CHIP))
-include config/config_zeus5x.inc
-endif
+	ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR), 4)
+		include config/config_zeus4x.inc
+	endif
+
+	ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR), 3)
+		include config/config_zeus30.inc
+	endif
+
+	ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR), 5)
+		include config/config_zeus5x.inc
+	endif
 else
-include config/config_no_sage.inc
+	include config/config_no_sage.inc
 endif
 
 #################### COMMON ################################

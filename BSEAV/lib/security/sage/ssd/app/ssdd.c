@@ -119,7 +119,7 @@ static bool SSDD_IsRpmbAvailable(char *rpmb_path)
     /* Zeus5:RPMB/Replay key-ladder is supported */
 #if (BHSM_ZEUS_VER_MAJOR < 5)
 #if (NEXUS_SECURITY_API_VERSION==1)
-    if (securityCaps.version.firmware >= NEXUS_BFW_VERSION_CALC(4,2,3)) {
+    if (securityCaps.version.firmware >= NEXUS_BFW_VERSION_CALC(4,2,3))
 #else
     if (NEXUS_BFW_VERSION_CALC(securityCaps.version.bfw.major, securityCaps.version.bfw.minor, securityCaps.version.bfw.subminor) >=
         NEXUS_BFW_VERSION_CALC(4,2,3))

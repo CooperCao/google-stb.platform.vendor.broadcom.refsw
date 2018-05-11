@@ -105,6 +105,24 @@ void BHDR_HDCP_SetSettings(BHDR_Handle hHDR, BHDR_HDCP_Settings *pHdcpSettings)
 		| BCHP_FIELD_DATA(HDMI_RX_0_HDCP_CONFIG, DISABLE_OTP_REPEATER, pHdcpSettings->bRepeater) ;
 	BREG_Write32(hRegister, BCHP_HDMI_RX_0_HDCP_CONFIG + ulOffset, Register) ;
 
+
+#if BHDR_CONFIG_HDCP2X_SUPPORT
+	{
+		uint8_t HDCP2VersionConfig ;
+
+		/* Set HDCP2Version register accordingly to indicate HDCP version support */
+		if (pHdcpSettings->eVersion >= BHDR_HDCP_Version_e2x)
+			HDCP2VersionConfig = 0x04 ;
+		else
+			HDCP2VersionConfig = 0x00 ;
+
+		Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_HDCP2VERSION_CFG  + ulOffset);
+			Register &= ~ BCHP_MASK(HDCP2_RX_0_HDCP2VERSION_CFG, VERSION);
+			Register |= BCHP_FIELD_DATA(HDCP2_RX_0_HDCP2VERSION_CFG, VERSION, HDCP2VersionConfig);
+		BREG_Write32(hRegister, BCHP_HDCP2_RX_0_HDCP2VERSION_CFG + ulOffset, Register) ;
+	}
+#endif
+
 	BKNI_Memcpy(&hHDR->stHdcpSettings, pHdcpSettings, sizeof(BHDR_HDCP_Settings)) ;
 
 	if (!pHdcpSettings->bRepeater)
@@ -272,12 +290,6 @@ BERR_Code BHDR_HDCP_SetHdcp2xRxCaps(
 				| BCHP_FIELD_DATA(HDCP2_RX_0_RXCAPS, RECEIVER_CAPABILITY_MASK, rxCapsMask)
 				| BCHP_FIELD_DATA(HDCP2_RX_0_RXCAPS, REPEATER, repeater);
 	BREG_Write32(hRegister, BCHP_HDCP2_RX_0_RXCAPS + ulOffset, Register) ;
-
-	/* Set HDCP2Version register accordingly to indicate HDCP2.x support */
-	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_HDCP2VERSION_CFG  + ulOffset);
-		Register &= ~ BCHP_MASK(HDCP2_RX_0_HDCP2VERSION_CFG, VERSION);
-		Register |= BCHP_FIELD_DATA(HDCP2_RX_0_HDCP2VERSION_CFG, VERSION, 0x04);
-	BREG_Write32(hRegister, BCHP_HDCP2_RX_0_HDCP2VERSION_CFG + ulOffset, Register) ;
 
 	BDBG_LEAVE(BHDR_HDCP_SetHdcp2xRxCaps);
 	return BERR_SUCCESS;

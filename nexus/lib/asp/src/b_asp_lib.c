@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include <sys/types.h>
@@ -93,7 +97,8 @@ typedef struct B_AspChannel
     NEXUS_AspChannelStatus                  nexusStatus;            /* Saved previous Nexus ASP status. */
     int                                     nexusStatusIsValid;     /* true => nexusStatus has been populated. */
     B_Time                                  nexusStatusTime;        /* Time that nexusStatus was acquired. */
-    uint32_t                                nexusStatusBitRate;     /* last calculated ASP channel bit-rate. */
+    uint32_t                                nexusStatusTxBitRate;     /* last calculated ASP channel bit-rate. */
+    uint32_t                                nexusStatusRxBitRate;     /* last calculated ASP channel bit-rate. */
 } B_AspChannel;
 
 void B_Asp_Uninit(void)
@@ -831,7 +836,8 @@ B_Error B_AspChannel_PrintStatus(
     B_AspChannelStatus      status;
     B_Time                  nexusStatusTime;
     NEXUS_AspChannelStatus   *pStatus;
-    uint32_t                bitRate = 0;
+    uint32_t                txBitRate = 0;
+    uint32_t                rxBitRate = 0;
     uint64_t                diffTimeInUs;
     NEXUS_RecpumpStatus     recpumpStatus = {0};
     NEXUS_RecpumpHandle     hRecpump = NULL;
@@ -846,16 +852,17 @@ B_Error B_AspChannel_PrintStatus(
     pStatus = &status.nexusStatus;
 
     /* In order to compute the bit rate, we need to have a prior saved status struct and its associated time.
-     * If we haven't saved a status struct for this channel, we'll just say the bitRate is zero for now.  */
+     * If we haven't saved a status struct for this channel, we'll just say the txBitRate is zero for now.  */
     if ( ! hAspChannel->nexusStatusIsValid)
     {
-        bitRate = 0;        /* No prior sample, assume bit rate is zero. */
+        txBitRate = 0;        /* No prior sample, assume bit rate is zero. */
+        rxBitRate = 0;        /* No prior sample, assume bit rate is zero. */
 
 #if 0
-        BDBG_LOG(("%s : %d : Ch=%d nexusStatusIsValid is false. bitRate=%u",
+        BDBG_LOG(("%s : %d : Ch=%d nexusStatusIsValid is false. txBitRate=%u",
                     BSTD_FUNCTION, __LINE__,
                     status.nexusStatus.aspChannelIndex,
-                    bitRate));
+                    txBitRate));
 #endif
     }
     else
@@ -871,7 +878,8 @@ B_Error B_AspChannel_PrintStatus(
          * the last calculated bit rate (or zero).  */
         if (diffTimeInUs < 100000)
         {
-            bitRate = hAspChannel->nexusStatusBitRate;      /* use last reported bit rate */
+            txBitRate = hAspChannel->nexusStatusTxBitRate;      /* use last reported bit rate */
+            rxBitRate = hAspChannel->nexusStatusRxBitRate;      /* use last reported bit rate */
 
 #if 0
             BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld savedBitRate=%u diffTime=%lu\n",
@@ -879,7 +887,7 @@ B_Error B_AspChannel_PrintStatus(
                         status.nexusStatus.aspChannelIndex,
                         nexusStatusTime.tv_sec, nexusStatusTime.tv_usec,
                         hAspChannel->nexusStatusTime.tv_sec, hAspChannel->nexusStatusTime.tv_usec,
-                        bitRate,
+                        txBitRate,
                         diffTimeInUs ));
 #endif
         }
@@ -888,7 +896,8 @@ B_Error B_AspChannel_PrintStatus(
             /* We have a saved status struct that's old enough, use the elapsed time and
              * byte counts to calculate the  bit rate.  */
 
-            bitRate = (((status.nexusStatus.stats.mcpbConsumedInBytes - hAspChannel->nexusStatus.stats.mcpbConsumedInBytes)*8*1000000)/diffTimeInUs);
+            txBitRate = (((status.nexusStatus.stats.mcpbConsumedInBytes - hAspChannel->nexusStatus.stats.mcpbConsumedInBytes)*8*1000000)/diffTimeInUs);
+            rxBitRate = (((uint64_t)(status.nexusStatus.stats.fwStats.rcvdSequenceNumber - hAspChannel->nexusStatus.stats.fwStats.rcvdSequenceNumber))*8*1000000)/diffTimeInUs;
 
 #if 0
             BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld byte count=%lu diffBytes=%lu diffTime=%lu\n",
@@ -943,8 +952,8 @@ B_Error B_AspChannel_PrintStatus(
         }
     }
 
-    BDBG_LOG(("TxStats[ch=%d en=%s desc=%s rate=%uMbps avPaused=%s mcpbStalled=%s]: Playpump=%u/%u RAVE=%u/%u mcpbPendng=%u bytes, SndWnd=%u TsPkts=%"PRId64 " IpPkts: mcpb=%"PRId64 " umac=%u p7=%u p8=%u p0=%u",
-                status.nexusStatus.aspChannelIndex, pStatus->stats.mcpbChEnabled? "Y":"N", pStatus->stats.mcpbDescFifoEmpty? "N":"Y", bitRate/1000000,
+    BDBG_LOG(("TxStats[ch=%d en=%s desc=%s TxRate=%uMbps RxRate=%uMpbs avPaused=%s mcpbStalled=%s]: Playpump=%u/%u RAVE=%u/%u mcpbPendng=%u bytes, SndWnd=%u TsPkts=%"PRId64 " IpPkts: mcpb=%"PRId64 " umac=%u p7=%u p8=%u p0=%u",
+                status.nexusStatus.aspChannelIndex, pStatus->stats.mcpbChEnabled? "Y":"N", pStatus->stats.mcpbDescFifoEmpty? "N":"Y", txBitRate/1000000, rxBitRate/1000000,
                 status.nexusStatus.stats.mcpbAvPaused ? "Y":"N",
                 status.nexusStatus.stats.mcpbStalled ? "Y":"N",
                 (unsigned)playpumpStatus.fifoDepth, (unsigned)playpumpStatus.fifoSize,
@@ -966,7 +975,7 @@ B_Error B_AspChannel_PrintStatus(
                 pStatus->stats.nwSwRxP8InUnicastIpPkts,
                 pStatus->stats.nwSwRxP0InDiscards
              ));
-    BDBG_LOG(("FwStats[ch=%d]: window: congestion=%u rcv=%u send=%u, pkts: sent=%"PRId64 " rcvd=%"PRId64 " dropped=%u dataDropped=%u retx=%d, seq#: send=%x ack=%x retx=%x",
+    BDBG_LOG(("FwStats[ch=%d]: window: congestion=%u rcv=%u send=%u, pkts: sent=%"PRId64 " rcvd=%"PRId64 " dropped=%u dataDropped=%u retx=%d, seq#: send=%x ack=%x rcvd=%x retx=%x",
                 status.nexusStatus.aspChannelIndex,
                 status.nexusStatus.stats.fwStats.congestionWindow,
                 status.nexusStatus.stats.fwStats.receiveWindow,
@@ -978,13 +987,15 @@ B_Error B_AspChannel_PrintStatus(
                 status.nexusStatus.stats.fwStats.pktsRetx,
                 status.nexusStatus.stats.fwStats.sendSequenceNumber,
                 status.nexusStatus.stats.fwStats.rcvdAckNumber,
+                status.nexusStatus.stats.fwStats.rcvdSequenceNumber,
                 status.nexusStatus.stats.fwStats.retxSequenceNumber
              ));
 
     hAspChannel->nexusStatus = status.nexusStatus;
     hAspChannel->nexusStatusIsValid = true;
     hAspChannel->nexusStatusTime = nexusStatusTime;
-    hAspChannel->nexusStatusBitRate = bitRate;
+    hAspChannel->nexusStatusTxBitRate = txBitRate;
+    hAspChannel->nexusStatusRxBitRate = rxBitRate;
 
     return (B_ERROR_SUCCESS);
 }

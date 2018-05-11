@@ -615,6 +615,17 @@ returns number of microseconds since module boot.
 void NEXUS_Graphicsv3d_GetTime(
    uint64_t *pMicroseconds                         /* [out] time in microseconds */
    );
+
+/**
+Summary:
+Graphics3D module status.
+**/
+typedef struct NEXUS_Graphicsv3dModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core;
+    } power;
+} NEXUS_Graphicsv3dModuleStatus;
 #ifdef __cplusplus
 }
 #endif

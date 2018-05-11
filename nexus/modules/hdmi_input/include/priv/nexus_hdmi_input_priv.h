@@ -132,6 +132,8 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
 
 bool NEXUS_HdmiInput_GetSecure_isrsafe(NEXUS_HdmiInputHandle hdmiInput);
 
+NEXUS_Error NEXUS_HdmiInputModule_GetStatus_priv(NEXUS_HdmiInputModuleStatus *pStatus);
+
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiInput);
 
 #ifdef __cplusplus

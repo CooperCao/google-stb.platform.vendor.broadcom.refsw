@@ -111,3 +111,10 @@ ifeq ($(SECURERSA_SUPPORT), y)
         COMMON_CRYPTO_SOURCES +=  ${BSEAV}/lib/security/common_crypto/src/common_crypto_securersa.c
     endif
 endif
+
+# Use ASKM credential protection configuration from URSR 12.4-16.4
+ifeq ($(NEXUS_SECURITY_API_VERSION), 1)
+ifeq ($(COMMON_DRM_LEGACY_MODE), y)
+NEXUS_CFLAGS += -DCOMMON_DRM_LEGACY_MODE=1
+endif
+endif

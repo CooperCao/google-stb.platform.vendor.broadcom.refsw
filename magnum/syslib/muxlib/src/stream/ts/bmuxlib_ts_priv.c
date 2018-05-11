@@ -3021,11 +3021,19 @@ BMUXlib_TS_P_ProcessNewBuffers(
                }
                else
                {
+                  uint32_t uiESCR = hMuxTS->pstStatus->stOutput.stTransport[pInputMetadata->uiTransportChannelIndex].stTimingPending.uiNextExpectedESCR;
+
+                  if ( ( BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->pstSettings->stStartSettings.eInterleaveMode ) ) )
+                       && ((int32_t)(BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor ) - uiESCR) > 0 ))
+                  {
+                     uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor );
+                  }
+
                   /* Insert NULL packet to consume non-video EOS descriptor */
                   if ( BERR_SUCCESS != BERR_TRACE(BMUXlib_TS_P_InsertNULLTransportDescriptor(
                            hMuxTS,
                            pInputMetadata->uiTransportChannelIndex,
-                           BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor ),
+                           uiESCR,
                            0,
                            BMUXlib_TS_P_DataType_eCDB,
                            BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )],
@@ -3511,7 +3519,6 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
                   if (NULL != hMuxTS->astTransportDescriptorMetaDataTemp[i].pBufferAddress)
                   {
                      /* can write this data directly from the buffer */
-                     BDBG_ASSERT(0 == hMuxTS->astTransportDescriptorMetaDataTemp[i].uiBufferBaseOffset);
                      fwrite(hMuxTS->astTransportDescriptorMetaDataTemp[i].pBufferAddress,
                            1,
                            hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
@@ -3600,7 +3607,10 @@ BMUXlib_TS_P_Flush(
            || ( ( hMuxTS->pstStatus->stTransportStatus.uiESCR < uiLastPendingESCR )
                 && ( ( uiLastPendingESCR - hMuxTS->pstStatus->stTransportStatus.uiESCR ) > 0x80000000 ) ) )
       {
-         BDBG_MODULE_MSG( BMUXLIB_TS_EOS, ("Current ESCR is larger than the last pending ESCR, so skipping NULL"));
+         BDBG_MODULE_MSG( BMUXLIB_TS_EOS, ("Current ESCR is larger than the last pending ESCR, so skipping NULL (%08x > %08x)",
+               hMuxTS->pstStatus->stTransportStatus.uiESCR,
+               uiLastPendingESCR
+         ));
          return true;
       }
 

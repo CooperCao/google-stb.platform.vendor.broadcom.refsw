@@ -68,4 +68,4 @@ NEXUS_TRANSPORT_DEFINES += NEXUS_TRANSPORT_EXTENSION_ATS=1
 ##################
 # Magnum Modules #
 ##################
-# add additional magnum modules here
+NEXUS_TRANSPORT_MAGNUM_MODULES +=$(MAGNUM)/portinginterface/xpt/bxpt_ats.inc

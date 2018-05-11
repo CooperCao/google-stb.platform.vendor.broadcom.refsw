@@ -90,8 +90,8 @@ tz_bootstrap:
      * - r5: load-to-link offset
      */
     ldr     r4, =tz_init   /* Link address of tz_init */
-    adr     r0, tz_init    /* Load address of tz_init */
-    sub     r5, r0, r4     /* Load-to-link offset */
+    adr     r5, tz_init    /* Load address of tz_init */
+    sub     r5, r5, r4     /* Load-to-link offset */
 
     /* Figure out current CPU number from MPIDR
      * - r4: CPU number
@@ -124,6 +124,15 @@ tz_bootstrap:
      * - r9: Device tree memory location (primary CPU), or 0 (secondary CPU)
      */
     mov     r9, r2
+
+    /* Enable floating register point access in CPACR */
+    mov     r0, #0x00f00000
+    mcr     p15, 0, r0, c1, c0, 2
+
+    /* Enable SIMD instruction execution at all levels */
+    vmrs    r0, fpexc
+    orr     r0, r0, #0x40000000
+    vmsr    fpexc, r0
 
     /* Call bootstrap C-function
      * - r0: Load-to-link offset
@@ -187,15 +196,6 @@ tz_bootstrap:
     /* Setup exception vector base address (VBAR) */
     ldr     r8, =secure_mode_vectors
     mcr     p15, 0, r8, c12, c0, 0
-
-    /* Enable floating register point access in CPACR */
-    mov     r6, #0x00f00000
-    mcr     p15, 0, r6, c1, c0, 2
-
-    /* Enable SIMD instruction execution at all levels */
-    vmrs    r0, fpexc
-    orr     r0, r0, #0x40000000
-    vmsr    fpexc, r0
 
     /* Call kernel init function
      * - x0: Device tree memory location (priamry CPU), 0 (secondary CPU)

@@ -745,15 +745,15 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
     bspSetIv.in.keySlotType = BHSM_P_ConvertSlotType(pSlot->slotType);
     bspSetIv.in.keySlotNumber = pSlot->number;
 
-    if( pIv2 && (pIv2->size == 8) ) /* Pack the two IVs together */
+    if( pIv && (pIv->size == 8) ) /* handle 64 bit IVs */
     {
-        if( !pIv ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); } /* we need pIv if pIv2 is 8 bytes! */
-
-        rc = BHSM_MemcpySwap( &bspSetIv.in.iv[0], pIv->iv, pIv->size );
+        rc = BHSM_MemcpySwap( &bspSetIv.in.iv[2], pIv->iv, pIv->size );
         if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
-        rc = BHSM_MemcpySwap( &bspSetIv.in.iv[2], pIv2->iv, pIv2->size );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+        if( pIv2 ){
+            rc = BHSM_MemcpySwap( &bspSetIv.in.iv[0], pIv2->iv, pIv2->size );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+        }
 
         bspSetIv.in.ivType = Bsp_KeySlotIvType_eIv;
 
@@ -775,8 +775,9 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
 
         if( pIv2 )
         {
-            BDBG_ASSERT( pIv2->size == 16 ); /* logically bound to be true. */
 
+            if( pIv2->size == 8 ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); } /* 8 bit IV2 must be issued
+                                                                                      with a 8 bit IV */
             rc = BHSM_MemcpySwap( &bspSetIv.in.iv[0], pIv2->iv, pIv2->size ) ;
             if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 

@@ -50,6 +50,7 @@
 #include "b_objdb.h"
 #include "bvce_debug.h"
 #include "nexus_video_encoder_security.h"
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_video_encoder);
 BDBG_FILE_MODULE(nexus_video_encoder_status);
@@ -1731,4 +1732,56 @@ unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder)
 void NEXUS_VideoEncoderModule_GetStatistics( NEXUS_VideoEncoderModuleStatistics *pStats )
 {
     *pStats = g_NEXUS_VideoEncoderModuleStatistics;
+}
+
+NEXUS_Error NEXUS_VideoEncoderModule_GetStatus_priv(NEXUS_VideoEncoderModuleStatus *pStatus)
+{
+    unsigned i;
+    NEXUS_PowerState clock[NEXUS_MAX_VCE_DEVICES]={0}, power[NEXUS_MAX_VCE_DEVICES]={0};
+    unsigned frequency[NEXUS_MAX_VCE_DEVICES]={0};
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    for (i=0; i<NEXUS_MAX_VCE_DEVICES; i++) {
+        unsigned clk=0;
+#if BCHP_PWR_RESOURCE_VICE0_PWR || BCHP_PWR_RESOURCE_VICE1_PWR
+        unsigned sram=0;
+#endif
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_VICE0_CLK
+                clk = BCHP_PWR_RESOURCE_VICE0_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_VICE0_PWR
+                sram = BCHP_PWR_RESOURCE_VICE0_PWR;
+#endif
+                break;
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_VICE1_CLK
+                clk = BCHP_PWR_RESOURCE_VICE1_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_VICE1_PWR
+                sram = BCHP_PWR_RESOURCE_VICE1_PWR;
+#endif
+                break;
+        }
+        if (clk) {
+            clock[i] = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+            BCHP_PWR_GetClockRate(g_pCoreHandles->chp, clk, &frequency[i]);
+        }
+#if BCHP_PWR_RESOURCE_VICE0_PWR || BCHP_PWR_RESOURCE_VICE1_PWR
+        if (sram) {
+            power[i] = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, sram)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+#endif
+    }
+
+    for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
+        int index = g_NEXUS_VideoEncoder_P_State.config.vceMapping[i].device;
+        if (index<0) continue;
+        pStatus->power.core[i].clock = clock[index];
+        pStatus->power.core[i].frequency = frequency[index];
+        pStatus->power.core[i].sram = power[index];
+    }
+
+    return NEXUS_SUCCESS;
 }

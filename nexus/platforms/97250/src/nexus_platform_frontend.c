@@ -92,12 +92,16 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
 
     {
-        NEXUS_PlatformStatus platformStatus;
+        NEXUS_PlatformStatus *platformStatus;
 
-        NEXUS_Platform_GetStatus(&platformStatus);
-        BDBG_MSG(("board major: %d, minor: %d",platformStatus.boardId.major,platformStatus.boardId.minor));
-        if (platformStatus.boardId.major == 10) {
-            switch (platformStatus.boardId.minor) {
+        platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+        if (!platformStatus) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        NEXUS_Platform_GetStatus(platformStatus);
+        BDBG_MSG(("board major: %d, minor: %d",platformStatus->boardId.major,platformStatus->boardId.minor));
+        if (platformStatus->boardId.major == 10) {
+            switch (platformStatus->boardId.minor) {
             case 0: /* v00 */
                 interrupt = 10;
                 i2c = true;
@@ -113,6 +117,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 break;
             }
         }
+        BKNI_Free(platformStatus);
     }
 
 #if NEXUS_HAS_SPI
@@ -409,7 +414,7 @@ void NEXUS_Platform_UninitFrontend(void)
     }
     return;
 }
-#elif defined NEXUS_USE_7250_CWF
+#elif NEXUS_HAS_FRONTEND && defined NEXUS_USE_7250_CWF
 #include "nexus_frontend_3128.h"
 #ifdef NEXUS_FRONTEND_REVERSE_RMAGNUM_SUPPORT
 #include "nexus_docsis.h"

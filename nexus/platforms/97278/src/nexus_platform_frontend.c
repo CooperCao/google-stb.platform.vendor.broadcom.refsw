@@ -83,9 +83,9 @@ static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
 #define HB_INT_GPIO_TYPE NEXUS_GpioType_eAonStandard
 #define SPI_PIN_MASK 0x33300000
 
+#if NEXUS_HAS_FRONTEND
 static void ConfigureIntGpioPin(int intGpio);
 
-#if NEXUS_HAS_FRONTEND
 #include "priv/nexus_frontend_standby_priv.h"
 /* Example function to power down or power up SPI or I2C pads on the backend when transitioning to standby. */
 NEXUS_Error NEXUS_Platform_FrontendStandby(NEXUS_FrontendDeviceHandle handle, void *context, const NEXUS_FrontendStandbySettings *pSettings)
@@ -131,11 +131,15 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
 
     {
-        NEXUS_PlatformStatus platformStatus;
+        NEXUS_PlatformStatus *platformStatus;
 
-        NEXUS_Platform_GetStatus(&platformStatus);
-        BDBG_MSG(("board major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
-        if (platformStatus.boardId.major == SV_BOARD_ID) {
+        platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+        if (!platformStatus) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        NEXUS_Platform_GetStatus(platformStatus);
+        BDBG_MSG(("board major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
+        if (platformStatus->boardId.major == SV_BOARD_ID) {
             BDBG_MSG(("SV"));
             i2c = SV_I2C;
 #if NEXUS_FRONTEND_USE_SECOND_FEMTSIF
@@ -144,16 +148,18 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             intGpio = SV_INT_GPIO0;
 #endif
             sv = true;
-        } else if (platformStatus.boardId.major == HB_BOARD_ID) {
+        } else if (platformStatus->boardId.major == HB_BOARD_ID) {
             BDBG_MSG(("HB"));
             i2c = HB_I2C;
             hb = true;
             intGpio = HB_INT_GPIO;
             intGpioType = HB_INT_GPIO_TYPE;
         } else {
-            BDBG_WRN(("Unrecognized BID(%d, %d), not configuring any frontends", platformStatus.boardId.major, platformStatus.boardId.minor));
+            BDBG_WRN(("Unrecognized BID(%d, %d), not configuring any frontends", platformStatus->boardId.major, platformStatus->boardId.minor));
+            BKNI_Free(platformStatus);
             return NEXUS_SUCCESS;
         }
+        BKNI_Free(platformStatus);
     }
 
 #if NEXUS_HAS_SPI

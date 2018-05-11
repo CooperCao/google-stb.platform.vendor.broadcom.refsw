@@ -490,6 +490,12 @@ void NEXUS_VideoEncoderModule_GetStatistics(
     NEXUS_VideoEncoderModuleStatistics *pStats
     );
 
+typedef struct NEXUS_VideoEncoderModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core[NEXUS_MAX_VIDEO_ENCODERS];
+    } power;
+} NEXUS_VideoEncoderModuleStatus;
 #ifdef __cplusplus
 }
 #endif

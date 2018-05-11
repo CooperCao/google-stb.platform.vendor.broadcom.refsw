@@ -1063,3 +1063,9 @@ NEXUS_Error NEXUS_VideoEncoder_ReadIndex(NEXUS_VideoEncoderHandle encoder, NEXUS
     BSTD_UNUSED(pRead);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
+
+NEXUS_Error NEXUS_VideoEncoderModule_GetStatus_priv(NEXUS_VideoEncoderModuleStatus *pStatus)
+{
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    return NEXUS_SUCCESS;
+}

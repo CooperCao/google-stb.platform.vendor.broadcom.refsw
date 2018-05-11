@@ -168,10 +168,17 @@ static void print_full_usage(void)
     printf(
     "  -memconfig videoDecoder,INDEX,MAXWIDTH,MAXHEIGHT\n"
     "  -memconfig videoDecoder,INDEX,mosaic,NUMMOSAICS,MAXWIDTH,MAXHEIGHT\n"
-    "  -memconfig display,INDEX,MAXWIDTH,MAXHEIGHT\n"
     "  -memconfig videoDecoder,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
-    "  -memconfig display,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
+    "  -memconfig videoDecoder,dynamic\n"
+    );
+    printf(
+    "  -memconfig stillDecoder,off\n"
     "  -memconfig videoEncoder,{INDEX|all},MAXWIDTH,MAXHEIGHT,[i|p]\n"
+    "  -memconfig videoEncoder,dynamic\n"
+    );
+    printf(
+    "  -memconfig display,INDEX,MAXWIDTH,MAXHEIGHT\n"
+    "  -memconfig display,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
     );
     printf(
     "  -memconfig display,capture=off    \tDon't allocate BVN buffers for various capture uses\n"

@@ -48,6 +48,7 @@
 #error "code is not yet ready for C++14"
 #endif
 
+#ifdef NEXUS_HAS_SECURITY
 #ifdef MSDRM_PRDY25
 #include "pr_decryptor.h"
 #endif
@@ -59,6 +60,9 @@
 #endif
 #ifdef ENABLE_WIDEVINE_3x
 #include "wv3x_decryptor.h"
+#endif
+#else
+#include "decryptor.h"
 #endif
 
 BDBG_MODULE(decryptor_factory);

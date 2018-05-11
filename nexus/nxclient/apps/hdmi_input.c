@@ -944,6 +944,8 @@ int main(int argc, const char **argv)  {
         return -1;
     }
 
+    hdmiTxHotplugCallback();
+
     errCode = initializeHdmiInputHdcpSettings() ;
     if (errCode)
     {
@@ -962,6 +964,11 @@ int main(int argc, const char **argv)  {
     /* chips with both hdmi rx and tx cores should always set repeater to TRUE */
     hdmiInputHdcpSettings.repeater = true;
     hdmiInputHdcpSettings.hdcpRxChanged.callback = hdmiRxHdcpStateChanged;
+    if (hdcpVersion == NxClient_HdcpVersion_eHdcp1x)
+        hdmiInputHdcpSettings.maxVersion = NEXUS_HdcpVersion_e1x ;
+    else
+        hdmiInputHdcpSettings.maxVersion = NEXUS_HdcpVersion_e2x ;
+
     rc = NEXUS_HdmiInput_HdcpSetSettings(g_app.hdmiInput, &hdmiInputHdcpSettings);
     BDBG_ASSERT(!rc);
 

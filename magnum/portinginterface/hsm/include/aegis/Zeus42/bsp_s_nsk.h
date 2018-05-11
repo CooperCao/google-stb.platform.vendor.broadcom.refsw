@@ -38,9 +38,10 @@
  ******************************************************************************/
 
 
+
 #ifndef BSP_S_NSK_H__
 #define BSP_S_NSK_H__
 
-#warning "Header deprecated. inlcude bsp_restricted_nsk_nds.h instead"
+
 
 #endif

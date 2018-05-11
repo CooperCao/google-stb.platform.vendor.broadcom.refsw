@@ -47,7 +47,12 @@
 #include "bkni.h"
 #include "bkni_multi.h"
 
+#include "nexus_security_datatypes.h"
+#if (NEXUS_SECURITY_API_VERSION == 1)
 #include "nexus_otpmsp.h"
+#else
+#include "nexus_otp_msp.h"
+#endif
 
 #include "drm_metadata_tl.h"
 
@@ -638,6 +643,7 @@ ErrorExit:
     return rc;
 }
 
+#if (NEXUS_SECURITY_API_VERSION == 1)
 static ChipType_e Keymaster_P_GetChipType()
 {
 
@@ -670,3 +676,36 @@ static ChipType_e Keymaster_P_GetChipType()
 done:
     return ChipType_eZB;
 }
+#else
+static ChipType_e Keymaster_P_GetChipType()
+{
+    NEXUS_OtpMspRead readMsp0;
+    NEXUS_OtpMspRead readMsp1;
+    uint32_t Msp0Data;
+    uint32_t Msp1Data;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+#if NEXUS_ZEUS_VERSION < NEXUS_ZEUS_VERSION_CALC(5,0)
+    rc = NEXUS_OtpMsp_Read(233, &readMsp0);
+    if (rc) BERR_TRACE(rc);
+
+    rc = NEXUS_OtpMsp_Read(234, &readMsp1);
+    if (rc) BERR_TRACE(rc);
+#else
+    rc = NEXUS_OtpMsp_Read(224, &readMsp0);
+    if (rc) BERR_TRACE(rc);
+
+    rc = NEXUS_OtpMsp_Read(225, &readMsp1);
+    if (rc) BERR_TRACE(rc);
+#endif
+
+    Msp0Data = readMsp0.data & readMsp0.valid;
+    Msp1Data = readMsp1.data & readMsp1.valid;
+
+    BDBG_MSG(("OTP MSP0 %u OTP MSP1 %u", Msp0Data, Msp1Data));
+
+    if((Msp0Data == OTP_MSP0_VALUE_ZS) && (Msp1Data == OTP_MSP1_VALUE_ZS)) {
+        return ChipType_eZS;
+    }
+    return ChipType_eZB;
+}
+#endif

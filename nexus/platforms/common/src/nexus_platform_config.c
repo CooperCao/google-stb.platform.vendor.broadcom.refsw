@@ -817,8 +817,7 @@ static const char *g_pGisbMasters[] =
     "SVD0",
     "reserved"
 };
-#elif BCHP_CHIP == 7358 || BCHP_CHIP == 7552 || BCHP_CHIP == 7360 || BCHP_CHIP == 7362 || \
-      BCHP_CHIP == 7228 || BCHP_CHIP == 73625
+#elif BCHP_CHIP == 7358 || BCHP_CHIP == 7360 || BCHP_CHIP == 7362 || BCHP_CHIP == 73625
 static const char *g_pGisbMasters[] =
 {
     "SSP",

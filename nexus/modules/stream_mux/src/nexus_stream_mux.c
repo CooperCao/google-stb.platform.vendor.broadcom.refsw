@@ -1060,13 +1060,13 @@ NEXUS_StreamMux_AddSystemDataBuffer(NEXUS_StreamMuxHandle mux, const NEXUS_Strea
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 
+    if (pSystemDataBuffer->pData == NULL || !NEXUS_P_CpuAccessibleAddress(pSystemDataBuffer->pData)) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
     BKNI_Memset( &astSystemDataBuffer[0], 0, sizeof( BMUXlib_TS_SystemData ) );
     astSystemDataBuffer[0].uiTimestampDelta = pSystemDataBuffer->timestampDelta;
     astSystemDataBuffer[0].uiSize = pSystemDataBuffer->size;
-
-    if (!NEXUS_P_CpuAccessibleAddress(pSystemDataBuffer->pData)) {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
 
     NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.core);
     rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pSystemDataBuffer->pData, pSystemDataBuffer->size, &block, &offset);

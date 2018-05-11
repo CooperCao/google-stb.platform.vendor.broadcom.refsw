@@ -1,45 +1,49 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #ifndef BAVC_HDMI_H__
 #define BAVC_HDMI_H__
 
 #include "bstd.h"
+#include "bavc_types.h"
 #include "bchp_common.h"
 #ifdef BCHP_HDMI_REG_START
 #include "bchp_hdmi.h"
@@ -195,8 +199,8 @@ BAVC_HDMI_CoreId
 *******************************************************************************/
 typedef enum BAVC_HDMI_Device
 {
-	BAVC_HDMI_Device_eTx,
-	BAVC_HDMI_Device_eRx
+    BAVC_HDMI_Device_eTx,
+    BAVC_HDMI_Device_eRx
 } BAVC_HDMI_Device ;
 
 
@@ -213,9 +217,9 @@ BAVC_HDMI_Device
 *******************************************************************************/
 typedef enum BAVC_HDMI_CoreId
 {
-	BAVC_HDMI_CoreId_e0,
-	BAVC_HDMI_CoreId_e1,
-	BAVC_HDMI_CoreId_eNone
+    BAVC_HDMI_CoreId_e0,
+    BAVC_HDMI_CoreId_e1,
+    BAVC_HDMI_CoreId_eNone
 } BAVC_HDMI_CoreId ;
 
 
@@ -232,8 +236,8 @@ BAVC_HDMI_CoreId
 *******************************************************************************/
 typedef struct BAVC_HDMI_Port
 {
-	BAVC_HDMI_Device eDevice ;
-	BAVC_HDMI_CoreId eCoreId ;
+    BAVC_HDMI_Device eDevice ;
+    BAVC_HDMI_CoreId eCoreId ;
 } BAVC_HDMI_Port ;
 
 
@@ -926,7 +930,6 @@ typedef enum
 
 
 /******************************************************************************
-Summary:
 Version number of each InfoFrame Packet Type
 
 Description:
@@ -1273,32 +1276,6 @@ typedef enum BAVC_HDMI_DRM_DescriptorId
     BAVC_HDMI_DRM_DescriptorId_eMax
 } BAVC_HDMI_DRM_DescriptorId ;
 
-
-/***************************************************************************
-Summary:
-Structure containing the contents of DRM info frame type 1 (HDR10).
-****************************************************************************/
-typedef struct BAVC_HDMI_DRMInfoFrameType1
-{
-    struct {
-        uint16_t X ;
-        uint16_t Y ;
-    } DisplayPrimaries[3] ;
-
-    struct {
-        uint16_t X ;
-        uint16_t Y ;
-    } WhitePoint ;
-
-    struct {
-        uint16_t Max ; /* in 1 nits unit */
-        uint16_t Min ; /* in 0.0001 nits unit */
-    } DisplayMasteringLuminance ;
-
-    uint16_t MaxContentLightLevel ;
-    uint16_t MaxFrameAverageLightLevel ;
-} BAVC_HDMI_DRMInfoFrameType1;
-
 /***************************************************************************
 Summary:
 Structure containing the contents of DRM Packet.
@@ -1310,7 +1287,7 @@ typedef struct BAVC_HDMI_DRMInfoFrame
     /* fields from DRM Packet */
     BAVC_HDMI_DRM_EOTF eEOTF ;  /* Electro-Optical Transfer Function */
     BAVC_HDMI_DRM_DescriptorId eDescriptorId ;
-    BAVC_HDMI_DRMInfoFrameType1 Type1 ;
+    BAVC_StaticHdrMetadata stType1 ;
 
 #if BAVC_HDMI_RECEIVER
         BAVC_HDMI_PacketStatus ePacketStatus ;

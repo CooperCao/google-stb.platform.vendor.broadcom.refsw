@@ -38,6 +38,7 @@
  ******************************************************************************/
 
 
+
 #ifndef BSP_S_HMAC_SHA1_H__
 #define BSP_S_HMAC_SHA1_H__
 
@@ -152,7 +153,6 @@ typedef enum BPI_HmacSha1_Context_e
     BPI_HmacSha1_Context_eVdec2_Ola = 0x1D,
 
     BPI_HmacSha1_Context_eRegionMax = BPI_REGION_CONTEXT_MAX,
-    BPI_HmacSha1_Context_eReserved4 = 0x1F,
 
     BPI_HmacSha1_Context_eHmacSha1CtxMin = 0x20,
     BPI_HmacSha1_Context_eHmacSha1Ctx0 = 0x20,

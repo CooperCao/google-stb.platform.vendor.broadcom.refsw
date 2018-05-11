@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  **************************************************************************/
 #ifndef NEXUS_TYPES_H__
 #define NEXUS_TYPES_H__
@@ -754,6 +758,7 @@ typedef struct NEXUS_ContentLightLevel
                                  this is the max value of frmAvg reached across the entire stream */
 } NEXUS_ContentLightLevel;
 
+
 /**
 Summary:
 Information about the color properties of the display that was used to
@@ -776,6 +781,16 @@ typedef struct NEXUS_MasteringDisplayColorVolume
         unsigned min; /* 0.0001 cd / m^2 */
     } luminance; /* luminance range of the mastering display */
 } NEXUS_MasteringDisplayColorVolume;
+
+/**
+Summary:
+Static metadata defined by CEA861 for high dynamic range output modes
+**/
+typedef struct NEXUS_StaticHdrMetadata
+{
+    NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume; /* color information about the mastering display */
+    NEXUS_ContentLightLevel contentLightLevel; /* light information about the stream */
+} NEXUS_StaticHdrMetadata;
 
 /***************************************************************************
 Summary:
@@ -827,6 +842,72 @@ typedef struct NEXUS_StandbySettings
     bool openFrontend; /* If true, NEXUS_Platform_SetStandbySettings will initialize the frontend. */
     unsigned timeout; /* time (in milliseconds) for nexus to wait its internal activity to wind down */
 } NEXUS_StandbySettings;
+
+typedef enum NEXUS_PowerState
+{
+    NEXUS_PowerState_eInvalid, /* Resource does not exist */
+    NEXUS_PowerState_eOn,      /* Resource is On */
+    NEXUS_PowerState_eOff,     /* Resource is Off */
+    NEXUS_PowerState_eMax
+} NEXUS_PowerState;
+
+typedef struct NEXUS_PowerStatus
+{
+    NEXUS_PowerState clock;
+    NEXUS_PowerState sram;
+    NEXUS_PowerState phy;
+    unsigned frequency;     /* Frequency in Hz */
+} NEXUS_PowerStatus;
+
+/**
+   Summary:
+   Audio/Video decoder splce states
+   Description:
+   When splicing stream from hard disk on top of live stream or to replace parts of
+   recorded programs decoders transition through a splice state machne using states below.
+   When spice state machine is first armed decoders transition in to
+   NEXUS_DecoderSpliceState_eWaitForStopPts state where rave is looking for a pts to stop
+   one content and start replacement content. When such pts is found decoders transition to
+   NEXUS_DecoderSpliceState_eFoundStopPts state. At this point application can start feeding
+   replacement data. When application starts feeding replacement stream decoders will transition
+   in to NEXUS_DecoderSpliceState_eSpliceStarted state. When replacement stream ends, decoders
+   will transition to NEXUS_DecoderSpliceState_eSpliceStopped state. Application then can setup
+   a pts to transition back to original conent. In this case decoders will transition into
+   NEXUS_DecoderSpliceState_eWaitForStartPts state. When start pst is found state will
+   transition to NEXUS_DecoderSpliceState_eDone. This will indicate that decoders returned to
+   decoding of the original stream and application can setup new transition point or
+   do a final cleaup.
+ */
+typedef enum NEXUS_DecoderSpliceState
+{
+	NEXUS_DecoderSpliceState_eNone,				  /* content splicing is disabled */
+	NEXUS_DecoderSpliceState_eWaitForStopPts,     /* looking for stop pts */
+	NEXUS_DecoderSpliceState_eFoundStopPts,       /* stopPts found */
+	NEXUS_DecoderSpliceState_eWaitForStartPts,    /* looking for start pts */
+	NEXUS_DecoderSpliceState_eFoundStartPts,	  /* found start pts and resumed original stream */
+	NEXUS_DecoderSpliceState_eMax
+}NEXUS_DecoderSpliceState;
+
+/**
+   Summary:
+   Audio/Video decoder splice mode definitions
+   Description:
+   These splice modes are used to support dynamic content splicing for audio and video
+   decoders.
+   NEXUS_DecoderSpliceMode_eDisabled - disables content splicing and removes splice
+   point monitoring.
+   NEXUS_DecoderSpliceMode_eStopAtPts - monitors content for a pts and stops data flow after
+   given pts was reached.
+   NEXUS_DecoderSpliceMode_eStartAtPts - monitors content for a pts and starts data flow after
+   given pts was reached.
+ */
+typedef enum NEXUS_DecoderSpliceMode
+{
+    NEXUS_DecoderSpliceMode_eDisabled,   /* Splicing is disabled */
+    NEXUS_DecoderSpliceMode_eStopAtPts,  /* Decoding will stop at a given pts */
+    NEXUS_DecoderSpliceMode_eStartAtPts, /* Decoding will start at a given pts */
+    NEXUS_DecoderSpliceMode_eMax
+} NEXUS_DecoderSpliceMode;
 
 #ifdef __cplusplus
 }

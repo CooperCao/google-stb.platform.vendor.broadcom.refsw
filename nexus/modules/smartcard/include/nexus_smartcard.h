@@ -522,6 +522,18 @@ typedef struct NEXUS_SmartcardModuleSettings
     bool routedInternal; /* Set to true if the clock is routed internally within the chip. */
 } NEXUS_SmartcardModuleSettings;
 
+#define NEXUS_MAX_SMARTCARD_CHANNELS 2
+
+/*
+Summary:
+Smartcard module status
+*/
+typedef struct NEXUS_SmartcardModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core[NEXUS_MAX_SMARTCARD_CHANNELS];
+    } power;
+} NEXUS_SmartcardModuleStatus;
 #ifdef __cplusplus
 }
 #endif

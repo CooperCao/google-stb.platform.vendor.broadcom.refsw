@@ -47,6 +47,8 @@
 #include "nexus_audio_types.h"
 #include "priv/nexus_audio_input_priv.h"
 #include "nexus_audio_playback.h"
+#include "nexus_audio_decoder.h"
+#include "nexus_audio.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,7 +73,7 @@ typedef struct NEXUS_AudioDecoderAstmSettings
     void * callbackContext; /* user context passed in isr callbacks */
 } NEXUS_AudioDecoderAstmSettings;
 
-typedef struct NEXUS_AudioDecoderAstmStatus 
+typedef struct NEXUS_AudioDecoderAstmStatus
 {
     bool started;
     uint32_t pts;
@@ -95,36 +97,36 @@ typedef struct NEXUS_AudioDecoderSimpleSettings
 NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     NEXUS_AudioDecoderHandle handle
     );
-        
-#if NEXUS_HAS_ASTM    
+
+#if NEXUS_HAS_ASTM
 void NEXUS_AudioDecoder_GetAstmSettings_priv(
-    NEXUS_AudioDecoderHandle audioDecoder, 
+    NEXUS_AudioDecoderHandle audioDecoder,
     NEXUS_AudioDecoderAstmSettings * pAstmSettings  /* [out] */
     );
 
-NEXUS_Error NEXUS_AudioDecoder_SetAstmSettings_priv( 
-    NEXUS_AudioDecoderHandle audioDecoder, 
-    const NEXUS_AudioDecoderAstmSettings * pAstmSettings 
+NEXUS_Error NEXUS_AudioDecoder_SetAstmSettings_priv(
+    NEXUS_AudioDecoderHandle audioDecoder,
+    const NEXUS_AudioDecoderAstmSettings * pAstmSettings
     );
-    
-NEXUS_Error NEXUS_AudioDecoder_GetAstmStatus_isr( 
-    NEXUS_AudioDecoderHandle audioDecoder, 
+
+NEXUS_Error NEXUS_AudioDecoder_GetAstmStatus_isr(
+    NEXUS_AudioDecoderHandle audioDecoder,
     NEXUS_AudioDecoderAstmStatus * pAstmStatus  /* [out] */
     );
 #endif
 
 void NEXUS_AudioDecoder_GetSyncSettings_priv(
-    NEXUS_AudioDecoderHandle audioDecoder, 
+    NEXUS_AudioDecoderHandle audioDecoder,
     NEXUS_AudioInputSyncSettings *pSyncSettings  /* [out] */
     );
-    
-NEXUS_Error NEXUS_AudioDecoder_SetSyncSettings_priv( 
-    NEXUS_AudioDecoderHandle audioDecoder, 
-    const NEXUS_AudioInputSyncSettings *pSyncSettings 
+
+NEXUS_Error NEXUS_AudioDecoder_SetSyncSettings_priv(
+    NEXUS_AudioDecoderHandle audioDecoder,
+    const NEXUS_AudioInputSyncSettings *pSyncSettings
     );
-    
-NEXUS_Error NEXUS_AudioDecoder_GetSyncStatus_isr( 
-    NEXUS_AudioDecoderHandle audioDecoder, 
+
+NEXUS_Error NEXUS_AudioDecoder_GetSyncStatus_isr(
+    NEXUS_AudioDecoderHandle audioDecoder,
     NEXUS_AudioInputSyncStatus *pSyncStatus  /* [out] */
     );
 
@@ -139,10 +141,11 @@ NEXUS_Error NEXUS_AudioDecoder_SetSimpleSettings_priv(
     const NEXUS_AudioDecoderSimpleSettings *pSimpleSettings
     );
 #endif
-        
+
 void NEXUS_AudioDecoder_Clear_priv( NEXUS_AudioDecoderHandle handle );
 void NEXUS_AudioPlayback_Clear_priv(NEXUS_AudioPlaybackHandle handle);
 
+NEXUS_Error NEXUS_AudioModule_GetStatus_priv(NEXUS_AudioModuleStatus *pStatus);
 #ifdef __cplusplus
 }
 #endif

@@ -1532,6 +1532,7 @@ BERR_Code BHDM_HDCP_RiLinkIntegrityCheck(
             BHDM_HDCP_ClearAuthentication(hHDMI) ;
 
             rc = BERR_TRACE(BHDM_HDCP_LINK_RI_FAILURE) ;
+            hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches++;
 
             goto done ;
         }
@@ -1578,7 +1579,6 @@ BERR_Code BHDM_HDCP_RiLinkIntegrityCheck(
         /* little endian number */
         BREG_LE16(hHDMI->HDCP_RxRi) ;
 
-
         /* if RIs match... */
         if  (hHDMI->HDCP_TxRi == hHDMI->HDCP_RxRi)
         {
@@ -1624,6 +1624,17 @@ BERR_Code BHDM_HDCP_RiLinkIntegrityCheck(
 
             /* Return Link is Valid */
             rc = BERR_SUCCESS ;
+
+            /* reset r0mismatchCount if R0 matches */
+            if (hHDMI->HDCP_RiCount == 0) {
+                hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches = 0;
+            }
+
+            /* Reset riMismatchCounter after R5 */
+            else if (hHDMI->HDCP_RiCount >= BHDM_HDCP_MINIMUM_RI_STABLE_COUNT) {
+                hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches = 0;
+            }
+
             goto done ;
         }
 
@@ -1645,10 +1656,38 @@ BERR_Code BHDM_HDCP_RiLinkIntegrityCheck(
     /* Ri Link Failure after BHDM_HDCP_MAX_I2C_RETRY count */
     rc = BERR_TRACE(BHDM_HDCP_LINK_RI_FAILURE) ;
 
+    /* Update Link Integrity mismatch counter(s) */
+    if (hHDMI->HDCP_RiCount == 0) {
+        hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches++;
+    }
+    else {
+        hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches++;
+    }
+
     /* Clear/Disable the HDCP Authentication */
     BHDM_HDCP_ClearAuthentication(hHDMI) ;
 
 done:
+    {
+        BERR_Code errCode = BERR_SUCCESS;
+
+        BDBG_MSG(("*** No. of consecutive R0 mismtach %d -- No. of consecutive Ri mismatch %d ***",
+            hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches,
+            hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches));
+        if ((hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches
+            + hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches >= BHDM_HDCP_MAX_RI_FAILURE_THRESHOLD))
+        {
+            BDBG_ERR(("Detect multiple consecutive R0/Ri LinkIntegrity failures. Force TX HOTPLUG_IN"));
+            BKNI_EnterCriticalSection();
+            errCode = BHDM_HDCP_AssertSimulatedHpd_isr(hHDMI, true, false);
+            BKNI_LeaveCriticalSection();
+            if (errCode) { BERR_TRACE(errCode); }
+
+            errCode = BTMR_StartTimer(hHDMI->TimerForcedTxHotplug, BHDM_P_MILLISECOND * BHDM_HDCP_FORCE_HPD_PULSE_WIDTH) ;
+            if (errCode) { errCode = BERR_TRACE(errCode); }
+        }
+    }
+
     BDBG_LEAVE(BHDM_HDCP_RiLinkIntegrityCheck) ;
     return rc ;
 }
@@ -3131,6 +3170,46 @@ done:
     BDBG_LEAVE(BHDM_HDCP_GetHdcpVersion);
     return rc;
 }
+
+
+
+BERR_Code BHDM_HDCP_AssertSimulatedHpd_isr(const BHDM_Handle hHDMI, bool enable, bool bAssertSimulatedHpd)
+{
+	BERR_Code rc = BERR_SUCCESS;
+
+#if BHDM_HAS_HDMI_20_SUPPORT
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
+
+	Register = BREG_Read32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL + ulOffset) ;
+		Register &= ~BCHP_MASK(AON_HDMI_TX_HDMI_HOTPLUG_CONTROL, OVERRIDE_HOTPLUG_IN) ;
+		Register |= BCHP_FIELD_DATA(AON_HDMI_TX_HDMI_HOTPLUG_CONTROL, OVERRIDE_HOTPLUG_IN, enable) ;
+	BREG_Write32(hHDMI->hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL + ulOffset, Register) ;
+
+	Register = BREG_Read32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL + ulOffset) ;
+		Register &= ~BCHP_MASK(AON_HDMI_TX_HDMI_HOTPLUG_CONTROL, OVERRIDE_HOTPLUG_IN_VALUE) ;
+		Register |= BCHP_FIELD_DATA(AON_HDMI_TX_HDMI_HOTPLUG_CONTROL, OVERRIDE_HOTPLUG_IN_VALUE, (uint8_t) bAssertSimulatedHpd);	/* de-assert = HPD_REMOVED */
+	BREG_Write32(hHDMI->hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL + ulOffset, Register) ;
+
+	if (!enable)
+	{
+		/* Reset counters */
+		hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches = 0;
+		hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches = 0;
+	}
+
+#else
+	BSTD_UNUSED(hHDMI);
+	BSTD_UNUSED(enable);
+	BSTD_UNUSED(bAssertSimulatedHpd);
+#endif
+
+	return rc;
+}
+
 
 
 #if BHDM_CONFIG_HAS_HDCP22

@@ -79,7 +79,6 @@ settings for media_player_create
 **/
 typedef struct media_player_create_settings
 {
-    bool dtcpEnabled; /* if false, dtcp_ip wont be used */
     struct {
         unsigned surfaceClientId;
         unsigned id;

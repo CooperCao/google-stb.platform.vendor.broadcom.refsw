@@ -86,7 +86,8 @@ BASIC_BUILD_APPS = \
 	transcode \
 	video_as_graphics \
 	wait_for_server \
-	watchdog
+	watchdog \
+	power_status
 
 # custom build rule needed
 CUSTOM_BUILD_APPS = \

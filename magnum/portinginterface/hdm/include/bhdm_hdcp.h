@@ -1062,6 +1062,30 @@ See Also:
 BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *eVersion);
 
 
+
+/******************************************************************************
+Summary:
+
+Simulate HPD assert/de-assert to the Tx by overriding the hotplug input level to the Tx
+
+Note: The attached Rx does not see this HPD signal
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+	during the system initialization sequence.
+
+	enable - True to enable the override mode
+	bAssertSimulatedHpd - True to assert HPD signal (CONNECT)
+					      false to de-assert HDP signal (REMOVE)
+
+See Also:
+	o BHDM_HDCP_RiLinkIntegrityCheck()
+
+*******************************************************************************/
+BERR_Code BHDM_HDCP_AssertSimulatedHpd_isr(const BHDM_Handle hHDMI, bool enable, bool bAssertSimulatedHpd);
+
+
+
 /******************************************************************************
 Summary:
 Update HDCP 2x authentication status to HDMI Cipher

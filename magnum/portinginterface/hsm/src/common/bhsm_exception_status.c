@@ -112,6 +112,7 @@ BERR_Code  BHSM_GetExceptionStatus(
 
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
     if( status != 0 ) {
+        BDBG_ERR(("%s BSP Status  [0x%X]", BSTD_FUNCTION, status ));
         rc = BERR_TRACE( BHSM_STATUS_BSP_ERROR );  /* BSP command failed. */
         goto BHSM_P_DONE_LABEL;
     }

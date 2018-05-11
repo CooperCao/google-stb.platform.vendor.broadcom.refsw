@@ -144,4 +144,6 @@
 #define B_IPC_CALLBACK_CLEAR_STRUCT_IN_VERIFY(api, struct_name, first_arg) /* do nothing these callbacks are not used */
 #define B_IPC_CALLBACK_STRUCT_IN_VERIFY(api, struct_name, first_arg) __rc=nexus_driver_verify_callbacks(module_header, (void *)first_arg, NEXUS_P_CallbackIds_##struct_name, __vout_data->client); if(__rc!=NEXUS_SUCCESS) {BDBG_ERR(("%s: can't set callbacks from %s", #api, #struct_name)); goto api##_done;}
 
+#define B_IPC_SERVER_MUST_HAVE_NULL_ALLOWED(api, arg) BDBG_CWARNING(0); /* this function argument or field could pass through proxy layer as NULL, and must have 'null_allowed=y' attribute and appropriate tests in implementation */
+
 /* END OF FILE */

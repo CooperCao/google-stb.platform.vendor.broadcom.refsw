@@ -52,9 +52,8 @@ BDBG_MODULE(nexus_platform_pinmux);
 #define TWO_L_BOARD_ID 12
 
 #if NEXUS_HAS_SAGE
-static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
+static void NEXUS_Platform_P_EnableSageDebugPinmux(NEXUS_PlatformStatus *platformStatus)
 {
-    NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
@@ -62,20 +61,19 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         return;
     }
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus.boardId.major));
+    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus->boardId.major));
 
-    switch (platformStatus.boardId.major) {
+    switch (platformStatus->boardId.major) {
 
         default:
         {
             /* USFF boards don't have anything other than UART 0 headers */
-            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus->boardId.major));
             break;
         }
         case SV_BOARD_ID:
         {
-            if (platformStatus.chipId == 0x73574) {
+            if (platformStatus->chipId == 0x73574) {
                 /* GPIO_040 UART_TXD_0  */
                 reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
                 reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_040));
@@ -113,7 +111,7 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
                  BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);
             }
             /* 72550 and 72554 SVs are different designs. 7255[01] uses a 7250 SV but the schematics require some mapping */
-            if (platformStatus.chipId < 0x72553) {
+            if (platformStatus->chipId < 0x72553) {
 
                 /* 7250 GPIO 58/59 == 7255 GPIO 13/14 for UART 1 */
                 /* 7250 GPIO 96/97 == 7255 GPIO 38/39 for UART 2 */
@@ -219,14 +217,19 @@ Description:
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
 #if NEXUS_HAS_SAGE
-    NEXUS_Platform_P_EnableSageDebugPinmux();
+    NEXUS_Platform_P_EnableSageDebugPinmux(platformStatus);
 #endif
 
+    BKNI_Free(platformStatus);
     return BERR_SUCCESS;
 }

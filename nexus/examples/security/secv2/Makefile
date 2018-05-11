@@ -42,6 +42,7 @@ APPS = \
     security_keyslot_aes_ecb_app \
     security_keyslot_aes_ecb_simple \
     security_keyslot_aes_cbc_app \
+    security_keyslot_aes_cbc_scte52_app \
     security_keyslot_aes_cbc_simple \
     security_keyslot_aes_cbc_iv_64_app \
     security_keyslot_aes_cbc_iv_64_simple \
@@ -67,6 +68,7 @@ APPS = \
     security_keyladder_tdes_app \
     security_hash_app \
     security_hmac_app \
+    security_pcie_window_app \
 
 # Utilities functions that are commonly used by the apps:
 EXTRA_SRC += security_utils.c
@@ -82,6 +84,7 @@ $(BINDIR)/security_keyslot_tdes_app                 $(BINDIR)/security_keyslot_t
 $(BINDIR)/security_keyslot_aes_ecb_app              $(BINDIR)/security_keyslot_aes_ecb_app:         $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_ecb_simple           $(BINDIR)/security_keyslot_aes_ecb_simple:      $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_app              $(BINDIR)/security_keyslot_aes_cbc_app:         $(EXTRA_SRC)
+$(BINDIR)/security_keyslot_aes_cbc_scte52_app       $(BINDIR)/security_keyslot_aes_cbc_scte52_app:  $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_simple           $(BINDIR)/security_keyslot_aes_cbc_simple:      $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_iv_64_app        $(BINDIR)/security_keyslot_aes_cbc_iv_64_app:   $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple     $(BINDIR)/security_keyslot_aes_cbc_iv_64_simple:$(EXTRA_SRC)
@@ -92,6 +95,8 @@ $(BINDIR)/security_keyslot_mpeg_packet_crypto_flexible_app       $(BINDIR)/secur
 $(BINDIR)/security_keyslot_mpeg_stream_playback     $(BINDIR)/security_keyslot_mpeg_stream_playback: $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_mpeg_stream_record_from_playback      $(BINDIR)/security_keyslot_mpeg_stream_record_from_playback: $(EXTRA_SRC)
 $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app       $(BINDIR)/security_keyslot_external_keyiv_multiple_DMA_blocks_app:  $(EXTRA_SRC)
+# PCIE windowing app
+$(BINDIR)/security_pcie_window_app                  $(BINDIR)/security_pcie_window_app:             $(EXTRA_SRC)
 # Sha app
 $(BINDIR)/security_hash_app							$(BINDIR)/security_hash_app:  					$(EXTRA_SRC)
 # HMAC app

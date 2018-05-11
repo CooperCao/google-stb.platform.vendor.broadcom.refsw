@@ -663,6 +663,12 @@ typedef struct NEXUS_DisplayModuleStatus
         size_t size; /* size of memory for BDBG_Fifo */
         size_t elementSize; /* BDBG_Fifo elementSize */
     } rulCapture;
+    struct {
+        NEXUS_PowerStatus bvn;  /* Bvn clock and sram power */
+        NEXUS_PowerStatus dacs[NEXUS_MAX_VIDEO_DACS]; /* Dac output power */
+        NEXUS_PowerStatus vec[NEXUS_MAX_DISPLAYS];    /* Vec clock and sram power */
+        NEXUS_PowerStatus ccir656Output;     /* 656 output power */
+    } power;
 } NEXUS_DisplayModuleStatus;
 
 #ifdef __cplusplus

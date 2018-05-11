@@ -224,6 +224,7 @@ typedef struct NEXUS_DisplayModule_State {
     } functionData;
 
     bool verifyTimebase;
+    bool dacOn[NEXUS_MAX_VIDEO_DACS]; /* Cache the dac power state */
 } NEXUS_DisplayModule_State;
 
 struct NEXUS_DisplayGraphics {

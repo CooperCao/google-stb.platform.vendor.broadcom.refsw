@@ -258,18 +258,6 @@ void BBOX_P_SetBox0MemConfig
 }
 #endif
 
-BERR_Code BBOX_P_ValidateId
-    (uint32_t                ulId)
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    if (ulId != 0)
-    {
-        BDBG_ERR(("Box Mode ID %d is not supported on this chip.", ulId));
-        eStatus = BBOX_ID_NOT_SUPPORTED;
-    }
-    return eStatus;
-}
-
 void BBOX_P_Vdc_SetSourceCapabilities
     ( uint32_t                      ulBoxId,
       BBOX_Vdc_Source_Capabilities *pSourceCap )
@@ -354,13 +342,7 @@ BERR_Code BBOX_P_SetMemConfig
     return eStatus;
 }
 
-BERR_Code BBOX_P_GetRtsConfig
-    ( const uint32_t         ulBoxId,
-      BBOX_Rts              *pBoxRts )
-{
-    BSTD_UNUSED(ulBoxId);
-    BSTD_UNUSED(pBoxRts);
+const struct BBOX_InterfaceMap g_BBOX_InterfaceMap[] = {
+    {0, NULL}};
 
-    return BBOX_RTS_LOADED_BY_CFE;
-}
 /* end of file */

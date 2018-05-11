@@ -513,7 +513,7 @@ void BAPE_DolbyDigitalReencode_GetConnector(
         {
             if ( !BAPE_P_DolbyCapabilities_DdpEncode(BAPE_MultichannelFormat_e5_1) )
             {
-                BDBG_ERR(("Connector format %u is only supported by MS12 Config A or B BAPE_DolbyDigitalReencode (export BDSP_MS12_SUPPORT=A/B)", format));
+                BDBG_MSG(("Connector format %u is only supported by MS12 Config A or B BAPE_DolbyDigitalReencode (export BDSP_MS12_SUPPORT=A/B)", format));
                 *pConnector = NULL;
                 return;
             }

@@ -128,12 +128,12 @@ typedef enum BHSM_KeyLadderRootType
 
 
 /* the scope of the ASKM CA Vendor ID */
-typedef enum BHSM_KeyladderCaVendorIdScope
+typedef enum BHSM_KeyLadderCaVendorIdScope
 {
-    BHSM_KeyladderCaVendorIdScope_eChipFamily,     /* CA Vendor ID generates root key differently per chip family */
-    BHSM_KeyladderCaVendorIdScope_eFixed,          /* CA Vendor ID generates root key independent of chip family. */
-    BHSM_KeyladderCaVendorIdScope_eMax
-}BHSM_KeyladderCaVendorIdScope;
+    BHSM_KeyLadderCaVendorIdScope_eChipFamily,     /* CA Vendor ID generates root key differently per chip family */
+    BHSM_KeyLadderCaVendorIdScope_eFixed,          /* CA Vendor ID generates root key independent of chip family. */
+    BHSM_KeyLadderCaVendorIdScope_eMax
+}BHSM_KeyLadderCaVendorIdScope;
 
 /* how the ASKM STB owner ID is to be determined */
 typedef enum BHSM_KeyLadderStbOwnerIdSelect
@@ -202,7 +202,7 @@ typedef struct
             unsigned                        caVendorIdExtension;      /* id unique to CA vendor. */
             /* SAGE_ONLY_END */
             unsigned                        caVendorId;      /* id unique to CA vendor. */
-            BHSM_KeyladderCaVendorIdScope  caVendorIdScope;
+            BHSM_KeyLadderCaVendorIdScope  caVendorIdScope;
             BHSM_KeyLadderStbOwnerIdSelect stbOwnerSelect;  /* allow owner/boradcaster to add diffusion to key */
             bool swapKey;                                   /* swap key1's 8 top bytes with lower 8 (for 3DesAba ladder). */
         }askm;

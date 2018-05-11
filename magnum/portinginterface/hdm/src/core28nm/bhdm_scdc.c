@@ -509,10 +509,12 @@ void BHDM_SCDC_GetScrambleConfiguration(BHDM_Handle hHDMI, BHDM_ScrambleConfig *
 		}
 		else
 		{
-			rc = BREG_I2C_Read(hHDMI->hI2cRegHandle,
-				BHDM_SCDC_I2C_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
-				&rxStatusFlags, 1) ;
-			if (rc) {(void)BERR_TRACE(rc); goto done ;}
+			if ( !hHDMI->bCrcTestMode ) {
+			    rc = BREG_I2C_Read(hHDMI->hI2cRegHandle,
+				    BHDM_SCDC_I2C_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
+				    &rxStatusFlags, 1) ;
+			    if (rc) {(void)BERR_TRACE(rc); goto done ;}
+			}
 			BDBG_MSG(("Rx SCDC Scrambler Status: %x", rxStatusFlags)) ;
 		}
 	}

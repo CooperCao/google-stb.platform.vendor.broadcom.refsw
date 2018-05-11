@@ -2727,6 +2727,10 @@ done:
             {
                 BKNI_DestroyEvent( hChn->hChnEvent );
             }
+            if( hChn->hMutex != NULL )
+            {
+                BKNI_DestroyMutex( hChn->hMutex );
+            }
 
             BLST_S_REMOVE(&hDev->chnHandleHead, hChn, BI2C_P_ChannelHandle, link);
 

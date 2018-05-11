@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -165,7 +169,7 @@ void NEXUS_HdmiInput_PictureCallback_isr(NEXUS_HdmiInputHandle hdmiInput, BAVC_V
         if (hdmiInput->avMute)
         {
             BDBG_WRN(("Mute video for %d more frames after format change; AvMute: %d",
-	            hdmiInput->uiFormatChangeMuteCount, hdmiInput->avMute)) ;
+                hdmiInput->uiFormatChangeMuteCount, hdmiInput->avMute)) ;
 
             if (hdmiInput->uiFormatChangeMuteCount == 1)
             {
@@ -428,7 +432,7 @@ NEXUS_HdmiInput_P_VideoFormatChange_isr_SETUP:
         hdmiInput->stFieldData.eTransferCharacteristics = BAVC_TransferCharacteristics_eSmpte_170M ;
         break ;
 
-	/* coverity[dead_error_begin: FALSE] */
+    /* coverity[dead_error_begin: FALSE] */
     default :
         BDBG_ERR(("Unknown Csc Mode: %d; default to 709", cscMode))  ;
         hdmiInput->stFieldData.eMatrixCoefficients = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
@@ -531,6 +535,23 @@ static void NEXUS_HdmiInput_P_SetHdmiFormat_isr(NEXUS_HdmiInputHandle hdmiInput,
 }
 
 
+static void NEXUS_HdmiInput_P_SetDrmFieldData_isr(NEXUS_HdmiInputHandle hdmiInput, const BAVC_HDMI_DRMInfoFrame * pDrmIf)
+{
+    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
+    switch (pDrmIf->ePacketStatus)
+    {
+    case BAVC_HDMI_PacketStatus_eUpdated:
+        hdmiInput->stFieldData.eEotf = pDrmIf->eEOTF;
+        hdmiInput->stFieldData.stHdrMetadata.stStatic = pDrmIf->stType1;
+        break;
+    case BAVC_HDMI_PacketStatus_eStopped:
+    default:
+        hdmiInput->stFieldData.eEotf = BAVC_HDMI_DRM_EOTF_eMax; /* indicates un-set */
+        BAVC_GetDefaultStaticHdrMetadata_isrsafe(&hdmiInput->stFieldData.stHdrMetadata.stStatic);
+        break;
+    }
+}
+
 void NEXUS_HdmiInput_P_PacketChange_isr(void *context, int param2, void *data)
 {
     NEXUS_HdmiInputHandle hdmiInput = (NEXUS_HdmiInputHandle)context;
@@ -557,10 +578,7 @@ void NEXUS_HdmiInput_P_PacketChange_isr(void *context, int param2, void *data)
         NEXUS_IsrCallback_Fire_isr(hdmiInput->vendorSpecificInfoFrameChanged);
         break;
     case BAVC_HDMI_PacketType_eDrmInfoFrame:
-        if (hdmiInput->hdrPacketEvent)
-        {
-            BKNI_SetEvent_isr(hdmiInput->hdrPacketEvent) ;
-        }
+        NEXUS_HdmiInput_P_SetDrmFieldData_isr(hdmiInput, data);
         break;
     case BAVC_HDMI_PacketType_eAudioContentProtection:
         NEXUS_IsrCallback_Fire_isr(hdmiInput->audioContentProtectionChanged);
@@ -633,7 +651,7 @@ NEXUS_Error NEXUS_HdmiInput_GetStatus(NEXUS_HdmiInputHandle hdmiInput, NEXUS_Hdm
 
     pStatus->deviceAttached = rxstatus.DeviceAttached ;
     BDBG_MSG(("Source connected to hdmiInput%d: %s",
-		hdmiInput->index,  pStatus->deviceAttached ? "Yes" : "No")) ;
+        hdmiInput->index,  pStatus->deviceAttached ? "Yes" : "No")) ;
 
 
     if (!CONNECTED(hdmiInput))
@@ -732,7 +750,7 @@ static void NEXUS_HdmiInput_P_SetPower( NEXUS_HdmiInputHandle hdmiInput, bool ca
     powerSettings.bHdmiRxPowered  =  callingHdr || CONNECTED(hdmiInput) ;
 
     BDBG_MSG(("Configure HDMI Rx Port%d : %s",
-	      hdmiInput->index, powerSettings.bHdmiRxPowered ? "ON" : "OFF")) ;
+          hdmiInput->index, powerSettings.bHdmiRxPowered ? "ON" : "OFF")) ;
 
     rc = BHDR_FE_SetPowerState(hdmiInput->frontend, &powerSettings);
     if (rc) return ;
@@ -1021,8 +1039,8 @@ NEXUS_Error NEXUS_HdmiInput_GetVendorSpecificInfoFrameData( NEXUS_HdmiInputHandl
         break ;
 
     case NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat_eNone :
-		/* do nothing */
-		break ;
+        /* do nothing */
+        break ;
 
     default :
         BDBG_MSG(("hdmiInput%d VSI HDMI Format '%d' not supported",
@@ -1035,7 +1053,7 @@ NEXUS_Error NEXUS_HdmiInput_GetVendorSpecificInfoFrameData( NEXUS_HdmiInputHandl
 
 
 NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(NEXUS_HdmiInputHandle hdmiInput,
-	NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
     BERR_Code rc = BERR_SUCCESS ;
     BAVC_HDMI_DRMInfoFrame drmInfoFrame ;
@@ -1059,37 +1077,12 @@ NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(NEXUS_HdmiInputHandle hdmiI
     if (drmInfoFrame.eDescriptorId == BAVC_HDMI_DRM_DescriptorId_eType1)
     {
         pDrmInfoFrame->metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1 ;
-
-        /* color */
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.x =
-            drmInfoFrame.Type1.DisplayPrimaries[0].X ;
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.y=
-            drmInfoFrame.Type1.DisplayPrimaries[0].Y;
-
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.x =
-            drmInfoFrame.Type1.DisplayPrimaries[1].X ;
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.y=
-            drmInfoFrame.Type1.DisplayPrimaries[1].Y;
-
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.x =
-            drmInfoFrame.Type1.DisplayPrimaries[2].X ;
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.y=
-            drmInfoFrame.Type1.DisplayPrimaries[2].Y;
-
-
-        /* white point */
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.x =
-            drmInfoFrame.Type1.WhitePoint.X ;
-        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y =
-            drmInfoFrame.Type1.WhitePoint.Y ;
-
-        /* luminance??? */
-
-        /* light level */
-        pDrmInfoFrame->metadata.typeSettings.type1.contentLightLevel.max =
-			drmInfoFrame.Type1.MaxContentLightLevel ;
-        pDrmInfoFrame->metadata.typeSettings.type1.contentLightLevel.maxFrameAverage =
-			drmInfoFrame.Type1.MaxFrameAverageLightLevel ;
+        NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
+            &pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume,
+            &drmInfoFrame.stType1.stMasteringDisplayColorVolume);
+        NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
+            &pDrmInfoFrame->metadata.typeSettings.type1.contentLightLevel,
+            &drmInfoFrame.stType1.stContentLightLevel);
     }
     else
     {
@@ -1099,7 +1092,7 @@ NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(NEXUS_HdmiInputHandle hdmiI
     }
 
 done:
-	return rc ;
+    return rc ;
 }
 
 
@@ -1197,17 +1190,6 @@ void NEXUS_HdmiInput_SetFormatChangeCb_priv(
     hdmiInput->pPcFormatCallback_isr = pFunction_isr;
     hdmiInput->pPcFormatCallbackParam = pFuncParam;
     BKNI_LeaveCriticalSection();
-}
-
-
-void NEXUS_HdmiInput_SetHdrEvent_priv(
-    NEXUS_HdmiInputHandle hdmiInput,
-    BKNI_EventHandle notifyHdrPacketEvent
-    )
-{
-    NEXUS_ASSERT_MODULE();
-    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
-    hdmiInput->hdrPacketEvent = notifyHdrPacketEvent ;
 }
 
 

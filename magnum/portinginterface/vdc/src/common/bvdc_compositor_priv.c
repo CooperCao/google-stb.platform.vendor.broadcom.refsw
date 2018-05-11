@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -1600,7 +1604,7 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
 #if BVDC_P_TCH_SUPPORT
         if ((hCompositor->stCfcCapability[0].stBits.bTpToneMapping) && (eVId == BVDC_P_WindowId_eComp0_V0))
         {
-            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hCompositor->ahWindow[eVId]->pMainCfc->stColorSpaceExtIn.stColorSpace.stMetadata.pDynamic;
             if (pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
             {
                 BVDC_P_Compositor_BuildTchVsyncRul_isr(hCompositor, pList);
@@ -1753,7 +1757,11 @@ static void BVDC_P_Compositor_BuildRul_isr
     BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CMP_CTRL, pList->pulCurrent);
 
 #if BVDC_P_SUPPORT_CMP_DEMO_MODE
-    BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CSC_DEMO_SETTING, pList->pulCurrent);
+    if(hCompositor->eId == BVDC_CompositorId_eCompositor0)
+    {
+        /* API only support for main window on cmp0. Register not always exist on other cmp */
+        BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CSC_DEMO_SETTING, pList->pulCurrent);
+    }
 #endif
 
     /* Vwin0 */
@@ -2126,7 +2134,7 @@ void BVDC_P_Compositor_WindowsReader_isr
     pFmtInfo = hCompositor->stCurInfo.pFmtInfo;
 
     /* if no video window or with multiple video windows, set unknown hdr parameters */
-    hCompositor->bUnknownHdrParm = (hCompositor->ulActiveVideoWindow != 1);
+    hCompositor->bUnknownHdrMetadata = (hCompositor->ulActiveVideoWindow != 1);
 
     /* second pass: to adjust non-vbi-pass-thru window position;
        Note: adjustment is done in the second pass in case vwin0 has no pass-thru,
@@ -2173,7 +2181,7 @@ void BVDC_P_Compositor_WindowsReader_isr
         if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
         {
 #if BVDC_P_DBV_SUPPORT
-            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stMetadata.pDynamic;
 #endif
             if((!BCFC_IS_HDR10(hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.eColorTF)
 #if BVDC_P_DBV_SUPPORT
@@ -2181,32 +2189,22 @@ void BVDC_P_Compositor_WindowsReader_isr
 #endif
                 ))
             {
-                hCompositor->bUnknownHdrParm = true;
+                hCompositor->bUnknownHdrMetadata = true;
             }
 
-            if(hCompositor->bUnknownHdrParm)
+            if(hCompositor->bUnknownHdrMetadata)
             {
-                BKNI_Memset_isr(&hCompositor->stHdrParm, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+                BKNI_Memset_isr(&hCompositor->stStaticHdrMetadata, 0, sizeof(hCompositor->stStaticHdrMetadata));
             }
             else
 #if BVDC_P_DBV_SUPPORT
                 if(pMetaData==NULL || BAVC_HdrMetadataType_eDrpu != pMetaData->stDbvInput.stHdrMetadata.eType)
 #endif
             {
-                hCompositor->stHdrParm.DisplayMasteringLuminance.Max = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxDispMasteringLuma / 10000;
-                hCompositor->stHdrParm.DisplayMasteringLuminance.Min = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMinDispMasteringLuma;
-                hCompositor->stHdrParm.MaxContentLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulMaxContentLight;
-                hCompositor->stHdrParm.MaxFrameAverageLightLevel = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.ulAvgContentLight;
-                hCompositor->stHdrParm.WhitePoint.X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulX;
-                hCompositor->stHdrParm.WhitePoint.Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stWhitePoint.ulY;
-                hCompositor->stHdrParm.DisplayPrimaries[0].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulX;
-                hCompositor->stHdrParm.DisplayPrimaries[0].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[0].ulY;
-                hCompositor->stHdrParm.DisplayPrimaries[1].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulX;
-                hCompositor->stHdrParm.DisplayPrimaries[1].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[1].ulY;
-                hCompositor->stHdrParm.DisplayPrimaries[2].X = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulX;
-                hCompositor->stHdrParm.DisplayPrimaries[2].Y = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stHdrParm.stDisplayPrimaries[2].ulY;
+                hCompositor->stStaticHdrMetadata = hWindow->pMainCfc->stColorSpaceExtIn.stColorSpace.stMetadata.stStatic;
             }
-        }    }
+        }
+    }
 
     /* Turn off 704-sample feature if DCS. */
     /* TODO: remove this restriction */
@@ -2287,6 +2285,10 @@ void BVDC_P_Compositor_WindowsReader_isr
         BCHP_FIELD_DATA(CMP_0_CANVAS_SIZE, HSIZE, ulHSize) |
         BCHP_FIELD_DATA(CMP_0_CANVAS_SIZE, VSIZE, ulVSize));
 
+#if (BVDC_P_SUPPORT_3D==0)
+    eOrientation = BFMT_Orientation_e2D;
+#else
+
     if(BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt))
         eOrientation = pFmtInfo->eOrientation;
 
@@ -2295,9 +2297,8 @@ void BVDC_P_Compositor_WindowsReader_isr
         eOrientation = BFMT_Orientation_e2D;
 #endif
 
-#if (BVDC_P_SUPPORT_3D==0)
-    eOrientation = BFMT_Orientation_e2D;
 #endif
+
     BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_CTRL) = (
         BCHP_FIELD_DATA(CMP_0_CMP_CTRL, BVB_VIDEO, eOrientation));
 
@@ -2321,7 +2322,7 @@ void BVDC_P_Compositor_WindowsReader_isr
 #if BVDC_P_TCH_SUPPORT
     if (hCompositor->stCfcCapability[0].stBits.bTpToneMapping && hWindow0)
     {
-        const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow0->pMainCfc->stColorSpaceExtIn.stColorSpace.pMetaData;
+        const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow0->pMainCfc->stColorSpaceExtIn.stColorSpace.stMetadata.pDynamic;
         if (pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))
         {
             BVDC_P_Compositor_ApplyTchSettings_isr(hCompositor);

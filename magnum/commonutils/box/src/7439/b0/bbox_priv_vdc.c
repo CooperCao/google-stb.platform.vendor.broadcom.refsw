@@ -110,18 +110,6 @@
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
 
-BERR_Code BBOX_P_ValidateId
-    (uint32_t                ulId)
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    if (ulId == 0 || ulId == 8 || ulId == 11 ||
-        ulId == 15 || ulId > BBOX_MODES_SUPPORTED)
-    {
-        eStatus = BBOX_ID_NOT_SUPPORTED;
-    }
-    return eStatus;
-}
-
 void BBOX_P_Vdc_SetSourceCapabilities
     ( uint32_t                      ulBoxId,
       BBOX_Vdc_Source_Capabilities *pSourceCap )
@@ -591,102 +579,35 @@ BERR_Code BBOX_P_SetMemConfig
     return eStatus;
 }
 
-BERR_Code BBOX_P_GetRtsConfig
-    ( const uint32_t         ulBoxId,
-      BBOX_Rts              *pBoxRts )
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    switch (ulBoxId)
-    {
-        case 1:
-            BBOX_P_GetBox1Rts(pBoxRts);
-            break;
-        case 2:
-            BBOX_P_GetBox2Rts(pBoxRts);
-            break;
-        case 3:
-            BBOX_P_GetBox3Rts(pBoxRts);
-            break;
-        case 4:
-            BBOX_P_GetBox4Rts(pBoxRts);
-            break;
-        case 5:
-            BBOX_P_GetBox5Rts(pBoxRts);
-            break;
-        case 6:
-            BBOX_P_GetBox6Rts(pBoxRts);
-            break;
-        case 7:
-            BBOX_P_GetBox7Rts(pBoxRts);
-            break;
-        case 9:
-            BBOX_P_GetBox9Rts(pBoxRts);
-            break;
-        case 10:
-            BBOX_P_GetBox10Rts(pBoxRts);
-            break;
-        case 12:
-            BBOX_P_GetBox12Rts(pBoxRts);
-            break;
-        case 13:
-            BBOX_P_GetBox13Rts(pBoxRts);
-            break;
-        case 14:
-            BBOX_P_GetBox14Rts(pBoxRts);
-            break;
-        case 16:
-            BBOX_P_GetBox16Rts(pBoxRts);
-            break;
-        case 17:
-            BBOX_P_GetBox17Rts(pBoxRts);
-            break;
-        case 18:
-            BBOX_P_GetBox18Rts(pBoxRts);
-            break;
-        case 19:
-            BBOX_P_GetBox19Rts(pBoxRts);
-            break;
-        case 20:
-            BBOX_P_GetBox20Rts(pBoxRts);
-            break;
-        case 21:
-            BBOX_P_GetBox21Rts(pBoxRts);
-            break;
-        case 22:
-            BBOX_P_GetBox22Rts(pBoxRts);
-            break;
-        case 23:
-            BBOX_P_GetBox23Rts(pBoxRts);
-            break;
-        case 24:
-            BBOX_P_GetBox24Rts(pBoxRts);
-            break;
-        case 25:
-            BBOX_P_GetBox25Rts(pBoxRts);
-            break;
-        case 26:
-            BBOX_P_GetBox26Rts(pBoxRts);
-            break;
-        case 27:
-            BBOX_P_GetBox27Rts(pBoxRts);
-            break;
-        case 28:
-            BBOX_P_GetBox28Rts(pBoxRts);
-            break;
-        case 29:
-            BBOX_P_GetBox29Rts(pBoxRts);
-            break;
-        case 30:
-            BBOX_P_GetBox30Rts(pBoxRts);
-            break;
-        case 31:
-            BBOX_P_GetBox31Rts(pBoxRts);
-            break;
-        default:
-            BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));
-            eStatus = BBOX_RTS_CFG_UNINITIALIZED;
-    }
+const struct BBOX_InterfaceMap g_BBOX_InterfaceMap[] = {
+    {1, BBOX_P_GetBox1Rts},
+    {2, BBOX_P_GetBox2Rts},
+    {3, BBOX_P_GetBox3Rts},
+    {4, BBOX_P_GetBox4Rts},
+    {5, BBOX_P_GetBox5Rts},
+    {6, BBOX_P_GetBox6Rts},
+    {7, BBOX_P_GetBox7Rts},
+    {9, BBOX_P_GetBox9Rts},
+    {10, BBOX_P_GetBox10Rts},
+    {12, BBOX_P_GetBox12Rts},
+    {13, BBOX_P_GetBox13Rts},
+    {14, BBOX_P_GetBox14Rts},
+    {16, BBOX_P_GetBox16Rts},
+    {17, BBOX_P_GetBox17Rts},
+    {18, BBOX_P_GetBox18Rts},
+    {19, BBOX_P_GetBox19Rts},
+    {20, BBOX_P_GetBox20Rts},
+    {21, BBOX_P_GetBox21Rts},
+    {22, BBOX_P_GetBox22Rts},
+    {23, BBOX_P_GetBox23Rts},
+    {24, BBOX_P_GetBox24Rts},
+    {25, BBOX_P_GetBox25Rts},
+    {26, BBOX_P_GetBox26Rts},
+    {27, BBOX_P_GetBox27Rts},
+    {28, BBOX_P_GetBox28Rts},
+    {29, BBOX_P_GetBox29Rts},
+    {30, BBOX_P_GetBox30Rts},
+    {31, BBOX_P_GetBox31Rts},
+    {0, NULL}};
 
-    return eStatus;
-}
 /* end of file */

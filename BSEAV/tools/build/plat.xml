@@ -16,12 +16,6 @@
     <cpu_arch>ARM64</cpu_arch>
     <boards></boards>
   </platform>
-  <platform id="97228">
-    <bondouts></bondouts>
-    <revisions>A0</revisions>
-    <cpu_arch>MIPS</cpu_arch>
-    <boards></boards>
-  </platform>
   <platform id="97230">
     <bondouts></bondouts>
     <revisions>B0</revisions>
@@ -329,12 +323,6 @@
         <board name="dbs">NEXUS_USE_7445_DBS=y</board>
         <board name="ext24">NEXUS_USE_7445_EXT24=y</board>
     </boards>
-  </platform>
-  <platform id="97552">
-    <bondouts></bondouts>
-    <revisions>B0</revisions>
-    <cpu_arch>OLD_MIPS</cpu_arch>
-    <boards></boards>
   </platform>
   <platform id="97563">
     <bondouts>975639</bondouts>

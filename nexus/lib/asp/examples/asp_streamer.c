@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include <stdio.h>
@@ -514,7 +518,6 @@ int main(int argc, char *argv[])
 
     /* Wait for TCP Connection Request from a client. */
     {
-        /* Wait for client connection. */
         socketFdToOffload = acceptConnection(listenerFd);
         BDBG_ASSERT(socketFdToOffload);
     }
@@ -530,9 +533,10 @@ int main(int argc, char *argv[])
     }
 
     /* Now setup the streaming out flow. */
-    /* HW Flow: File -> Playback -> RAVE -> ASP -> Network. */
-    /* SW Flow: File -> Nexus Playback -> Nexus Recpump -> ASP -> Network. */
+    /* HW Flow: HDD  -> XPT Playback   -> XPT RAVE      -> ASP    -> Network. */
+    /* SW Flow: File -> Nexus Playback -> Nexus Recpump -> ASP FW -> Network. */
     {
+        /* Open & Connect Nexus Playback & Nexus Recpump. */
         hPlayFile = NEXUS_FilePlay_OpenPosix(pPlayFileName, NULL);
         if (!hPlayFile)
         {
@@ -562,11 +566,6 @@ int main(int argc, char *argv[])
         BDBG_ASSERT( hAllPassPidCh );
 
         NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
-        /* TODO: w/o this increase, RAVE seems to back pressure MCPB & thus thruput drops every other sec. Root cause it. */
-        recpumpOpenSettings.data.bufferSize = recpumpOpenSettings.data.bufferSize * 1;
-#if 0
-        recpumpOpenSettings.data.dataReadyThreshold = recpumpOpenSettings.data.atomSize * 32;    /* May need to tune this for offloadDisabled case. */
-#endif
         hRecpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
         BDBG_ASSERT( hRecpump );
 
@@ -595,8 +594,7 @@ int main(int argc, char *argv[])
         {
             B_AspChannelCreateSettings createSettings;
 
-            B_AspChannel_GetDefaultCreateSettings( B_AspStreamingProtocol_eHttp,  /* example assumes HTTP protocol based streaming. */
-                    &createSettings);
+            B_AspChannel_GetDefaultCreateSettings( B_AspStreamingProtocol_eHttp, &createSettings);
             /* Setup HTTP Protocol related settings. */
             createSettings.protocol = B_AspStreamingProtocol_eHttp;
             createSettings.mode = B_AspStreamingMode_eOut;
@@ -628,23 +626,10 @@ int main(int argc, char *argv[])
         {
             rc = B_AspChannel_StartStreaming(hAspCh);
             BDBG_ASSERT(rc == B_ERROR_SUCCESS);
-            if (0)
-            {
-                BKNI_WaitForEvent(hAspStateChangedEvent, BKNI_INFINITE);
-                B_AspChannel_GetStatus(hAspCh, &status);
-                if (status.state == B_AspChannelState_eStartedStreaming)
-                {
-                    /* Now we are streaming out. */
-                }
-            }
         }
     } /* !disableOffload */
 
 
-#if 0
-    BDBG_WRN((">>>> hit enter to proceed\n"));
-    getchar();
-#endif
     /* All Streaming related setup is complete, so start Nexus Playback Producer. */
     {
         nrc = NEXUS_Recpump_Start(hRecpump);

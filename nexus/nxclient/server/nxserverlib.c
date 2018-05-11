@@ -1798,24 +1798,48 @@ static NEXUS_HeapHandle nxserver_p_framebuffer_heap(struct b_session *session, u
     return heap;
 }
 
+struct nxserver_display_format
+{
+    NEXUS_VideoFormat videoFormat;
+    NEXUS_ColorSpace colorSpace;
+    unsigned colorDepth;
+};
+
+static void nxserver_p_get_target_format(struct b_session *session, const NxClient_DisplaySettings *pSettings, struct nxserver_display_format *target_format)
+{
+    if (session->hdmi.defaultSdActive) {
+        target_format->videoFormat = pSettings->defaultSdFormat;
+        target_format->colorSpace = NEXUS_ColorSpace_eAuto;
+        target_format->colorDepth = 0;
+    }
+    else {
+        target_format->videoFormat = pSettings->format;
+        target_format->colorSpace = pSettings->hdmiPreferences.colorSpace;
+        target_format->colorDepth = pSettings->hdmiPreferences.colorDepth;
+    }
+}
+
 static int b_display_format_change(struct b_session *session, const NxClient_DisplaySettings *pDisplaySettings)
 {
     NEXUS_SurfaceCompositorSettings surface_compositor_settings;
     int rc;
     unsigned i;
     NEXUS_VideoFormat bvnFormat;
+    struct nxserver_display_format target_format;
 
     NEXUS_SurfaceCompositor_GetSettings(session->surfaceCompositor, &surface_compositor_settings);
     surface_compositor_settings.enabled = true;
 
+    nxserver_p_get_target_format(session, pDisplaySettings, &target_format);
+
     /* If CMP does not support the format, see if 4K upscale is an option.
     We have already validated the format with HDMI EDID at this point. */
-    bvnFormat = nxserver_p_supported_bvn_format(session, pDisplaySettings->format);
+    bvnFormat = nxserver_p_supported_bvn_format(session, target_format.videoFormat);
     if (!bvnFormat) {
         /* if not 4K, then it's just an unsupported format. */
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
-    if (bvnFormat == pDisplaySettings->format) {
+    if (bvnFormat == target_format.videoFormat) {
         bvnFormat = NEXUS_VideoFormat_eUnknown;
     }
 
@@ -1841,7 +1865,7 @@ static int b_display_format_change(struct b_session *session, const NxClient_Dis
 
         NEXUS_Display_GetSettings(display, &displaySettings);
         if (i == 0) {
-            displaySettings.format = bvnFormat ? bvnFormat : pDisplaySettings->format;
+            displaySettings.format = bvnFormat ? bvnFormat : target_format.videoFormat;
         }
         else {
             displaySettings.format = pDisplaySettings->slaveDisplay[i-1].format;
@@ -1903,18 +1927,18 @@ static int b_display_format_change(struct b_session *session, const NxClient_Dis
 #if NEXUS_HAS_HDMI_OUTPUT
     if (session->hdmiOutput) {
         NEXUS_HdmiOutputSettings hdmiOutputSettings;
-        NEXUS_VideoFormat outputFormat = bvnFormat ? pDisplaySettings->format : NEXUS_VideoFormat_eUnknown;
+        NEXUS_VideoFormat outputFormat = bvnFormat ? target_format.videoFormat : NEXUS_VideoFormat_eUnknown;
         NEXUS_HdmiOutput_GetSettings(session->hdmiOutput, &hdmiOutputSettings);
-        if (pDisplaySettings->hdmiPreferences.colorSpace != hdmiOutputSettings.colorSpace ||
-            pDisplaySettings->hdmiPreferences.colorDepth != hdmiOutputSettings.colorDepth ||
+        if (target_format.colorSpace != hdmiOutputSettings.colorSpace ||
+            target_format.colorDepth != hdmiOutputSettings.colorDepth ||
             outputFormat != hdmiOutputSettings.outputFormat)
         {
-            hdmiOutputSettings.colorSpace = pDisplaySettings->hdmiPreferences.colorSpace;
-            hdmiOutputSettings.colorDepth = pDisplaySettings->hdmiPreferences.colorDepth;
+            hdmiOutputSettings.colorSpace = target_format.colorSpace;
+            hdmiOutputSettings.colorDepth = target_format.colorDepth;
             hdmiOutputSettings.outputFormat = outputFormat;
             BDBG_LOG(("changing HdmiOutput%d to %d bit %s, upscale %s", session->index,
-                pDisplaySettings->hdmiPreferences.colorDepth,
-                lookup_name(g_colorSpaceStrs, pDisplaySettings->hdmiPreferences.colorSpace),
+                target_format.colorDepth,
+                lookup_name(g_colorSpaceStrs, target_format.colorSpace),
                 lookup_name(g_videoFormatStrs,hdmiOutputSettings.outputFormat)));
             rc = NEXUS_HdmiOutput_SetSettings(session->hdmiOutput, &hdmiOutputSettings);
             if (rc) BERR_TRACE(rc); /* fall through */
@@ -2356,39 +2380,37 @@ static void hotplug_callback_locked(void *pParam, int iParam)
             bserver_set_audio_config(session->main_audio);
         }
 
-        if (!status.videoFormatSupported[session->nxclient.displaySettings.format] || session->hdmi.defaultSdActive)
-        {
-            BDBG_WRN(("Current format (%d) not supported by attached monitor; Use preferred format (%d)",
-                session->nxclient.displaySettings.format, status.preferredVideoFormat)) ;
-
-            if (session->nxclient.displaySettings.hdmiPreferences.followPreferredFormat &&
-                !session->server->settings.hdmi.ignoreVideoEdid) {
+        if (!status.videoFormatSupported[session->nxclient.displaySettings.format]) {
+            if (session->hdmi.defaultSdActive ||
+                (session->nxclient.displaySettings.hdmiPreferences.followPreferredFormat &&
+                ! session->server->settings.hdmi.ignoreVideoEdid)) {
                 NEXUS_VideoFormat bvnFormat = nxserver_p_supported_bvn_format(session, status.preferredVideoFormat);
-                if (bvnFormat && bvnFormat != session->nxclient.displaySettings.format) {
+                if (bvnFormat) {
                     NxClient_DisplaySettings settings = session->nxclient.displaySettings;
+
+                    BDBG_WRN(("Current format %s not supported by attached monitor; Use preferred format %s",
+                        lookup_name(g_videoFormatStrs, session->nxclient.displaySettings.format),
+                        lookup_name(g_videoFormatStrs, status.preferredVideoFormat))) ;
                     settings.format = status.preferredVideoFormat;
                     settings.hdmiPreferences.colorSpace = NEXUS_ColorSpace_eAuto;
                     settings.hdmiPreferences.colorDepth = 0;
+                    session->hdmi.defaultSdActive = false;
                     NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
                 }
             }
         }
-        session->hdmi.defaultSdActive = false;
+        else if (session->hdmi.defaultSdActive) {
+            session->hdmi.defaultSdActive = false;
+            rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &session->nxclient.displaySettings);
+            if (rc) BERR_TRACE(rc);
+        }
     }
     else {
         /* defaultSdFormat feature switches display[0] to SD format if HDMI is disconnected */
         if (session->server->settings.display.defaultSdFormat != NEXUS_VideoFormat_eUnknown) {
-            NxClient_DisplaySettings settings = session->nxclient.displaySettings;
-            if (settings.format != session->server->settings.display.defaultSdFormat) {
-                settings.format = session->server->settings.display.defaultSdFormat;
-                settings.hdmiPreferences.colorSpace = NEXUS_ColorSpace_eAuto;
-                settings.hdmiPreferences.colorDepth = 0;
-                rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
-                if (!rc) {
-                    session->hdmi.defaultSdActive = true;
-                }
-            }
-
+            session->hdmi.defaultSdActive = true;
+            rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &session->nxclient.displaySettings);
+            if (rc) BERR_TRACE(rc);
         }
     }
 
@@ -4158,6 +4180,7 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     bool native_3d_active_before;
     unsigned i;
     bool waitForInactive = false;
+    struct nxserver_display_format target_format;
 
     if (!session->display[0].display) {
         /* headless */
@@ -4165,6 +4188,7 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     }
     server = session->server;
 
+    nxserver_p_get_target_format(session, pSettings, &target_format);
     native_3d_active_before = nxserverlib_p_native_3d_active(session);
 
     NEXUS_Display_GetSettings(session->display[0].display, &displaySettings);
@@ -4179,11 +4203,18 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     displaySettings.dropFrame = pSettings->dropFrame;
     rc = NEXUS_Display_SetSettings(session->display[0].display, &displaySettings);
     if (rc) return BERR_TRACE(rc);
-    format_change = (pSettings->format != session->nxclient.displaySettings.format ||
+    format_change = (displaySettings.format != target_format.videoFormat ||
         pSettings->display3DSettings.orientation != session->nxclient.displaySettings.display3DSettings.orientation ||
-        pSettings->hdmiPreferences.colorSpace != session->nxclient.displaySettings.hdmiPreferences.colorSpace ||
-        pSettings->hdmiPreferences.colorDepth != session->nxclient.displaySettings.hdmiPreferences.colorDepth ||
         pSettings->secure != session->nxclient.displaySettings.secure);
+#if NEXUS_HAS_HDMI_OUTPUT
+    if (!format_change && session->hdmiOutput) {
+        NEXUS_HdmiOutputSettings hdmiOutputSettings;
+        NEXUS_HdmiOutput_GetSettings(session->hdmiOutput, &hdmiOutputSettings);
+        format_change =
+            hdmiOutputSettings.colorSpace != target_format.colorSpace ||
+            hdmiOutputSettings.colorDepth != target_format.colorDepth;
+    }
+#endif
 
     for (i=1;i<NXCLIENT_MAX_DISPLAYS;i++) {
         if (!session->display[i].display) continue;
@@ -4328,7 +4359,7 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     if (format_change) {
         BDBG_WRN(("session %d: changing display format %s -> %s",
             session->index,
-            lookup_name(g_videoFormatStrs, session->nxclient.displaySettings.format),
+            lookup_name(g_videoFormatStrs, target_format.videoFormat),
             lookup_name(g_videoFormatStrs, pSettings->format)));
 
         BKNI_ResetEvent(session->inactiveEvent);
@@ -4959,7 +4990,9 @@ NEXUS_Error NxClient_P_GetStandbyStatus(nxclient_t client, NxClient_StandbyStatu
             break;
     }
     pStatus->standbyTransition =  pStatus->transition == NxClient_StandbyTransition_eDone?true:false;
-
+    pStatus->lastStandbyTimestamp = client->server->standby.last_standby_timestamp;
+    pStatus->lastResumeTimestamp = client->server->standby.last_resume_timestamp;
+    pStatus->lastStandbyMode = client->server->standby.last_standby_mode;
     return rc;
 }
 
@@ -5087,6 +5120,8 @@ static void standby_thread(void *context)
     }
 
     server->standby.state = b_standby_state_applied;
+    server->standby.last_standby_timestamp = nxserver_p_millisecond_tick();
+    server->standby.last_standby_mode = server->standby.standbySettings.settings.mode;
 
 done:
     if(rc) NEXUS_Platform_GetStandbySettings(&server->standby.standbySettings.settings);
@@ -5177,6 +5212,7 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
 
         server->standby.state = b_standby_state_none;
         server->standby.standbySettings = *pSettings;
+        server->standby.last_resume_timestamp = nxserver_p_millisecond_tick();
 
         /* destroy zombie clients */
         {
@@ -5703,7 +5739,7 @@ NEXUS_Error NxClient_P_GetThermalStatus(nxclient_t client, NxClient_ThermalStatu
     return nxserver_get_thermal_status(client, pStatus);
 }
 
-static unsigned nxserver_p_millisecond_tick(void)
+unsigned nxserver_p_millisecond_tick(void)
 {
     int rc;
     struct timespec now;

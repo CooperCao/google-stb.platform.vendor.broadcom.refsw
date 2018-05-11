@@ -490,7 +490,6 @@ int main(int argc, const char *argv[])
               pes_packet_size++;
            }while (pes_4bytes!=0xbd010000 && (pes_packet_size+4) < MAX_PES_SIZE);
 
-           BDBG_ERR(("pes_packet_size : %x last 4 bytes %x %x %x %x",pes_packet_size,buffer[pes_packet_size-4],buffer[pes_packet_size-3],buffer[pes_packet_size-2],buffer[pes_packet_size-1]));
            pes_packet.payload_len = buffer[4] << 8 | buffer[5];
            pes_packet.payload_len +=6;
            pes_packet.flags = buffer[6];

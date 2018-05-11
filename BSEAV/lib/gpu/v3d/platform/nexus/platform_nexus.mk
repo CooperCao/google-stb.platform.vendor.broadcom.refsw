@@ -132,7 +132,11 @@ CXXFLAGS += -fno-rtti -fno-exceptions
 
 .PHONY : all
 
+ifeq ($(BUILD_DYNAMIC),1)
 all: $(LIBDIR)/libnxpl.so
+else
+all: $(LIBDIR)/libnxpl.a
+endif
 
 .phony: OUTDIR
 OUTDIR :
@@ -188,16 +192,23 @@ $(LIBDIR)/libnxpl.so: $(OBJS)
 	$(Q)mkdir -p $(LIBDIR)
 	$(Q)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/libnxpl.so $(OBJS)
 
+$(LIBDIR)/libnxpl.a: $(OBJS)
+	$(Q)echo Archiving ... libnxpl.a
+	$(Q)mkdir -p $(LIBDIR)
+	$(Q)ar -rcs $(LIBDIR)/libnxpl.a $(OBJS)
+
 .PHONY: clean
 .PHONY: clean_self
 
 # clean out the dross
 clean:
 	$(Q)rm -f $(LIBDIR)/libnxpl.so *~ $(OBJS)
+	$(Q)rm -f $(LIBDIR)/libnxpl.a
 	$(Q)rm -f $(OBJDIR)/*.d
 	$(Q)$(MAKE) --no-print-directory -C $(V3D_DIR) -f V3DDriver.mk clean
 
 # clean out the dross
 clean_self:
 	$(Q)rm -f $(LIBDIR)/libnxpl.so *~ $(OBJS)
+	$(Q)rm -f $(LIBDIR)/libnxpl.a
 	$(Q)rm -f $(OBJDIR)/*.d

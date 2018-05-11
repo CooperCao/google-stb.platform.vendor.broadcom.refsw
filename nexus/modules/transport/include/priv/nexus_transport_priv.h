@@ -151,6 +151,8 @@ void NEXUS_TransportModule_GetRaveFirmware_isrsafe(
 
 NEXUS_Error NEXUS_TransportModule_PostResume_priv(void);
 
+NEXUS_Error NEXUS_TransportModule_GetStatus_priv(NEXUS_TransportModuleStatus *pStatus);
+
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Playpump);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Recpump);
 

@@ -3113,6 +3113,17 @@ BERR_Code BXPT_Rave_GetAvConfig(
     return( ExitCode );
 }
 
+void BXPT_Rave_SetBandHold(BXPT_RaveCx_Handle Context,bool enable)
+{
+    uint32_t Reg;
+    BDBG_ASSERT( Context );
+    Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET );
+    Reg &= ~(BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG1, BAND_HOLD_EN ));
+    Reg |= (BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG1, BAND_HOLD_EN, enable == true ? 1 : 0 ));
+    BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET, Reg );
+    return;
+}
+
 static BERR_Code BXPT_Rave_SetAvConfig_nonrec(
     BXPT_RaveCx_Handle Context,         /* [in] The context. */
     const BXPT_Rave_AvSettings *Config  /* [in] The AV settings. */
@@ -8284,4 +8295,34 @@ void BXPT_Rave_GetFwRevisionInfo(
 
     versionInfo->fwRev = BxptRaveInitData[ BxptRaveInitDataSize - 1 ];
     versionInfo->fwCrc = BxptRaveInitData[ BxptRaveInitDataSize - 2 ];
+}
+
+BERR_Code BXPT_Rave_StartPTS(
+    BXPT_RaveCx_Handle hCtx,
+    uint32_t StartPTS,uint32_t tolerance,
+    void (* StartPTSCb)(void *, uint32_t pts),
+    void * param
+    )
+{
+    BSTD_UNUSED(hCtx);
+    BSTD_UNUSED(StartPTS);
+    BSTD_UNUSED(tolerance);
+    BSTD_UNUSED(StartPTSCb);
+    BSTD_UNUSED(param);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BXPT_Rave_StopPTS(
+    BXPT_RaveCx_Handle hCtx,
+    uint32_t StopPTS, uint32_t tolerance,
+    void (* StopPTSCb)(void *, uint32_t pts),
+    void * param
+    )
+{
+    BSTD_UNUSED(hCtx);
+    BSTD_UNUSED(StopPTS);
+    BSTD_UNUSED(tolerance);
+    BSTD_UNUSED(StopPTSCb);
+    BSTD_UNUSED(param);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }

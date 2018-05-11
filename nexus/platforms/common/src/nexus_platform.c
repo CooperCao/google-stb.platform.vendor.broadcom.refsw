@@ -48,6 +48,7 @@
 #include "nexus_transport_init.h"
 #include "nexus_input_band.h"
 #include "priv/nexus_transport_standby_priv.h"
+#include "priv/nexus_transport_priv.h"
 #endif
 #if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder_init.h"
@@ -68,10 +69,12 @@
 #if NEXUS_HAS_GRAPHICS2D
 #include "nexus_graphics2d_init.h"
 #include "priv/nexus_graphics2d_standby_priv.h"
+#include "priv/nexus_graphics2d_priv.h"
 #endif
 #ifdef NEXUS_HAS_GRAPHICSV3D
 #include "nexus_graphicsv3d_init.h"
 #include "priv/nexus_graphicsv3d_standby_priv.h"
+#include "priv/nexus_graphicsv3d_priv.h"
 #endif
 #if NEXUS_HAS_FRONTEND
 #include "nexus_frontend_init.h"
@@ -87,6 +90,7 @@
 #include "nexus_audio_input.h"
 #include "nexus_audio_output.h"
 #include "priv/nexus_audio_standby_priv.h"
+#include "priv/nexus_audio_decoder_priv.h"
 #endif
 #if NEXUS_HAS_FILE
 #include "nexus_file_init.h"
@@ -135,6 +139,7 @@
 #if NEXUS_HAS_SMARTCARD
 #include "nexus_smartcard_init.h"
 #include "priv/nexus_smartcard_standby_priv.h"
+#include "priv/nexus_smartcard_priv.h"
 #endif
 #if NEXUS_HAS_DMA
 #include "nexus_dma_init.h"
@@ -143,6 +148,7 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output_init.h"
 #include "priv/nexus_hdmi_output_standby_priv.h"
+#include "priv/nexus_hdmi_output_priv.h"
 #endif
 #if NEXUS_HAS_CEC
 #include "nexus_cec_init.h"
@@ -154,10 +160,12 @@
 #if NEXUS_HAS_HDMI_INPUT
 #include "nexus_hdmi_input_init.h"
 #include "priv/nexus_hdmi_input_standby_priv.h"
+#include "priv/nexus_hdmi_input_priv.h"
 #endif
 #if NEXUS_HAS_PICTURE_DECODER
 #include "nexus_picture_decoder_init.h"
 #include "priv/nexus_picture_decoder_standby_priv.h"
+#include "priv/nexus_picture_decoder_priv.h"
 #endif
 #if NEXUS_HAS_SYNC_CHANNEL
 #include "nexus_sync_channel_init.h"
@@ -168,6 +176,7 @@
 #if NEXUS_HAS_RFM
 #include "nexus_rfm_init.h"
 #include "priv/nexus_rfm_standby_priv.h"
+#include "priv/nexus_rfm_priv.h"
 #endif
 #include "nexus_core_utils.h"
 #include "priv/nexus_core_module_local.h"
@@ -199,6 +208,7 @@
 #if NEXUS_HAS_VIDEO_ENCODER
 #include "nexus_video_encoder_init.h"
 #include "priv/nexus_video_encoder_standby_priv.h"
+#include "priv/nexus_video_encoder_priv.h"
 #endif
 #if NEXUS_HAS_STREAM_MUX
 #include "nexus_stream_mux_init.h"
@@ -832,7 +842,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         NEXUS_SageModuleInternalSettings sageInternalSettings;
         NEXUS_SageModule_GetDefaultInternalSettings(&sageInternalSettings);
         sageInternalSettings.security = g_NEXUS_platformHandles.security;
-        sageInternalSettings.transport = g_NEXUS_platformHandles.transport;
 #if NEXUS_HAS_VIDEO_DECODER
         sageInternalSettings.videoDecoderFirmware.block = state->videoDecoderSettings.firmware.block;
         sageInternalSettings.videoDecoderFirmware.size = state->videoDecoderSettings.firmware.size;
@@ -1237,25 +1246,25 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     BDBG_MSG((">GRAPHICS2D"));
     NEXUS_Graphics2DModule_GetDefaultInternalSettings(&state->graphics2DSettings);
     state->graphics2DSettings.surface = g_NEXUS_platformHandles.surface;
-    handle = NEXUS_Graphics2DModule_Init(&state->graphics2DSettings, &g_NEXUS_platformSettings.graphics2DModuleSettings);
-    if (!handle) {
+    g_NEXUS_platformHandles.graphics2D = NEXUS_Graphics2DModule_Init(&state->graphics2DSettings, &g_NEXUS_platformSettings.graphics2DModuleSettings);
+    if (!g_NEXUS_platformHandles.graphics2D) {
         BDBG_ERR(("Unable to init Graphics2D"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAll, NEXUS_Graphics2DModule_Uninit, NEXUS_Graphics2DModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.graphics2D, NEXUS_ModuleStandbyLevel_eAll, NEXUS_Graphics2DModule_Uninit, NEXUS_Graphics2DModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_SMARTCARD
     BDBG_MSG((">SMARTCARD"));
     NEXUS_SmartcardModule_GetDefaultInternalSettings(&state->smartcardSettings);
-    handle = NEXUS_SmartcardModule_Init(&state->smartcardSettings, &g_NEXUS_platformSettings.smartCardSettings);
-    if (!handle) {
+    g_NEXUS_platformHandles.smartcard = NEXUS_SmartcardModule_Init(&state->smartcardSettings, &g_NEXUS_platformSettings.smartCardSettings);
+    if (!g_NEXUS_platformHandles.smartcard) {
         BDBG_ERR(("Unable to init SmartCard"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, g_NEXUS_platformSettings.smartCardSettings.common.standbyLevel, NEXUS_SmartcardModule_Uninit, NEXUS_SmartcardModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.smartcard, g_NEXUS_platformSettings.smartCardSettings.common.standbyLevel, NEXUS_SmartcardModule_Uninit, NEXUS_SmartcardModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_PWM
@@ -1299,13 +1308,13 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX
     state->graphicsv3dSettings.hHeapSecure = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 #endif
-    handle = NEXUS_Graphicsv3dModule_Init(&state->graphicsv3dSettings);
-    if (!handle) {
+    g_NEXUS_platformHandles.graphics3D = NEXUS_Graphicsv3dModule_Init(&state->graphicsv3dSettings);
+    if (!g_NEXUS_platformHandles.graphics3D) {
         BDBG_ERR(("Unable to initialize V3D graphics"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_ModuleStandbyLevel_eAlwaysOn, NEXUS_Graphicsv3dModule_Uninit, NEXUS_Graphicsv3d_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.graphics3D, NEXUS_ModuleStandbyLevel_eAlwaysOn, NEXUS_Graphicsv3dModule_Uninit, NEXUS_Graphicsv3d_Standby_priv);
 #endif
 
 #if NEXUS_HAS_DISPLAY
@@ -1757,19 +1766,120 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
     pStatus->boardId.major = (id >> 4) & 0xF;
     pStatus->boardId.minor = id & 0xF;
 
-#if NEXUS_HAS_DISPLAY
-    if (g_NEXUS_platformHandles.display
 #if NEXUS_POWER_MANAGEMENT
-            && g_standbyState.settings.mode == NEXUS_StandbyMode_eOn
+    if (g_standbyState.settings.mode == NEXUS_StandbyMode_eOn)
 #endif
-            ) {
-        int rc;
-        NEXUS_Module_Lock(g_NEXUS_platformHandles.display);
-        rc = NEXUS_DisplayModule_GetStatus_priv(&pStatus->displayModuleStatus);
-        NEXUS_Module_Unlock(g_NEXUS_platformHandles.display);
-        if (rc) return BERR_TRACE(rc);
+    {
+#if NEXUS_HAS_DISPLAY
+        if (g_NEXUS_platformHandles.display) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.display);
+            rc = NEXUS_DisplayModule_GetStatus_priv(&pStatus->displayModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.display);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_VIDEO_DECODER
+        if (g_NEXUS_platformHandles.videoDecoder) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.videoDecoder);
+            rc = NEXUS_VideoDecoderModule_GetStatus_priv(&pStatus->videoDecoderModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.videoDecoder);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_AUDIO
+        if (g_NEXUS_platformHandles.audio) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.audio);
+            rc = NEXUS_AudioModule_GetStatus_priv(&pStatus->audioModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.audio);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_GRAPHICS2D
+        if (g_NEXUS_platformHandles.graphics2D) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.graphics2D);
+            rc = NEXUS_Graphics2DModule_GetStatus_priv(&pStatus->graphics2DModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.graphics2D);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_GRAPHICSV3D
+        if (g_NEXUS_platformHandles.graphics3D) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.graphics3D);
+            rc = NEXUS_Graphicsv3dModule_GetStatus_priv(&pStatus->graphicsv3dModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.graphics3D);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_HDMI_INPUT
+        if (g_NEXUS_platformHandles.hdmiInput) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.hdmiInput);
+            rc = NEXUS_HdmiInputModule_GetStatus_priv(&pStatus->hdmiInputModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.hdmiInput);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_HDMI_INPUT
+        if (g_NEXUS_platformHandles.hdmiOutput) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.hdmiOutput);
+            rc = NEXUS_HdmiOutputModule_GetStatus_priv(&pStatus->hdmiOutputModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.hdmiOutput);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_PICTURE_DECODER
+        if (g_NEXUS_platformHandles.pictureDecoder) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.pictureDecoder);
+            rc = NEXUS_PictureDecoderModule_GetStatus_priv(&pStatus->pictureDecoderModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.pictureDecoder);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_RFM
+        if (g_NEXUS_platformHandles.rfm) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.rfm);
+            rc = NEXUS_RfmModule_GetStatus_priv(&pStatus->rfmModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.rfm);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_VIDEO_ENCODER
+        if (g_NEXUS_platformHandles.videoEncoder) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.videoEncoder);
+            rc = NEXUS_VideoEncoderModule_GetStatus_priv(&pStatus->videoEncoderModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.videoEncoder);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_SMARTCARD
+        if (g_NEXUS_platformHandles.smartcard) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.smartcard);
+            rc = NEXUS_SmartcardModule_GetStatus_priv(&pStatus->smartcardModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.smartcard);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
+#if NEXUS_HAS_TRANSPORT
+        if (g_NEXUS_platformHandles.transport) {
+            int rc;
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.transport);
+            rc = NEXUS_TransportModule_GetStatus_priv(&pStatus->transportModuleStatus);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.transport);
+            if (rc) return BERR_TRACE(rc);
+        }
+#endif
     }
-#endif
+
 
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
         pStatus->memc[i].size = g_platformMemory.memoryLayout.memc[i].size;

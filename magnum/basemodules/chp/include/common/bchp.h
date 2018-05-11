@@ -1160,11 +1160,13 @@ BERR_Code BCHP_HasLicensedFeature_isrsafe(BCHP_Handle chp, BCHP_LicensedFeature 
 bool BCHP_SkipInitialReset(BCHP_Handle chp);
 
 #ifdef BCHP_SAGE_SUPPORT /* bchp_sage.c will be compiled */
-/* Use the following API in order to reset SAGE. */
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg); /* returns true if SAGE is CURRENTLY running */
 bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg); /* returns true if SAGE has EVER run. It may or may not be currently running */
 uint32_t BCHP_SAGE_GetStatus(BREG_Handle hReg);/* returns sage status in enum BSAGElib_BootStatus*/
+/* Use the following API in order to reset SAGE. */
 BERR_Code BCHP_SAGE_Reset(BREG_Handle hReg);
 #else
+#define BCHP_SAGE_IsStarted(x) false
 #define BCHP_SAGE_HasEverStarted(x) false
 #define BCHP_SAGE_GetStatus(x) 0x00FF  /*BSAGElibBootStatus_eNotStarted*/
 #define BCHP_SAGE_Reset(x) BERR_SUCCESS

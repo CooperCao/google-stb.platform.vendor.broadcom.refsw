@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -336,6 +340,7 @@ BXPT_Playback_PackHdr_Config;
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
 typedef struct BXPT_P_GpcInfo *BXPT_Playback_PacingCounter;
 
+#if 0   /* SWSTB-7671: These APIs aren't used by Nexus. */
 /*
 The skip/repeat feature allows the pacing counter to be run at a faster or slower rate.
 Depending on the mode, when the pacing counter has incremented a given number of times, it
@@ -385,6 +390,7 @@ BERR_Code BXPT_Set_SkipRepeatSetting(
     BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
     const BXPT_Playback_SkipRepeat *skipRepeatCfg
     );
+#endif /* SWSTB-7671: These APIs aren't used by Nexus. */
 #endif
 
 /***************************************************************************
@@ -608,6 +614,7 @@ typedef struct BXPT_Playback_ChannelPacketSettings
 }
 BXPT_Playback_ChannelPacketSettings;
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the number of playback channels.
@@ -624,6 +631,7 @@ BERR_Code BXPT_Playback_GetTotalChannels(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
     unsigned int *TotalChannels     /* [out] The number of playback channels. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -712,6 +720,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
     BXPT_Playback_ChannelSettings *ChannelSettings /* [out] The current settings  */
     );
 
+#ifdef ENABLE_PLAYBACK_MUX
 /***************************************************************************
 Summary:
 Set the current channel packet settings.
@@ -728,6 +737,7 @@ BERR_Code BXPT_Playback_SetChannelPacketSettings(
     BXPT_Playback_Handle hPb,                                  /* [in] Handle for the playback channel. */
     const BXPT_Playback_ChannelPacketSettings *ChannelSettings /* [in] New settings to use */
     );
+#endif
 
 #if FOO
 /***************************************************************************
@@ -753,59 +763,9 @@ BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
     BXPT_Playback_Handle PlaybackHandle,        /* [in] Handle for the playback channel */
     BXPT_PvrDescriptor **LastCompletedDesc      /* [in] Address of the last completed descriptor. */
     );
-#else
-/***************************************************************************
-Summary:
-Get the current channel status.
-
-Description:
-Retrieve the current status bits for the given channel. Values are returned
-through the structure pointer passed in.
-
-Returns:
-    BERR_SUCCESS                - Retrieved status bits from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetChannelStatus(
-    BXPT_Playback_Handle hPb,           /* [in] Handle for the playback channel. */
-    BXPT_Playback_ChannelStatus *Status /* [out] Channel status. */
-    );
-
-/***************************************************************************
-Summary:
-Return the address of the current playback descriptor.
-
-Description:
-For a given Playback channel, get the address of the descriptor that is
-currently being used.
-
-Returns:
-    BERR_SUCCESS                - Retrieved address from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    BXPT_PvrDescriptor **LastDesc       /* [in] Address of the current descriptor. */
-    );
-
-/***************************************************************************
-Summary:
-Return the address of the next byte to written in a Record descriptor buffer.
-
-Description:
-For a given Playback channel, get the address of the next data access to the
-currently used buffer. The access is the next 32 word that will be read.
-
-Returns:
-    BERR_SUCCESS                - Retrieved address from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetCurrentBufferAddress(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    uint32_t *Address                       /* [out] The address read from hardware. */
-    );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Create a playback linked-list descriptor.
@@ -841,8 +801,10 @@ BERR_Code BXPT_Playback_CreateDesc(
     bool ReSync,                            /* [in] Re-sync extractor engine? */
     BXPT_PvrDescriptor * const NextDesc     /* [in] Next descriptor, or NULL */
     );
+#endif
 
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
+#if (!B_REFSW_MINIMAL)
 /*
 ** Multichannel playback hw supports buffers located above the 4GB boundary.
 */
@@ -867,6 +829,7 @@ BERR_Code BXPT_Playback_CreateExtendedDesc(
     const BXPT_Playback_ExtendedDescSettings *settings /* [in] Settings. */
     );
 #endif
+#endif
 
 #ifdef ENABLE_PLAYBACK_MUX
 /***************************************************************************
@@ -889,6 +852,7 @@ void BXPT_Playback_SetDescBuf(
     );
 #endif /*ENABLE_PLAYBACK_MUX*/
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Mark the descriptor as the last one on a linked list.
@@ -905,6 +869,7 @@ void BXPT_SetLastDescriptorFlag(
     BXPT_Handle hXpt,                       /* [in] Handle for this transport */
     BXPT_PvrDescriptor * const Desc     /* [in] Descriptor to initialize */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1029,46 +994,6 @@ Returns:
 BERR_Code BXPT_Playback_SetBitRate(
     BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
     uint32_t BitRate                        /* [in] Rate, in bits per second. */
-    );
-
-/***************************************************************************
-Summary:
-Determine if this descriptor is on the head of a playback linked list.
-
-Description:
-Determine if the current descriptor being processed by the record channel is
-the first on the channel's chain (which means this descriptor is still being
-used). If the playback channel is still 'busy', the size of the
-descriptor's buffer is also returned.
-
-Returns:
-    BERR_SUCCESS                - Record channel flushed successfully.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_CheckHeadDescriptor(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    BXPT_PvrDescriptor *Desc,       /* [in] Descriptor to check. */
-    bool *InUse,                    /* [out] Is descriptor in use? */
-    uint32_t *BufferSize            /* [out] Size of the buffer (in bytes). */
-    );
-
-/***************************************************************************
-Summary:
-Return the user bits of the last timestamp seen by the playback engine.
-
-Description:
-In some configurations, the upper 2 bits of the packet's recorded timestamp
-may be user-programmable. This function will return the upper 2 bits of the
-last timestamp seen by the playback engine, shifted down to align with bit
-0.
-
-Returns:
-    BERR_SUCCESS                - Retrieved address from hardware.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Playback_GetTimestampUserBits(
-    BXPT_Playback_Handle PlaybackHandle,    /* [in] Handle for the playback channel */
-    unsigned int *Bits                          /* [out] The user bits read from hardware. */
     );
 
 /***************************************************************************
@@ -1298,6 +1223,7 @@ BERR_Code BXPT_Playback_P_SetPacingSpeed(
     unsigned Speed
     );
 
+#if !BXPT_HAS_MULTICHANNEL_PLAYBACK
 /***************************************************************************
 Summary:
 Set the pacing count value.
@@ -1314,6 +1240,7 @@ void BXPT_Playback_P_SetPacingCount(
     unsigned PacingLoadMap,
     unsigned PacingCount
     );
+#endif
 
 #endif
 
@@ -1342,6 +1269,7 @@ void BXPT_Playback_FreePacingCounter(
     );
 #endif
 
+#if BXPT_HAS_TSMUX
 /***************************************************************************
 Description:
 
@@ -1372,6 +1300,7 @@ void BXPT_Playback_SetDescriptorFlags(
     BXPT_PvrDescriptor *desc,
     const BXPT_PvrDescriptorFlags *flags
     );
+#endif
 
 /***************************************************************************
 Description:
@@ -1420,6 +1349,19 @@ BERR_Code BXPT_Playback_P_LoadPacingCounter(
 BERR_Code BXPT_Playback_P_LoadStcMuxDelayDiff(
     BXPT_Playback_Handle hPb
     );
+#endif
+
+#if !BXPT_HAS_MULTICHANNEL_PLAYBACK
+BERR_Code BXPT_Playback_GetChannelStatus(
+    BXPT_Playback_Handle hPb,           /* [in] Handle for the playback channel. */
+    BXPT_Playback_ChannelStatus *Status /* [out] Channel status. */
+    );
+
+BERR_Code BXPT_Playback_GetCurrentDescriptorAddress(
+    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
+    BXPT_PvrDescriptor **LastDesc       /* [in] Address of the current descriptor. */
+    );
+
 #endif
 
 #ifdef __cplusplus

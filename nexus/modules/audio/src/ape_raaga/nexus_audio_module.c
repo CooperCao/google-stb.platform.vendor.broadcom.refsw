@@ -56,6 +56,8 @@
 #include "priv/nexus_security_regver_priv.h"
 #endif
 
+#include "bchp_pwr.h"
+
 #if NEXUS_HAS_SECURITY
 #define LOCK_SECURITY() NEXUS_Module_Lock( g_NEXUS_audioModuleData.internalSettings.modules.security )
 #define UNLOCK_SECURITY() NEXUS_Module_Unlock( g_NEXUS_audioModuleData.internalSettings.modules.security )
@@ -685,7 +687,14 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
 
         /* Check Astra compatibility */
         errCode = BTEE_Instance_GetStatus(g_pCoreHandles->tee, pTeeStatus);
-        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_arm; }
+        if ( errCode ) {
+            BDBG_ERR(("***************************************************************************"));
+            BDBG_ERR(("**** Unable to communicate with Astra -                                ****"));
+            BDBG_ERR(("****   - Did you load the TZ kernel?                                   ****"));
+            BDBG_ERR(("**** Audio will not work. See %d release notes for more information. ****",BCHP_CHIP));
+            BDBG_ERR(("***************************************************************************"));
+            (void)BERR_TRACE(errCode); goto err_arm;
+        }
 
         BDBG_MSG(("TEE %d, DSP %p, ARM %p", pTeeStatus->enabled, (void*)g_NEXUS_audioModuleData.dspHandle, (void*)g_NEXUS_audioModuleData.armHandle));
 
@@ -712,13 +721,18 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
                                     pArmSettings);
             if ( errCode )
             {
+                BDBG_ERR(("Failed to open BDSP ARM interface. Check compile settings for compatibility."));
                 (void)BERR_TRACE(errCode);
                 goto err_arm;
             }
         }
         else if ( !g_NEXUS_audioModuleData.dspHandle ) /* if ARM is our only device option, this is a failure. */
         {
-            BDBG_WRN(("TEE(Astra) is not enabled. Cannot open BDSP ARM instance."));
+            BDBG_ERR(("***************************************************************************"));
+            BDBG_ERR(("**** Astra seems to be present, but not enabled -                      ****"));
+            BDBG_ERR(("****   - Did you export NEXUS_ARM_AUDIO_SUPPORT=y during compilation?  ****"));
+            BDBG_ERR(("**** Audio will not work. See %d release notes for more information. ****",BCHP_CHIP));
+            BDBG_ERR(("***************************************************************************"));
             (void)BERR_TRACE(errCode);
             goto err_arm;
         }
@@ -1421,6 +1435,7 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
         pCaps->dsp.echoCanceller.algorithms[NEXUS_EchoCancellerAlgorithm_eSpeex] |= apeCaps->dsp[j].echoCanceller.algorithms[BAPE_EchoCancellerAlgorithm_eSpeex];
         pCaps->dsp.encoder |= apeCaps->dsp[j].encoder;
         pCaps->dsp.mixer |= apeCaps->dsp[j].mixer;
+        pCaps->dsp.mixer |= apeCaps->dsp[j].dapv2;
         pCaps->dsp.muxOutput |= apeCaps->dsp[j].muxOutput;
         pCaps->dsp.rfEncoder.supported |= apeCaps->dsp[j].rfEncoder.supported;
         pCaps->dsp.rfEncoder.encodings[NEXUS_RfAudioEncoding_eBtsc] |= apeCaps->dsp[j].rfEncoder.encodings[BAPE_RfAudioEncoding_eBtsc];
@@ -2124,4 +2139,94 @@ exit:
 int32_t NEXUS_Audio_P_ConvertDbToLinear(int index)
 {
     return g_db2linear[index];
+}
+
+NEXUS_Error NEXUS_AudioModule_GetStatus_priv(NEXUS_AudioModuleStatus *pStatus)
+{
+    unsigned i;
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+#if BCHP_PWR_RESOURCE_AIO_CLK
+    pStatus->power.aio.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_AIO_CLK)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#if BCHP_PWR_RESOURCE_AIO_SRAM
+    pStatus->power.aio.sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_AIO_SRAM)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+    for (i=0;i<g_NEXUS_audioModuleData.capabilities.numPlls;i++) {
+        unsigned clk=0;
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_AUD_PLL0
+                clk = BCHP_PWR_RESOURCE_AUD_PLL0;
+#endif
+                break;
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_AUD_PLL1
+                clk = BCHP_PWR_RESOURCE_AUD_PLL1;
+#endif
+                break;
+            case 2:
+#ifdef BCHP_PWR_RESOURCE_AUD_PLL2
+                clk = BCHP_PWR_RESOURCE_AUD_PLL2;
+#endif
+                break;
+            default:
+                break;
+        }
+        if (clk) {
+            pStatus->power.pll[i].clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+    }
+
+    for (i=0;i<g_NEXUS_audioModuleData.capabilities.numDsps;i++) {
+        unsigned clk=0, sram=0;
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_RAAGA0_DSP
+                clk = BCHP_PWR_RESOURCE_RAAGA0_DSP;
+#endif
+#ifdef BCHP_PWR_RESOURCE_RAAGA0_SRAM
+                sram = BCHP_PWR_RESOURCE_RAAGA0_SRAM;
+#endif
+                break;
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_RAAGA1_DSP
+                clk = BCHP_PWR_RESOURCE_RAAGA1_DSP;
+#endif
+#ifdef BCHP_PWR_RESOURCE_RAAGA1_SRAM
+                sram = BCHP_PWR_RESOURCE_RAAGA1_SRAM;
+#endif
+                break;
+            default:
+                break;
+        }
+        if (clk) {
+            pStatus->power.decoder[i].clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+            BCHP_PWR_GetClockRate(g_pCoreHandles->chp, clk, &pStatus->power.decoder[i].frequency);
+        }
+        if (sram) {
+            pStatus->power.decoder[i].sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, sram)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+
+    }
+
+#if BCHP_PWR_RESOURCE_AUD_DAC
+    {
+        NEXUS_PowerState state = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_AUD_DAC)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        for (i=0;i<g_NEXUS_audioModuleData.capabilities.numOutputs.dac;i++) {
+            pStatus->power.dacs[i].phy = state;
+        }
+    }
+#endif
+
+#if 0
+    for ( i=0; i<g_NEXUS_audioModuleData.numOutputs.spdif; i++ ) {
+        pStatus->power.spdif[i].clock = g_spdifOutputs[i].opened?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+    }
+
+    for ( i=0; i<g_NEXUS_audioModuleData.numOutputs.i2s; i++ ) {
+        pStatus->power.i2s[i].clock = g_i2sOutputs[i].opened?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+    }
+#endif
+    return NEXUS_SUCCESS;
 }

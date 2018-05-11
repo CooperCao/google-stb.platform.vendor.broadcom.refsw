@@ -361,12 +361,13 @@ typedef enum
         BHDM_P_TIMER_eMonitorStatus,
         BHDM_P_TIMER_eScdcStatus, /* timer to wait for SCDC status */
         BHDM_P_TIMER_eTxScramble, /* timer to wait before enabling Tx Scrambling */
-        BHDM_P_TIMER_ePacketChangeDelay /* timer to delay transmisson of HDMI Packets after a change */
+        BHDM_P_TIMER_ePacketChangeDelay, /* timer to delay transmisson of HDMI Packets after a change */
+        BHDM_P_TIMER_eForcedTxHotplug	/* timer act as pulse width when force Tx hotplug_in */
 } BHDM_P_TIMER ;
 
 
 BERR_Code BHDM_P_CreateTimer(const BHDM_Handle hHDM, BTMR_TimerHandle * timerHandle, uint8_t timerId) ;
-BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDM, BTMR_TimerHandle timerHandle, uint8_t timerId) ;
+BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDM, BTMR_TimerHandle *timerHandle, uint8_t timerId) ;
 void BHDM_MONITOR_P_CreateTimers(BHDM_Handle hHDMI) ;
 void BHDM_MONITOR_P_DestroyTimers(BHDM_Handle hHDMI) ;
 
@@ -385,6 +386,18 @@ void BHDM_P_Hotplug_isr(BHDM_Handle hHDMI) ;
 #define hdmiRegBuffSize (BCHP_HDMI_HDCP2TX_CTRL0 - BCHP_HDMI_REG_START)/4 + 1
 #define autoI2cRegBuffSize (BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_DEBUG - BCHP_HDMI_TX_AUTO_I2C_REG_START)/4 + 1
 #endif
+
+
+/* Maximum consecutive Ri/R0 failures before the HPD signal to the Tx is pulsed
+NOTE: Attached Rx does not see this HPD signal */
+#define BHDM_HDCP_MAX_RI_FAILURE_THRESHOLD 10
+
+/* Pulse width for simulated Tx HPD signal */
+#define BHDM_HDCP_FORCE_HPD_PULSE_WIDTH 100	/* in ms */
+
+/* Minimum consecutive Ri matches in order to reset Ri/R0 mismatch counters */
+#define BHDM_HDCP_MINIMUM_RI_STABLE_COUNT	5
+
 
 /*******************************************************************************
 Private HDMI Handle Declaration
@@ -521,6 +534,7 @@ typedef struct BHDM_P_Handle
         BHDM_MONITOR_TxHwStatusExtra stMonitorTxHwStatusExtra ;
 
         bool HpdTimerEnabled ;
+        BTMR_TimerHandle TimerForcedTxHotplug;  /* pulse width when override TX HOTPLUG_IN */
 #endif
 
 #if BCHP_PWR_SUPPORT

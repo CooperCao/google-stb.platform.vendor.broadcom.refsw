@@ -165,14 +165,15 @@ NEXUS_Record_Create(void)
 
     record = BKNI_Malloc(sizeof(*record));
     if(!record) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
-    BDBG_OBJECT_INIT(record, NEXUS_Record);
+    BKNI_Memset(record, 0, sizeof(*record));
+    BDBG_OBJECT_SET(record, NEXUS_Record);
 #if NEXUS_HAS_PLAYBACK
     BLST_S_INIT(&record->playback_list);
 #endif
     BLST_S_INIT(&record->pid_list);
     record->started = false;
-    BDBG_OBJECT_INIT(&record->data, NEXUS_Record_P_Flow);
-    BDBG_OBJECT_INIT(&record->index, NEXUS_Record_P_Flow);
+    BDBG_OBJECT_SET(&record->data, NEXUS_Record_P_Flow);
+    BDBG_OBJECT_SET(&record->index, NEXUS_Record_P_Flow);
     record->data.record = record;
     record->index.record = record;
     record->errorType = NEXUS_RecordErrorType_eNone;
@@ -701,7 +702,7 @@ NEXUS_Record_SetSettings(NEXUS_RecordHandle record, const NEXUS_RecordSettings *
         NEXUS_CallbackHandler_PrepareCallback(record->index.overflow, cfg.index.overflow);
         rc = NEXUS_Recpump_SetSettings(settings->recpump, &cfg);
         if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc);goto err_recpump_settings;}
-    } else {
+    } else if (record->cfg.recpump) {
         NEXUS_Recpump_GetDefaultSettings(&cfg);
         rc = NEXUS_Recpump_SetSettings(record->cfg.recpump, &cfg); /* wipe out previous recpump settings */
         if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc);goto err_recpump_settings;}

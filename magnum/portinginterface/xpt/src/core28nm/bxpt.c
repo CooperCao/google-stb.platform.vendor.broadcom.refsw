@@ -2122,6 +2122,51 @@ So, don't do the destination check before calling SetChannelEnable().
     return( ExitCode );
 }
 
+#if (!B_REFSW_MINIMAL)
+BERR_Code BXPT_AllocPidChannel(
+    BXPT_Handle hXpt,           /* [in] Handle for this transport */
+    bool NeedMessageBuffer,     /* [in] Is a message buffer required? */
+    unsigned int *PidChannelNum     /* [out] The allocated channel number. */
+    )
+{
+    unsigned int i = 0;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_ASSERT( hXpt );
+
+    /* Search for channels with buffers, if thats what they asked for. */
+    if( NeedMessageBuffer == true )
+    {
+        for( i = 0; i < hXpt->MaxPidChannels; i++ )
+        {
+            if( hXpt->PidChannelTable[ i ].IsAllocated == false
+            && hXpt->PidChannelTable[ i ].HasMessageBuffer ==  true )
+            {
+                hXpt->PidChannelTable[ i ].IsAllocated = true;
+                break;
+            }
+        }
+    }
+    else
+    {
+        /* Otherwise, grab the first free channel we find. */
+        for( i= 0; i < hXpt->MaxPidChannels; i++ )
+        {
+            if( hXpt->PidChannelTable[ i ].IsAllocated == false )
+            {
+                hXpt->PidChannelTable[ i ].IsAllocated = true;
+                break;
+            }
+        }
+    }
+
+    *PidChannelNum = i;
+
+    return( ExitCode );
+}
+#endif
+
 BERR_Code BXPT_ConfigurePidChannel(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
     unsigned int PidChannelNum,     /* [in] Which channel to configure. */
@@ -3489,7 +3534,7 @@ bool BXPT_IsMtsifDecryptionEnabled(
 }
 #endif
 
-#if (!B_REFSW_MINIMAL)
+#if BXPT_BUILD_ATS_SUPPORT
 void BXPT_ResetAtsCounter(
     BXPT_Handle hXpt
     )
@@ -3532,9 +3577,7 @@ void BXPT_SetAtsExternal(
     BCHP_SET_FIELD_DATA( atsCtrlReg, XPT_FE_ATS_COUNTER_CTRL, INC_MUX_SEL, 1 );
     BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_ATS_COUNTER_CTRL, atsCtrlReg );
 }
-#endif
 
-#if (!B_REFSW_MINIMAL)
 uint32_t BXPT_GetBinaryAts(
     BXPT_Handle hXpt
     )

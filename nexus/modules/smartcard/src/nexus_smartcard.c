@@ -41,6 +41,7 @@
 #include "bscd_datatypes.h"
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_smartcard);
 
@@ -820,4 +821,32 @@ NEXUS_Error NEXUS_SmartcardModule_Standby_priv(bool enabled, const NEXUS_Standby
     BSTD_UNUSED(pSettings);
     return NEXUS_SUCCESS;
 #endif
+}
+
+NEXUS_Error NEXUS_SmartcardModule_GetStatus_priv(NEXUS_SmartcardModuleStatus *pStatus)
+{
+    unsigned i;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    for (i=0;i<NEXUS_MAX_SMARTCARD_CHANNELS;i++) {
+        unsigned clk=0;
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_SMARTCARD0
+                clk = BCHP_PWR_RESOURCE_SMARTCARD0;
+#endif
+                break;
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_SMARTCARD1
+                clk = BCHP_PWR_RESOURCE_SMARTCARD1;
+#endif
+                break;
+        }
+        if (clk) {
+            pStatus->power.core[i].clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+            BCHP_PWR_GetClockRate(g_pCoreHandles->chp, clk, &pStatus->power.core[i].frequency);
+        }
+    }
+
+    return NEXUS_SUCCESS;
 }

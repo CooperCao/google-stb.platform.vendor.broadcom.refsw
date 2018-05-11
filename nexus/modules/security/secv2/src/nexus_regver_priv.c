@@ -51,7 +51,7 @@
 #include "bchp_bsp_glb_control.h"
 #endif
 
-#if NEXUS_SECURITY_FW_SIGN
+#if NEXUS_SECURITY_FW_DEV_SIGN
 #include "nexus_regver_signatures.inc"
 #include "nexus_regver_key.inc"
 #else

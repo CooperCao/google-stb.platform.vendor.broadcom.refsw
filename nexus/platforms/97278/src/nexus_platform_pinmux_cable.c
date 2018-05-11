@@ -51,9 +51,8 @@ BDBG_MODULE(nexus_platform_pinmux);
 #define VMS_BOARD_ID 3
 
 #if NEXUS_HAS_SAGE
-static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
+static void NEXUS_Platform_P_EnableSageDebugPinmux(NEXUS_PlatformStatus *platformStatus)
 {
-    NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
@@ -61,15 +60,14 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         return;
     }
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Selecting SAGE pin mux for board ID %d",platformStatus.boardId.major));
+    BDBG_MSG(("Selecting SAGE pin mux for board ID %d",platformStatus->boardId.major));
 
-    switch (platformStatus.boardId.major) {
+    switch (platformStatus->boardId.major) {
 
         default:
         {
             /* VMS and HB boards don't have anything other than UART 0 headers */
-            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus->boardId.major));
             break;
         }
         case SV_BOARD_ID:
@@ -108,9 +106,8 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 }
 #endif
 
-static void NEXUS_Platform_P_EnableHvdUartPinmux(void)
+static void NEXUS_Platform_P_EnableHvdUartPinmux(NEXUS_PlatformStatus *platformStatus)
 {
-    NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
     int hvd_env_val = -1;
@@ -123,14 +120,13 @@ static void NEXUS_Platform_P_EnableHvdUartPinmux(void)
         return; /* Only enable pin mux if this is set to valid HVD number */
     }
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_WRN(("Selecting HVD%d IL -> UART2, OL -> UART1 pin mux for board ID %d",hvd_env_val,platformStatus.boardId.major));
+    BDBG_WRN(("Selecting HVD%d IL -> UART2, OL -> UART1 pin mux for board ID %d",hvd_env_val,platformStatus->boardId.major));
 
-    switch (platformStatus.boardId.major) {
+    switch (platformStatus->boardId.major) {
         default:
         {
             /* HB boards don't have anything other than UART 0 headers */
-            BDBG_MSG(("Unknown or no HVD UART available on board type %d.",platformStatus.boardId.major));
+            BDBG_MSG(("Unknown or no HVD UART available on board type %d.",platformStatus->boardId.major));
             break;
         }
         case SV_BOARD_ID:
@@ -243,16 +239,20 @@ Description:
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
     /* Configure the streamer (BCM9TS) input to route into input band 0 for SV */
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
-    if (platformStatus.boardId.major == SV_BOARD_ID) {
+    if (platformStatus->boardId.major == SV_BOARD_ID) {
 
         BDBG_MSG(("Configuring pin mux for BCM9TS streamer input to input band 0"));
 #if NEXUS_HAS_DVB_CI
@@ -415,8 +415,10 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
         BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
 #endif
 #if NEXUS_HAS_SAGE
-    NEXUS_Platform_P_EnableSageDebugPinmux();
+    NEXUS_Platform_P_EnableSageDebugPinmux(platformStatus);
 #endif
-    NEXUS_Platform_P_EnableHvdUartPinmux();
+    NEXUS_Platform_P_EnableHvdUartPinmux(platformStatus);
+    BKNI_Free(platformStatus);
+
     return BERR_SUCCESS;
 }

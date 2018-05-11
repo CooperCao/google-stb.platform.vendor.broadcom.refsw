@@ -424,6 +424,18 @@ typedef struct NEXUS_AudioModuleSettings
                                             if i2s is connected to an external DAC */
 } NEXUS_AudioModuleSettings;
 
+typedef struct NEXUS_AudioModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus aio;                                  /* Aio Power Status */
+        NEXUS_PowerStatus pll[NEXUS_MAX_AUDIO_PLLS];            /* Audio Pll Power Status */
+        NEXUS_PowerStatus decoder[NEXUS_MAX_AUDIO_DECODERS];    /* Audio Decoder Power Status */
+        NEXUS_PowerStatus dacs[NEXUS_MAX_AUDIO_DAC_OUTPUTS];    /* Audio Dacs Power Status */
+        NEXUS_PowerStatus i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];     /* I2S Output Power Status */
+        NEXUS_PowerStatus spdif[NEXUS_MAX_AUDIO_SPDIF_OUTPUTS]; /* Spdif Output Power Status */
+    } power;
+} NEXUS_AudioModuleStatus;
+
 #ifdef __cplusplus
 }
 #endif

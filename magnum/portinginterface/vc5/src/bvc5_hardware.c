@@ -1191,6 +1191,7 @@ void BVC5_P_HardwareInitializeCoreStates(
       BKNI_Memset(psCoreState, 0, sizeof(*psCoreState));
 
       /* Setup register offsets */
+      /* coverity[identical_branches] */
       if (uiCoreIndex == 0)
          hVC5->psCoreStates[uiCoreIndex].uiRegOffset = 0;
       else

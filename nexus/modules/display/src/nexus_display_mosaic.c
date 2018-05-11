@@ -219,7 +219,25 @@ NEXUS_Error NEXUS_VideoWindow_P_ApplyMosaic(NEXUS_VideoWindowHandle window)
         bool dummy;
         NEXUS_DisplayHandle display = window->display;
         BVDC_MosaicConfiguration mosaic_config;
+        NEXUS_VideoInput parentVideoInput;
+        NEXUS_VideoInput_P_Link *link;
+        BVDC_Dnr_Settings dnrSettings;
         unsigned i;
+
+        /* disable DNR on parent window when in mosaic mode */
+        parentVideoInput = window->input;
+        link = NEXUS_VideoInput_P_GetExisting(parentVideoInput);
+        if (link) {
+            rc = BVDC_Source_GetDnrConfiguration(link->sourceVdc, &dnrSettings);
+            if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
+            else {
+                dnrSettings.eBnrMode = BVDC_FilterMode_eDisable;
+                dnrSettings.eDcrMode = BVDC_FilterMode_eDisable;
+                dnrSettings.eMnrMode = BVDC_FilterMode_eDisable;
+                rc = BVDC_Source_SetDnrConfiguration(link->sourceVdc, &dnrSettings);
+                if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
+            }
+        }
 
         /* set the zorder of the parent to 0 or 1 based on min zorder of all mosaics */
         rc = BVDC_Window_SetZOrder(windowVdc, minzorder ? 1 : 0);
@@ -530,6 +548,7 @@ void NEXUS_VideoWindow_P_RemoveMosaicInput(NEXUS_VideoWindowHandle window, NEXUS
             parentLink->mosaic.backendMosaic = false; /* this will allow parent to disconnect if backendMosaic was true */
             NEXUS_VideoInput_Shutdown(parentVideoInput);
             parentVideoInput->source = NULL;
+            parentWindow->adjContext.bDnrSet = true; /* reapply current DNR settings when new input is connected */
         }
     }
 }

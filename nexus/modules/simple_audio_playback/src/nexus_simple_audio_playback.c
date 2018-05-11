@@ -481,8 +481,7 @@ NEXUS_Error NEXUS_SimpleAudioPlayback_SetServerSettings( NEXUS_SimpleAudioPlayba
     return 0;
 }
 
-/* return 0 if a suspend was done */
-static NEXUS_Error nexus_simpleaudioplayback_p_suspend(NEXUS_SimpleAudioPlaybackHandle handle)
+static void nexus_simpleaudioplayback_p_suspend(NEXUS_SimpleAudioPlaybackHandle handle)
 {
 #if NEXUS_HAS_AUDIO
     BDBG_MSG(("nexus_simpleaudioplayback_p_suspend %p: %d %d", (void*)handle, handle->started, handle->suspended));
@@ -492,16 +491,11 @@ static NEXUS_Error nexus_simpleaudioplayback_p_suspend(NEXUS_SimpleAudioPlayback
             NEXUS_AudioPlayback_Stop(handle->serverSettings.playback);
             handle->started = false;
         }
-        return 0;
-    }
-    else {
-        /* no suspend */
-        return -1;
     }
 #else
     BSTD_UNUSED(handle);
-    return 0;
 #endif
+    return;
 }
 
 static void nexus_simpleaudioplayback_p_resume(NEXUS_SimpleAudioPlaybackHandle handle)
@@ -521,21 +515,19 @@ static void nexus_simpleaudioplayback_p_resume(NEXUS_SimpleAudioPlaybackHandle h
 #endif
 }
 
-NEXUS_Error NEXUS_SimpleAudioPlaybackServer_Suspend_priv(NEXUS_SimpleAudioPlaybackServerHandle server)
+void NEXUS_SimpleAudioPlaybackServer_Suspend_priv(NEXUS_SimpleAudioPlaybackServerHandle server)
 {
     NEXUS_SimpleAudioPlaybackHandle handle;
-    NEXUS_Error rc = NEXUS_SUCCESS;
 
     NEXUS_ASSERT_MODULE();
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleAudioPlaybackServer, server);
 
     /* find dup */
     for (handle=BLST_S_FIRST(&server->playbacks); handle; handle=BLST_S_NEXT(handle, link)) {
-        rc = nexus_simpleaudioplayback_p_suspend(handle);
-        if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc);break;}
+        nexus_simpleaudioplayback_p_suspend(handle);
     }
 
-    return rc;
+    return;
 }
 
 void NEXUS_SimpleAudioPlaybackServer_Resume_priv(NEXUS_SimpleAudioPlaybackServerHandle server)

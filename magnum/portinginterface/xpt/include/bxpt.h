@@ -723,6 +723,7 @@ typedef struct BXPT_ParserBandMapping
 }
 BXPT_ParserBandMapping;
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get the current parser band mapping.
@@ -738,6 +739,7 @@ void BXPT_GetParserMapping(
     BXPT_Handle hXpt,           /* [in] Handle for the Transport. */
     BXPT_ParserBandMapping *ParserMap
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -908,6 +910,7 @@ BERR_Code BXPT_Resume(
     BXPT_Handle hXpt
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get the capability params for the transport core.
@@ -926,6 +929,7 @@ void BXPT_GetCapability(
     BXPT_Handle hXpt,           /* [in] Which transport to get data. */
     BXPT_Capability *Capability /* [out] Where to put the capability data. */
     );
+#endif
 
 #if BXPT_HAS_IB_PID_PARSERS
 /***************************************************************************
@@ -1231,6 +1235,7 @@ BERR_Code BXPT_GetMesgBufferErrorStatus(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Retrieves the default input band configuration.
@@ -1252,6 +1257,7 @@ BERR_Code BXPT_GetDefaultInputBandConfig(
     unsigned int BandNum,                       /* [in] Which input band to access. */
     BXPT_InputBandConfig *InputBandConfig   /* [out] The current settings */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1342,6 +1348,7 @@ BERR_Code BXPT_SetParserDataSource(
     unsigned int WhichSource            /* [in] Which instance of the source */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get a parser band's data source.
@@ -1365,6 +1372,7 @@ BERR_Code BXPT_GetParserDataSource(
     BXPT_DataSource *DataSource,    /* [out] The data source. */
     unsigned int *WhichSource           /* [out] Which instance of the source */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1424,6 +1432,7 @@ BERR_Code BXPT_DisablePidChannel(
     unsigned int PidChannelNum          /* [in] Which PID channel. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Allocate a new PID channel.
@@ -1450,6 +1459,7 @@ BERR_Code BXPT_AllocPidChannel(
     bool NeedMessageBuffer,     /* [in] Is a message buffer required? */
     unsigned int *PidChannelNum     /* [out] The allocated channel number. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1615,6 +1625,7 @@ BERR_Code BXPT_FreePidChannel(
     unsigned int PidChannelNum      /* [in] PID channel to free up. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Free all allocated PID channels.
@@ -1659,6 +1670,7 @@ BERR_Code BXPT_RequestPidChannel(
     BXPT_Handle hXpt,       /* [in] Handle for this transport */
     unsigned int PidChannelNum  /* [out] The channel number the user wants. */
     );
+#endif
 
 #if BXPT_HAS_MESG_BUFFERS
 
@@ -1705,6 +1717,7 @@ BERR_Code BXPT_FreePSIFilter(
     unsigned int FilterNum      /* [in] Which filter to free up. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the filtering arrays for a PSI filter.
@@ -1726,6 +1739,7 @@ BERR_Code BXPT_GetFilter(
     unsigned int FilterNum,         /* [in] Which filter to get data from. */
     BXPT_Filter *Filter         /* [out] Filter data */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1749,6 +1763,7 @@ BERR_Code BXPT_SetFilter(
     const BXPT_Filter *Filter   /* [in] Filter data to be loaded */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Change a filter's coefficeint byte.
@@ -1820,6 +1835,7 @@ BERR_Code BXPT_ChangeFilterExclusionByte(
     unsigned int ByteOffset,        /* [in] Which byte in the array to change */
     uint8_t ExclusionByte       /* [in] New exclusion byte to be written. */
     );
+#endif
 
 /*
    NOTE: The BXPT_RemoveFilterFromGroup() API NO LONGER MAKES SENSE WITH THE
@@ -1848,6 +1864,7 @@ BERR_Code BXPT_RemoveFilterFromGroup(
     BXPT_PsiMessageSettings *Settings   /* [in,out] Filter group to add to. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Remove a filter from a group.
@@ -1870,6 +1887,7 @@ BERR_Code BXPT_RemoveFilterFromGroupAndBuffer(
     unsigned int BufferNum,                 /* [in] Which message buffer is using this filter. */
     BXPT_PsiMessageSettings *Settings   /* [in] Filter group to add to. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1970,6 +1988,7 @@ BERR_Code BXPT_CheckBufferWithWrap(
     size_t *MessageSizeAfterWrap    /* Total size of message starting at the base. NULL if no wrap */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Check for new data in a message buffer, and copy any new data into the user
@@ -2025,6 +2044,7 @@ BERR_Code BXPT_GetBuffer_isr(
     uint8_t *BufferAddr,        /* [out] Address of the buffer. */
     size_t *BufferSize          /* [in,out] Size of message buffer (on input), size of new messages (on output). */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -2072,6 +2092,7 @@ BERR_Code BXPT_UpdateReadOffset_isr(
     size_t BytesRead            /* [in] Number of bytes read. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Pause or resume a PES recording session.
@@ -2123,7 +2144,9 @@ BERR_Code BXPT_PausePsiCapture(
     unsigned int MesgBuffNum,     /* [in] Message buffer to check. This is same as PidChNum in case of 1-to-1 mapping*/
     bool Pause                                /* [in] Enable or disable pause */
     );
+#endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get the current message buffer depth.
@@ -2186,6 +2209,7 @@ BERR_Code BXPT_Mesg_GetPidChannelFromBufferNum(
     unsigned int MesgBufferNum,                         /* [in] Which Buffer Number. */
     unsigned int *PidChannelNum                         /* [out] Which PID channel. */
     );
+#endif
 
 #endif
 
@@ -2607,6 +2631,7 @@ unsigned BXPT_GetRsXcInterruptCount(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return LTSID value associated with the given live parser band.
@@ -2620,8 +2645,10 @@ BERR_Code BXPT_GetLiveLTSID(
     unsigned parserNum,
     unsigned *ltsid
     );
+#endif
 
 
+#if BXPT_BUILD_ATS_SUPPORT
 /***************************************************************************
 Summary:
 Reset the hardware ATS counter.
@@ -2681,6 +2708,7 @@ void BXPT_SetBinaryAts(
     BXPT_Handle hXpt,
     uint32_t newAts
     );
+#endif
 
 /*
 ** These functions are called internally.
@@ -2704,28 +2732,22 @@ BERR_Code BXPT_P_DisableFilter(
     unsigned int PidChannelNum
     );
 
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_P_PauseFilters(
     BXPT_Handle hXpt,
     unsigned int PidChannelNum,
     unsigned FilteringOp,
     bool Pause
     );
+#endif
 
 BERR_Code BXPT_P_EnablePidChannel(
     BXPT_Handle hXpt,
     unsigned int PidChannelNum
     );
 
-bool BXPT_P_CanPowerDown(
-    BXPT_Handle hXpt
-    );
-
 BERR_Code BXPT_P_AllocSharedXcRsBuffer(
     BXPT_Handle hXpt
-    );
-
-int BXPT_P_GetParserRegOffset(
-    int parserIndex
     );
 
 bool BXPT_P_InputBandIsSupported(

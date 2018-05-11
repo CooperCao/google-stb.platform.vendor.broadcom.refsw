@@ -1280,6 +1280,7 @@ b_mp4_player_open_fragment_index(bmp4_player_t player)
             BDBG_WRN(("b_mp4_player_open_fragment_index:%p can't seek to %u", (void *)player, (unsigned)box_offset));
             break;
         }
+        BDBG_CASSERT(sizeof(box_state.box_payload) >= BMP4_TRACK_FRAGMENT_RANDOM_ACCESS_HEADER_SIZE);
         rc = fd->read(fd, box_state.box_payload, BMP4_TRACK_FRAGMENT_RANDOM_ACCESS_HEADER_SIZE);
         if(BMP4_TRACK_FRAGMENT_RANDOM_ACCESS_HEADER_SIZE != rc) {
             BDBG_WRN(("b_mp4_player_find_box:%p can't read box(%d,%u)", (void *)player, rc, BMP4_TRACK_FRAGMENT_RANDOM_ACCESS_HEADER_SIZE));

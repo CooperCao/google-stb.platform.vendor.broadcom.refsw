@@ -351,10 +351,10 @@ void BHDM_P_EnableTmdsData_isr(
 
     BDBG_ENTER(BHDM_P_EnableTmdsData_isr) ;
 
-	if (hHDMI->standby)
-	{
-		goto done ;
-	}
+    if (hHDMI->standby)
+    {
+        goto done ;
+    }
 
     hRegister = hHDMI->hRegister ;
     ulOffset = hHDMI->ulOffset ;
@@ -430,10 +430,10 @@ void BHDM_P_EnableTmdsClock_isr(
     BDBG_ENTER(BHDM_P_EnableTmdsClock_isr) ;
 
 
-	if (hHDMI->standby)
-	{
-		goto done ;
-	}
+    if (hHDMI->standby)
+    {
+        goto done ;
+    }
 
     hRegister = hHDMI->hRegister ;
     ulOffset = hHDMI->ulOffset ;
@@ -583,12 +583,30 @@ void BHDM_P_ConfigureInputAudioFmt(
     /* clear MAI_BIT_REVERSE bit  - reset value */
     /* set MAI_CHANNEL_MASK = 3   - reset value */
 
+#if defined BCHP_DVP_CFG_REG_START
+    /*
+     * don't touch MAI_BIT_REVERSE or MAI_FORMAT_REVERSE, as bape_mai_output will set them dynamically
+     * make operation atomic jic
+     */
+    BREG_AtomicUpdate32(hRegister, BCHP_HDMI_MAI_CONFIG + ulOffset,
+                        BCHP_MASK(HDMI_MAI_CONFIG, MAI_CHANNEL_MASK)
+#if BHDM_CONFIG_AUDIO_MAI_BUS_DISABLE_SUPPORT
+                        | BCHP_MASK(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO)
+#endif
+                        ,
+                        BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_CHANNEL_MASK, 0xFF)
+#if BHDM_CONFIG_AUDIO_MAI_BUS_DISABLE_SUPPORT
+                        | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO, DisableMai)
+#endif
+                        );
+#else
     Register = BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_BIT_REVERSE, 0)
 #if BHDM_CONFIG_AUDIO_MAI_BUS_DISABLE_SUPPORT
         | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, DISABLE_MAI_AUDIO, DisableMai)
 #endif
         | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_CHANNEL_MASK, 0xFF) ;
     BREG_Write32(hRegister, BCHP_HDMI_MAI_CONFIG + ulOffset, Register) ;
+#endif
 
     /*CP*  11 Configure Audio */
 
@@ -1125,18 +1143,18 @@ void BHDM_P_PowerOnPhy (const BHDM_Handle hHDMI)
         BREG_Write32(hRegister, BCHP_HDMI_TX_PHY_CHANNEL_SWAP + ulOffset, 0x3012) ;
 #endif
 
-	/*
-	set the minimum time HPD signal must be constant before HP interrupt is fired
-	this applies to 28nm only
-	Do not set the delay above 75ms as correct missed interrupts can occur.
-	if the attached device does not pulse the HPD signal correctly for 100ms
-	*/
+    /*
+    set the minimum time HPD signal must be constant before HP interrupt is fired
+    this applies to 28nm only
+    Do not set the delay above 75ms as correct missed interrupts can occur.
+    if the attached device does not pulse the HPD signal correctly for 100ms
+    */
 
-	Register = BREG_Read32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG) ;
-		Register &= ~ BCHP_MASK(AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, MAX_THRESHOLD) ;
-		HpdDelay = 50 * 27027 ; /* 1 unit * 27027 = 1 ms */
-		Register |= BCHP_FIELD_DATA(AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, MAX_THRESHOLD, HpdDelay) ;
-	BREG_Write32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, Register) ;
+    Register = BREG_Read32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG) ;
+        Register &= ~ BCHP_MASK(AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, MAX_THRESHOLD) ;
+        HpdDelay = 50 * 27027 ; /* 1 unit * 27027 = 1 ms */
+        Register |= BCHP_FIELD_DATA(AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, MAX_THRESHOLD, HpdDelay) ;
+    BREG_Write32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, Register) ;
 
     hHDMI->phyPowered = true ;
     return ;

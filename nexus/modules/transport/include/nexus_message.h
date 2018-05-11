@@ -320,7 +320,7 @@ typedef struct NEXUS_MessageStartSettings
     bool psiCrcDisabled;                /* Disable CRC checks on PSI information */
     bool psfCrcDisabled;                /* Disable CRC checks on short form private sections */
 
-    void *buffer;        /* attr{memory=cached} Optional user-supplied memory buffer which is bufferSize in length.
+    void *buffer;        /* attr{memory=cached;null_allowed=y} Optional user-supplied memory buffer which is bufferSize in length.
                             You must allocate this buffer with NEXUS_Memory_Allocate. Must be 1K aligned.
                             If NULL, Nexus will use the buffer allocated with NEXUS_MessageSettings.bufferSize.
                             See NEXUS_Message_Open for usage modes. */

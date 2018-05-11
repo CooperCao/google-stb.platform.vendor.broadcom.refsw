@@ -71,7 +71,11 @@ extern "C" {
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ pr_certs_dir[] =L"/data/vendor/mediadrm/playready/";
+#else
 _DRM_SHORT_WCHAR_ pr_certs_dir[] =L"/data/mediadrm/playready/";
+#endif
 #else
 _DRM_SHORT_WCHAR_ pr_certs_dir[] =L"";
 #endif
@@ -96,7 +100,11 @@ _DRM_SHORT_WCHAR_ pr_certs_dir[] =L"";
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ pr_revoke_info[] =L"/data/vendor/mediadrm/playready/pr_srm_data.bin";
+#else
 _DRM_SHORT_WCHAR_ pr_revoke_info[] =L"/data/mediadrm/playready/pr_srm_data.bin";
+#endif
 #else
 _DRM_SHORT_WCHAR_ pr_revoke_info[] =L"pr_srm_data.bin";
 #endif
@@ -169,7 +177,11 @@ _DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"./playready3x.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ key_history_filename[] = L"/data/vendor/mediadrm/playready/keyhistory.dat";
+#else
 _DRM_SHORT_WCHAR_ key_history_filename[] = L"/data/mediadrm/playready/keyhistory.dat";
+#endif
 #else
 _DRM_SHORT_WCHAR_ key_history_filename[] = L"./keyhistory.dat";
 #endif
@@ -193,7 +205,11 @@ _DRM_SHORT_WCHAR_ key_history_filename[] = L"./keyhistory.dat";
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ pr3x_key_history_filename[] = L"/data/vendor/mediadrm/playready/keyhistory3x.dat";
+#else
 _DRM_SHORT_WCHAR_ pr3x_key_history_filename[] = L"/data/mediadrm/playready/keyhistory3x.dat";
+#endif
 #else
 _DRM_SHORT_WCHAR_ pr3x_key_history_filename[] = L"./keyhistory3x.dat";
 #endif
@@ -241,7 +257,11 @@ _DRM_SHORT_WCHAR_ key_file_filename[] = L"keyfile.dat";
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ pr_key_file_dir[] =L"/data/vendor/mediadrm/playready/";
+#else
 _DRM_SHORT_WCHAR_ pr_key_file_dir[] =L"/data/mediadrm/playready/";
+#endif
 #else
 _DRM_SHORT_WCHAR_ pr_key_file_dir[] =L"";
 #endif
@@ -290,7 +310,11 @@ _DRM_SHORT_WCHAR_ model_information[] = L"XR-700";
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ pr_cert_templates_dir[] =L"/data/vendor/mediadrm/playready/";
+#else
 _DRM_SHORT_WCHAR_ pr_cert_templates_dir[] =L"/data/mediadrm/playready/";
+#endif
 #else
 _DRM_SHORT_WCHAR_ pr_cert_templates_dir[] =L"";
 #endif
@@ -318,7 +342,11 @@ _DRM_SHORT_WCHAR_ pr_cert_templates_dir[] =L"";
 **
 ******************************************************************************/
 #ifdef ANDROID
+#if defined(ANDROID_DATA_VENDOR_PLATFORM_SPLIT)
+_DRM_SHORT_WCHAR_ pr_hds_dir[] =L"/data/vendor/mediadrm/playready/";
+#else
 _DRM_SHORT_WCHAR_ pr_hds_dir[] =L"/data/mediadrm/playready/";
+#endif
 #else
 _DRM_SHORT_WCHAR_ pr_hds_dir[] =L"";
 #endif

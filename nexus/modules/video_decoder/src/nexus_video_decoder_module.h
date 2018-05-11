@@ -259,6 +259,7 @@ struct NEXUS_VideoDecoder {
     NEXUS_RaveHandle rave;
     bool raveDetached;
     bool enhancementRaveDetached;
+    bool dynamicSplicing;
     NEXUS_RaveHandle savedRave; /* the primer interface may replace the main RAVE context with a primed context. */
     NEXUS_VideoDecoderPrimerHandle primer;
     NEXUS_RaveHandle enhancementRave; /* rave context for  enhancementPidChannel */
@@ -292,9 +293,13 @@ struct NEXUS_VideoDecoder {
         BXVD_PictureCoding pictureCoding;
     } pictureParameterInfo; /* TODO: consider storing whole BXVD_PictureParameterInfo at isr time, then building NEXUS_VideoDecoderStreamInformation at get time */
     NEXUS_TransportType transportType;
+    NEXUS_VideoDecoderSpliceSettings spliceSettings;
+    NEXUS_VideoDecoderSpliceStatus spliceStatus;
+    bool spliceFlowStopped;
     NEXUS_VideoDecoderOpenMosaicSettings openSettings; /* superset */
     NEXUS_VideoDecoderMosaicSettings mosaicSettings;
     NEXUS_VideoDecoderSettings settings;
+    NEXUS_IsrCallbackHandle spliceCallback;
     NEXUS_IsrCallbackHandle userdataCallback;
     NEXUS_IsrCallbackHandle afdChangedCallback;
     NEXUS_IsrCallbackHandle streamChangedCallback;

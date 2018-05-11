@@ -71,7 +71,7 @@ TZ_ARMGNU       ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musleabi
 ARCH        := arm
 ARCH_DIR    := arm
 ARCH_SUFFIX := 32
-ARCHFLAGS   += -mcpu=cortex-a15 -mfpu=vfpv3
+ARCHFLAGS   += -mcpu=cortex-a15 -mfpu=neon
 OBJ_TARGET  := elf32-littlearm
 else
 # 64-bit ARM defines

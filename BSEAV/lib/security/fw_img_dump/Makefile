@@ -194,8 +194,12 @@ $(ODIR)/exists:
 builddate:
 	$(Q_)$(RM) -f ${ODIR}/builddate.o ${ODIR}/gitlog.h
 
+dump: $(APP_CHIP)
+	cd ${ODIR} && ./fw_img_dump
+
 clean:
-	${Q_} $(RM) $(OBJ) $(DEP) $(APP_CHIP)
+	${Q_} $(RM) $(OBJ) $(DEP) $(APP_CHIP) ${ODIR}/*.bin
+
 
 .PHONY: builddate FORCE
 

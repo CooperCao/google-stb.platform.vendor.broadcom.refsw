@@ -60,7 +60,11 @@
 #define TEST_DELETE_CONTEXT(ctx)                     if (ctx) { KM_Tag_DeleteContext(ctx); ctx = NULL; }
 
 /* Test and free the keyslot handle */
+#if (NEXUS_SECURITY_API_VERSION==1)
 #define TEST_FREE_KEYSLOT(hndl)               if (hndl) { NEXUS_Security_FreeKeySlot(hndl); hndl = NULL; }
+#else
+#define TEST_FREE_KEYSLOT(hndl)               if (hndl) { NEXUS_KeySlot_Invalidate(hndl); NEXUS_KeySlot_Free(hndl); hndl = NULL; }
+#endif
 
 
 #define EXPECT_TRUE(op)                              if (!op) { BDBG_ERR(("%s:%d  %s failed", BSTD_FUNCTION, __LINE__, #op)); err = BERR_UNKNOWN; goto done; }

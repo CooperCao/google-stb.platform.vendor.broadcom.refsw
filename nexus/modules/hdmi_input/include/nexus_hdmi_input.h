@@ -325,6 +325,16 @@ void NEXUS_HdmiInput_ToggleHotPlug(
     NEXUS_HdmiInputHandle hdmiInput
     );
 
+/**
+Summary:
+Status returned by NEXUS_HdmiInputModule_GetStatus_priv
+**/
+typedef struct NEXUS_HdmiInputModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core;
+    } power;
+} NEXUS_HdmiInputModuleStatus;
 #ifdef __cplusplus
 }
 #endif

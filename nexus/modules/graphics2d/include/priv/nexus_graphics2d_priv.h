@@ -39,8 +39,8 @@
  *
  **************************************************************************/
 
-#ifndef NEXUS_GRAPHICS2D_STANDBY_H__
-#define NEXUS_GRAPHICS2D_STANDBY_H__
+#ifndef NEXUS_GRAPHICS2D_PRIV_H__
+#define NEXUS_GRAPHICS2D_PRIV_H__
 
 #include "nexus_types.h"
 #include "priv/nexus_core.h"
@@ -53,6 +53,7 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Graphics2D);
 
 bool NEXUS_Graphics2D_MipmapModeSupported_isrsafe(void);
 
+NEXUS_Error NEXUS_Graphics2DModule_GetStatus_priv(NEXUS_Graphics2DModuleStatus *pStatus);
 #ifdef __cplusplus
 }
 #endif

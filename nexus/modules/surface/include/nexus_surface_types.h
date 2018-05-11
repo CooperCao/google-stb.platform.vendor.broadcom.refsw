@@ -116,10 +116,10 @@ typedef struct NEXUS_SurfaceCreateSettings
 
     unsigned int pitch;        /* optional buffer pitch, measured in bytes. 0 is the default pitch (width * sizeof(pixel)). */
 
-    void *pMemory;             /* attr{memory=cached} Device memory address to use for the surface. Must be allocated using NEXUS_Memory_Allocate().
+    void *pMemory;             /* attr{memory=cached;null_allowed=y} Device memory address to use for the surface. Must be allocated using NEXUS_Memory_Allocate().
                                   If NULL, Nexus will allocate.
                                   Size of user allocated buffer must be >= height * pitch, where pitch >= width * sizeof(pixel); otherwise there will be a memory overrun. */
-    void *pPaletteMemory;      /* attr{memory=cached} Device memory address to use for the palette. Must be allocated using NEXUS_Memory_Allocate().
+    void *pPaletteMemory;      /* attr{memory=cached;null_allowed=y} Device memory address to use for the palette. Must be allocated using NEXUS_Memory_Allocate().
                                   If NULL, Nexus will allocate.
                                   Size of user allocated buffer must be >= sizeof(NEXUS_Pixel) * expected NEXUS_SurfaceMemory.numPaletteEntries; otherwise there will be a memory overrun.
                                   Palette memory must be 32 byte aligned. */

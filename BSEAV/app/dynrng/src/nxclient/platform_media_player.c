@@ -50,14 +50,17 @@
 
 BDBG_MODULE(platform_media_player);
 
-PlatformMediaPlayerContext gPlayerContext =
+static bool gPlayerContextInitialized = false;
+static PlatformMediaPlayerContext gPlayerContext;
+static void platform_media_player_p_init_context(void)
 {
-    { 0, 0, 0, 0 },
-    0,
-    0,
-    { false, { 0, 0 }, { false }, NEXUS_VideoFormat_eUnknown, 0, 0, 0, { 0 } },
-    0
-};
+    if (!gPlayerContextInitialized)
+    {
+        BKNI_Memset(&gPlayerContext, 0, sizeof(gPlayerContext));
+        media_player_get_default_create_settings(&gPlayerContext.nxCreateSettings);
+        gPlayerContextInitialized = true;
+    }
+}
 
 const int PLATFORM_TRICK_RATE_1X = NEXUS_NORMAL_DECODE_RATE;
 
@@ -84,6 +87,8 @@ PlatformMediaPlayerHandle platform_media_player_create(PlatformHandle platform, 
 
     BDBG_ASSERT(platform);
     BDBG_ASSERT(platform->gfx);
+
+    platform_media_player_p_init_context();
 
     maxStreamCount = platform_get_max_stream_count(platform);
 

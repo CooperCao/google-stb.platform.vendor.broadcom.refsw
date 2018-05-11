@@ -832,9 +832,12 @@ NEXUS_VideoOutput_P_SetDac(NEXUS_VideoOutput_P_Link *link, NEXUS_DisplayHandle d
             /* unwind so that the function is transactional */
             for (j=0;j<i;j++) {
                 (void)BVDC_Display_SetDacConfiguration(display->displayVdc, nexus_videooutput_p_convertdac(link->dac[j].dac), BVDC_DacOutput_eUnused);
+                g_NEXUS_DisplayModule_State.dacOn[link->dac[j].dac - NEXUS_VideoDac_e0] = false;
             }
             return BERR_TRACE(rc);
         }
+        g_NEXUS_DisplayModule_State.dacOn[link->dac[i].dac - NEXUS_VideoDac_e0] = connect;
+
     }
     link->dacsConnected = connect;
     return NEXUS_SUCCESS;

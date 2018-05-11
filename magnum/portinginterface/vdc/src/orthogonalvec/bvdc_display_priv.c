@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -2392,7 +2396,7 @@ void BVDC_P_Vec_BuildVsync_isr
 
         if (pCurInfo->stCallbackSettings.stMask.bHdrInfoFrame)
         {
-            if(BVDC_P_Display_GetInfoFrame_isr(hDisplay, &pCbData->stInfoFrame.Type1))
+            if(BVDC_P_Display_GetStaticHdrMetadata_isr(hDisplay, &pCbData->stStaticHdrMetadata))
             {
                 pCbData->stMask.bHdrInfoFrame = 1;
             }
@@ -2888,22 +2892,22 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
     return BERR_SUCCESS;
 }
 
-/* get output hdr10 info frame
+/* get output hdr10 static metadata
  */
-bool BVDC_P_Display_GetInfoFrame_isr(
+bool BVDC_P_Display_GetStaticHdrMetadata_isr(
     BVDC_Display_Handle           hDisplay,
-    BAVC_HDMI_DRMInfoFrameType1  *pInfoFrame)
+    BAVC_StaticHdrMetadata  *pStaticMetadata)
 {
     BVDC_Compositor_Handle hCompositor = hDisplay->hCompositor;
-    BDBG_ASSERT(pInfoFrame);
+    BDBG_ASSERT(pStaticMetadata);
     if(!hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled &&
        hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf == BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084)
     {
-        if(hCompositor->bUnknownHdrParm)
+        if(hCompositor->bUnknownHdrMetadata)
         {
-            if(BKNI_Memcmp_isr(pInfoFrame, &hCompositor->stHdrParm, sizeof(BAVC_HDMI_DRMInfoFrameType1)))
+            if(BKNI_Memcmp_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata)))
             {
-                BKNI_Memset_isr(pInfoFrame, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+                BKNI_Memset_isr(pStaticMetadata, 0, sizeof(*pStaticMetadata));
                 return true;
             }
             else
@@ -2914,21 +2918,21 @@ bool BVDC_P_Display_GetInfoFrame_isr(
 #if BVDC_P_DBV_SUPPORT
         else if(hCompositor->pstDbv && hCompositor->pstDbv->pstCtrlResults && hCompositor->pstDbv->metadataPresent)
         {
-            return BVDC_P_Display_DbvGetInfoFrame_isr(hDisplay, pInfoFrame);
+            return BVDC_P_Display_DbvGetStaticHdrMetadata_isr(hDisplay, pStaticMetadata);
         }
 #endif
         else /* hdr10 in -> hdr10 out pass through */
         {
-            if(BKNI_Memcmp_isr(pInfoFrame, &hCompositor->stHdrParm, sizeof(BAVC_HDMI_DRMInfoFrameType1)))
+            if(BKNI_Memcmp_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata)))
             {
-                BKNI_Memcpy_isr(pInfoFrame, &hCompositor->stHdrParm, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+                BKNI_Memcpy_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata));
                 return true;
             }
         }
     }
     else
     {
-        BKNI_Memset_isr(pInfoFrame, 0, sizeof(BAVC_HDMI_DRMInfoFrameType1));
+        BKNI_Memset_isr(pStaticMetadata, 0, sizeof(*pStaticMetadata));
     }
     return false;
 }

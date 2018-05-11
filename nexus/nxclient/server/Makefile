@@ -159,7 +159,8 @@ NXSERVERLIB_SRCS := \
     nxclient_local.c \
     nxclient_common.c \
     $(notdir $(NXCLIENT_SOCKET_INTF)) \
-    namevalue.c
+    namevalue.c \
+	thermal_config.c
 
 ifneq ($(NXSERVER_CUSTOM_HOOK),)
 CFLAGS += -DNXSERVER_CUSTOM_HOOK=1

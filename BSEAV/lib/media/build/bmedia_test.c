@@ -168,7 +168,7 @@ b_media_alloc(b_media_feed_state *state, size_t size)
 		if(state->status.alloc_size_peak < state->status.alloc_size) {
 			state->status.alloc_size_peak = state->status.alloc_size;
 		}
-        BDBG_MSG(("b_media_alloc %p %u", (void *)block, size));
+        BDBG_MSG(("b_media_alloc %p %u", (void *)block, (unsigned)size));
 	}
 	return block;
 }
@@ -289,7 +289,7 @@ media_test_stream_error(void *cntx)
 static void
 b_media_player_error(void *cntx)
 {
-    BDBG_WRN(("b_media_player_error: %#p", (void *)cntx));
+    BDBG_WRN(("b_media_player_error: %p", (void *)cntx));
     return;
 }
 
@@ -312,13 +312,13 @@ b_test_slow_read(bfile_io_read_t fd, void *buf, size_t length)
         f->count ++;
 
         if(f->count > f->delay_factor) {
-            BDBG_WRN(("slow_read: %u:%u -> NO DATA", (unsigned)f->off, length));
+            BDBG_WRN(("slow_read: %u:%u -> NO DATA", (unsigned)f->off, (unsigned)length));
             f->count = 0;
             return BFILE_ERROR_NO_DATA;
         }
         if(f->count == f->delay_factor/2) {
             if(length>1) {
-                BDBG_WRN(("slow_read: %u:%u -> %u", (unsigned)f->off, length, length/2));
+                BDBG_WRN(("slow_read: %u:%u -> %u", (unsigned)f->off, (unsigned)length, (unsigned)length/2));
                 length/=2;
             }
         }
@@ -327,7 +327,7 @@ b_test_slow_read(bfile_io_read_t fd, void *buf, size_t length)
     if(result>0) {
         f->bytes_read += result;
     }
-    BDBG_WRN(("read:%s: %u:%u -> %u", f->delay_factor?"data":"index",(unsigned)f->off, length, result));
+    BDBG_WRN(("read:%s: %u:%u -> %d", f->delay_factor?"data":"index",(unsigned)f->off, (unsigned)length, (int)result));
     /* breakpoint(); */
     return result;
 }
@@ -378,6 +378,7 @@ b_media_player_type2str(bmedia_player_entry_type type)
     case bmedia_player_entry_type_no_data: return "no-data";
     case bmedia_player_entry_type_error: return "error";
     case bmedia_player_entry_type_end_of_stream: return "end-of-stream";
+    case bmedia_player_entry_type_sleep_10msec: return "sleep";
     }
     return NULL;
 }
@@ -580,7 +581,7 @@ media_feed(batom_factory_t factory, FILE *fin_data, FILE *fout, bfile_io_read_t 
                 BDBG_MSG(("Player: File Error"));
 				break;
 			}
-            BDBG_MSG(("entry: %u[%s] %u[%s] %u(%lld:%u) %#lx %#lx", entry.type, b_media_player_type2str(entry.type), entry.content, b_media_player_content2str(entry.content), entry.timestamp, entry.start, entry.length, (unsigned long)entry.atom, (unsigned long)entry.embedded));
+            BDBG_MSG(("entry: %u[%s] %u[%s] %u(%lld:%u) %#lx %#lx", entry.type, b_media_player_type2str(entry.type), entry.content, b_media_player_content2str(entry.content), (unsigned)entry.timestamp, (long long)entry.start, (unsigned)entry.length, (unsigned long)entry.atom, (unsigned long)entry.embedded));
 			if(entry.type == bmedia_player_entry_type_async) {
 				bfile_async_process();
 			} else if(entry.type == bmedia_player_entry_type_noop) {
@@ -597,7 +598,7 @@ media_feed(batom_factory_t factory, FILE *fin_data, FILE *fout, bfile_io_read_t 
 
 				rc = fseek(fin_data, entry.start, SEEK_SET);
 				BDBG_ASSERT(rc==0);
-				BDBG_MSG(("seek %#llu size %u",  entry.start, entry.length));
+				BDBG_MSG(("seek %llu size %u",  (long long)entry.start, (unsigned)entry.length));
 				rc = bmedia_filter_seek(state.filter, entry.start);
 				BDBG_ASSERT(rc==0);
                 if(entry.entry) {
@@ -636,12 +637,12 @@ media_feed(batom_factory_t factory, FILE *fin_data, FILE *fout, bfile_io_read_t 
                 bool pes=false;
 	            bool result;
 				result = bmedia_filter_feed(state.filter, state.pipe_media);
-				BDBG_MSG(("feed %u alloc: %u:%u %u (%u:%u)", result, state.status.free_cnt, state.status.alloc_cnt, state.status.alloc_size, state.status.alloc_size_peak, state.status.size));
+				BDBG_MSG(("feed %u alloc: %u:%u %u (%u:%u)", result, (unsigned)state.status.free_cnt, (unsigned)state.status.alloc_cnt, (unsigned)state.status.alloc_size, (unsigned)state.status.alloc_size_peak, (unsigned)state.status.size));
 				while(NULL!=(atom=batom_pipe_pop(pipe_pes))) {
 					batom_cursor cursor;
 					unsigned i;
 
-					BDBG_MSG(("pes %u", batom_len(atom)));
+					BDBG_MSG(("pes %u", (unsigned)batom_len(atom)));
 					batom_cursor_from_atom(&cursor, atom);
 					for(i=0;i<cursor.count;i++) {
                         pes_bytes += cursor.vec[i].len;
@@ -658,9 +659,9 @@ media_feed(batom_factory_t factory, FILE *fin_data, FILE *fout, bfile_io_read_t 
                 }
 			} 
 			if(state.status.alloc_size >= cfg->fifo_size) {
-				BDBG_WRN(("Flushing FIFO at %u:%u", state.status.alloc_size, cfg->fifo_size));
+				BDBG_WRN(("Flushing FIFO at %u:%u", (unsigned)state.status.alloc_size, (unsigned)cfg->fifo_size));
 				bmedia_filter_clear(state.filter);
-				BDBG_WRN(("After FIFO flush %u", state.status.alloc_size));
+				BDBG_WRN(("After FIFO flush %u", (unsigned)state.status.alloc_size));
 			}
 			if(cfg->step) { getchar(); }
 		}
@@ -723,7 +724,7 @@ no_player:
                 continue;
             }
         }
-		BDBG_MSG(("push %#lx", atom));
+        BDBG_MSG(("push %p", (void *)atom));
         if(atom) {
 		    batom_pipe_push(state.pipe_media, atom);
         }
@@ -731,12 +732,12 @@ no_player:
 	        bool result;
             pes=false;
             result = bmedia_filter_feed(state.filter, state.pipe_media);
-		    BDBG_MSG(("feed %u alloc: %u:%u %u (%u:%u)", result, state.status.free_cnt, state.status.alloc_cnt, state.status.alloc_size, state.status.alloc_size_peak, state.status.size));
+		    BDBG_MSG(("feed %u alloc: %u:%u %u (%u:%u)", result, (unsigned)state.status.free_cnt, (unsigned)state.status.alloc_cnt, (unsigned)state.status.alloc_size, (unsigned)state.status.alloc_size_peak, (unsigned)state.status.size));
 			while(NULL!=(atom=batom_pipe_pop(pipe_pes))) {
 				batom_cursor cursor;
 				unsigned i;
 
-				BDBG_MSG(("pes %u", batom_len(atom)));
+				BDBG_MSG(("pes %u", (unsigned)batom_len(atom)));
 				batom_cursor_from_atom(&cursor, atom);
 				for(i=0;i<cursor.count;i++) {
                     pes_bytes += cursor.vec[i].len;
@@ -762,9 +763,9 @@ no_player:
             }
 		} 
 		if(state.status.alloc_size >= cfg->fifo_size) {
-			BDBG_WRN(("Flushing FIFO at %u:%u", state.status.alloc_size, cfg->fifo_size));
+			BDBG_WRN(("Flushing FIFO at %u:%u", (unsigned)state.status.alloc_size, (unsigned)cfg->fifo_size));
 			bmedia_filter_clear(state.filter);
-            BDBG_WRN(("After FIFO flush %u", state.status.alloc_size));
+            BDBG_WRN(("After FIFO flush %u", (unsigned)state.status.alloc_size));
 		}
 		if(cfg->step) { getchar(); }
         if(endoffile) {
@@ -1196,7 +1197,7 @@ next:
                 fclose(fin_index);
             }
         }
-		BDBG_WRN(("alloc_cnt: %u free_cnt: %u alloc_size: %u(%u:%u)", status.alloc_cnt, status.free_cnt, status.alloc_size, status.alloc_size_peak, status.size));
+        BDBG_WRN(("alloc_cnt: %u free_cnt: %u alloc_size: %u(%u:%u)", (unsigned)status.alloc_cnt, (unsigned)status.free_cnt, (unsigned)status.alloc_size, (unsigned)status.alloc_size_peak, (unsigned)status.size));
 	}
 
 

@@ -1902,7 +1902,7 @@ static NEXUS_Error NEXUS_SimpleEncoder_P_ScanAuxPid(NEXUS_SimpleEncoderHandle ha
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     for (i=0;i<pSystemDataBuffer->size;i+=188) {
-        const uint8_t *ptr = pSystemDataBuffer->pData;
+        const uint8_t *ptr = &((uint8_t*)(pSystemDataBuffer->pData))[i];
         unsigned pid = ((ptr[1]&0x1f) << 8) | ptr[2];
         if (pid != lastpid) {
             NEXUS_SimpleEncoder_P_AddAuxPid(handle, pid);

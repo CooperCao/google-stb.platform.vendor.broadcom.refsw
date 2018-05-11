@@ -112,9 +112,6 @@
 #endif
 #include "nexus_audio_crc.h"
 #include "nexus_audio_processor.h"
-#if NEXUS_HAS_SAGE
-#include "priv/nexus_sage_audio.h"
-#endif
 #include "blst_queue.h"
 
 /***************************************************************************
@@ -201,6 +198,9 @@ typedef struct NEXUS_AudioDecoder
     NEXUS_AudioDecoderOpenSettings openSettings;
     NEXUS_AudioDecoderSettings settings;
     NEXUS_AudioDecoderStartSettings programSettings;
+    NEXUS_AudioDecoderSpliceSettings spliceSettings;
+    NEXUS_AudioDecoderSpliceStatus spliceStatus;
+    bool spliceFlowStopped;         /* Was SpliceFlowStop function called? */
     bool started;                   /* Has the channel been started by the app? */
     bool running;                   /* Is the channel actually active? (enabled && started) */
     bool trickMute;                 /* decoder muted (while running) by request from the trick modes operations (Keep this unconditional for sake of simplicity) */
@@ -225,6 +225,7 @@ typedef struct NEXUS_AudioDecoder
     NEXUS_EventCallbackHandle sampleRateCallback;
     NEXUS_EventCallbackHandle channelChangeReportEventHandler;
     NEXUS_EventCallbackHandle inputFormatChangeEventHandler;
+    NEXUS_IsrCallbackHandle spliceCallback;
     NEXUS_IsrCallbackHandle lockCallback;
     NEXUS_IsrCallbackHandle firstPtsCallback;
     NEXUS_IsrCallbackHandle ptsErrorCallback;

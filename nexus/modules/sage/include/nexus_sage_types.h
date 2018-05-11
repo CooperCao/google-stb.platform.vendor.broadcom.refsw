@@ -80,8 +80,6 @@ typedef enum SAGE_IMAGE_FirmwareID
     SAGE_IMAGE_FirmwareID_eSage_TA_BP3_Development,        /* Development (ZS) chip compatible BP3 TA */
     SAGE_IMAGE_FirmwareID_eSage_TA_BP3,                    /* Production (ZB or customer specific) chip compatible BP3 TA */
     SAGE_IMAGE_FirmwareID_eSage_BP3_BIN,                   /* BP3.bin */
-    SAGE_IMAGE_FirmwareID_eSage_TA_SARM_Development,       /* Development (ZS) chip compatible SARM TA */
-    SAGE_IMAGE_FirmwareID_eSage_TA_SARM,                   /* Production (ZB or customer specific) chip compatible SARM TA */
     SAGE_IMAGE_FirmwareID_eSage_TA_SECURE_LOG_Development, /* Development (ZS) chip compatible Secure_log TA */
     SAGE_IMAGE_FirmwareID_eSage_TA_SECURE_LOG,             /* Production (ZB or customer specific) chip compatible Secure_log TA */
     SAGE_IMAGE_FirmwareID_eSage_SECURE_LOG_Certificate,    /* certificate used to enable logging in Secure_log TA */

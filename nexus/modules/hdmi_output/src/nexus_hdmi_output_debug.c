@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "nexus_hdmi_output_module.h"
@@ -551,7 +555,7 @@ void NEXUS_HdmiOutputModule_Print(void)
         }
         else
         {
-	        BDBG_LOG(("no device attached")) ;
+            BDBG_LOG(("no device attached")) ;
         }
 
         BDBG_LOG(("  Total RxSense Changes:   %d",
@@ -690,7 +694,7 @@ void NEXUS_HdmiOutputModule_Print(void)
                 {
                     strOffset += BKNI_Snprintf(pchOutputString+strOffset,
                         sizeof (pchOutputString) - strOffset, "<Dolby Vision>") ;
-					BDBG_LOG(("%s", pchOutputString)) ;
+                    BDBG_LOG(("%s", pchOutputString)) ;
                 }
                 /* Output Dynamic Range */
                 else
@@ -705,20 +709,20 @@ void NEXUS_HdmiOutputModule_Print(void)
                     BDBG_LOG(("%s", pchOutputString)) ;
 
                     BDBG_LOG(("   Output Cll: Max=%d Average=%d",
-                        dynamicRangeMetadataInfoFrame.Type1.MaxContentLightLevel,
-                        dynamicRangeMetadataInfoFrame.Type1.MaxFrameAverageLightLevel)) ;
+                        dynamicRangeMetadataInfoFrame.stType1.stContentLightLevel.ulMax,
+                        dynamicRangeMetadataInfoFrame.stType1.stContentLightLevel.ulMaxFrameAvg)) ;
 
                     BDBG_LOG(("   Output Mdvc: Red=%d,%d, Green=%d,%d, Blue=%d,%d, White=%d,%d, Luminance(max)=%d, Luminance(min)=%d",
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[0].X,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[0].Y,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[1].X,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[1].Y,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[2].X,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayPrimaries[2].Y,
-                        dynamicRangeMetadataInfoFrame.Type1.WhitePoint.X,
-                        dynamicRangeMetadataInfoFrame.Type1.WhitePoint.Y,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayMasteringLuminance.Max,
-                        dynamicRangeMetadataInfoFrame.Type1.DisplayMasteringLuminance.Min)) ;
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stRed.ulX,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stRed.ulY,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stGreen.ulX,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stGreen.ulY,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stBlue.ulX,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stBlue.ulY,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stWhitePoint.ulX,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stColorVolume.stWhitePoint.ulY,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stLuminance.uiMax,
+                        dynamicRangeMetadataInfoFrame.stType1.stMasteringDisplayColorVolume.stLuminance.uiMin)) ;
                 }
             }
         }

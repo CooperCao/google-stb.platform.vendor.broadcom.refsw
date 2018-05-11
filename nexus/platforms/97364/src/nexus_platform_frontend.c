@@ -69,15 +69,20 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
     NEXUS_FrontendDeviceCapabilities capabilities;
     NEXUS_FrontendChannelSettings channelSettings;
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
     unsigned i=0;
     bool enableSatellite = true;
 
-    rc = NEXUS_Platform_GetStatus(&platformStatus);
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    rc = NEXUS_Platform_GetStatus(platformStatus);
     if (rc) goto done;
-    if (platformStatus.boardId.major == 4 /* 97364T2SFF */) {
+    if (platformStatus->boardId.major == 4 /* 97364T2SFF */) {
         enableSatellite = false;
     }
+    BKNI_Free(platformStatus);
 
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceOpenSettings);
 

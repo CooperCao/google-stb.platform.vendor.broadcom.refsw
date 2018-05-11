@@ -101,7 +101,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
+    NEXUS_Error rc = NEXUS_SUCCESS;
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
@@ -109,9 +110,13 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     const char *mode = "32 bit compatibility";
 #endif
 
-    NEXUS_Platform_GetStatus(&platformStatus);
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
 
-    switch (platformStatus.boardId.major)
+    switch (platformStatus->boardId.major)
     {
         case 1:
             board = "SV";
@@ -133,30 +138,34 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     BDBG_WRN(("Initialising %s platform in %s mode", board, mode));
 
     /* Check the selected box mode is compatible with the chip type. */
-    switch (platformStatus.chipId) {
+    switch (platformStatus->chipId) {
         case 0x72604:
         case 0x72518:
             /* 72604 supports all box modes */
             break;
         case 0x72603:
         {
-            if (platformStatus.boxMode > 3 ) {
-                BDBG_ERR(("Only box modes 1 - 3 are supported on %x",platformStatus.chipId));
-                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            if (platformStatus->boxMode > 3 ) {
+                BDBG_ERR(("Only box modes 1 - 3 are supported on %x",platformStatus->chipId));
+                rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                goto err;
             }
             break;
         }
         case 0x72600:
         default:
         {
-            if (platformStatus.boxMode > 2 ) {
-                BDBG_ERR(("Only box modes 1 & 2 are supported on %x",platformStatus.chipId));
-                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            if (platformStatus->boxMode > 2 ) {
+                BDBG_ERR(("Only box modes 1 & 2 are supported on %x",platformStatus->chipId));
+                rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                goto err;
             }
         }
     }
 
-    return NEXUS_SUCCESS;
+err:
+    BKNI_Free(platformStatus);
+    return rc;
 }
 
 void NEXUS_Platform_P_UninitBoard(void)

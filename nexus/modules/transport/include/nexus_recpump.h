@@ -93,7 +93,7 @@ typedef struct NEXUS_RecpumpOpenFlowSettings
 {
     NEXUS_HeapHandle heap; /* Optional heap for fifo allocation. If server has memory mapping, it will flush before GetBuffer; if no mapping,
                               client app is responsible to flush after GetBuffer. */
-    void *buffer;          /* attr{memory=cached} optional user-allocated buffer */
+    void *buffer;          /* attr{memory=cached;null_allowed=y} optional user-allocated buffer */
     size_t bufferSize;     /* Size of record buffer that recpump will allocate or that buffer points to, in bytes. */
     unsigned alignment;    /* Alignment of record buffer that recpump will allocate, in powers of 2 (i.e. 4 would be 2^4, or 16 byte aligned).
                               Default is 12, which is 4K alignment. */

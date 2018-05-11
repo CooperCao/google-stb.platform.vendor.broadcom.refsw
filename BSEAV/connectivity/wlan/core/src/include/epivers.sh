@@ -221,7 +221,7 @@ else # epivers.h doesn't exist
 	fi
 
     # Important to update/commit EXTERNAL_TAG before an external release. Internally git will find tags.
-	EXTERNAL_TAG="STB7271_REL_15_30_19"
+	EXTERNAL_TAG="STB7271_REL_15_30_20"
 	external_build=0
 	# Finally get version control revision number of <SRCBASE> (if any)
 	#vc_version_num=$($SVNCMD info ${SRCBASE} 2> $NULL | awk -F': ' '/^Last Changed Rev: /{printf "%s", $2}')

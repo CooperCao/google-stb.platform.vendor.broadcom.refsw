@@ -314,8 +314,17 @@ b_avi_read_stdindex(bavi_player_t player, b_avi_player_stream *stream)
 	ssize_t len;
 	batom_vec vec;
 	uint8_t buf[2/*wLongsPerEntry*/ + 1/* bIndexSubType */ + 1/* bIndexType */ + 4/* nEntriesInUse */ + 4/* dwChunkId */ + 8/* qwBaseOffset */];
+    off_t seek_rc;
+    off_t seek_target;
 
-	fd->seek(fd, stream->superindex.avi_superindex_entry[stream->cur_superindex_entry].qwOffset + 8, SEEK_SET);
+    if(stream->cur_superindex_entry < 0 || (unsigned)stream->cur_superindex_entry >= stream->superindex.nEntriesInUse) {
+        return BERR_TRACE(-1);
+    }
+    seek_target = stream->superindex.avi_superindex_entry[stream->cur_superindex_entry].qwOffset + 8;
+    seek_rc = fd->seek(fd, seek_target, SEEK_SET);
+    if(seek_rc!=seek_target) {
+        return BERR_TRACE(-1);
+    }
 	len = fd->read(fd, buf, sizeof(buf));
 	if(len!=sizeof(buf)) {
 		return BERR_TRACE(-1);
@@ -1055,8 +1064,13 @@ b_avi_load_next_riff_info(bavi_player_t player)
 
 	/* Check if we really reached the end of riff. Some AVI 2.0 files may have AVI 1.0 index after movi chunk */
 	if(BMEDIA_FOURCC(player->embedded_data[0], player->embedded_data[1], player->embedded_data[2], player->embedded_data[3]) == BMEDIA_FOURCC('i', 'd', 'x', '1')){
+        off_t seek_target = B_MEDIA_LOAD_UINT32_LE(player->embedded_data,4) - 16;
+        off_t seek_rc;
 		player->last_read_data_offset += B_MEDIA_LOAD_UINT32_LE(player->embedded_data,4) + 8;
-		player->fd->seek(player->fd, B_MEDIA_LOAD_UINT32_LE(player->embedded_data,4) - 16, SEEK_CUR);
+        seek_rc = player->fd->seek(player->fd, seek_target, SEEK_CUR);
+        if(seek_rc != seek_target) {
+            return BERR_TRACE(-1);
+        }
 		if(player->fd->read(player->fd, player->embedded_data, B_AVIX_HEADER_SIZE)!= B_AVIX_HEADER_SIZE){
 			return BERR_TRACE(-1);
 		}

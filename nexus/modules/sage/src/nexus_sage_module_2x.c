@@ -42,7 +42,6 @@
 #include "priv/nexus_sage_priv.h"
 #include "bhsm.h"
 #include "nexus_sage_image.h"
-#include "priv/nexus_sage_audio.h"
 #include "nexus_security_client.h"
 #include "bsagelib_boot.h"
 #include "bkni.h"
@@ -561,7 +560,7 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
     g_sage_module.restricted1Offset=(uint32_t)offset;
     if(g_sage_module.restricted1Offset!=offset)
     {
-        BDBG_ERR(("%s: SRR offset overflow", __FUNCTION__));
+        BDBG_ERR(("%s: SRR offset overflow", BSTD_FUNCTION));
         rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
@@ -574,7 +573,7 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
     g_sage_module.restricted2Offset=(uint32_t)offset;
     if(g_sage_module.restricted2Offset!=offset)
     {
-        BDBG_ERR(("%s: CRR offset overflow", __FUNCTION__));
+        BDBG_ERR(("%s: CRR offset overflow", BSTD_FUNCTION));
         rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
@@ -640,7 +639,6 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     BDBG_ASSERT(pInternalSettings);
 
     BKNI_Memset(&g_NEXUS_sageModule, 0, sizeof(g_NEXUS_sageModule));
-    g_NEXUS_sageModule.reset = 1;
 
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
@@ -673,7 +671,7 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     g_sage_module.generalHeapOffset=(uint32_t)offset;
     if(g_sage_module.generalHeapOffset!=offset)
     {
-        BDBG_ERR(("%s: General heap offset overflow", __FUNCTION__));
+        BDBG_ERR(("%s: General heap offset overflow", BSTD_FUNCTION));
         rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
@@ -729,7 +727,7 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
         g_sage_module.settings.clientHeapIndex=(uint32_t)offset;
         if(g_sage_module.settings.clientHeapIndex!=offset)
         {
-            BDBG_ERR(("%s: Client heap offset overflow", __FUNCTION__));
+            BDBG_ERR(("%s: Client heap offset overflow", BSTD_FUNCTION));
             rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
             goto err;
         }
@@ -880,8 +878,6 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     }
 
     /* success */
-    g_NEXUS_sageModule.reset = 0;
-
     /* end of init is deferred in first NEXUS_Sage_Open() call */
 
 err:
@@ -1429,8 +1425,8 @@ error:
 
 NEXUS_Error NEXUS_Sage_SecureLog_Attach(uint32_t TA_Id)
 {
-    NEXUS_Error     rc = NEXUS_SUCCESS;
-    return rc;
+    BSTD_UNUSED(TA_Id);
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_Sage_SecureLog_Detach(uint32_t TA_Id)
@@ -1443,8 +1439,13 @@ NEXUS_Error NEXUS_Sage_SecureLog_GetBuffer(void *pSecureLogBuffCtx,uint32_t logB
                         uint32_t logBufferSize,
                         NEXUS_Sage_SecureLog_BufferId bufferId)
 {
-    NEXUS_Error     rc = NEXUS_SUCCESS;
-    return rc;
+    BSTD_UNUSED(pSecureLogBuffCtx);
+    BSTD_UNUSED(logBuffCtxSize);
+    BSTD_UNUSED(pLogBufferAddr);
+    BSTD_UNUSED(logBufferSize);
+    BSTD_UNUSED(bufferId);
+
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error NEXUS_Sage_SecureLog_StartCaptureOK()
@@ -1456,52 +1457,4 @@ NEXUS_Error NEXUS_Sage_SecureLog_StartCaptureOK()
 void NEXUS_Sage_P_SecureLog_Uninit()
 {
     return;
-}
-
-void NEXUS_SageAudio_GetDefaultOpenSettings_priv(
-    NEXUS_SageAudioOpenSettings *pSettings /* out */
-    )
-{
-    BSTD_UNUSED ( pSettings );
-}
-
-NEXUS_SageAudioHandle NEXUS_SageAudio_Open_priv(
-    const NEXUS_SageAudioOpenSettings *pSettings /* Pass NULL for default settings */
-    )
-{
-    return NULL;
-}
-
-void NEXUS_SageAudio_Close_priv(
-    NEXUS_SageAudioHandle hSageAudio
-    )
-{
-    BSTD_UNUSED ( hSageAudio );
-}
-
-void NEXUS_SageAudio_GetDefaultStartSettings_priv(
-    NEXUS_SageAudioStartSettings *pSettings /* out */
-    )
-{
-    BSTD_UNUSED ( pSettings );
-}
-
-NEXUS_Error NEXUS_SageAudio_Start_priv(NEXUS_SageAudioHandle               hSageAudio,
-                                       const NEXUS_SageAudioStartSettings* pSettings)
-{
-    NEXUS_Error     rc = NEXUS_SUCCESS;
-    return rc;
-}
-
-NEXUS_Error NEXUS_SageAudio_Stop_priv(NEXUS_SageAudioHandle hSageAudio)
-{
-    NEXUS_Error     rc = NEXUS_SUCCESS;
-    return rc;
-}
-
-NEXUS_Error NEXUS_SageAudio_GetStatus_priv(NEXUS_SageAudioHandle  hSageAudio,
-                                           NEXUS_SageAudioStatus* sageAudioStatus)
-{
-    NEXUS_Error     rc = NEXUS_SUCCESS;
-    return rc;
 }

@@ -84,10 +84,16 @@ typedef unsigned NEXUS_AudioDecoderMixingMode;
 typedef unsigned NEXUS_AudioDecoderStatus;
 typedef unsigned NEXUS_AudioDecoderTrickState;
 typedef unsigned NEXUS_AudioDecoderStartSettings;
+typedef unsigned NEXUS_AudioModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_GRAPHICS2D
 typedef unsigned NEXUS_Graphics2DModuleSettings;
+typedef unsigned NEXUS_Graphics2DModuleStatus;
+#endif
+
+#ifndef NEXUS_HAS_GRAPHICSV3D
+typedef unsigned NEXUS_Graphicsv3dModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_SAGE
@@ -96,12 +102,14 @@ typedef unsigned NEXUS_SageModuleSettings;
 
 #ifndef NEXUS_HAS_TRANSPORT
 typedef unsigned NEXUS_TransportModuleSettings;
+typedef unsigned NEXUS_TransportModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_VIDEO_ENCODER
 typedef void *NEXUS_VideoEncoderHandle;
 typedef unsigned NEXUS_VideoEncoderMemory;
 typedef unsigned NEXUS_VideoEncoderModuleSettings;
+typedef unsigned NEXUS_VideoEncoderModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_STREAM_MUX
@@ -112,10 +120,12 @@ typedef unsigned NEXUS_StreamMuxSystemData;
 #ifndef NEXUS_HAS_VIDEO_DECODER
 typedef unsigned NEXUS_VideoDecoderModuleSettings;
 typedef unsigned NEXUS_VideoDecoderMemory;
+typedef unsigned NEXUS_VideoDecoderModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_SMARTCARD
 typedef unsigned NEXUS_SmartcardModuleSettings;
+typedef unsigned NEXUS_SmartcardModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_SECURITY
@@ -128,6 +138,7 @@ typedef unsigned NEXUS_PwmModuleSettings;
 
 #ifndef  NEXUS_HAS_RFM
 typedef void *NEXUS_RfmHandle;
+typedef unsigned NEXUS_RfmModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_HDMI_DVO
@@ -143,10 +154,12 @@ typedef unsigned NEXUS_HdmiOutputCrcData;
 typedef unsigned NEXUS_HdmiOutputDolbyVisionMode;
 typedef unsigned NEXUS_HdmiOutputDolbyVisionPriorityMode;
 typedef unsigned NEXUS_HdmiOutputHdcpError;
+typedef unsigned NEXUS_HdmiOutputModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_HDMI_INPUT
 typedef void *NEXUS_HdmiInputHandle;
+typedef unsigned NEXUS_HdmiInputModuleStatus;
 #endif
 
 #ifndef NEXUS_HAS_CEC
@@ -173,6 +186,9 @@ typedef unsigned NEXUS_GpioType;
 #define NEXUS_GpioType_eAonSpecial 0
 #endif
 
+#ifndef NEXUS_HAS_PICTURE_DECODER
+typedef unsigned NEXUS_PictureDecoderModuleStatus;
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

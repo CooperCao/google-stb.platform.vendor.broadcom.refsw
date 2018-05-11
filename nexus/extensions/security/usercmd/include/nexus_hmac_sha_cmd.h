@@ -164,7 +164,7 @@ typedef struct NEXUS_HMACSHA_OpSettings
 	NEXUS_HMACSHA_KeyInclusion_Op     keyIncMode;/* Append key to source data before sha operation. Sha Only */
 	bool                              byteSwap;  /* Endian Swap the source data. This will add a processing overhead */
     uint32_t                          dataSize;
-    uint8_t                           *dataAddress; /* attr{memory=cached} */
+    uint8_t                           *dataAddress; /* attr{memory=cached;null_allowed=y} */
 	NEXUS_HMACSHA_DataSource          dataSrc;   /* DEPRECATED. Parameter ignored. */
 	uint32_t                          includeKey;/* DEPRECATED. Not used. See keyIncMode */
 

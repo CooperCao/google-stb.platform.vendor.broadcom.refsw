@@ -48,12 +48,16 @@
 
 // Register group enums
 enum {
-    STB_REG_GROUP_HIF_CPUBIUARCH,
-    STB_REG_GROUP_HIF_CPUBIUCTRL,
-    STB_REG_GROUP_HIF_CONTINUATION,
     STB_REG_GROUP_SUN_TOP_CTRL,
+    STB_REG_GROUP_HIF_CONTINUATION,
+    STB_REG_GROUP_HIF_CPUBIUCTRL,
+    STB_REG_GROUP_HIF_CPUBIUARCH,
     STB_REG_GROUP_MEMC_SENTINEL,
     STB_REG_GROUP_MEMC_TRACELOG,
+    STB_REG_GROUP_BSP_CMDBUF,
+    STB_REG_GROUP_SCPU_GLOBALRAM,
+    STB_REG_GROUP_SCPU_HOST_INTR2,
+    STB_REG_GROUP_CPU_IPI_INTR2,
     STB_REG_GROUP_LAST
 };
 
@@ -65,12 +69,16 @@ struct RegGroupEntry {
 };
 
 static struct RegGroupEntry regGroupMap[] = {
-    {"brcm,brcmstb-cpu-biu-arch",           0, 0}, // STB_REG_GROUP_HIF_CPUBIUARCH,
-    {"brcm,brcmstb-cpu-biu-ctrl",           0, 0}, // STB_REG_GROUP_HIF_CPUBIUCTRL,
-    {"brcm,brcmstb-hif-continuation",       0, 0}, // STB_REG_GROUP_HIF_CONTINUATION,
     {"brcm,brcmstb-sun-top-ctrl",           0, 0}, // STB_REG_GROUP_SUN_TOP_CTRL,
+    {"brcm,brcmstb-hif-continuation",       0, 0}, // STB_REG_GROUP_HIF_CONTINUATION,
+    {"brcm,brcmstb-cpu-biu-ctrl",           0, 0}, // STB_REG_GROUP_HIF_CPUBIUCTRL,
+    {"brcm,brcmstb-cpu-biu-arch",           0, 0}, // STB_REG_GROUP_HIF_CPUBIUARCH,
     {"brcm,brcmstb-memc-sentinel",          0, 0}, // STB_REG_GROUP_MEMC_SENTINEL,
     {"brcm,brcmstb-memc-tracelog",          0, 0}, // STB_REG_GROUP_MEMC_TRACELOG,
+    {"brcm,brcmstb-bsp-cmdbuf",             0, 0}, // STB_REG_GROUP_BSP_CMDBUF,
+    {"brcm,brcmstb-scpu-globalram",         0, 0}, // STB_REG_GROUP_SCPU_GLOBALRAM,
+    {"brcm,brcmstb-scpu-host-intr2",        0, 0}, // STB_REG_GROUP_SCPU_HOST_INTR2,
+    {"brcm,brcmstb-cpu-ipi-intr2",          0, 0}, // STB_REG_GROUP_CPU_IPI_INTR2,
     {NULL,                                  0, 0}  // STB_REG_GROUP_LAST
 };
 

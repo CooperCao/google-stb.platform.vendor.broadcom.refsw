@@ -420,6 +420,29 @@ In the math below, the arrays are 0-based.
 
 #endif
 
+#if ((BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_D0) || (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0) || \
+     (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7366 && BCHP_VER<BCHP_VER_B0) || \
+     (BCHP_CHIP==74371 && BCHP_VER<BCHP_VER_B0) )
+/* SW7445-198 */
+#define BXPT_DMA_SEPARATE_MEMC_FOR_DESC 1
+#define BXPT_DMA_LIMIT_TO_SINGLE_CH     1
+#endif
+
+#if BXPT_IS_CORE28NM
+#if BXPT_DMA_HAS_MEMDMA_MCPB
+#if BXPT_DMA_LIMIT_TO_SINGLE_CH
+#define BXPT_NUM_DMA_CHANNELS   1
+#elif defined(BCHP_XPT_WDMA_CH8_REG_START) || defined(BCHP_XPT_MEMDMA_MCPB_CH8_REG_START)
+#define BXPT_NUM_DMA_CHANNELS   (BXPT_NUM_PLAYBACKS-1)
+#else
+#define BXPT_NUM_DMA_CHANNELS   (8-1)
+#endif
+#else /* #if BXPT_DMA_HAS_MEMDMA_MCPB */
+#define BXPT_NUM_DMA_CHANNELS   (BXPT_NUM_PLAYBACKS-1)
+#endif
+#endif /* #if defined(BCHP_XPT_WDMA_CH0_REG_START) */
+
+
 #ifdef __cplusplus
 }
 #endif

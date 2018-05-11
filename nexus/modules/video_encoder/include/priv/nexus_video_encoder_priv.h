@@ -43,6 +43,8 @@
 
 #include "nexus_types.h"
 #include "nexus_video_types.h"
+#include "nexus_video_encoder_output.h"
+#include "nexus_video_encoder.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,6 +78,7 @@ NEXUS_Error NEXUS_VideoEncoder_GetBufferRegisters_priv(
     NEXUS_VideoEncoderRegisters_priv *pRegisters_priv /* [out] */
     );
 
+NEXUS_Error NEXUS_VideoEncoderModule_GetStatus_priv(NEXUS_VideoEncoderModuleStatus *pStatus);
 #ifdef __cplusplus
 }
 #endif

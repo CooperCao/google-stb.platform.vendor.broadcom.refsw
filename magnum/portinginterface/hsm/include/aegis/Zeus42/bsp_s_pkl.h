@@ -38,9 +38,10 @@
  ******************************************************************************/
 
 
+
 #ifndef BSP_S_PKL_H__
 #define BSP_S_PKL_H__
 
-#warning "Header deprecated. inlcude bsp_restricted_pkl_nagra.h instead"
+
 
 #endif

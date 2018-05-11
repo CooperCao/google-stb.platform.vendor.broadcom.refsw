@@ -614,8 +614,11 @@ TzMem::VirtAddr SysCalls::mapStrToKernel(const char *userStr, size_t maxLen, int
             currStr++;
         }
 
-        if (currStr < nextVa)
+        if ((uint8_t *)currStr < nextVa){
+			if(npages < numPages)
+				kernPageTable->releaseAddrRange(currVa + PAGE_SIZE_4K_BYTES, (numPages-npages)*PAGE_SIZE_4K_BYTES);
             break;
+        }
 
         curr += PAGE_SIZE_4K_BYTES;
         currVa += PAGE_SIZE_4K_BYTES;
@@ -673,8 +676,11 @@ TzMem::VirtAddr SysCalls::mapPtrArrayToKernel(const char **userArray, size_t max
             currPtr++;
         }
 
-        if ((uint8_t *)currPtr < nextVa)
+        if ((uint8_t *)currPtr < nextVa){
+			if(npages < numPages)
+				kernPageTable->releaseAddrRange(currVa + PAGE_SIZE_4K_BYTES, (numPages-npages)*PAGE_SIZE_4K_BYTES);
             break;
+        }
 
         curr += PAGE_SIZE_4K_BYTES;
         currVa += PAGE_SIZE_4K_BYTES;

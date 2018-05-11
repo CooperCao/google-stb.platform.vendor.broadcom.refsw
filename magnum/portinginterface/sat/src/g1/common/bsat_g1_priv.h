@@ -704,6 +704,7 @@ BERR_Code BSAT_g1_P_SetAdcSelect(BSAT_ChannelHandle h, uint8_t adcSelect);
 BERR_Code BSAT_g1_P_GetAdcSelect(BSAT_ChannelHandle h, uint8_t *pAdcSelect);
 BERR_Code BSAT_g1_P_FreezeChanAgc_isr(BSAT_ChannelHandle h, bool bFreeze);
 void BSAT_g1_P_LoadAciFilterCoeff_isr(BSAT_ChannelHandle h, const int16_t *pCoeff);
+bool BSAT_g1_P_IsChannelizerOn(BSAT_ChannelHandle h);
 
 #if (!defined(BSAT_EXCLUDE_AFEC) && defined(BSAT_HAS_DVBS2X))
 const uint8_t* BSAT_g1_P_AfecGetPdLut_isr(uint8_t lutMode);

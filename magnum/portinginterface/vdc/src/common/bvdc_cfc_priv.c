@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -78,6 +82,7 @@ BDBG_FILE_MODULE(BVDC_MC_ADJ); /* print matrix C adjustment info */
 /* --------------------------------------------------------------------
  * MB output: XYZ -> LMS
  */
+#if BVDC_P_DBV_SUPPORT
 static const BCFC_Csc3x3 s_MB_OUT_XYZ_to_LMS = BCFC_MAKE_CSC_3x3
     (  0.400238,      0.707593,     -0.080806,
       -0.226298,      1.165316,      0.045701,
@@ -88,6 +93,7 @@ static const BCFC_Csc3x4 s_MC_Lms_to_Ipt = BCFC_MAKE_CSC_3x4
     (  0.399902,      0.399902,      0.199951,    0,
        2.227539,     -2.425537,      0.197998,  128,
        0.402832,      0.178589,     -0.581421,  128 );
+#endif
 
 /* --------------------------------------------------------------------
  * DVI CSC clamp
@@ -573,7 +579,7 @@ void BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(
     stColorSpace.eColorTF = BCFC_ColorTF_eBt1886;
     stColorSpace.eColorDepth = BCFC_ColorDepth_e8Bit; /* 565, 4444??? */
     stColorSpace.eColorRange = BCFC_ColorRange_eFull;
-    stColorSpace.pMetaData = NULL;
+    stColorSpace.stMetadata.pDynamic = NULL;
 
     if (BCFC_COLOR_SPACE_DIFF(&stColorSpace, &pColorSpaceExt->stColorSpace))
     {
@@ -614,7 +620,7 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
     if((BVDC_P_SRC_IS_MPEG(hSource->eId)) && (pMvdFieldData))
     {
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
-        BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)pColorSpace->pMetaData;
+        BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)pColorSpace->stMetadata.pDynamic;
 #endif
         BAVC_TransferCharacteristics  eTransferCharacteristics =
             (pMvdFieldData->ePreferredTransferCharacteristics == BAVC_TransferCharacteristics_eArib_STD_B67)?
@@ -633,20 +639,15 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
         pColorSpace->eColorDepth = (BAVC_VideoBitDepth_e8Bit == pMvdFieldData->eBitDepth)?
             BCFC_ColorDepth_e8Bit : BCFC_ColorDepth_e10Bit;
 
-        if(pMvdFieldData->ulMaxDispMasteringLuma != 0xffffffff) {/* don't copy if invalid */
-            pColorSpace->stHdrParm.ulAvgContentLight = pMvdFieldData->ulAvgContentLight;
-            pColorSpace->stHdrParm.ulMaxContentLight = pMvdFieldData->ulMaxContentLight;
-            pColorSpace->stHdrParm.ulMaxDispMasteringLuma = pMvdFieldData->ulMaxDispMasteringLuma;
-            pColorSpace->stHdrParm.ulMinDispMasteringLuma = pMvdFieldData->ulMinDispMasteringLuma;
-            BKNI_Memcpy_isr(pColorSpace->stHdrParm.stDisplayPrimaries, &pMvdFieldData->stDisplayPrimaries, sizeof(pMvdFieldData->stDisplayPrimaries));
-            BKNI_Memcpy_isr(&pColorSpace->stHdrParm.stWhitePoint, &pMvdFieldData->stWhitePoint, sizeof(pMvdFieldData->stWhitePoint));
+        if(pMvdFieldData->stHdrMetadata.stStatic.stMasteringDisplayColorVolume.stLuminance.uiMax != 0xffffffff) {/* don't copy if invalid */
+            pColorSpace->stMetadata.stStatic = pMvdFieldData->stHdrMetadata.stStatic;
         }
 
         /* only support DBV from decoder input for now */
 #if BVDC_P_DBV_SUPPORT /* update DBV input info */
-        pMetaData->stDbvInput.stHdrMetadata.eType = pMvdFieldData->stHdrMetadata.eType;
+        pMetaData->stDbvInput.stHdrMetadata.eType = pMvdFieldData->stHdrMetadata.stDynamic.eType;
         if(hWindow->astMosaicCfc[0].stCapability.stBits.bDbvCmp) {
-            if(pMvdFieldData->stHdrMetadata.eType == BAVC_HdrMetadataType_eDrpu
+            if(pMvdFieldData->stHdrMetadata.stDynamic.eType == BAVC_HdrMetadataType_eDrpu
                /* NOTE: for backward compatible dbv stream, ignore dbv for now; TODO: bringup dbv for profile 8/9 streams */
              #if BDBV_BACKWARD_COMPATIBLE_MODE /* non-BC dbv streams had eUnknown */
                && pMvdFieldData->eTransferCharacteristics == BAVC_TransferCharacteristics_eUnknown
@@ -656,19 +657,19 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
                 if(hWindow->eWriterHdrMetaDataType == BAVC_HdrMetadataType_eUnknown)
                 {
                     BDBG_MODULE_MSG(BVDC_CFC_1, ("D1) Window%d input metadata type changed from %d to %d", hWindow->eId,
-                        hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.eType));
-                    hWindow->eWriterHdrMetaDataType = pMvdFieldData->stHdrMetadata.eType;
+                        hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.stDynamic.eType));
+                    hWindow->eWriterHdrMetaDataType = pMvdFieldData->stHdrMetadata.stDynamic.eType;
                 }
                 /* copy the hdr10 or dbv input parameters to pic node, so later we can pass them to dbv lib */
                 BVDC_P_Dbv_UpdateVideoInputColorSpace_isr(pColorSpace, pMvdFieldData);
             }
             /* detect input toggle from dbv to normal source; also need to update hdr10 source luminance/color space
                parameters in case to support dbv output; */
-            else if (pMvdFieldData->stHdrMetadata.eType == BAVC_HdrMetadataType_eUnknown &&
+            else if (pMvdFieldData->stHdrMetadata.stDynamic.eType == BAVC_HdrMetadataType_eUnknown &&
                      hWindow->eWriterHdrMetaDataType == BAVC_HdrMetadataType_eDrpu)
             {
                 BDBG_MODULE_MSG(BVDC_CFC_1, ("D2) Window%d input metadata type changed from %d to %d", hWindow->eId,
-                    hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.eType));
+                    hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.stDynamic.eType));
                 hWindow->eWriterHdrMetaDataType = BAVC_HdrMetadataType_eUnknown;
                 BVDC_P_Dbv_UpdateVideoInputColorSpace_isr(pColorSpace, pMvdFieldData);
             }
@@ -681,23 +682,23 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
         /* only support TCH from decoder input for now */
 #if BVDC_P_TCH_SUPPORT /* update TCH input info */
       #if !(BVDC_P_DBV_SUPPORT)
-        pMetaData->stTchInput.stHdrMetadata.eType = pMvdFieldData->stHdrMetadata.eType;
+        pMetaData->stTchInput.stHdrMetadata.eType = pMvdFieldData->stHdrMetadata.stDynamic.eType;
       #endif
         if(hWindow->astMosaicCfc[0].stCapability.stBits.bTpToneMapping) {
-            if(BCFC_IS_TCH(pMvdFieldData->stHdrMetadata.eType))
+            if(BCFC_IS_TCH(pMvdFieldData->stHdrMetadata.stDynamic.eType))
             {
                 if(hWindow->eWriterHdrMetaDataType == BAVC_HdrMetadataType_eUnknown)
                 {
                     BDBG_MODULE_MSG(BVDC_CFC_1, ("T1) Window%d input metadata type changed from %d to %d", hWindow->eId,
-                        hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.eType));
-                    hWindow->eWriterHdrMetaDataType = pMvdFieldData->stHdrMetadata.eType;
+                        hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.stDynamic.eType));
+                    hWindow->eWriterHdrMetaDataType = pMvdFieldData->stHdrMetadata.stDynamic.eType;
                 }
                 BVDC_P_Tch_UpdateVideoInputColorSpace_isr(hWindow->hCompositor, pColorSpace, pMvdFieldData);
-            } else if (pMvdFieldData->stHdrMetadata.eType == BAVC_HdrMetadataType_eUnknown) {
+            } else if (pMvdFieldData->stHdrMetadata.stDynamic.eType == BAVC_HdrMetadataType_eUnknown) {
                 if(BCFC_IS_TCH(hWindow->eWriterHdrMetaDataType))
                 {
                     BDBG_MODULE_MSG(BVDC_CFC_1, ("T2) Window%d input metadata type changed from %d to %d", hWindow->eId,
-                        hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.eType));
+                        hWindow->eWriterHdrMetaDataType, pMvdFieldData->stHdrMetadata.stDynamic.eType));
                     hWindow->eWriterHdrMetaDataType = BAVC_HdrMetadataType_eUnknown;
                 }
             }
@@ -706,16 +707,28 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
     }
     else if((BVDC_P_SRC_IS_HDDVI(hSource->eId)) && (pXvdFieldData))
     {
+        switch (pXvdFieldData->eEotf)
+        {
+        case BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084:   /* HDR10, i.e. PQ */
+            pColorSpace->eColorTF = BCFC_ColorTF_eBt2100Pq;
+            break;
+        case BAVC_HDMI_DRM_EOTF_eHLG:             /* HLG */
+            pColorSpace->eColorTF = BCFC_ColorTF_eHlg;
+            break;
+        case BAVC_HDMI_DRM_EOTF_eSDR:
+        case BAVC_HDMI_DRM_EOTF_eHDR:             /* obsolete HDR gamma */
+        default:
+            pColorSpace->eColorTF = BCFC_ColorTF_eBt1886;
+            break;
+        }
         pColorSpace->eColorFmt =
             (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pXvdFieldData->eMatrixCoefficients)?
             BCFC_ColorFormat_eYCbCr_CL : BCFC_ColorFormat_eYCbCr;
         pColorSpace->eColorimetry = BCFC_AvcColorInfoToColorimetry_isrsafe(
             pXvdFieldData->eColorPrimaries, pXvdFieldData->eMatrixCoefficients,
             pXvdFieldData->eTransferCharacteristics == BAVC_TransferCharacteristics_eIec_61966_2_4);
-        pColorSpace->eColorTF = BCFC_AvcTransferCharacteristicsToTF_isrsafe(
-            pXvdFieldData->eTransferCharacteristics);
 
-        /* Only support 8bit and 10bit for now, add more depth cases later */
+        /* TODO: Only support 8bit and 10bit for now, add more depth cases later */
         pColorSpace->eColorDepth = (BAVC_HDMI_BitsPerPixel_e24bit == pXvdFieldData->eColorDepth)?
             BCFC_ColorDepth_e8Bit : BCFC_ColorDepth_e10Bit;
 
@@ -724,6 +737,10 @@ void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
              (BAVC_CscMode_e709RgbFullRange == pXvdFieldData->eCscMode) ||
              (BAVC_CscMode_e2020RgbFullRange == pXvdFieldData->eCscMode)) ?
             BCFC_ColorRange_eFull : BCFC_ColorRange_eLimited;
+
+        if(pXvdFieldData->stHdrMetadata.stStatic.stMasteringDisplayColorVolume.stLuminance.uiMax != 0xffffffff) {/* don't copy if invalid */
+            pColorSpace->stMetadata.stStatic = pXvdFieldData->stHdrMetadata.stStatic;
+        }
     }
     else
     {
@@ -804,7 +821,7 @@ static bool BVDC_P_Display_UpdateCfcColorSpaces_isr(
     stColorSpace.eColorimetry = pCmpOutColorSpace->eColorimetry;
     stColorSpace.eColorTF = pCmpOutColorSpace->eColorTF;
     stColorSpace.eColorDepth = (BCFC_ColorDepth)pHdmiSettings->eHdmiColorDepth;
-    stColorSpace.pMetaData = NULL;
+    stColorSpace.stMetadata.pDynamic = NULL;
     if (BCFC_COLOR_SPACE_DIFF(&stColorSpace, pDspColorSpace) || hDisplay->stCurInfo.stDirty.stBits.bHdmiSettings)
     {
         BDBG_MODULE_MSG(BVDC_CFC_1,("Display%d Output colorSpace changed:", hDisplay->eId));
@@ -969,8 +986,12 @@ uint32_t BVDC_P_Compositor_Update_Canvas_Background_isrsafe
 
     /*Mb = Mbout(XYZ->RGB) * Mbin(RGB->XYZ) */
     pMbIn = BCFC_GetCsc3x3_MbIn_isrsafe(BCFC_Colorimetry_eBt709);
+#if BVDC_P_DBV_SUPPORT
     pMbOut = (BCFC_ColorFormat_eYCbCr == eColorFmt || BCFC_ColorFormat_eRGB == eColorFmt)?
         BCFC_GetCsc3x3_MbOut_isrsafe(pColorSpaceOut->eColorimetry) : &s_MB_OUT_XYZ_to_LMS;
+#else
+    pMbOut = BCFC_GetCsc3x3_MbOut_isrsafe(pColorSpaceOut->eColorimetry);
+#endif
 
     BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[0][0] %8x MbIn[0][1] %8x MbIn[0][2] %8x", pMbIn->m[0][0], pMbIn->m[0][1], pMbIn->m[0][2]));
     BDBG_MODULE_MSG(BVDC_CFC_BG_MAT,("MbIn[1][0] %8x MbIn[1][1] %8x MbIn[1][2] %8x", pMbIn->m[1][0], pMbIn->m[1][1], pMbIn->m[1][2]));
@@ -1014,11 +1035,14 @@ uint32_t BVDC_P_Compositor_Update_Canvas_Background_isrsafe
 
     /* Mc step */
     if(BCFC_ColorFormat_eYCbCr == eColorFmt || BCFC_ColorFormat_eICtCp == eColorFmt) {
+#if BVDC_P_DBV_SUPPORT
         if(BCFC_ColorFormat_eICtCp == eColorFmt) {
             pMc = &s_MC_Lms_to_Ipt;
             BDBG_MODULE_MSG(BVDC_CFC_BG,("Bkgclr in IPT"));
         }
-        else {
+        else
+#endif
+        {
             pMc = BCFC_GetCsc3x4_Mc_isrsafe(pColorSpaceOut->eColorimetry);
             BDBG_MODULE_MSG(BVDC_CFC_BG,("Bkgclr in YCrCb"));
         }
@@ -1214,7 +1238,7 @@ void BVDC_P_Compositor_UpdateOutColorSpace_isr
     stColorSpace.eColorFmt = BCFC_ColorFormat_eYCbCr;
     stColorSpace.eColorRange = BCFC_ColorRange_eLimited;
     stColorSpace.eColorimetry = eOutColorimetry;
-    stColorSpace.pMetaData = NULL;
+    stColorSpace.stMetadata.pDynamic = NULL;
     if (bHdmiOut)
     {
         /* cmp output color space */
@@ -1287,8 +1311,8 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
         for (ii=0; ii<(int)ulMosaicCount; ii++)
         {
           #if BVDC_P_DBV_SUPPORT
-            const BVDC_P_CfcMetaData *pPicMetaData = (BVDC_P_CfcMetaData *)pPicture->astMosaicColorSpace[ii].pMetaData;
-            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->astMosaicCfc[hWindow->aucMosaicCfcIdxForRect[ii]].stColorSpaceExtIn.stColorSpace.pMetaData;
+            const BVDC_P_CfcMetaData *pPicMetaData = (BVDC_P_CfcMetaData *)pPicture->astMosaicColorSpace[ii].stMetadata.pDynamic;
+            const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)hWindow->astMosaicCfc[hWindow->aucMosaicCfcIdxForRect[ii]].stColorSpaceExtIn.stColorSpace.stMetadata.pDynamic;
           #endif
             pPicColorSpace = &pPicture->astMosaicColorSpace[ii];
             pColorSpace = &hWindow->astMosaicCfc[hWindow->aucMosaicCfcIdxForRect[ii]].stColorSpaceExtIn.stColorSpace;
@@ -1297,8 +1321,8 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
                 || (pPicMetaData->stDbvInput.stHdrMetadata.eType == BAVC_HdrMetadataType_eDrpu)
                 || (pMetaData == NULL) /* 1st time use of this cfc */
                 || (pMetaData->stDbvInput.stHdrMetadata.eType == BAVC_HdrMetadataType_eDrpu)
-                || BKNI_Memcmp_isr(&pPicColorSpace->stHdrParm,/* react to dynamic hdr10 parameters during repeat mode */
-                                   &pColorSpace->stHdrParm, sizeof(pColorSpace->stHdrParm))
+                || BKNI_Memcmp_isr(&pPicColorSpace->stMetadata.stStatic,/* react to dynamic hdr10 parameters during repeat mode */
+                                   &pColorSpace->stMetadata.stStatic, sizeof(pColorSpace->stMetadata.stStatic))
                 || hWindow->bCfcDirty
               #endif
               #if BVDC_P_TCH_SUPPORT && BVDC_P_TCH_CONFORMANCE
@@ -1387,8 +1411,9 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
                 (!BCFC_COLOR_SPACE_DIFF(pPicColorSpace, pColorSpace)) &&
                 ((BVDC_P_PREFER_TF_CONV(pColorSpace->eColorTF,
                                         hWindow->astMosaicCfc[jj].pColorSpaceExtOut->stColorSpace.eColorTF) ==
-                  hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj) || (bNoTfConvCfc) ||
-                 (hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj && bAllEarlierCfcsUsed)))
+                  hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj) ||
+                 (hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj && bAllEarlierCfcsUsed) ||
+                 (bNoTfConvCfc)))
             {
                 /* this rect's ColorSpace matches this cfc's ColorSpaceIn */
               #if (BDBG_DEBUG_BUILD)
@@ -1419,8 +1444,9 @@ bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
                 (!BCFC_COLOR_SPACE_DIFF(pPicColorSpace, pColorSpace)) &&
                 ((BVDC_P_PREFER_TF_CONV(pColorSpace->eColorTF,
                                         hWindow->astMosaicCfc[jj].pColorSpaceExtOut->stColorSpace.eColorTF) ==
-                  hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj) || (bNoTfConvCfc) ||
-                 (hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj && bAllEarlierCfcsUsed)))
+                  hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj) ||
+                 (hWindow->astMosaicCfc[jj].stCapability.stBits.bLRngAdj && bAllEarlierCfcsUsed) ||
+                  (bNoTfConvCfc)))
             {
                 /* this rect's ColorSpace matches this cfc's ColorSpaceIn,
                  * note: this cfc must have already be marked as used */
@@ -1524,7 +1550,7 @@ void BVDC_P_Cfc_UpdateCfg_isr
     bool bTchInput = false;
     bool bRamLutCfgDirty;
 #if BVDC_P_DBV_SUPPORT || BVDC_P_TCH_SUPPORT
-    const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)pColorSpaceIn->pMetaData;
+    const BVDC_P_CfcMetaData *pMetaData = (BVDC_P_CfcMetaData *)pColorSpaceIn->stMetadata.pDynamic;
 #endif
 
     /* check for GFD and DVI_CSC: CL input with SDR/HDR, CL display with SDR/HDR ??? */
@@ -2422,7 +2448,7 @@ void BVDC_P_Window_BuildCfcRul_isr
     }
 #endif
 #if BVDC_P_TCH_SUPPORT
-    pMetaData = (BVDC_P_CfcMetaData *)pColorSpaceExtIn->stColorSpace.pMetaData;
+    pMetaData = (BVDC_P_CfcMetaData *)pColorSpaceExtIn->stColorSpace.stMetadata.pDynamic;
     if(pCfc->stCapability.stBits.bTpToneMapping && (!pCfc->stForceCfg.stBits.bDisableTch) &&
        hWindow->eId == BVDC_P_WindowId_eComp0_V0 &&
        pMetaData && BCFC_IS_TCH(pMetaData->stTchInput.stHdrMetadata.eType))

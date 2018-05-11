@@ -107,8 +107,9 @@ NEXUS_Error NEXUS_Platform_FrontendStandby(NEXUS_FrontendDeviceHandle handle, vo
 
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
+    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
     NEXUS_FrontendDeviceHandle device;
     NEXUS_FrontendUserParameters userParams;
     NEXUS_FrontendDeviceOpenSettings deviceSettings;
@@ -118,12 +119,16 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     unsigned i2c_chn = 3;
     unsigned i2c_addr = 0x68;
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("board major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("board major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
     for ( i= 0 ; i < (sizeof(boardFrontendConfig) / sizeof(boardFrontendConfigOptions)) ; ++i) {
-        if ((boardFrontendConfig[i].boardIdMajor == platformStatus.boardId.major) &&
-            (boardFrontendConfig[i].boardIdMinor == platformStatus.boardId.minor)) {
+        if ((boardFrontendConfig[i].boardIdMajor == platformStatus->boardId.major) &&
+            (boardFrontendConfig[i].boardIdMinor == platformStatus->boardId.minor)) {
             BDBG_WRN(("Selected Board ID %d.%d - config %d",boardFrontendConfig[i].boardIdMajor,boardFrontendConfig[i].boardIdMinor,i));
             boardConfig = &boardFrontendConfig[i];
             break;
@@ -131,8 +136,8 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
 
     if (boardConfig == NULL) {
-        BDBG_MSG(("BID(%d, %d) does not have a frontend config - not adding any frontends", platformStatus.boardId.major, platformStatus.boardId.minor));
-        return NEXUS_SUCCESS;
+        BDBG_MSG(("BID(%d, %d) does not have a frontend config - not adding any frontends", platformStatus->boardId.major, platformStatus->boardId.minor));
+        goto err;
     }
 
     #if NEXUS_HAS_SPI
@@ -142,7 +147,8 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         spiSettings.clockActiveLow = true;
         spiHandle[0] = NEXUS_Spi_Open(0, &spiSettings);
         if (!spiHandle[0]) {
-            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            goto err;
         }
     }
 #endif
@@ -165,7 +171,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
          * HB board has this pin configured differently so not required HB BID is 6.2.
          */
 
-        if (platformStatus.boardId.major != 6)
+        if (platformStatus->boardId.major != 6)
         {
             NEXUS_GpioHandle gpio;
             NEXUS_GpioStatus gpioStatus;
@@ -280,7 +286,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     /* This means it is built-in tuner - to be handled by FE expert sample code for now */
     if (!boardConfig->onboardQam && !boardConfig->femtsif ) {
         /* must be a 7357X type with built-in tuner  use product ID or board ID */
-        if (platformStatus.boardId.major == 1 && platformStatus.boardId.minor == 1) {
+        if (platformStatus->boardId.major == 1 && platformStatus->boardId.minor == 1) {
             NEXUS_FrontendProbeResults probeResults;
             BSTD_UNUSED(userParams);
             NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
@@ -316,7 +322,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             }
         }
     }
-    return NEXUS_SUCCESS;
+err:
+    BKNI_Free(platformStatus);
+    return rc;
 }
 
 void NEXUS_Platform_UninitFrontend(void)

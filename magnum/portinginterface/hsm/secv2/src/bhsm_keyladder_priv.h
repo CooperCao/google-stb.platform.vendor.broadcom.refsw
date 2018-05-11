@@ -53,12 +53,10 @@ typedef struct{
 BERR_Code BHSM_P_KeyLadder_GetDetails( BHSM_KeyLadderHandle hKeyLadder,
                                        BHSM_KeyLadderDetails_t *pDetails );
 
-BHSM_Handle BHSM_P_KeyLadder_GetHsmHandle( BHSM_KeyLadderHandle handle );  /* DEPRECATED ... use BHSM_P_KeyLadder_GetDetails */
-bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle );      /* DEPRECATED ... use BHSM_P_KeyLadder_GetDetails */
 
 uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsigned otpIndex );
 
-uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyladderCaVendorIdScope caVendorIdScope );
+uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyLadderCaVendorIdScope caVendorIdScope );
 
 
 #endif

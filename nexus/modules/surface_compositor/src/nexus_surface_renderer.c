@@ -60,7 +60,7 @@ static void nexus_surface_compositor_p_submitframebuffer(struct NEXUS_SurfaceCom
     BDBG_MSG_TRACE(("setfb display[%u] fb[%p->%p]", display->index, (void *)display->displaying, (void *)framebuffer));
     framebuffer->state = NEXUS_SurfaceCompositorFramebufferState_eSubmitted;
     display->submitted = framebuffer;
-    enabled = display->server->settings.display[display->index].enabled;
+    enabled = nexus_surface_compositor_p_display_enabled(display->server, display->index);
     if(!display->formatInfo.native3D) {
         NEXUS_SurfaceHandle surface;
 

@@ -237,14 +237,15 @@ Some Notes:
 	} else {
         if(c==BATOM_EOF) { goto eos;}
         BDBG_MSG(("bmkv_parse_header: %#lx invalid ID", (unsigned long)cursor));
-        header->id = BMKV_INVALID_ID;
-        header->size = 0;
         goto error;
     }
 	i=batom_cursor_pos(cursor);
 	header->size = bmkv_parse_unsigned64(cursor);
 	if(BATOM_IS_EOF(cursor)) { goto eos;}
 	i = batom_cursor_pos(cursor)-i;
+    if( i*7 > 64 ) {
+        goto error;
+    }
 	if( header->size == ((uint64_t)(-1)) >> (64-i*7)) {
 		BDBG_MSG(("bmkv_parse_header: %#lx reserved block length", (unsigned long)cursor));
 		header->size = BMKV_RESERVED_SIZE;
@@ -254,6 +255,8 @@ done:
     BDBG_MSG_TRACE(("bmkv_parse_header: %#lx id:%#x size:%u(%#llx)", (unsigned long)cursor, (unsigned)header->id, (unsigned)header->size,(uint64_t)header->size));
     return true;
 error:
+    header->id = BMKV_INVALID_ID;
+    header->size = 0;
     return true;
 eos:
     BDBG_MSG_TRACE(("bmkv_parse_header: %#lx EOS", (unsigned long)cursor));

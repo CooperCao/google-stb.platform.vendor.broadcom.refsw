@@ -37,6 +37,7 @@
 
  ******************************************************************************/
 
+
 #ifndef BSP_S_SDRAM_SCRAMBLING_ENABLE_H__
 #define BSP_S_SDRAM_SCRAMBLING_ENABLE_H__
 

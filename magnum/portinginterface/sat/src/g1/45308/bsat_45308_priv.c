@@ -1,39 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -53,7 +57,7 @@
 
 BDBG_MODULE(bsat_45308_priv);
 
-#define BSAT_DEBUG_POWERDOWN(x) /* x */
+#define BSAT_DEBUG_POWERDOWN(x) /*x*/
 
 
 static const uint32_t BSAT_afec_clock_enable_status_reg[16] =
@@ -392,7 +396,6 @@ uint32_t BSAT_g1_P_ReadRegister_isrsafe(BSAT_ChannelHandle h, uint32_t reg)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
 
    BSAT_g1_P_GetRegisterAddress_isrsafe(h, reg, &addr);
-/*BDBG_ERR(("read 0x%X", addr));*/
    return BREG_Read32(pDev->hRegister, addr);
 }
 
@@ -408,7 +411,6 @@ void BSAT_g1_P_WriteRegister_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_
    BSAT_g1_P_GetRegisterWriteWaitTime_isrsafe(h, reg, &wait_time);
    BSAT_g1_P_GetRegisterAddress_isrsafe(h, reg, &addr);
    BREG_Write32(pDev->hRegister, addr, val);
-/*BDBG_ERR(("write 0x%X=0x%X", addr, val));*/
    if (wait_time > 0)
       BKNI_Delay(wait_time);
 }
@@ -453,11 +455,38 @@ BERR_Code BSAT_g1_P_InitChannelHandleExt(BSAT_ChannelHandle h)
 
 
 /******************************************************************************
+ BSAT_g1_P_IsChannelizerOn()
+******************************************************************************/
+bool BSAT_g1_P_IsChannelizerOn(BSAT_ChannelHandle h)
+{
+   uint32_t val;
+
+   if (h->channel < 8)
+      val = BREG_Read32(pDev->hRegister, BCHP_CLKGEN_STB_CHAN_TOP_0_INST_ENABLE);
+   else
+      val = BREG_Read32(pDev->hRegister, BCHP_CLKGEN_STB_CHAN_TOP_1_INST_ENABLE);
+   return (val == 3) ? true : false;
+}
+
+
+/******************************************************************************
  BSAT_g1_P_TunerPowerUp() - power up the channelizer
 ******************************************************************************/
 BERR_Code BSAT_g1_P_TunerPowerUp(BSAT_ChannelHandle h)
 {
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t mask, shift;
+
+   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("Tuner%d power up", h->channel)));
+
+   if (BSAT_g1_P_IsChannelizerOn(h) == false)
+   {
+      /* turn on STB_CHAN_TOP RBUS clock */
+      if (h->channel < 8)
+         BREG_Write32(pDev->hRegister, BCHP_CLKGEN_STB_CHAN_TOP_0_INST_ENABLE, 3);
+      else
+         BREG_Write32(pDev->hRegister, BCHP_CLKGEN_STB_CHAN_TOP_1_INST_ENABLE, 3);
+   }
 
    shift = (h->channel < 8) ? h->channel : (h->channel - 8);
    mask = (1 << shift);
@@ -473,14 +502,40 @@ BERR_Code BSAT_g1_P_TunerPowerUp(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_TunerPowerDown(BSAT_ChannelHandle h)
 {
-   uint32_t mask, shift;
+   uint32_t mask, shift, val, totalChannels;
+
+   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("Tuner%d power down", h->channel)));
 
    shift = (h->channel < 8) ? h->channel : (h->channel - 8);
    mask = (1 << shift);
 
    BKNI_EnterCriticalSection();
-   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_PWRDN, (1 << h->channel));
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_PWRDN, mask);
    BKNI_LeaveCriticalSection();
+
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_PWRDN);
+   BSAT_g1_P_GetTotalChannels(h->pDevice, &totalChannels);
+   if (h->channel < 8)
+   {
+      if (totalChannels <= 8)
+         mask = (1 << totalChannels) - 1;
+      else
+         mask = 0xFF;
+   }
+   else
+   {
+      mask = (1 << (totalChannels - 8)) - 1;
+   }
+
+   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("BSAT_g1_P_TunerPowerDown(%d): totalChannels=%u, stb_chan_ctrl_pwrdn=0x%X, mask=0x%X", h->channel, totalChannels, val, mask)));
+   if ((val & mask) == mask)
+   {
+      /* stop STB_CHAN_TOP RBUS clock */
+      if (h->channel < 8)
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_CLKGEN_STB_CHAN_TOP_0_INST_ENABLE, 0);
+      else
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_CLKGEN_STB_CHAN_TOP_1_INST_ENABLE, 0);
+   }
 
    return BERR_SUCCESS;
 }
@@ -492,7 +547,10 @@ BERR_Code BSAT_g1_P_TunerPowerDown(BSAT_ChannelHandle h)
 bool BSAT_g1_P_IsSdsOn(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t ctrl3, ctrl1, mask;
+   uint32_t ctrl3, ctrl1, mask, reg, val;
+
+   if (!BSAT_g1_P_IsChannelizerOn(h))
+      return false;
 
    ctrl1 =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1);
    if (ctrl1 & BCHP_TM_CLOCK_ENABLE_CTRL1_PM_DISABLE_ALL_CLOCKS_MASK)
@@ -502,6 +560,17 @@ bool BSAT_g1_P_IsSdsOn(BSAT_ChannelHandle h)
    ctrl3 =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
    mask = 1 << h->channel;
    if ((ctrl3 & mask) == 0)
+      return false;
+
+   if (h->channel & 1)
+      mask = 0x53; /* check if rcvr1 is on */
+   else
+      mask = 0x27; /* check if rcvr0 is on */
+
+   reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
+   reg += ((uint32_t)(h->channel >> 1) * 0x14);
+   val = BREG_Read32(pDev->hRegister, reg);
+   if ((val & mask) != mask)
       return false;
 
    return true;
@@ -514,20 +583,32 @@ bool BSAT_g1_P_IsSdsOn(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val;
+   uint32_t reg, val, mask;
 
    BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SDS%d Power Up", h->channel)));
 
+   reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
+   reg += ((uint32_t)(h->channel >> 1) * 0x14);
+
    BKNI_EnterCriticalSection();
 
+   val = BREG_Read32(pDev->hRegister, reg);
+   if (h->channel & 1)
+      mask = 0x53; /* check if rcvr1 is on */
+   else
+      mask = 0x27; /* check if rcvr0 is on */
+   val |= mask;
+   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SdsPowerUp(%d): clkgen_sds_top_2x_x_inst_clock_enable=0x%X", h->channel, val)));
+   BREG_Write32(pDev->hRegister, reg, val);
+
    /* enable DUALSDS PLL clock */
-   val =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1);
+   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1);
    if (val & 1)
    {
       val &= ~1;
       BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1, val);
    }
-   val =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
+   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
    val |= (1 << h->channel);
    BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3, val);
 
@@ -543,11 +624,26 @@ BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_SdsPowerDown(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val;
+   uint32_t val, reg, mask;
 
    BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SDS%d Power Down", h->channel)));
 
+   reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
+   reg += ((uint32_t)(h->channel >> 1) * 0x14);
+
    BKNI_EnterCriticalSection();
+
+   /* read CLKGEN_SDS_TOP_2X_x_INST_CLOCK_ENABLE */
+   val = BREG_Read32(pDev->hRegister, reg);
+   if (h->channel & 1)
+      mask = 0x50; /* rcvr1 */
+   else
+      mask = 0x24; /* rcvr0 */
+   val &= ~mask;
+   if ((val & 0x74) == 0)
+      val = 0x01;  /* both channels are off, so turn off everything */
+   BREG_Write32(pDev->hRegister, reg, val);
+   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SdsPowerDown(%d): clkgen_sds_top_2x_x_inst_clock_enable=0x%X", h->channel, val)));
 
    /* disable DUALSDS PLL clock */
    val =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
@@ -678,7 +774,7 @@ BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t val, reg;
-   uint32_t mask = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK /*| BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK*/;
+   uint32_t mask = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK | BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK;
 
    BKNI_EnterCriticalSection();
 
@@ -720,7 +816,7 @@ BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h)
       reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
       reg += ((uint32_t)(h->channel >> 1) * 0x14);
       val = BREG_Read32(pDev->hRegister, reg);
-      val &= ~(BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK /*| BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK*/);
+      val &= ~(BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK | BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK);
       BREG_Write32(pDev->hRegister, reg, val);
    }
 
@@ -740,11 +836,11 @@ bool BSAT_g1_P_IsTfecOn_isrsafe(BSAT_ChannelHandle h)
    uint32_t mask;
    bool bIsOn = false;
 
-   mask = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
+   mask = (BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK | BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK);
    reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_STATUS;
    reg += ((uint32_t)(h->channel >> 1) * 0x14);
    status = BREG_Read32(pDev->hRegister, reg);
-   if (status & mask)
+   if ((status & mask) == mask)
       bIsOn = true;
 
    BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d is %s", h->channel, bIsOn ? "on" : "off")));

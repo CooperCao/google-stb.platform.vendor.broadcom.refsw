@@ -59,10 +59,13 @@ Also same status structure returns the wakeup device status
 **/
 typedef struct NxClient_StandbyStatus
 {
-    NEXUS_StandbySettings settings; /* the desired standby state */
+    NEXUS_StandbySettings settings;         /* the desired standby state */
     NEXUS_PlatformStandbyStatus status;     /* wake up status */
     bool standbyTransition;                 /* Deprecated. Use NxClient_StandbyStatus.transition instead. Set to true when transition = NxClient_StandbyTransition_eDone*/
     NxClient_StandbyTransition transition;
+    unsigned lastStandbyTimestamp;          /* Last timestamp in ms when system entered standby */
+    unsigned lastResumeTimestamp;           /* Last timestamp in ms when system woke up */
+    NEXUS_StandbyMode lastStandbyMode;      /* Mode when system was last in standby */
 } NxClient_StandbyStatus;
 
 /**

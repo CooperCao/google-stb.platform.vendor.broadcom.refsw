@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -753,23 +757,6 @@ BERR_Code BXPT_Rave_ClearSCRegister(
 
 /***************************************************************************
 Summary:
-Return the number of RAVE channels.
-
-Description:
-For the given transport core, return the number of RAVE channels that are
-instantiated.
-
-Returns:
-    BERR_SUCCESS                - Retrieved channel count.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetTotalChannels(
-    BXPT_Handle hXpt,           /* [in] Handle for this transport instance. */
-    unsigned *TotalChannels     /* [out] The number of RAVE channels supported */
-    );
-
-/***************************************************************************
-Summary:
 Return the default settings for the RAVE channel.
 
 Description:
@@ -841,34 +828,6 @@ BXPT_Rave_RevisionInfo;
 void BXPT_Rave_GetFwRevisionInfo(
     BXPT_Rave_Handle hRave,                 /* [in] Handle for this RAVE channel */
     BXPT_Rave_RevisionInfo *versionInfo     /* [out] Version info */
-    );
-
-/***************************************************************************
-Summary:
-Allocate a RAVE context.
-
-Description:
-The RAVE AV and record contexts are allocated from logical pools. All contexts
-within a pool are identical. This call allocates a context of ContextType.
-
-For AV contexts, BufferCfg should have the buffer size needed by the decoder.
-Aligment will be forced to 256 bytes CDB and 128 bytes for ITB. This is a
-requirement from the decoders.
-
-For record contexts, the buffer size should be large enough to accomodate
-the host CPU's latency in servicing the context interrupts. The alignment
-should be a multiple of 32-bit words.
-
-Returns:
-    BERR_SUCCESS                    - Context allocated successfully.
-    BERR_INVALID_PARAMETER          - Bad ContextType parameter
-    BXPT_ERR_NO_AVAILABLE_RESOURCES - The requested context is already in use.
-****************************************************************************/
-BERR_Code BXPT_Rave_AllocContext(
-    BXPT_Rave_Handle hRave,         /* [in] Handle for this RAVE channel */
-    BXPT_RaveCx RequestedType,      /* [in] The type of context to allcoate */
-    const BAVC_CdbItbConfig *BufferCfg,   /* [in] Size and alignment for ITB and CDB */
-    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
     );
 
 /***************************************************************************
@@ -1220,7 +1179,7 @@ BERR_Code BXPT_Rave_AddPidChannel(
     bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
     );
 
-
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Add a BPP PID channel to a context.
@@ -1242,26 +1201,7 @@ BERR_Code BXPT_Rave_AddBppChannel(
     unsigned int PidChanNum,        /* [in] Which PID channel to add. */
     bool UseDecrypted               /* [in] Use decrypted versions of packets on this channel */
     );
-
-
-/***************************************************************************
-Summary:
-Remove a All PID channels from a context.
-
-Description:
-The contexts accept data from PID channels. This call removes all PID channels
-from a context. Record contexts may have several PID channels for same context.
-
-Returns:
-    BERR_SUCCESS                - All Pid Channels removed successfully.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-
-See Also:
-BXPT_Rave_AddPidChannel
-****************************************************************************/
-BERR_Code BXPT_Rave_RemoveAllPidChannels(
-    BXPT_RaveCx_Handle Context         /* [in] The context  */
-    );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1284,6 +1224,7 @@ BERR_Code BXPT_Rave_RemovePidChannel(
     unsigned int PidChanNum         /* [in] Which PID channel to remove. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Set the user bits for 30-bit-format timestamp.
@@ -1303,6 +1244,7 @@ BERR_Code BXPT_Rave_SetTimestampUserBits(
     BXPT_RaveCx_Handle Context,         /* [in] The record context  */
     unsigned int Bits                   /* [in] The new value for the user bits. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1375,6 +1317,7 @@ unsigned BXPT_Rave_GetQueueDepth(
     BXPT_RaveCx_Handle hCtx         /* [in] The context. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return context status.
@@ -1390,6 +1333,7 @@ BERR_Code BXPT_Rave_GetContextStatus(
     BXPT_RaveCx_Handle hCtx,
     BXPT_RaveCx_Status *CxStatus
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1426,40 +1370,6 @@ Returns:
 ****************************************************************************/
 BERR_Code BXPT_Rave_ResetContext(
     BXPT_RaveCx_Handle hCtx
-    );
-
-/***************************************************************************
-Summary:
-Get picture count from an AV context.
-
-Description:
-Return the number of pictures in the context's CDB. This call will return 0
-if called for a record context, or if there is no picture counter assigned
-to the given context.
-
-Returns:
-    BERR_SUCCESS                    - Obtained a picture count.
-    BERR_INVALID_PARAMETER          - Bad Context parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetPictureCount(
-    BXPT_RaveCx_Handle hCtx,
-    unsigned *PictureCount
-    );
-
-/***************************************************************************
-Summary:
-Return the default CDB and ITB thresholds for the given context.
-
-Description:
-Return the default CDB and ITB thresholds for the given context.
-
-Returns:
-    BERR_SUCCESS                - Retrieved thresholds.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-****************************************************************************/
-BERR_Code BXPT_Rave_GetDefaultThresholds(
-    BXPT_RaveCx_Handle hCtx,
-    BXPT_Rave_ContextThresholds *Thresholds
     );
 
 /***************************************************************************
@@ -1587,9 +1497,11 @@ typedef struct BXPT_Rave_ContextSettings
 }
 BXPT_Rave_ContextSettings;
 
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_Rave_GetContextDefaultSettings(
     BXPT_Rave_ContextSettings *ContextDefSettings   /* [out] The defaults. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1623,6 +1535,7 @@ BERR_Code BXPT_Rave_SetContextConfig(
     const BXPT_Rave_ContextSettings *Config /* [out] The AV settings. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 AV over IP configuration settings. Done on a per-context basis.
@@ -1663,6 +1576,7 @@ Returns:
 uint8_t *BXPT_Rave_GetCdbBasePtr(
     BXPT_RaveCx_Handle hCtx
     );
+#endif
 
 /***************************************************************************
 Summary: Soft RAVE support in the XPT PI.
@@ -1701,6 +1615,7 @@ typedef enum BXPT_RaveSoftMode
 }
 BXPT_RaveSoftMode;
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Allocate a soft RAVE context.
@@ -1722,6 +1637,7 @@ BERR_Code BXPT_Rave_AllocSoftContext(
     BXPT_RaveSoftMode DestContextMode,  /* [in] The type of data that the destination should generate. */
     BXPT_RaveCx_Handle *DestContext     /* [out] The destination (soft) context */
     );
+#endif
 
 /******************************************************************************
 Summary;
@@ -1767,6 +1683,7 @@ BERR_Code BXPT_Rave_AllocCx(
     BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
     );
 
+#if BXPT_P_HAS_AVS_PLUS_WORKAROUND
 /***************************************************************************
 Summary:
 Allocate a pair of RAVE contexts for AVS decoding.
@@ -1795,7 +1712,7 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
     BXPT_RaveCx_Handle *DecodeContext,     /* [out] The allocated decode context */
     BXPT_RaveCx_Handle *ReferenceContext     /* [out] The allocated context */
     );
-
+#endif
 
 /***************************************************************************
 Summary:
@@ -1847,8 +1764,10 @@ BERR_Code BXPT_Rave_Monitor_PTS(
     void (* CallBack)(void *, uint32_t pts),
     void * param
     );
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_Rave_Cancel_PTS(   BXPT_RaveCx_Handle hCtx  );
 BERR_Code BXPT_Rave_SetPCROffset(BXPT_RaveCx_Handle hCtx  , uint32_t pcr_offset);
+#endif
 
 #if defined(BXPT_HAS_RSBUF) && defined(BXPT_HAS_XCBUF)
 /***************************************************************************
@@ -1902,6 +1821,7 @@ BERR_Code BXPT_Rave_NullifyVCT(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Adjust the CDB length.
@@ -1916,6 +1836,7 @@ BERR_Code BXPT_Rave_AdjustCdbLength(
     BXPT_RaveCx_Handle hCtx,
     size_t CdbLength
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1946,6 +1867,8 @@ BERR_Code BXPT_Rave_P_FlowControl( BXPT_Rave_Handle hRave );
 void BXPT_Rave_P_SetBandHold( BXPT_Handle hXpt, unsigned PbChannelNo, uint32_t BandHoldStatus, bool SetHoldEn );
 void BXPT_Rave_P_GetBandHold( BXPT_Handle hXpt, uint32_t *BandHoldStatus );
 
+void BXPT_Rave_SetBandHold(BXPT_RaveCx_Handle Context,bool enable);
+
 #if BXPT_SW7425_4528_WORKAROUND
 typedef struct BXPT_RAVE_P_PesRemap
 {
@@ -1971,13 +1894,26 @@ void BXPT_RAVE_P_SetPesRemapping(
 
 #endif
 
+#if BXPT_HAS_RAVE_L2
 void BXPT_Rave_P_EnableInterrupts(
     BXPT_Handle hXpt                                /* [in] Handle for this transport instance */
     );
+#endif
 
+#if (!B_REFSW_MINIMAL)
 void BXPT_Rave_ClearOverflow(
     BXPT_RaveCx_Handle hCtx
     );
+#endif
+
+#if (!B_REFSW_MINIMAL)
+BERR_Code BXPT_Rave_AllocContext(
+    BXPT_Rave_Handle hRave,             /* [in] Handle for this RAVE channel */
+    BXPT_RaveCx RequestedType,          /* [in] The type of context to allcoate */
+    const BAVC_CdbItbConfig *BufferCfg,       /* [in] Size and alignment for ITB and CDB */
+    BXPT_RaveCx_Handle *Context     /* [out] The allocated context */
+   );
+#endif
 
 #ifdef __cplusplus
 }

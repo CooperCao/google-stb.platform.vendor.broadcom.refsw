@@ -39,17 +39,19 @@
 
 
 
+
 #ifndef BSP_S_DOWNLOAD_H__
 #define BSP_S_DOWNLOAD_H__
 
 
 typedef enum BCMD_Download_InCmdSecondTierKeyVerify_e
 {
+    BCMD_Download_InCmdSecondTierKeyVerify_eKey0Index = (5 << 2) + 2,
     BCMD_Download_InCmdSecondTierKeyVerify_eKeyIdentifier = (5 << 2) + 3,
-    BCMD_Download_InCmdSecondTierKeyVerify_eRootKeySource = (6 << 2) + 3,
-    BCMD_Download_InCmdSecondTierKeyVerify_eMultiTierKey = (6 << 2) + 2,
-    BCMD_Download_InCmdSecondTierKeyVerify_eChipResetOnFail = (6 << 2) + 1,
     BCMD_Download_InCmdSecondTierKeyVerify_eInvalidateKey = (6 << 2) + 0,
+    BCMD_Download_InCmdSecondTierKeyVerify_eChipResetOnFail = (6 << 2) + 1,
+    BCMD_Download_InCmdSecondTierKeyVerify_eMultiTierKey = (6 << 2) + 2,
+    BCMD_Download_InCmdSecondTierKeyVerify_eRootKeySource = (6 << 2) + 3,
     BCMD_Download_InCmdSecondTierKeyVerify_eAddress = (7 << 2) + 0,
     BCMD_Download_InCmdSecondTierKeyVerify_eMax
 }BCMD_Download_InCmdSecondTierKeyVerify_e;
@@ -97,6 +99,19 @@ typedef enum BCMD_FirstTierKeyId_e
     BCMD_FirstTierKeyId_eMax
 } BCMD_FirstTierKeyId_e;
 
-#define RSAKEYID_IS_VALID(k)   (((k) >= BCMD_SecondTierKeyId_eKey1) && ((k) <= BCMD_SecondTierKeyId_eKey4))
+typedef enum BCMD_Key0Index_e
+{
+    BCMD_Key0Index_eKey0_Unspecified = 0,
+    BCMD_Key0Index_eKey0_0           = 1,
+    BCMD_Key0Index_eKey0_1           = 2,
+    BCMD_Key0Index_eKey0_2           = 3,
+    BCMD_Key0Index_eKey0_3           = 4,
+    BCMD_Key0Index_eKey0_4           = 5,
+    BCMD_Key0Index_eKey0_5           = 6,
+    BCMD_Key0Index_eKey0_6           = 7,
+    BCMD_Key0Index_eMax
+} BCMD_Key0Index_e;
+
+#define RSAKEYID_IS_VALID(k)   (((k) >= BCMD_SecondTierKeyId_eKey1) && ((k) < BCMD_SecondTierKeyId_eMax))
 
 #endif

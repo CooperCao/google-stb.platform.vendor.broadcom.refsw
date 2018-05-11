@@ -85,7 +85,7 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
 
-ifeq ($(filter $(target), dtcp_ip hdcp_rx hdcp_tx ocap pmc secure_store widevine_cenc), $(target))
+ifeq ($(filter $(target), dtcp_ip hdcp_rx hdcp_tx ocap pmc widevine_cenc), $(target))
 ifeq ($(filter $(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),1 2 3 4),$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR))
 else
 $(error Non-SAGE common_drm Adobe, DTCPIP, Netflix, Widevine, HDCP, OCAP, PMC APIs are not supported with NEXUS_SECURITY_ZEUS_VERSION_MAJOR = ${NEXUS_SECURITY_ZEUS_VERSION_MAJOR})

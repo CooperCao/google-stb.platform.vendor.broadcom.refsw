@@ -298,7 +298,7 @@ typedef struct NEXUS_StreamMuxSystemData
                               relative to the start of the previous system data buffer.
                               "0" indicates to send the packet out ASAP. */
     size_t size; /* size of pData in bytes. Must be multiple of TS Packet size (188 bytes) */
-    const void *pData; /* attr{memory=cached} address of data to be muxed. Must be allocated from Nexus heap with driver-side
+    const void *pData; /* attr{memory=cached;null_allowed=y} address of data to be muxed. Must be allocated from Nexus heap with driver-side
                           memory mapping and XPT accessible (that is, on MEMC0).
                           Memory pointed to by pData must remain intact until NEXUS_StreamMux_GetCompletedSystemDataBuffers
                           indicates it is completed. */

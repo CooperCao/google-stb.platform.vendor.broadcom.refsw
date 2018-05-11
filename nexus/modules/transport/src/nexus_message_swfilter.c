@@ -350,7 +350,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         BDBG_ERR(("pidChannel required"));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-    if ((!pStartSettings->buffer || !pStartSettings->bufferSize) && !msg->allocatedBuffer) {
+    if ((!pStartSettings->buffer || !NEXUS_P_CpuAccessibleAddress(pStartSettings->buffer) || !pStartSettings->bufferSize) && !msg->allocatedBuffer) {
         BDBG_ERR(("NEXUS_Message_Start requires buffer and bufferSize"));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }

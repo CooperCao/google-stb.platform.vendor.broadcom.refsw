@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
@@ -210,6 +214,15 @@ static void NEXUS_VideoInput_P_GetDefaultSettings(NEXUS_VideoInputSettings *pSet
     return;
 }
 
+void NEXUS_VideoInput_P_GetDefaultStaticHdrInfo_isrsafe(NEXUS_VideoInput_P_StaticHdrInfo * pStaticInfo)
+{
+    BKNI_Memset(pStaticInfo, 0, sizeof(*pStaticInfo));
+    pStaticInfo->eEotf = BAVC_HDMI_DRM_EOTF_eMax;
+    pStaticInfo->eTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+    pStaticInfo->ePreferredTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+    BAVC_GetDefaultStaticHdrMetadata_isrsafe(&pStaticInfo->stStaticHdrMetadata);
+}
+
 static NEXUS_VideoInput_P_Link *
 NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInput_P_LinkData *data, const NEXUS_VideoInput_P_Iface *iface)
 {
@@ -244,6 +257,7 @@ NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInp
     BKNI_CreateEvent(&link->drm.inputInfoUpdatedEvent);
     link->drm.inputInfoUpdatedEventHandler = NEXUS_RegisterEvent(link->drm.inputInfoUpdatedEvent, NEXUS_VideoInput_P_HdrInputInfoUpdated, link);
     link->drm.inputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
+    NEXUS_VideoInput_P_GetDefaultStaticHdrInfo_isrsafe(&link->drm.staticInfo);
     link->timebase = NEXUS_Timebase_eInvalid;
 
 #if NEXUS_VBI_SUPPORT
@@ -659,7 +673,11 @@ NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
         if (windows[i]->display->hdmi.outputNotify)  /* HDMI Output is attached to this display */
         {
             NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame = &windows[i]->display->hdmi.hdrInfoChange.infoFrame;
-            if (link->input->type == NEXUS_VideoInputType_eDecoder)
+            if (link->input->type == NEXUS_VideoInputType_eDecoder
+#if NEXUS_HAS_HDMI_INPUT
+                || link->input->type == NEXUS_VideoInputType_eHdmi
+#endif
+            )
             {
                 if (pDrmInfoFrame->eotf != link->drm.inputInfoFrame.eotf)
                 {
@@ -680,18 +698,6 @@ NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
                  */
                 pDrmInfoFrame->eotf = link->drm.inputInfoFrame.eotf;
             }
-        #if NEXUS_HAS_HDMI_INPUT
-            else if (link->input->type == NEXUS_VideoInputType_eHdmi)
-            {
-                /*
-                 * TODO: need to pass the smd to VDC, and only the eotf goes on to hdmi tx from here
-                 * Currently, this overrides anything from VDC with entire DRMIF from hdmi rx
-                 */
-                NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
-                    NEXUS_HdmiInput_GetDrmInfoFrameData_priv(link->input->source, pDrmInfoFrame) ;
-                NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
-            }
-        #endif
             else
             {
                 BDBG_WRN(("Unsupported HDR Input Type: %d", link->input->type)) ;
@@ -739,39 +745,31 @@ static void NEXUS_Display_P_GetWindows_isr(NEXUS_VideoInput videoInput, NEXUS_Vi
 }
 
 
-#if NEXUS_NUM_VIDEO_DECODERS
-static void
-NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
+#if NEXUS_NUM_VIDEO_DECODERS || NEXUS_HAS_HDMI_INPUT
+void NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
 {
-    NEXUS_TransferCharacteristics transferChars;
-    NEXUS_TransferCharacteristics preferredTransferChars;
-    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
 
     BKNI_Memset_isr(&drmInfoFrame, 0 , sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
 
-    transferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.eTransferCharacteristics);
-    preferredTransferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.ePreferredTransferCharacteristics);
+    /*
+     * eotf may be reported directly by hdmi
+     * otherwise compute from xfer chars + pref xfer chars (which may be unknown)
+     */
+    if (link->drm.staticInfo.eEotf == BAVC_HDMI_DRM_EOTF_eMax)
+    {
+        link->drm.staticInfo.eEotf = BAVC_TransferCharacteristicsToEotf_isrsafe(link->drm.staticInfo.eTransferCharacteristics, link->drm.staticInfo.ePreferredTransferCharacteristics);
+    }
 
-    drmInfoFrame.eotf =
-        NEXUS_P_TransferCharacteristicsToEotf_isrsafe(transferChars, preferredTransferChars);
+    drmInfoFrame.eotf = NEXUS_P_VideoEotf_FromMagnum_isrsafe(link->drm.staticInfo.eEotf);
 
     if (drmInfoFrame.eotf == NEXUS_VideoEotf_eHdr10)
     {
         /* set Metadata type; only one type is currently supported */
-        drmInfoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1 ;
+        drmInfoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1;
     }
 
-    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
-        &drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume,
-        link->info.mfd.stDisplayPrimaries,
-        &link->info.mfd.stWhitePoint,
-        link->info.mfd.ulMaxDispMasteringLuma,
-        link->info.mfd.ulMinDispMasteringLuma);
-
-    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
-        &drmInfoFrame.metadata.typeSettings.type1.contentLightLevel,
-        link->info.mfd.ulMaxContentLight,
-        link->info.mfd.ulAvgContentLight);
+    NEXUS_P_StaticHdrMetadata_FromMagnum_isrsafe(&drmInfoFrame.metadata.typeSettings.type1, &link->drm.staticInfo.stStaticHdrMetadata);
 
 #if NEXUS_HAS_HDMI_OUTPUT
     if (BKNI_Memcmp_isr(&drmInfoFrame, &link->drm.inputInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
@@ -794,6 +792,17 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
         BKNI_SetEvent_isr(link->drm.inputInfoUpdatedEvent);
     }
 #endif
+}
+#endif
+
+#if NEXUS_NUM_VIDEO_DECODERS
+static void NEXUS_VideoInput_P_MfdPictureToStaticInfo_isr(const BAVC_MFD_Picture * pPicture, NEXUS_VideoInput_P_StaticHdrInfo * pStaticInfo)
+{
+    NEXUS_VideoInput_P_GetDefaultStaticHdrInfo_isrsafe(pStaticInfo);
+    pStaticInfo->eTransferCharacteristics = pPicture->eTransferCharacteristics;
+    pStaticInfo->ePreferredTransferCharacteristics = pPicture->ePreferredTransferCharacteristics;
+    pStaticInfo->eEotf = BAVC_HDMI_DRM_EOTF_eMax;
+    pStaticInfo->stStaticHdrMetadata = pPicture->stHdrMetadata.stStatic;
 }
 
 static void NEXUS_Display_P_VerifyDisplayTimebase_isr(NEXUS_VideoInput_P_Link *link)
@@ -843,6 +852,8 @@ NEXUS_VideoInput_P_DecoderDataReady_isr(void *input_, const BAVC_MFD_Picture *pP
         }
     }
 #endif
+
+    NEXUS_VideoInput_P_MfdPictureToStaticInfo_isr(&link->info.mfd, &link->drm.staticInfo);
 
     /* NEXUS_VideoInput_P_UpdateHdrInputInfo_isr must occur before the picInfo is passed to VDC */
     NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(link);

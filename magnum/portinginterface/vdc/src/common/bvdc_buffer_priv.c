@@ -1,6 +1,6 @@
 /******************************************************************************
 * Copyright (C) 2018 Broadcom.
-* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to
@@ -221,7 +221,7 @@ static void BVDC_P_Buffer_InitPictureNode
     for (ii=0; ii<BAVC_MOSAIC_MAX; ii++)
     {
         BCFC_InitCfcColorSpace(&pPicture->astMosaicColorSpace[ii]);
-        pPicture->astMosaicColorSpace[ii].pMetaData = (void *)&pPicture->astMosaicMetaData[ii];
+        pPicture->astMosaicColorSpace[ii].stMetadata.pDynamic = (void *)&pPicture->astMosaicMetaData[ii];
     }
 
     pPicture->bValidTimeStampDelay = false;

@@ -530,6 +530,8 @@ static uint32_t BVDC_P_Anr_CalcNoise_isr
         pulNoiseSampleNum[0], pulNoiseSampleNum[1], pulNoiseSampleNum[2], pulNoiseSampleNum[3], pulNoiseSampleNum[4],
         aulNoiseLevel[0], aulNoiseLevel[1], aulNoiseLevel[2], aulNoiseLevel[3], aulNoiseLevel[4]));*/
 
+    BKNI_Memset((void*)aulNoiseLevel, 0, sizeof(uint32_t)*BVDC_P_NOISE_LEVELS);
+
     for(ulId = 0; ulId < BVDC_P_NOISE_LEVELS; ulId++) {
         if((pulNoiseSampleNum[ulId] >= hAnr->ulNumNoisySampleThd) && (-1 == lBinStart)) {
             lBinStart = ulId;

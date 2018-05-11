@@ -639,7 +639,8 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
         {
             const BFMT_VideoInfo *pMaxFmt = BFMT_GetVideoFormatInfoPtr(hDisplay->hVdc->stBoxConfig.stVdc.astDisplay[hDisplay->eId].eMaxVideoFmt);
             if(pMaxFmt &&
-               ((pMaxFmt->ulDigitalWidth < pFmtInfo->ulDigitalWidth) || (pMaxFmt->ulDigitalHeight < pFmtInfo->ulDigitalHeight)))
+               ((BVDC_P_ALIGN_UP(pMaxFmt->ulDigitalWidth,  16) < pFmtInfo->ulDigitalWidth) ||
+                (BVDC_P_ALIGN_UP(pMaxFmt->ulDigitalHeight, 16) < pFmtInfo->ulDigitalHeight)))
             {
                 BDBG_ERR(("Display format[%ux%u] is greater than VIP box mode max format[%ux%u]!",
                     pFmtInfo->ulDigitalWidth, pFmtInfo->ulDigitalHeight,

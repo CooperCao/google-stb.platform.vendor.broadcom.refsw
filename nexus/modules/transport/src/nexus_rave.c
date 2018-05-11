@@ -57,7 +57,7 @@ BDBG_MODULE(nexus_rave);
 #define NEXUS_RAVE_CONTEXT_MAP(RAVE) (((RAVE)->swRave.raveHandle && (RAVE)->swRave.enabled) ? &(RAVE)->swRave.xptContextMap : &(RAVE)->xptContextMap)
 
 /* for SW rave, we need 100 msec. for numBytesOutput, 250 msec is enough (a 20Mbps stream and 1.5MB CDB will wrap every 800 msec) */
-#define NEXUS_RAVE_TIMER_PERIOD(RAVE) ((RAVE)->swRave.enabled?100:250)
+#define NEXUS_RAVE_TIMER_PERIOD(RAVE) ((RAVE)->swRave.enabled?50:250)
 
 static int nexus_rave_add_pid(NEXUS_RaveHandle rave, NEXUS_P_HwPidChannel *pidChannel);
 static void nexus_rave_remove_pid(NEXUS_RaveHandle rave);
@@ -400,10 +400,15 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
             break;
         }
     }
+    if(pSettings->spliceEnabled) {
+        allocSoftRave = true;
+    }
 #endif
     if (allocSoftRave) {
         BXPT_RaveSoftMode mode = BXPT_RaveSoftMode_eCopyItb;
-
+        if(pSettings->spliceEnabled) {
+            mode = BXPT_RaveSoftMode_eDynamic_Splice;
+        }
 #if NEXUS_SW_RAVE_PEEK_EXTENSION
         mode = BXPT_RaveSoftMode_ePointersOnly;
 #endif
@@ -674,8 +679,11 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
     if (NEXUS_GetEnv("force_sw_rave")) {
         swRave = true;
     }
-    else if (NEXUS_Rave_P_RequiresSwRave(hwPidChannel->status.originalTransportType, codec)) {
+    else if (NEXUS_Rave_P_RequiresSwRave(hwPidChannel->status.originalTransportType, codec) || rave->openSettings.spliceEnabled) {
         swRave = true;
+        if(rave->openSettings.spliceEnabled) {
+            sw_rave_mode = BXPT_RaveSoftMode_eDynamic_Splice;
+        }
     }
 #if NEXUS_SW_RAVE_PEEK_EXTENSION
     if (swRave) {
@@ -938,6 +946,9 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
     BAVC_StreamType streamType;
     NEXUS_PidChannelStatus pidChannelStatus;
     NEXUS_P_HwPidChannel *hwPidChannel = pSettings->hwPidChannel;
+    bool swRave = false;
+    BXPT_RaveSoftMode sw_rave_mode = BXPT_RaveSoftMode_eDynamic_Splice;
+
 
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
@@ -984,6 +995,11 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
 
     /* TODO: bsettop_p_rap_set_rave_thresholds(rap, mpeg->audio[program].format, cfg->playback, rave->raveHandle, &AvCtxCfg); */
     BKNI_Memset(AvCtxCfg.EsRanges, 0, sizeof(AvCtxCfg.EsRanges)); /* all disabled */
+
+    if(rave->openSettings.spliceEnabled) {
+        swRave = true;
+        sw_rave_mode = BXPT_RaveSoftMode_eDynamic_Splice;
+    }
 
     switch (codec) {
     case NEXUS_AudioCodec_eMpeg:
@@ -1166,6 +1182,19 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
         if (rc) {return BERR_TRACE(rc);}
     }
 
+    if (swRave) {
+        if (!rave->swRave.raveHandle) {
+            BDBG_ERR(("No SW RAVE context available."));
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        rc = BXPT_Rave_ResetSoftContext(rave->swRave.raveHandle, sw_rave_mode);
+        if (rc) return BERR_TRACE(rc);
+        rave->swRave.enabled = true;
+    }
+    else{
+        rave->swRave.enabled = false;
+    }
+
     AvCtxCfg.BandHoldEn = pSettings->bandHold;
     /* unconditionally disable CC check. we already have CC check in parserband and pidchannel. if someone must have CC check in RAVE, we
     should expose decoder API to make it conditional, like NEXUS_ParserBandSettings.continuityCountEnabled */
@@ -1247,6 +1276,23 @@ NEXUS_Error NEXUS_Rave_ConfigureAll_priv(NEXUS_RaveHandle rave, const NEXUS_Rave
 
     return BERR_SUCCESS;
 }
+
+void NEXUS_Rave_SetBandHold(NEXUS_RaveHandle rave, bool enable)
+{
+    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
+    BXPT_Rave_SetBandHold(rave->raveHandle,enable);
+    return;
+}
+void NEXUS_Rave_AddPidChannel_priv(NEXUS_RaveHandle rave,NEXUS_PidChannelHandle pidChannel)
+{
+
+    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
+    BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
+    NEXUS_ASSERT_MODULE();
+    nexus_rave_add_pid(rave,pidChannel->hwPidChannel);
+    return;
+}
+
 
 void NEXUS_Rave_RemovePidChannel_priv(NEXUS_RaveHandle rave)
 {
@@ -1331,35 +1377,49 @@ void NEXUS_Rave_Flush_priv(NEXUS_RaveHandle rave)
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
 
-#if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
-    if (rave->cap)
-    {
-        NEXUS_RaveCapture_Flush(rave->cap);
-    }
-#endif
-
-#if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
-    if (rave->xcCap)
-    {
-        NEXUS_TransportClientCapture_Flush(rave->xcCap);
-    }
-#endif
-
-    if (rave->settings.numOutputBytesEnabled) {
-        BAVC_XptContextMap *pXptContextMap;
-        pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-        rave->numOutputBytes += BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
-    }
-    rave->lastValid = 0;
-    rc = BXPT_Rave_FlushContext(rave->raveHandle);
-    if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
-
-#if NEXUS_SW_RAVE_SUPPORT
-    if (rave->swRave.raveHandle) {
-        rc = BXPT_Rave_FlushContext(rave->swRave.raveHandle);
+    if(rave->openSettings.spliceEnabled) {
+    /* Reset soft context first, same as when context is allocated */
+    #if NEXUS_SW_RAVE_SUPPORT
+        if (rave->swRave.raveHandle) {
+            rc = BXPT_Rave_FlushContext(rave->swRave.raveHandle);
+            if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
+        }
+    #endif
+        rave->lastValid = 0;
+        rc = BXPT_Rave_FlushContext(rave->raveHandle);
         if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
     }
-#endif
+    else {
+    #if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
+        if (rave->cap)
+        {
+            NEXUS_RaveCapture_Flush(rave->cap);
+        }
+    #endif
+
+    #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
+        if (rave->xcCap)
+        {
+            NEXUS_TransportClientCapture_Flush(rave->xcCap);
+        }
+    #endif
+
+        if (rave->settings.numOutputBytesEnabled) {
+            BAVC_XptContextMap *pXptContextMap;
+            pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
+            rave->numOutputBytes += BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
+        }
+        rave->lastValid = 0;
+        rc = BXPT_Rave_FlushContext(rave->raveHandle);
+        if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
+
+    #if NEXUS_SW_RAVE_SUPPORT
+        if (rave->swRave.raveHandle) {
+            rc = BXPT_Rave_FlushContext(rave->swRave.raveHandle);
+            if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
+        }
+    #endif
+    }
 }
 
 NEXUS_Error NEXUS_Rave_GetStatus_priv(NEXUS_RaveHandle rave, NEXUS_RaveStatus *pStatus)
@@ -2110,4 +2170,41 @@ NEXUS_Error NEXUS_PidChannel_ReadItbEvents( NEXUS_PidChannelHandle pidChannel, N
 done:
     *pNumReturned = total;
     return 0;
+}
+
+NEXUS_Error NEXUS_Rave_SetSplicePoint_priv(NEXUS_RaveHandle rave, const NEXUS_Rave_SpliceSettings * pSettings)
+{
+    NEXUS_Error nerr = NEXUS_SUCCESS;
+    BERR_Code err;
+    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
+    switch(pSettings->type) {
+    case NEXUS_Rave_SpliceType_eDisabled:
+        err = BXPT_Rave_StopPTS(rave->swRave.raveHandle, 0x0, 0x0, NULL, NULL);
+        if(BERR_SUCCESS != err) {
+            nerr = BERR_TRACE(err);
+        }
+        err = BXPT_Rave_StartPTS(rave->swRave.raveHandle, 0x0, 0x0, NULL, NULL);
+        if(BERR_SUCCESS != err) {
+            nerr = BERR_TRACE(err);
+        }
+        break;
+    case NEXUS_Rave_SpliceType_eStopPts:
+        err = BXPT_Rave_StopPTS(rave->swRave.raveHandle, pSettings->pts, pSettings->ptsThreshold,
+                                pSettings->splicePoint, pSettings->context);
+        if(BERR_SUCCESS != err) {
+            nerr = BERR_TRACE(err);
+        }
+        break;
+    case NEXUS_Rave_SpliceType_eStartPts:
+        err = BXPT_Rave_StartPTS(rave->swRave.raveHandle, pSettings->pts, pSettings->ptsThreshold,
+                                pSettings->splicePoint, pSettings->context);
+        if(BERR_SUCCESS != err) {
+            nerr = BERR_TRACE(err);
+        }
+        break;
+    default:
+        nerr = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        break;
+    }
+    return nerr;
 }

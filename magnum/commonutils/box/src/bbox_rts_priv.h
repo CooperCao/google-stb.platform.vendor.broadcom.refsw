@@ -155,13 +155,6 @@ void BBOX_P_SetDramRefreshRate
     memconfig, \
     BBOX_DramRefreshRate_e##rate )
 
-
-BERR_Code BBOX_P_GetRtsConfig
-    ( const uint32_t         ulBoxId,
-      BBOX_Rts              *pBoxRts );
-
-
-
 #ifdef __cplusplus
 }
 #endif

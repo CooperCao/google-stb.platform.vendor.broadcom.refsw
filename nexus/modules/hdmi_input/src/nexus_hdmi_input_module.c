@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "nexus_hdmi_input_module.h"
@@ -257,16 +261,16 @@ void NEXUS_HdmiInput_GetDefaultSettings(NEXUS_HdmiInputSettings *pHdmiInputDefau
     /* get default HDMI Rx Phy Settings */
     BHDR_GetDefaultSettings(&defaultHdmiRxSettings) ;
     pHdmiInputDefaultSettings->hdr.parseAviInfoframe =
-	defaultHdmiRxSettings.bParseAVI ;
+    defaultHdmiRxSettings.bParseAVI ;
 
     pHdmiInputDefaultSettings->hdr.disableI2cSclPullUp =
-	defaultHdmiRxSettings.bDisableI2cPadSclPullup ;
+    defaultHdmiRxSettings.bDisableI2cPadSclPullup ;
 
     pHdmiInputDefaultSettings->hdr.disableI2cSdaPullUp =
-	defaultHdmiRxSettings.bDisableI2cPadSdaPullup ;
+    defaultHdmiRxSettings.bDisableI2cPadSdaPullup ;
 
     pHdmiInputDefaultSettings->hdr.enableHdmiHardwarePassthrough =
-	defaultHdmiRxSettings.bHdmiHardwarePassthrough ;
+    defaultHdmiRxSettings.bHdmiHardwarePassthrough ;
 
     /* default to use internally declared EDID */
     pHdmiInputDefaultSettings->useInternalEdid = true ;
@@ -322,7 +326,7 @@ error:
 
 
 static NEXUS_Error  NEXUS_HdmiInput_P_OpenHdmiRx(NEXUS_HdmiInputHandle  hdmiInput,
-	const NEXUS_HdmiInputSettings *pHdmiInputSettings)
+    const NEXUS_HdmiInputSettings *pHdmiInputSettings)
 {
     NEXUS_HdmiInputSettings defaultHdmiInputSettings;
     BHDR_Settings hdrSettings;
@@ -341,6 +345,8 @@ static NEXUS_Error  NEXUS_HdmiInput_P_OpenHdmiRx(NEXUS_HdmiInputHandle  hdmiInpu
     hdmiInput->bSentResetHdDviBegin = false;
     hdmiInput->stFieldData.eMatrixCoefficients = BAVC_MatrixCoefficients_eItu_R_BT_709;
     hdmiInput->stFieldData.eTransferCharacteristics = BAVC_TransferCharacteristics_eItu_R_BT_709 ;
+    hdmiInput->stFieldData.eEotf = BAVC_HDMI_DRM_EOTF_eMax;
+    BAVC_GetDefaultStaticHdrMetadata_isrsafe(&hdmiInput->stFieldData.stHdrMetadata.stStatic);
     hdmiInput->stFieldData.eColorSpace = BAVC_Colorspace_eRGB;
     hdmiInput->stFieldData.eAspectRatio = BFMT_AspectRatio_eUnknown;
     hdmiInput->manualColorSpace = BAVC_Colorspace_eRGB;
@@ -485,17 +491,17 @@ NEXUS_HdmiInputHandle NEXUS_HdmiInput_Open(unsigned index, const NEXUS_HdmiInput
     NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &hdmiInput->audioInput, Open);
 #endif
 
-	/* Initialize HDCP2.2 sage module */
+    /* Initialize HDCP2.2 sage module */
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
-	/* Only Initialize HDCP2.2 once the module has been initialized */
-	if (!g_NEXUS_hdmiInput.initInProgress)
-	{
-		errCode = NEXUS_HdmiInput_P_InitHdcp2x(hdmiInput);
-		if (errCode != NEXUS_SUCCESS)
-		{
-			BDBG_ERR(("Error initialize Hdcp2.2 module"));
-		}
-	}
+    /* Only Initialize HDCP2.2 once the module has been initialized */
+    if (!g_NEXUS_hdmiInput.initInProgress)
+    {
+        errCode = NEXUS_HdmiInput_P_InitHdcp2x(hdmiInput);
+        if (errCode != NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("Error initialize Hdcp2.2 module"));
+        }
+    }
 #endif
 
     return hdmiInput;
@@ -678,7 +684,19 @@ NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_HdmiInput, NEXUS_HdmiInput_Close);
 
 
 void  Nexus_HdmiInput_P_SetHdmiVideoFormat_isr(
-	    NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat)
+        NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat)
 {
     g_NEXUS_hdmiInput.hdmiVideoFormat = hdmiVideoFormat;
+}
+
+NEXUS_Error NEXUS_HdmiInputModule_GetStatus_priv(NEXUS_HdmiInputModuleStatus *pStatus)
+{
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+#if BCHP_PWR_RESOURCE_HDMI_RX0_CLK
+    pStatus->power.core.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_HDMI_RX0_CLK)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#if BCHP_PWR_RESOURCE_HDMI_RX0_PHY
+    pStatus->power.core.phy = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_HDMI_RX0_PHY)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+    return NEXUS_SUCCESS;
 }

@@ -135,16 +135,17 @@ CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 CFLAGS += $(addprefix -I, ${DIF_INCLUDES})
 CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 
+ifneq ($(NEXUS_SECURITY_SUPPORT),n)
 LDFLAGS += $(COMMON_DRM_LDFLAGS)
+LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
            -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
+endif
+
 ifeq ($(PLAYREADY25_SUPPORT),y)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 endif
-
-# Link with common_drm libraries
-LDFLAGS += $(COMMON_DRM_LIB_LDFLAGS)
 
 # Link settings for Widevine
 ifeq ($(WIDEVINE_SUPPORT),y)
@@ -196,6 +197,7 @@ ifeq ($(DIF_PR_DECRYPT_OPAQUE), y)
 CFLAGS += -DDIF_PR_DECRYPT_OPAQUE
 endif
 
+ifneq ($(NEXUS_SECURITY_SUPPORT),n)
 ifeq ($(USE_CURL),y)
 include $(BSEAV_TOP)/opensource/curl/curl.inc
 CFLAGS += $(CURL_CFLAGS)
@@ -208,7 +210,8 @@ LDFLAGS += -lcurl $(CURL_LDFLAGS)
 ifneq ($(APPLIBS_TARGET_LIB_DIR),)
 LDFLAGS += -L$(APPLIBS_TARGET_LIB_DIR)
 endif
-endif
+endif # USE_CURL
+endif # NEXUS_SECURITY_SUPPORT
 
 ifeq ($(SAGE_SUPPORT),y)
 CFLAGS += -DUSE_SECURE_PLAYBACK

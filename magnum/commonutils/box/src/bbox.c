@@ -595,6 +595,53 @@ BBOX_LoadRts_Done:
     return err;
 }
 
+BERR_Code BBOX_P_GetRtsConfig
+    ( const uint32_t         ulBoxId,
+      BBOX_Rts              *pBoxRts )
+{
+    unsigned i;
+    if (!g_BBOX_InterfaceMap[0].ulBoxModeId) {
+        /* legacy */
+        return BBOX_RTS_LOADED_BY_CFE;
+    }
+    for (i=0;g_BBOX_InterfaceMap[i].ulBoxModeId;i++) {
+        if (g_BBOX_InterfaceMap[i].ulBoxModeId == ulBoxId) {
+            if (g_BBOX_InterfaceMap[i].getRtsConfig) {
+                g_BBOX_InterfaceMap[i].getRtsConfig(pBoxRts);
+                return BERR_SUCCESS;
+            }
+            else {
+                return BBOX_RTS_LOADED_BY_CFE;
+            }
+        }
+    }
+    BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));
+    return BERR_TRACE(BBOX_RTS_CFG_UNINITIALIZED);
+}
+
+BERR_Code BBOX_P_ValidateId(uint32_t ulBoxId)
+{
+    if (!g_BBOX_InterfaceMap[0].ulBoxModeId) {
+        /* legacy - only allow box mode 0 */
+        if (!ulBoxId) return BERR_SUCCESS;
+    }
+    else {
+        unsigned i;
+        for (i=0;g_BBOX_InterfaceMap[i].ulBoxModeId;i++) {
+            if (g_BBOX_InterfaceMap[i].ulBoxModeId == ulBoxId) {
+                return BERR_SUCCESS;
+            }
+        }
+    }
+    return BBOX_ID_NOT_SUPPORTED;
+}
+
+/* externable by test app */
+uint32_t BBOX_P_GetBoxMode(unsigned index)
+{
+    return g_BBOX_InterfaceMap[index].ulBoxModeId;
+}
+
 #else /* #ifndef BBOX_FOR_BOOTUPDATER */
 
 BERR_Code BBOX_GetConfig

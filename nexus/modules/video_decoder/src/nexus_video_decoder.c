@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -63,6 +67,8 @@
 #if NEXUS_HAS_SAGE
 #include "nexus_sage.h"
 #endif
+
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_video_decoder);
 BDBG_FILE_MODULE(nexus_flow_video_decoder);
@@ -783,6 +789,13 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
     BKNI_Memset(&videoDecoder->astm.status, 0, sizeof(NEXUS_VideoDecoderAstmStatus));
 #endif
 
+    if(pOpenSettings->openSettings.spliceEnabled) {
+        videoDecoder->spliceCallback = NEXUS_IsrCallback_Create(videoDecoder, NULL);
+        if(!videoDecoder->spliceCallback) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;}
+        BKNI_Memset(&videoDecoder->spliceSettings,0,sizeof(NEXUS_VideoDecoderSpliceSettings));
+        NEXUS_CALLBACKDESC_INIT(&videoDecoder->spliceSettings.splicePoint);
+        videoDecoder->spliceFlowStopped = false;
+    }
     videoDecoder->userdataCallback = NEXUS_IsrCallback_Create(videoDecoder, NULL);
     if(!videoDecoder->userdataCallback) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;}
     videoDecoder->sourceChangedCallback = NEXUS_IsrCallback_Create(videoDecoder, NULL);
@@ -1028,6 +1041,7 @@ static NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_Open(int parentIndex, unsig
 
     NEXUS_VideoDecoder_P_GetDefaultSupportedCodecs_isrsafe(raveSettings.supportedCodecs, videoDecoder->parentIndex);
 
+    raveSettings.spliceEnabled = pOpenSettings->openSettings.spliceEnabled;
     rc = NEXUS_VideoDecoder_P_Init_Generic(videoDecoder, &raveSettings, pOpenSettings);
     if(rc!=NEXUS_SUCCESS) { rc=BERR_TRACE(rc);goto error; }
 
@@ -2350,6 +2364,10 @@ void NEXUS_VideoDecoder_P_Close_Generic(NEXUS_VideoDecoderHandle videoDecoder)
         videoDecoder->rave = NULL;
     }
 
+    if(videoDecoder->spliceCallback) {
+        NEXUS_IsrCallback_Destroy(videoDecoder->spliceCallback);
+        videoDecoder->spliceCallback = NULL;
+    }
     if (videoDecoder->userdataCallback) {
         NEXUS_IsrCallback_Destroy(videoDecoder->userdataCallback);
         videoDecoder->userdataCallback = NULL;
@@ -3529,14 +3547,12 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
     }
 
     NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(&pStartSettings->contentLightLevel,
-            &cfg.stXDMSettings.stColorOverride.stHDR.ulMaxContentLight,
-            &cfg.stXDMSettings.stColorOverride.stHDR.ulAvgContentLight);
+            &cfg.stXDMSettings.stColorOverride.stHDR.stStaticHdrMetadata.stContentLightLevel);
 
     NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(&pStartSettings->masteringDisplayColorVolume,
-            cfg.stXDMSettings.stColorOverride.stHDR.stDisplayPrimaries,
-            &cfg.stXDMSettings.stColorOverride.stHDR.stWhitePoint,
-            &cfg.stXDMSettings.stColorOverride.stHDR.ulMaxDispMasteringLuma,
-            &cfg.stXDMSettings.stColorOverride.stHDR.ulMinDispMasteringLuma);
+            &cfg.stXDMSettings.stColorOverride.stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume);
+    /* convert units on max luma from 1 nit CEA spec public API to 0.0001 nits HEVC spec internal usage */
+    cfg.stXDMSettings.stColorOverride.stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stLuminance.uiMax *= 10000;
 
     if ( pStartSettings->appDisplayManagement )
     {
@@ -3670,6 +3686,12 @@ void NEXUS_VideoDecoder_P_Stop_Generic_Epilogue(NEXUS_VideoDecoderHandle videoDe
         NEXUS_OBJECT_RELEASE(videoDecoder, NEXUS_PidChannel, videoDecoder->startSettings.enhancementPidChannel);
     }
     BKNI_Memset(&videoDecoder->startSettings, 0, sizeof(videoDecoder->startSettings));
+    /* clear splice state and settings */
+    videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eNone;
+    videoDecoder->spliceStatus.pts = 0;
+    BKNI_Memset(&videoDecoder->spliceSettings,0,sizeof(videoDecoder->spliceSettings));
+    NEXUS_CALLBACKDESC_INIT(&videoDecoder->spliceSettings.splicePoint);
+    videoDecoder->spliceFlowStopped = false;
     return;
 }
 
@@ -4046,6 +4068,11 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStreamInformation_Avd(NEXUS_VideoDecoderHand
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     *pStreamInformation = videoDecoder->streamInfo;
+    /*
+     * nexus public API uses units of 1 nits for max luminance, whereas internally
+     * we use units of 100 micronits, so convert here
+     */
+    pStreamInformation->masteringDisplayColorVolume.luminance.max /= 10000;
     pStreamInformation->dynamicMetadataType = videoDecoder->dynamicMetadataType;
     return 0;
 }
@@ -4673,18 +4700,7 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
         pCurrentMFDPicture->eTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
         pCurrentMFDPicture->ePreferredTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown; /* SWSTB-1629 */
 
-        pCurrentMFDPicture->ulAvgContentLight = 0;
-        pCurrentMFDPicture->ulMaxContentLight = 0;
-        pCurrentMFDPicture->stDisplayPrimaries[0].ulX = 0xFFFFFFFF;
-        pCurrentMFDPicture->stDisplayPrimaries[0].ulY = 0xFFFFFFFF;
-        pCurrentMFDPicture->stDisplayPrimaries[1].ulX = 0xFFFFFFFF;
-        pCurrentMFDPicture->stDisplayPrimaries[1].ulY = 0xFFFFFFFF;
-        pCurrentMFDPicture->stDisplayPrimaries[2].ulX = 0xFFFFFFFF;
-        pCurrentMFDPicture->stDisplayPrimaries[2].ulY = 0xFFFFFFFF;
-        pCurrentMFDPicture->stWhitePoint.ulX          = 0xFFFFFFFF;
-        pCurrentMFDPicture->stWhitePoint.ulY          = 0xFFFFFFFF;
-        pCurrentMFDPicture->ulMaxDispMasteringLuma    = 0xFFFFFFFF;
-        pCurrentMFDPicture->ulMinDispMasteringLuma    = 0xFFFFFFFF;
+        BAVC_GetDefaultStaticHdrMetadata_isrsafe(&pCurrentMFDPicture->stHdrMetadata.stStatic);
 
         pCurrentMFDPicture->bValidAfd = pstDispPicture->stActiveFormatDescription.bValid;
         pCurrentMFDPicture->ulAfd = pstDispPicture->stActiveFormatDescription.uiValue;
@@ -4720,15 +4736,7 @@ static void DML_P_Prepare_MFD_Struct_isr(NEXUS_VideoDecoderExternalTsmData *pVid
             /* HEVC HDR Metadata */
             if ( BAVC_VideoCompressionStd_eH265 == pstDispPicture->stProtocol.eProtocol )
             {
-                pCurrentMFDPicture->ulAvgContentLight    = pHDRInfo->ulAvgContentLight;
-                pCurrentMFDPicture->ulMaxContentLight    = pHDRInfo->ulMaxContentLight;
-
-                pCurrentMFDPicture->stDisplayPrimaries[0]    = pHDRInfo->stDisplayPrimaries[0];
-                pCurrentMFDPicture->stDisplayPrimaries[1]    = pHDRInfo->stDisplayPrimaries[1];
-                pCurrentMFDPicture->stDisplayPrimaries[2]    = pHDRInfo->stDisplayPrimaries[2];
-                pCurrentMFDPicture->stWhitePoint             = pHDRInfo->stWhitePoint;
-                pCurrentMFDPicture->ulMaxDispMasteringLuma   = pHDRInfo->ulMaxDispMasteringLuma;
-                pCurrentMFDPicture->ulMinDispMasteringLuma   = pHDRInfo->ulMinDispMasteringLuma;
+                BKNI_Memcpy_isr(&pCurrentMFDPicture->stHdrMetadata.stStatic, &pHDRInfo->stStaticHdrMetadata, sizeof(pCurrentMFDPicture->stHdrMetadata.stStatic));
             }
         }
 
@@ -5141,13 +5149,6 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     videoDecoder->externalTsm.pDecoderPrivateContext = videoDecoder->dec;
     displayInterrupt = videoDecoder->device->hXdmDih[videoDecoder->xdmIndex + BXVD_DisplayInterrupt_eZero];
 
-    if ( videoDecoder->dec ) {
-        /* Must close/re-open the XVD channel to release its picture provider TODO: Optimize this */
-        NEXUS_VideoDecoder_P_CloseChannel(videoDecoder);
-        rc = NEXUS_VideoDecoder_P_OpenChannel(videoDecoder);
-        if ( rc ) { return BERR_TRACE(rc); }
-    }
-
     rc = BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings (&addPictureProviderSettings);
     if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings Failed "));}
 
@@ -5494,6 +5495,7 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
     NEXUS_VideoDecoderPictureContext *pContext
     )
 {
+    bool releasePic=false;
     BDBG_ASSERT(false == pContext->inFreeQueue);
     BDBG_MSG(("Discard Frame %u", pContext->serialNumber));
     if ( pContext->inDecodeQueue )
@@ -5501,6 +5503,7 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
         BLST_Q_REMOVE(&videoDecoder->externalTsm.decoderPictureQueue.queue, pContext, decodeNode);
         BDBG_ASSERT(videoDecoder->externalTsm.decoderPictureQueue.count > 0);
         videoDecoder->externalTsm.decoderPictureQueue.count--;
+        releasePic = true;  /* The picture must be released to xvd */
         pContext->inDecodeQueue = false;
     }
     switch ( pContext->display )
@@ -5513,6 +5516,7 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
         BLST_Q_REMOVE(&videoDecoder->externalTsm.displayPictureQueue.queue, pContext, displayNode);
         BDBG_ASSERT(videoDecoder->externalTsm.displayPictureQueue.count > 0);
         videoDecoder->externalTsm.displayPictureQueue.count--;
+        releasePic = true;  /* The picture may have already been released from the decoder queue but still pending display, this still must be released to xvd */
         break;
     case NEXUS_VideoDecoderPictureDisplay_eActive:
         /* This should have been cleaned up before this function is called ... */
@@ -5520,6 +5524,12 @@ static void NEXUS_VideoDecoder_P_DiscardPicture_isr(
         break;
     }
     pContext->display = NEXUS_VideoDecoderPictureDisplay_eNone;
+
+    if ( releasePic )
+    {
+        BDBG_MSG_APPDM(("Return Frame %u (%p) to XVD on discard", pContext->serialNumber, (void *)pContext->pUnifiedPicture));
+        videoDecoder->externalTsm.decoderInterface.releasePicture_isr(videoDecoder->externalTsm.pDecoderPrivateContext, pContext->pUnifiedPicture, NULL);
+    }
 
     BLST_Q_INSERT_TAIL(&videoDecoder->externalTsm.freePictureQueue.queue, pContext, freeNode);
     pContext->inFreeQueue = true;
@@ -5848,4 +5858,244 @@ NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(const 
         }
     }
     return NEXUS_VideoDecoderExclusiveMode_eNone;
+}
+
+NEXUS_Error NEXUS_VideoDecoderModule_GetStatus_priv(NEXUS_VideoDecoderModuleStatus *pStatus)
+{
+    unsigned i;
+    NEXUS_PowerState clock[NEXUS_MAX_XVD_DEVICES]={0}, power[NEXUS_MAX_XVD_DEVICES]={0};
+    unsigned frequency[NEXUS_MAX_XVD_DEVICES]={0};
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+    for (i=0;i<NEXUS_MAX_XVD_DEVICES;i++) {
+        unsigned clk=0, sram=0;
+        if (!g_NEXUS_videoDecoderXvdDevices[i].xvd) continue;
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_AVD0_CLK
+                clk = BCHP_PWR_RESOURCE_AVD0_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_AVD0_PWR
+                sram = BCHP_PWR_RESOURCE_AVD0_PWR;
+#endif
+                break;
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_AVD1_CLK
+                clk = BCHP_PWR_RESOURCE_AVD1_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_AVD1_PWR
+                sram = BCHP_PWR_RESOURCE_AVD1_PWR;
+#endif
+                break;
+            case 2:
+#ifdef BCHP_PWR_RESOURCE_AVD2_CLK
+                clk = BCHP_PWR_RESOURCE_AVD2_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_AVD2_PWR
+                sram = BCHP_PWR_RESOURCE_AVD2_PWR;
+#endif
+                break;
+        }
+        if (clk) {
+            clock[i] = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+            BCHP_PWR_GetClockRate(g_pCoreHandles->chp, clk, &frequency[i]);
+        }
+        if (sram) {
+            power[i] = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, sram)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+    }
+
+    for (i=0;i<g_NEXUS_videoDecoderCapabilities.numVideoDecoders;i++) {
+        unsigned index = g_NEXUS_videoDecoderCapabilities.videoDecoder[i].avdIndex;
+        pStatus->power.core[i].clock = clock[index];
+        pStatus->power.core[i].frequency = frequency[index];
+        pStatus->power.core[i].sram = power[index];
+    }
+
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_VideoDecoder_P_SplicePoint_Isr(void *Ctx, uint32_t pts)
+{
+    NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)(Ctx);
+    uint32_t ptsRight = 0;
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    /* ptsLeft is videoDecoder->spliceSettings.pts */
+    ptsRight = videoDecoder->spliceSettings.pts + videoDecoder->spliceSettings.ptsThreshold;
+    if ((videoDecoder->spliceSettings.pts <= pts) && (pts <= ptsRight)) {
+        if (videoDecoder->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStartAtPts) {
+            videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStartPts;
+        }else if (videoDecoder->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtPts) {
+            videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
+        }
+        videoDecoder->spliceStatus.pts = pts;
+        NEXUS_IsrCallback_Fire_isr(videoDecoder->spliceCallback);
+    }
+    return;
+}
+
+NEXUS_Error NEXUS_VideoDecoder_SetSpliceSettings(
+    NEXUS_VideoDecoderHandle videoDecoder,
+    const NEXUS_VideoDecoderSpliceSettings *pSettings
+    )
+{
+    NEXUS_Error rc = NEXUS_UNKNOWN;
+    NEXUS_Rave_SpliceSettings raveSpliceSettings;
+
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+
+    if (videoDecoder->openSettings.openSettings.spliceEnabled == false) {
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return rc;
+    }
+
+    BKNI_Memset(&raveSpliceSettings,0,sizeof(NEXUS_Rave_SpliceSettings));
+    switch (pSettings->mode) {
+    case NEXUS_DecoderSpliceMode_eDisabled: {
+        if ((videoDecoder->spliceStatus.state == NEXUS_DecoderSpliceState_eWaitForStopPts) ||
+            (videoDecoder->spliceStatus.state == NEXUS_DecoderSpliceState_eWaitForStartPts)) {
+            rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
+        }
+        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, NULL);
+        BKNI_Memset(&videoDecoder->spliceSettings,0,sizeof(NEXUS_VideoDecoderSpliceSettings));
+        NEXUS_CALLBACKDESC_INIT(&videoDecoder->spliceSettings.splicePoint);
+        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eNone;
+        videoDecoder->spliceStatus.pts = 0;
+        rc = NEXUS_SUCCESS;
+        break;
+    }
+    case NEXUS_DecoderSpliceMode_eStopAtPts: {
+        videoDecoder->spliceSettings = *pSettings;
+        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
+        raveSpliceSettings.context = (void *) videoDecoder;
+        raveSpliceSettings.ptsThreshold = pSettings->ptsThreshold;
+        raveSpliceSettings.pts = pSettings->pts;
+        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_Isr;
+        raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStopPts;
+        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
+        rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
+        break;
+    }
+    case NEXUS_DecoderSpliceMode_eStartAtPts: {
+        videoDecoder->spliceSettings = *pSettings;
+        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
+        raveSpliceSettings.context = (void *) videoDecoder;
+        raveSpliceSettings.ptsThreshold = pSettings->ptsThreshold;
+        raveSpliceSettings.pts = pSettings->pts;
+        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_Isr;
+        raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStartPts;
+        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
+        rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
+        break;
+    }
+    default:
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        break;
+    }
+    return rc;
+}
+
+void NEXUS_VideoDecoder_GetSpliceSettings(
+    NEXUS_VideoDecoderHandle videoDecoder,
+    NEXUS_VideoDecoderSpliceSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    *pSettings = videoDecoder->spliceSettings;
+}
+
+NEXUS_Error NEXUS_VideoDecoder_GetSpliceStatus(
+    NEXUS_VideoDecoderHandle videoDecoder,
+    NEXUS_VideoDecoderSpliceStatus *pStatus
+    )
+{
+    NEXUS_Error rc = NEXUS_UNKNOWN;
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    *pStatus = videoDecoder->spliceStatus;
+    rc = NEXUS_SUCCESS;
+    return rc;
+}
+
+void NEXUS_VideoDecoder_SpliceStopFlow(
+    NEXUS_VideoDecoderHandle videoDecoder
+    )
+{
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    if (NEXUS_DecoderSpliceMode_eDisabled == videoDecoder->spliceSettings.mode) {
+        BDBG_WRN(("%s:%d: call is not supported in this context", __FILE__, __LINE__));
+        goto ExitFunc;
+    }
+    if (!videoDecoder->started) {
+        BDBG_WRN(("%s:%d: call is not supported in this context", __FILE__, __LINE__));
+        goto ExitFunc;
+    }
+    if (videoDecoder->spliceFlowStopped) {
+        BDBG_WRN(("%s:%d: call is not supported in this context", __FILE__, __LINE__));
+        goto ExitFunc;
+    }
+
+    NEXUS_OBJECT_RELEASE(videoDecoder, NEXUS_PidChannel, videoDecoder->startSettings.pidChannel);
+    LOCK_TRANSPORT();
+    NEXUS_Rave_Disable_priv(videoDecoder->rave);
+    NEXUS_Rave_RemovePidChannel_priv(videoDecoder->rave);
+    UNLOCK_TRANSPORT();
+    videoDecoder->spliceFlowStopped = true;
+ExitFunc:
+    return;
+}
+
+void NEXUS_VideoDecoder_GetDefaultSpliceStartFlowSettings(
+    NEXUS_VideoDecoderSpliceStartFlowSettings *pSettings
+    )
+{
+    BKNI_Memset(pSettings, 0, sizeof(NEXUS_VideoDecoderSpliceStartFlowSettings));
+}
+
+NEXUS_Error NEXUS_VideoDecoder_SpliceStartFlow(
+    NEXUS_VideoDecoderHandle videoDecoder,
+    const NEXUS_VideoDecoderSpliceStartFlowSettings *pSettings
+    )
+{
+    NEXUS_Error rc = NEXUS_UNKNOWN;
+    NEXUS_PidChannelStatus pidChannelStatus;
+
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    BDBG_ASSERT(pSettings);
+
+    if (NEXUS_DecoderSpliceMode_eDisabled == videoDecoder->spliceSettings.mode) {
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto ExitFunc;
+    }
+    if (!videoDecoder->started) {
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto ExitFunc;
+    }
+    if (!videoDecoder->spliceFlowStopped) {
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto ExitFunc;
+    }
+    if (!pSettings->pidChannel) {
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto ExitFunc;
+    }
+
+    NEXUS_PidChannel_GetStatus(pSettings->pidChannel, &pidChannelStatus);
+    LOCK_TRANSPORT();
+    NEXUS_Rave_AddPidChannel_priv(videoDecoder->rave, pSettings->pidChannel);
+    NEXUS_Rave_SetBandHold(videoDecoder->rave,pidChannelStatus.playback);
+    NEXUS_Rave_Enable_priv(videoDecoder->rave);
+    if (videoDecoder->startSettings.enhancementPidChannel) {
+        BDBG_ASSERT(videoDecoder->enhancementRave);
+        NEXUS_Rave_Enable_priv(videoDecoder->enhancementRave);
+    }
+    UNLOCK_TRANSPORT();
+    NEXUS_OBJECT_ACQUIRE(videoDecoder, NEXUS_PidChannel, pSettings->pidChannel);
+    /* needed to unpause playback */
+    NEXUS_PidChannel_ConsumerStarted(pSettings->pidChannel);
+    videoDecoder->startSettings.pidChannel = pSettings->pidChannel;
+    videoDecoder->spliceFlowStopped = false;
+    rc = NEXUS_SUCCESS;
+ExitFunc:
+    return rc;
 }

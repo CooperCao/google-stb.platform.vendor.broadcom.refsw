@@ -956,7 +956,7 @@ Some caveats:
 **/
 NEXUS_Error NEXUS_Graphics2D_Memset32(
     NEXUS_Graphics2DHandle handle,
-    void *address,  /* attr{memory=cached} address to buffer which was allocated from the heap (e.g. NEXUS_Memory_Allocate). */
+    void *address,  /* attr{memory=cached;null_allowed=y} address to buffer which was allocated from the heap (e.g. NEXUS_Memory_Allocate). */
     uint32_t data,  /* 32 value to write to the buffer */
     unsigned count  /* number of uint32_t's to write (not number of bytes). because of constraints of M2MC hardware, count must be between 1K and 16M and
                        must be evenly divisible by 1K. */
@@ -1088,6 +1088,17 @@ Set frequency scaling percentage for Graphics 2D
 NEXUS_Error NEXUS_Graphics2D_SetFrequencyScaling(
         unsigned percent      /* [in] percentage of max frequency */
         );
+
+/**
+Summary:
+Graphics2D module status.
+**/
+typedef struct NEXUS_Graphics2DModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core[NEXUS_MAX_GRAPHICS2D_CORES];
+    } power;
+} NEXUS_Graphics2DModuleStatus;
 #ifdef __cplusplus
 }
 #endif

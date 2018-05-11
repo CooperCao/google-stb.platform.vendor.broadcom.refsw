@@ -1914,7 +1914,7 @@ end:
         ladderConf.mode = BHSM_KeyLadderMode_eSageBlDecrypt;
         ladderConf.numLevels = 5;
 #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0))
-        ladderConf.root.askm.caVendorIdScope    = BHSM_KeyladderCaVendorIdScope_eFixed;
+        ladderConf.root.askm.caVendorIdScope    = BHSM_KeyLadderCaVendorIdScope_eFixed;
         ladderConf.root.askm.stbOwnerSelect     = header->ucStbOwnerIdSelect;
         ladderConf.root.askm.caVendorId         = (header->ucCaVendorId[3] << 24) |
                                                     (header->ucCaVendorId[2] << 16) |

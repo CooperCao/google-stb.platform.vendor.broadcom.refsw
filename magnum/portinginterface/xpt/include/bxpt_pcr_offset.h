@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -408,6 +412,7 @@ void BXPT_PcrOffset_TriggerStcIncrement(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the total number of PCR Offset channels available.
@@ -424,6 +429,7 @@ BERR_Code BXPT_PcrOffset_GetTotalChannels(
     BXPT_Handle hXpt,               /* [in] The transport handle */
     unsigned int *TotalChannels     /* [out] The number of Pcr offset channels. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -685,6 +691,7 @@ BERR_Code BXPT_PcrOffset_FreeRun(
     bool FreeRun                        /* [in] Free run if true. */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Push a PID channel onto the splicing stack.
@@ -701,6 +708,7 @@ BERR_Code BXPT_PcrOffset_PushPidChannel(
     BXPT_PcrOffset_Handle hChannel,     /* [in] The channel handle */
     unsigned int PidChannel             /* [in] Channel carrying the PID to splice. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -717,6 +725,7 @@ BERR_Code BXPT_PcrOffset_ClearQueue(
     BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Get splicing countdown.
@@ -746,6 +755,7 @@ Returns:
 unsigned BXPT_PcrOffset_GetQueueDepth(
     BXPT_PcrOffset_Handle hChannel      /* [in] The channel handle */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -761,21 +771,6 @@ Returns:
     void
 ***************************************************************************/
 void BXPT_PcrOffset_RegenOffset_isr(
-    BXPT_PcrOffset_Handle hPcrOff
-    );
-
-/***************************************************************************
-Summary:
-Reload the PCR PID channel.
-
-Description:
-Another way to regenerate the PCR Offset is to reload/rewrite the PCR PID
-channel. This function should be called only from within an ISR context.
-
-Returns:
-    void
-***************************************************************************/
-void BXPT_PcrOffset_ReloadPcrPidChannel_isr(
     BXPT_PcrOffset_Handle hPcrOff
     );
 
@@ -887,6 +882,7 @@ void BXPT_PcrOffset_ApplyPidChannelSettings(
     );
 #endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Arm single capture of the STC from the stream.
@@ -918,7 +914,9 @@ void BXPT_PcrOffset_CaptureStcOnce_isr(
     BXPT_PcrOffset_Handle hPcrOff,      /* [in] Handle for the PCR Offset channel to use */
     bool Enable                         /* [in] true to capture once, false to disable a pending capture */
     );
+#endif
 
+#if (!B_REFSW_MINIMAL)
 typedef enum BXPT_PcrOffsetIntName
 {
     BXPT_PcrOffsetIntName_ePcrNew = 0,
@@ -947,6 +945,7 @@ BERR_Code BXPT_PcrOffset_GetIntId(
     BXPT_PcrOffsetIntName Name,
     BINT_Id *IntId
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -967,48 +966,17 @@ void BXPT_PcrOffset_Acquire_isr(
     BXPT_PcrOffset_Handle hChannel
     );
 
-/***************************************************************************
-Summary:
-Release a PCR-only channel from RAVE.
-
-Description:
-Disable the routing of this PID channel's PCR offsets to RAVE and mark the
-channel as unused for PCRs. This is useful when PCRs are carried on different
-PID channels than audio or video.
-
-Returns:
-    BERR_SUCCESS                - Channel has been released.
-    BERR_INVALID_PARAMETER      - Bad input parameter
-***************************************************************************/
-BERR_Code BXPT_PcrOffset_ReleasePidChannel(
-    BXPT_PcrOffset_Handle hChannel,
-    unsigned int PidChannel
-    );
-
-/***************************************************************************
-Summary:
-Return status of PCR Offset generation for the given PID channel.
-
-Returns:
-   true - Offsets are being generated.
-   false - Offset generation is not enabled
-***************************************************************************/
-bool BXPT_PcrOffset_IsOffsetEnabled_isr(
-   BXPT_PcrOffset_Handle hChannel,
-   unsigned int PidChannel
-    );
-
-#define BXPT_PcrOffset_IsOffsetEnabled BXPT_PcrOffset_IsOffsetEnabled_isr
-
 /*
 ** These functions are called internally.
 ** Users should NOT uses these functions directly.
 */
 
+#if (!B_REFSW_MINIMAL)
 bool BXPT_P_PcrOffset_IsPidChannelInUse(
     BXPT_Handle hXpt,               /* [in] The transport handle */
     uint32_t PidChannelNum              /* [in] Which PID channel to disable offsets for */
     );
+#endif
 
 void BXPT_P_PcrOffset_ModuleInit(
     BXPT_Handle hXpt

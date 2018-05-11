@@ -36,6 +36,14 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
+checkplatform:
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM) TZ_ARCH=$(TZ_ARCH)...
+
+checkdirs: $(BIN_DIRS)
+
+$(BIN_DIRS):
+	@mkdir -p $@
+
 vpath %.S   $(SRC_DIRS)
 vpath %.c   $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
