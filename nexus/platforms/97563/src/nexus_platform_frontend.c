@@ -149,13 +149,12 @@ void NEXUS_Platform_UninitFrontend(void)
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_Error errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-    return NULL;
+    return errCode;
 }
 
 void NEXUS_Platform_UninitFrontend(void)
 {
-    NEXUS_Error errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-    return NULL;
+    return;
 }
 
 #endif

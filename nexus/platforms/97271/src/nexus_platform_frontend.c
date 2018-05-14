@@ -71,15 +71,6 @@
 #endif
 BDBG_MODULE(nexus_platform_frontend);
 
-/*
- * Special note for 7271/7268 SV boards. If the frontend will be plugged into the second
- * FEMTSIF connector (FEMTSIF1), set:
- *     NEXUS_CFLAGS=-DNEXUS_FRONTEND_USE_SECOND_FEMTSIF
- * This will switch from FEMTSIF0 to FEMTSIF1 for the frontend.
- */
-
-static NEXUS_GpioHandle gpioHandleInt = NULL;
-
 #if NEXUS_HAS_SPI
 static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
 #endif
@@ -112,9 +103,18 @@ static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
     #define SPI_PIN_MASK 0x04444000
 #endif
 
+#if NEXUS_HAS_FRONTEND
+/*
+ * Special note for 7271/7268 SV boards. If the frontend will be plugged into the second
+ * FEMTSIF connector (FEMTSIF1), set:
+ *     NEXUS_CFLAGS=-DNEXUS_FRONTEND_USE_SECOND_FEMTSIF
+ * This will switch from FEMTSIF0 to FEMTSIF1 for the frontend.
+ */
+
+static NEXUS_GpioHandle gpioHandleInt = NULL;
+
 static void ConfigureIntGpioPin(int intGpio);
 
-#if NEXUS_HAS_FRONTEND
 #include "priv/nexus_frontend_standby_priv.h"
 /* Example function to power down or power up SPI or I2C pads on the backend when transitioning to standby. */
 NEXUS_Error NEXUS_Platform_FrontendStandby(NEXUS_FrontendDeviceHandle handle, void *context, const NEXUS_FrontendStandbySettings *pSettings)
@@ -163,11 +163,15 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
 
     {
-        NEXUS_PlatformStatus platformStatus;
+        NEXUS_PlatformStatus *platformStatus;
 
-        NEXUS_Platform_GetStatus(&platformStatus);
-        BDBG_MSG(("board major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
-        if (platformStatus.boardId.major == SV_BOARD_ID) {
+        platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+        if (!platformStatus) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        NEXUS_Platform_GetStatus(platformStatus);
+        BDBG_MSG(("board major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
+        if (platformStatus->boardId.major == SV_BOARD_ID) {
             BDBG_MSG(("SV"));
 #if NEXUS_FRONTEND_USE_SECOND_FEMTSIF
             intGpio = 39;
@@ -175,19 +179,21 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             intGpio = 37;
 #endif
             sv = true;
-        } else if (platformStatus.boardId.major == DV_BOARD_ID) {
+        } else if (platformStatus->boardId.major == DV_BOARD_ID) {
             BDBG_MSG(("DV"));
             intGpio = 37;
             dv = true;
-        } else if (platformStatus.boardId.major == HB_BOARD_ID) {
+        } else if (platformStatus->boardId.major == HB_BOARD_ID) {
             BDBG_MSG(("C/D/T/HB"));
             hb = true;
             intGpio = HB_INT_GPIO;
             intGpioType = HB_INT_GPIO_TYPE;
         } else {
-            BDBG_WRN(("Unrecognized BID(%d, %d), not configuring any frontends", platformStatus.boardId.major, platformStatus.boardId.minor));
+            BDBG_WRN(("Unrecognized BID(%d, %d), not configuring any frontends", platformStatus->boardId.major, platformStatus->boardId.minor));
+            BKNI_Free(platformStatus);
             return NEXUS_SUCCESS;
         }
+        BKNI_Free(platformStatus);
     }
 
 #if NEXUS_HAS_SPI

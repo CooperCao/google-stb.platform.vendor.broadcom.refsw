@@ -116,7 +116,10 @@ typedef struct EncodeContext
         NEXUS_VideoOrientation orientation;
         bool secure;
         bool low_delay;
-        NEXUS_VideoEncoderStreamStructure streamStructure; /* GOP structure */
+        struct {
+            bool set;
+            unsigned count;
+        } framesB, framesP;
     } encoderSettings;
     struct {
         unsigned videoPid;
@@ -495,8 +498,8 @@ static int start_encode(EncodeContext *pContext)
             pContext->encoderSettings.height = encoderSettings.video.height;
         }
     }
-    encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.streamStructure.framesP;
-    encoderSettings.videoEncoder.streamStructure.framesB = pContext->encoderSettings.streamStructure.framesB;
+    if (pContext->encoderSettings.framesP.set) encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.framesP.count;
+    if (pContext->encoderSettings.framesB.set) encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.framesB.count;
     encoderSettings.video.window.x = pContext->encoderSettings.window_x;
     encoderSettings.video.window.y = pContext->encoderSettings.window_y;
     encoderSettings.video.window.width = pContext->encoderSettings.window_w;
@@ -968,12 +971,12 @@ int main(int argc, const char **argv)  {
             context.encoderStartSettings.videoCodecLevel = lookup(g_videoCodecLevelStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-framesP") && curarg+1 < argc) {
-            sscanf(argv[++curarg], "%u", &context.encoderSettings.streamStructure.framesP);
-            printf("framesP = %u\n", context.encoderSettings.streamStructure.framesP);
+            sscanf(argv[++curarg], "%u", &context.encoderSettings.framesP.count);
+            context.encoderSettings.framesP.set = true;
         }
         else if (!strcmp(argv[curarg], "-framesB") && curarg+1 < argc) {
-            sscanf(argv[++curarg], "%u", &context.encoderSettings.streamStructure.framesB);
-            printf("framesB = %u\n", context.encoderSettings.streamStructure.framesB);
+            sscanf(argv[++curarg], "%u", &context.encoderSettings.framesB.count);
+            context.encoderSettings.framesB.set = true;
         }
         else if (!strcmp(argv[curarg], "-video_bitrate") && curarg+1 < argc) {
             float rate;

@@ -82,13 +82,13 @@ BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zb
 else
 $(warning "BDSP_AONA_ZB requires ZB files")
 endif
-else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/cl/.*),)
+else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/cl/*),)
 BDSP_AONA_FILE_TYPE = _clear
 BDSP_AONA_FOLDER_TYPE = cl
-else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zd/.*),)
+else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zd/*),)
 BDSP_AONA_FILE_TYPE = _ZD
 BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zd
-else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zb/.*),)
+else ifneq ($(wildcard $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BCHP_CHIP)/zb/*),)
 BDSP_AONA_FILE_TYPE = _ZB
 BDSP_AONA_FOLDER_TYPE = $(BCHP_CHIP)/zb
 else
@@ -109,7 +109,7 @@ BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)
 # Include standard files
 ifneq ($(BDSP_IMG_ONLY),y)
 BDSP_SOURCES += \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_resident_img_desc.c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/barm_resident_img_desc.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fwdownload_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm_v2/bdsp_arm_fwinterface_priv.c \

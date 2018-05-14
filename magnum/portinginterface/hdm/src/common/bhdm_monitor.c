@@ -74,9 +74,9 @@ void BHDM_MONITOR_P_DestroyTimers(BHDM_Handle hHDMI)
 {
 	BERR_Code rc ;
 
-	BHDM_CHECK_RC(rc,BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerFormatChange, BHDM_P_TIMER_eFormatDetection)) ;
-	BHDM_CHECK_RC(rc,BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerStatusMonitor, BHDM_P_TIMER_eMonitorStatus)) ;
-	BHDM_CHECK_RC(rc,BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerHotPlugChange, BHDM_P_TIMER_eHotPlugChange)) ;
+	BHDM_CHECK_RC(rc,BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerFormatChange, BHDM_P_TIMER_eFormatDetection)) ;
+	BHDM_CHECK_RC(rc,BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerStatusMonitor, BHDM_P_TIMER_eMonitorStatus)) ;
+	BHDM_CHECK_RC(rc,BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerHotPlugChange, BHDM_P_TIMER_eHotPlugChange)) ;
 
 done :
 	(void) BERR_TRACE(rc) ;

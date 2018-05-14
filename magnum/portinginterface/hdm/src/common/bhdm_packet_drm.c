@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -45,6 +48,7 @@
 
 BDBG_MODULE(BHDM_PACKET_DRM) ;
 
+#define BHDM_DRM_PACKET_NUM_DISPLAY_PRIMARIES 3
 
 /******************************************************************************
 Summary:
@@ -120,67 +124,49 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	{
 		if (pstDRMInfoFrame->eDescriptorId == BAVC_HDMI_DRM_DescriptorId_eType1)
 		{
-			hHDMI->PacketBytes[3] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[0].X & 0x00FF) ;
-			hHDMI->PacketBytes[4] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[0].X & 0xFF00) >> 8) ;
+		    unsigned i;
+	        const BAVC_Point * points[BAVC_NUM_COLORIMETRY_POINTS];
 
-			hHDMI->PacketBytes[5] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[0].Y & 0x00FF) ;
-			hHDMI->PacketBytes[6] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[0].Y & 0xFF00) >> 8) ;
+            /* this maps GBRW -> 0123 per original CEA/SMPTE guidelines */
+	        points[0] = &pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stGreen;
+	        points[1] = &pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stBlue;
+	        points[2] = &pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stRed;
+	        points[3] = &pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stColorVolume.stWhitePoint;
 
+	        for (i = 0; i < BAVC_NUM_COLORIMETRY_POINTS ; i++)
+	        {
+	            hHDMI->PacketBytes[3 + i * 4] = (uint8_t) (points[i]->ulX & 0x00FF) ;
+                hHDMI->PacketBytes[4 + i * 4] = (uint8_t) ((points[i]->ulX & 0xFF00) >> 8) ;
 
-			hHDMI->PacketBytes[7] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[1].X & 0x00FF) ;
-			hHDMI->PacketBytes[8] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[1].X & 0xFF00) >> 8) ;
+                hHDMI->PacketBytes[5 + i * 4] = (uint8_t) (points[i]->ulY & 0x00FF);
+                hHDMI->PacketBytes[6 + i * 4] = (uint8_t) ((points[i]->ulY & 0xFF00) >> 8) ;
+	        }
 
-			hHDMI->PacketBytes[9] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[1].Y & 0x00FF) ;
-			hHDMI->PacketBytes[10] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[1].Y & 0xFF00) >> 8) ;
-
-
-			hHDMI->PacketBytes[11] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[2].X & 0x00FF) ;
-			hHDMI->PacketBytes[12] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[2].X & 0xFF00) >> 8) ;
-
-			hHDMI->PacketBytes[13] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[2].Y & 0x00FF) ;
-			hHDMI->PacketBytes[14] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[2].Y & 0xFF00) >> 8) ;
-
-			hHDMI->PacketBytes[15] =
-				(uint8_t) (pstDRMInfoFrame->Type1.WhitePoint.X & 0x00FF) ;
-			hHDMI->PacketBytes[16] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.WhitePoint.X & 0xFF00) >> 8) ;
-
-			hHDMI->PacketBytes[17] =
-				(uint8_t) (pstDRMInfoFrame->Type1.WhitePoint.Y & 0x00FF) ;
-			hHDMI->PacketBytes[18] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.WhitePoint.Y & 0xFF00) >> 8) ;
-
+	        /*
+	         * internally we use 100 micronits units for max luma wherever we
+	         * can, but it doesn't fit in uint16_t. CEA861 requires units of 1
+	         * nits on HDMI interface, so we convert it here from 100 micronits
+	         * to 1 nits
+	         */
 			hHDMI->PacketBytes[19] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Max & 0x00FF) ;
+				(uint8_t) ((pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stLuminance.uiMax / 10000) & 0x00FF) ;
 			hHDMI->PacketBytes[20] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Max & 0xFF00) >> 8) ;
+				(uint8_t) (((pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stLuminance.uiMax / 10000) & 0xFF00) >> 8) ;
 
 			hHDMI->PacketBytes[21] =
-				(uint8_t) (pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Min & 0x00FF) ;
+				(uint8_t) (pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stLuminance.uiMin & 0x00FF) ;
 			hHDMI->PacketBytes[22] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Min & 0xFF00) >> 8) ;
+				(uint8_t) ((pstDRMInfoFrame->stType1.stMasteringDisplayColorVolume.stLuminance.uiMin & 0xFF00) >> 8) ;
 
 			hHDMI->PacketBytes[23] =
-				(uint8_t) (pstDRMInfoFrame->Type1.MaxContentLightLevel & 0x00FF) ;
+				(uint8_t) (pstDRMInfoFrame->stType1.stContentLightLevel.ulMax & 0x00FF) ;
 			hHDMI->PacketBytes[24] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.MaxContentLightLevel & 0xFF00) >> 8) ;
+				(uint8_t) ((pstDRMInfoFrame->stType1.stContentLightLevel.ulMax & 0xFF00) >> 8) ;
 
 			hHDMI->PacketBytes[25] =
-				(uint8_t) (pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0x00FF) ;
+				(uint8_t) (pstDRMInfoFrame->stType1.stContentLightLevel.ulMaxFrameAvg & 0x00FF) ;
 			hHDMI->PacketBytes[26] =
-				(uint8_t) ((pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0xFF00) >> 8) ;
+				(uint8_t) ((pstDRMInfoFrame->stType1.stContentLightLevel.ulMaxFrameAvg & 0xFF00) >> 8) ;
 
 			PacketLength  = 26 ;
 		}

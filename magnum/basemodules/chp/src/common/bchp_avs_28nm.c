@@ -251,7 +251,7 @@ static const uint32_t treg_addr[] = {
  * If the firmware is running then it is updating the current data in the above locations.
  * If it is not running (i.e. above locations are always zero) then get the data ourselves.
  */
-static void GetAvsData(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *voltage1, signed *temperature, bool *firmware_running, unsigned *heartbeat)
+static void GetAvsData_isrsafe(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *voltage1, signed *temperature, bool *firmware_running, unsigned *heartbeat)
 {
     uint32_t v_reg0;
     uint32_t v_reg1;
@@ -343,7 +343,7 @@ BERR_Code BCHP_P_AvsMonitorPvt ( BCHP_P_AvsHandle hHandle )
 #endif
 #endif
 
-    GetAvsData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
+    GetAvsData_isrsafe(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
 
     /* We don't do any "processing", just report the current status */
     /* This is to help people to build reports containing periodic temperature and voltage status */
@@ -372,7 +372,7 @@ BERR_Code BCHP_P_GetAvsData_isrsafe (
 
     BDBG_ENTER(BCHP_P_GetAvsData_isrsafe);
 
-    GetAvsData(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
+    GetAvsData_isrsafe(hHandle, &voltage0, &voltage1, &temperature, &firmware_running, &heartbeat);
 
     pData->voltage = voltage0;
     pData->temperature = temperature;

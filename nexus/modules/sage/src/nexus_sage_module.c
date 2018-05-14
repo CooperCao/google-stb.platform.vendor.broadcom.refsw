@@ -64,7 +64,6 @@
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
-#include "priv/nexus_sage_audio.h"
 #include "bchp_jtag_otp.h"
 
 NEXUS_SageModule_P_Handle g_NEXUS_sageModule;
@@ -158,16 +157,6 @@ static void NEXUS_Sage_P_Module_Lock_Security(void)
 static void NEXUS_Sage_P_Module_Unlock_Security(void)
 {
     NEXUS_Module_Unlock(g_sage_module.internalSettings.security);
-}
-/* Lock transport */
-void NEXUS_Sage_P_Module_Lock_Transport(void)
-{
-    NEXUS_Module_Lock(g_sage_module.internalSettings.transport);
-}
-/* unlock transport*/
-void NEXUS_Sage_P_Module_Unlock_Transport(void)
-{
-    NEXUS_Module_Unlock(g_sage_module.internalSettings.transport);
 }
 /* .lock_sage : BSAGElib_Sync_LockCallback prototype */
 static void NEXUS_Sage_P_Module_Lock_Sage(void)
@@ -1102,27 +1091,6 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         goto err;
     }
 
-#if NEXUS_SAGE_SARM_TEST /* BDSP_ARM_AUDIO_SUPPORT && !BDSP_RAAGA_AUDIO_SUPPORT */
-    /* Install SARM TA.  Initialize the platform and SARM module.  */
-    rc = NEXUS_Sage_P_SARMInit(&g_sage_module.settings);
-    if (rc != NEXUS_SUCCESS)
-    {
-        rc = BERR_TRACE(rc);
-        goto err;
-    }
-#else
-    if (NEXUS_GetEnv("nexus_force_sage_sarm"))
-    {
-        /* Install SARM TA.  Initialize the platform and SARM module.  */
-        rc = NEXUS_Sage_P_SARMInit(&g_sage_module.settings);
-        if (rc != NEXUS_SUCCESS)
-        {
-            rc = BERR_TRACE(rc);
-            goto err;
-        }
-    }
-#endif
-
     if(reconnect)
     {
         /* Need to have SAGE verify region info has not changed.... */
@@ -1189,8 +1157,6 @@ void NEXUS_SageModule_Uninit(void)
     NEXUS_LockModule();
 
     NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyModeOn);
-
-    NEXUS_Sage_P_SARMUninit();
 
     NEXUS_Sage_P_SecureLog_Uninit();
 

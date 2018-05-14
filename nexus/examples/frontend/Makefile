@@ -38,6 +38,7 @@
 ############################################################
 
 APPS = \
+	live_ad_replacement \
 	multituner_video_primer \
 	tune_vsb \
 	tune_bert \

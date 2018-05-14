@@ -40,7 +40,6 @@
  **************************************************************************/
 #include "nexus_hdmi_input_module.h"
 #include "nexus_hdmi_input_hdcp.h"
-#include "bhdr_hdcp.h"
 #if NEXUS_HAS_SECURITY
 #include "bhsm.h"
 #include "bhsm_keyladder.h"
@@ -162,9 +161,9 @@ NEXUS_Error NEXUS_HdmiInput_P_HdcpKeyLoad(NEXUS_HdmiInputHandle hdmiInput)
             switch( maskKey2 )
             {
                 case BCRYPT_MASK_KEY2_CHIP_FAMILY:
-                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyladderCaVendorIdScope_eChipFamily; break;
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyLadderCaVendorIdScope_eChipFamily; break;
                 case BCRYPT_MASK_KEY2_FIXED:
-                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyladderCaVendorIdScope_eFixed;      break;
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyLadderCaVendorIdScope_eFixed;      break;
                 default:
                     BDBG_ERR(( "Invalid maskKey2: 0x%x", maskKey2 ));
                     return BERR_TRACE( BERR_INVALID_PARAMETER );

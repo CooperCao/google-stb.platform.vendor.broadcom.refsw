@@ -49,6 +49,7 @@
 
 #include "priv/nexus_core_img.h"
 #include "priv/nexus_core_img_id.h"
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_picture_decoder);
 #define BDBG_MSG_TRACE(x)  /* BDBG_MSG(x) */
@@ -1295,4 +1296,17 @@ NEXUS_Error NEXUS_PictureDecoderModule_Standby_priv(bool enabled, const NEXUS_St
 
     return NEXUS_SUCCESS;
 #endif
+}
+
+NEXUS_Error NEXUS_PictureDecoderModule_GetStatus_priv(NEXUS_PictureDecoderModuleStatus *pStatus)
+{
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+#if BCHP_PWR_RESOURCE_SID
+    pStatus->power.core.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_SID)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+    BCHP_PWR_GetClockRate(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_SID, &pStatus->power.core.frequency);
+#endif
+#if BCHP_PWR_RESOURCE_SID_SRAM
+    pStatus->power.core.sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_SID_SRAM)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+    return NEXUS_SUCCESS;
 }

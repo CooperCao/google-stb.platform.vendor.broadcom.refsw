@@ -751,6 +751,7 @@ static BERR_Code setChannelPacketSettings(
     return( ExitCode );
 }
 
+#ifdef ENABLE_PLAYBACK_MUX
 BERR_Code BXPT_Playback_SetChannelPacketSettings(
     BXPT_Playback_Handle hPb,                                  /* [in] Handle for the playback channel. */
     const BXPT_Playback_ChannelPacketSettings *ChannelSettings /* [in] New settings to use */
@@ -764,6 +765,7 @@ BERR_Code BXPT_Playback_SetChannelPacketSettings(
     MCPB_RELEASE_CHNL(hPb);
     return ret;
 }
+#endif
 
 BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
     BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
@@ -1973,6 +1975,7 @@ void BXPT_Playback_FreePacingCounter(
     /* ToDo: PB channels that were using it should unmap. */
 }
 
+#if BXPT_HAS_TSMUX
 void BXPT_Playback_InitDescriptorFlags(
     BXPT_PvrDescriptorFlags *flags
     )
@@ -2050,6 +2053,7 @@ void BXPT_Playback_SetDescriptorFlags(
     BMMA_FlushCache(hPb->mma.descBlock, Desc, sizeof(*Desc));
     return;
 }
+#endif
 
 unsigned BXPT_Playback_P_GetBandId(
     BXPT_Playback_Handle hPb

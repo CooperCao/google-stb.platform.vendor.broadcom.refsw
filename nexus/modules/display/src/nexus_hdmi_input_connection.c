@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -47,13 +51,25 @@ BDBG_MODULE(nexus_hdmi_input_connection);
 
 #define pVideo (&g_NEXUS_DisplayModule_State)
 
+static void NEXUS_VideoInput_P_HdDviPictureToStaticInfo_isr(const BAVC_VDC_HdDvi_Picture * pPicture, NEXUS_VideoInput_P_StaticHdrInfo * pStaticInfo)
+{
+    NEXUS_VideoInput_P_GetDefaultStaticHdrInfo_isrsafe(pStaticInfo);
+    pStaticInfo->eTransferCharacteristics = pPicture->eTransferCharacteristics;
+    pStaticInfo->ePreferredTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+    pStaticInfo->eEotf = pPicture->eEotf;
+    pStaticInfo->stStaticHdrMetadata = pPicture->stHdrMetadata.stStatic;
+}
+
 static void NEXUS_VideoInput_P_HdmiPictureCallback_isr(void *pvParm1, int iParm2,
       BAVC_Polarity ePolarity, BAVC_SourceState eSourceState, void **ppvPicture)
 {
+    NEXUS_VideoInput_P_Link * link = pvParm1;
     BSTD_UNUSED(iParm2);
     BSTD_UNUSED(ePolarity);
     BSTD_UNUSED(eSourceState);
-    NEXUS_HdmiInput_PictureCallback_isr((NEXUS_HdmiInputHandle)pvParm1, (BAVC_VDC_HdDvi_Picture **)ppvPicture);
+    NEXUS_HdmiInput_PictureCallback_isr((NEXUS_HdmiInputHandle)link->input->source, (BAVC_VDC_HdDvi_Picture **)ppvPicture);
+    NEXUS_VideoInput_P_HdDviPictureToStaticInfo_isr(*ppvPicture, &link->drm.staticInfo);
+    NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(link);
 }
 
 static const BFMT_VideoFmt g_autoDetectFormats[] = {
@@ -128,7 +144,7 @@ NEXUS_VideoInput_P_ConnectHdmiInput(NEXUS_VideoInput_P_Link *link)
     /* NOTE: VideoInput might need to use BVDC_Source_InstallPictureCallback in the future. If so, it should
     call into this file. See NEXUS_VideoInput_P_HdmiSourceCallback_isr for an example. */
     rc = BVDC_Source_InstallPictureCallback(link->sourceVdc,
-        NEXUS_VideoInput_P_HdmiPictureCallback_isr, (void *)link->input->source, 0);
+        NEXUS_VideoInput_P_HdmiPictureCallback_isr, (void *)link, 0);
     if (rc) return BERR_TRACE(rc);
 
     rc = NEXUS_VideoHdmiInput_P_ApplySettings(link, &link->info.hdmi);
@@ -140,7 +156,6 @@ NEXUS_VideoInput_P_ConnectHdmiInput(NEXUS_VideoInput_P_Link *link)
     NEXUS_Module_Lock(pVideo->modules.hdmiInput);
     NEXUS_HdmiInput_VideoConnected_priv((NEXUS_HdmiInputHandle)link->input->source, true);
     NEXUS_HdmiInput_SetFormatChangeCb_priv((NEXUS_HdmiInputHandle)link->input->source, NEXUS_VideoInput_P_CheckFormatChange_isr, link);
-    NEXUS_HdmiInput_SetHdrEvent_priv((NEXUS_HdmiInputHandle)link->input->source, link->drm.inputInfoUpdatedEvent);
     link->secureVideo = NEXUS_HdmiInput_GetSecure_isrsafe((NEXUS_HdmiInputHandle)link->input->source) ? NEXUS_VideoDecoderSecureType_eSecure : NEXUS_VideoDecoderSecureType_eUnsecure;
     NEXUS_Module_Unlock(pVideo->modules.hdmiInput);
 
@@ -162,7 +177,6 @@ NEXUS_VideoInput_P_DisconnectHdmiInput(NEXUS_VideoInput_P_Link *link)
     NEXUS_Module_Lock(pVideo->modules.hdmiInput);
     NEXUS_HdmiInput_VideoConnected_priv((NEXUS_HdmiInputHandle)link->input->source, false);
     NEXUS_HdmiInput_SetFormatChangeCb_priv((NEXUS_HdmiInputHandle)link->input->source, NULL, NULL);
-    NEXUS_HdmiInput_SetHdrEvent_priv((NEXUS_HdmiInputHandle)link->input->source, NULL);
     NEXUS_Module_Unlock(pVideo->modules.hdmiInput);
 }
 
@@ -324,4 +338,3 @@ err_apply:
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 #endif
 }
-

@@ -321,6 +321,7 @@ typedef enum NEXUS_VideoDecoderExclusiveMode
 
 NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(const BBOX_Config *boxConfig, unsigned avdIndex);
 
+NEXUS_Error NEXUS_VideoDecoderModule_GetStatus_priv(NEXUS_VideoDecoderModuleStatus *pStatus);
 #ifdef __cplusplus
 }
 #endif

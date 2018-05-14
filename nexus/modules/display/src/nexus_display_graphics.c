@@ -391,8 +391,6 @@ NEXUS_Display_P_DestroyGraphicsSource(NEXUS_DisplayHandle display)
     rc = BVDC_ApplyChanges(video->vdc);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
 
-    nexus_p_compression_shutdown(graphics);
-
     NEXUS_Display_P_SetSecureGraphics(graphics, false);
     graphics->source = NULL;
     graphics->windowVdc = NULL;
@@ -412,6 +410,8 @@ NEXUS_Display_P_DestroyGraphics(NEXUS_DisplayHandle display)
     BDBG_MSG((">graphics: destroy %p", (void *)graphics));
 
     NEXUS_Display_P_DestroyGraphicsSource(display);
+
+    nexus_p_compression_shutdown(graphics);
 
     NEXUS_Graphics_GetDefaultFramebuffer3D(&graphics->frameBuffer3D);
 

@@ -89,6 +89,18 @@ BERR_Code BBOX_P_SetMemConfig
     ( uint32_t               ulBoxId,
       BBOX_MemConfig        *pBoxMemConfig );
 
+struct BBOX_InterfaceMap
+{
+    uint32_t ulBoxModeId;
+    void (*getRtsConfig)( BBOX_Rts *pBoxRts );
+};
+
+/* instantiated in CHIP/CHIP_VER/bbox_priv_vdc.c */
+extern const struct BBOX_InterfaceMap g_BBOX_InterfaceMap[];
+
+/* added to suppress "defined and undeclared" warning */
+uint32_t BBOX_P_GetBoxMode(unsigned index);
+
 /* Add module specific box mode functions here */
 
 #endif /* BBOX_PRIV_H__ */

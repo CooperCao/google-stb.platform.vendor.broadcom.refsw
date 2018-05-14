@@ -289,19 +289,44 @@ BMRC_P_Monitor_MaskAdd(BMRC_Monitor_P_Clients *mask, BMRC_Client client)
 }
 
 #ifdef BDBG_DEBUG_BUILD
+#include "bmrc_priv.h"
 /* this function builds the hardware client id bit string */
 static const char *BMRC_P_Monitor_BuildClientIdString_isrsafe(const BMRC_Monitor_P_Clients *mask, char *buf, size_t buf_len)
 {
     int i;
     size_t buf_off = 0;
+    const unsigned clients_bitmap_size = (BMRC_P_CLIENTS_MAX+7)/8;
+    uint8_t clients_bitmap[(BMRC_P_CLIENTS_MAX+7)/8];
+    bool leading_zeros=true;
+
+    for(i=0;i<(int)clients_bitmap_size;i++) {
+        clients_bitmap[i]=0;
+    }
+    for (i = 0; i < BMRC_Client_eMaxCount; i++) {
+        if(!BMRC_P_MONITOR_CLIENT_MASK_IS_SET(mask->client_masks, i)) {
+            int clientId = BMRC_P_GET_CLIENT_ID(0 /* memc */, i);
+            if(clientId>=0) {
+                unsigned bit = clientId%8;
+                unsigned byte = clientId/8;
+                if(byte<clients_bitmap_size) {
+                    clients_bitmap[byte] |=  1<<bit;
+                }
+            }
+        }
+    }
+
     *buf = 0;
-    for(i=sizeof(mask->client_masks)/sizeof(mask->client_masks[0])-1;i>=0;i--) {
+    for(i=sizeof(clients_bitmap)/sizeof(clients_bitmap[0])-1;i>=0;i--) {
         int left = buf_len - buf_off;
         int rc;
         if(left<=0) {
             break;
         }
-        rc = BKNI_Snprintf(buf+buf_off,left, "%08x",mask->client_masks[i]);
+        if(leading_zeros && clients_bitmap[i]==0) {
+            continue;
+        }
+        leading_zeros = false;
+        rc = BKNI_Snprintf(buf+buf_off,left, "%s%02x",(i%4)==3?".":"",clients_bitmap[i]);
         if(rc<0 || rc>=left) {
             break;
         }
@@ -435,7 +460,7 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
     for (i = 0; i < BMRC_Client_eMaxCount; i++)
     {
         BMRC_ClientInfo *client_info = &hMonitor->client_infos[i];
-        if (client_info->usClientId == BMRC_Client_eInvalid)
+        if (client_info->eClient == BMRC_Client_eInvalid)
         {
             BMRC_P_MONITOR_CLIENT_MASK_UNSET(hMonitor->clients.client_masks, i);
         }
@@ -883,7 +908,7 @@ BMRC_P_Monitor_Program(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMMA_Devic
     {
         BMRC_ClientInfo *client_info = &hMonitor->client_infos[client_id];
 
-        if (client_info->usClientId != BMRC_Client_eInvalid)
+        if (client_info->eClient != BMRC_Client_eInvalid)
         {
             BMRC_Checker_SetClient(hChecker, (BMRC_Client)client_id, BMRC_P_MONITOR_CLIENT_MASK_IS_SET(clients->client_masks, client_id) ? BMRC_AccessType_eNone : BMRC_AccessType_eBoth);
         }
@@ -939,7 +964,7 @@ BMRC_Monitor_P_Print_One_isrsafe(BMRC_Monitor_Handle hMonitor, unsigned i)
     const struct BMRC_Monitor_P_CheckerState *state = &hMonitor->checkerState[i];
     char blocked[8];
 #if BDBG_DEBUG_BUILD
-    char bitmap[1+2*sizeof(state->clients)];
+    char bitmap[1+3*(BMRC_P_CLIENTS_MAX+7)/8];
 #endif
     if(state->active) {
         BDBG_LOG(("ARC[%u%s]: " BDBG_UINT64_FMT "..." BDBG_UINT64_FMT " 0x%s", i, state->exclusive?" EXCL":"", BDBG_UINT64_ARG(state->addr), BDBG_UINT64_ARG(state->addr+state->size), BMRC_P_Monitor_BuildClientIdString_isrsafe(&state->clients, bitmap, sizeof(bitmap))));
@@ -1144,7 +1169,6 @@ BMRC_P_Monitor_UpdateFull(BMRC_Monitor_Handle hMonitor)
 {
     unsigned i;
     unsigned max_ranges;
-
     BDBG_ASSERT(hMonitor->max_ranges >= hMonitor->numberOfUserRanges);
     max_ranges = hMonitor->max_ranges - hMonitor->numberOfUserRanges;
     hMonitor->stats.updates.full++;

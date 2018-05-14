@@ -116,18 +116,6 @@ NEXUS_CFLAGS += -DNO_BP3_TA
 endif
 
 ######################
-# SARM Interface     #
-######################
-ifneq ($(SAGE_VERSION), 2x)
-ifeq ($(NEXUS_SAGE_SARM_TEST),y)
-include $(NEXUS_TOP)/../rockford/nexus_devel/extensions/sage/sarm/sarm.inc
-else
-NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_sarm.c
-endif
-endif
-NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include $(MAGNUM)/commonutils/avc/include
-
-######################
 # Secure_log Interface      #
 ######################
 ifneq ($(SAGE_VERSION), 2x)

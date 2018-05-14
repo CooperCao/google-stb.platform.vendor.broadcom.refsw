@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
@@ -922,14 +926,7 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
    pPicture->ePreferredTransferCharacteristics = pDefaultParams->ePreferredTransferCharacteristics; /* SWSTB-1629 */
 
    /* SWSTB-3450: initialize the HDR parameters */
-   pPicture->ulAvgContentLight      = pDefaultParams->ulAvgContentLight;
-   pPicture->ulMaxContentLight      = pDefaultParams->ulMaxContentLight;
-   pPicture->stDisplayPrimaries[0]  = pDefaultParams->stDisplayPrimaries[0];
-   pPicture->stDisplayPrimaries[1]  = pDefaultParams->stDisplayPrimaries[1];
-   pPicture->stDisplayPrimaries[2]  = pDefaultParams->stDisplayPrimaries[2];
-   pPicture->stWhitePoint           = pDefaultParams->stWhitePoint;
-   pPicture->ulMaxDispMasteringLuma = pDefaultParams->ulMaxDispMasteringLuma;
-   pPicture->ulMinDispMasteringLuma = pDefaultParams->ulMinDispMasteringLuma;
+   pPicture->stHdrMetadata.stStatic = pDefaultParams->stHdrMetadata.stStatic;
 
    if ( pUnifiedPicture )
    {
@@ -994,27 +991,11 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
 
          if ( BXDM_PictureProvider_ColorOverrideMode_eForce == pOverride->eOverrideMode )
          {
-            pPicture->ulAvgContentLight    = pOverride->stHDR.ulAvgContentLight;
-            pPicture->ulMaxContentLight    = pOverride->stHDR.ulMaxContentLight;
-
-            pPicture->stDisplayPrimaries[0]    = pOverride->stHDR.stDisplayPrimaries[0];
-            pPicture->stDisplayPrimaries[1]    = pOverride->stHDR.stDisplayPrimaries[1];
-            pPicture->stDisplayPrimaries[2]    = pOverride->stHDR.stDisplayPrimaries[2];
-            pPicture->stWhitePoint             = pOverride->stHDR.stWhitePoint;
-            pPicture->ulMaxDispMasteringLuma   = pOverride->stHDR.ulMaxDispMasteringLuma;
-            pPicture->ulMinDispMasteringLuma   = pOverride->stHDR.ulMinDispMasteringLuma;
+            pPicture->stHdrMetadata.stStatic = pOverride->stHDR.stStaticHdrMetadata;
          }
          else if ( BAVC_VideoCompressionStd_eH265 == pUnifiedPicture->stProtocol.eProtocol )
          {
-            pPicture->ulAvgContentLight    = pHDRInfo->ulAvgContentLight;
-            pPicture->ulMaxContentLight    = pHDRInfo->ulMaxContentLight;
-
-            pPicture->stDisplayPrimaries[0]    = pHDRInfo->stDisplayPrimaries[0];
-            pPicture->stDisplayPrimaries[1]    = pHDRInfo->stDisplayPrimaries[1];
-            pPicture->stDisplayPrimaries[2]    = pHDRInfo->stDisplayPrimaries[2];
-            pPicture->stWhitePoint             = pHDRInfo->stWhitePoint;
-            pPicture->ulMaxDispMasteringLuma   = pHDRInfo->ulMaxDispMasteringLuma;
-            pPicture->ulMinDispMasteringLuma   = pHDRInfo->ulMinDispMasteringLuma;
+            pPicture->stHdrMetadata.stStatic = pHDRInfo->stStaticHdrMetadata;
          }
 
       }
@@ -1803,9 +1784,9 @@ void BXDM_PPOUT_P_CalculateStaticVdcData_isr(
 
       uint32_t i;
 
-      pMFDPicture->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
-      pMFDPicture->stHdrMetadata.ulSize = 0;
-      pMFDPicture->stHdrMetadata.pData = NULL;
+      pMFDPicture->stHdrMetadata.stDynamic.eType = BAVC_HdrMetadataType_eUnknown;
+      pMFDPicture->stHdrMetadata.stDynamic.ulSize = 0;
+      pMFDPicture->stHdrMetadata.stDynamic.pData = NULL;
 
       for ( i=0; i < pstMeta->uiCount; i++ )
       {
@@ -1820,9 +1801,9 @@ void BXDM_PPOUT_P_CalculateStaticVdcData_isr(
                case BAVC_HdrMetadataType_eTch_Cvri:
                case BAVC_HdrMetadataType_eTch_Cri:
                case BAVC_HdrMetadataType_eTch_Slhdr: /* SWSTB-6121: */
-                  pMFDPicture->stHdrMetadata.eType = pstMeta->astExtensionData[i].data.stMetaDataHdr.eType;
-                  pMFDPicture->stHdrMetadata.ulSize = pstMeta->astExtensionData[i].data.stMetaDataHdr.uiSize;
-                  pMFDPicture->stHdrMetadata.pData = pstMeta->astExtensionData[i].data.stMetaDataHdr.pData;
+                  pMFDPicture->stHdrMetadata.stDynamic.eType = pstMeta->astExtensionData[i].data.stMetaDataHdr.eType;
+                  pMFDPicture->stHdrMetadata.stDynamic.ulSize = pstMeta->astExtensionData[i].data.stMetaDataHdr.uiSize;
+                  pMFDPicture->stHdrMetadata.stDynamic.pData = pstMeta->astExtensionData[i].data.stMetaDataHdr.pData;
                   break;
 
                default:
@@ -2568,18 +2549,7 @@ void BXDM_PPOUT_P_OpenChannel(
    pDefaultParams->eChromaBitDepth = BAVC_VideoBitDepth_e8Bit;
 
    /* SWSTB-3450: HDR parameters */
-   pDefaultParams->ulAvgContentLight = 0;
-   pDefaultParams->ulMaxContentLight = 0;
-   pDefaultParams->stDisplayPrimaries[0].ulX = 0xFFFFFFFF;
-   pDefaultParams->stDisplayPrimaries[0].ulY = 0xFFFFFFFF;
-   pDefaultParams->stDisplayPrimaries[1].ulX = 0xFFFFFFFF;
-   pDefaultParams->stDisplayPrimaries[1].ulY = 0xFFFFFFFF;
-   pDefaultParams->stDisplayPrimaries[2].ulX = 0xFFFFFFFF;
-   pDefaultParams->stDisplayPrimaries[2].ulY = 0xFFFFFFFF;
-   pDefaultParams->stWhitePoint.ulX          = 0xFFFFFFFF;
-   pDefaultParams->stWhitePoint.ulY          = 0xFFFFFFFF;
-   pDefaultParams->ulMaxDispMasteringLuma    = 0xFFFFFFFF;
-   pDefaultParams->ulMinDispMasteringLuma    = 0xFFFFFFFF;
+   BAVC_GetDefaultStaticHdrMetadata_isrsafe(&pDefaultParams->stHdrMetadata.stStatic);
 
    return;
 

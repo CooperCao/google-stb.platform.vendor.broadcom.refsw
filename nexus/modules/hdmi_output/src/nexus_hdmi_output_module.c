@@ -50,6 +50,7 @@
 #include "priv/nexus_hdmi_input_priv.h"
 #endif
 #endif
+#include "bchp_pwr.h"
 
 BDBG_MODULE(nexus_hdmi_output);
 
@@ -278,4 +279,54 @@ void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output)
 #else
     BSTD_UNUSED(output);
 #endif
+}
+
+NEXUS_Error NEXUS_HdmiOutputModule_GetStatus_priv(NEXUS_HdmiOutputModuleStatus *pStatus)
+{
+    unsigned i;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    for (i=0;i<NEXUS_MAX_HDMI_OUTPUTS;i++) {
+        unsigned clk=0, phy=0;
+#if BCHP_PWR_RESOURCE_HDMI_TX_SRAM || BCHP_PWR_RESOURCE_HDMI_TX_1_SRAM
+        unsigned sram=0;
+#endif
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_HDMI_TX_CLK
+                clk = BCHP_PWR_RESOURCE_HDMI_TX_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_HDMI_TX_PHY
+                phy = BCHP_PWR_RESOURCE_HDMI_TX_PHY;
+#endif
+#ifdef BCHP_PWR_RESOURCE_HDMI_TX_SRAM
+                sram = BCHP_PWR_RESOURCE_HDMI_TX_SRAM;
+#endif
+                break;
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
+                clk = BCHP_PWR_RESOURCE_HDMI_TX_1_CLK;
+#endif
+#ifdef BCHP_PWR_RESOURCE_HDMI_TX_1_PHY
+                phy = BCHP_PWR_RESOURCE_HDMI_TX_1_PHY;
+#endif
+#ifdef BCHP_PWR_RESOURCE_HDMI_TX_1_SRAM
+                sram = BCHP_PWR_RESOURCE_HDMI_TX_1_SRAM;
+#endif
+                break;
+        }
+        if (clk) {
+            pStatus->power.core[i].clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+        if (phy) {
+            pStatus->power.core[i].phy = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, phy)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+#if BCHP_PWR_RESOURCE_HDMI_TX_SRAM || BCHP_PWR_RESOURCE_HDMI_TX_1_SRAM
+        if (sram) {
+            pStatus->power.core[i].sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, sram)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+#endif
+    }
+
+    return NEXUS_SUCCESS;
 }

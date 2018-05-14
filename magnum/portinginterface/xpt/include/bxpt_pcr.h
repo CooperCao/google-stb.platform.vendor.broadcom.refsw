@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -304,6 +308,7 @@ typedef struct BXPT_PCR_DefSettings
 }
 BXPT_PCR_DefSettings;
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     Return the number of Pcr channels.
@@ -317,6 +322,7 @@ BERR_Code BXPT_PCR_GetTotalChannels(
     BXPT_Handle hXpt,           /* [in] The transport handle */
     unsigned int *TotalChannels     /* [out] The number of Pcr channels. */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -441,6 +447,7 @@ BERR_Code   BXPT_PCR_GetPhaseError_isr(
     int32_t *p_error
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     controls modifying the rate of the STC extension counter.
@@ -458,7 +465,9 @@ BERR_Code   BXPT_PCR_SetStcExtRateControl(
     BXPT_PCR_Handle hPcr,                        /* [in] The pcr handle */
     const BXPT_PCR_STCExtRateConfig  *StcExtRateCfg /* [in] Stc extension rate control configuration */
     );
+#endif
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     enables PCR processing on PCR_PID and puts PCR into an acquisition mode.
@@ -470,6 +479,21 @@ Returns:
     BERR_INVALID_PARAMETER      - Bad input parameter
 ***************************************************************************/
 void    BXPT_PCR_RefreshPcrPid(
+    BXPT_PCR_Handle hPcr               /*[in] The pcr handle  */
+    );
+
+/***************************************************************************
+Summary:
+    Isr version of enabling PCR processing on PCR_PID and putting PCR into
+    an acquisition mode.
+Description:
+    This function enables PCR processing on PCR_PID. Writing a "1" to Valid bit
+    also puts the PCR module into an acquisition mode.
+Returns:
+    BERR_SUCCESS                - if successful
+    BERR_INVALID_PARAMETER      - Bad input parameter
+***************************************************************************/
+void BXPT_PCR_RefreshPcrPid_isr(
     BXPT_PCR_Handle hPcr               /*[in] The pcr handle  */
     );
 
@@ -487,6 +511,7 @@ BERR_Code   BXPT_PCR_GetLastPcr(
     uint32_t *p_pcrHi,            /* [out] Upper bits of PCR*/
     uint32_t *p_pcrLo             /* [out] Bit9-LSB of base bit[0-8]-extension*/
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -504,6 +529,7 @@ BERR_Code   BXPT_PCR_GetLastPcr_isr(
     uint32_t *p_pcrLo
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
     Gets the STC counter values
@@ -518,6 +544,7 @@ BERR_Code   BXPT_PCR_GetStc(
     uint32_t *p_stcHi,           /* [out] Upper bits of STC*/
     uint32_t *p_stcLo            /* [out] bit9-LSB of base bit[0-8]-extension*/
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -553,21 +580,6 @@ Returns:
 BERR_Code   BXPT_PCR_GetfreqRefConfig(
     BXPT_PCR_Handle hPcr,                               /* [in] The pcr handle */
     BXPT_PCR_TimebaseFreqRefConfig  *TimebaseFreqConfig /* [out] Non transport source configuration */
-    );
-
-/***************************************************************************
-Summary:
-    Isr version of enabling PCR processing on PCR_PID and putting PCR into
-    an acquisition mode.
-Description:
-    This function enables PCR processing on PCR_PID. Writing a "1" to Valid bit
-    also puts the PCR module into an acquisition mode.
-Returns:
-    BERR_SUCCESS                - if successful
-    BERR_INVALID_PARAMETER      - Bad input parameter
-***************************************************************************/
-void BXPT_PCR_RefreshPcrPid_isr(
-    BXPT_PCR_Handle hPcr               /*[in] The pcr handle  */
     );
 
 /***************************************************************************
@@ -641,6 +653,7 @@ void BXPT_PCR_SetTimeRefTrackRange(
     BXPT_PCR_RefTrackRange TrackRange
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Set the phase error clamp range for the phase error input to the loop filter
@@ -655,6 +668,7 @@ void BXPT_PCR_SetPhaseErrorClampRange(
     BXPT_PCR_Handle hPcr,
     BXPT_PCR_PhaseErrorClampRange ClampRange
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -699,9 +713,11 @@ BERR_Code BXPT_PCR_GetIntId(
    );
 
 
+#if BXPT_HAS_DPCR_INTEGRATOR_WORKAROUND
 BERR_Code BXPT_PCR_P_Integrator(
     BXPT_Handle hXpt
     );
+#endif
 
 
 #ifdef __cplusplus

@@ -171,38 +171,40 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
     NEXUS_DmaHandle dma;
     NEXUS_DmaSettings settings;
 
+    BDBG_CASSERT(BXPT_NUM_DMA_CHANNELS<=NEXUS_NUM_DMA_CHANNELS);
 #if BXPT_DMA_HAS_MEMDMA_MCPB
     if (index == NEXUS_ANY_ID) {
         unsigned i;
         /* search for unused HW channels */
-        for (i=0; i<NEXUS_NUM_DMA_CHANNELS; i++) {
+        for (i=0; i<BXPT_NUM_DMA_CHANNELS; i++) {
             if (pTransport->dmaChannel[i].dma==NULL) {
                 index = i;
                 break;
             }
         }
-        if (i==NEXUS_NUM_DMA_CHANNELS) { /* if all HW channels are used, we have to virtualize */
+        if (i==BXPT_NUM_DMA_CHANNELS) { /* if all HW channels are used, we have to virtualize */
             #define DEFAULT_VIRTUAL_CHANNEL 0
-            BDBG_WRN(("All %u DMA channels in use. Virtualizing on channel %u", NEXUS_NUM_DMA_CHANNELS, DEFAULT_VIRTUAL_CHANNEL));
+            BDBG_WRN(("All %u DMA channels in use. Virtualizing on channel %u", BXPT_NUM_DMA_CHANNELS, DEFAULT_VIRTUAL_CHANNEL));
             index = DEFAULT_VIRTUAL_CHANNEL;
         }
     }
 #else
+    BDBG_CASSERT(NEXUS_NUM_DMA_CHANNELS>=NEXUS_NUM_PLAYPUMPS);
     /* MCPB channels are shared between playpump and DMA. for DMA, count back from MAX */
     if (index == NEXUS_ANY_ID) {
         int i;
-        unsigned firstInUse = NEXUS_NUM_DMA_CHANNELS;
-        for (i=NEXUS_NUM_DMA_CHANNELS-1; i>=0; i--) {
+        unsigned firstInUse = BXPT_NUM_DMA_CHANNELS;
+        for (i=BXPT_NUM_DMA_CHANNELS-1; i>=0; i--) {
             if (pTransport->dmaChannel[i].dma==NULL && pTransport->playpump[i].playpump==NULL) {
                 index = i;
                 break;
             }
-            else if (firstInUse==NEXUS_NUM_DMA_CHANNELS && pTransport->dmaChannel[i].dma) {
+            else if (firstInUse==BXPT_NUM_DMA_CHANNELS && pTransport->dmaChannel[i].dma) {
                 firstInUse = i;
             }
         }
         if (i<0) {
-            if (firstInUse<NEXUS_NUM_DMA_CHANNELS) {
+            if (firstInUse<BXPT_NUM_DMA_CHANNELS) {
                 BDBG_WRN(("All DMA channels in use. Virtualizing on channel %u", firstInUse));
                 index = firstInUse;
             }
@@ -213,8 +215,8 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
             }
         }
     }
-    else if (index<NEXUS_NUM_DMA_CHANNELS) {
-        unsigned newIndex = NEXUS_NUM_DMA_CHANNELS - 1 - index;
+    else if (index<BXPT_NUM_DMA_CHANNELS) {
+        unsigned newIndex = BXPT_NUM_DMA_CHANNELS - 1 - index;
         if (pTransport->playpump[newIndex].playpump) {
             BDBG_ERR(("DMA channel %u's MCPB channel is already used by playback", index));
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -225,7 +227,7 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
     }
 #endif
 
-    if (index>=NEXUS_NUM_DMA_CHANNELS) {
+    if (index>=BXPT_NUM_DMA_CHANNELS) {
         BDBG_ERR(("DMA channel %d is not supported on this chipset", index));
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
@@ -1007,7 +1009,7 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_OpenDma_Priv(unsigned pid, const NEXUS_P
     NEXUS_PidChannelHandle pidChannel = NULL;
     NEXUS_P_HwPidChannel *hwPidChannel = NULL;
     unsigned lowestReservedPidChannel = NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eMax-1);
-    unsigned highestReservedPidChannel = NEXUS_NUM_DMA_CHANNELS + 1; /* +1 for SAGE-reserved channel */
+    unsigned highestReservedPidChannel = BXPT_NUM_DMA_CHANNELS + 1; /* +1 for SAGE-reserved channel */
     BSTD_UNUSED(pSettings);
 
     /* The search increments from highest to lowest in this way:
@@ -1119,4 +1121,10 @@ NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const N
     BDBG_MSG(("   queued job:%p", (void *)handle));
 done:
     return errCode;
+}
+
+void NEXUS_GetDmaCapabilities( NEXUS_DmaCapabilities *capabilities)
+{
+    capabilities->numChannels = BXPT_NUM_DMA_CHANNELS;
+    return;
 }

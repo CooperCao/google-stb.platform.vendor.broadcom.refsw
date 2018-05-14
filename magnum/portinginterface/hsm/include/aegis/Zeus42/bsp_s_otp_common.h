@@ -13,11 +13,11 @@
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  1.  This program, including its structure, sequence and organization, constitutes the valuable trade
  *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  2.  TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
  *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
  *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
  *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
  *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  3.  TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -40,6 +40,7 @@
 #ifndef ZEUS_VERSION
 #warning "ZEUS_VERSION is not defined under bsp_s_otp_common.h"
 #endif
+
 
 
 #ifndef BSP_S_OTP_COMMON_H__
@@ -123,9 +124,9 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_ePublicKey0Index = 73,
   BCMD_Otp_CmdMsp_eSecureBootEnable = 74,
 #if (ZEUS_VERSION < ZEUS_4_2)
-  BCMD_Otp_CmdMsp_eReserved75_0 = 75,
-#else
   BCMD_Otp_CmdMsp_eReserved75 = 75,
+#else
+  BCMD_Otp_CmdMsp_eReserved75_0 = 75,
 #endif
   BCMD_Otp_CmdMsp_eRaagaAVerifyEnable = 76,
   BCMD_Otp_CmdMsp_eVideoVerifyEnable = 77,
@@ -170,8 +171,8 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved109 = 109,
   BCMD_Otp_CmdMsp_eReserved110 = 110,
   BCMD_Otp_CmdMsp_eReserved111 = 111,
-  BCMD_Otp_CmdMsp_eReserved112_0 = 112,
   BCMD_Otp_CmdMsp_eReserved112 = 112,
+  BCMD_Otp_CmdMsp_eReserved112_0 = 112,
   BCMD_Otp_CmdMsp_eReserved113 = 113,
   BCMD_Otp_CmdMsp_eReserved114 = 114,
   BCMD_Otp_CmdMsp_eReserved115 = 115,
@@ -420,6 +421,7 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved597 = 597,
   BCMD_Otp_CmdMsp_eReserved598 = 598,
   BCMD_Otp_CmdMsp_eReserved599 = 599,
+
   BCMD_Otp_CmdMsp_eReserved600 = 600,
   BCMD_Otp_CmdMsp_eReserved601 = 601,
   BCMD_Otp_CmdMsp_eReserved602 = 602,
@@ -429,7 +431,7 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved606 = 606,
   BCMD_Otp_CmdMsp_eReserved607 = 607,
   BCMD_Otp_CmdMsp_eReserved608 = 608,
-  BCMD_Otp_CmdMsp_eArcPartition = 609,
+  BCMD_Otp_CmdMsp_eReserved609 = 609,
   BCMD_Otp_CmdMsp_eReserved610 = 610,
 #if (ZEUS_VERSION >= ZEUS_4_2)
   BCMD_Otp_CmdMsp_eReserved611_0 = 611,
@@ -459,17 +461,75 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eRaveFwEpoch = 632,
   BCMD_Otp_CmdMsp_eAltMarketId = 633,
   BCMD_Otp_CmdMsp_eMarketId1 = 633,
-  BCMD_Otp_CmdMsp_eArcType = 634,
+  BCMD_Otp_CmdMsp_eReserved634 = 634,
   BCMD_Otp_CmdMsp_eReserved635 = 635,
   BCMD_Otp_CmdMsp_eReserved636 = 636,
   BCMD_Otp_CmdMsp_eReserved637 = 637,
   BCMD_Otp_CmdMsp_eReserved638 = 638,
   BCMD_Otp_CmdMsp_eReserved639 = 639,
-
   BCMD_Otp_CmdMsp_eReserved640 = 640,
   BCMD_Otp_CmdMsp_eReserved641 = 641,
   BCMD_Otp_CmdMsp_eReserved642 = 642,
   BCMD_Otp_CmdMsp_eReserved643 = 643,
+  BCMD_Otp_CmdMsp_eZmDisabled = 644,
+  BCMD_Otp_CmdMsp_eOemSigningRightsLocked = 645,
+  BCMD_Otp_CmdMsp_eKey0_0SDLSigningRight  = 646,
+  BCMD_Otp_CmdMsp_eKey0_1SDLSigningRight  = 647,
+  BCMD_Otp_CmdMsp_eKey0_2SDLSigningRight  = 648,
+  BCMD_Otp_CmdMsp_eKey0_3SDLSigningRight  = 649,
+  BCMD_Otp_CmdMsp_eKey0_4SDLSigningRight  = 650,
+  BCMD_Otp_CmdMsp_eKey0_5SDLSigningRight  = 651,
+  BCMD_Otp_CmdMsp_eKey0_6SDLSigningRight  = 652,
+  BCMD_Otp_CmdMsp_eKey0_0SDLSigningRightOverride  = 653,
+  BCMD_Otp_CmdMsp_eKey0_1SDLSigningRightOverride  = 654,
+  BCMD_Otp_CmdMsp_eKey0_2SDLSigningRightOverride  = 655,
+  BCMD_Otp_CmdMsp_eKey0_3SDLSigningRightOverride  = 656,
+  BCMD_Otp_CmdMsp_eKey0_4SDLSigningRightOverride  = 657,
+  BCMD_Otp_CmdMsp_eKey0_5SDLSigningRightOverride  = 658,
+  BCMD_Otp_CmdMsp_eKey0_6SDLSigningRightOverride  = 659,
+  BCMD_Otp_CmdMsp_eKey0_0CaMapping = 660,
+  BCMD_Otp_CmdMsp_eKey0_1CaMapping = 661,
+  BCMD_Otp_CmdMsp_eKey0_2CaMapping = 662,
+  BCMD_Otp_CmdMsp_eKey0_3CaMapping = 663,
+  BCMD_Otp_CmdMsp_eKey0_4CaMapping = 664,
+  BCMD_Otp_CmdMsp_eKey0_5CaMapping = 665,
+  BCMD_Otp_CmdMsp_eKey0_6CaMapping = 666,
+  BCMD_Otp_CmdMsp_eOtpKeyACaMapping = 667,
+  BCMD_Otp_CmdMsp_eOtpKeyBCaMapping = 668,
+  BCMD_Otp_CmdMsp_eOtpKeyCCaMapping = 669,
+  BCMD_Otp_CmdMsp_eOtpKeyDCaMapping = 670,
+  BCMD_Otp_CmdMsp_eOtpKeyECaMapping = 671,
+  BCMD_Otp_CmdMsp_eOtpKeyFCaMapping = 672,
+  BCMD_Otp_CmdMsp_eOtpKeyGCaMapping = 673,
+  BCMD_Otp_CmdMsp_eOtpKeyHCaMapping = 674,
+  BCMD_Otp_CmdMsp_eOtpKeyAAllowed = 675,
+  BCMD_Otp_CmdMsp_eOtpKeyBAllowed = 676,
+  BCMD_Otp_CmdMsp_eOtpKeyCAllowed = 677,
+  BCMD_Otp_CmdMsp_eOtpKeyDAllowed = 678,
+  BCMD_Otp_CmdMsp_eOtpKeyEAllowed = 679,
+  BCMD_Otp_CmdMsp_eOtpKeyFAllowed = 680,
+  BCMD_Otp_CmdMsp_eOtpKeyGAllowed = 681,
+  BCMD_Otp_CmdMsp_eOtpKeyHAllowed = 682,
+  BCMD_Otp_CmdMsp_eOtpKeyAPermDisabled = 683,
+  BCMD_Otp_CmdMsp_eOtpKeyBPermDisabled = 684,
+  BCMD_Otp_CmdMsp_eOtpKeyCPermDisabled = 685,
+  BCMD_Otp_CmdMsp_eOtpKeyDPermDisabled = 686,
+  BCMD_Otp_CmdMsp_eOtpKeyEPermDisabled = 687,
+  BCMD_Otp_CmdMsp_eOtpKeyFPermDisabled = 688,
+  BCMD_Otp_CmdMsp_eOtpKeyGPermDisabled = 689,
+  BCMD_Otp_CmdMsp_eOtpKeyHPermDisabled = 690,
+  BCMD_Otp_CmdMsp_eNskAllowed = 691,
+  BCMD_Otp_CmdMsp_ePowayAllowed = 692,
+  BCMD_Otp_CmdMsp_eNskPermDisabled = 693,
+  BCMD_Otp_CmdMsp_ePowayPermDisabled = 694,
+  BCMD_Otp_CmdMsp_eStbModelId = 695,
+  BCMD_Otp_CmdMsp_eUserReg2 = 696,
+  BCMD_Otp_CmdMsp_eKey0PrimeSigningRightsTrustZone = 697,
+  BCMD_Otp_CmdMsp_eKey0SigningRightsTrustZone = 698,
+  BCMD_Otp_CmdMsp_eSystemEpoch4 = 699,
+  BCMD_Otp_CmdMsp_eSystemEpoch5 = 700,
+  BCMD_Otp_CmdMsp_eSystemEpoch6 = 701,
+  BCMD_Otp_CmdMsp_eSystemEpoch7 = 702,
   BCMD_Otp_CmdMsp_eSize
 } BCMD_Otp_CmdMsp_e ;
 

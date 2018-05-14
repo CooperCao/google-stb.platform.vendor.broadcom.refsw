@@ -102,8 +102,8 @@ BERR_Code BHSM_Hdcp1x_RouteKey( BHSM_Handle hHsm, const BHSM_Hdcp1xRouteKey *pPa
         bspConfig.in.stbOwnerIdSel         = (uint8_t)pParam->root.askm.stbOwnerSelect;
         switch( pParam->root.askm.caVendorIdScope )
         {
-            case BHSM_KeyladderCaVendorIdScope_eChipFamily: bspConfig.in.askmMaskKeySel = 0; break;
-            case BHSM_KeyladderCaVendorIdScope_eFixed:      bspConfig.in.askmMaskKeySel = 2; break;
+            case BHSM_KeyLadderCaVendorIdScope_eChipFamily: bspConfig.in.askmMaskKeySel = 0; break;
+            case BHSM_KeyLadderCaVendorIdScope_eFixed:      bspConfig.in.askmMaskKeySel = 2; break;
             default: return BERR_TRACE( BERR_INVALID_PARAMETER );
         }
     }

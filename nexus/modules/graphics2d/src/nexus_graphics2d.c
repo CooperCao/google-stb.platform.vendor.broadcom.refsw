@@ -1445,7 +1445,6 @@ NEXUS_Error NEXUS_Graphics2D_Memset32( NEXUS_Graphics2DHandle gfx, void *address
     NEXUS_Error err = NEXUS_SUCCESS;
     uint32_t offset;
 
-    nexus_p_check_and_switch_secure(gfx);
 
     if (count < 0x400 || count > 0x1000000) { /* 1K to 16M */
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -1454,12 +1453,18 @@ NEXUS_Error NEXUS_Graphics2D_Memset32( NEXUS_Graphics2DHandle gfx, void *address
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
+    if(address==NULL) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
     offset = NEXUS_AddrToOffset(address);
     if( offset == 0 )
     {
         BDBG_ERR(("Invalid memory address %p specified", address));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
+
+    nexus_p_check_and_switch_secure(gfx);
 
     err = BGRClib_Memset32( gfx->grclib, offset, data, count);
 
@@ -1714,4 +1719,53 @@ NEXUS_Error NEXUS_Graphics2D_SetFrequencyScaling(unsigned percent)
     BSTD_UNUSED(percent);
     return NEXUS_NOT_SUPPORTED;
 #endif
+}
+
+NEXUS_Error NEXUS_Graphics2DModule_GetStatus_priv(NEXUS_Graphics2DModuleStatus *pStatus)
+{
+    unsigned i;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    for (i=0;i<NEXUS_NUM_GRAPHICS2D_CORES;i++) {
+        unsigned clk=0, sram=0;
+        switch(i) {
+            case 0:
+#ifdef BCHP_PWR_RESOURCE_M2MC0
+                clk = BCHP_PWR_RESOURCE_M2MC0;
+#endif
+#ifdef BCHP_PWR_RESOURCE_M2MC0_SRAM
+                sram = BCHP_PWR_RESOURCE_M2MC0_SRAM;
+#endif
+                break;
+#if NEXUS_NUM_GRAPHICS2D_CORES > 1
+            case 1:
+#ifdef BCHP_PWR_RESOURCE_M2MC1
+                clk = BCHP_PWR_RESOURCE_M2MC1;
+#endif
+#ifdef BCHP_PWR_RESOURCE_M2MC1_SRAM
+                sram = BCHP_PWR_RESOURCE_M2MC1_SRAM;
+#endif
+                break;
+#endif
+#if NEXUS_NUM_GRAPHICS2D_CORES > 2
+            case 2:
+#ifdef BCHP_PWR_RESOURCE_MM_M2MC0
+                clk = BCHP_PWR_RESOURCE_MM_M2MC0;
+#endif
+#ifdef BCHP_PWR_RESOURCE_MMM2MC0_SRAM
+                sram = BCHP_PWR_RESOURCE_MMM2MC0_SRAM;
+#endif
+                break;
+#endif
+        }
+        if (clk) {
+            pStatus->power.core[i].clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, clk)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+            BCHP_PWR_GetClockRate(g_pCoreHandles->chp, clk, &pStatus->power.core[i].frequency);
+        }
+        if (sram) {
+            pStatus->power.core[i].sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, sram)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+        }
+    }
+
+    return NEXUS_SUCCESS;
 }

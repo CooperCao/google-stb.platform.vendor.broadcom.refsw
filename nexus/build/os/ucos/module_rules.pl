@@ -1,5 +1,5 @@
 #############################################################################
-#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+#  Copyright (C) 2008-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -159,7 +159,7 @@ foreach $moduleUpper (@ARGV) {
         }
 
         # Module Rules
-        print OUTFILE "ifeq (\$(B_REFSW_ARCH), arm-linux)\n";
+        print OUTFILE "ifeq (\$(filter \$(B_REFSW_ARCH), arm-linux aarch64-linux),\$(B_REFSW_ARCH))\n";
         print OUTFILE "\$(NEXUS_$moduleUpper\_OBJECTS): \$(NEXUS_OBJ_DIR)/$moduleUpper/%.\$(NEXUS_OBJ_SUFFIX): %.c \${NEXUS_OBJ_DIR}/$moduleUpper/exists \$(NEXUS_$moduleUpper\_SYNCTHUNKS) \$(NEXUS_IPC_MODULES)\n";
         print OUTFILE "\t\@echo \"[Compile... \$(notdir \$<) ($moduleLower)]\"\n";
         print OUTFILE "\t\$(Q_)\$(CC) \$(CDEP_FLAG) -include \${NEXUS_PRECOMPILED_HEADER_H} \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@\n";

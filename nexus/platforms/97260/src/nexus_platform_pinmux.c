@@ -53,7 +53,7 @@ BDBG_MODULE(nexus_platform_pinmux);
 #if NEXUS_HAS_SAGE
 static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 {
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
@@ -61,21 +61,26 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         return;
     }
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus.boardId.major));
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        BDBG_ERR(("Out of System Memory"));
+        return;
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus->boardId.major));
 
-    switch (platformStatus.boardId.major) {
+    switch (platformStatus->boardId.major) {
 
         default:
         {
             /* USFF boards don't have anything other than UART 0 headers */
-            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus->boardId.major));
             break;
         }
         case SV_BOARD_ID:
         {
             /* 7260 and 72603 SVs are different designs. 7260 uses a 7250 SV but the schematics require some mapping */
-            if (platformStatus.chipId == 0x7260) {
+            if (platformStatus->chipId == 0x7260) {
 
                 /* 7250 GPIO 58/59 == 7260 GPIO 13/14 for UART 1 */
                 /* 7250 GPIO 96/97 == 7260 GPIO 38/39 for UART 2 */
@@ -163,6 +168,8 @@ static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
     }
 
+    BKNI_Free(platformStatus);
+
     /* Enable mux inside sys_ctrl to output the uart router to the test port */
     reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
     reg = BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS;
@@ -180,13 +187,19 @@ Description:
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
 #if NEXUS_HAS_DVB_CI
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 #endif
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
+
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
+    BKNI_Free(platformStatus);
 
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux();

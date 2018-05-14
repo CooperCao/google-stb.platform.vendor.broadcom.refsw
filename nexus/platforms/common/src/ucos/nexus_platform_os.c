@@ -1192,7 +1192,7 @@ BCHP_PmapSettings *NEXUS_Platform_P_ReadPMapSettings(void)
     return NULL;
 }
 
-void NEXUS_Platform_P_FreePMapSettings(NEXUS_Core_PreInitState *preInitState)
+void NEXUS_Platform_P_FreePMapSettings(BCHP_PmapSettings *preInitState)
 {
     BSTD_UNUSED(preInitState);
     return;

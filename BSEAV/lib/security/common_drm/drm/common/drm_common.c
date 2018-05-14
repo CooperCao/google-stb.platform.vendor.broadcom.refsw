@@ -77,7 +77,9 @@
 
 #include "drm_common.h"
 #include "drm_common_priv.h"
+#ifdef NONSAGE_CREDENTIAL_CAPABLE
 #include "drm_key_region.h"
+#endif
 #include "drm_common_swcrypto.h"
 #include "drm_key_binding.h"
 
@@ -605,6 +607,7 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
 #if (NEXUS_SECURITY_API_VERSION==1)
                 cipheredKeySettings.keySlotType = pDrmCommonOpStruct->keyConfigSettings.settings.keySlotType;
 
+#ifndef COMMON_DRM_LEGACY_MODE
                 if (pDrmCommonOpStruct->keySrc == CommonCrypto_eOtpKey)
                 {
                     if(askmMode == 0x03 || askmMode == 0x02 || askmMode == 0x00)
@@ -633,8 +636,32 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
                     BDBG_ERR(("case 4--%s - invalid parameters *******************************", BSTD_FUNCTION));
                     rc = Drm_CryptoConfigErr;
                 }
-#else
-                cipheredKeySettings.keySlotEntryType = pDrmCommonOpStruct->keyConfigSettings.settings.keySlotEntryType;
+#else /* COMMON_DRM_LEGACY_MODE - For compatibility with URSR 12.4-16.4 */
+                if ((askmMode == 0x01) && (pDrmCommonOpStruct->keySrc == CommonCrypto_eOtpKey))
+                {
+                    BDBG_MSG(("%s - ASKM ENABLED, overriding variables *******************************", BSTD_FUNCTION));
+                    cipheredKeySettings.keySrc = CommonCrypto_eCustKey;
+                    BKNI_Memcpy(pDrmCommonOpStruct->pKeyLadderInfo->procInForKey3, askmProcInForKey3, 16);
+                    BKNI_Memcpy(pDrmCommonOpStruct->pKeyLadderInfo->procInForKey4, askmProcInForKey4, 16);
+                    pDrmCommonOpStruct->pKeyLadderInfo->custKeySelect = 0x35;
+                    pDrmCommonOpStruct->pKeyLadderInfo->keyVarHigh = 0xC9;
+                    pDrmCommonOpStruct->pKeyLadderInfo->keyVarLow = 0xC6;
+                }
+                else
+                {
+                    cipheredKeySettings.keySrc = pDrmCommonOpStruct->keySrc;
+                }
+#endif
+#else /* NEXUS_SECURITY_API_VERSION != 1 */
+                if(pDrmCommonOpStruct->keyConfigSettings.settings.opType==NEXUS_CryptographicOperation_eEncrypt)
+                {
+                    cipheredKeySettings.keySlotEntryType = NEXUS_KeySlotBlockEntry_eCpsClear;
+                }
+                if(pDrmCommonOpStruct->keyConfigSettings.settings.opType==NEXUS_CryptographicOperation_eDecrypt)
+                {
+                    cipheredKeySettings.keySlotEntryType = NEXUS_KeySlotBlockEntry_eCpdClear;
+                }
+
                 if (pDrmCommonOpStruct->keySrc == CommonCrypto_eOtpDirect)
                 {
                    if(askmMode == 0x03 || askmMode == 0x02 || askmMode == 0x00)
@@ -1137,8 +1164,12 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
               mspStruct.mspDataBuf[0], mspStruct.mspDataBuf[1], mspStruct.mspDataBuf[2], mspStruct.mspDataBuf[3]));
 
     askmMode = (0x03 & mspStruct.mspDataBuf[3]);
-    BDBG_MSG(("%s - askmMode = '0x%2x'", BSTD_FUNCTION, askmMode));
+    BDBG_MSG(("%s - askmMode = '0x%02x'", BSTD_FUNCTION, askmMode));
 
+#ifdef COMMON_DRM_LEGACY_MODE
+    if(askmMode == 0x1)
+#endif
+    {
     rc = DRM_Common_FetchDeviceIds(&chipInfo);
     if(rc != Drm_Success)
     {
@@ -1161,8 +1192,9 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     DRM_MSG_PRINT_BUF("digest", digest, 32);
     BKNI_Memcpy(askmProcInForKey3, digest, 16);
     BKNI_Memcpy(askmProcInForKey4, &digest[16], 16);
+    }
 }
-#else
+#else /* NEXUS_SECURITY_API_VERSION > 1 */
 {
     NEXUS_Error nx_rc = NEXUS_SUCCESS;
     NEXUS_OtpMspRead mspStruct;
@@ -1177,6 +1209,7 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
 
     BDBG_MSG(("%s - Entering function ...", BSTD_FUNCTION));
 
+    BKNI_Memset(&mspStruct, 0x00, sizeof(mspStruct));
     nx_rc = NEXUS_OtpMsp_Read( index, &mspStruct);
     if(nx_rc != NEXUS_SUCCESS)
     {
@@ -1186,12 +1219,10 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     }
 
     mspStruct.data &= mspStruct.data & mspStruct.valid;
-    mspData = (uint8_t*)&mspStruct.data;
-    /*BDBG_MSG(("%s - mspDataBuf = 0x%02x 0x%02x 0x%02x 0x%02x \n\n", BSTD_FUNCTION,
-            mspData[0], mspData[1], mspData[2], mspData[3]));*/
+    /*BDBG_MSG(("%s - mspStruct.data = 0x%02x\n\n", BSTD_FUNCTION, mspStruct.data));*/
 
-        askmMode = (0x03 & mspData[3]);
-        BDBG_MSG(("%s - askmMode = '0x%2x'", BSTD_FUNCTION, askmMode));
+    askmMode = mspStruct.data & 0x03;
+    BDBG_MSG(("%s - askmMode = '0x%2x'", BSTD_FUNCTION, askmMode));
 
     rc = DRM_Common_FetchDeviceIds(&chipInfo);
     if(rc != Drm_Success)

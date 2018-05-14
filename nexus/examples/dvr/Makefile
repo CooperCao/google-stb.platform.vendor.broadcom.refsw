@@ -38,6 +38,7 @@
 ############################################################
 
 APPS = \
+	dvr_ad_replacement \
 	codec_probe \
 	dqt_trick \
 	index_audio \

@@ -72,12 +72,17 @@ bool BCHP_SAGE_HasEverStarted(BREG_Handle hReg)
     return (BREG_Read32(hReg, SAGE_CRR_START_REG) != 0x0);
 }
 
+bool BCHP_SAGE_IsStarted(BREG_Handle hReg)
+{
+    return ((BREG_Read32(hReg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+            & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK)==0);
+}
+
 uint32_t BCHP_SAGE_GetStatus(BREG_Handle hReg)
 {
     uint32_t sage_status = BSAGElibBootStatus_eNotStarted;
 
-    if((BREG_Read32(hReg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
-            & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK) == 0)
+    if(BCHP_SAGE_IsStarted(hReg))
     {
         uint32_t val;
         uint32_t totalBootTimeUs = 0;
@@ -175,7 +180,7 @@ BCHP_SAGE_Reset(
             {
                 /* SAGE has indicated it's done, but BSP may not have powered off yet...
                  * wait for SAGE to be put in reset */
-                if(BCHP_SAGE_GetStatus(hReg) == BSAGElibBootStatus_eStarted)
+                if(BCHP_SAGE_IsStarted(hReg))
                 {
                     continue;
                 }

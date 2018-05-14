@@ -256,8 +256,10 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_MemoryConfigurationSettings *pMemConfigSettings;
     NEXUS_MemoryRtsSettings rtsSettings;
     unsigned i;
+#if NEXUS_HAS_AUDIO
     unsigned buffer_size = 0;
     const char *pEnv = NULL;
+#endif
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings)); /* don't call BKNI_Memset prior to initializing magnum */
     if (!g_NEXUS_platformModule && g_NEXUS_platformSettings.heap[0].size) {

@@ -58,11 +58,11 @@ static BERR_Code BCHP_PWR_P_Init(BCHP_Handle handle);
 static unsigned BCHP_PWR_P_GetInternalIndex(BCHP_PWR_ResourceId resourceId);
 #if BCHP_PWR_SUPPORT
 static BERR_Code BCHP_PWR_P_ReleaseResource(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool from_init);
-static const BCHP_PWR_P_Resource* BCHP_PWR_P_GetResourceHandle(BCHP_PWR_ResourceId resourceId);
 #else
 static void BCHP_PWR_P_Acquire(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId);
 static void BCHP_PWR_P_Release(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId);
 #endif
+static const BCHP_PWR_P_Resource* BCHP_PWR_P_GetResourceHandle(BCHP_PWR_ResourceId resourceId);
 static unsigned BCHP_PWR_P_GetInternalIndex(BCHP_PWR_ResourceId resourceId);
 #ifndef BDBG_NO_LOG
 static bool BCHP_PWR_P_IsResourceAcquired(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId);
@@ -469,13 +469,11 @@ internally, we number them starting at 0 with the non-HW nodes, followed by HW n
     return index;
 }
 
-#if BCHP_PWR_SUPPORT
 static const BCHP_PWR_P_Resource* BCHP_PWR_P_GetResourceHandle(BCHP_PWR_ResourceId resourceId)
 {
     unsigned index = BCHP_PWR_P_GetInternalIndex(resourceId);
     return BCHP_PWR_P_ResourceList[index];
 }
-#endif
 
 /* Private functions to power On analog resources when BCHP_PWR_SUPPORT is not enabled */
 #if (!BCHP_PWR_SUPPORT)
@@ -785,7 +783,6 @@ void BCHP_PWR_Dump(BCHP_Handle handle)
 #endif
 }
 
-#ifndef BDBG_NO_LOG
 static bool BCHP_PWR_P_IsResourceAcquired(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId)
 {
 #if BCHP_PWR_SUPPORT
@@ -818,15 +815,11 @@ static bool BCHP_PWR_P_IsResourceAcquired(BCHP_Handle handle, BCHP_PWR_ResourceI
     return true;
 #endif
 }
-#endif
 
 #include "bchp_pwr_debug.c"
 void BCHP_PWR_DebugPrint(BCHP_Handle handle)
 {
     unsigned i, j;
-#if BDBG_NO_LOG
-    BSTD_UNUSED(handle);
-#endif
 
     for(i=0; i<sizeof(cores)/sizeof(cores[0]); i++) {
         if(!cores[i].map[0].resource) {
@@ -834,15 +827,20 @@ void BCHP_PWR_DebugPrint(BCHP_Handle handle)
         }
         BDBG_LOG(("%s", cores[i].pCoreName));
         for(j=0; ; j++) {
+            bool acquired;
             if(!cores[i].map[j].resource) {
                 break;
             }
-
-            BDBG_LOG(("    %-24s : %s", cores[i].map[j].pResourceName,
-                    BCHP_PWR_P_IsResourceAcquired(handle, cores[i].map[j].resource) ? "ON" : "OFF"));
+            acquired = BCHP_PWR_P_IsResourceAcquired(handle, cores[i].map[j].resource);
+            BDBG_LOG(("    %-24s : %s", cores[i].map[j].pResourceName, acquired ? "ON" : "OFF"));
         }
         BDBG_LOG((" "));
     }
+}
+
+bool BCHP_PWR_ResourceAcquired(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId)
+{
+    return BCHP_PWR_P_IsResourceAcquired(handle, resourceId);
 }
 
 BERR_Code BCHP_PWR_Standby(BCHP_Handle handle, const BCHP_PWR_StandbySettings *pSettings)
@@ -960,8 +958,6 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
 #endif
 }
 
-
-#if BCHP_PWR_SUPPORT
 
 #ifndef BASE_FREQ
 #define BASE_FREQ 54*1000*1000
@@ -1099,7 +1095,6 @@ static BERR_Code BCHP_PWR_P_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId
 
     return rc;
 }
-#endif
 
 BERR_Code BCHP_PWR_GetMinClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, unsigned *clkRate)
 {
@@ -1140,14 +1135,7 @@ BERR_Code BCHP_PWR_GetDefaultClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId r
 
 BERR_Code BCHP_PWR_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, unsigned *clkRate)
 {
-#if BCHP_PWR_SUPPORT
     return BCHP_PWR_P_GetClockRate(handle, resourceId, NULL, NULL, clkRate);
-#else
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(resourceId);
-    BSTD_UNUSED(clkRate);
-    return BERR_NOT_SUPPORTED;
-#endif
 }
 
 #if BCHP_PWR_TRACK

@@ -58,7 +58,7 @@
 internally see http://www.sj.broadcom.com/projects/MIPS3300/. */
 #if BCHP_CHIP==7422 || BCHP_CHIP==7425 || BCHP_CHIP==7435 || BCHP_CHIP==7429 || BCHP_CHIP==74295
  #define BMIPS5000_40NM 1
-#elif BCHP_CHIP==7344 || BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP==7584 || BCHP_CHIP==7563 || BCHP_CHIP==7362 || BCHP_CHIP==7228 ||  BCHP_CHIP==75635 || BCHP_CHIP==73625 || BCHP_CHIP==75845 || BCHP_CHIP==73465 || BCHP_CHIP==75525
+#elif BCHP_CHIP==7344 || BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP==7584 || BCHP_CHIP==7563 || BCHP_CHIP==7362 || BCHP_CHIP==75635 || BCHP_CHIP==73625 || BCHP_CHIP==75845 || BCHP_CHIP==73465 || BCHP_CHIP==75525
  #define BMIPS4380_40NM 1
 #endif
 
@@ -127,7 +127,9 @@ typedef struct NEXUS_PlatformHandles
 #if NEXUS_HAS_PICTURE_DECODER
     NEXUS_ModuleHandle pictureDecoder;
 #endif
-
+    NEXUS_ModuleHandle graphics2D;
+    NEXUS_ModuleHandle graphics3D;
+    NEXUS_ModuleHandle smartcard;
     BLST_Q_HEAD(handle_head, NEXUS_Platform_P_ModuleInfo) handles;
     bool baseOnlyInit;
 } NEXUS_PlatformHandles;

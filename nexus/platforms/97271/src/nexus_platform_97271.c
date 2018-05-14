@@ -133,7 +133,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
@@ -143,9 +143,13 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     const char *mode = "";
 #endif
 
-    NEXUS_Platform_GetStatus(&platformStatus);
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
 
-    switch (platformStatus.boardId.major)
+    switch (platformStatus->boardId.major)
     {
         case 1:
             board = "SV";
@@ -163,13 +167,14 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             board = "VMS";
             break;
         default:
-            BDBG_WRN(("Board is major %d",platformStatus.boardId.major));
+            BDBG_WRN(("Board is major %d",platformStatus->boardId.major));
             board = "unknown";
             break;
     }
 
     BDBG_WRN(("Initialising %s platform in %s mode", board, mode));
 
+    BKNI_Free(platformStatus);
     return NEXUS_SUCCESS;
 }
 

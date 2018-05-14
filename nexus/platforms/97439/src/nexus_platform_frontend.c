@@ -98,16 +98,21 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_GpioType interruptType = NEXUS_GpioType_eStandard;
 
     {
-        NEXUS_PlatformStatus platformStatus;
+        NEXUS_PlatformStatus *platformStatus;
 
-        NEXUS_Platform_GetStatus(&platformStatus);
-        BDBG_MSG(("board major: %d, minor: %d",platformStatus.boardId.major,platformStatus.boardId.minor));
-        if (platformStatus.boardId.major == 9) {
+        platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+        if (!platformStatus) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        NEXUS_Platform_GetStatus(platformStatus);
+        BDBG_MSG(("board major: %d, minor: %d",platformStatus->boardId.major,platformStatus->boardId.minor));
+        if (platformStatus->boardId.major == 9) {
             interrupt = 3;
             sv_dr4 = false;
             cwm = true;
             interruptType = NEXUS_GpioType_eAonStandard;
         }
+        BKNI_Free(platformStatus);
     }
 
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);

@@ -40,7 +40,9 @@
 #include "nexus_platform.h"
 #include "nexus_playback.h"
 #include "nexus_dma.h"
+#ifdef NEXUS_HAS_SECURITY
 #include "nexus_security.h"
+#endif
 
 #include "bmp4.h"
 

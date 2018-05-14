@@ -48,7 +48,7 @@
 extern "C" {
 #endif
 
-NEXUS_Error NEXUS_SimpleAudioPlaybackServer_Suspend_priv(NEXUS_SimpleAudioPlaybackServerHandle server);
+void NEXUS_SimpleAudioPlaybackServer_Suspend_priv(NEXUS_SimpleAudioPlaybackServerHandle server);
 void NEXUS_SimpleAudioPlaybackServer_Resume_priv(NEXUS_SimpleAudioPlaybackServerHandle server);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioPlaybackServer);
 

@@ -541,8 +541,8 @@ static BERR_Code  _GenerateRootKey( BHSM_KeyLadderHandle handle, const BHSM_KeyL
         bspConfig.in.stbOwnerIdSel         = (uint8_t)pSettings->root.askm.stbOwnerSelect;
         switch( pSettings->root.askm.caVendorIdScope )
         {
-            case BHSM_KeyladderCaVendorIdScope_eChipFamily: bspConfig.in.askmMaskKeySel = 0; break;
-            case BHSM_KeyladderCaVendorIdScope_eFixed:      bspConfig.in.askmMaskKeySel = 2; break;
+            case BHSM_KeyLadderCaVendorIdScope_eChipFamily: bspConfig.in.askmMaskKeySel = 0; break;
+            case BHSM_KeyLadderCaVendorIdScope_eFixed:      bspConfig.in.askmMaskKeySel = 2; break;
             default: return BERR_TRACE( BERR_INVALID_PARAMETER );
         }
 
@@ -645,11 +645,14 @@ Description:
 */
 BERR_Code _RouteEntryKey ( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRouteKey *pConf )
 {
+    BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
     BERR_Code rc = BERR_SUCCESS;
     BHSM_P_KeyLadderRouteKey bspConfig;
     BHSM_KeyslotDetails keyslotDetails;
 
     BDBG_ENTER( _RouteEntryKey );
+
+    if( !pkeyLadder ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_P_Keyslot_GetDetails( pConf->hKeySlot, pConf->entry, &keyslotDetails );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -674,7 +677,7 @@ BERR_Code _RouteEntryKey ( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRout
     bspConfig.in.vklId = pConf->keyLadderIndex;
     bspConfig.in.keyLayer = pConf->keyLadderLayer;
 
-    rc = BHSM_P_KeyLadder_RouteKey( BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
+    rc = BHSM_P_KeyLadder_RouteKey( pkeyLadder->hHsm, &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( _RouteEntryKey );
@@ -687,11 +690,14 @@ Description:
 */
 BERR_Code _RouteEntryIv( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRouteIv *pConf )
 {
+    BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
     BERR_Code rc = BERR_SUCCESS;
     BHSM_P_KeyLadderRouteIv bspConfig;
     BHSM_KeyslotDetails keyslotDetails;
 
     BDBG_ENTER( _RouteEntryIv );
+
+    if( !pkeyLadder ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_P_Keyslot_GetDetails( pConf->hKeySlot, pConf->entry, &keyslotDetails );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -712,7 +718,7 @@ BERR_Code _RouteEntryIv( BHSM_KeyLadderHandle handle, const BHSM_P_KeyslotRouteI
         bspConfig.in.ivType = 1;
     }
 
-    rc = BHSM_P_KeyLadder_RouteIv( BHSM_P_KeyLadder_GetHsmHandle(handle), &bspConfig );
+    rc = BHSM_P_KeyLadder_RouteIv( pkeyLadder->hHsm, &bspConfig );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( _RouteEntryIv );
@@ -749,26 +755,6 @@ static uint8_t _MapCustomerSubMode( BHSM_KeyLadderMode mode )
     return 0xff;
 }
 
-
-BHSM_Handle BHSM_P_KeyLadder_GetHsmHandle( BHSM_KeyLadderHandle handle )
-{
-    BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
-
-    if( !handle ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
-
-    return pkeyLadder->hHsm;
-}
-
-bool BHSM_P_KeyLadder_CheckConfigured( BHSM_KeyLadderHandle handle )
-{
-    BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
-
-    if( !handle ) { return BERR_TRACE(false); }
-
-    return pkeyLadder->configured;
-}
-
-
 uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsigned otpIndex )
 {
 
@@ -786,12 +772,12 @@ uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsig
 
 
 
-uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyladderCaVendorIdScope caVendorIdScope )
+uint8_t BHSM_P_KeyLadder_MapCaVendorIdScope( BHSM_KeyLadderCaVendorIdScope caVendorIdScope )
 {
     switch( caVendorIdScope )
     {
-        case BHSM_KeyladderCaVendorIdScope_eChipFamily: return 0;
-        case BHSM_KeyladderCaVendorIdScope_eFixed:      return 2;
+        case BHSM_KeyLadderCaVendorIdScope_eChipFamily: return 0;
+        case BHSM_KeyLadderCaVendorIdScope_eFixed:      return 2;
         default: BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 

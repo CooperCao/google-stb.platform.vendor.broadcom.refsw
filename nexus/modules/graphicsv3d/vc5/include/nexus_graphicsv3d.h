@@ -1002,6 +1002,16 @@ NEXUS_Error NEXUS_Graphicsv3d_UpdateComputeSubjobs(
       const NEXUS_Graphicsv3dJobComputeSubjob *pSubjobs       /* [in] attr{nelem=uiNumSubjobs;nelem_out=0} */
       );
 
+/**
+Summary:
+Graphics3D module status.
+**/
+typedef struct NEXUS_Graphicsv3dModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core;
+    } power;
+} NEXUS_Graphicsv3dModuleStatus;
 #ifdef __cplusplus
 }
 #endif

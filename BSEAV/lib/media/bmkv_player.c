@@ -622,7 +622,7 @@ b_mkv_player_next_cluster(bmkv_player_t player, bool sequential, bool *endofstre
 		bmkv_header header;
 		bfile_cached_segment_set(&player->cluster.cache, player->cluster.offset_next, B_MKV_MAX_ELEMENT_HEAD);
 		if(!b_mkv_player_cluster_reserve_min(player, B_MKV_MAX_ELEMENT_HEAD, B_MKV_MIN_ELEMENT_HEAD)) {
-            *endofstream = player->cluster.cache.last_read_result == (bfile_buffer_result)bfile_segment_async_result_success || player->cluster.cache.last_read_result == (bfile_buffer_result)bfile_segment_async_result_eof;
+            *endofstream = player->cluster.cache.last_read_result == bfile_buffer_result_ok || player->cluster.cache.last_read_result == bfile_buffer_result_eof;
 			BDBG_MSG(("%s:%p can't read data at %u(%u) %s", "b_mkv_player_next_cluster", (void *)player, (unsigned)player->cluster.offset_next, B_MKV_MAX_ELEMENT_HEAD, *endofstream?"EndOfStream":""));
 			goto err_read;
 		}
@@ -1140,7 +1140,7 @@ b_mkv_player_reorder_pts_add_data(bmkv_player_t player, batom_cursor *cursor, st
 
         /* Create an atom based on this frame so it can be added to the reorder queue */
         batom_accum_append(track->pts_queue.accum_reorder, player->cluster.cache.accum, &frame_start, cursor);
-        /* coverity[overrun_static] */
+        /* coverity[overrun_static] coverity[overrun-buffer-val] */
         atom = batom_from_accum(track->pts_queue.accum_reorder, &b_mkv_asp_data_atom, &reorder_atom_info);
         batom_pipe_push(track->pts_queue.pipe_needs_reorder, atom);
         batom_accum_clear(track->pts_queue.accum_reorder);
@@ -1467,6 +1467,7 @@ b_mkv_player_prepare_hevc_track(bmkv_player_t player, struct b_mkv_player_track 
         return false;
     }
 
+    /* coverity[array_free] */
     if(! bmedia_read_h265_meta(&cursor, &track->codec.hevc.meta, bkni_alloc)) {
         return false;
     }

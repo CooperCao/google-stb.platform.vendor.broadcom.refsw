@@ -423,7 +423,7 @@ Summary:
 ***************************************************************************/
 typedef struct NEXUS_FrontendSpectrumSettings
 {
-    void *data;              /* attr{memory=cached} ptr to the data. You must allocate this buffer with NEXUS_Memory_Allocate */
+    void *data;              /* attr{memory=cached;null_allowed=y} ptr to the data. You must allocate this buffer with NEXUS_Memory_Allocate */
     unsigned dataLength;     /* max data length in bytes, must be >= (numSamples*4) */
     unsigned startFrequency; /* in Hz */
     unsigned stopFrequency;  /* in Hz */

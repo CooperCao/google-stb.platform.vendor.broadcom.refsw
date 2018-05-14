@@ -181,12 +181,16 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
     handle->connectors[NEXUS_AudioConnectorType_eCompressed].port = (size_t)connector;
     if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
     {
-        NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], NEXUS_AudioInputType_eDolbyDigitalReencode, handle);
-        NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], Open);
-        handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].pName = handle->name;
-        handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].format = NEXUS_AudioInputFormat_eCompressed;
         BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eCompressed4x, &connector);
-        handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].port = (size_t)connector;
+        if ( connector != NULL )
+        {
+            NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], NEXUS_AudioInputType_eDolbyDigitalReencode, handle);
+            NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], Open);
+            handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].pName = handle->name;
+            handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].format = NEXUS_AudioInputFormat_eCompressed;
+            BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eCompressed4x, &connector);
+            handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].port = (size_t)connector;
+        }
     }
 
     errCode = NEXUS_DolbyDigitalReencode_SetSettings(handle, pSettings);
@@ -215,23 +219,28 @@ static void NEXUS_DolbyDigitalReencode_P_Finalizer(
     NEXUS_OBJECT_ASSERT(NEXUS_DolbyDigitalReencode, handle);
     for ( i = 0; i < NEXUS_AudioConnectorType_eMax; i++ )
     {
+        bool shutdown = false;
         switch ( i )
         {
         case NEXUS_AudioConnectorType_eStereo:
         case NEXUS_AudioConnectorType_eMultichannel:
         case NEXUS_AudioConnectorType_eCompressed:
-            NEXUS_AudioInput_Shutdown(&handle->connectors[i]);
-            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+            shutdown = true;
             break;
         case NEXUS_AudioConnectorType_eCompressed4x:
             if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
             {
-                NEXUS_AudioInput_Shutdown(&handle->connectors[i]);
-                NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+                shutdown = true;
             }
             break;
         default:
             break;
+        }
+
+        if ( shutdown && handle->connectors[i].port != 0 )
+        {
+            NEXUS_AudioInput_Shutdown(&handle->connectors[i]);
+            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
         }
     }
     BAPE_DolbyDigitalReencode_Destroy(handle->apeHandle);
@@ -244,21 +253,27 @@ static void NEXUS_DolbyDigitalReencode_P_Release(NEXUS_DolbyDigitalReencodeHandl
     unsigned i;
     for ( i = 0; i < NEXUS_AudioConnectorType_eMax; i++ )
     {
+        bool unregister = false;
         switch ( i )
         {
         case NEXUS_AudioConnectorType_eStereo:
         case NEXUS_AudioConnectorType_eMultichannel:
         case NEXUS_AudioConnectorType_eCompressed:
-            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+            unregister = true;
             break;
         case NEXUS_AudioConnectorType_eCompressed4x:
             if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
             {
-                NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+                unregister = true;
             }
             break;
         default:
             break;
+        }
+
+        if ( unregister && handle->connectors[i].port != 0 )
+        {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
         }
     }
     return;
@@ -433,11 +448,17 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_AddInput(
     }
     if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
     {
-        errCode = NEXUS_AudioInput_P_AddInput(&handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], input);
-        if ( errCode )
+        BAPE_Connector connector;
+        BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eCompressed4x, &connector);
+
+        if ( connector != NULL )
         {
-            errCode = BERR_TRACE(errCode);
-            goto err_compressed4x;
+            errCode = NEXUS_AudioInput_P_AddInput(&handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], input);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_compressed4x;
+            }
         }
     }
     handle->input = input;
@@ -469,7 +490,7 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_RemoveInput(
         BDBG_ERR(("Not connected to input %p", (void *)input));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 && handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].port != 0 )
     {
         NEXUS_AudioInput_P_RemoveInput(&handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], input);
     }

@@ -63,13 +63,25 @@ BDBG_MODULE(keymaster_crypto_aes);
 
 static NEXUS_KeySlotHandle km_crypto_aes_allocate_keyslot(void)
 {
-    NEXUS_SecurityKeySlotSettings keyslotSettings;
     NEXUS_KeySlotHandle keyslot = NULL;
+
+#if (NEXUS_SECURITY_API_VERSION==1)
+    NEXUS_SecurityKeySlotSettings keyslotSettings;
 
     NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
     keyslotSettings.client = NEXUS_SecurityClientType_eSage;
     keyslotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
     keyslot = NEXUS_Security_AllocateKeySlot(&keyslotSettings);
+#else
+    NEXUS_KeySlotAllocateSettings keyslotSettings;
+
+    NEXUS_KeySlot_GetDefaultAllocateSettings(&keyslotSettings);
+    keyslotSettings.useWithDma = true;
+    keyslotSettings.owner = NEXUS_SecurityCpuContext_eSage;
+    keyslotSettings.slotType = NEXUS_KeySlotType_eIvPerSlot;
+    keyslot = NEXUS_KeySlot_Allocate(&keyslotSettings);
+#endif
+
     if (!keyslot) {
         BDBG_ERR(("%s: Error allocating keyslot", BSTD_FUNCTION));
     }

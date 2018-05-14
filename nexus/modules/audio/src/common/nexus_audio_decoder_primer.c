@@ -1,40 +1,44 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ **************************************************************************/
 #include "nexus_audio_module.h"
 #include "priv/nexus_pid_channel_priv.h"
 
@@ -45,7 +49,7 @@
 BDBG_MODULE(nexus_audio_decoder_primer);
 
 #ifdef DEBUG_PRIMER
-#define BDBG_MSG_TRACE(X) BDBG_MSG(X) 
+#define BDBG_MSG_TRACE(X) BDBG_MSG(X)
 #else
 #define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
 #endif
@@ -61,7 +65,7 @@ struct NEXUS_AudioDecoderPrimer
     int div2ms; /* constant to convert PTS units to millisecond units. 45 for MPEG, 27000 for DSS */
     NEXUS_RaveHandle rave;
     NEXUS_TimerHandle timer;
-    
+
     BAVC_XptContextMap cx_map;
     bool active;
     bool overflow;
@@ -74,8 +78,8 @@ struct NEXUS_AudioDecoderPrimer
     struct {
         unsigned cnt, itb_valid;
     } stuck;
-    
-    /* audio doesn't have a "GOP", but we reuse the term to stay in sync with video primer. 
+
+    /* audio doesn't have a "GOP", but we reuse the term to stay in sync with video primer.
     in this case, "GOP" is the set of audio frames delimited by a coded PTS. */
 #define MAX_GOPS 100
     struct {
@@ -299,7 +303,7 @@ static void NEXUS_AudioDecoder_P_PrimerSetRave(NEXUS_AudioDecoderPrimerHandle pr
     while (i != primer->next_gop) {
         NEXUS_AudioDecoder_P_PrimerCompare(primer, serialStc, &i, &gop_index, &min_diff);
     }
-    
+
     if (gop_index == -1) {
 #if 0
         BDBG_MSG_TRACE(("%p: no action. Serial STC=%08x, closest diff %5d, %d %d", (void*)primer, serialStc, min_diff, primer->consumed_gop, primer->next_gop));
@@ -333,7 +337,7 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 {
     struct itb_entry_t * pitb;
     struct itb_entry_t * pitb_end;
-    uint8_t type;    
+    uint8_t type;
 
     BDBG_OBJECT_ASSERT(primer, NEXUS_AudioDecoderPrimer);
 
@@ -374,9 +378,9 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
         case 0x21: /* pts */
             {
                 uint32_t pts = pitb->word1;
-                /* don't store PTS unless it meets a time threshold. this prevents the audio primer gops[] from 
+                /* don't store PTS unless it meets a time threshold. this prevents the audio primer gops[] from
                 overflowing - if it overflows there will be an extended period of no sound when switching from
-                 primer to audio decoder */      
+                 primer to audio decoder */
                 int diff = 0; /* units of milliseconds, early = positive, late = negative */
                 if (primer->last_pts) {
                     diff = pts > primer->last_pts ? (pts - primer->last_pts) : -1 * (primer->last_pts - pts);
@@ -389,7 +393,7 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
                         reset_primer(primer);
                     }
                 }
-                
+
                 if (primer->pcr_offset_set && primer->cdb_base_entry && (!primer->last_pts || diff > 200)) {
                     primer->last_pts = primer->gops[primer->next_gop].pts = pts;
                     primer->gops[primer->next_gop].pcr_offset = primer->pcr_offset;
@@ -459,7 +463,7 @@ static void NEXUS_AudioDecoder_P_PrimerCallback(void *context)
     BSTD_DeviceOffset itb_valid, itb_wrap;
 
     primer->timer = NULL;
-    
+
     /* convert ITB_Valid and ITB_Wrap to standard ring buffer semantics in this function. instead of pointing to the last byte of the ITB it should point
     to the first byte of the next ITB. Note that RAVE has an exception when valid == base. */
     itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
@@ -502,7 +506,7 @@ static void NEXUS_AudioDecoder_P_PrimerCallback(void *context)
     else {
         NEXUS_AudioDecoder_P_PrimerProcessItb(primer, itb_valid);
     }
-    
+
     NEXUS_AudioDecoder_P_PrimerSetRave(primer);
 
 resched:
@@ -517,7 +521,7 @@ static NEXUS_Error NEXUS_AudioDecoder_P_GetRaveSettings(NEXUS_RaveOpenSettings *
     LOCK_TRANSPORT();
     NEXUS_Rave_GetDefaultOpenSettings_priv(pRaveOpenSettings);
     UNLOCK_TRANSPORT();
-    
+
     BAPE_Decoder_GetDefaultCdbItbConfig(NULL /*unused*/, &pRaveOpenSettings->config);
 
     if ( !pSettings || pSettings->fifoSize == 0 )
@@ -555,7 +559,7 @@ NEXUS_AudioDecoderPrimerHandle NEXUS_AudioDecoderPrimer_Create( const NEXUS_Audi
         return NULL;
     }
     NEXUS_OBJECT_INIT(NEXUS_AudioDecoderPrimer, primer);
-    
+
     rc = NEXUS_AudioDecoder_P_GetRaveSettings(&raveOpenSettings, pSettings);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
@@ -572,7 +576,7 @@ NEXUS_AudioDecoderPrimerHandle NEXUS_AudioDecoderPrimer_Create( const NEXUS_Audi
     UNLOCK_TRANSPORT();
     if (rc) goto error; /* already traced above */
     return primer;
-    
+
 error:
     NEXUS_AudioDecoderPrimer_Close(primer);
     return NULL;
@@ -612,7 +616,7 @@ static void NEXUS_AudioDecoderPrimer_P_Finalizer( NEXUS_AudioDecoderPrimerHandle
         LOCK_TRANSPORT();
         NEXUS_Rave_Close_priv(primer->rave);
         UNLOCK_TRANSPORT();
-    }    
+    }
     NEXUS_OBJECT_DESTROY(NEXUS_AudioDecoderPrimer, primer);
     BKNI_Free(primer);
 }
@@ -632,7 +636,6 @@ static void reset_primer(NEXUS_AudioDecoderPrimerHandle primer)
 void NEXUS_AudioDecoderPrimer_Flush( NEXUS_AudioDecoderPrimerHandle primer )
 {
     BSTD_DeviceOffset valid;
-    
     BDBG_OBJECT_ASSERT(primer, NEXUS_AudioDecoderPrimer);
 
     /* If playback wrapped, rave was flushed, so reset primers pointers - all the data is gone */
@@ -666,7 +669,7 @@ static NEXUS_Error NEXUS_AudioDecoder_P_StartPrimer( NEXUS_AudioDecoderPrimerHan
         rc = NEXUS_PidChannel_GetStatus(primer->startSettings.pidChannel, &pidChannelStatus);
         if (rc) return BERR_TRACE(rc);
 
-        /* playback flag is really playbackTsm flag in both structs */        
+        /* playback flag is really playbackTsm flag in both structs */
         if (primer->startSettings.stcChannel) {
             NEXUS_StcChannelSettings stcSettings;
             NEXUS_StcChannel_GetSettings(primer->startSettings.stcChannel, &stcSettings);
@@ -945,7 +948,7 @@ NEXUS_Error NEXUS_AudioDecoderPrimer_StopDecodeAndStartPrimer( NEXUS_AudioDecode
         if ( NEXUS_AudioInput_P_SupportsFormatChanges( audioDecoder->programSettings.input) )
         {
             /* If this input supports dynamic format changes, disable the dynamic format change interrupt. */
-            (void)NEXUS_AudioInput_P_SetFormatChangeInterrupt( audioDecoder->programSettings.input, NEXUS_AudioInputType_eDecoder, NULL, NULL, 0);
+            (void)NEXUS_AudioInput_P_SetFormatChangeInterrupt( audioDecoder->programSettings.input, NEXUS_AudioInputType_eDecoder, NULL, audioDecoder, 0);
         }
     }
 

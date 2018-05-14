@@ -73,7 +73,7 @@ NEXUS_SYMBOLS_INC := $(NEXUS_SYMBOLS_SRC:%.c=$(NEXUS_OBJ_DIR)/MAGNUM/%.inc)
 $(filter-out ${NEXUS_SYMBOLS_OBJ}, ${MAGNUM_OBJECTS}): $(NEXUS_OBJ_DIR)/MAGNUM/%.$(NEXUS_OBJ_SUFFIX): %.c $(NEXUS_OBJ_DIR)/MAGNUM/exists
 	@echo "[Compile... $(notdir $<) (magnum)]"
 	$(Q_)$(CC) $(CDEP_FLAG) $(if $(filter $(notdir $<),$(MAGNUM_NOPROFILE_SRCS)),,${NEXUS_CFLAGS_BPROFILE}) $(if $(filter $(notdir $<),$(MAGNUM_NO_STRICT_ALIASING_SRCS)),-fno-strict-aliasing,) $(NEXUS_CFLAGS) -c $< -o $@
-ifneq ($(B_REFSW_ARCH), arm-linux)
+ifneq ($(filter $(B_REFSW_ARCH), arm-linux aarch64-linux),$(B_REFSW_ARCH))
 	$(Q_)$(PERL) $(NEXUS_TOP)/build/os/ucos/fix_dep.pl $(dir $@) $(notdir $(@:.o=.d)) $(patsubst %.o,%.d,$@)
 endif
 

@@ -139,6 +139,16 @@ NEXUS_AudioOutputHandle NEXUS_Rfm_GetAudioConnector( /* attr{shutdown=NEXUS_Audi
     NEXUS_RfmHandle output
     );
 
+/**
+Summary:
+RFM module status.
+**/
+typedef struct NEXUS_RfmModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core;
+    } power;
+} NEXUS_RfmModuleStatus;
 #ifdef __cplusplus
 }
 #endif

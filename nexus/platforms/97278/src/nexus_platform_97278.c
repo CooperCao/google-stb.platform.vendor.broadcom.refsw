@@ -124,7 +124,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
@@ -133,16 +133,22 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 #else
     const char *mode = "unknown";
 #endif
+    unsigned v7_64 = (BCHP_GET_FIELD_DATA(BREG_Read32(g_pPreInitState->hReg, BCHP_AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT),
+                      AON_CTRL_GLOBAL_ADDRESS_MAP_VARIANT, map_variant));
 
-    NEXUS_Platform_GetStatus(&platformStatus);
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
 
-    switch (platformStatus.boardId.major)
+    switch (platformStatus->boardId.major)
     {
         case 1:
             board = "SV";
             break;
         case 2:
-            if (platformStatus.boardId.minor == 1) {
+            if (platformStatus->boardId.minor == 1) {
                 board = "IPA";
             }
             else {
@@ -156,9 +162,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             board = "unknown";
             break;
     }
+    BKNI_Free(platformStatus);
 
-    BDBG_WRN(("Initializing %s platform in %s mode", board, mode));
-
+    BDBG_LOG(("Initializing %s platform in %s mode using %s global address map.",board,mode,v7_64 ? "v7-64":"v7-32"));
     return NEXUS_SUCCESS;
 }
 

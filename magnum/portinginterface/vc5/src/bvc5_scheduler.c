@@ -1331,6 +1331,7 @@ void BVC5_P_WaitForJobCompletion(
       /* coverity[double_lock] */
       BKNI_AcquireMutex(hVC5->hModuleMutex);
    }
+   /* coverity[missing_unlock] */
 }
 
 /* BVC5_P_MarkJobsFlushedV3D

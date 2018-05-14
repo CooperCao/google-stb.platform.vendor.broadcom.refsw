@@ -122,49 +122,50 @@ static void probe_p_parse_mkv_block(void *data, unsigned len, struct probe_resul
 
             pmeta = &BMKV_TABLE_ELEM(colour.MasteringMetadata, bmkv_TrackEntryVideoColourMasteringMetadata, 0);
 
+            /* nexus expects chromaticity coordinates in fixed point format between 0 and 50000 */
             if(pmeta->validate.PrimaryRChromaticityX) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.redPrimary.x = (int)
-                    ((pmeta->PrimaryRChromaticityX/2.0)*10000.0);
+                    ((pmeta->PrimaryRChromaticityX/2.0)*100000.0);
             }
             if(pmeta->validate.PrimaryRChromaticityY) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.redPrimary.y = (int)
-                    ((pmeta->PrimaryRChromaticityY/2.0)*10000.0);
+                    ((pmeta->PrimaryRChromaticityY/2.0)*100000.0);
             }
 
             if(pmeta->validate.PrimaryGChromaticityX) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.greenPrimary.x = (int)
-                    ((pmeta->PrimaryGChromaticityX/2.0)*10000.0);
+                    ((pmeta->PrimaryGChromaticityX/2.0)*100000.0);
             }
             if(pmeta->validate.PrimaryGChromaticityY) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.greenPrimary.y = (int)
-                    ((pmeta->PrimaryGChromaticityY/2.0)*10000.0);
+                    ((pmeta->PrimaryGChromaticityY/2.0)*100000.0);
             }
 
             if(pmeta->validate.PrimaryBChromaticityX) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.bluePrimary.x = (int)
-                    ((pmeta->PrimaryBChromaticityX/2.0)*10000.0);
+                    ((pmeta->PrimaryBChromaticityX/2.0)*100000.0);
             }
             if(pmeta->validate.PrimaryBChromaticityY) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.bluePrimary.y = (int)
-                    ((pmeta->PrimaryBChromaticityY/2.0)*10000.0);
+                    ((pmeta->PrimaryBChromaticityY/2.0)*100000.0);
             }
 
             if(pmeta->validate.WhitePointChromaticityX) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.x = (int)
-                    ((pmeta->WhitePointChromaticityX/2.0)*10000.0);
+                    ((pmeta->WhitePointChromaticityX/2.0)*100000.0);
             }
             if(pmeta->validate.WhitePointChromaticityY) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.whitePoint.y = (int)
-                    ((pmeta->WhitePointChromaticityY/2.0)*10000.0);
+                    ((pmeta->WhitePointChromaticityY/2.0)*100000.0);
             }
 
             if(pmeta->validate.LuminanceMax) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.max = (unsigned)
-                    pmeta->LuminanceMax;
+                    pmeta->LuminanceMax; /* nexus expects units of 1 nit */
             }
             if(pmeta->validate.LuminanceMin) {
                 results->videoColorMasteringMetadata.masteringDisplayColorVolume.luminance.min = (unsigned)
-                    (pmeta->LuminanceMin*10000.0);
+                    (pmeta->LuminanceMin*10000.0); /* nexus expects units of 100 micronits */
             }
         }
         bmkv_element_shutdown(bmkv_TrackEntryVideoColour_desc.entries, &colour);

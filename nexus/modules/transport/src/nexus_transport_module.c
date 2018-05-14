@@ -62,6 +62,7 @@
 #if BCHP_XPT_RAVE_REG_START
 #include "bxpt_rave_ihex.h"
 #endif
+#include "bchp_pwr.h"
 
 #if BXPT_NUM_MTSIF
     #include "bchp_xpt_fe.h"
@@ -1521,6 +1522,25 @@ NEXUS_PidChannelHandle NEXUS_DmaJob_OpenPidChannel(NEXUS_DmaJobHandle handle, un
     BSTD_UNUSED(handle);
     BSTD_UNUSED(pid);
     BSTD_UNUSED(pSettings);
+    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
     return NULL;
 }
 #endif
+
+NEXUS_Error NEXUS_TransportModule_GetStatus_priv(NEXUS_TransportModuleStatus *pStatus)
+{
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+#if BCHP_PWR_RESOURCE_XPT_XMEMIF
+    pStatus->power.transport.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_XPT_XMEMIF)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#if BCHP_PWR_RESOURCE_XPT_CORE
+    BCHP_PWR_GetClockRate(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_XPT_CORE, &pStatus->power.transport.frequency);
+#endif
+#if BCHP_PWR_RESOURCE_XPT_REMUX
+    pStatus->power.remux.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_XPT_REMUX)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#if BCHP_PWR_RESOURCE_XPT_TSIO
+    pStatus->power.tsio.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_XPT_TSIO)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+    return NEXUS_SUCCESS;
+}

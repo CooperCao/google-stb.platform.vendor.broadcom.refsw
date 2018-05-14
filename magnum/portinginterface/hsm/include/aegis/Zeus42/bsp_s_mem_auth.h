@@ -42,6 +42,7 @@
 #endif
 
 
+
 #ifndef BSP_S_MEM_AUTH_H__
 #define BSP_S_MEM_AUTH_H__
 
@@ -191,6 +192,9 @@ typedef enum BCMD_MemAuth_CpuType_e
     BCMD_MemAuth_CpuType_eScpu = 7,
     BCMD_MemAuth_CpuType_eRESERVED7 = 7,
     BCMD_MemAuth_CpuType_eAvs = 8,
+    BCMD_MemAuth_CpuType_eRESERVED9 = 9,
+    BCMD_MemAuth_CpuType_eRESERVED10 = 0xa,
+    BCMD_MemAuth_CpuType_eTrustZone = 0xb,
     BCMD_MemAuth_CpuType_eMax
 } BCMD_MemAuth_CpuType_e;
 
@@ -267,6 +271,11 @@ typedef enum BCMD_MemAuth_SageIR_e
 #define CPUTYPE_IS_VICE(c)      ((BCMD_MemAuth_CpuType_e)(c) == BCMD_MemAuth_CpuType_eVice)
 #define CPUTYPE_IS_SID(c)       ((BCMD_MemAuth_CpuType_e)(c) == BCMD_MemAuth_CpuType_eSid)
 #define CPUTYPE_IS_AVS(c)       ((BCMD_MemAuth_CpuType_e)(c) == BCMD_MemAuth_CpuType_eAvs)
+
+
+
+
+
 
 
 

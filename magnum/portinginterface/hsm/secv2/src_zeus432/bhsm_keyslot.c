@@ -847,22 +847,24 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
     BDBG_ENTER( _SetEntryIv );
 
     pEntry = _GetEntry( handle, entry );
-    if( pEntry == NULL ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pEntry ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( !pIv && !pIv2 ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( (pIv && pIv2) && (pIv->size != pIv2->size) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( pIv && (pIv->size != 8) && (pIv->size != 16) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( pIv2 && (pIv2->size != 8) && (pIv2->size != 16) ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
-    if( pIv2 && (pIv2->size == 8) ) /* Pack the two IVs together */
+    if( pIv && (pIv->size == 8) ) /* handle 64 bit IVs */
     {
-        if( !pIv ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); } /* we need pIv if pIv2 is 8 bytes! */
-
         BKNI_Memset( &bspSetIv, 0, sizeof(bspSetIv) );
         bspSetIv.ivType = BCMD_KeyDestIVType_eIV;
-        bspSetIv.ivSize = pIv2->size;
-        BKNI_Memcpy(  bspSetIv.ivData,            pIv->iv,  pIv->size );
-        BKNI_Memcpy( &bspSetIv.ivData[pIv->size], pIv2->iv, pIv2->size );
+        bspSetIv.ivSize = pIv->size;
+
+        BKNI_Memcpy( &bspSetIv.ivData[8], pIv->iv, 8 );
+
+        if( pIv2 ){
+            BKNI_Memcpy( &bspSetIv.ivData[0], pIv2->iv, 8 );
+        }
 
         rc = _BspSetEntryIv( handle, entry, &bspSetIv );
         if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -884,6 +886,8 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
 
         if( pIv2 )
         {
+            if( pIv2->size == 8 ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); } /* 8 bit IV2 must be issued
+                                                                                      with a 8 bit IV */
             BKNI_Memset( &bspSetIv, 0, sizeof(bspSetIv) );
             bspSetIv.ivType = BCMD_KeyDestIVType_eAesShortIV;
             bspSetIv.ivSize = pIv2->size;
@@ -929,7 +933,7 @@ static BERR_Code _BspSetEntryIv( BHSM_KeyslotHandle handle,
     BHSM_BspMsg_Header( hMsg, KEYSLOT_LOADIV, &header );
 
     switch( pParam->ivSize ) {
-        case 8 : { ivSize = BCMD_KeySize_e64;  break; }
+        case 8 : { ivSize = BCMD_KeySize_e128;  break; } /* BSP requires this to be 128!  */
         case 16: { ivSize = BCMD_KeySize_e128; break; }
         default: rc = BERR_INVALID_PARAMETER; goto _DONE_LABEL;
     }

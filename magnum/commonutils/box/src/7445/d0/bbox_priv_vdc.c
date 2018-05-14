@@ -41,6 +41,7 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_priv.h"
 #include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
@@ -88,17 +89,6 @@
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
 
-
-BERR_Code BBOX_P_ValidateId
-    (uint32_t                ulId)
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    if ((ulId != 1000 && ulId != 1001) && (ulId == 0 || ulId == 9 || ulId == 11 || ulId > BBOX_MODES_SUPPORTED))
-    {
-        eStatus = BBOX_ID_NOT_SUPPORTED;
-    }
-    return eStatus;
-}
 
 void BBOX_P_Vdc_SetSourceCapabilities
     ( uint32_t                      ulBoxId,
@@ -360,9 +350,6 @@ BERR_Code BBOX_P_SetMemConfig
 {
     BERR_Code eStatus = BERR_SUCCESS;
 
-    eStatus = BBOX_P_ValidateId(ulBoxId);
-    if (eStatus != BERR_SUCCESS) return eStatus;
-
     /* Set default config settings  */
     BBOX_P_SetDefaultMemConfig(pBoxMemConfig);
 
@@ -433,75 +420,26 @@ BERR_Code BBOX_P_SetMemConfig
     return eStatus;
 }
 
-BERR_Code BBOX_P_GetRtsConfig
-    ( const uint32_t         ulBoxId,
-      BBOX_Rts              *pBoxRts )
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    switch (ulBoxId)
-    {
-        case 1:
-            BBOX_P_GetBox1Rts(pBoxRts);
-            break;
-        case 2:
-            BBOX_P_GetBox2Rts(pBoxRts);
-            break;
-        case 3:
-            BBOX_P_GetBox3Rts(pBoxRts);
-            break;
-        case 4:
-            BBOX_P_GetBox4Rts(pBoxRts);
-            break;
-        case 5:
-            BBOX_P_GetBox5Rts(pBoxRts);
-            break;
-        case 6:
-            BBOX_P_GetBox6Rts(pBoxRts);
-            break;
-        case 7:
-            BBOX_P_GetBox7Rts(pBoxRts);
-            break;
-        case 8:
-            BBOX_P_GetBox8Rts(pBoxRts);
-            break;
-        case 10:
-            BBOX_P_GetBox10Rts(pBoxRts);
-            break;
-        case 12:
-            BBOX_P_GetBox12Rts(pBoxRts);
-            break;
-        case 13:
-            BBOX_P_GetBox13Rts(pBoxRts);
-            break;
-        case 14:
-            BBOX_P_GetBox14Rts(pBoxRts);
-            break;
-        case 15:
-            BBOX_P_GetBox15Rts(pBoxRts);
-            break;
-        case 16:
-            BBOX_P_GetBox16Rts(pBoxRts);
-            break;
-        case 17:
-            BBOX_P_GetBox17Rts(pBoxRts);
-            break;
-        case 18:
-            BBOX_P_GetBox18Rts(pBoxRts);
-            break;
-        case 19:
-            BBOX_P_GetBox19Rts(pBoxRts);
-            break;
-        case 1000:
-            BBOX_P_GetBox1000Rts(pBoxRts);
-            break;
-        case 1001:
-            BBOX_P_GetBox1001Rts(pBoxRts);
-            break;
-        default:
-            BDBG_ERR(("There is no box mode %d RTS configuration.", ulBoxId));
-            eStatus = BBOX_RTS_CFG_UNINITIALIZED;
-    }
+const struct BBOX_InterfaceMap g_BBOX_InterfaceMap[] = {
+    {1, BBOX_P_GetBox1Rts},
+    {2, BBOX_P_GetBox2Rts},
+    {3, BBOX_P_GetBox3Rts},
+    {4, BBOX_P_GetBox4Rts},
+    {5, BBOX_P_GetBox5Rts},
+    {6, BBOX_P_GetBox6Rts},
+    {7, BBOX_P_GetBox7Rts},
+    {8, BBOX_P_GetBox8Rts},
+    {10, BBOX_P_GetBox10Rts},
+    {12, BBOX_P_GetBox12Rts},
+    {13, BBOX_P_GetBox13Rts},
+    {14, BBOX_P_GetBox14Rts},
+    {15, BBOX_P_GetBox15Rts},
+    {16, BBOX_P_GetBox16Rts},
+    {17, BBOX_P_GetBox17Rts},
+    {18, BBOX_P_GetBox18Rts},
+    {19, BBOX_P_GetBox19Rts},
+    {1000, BBOX_P_GetBox1000Rts},
+    {1001, BBOX_P_GetBox1001Rts},
+    {0, NULL}};
 
-    return eStatus;
-}
 /* end of file */

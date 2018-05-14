@@ -264,6 +264,7 @@ void BXPT_Wakeup_GetDefaults(
     BXPT_Wakeup_Settings *Settings  /* [out] The defaults */
     );
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Returns the actual settings currently used by the hardware.
@@ -275,6 +276,7 @@ void BXPT_Wakeup_GetSettings(
     BXPT_Handle hXpt,                   /* [in] Handle for this transport */
     BXPT_Wakeup_Settings *Settings      /* [out] Current hardware values */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -305,6 +307,7 @@ typedef struct
 }
 BXPT_Wakeup_Status;
 
+#if (!B_REFSW_MINIMAL)
 /***************************************************************************
 Summary:
 Return the current status values from hardware.
@@ -316,6 +319,7 @@ void BXPT_Wakeup_GetStatus(
     BXPT_Handle hXpt,               /* [in] Handle for this transport */
     BXPT_Wakeup_Status *Status
     );
+#endif
 
 /***************************************************************************
 Summary:

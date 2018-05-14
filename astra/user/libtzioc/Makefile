@@ -85,14 +85,6 @@ all: $(TZ_LIB)
 
 $(TZ_LIB): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_LIB).so
 
-checkplatform:
-	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
-
-checkdirs: $(BIN_DIRS)
-
-$(BIN_DIRS):
-	@mkdir -p $@
-
 $(TZ_OBJ_DIR)/$(TZ_LIB).so: $(OBJS)
 	@echo "[Link... $@]"
 	$(Q_)$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) -o $@

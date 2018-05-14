@@ -797,8 +797,8 @@ NEXUS_VideoImageInput_P_PushSurface_queue(NEXUS_VideoImageInputHandle imageInput
     unsigned height;
     NEXUS_VideoInput_P_Link *link;
     BPXL_Format magnumPixelFormat;
-    BMMA_Block_Handle hLuma, hChroma;
-    BMMA_DeviceOffset ullLumaOffset, ullChromaOffset;
+    BMMA_Block_Handle hLuma = NULL, hChroma = NULL;
+    BMMA_DeviceOffset ullLumaOffset = 0, ullChromaOffset = 0;
     struct NEXUS_VideoImageInput_P_PushSurface_queue_State *state = &imageInput->functionState.NEXUS_VideoImageInput_P_PushSurface_queue;
 
     BDBG_OBJECT_ASSERT(imageInput, NEXUS_VideoImageInput);

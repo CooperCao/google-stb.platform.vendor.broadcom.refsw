@@ -62,7 +62,7 @@ NEXUS_P_DRIVER_ARCH?=${B_REFSW_ARCH}
 ifeq ($(B_REFSW_ARCH),arm-linux)
 ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX_OUT}/.config 2>/dev/null && echo y),y)
 NEXUS_P_DRIVER_ARCH:=aarch64-linux
-NEXUS_P_DRIVER_B_REFSW_ARCH=" B_REFSW_ARCH=${NEXUS_P_DRIVER_ARCH}"
+NEXUS_P_DRIVER_B_REFSW_ARCH:=" B_REFSW_ARCH=${NEXUS_P_DRIVER_ARCH}"
 endif
 endif
 
@@ -291,12 +291,10 @@ ASTRA_SYMVERS:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/Module.
 astra_drv:
 	@echo "[Build..... astra driver]"
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra --no-print-directory
-ifeq ($(B_REFSW_ARCH), aarch64-linux)
 	@echo "[Build..... mon64]"
 	${Q_}$(MAKE) -C $(ASTRA)/monitor --no-print-directory
 	@echo "[Build..... astra]"
-	${Q_}$(MAKE) -C $(ASTRA)/user --no-print-directory
-endif
+	${Q_}$(MAKE) -C $(ASTRA)/user --no-print-directory ${NEXUS_P_DRIVER_B_REFSW_ARCH}
 
 astra: $(ASTRA_LIB)
 
@@ -319,10 +317,8 @@ astra_drv_install: astra_drv ${NEXUS_BIN_DIR}/exists
 
 astra_drv_clean:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra clean > /dev/null
-ifeq ($(B_REFSW_ARCH), aarch64-linux)
-	${Q_}$(MAKE) -C $(ASTRA)/monitor > /dev/null
-	${Q_}$(MAKE) -C $(ASTRA)/user > /dev/null
-endif
+	${Q_}$(MAKE) -C $(ASTRA)/monitor clean > /dev/null
+	${Q_}$(MAKE) -C $(ASTRA)/user distclean > /dev/null
 
 # wakeupdriver rules
 .PHONY: wakeupdriver
@@ -408,12 +404,17 @@ zigbeedriver_install: zigbeedriver ${NEXUS_BIN_DIR}/exists
 zigbeedriver_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/zigbee B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
 
-.PHONY: fw_img_sign_clean fw_signature_clean
+.PHONY: fw_img_sign_clean fw_signature_clean fw_img_dump_clean
 fw_img_sign_clean:
 	-${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign clean --no-print-directory > /dev/null 2>&1
 
-ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
+fw_img_dump_clean:
+	-${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_dump clean --no-print-directory > /dev/null 2>&1
+
+ifeq ($(NEXUS_SECURITY_FW_DEV_SIGN),y)
 EXTRA_CLEAN += fw_img_sign_clean
+else
+EXTRA_CLEAN += fw_img_dump_clean
 endif
 
 fw_signature_clean:
@@ -455,8 +456,9 @@ prep_dir:
 # Include Nexus build last -- This defines nexus_install, nexus_clean, etc.
 include $(NEXUS_TOP)/build/nexus.inc
 
+ifeq ($(filter $(NEXUS_MODE),client),)
 # security region verification
-ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
+ifeq ($(NEXUS_SECURITY_FW_DEV_SIGN),y)
 
 # this dependency ensures that the signature file is generated before trying to compile the security module
 $(NEXUS_SECURITY_SOURCES): $(NEXUS_SECURITY_REGVER_SIGNATURES)
@@ -477,6 +479,21 @@ else
 endif
 
 ${NEXUS_SECURITY_REGVER_KEY}: ${NEXUS_SECURITY_REGVER_SIGNATURES}
+
+else
+# use presence of key2 file to determine whether to dump fw images
+ifneq ($(wildcard $(NEXUS_TOP)/../BSEAV/lib/security/fw_img_sign/key2/$(BCHP_CHIP)_nexus_security_regver_key.h),)
+# this dependency ensures that the firmware regions are dumped before trying to compile the security module
+$(NEXUS_SECURITY_SOURCES): fw_img_dump
+
+NEXUS_FW_SIGN_SRC = $(foreach module, $(NEXUS_FW_SIGN_MODULES), $($(module)_AUTH_SOURCES))
+NEXUS_FW_DUMP_FAIL_MESSAGE = "Warning: Firmware image dump process failed..."
+
+fw_img_dump: $(NEXUS_FW_SIGN_SRC)
+	@echo "[Build..... fw_img_dump]"
+	${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_dump dump --no-print-directory B_REFSW_OS=linuxemu B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1 || echo $(NEXUS_FW_DUMP_FAIL_MESSAGE)
+endif
+endif
 endif
 
 $(NEXUS_GPIO_TABLE):

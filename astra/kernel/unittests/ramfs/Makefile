@@ -117,14 +117,6 @@ all: $(TZ_IMG)
 
 $(TZ_IMG): checkplatform checkdirs $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
-checkplatform:
-	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
-
-checkdirs: $(BIN_DIRS)
-
-$(BIN_DIRS):
-	mkdir -p $@
-
 $(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
 	$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 

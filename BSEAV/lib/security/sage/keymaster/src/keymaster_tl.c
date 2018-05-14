@@ -1035,6 +1035,7 @@ BERR_Code KeymasterTl_CryptoBegin(
     BKNI_Memcpy(in_key_blob_ptr, settings->in_key_blob.buffer, settings->in_key_blob.size);
 
     if (settings->hKeyslot) {
+#if (NEXUS_SECURITY_API_VERSION==1)
         NEXUS_SecurityKeySlotInfo keyslotInfo;
 
         NEXUS_Security_GetKeySlotInfo(settings->hKeyslot, &keyslotInfo);
@@ -1043,7 +1044,20 @@ BERR_Code KeymasterTl_CryptoBegin(
             err = BERR_INVALID_PARAMETER;
             goto done;
         }
+
         KM_CMD_CRYPTO_BEGIN_IN_KEY_SLOT_NUMBER = keyslotInfo.keySlotNumber;
+#else
+        NEXUS_KeySlotInformation keyslotInfo;
+
+        NEXUS_KeySlot_GetInformation(settings->hKeyslot, &keyslotInfo);
+        if (keyslotInfo.slotType != NEXUS_KeySlotType_eIvPerSlot) {
+            BDBG_ERR(("%s: Key slot must be IvPerSlot", BSTD_FUNCTION));
+            err = BERR_INVALID_PARAMETER;
+            goto done;
+        }
+
+        KM_CMD_CRYPTO_BEGIN_IN_KEY_SLOT_NUMBER = keyslotInfo.slotNumber;
+#endif
     } else {
         KM_CMD_CRYPTO_BEGIN_IN_KEY_SLOT_NUMBER = 0xffffffff;
     }

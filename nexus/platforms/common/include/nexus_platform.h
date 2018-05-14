@@ -48,6 +48,21 @@
 #ifdef NEXUS_HAS_DISPLAY
 #include "nexus_display.h"
 #endif
+#ifdef NEXUS_HAS_VIDEO_DECODER
+#include "nexus_video_decoder.h"
+#endif
+#ifdef NEXUS_HAS_GRAPHICSV3D
+#include "nexus_graphicsv3d.h"
+#endif
+#ifdef NEXUS_HAS_HDMI_INPUT
+#include "nexus_hdmi_input.h"
+#endif
+#ifdef NEXUS_HAS_PICTURE_DECODER
+#include "nexus_picture_decoder.h"
+#endif
+#ifdef NEXUS_HAS_VIDEO_ENCODER
+#include "nexus_video_encoder.h"
+#endif
 #include "nexus_core_compat.h"
 
 #ifdef __cplusplus
@@ -246,6 +261,17 @@ typedef struct NEXUS_PlatformStatus
     } boardId;
     unsigned boxMode;
     NEXUS_DisplayModuleStatus displayModuleStatus;
+    NEXUS_VideoDecoderModuleStatus videoDecoderModuleStatus;
+    NEXUS_VideoEncoderModuleStatus videoEncoderModuleStatus;
+    NEXUS_AudioModuleStatus audioModuleStatus;
+    NEXUS_Graphics2DModuleStatus graphics2DModuleStatus;
+    NEXUS_Graphicsv3dModuleStatus graphicsv3dModuleStatus;
+    NEXUS_HdmiInputModuleStatus hdmiInputModuleStatus;
+    NEXUS_HdmiOutputModuleStatus hdmiOutputModuleStatus;
+    NEXUS_PictureDecoderModuleStatus pictureDecoderModuleStatus;
+    NEXUS_RfmModuleStatus rfmModuleStatus;
+    NEXUS_SmartcardModuleStatus smartcardModuleStatus;
+    NEXUS_TransportModuleStatus transportModuleStatus;
     NEXUS_PlatformEstimatedMemory estimatedMemory;
     struct {
         unsigned size;

@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
@@ -3316,21 +3320,27 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    if ( BXVD_P_PPB_Protocol_eH265 == eProtocol )
    {
       uint32_t uiCompIndex;
+      BAVC_Point * points[3];
 
-      pstXdmPicture->stHDR.ulAvgContentLight = (pPPB->other.h265.content_light & HDR_SEI_CONTENT_LIGHT_AVG_MASK) >> HDR_SEI_CONTENT_LIGHT_AVG_SHIFT;
-      pstXdmPicture->stHDR.ulMaxContentLight = (pPPB->other.h265.content_light & HDR_SEI_CONTENT_LIGHT_MAX_MASK) >> HDR_SEI_CONTENT_LIGHT_MAX_SHIFT;
+      pstXdmPicture->stHDR.stStaticHdrMetadata.stContentLightLevel.ulMaxFrameAvg = (pPPB->other.h265.content_light & HDR_SEI_CONTENT_LIGHT_AVG_MASK) >> HDR_SEI_CONTENT_LIGHT_AVG_SHIFT;
+      pstXdmPicture->stHDR.stStaticHdrMetadata.stContentLightLevel.ulMax = (pPPB->other.h265.content_light & HDR_SEI_CONTENT_LIGHT_MAX_MASK) >> HDR_SEI_CONTENT_LIGHT_MAX_SHIFT;
+
+      /* GBRW order used per HEVC spec */
+      points[0] = &pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stGreen;
+      points[1] = &pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stBlue;
+      points[2] = &pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stRed;
 
       for ( uiCompIndex = 0; uiCompIndex < 3; uiCompIndex++ )
       {
-         pstXdmPicture->stHDR.stDisplayPrimaries[uiCompIndex].ulX = (pPPB->other.h265.display_primaries_xy[uiCompIndex] & HDR_SEI_X_MASK) >> HDR_SEI_X_SHIFT;
-         pstXdmPicture->stHDR.stDisplayPrimaries[uiCompIndex].ulY = (pPPB->other.h265.display_primaries_xy[uiCompIndex] & HDR_SEI_Y_MASK) >> HDR_SEI_Y_SHIFT;
+         points[uiCompIndex]->ulX = (pPPB->other.h265.display_primaries_xy[uiCompIndex] & HDR_SEI_X_MASK) >> HDR_SEI_X_SHIFT;
+         points[uiCompIndex]->ulY = (pPPB->other.h265.display_primaries_xy[uiCompIndex] & HDR_SEI_Y_MASK) >> HDR_SEI_Y_SHIFT;
       }
 
-      pstXdmPicture->stHDR.stWhitePoint.ulX = (pPPB->other.h265.white_point_xy & HDR_SEI_X_MASK) >> HDR_SEI_X_SHIFT;
-      pstXdmPicture->stHDR.stWhitePoint.ulY = (pPPB->other.h265.white_point_xy & HDR_SEI_Y_MASK) >> HDR_SEI_Y_SHIFT;
+      pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stColorVolume.stWhitePoint.ulX = (pPPB->other.h265.white_point_xy & HDR_SEI_X_MASK) >> HDR_SEI_X_SHIFT;
+      pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stColorVolume.stWhitePoint.ulY = (pPPB->other.h265.white_point_xy & HDR_SEI_Y_MASK) >> HDR_SEI_Y_SHIFT;
 
-      pstXdmPicture->stHDR.ulMaxDispMasteringLuma = pPPB->other.h265.max_disp_mastering_lum;
-      pstXdmPicture->stHDR.ulMinDispMasteringLuma = pPPB->other.h265.min_disp_mastering_lum;
+      pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stLuminance.uiMax = pPPB->other.h265.max_disp_mastering_lum;
+      pstXdmPicture->stHDR.stStaticHdrMetadata.stMasteringDisplayColorVolume.stLuminance.uiMin = pPPB->other.h265.min_disp_mastering_lum;
 
       pstXdmPicture->stHDR.uiTransferCharacteristics = pPPB->other.h265.hdr_transfer_characteristics_idc;  /* SWSTB-1629: */
 

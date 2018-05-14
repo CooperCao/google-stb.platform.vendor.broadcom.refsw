@@ -62,9 +62,7 @@ BDBG_MODULE(play);
 static void print_usage(const struct nxapps_cmdline *cmdline)
 {
     printf(
-    "Usage: play OPTIONS stream_url [indexfile]\n"
-    "\n"
-    "  stream_url can be http://server/path, or [file://]path/file\n"
+    "Usage: play OPTIONS STREAMFILE [INDEXFILE]\n"
     "\n"
     "OPTIONS:\n"
     "  --help or -h for help\n"
@@ -75,10 +73,8 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -pip                     sets -rect and -zorder for picture-in-picture\n"
     "  -once                    play once and exit; otherwise loop around\n"
     "  -max WIDTH,HEIGHT        max video decoder resolution\n"
-    "  -dtcp_ip                 enable DTCP/IP\n"
     );
     printf(
-    "  -pig                     example of picture-in-graphics video window sizing\n"
     "  -smooth                  set smoothResolutionChange to disable scale factor rounding\n"
     "  -manual_4x3_box          example of client-side aspect ratio control\n"
     );
@@ -361,7 +357,6 @@ int main(int argc, const char **argv)  {
     pthread_t standby_thread_id;
     NEXUS_VideoWindowContentMode contentMode = NEXUS_VideoWindowContentMode_eMax;
     NEXUS_TristateEnable fillContentModeBars = NEXUS_TristateEnable_eMax;
-    struct b_pig_inc pig_inc;
     bool manual_4x3_box = false;
     NEXUS_SurfaceClientHandle video_sc = NULL;
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
@@ -375,7 +370,6 @@ int main(int argc, const char **argv)  {
     bool hdcp_version_flag = false;
     unsigned video_cache_timeout = 0;
 
-    memset(&pig_inc, 0, sizeof(pig_inc));
     memset(client, 0, sizeof(*client));
     media_player_get_default_create_settings(&create_settings);
     media_player_get_default_start_settings(&start_settings);
@@ -424,10 +418,6 @@ int main(int argc, const char **argv)  {
             }
             start_settings.videoWindowType = NxClient_VideoWindowType_ePip;
         }
-        else if (!strcmp(argv[curarg], "-pig")) {
-            pig_inc.y = pig_inc.x = 4;
-            pig_inc.width = 2;
-        }
         else if (!strcmp(argv[curarg], "-smooth")) {
             start_settings.smoothResolutionChange = true;
         }
@@ -443,15 +433,6 @@ int main(int argc, const char **argv)  {
                 print_usage(&cmdline);
                 return -1;
             }
-        }
-        else if (!strcmp(argv[curarg], "-dtcp_ip") && curarg+1 < argc) {
-#if B_HAS_DTCP_IP
-            create_settings.dtcpEnabled = true;
-#else
-            BDBG_ERR(("DTCP support is not enabled. Please rebuild with DTCP_IP_SUPPORT=y."));
-            print_usage(&cmdline);
-            return -1;
-#endif
         }
         else if (!strcmp(argv[curarg], "-ar") && curarg+1 < argc) {
             contentMode = lookup(g_contentModeStrs, argv[++curarg]);
@@ -685,9 +666,6 @@ int main(int argc, const char **argv)  {
             settings.composition.fillContentModeBars = fillContentModeBars;
             NEXUS_SurfaceClient_SetSettings(video_sc, &settings);
         }
-        if (pig_inc.x) {
-            b_pig_init(video_sc);
-        }
     }
 
     if (!hdcp_flag || !hdcp_version_flag) {
@@ -768,10 +746,7 @@ int main(int argc, const char **argv)  {
             media_player_get_playback_status(client->player, &status);
             displayed = !gui_set_pos(client, status.position, status.first, status.last);
         }
-        if (pig_inc.x) {
-            b_pig_move(video_sc, &pig_inc);
-        }
-        else {
+        {
             b_remote_key key;
             bool repeat;
             if (!binput_read(client->input, &key, &repeat)) {
@@ -785,10 +760,6 @@ int main(int argc, const char **argv)  {
         /* don't wait until after other NxClient calls that may results in SurfaceCompositor work. This avoids an extra vsync of delay. */
         if (displayed) {
             rc = BKNI_WaitForEvent(client->displayedEvent, 5000);
-            if (rc) BERR_TRACE(rc);
-        }
-        else if (pig_inc.x) {
-            rc = BKNI_WaitForEvent(client->windowMovedEvent, 5000);
             if (rc) BERR_TRACE(rc);
         }
 

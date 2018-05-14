@@ -38,6 +38,7 @@
  ******************************************************************************/
 
 
+
 #ifndef BSP_S_USER_RANDOM_NUMBER_H__
 #define BSP_S_USER_RANDOM_NUMBER_H__
 

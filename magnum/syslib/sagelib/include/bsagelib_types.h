@@ -85,7 +85,6 @@ The two following are the only standard ones present in all systems.
 #define BSAGE_PLATFORM_ID_BP3            (0x11B)
 #define BSAGE_PLATFORM_ID_SECURE_RSA     (0x11C)
 #define BSAGE_PLATFORM_ID_HDCP14         (0x11D)
-#define BSAGE_PLATFORM_ID_SARM           (0x11E)
 #define BSAGE_PLATFORM_ID_SSD            (0x11F)
 #define BSAGE_PLATFORM_ID_KEYMASTER      (0x120)
 #define BSAGE_PLATFORM_ID_RESERVED15     (0x121)

@@ -421,7 +421,7 @@ void BMRC_Monitor_P_PrintBitmap_isrsafe(const struct BMRC_P_MonitorClientMap *ma
         for(bit=31;bit>=0;bit--) {
             if(bitmap[i] & 1<<bit) {
                 int left = sizeof(buf) - buf_off;
-                unsigned client = i*32 + bit;
+                BMRC_Client client = i*32 + bit;
                 const char *name = BMRC_P_GET_CLIENT_NAME_isrsafe(client);
                 int rc;
                 BMRC_Monitor_HwBlock block = map->clientToBlock[client];
@@ -431,7 +431,7 @@ void BMRC_Monitor_P_PrintBitmap_isrsafe(const struct BMRC_P_MonitorClientMap *ma
                     left = sizeof(buf);
                     buf_off = 0;
                 }
-                rc = BKNI_Snprintf(buf+buf_off,left, "%s%s(%u)",buf_off==0?"":",",name,client);
+                rc = BKNI_Snprintf(buf+buf_off,left, "%s%s(%d)",buf_off==0?"":",",name,BMRC_P_GET_CLIENT_ID(0/* memc */, client));
                 if(rc<0 || rc>left) {
                     BDBG_MODULE_MSG(BMRC_MONITOR_PRINT,("clients: %s..",buf));
                     left = sizeof(buf);

@@ -626,6 +626,12 @@ void egl_terminate(void)
    destroy_map(&images, (destructor_t) egl_image_refdec);
    destroy_map(&syncs, (destructor_t) egl_sync_refdec);
 
+   /* We must wait for the gmem deferred_free_callback()
+    * that might have been triggered by egl_surface_try_delete() above
+    * before releasing the display reference here.
+    */
+   v3d_scheduler_wait_all();
+
    egl_process_release();
    egl_display_refdec(display);
 }

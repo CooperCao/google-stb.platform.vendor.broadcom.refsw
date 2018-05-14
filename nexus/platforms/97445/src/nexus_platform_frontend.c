@@ -296,7 +296,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendDevice3128OpenSettings st3128DeviceOpenSettings;
     NEXUS_GpioSettings gpioSettings;
     BREG_Handle hReg;
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
 
     NEXUS_Frontend_GetDefault3128Settings(&st3128Settings);
     NEXUS_FrontendDevice_GetDefault3128OpenSettings(&st3128DeviceOpenSettings);
@@ -315,23 +315,29 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
     st3128DeviceOpenSettings.gpioInterrupt = gpioHandle;
 #else
-    rc = NEXUS_Platform_GetStatus(&platformStatus);
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    rc = NEXUS_Platform_GetStatus(platformStatus);
     BDBG_ASSERT(!rc);
-    BDBG_MSG(("Board ID: %d.%d", platformStatus.boardId.major, platformStatus.boardId.minor));
+    BDBG_MSG(("Board ID: %d.%d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
-    if((platformStatus.boardId.major >= 1) && (platformStatus.boardId.minor >= 1)){
+    if((platformStatus->boardId.major >= 1) && (platformStatus->boardId.minor >= 1)){
         gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard,60, &gpioSettings);
 
         if (NULL == gpioHandle)
         {
-          BDBG_ERR(("Unable to open GPIO for 3128 frontend interrupt."));
-          return BERR_NOT_INITIALIZED;
+            BDBG_ERR(("Unable to open GPIO for 3128 frontend interrupt."));
+            BKNI_Free(platformStatus);
+            return BERR_NOT_INITIALIZED;
         }
 
         st3128DeviceOpenSettings.gpioInterrupt = gpioHandle;
     }
     else
         st3128DeviceOpenSettings.interruptMode = NEXUS_FrontendInterruptMode_ePolling;
+    BKNI_Free(platformStatus);
 #endif
 #if NEXUS_USE_7445_SV
     st3128DeviceOpenSettings.i2cDevice = pConfig->i2c[3];    /* Onboard tuner/demod use BSC_M3.*/

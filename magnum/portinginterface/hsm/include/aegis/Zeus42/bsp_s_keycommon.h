@@ -37,6 +37,7 @@
 
  ******************************************************************************/
 
+
 #ifndef BSP_S_KEYCOMMON_H__
 #define BSP_S_KEYCOMMON_H__
 
@@ -105,6 +106,7 @@ typedef enum BCMD_CustomerSubMode_e
     BCMD_CustomerSubMode_eRESERVED36 = 0x24,
     BCMD_CustomerSubMode_eOTPKeyFieldProgramDataDecrypt = 0x25,
     BCMD_CustomerSubMode_eRESERVED38 = 0x26,
+
     BCMD_CustomerSubMode_eRPMB = 0x27,
     BCMD_CustomerSubMode_eReserved40  =  0x28,
     BCMD_CustomerSubMode_eMax
@@ -522,6 +524,7 @@ typedef enum BCMD_KeyPointer_OutCmdField_e
     BCMD_KeyPointer_OutCmdField_eMax
 }BCMD_KeyPointer_OutCmdField_e;
 
+
 typedef enum BCMD_InCmdCfgMulti2_e
 {
     BCMD_Multi2_InCmdCfg_eRoundCount = (5 << 2),
@@ -561,7 +564,7 @@ typedef enum BCMD_GenKey_InCmd_e
     BCMD_GenKey_InCmd_eSourceDuple = (13 << 2) + 2,
     BCMD_GenKey_InCmd_eKeyLayer = (14 << 2) + 3,
     BCMD_GenKey_InCmd_eKeyTweak = (14 << 2) + 2,
-    BCMD_GenKey_InCmd_eApplyKKCV  =  (14<<2)+1,
+    BCMD_GenKey_InCmd_eApplyKKCV = (14 << 2) + 1,
     BCMD_GenKey_InCmd_eCwProtectionKeyIvSource = (14 << 2) + 0,
     BCMD_GenKey_InCmd_eKeyLadderOpera = (15 << 2) + 3,
     BCMD_GenKey_InCmd_eProcIn = (16 << 2),
@@ -712,6 +715,7 @@ typedef enum BCMD_LoadUseKey_OutCmdField_e
     BCMD_LoadUseKey_OutCmdField_eStatus = (5 << 2) + 3,
     BCMD_LoadUseKey_OutCmdField_eMax
 }BCMD_LoadUseKey_OutCmdField_e;
+
 
 typedef enum BCMD_InvalidateKey_InCmd_e
 {

@@ -625,11 +625,17 @@ typedef struct NxClient_ThermalStatus
     unsigned temperature;   /* Current Temperature in degrees C*/
     bool userDefined;       /* True if user defined Cooling Agent needs to be applied*/
     unsigned level;         /* Level of throttling for user defined cooling agent */
+    struct {
+        bool inUse;               /* Indicates whether cooling agent is applied or not */
+        unsigned lastAppliedTime; /* Timestamp in ms when cooling agent was last applied */
+        unsigned lastRemovedTime; /* Timestamp in ms when cooling agent was last removed */
+    } priorityTable[32];          /* index is priority from thermal.cfg file */
 } NxClient_ThermalStatus;
 
 NEXUS_Error NxClient_GetThermalStatus(
     NxClient_ThermalStatus *pStatus
     );
+
 
 /**
 Summary:

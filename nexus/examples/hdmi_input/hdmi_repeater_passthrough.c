@@ -832,6 +832,9 @@ open_with_edid:
             hdmiInputHdcpSettings.hdcpRxChanged.context = hdmiInput ;
             hdmiInputHdcpSettings.hdcpRxChanged.param = 0 ;
 
+            /* clear the HDCP2Version to make sure HDCP 2.2 is not indicated as supported */
+            hdmiInputHdcpSettings.maxVersion = NEXUS_HdcpVersion_e1x ;
+
         NEXUS_HdmiInput_HdcpSetSettings(hdmiInput, &hdmiInputHdcpSettings) ;
     }
 

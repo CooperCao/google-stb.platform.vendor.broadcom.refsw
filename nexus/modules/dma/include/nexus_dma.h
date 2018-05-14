@@ -46,6 +46,8 @@
 
 #include "nexus_dma_types.h"
 
+#define NEXUS_MAX_DMA_CHANNELS  32
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -457,8 +459,25 @@ Memory passed to this function could be freely reused after function returns.
 ***************************************************************************/
 NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect (
     NEXUS_DmaJobHandle handle,
-    const NEXUS_DmaJobBlockDirectSettings *pSettings, /* attr{memory=cached} device memory where NEXUS_DmaJobBlockDirectSettings reside */
+    const NEXUS_DmaJobBlockDirectSettings *pSettings, /* attr{memory=cached;null_allowed=y} device memory where NEXUS_DmaJobBlockDirectSettings reside */
     unsigned nBlocks
+    );
+
+/***************************************************************************
+Summary:
+DMA capabilities
+***************************************************************************/
+typedef struct NEXUS_DmaCapabilities
+{
+    unsigned numChannels; /* number of independent DMA channels */
+} NEXUS_DmaCapabilities;
+
+/***************************************************************************
+Summary:
+Returns DMA capabilities
+***************************************************************************/
+void NEXUS_GetDmaCapabilities(
+    NEXUS_DmaCapabilities *capabilities
     );
 
 

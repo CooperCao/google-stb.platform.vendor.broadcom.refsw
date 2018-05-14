@@ -906,6 +906,16 @@ NEXUS_Error NEXUS_HdmiOutput_GetCrcData(
     unsigned *pNumEntriesReturned /* [out] */
     );
 
+/**
+Summary:
+Hdmi Output Module status.
+**/
+typedef struct NEXUS_HdmiOutputModuleStatus
+{
+    struct {
+        NEXUS_PowerStatus core[NEXUS_MAX_HDMI_OUTPUTS];
+    } power;
+} NEXUS_HdmiOutputModuleStatus;
 #ifdef __cplusplus
 }
 #endif

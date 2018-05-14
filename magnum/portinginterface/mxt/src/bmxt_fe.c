@@ -59,6 +59,7 @@ BDBG_MODULE(bmxt_fe);
 #define BMXT_R(reg) (handle->platform.regoffsets[reg] + handle->platform.regbase)
 #define BMXT_STEP(res) (handle->platform.stepsize[res])
 #define BMXT_EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
+#define BMXT_HAS_PID_TABLE() (handle->settings.chip!=BMXT_Chip_e45302)
 
 #define BMXT_IS_3128_FAMILY() ((handle->settings.chip==BMXT_Chip_e3128) || (handle->settings.chip==BMXT_Chip_e3383) || (handle->settings.chip==BMXT_Chip_e4528) || (handle->settings.chip==BMXT_Chip_e4517) || (handle->settings.chip==BMXT_Chip_e3472))
 #define BMXT_IS_4538_FAMILY() ((handle->settings.chip==BMXT_Chip_e4538) || (handle->settings.chip==BMXT_Chip_e3384) || (handle->settings.chip==BMXT_Chip_e4548) || (handle->settings.chip==BMXT_Chip_e7364) || (handle->settings.chip==BMXT_Chip_e7366) || (handle->settings.chip==BMXT_Chip_e7145) || (handle->settings.chip==BMXT_Chip_e45216))
@@ -69,7 +70,7 @@ BDBG_MODULE(bmxt_fe);
 
 #define BMXT_P_LEGACY_PARSER_BAND_ID_MAX 16 /* on pre-4538, MINI_PID_PARSER?_TO_PARSER?_BAND_ID.PARSER?_BAND_ID is a 4-bit number */
 
-const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "45316", "7145", "7366", "7364"};
+const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45302", "45308", "45316", "7145", "7366", "7364"};
 const char* const BMXT_PLATFORM_TYPE_STR[] = {"HAB", "RPC", "REG"};
 
 #define VIRTUAL_HANDLE_REG_OFFSET 0x80000000 /* hard-coded for now */
@@ -300,6 +301,7 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
         for (i=0; i<mxt->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1]; i++) {
             uint32_t val = 0;
             unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
+            if (!BMXT_HAS_PID_TABLE()) { continue; }
 
             addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
             reg = BMXT_RegRead32(mxt, addr);
@@ -325,6 +327,7 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
             for (; i<BMXT_P_LEGACY_PARSER_BAND_ID_MAX; i++) {
                 uint32_t val = 0;
                 unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
+                if (!BMXT_HAS_PID_TABLE()) { continue; }
 
                 addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
                 reg = BMXT_RegRead32(mxt, addr);
@@ -533,6 +536,10 @@ BERR_Code BMXT_GetInputBandStatus(BMXT_Handle handle, BMXT_InputBandStatus *pSta
 static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned *mtsifTxNum)
 {
     uint32_t reg, addr;
+    if (!BMXT_HAS_PID_TABLE()) {
+        *mtsifTxNum = 0;
+    }
+
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
     reg = BMXT_RegRead32(handle, addr);
     if (BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT)!=parserNum) {
@@ -551,6 +558,10 @@ static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum,
 static BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned mtsifTxNum)
 {
     uint32_t reg, addr;
+    if (!BMXT_HAS_PID_TABLE()) {
+        return BERR_SUCCESS;
+    }
+
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
     reg = BMXT_RegRead32(handle, addr);
     if (BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, INPUT_BAND_PARSER_PID_CHANNEL_INPUT_SELECT)!=parserNum) {
@@ -1013,6 +1024,9 @@ void BMXT_ConfigPidChannel(BMXT_Handle handle, unsigned index, const BMXT_PidCha
     if (handle->settings.enablePidFiltering==false) {
         BDBG_ERR(("MXT not configured for pid filtering"));
         return;
+    }
+    if (!BMXT_HAS_PID_TABLE()) {
+        BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*index);

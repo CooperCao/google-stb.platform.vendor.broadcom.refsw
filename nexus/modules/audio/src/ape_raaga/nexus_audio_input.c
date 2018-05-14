@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: AudioInput
@@ -2241,15 +2245,52 @@ NEXUS_Error NEXUS_AudioInput_P_SetFormatChangeInterrupt(
     case NEXUS_AudioInputType_eHdmi:
         if (audioCapabilities.numInputs.hdmi > 0)
         {
+            bool done;
+            unsigned i;
             BERR_Code errCode;
             BAPE_MaiInputFormatDetectionSettings detectionSettings;
             BAPE_MaiInput_GetFormatDetectionSettings(g_maiInput, &detectionSettings);
             switch ( clientType )
             {
             case NEXUS_AudioInputType_eDecoder:
-                detectionSettings.formatChangeIntDecode.pCallback_isr = pCallback_isr;
-                detectionSettings.formatChangeIntDecode.pParam1 = pParam1;
-                detectionSettings.formatChangeIntDecode.param2 = param2;
+                done = false;
+                for ( i = 0; i < BAPE_MAX_DECODERS_PER_INPUT; i++ )
+                {
+                    if ( pParam1 != NULL && pParam1 == detectionSettings.formatChangeIntDecode[i].pParam1 )
+                    {
+                        if ( pCallback_isr != NULL )
+                        {
+                            detectionSettings.formatChangeIntDecode[i].pCallback_isr = pCallback_isr;
+                            detectionSettings.formatChangeIntDecode[i].pParam1 = pParam1;
+                            detectionSettings.formatChangeIntDecode[i].param2 = param2;
+                        }
+                        else
+                        {
+                            detectionSettings.formatChangeIntDecode[i].pCallback_isr = NULL;
+                            detectionSettings.formatChangeIntDecode[i].pParam1 = NULL;
+                            detectionSettings.formatChangeIntDecode[i].param2 = 0;
+                        }
+                        done = true;
+                    }
+                }
+                if ( pCallback_isr != NULL && !done )
+                {
+                    for ( i = 0; i < BAPE_MAX_DECODERS_PER_INPUT && !done; i++ )
+                    {
+                        if ( detectionSettings.formatChangeIntDecode[i].pParam1 == NULL )
+                        {
+                            detectionSettings.formatChangeIntDecode[i].pCallback_isr = pCallback_isr;
+                            detectionSettings.formatChangeIntDecode[i].pParam1 = pParam1;
+                            detectionSettings.formatChangeIntDecode[i].param2 = param2;
+                            done = true;
+                        }
+                    }
+
+                    if ( !done )
+                    {
+                        BDBG_WRN(("Could not find a free slot to register this decoder for callbacks. May need to increase BAPE_MAX_DECODERS_PER_INPUT."));
+                    }
+                }
                 break;
             case NEXUS_AudioInputType_eInputCapture:
                 detectionSettings.formatChangeIntInput.pCallback_isr = pCallback_isr;
@@ -2260,7 +2301,15 @@ NEXUS_Error NEXUS_AudioInput_P_SetFormatChangeInterrupt(
                 return BERR_TRACE(BERR_NOT_SUPPORTED);
                 break;
             }
-            detectionSettings.enabled = (detectionSettings.formatChangeIntInput.pCallback_isr != NULL || detectionSettings.formatChangeIntDecode.pCallback_isr != NULL) ? true : false;
+            detectionSettings.enabled = false;
+            for ( i = 0; i < BAPE_MAX_DECODERS_PER_INPUT; i++ )
+            {
+                if ( detectionSettings.formatChangeIntDecode[i].pCallback_isr != NULL )
+                {
+                    detectionSettings.enabled = true;
+                }
+            }
+            detectionSettings.enabled |= (detectionSettings.formatChangeIntInput.pCallback_isr != NULL);
             errCode = BAPE_MaiInput_SetFormatDetectionSettings(g_maiInput, &detectionSettings);
             if ( errCode )
             {

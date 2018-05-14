@@ -248,33 +248,38 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
 
     {
-        NEXUS_PlatformStatus platformStatus;
+        NEXUS_PlatformStatus *platformStatus;
 
-        NEXUS_Platform_GetStatus(&platformStatus);
-        BDBG_MSG(("board major: %d, minor: %d",platformStatus.boardId.major,platformStatus.boardId.minor));
-        if (platformStatus.boardId.major == 5) {
+        platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+        if (!platformStatus) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        NEXUS_Platform_GetStatus(platformStatus);
+        BDBG_MSG(("board major: %d, minor: %d",platformStatus->boardId.major,platformStatus->boardId.minor));
+        if (platformStatus->boardId.major == 5) {
             externalSatellite = true;
             extI2cChannel = 3;
         }
 #if NEXUS_PLATFORM_7366_DAUGHTERCARD
-        if (platformStatus.boardId.major == 1) { /* SV */
+        if (platformStatus->boardId.major == 1) { /* SV */
             daughtercard = true;
             sv = true;
             dcInterrupt = 136;
             dcI2cChannel = 3;
         }
-        if (platformStatus.boardId.major == 2) { /* SFF */
+        if (platformStatus->boardId.major == 2) { /* SFF */
             daughtercard = true;
             sff = true;
             dcInterrupt = 23;
             dcI2cChannel = 3;
         }
-        if (platformStatus.boardId.major == 4) { /* SV DDR4 */
+        if (platformStatus->boardId.major == 4) { /* SV DDR4 */
             daughtercard = true;
             sv = true;
             dcInterrupt = 64;
             dcI2cChannel = 3;
         }
+        BKNI_Free(platformStatus);
 #endif
     }
 

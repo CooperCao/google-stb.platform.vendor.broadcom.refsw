@@ -38,6 +38,7 @@
  ******************************************************************************/
 
 
+
 #ifndef BSP_S_COMMANDS_H__
 #define BSP_S_COMMANDS_H__
 
@@ -50,12 +51,11 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eRESERVED_3 = 0x3,
     BCMD_cmdType_eSESSION_LOAD_ROUTE_USERKEY = 0x4,
     BCMD_cmdType_eSESSION_INVALIDATE_KEY = 0x5,
-
-    BCMD_cmdType_eReserved6 = 0x6,
+    BCMD_cmdType_eReserved6  =  0x6,
     BCMD_cmdType_eRESERVED_6 = 0x6,
     BCMD_cmdType_eSESSION_GENERATE_ROUTE_KEY = 0x7,
+    BCMD_cmdType_eReserved8  =  0x8,
 
-    BCMD_cmdType_eReserved8 = 0x8,
     BCMD_cmdType_eRESERVED_8 = 0x8,
     BCMD_cmdType_eSESSION_MEM_AUTH = 0x9,
     BCMD_cmdType_eReserved10  =  0xa,
@@ -107,7 +107,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eRESERVED_41 = 0x29,
     BCMD_cmdType_eREAD_EXCEPTION_STATUS = 0x2a,
     BCMD_cmdType_eOFFLINE_SET_VICH_REG_PAR = 0x2b,
-    BCMD_cmdType_eRESERVED_44 = 0x2c,
+    BCMD_cmdType_eReserved44  =  0x2c,
     BCMD_cmdType_eReserved45  =  0x2d,
     BCMD_cmdType_eReserved46  =  0x2e,
     BCMD_cmdType_eRESERVED_45 = 0x2d,
@@ -127,8 +127,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eSTART_AVD = 0x35,
     BCMD_cmdType_eSECOND_TIER_KEY_VERIFY = 0x36,
     BCMD_cmdType_eSECOND_STAGE_CODE_LOAD = 0x37,
-    BCMD_cmdType_eRESERVED_56 = 0x38,
-    BCMD_cmdType_eReserved56  = 0x38,
+    BCMD_cmdType_eReserved56  =  0x38,
     BCMD_cmdType_eMEMSYS_READY_FOR_INIT = 0x39,
     BCMD_cmdType_eReserved58  =  0x3a,
     BCMD_cmdType_eReserved59  =  0x3b,
@@ -165,6 +164,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eRESERVED_74 = 0x4a,
     BCMD_cmdType_ePKE_Cmd_Poll_Status = 0x4b,
     BCMD_cmdType_eRESERVED_76 = 0x4c,
+    BCMD_cmdType_eReserved77  =  0x4d,
     BCMD_cmdType_eRESERVED_77 = 0x4d,
     BCMD_cmdType_eReserved78  =  0x4e,
     BCMD_cmdType_eRESERVED_78 = 0x4e,

@@ -243,7 +243,9 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
 
     NEXUS_Security_GetDefaultAlgorithmSettings(&nexusAlgSettings);
     pSettings->settings.keySlotType = nexusAlgSettings.keyDestEntryType;
+
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
+#ifndef COMMON_DRM_LEGACY_MODE
     pSettings->settings.maskKey2Select  = NEXUS_SecurityKey2Select_eFixedKey;
     pSettings->settings.caVendorID      = 0x1234;
     pSettings->settings.askmModuleID    = NEXUS_SecurityAskmModuleID_eModuleID_8;
@@ -274,6 +276,18 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
         pSettings->settings.maskKey2Select = num;
         BDBG_MSG(("after getenv---%s maskKey2Select is %d", BSTD_FUNCTION, pSettings->settings.maskKey2Select));
     }
+#else /* COMMON_DRM_LEGACY_MODE - For compatibility with URSR 12.4-16.4 */
+    pSettings->settings.maskKey2Select  = NEXUS_SecurityKey2Select_eReserved1;
+    pSettings->settings.caVendorID      = 0x1234;
+    pSettings->settings.askmModuleID    = NEXUS_SecurityAskmModuleID_eModuleID_4;
+    pSettings->settings.ivMode          = NEXUS_SecurityIVMode_eRegular;
+    pSettings->settings.stbOwnerID      = NEXUS_SecurityOtpId_eOtpVal;
+    pSettings->settings.enableMaskKey2Select  = false;
+    BSTD_UNUSED(strToHex);
+    BSTD_UNUSED(vendorID);
+    BSTD_UNUSED(stbOwnerID);
+    BSTD_UNUSED(maskKey2Select);
+#endif
 #endif /*(NEXUS_SECURITY_HAS_ASKM == 1)*/
 }
 
@@ -453,7 +467,7 @@ void CommonCrypto_GetDefaultKeyLadderSettings(
     pSettings->KeyLadderOpStruct.SessionKeyOperationKey2 = NEXUS_CryptographicOperation_eEncrypt;
     pSettings->KeyLadderOpStruct.ControlWordKeyOperation = NEXUS_CryptographicOperation_eDecrypt;
 
-
+    pSettings->keyladderAlgType = NEXUS_CryptographicAlgorithm_eAes128;
     pSettings->keyladderMode = NEXUS_KeyLadderMode_eCp_128_4;
     pSettings->askmSupport = false;
     pSettings->aesKeySwap = false;

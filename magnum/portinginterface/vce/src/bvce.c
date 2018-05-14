@@ -7635,45 +7635,32 @@ static const uint32_t BVCE_P_PI2FW_OrientationLUT[BFMT_Orientation_eLeftRight_En
    SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT_ENHANCED /* BFMT_Orientation_eLeftRight_Enhanced */
 };
 
-#define BVCE_P_PI2FW_DELTAPTS_BASE ((uint64_t) 90000*4)
-#define BVCE_P_PI2FW_DELTAPTS_BASE_RATE (1000)
-#define BVCE_P_PI2FW_DELTAPTS_ANALOG_RATE (1001)
-#define BVCE_P_PI2FW_DELTAPTS_DIGITAL_RATE (1000)
-#define BVCE_P_PI2FW_DELTAPTS(_frameRateNumerator, _frameRateDenominator, _type) (((BVCE_P_PI2FW_DELTAPTS_BASE) * (BVCE_P_PI2FW_DELTAPTS_##_type##_RATE) * (_frameRateDenominator)) / ((_frameRateNumerator) * (BVCE_P_PI2FW_DELTAPTS_BASE_RATE)))
-
-static const uint16_t BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[BAVC_FrameRateCode_eMax] =
+static const uint64_t BVCE_P_PI2FW_FrameRate2DeltaPtsLUT[BAVC_FrameRateCode_eMax] =
 {
-   0,                                   /* BAVC_FrameRateCode_eUnknown */
-   BVCE_P_PI2FW_DELTAPTS(24,1,ANALOG),  /* BAVC_FrameRateCode_e23_976 */
-   BVCE_P_PI2FW_DELTAPTS(24,1,DIGITAL), /* BAVC_FrameRateCode_e24 */
-   BVCE_P_PI2FW_DELTAPTS(25,1,DIGITAL), /* BAVC_FrameRateCode_e25 */
-   BVCE_P_PI2FW_DELTAPTS(60,2,ANALOG),  /* BAVC_FrameRateCode_e29_97 */
-   BVCE_P_PI2FW_DELTAPTS(60,2,DIGITAL), /* BAVC_FrameRateCode_e30 */
-   BVCE_P_PI2FW_DELTAPTS(50,1,DIGITAL), /* BAVC_FrameRateCode_e50 */
-   BVCE_P_PI2FW_DELTAPTS(60,1,ANALOG),  /* BAVC_FrameRateCode_e59_94 */
-   BVCE_P_PI2FW_DELTAPTS(60,1,DIGITAL), /* BAVC_FrameRateCode_e60 */
-   BVCE_P_PI2FW_DELTAPTS(60,4,ANALOG),  /* BAVC_FrameRateCode_e14_985 */
-   BVCE_P_PI2FW_DELTAPTS(60,8,ANALOG),  /* BAVC_FrameRateCode_e7_493 */
-   BVCE_P_PI2FW_DELTAPTS(60,6,DIGITAL), /* BAVC_FrameRateCode_e10 */
-   BVCE_P_PI2FW_DELTAPTS(60,4,DIGITAL), /* BAVC_FrameRateCode_e15 */
-   BVCE_P_PI2FW_DELTAPTS(60,3,DIGITAL), /* BAVC_FrameRateCode_e20 */
-   BVCE_P_PI2FW_DELTAPTS(25,2,DIGITAL), /* BAVC_FrameRateCode_e12_5 */
-   BVCE_P_PI2FW_DELTAPTS(100,1,DIGITAL),/* BAVC_FrameRateCode_e100 */
-   BVCE_P_PI2FW_DELTAPTS(120,1,ANALOG), /* BAVC_FrameRateCode_e119_88 */
-   BVCE_P_PI2FW_DELTAPTS(120,1,DIGITAL),/* BAVC_FrameRateCode_e120 */
-   BVCE_P_PI2FW_DELTAPTS(60,3,ANALOG),  /* BAVC_FrameRateCode_e19_98 */
-   BVCE_P_PI2FW_DELTAPTS(60,8,DIGITAL), /* BAVC_FrameRateCode_e7_5 */
-   BVCE_P_PI2FW_DELTAPTS(60,5,DIGITAL), /* BAVC_FrameRateCode_e12 */
-   BVCE_P_PI2FW_DELTAPTS(60,5,ANALOG),  /* BAVC_FrameRateCode_e11_988 */
-   BVCE_P_PI2FW_DELTAPTS(60,6,ANALOG),  /* BAVC_FrameRateCode_e9_99 */
+   0,     /* BAVC_FrameRateCode_eUnknown */
+   15015, /* BAVC_FrameRateCode_e23_976 */
+   15000, /* BAVC_FrameRateCode_e24 */
+   14400, /* BAVC_FrameRateCode_e25 */
+   12012, /* BAVC_FrameRateCode_e29_97 */
+   12000, /* BAVC_FrameRateCode_e30 */
+   7200,  /* BAVC_FrameRateCode_e50 */
+   6006,  /* BAVC_FrameRateCode_e59_94 */
+   6000,  /* BAVC_FrameRateCode_e60 */
+   24024, /* BAVC_FrameRateCode_e14_985 */
+   48048, /* BAVC_FrameRateCode_e7_493 */
+   36000, /* BAVC_FrameRateCode_e10 */
+   24000, /* BAVC_FrameRateCode_e15 */
+   18000, /* BAVC_FrameRateCode_e20 */
+   28800, /* BAVC_FrameRateCode_e12_5 */
+   3600,  /* BAVC_FrameRateCode_e100 */
+   3003,  /* BAVC_FrameRateCode_e119_88 */
+   3000,  /* BAVC_FrameRateCode_e120 */
+   18018, /* BAVC_FrameRateCode_e19_98 */
+   48000, /* BAVC_FrameRateCode_e7_5 */
+   30000, /* BAVC_FrameRateCode_e12 */
+   30030, /* BAVC_FrameRateCode_e11_988 */
+   36036, /* BAVC_FrameRateCode_e9_99 */
 };
-
-/* TODO:
- *  - Remove references to FrameRate
- *  - Remove ITFP references?
- *  - Update A2PDelay function to not include VIP Delay
- *    - Should STC snapshot account for BVN's VIP A2PDelay?
- */
 
 typedef struct BVCE_P_FrameRateConversionSettings
 {

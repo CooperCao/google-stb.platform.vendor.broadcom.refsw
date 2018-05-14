@@ -1408,6 +1408,15 @@ static void _srai_init_vars(void)
  *
  * Note: SRAI cleanup does not garbage collect memory blocks
  */
+static void _srai_init_vars_locked(void)
+{
+    SRAI_P_InitLockLifecycle();
+    if (_srai_varinit_state == 0) {
+        SRAI_P_LockLifecycle();
+        _srai_init_vars();
+        SRAI_P_UnlockLifecycle();
+    }
+}
 static int _srai_enter(void)
 {
     SRAI_P_InitLockLifecycle();
@@ -1590,7 +1599,7 @@ uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType)
 
     BDBG_ENTER(SRAI_Memory_Allocate);
 
-    _srai_init_vars();
+    _srai_init_vars_locked();
 
     switch (memoryType) {
     case SRAI_MemoryType_Shared:
@@ -1635,7 +1644,7 @@ BSAGElib_InOutContainer *SRAI_Container_Allocate(void)
 
     BDBG_ENTER(SRAI_Container_Allocate);
 
-    _srai_init_vars();
+    _srai_init_vars_locked();
 
     container = BSAGElib_Tools_ContainerCache_Allocate(_srai.hContainerCache);
 
@@ -1648,7 +1657,7 @@ void SRAI_Container_Free(BSAGElib_InOutContainer *container)
 {
     BDBG_ENTER(SRAI_Container_Free);
 
-    _srai_init_vars();
+    _srai_init_vars_locked();
 
     BSAGElib_Tools_ContainerCache_Free(_srai.hContainerCache, container);
 
@@ -2008,7 +2017,6 @@ _srai_lookup_platform_name(uint32_t platformId)
     CASE_PLATFORM_NAME_TO_STRING(MARLIN);
     CASE_PLATFORM_NAME_TO_STRING(EDRM);
     CASE_PLATFORM_NAME_TO_STRING(BP3);
-    CASE_PLATFORM_NAME_TO_STRING(SARM);
     default:
       break;
   }

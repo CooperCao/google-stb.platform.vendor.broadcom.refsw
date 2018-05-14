@@ -54,9 +54,8 @@ Description:
  ***************************************************************************/
 
 #if NEXUS_HAS_SAGE
-void NEXUS_Platform_P_EnableSageDebugPinmux(void)
+void NEXUS_Platform_P_EnableSageDebugPinmux(NEXUS_PlatformStatus *platformStatus)
 {
-    NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
@@ -64,15 +63,14 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         return;
     }
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Selecting SAGE pin mux for board ID %d",platformStatus.boardId.major));
+    BDBG_MSG(("Selecting SAGE pin mux for board ID %d",platformStatus->boardId.major));
 
-    switch (platformStatus.boardId.major) {
+    switch (platformStatus->boardId.major) {
 
         default:
         {
             /* USFF, VMS and HB boards don't have anything other than UART 0 headers */
-            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus->boardId.major));
             break;
         }
         case 0:  /* SV board */
@@ -143,14 +141,19 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
 
-        NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
 #if NEXUS_HAS_SAGE
-    NEXUS_Platform_P_EnableSageDebugPinmux();
+    NEXUS_Platform_P_EnableSageDebugPinmux(platformStatus);
 #endif
+    BKNI_Free(platformStatus);
 
     return BERR_SUCCESS;
 }

@@ -1,6 +1,6 @@
 /******************************************************************************
  *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -75,6 +75,8 @@ typedef enum BSAGElib_BinFileDrmTypes_e
     BSAGElib_BinFileDrmType_eKeyMaster,
     BSAGElib_BinFileDrmType_eWVCert,
     BSAGElib_BinFileDrmType_eCSecureRsa,
+    BSAGElib_BinFileDrmType_eNTKL,
+    BSAGElib_BinFileDrmType_eBSecureRsa,
     BSAGElib_BinFileDrmType_eMax
 } BSAGElib_BinFileDrmTypes_e;
 

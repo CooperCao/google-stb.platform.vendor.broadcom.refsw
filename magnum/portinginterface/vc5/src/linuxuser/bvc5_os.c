@@ -162,9 +162,11 @@ void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
 {
    if (BVC5_P_HasBrcmv3dko())
    {
+      int res;
       struct drm_v3d_file_private_token s;
 
       s.token = uiPlatformToken;
-      ioctl(drmFd, DRM_IOCTL_V3D_SET_CLIENT_TERM, &s);
+      res = ioctl(drmFd, DRM_IOCTL_V3D_SET_CLIENT_TERM, &s);
+      BDBG_ASSERT(res == 0);
    }
 }

@@ -533,10 +533,10 @@ static void BCHP_PWR_P_HW_AUD_DAC_Control(BCHP_Handle handle, bool activate)
                 BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1_STB_CP_ext_pok_en_MASK);
         reg &= ~mask;
         reg |= mask;
-        BKNI_Sleep(20);
+        BKNI_Delay(20000);
     } else {
         reg &= ~BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1_STB_CP_ext_pok_en_MASK;
-        BKNI_Sleep(10);
+        BKNI_Delay(10000);
     }
     BREG_Write32(handle->regHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1, reg);
 #endif

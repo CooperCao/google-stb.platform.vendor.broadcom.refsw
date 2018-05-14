@@ -4927,7 +4927,7 @@ BERR_Code BHDM_P_CreateTimer(const BHDM_Handle hHDMI, BTMR_TimerHandle * timerHa
 }
 
 
-BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDMI, BTMR_TimerHandle timerHandle, uint8_t timerId)
+BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDMI, BTMR_TimerHandle *timerHandle, uint8_t timerId)
 {
 	BERR_Code rc = BERR_SUCCESS ;
 
@@ -4940,7 +4940,8 @@ BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDMI, BTMR_TimerHandle timerHan
 	BSTD_UNUSED(timerId) ;
 #endif
 
-	BTMR_DestroyTimer(timerHandle) ;
+	BTMR_DestroyTimer(*timerHandle) ;
+	*timerHandle = NULL;
 
 	BDBG_LEAVE(BHDM_P_DestroyTimer) ;
 	return rc ;
@@ -5020,6 +5021,18 @@ static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDMI, int parm2)
 
 		break ;
 
+	case BHDM_P_TIMER_eForcedTxHotplug:
+		{
+			BERR_Code rc = BERR_SUCCESS;
+
+			if (hHDMI->TimerForcedTxHotplug) {
+				BTMR_StopTimer_isr(hHDMI->TimerForcedTxHotplug);
+			}
+
+			rc = BHDM_HDCP_AssertSimulatedHpd_isr(hHDMI, false, true);
+			if (rc) { rc = BERR_TRACE(rc); }
+		}
+		break;
 
 	default :
 		BDBG_ERR(("Tx%d: hHDM %p Timer %d not handled", hHDMI->eCoreId, (void *)hHDMI, parm2)) ;
@@ -5047,6 +5060,10 @@ void BHDM_P_AllocateTimers(const BHDM_Handle hHDMI)
 		&hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble)) ;
 #endif
 
+	/* create count-down timer for the pulse-width when force Tx HPD_IN */
+	BHDM_CHECK_RC(rc, BHDM_P_CreateTimer(hHDMI,
+		&hHDMI->TimerForcedTxHotplug, BHDM_P_TIMER_eForcedTxHotplug)) ;
+
 	/* create a packet delay timer  */
 	BHDM_CHECK_RC(rc, BHDM_P_CreateTimer(hHDMI,
 		&hHDMI->TimerPacketChangeDelay, BHDM_P_TIMER_ePacketChangeDelay)) ;
@@ -5060,15 +5077,21 @@ done:
 
 void BHDM_P_FreeTimers(const BHDM_Handle hHDMI)
 {
-	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerHotPlug, BHDM_P_TIMER_eHotPlug) ;
+	BERR_Code rc = BERR_SUCCESS;
+
+	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerHotPlug, BHDM_P_TIMER_eHotPlug));
 	BHDM_MONITOR_P_DestroyTimers(hHDMI) ;
 
 #if BHDM_CONFIG_HAS_HDCP22
-	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerScdcStatus, BHDM_P_TIMER_eScdcStatus) ;
-	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble) ;
+	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerScdcStatus, BHDM_P_TIMER_eScdcStatus));
+	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble));
 #endif
 
-	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerPacketChangeDelay, BHDM_P_TIMER_ePacketChangeDelay) ;
+	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerForcedTxHotplug, BHDM_P_TIMER_eForcedTxHotplug));
+	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerPacketChangeDelay, BHDM_P_TIMER_ePacketChangeDelay));
+
+done:
+	(void) BERR_TRACE(rc);
 }
 #endif
 

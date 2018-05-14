@@ -1,5 +1,6 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2007-2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,7 +114,7 @@ typedef struct NEXUS_StillDecoderStartSettings
         unsigned maxWidth, maxHeight;
         NEXUS_MemoryBlockHandle memory; /* optional buffer */
         unsigned memoryOffset;
-        void *buffer; /* attr{memory=cached} deprecated. optional buffer pointer. only used if 'memory' is NULL. */
+        void *buffer; /* attr{memory=cached;null_allowed=y} deprecated. optional buffer pointer. only used if 'memory' is NULL. */
         unsigned size; /* size of memory pointed to by buffer */    
     } output;
 } NEXUS_StillDecoderStartSettings;

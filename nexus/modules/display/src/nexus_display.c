@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  **************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
@@ -693,44 +697,6 @@ static void nexus_display_p_hdrInfoChange_event(void *context)
             &display->hdmi.hdrInfoChange.infoFrame) ;
     }
 }
-
-static void nexus_display_p_hdrType1InfoFrame_fromMagnum_isrsafe(
-    NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata *type1,
-    const BAVC_HDMI_DRMInfoFrameType1 *magnum)
-{
-    BDBG_MSG(("from:"));
-    BDBG_MSG(("      green: (%d, %d)", type1->masteringDisplayColorVolume.greenPrimary.x, type1->masteringDisplayColorVolume.greenPrimary.y));
-    BDBG_MSG(("      blue: (%d, %d)", type1->masteringDisplayColorVolume.bluePrimary.x, type1->masteringDisplayColorVolume.bluePrimary.y));
-    BDBG_MSG(("      red: (%d, %d)", type1->masteringDisplayColorVolume.redPrimary.x, type1->masteringDisplayColorVolume.redPrimary.y));
-    BDBG_MSG(("      white: (%d, %d)", type1->masteringDisplayColorVolume.whitePoint.x, type1->masteringDisplayColorVolume.whitePoint.y));
-    BDBG_MSG(("      luma: (%d, %d)", type1->masteringDisplayColorVolume.luminance.max, type1->masteringDisplayColorVolume.luminance.min));
-    BDBG_MSG(("      cll: %d", type1->contentLightLevel.max));
-    BDBG_MSG(("      fal: %d", type1->contentLightLevel.maxFrameAverage));
-    BDBG_MSG(("to:"));
-    BDBG_MSG(("      green: (%d, %d)", magnum->DisplayPrimaries[0].X, magnum->DisplayPrimaries[0].Y));
-    BDBG_MSG(("      blue: (%d, %d)", magnum->DisplayPrimaries[1].X, magnum->DisplayPrimaries[1].Y));
-    BDBG_MSG(("      red: (%d, %d)", magnum->DisplayPrimaries[2].X, magnum->DisplayPrimaries[2].Y));
-    BDBG_MSG(("      white: (%d, %d)", magnum->WhitePoint.X, magnum->WhitePoint.Y));
-    BDBG_MSG(("      luma: (%d, %d)", magnum->DisplayMasteringLuminance.Max, magnum->DisplayMasteringLuminance.Min));
-    BDBG_MSG(("      cll: %d", magnum->MaxContentLightLevel));
-    BDBG_MSG(("      fal: %d", magnum->MaxFrameAverageLightLevel));
-
-    type1->masteringDisplayColorVolume.greenPrimary.x = magnum->DisplayPrimaries[0].X;
-    type1->masteringDisplayColorVolume.greenPrimary.y = magnum->DisplayPrimaries[0].Y;
-    type1->masteringDisplayColorVolume.bluePrimary.x  = magnum->DisplayPrimaries[1].X;
-    type1->masteringDisplayColorVolume.bluePrimary.y  = magnum->DisplayPrimaries[1].Y;
-    type1->masteringDisplayColorVolume.redPrimary.x   = magnum->DisplayPrimaries[2].X;
-    type1->masteringDisplayColorVolume.redPrimary.y   = magnum->DisplayPrimaries[2].Y;
-    type1->masteringDisplayColorVolume.whitePoint.x   = magnum->WhitePoint.X;
-    type1->masteringDisplayColorVolume.whitePoint.y   = magnum->WhitePoint.Y;
-    type1->masteringDisplayColorVolume.luminance.max  = magnum->DisplayMasteringLuminance.Max;
-    type1->masteringDisplayColorVolume.luminance.min  = magnum->DisplayMasteringLuminance.Min;
-
-    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
-        &type1->contentLightLevel,
-        magnum->MaxContentLightLevel,
-        magnum->MaxFrameAverageLightLevel);
-}
 #endif
 
 static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
@@ -827,14 +793,33 @@ static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
 
 #if NEXUS_NUM_HDMI_OUTPUTS
     if (pCallbackData->stMask.bHdrInfoFrame) {
+        NEXUS_StaticHdrMetadata * pNexus = &display->hdmi.hdrInfoChange.infoFrame.metadata.typeSettings.type1;
+        BAVC_StaticHdrMetadata * pMagnum = &pCallbackData->stStaticHdrMetadata;
         BDBG_MSG(("display %d HDR info frame changed:", display->index));
+        BDBG_MSG(("from:"));
+        BDBG_MSG(("      green: (%d, %d)", pNexus->masteringDisplayColorVolume.greenPrimary.x, pNexus->masteringDisplayColorVolume.greenPrimary.y));
+        BDBG_MSG(("      blue: (%d, %d)", pNexus->masteringDisplayColorVolume.bluePrimary.x, pNexus->masteringDisplayColorVolume.bluePrimary.y));
+        BDBG_MSG(("      red: (%d, %d)", pNexus->masteringDisplayColorVolume.redPrimary.x, pNexus->masteringDisplayColorVolume.redPrimary.y));
+        BDBG_MSG(("      white: (%d, %d)", pNexus->masteringDisplayColorVolume.whitePoint.x, pNexus->masteringDisplayColorVolume.whitePoint.y));
+        BDBG_MSG(("      luma: (%d, %d)", pNexus->masteringDisplayColorVolume.luminance.max, pNexus->masteringDisplayColorVolume.luminance.min));
+        BDBG_MSG(("      cll: %d", pNexus->contentLightLevel.max));
+        BDBG_MSG(("      fal: %d", pNexus->contentLightLevel.maxFrameAverage));
+        BDBG_MSG(("to:"));
+        BDBG_MSG(("      green: (%d, %d)", pMagnum->stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stGreen.ulX, pMagnum->stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stGreen.ulY));
+        BDBG_MSG(("      blue: (%d, %d)", pMagnum->stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stBlue.ulX, pMagnum->stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stBlue.ulY));
+        BDBG_MSG(("      red: (%d, %d)", pMagnum->stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stRed.ulX, pMagnum->stMasteringDisplayColorVolume.stColorVolume.stPrimaries.stRed.ulY));
+        BDBG_MSG(("      white: (%d, %d)", pMagnum->stMasteringDisplayColorVolume.stColorVolume.stWhitePoint.ulX, pMagnum->stMasteringDisplayColorVolume.stColorVolume.stWhitePoint.ulY));
+        BDBG_MSG(("      luma: (%d, %d)", pMagnum->stMasteringDisplayColorVolume.stLuminance.uiMax, pMagnum->stMasteringDisplayColorVolume.stLuminance.uiMin));
+        BDBG_MSG(("      cll: %d", pMagnum->stContentLightLevel.ulMax));
+        BDBG_MSG(("      fal: %d", pMagnum->stContentLightLevel.ulMaxFrameAvg));
+
         /*
          * DO NOT copy or change eotf here, it is set in nexus_video_input instead.
          * only static metadata is changed here
          */
         display->hdmi.hdrInfoChange.infoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1;
-        nexus_display_p_hdrType1InfoFrame_fromMagnum_isrsafe(&display->hdmi.hdrInfoChange.infoFrame.metadata.typeSettings.type1,
-            &pCallbackData->stInfoFrame.Type1);
+        NEXUS_P_StaticHdrMetadata_FromMagnum_isrsafe(&display->hdmi.hdrInfoChange.infoFrame.metadata.typeSettings.type1,
+            &pCallbackData->stStaticHdrMetadata);
         display->hdmi.hdrInfoChange.smdValid = true;
         BKNI_SetEvent(display->hdmi.hdrInfoChange.event);
     }

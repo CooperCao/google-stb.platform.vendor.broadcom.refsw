@@ -730,7 +730,6 @@ static void BVDC_P_Mvp_BuildRul_DcxsInit_isr
 
     BDBG_ASSERT(pstCompression);
 
-    ulRegOffset = hMcvp->ulRegOffset;
 #if (!BVDC_P_SUPPORT_MCDI_SUPERSET)
     /* non superset is supported in this version, including chips 7445D0/7145B0/7366B0*/
     ulRegOffset = hMcvp->ulRegOffset1;
@@ -746,6 +745,7 @@ static void BVDC_P_Mvp_BuildRul_DcxsInit_isr
         BCHP_FIELD_DATA(SIOB_1_DCXS_CFG, COMPRESSION,  ulCompression          ));
 
 #else
+    ulRegOffset = hMcvp->ulRegOffset;
     ulCompression = (pstCompression->ulBitsPerGroup > BVDC_36BITS_PER_GROUP)
             ? BCHP_SIOB_0_DCXS_CFG_COMPRESSION_BPP_11 /* 11 bpp */
             : BCHP_SIOB_0_DCXS_CFG_COMPRESSION_BPP_9; /* 09 bpp */

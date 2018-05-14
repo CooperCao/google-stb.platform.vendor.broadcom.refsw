@@ -81,11 +81,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_XPT_DMA
-#if defined(BCHP_XPT_WDMA_CH8_REG_START) || defined(BCHP_XPT_MEMDMA_MCPB_CH8_REG_START)
-#define NEXUS_NUM_DMA_CHANNELS 31
-#else
-#define NEXUS_NUM_DMA_CHANNELS 8
-#endif
+#define NEXUS_NUM_DMA_CHANNELS NEXUS_MAX_DMA_CHANNELS
 #elif defined NEXUS_HAS_DMA
 #ifdef BCHP_MEM_DMA_1_REG_START
 #define NEXUS_NUM_DMA_CHANNELS 2

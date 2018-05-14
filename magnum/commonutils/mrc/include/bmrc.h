@@ -150,7 +150,7 @@ typedef struct BMRC_ClientInfo
 {
 	const char     *pchClientName;
 	BMRC_Client     eClient;    /* SW client enum */
-	uint16_t        usClientId; /* HW client bit position (values 0..127 spanning 4 32-bit registers) */
+	int16_t        usClientId; /* HW client bit position (values 0..127 spanning 4 32-bit registers) */
 } BMRC_ClientInfo;
 
 

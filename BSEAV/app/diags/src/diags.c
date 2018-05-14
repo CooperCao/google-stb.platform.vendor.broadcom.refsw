@@ -1,23 +1,42 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ ******************************************************************************/
+
 #include <stdio.h>
 #include <string.h>
 #include "version.h"
@@ -71,8 +90,6 @@ void BcmDiags(void)
     {
         printf( "\n\nBCM%d Set Top Evaluation Code - Version %s, Compiled on %s, %s\n",
                         BCM_BOARD, EVAL_VERSION, __DATE__, __TIME__);
-        printf( "Copyright (C) Broadcom Corporation 2003. All rights reserved.\n");
-
         printf("    0) Exit\n");
         printf("    1) Memory Functions\n");
         printf("    2) Front End Functions\n");
@@ -223,6 +240,8 @@ void BcmDiags(void)
 int main(int argc, char **argv)
 {
     NEXUS_PlatformSettings platformSettings;
+    int curarg = 0;
+    bool useFrontend=true;
 
     #if NEXUS_HAS_FILE
         int i;
@@ -230,6 +249,13 @@ int main(int argc, char **argv)
 
     run_dma_memory_test = false;
 
+    while ( curarg < argc ) {
+        if (!strcmp(argv[curarg], "-notuner")) {
+            useFrontend = false;
+        }
+
+        curarg++;
+    }
     /* Initialize SETTOP API */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
 
@@ -238,10 +264,10 @@ int main(int argc, char **argv)
     #endif
 
     #ifdef DIAGS_SUPPORT_MVC
-        platformSettings.transportModuleSettings.maxDataRate.parserBand[NEXUS_ParserBand_e0] = 50000000; 
+        platformSettings.transportModuleSettings.maxDataRate.parserBand[NEXUS_ParserBand_e0] = 50000000;
     #endif
 
-    platformSettings.openFrontend = true;
+    platformSettings.openFrontend = useFrontend;
 
     #if NEXUS_HAS_FILE
         for (i=0; i<NEXUS_FILE_MAX_IOWORKERS; i++)
@@ -252,10 +278,10 @@ int main(int argc, char **argv)
     #endif
 
     #ifdef DIAGS_TRANSCODE_TEST
-    	/* audio PI supports 4 by default; we need one extra mixers for each transcoders; */
+        /* audio PI supports 4 by default; we need one extra mixers for each transcoders; */
         #ifdef NEXUS_HAS_VIDEO_ENCODER
-	        platformSettings.audioModuleSettings.maxAudioDspTasks += NEXUS_NUM_VIDEO_ENCODERS;
-	        platformSettings.audioModuleSettings.numCompressedBuffers += NEXUS_NUM_VIDEO_ENCODERS;
+            platformSettings.audioModuleSettings.maxAudioDspTasks += NEXUS_NUM_VIDEO_ENCODERS;
+            platformSettings.audioModuleSettings.numCompressedBuffers += NEXUS_NUM_VIDEO_ENCODERS;
         #endif
     #endif
 
@@ -275,4 +301,5 @@ int main(int argc, char **argv)
 
     /* Diagnostics Menu */
     BcmDiags();
+    NEXUS_Platform_Uninit();
 }

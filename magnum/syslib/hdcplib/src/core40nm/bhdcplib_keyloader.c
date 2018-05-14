@@ -143,9 +143,9 @@ BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
             switch( maskKey2 )
             {
                 case BCRYPT_MASK_KEY2_CHIP_FAMILY:
-                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyladderCaVendorIdScope_eChipFamily; break;
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyLadderCaVendorIdScope_eChipFamily; break;
                 case BCRYPT_MASK_KEY2_FIXED:
-                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyladderCaVendorIdScope_eFixed;      break;
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyLadderCaVendorIdScope_eFixed;      break;
                 default:
                     BDBG_ERR(( "Invalid maskKey2: 0x%x", maskKey2 ));
                     return BERR_TRACE( BERR_INVALID_PARAMETER );

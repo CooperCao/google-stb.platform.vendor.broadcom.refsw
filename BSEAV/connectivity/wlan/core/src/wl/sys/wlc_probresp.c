@@ -105,9 +105,12 @@ BCMATTACHFN(wlc_probresp_attach)(wlc_info_t *wlc)
 		goto fail;
 	};
 
-	wlc_enable_probe_req(wlc, PROBE_REQ_PROBRESP_MASK, PROBE_REQ_PROBRESP_MASK);
-	wlc_disable_probe_resp(wlc, PROBE_RESP_SW_MASK, PROBE_RESP_SW_MASK);
-	wlc->pub->_probresp_sw = TRUE;
+	/* IBSS has problem to support probresp_sw, we disable it by default */
+	wlc->pub->_probresp_sw = FALSE;
+	if (wlc->pub->_probresp_sw) {
+		wlc_enable_probe_req(wlc, PROBE_REQ_PROBRESP_MASK, PROBE_REQ_PROBRESP_MASK);
+		wlc_disable_probe_resp(wlc, PROBE_RESP_SW_MASK, PROBE_RESP_SW_MASK);
+	}
 
 	return mprobresp;
 

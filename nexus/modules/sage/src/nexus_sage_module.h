@@ -232,9 +232,6 @@ void Nexus_SageModule_P_Img_Destroy(void *pContext);
 NEXUS_Error NEXUS_SageModule_P_Load(NEXUS_SageImageHolder *holder, BIMG_Interface *img_interface, void *img_context);
 void NEXUS_Sage_P_PrintSvp(void);
 
-void NEXUS_Sage_P_Module_Lock_Transport(void);
-void NEXUS_Sage_P_Module_Unlock_Transport(void);
-
 extern const struct NEXUS_SageSvpHwBlock {
     const char *achName;
 } g_NEXUS_SvpHwBlockTbl[];

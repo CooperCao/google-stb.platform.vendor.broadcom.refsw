@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -2142,7 +2146,7 @@ static void BVDC_P_Source_PrintPicture_isr
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eAspectRatio) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eFrameRateCode) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eBitDepth) ||
-            BVDC_P_FIELD_DIFF(pNewPic, pCurPic, stHdrMetadata.eType) ||
+            BVDC_P_FIELD_DIFF(pNewPic, pCurPic, stHdrMetadata.stDynamic.eType) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eMatrixCoefficients) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eColorPrimaries) ||
             BVDC_P_FIELD_DIFF(pNewPic, pCurPic, eChrominanceInterpolationMode);
@@ -2206,13 +2210,14 @@ static void BVDC_P_Source_PrintPicture_isr
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBitDepth                            : %u", pPic->eBitDepth));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eChromaBitDepth                      : %u", pPic->eChromaBitDepth));
             BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBufferFormat                        : %d", pPic->eBufferFormat));
-            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulMaxContentLight                    : %d", pPic->ulMaxContentLight));
-            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulAvgContentLight                    : %d", pPic->ulAvgContentLight));
-            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulMaxDispMasteringLuma               : %d", pPic->ulMaxDispMasteringLuma));
-            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.eType                  : %d", pPic->stHdrMetadata.eType));
-            if(BAVC_HdrMetadataType_eUnknown != pPic->stHdrMetadata.eType) {
-                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.pData                  : %p", (void *)pPic->stHdrMetadata.pData));
-                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.ulSize                 : %u", pPic->stHdrMetadata.ulSize));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulMaxContentLight                    : %d", pPic->stHdrMetadata.stStatic.stContentLightLevel.ulMax));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulAvgContentLight                    : %d", pPic->stHdrMetadata.stStatic.stContentLightLevel.ulMaxFrameAvg));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulMaxDispMasteringLuma               : %d", pPic->stHdrMetadata.stStatic.stMasteringDisplayColorVolume.stLuminance.uiMax));
+            /* TODO: rest of SMD? */
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.stDynamic.eType        : %d", pPic->stHdrMetadata.stDynamic.eType));
+            if(BAVC_HdrMetadataType_eUnknown != pPic->stHdrMetadata.stDynamic.eType) {
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.stDynamic.pData        : %p", (void *)pPic->stHdrMetadata.stDynamic.pData));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->stHdrMetadata.stDynamic.ulSize       : %u", pPic->stHdrMetadata.stDynamic.ulSize));
             }
             if(BAVC_DecodedPictureBuffer_eFieldsPair == pPic->eBufferFormat) {
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->hLuminanceBotFieldBlock              : %p", (void *)pPic->hLuminanceBotFieldBufferBlock));
@@ -2574,24 +2579,24 @@ static void BVDC_P_Source_ValidateMpegData_isr
     }
 
      /* BP3 Do NOT Modify Start */
-    if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.eType)
+    if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.stDynamic.eType)
     {
         if(BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hSource->hVdc->hChip,
             BCHP_LicensedFeature_eDolbyVision))
         {
             BDBG_MSG(("Invalid Dolby Vision license content."));
-            pNewPic->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+            pNewPic->stHdrMetadata.stDynamic.eType = BAVC_HdrMetadataType_eUnknown;
         }
     }
 
-    if((BAVC_HdrMetadataType_eTch_Cri == pNewPic->stHdrMetadata.eType)||
-       (BAVC_HdrMetadataType_eTch_Cvri == pNewPic->stHdrMetadata.eType))
+    if((BAVC_HdrMetadataType_eTch_Cri == pNewPic->stHdrMetadata.stDynamic.eType)||
+       (BAVC_HdrMetadataType_eTch_Cvri == pNewPic->stHdrMetadata.stDynamic.eType))
     {
         if(BERR_SUCCESS != BCHP_HasLicensedFeature_isrsafe(hSource->hVdc->hChip,
             BCHP_LicensedFeature_eTchPrime))
         {
             BDBG_MSG(("Invalid Technicolor Prime license content."));
-            pNewPic->stHdrMetadata.eType = BAVC_HdrMetadataType_eUnknown;
+            pNewPic->stHdrMetadata.stDynamic.eType = BAVC_HdrMetadataType_eUnknown;
         }
     }
     /* BP3 Do NOT Modify End */
@@ -2599,7 +2604,7 @@ static void BVDC_P_Source_ValidateMpegData_isr
 #if BVDC_P_DBV_SUPPORT
     /* DBV only supports progressive source; TODO: if source is 10-bit, 8-bit
      * deinterlacer should be disabled; */
-    if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.eType)
+    if(BAVC_HdrMetadataType_eDrpu == pNewPic->stHdrMetadata.stDynamic.eType)
     {
        pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;
     }
@@ -2607,7 +2612,7 @@ static void BVDC_P_Source_ValidateMpegData_isr
 #if BVDC_P_TCH_SUPPORT
     /* TCH only supports progressive source; TODO: if source is 10-bit, 8-bit
      * deinterlacer should be disabled; */
-    if(BCFC_IS_TCH(pNewPic->stHdrMetadata.eType))
+    if(BCFC_IS_TCH(pNewPic->stHdrMetadata.stDynamic.eType))
     {
        pNewPic->eSourcePolarity = BAVC_Polarity_eFrame;
     }

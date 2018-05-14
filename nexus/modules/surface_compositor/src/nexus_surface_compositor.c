@@ -573,7 +573,12 @@ NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceComposi
 
 #define COPY_STRUCT_FIELD(TO, FROM, FIELD) do {if ((TO)->FIELD != (FROM)->FIELD) { (TO)->FIELD = (FROM)->FIELD; change = true; }}while(0)
 
-static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings )
+struct nexus_surface_compositor_p_update_graphics_settings_status {
+    bool toggle_enabled[NEXUS_MAX_DISPLAYS];
+};
+
+static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings,
+    struct nexus_surface_compositor_p_update_graphics_settings_status *status)
 {
     unsigned i;
     NEXUS_Error rc;
@@ -581,7 +586,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         NEXUS_GraphicsSettings graphicsSettings;
         bool change = false;
-        bool toogle_enable;
+        status->toggle_enabled[i] = false;
         if (!pSettings->display[i].display) continue;
         NEXUS_Display_GetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
         /* update only those members which NSC does not calculate */
@@ -596,20 +601,11 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
         COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, y);
         COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, cb);
         COPY_STRUCT_FIELD(&graphicsSettings.sdrToHdr, &pSettings->display[i].graphicsSettings.sdrToHdr, cr);
-        toogle_enable = graphicsSettings.enabled != pSettings->display[i].enabled;
+        status->toggle_enabled[i] = graphicsSettings.enabled != pSettings->display[i].enabled;
         COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i], enabled);
         if (change) {
             rc = NEXUS_Display_SetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
             if (rc) return BERR_TRACE(rc);
-        }
-        if(toogle_enable) {
-            /* if enabled was changed we need to simulate that submitted framebuffers was applied */
-            if(server->settings.display[i].display) {
-                struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
-                if(display && display->submitted) {
-                    nexus_surface_compositor_p_framebuffer_applied(display);
-                }
-            }
         }
     }
     return 0;
@@ -912,6 +908,11 @@ err_switch_secure:
     return rc;
 }
 
+bool nexus_surface_compositor_p_display_enabled(NEXUS_SurfaceCompositorHandle server, unsigned i)
+{
+    return server->settings.display[i].enabled && !server->auto_disable.disabled;
+}
+
 static void nexus_surface_compositor_p_inactive_timer(void *context)
 {
     NEXUS_SurfaceCompositorHandle server = context;
@@ -938,13 +939,32 @@ static void nexus_surface_compositor_p_inactive_timer(void *context)
     } else {
         unsigned i;
         for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
-            if(server->settings.display[i].display && !server->settings.display[i].enabled) {
+            if(server->settings.display[i].display && !nexus_surface_compositor_p_display_enabled(server, i)) {
                 struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
                 if(display && display->submitted) {
                     nexus_surface_compositor_p_framebuffer_applied(display);
                     fire_again = true;
                 }
             }
+        }
+    }
+    if (server->auto_disable.cnt) {
+        if (server->auto_disable.cnt >= 20) {
+            BDBG_ASSERT(server->auto_disable.disabled);
+        }
+        else if (++server->auto_disable.cnt == 20) { /* 20 iterations at 50 msec == 1 second */
+            unsigned i;
+            BDBG_WRN(("auto_disable of unused graphics"));
+            server->auto_disable.disabled = true;
+            for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+                if (server->display[i]) {
+                    nexus_surfacemp_p_disable_display(server, server->display[i]);
+                }
+            }
+        }
+        else {
+            BDBG_MSG_TRACE(("timed auto_disable of unused graphics: %u", server->auto_disable.cnt));
+            fire_again = true;
         }
     }
     if(fire_again) {
@@ -1015,25 +1035,42 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
     else {
         unsigned i;
         bool muteVideoChanged = false;
+        struct nexus_surface_compositor_p_update_graphics_settings_status status;
+
         for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
             if (pSettings->muteVideo[i] != server->settings.muteVideo[i]) {
                 muteVideoChanged = true;
                 break;
             }
         }
-        rc = nexus_surface_compositor_p_update_graphics_settings(server, pSettings);
+        rc = nexus_surface_compositor_p_update_graphics_settings(server, pSettings, &status);
         if (rc) return BERR_TRACE(rc);
 
         /* if active, the only possible change is the enabled flag. */
         server->settings = *pSettings;
 
+        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+            if (status.toggle_enabled[i]) {
+                /* for any change, clear compositor's auto_disable state */
+                server->auto_disable.cnt = 0;
+                server->auto_disable.disabled = false;
+                /* if enabled was changed we need to simulate that submitted framebuffers was applied */
+                if(server->settings.display[i].display) {
+                    struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
+                    if(display && display->submitted) {
+                        nexus_surface_compositor_p_framebuffer_applied(display);
+                    }
+                }
+            }
+        }
+
         if (enable_changed && !pSettings->enabled) {
             /* starting disabled -> !active process */
-            nexus_p_surface_compositor_check_inactive(server);
-            if (!server->inactiveTimer) {
-                /* kick start timer that keeps clients alive if fmt change takes a long time */
-                nexus_surface_compositor_p_schedule_inactive_timer(server);
+            if (server->state.active) {
+                nexus_p_surface_compositor_check_inactive(server);
             }
+            /* kick start timer that keeps clients alive if fmt change takes a long time */
+            nexus_surface_compositor_p_schedule_inactive_timer(server);
         }
         else if (muteVideoChanged) {
             nexus_p_surface_compositor_update_all_clients(server, NEXUS_P_SURFACECLIENT_UPDATE_DISPLAY);
@@ -1722,6 +1759,18 @@ done:
     return rc;
 }
 
+static bool nexus_surface_compositor_p_clients_idle(NEXUS_SurfaceCompositorHandle server, const struct NEXUS_SurfaceCompositorDisplay *cmpDisplay)
+{
+    if (cmpDisplay->backgroundColor == 0) {
+        NEXUS_SurfaceClientHandle client;
+        for (client = BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
+            if(client->state.client_type != client_type_idle) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 /* compose all framebuffers */
 void nexus_surface_compositor_p_compose(NEXUS_SurfaceCompositorHandle server)
 {
@@ -1754,6 +1803,40 @@ void nexus_surface_compositor_p_compose(NEXUS_SurfaceCompositorHandle server)
         server->pending_update = true;
         return;
     }
+
+    /* if there are no clients to render and background is 0, we kick off 1 second timeout to disable graphics,
+    which reduces power and memory bandwidth. reenable when the next compose happens without those conditions. */
+    if (server->auto_disable.disabled)  {
+        if (!nexus_surface_compositor_p_clients_idle(server, cmpDisplay)) {
+            unsigned i;
+            server->auto_disable.cnt = 0;
+            server->auto_disable.disabled = false;
+            for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+                if (server->display[i] && server->settings.display[i].enabled) {
+                    NEXUS_GraphicsSettings graphicsSettings;
+                    NEXUS_Error rc;
+                    NEXUS_Display_GetGraphicsSettings(server->display[i]->display, &graphicsSettings);
+                    graphicsSettings.enabled = true;
+                    rc = NEXUS_Display_SetGraphicsSettings(server->display[i]->display, &graphicsSettings);
+                    if (rc) rc = BERR_TRACE(rc);
+                    if(server->display[i]->submitted) {
+                        nexus_surface_compositor_p_framebuffer_applied(server->display[i]);
+                    }
+                }
+            }
+        }
+    }
+    else {
+        if (nexus_surface_compositor_p_clients_idle(server, cmpDisplay)) {
+            if(server->auto_disable.cnt == 0) {
+                server->auto_disable.cnt = 1;
+                nexus_surface_compositor_p_schedule_inactive_timer(server);
+            }
+        } else {
+            server->auto_disable.cnt = 0; /* stop counter */
+        }
+    }
+
     if(!nexus_surface_compositor_p_blitter_acquire(server, NEXUS_P_SURFACEBLITTER_COMPOSITOR)) {
         BDBG_MSG_TRACE(("compose:%p blitter busy", (void *)server));
         return;

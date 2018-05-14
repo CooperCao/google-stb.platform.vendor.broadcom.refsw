@@ -371,9 +371,18 @@ typedef enum eDynamic_splice_btp_marker_commands
     brave_itb_splice_start_marker = 0x12,
     brave_itb_splice_stop_marker = 0x13,
     brave_itb_splice_transition_marker = 0x14,
-    brave_itb_splice_pcr_offset_marker = 0x15
+    brave_itb_splice_pcr_offset_marker = 0x15,
+    brave_itb_splice_pts_offset_marker = 0x1D
 }
 eDynamic_splice_btp_marker_command;
+
+typedef enum brave_itb_pts_offset_ctrl
+{
+    brave_itb_pts_offset_ctrl_disable = 0,
+    brave_itb_pts_offset_ctrl_btp_offset = 1,
+    brave_itb_pts_offset_ctrl_auto_offset = 2
+}
+brave_itb_pts_offset_ctrl;
 
 typedef enum eDynamic_splice_state
 {
@@ -441,6 +450,10 @@ typedef struct SoftRaveData
 
     /* SWSTB-3582: The BASE opcode was changed for the 40-bit support in RAVE ITB */
     unsigned BaseOpCode;
+
+    bool SpliceAddPTSOffset;
+    uint32_t SplicePTSOffset;
+    uint32_t SpliceLastPTS;
 }
 SoftRaveData;
 

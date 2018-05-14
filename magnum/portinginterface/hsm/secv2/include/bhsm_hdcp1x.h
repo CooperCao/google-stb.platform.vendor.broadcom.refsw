@@ -72,7 +72,7 @@ typedef struct
         /* valid if root.type is BHSM_KeyLadderRootType_eOtpAskm or BHSM_KeyLadderRootType_eGlobalKey */
         struct{
             unsigned caVendorId;          /* id unique to CA vendor. */
-            BHSM_KeyladderCaVendorIdScope caVendorIdScope;
+            BHSM_KeyLadderCaVendorIdScope caVendorIdScope;
             BHSM_KeyLadderStbOwnerIdSelect stbOwnerSelect;       /* allow owner/boradcaster to add diffusion to key */
         }askm;
 

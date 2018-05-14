@@ -153,6 +153,7 @@ b_avi_probe_parse_index(bavi_probe_t probe, bfile_buffer_t buf)
                 dwFlags = batom_cursor_uint32_le(&probe->audio_stream_index[i].cursor);
                 dwOffset = batom_cursor_uint32_le(&probe->audio_stream_index[i].cursor);
                 dwSize = batom_cursor_uint32_le(&probe->audio_stream_index[i].cursor);
+                BSTD_UNUSED(dwFlags);
 
                 if (probe->audio_stream_index[i].track->media.number != B_AVI_GET_STREAM_ID(&dwChunkId)) {
                     continue;

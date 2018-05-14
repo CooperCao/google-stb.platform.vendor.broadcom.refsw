@@ -848,6 +848,8 @@ b_media_probe_feed_es(bmedia_probe_t probe, const char *ext, bfile_buffer_t buf)
                 stream->max_bitrate = track->info.video.bitrate*1000;
             }
             bmedia_probe_add_track(stream, track);
+        } else {
+            BKNI_Free(track);
         }
     }
     return stream;
@@ -856,13 +858,13 @@ b_media_probe_feed_es(bmedia_probe_t probe, const char *ext, bfile_buffer_t buf)
 static void
 b_media_probe_parse_aux(bmedia_probe_t probe, bmedia_probe_stream *stream, const bmedia_probe_format_desc *media_probe, bfile_buffer_t buf, const bmedia_probe_parser_config  *parser_config, const bmedia_probe_config *probe_config)
 {
-    bmedia_probe_stream *stream_aux;
     unsigned i;
 
     for(i=0;i<B_MEDIA_N_PROBES ;i++) {
         if(b_media_probe_formats[i] == media_probe) {
             bmedia_probe_track *track_aux, *track;
             struct bmedia_probe_track_list extra_tracks;
+            bmedia_probe_stream *stream_aux;
 
             BLST_SQ_INIT(&extra_tracks);
 
@@ -972,6 +974,8 @@ b_media_probe_parse_aux(bmedia_probe_t probe, bmedia_probe_stream *stream, const
                     BLST_SQ_INSERT_TAIL(&stream->tracks, track_aux, link);
                 }
 
+            }
+            if(stream_aux) {
                 b_media_probe_formats[i]->stream_free(probe->probes[i], (bmedia_probe_stream *)stream_aux);
             }
             break;

@@ -338,7 +338,7 @@ NEXUS_Error NEXUS_RfmModule_Standby_priv( bool enabled, const NEXUS_StandbySetti
     unsigned i;
     NEXUS_RfmHandle rfm = NULL;
     BSTD_UNUSED(pSettings);
-    
+
     for (i=0; i<NEXUS_NUM_RFM_OUTPUTS; i++) {
         if ( (rfm = g_NEXUS_rfmHandle[i]) ) {
             if (enabled) { /* means that we have to power down in one way or another */
@@ -364,14 +364,26 @@ NEXUS_Error NEXUS_RfmModule_Standby_priv( bool enabled, const NEXUS_StandbySetti
                     rc = NEXUS_Rfm_SetSettings(rfm, &rfm->settings);
                     if (rc) { return BERR_TRACE(NEXUS_UNKNOWN); }
                 }
-            }            
+            }
         }
     }
-    
-    return NEXUS_SUCCESS;    
+
+    return NEXUS_SUCCESS;
 #else
     BSTD_UNUSED(pSettings);
     BSTD_UNUSED(enabled);
     return NEXUS_SUCCESS;
 #endif
+}
+
+NEXUS_Error NEXUS_RfmModule_GetStatus_priv(NEXUS_RfmModuleStatus *pStatus)
+{
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+#if BCHP_PWR_RESOURCE_RFM
+    pStatus->power.core.clock = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_RFM)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+#if BCHP_PWR_RESOURCE_RFM_PHY
+    pStatus->power.core.sram = BCHP_PWR_ResourceAcquired(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_RFM_PHY)?NEXUS_PowerState_eOn:NEXUS_PowerState_eOff;
+#endif
+    return NEXUS_SUCCESS;
 }

@@ -47,12 +47,12 @@ typedef struct BMRC_P_ClientEntry
 {
     const char   *pchClientName;
     BMRC_Client   eClient;
-    uint16_t      ausClientId[BCHP_P_MEMC_COUNT];
+    int16_t      ausClientId[BCHP_P_MEMC_COUNT];
 } BMRC_P_ClientEntry;
 
 static const BMRC_P_ClientEntry * BMRC_P_GetClientEntry_isrsafe(BMRC_Client eClient);
 
-#define INVALID BMRC_Client_eInvalid
+#define INVALID -1
 
 
 const char *BMRC_P_GET_CLIENT_NAME_isrsafe(BMRC_Client eClient)
@@ -78,13 +78,13 @@ BERR_Code BMRC_Checker_P_GetClientInfo_isrsafe(unsigned memcId, BMRC_Client eCli
     BERR_Code rc = BERR_SUCCESS;
     if (eClient < BMRC_Client_eInvalid) {
         const BMRC_P_ClientEntry *client = BMRC_P_GetClientEntry_isrsafe(eClient);
-        if(client) {
+        if(client && client->ausClientId[memcId]!=INVALID) {
             pClientInfo->eClient = eClient;
             pClientInfo->pchClientName = client->pchClientName;
             pClientInfo->usClientId = client->ausClientId[memcId];
             return BERR_SUCCESS;
         } else {
-            pClientInfo->eClient = eClient;
+            pClientInfo->eClient = BMRC_Client_eInvalid;
             rc = BERR_INVALID_PARAMETER; /* silent */
         }
     } else {
@@ -92,7 +92,7 @@ BERR_Code BMRC_Checker_P_GetClientInfo_isrsafe(unsigned memcId, BMRC_Client eCli
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     pClientInfo->pchClientName = "UNKNOWN";
-    pClientInfo->usClientId = BMRC_Client_eInvalid; /* NOTE: this assumes that the max SW enum is > the max HW client id */
+    pClientInfo->usClientId = INVALID;
     return rc;
 }
 
@@ -152,7 +152,7 @@ const char *BMRC_Checker_GetClientName(unsigned memc, unsigned clientId)
     if(memc<BCHP_P_MEMC_COUNT) {
         unsigned i;
         for(i=0;i<sizeof(BMRC_P_astClientTbl)/sizeof(*BMRC_P_astClientTbl);i++) {
-            if(BMRC_P_astClientTbl[i].ausClientId[memc] == clientId) {
+            if((int)BMRC_P_astClientTbl[i].ausClientId[memc] == (int)clientId) {
                 return BMRC_P_astClientTbl[i].pchClientName;
             }
         }

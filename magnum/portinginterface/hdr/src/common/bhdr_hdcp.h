@@ -119,6 +119,9 @@ typedef struct BHDR_HDCP_Settings
 	uint8_t uiMaxLevels ;
 	uint8_t uiMaxDevices ;
 	uint8_t bRepeater ;
+
+	BHDR_HDCP_Version eVersion;
+
 } BHDR_HDCP_Settings ;
 
 /* HDCP Key Loading Base Address */

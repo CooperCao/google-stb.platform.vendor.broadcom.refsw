@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  ******************************************************************************/
@@ -447,18 +451,14 @@ typedef struct BAVC_MFD_Picture
      * the same time to form a complete display */
     void                    *pEnhanced;
 
-    /* Content Light SEI message */
-    uint32_t                ulAvgContentLight; /* Pic Average Light level */
-    uint32_t                ulMaxContentLight; /* Max Light level */
+    struct
+    {
+        /* Type 1 Static HDR metadata */
+        BAVC_StaticHdrMetadata stStatic;
 
-    /* Mastering Display Colour Volume */
-    BAVC_Point              stDisplayPrimaries[3];
-    BAVC_Point              stWhitePoint;
-    uint32_t                ulMaxDispMasteringLuma;
-    uint32_t                ulMinDispMasteringLuma;
-
-    /* HDR metadata (this will support frame-accurate dynamic change) */
-    BAVC_HdrMetadata        stHdrMetadata;
+        /* Dynamic HDR metadata (this will support frame-accurate dynamic change) */
+        BAVC_HdrMetadata stDynamic;
+    } stHdrMetadata;
 
     /* Color range */
     BAVC_ColorRange         eColorRange;
@@ -544,6 +544,9 @@ typedef struct BAVC_VDC_HdDvi_Picture
     /* transfer characteristics */
     BAVC_TransferCharacteristics eTransferCharacteristics;
 
+    /* EOTF from input DRMIF, if from HDMI */
+    BAVC_HDMI_DRM_EOTF eEotf;
+
     /* Matrix coefficients. */
     BAVC_MatrixCoefficients  eMatrixCoefficients;
 
@@ -576,6 +579,14 @@ typedef struct BAVC_VDC_HdDvi_Picture
      * the value of the pixel decimation circuit rather than have it calculated */
     bool                     bHdmiMode;
     uint32_t                 ulPixelRepitionFactor;
+
+    struct
+    {
+        /* Type 1 Static HDR metadata */
+        BAVC_StaticHdrMetadata stStatic;
+
+        /* TODO: Dynamic HDR metadata */
+    } stHdrMetadata;
 
 } BAVC_VDC_HdDvi_Picture;
 
@@ -734,14 +745,61 @@ Summary:
 
 Description:
     This function returns the BAVC_HDMI_DRM_EOTF according to
-    BAVC_TransferCharacteristics.
+    BAVC_TransferCharacteristics and the preferred transfer chars if they are known.
 
 See Also:
     BAVC_TransferCharacteristics
 ****************************************************************************/
 BAVC_HDMI_DRM_EOTF BAVC_TransferCharacteristicsToEotf_isrsafe(
-    BAVC_TransferCharacteristics eTransChar);
+    BAVC_TransferCharacteristics eTransChar,
+    BAVC_TransferCharacteristics ePreferredTransChar);
 
+/***************************************************************************
+Summary:
+    Return default static HDR metadata
+
+Description:
+    This function returns the default "unavailable" static hdr metadata, as
+    if it came from the decoder without having seen any SEI messages.  We use
+    the value of -1 for some values to indicate that those values are not present.
+
+See Also:
+    BAVC_StaticHdrMetadata
+****************************************************************************/
+void BAVC_GetDefaultStaticHdrMetadata_isrsafe(
+    BAVC_StaticHdrMetadata * pMetadata);
+
+/***************************************************************************
+Summary:
+    Sanitize/validate the static hdr metadata, which may come invalid from some sources
+
+Description:
+    This function converts invalid/"unavailable" static metadata into values
+    in the HEVC spec acceptable range.
+
+See Also:
+    BAVC_StaticHdrMetadata
+****************************************************************************/
+void BAVC_ValidateStaticHdrMetadata_isrsafe(
+    BAVC_StaticHdrMetadata * pMetadata);
+
+/* length of type 1 static metadata */
+#define BAVC_TYPE1_STATIC_HDR_METADATA_LEN 24
+
+/***************************************************************************
+Summary:
+    Creates a static hdr metadata structure from a series of bytes
+
+Description:
+    This function converts a DRMIF packet into a static hdr metadata structure.
+
+See Also:
+    BAVC_StaticHdrMetadata
+****************************************************************************/
+void BAVC_DeserializeStaticHdrMetadata_isrsafe(
+    BAVC_StaticHdrMetadata * pMetadata,
+    size_t len,
+    const uint8_t * bytes);
 
 /* vce related common defines */
 #include "bavc_vce.h"

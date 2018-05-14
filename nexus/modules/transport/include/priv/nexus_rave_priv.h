@@ -56,6 +56,7 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Rave);
 typedef struct NEXUS_RaveOpenSettings
 {
     bool record;
+    bool spliceEnabled;
     BAVC_CdbItbConfig config;
     bool supportedCodecs[NEXUS_VideoCodec_eMax]; /* needed for video SW RAVE contexts. unused for audio. */
     NEXUS_HeapHandle heap;  /* heap used for CDB allocation */
@@ -139,6 +140,16 @@ void NEXUS_Rave_Disable_priv(
 
 void NEXUS_Rave_Flush_priv(
     NEXUS_RaveHandle handle
+    );
+
+void NEXUS_Rave_SetBandHold(
+    NEXUS_RaveHandle rave,
+    bool enable
+    );
+
+void NEXUS_Rave_AddPidChannel_priv(
+    NEXUS_RaveHandle rave,
+    NEXUS_PidChannelHandle pidChannel
     );
 
 void NEXUS_Rave_RemovePidChannel_priv(
@@ -232,10 +243,29 @@ typedef enum NEXUS_Rave_P_ItbType {
 } NEXUS_Rave_P_ItbType;
 
 struct BXPT_Rave_ContextPtrs;
+
 NEXUS_Error NEXUS_Rave_ScanItb_priv(NEXUS_RaveHandle rave, bool (*one_itb)(void *, const NEXUS_Rave_P_ItbEntry *), void *context);
 NEXUS_Error NEXUS_Rave_CheckBuffer_priv(NEXUS_RaveHandle rave, struct BXPT_Rave_ContextPtrs *pCtxPtrs);
 NEXUS_Error NEXUS_Rave_UpdateReadOffset_priv(NEXUS_RaveHandle rave, size_t CdbByteCount, size_t ItbByteCount);
 
+typedef enum NEXUS_Rave_SpliceType {
+    NEXUS_Rave_SpliceType_eDisabled,
+    NEXUS_Rave_SpliceType_eStopPts,
+    NEXUS_Rave_SpliceType_eStartPts
+} NEXUS_Rave_SpliceType;
+
+typedef struct NEXUS_Rave_SpliceSettings {
+    NEXUS_Rave_SpliceType type;
+    uint32_t pts;
+    uint32_t ptsThreshold;
+    void (*splicePoint)(void *, uint32_t pts);
+    void *context;
+} NEXUS_Rave_SpliceSettings;
+
+NEXUS_Error NEXUS_Rave_SetSplicePoint_priv(
+    NEXUS_RaveHandle rave,
+    const NEXUS_Rave_SpliceSettings * pSettings
+    );
 #ifdef __cplusplus
 }
 #endif

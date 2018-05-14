@@ -43,6 +43,7 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_priv.h"
 #include "bbox_rts_priv.h"
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
@@ -53,17 +54,6 @@
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
-
-BERR_Code BBOX_P_ValidateId
-    (uint32_t                ulId)
-{
-    BERR_Code eStatus = BERR_SUCCESS;
-    if (ulId == 0 || ulId > BBOX_MODES_SUPPORTED)
-    {
-        eStatus = BBOX_ID_NOT_SUPPORTED;
-    }
-    return eStatus;
-}
 
 void BBOX_P_Vdc_SetSourceCapabilities
     ( uint32_t                      ulBoxId,
@@ -119,9 +109,6 @@ BERR_Code BBOX_P_SetMemConfig
 {
     BERR_Code eStatus = BERR_SUCCESS;
 
-    eStatus = BBOX_P_ValidateId(ulBoxId);
-    if (eStatus != BERR_SUCCESS) return eStatus;
-
     /* Set default config settings  */
     BBOX_P_SetDefaultMemConfig(pBoxMemConfig);
 
@@ -140,13 +127,9 @@ BERR_Code BBOX_P_SetMemConfig
     return eStatus;
 }
 
-BERR_Code BBOX_P_GetRtsConfig
-    ( const uint32_t         ulBoxId,
-      BBOX_Rts              *pBoxRts )
-{
-    BSTD_UNUSED(ulBoxId);
-    BSTD_UNUSED(pBoxRts);
+const struct BBOX_InterfaceMap g_BBOX_InterfaceMap[] = {
+    {1, NULL},
+    {2, NULL},
+    {0, NULL}};
 
-    return BBOX_RTS_LOADED_BY_CFE;
-}
 /* end of file */

@@ -1462,6 +1462,7 @@ So, don't do the destination check before calling SetChannelEnable().
     return( ExitCode );
 }
 
+#if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_AllocPidChannel(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */
     bool NeedMessageBuffer,     /* [in] Is a message buffer required? */
@@ -1504,7 +1505,7 @@ BERR_Code BXPT_AllocPidChannel(
 
     return( ExitCode );
 }
-
+#endif
 
 BERR_Code BXPT_ConfigurePidChannel(
     BXPT_Handle hXpt,           /* [in] Handle for this transport */

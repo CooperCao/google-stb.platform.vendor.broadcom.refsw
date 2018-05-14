@@ -100,6 +100,7 @@ typedef struct NEXUS_HdmiInputHdcpSettings
     unsigned maxDeviceCountSupported;            /* Max downstream device count supported */
     unsigned maxDepthSupported;                  /* Max depth supported */
 
+    NEXUS_HdcpVersion maxVersion;                /* Max HDCP version to support on HDMI Input */
 } NEXUS_HdmiInputHdcpSettings;
 
 

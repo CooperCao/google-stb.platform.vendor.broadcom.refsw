@@ -68,7 +68,7 @@ endif
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.33
+BOLT_DIR_NAME = bolt-v1.40
 CFE_DIR_NAME = CFE_17_4
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
@@ -130,6 +130,12 @@ ifeq ($(B_REFSW_ARCH),mipsel-linux)
     export B_REFSW_ARCH
 endif
 
+# At least since 17.4, building for B_REFSW_ARCH = aarch64-linux, causes a build error.  Need to resolve this.
+ifeq ($(B_REFSW_ARCH),aarch64-linux)
+    B_REFSW_ARCH=arm-linux
+    export B_REFSW_ARCH
+endif
+
 ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     ifeq ($(TOOLCHAIN_PATH),)
         TOOLCHAIN_PATH=/opt/toolchains/stbgcc-4.8-1.5
@@ -144,6 +150,31 @@ ifeq ($(BSU_BIN_DIR),)
 # location of final binaries
 BSU_BIN_ROOT = $(NEXUS_DIR)/../obj.${NEXUS_PLATFORM}
 BSU_BIN_DIR = $(BSU_BIN_ROOT)/BSEAV/bin${BSU_BIN_DIR_SUFFIX}
+endif
+
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
+    CPU = arm
+    ifeq ($(filter $(NEXUS_PLATFORM),97260 97268 97271), $(NEXUS_PLATFORM))
+        export ARM_ARCH=V8
+    endif
+else
+    ifeq ($(filter $(NEXUS_PLATFORM),97208 97358 97360 97401 97468 97550 97552), $(NEXUS_PLATFORM))
+        CPU = bmips3300
+    else
+        ifeq ($(filter $(NEXUS_PLATFORM),97019 97125 97205 97228 97230 97231 97335 97340 97342 97362 973625 97405 97408 97466 97563 975635 97584 975845), $(NEXUS_PLATFORM))
+            CPU = bmips4380
+        else
+            ifeq ($(filter $(NEXUS_PLATFORM),97241 972415 93380vms 97344 97346 973465 97410 97420 97422 97425 97428 974285 97429 974295 97435), $(NEXUS_PLATFORM))
+                CPU = bmips5000
+            else
+                ifeq ($(NEXUS_PLATFORM),97325)
+                    CPU = mti34kf
+                else
+                    $(error Unknown platform)
+                endif
+            endif
+        endif
+    endif
 endif
 
 #########
@@ -255,31 +286,6 @@ endif
 
 BUILD_UART = A
 UCOS ?= lib
-
-ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
-    CPU = arm
-    ifeq ($(filter $(NEXUS_PLATFORM),97260 97268 97271), $(NEXUS_PLATFORM))
-        export ARM_ARCH=V8
-    endif
-else
-    ifeq ($(filter $(NEXUS_PLATFORM),97208 97358 97360 97401 97468 97550 97552), $(NEXUS_PLATFORM))
-        CPU = bmips3300
-    else
-        ifeq ($(filter $(NEXUS_PLATFORM),97019 97125 97205 97228 97230 97231 97335 97340 97342 97362 973625 97405 97408 97466 97563 975635 97584 975845), $(NEXUS_PLATFORM))
-            CPU = bmips4380
-        else
-            ifeq ($(filter $(NEXUS_PLATFORM),97241 972415 93380vms 97344 97346 973465 97410 97420 97422 97425 97428 974285 97429 974295 97435), $(NEXUS_PLATFORM))
-                CPU = bmips5000
-            else
-                ifeq ($(NEXUS_PLATFORM),97325)
-                    CPU = mti34kf
-                else
-                    $(error Unknown platform)
-                endif
-            endif
-        endif
-    endif
-endif
 
 ifeq ($(filter $(NEXUS_PLATFORM),97205 97405 97466), $(NEXUS_PLATFORM))
     CHIP_4501_VERSION_LOWERCASE = c0

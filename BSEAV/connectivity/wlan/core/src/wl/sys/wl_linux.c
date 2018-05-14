@@ -3,11 +3,11 @@
  * Broadcom 802.11abg Networking Device Driver
  *
  * Copyright (C) 2017, Broadcom. All Rights Reserved.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -440,7 +440,7 @@ static struct pci_device_id wl_id_table[] =
 };
 
 MODULE_DEVICE_TABLE(pci, wl_id_table);
-#endif 
+#endif
 
 
 #ifdef BCMDBG
@@ -484,7 +484,12 @@ module_param(txworkq, int, 0);
 #ifdef WL_BIDIRECTIONAL_TPUT
 #define WL_TXQ_THRESH	2048
 #else /* WL_BIDIRECTIONAL_TPUT */
-#define WL_TXQ_THRESH	512
+/*
+ * This should match the number from
+ * cat /sys/class/net/wlan0/tx_queue_len
+ * The default tx_queue_len is 1000 in linux kernels
+ */
+#define WL_TXQ_THRESH	1000
 #endif /* WL_BIDIRECTIONAL_TPUT */
 
 #define DEVID  0
@@ -1045,7 +1050,7 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	}
 #endif /* WL_ALL_PASSIVE */
 
-	wl->txq_dispatched = 0;
+	wl->txq_dispatched = FALSE;
 	wl->txq_head = wl->txq_tail = NULL;
 	wl->txq_cnt = 0;
 
@@ -1874,7 +1879,7 @@ static struct pci_driver wl_pci_driver = {
 	id_table:	wl_id_table,
 	};
 #endif /* CONFIG_PCI */
-#endif 
+#endif
 
 #ifdef BCMJTAG
 static bcmjtag_driver_t wl_jtag_driver = {
@@ -2111,7 +2116,7 @@ wl_module_init(void)
 #endif
 #endif /* WL_PCMCIA */
 #endif /* CONFIG_PCI */
-#endif 
+#endif
 
 #ifdef BCMDBUS
 #if defined(BCM_DNGL_EMBEDIMAGE)
@@ -2192,7 +2197,7 @@ wl_module_exit(void)
 	}
 #endif /* WL_PCMCIA */
 #endif /* CONFIG_PCI */
-#endif 
+#endif
 
 #ifdef BCMDBUS
 #if defined(BCM_DNGL_EMBEDIMAGE) && defined(WL_NVRAM_FILE)
@@ -4377,20 +4382,12 @@ wl_txq_xmit(wl_info_t *wl, struct sk_buff *skb)
 	wl->txq_cnt++;
 
 	/*
-	 * In SMP systems with n CPU cores, generic linux L2 transmit context runs on a CPU core, so 
+	 * In SMP systems with n CPU cores, generic linux L2 transmit context runs on a CPU core, so
 	 *  there are about n-1 cores on which tx work items can be dispatched. Hence permitting dispatching of
 	 *  of n-1 work items on n-1 cores which are not part of linux L2 transmit context.
 	 *  wl->max_cpu_id = num cpu core -1 from wl_attach.
 	 */
-#ifdef BCMDBG
-        /* 
-         * This case should never arise unless there is a bug in kernel work queue scheduling
-         */
-        if (wl->txq_dispatched >= wl->max_cpu_id + 1)
-		WL_ERROR(("wl%d: WARNING dispatched tx work items (%d) >= max CPU cores (%d)\n",
-			wl->pub->unit, wl->txq_dispatched,wl->max_cpu_id + 1));
-#endif
-	if (wl->txq_dispatched < wl->max_cpu_id) {
+	if (!wl->txq_dispatched) {
 		int32 err = 0;
                 if (wl->tx_cpu_id == raw_smp_processor_id()) {
 		   wl->tx_cpu_id++;
@@ -4426,12 +4423,17 @@ wl_txq_xmit(wl_info_t *wl, struct sk_buff *skb)
                  */
 		if (!err) {
 			atomic_inc(&wl->callbacks);
-			wl->txq_dispatched++;
-			wl->tx_cpu_id++;
-			if (wl->tx_cpu_id >= (wl->max_cpu_id + 1)) {
-		            wl->tx_cpu_id = 0;
-			}
-		} 
+			wl->txq_dispatched = TRUE;
+		}
+		/* increament the tx_cpu_id irrespective of whether the scheduling succeeded or not
+		 * to move to other CPU cores in case a particular CPU core is not available due
+		 * to system settings
+		 */
+		wl->tx_cpu_id++;
+	        if (wl->tx_cpu_id >= (wl->max_cpu_id + 1))
+		{
+		   wl->tx_cpu_id = 0;
+		}
 	}
 
 	TXQ_UNLOCK(wl);
@@ -4477,13 +4479,14 @@ wl_start_txqwork(wl_task_t *task)
 	WL_TRACE(("wl%d: %s txq_cnt %d\n", wl->pub->unit, __FUNCTION__, wl->txq_cnt));
 
 #ifdef BCMDBG
-	if (wl->txq_cnt >= 500)
-		WL_ERROR(("wl%d: WARNING dispatching over 500 packets in txqwork(%d)\n",
+	if (wl->txq_cnt >= WL_TXQ_THRESH)
+		WL_ERROR(("wl%d: WARNING dispatching over WL_TXQ_THRESH packets in txqwork(%d)\n",
 			wl->pub->unit, wl->txq_cnt));
 #endif
 
 	TXQ_LOCK(wl);
 	while (wl->txq_head) {
+
 		skb = wl->txq_head;
 		wl->txq_head = skb->prev;
 		skb->prev = NULL;
@@ -4498,7 +4501,7 @@ wl_start_txqwork(wl_task_t *task)
 		TXQ_LOCK(wl);
 	}
 
-	wl->txq_dispatched--;
+	wl->txq_dispatched = FALSE;
 	atomic_dec(&wl->callbacks);
 	TXQ_UNLOCK(wl);
 } /* wl_start_txqwork */
@@ -4704,7 +4707,7 @@ wl_add_timer(wl_info_t *wl, wl_timer_t *t, uint ms, int periodic)
 		 */
 		t->timer.expires = jiffies + (ms*HZ+999)/1000 + 1;
 	}
-#endif 
+#endif
 
 	atomic_inc(&wl->callbacks);
 	add_timer(&t->timer);

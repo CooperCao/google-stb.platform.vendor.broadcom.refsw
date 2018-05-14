@@ -86,7 +86,7 @@ static uint8_t _MapRootKeySource( BHSM_KeyLadderRootType type, unsigned otpKeyIn
 static uint8_t _MapKeyLadderMode( BHSM_KeyLadderMode mode ); /* Customer Sub mode */
 static uint8_t _MapGlobalKeyOwnerIdSelect( BHSM_KeyLadderGlobalKeyOwnerIdSelect owner );
 static uint8_t _MapKeySize( unsigned sizeInBits  );
-static uint8_t _MapTestKeySel( BHSM_KeyladderCaVendorIdScope  scope );
+static uint8_t _MapTestKeySel( BHSM_KeyLadderCaVendorIdScope  scope );
 static uint8_t _MapSc01Mode( BHSM_KeyslotPolarity useEntry );
 static uint8_t _MapPolarity( BHSM_KeyslotPolarity polarity );
 static uint8_t  _MapModuleId( BHSM_KeyLadderMode mode ); /* Get moduleId from ladder mode. */
@@ -791,12 +791,12 @@ static uint8_t  _MapKeySize( unsigned sizeInBits  )
 }
 
 
-static uint8_t  _MapTestKeySel( BHSM_KeyladderCaVendorIdScope  scope )
+static uint8_t  _MapTestKeySel( BHSM_KeyLadderCaVendorIdScope  scope )
 {
     switch( scope )
     {
-        case BHSM_KeyladderCaVendorIdScope_eChipFamily: { return 0; }
-        case BHSM_KeyladderCaVendorIdScope_eFixed:      { return 2; }
+        case BHSM_KeyLadderCaVendorIdScope_eChipFamily: { return 0; }
+        case BHSM_KeyLadderCaVendorIdScope_eFixed:      { return 2; }
         default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
 

@@ -67,6 +67,13 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
 endif
 
+ifeq ($(NEXUS_SECURITY_SUPPORT),n)
+SAGE_SUPPORT := n
+WIDEVINE_SUPPORT := n
+PLAYREADY25_SUPPORT := n
+PLAYREADY3x_SUPPORT := n
+endif
+
 SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
 ifeq ($(SAGE_SUPPORT),y)
@@ -182,6 +189,7 @@ else
 endif
 
 prep_security: prep_nexus
+ifneq ($(NEXUS_SECURITY_SUPPORT),n)
 	$(Q_)echo [DIF..... prep_security target ];
 	$(Q_)echo [DIF..... building openssl];
 	$(Q_)$(MAKE) -j$(NJOBS) -C $(BSEAV_TOP)/opensource/openssl install > $(LOG_REDIRECT_FILE);
@@ -219,4 +227,5 @@ else
 ifeq ($(PLAYREADY25_SUPPORT),y)
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk.so $(NEXUS_BIN_DIR)
 endif
-endif
+endif # SAGE_SUPPORT
+endif # NEXUS_SECURITY_SUPPORT

@@ -291,7 +291,6 @@ _P_LookupPlatformName(uint32_t platformId)
     CASE_PLATFORM_NAME_TO_STRING(MARLIN);
     CASE_PLATFORM_NAME_TO_STRING(EDRM);
     CASE_PLATFORM_NAME_TO_STRING(BP3);
-    CASE_PLATFORM_NAME_TO_STRING(SARM);
     default:
       break;
   }

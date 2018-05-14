@@ -89,6 +89,7 @@ typedef enum BMXT_Chip
     BMXT_Chip_e4538,
     BMXT_Chip_e4548,
     BMXT_Chip_e45216,
+    BMXT_Chip_e45302,
     BMXT_Chip_e45308,
     BMXT_Chip_e45316,
     BMXT_Chip_e7145,

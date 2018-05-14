@@ -333,6 +333,12 @@ NEXUS_Error NEXUS_HdmiInput_HdcpSetSettings(
         hdcpSettings.bRepeater = pSettings->repeater ;
 		hdcpSettings.uiMaxDevices = pSettings->maxDeviceCountSupported;
 		hdcpSettings.uiMaxLevels = pSettings->maxDepthSupported;
+
+        if (pSettings->maxVersion >= NEXUS_HdcpVersion_e2x)
+            hdcpSettings.eVersion = BHDR_HDCP_Version_e2x ;
+        else
+            hdcpSettings.eVersion = BHDR_HDCP_Version_e1x ;
+
     BHDR_HDCP_SetSettings(hdmiInput->hdr, &hdcpSettings) ;
 
     BKNI_Memcpy(&hdmiInput->hdcpSettings, pSettings, sizeof(NEXUS_HdmiInputHdcpSettings)) ;

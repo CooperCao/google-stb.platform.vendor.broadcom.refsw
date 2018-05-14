@@ -847,3 +847,9 @@ NEXUS_Error NEXUS_DmaJob_ProcessBlocksDirect( NEXUS_DmaJobHandle handle, const N
 completed:
     return NEXUS_SUCCESS;
 }
+
+void NEXUS_GetDmaCapabilities( NEXUS_DmaCapabilities *capabilities)
+{
+    capabilities->numChannels = NEXUS_NUM_DMA_CHANNELS;
+    return;
+}

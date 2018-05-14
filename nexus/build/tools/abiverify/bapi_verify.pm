@@ -793,6 +793,9 @@ sub process_arguments {
                 push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_ADDR($api, $param->{NAME})";
                 push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_RECV_ADDR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{RECV}}, "B_IPC_DRIVER_RECV_ADDR($api, $param->{NAME})";
+                if(not exists $param->{ATTR}->{'null_allowed'}) {
+                    push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_MUST_HAVE_NULL_ALLOWED($api, $param->{NAME})";
+                }
             } else {
                 push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{CLIENT}{RECV}}, "B_IPC_CLIENT_RECV_ADDR($api, $param->{NAME})";
@@ -855,6 +858,9 @@ sub process_arguments {
                             push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_FIELD_ADDR($api, $param->{NAME}, $_->{NAME}, $name)";
                             push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_RECV_FIELD_ADDR($api, $param->{NAME}, $_->{NAME}, $name)";
                             push @{$code->{DRIVER}{COPY_IN}}, "B_IPC_DRIVER_RECV_FIELD_ADDR($api, $param->{NAME}, $_->{NAME}, $name)";
+                            if(not exists $_->{ATTR}->{'null_allowed'}) {
+                                push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_MUST_HAVE_NULL_ALLOWED($api, $param->{NAME} ->  $_->{NAME} -> $name)";
+                            }
                         } else {
                             push @{$code->{CLIENT}{RECV}}, "B_IPC_CLIENT_RECV_FIELD_ADDR($api, $param->{NAME}, $_->{NAME}, $name)";
                             push @{$code->{SERVER}{SEND}}, "B_IPC_SERVER_SEND_FIELD_ADDR($api, $param->{NAME}, $_->{NAME}, $name)";

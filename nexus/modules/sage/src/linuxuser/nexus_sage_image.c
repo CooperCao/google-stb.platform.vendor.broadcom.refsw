@@ -69,8 +69,6 @@ static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
     "sage_ta_bp3_dev.bin",              /* SAGE BP3 TA binary for development (ZS) chip */
     "sage_ta_bp3.bin",                  /* SAGE BP3 TA binary for production (ZB or customer specific) chip */
     "bp3.bin",                          /* BP3 data file */
-    "sage_ta_sarm_dev.bin",             /* SAGE SARM TA binary for development (ZS) chip */
-    "sage_ta_sarm.bin",                 /* SAGE SARM TA binary for production (ZB or customer specific) chip */
     "sage_ta_secure_log_dev.bin",       /* SAGE Secure_log TA binary for development (ZS) chip */
     "sage_ta_secure_log.bin",           /* SAGE Secure_log TA binary for production (ZB or customer specific) chip */
     "certificate.bin",                  /* certificate used to enable logging in SAGE Secure_log TA*/

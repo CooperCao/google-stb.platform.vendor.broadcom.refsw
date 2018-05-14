@@ -57,7 +57,7 @@ Description:
 #if NEXUS_HAS_SAGE
 void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 {
-    NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformStatus *platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
@@ -65,15 +65,20 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
         return;
     }
 
-    NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus.boardId.major));
+    platformStatus = BKNI_Malloc(sizeof(*platformStatus));
+    if (!platformStatus) {
+        BDBG_ERR(("Out of System Memory"));
+        return;
+    }
+    NEXUS_Platform_GetStatus(platformStatus);
+    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus->boardId.major));
 
-    switch (platformStatus.boardId.major) {
+    switch (platformStatus->boardId.major) {
 
         default:
         {
             /* IP and HB boards don't have anything other than UART 0 headers */
-            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus->boardId.major));
             break;
         }
         case 1:  /* SV board */
@@ -130,6 +135,8 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
             break;
         }
     }
+
+    BKNI_Free(platformStatus);
 
     /* enable mux inside sys_ctrl to output the uart router to the test port */
     reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);

@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bape.h"
@@ -1265,6 +1269,7 @@ static BERR_Code BAPE_MaiInput_P_SetFormatDetection_isr(
     BAPE_MaiInputHandle handle
     )
 {
+    unsigned i;
     BERR_Code ret = BERR_SUCCESS;
     bool formatDetectionRequired = false;
 
@@ -1278,11 +1283,16 @@ static BERR_Code BAPE_MaiInput_P_SetFormatDetection_isr(
      * So start by checking to see if anybody needs format detection on. */
 
     /* Check to see if our client needs format detection. */
-    if ( handle->clientFormatDetectionSettings.enabled == true &&
-         (handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr ||
-          handle->clientFormatDetectionSettings.formatChangeIntDecode.pCallback_isr) ){
-
-        formatDetectionRequired = true;
+    if ( handle->clientFormatDetectionSettings.enabled )
+    {
+        formatDetectionRequired = (handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr != NULL);
+        for ( i = 0; i < BAPE_MAX_DECODERS_PER_INPUT; i++ )
+        {
+            if ( handle->clientFormatDetectionSettings.formatChangeIntDecode[i].pCallback_isr != NULL )
+            {
+                formatDetectionRequired |= true;
+            }
+        }
     }
 
     /* Now see if we need it internally.  */
@@ -1292,7 +1302,7 @@ static BERR_Code BAPE_MaiInput_P_SetFormatDetection_isr(
     }
 
     /* If it's not enabled and somebody needs it, then turn it on. */
-    if (! handle->formatDetectionEnabled && formatDetectionRequired )
+    if ( !handle->formatDetectionEnabled && formatDetectionRequired )
     {
         /* Make a call to BAPE_MaiInput_P_GetFormatDetectionStatus_isr() to get a
          * fresh snapshot of the current state of things from the hardware
@@ -1304,7 +1314,7 @@ static BERR_Code BAPE_MaiInput_P_SetFormatDetection_isr(
     }
 
     /* If format detection is enabled, but nobody needs it, then turn if off.  */
-    if ( handle->formatDetectionEnabled && ! formatDetectionRequired )
+    if ( handle->formatDetectionEnabled && !formatDetectionRequired )
     {
         if( handle->maiRxCallback )
         {
@@ -1345,12 +1355,17 @@ static BERR_Code BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandl
     pStatus->signalPresent    = true;
 
     /* Let them know if the format change interrupts are enabled.  */
-    pStatus->detectionEnabled   = false;
-    if ( handle->clientFormatDetectionSettings.enabled == true &&
-        (handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr ||
-         handle->clientFormatDetectionSettings.formatChangeIntDecode.pCallback_isr) )
+    pStatus->detectionEnabled = false;
+    if ( handle->clientFormatDetectionSettings.enabled )
     {
-        pStatus->detectionEnabled   = true;
+        pStatus->detectionEnabled = (handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr != NULL);
+        for ( i = 0; i < BAPE_MAX_DECODERS_PER_INPUT; i++ )
+        {
+            if ( handle->clientFormatDetectionSettings.formatChangeIntDecode[i].pCallback_isr != NULL )
+            {
+                pStatus->detectionEnabled |= true;
+            }
+        }
     }
 
     /* Read the HDMI Receiver's MAI_FORMAT and STATUS registers.  */
@@ -1569,6 +1584,7 @@ static void BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle    handle
             /* Notify our client (probably Nexus) that there has been a format change.  */
             if ( handle->clientFormatDetectionSettings.enabled == true )
             {
+                unsigned i;
                 if ( handle->clientFormatDetectionSettings.formatChangeIntInput.pCallback_isr )
                 {
                     BDBG_MSG(("%s - Calling format change callback (InputCapture) ", BSTD_FUNCTION));
@@ -1576,12 +1592,15 @@ static void BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle    handle
                                               handle->clientFormatDetectionSettings.formatChangeIntInput.pParam1,
                                               handle->clientFormatDetectionSettings.formatChangeIntInput.param2);
                 }
-                if ( handle->clientFormatDetectionSettings.formatChangeIntDecode.pCallback_isr )
+                for ( i = 0; i < BAPE_MAX_DECODERS_PER_INPUT; i++ )
                 {
-                    BDBG_MSG(("%s - Calling format change callback (Decode)", BSTD_FUNCTION));
-                    handle->clientFormatDetectionSettings.formatChangeIntDecode.pCallback_isr(
-                                              handle->clientFormatDetectionSettings.formatChangeIntDecode.pParam1,
-                                              handle->clientFormatDetectionSettings.formatChangeIntDecode.param2);
+                    if ( handle->clientFormatDetectionSettings.formatChangeIntDecode[i].pCallback_isr != NULL )
+                    {
+                        BDBG_MSG(("%s - Calling format change callback (Decode[%u])", BSTD_FUNCTION, i));
+                        handle->clientFormatDetectionSettings.formatChangeIntDecode[i].pCallback_isr(
+                                                  handle->clientFormatDetectionSettings.formatChangeIntDecode[i].pParam1,
+                                                  handle->clientFormatDetectionSettings.formatChangeIntDecode[i].param2);
+                    }
                 }
             }
 

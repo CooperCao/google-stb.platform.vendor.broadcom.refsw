@@ -657,6 +657,7 @@ typedef struct NEXUS_AudioMixerStatus
 #define NEXUS_MAX_AUDIO_SPDIF_INPUTS 1
 #define NEXUS_MAX_AUDIO_INPUT_CAPTURES 6
 #define NEXUS_MAX_AUDIO_STAGES_PER_EQUALIZER 5
+#define NEXUS_MAX_AUDIO_PLLS 3
 
 #ifdef __cplusplus
 }

@@ -101,6 +101,7 @@ typedef struct BAPE_MaiOutput
         unsigned subFrames;
         unsigned clk;
         uint8_t channelStatus[24];
+        bool cpuEncode;
     } spdif;
 
     BAPE_DmaOutputHandle dma;
@@ -1765,7 +1766,20 @@ BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
-    rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle, pFormat->type == BAPE_DataType_eIec60958Raw ? 0 : BAPE_MaiOutput_P_SpdifEncode_Ott_isr, handle);
+    handle->spdif.cpuEncode = pFormat->type == BAPE_DataType_eIec60958Raw;
+
+    /*
+     * set MAI_BIT_REVERSE if CPU doing encoding
+     * softFMM requirements TBD
+     */
+    BREG_AtomicUpdate32(handle->deviceHandle->regHandle,
+                        BCHP_HDMI_MAI_CONFIG,
+                        BCHP_MASK(HDMI_MAI_CONFIG, MAI_BIT_REVERSE)
+                        | BCHP_MASK(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE),
+                        BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_BIT_REVERSE, handle->spdif.cpuEncode)
+                        | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE, 0));
+
+    rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle, handle->spdif.cpuEncode ? BAPE_MaiOutput_P_SpdifEncode_Ott_isr : 0, handle);
     if (rc != BERR_SUCCESS) {
         return BERR_TRACE(rc);
     }

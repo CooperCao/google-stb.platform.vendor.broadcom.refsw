@@ -44,6 +44,7 @@
 /* ==========================  DEFINITIONS  ================================= */
 #define BVDC_P_ITFP_MAX_SIGMA        5
 #define BVDC_P_ITFP_NUM_CADENCE      2
+#define BVDC_P_ITFP_MAX_TICKER_DETECTION_CNT 6
 
 /* ==========================  STRUCTURES / TYPEDEFS ======================== */
 
@@ -121,6 +122,8 @@ typedef struct
     bool IsItfpEnabled;
     uint8_t   OptsItfpPhase;
     uint8_t   OptsPattern32Cntr;
+    bool      bPrevOptsLocked32;
+    unsigned  TickerDetectionCounter;
 } BVDC_P_ITFP_EpmPreprocessorInfo_t;
 
 
