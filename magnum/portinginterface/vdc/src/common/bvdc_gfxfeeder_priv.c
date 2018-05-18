@@ -1427,8 +1427,9 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
 
     /* (2) set RUL for other scale configures related to scale factors,
      * note: stDirty.stBits.bClipOrOut will be set if clipRect, out size, or surface size change
+     * note: now stDirty.stBits.bCompress will also affect scaling
      */
-    if ( stDirty.stBits.bClipOrOut || stDirty.stBits.bDemoMode )
+    if ( stDirty.stBits.bClipOrOut || stDirty.stBits.bDemoMode || stDirty.stBits.bCompress )
     {
         /* set horizontal scale factor */
         ulFirStepLow = pCurCfg->ulHsclSrcStep & GFD_MASK_FIR_STEP_LOW;
