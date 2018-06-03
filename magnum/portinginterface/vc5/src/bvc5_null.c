@@ -137,6 +137,7 @@ static void BVC5_P_DelayedFakeInterrupt(
       return;
    }
 
+   BDBG_CASSERT(sizeof(BVC5_P_DelayThreadArgs) <= CPU_PAGE_SIZE);
    args = BKNI_Malloc(sizeof(BVC5_P_DelayThreadArgs));
    if (args != NULL)
    {

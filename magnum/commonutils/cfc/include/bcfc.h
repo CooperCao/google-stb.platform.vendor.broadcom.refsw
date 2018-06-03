@@ -359,6 +359,7 @@ typedef struct BCFC_LRangeAdj
 #define BCFC_P_LR_Y_SHIFT           0
 #define BCFC_P_LR_SLP_M_SHIFT       0
 #define BCFC_P_LR_SLP_E_SHIFT       0
+#define BCFC_P_LR_Y_MASK            0
 #endif
 
 #define BCFC_P_MAKE_LR_XY(x, y) \
@@ -683,18 +684,19 @@ typedef struct BCFC_Context
     BCFC_Id                     eId;
     uint8_t                     ucMosaicSlotIdx;  /* used for CFC in CMP only */
 
-    BCFC_Capability             stCapability;
-    BCFC_ForceCfg               stForceCfg;
-
-    BCFC_ColorSpaceExt          stColorSpaceExtIn;
-    BCFC_ColorSpaceExt         *pColorSpaceExtOut;  /* e.g. ptr to struct in hCompositor or hDisplay */
-
     uint8_t                     ucRulBuildCntr;  /* for RUL build */
 
     uint8_t                     ucSelBlackBoxNL;
 
     bool                        bBlendInMatrixOn;
     bool                        bBypassCfc;
+    bool                        bForceRgbPrimaryMatch;  /* user forces to match color primary even when BT2020 and HDR are not involved */
+
+    BCFC_Capability             stCapability;
+    BCFC_ForceCfg               stForceCfg;
+
+    BCFC_ColorSpaceExt          stColorSpaceExtIn;
+    BCFC_ColorSpaceExt         *pColorSpaceExtOut;  /* e.g. ptr to struct in hCompositor or hDisplay */
 
     const BCFC_Csc3x4          *pMa;
     BCFC_Csc3x3                 stMb;  /* MbOut * MbIn */

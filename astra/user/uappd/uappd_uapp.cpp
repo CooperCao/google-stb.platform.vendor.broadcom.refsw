@@ -606,6 +606,10 @@ int UserAppDmon::UserApp::coredump()
     buf +=  sizeof(int);
 
     coredump_memregion *memRegion = (coredump_memregion *)malloc(sizeof(coredump_memregion) * NumMemSections);
+    if(!memRegion) {
+        printf("Out of Memory : Malloc failed");
+        goto error;
+    }
     rbytes = fread(memRegion, sizeof(coredump_memregion),NumMemSections,fd);
     if (rbytes == -1)
         printf("Could not read Num Of mem Sections Core file\n");
@@ -621,7 +625,9 @@ int UserAppDmon::UserApp::coredump()
             printf("Could not read Num Of mem Sections Core file\n");
         buf += size;
     }
-    free(memRegion);
+error:
+    if(memRegion)
+        free(memRegion);
     fclose(fd);
 
     return 0;

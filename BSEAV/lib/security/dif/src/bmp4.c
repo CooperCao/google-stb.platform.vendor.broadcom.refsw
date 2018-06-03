@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #define LOGE BDBG_ERR
 #define LOGW BDBG_WRN
@@ -470,12 +473,15 @@ ErrorExit:
 }
 
 static
-int bmp4_parse_mdia(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack)
+int bmp4_parse_mdia(batom_t atom, batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack)
 {
     int     rc = 0;
     bmp4_box     box;
-    uint32_t       box_hdr_size;
+    uint32_t     box_hdr_size;
     uint32_t     i;
+    bmp4_mediaheaderbox mediaHeader;
+    batom_t      mdhdAtom = NULL;
+    batom_cursor startCursor;
 
     BDBG_ASSERT(cursor != NULL);
     BDBG_ASSERT(pBox->type == BMP4_MEDIA);
@@ -494,6 +500,19 @@ int bmp4_parse_mdia(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
                 rc = bmp4_parse_minf(cursor, &box, pTrack);
                 if(rc != 0) goto ErrorExit;
                 break;
+            case BMP4_MEDIAHEADER:
+                LOGD(("%s: BMP4_MEDIAHEADER", BSTD_FUNCTION));
+                /* Get an atom on the media header. */
+                BATOM_CLONE(&startCursor, cursor);
+                batom_cursor_skip(cursor, box.size - box_hdr_size);
+                mdhdAtom = batom_extract(atom, &startCursor, cursor, NULL, NULL);
+                if(!bmp4_parse_mediaheader(mdhdAtom, &mediaHeader)) {
+                    LOGD(("%s: bmp4_parse_mediaheader returned error", __FUNCTION__));
+                    rc = -1; goto ErrorExit;
+                }
+                LOGD(("%s:timescale=%d", __FUNCTION__, mediaHeader.timescale));
+                pTrack->scheme.trackTimeScale = mediaHeader.timescale;
+                break;
             default :
                 /* Not the box we are looking for. Skip over it.*/
                 batom_cursor_skip(cursor, box.size - box_hdr_size);
@@ -502,6 +521,9 @@ int bmp4_parse_mdia(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
     }
 
 ErrorExit:
+    if (mdhdAtom) {
+        batom_release(mdhdAtom);
+    }
     return rc;
 }
 
@@ -548,7 +570,7 @@ int bmp4_parse_trak(bmp4_mp4_headers *header, batom_t atom, batom_cursor *cursor
                 break;
             case BMP4_MEDIA:
                 LOGD(("%s: BMP4_MEDIA", BSTD_FUNCTION));
-                rc = bmp4_parse_mdia(cursor, &box, &track);
+                rc = bmp4_parse_mdia(atom, cursor, &box, &track);
                 if(rc != 0) {
                     goto ErrorExit;
                 }
@@ -743,6 +765,7 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
     bool skip_frag = false;
     uint32_t trackId;
     uint32_t trackType = BMP4_TYPE_BEGIN;
+    uint32_t trackTimeScale = 0;
 
     LOGD(("%s: traf.size %llu", BSTD_FUNCTION, (long long unsigned)traf.size));
     for (i = box_size; i < traf.size; i += box.size) {
@@ -760,8 +783,10 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
                 bmp4_parse_track_fragment_header(cursor, &bmp4_frag_hdr);
                 trackId = bmp4_frag_hdr.track_ID;
                 LOGD(("%s: trackId=%d", BSTD_FUNCTION, trackId));
-                if (trackId < BMP4_MAX_NB_OF_TRACKS)
+                if (trackId < BMP4_MAX_NB_OF_TRACKS) {
                     trackType = header->scheme[trackId].trackType;
+                    trackTimeScale = header->scheme[trackId].trackTimeScale;
+                }
                 else {
                     LOGE(("%s: Invalid fragment track ID (%d) in movie information header \n",
                         __func__, trackId));
@@ -777,6 +802,12 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
                     {
                         frag_header->trackId = trackId;
                         frag_header->trackType = trackType;
+                        frag_header->trackTimeScale = trackTimeScale;
+                        if (trackTimeScale == 0) {
+                            LOGE(("%s: Invalid time scale in track fragment(%d) in movie information header \n",
+                                __func__, trackTimeScale));
+                            skip_frag = true;
+                        }
                         break;
                     }
                     default:
@@ -830,6 +861,7 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
                 rc = cenc_parse_sample_encryption_box(cursor, frag_header);
                 if (rc == 0)
                     frag_header->enc_info_parsed = true;
+                frag_header->encrypted = true;
                 break;
             }
             case BMP4_EXTENDED: /* uuid */

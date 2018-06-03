@@ -950,35 +950,35 @@ void SysCalls::doPPoll(TzTask *currTask) {
     //for (int i=0; i<nfds; i++)
       //printf("\t%d: fd %d events 0x%x \n", i, fdsKernel[i].fd, fdsKernel[i].events);
 
-    int timeout = -1;
     const struct timespec *timeoutUser = (const struct timespec *)arg2;
-
+    struct timespec *timeoutKernel = (struct timespec *)((uint8_t *)paramsPage.cpuLocal() + nfds * sizeof(struct pollfd));
+    int timeout;
     /* Check that the timespec structure does not span page boundaries */
     /* TODO: map multiple pages if the structure does span page boundaries */
     //bool timespec_spans_pb =
         //((uintptr_t)timeoutUser - (uintptr_t)PAGE_START_4K(timeoutUser) + sizeof(struct timespec)) >= PAGE_SIZE_4K_BYTES;
     //printf("timeoutUser structure does %s span page boundary\n",timespec_spans_pb ? "" : "not");
+    if(timeoutUser) {
+        /* Map the user space paramater before copying it to kernel space */
+        pa = upt->lookUp(PAGE_START_4K(timeoutUser));
+        if(kpt->isAddrRangeUnMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
+           kpt->mapPage(PAGE_START_4K(timeoutUser), pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
 
-    /* Map the user space paramater before copying it to kernel space */
-    pa = upt->lookUp(PAGE_START_4K(timeoutUser));
-    if(kpt->isAddrRangeUnMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
-       kpt->mapPage(PAGE_START_4K(timeoutUser), pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
-
-    /* Skip past the nfds data in the paramsPage to map the timeout argument */
-    struct timespec *timeoutKernel = (struct timespec *)((uint8_t *)paramsPage.cpuLocal() + nfds * sizeof(struct pollfd));
-    rc = copyFromUser(timeoutUser, timeoutKernel);
-    if (!rc) {
-       if(kpt->isAddrRangeMapped(PAGE_START_4K(fdsUser),PAGE_SIZE_4K_BYTES))
-           kpt->unmapPage(PAGE_START_4K(fdsUser));
-       if(kpt->isAddrRangeMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
-           kpt->unmapPage(PAGE_START_4K(timeoutUser));
-       currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
-       return;
+        /* Skip past the nfds data in the paramsPage to map the timeout argument */
+        rc = copyFromUser(timeoutUser, timeoutKernel);
+        if (!rc) {
+           if(kpt->isAddrRangeMapped(PAGE_START_4K(fdsUser),PAGE_SIZE_4K_BYTES))
+               kpt->unmapPage(PAGE_START_4K(fdsUser));
+           if(kpt->isAddrRangeMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
+               kpt->unmapPage(PAGE_START_4K(timeoutUser));
+           currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+           return;
+        }
+        /* Convert the timeout to milliseconds for a poll call */
+        timeout = (timeoutKernel->tv_sec * 1000 + timeoutKernel->tv_nsec / 1000000);
     }
-
-    /* Convert the timeout to milliseconds for a poll call */
-    timeout = (timeoutKernel == NULL) ? -1 :
-             (timeoutKernel->tv_sec * 1000 + timeoutKernel->tv_nsec / 1000000);
+    else
+        timeout = -1;
 
     //sigset_t origmask;
     //sigprocmask(SIG_SETMASK, &sigmask, &origmask);

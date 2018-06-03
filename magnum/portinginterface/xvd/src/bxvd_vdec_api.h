@@ -196,6 +196,7 @@ typedef struct
    uint32_t  dms_delivery_address0;
    uint32_t  dms_delivery_address1;
 #endif
+   uint32_t  fw_sha;
 } BXVD_Rsp_Initialize;
 
 

@@ -6163,6 +6163,13 @@ BCMATTACHFN(wlc_attach)(void *wl, uint16 vendor, uint16 device, uint unit, uint 
 	pub->_piomode = (iomode == IOMODE_TYPE_PIO);
 	wlc->bandinit_pending = FALSE;
 
+	if ((wlc->ssidbuf = (uint8 *)MALLOCZ(wlc->osh, SSID_FMT_BUF_LEN)) == NULL) {
+		WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
+		err = BCME_NOMEM;
+		goto fail;
+	}
+
 #if defined(BCM_DMA_CT) && !defined(BCM_DMA_CT_DISABLED)
 		wlc->_dma_ct = (iomode == IOMODE_TYPE_CTDMA);
 #endif
@@ -7645,6 +7652,11 @@ BCMATTACHFN(wlc_detach)(wlc_info_t *wlc)
 		wlc->pub->vars = NULL;
 	}
 
+	if (wlc->ssidbuf) {
+		MFREE(wlc->osh, wlc->ssidbuf, SSID_FMT_BUF_LEN);
+		wlc->ssidbuf = NULL;
+	}
+
 #if defined(RWL_WIFI) || defined(WIFI_REFLECTOR)
 	if (wlc->rwl) {
 		MODULE_DETACH(wlc->rwl, wlc_rwl_detach);
@@ -8998,11 +9010,20 @@ BCMINITFN(wlc_up)(wlc_info_t *wlc)
 		FOREACH_BSS(wlc, idx, cfg) {
 			if (BSSCFG_STA(cfg) && cfg->enable && (cfg->flags & WLC_BSSCFG_PRESERVE)) {
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
-				char ssidbuf[SSID_FMT_BUF_LEN];
+				char *ssidbuf = (char *)MALLOCZ(wlc->osh, SSID_FMT_BUF_LEN);
+
+				if (ssidbuf == NULL) {
+					WL_ERROR((WLC_MALLOC_ERR, WLCWLUNIT(wlc), __FUNCTION__, (int)SSID_FMT_BUF_LEN,
+						MALLOCED(wlc->osh)));
+					ASSERT(0);
+					return BCME_NOMEM;
+				}
+
 				wlc_format_ssid(ssidbuf, cfg->SSID, cfg->SSID_len);
-#endif
 				WL_ASSOC(("wl%d: wlc_up: restarting STA bsscfg 0 \"%s\"\n",
 				          wlc->pub->unit, ssidbuf));
+				MFREE(wlc->osh, (void *)ssidbuf, SSID_FMT_BUF_LEN);
+#endif
 				wlc_join_recreate(wlc, cfg);
 			}
 		}

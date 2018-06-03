@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2008-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -84,17 +84,39 @@ static struct {
 #endif
 } g_fake;
 
+NEXUS_Platform_P_MemoryRange g_NEXUS_P_CpuNotAccessibleRange = {
+#if NEXUS_BASE_OS_ucos_ii || B_REFSW_SYSTEM_MODE_CLIENT
+    NULL, 0
+#elif NEXUS_MODE_driver || NEXUS_BASE_OS_linuxkernel
+    NULL, 0 /* dynamically set by the generic driver */
+#elif NEXUS_CPU_ARM64
+    NULL, 0 /* no static fake addressing, dynamically allocate address space */
+#else
+    /*
+    On 32-bit systems use upper 2GB as fake addressing range.
+    Subtracting 4K allows the code to avoid 0x0000_0000.
+    Since too much code depends on ptr == NULL meaning "no pointer",
+    only 1 byte is needed to avoid this situation, but using 4K avoid possible alignment bugs. */
+#if NEXUS_CPU_ARM
+    (void *)(unsigned long)0xC0000000u, 0x40000000 - 4096
+#else
+    (void *)(unsigned long)0x80000000u, 0x80000000u - 4096
+#endif
+#endif
+};
+
+
 void nexus_p_get_default_map_settings(struct nexus_map_settings *p_settings)
 {
     BKNI_Memset(p_settings, 0, sizeof(*p_settings));
+    p_settings->offset = (unsigned long)g_NEXUS_P_CpuNotAccessibleRange.start;
+    p_settings->size = g_NEXUS_P_CpuNotAccessibleRange.length;
+    return;
 }
 
 int nexus_p_init_map(const struct nexus_map_settings *p_settings)
 {
     struct nexus_p_alloc *node;
-    if (!p_settings->size) {
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
     if (BLST_D_FIRST(&g_fake.free_list)) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -106,13 +128,15 @@ int nexus_p_init_map(const struct nexus_map_settings *p_settings)
     g_fake.fd_zero = -1;
 #endif
 
-    node = (struct nexus_p_alloc *)BKNI_Malloc(sizeof(*node));
-    if (!node) {
-        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    if(p_settings->size) {
+        node = (struct nexus_p_alloc *)BKNI_Malloc(sizeof(*node));
+        if (!node) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        node->offset = (void *)(unsigned long)p_settings->offset;
+        node->size = p_settings->size;
+        BLST_D_INSERT_HEAD(&g_fake.free_list, node, link);
     }
-    node->offset = (void *)(unsigned long)p_settings->offset;
-    node->size = p_settings->size;
-    BLST_D_INSERT_HEAD(&g_fake.free_list, node, link);
 
     return 0;
 }

@@ -1,5 +1,6 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 
@@ -216,7 +217,6 @@ bool Playpump_t::initialise(bool secure, size_t bytes, size_t dmaBytes)
     // Configure
     NEXUS_PlaypumpStatus playpumpStatus;
     BME_CHECK(NEXUS_Playpump_GetStatus(handle, &playpumpStatus));
-    end = reinterpret_cast<const uint8_t *>(playpumpStatus.bufferBase) + playpumpStatus.fifoSize;
 
     NEXUS_PlaypumpSettings settings;
     NEXUS_Playpump_GetSettings(handle, &settings);

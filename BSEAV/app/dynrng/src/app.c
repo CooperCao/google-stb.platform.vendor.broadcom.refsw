@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "platform.h"
 #include "app.h"
@@ -485,9 +489,13 @@ int app_p_run_scenario_by_number(AppHandle app, int scenarioNum)
 
 int app_p_run_scenario(AppHandle app, const char * scenarioName)
 {
+    int rc;
     assert(app);
+    rc = scenario_player_play_scenario(app->scenario.player, scenarioName);
+    if (rc) goto end;
     app->scenario.name = set_string(app->scenario.name, scenarioName);
-    return scenario_player_play_scenario(app->scenario.player, app->scenario.name);
+end:
+    return rc;
 }
 
 void app_p_quit(AppHandle app)
@@ -530,8 +538,11 @@ static void app_p_usage_notification(void * context, int param)
     assert(app);
     (void)param;
 
-    osd_set_dialog_message(app->osd.handle, messages[app->platform.usageMessageIndex]);
-    app->platform.usageMessageIndex = (app->platform.usageMessageIndex + 1) % (sizeof(messages) / sizeof(messages[0]));
+    if (app->platform.blockedUsage)
+    {
+        osd_set_dialog_message(app->osd.handle, messages[app->platform.usageMessageIndex]);
+        app->platform.usageMessageIndex = (app->platform.usageMessageIndex + 1) % (sizeof(messages) / sizeof(messages[0]));
+    }
 }
 
 static void app_p_usage_protection(AppHandle app)
@@ -559,13 +570,14 @@ static void app_p_usage_protection(AppHandle app)
         fprintf(stdout, "blocked usage mode\n");
         osd_set_dialog_visibility(app->osd.handle, true);
         app->platform.usageMessageIndex = 0;
-        platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
+        app->platform.blockedUsage = true;
+        platform_scheduler_wake(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
     }
     else
     {
         osd_set_dialog_message(app->osd.handle, NULL);
         osd_set_dialog_visibility(app->osd.handle, false);
-        platform_scheduler_stop(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
+        app->platform.blockedUsage = false;
     }
 #else
     (void)app;
@@ -627,6 +639,16 @@ static int app_p_unrecognized_scenario_syntax(void * context, const char * name,
     (void)value;
     (void)app;
 #endif
+#if DYNRNG_HAS_DBV
+    if (app->dbv.handle)
+    {
+        dbv_handle_scenario_nvp(app->dbv.handle, name, value);
+    }
+#else
+    (void)name;
+    (void)value;
+    (void)app;
+#endif
 #if DYNRNG_HAS_TESTER
     if (app->tester.handle)
     {
@@ -642,6 +664,48 @@ static int app_p_unrecognized_scenario_syntax(void * context, const char * name,
     (void)app;
 #endif
     return 0; /* don't care if unrecognized syntax, try running anyway */
+}
+
+static void app_p_stop_streams(AppHandle app, const Scenario * pScenario)
+{
+    unsigned i;
+    bool wasMosaic;
+    bool isMosaic;
+    bool layoutChanged;
+    bool wasPip;
+    bool isPip;
+
+    assert(app);
+
+    wasMosaic = app->platform.usageMode == PlatformUsageMode_eMosaic;
+    isMosaic = pScenario->usageMode == PlatformUsageMode_eMosaic;
+    wasPip = app->platform.usageMode == PlatformUsageMode_eMainPip;
+    isPip = pScenario->usageMode == PlatformUsageMode_eMainPip;
+    layoutChanged = app->osd.layout != pScenario->layout;
+
+    for (i = 0; i < app->stream.count; i++)
+    {
+        if
+        (
+            /* switching between mosaic and non-non mosaic requires stop for window reconfig */
+            (wasMosaic != isMosaic)
+            ||
+            /* mosaic layout changes require stop for window reconfig */
+            (layoutChanged && isMosaic)
+            ||
+            /* disabling pip requires shutting down pip decoder */
+            (wasPip && !isPip && i == 1)
+            ||
+            /* we have fewer active streams in the new scenario, stop the active ones from the old scenario */
+            (i > pScenario->streamCount)
+            ||
+            /* the stream paths have changed, stop the old ones */
+            (pScenario->streamPaths[i] && app->stream.prevPaths[i] && strcmp(pScenario->streamPaths[i], app->stream.prevPaths[i]))
+        )
+        {
+            stream_player_stop(app->stream.players[i]);
+        }
+    }
 }
 
 #define min(x,y) (((x) > (y)) ? (y) : (x))
@@ -667,22 +731,7 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
         }
     }
 
-    /* Switching from mosaic to non-non mosaic requires all videos to be stopped so that windows can be reconfigured. */
-    if (app->platform.usageMode != pScenario->usageMode || (app->osd.layout != pScenario->layout && pScenario->usageMode == PlatformUsageMode_eMosaic)) {
-        if (app->platform.usageMode == PlatformUsageMode_eMosaic || pScenario->usageMode == PlatformUsageMode_eMosaic) {
-            for(i=0; i<app->stream.count; i++) {
-                stream_player_stop(app->stream.players[i]);
-            }
-        }
-        else if (app->platform.usageMode == PlatformUsageMode_eMainPip) {
-            stream_player_stop(app->stream.players[1]);
-        }
-    }
-    if (!pScenario->streamCount) {
-        for(i=0; i<app->stream.count; i++) {
-            stream_player_stop(app->stream.players[i]);
-        }
-    }
+    app_p_stop_streams(app, pScenario);
 
     /* copy user requested pic info from scenario if specified, application to hardware happens in update model call at end */
     app_p_resolve_picture_info(app, &pScenario->pictureInfo);
@@ -720,6 +769,7 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
         playSettings.startPaused = pScenario->startPaused;
         playSettings.stcTrick = pScenario->stcTrick;
         stream_player_play_stream(app->stream.players[i], &playSettings);
+        app->stream.prevPaths[i] = set_string(app->stream.prevPaths[i], pScenario->streamPaths[i]);
     }
     /* only change OSD visibility if explicitly specified in scenario */
     if (pScenario->osd != PlatformTriState_eInactive)
@@ -735,10 +785,6 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
     image_viewer_view_image(app->image.thumbnail, pScenario->imagePath);
     printf("bg: %s\n", pScenario->bgPath);
     image_viewer_view_image(app->image.background, pScenario->bgPath);
-    for(i=0; i<app->stream.count; i++)
-    {
-        app->stream.prevPaths[i] = set_string(app->stream.prevPaths[i], pScenario->streamPaths[i]);
-    }
     app->platform.processing.vid.mode = pScenario->processing.vid;
     app->platform.processing.gfx.mode = pScenario->processing.gfx;
     platform_display_set_gfx_luminance(app->platform.display.handle, pScenario->gfxLuminance.min, pScenario->gfxLuminance.max);
@@ -766,6 +812,7 @@ void app_p_background_changed(void * context, PlatformPictureHandle pic)
 void ui_run(AppHandle app)
 {
     assert(app);
+    app->ui.mode = UiMode_eBasic;
     while (!app->ui.done)
     {
         if (platform_input_try(app->platform.input))
@@ -808,6 +855,7 @@ void app_run(AppHandle app)
 {
     assert(app);
 
+    platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_USAGE));
     platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_GFX));
     platform_scheduler_start(platform_get_scheduler(app->platform.handle, PLATFORM_SCHEDULER_MAIN));
     platform_hdmi_receiver_start(app->platform.rx);
@@ -873,6 +921,13 @@ static const char * STR_STREAMS = "streams";
 static const char * STR_IMAGES = "images";
 static const char * STR_SCENARIOS = "scenarios";
 
+static const char * STR_UI_MODES[] =
+{
+    "basic",
+    "expert",
+    NULL
+};
+
 static int app_p_create_graphics(AppHandle app, unsigned width, unsigned height)
 {
     int rc = 0;
@@ -937,6 +992,32 @@ static int app_p_osd_resized(AppHandle app, unsigned width, unsigned height)
     return rc;
 }
 
+#if DYNRNG_HAS_DBV
+static void app_p_dbv_platform_settings_request_handler(void * context, const DbvPlatformSettings * pSettings)
+{
+    AppHandle app = context;
+
+    assert(pSettings);
+    assert(app);
+
+    /* todo: move all this to after a commit is signaled */
+    platform_display_set_rendering_priority(app->platform.display.handle, pSettings->renderingPriority);
+    app->platform.model.renderingPriority = pSettings->renderingPriority;
+}
+static int app_p_create_dbv(AppHandle app, StringMapHandle cfgMap)
+{
+    DbvCreateSettings dbvCreateSettings;
+    dbv_get_default_create_settings(&dbvCreateSettings);
+    dbvCreateSettings.cfgMap = cfgMap;
+    dbvCreateSettings.platformSettingsRequest.callback = &app_p_dbv_platform_settings_request_handler;
+    dbvCreateSettings.platformSettingsRequest.context = app;
+    app->dbv.handle = dbv_create(&dbvCreateSettings);
+    if (!app->dbv.handle) return -ERR_DEPENDENCY;
+    return 0;
+}
+#endif
+
+
 #if DYNRNG_HAS_CAPTURE
 static void app_p_frame_advance_request_handler(void * context)
 {
@@ -983,9 +1064,6 @@ static void app_p_capture_platform_settings_request_handler(void * context, cons
         (void)stream_player_set_platform_settings(app->stream.players[i], &mpSettings);
     }
 
-    platform_display_set_rendering_priority(app->platform.display.handle, pSettings->renderingPriority);
-    app->platform.model.renderingPriority = pSettings->renderingPriority;
-
     memcpy(&app->platform.output.pictureInfo.ar, &pSettings->ar, sizeof(app->platform.output.pictureInfo.ar));
     app_p_update_out_model(app);
 }
@@ -1006,6 +1084,29 @@ static int app_p_create_capture(AppHandle app, StringMapHandle cfgMap)
 }
 #endif
 
+static int mod(int x, int N)
+{
+    return (x % N + N) % N;
+}
+
+static void app_p_offset_scenario(AppHandle app, int offset)
+{
+    int scenario;
+    unsigned scenarioCount;
+    assert(app);
+
+    /*
+     * this function assumes all scenarios present have names that are
+     * numbered from 1 to N with no gaps in sequence
+     */
+    scenario = atoi(app->scenario.name);
+    scenarioCount = file_manager_get_count(app->scenario.filer);
+    if (scenario < 1) scenario = 1;
+    if (scenario > (int)scenarioCount) scenario = scenarioCount;
+    scenario = mod(scenario + offset - 1, scenarioCount) + 1;
+    app_p_run_scenario_by_number(app, scenario);
+}
+
 void app_p_input_event_dispatcher(void * context, PlatformInputEvent event, int param)
 {
     AppHandle app = context;
@@ -1016,19 +1117,57 @@ void app_p_input_event_dispatcher(void * context, PlatformInputEvent event, int 
             app_p_quit(app);
             break;
         case PlatformInputEvent_eSelect:
-            app_p_toggle_processing(app);
+            app->ui.mode = (app->ui.mode + 1) % UiMode_eMax;
+            printf("ui mode: %s\n", STR_UI_MODES[app->ui.mode]);
+            /*app_p_toggle_processing(app);*/
             break;
         case PlatformInputEvent_eUp:
-            app_p_toggle_vid_processing(app);
+            switch (app->ui.mode)
+            {
+            case UiMode_eExpert:
+                app_p_toggle_vid_processing(app);
+                break;
+            case UiMode_eBasic:
+            default:
+                app_p_offset_scenario(app, 1);
+                break;
+            }
             break;
         case PlatformInputEvent_eDown:
-            app_p_toggle_vid_processing(app);
+            switch (app->ui.mode)
+            {
+            case UiMode_eExpert:
+                app_p_toggle_vid_processing(app);
+                break;
+            case UiMode_eBasic:
+            default:
+                app_p_offset_scenario(app, -1);
+                break;
+            }
             break;
         case PlatformInputEvent_eLeft:
-            app_p_toggle_gfx_processing(app);
+            switch (app->ui.mode)
+            {
+            case UiMode_eExpert:
+                app_p_toggle_gfx_processing(app);
+                break;
+            case UiMode_eBasic:
+            default:
+                app_p_offset_scenario(app, -1);
+                break;
+            }
             break;
         case PlatformInputEvent_eRight:
-            app_p_toggle_gfx_processing(app);
+            switch (app->ui.mode)
+            {
+            case UiMode_eExpert:
+                app_p_toggle_gfx_processing(app);
+                break;
+            case UiMode_eBasic:
+            default:
+                app_p_offset_scenario(app, 1);
+                break;
+            }
             break;
         case PlatformInputEvent_eNumber:
             app_p_run_scenario_by_number(app, param);
@@ -1233,6 +1372,7 @@ AppHandle app_create(ArgsHandle args)
     fileManagerCreateSettings.filter = &stream_player_file_filter;
     app->stream.filer = file_manager_create(&fileManagerCreateSettings);
     if (!app->stream.filer) goto error;
+    printf("found %d streams\n", file_manager_get_count(app->stream.filer));
 
     file_manager_get_default_create_settings(&fileManagerCreateSettings);
     fileManagerCreateSettings.name = STR_IMAGES;
@@ -1240,6 +1380,7 @@ AppHandle app_create(ArgsHandle args)
     fileManagerCreateSettings.filter = &image_viewer_file_filter;
     app->image.filer = file_manager_create(&fileManagerCreateSettings);
     if (!app->image.filer) goto error;
+    printf("found %d images\n", file_manager_get_count(app->image.filer));
 
     file_manager_get_default_create_settings(&fileManagerCreateSettings);
     fileManagerCreateSettings.name = STR_SCENARIOS;
@@ -1247,6 +1388,7 @@ AppHandle app_create(ArgsHandle args)
     fileManagerCreateSettings.filter = &scenario_player_file_filter;
     app->scenario.filer = file_manager_create(&fileManagerCreateSettings);
     if (!app->scenario.filer) goto error;
+    printf("found %d scenarios\n", file_manager_get_count(app->scenario.filer));
 
     scenario_player_get_default_create_settings(&scenarioPlayerCreateSettings);
     scenarioPlayerCreateSettings.filer = app->scenario.filer;
@@ -1286,6 +1428,10 @@ AppHandle app_create(ArgsHandle args)
 
 #if DYNRNG_HAS_CAPTURE
     if (app_p_create_capture(app, cfgMap)) printf("capture component creation failed; capture disabled\n");
+#endif
+
+#if DYNRNG_HAS_DBV
+    if (app_p_create_dbv(app, cfgMap)) printf("dbv component creation failed; rendering priority disabled\n");
 #endif
 
 #if DYNRNG_HAS_PLAYLIST
@@ -1336,6 +1482,14 @@ void app_destroy(AppHandle app)
     {
         console_destroy(app->console.handle);
         app->console.handle = NULL;
+    }
+#endif
+
+#if DYNRNG_HAS_DBV
+    if (app->dbv.handle)
+    {
+        dbv_destroy(app->dbv.handle);
+        app->dbv.handle = NULL;
     }
 #endif
 

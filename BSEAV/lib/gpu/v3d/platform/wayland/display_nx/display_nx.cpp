@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_nx.h"
 #include "display_nx_priv.h"
@@ -228,7 +228,20 @@ static bool NxQueryBuffer(void *context [[gnu::unused]],
       break;
 
    case EGL_TEXTURE_FORMAT:
-      *value = BeglToNexusFormat(settings.format);
+      switch (settings.format)
+      {
+      case BEGL_BufferFormat_eA8B8G8R8:
+         *value = EGL_TEXTURE_RGBA;
+         break;
+
+      case BEGL_BufferFormat_eX8B8G8R8:
+      case BEGL_BufferFormat_eR5G6B5:
+         *value = EGL_TEXTURE_RGB;
+         break;
+
+      default:
+         return false;
+      }
       break;
 
    case EGL_WAYLAND_Y_INVERTED_WL:

@@ -1952,8 +1952,7 @@ static NEXUS_Error NEXUS_Frontend_P_7584_GetQamStatus(void *handle, NEXUS_Fronte
 
         for(j=0; j < 100; j++) {
 
-            rc = BKNI_Sleep(20);
-            if(rc){rc = BERR_TRACE(rc); goto done;}
+            BKNI_Sleep(20);
 
             rc = BHAB_ReadRegister(pDevice->hab, BCHP_LEAP_CTRL_SW_SPARE0 , &buf);
             if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -2900,9 +2899,7 @@ static NEXUS_Error NEXUS_Frontend_P_7584_GetOobStatus(void *handle, NEXUS_Fronte
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
     for(j=0; j < 20; j++) {
-
-        rc = BKNI_Sleep(20);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
+        BKNI_Sleep(20);
 
         rc = BHAB_ReadRegister(pDevice->hab, BCHP_LEAP_CTRL_SW_SPARE0 , &buf);
         if(rc){rc = BERR_TRACE(rc); goto done;}

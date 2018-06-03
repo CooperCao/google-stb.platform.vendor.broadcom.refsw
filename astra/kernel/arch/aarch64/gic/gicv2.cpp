@@ -66,7 +66,6 @@ static inline uint32_t regRead32(void *location) {
 	uint32_t rv = *ptr;
 	COMPILER_BARRIER();
 	return rv;
-	COMPILER_BARRIER();
 }
 
 static void gicDistributorInit(void *va) {
@@ -177,7 +176,7 @@ int gicV2Init(void *deviceTree) {
 	if ((!fpSzCells) || ((unsigned int)propLen < sizeof(int)))
 		szCellSize = 1;
 	else
-		szCellSize = parseInt((void *)fpAddrCells->data, propLen);
+		szCellSize = parseInt((void *)fpSzCells->data, propLen);
 	int szByteSize = szCellSize * sizeof(int);
 
 	// Parse the 'reg' property and map the address spaces

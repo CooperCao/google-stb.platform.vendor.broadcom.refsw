@@ -211,7 +211,7 @@ int _tzioc_msg_receive(
         uint32_t sec;
 
         clock_gettime(CLOCK_REALTIME, &timeout);
-        nsec = timeout.tv_nsec + ulTimeout * 1000000;
+        nsec = timeout.tv_nsec + (uint64_t)ulTimeout * 1000000;
         sec = nsec / 1000000000;
         timeout.tv_sec += sec;
         timeout.tv_nsec = nsec - sec * 1000000000;

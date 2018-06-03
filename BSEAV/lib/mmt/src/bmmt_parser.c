@@ -52,6 +52,7 @@ int bmmt_parse_mmt_header(batom_cursor *cursor,bmmt_packet_header *header)
 {
     unsigned data;
     unsigned version;
+    uint8_t i=0;
 
     /* ISO/IEC 23008-1
      * 8.2.2 Structure of an MMTP Packet
@@ -77,13 +78,58 @@ int bmmt_parse_mmt_header(batom_cursor *cursor,bmmt_packet_header *header)
         header->packet_counter = batom_cursor_uint32_be(cursor);
     }
     if(B_GET_BIT(data,25)) {
-        unsigned length;
+        unsigned ext_length=0;
+        uint16_t hdr_ext_length=0;
         batom_cursor_uint16_be(cursor); /* header_extension type */
-        length = batom_cursor_uint16_be(cursor); /* header_extension length */
+        ext_length = batom_cursor_uint16_be(cursor); /* header_extension length */
         if(BATOM_IS_EOF(cursor)) {
             return BDBG_TRACE_ERROR(BTLV_RESULT_END_OF_DATA);
         }
-        batom_cursor_skip(cursor, length);
+        header->hdr_ext_type = batom_cursor_uint16_be(cursor);
+        header->hdr_ext_end_flag = (header->hdr_ext_type & 0x8000)? true:false;
+        header->hdr_ext_type = ( header->hdr_ext_type & 0x7fff);
+        hdr_ext_length = batom_cursor_uint16_be(cursor);
+        if(BATOM_IS_EOF(cursor)) {
+            return BDBG_TRACE_ERROR(BTLV_RESULT_END_OF_DATA);
+        }
+        header->scrambling_control = batom_cursor_byte(cursor);
+        header->scrambling_control = header->scrambling_control & 0x1f;
+        header->scrambling_method_present = (0x04 &  header->scrambling_control)? true:false;
+        header->scrambling_auth_present =  (0x02 &  header->scrambling_control)? true:false;
+        header->scrambling_iv_present =  (0x01 &  header->scrambling_control)? true:false;
+        header->scrambling_control = (0x18 &  header->scrambling_control) >> 3;
+        /*batom_cursor_skip(cursor, length);*/
+        BDBG_MSG((" ext_len %d hdr_ext_len %d",ext_length,hdr_ext_length));
+        BDBG_MSG((" header->scrambling_control %x",header->scrambling_control));
+        BDBG_MSG((" header->scrambling_method_present %s",header->scrambling_method_present?"true":"false"));
+        BDBG_MSG((" header->scrambling_auth_present %s",header->scrambling_auth_present?"true":"false"));
+        BDBG_MSG((" header->scrambling_iv_present %s",header->scrambling_iv_present?"true":"false"));
+        if (header->scrambling_iv_present) {
+
+           if (batom_cursor_size(cursor) < BMMT_MAX_IV_SIZE) {
+              return BDBG_TRACE_ERROR(BTLV_RESULT_END_OF_DATA);
+           }
+           else {
+              batom_cursor_copy(cursor,header->iv,BMMT_MAX_IV_SIZE);
+           }
+        }
+        else {
+           header->iv[1] = header->packet_id & 0x00ff;
+           header->iv[0] = (header->packet_id & 0xff00) >> 8;
+           header->iv[5] = (header->packet_seq_num & 0x000000ff);
+           header->iv[4] = (header->packet_seq_num & 0x0000ff00) >> 8;
+           header->iv[3] = (header->packet_seq_num & 0x00ff0000) >> 16;
+           header->iv[2] = (header->packet_seq_num & 0xff000000) >> 24;
+           for (i=6;i<sizeof(header->iv);i++) {
+               header->iv[i] = 0x0;
+           }
+        }
+
+    }
+    else
+    {
+       header->hdr_ext_type = 0;
+       header->scrambling_control = 0;
     }
     if(BATOM_IS_EOF(cursor)) {
         return BDBG_TRACE_ERROR(BTLV_RESULT_END_OF_DATA);

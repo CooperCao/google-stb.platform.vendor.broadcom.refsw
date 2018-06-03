@@ -62,6 +62,7 @@ static BVC5_P_InternalJob *BVC5_P_CreateInternalJob(
    if (toJob == NULL)
       return NULL;
 
+   BDBG_CASSERT(sizeof(BVC5_P_InternalJob) <= CPU_PAGE_SIZE);
    pJob = (BVC5_P_InternalJob *)BKNI_Malloc(sizeof(BVC5_P_InternalJob));
    if (pJob != NULL)
    {
@@ -90,8 +91,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateNull(
    const BVC5_JobNull      *psJob
 )
 {
-   BVC5_JobNull         *pNullJob = (BVC5_JobNull *)BKNI_Malloc(sizeof(BVC5_JobNull));
+   BVC5_JobNull         *pNullJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobNull) <= CPU_PAGE_SIZE);
+   pNullJob = (BVC5_JobNull *)BKNI_Malloc(sizeof(BVC5_JobNull));
 
    if (pNullJob != NULL)
    {
@@ -112,8 +115,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateBarrier(
    const BVC5_JobBarrier   *psJob
 )
 {
-   BVC5_JobBarrier      *pBarrierJob = (BVC5_JobBarrier *)BKNI_Malloc(sizeof(BVC5_JobBarrier));
+   BVC5_JobBarrier      *pBarrierJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobBarrier) <= CPU_PAGE_SIZE);
+   pBarrierJob = (BVC5_JobBarrier *)BKNI_Malloc(sizeof(BVC5_JobBarrier));
 
    if (pBarrierJob != NULL)
    {
@@ -135,8 +140,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateBin(
    BVC5_P_InternalJob      *pRenderJob
 )
 {
-   BVC5_JobBin          *pBinJob = (BVC5_JobBin *)BKNI_Malloc(sizeof(BVC5_JobBin));
+   BVC5_JobBin          *pBinJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobBin) <= CPU_PAGE_SIZE);
+   pBinJob = (BVC5_JobBin *)BKNI_Malloc(sizeof(BVC5_JobBin));
 
    if (pBinJob != NULL)
    {
@@ -162,8 +169,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
    const BVC5_JobRender    *psJob
 )
 {
-   BVC5_JobRender       *pRenderJob = (BVC5_JobRender *)BKNI_Malloc(sizeof(BVC5_JobRender));
+   BVC5_JobRender       *pRenderJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobRender) <= CPU_PAGE_SIZE);
+   pRenderJob = (BVC5_JobRender *)BKNI_Malloc(sizeof(BVC5_JobRender));
 
    if (pRenderJob != NULL)
    {
@@ -200,7 +209,8 @@ BVC5_P_InternalJob *BVC5_P_JobCreateCompute(
    BVC5_JobCompute *pComputeJobCopy = NULL;
    BVC5_P_InternalJob *pJob = NULL;
 
-   /* Copy compute job./ */
+   /* Copy compute job.*/
+   BDBG_CASSERT(sizeof(BVC5_JobCompute) <= CPU_PAGE_SIZE);
    pComputeJobCopy = BKNI_Malloc(sizeof(BVC5_JobCompute));
    if (!pComputeJobCopy)
       goto fail;
@@ -236,8 +246,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateFenceWait(
    const BVC5_JobFenceWait *psJob
 )
 {
-   BVC5_JobFenceWait    *pWaitJob = (BVC5_JobFenceWait *)BKNI_Malloc(sizeof(BVC5_JobFenceWait));
+   BVC5_JobFenceWait    *pWaitJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobFenceWait) <= CPU_PAGE_SIZE);
+   pWaitJob = (BVC5_JobFenceWait *)BKNI_Malloc(sizeof(BVC5_JobFenceWait));
 
    if (pWaitJob != NULL)
    {
@@ -282,8 +294,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateTFU(
    const BVC5_JobTFU       *psJob
 )
 {
-   BVC5_JobTFU          *psTFUJob = (BVC5_JobTFU *)BKNI_Malloc(sizeof(BVC5_JobTFU));
+   BVC5_JobTFU          *psTFUJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobTFU) <= CPU_PAGE_SIZE);
+   psTFUJob = (BVC5_JobTFU *)BKNI_Malloc(sizeof(BVC5_JobTFU));
 
    if (psTFUJob != NULL)
    {
@@ -304,8 +318,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateTest(
    const BVC5_JobTest      *psJob
 )
 {
-   BVC5_JobTest         *psTestJob = (BVC5_JobTest *)BKNI_Malloc(sizeof(BVC5_JobTest));
+   BVC5_JobTest         *psTestJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobTest) <= CPU_PAGE_SIZE);
+   psTestJob = (BVC5_JobTest *)BKNI_Malloc(sizeof(BVC5_JobTest));
 
    if (psTestJob != NULL)
    {
@@ -326,8 +342,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateUsermode(
    const BVC5_JobUsermode  *psJob
 )
 {
-   BVC5_JobUsermode     *psUsermodeJob = (BVC5_JobUsermode *)BKNI_Malloc(sizeof(BVC5_JobUsermode));
+   BVC5_JobUsermode     *psUsermodeJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobUsermode) <= CPU_PAGE_SIZE);
+   psUsermodeJob = (BVC5_JobUsermode *)BKNI_Malloc(sizeof(BVC5_JobUsermode));
 
    if (psUsermodeJob != NULL)
    {
@@ -348,8 +366,10 @@ BVC5_P_InternalJob *BVC5_P_JobCreateSchedEvent(
    const BVC5_JobSchedJob  *psJob
 )
 {
-   BVC5_JobSchedJob     *psSchedEventJob = (BVC5_JobSchedJob *)BKNI_Malloc(sizeof(BVC5_JobSchedJob));
+   BVC5_JobSchedJob     *psSchedEventJob;
    BVC5_P_InternalJob   *pJob = NULL;
+   BDBG_CASSERT(sizeof(BVC5_JobSchedJob) <= CPU_PAGE_SIZE);
+   psSchedEventJob = (BVC5_JobSchedJob *)BKNI_Malloc(sizeof(BVC5_JobSchedJob));
 
    if (psSchedEventJob != NULL)
    {

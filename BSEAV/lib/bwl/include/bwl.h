@@ -1,41 +1,45 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -283,6 +287,42 @@ typedef struct sScanInfo
     int32_t         lSNR;
 } ScanInfo_t;
 
+typedef struct sChanim
+{
+    // uint8_t ccastats[CCASTATS_V2_MAX];   /**< normalized as 0-255 */
+    int8_t bgnoise;         /* background noise level (in dBm) */
+    uint16_t chanspec;      /* ctrl chanspec of the interface */
+    uint16_t channum;       /* translated channel num */
+    uint32_t bphy_glitchcnt;/* normalized as per second count */
+    uint32_t bphy_badplcp;  /* normalized as per second count */
+    /* lifted congestion_t from vis_struct.h */
+    uint32_t channel; /* Channel number */
+    /* Following 9 counters are CCA stats */
+    uint32_t tx;
+    uint32_t inbss;
+    uint32_t obss;
+    uint32_t nocat;
+    uint32_t nopkt;
+    uint32_t doze;
+    uint32_t txop;
+    uint32_t goodtx;
+    uint32_t badtx;
+    uint32_t glitchcnt;   /* glitch per second count */
+    uint32_t badplcp;     /* bad plcp per second count */
+    uint8_t chan_idle;    /* Idle */
+    uint32_t busy;
+    uint32_t availcap;
+    uint32_t wifi;
+    uint32_t nonwifi;
+    long timestamp;
+} Chanim_t;
+
+typedef struct Chanim_list_t_ {
+    uint32_t length;
+    long timestamp;
+    Chanim_t congest[1];
+} Chanim_list_t;
+
 typedef struct sDptSta
 {
     struct ether_addr mac;
@@ -523,7 +563,7 @@ typedef struct {
 } WiFiCounters_t;
 
 typedef struct {
-    unsigned char* buff;	/* I/Q samples in order*/
+    unsigned char* buff;    /* I/Q samples in order*/
     unsigned int count;
     unsigned int type;
     unsigned int chains;
@@ -886,6 +926,8 @@ int32_t BWL_GetAntennaCount(BWL_Handle hBwl, uint32_t *pulAntenna);
 int32_t BWL_SetAntenna(BWL_Handle hBwl, AntMode_t eAntMode, uint32_t ulAntenna);
 int32_t BWL_GetAntenna(BWL_Handle hBwl, AntMode_t eAntMode, uint32_t *pulAntenna);
 int32_t BWL_GetPM2_rcv_dur(BWL_Handle hBwl, uint32_t *pm2rcvdur);
+int32_t BWL_SetPM2_rcv_dur(BWL_Handle hBwl, uint32_t pm2rcvdur);
+
 int32_t BWL_GetRssiPerAntenna(BWL_Handle  hBwl, RssiPerAntenna_t *pRssiPerAntenna);
 int32_t BWL_Disassoc(BWL_Handle hBwl);
 int32_t BWL_Out(BWL_Handle hBwl);
@@ -902,6 +944,8 @@ int32_t BWL_SetMpcMode(BWL_Handle hBwl, int value);
 int32_t BWL_GetMpcMode(BWL_Handle hBwl, uint32_t *pulMode);
 int32_t BWL_GetTemperature(BWL_Handle hBwl, uint32_t *pTemp);
 int32_t BWL_SetApMode(BWL_Handle hBwl, int value);
+int32_t BWL_GetApMode(BWL_Handle hBwl, int *value);
+
 int32_t BWL_SetAntennaDiversity(BWL_Handle hBwl, int value);
 int32_t BWL_SetTxAntenna(BWL_Handle hBwl, int value);
 int32_t BWL_SetAmpDU(BWL_Handle hBwl, int value);
@@ -920,6 +964,8 @@ int32_t BWL_GetBands(BWL_Handle hBwl, Band_t *peBand);
 int32_t BWL_SetVhtFeatures(BWL_Handle hBwl, int value);
 int32_t BWL_GetVhtFeatures(BWL_Handle hBwl, uint32_t *pulVhtFeatures);
 
+int32_t BWL_GetChanimNum( BWL_Handle hBwl, uint32_t* num);
+int32_t BWL_GetChanimResults( BWL_Handle hBwl, Chanim_list_t **pData);
 
 extern int g_wlc_idx;
 int32_t BWL_IfaceCreate(BWL_Handle hBwl, bool bAp, struct ether_addr *mac, char *pIfaceName, uint32_t ulLength, int index, uint8_t *bsscfgidx);

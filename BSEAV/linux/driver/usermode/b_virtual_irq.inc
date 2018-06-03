@@ -147,7 +147,7 @@ static bool b_virtual_irq_check_linux_managed_upg_irqs(void)
     int linux_irq = 0;
     /* if iica isn't supported by linux, nothing else can be */
     linux_irq = brcmstb_get_l2_irq_id(brcmstb_l2_irq_iica);
-    PINFO("virtual irq: %s (%d)\n", linux_irq <= 0 ? "disabled" : "enabled", linux_irq);
+    BDBG_LOG(("virtual irq: %s (%d)", linux_irq <= 0 ? "disabled" : "enabled", linux_irq));
     return (linux_irq <= 0) ? false : true;
 }
 #else
@@ -163,7 +163,7 @@ static struct b_virtual_irq_state
 
 int b_virtual_irq_open_submodule(void)
 {
-    if (g_brcm_virq_verbose) PINFO("virtual irq open submodule\n");
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq open submodule"));
     return 0;
 }
 
@@ -172,7 +172,7 @@ void b_virtual_irq_close_submodule(void)
     unsigned i = 0;
     struct b_virtual_irq_line_desc * desc;
 
-    if (g_brcm_virq_verbose) PINFO("virtual irq close submodule\n");
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq close submodule"));
 
     for (i = 0; i < sizeof(g_virtual_irq_state.lines)/sizeof(g_virtual_irq_state.lines[0]); i++) {
         desc = &g_virtual_irq_state.lines[i];
@@ -182,7 +182,7 @@ void b_virtual_irq_close_submodule(void)
 
 void b_virtual_irq_init_submodule(void)
 {
-    if (g_brcm_virq_verbose) PINFO("virtual irq init submodule\n");
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq init submodule"));
 
     memset(&g_virtual_irq_state, 0, sizeof(g_virtual_irq_state));
     g_virtual_irq_state.caps.feature_supported = b_virtual_irq_get_feature_support();
@@ -191,7 +191,7 @@ void b_virtual_irq_init_submodule(void)
 
 void b_virtual_irq_uninit_submodule(void)
 {
-    if (g_brcm_virq_verbose) PINFO("virtual irq uninit submodule\n");
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq uninit submodule"));
     b_virtual_irq_close_submodule();
     g_virtual_irq_state.initialized = false;
 }
@@ -260,7 +260,7 @@ int b_virtual_irq_get_linux_irq(b_virtual_irq_line line)
         linux_irq = brcmstb_get_l2_irq_id(l2);
     }
     if (linux_irq <= 0) {
-        PERR("Can't map Linux L1 for %u(%d,%u,'%s')\n", line,linux_irq,l2,b_virtual_irq_get_name(line));
+        BDBG_ERR(("Can't map Linux L1 for %u(%d,%u,'%s')", line,linux_irq,l2,b_virtual_irq_get_name(line)));
         BERR_TRACE(-EINVAL);
     }
 #endif
@@ -285,7 +285,7 @@ void b_virtual_irq_software_l2_isr(b_virtual_irq_line line)
 
     desc = &g_virtual_irq_state.lines[line];
 
-    if (g_brcm_virq_verbose) PINFO("virtual irq software l2 isr: %s\n", b_os_irq_get_name(&desc->base));
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq software l2 isr: %s", b_os_irq_get_name(&desc->base)));
 
     B_VIRTUAL_IRQ_SPIN_LOCK(flags);
     desc->fired = true;
@@ -312,13 +312,13 @@ static void b_virtual_irq_isr(struct b_os_irq_desc * irq, void * context)
 
     if (!desc->disabled)
     {
-        if (g_brcm_virq_verbose) PINFO("virtual irq linux l1 isr line %s linux irq %u\n", b_os_irq_get_name(irq), b_os_irq_get_id(irq));
+        if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq linux l1 isr line %s linux irq %u", b_os_irq_get_name(irq), b_os_irq_get_id(irq)));
         B_VIRTUAL_IRQ_WAKE_L1_LISTENERS();
         b_virtual_irq_inc_l1(desc);
     }
     else
     {
-        PWARN("virtual irq extra linux l1 isr line %s linux irq %u\n", b_os_irq_get_name(irq), b_os_irq_get_id(irq));
+        BDBG_WRN(("virtual irq extra linux l1 isr line %s linux irq %u", b_os_irq_get_name(irq), b_os_irq_get_id(irq)));
     }
 }
 
@@ -338,7 +338,7 @@ void b_virtual_irq_get_status(b_virtual_irq_status * status)
             }
         }
     }
-    if (g_brcm_virq_verbose) PINFO("virtual irq status %#x\n", status->status_word);
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq status %#x", status->status_word));
 }
 
 int b_virtual_irq_clear(b_virtual_irq_line line)
@@ -350,7 +350,7 @@ int b_virtual_irq_clear(b_virtual_irq_line line)
     if (line == b_virtual_irq_line_unused || line >= b_virtual_irq_line_max) { result = -EINVAL; BERR_TRACE(result); goto end; }
     if (!g_virtual_irq_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
     desc = &g_virtual_irq_state.lines[line];
-    if (g_brcm_virq_verbose) PINFO("virtual irq clear %s\n", b_os_irq_get_name(&desc->base));
+    if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq clear %s", b_os_irq_get_name(&desc->base)));
     B_VIRTUAL_IRQ_SPIN_LOCK(flags);
     desc->fired = false;
     B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
@@ -442,7 +442,7 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
         desc = &g_virtual_irq_state.lines[irq_line];
         if (desc->base.acquired) {
             if (desc->group_id != group->l1_shift+1) {
-                PERR("Can't remap irq %u from %u to %u\n", irq_line, desc->group_id, group->l1_shift+1);
+                BDBG_ERR(("Can't remap irq %u from %u to %u", irq_line, desc->group_id, group->l1_shift+1));
                 /* can't remap to another L1 */
                 result = -EINVAL; BERR_TRACE(result); goto end;
             }
@@ -466,18 +466,18 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
             result = b_os_irq_acquire_tagged(&desc->base, "virq make group", __LINE__);
             if (result)
             {
-                PERR("request_irq failed with %d, irq:'%s' linux:%u line:%u\n", result, name, linux_irq , irq_line);
+                BDBG_ERR(("request_irq failed with %d, irq:'%s' linux:%u line:%u", result, name, linux_irq , irq_line));
                 B_VIRTUAL_IRQ_SPIN_LOCK(flags);
                 B_VIRTUAL_IRQ_MASK_L1(group->l1_shift);
                 B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
                 result = -EINVAL; BERR_TRACE(-EINVAL); goto end;
             }
-            if (g_brcm_virq_verbose) PINFO("virtual irq make group l1 %u direct l2 %s linux irq %u\n", group->l1_shift, name, linux_irq);
+            if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq make group l1 %u direct l2 %s linux irq %u", group->l1_shift, name, linux_irq));
         }
         else
         {
             /* indirect virtual l1's still need a group id and unmasked l1 */
-            if (g_brcm_virq_verbose) PINFO("virtual irq make group l1 %u indirect l2 %s\n", group->l1_shift, name);
+            if (g_brcm_virq_verbose) BDBG_LOG(("virtual irq make group l1 %u indirect l2 %s", group->l1_shift, name));
             B_VIRTUAL_IRQ_SPIN_LOCK(flags);
             desc->line = b_virtual_irq_line_max;
             desc->disabled = false; /* indirect L2 must start enabled */
@@ -500,7 +500,7 @@ bool b_virtual_irq_is_os_managed(b_virtual_irq_line line)
         int linux_irq = b_virtual_irq_get_linux_irq(line);
         if (linux_irq > 0) {
             os_managed = b_os_irq_is_os_managed(linux_irq);
-            if (g_brcm_virq_verbose) PINFO("%s +%s\n", os_managed?"linux":"nexus", b_virtual_irq_get_name(line));
+            if (g_brcm_virq_verbose) BDBG_LOG(("%s +%s", os_managed?"linux":"nexus", b_virtual_irq_get_name(line)));
         }
     }
 

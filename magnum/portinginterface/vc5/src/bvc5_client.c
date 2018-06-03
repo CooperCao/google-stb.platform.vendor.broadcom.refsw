@@ -64,8 +64,8 @@ BERR_Code BVC5_P_ClientMapCreate(
 )
 {
    BVC5_ClientMapHandle hClientMap;
-
    BSTD_UNUSED(hVC5);
+   BDBG_CASSERT(sizeof(BVC5_P_ClientMap) <= CPU_PAGE_SIZE);
 
    if (phClientMap == NULL)
       return BERR_INVALID_PARAMETER;
@@ -112,9 +112,11 @@ static BERR_Code BVC5_P_ClientCreate(
    uint32_t           uiClientPID
 )
 {
-   BERR_Code   err = BERR_OUT_OF_SYSTEM_MEMORY;
+   BVC5_ClientHandle hClient;
+   BERR_Code err = BERR_OUT_OF_SYSTEM_MEMORY;
 
-   BVC5_ClientHandle hClient = (BVC5_P_Client *)BKNI_Malloc(sizeof(BVC5_P_Client));
+   BDBG_CASSERT(sizeof(BVC5_P_Client) <= CPU_PAGE_SIZE);
+   hClient = (BVC5_P_Client *)BKNI_Malloc(sizeof(BVC5_P_Client));
 
    *phClient = hClient;
 
@@ -829,6 +831,7 @@ static BVC5_P_JobDependentFence *BVC5_P_AllocJobDependentFence(
    if (psSharedFenceInfo == NULL)
    {
       /* Create a new fence */
+      BDBG_CASSERT(sizeof(BVC5_P_SharedFenceInfo) <= CPU_PAGE_SIZE);
       psFence->psSharedFenceInfo = BKNI_Malloc(sizeof(BVC5_P_SharedFenceInfo));
       if (psFence->psSharedFenceInfo == NULL)
       {

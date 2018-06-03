@@ -207,7 +207,7 @@ BERR_Code BVC5_Open(
    BDBG_ENTER(BVC5_Open);
 
    /* allocate device handle */
-   hVC5 = (BVC5_Handle)BKNI_Malloc(sizeof (BVC5_P_Handle));
+   hVC5 = (BVC5_Handle)BVC5_P_VMalloc(sizeof (BVC5_P_Handle));
    if (hVC5 == NULL)
       return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
 
@@ -479,7 +479,7 @@ BERR_Code BVC5_Close(
    if (hVC5->hModuleMutex != NULL)
       BKNI_DestroyMutex(hVC5->hModuleMutex);
 
-   BKNI_Free(hVC5);
+   BVC5_P_VFree(hVC5);
 
 exit:
    BDBG_LEAVE(BVC5_Close);

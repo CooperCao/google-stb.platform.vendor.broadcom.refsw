@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bstd.h"
@@ -59,7 +63,7 @@ BDBG_MODULE(bmxt_fe);
 #define BMXT_R(reg) (handle->platform.regoffsets[reg] + handle->platform.regbase)
 #define BMXT_STEP(res) (handle->platform.stepsize[res])
 #define BMXT_EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
-#define BMXT_HAS_PID_TABLE() (handle->settings.chip!=BMXT_Chip_e45302)
+#define BMXT_HAS_PID_TABLE() (handle->settings.chip!=BMXT_Chip_e45402)
 
 #define BMXT_IS_3128_FAMILY() ((handle->settings.chip==BMXT_Chip_e3128) || (handle->settings.chip==BMXT_Chip_e3383) || (handle->settings.chip==BMXT_Chip_e4528) || (handle->settings.chip==BMXT_Chip_e4517) || (handle->settings.chip==BMXT_Chip_e3472))
 #define BMXT_IS_4538_FAMILY() ((handle->settings.chip==BMXT_Chip_e4538) || (handle->settings.chip==BMXT_Chip_e3384) || (handle->settings.chip==BMXT_Chip_e4548) || (handle->settings.chip==BMXT_Chip_e7364) || (handle->settings.chip==BMXT_Chip_e7366) || (handle->settings.chip==BMXT_Chip_e7145) || (handle->settings.chip==BMXT_Chip_e45216))
@@ -70,7 +74,7 @@ BDBG_MODULE(bmxt_fe);
 
 #define BMXT_P_LEGACY_PARSER_BAND_ID_MAX 16 /* on pre-4538, MINI_PID_PARSER?_TO_PARSER?_BAND_ID.PARSER?_BAND_ID is a 4-bit number */
 
-const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45302", "45308", "45316", "7145", "7366", "7364"};
+const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "45316", "45402", "7145", "7366", "7364"};
 const char* const BMXT_PLATFORM_TYPE_STR[] = {"HAB", "RPC", "REG"};
 
 #define VIRTUAL_HANDLE_REG_OFFSET 0x80000000 /* hard-coded for now */
@@ -538,6 +542,11 @@ static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum,
     uint32_t reg, addr;
     if (!BMXT_HAS_PID_TABLE()) {
         *mtsifTxNum = 0;
+        goto done;
+    }
+    if (handle->settings.enablePidFiltering) {
+        *mtsifTxNum = handle->mtsifTxSel[parserNum];
+        goto done;
     }
 
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
@@ -552,14 +561,20 @@ static BERR_Code BMXT_P_GetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum,
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
     *mtsifTxNum = reg;
+done:
     return BERR_SUCCESS;
 }
 
 static BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsigned mtsifTxNum)
 {
     uint32_t reg, addr;
+
     if (!BMXT_HAS_PID_TABLE()) {
-        return BERR_SUCCESS;
+        goto done;
+    }
+    handle->mtsifTxSel[parserNum] = mtsifTxNum;
+    if (handle->settings.enablePidFiltering) {
+        goto done;
     }
 
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*parserNum);
@@ -572,6 +587,7 @@ static BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum,
     }
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(mtsifTxNum));
     BMXT_RegWrite32(handle, addr, reg);
+done:
     return BERR_SUCCESS;
 }
 
@@ -699,13 +715,11 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
     /* 4538 and later */
     if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG)
     {
-        if (handle->settings.enablePidFiltering==false) {
-            /* for MTSIF_TX-level mapping, query PID_TABLE to get correct MTSIF_TX first, then query BAND_ID */
-            rc = BMXT_P_GetMtsifTxSelect(handle, parserNum, &pConfig->mtsifTxSelect);
-            if (rc) {
-                BDBG_ERR(("GetParserConfig%u: BMXT_P_GetMtsifTxSelect failure", parserNum));
-                goto done;
-            }
+        /* for MTSIF_TX-level mapping, query PID_TABLE to get correct MTSIF_TX first, then query BAND_ID */
+        rc = BMXT_P_GetMtsifTxSelect(handle, parserNum, &pConfig->mtsifTxSelect);
+        if (rc) {
+            BDBG_ERR(("GetParserConfig%u: BMXT_P_GetMtsifTxSelect failure", parserNum));
+            goto done;
         }
         pConfig->virtualParserNum = BMXT_P_GetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum);
     }
@@ -825,12 +839,10 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
     /* 4538 and later */
     if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG)
     {
-        if (handle->settings.enablePidFiltering==false) {
-            rc = BMXT_P_SetMtsifTxSelect(handle, parserNum, pConfig->mtsifTxSelect);
-            if (rc) {
-                BDBG_ERR(("SetParserConfig%u: BMXT_P_SetMtsifTxSelect failure", parserNum));
-                goto done;
-            }
+        rc = BMXT_P_SetMtsifTxSelect(handle, parserNum, pConfig->mtsifTxSelect);
+        if (rc) {
+            BDBG_ERR(("SetParserConfig%u: BMXT_P_SetMtsifTxSelect failure", parserNum));
+            goto done;
         }
 
         BMXT_P_SetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum, pConfig->virtualParserNum);

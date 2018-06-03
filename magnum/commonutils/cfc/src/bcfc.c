@@ -1044,6 +1044,8 @@ bool BCFC_UpdateCfg_isr
     bool bDone = false;
     bool bForceNotBypass;
     bool bRamLutCfgDirty = false;
+    bool bHdrOrBt2020 = (!BCFC_IS_SDR(pColorSpaceIn->eColorTF)  || BCFC_IS_BT2020(pColorSpaceIn->eColorimetry) ||
+                         !BCFC_IS_SDR(pColorSpaceOut->eColorTF) || BCFC_IS_BT2020(pColorSpaceOut->eColorimetry));
 
     /* check for GFD and DVI_CSC: CL input with SDR/HDR, CL display with SDR/HDR ??? */
 
@@ -1283,7 +1285,7 @@ bool BCFC_UpdateCfg_isr
             }
             else
           #endif /* #if BCHP_CMP_0_V0_NL_CSC_CTRL */
-            if (pCfc->stCapability.stBits.bMb)
+            if (pCfc->stCapability.stBits.bMb && (bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch))
             {
                 /* note: if pCfc->stCapability.stBits.bMb=true, we should use pColorSpaceExtIn->stM3x4 for Ma and
                  * pColorSpaceExtOut->stM3x4 for Mc directly
@@ -1294,7 +1296,7 @@ bool BCFC_UpdateCfg_isr
                     /* must be display cfc */
                     pCfc->stMb = s_BT2020NCL_RGB_to_RYB;
                 }
-                    else if ((pColorSpaceIn->eColorimetry == pColorSpaceOut->eColorimetry) && (BCFC_ColorFormat_eYCbCr_CL != pColorSpaceIn->eColorFmt))
+                else if ((pColorSpaceIn->eColorimetry == pColorSpaceOut->eColorimetry) && (BCFC_ColorFormat_eYCbCr_CL != pColorSpaceIn->eColorFmt))
                 {
                     pCfc->stMb = s_Csc3x3Identity;
                 }
@@ -1348,6 +1350,21 @@ bool BCFC_UpdateCfg_isr
 
                 bDone = true;
             }
+            else if (pCfc->stCapability.stBits.bMb) /* && !(bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch) */
+            {
+                pCfc->pMa = &(s_Csc3x4Identity);
+                pCfc->stMb = s_Csc3x3Identity;
+                /* C = Cout * Ain */
+                BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stM3x4.m[0][0]), 4, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pCfc->stMc.m[0][0]));
+              #if (BCFC_VERSION >= BCFC_VER_2) /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
+                pColorSpaceExtIn->stCfg.stBits.SelTF = BCFC_NL2L_BYPASS;
+                pColorSpaceExtOut->stCfg.stBits.SelTF = BCFC_L2NL_BYPASS;
+                pCfc->stLRangeAdj.pTable = &s_LRangeAdj_Identity;
+                bRamLutCfgDirty = true; /* pCfc->pTfConvRamLuts will be *_Tbl[eBt1886][eBt1886] */
+              #endif
+                bDone = true;
+            }
+
             /* else bDone is false --> using Mc only */
           #endif /* #if (BCFC_VERSION >= BCFC_VER_1) */
         }
@@ -1363,8 +1380,15 @@ bool BCFC_UpdateCfg_isr
             }
             else
             {
-                /* B = Bout  * Bin */
-                BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stMb.m[0][0]), 3, &(pColorSpaceExtIn->stMb.m[0][0]), 3, &(pCfc->stMb.m[0][0]));
+                if (bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch)
+                {
+                    /* B = Bout  * Bin */
+                    BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stMb.m[0][0]), 3, &(pColorSpaceExtIn->stMb.m[0][0]), 3, &(pCfc->stMb.m[0][0]));
+                }
+                else
+                {
+                    pCfc->stMb = s_Csc3x3Identity;
+                }
 
                 if ((pColorSpaceIn->eColorimetry != BCFC_Colorimetry_eBt2020) && (pColorSpaceOut->eColorimetry == BCFC_Colorimetry_eBt2020))
                 {
@@ -1392,11 +1416,18 @@ bool BCFC_UpdateCfg_isr
                 {
                     /* note: this HW can not even mimic BT2020-CL input, nor output, the following code might lead to identity matrix, it is ok
                      */
-
-                    /* Tmp = B * Ain*/
-                    BCFC_Csc_Mult_isrsafe(&(pCfc->stMb.m[0][0]), 3, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pTmp3x4->m[0][0]));
-                    /* C = Cout * Tmp */
-                    BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stM3x4.m[0][0]), 4, &(pTmp3x4->m[0][0]), 4, &(pCfc->stMc.m[0][0]));
+                    if (bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch)
+                    {
+                        /* Tmp = B * Ain*/
+                        BCFC_Csc_Mult_isrsafe(&(pCfc->stMb.m[0][0]), 3, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pTmp3x4->m[0][0]));
+                        /* C = Cout * Tmp */
+                        BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stM3x4.m[0][0]), 4, &(pTmp3x4->m[0][0]), 4, &(pCfc->stMc.m[0][0]));
+                    }
+                    else
+                    {
+                        /* C = Cout * Ain */
+                        BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stM3x4.m[0][0]), 4, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pCfc->stMc.m[0][0]));
+                    }
 
                     /* refer to BVDC_P_Cfc_UpdateOutColorSpace_isr, if input eColorimetry != output eColorimetry, this cfc must be in cmp
                      * so the output is always limited range YCbCr */

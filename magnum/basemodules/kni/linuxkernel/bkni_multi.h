@@ -58,13 +58,13 @@ void BKNI_DestroyMutex_tagged(BKNI_MutexHandle mutex, const char *file, int line
 #define BKNI_TryAcquireMutex(MUTEX) BKNI_TryAcquireMutex_tagged(MUTEX,__FILE__,__LINE__)
 #define BKNI_ReleaseMutex(MUTEX) BKNI_ReleaseMutex_tagged(MUTEX,__FILE__,__LINE__)
 
-BERR_Code BKNI_AcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned line);
+void BKNI_AcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned line);
 BERR_Code BKNI_TryAcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned line);
 void BKNI_ReleaseMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned line);
 #else
 BERR_Code BKNI_CreateMutex(BKNI_MutexHandle *mutex);
 void BKNI_DestroyMutex(BKNI_MutexHandle mutex);
-BERR_Code BKNI_AcquireMutex(BKNI_MutexHandle mutex);
+void BKNI_AcquireMutex(BKNI_MutexHandle mutex);
 BERR_Code BKNI_TryAcquireMutex(BKNI_MutexHandle mutex);
 void BKNI_ReleaseMutex(BKNI_MutexHandle mutex);
 #endif

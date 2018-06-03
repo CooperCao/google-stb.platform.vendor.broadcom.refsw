@@ -787,7 +787,7 @@ void BXPT_Close(
     BXPT_Handle hXpt        /* [in] Handle for the Transport to be closed. */
     )
 {
-    unsigned int Index, i;
+    unsigned int Index;
 
     BERR_Code Res;
 
@@ -867,11 +867,16 @@ void BXPT_Close(
     /* Reset the core, thus stopping any unwanted interrupts. */
     BXPT_P_ResetTransport( hXpt->hRegister );
 
-    for (i=0; i<BXPT_P_Submodule_eMax; i++) {
-        if (hXpt->power.refcnt[i]>0) {
-            BDBG_WRN(("Submodule %s: left powered on (refcnt %u)", BXPT_P_SUBMODULE_STRING[i], hXpt->power.refcnt[i]));
+#if BXPT_P_ENABLE_SUBMODULE_CLOCKGATING
+{
+    extern const char* const BXPT_P_SUBMODULE_STRING[];
+    for (Index=0; Index<BXPT_P_Submodule_eMax; Index++) {
+        if (hXpt->power.refcnt[Index]>0) {
+            BDBG_WRN(("Submodule %s: left powered on (refcnt %u)", BXPT_P_SUBMODULE_STRING[Index], hXpt->power.refcnt[Index]));
         }
     }
+}
+#endif
     BXPT_P_PMUMemPwr_Control(hXpt->hRegister, false, NULL);
 
 #ifdef BCHP_PWR_RESOURCE_XPT

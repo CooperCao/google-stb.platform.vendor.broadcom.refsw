@@ -95,7 +95,7 @@ void RamFS::init() {
 
 IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool initRamFS) {
     SpinLocker locker(&mountLock);
-
+    int err=0;
     for (int i=0; i<activeMounts.numElements(); i++) {
         if (activeMounts[i].va == vaStart)
             return activeMounts[i].mount;
@@ -148,7 +148,11 @@ IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool ini
                 int perms = MAKE_PERMS(ownerBits, groupBits, othersBits);
 
                 nextDir = RamFS::Directory::create(hdr->uid, hdr->gid, currDir, perms);
-                currDir->addDir(dirName, nextDir);
+                err = currDir->addDir(dirName, nextDir);
+                if(err != 0) {
+                    printf("Unable to add dir err =%d\n",err);
+                    return nullptr;
+                }
             }
 
             currDir = nextDir;
@@ -162,7 +166,11 @@ IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool ini
         int perms = MAKE_PERMS(ownerBits, groupBits, othersBits);
 
         IFile *file = RamFS::File::create(hdr->uid, hdr->gid, perms); // fileStart, fileSize, perms);
-        currDir->addFile((char *)currPos, file);
+        err = currDir->addFile((char *)currPos, file);
+        if(err != 0) {
+            printf("Unable to add file err =%d\n",err);
+            return nullptr;
+        }
         bytesWritten = file->write(fileStart, fileSize, 0);
         if(bytesWritten!=fileSize) {
             RamFS::Directory::destroy(root);

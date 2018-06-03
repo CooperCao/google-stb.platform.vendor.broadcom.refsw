@@ -121,7 +121,7 @@ typedef struct t_bcm_linux_mmap_access
 {
     unsigned pid; /* process id of client */
     struct {
-        unsigned offset; /* set all to zero to revoke access */
+        uint64_t offset; /* set all to zero to revoke access */
         unsigned size;
     } heap[BCM_MAX_HEAPS];
 } t_bcm_linux_mmap_access;

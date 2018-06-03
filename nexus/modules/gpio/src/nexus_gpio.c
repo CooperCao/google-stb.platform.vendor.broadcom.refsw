@@ -366,6 +366,7 @@ NEXUS_GpioHandle NEXUS_Gpio_OpenAux(unsigned typeAndPin, const NEXUS_GpioSetting
         if (rc) {rc=BERR_TRACE(rc); goto err_gpio;}
     }
     else {
+        NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eMax, &gpio->settings);
         rc = NEXUS_Gpio_P_ReadSettings(gpio);
         if (rc) { rc = BERR_TRACE(rc); goto err_gpio; }
     }

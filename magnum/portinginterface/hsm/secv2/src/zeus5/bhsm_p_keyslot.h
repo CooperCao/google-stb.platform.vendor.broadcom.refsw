@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* This file is autogenerated, do not edit. */
@@ -53,6 +56,7 @@ extern "C"
 typedef struct BHSM_P_KeySlotInit
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint8_t    keySlotNumberIvPerSlot128;
         uint8_t    keySlotNumberIvPerBlock128;
@@ -61,6 +65,7 @@ typedef struct BHSM_P_KeySlotInit
     }in;
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint8_t    keySlotNumberIvPerSlot128;
         uint8_t    keySlotNumberIvPerBlock128;
@@ -71,30 +76,40 @@ typedef struct BHSM_P_KeySlotInit
 
 typedef struct BHSM_P_KeySlotQuery
 {
+    /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint8_t    keySlotNumberIvPerSlot128;
         uint8_t    keySlotNumberIvPerBlock128;
         uint8_t    keySlotNumberIvPerBlock256;
         uint8_t    keySlotNumberIvPerEntry256;
         uint8_t    keySlotOwnership[228];
+        unsigned   keySlotOwnershipSize_inPlace; /* size in bytes */
+        uint8_t    *pKeySlotOwnership_inPlace;
     }out;
 } BHSM_P_KeySlotQuery;
 
 typedef struct BHSM_P_KeySlotSetOwnership
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint8_t    keySlotType;
         uint8_t    keySlotNumber;
         uint8_t    setKtsOwnership;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotSetOwnership;
 
 typedef struct BHSM_P_KeySlotInvalidate
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint8_t    blockType;
         uint8_t    entryType;
@@ -103,11 +118,15 @@ typedef struct BHSM_P_KeySlotInvalidate
         uint8_t    sc01ModeWordMapping;
         uint8_t    invalidateMethod;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotInvalidate;
 
 typedef struct BHSM_P_KeySlotPidAdd
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint16_t    pidChanStart;
         uint16_t    pidChanEnd;
@@ -119,22 +138,32 @@ typedef struct BHSM_P_KeySlotPidAdd
         uint8_t    sPidUsePointerB;
         uint8_t    destinationPipeSel;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotPidAdd;
 
 typedef struct BHSM_P_KeySlotPidRemove
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint16_t    pidChanStart;
         uint16_t    pidChanEnd;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotPidRemove;
 
 typedef struct BHSM_P_KeySlotClearKeySet
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
-        uint32_t    keyData[8];
+        uint32_t    keyData[8]; /* use this array or the following size and pointer. */
+        unsigned   keyDataSize_inPlace; /* size in bytes. */
+        uint8_t    *pKeyData_inPlace;
         uint8_t    blockType;
         uint8_t    entryType;
         uint8_t    keySlotType;
@@ -143,32 +172,49 @@ typedef struct BHSM_P_KeySlotClearKeySet
         uint8_t    gPipeSc01EntryType;
         uint8_t    rPipeSc01EntryType;
         uint8_t    keyMode;
-        uint32_t    modeWords[4];
+        uint32_t    modeWords[4]; /* use this array or the following size and pointer. */
+        unsigned   modeWordsSize_inPlace; /* size in bytes. */
+        uint8_t    *pModeWords_inPlace;
         uint16_t    extKeyPtr;
         uint16_t    extIvPtr;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotClearKeySet;
 
 typedef struct BHSM_P_KeySlotClearIvSet
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
-        uint32_t    iv[4];
+        uint32_t    iv[4]; /* use this array or the following size and pointer. */
+        unsigned   ivSize_inPlace; /* size in bytes. */
+        uint8_t    *pIv_inPlace;
         uint8_t    blockType;
         uint8_t    entryType;
         uint8_t    keySlotType;
         uint8_t    keySlotNumber;
         uint8_t    ivType;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotClearIvSet;
 
 typedef struct BHSM_P_KeySlotMulti2SysKeySet
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
-        uint32_t    systemKeys[8];
+        uint32_t    systemKeys[8]; /* use this array or the following size and pointer. */
+        unsigned   systemKeysSize_inPlace; /* size in bytes. */
+        uint8_t    *pSystemKeys_inPlace;
         uint8_t    whichSysKey;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_KeySlotMulti2SysKeySet;
 BERR_Code BHSM_P_KeySlot_Init( BHSM_Handle hHsm, BHSM_P_KeySlotInit *pParam );
 BERR_Code BHSM_P_KeySlot_Query( BHSM_Handle hHsm, BHSM_P_KeySlotQuery *pParam );

@@ -1,6 +1,6 @@
 /******************************************************************************
 * Copyright (C) 2018 Broadcom.
-* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to
@@ -86,7 +86,6 @@
 #endif
 
 /* define any of the following to limit features in the SAT PI:
-   BSAT_EXCLUDE_AFEC
    BSAT_EXCLUDE_TFEC
    BSAT_EXCLUDE_MI2C
    BSAT_EXCLUDE_SPUR_CANCELLER
@@ -344,7 +343,6 @@ typedef struct BSAT_g1_P_ChannelHandle
    BSAT_AcqState        acqState;              /* acquisition state */
    BSAT_AcqType         acqType;               /* type of acquisition to perform */
    BSAT_Operation       operation;             /* type of acquisition performed */
-#ifndef BSAT_EXCLUDE_AFEC
    BINT_CallbackHandle  hAfecLockCb;           /* callback handle for AFEC lock interrupt */
    BINT_CallbackHandle  hAfecNotLockCb;        /* callback handle for AFEC not lock interrupt */
    BINT_CallbackHandle  hAfecMpegLockCb;       /* callback handle for AFEC MPEG lock interrupt */
@@ -354,7 +352,6 @@ typedef struct BSAT_g1_P_ChannelHandle
    uint8_t              lutMode;
 #else
    bool                 bAfecFlushFailed;
-#endif
 #endif
 #ifndef BSAT_EXCLUDE_TFEC
    BINT_CallbackHandle  hTfecLockCb;           /* callback handle for TFEC lock interrupt */
@@ -425,9 +422,7 @@ BERR_Code BSAT_g1_P_GetBertSettings(BSAT_ChannelHandle h, BSAT_BertSettings *pSe
 BERR_Code BSAT_g1_P_GetBertStatus(BSAT_ChannelHandle h, BSAT_BertStatus *pStatus);
 BERR_Code BSAT_g1_P_SetSearchRange(BSAT_ChannelHandle h, uint32_t searchRange);
 BERR_Code BSAT_g1_P_GetSearchRange(BSAT_ChannelHandle h, uint32_t *pSearchRange);
-#ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_SetAmcScramblingSeq(BSAT_ChannelHandle h, BSAT_AmcScramblingSeq *pSeq);
-#endif
 BERR_Code BSAT_g1_P_SetNetworkSpec(BSAT_Handle h, BSAT_NetworkSpec networkSpec);
 BERR_Code BSAT_g1_P_GetNetworkSpec_isrsafe(BSAT_Handle h, BSAT_NetworkSpec *pNetworkSpec);
 BERR_Code BSAT_g1_P_SetOutputTransportSettings(BSAT_ChannelHandle h, BSAT_OutputTransportSettings *pSettings);
@@ -461,11 +456,8 @@ BERR_Code BSAT_g1_P_GetStreamList(BSAT_ChannelHandle h, int bufsize, int *pNumSt
 BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT_StreamStatus *pStatus);
 BERR_Code BSAT_g1_P_ScanSpectrum(BSAT_ChannelHandle h, BSAT_ScanSpectrumSettings *pSettings);
 BERR_Code BSAT_g1_P_GetSpectrumStatus(BSAT_ChannelHandle h, BSAT_SpectrumStatus *pStatus, uint8_t *pData);
-
-#ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_GetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings);
 BERR_Code BSAT_g1_P_SetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings);
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
 BERR_Code BSAT_g1_P_GetTurboAcqSettings(BSAT_ChannelHandle h, BSAT_TurboAcqSettings *pSettings);
 BERR_Code BSAT_g1_P_SetTurboAcqSettings(BSAT_ChannelHandle h, BSAT_TurboAcqSettings *pSettings);
@@ -494,7 +486,6 @@ BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_SdsPowerDown(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus);
 BERR_Code BSAT_g1_P_ValidateAcqParams(BSAT_ChannelHandle h, BSAT_AcqSettings *pParams);
-#ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h);
 bool BSAT_g1_P_IsAfecOn_isrsafe(BSAT_ChannelHandle h);
@@ -502,7 +493,6 @@ BERR_Code BSAT_g1_P_GetAfecClock_isrsafe(BSAT_ChannelHandle h, uint32_t *pFreq);
 #ifndef BSAT_HAS_DVBS2X
 BSAT_ChannelHandle BSAT_g1_P_AfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h);
 #endif /* ifndef BSAT_HAS_DVBS2X */
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
 BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h);
@@ -613,7 +603,6 @@ BERR_Code BSAT_g1_P_TfecReacquire_isr(BSAT_ChannelHandle h);
 #endif
 
 /* functions in bsat_g1_priv_afec.c */
-#ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_AfecAcquire_isr(BSAT_ChannelHandle h);
 bool BSAT_g1_P_AfecIsValidMode_isr(BSAT_ChannelHandle);
 bool BSAT_g1_P_AfecIsPilot_isr(BSAT_ChannelHandle h);
@@ -639,10 +628,13 @@ bool BSAT_g1_P_AfecIsMpegLocked_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_GetStreamRegStat_isrsafe(BSAT_ChannelHandle h, int idx, uint32_t *pStat);
 BERR_Code BSAT_g1_P_AfecSetEqsftctl_isrsafe(BSAT_ChannelHandle h);
 void BSAT_g1_P_AfecUpdateStreamIdsForMpegCounters_isrsafe(BSAT_ChannelHandle h);
+BERR_Code BSAT_g1_P_AfecScanModeEqAdjust_isr(BSAT_ChannelHandle h);
 #endif
 #ifndef BSAT_HAS_DVBS2X
 bool BSAT_g1_P_AfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h);
 #endif
+#if defined(BSAT_HAS_DVBS2X)
+const uint8_t* BSAT_g1_P_AfecGetPdLut_isr(uint8_t lutMode);
 #endif
 
 /* functions in bsat_g1_priv_timer.c */
@@ -706,8 +698,5 @@ BERR_Code BSAT_g1_P_FreezeChanAgc_isr(BSAT_ChannelHandle h, bool bFreeze);
 void BSAT_g1_P_LoadAciFilterCoeff_isr(BSAT_ChannelHandle h, const int16_t *pCoeff);
 bool BSAT_g1_P_IsChannelizerOn(BSAT_ChannelHandle h);
 
-#if (!defined(BSAT_EXCLUDE_AFEC) && defined(BSAT_HAS_DVBS2X))
-const uint8_t* BSAT_g1_P_AfecGetPdLut_isr(uint8_t lutMode);
-#endif
 
 #endif /* _BSAT_7366_PRIV_H_ */

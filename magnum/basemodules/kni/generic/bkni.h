@@ -571,12 +571,8 @@ Description:
     any delay.
 
     BKNI_Sleep cannot be called from an interrupt context. Use BKNI_Delay instead.
-
-Returns:
-    BERR_SUCCESS - The system slept for at least the specified number of milliseconds.
-    BERR_OS_ERROR - The sleep was interrupted before the specified time.
 ****************************************************************************/
-BERR_Code BKNI_Sleep(
+void BKNI_Sleep(
     unsigned int millisec   /* minimum number of milliseconds to sleep */
     );
 

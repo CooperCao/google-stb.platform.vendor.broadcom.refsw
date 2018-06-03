@@ -83,6 +83,18 @@ BERR_Code KM_Tag_CreateContextFromTagValueSet(uint8_t *data_block, KM_Tag_Contex
 
 /***************************************************************************
 Summary:
+Create a context from an Android compatible serialized AuthorizationSet
+
+Returns:
+Context handle, which must be deleted. Returns error or a new context handle.
+
+See Also:
+KM_Tag_DeleteContext()
+***************************************************************************/
+BERR_Code KM_Tag_CreateContextFromAndroidBlob(uint8_t *buf_ptr, uint8_t *end, KM_Tag_ContextHandle *ret_context);
+
+/***************************************************************************
+Summary:
 Duplicate the whole tag context
 
 Returns:
@@ -371,6 +383,17 @@ See Also:
 KM_Tag_Serialize()
 ***************************************************************************/
 BERR_Code KM_Tag_SerializeAsTagValueSet(KM_Tag_ContextHandle handle, uint8_t *buffer, uint32_t *buffer_size);
+
+/***************************************************************************
+Summary:
+Serialize a set of data in a context to a blob, compatible with the Android
+AuthorizationSet serialized data. If buffer passed in is NULL, the buffer_size
+will be set to the buffer size required to store the Android AuthorizationSet.
+
+See Also:
+KM_Tag_CreateContextFromAndroidBlob()
+***************************************************************************/
+BERR_Code KM_Tag_SerializeToAndroidBlob(KM_Tag_ContextHandle handle, uint8_t *buffer, uint32_t *buffer_size);
 
 /***************************************************************************
 Summary:

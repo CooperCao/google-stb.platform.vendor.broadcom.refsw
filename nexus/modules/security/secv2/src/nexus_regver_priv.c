@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "nexus_security_module.h"
@@ -172,6 +175,7 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityReg
         _InitialiseRegion( NEXUS_SecurityRegverRegionID_eSid0,          OTP_ENUM_SID,      pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_ePictureDecoder] );
         _InitialiseRegion( NEXUS_SecurityRegverRegionID_eScpuFsbl,      OTP_ENUM_SAGE_FSBL, false );
        #else
+        _InitialiseRegion( NEXUS_SecurityRegverRegionID_eVDEC1_IL2A,    OTP_ENUM_VIDEO,    pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
         _InitialiseRegion( NEXUS_SecurityRegverRegionID_eScpuFsbl,      OTP_ENUM_INVALID  , true ); /* enforced on Zeus5. */
        #endif
 
@@ -485,43 +489,44 @@ bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverReg
 
 
 
-NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfoQuery  *pRegionQuery )
+NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfoQuery *pRegionQuery )
 {
-    BSTD_UNUSED( pRegionQuery );
-#if 0
-    BHSM_Handle hHsm;
-    BERR_Code rc;
-    uint32_t index = 0;
-    BHSM_VerifcationStatus_t status;
+    BERR_Code rc = BERR_UNKNOWN;
+    BHSM_Handle hHsm = NULL;
+    unsigned index = 0;
+    BHSM_RvRegionStatusAll regionStatus;
 
-    BDBG_ENTER( NEXUS_Security_RegionQueryInformation_priv );
-    NEXUS_ASSERT_MODULE();
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_ENABLED == BHSM_RV_REGION_STATUS_ENABLED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_AUTH_ENFORCED == BHSM_RV_REGION_STATUS_AUTH_ENFORCED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_SAGE_OWNED == BHSM_RV_REGION_STATUS_SAGE_OWNED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS == BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_LIVE_MERGE_FAILED == BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_LIVE_MERGE_PASS == BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_FAST_CHECK_STARTED == BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_FAST_CHECK_FINISHED == BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_FAST_CHECK_FAILED == BHSM_RV_REGION_STATUS_FAST_CHECK_FAILED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_BG_CHECK_ENABLED == BHSM_RV_REGION_STATUS_BG_CHECK_ENABLED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_BG_CHECK_STARTED == BHSM_RV_REGION_STATUS_BG_CHECK_STARTED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_BG_CHECK_FINISHED == BHSM_RV_REGION_STATUS_BG_CHECK_FINISHED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_BG_CHECK_FAILED == BHSM_RV_REGION_STATUS_BG_CHECK_FAILED );
+   #if (BHSM_ZEUS_VER_MAJOR <5)
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_REGION_DEFINED == BHSM_RV_REGION_STATUS_REGION_DEFINED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_REGION_VERIFIED == BHSM_RV_REGION_STATUS_REGION_VERIFIED );
+    BDBG_CASSERT( NEXUS_RV_REGION_STATUS_FAST_CHECK_PADDING_FAILED == BHSM_RV_REGION_STATUS_FAST_CHECK_PADDING_FAILED );
+   #endif
+    BDBG_CASSERT( BHSM_RegionId_eMax == NEXUS_REGVER_MAX_REGIONS );
 
-    if( !pRegionQuery ) {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
+    NEXUS_Security_GetHsm_priv( &hHsm );
+    if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
-    NEXUS_Security_GetHsm_priv (&hHsm);
-    if( !hHsm ){ return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
+    rc = BHSM_RvRegion_QueryAll( hHsm, &regionStatus );
+    if( rc != NEXUS_SUCCESS ) {  return BERR_TRACE( rc ); }
 
-    BKNI_Memset( &status, 0, sizeof(status) );
-
-    if( ( rc = BHSM_RegionVerification_QueryStatus( hHsm,  &status ) ) != BERR_SUCCESS )
+    for( index = 0; index < NEXUS_REGVER_MAX_REGIONS; index++ )
     {
-        return BERR_TRACE( rc );
+        pRegionQuery->regionStatus[index] = regionStatus.region[index].status;
     }
 
-    BDBG_MSG(("[%s] Query Complete", BSTD_FUNCTION ));
-
-    BDBG_CASSERT( MAX_REGION_NUMBER == NEXUS_REGVER_MAX_REGIONS );
-
-    for (index = 0; index < NEXUS_REGVER_MAX_REGIONS; index++)
-    {
-        pRegionQuery->regionStatus[index] = status.region[index];
-    }
-
-    BDBG_LEAVE( NEXUS_Security_RegionQueryInformation_priv );
-#endif
     return NEXUS_SUCCESS;
 }
 
@@ -835,6 +840,11 @@ static NEXUS_Error _LoadDefaultCertificates( void )
 
     #ifdef SIGNATURE_REGION_0x1F
     rc = _LoadCertificate( 0x1F, signatureRegion_0x1F );
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
+    #endif
+
+    #ifdef SIGNATURE_REGION_0x23
+    rc = _LoadCertificate( 0x23, signatureRegion_0x23 );
     if( rc != NEXUS_SUCCESS ) { return BERR_TRACE( rc ); }
     #endif
 

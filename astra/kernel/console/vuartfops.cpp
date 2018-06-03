@@ -111,14 +111,16 @@ int VuartFops::init(bool isVuartChosen) {
     isVuartEnabled = true;
     return 0;
 ERR:
-    if (txBuf) {
-        TzIoc::TzIocMem::free(pClient, txBuf);
-        txBuf = 0;
-    }
+    if(pClient) {
+        if (txBuf) {
+            TzIoc::TzIocMem::free(pClient, txBuf);
+            txBuf = 0;
+        }
 
-    if (rxBuf) {
-        TzIoc::TzIocMem::free(pClient, rxBuf);
-        rxBuf = 0;
+        if (rxBuf) {
+            TzIoc::TzIocMem::free(pClient, rxBuf);
+            rxBuf = 0;
+        }
     }
     return -EFAULT;
 }

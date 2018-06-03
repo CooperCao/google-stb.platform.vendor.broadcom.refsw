@@ -33,6 +33,7 @@ public:
    {
       for (unsigned i = 0; i < swapbuffers; i++)
          m_freeQ.Push(NULL);
+      m_maxSwapBuffers = swapbuffers;
       return true;
    }
 
@@ -76,6 +77,11 @@ public:
       return m_secure;
    }
 
+   unsigned GetMaxSwapBuffers() const
+   {
+      return m_maxSwapBuffers;
+   }
+
 private:
    BEGL_WindowHandle m_windowHandle;
    NxWindowInfo m_info;
@@ -86,6 +92,8 @@ private:
    bool m_secure;
 
    std::unique_ptr<NxWorker> m_worker;
+
+   unsigned m_maxSwapBuffers;
 };
 
 }

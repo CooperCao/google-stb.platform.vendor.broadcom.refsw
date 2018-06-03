@@ -1542,6 +1542,20 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 
 			coreSel = phy_ac_sample_collect_core_sel(pi, coreSel);
 
+#if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
+			if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				uint16 crosscoresel_val;
+				/* 7271 */
+				if (coreSel) {
+					crosscoresel_val = 0xFFFF;
+				} else {
+					crosscoresel_val = 0x0000;
+				}
+				WRITE_PHYREG(pi, data_collect_crosscoresel0, crosscoresel_val);
+				WRITE_PHYREG(pi, data_collect_crosscoresel1, crosscoresel_val);
+			}
+#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
+
 			MOD_PHYREG(pi, AdcDataCollect, rxCoreSel, coreSel);
 			MOD_PHYREG(pi, AdcDataCollect, rxSingleCoreMode, 1);
 
@@ -2380,8 +2394,8 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 	 */
 	if (CHIPID(pi->sh->chip) == BCM4345_CHIP_ID)
 		W_REG(pi->sh->osh, &pi->regs->maccontrol, mac_ctl);
-#if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_4))
-	if (ACMAJORREV_4(pi->pubpi->phy_rev) &&
+#if !defined(PHY_VER) || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_4) || defined(PHY_ACMAJORREV_37)))
+	if ((ACMAJORREV_4(pi->pubpi->phy_rev) || ACMAJORREV_37(pi->pubpi->phy_rev)) &&
 		phy_get_phymode(pi) == PHYMODE_MIMO) {
 		WRITE_PHYREG(pi, data_collect_crosscoresel0, 0x0000);
 		WRITE_PHYREG(pi, data_collect_crosscoresel1, 0x0000);

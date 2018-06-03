@@ -35,6 +35,7 @@
 #define RADAR_FEATURE_DEBUG_STAGGERED_RESET	(1 << 5) /* output staggered reset */
 #define RADAR_FEATURE_DEBUG_FIFO_OUTPUT		(1 << 6) /* output fifo output */
 #define RADAR_FEATURE_DEBUG_INTV_PW		(1 << 7) /* output intervals and pruned pw */
+#define RADAR_FEATURE_UK_DETECT                 (1 << 8) /* enable UK radar detection */
 #define RADAR_FEATURE_DEBUG_EU_TYPE		(1 << 9) /* output EU type debug messages */
 #define RADAR_FEATURE_FCC_DETECT		(1 << 11) /* enable FCC radar detection */
 #define RADAR_FEATURE_ETSI_DETECT		(1 << 12) /* enable ETSI radar detection */

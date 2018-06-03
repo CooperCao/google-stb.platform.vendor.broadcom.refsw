@@ -69,7 +69,6 @@ $(FONTCONFIG_TAR_PATH)/$(FONTCONFIG_SOURCE_TARBALL):
 	@$(FETCH) fontconfig-$(FONTCONFIG_VER).info $(FONTCONFIG_TAR_PATH)
 
 $(FONTCONFIG_TAR_PATH)/$(FONTCONFIG_NAME)/src/.libs/libfontconfig.so: $(FONTCONFIG_TAR_PATH)/$(FONTCONFIG_SOURCE_TARBALL)
-	echo $@
 	@if [ ! -d "${FONTCONFIG_TAR_PATH}/${FONTCONFIG_NAME}" ]; then \
 		if [ -e "${FONTCONFIG_TAR_PATH}/${FONTCONFIG_SOURCE_TARBALL}" ]; then \
 			echo "================ Extracting FONTCONFIG tarball"; \

@@ -337,7 +337,7 @@ typedef struct BVDC_P_CompositorContext
     uint8_t                           ucBlendMatrixOnRulBuildCntr;
 #endif
 #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
-    uint32_t                          aulNLCfg[BVDC_P_MAX_VIDEO_WINS_PER_CMP][BVDC_P_CMP_NL_CFG_REGS]; /* V0 and V1, 8 regs */
+    uint32_t                          aulNLCfg[BVDC_P_MAX_VIDEO_WINS_PER_CMP][BVDC_P_CMP_VER2_NL_CFG_REGS]; /* V0 and V1, 8 regs */
 #endif
     BCFC_Capability                   stCfcCapability[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)

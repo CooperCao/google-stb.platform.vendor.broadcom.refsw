@@ -113,6 +113,7 @@ BERR_Code BVC5_P_BinPoolCreate(
    if (phBinPool == NULL)
       return BERR_INVALID_PARAMETER;
 
+   BDBG_CASSERT(sizeof(BVC5_P_BinPool) <= CPU_PAGE_SIZE);
    hBinPool = (BVC5_BinPoolHandle)BKNI_Malloc(sizeof(BVC5_P_BinPool));
    if (hBinPool == NULL)
       goto exit;
@@ -149,7 +150,9 @@ static BVC5_BinBlockHandle BVC5_P_BinPoolBlockAlloc(
    uint32_t           uiNumBytes
    )
 {
-   BVC5_BinBlockHandle     pData = (BVC5_BinBlockHandle)BKNI_Malloc(sizeof(BVC5_P_BinPoolBlock));
+   BVC5_BinBlockHandle pData;
+   BDBG_CASSERT(sizeof(BVC5_P_BinPoolBlock) <= CPU_PAGE_SIZE);
+   pData = (BVC5_BinBlockHandle)BKNI_Malloc(sizeof(BVC5_P_BinPoolBlock));
    if (pData == NULL)
       return NULL;
 

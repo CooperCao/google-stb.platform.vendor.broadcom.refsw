@@ -178,20 +178,16 @@ Description:
     A platform's implementation may chose any of the above results, although we strongly
     recommend that the function fail and return an error code if possible.
 
-Returns:
-    BERR_SUCCESS - Mutex was acquired successfully.
-    BERR_OS_ERROR - The system failed or was interrupted, and the mutex was not acquired.
-
 See Also:
     BKNI_TryAcquireMutex, BKNI_ReleaseMutex, Magnum ThreadSafe rules
 ****************************************************************************/
-BERR_Code BKNI_AcquireMutex(
+void BKNI_AcquireMutex(
     BKNI_MutexHandle mutex
     );
 #if BKNI_TRACK_MALLOCS
 #define BKNI_AcquireMutex(MUTEX) BKNI_AcquireMutex_tagged(MUTEX, BSTD_FILE, BSTD_LINE)
 
-BERR_Code BKNI_AcquireMutex_tagged(
+void BKNI_AcquireMutex_tagged(
     BKNI_MutexHandle mutex,
     const char *file,
     int line

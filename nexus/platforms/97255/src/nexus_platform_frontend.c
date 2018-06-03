@@ -1,6 +1,6 @@
 /***************************************************************************
 *  Copyright (C) 2018 Broadcom.
-*  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to
@@ -79,7 +79,7 @@ typedef struct boardFrontendConfigOptions {
 
 static boardFrontendConfigOptions boardFrontendConfig[] = {
     /* BID   FEM    QAM    SPI    IRQ settings */
-    {  1, 1, false, false, true,  25, NEXUS_GpioType_eAonStandard }, /* 73574A0 on board */
+    {  1, 1, true,  false, true,  25, NEXUS_GpioType_eAonStandard }, /* 73574A0 on board */
     {  1, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* SV Slot 0 */
     {  2, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* DV */
     {  6, 2, true,  false, true,  24, NEXUS_GpioType_eAonStandard}, /* HB */

@@ -1,5 +1,6 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #include "MediaPlayer.h"
@@ -256,6 +257,7 @@ void MediaPlayer::startInternal()
         _context->audioProgram.primary.codec = BaseSource::convertAudioCodec(_audioParam.audioCodec);
         _context->audioProgram.primary.pidChannel = _connector->audioPidChannel;
         _context->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+        _context->audioProgram.master = true;
     }
 
     TRLS_MEDIA_DEBUG_EXIT();
@@ -275,6 +277,17 @@ void MediaPlayer::setDecoderStcChannel()
         BME_CHECK(NEXUS_SimpleAudioDecoder_SetStcChannel(_context->audioDecoderHandle,
                    _context->stcChannel));
     }
+}
+
+static void enableAtmos(NEXUS_SimpleAudioDecoderHandle handle)
+{
+    if (!AudioVolumeBase::isMs12())
+        return;
+
+    NEXUS_AudioDecoderCodecSettings codecSettings;
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(handle, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioCodec_eAc3Plus, &codecSettings);
+    codecSettings.codecSettings.ac3Plus.enableAtmosProcessing = true;
+    NEXUS_SimpleAudioDecoder_SetCodecSettings(handle, NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
 }
 
 void MediaPlayer::start()
@@ -340,6 +353,7 @@ void MediaPlayer::start()
                                                   &_context->videoDecoderHandle,
                                                   &_context->audioDecoderHandle);
             _audioVolumeBase = new AudioOutputDecoder(_context->audioDecoderHandle, false, "TMP");
+            enableAtmos(_context->audioDecoderHandle);
 
             _source->seekTo(_previousPositionMSec);
             _decoderReleased = false;
@@ -1435,6 +1449,7 @@ void MediaPlayer::acquireResources()
                                           &_context->videoDecoderHandle,
                                           &_context->audioDecoderHandle);
     _audioVolumeBase = new AudioOutputDecoder(_context->audioDecoderHandle, false, "TMP");
+    enableAtmos(_context->audioDecoderHandle);
 
     // set stcChannel to all decoders before starting any
     // set stcChannel should be done before _source->start()

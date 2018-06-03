@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -105,9 +109,7 @@ BERR_Code BSAT_g1_P_TfecAcquire_isr(BSAT_ChannelHandle h)
    else
       hChn->turboScanState = 0;
 
-#ifndef BSAT_EXCLUDE_AFEC
    hChn->dvbs2ScanState = 0;
-#endif
 
    /* dynamically turn on/off TFEC clock as needed */
    BSAT_CHK_RETCODE(BSAT_g1_P_TfecPowerUp_isr(h));
@@ -174,15 +176,18 @@ BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEna
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL00, BCHP_SDS_OI_0_OIFCTL00_tfec_afec_sel_MASK);
 #endif
 
-   if (bEnable)
+   if (BSAT_g1_P_IsTfecOn_isrsafe(h))
    {
-      BINT_EnableCallback_isr(hChn->hTfecLockCb);
-      BINT_EnableCallback_isr(hChn->hTfecNotLockCb);
-   }
-   else
-   {
-      BINT_DisableCallback_isr(hChn->hTfecLockCb);
-      BINT_DisableCallback_isr(hChn->hTfecNotLockCb);
+      if (bEnable)
+      {
+         BINT_EnableCallback_isr(hChn->hTfecLockCb);
+         BINT_EnableCallback_isr(hChn->hTfecNotLockCb);
+      }
+      else
+      {
+         BINT_DisableCallback_isr(hChn->hTfecLockCb);
+         BINT_DisableCallback_isr(hChn->hTfecNotLockCb);
+      }
    }
 
 #if (BSAT_CHIP_FAMILY==45316) || (BCHP_CHIP==45402)
@@ -509,6 +514,9 @@ BERR_Code BSAT_g1_P_TfecGetStatus(BSAT_ChannelHandle h, BSAT_TurboStatus *pStatu
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
+
+   if (BSAT_g1_P_IsTfecOn_isrsafe(h) == false)
+      return BSAT_ERR_POWERED_DOWN;
 
    BKNI_EnterCriticalSection();
    retCode = BSAT_g1_P_TfecUpdateBlockCount_isrsafe(h);
@@ -1279,10 +1287,15 @@ bool BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h)
    hOtherChanImpl = (BSAT_g1_P_ChannelHandle *)(hOtherChan->pImpl);
    if (hOtherChanImpl->bAbortAcq == false)
    {
+#if (BSAT_CHIP_FAMILY==45316) || (BCHP_CHIP==45402)
+      if (hOtherChanImpl->acqType == BSAT_AcqType_eTurbo)
+         bOtherTfecBusy = true;
+#else
 #if (BSAT_CHIP_FAMILY!=45316) && (BCHP_CHIP!=45402)
       if (hOtherChanImpl->acqType == BSAT_AcqType_eTurbo)
 #endif
          bOtherTfecBusy = true;
+#endif
    }
 
    return bOtherTfecBusy;

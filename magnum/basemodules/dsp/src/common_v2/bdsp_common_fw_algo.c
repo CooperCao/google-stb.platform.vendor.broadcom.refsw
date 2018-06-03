@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bdsp_common_priv_include.h"
@@ -455,6 +459,60 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
             false
         }
     },
+	{
+		/* Algorithm */ 				   /* Type */						/* Name */
+		BDSP_Algorithm_eFlacDecode, BDSP_AlgorithmType_eAudioDecode, "Flac Audio Decode",
+		/* Default User Config */			 /* User config size */
+		&BDSP_sFlacDecUserConfig, sizeof(BDSP_Raaga_Audio_FlacDecConfigParams),
+		/* Stream Info Size */					 /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_FlacDecStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_FlacDecStreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */	  /* samples per channel */
+		8,								 16384,/* TODO: Check the value */
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
+	{
+        /* Algorithm */                    /* Type */                       /* Name */
+        BDSP_Algorithm_eALSDecode, BDSP_AlgorithmType_eAudioDecode, "ALS Audio Decode",
+        /* Default User Config */            /* User config size */
+        &BDSP_sALSDecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_ALSDecConfigParams),
+        /* Stream Info Size */                   /* Valid offset */
+        sizeof(BDSP_Raaga_Audio_ALSDecStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_ALSDecStreamInfo, ui32StatusValid),
+        /* IDS status size */					 /* TSM status size */
+        sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+        /* Max Channels Supported */      /* samples per channel */
+        6,   					         4096,
+        /* Preemption levels*/
+        {
+            true,
+            false,
+            false
+        }
+    },
+    {
+        /* Algorithm */                    /* Type */                       /* Name */
+        BDSP_Algorithm_eALSLoasDecode, BDSP_AlgorithmType_eAudioDecode, "ALS LOAS Audio Decode",
+        /* Default User Config */            /* User config size */
+        &BDSP_sALSDecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_ALSDecConfigParams),
+        /* Stream Info Size */                   /* Valid offset */
+        sizeof(BDSP_Raaga_Audio_ALSDecStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_ALSDecStreamInfo, ui32StatusValid),
+        /* IDS status size */					 /* TSM status size */
+        sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+        /* Max Channels Supported */      /* samples per channel */
+        6,   					         4096,
+        /* Preemption levels*/
+        {
+            true,
+            false,
+            false
+        }
+    },
     {
         /* Algorithm */                /* Type */                       /* Name */
         BDSP_Algorithm_eLpcmEncode, BDSP_AlgorithmType_eAudioEncode, "LPCM Encode",
@@ -528,7 +586,79 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 			false
 		}
 	},
+	{
+		/* Algorithm */ 				   /* Type */						/* Name */
+		BDSP_Algorithm_eWmaStdDecode, BDSP_AlgorithmType_eAudioDecode, "Wma Audio Decode",
+		/* Default User Config */			 /* User config size */
+		&BDSP_sWmaDefaultUserConfig, sizeof(BDSP_Raaga_Audio_WmaConfigParams),
+		/* Stream Info Size */					 /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_WmaStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_WmaStreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */	  /* samples per channel */
+		2,								 2048,
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
+	{
+		/* Algorithm */                    /* Type */                       /* Name */
+		BDSP_Algorithm_eWmaProDecode, BDSP_AlgorithmType_eAudioDecode, "WmaPro Audio Decode",
+		/* Default User Config */            /* User config size */
+		&BDSP_sWmaProDefaultUserConfig, sizeof(BDSP_Raaga_Audio_WmaProConfigParams),
+		/* Stream Info Size */                   /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_WmaProStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_WmaProStreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */      /* samples per channel */
+		6,   					         2048,
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
     /* This entry must always be last used to derive the unsupported/invalid information */
+	{
+		BDSP_Algorithm_eLpcmDvdDecode, BDSP_AlgorithmType_eAudioDecode, "DVD LPCM Audio Decode",
+		&BDSP_sLcpmDvdDefaultUserConfig, sizeof(BDSP_Raaga_Audio_LpcmUserConfig),
+		sizeof(BDSP_Raaga_Audio_LpcmStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_LpcmStreamInfo, ui32StatusValid),
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		8,   					         1152,
+		{
+			true,
+			false,
+			false
+		}
+	},
+	{
+		BDSP_Algorithm_eLpcm1394Decode, BDSP_AlgorithmType_eAudioDecode, "LPCM 1394 Audio Decode",
+		&BDSP_sLcpmDvdDefaultUserConfig, sizeof(BDSP_Raaga_Audio_LpcmUserConfig),
+		sizeof(BDSP_Raaga_Audio_LpcmStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_LpcmStreamInfo, ui32StatusValid),
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		8,   					         1152,
+		{
+			true,
+			false,
+			false
+		}
+	},
+	{
+		BDSP_Algorithm_eLpcmBdDecode, BDSP_AlgorithmType_eAudioDecode, "BD LPCM Audio Decode",
+		&BDSP_sLcpmDvdDefaultUserConfig, sizeof(BDSP_Raaga_Audio_LpcmUserConfig),
+		sizeof(BDSP_Raaga_Audio_LpcmStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_LpcmStreamInfo, ui32StatusValid),
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		8,   					         1152,
+		{
+			true,
+			false,
+			false
+		}
+	},
 	{
 		BDSP_Algorithm_eMax, BDSP_AlgorithmType_eMax, "Invalid",
 		NULL, 0,

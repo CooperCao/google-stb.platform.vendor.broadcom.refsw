@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -281,7 +284,7 @@ BHSM_KeyslotHandle BHSM_Keyslot_Allocate( BHSM_Handle hHsm, const BHSM_KeyslotAl
 
    #ifdef BHSM_BUILD_HSM_FOR_HOST
     /* search for a free slot.*/
-    for( i = offset; i < offset+maxNumber; i++ )
+    for( i = offset; (i < offset+maxNumber) && (i < BHSM_MAX_KEYSLOTS); i++ )
     {
         if( pModule->pKeySlotHandles[i] == NULL )
         {
@@ -794,16 +797,22 @@ static BERR_Code _SetEntryIv( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry 
 
 static BERR_Code _SetEntryKey( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry entry, const BHSM_KeyslotKey *pKey )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_KeySlotClearKeySet bspSetKey;
     BHSM_P_KeySlot *pSlot = (BHSM_P_KeySlot*)handle;
     BHSM_P_KeyEntry *pEntry;
     Bsp_KeySize_e keySize;
+    uint8_t *pSecureKeyMemory = NULL;
+    uint8_t secureKeyMemorySize = 0;
 
     BDBG_ENTER( _SetEntryKey );
 
     pEntry = _GetEntry( handle, entry );
-    if( pEntry == NULL ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pEntry ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+
+    secureKeyMemorySize = sizeof( bspSetKey.in.keyData );
+    pSecureKeyMemory = BHSM_SecureMemory_Allocate( secureKeyMemorySize );
+    if( !pSecureKeyMemory ) { rc = BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); goto exit; }
 
     BKNI_Memset( &bspSetKey, 0, sizeof(bspSetKey) );
 
@@ -819,32 +828,32 @@ static BERR_Code _SetEntryKey( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry
             case 16: { keySize = Bsp_KeySize_e128; break;}
             case 24: { keySize = Bsp_KeySize_e192; break;}
             case 32: { keySize = Bsp_KeySize_e256; break;}
-            default: return BERR_TRACE( BERR_INVALID_PARAMETER );
+            default: { rc = BERR_TRACE( BERR_INVALID_PARAMETER ); goto exit; }
         }
-        keyOffset = (8-(2*(keySize+1))); /* offset of key in words */
+        keyOffset = (8-(2*(keySize+1)))*4; /* offset of key in bytes */
 
-        if( keyOffset*4 >= sizeof(bspSetKey.in.keyData) ||
-            keyOffset*4 + pKey->size > sizeof(bspSetKey.in.keyData) ) {
-            return BERR_TRACE( BERR_INVALID_PARAMETER );
+        if( keyOffset >= secureKeyMemorySize ||
+            keyOffset + pKey->size > secureKeyMemorySize ) {
+            rc = BERR_TRACE( BERR_INVALID_PARAMETER );
+            goto exit;
         }
-        rc = BHSM_MemcpySwap( &bspSetKey.in.keyData[keyOffset], pKey->key, pKey->size );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+        BKNI_Memcpy( pSecureKeyMemory + keyOffset, pKey->key, pKey->size );
 
-        if( pKey->size  == 8 ) {
-            keyOffset -= 2;
-            if( keyOffset*4 >= sizeof(bspSetKey.in.keyData) ||
-                keyOffset*4 + pKey->size > sizeof(bspSetKey.in.keyData) ) {
-                return BERR_TRACE( BERR_INVALID_PARAMETER );
+        if( keySize  == Bsp_KeySize_e64 ) { /* duplicate the key. */
+            keyOffset -= pKey->size;
+            if( keyOffset >= secureKeyMemorySize ||
+                keyOffset + pKey->size > secureKeyMemorySize ) {
+                rc = BERR_TRACE( BERR_INVALID_PARAMETER );
+                goto exit;
             }
-            rc = BHSM_MemcpySwap( &bspSetKey.in.keyData[keyOffset], pKey->key, pKey->size ) ;
-            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+            BKNI_Memcpy( pSecureKeyMemory + keyOffset, pKey->key, pKey->size ) ;
         }
     }
     else {
         unsigned i;
         /* dummy key data. All zero are not be allowed for some configurations.  */
-        for( i = 0; i < sizeof(bspSetKey.in.keyData)/sizeof(bspSetKey.in.keyData[0]); i++ ) {
-            bspSetKey.in.keyData[i] = 0xFFFFFF00 | i;
+        for( i = 0; i < secureKeyMemorySize; i++ ) {
+            *(pSecureKeyMemory + i) = i & 0xFF;
         }
     }
     bspSetKey.in.blockType = _GetEntryBlockType(entry);
@@ -867,14 +876,25 @@ static BERR_Code _SetEntryKey( BHSM_KeyslotHandle handle, BHSM_KeyslotBlockEntry
         }
     }
 
+    bspSetKey.in.pKeyData_inPlace = pSecureKeyMemory;
+    bspSetKey.in.keyDataSize_inPlace = secureKeyMemorySize;
+
     rc = BHSM_P_KeySlot_ClearKeySet( _Keyslot_GetHsmHandle(handle), &bspSetKey );
     if( rc != BERR_SUCCESS ) {
         BDBG_ERR(("ClearKeySet failed for Slot Type[%u] Num[%u]", bspSetKey.in.keySlotType, bspSetKey.in.keySlotNumber ));
-        return BERR_TRACE( rc );
+        rc = BERR_TRACE( rc );
+        goto exit;
+    }
+
+exit:
+
+    if( pSecureKeyMemory ) {
+        BHSM_SecureMemory_ScrubBeforeFree( pSecureKeyMemory, secureKeyMemorySize );
+        BHSM_SecureMemory_Free( pSecureKeyMemory );
     }
 
     BDBG_LEAVE( _SetEntryKey );
-    return BERR_SUCCESS;
+    return rc;
 }
 
 static BERR_Code _InvalidateSlot( BHSM_KeyslotHandle handle, bool preserveOwner )
@@ -1658,6 +1678,7 @@ BERR_Code BHSM_P_Keyslot_GetDetails( BHSM_KeyslotHandle handle,
 
     if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSlot->configured ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pDetails ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset(pDetails, 0, sizeof(BHSM_KeyslotDetails));
 
@@ -1714,6 +1735,7 @@ BERR_Code BHSM_P_Keyslot_GetSlotDetails( BHSM_KeyslotHandle handle, BHSM_Keyslot
 
     if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pSlot->configured ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( pInfo, 0, sizeof(*pInfo) );
 

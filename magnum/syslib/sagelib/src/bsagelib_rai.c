@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -52,6 +56,8 @@ BDBG_MODULE(BSAGElib);
 #include "bsagelib_sdl_header.h"
 #include "priv/suif.h"
 #include "priv/suif_sdl.h"
+
+extern BERR_Code BSAGElib_Check_SUIF_Image(BSAGElib_Handle hSAGElib,SUIF_PackageHeader  *header,uint32_t binarySize);
 
 /* Local functions */
 static void BSAGElib_P_Rai_Check_ContainerCache(BSAGElib_ClientHandle hSAGElibClient);
@@ -151,7 +157,8 @@ BSAGELib_Rai_P_WaitForResponse(BSAGElib_ClientHandle hSAGElibClient, uint32_t as
 static bool
 _P_IsSdlValid(
     BSAGElib_Handle hSAGElib,
-    BSAGElib_SDLHeader *pHeader)
+    BSAGElib_SDLHeader *pHeader,
+    uint32_t binSize)
 {
     bool rc = false;
     uint32_t sdlTHLSigShort;
@@ -166,8 +173,13 @@ _P_IsSdlValid(
         const SUIF_SDLSpecificHeader *pSUIFSDLHeader = SUIF_GetSdlHeaderFromPackageHeader((SUIF_PackageHeader *)pHeader);
         bool isAlphaSSF = (hSAGElib->frameworkInfo.version[2] == 0) && (hSAGElib->frameworkInfo.version[3] != 0);
         bool isAlphaSDK = (pSUIFSDLHeader->ssfVersion.revision == 0) && (pSUIFSDLHeader->ssfVersion.branch != 0);
+        if (hSAGElib->frameworkInfo.version[0] < 4) {
+            BDBG_ERR(("%s: ERROR: SAGE TA binary is a SUIF image which is not supported in SAGE 3.x", BSTD_FUNCTION));
+            rc = false;
+        }
         /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
-        if (isAlphaSSF || isAlphaSDK) {
+        else if (isAlphaSSF || isAlphaSDK)
+        {
             rc = ((hSAGElib->frameworkInfo.version[0] == pSUIFSDLHeader->ssfVersion.major) &&
                   (hSAGElib->frameworkInfo.version[1] == pSUIFSDLHeader->ssfVersion.minor) &&
                   (hSAGElib->frameworkInfo.version[2] == pSUIFSDLHeader->ssfVersion.revision) &&
@@ -191,6 +203,10 @@ _P_IsSdlValid(
             }
         } else {
             rc = true;
+        }
+        if(BSAGElib_Check_SUIF_Image(hSAGElib,(SUIF_PackageHeader *)pHeader,binSize) != BERR_SUCCESS)
+        {
+            rc = false;
         }
     }else
     {
@@ -233,8 +249,13 @@ _P_IsSdlValid(
             bool isAlphaSSF = (hSAGElib->frameworkInfo.version[2] == 0) && (hSAGElib->frameworkInfo.version[3] != 0);
             bool isAlphaSDK = (pHeader->ucSsfVersion[2] == 0) && (pHeader->ucSsfVersion[3] != 0);
             BDBG_MSG(("%s: Trusted App THL signature indicates Load-Time-Resolution", BSTD_FUNCTION));
+            if (hSAGElib->frameworkInfo.version[0] >= 4) {
+                BDBG_ERR(("%s: ERROR: SAGE TA binary is not a SUIF image which is required for SAGE 4.x and above", BSTD_FUNCTION));
+                rc = false;
+            }
             /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
-            if (isAlphaSSF || isAlphaSDK) {
+            else if (isAlphaSSF || isAlphaSDK)
+            {
                 rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
                 if (rc != true) {
                     if (isAlphaSSF) {
@@ -514,7 +535,7 @@ BSAGElib_Rai_Platform_Install(
 
     /* do it after the system platform open so we are sure the SAGE-side is booted
        and the status info are valid */
-    if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, pHeader)) {
+    if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, pHeader,binSize)) {
         BDBG_ERR(("%s: Cannot install incompatible SDL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto err;

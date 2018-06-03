@@ -68,8 +68,8 @@ endif
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt-v1.40
-CFE_DIR_NAME = CFE_17_4
+BOLT_DIR_NAME = bolt-v1.42
+CFE_DIR_NAME = CFE_18_2
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
@@ -347,6 +347,11 @@ BSU_OBJECTS += \
     int1.o \
     os_cpu_c.o
 
+ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
+    BSU_OBJECTS += \
+        bsu_sde_stubs.o
+endif
+
 ifeq ($(B_REFSW_UCOS_VERSION),1)
     BSU_OBJECTS += \
         b_ucos.o \
@@ -367,7 +372,8 @@ ifeq ($(NEWLIB),)
                 dev_16550_uart.o \
                 bsu_stdio.o
             BCHP_VER_LOWERCASE = $(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')
-            CFLAGS += -DUSE_LOCAL_PRINTF=1 -DCFG_ARCH_ARM -DARM_V7 -I$(BOLT_DIR)/gen/$(BCHP_CHIP)$(BCHP_VER_LOWERCASE)
+            BCHP_VER_LOWERCASE_LETTER = $(shell awk 'BEGIN{print substr("$(BCHP_VER_LOWERCASE)", 1, 1)}')
+            CFLAGS += -DUSE_LOCAL_PRINTF=1 -DCFG_ARCH_ARM -DARM_V7 -I$(BOLT_DIR)/gen/$(BCHP_CHIP)$(BCHP_VER_LOWERCASE_LETTER)0
         else
             CFLAGS += -DUSE_LOCAL_PRINTF=0
         endif
@@ -916,7 +922,11 @@ LDFLAGS += -Map $(BSU_ODIR)/bsu.map
 AFLAGS += $(CFLAGS)
 
 ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
-    LDFLAGS += -T arm/init.lds
+    ifeq ($(filter $(NEXUS_PLATFORM),97278), $(NEXUS_PLATFORM))
+        LDFLAGS += -T arm/init.a53v7.lds
+    else
+        LDFLAGS += -T arm/init.lds
+    endif
     LDFLAGS += -nostdlib -static --gc-sections
 else
     STACK_ADRS      = 0x89000000

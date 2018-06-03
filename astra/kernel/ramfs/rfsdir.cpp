@@ -416,7 +416,8 @@ int RamFS::Directory::addFile(const char *fileName, IFile *file) {
     if (entry == nullptr)
         return -ENOMEM;
 
-    strncpy(entry->name, fileName, MaxFileNameLength);
+    strncpy(entry->name, fileName, MaxFileNameLength-1);
+    entry->name[MaxFileNameLength-1] = '\0';
     entry->nameHash = hash(fileName);
     entry->type = FileEntry;
     entry->file = (RamFS::File *)file;
@@ -495,7 +496,8 @@ int RamFS::Directory::addDir(const char *dirName, IDirectory *dir) {
     if (entry == nullptr)
         return -ENOMEM;
 
-    strncpy(entry->name, dirName, MaxFileNameLength);
+    strncpy(entry->name, dirName, MaxFileNameLength-1);
+    entry->name[MaxFileNameLength-1] = '\0';
     entry->nameHash = hash(dirName);
     entry->type = DirEntry;
     entry->dir = (RamFS::Directory *)dir;
@@ -592,7 +594,8 @@ int RamFS::Directory::readDir(const void *data, const size_t size){
         de.d_ino = (ino_t) (count++);
         de.d_off = count++;
         de.d_type = readEntry->type;
-        strncpy(de.d_name, readEntry->name, MaxFileNameLength);
+        strncpy(de.d_name, readEntry->name, MaxFileNameLength-1);
+        de.d_name[MaxFileNameLength-1] = '\0';
         de.d_reclen = strlen(de.d_name) + sizeof(de.d_ino) + sizeof(de.d_off) + sizeof(de.d_reclen) + sizeof(de.d_type);
         de.d_reclen += (4 - de.d_reclen%4);
 
@@ -631,7 +634,8 @@ int RamFS::Directory::mount(const char *dirName, IDirectory *dir) {
     if (entry == nullptr)
         return -ENOMEM;
 
-    strncpy(entry->name, dirName, MaxFileNameLength);
+    strncpy(entry->name, dirName, MaxFileNameLength-1);
+    entry->name[MaxFileNameLength-1] = '\0';
     entry->nameHash = hash(dirName);
     entry->type = DirEntry;
     entry->dir = (RamFS::Directory *)dir;

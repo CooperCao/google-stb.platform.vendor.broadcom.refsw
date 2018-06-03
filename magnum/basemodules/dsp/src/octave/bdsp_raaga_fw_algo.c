@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bdsp_raaga_priv_include.h"
@@ -86,6 +90,9 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 #ifdef BDSP_PCMWAV_SUPPORT
 	{BDSP_Algorithm_ePcmWavDecode, "PCMWAV Decode", true},
 #endif
+#ifdef BDSP_FLACDEC_SUPPORT
+    {BDSP_Algorithm_eFlacDecode, "FLAC Decode", true},
+#endif
 #ifdef BDSP_SRC_SUPPORT
 	{BDSP_Algorithm_eSrc, "Sample Rate Conversion", true},
 #endif
@@ -121,6 +128,10 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 #ifdef BDSP_OPUSDEC_SUPPORT
     {BDSP_Algorithm_eOpusDecode, "OPUS Decode", true},
 #endif
+#ifdef BDSP_ALS_SUPPORT
+    {BDSP_Algorithm_eALSDecode, "ALS Decode", true},
+    {BDSP_Algorithm_eALSLoasDecode, "ALS LOAS Decode", true},
+#endif
 #ifdef BDSP_LPCMENC_SUPPORT
     {BDSP_Algorithm_eLpcmEncode, "LPCM Encode", true},
 #endif
@@ -132,6 +143,17 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 #endif
 #ifdef BDSP_MPEG_PASSTHRU_SUPPORT
 	{BDSP_Algorithm_eMpegAudioPassthrough, "MPEG Passthru", true},
+#endif
+#ifdef BDSP_LPCMDVD_SUPPORT
+	{BDSP_Algorithm_eLpcmDvdDecode, "Dvd Lpcm Decode", true},
+	{BDSP_Algorithm_eLpcm1394Decode,"Lpcm 1394 Decode", true},
+	{BDSP_Algorithm_eLpcmBdDecode,  "BD Lpcm Decode", true},
+#endif
+#ifdef BDSP_WMAPRO_SUPPORT
+	{BDSP_Algorithm_eWmaProDecode, "WMA Pro Decode", true},
+#endif
+#ifdef BDSP_WMA_SUPPORT
+	{BDSP_Algorithm_eWmaStdDecode, "WMA Decode", true},
 #endif
 	{BDSP_Algorithm_eMax, "Invalid", false}
 };
@@ -149,6 +171,27 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
 		BDSP_IMG_ADEC_MPEG1_SIZE,        BDSP_IMG_AIDS_MPEG1_SIZE,
 		/* Code Lib name*/                /* IDS Code Lib name*/
 		"/libadec_mpeg1.so",               "/libaids_mpeg1.so"
+	},
+	{
+		BDSP_Algorithm_eLpcmDvdDecode,
+		BDSP_IMG_ADEC_LPCM_SCRATCH_SIZE, BDSP_IMG_ADEC_LPCM_TABLES_SIZE,
+		BDSP_IMG_ADEC_LPCM_INTER_FRAME_SIZE, BDSP_IMG_ADEC_LPCM_INTER_FRAME_ENCODED_SIZE,
+		BDSP_IMG_ADEC_LPCM_SIZE,        BDSP_IMG_AIDS_LPCM_SIZE,
+		"/libadec_lpcm.so",               "/libaids_lpcm.so"
+	},
+	{
+		BDSP_Algorithm_eLpcm1394Decode,
+		BDSP_IMG_ADEC_LPCM_SCRATCH_SIZE, BDSP_IMG_ADEC_LPCM_TABLES_SIZE,
+		BDSP_IMG_ADEC_LPCM_INTER_FRAME_SIZE, BDSP_IMG_ADEC_LPCM_INTER_FRAME_ENCODED_SIZE,
+		BDSP_IMG_ADEC_LPCM_SIZE,        BDSP_IMG_AIDS_LPCM_SIZE,
+		"/libadec_lpcm.so",               "/libaids_lpcm.so"
+	},
+	{
+		BDSP_Algorithm_eLpcmBdDecode,
+		BDSP_IMG_ADEC_LPCM_SCRATCH_SIZE, BDSP_IMG_ADEC_LPCM_TABLES_SIZE,
+		BDSP_IMG_ADEC_LPCM_INTER_FRAME_SIZE, BDSP_IMG_ADEC_LPCM_INTER_FRAME_ENCODED_SIZE,
+		BDSP_IMG_ADEC_LPCM_SIZE,        BDSP_IMG_AIDS_LPCM_SIZE,
+		"/libadec_lpcm.so",               "/libaids_lpcm.so"
 	},
 #ifdef BDSP_MS11PLUS_SUPPORT
 	{
@@ -353,6 +396,19 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
 	},
 	{
 		/* Algorithm */
+		BDSP_Algorithm_eFlacDecode,
+		/* Scratch buffer size */			   /* rom table size */
+		BDSP_IMG_ADEC_FLAC_SCRATCH_SIZE, BDSP_IMG_ADEC_FLAC_TABLES_SIZE,
+		/* interframe size */					   /*Compressed interframe size */
+		BDSP_IMG_ADEC_FLAC_INTER_FRAME_SIZE, BDSP_IMG_ADEC_FLAC_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			   /* IDS codeSize*/
+		BDSP_IMG_ADEC_FLAC_SIZE,        BDSP_IMG_AIDS_WAVFORMATEX_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_flac.so",              "/libaids_wavformatex.so"
+
+	},
+	{
+		/* Algorithm */
 		BDSP_Algorithm_eSrc,
 		/* Scratch buffer size */		   /* Rom table size */
 		BDSP_IMG_APP_SRC_SCRATCH_SIZE, BDSP_IMG_APP_SRC_TABLES_SIZE,
@@ -502,6 +558,30 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_opus.so",               "/libaids_wavformatex.so"
     },
+	{
+        /* Algorithm */
+        BDSP_Algorithm_eALSDecode,
+        /* Scratch buffer size */			  /* rom table size */
+        BDSP_IMG_ADEC_ALS_SCRATCH_SIZE, BDSP_IMG_ADEC_ALS_TABLES_SIZE,
+        /* interframe size */                    /*  Compressed interframe size */
+        BDSP_IMG_ADEC_ALS_INTER_FRAME_SIZE, BDSP_IMG_ADEC_ALS_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/			   /* IDS codeSize*/
+        BDSP_IMG_ADEC_ALS_SIZE,            BDSP_IMG_AIDS_WAVFORMATEX_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_als.so",               "/libaids_wavformatex.so"
+    },
+	{
+        /* Algorithm */
+        BDSP_Algorithm_eALSLoasDecode,
+        /* Scratch buffer size */			  /* rom table size */
+        BDSP_IMG_ADEC_ALS_SCRATCH_SIZE, BDSP_IMG_ADEC_ALS_TABLES_SIZE,
+        /* interframe size */                    /*  Compressed interframe size */
+        BDSP_IMG_ADEC_ALS_INTER_FRAME_SIZE, BDSP_IMG_ADEC_ALS_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/			   /* IDS codeSize*/
+        BDSP_IMG_ADEC_ALS_SIZE,            BDSP_IMG_AIDS_LOAS_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_als.so",               "/libaids_loas.so"
+    },
   {
 		/* Algorithm */
 		BDSP_Algorithm_eLpcmEncode,
@@ -551,6 +631,30 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
 	"/libadec_passthru.so",             "/libaids_mpeg1.so"
 
 	},
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eWmaStdDecode,
+		/* Scratch buffer size */				/* Rom table size */
+		BDSP_IMG_ADEC_WMA_SCRATCH_SIZE,		BDSP_IMG_ADEC_WMA_TABLES_SIZE,
+		/* Interframe size */					/* Compressed Interframe size */
+		BDSP_IMG_ADEC_WMA_INTER_FRAME_SIZE,	BDSP_IMG_ADEC_WMA_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/ 				/* IDS codeSize*/
+		BDSP_IMG_ADEC_WMA_SIZE,				BDSP_IMG_AIDS_WMA_SIZE,
+		/* Code Lib name*/						/* IDS Code Lib name*/
+		"/libadec_wma.so",					"/libaids_wma.so",
+	},
+    {
+        /* Algorithm */
+        BDSP_Algorithm_eWmaProDecode,
+        /* Scratch buffer size */               /* Rom table size */
+        BDSP_IMG_ADEC_WMAPRO_SCRATCH_SIZE,      BDSP_IMG_ADEC_WMAPRO_TABLES_SIZE,
+        /* Interframe size */                   /* Compressed Interframe size */
+        BDSP_IMG_ADEC_WMAPRO_INTER_FRAME_SIZE,  BDSP_IMG_ADEC_WMAPRO_INTER_FRAME_ENCODED_SIZE,
+        /* Algorithm codeSize*/                 /* IDS codeSize*/
+        BDSP_IMG_ADEC_WMAPRO_SIZE,              BDSP_IMG_AIDS_WMAPRO_SIZE,
+        /* Code Lib name*/                      /* IDS Code Lib name*/
+        "/libadec_wmapro.so",                   "/libaids_wmapro.so",
+    },
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{
 		BDSP_Algorithm_eMax,
@@ -578,7 +682,7 @@ const BDSP_P_AlgorithmCodeInfo *BDSP_Raaga_P_LookupAlgorithmCodeInfo(
     return &BDSP_sRaagaAlgorithmCodeInfo[i];
 }
 
-const BDSP_P_AlgorithmSupportInfo *BDSP_Raaga_P_LookupAlgorithmSupportInfo(
+const BDSP_P_AlgorithmSupportInfo *BDSP_Raaga_P_LookupAlgorithmSupportInfo_isrsafe(
     BDSP_Algorithm algorithm
 )
 {

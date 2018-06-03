@@ -1,42 +1,46 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
+#include "stdlib.h"
 #include "bstd.h"
 #include "blst_list.h"
 #include "bkni.h"
@@ -403,6 +407,232 @@ BERR_Code KM_Tag_CreateContextFromTagValueSet(uint8_t *data_block, KM_Tag_Contex
     err = KM_Tag_CreateContext(tag_value_set->num, tag_value_set->size, tag_value_set->params, handle);
 
 done:
+    return err;
+}
+
+static KM_Tag_Item* km_tag_make_tag_item_from_android_data(uint8_t **data, uint8_t *end, uint8_t *indirect_data, uint32_t indirect_size)
+{
+    KM_Tag_Item *tag_value = NULL;
+    km_tag_value_t *outTagValuePair;
+    km_tag_t tag;
+    size_t allocSize = 0;
+    uint32_t blobSize = 0;
+    uint32_t indirect_offset;
+
+    BDBG_ASSERT(data);
+    BDBG_ASSERT(*data);
+    BDBG_ASSERT(end);
+    BDBG_ASSERT(indirect_data);
+
+    if (*data + sizeof(uint32_t) > end) {
+        /* run out of data */
+        BDBG_ERR(("%s: Tag/value data is invalid", BSTD_FUNCTION));
+        goto err_done;
+    }
+
+    if (!km_tag_is_valid((km_tag_value_t *)*data)) {
+        BDBG_ERR(("%s: Invalid tag", BSTD_FUNCTION));
+        goto err_done;
+    }
+
+    BKNI_Memcpy(&tag, *data, sizeof(uint32_t));
+    *data += sizeof(uint32_t);
+
+    allocSize = sizeof(KM_Tag_Item) + sizeof(km_tag_value_t);
+    if ((km_tag_get_type(tag) == SKM_BIGNUM) || (km_tag_get_type(tag) == SKM_BYTES)) {
+        if (*data + sizeof(uint32_t) > end) {
+            goto err_done;
+        }
+        BKNI_Memcpy(&blobSize, *data, sizeof(uint32_t));
+        if (blobSize > SKM_TAG_VALUE_BLOB_MAX_SIZE) {
+            BDBG_ERR(("%s: Blob too large", BSTD_FUNCTION));
+            goto err_done;
+        }
+
+        /* Round to nearest 4 bytes */
+        blobSize = (blobSize + 3ul) & ~3ul;
+        allocSize += blobSize;
+    }
+
+    BDBG_MSG(("%s: allocating %lu", BSTD_FUNCTION, (unsigned long int)allocSize));
+    if (NEXUS_Memory_Allocate(allocSize, NULL, (void **)&tag_value) != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s: Failed to allocate tag value", BSTD_FUNCTION));
+        goto err_done;
+    }
+    BKNI_Memset(tag_value, 0, allocSize);
+    BDBG_OBJECT_SET(tag_value, KM_Tag_Item);
+
+    outTagValuePair = (km_tag_value_t *)tag_value->tagValueData;
+    outTagValuePair->tag = tag;
+
+    BDBG_MSG(("%s: adding 0x%x", BSTD_FUNCTION, tag));
+
+    switch (km_tag_get_type(tag)) {
+    case SKM_ENUM:
+    case SKM_ENUM_REP:
+        if (*data + sizeof(uint32_t) > end) {
+            goto err_done;
+        }
+        BKNI_Memcpy(&outTagValuePair->value.enumerated, *data, sizeof(uint32_t));
+        *data += sizeof(uint32_t);
+        break;
+    case SKM_UINT:
+    case SKM_UINT_REP:
+        if (*data + sizeof(uint32_t) > end) {
+            goto err_done;
+        }
+        BKNI_Memcpy(&outTagValuePair->value.integer, *data, sizeof(uint32_t));
+        *data += sizeof(uint32_t);
+        break;
+    case SKM_ULONG:
+    case SKM_ULONG_REP:
+        if (*data + sizeof(uint64_t) > end) {
+            goto err_done;
+        }
+        BKNI_Memcpy(&outTagValuePair->value.long_integer, *data, sizeof(uint64_t));
+        *data += sizeof(uint64_t);
+        break;
+    case SKM_DATE:
+        if (*data + sizeof(uint64_t) > end) {
+            goto err_done;
+        }
+        BKNI_Memcpy(&outTagValuePair->value.date_time, *data, sizeof(uint64_t));
+        *data += sizeof(uint64_t);
+        break;
+    case SKM_BOOL:
+        if (*data + 1 > end) {
+            goto err_done;
+        }
+        outTagValuePair->value.boolean = **data ? true : false;
+        *data += 1;
+        break;
+    case SKM_BIGNUM:
+    case SKM_BYTES:
+        if (*data + sizeof(uint32_t) * 2 > end) {
+            goto err_done;
+        }
+        BKNI_Memcpy(&outTagValuePair->value.blob_data_length, *data, sizeof(uint32_t));
+        BKNI_Memcpy(&indirect_offset, *data + sizeof(uint32_t), sizeof(uint32_t));
+        if (indirect_offset + outTagValuePair->value.blob_data_length > indirect_size) {
+            goto err_done;
+        }
+        BKNI_Memcpy(outTagValuePair->blob_data, indirect_data + indirect_offset, outTagValuePair->value.blob_data_length);
+        *data += sizeof(uint32_t) * 2;
+        break;
+
+    default:
+        BDBG_ERR(("%s: Invalid tag type (%x)", BSTD_FUNCTION, km_tag_get_type(tag)));
+        goto err_done;
+    }
+
+    goto done;
+
+err_done:
+    if (tag_value) {
+        BDBG_OBJECT_UNSET(tag_value, KM_Tag_Item);
+        NEXUS_Memory_Free((void *)tag_value);
+        tag_value = NULL;
+    }
+
+done:
+    return tag_value;
+}
+
+BERR_Code KM_Tag_CreateContextFromAndroidBlob(uint8_t *buf_ptr, uint8_t *end, KM_Tag_ContextHandle *ret_context)
+{
+    BERR_Code err;
+    KM_Tag_ContextHandle handle = NULL;
+    uint8_t *params;
+    uint32_t indirect_size;
+    uint8_t *indirect_data;
+    uint32_t num_params;
+    uint32_t data_size;
+    uint32_t tag_index;
+    KM_Tag_Item *tag_item = NULL;
+    KM_Tag_Item *prev = NULL;
+
+    BDBG_ASSERT(ret_context);
+
+    if (!buf_ptr || !end || (end < buf_ptr) || (end - buf_ptr > SKM_TAG_VALUE_BLOCK_SIZE)) {
+        err = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: invalid parameter", BSTD_FUNCTION));
+        goto done;
+    }
+
+    err = KM_Tag_NewContext(&handle);
+    if (err != BERR_SUCCESS) {
+        goto done;
+    }
+
+    params = buf_ptr;
+
+    /* Size of indirect data */
+    if (params + sizeof(uint32_t) > end) {
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    BKNI_Memcpy(&indirect_size, params, sizeof(uint32_t));
+    params += sizeof(uint32_t);
+
+    /* Indirect data */
+    if (params + indirect_size > end) {
+        BDBG_ERR(("%s: Indirect data is invalid", BSTD_FUNCTION));
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    indirect_data = params; /* Don't copy indirect data, just save a pointer */
+    params += indirect_size;
+
+    /* Number of elements */
+    if (params + sizeof(uint32_t) > end) {
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    BKNI_Memcpy(&num_params, params, sizeof(uint32_t));
+    params += sizeof(uint32_t);
+
+    /* Size of elements */
+    if (params + sizeof(uint32_t) > end) {
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    BKNI_Memcpy(&data_size, params, sizeof(uint32_t));
+    params += sizeof(uint32_t);
+
+    if (params + data_size > end) {
+        BDBG_ERR(("%s: Data is invalid", BSTD_FUNCTION));
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+
+    for (tag_index = 0; tag_index < num_params; tag_index++) {
+        tag_item = km_tag_make_tag_item_from_android_data(&params, end, indirect_data, indirect_size);
+        if (!tag_item) {
+            err = BERR_OUT_OF_DEVICE_MEMORY;
+            BDBG_ERR(("%s: Failed to make tag item", BSTD_FUNCTION));
+            goto done;
+        }
+
+        /* Keep the given order in case it is significant for repeatable items */
+        if (!prev) {
+            BLST_D_INSERT_HEAD(&handle->tagList, tag_item, link);
+        } else {
+            BLST_D_INSERT_AFTER(&handle->tagList, prev, tag_item, link);
+        }
+        handle->num_params += 1;
+        prev = tag_item;
+    }
+
+    handle->current = NULL;
+    handle->tag = SKM_TAG_INVALID;
+    err = BERR_SUCCESS;
+
+done:
+    if (err != BERR_SUCCESS && handle) {
+        KM_Tag_DeleteContext(handle);
+        handle = NULL;
+    }
+    *ret_context = handle;
     return err;
 }
 
@@ -1126,6 +1356,208 @@ done:
     if (err == BERR_SUCCESS) {
         /* On success we update the incoming buffer size with the actual size used */
         *buffer_size = size + 2 * sizeof(uint32_t);
+    }
+    return err;
+}
+
+/*
+ * Structure of Android serialized AuthorizationSet is:
+ *   uint32_t           size of indirect data
+ *   uint8_t            block of indirect data
+ *   uint32_t           number of elements
+ *   uint32_t           size of element data
+ *   [uint32_t,...]     element data
+ */
+
+BERR_Code KM_Tag_SerializeToAndroidBlob(KM_Tag_ContextHandle handle, uint8_t *buffer, uint32_t *buffer_size)
+{
+    KM_Tag_Item *tag_item = NULL;
+    uint32_t size = 0;
+    uint32_t data_size = 0;
+    uint32_t indirect_size = 0;
+    uint8_t *indirect_data = NULL;
+    uint32_t indirect_offset = 0;
+    BERR_Code err;
+    uint8_t *ptr;
+    km_tag_value_t *tagValuePair;
+
+    BDBG_ASSERT(handle);
+    BDBG_OBJECT_ASSERT(handle, KM_Tag_Context);
+    BDBG_ASSERT(buffer_size);
+
+    /* Calculate the size required */
+    for (tag_item = BLST_D_FIRST(&handle->tagList); tag_item; tag_item = BLST_D_NEXT(tag_item, link)) {
+        BDBG_OBJECT_ASSERT(tag_item, KM_Tag_Item);
+        tagValuePair = (km_tag_value_t *)tag_item->tagValueData;
+        switch (km_tag_get_type(tagValuePair->tag)) {
+        case SKM_ENUM:
+        case SKM_ENUM_REP:
+        case SKM_UINT:
+        case SKM_UINT_REP:
+            data_size += sizeof(uint32_t) * 2;
+            break;
+        case SKM_ULONG:
+        case SKM_ULONG_REP:
+        case SKM_DATE:
+            data_size += sizeof(uint32_t) + sizeof(uint64_t);
+            break;
+        case SKM_BOOL:
+            data_size += sizeof(uint32_t) + 1;
+            break;
+        case SKM_BIGNUM:
+        case SKM_BYTES:
+            /* Store tag + data length + offset in the indirect data */
+            data_size += sizeof(uint32_t) * 3;
+            if (buffer && tagValuePair->value.blob_data_length) {
+                /* Create the indirect data block on first pass */
+                uint8_t *tmp = (uint8_t *)malloc(indirect_size + tagValuePair->value.blob_data_length);
+                if (!tmp) {
+                    size = 0;
+                    err = BERR_OUT_OF_DEVICE_MEMORY;
+                    goto done;
+                }
+                if (indirect_data) {
+                    BKNI_Memcpy(tmp, indirect_data, indirect_size);
+                }
+                BKNI_Memcpy(tmp + indirect_size, tagValuePair->blob_data, tagValuePair->value.blob_data_length);
+                free(indirect_data);
+                indirect_data = tmp;
+            }
+            indirect_size += tagValuePair->value.blob_data_length;
+            break;
+        default:
+            BDBG_ERR(("%s: Invalid tag type (%x)", BSTD_FUNCTION, km_tag_get_type(tagValuePair->tag)));
+            size = 0;
+            err = BSAGE_ERR_KM_INVALID_TAG;
+            goto done;
+        }
+    }
+
+    size = sizeof(uint32_t) +    /* Size of indirect data */
+        indirect_size +          /* Indirect data */
+        sizeof(uint32_t) +       /* Number of elements */
+        sizeof(uint32_t) +       /* Size of elements */
+        data_size;               /* Element data */
+
+    if (!buffer) {
+        /* If buffer is NULL, all we do is return the required size */
+        err = BERR_SUCCESS;
+        goto done;
+    }
+    if (*buffer_size < size) {
+        BDBG_ERR(("%s: insufficient buffer space (got %d, need %d)", BSTD_FUNCTION,*buffer_size, size));
+        err = BSAGE_ERR_KM_INSUFFICIENT_BUFFER_SPACE;
+        goto done;
+    }
+
+    /* Now serialize the data into the given buffer */
+    ptr = buffer;
+
+    /* Size of indirect data */
+    BKNI_Memcpy(ptr, &indirect_size, sizeof(indirect_size));
+    ptr += sizeof(indirect_size);
+
+    /* Indirect data */
+    if (indirect_size) {
+        BDBG_ASSERT(indirect_data);
+        BKNI_Memcpy(ptr, indirect_data, indirect_size);
+        ptr += indirect_size;
+    }
+
+    /* Number of elements */
+    BKNI_Memcpy(ptr, &handle->num_params, sizeof(handle->num_params));
+    ptr += sizeof(handle->num_params);
+
+    /* Size of elements */
+    BKNI_Memcpy(ptr, &data_size, sizeof(data_size));
+    ptr += sizeof(data_size);
+
+    /* Element data */
+    for (tag_item = BLST_D_FIRST(&handle->tagList); tag_item; tag_item = BLST_D_NEXT(tag_item, link)) {
+        BDBG_OBJECT_ASSERT(tag_item, KM_Tag_Item);
+        tagValuePair = (km_tag_value_t *)tag_item->tagValueData;
+        if (ptr - buffer + sizeof(uint32_t) > size) {
+            err = BSAGE_ERR_INTERNAL;
+            goto done;
+        }
+
+        BKNI_Memcpy(ptr, &tagValuePair->tag, sizeof(uint32_t));
+        ptr += sizeof(uint32_t);
+
+        switch (km_tag_get_type(tagValuePair->tag)) {
+        case SKM_ENUM:
+        case SKM_ENUM_REP:
+            if (ptr - buffer + sizeof(uint32_t) > size) {
+                err = BSAGE_ERR_INTERNAL;
+                goto done;
+            }
+            BKNI_Memcpy(ptr, &tagValuePair->value.enumerated, sizeof(uint32_t));
+            ptr += sizeof(uint32_t);
+            break;
+        case SKM_UINT:
+        case SKM_UINT_REP:
+            if (ptr - buffer + sizeof(uint32_t) > size) {
+                err = BSAGE_ERR_INTERNAL;
+                goto done;
+            }
+            BKNI_Memcpy(ptr, &tagValuePair->value.integer, sizeof(uint32_t));
+            ptr += sizeof(uint32_t);
+            break;
+        case SKM_ULONG:
+        case SKM_ULONG_REP:
+            if (ptr - buffer + sizeof(uint64_t) > size) {
+                err = BSAGE_ERR_INTERNAL;
+                goto done;
+            }
+            BKNI_Memcpy(ptr, &tagValuePair->value.long_integer, sizeof(uint64_t));
+            ptr += sizeof(uint64_t);
+            break;
+        case SKM_DATE:
+            if (ptr - buffer + sizeof(uint64_t) > size) {
+                err = BSAGE_ERR_INTERNAL;
+                goto done;
+            }
+            BKNI_Memcpy(ptr, &tagValuePair->value.date_time, sizeof(uint64_t));
+            ptr += sizeof(uint64_t);
+            break;
+        case SKM_BOOL:
+            if ((uint32_t)(ptr - buffer + 1) > size) {
+                err = BSAGE_ERR_INTERNAL;
+                goto done;
+            }
+            uint8_t val = tagValuePair->value.boolean ? 1 : 0;
+            BKNI_Memcpy(ptr, &val, 1);
+            ptr += 1;
+            break;
+        case SKM_BIGNUM:
+        case SKM_BYTES:
+            if (ptr - buffer + sizeof(uint32_t)*2 > size) {
+                err = BSAGE_ERR_INTERNAL;
+                goto done;
+            }
+            BKNI_Memcpy(ptr, &tagValuePair->value.blob_data_length, sizeof(uint32_t));
+            ptr += sizeof(uint32_t);
+            BKNI_Memcpy(ptr, &indirect_offset, sizeof(uint32_t));
+            ptr += sizeof(uint32_t);
+            indirect_offset += tagValuePair->value.blob_data_length;
+            break;
+
+        default:
+            BDBG_ERR(("%s: Invalid tag type (%x)", BSTD_FUNCTION, km_tag_get_type(tagValuePair->tag)));
+            size = 0;
+            err = BSAGE_ERR_KM_INVALID_TAG;
+            goto done;
+        }
+    }
+    err = BERR_SUCCESS;
+
+done:
+    if (err == BERR_SUCCESS) {
+        /* On success we update the incoming buffer size with the actual size used */
+        *buffer_size = size;
+    }
+    if (indirect_data) {
+        free(indirect_data);
     }
     return err;
 }

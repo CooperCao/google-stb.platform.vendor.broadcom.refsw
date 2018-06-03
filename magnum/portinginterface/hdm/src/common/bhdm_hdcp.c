@@ -1,40 +1,44 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "breg_endian.h"
 
@@ -1668,12 +1672,18 @@ BERR_Code BHDM_HDCP_RiLinkIntegrityCheck(
     BHDM_HDCP_ClearAuthentication(hHDMI) ;
 
 done:
+    if (hHDMI->TimerForcedTxHotplug)
     {
         BERR_Code errCode = BERR_SUCCESS;
 
-        BDBG_MSG(("*** No. of consecutive R0 mismtach %d -- No. of consecutive Ri mismatch %d ***",
-            hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches,
-            hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches));
+        if ((hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches)
+        || (hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches))
+        {
+            BDBG_MSG(("*** No. of consecutive R0 mismtach %d -- No. of consecutive Ri mismatch %d ***",
+                hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches,
+                hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches));
+        }
+
         if ((hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches
             + hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches >= BHDM_HDCP_MAX_RI_FAILURE_THRESHOLD))
         {
@@ -3074,7 +3084,14 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
 					break ;
 				}
 
-				BDBG_MSG(("HDCP2VERSION: 0x%02x", ucHdcp2VersionByte)) ;
+				/* WRN of any incorrect HDCP2VERSION reads */
+				if ((ucPreviousHdcp2VersionByte != 0x0)  /* 0x00 = HDCP 1.x */
+				&&  (ucPreviousHdcp2VersionByte != 0x4)) /* 0x04 = HDCP 2.2 */
+				{
+					BDBG_WRN(("Invalid HDCP2VERSION (%d) : 0x%02x",
+						uiSamplesRead+1, ucHdcp2VersionByte)) ;
+				}
+
 				if (!uiReadAttempts) /* first sample read */
 				{
 					ucPreviousHdcp2VersionByte = ucHdcp2VersionByte ;
@@ -3199,6 +3216,7 @@ BERR_Code BHDM_HDCP_AssertSimulatedHpd_isr(const BHDM_Handle hHDMI, bool enable,
 		/* Reset counters */
 		hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches = 0;
 		hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches = 0;
+		hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts = 0;
 	}
 
 #else
@@ -3252,6 +3270,7 @@ BERR_Code BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(const BHDM_Handle hHDMI, co
 {
     uint32_t Register, ulOffset;
     BREG_Handle hRegister;
+    BERR_Code rc = BERR_SUCCESS;
 
     BDBG_ENTER(BHDM_HDCP_UpdateHdcp2xAuthenticationStatus);
     BDBG_OBJECT_ASSERT(hHDMI, HDMI);
@@ -3264,7 +3283,17 @@ BERR_Code BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(const BHDM_Handle hHDMI, co
             Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED);
             Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED, authenticated);
         BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+
+        /* Authentication succeeded, schedule timer checking for REAUTH_REQ */
+        if (authenticated && hHDMI->TimerHdcp22StableLink)
+        {
+            BTMR_StopTimer_isr(hHDMI->TimerHdcp22StableLink);
+            BDBG_MSG(("%s: Start timer to check for REAUTH_REQ", BSTD_FUNCTION));
+            rc = BTMR_StartTimer_isr(hHDMI->TimerHdcp22StableLink, BHDM_P_SECOND * BHDM_HDCP_MINIMUM_TIME_FOR_HDCP22_STABLE_LINK) ;
+            if (rc) { rc = BERR_TRACE(rc); }
+        }
     BKNI_LeaveCriticalSection();
+
 
     BDBG_LEAVE(BHDM_HDCP_UpdateHdcp2xAuthenticationStatus);
     return BERR_SUCCESS;

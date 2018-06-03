@@ -120,6 +120,9 @@ endif
 ifeq ($(WIDEVINE_CDM_VERSION),3.2)
 CFLAGS += -DWV_CDM_V32
 endif
+ifeq ($(WIDEVINE_CDM_VERSION),3.5)
+CFLAGS += -DWV_CDM_V35
+endif
 else
 ifneq ($(MAKECMDGOALS),clean)
 include $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC21/widevine/widevine21.inc

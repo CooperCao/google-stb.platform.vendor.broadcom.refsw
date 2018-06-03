@@ -423,10 +423,11 @@ void bcm_main(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
     */
     for(i=0; i < xapi->xfd_num_mem; i++) {
         if (xfd_mem[i].top - xfd_mem[i].base) {
-
-            printf("%d \tmemc #%d 0x%08x -> 0x%08x %dMb\n",
-                    i, xfd_mem[i].memc, xfd_mem[i].base, xfd_mem[i].top,
-                    (xfd_mem[i].top - xfd_mem[i].base) / (1024*1024));
+            printf("%d \tmemc #%d 0x%08x%08x -> 0x%08x%08x %dMb\n",
+                    i, xfd_mem[i].memc,
+                    (uint32_t)(xfd_mem[i].base >> 32), (uint32_t)(xfd_mem[i].base & 0xffffffff),
+                    (uint32_t)(xfd_mem[i].top >> 32), (uint32_t)(xfd_mem[i].top & 0xffffffff),
+                    (uint32_t)((xfd_mem[i].top - xfd_mem[i].base) / (1024 * 1024)));
         }
     }
 

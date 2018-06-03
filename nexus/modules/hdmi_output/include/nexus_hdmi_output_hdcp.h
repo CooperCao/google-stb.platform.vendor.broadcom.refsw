@@ -307,6 +307,12 @@ typedef struct NEXUS_HdmiOutputHdcpStatus
     } hdcp2_2RxInfo;
 
     NEXUS_HdmiOutputHdcpKsv bksv;   /* Receiver's Bksv value */
+
+    NEXUS_HdcpVersion rxMaxHdcpVersion; /* Highest HDCP version supported by Rx. NOTE: the highest version enum
+                                                           does not have highest integer value. */
+    NEXUS_HdcpVersion selectedHdcpVersion;     /* HDCP Version selected by user or eAuto algorithm for authentication.
+                                                          Use linkReadyForEncryption to determine if HDCP is authenticated */
+
 } NEXUS_HdmiOutputHdcpStatus;
 
 /**

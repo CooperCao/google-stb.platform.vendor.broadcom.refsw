@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -63,7 +67,7 @@
 #if defined(__mips__) && defined(B_REFSW_ANDROID)
 /* Android's bionic C on MIPS does not have NPTL */
 #else
-#ifndef HAS_NPTL
+#if !defined HAS_NPTL && !defined BKNI_EMU_TICKTIME_FACTOR
 /* may require -lrt on older toolchains */
 #define HAS_NPTL 1
 #endif
@@ -140,7 +144,8 @@ static void BKNI_P_HeartBeatTimer_Uninit(BKNI_P_HeartBeatTimer *timer)
 {
     if(timer->started) {
         timer->exit = true;
-        pthread_cond_signal(&timer->cond);
+        rc = pthread_cond_signal(&timer->cond);
+        if (rc) BDBG_ASSERT(false);
         pthread_join(timer->thread, NULL);
     }
     pthread_cond_destroy(&timer->cond);
@@ -261,8 +266,8 @@ static pthread_t g_csOwner;
 static pthread_mutex_t g_alloc_state_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-#define B_TRACK_ALLOC_LOCK() pthread_mutex_lock(&g_alloc_state_mutex)
-#define B_TRACK_ALLOC_UNLOCK() pthread_mutex_unlock(&g_alloc_state_mutex)
+#define B_TRACK_ALLOC_LOCK() do {if (pthread_mutex_lock(&g_alloc_state_mutex)) BDBG_ASSERT(false);}while(0)
+#define B_TRACK_ALLOC_UNLOCK() do {if (pthread_mutex_unlock(&g_alloc_state_mutex)) BDBG_ASSERT(false);}while(0)
 #define B_TRACK_ALLOC_ALLOC(size) malloc(size)
 #define B_TRACK_ALLOC_FREE(ptr) free(ptr)
 #define B_TRACK_ALLOC_OS "linuxuser"
@@ -563,6 +568,24 @@ void BKNI_P_Stats_Print(void)
 
 static unsigned g_refcnt = 0;
 
+#ifdef BKNI_EMU_TICKTIME_FACTOR
+static int BKNI_P_ScaleTime(int time)
+{
+   int result;
+   if(time==BKNI_INFINITE) {
+     result = time;
+   } else {
+      result =  time*BKNI_EMU_TICKTIME_FACTOR;
+      if(result<time) {
+         result = time;
+      }
+   }
+   return result;
+}
+#else
+#define BKNI_P_ScaleTime(time) (time)
+#endif
+
 BERR_Code BKNI_Init(void)
 {
     BERR_Code result = BERR_SUCCESS;
@@ -580,11 +603,7 @@ BERR_Code BKNI_Init(void)
             result = BERR_TRACE(BERR_OS_ERROR);
             goto done;
         }
-        result = BKNI_P_MutexTrackingState_Init();
-        if(result!=BERR_SUCCESS) {
-            result = BERR_TRACE(result);
-            goto done;
-        }
+        BKNI_P_MutexTrackingState_Init();
         BKNI_P_StatsState_Init();
         BKNI_P_TrackAlloc_Init();
     }
@@ -680,7 +699,7 @@ BERR_Code BKNI_TryAcquireMutex(BKNI_MutexHandle handle)
     return BKNI_TryAcquireMutex_tagged(handle, NULL, 0);
 }
 
-BERR_Code
+void
 BKNI_AcquireMutex_tagged(BKNI_MutexHandle handle, const char *file, int line)
 {
     ASSERT_NOT_CRITICAL();
@@ -688,16 +707,17 @@ BKNI_AcquireMutex_tagged(BKNI_MutexHandle handle, const char *file, int line)
 
     if (pthread_mutex_lock(&handle->mutex)==0) {
         BKNI_P_MutexTracking_AfterAcquire(&handle->tracking, file, line);
-        return BERR_SUCCESS;
     } else {
-        return BERR_TRACE(BERR_OS_ERROR);
+        (void)BERR_TRACE(BERR_OS_ERROR);
     }
+    return;
 }
 
 #undef BKNI_AcquireMutex
-BERR_Code BKNI_AcquireMutex(BKNI_MutexHandle handle)
+void BKNI_AcquireMutex(BKNI_MutexHandle handle)
 {
-    return BKNI_AcquireMutex_tagged(handle, NULL, 0);
+    BKNI_AcquireMutex_tagged(handle, NULL, 0);
+    return;
 }
 
 void
@@ -865,6 +885,9 @@ BKNI_Delay(unsigned int microsec)
 {
     unsigned long start;
     unsigned long diff;
+
+    microsec = BKNI_P_ScaleTime(microsec);
+
     start = BKNI_P_GetMicrosecondTick();
     do {
         diff = BKNI_P_GetMicrosecondTick() - start;
@@ -872,7 +895,7 @@ BKNI_Delay(unsigned int microsec)
     return;
 }
 
-BERR_Code
+void
 BKNI_Sleep(unsigned int millisec)
 {
     struct timespec delay;
@@ -880,6 +903,8 @@ BKNI_Sleep(unsigned int millisec)
     int rc;
 
     ASSERT_NOT_CRITICAL();
+
+    millisec = BKNI_P_ScaleTime(millisec);
 
     delay.tv_sec = millisec/1000;
     delay.tv_nsec = 1000 * 1000 * (millisec%1000);
@@ -891,12 +916,12 @@ BKNI_Sleep(unsigned int millisec)
                 delay = rem; /* sleep again */
                 continue;
             }
-            return BERR_TRACE(BERR_OS_ERROR);
+            break;
         }
         break; /* done */
     }
 
-    return BERR_SUCCESS;
+    return;
 }
 
 
@@ -1058,6 +1083,8 @@ BKNI_WaitForEvent(BKNI_EventHandle event, int timeoutMsec)
         ASSERT_NOT_CRITICAL();
     }
     BDBG_OBJECT_ASSERT(event, BKNI_Event);
+
+    timeoutMsec = BKNI_P_ScaleTime(timeoutMsec);
 
     if (timeoutMsec!=0 && timeoutMsec!=BKNI_INFINITE) {
         if (timeoutMsec<0) {
@@ -1307,7 +1334,8 @@ BKNI_AddEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
         event->group = group;
         if (event->signal) {
             /* signal condition if signal already set */
-            pthread_cond_signal(&group->cond);
+            rc = pthread_cond_signal(&group->cond);
+            if (rc) BDBG_ASSERT(false);
         }
     }
     rc = pthread_mutex_unlock(&event->lock);
@@ -1402,6 +1430,8 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
 
     ASSERT_NOT_CRITICAL();
     BDBG_OBJECT_ASSERT(group, BKNI_EventGroup);
+
+    timeoutMsec = BKNI_P_ScaleTime(timeoutMsec);
 
     if (max_events<1) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);

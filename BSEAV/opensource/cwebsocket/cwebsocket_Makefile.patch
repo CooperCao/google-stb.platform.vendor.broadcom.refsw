@@ -14,7 +14,7 @@
  CCDEPMODE = depmode=gcc3
  CFLAGS = -g -O2
 +###Tell compiler where to find OPENSSL files and LIBEV files and where to put nexus/bin files
-+CFLAGS += -IPUT_OBJ_OPENSOURCE_PATH_HERE/libev/PUT_ARCH_HERE.debug/libev-4.24
++CFLAGS += -IPUT_OBJ_OPENSOURCE_PATH_HERE/libev/PUT_ARCH_HERE.PUT_DEBUG_RELEASE_HERE/libev-4.24
 +CFLAGS += -IPUT_OBJ_OPENSOURCE_PATH_HERE/openssl/PUT_OPENSSL_PATH_HERE/include
 +CFLAGS += -lcrypto -lssl -lpthread -lev -LPUT_NEXUS_BIN_PATH_HERE
  CPP = PUT_ARCH_HERE-gcc -E

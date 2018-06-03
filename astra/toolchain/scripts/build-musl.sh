@@ -10,7 +10,6 @@ set -ex
 #
 # MUSL
 #
-MUSL_VERSION=1.1.12
 MUSL_PKG=musl-$MUSL_VERSION.tar.gz
 MUSL_DIR=musl-$MUSL_VERSION
 MUSL_URL=http://www.musl-libc.org/releases/$MUSL_PKG
@@ -20,7 +19,7 @@ if [ ! -f $MUSL_PKG ]; then
 fi
 
 if [ ! -d $MUSL_DIR ]; then
-	tar zxvf $MUSL_PKG
+	(tar zxvf $MUSL_PKG  && patch -p0 < $MUSL_PATCH)
 fi
 
 if [ ! -f $PREFIX/$TARGET/lib/libc.so ]; then

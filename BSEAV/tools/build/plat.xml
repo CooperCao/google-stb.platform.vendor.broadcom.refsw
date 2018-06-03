@@ -16,6 +16,14 @@
     <cpu_arch>ARM64</cpu_arch>
     <boards></boards>
   </platform>
+  <platform id="97216">
+    <bondouts></bondouts>
+    <revisions>A0</revisions>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards>
+        <board name="sv">NEXUS_USE_7216_SV=y</board>
+    </boards>
+  </platform>
   <platform id="97230">
     <bondouts></bondouts>
     <revisions>B0</revisions>
@@ -388,8 +396,7 @@
 </kernels>
 <bootloaders>
   <version>1.0</version>
-  <bootloader type="BOLT" default="97255A0">1.41</bootloader>
-  <bootloader type="BOLT" default="ARM64,ARM">1.40</bootloader>
-  <bootloader type="CFE" default="BMIPS,MIPS,OLD_MIPS">18.1</bootloader>
+  <bootloader type="BOLT" default="ARM64,ARM">1.42</bootloader>
+  <bootloader type="CFE" default="BMIPS,MIPS,OLD_MIPS">18.2</bootloader>
 </bootloaders>
 </plat>

@@ -100,7 +100,7 @@ void BKNI_Free(void *mem);
 
 
 #define BKNI_Sleep(MILLISEC)		BKNI_Sleep_tagged(MILLISEC,__FILE__,__LINE__)
-BERR_Code BKNI_Sleep_tagged(unsigned millisec, const char *file, unsigned line);
+void BKNI_Sleep_tagged(unsigned millisec, const char *file, unsigned line);
 
 #define BKNI_Delay(MICROSEC)		BKNI_Delay_tagged(MICROSEC,__FILE__,__LINE__)
 void BKNI_Delay_tagged(unsigned int microsec, const char *file, unsigned line);

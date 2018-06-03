@@ -728,8 +728,8 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
     }
     else if (msg->startSettings.format == NEXUS_MessageFormat_ePsi)
     {
-        settings.data.atomSize = 256;
-        settings.data.dataReadyThreshold = 2048;
+        settings.data.atomSize = 0;
+        settings.data.dataReadyThreshold = 0;
     }
     else {
         settings.data.atomSize = 256;

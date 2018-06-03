@@ -39,6 +39,7 @@
 
 #include <linux/ktime.h>
 #include <linux/module.h>
+#include <linux/vmalloc.h>
 #include "bvc5_bin_pool_alloc_priv.h"
 
 BDBG_MODULE(BVC5);
@@ -142,4 +143,18 @@ EXPORT_SYMBOL(BVC5_UnregisterAlternateMemInterface);
 BVC5_BinPoolBlock_MemInterface *BVC5_P_GetBinPoolMemInterface(void)
 {
    return &s_memInterface;
+}
+
+/* These are to be used for allocations > PAGE_SIZE.  Linux uses slab allocator
+   for <= PAGE_SIZE, so fragmentation doesn't occur with kmalloc, however it
+   switches to a buddy system at > PAGE_SIZE.  Using vmalloc is slower but
+   doesn't need contiguous pages, so should work OK */
+void *BVC5_P_VMalloc(size_t size)
+{
+   return vmalloc(size);
+}
+
+void BVC5_P_VFree(void *mem)
+{
+   vfree(mem);
 }

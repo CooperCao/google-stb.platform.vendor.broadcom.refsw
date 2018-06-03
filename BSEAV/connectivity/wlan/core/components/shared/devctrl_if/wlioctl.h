@@ -11949,6 +11949,19 @@ typedef struct wlc_fbt_auth_resp {
 					*/
 } wlc_fbt_auth_resp_t;
 
+/** FBT Assoc Response Data structure */
+typedef struct wlc_fbt_assoc_resp {
+	uint8 macaddr[ETHER_ADDR_LEN]; /**< station mac address */
+	uint8 pad;
+	uint8 status;  /**< Status of parsing FBT association
+					Request in application
+					*/
+	uint32 ie_len;
+	uint8 ies[1]; /**< IEs contains MDIE, RSNIE,
+					FBTIE (ANonce, SNonce,R0KH-ID, R1KH-ID)
+					*/
+} wlc_fbt_assoc_resp_t;
+
 /** FBT Action Response frame */
 typedef struct wlc_fbt_action_resp {
 	uint16 version; /**< structure version */

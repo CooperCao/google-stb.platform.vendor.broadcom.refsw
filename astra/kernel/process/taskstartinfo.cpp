@@ -136,7 +136,6 @@ TzTask::TaskStartInfo::TaskStartInfo(ElfImage *image, const char *exeName, int n
     }
 
     *((unsigned int *) curr) = hwCaps;
-    curr += sizeof(unsigned int);
 
     state = true;
 }

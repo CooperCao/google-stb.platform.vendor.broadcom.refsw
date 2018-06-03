@@ -1213,7 +1213,7 @@ void BAPE_Playback_GetStatus(
             return;
         }
     }
-    else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eRdb )
+    else if ( hPlayback->bufferInterfaceType == BAPE_BufferInterfaceType_eDram )
     {
         pStatus->fifoSize = hPlayback->bufferSize;
         pStatus->queuedBytes = BAPE_BufferGroup_GetBufferDepth(hPlayback->bufferGroupHandle);

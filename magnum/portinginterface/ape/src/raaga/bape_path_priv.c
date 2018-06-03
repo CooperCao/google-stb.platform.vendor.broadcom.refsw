@@ -1631,3 +1631,39 @@ bool BAPE_PathNode_P_IsActive(
     }
     return true;
 }
+
+bool BAPE_PathNode_P_PauseBurstDisabled(BAPE_PathNode *pPathNode)
+{
+    BAPE_OutputPort outputs[BAPE_CHIP_MAX_OUTPUTS];
+    unsigned numOutputs = 0;
+    unsigned i;
+
+
+    BAPE_PathNode_P_GetConnectedOutputs(pPathNode, BAPE_CHIP_MAX_OUTPUTS, &numOutputs, outputs);
+
+    if (numOutputs > 0) {
+        for (i = 0; i < numOutputs; i++) {
+            bool compressed = false;
+            bool bursts = true;
+
+            switch (outputs[i]->type) {
+            case BAPE_OutputPortType_eSpdifOutput:
+                BAPE_SpdifOutput_P_DeterminePauseBurstEnabled((BAPE_SpdifOutputHandle)outputs[i]->pHandle, &compressed, &bursts);
+                if (compressed && !bursts) {
+                    return true;
+                }
+                break;
+            case BAPE_OutputPortType_eMaiOutput:
+                BAPE_MaiOutput_P_DeterminePauseBurstEnabled((BAPE_MaiOutputHandle)outputs[i]->pHandle, &compressed, &bursts);
+                if (compressed && !bursts) {
+                    return true;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    return false;
+}

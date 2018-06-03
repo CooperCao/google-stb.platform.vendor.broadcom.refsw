@@ -1,5 +1,6 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 
@@ -84,7 +85,6 @@ struct BME_SO_EXPORT Playpump_t
     BKNI_MutexHandle lock;
 
     NEXUS_PlaypumpHandle handle;
-    const uint8_t       *end;
     BKNI_EventHandle     event;
     uint8_t             *secureBuffer;
 

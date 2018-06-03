@@ -51,6 +51,9 @@
 extern "C" {
 #endif
 
+/* used to check for allocations from kmalloc > CPU_PAGE_SIZE */
+#define CPU_PAGE_SIZE 4096
+
 /*=Module Overview: ********************************************************
 
 

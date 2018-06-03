@@ -120,7 +120,7 @@ static BERR_Code _BI2C_P_ClkSet(BREG_Handle hReg, BI2C_ChannelHandle  hChn, int 
     uint32_t data, count=0;
 #define CLK_STRETCH_TIMEOUT 5000000 /* 5 seconds */
 #else
-    uint32_t data, count=0, incr=1, timeout_ms=0, tmp=0, timeout_uS=0;
+    uint32_t data, incr=1, timeout_ms=0, timeout_uS=0;
 #define CLK_STRETCH_TIMEOUT 200 /* 200 milli seconds */
 #define  CLK_STRETCH_DELAY_MICRO_SEC 200 /*200 Micro seconds*/
 #endif
@@ -179,11 +179,8 @@ static BERR_Code _BI2C_P_ClkSet(BREG_Handle hReg, BI2C_ChannelHandle  hChn, int 
                 }
                 else
                 {
-                    tmp = count + incr;
-                    count = incr;
-                    incr = tmp;
-                    timeout_ms += count;
-                    BKNI_Sleep(count);
+                    timeout_ms += incr;
+                    BKNI_Delay(incr * 1000);
                 }
             }
         }
@@ -317,7 +314,6 @@ BERR_Code BI2C_SwReset
 )
 {
     uint16_t i;
-    int no_ack = 0;
     BI2C_Handle hDev;
     BREG_Handle hReg;
     BI2C_Clk rate;
@@ -366,9 +362,7 @@ BERR_Code BI2C_SwReset
     BI2C_P_ClkSet(0);   /* Needed ????*/
 
 no_success:
-    if(rc != BERR_SUCCESS) return rc;
-    if (no_ack) return BI2C_ERR_NO_ACK;
-    else return BERR_SUCCESS;
+    return rc;
 }
 
 

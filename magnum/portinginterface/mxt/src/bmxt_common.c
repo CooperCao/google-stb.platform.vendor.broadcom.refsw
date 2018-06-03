@@ -97,6 +97,7 @@ uint32_t BMXT_RegRead32_common(BMXT_Handle handle, uint32_t addr)
             (uint32_t *)&block, sizeof(block)/sizeof(uint32_t), &rcR);
         /* coverity[dead_error_condition] */
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); return 0; }
+        /* coverity[dead_error_line] */
         if (rcR!=BERR_SUCCESS) { rc = BERR_TRACE(rcR); return 0; } /* propagate the failure */
         return block.returnRegisterValues[0];
     }
@@ -136,7 +137,9 @@ void BMXT_RegWrite32_common(BMXT_Handle handle, uint32_t addr, uint32_t data)
         rc = BRPC_CallProc(handle->hRpc, BMXT_RPC_WRITEXPT_CMD,
             (const uint32_t *)&block, sizeof(block)/sizeof(uint32_t),
             NULL, 0, &rcR);
+        /* coverity[dead_error_condition] */
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
+        /* coverity[dead_error_line] */
         if (rcR!=BERR_SUCCESS) { rc = BERR_TRACE(rcR); } /* propagate the failure */
     }
     else {

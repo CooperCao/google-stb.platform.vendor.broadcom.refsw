@@ -51,6 +51,7 @@ B_MMT_LIB_SOURCES += \
                     $(B_BSEAV_TOP)/lib/mmt/src/bmmt_parser.c \
                     $(B_BSEAV_TOP)/lib/mmt/src/bmmt_utils.c \
                     $(B_BSEAV_TOP)/lib/mmt/src/btlv_parser.c \
+                    $(B_BSEAV_TOP)/lib/mmt/src/bmmt_security.c \
                     $(B_BSEAV_TOP)/lib/mmt/src/bmmt.c \
                     $(B_BSEAV_TOP)/lib/media/bmedia_util.c \
                     $(B_BSEAV_TOP)/lib/utils/bioatom.c \

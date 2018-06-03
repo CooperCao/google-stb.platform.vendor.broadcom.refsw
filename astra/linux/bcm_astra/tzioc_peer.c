@@ -68,8 +68,11 @@ int _tzioc_peer_start(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX);
-    strncpy(pCmd->exec, pPeerExec, UAPPD_PATH_LEN_MAX);
+    strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->name[UAPPD_NAME_LEN_MAX-1] = '\0';
+    strncpy(pCmd->exec, pPeerExec, UAPPD_PATH_LEN_MAX-1);
+    pCmd->exec[UAPPD_PATH_LEN_MAX-1] = '\0';
     pCmd->shared = bPeerShared;
     pCmd->cookie = (uintptr_t)pClient;
 
@@ -104,7 +107,9 @@ int _tzioc_peer_stop(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX);
+    strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->name[UAPPD_NAME_LEN_MAX-1] = '\0';
     pCmd->cookie = (uintptr_t)pClient;
 
     err = _tzioc_msg_send(
@@ -138,7 +143,9 @@ int _tzioc_peer_getid(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX);
+    strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->name[UAPPD_NAME_LEN_MAX-1] = '\0';
     pCmd->cookie = (uintptr_t)pClient;
 
     err = _tzioc_msg_send(

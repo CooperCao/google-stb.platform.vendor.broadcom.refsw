@@ -64,9 +64,9 @@ static void print_hdmi_status(void)
         n = snprintf(hdcp_buf, sizeof(hdcp_buf), "%s", g_hdcpState[status.hdmi.hdcp.hdcpState]);
         if (status.hdmi.hdcp.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled) {
             if (sizeof(hdcp_buf) > n) {
-                n += snprintf(&hdcp_buf[n], sizeof(hdcp_buf)-n, " %s", status.hdmi.hdcp.hdcp2_2Features ? "2.2" : "1.x");
+                n += snprintf(&hdcp_buf[n], sizeof(hdcp_buf)-n, " %s", status.hdmi.hdcp.selectedHdcpVersion == NEXUS_HdcpVersion_e2x ? "2.2" : "1.x");
             }
-            if (status.hdmi.hdcp.hdcp2_2Features) {
+            if (status.hdmi.hdcp.selectedHdcpVersion == NEXUS_HdcpVersion_e2x) {
                 NEXUS_HdmiOutputHandle hdmiOutput;
                 hdmiOutput = NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0, NULL);
                 if (hdmiOutput) {

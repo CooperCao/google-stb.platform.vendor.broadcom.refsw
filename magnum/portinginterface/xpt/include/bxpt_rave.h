@@ -1864,9 +1864,6 @@ BERR_Code BXPT_P_RaveRamInit( BXPT_Rave_Handle hRave );
 BERR_Code BXPT_Rave_P_FlowControl( BXPT_Rave_Handle hRave );
 #endif
 
-void BXPT_Rave_P_SetBandHold( BXPT_Handle hXpt, unsigned PbChannelNo, uint32_t BandHoldStatus, bool SetHoldEn );
-void BXPT_Rave_P_GetBandHold( BXPT_Handle hXpt, uint32_t *BandHoldStatus );
-
 void BXPT_Rave_SetBandHold(BXPT_RaveCx_Handle Context,bool enable);
 
 #if BXPT_SW7425_4528_WORKAROUND

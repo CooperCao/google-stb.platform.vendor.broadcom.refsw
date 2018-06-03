@@ -55,7 +55,7 @@
 
 And it defined the following data types and functions:
     BKNI_P_MutexTracking  data type that should be embedded into the mutex object
-    BERR_Code BKNI_P_MutexTrackingState_Init(void) - used to initialize global state of the mutex tracking
+    void BKNI_P_MutexTrackingState_Init(void) - used to initialize global state of the mutex tracking
     void BKNI_P_MutexTrackingState_Uninit(void) - used to unitialized global mutex tracking statre
     void BKNI_P_MutexTracking_Init(BKNI_P_MutexTracking  *mutex, const char *file, unsigned line) - used to initialize per mutex state
     void BKNI_P_MutexTracking_Uninit(BKNI_P_MutexTracking  *mutex) - used to uninitialize per mutex state
@@ -83,11 +83,10 @@ typedef struct BKNI_P_MutexTracking  {
 
 static BKNI_P_MutexTrackingState s_MutexTracking;
 
-BERR_Code BKNI_P_MutexTrackingState_Init(void)
+void BKNI_P_MutexTrackingState_Init(void)
 {
     BKNI_P_MutexTrackingState *tracking = &s_MutexTracking;
     tracking->timerStarted = false;
-    return BERR_SUCCESS;
 }
 
 static void BKNI_P_MutexTracking_HeartBeat_locked(void)
@@ -185,7 +184,7 @@ static void BKNI_P_MutexTracking_AfterAcquire(BKNI_P_MutexTracking  *mutex, cons
 }
 #else /* #if BKNI_DEBUG_MUTEX_TRACKING */
 typedef unsigned BKNI_P_MutexTracking;
-#define BKNI_P_MutexTrackingState_Init() (BERR_SUCCESS)
+#define BKNI_P_MutexTrackingState_Init()
 #define BKNI_P_MutexTrackingState_Uninit() 
 #define BKNI_P_MutexTracking_Init(mutex, file, line) 
 #define BKNI_P_MutexTracking_Uninit(mutex)

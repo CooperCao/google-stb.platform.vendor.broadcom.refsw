@@ -1,39 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -42,6 +46,7 @@
 #include "bkni.h"
 #include "bchp_45308_leap_host_l2.h"
 #include "bchp_45308_leap_ctrl.h"
+#include "bchp_45308_leap_l2.h"
 #include "bchp_45308_tm.h"
 #include "bhab_45308.h"
 #include "bsat.h"
@@ -838,7 +843,6 @@ BERR_Code BSAT_45308_P_GetSearchRange(BSAT_ChannelHandle h, uint32_t *pSearchRan
 }
 
 
-#ifndef BSAT_EXCLUDE_AFEC
 /******************************************************************************
  BSAT_45308_P_SetAmcScramblingSeq()
 ******************************************************************************/
@@ -861,7 +865,6 @@ BERR_Code BSAT_45308_P_SetAmcScramblingSeq(BSAT_ChannelHandle h, BSAT_AmcScrambl
    BDBG_LEAVE(BSAT_45308_P_SetAmcScramblingSeq);
    return retCode;
 }
-#endif
 
 
 /******************************************************************************
@@ -2274,8 +2277,9 @@ BERR_Code BSAT_45308_P_GetFastChannelStatus(BSAT_ChannelHandle h, BSAT_FastStatu
 
    BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
    BERR_Code retCode;
-   uint32_t cmd = (h->channel << 28), result, counter, val;
-   uint8_t i, statusID;
+   uint32_t cmd = (h->channel << 28), result, val, i;
+   bool bDone;
+   uint8_t statusID;
 
    BDBG_ENTER(BSAT_45308_P_GetFastChannelStatus);
 
@@ -2291,40 +2295,39 @@ BERR_Code BSAT_45308_P_GetFastChannelStatus(BSAT_ChannelHandle h, BSAT_FastStatu
       cmd |= ((statusID & 0x0F) << (i*4));
    }
 
-   BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &val));
-   if (val != cmd)
-   {
-      write_command:
-      /* BDBG_WRN(("writing cmd 0x%X", cmd)); */
-      BSAT_45308_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &cmd));
-      pDevImpl->lastFastStatusCmd = cmd;
-      BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &result));
-      pDevImpl->lastFastStatusCount = result >> 8;
-   }
+   val = 0;
+   BSAT_45308_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &val));
+   BSAT_45308_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &cmd));
+   pDevImpl->lastFastStatusCmd = cmd;
 
-   for (i = 0; i < 3; i++)
+   /* interrupt the leap */
+   val = 1 << 25;
+   BSAT_45308_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, BCHP_LEAP_L2_CPU_SET, &val));
+
+   bDone = false;
+   for (i = 0; i < 1000; i++)
    {
       BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &result));
-      counter = result >> 8;
-      if (counter != pDevImpl->lastFastStatusCount)
+      if (result & 0x80000000)
       {
-         pDevImpl->lastFastStatusCount = counter;
+         bDone = true;
          break;
       }
-      BKNI_Sleep(1);
+      BKNI_Delay(1);
    }
-   if (i == 3)
+   if (!bDone)
    {
-      BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &val));
-      if (val != pDevImpl->lastFastStatusCmd)
-      {
-         /* BDBG_WRN(("BSAT_45308_P_GetFastChannelStatus: cmd changed to 0x%X", val)); */
-         goto write_command;
-      }
-
-      return BSAT_ERR_INVALID_STATE; /* should never happen */
+      retCode = BERR_TIMEOUT;
+      goto done;
    }
 
+   if (result & 0x40000000)
+   {
+      retCode = BSAT_ERR_POWERED_DOWN;
+      goto done;
+   }
+
+   /* BKNI_Printf("BSAT_GetFastChannelStatus: i=%d\n", i); */
    pStatus->bDemodLocked = (result & 0x80) ? true : false;
    for (i = 0; i < n; i++)
    {

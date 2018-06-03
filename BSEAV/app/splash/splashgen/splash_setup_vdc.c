@@ -614,8 +614,7 @@ static BERR_Code ActivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_H
     vidinfo = BFMT_GetVideoFormatInfoPtr(vidfmt);
 
     /* Get Current Settings */
-    TestError(BHDM_GetHdmiSettings(hHDM, &hdmiSettings),
-        "BHDM_GetHdmiSettings");
+    BHDM_GetHdmiSettings(hHDM, &hdmiSettings);
 
     /* Set the video format */
     hdmiSettings.eInputVideoFmt = vidfmt;

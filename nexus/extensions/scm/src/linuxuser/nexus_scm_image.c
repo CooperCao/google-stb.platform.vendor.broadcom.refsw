@@ -149,7 +149,7 @@ static NEXUS_Error scm_p_open(void *context,
     filepath = BKNI_Malloc(filepath_len);
     if (!filepath)
     {
-        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", BSTD_FUNCTION, filepath_len));
+        BDBG_ERR(("%s - Cannot allocate buffer for file path (%u bytes)", BSTD_FUNCTION, (unsigned)filepath_len));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
@@ -220,7 +220,7 @@ static NEXUS_Error scm_p_open(void *context,
 
     *image = pImageContainer;
 
-    BDBG_MSG(("%s: File %s opened, file id %p size %d\n", BSTD_FUNCTION, pImageContainer->filename, pImageContainer->fd, pImageContainer->uiImageSize));
+    BDBG_MSG(("%s: File %s opened, file id %p size %d\n", BSTD_FUNCTION, pImageContainer->filename, (void*)pImageContainer->fd, pImageContainer->uiImageSize));
     return NEXUS_SUCCESS;
 err:
 
@@ -286,7 +286,7 @@ static NEXUS_Error scm_p_next(void *image, unsigned chunk, const void **data, ui
     else    {
         if(read != length)  {
             /* Error */
-            BDBG_ERR(("%s: Error reading from file %s, read: %d, length: %d\n", BSTD_FUNCTION, pImageContainer->filename, read, length));
+            BDBG_ERR(("%s: Error reading from file %s, read: %d, length: %d\n", BSTD_FUNCTION, pImageContainer->filename, (unsigned)read, length));
             if(feof(pImageContainer->fd))   {
                 BDBG_ERR(("%s: EOF reached\n", BSTD_FUNCTION));
             }

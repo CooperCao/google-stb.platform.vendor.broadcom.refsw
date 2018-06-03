@@ -64,7 +64,9 @@ int _tzioc_peer_coredump(
 	pHdr->ucSeq  = 0;
 	pHdr->ulLen  = sizeof(*pCmd);
 
-	strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX);
+	strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->name[UAPPD_NAME_LEN_MAX-1] = '\0';
 	pCmd->paddr  = ulPaddr;
 	pCmd->bytes  = ulBytes;
 	pCmd->cookie = (uintptr_t)pClient;

@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: AudioCapture
@@ -849,23 +853,22 @@ static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHand
             }
             while ( bytesToCopy >= 4 )
             {
+                /*BDBG_ERR(("bitsPerSample %d, samplesPerDword %d", bufferDescriptor.bitsPerSample, bufferDescriptor.samplesPerDword));*/
                 if ( bufferDescriptor.bitsPerSample == 24 && bufferDescriptor.samplesPerDword == 1 )
                 {
+                    /* data is 32 bit, just pass through as is for now */
                     handle->pBuffer[handle->wptr] = *pSource++;
                 }
                 else if ( bufferDescriptor.bitsPerSample == 24 && bufferDescriptor.samplesPerDword > 1 )
                 {
-                    BDBG_ERR(("24 bit (non-32 bit padded) samplesa re not currently supported"));
+                    BDBG_ERR(("24 bit (non-32 bit padded) samples are not currently supported"));
                     BERR_TRACE(BERR_NOT_SUPPORTED);
                     return;
                 }
                 else
                 {
-                    #if 1
-                    handle->pBuffer[handle->wptr] = (*pSource++) & 0xffffff00;
-                    #else
-                    handle->pBuffer[handle->wptr] = (*pSource++) >> 8;
-                    #endif
+                    /* assume data is 32 bit, just pass through as is for now */
+                    handle->pBuffer[handle->wptr] = *pSource++;
                 }
                 NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
                 copied += 4;
@@ -1128,21 +1131,22 @@ static void NEXUS_AudioCapture_P_ConvertMono(NEXUS_AudioCaptureProcessorHandle h
             {
                 bytesToCopy = available;
             }
-            while ( bytesToCopy > 4 )
+            while ( bytesToCopy >= 4 )
             {
                 uint32_t sample;
                 if ( rightChannel )
                 {
                     pSource++;                          /* Skip Left1 */
-                    sample = (*pSource++)&0xffff0000;   /* Right1 */
+                    sample = (*pSource++)>>16;         /* Right1 */
                     pSource++;                          /* Skip Left2 */
-                    sample |= (*pSource++)>>16;         /* Right2 */
+                    sample |= (*pSource++)&0xffff0000;   /* Right2 */
+
                 }
                 else
                 {
-                    sample = (*pSource++)&0xffff0000;   /* Left1 */
+                    sample = (*pSource++)>>16;         /* Left1 */
                     pSource++;                          /* Skip Right1 */
-                    sample |= (*pSource++)>>16;         /* Left2 */
+                    sample |= (*pSource++)&0xffff0000;   /* Left2 */
                     pSource++;                          /* Skip Right2 */
                 }
                 handle->pBuffer[handle->wptr] = sample;
@@ -1215,7 +1219,7 @@ static void NEXUS_AudioCapture_P_ConvertMonoMix(NEXUS_AudioCaptureProcessorHandl
                 sample2 = (*pSource++)>>16;
                 sample2 += (*pSource++)>>16;
                 sample2 /= 2;
-                handle->pBuffer[handle->wptr] = (sample1<<16)|sample2;
+                handle->pBuffer[handle->wptr] = (sample2<<16)|sample1;
                 NEXUS_AudioCapture_P_AdvanceBuffer(handle, 4);
                 copied += 16;
                 bufferSize -= 16;

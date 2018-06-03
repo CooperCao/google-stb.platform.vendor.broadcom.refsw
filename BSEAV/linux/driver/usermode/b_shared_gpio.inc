@@ -101,20 +101,20 @@ static bool b_shared_gpio_check_linux_managed_gpio_irqs(void)
     if (g_shared_gpio_state.settings.gio_linux_irq && g_shared_gpio_state.settings.gio_aon_linux_irq)
     {
         linux_managed = b_os_irq_is_os_managed(g_shared_gpio_state.settings.gio_linux_irq);
-        if (g_brcm_gpio_verbose) PINFO("%s +gpio\n", linux_managed?"linux":"nexus");
+        if (g_brcm_gpio_verbose) BDBG_LOG(("%s +gpio", linux_managed?"linux":"nexus"));
         if (!linux_managed)
         {
             linux_managed = b_os_irq_is_os_managed(g_shared_gpio_state.settings.gio_aon_linux_irq);
-            if (g_brcm_gpio_verbose) PINFO("%s +aon.gpio\n", linux_managed?"linux":"nexus");
+            if (g_brcm_gpio_verbose) BDBG_LOG(("%s +aon.gpio", linux_managed?"linux":"nexus"));
         }
     }
     else
     {
-        if (g_brcm_gpio_verbose) PINFO("linux -virq nexus +gpio +aon.gpio\n");
+        if (g_brcm_gpio_verbose) BDBG_LOG(("linux -virq nexus +gpio +aon.gpio"));
         linux_managed = false;
     }
 
-    PINFO("shared gpio banks: %s", linux_managed ? "enabled" : "disabled");
+    BDBG_LOG(("shared gpio banks: %s", linux_managed ? "enabled" : "disabled"));
 
     return linux_managed;
 }
@@ -128,7 +128,7 @@ static bool b_shared_gpio_check_linux_managed_gpio_irqs(void)
 
 void b_shared_gpio_init_submodule(const b_shared_gpio_module_init_settings * settings)
 {
-    if (g_brcm_gpio_verbose) PINFO("gpio init submodule\n");
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio init submodule"));
 
     memset(&g_shared_gpio_state, 0, sizeof(g_shared_gpio_state));
     g_shared_gpio_state.settings = *settings;
@@ -140,7 +140,7 @@ static void b_shared_gpio_p_close_pin(struct b_shared_gpio_pin * pin)
 {
     unsigned long flags;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio %#x:%u free linux irq %u\n", pin->bank->base_address, pin->shift, b_os_irq_get_id(&pin->irq.base));
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio %#x:%u free linux irq %u", pin->bank->base_address, pin->shift, b_os_irq_get_id(&pin->irq.base)));
     b_os_irq_uninit_tagged(&pin->irq.base, "shgio close pin", __LINE__);
     B_SHARED_GPIO_SPIN_LOCK(flags);
     B_SHARED_GPIO_MASK_INT(pin->bank, pin);
@@ -151,7 +151,7 @@ static void b_shared_gpio_p_close_pin(struct b_shared_gpio_pin * pin)
 
 void b_shared_gpio_uninit_submodule(void)
 {
-    if (g_brcm_gpio_verbose) PINFO("gpio uninit submodule\n");
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio uninit submodule"));
     b_shared_gpio_close_submodule();
     g_shared_gpio_state.initialized = 0;
 }
@@ -166,7 +166,7 @@ static int b_shared_gpio_close_comatose_pin(struct b_shared_gpio_pin * pin)
     }
     else
     {
-        PINFO("leaving pin %#x:%u open because it is a wake source\n", pin->bank->base_address, pin->shift);
+        BDBG_LOG(("leaving pin %#x:%u open because it is a wake source", pin->bank->base_address, pin->shift));
         wakeable = true;
     }
 
@@ -207,7 +207,7 @@ void b_shared_gpio_close_submodule(void)
 {
     bool hasWakeable = false;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio close submodule\n");
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio close submodule"));
 
     /*
      * this will check if there are any wake sources among the open pins and return 1 if so.
@@ -225,7 +225,7 @@ void b_shared_gpio_close_submodule(void)
 
 int b_shared_gpio_open_submodule(void)
 {
-    if (g_brcm_gpio_verbose) PINFO("gpio open submodule\n");
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio open submodule"));
 
     /* this will close any open pin we still have open after last open/close sequence to driver */
     (void)b_shared_gpio_visit_all_open_pins(&b_shared_gpio_close_any_pin);
@@ -248,7 +248,7 @@ static void b_shared_gpio_isr(struct b_os_irq_desc * irq, void * context)
     struct b_shared_gpio_pin * pin = context;
     unsigned long flags;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio isr %#x:%u irq %u\n", pin->bank->base_address, pin->shift, b_os_irq_get_id(irq));
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio isr %#x:%u irq %u", pin->bank->base_address, pin->shift, b_os_irq_get_id(irq)));
 
     B_SHARED_GPIO_SPIN_LOCK(flags);
     if (!pin->irq.disabled)
@@ -287,7 +287,7 @@ static struct b_shared_gpio_bank * b_shared_gpio_get_bank(const b_shared_gpio_pi
 
     if (!pin_desc->bank_base_address)
     {
-        PERR("Invalid argument: NULL bank base address\n");
+        BDBG_ERR(("Invalid argument: NULL bank base address"));
         BERR_TRACE(-EINVAL); goto end;
     }
 
@@ -303,14 +303,14 @@ static struct b_shared_gpio_pin * b_shared_gpio_get_pin(struct b_shared_gpio_ban
 
     if (shift >= 32)
     {
-        PERR("Invalid argument: pin shift out of bounds %d\n", shift);
+        BDBG_ERR(("Invalid argument: pin shift out of bounds %d", shift));
         BERR_TRACE(-EINVAL); goto end;
     }
     pin = &bank->pins[shift];
     if (check_open && !pin->bank)
     {
         pin = NULL;
-        PERR("Pin not open: %#x %d\n", bank->base_address, shift);
+        BDBG_ERR(("Pin not open: %#x %d", bank->base_address, shift));
         BERR_TRACE(-EINVAL); goto end;
     }
 
@@ -322,7 +322,7 @@ void b_shared_gpio_init_banks(const b_shared_gpio_init_banks_settings * settings
 {
     unsigned i;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio init banks\n");
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio init banks"));
 
     if (!g_shared_gpio_state.initialized) { BERR_TRACE(-EINVAL); return; }
 
@@ -387,7 +387,7 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
     unsigned long flags;
     uint32_t bank_address;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio open pin %#x:%u:%s\n", pin_desc->bank_base_address, pin_desc->shift, b_shared_gpio_get_irq_type_name(irq_type));
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio open pin %#x:%u:%s", pin_desc->bank_base_address, pin_desc->shift, b_shared_gpio_get_irq_type_name(irq_type)));
 
     if (!g_shared_gpio_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
 
@@ -439,11 +439,11 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
         result = b_os_irq_acquire_tagged(&pin->irq.base, "shgio open pin", __LINE__);
         if (!result)
         {
-            if (g_brcm_gpio_verbose) PINFO("gpio %x:%u linux irq %u (%s)\n", bank->base_address, pin->shift, linux_irq, b_shared_gpio_get_irq_type_name(irq_type));
+            if (g_brcm_gpio_verbose) BDBG_LOG(("gpio %x:%u linux irq %u (%s)", bank->base_address, pin->shift, linux_irq, b_shared_gpio_get_irq_type_name(irq_type)));
         }
         else
         {
-            PERR("request_irq failed with %d, irq:'%s' linux:%u gpio: %#x:%u\n", result, "nexus_gpio", linux_irq , bank->base_address, pin->shift);
+            BDBG_ERR(("request_irq failed with %d, irq:'%s' linux:%u gpio: %#x:%u", result, "nexus_gpio", linux_irq , bank->base_address, pin->shift));
             B_SHARED_GPIO_SPIN_LOCK(flags);
             pin->bank = NULL;
             pin->irq.type = b_shared_gpio_irq_type_disabled;
@@ -453,7 +453,7 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
     }
     else
     {
-        PERR("Error finding gpio %#x:%u linux L1\n", pin_desc->bank_base_address, pin_desc->shift);
+        BDBG_ERR(("Error finding gpio %#x:%u linux L1", pin_desc->bank_base_address, pin_desc->shift));
         result = -EINVAL; BERR_TRACE(result);
     }
 
@@ -466,7 +466,7 @@ void b_shared_gpio_close_pin(const b_shared_gpio_pin_desc * pin_desc)
     struct b_shared_gpio_bank * bank;
     struct b_shared_gpio_pin * pin;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio close pin %#x:%u\n", pin_desc->bank_base_address, pin_desc->shift);
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio close pin %#x:%u", pin_desc->bank_base_address, pin_desc->shift));
 
     if (!g_shared_gpio_state.initialized) { BERR_TRACE(-EINVAL); return; }
 
@@ -493,7 +493,7 @@ void b_shared_gpio_get_int_status(b_shared_gpio_int_status * status)
     for (i = 0; i < sizeof(status->bank_status)/sizeof(status->bank_status[0]); i++)
     {
         status->bank_status[i] = B_SHARED_GPIO_GET_INT_STATUS(&g_shared_gpio_state.banks[i]);
-        if (g_brcm_gpio_verbose) PINFO("gpio status bank %u : %#x\n", i, status->bank_status[i]);
+        if (g_brcm_gpio_verbose) BDBG_LOG(("gpio status bank %u : %#x", i, status->bank_status[i]));
     }
     B_SHARED_GPIO_SPIN_UNLOCK(flags);
 }
@@ -504,7 +504,7 @@ int b_shared_gpio_clear_int(const b_shared_gpio_pin_desc * pin_desc)
     struct b_shared_gpio_bank * bank;
     unsigned long flags;
 
-    if (g_brcm_gpio_verbose) PINFO("gpio clear int %#x:%u\n", pin_desc->bank_base_address, pin_desc->shift);
+    if (g_brcm_gpio_verbose) BDBG_LOG(("gpio clear int %#x:%u", pin_desc->bank_base_address, pin_desc->shift));
 
     if (!g_shared_gpio_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
 
@@ -537,13 +537,13 @@ int b_shared_gpio_set_int_mask(const b_shared_gpio_pin_desc * pin_desc, bool dis
     B_SHARED_GPIO_SPIN_LOCK(flags);
     if (disabled && !pin->irq.disabled)
     {
-        if (g_brcm_gpio_verbose) PINFO("gpio int mask %#x:%u\n", bank->base_address, pin->shift);
+        if (g_brcm_gpio_verbose) BDBG_LOG(("gpio int mask %#x:%u", bank->base_address, pin->shift));
         B_SHARED_GPIO_MASK_INT(bank, pin);
         b_os_irq_set_enable_spinlocked_tagged(&pin->irq.base, !disabled, "shgio set mask", __LINE__);
     }
     else if (!disabled && pin->irq.disabled)
     {
-        if (g_brcm_gpio_verbose) PINFO("gpio int unmask %#x:%u\n", bank->base_address, pin->shift);
+        if (g_brcm_gpio_verbose) BDBG_LOG(("gpio int unmask %#x:%u", bank->base_address, pin->shift));
         B_SHARED_GPIO_UNMASK_INT(bank, pin);
         b_os_irq_set_enable_spinlocked_tagged(&pin->irq.base, !disabled, "shgio set mask", __LINE__);
     }
@@ -569,11 +569,11 @@ int b_shared_gpio_set_standby(const b_shared_gpio_pin_desc * pin_desc, bool enab
     pin = b_shared_gpio_get_pin(bank, pin_desc->shift, true);
     if (!pin) { result = -EINVAL; BERR_TRACE(-result); goto end; }
 
-    PINFO("gpio set_standby %#x:%u: linux_enabled = %d; en = %d; wake_src = %d\n",
+    BDBG_LOG(("gpio set_standby %#x:%u: linux_enabled = %d; en = %d; wake_src = %d",
         bank->base_address, pin->shift,
         b_os_irq_is_enabled(&pin->irq.base),
         enabled,
-        b_os_irq_is_wakeable(&pin->irq.base));
+        b_os_irq_is_wakeable(&pin->irq.base)));
 
     B_SHARED_GPIO_SPIN_LOCK(flags);
     b_os_irq_set_wake_capability_spinlocked_tagged(&pin->irq.base, enabled, "shgio set standby", __LINE__);
@@ -598,7 +598,7 @@ void b_shared_gpio_reenable_irqs_spinlocked(void)
         {
             pin = &bank->pins[p];
             if (!b_os_irq_get_id(&pin->irq.base) || pin->irq.disabled) continue;
-            if (g_brcm_gpio_verbose) PINFO("gpio irq re-enable %#x:%u linux irq %u\n", bank->base_address, pin->shift, b_os_irq_get_id(&pin->irq.base));
+            if (g_brcm_gpio_verbose) BDBG_LOG(("gpio irq re-enable %#x:%u linux irq %u", bank->base_address, pin->shift, b_os_irq_get_id(&pin->irq.base)));
             b_os_irq_set_enable_spinlocked_tagged(&pin->irq.base, true, "shgio re-enable", __LINE__);
         }
     }

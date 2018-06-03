@@ -335,9 +335,9 @@ const char BCMATTACHDATA(rstr_PowOffs2GTHA2)[] = "powoffs2gtha2";
 const char BCMATTACHDATA(rstr_PowOffsTempRange)[] = "powoffstemprange";
 #endif /* POWPERCHANNL */
 
-#if defined(RXDESENS_EN)
-const char BCMATTACHDATA(rstr_phyrxdesens)[] = "phyrxdesens";
-#endif  /* RXDESENS_EN */
+//#if defined(RXDESENS_EN)
+//const char BCMATTACHDATA(rstr_phyrxdesens)[] = "phyrxdesens";
+//#endif  /* RXDESENS_EN */
 
 /* reclaim strings that are only used in attach functions */
 const char BCMATTACHDATA(rstr_pagc2g)[] = "pagc2g";

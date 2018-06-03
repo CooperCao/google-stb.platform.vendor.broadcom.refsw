@@ -1057,6 +1057,9 @@ b_avi_load_next_riff_info(bavi_player_t player)
 	off_t cur_pos;
 
 	cur_pos = player->fd->seek(player->fd, 0, SEEK_CUR);
+    if(cur_pos<0) {
+        return -1;
+    }
 	player->fd->seek(player->fd, player->last_read_data_offset, SEEK_SET);
 	if(player->fd->read(player->fd, player->embedded_data, B_AVIX_HEADER_SIZE) != B_AVIX_HEADER_SIZE){
 		return BERR_TRACE(-1);
@@ -1083,7 +1086,10 @@ b_avi_load_next_riff_info(bavi_player_t player)
 
 	player->last_read_data_offset += B_AVI_GET_STD_CHUNK_SIZE(player->embedded_data);
 
-	player->fd->seek(player->fd, cur_pos, SEEK_SET);
+	cur_pos = player->fd->seek(player->fd, cur_pos, SEEK_SET);
+    if(cur_pos<0) {
+        return -1;
+    }
 
 	return 0;
 }
@@ -1925,6 +1931,9 @@ b_avi_player_stream_seek_dmf2(bavi_player_t player, b_avi_player_stream *stream,
 
 	fd = player->fd;
 	cur_pos = fd->seek(fd, 0, SEEK_CUR);
+    if(cur_pos<0) {
+        return BMEDIA_PLAYER_INVALID;
+    }
 
 	stream->cur_superindex_entry = -1;
 	rc = b_avi_load_std_index(player, stream, true);
@@ -1964,7 +1973,11 @@ b_avi_player_stream_seek_dmf2(bavi_player_t player, b_avi_player_stream *stream,
 
 	bfile_cache_clear(player->dmf2_info.dmf2_idx_cache[id]);
 
-	fd->seek(fd, cur_pos, SEEK_SET);
+	cur_pos = fd->seek(fd, cur_pos, SEEK_SET);
+    if(cur_pos<0) {
+        return BMEDIA_PLAYER_INVALID;
+    }
+
 
 	return time;
 }

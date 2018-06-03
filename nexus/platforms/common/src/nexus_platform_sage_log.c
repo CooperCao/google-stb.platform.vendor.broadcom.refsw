@@ -40,6 +40,7 @@
 #include "nexus_platform_sage_log.h"
 #if NEXUS_HAS_SAGE
 #include "nexus_sage.h"
+#include "bsagelib_types.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -50,6 +51,8 @@
 
 BDBG_MODULE(nexus_platform_sage_log);
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+
 static bool g_sageLogThreadDone;
 static pthread_t g_sageLogThread;
 
@@ -57,7 +60,7 @@ static pthread_t g_sageLogThread;
 #define SAGE_LOG_BUFFER_SIZE ((16*1024) + 16) /*+16 for 16byte alignment for AES ENC*/
 #define SAGE_B64_LOG_BUFFER_SIZE 21*1024 /*(4*SAGE_LOG_BUFFER_SIZE)/3 ceiled to next 1K*/
 #define SAGE_RSA_2048_KEY_SIZE 256
-
+#define MAX_SAGE_LOG_FILE_SIZE 512*1024*1024
 static void NEXUS_Platform_P_Hex2Base64_EncodeBlock(unsigned char *in, unsigned char *out, int len)
 {
     const char cb64[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -104,6 +107,7 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 {
     const char *pEnv = "sage_log";
     NEXUS_Error errCode;
+    int retVal=0;
     FILE *pFile=NULL;
     char pathname[SAGE_LOG_PATH_MAX];
     char header[128];
@@ -116,12 +120,25 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
     uint8_t *pBase64Buffer=NULL;
     uint32_t base64Outlen;
     uint32_t actualBufferSize=0,actualWrapBufSize=0;
+    off_t fileWriteOffset = 0;
+    const char *pFileSize=NULL;
+    off_t  maxFileSize = MAX_SAGE_LOG_FILE_SIZE;
+    uint32_t charCount=0;
 
     NEXUS_MemoryAllocationSettings allocSettings;
 
     BSTD_UNUSED(pParam);
 
-    snprintf(pathname, sizeof(pathname), "%s.bin", pEnv);
+    if((pFileSize = NEXUS_GetEnv("sage_log_file_size")) != NULL)
+    {
+        maxFileSize = NEXUS_atoi(pFileSize);
+    }
+
+    charCount = snprintf(pathname, sizeof(pathname), "%s.bin", pEnv);
+	if(0 == charCount)
+	{
+		BDBG_ERR(("snprintf Failed charCount %d",charCount));
+	}
     pFile = fopen(pathname, "wb+");
     if ( NULL == pFile )
     {
@@ -158,6 +175,17 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
             break;
         }
 
+        fileWriteOffset = ftello(pFile);
+        if((fileWriteOffset + bufferSize) > maxFileSize)
+        {
+            BDBG_MSG(("NEXUS_Platform_P_SageLogThread File wrap "));
+            retVal = fseeko(pFile, 0L, SEEK_SET);
+            if(retVal !=0)
+            {
+                BDBG_ERR(("NEXUS_Platform_P_SageLogThread File Seek Failed retVal 0x%x ", retVal));
+            }
+        }
+
         bufferSize -= wrapBufSize; /*buffsize = bufflen+wrapbuflen. Syncthunk will do copytouser only pOutbufsize.*/
 
         BDBG_MSG(("bufSize %d, wrapBufSize %d, actBufSize %d, actWrapBufSize %d",
@@ -165,7 +193,11 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
         NEXUS_Platform_P_Hex2Base64(keyBuffer, keySize, pBase64Buffer, &base64Outlen);
 
-        snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
+        charCount = snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
+        if(0 == charCount)
+        {
+            BDBG_ERR(("snprintf Failed charCount %d",charCount));
+        }
         if((keySize != 0)&&(bufferSize != 0))/*Do not write just key data only*/
         {
             (void)fwrite(header, strlen(header), 1, pFile);
@@ -174,7 +206,11 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
         NEXUS_Platform_P_Hex2Base64(pLogBuffer, bufferSize, pBase64Buffer, &base64Outlen);
 
-        snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:",actualBufferSize,bufferSize,base64Outlen);
+        charCount = snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:",actualBufferSize,bufferSize,base64Outlen);
+        if(0 == charCount)
+        {
+            BDBG_ERR(("snprintf Failed charCount %d",charCount));
+        }
         if(bufferSize != 0)
         {
             (void)fwrite(header, strlen(header), 1, pFile);
@@ -186,7 +222,12 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
             NEXUS_Platform_P_Hex2Base64(keyBuffer, keySize, pBase64Buffer, &base64Outlen);
 
-            snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
+            charCount = snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
+            if(0 == charCount)
+            {
+                BDBG_ERR(("snprintf Failed charCount %d",charCount));
+            }
+
             if((keySize != 0)&&(bufferSize != 0))/*Do not write just key data only*/
             {
                 (void)fwrite(header, strlen(header), 1, pFile);
@@ -195,7 +236,11 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
             NEXUS_Platform_P_Hex2Base64(pWrapLogBuffer, wrapBufSize, pBase64Buffer, &base64Outlen);
 
-            snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:", actualWrapBufSize, wrapBufSize, base64Outlen);
+            charCount = snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:", actualWrapBufSize, wrapBufSize, base64Outlen);
+            if(0 == charCount)
+            {
+                BDBG_ERR(("snprintf Failed charCount %d",charCount));
+            }
 
             (void)fwrite(header, strlen(header), 1, pFile);
             (void)fwrite(pBase64Buffer, base64Outlen, 1, pFile);
@@ -221,6 +266,8 @@ exit:
     pthread_exit(NULL);
     return NULL;
 }
+
+#else /*#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)*/
 
 #define UINT32_SWAP(value) ( ((value) << 24) | (((value) << 8) & 0x00ff0000) | (((value) >> 8) & 0x0000ff00) | ((value) >> 24) )
 
@@ -382,11 +429,13 @@ exit:
     pthread_exit(NULL);
     return NULL;
 }
-#endif
+#endif  /*#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)*/
+#endif /*if NEXUS_HAS_SAGE*/
 
 NEXUS_Error NEXUS_Platform_P_InitSageLog(void)
 {
 #if NEXUS_HAS_SAGE
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     if ( NEXUS_GetEnv("sage_log_file") )
     {
         if ( pthread_create(&g_sageLogThread, NULL, NEXUS_Platform_P_SageLogThread, NULL) )
@@ -394,10 +443,12 @@ NEXUS_Error NEXUS_Platform_P_InitSageLog(void)
             return BERR_TRACE(BERR_OS_ERROR);
         }
     }
+#else
     if ( pthread_create(&g_sageSecureLogThread, NULL, NEXUS_Platform_P_SageSecureLogThread, NULL) )
     {
         return BERR_TRACE(BERR_OS_ERROR);
     }
+#endif
 #endif
     return BERR_SUCCESS;
 }
@@ -405,6 +456,7 @@ NEXUS_Error NEXUS_Platform_P_InitSageLog(void)
 void NEXUS_Platform_P_UninitSageLog(void)
 {
 #if NEXUS_HAS_SAGE
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     if ( (pthread_t) NULL != g_sageLogThread )
     {
         g_sageLogThreadDone = true;
@@ -412,6 +464,7 @@ void NEXUS_Platform_P_UninitSageLog(void)
         g_sageLogThread = (pthread_t)NULL;
         g_sageLogThreadDone = false;
     }
+#else
     if ( (pthread_t) NULL != g_sageSecureLogThread )
     {
         g_sageSecureLogThreadDone = true;
@@ -419,5 +472,6 @@ void NEXUS_Platform_P_UninitSageLog(void)
         g_sageSecureLogThread = (pthread_t)NULL;
         g_sageSecureLogThreadDone = false;
     }
+#endif
 #endif
 }

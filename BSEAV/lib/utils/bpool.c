@@ -101,6 +101,7 @@ bpool_alloc(bpool_t pool, size_t size)
 			for(i=pool->last_free;i<(pool->nelem/B_POOL_BITS_IN_MAP);i++) {
 				if(pool->bitmap[i]!=(~0u)) {
 					unsigned bit;
+                    void *ptr;
 
 					pool->last_free = i;
 					bit = b_pool_first_zero(pool->bitmap[i]);
@@ -108,7 +109,11 @@ bpool_alloc(bpool_t pool, size_t size)
 					BDBG_ASSERT(pool->nfree_elem>0);
 					pool->nfree_elem--;
 					BDBG_MSG_TRACE(("bpool_alloc: %#lx %#lx offset %u [%x:%u]", (unsigned long)pool, (unsigned long)((uint8_t *)pool + sizeof(*pool) + pool->elem_size*(i*B_POOL_BITS_IN_MAP + bit)), i, (unsigned)pool->bitmap[i], bit));
-					return (void *)((uint8_t *)pool + sizeof(*pool) + pool->elem_size*(i*B_POOL_BITS_IN_MAP + bit));
+					ptr = (void *)((uint8_t *)pool + sizeof(*pool) + pool->elem_size*(i*B_POOL_BITS_IN_MAP + bit));
+#if __COVERITY__
+                    ptr = __coverity_alloc__(size);
+#endif
+                    return ptr;
 				}
 			}
 			if(pool->last_free==0) {

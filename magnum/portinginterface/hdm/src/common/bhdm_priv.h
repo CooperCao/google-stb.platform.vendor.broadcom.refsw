@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BHDM_PRIV_H__
@@ -362,7 +365,9 @@ typedef enum
         BHDM_P_TIMER_eScdcStatus, /* timer to wait for SCDC status */
         BHDM_P_TIMER_eTxScramble, /* timer to wait before enabling Tx Scrambling */
         BHDM_P_TIMER_ePacketChangeDelay, /* timer to delay transmisson of HDMI Packets after a change */
-        BHDM_P_TIMER_eForcedTxHotplug	/* timer act as pulse width when force Tx hotplug_in */
+        BHDM_P_TIMER_eForcedTxHotplug, /* timer act as pulse width when force Tx hotplug_in */
+        BHDM_P_TIMER_eHdcp22TxStableLink    /* timer act as the minimum time without REAUTH_REQ to
+                                                consider a stable link */
 } BHDM_P_TIMER ;
 
 
@@ -393,11 +398,18 @@ NOTE: Attached Rx does not see this HPD signal */
 #define BHDM_HDCP_MAX_RI_FAILURE_THRESHOLD 10
 
 /* Pulse width for simulated Tx HPD signal */
-#define BHDM_HDCP_FORCE_HPD_PULSE_WIDTH 100	/* in ms */
+#define BHDM_HDCP_FORCE_HPD_PULSE_WIDTH 100 /* in ms */
 
 /* Minimum consecutive Ri matches in order to reset Ri/R0 mismatch counters */
-#define BHDM_HDCP_MINIMUM_RI_STABLE_COUNT	5
+#define BHDM_HDCP_MINIMUM_RI_STABLE_COUNT   5
 
+/* Maximum consecutive REAUTH_REQ from attached Rx/Repeater before the HPD signal
+to the Tx is pulsed. NOTE: Attached Rx does not see this HPD signal */
+#define BHDM_HDCP_MAX_REAUTH_REQ_THRESHOLD 10
+
+/* Minimum period of time (in milliseconds) without receiving a REAUTH_REQ
+    to consider HDCP 2.2 stable link */
+#define BHDM_HDCP_MINIMUM_TIME_FOR_HDCP22_STABLE_LINK 10
 
 /*******************************************************************************
 Private HDMI Handle Declaration
@@ -582,6 +594,8 @@ typedef struct BHDM_P_Handle
         bool bReAuthRequestPending;
         BINT_CallbackHandle hHAECallback[MAKE_HAE_INTR_ENUM(LAST)] ;
         uint8_t Hdcp22RxStatusBuffer[2] ;
+        BTMR_TimerHandle TimerHdcp22StableLink;  /* link is considered stabled if no REAUTH_REQ is received
+                                                during this time */
 
         /************/
         /*   AutoWrite  */
@@ -695,14 +709,6 @@ BERR_Code BHDM_P_WritePacket(
         uint8_t PacketLength,
         uint8_t *PacketBytes
 ) ;
-
-void BHDM_P_VideoFmt2CEA861Code(
-        BFMT_VideoFmt eVideoFmt,
-        BFMT_AspectRatio eAspectRatio,
-        BAVC_HDMI_PixelRepetition ePixelRepetition,
-        uint8_t *VideoID
-) ;
-
 
 BERR_Code BHDM_P_SetGamutMetadataPacket(
         BHDM_Handle hHDMI               /* [in] HDMI Handle */
@@ -841,4 +847,3 @@ void BHDM_P_EnablePacketTransmission_isr(
 
 #endif /* BHDM_PRIV_H__ */
 /* end bhdm_priv.h */
-

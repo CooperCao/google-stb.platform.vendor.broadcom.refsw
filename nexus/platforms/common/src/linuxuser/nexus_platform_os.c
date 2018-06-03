@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,6 +36,7 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "nexus_platform_priv.h"
+#include "nexus_map.h"
 #include "bkni.h"
 #include "bcm_driver.h"
 #include "bdbg_log.h"
@@ -118,7 +119,6 @@ typedef struct NEXUS_Platform_Os_State {
     int memFd;
     int memFdCached;
     pthread_mutex_t lockUpdate32;
-    bool devZeroMaped;
 } NEXUS_Platform_Os_State;
 
 static NEXUS_Platform_Os_State g_NEXUS_Platform_Os_State;
@@ -665,7 +665,6 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         rc = BERR_TRACE(BERR_OS_ERROR);
         goto err_bcmdriver_open;
     }
-    g_NEXUS_Platform_Os_State.devZeroMaped = false;
 #if !B_REFSW_SYSTEM_MODE_CLIENT
     {
         struct bcmdriver_version get_version;
@@ -684,21 +683,8 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         if(rc==0) {
 #if !defined(NEXUS_CPU_ARM64)
             if(os_cfg.os_64bit) {
-                void *addr;
-                size_t length = 128 * 1024 * 1024;
-                int devZero;
-                devZero = open("/dev/zero", O_RDONLY);
-                if(devZero == -1) {
-                    rc = BERR_TRACE(BERR_OS_ERROR);return rc;
-                }
-                addr = mmap64(0, length, PROT_NONE, MAP_PRIVATE, devZero, 0);
-                close(devZero);
-                if(addr==MAP_FAILED) {
-                    rc = BERR_TRACE(BERR_OS_ERROR);return rc;
-                }
-                g_NEXUS_Platform_Os_State.devZeroMaped = true;
-                g_NEXUS_P_CpuNotAccessibleRange.start = addr;
-                g_NEXUS_P_CpuNotAccessibleRange.length = length;
+                g_NEXUS_P_CpuNotAccessibleRange.start = NULL;
+                g_NEXUS_P_CpuNotAccessibleRange.length = 0;
             }
 #endif
         }
@@ -790,10 +776,6 @@ NEXUS_Error NEXUS_Platform_P_UninitOS(void)
         NEXUS_Platform_P_UninitWakeupDriver();
     }
 #endif
-
-    if(g_NEXUS_Platform_Os_State.devZeroMaped) {
-        munmap(g_NEXUS_P_CpuNotAccessibleRange.start, g_NEXUS_P_CpuNotAccessibleRange.length);
-    }
 
 #if !B_REFSW_SYSTEM_MODE_SERVER
     if(state->debugTimer) {

@@ -348,8 +348,9 @@ BERR_Code BDSQ_g1_P_GetVersionInfo(BDSQ_Handle h, BFEC_VersionInfo *pVersion)
 ******************************************************************************/
 BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
 {
-   BDSQ_g1_P_ChannelHandle *hChn = (BDSQ_g1_P_ChannelHandle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
+   BDSQ_g1_P_ChannelHandle *hChn = (BDSQ_g1_P_ChannelHandle *)(h->pImpl);
+   bool bDsqChanOn;
    uint32_t val;
    uint8_t i;
 
@@ -369,9 +370,9 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
 
    BDBG_ENTER(BDSQ_g1_P_ResetChannel);
 
-   /* initialize phy block */
-   BDSQ_P_PowerUpDsecPhy(h);
-   h->bEnabled = true;
+   BDSQ_g1_P_IsChannelOn(h, &bDsqChanOn);
+   if (!bDsqChanOn)
+      return BDSQ_ERR_POWERED_DOWN;
 
    /* reset diseqc datapath */
    BDSQ_P_ToggleBit(h, BCHP_SDS_DSEC_DSRST, 0x00000001);
@@ -505,8 +506,11 @@ BERR_Code BDSQ_g1_P_Reset(BDSQ_Handle h)
 ******************************************************************************/
 BERR_Code BDSQ_g1_P_PowerDownChannel(BDSQ_ChannelHandle h)
 {
-   if (!h->bEnabled)
-      return BERR_SUCCESS;
+   bool bDsqChanOn;
+
+   BDSQ_g1_P_IsChannelOn(h, &bDsqChanOn);
+   if (!bDsqChanOn)
+      return BDSQ_ERR_POWERED_DOWN;
 
    /* power off diseqc rx */
    BDSQ_P_OrRegister(h, BCHP_SDS_DSEC_DSCTL02, 0x00800000);
@@ -524,6 +528,10 @@ BERR_Code BDSQ_g1_P_PowerDownChannel(BDSQ_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BDSQ_g1_P_PowerUpChannel(BDSQ_ChannelHandle h)
 {
+   /* initialize phy block */
+   BDSQ_P_PowerUpDsecPhy(h);
+   h->bEnabled = true;
+
    /* re-initialize diseqc */
    return BDSQ_g1_P_ResetChannel(h);
 }
@@ -550,7 +558,13 @@ BERR_Code BDSQ_g1_P_PowerDownVsense(BDSQ_ChannelHandle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BDSQ_g1_P_ChannelHandle *hChn = (BDSQ_g1_P_ChannelHandle *)(h->pImpl);
+   bool bVsenseChanOn;
+
    BDBG_ENTER(BDSQ_g1_P_PowerDownVsense);
+
+   BDSQ_g1_P_IsVsenseOn(h, &bVsenseChanOn);
+   if (!bVsenseChanOn)
+      return BDSQ_ERR_POWERED_DOWN;
 
    /* power down vsense phy */
    retCode = BDSQ_P_PowerDownVsensePhy(h);

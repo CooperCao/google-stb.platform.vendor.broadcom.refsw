@@ -1,41 +1,45 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -205,8 +209,45 @@ static int web_get_status_handler(struct mg_connection *conn, void *cbdata)
   return 200;
 }
 
-static int
-read_features(uint32_t *features) {
+static int web_get_state_handler(struct mg_connection *conn, void *cbdata)
+{
+#ifdef BP3_TA_FEATURE_READ_SUPPORT
+  uint32_t prodId = 0;
+  uint32_t securityCode = 0;
+  uint8_t  featureList[20]; // ptr to audio, video0, video1, host, sage - starting with byte 0, 0 enabled
+  uint32_t featureListSize = 20;
+  uint32_t bondOption = 0xFFFFFFFF;
+  bool     provisioned = false;
+  uint8_t *session = NULL;
+  uint32_t size;
+
+  if (bp3_session_start(&session, &size)) {
+    mg_send_http_error(conn, 500, "%s", "Unable to start bp3 session");
+    return 500;
+  }
+  int rc = bp3_get_chip_info (
+    (uint8_t *)featureList,
+    featureListSize,
+    &prodId,
+    &securityCode,
+    &bondOption,
+    &provisioned);
+  if (session)
+    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
+  if (rc) {
+    mg_send_http_error(conn, 500, "%s", "Unable to read chip information from bp3 ta");
+    return 500;
+  }
+  mg_write_header(conn, "text/plain");
+  mg_printf(conn, "%s", provisioned==true ? "Pass" : "Fail");
+  return 200;
+#else
+  mg_send_http_error(conn, 500, "%s", "Not supported in bp3 ta");
+  return 500;
+#endif
+}
+
+static int read_features(uint32_t *features) {
   int i, rc = 0;
   for(i=0; i< GlobalSram_IPLicensing_Info_size; i++)
   {
@@ -302,6 +343,7 @@ static struct mg_context *start_webserver()
     mg_set_request_handler(ctx, "/Bin", web_get_bp3_handler, 0);
     mg_set_request_handler(ctx, "/Status", web_get_status_handler, 0);
     mg_set_request_handler(ctx, "/Features", web_get_features_handler, 0);
+    mg_set_request_handler(ctx, "/State", web_get_state_handler, 0);
     return ctx;
 }
 
@@ -313,7 +355,7 @@ static void *ssdpProc(void *args UNUSED_PARAM) {
   uint32_t x;
   x = bswap_32(securityCode >> 12);
   memcpy(uu, &x, 4);
-  x = bswap_32(chipProdID & 0xFFFFF000); // assume 12 revision bits
+  x = bswap_32(chipProdID & 0xFFFFFF00); // assume 8 revision bits
   memcpy(uu + 4, &x, 4);
   x = bswap_32(otpIdHi);
   memcpy(uu + 8, &x, 4);
@@ -372,7 +414,7 @@ int start_bp3_host( int argc, char **argv ) {
     perror("BCHP_JTAG_OTP_GENERAL_STATUS_8");
     return rc;
   }
-
+  securityCode &= 0x03FFC000;
   uint8_t *session = NULL;
   uint32_t sessionSize = 0;
   rc = bp3_session_start(&session, &sessionSize);

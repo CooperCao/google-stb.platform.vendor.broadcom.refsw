@@ -1408,6 +1408,7 @@ NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff, uint32_t inputBufSize,
         *pWrapBufSize = wrapBufLen;
     }
     NEXUS_DmaJob_Destroy ( dmaJob );
+    BKNI_DestroyEvent(dmaEvent);
     NEXUS_Dma_Close(dma);
 
 error:

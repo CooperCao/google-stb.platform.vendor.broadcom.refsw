@@ -1074,16 +1074,16 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
         }
 
         /* Now upload it to the upstream transmitter */
-        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        errCode = NEXUS_HdmiInput_HdcpLoadKsvFifo(handle->hdmiInput, &downStream, pKsvs, downStream.devices) ;
-        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        if (errCode != NEXUS_SUCCESS)
+        if (handle->hdmiInput)
         {
-            errCode = BERR_TRACE(errCode);
-            BKNI_Free(pKsvs) ;
-            goto done;
+            errCode = NEXUS_HdmiInput_HdcpLoadKsvFifo(handle->hdmiInput, &downStream, pKsvs, downStream.devices) ;
+            if (errCode != NEXUS_SUCCESS)
+            {
+                errCode = BERR_TRACE(errCode);
+                BKNI_Free(pKsvs) ;
+                goto done;
+            }
         }
-
         BKNI_Free(pKsvs) ;
     }
 
@@ -1921,6 +1921,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
     NEXUS_Error errCode = NEXUS_SUCCESS;
     BHDCPlib_RxInfo rxInfo;
     NEXUS_HdmiOutputState state;
+    BHDM_HDCP_Version eHdcpVersion;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     RESOLVE_ALIAS(handle);
@@ -1939,6 +1940,17 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
         errCode = NEXUS_NOT_AVAILABLE ;
         goto done;
     }
+
+    errCode = BHDM_HDCP_GetHdcpVersion(handle->hdmHandle, &eHdcpVersion);
+    /* default to HDCP 1.x if HDCP Version cannot be read from the Rx */
+    if (errCode != BERR_SUCCESS) {
+        eHdcpVersion = BHDM_HDCP_Version_e1_1;
+    }
+    pStatus->rxMaxHdcpVersion = (eHdcpVersion == BHDM_HDCP_Version_e2_2) ?
+        NEXUS_HdcpVersion_e2x : NEXUS_HdcpVersion_e1x;
+
+    pStatus->selectedHdcpVersion = (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) ?
+        NEXUS_HdcpVersion_e2x : NEXUS_HdcpVersion_e1x;
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     {

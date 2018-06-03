@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *****************************************************************************/
 
 #include "bdsp_raaga_priv_include.h"
@@ -293,8 +297,12 @@ void BDSP_Raaga_P_CalculateHostFWsharedRWMemory(
     unsigned MemoryRequired = 0;
     BDSP_Raaga_P_CalculateInitMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
+
+	*pMemReqd += BDSP_MAX_HOST_DSP_L2C_SIZE; /* Hole memory to beat Cache coherency between Init and Target Print Memory*/
     BDSP_P_CalculateDescriptorMemory(&MemoryRequired);
     *pMemReqd += MemoryRequired;
+
+	*pMemReqd += BDSP_MAX_HOST_DSP_L2C_SIZE; /* Hole memory to beat Cache coherency between Init and Descriptor Memory*/
     BDSP_Raaga_P_CalculateDebugMemory(pdeviceSettings, &MemoryRequired);
     *pMemReqd += MemoryRequired;
 
@@ -465,6 +473,16 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
     BDSP_MMA_Memory Memory;
     BDBG_ENTER(BDSP_Raaga_P_AssignInitMemory);
 
+    ui32Size = BDSP_MAX_HOST_DSP_L2C_SIZE;
+    errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to assign Cache Hole of INIT Memory for DSP %d!!!!",dspindex));
+        goto end;
+    }
+    pDevice->memInfo.CacheHole1[dspindex].ui32Size = ui32Size;
+    pDevice->memInfo.CacheHole1[dspindex].Buffer   = Memory;
+
     errCode = BDSP_Raaga_P_AssignFreeFIFO(pDevice,dspindex,&(pDevice->memInfo.cmdQueueParams[dspindex].ui32FifoId), 1);
     if(errCode != BERR_SUCCESS)
     {
@@ -543,6 +561,16 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
 	}
 	pDevice->memInfo.genRspQueueParams[dspindex].ui32Size 	= 0;
 
+	errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
+		pDevice->memInfo.CacheHole1[dspindex].ui32Size,
+		&pDevice->memInfo.CacheHole1[dspindex].Buffer);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptorMemory: Unable to Release Cache hole for Init Memory for dsp %d!!!!",dspindex));
+		goto end;
+	}
+	pDevice->memInfo.CacheHole1[dspindex].ui32Size = 0;
+
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseInitMemory);
     return errCode;
@@ -555,18 +583,32 @@ static BERR_Code BDSP_Raaga_P_AssignDescriptorMemory(
 {
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t ui32Size = 0;
+	uint32_t index=0;
     BDSP_MMA_Memory Memory;
     BDBG_ENTER(BDSP_Raaga_P_AssignDescriptorMemory);
 
-    ui32Size = (BDSP_MAX_DESCRIPTORS * sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
+    ui32Size = BDSP_MAX_HOST_DSP_L2C_SIZE;
+    errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
     if(errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_Raaga_P_AssignDescriptorMemory: Unable to allocate RW memory for Descriptors for dsp %d!!!!",dspindex));
+        BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to assign Cache Hole Memory of Descriptor Memory for DSP %d!!!!",dspindex));
         goto end;
     }
-    pDevice->memInfo.DescriptorMemory[dspindex].ui32Size = ui32Size;
-    pDevice->memInfo.DescriptorMemory[dspindex].Buffer   = Memory;
+    pDevice->memInfo.CacheHole2[dspindex].ui32Size = ui32Size;
+    pDevice->memInfo.CacheHole2[dspindex].Buffer   = Memory;
+
+	for(index=0;index<BDSP_MAX_POOL_OF_DESCRIPTORS;index++)
+	{
+	    ui32Size= BDSP_ALIGN_SIZE((BDSP_MAX_DESCRIPTORS_PER_POOL*sizeof(BDSP_AF_P_sCIRCULAR_BUFFER)),BDSP_MAX_HOST_DSP_L2C_SIZE);
+	    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
+	    if(errCode != BERR_SUCCESS)
+	    {
+	        BDBG_ERR(("BDSP_Raaga_P_AssignDescriptorMemory: Unable to allocate RW memory for Descriptors for pool (%d) for dsp %d!!!!",index,dspindex));
+	        goto end;
+	    }
+	    pDevice->memInfo.DescriptorMemory[dspindex][index].ui32Size = ui32Size;
+	    pDevice->memInfo.DescriptorMemory[dspindex][index].Buffer   = Memory;
+	}
 
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_AssignDescriptorMemory);
@@ -579,17 +621,31 @@ static BERR_Code BDSP_Raaga_P_ReleaseDescriptorMemory(
 )
 {
     BERR_Code errCode = BERR_SUCCESS;
+	uint32_t index =0;
     BDBG_ENTER(BDSP_Raaga_P_ReleaseDescriptorMemory);
 
-    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
-		pDevice->memInfo.DescriptorMemory[dspindex].ui32Size,
-		&pDevice->memInfo.DescriptorMemory[dspindex].Buffer);
-    if(errCode != BERR_SUCCESS)
-    {
-        BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptorMemory: Unable to Release RW memory for Descriptors for dsp %d!!!!",dspindex));
-        goto end;
-    }
-	pDevice->memInfo.DescriptorMemory[dspindex].ui32Size = 0;
+	for(index=0;index<BDSP_MAX_POOL_OF_DESCRIPTORS;index++)
+	{
+	    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
+			pDevice->memInfo.DescriptorMemory[dspindex][index].ui32Size,
+			&pDevice->memInfo.DescriptorMemory[dspindex][index].Buffer);
+	    if(errCode != BERR_SUCCESS)
+	    {
+	        BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptorMemory: Unable to Release RW memory for Descriptors for pool(%d) for dsp %d!!!!",index, dspindex));
+	        goto end;
+	    }
+		pDevice->memInfo.DescriptorMemory[dspindex][index].ui32Size = 0;
+	}
+
+	errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
+		pDevice->memInfo.CacheHole2[dspindex].ui32Size,
+		&pDevice->memInfo.CacheHole2[dspindex].Buffer);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptorMemory: Unable to Release Cache hole for Descriptor Memory for dsp %d!!!!",dspindex));
+		goto end;
+	}
+	pDevice->memInfo.CacheHole2[dspindex].ui32Size = 0;
 
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseDescriptorMemory);
@@ -1393,78 +1449,115 @@ BERR_Code BDSP_Raaga_P_AssignDescriptor(
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 
 	BDBG_MSG(("BDSP_Raaga_P_AssignDescriptor: Number of descriptor = %d",numDescriptors));
-
-	while(allocatedDescriptors != numDescriptors)
+	while(allocatedDescriptors < numDescriptors)
 	{
-		for(;index<BDSP_MAX_DESCRIPTORS; index++)
+		for(;index<BDSP_MAX_POOL_OF_DESCRIPTORS; index++)
 		{
 			if(pDevice->hardwareStatus.descriptor[dspIndex][index]== false)
 			{
-				BDBG_MSG(("BDSP_Raaga_P_AssignDescriptor:index =%d",index));
+				BDBG_MSG(("BDSP_Raaga_P_AssignDescriptor:Pool index =%d",index));
 				break;
 			}
 		}
-		if(index < BDSP_MAX_DESCRIPTORS)
+		if(index < BDSP_MAX_POOL_OF_DESCRIPTORS)
 		{
+			uint32_t poolIndex = 0;
+			uint32_t count = (((numDescriptors-allocatedDescriptors)>BDSP_MAX_DESCRIPTORS_PER_POOL)?BDSP_MAX_DESCRIPTORS_PER_POOL:(numDescriptors-allocatedDescriptors));
 			pDevice->hardwareStatus.descriptor[dspIndex][index]=true;
-			Memory = pDevice->memInfo.DescriptorMemory[dspIndex].Buffer;
-			Memory.pAddr = (void *)((uint8_t *)pDevice->memInfo.DescriptorMemory[dspIndex].Buffer.pAddr+(index *sizeof(BDSP_AF_P_sCIRCULAR_BUFFER)));
-			Memory.offset= pDevice->memInfo.DescriptorMemory[dspIndex].Buffer.offset+(index *sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-			BDBG_MSG(("BDSP_Raaga_P_AssignDescriptor pAddr = %p Offset ="BDSP_MSG_FMT, Memory.pAddr, BDSP_MSG_ARG(Memory.offset)));
-			*pMemory = Memory;
-			pMemory++;
-			allocatedDescriptors++;
+			Memory = pDevice->memInfo.DescriptorMemory[dspIndex][index].Buffer;
+			while(poolIndex < count)
+			{
+				BDBG_MSG(("BDSP_Raaga_P_AssignDescriptor pAddr = %p Offset ="BDSP_MSG_FMT, Memory.pAddr, BDSP_MSG_ARG(Memory.offset)));
+				*pMemory = Memory;
+				pMemory++;
+				Memory.pAddr = (void *)((uint8_t *)Memory.pAddr+sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+				Memory.offset= Memory.offset+sizeof(BDSP_AF_P_sCIRCULAR_BUFFER);
+				allocatedDescriptors++;
+				poolIndex++;
+			}
 		}
 		else
 		{
-			BDBG_ERR(("BDSP_Raaga_P_AssignDescriptor: Ran out of Descriptors requested =%d, assigned = %d",numDescriptors,allocatedDescriptors));
+			BDBG_ERR(("BDSP_Raaga_P_AssignDescriptor: Ran out of Descriptors requested = %d, assigned = %d",numDescriptors,allocatedDescriptors));
 			errCode = BERR_INVALID_PARAMETER;
 			break;
 		}
 	}
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
-
 	BDBG_LEAVE(BDSP_Raaga_P_AssignDescriptor);
 	return errCode;
 }
 
-BERR_Code BDSP_Raaga_P_ReleaseDescriptor(
-	void *pDeviceHandle,
+static BERR_Code BDSP_Raaga_P_ReleaseDescriptor(
+	BDSP_Raaga *pDevice,
 	unsigned dspIndex,
 	dramaddr_t *pOffset,
 	unsigned numDescriptors
 )
 {
 	BERR_Code errCode = BERR_SUCCESS;
-	BDSP_Raaga *pDevice;
 	unsigned index = 0, releasedDescriptors = 0;
 
 	BDBG_ENTER(BDSP_Raaga_P_ReleaseDescriptor);
-	pDevice = (BDSP_Raaga *)pDeviceHandle;
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 
 	BDBG_MSG(("BDSP_Raaga_P_ReleaseDescriptor: Number of descriptor = %d",numDescriptors));
-	BKNI_ReleaseMutex(pDevice->deviceMutex);
-	while(releasedDescriptors != numDescriptors)
+	while(releasedDescriptors < numDescriptors)
 	{
+		uint32_t count =(((numDescriptors-releasedDescriptors)>BDSP_MAX_DESCRIPTORS_PER_POOL)?BDSP_MAX_DESCRIPTORS_PER_POOL:(numDescriptors-releasedDescriptors));
 		BDBG_MSG(("BDSP_Raaga_P_ReleaseDescriptor: Descriptor ="BDSP_MSG_FMT,BDSP_MSG_ARG(*pOffset)));
-		if((*pOffset >= pDevice->memInfo.DescriptorMemory[dspIndex].Buffer.offset)&&
-		(*pOffset <=(pDevice->memInfo.DescriptorMemory[dspIndex].Buffer.offset + pDevice->memInfo.DescriptorMemory[dspIndex].ui32Size)))
+		for(;index<BDSP_MAX_POOL_OF_DESCRIPTORS; index++)
 		{
-			index = (((*pOffset) - pDevice->memInfo.DescriptorMemory[dspIndex].Buffer.offset)/sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-			BDBG_MSG(("BDSP_Raaga_P_ReleaseDescriptor: index = %d", index));
-			pDevice->hardwareStatus.descriptor[dspIndex][index]=false;
-			pOffset++;
-			releasedDescriptors++;
-		}
-		else
-		{
-			BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptor: Trying to release a descriptor("BDSP_MSG_FMT") not in the block ",BDSP_MSG_ARG(*pOffset)));
-			errCode = BERR_INVALID_PARAMETER;
-			break;
+			if(*pOffset == pDevice->memInfo.DescriptorMemory[dspIndex][index].Buffer.offset)
+			{
+				BDBG_MSG(("BDSP_Raaga_P_ReleaseDescriptor:Pool index =%d",index));
+				pDevice->hardwareStatus.descriptor[dspIndex][index]=false;
+				releasedDescriptors = releasedDescriptors+count;
+				pOffset = pOffset+count;
+				break;
+			}
 		}
 	}
+	if(releasedDescriptors != numDescriptors)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleaseDescriptor: Number Descriptors Released (%d), Requested (%d)",releasedDescriptors,numDescriptors));
+		errCode = BERR_INVALID_PARAMETER;
+	}
+	BKNI_ReleaseMutex(pDevice->deviceMutex);
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseDescriptor);
+	return errCode;
+}
+
+BERR_Code BDSP_Raaga_P_ReleasePortDescriptors(
+	BDSP_Raaga *pDevice,
+	unsigned    dspIndex,
+	BDSP_AF_P_sIoPort *psIoPort
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned j=0, i=0, k=0;
+	dramaddr_t decriptorArray[BDSP_MAX_DESCRIPTORS_PER_POOL];
+	for(j=0;j<psIoPort->ui32numPortBuffer;j++)
+	{
+		for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
+		{
+			decriptorArray[k++] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
+			psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
+		}
+	}
+	if(k > BDSP_MAX_DESCRIPTORS_PER_POOL)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleasePortDescriptors: Number of Descriptors being Released(%d) is more than Cacheline(%d)",k,BDSP_MAX_DESCRIPTORS_PER_POOL));
+	}
+	errCode = BDSP_Raaga_P_ReleaseDescriptor(
+		pDevice,
+		dspIndex,
+		&decriptorArray[0],
+		k);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleasePortDescriptors: Error in Cleanup of Descriptor"));
+	}
 	return errCode;
 }
 

@@ -217,6 +217,7 @@ NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set);
 
 NEXUS_Error NEXUS_Sage_P_Status(NEXUS_SageStatus *pStatus);
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 /*pBuff size should be equal to CRRBuffsize + 16bytes for AES enc alignment*/
 NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff,  uint32_t inputBufSize,
                                       uint32_t *pBufSize, uint32_t *pWrapBufSize,
@@ -226,6 +227,7 @@ NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff,  uint32_t inputBufSize,
 NEXUS_Error NEXUS_Sage_P_GetEncKey(uint8_t *pKeyBuff,uint32_t inputKeyBufSize, uint32_t *pOutKeySize);
 
 void NEXUS_Sage_P_SAGELogUninit(void);
+#endif
 
 NEXUS_Error Nexus_SageModule_P_Img_Create(const char *id, void **ppContext, BIMG_Interface  *pInterface);
 void Nexus_SageModule_P_Img_Destroy(void *pContext);

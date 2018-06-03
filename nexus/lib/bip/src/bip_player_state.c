@@ -1122,7 +1122,7 @@ static BIP_Status openAndAddPidChannelToTrackList(
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added AllPassPidChannel Index!" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
 
-        if (hPlayer->streamInfo.usePlaypump)
+        if (hPlayer->streamInfo.usePlaypump || hPlayer->useNexusPlaypump)
         {
             hTrackEntry->hPidChannel = NEXUS_Playpump_OpenPidChannel(hPlayer->hPlaypump, trackId, &hTrackEntry->settings.pidSettings.pidSettings);
             BIP_CHECK_GOTO(( hTrackEntry->hPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
@@ -5661,6 +5661,15 @@ static BIP_Status processPreparingState_locked(
         }
         /* else neither app changed the streamInfo nor it changed the clock recovery mode, we will keep the one that we had determined during Probe. */
 
+#ifdef NEXUS_HAS_ASP
+        if ( hPlayer->prepareSettings.enableHwOffload)
+        {
+            /* With ASP, we will have to use the Nexus Playpump. */
+            hPlayer->useNexusPlaypump = true;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "PrepareSettings enables ASP HW offload, so overriding to use NEXUS Playpump!" BIP_MSG_PRE_ARG));
+        }
+        else
+#endif
         /* If App hasn't set the flag whether to use playpump or playback & app changed the streamInfo, then Re-Determine it. */
         if (pStreamInfo && !pStreamInfo->usePlaypump && !pStreamInfo->usePlayback && appChangedStreamInfo)
         {
@@ -6138,7 +6147,7 @@ static BIP_Status createAspChannelAndSendHttpRequest(
 
     if (hPlayer->streamInfo.transportType != NEXUS_TransportType_eTs)
     {
-        BDBG_ERR(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "transportType=%s not yet supported by ASPs" BIP_MSG_PRE_ARG,
+        BDBG_ERR(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "transportType=%s not yet supported by ASP" BIP_MSG_PRE_ARG,
                     BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_NEXUS_TransportType(hPlayer->streamInfo.transportType) ));
         completionStatus = BIP_ERR_NOT_SUPPORTED;
         goto error;
@@ -6210,7 +6219,7 @@ static BIP_Status createAspChannelAndSendHttpRequest(
 
         /* Prepare HTTP Request into this buffer. */
 #define HTTP_GET_REQUEST_STRING \
-    "GET /%s%s%s HTTP/1.1\r\n" \
+    "GET %s%s%s HTTP/1.1\r\n" \
     "Connection: Close\r\n" \
     "User-Agent: ASP Test Player\r\n" \
     "\r\n"
@@ -6219,7 +6228,7 @@ static BIP_Status createAspChannelAndSendHttpRequest(
                             hPlayer->hUrl->query ? hPlayer->hUrl->query:"",
                             hPlayer->hUrl->fragment ? hPlayer->hUrl->fragment:""
                 );
-        BDBG_WRN(("httpReq=%s", (char *)pHttpReqBuf));
+        BDBG_WRN(("httpReq=\n%s", (char *)pHttpReqBuf));
 
         /* Provide this buffer to ASP so that it can send it out on the network. */
         rc = B_AspChannel_WriteComplete(hPlayer->hAspChannel, strlen(pHttpReqBuf));
@@ -6237,9 +6246,9 @@ static BIP_Status checkForHttpResponse(
 {
     B_Error     rc;
     const void *pHttpRespBuf;
-    unsigned    httpRespBufSize;
+    unsigned    httpRespBufSize = 0;
     const void *pHttpRespBuf1;
-    unsigned    httpRespBufSize1;
+    unsigned    httpRespBufSize1 = 0;
 
     BSTD_UNUSED(pHttpRespBuf1);
     BSTD_UNUSED(httpRespBufSize1);
@@ -6248,7 +6257,7 @@ static BIP_Status checkForHttpResponse(
     rc = B_AspChannel_GetReadBufferWithWrap(hPlayer->hAspChannel, &pHttpRespBuf, &httpRespBufSize, &pHttpRespBuf1, &httpRespBufSize1);
     BDBG_ASSERT(rc==B_ERROR_SUCCESS);
 
-    if (httpRespBufSize)
+    if (httpRespBufSize && pHttpRespBuf)
     {
         /* TODO: HTTP Response is available, parse it & check if full Response has been read. */
         /* Otherwise, save the partial response into the buffer. */
@@ -6348,7 +6357,7 @@ static BIP_Status processStartingState_locked(
 
         /* Start PBIP so the playback can start. */
 #ifdef NEXUS_HAS_ASP
-        if ( hPlayer->startApi.pSettings->enableHwOffload)
+        if ( hPlayer->prepareSettings.enableHwOffload)
         {
             B_Error brc;
 

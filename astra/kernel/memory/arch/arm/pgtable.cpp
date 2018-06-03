@@ -70,14 +70,14 @@ void PageTable::init() {
 
     kernPageTable = new(kernPageTableMem) PageTable;
 
-    uint64_t l1Table;
+    uint64_t l1Dir;
     register unsigned int ttbr1Low, ttbr1High;
     ARCH_SPECIFIC_GET_TTBR1(ttbr1Low,ttbr1High);
-    l1Table = ((uint64_t)ttbr1High << 32) | ttbr1Low;
+    l1Dir = ((uint64_t)ttbr1High << 32) | ttbr1Low;
 
-    sys_page_table = (void *)l1Table;
+    sys_page_table = (void *)l1Dir;
 
-    kernPageTable->topLevelDir = (uint64_t *)TzMem::physToVirt((const void *)l1Table);
+    kernPageTable->topLevelDir = (uint64_t *)TzMem::physToVirt((const void *)l1Dir);
     kernPageTable->asid = KERNEL_ASID;
     printf("Kernel page table base addr %p\n", (void *)kernPageTable->topLevelDir);
 
@@ -114,7 +114,7 @@ void PageTable::freePageTableBlock(TzMem::VirtAddr vaddr) {
 PageTable::PageTable(const PageTable& rhs, uint8_t aid, bool fork) {
 
     topLevelDir = (uint64_t *)allocPageTableBlock();
-    // printf("Created page table %p %p\n", TzMem::virtToPhys(topLevelDir), topLevelDir);
+    //printf("Created page table %p %p\n", TzMem::virtToPhys(topLevelDir), topLevelDir);
 
     this->asid = aid;
     spinLockInit(&lock);
@@ -124,39 +124,39 @@ PageTable::PageTable(const PageTable& rhs, uint8_t aid, bool fork) {
             topLevelDir[i] = 0;
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
+            ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
             continue;
         }
 
         uint32_t rhsL2Block = (uint32_t)(rhs.topLevelDir[i] & L2_BLOCK_ADDR_MASK);
-		uint64_t *rhsL2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t) rhsL2Block);
+        uint64_t *rhsL2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t) rhsL2Block);
 
         uint64_t *l2Dir = (uint64_t *)allocPageTableBlock();
-		uint64_t l1Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(l2Dir) & L2_BLOCK_ADDR_MASK);
+        uint64_t l1Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(l2Dir) & L2_BLOCK_ADDR_MASK);
         l1Entry |= 0x3;
         topLevelDir[i] = l1Entry;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
+        ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
         for (int j=0; j<L2_PAGE_NUM_ENTRIES; j++) {
             if (rhsL2Dir[j] == 0) {
                 l2Dir[j] = 0;
                 // We wrote the entry into cached memory. Force it to
                 // main memory by doing a DCCIMVAC on the entry.
-				ARCH_SPECIFIC_DCCIMVAC(&l2Dir[j]);
+                ARCH_SPECIFIC_DCCIMVAC(&l2Dir[j]);
                 continue;
             }
 
             uint32_t rhsL3Block = (uint32_t)(rhsL2Dir[j] & L2_BLOCK_ADDR_MASK);
-			uint64_t *rhsL3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)rhsL3Block);
+            uint64_t *rhsL3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)rhsL3Block);
 
             uint64_t *l3Dir = (uint64_t *)allocPageTableBlock();
-			uint64_t l2Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(l3Dir) & L3_BLOCK_ADDR_MASK);
+            uint64_t l2Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(l3Dir) & L3_BLOCK_ADDR_MASK);
             l2Entry |= 0x3;
             l2Dir[j] = l2Entry;
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&l2Dir[j]);
+            ARCH_SPECIFIC_DCCIMVAC(&l2Dir[j]);
 
             for (int k=0; k<L3_PAGE_NUM_ENTRIES; k++) {
                 uint64_t l3Entry = rhsL3Dir[k];
@@ -184,7 +184,7 @@ PageTable::PageTable(const PageTable& rhs, uint8_t aid, bool fork) {
 
                 // We wrote the entry into cached memory. Force it to
                 // main memory by doing a DCCIMVAC on the entry.
-				ARCH_SPECIFIC_DCCIMVAC(&l3Dir[k]);
+                ARCH_SPECIFIC_DCCIMVAC(&l3Dir[k]);
             }
         }
     }
@@ -192,22 +192,22 @@ PageTable::PageTable(const PageTable& rhs, uint8_t aid, bool fork) {
 
 PageTable::~PageTable() {
 
-	if (topLevelDir == nullptr)
+    if (topLevelDir == nullptr)
         return;
 
     for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++) {
-		if (topLevelDir[i] == 0)
+        if (topLevelDir[i] == 0)
             continue;
 
-		uint32_t l2Block = (uint32_t)(topLevelDir[i] & L2_BLOCK_ADDR_MASK);
-		uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)l2Block);
+        uint32_t l2Block = (uint32_t)(topLevelDir[i] & L2_BLOCK_ADDR_MASK);
+        uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)l2Block);
 
         for (int j=0; j<L2_PAGE_NUM_ENTRIES; j++) {
             if (l2Dir[j] == 0)
                 continue;
 
             uint32_t l3Block = (uint32_t)(l2Dir[j] & L3_BLOCK_ADDR_MASK);
-			uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)l3Block);
+            uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)l3Block);
 
             for (int k=0; k<L3_PAGE_NUM_ENTRIES; k++) {
                 uint64_t l3Entry = l3Dir[k];
@@ -231,68 +231,68 @@ PageTable::~PageTable() {
     }
 
     freePageTableBlock(topLevelDir);
-	topLevelDir = nullptr;
+    topLevelDir = nullptr;
 }
 
 void PageTable::reserveRange(TzMem::VirtAddr vaddrFirstPage, TzMem::VirtAddr vaddrLastPage) {
     TzMem::VirtAddr vaddr = vaddrFirstPage;
 
-	if (topLevelDir == nullptr) {
-		topLevelDir = (uint64_t *)allocPageTableBlock();
+    if (topLevelDir == nullptr) {
+        topLevelDir = (uint64_t *)allocPageTableBlock();
         for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++) {
-			topLevelDir[i] = 0;
+            topLevelDir[i] = 0;
 
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
-		}
-	}
+            ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
+        }
+    }
 
     while (vaddr < vaddrLastPage) {
 
-		int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         l1Idx = l1Idx & 0x01;
-		uint64_t l1Entry = topLevelDir[l1Idx];
-        // printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
+        uint64_t l1Entry = topLevelDir[l1Idx];
+        //printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
         if (l1Entry == 0) {
 
             uint64_t *ptBlock = (uint64_t *)allocPageTableBlock();
             for (int i=0; i<L2_PAGE_NUM_ENTRIES; i++)
                 ptBlock[i] = 0;
 
-			l1Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L2_BLOCK_ADDR_MASK);;
+            l1Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L2_BLOCK_ADDR_MASK);;
             l1Entry |= 0x3;
-			topLevelDir[l1Idx] = l1Entry;
+            topLevelDir[l1Idx] = l1Entry;
 
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[l1Idx]);
-		}
+            ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[l1Idx]);
+        }
 
         uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-		uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-		int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+        int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         uint64_t l2Entry = l2Dir[l2Idx];
-        // printf("Mapping vaddr %p: l2Idx %d l2Entry 0x%x%x\n", vaddr, l2Idx, (unsigned int)(l2Entry >> 32), (unsigned int)(l2Entry & 0xffffffff));
+        //printf("Mapping vaddr %p: l2Idx %d l2Entry 0x%x%x\n", vaddr, l2Idx, (unsigned int)(l2Entry >> 32), (unsigned int)(l2Entry & 0xffffffff));
         if (l2Entry == 0) {
 
             uint64_t *ptBlock = (uint64_t *)allocPageTableBlock();
             for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++)
                 ptBlock[i] = 0;
 
-			l2Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L3_BLOCK_ADDR_MASK);
+            l2Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L3_BLOCK_ADDR_MASK);
             l2Entry |= 0x3;
 
             l2Dir[l2Idx] = l2Entry;
 
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
-		}
+            ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
+        }
 
         blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-		uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-		int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+        int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         //printf("Reserving vaddr %p: l3Idx %d\n", vaddr, l3Idx);
 
         uint64_t l3Entry = 0x3;
@@ -302,121 +302,188 @@ void PageTable::reserveRange(TzMem::VirtAddr vaddrFirstPage, TzMem::VirtAddr vad
         l3Dir[l3Idx] = l3Entry;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+        ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 
         vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
     }
 }
 
 void PageTable::releaseAddrRange(TzMem::VirtAddr vaddrFirstPage, unsigned int rangeSize) {
+    SpinLocker locker(&lock);
     TzMem::VirtAddr vaddr = vaddrFirstPage;
-    TzMem::VirtAddr vaddrLastPage = PAGE_START_4K((uint8_t *)vaddr + rangeSize);
+    TzMem::VirtAddr vaddrLastPage = PAGE_START_4K((uint8_t *)vaddr + rangeSize - 1);
 
-	if (topLevelDir == nullptr)
+    if (topLevelDir == nullptr)
         return;
 
-    while (vaddr < vaddrLastPage) {
-		int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    uint64_t *l1Dir = topLevelDir;
+    while (vaddr <= vaddrLastPage) {
+        int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         l1Idx = l1Idx & 0x01;
-		uint64_t l1Entry = topLevelDir[l1Idx];
-        // printf("UnMapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
+        uint64_t l1Entry = l1Dir[l1Idx];
+        //printf("Releasing vaddr %p: l1Idx %d l1Entry 0x%llx\n", vaddr, l1Idx, l1Entry);
         if (l1Entry == 0)
             return;
 
         uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-		uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-		int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+
+        int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         uint64_t l2Entry = l2Dir[l2Idx];
-        // printf("UnMapping vaddr %p: l2Idx %d l2Entry 0x%x%x\n", vaddr, l2Idx, (unsigned int)(l2Entry >> 32), (unsigned int)(l2Entry & 0xffffffff));
+        //printf("Releasing vaddr %p: l2Idx %d l2Entry 0x%llx\n", vaddr, l2Idx, l2Entry);
         if (l2Entry == 0)
             return;
 
         blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-		uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-		int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
-        //printf("Release vaddr %p: l3Idx %d\n", vaddr, l3Idx);
+        uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
 
-        uint64_t l3Entry = 0x0;
+        int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t l3Entry = l3Dir[l3Idx];
+        //printf("Releasing vaddr %p: l3Idx %d, l3Entry 0x%llx\n", vaddr, l3Idx, l3Entry);
+
+        // Prepare L3 entry.
+        l3Entry = 0x0;
+
+        // Release the page.
         l3Dir[l3Idx] = l3Entry;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+        ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 
         vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
+
+        // Check if the l3Dir can be freed.
+        bool canFree = true;
+        for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++) {
+            if (l3Dir[i] != 0) {
+                // No there is at-least one valid entry in this dir.
+                canFree = false;
+                break;
+            }
+        }
+        if (!canFree)
+            continue;
+
+        // There are no valid entries in L3 dir. Free it.
+        freePageTableBlock(l3Dir);
+        l2Dir[l2Idx] = 0;
+        // We wrote the entry into cached memory. Force it to
+        // main memory by doing a DCCIMVAC on the entry.
+        ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
+
+        // Now check if l2Dir can be freed.
+        canFree = true;
+        for (int i=0; i<L2_PAGE_NUM_ENTRIES; i++) {
+            if (l2Dir[i] != 0) {
+                // No there is at-least one valid entry in this dir.
+                canFree = false;
+                break;
+            }
+        }
+        if (!canFree)
+            continue;
+
+        // There are no valid entries in L2 dir. Free it.
+        freePageTableBlock(l2Dir);
+        l1Dir[l1Idx] = 0;
+        // We wrote the entry into cached memory. Force it to
+        // main memory by doing a DCCIMVAC on the entry.
+        ARCH_SPECIFIC_DCCIMVAC(&l1Dir[l1Idx]);
+
+        // Now check if l1Dir can be freed.
+        canFree = true;
+        for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++) {
+            if (l1Dir[i] != 0) {
+                // No there is at-least one valid entry in this dir.
+                canFree = false;
+                break;
+            }
+        }
+        if (!canFree)
+            continue;
+
+        // There are no valid entries in L1 dir. Free it.
+        freePageTableBlock(l1Dir);
+        topLevelDir = nullptr;
+        break;
     }
+
+    // Flush the TLB to remove any stale references to the now unmapped pages.
+    // Also invalidate the branch predictor.
+    ARCH_SPECIFIC_TLB_FLUSH;
 }
 
 void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::VirtAddr vaddrLastPage,
             const TzMem::PhysAddr paddrFirstPage, const int memAttr, const int memAccessPerms, const bool executeNever, const bool mapShared, const bool nonSecure) {
 
-    // printf("page table %p: map [%p, %p] to [%p]\n", this, vaddrFirstPage, vaddrLastPage, paddrFirstPage);
+    //printf("page table %p: map [%p, %p] to [%p]\n", this, vaddrFirstPage, vaddrLastPage, paddrFirstPage);
     SpinLocker locker(&lock);
 
     TzMem::VirtAddr vaddr = vaddrFirstPage;
     TzMem::PhysAddr paddr = paddrFirstPage;
 
-	if (topLevelDir == nullptr) {
-		topLevelDir = (uint64_t *)allocPageTableBlock();
+    if (topLevelDir == nullptr) {
+        topLevelDir = (uint64_t *)allocPageTableBlock();
         for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++) {
-			topLevelDir[i] = 0;
+            topLevelDir[i] = 0;
 
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
-		}
-	}
+            ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[i]);
+        }
+    }
 
     while (vaddr <= vaddrLastPage) {
 
-		 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+         int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         l1Idx = l1Idx & 0x01;
-		uint64_t l1Entry = topLevelDir[l1Idx];
-        // printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
+        uint64_t l1Entry = topLevelDir[l1Idx];
+        //printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
         if (l1Entry == 0) {
 
             uint64_t *ptBlock = (uint64_t *)allocPageTableBlock();
             for (int i=0; i<L2_PAGE_NUM_ENTRIES; i++)
                 ptBlock[i] = 0;
 
-			l1Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L2_BLOCK_ADDR_MASK);
+            l1Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L2_BLOCK_ADDR_MASK);
             l1Entry |= 0x3;
-			topLevelDir[l1Idx] = l1Entry;
+            topLevelDir[l1Idx] = l1Entry;
 
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[l1Idx]);
-		}
+            ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[l1Idx]);
+        }
 
         uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-		uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-		int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+        int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         uint64_t l2Entry = l2Dir[l2Idx];
-        // printf("Mapping vaddr %p: l2Idx %d l2Entry 0x%x%x\n", vaddr, l2Idx, (unsigned int)(l2Entry >> 32), (unsigned int)(l2Entry & 0xffffffff));
+        //printf("Mapping vaddr %p: l2Idx %d l2Entry 0x%x%x\n", vaddr, l2Idx, (unsigned int)(l2Entry >> 32), (unsigned int)(l2Entry & 0xffffffff));
         if (l2Entry == 0) {
 
             uint64_t *ptBlock = (uint64_t *)allocPageTableBlock();
             for (int i=0; i<L3_PAGE_NUM_ENTRIES; i++)
                 ptBlock[i] = 0;
 
-			l2Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L3_BLOCK_ADDR_MASK);
+            l2Entry = (uint64_t)((uintptr_t)TzMem::virtToPhys(ptBlock) & L3_BLOCK_ADDR_MASK);
             l2Entry |= 0x3;
 
             l2Dir[l2Idx] = l2Entry;
 
             // We wrote the entry into cached memory. Force it to
             // main memory by doing a DCCIMVAC on the entry.
-			ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
-		}
+            ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
+        }
 
         blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-		uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-		int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+        int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         //printf("Mapping vaddr %p: l3Idx %d\n", vaddr, l3Idx);
 
         uint64_t currEntry = l3Dir[l3Idx];
 
         uint64_t l3Entry = 0x3;
-		l3Entry |=  (uint64_t)((uintptr_t)paddr & L3_PHYS_ADDR_MASK); //0xFFFFF000
+        l3Entry |=  (uint64_t)((uintptr_t)paddr & L3_PHYS_ADDR_MASK); //0xFFFFF000
 
         SET_MEMORY_ACCESS_FLAG(l3Entry, ACCESS_FLAG_NO_FAULT_GEN);
         SET_MEMORY_ATTR(l3Entry, memAttr);
@@ -438,7 +505,7 @@ void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::
         l3Dir[l3Idx] = l3Entry;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+        ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 
         vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
         paddr = (TzMem::PhysAddr)((uint8_t *)paddr + PAGE_SIZE_4K_BYTES);
@@ -447,47 +514,52 @@ void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::
     // Issue a memory barrier: Data accesses and instructions that follow this point should not get
     // re-ordered to run before this point
 
-	ARCH_SPECIFIC_MEMORY_BARRIER;
+    ARCH_SPECIFIC_MEMORY_BARRIER;
 }
 
 void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::VirtAddr vaddrLastPage, const bool releaseVaddr) {
 
-    // printf("page table %p: unmap [%p, %p]\n", this, vaddrFirstPage, vaddrLastPage);
+    //printf("page table %p: unmap [%p, %p]\n", this, vaddrFirstPage, vaddrLastPage);
     SpinLocker locker(&lock);
-
     TzMem::VirtAddr vaddr = vaddrFirstPage;
 
+    if (topLevelDir == nullptr)
+        return;
+
+    uint64_t *l1Dir = topLevelDir;
     while (vaddr <= vaddrLastPage) {
-		 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         l1Idx = l1Idx & 0x01;
-		if (topLevelDir[l1Idx] == 0) {
-			err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped. No L1 entry.\n", __PRETTY_FUNCTION__, vaddr);
+        uint64_t l1Entry = l1Dir[l1Idx];
+        //printf("Unmapping vaddr %p: l1Idx %d l1Entry 0x%llx\n", vaddr, l1Idx, l1Entry);
+        if (l1Entry == 0) {
+            err_msg("%s:\n\t Attempt to unmap page %p that wasn't mapped. No L1 entry.\n", __PRETTY_FUNCTION__, vaddr);
             kernelHalt("Attempted unmap a page that wasn't mapped");
         }
 
-		uint64_t l1Entry = topLevelDir[l1Idx];
         uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-		uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+        uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
 
-		int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
-        if (l2Dir[l2Idx] == 0) {
-			err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped. No L2 entry.\n", __PRETTY_FUNCTION__, vaddr);
-            kernelHalt("Attempted unmap a page that wasn't mapped");
-        }
-
+        int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
         uint64_t l2Entry = l2Dir[l2Idx];
-        blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-		uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
-
-		int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
-        if (l3Dir[l3Idx] == 0) {
-            err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+        //printf("Unmapping vaddr %p: l2Idx %d l2Entry 0x%llx\n", vaddr, l2Idx, l2Entry);
+        if (l2Entry == 0) {
+            err_msg("%s:\n\t  Attempt to unmap page %p that wasn't mapped. No L2 entry.\n", __PRETTY_FUNCTION__, vaddr);
             kernelHalt("Attempted unmap a page that wasn't mapped");
         }
 
-        // Unmap the page.
-        //printf("UnMapping vaddr %p: l3Idx %d\n", vaddr, l3Idx);
-        uint64_t l3Entry;
+        blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
+        uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+
+        int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+        uint64_t l3Entry = l3Dir[l3Idx];
+        //printf("Releasing vaddr %p: l3Idx %d, l3Entry 0x%llx\n", vaddr, l3Idx, l3Entry);
+        if (l3Entry == 0) {
+            err_msg("%s:\n\t  Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
+            kernelHalt("Attempted unmap a page that wasn't mapped");
+        }
+
+        // Prepare L3 entry.
         if (releaseVaddr) {
             // Release the page.
             l3Entry = 0;
@@ -499,10 +571,11 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem
             SET_MEMORY_ACCESS_FLAG(l3Entry, ACCESS_FLAG_FAULT_GEN);
         }
 
+        // Unmap the page.
         l3Dir[l3Idx] = l3Entry;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+        ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 
         vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
 
@@ -520,12 +593,13 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem
         }
         if (!canFree)
             continue;
+
         // There are no valid entries in L3 dir. Free it.
         freePageTableBlock(l3Dir);
         l2Dir[l2Idx] = 0;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
+        ARCH_SPECIFIC_DCCIMVAC(&l2Dir[l2Idx]);
 
         // Now check if l2Dir can be freed.
         canFree = true;
@@ -539,17 +613,17 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem
         if (!canFree)
             continue;
 
-        // There are no valid entries in L3 dir. Free it.
+        // There are no valid entries in L2 dir. Free it.
         freePageTableBlock(l2Dir);
-		topLevelDir[l1Idx] = 0;
+        l1Dir[l1Idx] = 0;
         // We wrote the entry into cached memory. Force it to
         // main memory by doing a DCCIMVAC on the entry.
-		ARCH_SPECIFIC_DCCIMVAC(&topLevelDir[l1Idx]);
+        ARCH_SPECIFIC_DCCIMVAC(&l1Dir[l1Idx]);
 
         // Now check if l1Dir can be freed.
         canFree = true;
         for (int i=0; i<L1_PAGE_NUM_ENTRIES; i++) {
-			if (topLevelDir[i] != 0) {
+            if (l1Dir[i] != 0) {
                 // No there is at-least one valid entry in this dir.
                 canFree = false;
                 break;
@@ -558,15 +632,15 @@ void PageTable::unmapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem
         if (!canFree)
             continue;
 
-        // There are no valid entries in L3 dir. Free it.
-		freePageTableBlock(topLevelDir);
-		topLevelDir = nullptr;
-	}
+        // There are no valid entries in L1 dir. Free it.
+        freePageTableBlock(l1Dir);
+        topLevelDir = nullptr;
+        break;
+    }
 
     // Flush the TLB to remove any stale references to the now unmapped pages.
     // Also invalidate the branch predictor.
-
-	ARCH_SPECIFIC_TLB_FLUSH;
+    ARCH_SPECIFIC_TLB_FLUSH;
 }
 
 TzMem::PhysAddr PageTable::lookUp(TzMem::VirtAddr vaddr, PageTable::EntryAttribs *attribs) const {
@@ -576,32 +650,30 @@ TzMem::PhysAddr PageTable::lookUp(TzMem::VirtAddr vaddr, PageTable::EntryAttribs
 }
 
 TzMem::PhysAddr PageTable::lookUpNoLock(TzMem::VirtAddr vaddr, PageTable::EntryAttribs *attribs) const {
-
-
-	if (topLevelDir == nullptr)
+    if (topLevelDir == nullptr)
         return nullptr;
 
-	 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     l1Idx = l1Idx & 0x01;
-	const uint64_t l1Entry = topLevelDir[l1Idx];
+    const uint64_t l1Entry = topLevelDir[l1Idx];
     if (l1Entry == 0)
         return nullptr;
 
     uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-	const uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
-	const int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    const uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
+    const int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     const uint64_t l2Entry = l2Dir[l2Idx];
     if (l2Entry == 0)
         return nullptr;
 
     blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-	const uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
-	const int l3Idx = L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    const uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((uint64_t *)(uintptr_t)blockAddr);
+    const int l3Idx = L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     const uint64_t l3Entry = l3Dir[l3Idx];
 
     if ((l3Entry & 0x3) == 0x3) {
         uint64_t physAddrBase = l3Entry & L3_PHYS_ADDR_MASK;
-		uint64_t physAddr = physAddrBase | ((uintptr_t)vaddr & ~L3_PHYS_ADDR_MASK);
+        uint64_t physAddr = physAddrBase | ((uintptr_t)vaddr & ~L3_PHYS_ADDR_MASK);
 
         if (attribs != nullptr) {
             uint8_t swBits = GET_MEMORY_ACCESS_SW_BITS(l3Entry);
@@ -660,9 +732,7 @@ bool PageTable::isAddrRangeUnMapped(const TzMem::VirtAddr addr, const unsigned i
 }
 
 TzMem::VirtAddr PageTable::reserveAddrRange(const TzMem::VirtAddr fromAddr, unsigned int rangeSize, ScanDirection direction) {
-
     SpinLocker locker(&lock);
-
     TzMem::VirtAddr nextAddr = fromAddr;
     TzMem::VirtAddr rangeStart = nextAddr;
     int currRangeSize = 0;
@@ -716,30 +786,30 @@ void PageTable::copyOnWrite(void *va) {
 }
 
 void PageTable::makePageCopyOnWrite(const TzMem::VirtAddr vaddr) {
-	 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+     int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     l1Idx = l1Idx & 0x01;
-	if (topLevelDir[l1Idx] == 0) {
-        err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+    if (topLevelDir[l1Idx] == 0) {
+        err_msg("%s:\n\t Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
     }
 
-	uint64_t l1Entry = topLevelDir[l1Idx];
+    uint64_t l1Entry = topLevelDir[l1Idx];
     uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-	uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+    uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
 
-	int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     if (l2Dir[l2Idx] == 0) {
-        err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+        err_msg("%s:\n\t  Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
     }
 
     uint64_t l2Entry = l2Dir[l2Idx];
     blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-	uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+    uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
 
-	int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     if (l3Dir[l3Idx] == 0) {
-        err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+        err_msg("%s:\n\t  Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
     }
 
@@ -755,35 +825,35 @@ void PageTable::makePageCopyOnWrite(const TzMem::VirtAddr vaddr) {
 
     // We wrote the entry into cached memory. Force it to
     // main memory by doing a DCCIMVAC on the entry.
-	ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+    ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 }
 
 void PageTable::changePageAccessPerms(TzMem::VirtAddr vaddr, int accessPerms, bool noExec) {
 
-	 int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+     int l1Idx = L1_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     l1Idx = l1Idx & 0x01;
-	if (topLevelDir[l1Idx] == 0) {
-        err_msg("%s:\n\t Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+    if (topLevelDir[l1Idx] == 0) {
+        err_msg("%s:\n\t Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
     }
 
-	uint64_t l1Entry = topLevelDir[l1Idx];
+    uint64_t l1Entry = topLevelDir[l1Idx];
     uint32_t blockAddr = (uint32_t)(l1Entry & L2_BLOCK_ADDR_MASK);
-	uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+    uint64_t *l2Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
 
-	int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    int l2Idx = L2_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     if (l2Dir[l2Idx] == 0) {
-        err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+        err_msg("%s:\n\t  Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
     }
 
     uint64_t l2Entry = l2Dir[l2Idx];
     blockAddr = (uint32_t)(l2Entry & L3_BLOCK_ADDR_MASK);
-	uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
+    uint64_t *l3Dir = (uint64_t *)TzMem::physToVirt((void *)(uintptr_t)blockAddr);
 
-	int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
+    int l3Idx =  L3_PAGE_TABLE_SLOT((uintptr_t) vaddr);
     if (l3Dir[l3Idx] == 0) {
-        err_msg("%s:\n\t  Attempt to unmap page %p that wasnt mapped\n", __PRETTY_FUNCTION__, vaddr);
+        err_msg("%s:\n\t  Attempt to unmap page %p that wasn't mapped\n", __PRETTY_FUNCTION__, vaddr);
         kernelHalt("Attempted unmap a page that wasn't mapped");
     }
 
@@ -799,7 +869,7 @@ void PageTable::changePageAccessPerms(TzMem::VirtAddr vaddr, int accessPerms, bo
 
     // We wrote the entry into cached memory. Force it to
     // main memory by doing a DCCIMVAC on the entry.
-	ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
+    ARCH_SPECIFIC_DCCIMVAC(&l3Dir[l3Idx]);
 }
 
 TzMem::VirtAddr PageTable::reserveAndMapAddrRange(const TzMem::PhysAddr paddrFirstPage, unsigned int rangeSize,
@@ -817,10 +887,10 @@ TzMem::VirtAddr PageTable::reserveAndMapAddrRange(const TzMem::PhysAddr paddrFir
         (void *)((uintptr_t)vaPageStart + rangeSize-1),
         paddrFirstPage,
         memAttr,                // memory with caching
-        memAccessPerms,      // read write
-        executeNever,                      // allow execute
-        mapShared,                           // shared memory
-        nonSecure);                          // non-secure
+        memAccessPerms,         // read write
+        executeNever,           // allow execute
+        mapShared,              // shared memory
+        nonSecure);             // non-secure
 
     return vaPageStart;
 }

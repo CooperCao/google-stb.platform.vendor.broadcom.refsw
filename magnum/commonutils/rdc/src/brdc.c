@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"                /* standard types */
@@ -2269,6 +2273,103 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
 #endif
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
+
+#elif (BCHP_CHIP==7216)
+
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eM2mc0Trig,   72, m2mc_trig_0    ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eM2mc1Trig,   73, m2mc_trig_1    ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eHdDvi0Trig0, 44, hd_dvi_0_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eHdDvi0Trig1, 45, hd_dvi_0_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd0Mtg0,    52, mfd_0_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd0Mtg1,    53, mfd_0_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd1Mtg0,    54, mfd_1_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd1Mtg1,    55, mfd_1_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(ePx3d0Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_0Trig0,  24, vec_source_0_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_0Trig1,  25, vec_source_0_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_1Trig0,  26, vec_source_1_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_1Trig1,  27, vec_source_1_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_2Trig0,  28, vec_source_2_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_2Trig1,  29, vec_source_2_trig_1),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),

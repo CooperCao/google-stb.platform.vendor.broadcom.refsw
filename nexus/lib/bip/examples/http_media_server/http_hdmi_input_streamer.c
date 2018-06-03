@@ -41,6 +41,7 @@
  *****************************************************************************/
 #include "blst_queue.h"
 #include "bip.h"
+#include <fcntl.h>
 
 #if NXCLIENT_SUPPORT
 #include "nxclient.h"
@@ -50,6 +51,7 @@
 #endif
 #if NEXUS_HAS_HDMI_INPUT
 #include "nexus_hdmi_input.h"
+#include "nexus_hdmi_input_hdcp.h"
 #endif
 
 BDBG_MODULE(http_hdmi_input_streamer);
@@ -63,6 +65,12 @@ BDBG_MODULE(http_hdmi_input_streamer);
 
 #define TRANSCODE_PROFILE_720p_AVC "720pAvc"
 #define TRANSCODE_PROFILE_480p_AVC "480pAvc"
+
+static const char *filename1x = NULL ;
+static const char *filename2x = NULL ;
+
+#define HDCP1X_KEYS_BIN_FILE    "./hdcp1xRxKeys.bin"
+#define HDCP2X_KEYS_BIN_FILE    "./hdcp2xKeys.bin"
 
 typedef struct AppCtx
 {
@@ -87,6 +95,9 @@ typedef struct AppCtx
     bool                        printStatus;
     bool                        enableHwOffload;
     unsigned                    maxDataRate;
+    bool                        enableHdcp;
+    BIP_StringHandle            hHdcp1xBinFileName;
+    BIP_StringHandle            hHdcp2xBinFileName;
     BLST_Q_HEAD( streamerListHead, AppStreamerCtx ) streamerListHead; /* List of Streamer Ctx */
 } AppCtx;
 
@@ -106,6 +117,7 @@ typedef struct AppStreamerCtx
     bool                        enableTransportTimestamp;
     bool                        enableHwOffload;
     NEXUS_HdmiInputHandle       hHdmiInput;
+    bool                        enableHdcp;
 } AppStreamerCtx;
 
 #define USER_INPUT_BUF_SIZE 64
@@ -253,6 +265,340 @@ error:
     return (bipStatus);
 }
 
+
+#if NXCLIENT_SUPPORT
+
+static void displayKeyLoadStatus(uint8_t success)
+{
+    BDBG_LOG(("HDCP 1.x Key Loading: %s", success ? "SUCCESS" : " FAILED")) ;
+}
+/**********************/
+/* Load HDCP 1.x Keys */
+/**********************/
+static NEXUS_Error initializeHdmInputHdcp1xKeys(AppStreamerCtx *pAppStreamerCtx)
+{
+    static const unsigned char hdcp1xHeader[] = {0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00} ;
+    NEXUS_Error errCode = NEXUS_SUCCESS ;
+    NEXUS_HdmiInputHdcpKeyset hdmiRxKeyset ;
+    NEXUS_HdmiInputHdcpStatus hdcpStatus ;
+
+    int fileFd = -1;
+    char tmp[8];
+    if(filename1x != NULL)
+    {
+        fileFd = open(filename1x, O_RDONLY);
+    }
+
+    if (fileFd < 0)
+    {
+        BDBG_ERR(("Open file error <%d> for HDCP 1.x Rx Keys file '%s'; HDCP 1.x Tx devices may not work",
+            fileFd, filename1x));
+        errCode = NEXUS_NOT_AVAILABLE;
+        goto done ;
+    }
+
+    read(fileFd, tmp, 8) ;
+    if (BKNI_Memcmp(hdcp1xHeader, tmp, 8))
+    {
+        BDBG_WRN(("Invalid Header in 1.x HDCP Rx Key file")) ;
+    }
+
+    read(fileFd, tmp, 1) ;
+    read(fileFd, tmp, 1) ;
+    read(fileFd, (uint8_t *) &hdmiRxKeyset.alg, 1) ;
+
+    read(fileFd, &hdmiRxKeyset.custKeyVarL, 1) ;
+    read(fileFd, &hdmiRxKeyset.custKeyVarH, 1) ;
+    read(fileFd, &hdmiRxKeyset.custKeySel, 1) ;
+
+    read(fileFd, hdmiRxKeyset.rxBksv.data, NEXUS_HDMI_HDCP_KSV_LENGTH) ;
+    read(fileFd, tmp, 3) ;
+
+    read(fileFd, &hdmiRxKeyset.privateKey, NEXUS_HDMI_HDCP_NUM_KEYS * sizeof(NEXUS_HdmiInputHdcpKey));
+
+    errCode = NEXUS_HdmiInput_HdcpSetKeyset(pAppStreamerCtx->hHdmiInput, &hdmiRxKeyset) ;
+    if (errCode)
+    {
+       /* display message informing of result of HDCP Key Load */
+       displayKeyLoadStatus(0) ;
+       goto done ;
+    }
+
+    NEXUS_HdmiInput_HdcpGetStatus(pAppStreamerCtx->hHdmiInput, &hdcpStatus) ;
+
+    /* display message informing of result of HDCP Key Load */
+    /* NOTE: use of otpState is overloaded... refers to status of key load */
+    if (hdcpStatus.eOtpState != NEXUS_HdmiInputHdcpKeySetOtpState_eCrcMatch)
+       displayKeyLoadStatus(0) ;
+    else
+       displayKeyLoadStatus(1) ;
+
+done:
+    if(fileFd != -1)
+    {
+        close(fileFd);
+    }
+    return errCode ;
+}
+
+
+/**********************/
+/* Load HDCP 2.2 Keys */
+/**********************/
+static NEXUS_Error initializeHdmInputHdcp2xKeys(AppStreamerCtx *pAppStreamerCtx)
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS ;
+#if NEXUS_HAS_SAGE
+    int rc = 0;
+    int fileFd = -1;
+
+    uint8_t *buffer = NULL;
+    size_t fileSize = 0;
+    off_t seekPos = 0;
+
+    BDBG_LOG((" Opening Hdcp 2.2 file ============================= %s", filename2x));
+
+    if(filename2x != NULL)
+    {
+        fileFd = open(filename2x, O_RDONLY);
+    }
+
+    if (fileFd < 0) {
+        BDBG_ERR(("Open file error <%d> for HDCP 2.x Rx Keys file '%s'; HDCP 2.x devices will not work",
+            fileFd, filename2x));
+        rc = NEXUS_NOT_AVAILABLE ;
+        goto done ;
+    }
+
+    fileFd = open(filename2x, O_RDONLY);
+    if (fileFd < 0)
+    {
+        BDBG_ERR(("Unable to open bin file"));
+        rc = 1;
+        goto done;
+    }
+
+    seekPos = lseek(fileFd, 0, SEEK_END);
+    if (seekPos < 0)
+    {
+        BDBG_ERR(("Unable to seek bin file size"));
+        rc = 2;
+        goto done;
+    }
+    fileSize = (size_t)seekPos;
+
+    if (lseek(fileFd, 0, SEEK_SET) < 0)
+    {
+        BDBG_ERR(("Unable to get back to origin"));
+        rc = 3;
+        goto done;
+    }
+
+    buffer = BKNI_Malloc(fileSize);
+    if (read(fileFd, (void *)buffer, fileSize) != (ssize_t)fileSize)
+    {
+        BDBG_ERR(("Unable to read all binfile"));
+        rc = 6;
+        goto done;
+    }
+
+    BDBG_LOG(("%s file loaded buff=%p, size=%u", filename2x, buffer, (unsigned)fileSize));
+    errCode = NEXUS_HdmiInput_SetHdcp2xBinKeys(pAppStreamerCtx->hHdmiInput, buffer, (uint32_t)fileSize);
+    if (errCode != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("Error setting Hdcp2x encrypted keys. HDCP2.x devices may not work"));
+        goto done ;
+    }
+
+    BDBG_LOG(("HDCP 2.2 Key Loading: SUCCESS")) ;
+
+done:
+    if (fileFd != -1)
+    {
+        close(fileFd);
+    }
+
+    if (buffer)
+    {
+        BKNI_Free(buffer);
+    }
+
+    if (rc)
+    {
+        BDBG_ERR(("error #%d, fileSize=%u, seekPos=%d", rc, (unsigned)fileSize, (unsigned)seekPos));
+        /*BDBG_ASSERT(false); */
+    }
+#endif
+    return errCode;
+}
+
+static NEXUS_Error initializeHdmiInputHdcpSettings(AppStreamerCtx *pAppStreamerCtx)
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS ;
+    NxClient_HdcpVersion        hdcpVersion = NxClient_HdcpVersion_eAuto;
+
+    switch (hdcpVersion)
+    {
+    case  NxClient_HdcpVersion_eMax :
+        errCode = NEXUS_SUCCESS ;
+        goto done ;
+
+    case  NxClient_HdcpVersion_eAuto :
+        /* *** FALL THROUGH - to higheset HDCP support available  */
+
+    case  NxClient_HdcpVersion_eHdcp22 :
+
+        errCode = initializeHdmInputHdcp2xKeys(pAppStreamerCtx) ;
+        if (errCode)
+        {
+            /* goto done ; TODO:I will enable it later when Hdcp2x is fully supported. */
+            BDBG_WRN((BIP_MSG_PRE_FMT " Not able to find Hdcp2.2 bin file, We will not support Hdcp2.2" BIP_MSG_PRE_ARG));
+        }
+
+        /* *** FALL THROUGH - to add HDCP 1.x key support */
+        /* required when HDCP 2.2 is specified  */
+
+    case  NxClient_HdcpVersion_eHdcp1x :
+        errCode = initializeHdmInputHdcp1xKeys(pAppStreamerCtx) ;
+        if (errCode)
+        {
+            goto done ;
+        }
+        break ;
+
+    default :
+        BDBG_WRN(("Unsupported NxClient HDCP level %d", hdcpVersion)) ;
+        errCode = NEXUS_UNKNOWN ;
+    }
+
+done :
+    return errCode ;
+}
+
+static NEXUS_HdmiInputHandle       g_hHdmiInput = NULL;
+
+static void hdmiRxHdcpStateChanged(void *context, int param)
+{
+    NEXUS_HdmiInputHdcpStatus hdmiRxHdcpStatus;
+    bool rxAuthenticated = false;
+    bool repeaterAuthenticated = false;
+    NEXUS_Error rc;
+
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(param);
+
+    /* check the authentication state and process accordingly */
+
+    /***********************/
+    /* HDMI Rx HDCP status */
+    /***********************/
+    rc = NEXUS_HdmiInput_HdcpGetStatus(g_hHdmiInput, &hdmiRxHdcpStatus);
+    if (rc)
+    {
+        BDBG_ERR(("%s: Error getting Rx HDCP status", BSTD_FUNCTION)) ;
+        BERR_TRACE(rc) ;
+        return ;
+    }
+
+    /**************************************/
+    /*  Rx HDCP 2.x Authentication Status */
+    /**************************************/
+    if (hdmiRxHdcpStatus.version == NEXUS_HdcpVersion_e2x)
+    {
+        rxAuthenticated =
+            hdmiRxHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eAuthenticated ;
+        repeaterAuthenticated =
+            hdmiRxHdcpStatus.hdcpState == NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated ;
+
+        BDBG_LOG(("%s: [-->Rx-STB-Tx] HDCP Ver: %s; Content Stream Protection: %d; Upstream Status: %s Authenticated ",
+            BSTD_FUNCTION,
+            (hdmiRxHdcpStatus.version == NEXUS_HdcpVersion_e2x) ? "2.2" : "1.x",
+            hdmiRxHdcpStatus.hdcp2xContentStreamControl,
+            rxAuthenticated ? "Rx" :
+            repeaterAuthenticated ? "Repeater" : "FAILED"));
+
+        if ((hdmiRxHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eAuthenticated)
+        && (hdmiRxHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated))
+        {
+            BDBG_WRN(("%s: HDCP2.2 Auth from upstream Tx: FAILED", BSTD_FUNCTION));
+            return;
+        }
+
+        if (hdmiRxHdcpStatus.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType1)
+        {
+            /* upstream auth requires HDCP 2.2; Start Tx auth only if connected to HDCP 2.2 device */
+            BDBG_LOG(("Upstream HDCP Content Stream Control is Type 1")) ;
+        }
+    }
+
+    /*******************************/
+    /*  Rx HDCP 1.x Authentication */
+    /*******************************/
+    else
+    {
+
+        BDBG_MSG(("%s: HDCP Authentication State: %d",
+            BSTD_FUNCTION, hdmiRxHdcpStatus.eAuthState)) ;
+
+        switch (hdmiRxHdcpStatus.eAuthState) {
+        case NEXUS_HdmiInputHdcpAuthState_eKeysetInitialization :
+            BDBG_LOG(("%s Change in HDCP Key Set detected: %u",
+                BSTD_FUNCTION, hdmiRxHdcpStatus.eKeyStorage));
+            break;
+
+        case NEXUS_HdmiInputHdcpAuthState_eWaitForKeyloading :
+            BDBG_LOG(("%s: Upstream HDCP 1.x Authentication request ...", BSTD_FUNCTION));
+            break;
+
+        case NEXUS_HdmiInputHdcpAuthState_eWaitForDownstreamKsvs :
+            /* Repeater Rx is considered authenticated when upstream requests KSvs */
+            BDBG_LOG(("%s KSV FIFO Request; Start hdmiOutput Authentication...", BSTD_FUNCTION));
+            break;
+
+        case NEXUS_HdmiInputHdcpAuthState_eKsvFifoReady :
+            BDBG_LOG(("%s KSV FIFO Ready...", BSTD_FUNCTION));
+            break;
+
+        case NEXUS_HdmiInputHdcpAuthState_eIdle:
+            BDBG_MSG(("%s: Auth State: Idle...", BSTD_FUNCTION));
+            goto done ;
+            break;
+
+        default:
+            BDBG_WRN(("%s: Unknown State: %d", BSTD_FUNCTION,  hdmiRxHdcpStatus.eAuthState ));
+            goto done ;
+            break;
+        }
+    }
+
+    BDBG_LOG(("RxAuthenticated: %d", rxAuthenticated)) ;
+    if (rxAuthenticated)
+    {
+        BDBG_LOG(("%s: Repeater's Rx is authenticated. Start Repeater's Tx downstream authentication",
+            BSTD_FUNCTION)) ;
+
+        rc = NxClient_SetHdmiInputRepeater(g_hHdmiInput) ;
+        if (rc != NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("%s: Error %d starting HDCP downstream authentication",
+                    BSTD_FUNCTION, rc)) ;
+            rc = BERR_TRACE(rc) ;
+        }
+    }
+    else if (repeaterAuthenticated)
+    {
+        BDBG_LOG(("%s: Repeater Tx downstream authentication completed", BSTD_FUNCTION)) ;
+    }
+    else
+    {
+        BDBG_LOG(("%s: HDCP2.2 Upstream Authentication status - Current state: [%d]", BSTD_FUNCTION, hdmiRxHdcpStatus.hdcpState));
+    }
+
+done:
+    return ;
+}
+#endif
+
 static BIP_Status startStreamer(
     AppStreamerCtx *pAppStreamerCtx,
     BIP_HttpRequestHandle hHttpRequest
@@ -275,8 +621,6 @@ static BIP_Status startStreamer(
         BDBG_MSG(( BIP_MSG_PRE_FMT " BIP_HttpStreamer created: %p" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx->hHttpStreamer ));
     }
 
-    /* pAppStreamerCtx->enableXcode = true;*/
-
     /* Now provide Hdmi input settings */
     {
         int i;
@@ -287,6 +631,39 @@ static BIP_Status startStreamer(
         }
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( pAppStreamerCtx->hHdmiInput ), ( "NEXUS_HdmiInput_Open Failed: no free HDMI input available!" ), rejectRequest, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+
+        if(pAppStreamerCtx->enableHdcp)
+        {
+#if NXCLIENT_SUPPORT
+            NEXUS_HdmiInputHdcpSettings hdmiInputHdcpSettings;
+            NEXUS_Error errCode = NEXUS_SUCCESS ;
+            errCode = initializeHdmiInputHdcpSettings(pAppStreamerCtx) ;
+            if (errCode)
+            {
+                BDBG_ERR(("Error (%d) initializing HDCP Settings", errCode)) ;
+                responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
+                BIP_CHECK_GOTO(( pAppStreamerCtx->hHdmiInput ), ( "initializeHdmiInputHdcpSettings Failed: not able to enable Hdcp in HDMI input!" ), rejectRequest, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+            }
+
+            /* Right now this is added after debugging one issue, we found that default maxVersion is set as 1x,
+               That is the reason Hdcp2.2 was not working. With this changes  I am able to get Hdcp 2.2 working.
+               This can be removed once Hdcp team make changes in Nexus.*/
+            NEXUS_HdmiInput_HdcpGetDefaultSettings(pAppStreamerCtx->hHdmiInput, &hdmiInputHdcpSettings);
+            /* chips with both hdmi rx and tx cores should always set repeater to TRUE */
+            g_hHdmiInput = pAppStreamerCtx->hHdmiInput;
+            hdmiInputHdcpSettings.repeater = false;
+            hdmiInputHdcpSettings.hdcpRxChanged.callback = hdmiRxHdcpStateChanged;
+            hdmiInputHdcpSettings.maxVersion = NEXUS_HdcpVersion_e2x;
+
+            errCode = NEXUS_HdmiInput_HdcpSetSettings(pAppStreamerCtx->hHdmiInput, &hdmiInputHdcpSettings);
+            BDBG_ASSERT(!errCode);
+
+#else
+            BDBG_WRN((BIP_MSG_PRE_FMT " WARNING:<========================================================>" BIP_MSG_PRE_ARG));
+            BDBG_WRN((BIP_MSG_PRE_FMT " WARNING:<========= Hdcp only supported in Nxclient mode =========>" BIP_MSG_PRE_ARG));
+            BDBG_WRN((BIP_MSG_PRE_FMT " WARNING:<========================================================>" BIP_MSG_PRE_ARG));
+#endif
+        }
 
         /* Set input Settings */
         bipStatus = BIP_HttpStreamer_SetHdmiInputSettings( pAppStreamerCtx->hHttpStreamer, pAppStreamerCtx->hHdmiInput, NULL);
@@ -499,6 +876,7 @@ static void processHttpRequestEvent(
             pAppStreamerCtx->enableHls = pAppCtx->enableHls;
             pAppStreamerCtx->enableMpegDash = pAppCtx->enableMpegDash;
             pAppStreamerCtx->enableHwOffload = pAppCtx->enableHwOffload;
+            pAppStreamerCtx->enableHdcp = pAppCtx->enableHdcp;
             responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         }
 
@@ -724,6 +1102,7 @@ static BIP_Status initHttpServer(
 
         httpServerStartSettings.pPort = BIP_String_GetString(pAppCtx->hPort);
         httpServerStartSettings.pInterfaceName = BIP_String_GetString(pAppCtx->hInterfaceName);
+
         if (pAppCtx->enableDtcpIp)
         {
             httpServerStartSettings.enableDtcpIp = true;
@@ -772,8 +1151,13 @@ static void printUsage(
             "  -enableHwOffload #   Enable streaming using ASP HW Offload Engine. \n"
           );
     printf(
-            "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long!"
-            "  -maxDataRate <num>           # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))!"
+            "  -inactivityTimeoutInMs <num> # Timeout in msec (default=60000) after which streamer will Stop/Close streaming context if there is no activity for that long! \n"
+            "  -maxDataRate <num>           # Maximum data rate for the playback parser band in units of bits per second (default 40000000 (40Mpbs))! \n"
+          );
+    printf(
+            "  -enableHdcp      #   Enbale Hdcp encrypted Hdmi input support. It is only supported in NXCLIENT(NXCLIENT_SUPPORT=y) mode.\n"
+            "  -hdcp1xKeys  <binfile>  # specify location of Hdcp1.x bin file(default is ./hdcp1xRxKeys.bin). \n"
+            "  -hdcp2xKeys  <binfile>  # specify location of Hdcp2.x bin file(default is ./hdcp2xKeys.bin). \n"
           );
     printf( "To enable some of the above options at runtime via the URL Request, add following suffix extension to the URL: \n");
     printf(
@@ -795,6 +1179,7 @@ BIP_Status parseOptions(
 
     pAppCtx->maxDataRate = 40*1000*1000;
     pAppCtx->enableXcode = true;
+
     for (i=1; i<argc; i++)
     {
         if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
@@ -849,12 +1234,39 @@ BIP_Status parseOptions(
         {
             pAppCtx->disableAvHeadersInsertion = true;
         }
+        else if ( !strcmp(argv[i], "-enableHdcp") )
+        {
+            pAppCtx->enableHdcp = true;
+        }
+        else if ( !strcmp(argv[i], "-hdcp1xKeys") )
+        {
+            BIP_String_StrcpyChar( pAppCtx->hHdcp1xBinFileName, argv[++i] );
+        }
+        else if ( !strcmp(argv[i], "-hdcp2xKeys") )
+        {
+            BIP_String_StrcpyChar( pAppCtx->hHdcp2xBinFileName, argv[++i] );
+        }
         else
         {
             printf("Error: incorrect or unsupported option: %s\n", argv[i]);
             printUsage(argv[0]);
         }
     }
+    if( pAppCtx->enableHdcp )
+    {
+        /* Initialize the global char pointers from which core function will read the file name. */
+        if(pAppCtx->hHdcp1xBinFileName)
+        {
+            filename1x = BIP_String_GetString(pAppCtx->hHdcp1xBinFileName);
+        }
+
+        if(pAppCtx->hHdcp2xBinFileName)
+        {
+            filename2x = BIP_String_GetString(pAppCtx->hHdcp2xBinFileName);
+        }
+    }
+
+
     if ( !pAppCtx->xcodeProfile ) pAppCtx->xcodeProfile = TRANSCODE_PROFILE_720p_AVC;
     if (pAppCtx->inactivityTimeoutInMs == 0) pAppCtx->inactivityTimeoutInMs = 60000; /* 60sec default. */
     bipStatus = BIP_SUCCESS;
@@ -880,6 +1292,8 @@ void unInitAppCtx(
     if (pAppCtx->hDtcpIpAkePort) BIP_String_Destroy( pAppCtx->hDtcpIpAkePort);
     if (pAppCtx->hInterfaceName) BIP_String_Destroy( pAppCtx->hInterfaceName);
     if (pAppCtx->hDtcpIpKeyFormat) BIP_String_Destroy( pAppCtx->hDtcpIpKeyFormat);
+    if (pAppCtx->hHdcp1xBinFileName) BIP_String_Destroy( pAppCtx->hHdcp1xBinFileName);
+    if (pAppCtx->hHdcp2xBinFileName) BIP_String_Destroy( pAppCtx->hHdcp2xBinFileName);
     if (pAppCtx) B_Os_Free( pAppCtx );
 } /* unInitAppCtx */
 
@@ -904,6 +1318,12 @@ AppCtx *initAppCtx( void )
 
     pAppCtx->hDtcpIpKeyFormat = BIP_String_CreateFromChar(DTCP_IP_KEY_FORMAT_COMMON_DRM);
     BIP_CHECK_GOTO( (pAppCtx->hDtcpIpKeyFormat), ("BIP_String_Create() Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
+
+    pAppCtx->hHdcp1xBinFileName = BIP_String_CreateFromChar(HDCP1X_KEYS_BIN_FILE);
+    BIP_CHECK_GOTO( (pAppCtx->hHdcp1xBinFileName), ("BIP_String_Create() Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
+
+    pAppCtx->hHdcp2xBinFileName = BIP_String_CreateFromChar(HDCP2X_KEYS_BIN_FILE);
+    BIP_CHECK_GOTO( (pAppCtx->hHdcp2xBinFileName), ("BIP_String_Create() Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
 
 error:
     return pAppCtx;

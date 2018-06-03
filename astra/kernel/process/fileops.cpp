@@ -238,6 +238,9 @@ int TzTask::open(char *filePath, int flags, int mode) {
         // Perhaps the filePath is an absolute path.
         // Attempt to open the filePath as is.
         rc = root->resolvePath(filePath, &dir, &file, &parentDir);
+        if (rc != 0) {
+            //printf("Open: resolve path Failed result %d \n", rc);
+        }
         //printf("Path Resolved from root %d\n",rc);
     }
 

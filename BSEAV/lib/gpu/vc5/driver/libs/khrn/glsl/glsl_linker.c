@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
@@ -621,7 +621,7 @@ static int deep_member_count(const SymbolType *type) {
 
 /* TODO: The used information is terrible. It should be per-member-of-an-instance,
  *       but now it's per-array-of-instances */
-static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int **maps, int n_stages, const bool *used)
+static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int **maps, int n_stages, const bool *declared, const bool *used)
 {
    SymbolType *t = b->u.interface_block.block_data_type;
    bool is_array = (t->flavour == SYMBOL_ARRAY_TYPE);
@@ -694,7 +694,7 @@ static void pack_block(pack_blocks_t *ctx, const Symbol *b, const int **ids, int
    glsl_safemem_free(vars);
 
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++)
-      if (used[i]) ctx->num_blocks[i] += array_length;
+      if (declared[i]) ctx->num_blocks[i] += array_length;
 
    for (int stage=0; stage < n_stages; stage++) {
       int *map = maps[stage];
@@ -846,6 +846,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
          }
          if (already_done) continue;
 
+         bool declared[SHADER_FLAVOUR_COUNT] = { false, };
          bool used[SHADER_FLAVOUR_COUNT] = { false, };
          int var_n_stages = 0;
          const int *ids [SHADER_FLAVOUR_COUNT] = { NULL, };
@@ -860,11 +861,12 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
          for (int k=i; k<n_stages; k++) {
             InterfaceVar *u = interface_var_find(uniforms[k], uniform->symbol->name);
             if (u) {
-               used[stages[k]]  = u->active;
-               ids[var_n_stages] = u->ids;
-             #if V3D_VER_AT_LEAST(4,1,34,0)
-               flags[var_n_stages] = u->flags;
-             #endif
+               declared[stages[k]]  = true;
+               used[stages[k]]      = u->active;
+               ids[var_n_stages]    = u->ids;
+#if V3D_VER_AT_LEAST(4,1,34,0)
+               flags[var_n_stages]  = u->flags;
+#endif
                maps[var_n_stages++] = stage_maps[k];
                if (u->symbol->u.var_instance.layout_loc_specified) {
                   has_location = true;
@@ -955,7 +957,7 @@ static void pack_shader_uniforms(GLSL_PROGRAM_T *program,
             }
             glsl_safemem_free(vars);
          } else {
-            pack_block(ubo_ctx, uniform->symbol, ids, maps, var_n_stages, used);
+            pack_block(ubo_ctx, uniform->symbol, ids, maps, var_n_stages, declared, used);
          }
       }
    }
@@ -1009,12 +1011,14 @@ static void pack_shader_buffers(ShaderFlavour flavour, GLSL_PROGRAM_T *program, 
       InterfaceVar *buffer = &buffers->var[i];
       assert(buffer->symbol->flavour == SYMBOL_INTERFACE_BLOCK);
 
+      bool declared[SHADER_FLAVOUR_COUNT] = { false, };
       bool used[SHADER_FLAVOUR_COUNT] = { false, };
+      declared[flavour] = true;
       used[flavour] = true;
 
       // Pack.
       const int *ids = buffer->ids;
-      pack_block(&ctx, buffer->symbol, &ids, &map, 1, used);
+      pack_block(&ctx, buffer->symbol, &ids, &map, 1, declared, used);
    }
 
    if (ctx.num_blocks[SHADER_FRAGMENT] > GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCKS)

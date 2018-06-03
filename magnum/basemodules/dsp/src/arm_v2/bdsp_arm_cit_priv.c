@@ -430,61 +430,67 @@ static void BDSP_Arm_P_CreatePortBufferDetails(
     BDSP_P_PortDetails  *pPortDetials
 )
 {
-    BERR_Code errCode = BERR_SUCCESS;
-    unsigned i=0, j=0, numbuffers =0;
-	BDSP_MMA_Memory descriptorMemory[BDSP_AF_P_MAX_CHANNELS];
-	BDSP_AF_P_sCIRCULAR_BUFFER *pDescriptor[BDSP_AF_P_MAX_CHANNELS];
-
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned i=0, j=0, numbuffers=0, usedIndex=0;
+	BDSP_MMA_Memory descriptorMemory[BDSP_MAX_DESCRIPTORS_PER_POOL];
+	BDSP_AF_P_sCIRCULAR_BUFFER *pDescriptor[BDSP_MAX_DESCRIPTORS_PER_POOL];
 	BDBG_ENTER(BDSP_Arm_P_CreatePortBufferDetails);
-    for(i=0; i<pPortDetials->numPortBuffers; i++)
-    {
-        switch(i)
-        {
-            case BDSP_AF_P_PortBuffer_Type_Data: /* Data Buffer*/
-                numbuffers = pPortDetials->numDataBuffers;
-                break;
-            case BDSP_AF_P_PortBuffer_Type_TOC: /* TOC Buffer*/
-                numbuffers = pPortDetials->numTocBuffers;
-                break;
-            case BDSP_AF_P_PortBuffer_Type_MetaData: /* MetaData Buffer*/
-                numbuffers = pPortDetials->numMetaDataBuffers;
-                break;
-            case BDSP_AF_P_PortBuffer_Type_ObjectData: /* ObjectData Buffer*/
-                numbuffers = pPortDetials->numObjectDataBuffers;
-                break;
-            default:
-                BDBG_ERR(("BDSP_Arm_P_CreatePortBufferDetails: Invalid Port buffer type"));
-                BDBG_ASSERT(0);
-                break;
-        }
-		BKNI_Memset((void *)&descriptorMemory[0],0,(sizeof(BDSP_MMA_Memory)*BDSP_AF_P_MAX_CHANNELS));
-        BDSP_Arm_P_AssignDescriptor((void *)pDevice,
-                                    dspIndex,
-                                    &descriptorMemory[0],
-                                    numbuffers);
-        for(j=0;j<numbuffers;j++)
-        {
-            pDescriptor[j] = (BDSP_AF_P_sCIRCULAR_BUFFER *)descriptorMemory[j].pAddr;
-        }
-        errCode = BDSP_Arm_P_PopulatePortBufferDescriptors(
-                                    pConnectionDetails,
-                                    eConnectionType,
-                                    pDescriptor[0],
-                                    numbuffers,
-                                    i);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Arm_P_CreatePortBufferDetails: Port Buffer Descriptor Not configured properly"));
-            BDBG_ASSERT(0);
-        }
-        for(j=0;j<numbuffers;j++)
-        {
-            pPortDetials->IoBuffer[i][j]= descriptorMemory[j].offset;
-            BDSP_MMA_P_FlushCache(descriptorMemory[j], sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-        }
-    }
+
+	numbuffers = pPortDetials->numDataBuffers+
+					pPortDetials->numTocBuffers+
+					pPortDetials->numMetaDataBuffers+
+					pPortDetials->numObjectDataBuffers;
+	BKNI_Memset((void *)&descriptorMemory[0],0,(sizeof(BDSP_MMA_Memory)*BDSP_MAX_DESCRIPTORS_PER_POOL));
+	BDSP_Arm_P_AssignDescriptor((void *)pDevice,
+								dspIndex,
+								&descriptorMemory[0],
+								numbuffers);
+	for(i=0;i<numbuffers;i++)
+	{
+		pDescriptor[i] = (BDSP_AF_P_sCIRCULAR_BUFFER *)descriptorMemory[i].pAddr;
+	}
+	for(i=0; i<pPortDetials->numPortBuffers; i++)
+	{
+		switch(i)
+		{
+			case BDSP_AF_P_PortBuffer_Type_Data: /* Data Buffer*/
+				numbuffers = pPortDetials->numDataBuffers;
+				break;
+			case BDSP_AF_P_PortBuffer_Type_TOC: /* TOC Buffer*/
+				numbuffers = pPortDetials->numTocBuffers;
+				break;
+			case BDSP_AF_P_PortBuffer_Type_MetaData: /* MetaData Buffer*/
+				numbuffers = pPortDetials->numMetaDataBuffers;
+				break;
+			case BDSP_AF_P_PortBuffer_Type_ObjectData: /* ObjectData Buffer*/
+				numbuffers = pPortDetials->numObjectDataBuffers;
+				break;
+			default:
+				BDBG_ERR(("BDSP_Arm_P_CreatePortBufferDetails: Invalid Port buffer type"));
+				BDBG_ASSERT(0);
+				break;
+		}
+		errCode = BDSP_Arm_P_PopulatePortBufferDescriptors(
+									pConnectionDetails,
+									eConnectionType,
+									pDescriptor[usedIndex],
+									numbuffers,
+									i);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Arm_P_CreatePortBufferDetails: Port Buffer Descriptor Not configured properly"));
+			BDBG_ASSERT(0);
+		}
+		for(j=0;j<numbuffers;j++)
+		{
+			pPortDetials->IoBuffer[i][j]= descriptorMemory[j+usedIndex].offset;
+			BDSP_MMA_P_FlushCache(descriptorMemory[j+usedIndex], sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+		}
+		usedIndex = usedIndex+numbuffers;
+	}
 	BDBG_LEAVE(BDSP_Arm_P_CreatePortBufferDetails);
 }
+
 
 static void BDSP_Arm_P_PopulatePortDetails(
     BDSP_AF_P_sIoPort   *pIOPort,
@@ -1250,7 +1256,6 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
 	unsigned index=0,i=0,j=0, interStagePortIndex=0, interTaskPortIndex = 0;
 	BDSP_P_InterStagePortInfo *psInterStagePortInfo;
     BDSP_P_InterTaskBuffer    *pInterTaskBuffer;
-	dramaddr_t decriptorArray[BDSP_AF_P_MAX_CHANNELS];
 	BDSP_AF_P_sIoPort *psIoPort;
 
 	BDBG_ENTER(BDSP_Arm_P_CleanupDescriptors);
@@ -1262,23 +1267,13 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
-				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
+				errCode = BDSP_Arm_P_ReleasePortDescriptors(pArmStage->pContext->pDevice,
+				pArmStage->pArmTask->createSettings.dspIndex,
+				psIoPort);
+				if(errCode != BERR_SUCCESS)
 				{
-					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
-					{
-						decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-						psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
-					}
-					errCode = BDSP_Arm_P_ReleaseDescriptor(
-						(void *)pArmStage->pContext->pDevice,
-						pArmStage->pArmTask->createSettings.dspIndex,
-						&decriptorArray[0],
-						psIoPort->sIoBuffer[j].ui32NumBuffer);
-					if(errCode != BERR_SUCCESS)
-					{
-						BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-						goto end;
-					}
+					BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
 				}
 				break;
 			case BDSP_AF_P_PortType_eInterStage:
@@ -1301,23 +1296,13 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
-				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
-				{
-					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
-					{
-						decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-						psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
-					}
-					errCode = BDSP_Arm_P_ReleaseDescriptor(
-						(void *)pArmStage->pContext->pDevice,
+				errCode = BDSP_Arm_P_ReleasePortDescriptors(pArmStage->pContext->pDevice,
 						pArmStage->pArmTask->createSettings.dspIndex,
-						&decriptorArray[0],
-						psIoPort->sIoBuffer[j].ui32NumBuffer);
-					if(errCode != BERR_SUCCESS)
-					{
-						BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-						goto end;
-					}
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
 				}
 				break;
 			case BDSP_AF_P_PortType_eInterStage:
@@ -1326,24 +1311,20 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
                     &interStagePortIndex);
 				psInterStagePortInfo = &pArmStage->sStageConnectionInfo.sInterStagePortInfo[interStagePortIndex];
 				psInterStagePortInfo->tocIndex = BDSP_AF_P_TOC_INVALID;
+				errCode = BDSP_Arm_P_ReleasePortDescriptors(pArmStage->pContext->pDevice,
+						pArmStage->pArmTask->createSettings.dspIndex,
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
+				}
 				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
 				{
 					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
 					{
-						decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-						psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
+						psInterStagePortInfo->bufferDescriptorAddr[j][i] = 0;
 					}
-					errCode = BDSP_Arm_P_ReleaseDescriptor(
-						(void *)pArmStage->pContext->pDevice,
-						pArmStage->pArmTask->createSettings.dspIndex,
-						&decriptorArray[0],
-						psIoPort->sIoBuffer[j].ui32NumBuffer);
-					if(errCode != BERR_SUCCESS)
-					{
-						BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-						goto end;
-					}
-					psInterStagePortInfo->bufferDescriptorAddr[j][i] = 0;
 				}
 				break;
             case BDSP_AF_P_PortType_eInterTask:
@@ -1352,26 +1333,22 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
                     psIoPort->ePortDataType,
                     &interTaskPortIndex);
                 pInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pArmStage->sStageConnectionInfo.sStageOutput[interTaskPortIndex].connectionHandle.interTask.hInterTask->pInterTaskBufferHandle;
-                for(j=0;j<psIoPort->ui32numPortBuffer;j++)
-                {
-                    for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
-                    {
-                        decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-                        psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
-                    }
-                    errCode = BDSP_Arm_P_ReleaseDescriptor(
-                        (void *)pArmStage->pContext->pDevice,
-                        pArmStage->pArmTask->createSettings.dspIndex,
-                        &decriptorArray[0],
-                        psIoPort->sIoBuffer[j].ui32NumBuffer);
-                    if(errCode != BERR_SUCCESS)
-                    {
-                        BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-                        goto end;
-                    }
-                    pInterTaskBuffer->bufferDescriptorAddr[j][i]=0;
-                }
-                pInterTaskBuffer->descriptorAllocated=false;
+				errCode = BDSP_Arm_P_ReleasePortDescriptors(pArmStage->pContext->pDevice,
+						pArmStage->pArmTask->createSettings.dspIndex,
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Arm_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
+				}
+				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
+				{
+					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
+					{
+						pInterTaskBuffer->bufferDescriptorAddr[j][i]=0;
+					}
+				}
+				pInterTaskBuffer->descriptorAllocated=false;
                 break;
 			default:
 				BDBG_ERR(("Cleanup descriptor at Output, Port type not supported"));

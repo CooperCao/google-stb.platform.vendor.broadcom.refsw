@@ -462,7 +462,14 @@ int UserAppDmon::UserFile::fileWrite(
 
     // Switch peer file if necessary
     if (pPFile != pPFileLast) {
-        lseek(fd, pPFile->offset, SEEK_SET);
+        ret = lseek(fd, pPFile->offset, SEEK_SET);
+        if(ret == -1) {
+            tzioc_unmap_paddr(
+                UserAppDmon::hClient,
+                paddr,
+                bytes);
+            return -errno;
+        }
         pPFileLast = pPFile;
     }
 
@@ -492,7 +499,7 @@ int UserAppDmon::UserFile::fileRead(
 {
     int ret = 0;
 
-    if (pPFile->access & O_RDONLY)
+    if ((pPFile->access & O_WRONLY) == O_WRONLY)
         return -EACCES;
 
     // Map physical address
@@ -510,7 +517,14 @@ int UserAppDmon::UserFile::fileRead(
 
     // Switch peer file if necessary
     if (pPFile != pPFileLast) {
-        lseek(fd, pPFile->offset, SEEK_SET);
+        ret = lseek(fd, pPFile->offset, SEEK_SET);
+        if(ret == -1) {
+            tzioc_unmap_paddr(
+                UserAppDmon::hClient,
+                paddr,
+                bytes);
+            return -errno;
+        }
         pPFileLast = pPFile;
     }
 

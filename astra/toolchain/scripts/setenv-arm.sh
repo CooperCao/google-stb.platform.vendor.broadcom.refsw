@@ -44,7 +44,8 @@ export GCC_2_FLAGS="--with-arch=armv7-a --with-float=softfp"
 #
 # MUSL
 #
-export MUSL_VERSION=1.1.12
+export MUSL_VERSION=1.1.14
 export MUSL_FLAGS=
+export MUSL_PATCH=patches/musl-$MUSL_VERSION-O_EXEC-tzos.patch
 
 set +ex

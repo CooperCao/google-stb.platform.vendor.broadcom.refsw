@@ -1,39 +1,43 @@
  ###############################################################################
- # Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ # Copyright (C) 2018 Broadcom.
+ # The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  #
  # This program is the proprietary software of Broadcom and/or its licensors,
- # and may only be used, duplicated, modified or distributed pursuant to the terms and
- # conditions of a separate, written license agreement executed between you and Broadcom
- # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- # no license (express or implied), right to use, or waiver of any kind with respect to the
- # Software, and Broadcom expressly reserves all rights in and to the Software and all
- # intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ # and may only be used, duplicated, modified or distributed pursuant to
+ # the terms and conditions of a separate, written license agreement executed
+ # between you and Broadcom (an "Authorized License").  Except as set forth in
+ # an Authorized License, Broadcom grants no license (express or implied),
+ # right to use, or waiver of any kind with respect to the Software, and
+ # Broadcom expressly reserves all rights in and to the Software and all
+ # intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ # THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ # IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  #
  # Except as expressly set forth in the Authorized License,
  #
- # 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- # secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- # and to use this information only in connection with your use of Broadcom integrated circuit products.
+ # 1.     This program, including its structure, sequence and organization,
+ # constitutes the valuable trade secrets of Broadcom, and you shall use all
+ # reasonable efforts to protect the confidentiality thereof, and to use this
+ # information only in connection with your use of Broadcom integrated circuit
+ # products.
  #
- # 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- # AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- # WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- # THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- # OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- # LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- # OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- # USE OR PERFORMANCE OF THE SOFTWARE.
+ # 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ # "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ # OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ # RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ # IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ # A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ # ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ # THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  #
- # 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- # LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- # EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- # USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- # THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- # ANY LIMITED REMEDY.
+ # 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ # OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ # INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ # RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ # HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ # EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ # WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ # FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ##############################################################################
 
 #
@@ -192,6 +196,25 @@ BDSP_DEFINES += BDSP_MPEG_PASSTHRU_SUPPORT
 BDSP_DEFINES += BDSP_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_MPEG_PASSTHRU_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_MPEG_PASSTHRU_IDS_SOURCES)
+endif
+#
+#LPCM DECODE
+#
+ifneq ($(BDSP_LPCMDVD_SUPPORT),n)
+BDSP_LPCMDVD_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_lpcm.c
+BDSP_LPCMDVD_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_lpcm.c
+ifneq ($(wildcard $(BDSP_LPCMDVD_SOURCES)),)
+ifneq ($(wildcard $(BDSP_LPCMDVD_IDS_SOURCES)),)
+BDSP_LPCMDVD_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+ifeq ($(BDSP_LPCMDVD_SUPPORT),y)
+BDSP_DEFINES += BDSP_LPCMDVD_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_LPCMDVD_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_LPCMDVD_IDS_SOURCES)
 endif
 
 #
@@ -460,15 +483,64 @@ endif
 ifneq ($(BDSP_OPUSDEC_SUPPORT),n)
 BDSP_OPUSDEC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_opus.c
+BDSP_OPUSDEC_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wavformatex.c
 
 ifneq ($(wildcard $(BDSP_OPUSDEC_SOURCES)),)
+ifneq ($(wildcard $(BDSP_OPUSDEC_IDS_SOURCES)),)
 BDSP_OPUSDEC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
 endif
 endif
 
 ifeq ($(BDSP_OPUSDEC_SUPPORT),y)
 BDSP_DEFINES += BDSP_OPUSDEC_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_OPUSDEC_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_OPUSDEC_IDS_SOURCES)
+endif
+
+#
+#ALS DECODE
+#
+ifneq ($(BDSP_ALS_SUPPORT),n)
+BDSP_ALS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_als.c
+BDSP_ALS_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wavformatex.c \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_loas.c \
+
+ifneq ($(wildcard $(BDSP_ALS_SOURCES)),)
+ifneq ($(wildcard $(BDSP_ALS_IDS_SOURCES)),)
+BDSP_ALS_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_ALS_SUPPORT),y)
+BDSP_DEFINES += BDSP_ALS_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_ALS_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_ALS_IDS_SOURCES)
+endif
+
+#
+#FLAC DECODE
+#
+ifneq ($(BDSP_FLACDEC_SUPPORT),n)
+BDSP_FLACDEC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_flac.c
+BDSP_OPUSDEC_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wavformatex.c
+ifneq ($(wildcard $(BDSP_FLACDEC_SOURCES)),)
+ifneq ($(wildcard $(BDSP_OPUSDEC_IDS_SOURCES)),)
+BDSP_FLACDEC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_FLACDEC_SUPPORT),y)
+BDSP_DEFINES += BDSP_FLACDEC_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_FLACDEC_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_OPUSDEC_IDS_SOURCES)
 endif
 
 #
@@ -491,6 +563,50 @@ ifeq ($(BDSP_AC4_SUPPORT),y)
 BDSP_DEFINES += BDSP_AC4_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_AC4_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_AC4_IDS_SOURCES)
+endif
+
+#
+#WMAPRO DECODE
+#
+ifneq ($(BDSP_WMAPRO_SUPPORT),n)
+BDSP_WMAPRO_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_wmapro.c
+BDSP_WMAPRO_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wmapro.c
+
+ifneq ($(wildcard $(BDSP_WMAPRO_SOURCES)),)
+ifneq ($(wildcard $(BDSP_WMAPRO_IDS_SOURCES)),)
+BDSP_WMAPRO_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_WMAPRO_SUPPORT),y)
+BDSP_DEFINES += BDSP_WMAPRO_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_WMAPRO_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_WMAPRO_IDS_SOURCES)
+endif
+
+#
+#WMA DECODE
+#
+ifneq ($(BDSP_WMA_SUPPORT),n)
+BDSP_WMA_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_wma.c
+BDSP_WMA_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wma.c
+
+ifneq ($(wildcard $(BDSP_WMA_SOURCES)),)
+ifneq ($(wildcard $(BDSP_WMA_IDS_SOURCES)),)
+BDSP_WMA_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_WMA_SUPPORT),y)
+BDSP_DEFINES += BDSP_WMA_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_WMA_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_WMA_IDS_SOURCES)
 endif
 
 ##########################################

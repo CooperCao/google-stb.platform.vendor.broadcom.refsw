@@ -794,7 +794,7 @@ BERR_Code BWFE_P_ShutdownAdc(BWFE_ChannelHandle h)
       BWFE_P_AndRegister(hPllChn, BCHP_WFE_ANA_SYS_CNTL, ~0x00030003);
 
    /* power down ADC and hold in reset */
-   BWFE_P_AndRegister(h, BCHP_WFE_ANA_SYS_CNTL, ~0x00080010);
+   BWFE_P_AndRegister(h, BCHP_WFE_ANA_SYS_CNTL, ~0x0008001C);
 
    /* disable wbadc, misc, corr, and mdac clock */
    BWFE_P_AndRegister(h, BCHP_WFE_ANA_CLK_CTRL, ~0x00000039);

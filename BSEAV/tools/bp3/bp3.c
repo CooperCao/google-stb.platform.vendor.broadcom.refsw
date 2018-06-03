@@ -118,7 +118,7 @@ const char * const bp3_errors[] = {
     BP3_Error_(SageInternal_13),
     BP3_Error_(MinSecureVideoTAVersionNotMet),
     BP3_Error_(BinFileLoadedNotBp3BinFile),
-    BP3_Error_(AlredayProvisioned),
+    BP3_Error_(AlreadyProvisioned),
     BP3_Error_(SageInternal_14),
     BP3_Error_(SageInternal_15),
     BP3_Error_(Bp3BinFileBufferNotPresent),
@@ -133,7 +133,7 @@ const char * const bp3_errors[] = {
     BP3_Error_(SageInternal_21),
     BP3_Error_(SageInternal_22),
     BP3_Error_(BondOptionNotValid),
-    BP3_Error_(Internal_1),
+    BP3_Error_(BroadcomLicenseRequired),
     BP3_Error_(ProcessCcfFileHeader),
     BP3_Error_(ProcessSessionToken),
     BP3_Error_(ProcessBp3CcfFile),
@@ -199,7 +199,7 @@ BDBG_MODULE(bp3_curl);
 static char *output = NULL;
 #define PRINTF(fmt, ...) do { \
     int _c, _l = 0; \
-    printf(fmt "%n", ##__VA_ARGS__, &_c); \
+    _c = printf(fmt, ##__VA_ARGS__); \
     if (output == NULL) output = (char*) malloc((_c + 1) * sizeof(char)); \
     else { \
       _l = strlen(output); \
@@ -479,8 +479,6 @@ int status()
   rc = bp3_get_otp_id(&otpIdHi, &otpIdLo);
   CHECK_ERROR(rc, "Unable to read Chip ID\n")
   PRINTF("UId = 0x%08x%08x\n\n", otpIdHi, otpIdLo);
-  if (session)
-    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
 
   for (int i = 0; i < 16 * 8; i++) {
     bitmap[i].key = i / 32;
@@ -505,17 +503,12 @@ int status()
 
 // Supported with BP3 TA v4.0.9 and later
 #ifdef BP3_TA_FEATURE_READ_SUPPORT
-{
   uint32_t prodId = 0;
   uint32_t securityCode = 0;
-  uint32_t bp3SageStatus = 0;
   uint8_t  featureList[20]; // ptr to audio, video0, video1, host, sage - starting with byte 0, 0 enabled
   uint32_t featureListSize = 20;
   uint32_t bondOption = 0xFFFFFFFF;
   bool     provisioned = false;
-
-  rc = bp3_ta_start();
-  CHECK_ERROR (rc, "Unable to start BP3 TA\n")
 
   rc = bp3_get_chip_info (
     (uint8_t *)featureList,
@@ -537,12 +530,11 @@ int status()
       index,featureList[index+3],featureList[index+2],featureList[index+1],featureList[index]);
   }
   */
-
-  bp3_ta_end();
-}
 #endif
 
 leave:
+  if (session)
+    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
   return rc;
 }
 
@@ -879,7 +871,7 @@ int provision(int argc, char *argv[])
   session = NULL; // bp3_session_end freed bp3_session_end
   if (ccf.memory) free(ccf.memory);
   if (errCode != 0)
-    PRINTF("Provision failed with error: %s\n", errCode < 0 ? "Unexpected" : errCode < sizeof(bp3_errors)/sizeof(bp3_errors[0]) ? bp3_errors[errCode] : "Other new error");
+    PRINTF("Provision failed with error %d: %s\n", errCode, errCode < 0 ? "Unexpected" : errCode < sizeof(bp3_errors)/sizeof(bp3_errors[0]) ? bp3_errors[errCode] : "Other new error");
 
   // upload log and bp3.bin
   if (apiVer == v0)

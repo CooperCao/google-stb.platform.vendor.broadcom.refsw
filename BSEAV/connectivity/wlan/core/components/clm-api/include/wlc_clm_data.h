@@ -1,11 +1,11 @@
 /*
  * CLM Data structure definitions
- * $ Copyright Broadcom Corporation $
+ * $ Copyright Broadcom $
  *
  *
  * <<Broadcom-WL-IPTag/Proprietary:>>
  *
- * $Id: wlc_clm_data.h 553934 2015-05-02 01:13:58Z fedors $
+ * $Id: wlc_clm_data.h 691384 2017-03-22 02:07:34Z fedors $
  */
 
 #ifndef _WLC_CLM_DATA_H_
@@ -108,12 +108,13 @@ enum clm_data_const {
 	 */
 	CLM_LOC_DSC_RESTRICTED_IDX = 2,
 
-	/** Index of transmission (in quarter of dBm) or public power (in dBm)
-	 * in public or transmission record respectively
+	/** Index of transmission (in quarter of dBm), public power (in dBm)
+	 * PSD limit (in quarter dBm/MHz) in public, transmission, PSD limit
+	 * records respectively
 	 */
 	CLM_LOC_DSC_POWER_IDX = 0,
 
-	/** Index of channel range index in public or transmission record */
+	/** Index of channel range index in public, transmission, PSD record */
 	CLM_LOC_DSC_RANGE_IDX = 1,
 
 	/** Index of rates set index in transmission record */
@@ -133,6 +134,9 @@ enum clm_data_const {
 
 	/** Length of public power record */
 	CLM_LOC_DSC_PUB_REC_LEN = 2,
+
+	/** Length of PSD limit record */
+	CLM_LOC_DSC_PSD_REC_LEN = 2,
 
 	/** Length of transmission power records' header */
 	CLM_LOC_DSC_TX_REC_HDR_LEN = 2,
@@ -154,7 +158,7 @@ enum clm_data_const {
 	/** Disabled power */
 	CLM_DISABLED_POWER = 0x80u,
 
-	/* FLAGS USED IN REGISTRY */
+	/* FLAGS USED IN REGISTRY. FIRST FLAGS FIELD */
 
 	/** Country (region) record with 10 bit locale indices and flags are
 	 * used
@@ -239,7 +243,11 @@ enum clm_data_const {
 	 */
 	CLM_REGISTRY_FLAG_REGION_LOC_12_FLAG_SWAP = 0x40000000,
 
-	/** All known registry flags */
+	/** clm_registry_t has flags2 field (containing more registry flags)
+	 */
+	CLM_REGISTRY_FLAG_REGISTRY_FLAGS2 = 0x80000000,
+
+	/** All known registry flags (first flags field) */
 	CLM_REGISTRY_FLAG_ALL = CLM_REGISTRY_FLAG_COUNTRY_10_FL
 		| CLM_REGISTRY_FLAG_APPS_VERSION
 		| CLM_REGISTRY_FLAG_SUB_CHAN_RULES
@@ -261,13 +269,22 @@ enum clm_data_const {
 		| CLM_REGISTRY_FLAG_SUBCHAN_RULES_INC_SEPARATE
 		| CLM_REGISTRY_FLAG_REGION_FLAG_2
 		| CLM_REGISTRY_FLAG_REGION_LOC_12_FLAG_SWAP
+		| CLM_REGISTRY_FLAG_REGISTRY_FLAGS2,
+
+	/* FLAGS USED IN REGISTRY. SECOND FLAGS FIELD */
+
+	/** Base locales may have PSD limits */
+	CLM_REGISTRY_FLAG2_PSD_LIMITS = 0x00000001,
+
+	/** All known registry flags (second flags field) */
+	CLM_REGISTRY_FLAG2_ALL = CLM_REGISTRY_FLAG2_PSD_LIMITS
 };
 
 /** Major version number of CLM data format */
-#define CLM_FORMAT_VERSION_MAJOR 18
+#define CLM_FORMAT_VERSION_MAJOR 19
 
 /* Minor version number of CLM data format */
-#define CLM_FORMAT_VERSION_MINOR 2
+#define CLM_FORMAT_VERSION_MINOR 2 
 
 /** Flags and flag masks used in BLOB's byte fields */
 enum clm_data_flags {
@@ -287,13 +304,18 @@ enum clm_data_flags {
 	CLM_DATA_FLAG_DFS_TW = 0x03,
 
 	/** Mask of DFS field */
-	CLM_DATA_FLAG_DFS_MASK = 0x03,
+	CLM_DATA_FLAG_DFS_MASK = 0x13,
 
 	/** FiltWAR1 flag from CLM XML */
 	CLM_DATA_FLAG_FILTWAR1 = 0x04,
 
+	/** Locale record has PSD limits */
+	CLM_DATA_FLAG_PSD_LIMITS = 0x08,
 
-	/* TRANSMISSION POWER RECORD FLAGS */
+	/** UK DFS rules */
+	CLM_DATA_FLAG_DFS_UK = 0x10,
+
+	/* TRANSMISSION POWER AND PSD LIMITS RECORDS FLAGS */
 
 	/** 20MHz channel width */
 	CLM_DATA_FLAG_WIDTH_20 = 0x00,
@@ -349,7 +371,7 @@ enum clm_data_flags {
 	/** Shift for number of extra (per-antenna) bytes */
 	CLM_DATA_FLAG_PER_ANT_SHIFT = 4,
 
-	/** Nonlast transmission power record in locale */
+	/** Non-last transmission power record in locale */
 	CLM_DATA_FLAG_MORE = 0x04,
 
 	/** Second power record flag byte follows */
@@ -366,6 +388,8 @@ enum clm_data_flags {
 
 
 	/* REGION FLAGS */
+
+	/* FLAGS OF FIRST REGION FLAG BYTE */
 
 	/** Subchannel rules 3-bit index */
 	CLM_DATA_FLAG_REG_SC_RULES_MASK = 0x07,
@@ -388,14 +412,22 @@ enum clm_data_flags {
 	/** Region is EDCRS-EU compliant */
 	CLM_DATA_FLAG_REG_EDCRS_EU = 0x20,
 
-	/** Subchannel rules index high 5 bits in second region flags byte */
+	/** Region is compliant with 2018 RED (Radio Equipment Directive), that
+	 * limits frame burst duration and maybe something else
+	 */
+	CLM_DATA_FLAG_REG_RED_EU = 0x80,
+
+	/* FLAGS OF SECOND REGION FLAG BYTE */
+
+	/** Subchannel rules index high 5 bits  */
 	CLM_DATA_FLAG_2_REG_SC_RULES_MASK = 0x1F,
 
-	/** Limit peak power during PAPD calibration (second region flag byte) */
+	/** Limit peak power during PAPD calibration */
 	CLM_DATA_FLAG_2_REG_LO_GAIN_NBCAL = 0x20,
 
 	/** China Spur WAR2 flag from CLM XML */
 	CLM_DATA_FLAG_2_REG_CHSPRWAR2 = 0x40,
+
 
 	/* SUBCHANNEL RULES BANDWIDTH FLAGS */
 
@@ -1098,6 +1130,9 @@ typedef struct clm_data_registry {
 	 * or NULL
 	 */
 	const clm_sub_chan_rules_set_40_t *sub_chan_rules_5g_40m;
+
+	/** Second flags word */
+	int flags2;
 } clm_registry_t;
 
 /** CLM data BLOB header */

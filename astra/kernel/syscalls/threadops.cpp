@@ -388,6 +388,11 @@ void SysCalls::doGetScheduler(TzTask *currTask) {
         task = currTask;
     else
         task = TzTask::taskFromId(pid);
+    if(task == NULL) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        printf("Error : Invalid Task PID \n");
+        return;
+    }
     int oldPriority;
     int oldPolicy;
     task->getScheduler(&oldPolicy, &oldPriority);
@@ -410,6 +415,12 @@ void SysCalls::doSetScheduler(TzTask *currTask) {
         task = currTask;
     else
         task = TzTask::taskFromId(pid);
+
+    if(task == NULL) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        printf("Error : Invalid Task PID \n");
+        return;
+    }
 
     if (param_t != nullptr) {
         if (!validateUserMemAccess(param_t, sizeof(sched_param))) {

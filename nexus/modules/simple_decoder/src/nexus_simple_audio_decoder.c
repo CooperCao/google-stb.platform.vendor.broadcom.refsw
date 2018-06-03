@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
@@ -480,6 +484,7 @@ static void NEXUS_SimpleAudioDecoder_P_RestoreDecoder(NEXUS_SimpleAudioDecoderHa
 static bool nexus_p_check_for_ac4_master(NEXUS_SimpleAudioDecoderHandle handle)
 {
     int i;
+    NEXUS_Error rc;
 
     if (handle->startSettings.primary.codec == NEXUS_AudioCodec_eAc4)
     {
@@ -496,15 +501,20 @@ static bool nexus_p_check_for_ac4_master(NEXUS_SimpleAudioDecoderHandle handle)
     for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
         if (handle->serverSettings.persistent[i].decoder != NULL) {
             NEXUS_AudioDecoderStatus decoderStatus;
+            NEXUS_SimpleAudioDecoderHandle simpleDecoder = handle->serverSettings.persistent[i].decoder;
             bool mixerMaster = false;
-            NEXUS_AudioDecoder_GetStatus(handle->serverSettings.persistent[i].decoder, &decoderStatus);
-            if (decoderStatus.codec == NEXUS_AudioCodec_eAc4) {
-                NEXUS_AudioInputHandle connector = NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, NEXUS_AudioDecoderConnectorType_eMultichannel);
-                NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
-                mixerMaster = NEXUS_AudioMixer_IsInputMaster_priv(handle->serverSettings.mixers.multichannel, connector);
-                NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
-                if (mixerMaster) {
-                    return true;
+            if (simpleDecoder->serverSettings.primary != NULL) {
+                rc = NEXUS_AudioDecoder_GetStatus(simpleDecoder->serverSettings.primary, &decoderStatus);
+                if (rc == BERR_SUCCESS) {
+                    if (decoderStatus.codec == NEXUS_AudioCodec_eAc4) {
+                        NEXUS_AudioInputHandle connector = NEXUS_AudioDecoder_GetConnector(simpleDecoder->serverSettings.primary, NEXUS_AudioDecoderConnectorType_eMultichannel);
+                        NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                        mixerMaster = NEXUS_AudioMixer_IsInputMaster_priv(handle->serverSettings.mixers.multichannel, connector);
+                        NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                        if (mixerMaster) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
@@ -563,6 +573,7 @@ static void nexus_p_check_for_presentation_change(NEXUS_SimpleAudioDecoderHandle
 static NEXUS_AudioInputHandle nexus_p_get_alternate_presentation_input(NEXUS_SimpleAudioDecoderHandle handle)
 {
     int i;
+    NEXUS_Error rc;
     if (handle->startSettings.primary.codec == NEXUS_AudioCodec_eAc4)
     {
         if (handle->serverSettings.type == NEXUS_SimpleAudioDecoderType_eDynamic) {
@@ -578,15 +589,21 @@ static NEXUS_AudioInputHandle nexus_p_get_alternate_presentation_input(NEXUS_Sim
     for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
         if (handle->serverSettings.persistent[i].decoder != NULL) {
             NEXUS_AudioDecoderStatus decoderStatus;
+            NEXUS_SimpleAudioDecoderHandle simpleDecoder = handle->serverSettings.persistent[i].decoder;
             bool mixerMaster;
-            NEXUS_AudioDecoder_GetStatus(handle->serverSettings.persistent[i].decoder, &decoderStatus);
-            if (decoderStatus.codec == NEXUS_AudioCodec_eAc4) {
-                NEXUS_AudioInputHandle connector = NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, NEXUS_AudioDecoderConnectorType_eMultichannel);
-                NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
-                mixerMaster = NEXUS_AudioMixer_IsInputMaster_priv(handle->serverSettings.mixers.multichannel, connector);
-                NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
-                if (mixerMaster) {
-                    return NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, NEXUS_AudioConnectorType_eAlternateStereo);
+            if (simpleDecoder->serverSettings.primary != NULL) {
+                rc = NEXUS_AudioDecoder_GetStatus(simpleDecoder->serverSettings.primary, &decoderStatus);
+                if (rc == BERR_SUCCESS) {
+                    if (decoderStatus.codec == NEXUS_AudioCodec_eAc4)
+                    {
+                        NEXUS_AudioInputHandle connector = NEXUS_AudioDecoder_GetConnector(simpleDecoder->serverSettings.primary, NEXUS_AudioDecoderConnectorType_eMultichannel);
+                        NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                        mixerMaster = NEXUS_AudioMixer_IsInputMaster_priv(handle->serverSettings.mixers.multichannel, connector);
+                        NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.audio);
+                        if (mixerMaster) {
+                            return NEXUS_AudioDecoder_GetConnector(simpleDecoder->serverSettings.primary, NEXUS_AudioConnectorType_eAlternateStereo);
+                        }
+                    }
                 }
             }
         }
@@ -2248,14 +2265,15 @@ static void NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(NEXUS_SimpleAud
         if (handle->serverSettings.persistent[i].decoder != NULL) {
             for (j = 0; j < NEXUS_AudioConnectorType_eMax && !found; j++)
             {
-                NEXUS_AudioInput_IsRunning(NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, j), &running);
-                if (running && nexus_p_is_connected_to_a_mixer(handle, NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, j))) {
-                    rc = NEXUS_AudioDecoder_Suspend(handle->serverSettings.persistent[i].decoder);
+                NEXUS_SimpleAudioDecoderHandle simpleDecoder = handle->serverSettings.persistent[i].decoder;
+                NEXUS_AudioInput_IsRunning(NEXUS_AudioDecoder_GetConnector(simpleDecoder->serverSettings.primary, j), &running);
+                if (running && nexus_p_is_connected_to_a_mixer(handle, NEXUS_AudioDecoder_GetConnector(simpleDecoder->serverSettings.primary, j))) {
+                    rc = NEXUS_SimpleAudioDecoder_Suspend(simpleDecoder);
                     if (rc) {
                         BERR_TRACE(rc);
                     }
                     else {
-                    handle->serverSettings.persistent[i].suspended = true;
+                        handle->serverSettings.persistent[i].suspended = true;
                     }
                     found = true;
                 }
@@ -2273,7 +2291,8 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_ResumePersistentDecoders(NEXUS_Sim
 
     for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
         if (handle->serverSettings.persistent[i].decoder != NULL && handle->serverSettings.persistent[i].suspended) {
-            rc = NEXUS_AudioDecoder_Resume(handle->serverSettings.persistent[i].decoder);
+            NEXUS_SimpleAudioDecoderHandle simpleDecoder = handle->serverSettings.persistent[i].decoder;
+            rc = NEXUS_SimpleAudioDecoder_Resume(simpleDecoder);
             if (rc) {
                 BERR_TRACE(rc);
                 cumulativeRc |= rc;
@@ -3302,7 +3321,8 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetTrickState( NEXUS_SimpleAudioDecoderHand
                     NEXUS_AudioDecoderStartSettings startSettings;
                     copy_start_settings(&startSettings, handle, selector);
                     if (startSettings.stcChannel) {
-                        NEXUS_AudioDecoderPrimer_Start(handle->decoders[selector].primer, &startSettings);
+                        rc = NEXUS_AudioDecoderPrimer_Start(handle->decoders[selector].primer, &startSettings);
+                        if (rc) return BERR_TRACE(rc);
                     }
                     handle->decoders[selector].state = state_priming;
                 }

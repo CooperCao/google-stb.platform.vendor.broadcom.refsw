@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #ifndef BVDC_COMMON_PRIV_H__
 #define BVDC_COMMON_PRIV_H__
@@ -155,7 +159,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
@@ -327,7 +331,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -493,7 +497,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
@@ -636,7 +640,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
@@ -774,7 +778,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -911,7 +915,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
@@ -1052,7 +1056,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
@@ -1189,7 +1193,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
@@ -1326,7 +1330,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (1) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -1458,7 +1462,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (1)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -1646,7 +1650,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -1775,7 +1779,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
@@ -1918,7 +1922,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
@@ -2092,11 +2096,11 @@ extern "C" {
 
 #if BCHP_VER >= BCHP_VER_B0
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (8)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (4)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (4)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #else
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (6)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (6)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #endif
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
@@ -2158,7 +2162,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_DSCL                   (0)
 #define BVDC_P_SUPPORT_DSCL_VER               (0)
 #define BVDC_P_SUPPORT_DNR_VER                (1)
-#define BVDC_P_CMP_CFC_VER                    (5)
+#define BVDC_P_CMP_CFC_VER                    (4)
 #define BVDC_P_SUPPORT_GFD_VER                (11)
 #define BVDC_P_SUPPORT_SCL_VER                (12)
 
@@ -2229,7 +2233,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (0)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (1)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (0) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (0)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
@@ -2289,7 +2293,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_DSCL                   (0)
 #define BVDC_P_SUPPORT_DSCL_VER               (0)
 #define BVDC_P_SUPPORT_DNR_VER                (1)
-#define BVDC_P_CMP_CFC_VER                    (5)
+#define BVDC_P_CMP_CFC_VER                    (4)
 #define BVDC_P_SUPPORT_GFD_VER                (11)
 #define BVDC_P_SUPPORT_SCL_VER                (12)
 
@@ -2360,7 +2364,7 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (0)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (1)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (0) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (0)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
@@ -2494,7 +2498,7 @@ extern "C" {
 #endif
 #define BVDC_P_CRBVN_782_WORKAROUND           (1)
 #define BVDC_P_CMP_0_MOSAIC_CFCS              (8)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (4)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (4)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -2566,6 +2570,139 @@ extern "C" {
 #define BVDC_P_MANAGE_VIP                     (0) /* TODO: VDC owns VIP */
 #endif
 
+#elif (BCHP_CHIP==7216)
+
+/* source */
+#define BVDC_P_SUPPORT_GFD                    (2)
+#define BVDC_P_SUPPORT_GFD_VER                (11)
+#define BVDC_P_SUPPORT_GFD1_VER               (9)
+#define BVDC_P_SUPPORT_XSRC                   (2) /* Number of stand alone XSRC HW */
+#define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
+#define BVDC_P_SUPPORT_VFC                    (1) /* Number of stand alone VFC HW */
+#define BVDC_P_SUPPORT_HDDVI                  (1)
+#define BVDC_P_SUPPORT_HDDVI_VER              (12)
+#define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect */
+#define BVDC_P_SUPPORT_BOX_DETECT_VER         (0)
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_LPDDR4                 (1)
+#define BVDC_P_SUPPORT_MFD                    (2)
+#define BVDC_P_SUPPORT_MFD_VER                (18)/* MFD HW version */
+#define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
+#define BVDC_P_SUPPORT_DNR_VER                (1)
+#define BVDC_P_SUPPORT_SCL                    (4)
+#define BVDC_P_SUPPORT_SCL_VER                (12)/* SCL HW version */
+#define BVDC_P_SUPPORT_HSCL_VER               (7) /* HSCL HW version */
+#define BVDC_P_SUPPORT_3D                     (0) /* 3d Graphics/video support*/
+#define BVDC_P_SUPPORT_MTG                    (2) /* MFD Trigger Generator */
+#define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
+
+/* BVN */
+#define BVDC_P_SUPPORT_LOOP_BACK              (8) /* Number of VNET_B_LOOP_BACK_x_SRC */
+#define BVDC_P_SUPPORT_MCVP                   (0) /* TOOD: (2) Number of MCVP HW */
+#define BVDC_P_SUPPORT_MCVP_VER               (6) /* MCVP HW version */
+#define BVDC_P_SUPPORT_MCDI_VER               (10)/* MCDI HW version */
+#define BVDC_P_SUPPORT_MADR                   (0) /* TOOD: (2) Number of MAD-R HW */
+#define BVDC_P_SUPPORT_MADR_VER               (10)/* MAD-R HW version */
+#define BVDC_P_SUPPORT_MANR                   (0) /* Number of ANR HW in MCVP */
+#define BVDC_P_SUPPORT_MANR_VER               (0) /* ANR in MCVP version */
+#define BVDC_P_SUPPORT_TNT                    (2)
+#define BVDC_P_SUPPORT_TNT_VER                (6)
+#define BVDC_P_SUPPORT_TNTD                   (0)
+#define BVDC_P_SUPPORT_TNTD_VER               (0)
+#define BVDC_P_SUPPORT_MASK_DITHER            (0)
+#define BVDC_P_SUPPORT_HIST                   (0)
+#define BVDC_P_SUPPORT_CAP                    (2)
+#define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
+#define BVDC_P_SUPPORT_VFD                    (2)
+#define BVDC_P_SUPPORT_DMISC                  (1)
+#define BVDC_P_SUPPORT_FREE_CHANNEL           (3) /* Number of VNET_F_FCH_x_SRC */
+#define BVDC_P_SUPPORT_DRAIN_B                (1) /* Number of VNET_B_DRAIN_x_SRC */
+#define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
+#define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
+#define BVDC_P_SUPPORT_XCODE_WIN_CAP          (0)
+
+/* CMP */
+#define BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT   (2)
+#define BVDC_P_CMP_0_MAX_GFX_WINDOW_COUNT     (1)
+#define BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT   (0)
+#define BVDC_P_CMP_1_MAX_GFX_WINDOW_COUNT     (1)
+#define BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT   (1)
+#define BVDC_P_CMP_2_MAX_GFX_WINDOW_COUNT     (0)
+#define BVDC_P_CMP_3_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_3_Vx */
+#define BVDC_P_CMP_3_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_3_Gx */
+#define BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_4_Vx */
+#define BVDC_P_CMP_4_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_4_Gx */
+#define BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_5_Vx */
+#define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
+#define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
+#define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
+#define BVDC_P_CRBVN_782_WORKAROUND           (1)
+#define BVDC_P_CMP_CFC_VER                    (0) /* TODO: Port require */
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (0) /* TODO: Port require */
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0) /* TODO: Port require */
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (0) /* TODO: Port require */
+#define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
+#define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
+#define BVDC_P_CMP_1_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_1_V1_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_2_V0_CLEAR_RECTS           (16)
+#define BVDC_P_CMP_3_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_4_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_5_V0_CLEAR_RECTS           (0)
+#define BVDC_P_CMP_6_V0_CLEAR_RECTS           (0)
+#define BVDC_P_SUPPORT_WIN_CONST_COLOR        (1)
+#define BVDC_P_MIN_XCODE_CMP                  (1)
+
+/* csc */
+#define BVDC_P_SUPPORT_CMP_DEMO_MODE          (2)
+#define BVDC_P_SUPPORT_CSC_MAT_COEF_VER       (4)
+#define BVDC_P_SUPPORT_COLOR_CLIP             (1)
+
+/* display */
+#define BVDC_P_MAX_DACS                       (0)
+#define BVDC_P_NUM_SHARED_VF                  (0)
+#define BVDC_P_NUM_SHARED_SDSRC               (0)
+#define BVDC_P_NUM_SHARED_SM                  (0)
+#define BVDC_P_NUM_SHARED_SECAM               (0)
+
+#define BVDC_P_ORTHOGONAL_VEC_VER             (2)
+#define BVDC_P_SUPPORT_IT_VER                 (3)
+#define BVDC_P_SUPPORT_4kx2k_60HZ             (1)
+#define BVDC_P_SUPPORT_VBI_ENC_656            (1)
+#define BVDC_P_SUPPORT_VEC_VF_VER             (2)
+#define BVDC_P_SUPPORT_DVI_OUT                (1)
+#define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
+#define BVDC_P_SUPPORT_ITU656_OUT             (1)
+#define BVDC_P_SUPPORT_656_MASTER_MODE        (0)
+#define BVDC_P_SUPPORT_RFM_OUTPUT             (0)
+#define BVDC_P_SUPPORT_VEC_GRPD               (0)
+#define BVDC_P_SUPPORT_DSCL                   (0)
+#define BVDC_P_SUPPORT_DSCL_VER               (0)
+#define BVDC_P_SUPPORT_TDAC_VER               (13) /* TDAC/QDAC HW version */
+#define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
+
+#define BVDC_P_SUPPORT_HD_DAC                 (0)
+#define BVDC_P_SUPPORT_DTG_RMD                (1)
+#define BVDC_P_NUM_SHARED_STG                 (BVDC_P_SUPPORT_STG)
+#define BVDC_P_NUM_SHARED_656                 (1)
+#define BVDC_P_NUM_SHARED_DVI                 (1)
+#define BVDC_P_NUM_SHARED_RF                  (0)
+#define BVDC_P_NUM_SHARED_IT                  (2)
+#define BVDC_P_NUM_SHARED_HDSRC               (0)
+/* Note, here SHARED_SECAM/HDSECAM means the secam cross bar.
+ * Some secam cross bar may not have a secam module associated with it.
+ */
+#define BVDC_P_NUM_SHARED_SECAM_HD            (0)  /* Number of VEC's SECAM Passthru HW VEC_CFG_SECAM_x_SOURCE - BVDC_P_NUM_SHARED_SECAM*/
+#define BVDC_P_NUM_SHARED_DAC                 BVDC_P_MAX_DACS
+#define BVDC_P_SUPPORT_CLOCK_GATING           (1)
+#define BVDC_P_SUPPORT_MEM_PWR_GATING         (1)  /*Dynamic Memory Power Gating*/
+#define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_324_SYSCLK)
+#define BVDC_P_SUPPORT_STG                    (0) /* TODO: 1 STGs are supported */
+#define BVDC_P_SUPPORT_STG_VER                (4)
+#ifndef BVDC_P_MANAGE_VIP
+#define BVDC_P_MANAGE_VIP                     (0) /* TODO: VDC owns VIP */
+#endif
+
 #else
     #error "Port required for VDC."
 #endif
@@ -2604,6 +2741,8 @@ extern "C" {
 #define BVDC_P_CMP_CFCS                       1
 #elif (BVDC_P_CMP_0_MOSAIC_CFCS>0)
 #define BVDC_P_CMP_CFCS                       BVDC_P_CMP_0_MOSAIC_CFCS
+#elif (BVDC_P_CMP_0_TF_CONV_CFCS>0)
+#define BVDC_P_CMP_CFCS                       BVDC_P_CMP_0_TF_CONV_CFCS /* 7255 supports NL CFC, but mot mosaic */
 #else
 #define BVDC_P_CMP_CFCS                       2 /* primary and demo */
 #endif
@@ -2748,6 +2887,13 @@ extern "C" {
     :(BVDC_P_WindowId_eComp1_G0==(window_id)) ? (BCHP_CMP_1_G0_SURFACE_SIZE - BCHP_CMP_1_REVISION) \
     :(BVDC_P_WindowId_eComp2_G0==(window_id)) ? (BCHP_CMP_2_G0_SURFACE_SIZE - BCHP_CMP_2_REVISION) \
     :(BVDC_P_WindowId_eComp3_G0==(window_id)) ? (BCHP_CMP_3_G0_SURFACE_SIZE - BCHP_CMP_3_REVISION) \
+    :(BCHP_CMP_0_V0_SURFACE_SIZE - BCHP_CMP_0_REVISION))
+
+#elif (BCHP_CHIP==7216)
+#define BVDC_P_WIN_GET_REG_OFFSET(window_id) \
+    ((BVDC_P_WindowId_eComp0_V1==(window_id)) ? (BCHP_CMP_0_V1_SURFACE_SIZE - BCHP_CMP_0_REVISION) \
+    :(BVDC_P_WindowId_eComp0_G0==(window_id)) ? (BCHP_CMP_0_G0_SURFACE_SIZE - BCHP_CMP_0_REVISION) \
+    :(BVDC_P_WindowId_eComp1_G0==(window_id)) ? (BCHP_CMP_1_G0_SURFACE_SIZE - BCHP_CMP_1_REVISION) \
     :(BCHP_CMP_0_V0_SURFACE_SIZE - BCHP_CMP_0_REVISION))
 
 #else
@@ -3921,16 +4067,16 @@ typedef struct
 /* Able to convert between any combination of SDR / HDR, BT709 / BT2020NCL / BT2020CL / ... */
 #define BVDC_P_CFC_VER_2                  (2) /* 7271 A0 and up */
 
-/* Able to handle HLG OOTF-Adj, bolby and TpToneMapping  */
+/* Added LMR to CFC-0, able to handle HLG OOTF-Adj, maybe bolby and TpToneMapping  */
 #define BVDC_P_CFC_VER_3                  (3) /* 7271 B0 and up */
 
-/* Added mosaic support to LMR */
-#define BVDC_P_CFC_VER_4                  (4) /* 7278 B0 and up, 7260 B0 */
+/* Added LMR support to all CMP_0 CFCs */
+#define BVDC_P_CFC_VER_4                  (4) /* 7278 B0 and up, such as 7260 B0, 7255 and 7211 */
 
-/* BVDC_P_CFC_VER_4 without mosaic support */
-#define BVDC_P_CFC_VER_5                  (5) /* 7255 A0 */
+/* Added LMR_PWL */
+/*#define BVDC_P_CFC_VER_5                  (5)*/ /* 7216 and up */
 
-#define BVDC_P_CMP_NL_CFG_REGS                (BAVC_MOSAIC_MAX / 2)
+#define BVDC_P_CMP_VER2_NL_CFG_REGS       (BAVC_MOSAIC_MAX / 2)
 
 /* CSC configure for a CMP/GFD that has NL CSC HW */
 #define BVDC_P_NL_CSC_CTRL_SEL_BYPASS         (0xFFFFFFFF)
@@ -4264,7 +4410,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 
 #undef BVDC_P_CMP_0_DBVTCH_NUM_CTX
 #undef BVDC_P_CMP_0_MOSAIC_CFCS
-#undef BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
+#undef BVDC_P_CMP_0_TF_CONV_CFCS
 #undef BVDC_P_CMP_i_MOSAIC_CFCS
 #undef BVDC_P_CMP_0_V0_CLEAR_RECTS
 #undef BVDC_P_CMP_0_V1_CLEAR_RECTS
@@ -4339,7 +4485,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #define BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_5_Vx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_TF_CONV_CFCS             (0)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (0)
 #define BVDC_P_CMP_0_DBVTCH_NUM_CTX           (0)
 

@@ -107,8 +107,7 @@ void TzTimers::TimerEntry::operator delete(void *te) {
 }
 
 void TzTimers::restartHwTimer() {
-	uint64_t hwTimerFiresAt = 0xffffffffffffffff;
-	hwTimerFiresAt = Arch::Timer::firesAt();
+	uint64_t hwTimerFiresAt = Arch::Timer::firesAt();
 
 	//Check the timer value at the head of the queue
 	TimerEntry *headEntry = timers.cpuLocal().head();

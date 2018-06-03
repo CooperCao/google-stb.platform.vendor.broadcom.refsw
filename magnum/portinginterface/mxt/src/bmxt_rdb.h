@@ -54,7 +54,7 @@ const unsigned BMXT_NUMELEM_7145[]  = {26, 32, 16,  1,  2, 24, }; /* for Bx. Ax 
 const unsigned BMXT_NUMELEM_45216[] = {26, 32, 16,  1,  2, 24, };
 /* 45308-family */
 const unsigned BMXT_NUMELEM_45308[] = {26, 32, 16,  1,  3, 24, };
-const unsigned BMXT_NUMELEM_45302[] = { 4,  4,  2,  0,  1,  0, };
+const unsigned BMXT_NUMELEM_45402[] = { 4,  4,  2,  0,  1,  0, };
 
 /* 3158-family */
 const unsigned BMXT_NUMELEM_3158[]  = {26, 32, 16,  1,  2, 24, };

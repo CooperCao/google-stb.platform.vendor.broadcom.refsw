@@ -1009,6 +1009,8 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_RESET);
 #elif (BCHP_CHIP==7211)
+#include "bchp_hdmi.h"
+    BREG_P_ATOMIC_REG(BCHP_HDMI_MAI_CONFIG);
 #elif (BCHP_CHIP==7439 && (BCHP_VER < BCHP_VER_B0))
 #include "bchp_clkgen.h"
 #include "bchp_avs_top_ctrl.h"
@@ -1330,6 +1332,7 @@ void BREG_P_Tracelog_Register(BREG_Handle RegHandle, unsigned moduleId, const ch
 
 #if defined(BCHP_HIF_MSAT_REG_START) /* MSAT is hw atomizer for 64-bit register access from 32-bit host */
 
+#if defined(BREG_64_NATIVE_SUPPORT)
 static void BREG_P_Write64_Native_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
 {
     BREG_P_Write64(regHandle, reg, data);
@@ -1342,6 +1345,7 @@ static uint64_t BREG_P_Read64_Native_isrsafe(BREG_Handle regHandle, uint32_t reg
     data = BREG_P_Read64(regHandle, reg);
     return data;
 }
+#endif
 
 #include "bchp_hif_msat.h"
     /* 64-bits Migration: Control/Busses/Register Update */
@@ -1440,38 +1444,28 @@ static uint64_t BREG_P_Read64_Msat_isrsafe(BREG_Handle regHandle, uint32_t reg)
 uint64_t BREG_Read64_isrsafe(BREG_Handle regHandle, uint32_t reg)
 {
     uint64_t data;
-    bool native = false;
-
     BDBG_ASSERT(reg < regHandle->MaxRegOffset);
     BDBG_ASSERT(BREG_P_Test64Reg_isrsafe(reg));
 #if defined(BREG_64_NATIVE_SUPPORT) /* allow native 64-bit register access from 64-bit host interface */
-    native = true;
-#endif /*  #if defined(BREG_64_NATIVE_SUPPORT)  */
-    if(native) {
-        data = BREG_P_Read64_Native_isrsafe(regHandle, reg);
-    } else {
-        data = BREG_P_Read64_Msat_isrsafe(regHandle, reg);
-    }
+    data = BREG_P_Read64_Native_isrsafe(regHandle, reg);
+#else
+    data = BREG_P_Read64_Msat_isrsafe(regHandle, reg);
+#endif
     return data;
 }
 
 void BREG_Write64_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
 {
-    bool native = false;
-
     BDBG_ASSERT(reg < regHandle->MaxRegOffset);
     BDBG_ASSERT(BREG_P_Test64Reg_isrsafe(reg));
-#if defined(BREG_64_NATIVE_SUPPORT) /* allow native 64-bit register access from 64-bit host interface */
-    native = true;
-#endif /*  #if defined(BREG_64_NATIVE_SUPPORT)  */
     if(BREG_P_Test64RegReadOnly_isrsafe(reg)) {
         return;
     }
-    if(native) {
-        BREG_P_Write64_Native_isrsafe(regHandle, reg, data);
-    } else {
-        BREG_P_Write64_Msat_isrsafe(regHandle, reg, data);
-    }
+#if defined(BREG_64_NATIVE_SUPPORT) /* allow native 64-bit register access from 64-bit host interface */
+    BREG_P_Write64_Native_isrsafe(regHandle, reg, data);
+#else
+    BREG_P_Write64_Msat_isrsafe(regHandle, reg, data);
+#endif
     return;
 }
 #else /*  #if defined(BCHP_HIF_MSAT_REG_START)  */

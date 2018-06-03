@@ -1,6 +1,6 @@
 /***************************************************************************
  *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -49,6 +49,9 @@
 #include "nexus_base.h"
 #include "nexus_ir_input.h"
 #include "nexus_ir_input_custom.h"
+#if NEXUS_BMON_SUPPORT
+#include "nexus_ir_input_bmon.h"
+#endif
 #include "nexus_ir_input_init.h"
 
 #ifdef __cplusplus

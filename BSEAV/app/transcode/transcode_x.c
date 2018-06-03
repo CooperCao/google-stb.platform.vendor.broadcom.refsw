@@ -1720,6 +1720,7 @@ static void TRNSX_Record_BufferCopyThread(
     size_t bytes;
     bool   bWaitingForEOS=true; /* by default wait for NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_EOS */
     bool   bStoppedSignaled=false;
+    unsigned uiShutdownTries=0;
 
     TRNSX_Transcode * pTrans = (TRNSX_Transcode *)context;
 
@@ -1729,7 +1730,6 @@ static void TRNSX_Record_BufferCopyThread(
         const NEXUS_VideoEncoderDescriptor *desc[2];
         unsigned i,j;
         unsigned uiNumProcessed;
-        unsigned uiShutdownTries=0;
 
        /* To allow the user to pause the thread. */
         while ( !pTrans->record.bCopyData )
@@ -1760,7 +1760,7 @@ static void TRNSX_Record_BufferCopyThread(
                 bWaitingForEOS &= (pTrans->videoEncoder.eState == TRNSX_State_eStopped);
                 bWaitingForEOS &= (pTrans->record.bWaitForEos == true);
 
-                BDBG_MSG(("%s: stopped signaled. bWaitingForEOS:%d encoder_stop_mode:%s encoder_state:%s bWaitForEos:%d",
+                BDBG_MODULE_MSG(trnsx_dbg,("%s:: hEventStopThread was set: bWaitingForEOS:%d  encoder_stop_mode:%s  encoder_state:%s  bWaitForEos:%d",
                                     BSTD_FUNCTION,
                                     bWaitingForEOS,
                                     lookup_name(g_encoderStopModeStrs, pTrans->videoEncoder.stopSettings.mode),
@@ -1779,6 +1779,7 @@ static void TRNSX_Record_BufferCopyThread(
             {
                 if (( bWaitingForEOS == false ) || ( uiShutdownTries > 100 ))
                 {
+                    BDBG_MODULE_MSG(trnsx_dbg,("%s:: exiting thread uiShutdownTries:%d", BSTD_FUNCTION, uiShutdownTries ));
                     break;
                 }
                 else
@@ -2040,7 +2041,9 @@ static NEXUS_Error TRNSX_Transcode_GetDefaultSettings(
     pTrans->videoEncoder.displaySettings.displayType = NEXUS_DisplayType_eAuto;
     pTrans->videoEncoder.displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
     pTrans->videoEncoder.displaySettings.format = NEXUS_VideoFormat_eNtsc;
-
+#if 0
+    pTrans->videoEncoder.displaySettings.frameRateMaster = NULL; /* from transcode_ts: disable frame rate tracking for now */
+#endif
     pTrans->videoEncoder.bCustomDisplaySettings = false;
     NEXUS_Display_GetDefaultCustomFormatSettings(&pTrans->videoEncoder.customFormatSettings);
 #if 0     /* TODO: delete? */
@@ -5091,7 +5094,13 @@ static NEXUS_Error TRNSX_VideoEncoderDisplay_Open(
         return NEXUS_NOT_INITIALIZED;
     }
 
-    /* Bring up video encoder display */
+    BDBG_MODULE_MSG(trnsx_dbg, ("%s[%d]::", BSTD_FUNCTION, pTrans->uiIndex));
+
+    /*
+     * Bring up video encoder display
+     */
+
+    pTrans->videoEncoder.displaySettings.timebase = NEXUS_Timebase_e0 + pTrans->uiIndex; /* from transcode_ts: timebase must match with decoder/encoder STC to track end-to-end */
 
     pTrans->videoEncoder.display = NEXUS_Display_Open( TRNSX_VideoEncoderDisplay_GetIndex( pCtxt, pTrans->uiIndex), &pTrans->videoEncoder.displaySettings );
 
@@ -5106,6 +5115,7 @@ static NEXUS_Error TRNSX_VideoEncoderDisplay_Open(
         stgSettings.enabled     = true;
         stgSettings.nonRealTime = pTrans->bNonRealTime;
         NEXUS_Display_SetStgSettings(pTrans->videoEncoder.display , &stgSettings);
+        BDBG_MODULE_MSG(trnsx_dbg, ("%s[%d]:: calling NEXUS_Display_SetStgSettings, pTrans->bNonRealTime:%d", BSTD_FUNCTION, pTrans->uiIndex, pTrans->bNonRealTime ));
     }
 #endif
 

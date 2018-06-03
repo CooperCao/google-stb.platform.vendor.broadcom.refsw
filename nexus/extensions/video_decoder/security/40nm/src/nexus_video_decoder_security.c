@@ -463,8 +463,12 @@ static NEXUS_Error getRegionId( NEXUS_SecurityRegverRegionID *pRegionId, unsigne
                 }
                 case 2:
                 {
-                    *pRegionId = NEXUS_SecurityRegverRegionID_eVDEC1_ILA;
-                    BDBG_WRN(("TO BE supported ARCH deviceId [%d] ARCH[%d]", deviceId, arch ));
+                    #if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(5,0)
+                    *pRegionId = NEXUS_SecurityRegverRegionID_eVDEC1_IL2A;
+                    #else
+                    BDBG_WRN(("Unsupported ARCH deviceId [%d] ARCH[%d]", deviceId, arch ));
+                    rc = NEXUS_INVALID_PARAMETER;
+                    #endif
                     break;
                 }
                 default:

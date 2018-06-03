@@ -528,6 +528,14 @@ bool DrmWidevineCdm::createSession(
         BME_DEBUG_TRACE(("cdm instance 0x%x", pCdm));
     }
 
+    result = pCdm->setServiceCertificate(kDefaultCertificate);
+    if (result != Cdm::kSuccess) {
+        BME_DEBUG_ERROR(("CDM setServiceCertificate() error. result=0x%x", result));
+        BME_DEBUG_EXIT();
+        return false;
+    }
+    BME_DEBUG_TRACE(("cdm service certificate set successfully"));
+
     result = pCdm->createSession(Cdm::kTemporary, &session_id);
     if (result != Cdm::kSuccess) {
         BME_DEBUG_ERROR(("CDM createSession error. result=0x%x", result));
@@ -543,14 +551,6 @@ bool DrmWidevineCdm::createSession(
     }
     BME_DEBUG_TRACE(("cdm session created. id=%s", session_id.c_str()));
     _sessionMap[session_id] = session;
-
-    result = pCdm->setServiceCertificate(kDefaultCertificate);
-    if (result != Cdm::kSuccess) {
-        BME_DEBUG_ERROR(("CDM setServiceCertificate() error. result=0x%x", result));
-        BME_DEBUG_EXIT();
-        return false;
-    }
-    BME_DEBUG_TRACE(("cdm service certificate set successfully"));
 
     BME_DEBUG_EXIT();
     return true;

@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* This file is autogenerated, do not edit. */
@@ -53,39 +56,53 @@ extern "C"
 typedef struct BHSM_P_CryptoRng
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint16_t    randomNumberLength;
     }in;
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint32_t    randomNumber[90];
+        unsigned   randomNumberSize_inPlace; /* size in bytes */
+        uint8_t    *pRandomNumber_inPlace;
     }out;
 } BHSM_P_CryptoRng;
 
 typedef struct BHSM_P_CryptoRsa
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint32_t    rsaDataAddrMsb;
         uint32_t    rsaDataAddr;
         uint8_t    rsaSize;
         uint8_t    counterMeasure;
     }in;
+
+    /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
 } BHSM_P_CryptoRsa;
 
 typedef struct BHSM_P_CryptoPollRsa
 {
+    /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint32_t    outputData[64];
+        unsigned   outputDataSize_inPlace; /* size in bytes */
+        uint8_t    *pOutputData_inPlace;
     }out;
 } BHSM_P_CryptoPollRsa;
 
 typedef struct BHSM_P_CryptoHmac
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint32_t    dataAddrHi;
         uint32_t    dataAddrLo;
@@ -96,20 +113,30 @@ typedef struct BHSM_P_CryptoHmac
         uint8_t    shaType;
         uint8_t    isFirstDataBlock;
         uint8_t    isFinalDataBlock;
-        uint32_t    userHmacKey[8];
-        uint32_t    hmac_State[18];
+        uint32_t    userHmacKey[8]; /* use this array or the following size and pointer. */
+        unsigned   userHmacKeySize_inPlace; /* size in bytes. */
+        uint8_t    *pUserHmacKey_inPlace;
+        uint32_t    hmac_State[18]; /* use this array or the following size and pointer. */
+        unsigned   hmac_StateSize_inPlace; /* size in bytes. */
+        uint8_t    *pHmac_State_inPlace;
     }in;
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint32_t    hmac_State[18];
+        unsigned   hmac_StateSize_inPlace; /* size in bytes */
+        uint8_t    *pHmac_State_inPlace;
         uint32_t    hmac_Signature[8];
+        unsigned   hmac_SignatureSize_inPlace; /* size in bytes */
+        uint8_t    *pHmac_Signature_inPlace;
     }out;
 } BHSM_P_CryptoHmac;
 
 typedef struct BHSM_P_CryptoSha
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint32_t    dataAddrHi;
         uint32_t    dataAddrLo;
@@ -119,46 +146,71 @@ typedef struct BHSM_P_CryptoSha
         uint8_t    shaType;
         uint8_t    isFirstDataBlock;
         uint8_t    isFinalDataBlock;
-        uint32_t    sha_State[18];
-        uint32_t    userKey[8];
+        uint32_t    sha_State[18]; /* use this array or the following size and pointer. */
+        unsigned   sha_StateSize_inPlace; /* size in bytes. */
+        uint8_t    *pSha_State_inPlace;
+        uint32_t    userKey[8]; /* use this array or the following size and pointer. */
+        unsigned   userKeySize_inPlace; /* size in bytes. */
+        uint8_t    *pUserKey_inPlace;
     }in;
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint32_t    sha_State[18];
+        unsigned   sha_StateSize_inPlace; /* size in bytes */
+        uint8_t    *pSha_State_inPlace;
         uint32_t    sha_Digest[8];
+        unsigned   sha_DigestSize_inPlace; /* size in bytes */
+        uint8_t    *pSha_Digest_inPlace;
     }out;
 } BHSM_P_CryptoSha;
 
 typedef struct BHSM_P_CryptoAes1Block
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint8_t    aesOperation;
         uint8_t    aesKeySize;
-        uint32_t    aesKey[8];
-        uint32_t    aesData[4];
+        uint32_t    aesKey[8]; /* use this array or the following size and pointer. */
+        unsigned   aesKeySize_inPlace; /* size in bytes. */
+        uint8_t    *pAesKey_inPlace;
+        uint32_t    aesData[4]; /* use this array or the following size and pointer. */
+        unsigned   aesDataSize_inPlace; /* size in bytes. */
+        uint8_t    *pAesData_inPlace;
     }in;
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint32_t    aesData[4];
+        unsigned   aesDataSize_inPlace; /* size in bytes */
+        uint8_t    *pAesData_inPlace;
     }out;
 } BHSM_P_CryptoAes1Block;
 
 typedef struct BHSM_P_CryptoDes1Block
 {
     /* input */
+    bool suppressBspStatusErrorMessage; /* true: will not print an error for non-zero BSP status */
     struct {
         uint8_t    desOperation;
         uint8_t    desTdesTypeSel;
-        uint32_t    desKey[4];
-        uint32_t    desData[2];
+        uint32_t    desKey[4]; /* use this array or the following size and pointer. */
+        unsigned   desKeySize_inPlace; /* size in bytes. */
+        uint8_t    *pDesKey_inPlace;
+        uint32_t    desData[2]; /* use this array or the following size and pointer. */
+        unsigned   desDataSize_inPlace; /* size in bytes. */
+        uint8_t    *pDesData_inPlace;
     }in;
 
     /* output */
+    uint16_t bspStatus; /* the status returned from the BSP */
     struct {
         uint32_t    desData[2];
+        unsigned   desDataSize_inPlace; /* size in bytes */
+        uint8_t    *pDesData_inPlace;
     }out;
 } BHSM_P_CryptoDes1Block;
 BERR_Code BHSM_P_Crypto_Rng( BHSM_Handle hHsm, BHSM_P_CryptoRng *pParam );

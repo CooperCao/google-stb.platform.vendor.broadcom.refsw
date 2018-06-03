@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
@@ -101,8 +104,6 @@ BDBG_MODULE(playback_dif_single);
 
 #define BUF_SIZE (1024 * 1024 * 4) /* 4MB */
 #define VIDEO_PLAYPUMP_BUF_SIZE (1024 * 1024 * 2) /* 2MB */
-
-#define CALCULATE_PTS(t) (((uint64_t)(t) / 10000LL) * 45LL)
 
 using namespace dif_streamer;
 using namespace media_parser;
@@ -418,6 +419,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
 {
     IStreamer* streamer;
     SampleInfo *pSample;
+    bmp4_protectionSchemeInfo trackProtectionInfo;
     size_t pes_header_len;
     bmedia_pes_info pes_info;
     uint64_t frag_duration;
@@ -427,6 +429,8 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
         LOGE(("%s: No samples", BSTD_FUNCTION));
         return -1;
     }
+
+    s_app.parser[index]->GetProtectionInfoForTrack(trackProtectionInfo, frag_info->trackId);
 
     LOGD(("%s: #samples=%d",BSTD_FUNCTION, frag_info->samples_info->sample_count));
     for (unsigned i = 0; i < frag_info->samples_info->sample_count; i++) {
@@ -451,7 +455,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 s_app.last_video_fragment_time += frag_info->sample_info[i].duration;
 
                 pes_info.pts_valid = true;
-                pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
+                pes_info.pts = (uint32_t)(frag_duration * 1000LL / ((uint64_t)(frag_info->trackTimeScale)) * 45LL);
 
                 if (s_app.video_decode_hdr[index] == 0) {
                     parse_avcc_config(s_app.pAvccHdr[index], &avcc_hdr_size, &s_app.nalu_len[index], (uint8_t*)decoder_data, decoder_len);
@@ -518,7 +522,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 s_app.video_idx[index] %= NUM_SAMPLES_HELD;
                 if (s_app.decryptor[index]) {
                     numOfByteDecrypted = s_app.decryptor[index]->DecryptSample(pSample,
-                        input, decOutput, sampleSize);
+                        input, decOutput, sampleSize, trackProtectionInfo);
                     streamer->SubmitSample(pSample, input, decOutput);
                 } else {
                     streamer->SubmitScatterGather(input, true);
@@ -537,7 +541,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 decOutput->Copy(0, input, sampleSize);
                 if (s_app.decryptor[index]) {
                     numOfByteDecrypted = s_app.decryptor[index]->DecryptSample(pSample,
-                        input, decOutput, sampleSize);
+                        input, decOutput, sampleSize, trackProtectionInfo);
                 } else {
                     numOfByteDecrypted = sampleSize;
                 }
@@ -567,7 +571,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 s_app.last_audio_fragment_time += frag_info->sample_info[i].duration;
 
                 pes_info.pts_valid = true;
-                pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
+                pes_info.pts = (uint32_t)(frag_duration * 1000LL / ((uint64_t)(frag_info->trackTimeScale)) * 45LL);
 
                 pes_header_len = bmedia_pes_header_init(s_app.pAudioHeaderBuf[index],
                     (sampleSize + BMEDIA_ADTS_HEADER_SIZE), &pes_info);
@@ -607,7 +611,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                         IBuffer* decOutput = BufferFactory::CreateBuffer(sampleSize, NULL, streamer->IsSecure());
                         s_app.audioDecOut[index][s_app.audio_idx[index]] = decOutput;
                         numOfByteDecrypted = s_app.decryptor[index]->DecryptSample(pSample,
-                            input, decOutput, sampleSize);
+                            input, decOutput, sampleSize, trackProtectionInfo);
                         streamer->SubmitSample(pSample, input, decOutput);
                     } else {
                         streamer->SubmitScatterGather(input, true);
@@ -628,7 +632,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                     decOutput->Copy(0, input, sampleSize);
                     if (s_app.decryptor[index]) {
                         numOfByteDecrypted = s_app.decryptor[index]->DecryptSample(pSample,
-                            input, decOutput, sampleSize);
+                            input, decOutput, sampleSize, trackProtectionInfo);
                     } else {
                         numOfByteDecrypted = sampleSize;
                     }
@@ -1035,6 +1039,7 @@ static void setup_gui()
         s_app.num_mosaics = displayCap.display[0].numVideoWindows;
         LOGW(("num_mosaics reduced to %d (displayCap)", s_app.num_mosaics));
     }
+    if (s_app.num_mosaics == 0) s_app.num_mosaics = 1;
 
     /* Bring up video display and outputs */
     s_app.display = NEXUS_Display_Open(0, NULL);
@@ -1114,7 +1119,7 @@ static void setup_gui()
     }
 
     // Opening video decoders
-    if (s_app.num_mosaics == 0) {
+    if (s_app.num_mosaics == 1) {
         NEXUS_VideoDecoderOpenSettings openSettings;
         NEXUS_VideoDecoder_GetDefaultOpenSettings(&openSettings);
         if (secure_video)
@@ -1187,19 +1192,9 @@ static void setup_gui()
     }
 
     // Opening video windows
-    if (s_app.num_mosaics == 0) {
-        NEXUS_VideoWindow_AddInput(s_app.window, NEXUS_VideoDecoder_GetConnector(s_app.videoDecoder[0]));
-    } else
-#if BCHP_CHIP == 7439
     if (s_app.num_mosaics == 1) {
-#if 0 // FIXME: Mosaic window doesn't work for 7439
-        s_app.mosaic[0].window = NEXUS_VideoWindow_OpenMosaic(s_app.window, 0);
-        NEXUS_VideoWindow_AddInput(s_app.mosaic[0].window, NEXUS_VideoDecoder_GetConnector(s_app.videoDecoder[0]));
-#else
         NEXUS_VideoWindow_AddInput(s_app.window, NEXUS_VideoDecoder_GetConnector(s_app.videoDecoder[0]));
-#endif
     } else
-#endif
     for (int i = 0; i < s_app.num_mosaics; i++)
     {
         s_app.mosaic[i].window = NEXUS_VideoWindow_OpenMosaic(s_app.window, i);
@@ -1233,8 +1228,6 @@ static void setup_streamers()
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
     NEXUS_PlaypumpSettings playpumpSettings;
-
-    if (s_app.num_mosaics == 0) s_app.num_mosaics = 1;
 
     // Create Streamers
     for (int i = 0; i < s_app.num_mosaics; i++) {
@@ -1319,12 +1312,10 @@ static void setup_streamers()
 
     // Set up Playpumps and Decoders
     for (int i = 0; i < s_app.num_mosaics; i++) {
-        NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
-//        NEXUS_StcChannel_GetDefaultSettings(i, &stcSettings);
-stcSettings.stcIndex = 0; /* must have shared STC for all mosaics on a single video decoder */
+        NEXUS_StcChannel_GetDefaultSettings(i, &stcSettings);
+        stcSettings.stcIndex = 0; /* must have shared STC for all mosaics on a single video decoder */
         stcSettings.timebase = NEXUS_Timebase_e0;
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-//        s_app.stcChannel[i] = NEXUS_StcChannel_Open(0, &stcSettings);
         s_app.stcChannel[i] = NEXUS_StcChannel_Open(i, &stcSettings);
 
         s_app.videoStreamer[i]->GetSettings(&playpumpSettings);
@@ -1560,7 +1551,12 @@ static void setup_decryptors()
         key_response = s_app.decryptor[i]->GetKeyRequestResponse(license_server);
 
         // New API - AddKey
-        if (!s_app.decryptor[i]->AddKey(key_response)) {
+        bmp4_protection_info    protectionInfo;
+        if ( !s_app.parser[i]->GetProtectionInfo(protectionInfo) ) {
+           LOGE(("Failed to get scheme protection information"));
+           exit(EXIT_FAILURE);
+        }
+        if (!s_app.decryptor[i]->AddKey(key_response, protectionInfo)) {
             LOGE(("Failed to add key"));
             dump_hex("key_response", key_response.data(), key_response.size(), true);
             LOGE(("key_response string: %s", key_response.c_str()));

@@ -736,7 +736,7 @@ static int astra_ioctl_msg_receive(struct file *file, void *arg)
     timeout = msgReceiveData.timeout;
 
     if (!pClient || !pUserMsg ||
-        msgLen == 0) {
+        msgLen <= 0 || msgLen > ASTRA_MSG_LEN_MAX) {
         LOGE("Invalid args in astra ioctl msg receive cmd");
         msgReceiveData.retVal = -EINVAL;
         goto RETURN;

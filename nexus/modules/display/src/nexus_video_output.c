@@ -1308,6 +1308,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     BVDC_Display_HdmiSettings displayHdmiSettings ;
     NEXUS_VideoEotf eotf;
     bool doneHdmiSettings = false;
+    bool postFormatChangeNeeded = false;
 
     NEXUS_HdmiOutputVideoSettings requested ;
     NEXUS_HdmiOutputVideoSettings preferred ;
@@ -1442,6 +1443,8 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             if (rc) {
                 videoFmt = BFMT_VideoFmt_eNTSC; /* don't proceed with uninitialized value. */
             }
+
+            postFormatChangeNeeded = true;
             NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
             rc = NEXUS_HdmiOutput_P_PreFormatChange_priv(hdmiOutput, videoFmt, contentChangeOnly);
             NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
@@ -1603,7 +1606,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             display->timingGenerator == NEXUS_DisplayTimingGenerator_eHdmiDvo,
             hdmiFormatChange ? &notifyDisplay : NULL) ;
 
-        if (hdmiFormatChange)
+        if (postFormatChangeNeeded)
         {
             (void)NEXUS_HdmiOutput_P_PostFormatChange_priv(hdmiOutput);
         }

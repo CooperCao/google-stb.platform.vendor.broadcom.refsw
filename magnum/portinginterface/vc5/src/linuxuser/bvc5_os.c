@@ -78,7 +78,7 @@ void BVC5_P_DebugDumpHeapContents(uint64_t ulOffset, unsigned uSize, uint32_t ui
       int mem_fd = 0;
 
       mem_fd = open("/dev/mem", O_RDONLY);
-      if (mem_fd)
+      if (mem_fd >=0)
       {
          uint32_t            offset = ulOffset;
          size_t              chunk = 4 * 1024 * 1024;
@@ -117,6 +117,18 @@ void BVC5_P_DebugDumpHeapContents(uint64_t ulOffset, unsigned uSize, uint32_t ui
 BVC5_BinPoolBlock_MemInterface *BVC5_P_GetBinPoolMemInterface(void)
 {
    return NULL;
+}
+
+/* These alloc and free can just punt straight to the BKNI versions as they
+   are wrappers of malloc() and free() */
+void *BVC5_P_VMalloc(size_t size)
+{
+   return BKNI_Malloc(size);
+}
+
+void BVC5_P_VFree(void *mem)
+{
+   BKNI_Free(mem);
 }
 
 #include <sys/types.h>

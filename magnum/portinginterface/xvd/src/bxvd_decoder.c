@@ -2982,6 +2982,39 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
             eProtocol );
    }
 
+   /* ARBVN-74: average the AQP values. */
+   {
+      unsigned long uiCurrentInput = pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter;
+
+
+      if (hXvdCh->uiPPBSerialNumber == 0)
+      {
+         /* No change for the first picture. */
+         pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter =  uiCurrentInput;
+      }
+      else if (hXvdCh->uiPPBSerialNumber == 1)
+      {
+         /* Simple divide by two for the second picture. */
+         pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter = (uiCurrentInput +  hXvdCh->aqp.uiPreviousOutput) >> 1 ;
+      }
+      else
+      {
+         pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter = (uiCurrentInput +  hXvdCh->aqp.uiPreviousOutput) >> 1 ;
+
+         /* After the second picture, stop averaging when the values are equal to avoid integer math issues. */
+         if (hXvdCh->aqp.uiPreviousPreviousInput == hXvdCh->aqp.uiPreviousInput && hXvdCh->aqp.uiPreviousInput == uiCurrentInput )
+         {
+            pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter = uiCurrentInput;
+         }
+      }
+
+      hXvdCh->aqp.uiPreviousPreviousInput = hXvdCh->aqp.uiPreviousInput;
+      hXvdCh->aqp.uiPreviousInput =         uiCurrentInput;
+      hXvdCh->aqp.uiPreviousOutput =        pstXdmPicture->stDigitalNoiseReduction.uiAdjustedQuantizationParameter;
+   }
+
+
+
    /* BXDM_Picture_RangeRemapping */
    switch ( eProtocol )
    {

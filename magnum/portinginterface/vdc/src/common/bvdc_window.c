@@ -1714,7 +1714,11 @@ BERR_Code BVDC_Window_SetRgbMatching
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
     /* set new value */
-    hWindow->stNewInfo.bCscRgbMatching = bRgbMatching;
+    if (hWindow->stCurInfo.bCscRgbMatching != bRgbMatching)
+    {
+        hWindow->stNewInfo.stDirty.stBits.bCscAdjust = BVDC_P_DIRTY;
+        hWindow->stNewInfo.bCscRgbMatching = bRgbMatching;
+    }
 
     BDBG_LEAVE(BVDC_Window_SetRgbMatching);
     return BERR_SUCCESS;

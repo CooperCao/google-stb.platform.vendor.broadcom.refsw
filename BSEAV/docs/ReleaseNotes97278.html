@@ -684,39 +684,14 @@ color:#222222'>Nexus in Kernel mode</span></b></p>
 <p><strong><span style='color:#0070C0'>Quick Boot instructions</span></strong></p>
 
 <ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot -z
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot
      &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm </b></li>
- <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot -z
+ <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot
      &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64&nbsp; - This command
      will boot 64 bit kernel instead of 32 bit kernel. </b></li>
 </ul>
 
 <p class=MsoNormal style='margin-left:.5in'><b><span style='color:#0070C0'>&nbsp;</span></b></p>
-
-<p class=MsoNormal><strong><span style='color:#0070C0'>Set the kernel to
-autoboot</span></strong><b><span style='color:#0070C0'> </span></b></p>
-
-<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; flash
-     &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm flash0.kernel </b></li>
-</ul>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><b><span style='font-size:
-10.0pt;font-family:Symbol;color:#0070C0'>&middot;</span></b><b><span
-style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='color:#0070C0'>Or BOLT&gt; flash
-&lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64 flash0.kernel&nbsp; - For
-64 bit kernel</span></b></p>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; setenv -p STARTUP
-     &quot;boot -z flash0.kernel:&quot; </b></li>
- <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; reboot</b></li>
-</ul>
-
-<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
 <p class=MsoNormal><b><span style='color:#0070C0'>How to set a board to
 autoboot with kernel and ubifs rootfs and binaries into the flash:</span></b></p>
@@ -737,12 +712,12 @@ kernel and rootfs to the eMMC flash. </span></b></p>
 <p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
 #0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span><span style='color:#0070C0'>Reboot the board with &quot;boot
-emmcflash0.kernel: 'root=/dev/mmcblk1p6 rootwait rw bmem=640m@2428m brcm_cma=256m@2172m bmem=816m@13520m brcm_cma=256m@13264m'&quot; </span></b></p>
+emmcflash0.kernel: 'root=/dev/mmcblk1p6 rootwait rw bmem=640m@1404m bmem=824m@12488m brcm_cma=128m@1276m brcm_cma=128m@12360m'&quot; </span></b></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
 #0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span><span style='color:#0070C0'>Set the STARTUP or a function key variable
-to &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk1p6 rootwait rw bmem=640m@2428m brcm_cma=256m@2172m bmem=816m@13520m brcm_cma=256m@13264m'&quot; </span></b></p>
+to &quot;boot emmcflash0.kernel: 'root=/dev/mmcblk1p6 rootwait rw bmem=640m@1404m bmem=824m@12488m brcm_cma=128m@1276m brcm_cma=128m@12360m'&quot; </span></b></p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><b><span style='color:
 #0070C0'>&middot;</span></b><b><span style='font-size:7.0pt;color:#0070C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -764,7 +739,7 @@ information.</span></b></p>
 internal development, a board issue causes the &quot;v7-32&quot; global address
 map to be selected. If you don't see the message &quot;v7-64 Memory Map Variant
 detected.&quot; and encounter heap allocation problems during Nexus
-initialization, an alternative set of boot parameters, 'bmem=640m@2428m brcm_cma=256m@2172m bmem=816m@3280m brcm_cma=256m@3024m' may be needed.</span></b></p>
+initialization, an alternative set of boot parameters, 'bmem=640m@1404m bmem=824m@3272m brcm_cma=128m@1276m brcm_cma=128m@3144m' may be needed.</span></b></p>
 <p><b><span style='color:#0070C0'>These suggested bmem parameters were chosen as a set of &quot;worst case&quot; values that can be used with all box modes.  You may be able to find bmem and brcm_cma values more optimal for your application.  Try running with none, then look for the
 &quot;nexus_platform_cma: recommended Linux boot parameters:&quot; message during Nexus initialization.  Note that the example values allow some space at the top of the first bmem region for a reserved region 'NWMBOX'.</b></span></p>
 

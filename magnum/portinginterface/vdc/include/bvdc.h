@@ -8079,23 +8079,33 @@ BERR_Code BVDC_Window_GetCallbackSettings
 
 /***************************************************************************
 Summary:
-    This function sets the window's color space conversion process with
-    RGB matching or not.
+    This function sets whether doing RDB matching or not for the window's CSC
+    (color space conversion) process with SDR and non-BT2020 input and output
 
 Description:
-    A correct linear color space conversion process in the digital domain
-    takes into consideration that the RGB space for HD and SD are different.
-    In other words, the color space conversion does the RGB matching, i.e.
-    HD (YCbCr) -> HD (RGB) -> SD (RGB) -> SD (YCbCr), or vice versa.
-    However, many streams at practice might not be encoded
-    with it in mind, i.e. HD (RGB) assumed not different from SD (RGB). In
-    this case, the color space conversion doesn't need to do RGB matching,
-    i.e., HD (YCbCr) -> RGB -> SD (YCbCr).
-    So the application might want to toggle the color space conversion process
-    with RGB matching or without to display various streams correctly.
+    Theoretically CSC should be done with both nonlinear mapping and RGB primary
+    match being handled.
 
-    By default, a video window's color space conversion process DOES NOT do
-    RGB matching.
+    But historically there were no nonlinear handling HW and therefore CSC was
+    done with one linear matrix approximation. Before BT2020, HDR, Dolby and Tch
+    are introduced, linear matrix CSC indeed worked fine.
+
+    It turns out that the matrix without RGB primary matching is even more close
+    to the theoretically correct CSC than the matrix with RGB matching.
+
+    Linear CSC without RGB primary match has therefore been accepted by the
+    industry as a defacto standard. There are also customers who want to override
+    this default and to use the matrix with RGB primary match. This function
+    allows user to do so.
+
+    This function has no effect if either BT2020, HDR, Dolby or Tch is involved
+    in either source video or display.
+
+    New chips with PLM (Programmable Luminance Mapping) will continue do CSC with
+    one linear matrix (without RGB primary match by default) as before if BT2020,
+    HDR, Dolby and Tch are NOT involved, in order to maintain back compatibility.
+
+    By default, bRgbMatching is false.
 
 Input:
     hWindow        - A valid window handle created earlier.

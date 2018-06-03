@@ -671,6 +671,9 @@ b_atom_init(batom_factory_t factory, batom_t atom, unsigned count, unsigned type
 		atom->u.array.count = count;
 	}
 	atom_user_ptr = B_ATOM_USER_PTR(atom);
+#if __COVERITY__
+    /* coverity doesn't understand that size of buffer linked with static metadata, so hide dereferences */
+#else
 	if(user->user_size==sizeof (void *)) {
 		BDBG_ASSERT(udata);
 		*(void **) atom_user_ptr = *(void **)udata;
@@ -682,6 +685,7 @@ b_atom_init(batom_factory_t factory, batom_t atom, unsigned count, unsigned type
 		BDBG_ASSERT(udata);
 		BKNI_Memcpy(atom_user_ptr, udata, user->user_size);
 	}
+#endif
 	return;
 }
 

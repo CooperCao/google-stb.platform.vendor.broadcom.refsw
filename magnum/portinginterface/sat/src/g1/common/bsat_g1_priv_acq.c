@@ -1,39 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -48,7 +52,7 @@
 
 BDBG_MODULE(bsat_g1_priv_acq);
 
-#define BSAT_DEBUG_ACQ(x) /* x  */
+#define BSAT_DEBUG_ACQ(x) /* x */
 #define BSAT_DEBUG_OI(x) /* x */
 
 #define BSAT_G1_LOCK_FILTER_INCR 1250 /* orig: 5000 */
@@ -85,7 +89,6 @@ const BSAT_g1_ModeFunct* BSAT_g1_P_GetModeFunct_isrsafe(BSAT_AcqType t)
          BSAT_g1_P_QpskIsLocked_isr,
          BSAT_g1_P_Reacquire_isr
       },
-#ifndef BSAT_EXCLUDE_AFEC
       {
          BSAT_g1_P_AfecAcquire_isr,
          BSAT_g1_P_HpIsSpinv_isrsafe,
@@ -98,20 +101,6 @@ const BSAT_g1_ModeFunct* BSAT_g1_P_GetModeFunct_isrsafe(BSAT_AcqType t)
          BSAT_g1_P_AfecIsLocked_isr,
          BSAT_g1_P_AfecReacquire_isr,
       },
-#else
-      {
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL,
-         NULL
-      },
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
       {
          BSAT_g1_P_TfecAcquire_isr,
@@ -225,7 +214,6 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
    hChn->turboSettings.ctl = 0;
    hChn->turboSettings.tzsyOverride = 0x0420040F;
    hChn->turboSettings.flbwOverride = 25000;
-#ifndef BSAT_EXCLUDE_AFEC
    hChn->scramblingSeq.xseed = 0x100;
    hChn->scramblingSeq.plhdrscr1 = 0;
    hChn->scramblingSeq.plhdrscr2 = 0;
@@ -234,7 +222,6 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
    hChn->bAfecFlushFailed = false;
 #else
    hChn->dvbs2xSettings.scanModes = BSAT_SCAN_MODE_DVBS2X_ALL;
-#endif
 #endif
    hChn->acqSettings.mode = BSAT_Mode_eUnknown;
    hChn->acqSettings.symbolRate = 20000000;
@@ -300,7 +287,6 @@ BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
    BSAT_g1_P_InitChannelHandle(h);
    BSAT_g1_P_IndicateNotLocked_isrsafe(h);
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (hChn->bHasAfec)
    {
       BKNI_EnterCriticalSection();
@@ -308,7 +294,6 @@ BERR_Code BSAT_g1_P_InitChannel(BSAT_ChannelHandle h)
       BKNI_LeaveCriticalSection();
       BSAT_g1_P_AfecPowerDown_isrsafe(h);
    }
-#endif
 
 #ifndef BSAT_EXCLUDE_TFEC
    if (hChn->bHasTfec)
@@ -532,7 +517,6 @@ BERR_Code BSAT_g1_P_DisableChannelInterrupts_isr(BSAT_ChannelHandle h)
       BSAT_CHK_RETCODE(BSAT_g1_P_HpDisableInterrupts_isr(h));
    }
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (hChn->bHasAfec)
    {
       if (BSAT_g1_P_IsAfecOn_isrsafe(h))
@@ -541,7 +525,6 @@ BERR_Code BSAT_g1_P_DisableChannelInterrupts_isr(BSAT_ChannelHandle h)
          BSAT_CHK_RETCODE(BSAT_g1_P_AfecEnableMpegInterrupts_isr(h, false));
       }
    }
-#endif
 
 #ifndef BSAT_EXCLUDE_TFEC
    if (hChn->bHasTfec)
@@ -1288,13 +1271,11 @@ static void BSAT_g1_P_SetAcqType_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_Mode mode = hChn->acqSettings.mode;
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(mode) || BSAT_MODE_IS_DVBS2X(mode))
    {
       hChn->acqType = BSAT_AcqType_eDvbs2;
       return;
    }
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
    if (BSAT_MODE_IS_TURBO(mode))
    {
@@ -1360,14 +1341,12 @@ static BERR_Code BSAT_g1_P_BlindScanSetNextMode_isr(BSAT_ChannelHandle h)
    }
    else if (hChn->blindScanCurrMode & BSAT_BLIND_SCAN_MODE_DVBS2)
    {
-#ifndef BSAT_EXCLUDE_AFEC
       if (hChn->bHasAfec)
       {
          BDBG_MSG(("Blind scan: trying DVB-S2 scan"));
          hChn->acqSettings.mode = BSAT_Mode_eDvbs2_scan;
       }
       else
-#endif
       {
          /* remove LDPC from blind scan because this channel does not have an AFEC */
          hChn->miscSettings.blindScanModes &= ~BSAT_BLIND_SCAN_MODE_DVBS2;
@@ -1482,7 +1461,6 @@ BERR_Code BSAT_g1_P_GetActualMode_isr(BSAT_ChannelHandle h, BSAT_Mode *pActualMo
       else
          *pActualMode += i;
    }
-#ifndef BSAT_EXCLUDE_AFEC
    else if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       /* actual mode is set after modcod in ldpc scan */
@@ -1498,7 +1476,6 @@ BERR_Code BSAT_g1_P_GetActualMode_isr(BSAT_ChannelHandle h, BSAT_Mode *pActualMo
    {
       *pActualMode = hChn->acqSettings.mode;
    }
-#endif
 #endif
 #ifndef BSAT_EXCLUDE_TFEC
    else if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
@@ -2440,6 +2417,7 @@ BERR_Code BSAT_g1_P_PrepareNewAcquisition(BSAT_ChannelHandle h)
    hChn->actualMode = BSAT_Mode_eUnknown;
    hChn->initFreqOffset = 0;
    hChn->bEnableFineFreqEst = false;
+   hChn->dvbs2ScanState = 0;
 #ifndef BSAT_EXCLUDE_TFEC
    hChn->turboScanCurrMode = 0;
    hChn->turboScanLockedModeFailures = 0;
@@ -2937,14 +2915,12 @@ static BERR_Code BSAT_g1_P_OnStableLock_isr(BSAT_ChannelHandle h)
       }
    }
 
-#ifndef BSAT_EXCLUDE_AFEC
    if ((hChn->acqSettings.mode != BSAT_Mode_eDvbs2_ACM) && (hChn->acqType == BSAT_AcqType_eDvbs2))
    {
       /* wait until mpeg is locked */
       if (BSAT_g1_P_AfecIsMpegLocked_isr(h) == false)
          return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eStableLockTimer, 1000, BSAT_g1_P_OnStableLock_isr);
    }
-#endif
 
    /* reset SNORE */
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_SNR_SNORECTL, ~0x80);

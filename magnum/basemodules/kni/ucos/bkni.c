@@ -323,33 +323,19 @@ BKNI_TryAcquireMutex(BKNI_MutexHandle mutex)
 
 /****************************************************************************
 ****************************************************************************/
-BERR_Code 
+void
 BKNI_AcquireMutex(BKNI_MutexHandle mutex)
 {
     UBYTE       ucosErr;
     BERR_Code   errCode = BERR_SUCCESS;
 
     ASSERT_NOT_CRITICAL();
-
-    if (!mutex || !(mutex->pOsEvent)) {
-        return BERR_INVALID_PARAMETER;
-    }
+    BDBG_ASSERT(mutex);
+    BDBG_ASSERT(mutex->pOsEvent);
 
     /* Wait forever on this mutex */
-    OSSemPend(mutex->pOsEvent, 0, &ucosErr); 
-
-    switch( ucosErr ) {
-        case OS_NO_ERR: 
-            break;
-        case OS_TIMEOUT:
-            errCode = BERR_TIMEOUT;
-            break;
-        default:
-            errCode = BERR_OS_ERROR;
-            break;
-    }
-    
-    return errCode;
+    OSSemPend(mutex->pOsEvent, 0, &ucosErr);
+    return;
 }
 
 /****************************************************************************
@@ -710,11 +696,7 @@ BKNI_EnterCriticalSection(void)
         OSSchedLock();
     }   
 
-    rc = BKNI_AcquireMutex(ghCriticalSectionMutex);
-    if (rc != BERR_SUCCESS) {
-        rc = BERR_TRACE(rc);
-        BKNI_Fail();
-    }
+    BKNI_AcquireMutex(ghCriticalSectionMutex);
 
     SET_CRITICAL();
 }

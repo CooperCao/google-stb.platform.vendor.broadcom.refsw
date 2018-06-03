@@ -2649,6 +2649,8 @@ wlc_radar_detected(wlc_dfs_info_t *dfs, bool scan_core)
 		{RADAR_TYPE_KN2, "KN2"},
 		{RADAR_TYPE_KN3, "KN3"},
 		{RADAR_TYPE_KN4, "KN4"},
+                {RADAR_TYPE_UK1, "UK1"},
+                {RADAR_TYPE_UK2, "UK2"}, 
 		{RADAR_TYPE_UNCLASSIFIED, "UNCLASSIFIED"}
 	};
 #endif /* BCMDBG || WLMSG_DFS */

@@ -1,40 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-*
-* This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bhdm.h"
 #include "bhdm_priv.h"
@@ -1781,7 +1784,10 @@ static bool BHDM_P_HdmiPhyChanges(const BHDM_Handle hHDMI, const BHDM_Settings *
 		bPhyChanges = true ;
 	}
 
-	BDBG_MSG(("HDMI Phy Changes: %s", bPhyChanges ? "Yes" : "No")) ;
+	if (bPhyChanges)
+	{
+		BDBG_MSG(("HDMI Phy Changes required")) ;
+	}
 	return bPhyChanges ;
 }
 
@@ -1862,7 +1868,10 @@ static bool BHDM_P_HdmiPacketChanges(const BHDM_Handle hHDMI, const BHDM_Setting
 		bPacketChanges = true ;
 	}
 
-	BDBG_MSG(("HDMI Packet Updates? %s", bPacketChanges ? "Yes" : "No")) ;
+	if (bPacketChanges)
+	{
+		BDBG_MSG(("HDMI Packet changes required")) ;
+	}
 	return bPacketChanges ;
 }
 
@@ -3244,6 +3253,8 @@ static void BHDM_P_DebugInputVideoFmtConfiguration(
 		BDBG_WRN(("Tx%d: Using Custom DVI/DVO format...", hHDMI->eCoreId)) ;
 	}
 
+	/* disable debug console output for video format */
+#if DISABLED
 	BDBG_MSG(("Tx%d: Horz Front Porch: %3d ",
 		hHDMI->eCoreId, BHDM_VideoFmtParams[index].H_FrontPorch / divider)) ;
 	BDBG_MSG(("Tx%d: Horz Back  Porch: %3d ",
@@ -3266,6 +3277,7 @@ static void BHDM_P_DebugInputVideoFmtConfiguration(
 		hHDMI->eCoreId,
 		BHDM_VideoFmtParams[index].V_SyncPulseOffsetField0,
 		BHDM_VideoFmtParams[index].V_SyncPulseOffsetField1)) ;
+#endif
 }
 #endif
 
@@ -3665,6 +3677,12 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 			Register |= BCHP_FIELD_DATA(HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0, WM_DISABLE, 1);
 		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
 #endif
+
+		/* stop timer and reset reauth_rew counter */
+		if (hHDMI->TimerHdcp22StableLink) {
+			BTMR_StopTimer_isr(hHDMI->TimerHdcp22StableLink);
+		}
+		hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts = 0;
 #endif
 
 		BHDM_P_DisableDisplay_isr(hHDMI) ;
@@ -3832,12 +3850,29 @@ void BHDM_P_HandleHAEInterrupt_isr(
 		BDBG_LOG(("Tx%d: HAE_Int0x%x! - REAUTH_REQ (from Rx)", hHDMI->eCoreId, parm2));
 		{
 			uint32_t Register;
+			BERR_Code errCode = BERR_SUCCESS;
 
 			/* disable hdcp2.2 encryption */
 			Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
 				Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION);
 				Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION, 0);
 			BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+
+			if (hHDMI->TimerForcedTxHotplug) {
+				BTMR_StopTimer_isr(hHDMI->TimerHdcp22StableLink);
+				BDBG_MSG(("Consecutive REAUTH_REQ Counts = %d", hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts));
+				if (++hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts >	BHDM_HDCP_MAX_REAUTH_REQ_THRESHOLD)
+				{
+					BDBG_LOG(("Detect too many (count=%d) consecutive REAUTH_REQ failures from attached Rx. Force TX HOTPLUG_IN",
+						hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts));
+
+					errCode = BHDM_HDCP_AssertSimulatedHpd_isr(hHDMI, true, false);
+					if (errCode) { BERR_TRACE(errCode); }
+
+					errCode = BTMR_StartTimer_isr(hHDMI->TimerForcedTxHotplug, BHDM_P_MILLISECOND * BHDM_HDCP_FORCE_HPD_PULSE_WIDTH) ;
+					if (errCode) { errCode = BERR_TRACE(errCode); }
+				}
+			}
 		}
 
 		hHDMI->bReAuthRequestPending = true;
@@ -4112,25 +4147,17 @@ done:
 
 
 /*******************************************************************************
-BERR_Code BHDM_GetHdmiSettings
+BHDM_GetHdmiSettings
 Summary: Get the current settings for the HDMI device.
 *******************************************************************************/
-BERR_Code BHDM_GetHdmiSettings(const BHDM_Handle hHDMI, /* [in] handle to HDMI device */
+void BHDM_GetHdmiSettings(const BHDM_Handle hHDMI, /* [in] handle to HDMI device */
 	BHDM_Settings *pHdmiSettings  /* [in] pointer to memory to hold the current
 	                                  HDMI settings */
 )
 {
-	BERR_Code      rc = BERR_SUCCESS;
-	BDBG_ENTER(BHDM_GetHdmiSettings) ;
-
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-	BDBG_ASSERT(pHdmiSettings) ;
-
-	BKNI_Memset(pHdmiSettings, 0, sizeof(BHDM_Settings)) ;
 	*pHdmiSettings = hHDMI->DeviceSettings ;
-
-	BDBG_LEAVE(BHDM_GetHdmiSettings) ;
-	return rc ;
+	return;
 }
 
 
@@ -4349,280 +4376,6 @@ BERR_Code BHDM_GetTimebase(
 }
 #endif
 
-
-void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
-	BFMT_AspectRatio eAspectRatio, BAVC_HDMI_PixelRepetition ePixelRepetition, uint8_t *VideoID)
-{
-	switch (eVideoFmt)
-	{
-	case BFMT_VideoFmt_e1080i  :           /* HD 1080i */
-		*VideoID = 5 ;
-		break ;
-
-	case BFMT_VideoFmt_e720p   :           /* HD 720p */
-	case BFMT_VideoFmt_e720p_60Hz_3DOU_AS:	/* 720p 60Hz 3D frame packing */
-#ifdef BHDM_CONFIG_BLURAY_3D_SUPPORT
-	case BFMT_VideoFmt_e720p_3D :          /* HD 720p 3D */
-#endif
-		*VideoID = 4 ;
-		break ;
-
-	case BFMT_VideoFmt_e480p   :           /* HD 480p */
-		if (eAspectRatio == BFMT_AspectRatio_e16_9)
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 3 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 15 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e4x:
-				*VideoID = 36 ;
-				break;
-			default:
-				break;
-			}
-		}
-		else   /* default 4:3 */
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 2 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 14 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e4x:
-				*VideoID = 35 ;
-				break;
-			default:
-				break;
-			}
-		}
-		break ;
-
-	case BFMT_VideoFmt_eNTSC   :		   /* 480i, NSTC-M for North America */
-	case BFMT_VideoFmt_eNTSC_J :		   /* 480i (Japan) */
-	case BFMT_VideoFmt_ePAL_M  :		   /* 525-lines (Brazil) */
-		if (eAspectRatio == BFMT_AspectRatio_e16_9)
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 7 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 11 ;
-				break;
-			default:
-				break;
-			}
-		}
-		else   /* default 4:3 */
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 6 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 10 ;
-				break;
-			default:
-				break;
-			}
-		}
-		break ;
-
-	case BFMT_VideoFmt_ePAL_B  :		   /* Australia */
-	case BFMT_VideoFmt_ePAL_B1 :		   /* Hungary */
-	case BFMT_VideoFmt_ePAL_D  :		   /* China */
-	case BFMT_VideoFmt_ePAL_D1 :		   /* Poland */
-	case BFMT_VideoFmt_ePAL_G  :		   /* Europe */
-	case BFMT_VideoFmt_ePAL_H  :		   /* Europe */
-	case BFMT_VideoFmt_ePAL_K  :		   /* Europe */
-	case BFMT_VideoFmt_ePAL_I  :		   /* U.K. */
-	case BFMT_VideoFmt_ePAL_N  :		   /* Jamaica, Uruguay */
-	case BFMT_VideoFmt_ePAL_NC :		   /* N combination (Argentina) */
-	case BFMT_VideoFmt_eSECAM  :		   /* LDK/SECAM (France,Russia) */
-		if (eAspectRatio == BFMT_AspectRatio_e16_9)
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 22 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 26 ;
-				break;
-			default:
-				break;
-			}
-		}
-		else   /* default 4:3 */
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 21 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 25 ;
-				break;
-			default:
-				break;
-			}
-		}
-		break ;
-
-	case BFMT_VideoFmt_e1250i_50Hz :	   /* HD 1250i 50Hz, another 1080i_50hz standard SMPTE 295M */
-		BDBG_WRN(("Verify AVI Frame Video Code for 1250i Format")) ;
-		/* fall through to use 1080i 50Hz Video Code */
-	case BFMT_VideoFmt_e1080i_50Hz :	   /* HD 1080i 50Hz, 1125 line, SMPTE 274M */
-		*VideoID = 20 ;
-		break ;
-
-	case BFMT_VideoFmt_e720p_50Hz  :	   /* HD 720p 50Hz (Australia) */
-	case BFMT_VideoFmt_e720p_50Hz_3DOU_AS: /* 720p 50Hz 3D Frame Packing */
-#ifdef BHDM_CONFIG_BLURAY_3D_SUPPORT
-	case BFMT_VideoFmt_e720p_50Hz_3D :	   /* HD 720p 50Hz 3D */
-#endif
-		*VideoID  = 19 ;
-		break ;
-
-	case BFMT_VideoFmt_e720p_24Hz:			/* 720p 24Hz */
-	case BFMT_VideoFmt_e720p_24Hz_3DOU_AS:	/* 720p 24Hz 3D frame packing */
-		*VideoID  = 60 ;
-		break ;
-
-	case BFMT_VideoFmt_e720p_25Hz:			/* 720p 25Hz */
-		*VideoID  = 61 ;
-		break ;
-
-	case BFMT_VideoFmt_e720p_30Hz:			/* 720p 30Hz */
-	case BFMT_VideoFmt_e720p_30Hz_3DOU_AS:	/* 720p 30Hz 3D frame packing */
-		*VideoID  = 62 ;
-		break ;
-
-	case BFMT_VideoFmt_e576p_50Hz  :	   /* HD 576p 50Hz (Australia) */
-		if (eAspectRatio  == BFMT_AspectRatio_e16_9)
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 18 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 30 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e4x:
-				*VideoID = 38 ;
-				break;
-			default:
-				break;
-			}
-		}
-		else   /* default 4:3 */
-		{
-			switch (ePixelRepetition)
-			{
-			case BAVC_HDMI_PixelRepetition_eNone:
-				*VideoID = 17 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e1x:
-				*VideoID = 29 ;
-				break;
-			case BAVC_HDMI_PixelRepetition_e4x:
-				*VideoID = 37 ;
-				break;
-			default:
-				break;
-			}
-		}
-		break ;
-
-	case BFMT_VideoFmt_eDVI_640x480p :	   /* DVI Safe mode for computer monitors */
-		*VideoID = 1 ;
-		break ;
-
-	case BFMT_VideoFmt_e1080p	:	  /* HD 1080p 60Hz */
-	case BFMT_VideoFmt_e1080p_60Hz_3DOU_AS:
-	case BFMT_VideoFmt_e1080p_60Hz_3DLR:
-		*VideoID = 16 ;
-		break ;
-
-	case BFMT_VideoFmt_e1080p_50Hz	:	  /* HD 1080p 50Hz */
-		*VideoID = 31 ;
-		break ;
-
-	case BFMT_VideoFmt_e1080p_30Hz	:	  /* HD 1080p 30Hz */
-	case BFMT_VideoFmt_e1080p_30Hz_3DOU_AS:
-		*VideoID = 34 ;
-		break ;
-
-	case BFMT_VideoFmt_e1080p_24Hz	:	  /* HD 1080p 24Hz */
-	case BFMT_VideoFmt_e1080p_24Hz_3DOU_AS:
-#ifdef BHDM_CONFIG_BLURAY_3D_SUPPORT
-	case BFMT_VideoFmt_e1080p_24Hz_3D :	  /* HD 1080p 24Hz 3D */
-#endif
-		*VideoID = 32 ;
-		break ;
-
-	case BFMT_VideoFmt_e1080p_25Hz	:	  /* HD 1080p 25Hz */
-		*VideoID = 33 ;
-		break ;
-
-#if BHDM_CONFIG_4Kx2K_30HZ_SUPPORT
-	case BFMT_VideoFmt_e3840x2160p_30Hz :
-	case BFMT_VideoFmt_e3840x2160p_25Hz :
-	case BFMT_VideoFmt_e3840x2160p_24Hz :
-	case BFMT_VideoFmt_e4096x2160p_24Hz :
-		BDBG_MSG(("Video ID Code of 0 used for for HDMI Extended Resolution formats"));
-		*VideoID = 0 ;
-		break ;
-
-	case BFMT_VideoFmt_e1080p_100Hz :
-		BDBG_MSG(("Video ID Code of 64 used for for 1080p100"));
-		*VideoID = 64 ;
-		break ;
-	case BFMT_VideoFmt_e1080p_120Hz :
-		BDBG_MSG(("Video ID Code of 63 used for for 1080p120"));
-		*VideoID = 63 ;
-		break ;
-#endif
-
-#if BHDM_CONFIG_4Kx2K_60HZ_SUPPORT
-	case BFMT_VideoFmt_e3840x2160p_50Hz :
-		*VideoID = 96 ;
-		break ;
-	case BFMT_VideoFmt_e3840x2160p_60Hz :
-		*VideoID = 97 ;
-		break ;
-#endif
-
-	case BFMT_VideoFmt_eDVI_800x600p:
-	case BFMT_VideoFmt_eDVI_1024x768p:
-	case BFMT_VideoFmt_eDVI_1280x768p:
-	case BFMT_VideoFmt_eDVI_1280x720p_50Hz:
-	case BFMT_VideoFmt_eDVI_1280x720p:
-	case BFMT_VideoFmt_eDVI_1280x1024p_60Hz :
-		*VideoID = 0;
-		BDBG_MSG(("Video ID Code of 0 used for DVI formats"));
-		break;
-
-	default :
-		*VideoID = 0 ;
-		BDBG_ERR(("BFMT_VideoFmt %d NOT IMPLEMENTED",  eVideoFmt)) ;
-		break ;
-	}
-
-	BDBG_MSG(("BFMT_eVideoFmt %d ==> CEA 861 Video ID Code: %d",
-		eVideoFmt, *VideoID)) ;
-
-}
 
 
 
@@ -5034,6 +4787,18 @@ static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDMI, int parm2)
 		}
 		break;
 
+	case BHDM_P_TIMER_eHdcp22TxStableLink:
+#if BHDM_CONFIG_HAS_HDCP22
+		if (hHDMI->TimerHdcp22StableLink) {
+			BTMR_StopTimer_isr(hHDMI->TimerHdcp22StableLink);
+		}
+
+		BDBG_MSG(("Hdcp22StableLink timer expire. Reset consecutive reauthreq counter"));
+		hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts = 0;
+#endif
+
+		break;
+
 	default :
 		BDBG_ERR(("Tx%d: hHDM %p Timer %d not handled", hHDMI->eCoreId, (void *)hHDMI, parm2)) ;
 	}
@@ -5058,6 +4823,11 @@ void BHDM_P_AllocateTimers(const BHDM_Handle hHDMI)
 	/* create a timer to delay before enabling scrambling */
 	BHDM_CHECK_RC(rc, BHDM_P_CreateTimer(hHDMI,
 		&hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble)) ;
+
+	/* create a timer to monitor for REAUTH_REQ */
+	BHDM_CHECK_RC(rc, BHDM_P_CreateTimer(hHDMI,
+		&hHDMI->TimerHdcp22StableLink, BHDM_P_TIMER_eHdcp22TxStableLink)) ;
+
 #endif
 
 	/* create count-down timer for the pulse-width when force Tx HPD_IN */
@@ -5085,6 +4855,7 @@ void BHDM_P_FreeTimers(const BHDM_Handle hHDMI)
 #if BHDM_CONFIG_HAS_HDCP22
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerScdcStatus, BHDM_P_TIMER_eScdcStatus));
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble));
+	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerHdcp22StableLink, BHDM_P_TIMER_eHdcp22TxStableLink));
 #endif
 
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerForcedTxHotplug, BHDM_P_TIMER_eForcedTxHotplug));

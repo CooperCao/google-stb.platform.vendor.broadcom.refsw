@@ -72,6 +72,7 @@ BASIC_BUILD_APPS = \
 	playpcm \
 	playpump_sg_client \
 	playviewer \
+	power_status \
 	psi \
 	record \
 	screenshot \
@@ -82,12 +83,12 @@ BASIC_BUILD_APPS = \
 	set_wifi_region \
 	simpleplay \
 	standby \
+	thermal \
 	thumbnail \
 	transcode \
 	video_as_graphics \
 	wait_for_server \
-	watchdog \
-	power_status
+	watchdog
 
 # custom build rule needed
 CUSTOM_BUILD_APPS = \
@@ -217,6 +218,11 @@ $(BINDIR)/transcode: CFLAGS += -I$(NEXUS_TOP)/../magnum/commonutils/vlc
 ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
 $(BINDIR)/transcode: $(NEXUS_TOP)/../BSEAV/lib/bcmplayer/src/bcmindexer.c $(NEXUS_TOP)/../magnum/commonutils/vlc/bvlc.c $(NXCLIENT_APPS_UTILS_LIB)
 endif
+
+vpath %.c $(NEXUS_TOP)/../BSEAV/lib/sysfs
+CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/sysfs
+
+$(BINDIR)/thermal: $(NEXUS_TOP)/utils/thermal_config.c sysfs.c
 
 $(BINDIR)/list_all_boxmodes:
 	$(Q_)echo Auto-generating $@

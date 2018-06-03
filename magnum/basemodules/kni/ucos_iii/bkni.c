@@ -519,18 +519,12 @@ static unsigned g_refcnt = 0;
 
 BERR_Code BKNI_Init(void)
 {
-    BERR_Code result;
-
     if (g_refcnt++ == 0) {
-        result = BKNI_P_MutexTrackingState_Init();
+        BKNI_P_MutexTrackingState_Init();
         BKNI_P_StatsState_Init();
         BKNI_P_TrackAlloc_Init();
     }
-    else {
-        result = 0;
-    }
-
-    return result;
+    return 0;
 }
 
 /*

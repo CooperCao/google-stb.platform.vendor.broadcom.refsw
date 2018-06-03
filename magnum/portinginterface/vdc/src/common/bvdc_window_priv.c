@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -71,6 +75,7 @@
 
 BDBG_MODULE(BVDC_WIN);
 BDBG_FILE_MODULE(BVDC_TIMESTAMP);
+BDBG_FILE_MODULE(BVDC_DCXM_PICSIZE);
 BDBG_FILE_MODULE(BVDC_MADR_PICSIZE);
 BDBG_FILE_MODULE(BVDC_ASP_RAT);
 BDBG_FILE_MODULE(BVDC_WIN_VNET);
@@ -227,6 +232,17 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
     BVDC_P_MAKE_RES(Comp1_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp2_V0, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp0_V1 */
     BVDC_P_MAKE_RES(Comp3_V0, 1, 1, 1, 0, 0, Cap3, Vfd3, Scl3, Unknown),
+    BVDC_P_MAKE_RES(Comp4_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp6_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+
+#elif (BCHP_CHIP==7216)
+    BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0, Vfd0, Scl0, Unknown),
+    BVDC_P_MAKE_RES(Comp0_V1, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),
+    BVDC_P_MAKE_RES(Comp1_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp1_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp2_V0, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl2, Unknown),
+    BVDC_P_MAKE_RES(Comp3_V0, 1, 1, 1, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp4_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp6_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
@@ -439,6 +455,18 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
     /*Comp2_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR1, FTR___ },
     /*Comp3_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR2, FTR___ },
+    /*Comp4_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp5_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp6_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+
+#elif (BCHP_CHIP==7216)
+    /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
+    /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR0, FTR___ },
+    /*Comp0_V1*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR1, FTR___ },
+    /*Comp1_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp2_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR1, FTR___ },
+    /*Comp3_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
     /*Comp4_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
     /*Comp5_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
     /*Comp6_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
@@ -1641,7 +1669,7 @@ void BVDC_P_Window_Init
     pNewInfo->ucConstantAlpha      = BVDC_ALPHA_MAX;
     pNewInfo->eFrontBlendFactor    = BVDC_BlendFactor_eSrcAlpha;
     pNewInfo->eBackBlendFactor     = BVDC_BlendFactor_eOneMinusSrcAlpha;
-    pNewInfo->bCscRgbMatching      = true;
+    pNewInfo->bCscRgbMatching      = false;
     pNewInfo->uiVsyncDelayOffset   = 0;
     pNewInfo->eReaderState         = BVDC_P_State_eInactive;
     pNewInfo->eWriterState         = BVDC_P_State_eInactive;
@@ -2294,6 +2322,59 @@ static BERR_Code BVDC_P_Window_ValidateCoverage
     return BERR_SUCCESS;
 }
 
+#if BVDC_P_SUPPORT_MOSAIC_MODE
+/***************************************************************************
+ * {private}
+ *
+ * This adjusts window mosaic rect size and offset to comply with workarounds.
+ */
+static void BVDC_P_Window_AdjustMosaicRect_isrsafe
+    ( const BVDC_Window_Handle         hWindow,
+      bool                             bInterlaced,
+      BVDC_P_Rect                     *pRect)
+{
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
+#if (BVDC_P_DCXM_RECT_WORKAROUND)
+    /* CRBVN-282: Both offset and width need to be multiple of 4 */
+    if((hWindow->bSupportDcxm) &&
+       ((pRect->ulWidth % 4) || (pRect->lLeft % 4) || (pRect->lLeft_R % 4)))
+    {
+        /* Round down to make sure both offset and widht are multiple
+         * of 4. Trade off is will result in a slightly different
+         * window location in the future chips */
+        pRect->lLeft   = BVDC_P_ALIGN_DN(pRect->lLeft, 4);
+        pRect->lLeft_R = BVDC_P_ALIGN_DN(pRect->lLeft_R, 4);
+        pRect->ulWidth = BVDC_P_ALIGN_DN(pRect->ulWidth, 4);
+    }
+#endif
+    if((hWindow->bSupportDcxm) &&
+       ((pRect->ulWidth < BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN)||
+        (pRect->ulHeight < (BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN * (bInterlaced?2:1)))))
+    {
+        pRect->ulWidth =
+            BVDC_P_MAX(pRect->ulWidth, BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN);
+        pRect->ulHeight=
+            BVDC_P_MAX(pRect->ulHeight, BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN * (bInterlaced?2:1));
+    }
+#else
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(bInterlaced);
+#endif
+
+    /* 4:2:2 BVB round down the pixel position and width to even number */
+    if((pRect->lLeft & 1) || (pRect->lLeft_R & 1) || (pRect->ulWidth & 1))
+    {
+        BDBG_MODULE_MSG(BVDC_DCXM_PICSIZE,("left=%d, left_R=%d, width=%u; to round down to even pixels:",
+            pRect->lLeft, pRect->lLeft_R, pRect->ulWidth));
+        pRect->lLeft   = BVDC_P_ALIGN_DN(pRect->lLeft, 2);
+        pRect->lLeft_R = BVDC_P_ALIGN_DN(pRect->lLeft_R, 2);
+        pRect->ulWidth = BVDC_P_ALIGN_DN(pRect->ulWidth, 2);
+        BDBG_MODULE_MSG(BVDC_DCXM_PICSIZE,("left=%d, left_R=%d, width=%u now!",
+            pRect->lLeft, pRect->lLeft_R, pRect->ulWidth));
+    }
+}
+#endif
+
 /***************************************************************************
  * {private}
  *
@@ -2529,7 +2610,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
 
     if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
     {
-        bool bIs10BitCore = false, bIs2xClk = false;
+        bool bIs10BitCore = false, bIs2xClk = false, bMad4kBypass = true;
 
         /* If MPG window's display is not aligned to or by another display, forced sync
            lock might cause tearing! */
@@ -2678,59 +2759,9 @@ BERR_Code BVDC_P_Window_ValidateChanges
             {
                 for(i = 0; i < pNewInfo->ulMosaicCount; i++)
                 {
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
-#if (BVDC_P_DCXM_RECT_WORKAROUND)
-                    /* CRBVN-282: Both offset and width need to be multiple of 4 */
-                    if((hWindow->bSupportDcxm) &&
-                       ((pNewInfo->astMosaicRect[i].ulWidth % 4) ||
-                       (pNewInfo->astMosaicRect[i].lLeft % 4)  ||
-                       (pNewInfo->astMosaicRect[i].lLeft_R % 4)))
-                    {
-                        /* Round down to make sure both offset and widht are multiple
-                         * of 4. Trade off is will result in a slightly different
-                         * window location in the future chips */
-                        pNewInfo->astMosaicRect[i].lLeft =
-                            BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft, 4);
-                        pNewInfo->astMosaicRect[i].lLeft_R =
-                            BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft_R, 4);
-                        pNewInfo->astMosaicRect[i].ulWidth =
-                            BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].ulWidth, 4);
-                    }
-#endif
-                    if((hWindow->bSupportDcxm) &&
-                       ((pNewInfo->astMosaicRect[i].ulWidth < BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN)||
-                       (pNewInfo->astMosaicRect[i].ulHeight <
-                       (BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN * (hCompositor->stNewInfo.pFmtInfo->bInterlaced?2:1)))))
-                    {
-                        pNewInfo->astMosaicRect[i].ulWidth =
-                            BVDC_P_MAX(pNewInfo->astMosaicRect[i].ulWidth, BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN);
-                        pNewInfo->astMosaicRect[i].ulHeight=
-                            BVDC_P_MAX(pNewInfo->astMosaicRect[i].ulHeight,
-                            BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN *
-                            (hCompositor->stNewInfo.pFmtInfo->bInterlaced?2:1));
-                    }
-#endif
-
-                    /* 4:2:2 BVB round down the pixel position and width to even number */
-                    if((pNewInfo->astMosaicRect[i].lLeft & 1) ||
-                        (pNewInfo->astMosaicRect[i].lLeft_R & 1) ||
-                        (pNewInfo->astMosaicRect[i].ulWidth & 1))
-                    {
-                        BDBG_MSG(("left=%d, left_R=%d, width=%u; to round down to even pixels:",
-                            pNewInfo->astMosaicRect[i].lLeft,
-                            pNewInfo->astMosaicRect[i].lLeft_R,
-                            pNewInfo->astMosaicRect[i].ulWidth));
-                        pNewInfo->astMosaicRect[i].lLeft =
-                            BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft, 2);
-                        pNewInfo->astMosaicRect[i].lLeft_R =
-                            BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft_R, 2);
-                        pNewInfo->astMosaicRect[i].ulWidth =
-                            BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].ulWidth, 2);
-                        BDBG_MSG(("left=%d, left_R=%d, width=%u now!",
-                            pNewInfo->astMosaicRect[i].lLeft,
-                            pNewInfo->astMosaicRect[i].lLeft_R,
-                            pNewInfo->astMosaicRect[i].ulWidth));
-                    }
+                    /* adjust mosaic rect size and offset alignment with workarounds */
+                    BVDC_P_Window_AdjustMosaicRect_isrsafe(hWindow,
+                        hCompositor->stNewInfo.pFmtInfo->bInterlaced, &pNewInfo->astMosaicRect[i]);
 
                     /* the mosaics are bounded within ScalerOutput rect */
                     if((0 == pNewInfo->astMosaicRect[i].ulWidth)  ||
@@ -2954,6 +2985,20 @@ BERR_Code BVDC_P_Window_ValidateChanges
                         BDBG_ERR(("Window %d failed to allocate MCVP.", hWindow->eId));
                         goto fail_res;
                     }
+                    else
+                    {
+                        /* Acquire tmp mad resource, query capabilities that  */
+                        /* needed to allocate XSRC then release tmp mad resource */
+                        BVDC_P_Mcvp_Handle hTmpMcvp;
+                        phMcvp = &hTmpMcvp;
+                        BKNI_EnterCriticalSection();
+                        BVDC_P_Resource_AcquireHandle_isr(hResource,
+                            BVDC_P_ResourceType_eMcvp, hWindow->stResourceFeature.ulMad, hWindow->eId, (void **)phMcvp, false);
+                        bMad4kBypass = hTmpMcvp->b4kBypass;
+                        BVDC_P_Resource_ReleaseHandle_isr(hResource,
+                            BVDC_P_ResourceType_eMcvp, (void *)hTmpMcvp);
+                        BKNI_LeaveCriticalSection();
+                    }
 
                     hWindow->bAllocResource = true;
                 }
@@ -2966,6 +3011,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
             else
             {
                 hWindow->stNewResource.hMcvp = hWindow->stCurResource.hMcvp;
+                bMad4kBypass = hWindow->stNewResource.hMcvp->b4kBypass;
             }
         }
 
@@ -2973,7 +3019,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
         /* (12) Aquire XSRC */
         if(hWindow->stNewInfo.hSource->bIs2xClk &&
            hWindow->stNewInfo.hSource->bIs10BitCore &&
-           (!bIs2xClk || !hWindow->hCompositor->bIs2xClk) &&
+           (!bMad4kBypass || !bIs2xClk || !hWindow->hCompositor->bIs2xClk) &&
            BVDC_P_STATE_IS_CREATE(hWindow))
         {
             BVDC_P_Xsrc_Handle *phXsrc=&hWindow->stNewResource.hXsrc;
@@ -3001,6 +3047,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
         }
 #else
         BSTD_UNUSED(bIs2xClk);
+        BSTD_UNUSED(bMad4kBypass);
 #endif
 
 #if (BVDC_P_SUPPORT_VFC)
@@ -3227,7 +3274,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
 
     /* Checking against dst size changed. Since PEP demo mode is only */
     /* available for Win0 CMP0, don't need to check for other windows */
-    if(BVDC_P_WindowId_eComp0_V0 == hWindow->eId)
+    if(hWindow->stResourceRequire.bRequirePep)
     {
         if((pNewInfo->stSplitScreenSetting.eAutoFlesh  != pCurInfo->stSplitScreenSetting.eAutoFlesh) ||
            (pNewInfo->stSplitScreenSetting.eBlueBoost  != pCurInfo->stSplitScreenSetting.eBlueBoost) ||
@@ -5224,6 +5271,11 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
           bars clip size can be calculated by centering the adjusted rect within the user setting rect; */
         pPicture->astMosaicRect[0].lLeft = (hWindow->stAdjDstRect.lLeft - pUserInfo->stDstRect.lLeft);
         pPicture->astMosaicRect[0].lTop  = (hWindow->stAdjDstRect.lTop - pUserInfo->stDstRect.lTop);
+
+        /* adjust mosaic rect size and offset alignment with workarounds */
+        BVDC_P_Window_AdjustMosaicRect_isrsafe(hWindow,
+            hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced, &pPicture->astMosaicRect[0]);
+
         pPicture->abMosaicVisible[0] = true;
         /* mark the flag */
         hWindow->bBarsToBeFilled = true;
@@ -7365,8 +7417,15 @@ static void BVDC_P_Window_ProcPostShutDown_isr
 #endif
 
 #if BVDC_P_SUPPORT_XSRC
+        /* If XSRC is used because of MAD non-4k bypass capable, then
+           XSCE can be removed when MAD is no longer in the path */
         if((hWindow->stCurResource.hXsrc) &&
-           (pCurDirty->stBits.bDestroy))
+           (pCurDirty->stBits.bDestroy ||
+            ((hWindow->stCurResource.hMcvp) &&
+             (!hWindow->stCurInfo.bDeinterlace &&
+              !hWindow->stNewInfo.bDeinterlace &&
+              !hWindow->stCurInfo.bAnr &&
+              !hWindow->stNewInfo.bAnr))))
         {
             BDBG_MSG(("window %d releases shared XSRC", hWindow->eId));
             BVDC_P_Xsrc_ReleaseConnect_isr(&hWindow->stCurResource.hXsrc);
@@ -14443,7 +14502,7 @@ void BVDC_P_Window_Reader_isr
         BVDC_P_Histo_UpdateHistoData_isr(hWindow->stCurResource.hPep);
 #endif
 
-    if(hWindow->eId == BVDC_P_WindowId_eComp0_V0)
+    if(hWindow->stResourceRequire.bRequirePep)
     {
         BVDC_P_Pep_SetInfo_isr(hWindow->stCurResource.hPep, pPicture);
     }
@@ -14471,6 +14530,7 @@ void BVDC_P_Window_Reader_isr
                 BVDC_P_CMP_i_MOSAIC_CFCS : BVDC_P_CMP_CFCS;
             for (i = 0; i < ulCmpNumCscs; i++)
             {
+                hWindow->astMosaicCfc[i].bForceRgbPrimaryMatch = hWindow->stCurInfo.bCscRgbMatching;
                 BVDC_P_Cfc_UpdateCfg_isr(&hWindow->astMosaicCfc[i], true, true);
             }
 
@@ -14482,6 +14542,7 @@ void BVDC_P_Window_Reader_isr
         {
             /* pass bForceDirty as true because hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace could be cleared by VFC
              * and also because cfc cfg needs to be updated if win Hue/Contrast/Attenuation/... changes */
+            hWindow->pMainCfc->bForceRgbPrimaryMatch = hWindow->stCurInfo.bCscRgbMatching;
             BVDC_P_Cfc_UpdateCfg_isr(hWindow->pMainCfc, false, true);
             if(pCurInfo->bUserCsc)
             {

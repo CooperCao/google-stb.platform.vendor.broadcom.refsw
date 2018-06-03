@@ -9510,11 +9510,11 @@ static int
 phy_ac_rxgcrs_get_rxdesens(phy_type_rxgcrs_ctx_t *ctx, int32 *ret_int_ptr)
 {
 	phy_ac_rxgcrs_info_t *rxgcrs_info = (phy_ac_rxgcrs_info_t *)ctx;
-	if (!ACPHY_ENABLE_FCBS_HWACI(rxgcrs_info->pi) && rxgcrs_info->total_desense.forced) {
-		*ret_int_ptr = (int32)rxgcrs_info->total_desense.ofdm_desense;
+	if (!ACPHY_ENABLE_FCBS_HWACI(rxgcrs_info->pi) && rxgcrs_info->total_desense->forced) {
+		*ret_int_ptr = (int32)rxgcrs_info->total_desense->ofdm_desense;
 		return BCME_OK;
 	} else {
-		err = BCME_UNSUPPORTED;
+		return BCME_UNSUPPORTED;
 	}
 }
 
@@ -9524,13 +9524,14 @@ phy_ac_rxgcrs_set_rxdesens(phy_type_rxgcrs_ctx_t *ctx, int32 int_val)
 	phy_ac_rxgcrs_info_t *rxgcrs_info = (phy_ac_rxgcrs_info_t *)ctx;
 	phy_info_t *pi = rxgcrs_info->pi;
 	int err = BCME_OK;
-	if (!(ACPHY_ENABLE_FCBS_HWACI(pi)) {
+	int8 negative = -1;
+	if (!(ACPHY_ENABLE_FCBS_HWACI(pi))) {
 		wlapi_suspend_mac_and_wait(pi->sh->physhim);
 		if (int_val <= 0) {
 			/* disable phy_rxdesens and restore
 			 * default interference mode
 			 */
-			rxgcrs_info->total_desense.forced = FALSE;
+			rxgcrs_info->total_desense->forced = FALSE;
 			pi->sh->interference_mode_override = FALSE;
 			if (CHSPEC_IS2G(pi->radio_chanspec)) {
 				pi->sh->interference_mode = pi->sh->interference_mode_2G;
@@ -9543,15 +9544,14 @@ phy_ac_rxgcrs_set_rxdesens(phy_type_rxgcrs_ctx_t *ctx, int32 int_val)
 			 * before entering another mode
 			 */
 			if (pi->sh->interference_mode != INTERFERE_NONE) {
-				phy_noise_set_mode(pi, INTERFERE_NONE, TRUE);
+				phy_noise_set_mode(pi->noisei, INTERFERE_NONE, TRUE);
 			}
-			if (!phy_noise_set_mode(pi, pi->sh->interference_mode, TRUE)) {
+			if (!phy_noise_set_mode(pi->noisei, pi->sh->interference_mode, TRUE)) {
 				err = BCME_BADOPTION;
 			}
 #endif /* !defined(WLC_DISABLE_ACI) */
 
 			/* restore crsmincal automode, and force crsmincal */
-			int8 negative = -1;
 			wlc_phy_force_crsmin_acphy(pi, &negative);
 			phy_ac_rxgcrs_force_lesiscale(rxgcrs_info, &negative);
 
@@ -9567,15 +9567,15 @@ phy_ac_rxgcrs_set_rxdesens(phy_type_rxgcrs_ctx_t *ctx, int32 int_val)
 			} else {
 				pi->sh->interference_mode = pi->sh->interference_mode_5G_override;
 			}
-			phy_noise_set_mode(pi, INTERFERE_NONE, TRUE);
+			phy_noise_set_mode(pi->noisei, INTERFERE_NONE, TRUE);
 
 			/* disable crsmincal */
 			rxgcrs_info->crsmincal_enable = FALSE;
 			rxgcrs_info->lesiscalecal_enable = FALSE;
 			/* apply desense */
-			rxgcrs_info->total_desense.forced = TRUE;
-			rxgcrs_info->total_desense.ofdm_desense = (uint8)int_val;
-			rxgcrs_info->total_desense.bphy_desense = (uint8)int_val;
+			rxgcrs_info->total_desense->forced = TRUE;
+			rxgcrs_info->total_desense->ofdm_desense = (uint8)int_val;
+			rxgcrs_info->total_desense->bphy_desense = (uint8)int_val;
 			wlc_phy_desense_apply_acphy(pi, TRUE);
 
 		}

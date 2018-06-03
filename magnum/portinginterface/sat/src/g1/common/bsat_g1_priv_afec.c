@@ -1,6 +1,6 @@
 /******************************************************************************
 * Copyright (C) 2018 Broadcom.
-* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to
@@ -48,7 +48,6 @@
 #include "bsat_priv.h"
 #include "bsat_g1_priv.h"
 
-#ifndef BSAT_EXCLUDE_AFEC
 
 BDBG_MODULE(bsat_g1_priv_afec);
 
@@ -2323,5 +2322,3 @@ static BERR_Code BSAT_g1_P_AfecWaitForFlushDone1_isr(BSAT_ChannelHandle h)
 
    return retCode;
 }
-
-#endif /* BSAT_EXCLUDE_AFEC */
