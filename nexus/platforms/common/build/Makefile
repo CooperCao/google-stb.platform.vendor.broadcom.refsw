@@ -464,7 +464,7 @@ ifeq ($(NEXUS_SECURITY_FW_DEV_SIGN),y)
 $(NEXUS_SECURITY_SOURCES): $(NEXUS_SECURITY_REGVER_SIGNATURES)
 
 NEXUS_FW_SIGN_SRC = $(foreach module, $(NEXUS_FW_SIGN_MODULES), $($(module)_AUTH_SOURCES))
-NEXUS_FW_SIGN_CMD = ${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory B_REFSW_OS=linuxemu B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1
+NEXUS_FW_SIGN_CMD = +${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory B_REFSW_OS=linuxemu B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) >/dev/null
 NEXUS_FW_SIGN_WARN_MESSAGE = "Warning: Firmware region verification signing process failed. Using stub..."
 NEXUS_FW_SIGN_ERROR_MESSAGE = "Error: Firmware region verification signing process failed while NEXUS_ENFORCE_REGION_VERIFICATION=y"
 
@@ -473,7 +473,7 @@ ${NEXUS_SECURITY_REGVER_SIGNATURES}: $(NEXUS_FW_SIGN_SRC)
 ifneq ($(NEXUS_ENFORCE_REGION_VERIFICATION),y)
 	${Q_}$(CP) $(NEXUS_SECURITY_REGVER_SIGNATURES_STUB) $(NEXUS_SECURITY_REGVER_SIGNATURES); $(TOUCH) $(NEXUS_SECURITY_REGVER_SIGNATURES)
 	${Q_}$(CP) $(NEXUS_SECURITY_REGVER_KEY_STUB) $(NEXUS_SECURITY_REGVER_KEY); $(TOUCH) $(NEXUS_SECURITY_REGVER_KEY)
-	${NEXUS_FW_SIGN_CMD} || echo $(NEXUS_FW_SIGN_WARN_MESSAGE)
+	${NEXUS_FW_SIGN_CMD} 2>/dev/null || echo $(NEXUS_FW_SIGN_WARN_MESSAGE)
 else
 	${NEXUS_FW_SIGN_CMD} || (echo $(NEXUS_FW_SIGN_ERROR_MESSAGE) 1>&2; false)
 endif

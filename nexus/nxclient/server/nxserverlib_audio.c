@@ -133,13 +133,61 @@ struct b_audio_resource {
     bool localSession;
 };
 
+static struct {
+    struct b_session *session;
+    NEXUS_AudioCaptureHandle handle;
+    NxClient_AudioCaptureType captureType;
+} g_capture[NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS];
+
+
+static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS_SimpleAudioDecoderServerSettings *sessionSettings, NxClient_AudioCaptureType captureType);
+
 static enum nxserverlib_dolby_ms_type  b_dolby_ms(const struct b_session *session) {
     return session->server->settings.session[session->index].dolbyMs;
 }
 
-static bool b_dolby_ms_enabled(const struct b_session *session) {
+bool b_dolby_ms_capable(const struct b_session *session) {
     enum nxserverlib_dolby_ms_type ms = b_dolby_ms(session);
     return ms == nxserverlib_dolby_ms_type_ms11 || ms == nxserverlib_dolby_ms_type_ms12;
+}
+
+void  bserver_set_default_audio_settings(struct b_session *session)
+{
+    NEXUS_AudioCapabilities audioCapabilities;
+    nxserver_t server = session->server;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11 ||
+        server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12) {
+        NEXUS_AudioMixerSettings mixerSettings;
+
+        if (audioCapabilities.dsp.processing[NEXUS_AudioPostProcessing_eAdvancedTsm]) {
+            session->audioProcessingSettings.advancedTsm.mode = NEXUS_AudioAdvancedTsmMode_ePpm;
+        }
+        if (server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11 && audioCapabilities.dsp.dolbyVolume258) {
+            NEXUS_DolbyVolume258_GetDefaultSettings(&session->audioProcessingSettings.dolby.dolbyVolume258);
+            session->audioProcessingSettings.dolby.dolbyVolume258.enabled = false;
+        }
+        if (audioCapabilities.dsp.dolbyDigitalReencode) {
+            NEXUS_DolbyDigitalReencode_GetDefaultSettings(&session->audioProcessingSettings.dolby.ddre);
+            session->audioProcessingSettings.dolby.ddre.fixedEncoderFormat = true;
+        }
+
+        NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
+        BKNI_Memcpy(&session->audioProcessingSettings.dolby.dolbySettings, &mixerSettings.dolby, sizeof(NEXUS_AudioMixerDolbySettings));
+
+        session->audioSettings.dolbyMsAllowed = true;
+    }
+    else {
+        if (server->settings.session[session->index].avl && audioCapabilities.dsp.autoVolumeLevel) {
+            NEXUS_AutoVolumeLevel_GetDefaultSettings(&session->audioProcessingSettings.avl);
+            session->audioProcessingSettings.avl.enabled = false;
+        }
+        if (server->settings.session[session->index].truVolume && audioCapabilities.dsp.truVolume) {
+            NEXUS_TruVolume_GetDefaultSettings(&session->audioProcessingSettings.truVolume);
+            session->audioProcessingSettings.truVolume.enabled = false;
+        }
+    }
 }
 
 static bool b_is_aac(NEXUS_AudioCodec codec) {
@@ -214,6 +262,31 @@ static void b_dealloc_audio_index(struct b_audio_resource *r)
 
 static struct b_audio_resource *g_dummyOutputs[NEXUS_MAX_AUDIO_DUMMY_OUTPUTS];
 
+bool is_connected_to_a_mixer(NEXUS_AudioInputHandle input, struct b_audio_resource *r)
+{
+    bool connected = false;
+    bool anyConnected = false;
+    if (r->mixer[nxserver_audio_mixer_stereo]) {
+        NEXUS_AudioInput_IsConnectedToInput(input,
+                                            NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_stereo]),
+                                            &connected);
+        anyConnected |= connected;
+    }
+    if (r->mixer[nxserver_audio_mixer_multichannel]) {
+        NEXUS_AudioInput_IsConnectedToInput(input,
+                                            NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_multichannel]),
+                                            &connected);
+        anyConnected |= connected;
+    }
+    if (r->mixer[nxserver_audio_mixer_persistent]) {
+        NEXUS_AudioInput_IsConnectedToInput(input,
+                                            NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_persistent]),
+                                            &connected);
+        anyConnected |= connected;
+    }
+    return anyConnected;
+}
+
 static unsigned get_audio_playback_req_id(struct b_req *req, unsigned i) { return req->handles.simpleAudioPlayback[i].id; }
 
 static void b_audio_close_pb(struct b_audio_resource *r, struct b_audio_playback_resource *pb)
@@ -263,26 +336,50 @@ static int b_audio_open_pb(struct b_audio_resource *r, bool i2s, unsigned index)
         pb->audioPlayback = NEXUS_AudioPlayback_Open(NEXUS_ANY_ID, &openSettings);
         if (!pb->audioPlayback) { rc = BERR_TRACE(-1); goto error; }
     }
-    if ( r->mixer[nxserver_audio_mixer_persistent] )
-    {
-        rc = NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_persistent], b_audio_get_pb_output(pb));
-    }
-    else
-    {
-        if (r->mixer[nxserver_audio_mixer_stereo]) {
-            rc = NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_stereo], b_audio_get_pb_output(pb));
-            if (rc) { rc = BERR_TRACE(rc); goto error; }
-        }
-        if (r->mixer[nxserver_audio_mixer_multichannel]) {
-            rc = NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_multichannel], b_audio_get_pb_output(pb));
-            if (rc) { rc = BERR_TRACE(rc); goto error; }
-        }
-    }
     return 0;
 
 error:
     b_audio_close_pb(r, pb);
     return rc;
+}
+
+static void b_audio_connect_pb(struct b_audio_resource *r)
+{
+    int rc;
+    bool connected;
+    struct b_audio_playback_resource *pb, *lastpb = NULL;
+
+    pb = BLST_Q_FIRST(&r->audioPlaybackList);
+    while (pb) {
+        rc = 0;
+        connected = is_connected_to_a_mixer(NEXUS_AudioPlayback_GetConnector(pb->audioPlayback), r);
+        if (!connected) {
+            if (r->mixer[nxserver_audio_mixer_persistent]) {
+                rc = NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_persistent], b_audio_get_pb_output(pb));
+            }
+            else {
+                if (r->mixer[nxserver_audio_mixer_stereo]) {
+                    rc = NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_stereo], b_audio_get_pb_output(pb));
+                }
+                if (r->mixer[nxserver_audio_mixer_multichannel]) {
+                    rc = NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_multichannel], b_audio_get_pb_output(pb));
+                }
+            }
+            if (rc) {
+                b_audio_close_pb(r, pb);
+                if (lastpb) {
+                    pb = BLST_Q_NEXT(lastpb, link);
+                }
+                else {
+                    pb = BLST_Q_FIRST(&r->audioPlaybackList);
+                }
+                continue;
+            }
+        }
+        lastpb = pb;
+        pb = BLST_Q_NEXT(pb, link);
+    }
+    return;
 }
 
 struct b_audio_playback_resource *b_audio_get_pb(struct b_audio_resource *r, bool i2s)
@@ -388,31 +485,6 @@ bool has_audio(struct b_connect *connect)
 bool lacks_audio(struct b_connect *connect)
 {
     return is_main_audio(connect) && (!connect->client->session->main_audio || connect != connect->client->session->main_audio->connect);
-}
-
-bool is_connected_to_a_mixer(NEXUS_AudioInputHandle input, struct b_audio_resource *r)
-{
-    bool connected = false;
-    bool anyConnected = false;
-    if (r->mixer[nxserver_audio_mixer_stereo]) {
-        NEXUS_AudioInput_IsConnectedToInput(input,
-                                            NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_stereo]),
-                                            &connected);
-        anyConnected |= connected;
-    }
-    if (r->mixer[nxserver_audio_mixer_multichannel]) {
-        NEXUS_AudioInput_IsConnectedToInput(input,
-                                            NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_multichannel]),
-                                            &connected);
-        anyConnected |= connected;
-    }
-    if (r->mixer[nxserver_audio_mixer_persistent]) {
-        NEXUS_AudioInput_IsConnectedToInput(input,
-                                            NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_persistent]),
-                                            &connected);
-        anyConnected |= connected;
-    }
-    return anyConnected;
 }
 
 static NEXUS_AudioInputHandle b_audio_get_pcm_input(struct b_audio_resource *r, NEXUS_AudioConnectorType type)
@@ -1035,12 +1107,323 @@ int nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session)
             server->settings.audioOutputs.dacEnabled[0] == false);
 }
 
+static void b_audio_update_persistent_settings(struct b_session *session, struct b_audio_resource *r)
+{
+    int i;
+    BERR_Code rc;
+    NEXUS_SimpleAudioDecoderHandle activeDecoder;
+    NEXUS_SimpleAudioDecoderHandle persistentDecoder;
+    NEXUS_SimpleAudioDecoderServerSettings settings;
+    NEXUS_SimpleAudioDecoderServerSettings persisentSettings;
+
+    activeDecoder = b_audio_get_active_decoder(session->main_audio);
+    NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, activeDecoder, &settings);
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        if (settings.persistent[i].decoder != NULL) {
+            persistentDecoder = settings.persistent[i].decoder;
+            NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, persistentDecoder, &persisentSettings);
+            persisentSettings.mixers.multichannel = r->mixer[nxserver_audio_mixer_multichannel];
+            if (session->audioSettings.dolbyMsAllowed) {
+                persisentSettings.mixers.stereo = NULL;
+                persisentSettings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+                persisentSettings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+            }
+            else {
+                persisentSettings.mixers.stereo = r->mixer[nxserver_audio_mixer_stereo];
+                persisentSettings.capabilities.ms12 = persisentSettings.capabilities.ms11 = NULL;
+            }
+            rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, persistentDecoder, &persisentSettings);
+            if (rc) {BERR_TRACE(rc);}
+        }
+    }
+    rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, activeDecoder, &settings);
+    if (rc) {BERR_TRACE(rc);}
+    return;
+}
+
+BERR_Code nxserverlib_p_audio_create_downstream(struct b_session *session, struct b_audio_resource *r)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    NEXUS_AudioMixerSettings mixerSettings;
+    NEXUS_AudioCapabilities cap;
+    nxserver_t server = session->server;
+
+    NEXUS_GetAudioCapabilities(&cap);
+    if (r->localSession) {
+        /* Open mixer to mix the description and primary audio */
+        NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
+        mixerSettings.mixUsingDsp = session->server->settings.session[session->index].output.encode ||
+            server->settings.session[r->session->index].avl ||
+            server->settings.session[r->session->index].truVolume ||
+            server->settings.audioDecoder.audioDescription ||
+            server->settings.session[r->session->index].persistentDecoderSupport ||
+            b_dolby_ms_capable(session);
+
+        if (!cap.dsp.mixer) {
+            mixerSettings.mixUsingDsp = false;
+        }
+
+        if (b_dolby_ms_capable(session) && !session->audioSettings.dolbyMsAllowed) {
+            mixerSettings.mixUsingDsp = false;
+        }
+        mixerSettings.outputSampleRate = (server->settings.audioMixer.sampleRate >= 32000 && server->settings.audioMixer.sampleRate <= 96000) ? server->settings.audioMixer.sampleRate : mixerSettings.outputSampleRate;
+        if (mixerSettings.mixUsingDsp) {
+            if (b_dolby_ms_capable(session)) {
+                mixerSettings.outputSampleRate = 48000;
+            }
+        }
+
+        /* If we are doing Dolby MS then we need a multichannel DSP mixer otherwise
+           if a dsp mixer is required it should be used for stereo */
+        r->dspMixer[nxserver_audio_mixer_multichannel] = false;
+        r->dspMixer[nxserver_audio_mixer_stereo] = false;
+        if (mixerSettings.mixUsingDsp && b_dolby_ms_capable(session))
+        {
+            r->dspMixer[nxserver_audio_mixer_multichannel] = true;
+        }
+        else if (mixerSettings.mixUsingDsp)
+        {
+            r->dspMixer[nxserver_audio_mixer_stereo] = true;
+        }
+
+        /* Only open a multichannel mixer if we are in Dolby MS mode or we are NOT using DSP mixers
+           (only one DSP mixer can connect to a Decoder, but multiple FMM mixers can connect
+            to a single Decoder) */
+        if (r->dspMixer[nxserver_audio_mixer_multichannel]) {
+            BKNI_Memcpy(&mixerSettings.dolby, &session->audioProcessingSettings.dolby.dolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
+            r->mixer[nxserver_audio_mixer_multichannel] = NEXUS_AudioMixer_Open(&mixerSettings);
+        }
+        else {
+            NEXUS_AudioMixerSettings fmmMixerSettings;
+            NEXUS_AudioMixer_GetDefaultSettings(&fmmMixerSettings);
+            fmmMixerSettings.fixedOutputFormatEnabled = true;
+            fmmMixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_e5_1;
+            r->mixer[nxserver_audio_mixer_multichannel] = NEXUS_AudioMixer_Open(&fmmMixerSettings);
+        }
+        BDBG_MSG(("open AudioMixer multichannel (%p)%s", (void*)r->mixer[nxserver_audio_mixer_multichannel], r->dspMixer[nxserver_audio_mixer_multichannel]?" DSP":""));
+        if (!r->mixer[nxserver_audio_mixer_multichannel]) {
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+
+        /* If we are using FMM mixers or we didn't create a Multichannel mixer above,
+           then create a stereo mixer here */
+        if (r->dspMixer[nxserver_audio_mixer_stereo]) {
+            r->mixer[nxserver_audio_mixer_stereo] = NEXUS_AudioMixer_Open(&mixerSettings);
+        }
+        else {
+            NEXUS_AudioMixerSettings fmmMixerSettings;
+            NEXUS_AudioMixer_GetDefaultSettings(&fmmMixerSettings);
+            fmmMixerSettings.fixedOutputFormatEnabled = true;
+            fmmMixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_eStereo;
+            r->mixer[nxserver_audio_mixer_stereo] = NEXUS_AudioMixer_Open(&fmmMixerSettings);
+        }
+        BDBG_MSG(("open AudioMixer stereo(%p)%s", (void*)r->mixer[nxserver_audio_mixer_stereo], r->dspMixer[nxserver_audio_mixer_stereo]?" DSP":""));
+        if (!r->mixer[nxserver_audio_mixer_stereo]) {
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+
+        /* Create Intermediate mixer for persistent decoders */
+        /* MS12v1.3 - Only create this mixer for non MS12 cases */
+        if ( server->settings.session[r->session->index].persistentDecoderSupport &&
+             server->settings.session[r->session->index].dolbyMs != nxserverlib_dolby_ms_type_ms12 ) {
+            NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
+            mixerSettings.intermediate = true;
+            mixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_eStereo;
+            mixerSettings.fixedOutputFormatEnabled = true;
+            r->mixer[nxserver_audio_mixer_persistent] = NEXUS_AudioMixer_Open(&mixerSettings);
+            BDBG_MSG(("open Intermediate AudioMixer (%p)%s", (void*)r->mixer[nxserver_audio_mixer_persistent], r->dspMixer[nxserver_audio_mixer_persistent]?" DSP":""));
+            if (!r->mixer[nxserver_audio_mixer_persistent]) {
+                return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            }
+            if ( r->mixer[nxserver_audio_mixer_stereo] ) {
+                NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_stereo], NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_persistent]));
+            }
+            if ( r->mixer[nxserver_audio_mixer_multichannel] ) {
+                NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_multichannel], NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_persistent]));
+            }
+        }
+
+        if (b_dolby_ms_capable(session) && session->audioSettings.dolbyMsAllowed) {
+            if (cap.dsp.processing[NEXUS_AudioPostProcessing_eAdvancedTsm]) {
+                NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
+                NEXUS_AudioProcessorOpenSettings procOpenSettings;
+
+                NEXUS_AudioProcessor_GetDefaultOpenSettings(&procOpenSettings);
+                procOpenSettings.type = NEXUS_AudioPostProcessing_eAdvancedTsm;
+                r->advancedTsm = NEXUS_AudioProcessor_Open(&procOpenSettings);
+                if (r->advancedTsm) {
+                    rc = NEXUS_AudioProcessor_AddInput(r->advancedTsm, audioInput);
+                    if (rc) {
+                        BDBG_ERR(("NEXUS_AudioProcessor_AddInput %d", rc));
+                        NEXUS_AudioProcessor_Close(r->advancedTsm);
+                        r->advancedTsm = NULL;
+                    }
+                    else {
+                        NEXUS_AudioProcessorSettings processorSettings;
+                        NEXUS_AudioProcessor_GetSettings(r->advancedTsm, &processorSettings);
+                        BKNI_Memcpy(&processorSettings.settings.advancedTsm, &session->audioProcessingSettings.advancedTsm, sizeof(NEXUS_AudioAdvancedTsmSettings));
+                        NEXUS_AudioProcessor_SetSettings(r->advancedTsm, &processorSettings);
+                    }
+                }
+            }
+
+            /* only MS11 has DV258. In MS12, volume leveling and other DAPv2 features are built into
+               the Dsp Mixer */
+            if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11 )
+            {
+                if ( !cap.dsp.dolbyVolume258 )
+                {
+                    BDBG_ERR(("DolbyVolume258 not available"));
+                }
+                else {
+                    NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
+                    r->dolbyVolume258 = NEXUS_DolbyVolume258_Open(&session->audioProcessingSettings.dolby.dolbyVolume258);
+                    if (r->dolbyVolume258) {
+                        rc = NEXUS_DolbyVolume258_AddInput(r->dolbyVolume258, audioInput);
+                        if (rc) {
+                            BDBG_ERR(("NEXUS_DolbyVolume258_AddInput %d", rc));
+                            NEXUS_DolbyVolume258_Close(r->dolbyVolume258);
+                            r->dolbyVolume258 = NULL;
+                        }
+                    }
+                }
+            }
+
+            if (!cap.dsp.dolbyDigitalReencode) {
+                BDBG_ERR(("DDRE not available"));
+            }
+            else {
+                NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
+                r->ddre = NEXUS_DolbyDigitalReencode_Open(&session->audioProcessingSettings.dolby.ddre);
+                if (r->ddre) {
+                    rc = NEXUS_DolbyDigitalReencode_AddInput(r->ddre, audioInput);
+                    if (rc) {
+                        BDBG_ERR(("NEXUS_DolbyDigitalReencode_AddInput %d", rc));
+                        NEXUS_DolbyDigitalReencode_Close(r->ddre);
+                        r->ddre = NULL;
+                    }
+                }
+            }
+        }
+        else if (!b_dolby_ms_capable(session)) { /* Only if MS11/12 is not enabled so we can fall back to legacy for them. */
+
+            /* non-MS11 filter graph */
+            if (r->localSession && cap.dsp.codecs[NEXUS_AudioCodec_eAc3].encode) {
+                NEXUS_AudioEncoderSettings encoderSettings;
+                NEXUS_AudioEncoder_GetDefaultSettings(&encoderSettings);
+                r->audioEncoder = NEXUS_AudioEncoder_Open(&encoderSettings);
+                if (r->audioEncoder) {
+                    NEXUS_AudioEncoder_AddInput(r->audioEncoder,
+                        NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_primary], NEXUS_AudioConnectorType_eStereo));
+                }
+            }
+
+            if (server->settings.session[r->session->index].avl) {
+                if (!cap.dsp.autoVolumeLevel) {
+                    BDBG_ERR(("auto volume level not available"));
+                }
+                else {
+                    NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
+                    r->avl = NEXUS_AutoVolumeLevel_Open(&session->audioProcessingSettings.avl);
+                    if (r->avl) {
+                        rc = NEXUS_AutoVolumeLevel_AddInput(r->avl, audioInput);
+                        if (rc) {
+                            BDBG_ERR(("NEXUS_AutoVolumeLevel_AddInput %d", rc));
+                            NEXUS_AutoVolumeLevel_Close(r->avl);
+                            r->avl = NULL;
+                        }
+                    }
+                }
+            }
+
+            if (server->settings.session[r->session->index].truVolume) {
+                if (!cap.dsp.truVolume) {
+                    BDBG_ERR(("SRS TruVolume not available"));
+                }
+                else {
+                    NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
+                    r->truVolume = NEXUS_TruVolume_Open(NULL);
+                    if (r->truVolume) {
+                        rc = NEXUS_TruVolume_AddInput(r->truVolume, audioInput);
+                        if (rc) {
+                            BDBG_ERR(("NEXUS_TruVolume_AddInput %d", rc));
+                            NEXUS_TruVolume_Close(r->truVolume);
+                            r->truVolume = NULL;
+                        }
+                        else {
+                            NEXUS_TruVolume_GetSettings(r->truVolume, &session->audioProcessingSettings.truVolume);
+                            session->audioProcessingSettings.truVolume.enabled = false;
+                            NEXUS_TruVolume_SetSettings(r->truVolume, &session->audioProcessingSettings.truVolume);
+                        }
+                    }
+                }
+            }
+        }
+
+        if ((r->truVolume || r->avl) && server->settings.audioDecoder.audioDescription) {
+            BDBG_ERR(("AVL or truVolume with Audio Description is not supported"));
+            return BERR_NOT_SUPPORTED;
+        }
+
+        if (nxserverlib_p_session_has_sd_audio(r->session)) {
+            if (cap.numOutputs.dac > 0) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                BERR_TRACE(rc);
+                server->settings.audioOutputs.dacEnabled[0] = true;
+            }
+
+            if (cap.numOutputs.i2s > 0 &&
+                (server->settings.audioOutputs.dacEnabled[0] == false ||
+                 server->settings.session[r->session->index].i2sOutputEnabled[0])) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                BERR_TRACE(rc);
+                server->settings.audioOutputs.i2sEnabled[0] = true;
+            }
+
+            if (cap.numOutputs.i2s > 1 && server->settings.session[r->session->index].i2sOutputEnabled[1]) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                BERR_TRACE(rc);
+                server->settings.audioOutputs.i2sEnabled[1] = true;
+            }
+
+            /* If there is no DAC or I2S we need a dummy to make sure we can do simul mode / consume PCM from DDRE if configured for encode only */
+            /* Need to be careful if when we allow i2s to be configurable and not just pcm stereo to add dummy also */
+            if (cap.numOutputs.dac == 0 && cap.numOutputs.i2s == 0 && cap.numOutputs.dummy > 0) {
+                unsigned i;
+                for (i=0;i<cap.numOutputs.dummy;i++) {
+                    if (!g_dummyOutputs[i]) {
+                        rc = NEXUS_AudioOutput_AddInput( NEXUS_AudioDummyOutput_GetConnector(server->platformConfig.outputs.audioDummy[i]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                        BERR_TRACE(rc);
+                        g_dummyOutputs[i] = r;
+                        break;
+                    }
+                }
+            }
+            #if NEXUS_NUM_RFM_OUTPUTS
+            if (server->platformConfig.outputs.rfm[0]) {
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                BERR_TRACE(rc);
+                server->settings.audioOutputs.rfmEnabled = true;
+            }
+            #endif
+        }
+        if (cap.numOutputs.spdif > 0) {
+            server->settings.audioOutputs.spdifEnabled[0] = true;
+        }
+        #if NEXUS_HAS_HDMI_OUTPUT
+        if (cap.numOutputs.hdmi > 0) {
+            server->settings.audioOutputs.hdmiEnabled[0] = true;
+        }
+        #endif
+    }
+    return BERR_SUCCESS;
+}
+
 struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type)
 {
     unsigned i;
     int rc;
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
-    NEXUS_AudioMixerSettings mixerSettings;
     struct b_audio_resource *r;
     unsigned index;
     nxserver_t server = session->server;
@@ -1126,299 +1509,25 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
                     BDBG_MSG(("open AudioDecoder[%u](%p) for %p (audio description)", nxserver_audio_decoder_description, (void*)r->audioDecoder[nxserver_audio_decoder_description], (void*)r));
                 }
             }
-        }
 
-        /* Open mixer to mix the description and primary audio */
-        NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
-        mixerSettings.mixUsingDsp = session->server->settings.session[session->index].output.encode ||
-                                    server->settings.session[r->session->index].avl ||
-                                    server->settings.session[r->session->index].truVolume ||
-                                    server->settings.audioDecoder.audioDescription ||
-                                    server->settings.session[r->session->index].persistentDecoderSupport ||
-                                    b_dolby_ms_enabled(session);
-
-        if (!cap.dsp.mixer) {
-            mixerSettings.mixUsingDsp = false;
-        }
-        mixerSettings.outputSampleRate = (server->settings.audioMixer.sampleRate >= 32000 && server->settings.audioMixer.sampleRate <= 96000) ? server->settings.audioMixer.sampleRate : mixerSettings.outputSampleRate;
-        if (mixerSettings.mixUsingDsp) {
-            mixerSettings.dspIndex = audioOpenSettings.dspIndex; /* mixer dspIndex must match decoder */
-            if (b_dolby_ms_enabled(session))
-            {
-                mixerSettings.outputSampleRate = 48000;
-            }
-        }
-
-        /* If we are doing Dolby MS then we need a multichannel DSP mixer otherwise
-           if a dsp mixer is required it should be used for stereo */
-        r->dspMixer[nxserver_audio_mixer_multichannel] = false;
-        r->dspMixer[nxserver_audio_mixer_stereo] = false;
-        if (mixerSettings.mixUsingDsp && b_dolby_ms_enabled(session))
-        {
-            r->dspMixer[nxserver_audio_mixer_multichannel] = true;
-        }
-        else if (mixerSettings.mixUsingDsp)
-        {
-            r->dspMixer[nxserver_audio_mixer_stereo] = true;
-        }
-
-        /* Only open a multichannel mixer if we are in Dolby MS mode or we are NOT using DSP mixers
-           (only one DSP mixer can connect to a Decoder, but multiple FMM mixers can connect
-            to a single Decoder) */
-        if (r->dspMixer[nxserver_audio_mixer_multichannel]) {
-            r->mixer[nxserver_audio_mixer_multichannel] = NEXUS_AudioMixer_Open(&mixerSettings);
-        }
-        else {
-            NEXUS_AudioMixerSettings fmmMixerSettings;
-            NEXUS_AudioMixer_GetDefaultSettings(&fmmMixerSettings);
-            fmmMixerSettings.fixedOutputFormatEnabled = true;
-            fmmMixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_e5_1;
-            r->mixer[nxserver_audio_mixer_multichannel] = NEXUS_AudioMixer_Open(&fmmMixerSettings);
-        }
-        BDBG_MSG(("open AudioMixer multichannel (%p)%s", (void*)r->mixer[nxserver_audio_mixer_multichannel], r->dspMixer[nxserver_audio_mixer_multichannel]?" DSP":""));
-        if (!r->mixer[nxserver_audio_mixer_multichannel]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-
-        /* If we are using FMM mixers or we didn't create a Multichannel mixer above,
-           then create a stereo mixer here */
-        if (r->dspMixer[nxserver_audio_mixer_stereo]) {
-            r->mixer[nxserver_audio_mixer_stereo] = NEXUS_AudioMixer_Open(&mixerSettings);
-        }
-        else {
-            NEXUS_AudioMixerSettings fmmMixerSettings;
-            NEXUS_AudioMixer_GetDefaultSettings(&fmmMixerSettings);
-            fmmMixerSettings.fixedOutputFormatEnabled = true;
-            fmmMixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_eStereo;
-            r->mixer[nxserver_audio_mixer_stereo] = NEXUS_AudioMixer_Open(&fmmMixerSettings);
-        }
-        BDBG_MSG(("open AudioMixer stereo(%p)%s", (void*)r->mixer[nxserver_audio_mixer_stereo], r->dspMixer[nxserver_audio_mixer_stereo]?" DSP":""));
-        if (!r->mixer[nxserver_audio_mixer_stereo]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-
-        /* Create Intermediate mixer for persistent decoders */
-        /* MS12v1.3 - Only create this mixer for non MS12 cases */
-        if ( server->settings.session[r->session->index].persistentDecoderSupport &&
-             server->settings.session[r->session->index].dolbyMs != nxserverlib_dolby_ms_type_ms12 ) {
-            NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
-            mixerSettings.intermediate = true;
-            mixerSettings.fixedOutputFormat = NEXUS_AudioMultichannelFormat_eStereo;
-            mixerSettings.fixedOutputFormatEnabled = true;
-            r->mixer[nxserver_audio_mixer_persistent] = NEXUS_AudioMixer_Open(&mixerSettings);
-            BDBG_MSG(("open Intermediate AudioMixer (%p)%s", (void*)r->mixer[nxserver_audio_mixer_persistent], r->dspMixer[nxserver_audio_mixer_persistent]?" DSP":""));
-            if (!r->mixer[nxserver_audio_mixer_persistent]) {
-                rc = BERR_TRACE(NEXUS_UNKNOWN);
+            rc = nxserverlib_p_audio_create_downstream(session, r);
+            if (rc) {
+                BERR_TRACE(rc);
                 goto error;
             }
-            if ( r->mixer[nxserver_audio_mixer_stereo] ) {
-                NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_stereo], NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_persistent]));
+
+            /* Open playbacks */
+            for (i=0;i<session->server->settings.session[session->index].audioPlaybacks;i++) {
+                b_audio_open_pb(r, false, 0);
             }
-            if ( r->mixer[nxserver_audio_mixer_multichannel] ) {
-                NEXUS_AudioMixer_AddInput(r->mixer[nxserver_audio_mixer_multichannel], NEXUS_AudioMixer_GetConnector(r->mixer[nxserver_audio_mixer_persistent]));
+            if (r->session->index == 0 && session->server->settings.audioInputs.i2sEnabled) {
+                for (i=0;i<cap.numInputs.i2s;i++) {
+                    b_audio_open_pb(r, true, i);
+                }
             }
+            /* Connect Open Playbacks to mixers */
+            b_audio_connect_pb(r);
         }
-        for (i=0;i<session->server->settings.session[session->index].audioPlaybacks;i++) {
-            b_audio_open_pb(r, false, 0);
-        }
-        if (r->session->index == 0 && session->server->settings.audioInputs.i2sEnabled) {
-            for (i=0;i<cap.numInputs.i2s;i++) {
-                b_audio_open_pb(r, true, i);
-            }
-        }
-
-        if (b_dolby_ms_enabled(session)) {
-            if (cap.dsp.processing[NEXUS_AudioPostProcessing_eAdvancedTsm]) {
-                NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
-                NEXUS_AudioProcessorOpenSettings procOpenSettings;
-
-                NEXUS_AudioProcessor_GetDefaultOpenSettings(&procOpenSettings);
-                procOpenSettings.type = NEXUS_AudioPostProcessing_eAdvancedTsm;
-                r->advancedTsm = NEXUS_AudioProcessor_Open(&procOpenSettings);
-                if (r->advancedTsm) {
-                    rc = NEXUS_AudioProcessor_AddInput(r->advancedTsm, audioInput);
-                    if (rc) {
-                        BDBG_ERR(("NEXUS_AudioProcessor_AddInput %d", rc));
-                        NEXUS_AudioProcessor_Close(r->advancedTsm);
-                        r->advancedTsm = NULL;
-                    }
-                    else {
-                        NEXUS_AudioProcessorSettings processorSettings;
-                        NEXUS_AudioProcessor_GetSettings(r->advancedTsm, &processorSettings);
-                        processorSettings.settings.advancedTsm.mode = NEXUS_AudioAdvancedTsmMode_ePpm;
-                        BKNI_Memcpy(&session->audioProcessingSettings.advancedTsm, &processorSettings.settings.advancedTsm, sizeof(NEXUS_AudioAdvancedTsmSettings));
-                        NEXUS_AudioProcessor_SetSettings(r->advancedTsm, &processorSettings);
-                    }
-                }
-            }
-
-            /* only MS11 has DV258. In MS12, volume leveling and other DAPv2 features are built into
-               the Dsp Mixer */
-            if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11 )
-            {
-                if ( !cap.dsp.dolbyVolume258 )
-                {
-                    BDBG_ERR(("DolbyVolume258 not available"));
-                }
-                else {
-                    NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
-                    r->dolbyVolume258 = NEXUS_DolbyVolume258_Open(NULL);
-                    if (r->dolbyVolume258) {
-                        rc = NEXUS_DolbyVolume258_AddInput(r->dolbyVolume258, audioInput);
-                        if (rc) {
-                            BDBG_ERR(("NEXUS_DolbyVolume258_AddInput %d", rc));
-                            NEXUS_DolbyVolume258_Close(r->dolbyVolume258);
-                            r->dolbyVolume258 = NULL;
-                        }
-                        else {
-                            NEXUS_DolbyVolume258_GetSettings(r->dolbyVolume258, &session->audioProcessingSettings.dolby.dolbyVolume258);
-                            session->audioProcessingSettings.dolby.dolbyVolume258.enabled = false;
-                            NEXUS_DolbyVolume258_SetSettings(r->dolbyVolume258, &session->audioProcessingSettings.dolby.dolbyVolume258);
-                        }
-                    }
-                }
-            }
-
-            if (!cap.dsp.dolbyDigitalReencode) {
-                BDBG_ERR(("DDRE not available"));
-            }
-            else {
-                NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
-                r->ddre = NEXUS_DolbyDigitalReencode_Open(NULL);
-                if (r->ddre) {
-                    rc = NEXUS_DolbyDigitalReencode_AddInput(r->ddre, audioInput);
-                    if (rc) {
-                        BDBG_ERR(("NEXUS_DolbyDigitalReencode_AddInput %d", rc));
-                        NEXUS_DolbyDigitalReencode_Close(r->ddre);
-                        r->ddre = NULL;
-                    }
-                    else {
-                        NEXUS_DolbyDigitalReencode_GetSettings(r->ddre, &session->audioProcessingSettings.dolby.ddre);
-                        if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 ) {
-                            session->audioProcessingSettings.dolby.ddre.fixedEncoderFormat = true;
-                        }
-                        NEXUS_DolbyDigitalReencode_SetSettings(r->ddre, &session->audioProcessingSettings.dolby.ddre);
-                    }
-                }
-            }
-        }
-        else {
-            /* non-MS11 filter graph */
-            if (r->localSession && cap.dsp.codecs[NEXUS_AudioCodec_eAc3].encode) {
-                NEXUS_AudioEncoderSettings encoderSettings;
-                NEXUS_AudioEncoder_GetDefaultSettings(&encoderSettings);
-                r->audioEncoder = NEXUS_AudioEncoder_Open(&encoderSettings);
-                if (r->audioEncoder) {
-                    NEXUS_AudioEncoder_AddInput(r->audioEncoder,
-                        NEXUS_AudioDecoder_GetConnector(r->audioDecoder[nxserver_audio_decoder_primary], NEXUS_AudioConnectorType_eStereo));
-                }
-            }
-
-            if (server->settings.session[r->session->index].avl) {
-                if (!cap.dsp.autoVolumeLevel) {
-                    BDBG_ERR(("auto volume level not available"));
-                }
-                else {
-                    NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
-                    r->avl = NEXUS_AutoVolumeLevel_Open(NULL);
-                    if (r->avl) {
-                        rc = NEXUS_AutoVolumeLevel_AddInput(r->avl, audioInput);
-                        if (rc) {
-                            BDBG_ERR(("NEXUS_AutoVolumeLevel_AddInput %d", rc));
-                            NEXUS_AutoVolumeLevel_Close(r->avl);
-                            r->avl = NULL;
-                        }
-                        else {
-                            NEXUS_AutoVolumeLevel_GetSettings(r->avl, &session->audioProcessingSettings.avl);
-                            session->audioProcessingSettings.avl.enabled = false;
-                            NEXUS_AutoVolumeLevel_SetSettings(r->avl, &session->audioProcessingSettings.avl);
-                        }
-                    }
-                }
-            }
-
-            if (server->settings.session[r->session->index].truVolume) {
-                if (!cap.dsp.truVolume) {
-                    BDBG_ERR(("SRS TruVolume not available"));
-                }
-                else {
-                    NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo);
-                    r->truVolume = NEXUS_TruVolume_Open(NULL);
-                    if (r->truVolume) {
-                        rc = NEXUS_TruVolume_AddInput(r->truVolume, audioInput);
-                        if (rc) {
-                            BDBG_ERR(("NEXUS_TruVolume_AddInput %d", rc));
-                            NEXUS_TruVolume_Close(r->truVolume);
-                            r->truVolume = NULL;
-                        }
-                        else {
-                            NEXUS_TruVolume_GetSettings(r->truVolume, &session->audioProcessingSettings.truVolume);
-                            session->audioProcessingSettings.truVolume.enabled = false;
-                            NEXUS_TruVolume_SetSettings(r->truVolume, &session->audioProcessingSettings.truVolume);
-                        }
-                    }
-                }
-            }
-        }
-
-        if ((r->truVolume || r->avl) && server->settings.audioDecoder.audioDescription) {
-            BDBG_ERR(("AVL or truVolume with Audio Description is not supported"));
-            goto error;
-        }
-
-        if (nxserverlib_p_session_has_sd_audio(r->session)) {
-            if (cap.numOutputs.dac > 0) {
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
-                BERR_TRACE(rc);
-                server->settings.audioOutputs.dacEnabled[0] = true;
-            }
-
-            if (cap.numOutputs.i2s > 0 &&
-                (server->settings.audioOutputs.dacEnabled[0] == false ||
-                 server->settings.session[r->session->index].i2sOutputEnabled[0])) {
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
-                BERR_TRACE(rc);
-                server->settings.audioOutputs.i2sEnabled[0] = true;
-            }
-
-            if (cap.numOutputs.i2s > 1 && server->settings.session[r->session->index].i2sOutputEnabled[1]) {
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[1]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
-                BERR_TRACE(rc);
-                server->settings.audioOutputs.i2sEnabled[1] = true;
-            }
-
-            /* If there is no DAC or I2S we need a dummy to make sure we can do simul mode / consume PCM from DDRE if configured for encode only */
-            /* Need to be careful if when we allow i2s to be configurable and not just pcm stereo to add dummy also */
-            if (cap.numOutputs.dac == 0 && cap.numOutputs.i2s == 0 && cap.numOutputs.dummy > 0) {
-                unsigned i;
-                for (i=0;i<cap.numOutputs.dummy;i++) {
-                    if (!g_dummyOutputs[i]) {
-                        rc = NEXUS_AudioOutput_AddInput( NEXUS_AudioDummyOutput_GetConnector(server->platformConfig.outputs.audioDummy[i]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
-                        BERR_TRACE(rc);
-                        g_dummyOutputs[i] = r;
-                        break;
-                    }
-                }
-            }
-            #if NEXUS_NUM_RFM_OUTPUTS
-            if (server->platformConfig.outputs.rfm[0]) {
-                rc = NEXUS_AudioOutput_AddInput(NEXUS_Rfm_GetAudioConnector(server->platformConfig.outputs.rfm[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
-                BERR_TRACE(rc);
-                server->settings.audioOutputs.rfmEnabled = true;
-            }
-            #endif
-        }
-        if (cap.numOutputs.spdif > 0) {
-            server->settings.audioOutputs.spdifEnabled[0] = true;
-        }
-        #if NEXUS_HAS_HDMI_OUTPUT
-        if (cap.numOutputs.hdmi > 0) {
-            server->settings.audioOutputs.hdmiEnabled[0] = true;
-        }
-        #endif
-
     }
     else if ( type == b_audio_decoder_type_persistent ) {
         r->mode = b_audio_mode_decode;
@@ -1459,6 +1568,8 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
     }
     /* transcode */
     else {
+        NEXUS_AudioMixerSettings mixerSettings;
+
         r->mode = b_audio_mode_transcode;
         if (b_alloc_audio_index(r, &index)) {
             rc = BERR_TRACE(NEXUS_UNKNOWN);
@@ -1526,7 +1637,7 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
         if (rc) {rc = BERR_TRACE(rc); goto error;}
     }
 
-    if (r->localSession) {
+    if (r->localSession && type == b_audio_decoder_type_regular) {
         NEXUS_AudioMixerSettings mixerSettings;
         NEXUS_AudioOutputSettings outputSettings;
 
@@ -1548,7 +1659,6 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
         NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
         BKNI_Memcpy(&session->audioSettings.loopbackVolumeMatrix, mixerSettings.loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
     }
-
     return r;
 
 error:
@@ -1556,32 +1666,14 @@ error:
     return NULL;
 }
 
-void audio_decoder_destroy(struct b_audio_resource *r)
+void nxserverlib_p_audio_destroy_downstream(struct b_audio_resource *r)
 {
     unsigned i;
-    int rc;
-    struct b_audio_playback_resource *pb;
     NEXUS_AudioCapabilities audioCapabilities;
     nxserver_t server = r->session->server;
 
     NEXUS_GetAudioCapabilities(&audioCapabilities);
-    BDBG_MSG(("destroy %p", (void*)r));
 
-    if (r->masterSimpleAudioDecoder) {
-        bool connected = false;
-        for (pb = BLST_Q_FIRST(&r->audioPlaybackList); pb; pb = BLST_Q_NEXT(pb, link)) {
-            if (pb->audioPlayback) {
-                /* If PCM Playbacks are connected to this SimpleDecoder's mixer we need to stop them */
-                connected = is_connected_to_a_mixer(NEXUS_AudioPlayback_GetConnector(pb->audioPlayback), r);
-            }
-        }
-        if (connected) {
-            rc = NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
-            if (rc) { BERR_TRACE(rc); }
-        }
-
-        NEXUS_SimpleAudioDecoder_Destroy(r->masterSimpleAudioDecoder);
-    }
     if (r->audioEncoder) {
         NEXUS_AudioEncoder_RemoveAllInputs(r->audioEncoder);
     }
@@ -1657,38 +1749,75 @@ void audio_decoder_destroy(struct b_audio_resource *r)
         NEXUS_AudioMixer_RemoveAllInputs(r->mixer[nxserver_audio_mixer_persistent]);
     }
 
-    while ((pb = BLST_Q_FIRST(&r->audioPlaybackList))) {
-        b_audio_close_pb(r, pb);
-    }
     if (r->audioEncoder) {
         NEXUS_AudioEncoder_Close(r->audioEncoder);
+        r->audioEncoder = NULL;
     }
     if (r->ddre) {
         NEXUS_DolbyDigitalReencode_Close(r->ddre);
+        r->ddre = NULL;
     }
     if (r->dolbyVolume258)
     {
         NEXUS_DolbyVolume258_Close(r->dolbyVolume258);
+        r->dolbyVolume258 = NULL;
     }
     if (r->advancedTsm) {
         NEXUS_AudioProcessor_Close(r->advancedTsm);
+        r->advancedTsm = NULL;
     }
     if (r->avl)
     {
         NEXUS_AutoVolumeLevel_Close(r->avl);
+        r->avl = NULL;
     }
     if (r->truVolume)
     {
         NEXUS_TruVolume_Close(r->truVolume);
+        r->truVolume = NULL;
     }
     if (r->mixer[nxserver_audio_mixer_persistent]) {
         NEXUS_AudioMixer_Close(r->mixer[nxserver_audio_mixer_persistent]);
+        r->mixer[nxserver_audio_mixer_persistent] = NULL;
     }
     if (r->mixer[nxserver_audio_mixer_stereo]) {
         NEXUS_AudioMixer_Close(r->mixer[nxserver_audio_mixer_stereo]);
+        r->mixer[nxserver_audio_mixer_stereo] = NULL;
     }
     if (r->mixer[nxserver_audio_mixer_multichannel]) {
         NEXUS_AudioMixer_Close(r->mixer[nxserver_audio_mixer_multichannel]);
+        r->mixer[nxserver_audio_mixer_multichannel] = NULL;
+    }
+}
+
+void audio_decoder_destroy(struct b_audio_resource *r)
+{
+    int rc;
+    unsigned i;
+    struct b_audio_playback_resource *pb;
+
+    BDBG_MSG(("destroy %p", (void*)r));
+
+    if (r->masterSimpleAudioDecoder) {
+        bool connected = false;
+        for (pb = BLST_Q_FIRST(&r->audioPlaybackList); pb; pb = BLST_Q_NEXT(pb, link)) {
+            if (pb->audioPlayback) {
+                /* If PCM Playbacks are connected to this SimpleDecoder's mixer we need to stop them */
+                connected = is_connected_to_a_mixer(NEXUS_AudioPlayback_GetConnector(pb->audioPlayback), r);
+            }
+        }
+        if (connected) {
+            rc = NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
+            if (rc) { BERR_TRACE(rc); }
+        }
+
+        NEXUS_SimpleAudioDecoder_Destroy(r->masterSimpleAudioDecoder);
+    }
+
+    nxserverlib_p_audio_destroy_downstream(r);
+
+    while ((pb = BLST_Q_FIRST(&r->audioPlaybackList))) {
+        b_audio_close_pb(r, pb);
     }
     for (i=0;i<nxserver_audio_decoder_max;i++) {
         if (r->audioDecoder[i]) {
@@ -1835,8 +1964,13 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoderHandle mainAudioDecoder;
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.type = NEXUS_SimpleAudioDecoderType_eDynamic;
-        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        if (session->audioSettings.dolbyMsAllowed) {
+            settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+            settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        }
+        else {
+            settings.capabilities.ms12 = settings.capabilities.ms11 = false;
+        }
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
 
         mainAudioDecoder = b_audio_get_decoder(session->main_audio->connect);
@@ -1882,13 +2016,26 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.primary = r->audioDecoder[nxserver_audio_decoder_primary];
         settings.type = NEXUS_SimpleAudioDecoderType_ePersistent;
-        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        if (session->audioSettings.dolbyMsAllowed) {
+            settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+            settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        }
+        else {
+            settings.capabilities.ms12 = settings.capabilities.ms11 = false;
+        }
         /* MS12 will not have a persistent mixer, use multichannel mixer */
         if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 ) {
             settings.mixers.persistent = NULL;
             settings.mixers.multichannel = session->main_audio->mixer[nxserver_audio_mixer_multichannel];
-        } else if ( session->main_audio->mixer[nxserver_audio_mixer_persistent] ) {
+            if (session->audioSettings.dolbyMsAllowed) {
+                settings.mixers.stereo = NULL;
+            }
+            else {
+                settings.mixers.stereo = session->main_audio->mixer[nxserver_audio_mixer_stereo];
+            }
+        }
+        else if (session->main_audio->mixer[nxserver_audio_mixer_persistent])
+        {
             settings.mixers.multichannel = settings.mixers.persistent = NULL;
             settings.mixers.stereo = session->main_audio->mixer[nxserver_audio_mixer_persistent];
         }
@@ -1906,7 +2053,7 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
             NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, activeDecoder, &settings);
             for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
                 if (settings.persistent[i].decoder == NULL) {
-                    settings.persistent[i].decoder = r->audioDecoder[nxserver_audio_decoder_primary];
+                    settings.persistent[i].decoder = audioDecoder;
                     settings.persistent[i].suspended = false;
                     break;
                 }
@@ -1926,8 +2073,13 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         settings.secondary = r->audioDecoder[nxserver_audio_decoder_passthrough];
         settings.type = NEXUS_SimpleAudioDecoderType_eStandalone;
         settings.mixers.stereo = settings.mixers.multichannel = settings.mixers.persistent = NULL;
-        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        if (session->audioSettings.dolbyMsAllowed) {
+            settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+            settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        }
+        else {
+            settings.capabilities.ms12 = settings.capabilities.ms11 = false;
+        }
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
         if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
         /* TBD - should this be any different for standalone decoders??? */
@@ -1942,8 +2094,13 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &settings);
         settings.primary = r->audioDecoder[nxserver_audio_decoder_primary];
         settings.type = NEXUS_SimpleAudioDecoderType_eDynamic;
-        settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
-        settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        if (session->audioSettings.dolbyMsAllowed) {
+            settings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+            settings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+        }
+        else {
+            settings.capabilities.ms12 = settings.capabilities.ms11 = false;
+        }
         rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &settings);
         if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
         rc = audio_acquire_stc_index(connect, audioDecoder);
@@ -1963,7 +2120,7 @@ err_setsettings:
 
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, activeDecoder, &settings);
         for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
-            if (settings.persistent[i].decoder == r->audioDecoder[nxserver_audio_decoder_primary]) {
+            if (settings.persistent[i].decoder == audioDecoder) {
                 settings.persistent[i].decoder = NULL;
                 settings.persistent[i].suspended = false;
                 break;
@@ -2025,7 +2182,7 @@ void release_audio_decoders(struct b_connect *connect)
 
             NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, activeDecoder, &settings);
             for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
-                if (settings.persistent[i].decoder == r->audioDecoder[nxserver_audio_decoder_primary]) {
+                if (settings.persistent[i].decoder == audioDecoder) {
                     settings.persistent[i].decoder = NULL;
                     settings.persistent[i].suspended = false;
                     break;
@@ -2141,6 +2298,8 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     bool ddpCompressedAllowed = false;
     bool suspended = false;
     bool equalizerChanged = false;
+    bool forceLegacy = false;
+    bool recreateDownstream = false;
 
     if (!r) {
         return 0;
@@ -2154,14 +2313,53 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     if (!simpleAudioDecoder) {
         return BERR_TRACE(-1);
     }
+
+    if (r->localSession) {
+        if (b_dolby_ms_capable(session)) {
+            if ((r->ddre && !session->audioSettings.dolbyMsAllowed) ||
+                (!r->ddre && session->audioSettings.dolbyMsAllowed)) {
+                if (!suspended) {
+                    rc = NEXUS_SimpleAudioDecoder_Suspend(simpleAudioDecoder);
+                    if (rc) {
+                        return BERR_TRACE(rc);
+                    }
+                    else {
+                        suspended = true;
+                    }
+                }
+                nxserverlib_p_audio_destroy_downstream(r);
+                recreateDownstream = true;
+            }
+            else if (!r->mixer[nxserver_audio_mixer_multichannel]) {
+            /* if there is no multi channel mixer then we
+               must have had an issue previously, try again */
+                recreateDownstream = true;
+            }
+
+            if (recreateDownstream) {
+                rc = nxserverlib_p_audio_create_downstream(session, r);
+                /* Need to figure out a fall back */
+                if (rc) {return BERR_TRACE(rc);}
+                b_audio_connect_pb(r);
+                b_audio_update_persistent_settings(session, r);
+            }
+
+            if (!session->audioSettings.dolbyMsAllowed) {
+                forceLegacy = true;
+            }
+        }
+    }
+
     equalizerChanged = b_is_any_equalizer_changed(r);
     if (equalizerChanged) {
-        rc = NEXUS_SimpleAudioDecoder_Suspend(simpleAudioDecoder);
-        if (rc) {
-            BERR_TRACE(rc);
-        }
-        else {
-            suspended = true;
+        if (!suspended) {
+            rc = NEXUS_SimpleAudioDecoder_Suspend(simpleAudioDecoder);
+            if (rc) {
+                BERR_TRACE(rc);
+            }
+            else {
+                suspended = true;
+            }
         }
     }
 
@@ -2181,8 +2379,22 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     audioSettings.mixers.multichannel = r->mixer[nxserver_audio_mixer_multichannel];
     audioSettings.mixers.persistent = r->mixer[nxserver_audio_mixer_persistent];
 
-    audioSettings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
-    audioSettings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+    if (forceLegacy) {
+        audioSettings.capabilities.ms12 = audioSettings.capabilities.ms11 = false;
+    }
+    else {
+        audioSettings.capabilities.ms12 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms12) ? true : false;
+        audioSettings.capabilities.ms11 = (b_dolby_ms(session) == nxserverlib_dolby_ms_type_ms11) ? true : false;
+    }
+
+    /* If there is a captue attached and we had to recreate then reconfigure the capture output */
+    if (audioSettings.capture.output != NULL && recreateDownstream) {
+        for (i=0;i<cap.numOutputs.capture;i++) {
+            if (g_capture[i].handle == audioSettings.capture.output) {
+                nxserverlib_configure_audio_capture(session, &audioSettings, g_capture[i].captureType);
+            }
+        }
+    }
 
     if (r->localSession) {
         BKNI_Memset(&audioSettings.spdif, 0, sizeof(audioSettings.spdif));
@@ -2299,7 +2511,7 @@ int bserver_set_audio_config(struct b_audio_resource *r)
                 }
 
                 if (tryTranscode && audioSettings.hdmi.input[i] == NULL) {
-                    if (b_dolby_ms_enabled(session)) {
+                    if (b_dolby_ms_capable(session) && !forceLegacy) {
                         if ( (transcodeCodec != NEXUS_AudioCodec_eAc3 && transcodeCodec != NEXUS_AudioCodec_eAc3Plus) || !r->ddre ) {
                             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
                         }
@@ -2372,7 +2584,7 @@ int bserver_set_audio_config(struct b_audio_resource *r)
                 ddpCompressedAllowed = ac3CompressedAllowed = false;
 
                 if ( ( ( config->spdif.audioCodecOutput[NEXUS_AudioCodec_eAc3Plus] == NxClient_AudioOutputMode_ePassthrough && session->audioSettings.spdif.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eDefault ) ||
-                       session->audioSettings.hdmi.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eEnabled ) &&
+                       session->audioSettings.spdif.compressedOverride[NEXUS_AudioCodec_eAc3Plus] == NxClientAudioCodecSupport_eEnabled ) &&
                      server->settings.session[r->session->index].allowSpdif4xCompressed) {
                     ddpCompressedAllowed = true;
                 }
@@ -2462,7 +2674,7 @@ int bserver_set_audio_config(struct b_audio_resource *r)
                     }
 
                     if (tryTranscode && audioSettings.spdif.input[i] == NULL) {
-                        if (b_dolby_ms_enabled(session)) {
+                        if (b_dolby_ms_capable(session) && !forceLegacy) {
                             if ( (transcodeCodec != NEXUS_AudioCodec_eAc3 && transcodeCodec != NEXUS_AudioCodec_eAc3Plus) || !r->ddre ) {
                                 return BERR_TRACE(NEXUS_NOT_SUPPORTED);
                             }
@@ -2532,7 +2744,7 @@ int bserver_set_audio_config(struct b_audio_resource *r)
 
     /* If we are using Dolby MS, the only conection from Decoder->DspMixer is via Multichannel
        NOTE - if no DAC is present, this may need to fall back further -- to compressed? */
-    if (b_dolby_ms_enabled(session)) {
+    if (b_dolby_ms_capable(session)) {
         audioSettings.syncConnector = NEXUS_AudioConnectorType_eMultichannel;
     }
     else {
@@ -2779,7 +2991,7 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
                 transcodeCodec = NEXUS_AudioCodec_eAc3Plus;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
-            else if (b_dolby_ms_enabled(session)) {
+            else if (b_dolby_ms_capable(session)) {
                 transcodeCodec = NEXUS_AudioCodec_eAc3;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
@@ -2789,7 +3001,7 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
             }
         }
         else if (captureType == NxClient_AudioCaptureType_eCompressed) {
-            if (b_dolby_ms_enabled(session)) {
+            if (b_dolby_ms_capable(session)) {
                 transcodeCodec = NEXUS_AudioCodec_eAc3;
                 outputMode = NxClient_AudioOutputMode_eTranscode;
             }
@@ -2812,7 +3024,7 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
 
         switch (outputMode) {
         case NxClient_AudioOutputMode_eTranscode:
-            if (b_dolby_ms_enabled(session)) {
+            if (b_dolby_ms_capable(session)) {
                 if (transcodeCodec == NEXUS_AudioCodec_eAc3Plus) {
                     sessionSettings->capture.input[i] = b_audio_get_compressed_input(session->main_audio, NEXUS_AudioConnectorType_eCompressed4x);
                     break;
@@ -2855,11 +3067,6 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
     }
     return;
 }
-
-static struct {
-    struct b_session *session;
-    NEXUS_AudioCaptureHandle handle;
-} g_capture[NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS];
 
 NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType)
 {
@@ -2928,6 +3135,7 @@ NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *sessio
 
     g_capture[i].session = session;
     g_capture[i].handle = handle;
+    g_capture[i].captureType = captureType;
     *id = i;
     return handle;
 
@@ -3355,7 +3563,7 @@ err_setsettings:
 
         NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, activeDecoder, &settings);
         for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
-            if (settings.persistent[i].decoder == r->audioDecoder[nxserver_audio_decoder_primary]) {
+            if (settings.persistent[i].decoder == srcDecoder) {
                 settings.persistent[i].decoder = NULL;
                 settings.persistent[i].suspended = false;
                 break;
@@ -3418,4 +3626,6 @@ int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOu
 int bserver_set_audio_config(struct b_audio_resource *r) {BSTD_UNUSED(r);return 0;}
 int audio_get_stc_index(struct b_connect *connect) {BSTD_UNUSED(connect);return 0;}
 int nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session) {BSTD_UNUSED(session);return 0;}
+bool b_dolby_ms_capable(const struct b_session *session) {BSTD_UNUSED(session);return false;}
+void bserver_set_default_audio_settings(struct b_session *session) {BSTD_UNUSED(session);}
 #endif /* NEXUS_HAS_AUDIO */

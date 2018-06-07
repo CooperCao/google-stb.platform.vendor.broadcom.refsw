@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "breg_mem.h"
@@ -52,6 +56,7 @@
 #include "bdtu.h"
 #include "bchp_memc_clients.h"
 #include "../src/bdtu_map.inc" /* TEMP for BDTU_P_ReadMappingInfo */
+#include "bchp_memc_gen_0.h"
 
 BDBG_MODULE(dtutool);
 
@@ -60,7 +65,7 @@ static int g_fd;
 #define _2MB (2*1024*1024)
 
 enum ownerID {
-    dtu_owner_eBsp_0 = 0,
+    dtu_owner_eGisb_0 = 0, /* For MEMSYS >= rev B3.0 this is GISB.. for < B3.0 this is BSP */
     dtu_owner_eScpu_0,
     dtu_owner_eCpu_0 = 6,
     dtu_owner_eWebCpu_0,
@@ -72,13 +77,14 @@ enum ownerID {
     dtu_owner_eRaaga_0 = 17,
     dtu_owner_ePcie_0 = 19,
     dtu_owner_eBbsi_spi = 23,
+    dtu_owner_eBsp_0 = 29 /* For MEMSYS >= rev B3.0 */
 };
 
 static char *ownerID_to_name(enum ownerID owner)
 {
     switch(owner)
     {
-        case dtu_owner_eBsp_0:return "bsp_0";
+        case dtu_owner_eGisb_0:return "gisb_0";
         case dtu_owner_eScpu_0:return "scpu_0";
         case dtu_owner_eCpu_0:return "cpu_0";
         case dtu_owner_eWebCpu_0:return "webcpu_0";
@@ -90,6 +96,7 @@ static char *ownerID_to_name(enum ownerID owner)
         case dtu_owner_eRaaga_0:return "raaga_0";
         case dtu_owner_ePcie_0:return "pcie_0";
         case dtu_owner_eBbsi_spi:return "bbsi_spi";
+        case dtu_owner_eBsp_0:return "bsp_0";
         default:
             break;
     }
@@ -131,6 +138,7 @@ static void print_usage(void)
     "-scrub ADDR,SIZE\n"
     "-show_owners     show page ownership\n"
     "-dump ADDR,SIZE\n"
+    "-dall            dump ALL dtu pages.\n"
     );
 }
 
@@ -188,11 +196,13 @@ int main(int argc, char **argv)
         action_restore,
         action_scrub,
         action_show_owners,
-        action_dump
+        action_dump,
+        action_dump_all
     } action = action_help;
-    BSTD_DeviceOffset scrub_addr = 0, scrub_size;
+    BSTD_DeviceOffset scrub_addr = 0;
+    uint64_t scrub_size = 0;
     BDTU_Status status[BCHP_P_MEMC_COUNT];
-    unsigned i;
+    unsigned i, j;
 
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
@@ -233,6 +243,9 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "-show_owners")) {
             action = action_show_owners;
+        }
+        else if (!strcmp(argv[curarg], "-dall")) {
+            action = action_dump_all;
         }
         else {
             print_usage();
@@ -352,6 +365,18 @@ int main(int argc, char **argv)
         uint8_t lastOwner=~0, owner=~0;
         uint8_t memc;
         BDTU_MappingInfo mapping;
+        uint32_t memsys;
+
+        memsys=BREG_Read32(reg, BCHP_MEMC_GEN_0_CORE_REV_ID);
+
+        /* BSP client ID changed from 0 to 29 >= vB3.0 */
+        if((BCHP_GET_FIELD_DATA(memsys, MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) < 0xB) ||
+           ((BCHP_GET_FIELD_DATA(memsys, MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) == 0xB) && BCHP_GET_FIELD_DATA(memsys, MEMC_GEN_0_CORE_REV_ID, CFG_REV_ID) < 3)) {
+            memsys = 0;
+        }
+        else {
+            memsys = 1;
+        }
 
         for (memc=0; memc<BCHP_P_MEMC_COUNT; memc++) {
             mapping = settings[memc].memoryLayout;
@@ -376,13 +401,16 @@ int main(int argc, char **argv)
                     if(valid==eVS_valid) {
                         owned = info.owned ? eOS_owned : eOS_notOwned;
                         owner = info.owned ? info.ownerID : ~0;
+                        if (!memsys && (owner==0)) {
+                            /* manually adjust owner to reflect the correct name when printing below */
+                            owner = dtu_owner_eBsp_0;
+                        }
                     } else {
                         owned = eOS_unknown;
                     }
 
                     if((addr==mapping.region[i].addr) || (valid != lastValid) || ((valid == eVS_valid) && (owned != lastOwned)) || (owner != lastOwner)) {
-                        if((addr!=mapping.region[i].addr) && (start!=(BSTD_DeviceOffset)~0))
-                        {
+                        if((addr!=mapping.region[i].addr) && (start!=(BSTD_DeviceOffset)~0)) {
                             printf(" - " BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(addr-1));
                         }
 
@@ -400,14 +428,32 @@ int main(int argc, char **argv)
             }
         }
     }
-    else if(action==action_dump)
-    {
+    else if(action==action_dump) {
         BDBG_Level level = BDBG_eErr;
         rc = BDBG_GetModuleLevel("BDTU", &level);
         if (rc) BERR_TRACE(rc);
         rc = BDBG_SetModuleLevel("BDTU", BDBG_eMsg);
         if (rc) BERR_TRACE(rc);
         BDTU_PrintMap(dtu[addr_to_memc(scrub_addr, settings)], scrub_addr, scrub_size);
+        rc = BDBG_SetModuleLevel("BDTU", level);
+        if (rc) BERR_TRACE(rc);
+    }
+    else if(action==action_dump_all) {
+        BDBG_Level level = BDBG_eErr;
+        rc = BDBG_GetModuleLevel("BDTU", &level);
+        if (rc) BERR_TRACE(rc);
+        rc = BDBG_SetModuleLevel("BDTU", BDBG_eMsg);
+        if (rc) BERR_TRACE(rc);
+        for (i=0; i<BCHP_P_MEMC_COUNT; i++) {
+            if (dtu[i]) {
+                scrub_addr = settings[i].memoryLayout.region[0].addr;
+                scrub_size = settings[i].memoryLayout.region[0].size;
+                for (j = 1; j < BCHP_MAX_MEMC_REGIONS; j++) {
+                    scrub_size += settings[i].memoryLayout.region[j].size;
+                }
+                BDTU_PrintMap(dtu[i], scrub_addr, scrub_size);
+            }
+        }
         rc = BDBG_SetModuleLevel("BDTU", level);
         if (rc) BERR_TRACE(rc);
     }

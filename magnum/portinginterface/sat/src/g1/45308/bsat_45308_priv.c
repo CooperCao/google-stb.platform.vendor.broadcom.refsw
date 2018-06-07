@@ -48,7 +48,8 @@
 #include "bsat_45308_priv.h"
 #include "bchp_tm.h"
 #include "bchp_clkgen.h"
-#include "bchp_gypsum_clkgen.h"
+#include "bchp_stb_chan_ctrl_0.h"
+#include "bchp_stb_chan_ctrl_1.h"
 
 
 #if (BCHP_CHIP != 45308)
@@ -58,6 +59,11 @@
 BDBG_MODULE(bsat_45308_priv);
 
 #define BSAT_DEBUG_POWERDOWN(x) /*x*/
+#if 1
+#define PRINT BKNI_Printf
+#else
+#define PRINT printf
+#endif
 
 
 static const uint32_t BSAT_afec_clock_enable_status_reg[16] =
@@ -98,19 +104,6 @@ static const uint32_t BSAT_afec_clock_enable_reg[16] =
    BCHP_CLKGEN_SDS_AFEC_TOP_13_INST_CLOCK_ENABLE,
    BCHP_CLKGEN_SDS_AFEC_TOP_14_INST_CLOCK_ENABLE,
    BCHP_CLKGEN_SDS_AFEC_TOP_15_INST_CLOCK_ENABLE
-};
-
-
-static const uint32_t BSAT_gypsum_tfec_clock_enable_reg[8] =
-{
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_1_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_2_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_3_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_4_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_5_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_6_INST_CLOCK_ENABLE,
-   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_7_INST_CLOCK_ENABLE
 };
 
 
@@ -468,6 +461,120 @@ bool BSAT_g1_P_IsChannelizerOn(BSAT_ChannelHandle h)
    return (val == 3) ? true : false;
 }
 
+/******************************************************************************
+ BSAT_g1_P_EnableTfecPll_isr() - enable/disable 486MHz tfec pll clock in clkgen
+                                 pll3.ch3
+******************************************************************************/
+void BSAT_g1_P_EnableTfecPll_isr(BSAT_Handle h, bool bEnable)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+   uint32_t val;
+
+   val = BREG_Read32(pDev->hRegister, BCHP_CLKGEN_PLL3_SYS_PLL_CHANNEL_CTRL_CH_3);
+   if (bEnable)
+      val &= ~0x401;
+   else
+      val |= 0x401;
+
+   BREG_Write32(pDev->hRegister, BCHP_CLKGEN_PLL3_SYS_PLL_CHANNEL_CTRL_CH_3, val);
+   BSAT_DEBUG_POWERDOWN(PRINT("turn %s pll3.ch3\n", bEnable ? "on" : "off"));
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_EnableAfecPll_isr() - enable/disable 270MHz afec pll clock in clkgen
+                                 pll4.ch4
+******************************************************************************/
+void BSAT_g1_P_EnableAfecPll_isr(BSAT_Handle h, bool bEnable)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+   uint32_t val;
+
+   val = BREG_Read32(pDev->hRegister, BCHP_CLKGEN_PLL4_SYS_PLL_CHANNEL_CTRL_CH_4);
+   if (bEnable)
+      val &= ~0x401;
+   else
+      val |= 0x401;
+
+   BREG_Write32(pDev->hRegister, BCHP_CLKGEN_PLL4_SYS_PLL_CHANNEL_CTRL_CH_4, val);
+   BSAT_DEBUG_POWERDOWN(PRINT("turn %s pll4.ch4\n", bEnable ? "on" : "off"));
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_IsTfecPllOn_isrsafe()
+******************************************************************************/
+bool BSAT_g1_P_IsTfecPllOn_isrsafe(BSAT_Handle h)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+   uint32_t val;
+
+   val = BREG_Read32(pDev->hRegister, BCHP_CLKGEN_PLL3_SYS_PLL_CHANNEL_CTRL_CH_3);
+   if (val & 0x401)
+      return false;
+   else
+      return true;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_IsAfecPllOn_isrsafe()
+******************************************************************************/
+bool BSAT_g1_P_IsAfecPllOn_isrsafe(BSAT_Handle h)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+   uint32_t val;
+
+   val = BREG_Read32(pDev->hRegister, BCHP_CLKGEN_PLL4_SYS_PLL_CHANNEL_CTRL_CH_4);
+   if (val & 0x401)
+      return false;
+   else
+      return true;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_IsOkToDisableAfecPll_isrsafe()
+******************************************************************************/
+bool BSAT_g1_P_IsOkToDisableAfecPll_isrsafe(BSAT_Handle h)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+   uint32_t reg, i, val;
+
+   for (i = 0; i < 8; i++)
+   {
+      reg = BSAT_afec_clock_enable_status_reg[i];
+      val = BREG_Read32(pDev->hRegister, reg);
+      if (val & 1)
+         return false;
+   }
+   return true;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_IsOkToDisableTfecPll_isrsafe()
+******************************************************************************/
+bool BSAT_g1_P_IsOkToDisableTfecPll_isrsafe(BSAT_Handle h)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+   uint32_t reg, i, val, mask;
+
+   for (i = 0; i < 8; i++)
+   {
+      reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
+      reg += ((uint32_t)(i * 0x14));
+      val = BREG_Read32(pDev->hRegister, reg);
+      if (i < 5)
+         mask = 0x88;
+      else
+         mask = 0x84;
+      if (val & mask)
+         return false;
+   }
+   return true;
+}
+
 
 /******************************************************************************
  BSAT_g1_P_TunerPowerUp() - power up the channelizer
@@ -477,15 +584,23 @@ BERR_Code BSAT_g1_P_TunerPowerUp(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t mask, shift;
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("Tuner%d power up", h->channel)));
+   BSAT_DEBUG_POWERDOWN(PRINT("Tuner%d power up\n", h->channel));
 
    if (BSAT_g1_P_IsChannelizerOn(h) == false)
    {
       /* turn on STB_CHAN_TOP RBUS clock */
       if (h->channel < 8)
+      {
          BREG_Write32(pDev->hRegister, BCHP_CLKGEN_STB_CHAN_TOP_0_INST_ENABLE, 3);
+         BSAT_g1_P_AndRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_0_XBAR_CTRL, ~0x03); /* toggle adc fifo */
+         BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_0_XBAR_CTRL, 0x03);   /* turn on adc fifo */
+      }
       else
+      {
          BREG_Write32(pDev->hRegister, BCHP_CLKGEN_STB_CHAN_TOP_1_INST_ENABLE, 3);
+         BSAT_g1_P_AndRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_1_XBAR_CTRL, ~0x03); /* toggle adc fifo */
+         BSAT_g1_P_OrRegister_isrsafe(h, BCHP_STB_CHAN_CTRL_1_XBAR_CTRL, 0x03);   /* turn on adc fifo */
+      }
    }
 
    shift = (h->channel < 8) ? h->channel : (h->channel - 8);
@@ -504,7 +619,7 @@ BERR_Code BSAT_g1_P_TunerPowerDown(BSAT_ChannelHandle h)
 {
    uint32_t mask, shift, val, totalChannels;
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("Tuner%d power down", h->channel)));
+   BSAT_DEBUG_POWERDOWN(PRINT("Tuner%d power down\n", h->channel));
 
    shift = (h->channel < 8) ? h->channel : (h->channel - 8);
    mask = (1 << shift);
@@ -527,7 +642,7 @@ BERR_Code BSAT_g1_P_TunerPowerDown(BSAT_ChannelHandle h)
       mask = (1 << (totalChannels - 8)) - 1;
    }
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("BSAT_g1_P_TunerPowerDown(%d): totalChannels=%u, stb_chan_ctrl_pwrdn=0x%X, mask=0x%X", h->channel, totalChannels, val, mask)));
+   BSAT_DEBUG_POWERDOWN(PRINT("BSAT_g1_P_TunerPowerDown(%d): totalChannels=%u, stb_chan_ctrl_pwrdn=0x%X, mask=0x%X\n", h->channel, totalChannels, val, mask));
    if ((val & mask) == mask)
    {
       /* stop STB_CHAN_TOP RBUS clock */
@@ -549,28 +664,38 @@ bool BSAT_g1_P_IsSdsOn(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t ctrl3, ctrl1, mask, reg, val;
 
-   if (!BSAT_g1_P_IsChannelizerOn(h))
-      return false;
-
-   ctrl1 =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1);
-   if (ctrl1 & BCHP_TM_CLOCK_ENABLE_CTRL1_PM_DISABLE_ALL_CLOCKS_MASK)
-      return false;
-
-   /* check SDS PLL clock enable */
-   ctrl3 =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
-   mask = 1 << h->channel;
-   if ((ctrl3 & mask) == 0)
-      return false;
-
-   if (h->channel & 1)
-      mask = 0x53; /* check if rcvr1 is on */
+   if (h->channel < 10)
+   {
+      if (h->channel & 1)
+         mask = 0x53; /* check if rcvr1 is on */
+      else
+         mask = 0x27; /* check if rcvr0 is on */
+   }
    else
-      mask = 0x27; /* check if rcvr0 is on */
+   {
+      if (h->channel & 1)
+         mask = 0x59; /* check if rcvr1 is on */
+      else
+         mask = 0x33; /* check if rcvr0 is on */
+   }
 
    reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
    reg += ((uint32_t)(h->channel >> 1) * 0x14);
    val = BREG_Read32(pDev->hRegister, reg);
    if ((val & mask) != mask)
+      return false;
+
+   if (!BSAT_g1_P_IsChannelizerOn(h))
+      return false;
+
+   ctrl1 = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1);
+   if (ctrl1 & BCHP_TM_CLOCK_ENABLE_CTRL1_PM_DISABLE_ALL_CLOCKS_MASK)
+      return false;
+
+   /* check SDS PLL clock enable */
+   ctrl3 = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
+   mask = 1 << h->channel;
+   if ((ctrl3 & mask) == 0)
       return false;
 
    return true;
@@ -585,21 +710,35 @@ BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t reg, val, mask;
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SDS%d Power Up", h->channel)));
+   BSAT_DEBUG_POWERDOWN(PRINT("SDS%d Power Up\n", h->channel));
 
    reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
    reg += ((uint32_t)(h->channel >> 1) * 0x14);
 
+   if (h->channel < 10)
+   {
+      if (h->channel & 1)
+         mask = 0x53; /* rcvr1 */
+      else
+         mask = 0x27; /* rcvr0 */
+   }
+   else
+   {
+      if (h->channel & 1)
+         mask = 0x59; /* rcvr1 */
+      else
+         mask = 0x33; /* rcvr0 */
+   }
+
    BKNI_EnterCriticalSection();
 
    val = BREG_Read32(pDev->hRegister, reg);
-   if (h->channel & 1)
-      mask = 0x53; /* check if rcvr1 is on */
-   else
-      mask = 0x27; /* check if rcvr0 is on */
-   val |= mask;
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SdsPowerUp(%d): clkgen_sds_top_2x_x_inst_clock_enable=0x%X", h->channel, val)));
-   BREG_Write32(pDev->hRegister, reg, val);
+   if ((val & mask) != mask)
+   {
+      val |= mask;
+      BSAT_DEBUG_POWERDOWN(PRINT("SdsPowerUp(%d): clkgen_sds_top_2x_x_inst_clock_enable=0x%X\n", h->channel, val));
+      BREG_Write32(pDev->hRegister, reg, val);
+   }
 
    /* enable DUALSDS PLL clock */
    val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL1);
@@ -624,26 +763,46 @@ BERR_Code BSAT_g1_P_SdsPowerUp(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_SdsPowerDown(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val, reg, mask;
+   uint32_t val, reg, mask, mask2;
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SDS%d Power Down", h->channel)));
+   BSAT_DEBUG_POWERDOWN(PRINT("SDS%d Power Down\n", h->channel));
+
+   if (BSAT_g1_P_IsTfecOn_isrsafe(h))
+   {
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80); /* tfec_rst=1 */
+      if (BSAT_g1_P_TfecIsOtherChannelBusy_isrsafe(h) == false)
+         BSAT_g1_P_TfecPowerDown_isrsafe(h);
+   }
+   BSAT_g1_P_AfecPowerDown_isrsafe(h);
 
    reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
    reg += ((uint32_t)(h->channel >> 1) * 0x14);
+   if (h->channel < 10)
+   {
+      mask2 = 0x74;
+      if (h->channel & 1)
+         mask = 0x50; /* rcvr1 */
+      else
+         mask = 0x24; /* rcvr0 */
+   }
+   else
+   {
+      mask2 = 0x6A;
+      if (h->channel & 1)
+         mask = 0x48; /* rcvr1 */
+      else
+         mask = 0x22; /* rcvr0 */
+   }
 
    BKNI_EnterCriticalSection();
 
    /* read CLKGEN_SDS_TOP_2X_x_INST_CLOCK_ENABLE */
    val = BREG_Read32(pDev->hRegister, reg);
-   if (h->channel & 1)
-      mask = 0x50; /* rcvr1 */
-   else
-      mask = 0x24; /* rcvr0 */
    val &= ~mask;
-   if ((val & 0x74) == 0)
-      val = 0x01;  /* both channels are off, so turn off everything */
+   if ((val & mask2) == 0)
+      val = 0x03;  /* both channels are off, so turn off everything */
    BREG_Write32(pDev->hRegister, reg, val);
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("SdsPowerDown(%d): clkgen_sds_top_2x_x_inst_clock_enable=0x%X", h->channel, val)));
+   BSAT_DEBUG_POWERDOWN(PRINT("SdsPowerDown(%d): clkgen_sds_top_2x_x_inst_clock_enable=0x%X\n", h->channel, val));
 
    /* disable DUALSDS PLL clock */
    val =  BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
@@ -671,7 +830,6 @@ BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus)
 }
 
 
-#ifndef BSAT_EXCLUDE_AFEC
 /******************************************************************************
  BSAT_g1_P_IsAfecOn_isrsafe() - true if afec global is on
 ******************************************************************************/
@@ -704,21 +862,24 @@ BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t val;
 
+   BSAT_DEBUG_POWERDOWN(PRINT("AFEC%d Power Up\n", h->channel));
    if (BSAT_g1_P_IsAfecOn_isrsafe(h) == false)
    {
-      BSAT_DEBUG_POWERDOWN(BDBG_ERR(("AFEC%d Power Up", h->channel)));
+      if (BSAT_g1_P_IsAfecPllOn_isrsafe(h->pDevice) == false)
+         BSAT_g1_P_EnableAfecPll_isr(h->pDevice, true);
+
+      /* enable AFEC 54MHz/108MHz clocks */
+      BREG_Write32(pDev->hRegister, BSAT_afec_clock_enable_reg[h->channel], 0x07);
 
       val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
       val |= (1 << h->channel);
       BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
 
-      /* enable AFEC 54MHz/108MHz clocks */
-      BREG_Write32(pDev->hRegister, BSAT_afec_clock_enable_reg[h->channel], 0x07);
-
       BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_GLOBAL_CLK_CNTRL, ~BCHP_AFEC_GLOBAL_0_CLK_CNTRL_LDPC_CLK_ENABLEB_MASK);
+      return BSAT_g1_P_IsAfecOn_isrsafe(h) ? BERR_SUCCESS: BSAT_ERR_POWERDOWN_FAILED;
    }
-
-   return BERR_SUCCESS;
+   else
+      return BERR_SUCCESS;
 }
 
 
@@ -730,22 +891,30 @@ BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h)
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    uint32_t val;
 
+   BSAT_DEBUG_POWERDOWN(PRINT("AFEC%d Power Down\n", h->channel));
    if (BSAT_g1_P_IsAfecOn_isrsafe(h))
    {
-      BSAT_DEBUG_POWERDOWN(BDBG_ERR(("AFEC%d Power Down", h->channel)));
+      BKNI_EnterCriticalSection();
 
       /* global power down */
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_GLOBAL_CLK_CNTRL, BCHP_AFEC_GLOBAL_0_CLK_CNTRL_LDPC_CLK_ENABLEB_MASK);
 
-      /* disable AFEC clocks */
-      BREG_Write32(pDev->hRegister, BSAT_afec_clock_enable_reg[h->channel], BCHP_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_AFEC0_PMB_54_CLOCK_ENABLE_MASK);
-
       val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
       val &= ~(1 << h->channel);
       BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
+
+      /* disable AFEC clocks */
+      BREG_Write32(pDev->hRegister, BSAT_afec_clock_enable_reg[h->channel], 0x4);
+
+      if (BSAT_g1_P_IsOkToDisableAfecPll_isrsafe(h->pDevice))
+         BSAT_g1_P_EnableAfecPll_isr(h->pDevice, false);
+
+      BKNI_LeaveCriticalSection();
+
+      return BSAT_g1_P_IsAfecOn_isrsafe(h) ? BSAT_ERR_POWERDOWN_FAILED : BERR_SUCCESS;
    }
-   done:
-   return BERR_SUCCESS;
+   else
+      return BERR_SUCCESS;
 }
 
 
@@ -763,7 +932,6 @@ BERR_Code BSAT_g1_P_GetAfecClock_isrsafe(BSAT_ChannelHandle h, uint32_t *pFreq)
    *pFreq = (hDevImpl->xtalFreq / (pdiv * mdiv)) * ndiv;
    return BERR_SUCCESS;
 }
-#endif /* BSAT_EXCLUDE_AFEC */
 
 
 #ifndef BSAT_EXCLUDE_TFEC
@@ -773,27 +941,38 @@ BERR_Code BSAT_g1_P_GetAfecClock_isrsafe(BSAT_ChannelHandle h, uint32_t *pFreq)
 BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val, reg;
-   uint32_t mask = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK | BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK;
+   uint32_t val, reg, mask;
 
-   BKNI_EnterCriticalSection();
-
+   BSAT_DEBUG_POWERDOWN(PRINT("TFEC%d Power Up\n", h->channel));
    if (BSAT_g1_P_IsTfecOn_isrsafe(h) == false)
    {
-      BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d Power Up", h->channel)));
+      if (BSAT_g1_P_IsAfecPllOn_isrsafe(h->pDevice) == false)
+         BSAT_g1_P_EnableAfecPll_isr(h->pDevice, true);
+
+      if (BSAT_g1_P_IsTfecPllOn_isrsafe(h->pDevice) == false)
+         BSAT_g1_P_EnableTfecPll_isr(h->pDevice, true);
 
       reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
       reg += ((uint32_t)(h->channel >> 1) * 0x14);
+      if (h->channel < 10)
+         mask = 0x88;
+      else
+         mask = 0x84;
       val = BREG_Read32(pDev->hRegister, reg);
       if ((val & mask) != mask)
       {
          val |= mask;
          BREG_Write32(pDev->hRegister, reg, val);
       }
-   }
-   BKNI_LeaveCriticalSection();
 
-   return BSAT_g1_P_IsTfecOn_isrsafe(h) ? BERR_SUCCESS: BSAT_ERR_POWERDOWN_FAILED;
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
+      val |= (1 << (16 + h->channel));
+      BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3, val);
+
+      return BSAT_g1_P_IsTfecOn_isrsafe(h) ? BERR_SUCCESS: BSAT_ERR_POWERDOWN_FAILED;
+   }
+   else
+      return BERR_SUCCESS;
 }
 
 
@@ -803,26 +982,46 @@ BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
-   uint32_t val, reg;
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   uint32_t val, reg, mask;
 
-   BKNI_EnterCriticalSection();
+   BSAT_DEBUG_POWERDOWN(PRINT("TFEC%d Power Down\n", h->channel));
 
    if (BSAT_g1_P_IsTfecOn_isrsafe(h))
    {
-      BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d Power Down", h->channel)));
+      BINT_DisableCallback_isr(hChn->hTfecLockCb);
+      BINT_DisableCallback_isr(hChn->hTfecNotLockCb);
+
+      if (h->channel < 10)
+         mask = 0x88;
+      else
+         mask = 0x84;
 
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x80); /* tfec_rst=1 */
+
+      BKNI_EnterCriticalSection();
+
+      val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3);
+      val &= ~(1 << (h->channel + 16));
+      BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL3, val);
 
       reg = BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE;
       reg += ((uint32_t)(h->channel >> 1) * 0x14);
       val = BREG_Read32(pDev->hRegister, reg);
-      val &= ~(BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK | BCHP_CLKGEN_SDS_TOP_2X_0_INST_CLOCK_ENABLE_SDS0_TFEC_108_CLOCK_ENABLE_MASK);
+      val &= ~mask;
       BREG_Write32(pDev->hRegister, reg, val);
+
+      if (BSAT_g1_P_IsOkToDisableTfecPll_isrsafe(h->pDevice))
+         BSAT_g1_P_EnableTfecPll_isr(h->pDevice, false);
+
+      if (BSAT_g1_P_IsOkToDisableAfecPll_isrsafe(h->pDevice))
+         BSAT_g1_P_EnableAfecPll_isr(h->pDevice, false);
+
+      BKNI_LeaveCriticalSection();
+      return BSAT_g1_P_IsTfecOn_isrsafe(h) ? BSAT_ERR_POWERDOWN_FAILED : BERR_SUCCESS;
    }
-
-   BKNI_LeaveCriticalSection();
-
-   return BSAT_g1_P_IsTfecOn_isrsafe(h) ? BSAT_ERR_POWERDOWN_FAILED : BERR_SUCCESS;
+   else
+      return BERR_SUCCESS;
 }
 
 
@@ -843,7 +1042,7 @@ bool BSAT_g1_P_IsTfecOn_isrsafe(BSAT_ChannelHandle h)
    if ((status & mask) == mask)
       bIsOn = true;
 
-   BSAT_DEBUG_POWERDOWN(BDBG_ERR(("TFEC%d is %s", h->channel, bIsOn ? "on" : "off")));
+   BSAT_DEBUG_POWERDOWN(PRINT("TFEC%d is %s\n", h->channel, bIsOn ? "on" : "off"));
    return bIsOn;
 }
 

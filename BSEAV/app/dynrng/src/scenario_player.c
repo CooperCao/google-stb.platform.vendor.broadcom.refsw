@@ -281,7 +281,7 @@ static int scenario_player_p_set_variable(ScenarioPlayerHandle player, const cha
     }
     else if (!strcmp(name, "info"))
     {
-        if (!strcasecmp(value, "on") || !strtoul(value, NULL, 1))
+        if (!strcasecmp(value, "on") || strtoul(value, NULL, 0))
         {
             pScenario->info = PlatformTriState_eOn;
         }

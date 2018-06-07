@@ -48,7 +48,7 @@ static irqreturn_t b_os_irq_linux_handler_isr(int irq, void *dev_id, struct pt_r
     struct b_os_irq_desc * desc = dev_id;
     unsigned long flags;
 
-    if (g_brcm_os_irq_verbose) PINFO("linux l1 isr %s irq %u\n", desc->name, desc->id);
+    if (g_brcm_os_irq_verbose) BDBG_LOG(("linux l1 isr %s irq %u", desc->name, desc->id));
 
     B_OS_IRQ_SPIN_LOCK(flags);
     b_os_irq_set_enable_spinlocked_tagged(desc, 0, "isr", __LINE__);
@@ -123,11 +123,11 @@ static int b_os_irq_acquire_tagged(struct b_os_irq_desc * irq, const char * func
     result = request_irq(irq->id, b_os_irq_linux_handler_isr, irq->type, irq->name, (void*)irq);
     if (!result)
     {
-        if (g_brcm_os_irq_verbose) PINFO("%s:%d: linux irq %s (%u) acquired\n", func, line, irq->name, irq->id);
+        if (g_brcm_os_irq_verbose) BDBG_LOG(("%s:%d: linux irq %s (%u) acquired", func, line, irq->name, irq->id));
     }
     else
     {
-        PERR("%s:%d: request_irq failed with %d, irq:'%s' id:%u\n", func, line, result, irq->name, irq->id);
+        BDBG_ERR(("%s:%d: request_irq failed with %d, irq:'%s' id:%u", func, line, result, irq->name, irq->id));
         b_os_irq_p_set_acquire(irq, 0);
         result = -EINVAL; BERR_TRACE(result);
     }
@@ -137,7 +137,7 @@ static int b_os_irq_acquire_tagged(struct b_os_irq_desc * irq, const char * func
 
 static void b_os_irq_release_tagged(struct b_os_irq_desc * irq, const char * func, unsigned line)
 {
-    if (g_brcm_os_irq_verbose) PINFO("%s:%d: free linux irq %s (%u)\n", func, line, irq->name, irq->id);
+    if (g_brcm_os_irq_verbose) BDBG_LOG(("%s:%d: free linux irq %s (%u)", func, line, irq->name, irq->id));
     if (irq->id)
     {
         if (irq->acquired)
@@ -153,7 +153,7 @@ static void b_os_irq_set_enable_spinlocked_tagged(struct b_os_irq_desc * irq, bo
     if (!irq->id || !irq->acquired) return;
     if (enabled != irq->enabled)
     {
-        if (g_brcm_os_irq_verbose) PINFO("%s:%d: os irq %u %s\n", func, line, irq->id, enabled ? "enabled" : "disabled");
+        if (g_brcm_os_irq_verbose) BDBG_LOG(("%s:%d: os irq %u %s", func, line, irq->id, enabled ? "enabled" : "disabled"));
         if (enabled)
         {
             enable_irq(irq->id);
@@ -164,11 +164,13 @@ static void b_os_irq_set_enable_spinlocked_tagged(struct b_os_irq_desc * irq, bo
         }
         irq->enabled = enabled;
     }
+#if 0
     else
     {
         /* this will happen very frequently, so disable even from verbose setting for now */
-        if (0) PINFO("%s:%d: os irq %u already %s\n", func, line, irq->id, enabled ? "enabled" : "disabled");
+        if (0) BDBG_LOG(("%s:%d: os irq %u already %s", func, line, irq->id, enabled ? "enabled" : "disabled"));
     }
+#endif
 }
 
 static void b_os_irq_set_wake_capability_spinlocked_tagged(struct b_os_irq_desc * irq, bool wakeable, const char * func, unsigned line)
@@ -177,14 +179,14 @@ static void b_os_irq_set_wake_capability_spinlocked_tagged(struct b_os_irq_desc 
     if (!irq->id || !irq->enabled) return;
     if (wakeable != irq->wakeable)
     {
-        if (g_brcm_os_irq_verbose) PINFO("%s:%d: os irq %s (%u) %s\n", func, line, irq->name, irq->id, wakeable ? "wakeable" : "unwakeable");
+        if (g_brcm_os_irq_verbose) BDBG_LOG(("%s:%d: os irq %s (%u) %s", func, line, irq->name, irq->id, wakeable ? "wakeable" : "unwakeable"));
         if (wakeable)
         {
             result = enable_irq_wake(irq->id);
             if (result)
             {
-                PWARN("Failed to mark irq %s (%u) as wakeup source, will not wake from this irq\n", irq->name, irq->id);
-                PWARN("If this message occurs for a non-AON gpio irq for S2 you need to upgrade BOLT\n");
+                BDBG_WRN(("Failed to mark irq %s (%u) as wakeup source, will not wake from this irq", irq->name, irq->id));
+                BDBG_WRN(("If this message occurs for a non-AON gpio irq for S2 you need to upgrade BOLT"));
             }
         }
         else
@@ -196,11 +198,13 @@ static void b_os_irq_set_wake_capability_spinlocked_tagged(struct b_os_irq_desc 
             irq->wakeable = wakeable;
         }
     }
+#if 0
     else
     {
         /* this will happen very frequently, so disable even from verbose setting for now */
-        if (0) PINFO("%s:%d: os irq %u already %s\n", func, line, irq->id, wakeable ? "wakeable" : "unwakeable");
+        if (0) BDBG_LOG(("%s:%d: os irq %u already %s", func, line, irq->id, wakeable ? "wakeable" : "unwakeable"));
     }
+#endif
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)

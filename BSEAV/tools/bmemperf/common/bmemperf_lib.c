@@ -73,7 +73,9 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bchp_sun_top_ctrl.h"
+#ifdef BCHP_XPT_FULL_PID_PARSER_REG_START
 #include "bchp_xpt_full_pid_parser.h"
+#endif
 #ifdef    ASP_SUPPORT
 #include "bchp_xpt_rave.h"
 #include "bchp_xpt_mcpb.h"
@@ -1541,6 +1543,7 @@ char *getProductIdStr(
 
 unsigned long int Bmemperf_PidChannelGetPccEnable( int hwPidChannelIndex )
 {
+#ifdef BCHP_XPT_FULL_PID_PARSER_REG_START
     unsigned long int pcc_error_en_reg = 0;
 
     if ( hwPidChannelIndex < BMEMPERF_PID_CHANNEL_MAX )
@@ -1552,9 +1555,14 @@ unsigned long int Bmemperf_PidChannelGetPccEnable( int hwPidChannelIndex )
     }
 
     return ( pcc_error_en_reg );
+#else
+    BSTD_UNUSED(hwPidChannelIndex);
+    return 0;
+#endif
 }
 int Bmemperf_PidChannelSetPccEnable( int hwPidChannelIndex )
 {
+#ifdef BCHP_XPT_FULL_PID_PARSER_REG_START
     unsigned long int pcc_error_en_reg = 0;
 
     if ( hwPidChannelIndex < BMEMPERF_PID_CHANNEL_MAX )
@@ -1572,6 +1580,10 @@ int Bmemperf_PidChannelSetPccEnable( int hwPidChannelIndex )
     }
 
     return 0;
+#else
+    BSTD_UNUSED(hwPidChannelIndex);
+    return 0;
+#endif
 }
 
 unsigned long int Bmemperf_PidChannelGetAutoSyncDetect( int hwPidChannelIndex )

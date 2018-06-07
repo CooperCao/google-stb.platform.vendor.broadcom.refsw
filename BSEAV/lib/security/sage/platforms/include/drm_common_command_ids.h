@@ -67,7 +67,7 @@ typedef enum DrmWVOemCrypto_CommandId_e
     DrmWVOEMCrypto_CommandId_eGenerateNonce            = 11,
     DrmWVOEMCrypto_CommandId_eLoadKeys_V9_or_V10       = 12,
     DrmWVOEMCrypto_CommandId_eRefreshKeys              = 13,
-    DrmWVOEMCrypto_CommandId_eSelectKey                = 14,
+    DrmWVOEMCrypto_CommandId_eSelectKey_V13            = 14,
     DrmWVOEMCrypto_CommandId_eRewrapDeviceRSAKey       = 15,
     DrmWVOEMCrypto_CommandId_eLoadDeviceRSAKey         = 16,
     DrmWVOEMCrypto_CommandId_eGenerateRSASignature     = 17,
@@ -107,7 +107,7 @@ typedef enum DrmWVOemCrypto_CommandId_e
     DrmWVOEMCrypto_CommandId_eIsSRMUpdateSupported     = 40,
     DrmWVOEMCrypto_CommandId_eGetCurrentSRMVersion     = 41,
     DrmWVOEMCrypto_CommandId_eLoadSRM                  = 42,
-    DrmWVOEMCrypto_CommandId_eLoadKeys                 = 43,
+    DrmWVOEMCrypto_CommandId_eLoadKeys_V13             = 43,
     DrmWVOEMCrypto_CommandId_eRemoveSRM                = 44,
     DrmWVOEMCrypto_CommandId_eCreateUsageTableHeader   = 45,
     DrmWVOEMCrypto_CommandId_eLoadUsageTableHeader     = 46,
@@ -122,6 +122,10 @@ typedef enum DrmWVOemCrypto_CommandId_e
     DrmWVOEMCrypto_CommandId_eIsMgnInitialized         = 55,
     DrmWVOEMCrypto_CommandId_eNoWritePending           = 56,
     DrmWVOEMCrypto_CommandId_eIsSsdReady               = 57,
+    DrmWVOEMCrypto_CommandId_eGetAnalogOutputFlags     = 58,
+    DrmWVOEMCrypto_CommandId_eLoadEntitledContentKeys  = 59,
+    DrmWVOEMCrypto_CommandId_eSelectKey                = 60,
+    DrmWVOEMCrypto_CommandId_eLoadKeys                 = 61,
 
     DrmWVOEMCrypto_CommandId_eMax
 }DrmWVOemCrypto_CommandId_e;

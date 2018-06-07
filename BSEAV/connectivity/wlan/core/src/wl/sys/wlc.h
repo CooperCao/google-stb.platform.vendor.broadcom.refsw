@@ -1764,6 +1764,7 @@ struct wlc_info {
 	uint32 phy_cap;		/* capabilities used for bmac attach */
 	bool mac_pay_decode_war;
 	wlc_sup_info_t	*gtkref;		/**< gtk refresh module */
+	uint8 *ssidbuf;    /* buf for ssid format to avoid coverity issue */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG

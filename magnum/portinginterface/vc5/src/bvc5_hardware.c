@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1090,6 +1090,29 @@ void BVC5_P_HardwareSetDefaultRegisterState(
    __sync_fetch_and_and(&hVC5->uiTFUInterruptReason, 0);
 }
 
+/* register has a password which you need to set to write the other bits (not in RDB) */
+#define PM_PASSWORD 0x5a000000
+#define V3D_CTRL_REQ(REG, VALUE)                                                             \
+do                                                                                           \
+{                                                                                            \
+   uint32_t uiReg;                                                                           \
+   BDBG_CASSERT(VALUE <= 1);                                                                 \
+   uiReg = BREG_Read32(hVC5->hReg, BCHP_##REG);                                              \
+   BCHP_SET_FIELD_DATA(uiReg, REG, CLR_REQ, VALUE);                                          \
+   BREG_Write32(hVC5->hReg, BCHP_##REG, uiReg);                                              \
+   while (BCHP_GET_FIELD_DATA(BREG_Read32(hVC5->hReg, BCHP_##REG), REG, CLR_ACK) != VALUE);  \
+} while(0)
+
+#define V3D_PM_GRAFX(VALUE)                                                                  \
+do                                                                                           \
+{                                                                                            \
+   uint32_t uiReg;                                                                           \
+   BDBG_CASSERT(VALUE <= 1);                                                                 \
+   uiReg = BREG_Read32(hVC5->hReg, BCHP_PM_GRAFX);                                           \
+   BCHP_SET_FIELD_DATA(uiReg, PM_GRAFX, V3DRSTN, VALUE);                                     \
+   BREG_Write32(hVC5->hReg, BCHP_PM_GRAFX, (PM_PASSWORD | uiReg));                           \
+} while(0)
+
 static void BVC5_P_HardwareResetV3D(
    BVC5_Handle hVC5
 )
@@ -1114,6 +1137,24 @@ static void BVC5_P_HardwareResetV3D(
    BREG_Write32(hVC5->hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, DEASSERT));
 #else
    BSTD_UNUSED(hVC5);
+#endif
+
+#ifdef BCHP_ARG_ASB_REG_START
+   V3D_CTRL_REQ(ARG_ASB_V3D_M_CTRL, 1);
+   V3D_CTRL_REQ(ARG_ASB_V3D_S_CTRL, 1);
+#endif
+
+#ifdef BCHP_PM_GRAFX
+   V3D_PM_GRAFX(0);
+#endif
+
+#ifdef BCHP_ARG_ASB_REG_START
+   V3D_CTRL_REQ(ARG_ASB_V3D_M_CTRL, 0);
+   V3D_CTRL_REQ(ARG_ASB_V3D_S_CTRL, 0);
+#endif
+
+#ifdef BCHP_PM_GRAFX
+   V3D_PM_GRAFX(1);
 #endif
 }
 

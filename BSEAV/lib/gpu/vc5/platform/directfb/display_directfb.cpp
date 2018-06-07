@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <memory>
 
@@ -187,12 +187,11 @@ static BEGL_Error DispDisplaySurface(void *context, void *platformState,
 {
    if (buffer)
    {
-      auto disp = static_cast<DBPL_DisplayInterface *>(context);
-      auto windowState = static_cast<WindowState *>(platformState);
       if (fence != -1)
       {
-         FenceInterface_Wait(&disp->data.fenceIface, fence, 2000);
-         FenceInterface_Destroy(&disp->data.fenceIface, &fence);
+         auto disp = static_cast<DBPL_Display *>(context);
+         FenceInterface_Wait(&disp->fenceIface, fence, 2000);
+         FenceInterface_Destroy(&disp->fenceIface, &fence);
       }
 
       auto bitmap = static_cast<WrappedBitmap*>(buffer);
@@ -229,6 +228,7 @@ extern "C" BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
    std::unique_ptr<DBPL_DisplayInterface> disp(new DBPL_DisplayInterface());
    if (!disp)
       return nullptr;
+   memset(disp.get(), 0, sizeof(DBPL_DisplayInterface));
 
    disp->context = &disp->data;
    disp->WindowGetInfo              = DispWindowGetInfo;

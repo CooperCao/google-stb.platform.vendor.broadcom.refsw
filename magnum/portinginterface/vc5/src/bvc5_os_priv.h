@@ -45,4 +45,9 @@ void BVC5_P_DRMOpen(uint32_t uiDRMDevice);
 bool BVC5_P_HasBrcmv3dko(void);
 void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken);
 
+/* linuxkernel version of BKNI_Malloc uses kmalloc, which is subject to fragmentation.
+   Implementing our own verison allows us to use vmalloc, as this works for our use case. */
+void *BVC5_P_VMalloc(size_t size);
+void BVC5_P_VFree(void *mem);
+
 #endif /* BVC5_OS_PRIV_H__ */

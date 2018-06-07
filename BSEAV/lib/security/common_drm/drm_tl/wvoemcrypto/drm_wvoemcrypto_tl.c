@@ -189,10 +189,17 @@ static void DRM_WVOemcrypto_P_Indication_CB(SRAI_ModuleHandle module,
 static DrmRC DRM_WVOemCrypto_P_Query_Mgn_Initialized(void);
 static bool DRM_WVOemCrypto_P_Query_No_Write_Pending(void);
 
-static DrmRC drm_WVOemCrypto_P_SelectKey_Unprotected(const uint32_t session,
-                                                     const uint8_t* key_id,
-                                                     uint32_t key_id_length,
-                                                     int *wvRc);
+static DrmRC drm_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
+                                                const uint8_t* key_id,
+                                                uint32_t key_id_length,
+                                                int *wvRc);
+
+DrmRC drm_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
+                                     const uint8_t* key_id,
+                                     uint32_t key_id_length,
+                                     uint32_t cipher_mode,
+                                     int *wvRc);
+
 
 BDBG_MODULE(drm_wvoemcrypto_tl);
 
@@ -298,7 +305,12 @@ no other OEMCrypto calls will be made until another call to OEMCrypto_Initialize
 ****************************************************************************************************/
 DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
 {
+#ifdef USE_UNIFIED_COMMON_DRM
     DrmRC rc = Drm_Success;
+#else
+    DrmRC rc = Drm_Success;
+    DrmRC rc2 = Drm_Success;
+#endif
     *wvRc = SAGE_OEMCrypto_SUCCESS;
     unsigned int i;
 
@@ -317,11 +329,10 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
 
     /* This will invoke drm_wvoemcrypto_finalize on sage side*/
 #ifdef USE_UNIFIED_COMMON_DRM
-    rc = DRM_Common_TL_ModuleFinalize(gWVmoduleHandle);
-#else
-    rc = DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gWVmoduleHandle);
-    rc = DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gSSDmoduleHandle);
-#endif
+    if (gWVmoduleHandle != NULL)
+    {
+        rc = DRM_Common_TL_ModuleFinalize(gWVmoduleHandle);
+    }
     if(rc == Drm_Success)
     {
         *wvRc = SAGE_OEMCrypto_SUCCESS;
@@ -331,6 +342,26 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
         *wvRc = SAGE_OEMCrypto_ERROR_TERMINATE_FAILED;
         rc = Drm_Err;
     }
+#else
+    if (gWVmoduleHandle != NULL)
+    {
+        rc = DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gWVmoduleHandle);
+    }
+    if (gSSDmoduleHandle != NULL)
+    {
+        rc2 = DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gSSDmoduleHandle);
+    }
+    if((rc == Drm_Success) && (rc2 == Drm_Success))
+    {
+        *wvRc = SAGE_OEMCrypto_SUCCESS;
+    }
+    else
+    {
+        *wvRc = SAGE_OEMCrypto_ERROR_TERMINATE_FAILED;
+        rc = Drm_Err;
+    }
+#endif
+
 #ifdef USE_UNIFIED_COMMON_DRM
     DRM_Common_TL_Finalize();
 #else
@@ -411,7 +442,7 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
     gSsdSupported = false;
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
-    return Drm_Success;
+    return rc;
 }
 
 /***********************************************************************************************
@@ -741,10 +772,22 @@ ErrorExit:
         if (drm_common_tl_module_initialized)
         {
 #ifdef USE_UNIFIED_COMMON_DRM
-           (void)DRM_Common_TL_ModuleFinalize(gWVmoduleHandle);
+           if (gWVmoduleHandle != NULL)
+           {
+               (void)DRM_Common_TL_ModuleFinalize(gWVmoduleHandle);
+               gWVmoduleHandle = NULL;
+           }
 #else
-           (void)DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gWVmoduleHandle);
-           (void)DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gSSDmoduleHandle);
+           if (gWVmoduleHandle != NULL)
+           {
+               (void)DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gWVmoduleHandle);
+               gWVmoduleHandle = NULL;
+           }
+           if (gSSDmoduleHandle != NULL)
+           {
+              (void)DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Widevine, gSSDmoduleHandle);
+              gSSDmoduleHandle = NULL;
+           }
 #endif
         }
 
@@ -1402,6 +1445,22 @@ uint32_t getSizeOfKeyObjectArray(const Drm_WVOemCryptoKeyObject* key_array,uint3
     return sz;
 }
 
+uint32_t getSizeOfKeyObjectArray_V11_to_V13(const Drm_WVOemCryptoKeyObject_V11_to_V13* key_array,uint32_t num_of_keys)
+{
+    uint32_t sz = 0;
+    uint32_t i = 0;
+
+    for(i = 0; i < num_of_keys; i++)
+    {
+        sz+=key_array[i].key_id_length;
+        sz+= WVCDM_KEY_IV_SIZE;
+        sz+=key_array[i].key_data_length;
+        sz+=WVCDM_KEY_IV_SIZE; /*control iv size*/
+        sz+=WVCDM_KEY_CONTROL_SIZE; /*key control  size*/
+    }
+    return sz;
+}
+
 uint32_t getSizeOfKeyObjectArray_V10(const Drm_WVOemCryptoKeyObject_V10* key_array,uint32_t num_of_keys)
 {
     uint32_t sz = 0;
@@ -1414,6 +1473,21 @@ uint32_t getSizeOfKeyObjectArray_V10(const Drm_WVOemCryptoKeyObject_V10* key_arr
         sz+=key_array[i].key_data_length;
         sz+=WVCDM_KEY_IV_SIZE; /*control iv size*/
         sz+=WVCDM_KEY_CONTROL_SIZE; /*key control  size*/
+    }
+    return sz;
+}
+
+uint32_t getSizeOfEntitledContentKeyObjectArray(const Drm_WVOemCryptoEntitledContentKeyObject* key_array,uint32_t num_of_keys)
+{
+    uint32_t sz = 0;
+    uint32_t i = 0;
+
+    for(i = 0; i < num_of_keys; i++)
+    {
+        sz+=key_array[i].entitlement_key_id_length;
+        sz+=key_array[i].content_key_id_length;
+        sz+= WVCDM_KEY_IV_SIZE;
+        sz+=key_array[i].content_key_data_length;
     }
     return sz;
 }
@@ -1449,30 +1523,30 @@ This function may be called simultaneously with functions on other sessions, but
 functions on this session.
 
 *****************************************************************************************************************/
-DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
-                               const uint8_t* message,
-                               uint32_t       message_length,
-                               const uint8_t* signature,
-                               uint32_t       signature_length,
-                               const uint8_t* enc_mac_key_iv,
-                               const uint8_t* enc_mac_keys,
-                               uint32_t       num_keys,
-                               void*          key_array,
-                               const uint8_t* pst,
-                               uint32_t       pst_length,
-                               const uint8_t* srm_requirement,
-                               int *wvRc)
+DrmRC drm_WVOemCrypto_LoadKeys_V13(uint32_t session,
+                                   const uint8_t* message,
+                                   uint32_t       message_length,
+                                   const uint8_t* signature,
+                                   uint32_t       signature_length,
+                                   const uint8_t* enc_mac_key_iv,
+                                   const uint8_t* enc_mac_keys,
+                                   uint32_t       num_keys,
+                                   void*          key_array,
+                                   const uint8_t* pst,
+                                   uint32_t       pst_length,
+                                   const uint8_t* srm_requirement,
+                                   int *wvRc)
 {
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
     uint32_t i = 0;
     uint32_t key_object_shared_block_length = 0;
     uint32_t key_array_sz = 0;
-    Drm_WVOemCryptoSageKeyObject* pKeyObj = NULL;
-    Drm_WVOemCryptoKeyObject* keyArray = (Drm_WVOemCryptoKeyObject*)key_array;
+    Drm_WVOemCryptoSageKeyObject_V11_to_V13* pKeyObj = NULL;
+    Drm_WVOemCryptoKeyObject_V11_to_V13* keyArray = (Drm_WVOemCryptoKeyObject_V11_to_V13*)key_array;
     BSAGElib_InOutContainer *container = NULL;
 
-    BDBG_ENTER(drm_WVOemCrypto_LoadKeys);
+    BDBG_ENTER(drm_WVOemCrypto_LoadKeys_V13);
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
@@ -1568,7 +1642,7 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
     }
 
     /* allocate for sending key object data*/
-    key_array_sz = getSizeOfKeyObjectArray(keyArray, num_keys);
+    key_array_sz = getSizeOfKeyObjectArray_V11_to_V13(keyArray, num_keys);
     container->blocks[4].data.ptr = SRAI_Memory_Allocate(key_array_sz, SRAI_MemoryType_Shared);
     if(container->blocks[4].data.ptr == NULL)
     {
@@ -1582,15 +1656,15 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
 
 
     /* allocate for sending key object data*/
-    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys), SRAI_MemoryType_Shared);
+    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject_V11_to_V13)) * num_keys), SRAI_MemoryType_Shared);
     if (container->blocks[5].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", BSTD_FUNCTION, ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys)));
+        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", BSTD_FUNCTION, ((sizeof(Drm_WVOemCryptoSageKeyObject_V11_to_V13)) * num_keys)));
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
         goto ErrorExit;
     }
-    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys);
+    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject_V11_to_V13)) * num_keys);
 
     /*
      * Allocate memory for PST (if applicable)
@@ -1685,7 +1759,7 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
 
 
 
-    pKeyObj = (Drm_WVOemCryptoSageKeyObject*)container->blocks[5].data.ptr;
+    pKeyObj = (Drm_WVOemCryptoSageKeyObject_V11_to_V13*)container->blocks[5].data.ptr;
 
     for (i=0; i < num_keys; i++)
     {
@@ -1722,10 +1796,10 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
     container->basicIn[1] = num_keys;
 
 
-    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eLoadKeys, container);
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eLoadKeys_V13, container);
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error loading key parameters (command id = %u)", BSTD_FUNCTION, DrmWVOEMCrypto_CommandId_eLoadKeys));
+        BDBG_ERR(("%s - Error loading key parameters (command id = %u)", BSTD_FUNCTION, DrmWVOEMCrypto_CommandId_eLoadKeys_V13));
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
         goto ErrorExit;
@@ -1787,7 +1861,7 @@ ErrorExit:
         container = NULL;
     }
 
-    BDBG_LEAVE(drm_WVOemCrypto_LoadKeys);
+    BDBG_LEAVE(drm_WVOemCrypto_LoadKeys_V13);
     return rc;
 }
 
@@ -1839,11 +1913,11 @@ DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
     uint32_t i = 0;
     uint32_t key_object_shared_block_length = 0;
     uint32_t key_array_sz = 0;
-    Drm_WVOemCryptoSageKeyObject* pKeyObj = NULL;
-    Drm_WVOemCryptoKeyObject* keyArray = (Drm_WVOemCryptoKeyObject*)key_array;
+    Drm_WVOemCryptoSageKeyObject_V11_to_V13* pKeyObj = NULL;
+    Drm_WVOemCryptoKeyObject_V11_to_V13* keyArray = (Drm_WVOemCryptoKeyObject_V11_to_V13*)key_array;
     BSAGElib_InOutContainer *container = NULL;
 
-    BDBG_ENTER(drm_WVOemCrypto_LoadKeys);
+    BDBG_ENTER(drm_WVOemCrypto_LoadKeys_V11_or_V12);
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
@@ -1939,7 +2013,7 @@ DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
     }
 
     /* allocate for sending key object data*/
-    key_array_sz = getSizeOfKeyObjectArray(keyArray, num_keys);
+    key_array_sz = getSizeOfKeyObjectArray_V11_to_V13(keyArray, num_keys);
     container->blocks[4].data.ptr = SRAI_Memory_Allocate(key_array_sz, SRAI_MemoryType_Shared);
     if(container->blocks[4].data.ptr == NULL)
     {
@@ -1953,15 +2027,15 @@ DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
 
 
     /* allocate for sending key object data*/
-    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys), SRAI_MemoryType_Shared);
+    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject_V11_to_V13)) * num_keys), SRAI_MemoryType_Shared);
     if (container->blocks[5].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", BSTD_FUNCTION, ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys)));
+        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", BSTD_FUNCTION, ((sizeof(Drm_WVOemCryptoSageKeyObject_V11_to_V13)) * num_keys)));
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
         goto ErrorExit;
     }
-    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys);
+    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject_V11_to_V13)) * num_keys);
 
     /*
      * Allocate memory for PST (if applicable)
@@ -2041,7 +2115,7 @@ DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
 
 
 
-    pKeyObj = (Drm_WVOemCryptoSageKeyObject*)container->blocks[5].data.ptr;
+    pKeyObj = (Drm_WVOemCryptoSageKeyObject_V11_to_V13*)container->blocks[5].data.ptr;
 
     for (i=0; i < num_keys; i++)
     {
@@ -2143,7 +2217,7 @@ ErrorExit:
         container = NULL;
     }
 
-    BDBG_LEAVE(drm_WVOemCrypto_LoadKeys);
+    BDBG_LEAVE(drm_WVOemCrypto_LoadKeys_V11_or_V12);
     return rc;
 }
 
@@ -2785,19 +2859,19 @@ www.widevine.com Confidential Page 36 of 60
 This function may be called simultaneously with functions on other sessions, but not with other
 functions on this session.
 *****************************************************************************************************/
-DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
-                                const uint8_t* key_id,
-                                uint32_t key_id_length,
-                                int *wvRc)
+DrmRC drm_WVOemCrypto_SelectKey_V13(const uint32_t session,
+                                    const uint8_t* key_id,
+                                    uint32_t key_id_length,
+                                    int *wvRc)
 {
     DrmRC rc = Drm_Success;
     BKNI_AcquireMutex(gWVSelectKeyMutex);
-    rc = drm_WVOemCrypto_P_SelectKey_Unprotected(session, key_id, key_id_length, wvRc);
+    rc = drm_WVOemCrypto_P_Do_SelectKey_V13(session, key_id, key_id_length, wvRc);
     BKNI_ReleaseMutex(gWVSelectKeyMutex);
     return rc;
 }
 
-DrmRC drm_WVOemCrypto_P_SelectKey_Unprotected(const uint32_t session,
+DrmRC drm_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
                                               const uint8_t* key_id,
                                               uint32_t key_id_length,
                                               int *wvRc)
@@ -2818,7 +2892,7 @@ DrmRC drm_WVOemCrypto_P_SelectKey_Unprotected(const uint32_t session,
     bool allocate_slot = false;
     uint32_t i;
 
-    BDBG_ENTER(drm_WVOemCrypto_P_SelectKey_Unprotected);
+    BDBG_ENTER(drm_WVOemCrypto_P_Do_SelectKey_V13);
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
@@ -2985,7 +3059,7 @@ DrmRC drm_WVOemCrypto_P_SelectKey_Unprotected(const uint32_t session,
 
     BKNI_AcquireMutex(gWVKeySlotMutex);
 
-    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eSelectKey, container);
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eSelectKey_V13, container);
     if (sage_rc != BERR_SUCCESS)
     {
         BKNI_ReleaseMutex(gWVKeySlotMutex);
@@ -3087,7 +3161,7 @@ ErrorExit:
         rc = Drm_Err;
     }
 
-    BDBG_LEAVE(drm_WVOemCrypto_P_SelectKey_Unprotected);
+    BDBG_LEAVE(drm_WVOemCrypto_P_Do_SelectKey_V13);
 
    return rc;
 }
@@ -3311,10 +3385,8 @@ static DrmRC drm_WVOemCrypto_P_CopyBuffer_Secure_SG(
     bool block_wait)
 {
     bool isLastSubsample = false;
-    NEXUS_DmaJobSettings dmaJobSettings;
     NEXUS_DmaJobBlockSettings *blockSettings;
     DrmRC rc = Drm_Success;
-    uint32_t i;
 
     isLastSubsample = subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
 
@@ -3386,7 +3458,6 @@ ErrorExit:
 
 static DrmRC drm_WVOemCrypto_P_Decrypt_Transfer(uint32_t session)
 {
-    bool isLastSubsample = false;
     DmaBlockInfo_t *blockInfo;
     uint32_t dmaBlockIdx;
     DrmRC rc;
@@ -3774,7 +3845,16 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
 
             /* Call again to select key to obtain a keyslot handle */
             BKNI_AcquireMutex(gWVSelectKeyMutex);
-            rc = drm_WVOemCrypto_P_SelectKey_Unprotected(session, gHostSessionCtx[session].key_id, gHostSessionCtx[session].key_id_length, wvRc);
+            if(gWvOemCryptoParamSettings.api_version <= 13)
+            {
+                rc = drm_WVOemCrypto_P_Do_SelectKey_V13(session, gHostSessionCtx[session].key_id,
+                    gHostSessionCtx[session].key_id_length, wvRc);
+            }
+            else
+            {
+                rc = drm_WVOemCrypto_P_Do_SelectKey(session, gHostSessionCtx[session].key_id,
+                    gHostSessionCtx[session].key_id_length, gHostSessionCtx[session].cipher_mode, wvRc);
+            }
             if(rc != Drm_Success)
             {
                 BDBG_ERR(("%s: No valid key slot handle available", BSTD_FUNCTION));
@@ -8430,7 +8510,6 @@ DrmRC DRM_WVOemCrypto_Create_New_Usage_Entry(uint32_t session, uint32_t *usage_e
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
     BSAGElib_InOutContainer *container = NULL;
-    time_t current_time = 0;
 
     BDBG_ENTER(DRM_WVOemCrypto_Create_New_Usage_Entry);
 
@@ -9176,4 +9255,901 @@ DrmRC DRM_WVOemCrypto_Create_Old_Usage_Entry(uint64_t time_since_license_receive
 bool DRM_WVOemCrypto_IsAntiRollbackHwPresent(void)
 {
     return gAntiRollbackHw;
+}
+
+DrmRC DRM_WVOemCrypto_GetAnalogOutputFlags(uint32_t *output_flags, int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    BERR_Code sage_rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(DRM_WVOemCrypto_GetAnalogOutputFlags);
+
+    *wvRc = SAGE_OEMCrypto_SUCCESS;
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating container in GetAnalogOutputFlags", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc =SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        goto ErrorExit;
+    }
+
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eGetAnalogOutputFlags, container);
+    if (sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error sending command to SAGE", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
+        goto ErrorExit;
+    }
+    /* if success, extract status from container */
+    sage_rc = container->basicOut[0];
+    *wvRc = container->basicOut[2];
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - command sent successfully, but actual operation failed with err -(wvRC = %d)", BSTD_FUNCTION,*wvRc));
+        rc =Drm_Err;
+        goto ErrorExit;
+    }
+
+
+
+    /* if success, extract index from container */
+    (*output_flags) = container->basicOut[1];
+
+    BDBG_MSG(("%s: analog output flags = 0x%x",BSTD_FUNCTION,container->basicOut[1] ));
+
+
+ErrorExit:
+    if(container != NULL)
+    {
+        SRAI_Container_Free(container);
+    }
+
+    BDBG_LEAVE(DRM_WVOemCrypto_GetAnalogOutputFlags);
+
+   return rc;
+}
+
+DrmRC DRM_WVOemCrypto_LoadEntitledContentKeys(uint32_t session,
+                                              uint32_t num_keys,
+                                              void* key_array,
+                                              int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    BERR_Code sage_rc = BERR_SUCCESS;
+    uint32_t i = 0;
+    uint32_t key_object_shared_block_length = 0;
+    uint32_t key_array_sz = 0;
+    Drm_WVOemCryptoSageEntitledContentKeyObject* pKeyObj = NULL;
+    Drm_WVOemCryptoEntitledContentKeyObject* keyArray = (Drm_WVOemCryptoEntitledContentKeyObject*)key_array;
+    BSAGElib_InOutContainer *container = NULL;
+    uint32_t key_object_length = 0;
+
+    BDBG_ENTER(DRM_WVOemCrypto_LoadEntitledContentKeys);
+
+    *wvRc = SAGE_OEMCrypto_SUCCESS;
+
+    if(key_array == NULL)
+    {
+        BDBG_ERR(("%s - key_array is NULL", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating SRAI container", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    /* allocate for sending key object data*/
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageEntitledContentKeyObject)) * num_keys), SRAI_MemoryType_Shared);
+    if (container->blocks[0].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", BSTD_FUNCTION, ((sizeof(Drm_WVOemCryptoSageEntitledContentKeyObject)) * num_keys)));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+    container->blocks[0].len = ((sizeof(Drm_WVOemCryptoSageEntitledContentKeyObject)) * num_keys);
+
+    /* allocate for sending key object meta data*/
+    key_array_sz = getSizeOfEntitledContentKeyObjectArray(keyArray, num_keys);
+    container->blocks[1].data.ptr = SRAI_Memory_Allocate(key_array_sz, SRAI_MemoryType_Shared);
+    if(container->blocks[1].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating memory for key object data (%u bytes)", BSTD_FUNCTION, key_array_sz));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    BKNI_Memset(container->blocks[1].data.ptr, 0xff, key_array_sz);
+
+    /*
+     * Fill in Key Array
+     * */
+    for(i = 0, key_object_shared_block_length = 0; i < num_keys; i++)
+    {
+        BDBG_MSG(("%s:loop=%d,key_object_shared_block_length ='%d' entitlement key id length is %d",
+            BSTD_FUNCTION, i, key_object_shared_block_length, keyArray[i].entitlement_key_id_length));
+
+        /* copy entitlement key id  */
+        BKNI_Memcpy(container->blocks[1].data.ptr + key_object_shared_block_length,
+            keyArray[i].entitlement_key_id,
+            keyArray[i].entitlement_key_id_length);
+
+        key_object_shared_block_length += keyArray[i].entitlement_key_id_length;
+
+        BDBG_MSG(("%s:loop=%d,key_object_shared_block_length ='%d' content key id length is %d",
+            BSTD_FUNCTION, i, key_object_shared_block_length, keyArray[i].content_key_id_length));
+
+        /* copy content key id  */
+        BKNI_Memcpy(container->blocks[1].data.ptr + key_object_shared_block_length,
+            keyArray[i].content_key_id,
+            keyArray[i].content_key_id_length);
+
+        key_object_shared_block_length += keyArray[i].content_key_id_length;
+
+        BDBG_MSG(("copy the key data iv at offset %d",key_object_shared_block_length));
+
+        /* copy key_data_iv */
+        BKNI_Memcpy(&container->blocks[1].data.ptr[key_object_shared_block_length],
+                    keyArray[i].content_key_data_iv,
+                    WVCDM_KEY_IV_SIZE);
+
+        key_object_shared_block_length += WVCDM_KEY_IV_SIZE;
+
+        BDBG_MSG(("copy the key data at offset %d",key_object_shared_block_length));
+
+        /* copy key_data */
+        BKNI_Memcpy(&container->blocks[1].data.ptr[key_object_shared_block_length],
+                    keyArray[i].content_key_data,
+                    keyArray[i].content_key_data_length);
+
+        key_object_shared_block_length += keyArray[i].content_key_data_length;
+    }
+
+    /* update shared block length */
+    if(key_array_sz != key_object_shared_block_length)
+    {
+        BDBG_ERR(("%s - previous length of key array size '%u' is no longer equal to '%u'",
+            BSTD_FUNCTION, key_array_sz, key_object_shared_block_length));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+    container->blocks[1].len = key_object_shared_block_length;
+
+    pKeyObj = (Drm_WVOemCryptoSageEntitledContentKeyObject*)container->blocks[0].data.ptr;
+
+    key_object_length = container->blocks[1].len / num_keys;
+
+    for(i = 0; i < num_keys; i++)
+    {
+        BDBG_MSG(("Loop %d",i));
+        pKeyObj[i].entitlement_key_id = (uint32_t)&container->blocks[1].data.ptr[(i*key_object_length)];
+
+        pKeyObj[i].entitlement_key_id_length = keyArray[i].entitlement_key_id_length;
+
+        pKeyObj[i].content_key_id = (uint32_t)&container->blocks[1].data.ptr[(i*key_object_length)
+                                                                  + keyArray[i].entitlement_key_id_length];
+
+        pKeyObj[i].content_key_id_length = keyArray[i].content_key_id_length;
+
+        pKeyObj[i].content_key_data_iv = (uint32_t)&container->blocks[1].data.ptr[(i*key_object_length)
+                                                               + keyArray[i].entitlement_key_id_length
+                                                               + keyArray[i].content_key_id_length];
+
+        pKeyObj[i].content_key_data = (uint32_t)&container->blocks[1].data.ptr[(i*key_object_length)
+                                                             + keyArray[i].entitlement_key_id_length
+                                                             + keyArray[i].content_key_id_length
+                                                             + WVCDM_KEY_IV_SIZE];
+
+        pKeyObj[i].content_key_data_length = keyArray[i].content_key_data_length;
+    }
+
+    /* map to parameters into srai_inout_container */
+    container->basicIn[0] = session;
+    container->basicIn[1] = num_keys;
+
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eLoadEntitledContentKeys, container);
+    if (sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error loading key parameters (command id = %u)", BSTD_FUNCTION, DrmWVOEMCrypto_CommandId_eLoadEntitledContentKeys));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
+        goto ErrorExit;
+    }
+
+    /* if success, extract status from container */
+    *wvRc = container->basicOut[2];
+    if (*wvRc != SAGE_OEMCrypto_SUCCESS)
+    {
+        BDBG_ERR(("%s - widevine return code (0x%08x)", BSTD_FUNCTION, *wvRc));
+    }
+
+    if (container->basicOut[0] != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Load Key command failed due to SAGE issue (basicOut[0] = 0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        if(container->blocks[1].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(DRM_WVOemCrypto_LoadEntitledContentKeys);
+    return rc;
+}
+
+DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
+                                const uint8_t* key_id,
+                                uint32_t key_id_length,
+                                uint32_t cipher_mode,
+                                int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    BKNI_AcquireMutex(gWVSelectKeyMutex);
+    rc = drm_WVOemCrypto_P_Do_SelectKey(session, key_id, key_id_length, cipher_mode, wvRc);
+    BKNI_ReleaseMutex(gWVSelectKeyMutex);
+    return rc;
+}
+
+DrmRC drm_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
+                                     const uint8_t* key_id,
+                                     uint32_t key_id_length,
+                                     uint32_t cipher_mode,
+                                     int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    BERR_Code sage_rc = BERR_SUCCESS;
+#if (NEXUS_SECURITY_API_VERSION==1)
+    NEXUS_SecurityKeySlotSettings keyslotSettings;
+    NEXUS_SecurityKeySlotInfo keyslotInfo;
+#else
+    NEXUS_KeySlotAllocateSettings keyslotSettings;
+    NEXUS_KeySlotInformation keyslotInfo;
+#endif
+    BSAGElib_InOutContainer *container = NULL;
+    uint32_t keySlotIdSelected;
+    NEXUS_KeySlotHandle hKeySlotSelected = NULL;
+    uint32_t keySlotID[DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT];
+    bool allocate_slot = false;
+    uint32_t i;
+
+    BDBG_ENTER(drm_WVOemCrypto_P_Do_SelectKey);
+
+    *wvRc = SAGE_OEMCrypto_SUCCESS;
+
+    if(key_id == NULL)
+    {
+        BDBG_ERR(("%s - key_id buffer is NULL", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        goto ErrorExit;
+    }
+
+    BDBG_MSG(("%s:session =%d, key_id_len=%d, key central cache mode=%d",BSTD_FUNCTION,session,key_id_length, gCentralKeySlotCacheMode));
+
+    gHostSessionCtx[session].session_id=session;
+
+    BKNI_Memcpy(gHostSessionCtx[session].key_id, key_id, key_id_length);
+    gHostSessionCtx[session].key_id_length =key_id_length;
+
+    /* A central key cache should utilize the maximum amount of slots */
+    if(gCentralKeySlotCacheMode && gKeySlotCacheAllocated < gKeySlotMaxAvail)
+    {
+        allocate_slot = true;
+    }
+
+    /* Session based key cache needs only a one time allocation per session */
+    if(!gCentralKeySlotCacheMode)
+    {
+        if(gHostSessionCtx[session].num_key_slots < DRM_WVOEMCRYPTO_NUM_SESSION_KEY_SLOT)
+        {
+            allocate_slot = true;
+        }
+    }
+
+    if(allocate_slot)
+    {
+        BKNI_AcquireMutex(gWVKeySlotMutex);
+        for(i = 0; i < gKeySlotMaxAvail; i++)
+        {
+            if(gKeySlotCache[i].hSwKeySlot == NULL)
+            {
+                BDBG_MSG(("%s:Allocate keyslot for index %d",BSTD_FUNCTION, i));
+#if (NEXUS_SECURITY_API_VERSION==1)
+                NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
+                keyslotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
+                keyslotSettings.client = NEXUS_SecurityClientType_eSage;
+                gKeySlotCache[i].hSwKeySlot = NEXUS_Security_AllocateKeySlot(&keyslotSettings);
+#else
+                NEXUS_KeySlot_GetDefaultAllocateSettings(&keyslotSettings);
+                keyslotSettings.useWithDma = true;
+                keyslotSettings.owner = NEXUS_SecurityCpuContext_eSage;
+                keyslotSettings.slotType   = NEXUS_KeySlotType_eIvPerBlock;
+                gKeySlotCache[i].hSwKeySlot =  NEXUS_KeySlot_Allocate(&keyslotSettings);
+#endif
+                if(gKeySlotCache[i].hSwKeySlot == NULL)
+                {
+                    if(gHostSessionCtx[session].num_key_slots > 0 ||
+                        (gCentralKeySlotCacheMode && gKeySlotCacheAllocated > 0))
+                    {
+                        /* Continue onwards if we allocated at least one key slot */
+                        BDBG_WRN(("%s - Unable to allocate keyslot at index %d, continuing with %d keyslots allocated", BSTD_FUNCTION, i, gKeySlotCacheAllocated));
+                        break;
+                    }
+                    else
+                    {
+                        BKNI_ReleaseMutex(gWVKeySlotMutex);
+                        BDBG_ERR(("%s - Error allocating keyslot at index %d, %d keyslots allocated", BSTD_FUNCTION, i, gKeySlotCacheAllocated));
+                        rc = BERR_INVALID_PARAMETER;
+                        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+                        goto ErrorExit;
+                    }
+                }
+
+                BDBG_MSG(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
+                    BSTD_FUNCTION, i, (void *)gKeySlotCache[i].hSwKeySlot));
+#if (NEXUS_SECURITY_API_VERSION==1)
+                NEXUS_Security_GetKeySlotInfo(gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
+                gKeySlotCache[i].keySlotID = keyslotInfo.keySlotNumber;
+                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
+#else
+                NEXUS_KeySlot_GetInformation( gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
+                gKeySlotCache[i].keySlotID = keyslotInfo.slotNumber;
+                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
+#endif
+                gHostSessionCtx[session].key_slot_ptr[gHostSessionCtx[session].num_key_slots] = &gKeySlotCache[i];
+                gHostSessionCtx[session].num_key_slots++;
+
+                gKeySlotCacheAllocated++;
+
+                if(!gCentralKeySlotCacheMode && gHostSessionCtx[session].num_key_slots >= DRM_WVOEMCRYPTO_NUM_SESSION_KEY_SLOT)
+                {
+                    /* Cap the amount of slots to allocate in session key cache mode */
+                    break;
+                }
+            }
+        }
+        BKNI_ReleaseMutex(gWVKeySlotMutex);
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating container", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    /* Setup key slot ID array */
+    for(i = 0; i < gHostSessionCtx[session].num_key_slots; i++)
+    {
+       if(gHostSessionCtx[session].key_slot_ptr[i] != NULL)
+       {
+           keySlotID[i] = gHostSessionCtx[session].key_slot_ptr[i]->keySlotID;
+       }
+       else
+       {
+           BDBG_ERR(("%s - Error accessing key slot", BSTD_FUNCTION));
+           rc = BERR_INVALID_PARAMETER;
+           *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+           goto ErrorExit;
+       }
+    }
+
+    /* allocate buffers accessible by Sage*/
+    if(key_id_length != 0)
+    {
+        container->blocks[0].data.ptr = SRAI_Memory_Allocate(key_id_length, SRAI_MemoryType_Shared);
+        if(container->blocks[0].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating mem to container block 0 (%u bytes)", BSTD_FUNCTION, key_id_length));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+            goto ErrorExit;
+        }
+
+        container->blocks[0].len = key_id_length;
+        BKNI_Memcpy(container->blocks[0].data.ptr, key_id, key_id_length);
+        dump(container->blocks[0].data.ptr,key_id_length,"key id in sage mem:");
+    }
+
+    /* Provide allocated key slots */
+    container->blocks[1].data.ptr = SRAI_Memory_Allocate(sizeof(keySlotID[0]) * DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT, SRAI_MemoryType_Shared);
+    if(container->blocks[1].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating mem to container block 0 (%u bytes)",
+            BSTD_FUNCTION, sizeof(keySlotID[0]) * DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+    container->blocks[1].len = sizeof(keySlotID[0]) * DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT;
+
+    BKNI_Memcpy(container->blocks[1].data.ptr, keySlotID,
+        sizeof(keySlotID[0]) * gHostSessionCtx[session].num_key_slots);
+    dump(container->blocks[1].data.ptr, sizeof(keySlotID[0]) * gHostSessionCtx[session].num_key_slots,"key slot ID in sage mem:");
+
+    /* map to parameters into srai_inout_container */
+    container->basicIn[0] = session;
+    container->basicIn[1] = key_id_length;
+    container->basicIn[2] = gHostSessionCtx[session].num_key_slots;
+    container->basicIn[3] = cipher_mode;
+
+    /* Set to an invalid value to see if key slot was selected */
+    container->basicOut[3] = INVALID_KEYSLOT_ID;
+
+    BKNI_AcquireMutex(gWVKeySlotMutex);
+
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eSelectKey, container);
+    if (sage_rc != BERR_SUCCESS)
+    {
+        BKNI_ReleaseMutex(gWVKeySlotMutex);
+        BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
+        goto ErrorExit;
+    }
+
+    BDBG_MSG(("%s:Sage process command is sucesss, next extract the status of the command",BSTD_FUNCTION));
+
+    *wvRc = container->basicOut[2];
+    BDBG_MSG(("%s:* WVRC=%d",BSTD_FUNCTION,*wvRc));
+
+    if (container->basicOut[0] != BERR_SUCCESS)
+    {
+        BKNI_ReleaseMutex(gWVKeySlotMutex);
+        BDBG_ERR(("%s - Command was sent successfully to loadkey but actual operation failed (0x%08x, 0x%08x)", BSTD_FUNCTION, container->basicOut[0],
+            container->basicOut[2]));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+    if (container->basicOut[3] == INVALID_KEYSLOT_ID)
+    {
+        /* If key slot was not selected but a successful operation, an AES decryption key was not selected.
+         * Key slot is expected to not be selected in this scenario.
+         */
+        BKNI_ReleaseMutex(gWVKeySlotMutex);
+        goto IgnoreKeySlot;
+    }
+
+    keySlotIdSelected = container->basicOut[3];
+
+    for(i = 0; i < DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT; i++)
+    {
+        if(gKeySlotCache[i].hSwKeySlot != NULL && keySlotIdSelected == gKeySlotCache[i].keySlotID)
+        {
+           hKeySlotSelected = gKeySlotCache[i].hSwKeySlot;
+           break;
+        }
+    }
+    if(i == DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT)
+    {
+        BKNI_ReleaseMutex(gWVKeySlotMutex);
+        BDBG_ERR(("%s - Error unknown keyslot %d selected", BSTD_FUNCTION, keySlotIdSelected));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+    /* Ensure key slot is unique within the session list */
+    for(i = 0; i < gNumSessions; i++)
+    {
+        if(gHostSessionCtx[i].drmCommonOpStruct.keyConfigSettings.keySlot == hKeySlotSelected)
+        {
+            /* Set session key slot pointer to NULL as it was overwritten in cache.
+             * Select key operation must be called again prior to decryption */
+            gHostSessionCtx[i].drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
+        }
+    }
+    /* Assign the key slot handle to the session */
+    gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = hKeySlotSelected;
+
+#if (NEXUS_SECURITY_API_VERSION==1)
+    BDBG_MSG(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
+#else
+    BDBG_MSG(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
+#endif
+
+    BKNI_ReleaseMutex(gWVKeySlotMutex);
+
+    /* Set the cipher mode */
+    gHostSessionCtx[session].cipher_mode = cipher_mode;
+    gHostSessionCtx[session].new_key_selected = true;
+
+IgnoreKeySlot:
+ErrorExit:
+
+    BDBG_MSG(("%s: free container block 0:",BSTD_FUNCTION));
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+        if(container->blocks[1].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_MSG(("%s:set the return value based on wvRc",BSTD_FUNCTION));
+    if (*wvRc!= 0)
+    {
+        rc = Drm_Err;
+    }
+
+    BDBG_LEAVE(drm_WVOemCrypto_P_Do_SelectKey);
+
+   return rc;
+}
+
+DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
+                               const uint8_t* message,
+                               uint32_t       message_length,
+                               const uint8_t* signature,
+                               uint32_t       signature_length,
+                               const uint8_t* enc_mac_key_iv,
+                               const uint8_t* enc_mac_keys,
+                               uint32_t       num_keys,
+                               void*          key_array,
+                               const uint8_t* pst,
+                               uint32_t       pst_length,
+                               const uint8_t* srm_requirement,
+                               uint32_t       license_type,
+                               int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    BERR_Code sage_rc = BERR_SUCCESS;
+    uint32_t i = 0;
+    uint32_t key_object_shared_block_length = 0;
+    uint32_t key_array_sz = 0;
+    Drm_WVOemCryptoSageKeyObject* pKeyObj = NULL;
+    Drm_WVOemCryptoKeyObject* keyArray = (Drm_WVOemCryptoKeyObject*)key_array;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(drm_WVOemCrypto_LoadKeys);
+
+    *wvRc = SAGE_OEMCrypto_SUCCESS;
+
+    if(message == NULL || message_length == 0)
+    {
+        BDBG_ERR(("%s - message buffer (%p) is NULL or message length (%u)", BSTD_FUNCTION, message, message_length));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        goto ErrorExit;
+    }
+
+    if(signature == NULL || signature_length == 0)
+    {
+        BDBG_ERR(("%s - signature buffer (%p) is NULL or length is 0 (%u)", BSTD_FUNCTION, signature, signature_length));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        goto ErrorExit;
+    }
+
+    if(key_array == NULL)
+    {
+        BDBG_ERR(("%s - key_array is NULL", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating SRAI container", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    /* allocate buffers accessible by Sage*/
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(message_length, SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating memory for message data (%u bytes)", BSTD_FUNCTION, message_length));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    container->blocks[0].len = message_length;
+    BKNI_Memcpy(container->blocks[0].data.ptr, message, message_length);
+
+
+    container->blocks[1].data.ptr = SRAI_Memory_Allocate(signature_length, SRAI_MemoryType_Shared);
+    if(container->blocks[1].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating memory for signature data", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    BKNI_Memcpy(container->blocks[1].data.ptr,signature, signature_length);
+    container->blocks[1].len = signature_length ;
+
+
+    if(enc_mac_key_iv != NULL)
+    {
+        container->blocks[2].data.ptr = SRAI_Memory_Allocate(WVCDM_KEY_IV_SIZE, SRAI_MemoryType_Shared);
+        if(container->blocks[2].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for encrypted MAC IV", BSTD_FUNCTION));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+            goto ErrorExit;
+        }
+
+        container->blocks[2].len = WVCDM_KEY_IV_SIZE;
+        BKNI_Memcpy(container->blocks[2].data.ptr, enc_mac_key_iv, WVCDM_KEY_IV_SIZE);
+    }
+
+
+    if(enc_mac_keys!=NULL)
+    {
+        container->blocks[3].data.ptr = SRAI_Memory_Allocate(2*WVCDM_MAC_KEY_SIZE, SRAI_MemoryType_Shared);
+        if(container->blocks[3].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for encrypted MAC key", BSTD_FUNCTION));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+            goto ErrorExit;
+        }
+
+        BKNI_Memcpy(container->blocks[3].data.ptr, enc_mac_keys, 2*WVCDM_MAC_KEY_SIZE);
+        container->blocks[3].len = 2*WVCDM_MAC_KEY_SIZE ;
+    }
+
+    /* allocate for sending key object data*/
+    key_array_sz = getSizeOfKeyObjectArray(keyArray, num_keys);
+    container->blocks[4].data.ptr = SRAI_Memory_Allocate(key_array_sz, SRAI_MemoryType_Shared);
+    if(container->blocks[4].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating memory for key object data (%u bytes)", BSTD_FUNCTION, key_array_sz));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+
+    BKNI_Memset(container->blocks[4].data.ptr, 0xff, key_array_sz);
+
+
+    /* allocate for sending key object data*/
+    container->blocks[5].data.ptr = SRAI_Memory_Allocate(((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys), SRAI_MemoryType_Shared);
+    if (container->blocks[5].data.ptr == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating memory for key objects (%u bytes)", BSTD_FUNCTION, ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys)));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        goto ErrorExit;
+    }
+    container->blocks[5].len = ((sizeof(Drm_WVOemCryptoSageKeyObject)) * num_keys);
+
+    /*
+     * Allocate memory for PST (if applicable)
+     * */
+    if(pst_length > 0)
+    {
+        container->blocks[6].data.ptr = SRAI_Memory_Allocate(pst_length, SRAI_MemoryType_Shared);
+        if(container->blocks[6].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for PST digest data (%u bytes)", BSTD_FUNCTION, pst_length));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+            goto ErrorExit;
+        }
+
+        BKNI_Memcpy(container->blocks[6].data.ptr, pst, pst_length);
+        container->blocks[6].len = pst_length ;
+    }
+
+    if(srm_requirement)
+    {
+        container->blocks[7].data.ptr = SRAI_Memory_Allocate(WVCDM_KEY_CONTROL_SIZE, SRAI_MemoryType_Shared);
+        if(container->blocks[6].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for SRM requirement data (%u bytes)", BSTD_FUNCTION, WVCDM_KEY_CONTROL_SIZE));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+            goto ErrorExit;
+        }
+
+        BKNI_Memcpy(container->blocks[7].data.ptr, srm_requirement, WVCDM_KEY_CONTROL_SIZE);
+        container->blocks[7].len = WVCDM_KEY_CONTROL_SIZE;
+    }
+
+    /*
+     * Fill in Key Array
+     * */
+    for(i=0,key_object_shared_block_length=0; i < num_keys; i++)
+    {
+        BDBG_MSG(("%s:loop=%d,key_object_shared_block_length ='%d'   key id length is %d",BSTD_FUNCTION, i,key_object_shared_block_length,keyArray[i].key_id_length));
+        /* copy key_id  */
+        BKNI_Memcpy(container->blocks[4].data.ptr+key_object_shared_block_length,
+                    keyArray[i].key_id,
+                    keyArray[i].key_id_length);
+
+        key_object_shared_block_length += keyArray[i].key_id_length;
+        BDBG_MSG(("copy the key data iv at offset %d",key_object_shared_block_length));
+
+        /* copy key_data_iv */
+        BKNI_Memcpy(&container->blocks[4].data.ptr[key_object_shared_block_length],
+                    keyArray[i].key_data_iv,
+                    WVCDM_KEY_IV_SIZE);
+
+        key_object_shared_block_length += WVCDM_KEY_IV_SIZE;
+
+        BDBG_MSG(("copy the key data  at offset %d",key_object_shared_block_length));
+
+        /* copy key_data */
+        BKNI_Memcpy(&container->blocks[4].data.ptr[key_object_shared_block_length],
+                    keyArray[i].key_data,
+                    (keyArray[i].key_data_length));
+
+        key_object_shared_block_length += (keyArray[i].key_data_length);
+
+        BDBG_MSG(("copy the key control iv   at offset %d",key_object_shared_block_length));
+
+        /* copy key_control_iv */
+        BKNI_Memcpy(&container->blocks[4].data.ptr[key_object_shared_block_length],
+                    keyArray[i].key_control_iv,
+                    WVCDM_KEY_IV_SIZE);
+
+        key_object_shared_block_length += WVCDM_KEY_IV_SIZE;
+
+        BDBG_MSG(("copy the key control   at offset %d",key_object_shared_block_length));
+
+        /* copy key_control */
+        BKNI_Memcpy(&container->blocks[4].data.ptr[key_object_shared_block_length],
+                    keyArray[i].key_control,
+                    WVCDM_KEY_CONTROL_SIZE);
+
+        key_object_shared_block_length += WVCDM_KEY_CONTROL_SIZE;
+    }
+
+    /* update shared block length */
+    if(key_array_sz != key_object_shared_block_length)
+    {
+        BDBG_ERR(("%s - previous length of key array size  '%u' is no longer equal to '%u'", BSTD_FUNCTION, key_array_sz, key_object_shared_block_length));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+    container->blocks[4].len = key_object_shared_block_length;
+
+
+
+    pKeyObj = (Drm_WVOemCryptoSageKeyObject*)container->blocks[5].data.ptr;
+
+    for (i=0; i < num_keys; i++)
+    {
+        BDBG_MSG(("Loop %d",i));
+        pKeyObj[i].key_id = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
+
+        pKeyObj[i].key_id_length = keyArray[i].key_id_length;
+
+        pKeyObj[i].key_data_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+                                                               + keyArray[i].key_id_length];
+
+        pKeyObj[i].key_data = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+                                                             + keyArray[i].key_id_length
+                                                             + WVCDM_KEY_IV_SIZE];
+
+        pKeyObj[i].key_data_length = keyArray[i].key_data_length;
+
+        pKeyObj[i].key_control_iv = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+                                                                   + keyArray[i].key_id_length
+                                                                   + WVCDM_KEY_IV_SIZE
+                                                                   + keyArray[i].key_data_length];
+
+        pKeyObj[i].key_control = (uint32_t)&container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys
+                                                                + keyArray[i].key_id_length
+                                                                + (2*WVCDM_KEY_IV_SIZE)
+                                                                + keyArray[i].key_data_length];
+    }
+
+
+    /* map to parameters into srai_inout_container */
+    container->basicIn[0] = session;
+    container->basicIn[1] = num_keys;
+    container->basicIn[2] = license_type;
+
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eLoadKeys, container);
+    if (sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error loading key parameters (command id = %u)", BSTD_FUNCTION, DrmWVOEMCrypto_CommandId_eLoadKeys));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
+        goto ErrorExit;
+    }
+
+    /* if success, extract status from container */
+    *wvRc = container->basicOut[2];
+    if (*wvRc != SAGE_OEMCrypto_SUCCESS)
+    {
+        BDBG_ERR(("%s - widevine return code (0x%08x)", BSTD_FUNCTION, *wvRc));
+    }
+
+    if (container->basicOut[0] != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Load Key command failed due to SAGE issue (basicOut[0] = 0x%08x)", BSTD_FUNCTION, container->basicOut[0]));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+ErrorExit:
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+
+        if(container->blocks[1].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+
+        if(container->blocks[2].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[2].data.ptr);
+            container->blocks[2].data.ptr = NULL;
+        }
+
+        if(container->blocks[3].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[3].data.ptr);
+            container->blocks[3].data.ptr = NULL;
+        }
+
+        if(container->blocks[4].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[4].data.ptr);
+            container->blocks[4].data.ptr = NULL;
+        }
+
+        if(container->blocks[5].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[5].data.ptr);
+            container->blocks[5].data.ptr = NULL;
+        }
+
+        if(container->blocks[6].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[6].data.ptr);
+            container->blocks[6].data.ptr = NULL;
+        }
+
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
+
+    BDBG_LEAVE(drm_WVOemCrypto_LoadKeys);
+    return rc;
 }

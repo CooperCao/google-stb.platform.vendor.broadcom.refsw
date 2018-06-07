@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* This file is autogenerated, do not edit. */
@@ -50,9 +53,9 @@ BDBG_MODULE(BHSMa);
 
 BERR_Code BHSM_P_Crypto_Rng( BHSM_Handle hHsm, BHSM_P_CryptoRng *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_Rng_InFields_t *pSend = NULL;
@@ -78,17 +81,30 @@ BERR_Code BHSM_P_Crypto_Rng( BHSM_Handle hHsm, BHSM_P_CryptoRng *pParam )
     /* pack input parameters */
     pSend->randomNumberLength = pParam->in.randomNumberLength;
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.randomNumber, pReceive->randomNumber, 360 );
+    if( pParam->out.pRandomNumber_inPlace ){
+        if( pParam->out.randomNumberSize_inPlace > sizeof(pParam->out.randomNumber) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.randomNumberSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pRandomNumber_inPlace, pReceive->randomNumber, pParam->out.randomNumberSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.randomNumber) == sizeof(pReceive->randomNumber) );
+        BKNI_Memcpy( pParam->out.randomNumber, pReceive->randomNumber, sizeof(pParam->out.randomNumber) );
+    }
 
 BHSM_P_DONE_LABEL:
 
@@ -102,9 +118,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Crypto_Rsa( BHSM_Handle hHsm, BHSM_P_CryptoRsa *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_Rsa_InFields_t *pSend = NULL;
@@ -131,12 +147,15 @@ BERR_Code BHSM_P_Crypto_Rsa( BHSM_Handle hHsm, BHSM_P_CryptoRsa *pParam )
     pSend->rsaSize = pParam->in.rsaSize;
     pSend->counterMeasure = pParam->in.counterMeasure;
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
@@ -153,9 +172,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Crypto_PollRsa( BHSM_Handle hHsm, BHSM_P_CryptoPollRsa *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_PollRsa_OutFields_t *pReceive = NULL;
@@ -176,17 +195,30 @@ BERR_Code BHSM_P_Crypto_PollRsa( BHSM_Handle hHsm, BHSM_P_CryptoPollRsa *pParam 
     rc = BHSM_BspMsg_Configure( hMsg, &msgConfig );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.outputData, pReceive->outputData, 256 );
+    if( pParam->out.pOutputData_inPlace ){
+        if( pParam->out.outputDataSize_inPlace > sizeof(pParam->out.outputData) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.outputDataSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pOutputData_inPlace, pReceive->outputData, pParam->out.outputDataSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.outputData) == sizeof(pReceive->outputData) );
+        BKNI_Memcpy( pParam->out.outputData, pReceive->outputData, sizeof(pParam->out.outputData) );
+    }
 
 BHSM_P_DONE_LABEL:
 
@@ -200,9 +232,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Crypto_Hmac( BHSM_Handle hHsm, BHSM_P_CryptoHmac *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_Hmac_InFields_t *pSend = NULL;
@@ -235,21 +267,64 @@ BERR_Code BHSM_P_Crypto_Hmac( BHSM_Handle hHsm, BHSM_P_CryptoHmac *pParam )
     pSend->shaType = pParam->in.shaType;
     pSend->isFirstDataBlock = pParam->in.isFirstDataBlock;
     pSend->isFinalDataBlock = pParam->in.isFinalDataBlock;
-    BKNI_Memcpy( pSend->userHmacKey, pParam->in.userHmacKey, 32 );
-    BKNI_Memcpy( pSend->hmac_State, pParam->in.hmac_State, 72 );
+    if( pParam->in.pUserHmacKey_inPlace ){
+        if( pParam->in.userHmacKeySize_inPlace > sizeof(pParam->in.userHmacKey) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.userHmacKeySize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+        rc = BHSM_MemcpySwap( pSend->userHmacKey, pParam->in.pUserHmacKey_inPlace, pParam->in.userHmacKeySize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->userHmacKey) == sizeof(pParam->in.userHmacKey) );
+        BKNI_Memcpy( pSend->userHmacKey, pParam->in.userHmacKey, sizeof( pSend->userHmacKey ) );
+    }
+    if( pParam->in.pHmac_State_inPlace ){
+        if( pParam->in.hmac_StateSize_inPlace > sizeof(pParam->in.hmac_State) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.hmac_StateSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pSend->hmac_State, pParam->in.pHmac_State_inPlace, pParam->in.hmac_StateSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->hmac_State) == sizeof(pParam->in.hmac_State) );
+        BKNI_Memcpy( pSend->hmac_State, pParam->in.hmac_State, sizeof( pSend->hmac_State ) );
+    }
+
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.hmac_State, pReceive->hmac_State, 72 );
-    BKNI_Memcpy( pParam->out.hmac_Signature, pReceive->hmac_Signature, 32 );
+    if( pParam->out.pHmac_State_inPlace ){
+        if( pParam->out.hmac_StateSize_inPlace > sizeof(pParam->out.hmac_State) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.hmac_StateSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pHmac_State_inPlace, pReceive->hmac_State, pParam->out.hmac_StateSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.hmac_State) == sizeof(pReceive->hmac_State) );
+        BKNI_Memcpy( pParam->out.hmac_State, pReceive->hmac_State, sizeof(pParam->out.hmac_State) );
+    }
+    if( pParam->out.pHmac_Signature_inPlace ){
+        if( pParam->out.hmac_SignatureSize_inPlace > sizeof(pParam->out.hmac_Signature) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.hmac_SignatureSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pHmac_Signature_inPlace, pReceive->hmac_Signature, pParam->out.hmac_SignatureSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.hmac_Signature) == sizeof(pReceive->hmac_Signature) );
+        BKNI_Memcpy( pParam->out.hmac_Signature, pReceive->hmac_Signature, sizeof(pParam->out.hmac_Signature) );
+    }
 
 BHSM_P_DONE_LABEL:
 
@@ -263,9 +338,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Crypto_Sha( BHSM_Handle hHsm, BHSM_P_CryptoSha *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_Sha_InFields_t *pSend = NULL;
@@ -297,21 +372,64 @@ BERR_Code BHSM_P_Crypto_Sha( BHSM_Handle hHsm, BHSM_P_CryptoSha *pParam )
     pSend->shaType = pParam->in.shaType;
     pSend->isFirstDataBlock = pParam->in.isFirstDataBlock;
     pSend->isFinalDataBlock = pParam->in.isFinalDataBlock;
-    BKNI_Memcpy( pSend->sha_State, pParam->in.sha_State, 72 );
-    BKNI_Memcpy( pSend->userKey, pParam->in.userKey, 32 );
+    if( pParam->in.pSha_State_inPlace ){
+        if( pParam->in.sha_StateSize_inPlace > sizeof(pParam->in.sha_State) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.sha_StateSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+        rc = BHSM_MemcpySwap( pSend->sha_State, pParam->in.pSha_State_inPlace, pParam->in.sha_StateSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->sha_State) == sizeof(pParam->in.sha_State) );
+        BKNI_Memcpy( pSend->sha_State, pParam->in.sha_State, sizeof( pSend->sha_State ) );
+    }
+    if( pParam->in.pUserKey_inPlace ){
+        if( pParam->in.userKeySize_inPlace > sizeof(pParam->in.userKey) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.userKeySize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pSend->userKey, pParam->in.pUserKey_inPlace, pParam->in.userKeySize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->userKey) == sizeof(pParam->in.userKey) );
+        BKNI_Memcpy( pSend->userKey, pParam->in.userKey, sizeof( pSend->userKey ) );
+    }
+
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.sha_State, pReceive->sha_State, 72 );
-    BKNI_Memcpy( pParam->out.sha_Digest, pReceive->sha_Digest, 32 );
+    if( pParam->out.pSha_State_inPlace ){
+        if( pParam->out.sha_StateSize_inPlace > sizeof(pParam->out.sha_State) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.sha_StateSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pSha_State_inPlace, pReceive->sha_State, pParam->out.sha_StateSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.sha_State) == sizeof(pReceive->sha_State) );
+        BKNI_Memcpy( pParam->out.sha_State, pReceive->sha_State, sizeof(pParam->out.sha_State) );
+    }
+    if( pParam->out.pSha_Digest_inPlace ){
+        if( pParam->out.sha_DigestSize_inPlace > sizeof(pParam->out.sha_Digest) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.sha_DigestSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pSha_Digest_inPlace, pReceive->sha_Digest, pParam->out.sha_DigestSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.sha_Digest) == sizeof(pReceive->sha_Digest) );
+        BKNI_Memcpy( pParam->out.sha_Digest, pReceive->sha_Digest, sizeof(pParam->out.sha_Digest) );
+    }
 
 BHSM_P_DONE_LABEL:
 
@@ -325,9 +443,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Crypto_Aes1Block( BHSM_Handle hHsm, BHSM_P_CryptoAes1Block *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_Aes1Block_InFields_t *pSend = NULL;
@@ -353,20 +471,53 @@ BERR_Code BHSM_P_Crypto_Aes1Block( BHSM_Handle hHsm, BHSM_P_CryptoAes1Block *pPa
     /* pack input parameters */
     pSend->aesOperation = pParam->in.aesOperation;
     pSend->aesKeySize = pParam->in.aesKeySize;
-    BKNI_Memcpy( pSend->aesKey, pParam->in.aesKey, 32 );
-    BKNI_Memcpy( pSend->aesData, pParam->in.aesData, 16 );
+    if( pParam->in.pAesKey_inPlace ){
+        if( pParam->in.aesKeySize_inPlace > sizeof(pParam->in.aesKey) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.aesKeySize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+        rc = BHSM_MemcpySwap( pSend->aesKey, pParam->in.pAesKey_inPlace, pParam->in.aesKeySize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->aesKey) == sizeof(pParam->in.aesKey) );
+        BKNI_Memcpy( pSend->aesKey, pParam->in.aesKey, sizeof( pSend->aesKey ) );
+    }
+    if( pParam->in.pAesData_inPlace ){
+        if( pParam->in.aesDataSize_inPlace > sizeof(pParam->in.aesData) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.aesDataSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pSend->aesData, pParam->in.pAesData_inPlace, pParam->in.aesDataSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->aesData) == sizeof(pParam->in.aesData) );
+        BKNI_Memcpy( pSend->aesData, pParam->in.aesData, sizeof( pSend->aesData ) );
+    }
+
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.aesData, pReceive->aesData, 16 );
+    if( pParam->out.pAesData_inPlace ){
+        if( pParam->out.aesDataSize_inPlace > sizeof(pParam->out.aesData) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.aesDataSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pAesData_inPlace, pReceive->aesData, pParam->out.aesDataSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.aesData) == sizeof(pReceive->aesData) );
+        BKNI_Memcpy( pParam->out.aesData, pReceive->aesData, sizeof(pParam->out.aesData) );
+    }
 
 BHSM_P_DONE_LABEL:
 
@@ -380,9 +531,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Crypto_Des1Block( BHSM_Handle hHsm, BHSM_P_CryptoDes1Block *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_CmdCrypto_Des1Block_InFields_t *pSend = NULL;
@@ -408,20 +559,53 @@ BERR_Code BHSM_P_Crypto_Des1Block( BHSM_Handle hHsm, BHSM_P_CryptoDes1Block *pPa
     /* pack input parameters */
     pSend->desOperation = pParam->in.desOperation;
     pSend->desTdesTypeSel = pParam->in.desTdesTypeSel;
-    BKNI_Memcpy( pSend->desKey, pParam->in.desKey, 16 );
-    BKNI_Memcpy( pSend->desData, pParam->in.desData, 8 );
+    if( pParam->in.pDesKey_inPlace ){
+        if( pParam->in.desKeySize_inPlace > sizeof(pParam->in.desKey) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.desKeySize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+        rc = BHSM_MemcpySwap( pSend->desKey, pParam->in.pDesKey_inPlace, pParam->in.desKeySize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->desKey) == sizeof(pParam->in.desKey) );
+        BKNI_Memcpy( pSend->desKey, pParam->in.desKey, sizeof( pSend->desKey ) );
+    }
+    if( pParam->in.pDesData_inPlace ){
+        if( pParam->in.desDataSize_inPlace > sizeof(pParam->in.desData) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->in.desDataSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pSend->desData, pParam->in.pDesData_inPlace, pParam->in.desDataSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pSend->desData) == sizeof(pParam->in.desData) );
+        BKNI_Memcpy( pSend->desData, pParam->in.desData, sizeof( pSend->desData ) );
+    }
+
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.desData, pReceive->desData, 8 );
+    if( pParam->out.pDesData_inPlace ){
+        if( pParam->out.desDataSize_inPlace > sizeof(pParam->out.desData) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.desDataSize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pDesData_inPlace, pReceive->desData, pParam->out.desDataSize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.desData) == sizeof(pReceive->desData) );
+        BKNI_Memcpy( pParam->out.desData, pReceive->desData, sizeof(pParam->out.desData) );
+    }
 
 BHSM_P_DONE_LABEL:
 

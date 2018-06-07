@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /*
@@ -56,6 +60,12 @@
 #include "nexus_memory.h"
 #include "nexus_sage.h"
 #include "nexus_platform_client.h"
+#if NEXUS_SECURITY_API_VERSION == 2
+#include "nexus_otp_msp.h"
+#include "nexus_otp_msp_indexes.h"
+#else
+#include "nexus_otpmsp.h"
+#endif
 
 /* SAGE software framework headers */
 #include "bsagelib_types.h"
@@ -438,7 +448,7 @@ static void _srai_flush_cache(const void *addr, size_t size);
 static void * _srai_offset_to_addr(uint64_t offset);
 static uint64_t _srai_addr_to_offset(const void *addr);
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
-static bool _srai_is_sdl_valid(BSAGElib_SDLHeader *pHeader);
+static bool _srai_is_sdl_valid(BSAGElib_SDLHeader *pHeader,uint32_t binSize);
 #endif
 /*
  * Functions implementation
@@ -1866,10 +1876,189 @@ BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
  *   - verify that the Framework Version in the SDL header matches the running Framework one
  *   - verify that the Framework THL Signature Short in the SDL header matches the running Framework one
  */
+static BERR_Code _srai_CheckTierKey(
+    SUIF_TierKeyPackage *pKey)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    unsigned int otp_market_id_index;
+    uint32_t *pMarketId_LE,*pMarketIdMask_LE;
+    uint32_t otp_market_id, otp_market_id_lock, key_market_id,key_market_id_mask;
+#if NEXUS_SECURITY_API_VERSION == 2
+    NEXUS_OtpMspRead mspOtpRead;
+
+    if(pKey->controllingParams.marketIdSelect == 0)
+    {
+        otp_market_id_index = NEXUS_OTPMSP_MARKET_ID0;
+    }else if(pKey->controllingParams.marketIdSelect == 1)
+    {
+        otp_market_id_index = NEXUS_OTPMSP_MARKET_ID1;
+    }
+    else{
+        BDBG_WRN(("%s - Tier Key's marketIdSelect %d is wrong.", BSTD_FUNCTION,pKey->controllingParams.marketIdSelect));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    rc = NEXUS_OtpMsp_Read( otp_market_id_index, &mspOtpRead );
+    if (rc != BERR_SUCCESS) { goto end; }
+    otp_market_id = mspOtpRead.data;
+    otp_market_id_lock = mspOtpRead.valid;
+#else
+    NEXUS_ReadMspParms readMspParms;
+    NEXUS_ReadMspIO readMspIO;
+    unsigned i = 0;
+    if(pKey->controllingParams.marketIdSelect == 0)
+    {
+        otp_market_id_index = NEXUS_OtpCmdMsp_eMarketId0;
+    }else if(pKey->controllingParams.marketIdSelect == 1)
+    {
+        otp_market_id_index = NEXUS_OtpCmdMsp_eMarketId1;
+    }
+    else{
+        BDBG_WRN(("%s - Tier Key's marketIdSelect %d is wrong.", BSTD_FUNCTION,pKey->controllingParams.marketIdSelect));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    BKNI_Memset( &readMspParms, 0, sizeof(readMspParms) );
+
+    readMspParms.readMspEnum = otp_market_id_index;
+    rc = NEXUS_Security_ReadMSP( &readMspParms, &readMspIO );
+    otp_market_id = 0;
+    otp_market_id_lock = 0;
+    for( i = 0; i < readMspIO.mspDataSize; i++ )
+    {
+        otp_market_id = (otp_market_id << 8) | (readMspIO.mspDataBuf[i]);
+        otp_market_id_lock = (otp_market_id_lock << 8) | (readMspIO.lockMspDataBuf[i]);
+    }
+#endif
+
+    pMarketId_LE = (uint32_t *) pKey->controllingParams.marketId_LE;
+    pMarketIdMask_LE = (uint32_t *) pKey->controllingParams.marketIdMask_LE;
+
+    key_market_id = SUIF_Get32(pMarketId,LE);
+    key_market_id_mask = SUIF_Get32(pMarketIdMask,LE);
+
+    BDBG_MSG(("%s - marketID key-%x(mask %x) otp-%x(lock %x) (key marketID select %d)", BSTD_FUNCTION,key_market_id,key_market_id_mask,otp_market_id,otp_market_id_lock,pKey->controllingParams.marketIdSelect));
+
+    if((otp_market_id&key_market_id_mask) != (key_market_id&key_market_id_mask))
+    {
+        BDBG_WRN(("%s: Key market id 0x%08x(mask 0x%08x) does not match chip OTP 0x%08x",
+                  BSTD_FUNCTION, key_market_id,key_market_id_mask,otp_market_id));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+end:
+    return rc;
+}
+
+static SUIF_TierKeyPackage *
+_srai_GetTierKey(
+    SUIF_TierKeyPackage *pTierKey_First)
+{
+    SUIF_TierKeyPackage *tierkey = NULL;
+    SUIF_TierKeyPackage *currentkey = NULL;
+    int i=0;
+
+    if(pTierKey_First == NULL)
+    {
+        BDBG_ERR(("%s Invalid pTierKey_First %p",BSTD_FUNCTION,(void *)pTierKey_First));
+        goto end;
+    }
+
+    for(currentkey=pTierKey_First,i=0; i< SUIF_TIER_KEY_PACKAGES_NUM; i++,currentkey++) /* 3 Tier keys availabe from pTierKey_First */
+    {
+        BDBG_MSG(("%s - Check Tier Key %d@%p", BSTD_FUNCTION,i,(void *)currentkey));
+        if(_srai_CheckTierKey(currentkey) == BERR_SUCCESS)
+        {
+            tierkey = currentkey;
+            break;
+        }
+    }
+end:
+    BDBG_MSG(("%s - found Tier Key (%d)@%p", BSTD_FUNCTION,i,(void *)tierkey));
+    if(tierkey == NULL)
+        BDBG_ERR(("%s NULL Tier Key, pTierKey_First %p",BSTD_FUNCTION,(void *)pTierKey_First));
+    return tierkey;
+}
+
+static BERR_Code
+_srai_Check_SUIF_Image(
+    SUIF_PackageHeader  *header,
+    uint32_t binarySize)
+{
+    BERR_Code rc = BERR_SUCCESS;
+
+    SUIF_CommonHeader *pCommon = (SUIF_CommonHeader *)header;
+
+    uint32_t *pDataSize_BE = (uint32_t *)(pCommon->dataSize_BE);
+    uint32_t *pTextSize_BE = (uint32_t *)(pCommon->textSize_BE);
+    uint32_t text_data_len = SUIF_Get32(pTextSize,BE) + SUIF_Get32(pDataSize,BE);
+
+    uint32_t *pMeta_data_size_BE  = (uint32_t *)(pCommon->metadataSize_BE);
+    uint32_t meta_data_size  = SUIF_Get32(pMeta_data_size,BE);
+
+    uint16_t *pPkg_pad_size_BE = (uint16_t *)(pCommon->packagePadSize_BE);
+    uint32_t pkg_pad_size    = SUIF_Get16(pPkg_pad_size,BE);
+
+    SUIF_PackageFooter *footer = (SUIF_PackageFooter *)
+                ((uint8_t *)header + sizeof(SUIF_PackageHeader) + text_data_len + meta_data_size + pkg_pad_size);
+
+    SUIF_TierKeyPackage *pTierKey_First = header->tierKeyPackages;
+
+    uint16_t *pTierKeyPackageSize_BE = (uint16_t *)(pCommon->tierKeyPackageSize_BE);
+    uint16_t tierKeyPackageSize = SUIF_Get16(pTierKeyPackageSize,BE);
+
+    if(tierKeyPackageSize != sizeof(SUIF_TierKeyPackage))
+    {
+        BDBG_ERR(("%s - tierKeyPackageSize (%u)wrong should be %u bytes", BSTD_FUNCTION, tierKeyPackageSize,(unsigned int)sizeof(SUIF_TierKeyPackage)));
+        rc = BERR_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if(binarySize != sizeof(SUIF_PackageHeader) + text_data_len + meta_data_size + pkg_pad_size + sizeof(SUIF_PackageFooter))
+    {
+        BDBG_ERR(("%s - Image size (%u)wrong should be %u bytes(PKG header %u, Text+Data %u, mata Data %u, Pad %u, Footer %u)",
+            BSTD_FUNCTION, binarySize,
+            (unsigned int)sizeof(SUIF_PackageHeader) + text_data_len + meta_data_size + pkg_pad_size + (unsigned int)sizeof(SUIF_PackageFooter),
+            (unsigned int)sizeof(SUIF_PackageHeader),  text_data_len,  meta_data_size,  pkg_pad_size,  (unsigned int)sizeof(SUIF_PackageFooter)));
+        rc = BERR_INVALID_PARAMETER;
+        goto out;
+    }
+
+    if(header->imageHeader.common.signingScheme == SUIF_SigningScheme_eTriple)
+    {
+        SUIF_TierKeyPackage *pTierKey;
+        int tierkeyIndex=-1;
+
+        pTierKey =  _srai_GetTierKey(pTierKey_First);
+
+        tierkeyIndex = pTierKey-pTierKey_First;
+        BDBG_MSG((" pTierKey index %d (%p,start %p pkg size %u)",
+            tierkeyIndex,(void *)pTierKey,(void *)pTierKey_First,(unsigned int)sizeof(SUIF_TierKeyPackage)));
+
+        if(tierkeyIndex == 0 || tierkeyIndex == 1)
+        {
+            /* test key, zero-fill production key and production signature */
+            SUIF_TierKeyPackage *pTierKey_Production = &(header->tierKeyPackages[2]);
+            uint8_t *text_signature_production = footer->textVerification.signature1;
+            uint8_t *data_signature_production = footer->dataVerification.signature1;
+
+            BDBG_MSG((" Test Tier Key, zero-fill production Tier Key and signatures"));
+
+            BKNI_Memset( pTierKey_Production, 0, sizeof(SUIF_TierKeyPackage) );
+            BKNI_Memset( text_signature_production, 0, SUIF_TIER_RSAKEY_SIG_SIZE_BYTES );
+            BKNI_Memset( data_signature_production, 0, SUIF_TIER_RSAKEY_SIG_SIZE_BYTES );
+        }
+    }
+out:
+    return rc;
+}
 
 static bool
 _srai_is_sdl_valid(
-    BSAGElib_SDLHeader *pHeader)
+    BSAGElib_SDLHeader *pHeader,
+    uint32_t binSize)
 {
     bool rc = false;
     uint32_t sdlTHLSigShort;
@@ -1895,8 +2084,13 @@ _srai_is_sdl_valid(
         const SUIF_SDLSpecificHeader *pSUIFSDLHeader = SUIF_GetSdlHeaderFromPackageHeader((SUIF_PackageHeader *)pHeader);
         bool isAlphaSSF = (status.framework.version[2] == 0) && (status.framework.version[3] != 0);
         bool isAlphaSDK = (pSUIFSDLHeader->ssfVersion.revision == 0) && (pSUIFSDLHeader->ssfVersion.branch != 0);
+        if (status.framework.version[0] < 4) {
+            BDBG_ERR(("%s: ERROR: SAGE TA binary is a SUIF image which is not supported in SAGE 3.x", BSTD_FUNCTION));
+            rc = false;
+        }
         /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
-        if (isAlphaSSF || isAlphaSDK) {
+        else if (isAlphaSSF || isAlphaSDK)
+        {
             rc = ((status.framework.version[0] == pSUIFSDLHeader->ssfVersion.major) &&
                   (status.framework.version[1] == pSUIFSDLHeader->ssfVersion.minor) &&
                   (status.framework.version[2] == pSUIFSDLHeader->ssfVersion.revision) &&
@@ -1922,6 +2116,8 @@ _srai_is_sdl_valid(
         else {
             rc = true;
         }
+        if(BERR_SUCCESS != _srai_Check_SUIF_Image((SUIF_PackageHeader  *)pHeader,binSize))
+            rc = false;
     }else
     {
         BDBG_ASSERT(sizeof(pHeader->ucSsfVersion) == sizeof(status.framework.version));
@@ -1962,8 +2158,13 @@ _srai_is_sdl_valid(
             bool isAlphaSSF = (status.framework.version[2] == 0) && (status.framework.version[3] != 0);
             bool isAlphaSDK = (pHeader->ucSsfVersion[2] == 0) && (pHeader->ucSsfVersion[3] != 0);
             BDBG_MSG(("%s: SDL THL zero signature indicates Load-Time-Resolution", BSTD_FUNCTION));
+            if (status.framework.version[0] >= 4) {
+                BDBG_ERR(("%s: ERROR: SAGE TA binary is not a SUIF image which is required for SAGE 4.x and above", BSTD_FUNCTION));
+                rc = false;
+            }
             /* Check that any Alpha SSFs are matched with their SDLs and SDLs built from Alpha SDKs are matched with their SSF */
-            if (isAlphaSSF || isAlphaSDK) {
+            else if (isAlphaSSF || isAlphaSDK)
+            {
                 rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
                 if (rc != true) {
                     if (isAlphaSSF) {
@@ -2194,7 +2395,7 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
     }
 
 
-    if (!_srai_is_sdl_valid(pHeader)) {
+    if (!_srai_is_sdl_valid(pHeader,binSize)) {
         BDBG_ERR(("%s: Cannot install incompatible SDL", BSTD_FUNCTION));
         rc = BERR_INVALID_PARAMETER;
         goto end;

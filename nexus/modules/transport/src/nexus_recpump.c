@@ -633,6 +633,7 @@ static void nexus_recpump_p_unassign_scd(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_
         BERR_Code rc;
         /* Detector assigned, but not needed. Disable this detector */
         BKNI_Memset(&ScdConfig, 0, sizeof(ScdConfig));
+        ScdConfig.EsCount = BXPT_MIN_ES_COUNT; /* no payload needed, min required */
         /* use previous (not new) mapMode to control disable */
         if (r->scdMapMode == 0) {
             rc = BXPT_Rave_SetScdUsingPid(r->scdIdx, pid->assignedScd, 0x1fff, &ScdConfig);
@@ -640,7 +641,6 @@ static void nexus_recpump_p_unassign_scd(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_
         }
         else if (r->scdMapMode == 1) {
             ScdConfig.PidChannel = 0x1fff;
-            ScdConfig.EsCount = 2; /* no payload needed, min 2 required */
             rc = BXPT_Rave_SetScdEntry(r->scdIdx, pid->assignedScd, &ScdConfig);
             if (rc) BERR_TRACE(rc); /* keep going */
         }

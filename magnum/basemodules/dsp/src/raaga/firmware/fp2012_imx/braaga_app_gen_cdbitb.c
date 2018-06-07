@@ -1,39 +1,43 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bchp.h"
@@ -129,7 +133,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x7193d188,
 	0xdc008087,
 	0xab1321f8,
-	0x70b41008,
+	0x70a41008,
 	0xdc008187,
 	0xab1241f8,
 	0x7103d048,
@@ -153,7 +157,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x6071fff4,
 	0x7293d1c8,
 	0xc8804407,
-	0x73e3d208,
+	0x73d3d208,
 	0x86a9f2a7,
 	0xc8007e07,
 	0x53e331d7,
@@ -297,7 +301,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x50fbf52c,
 	0x52c4c907,
 	0x20000001,
-	0x70b06248,
+	0x70a06248,
 	0x7160a049,
 	0x2fbffe37,
 	0xc3817e1f,
@@ -802,7 +806,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0xf5400387,
 	0xabf9e1f8,
 	0x90208907,
-	0x70b2f048,
+	0x70a2f048,
 	0xf5400387,
 	0xabf8e1f8,
 	0x2000b907,
@@ -1000,7 +1004,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x3800b9cf,
 	0x255fd087,
 	0x73343288,
-	0x73e43008,
+	0x73d43008,
 	0x72943248,
 	0x73343248,
 	0x72843008,
@@ -1008,7 +1012,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x725411c8,
 	0x73b421c8,
 	0x72942108,
-	0x73e42148,
+	0x73d42148,
 	0x71a420c8,
 	0x73b41088,
 	0x231921f8,
@@ -1194,7 +1198,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0xf8040f27,
 	0xf8703e37,
 	0x72f2f148,
-	0x70b2f108,
+	0x70a2f108,
 	0x72c3dfc8,
 	0x72c3d088,
 	0x7263f008,
@@ -1502,7 +1506,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x7092e008,
 	0x72f3f148,
 	0x7153f108,
-	0x70b3f188,
+	0x70a3f188,
 	0x70c400c8,
 	0x7303f048,
 	0x0b8c7e1f,
@@ -1764,7 +1768,7 @@ const uint32_t BDSP_IMG_gen_cdbitb_code_array1[] = {
 	0x9600b117,
 	0x0880fe07,
 	0x9001090f,
-	0x70b0d949,
+	0x70a0d949,
 	0x20d1ffff,
 	0xf1808417,
 	0x09894927,

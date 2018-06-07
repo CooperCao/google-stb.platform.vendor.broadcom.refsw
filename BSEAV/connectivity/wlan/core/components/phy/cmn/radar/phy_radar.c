@@ -241,7 +241,8 @@ phy_radar_detect_mode_set(phy_info_t *pi, phy_radar_detect_mode_t mode)
 
 	PHY_TRACE(("wl%d: %s, Radar detect mode set done\n", pi->sh->unit, __FUNCTION__));
 
-	if (mode != RADAR_DETECT_MODE_FCC && mode != RADAR_DETECT_MODE_EU) {
+	if (mode != RADAR_DETECT_MODE_FCC && mode != RADAR_DETECT_MODE_EU && 
+                mode != RADAR_DETECT_MODE_UK) {
 		PHY_TRACE(("wl%d: bogus radar detect mode: %d\n", pi->sh->unit, mode));
 		return;
 	}
@@ -260,17 +261,26 @@ phy_radar_detect_mode_set(phy_info_t *pi, phy_radar_detect_mode_t mode)
 
 	/* Change radar params based on radar detect mode for
 	 * both 20Mhz (index 0) and 40Mhz (index 1) aptly
+         * feature_mask bit-8  is UK-enable
 	 * feature_mask bit-11 is FCC-enable
 	 * feature_mask bit-12 is EU-enable
 	 */
 	if (mode == RADAR_DETECT_MODE_FCC) {
 		st->rparams.radar_args.feature_mask =
-			(st->rparams.radar_args.feature_mask & ~RADAR_FEATURE_ETSI_DETECT) |
+			((st->rparams.radar_args.feature_mask & ~RADAR_FEATURE_ETSI_DETECT) &
+                        ~RADAR_FEATURE_UK_DETECT) |
 			RADAR_FEATURE_FCC_DETECT;
-	}
-	else if (mode == RADAR_DETECT_MODE_EU) {
+	}	
+	else if (mode == RADAR_DETECT_MODE_UK) {
 		st->rparams.radar_args.feature_mask =
-			(st->rparams.radar_args.feature_mask & ~RADAR_FEATURE_FCC_DETECT) |
+			((st->rparams.radar_args.feature_mask & ~RADAR_FEATURE_FCC_DETECT) |
+                        RADAR_FEATURE_ETSI_DETECT) |
+			RADAR_FEATURE_UK_DETECT;
+        }
+        else if (mode == RADAR_DETECT_MODE_EU) {
+		st->rparams.radar_args.feature_mask =
+			((st->rparams.radar_args.feature_mask & ~RADAR_FEATURE_FCC_DETECT) &
+                        ~RADAR_FEATURE_UK_DETECT) |
 			RADAR_FEATURE_ETSI_DETECT;
 	}
 

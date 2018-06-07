@@ -5055,12 +5055,7 @@ phy_ac_noise_preempt(phy_ac_noise_info_t *ni, bool enable_preempt, bool EnablePo
 				WRITE_PHYREG_ENTRY(pi, RxMacifMode, 0x0a00)
 				WRITE_PHYREG_ENTRY(pi, BphyAbortExitCtrl, 0x3840)
 				WRITE_PHYREG_ENTRY(pi, PktAbortCounterClr, 0x118)
-				if (CHSPEC_IS2G(pi->radio_chanspec)) {
-					/* Disabling abort during chanest1/2 for JIRA SWWLAN-111232 */
-					WRITE_PHYREG(pi, PktAbortSupportedStates, 0x2a3f);
-				} else {
-					WRITE_PHYREG(pi, PktAbortSupportedStates, 0x2bbf);
-				}
+				WRITE_PHYREG_ENTRY(pi, PktAbortSupportedStates, 0x2bbf)
 				/* fill register value for 4 cores	*/
 				if (CHSPEC_IS5G(pi->radio_chanspec)) {
 					/* 5G ofdm_nominal_clip_th & ofdm_low_power_mismatch_th */

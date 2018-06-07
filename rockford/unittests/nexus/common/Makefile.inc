@@ -71,40 +71,6 @@ endif
 THISDIR := $(subst $(dir $(NEXUS_TOP)),,$(shell pwd))
 BINDIR := $(B_REFSW_OBJ_ROOT)/${THISDIR}
 
-# include IPSTB-related variables if PLAYBACK_IP_SUPPORT is explicitly on
-ifeq ($(PLAYBACK_IP_SUPPORT),y)
-
-    #needed for blive_ext.mak
-    ifeq ($(B_REFSW_ARCH),)
-        B_REFSW_ARCH=mipsel-linux
-        export B_REFSW_ARCH
-    endif
-    B_REFSW_DEBUG ?= y
-    ifeq ($(B_REFSW_DEBUG),y)
-        DEBUG_SUFFIX = debug
-    else
-        DEBUG_SUFFIX = release
-    endif
-
-    # ip_playback applib definitions
-    include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_lib.inc
-    NEXUS_APP_INCLUDE_PATHS += $(B_PLAYBACK_IP_LIB_PUBLIC_INCLUDES)
-
-    # The b_playback_ip_lib.inc seems to add "B_HAS_AVI" and that causes problems.
-    # So filter it out of playback_ip's defines.
-    NEXUS_APP_DEFINES +=   $(filter-out B_HAS_AVI,$(B_PLAYBACK_IP_LIB_DEFINES))
-    LDFLAGS += $(PLAYBACK_IP_LDFLAGS)
-
-    ifneq ($(LIVEMEDIA_SUPPORT),n)
-        LIVEMEDIA_SUPPORT=y
-        export LIVEMEDIA_SUPPORT
-    endif
-
-    # Add playback_ip to the list of sub-libraries to build.
-    SUBLIBS += ippblibs
-
-endif #PLAYBACK_IP_SUPPORT
-
 ifeq ($(UNITTEST_BWIN_SUPPORT),y)
     # Add bwin to the list of sub-libraries to build.
     SUBLIBS += bwin
@@ -112,16 +78,14 @@ endif
 
 # If we're building the playback_ip sub-library, then it will build nexus and os_lib
 # but if not, then we'll need to build them... so add them to the sub-lib list.
-ifneq ($(PLAYBACK_IP_SUPPORT),y)
-    ifneq ($(B_NEXUS_API_BUILD_COMPLETED),y)
-        SUBLIBS += nexus
-    endif
-    ifeq ($(APPS),BUILD_SUBLIBS_ONLY)
-        OS_LIB_UNITTESTS = y
-    endif
-    ifeq ($(OS_LIB_UNITTESTS),y)
-        SUBLIBS += oslib
-    endif
+ifneq ($(B_NEXUS_API_BUILD_COMPLETED),y)
+    SUBLIBS += nexus
+endif
+ifeq ($(APPS),BUILD_SUBLIBS_ONLY)
+    OS_LIB_UNITTESTS = y
+endif
+ifeq ($(OS_LIB_UNITTESTS),y)
+    SUBLIBS += oslib
 endif
 
 ifeq ($(NEXUS_POWER_MANAGEMENT),y)
@@ -144,22 +108,6 @@ endif
 ifeq ($(APPS),BUILD_SUBLIBS_ONLY)
     APPS =
 endif
-
-ifeq ($(BUILD_IP_UNITTESTS),y)
-    ifneq ($(PLAYBACK_IP_SUPPORT),y)
-        $(error You must set PLAYBACK_IP_SUPPORT=y to use option BUILD_IP_UNITTESTS)
-    endif
-
-    ifneq ($(NETACCEL_SUPPORT),n)
-        export NETACCEL_SUPPORT=y
-    endif
-
-    IP_STREAMER_DIR := ../ip_streamer
-    include $(IP_STREAMER_DIR)/Makefile.inc
-    vpath %c $(IP_STREAMER_DIR)
-    vpath %h $(IP_STREAMER_DIR)
-    IP_STREAMER_CFLAGS := -I$(IP_STREAMER_DIR) -DIP_STREAMER_SUBST
-endif #BUILD_IP_UNITTESTS
 
 ifeq ($(BUILD_CHANNELS_FILE_UNITTESTS),y)
 
@@ -239,21 +187,6 @@ clean_nexus:
 # Add the clean targets for each sub-library that we're using.
 clean: clean_apps  $(foreach sublib,${SUBLIBS},clean_${sublib})
 
-# This builds playback_ip lib
-ifeq ($(PLAYBACK_IP_SUPPORT),y)
-    .PHONY: ippblibs
-    ippblibs:
-		$(B_TRACE_RECIPE_BEGIN)
-		$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/playback_ip/apps  install
-		$(B_TRACE_RECIPE_END)
-
-    .PHONY: clean_ippblibs
-    clean_ippblibs:
-		$(B_TRACE_RECIPE_BEGIN)
-		$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/playback_ip/apps clean
-		$(B_TRACE_RECIPE_END)
-endif # PLAYBACK_IP_SUPPORT
-
 ifeq ($(NEXUS_POWER_MANAGEMENT),y)
     .PHONY: pmlib
     pmlib:
@@ -276,17 +209,15 @@ clean_apps: $(OTHER_APP_CLEANS)
 #
 # OS lib option for unittests
 #
-ifneq ($(PLAYBACK_IP_SUPPORT),y)
-    ifeq ($(OS_LIB_UNITTESTS),y)
-        B_LIB_TOP := $(NEXUS_TOP)/lib
-        include $(NEXUS_TOP)/lib/os/b_os_lib.inc
-        CFLAGS += $(addprefix -I,$(B_OS_LIB_PUBLIC_INCLUDES))
-        LDFLAGS += -lb_os
-        oslib:
-			$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os
-        clean_oslib:
-			$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os clean
-    endif
+ifeq ($(OS_LIB_UNITTESTS),y)
+    B_LIB_TOP := $(NEXUS_TOP)/lib
+    include $(NEXUS_TOP)/lib/os/b_os_lib.inc
+    CFLAGS += $(addprefix -I,$(B_OS_LIB_PUBLIC_INCLUDES))
+    LDFLAGS += -lb_os
+    oslib:
+		$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os
+    clean_oslib:
+		$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/os clean
 endif
 
 ifeq ($(NXCLIENT_SUPPORT),y)
@@ -331,11 +262,6 @@ endif
 
 # cancel this implicit rule so we can separate compile & link stages
 %: %.c
-
-ifeq ($(BUILD_IP_UNITTESTS),y)
-CFLAGS += $(IP_STREAMER_CFLAGS)
-EXTRA_SRC += $(IP_STREAMER_SRC)
-endif
 
 ifeq ($(BUILD_CHANNELS_FILE_UNITTESTS),y)
 CFLAGS += $(CHANNELS_FILE_CFLAGS)

@@ -56,6 +56,7 @@ static void printUsage(
                 "  -recordFile  <file path>     #   record received AV to this file. \n"
                 "  -enableHwOffload             #   Enable playing using ASP HW Offload Engine. \n"
                 "  -stats                       #   Print Periodic Stats. \n"
+                "  -enableTransportTimestamp    #   Insert 4 byte timestamps in the recorded stream. \n"
               );
         return;
     }
@@ -149,6 +150,10 @@ BIP_Status parseOptions(
             else if ( !strcmp(argv[i], "-enableHwOffload") )
             {
                 pAppCtx->enableHwOffload = true;
+            }
+            else if ( !strcmp(argv[i], "-enableTransportTimestamp") )
+            {
+                pAppCtx->enableTransportTimestamps = true;
             }
             else if ( !strcmp(argv[i], "-stats") )
             {

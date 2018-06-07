@@ -213,8 +213,8 @@ size_t Pipe::write(const void *data, const size_t numBytes, const uint64_t offse
                     err = -EAGAIN; //error if call is nonblocking
                     break;
                 }
-                    writeWaitQueue.unlockAndWait(&lock, TzTask::current(), -1);
-                    spinLockAcquire(&lock);
+                writeWaitQueue.unlockAndWait(&lock, TzTask::current(), -1);
+                spinLockAcquire(&lock);
             }
             else {
                 err = ring_poke(&cBuf, wrOffset, (uint8_t *)data, chunkSize);
@@ -276,8 +276,8 @@ size_t Pipe::read(const void *data, const size_t numBytes, const off_t offset) {
                 err = -EAGAIN; //error if call is nonblocking
                 break;
             }
-                readWaitQueue.unlockAndWait(&lock, TzTask::current(), -1);
-                spinLockAcquire(&lock);
+            readWaitQueue.unlockAndWait(&lock, TzTask::current(), -1);
+            spinLockAcquire(&lock);
         }
         else {
             readCount = (numBytes < readCount) ? numBytes : readCount;

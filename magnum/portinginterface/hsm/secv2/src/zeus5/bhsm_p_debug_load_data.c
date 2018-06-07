@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* This file is autogenerated, do not edit. */
@@ -498,7 +501,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.commandIndex = 4;
     parameter.parameterIndex = 0;
     parameter.byteOffset = 0;
-    parameter.size = 124;
+    parameter.size = 144;
     parameter.isArray = 1;
     parameter.isEnum = 1;
     parameter.enumIndex =  91;
@@ -692,7 +695,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.commandIndex = 5;
     parameter.parameterIndex = 12;
     parameter.byteOffset = 44;
-    parameter.size = 1;
+    parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
     parameter.pName = "reserved1";
@@ -705,8 +708,8 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 13;
-    parameter.byteOffset = 45;
-    parameter.size = 1;
+    parameter.byteOffset = 48;
+    parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
     parameter.pName = "reserved2";
@@ -719,7 +722,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 14;
-    parameter.byteOffset = 46;
+    parameter.byteOffset = 52;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -733,7 +736,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 15;
-    parameter.byteOffset = 47;
+    parameter.byteOffset = 53;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -747,7 +750,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 16;
-    parameter.byteOffset = 48;
+    parameter.byteOffset = 54;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -761,7 +764,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 17;
-    parameter.byteOffset = 49;
+    parameter.byteOffset = 55;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -776,7 +779,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 18;
-    parameter.byteOffset = 50;
+    parameter.byteOffset = 56;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -791,7 +794,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 19;
-    parameter.byteOffset = 51;
+    parameter.byteOffset = 57;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -806,7 +809,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 20;
-    parameter.byteOffset = 52;
+    parameter.byteOffset = 58;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -821,7 +824,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 21;
-    parameter.byteOffset = 53;
+    parameter.byteOffset = 59;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -836,7 +839,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 22;
-    parameter.byteOffset = 54;
+    parameter.byteOffset = 60;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -850,7 +853,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 23;
-    parameter.byteOffset = 55;
+    parameter.byteOffset = 61;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -865,7 +868,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 24;
-    parameter.byteOffset = 56;
+    parameter.byteOffset = 62;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -880,7 +883,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 25;
-    parameter.byteOffset = 57;
+    parameter.byteOffset = 63;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 1;
@@ -895,7 +898,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 26;
-    parameter.byteOffset = 58;
+    parameter.byteOffset = 64;
     parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -909,7 +912,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 27;
-    parameter.byteOffset = 62;
+    parameter.byteOffset = 68;
     parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -923,7 +926,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 28;
-    parameter.byteOffset = 66;
+    parameter.byteOffset = 72;
     parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -937,7 +940,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 29;
-    parameter.byteOffset = 70;
+    parameter.byteOffset = 76;
     parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -951,7 +954,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 30;
-    parameter.byteOffset = 74;
+    parameter.byteOffset = 80;
     parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -965,7 +968,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 31;
-    parameter.byteOffset = 78;
+    parameter.byteOffset = 84;
     parameter.size = 4;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -979,7 +982,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 32;
-    parameter.byteOffset = 82;
+    parameter.byteOffset = 88;
     parameter.size = 16;
     parameter.isArray = 1;
     parameter.isEnum = 0;
@@ -993,7 +996,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 33;
-    parameter.byteOffset = 98;
+    parameter.byteOffset = 104;
     parameter.size = 16;
     parameter.isArray = 1;
     parameter.isEnum = 0;
@@ -1007,7 +1010,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     parameter.componentIndex = 2;
     parameter.commandIndex = 5;
     parameter.parameterIndex = 34;
-    parameter.byteOffset = 114;
+    parameter.byteOffset = 120;
     parameter.size = 1;
     parameter.isArray = 0;
     parameter.isEnum = 0;
@@ -8849,7 +8852,7 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     BKNI_Memset( &element, 0, sizeof(element) );
     enumerator.enumIndex = 81;
     enumerator.pName = "Bsp_CmdRv_RegionId_e";
-    enumerator.maxElementIndex = 34;
+    enumerator.maxElementIndex = 38;
     rc = BHSM_BspDebug_RegisterEnum( hHsm, &enumerator );
     if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
@@ -9147,6 +9150,42 @@ BERR_Code BHSM_BspDebug_LoadAutoGeneratedData( BHSM_Handle hHsm )
     element.pName = "Reserved12";
     element.elementIndex = 32;
     element.value = 0x1E;
+    rc = BHSM_BspDebug_RegisterEnumElement( hHsm, &element );
+    if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    /* ELEMENT [Bsp_CmdRv_RegionId_eScpu_Reserved13]*/
+    BKNI_Memset( &element, 0, sizeof(element) );
+    element.enumIndex = 81;
+    element.pName = "Scpu_Reserved13";
+    element.elementIndex = 33;
+    element.value = 0x20;
+    rc = BHSM_BspDebug_RegisterEnumElement( hHsm, &element );
+    if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    /* ELEMENT [Bsp_CmdRv_RegionId_eScpu_Reserved14]*/
+    BKNI_Memset( &element, 0, sizeof(element) );
+    element.enumIndex = 81;
+    element.pName = "Scpu_Reserved14";
+    element.elementIndex = 34;
+    element.value = 0x21;
+    rc = BHSM_BspDebug_RegisterEnumElement( hHsm, &element );
+    if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    /* ELEMENT [Bsp_CmdRv_RegionId_eScpu_Reserved15]*/
+    BKNI_Memset( &element, 0, sizeof(element) );
+    element.enumIndex = 81;
+    element.pName = "Scpu_Reserved15";
+    element.elementIndex = 35;
+    element.value = 0x22;
+    rc = BHSM_BspDebug_RegisterEnumElement( hHsm, &element );
+    if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    /* ELEMENT [Bsp_CmdRv_RegionId_eVdec1_Il2a]*/
+    BKNI_Memset( &element, 0, sizeof(element) );
+    element.enumIndex = 81;
+    element.pName = "Vdec1_Il2a";
+    element.elementIndex = 36;
+    element.value = 0x23;
     rc = BHSM_BspDebug_RegisterEnumElement( hHsm, &element );
     if( rc != BERR_SUCCESS ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 

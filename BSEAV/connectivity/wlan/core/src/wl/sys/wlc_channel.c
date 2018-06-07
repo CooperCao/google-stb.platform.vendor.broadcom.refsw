@@ -211,6 +211,7 @@ static void wlc_rcinfo_init(wlc_cm_info_t *wlc_cmi);
 static void wlc_regclass_vec_init(wlc_cm_info_t *wlc_cmi);
 static void wlc_upd_restricted_chanspec_flag(wlc_cm_info_t *wlc_cmi);
 static int wlc_channel_update_txchain_offsets(wlc_cm_info_t *wlc_cmi, ppr_t *txpwr);
+static void wlc_channel_set_radar_chanvect(wlc_cm_data_t *wlc_cm, wlcband_t *band, uint16 flags);
 
 /* IE mgmt callbacks */
 #ifdef WLTDLS
@@ -242,7 +243,6 @@ static int wlc_dump_clm_limits_5G_20in40M(wlc_cm_info_t *wlc_cmi, struct bcmstrb
 
 static int wlc_dump_country_aggregate_map(wlc_cm_info_t *wlc_cmi, struct bcmstrbuf *b);
 static int wlc_channel_supported_country_regrevs(void *handle, struct bcmstrbuf *b);
-
 static bool wlc_channel_clm_chanspec_valid(wlc_cm_info_t *wlc_cmi, chanspec_t chspec);
 
 const char fraction[4][4] = {"   ", ".25", ".5 ", ".75"};
@@ -410,6 +410,16 @@ static const chanvec_t radar_set1 = { /* Channels 52 - 64, 100 - 144 */
 	0x00, 0x00, 0x00, 0x00}
 };
 #endif	/* BAND5G */
+
+/* Channels 149-165 are treated as radar channels as per new UK DFS requirements.
+ * EN302 502 and EN301 893 Channel 144 is also available.
+ */
+static const chanvec_t radar_set_uk = { /* Channels 52 - 64, 100 - 144 */
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x11,	/* 52 - 60 */
+	0x01, 0x00, 0x00, 0x00, 0x10, 0x11, 0x11, 0x11,		/* 64, 100 - 124 */
+	0x11, 0x11, 0x21, 0x22, 0x22, 0x00, 0x00, 0x00,		/* 128 - 144, 149 - 165 */
+	0x00, 0x00, 0x00, 0x00}
+};
 
 /*
  * Restricted channel sets
@@ -651,6 +661,9 @@ clm_result_t wlc_get_flags(clm_country_locales_t *locales, clm_band_t band, uint
 	*flags = 0;
 	if (result == CLM_RESULT_OK) {
 		switch (clm_flags & CLM_FLAG_DFS_MASK) {
+		case CLM_FLAG_DFS_UK:
+			*flags |= WLC_DFS_UK;
+			break;
 		case CLM_FLAG_DFS_EU:
 			*flags |= WLC_DFS_EU;
 			break;
@@ -1997,7 +2010,8 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 			phy_radar_detect_mode_t mode;
 			(void) wlc_get_flags(&locale, CLM_BAND_5G, &flags);
 
-			mode = ISDFS_EU(flags) ? RADAR_DETECT_MODE_EU:RADAR_DETECT_MODE_FCC;
+			mode = ISDFS_UK(flags) ? RADAR_DETECT_MODE_UK:
+			    ISDFS_EU(flags) ? RADAR_DETECT_MODE_EU:RADAR_DETECT_MODE_FCC;
 			phy_radar_detect_mode_set((phy_info_t *)WLC_PI(wlc_iter), mode);
 		}
 #endif /* AP && RADAR */
@@ -2350,6 +2364,28 @@ wlc_country_lookup_ext(wlc_info_t *wlc, const char *ccode, clm_country_t *countr
 #endif /* STA && WL11D */
 
 static void
+wlc_channel_set_radar_chanvect(wlc_cm_data_t *wlc_cm, wlcband_t *band, uint16 flags)
+{
+	uint j;
+	if (ISDFS_UK(flags)) {
+		for (j = 0; j < sizeof(chanvec_t); j++) {
+			wlc_cm->bandstate[band->bandunit].radar_channels->vec[j] =
+				radar_set_uk.vec[j] &
+				wlc_cm->bandstate[band->bandunit].
+				valid_channels.vec[j];
+		}
+	} else if (flags & WLC_DFS_TPC) {
+		for (j = 0; j < sizeof(chanvec_t); j++) {
+			wlc_cm->bandstate[band->bandunit].radar_channels->vec[j] =
+				radar_set1.vec[j] &
+				wlc_cm->bandstate[band->bandunit].
+				valid_channels.vec[j];
+		}
+	}
+}
+
+
+static void
 wlc_channels_init(wlc_cm_info_t *wlc_cmi, clm_country_t country)
 {
 	clm_country_locales_t locale;
@@ -2391,19 +2427,14 @@ wlc_channels_init(wlc_cm_info_t *wlc_cmi, clm_country_t country)
 #ifdef BAND5G /* RADAR */
 			wlc_cm->bandstate[band->bandunit].radar_channels =
 				&wlc_cm->locale_radar_channels;
-			if (BAND_5G(band->bandtype) && (flags & WLC_DFS_TPC)) {
-				for (j = 0; j < sizeof(chanvec_t); j++) {
-					wlc_cm->bandstate[band->bandunit].radar_channels->vec[j] =
-						radar_set1.vec[j] &
-						wlc_cm->bandstate[band->bandunit].
-						valid_channels.vec[j];
-				}
-			}
+			if (BAND_5G(band->bandtype)) {
+			       wlc_channel_set_radar_chanvect(wlc_cm, band, flags);	
+                        }			
 			if (BAND_5G(band->bandtype)) {
 				clm_valid_channels_5g(&locale,
 				(clm_channels_t*)&wlc_cm->allowed_5g_20channels,
 				(clm_channels_t*)&wlc_cm->allowed_5g_4080channels);
-			 }
+			}
 #endif /* BAND5G */
 
 			/* set the channel availability,
@@ -2415,10 +2446,11 @@ wlc_channels_init(wlc_cm_info_t *wlc_cmi, clm_country_t country)
 			wlc_locale_get_channels(&locale, tmp_band,
 				&wlc_cm->bandstate[band->bandunit].valid_channels,
 				&temp_chan);
-			for (j = 0; j < sizeof(chanvec_t); j++)
+			for (j = 0; j < sizeof(chanvec_t); j++) 
 				wlc_cm->bandstate[band->bandunit].valid_channels.vec[j] &=
 					sup_chan.vec[j];
-		}
+		        
+                }
 	}
 
 	wlc_upd_restricted_chanspec_flag(wlc_cmi);

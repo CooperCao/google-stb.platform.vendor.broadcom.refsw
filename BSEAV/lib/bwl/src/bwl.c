@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include <stdio.h>
@@ -106,7 +109,7 @@
 #ifdef WL_DUMP_BUF_LEN
 #undef WL_DUMP_BUF_LEN
 #endif
-#define WL_DUMP_BUF_LEN (16 * 1024)
+#define WL_DUMP_BUF_LEN (127 * 1024)
 
 #define ESCAN_BSS_FIXED_SIZE 4
 #define ESCAN_EVENTS_BUFFER_SIZE 2048
@@ -114,6 +117,11 @@
 
 #define BWL_LOCK() pthread_mutex_lock(&hBwl->bwlMutex)
 #define BWL_UNLOCK() pthread_mutex_unlock(&hBwl->bwlMutex)
+
+#define WL_CHANIM_BUF_LEN (2*1024)
+#define WL_CHANIM_BUF_SMLEN    512
+
+#define BWL_CHANIM_DBG  (1)
 
 char *GetFileContents( const char *filename );
 #ifdef INCLUDE_WPS
@@ -1444,6 +1452,7 @@ int32_t BWL_Init
     FILE           *fp         = NULL;
     BWL_Handle      hBwl       = NULL;
 
+
     memset( tempBuffer, 0, sizeof(tempBuffer) );
     fp = fopen( "/proc/modules", "r" );
     if ( fp )
@@ -1456,10 +1465,13 @@ int32_t BWL_Init
             {
                 err = BWL_ERR_SUCCESS;
             }
+            if ( strstr( tempBuffer, "dhd" ) )
+            {
+                err = BWL_ERR_SUCCESS;
+            }
         }
         fclose( fp );
     }
-
     if ( err == BWL_ERR_IOCTL ) return (err);
 
     hBwl = (BWL_Handle) malloc( sizeof( BWL_P_Handle ) );
@@ -5743,7 +5755,7 @@ int32_t BWL_GetSamples
     memset(&revinfo, 0, sizeof(revinfo));
 
     if ((ret = wlu_get(wl, WLC_GET_REVINFO, &revinfo, sizeof(revinfo))) < 0)
-	    return ret;
+        return ret;
 
     phytype = dtoh32(revinfo.phytype);
     phyrev = dtoh32(revinfo.phyrev);
@@ -5773,29 +5785,29 @@ int32_t BWL_GetSamples
     UNUSED_PARAMETER(phyrev);
 
     if ((phytype == WLC_PHY_TYPE_HT) || (phytype == WLC_PHY_TYPE_AC)) {
-	    if ((err = wlu_iovar_getbuf (wl, "sample_collect", &arg, sizeof(arg),
-					    pSamples->buff, WLC_SAMPLECOLLECT_MAXLEN))) {
-		    BWL_CHECK_ERR( err = BWL_ERR_IOCTL );
-	    }
+        if ((err = wlu_iovar_getbuf (wl, "sample_collect", &arg, sizeof(arg),
+                        pSamples->buff, WLC_SAMPLECOLLECT_MAXLEN))) {
+            BWL_CHECK_ERR( err = BWL_ERR_IOCTL );
+        }
     } else {
-	    fprintf(stderr, "Unsupported phytype=%x phyrev=%x\n", phytype, phyrev);
+        fprintf(stderr, "Unsupported phytype=%x phyrev=%x\n", phytype, phyrev);
     }
 
     sample_collect = (wl_sampledata_t *)pSamples->buff;
     header = (uint32 *)&sample_collect[1];
     tag = ltoh16_ua(&sample_collect->tag);
     if (tag != WL_SAMPLEDATA_HEADER_TYPE) {
-	    fprintf(stderr, "Expect SampleData Header type %d, receive type %d\n",
-			    WL_SAMPLEDATA_HEADER_TYPE, tag);
-	    return -1;
+        fprintf(stderr, "Expect SampleData Header type %d, receive type %d\n",
+                WL_SAMPLEDATA_HEADER_TYPE, tag);
+        return -1;
     }
 
     nbytes = ltoh16_ua(&sample_collect->length);
     flag = ltoh32_ua(&sample_collect->flag);
     sync = ltoh32_ua(&header[0]);
     if (sync != 0xACDC2009) {
-	    fprintf(stderr, "Header sync word mismatch (0x%08x)\n", sync);
-	    return -1;
+        fprintf(stderr, "Header sync word mismatch (0x%08x)\n", sync);
+        return -1;
     }
 
     memset(&sample_data, 0, sizeof(wl_sampledata_t));
@@ -5805,38 +5817,38 @@ int32_t BWL_GetSamples
 
     /* new format, used in htphy */
     do {
-	    sample_data.tag = htol16(WL_SAMPLEDATA_TYPE);
-	    sample_data.length = htol16(WLC_SAMPLECOLLECT_MAXLEN);
+        sample_data.tag = htol16(WL_SAMPLEDATA_TYPE);
+        sample_data.length = htol16(WLC_SAMPLECOLLECT_MAXLEN);
 
-	    /* mask seq# */
-	    sample_data.flag = htol32((flag & 0xff));
+        /* mask seq# */
+        sample_data.flag = htol32((flag & 0xff));
 
-	    err = wlu_iovar_getbuf(wl, "sample_data", &sample_data, sizeof(wl_sampledata_t),
-			    pSamples->buff, WLC_SAMPLECOLLECT_MAXLEN);
-	    if (err) {
-		    fprintf(stderr, "Error reading back sample collected data\n");
-		    err = -1;
-		    break;
-	    }
+        err = wlu_iovar_getbuf(wl, "sample_data", &sample_data, sizeof(wl_sampledata_t),
+                pSamples->buff, WLC_SAMPLECOLLECT_MAXLEN);
+        if (err) {
+            fprintf(stderr, "Error reading back sample collected data\n");
+            err = -1;
+            break;
+        }
 
-	    // ptr = (uint8 *)pSamples->buff + sizeof(wl_sampledata_t);
-	    psample = (wl_sampledata_t *)pSamples->buff;
-	    tag = ltoh16_ua(&psample->tag);
-	    nbytes = ltoh16_ua(&psample->length);
-	    flag = ltoh32_ua(&psample->flag);
-	    if (tag != WL_SAMPLEDATA_TYPE) {
-		    fprintf(stderr, "Expect SampleData type %d, receive type %d\n",
-				    WL_SAMPLEDATA_TYPE, tag);
-		    err = -1;
-		    break;
-	    }
-	    if (nbytes == 0) {
-		    fprintf(stderr, "Done retrieving sample data\n");
-		    err = -1;
-		    break;
-	    }
+        // ptr = (uint8 *)pSamples->buff + sizeof(wl_sampledata_t);
+        psample = (wl_sampledata_t *)pSamples->buff;
+        tag = ltoh16_ua(&psample->tag);
+        nbytes = ltoh16_ua(&psample->length);
+        flag = ltoh32_ua(&psample->flag);
+        if (tag != WL_SAMPLEDATA_TYPE) {
+            fprintf(stderr, "Expect SampleData type %d, receive type %d\n",
+                    WL_SAMPLEDATA_TYPE, tag);
+            err = -1;
+            break;
+        }
+        if (nbytes == 0) {
+            fprintf(stderr, "Done retrieving sample data\n");
+            err = -1;
+            break;
+        }
 
-	    pSamples->count += nbytes;
+        pSamples->count += nbytes;
 
     } while (flag & WL_SAMPLEDATA_MORE_DATA);
 
@@ -6717,6 +6729,20 @@ BWL_EXIT:
     BWL_UNLOCK();
     return( err );
 }
+int32_t BWL_SetPM2_rcv_dur(BWL_Handle hBwl, uint32_t pm2rcvdur)
+{
+    int32_t             err = 0;
+    void                *wl = hBwl->wl;
+
+    BWL_LOCK();
+
+        err = wlu_iovar_set( wl, "pm2_rcv_dur", &pm2rcvdur, sizeof( uint32_t ) );
+    BWL_CHECK_ERR( err );
+
+BWL_EXIT:
+    BWL_UNLOCK();
+    return( err );
+}
 
 
 /*******************************************************************************
@@ -7184,6 +7210,32 @@ int32_t BWL_SetApMode(BWL_Handle hBwl, int value)
 
     value = htod32(value);
     err = wlu_set(wl, WLC_SET_AP, &value, sizeof(int));
+    BWL_CHECK_ERR(err);
+
+BWL_EXIT:
+    BWL_UNLOCK();
+    return( err );
+}
+/*******************************************************************************
+*
+*   Name: BWL_GetApMode()
+*
+*   Purpose:
+*       check if  either AP (value=1) or STA (value = 0)
+*
+*   Returns:
+*       BWL_ERR_xxx
+*
+*******************************************************************************/
+int32_t BWL_GetApMode(BWL_Handle hBwl, int *value)
+{
+    int32_t             err = 0;
+    void                *wl = hBwl->wl;
+
+    BWL_LOCK();
+
+    value = htod32(value);
+    err = wlu_get(wl, WLC_GET_AP, value, sizeof(int));
     BWL_CHECK_ERR(err);
 
 BWL_EXIT:
@@ -8786,6 +8838,252 @@ int BWL_ClearAmpdu(
     }
 
     return ( 0 );
+}
+
+#define ACS_CHANIM_BUF_LEN (2*1024)
+#define ACS_CHANIM_BUF_SMLEN    512
+
+/* Gets chanim stats for current channel */
+static char* BWL_GetCurrChanimStats(
+        void *wl
+        )
+{
+    wl_chanim_stats_t param;
+    char *curr_data_buf;
+    int buflen = ACS_CHANIM_BUF_SMLEN;
+
+    curr_data_buf = (char*)malloc(sizeof(curr_data_buf) * buflen);
+    if (curr_data_buf == NULL) {
+        fprintf(stderr, "Failed to allocate curr_data_buf of %d bytes\n", buflen);
+        return NULL;
+    }
+    memset(curr_data_buf, 0, buflen);
+
+    param.buflen = htod32(buflen);
+    param.count = htod32(WL_CHANIM_COUNT_ONE);
+    if (wlu_iovar_getbuf(wl, "chanim_stats", &param, sizeof(wl_chanim_stats_t),
+        curr_data_buf, buflen) < 0) {
+        fprintf(stderr, "failed to get chanim results\n");
+        free(curr_data_buf);
+        return NULL;
+    }
+
+    return curr_data_buf;
+}
+
+/* Function to verify the chanim stats data */
+static void BWL_CheckChanimStatsList(
+        wl_chanim_stats_t *list
+        )
+{
+    if (list->buflen == 0) {
+        list->version = 0;
+        list->count = 0;
+    } else if (list->version != WL_CHANIM_STATS_VERSION) {
+        fprintf(stderr, "Sorry, your driver has wl_chanim_stats version %d "
+            "but this program supports only version %d.\n",
+                list->version, WL_CHANIM_STATS_VERSION);
+        list->buflen = 0;
+        list->count = 0;
+    }
+}
+
+int32_t BWL_GetChanimNum(
+        BWL_Handle  hBwl,
+        uint32_t*   num)
+{
+    int err;
+    int32_t ret = 0;
+    wl_chanim_stats_t param;
+    wl_chanim_stats_t *list  = NULL;
+    int buflen = WL_CHANIM_BUF_LEN;
+    char *data_buf  = NULL;
+    void *wl = hBwl->wl;
+
+    data_buf = (char*)malloc(sizeof(data_buf) * buflen);
+    if (data_buf == NULL) {
+        fprintf(stderr, "Failed to allocate data_buf of %d bytes\n", buflen);
+        return (ret);
+    }
+    memset(data_buf, 0, buflen);
+
+    param.buflen = htod32(buflen);
+    param.count = htod32(WL_CHANIM_COUNT_ALL);
+
+    if ((err = wlu_iovar_getbuf(wl, "chanim_stats", &param, sizeof(wl_chanim_stats_t),
+        data_buf, buflen)) < 0) {
+        fprintf(stderr, "failed to get chanim results\n");
+        free(data_buf);
+        return (ret);
+    }
+
+    list = (wl_chanim_stats_t*)data_buf;
+
+    list->buflen = dtoh32(list->buflen);
+    list->version = dtoh32(list->version);
+    list->count = dtoh32(list->count);
+    BWL_CheckChanimStatsList(list);
+    *num = dtoh32(list->count);
+
+    return (ret);
+}
+
+int32_t BWL_GetChanimResults(
+        BWL_Handle hBwl,
+        Chanim_list_t** pData
+        )
+{
+
+    int err;
+    int32_t ret = 0;
+    wl_chanim_stats_t *list, *current = NULL;
+    wl_chanim_stats_t param;
+    chanim_stats_t *stats;
+    int i, idle;
+    int count;
+    int buflen = WL_CHANIM_BUF_LEN;
+    char *data_buf, *curr_data_buf = NULL;
+    Chanim_list_t *congestionout = NULL;
+    uint32 curr_channel = 0, channel;
+    void *wl = hBwl->wl;
+
+    data_buf = (char*)malloc(sizeof(data_buf) * buflen);
+    if (data_buf == NULL) {
+        fprintf(stderr, "Failed to allocate data_buf of %d bytes\n", buflen);
+        return (ret);
+    }
+    memset(data_buf, 0, buflen);
+
+    param.buflen = htod32(buflen);
+    param.count = htod32(WL_CHANIM_COUNT_ALL);
+
+    if ((err = wlu_iovar_getbuf(wl, "chanim_stats", &param, sizeof(wl_chanim_stats_t),
+        data_buf, buflen)) < 0) {
+        fprintf(stderr, "failed to get chanim results\n");
+        free(data_buf);
+        return (ret);
+    }
+
+    list = (wl_chanim_stats_t*)data_buf;
+
+    list->buflen = dtoh32(list->buflen);
+    list->version = dtoh32(list->version);
+    list->count = dtoh32(list->count);
+    BWL_CheckChanimStatsList(list);
+
+    count = dtoh32(list->count);
+    congestionout = (Chanim_list_t*)malloc(sizeof(Chanim_list_t) +
+        (count * sizeof(Chanim_t)));
+    if (congestionout == NULL) {
+        fprintf(stderr, "Failed to allocate congestionout buffer of size : %d\n", count);
+        free(data_buf);
+        return (ret);
+    }
+
+    congestionout->timestamp = time(NULL);
+    congestionout->length = 0;
+
+    /* Fetch the chanim stats for current channel */
+    curr_data_buf = BWL_GetCurrChanimStats(wl);
+    if (curr_data_buf) {
+        current = (wl_chanim_stats_t*)curr_data_buf;
+        current->buflen = dtoh32(current->buflen);
+        current->version = dtoh32(current->version);
+        current->count = dtoh32(current->count);
+        BWL_CheckChanimStatsList(current);
+        curr_channel = CHSPEC_CHANNEL(current->stats->chanspec);
+    }
+
+#if BWL_CHANIM_DBG
+       fprintf(stderr, "chanspec   tx   inbss   obss   nocat   nopkt   doze     txop   "
+        "goodtx  badtx   glitch   badplcp  knoise  idle   sidle   busy   avail   wifi   nwifi\n");
+#endif
+
+    for (i = 0; i < count; i++) {
+        stats = &list->stats[i];
+        idle = 0;
+        channel = CHSPEC_CHANNEL(stats->chanspec);
+        /* update the chanim stats for current channel */
+        if ((current != NULL) && (channel == curr_channel)) {
+            stats = current->stats;
+        }
+
+        congestionout->congest[congestionout->length].bphy_badplcp = stats->bphy_badplcp;
+        congestionout->congest[congestionout->length].bphy_glitchcnt = stats->bphy_glitchcnt;
+        congestionout->congest[congestionout->length].chanspec = stats->chanspec;
+        congestionout->congest[congestionout->length].channum = channel;
+        congestionout->congest[congestionout->length].tx = stats->ccastats[0];
+        congestionout->congest[congestionout->length].inbss = stats->ccastats[1];
+        congestionout->congest[congestionout->length].obss = stats->ccastats[2];
+        congestionout->congest[congestionout->length].nocat = stats->ccastats[3];
+        congestionout->congest[congestionout->length].nopkt = stats->ccastats[4];
+        congestionout->congest[congestionout->length].doze = stats->ccastats[5];
+        congestionout->congest[congestionout->length].txop = stats->ccastats[6];
+        congestionout->congest[congestionout->length].goodtx = stats->ccastats[7];
+        congestionout->congest[congestionout->length].badtx = stats->ccastats[8];
+        congestionout->congest[congestionout->length].glitchcnt = /* dtoh32 */(stats->glitchcnt);
+        congestionout->congest[congestionout->length].badplcp = /* dtoh32 */(stats->badplcp);
+        congestionout->congest[congestionout->length].bgnoise = stats->bgnoise;
+        /* As idle is calculated using formula idle = 100 - busy
+         * where busy = inbss+goodtx+badtx+obss+nocat+nopkt.
+         * So, instead of chan_idle use the computed idle
+         */
+        idle = 100 - (congestionout->congest[congestionout->length].inbss +
+            congestionout->congest[congestionout->length].obss +
+            congestionout->congest[congestionout->length].goodtx +
+            congestionout->congest[congestionout->length].badtx +
+            congestionout->congest[congestionout->length].nocat +
+            congestionout->congest[congestionout->length].nopkt);
+
+        congestionout->congest[congestionout->length].chan_idle = idle;
+
+        /* Calculate busy, available capacity, wifi and nonwifi interference */
+        congestionout->congest[congestionout->length].busy = (congestionout->congest[congestionout->length].inbss +
+            congestionout->congest[congestionout->length].obss + congestionout->congest[congestionout->length].goodtx +
+            congestionout->congest[congestionout->length].badtx + congestionout->congest[congestionout->length].nocat +
+            congestionout->congest[congestionout->length].nopkt);
+        congestionout->congest[congestionout->length].availcap = (congestionout->congest[congestionout->length].inbss +
+            congestionout->congest[congestionout->length].goodtx + congestionout->congest[congestionout->length].badtx +
+            congestionout->congest[congestionout->length].txop);
+        congestionout->congest[congestionout->length].wifi = congestionout->congest[congestionout->length].obss;
+        congestionout->congest[congestionout->length].nonwifi = (congestionout->congest[congestionout->length].nocat +
+            congestionout->congest[congestionout->length].nopkt);
+
+
+#if BWL_CHANIM_DBG
+        fprintf(stderr, "%4d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+            congestionout->congest[congestionout->length].channum,
+            congestionout->congest[congestionout->length].tx,
+            congestionout->congest[congestionout->length].inbss,
+            congestionout->congest[congestionout->length].obss,
+            congestionout->congest[congestionout->length].nocat,
+            congestionout->congest[congestionout->length].nopkt,
+            congestionout->congest[congestionout->length].doze,
+            congestionout->congest[congestionout->length].txop,
+            congestionout->congest[congestionout->length].goodtx,
+            congestionout->congest[congestionout->length].badtx,
+            congestionout->congest[congestionout->length].glitchcnt,
+            congestionout->congest[congestionout->length].badplcp,
+            congestionout->congest[congestionout->length].bgnoise,
+            congestionout->congest[congestionout->length].chan_idle,
+            stats->chan_idle,
+            congestionout->congest[congestionout->length].busy,
+            congestionout->congest[congestionout->length].availcap,
+            congestionout->congest[congestionout->length].wifi,
+            congestionout->congest[congestionout->length].nonwifi
+            );
+#endif
+        congestionout->length++;
+    }
+
+    if (curr_data_buf) {
+        free(curr_data_buf);
+    }
+
+    free(data_buf);
+    *pData = congestionout;
+
+    return (ret);
 }
 
 const unsigned char * BWL_GetPhyRssiAnt(

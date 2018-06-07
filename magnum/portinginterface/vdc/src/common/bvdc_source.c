@@ -64,8 +64,6 @@ BDBG_FILE_MODULE(BVDC_MEMC_INDEX_CHECK);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_FILE_MODULE(BVDC_SRC_DELTA);
 
-
-
 /* How to map mpeg format to BFMT format. */
 static const BFMT_VideoFmt s_aeMpegToFmt[] =
 {
@@ -2283,7 +2281,7 @@ static BVDC_P_ScanoutMode BVDC_P_Source_GetMpegScanoutMode_isr
     BBOX_Vdc_SourceRateLimit eRateLimit;
     const BVDC_SourceClassLimits  *pSourceClassLimit;
 
-    eMpegScanoutMode = hSource->stCurInfo.eWinScanoutMode;
+    BDBG_ASSERT(BVDC_P_SCANOUTMODE_DECIMATE(hSource->stCurInfo.eWinScanoutMode));
 
     /* Get boxmode mosaic mode class */
     pBoxConfig = &hSource->hVdc->stBoxConfig;
@@ -2291,7 +2289,7 @@ static BVDC_P_ScanoutMode BVDC_P_Source_GetMpegScanoutMode_isr
     if(eSourceClass == BBOX_Vdc_SourceClass_eLegacy)
     {
         /* Use the window decimate if no source class */
-        return eMpegScanoutMode;
+        return hSource->stCurInfo.eWinScanoutMode;
     }
 
     /* Non-legacy class */
@@ -2299,11 +2297,11 @@ static BVDC_P_ScanoutMode BVDC_P_Source_GetMpegScanoutMode_isr
 
     eRateLimit = pBoxConfig->stVdc.astSource[hSource->eId].eRateLimit;
     if(eRateLimit == BBOX_Vdc_SourceRateLimit_e50Hz)
-        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e25];
+        ulHalfSrcRateLimit = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(BAVC_FrameRateCode_e25);
     else
-        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e30];
+        ulHalfSrcRateLimit = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(BAVC_FrameRateCode_e30);
 
-    if(s_aulFrmRate[hSource->eMfdVertRateCode] <= ulHalfSrcRateLimit)
+    if(hSource->ulVertFreq <= ulHalfSrcRateLimit)
         bDoubleVertSize = true;
     else
         bDoubleVertSize = false;
@@ -2328,7 +2326,7 @@ static BVDC_P_ScanoutMode BVDC_P_Source_GetMpegScanoutMode_isr
             eMpegScanoutMode = BVDC_P_ScanoutMode_eLive_Decimate_2_1;
         }
     }
-    else if(hSource->stCurInfo.eWinScanoutMode == BVDC_P_ScanoutMode_eLive_Decimate_4_1)
+    else
     {
         if( (ulSourceHeight <= (ulL1RTSMaxHeight/4)) ||
             (ulSourceHeight <= (ulL2RTSMaxHeight/4))  ||
@@ -2897,11 +2895,11 @@ static void BVDC_P_Source_ValidateCoverage_isr
 
     eRateLimit = pBoxConfig->stVdc.astSource[hSource->eId].eRateLimit;
     if(eRateLimit == BBOX_Vdc_SourceRateLimit_e50Hz)
-        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e25];
+        ulHalfSrcRateLimit = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(BAVC_FrameRateCode_e25);
     else
-        ulHalfSrcRateLimit = s_aulFrmRate[BAVC_FrameRateCode_e30];
+        ulHalfSrcRateLimit = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(BAVC_FrameRateCode_e30);
 
-    if(s_aulFrmRate[hSource->eMfdVertRateCode] <= ulHalfSrcRateLimit)
+    if(hSource->ulVertFreq <= ulHalfSrcRateLimit)
         bDoubleVertSize = true;
     else
         bDoubleVertSize = false;
@@ -2938,7 +2936,7 @@ static void BVDC_P_Source_ValidateCoverage_isr
             ulIndex+1));
         BDBG_ERR(("Src Size(%dx%d@%d) not fit in any of the RTS limits: (%dx%d), (%dx%d), (%dx%d)",
             ulSourceWidth, ulSourceHeight,
-            s_aulFrmRate[hSource->stNewPic[i].eFrameRateCode]/BFMT_FREQ_FACTOR,
+            BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->stNewPic[i].eFrameRateCode)/BFMT_FREQ_FACTOR,
             pSourceClassLimit->landscape1[ulIndex].ulWidth,
             pSourceClassLimit->landscape1[ulIndex].ulHeight,
             pSourceClassLimit->landscape2[ulIndex].ulWidth,

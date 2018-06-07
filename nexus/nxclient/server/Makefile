@@ -112,6 +112,9 @@ CFLAGS += -MMD
 # Some systems build libnxserver.a into a .so. This could increase code size, but I don't see it.
 CFLAGS += -fPIC
 
+vpath %.c $(NEXUS_TOP)/../BSEAV/lib/sysfs
+CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/sysfs
+
 ifeq ($(B_REFSW_SHAREABLE),y)
 NXCLIENT_P_SHARED_LIB := $(BINDIR)/libnxclient.so
 NXCLIENT_P_LOCAL_SHARED_LIB := $(BINDIR)/libnxclient_local.so
@@ -160,7 +163,8 @@ NXSERVERLIB_SRCS := \
     nxclient_common.c \
     $(notdir $(NXCLIENT_SOCKET_INTF)) \
     namevalue.c \
-	thermal_config.c
+	thermal_config.c \
+	sysfs.c
 
 ifneq ($(NXSERVER_CUSTOM_HOOK),)
 CFLAGS += -DNXSERVER_CUSTOM_HOOK=1

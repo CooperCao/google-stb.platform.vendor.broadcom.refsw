@@ -195,13 +195,14 @@ static BERR_Code BAUTO_I2C_P_WaitForCompletion
         }
     }
     else {
-        while (loopCnt++ <= 5){
+        loopCnt = ((hChn->timeoutMs * 1000) / I2C_POLLING_INTERVAL) + 1;
+        while (loopCnt--){
             lval = BREG_Read32(hDev->hRegister, (hChn->coreOffset + BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT));
             if(lval >> hChn->autoI2c.channelNumber){
                 BDBG_MSG(("BAUTO_I2C transaction complete."));
                 goto done;
             }
-            BKNI_Sleep(1);
+            BKNI_Delay(I2C_POLLING_INTERVAL);
         }
         BDBG_ERR(("BAUTO_I2C transaction incomplete."));
         retCode = BERR_TIMEOUT;

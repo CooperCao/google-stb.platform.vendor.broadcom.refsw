@@ -583,13 +583,13 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
         pMem = NEXUS_Scm_P_Malloc(sizeof(BCMD_SecondTierKey_t));
         if (pMem == NULL) {
             BDBG_ERR(("%s    - Error, allocating buffer (%u bytes)",
-                      BSTD_FUNCTION, sizeof(BCMD_SecondTierKey_t)));
+                      BSTD_FUNCTION, (unsigned)sizeof(BCMD_SecondTierKey_t)));
             rc = NEXUS_NOT_AVAILABLE;
             goto err;
         }
         g_scm_module.scm_bl_second_tier_key = pMem;
         BKNI_Memset(g_scm_module.scm_bl_second_tier_key, 0, sizeof(BCMD_SecondTierKey_t));
-        BDBG_MSG(("g_scm_module.scm_bl_second_tier_key: %p", g_scm_module.scm_bl_second_tier_key));
+        BDBG_MSG(("g_scm_module.scm_bl_second_tier_key: %p", (void*)g_scm_module.scm_bl_second_tier_key));
     }
 
     /* Initialize communication buffer and pass it to the scm */
@@ -602,7 +602,7 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
             goto err;
         }
         g_NEXUS_scmModule.recvBuf = (void*)((char*)g_NEXUS_scmModule.sendBuf + SCM_HOST_BUF_SIZE/4);
-        BDBG_MSG(("send buf:%08x", g_NEXUS_scmModule.sendBuf));
+        BDBG_MSG(("send buf:%p", (void*)g_NEXUS_scmModule.sendBuf));
     }
     NEXUS_ScmModule_P_SetBootParams();
     /* Get start timer */
@@ -617,7 +617,7 @@ NEXUS_Error NEXUS_ScmModule_P_Start(void)
     }
 
     if(!NEXUS_Scm_P_CheckScmBooted()){
-        BDBG_ERR(("%s fails %d", __PRETTY_FUNCTION__, __LINE__));
+        BDBG_ERR(("%s fails %d", BSTD_FUNCTION, __LINE__));
         goto err;
     }
 
@@ -835,8 +835,8 @@ static NEXUS_Error NEXUS_ScmModule_P_Load(
 
     /* Sync physical memory for all areas */
     NEXUS_Memory_FlushCache(holder->raw->buf, holder->raw->len);
-    BDBG_MSG(("%s - '%s' Raw@0x%08x,  size=%d", BSTD_FUNCTION,
-              holder->name, holder->raw->buf, holder->raw->len));
+    BDBG_MSG(("%s - '%s' Raw@%p,  size=%d", BSTD_FUNCTION,
+              holder->name, (void*)holder->raw->buf, (unsigned)holder->raw->len));
 
 err:
     /* in case of error, Memory block is freed in NEXUS_ScmModule_Uninit() */
@@ -1118,7 +1118,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
                 g_NEXUS_scmModule.instance->channel.version = region_settings.SCMVersion & 0xff;
             }
             if(g_scm_module.otp_scm_decrypt_enable) {
-                region_settings.keyLadder = vkl_id;
+                region_settings.keyLadder = vkl_id & ~0x80;
                 region_settings.keyLayer = NEXUS_SecurityKeySource_eKey5;
             }
 
@@ -1163,7 +1163,7 @@ static NEXUS_Error NEXUS_ScmModule_P_Reset(NEXUS_ScmImageHolder *bl_img)
             NEXUS_SecurityRegionConfiguration regionConfig;
 
             NEXUS_Security_RegionGetDefaultConfig_priv( NEXUS_SecurityRegverRegionID_eScpuFsbl, &regionConfig );
-            regionConfig.signature.p = bl_img->signature;
+            BKNI_Memcpy(regionConfig.signature.data, bl_img->signature, 256);
             regionConfig.signature.size = 256;
             regionConfig.rsaKeyIndex = 3;
             regionConfig.scmVersion = ((unsigned int)header->ucReserved1[1] << 8) | (unsigned int)header->ucReserved1[2];

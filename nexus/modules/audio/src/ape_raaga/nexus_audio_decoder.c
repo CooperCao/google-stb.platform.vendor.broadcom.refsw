@@ -4330,7 +4330,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetSimpleSettings_priv(
 }
 #endif
 
-static void NEXUS_AudioDecoder_P_SplicePoint_Isr(void *Ctx, uint32_t pts)
+static void NEXUS_AudioDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
 {
     NEXUS_AudioDecoderHandle handle = (NEXUS_AudioDecoderHandle)(Ctx);
     uint32_t ptsRight = 0;
@@ -4371,6 +4371,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetSpliceSettings(
         if ((handle->spliceStatus.state == NEXUS_DecoderSpliceState_eWaitForStopPts) ||
             (handle->spliceStatus.state == NEXUS_DecoderSpliceState_eWaitForStartPts)) {
             rc = NEXUS_Rave_SetSplicePoint_priv(handle->raveContext,&raveSpliceSettings);
+            if (rc) return BERR_TRACE(rc);
         }
         NEXUS_IsrCallback_Set(handle->spliceCallback, NULL);
         BKNI_Memset(&handle->spliceSettings,0,sizeof(NEXUS_AudioDecoderSpliceSettings));
@@ -4381,27 +4382,29 @@ NEXUS_Error NEXUS_AudioDecoder_SetSpliceSettings(
         break;
     }
     case NEXUS_DecoderSpliceMode_eStopAtPts: {
-        handle->spliceSettings = *pSettings;
-        NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
         raveSpliceSettings.context = (void *)handle;
         raveSpliceSettings.ptsThreshold = pSettings->ptsThreshold;
         raveSpliceSettings.pts = pSettings->pts;
-        raveSpliceSettings.splicePoint = NEXUS_AudioDecoder_P_SplicePoint_Isr;
+        raveSpliceSettings.splicePoint = NEXUS_AudioDecoder_P_SplicePoint_isr;
         raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStopPts;
-        handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         rc = NEXUS_Rave_SetSplicePoint_priv(handle->raveContext,&raveSpliceSettings);
+        if (rc) return BERR_TRACE(rc);
+        handle->spliceSettings = *pSettings;
+        NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
+        handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         break;
     }
     case NEXUS_DecoderSpliceMode_eStartAtPts: {
-        handle->spliceSettings = *pSettings;
-        NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
         raveSpliceSettings.context = (void *)handle;
         raveSpliceSettings.ptsThreshold = pSettings->ptsThreshold;
         raveSpliceSettings.pts = pSettings->pts;
-        raveSpliceSettings.splicePoint = NEXUS_AudioDecoder_P_SplicePoint_Isr;
+        raveSpliceSettings.splicePoint = NEXUS_AudioDecoder_P_SplicePoint_isr;
         raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStartPts;
-        handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
         rc = NEXUS_Rave_SetSplicePoint_priv(handle->raveContext,&raveSpliceSettings);
+        if (rc) return BERR_TRACE(rc);
+        handle->spliceSettings = *pSettings;
+        NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
+        handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
         break;
     }
     default:
@@ -4495,8 +4498,11 @@ NEXUS_Error NEXUS_AudioDecoder_SpliceStartFlow(
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto ExitFunc;
     }
-    handle->programSettings.pidChannel = pSettings->pidChannel;
-    NEXUS_PidChannel_GetStatus(pSettings->pidChannel, &pidChannelStatus);
+    rc = NEXUS_PidChannel_GetStatus(pSettings->pidChannel, &pidChannelStatus);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto ExitFunc;
+    }
     LOCK_TRANSPORT();
     NEXUS_Rave_AddPidChannel_priv(handle->raveContext, pSettings->pidChannel);
     NEXUS_Rave_SetBandHold(handle->raveContext,pidChannelStatus.playback);
@@ -4505,6 +4511,7 @@ NEXUS_Error NEXUS_AudioDecoder_SpliceStartFlow(
     NEXUS_OBJECT_ACQUIRE(handle, NEXUS_PidChannel, pSettings->pidChannel);
     /* needed to unpause playback */
     NEXUS_PidChannel_ConsumerStarted(pSettings->pidChannel);
+    handle->programSettings.pidChannel = pSettings->pidChannel;
     handle->spliceFlowStopped = false;
     rc = NEXUS_SUCCESS;
 ExitFunc:

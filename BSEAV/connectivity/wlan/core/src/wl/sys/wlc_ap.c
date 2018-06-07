@@ -175,6 +175,9 @@
 #include <wlc_iocv.h>
 #include <phy_chanmgr_api.h>
 #include <phy_calmgr_api.h>
+#if defined(AP) && defined(WLFBT)
+#include <wlc_fbt.h>
+#endif
 
 /* Default pre tbtt time for non mbss case */
 #define	PRE_TBTT_DEFAULT_us		2
@@ -1713,6 +1716,12 @@ wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 		case DOT11_OPEN_SYSTEM:
 
 			if ((WLC_BSSCFG_AUTH(bsscfg) == DOT11_OPEN_SYSTEM) && (!status)) {
+#ifdef WLFBT
+				if (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg)) {
+					WL_FBT(("set to PENDING_AUTH for open system.\n"));
+					wlc_scb_setstatebit(wlc, scb, PENDING_AUTH);
+				} else
+#endif
 				wlc_scb_setstatebit(wlc, scb, AUTHENTICATED);
 			} else {
 				wlc_scb_clearstatebit(wlc, scb, AUTHENTICATED);
@@ -1721,7 +1730,11 @@ wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 			/* At this point, we should have at least one valid authentication in open
 			 * system
 			 */
+#ifdef WLFBT
+			if (!(SCB_AUTHENTICATED(scb) || (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg) && SCB_AUTHENTICATING(scb)))) {
+#else
 			if (!(SCB_AUTHENTICATED(scb))) {
+#endif
 				WL_ERROR(("wl%d: %s: Open System auth attempted "
 					  "from %s but only Shared Key supported\n",
 					  wlc->pub->unit, __FUNCTION__, sa));
@@ -1782,6 +1795,16 @@ parse_ies:
 send_result:
 
 #ifdef AP
+#ifdef WLFBT
+	if ((status == DOT11_SC_SUCCESS) && wlc_fbt_overtop_enabled(wlc->fbt, bsscfg) &&
+		SCB_AUTHENTICATING(scb)) {
+		wlc_scb_setstatebit(wlc, scb, PENDING_AUTH);
+#ifdef RXCHAIN_PWRSAVE
+		wlc_reset_rxchain_pwrsave_mode(ap);
+#endif /* RXCHAIN_PWRSAVE */
+		goto smf_stats;
+	}
+#endif /* WLFBT */
 	if ((status == DOT11_SC_SUCCESS) && (ftpparm.auth.alg == DOT11_FAST_BSS) &&
 		SCB_AUTHENTICATING(scb)) {
 #ifdef RXCHAIN_PWRSAVE
@@ -2898,6 +2921,12 @@ static void wlc_ap_process_assocreq_exit(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg
 
 	reassoc = ((ltoh16(hdr->fc) & FC_KIND_MASK) == FC_REASSOC_REQ);
 	/* send WLC_E_REASSOC_IND/WLC_E_ASSOC_IND to interested App and/or non-WIN7 OS */
+#if defined(AP) && defined(WLFBT)
+	/* when fbt_over_top is enabled, the (re)assoc is handled by the application and there is no need to send the (re)assoc event. */
+	if (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg)) {
+		WL_FBT(("wl%d: %s: no need to send the (re)assoc event to the application.\n", wlc->pub->unit, __FUNCTION__));
+	} else
+#endif /* WLFBT */
 	wlc_bss_mac_event(wlc, bsscfg, reassoc ? WLC_E_REASSOC_IND : WLC_E_ASSOC_IND,
 		&hdr->sa, WLC_E_STATUS_SUCCESS, param->status, scb->auth_alg,
 		param->e_data, param->e_datalen);
@@ -5041,6 +5070,7 @@ wlc_ap_doiovar(void *hdl, uint32 actionid,
 
 		if (wlc->pub->up && (appvt->chanspec_selected != 0) &&
 		    (WLC_BAND_PI_RADIO_CHANSPEC != appvt->chanspec_selected))
+		    /* coverity[stack_use_overflow] */
 			wlc_ap_acs_update(wlc);
 
 #ifdef WLDFS

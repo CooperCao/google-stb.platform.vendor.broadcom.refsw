@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_nx.h"
 #include "default_wayland.h"
@@ -270,24 +270,41 @@ static bool NxQueryBuffer(void *context, void *display, void* buffer,
       break;
 
    case EGL_TEXTURE_FORMAT:
-   {
-      NEXUS_PixelFormat result = NEXUS_PixelFormat_eUnknown;
-      BeglToNexusFormat(&result, settings.format);
-      switch (result)
+      switch (settings.format)
       {
-      case NEXUS_PixelFormat_eA8_B8_G8_R8:
+      case BEGL_BufferFormat_eA8B8G8R8:
+      case BEGL_BufferFormat_eR8G8B8A8:
+      case BEGL_BufferFormat_eR4G4B4A4:
+      case BEGL_BufferFormat_eA4B4G4R4:
+      case BEGL_BufferFormat_eA1B5G5R5:
+      case BEGL_BufferFormat_eR5G5B5A1:
+      case BEGL_BufferFormat_eBSTC:
+      case BEGL_BufferFormat_eTILED:
          *value = EGL_TEXTURE_RGBA;
          break;
-
-      case NEXUS_PixelFormat_eR5_G6_B5:
+      case BEGL_BufferFormat_eX8B8G8R8:
+      case BEGL_BufferFormat_eR8G8B8X8:
+      case BEGL_BufferFormat_eR5G6B5:
+      case BEGL_BufferFormat_eR4G4B4X4:
+      case BEGL_BufferFormat_eX4B4G4R4:
+      case BEGL_BufferFormat_eX1B5G5R5:
+      case BEGL_BufferFormat_eR5G5B5X1:
          *value = EGL_TEXTURE_RGB;
          break;
-
+      /* we don't render into any of the formats below */
+      case BEGL_BufferFormat_eYUV422:
+      case BEGL_BufferFormat_eYV12:
+      case BEGL_BufferFormat_eY8:
+      case BEGL_BufferFormat_eCr8Cb8:
+      case BEGL_BufferFormat_eCb8Cr8:
+      case BEGL_BufferFormat_eY10:
+      case BEGL_BufferFormat_eCr10Cb10:
+      case BEGL_BufferFormat_eCb10Cr10:
       default:
          return false;
       }
       break;
-   }
+
    case EGL_WAYLAND_Y_INVERTED_WL:
       *value = EGL_TRUE;
       break;

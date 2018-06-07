@@ -527,8 +527,9 @@ static int
 wlc_assoc_req_add_entry(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint type, bool top)
 {
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
-	char ssidbuf[SSID_FMT_BUF_LEN];
+	char *ssidbuf = NULL;
 #endif
+
 	int i, j;
 	wlc_bsscfg_t *bc;
 	wlc_assoc_t *as;
@@ -540,6 +541,10 @@ wlc_assoc_req_add_entry(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint type, bool top)
 	/* check the current state of assoc_req array */
 	/* mark to see whether it's null or not */
 	as_in_progress_already = AS_IN_PROGRESS(wlc);
+#if defined(BCMDBG) || defined(WLMSG_ASSOC)
+	ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
+#endif
 
 	if (type == AS_ROAM) {
 		if (AS_IN_PROGRESS(wlc))
@@ -637,7 +642,7 @@ wlc_assoc_req_process_next(wlc_info_t *wlc)
 {
 	wlc_bsscfg_t *cfg;
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
-	char ssidbuf[SSID_FMT_BUF_LEN];
+	char *ssidbuf;
 #endif
 	wlc_assoc_t *as;
 
@@ -649,6 +654,8 @@ wlc_assoc_req_process_next(wlc_info_t *wlc)
 	}
 
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
+	ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
 	wlc_format_ssid(ssidbuf, cfg->SSID, cfg->SSID_len);
 #endif
 
@@ -680,7 +687,7 @@ static int
 wlc_assoc_req_remove_entry(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 {
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
-	char ssidbuf[SSID_FMT_BUF_LEN];
+	char *ssidbuf = NULL;
 #endif
 	int i;
 	int err = BCME_ERROR;
@@ -689,6 +696,10 @@ wlc_assoc_req_remove_entry(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	/* check the current state of assoc_req array */
 	/* mark to see whether it's null or not */
 	as_in_progress_already = AS_IN_PROGRESS(wlc);
+#if defined(BCMDBG) || defined(WLMSG_ASSOC)
+	ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
+#endif
 
 	for (i = 0; i < WLC_MAXBSSCFG; i ++) {
 		if (wlc->as->cmn->assoc_req[i] != cfg)
@@ -845,7 +856,9 @@ wlc_join_start_prep(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 		WL_ASSOC(("wl%d: SCAN: wlc_join_start_prep, Setting SSID to NULL...\n",
 		          WLCWLUNIT(wlc)));
 	else {
-		ssidbuf = (char *) MALLOC(wlc->osh, SSID_FMT_BUF_LEN);
+		ssidbuf = wlc->ssidbuf;
+		memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
+
 		if (ssidbuf) {
 			wlc_format_ssid(ssidbuf, cfg->SSID, cfg->SSID_len);
 			ssidstr = ssidbuf;
@@ -853,8 +866,6 @@ wlc_join_start_prep(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 			ssidstr = "???";
 		WL_ASSOC(("wl%d: SCAN: wlc_join_start_prep, Setting SSID to \"%s\"...\n",
 		          WLCWLUNIT(wlc), ssidstr));
-		if (ssidbuf != NULL)
-			 MFREE(wlc->osh, (void *)ssidbuf, SSID_FMT_BUF_LEN);
 	}
 #endif /* #if defined(BCMDBG) || defined(WLMSG_ASSOC) */
 
@@ -2116,12 +2127,8 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 	}
 
 #if defined(BCMDBG) || defined(WLMSG_ASSOC) || defined(WLEXTLOG)
-	ssidbuf = (char *)MALLOCZ(wlc->osh, SSID_FMT_BUF_LEN);
-	if (ssidbuf == NULL) {
-		WL_ERROR((WLC_BSS_MALLOC_ERR, WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg),
-			__FUNCTION__, SSID_FMT_BUF_LEN, MALLOCED(wlc->osh)));
-		return BCME_NOMEM;
-	}
+	ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
 #endif /* BCMDBG || WLMSG_ASSOC || WLEXTLOG */
 
 	if (assoc) {
@@ -2648,10 +2655,6 @@ fail:
 
 #endif /* EXT_STA */
 	}
-
-#if defined(BCMDBG) || defined(WLMSG_ASSOC) || defined(WLEXTLOG)
-	MFREE(wlc->osh, (void *)ssidbuf, SSID_FMT_BUF_LEN);
-#endif
 	return err;
 } /* wlc_assoc_scan_start */
 
@@ -3010,15 +3013,10 @@ wlc_assoc_scan_complete(void *arg, int status, wlc_bsscfg_t *cfg)
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
 	msg_name = for_roam ? "ROAM" : "JOIN";
 	msg_pref = !(ETHER_ISMULTI(&wlc->scan->bssid)) ? "Directed " : "";
-	ssidbuf = (char *)MALLOCZ(wlc->osh, SSID_FMT_BUF_LEN);
-	if (ssidbuf) {
-		wlc_format_ssid(ssidbuf, target_bss->SSID, target_bss->SSID_len);
-		ssidstr = ssidbuf;
-	} else {
-		ssidstr = "???";
-		WL_ERROR((WLC_MALLOC_ERR, WLCWLUNIT(wlc), __FUNCTION__, (int)SSID_FMT_BUF_LEN,
-			MALLOCED(wlc->osh)));
-	}
+	ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
+	wlc_format_ssid(ssidbuf, target_bss->SSID, target_bss->SSID_len);
+	ssidstr = ssidbuf;
 #endif /* BCMDBG || WLMSG_ASSOC */
 
 	WL_ASSOC(("wl%d: SCAN: wlc_assoc_scan_complete\n", WLCWLUNIT(wlc)));
@@ -3328,11 +3326,6 @@ wlc_assoc_scan_complete(void *arg, int status, wlc_bsscfg_t *cfg)
 exit:
 #ifdef WLLED
 	wlc_led_event(wlc->ledh);
-#endif
-
-#if defined(BCMDBG) || defined(WLMSG_ASSOC)
-	if (ssidbuf != NULL)
-		MFREE(wlc->osh, (void *)ssidbuf, SSID_FMT_BUF_LEN);
 #endif
 	return;
 } /* wlc_assoc_scan_complete */
@@ -3783,7 +3776,7 @@ wlc_join_attempt(wlc_bsscfg_t *cfg)
 	uint i;
 	wlcband_t *target_band;
 #if defined(BCMDBG) || defined(WLMSG_ASSOC) || defined(WLMSG_ROAM)
-	char ssidbuf[SSID_FMT_BUF_LEN];
+	char *ssidbuf = NULL;
 	char eabuf[ETHER_ADDR_STR_LEN];
 #endif /* BCMDBG || WLMSG_ASSOC */
 	uint32 wsec, WPA_auth;
@@ -3830,6 +3823,8 @@ wlc_join_attempt(wlc_bsscfg_t *cfg)
 		WL_ROAM(("JOIN: checking [%d] %s\n", wlc->as->cmn->join_targets_last - 1,
 			bcm_ether_ntoa(&bi->BSSID, eabuf)));
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
+		ssidbuf = wlc->ssidbuf;
+		memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
 		wlc_format_ssid(ssidbuf, bi->SSID, bi->SSID_len);
 #endif
 
@@ -5542,7 +5537,7 @@ wlc_join_recreate(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
 	wlc_roam_t *roam = bsscfg->roam;
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
 	char eabuf[ETHER_ADDR_STR_LEN];
-	char ssidbuf[SSID_FMT_BUF_LEN];
+	char *ssidbuf;
 	char chanbuf[CHANSPEC_STR_LEN];
 #endif
 
@@ -5551,6 +5546,11 @@ wlc_join_recreate(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
 	if (!(bsscfg->BSS == (bi->bss_type == DOT11_BSSTYPE_INFRASTRUCTURE))) {
 		return;
 	}
+
+#if defined(BCMDBG) || defined(WLMSG_ASSOC)
+	ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
+#endif
 
 	/* these should already be set */
 	if (!wlc->pub->associated || wlc->stas_associated == 0) {
@@ -6295,7 +6295,8 @@ wlc_join_adopt_bss(wlc_bsscfg_t *cfg)
 	uint reason = 0;
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
 	char chanbuf[CHANSPEC_STR_LEN];
-	char ssidbuf[SSID_FMT_BUF_LEN];
+	char *ssidbuf = wlc->ssidbuf;
+	memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
 	wlc_format_ssid(ssidbuf, target_bss->SSID, target_bss->SSID_len);
 #endif /* BCMDBG || WLMSG_ASSOC */
 
@@ -11395,11 +11396,12 @@ wlc_mac_request_entry(wlc_info_t *wlc, wlc_bsscfg_t *cfg, int req)
 		/* add the request into assoc req list */
 		if ((err = wlc_assoc_req_add_entry(wlc, cfg, type, FALSE)) < 0) {
 #if defined(BCMDBG) || defined(WLMSG_INFORM)
-			char ssidbuf[SSID_FMT_BUF_LEN];
+			char *ssidbuf = wlc->ssidbuf;
+			memset(ssidbuf, 0, SSID_FMT_BUF_LEN);
 			wlc_format_ssid(ssidbuf, cfg->SSID, cfg->SSID_len);
 			WL_INFORM(("wl%d.%d: %s request not granted for SSID %s\n",
-			           wlc->pub->unit, WLC_BSSCFG_IDX(cfg),
-			           WLCASTYPEN(cfg->assoc->type), ssidbuf));
+					   wlc->pub->unit, WLC_BSSCFG_IDX(cfg),
+					   WLCASTYPEN(cfg->assoc->type), ssidbuf));
 #endif
 		}
 		/* inform the caller of the request has been queued at index 'err'

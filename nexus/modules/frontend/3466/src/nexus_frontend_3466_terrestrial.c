@@ -1,39 +1,44 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+*
 *
 * API Description:
 *   API name: Frontend 3466
@@ -788,6 +793,23 @@ static NEXUS_FrontendOfdmTransmissionMode NEXUS_Frontend_P_OdsToTransmissionMode
     default:
         BDBG_WRN(("Unrecognized transmission mode."));
         BERR_TRACE(BERR_NOT_SUPPORTED);
+        return NEXUS_FrontendOfdmTransmissionMode_e8k;
+    }
+}
+
+static BODS_DvbtTransmissionMode NEXUS_Frontend_P_TransmissionModeToOds(NEXUS_FrontendOfdmTransmissionMode mode)
+{
+    switch ( mode )
+    {
+    case NEXUS_FrontendOfdmTransmissionMode_e2k:
+        return BODS_DvbtTransmissionMode_e2K;
+    case NEXUS_FrontendOfdmTransmissionMode_e4k:
+        return BODS_DvbtTransmissionMode_e4K;
+    case NEXUS_FrontendOfdmTransmissionMode_e8k:
+        return BODS_DvbtTransmissionMode_e8K;
+    default:
+        BDBG_WRN(("Unrecognized Nexus transmission mode."));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
         return BODS_DvbtTransmissionMode_e8K;
     }
 }
@@ -845,6 +867,25 @@ static NEXUS_FrontendOfdmGuardInterval NEXUS_Frontend_P_OdsToGuardInterval(BODS_
         BDBG_WRN(("Unrecognized guard interval (%d) reported by BODS", guard));
         BERR_TRACE(BERR_NOT_SUPPORTED);
         return NEXUS_FrontendOfdmGuardInterval_e1_4;
+    }
+}
+
+static BODS_DvbtGuardInterval NEXUS_Frontend_P_GuardIntervalToOds(NEXUS_FrontendOfdmGuardInterval guard)
+{
+    switch ( guard )
+    {
+    case NEXUS_FrontendOfdmGuardInterval_e1_4:
+        return BODS_DvbtGuardInterval_e1_4;
+    case NEXUS_FrontendOfdmGuardInterval_e1_8:
+        return BODS_DvbtGuardInterval_e1_8;
+    case NEXUS_FrontendOfdmGuardInterval_e1_16:
+        return BODS_DvbtGuardInterval_e1_16;
+    case NEXUS_FrontendOfdmGuardInterval_e1_32:
+        return BODS_DvbtGuardInterval_e1_32;
+    default:
+        BDBG_WRN(("Unrecognized guard interval (%d) reported by Nexus", guard));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_DvbtGuardInterval_e1_4;
     }
 }
 
@@ -1041,7 +1082,7 @@ done:
     return rc;
 }
 
-static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_ModulationToDvbt(NEXUS_FrontendOfdmModulation modulation)
+static BODS_DvbtModulation NEXUS_Frontend_P_ModulationToDvbt(NEXUS_FrontendOfdmModulation modulation)
 {
     switch ( modulation )
     {
@@ -1058,7 +1099,7 @@ static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_ModulationToDvbt(NEXUS_Fron
     }
 }
 
-static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_CodeRateToDvbt(NEXUS_FrontendOfdmCodeRate codeRate)
+static BODS_DvbtCodeRate NEXUS_Frontend_P_CodeRateToDvbt(NEXUS_FrontendOfdmCodeRate codeRate)
 {
     switch ( codeRate )
     {
@@ -1079,7 +1120,7 @@ static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_CodeRateToDvbt(NEXUS_Fronte
     }
 }
 
-static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_HierarchyToDvbt(NEXUS_FrontendOfdmHierarchy hierarchy)
+static BODS_DvbtHierarchy NEXUS_Frontend_P_HierarchyToDvbt(NEXUS_FrontendOfdmHierarchy hierarchy)
 {
     switch ( hierarchy )
     {
@@ -1399,9 +1440,9 @@ full_acquire:
             odsParam.acquireParams.dvbt.tpsMode = BODS_DvbtTpsMode_eAuto;
         if(pSettings->manualModeSettings){
             odsParam.acquireParams.dvbt.transGuardMode = BODS_DvbtOfdmMode_eManual;
-            odsParam.acquireParams.dvbt.guardInterval = pSettings->modeSettings.guardInterval;
+            odsParam.acquireParams.dvbt.guardInterval = NEXUS_Frontend_P_GuardIntervalToOds(pSettings->modeSettings.guardInterval);
             if((pSettings->modeSettings.mode>NEXUS_FrontendOfdmTransmissionMode_e1k) && (pSettings->modeSettings.mode<NEXUS_FrontendOfdmTransmissionMode_e16k))
-                odsParam.acquireParams.dvbt.transmissionMode = pSettings->modeSettings.mode;
+                odsParam.acquireParams.dvbt.transmissionMode = NEXUS_Frontend_P_TransmissionModeToOds(pSettings->modeSettings.mode);
             else {
                 BDBG_ERR((" Unsupported DVBT Transmission mode."));
                 rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;

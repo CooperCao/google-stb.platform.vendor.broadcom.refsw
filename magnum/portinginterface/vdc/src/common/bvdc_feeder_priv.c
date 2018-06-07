@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -96,7 +100,7 @@ static const BVDC_P_Feeder_StripeWidthConfig s_aStripeWidthCfgTbl[] =
 #if (BVDC_P_SUPPORT_MFD_VER < BVDC_P_MFD_VER_16)
 static const BVDC_P_Feeder_VideoFormatMode s_hwOrientation[] =
 {
-    BVDC_P_Feeder_VideoFormatMode_e2D,  /* BFMT_Orientation_e2D */
+    BVDC_P_Feeder_VideoFormatMode_e2D,   /* BFMT_Orientation_e2D */
     BVDC_P_Feeder_VideoFormatMode_e3DLR, /* BFMT_Orientation_e3D_LeftRight */
     BVDC_P_Feeder_VideoFormatMode_e3DOU, /* BFMT_Orientation_e3D_OverUnder */
     BVDC_P_Feeder_VideoFormatMode_e3DDP, /* BFMT_Orientation_e3D_Left */
@@ -565,14 +569,17 @@ static void BVDC_P_Feeder_BuildRulMfd_isr
         BCHP_MFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulRegOffset,
         hFeeder->stRegs.ullPic0Addr0);
     BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE0_LINE_ADDR_1 + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic0Addr1);
+
+#if (BVDC_P_SUPPORT_3D)
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
         BCHP_MFD_0_PICTURE0_LINE_ADDR_0_R + hFeeder->ulRegOffset,
         hFeeder->stRegs.ullPic0Addr0_R);
     BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
-        BCHP_MFD_0_PICTURE0_LINE_ADDR_1 + hFeeder->ulRegOffset,
-        hFeeder->stRegs.ullPic0Addr1);
-    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
         BCHP_MFD_0_PICTURE0_LINE_ADDR_1_R + hFeeder->ulRegOffset,
         hFeeder->stRegs.ullPic0Addr1_R);
+#endif
 
     BVDC_P_MFD_WRITE_TO_RUL(MFD_0_TEST_MODE_CNTL, hFeeder->ulRegOffset,
         pList->pulCurrent, hFeeder->stRegs.ulTestModeCntl);
@@ -616,14 +623,17 @@ static void BVDC_P_Feeder_BuildRulMfd_isr
         BCHP_MFD_0_PICTURE1_LINE_ADDR_0 + hFeeder->ulRegOffset,
         hFeeder->stRegs.ullPic1Addr0);
     BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE1_LINE_ADDR_1 + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic1Addr1);
+
+#if (BVDC_P_SUPPORT_3D)
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
         BCHP_MFD_0_PICTURE1_LINE_ADDR_0_R + hFeeder->ulRegOffset,
         hFeeder->stRegs.ullPic1Addr0_R);
     BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
-        BCHP_MFD_0_PICTURE1_LINE_ADDR_1 + hFeeder->ulRegOffset,
-        hFeeder->stRegs.ullPic1Addr1);
-    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
         BCHP_MFD_0_PICTURE1_LINE_ADDR_1_R + hFeeder->ulRegOffset,
         hFeeder->stRegs.ullPic1Addr1_R);
+#endif
 
     BDBG_CASSERT(11 == (((BCHP_MFD_0_COMP_ORDER - BCHP_MFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1));
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_MFD_0_COMP_ORDER - BCHP_MFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1);
@@ -874,8 +884,9 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
     BMMA_DeviceOffset     ullSurAddr;
     uint32_t  ulBottomOffset;
     uint32_t  ulAddrShadowReg0, ulAddrShadowReg1;
+#if (BVDC_P_SUPPORT_3D)
     uint32_t  ulRAddrShadowReg0, ulRAddrShadowReg1;
-
+#endif
     pGfxSurface = &hFeeder->stGfxSurface;
     pCurSur = &(pGfxSurface->stCurSurInfo);
 
@@ -926,15 +937,19 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
             /* sawp right Surface and left surface due to output orientation */
             ulAddrShadowReg0  = pGfxSurface->ulRSurAddrReg[0];
             ulAddrShadowReg1  = pGfxSurface->ulRSurAddrReg[1];
+#if (BVDC_P_SUPPORT_3D)
             ulRAddrShadowReg0 = pGfxSurface->ulSurAddrReg[0];
             ulRAddrShadowReg1 = pGfxSurface->ulSurAddrReg[1];
+#endif
         }
         else
         {
             ulAddrShadowReg0  = pGfxSurface->ulSurAddrReg[0];
             ulAddrShadowReg1  = pGfxSurface->ulSurAddrReg[1];
+#if (BVDC_P_SUPPORT_3D)
             ulRAddrShadowReg0 = pGfxSurface->ulRSurAddrReg[0];
             ulRAddrShadowReg1 = pGfxSurface->ulRSurAddrReg[1];
+#endif
         }
 
         BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
@@ -958,6 +973,7 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
             BCHP_MFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulRegOffset,
             BRDC_Variable_2);
 
+#if (BVDC_P_SUPPORT_3D)
         if(BVDC_P_ORIENTATION_IS_3D(pCurSur->stAvcPic.eInOrientation) &&
            BVDC_P_ORIENTATION_IS_3D(hFeeder->eOutputOrientation))
         {
@@ -982,6 +998,8 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
                 BCHP_MFD_0_PICTURE0_LINE_ADDR_0_R + hFeeder->ulRegOffset, 0);
 
         }
+#endif
+
     }
     else if(hFeeder->stMfdPicture.ePxlFmt != BPXL_INVALID)/* !(pGfxSurface->b3dSrc) && not striped */
     {
@@ -1145,9 +1163,12 @@ static void BVDC_P_Feeder_BuildRulVfd_isr
     BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
         BCHP_VFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulVfd0RegOffset,
         hFeeder->stRegs.ullPic0Addr0);
+
+#if (BVDC_P_SUPPORT_3D)
     BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
         BCHP_VFD_0_PICTURE0_LINE_ADDR_0_R + hFeeder->ulVfd0RegOffset,
         hFeeder->stRegs.ullPic0Addr0_R);
+#endif
 
 #if (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_15)
     BDBG_CASSERT(6 == (((BCHP_VFD_0_DISP_VSIZE - BCHP_VFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1));
@@ -1388,6 +1409,7 @@ static BERR_Code BVDC_P_Feeder_GetFormatCtrlSettings_isr
     return BERR_TRACE(err);
 }
 
+#if (BVDC_P_SUPPORT_3D)
 /***************************************************************************
  * Set MFD_0_FEEDER_CNTL.MEM_VIDEO and MFD_0_FEEDER_CNTL.BVB_VIDEO
  */
@@ -1415,6 +1437,7 @@ static BERR_Code BVDC_P_Feeder_SetOrientation_isr
 
     return BERR_SUCCESS;
 }
+#endif
 
 #if (BVDC_P_MFD_SUPPORT_PACKING_TYPE)
 /***************************************************************************
@@ -1704,8 +1727,10 @@ static BERR_Code BVDC_P_Feeder_SetFeederCntl_isr
     /* Set IMAGE_FORMAT */
     err = BVDC_P_Feeder_SetImageFormat_isr(hFeeder);
 
+#if (BVDC_P_SUPPORT_3D)
     /* Set MEM_VIDEO and BVB_VIDEO */
     err = BVDC_P_Feeder_SetOrientation_isr(hFeeder);
+#endif
 
     /* Set PIXEL_SATURATION_ENABLE */
     err = BVDC_P_Feeder_SetPixelSaturation_isr(hFeeder);
@@ -2812,6 +2837,7 @@ BERR_Code BVDC_P_Feeder_SetMpegAddr_isr
             stMpegDeviceAddr.ullChromaBotDeviceAddr) );
 #endif
 
+#if (BVDC_P_SUPPORT_3D)
     /* MFD_0_PICTURE0_LINE_ADDR_0_R */
     hFeeder->stRegs.ullPic0Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0_R, AVC_MPEG_LUMA_ADDR) );
@@ -2845,6 +2871,7 @@ BERR_Code BVDC_P_Feeder_SetMpegAddr_isr
         BCHP_FIELD_DATA(MFD_0_PICTURE1_LINE_ADDR_1_R, AVC_MPEG_CHROMA_ADDR,
             stMpegDeviceAddr.ullChromaBotDeviceAddr_R) );
 #endif
+#endif /* BVDC_P_SUPPORT_3D */
 
     return BERR_SUCCESS;
 }
@@ -2880,8 +2907,11 @@ static BERR_Code BVDC_P_Feeder_SetSurfaceStrideAddr_isr
     /* Set address: real addr is set to scratch registers */
     hFeeder->stRegs.ullPic0Addr0  &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR) );
+
+#if (BVDC_P_SUPPORT_3D)
     hFeeder->stRegs.ullPic0Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR) );
+#endif
 
     return err;
 }
@@ -3201,6 +3231,7 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
             BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR, ullDeviceAddr) );
     }
 
+#if (BVDC_P_SUPPORT_3D)
     /* Set address */
     hFeeder->stRegs.ullPic0Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR) );
@@ -3216,6 +3247,7 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
         hFeeder->stRegs.ullPic0Addr0_R |= (
             BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR, ullDeviceAddr_R) );
     }
+#endif
 
     return BERR_SUCCESS;
 }
@@ -3365,14 +3397,18 @@ static void BVDC_P_Feeder_SetFixedColor_isr
     ucCr   = (uint8_t)BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, ulMuteColorYCrCb, 0);
 
     hFeeder->stRegs.ulFeederCntl &= ~(
+#if (BVDC_P_SUPPORT_3D)
         BCHP_MASK(MFD_0_FEEDER_CNTL, MEM_VIDEO          ) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, BVB_VIDEO          ) |
+#endif
         BCHP_MASK(MFD_0_FEEDER_CNTL, IMAGE_FORMAT       ) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, FIXED_COLOUR_ENABLE) );
 
     hFeeder->stRegs.ulFeederCntl |= (
+#if (BVDC_P_SUPPORT_3D)
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, MEM_VIDEO, MODE_2D     ) |
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, BVB_VIDEO, hFeeder->eOutputOrientation)|
+#endif
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, IMAGE_FORMAT, PACKED   ) |
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, FIXED_COLOUR_ENABLE, ON) );
 
@@ -3464,8 +3500,9 @@ void BVDC_P_Feeder_GetCrc_isr
 
 #if (BVDC_P_MFD_SUPPORT_CRC_TYPE)
     pData->ulChroma1Crc = BREG_Read32_isr(hReg, BCHP_MFD_0_CHROMA_1_CRC + hFeeder->ulRegOffset);
+#if (BVDC_P_MFD_SUPPORT_CRC_R)
     pData->ulChroma1CrcR = BREG_Read32_isr(hReg, BCHP_MFD_0_CHROMA_1_CRC_R + hFeeder->ulRegOffset);
-
+#endif
 #else
     pData->ulChroma1Crc = BVDC_P_MFD_INVALID_CRC;
     pData->ulChroma1CrcR = BVDC_P_MFD_INVALID_CRC;

@@ -54,6 +54,9 @@ void TzIoc::TzIocMem::init(void *devTree)
 {
     // Get parent tzioc node
     int parentOffset = fdt_subnode_offset(devTree, 0, "tzioc");
+    if(parentOffset<0) {
+        kernelHalt("No tzioc node found in the device tree");
+    }
     int propLen;
 
     // Parse #address-cells property of parent node
@@ -74,7 +77,7 @@ void TzIoc::TzIocMem::init(void *devTree)
     if ((!fpSzCells) || (propLen < sizeof(int)))
         szCellSize = 1;
     else
-        szCellSize = parseInt((void *)fpAdCells->data, propLen);
+        szCellSize = parseInt((void *)fpSzCells->data, propLen);
 
     int adByteSize = adCellSize * sizeof(int);
     int szByteSize = szCellSize * sizeof(int);
@@ -101,7 +104,6 @@ void TzIoc::TzIocMem::init(void *devTree)
     uint32_t heapsSize = (uint32_t)((szCellSize == 1) ?
          parseInt(regData, szByteSize) :
          parseInt64(regData, szByteSize));
-    regData += szByteSize;
 
     printf("TzIoc TZOS heaps at 0x%x, size 0x%x\n",
            (unsigned int)heapsOffset, (unsigned int)heapsSize);

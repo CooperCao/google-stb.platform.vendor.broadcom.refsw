@@ -97,8 +97,31 @@ typedef struct
     size_t         key_data_length;
     const uint8_t* key_control_iv;
     const uint8_t* key_control;
-    Drm_WVOemCryptoCipherMode cipher_mode;
 } Drm_WVOemCryptoKeyObject;
+
+typedef struct
+{
+    uint32_t key_id;
+    uint32_t key_id_length;
+    uint32_t key_data_iv;
+    uint32_t key_data;
+    uint32_t key_data_length;
+    uint32_t key_control_iv;
+    uint32_t key_control;
+} Drm_WVOemCryptoSageKeyObject;
+
+
+typedef struct
+{
+    const uint8_t* key_id;
+    size_t         key_id_length;
+    const uint8_t* key_data_iv;
+    const uint8_t* key_data;
+    size_t         key_data_length;
+    const uint8_t* key_control_iv;
+    const uint8_t* key_control;
+    Drm_WVOemCryptoCipherMode cipher_mode;
+} Drm_WVOemCryptoKeyObject_V11_to_V13;
 
 /* Better to have the same define in Sage side */
 typedef struct
@@ -111,7 +134,7 @@ typedef struct
     uint32_t key_control_iv;
     uint32_t key_control;
     Drm_WVOemCryptoCipherMode cipher_mode;
-} Drm_WVOemCryptoSageKeyObject;
+} Drm_WVOemCryptoSageKeyObject_V11_to_V13;
 
 typedef struct
 {
@@ -136,13 +159,34 @@ typedef struct
     uint32_t key_control;
 } Drm_WVOemCryptoSageKeyObject_V10;
 
+typedef struct Drm_WVOemCryptoEntitledContentKeyObject
+{
+    uint8_t* entitlement_key_id;
+    size_t   entitlement_key_id_length;
+    uint8_t* content_key_id;
+    size_t   content_key_id_length;
+    uint8_t* content_key_data_iv;
+    uint8_t* content_key_data;
+    size_t   content_key_data_length;
+} Drm_WVOemCryptoEntitledContentKeyObject;
+
+typedef struct Drm_WVOemCryptoSageEntitledContentKeyObject
+{
+    uint32_t entitlement_key_id;
+    uint32_t entitlement_key_id_length;
+    uint32_t content_key_id;
+    uint32_t content_key_id_length;
+    uint32_t content_key_data_iv;
+    uint32_t content_key_data;
+    uint32_t content_key_data_length;
+} Drm_WVOemCryptoSageEntitledContentKeyObject;
+
 typedef struct Drm_WVOemCryptoKeyRefreshObject
 {
     const uint8_t* key_id;
     size_t         key_id_length;
     const uint8_t* key_control_iv;
     const uint8_t* key_control;
-
 } Drm_WVOemCryptoKeyRefreshObject;
 
 /* Better to have the same define in Sage side */
@@ -304,7 +348,7 @@ DrmRC drm_WVOemCrypto_GenerateSignature(
                             size_t* signature_length,
                             int *wvRc);
 
-DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
+DrmRC drm_WVOemCrypto_LoadKeys_V13(uint32_t session,
                                    const uint8_t* message,
                                    uint32_t message_length,
                                    const uint8_t* signature,
@@ -353,7 +397,7 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
                                       void* key_array,
                                       int * wVRc);
 
-DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
+DrmRC drm_WVOemCrypto_SelectKey_V13(const uint32_t session,
                                     const uint8_t* key_id,
                                     uint32_t key_id_length,
                                     int *wVRc);
@@ -892,6 +936,34 @@ DrmRC DRM_WVOemCrypto_Create_Old_Usage_Entry(uint64_t time_since_license_receive
                                              int *wvRc);
 
 bool DRM_WVOemCrypto_IsAntiRollbackHwPresent(void);
+
+DrmRC DRM_WVOemCrypto_GetAnalogOutputFlags(uint32_t *output_flags, int *wvRc);
+
+DrmRC DRM_WVOemCrypto_LoadEntitledContentKeys(uint32_t session,
+                                              uint32_t num_keys,
+                                              void* key_array,
+                                              int *wvRc);
+
+DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
+                                const uint8_t* key_id,
+                                uint32_t key_id_length,
+                                uint32_t cipher_mode,
+                                int *wvRc);
+
+DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
+                               const uint8_t* message,
+                               uint32_t       message_length,
+                               const uint8_t* signature,
+                               uint32_t       signature_length,
+                               const uint8_t* enc_mac_key_iv,
+                               const uint8_t* enc_mac_keys,
+                               uint32_t       num_keys,
+                               void*          key_array,
+                               const uint8_t* pst,
+                               uint32_t       pst_length,
+                               const uint8_t* srm_requirement,
+			       uint32_t license_type,
+                               int *wvRc);
 
 #ifdef __cplusplus
 }

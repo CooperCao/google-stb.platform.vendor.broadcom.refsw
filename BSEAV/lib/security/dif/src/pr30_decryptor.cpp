@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #undef LOGE
 #undef LOGW
@@ -69,6 +72,14 @@ uint8_t Playready30Decryptor::s_sessionNum = 0;
 
 #define MAX_TIME_CHALLENGE_RESPONSE_LENGTH (1024*64)
 #define MAX_URL_LENGTH (512)
+
+/* #define USE_DEFAULT_LICACQ_URL */       /* Shouldn't use the default URL with latest PlayReady test
+                                             * content as some of that content was created with an invalid
+                                             * default URL.  Microsoft says to use the hard-code URL below.
+                                             */
+
+#define PLAYREADY_TEST_CONTENT_LICACQ_URL   "http://test.playready.microsoft.com/service/rightsmanager.asmx"
+
 
 static int initSecureClock( DRM_APP_CONTEXT *pDrmAppCtx)
 {
@@ -244,11 +255,15 @@ ErrorExit:
 DRM_RESULT policy_callback(
     const DRM_VOID *f_pvPolicyCallbackData,
     DRM_POLICY_CALLBACK_TYPE f_dwCallbackType,
+    const DRM_KID   *f_pKID,
+    const DRM_LID   *f_pLID,
     const DRM_VOID *f_pv)
 {
     DRM_RESULT dr = DRM_SUCCESS;
     const DRM_PLAY_OPL_EX *oplPlay = NULL;
 
+    BSTD_UNUSED(f_pKID);
+    BSTD_UNUSED(f_pLID);
     BSTD_UNUSED(f_pv);
 
     switch( f_dwCallbackType )
@@ -394,7 +409,12 @@ Playready30Decryptor::Playready30Decryptor()
 {
     LOGD(("%s: enter", BSTD_FUNCTION));
     s_sessionNum++;
-    m_drmDecryptContext = NULL;
+
+    for (int i = 0; i < DRM_MAX_NUM_DECRYPTCONTEXTS; i++) {
+        m_drmDecryptContexts[i] = NULL;
+    }
+    m_drmDecryptContextCount = 0;
+
     m_valid = false;
 }
 
@@ -402,13 +422,7 @@ Playready30Decryptor::~Playready30Decryptor()
 {
     LOGD(("%s: enter", BSTD_FUNCTION));
 
-    if (m_drmDecryptContext != NULL) {
-        LOGD(("%s: Drm_Reader_Close", BSTD_FUNCTION));
-        Drm_Reader_Close(m_drmDecryptContext);
-
-        BKNI_Free(m_drmDecryptContext);
-        m_drmDecryptContext = NULL;
-    }
+    ReleaseDecryptContexts();
 
     s_sessionNum--;
 
@@ -563,16 +577,6 @@ bool Playready30Decryptor::Initialize(std::string& pssh)
         return false;
     }
 
-    m_drmDecryptContext = reinterpret_cast<DRM_DECRYPT_CONTEXT*>(Oem_MemAlloc(sizeof(DRM_DECRYPT_CONTEXT)));
-
-    if (m_drmDecryptContext == NULL) {
-        LOGE(("%s: failed to allocate m_DrmDecryptContext", BSTD_FUNCTION));
-        return false;
-    }
-
-    BKNI_Memset(m_drmDecryptContext, 0, sizeof(DRM_DECRYPT_CONTEXT));
-
-    ParsePssh(&m_pssh, &m_wrmheader);
     if (m_wrmheader.empty()) {
         dump_hex("Initialize->SetProperty", m_pssh.data(), m_pssh.size());
         LOGD(("Initialize->SetProperty with pssh"));
@@ -727,30 +731,32 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData, dif_streamer
     // All done.
     m_sessionId.assign(int_to_string(s_nextSessionId++));
 
+#ifdef USE_DEFAULT_LICACQ_URL
     if (pCh_url[0]) {
         m_defaultUrl.assign(pCh_url, urlLen - 1);
         LOGD(("default url(%d): \"%s\"", (uint32_t)m_defaultUrl.size(), m_defaultUrl.c_str()));
     }
-
+    else
+#endif
+    {
+        m_defaultUrl.assign(PLAYREADY_TEST_CONTENT_LICACQ_URL, strlen(PLAYREADY_TEST_CONTENT_LICACQ_URL));
+        LOGD(("default url(%d): \"%s\"", (uint32_t)m_defaultUrl.size(), m_defaultUrl.c_str()));
+    }
     if ((pCh_data[0]) && chLen != 0) {
         m_keyMessage.assign((const char*)&pCh_data[0], chLen);
     }
 
     LOGD(("GenerateKeyRequest: keyMessage(%d): %s", (uint32_t)m_keyMessage.size(), m_keyMessage.c_str()));
 
-    uint32_t numDeleted;
-    dr = Drm_StoreMgmt_DeleteLicenses(s_pDrmAppCtx, NULL, NULL, (DRM_DWORD*)&numDeleted);
-
+    dr = DeleteStoredLicenses();
     if (dr != DRM_SUCCESS) {
-        LOGE(("%s: Drm_StoreMgmt_DeleteLicenses: 0x%x", BSTD_FUNCTION, (unsigned)dr));
+        LOGE(("%s: Failed to delete stored licenses", BSTD_FUNCTION));
         if (pCh_url)
             BKNI_Free(pCh_url);
         if (pCh_data)
             BKNI_Free(pCh_data);
         return false;
     }
-
-    LOGD(("Drm_StoreMgmt_DeleteLicenses: numDeleted=%u", numDeleted));
 
     if (pCh_url)
         BKNI_Free(pCh_url);
@@ -848,16 +854,19 @@ std::string Playready30Decryptor::GetKeyRequestResponse(std::string url)
 #else // USE_CURL
 #endif // USE_CURL
 
-bool Playready30Decryptor::AddKey(std::string key)
+bool Playready30Decryptor::AddKey(std::string key, bmp4_protection_info& protectionInfo)
 {
     LOGD(("%s enter", BSTD_FUNCTION));
+    bool       result = true;   // assume success
     DRM_RESULT dr = DRM_SUCCESS;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
     uint8_t *pbNewOpaqueBuffer = NULL;
     uint32_t cbNewOpaqueBuffer = s_cbOpaqueBuffer * 2;
     DRM_LICENSE_RESPONSE oResponse;
+    DRM_CGP_HEADER_KIDS_DATA  *pKIDsData            = NULL;
+    DecryptContextInfo        *pDecryptContextInfo  = NULL;
 
-#if 1
+#if 0  /* **FixMe** Not needed and technically incorrect because Microsoft advises not to call Drm_Content_SetProperty between calls to generate a license and to process the response. */
     if (!m_wrmheader.empty()) {
         LOGD(("AddKey->SetProperty with wrmheader"));
         dr = Drm_Content_SetProperty(s_pDrmAppCtx,
@@ -894,89 +903,149 @@ bool Playready30Decryptor::AddKey(std::string key)
 
     dr = Drm_LicenseAcq_ProcessResponse(
         s_pDrmAppCtx,
-        DRM_PROCESS_LIC_RESPONSE_NO_FLAGS,
+//        DRM_PROCESS_LIC_RESPONSE_NO_FLAGS,  **FixMe** awaiting response from Microsoft on how to handle this for PR3x
+        DRM_PROCESS_LIC_RESPONSE_SIGNATURE_NOT_REQUIRED,
         (const uint8_t *)key.c_str(),
         key.size(),
         &oResponse );
 
-    if (dr != DRM_SUCCESS) {
+    if ( DRM_FAILED(dr) ) {
         LOGE(("%s: Drm_LicenseAcq_ProcessResponse: 0x%x", BSTD_FUNCTION, (unsigned)dr));
         return false;
     }
 #endif // SECURE_CLOCK_FEATURE
 
-    LOGD(("%s: calling Drm_Reader_Bind %p\n", BSTD_FUNCTION, (void*)m_drmDecryptContext));
-
-    while((dr = Drm_Reader_Bind(
-       s_pDrmAppCtx,
-       rgstrRights,
-       1,
-       (DRMPFNPOLICYCALLBACK)policy_callback,
-       (void*)this,
-       m_drmDecryptContext)) == DRM_E_BUFFERTOOSMALL)
-    {
-        BDBG_ASSERT(cbNewOpaqueBuffer > s_cbOpaqueBuffer); /* overflow check */
-
-        if (cbNewOpaqueBuffer > DRM_MAXIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE)
-        {
-            LOGE(("%s: Drm_Reader_Bind: cbNewOpaqueBuffer too larg too large", BSTD_FUNCTION));
-            return false;
-        }
-
-        pbNewOpaqueBuffer = (uint8_t*)Oem_MemAlloc(cbNewOpaqueBuffer);
-        if (pbNewOpaqueBuffer == NULL) {
-            LOGE(("%s: failed to allocate pbNewOpaqueBuffer\n", BSTD_FUNCTION));
-            return false;
-        }
-
-        dr = Drm_ResizeOpaqueBuffer(
-            s_pDrmAppCtx,
-            pbNewOpaqueBuffer,
-            cbNewOpaqueBuffer);
-
-        /*
-         Free the old buffer and then transfer the new buffer ownership
-         Free must happen after Drm_ResizeOpaqueBuffer because that
-         function assumes the existing buffer is still valid
-        */
-        SAFE_OEM_FREE(s_pbOpaqueBuffer);
-        s_cbOpaqueBuffer = cbNewOpaqueBuffer;
-        s_pbOpaqueBuffer = pbNewOpaqueBuffer;
-        pbNewOpaqueBuffer = NULL;
-    }
-
-    if (DRM_FAILED(dr)) {
-        if (dr == DRM_E_LICENSE_NOT_FOUND) {
-            /* could not find a license for the KID */
-            LOGE(("%s: no licenses found in the license store. Please request one from the license server.\n", BSTD_FUNCTION));
-        }
-        else if(dr == DRM_E_LICENSE_EXPIRED) {
-            /* License is expired */
-            LOGE(("%s: License expired. Please request one from the license server.\n", BSTD_FUNCTION));
-        }
-        else if(dr == DRM_E_RIV_TOO_SMALL ||
-            dr == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE)
-        {
-            /* Revocation Package must be update */
-            LOGE(("%s: Revocation Package must be update. 0x%x\n", BSTD_FUNCTION,(unsigned)dr));
-        }
-        else {
-            LOGE(("%s: unexpected failure during bind. 0x%x\n", BSTD_FUNCTION,(unsigned)dr));
-        }
-    }
-
-    LOGD(("%s: calling Drm_Reader_Commit dr 0x%x\n", BSTD_FUNCTION, (unsigned)dr));
-    dr = Drm_Reader_Commit(s_pDrmAppCtx, NULL, NULL);
-
+    /*
+     *  Bind the license for each key found in the PlayReadyObjHeader
+     */
+    dr = GetKeyIdsFromHeader(&pKIDsData);
     if (dr != DRM_SUCCESS) {
-        LOGE(("%s: Drm_Reader_Commit: 0x%x\n", BSTD_FUNCTION, (unsigned)dr));
-        return false;
+	    LOGE(("%s: Failed to get keyIds from PlayReady Header object.", BSTD_FUNCTION));
+	    result = false;
+        goto ErrorExit;
     }
 
+    if (pKIDsData->cKIDs > BMP4_MAX_NB_OF_TRACKS) {
+	    LOGE(("%s: Failed: Too many keys.  Maximum number of keys currently supported = %d while license has %d.", BSTD_FUNCTION, BMP4_MAX_NB_OF_TRACKS, pKIDsData->cKIDs));
+	    result = false;
+        goto ErrorExit;
+    }
+
+    /* To handle multiple keyIds, DecryptContexts are mapped to tracks specified in a track protection scheme */
+    for (unsigned int i = 0; i < pKIDsData->cKIDs; i++) {
+        DecryptContextInfo *pDecryptContextInfo = reinterpret_cast<DecryptContextInfo*>(Oem_MemAlloc(sizeof(DecryptContextInfo)));
+        if (pDecryptContextInfo == NULL) {
+            LOGE(("%s: failed to allocate DecryptContextInfo at index %d", BSTD_FUNCTION, i));
+            result = false;
+            goto ErrorExit;
+	    }
+
+        dr = Drm_Content_SetProperty(
+            s_pDrmAppCtx,
+            DRM_CSP_SELECT_KID,
+            (const DRM_BYTE*)pKIDsData->rgpwszKIDs[i],
+            (CCH_BASE64_EQUIV(sizeof(DRM_GUID)) * sizeof(DRM_WCHAR)) ) ;
+        if ( dr != DRM_SUCCESS )
+        {
+            BDBG_ERR(("Drm_Content_SetProperty() failed for KID at index %d, exiting", i));
+            result = false;
+            goto ErrorExit;
+        }
+
+        LOGD(("%s: calling Drm_Reader_Bind %p\n", BSTD_FUNCTION, (void*)pDecryptContextInfo));
+        while((dr = Drm_Reader_Bind(
+           s_pDrmAppCtx,
+           rgstrRights,
+           1,
+           (DRMPFNPOLICYCALLBACK)policy_callback,
+           (void*)this,
+           &pDecryptContextInfo->m_drmDecryptContext)) == DRM_E_BUFFERTOOSMALL)
+        {
+            BDBG_ASSERT(cbNewOpaqueBuffer > s_cbOpaqueBuffer); /* overflow check */
+
+            if (cbNewOpaqueBuffer > DRM_MAXIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE)
+            {
+                LOGE(("%s: Drm_Reader_Bind: cbNewOpaqueBuffer too larg too large", BSTD_FUNCTION));
+                result = false;
+                goto ErrorExit;
+            }
+
+            pbNewOpaqueBuffer = (uint8_t*)Oem_MemAlloc(cbNewOpaqueBuffer);
+            if (pbNewOpaqueBuffer == NULL) {
+                LOGE(("%s: failed to allocate pbNewOpaqueBuffer\n", BSTD_FUNCTION));
+                result = false;
+                goto ErrorExit;
+            }
+
+            dr = Drm_ResizeOpaqueBuffer(
+                 s_pDrmAppCtx,
+                pbNewOpaqueBuffer,
+                cbNewOpaqueBuffer);
+
+            /*
+             Free the old buffer and then transfer the new buffer ownership
+             Free must happen after Drm_ResizeOpaqueBuffer because that
+             function assumes the existing buffer is still valid
+            */
+            SAFE_OEM_FREE(s_pbOpaqueBuffer);
+            s_cbOpaqueBuffer = cbNewOpaqueBuffer;
+            s_pbOpaqueBuffer = pbNewOpaqueBuffer;
+            pbNewOpaqueBuffer = NULL;
+        }
+
+        /* check the results of the final call to Drm_Reader_Bind */
+        if (DRM_FAILED(dr)) {
+            if (dr == DRM_E_LICENSE_NOT_FOUND) {
+                /* could not find a license for the KID */
+                LOGE(("%s: no licenses found in the license store. Please request one from the license server.\n", BSTD_FUNCTION));
+            }
+            else if(dr == DRM_E_LICENSE_EXPIRED) {
+                /* License is expired */
+                LOGE(("%s: License expired. Please request one from the license server.\n", BSTD_FUNCTION));
+            }
+            else if(dr == DRM_E_RIV_TOO_SMALL ||
+                dr == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE)
+            {
+                /* Revocation Package must be update */
+                LOGE(("%s: Revocation Package must be update. 0x%x\n", BSTD_FUNCTION,(unsigned)dr));
+            }
+            else {
+                LOGE(("%s: unexpected failure during bind. 0x%x\n", BSTD_FUNCTION,(unsigned)dr));
+            }
+            result = false;
+            goto ErrorExit;
+        }
+
+        LOGD(("%s: calling Drm_Reader_Commit dr 0x%x\n", BSTD_FUNCTION, (unsigned)dr));
+        dr = Drm_Reader_Commit(s_pDrmAppCtx, NULL, NULL);
+        if (dr != DRM_SUCCESS) {
+            LOGE(("%s: Drm_Reader_Commit: 0x%x\n", BSTD_FUNCTION, (unsigned)dr));
+            result = false;
+            goto ErrorExit;
+        }
+
+        /* If we get here, bind was successful. Remember the details about the associated decrypt context */
+        if ( !SetDecryptContextKeyId(*pDecryptContextInfo, pKIDsData->rgpwszKIDs[i]) ) {
+            LOGE(("%s: Failed to set the keyId in the decrypt context.", BSTD_FUNCTION));
+            result = false;
+            goto ErrorExit;
+        }
+
+        if ( !AddDecryptContext(pDecryptContextInfo, protectionInfo) ) {
+            LOGE(("%s: Failed to add a decrypt context.", BSTD_FUNCTION));
+            result = false;
+            goto ErrorExit;
+        }
+    }
     m_valid = true;
 
+ErrorExit:
+
+    SAFE_OEM_FREE(pKIDsData);
+    if (pDecryptContextInfo) BKNI_Free(pDecryptContextInfo);
+
     LOGD(("%s leaving", BSTD_FUNCTION));
-    return true;
+    return result;
 }
 
 #if 0 // FIXME
@@ -1009,10 +1078,16 @@ uint32_t Playready30Decryptor::DecryptSample(
     SampleInfo *pSample,
     IBuffer *input,
     IBuffer *output,
-    uint32_t sampleSize)
+    uint32_t sampleSize,
+    bmp4_protectionSchemeInfo& trackProtectionInfo)
 {
     DRM_RESULT dr = DRM_SUCCESS;
     DRM_AES_COUNTER_MODE_CONTEXT aesCtrInfo;
+
+    if (pSample == NULL) {
+        LOGE(("%s: Invalid input parameter.", BSTD_FUNCTION));
+        return 0;
+    }
 
     uint8_t i = 0;
     uint32_t bytes_processed = 0;
@@ -1040,6 +1115,13 @@ uint32_t Playready30Decryptor::DecryptSample(
         dump_hex("iv", (const char*)&aesCtrInfo.qwInitializationVector, 16);
     }
 
+    DecryptContextInfo *pDecryptContextInfo = NULL;
+
+    if ( !GetDecryptContext(trackProtectionInfo, &pDecryptContextInfo) )  {
+        LOGD(("%s: Failed to get a decrypt context.  Assuming this is a clear stream...", BSTD_FUNCTION));
+        return sampleSize;
+    }
+
     aesCtrInfo.qwBlockOffset = 0;
     aesCtrInfo.bByteOffset = 0;
 
@@ -1047,10 +1129,10 @@ uint32_t Playready30Decryptor::DecryptSample(
         if (playready_iv != 0LL) {
             uint32_t encryptedRegionMappings[2];
             encryptedRegionMappings[0] = 0; /* 0 bytes of clear */
-            encryptedRegionMappings[1] = sampleSize; /* 0 bytes of clear */
+            encryptedRegionMappings[1] = sampleSize; /* sampleSize bytes of encrypted */
 
             dr = Drm_Reader_DecryptOpaque(
-                m_drmDecryptContext,
+                &pDecryptContextInfo->m_drmDecryptContext,
                 2,
                 encryptedRegionMappings,
                 aesCtrInfo.qwInitializationVector,
@@ -1081,7 +1163,7 @@ uint32_t Playready30Decryptor::DecryptSample(
     }
 
     dr = Drm_Reader_DecryptOpaque(
-        m_drmDecryptContext,
+        &pDecryptContextInfo->m_drmDecryptContext,
         pSample->nbOfEntries * 2,
         pEncryptedRegionMappings,
         aesCtrInfo.qwInitializationVector,
@@ -1100,4 +1182,237 @@ uint32_t Playready30Decryptor::DecryptSample(
     bytes_processed += sampleSize;
     LOGD(("%s: bytes_processed=%u", BSTD_FUNCTION, bytes_processed));
     return bytes_processed;
+}
+
+
+DRM_RESULT Playready30Decryptor::GetKeyIdsFromHeader(DRM_CGP_HEADER_KIDS_DATA **pKIDsData)
+{
+    DRM_RESULT      dr          = DRM_SUCCESS;
+    DRM_BYTE       *pbKIDs      = NULL;
+    DRM_DWORD	    cbKIDs 		= 0;
+
+    if (pKIDsData == NULL) {
+        LOGE(("%s: Invalid input parameter.", BSTD_FUNCTION));
+        return DRM_E_INVALIDARG;
+    }
+
+    dr = Drm_Content_GetProperty( s_pDrmAppCtx, DRM_CGP_HEADER_KIDS, NULL, &cbKIDs );
+    if (dr != DRM_E_BUFFERTOOSMALL) {
+        LOGE(("%s: Failed to get buffer sizes for the DRM_CGP_HEADER_KIDS.", BSTD_FUNCTION));
+        return dr;
+    }
+
+    pbKIDs = ( DRM_BYTE * )Oem_MemAlloc( cbKIDs );
+    if (pbKIDs == NULL) {
+        LOGE(("%s: Failed to allocate memory for the KIDs.", BSTD_FUNCTION));
+	    return DRM_E_OUTOFMEMORY;
+    }
+
+    dr = Drm_Content_GetProperty( s_pDrmAppCtx, DRM_CGP_HEADER_KIDS, pbKIDs, &cbKIDs );
+    if (dr != DRM_SUCCESS) {
+        LOGE(("%s: Failed to GetProperty for the DRM_CGP_HEADER_KIDS : 0x%x", BSTD_FUNCTION, (unsigned)dr));
+        SAFE_OEM_FREE( pbKIDs );
+        return dr;
+    }
+
+    *pKIDsData = (DRM_CGP_HEADER_KIDS_DATA*)pbKIDs;
+
+    return dr;
+}
+
+DRM_RESULT Playready30Decryptor::DeleteStoredLicenses()
+{
+    DRM_RESULT                  dr              = DRM_SUCCESS;
+    DRM_DWORD                   numDeleted      = 0;
+    DRM_DWORD                   totalDeleted    = 0;
+    DRM_CGP_HEADER_KIDS_DATA   *pKIDsData	    = NULL;
+    DRM_CONST_STRING            dstrKID         = DRM_EMPTY_DRM_STRING;
+
+    /* Get the KID(s) from the header; need to individually delete each license in order to handle headers with multiple keys */
+    dr = GetKeyIdsFromHeader(&pKIDsData);
+    if (dr != DRM_SUCCESS) {
+        LOGE(("%s: Failed to get KeyIds from PlayReady Header obj", BSTD_FUNCTION));
+        return dr;
+    }
+
+    for (unsigned int i = 0; i < pKIDsData->cKIDs; i++) {
+        DRM_DSTR_FROM_PB( &dstrKID, pKIDsData->rgpwszKIDs[i], (CCH_BASE64_EQUIV(sizeof(DRM_GUID)) * sizeof(DRM_WCHAR)) );
+        dr = Drm_StoreMgmt_DeleteLicenses(s_pDrmAppCtx, &dstrKID, NULL, (DRM_DWORD*)&numDeleted);
+        if (dr != DRM_SUCCESS) {
+            LOGE(("%s: Drm_StoreMgmt_DeleteLicenses: 0x%x", BSTD_FUNCTION, (unsigned)dr));
+            SAFE_OEM_FREE(pKIDsData);
+            goto ErrorExit;
+        }
+        totalDeleted += numDeleted;
+    }
+
+    LOGD(("Drm_StoreMgmt_DeleteLicenses: numDeleted=%u", totalDeleted));
+
+ErrorExit:
+
+    SAFE_OEM_FREE(pKIDsData);
+
+    return dr;
+}
+
+bool Playready30Decryptor::SetDecryptContextKeyId(DecryptContextInfo& decryptContextInfo, const DRM_WCHAR *pKID)
+{
+
+    DRM_KID             keyId;
+    DRM_RESULT          dr;
+    DRM_CONST_STRING    dstrKID = DRM_EMPTY_DRM_STRING;
+
+    if (pKID == NULL) {
+        LOGE(("%s: Invalid input parameter", BSTD_FUNCTION));
+        return false;
+    }
+
+    if ( sizeof(keyId) != sizeof(decryptContextInfo.m_KeyId) ) {
+        LOGE(("%s: key sizes are incompatible", BSTD_FUNCTION));
+        return false;
+    }
+
+    DRM_DSTR_FROM_PB( &dstrKID, pKID, (CCH_BASE64_EQUIV(sizeof(DRM_KID)) * sizeof(DRM_WCHAR)) );
+
+    dr = DRM_UTL_DecodeKID(&dstrKID, &keyId);
+    if (dr != DRM_SUCCESS) {
+        LOGE(("%s: %d DRM_UTL_DecodeKID failed: 0x%x", BSTD_FUNCTION, __LINE__, (unsigned)dr));
+        return false;
+    }
+
+    /* Need to convert parts of keyId back to big endian before comparing */
+    DRM_GUID    keyIdAsGuid;
+    BKNI_Memcpy((void*)&keyIdAsGuid, (const void*)keyId.rgb, sizeof(DRM_GUID));
+    MAKE_GUID_BIG_ENDIAN(keyIdAsGuid);
+    BKNI_Memcpy((void*)decryptContextInfo.m_KeyId, (const void*)&keyIdAsGuid, sizeof(decryptContextInfo.m_KeyId));
+
+    return true;
+}
+
+bool Playready30Decryptor::FindSchemeIdForKeyId(const uint8_t *pKID, size_t bcpKID, bmp4_protection_info& protectionInfo, uint32_t *ioSchemeId)
+{
+    if ( (pKID == NULL) || (ioSchemeId == NULL) ) {
+        LOGE(("%s: Invalid input parameter", BSTD_FUNCTION));
+        return false;
+    }
+
+    if (protectionInfo.nbOfSchemes == 0) {
+        LOGE(("%s: There are no protection schemes", BSTD_FUNCTION));
+        return false;
+    }
+
+    if ( bcpKID != sizeof(protectionInfo.schemeProtectionInfo[0].trackEncryption.info.keyId) ) {
+        LOGE(("%s: key sizes are incompatible", BSTD_FUNCTION));
+        return false;
+    }
+
+    for (unsigned i = 0; i < protectionInfo.nbOfSchemes; i++) {
+        uint8_t *pKeyIdFromProtectionInfo = protectionInfo.schemeProtectionInfo[i].trackEncryption.info.keyId;
+
+        if ( BKNI_Memcmp(pKID, pKeyIdFromProtectionInfo, bcpKID) == 0 ) {
+            *ioSchemeId = i;
+
+            /* Our work is done here */
+            LOGD(("%s: Returning schemeId: %d", BSTD_FUNCTION, *ioSchemeId));
+            return true;
+        }
+    }
+
+    /* Never did find a valid scheme... */
+    LOGD(("%s: Could not find a valid scheme for pKID", BSTD_FUNCTION));
+    return false;
+}
+
+/*
+** AddDecryptContext - Takes ownership of the DecryptContextInfo object.
+ */
+bool Playready30Decryptor::AddDecryptContext(DecryptContextInfo* pDecryptContextInfo, bmp4_protection_info& protectionInfo)
+{
+    uint32_t                schemeId;
+
+    if (pDecryptContextInfo == NULL) {
+        LOGE(("%s: Invalid input parameter", BSTD_FUNCTION));
+        return false;
+    }
+
+    /* The entry into the DecryptContexts array is based on the schemeId */
+    if ( !FindSchemeIdForKeyId((const uint8_t*)pDecryptContextInfo->m_KeyId, sizeof(pDecryptContextInfo->m_KeyId), protectionInfo, &schemeId) )  {
+        LOGE(("%s: Failed to find a valid scheme for given KeyId.", BSTD_FUNCTION));
+        return false;
+    }
+
+    if ( schemeId >= (sizeof(m_drmDecryptContexts)/sizeof(pDecryptContextInfo)) ) {
+        LOGE(("%s: Failed to find a valid shemeId %d", BSTD_FUNCTION, schemeId));
+        return false;
+    }
+
+    if (m_drmDecryptContexts[schemeId] != NULL) {
+        LOGE(("%s: DecryptContext already exists for this shemeId: %d", BSTD_FUNCTION, schemeId));
+        return false;
+    }
+
+    LOGD(("%s: Adding Decrypt Context at schemeId: %d", BSTD_FUNCTION, schemeId));
+    m_drmDecryptContexts[schemeId] = pDecryptContextInfo;
+    m_drmDecryptContextCount++;
+
+    return true;
+}
+
+bool Playready30Decryptor::GetDecryptContext(bmp4_protectionSchemeInfo& trackProtectionInfo, DecryptContextInfo** ioDecryptContextInfo)
+{
+    DecryptContextInfo     *pDecryptContextInfo = NULL;
+
+    for (unsigned i = 0; i < m_drmDecryptContextCount; i++) {
+        if ( BKNI_Memcmp(m_drmDecryptContexts[i]->m_KeyId, trackProtectionInfo.trackEncryption.info.keyId, sizeof(trackProtectionInfo.trackEncryption.info.keyId)) == 0 ) {
+            LOGD(("%s: Found Decrypt Context at index: %d", BSTD_FUNCTION, i));
+            pDecryptContextInfo =  m_drmDecryptContexts[i];
+            break;
+        }
+    }
+
+    if (pDecryptContextInfo == NULL) {
+        LOGE(("%s: DecryptContext does not exist for given track protection information", BSTD_FUNCTION));
+        *ioDecryptContextInfo = NULL;
+        return false;
+    }
+
+    *ioDecryptContextInfo = pDecryptContextInfo;
+
+    return true;
+}
+
+bool Playready30Decryptor::ReleaseDecryptContextForSchemeId(uint32_t inSchemeId)
+{
+    DecryptContextInfo     *pDecryptContextInfo;
+
+    if ( inSchemeId >= (sizeof(m_drmDecryptContexts)/sizeof(pDecryptContextInfo)) ) {
+        LOGE(("%s: Invalid schemeId: %d", BSTD_FUNCTION, inSchemeId));
+        return false;
+    }
+
+    /* trackIds are 1-based */
+    pDecryptContextInfo = m_drmDecryptContexts[inSchemeId];
+
+    if (pDecryptContextInfo == NULL) {
+        LOGE(("%s: DecryptContext does not exist for this schemeId: %d", BSTD_FUNCTION, inSchemeId));
+        return false;
+    }
+
+    Drm_Reader_Close(&pDecryptContextInfo->m_drmDecryptContext);
+
+    BKNI_Free(pDecryptContextInfo);
+    m_drmDecryptContextCount--;
+
+    return true;
+}
+
+bool Playready30Decryptor::ReleaseDecryptContexts()
+{
+    uint32_t    contextCount = m_drmDecryptContextCount;
+
+	for (unsigned i = 0; i < contextCount; i++) {
+        ReleaseDecryptContextForSchemeId(i);
+    }
+
+    return true;
 }

@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bhdm.h"
@@ -42,6 +46,310 @@
 
 BDBG_MODULE(BHDM_PACKET_AVI) ;
 
+static void BHDM_P_CEA861Code2PixelRepeat(uint8_t VideoID, uint8_t *PixelRepeat)
+{
+    switch (VideoID)
+    {
+    case  6 :   case  7 :
+    case 14 :   case 15 :
+    case 21 :   case 22 :
+    case 29 :   case 30 :
+        *PixelRepeat = BAVC_HDMI_PixelRepetition_e1x;
+        break;
+
+    case 10 :   case 11 :
+    case 25 :   case 26 :
+    case 35 :   case 36 :
+    case 37 :   case 38 :
+        *PixelRepeat = BAVC_HDMI_PixelRepetition_e4x;
+        break;
+
+    default:
+        *PixelRepeat = BAVC_HDMI_PixelRepetition_eNone;
+        break;
+    }
+}
+
+
+void BHDM_VideoFmt2CEA861Code(
+    BFMT_VideoFmt eVideoFmt,
+    BFMT_AspectRatio eAspectRatio,
+    BAVC_HDMI_PixelRepetition ePixelRepetition,
+    uint8_t *pVideoID,
+    uint8_t *pPixelRepeat
+)
+{
+    switch (eVideoFmt)
+    {
+    case BFMT_VideoFmt_e1080i  :           /* HD 1080i */
+        *pVideoID = 5 ;
+        break ;
+
+    case BFMT_VideoFmt_e720p   :           /* HD 720p */
+    case BFMT_VideoFmt_e720p_60Hz_3DOU_AS:  /* 720p 60Hz 3D frame packing */
+#ifdef BHDM_CONFIG_BLURAY_3D_SUPPORT
+    case BFMT_VideoFmt_e720p_3D :          /* HD 720p 3D */
+#endif
+        *pVideoID = 4 ;
+        break ;
+
+    case BFMT_VideoFmt_e480p   :           /* HD 480p */
+        if (eAspectRatio == BFMT_AspectRatio_e16_9)
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 3 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 15 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e4x:
+                *pVideoID = 36 ;
+                break;
+            default:
+                break;
+            }
+        }
+        else   /* default 4:3 */
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 2 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 14 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e4x:
+                *pVideoID = 35 ;
+                break;
+            default:
+                break;
+            }
+        }
+        break ;
+
+    case BFMT_VideoFmt_eNTSC   :           /* 480i, NSTC-M for North America */
+    case BFMT_VideoFmt_eNTSC_J :           /* 480i (Japan) */
+    case BFMT_VideoFmt_ePAL_M  :           /* 525-lines (Brazil) */
+        if (eAspectRatio == BFMT_AspectRatio_e16_9)
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 7 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 11 ;
+                break;
+            default:
+                break;
+            }
+        }
+        else   /* default 4:3 */
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 6 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 10 ;
+                break;
+            default:
+                break;
+            }
+        }
+        break ;
+
+    case BFMT_VideoFmt_ePAL_B  :           /* Australia */
+    case BFMT_VideoFmt_ePAL_B1 :           /* Hungary */
+    case BFMT_VideoFmt_ePAL_D  :           /* China */
+    case BFMT_VideoFmt_ePAL_D1 :           /* Poland */
+    case BFMT_VideoFmt_ePAL_G  :           /* Europe */
+    case BFMT_VideoFmt_ePAL_H  :           /* Europe */
+    case BFMT_VideoFmt_ePAL_K  :           /* Europe */
+    case BFMT_VideoFmt_ePAL_I  :           /* U.K. */
+    case BFMT_VideoFmt_ePAL_N  :           /* Jamaica, Uruguay */
+    case BFMT_VideoFmt_ePAL_NC :           /* N combination (Argentina) */
+    case BFMT_VideoFmt_eSECAM  :           /* LDK/SECAM (France,Russia) */
+        if (eAspectRatio == BFMT_AspectRatio_e16_9)
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 22 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 26 ;
+                break;
+            default:
+                break;
+            }
+        }
+        else   /* default 4:3 */
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 21 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 25 ;
+                break;
+            default:
+                break;
+            }
+        }
+        break ;
+
+    case BFMT_VideoFmt_e1250i_50Hz :       /* HD 1250i 50Hz, another 1080i_50hz standard SMPTE 295M */
+        BDBG_WRN(("Verify AVI Frame Video Code for 1250i Format")) ;
+        /* fall through to use 1080i 50Hz Video Code */
+    case BFMT_VideoFmt_e1080i_50Hz :       /* HD 1080i 50Hz, 1125 line, SMPTE 274M */
+        *pVideoID = 20 ;
+        break ;
+
+    case BFMT_VideoFmt_e720p_50Hz  :       /* HD 720p 50Hz (Australia) */
+    case BFMT_VideoFmt_e720p_50Hz_3DOU_AS: /* 720p 50Hz 3D Frame Packing */
+#ifdef BHDM_CONFIG_BLURAY_3D_SUPPORT
+    case BFMT_VideoFmt_e720p_50Hz_3D :     /* HD 720p 50Hz 3D */
+#endif
+        *pVideoID  = 19 ;
+        break ;
+
+    case BFMT_VideoFmt_e720p_24Hz:          /* 720p 24Hz */
+    case BFMT_VideoFmt_e720p_24Hz_3DOU_AS:  /* 720p 24Hz 3D frame packing */
+        *pVideoID  = 60 ;
+        break ;
+
+    case BFMT_VideoFmt_e720p_25Hz:          /* 720p 25Hz */
+        *pVideoID  = 61 ;
+        break ;
+
+    case BFMT_VideoFmt_e720p_30Hz:          /* 720p 30Hz */
+    case BFMT_VideoFmt_e720p_30Hz_3DOU_AS:  /* 720p 30Hz 3D frame packing */
+        *pVideoID  = 62 ;
+        break ;
+
+    case BFMT_VideoFmt_e576p_50Hz  :       /* HD 576p 50Hz (Australia) */
+        if (eAspectRatio  == BFMT_AspectRatio_e16_9)
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 18 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 30 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e4x:
+                *pVideoID = 38 ;
+                break;
+            default:
+                break;
+            }
+        }
+        else   /* default 4:3 */
+        {
+            switch (ePixelRepetition)
+            {
+            case BAVC_HDMI_PixelRepetition_eNone:
+                *pVideoID = 17 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e1x:
+                *pVideoID = 29 ;
+                break;
+            case BAVC_HDMI_PixelRepetition_e4x:
+                *pVideoID = 37 ;
+                break;
+            default:
+                break;
+            }
+        }
+        break ;
+
+    case BFMT_VideoFmt_eDVI_640x480p :     /* DVI Safe mode for computer monitors */
+        *pVideoID = 1 ;
+        break ;
+
+    case BFMT_VideoFmt_e1080p   :     /* HD 1080p 60Hz */
+    case BFMT_VideoFmt_e1080p_60Hz_3DOU_AS:
+    case BFMT_VideoFmt_e1080p_60Hz_3DLR:
+        *pVideoID = 16 ;
+        break ;
+
+    case BFMT_VideoFmt_e1080p_50Hz  :     /* HD 1080p 50Hz */
+        *pVideoID = 31 ;
+        break ;
+
+    case BFMT_VideoFmt_e1080p_30Hz  :     /* HD 1080p 30Hz */
+    case BFMT_VideoFmt_e1080p_30Hz_3DOU_AS:
+        *pVideoID = 34 ;
+        break ;
+
+    case BFMT_VideoFmt_e1080p_24Hz  :     /* HD 1080p 24Hz */
+    case BFMT_VideoFmt_e1080p_24Hz_3DOU_AS:
+#ifdef BHDM_CONFIG_BLURAY_3D_SUPPORT
+    case BFMT_VideoFmt_e1080p_24Hz_3D :   /* HD 1080p 24Hz 3D */
+#endif
+        *pVideoID = 32 ;
+        break ;
+
+    case BFMT_VideoFmt_e1080p_25Hz  :     /* HD 1080p 25Hz */
+        *pVideoID = 33 ;
+        break ;
+
+#if BHDM_CONFIG_4Kx2K_30HZ_SUPPORT
+    case BFMT_VideoFmt_e3840x2160p_30Hz :
+    case BFMT_VideoFmt_e3840x2160p_25Hz :
+    case BFMT_VideoFmt_e3840x2160p_24Hz :
+    case BFMT_VideoFmt_e4096x2160p_24Hz :
+        BDBG_MSG(("Video ID Code of 0 used for for HDMI Extended Resolution formats"));
+        *pVideoID = 0 ;
+        break ;
+
+    case BFMT_VideoFmt_e1080p_100Hz :
+        BDBG_MSG(("Video ID Code of 64 used for for 1080p100"));
+        *pVideoID = 64 ;
+        break ;
+    case BFMT_VideoFmt_e1080p_120Hz :
+        BDBG_MSG(("Video ID Code of 63 used for for 1080p120"));
+        *pVideoID = 63 ;
+        break ;
+#endif
+
+#if BHDM_CONFIG_4Kx2K_60HZ_SUPPORT
+    case BFMT_VideoFmt_e3840x2160p_50Hz :
+        *pVideoID = 96 ;
+        break ;
+    case BFMT_VideoFmt_e3840x2160p_60Hz :
+        *pVideoID = 97 ;
+        break ;
+#endif
+
+    case BFMT_VideoFmt_eDVI_800x600p:
+    case BFMT_VideoFmt_eDVI_1024x768p:
+    case BFMT_VideoFmt_eDVI_1280x768p:
+    case BFMT_VideoFmt_eDVI_1280x720p_50Hz:
+    case BFMT_VideoFmt_eDVI_1280x720p:
+    case BFMT_VideoFmt_eDVI_1280x1024p_60Hz :
+        *pVideoID = 0;
+        BDBG_MSG(("Video ID Code of 0 used for DVI formats"));
+        break;
+
+    default :
+        *pVideoID = 0 ;
+        BDBG_ERR(("BFMT_VideoFmt %d NOT IMPLEMENTED",  eVideoFmt)) ;
+        break ;
+    }
+
+    BDBG_MSG(("BFMT_eVideoFmt %d ==> CEA 861 Video ID Code: %d",
+        eVideoFmt, *pVideoID)) ;
+
+    BHDM_P_CEA861Code2PixelRepeat(*pVideoID, pPixelRepeat);
+}
 
 /******************************************************************************
 Summary:
@@ -282,30 +590,9 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 
 
 		/* Video Id Code & pixel repetitions */
-		BHDM_P_VideoFmt2CEA861Code(hHDMI->DeviceSettings.eInputVideoFmt,
+		BHDM_VideoFmt2CEA861Code(hHDMI->DeviceSettings.eInputVideoFmt,
 			hHDMI->DeviceSettings.eAspectRatio, hHDMI->DeviceSettings.ePixelRepetition,
-			&VideoID) ;
-
-		switch (VideoID)
-		{
-		case  6 :  	case  7 :
-		case 14 :  	case 15 :
-		case 21 :  	case 22 :
-		case 29 :  	case 30 :
-			PixelRepeat = BAVC_HDMI_PixelRepetition_e1x;
-			break;
-
-		case 10 :  	case 11 :
-		case 25 :  	case 26 :
-		case 35 :  	case 36 :
-		case 37 :  	case 38 :
-			PixelRepeat = BAVC_HDMI_PixelRepetition_e4x;
-			break;
-
-		default:
-			PixelRepeat = BAVC_HDMI_PixelRepetition_eNone;
-			break;
-		}
+			&VideoID, &PixelRepeat) ;
 	}
 
 	/* Update derived or overridden AVI fields */

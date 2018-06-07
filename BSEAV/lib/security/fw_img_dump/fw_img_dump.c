@@ -176,6 +176,13 @@ int main( int argc, char **argv )
             break;
          }
 
+#if (BCHP_CHIP==7278)
+         if (strcmp(astFirmwareDumpList[uiFirmwareIndex].szFriendlyId, "dsp") == 0)
+         {
+            uiCodeSize &= 0xfffff000;
+            uiCodeSize += 0x1000;
+         }
+#endif
          /* Dump buffer to file */
          fwrite( pvCodeStart, 1, uiCodeSize, fDumpFile );
          fclose( fDumpFile );
@@ -189,5 +196,5 @@ int main( int argc, char **argv )
    BKNI_Uninit();
    BDBG_Uninit();
 
-   return 0;
+   return result;
 }

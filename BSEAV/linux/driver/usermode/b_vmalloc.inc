@@ -1,5 +1,6 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2002-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2002-2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -39,16 +40,6 @@
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ***************************************************************************/
 
-#if defined(CONFIG_64BIT)
-static unsigned vmalloc_size(
-    unsigned required_vmalloc, /* vmalloc space required by Nexus to map physical memory  and registers */
-    uint64_t highest_installed_dram, /* (highest address of address-contiguous installed DRAM) + 1 */
-    unsigned lowest_bmem_addr /* lowest address of all bmem regions */
-   )
-{
-    return 0;
-}
-#else
 static unsigned vmalloc_align(unsigned v, unsigned alignment)
 {
     unsigned r;
@@ -63,29 +54,21 @@ static unsigned vmalloc_size(
     unsigned lowest_bmem_addr /* lowest address of all bmem regions */
    )
 {
+    unsigned vmalloc=0;
+    const unsigned _1mb = 1024 * 1024;
+#if !defined(CONFIG_64BIT)
     unsigned addrspace_lim;
     unsigned vmalloc_lim;
-    unsigned vmalloc;
-    const unsigned _1mb = 1024 * 1024;
     const unsigned default_vmalloc = 248 * _1mb;
     const unsigned vmalloc_offset = 8 * _1mb; /* based on VMALLOC_OFFSET */
     const unsigned fudge = 192 * _1mb; /* some address space for core Linux use */
 
-#if defined(CONFIG_VMSPLIT_3G)
-    addrspace_lim = 0x40000000u;
-#elif defined(CONFIG_VMSPLIT_2G)
-    addrspace_lim = 0x80000000u;
-#elif defined(CONFIG_VMSPLIT_1G)
-    addrspace_lim = 0xC0000000u;
-#else
-#if defined(CONFIG_CPU_BMIPS)
-    /* assume 2G/2G split */
-    addrspace_lim = 0x80000000u;
-#else
-    /* invalid vmsplit */
-    return 0;
-#endif
-#endif
+    addrspace_lim = PAGE_OFFSET;
+    if(addrspace_lim==0) {
+        /* invalid vmsplit */
+        goto done;
+    }
+    addrspace_lim = ~0UL - addrspace_lim;
     required_vmalloc += fudge;
     required_vmalloc += vmalloc_offset;
     if(highest_installed_dram < addrspace_lim) {
@@ -98,14 +81,13 @@ static unsigned vmalloc_size(
         vmalloc = required_vmalloc;
     } else {
         if(addrspace_lim  < (lowest_bmem_addr + vmalloc_offset)) {
-            goto error;
+            goto done;
         }
         vmalloc = addrspace_lim - (lowest_bmem_addr + vmalloc_offset);
     }
+done:
+#endif /* CONFIG_64BIT */
     vmalloc = vmalloc_align(vmalloc, _1mb);
     vmalloc /= _1mb;
     return vmalloc;
-error:
-    return 0;
 }
-#endif /* CONFIG_64BIT */

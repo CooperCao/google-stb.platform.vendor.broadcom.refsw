@@ -84,6 +84,7 @@ static void print_usage(void)
     "  -hd_mosaics                # of HD mosaics supported with main decoder\n"
     "  -hd_pip_mosaics            # of HD mosaics supported with PIP decoder\n"
     "  -mosaic_coverage N         %% of screen coverage per mosaic for N mosaics\n"
+    "  -exclusive_mode N          video decoder N is part of an exclusive mode\n"
     );
 }
 
@@ -244,6 +245,17 @@ int main(int argc, char **argv)
                 }
 #endif
             }
+        }
+        else if (!strcmp(argv[curarg], "-exclusive_mode") && (curarg + 1 < argc)) {
+#if NEXUS_HAS_VIDEO_DECODER
+            NEXUS_VideoDecoderCapabilities videoDecoderCap;
+            unsigned index = atoi(argv[++curarg]);
+            NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+            if (index < NEXUS_MAX_VIDEO_DECODERS && videoDecoderCap.videoDecoder[index].shared) {
+                result = 1;
+            }
+#endif
+            break;
         }
 
         curarg++;

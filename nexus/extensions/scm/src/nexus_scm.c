@@ -64,6 +64,7 @@ static NEXUS_Error NEXUS_Scm_P_LazyInit(void);
 static void NEXUS_Scm_P_Cleanup(void);
 static void NEXUS_Scm_P_Finalizer(NEXUS_ScmHandle scm);
 static void NEXUS_ScmChannel_DumpScmStatus(void);
+static void NEXUS_ScmChannel_P_Finalizer(NEXUS_ScmChannelHandle channel);
 #if 0
 static void  NEXUS_ScmChannel_DumpCommand(void);
 #endif
@@ -179,10 +180,10 @@ static void NEXUS_Scm_P_Finalizer(NEXUS_ScmHandle scm)
 
     NEXUS_OBJECT_ASSERT(NEXUS_Scm, scm);
 
-    BDBG_MSG(("DEL scm=%p", (void *)scm));
+    BDBG_MSG(("DEL scm=%p %d", (void *)scm, scm->channel_cnt));
 
     /* NEXUS_OBJECT_ACQUIRE guarantees that no channels remain */
-    BDBG_ASSERT((scm->channel.valid == false));
+    BDBG_ASSERT((scm->channel_cnt == 0));
 
     BKNI_EnterCriticalSection();
     g_NEXUS_scmModule.instance = NULL;
@@ -196,6 +197,7 @@ static void NEXUS_Scm_P_Finalizer(NEXUS_ScmHandle scm)
     BDBG_LEAVE(NEXUS_Scm_P_Finalizer);
 }
 
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_ScmChannel, NEXUS_Scm_DestroyChannel);
 /* Get default channel settings */
 void NEXUS_ScmChannel_GetDefaultSettings(
     NEXUS_ScmChannelSettings *pSettings /* [out] */)
@@ -221,16 +223,18 @@ NEXUS_ScmChannelHandle NEXUS_Scm_CreateChannel(
     BDBG_ASSERT( pSettings );
     NEXUS_OBJECT_ASSERT(NEXUS_Scm, scm);
 
-    if(true == scm->channel.valid){
+    if(0 != scm->channel_cnt){
         (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto end;
     }
     channel = &scm->channel;
 
     BKNI_Memset(channel, 0, sizeof(NEXUS_ScmChannel));
+    NEXUS_OBJECT_INIT(NEXUS_ScmChannel, channel);
 
     channel->scm = scm;
     channel->type = pSettings->type;
+    scm->channel_cnt++;
 
     rc = NEXUS_Scm_P_DtaModeSelect(channel->type);
     if(NEXUS_SUCCESS != rc){
@@ -259,11 +263,13 @@ end:
 /* Destroy a channel created by NEXUS_Scm_CreateChannel */
 
 
-void NEXUS_Scm_DestroyChannel(NEXUS_ScmChannelHandle channel)
+void NEXUS_ScmChannel_P_Finalizer(NEXUS_ScmChannelHandle channel)
 {
-    BDBG_ENTER(NEXUS_Scm_DestroyChannel);
-    channel->valid = false;
-    BDBG_LEAVE(NEXUS_Scm_DestroyChannel);
+    NEXUS_OBJECT_ASSERT(NEXUS_ScmChannel, channel);
+    BDBG_ENTER(NEXUS_ScmChannel_P_Finalizer);
+    channel->scm->channel_cnt--;
+    NEXUS_OBJECT_DESTROY(NEXUS_ScmChannel, channel);
+    BDBG_LEAVE(NEXUS_ScmChannel_P_Finalizer);
 }
 
 static NEXUS_Error NEXUS_ScmChannel_SageNotify(void);
@@ -290,7 +296,7 @@ NEXUS_Error NEXUS_ScmChannel_SendCommand(
         BDBG_ERR(("%s:%d %08x", __FILE__, __LINE__, rc));
         goto ExitFunc;
     }
-    if((NULL == pCommand->cmd) || (NULL == pCommand->rsp)){
+    if(!NEXUS_P_CpuAccessibleAddress(pCommand->cmd) || !NEXUS_P_CpuAccessibleAddress(pCommand->rsp)){
         rc = NEXUS_INVALID_PARAMETER;
         BDBG_ERR(("%s:%d %08x", __FILE__, __LINE__, rc));
         goto ExitFunc;

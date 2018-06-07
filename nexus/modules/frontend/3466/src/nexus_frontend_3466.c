@@ -1,39 +1,43 @@
-/***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: Frontend 3466
@@ -180,8 +184,8 @@ static NEXUS_Error NEXUS_Frontend_P_3466_ReadRegister(void *handle, unsigned add
 
 void NEXUS_FrontendDevice_P_Uninit_3466_Hab(NEXUS_3466Device *pDevice)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_GpioSettings gpioSettings;
+    NEXUS_Error rc = NEXUS_SUCCESS;
 
     if(pDevice->isrNumber) {
         NEXUS_Core_DisconnectInterrupt(pDevice->isrNumber);
@@ -191,8 +195,8 @@ void NEXUS_FrontendDevice_P_Uninit_3466_Hab(NEXUS_3466Device *pDevice)
         NEXUS_Gpio_GetSettings(pDevice->gpioInterrupt,  &gpioSettings);
         gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
         gpioSettings.interrupt.callback = NULL;
-        NEXUS_Gpio_SetSettings(pDevice->gpioInterrupt, &gpioSettings);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
+        rc = NEXUS_Gpio_SetSettings(pDevice->gpioInterrupt, &gpioSettings);
+        if(rc){rc = BERR_TRACE(rc);}
     }
 
     if (pDevice->openSettings.cable.enabled) {
@@ -241,7 +245,6 @@ void NEXUS_FrontendDevice_P_Uninit_3466_Hab(NEXUS_3466Device *pDevice)
     BKNI_Memset((void *)&pDevice->isTunerPoweredOn, 0, sizeof(pDevice->isTunerPoweredOn));
     BKNI_Memset((void *)&pDevice->cable.isPoweredOn, 0, sizeof(pDevice->cable.isPoweredOn));
     BKNI_Memset((void *)&pDevice->terrestrial.isPoweredOn, 0, sizeof(pDevice->terrestrial.isPoweredOn));
-done:
     return;
 }
 
@@ -428,6 +431,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_3466_Hab(NEXUS_3466Device *pDevice, cons
             tnrIb3466_cfg.channelNo = i;
             rc =  BTNR_3466_Open(&pDevice->tnr[i],&tnrIb3466_cfg, pDevice->hab);
             BDBG_MSG(("tuner %d is %p", i, (void *)pDevice->tnr[i]));
+            if(rc){rc = BERR_TRACE(rc); goto done;}
         }
     }
 

@@ -48,7 +48,7 @@ extern "C"
 #endif
 
 #define BMMT_TABLE_SUBSET_MP00     0x11
-#define	BMMT_TABLE_SUBSET_MP01     0x12
+#define BMMT_TABLE_SUBSET_MP01     0x12
 #define MMT_TABLE_SUBSET_MP02      0x13
 #define BMMT_TABLE_SUBSET_MP03     0x14
 #define BMMT_TABLE_SUBSET_MP04     0x15
@@ -131,6 +131,13 @@ typedef struct bmmt_packet_header {
     uint32_t packet_counter;
     bool packet_counter_valid;
     bool rap_flag;
+    uint16_t hdr_ext_type;
+    bool hdr_ext_end_flag;
+    uint8_t scrambling_control;
+    bool scrambling_method_present;
+    bool scrambling_auth_present;
+    bool scrambling_iv_present;
+    uint8_t iv[BMMT_MAX_IV_SIZE];
 } bmmt_packet_header;
 
 typedef struct bmmt_mpu_header {

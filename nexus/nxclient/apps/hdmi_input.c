@@ -403,8 +403,8 @@ static void hdmiRxHdcpStateChanged(void *context, int param)
 
         BDBG_LOG(("%s: [Rx-STB-Tx-->] HDCP 2.2 support downstream: %s; HDCP 1.x device downstream: %s",
             BSTD_FUNCTION,
-            hdmiTxHdcpStatus.hdcp2_2Features ? "Yes" : "No",
-            !hdmiTxHdcpStatus.hdcp2_2Features ? "Yes" :
+            hdmiTxHdcpStatus.selectedHdcpVersion == NEXUS_HdcpVersion_e2x ? "Yes" : "No",
+            hdmiTxHdcpStatus.selectedHdcpVersion != NEXUS_HdcpVersion_e2x ? "Yes" :
                 hdmiTxHdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream ? "Yes" : "No")) ;
 
         if ((hdmiRxHdcpStatus.hdcpState != NEXUS_HdmiInputHdcpState_eAuthenticated)
@@ -418,7 +418,7 @@ static void hdmiRxHdcpStateChanged(void *context, int param)
         {
             /* upstream auth requires HDCP 2.2; Start Tx auth only if connected to HDCP 2.2 device */
             BDBG_LOG(("Upstream HDCP Content Stream Control is Type 1")) ;
-            if (!hdmiTxHdcpStatus.hdcp2_2Features)
+            if (hdmiTxHdcpStatus.selectedHdcpVersion != NEXUS_HdcpVersion_e2x)
             {
                /*** Rx does not support HDCP 2.2; CONTENT MUST BE BLOCKED ***/
                 BDBG_WRN(("Attached device does not support HDCP 2.2; Downstream authentication blocked")) ;
@@ -660,7 +660,7 @@ static void hdmiTxHdcpStateChanged(void)
 
         NEXUS_HdmiOutput_GetHdcpSettings(g_app.hdmiOutput, &hdmiTxHdcpSettings);
         if ((hdmiTxHdcpSettings.hdcp_version == NEXUS_HdmiOutputHdcpVersion_e1_x)
-        || ((!hdmiTxHdcpStatus.hdcp2_2Features)
+        || ((hdmiTxHdcpStatus.selectedHdcpVersion != NEXUS_HdcpVersion_e2x)
             && (hdmiTxHdcpSettings.hdcp_version == NEXUS_HdmiOutputHdcpVersion_eAuto)))
         {
             switch (hdmiTxHdcpStatus.hdcpError)
@@ -687,7 +687,7 @@ uploadDownstreamInfo:
     NEXUS_HdmiOutput_GetHdcpSettings(g_app.hdmiOutput, &hdmiTxHdcpSettings);
 
     /* If HDCP 2.2 version was selected or AUTO mode was selected AND the Rx support HDCP 2.2 */
-    if (hdmiTxHdcpStatus.hdcp2_2Features
+    if (hdmiTxHdcpStatus.selectedHdcpVersion == NEXUS_HdcpVersion_e2x
     && ((hdmiTxHdcpSettings.hdcp_version == NEXUS_HdmiOutputHdcpVersion_e2_2)
     ||  (hdmiTxHdcpSettings.hdcp_version == NEXUS_HdmiOutputHdcpVersion_eAuto)))
     {

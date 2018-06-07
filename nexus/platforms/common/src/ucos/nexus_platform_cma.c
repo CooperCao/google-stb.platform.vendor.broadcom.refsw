@@ -43,8 +43,8 @@
 struct device_memory {
     struct {
         unsigned memcIndex, subIndex;
-        unsigned offset;
-        int size;
+        uint64_t offset;
+        unsigned int size;
     } region[MAX_CMA];
 };
 
@@ -73,7 +73,7 @@ static unsigned int get_device_memory(struct device_memory *mem)
                 mem->region[i].offset += 0x01000000; /* Give 16MB to BSU application */
             }
             mem->region[i].size = xfd_mem[i+1].top - mem->region[i].offset;
-            BDBG_MSG(("mem:  offset=0x%08x, size=%d, memcIndex=%d, subIndex=%d", mem->region[i].offset, mem->region[i].size/(1024*1024), mem->region[i].memcIndex, mem->region[i].subIndex));
+            BDBG_MSG(("mem:  offset=0x%08x%08x, size=%d, memcIndex=%d, subIndex=%d", (uint32_t)(mem->region[i].offset>>32), (uint32_t)(mem->region[i].offset & 0xffffffff), mem->region[i].size/(1024*1024), mem->region[i].memcIndex, mem->region[i].subIndex));
             num_cma++;
         }
     }

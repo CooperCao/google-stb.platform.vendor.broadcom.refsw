@@ -591,7 +591,7 @@ TzMem::VirtAddr SysCalls::mapStrToKernel(const char *userStr, size_t maxLen, int
     uint8_t *userLastPage = (uint8_t *)PAGE_START_4K((uint8_t *)userStr + maxLen - 1);
     int numPages = (userLastPage - userPageStart)/PAGE_SIZE_4K_BYTES + 1;
 
-    TzMem::VirtAddr va = kernPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages*PAGE_SIZE_4K_BYTES,PageTable::ScanForward);
+    TzMem::VirtAddr va = kernPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
     if (va == nullptr) {
         err_msg("%s: va exhausted !\n", __PRETTY_FUNCTION__);
         return nullptr;
@@ -614,24 +614,21 @@ TzMem::VirtAddr SysCalls::mapStrToKernel(const char *userStr, size_t maxLen, int
             currStr++;
         }
 
-        if ((uint8_t *)currStr < nextVa){
-			if(npages < numPages)
-				kernPageTable->releaseAddrRange(currVa + PAGE_SIZE_4K_BYTES, (numPages-npages)*PAGE_SIZE_4K_BYTES);
+        if ((uint8_t *)currStr < nextVa) {
+            if(npages < numPages)
+                kernPageTable->releaseAddrRange(nextVa, (numPages-npages)*PAGE_SIZE_4K_BYTES);
             break;
         }
 
         curr += PAGE_SIZE_4K_BYTES;
         currVa += PAGE_SIZE_4K_BYTES;
         nextVa += PAGE_SIZE_4K_BYTES;
-
         npages++;
     }
 
     *truncated = (*currStr == 0) ? false : true;
-
-    *pageCount = numPages;
+    *pageCount = npages;
     *strLen = rv+1;
-
     return va;
 }
 
@@ -677,19 +674,18 @@ TzMem::VirtAddr SysCalls::mapPtrArrayToKernel(const char **userArray, size_t max
         }
 
         if ((uint8_t *)currPtr < nextVa){
-			if(npages < numPages)
-				kernPageTable->releaseAddrRange(currVa + PAGE_SIZE_4K_BYTES, (numPages-npages)*PAGE_SIZE_4K_BYTES);
+            if (npages < numPages)
+                kernPageTable->releaseAddrRange(nextVa, (numPages-npages)*PAGE_SIZE_4K_BYTES);
             break;
         }
 
         curr += PAGE_SIZE_4K_BYTES;
         currVa += PAGE_SIZE_4K_BYTES;
         nextVa += PAGE_SIZE_4K_BYTES;
-
         npages++;
     }
 
-    *pageCount = numPages;
+    *pageCount = npages;
     *arrayLen = rv+1;
     return va;
 }

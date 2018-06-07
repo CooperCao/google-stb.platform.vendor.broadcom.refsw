@@ -1,6 +1,6 @@
 /******************************************************************************
 * Copyright (C) 2018 Broadcom.
-* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to
@@ -380,7 +380,6 @@ BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus)
 }
 
 
-#ifndef BSAT_EXCLUDE_AFEC
 /******************************************************************************
  BSAT_g1_P_IsAfecOn_isrsafe() - true if afec global is on
 ******************************************************************************/
@@ -516,7 +515,6 @@ BERR_Code BSAT_g1_P_GetAfecClock_isrsafe(BSAT_ChannelHandle h, uint32_t *pFreq)
    *pFreq = vco / div; /* should be 432MHz */
    return BERR_SUCCESS;
 }
-#endif /* BSAT_EXCLUDE_AFEC */
 
 
 #ifndef BSAT_EXCLUDE_TFEC

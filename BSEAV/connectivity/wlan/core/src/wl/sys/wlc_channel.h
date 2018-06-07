@@ -180,24 +180,30 @@ typedef struct {
 } locale_info_t;
 
 /* bits for locale_info flags */
-#define WLC_PEAK_CONDUCTED	0x00 /**< Peak for locals */
-#define WLC_EIRP			0x01 /**< Flag for EIRP */
-#define WLC_DFS_TPC			0x02 /**< Flag for DFS TPC */
-#define WLC_NO_80MHZ		0x04 /**< Flag for No 80MHz channels */
+#define WLC_PEAK_CONDUCTED	0x000 /**< Peak for locals */
+#define WLC_EIRP		0x001 /**< Flag for EIRP */
+#define WLC_DFS_TPC		0x002 /**< Flag for DFS TPC */
+#define WLC_NO_80MHZ		0x004 /**< Flag for No 80MHz channels */
+#define WLC_NO_40MHZ		0x008 /**< Flag for No MIMO 40MHz */
 #define WLC_NO_160MHZ		0x100 /**< Flag for No 160MHz channels */
-#define WLC_NO_40MHZ		0x08 /**< Flag for No MIMO 40MHz */
-#define WLC_NO_MIMO			0x10 /**< Flag for No MIMO, 20 or 40 MHz */
-#define WLC_RADAR_TYPE_EU	0x20 /**< Flag for EU */
-#define WLC_TXBF			0x40 /**< Flag for Tx beam forming */
-#define WLC_FILT_WAR		0x80 /**< Flag for apply filter war */
-#define WLC_DFS_FCC			WLC_DFS_TPC /**< Flag for DFS FCC */
-#define WLC_DFS_EU			(WLC_DFS_TPC | WLC_RADAR_TYPE_EU) /**< Flag for DFS EU */
+#define WLC_NO_MIMO		0x010 /**< Flag for No MIMO, 20 or 40 MHz */
+#define WLC_RADAR_TYPE_EU	0x020 /**< Flag for EU */
+#define WLC_TXBF		0x040 /**< Flag for Tx beam forming */
+#define WLC_FILT_WAR		0x080 /**< Flag for apply filter war */
+#define WLC_DFS_FCC		WLC_DFS_TPC /**< Flag for DFS FCC */
+#define WLC_DFS_EU		(WLC_DFS_TPC | WLC_RADAR_TYPE_EU) /**< Flag for DFS EU */
+#define WLC_DFS_UK		(WLC_DFS_TPC | WLC_RADAR_TYPE_UK) /**< Flag for DFS UK */
 #define WLC_EDCRS_EU            0x200  /**< Use EU post-2015 energy detect */
+
 /* LO_GAIN_NBCAL flag used in branches 9.30 and 9.44 for 43430 has value set as 0x200. */
 /* Value to be changed to 0x400 to match Trunk */
 #define WLC_LO_GAIN_NBCAL	0x400 /* Flag for restricting power during cal */
+#define WLC_RADAR_TYPE_UK       0X800 /**< Flag for UK */
+#define WLC_RADAR_TYPE_FLAGS            (WLC_DFS_TPC | WLC_RADAR_TYPE_EU | WLC_RADAR_TYPE_UK) 
 
-#define ISDFS_EU(fl)		(((fl) & WLC_DFS_EU) == WLC_DFS_EU)
+#define ISDFS_EU(fl)		(((fl) & WLC_RADAR_TYPE_FLAGS) == WLC_DFS_EU)
+#define ISDFS_UK(fl)		(((fl) & WLC_RADAR_TYPE_FLAGS) == WLC_DFS_UK)
+
 
 /**
  * locale per-channel tx power limits for MIMO frames

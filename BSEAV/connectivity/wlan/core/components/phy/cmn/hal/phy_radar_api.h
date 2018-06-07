@@ -55,6 +55,8 @@
 #define RADAR_TYPE_KN2		28  /* Korean 2: PW 1us, PRI 556us */
 #define RADAR_TYPE_KN3		29  /* Korean 3: PW 2us, PRI 3030us */
 #define RADAR_TYPE_KN4		30  /* Korean 4: PW 1us, PRI 333us (similar to JP 4) */
+#define RADAR_TYPE_UK1          31  /* UK 1: PW 1us,PRI 333us (similar to JP 4) with hopping */
+#define RADAR_TYPE_UK2          32  /* UK 2: PW 20us,PRI 222us with chirp & hopping */
 #define RADAR_TYPE_UNCLASSIFIED 255 /* Unclassified Radar type */
 
 typedef struct {
@@ -74,6 +76,7 @@ uint8 phy_radar_detect(phy_info_t *pi, radar_detected_info_t *radar_detected,
 typedef enum  phy_radar_detect_mode {
 	RADAR_DETECT_MODE_FCC,
 	RADAR_DETECT_MODE_EU,
+        RADAR_DETECT_MODE_UK,
 	RADAR_DETECT_MODE_MAX
 } phy_radar_detect_mode_t;
 

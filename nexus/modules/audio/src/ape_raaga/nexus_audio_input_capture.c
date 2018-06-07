@@ -70,6 +70,7 @@ typedef struct NEXUS_AudioInputCapture
     NEXUS_EventCallbackHandle inputFormatChangeEventHandler;
     NEXUS_TaskCallbackHandle sourceChangedCallback;
     NEXUS_IsrCallbackHandle dataCallback;
+    NEXUS_AudioCaptureFormat format;
     bool compressed;
     bool hbr;
     unsigned numPcmChannels;
@@ -265,6 +266,7 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
         /* save the pi buffer size and threshold */
         handle->fifoSize = openSettings.bufferSize;
         handle->settings.threshold = openSettings.watermarkThreshold;
+        handle->format = pSettings->format;
 
     }
     else
@@ -317,7 +319,7 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
         procHandle->bufferSize = pSettings->fifoSize;
         procHandle->getBuffer = NEXUS_AudioCapture_P_Input_GetBuffer;
         procHandle->consumeData = NEXUS_AudioCapture_P_Input_ConsumeData;
-        procHandle->format = handle->settings.format;
+        procHandle->format = handle->format;
         handle->connector.format = NEXUS_AudioInputFormat_ePcmStereo;
         handle->procHandle = procHandle;
     }

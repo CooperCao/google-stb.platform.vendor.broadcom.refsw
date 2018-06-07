@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -396,8 +396,6 @@ NEXUS_Platform_P_InitOS(void)
     NEXUS_Platform_GetClientConfiguration(&state->clientConfig);
 
     nexus_p_get_default_map_settings(&map_settings);
-    map_settings.offset = (unsigned long)g_NEXUS_P_CpuNotAccessibleRange.start + 4096;
-    map_settings.size = g_NEXUS_P_CpuNotAccessibleRange.length - 2*4096;
     map_settings.mmap = NEXUS_Platform_P_MapMemory;
     map_settings.munmap = NEXUS_Platform_P_UnmapMemory;
     rc = nexus_p_init_map(&map_settings);

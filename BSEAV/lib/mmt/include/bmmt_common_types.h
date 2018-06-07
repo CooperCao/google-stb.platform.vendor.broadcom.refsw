@@ -70,6 +70,10 @@ typedef struct btlv_ipv6_address {
 #define BTLV_PACKET_TYPE_SIGNALING          0xFE
 #define BTLV_PACKET_TYPE_NULL               0xFF
 
+#define BMMT_MAX_DMA_BLOCKS 100
+#define BMMT_MAX_AES_CTR_KEY_SIZE 16
+#define BMMT_MAX_IV_SIZE 16
+
 typedef struct btlv_ip_address {
     enum {
         btlv_ip_address_ipv4 = BTLV_PACKET_TYPE_IPV4,

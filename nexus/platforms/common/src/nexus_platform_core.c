@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -549,17 +549,6 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     }
 
     nexus_p_get_default_map_settings(&map_settings);
-    /* the fake address range is (2GB - 4K). subtracting 4K allows the code to avoid 0x0000_0000.
-    for kernel mode, we can't have a valid fake address of 0x0000_0000. too much code depends on ptr == NULL meaning "no pointer".
-    for user mode, we can't have base+size == 0x0000_0000. too much code will fail on the wrap around.
-    only 1 byte is needed to avoid this situation, but using 4K avoid possible alignment bugs. */
-    map_settings.offset = (unsigned long)g_NEXUS_P_CpuNotAccessibleRange.start + 4096;
-    map_settings.size = g_NEXUS_P_CpuNotAccessibleRange.length - 2 * 4096;
-
-#if B_REFSW_SYSTEM_MODE_CLIENT
-    map_settings.offset = 0x00000000 + 4096;
-    map_settings.size = 4096;
-#endif
     map_settings.mmap = NEXUS_Platform_P_MapMemory;
     map_settings.munmap = NEXUS_Platform_P_UnmapMemory;
     errCode = nexus_p_init_map(&map_settings);

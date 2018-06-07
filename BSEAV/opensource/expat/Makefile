@@ -73,10 +73,11 @@ $(EXPAT_TAR_PATH)/.libs/libexpat.so: $(EXPAT_TAR_PATH)/$(EXPAT_SOURCE_TARBALL)
 	@if [ ! -e "${EXPAT_TAR_PATH}/${EXPAT_NAME}/Makefile" ]; then \
 		echo "================ Configure EXPAT"; \
 		cd ${EXPAT_TAR_PATH}/${EXPAT_NAME}; \
+		CC="${CC}" \
 		CFLAGS="${EXPAT_CFLAGS}" \
 		./configure \
 		--prefix=${EXPAT_INSTALL_PREFIX} \
-		--host=${EXPAT_ARCH} \
+		--host=arm-linux \
 		--disable-static \
 		--enable-shared $(SQUASH_OUTPUT); \
 	fi

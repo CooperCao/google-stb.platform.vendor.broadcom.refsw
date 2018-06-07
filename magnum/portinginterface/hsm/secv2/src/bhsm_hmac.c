@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -61,8 +64,9 @@ typedef enum{
     BHSM_P_HmacState_Max
 }BHSM_P_HmacState;
 
-typedef struct
+typedef struct BHSM_P_Hmac
 {
+    BDBG_OBJECT(BHSM_P_Hmac)
     BHSM_Handle hHsm;
     BHSM_HmacSettings settings;
     BHSM_P_HmacState state;
@@ -71,6 +75,7 @@ typedef struct
 
 }BHSM_P_Hmac;
 
+BDBG_OBJECT_ID(BHSM_P_Hmac);
 
 BHSM_HmacHandle BHSM_Hmac_Create( BHSM_Handle hHsm )
 {
@@ -82,6 +87,8 @@ BHSM_HmacHandle BHSM_Hmac_Create( BHSM_Handle hHsm )
 
     pHandle = (BHSM_P_Hmac*)BKNI_Malloc( sizeof(BHSM_P_Hmac) );
     if( !pHandle ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
+
+    BDBG_OBJECT_SET( pHandle, BHSM_P_Hmac );
 
     pHandle->hHsm = hHsm;
     pHandle->state = BHSM_P_HmacState_eInitial;
@@ -97,10 +104,11 @@ void BHSM_Hmac_Destroy( BHSM_HmacHandle handle )
     BHSM_P_Hmac *pInstance = (BHSM_P_Hmac*)handle;
 
     BDBG_ENTER( BHSM_Hmac_Destroy );
+    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     if( !pInstance ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
 
-    BKNI_Memset( pInstance, 0, sizeof(*pInstance) );
+    BDBG_OBJECT_DESTROY( handle, BHSM_P_Hmac );
     BKNI_Free( pInstance );
 
     BDBG_LEAVE( BHSM_Hmac_Destroy );
@@ -125,6 +133,7 @@ BERR_Code BHSM_Hmac_SetSettings( BHSM_HmacHandle handle, const BHSM_HmacSettings
     BHSM_P_Hmac *pInstance = (BHSM_P_Hmac*)handle;
 
     BDBG_ENTER( BHSM_Hmac_SetSettings );
+    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
@@ -144,6 +153,7 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
     BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_Hmac_SubmitData );
+    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }

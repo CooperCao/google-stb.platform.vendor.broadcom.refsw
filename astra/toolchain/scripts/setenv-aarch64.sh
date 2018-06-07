@@ -46,5 +46,5 @@ export GCC_2_FLAGS="--with-arch=armv8-a --with-abi=lp64 --enable-shared"
 #
 export MUSL_VERSION=1.1.14
 export MUSL_FLAGS=
-
+export MUSL_PATCH=patches/musl-$MUSL_VERSION-O_EXEC-tzos.patch
 set +ex

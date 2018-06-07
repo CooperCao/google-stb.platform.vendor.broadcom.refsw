@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -2167,17 +2171,17 @@ static void nxserver_check_hdcp(struct b_session *session)
             switch (curr_version_select) {
             case NxClient_HdcpVersion_eAuto:
                 /* any authentication is good except hdcp22 cst 1 with a downstream 1x device */
-                no_change = !(hdcpStatus.hdcp2_2Features &&
+                no_change = !(hdcpStatus.selectedHdcpVersion == NEXUS_HdcpVersion_e2x &&
                     hdmiOutputHdcpSettings.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType1 &&
                     hdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream);
                 break;
             case NxClient_HdcpVersion_eHdcp1x:
                 /* must be hdcp1x */
-                if (!hdcpStatus.hdcp2_2Features) no_change = true;
+                if (hdcpStatus.selectedHdcpVersion != NEXUS_HdcpVersion_e2x) no_change = true;
                 break;
             case NxClient_HdcpVersion_eAutoHdcp22Type0:
                 /* any authentication is good except hdcp22 cst 1 */
-                if (hdcpStatus.hdcp2_2Features) {
+                if (hdcpStatus.selectedHdcpVersion == NEXUS_HdcpVersion_e2x) {
                     if (hdmiOutputHdcpSettings.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType0) no_change = true;
                 }
                 else {
@@ -2186,7 +2190,7 @@ static void nxserver_check_hdcp(struct b_session *session)
                 break;
             case NxClient_HdcpVersion_eHdcp22:
                 /* only hdcp22 cst 1 allowed */
-                if (hdcpStatus.hdcp2_2Features) {
+                if (hdcpStatus.selectedHdcpVersion == NEXUS_HdcpVersion_e2x) {
                     if (hdmiOutputHdcpSettings.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType1) no_change = true;
                 }
                 break;
@@ -2240,10 +2244,11 @@ static void nxserver_check_hdcp(struct b_session *session)
     case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure :
     case NEXUS_HdmiOutputHdcpState_eRiLinkIntegrityFailure :
     case NEXUS_HdmiOutputHdcpState_ePjLinkIntegrityFailure :
+        /* terminal state. nexus will not callback again. we must be happy or take action. */
         break;
     default:
+        /* not terminal state. nexus will callback again. */
         goto done;
-        break;
     }
 
     switch (curr_version_state) {
@@ -2287,11 +2292,15 @@ static void nxserver_check_hdcp(struct b_session *session)
         break;
 
     case nxserver_hdcp_follow:
-        if (!is_hdcp_start_complete(&hdcpStatus))
-            break;
-
+        if (!is_hdcp_start_complete(&hdcpStatus)) {
+            initializeHdmiOutputHdcpSettings(session, curr_version_select);
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            session->hdcp.version_state = nxserver_hdcp_follow;
+            session->callbackStatus.hdmiOutputHdcpChanged++;
+        }
         /* if we've authenticated with an HDCP 2.2 repeater with a downstream 1.x deivce, we must re-authenticate using content stream type 0 */
-        if (hdcpStatus.isHdcpRepeater && hdcpStatus.hdcp2_2Features && hdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream) {
+        else if (hdcpStatus.isHdcpRepeater && hdcpStatus.hdcp2_2Features && hdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream) {
             initializeHdmiOutputHdcpSettings(session, curr_version_select);
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
             if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
@@ -2748,6 +2757,11 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
     NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
 
     NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
+
+    if (version_select == NxClient_HdcpVersion_eAuto && session->hdcpKeys.hdcp2x.size == 0) {
+        version_select = NxClient_HdcpVersion_eHdcp1x;
+    }
+
     switch (version_select) {
     case NxClient_HdcpVersion_eAuto:
         hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
@@ -3026,6 +3040,7 @@ static int init_session(nxserver_t server, unsigned index)
     session->audioSettings.rfm.transcodeCodec = NEXUS_AudioCodec_eMax;
 #if NEXUS_HAS_AUDIO
     NEXUS_AudioModule_GetLoudnessSettings(&session->audioSettings.loudnessSettings);
+    bserver_set_default_audio_settings(session);
 #endif
 
     if (server->settings.externalApp.enabled) {
@@ -3395,7 +3410,11 @@ after_display_open:
                         settings.hdmiPreferences.colorSpace = NEXUS_ColorSpace_eAuto;
                         settings.hdmiPreferences.colorDepth = 0;
                     }
-                    (void)NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
+                    rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
+                    if (rc) {
+                        /* if even this fails, we still want to store settings and go forward. */
+                        session->nxclient.displaySettings = settings;
+                    }
                 }
             }
 #endif
@@ -4255,6 +4274,10 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
                 change = true;
             }
         }
+        if (surface_compositor_settings.allowCompositionBypass != session->server->settings.allowCompositionBypass) {
+            surface_compositor_settings.allowCompositionBypass = session->server->settings.allowCompositionBypass;
+            change = true;
+        }
         if (change) {
             rc = NEXUS_SurfaceCompositor_SetSettings(session->surfaceCompositor, &surface_compositor_settings);
             if (rc) return BERR_TRACE(rc);
@@ -4911,6 +4934,11 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
         }
     }
 
+    if (session->audioSettings.dolbyMsAllowed != pSettings->dolbyMsAllowed &&
+        b_dolby_ms_capable(session)) {
+        reconfig_audio = true;
+    }
+
     if (pSettings != &session->audioSettings) {
         session->audioSettings = *pSettings;
         session->audioSettings.sequenceNumber++;
@@ -5120,7 +5148,7 @@ static void standby_thread(void *context)
     }
 
     server->standby.state = b_standby_state_applied;
-    server->standby.last_standby_timestamp = nxserver_p_millisecond_tick();
+    NEXUS_GetTimestamp(&server->standby.last_standby_timestamp);
     server->standby.last_standby_mode = server->standby.standbySettings.settings.mode;
 
 done:
@@ -5212,7 +5240,7 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
 
         server->standby.state = b_standby_state_none;
         server->standby.standbySettings = *pSettings;
-        server->standby.last_resume_timestamp = nxserver_p_millisecond_tick();
+        NEXUS_GetTimestamp(&server->standby.last_resume_timestamp);
 
         /* destroy zombie clients */
         {

@@ -62,7 +62,9 @@ int _tzioc_file_open(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX);
+    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->path[UAPPD_PATH_LEN_MAX-1] = '\0';
     pCmd->flags = ulFlags;
     pCmd->cookie = (uintptr_t)pClient;
 
@@ -97,7 +99,9 @@ int _tzioc_file_close(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX);
+    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->path[UAPPD_PATH_LEN_MAX-1] = '\0';
     pCmd->cookie = (uintptr_t)pClient;
 
     err = _tzioc_msg_send(
@@ -133,7 +137,9 @@ int _tzioc_file_write(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX);
+    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->path[UAPPD_PATH_LEN_MAX-1] = '\0';
     pCmd->paddr  = ulPaddr;
     pCmd->bytes  = ulBytes;
     pCmd->cookie = (uintptr_t)pClient;
@@ -171,7 +177,9 @@ int _tzioc_file_read(
     pHdr->ucSeq  = 0;
     pHdr->ulLen  = sizeof(*pCmd);
 
-    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX);
+    strncpy(pCmd->path, pPath, UAPPD_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pCmd->path[UAPPD_PATH_LEN_MAX-1] = '\0';
     pCmd->paddr  = ulPaddr;
     pCmd->bytes  = ulBytes;
     pCmd->cookie = (uintptr_t)pClient;

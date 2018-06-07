@@ -1,5 +1,6 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2008-2016 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,6 +65,12 @@ void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type);
 
 /* unmap memory mapped by nexus_p_map_memory */
 void nexus_p_unmap_memory( void *address, size_t length, NEXUS_AddrType type);
+
+typedef struct NEXUS_Platform_P_MemoryRange {
+    void *start;
+    unsigned length;
+} NEXUS_Platform_P_MemoryRange;
+extern NEXUS_Platform_P_MemoryRange g_NEXUS_P_CpuNotAccessibleRange;
 
 #ifdef __cplusplus
 }

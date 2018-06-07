@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include <stdlib.h>
@@ -58,10 +61,6 @@
 
 
 BDBG_MODULE(BHSMa);
-
-#ifndef BHSM_SECURE_MEMORY_SIZE
-    #define BHSM_SECURE_MEMORY_SIZE       (4)
-#endif
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -134,15 +133,13 @@ typedef struct BHSM_P_BspMsg_Module_s
     unsigned ownerId;          /* incremented by 1 for each command sent to the bsp (from this interface.)*/
 
     BREG_Handle hRegister;
-    BHSM_BspMsgInit_t conf;
-
-    uint32_t *pSecureWord;     /* Pointer to memory location (the size of a uint32_t) that is secure. */
-    uint32_t insecureWord;     /* When there is no secure memory location availabe/required, pSecureWord will point to this value. */
 
    #ifdef BHSM_BSP_INTERRUPT_SUPPORT
     BKNI_EventHandle     oLoadWait;
     BINT_CallbackHandle  oLoadCallback;
    #endif
+
+   uint8_t *pSecureMemory;
 
 }BHSM_P_BspMsg_Module_t;
 
@@ -163,7 +160,7 @@ typedef struct BHSM_P_BspMsg
         BSTD_DeviceOffset signatureOffset;   /* memory offset to signature. Valid of "enable" is true. */
     }signedCommand;
 
-    char mailBox[BHSM_P_MAILBOX_BYTE_SIZE];  /* shadow mailbox, used for both input and output.*/
+    uint8_t  *mailBox;  /* shadow mailbox, size of BHSM_P_MAILBOX_BYTE_SIZE */
 
 }BHSM_P_BspMsg;
 
@@ -182,52 +179,44 @@ static void _MailboxIntHandler_isr( void* pHsm, int unused );
 BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgInit_t *pParam )
 {
     BHSM_P_BspMsg_Module_t *pModuleData;
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_BspMsg_Init );
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BSTD_UNUSED( pParam );
+
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( !hHsm->regHandle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     pModuleData = BKNI_Malloc( sizeof(*pModuleData) );
-    if( pModuleData == NULL ) { return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); }
-
-    BKNI_Memset( pModuleData, 0, sizeof(*pModuleData) );
-
-    pModuleData->conf = *pParam;
-    pModuleData->hRegister = hHsm->regHandle;
-    pModuleData->ownerId = 0;
+    if( !pModuleData ) { return  BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); }
 
     hHsm->modules.pBsp = pModuleData;
 
-    BDBG_CASSERT( BHSM_SECURE_MEMORY_SIZE >= sizeof(uint32_t) );
-    if( pParam->secureMemory.p && pParam->secureMemory.size >= sizeof(uint32_t) )
-    {
-        pModuleData->pSecureWord = pParam->secureMemory.p;
-    }
-    else
-    {
-        pModuleData->pSecureWord = &pModuleData->insecureWord;
-    }
+    BKNI_Memset( pModuleData, 0, sizeof(*pModuleData) );
+
+    pModuleData->hRegister = hHsm->regHandle;
+    pModuleData->ownerId = 0;
+
+    pModuleData->pSecureMemory = BHSM_SecureMemory_Allocate( BHSM_P_MAILBOX_BYTE_SIZE );
+    if( !pModuleData->pSecureMemory ) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto error; }
 
    #ifdef BHSM_BSP_INTERRUPT_SUPPORT
-	rc = BKNI_CreateEvent( &(pModuleData->oLoadWait) );
-    if( rc != BERR_SUCCESS ) { return  BERR_TRACE( rc ); }
+    rc = BKNI_CreateEvent( &(pModuleData->oLoadWait) );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto error; }
 
-
-	rc = BINT_CreateCallback( &(pModuleData->oLoadCallback),
+    rc = BINT_CreateCallback( &(pModuleData->oLoadCallback),
                               hHsm->interruptHandle,
                               MAILBOX_OLOAD_INTERRUPT_ID,
                               _MailboxIntHandler_isr,
                               (void*)hHsm,
                               0x00 );
-    if( rc != BERR_SUCCESS ) { return  BERR_TRACE( rc ); }
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc );  goto error; }
 
     rc = BINT_EnableCallback( pModuleData->oLoadCallback );
-    if( rc != BERR_SUCCESS ) { return  BERR_TRACE( rc ); }
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto error; }
    #endif
 
     /* initialise mailbox interface */
@@ -242,11 +231,18 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgInit_t *pParam )
     BDBG_LEAVE( BHSM_BspMsg_Init );
 
     return BERR_SUCCESS;
+
+error:
+
+    BHSM_BspMsg_Uninit( hHsm );
+
+    return rc;
 }
 
 void BHSM_BspMsg_Uninit( BHSM_Handle hHsm )
 {
     BERR_Code rc;
+    BHSM_P_BspMsg_Module_t *pModuleData;
 
     BDBG_ENTER( BHSM_BspMsg_Uninit );
 
@@ -255,21 +251,29 @@ void BHSM_BspMsg_Uninit( BHSM_Handle hHsm )
 
     if( !hHsm->modules.pBsp ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
+    pModuleData = hHsm->modules.pBsp;
+
+    if( pModuleData->pSecureMemory ) {
+        BHSM_SecureMemory_ScrubBeforeFree( pModuleData->pSecureMemory, BHSM_P_MAILBOX_BYTE_SIZE );
+        BHSM_SecureMemory_Free( pModuleData->pSecureMemory );
+        pModuleData->pSecureMemory = NULL;
+    }
+
    #ifdef BHSM_BSP_INTERRUPT_SUPPORT
-    if( hHsm->modules.pBsp->oLoadCallback ){
-        rc = BINT_DisableCallback( hHsm->modules.pBsp->oLoadCallback );
+    if( pModuleData->oLoadCallback ){
+        rc = BINT_DisableCallback( pModuleData->oLoadCallback );
         if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); /* continue */ }
 
-        rc = BINT_DestroyCallback( hHsm->modules.pBsp->oLoadCallback );
+        rc = BINT_DestroyCallback( pModuleData->oLoadCallback );
         if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); /* continue */ }
     }
 
-    if(hHsm->modules.pBsp->oLoadWait ) {
-        BKNI_DestroyEvent( hHsm->modules.pBsp->oLoadWait );
+    if( pModuleData->oLoadWait ) {
+        BKNI_DestroyEvent( pModuleData->oLoadWait );
     }
    #endif
 
-    BKNI_Free( hHsm->modules.pBsp );
+    BKNI_Free( pModuleData );
     hHsm->modules.pBsp = NULL;
 
     BDBG_LEAVE( BHSM_BspMsg_Uninit );
@@ -291,6 +295,14 @@ BHSM_BspMsg_h BHSM_BspMsg_Create( BHSM_Handle hHsm, BHSM_BspMsgCreate_t *pParam 
 
     if( !hHsm->modules.pBsp ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
+    if( hHsm->modules.pBsp->bspInterfaceBusy ) {
+
+        /* Only one BspMsg Message Object should be instantiated at any one time */
+        BERR_TRACE( BERR_NOT_AVAILABLE );
+        return NULL;
+    }
+    hHsm->modules.pBsp->bspInterfaceBusy = true;
+
     hMsg = (BHSM_BspMsg_h) BKNI_Malloc( sizeof(BHSM_P_BspMsg) );
     if( hMsg == NULL) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
 
@@ -298,12 +310,7 @@ BHSM_BspMsg_h BHSM_BspMsg_Create( BHSM_Handle hHsm, BHSM_BspMsgCreate_t *pParam 
     BDBG_OBJECT_SET( hMsg, BHSM_P_BspMsg );
 
     hMsg->hHsm = hHsm;
-
-    if( hHsm->modules.pBsp->bspInterfaceBusy )
-    {
-        BDBG_ERR(( "Only one BspMsg Message Object should be instantiated at any one time" ));
-    }
-    hHsm->modules.pBsp->bspInterfaceBusy = true;
+    hMsg->mailBox = hHsm->modules.pBsp->pSecureMemory;
 
     /* Wait until BSP can accept input */
     for( timeout = 1000; timeout; timeout-- )
@@ -323,7 +330,6 @@ BHSM_BspMsg_h BHSM_BspMsg_Create( BHSM_Handle hHsm, BHSM_BspMsgCreate_t *pParam 
 
     pParam->pSend    = &hMsg->mailBox[sizeof(Bsp_CmdHeader_InFields_t)];
     pParam->pReceive = &hMsg->mailBox[sizeof(Bsp_CmdHeader_OutFields_t)];
-                                  /* TODO: allow this buffer to be allocated from SRAM on SAGE. */
 
     BDBG_LEAVE( BHSM_BspMsg_Create );
     return hMsg;

@@ -297,6 +297,14 @@ if not sync byte is found, then returned number would be 255
 **/
 uint8_t bmmt_get_tlv_sync_byte_bitshift(uint8_t *buf, size_t len);
 
+/**
+Summary:
+bmmt_set_static_keys is a test API to statically push
+odd/even keys a for an entire MMT stream from applications.
+num_keys : number of odd/even key pairs
+**/
+int bmmt_set_static_test_keys(bmmt_t mmt,uint8_t (*odd_key_table)[BMMT_MAX_AES_CTR_KEY_SIZE], uint8_t (*even_key_table)[BMMT_MAX_AES_CTR_KEY_SIZE], uint8_t num_key_pairs);
+
 #ifdef __cplusplus
 }
 #endif

@@ -238,6 +238,36 @@ static int start_decode(struct context *context, const struct dvrfile *dvrfile, 
     return 0;
 }
 
+static int connect_video_decode(struct context *context, const struct gui *gui)
+{
+    NxClient_AllocSettings allocSettings;
+    NxClient_ConnectSettings connectSettings;
+    NEXUS_Error rc;
+    /* if gui->index is 1, then these are two video windows under two top-level SurfaceClients */
+    unsigned windowId = gui->index ? 0 : context->index;
+
+    if (context->connectId) return -1;
+
+    NxClient_GetDefaultAllocSettings(&allocSettings);
+    allocSettings.simpleVideoDecoder = 1;
+    rc = NxClient_Alloc(&allocSettings, &context->allocResults);
+    if (rc) return BERR_TRACE(rc);
+
+    context->videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(gui->surfaceClient, windowId);
+
+    NxClient_GetDefaultConnectSettings(&connectSettings);
+    connectSettings.simpleVideoDecoder[0].id = context->allocResults.simpleVideoDecoder[0].id;
+    connectSettings.simpleVideoDecoder[0].surfaceClientId = gui->allocResults.surfaceClient[0].id;
+    connectSettings.simpleVideoDecoder[0].windowId = windowId;
+    connectSettings.simpleVideoDecoder[0].windowCapabilities.type = context->videoWindowType;
+    rc = NxClient_Connect(&connectSettings, &context->connectId);
+    if (rc) return BERR_TRACE(rc);
+
+    set_full(context);
+
+    return 0;
+}
+
 static void stop_decode(struct context *context)
 {
     if (context->playback) {
@@ -245,14 +275,26 @@ static void stop_decode(struct context *context)
         NEXUS_Playback_Destroy(context->playback);
         NEXUS_Playpump_Close(context->playpump);
         NEXUS_FilePlay_Close(context->file);
+        context->playback = NULL;
+        context->playpump = NULL;
+        context->file = NULL;
     }
-    else {
+    if (context->videoDecoder) {
+        NEXUS_SimpleVideoDecoder_Release(context->videoDecoder);
+        context->videoDecoder = NULL;
     }
-    NEXUS_SimpleVideoDecoder_Release(context->videoDecoder);
-    NEXUS_SimpleAudioDecoder_Release(context->audioDecoder);
-    NEXUS_SurfaceClient_ReleaseVideoWindow(context->videoSurfaceClient);
-    context->videoSurfaceClient = NULL;
-    NEXUS_SimpleStcChannel_Destroy(context->stcChannel);
+    if (context->audioDecoder) {
+        NEXUS_SimpleAudioDecoder_Release(context->audioDecoder);
+        context->audioDecoder = NULL;
+    }
+    if (context->videoSurfaceClient) {
+        NEXUS_SurfaceClient_ReleaseVideoWindow(context->videoSurfaceClient);
+        context->videoSurfaceClient = NULL;
+    }
+    if (context->stcChannel) {
+        NEXUS_SimpleStcChannel_Destroy(context->stcChannel);
+        context->stcChannel = NULL;
+    }
     NxClient_Disconnect(context->connectId);
     context->connectId = 0;
     NxClient_Free(&context->allocResults);
@@ -447,6 +489,15 @@ int main(int argc, char **argv)
             }
             break;
         case 2:
+            {
+            bool temp[2] = {false, false};
+            unsigned i;
+            for (i=0;i<2;i++) {
+                if (!context[i].connectId) {
+                    connect_video_decode(&context[i], (i==1 && dual_client)?&gui[1]:&gui[0]);
+                    temp[i] = true;
+                }
+            }
             NxClient_GetDefaultReconfigSettings(&reconfigSettings);
             reconfigSettings.command[0].type = NxClient_ReconfigType_eRerouteVideo;
             reconfigSettings.command[0].connectId1 = context[0].connectId;
@@ -454,6 +505,10 @@ int main(int argc, char **argv)
             rc = NxClient_Reconfig(&reconfigSettings);
             if (!rc) {
                 swap_windows(&context[0], &context[1]);
+            }
+            for (i=0;i<2;i++) {
+                if (temp[i]) stop_decode(&context[i]);
+            }
             }
             break;
         case 3:

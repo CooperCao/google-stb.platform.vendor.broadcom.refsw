@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -127,6 +127,11 @@
 #include "bchp_v3d_bpcm.h"
 #endif
 #endif
+
+#ifdef BCHP_ARG_ASB_REG_START
+#include "bchp_arg_asb.h"
+#endif
+#include "bchp_pm.h"
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
 /* Map the register names to core 0 addresses.

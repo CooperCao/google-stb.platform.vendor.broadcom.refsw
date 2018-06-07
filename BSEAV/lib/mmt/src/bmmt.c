@@ -40,6 +40,7 @@
 #include "btlv_parser.h"
 #include "bmmt_parser.h"
 #include "bmmt_demux.h"
+#include "bmmt_security.h"
 #include "blst_queue.h"
 #include "bmedia_util.h"
 #include "biobits.h"
@@ -52,12 +53,12 @@ BDBG_MODULE(bmmt);
 
 #define BDBG_MSG_TRACE(x)  BDBG_MSG(x)
 #define BDBG_TRACE_ERROR(x) (BDBG_LOG(("Error: %s (%s,%u)",#x,__FILE__,__LINE__)),x)
-
 /**
 Summary:
  bmmt defines a context for an instance of mmt library.
 **/
 BDBG_OBJECT_ID(bmmt);
+
 typedef struct bmmt {
     BDBG_OBJECT(bmmt)
     bmmt_open_settings open_settings;
@@ -87,6 +88,11 @@ typedef struct bmmt {
     pthread_t thread;
     bool ip_filter_valid;
     btlv_ip_address addr;
+    bmmt_security_t security;
+    uint8_t (*odd_key_table)[BMMT_MAX_AES_CTR_KEY_SIZE];
+    uint8_t (*even_key_table)[BMMT_MAX_AES_CTR_KEY_SIZE];
+    NEXUS_DmaJobBlockSettings block_settings[BMMT_MAX_DMA_BLOCKS];
+    uint8_t num_key_pairs;
     BKNI_MutexHandle mutex;
 }bmmt;
 
@@ -105,8 +111,11 @@ typedef struct bmmt_stream {
     bmmt_timestamp_queue timestamp_queue;
     bmmt_demux_stream_config demux_stream_config;
     bmmt_demux_stream_t demux_stream;
-    bmmt_t mmt;
+    uint8_t odd_key_index;
+    uint8_t even_key_index;
+    uint8_t scrambling_control;
     unsigned pes_id;
+    bmmt_t mmt;
 }bmmt_stream;
 
 /**
@@ -138,7 +147,7 @@ static void * bmmt_p_io_live_thread(void *context);
 static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor);
 static void bmmt_p_recpump_dataready_callback(void *context, int param);
 static void bmmt_p_recpump_overflow_callback(void *context, int param);
-
+static size_t bmmt_p_prep_dma_copy(batom_cursor *cursor, NEXUS_DmaJobBlockSettings *block_settings,size_t max_blocks);
 static const batom_user b_atom_mmt = {
     bmmt_p_atom_free,
     0
@@ -199,7 +208,7 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
         {
             BATOM_CLONE(&tlv_si_payload, &ip_result.data);
             msg->valid[msg->write_index] = false;
-            msg->buf[msg->write_index].offset = (unsigned)batom_cursor_size(&tlv_si_payload);;
+            msg->buf[msg->write_index].offset = (unsigned)batom_cursor_size(&tlv_si_payload);
             BDBG_ASSERT(msg->buf[msg->write_index].length >= msg->buf[msg->write_index].offset);
             batom_cursor_copy(&tlv_si_payload,msg->buf[msg->write_index].data,msg->buf[msg->write_index].offset);
             msg->valid[msg->write_index] = true;
@@ -208,7 +217,6 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
             BDBG_MSG(("TLV SI processing %u",msg->buf[msg->write_index].offset));
         }
         goto done;
-
     }
     else
     {
@@ -216,8 +224,8 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
         {
             if(!btlv_ip_demux(&ip_result, &mmt->addr, &payload))
             {
-                 BDBG_MSG(("Unknown IP"));
-                 goto done;
+                BDBG_MSG(("Unknown IP"));
+                goto done;
             }
         }
         else
@@ -225,11 +233,9 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
             BDBG_MSG(("no IP set"));
             goto done;
         }
-
     }
-
     rc = bmmt_parse_mmt_header(&payload,&mmt_header);
-    if (rc )
+    if (rc)
     {
         BDBG_WRN(("MMTP parsing error"));
         goto done;
@@ -240,11 +246,63 @@ static int bmmt_p_process_tlv_packet(bmmt_t mmt, batom_cursor *cursor)
         for (stream = BLST_Q_FIRST(&mmt->streams);(stream && stream->settings.pid != mmt_header.packet_id);stream=BLST_Q_NEXT(stream, link));
         if (!stream)
         {
-             BDBG_MSG(("Unknown packet ID"));
-             goto done;
+            BDBG_MSG(("Unknown packet ID"));
+            goto done;
         }
         else
         {
+            if(mmt_header.hdr_ext_type == 0x1 && (mmt_header.scrambling_control == 0x2 || mmt_header.scrambling_control == 0x3))
+            {
+                int i=0;
+                batom_checkpoint chk_point;
+                BATOM_SAVE(&payload,&chk_point);
+                bmmt_security_load_IV(mmt->security, mmt_header.iv);
+                #if BMMT_EXTERNAL_KEY_IV == 1
+                bmmt_security_load_key(mmt->security,
+                                       mmt_header.scrambling_control == 0x2?
+                                       mmt->even_key_table[stream->even_key_index]:
+                                       mmt->odd_key_table[stream->odd_key_index]);
+                #endif
+                if ( (mmt_header.scrambling_control == 0x2) && (stream->scrambling_control == 0x3))
+                {
+                    #if BMMT_EXTERNAL_KEY_IV == 0
+                    bmmt_security_load_key(mmt->security,mmt->even_key_table[stream->even_key_index]);
+                    #endif
+                    stream->odd_key_index++;
+                    stream->odd_key_index = (stream->odd_key_index % mmt->num_key_pairs);
+                }
+                else
+                {
+                    if ((mmt_header.scrambling_control == 0x3) && (stream->scrambling_control == 0x2))
+                    {
+                        #if BMMT_EXTERNAL_KEY_IV == 0
+                        bmmt_security_load_key(mmt->security,mmt->odd_key_table[stream->odd_key_index]);
+                        #endif
+                        stream->even_key_index++;
+                        stream->even_key_index = (stream->even_key_index % mmt->num_key_pairs);
+                    }
+                    else
+                    {
+                        #if BMMT_EXTERNAL_KEY_IV == 0
+                        if (!stream->scrambling_control)
+                        {
+                            bmmt_security_load_key(mmt->security,mmt_header.scrambling_control == 0x2?
+                                                   mmt->even_key_table[stream->even_key_index]:
+                                                   mmt->odd_key_table[stream->odd_key_index]);
+                        }
+                        else
+                        #endif
+                        {
+                            BDBG_MSG(("no key change"));
+                        }
+                    }
+                }
+                stream->scrambling_control = mmt_header.scrambling_control;
+                batom_cursor_skip(&payload,8);
+                i = bmmt_p_prep_dma_copy(&payload,mmt->block_settings,BMMT_MAX_DMA_BLOCKS);
+                bmmt_security_dma_transfer(mmt->security,mmt->block_settings,i);
+                BATOM_ROLLBACK(&payload, &chk_point);
+            }
             rc = bmmt_demux_stream_process_payload(mmt->demux, stream->demux_stream, &mmt_header, &payload);
         }
     }
@@ -358,7 +416,7 @@ static void * bmmt_p_io_live_thread(void *context)
             if (data_buffer_size[k] > skip) {
                 buf = (uint8_t *)data_buffer[k] + skip;
                 len = data_buffer_size[k] - skip;
-                for (offset=0;offset + mmt->io_buffer_size <=len;offset+=mmt->io_buffer_size)
+                for (offset=0;(offset + mmt->io_buffer_size) <=len;offset+=mmt->io_buffer_size)
                 {
 
                     if(mmt->open_settings.input_format == ebmmt_input_format_tlv)
@@ -797,10 +855,7 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
     mmt->demux_config.copy_payload = bmmt_p_copy_payload;
     mmt->demux = bmmt_demux_create(mmt->factory, &mmt->demux_config);
     BDBG_ASSERT(mmt->demux);
-    #if 0
-    NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-    playpumpOpenSettings.fifoSize = 10*1024*1024;
-    #endif
+
     mmt->playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
     BDBG_ASSERT(mmt->playpump);
 
@@ -812,7 +867,8 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
     BDBG_ASSERT(mmt->io_data);
     for (i=0;i<mmt->num_io_buffers;i++)
     {
-        mmt->io_data[i].io_buf = BKNI_Malloc(mmt->io_buffer_size);
+        /*mmt->io_data[i].io_buf = BKNI_Malloc(mmt->io_buffer_size);*/
+        NEXUS_Memory_Allocate(mmt->io_buffer_size, NULL, ( void ** ) &mmt->io_data[i].io_buf);
         BDBG_ASSERT(mmt->io_data[i].io_buf);
     }
 
@@ -829,6 +885,7 @@ bmmt_t bmmt_open(bmmt_open_settings *open_settings)
     {
         mmt->fout = NULL;
     }
+    mmt->security = bmmt_security_init();
     BDBG_WRN(("%s <<<", __extension__ __FUNCTION__));
     return mmt;
 
@@ -883,7 +940,8 @@ int bmmt_close(bmmt_t mmt)
     }
     for (i=0;i<mmt->num_io_buffers;i++)
     {
-        BKNI_Free(mmt->io_data[i].io_buf);
+        /*BKNI_Free(mmt->io_data[i].io_buf);*/
+          NEXUS_Memory_Free( mmt->io_data[i].io_buf );
     }
     BKNI_Free(mmt->io_data);
 
@@ -908,8 +966,9 @@ int bmmt_close(bmmt_t mmt)
     }
 
     bmmt_demux_destroy(mmt->demux);
+    bmmt_security_uninit(mmt->security);
     batom_factory_get_stats(mmt->factory, &factory_stats);
-    BDBG_WRN(("status: atoms[live:%u allocated:%u freed:%u] alloc[pool:%u/%u arena:%u/%u alloc:%u/%u]", factory_stats.atom_live, factory_stats.atom_allocated, factory_stats.atom_freed, factory_stats.alloc_pool, factory_stats.free_pool, factory_stats.alloc_arena, factory_stats.free_arena, factory_stats.alloc_alloc, factory_stats.free_alloc));
+    BDBG_WRN(("status: atoms[live:%u allocated:%u freed:%u] alloc[pool:%u/%u arena:%u/%u alloc:%u/%u]", factory_stats.atom_live, factory_stats.atom_allocated, factory_stats.atom_freed, factory_stats.alloc_pool, factory_stats.free_pool, factory_stats.alloc_arena,	factory_stats.free_arena,	factory_stats.alloc_alloc,	factory_stats.free_alloc));
     batom_factory_dump(mmt->factory);
     batom_factory_destroy(mmt->factory);
     BKNI_DestroyMutex(mmt->mutex);
@@ -1009,6 +1068,9 @@ bmmt_stream_t bmmt_stream_open(bmmt_t mmt, bmmt_stream_settings *settings)
         BKNI_AcquireMutex(mmt->mutex);
         BLST_Q_INSERT_TAIL(&mmt->streams,stream,link);
         BKNI_Memcpy(&stream->settings,settings,sizeof(*settings));
+        stream->odd_key_index = 0;
+        stream->even_key_index = 0;
+        stream->scrambling_control = 0;
         BKNI_ReleaseMutex(mmt->mutex);
     }
     return stream;
@@ -1340,4 +1402,96 @@ uint8_t bmmt_get_tlv_sync_byte_bitshift(uint8_t *buf, size_t len)
         BDBG_WRN(("bitShift %u",bitShift));
     }
     return bitShift;
+}
+
+static size_t
+bmmt_p_cursor_refill(batom_cursor *cursor)
+{
+
+        BDBG_ASSERT(cursor->left<=0);
+        if (cursor->left==0) {
+                unsigned pos;
+                const batom_vec *vec;
+                BDBG_ASSERT(cursor->vec);
+                BDBG_ASSERT(cursor->pos <= cursor->count);
+                for(pos=cursor->pos,vec=&cursor->vec[pos];pos < cursor->count;vec++) {
+                        pos++;
+                        cursor->pos = pos;
+                        if (vec->len>0) {
+                                cursor->left = vec->len;
+                                cursor->cursor = vec->base;
+                                return (size_t)cursor->left;
+                        }
+                }
+                cursor->left = BATOM_EOF;
+        }
+        return 0;
+}
+static size_t bmmt_p_prep_dma_copy(batom_cursor *cursor, NEXUS_DmaJobBlockSettings *block_settings, size_t max_blocks)
+{
+    size_t left;
+    #if BMMT_EXTERNAL_KEY_IV == 1
+    size_t count = 1;
+    #else
+    size_t count = 0;
+    #endif
+    size_t byte_count = batom_cursor_size(cursor);
+    for(left=byte_count;;)
+    {
+        const uint8_t *src=cursor->cursor;
+        int src_left = cursor->left;
+        if(src_left>=(int)left)
+        {
+            cursor->cursor = src+left;
+            cursor->left = src_left-left;
+            if (left) {
+               NEXUS_DmaJob_GetDefaultBlockSettings( &block_settings[count] );
+               block_settings[count].blockSize = left;
+               block_settings[count].pSrcAddr =  src;
+               block_settings[count].pDestAddr = (void *)src;
+               count++;
+            }
+            left = 0;
+            break;
+        }
+        if(src_left>=0)
+        {
+            cursor->cursor = src+src_left;
+            cursor->left = 0;
+            left -= src_left;
+            if (src_left) {
+               NEXUS_DmaJob_GetDefaultBlockSettings( &block_settings[count] );
+               block_settings[count].blockSize = src_left;
+               block_settings[count].pSrcAddr = src;
+               block_settings[count].pDestAddr = src;
+               count++;
+            }
+            if (bmmt_p_cursor_refill(cursor)==0)
+            {
+                break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+    BDBG_ASSERT((count < max_blocks));
+    return count;
+}
+
+
+int bmmt_set_static_test_keys(bmmt_t mmt,
+                              uint8_t (*odd_key_table)[BMMT_MAX_AES_CTR_KEY_SIZE],
+                              uint8_t (*even_key_table)[BMMT_MAX_AES_CTR_KEY_SIZE],
+                              uint8_t num_key_pairs)
+{
+    BDBG_OBJECT_ASSERT(mmt, bmmt);
+    BKNI_AcquireMutex(mmt->mutex);
+
+    mmt->num_key_pairs = num_key_pairs;
+    mmt->odd_key_table = odd_key_table;
+    mmt->even_key_table = even_key_table;
+    BKNI_ReleaseMutex(mmt->mutex);
+    return 0;
 }

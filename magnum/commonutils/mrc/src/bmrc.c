@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -108,7 +112,6 @@
 #define BMRC_P_FIELD_DATA(reg, field, data)    BCHP_FIELD_DATA(MEMC_GEN_0##_##reg, field, data)
 #define BMRC_P_FIELD_ENUM(reg, field, name)    BCHP_FIELD_ENUM(MEMC_GEN_0##_##reg, field, name)
 #elif BMRC_P_CHECKER_USE_MEMC_ARC_VER
-
 #define BMRC_P_BCHP_MEMC_0_REG(reg) BCHP_MEMC_ARC_0##_##reg
 #define BMRC_P_BCHP_MEMC_1_REG(reg) BCHP_MEMC_ARC_1##_##reg
 #define BMRC_P_BCHP_MEMC_2_REG(reg) BCHP_MEMC_ARC_2##_##reg
@@ -164,12 +167,15 @@
 #endif
 
 #define BMRC_P_Checker_Read32(hMrc, hChecker, reg)         BREG_Read32 (hMrc->hReg, BMRC_P_BCHP_MEMC_REG(hMrc, reg) + hChecker->ulRegOffset)
-#define BMRC_P_Checker_Write32(hMrc, hChecker, reg, data)  if(hChecker->aulPrevRegTbl[BMRC_P_CHECKER_REG_IDX(hMrc, reg)] != data || !hChecker->PrevRegTblValid[BMRC_P_CHECKER_REG_IDX(hMrc, reg)]) { \
-                                                                hChecker->PrevRegTblValid[BMRC_P_CHECKER_REG_IDX(hMrc, reg)] = true; \
-                                                                hChecker->aulPrevRegTbl[BMRC_P_CHECKER_REG_IDX(hMrc, reg)] = data; \
-                                                                BREG_Write32(hMrc->hReg, BMRC_P_BCHP_MEMC_REG(hMrc, reg) + hChecker->ulRegOffset, data); \
-                                                            }
 
+static void BMRC_P_Checker_Write32_index(BMRC_Handle hMrc, BMRC_Checker_Handle hChecker, unsigned index, uint32_t data);
+#define BMRC_P_Checker_Write32(hMrc, hChecker, reg, data)  BMRC_P_Checker_Write32_index((hMrc), (hChecker), BMRC_P_CHECKER_REG_IDX(hMrc, reg), data)
+
+#if BMRC_P_BCHP_MEMC_0_REG(ARC_0_READ_RIGHTS_i_ARRAY_BASE)
+#define BMRC_P_Checker_WriteRights(hMrc, hChecker, table, reg, n) BMRC_P_Checker_Write32_index(hMrc, hChecker, BMRC_P_CHECKER_REG_IDX(hMrc, ARC_0_##reg##_i_ARRAY_BASE) + n, hChecker->aul##table[n])
+#else
+#define BMRC_P_Checker_WriteRights(hMrc, hChecker, table, reg, n) BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_##reg##_##n, hChecker->aul##table[n])
+#endif
 
 #define BMRC_P_MEMC_ADRS_SHIFT 3
 #define BMRC_P_RANGE_ALIGNMENT_MASK ~0x00000007
@@ -249,6 +255,15 @@ static const BMRC_Settings s_stDefaultSettings = {
     0 /* Memc Module Id */
 };
 
+static void BMRC_P_Checker_Write32_index(BMRC_Handle hMrc, BMRC_Checker_Handle hChecker, unsigned index, uint32_t data)
+{
+    if(hChecker->aulPrevRegTbl[index] != data || !hChecker->PrevRegTblValid[index]) {
+        hChecker->PrevRegTblValid[index] = true;
+        hChecker->aulPrevRegTbl[index] = data;
+        BREG_Write32(hMrc->hReg, BMRC_P_BCHP_MEMC_REG(hMrc, ARC_0_CNTRL)+sizeof(uint32_t)*index+hChecker->ulRegOffset, data);
+    }
+    return;
+}
 
 static const BINT_Id s_saIntIdTbl[][BMRC_P_CHECKER_COUNT_MAX] =
 {
@@ -974,69 +989,25 @@ BERR_Code BMRC_P_Checker_WriteRegs
     }
 
 #elif BMRC_P_CLIENTS_MAX >= 128
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[0];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_0, ulReg);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 0);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 1);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 2);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 3);
 
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[1];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_1, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[2];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_2, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[3];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_3, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[0];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_0, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[1];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_1, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[2];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_2, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[3];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_3, ulReg);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 0);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 1);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 2);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 3);
 #if BMRC_P_CLIENTS_MAX >= 256
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[4];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_4, ulReg);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 4);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 5);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 6);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, ReadClients, READ_RIGHTS, 7);
 
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[5];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_5, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[6];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_6, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulReadClients[7];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_7, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[4];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_4, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[5];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_5, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[6];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_6, ulReg);
-
-    ulReg = 0;
-    ulReg |= hChecker->aulWriteClients[7];
-    BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_7, ulReg);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 4);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 5);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 6);
+    BMRC_P_Checker_WriteRights(hMrc, hChecker, WriteClients, WRITE_RIGHTS, 7);
 #endif
 #else
 #error not supported

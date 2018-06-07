@@ -1,40 +1,44 @@
-#############################################################################
-# Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+###############################################################################
+#   Copyright (C) 2018 Broadcom.
+#   The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#   This program is the proprietary software of Broadcom and/or its licensors,
+#   and may only be used, duplicated, modified or distributed pursuant to
+#   the terms and conditions of a separate, written license agreement executed
+#   between you and Broadcom (an "Authorized License").  Except as set forth in
+#   an Authorized License, Broadcom grants no license (express or implied),
+#   right to use, or waiver of any kind with respect to the Software, and
+#   Broadcom expressly reserves all rights in and to the Software and all
+#   intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+#   THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+#   IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# Except as expressly set forth in the Authorized License,
+#   Except as expressly set forth in the Authorized License,
 #
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#   1.     This program, including its structure, sequence and organization,
+#   constitutes the valuable trade secrets of Broadcom, and you shall use all
+#   reasonable efforts to protect the confidentiality thereof, and to use this
+#   information only in connection with your use of Broadcom integrated circuit
+#   products.
 #
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
+#   2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+#   "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+#   OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+#   RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+#   IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+#   A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#   ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#   THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
-#############################################################################
+#   3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+#   OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+#   INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+#   RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+#   HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+#   EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+#   WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+#   FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+###############################################################################
 
 PWD := ${shell pwd}
 OPENSOURCE ?= ${PWD}/../
@@ -52,6 +56,13 @@ include cwebsocket.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
+
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX ?= debug
+else
+DEBUG_SUFFIX ?= release
+endif
 
 B_CWEBSOCKET_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
 
@@ -73,11 +84,12 @@ OBJ_OPENSOURCE_DIR = $(subst nexus/bin,BSEAV/opensource,$(NEXUS_BIN_DIR))
 OBJ_OPENSOURCE_DIR_WITH_SLASHES = $(subst /,\/,$(OBJ_OPENSOURCE_DIR))
 NEXUS_BIN_DIR_WITH_SLASHES = $(subst /,\/,$(NEXUS_BIN_DIR))
 
-all : libev libopenssl ${CWEBSOCKET_SOURCE_PATH}/.compiled
+all : libev ${CWEBSOCKET_SOURCE_PATH}/.compiled
 
 libopenssl:
-	echo "Installing... $@";
+	echo "Building... $@ for $(DEBUG_SUFFIX)";
 	make -C $(WORKING_DIR)/../openssl
+	@(cd $(B_OPENSSL_TOP_INSTALL_DIR)/lib && tar cBf - *.so* ) | (cd ${NEXUS_BIN_DIR} && tar xBf -)
 
 libev:
 	echo "Installing... $@";
@@ -111,7 +123,7 @@ ifneq ($(B_REFSW_CWEBSOCKET_IS_EXTERNAL),y)
 	fi
 endif   #  ifeq ($(B_REFSW_CWEBSOCKET_IS_EXTERNAL),y)
 
-${CWEBSOCKET_SOURCE_PATH}/.compiled : source
+${CWEBSOCKET_SOURCE_PATH}/.compiled : libopenssl source
 	@if [ ! -e "${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME}/Makefile" ]; then \
 		echo "================ Configuring cwebsocket Phase 1 ==============="; \
 		(cd ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME} && CC=${CC} ./configure --host=${B_CWEBSOCKET_TOOLCHAIN_ARCH} --enable-ssl=no >/dev/null 2>&1 ); \
@@ -122,7 +134,7 @@ ${CWEBSOCKET_SOURCE_PATH}/.compiled : source
 		echo "================ Build Makefile Phase 1 ======================="; \
 		(cd ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME} && make >/dev/null 2>&1 ); \
 		echo "================ Adjust patch file for compiler ==============="; \
-		cat ${WORKING_DIR}/cwebsocket_Makefile.patch | sed s/PUT_ARCH_HERE/$(B_REFSW_ARCH)/ | sed "s/PUT_OBJ_OPENSOURCE_PATH_HERE/$(OBJ_OPENSOURCE_DIR_WITH_SLASHES)/" | sed "s/PUT_NEXUS_BIN_PATH_HERE/$(NEXUS_BIN_DIR_WITH_SLASHES)/" | sed "s/PUT_OPENSSL_PATH_HERE/$(B_OPENSSL_NAME)/" > ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME}/Makefile.patch; \
+		cat ${WORKING_DIR}/cwebsocket_Makefile.patch | sed s/PUT_ARCH_HERE/$(B_REFSW_ARCH)/ | sed "s/PUT_OBJ_OPENSOURCE_PATH_HERE/$(OBJ_OPENSOURCE_DIR_WITH_SLASHES)/" | sed "s/PUT_NEXUS_BIN_PATH_HERE/$(NEXUS_BIN_DIR_WITH_SLASHES)/" | sed "s/PUT_OPENSSL_PATH_HERE/$(B_OPENSSL_NAME)/" | sed "s/PUT_DEBUG_RELEASE_HERE/$(DEBUG_SUFFIX)/" > ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME}/Makefile.patch; \
 		echo "================ Patching Makefile for compiler ==============="; \
 		(cd ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME} && patch -p1 < ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME}/Makefile.patch ); \
 		echo "================ Patching source =============================="; \
@@ -134,7 +146,7 @@ ${CWEBSOCKET_SOURCE_PATH}/.compiled : source
 		echo "${CWEBSOCKET_NAME} is not configured!"; exit 1;\
 	fi
 
-	@echo "================ Compiling cwebsocket =========================";
+	@echo "================ Compiling cwebsocket for $(DEBUG_SUFFIX) =====";
 	@${MAKE} ${MAKE_OPTIONS} -C ${CWEBSOCKET_TAR_PATH}/${CWEBSOCKET_NAME} ${MAKE_SUFFIX} >/dev/null 2>&1
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
 		if ls ${CWEBSOCKET_LIB_FOLDER}/*.so > /dev/null 2>&1 ; then ${STRIP} ${CWEBSOCKET_LIB_FOLDER}/*.so ; fi \

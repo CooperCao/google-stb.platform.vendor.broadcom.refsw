@@ -1,5 +1,5 @@
 ###############################################################################
-#   Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#   Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
 #   This program is the proprietary software of Broadcom and/or its licensors,
 #   and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,7 @@ EXPAT_SOURCE_PATH:=${EXPAT_SOURCE_DIRECTORY}/${EXPAT_NAME}
 EXPAT_TAR_PATH:=${EXPAT_SOURCE_DIRECTORY}/${EXPAT_NAME}
 EXPAT_CFLAGS?= -O2 -fPIC
 EXPAT_ARCH := ${B_REFSW_ARCH}
+EXPAT_DIR := ${EXPAT_NAME}
 EXPAT_LIB_FOLDER:=${EXPAT_TAR_PATH}/${EXPAT_DIR}/.libs
 EXPAT_INSTALL_TARGET := $(abspath $(B_REFSW_OBJ_ROOT)/target)
 EXPAT_PREFIX=usr/local

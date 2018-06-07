@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -52,10 +56,11 @@
 
 /* Following macros are also defined in nexus_hdmi_input_hdcp_keyloader.c.
  * Both places must have the same definitions. */
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(5,0)
 
+#define BCRYPT_ALG_CUST_KEY            (0x01)
 #define BCRYPT_ALG_GLOBAL_KEY          (0x02)
 #define BCRYPT_ALG_OTP_KEY_DIRECT      (0x81)
+#define BCRYPT_ALG_OTP_KEY_ASKM        (0x82)
 
 #define BCRYPT_MASK_KEY2_CHIP_FAMILY   (0x0)
 #define BCRYPT_MASK_KEY2_FIXED         (0x1)
@@ -67,7 +72,6 @@
 #define BCRYPT_GLOBAL_OWNER_ID_MSP1    (0x1)
 #define BCRYPT_GLOBAL_OWNER_ID_ONE     (0x2)
 
-#endif  /* BHSM_ZEUS_VERSION */
 
 BDBG_MODULE(BHDCPLIB_KEYLOADER) ;
 
@@ -90,6 +94,17 @@ BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
 
 	for (i =0; i< BAVC_HDMI_HDCP_N_PRIVATE_KEYS; i++)
 	{
+        if (EncryptedHdcpKeys[i].Alg == BCRYPT_ALG_GLOBAL_KEY) {
+            BDBG_ERR(( "***********************************************************************" ));
+            BDBG_ERR(( "***                                                                 ***" ));
+            BDBG_ERR(( "***   ERROR:                                                        ***" ));
+            BDBG_ERR(( "***   The encrypted HDCP key is not compatible with this chip.      ***" ));
+            BDBG_ERR(( "***   If the command-line BCrypt has been used (vs. GUI Bcrypt),    ***" ));
+            BDBG_ERR(( "***   make sure to set Version to 'V1' in the tool config file.     ***" ));
+            BDBG_ERR(( "***                                                                 ***" ));
+            BDBG_ERR(( "***********************************************************************" ));
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+        }
 		/* skip keys that are not specified to be used by the RxBksv */
 		if (!(hHDCPlib->stHdcpConfiguration.RxInfo.RxBksv[i / 8] & (1 << (i % 8))))
 			continue ;
@@ -186,6 +201,57 @@ BERR_Code BHDCPlib_FastLoadEncryptedHdcpKeys(
 
             hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpDirect;
             hdcpConf.root.otpKeyIndex = otpKeyIndex;
+            break;
+        case BCRYPT_ALG_OTP_KEY_ASKM:
+            {
+            uint32_t tmp;
+            uint8_t maskKey2;
+            uint8_t stbOwnerId;
+
+            hdcpConf.root.type = BHSM_KeyLadderRootType_eOtpAskm;
+            hdcpConf.root.otpKeyIndex = (hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].CaDataLo);
+            hdcpConf.root.askm.caVendorId = (hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].CaDataHi)>>16;
+
+            /* TCaDataLo is filled with following four bytes:
+             *   Mask Key2 select (MSB) | STB Owner ID Select | Reserved | Reserved (LSB)
+             */
+            tmp = hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].TCaDataLo;
+            maskKey2 = tmp >> 24;
+            switch( maskKey2 )
+            {
+                case BCRYPT_MASK_KEY2_CHIP_FAMILY:
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyLadderCaVendorIdScope_eChipFamily; break;
+                case BCRYPT_MASK_KEY2_FIXED:
+                    hdcpConf.root.askm.caVendorIdScope = BHSM_KeyLadderCaVendorIdScope_eFixed;      break;
+                default:
+                    BDBG_ERR(( "Invalid maskKey2: 0x%x", maskKey2 ));
+                    return BERR_TRACE( BERR_INVALID_PARAMETER );
+            }
+
+            stbOwnerId = (tmp >> 16)&0xff;
+            switch( stbOwnerId )
+            {
+                case BCRYPT_STB_OWNER_ID_OTP:
+                    hdcpConf.root.askm.stbOwnerSelect = BHSM_KeyLadderStbOwnerIdSelect_eOtp; break;
+                case BCRYPT_STB_OWNER_ID_ONE:
+                    hdcpConf.root.askm.stbOwnerSelect = BHSM_KeyLadderStbOwnerIdSelect_eOne; break;
+                default:
+                    BDBG_ERR(( "Invalid stbOwnerId: 0x%x", stbOwnerId ));
+                    return BERR_TRACE( BERR_INVALID_PARAMETER );
+            }
+
+            }
+            break;
+        case BCRYPT_ALG_CUST_KEY:
+            BDBG_ERR(( "Invalid Alg: 0x%x", hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].Alg ));
+            BDBG_ERR(( "***********************************************************************" ));
+            BDBG_ERR(( "***                                                                 ***" ));
+            BDBG_ERR(( "***   ERROR:                                                        ***" ));
+            BDBG_ERR(( "***   The encrypted HDCP key is not compatible with this chip.      ***" ));
+            BDBG_ERR(( "***   Make sure to use the command-line BCrypt (vs. GUI BCrypt),    ***" ));
+            BDBG_ERR(( "***   and set Version to 'V2' in the tool config file.              ***" ));
+            BDBG_ERR(( "***                                                                 ***" ));
+            BDBG_ERR(( "***********************************************************************" ));
             break;
         default:
             BDBG_ERR(( "Invalid Alg: 0x%x", hHDCPlib->stHdcpConfiguration.TxKeySet.TxKeyStructure[0].Alg ));

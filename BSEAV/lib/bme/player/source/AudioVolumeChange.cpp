@@ -1,8 +1,10 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #include <cmath>
+#include <algorithm>
 #include "AudioVolumeChange.h"
 #include "nxclient.h"
 #include "nexus_simple_audio_playback.h" // NEXUS_SimpleAudioPlaybackHandle
@@ -69,13 +71,14 @@ void AudioVolumeBase::blurFastAll(unsigned int timeMs, float target, unsigned in
 
 unsigned int AudioVolumeBase::levelToNexus(float level)
 {
-    return std::roundl(level * float(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL))
-        + NEXUS_AUDIO_VOLUME_LINEAR_MIN;
+    int nexus = static_cast<int>(std::lround(level * float(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL)));
+    return static_cast<unsigned int>(std::max(
+        std::min(nexus, NEXUS_AUDIO_VOLUME_LINEAR_MAX), NEXUS_AUDIO_VOLUME_LINEAR_MIN));
 }
 
 float        AudioVolumeBase::nexusToLevel(unsigned int nexus)
 {
-    return float(nexus - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / float(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
+    return float(nexus) / float(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
 }
 
 

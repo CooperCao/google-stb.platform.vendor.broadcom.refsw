@@ -1860,15 +1860,20 @@ NEXUS_Error NEXUS_FrontendDevice_P_SetAmplifierStatus(NEXUS_FrontendDeviceHandle
 NEXUS_Error NEXUS_FrontendDevice_P_CheckOpen(NEXUS_FrontendDeviceHandle handle)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned i=0;
 
 iterate:
     if(handle->openFailed || handle->abortThread){
         rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;
     }
     else if(handle->openPending){
-        rc = BKNI_Sleep(50);
-        if (rc) {rc = BERR_TRACE(rc); goto done;}
-        goto iterate;
+        if(i<(10*1000)/50) {
+            i++;
+            BKNI_Sleep(50);
+            goto iterate;
+        }
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto done;
     } else if (handle->delayedInitializationRequired) {
         if (handle->delayedInit(handle) != NEXUS_SUCCESS) {
             rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;
@@ -2616,7 +2621,7 @@ static void NEXUS_Frontend_P_TbgConfig(void *arg)
         hostPriPb = pSettings.band[i].primaryParserBandIndex;
         demodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[i].demodPb;
 
-        if (hostPriPb!=NEXUS_ParserBand_eInvalid)
+        if (hostPriPb!=(unsigned)NEXUS_ParserBand_eInvalid)
         {
             BDBG_ASSERT(hostPriPb < NEXUS_NUM_PARSER_BANDS);
             demodPriPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPriPb].demodPb;

@@ -1140,7 +1140,6 @@ b_mkv_player_reorder_pts_add_data(bmkv_player_t player, batom_cursor *cursor, st
 
         /* Create an atom based on this frame so it can be added to the reorder queue */
         batom_accum_append(track->pts_queue.accum_reorder, player->cluster.cache.accum, &frame_start, cursor);
-        /* coverity[overrun_static] coverity[overrun-buffer-val] */
         atom = batom_from_accum(track->pts_queue.accum_reorder, &b_mkv_asp_data_atom, &reorder_atom_info);
         batom_pipe_push(track->pts_queue.pipe_needs_reorder, atom);
         batom_accum_clear(track->pts_queue.accum_reorder);

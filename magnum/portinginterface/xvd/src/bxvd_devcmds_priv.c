@@ -423,6 +423,7 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_P_SAVE_DISPLAY_INFO(hXvd, pInitRsp);
 
    hXvd->sRevisionInfo.ulDecoderFwRev = pInitRsp->sw_version;
+   hXvd->uiDecoderFwSha = pInitRsp->fw_sha;
 
    return BERR_TRACE(eStatus);
 }

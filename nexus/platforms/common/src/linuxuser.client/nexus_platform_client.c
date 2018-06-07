@@ -394,16 +394,14 @@ void NEXUS_P_Client_UninitModule(NEXUS_P_ClientModuleHandle module)
 NEXUS_Error
 NEXUS_P_Client_LockModule(NEXUS_P_ClientModuleHandle module, void **data, unsigned *size)
 {
-    NEXUS_Error rc;
     if (!module) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
     BDBG_OBJECT_ASSERT(module, NEXUS_P_ClientModule);
-    rc = BKNI_AcquireMutex(module->lock);
-    if (rc) return BERR_TRACE(rc);
+    BKNI_AcquireMutex(module->lock);
     *data = module->data;
     *size = module->data_size;
-    return 0;
+    return NEXUS_SUCCESS;
 }
 
 void

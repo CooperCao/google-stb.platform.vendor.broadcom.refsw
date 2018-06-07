@@ -242,8 +242,8 @@ struct BKNI_MutexObj {
 static DECLARE_MUTEX(g_alloc_mutex);
 #endif
 
-#define B_TRACK_ALLOC_LOCK()  down(&g_alloc_mutex);
-#define B_TRACK_ALLOC_UNLOCK() up(&g_alloc_mutex);
+#define B_TRACK_ALLOC_LOCK()  down(&g_alloc_mutex)
+#define B_TRACK_ALLOC_UNLOCK() up(&g_alloc_mutex)
 #define B_TRACK_ALLOC_ALLOC(size) kmalloc(size, GFP_KERNEL)
 #define B_TRACK_ALLOC_FREE(ptr) kfree(ptr)
 #define B_TRACK_ALLOC_OS "linuxkernel"
@@ -274,7 +274,7 @@ BERR_Code BKNI_Init(void)
         };
 
         g_init = true;
-        (void)BKNI_P_MutexTrackingState_Init();
+        BKNI_P_MutexTrackingState_Init();
 
         /* By default, block all signals except for the ones listed above */
         sigfillset(&g_blockedSignals);
@@ -398,12 +398,11 @@ void BKNI_Delay_tagged(unsigned int microsec, const char *file, unsigned line)
     udelay(microsec);
 }
 
-BERR_Code BKNI_Sleep_tagged(unsigned int millisec, const char *file, unsigned line)
+void BKNI_Sleep_tagged(unsigned int millisec, const char *file, unsigned line)
 {
     unsigned long ticks;
     long rc;
     sigset_t mask;
-    BERR_Code retval;
 
     ASSERT_NOT_CRITICAL();
 
@@ -430,11 +429,10 @@ BERR_Code BKNI_Sleep_tagged(unsigned int millisec, const char *file, unsigned li
         set_current_state(TASK_INTERRUPTIBLE);
         rc = schedule_timeout(ticks);
         if (rc==0) {
-            retval = BERR_SUCCESS;
             break;
         }
         if (BKNI_P_signalPending()) {
-            retval = BERR_TRACE(BERR_OS_ERROR);
+            (void)BERR_TRACE(BERR_OS_ERROR);
             break;
         }
         ticks = rc; /* keep sleeping */
@@ -443,7 +441,7 @@ BERR_Code BKNI_Sleep_tagged(unsigned int millisec, const char *file, unsigned li
     /* Restore original signal mask */
     BKNI_P_RestoreSignals(&mask);
 
-    return retval;
+    return;
 }
 
 BERR_Code BKNI_CreateEvent_tagged(BKNI_EventHandle *p_event, const char *file, unsigned line)
@@ -904,7 +902,7 @@ void BKNI_DestroyMutex(BKNI_MutexHandle mutex)
     BKNI_DestroyMutex_tagged(mutex, NULL, 0);
 }
 
-BERR_Code BKNI_AcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned line)
+void BKNI_AcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned line)
 {
     ASSERT_NOT_CRITICAL();
     BDBG_OBJECT_ASSERT(mutex, BKNI_Mutex);
@@ -924,7 +922,7 @@ BERR_Code BKNI_AcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, uns
     g_mutexSectionStart = jiffies;
 #endif
 
-    return BERR_SUCCESS;
+    return;
 }
 
 /**
@@ -991,9 +989,10 @@ static void BKNI_P_ForceReleaseMutex(void *x)
 #endif
 
 #undef BKNI_AcquireMutex
-BERR_Code BKNI_AcquireMutex(BKNI_MutexHandle mutex)
+void BKNI_AcquireMutex(BKNI_MutexHandle mutex)
 {
-    return BKNI_AcquireMutex_tagged(mutex, NULL, 0);
+    BKNI_AcquireMutex_tagged(mutex, NULL, 0);
+    return;
 }
 #undef BKNI_TryAcquireMutex
 BERR_Code BKNI_TryAcquireMutex(BKNI_MutexHandle mutex)

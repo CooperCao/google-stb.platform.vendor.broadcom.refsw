@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "nxworker.h"
 
@@ -15,16 +15,12 @@ NxWorker::~NxWorker()
    m_done = true;
    auto windowState = static_cast<NxWindowState *>(m_platformState);
 
-   auto nw = static_cast<NxWindowInfo*>(windowState->GetWindowHandle());
-
    std::unique_ptr<NxBitmap> bitmap;
    std::unique_ptr<helper::Semaphore> sem;
    std::unique_ptr<DispItem<NxBitmap>> dispItem(
          new DispItem<NxBitmap>(std::move(bitmap), std::move(sem)));
    windowState->PushDispQ(std::move(dispItem));
    m_worker.join();
-
-   NEXUS_SurfaceClient_Clear(nw->GetSurfaceClient());
 }
 
 NxWorker::NxWorker(void *platformState) :
@@ -70,20 +66,23 @@ void NxWorker::RecycleHandler()
 
    auto nw = static_cast<NxWindowInfo*>(windowState->GetWindowHandle());
 
-   NEXUS_SurfaceHandle surface = NULL;
+   const size_t numSurfaces = windowState->GetMaxSwapBuffers();
+   NEXUS_SurfaceHandle surfaces[numSurfaces];
+   memset(surfaces, 0, sizeof(surfaces));
    size_t n = 0;
-   NEXUS_SurfaceClient_RecycleSurface(nw->GetSurfaceClient(), &surface, 1, &n);
-   if (!n)
-      return;
+   NEXUS_SurfaceClient_RecycleSurface(nw->GetSurfaceClient(), surfaces, numSurfaces, &n);
 
-   for (auto i = m_withNexus.begin(); i != m_withNexus.end();)
+   for (size_t i = 0; i < n; i++)
    {
-      if ((*i)->GetSurface() == surface)
+      for (auto j = m_withNexus.begin(); j != m_withNexus.end(); ++j)
       {
-         std::unique_ptr<NxBitmap> bitmap = std::move(*i);
-         m_withNexus.erase(i);
-         windowState->PushFreeQ(std::move(bitmap));
-         break;
+         if ((*j)->GetSurface() == surfaces[i])
+         {
+            std::unique_ptr<NxBitmap> bitmap = std::move(*j);
+            m_withNexus.erase(j);
+            windowState->PushFreeQ(std::move(bitmap));
+            break;
+         }
       }
    }
 }
@@ -137,6 +136,21 @@ void NxWorker::SetupDisplay(const NxWindowInfo &nw)
    NEXUS_SurfaceClient_SetSettings(nw.GetSurfaceClient(), &clientSettings);
 }
 
+void NxWorker::TermDisplay()
+{
+   auto windowState = static_cast<NxWindowState *>(m_platformState);
+
+   auto nw = static_cast<NxWindowInfo*>(windowState->GetWindowHandle());
+
+   NEXUS_SurfaceClientSettings clientSettings;
+   NEXUS_SurfaceClient_GetSettings(nw->GetSurfaceClient(), &clientSettings);
+   clientSettings.recycled.callback      = NULL;
+   clientSettings.vsync.callback         = NULL;
+   NEXUS_SurfaceClient_SetSettings(nw->GetSurfaceClient(), &clientSettings);
+
+   NEXUS_SurfaceClient_Clear(nw->GetSurfaceClient());
+}
+
 void NxWorker::mainThread(void)
 {
    // buffer is pushed to fifo on swapbuffers()
@@ -178,6 +192,7 @@ void NxWorker::mainThread(void)
          RecycleHandler();
       }
    }
+   TermDisplay();
 }
 
 }

@@ -166,7 +166,8 @@ int __tzioc_kernel_client_open(
     /* init client */
     memset(pClient, 0, sizeof(*pClient));
 
-    strncpy(pClient->name, pName, TZIOC_CLIENT_NAME_LEN_MAX);
+    strncpy(pClient->name, pName, TZIOC_CLIENT_NAME_LEN_MAX-1);
+    pClient->name[TZIOC_CLIENT_NAME_LEN_MAX-1] = '\0';
     pClient->idx = idx;
     pClient->id = id;
 
@@ -230,7 +231,8 @@ int __tzioc_user_client_open(
     /* init client */
     memset(pClient, 0, sizeof(*pClient));
 
-    strncpy(pClient->name, pName, TZIOC_CLIENT_NAME_LEN_MAX);
+    strncpy(pClient->name, pName, TZIOC_CLIENT_NAME_LEN_MAX-1);
+    pClient->name[TZIOC_CLIENT_NAME_LEN_MAX-1] = '\0';
     pClient->task = task;
     pClient->msgQ = msgQ;
     pClient->idx = idx;

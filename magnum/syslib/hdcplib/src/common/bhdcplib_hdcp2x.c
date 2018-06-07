@@ -722,14 +722,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ModuleInit(const BHDCPlib_Handle hHDCPlib)
 		BHDM_Settings hdmSettings;
 
 		/* Get Hdmi coreId */
-		rc = BHDM_GetHdmiSettings(hHDCPlib->stDependencies.hHdm, &hdmSettings);
-		if (rc != BERR_SUCCESS)
-		{
-			BDBG_ERR(("Error getting BHDM_Settings"));
-			BERR_TRACE(rc);
-			goto done;
-		}
-
+		BHDM_GetHdmiSettings(hHDCPlib->stDependencies.hHdm, &hdmSettings);
 		hHDCPlib->sageContainer->basicIn[0] = hdmSettings.eCoreId;
 		eHdcp22ModuleId = Hdcp22_ModuleId_eTx;
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "worker.h"
 #include "windowstate.h"
@@ -14,15 +14,11 @@ Worker::~Worker()
    m_done = true;
    auto windowState = static_cast<nxpl::WindowState *>(m_platformState);
 
-   auto nw = static_cast<nxpl::NativeWindowInfo*>(windowState->GetWindowHandle());
-
    std::unique_ptr<nxpl::Bitmap> bitmap;
    std::unique_ptr<helper::Semaphore> sem;
    std::unique_ptr<nxpl::DispItem> dispItem(new nxpl::DispItem(std::move(bitmap), std::move(sem)));
    windowState->PushDispQ(std::move(dispItem));
    m_worker.join();
-
-   NEXUS_SurfaceClient_Clear(nw->GetSurfaceClient());
 }
 
 Worker::Worker(void *platformState, EventContext *eventContext) :
@@ -133,6 +129,21 @@ void Worker::SetupDisplay(const NativeWindowInfo &nw)
    NEXUS_SurfaceClient_SetSettings(nw.GetSurfaceClient(), &clientSettings);
 }
 
+void Worker::TermDisplay()
+{
+   auto windowState = static_cast<nxpl::WindowState *>(m_platformState);
+
+   auto nw = static_cast<nxpl::NativeWindowInfo*>(windowState->GetWindowHandle());
+
+   NEXUS_SurfaceClientSettings clientSettings;
+   NEXUS_SurfaceClient_GetSettings(nw->GetSurfaceClient(), &clientSettings);
+   clientSettings.recycled.callback      = NULL;
+   clientSettings.vsync.callback         = NULL;
+   NEXUS_SurfaceClient_SetSettings(nw->GetSurfaceClient(), &clientSettings);
+
+   NEXUS_SurfaceClient_Clear(nw->GetSurfaceClient());
+}
+
 void Worker::mainThread(void)
 {
    // buffer is pushed to fifo on swapbuffers()
@@ -173,6 +184,7 @@ void Worker::mainThread(void)
          RecycleHandler();
       }
    }
+   TermDisplay();
 }
 
 }

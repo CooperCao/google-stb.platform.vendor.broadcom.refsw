@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2008-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1179,13 +1179,6 @@ NEXUS_ThreadHandle NEXUS_P_Thread_Create(const char *pThreadName, void (*pThread
 bool NEXUS_P_CpuAccessibleAddress(
     const void *address /* cached or uncached address */
     );
-
-typedef struct NEXUS_P_Base_MemoryRange {
-    void *start;
-    size_t length;
-} NEXUS_P_Base_MemoryRange;
-
-extern NEXUS_P_Base_MemoryRange g_NEXUS_P_CpuNotAccessibleRange;
 
 /* returns number 'v' aligned by 'alignment' */
 size_t NEXUS_P_SizeAlign(

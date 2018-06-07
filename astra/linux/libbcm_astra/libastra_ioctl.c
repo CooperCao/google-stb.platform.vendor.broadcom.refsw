@@ -194,7 +194,9 @@ int _astra_ioctl_client_open(
     /* Avoid unused param warning */
     pPrivData = pPrivData;
 
-    strncpy(clientOpenData.name, pName, ASTRA_NAME_LEN_MAX);
+    strncpy(clientOpenData.name, pName, ASTRA_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    clientOpenData.name[ASTRA_NAME_LEN_MAX-1] = '\0';
 
     err = ioctl(
         pAstra->fd,
@@ -243,8 +245,12 @@ int _astra_ioctl_uapp_open(
     int err = 0;
 
     uappOpenData.hClient = hKClient;
-    strncpy(uappOpenData.name, pName, ASTRA_NAME_LEN_MAX);
-    strncpy(uappOpenData.path, pPath, ASTRA_PATH_LEN_MAX);
+    strncpy(uappOpenData.name, pName, ASTRA_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    uappOpenData.name[ASTRA_NAME_LEN_MAX-1] = '\0';
+    strncpy(uappOpenData.path, pPath, ASTRA_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    uappOpenData.path[ASTRA_PATH_LEN_MAX-1] = '\0';
 
     err = ioctl(
         pAstra->fd,
@@ -292,7 +298,9 @@ int _astra_ioctl_peer_open(
     int err = 0;
 
     peerOpenData.hUapp = hKUapp;
-    strncpy(peerOpenData.name, pName, ASTRA_NAME_LEN_MAX);
+    strncpy(peerOpenData.name, pName, ASTRA_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    peerOpenData.name[ASTRA_NAME_LEN_MAX-1] = '\0';
 
     err = ioctl(
         pAstra->fd,
@@ -448,7 +456,10 @@ int _astra_ioctl_file_open(
     int err = 0;
 
     fileOpenData.hClient = hKClient;
-    strncpy(fileOpenData.path, pPath, ASTRA_PATH_LEN_MAX);
+    strncpy(fileOpenData.path, pPath, ASTRA_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    fileOpenData.path[ASTRA_PATH_LEN_MAX-1] = '\0';
+
     fileOpenData.flags = flags;
 
     err = ioctl(

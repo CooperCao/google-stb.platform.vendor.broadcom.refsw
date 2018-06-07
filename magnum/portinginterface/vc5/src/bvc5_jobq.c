@@ -48,7 +48,6 @@ typedef struct BVC5_P_JobQ
    BLST_Q_HEAD(sQueue, BVC5_P_InternalJob)   sQueue;
 } BVC5_P_JobQ;
 
-
 /***************************************************************************/
 
 BERR_Code BVC5_P_JobQCreate(
@@ -60,6 +59,7 @@ BERR_Code BVC5_P_JobQCreate(
    if (phJobQ == NULL)
       return BERR_INVALID_PARAMETER;
 
+   BDBG_CASSERT(sizeof(BVC5_P_JobQ) <= CPU_PAGE_SIZE);
    hJobQ = (BVC5_JobQHandle)BKNI_Malloc(sizeof(struct BVC5_P_JobQ));
    if (hJobQ == NULL)
       return BERR_OUT_OF_SYSTEM_MEMORY;

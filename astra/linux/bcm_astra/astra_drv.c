@@ -1077,7 +1077,9 @@ struct astra_client *_astra_kernel_client_open(
     spin_lock_init(&pClient->lock);
     init_waitqueue_head(&pClient->wq);
 
-    strncpy(pClient->name, pName, ASTRA_NAME_LEN_MAX);
+    strncpy(pClient->name, pName, ASTRA_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pClient->name[ASTRA_NAME_LEN_MAX-1] = '\0';
     pClient->pCallback = pCallback;
     pClient->pPrivData = pPrivData;
 
@@ -1234,7 +1236,9 @@ struct astra_uapp *_astra_uapp_open(
     spin_lock_init(&pUapp->lock);
     init_waitqueue_head(&pUapp->wq);
 
-    strncpy(pUapp->name, pName, ASTRA_NAME_LEN_MAX);
+    strncpy(pUapp->name, pName, ASTRA_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pUapp->name[ASTRA_NAME_LEN_MAX-1] = '\0';
     pUapp->pClient = pClient;
 
     /* add to astra client */
@@ -1247,6 +1251,7 @@ struct astra_uapp *_astra_uapp_open(
 
     if (i == ASTRA_UAPP_NUM_MAX) {
         LOGE("Max number of astra userapps reached");
+        spin_unlock(&pClient->lock);
         goto ERR_EXIT;
     }
 
@@ -1399,7 +1404,9 @@ struct astra_peer *_astra_peer_open(
     spin_lock_init(&pPeer->lock);
     init_waitqueue_head(&pPeer->wq);
 
-    strncpy(pPeer->name, pName, ASTRA_NAME_LEN_MAX);
+    strncpy(pPeer->name, pName, ASTRA_NAME_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pPeer->name[ASTRA_NAME_LEN_MAX-1] = '\0';
     pPeer->pUapp = pUapp;
 
     /* add to astra userapp */
@@ -1412,6 +1419,7 @@ struct astra_peer *_astra_peer_open(
 
     if (i == ASTRA_PEER_NUM_MAX) {
         LOGE("Max number of astra peer reached");
+        spin_unlock(&pUapp->lock);
         goto ERR_EXIT;
     }
 
@@ -1678,7 +1686,9 @@ astra_file_handle _astra_file_open(
     pFile->magic = ASTRA_FILE_MAGIC;
     spin_lock_init(&pFile->lock);
 
-    strncpy(pFile->path, pPath, ASTRA_PATH_LEN_MAX);
+    strncpy(pFile->path, pPath, ASTRA_PATH_LEN_MAX-1);
+    /* Coverity:Explicitly null terminate string */
+    pFile->path[ASTRA_PATH_LEN_MAX-1] = '\0';
     pFile->pClient = pClient;
 
     init_waitqueue_head(&pFile->wq);
@@ -1693,6 +1703,7 @@ astra_file_handle _astra_file_open(
 
     if (i == ASTRA_FILE_NUM_MAX) {
         LOGE("Max number of astra files reached");
+        spin_unlock(&pClient->lock);
         goto ERR_EXIT;
     }
 
@@ -1748,6 +1759,11 @@ void _astra_file_close(
 
     if (!ASTRA_FILE_VALID(pFile)) {
         LOGE("Invalid astra file handle");
+        return;
+    }
+
+    if (!pFile->pClient) {
+        LOGE("Invalid client handle in astra file handle");
         return;
     }
 
@@ -2057,11 +2073,14 @@ ERR_CONT:
 }
 
 /* Core Dump Device Functions */
+#define COREDUMP_FILE_SIZE      4*1024*1024
+
 static int astra_coredev_open(
     struct inode *inode,
     struct file *file)
 {
     int err = 0;
+    uint8_t *vaddr;
 
     printk("Core device OPen\n");
     err = generic_file_open(inode, file);
@@ -2069,6 +2088,10 @@ static int astra_coredev_open(
         LOGE("Failed to open inode!");
         return err;
     }
+    /* Allocate core dump buffer */
+    vaddr = kmalloc(COREDUMP_FILE_SIZE, GFP_USER);
+    cdev->buf_addr= (astra_paddr_t)__pa(vaddr);
+    cdev->buf_size = COREDUMP_FILE_SIZE;
     return 0;
 }
 
@@ -2076,22 +2099,18 @@ static int astra_coredev_release(
     struct inode *ignored,
     struct file *file)
 {
+    /* free coredump buffer */
+    if(cdev->buf_addr)
+        kfree(__va(cdev->buf_addr));
     return 0;
 }
-
-#define COREDUMP_FILE_SIZE      4*1024*1024
 
 static int astra_coredev_mmap(
     struct file *file,
     struct vm_area_struct *vma)
 {
-    uint8_t *vaddr;
     unsigned offset = vma->vm_pgoff << PAGE_SHIFT;
     unsigned size = vma->vm_end - vma->vm_start;
-
-    vaddr = kmalloc(COREDUMP_FILE_SIZE, GFP_USER);
-    cdev->buf_addr= (astra_paddr_t)__pa(vaddr);
-    cdev->buf_size = COREDUMP_FILE_SIZE;
 
     printk("Core device MMAP size=0x%x\n",size);
 

@@ -74,9 +74,12 @@ extern int wlc_fbt_set_pmk(wlc_fbt_info_t *fbt_info, struct wlc_bsscfg *cfg,
 extern void wlc_fbt_get_kck_kek(wlc_fbt_info_t *fbt_info, struct wlc_bsscfg *cfg, uint8 *key);
 extern bool wlc_fbt_enabled(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg);
 #ifdef AP
+extern bool wlc_fbt_overtop_enabled(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg);
 extern void wlc_fbt_handle_auth(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 	struct dot11_management_header *hdr, uint8 *body, int body_len);
 extern void wlc_fbt_recv_overds_req(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *bsscfg,
 	struct dot11_management_header *hdr, void *body, uint body_len);
+extern int wlc_fbtap_cache_assoc_req(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
+	struct scb *scb, uint8 *body, int body_len, struct dot11_management_header *hdr, bool short_preamble);
 #endif /* AP */
 #endif	/* _wlc_fbt_h_ */

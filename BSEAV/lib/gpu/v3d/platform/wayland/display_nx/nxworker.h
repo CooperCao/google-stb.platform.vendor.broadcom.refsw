@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -27,6 +27,7 @@ public:
    void RecycleHandler();
 
    void SetupDisplay(const NxWindowInfo &nw);
+   void TermDisplay();
 
    void DisplayNexusSurface(NEXUS_DISPLAYHANDLE display, NEXUS_SurfaceHandle surface);
 

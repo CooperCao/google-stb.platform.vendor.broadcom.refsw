@@ -1,11 +1,12 @@
 /*
  * API for accessing CLM data
- * $ Copyright Broadcom Corporation $
+ *
+ * $ Copyright Broadcom $
  *
  *
  * <<Broadcom-WL-IPTag/Proprietary:>>
  *
- * $Id: wlc_clm.h 520060 2014-12-10 03:23:44Z fedors $
+ * $Id: wlc_clm.h 691329 2017-03-21 22:51:30Z fedors $
  */
 
 #ifndef _WLC_CLM_H_
@@ -104,63 +105,75 @@ typedef enum clm_ext_chan {
 typedef enum clm_flags {
 	/* DFS-RELATED COUNTRY (REGION) FLAGS */
 	/** Common DFS rules */
-	CLM_FLAG_DFS_NONE       = 0x00000000,
+	CLM_FLAG_DFS_NONE	= 0x00000000,
 
 	/** EU DFS rules */
-	CLM_FLAG_DFS_EU         = 0x00000001,
+	CLM_FLAG_DFS_EU		= 0x00000001,
 
 	/** US (FCC) DFS rules */
-	CLM_FLAG_DFS_US         = 0x00000002,
+	CLM_FLAG_DFS_US		= 0x00000002,
 
 	/** TW DFS rules */
-	CLM_FLAG_DFS_TW         = 0x00000003,
+	CLM_FLAG_DFS_TW		= 0x00000003,
 
 	/** Mask of DFS-related flags */
-	CLM_FLAG_DFS_MASK       = 0x00000003,
+	CLM_FLAG_DFS_MASK	= 0x00000083,
 
 	/** FiltWAR1 flag from CLM XML */
-	CLM_FLAG_FILTWAR1       = 0x00000004,
+	CLM_FLAG_FILTWAR1	= 0x00000004,
 
 	/** Beamforming allowed */
-	CLM_FLAG_TXBF           = 0x00000008,
+	CLM_FLAG_TXBF		= 0x00000008,
 
 	/** Region has per-antenna power targets */
-	CLM_FLAG_PER_ANTENNA    = 0x00000010,
+	CLM_FLAG_PER_ANTENNA	= 0x00000010,
 
 	/** Region is default for its CC */
-	CLM_FLAG_DEFAULT_FOR_CC = 0x00000020,
+	CLM_FLAG_DEFAULT_FOR_CC	= 0x00000020,
 
 	/** Region is EDCRS-EU-compliant */
-	CLM_FLAG_EDCRS_EU       = 0x00000040,
+	CLM_FLAG_EDCRS_EU	= 0x00000040,
+        
+        /** UK DFS rules  */
+        CLM_FLAG_DFS_UK         = 0x00000080,
 
 	/** Limit peak power during PAPD calibration */
-	CLM_FLAG_LO_GAIN_NBCAL  = 0x00000100,
+	CLM_FLAG_LO_GAIN_NBCAL	= 0x00000100,
 
 	/** China Spur WAR2 flag from CLM XML */
 	CLM_FLAG_CHSPRWAR2	= 0x00000200,
 
+	/** PSD limits present */
+	CLM_FLAG_PSD		= 0x00000400,
+
+	/** Region is compliant with 2018 RED (Radio Equipment Directive), that
+	 * limits frame burst duration and maybe sommething else
+	 */
+	CLM_FLAG_RED_EU	= 0x00000800,
+
+
 	/* DEBUGGING FLAGS (ALLOCATED AS TOP BITS) */
 
 	/** No 80MHz channels */
-	CLM_FLAG_NO_80MHZ       = 0x80000000,
+	CLM_FLAG_NO_80MHZ	= 0x80000000,
 
 	/** No 40MHz channels */
-	CLM_FLAG_NO_40MHZ       = 0x40000000,
+	CLM_FLAG_NO_40MHZ	= 0x40000000,
 
 	/** No 160MHz channels */
-	CLM_FLAG_NO_160MHZ      = 0x04000000,
+	CLM_FLAG_NO_160MHZ	= 0x04000000,
 
 	/** No 80+80MHz channels */
-	CLM_FLAG_NO_80_80MHZ    = 0x02000000,
+	CLM_FLAG_NO_80_80MHZ	= 0x02000000,
 
 	/** No MCS rates */
-	CLM_FLAG_NO_MIMO        = 0x20000000,
+	CLM_FLAG_NO_MIMO	= 0x20000000,
 
 	/** Has DSSS rates that use EIRP limits */
-	CLM_FLAG_HAS_DSSS_EIRP  = 0x10000000,
+	CLM_FLAG_HAS_DSSS_EIRP	= 0x10000000,
 
 	/* HAS OFDM RATES THAT USE EIRP LIMITS */
-	CLM_FLAG_HAS_OFDM_EIRP  = 0x08000000
+	CLM_FLAG_HAS_OFDM_EIRP	= 0x08000000
 } clm_flags_t;
 
 /** Type of limits to output in clm_limits() */
@@ -338,7 +351,7 @@ typedef struct clm_limits_params {
 	int antenna_idx;
 
 	/** For 80+80 channel it is other channel in pair (not one for which
-	 * power limit is requested
+	 * power limit is requested)
 	 */
 	unsigned int other_80_80_chan;
 } clm_limits_params_t;
@@ -543,7 +556,6 @@ clm_valid_channels(const clm_country_locales_t *locales, clm_band_t band,
 	const clm_channels_params_t *params, clm_channels_t *channels);
 #endif /* WLC_CLMAPI_PRE7 && !BCM4334A0SIM_4334B0 && !BCMROMBUILD */
 
-
 /** Retrieves maximum regulatory power for given channel
  * \param[in] locales Country (region) locales' information
  * \param[in] band Frequency band
@@ -557,6 +569,22 @@ clm_valid_channels(const clm_country_locales_t *locales, clm_band_t band,
 extern clm_result_t
 clm_regulatory_limit(const clm_country_locales_t *locales, clm_band_t band,
 	unsigned int channel, int *limit);
+
+/** Retrieves PSD limit for given channel
+ * \param[in] locales Country (region) locales' information
+ * \param[in] band Frequency band
+ * \param[in] channel Channel number
+ * \param[in] ant_gain Antenna gain in quarters of dBm. Used if PSD limit
+ * specified as EIRP
+ * \param[out] psd_limit PSD limit in qdBm/MHz
+ * \return CLM_RESULT_OK in case of success, CLM_RESULT_ERR if `locales` is
+ * null or contains invalid information, if `psd_limit` is null or if any other
+ * input parameter (except channel) has invalid value, CLM_RESULT_NOT_FOUND if
+ * PSD limit not defined for given channel
+ */
+extern clm_result_t
+clm_psd_limit(const clm_country_locales_t *locales, clm_band_t band,
+	unsigned int channel, int ant_gain, clm_power_t *psd_limit);
 
 /** Performs one iteration step over set of aggregations. Looks up first/next
  * aggregation

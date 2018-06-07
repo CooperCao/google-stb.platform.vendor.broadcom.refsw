@@ -328,6 +328,12 @@ public:
             return true;
         if(other->keepAtQueueHead)
             return false;
+        if(type == TzTask::Type::EDF_Task) {
+            if(priority <= other->priority)
+                return true;
+            else
+                return false;
+        }
         //return ((totalRunTime * other->priority )<= (other->totalRunTime * priority));
         if(slotTimeSlice == other->slotTimeSlice)
             return (totalRunTime <= other->totalRunTime);

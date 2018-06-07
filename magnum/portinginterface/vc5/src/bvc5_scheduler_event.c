@@ -39,6 +39,7 @@
 #include "bkni.h"
 #include "bkni_multi.h"
 
+#include "bvc5.h"
 #include "bvc5_scheduler_event_priv.h"
 
 #include <stdbool.h>
@@ -80,6 +81,7 @@ BERR_Code BVC5_P_EventArrayCreate(
       goto exit;
    }
 
+   BDBG_CASSERT(sizeof(BVC5_P_EventArray) <= CPU_PAGE_SIZE);
    hEventArr = (BVC5_P_EventArray *)BKNI_Malloc(sizeof(BVC5_P_EventArray));
 
    if (hEventArr == NULL)
@@ -146,6 +148,7 @@ bool BVC5_P_NewSchedEvent(
 
    BKNI_AcquireMutex(hEventArr->hMutex);
 
+   BDBG_CASSERT(sizeof(BVC5_P_Event) <= CPU_PAGE_SIZE);
    pEvent = BKNI_Malloc(sizeof(BVC5_P_Event));
    BKNI_Memset(pEvent, 0, sizeof(BVC5_P_Event));
 
@@ -204,8 +207,6 @@ exit:
       if (pEvent)
          BKNI_Free(pEvent);
    }
-   else
-
 
    BKNI_ReleaseMutex(hEventArr->hMutex);
    return  index >= 0;
@@ -283,11 +284,11 @@ bool BVC5_P_WaitOnSchedEventDone(
 
    pEvent = BVC5_P_EventGet(hEventArr, uiSchedEventId);
 
-   BDBG_ASSERT(pEvent && pEvent->uiEventId < hEventArr->uiCapacity);
-   BDBG_ASSERT(hEventArr->pEvents[pEvent->uiEventId] == pEvent);
-
    if (pEvent)
    {
+      BDBG_ASSERT(pEvent->uiEventId < hEventArr->uiCapacity);
+      BDBG_ASSERT(hEventArr->pEvents[pEvent->uiEventId] == pEvent);
+
       signalled = pEvent->bSignalled;
 
       /* Flag that the event is waited on */

@@ -1,41 +1,45 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #undef LOGE
 #undef LOGW
 #undef LOGD
@@ -317,4 +321,71 @@ void* MediaParser::GetFragmentData(mp4_parse_frag_info &fragInfo, uint8_t *pPayl
     }
 
     return  mp4_parser_get_dec_data(m_handle, &decoderLength, fragInfo.trackId);
+}
+
+bool MediaParser::GetProtectionInfo(bmp4_protection_info &protectionInfo)
+{
+    struct mp4_parser_context* parser_context = (struct mp4_parser_context *)m_handle;
+    uint32_t index;
+
+	if (m_handle == NULL)
+	{
+        LOGE(("Invalid Parser Handle."));
+        return false;
+	}
+	memset(&protectionInfo, 0, sizeof(bmp4_protection_info));
+
+    bmp4_mp4_headers *mp4_header = &parser_context->mp4_mp4;
+
+    protectionInfo.nbOfSchemes = mp4_header->nbOfSchemes;
+
+    for (index = 0; index < protectionInfo.nbOfSchemes; index++) {
+        bmp4_protectionSchemeInfo   *pProtectionInfo = &protectionInfo.schemeProtectionInfo[index];
+
+        /* **FixMe** compensate for fact that code in bmp.c is using a 1-based index into a 0-based array
+         *           when initializing and accessing the pool of protection schemes for the tracks.
+         */
+        BKNI_Memcpy(pProtectionInfo, &mp4_header->scheme[index+1], sizeof(bmp4_protectionSchemeInfo));
+    }
+
+    if (protectionInfo.nbOfSchemes == 0) {
+        LOGD(("%s: Did not find any valid protection schemes.", BSTD_FUNCTION));
+        return false;
+    }
+
+    return true;
+}
+
+bool MediaParser::GetProtectionInfoForTrack(bmp4_protectionSchemeInfo &trackProtectionInfo, uint32_t inTrackId)
+{
+    struct mp4_parser_context* parser_context = (struct mp4_parser_context *)m_handle;
+    uint32_t index;
+
+	if (m_handle == NULL)
+	{
+        LOGE(("Invalid Parser Handle."));
+        return false;
+	}
+	memset(&trackProtectionInfo, 0, sizeof(bmp4_protectionSchemeInfo));
+
+    bmp4_mp4_headers *mp4_header = &parser_context->mp4_mp4;
+
+    for (index = 0; index < mp4_header->nbOfSchemes; index++) {
+        /* **FixMe** compensate for fact that code in bmp.c is using a 1-based index into a 0-based array
+         *           when initializing and accessing the pool of protection schemes for the tracks.
+         */
+        bmp4_protectionSchemeInfo   *pScheme = &mp4_header->scheme[index+1];
+        if (pScheme == NULL) {
+            LOGE(("%s: Failed to find a valid Protection Scheme object at index %d.", BSTD_FUNCTION, index+1));
+            return false;
+        }
+        if (inTrackId == pScheme->trackId) {
+            /* found a protection scheme for requested trackId */
+            BKNI_Memcpy(&trackProtectionInfo, pScheme, sizeof(bmp4_protectionSchemeInfo));
+            return true;
+        }
+    }
+
+    LOGD(("%s: Did not find a valid protection scheme for trackId %d.", BSTD_FUNCTION, inTrackId));
+    return false;
 }

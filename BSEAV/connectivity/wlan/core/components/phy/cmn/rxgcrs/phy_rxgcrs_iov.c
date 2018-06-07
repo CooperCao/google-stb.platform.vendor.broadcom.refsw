@@ -58,9 +58,15 @@ phy_rxgcrs_doiovar(void *ctx, uint32 aid, void *p, uint plen, void *a, uint alen
 {
 	int err = BCME_OK;
 	phy_info_t *pi = (phy_info_t *)ctx;
-	int int_val = 0;
+	int int_val = 0, *pval;
 	int32 *ret_int_ptr = (int32 *)a;
 
+	/* default argument is generic integer */
+	pval = (int *) p;
+
+	/* This will prevent the misaligned access */
+	if ((uint32)plen>= sizeof(int_val))
+		bcopy(pval, &int_val, sizeof(int_val));
 	switch (aid) {
 	case IOV_SVAL(IOV_ED_THRESH):
 		int_val = *(int *)a;

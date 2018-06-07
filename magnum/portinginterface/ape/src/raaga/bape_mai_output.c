@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
@@ -1499,6 +1503,10 @@ static void
 BAPE_MaiOutput_P_Close_Ott(BAPE_MaiOutputHandle handle)
 {
     BSTD_UNUSED(handle);
+    if (handle->dma) {
+        BAPE_DmaOutput_P_Close(handle->dma);
+        handle->dma = NULL;
+    }
 }
 
 static bool
@@ -1696,7 +1704,7 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc, ui
         else {
             cb = (handle->spdif.channelStatus[handle->spdif.clk >> 5] & (1 << (handle->spdif.clk & 31))) != 0;
         }
-        flags = 0x10000000;
+        flags = 0x00000000; /* V */
         if (cb) {
             flags |= 0x40000000;
         }
@@ -1750,7 +1758,7 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc, ui
     }
     *inSize = totalBytesRead;
     *outSize = totalBytesWritten;
-    BDBG_WRN(("BAPE_MaiOutput_P_SpdifEncode_Ott_isr: %d/%d", totalBytesRead, totalBytesWritten));
+    BDBG_MSG(("BAPE_MaiOutput_P_SpdifEncode_Ott_isr: %d/%d", totalBytesRead, totalBytesWritten));
 }
 
 static BERR_Code
@@ -1766,7 +1774,7 @@ BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(output->mixer);
-    handle->spdif.cpuEncode = pFormat->type == BAPE_DataType_eIec60958Raw;
+    handle->spdif.cpuEncode = pFormat->type != BAPE_DataType_eIec60958Raw;
 
     /*
      * set MAI_BIT_REVERSE if CPU doing encoding
@@ -1777,7 +1785,7 @@ BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
                         BCHP_MASK(HDMI_MAI_CONFIG, MAI_BIT_REVERSE)
                         | BCHP_MASK(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE),
                         BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_BIT_REVERSE, handle->spdif.cpuEncode)
-                        | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE, 0));
+                        | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE, 1));
 
     rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle, handle->spdif.cpuEncode ? BAPE_MaiOutput_P_SpdifEncode_Ott_isr : 0, handle);
     if (rc != BERR_SUCCESS) {
@@ -1802,6 +1810,7 @@ BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
             ctl |= BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, ENABLE, 1);
             BREG_Write32(handle->deviceHandle->regHandle, reg, ctl);
             BREG_Write32(handle->deviceHandle->regHandle, reg, ctl | BCHP_FIELD_DATA(DVP_CFG_MAI0_CTL, FLUSH, 1));
+            BREG_Write32(handle->deviceHandle->regHandle, reg, ctl);
         }
     }
 

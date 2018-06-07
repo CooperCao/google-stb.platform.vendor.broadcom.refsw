@@ -362,7 +362,9 @@ NEXUS_SageModule_Standby_priv(
     else {
         /* entering standby */
         if (pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
             NEXUS_Sage_P_SAGELogUninit();
+#endif
             NEXUS_Sage_P_StandbyUninit();
         }
         /* if g_sage_standby.currMode == NEXUS_StandbyMode_ePassive (S2):

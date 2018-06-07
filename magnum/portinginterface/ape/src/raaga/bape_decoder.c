@@ -952,46 +952,6 @@ static BERR_Code BAPE_Decoder_P_SetupPassthrough(
     return BERR_SUCCESS;
 }
 
-static void BAPE_Decoder_P_ValidatePauseBursts(BAPE_DecoderHandle handle)
-{
-    BAPE_OutputPort outputs[BAPE_CHIP_MAX_OUTPUTS];
-    unsigned numOutputs = 0;
-    unsigned i;
-
-
-    BAPE_PathNode_P_GetConnectedOutputs(&handle->node, BAPE_CHIP_MAX_OUTPUTS, &numOutputs, outputs);
-
-    if (numOutputs > 0) {
-        for (i = 0; i < numOutputs; i++) {
-            bool compressed = false;
-            bool bursts = true;
-
-            switch (outputs[i]->type) {
-            case BAPE_OutputPortType_eSpdifOutput:
-                BAPE_SpdifOutput_P_DeterminePauseBurstEnabled((BAPE_SpdifOutputHandle)outputs[i]->pHandle, &compressed, &bursts);
-                if (compressed && !bursts) {
-                    handle->disablePauseBursts = true;
-                    return;
-                }
-                break;
-            case BAPE_OutputPortType_eMaiOutput:
-                BAPE_MaiOutput_P_DeterminePauseBurstEnabled((BAPE_MaiOutputHandle)outputs[i]->pHandle, &compressed, &bursts);
-                if (compressed && !bursts) {
-                    handle->disablePauseBursts = true;
-                    return;
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    handle->disablePauseBursts = false;
-
-    return;
-}
-
 static BDSP_Handle BAPE_P_GetDspHandleFromContext(BAPE_Handle hApe, BDSP_ContextHandle dspContext)
 {
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
@@ -1494,7 +1454,7 @@ static BERR_Code BAPE_Decoder_P_Start(
         taskStartSettings->realtimeMode = pSettings->nonRealTime ? BDSP_TaskRealtimeMode_eNonRealTime : BDSP_TaskRealtimeMode_eRealTime;
     }
 
-    BAPE_Decoder_P_ValidatePauseBursts(handle);
+    handle->disablePauseBursts = BAPE_PathNode_P_PauseBurstDisabled(&handle->node);
 
     if (handle->disablePauseBursts == false) {
         taskStartSettings->eSpdifPauseWidth = BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord;
@@ -2090,7 +2050,8 @@ static BERR_Code BAPE_Decoder_P_Start(
         errCode = BAPE_DolbyDigitalReencode_P_SettingsChanged(handle->ddre, handle);
         if ( errCode )
         {
-            return BERR_TRACE(errCode);
+            (void)BERR_TRACE(errCode);
+            goto err_codec_settings;
         }
     }
 

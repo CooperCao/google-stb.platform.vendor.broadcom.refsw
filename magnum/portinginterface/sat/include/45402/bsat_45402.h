@@ -1,39 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -84,6 +88,15 @@ enum {
 };
 
 
+/* session data returned by the LEAP; host will forward this to SAGE */
+typedef struct BSAT_45402_Bp3SessionInfo {
+   uint8_t sessionToken[8];
+   uint8_t otpId[4];
+   uint8_t rootKeyDerivation;
+   uint8_t klDerivation;
+} BSAT_45402_Bp3SessionInfo;
+
+
 /* bit definitions for BSAT_45402_CONFIG_PLC_CTL */
 #define BSAT_45402_CONFIG_PLC_CTL_AWGN         0x00000001
 #define BSAT_45402_CONFIG_PLC_CTL_OVERRIDE_ACQ 0x00000002
@@ -103,6 +116,8 @@ enum {
 /* chip-specific functions */
 BERR_Code BSAT_45402_GetDefaultSettings(BSAT_Settings *pDefSettings);
 BERR_Code BSAT_45402_GetChannelDefaultSettings(BSAT_Handle h, uint32_t chnNo, BSAT_ChannelSettings *pChnDefSettings);
+BERR_Code BSAT_45402_GetBp3SessionInfo(BSAT_Handle h, BSAT_45402_Bp3SessionInfo *pSessionInfo);
+BERR_Code BSAT_45402_ConfigBp3(BSAT_Handle h, uint8_t *pEncryptedData);
 
 #ifdef __cplusplus
 }

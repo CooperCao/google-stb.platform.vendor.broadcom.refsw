@@ -68,6 +68,7 @@ public:
     static void addTask(TzTask *);
     static void removeTask(TzTask *);
     static void currTaskStopped();
+    static void disbaleEDFPremeptionTimer();
     static void updateTimeSlice();
 
     static TzTask *cfsSchedule();
@@ -94,6 +95,7 @@ private:
     static uint32_t TimeSliceStagger;
     static uint32_t TimeSliceEDFLimit;
     static PerCPU<uint32_t> TimeSliceEDF;
+    static PerCPU<uint64_t> pendingEDFTimeSlice;
 
     static PerCPU<unsigned int> sumRunnablePriorities;
     static PerCPU<tzutils::PriorityQueue<TzTask>> runQueue;
@@ -114,6 +116,7 @@ private:
     static void preemptionTimerFired(Timer t, void *ctx);
     static void edfScheduleTimerFired(Timer t, void *ctx);
     static void edfPreemptionTimerFired(Timer t, void *ctx);
+    static void evaluateSwitch(TzTask *task);
 };
 
 #endif /* SCHEDULER_H_ */

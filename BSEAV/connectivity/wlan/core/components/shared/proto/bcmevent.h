@@ -273,8 +273,10 @@ typedef union bcm_event_msg_u {
 											*/
 #define WLC_E_FBT			166	/* FBT event */
 #define WLC_E_UNEXPECTED_4ADDR_FRAME	167	/* 4ADDR event */
-#define WLC_E_LAST			168	/* highest val + 1 for range checking */
-#if (WLC_E_LAST > 168)
+#define WLC_E_FBT_ASSOC_REQ_IND		168	/* FBT Re-Association Request Indication */
+#define WLC_E_FBT_REASSOC_REQ_IND	169	/* FBT Re-Association Request Indication */
+#define WLC_E_LAST			170	/* highest val + 1 for range checking */
+#if (WLC_E_LAST > 170)
 #error "WLC_E_LAST: Invalid value for last event; must be <= 166."
 #endif /* WLC_E_LAST */
 

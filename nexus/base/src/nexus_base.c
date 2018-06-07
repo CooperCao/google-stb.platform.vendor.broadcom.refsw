@@ -199,6 +199,7 @@ NEXUS_Module_Create_locked(const char *pModuleName, const NEXUS_ModuleSettings *
         NEXUS_Module_RegisterProc(module, module->pModuleName, module->settings.dbgModules, module->settings.dbgPrint);
     }
 
+    /* coverity[missing_lock: FALSE] lock cannot be held before create returns */
     module->enabled = true;
 
     BDBG_MSG(("Creating module %s, priority %d", pModuleName, pSettings->priority));
@@ -226,6 +227,7 @@ NEXUS_Module_Destroy_locked(NEXUS_ModuleHandle module)
 
     BDBG_MSG(("Destroying module %s", module->pModuleName));
 
+    /* coverity[missing_lock: FALSE] lock cannot and will not be held when destroy is called */
     module->enabled = false;
     BLST_S_REMOVE(&NEXUS_P_Base_State.modules, module, NEXUS_Module, link);
     BKNI_DestroyEvent(module->event);
@@ -593,7 +595,6 @@ void
 NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsigned lineNumber)
 {
     NEXUS_P_ThreadInfo *info;
-    BERR_Code rc;
     NEXUS_P_MODULE_STATS_STATE();
 
     NEXUS_P_MODULE_STATS_START();
@@ -612,8 +613,7 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
     }
 #endif
     NEXUS_Module_P_CheckLock("NEXUS_Module_Lock_Tagged", info, module, pFileName, lineNumber);
-    rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
+    BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module); /* verify that module was not destroyed while we were waiting for it */
     if(!module->enabled) {
         unsigned i;
@@ -641,8 +641,7 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
 #endif
             BKNI_ReleaseMutex(module->lock);
             event_rc = BKNI_WaitForEvent(module->event, 1000);
-            rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
-            BDBG_ASSERT(rc==BERR_SUCCESS);
+            BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
             if(module->enabled)  { /* acquire again and test status */
                 if(event_rc==BERR_SUCCESS) {
                     BKNI_SetEvent(module->event); /* re-fire event in case if there are another waiters */
@@ -756,14 +755,12 @@ NEXUS_Module_Unlock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, uns
 void
 NEXUS_Module_Enable_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsigned lineNumber)
 {
-    BERR_Code rc;
     BSTD_UNUSED(pFileName);
     BSTD_UNUSED(lineNumber);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(module->enabled == false);
 
-    rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
+    BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
     module->enabled = true;
     BDBG_MODULE_MSG(nexus_base_standby, ("Enabled %s Module(schedulers %p) from %s:%u", module->pModuleName, (void *)module->scheduler, NEXUS_P_FILENAME(pFileName), lineNumber));
     BKNI_ReleaseMutex(module->lock);
@@ -775,15 +772,13 @@ NEXUS_Module_Enable_Tagged(NEXUS_ModuleHandle module, const char *pFileName, uns
 void
 NEXUS_Module_Disable_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsigned lineNumber)
 {
-    BERR_Code rc;
     BSTD_UNUSED(pFileName);
     BSTD_UNUSED(lineNumber);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(module->enabled == true);
 
     BDBG_MODULE_MSG(nexus_base_standby, ("Disabling %s Module(scheduler %p) from %s:%u", module->pModuleName, (void *)module->scheduler, NEXUS_P_FILENAME(pFileName), lineNumber));
-    rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
+    BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
     module->enabled = false;
     BKNI_ReleaseMutex(module->lock);
 
@@ -1308,6 +1303,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "profile_show",
     "sage_log",
     "sage_log_file",
+    "sage_log_file_size",
     "sage_logging",
     "sarnoff_lipsync_offset_enabled",
     "sarnoff_video_delay_workaround",

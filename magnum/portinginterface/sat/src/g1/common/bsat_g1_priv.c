@@ -53,7 +53,7 @@ BDBG_MODULE(bsat_g1_priv);
 
 /* extern bool bEnableDebugLog; */
 
-#if defined(BSAT_HAS_ACM) && defined(BCHP_AFEC_0_BCH_STREAM_ID0_STAT) && !defined(BSAT_EXCLUDE_AFEC)
+#if defined(BSAT_HAS_ACM) && defined(BCHP_AFEC_0_BCH_STREAM_ID0_STAT)
 static const uint32_t afec_pls_ldpc_iter_cnt_reg[8] = {
    BCHP_AFEC_PLS0_LDPC_ITER_CNT, BCHP_AFEC_PLS1_LDPC_ITER_CNT,
    BCHP_AFEC_PLS2_LDPC_ITER_CNT, BCHP_AFEC_PLS3_LDPC_ITER_CNT,
@@ -224,7 +224,6 @@ BERR_Code BSAT_g1_P_OpenChannel(BSAT_Handle h, BSAT_ChannelHandle *pChannelHandl
       BDBG_ASSERT(retCode == BERR_SUCCESS);
    }
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (pChan->bHasAfec)
    {
       /* acquire afec clock for interrupts */
@@ -242,7 +241,6 @@ BERR_Code BSAT_g1_P_OpenChannel(BSAT_Handle h, BSAT_ChannelHandle *pChannelHandl
       /* release afec clock */
       BSAT_g1_P_AfecPowerDown_isrsafe(h->pChannels[chan]);
    }
-#endif
 
 #ifndef BSAT_EXCLUDE_TFEC
    if (pChan->bHasTfec)
@@ -303,7 +301,6 @@ BERR_Code BSAT_g1_P_CloseChannel(BSAT_ChannelHandle h)
    BINT_DestroyCallback(pChan->hMi2cCb);
 #endif
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (pChan->bHasAfec)
    {
       BINT_DestroyCallback(pChan->hAfecLockCb);
@@ -311,7 +308,6 @@ BERR_Code BSAT_g1_P_CloseChannel(BSAT_ChannelHandle h)
       BINT_DestroyCallback(pChan->hAfecMpegLockCb);
       BINT_DestroyCallback(pChan->hAfecMpegNotLockCb);
    }
-#endif
 
 #ifndef BSAT_EXCLUDE_TFEC
    if (pChan->bHasTfec)
@@ -611,23 +607,25 @@ BERR_Code BSAT_g1_P_GetChannelStatus(BSAT_ChannelHandle h, BSAT_ChannelStatus *p
       BKNI_LeaveCriticalSection();
       pStatus->modeStatus.qpsk = hChn->qpskStatus;
    }
-#ifndef BSAT_EXCLUDE_AFEC
    else if (BSAT_MODE_IS_DVBS2(actualMode) || BSAT_MODE_IS_DVBS2X(actualMode))
    {
       BSAT_Dvbs2Status dvbs2;
-      BSAT_g1_P_AfecGetStatus(h, &dvbs2);
-      pStatus->modeStatus.dvbs2 = dvbs2;
-      if (actualMode == BSAT_Mode_eDvbs2_ACM)
+      if (BSAT_g1_P_AfecGetStatus(h, &dvbs2) == BERR_SUCCESS)
       {
-         BSAT_g1_P_AcmStatus acm;
-         if (BSAT_g1_P_HpGetAcmStatus(h, &acm) == BERR_SUCCESS)
+         pStatus->modeStatus.dvbs2 = dvbs2;
+         if (actualMode == BSAT_Mode_eDvbs2_ACM)
          {
-            pStatus->bSpinv = acm.bSpinv;
-            pStatus->mode = acm.mode;
+            BSAT_g1_P_AcmStatus acm;
+            if (BSAT_g1_P_HpGetAcmStatus(h, &acm) == BERR_SUCCESS)
+            {
+               pStatus->bSpinv = acm.bSpinv;
+               pStatus->mode = acm.mode;
+            }
          }
       }
+      else
+         pStatus->modeStatus.dvbs2.bValid = false;
    }
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
    else if (BSAT_MODE_IS_TURBO(actualMode))
    {
@@ -666,14 +664,12 @@ BERR_Code BSAT_g1_P_ResetChannelStatus(BSAT_ChannelHandle h)
    /* reset the BER counters */
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_BERT_BERCTL, 1<<8);
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode) || BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode))
    {
       BKNI_EnterCriticalSection();
       BSAT_g1_P_AfecResetBlockCount_isrsafe(h);
       BKNI_LeaveCriticalSection();
    }
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
    {
@@ -770,14 +766,12 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
          BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable(h, false));
       }
 
-#ifndef BSAT_EXCLUDE_AFEC
       val = ~(1 << h->channel);
       BKNI_EnterCriticalSection();
       hChn->bAfecRampEnabled = false;
       hDev->afecRampChanMask &= val;
       hDev->afecRampLowThreshChanMask &= val;
       BKNI_LeaveCriticalSection();
-#endif
 
 #ifndef BSAT_EXCLUDE_TFEC
       if (hChn->bHasTfec)
@@ -797,7 +791,6 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
 #endif
       }
 #endif
-#ifndef BSAT_EXCLUDE_AFEC
       if (hChn->bHasAfec)
       {
          if (BSAT_g1_P_IsAfecOn_isrsafe(h))
@@ -813,7 +806,6 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
 #endif
          }
       }
-#endif
 
 #if ((BCHP_CHIP==45308) && (BSAT_CHIP_FAMILY==45316)) || (BCHP_CHIP==45402)
    if ((h->channel & 1) == 0)
@@ -933,7 +925,6 @@ BERR_Code BSAT_g1_P_GetSearchRange(BSAT_ChannelHandle h, uint32_t *pSearchRange)
 }
 
 
-#ifndef BSAT_EXCLUDE_AFEC
 /******************************************************************************
  BSAT_g1_P_SetAmcScramblingSeq()
 ******************************************************************************/
@@ -948,14 +939,6 @@ BERR_Code BSAT_g1_P_SetAmcScramblingSeq(BSAT_ChannelHandle h, BSAT_AmcScrambling
    BDBG_LEAVE(BSAT_g1_P_SetAmcScramblingSeq);
    return BERR_SUCCESS;
 }
-#elif defined(BSAT_EXCLUDE_API_TABLE)
-BERR_Code BSAT_g1_P_SetAmcScramblingSeq(BSAT_ChannelHandle h, BSAT_AmcScramblingSeq *pSeq)
-{
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(pSeq);
-   return BERR_NOT_SUPPORTED;
-}
-#endif
 
 
 /******************************************************************************
@@ -1559,7 +1542,6 @@ BERR_Code BSAT_g1_P_SetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSettings 
 /******************************************************************************
  BSAT_g1_P_GetDvbs2AcqSettings()
 ******************************************************************************/
-#ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_GetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
@@ -1571,20 +1553,11 @@ BERR_Code BSAT_g1_P_GetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSetti
    BDBG_LEAVE(BSAT_g1_P_GetDvbs2AcqSettings);
    return BERR_SUCCESS;
 }
-#elif defined(BSAT_EXCLUDE_API_TABLE)
-BERR_Code BSAT_g1_P_GetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings)
-{
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(pSettings);
-   return BERR_NOT_SUPPORTED;
-}
-#endif
 
 
 /******************************************************************************
  BSAT_g1_P_SetDvbs2AcqSettings()
 ******************************************************************************/
-#ifndef BSAT_EXCLUDE_AFEC
 BERR_Code BSAT_g1_P_SetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
@@ -1618,14 +1591,6 @@ BERR_Code BSAT_g1_P_SetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSetti
    BDBG_LEAVE(BSAT_g1_P_SetDvbs2AcqSettings);
    return BERR_SUCCESS;
 }
-#elif defined(BSAT_EXCLUDE_API_TABLE)
-BERR_Code BSAT_g1_P_SetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings)
-{
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(pSettings);
-   return BERR_NOT_SUPPORTED;
-}
-#endif /* BSAT_EXCLUDE_AFEC */
 
 
 /******************************************************************************
@@ -1675,7 +1640,7 @@ BERR_Code BSAT_g1_P_SetDvbs2xAcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2xAcqSet
    BSTD_UNUSED(pSettings);
    return BERR_NOT_SUPPORTED;
 }
-#endif /* BSAT_EXCLUDE_AFEC */
+#endif /* BSAT_HAS_DVBS2X */
 
 
 /******************************************************************************
@@ -1896,7 +1861,7 @@ BERR_Code BSAT_g1_P_SetCwc(BSAT_Handle h, uint32_t n, uint32_t *pFreqs)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetStreamList(BSAT_ChannelHandle h, int bufsize, int *pNumStreams, uint8_t *pStreamIdList)
 {
-#if defined(BSAT_HAS_ACM) && defined(BCHP_SDS_OI_0_MPEG_CTL0) && !defined(BSAT_EXCLUDE_AFEC)
+#if defined(BSAT_HAS_ACM) && defined(BCHP_SDS_OI_0_MPEG_CTL0)
    BERR_Code retCode = BERR_SUCCESS;
    BSAT_Mode mode;
    uint32_t stat[8], i;
@@ -1953,7 +1918,7 @@ BERR_Code BSAT_g1_P_GetStreamList(BSAT_ChannelHandle h, int bufsize, int *pNumSt
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT_StreamStatus *pStatus)
 {
-#if defined(BSAT_HAS_ACM) && defined(BCHP_SDS_OI_0_MPEG_CTL0) && !defined(BSAT_EXCLUDE_AFEC)
+#if defined(BSAT_HAS_ACM) && defined(BCHP_SDS_OI_0_MPEG_CTL0)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t stat = 0, addr, val = 0, shift;

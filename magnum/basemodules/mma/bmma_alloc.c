@@ -205,12 +205,9 @@ void BMMA_Heap_GetDefaultCreateSettings(BMMA_Heap_CreateSettings *settings)
 
 static void BMMA_P_Lock(BMMA_Heap_Handle h)
 {
-    BERR_Code rc;
     BDBG_OBJECT_ASSERT(h, BMMA_Heap);
     BDBG_OBJECT_ASSERT(h->parent, BMMA_Allocator);
-    rc = BKNI_AcquireMutex(h->parent->lock);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
-    BSTD_UNUSED (rc);
+    BKNI_AcquireMutex(h->parent->lock);
     return;
 }
 

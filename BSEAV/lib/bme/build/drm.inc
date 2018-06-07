@@ -61,7 +61,8 @@ endif
 
 #Widevine
 ifeq ($(BME_ENABLE_WIDEVINE), y)
-    export WIDEVINE_CDM_VERSION=3.2
+    export WIDEVINE_CDM_VERSION=3.5
+    export WIDEVINE_OEMCRYPTO_VERSION=13
     CENC_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/third_party/widevine/CENC3x/ce_cdm-$(WIDEVINE_CDM_VERSION)
     WVCDM_LIBNAME = libwvcdm.a
     WIDEVINE_LIBNAME  = libwvcdm.a

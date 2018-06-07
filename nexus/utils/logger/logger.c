@@ -281,7 +281,9 @@ static void *stderr_sink_thread(void *_t)
             rc=pthread_mutex_unlock(&t->mutex);
             BDBG_ASSERT(rc==0);
             rc = write(t->stderr_fd, buf.buf+buf.offset, buf.msgLen);
+            if (rc) BERR_TRACE(rc); /* keep going */
             rc=pthread_mutex_lock(&t->mutex);
+            BDBG_ASSERT(rc==0);
         }
     }
     rc=pthread_mutex_unlock(&t->mutex);
@@ -616,6 +618,7 @@ int main(int argc, char * const argv[])
             if ( logReader ) {
                 timeout = 0;
                 rc = print_log_message(&sink, logReader, -1, NULL, &timeout );
+                BSTD_UNUSED(rc);
             } else {
                 timeout = 5;
             }

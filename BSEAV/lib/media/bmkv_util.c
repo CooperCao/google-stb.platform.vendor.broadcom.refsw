@@ -163,6 +163,7 @@ bmkv_parse_header(batom_cursor *cursor, bmkv_header *header)
 {
     int c;
     uint32_t word;
+    uint64_t reserved_size;
 	unsigned i;
 
 #if B_ATOM_FAST
@@ -243,10 +244,12 @@ Some Notes:
 	header->size = bmkv_parse_unsigned64(cursor);
 	if(BATOM_IS_EOF(cursor)) { goto eos;}
 	i = batom_cursor_pos(cursor)-i;
-    if( i*7 > 64 ) {
-        goto error;
+    if( i*7 <= 64 && i!=0 ) {
+        reserved_size = ((uint64_t)(-1)) >> (64-i*7);
+    } else {
+        reserved_size = 0;
     }
-	if( header->size == ((uint64_t)(-1)) >> (64-i*7)) {
+	if( header->size == reserved_size) {
 		BDBG_MSG(("bmkv_parse_header: %#lx reserved block length", (unsigned long)cursor));
 		header->size = BMKV_RESERVED_SIZE;
 	}

@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BDSP_RAAGA_FW_SETTINGS_H
@@ -47,6 +51,7 @@
 #define BDSP_Raaga_OutputFormatterSettings          BDSP_Raaga_Audio_OutputFormatterConfigParams
 #define BDSP_Raaga_Audio_Brcm3DSurroundConfigParams BDSP_Raaga_Audio_Broadcom3DSurroundConfigParams
 #define BDSP_Raaga_BtscEncoderSettings              BDSP_Raaga_Audio_BtscEncoderConfigParams
+#define BDSP_Raaga_FlacSettings                     BDSP_Raaga_Audio_FlacDecConfigParams
 
 #define DDP_DEC_GBL_MAXPCMCHANS                    6
 
@@ -653,6 +658,7 @@ typedef struct BDSP_Raaga_AC4_UserOutput
            1 = Yes (default) */
     uint32_t        ui32PreferAssociateTypeOverLanguage;
 
+#if 0
 	/*PREFERENCE_BASED: Presentations are filtered based on language and associated type. "
 		"The first in the remaining list is selected based on the order in the TOC."
       BY_INDEX: An explicit presentation is picked based on either its index in the list of "
@@ -660,6 +666,7 @@ typedef struct BDSP_Raaga_AC4_UserOutput
 		" one presentation with the same PGI, the first is selected."
 	default: BY_INDEX*/
 	uint32_t		ui32PresentationSelectionMode;
+#endif
 
 	/*pres_mode=BY_INDEX, set the presentation selection mode: PI/PGI"
       PI: select by presentation index"
@@ -667,12 +674,13 @@ typedef struct BDSP_Raaga_AC4_UserOutput
       default: PI"	*/
 	uint32_t ui32SelectByPresentationIndex;
 
+#if 0 /* Not required as taken care internally */
 	/*flag indicating that the index is only used when matched with given program ID of the stream"
       0: do not lock to program id"
       1: lock to program id"
       default: 0 */
 	uint32_t ui32LockToProgramId;
-
+#endif
 	/*force A-JOC core decoding"
 		undef: undefined"
 		0: off"
@@ -1431,8 +1439,8 @@ typedef struct  BDSP_Raaga_Audio_FlacUsrCfg
 
 typedef struct  BDSP_Raaga_Audio_FlacDecConfigParams
 {
-    uint32_t        ui32NumOutPorts;        /* Default = 1;                 = 1 - Multichannel / Stereo out,
-                                                                                                                                                                  = 2 - Multichannel + Stereo out  */
+    uint32_t        ui32NumOutPorts;        /* Default = 1;                 1 - Multichannel / Stereo out,
+                                                                            2 - Multichannel + Stereo out  */
     BDSP_Raaga_Audio_FlacUsrCfg    sUsrOutputCfg[2];
 
 } BDSP_Raaga_Audio_FlacDecConfigParams;
@@ -2517,61 +2525,61 @@ typedef struct BDSP_Raaga_Audio_TsmCorrectionConfigParams
 typedef struct BDSP_Raaga_Audio_DAPv2UserConfig
 {
     uint32_t    ui32Mode;                                           /*Default is mode 0 .It allows features to be enabled/disabled to permit less memory/processing.
-                                                                     0-Full Support
-                                                                     1-Full Support Except dual virtualizer output modes
-                                                                     2.Only Content Processing , no device processing support
-                                                                     3.Only Dolby Volume,upmixing and Dialog Enhancer features enabled . no device processing and dual virtualizer support*/
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 0-Full Support
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 1-Full Support Except dual virtualizer output modes
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 2.Only Content Processing , no device processing support
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 3.Only Dolby Volume,upmixing and Dialog Enhancer features enabled . no device processing and dual virtualizer support*/
     uint32_t    ui32MiProcessDisable;                               /* MI process status. Default: 0 , set 1 to enable it */
     uint32_t    ui32EnableIntelligentEqualizer;                     /*Default 0- disable make 1-enable */
-    uint32_t    ui32IEamount;                                       /*Default 10, Range[0-16]  Specifies the strength of the Intelligent Equalizer effect to apply*/
-    uint32_t    ui32IEQFrequency[20];                               /* Default values  32,64,125,250,500,1000,2000,4000,8000,16000.. Range[20, 20000]in Hz  */
-    uint32_t    i32IEQInputGain[20];                                /* Default values{ 0}   Range [-480,480] */
+    uint32_t    ui32IEamount;                                       /*Default 10, Range[0-16]Â  Specifies the strength of the Intelligent Equalizer effect to apply*/
+    uint32_t    ui32IEQFrequency[20];                               /* Default valuesÂ  32,64,125,250,500,1000,2000,4000,8000,16000.. Range[20, 20000]in HzÂ  */
+    uint32_t    i32IEQInputGain[20];                                /* Default values{ 0}Â Â  Range [-480,480] */
     uint32_t    ui32IEQFrequency_count;             /* default 10*/
     uint32_t    ui32EnableVolumeModeler;            /*Default 0- disable make 1-enable */
-    int32_t     i32VolModCalibration;               /* Default value- 0  Range [-320,320] Fine-tune the manufacturer calibrated reference level to the listening environment */
-    int32_t     i32VolLevelOutTarget;               /* Default value- 320   Range [[-640, 0] ] Calibrate the system to a reference playback sound pressure level */
-    int32_t     i32VolLevelInTarget;                /* Default value- 320   Range [[-640, 0] ] Sets the target average loudness level of the Volume Leveler */
-    uint32_t    ui32VolLevelInputValue;             /* Default value- 7   Range [0,10]     Adjust the loudness to normalize different audio content */
+    int32_t     i32VolModCalibration;               /* Default value- 0Â  Range [-320,320] Fine-tune the manufacturer calibrated reference level to the listening environment */
+    int32_t     i32VolLevelOutTarget;               /* Default value- 320Â Â  Range [[-640, 0] ] Calibrate the system to a reference playback sound pressure level */
+    int32_t     i32VolLevelInTarget;                /* Default value- 320Â Â  Range [[-640, 0] ] Sets the target average loudness level of the Volume Leveler */
+    uint32_t    ui32VolLevelInputValue;             /* Default value- 7Â Â  Range [0,10]Â Â Â Â  Adjust the loudness to normalize different audio content */
     uint32_t    ui32leveler_ignore_il ;             /* ignore the IL sent from decoder */
-    uint32_t    ui32SurroundBoostLevel;             /*  Default value- 96   Range [0,96]    Surround Compressor boost to be used.
-                                                        This is used if the downmixer is Headphone Virtualizer or Speaker Virtualizer  */
+    uint32_t    ui32SurroundBoostLevel;             /*Â  Default value- 96Â Â  Range [0,96]Â Â Â  Surround Compressor boost to be used.
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â   This is used if the downmixer is Headphone Virtualizer or Speaker VirtualizerÂ  */
     uint32_t    ui32EnableVolLeveler ;              /*Default 0- disable make 1-enable ,Volume leveler enabling*/
-    uint32_t    ui32VolMaxBoostLevel;               /* Default value- 144   Range [0,192]    The boost gain applied to the signal in the signal chain.
-                                                       Volume maximization will be performed only if Volume Leveler is enabled  */
-    uint32_t    ui32EnableDialogEnhancer ;          /*Default 0- disable make 1-enable ,Dialog Enhancer  enabling*/
-    uint32_t    ui32DialogEnhancerLevel;            /* Default value =0    Range [0,16]        The strength of the Dialog Enhancer effect  */
-    uint32_t    ui32DialogEnhancerDuckLevel;        /* Default value =0    Range [0,16]    The degree of suppresion of channels that don't contain dialog */
-    uint32_t    ui32EnableSurroundDecoder;          /*Default 0- disable make 1-enable ,Surround Decoder  enabling*/
-    uint32_t    ui32MiEnableSurrCompressorSteering;     /* Default value =0    Set to 1 for enabling  If enabled, the parameters in the Surround Compressor will be updated based on the information from Media Intelligence */
-    uint32_t    ui32MiEnableDialogueEnhancerSteering;   /* Default value =0    Set to 1 for enabling   If enabled, the parameters in the Dialog Enhancer will be updated based on the information from Media Intelligence */
-    uint32_t    ui32MiEnableVolumeLevelerSteering;      /* Default value =0    Set to 1 for enabling  If enabled, the parameters in the Volume Leveler will be updated based on the information from Media Intelligence */
-    uint32_t    ui32MiEnableIEQSteering;                /* Default value =0    Set to 1 for enabling  If enabled, the parameters in the Volume Leveler will be updated based on the information from Media Intelligence */
-    uint32_t    ui32CalibrationBoost;                   /* Default value =0    Range [0,192 ]   A boost gain to be applied to the signal  */
-    int32_t     i32SystemGain;                          /* Default value =0    Range [-2080,480]    The gain the user would like the signal chain to apply to the signal  */
-    int32_t     i32PostGain;                            /* Default value =0    Range [-2080,480 ]   The post gain applied to the signal  */
-    int32_t     i32PreGain;                             /* Default value =0    Range [-2080,480 ]   The pre gain applied to the signal  */
-    uint32_t    ui32OutputMode;                         /*Default value =1    Range[1-10]
-                                                         0 - Output channel count is 1(mono)
-                                                         1 - Output channel count is 2 with order L, R
-                                                         2 - Output channel count is 2 with order L, R
-                                                            PLII LtRt compatible downmix will be carried out, only if a 8 to 2 and 6 to 2 downmix is needed
-                                                         3 - Output channel count is 6 with order L, R, C, LFE, Ls, Rs
-                                                         4 - Output channel count is 6 with order L R C LFE Ls Rs
-                                                          PLIIz decode compatible downmix of Lrs and Rrs into Ls and Rs will be
-                                                          carried out, only if a 8 to 6 downmix is needed
-                                                         5 - Output channel count is 8 with order L, R, C, LFE, Ls, Rs, Lrs, Rrs
-                                                         6 - Output channel count is 2 with order L, R
-                                                          Headphone Virtualizer enabled as virtualizer
-                                                         7 - Output channel count is 2 with order L, R
-                                                         Speaker Virtualizer enabled as virtualizer
-                                                         8 - Output channel count is 3 with order L, R, LFE
-                                                          Speaker Virtualizer enabled as virtualizer
-                                                         9 - Output channel count is 4 with order L headphone output, R headphone output
-                                                          L speaker output, R speaker output
-                                                          Dual virtualizer: Headphone virtualizer + 2.0 speaker virtualizer
-                                                         10 - Output channel count is 5 with order L headphone output, R headphone output
-                                                         L speaker output, R speaker output, LFE speaker output
-                                                          Dual virtualizer: Headphone virtualizer + 2.1 speaker virtualizer*/
+    uint32_t    ui32VolMaxBoostLevel;               /* Default value- 144Â Â  Range [0,192]Â Â Â  The boost gain applied to the signal in the signal chain.
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Volume maximization will be performed only if Volume Leveler is enabledÂ  */
+    uint32_t    ui32EnableDialogEnhancer ;          /*Default 0- disable make 1-enable ,Dialog EnhancerÂ  enabling*/
+    uint32_t    ui32DialogEnhancerLevel;            /* Default value =0Â Â Â  Range [0,16]Â Â Â Â Â Â Â  The strength of the Dialog Enhancer effectÂ  */
+    uint32_t    ui32DialogEnhancerDuckLevel;        /* Default value =0Â Â Â  Range [0,16]Â Â Â  The degree of suppresion of channels that don't contain dialog */
+    uint32_t    ui32EnableSurroundDecoder;          /*Default 0- disable make 1-enable ,Surround DecoderÂ  enabling*/
+    uint32_t    ui32MiEnableSurrCompressorSteering;     /* Default value =0Â Â Â  Set to 1 for enablingÂ  If enabled, the parameters in the Surround Compressor will be updated based on the information from Media Intelligence */
+    uint32_t    ui32MiEnableDialogueEnhancerSteering;   /* Default value =0Â Â Â  Set to 1 for enablingÂ Â  If enabled, the parameters in the Dialog Enhancer will be updated based on the information from Media Intelligence */
+    uint32_t    ui32MiEnableVolumeLevelerSteering;      /* Default value =0Â Â Â  Set to 1 for enablingÂ  If enabled, the parameters in the Volume Leveler will be updated based on the information from Media Intelligence */
+    uint32_t    ui32MiEnableIEQSteering;                /* Default value =0Â Â Â  Set to 1 for enablingÂ  If enabled, the parameters in the Volume Leveler will be updated based on the information from Media Intelligence */
+    uint32_t    ui32CalibrationBoost;                   /* Default value =0Â Â Â  Range [0,192 ]Â Â  A boost gain to be applied to the signalÂ  */
+    int32_t     i32SystemGain;                          /* Default value =0Â Â Â  Range [-2080,480]Â Â Â  The gain the user would like the signal chain to apply to the signalÂ  */
+    int32_t     i32PostGain;                            /* Default value =0Â Â Â  Range [-2080,480 ]Â Â  The post gain applied to the signalÂ  */
+    int32_t     i32PreGain;                             /* Default value =0Â Â Â  Range [-2080,480 ]Â Â  The pre gain applied to the signalÂ  */
+    uint32_t    ui32OutputMode;                         /*Default value =1Â Â Â  Range[1-10]
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â  0 - Output channel count is 1(mono)
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 1 - Output channel count is 2 with order L, R
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 2 - Output channel count is 2 with order L, R
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â    PLII LtRt compatible downmix will be carried out, only if a 8 to 2 andÂ 6 to 2 downmix is needed
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 3 - Output channel count is 6 with order L, R, C, LFE, Ls, Rs
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 4 - Output channel count is 6 with order L R C LFE Ls Rs
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â PLIIz decode compatible downmix of Lrs and Rrs into Ls and Rs will be
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â carried out, only if a 8 to 6 downmix is needed
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 5 - Output channel count is 8 with order L, R, C, LFE, Ls, Rs, Lrs, Rrs
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 6 - Output channel count is 2 with order L, R
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Headphone Virtualizer enabled as virtualizer
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 7 - Output channel count is 2 with order L, R
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Speaker Virtualizer enabled as virtualizer
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 8 - Output channel count is 3 with order L, R, LFE
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Speaker Virtualizer enabled as virtualizer
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 9 - Output channel count is 4 with order L headphone output, R headphone output
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â L speaker output, R speaker output
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Dual virtualizer: Headphone virtualizer + 2.0 speaker virtualizer
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â 10 - Output channel count is 5 with order L headphone output, R headphone output
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â L speaker output, R speaker output, LFE speaker output
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Dual virtualizer: Headphone virtualizer + 2.1 speaker virtualizer*/
     int32_t     i32CmixlevQ14;                      /**< Linear q14 gain [0, 1.412 (23134)] */
     int32_t     i32SurixlevQ14;                     /**< Linear q14 gain [0, 1.0 (16384)] */
     int32_t     i32VolumeLevelerWeight;             /**< weighting for volume leveler in range [0,1], Q31 */
@@ -3077,7 +3085,7 @@ typedef struct  BDSP_FWIF_Pcmr_User_Params
 typedef struct  BDSP_Raaga_Audio_DpcmrConfigParams
 {
     /* default ui32Delay = 668; */
-    /* This Parameter need not to expose at Nexus level since it is fixed for now */
+    /* This Parameter need not to expose at Nexus level since ist is fixed for now */
     uint32_t     ui32Delay;
     /* default ui32NumMcChannels = 6; */
     /* This parameter need to set either 6 or 8 based on 5.1 or 7.1 output is tapped from PCMR */

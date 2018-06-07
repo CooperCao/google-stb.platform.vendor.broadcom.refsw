@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description: Audio PI Private Interfaces
  *
@@ -303,7 +307,16 @@ typedef enum BAPE_BufferInterfaceType
     BAPE_BufferInterfaceType_eMax
 } BAPE_BufferInterfaceType;
 
-#define BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT       (0)
+/*
+   Config/Control Layout:
+   bit   0      - enable/disable
+   bits  1 - 15 - reserved
+   bit  16      - inclusive
+   bits 17 - 25 - output delay [0-1f4h]
+   bits 26 - 63 - reserved
+*/
+
+#define BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT       (16)
 #define BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK        (1<<BAPE_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT)
 
 #define BAPE_BUFFER_INTERFACE_CTRL_ENABLE_SHIFT         (0)
@@ -311,21 +324,38 @@ typedef enum BAPE_BufferInterfaceType
 
 #define BAPE_BUFFER_INTERFACE_ENABLED(ctl) ((ctl & BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK) != 0)
 
-#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT     (0)
-#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK      (1<<BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT      (1)
-#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK       (1<<BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT   (2)
-#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK    (0x7f<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT (9)
-#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK  (0x7<<BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT     (12)
-#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK      (0x7<<BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED(fmt)      ((fmt & BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK) >> BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED(fmt)       ((fmt & BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK) >> BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(fmt)    ((fmt & BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK) >> BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD(fmt)  ((fmt & BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK) >> BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
-#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS(fmt)      ((fmt & BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK) >> BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
+/*
+   Format Layout:
+   bit   0      - interleaved
+   bits  1      - compressed
+   bits  2 - 4  - packing (samples per dword) [1-4]
+   bits  5 - 7  - num channels [1-4]
+   bit   8 - 11 - bits per sample (per iec-60958)
+   bits 12 - 15 - content sample rate (per iec-60958)
+   bits 16 - 19 - transmission sample rate (per iec-60958)
+   bits 20 - 63 - reserved
+*/
+#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT         (0)
+#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK          (1<<BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT          (1)
+#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK           (1<<BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT     (2)
+#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK      (0x7<<BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT         (5)
+#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK          (0x7<<BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT       (8)
+#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK        (0xf<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_SHIFT   (12)
+#define BAPE_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_MASK    (0xf<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_SHIFT    (16)
+#define BAPE_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_MASK     (0xf<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED(fmt)          ((fmt & BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK) >> BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_COMPRESSED(fmt)           ((fmt & BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK) >> BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD(fmt)      ((fmt & BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK) >> BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS(fmt)          ((fmt & BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK) >> BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(fmt)        ((fmt & BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK) >> BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE(fmt)    ((fmt & BAPE_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_MASK) >> BAPE_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_SHIFT)
+#define BAPE_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE(fmt)     ((fmt & BAPE_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_MASK) >> BAPE_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_SHIFT)
 
 /* typically number of channels will be 1 or 2. In theory we could
    pack 4 x 8 bit samples, but this usage would be very rare.
@@ -340,6 +370,7 @@ typedef enum BAPE_BufferInterfaceType
     - 16 bits per sample, interleaved, compressed, 2 samples packed:   interleaved=1, compressed=1, samplesPerDword=2, numChannels=2
     -  8 bits per sample, interleaved stereo, 4 samples packed:   interleaved=1, samplesPerDword=4, numChannels=2
 */
+
 typedef struct BAPE_BufferInterface
 {
     BMMA_Block_Handle block;
@@ -349,19 +380,30 @@ typedef struct BAPE_BufferInterface
     BMMA_DeviceOffset valid;
     BMMA_DeviceOffset watermark;  /* Consumption may start when watermark reaches this level. May be 0.
                                      Consumer will set to 0 when watermark is reached */
-    uint32_t             config;  /* Configuration bits */
-    uint32_t             control; /* Control bits */
-    uint32_t             format;  /* Producer specifies the format of the data */
+    uint64_t             config;  /* Configuration/Control bits */
+    uint64_t             format;  /* Producer specifies the format of the data */
+    uint64_t             rateControlData; /* TSM rate control data for PPM correction */
     volatile int32_t     lock;    /* lock field for spin lock to protect enable->disable sequence */
 } BAPE_BufferInterface;
 
+typedef struct BAPE_BufferInterfaceDescriptor
+{
+    unsigned numBuffers;
+    BMMA_Block_Handle block[BAPE_Channel_eMax];
+    BMMA_DeviceOffset interfaceOffset[BAPE_Channel_eMax];
+    BAPE_BufferInterface* pInterface[BAPE_Channel_eMax];
+} BAPE_BufferInterfaceDescriptor;
+
 #define BAPE_BUFFER_ASSERT_INTERFACE_VALID(b,e,r,v) \
 { \
-    BDBG_ASSERT(e > b); \
-    BDBG_ASSERT(r >= b); \
-    BDBG_ASSERT(v >= b); \
-    BDBG_ASSERT(r <= e); \
-    BDBG_ASSERT(v <= e); \
+    if ( !(e > b) || !(r >= b) || !(v >= b) || !(r <= e) || !(v <= e) ) { \
+        BDBG_ERR(("base %x, end %x, read %x, valid %x", (unsigned)b, (unsigned)e, (unsigned)r, (unsigned)v)); \
+        BDBG_ASSERT(e > b); \
+        BDBG_ASSERT(r >= b); \
+        BDBG_ASSERT(v >= b); \
+        BDBG_ASSERT(r <= e); \
+        BDBG_ASSERT(v <= e); \
+    } \
 }
 
 /* BAPE_BufferInterface usage -

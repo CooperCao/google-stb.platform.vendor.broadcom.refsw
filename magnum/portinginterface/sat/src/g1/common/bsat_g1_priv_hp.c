@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
@@ -106,10 +110,8 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
 {
    BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
-#ifndef BSAT_EXCLUDE_AFEC
    uint32_t acm_check, modcod, val;
    uint8_t oldScanState;
-#endif
 
    BSTD_UNUSED(int_id);
 
@@ -137,7 +139,6 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
    BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eRcvrLocked);
    BDBG_MSG(("HP%d locked", h->channel));
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       acm_check = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_HP_ACM_CHECK);
@@ -193,7 +194,6 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
          BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_HP_HPCONFIG, ~0x2000); /* acm_mode=0 */
       }
    }
-#endif
 
    hChn->nextFunct(h);
 }
@@ -284,9 +284,7 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    uint32_t hpconfig, val, P_hi, P_lo, Q_hi, Q_lo, dafe_average;
    uint16_t turbo_frame_length = 0;
    uint8_t peak_verify_n_check, peak_verify_m_peak, rcvr_verify_n_check, rcvr_verify_m_peak, rcvr_lock_n_check, rcvr_lock_m_peak;
-#ifndef BSAT_EXCLUDE_AFEC
    uint8_t mask;
-#endif
 
    /* set default values */ /* to make maximum DAFE freq average up to 16 PL Frames */
    peak_verify_n_check = 20;
@@ -301,7 +299,6 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
 
    /* set HP_NEW_STATE */
    val = 0x000A0401;
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       if ((hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED) ||
@@ -314,10 +311,8 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
          val |= 0x10; /* no_frequency_estimates_on_state_4=1 */
       }
    }
-#endif
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_NEW_STATE, val);
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       hpconfig |= 0x5A001000; /* trnlen = 90, dvbs2_mode */
@@ -345,7 +340,6 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
          hpconfig |= ((hChn->actualMode - BSAT_Mode_eDvbs2_Qpsk_1_4) + 1);
       }
    }
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
    {
@@ -386,13 +380,11 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    }
 #endif
 
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       if (BSAT_g1_P_AfecIsPilot_isr(h))
          val |= 0x02;
    }
-#endif
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONTROL, val);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONFIG, hpconfig);
@@ -401,7 +393,7 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       val = 1; /* disable FROF3 for turbo */
 #endif
-#ifndef BSAT_EXCLUDE_AFEC
+
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       /* DVB-S2 mode */
@@ -429,13 +421,11 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       if ((hChn->dvbs2ScanState & mask) == mask)
          goto dvbs2_pilot; /* modcod scan mode: from previous hp acquisition, we know there is pilot, so enable fine freq est */
    }
-#endif
+
    write_frof3_sw:
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FROF3_SW, val);
 
-#ifndef BSAT_EXCLUDE_AFEC
    after_fine_freq_est_enable:
-#endif
    if (dafe_average > peak_verify_n_check)
       peak_verify_n_check = dafe_average + 1; /* make sure n_check > dafe_average */
    BSAT_g1_P_HpSetDafeAverage_isr(h, dafe_average);
@@ -469,7 +459,6 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FRAME_LENGTH_QPSK_SHORT, val);
    }
 #endif
-#ifndef BSAT_EXCLUDE_AFEC
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode))
    {
       /* use longest frame lengths for initial search (qpsk pilot) */
@@ -479,7 +468,6 @@ static BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FRAME_LENGTH_QPSK_NORMAL, (33282 << 16) | 32490);
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FRAME_LENGTH_QPSK_SHORT, (8370 << 16) | 8190);
    }
-#endif
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FRAME_LENGTH_DUMMY_NORMAL, (3330 << 16) | 3330);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_FRAME_LENGTH_16APSK_NORMAL, (16686 << 16) | 16290);

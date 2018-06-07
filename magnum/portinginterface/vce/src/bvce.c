@@ -7157,6 +7157,12 @@ BVCE_UserData_P_ParsePacketDescriptor_isrsafe(
          }
       }
 
+      /* SWSTB-6326: To ensure legacy client compatibility, always fill empty 708 packets with cc_type=2,cc_valid=0 */
+      if ( BUDP_DCCparse_Format_ATSC53 == pPacketDescriptor->ePacketFormat )
+      {
+         uiNumValid708Lines = BVCE_FW_P_UserData_Payload_CC_708_LINES_PER_FIELD_MAX;
+      }
+
       BVCE_UserData_P_Set8(pCCPayload, BVCE_FW_P_UserData_CCPayload_NumValid608Lines_OFFSET, uiNumValid608Lines);
       BVCE_UserData_P_Set8(pCCPayload, BVCE_FW_P_UserData_CCPayload_NumValid708Lines_OFFSET, uiNumValid708Lines);
    }

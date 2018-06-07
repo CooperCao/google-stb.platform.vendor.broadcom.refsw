@@ -226,9 +226,10 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
 
     register unsigned long spsr;
     ARCH_SPECIFIC_GET_SPSR(spsr);
-    savedRegs[SAVED_REG_SPSR] = spsr;
 #ifdef __aarch64__
     savedRegs[SAVED_REG_SPSR] = 0x285;
+#else
+    savedRegs[SAVED_REG_SPSR] = spsr;
 #endif
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
     savedNeonRegBase = &savedNeonRegs[NUM_SAVED_NEON_REGS];
@@ -579,7 +580,9 @@ void resumeCurrentTask()
     TzTask *currTask = currentTask[arm::smpCpuNum()];
 
     if(currTask->state != TzTask::Wait && currTask->state != TzTask::Defunct){
-        currTask->signalDispatch();
+        bool taskTerminated = currTask->signalDispatch();
+        if(taskTerminated)
+            schedule();
         COMPILER_BARRIER();
         Scheduler::updateTimeSlice();
         Scheduler::removeTask(currTask);

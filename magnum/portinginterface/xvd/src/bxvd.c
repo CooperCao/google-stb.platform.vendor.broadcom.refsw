@@ -1108,7 +1108,7 @@ static BERR_Code BXVD_S_GetDecodeDefaultSettings
    BXDM_PictureProvider_GetDefaultStartSettings_isrsafe( &(pDecodeDefSettings->stXDMSettings) );
 
    /* SWSTB-3955: if the chip supports it, default to reading the STC's directly from XPT. */
-#ifdef BCHP_XPT_PCROFFSET_STC_SNAPSHOT0
+#if defined(BCHP_XPT_PCROFFSET_STC_SNAPSHOT0) || defined(BCHP_OTT_XPT_TSM_STC_SNAPSHOT0)
    pDecodeDefSettings->stXDMSettings.bUseXPTSTC = true;
 #endif
 
@@ -3374,7 +3374,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    if ( BXVD_P_ChannelType_eEnhanced != pXvdCh->eChannelType )
    {
-#ifndef BCHP_XPT_PCROFFSET_STC_SNAPSHOT0
+#if !(defined(BCHP_XPT_PCROFFSET_STC_SNAPSHOT0) || defined(BCHP_OTT_XPT_TSM_STC_SNAPSHOT0))
       if ( true == psDecodeSettings->stXDMSettings.bUseXPTSTC )
       {
          BDBG_ERR(("%s:: this chip does not support XPT STC snapshots.", BSTD_FUNCTION ));

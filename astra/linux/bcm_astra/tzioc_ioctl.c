@@ -180,6 +180,11 @@ static int tzioc_ioctl_client_close(struct file *file, void *arg)
         return -EINVAL;
     }
 
+    if ((pClient->idx < 0) || (pClient->idx > TZIOC_CLIENT_NUM_MAX)) {
+        LOGE("Invalid args in TZIOC ioctl client close cmd");
+        return -EINVAL;
+    }
+
     _tzioc_user_client_close(pClient);
 
     clientCloseData.retVal = 0;

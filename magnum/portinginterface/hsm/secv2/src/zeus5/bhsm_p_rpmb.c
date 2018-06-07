@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* This file is autogenerated, do not edit. */
@@ -50,9 +53,9 @@ BDBG_MODULE(BHSMa);
 
 BERR_Code BHSM_P_Rpmb_KeyGen( BHSM_Handle hHsm, BHSM_P_RpmbKeyGen *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     Bsp_Rpmb_KeyGen_InFields_t *pSend = NULL;
@@ -79,17 +82,30 @@ BERR_Code BHSM_P_Rpmb_KeyGen( BHSM_Handle hHsm, BHSM_P_RpmbKeyGen *pParam )
     pSend->keyLadderType = pParam->in.keyLadderType;
     pSend->vklId = pParam->in.vklId;
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 
     /* extract output parameters */
-    BKNI_Memcpy( pParam->out.outKey, pReceive->outKey, 32 );
+    if( pParam->out.pOutKey_inPlace ){
+        if( pParam->out.outKeySize_inPlace > sizeof(pParam->out.outKey) ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+        if( pParam->out.outKeySize_inPlace == 0 ) { BERR_TRACE(BERR_INVALID_PARAMETER); goto BHSM_P_DONE_LABEL; }
+
+        rc = BHSM_MemcpySwap( pParam->out.pOutKey_inPlace, pReceive->outKey, pParam->out.outKeySize_inPlace );
+        if( rc != BERR_SUCCESS){ BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
+    }
+    else{
+        BDBG_ASSERT( sizeof(pParam->out.outKey) == sizeof(pReceive->outKey) );
+        BKNI_Memcpy( pParam->out.outKey, pReceive->outKey, sizeof(pParam->out.outKey) );
+    }
 
 BHSM_P_DONE_LABEL:
 
@@ -103,9 +119,9 @@ BHSM_P_DONE_LABEL:
 
 BERR_Code BHSM_P_Rpmb_DisableHmac( BHSM_Handle hHsm, BHSM_P_RpmbDisableHmac *pParam )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_BspMsg_h hMsg = NULL;
-    uint16_t bspError = 0;
+    uint16_t bspStatus = 0;
     BHSM_BspMsgCreate_t msgCreate;
     BHSM_BspMsgConfigure_t msgConfig;
     BSTD_UNUSED( pParam );
@@ -125,12 +141,15 @@ BERR_Code BHSM_P_Rpmb_DisableHmac( BHSM_Handle hHsm, BHSM_P_RpmbDisableHmac *pPa
     rc = BHSM_BspMsg_Configure( hMsg, &msgConfig );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspError );
+    rc = BHSM_BspMsg_SubmitCommand ( hMsg, &bspStatus );
     if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto BHSM_P_DONE_LABEL; }
 
-    if( bspError != 0 ) {
+    pParam->bspStatus = bspStatus;
+    if( bspStatus != 0 ) {
         rc = BHSM_STATUS_BSP_ERROR;
-        BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspError ));
+        if( !pParam->suppressBspStatusErrorMessage ) {
+            BDBG_ERR(("%s BSP Status error [0x%X]", BSTD_FUNCTION, bspStatus ));
+        }
         goto BHSM_P_DONE_LABEL;
     }
 

@@ -63,6 +63,7 @@ BDBG_MODULE(nexus_platform_os);
 
 #ifndef NEXUS_CPU_ARM
     #include "memmap.h"
+    #include "bcm_mips_defs.h"
 #endif
 
 /*
@@ -889,13 +890,11 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
 {
     uint32_t temp_value;
 #if NEXUS_CPU_ARM
-#define REG_BASE 0xf0000000
+#define REG_BASE BCHP_PHYSICAL_OFFSET
 #else
-#define REG_BASE 0xb0000000
+#define REG_BASE BCM_PHYS_TO_KSEG1(BCHP_PHYSICAL_OFFSET)
 #endif
 #if UCOS_VERSION==3
-//    OS_ERR err;
-//    CPU_TS ts;
     CPU_SR_ALLOC();
 #endif
 

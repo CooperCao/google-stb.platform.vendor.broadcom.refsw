@@ -1,46 +1,51 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <string.h>
 #include <arch.h>
 
 #include "config.h"
 #include "monitor.h"
+#include "boot.h"
 #include "memory.h"
 #include "mmap.h"
 #include "xlat.h"
@@ -85,6 +90,17 @@ static size_t mmap_regions_cnt;
 
 static uintptr_t max_paddr;
 static uintptr_t max_vaddr;
+
+void mmap_reset_regions(void)
+{
+    /* Reset mmap regions */
+    bootstrap_memset(mmap_regions, 0, sizeof(mmap_region_t) * mmap_regions_cnt);
+    mmap_regions_cnt = 0;
+
+    /* Reset max paddr and vaddr */
+    max_paddr = 0;
+    max_vaddr = 0;
+}
 
 void mmap_add_region(
     uintptr_t paddr,
@@ -185,31 +201,31 @@ void mmap_add_sys_regions(ptrdiff_t load_link_offset)
         MON_IMG_START,
         MON_IMG_START - load_link_offset,
         MON_IMG_SIZE,
-        MT_RW_DATA | MT_SECURE);
+        MT_RW_DATA | MT_SEC);
 
     mmap_add_region(
         TEXT_START,
         TEXT_START - load_link_offset,
         TEXT_SIZE,
-        MT_CODE | MT_SECURE);
+        MT_CODE | MT_SEC);
 
     mmap_add_region(
         VECTORS_START,
         VECTORS_START - load_link_offset,
         VECTORS_SIZE,
-        MT_CODE | MT_SECURE);
+        MT_CODE | MT_SEC);
 
     mmap_add_region(
         RODATA_START,
         RODATA_START - load_link_offset,
         RODATA_SIZE,
-        MT_RO_DATA | MT_SECURE);
+        MT_RO_DATA | MT_SEC);
 
     mmap_add_region(
         COHERENT_RAM_START,
         COHERENT_RAM_START - load_link_offset,
         COHERENT_RAM_SIZE,
-        MT_DEVICE | MT_RW | MT_SECURE | MT_EXECUTE_NEVER);
+        MT_DEVICE | MT_RW | MT_EXECUTE_NEVER | MT_SEC);
 }
 
 /*
@@ -263,7 +279,7 @@ int mmap_get_attr(
 }
 
 #ifdef VERBOSE
-void mmap_dump(void)
+static void mmap_dump(void)
 {
     DBG_PRINT("\nmmap regions:\n");
     mmap_region_t *pmm = mmap_regions;
@@ -282,34 +298,38 @@ void mmap_populate_xlat_tables(void)
     DBG_ASSERT(max_paddr < PADDR_SIZE);
     DBG_ASSERT(max_vaddr < VADDR_SIZE);
 
+#ifdef VERBOSE
+    mmap_dump();
+#endif
+
     /* Call to populate xlat tables recursively */
     xlat_init_tables(mmap_regions);
 }
 
 unsigned mmap_paddr_size_bits(void)
 {
-	/* Physical address can't exceed 48 bits */
-	DBG_ASSERT((max_paddr & ADDR_MASK_48_TO_63) == 0);
+    /* Physical address can't exceed 48 bits */
+    DBG_ASSERT((max_paddr & ADDR_MASK_48_TO_63) == 0);
 
-	/* 48 bits address */
-	if (max_paddr & ADDR_MASK_44_TO_47)
-		return TCR_PS_BITS_256TB;
+    /* 48 bits address */
+    if (max_paddr & ADDR_MASK_44_TO_47)
+        return TCR_PS_BITS_256TB;
 
-	/* 44 bits address */
-	if (max_paddr & ADDR_MASK_42_TO_43)
-		return TCR_PS_BITS_16TB;
+    /* 44 bits address */
+    if (max_paddr & ADDR_MASK_42_TO_43)
+        return TCR_PS_BITS_16TB;
 
-	/* 42 bits address */
-	if (max_paddr & ADDR_MASK_40_TO_41)
-		return TCR_PS_BITS_4TB;
+    /* 42 bits address */
+    if (max_paddr & ADDR_MASK_40_TO_41)
+        return TCR_PS_BITS_4TB;
 
-	/* 40 bits address */
-	if (max_paddr & ADDR_MASK_36_TO_39)
-		return TCR_PS_BITS_1TB;
+    /* 40 bits address */
+    if (max_paddr & ADDR_MASK_36_TO_39)
+        return TCR_PS_BITS_1TB;
 
-	/* 36 bits address */
-	if (max_paddr & ADDR_MASK_32_TO_35)
-		return TCR_PS_BITS_64GB;
+    /* 36 bits address */
+    if (max_paddr & ADDR_MASK_32_TO_35)
+        return TCR_PS_BITS_64GB;
 
-	return TCR_PS_BITS_4GB;
+    return TCR_PS_BITS_4GB;
 }

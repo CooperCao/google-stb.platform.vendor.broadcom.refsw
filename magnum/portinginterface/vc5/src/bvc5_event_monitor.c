@@ -393,7 +393,7 @@ static void BVC5_P_CreateEventBuffer(
 {
    if (hVC5->sEventMonitor.sBuffer.uiCapacityBytes == 0)
    {
-      hVC5->sEventMonitor.sBuffer.pBuffer = BKNI_Malloc(BVC5_P_EVENT_BUFFER_BYTES);
+      hVC5->sEventMonitor.sBuffer.pBuffer = BVC5_P_VMalloc(BVC5_P_EVENT_BUFFER_BYTES);
       if (hVC5->sEventMonitor.sBuffer.pBuffer != NULL)
       {
          hVC5->sEventMonitor.sBuffer.uiCapacityBytes = BVC5_P_EVENT_BUFFER_BYTES;
@@ -410,7 +410,7 @@ static void BVC5_P_DeleteEventBuffer(
 {
    if (hVC5->sEventMonitor.sBuffer.pBuffer != NULL)
    {
-      BKNI_Free(hVC5->sEventMonitor.sBuffer.pBuffer);
+      BVC5_P_VFree(hVC5->sEventMonitor.sBuffer.pBuffer);
       hVC5->sEventMonitor.sBuffer.pBuffer = NULL;
       hVC5->sEventMonitor.sBuffer.uiCapacityBytes = 0;
       hVC5->sEventMonitor.sBuffer.uiBytesUsed = 0;

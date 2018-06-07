@@ -425,6 +425,8 @@ typedef struct BMUXlib_TS_SystemData
 
 /* BMUXlib_TS_AddSystemDataBuffers -
  * Adds system data buffers(s) to the stream.  The buffers that are queued must remain intact until the muxing has completed.
+ *
+ * The *caller* is responsible for flushing the cache of the buffers (if needed)
  */
 BERR_Code
 BMUXlib_TS_AddSystemDataBuffers(

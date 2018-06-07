@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,6 +36,7 @@
  * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_platform_priv.h"
+#include "nexus_map.h"
 #include "bkni.h"
 #include "bdbg_log.h"
 #include "nexus_interrupt_map.h"
@@ -134,24 +135,6 @@ BDBG_MODULE(nexus_platform_os);
 #define LINUX_2631_3_2_OR_GREATER 1
 #endif
 
-#undef PDEBUG
-#undef PWARN
-#undef PERR
-#undef PINFO
-
-#define DEBUG
-#ifdef DEBUG
-    #define PERR(fmt, args...) printk( KERN_ERR "nexus.ko: " fmt, ## args)
-    #define PWARN(fmt, args...) printk( KERN_WARNING "nexus.ko: " fmt, ## args)
-    #define PINFO(fmt, args...) printk( KERN_INFO "nexus.ko: " fmt, ## args)
-    #define PDEBUG(fmt, args...) printk( KERN_DEBUG "nexus.ko: " fmt, ## args)
-#else
-    #define PERR(fmt, args...)
-    #define PWARN(fmt, args...)
-    #define PINFO(fmt, args...)
-    #define PDEBUG(fmt, args...)
-#endif
-
 #if NEXUS_CPU_ARM
 #include "bcmdriver_arm.h"
 #endif
@@ -242,6 +225,8 @@ NEXUS_Platform_P_InitOS(void)
         state->pending[i] = state->processing[i];
     }
     state->started = true;
+    g_NEXUS_P_CpuNotAccessibleRange.start = (uint8_t *)NULL + 4096; /* don't start range from NULL */
+    g_NEXUS_P_CpuNotAccessibleRange.length = min(0x80000000ul, PAGE_OFFSET) - 4096; /* don't use more then 2GB of address space */
 
     NEXUS_Platform_P_InitSubmodules();
 

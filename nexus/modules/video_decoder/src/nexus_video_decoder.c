@@ -638,7 +638,7 @@ void NEXUS_VideoDecoderModule_P_Uninit_Avd(void)
            BXDM_DisplayInterruptHandler_Destroy(vDevice->hXdmDih[j]);
            vDevice->hXdmDih[j] = NULL;
         }
-        if (g_NEXUS_videoDecoderModuleSettings.watchdogEnabled) {
+        if (g_NEXUS_videoDecoderModuleSettings.watchdogEnabled && !NEXUS_GetEnv("no_watchdog")) {
             BXVD_UnInstallDeviceInterruptCallback(vDevice->xvd, BXVD_DeviceInterrupt_eWatchdog);
         }
 
@@ -4529,6 +4529,7 @@ static void NEXUS_P_SetVideoDecoderCapabilities(void)
 {
     unsigned i;
     NEXUS_VideoDecoderCapabilities *pCapabilities = &g_NEXUS_videoDecoderCapabilities;
+    unsigned lastAvdIndex = NEXUS_MAX_XVD_DEVICES;
 
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
 
@@ -4550,6 +4551,12 @@ static void NEXUS_P_SetVideoDecoderCapabilities(void)
                     break;
                 }
             }
+            pCapabilities->videoDecoder[i].shared = (g_pCoreHandles->boxConfig->stXvd.stInstance[pCapabilities->videoDecoder[i].avdIndex].stDevice.stChannel[0].DecoderUsage_1.maxResolution != BBOX_XVD_UNUSED);
+            if (lastAvdIndex != pCapabilities->videoDecoder[i].avdIndex) {
+                /* only set for first channel */
+                pCapabilities->videoDecoder[i].exclusiveMode = g_NEXUS_videoDecoderXvdDevices[pCapabilities->videoDecoder[i].avdIndex].exclusiveMode;
+            }
+            lastAvdIndex = pCapabilities->videoDecoder[i].avdIndex;
         }
     }
     get_stc_count(pCapabilities);
@@ -5916,7 +5923,7 @@ NEXUS_Error NEXUS_VideoDecoderModule_GetStatus_priv(NEXUS_VideoDecoderModuleStat
     return NEXUS_SUCCESS;
 }
 
-static void NEXUS_VideoDecoder_P_SplicePoint_Isr(void *Ctx, uint32_t pts)
+static void NEXUS_VideoDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
 {
     NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)(Ctx);
     uint32_t ptsRight = 0;
@@ -5956,6 +5963,7 @@ NEXUS_Error NEXUS_VideoDecoder_SetSpliceSettings(
         if ((videoDecoder->spliceStatus.state == NEXUS_DecoderSpliceState_eWaitForStopPts) ||
             (videoDecoder->spliceStatus.state == NEXUS_DecoderSpliceState_eWaitForStartPts)) {
             rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
+            if (rc) return BERR_TRACE(rc);
         }
         NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, NULL);
         BKNI_Memset(&videoDecoder->spliceSettings,0,sizeof(NEXUS_VideoDecoderSpliceSettings));
@@ -5966,27 +5974,29 @@ NEXUS_Error NEXUS_VideoDecoder_SetSpliceSettings(
         break;
     }
     case NEXUS_DecoderSpliceMode_eStopAtPts: {
-        videoDecoder->spliceSettings = *pSettings;
-        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
         raveSpliceSettings.context = (void *) videoDecoder;
         raveSpliceSettings.ptsThreshold = pSettings->ptsThreshold;
         raveSpliceSettings.pts = pSettings->pts;
-        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_Isr;
+        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_isr;
         raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStopPts;
-        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
+        if (rc) return BERR_TRACE(rc);
+        videoDecoder->spliceSettings = *pSettings;
+        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
+        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         break;
     }
     case NEXUS_DecoderSpliceMode_eStartAtPts: {
-        videoDecoder->spliceSettings = *pSettings;
-        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
         raveSpliceSettings.context = (void *) videoDecoder;
         raveSpliceSettings.ptsThreshold = pSettings->ptsThreshold;
         raveSpliceSettings.pts = pSettings->pts;
-        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_Isr;
+        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_isr;
         raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStartPts;
-        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
         rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
+        if (rc) return BERR_TRACE(rc);
+        videoDecoder->spliceSettings = *pSettings;
+        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
+        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
         break;
     }
     default:
@@ -6080,7 +6090,11 @@ NEXUS_Error NEXUS_VideoDecoder_SpliceStartFlow(
         goto ExitFunc;
     }
 
-    NEXUS_PidChannel_GetStatus(pSettings->pidChannel, &pidChannelStatus);
+    rc = NEXUS_PidChannel_GetStatus(pSettings->pidChannel, &pidChannelStatus);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto ExitFunc;
+    }
     LOCK_TRANSPORT();
     NEXUS_Rave_AddPidChannel_priv(videoDecoder->rave, pSettings->pidChannel);
     NEXUS_Rave_SetBandHold(videoDecoder->rave,pidChannelStatus.playback);

@@ -58,13 +58,11 @@ int SAGE_app_join_nexus(void)
     rc = NxClient_Join(NULL);
 #else
     NEXUS_PlatformSettings platformSettings;
-    NEXUS_PlatformConfiguration platformConfig;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     rc = NEXUS_Platform_Init(&platformSettings);
-    NEXUS_Platform_GetConfiguration(&platformConfig);
 #endif
     return rc;
 }

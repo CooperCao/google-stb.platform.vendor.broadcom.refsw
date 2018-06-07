@@ -880,12 +880,12 @@ typedef struct NEXUS_PowerStatus
  */
 typedef enum NEXUS_DecoderSpliceState
 {
-	NEXUS_DecoderSpliceState_eNone,				  /* content splicing is disabled */
-	NEXUS_DecoderSpliceState_eWaitForStopPts,     /* looking for stop pts */
-	NEXUS_DecoderSpliceState_eFoundStopPts,       /* stopPts found */
-	NEXUS_DecoderSpliceState_eWaitForStartPts,    /* looking for start pts */
-	NEXUS_DecoderSpliceState_eFoundStartPts,	  /* found start pts and resumed original stream */
-	NEXUS_DecoderSpliceState_eMax
+    NEXUS_DecoderSpliceState_eNone,               /* content splicing is disabled */
+    NEXUS_DecoderSpliceState_eWaitForStopPts,     /* looking for stop pts */
+    NEXUS_DecoderSpliceState_eFoundStopPts,       /* stopPts found */
+    NEXUS_DecoderSpliceState_eWaitForStartPts,    /* looking for start pts */
+    NEXUS_DecoderSpliceState_eFoundStartPts,      /* found start pts and resumed original stream */
+    NEXUS_DecoderSpliceState_eMax
 }NEXUS_DecoderSpliceState;
 
 /**

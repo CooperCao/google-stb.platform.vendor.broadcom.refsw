@@ -1,39 +1,43 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bchp.h"
@@ -246,9 +250,9 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x643a0f18,
 	0xc8807e27,
 	0x8403b987,
-	0x70b485c8,
+	0x70a485c8,
 	0x73048508,
-	0x70b22488,
+	0x70a22488,
 	0x71525348,
 	0x71045448,
 	0x71745448,
@@ -950,7 +954,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x2001a9cf,
 	0x72f43008,
 	0x700138f0,
-	0x70b1f0c2,
+	0x70a1f0c2,
 	0x27627f47,
 	0xb7807e47,
 	0xcf818800,
@@ -1826,7 +1830,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xc1808000,
 	0x99006900,
 	0x7295e008,
-	0x70b45008,
+	0x70a45008,
 	0x72f45048,
 	0x54a18907,
 	0x20000017,
@@ -1840,7 +1844,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x10000017,
 	0xd1020237,
 	0xce018417,
-	0x73d5d048,
+	0x73e5d048,
 	0x255f8907,
 	0xe881fe07,
 	0x7185e208,
@@ -1854,7 +1858,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x5482e707,
 	0x20000017,
 	0x7315e008,
-	0x73e0e0c8,
+	0x73d0e0c8,
 	0xab1be1f8,
 	0xc8817e07,
 	0x7315e008,
@@ -2142,7 +2146,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x20000011,
 	0xdf4281c7,
 	0xabfc71f8,
-	0x70b11148,
+	0x70a11148,
 	0x707121c8,
 	0x0021f107,
 	0x2942a107,
@@ -2619,7 +2623,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xdda39047,
 	0xce030e37,
 	0xeea3124f,
-	0x70ad5a60,
+	0x70bd5a60,
 	0x54a2a707,
 	0x200000e4,
 	0x5084900f,
@@ -3207,8 +3211,8 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xdea64037,
 	0x2ea5c027,
 	0xdf648147,
-	0x70afd065,
-	0x70afd043,
+	0x70bfd065,
+	0x70bfd043,
 	0x54bfaa37,
 	0x200000bf,
 	0x0c008c2f,
@@ -4387,7 +4391,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x8400f39f,
 	0x70711048,
 	0xc8807e17,
-	0x70b10148,
+	0x70a10148,
 	0x50a2a907,
 	0x20000004,
 	0xdc008087,
@@ -4473,7 +4477,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x80000027,
 	0x62221fbe,
 	0xab16c1f8,
-	0x70b06141,
+	0x70a06141,
 	0xdf6389cf,
 	0x28220e39,
 	0xdf6309c7,
@@ -4536,7 +4540,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x9e009037,
 	0x70538877,
 	0x70538866,
-	0x70b06141,
+	0x70a06141,
 	0xdf6389cf,
 	0x28220e39,
 	0xdf6309c7,
@@ -5725,7 +5729,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xab02a9fe,
 	0xc891fe07,
 	0x99202307,
-	0x70b11048,
+	0x70a11048,
 	0x0a1d11cf,
 	0x221141cf,
 	0x99401b07,
@@ -5928,7 +5932,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x9b231227,
 	0x09219627,
 	0x39239427,
-	0x73e09244,
+	0x73d09244,
 	0xf83d31ff,
 	0xdc008587,
 	0xf83d21f8,
@@ -5960,7 +5964,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xab0901f8,
 	0xf55f8f47,
 	0xab0761f8,
-	0x70b080c4,
+	0x70a080c4,
 	0xdf6100c7,
 	0xab06a1f8,
 	0x70c091c4,
@@ -6101,7 +6105,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x0f010a17,
 	0xd920f407,
 	0x7290f0c0,
-	0x73e100c0,
+	0x73d100c0,
 	0xf83d31ff,
 	0x71e110c0,
 	0x72f110c0,
@@ -6118,7 +6122,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x8940a007,
 	0xf55f8207,
 	0xf83d21f8,
-	0x70b0f2c0,
+	0x70a0f2c0,
 	0x0925fa07,
 	0x2126f407,
 	0x50e3a807,
@@ -6135,7 +6139,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x0ea4881f,
 	0xd922f407,
 	0x7290f040,
-	0x73e100c0,
+	0x73d100c0,
 	0x9921f607,
 	0xf83d31ff,
 	0x0bdcb1cf,
@@ -6677,7 +6681,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xed608806,
 	0xebdf801e,
 	0x9b219b07,
-	0x70b07948,
+	0x70a07948,
 	0xdc00c987,
 	0xab2881f8,
 	0xb680c9c7,
@@ -6874,7 +6878,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xcf80820f,
 	0x0bb8b1ff,
 	0x59209107,
-	0x70b07048,
+	0x70a07048,
 	0xf55f8187,
 	0xabd5a1f8,
 	0x09279907,
@@ -7201,7 +7205,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xeea01007,
 	0x26bf0c0f,
 	0xd1808a27,
-	0x73e08042,
+	0x73d08042,
 	0x09220617,
 	0x39409e17,
 	0xf55f8387,
@@ -7927,7 +7931,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x53c1b0ff,
 	0x50fbef8d,
 	0xe603903f,
-	0x73e221cb,
+	0x73d221cb,
 	0xeea18e3f,
 	0x7ba387d0,
 	0x50c01919,
@@ -8057,7 +8061,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x50df8118,
 	0x30000008,
 	0x72021fcb,
-	0x73e2288b,
+	0x73d2288b,
 	0x7282200b,
 	0x7312204b,
 	0x0a1261cf,
@@ -8201,7 +8205,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xef000407,
 	0x25c00107,
 	0xb880fe17,
-	0x70b268c0,
+	0x70a268c0,
 	0x54778387,
 	0xb000abcd,
 	0x72045fc8,
@@ -8375,7 +8379,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x7015d100,
 	0x21c2001f,
 	0x8881fe17,
-	0x73e6f088,
+	0x73d6f088,
 	0x7016f402,
 	0xab2331d7,
 	0x71890208,
@@ -8979,7 +8983,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x20000004,
 	0x0949b707,
 	0x3946c307,
-	0x73d134c8,
+	0x73e134c8,
 	0x56e89d07,
 	0x20000004,
 	0x54eca307,
@@ -9005,10 +9009,10 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x72321108,
 	0x71821148,
 	0x72c21088,
-	0x73e21248,
+	0x73d21248,
 	0xabc331d7,
 	0x601e3fd0,
-	0x73e6f008,
+	0x73d6f008,
 	0x7316f048,
 	0x2080440f,
 	0x9800110f,
@@ -9193,7 +9197,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x20000008,
 	0xabd5b1d7,
 	0x64103fd0,
-	0x73e6f008,
+	0x73d6f008,
 	0x7316f048,
 	0x2080420f,
 	0x98001117,
@@ -9491,7 +9495,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x8401f24f,
 	0x33d171ff,
 	0x5e844927,
-	0x70b5e088,
+	0x70a5e088,
 	0xe7b1c407,
 	0x8401f227,
 	0x50a02507,
@@ -9499,7 +9503,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xee844927,
 	0xf55f8007,
 	0xabc221f8,
-	0x70b5e0c8,
+	0x70a5e0c8,
 	0xe7b1c407,
 	0x8401f1e7,
 	0x33c131ff,
@@ -9628,7 +9632,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xdc008107,
 	0xab1dc1f8,
 	0x72f45148,
-	0x70b45108,
+	0x70a45108,
 	0xe7b24207,
 	0xd1020a1f,
 	0xd1020817,
@@ -9669,7 +9673,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0xc8007e07,
 	0x53d971d7,
 	0x50fbef65,
-	0x70b90208,
+	0x70a90208,
 	0x7158f048,
 	0x0a1d11cf,
 	0x223341cf,
@@ -9785,7 +9789,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x10000011,
 	0xf55fc507,
 	0xee810207,
-	0x73d5f008,
+	0x73e5f008,
 	0x60123fc1,
 	0x7296f008,
 	0x7316f008,
@@ -9852,7 +9856,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x10000017,
 	0xdc008187,
 	0xabb871f8,
-	0x70b5e088,
+	0x70a5e088,
 	0xe7b1c207,
 	0x8401b6df,
 	0x50a02507,
@@ -10149,7 +10153,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x72606248,
 	0x0903f707,
 	0x3a421107,
-	0x73e071c8,
+	0x73d071c8,
 	0x0a41a107,
 	0x3b226907,
 	0x0b21eb07,
@@ -10172,7 +10176,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x57807e07,
 	0x09027507,
 	0x2002b907,
-	0x70b061c8,
+	0x70a061c8,
 	0x2780fe17,
 	0x8780fe07,
 	0x54e10907,
@@ -10299,7 +10303,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x60166fd1,
 	0x7286f008,
 	0x7016f400,
-	0x73e6f088,
+	0x73d6f088,
 	0x7286ffc8,
 	0x7015f201,
 	0xc880110f,
@@ -10709,7 +10713,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x72fd73c0,
 	0x50a7a9ff,
 	0x30800410,
-	0x70bd7380,
+	0x70ad7380,
 	0x50a731ff,
 	0x30800410,
 	0x50e68c07,
@@ -12447,7 +12451,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x10000004,
 	0x71e26008,
 	0x73025908,
-	0x70b259c8,
+	0x70a259c8,
 	0xf5400387,
 	0xab0d41f8,
 	0x71545908,
@@ -12486,7 +12490,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x72e22b08,
 	0x73322b48,
 	0x72922a88,
-	0x73e22ac8,
+	0x73d22ac8,
 	0x72822a08,
 	0x73122a48,
 	0x0800013f,
@@ -12507,7 +12511,7 @@ const uint32_t BDSP_IMG_x264_encode_array1[] = {
 	0x71e26048,
 	0xf5400387,
 	0xabf221f8,
-	0x70b45008,
+	0x70a45008,
 	0xf5528187,
 	0xabf161f8,
 	0x71545048,

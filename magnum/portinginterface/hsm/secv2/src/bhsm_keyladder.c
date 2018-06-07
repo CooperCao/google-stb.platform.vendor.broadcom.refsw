@@ -1,43 +1,47 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bhsm.h"
+#include "bsp_p_hw.h"
 #include "bhsm_priv.h"
 #include "bhsm_keyladder.h"
 #include "bhsm_p_keyladder.h"
@@ -310,7 +314,7 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle,
 {
 
     BHSM_P_KeyLadder *pkeyLadder = (BHSM_P_KeyLadder*)handle;
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_KeyLadder_GenerateLevelKey );
 
@@ -322,82 +326,88 @@ BERR_Code BHSM_KeyLadder_GenerateLevelKey( BHSM_KeyLadderHandle handle,
         if(pkeyLadder->index == HWKL_INDEX)
         {
             rc =  BHSM_Keyslot_GenerateHwKlRootKey( handle, pKey );  /* configure the root key. */
+            if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
         }
         else
         {
             rc =  _GenerateRootKey( handle, pKey );  /* configure the root key. */
+            if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
         }
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-        goto exit;
+        goto exit; /* nothing more to do on level 3. */
     }
 
-    if(pkeyLadder->index == HWKL_INDEX)
+    if( pkeyLadder->index == HWKL_INDEX )
     {
         rc =  BHSM_Keyslot_GenerateHwKlLevelKey( handle, pKey );
+        if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
     }
     else
     {
         rc =  _GenerateLevelKey( handle, pKey );
-    }
-    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-
-    if( pKey->route.destination == BHSM_KeyLadderDestination_eNone )
-    {
-        goto exit; /* nothing more to do. */
+        if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
     }
 
-    /*route the key, as required. */
-    if( pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotKey )
+    switch( pKey->route.destination )
     {
-
-        if(pkeyLadder->index == HWKL_INDEX)
+        case BHSM_KeyLadderDestination_eNone:
         {
-            BHSM_KeyslotRouteKey routeKey;
-
-            BKNI_Memset( &routeKey, 0, sizeof(routeKey) );
-            routeKey.keyLadderIndex = pkeyLadder->index;
-            routeKey.keyLadderLayer = pKey->level;
-
-            rc = BHSM_Keyslot_RouteHWKlEntryKey( pKey->route.keySlot.handle
-                                                 , pKey->route.keySlot.entry
-                                                 , &routeKey );
+             /* nothing to do. */
+            break;
         }
-        else
+        case BHSM_KeyLadderDestination_eKeyslotKey:
         {
-            BHSM_P_KeyslotRouteKey routeKey;
+            if(pkeyLadder->index == HWKL_INDEX)
+            {
+                BHSM_KeyslotRouteKey routeKey;
 
-            BKNI_Memset( &routeKey, 0, sizeof(routeKey) );
-            routeKey.hKeySlot =  pKey->route.keySlot.handle;
-            routeKey.entry = pKey->route.keySlot.entry;
-            routeKey.keyLadderIndex = pkeyLadder->index;
-            routeKey.keyLadderLayer = pKey->level;
+                BKNI_Memset( &routeKey, 0, sizeof(routeKey) );
+                routeKey.keyLadderIndex = pkeyLadder->index;
+                routeKey.keyLadderLayer = pKey->level;
 
-            rc = _RouteEntryKey( handle, &routeKey );
+                rc = BHSM_Keyslot_RouteHWKlEntryKey( pKey->route.keySlot.handle
+                                                     , pKey->route.keySlot.entry
+                                                     , &routeKey );
+                if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
+            }
+            else
+            {
+                BHSM_P_KeyslotRouteKey routeKey;
+
+                BKNI_Memset( &routeKey, 0, sizeof(routeKey) );
+                routeKey.hKeySlot =  pKey->route.keySlot.handle;
+                routeKey.entry = pKey->route.keySlot.entry;
+                routeKey.keyLadderIndex = pkeyLadder->index;
+                routeKey.keyLadderLayer = pKey->level;
+
+                rc = _RouteEntryKey( handle, &routeKey );
+                if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
+            }
+            break;
         }
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-        goto exit;
+        case BHSM_KeyLadderDestination_eKeyslotIv:
+        case BHSM_KeyLadderDestination_eKeyslotIv2:
+        {
+            BHSM_P_KeyslotRouteIv routeIv;
+
+            BKNI_Memset( &routeIv, 0, sizeof(routeIv) );
+            routeIv.keyLadderIndex = pkeyLadder->index;
+            routeIv.keyLadderLayer = pKey->level;
+            routeIv.hKeySlot =  pKey->route.keySlot.handle;
+            routeIv.entry = pKey->route.keySlot.entry;
+            if( pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotIv2 ) { routeIv.configIv2 = true; }
+
+            rc = _RouteEntryIv(  handle, &routeIv );
+            if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); goto exit; }
+
+            break;
+        }
+        default:
+        {
+            /* other destination not supported yet!*/
+            rc = BERR_TRACE( BERR_NOT_SUPPORTED );
+            break;
+        }
     }
-
-    if( pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotIv ||
-        pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotIv2 )
-    {
-        BHSM_P_KeyslotRouteIv routeIv;
-
-        BKNI_Memset( &routeIv, 0, sizeof(routeIv) );
-        routeIv.keyLadderIndex = pkeyLadder->index;
-        routeIv.keyLadderLayer = pKey->level;
-        routeIv.hKeySlot =  pKey->route.keySlot.handle;
-        routeIv.entry = pKey->route.keySlot.entry;
-        if( pKey->route.destination == BHSM_KeyLadderDestination_eKeyslotIv2 ) { routeIv.configIv2 = true; }
-
-        rc = _RouteEntryIv(  handle, &routeIv );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
-
-        goto exit;
-    }
-
-    /* other destination not supported yet!*/
-    BERR_TRACE( BERR_NOT_SUPPORTED );
 
 exit:
 
@@ -507,24 +517,7 @@ static BERR_Code  _GenerateRootKey( BHSM_KeyLadderHandle handle, const BHSM_KeyL
         case BHSM_CryptographicAlgorithm_eAes128:   { bspConfig.in.keyLadderType = 1; break; }
         default: { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     }
-    switch( pSettings->root.type ) {
-        case BHSM_KeyLadderRootType_eCustomerKey: {
-            bspConfig.in.rootKeySrc = 0;  /*Bsp_RootKeySrc_eCusKey*/
-            break;
-        }
-        case BHSM_KeyLadderRootType_eOtpDirect:
-        case BHSM_KeyLadderRootType_eOtpAskm: {
-            bspConfig.in.rootKeySrc = pSettings->root.otpKeyIndex+1;
-            break;
-        }
-        case BHSM_KeyLadderRootType_eGlobalKey: {
-            bspConfig.in.rootKeySrc = 9;  /*Bsp_RootKeySrc_eAskmGlobalKey*/
-            break;
-        }
-        default: {
-            return BERR_TRACE( BERR_INVALID_PARAMETER );
-        }
-    }
+    bspConfig.in.rootKeySrc = BHSM_P_KeyLadder_MapRootKeySrc( pSettings->root.type, pSettings->root.otpKeyIndex );
     bspConfig.in.customerSel = _MapCustomerSubMode( pSettings->mode );
     switch( pSettings->operation ){
         case BHSM_CryptographicOperation_eEncrypt:    { bspConfig.in.keyLadderOperation = 1; break; }
@@ -757,17 +750,25 @@ static uint8_t _MapCustomerSubMode( BHSM_KeyLadderMode mode )
 
 uint8_t BHSM_P_KeyLadder_MapRootKeySrc( BHSM_KeyLadderRootType rootKeySrc, unsigned otpIndex )
 {
+    uint8_t bspRootKeySrc = Bsp_RootKeySrc_eMax;
 
     switch( rootKeySrc )
     {
-        case BHSM_KeyLadderRootType_eCustomerKey: { return Bsp_RootKeySrc_eCusKey; }
+        case BHSM_KeyLadderRootType_eCustomerKey: { bspRootKeySrc = Bsp_RootKeySrc_eCusKey; break; }
         case BHSM_KeyLadderRootType_eOtpDirect:
-        case BHSM_KeyLadderRootType_eOtpAskm:     { return (Bsp_RootKeySrc_eOtpa + otpIndex); }
-        case BHSM_KeyLadderRootType_eGlobalKey:   { return Bsp_RootKeySrc_eAskmGlobalKey; }
-        default: { BERR_TRACE( BERR_INVALID_PARAMETER ); }
+        case BHSM_KeyLadderRootType_eOtpAskm: {
+            if( otpIndex >= BSP_NUM_OTP_ROOT_KEYS ) {
+                BERR_TRACE( BERR_INVALID_PARAMETER );
+                break;
+            }
+            bspRootKeySrc = (Bsp_RootKeySrc_eOtpa + otpIndex);
+            break;
+        }
+        case BHSM_KeyLadderRootType_eGlobalKey: { bspRootKeySrc = Bsp_RootKeySrc_eAskmGlobalKey; break; }
+        default: { BERR_TRACE( BERR_INVALID_PARAMETER ); break; }
     }
 
-    return 0xFF;  /* invalid type */
+    return bspRootKeySrc;
 }
 
 

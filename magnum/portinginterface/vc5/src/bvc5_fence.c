@@ -39,6 +39,7 @@
 #include "bkni.h"
 #include "bkni_multi.h"
 
+#include "bvc5.h"
 #include "bvc5_fence_priv.h"
 
 #include <stdbool.h>
@@ -91,6 +92,7 @@ BERR_Code BVC5_P_FenceArrayCreate(
       goto exit;
    }
 
+   BDBG_CASSERT(sizeof(BVC5_P_FenceArray) <= CPU_PAGE_SIZE);
    hFenceArr = (BVC5_P_FenceArray *)BKNI_Malloc(sizeof(BVC5_P_FenceArray));
 
    if (hFenceArr == NULL)
@@ -204,6 +206,7 @@ int BVC5_P_FenceCreate(
    BKNI_AcquireMutex(hFenceArr->hMutex);
    BDBG_MSG(("BVC5_P_FenceCreate uiClientId=%d", uiClientId));
 
+   BDBG_CASSERT(sizeof(BVC5_P_Fence) <= CPU_PAGE_SIZE);
    pFence = BKNI_Malloc(sizeof(BVC5_P_Fence));
    BKNI_Memset(pFence, 0, sizeof(BVC5_P_Fence));
 

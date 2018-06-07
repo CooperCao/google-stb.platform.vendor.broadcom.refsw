@@ -121,13 +121,7 @@ BXDM_DisplayInterruptHandler_Create(
    }
 
 
-   rc = BKNI_AcquireMutex( pXdmDih->hMutex );
-
-   if ( BERR_SUCCESS != rc )
-   {
-      BKNI_Free( pXdmDih );
-      return BERR_TRACE( rc );
-   }
+   BKNI_AcquireMutex( pXdmDih->hMutex );
 
    BLST_S_INIT( &pXdmDih->hPictureProviderList );
 
@@ -149,20 +143,13 @@ BXDM_DisplayInterruptHandler_Destroy(
 {
    BXDM_DisplayInterruptHandler_P_PictureProviderCallback *pPictureProvider;
 
-   BERR_Code rc;
-
    BDBG_ENTER( BXDM_DisplayInterruptHandler_Destroy );
 
    if ( NULL != hXdmDih )
    {
       pPictureProvider = BLST_S_FIRST( &hXdmDih->hPictureProviderList );
 
-      rc = BKNI_AcquireMutex(  hXdmDih->hMutex );
-
-      if ( BERR_SUCCESS != rc )
-      {
-         return BERR_TRACE( rc );
-      }
+      BKNI_AcquireMutex(  hXdmDih->hMutex );
 
       while ( NULL != pPictureProvider )
       {
@@ -245,8 +232,6 @@ BXDM_DisplayInterruptHandler_AddPictureProviderInterface(
 {
    BXDM_DisplayInterruptHandler_P_PictureProviderCallback *pPictureProvider;
 
-   BERR_Code rc;
-
    BDBG_ENTER( BXDM_DisplayInterruptHandler_AddPictureProviderInterface );
 
    BDBG_ASSERT( fCallback_isr );
@@ -281,13 +266,7 @@ BXDM_DisplayInterruptHandler_AddPictureProviderInterface(
       /* BLST list key's in descending order, needed to negate to get in ascending order */
       pPictureProvider->uiVDCRectangleNumber = (pPictureProvider->uiVDCRectangleNumber + 1) * (-1);
 
-      rc = BKNI_AcquireMutex( hXdmDih->hMutex );
-
-      if ( BERR_SUCCESS != rc )
-      {
-         BKNI_Free( pPictureProvider );
-         return BERR_TRACE( rc );
-      }
+      BKNI_AcquireMutex( hXdmDih->hMutex );
 
       BDBG_MODULE_MSG( BXDM_DIHCTL, ("hDih:0x%lu pp:0x%lu add hXdm:0x%lu ch:%d",
                   (unsigned long)hXdmDih,
@@ -333,8 +312,6 @@ BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(
 {
    BXDM_DisplayInterruptHandler_P_PictureProviderCallback *pPictureProvider;
 
-   BERR_Code rc;
-
    BDBG_ENTER( BXDM_DisplayInterruptHandler_RemovePictureProviderInterface );
 
    BKNI_EnterCriticalSection();
@@ -349,12 +326,7 @@ BXDM_DisplayInterruptHandler_RemovePictureProviderInterface(
 
    if ( NULL != pPictureProvider )
    {
-      rc = BKNI_AcquireMutex( hXdmDih->hMutex );
-
-      if ( BERR_SUCCESS != rc )
-      {
-         return BERR_TRACE( rc );
-      }
+      BKNI_AcquireMutex( hXdmDih->hMutex );
 
       BDBG_MODULE_MSG( BXDM_DIHCTL, ("hDih:0x%lu pp:0x%lu remove hXdm:0x%lu",
                   (unsigned long)hXdmDih,

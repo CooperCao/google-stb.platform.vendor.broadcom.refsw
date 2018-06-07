@@ -1387,10 +1387,11 @@ void BVDC_P_Vip_BuildRul_isr
     BVDC_P_VipAssocBufferNode *pBufferDecim1v;
     BVDC_P_VipAssocBufferNode *pBufferDecim2v;
     const BFMT_VideoInfo *pFmtInfo;
-    BVDC_Display_Handle hDisplay = hVip->hDisplay;
+    BVDC_Display_Handle hDisplay;
 
     BDBG_ENTER(BVDC_P_Vip_BuildRul_isr);
     BDBG_OBJECT_ASSERT(hVip, BVDC_VIP);
+    hDisplay = hVip->hDisplay;
 
     pFmtInfo = (hDisplay->pStgFmtInfo)?
         hDisplay->pStgFmtInfo : hDisplay->stCurInfo.pFmtInfo;

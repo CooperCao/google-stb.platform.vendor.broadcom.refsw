@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description: APE Buffer Interface
  *
@@ -52,13 +56,30 @@ BDBG_OBJECT_ID(BAPE_BufferGroup);
 
 #define INVALID_SIZE    0xffffffff
 
-static BERR_Code BAPE_Buffer_P_ControlLock_isrsafe(BAPE_BufferHandle handle);
-static BERR_Code BAPE_Buffer_P_ControlUnlock_isrsafe(BAPE_BufferHandle handle);
+static BERR_Code BAPE_Buffer_P_ControlLock_isrsafe(BAPE_BufferHandle handle, BAPE_BufferInterface * pInterface, BMMA_Block_Handle block);
+static BERR_Code BAPE_Buffer_P_ControlUnlock_isrsafe(BAPE_BufferHandle handle, BAPE_BufferInterface * pInterface, BMMA_Block_Handle block);
+static unsigned BAPE_Buffer_P_GetBufferDepth_isr(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block);
+static unsigned BAPE_Buffer_P_Read_isr(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block, void* pBuffer, BMMA_Block_Handle bufferBlock, BAPE_SimpleBufferDescriptor * pDescriptor);
+static unsigned BAPE_Buffer_P_ReadComplete_isr(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block, unsigned size);
+static void BAPE_Buffer_P_Enable_isr(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block, bool enable);
+static bool BAPE_Buffer_P_IsEnabled_isrsafe(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block);
+static BERR_Code BAPE_Buffer_P_SetFormat_isr(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block, BAPE_BufferFormat * pFormat);
+static BERR_Code BAPE_Buffer_P_GetFormat_isrsafe(BAPE_BufferInterface * pInterface, BMMA_Block_Handle block, BAPE_BufferFormat * pFormat);
+
 static BERR_Code BAPE_BufferGroup_P_ControlLock_isrsafe(BAPE_BufferGroupHandle handle);
 static BERR_Code BAPE_BufferGroup_P_ControlUnlock_isrsafe(BAPE_BufferGroupHandle handle);
 static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSource);
-static void BAPE_BufferGroup_P_DataReady_isr(BAPE_BufferGroupHandle handle, unsigned size);
-static void BAPE_BufferGroup_P_FreeSpaceAvailable_isr(BAPE_BufferGroupHandle handle, unsigned size);
+static void BAPE_BufferGroup_P_DataReady_isr(BAPE_BufferGroupHandle handle, unsigned size, unsigned level);
+static void BAPE_BufferGroup_P_FreeSpaceAvailable_isr(BAPE_BufferGroupHandle handle, unsigned size, unsigned level);
+static BERR_Code BAPE_BufferGroup_P_Read_isr(BAPE_BufferGroupHandle handle, BAPE_BufferDescriptor * pGroupDescriptor, bool fillOutputs);
+static BERR_Code BAPE_BufferGroup_P_ReadComplete_isr(BAPE_BufferGroupHandle handle, size_t size, bool fillOutputs);
+static BERR_Code BAPE_BufferGroup_P_GetWriteBuffers_isr(BAPE_BufferGroupHandle handle, BAPE_BufferDescriptor * pGroupDescriptor, bool fillOutputs);
+static BERR_Code BAPE_BufferGroup_P_WriteComplete_isr(BAPE_BufferGroupHandle handle, size_t size, bool fillOutputs);
+#define BAPE_BUFFERGROUP_SYNC_ALL (0xffffffff)
+#define BAPE_BUFFERGROUP_SYNC_FORMAT   (1<<0)
+#define BAPE_BUFFERGROUP_SYNC_CONFIG   (1<<1)
+#define BAPE_BUFFERGROUP_SYNC_VPTR     (1<<2)
+static void BAPE_BufferGroup_P_SyncBufferInterface_isr(BAPE_BufferGroupHandle handle, uint32_t sync);
 
 typedef struct BAPE_Buffer
 {
@@ -334,51 +355,45 @@ void BAPE_Buffer_Close(
 
     BDBG_OBJECT_DESTROY(handle, BAPE_Buffer);
     BKNI_Free(handle);
-    BDBG_MSG(("  - SUCCESS, returning"));
 }
 
-/***************************************************************************
-Summary:
-Buffer Read
-***************************************************************************/
-unsigned BAPE_Buffer_Read_isr(
-    BAPE_BufferHandle handle, 
+static unsigned BAPE_Buffer_P_Read_isr(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block,
+    void* pBuffer,
+    BMMA_Block_Handle bufferBlock,
     BAPE_SimpleBufferDescriptor * pDescriptor /* [out] */
     )
 {
     BMMA_DeviceOffset base, end, read, valid, watermark = 0;
     unsigned size = 0;
 
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
+    BDBG_ASSERT(pBuffer != NULL);
+    BDBG_ASSERT(bufferBlock != NULL);
     BDBG_ASSERT(pDescriptor != NULL);
-    BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
 
     BKNI_Memset(pDescriptor, 0, sizeof(BAPE_SimpleBufferDescriptor));
 
-    if ( handle->type == BAPE_BufferType_eWriteOnly )
-    {
-        BDBG_WRN(("Attempt to read from a write only buffer."));
-        BERR_TRACE(BERR_UNKNOWN);
-        return 0;
-    }
-
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
 
-    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control) )
+    if ( !BAPE_BUFFER_INTERFACE_ENABLED(pInterface->config) )
     {
-        BDBG_WRN(("Buffer interface not enabled"));
+        BDBG_MSG(("(READ)Buffer interface not enabled"));
         return 0;
     }
 
     /* Snap offsets */
-    base = handle->pInterface->base;
-    end = handle->pInterface->end;
-    read = handle->pInterface->read;
-    valid = handle->pInterface->valid;
-    watermark = handle->pInterface->watermark;
+    base = pInterface->base;
+    end = pInterface->end;
+    read = pInterface->read;
+    valid = pInterface->valid;
+    watermark = pInterface->watermark;
 
     BAPE_BUFFER_ASSERT_INTERFACE_VALID(base, end, read, valid);
-    BDBG_MODULE_MSG(bape_buffer_detail, ("++READ(%p) - base %x, read %x, write %x, end %x",(void *)handle,(unsigned)base,(unsigned)read,(unsigned)valid,(unsigned)end));
+    BDBG_MODULE_MSG(bape_buffer_detail, ("++READ(%p) - base %x, read %x, write %x, end %x",(void *)pInterface,(unsigned)base,(unsigned)read,(unsigned)valid,(unsigned)end));
 
     /* check for read ptr wrap */
     if ( read == end )
@@ -389,16 +404,16 @@ unsigned BAPE_Buffer_Read_isr(
         }
     }
 
-    BDBG_MODULE_MSG(bape_buffer_detail, ("  READ(%p) - base %x, read %x, write %x, end %x",(void *)handle,(unsigned)base,(unsigned)read,(unsigned)valid,(unsigned)end));
+    BDBG_MODULE_MSG(bape_buffer_detail, ("  READ(%p) - base %x, read %x, write %x, end %x",(void *)pInterface,(unsigned)base,(unsigned)read,(unsigned)valid,(unsigned)end));
 
-    if ( read != handle->pInterface->read )
+    if ( read != pInterface->read )
     {
-        handle->pInterface->read = read;
+        pInterface->read = read;
         /* Flush Cache */
-        BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+        BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
     }
 
-    if ( (watermark < handle->pInterface->base || watermark > handle->pInterface->end) && watermark < (handle->pInterface->end - handle->pInterface->base) )
+    if ( (watermark < pInterface->base || watermark > pInterface->end) && watermark < (pInterface->end - pInterface->base) )
     {
         watermark += base;
     }
@@ -409,24 +424,24 @@ unsigned BAPE_Buffer_Read_isr(
     if ( watermark != base && valid < watermark )
     {
         /* waiting to hit watermark */
-        BDBG_MODULE_MSG(bape_buffer_detail, ("  returning. watermark %u not hit yet. valid - base = %u", (unsigned int)watermark, (unsigned int)(valid-base)));
+        BDBG_MODULE_MSG(bape_buffer_detail, ("  returning. watermark %u not hit yet. valid - base = %u", (unsigned int)(watermark-base), (unsigned int)(valid-base)));
         return 0;
     }
 
     /* we are hitting the watermark, clear it */
     if ( watermark != base )
     {
-        handle->pInterface->watermark = 0;
+        pInterface->watermark = 0;
         /* Flush Cache */
-        BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+        BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
     }
 
     /* Set up descriptor */
     if ( read < valid )
     {
-        pDescriptor->block = handle->block;
+        pDescriptor->block = bufferBlock;
         pDescriptor->offset = read;
-        pDescriptor->pBuffer = (uint8_t*)handle->pBuffer + (pDescriptor->offset-base);
+        pDescriptor->pBuffer = (uint8_t*)pBuffer + (pDescriptor->offset-base);
         pDescriptor->bufferSize = valid - read;
         size = pDescriptor->bufferSize;
     }
@@ -438,23 +453,45 @@ unsigned BAPE_Buffer_Read_isr(
     {
         /* read -> end */
         BDBG_ASSERT( read < end );
-        pDescriptor->block = handle->block;
+        pDescriptor->block = bufferBlock;
         pDescriptor->offset = read;
-        pDescriptor->pBuffer = (uint8_t*)handle->pBuffer + (pDescriptor->offset-base);
+        pDescriptor->pBuffer = (uint8_t*)pBuffer + (pDescriptor->offset-base);
         pDescriptor->bufferSize = (unsigned) (end - read);
         size = pDescriptor->bufferSize;
         if ( valid > base )
         {
-            pDescriptor->pWrapBuffer = handle->pBuffer;
+            pDescriptor->pWrapBuffer = pBuffer;
             pDescriptor->wrapOffset = base;
             pDescriptor->wrapBufferSize = (unsigned) (valid - base);
             size += pDescriptor->wrapBufferSize;
         }
     }
     BDBG_MODULE_MSG(bape_buffer_detail, ("  returning %d bytes", size));
-    BDBG_MODULE_MSG(bape_buffer_detail, ("--READ(%p) - base %x, read %x, write %x, end %x",(void *)handle,(unsigned)base,(unsigned)read,(unsigned)valid,(unsigned)end));
+    BDBG_MODULE_MSG(bape_buffer_detail, ("--READ(%p) - base %x, read %x, write %x, end %x",(void *)pInterface,(unsigned)base,(unsigned)read,(unsigned)valid,(unsigned)end));
 
     return size;
+}
+
+/***************************************************************************
+Summary:
+Buffer Read
+***************************************************************************/
+unsigned BAPE_Buffer_Read_isr(
+    BAPE_BufferHandle handle,
+    BAPE_SimpleBufferDescriptor * pDescriptor /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
+
+    if ( handle->type == BAPE_BufferType_eWriteOnly )
+    {
+        BDBG_WRN(("Attempt to read complete a write only buffer"));
+        BKNI_Memset(pDescriptor, 0, sizeof(BAPE_SimpleBufferDescriptor));
+        BERR_TRACE(BERR_UNKNOWN);
+        return 0;
+    }
+
+    return BAPE_Buffer_P_Read_isr(handle->pInterface, handle->interfaceBlock, handle->pBuffer, handle->block, pDescriptor);
 }
 
 /***************************************************************************
@@ -487,9 +524,9 @@ BERR_Code BAPE_Buffer_GetWriteBuffer_isr(
     /* Flush Cache */
     BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
 
-    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control) )
+    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->config) )
     {
-        BDBG_WRN(("Buffer interface not enabled"));
+        BDBG_MSG(("(GETWRITEBUFFER)Buffer interface not enabled"));
         return 0;
     }
 
@@ -688,12 +725,9 @@ unsigned BAPE_Buffer_WriteComplete_isr(
     return BAPE_Buffer_Write_isr(handle, NULL, size);
 }
 
-/***************************************************************************
-Summary:
-Buffer Read Complete
-***************************************************************************/
-unsigned BAPE_Buffer_ReadComplete_isr(
-    BAPE_BufferHandle handle, 
+static unsigned BAPE_Buffer_P_ReadComplete_isr(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block,
     unsigned size
     )
 {
@@ -702,43 +736,37 @@ unsigned BAPE_Buffer_ReadComplete_isr(
     unsigned curAdvanceSize;
     unsigned depth;
 
-    BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
 
     if ( size == 0 )
     {
         return 0;
     }
 
-    if ( handle->type == BAPE_BufferType_eWriteOnly )
-    {
-        BDBG_WRN(("Attempt to read complete a write only buffer"));
-        BERR_TRACE(BERR_UNKNOWN);
-        return 0;
-    }
-
-    depth = BAPE_Buffer_GetBufferDepth_isr(handle);
+    depth = BAPE_Buffer_P_GetBufferDepth_isr(pInterface, block);
 
     if ( depth < size )
     {
-        BDBG_ERR(("READCOMPLETE(%p) - ERROR - Request exceeds buffer depth (requested %lu, depth %lu)", (void *)handle, (unsigned long)size, (unsigned long)depth));
+        BDBG_ERR(("READCOMPLETE(%p) - ERROR - Request exceeds buffer depth (requested %lu, depth %lu)", (void *)pInterface, (unsigned long)size, (unsigned long)depth));
     }
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
 
-    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control) )
+    if ( !BAPE_BUFFER_INTERFACE_ENABLED(pInterface->config) )
     {
-        BDBG_WRN(("Buffer interface not enabled"));
+        BDBG_MSG(("(READCOMPLETE)Buffer interface not enabled"));
         return 0;
     }
 
     /* Snap offsets */
-    base = handle->pInterface->base;
-    end = handle->pInterface->end;
-    read = handle->pInterface->read;
-    valid = handle->pInterface->valid;
+    base = pInterface->base;
+    end = pInterface->end;
+    read = pInterface->read;
+    valid = pInterface->valid;
 
-    BDBG_MODULE_MSG(bape_buffer_detail, ("++READCOMPLETE(%p) - base %x, end %x, read %x, write %x, bufSize %x, AdvSize %x", (void *)handle, (unsigned)base, (unsigned)end, (unsigned)read, (unsigned)valid, (unsigned)handle->size, (unsigned)size));
+    BDBG_MODULE_MSG(bape_buffer_detail, ("++READCOMPLETE(%p) - base %x, end %x, read %x, write %x, AdvSize %x", (void *)pInterface, (unsigned)base, (unsigned)end, (unsigned)read, (unsigned)valid, (unsigned)size));
     BAPE_BUFFER_ASSERT_INTERFACE_VALID(base, end, read, valid);
 
     /* check for read ptr wrap */
@@ -777,15 +805,36 @@ unsigned BAPE_Buffer_ReadComplete_isr(
         advanced += curAdvanceSize;
     }
 
-    handle->pInterface->read = read;
+    pInterface->read = read;
     BAPE_BUFFER_ASSERT_INTERFACE_VALID(base, end, read, valid);
     BDBG_MODULE_MSG(bape_buffer_detail, ("  Consumed %u of %u bytes", advanced, size));
-    BDBG_MODULE_MSG(bape_buffer_detail, ("--READCOMPLETE(%p) - base %x, end %x, read %x, write %x, bufSize %x, AdvSize %x", (void *)handle, (unsigned)base, (unsigned)end, (unsigned)read, (unsigned)valid, (unsigned)handle->size, (unsigned)size));
+    BDBG_MODULE_MSG(bape_buffer_detail, ("--READCOMPLETE(%p) - base %x, end %x, read %x, write %x, AdvSize %x", (void *)pInterface, (unsigned)base, (unsigned)end, (unsigned)read, (unsigned)valid, (unsigned)size));
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
 
     return (unsigned)advanced;
+}
+
+/***************************************************************************
+Summary:
+Buffer Read Complete
+***************************************************************************/
+unsigned BAPE_Buffer_ReadComplete_isr(
+    BAPE_BufferHandle handle,
+    unsigned size
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
+
+    if ( handle->type == BAPE_BufferType_eWriteOnly )
+    {
+        BDBG_WRN(("Attempt to read complete a write only buffer"));
+        BERR_TRACE(BERR_UNKNOWN);
+        return 0;
+    }
+
+    return BAPE_Buffer_P_ReadComplete_isr(handle->pInterface, handle->interfaceBlock, size);
 }
 
 /***************************************************************************
@@ -807,6 +856,48 @@ void BAPE_Buffer_Flush_isr(
     BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
 }
 
+static unsigned BAPE_Buffer_P_GetBufferDepth_isr(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block
+    )
+{
+    BMMA_DeviceOffset base, end, read, valid;
+
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
+
+    /* Flush Cache */
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
+
+    if ( !BAPE_BUFFER_INTERFACE_ENABLED(pInterface->config) )
+    {
+        BDBG_MSG(("(GETBUFFERDEPTH)Buffer interface not enabled"));
+        return 0;
+    }
+
+
+    /* Snap offsets */
+    base = pInterface->base;
+    end = pInterface->end;
+    read = pInterface->read;
+    valid = pInterface->valid;
+    BAPE_BUFFER_ASSERT_INTERFACE_VALID(base, end, read, valid);
+    /*BDBG_MODULE_MSG(bape_buffer_detail,("GETBUFFERDEPTH base %x, read %x, write %x, end %x", (unsigned int)base, (unsigned int)read, (unsigned int)valid, (unsigned int)end));*/
+
+    if ( read < valid )
+    {
+        /*BDBG_MODULE_MSG(bape_buffer_detail,("  returning valid - read = %u", (unsigned int)(valid-read)));*/
+        return ( valid - read );
+    }
+    else if ( read > valid )
+    {
+        /*BDBG_MODULE_MSG(bape_buffer_detail,("  returning (end - read) + (valid - base) = %u", (unsigned int)((end - read) + (valid - base))));*/
+        return (end - read) + (valid - base);
+    }
+
+    return 0;
+}
+
 /***************************************************************************
 Summary:
 Buffer Get Depth
@@ -815,36 +906,9 @@ unsigned BAPE_Buffer_GetBufferDepth_isr(
     BAPE_BufferHandle handle
     )
 {
-    BMMA_DeviceOffset base, end, read, valid;
-
     BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
 
-    /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
-
-    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control) )
-    {
-        BDBG_WRN(("Buffer interface not enabled"));
-        return 0;
-    }
-
-    /* Snap offsets */
-    base = handle->pInterface->base;
-    end = handle->pInterface->end;
-    read = handle->pInterface->read;
-    valid = handle->pInterface->valid;
-    BAPE_BUFFER_ASSERT_INTERFACE_VALID(base, end, read, valid);
-
-    if ( read < valid )
-    {
-        return ( valid - read );
-    }
-    else if ( read > valid )
-    {
-        return (end - read) + (valid - base);
-    }
-
-    return 0;
+    return BAPE_Buffer_P_GetBufferDepth_isr(handle->pInterface, handle->interfaceBlock);
 }
 
 /***************************************************************************
@@ -863,9 +927,9 @@ unsigned BAPE_Buffer_GetBufferFree_isr(
     /* Flush Cache */
     BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
 
-    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control) )
+    if ( !BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->config) )
     {
-        BDBG_WRN(("Buffer interface not enabled"));
+        BDBG_MSG(("(GETBUFFERFREE)Buffer interface not enabled"));
         return 0;
     }
 
@@ -901,6 +965,33 @@ unsigned BAPE_Buffer_GetBufferFree_isr(
     return free;
 }
 
+void BAPE_Buffer_P_Enable_isr(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block,
+    bool enable
+    )
+{
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
+
+    BDBG_MSG(("%s - (%p)", BSTD_FUNCTION, (void*)pInterface));
+
+    /* Flush Cache */
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
+
+    if ( enable )
+    {
+        pInterface->config |= BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK;
+    }
+    else
+    {
+        pInterface->config &= ~BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK;
+    }
+
+    /* Flush Cache */
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
+}
+
 /***************************************************************************
 Summary:
 Buffer Enable Consumption
@@ -911,25 +1002,21 @@ void BAPE_Buffer_Enable_isr(
     )
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
-
-    BDBG_MSG(("%s - (%p)", BSTD_FUNCTION, (void*)handle));
-
-    /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
-
-    if ( enable )
-    {
-        handle->pInterface->control |= BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK;
-    }
-    else
-    {
-        handle->pInterface->control &= ~BAPE_BUFFER_INTERFACE_CTRL_ENABLE_MASK;
-    }
-
-    /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_Buffer_P_Enable_isr(handle->pInterface, handle->interfaceBlock, enable);
 }
 
+bool BAPE_Buffer_P_IsEnabled_isrsafe(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block
+    )
+{
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
+
+    /* Flush Cache */
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
+    return BAPE_BUFFER_INTERFACE_ENABLED(pInterface->config);
+}
 /***************************************************************************
 Summary:
 Buffer report enable status
@@ -939,10 +1026,121 @@ bool BAPE_Buffer_IsEnabled_isrsafe(
     )
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
+    return BAPE_Buffer_P_IsEnabled_isrsafe(handle->pInterface, handle->interfaceBlock);
+}
+
+static unsigned BAPE_P_IEC60958BitsPerSampleToBitsPerSample_isrsafe(unsigned bits)
+{
+    switch ( bits )
+    {
+    case 0:
+        return 0;
+        break; /* unreachable */
+    case 1:
+        return 16;
+        break; /* unreachable */
+    case 2:
+        return 18;
+        break; /* unreachable */
+    case 4:
+        return 19;
+        break; /* unreachable */
+    case 5:
+        return 20;
+        break; /* unreachable */
+    case 6:
+        return 17;
+        break; /* unreachable */
+    case 9:
+        return 20;
+        break; /* unreachable */
+    case 10:
+        return 22;
+        break; /* unreachable */
+    case 12:
+        return 23;
+        break; /* unreachable */
+    case 13:
+        return 24;
+        break; /* unreachable */
+    case 14:
+        return 21;
+        break; /* unreachable */
+    default:
+        BDBG_WRN(("Unknown bits per sample code %x", bits));
+        break;
+    }
+
+    return 0;
+}
+
+static unsigned BAPE_P_BitsPerSampleToIEC60958BitsPerSample_isrsafe(unsigned bitsPerSample)
+{
+    switch ( bitsPerSample )
+    {
+    case 0:
+        return 0;
+        break; /* unreachable */
+    case 16:
+        return 1;
+        break; /* unreachable */
+    case 18:
+        return 2;
+        break; /* unreachable */
+    case 19:
+        return 4;
+        break; /* unreachable */
+    case 17:
+        return 6;
+        break; /* unreachable */
+    case 20:
+        return 9;
+        break; /* unreachable */
+    case 22:
+        return 10;
+        break; /* unreachable */
+    case 23:
+        return 12;
+        break; /* unreachable */
+    case 24:
+        return 13;
+        break; /* unreachable */
+    case 21:
+        return 14;
+        break; /* unreachable */
+    default:
+        BDBG_WRN(("Unknown bits per sample %d", (int)bitsPerSample));
+        break;
+    }
+
+    return 0;
+}
+
+BERR_Code BAPE_Buffer_P_GetFormat_isrsafe(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block,
+    BAPE_BufferFormat * pFormat
+    )
+{
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
+
+    if ( pFormat == NULL )
+    {
+        BDBG_ERR(("pFormat cannot be NULL"));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
-    return BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control);
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
+
+    pFormat->interleaved = BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED(pInterface->format);
+    pFormat->compressed = BAPE_BUFFER_INTERFACE_FMT_COMPRESSED(pInterface->format);
+    pFormat->bitsPerSample = BAPE_P_IEC60958BitsPerSampleToBitsPerSample_isrsafe(BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(pInterface->format));
+    pFormat->numChannels = BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS(pInterface->format);
+    pFormat->samplesPerDword = BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD(pInterface->format);
+
+    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -956,6 +1154,19 @@ BERR_Code BAPE_Buffer_GetFormat_isrsafe(
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
 
+    return BERR_TRACE(BAPE_Buffer_P_GetFormat_isrsafe(handle->pInterface, handle->interfaceBlock, pFormat));
+}
+
+BERR_Code BAPE_Buffer_P_SetFormat_isr(
+    BAPE_BufferInterface * pInterface,
+    BMMA_Block_Handle block,
+    BAPE_BufferFormat * pFormat
+    )
+{
+    uint32_t format;
+    BDBG_ASSERT(pInterface != NULL);
+    BDBG_ASSERT(block != NULL);
+
     if ( pFormat == NULL )
     {
         BDBG_ERR(("pFormat cannot be NULL"));
@@ -963,13 +1174,35 @@ BERR_Code BAPE_Buffer_GetFormat_isrsafe(
     }
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
 
-    pFormat->interleaved = BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED(handle->pInterface->format);
-    pFormat->compressed = BAPE_BUFFER_INTERFACE_FMT_COMPRESSED(handle->pInterface->format);
-    pFormat->bitsPerSample = BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(handle->pInterface->format);
-    pFormat->numChannels = BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS(handle->pInterface->format);
-    pFormat->samplesPerDword = BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD(handle->pInterface->format);
+    /* TBD7211 - if samplerate is added, this will need to be relaxed. */
+    if ( BAPE_BUFFER_INTERFACE_ENABLED(pInterface->config) )
+    {
+        BDBG_ERR(("Cannot update the format while running"));
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+
+    format = pInterface->format;
+    format &= ~BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK;
+    format |= pFormat->interleaved?BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK : 0;
+
+    format &= ~BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK;
+    format |= pFormat->compressed?BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK : 0;
+
+    format &= ~BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK;
+    format |= (BAPE_P_BitsPerSampleToIEC60958BitsPerSample_isrsafe(pFormat->bitsPerSample)<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT) & BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK;
+
+    format &= ~BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK;
+    format |= (pFormat->samplesPerDword<<BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT) & BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK;
+
+    format &= ~BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK;
+    format |= (pFormat->numChannels<<BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT) & BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK;
+
+    pInterface->format = format;
+
+    /* Flush Cache */
+    BAPE_FLUSHCACHE_ISRSAFE(block, pInterface, sizeof(BAPE_BufferInterface));
 
     return BERR_SUCCESS;
 }
@@ -983,14 +1216,7 @@ BERR_Code BAPE_Buffer_SetFormat_isr(
     BAPE_BufferFormat * pFormat
     )
 {
-    uint32_t format;
     BDBG_OBJECT_ASSERT(handle, BAPE_Buffer);
-
-    if ( pFormat == NULL )
-    {
-        BDBG_ERR(("pFormat cannot be NULL"));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
 
     if ( handle->type == BAPE_BufferType_eReadOnly )
     {
@@ -998,38 +1224,7 @@ BERR_Code BAPE_Buffer_SetFormat_isr(
         return BERR_TRACE(BERR_NOT_AVAILABLE);
     }
 
-    /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
-
-    /* TBD7211 - if samplerate is added, this will need to be relaxed. */
-    if ( BAPE_BUFFER_INTERFACE_ENABLED(handle->pInterface->control) )
-    {
-        BDBG_ERR(("Cannot update the format while running"));
-        return BERR_TRACE(BERR_NOT_AVAILABLE);
-    }
-
-    format = handle->pInterface->format;
-    format &= ~BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK;
-    format |= pFormat->interleaved?BAPE_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK : 0;
-
-    format &= ~BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK;
-    format |= pFormat->compressed?BAPE_BUFFER_INTERFACE_FMT_COMPRESSED_MASK : 0;
-
-    format &= ~BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK;
-    format |= (pFormat->bitsPerSample<<BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT) & BAPE_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK;
-
-    format &= ~BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK;
-    format |= (pFormat->samplesPerDword<<BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT) & BAPE_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK;
-
-    format &= ~BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK;
-    format |= (pFormat->numChannels<<BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT) & BAPE_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK;
-
-    handle->pInterface->format = format;
-
-    /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
-
-    return BERR_SUCCESS;
+    return BERR_TRACE(BAPE_Buffer_P_SetFormat_isr(handle->pInterface, handle->interfaceBlock, pFormat));
 }
 
 #define BAPE_BUFFER_LOCK(interface) \
@@ -1038,15 +1233,33 @@ BERR_Code BAPE_Buffer_SetFormat_isr(
     (__sync_bool_compare_and_swap(&interface->lock, 1, 0))
     /* interface->lock = 0; */
 
-static BERR_Code BAPE_Buffer_P_ControlLock_isrsafe(BAPE_BufferHandle handle)
+static BERR_Code BAPE_Buffer_P_ControlLock_isrsafe(BAPE_BufferHandle handle, BAPE_BufferInterface * pInterface, BMMA_Block_Handle block)
 {
+    BAPE_BufferInterface * pInt;
+    BMMA_Block_Handle blk;
     unsigned count=500000;
 
+    if ( handle )
+    {
+        pInt = handle->pInterface;
+        blk = handle->interfaceBlock;
+    }
+    else if ( pInterface && block != NULL )
+    {
+        pInt = pInterface;
+        blk = block;
+    }
+    else
+    {
+        BDBG_ERR(("Invalid parameter(s)"));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(blk, pInt, sizeof(BAPE_BufferInterface));
 
     /* spin lock */
-    while (!BAPE_BUFFER_LOCK(handle->pInterface) && count-- > 0 ) {
+    while (!BAPE_BUFFER_LOCK(pInt) && count-- > 0 ) {
         BKNI_Delay(1);
     }
 
@@ -1056,38 +1269,57 @@ static BERR_Code BAPE_Buffer_P_ControlLock_isrsafe(BAPE_BufferHandle handle)
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
-    BDBG_ASSERT( handle->pInterface->lock == 1 );
+    BDBG_ASSERT( pInt->lock == 1 );
 
-    BDBG_MODULE_MSG(bape_buffer_lock, ("--LOCK   BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)handle->pInterface, (void*)&handle->pInterface->lock, (int)handle->pInterface->lock));
+    BDBG_MODULE_MSG(bape_buffer_lock, ("--LOCK   BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)pInt, (void*)&pInt->lock, (int)pInt->lock));
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(blk, pInt, sizeof(BAPE_BufferInterface));
 
     return BERR_SUCCESS;
 }
 
-static BERR_Code BAPE_Buffer_P_ControlUnlock_isrsafe(BAPE_BufferHandle handle)
+static BERR_Code BAPE_Buffer_P_ControlUnlock_isrsafe(BAPE_BufferHandle handle, BAPE_BufferInterface * pInterface, BMMA_Block_Handle block)
 {
+    BAPE_BufferInterface * pInt;
+    BMMA_Block_Handle blk;
+
+    if ( handle )
+    {
+        pInt = handle->pInterface;
+        blk = handle->interfaceBlock;
+    }
+    else if ( pInterface && block != NULL )
+    {
+        pInt = pInterface;
+        blk = block;
+    }
+    else
+    {
+        BDBG_ERR(("Invalid parameter(s) pInt %p, block %p, handle %p", (void*)pInterface, (void*)block, (void*)handle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     BDBG_MODULE_MSG(bape_buffer_lock, ("++UNLOCK BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)handle->pInterface, (void*)&handle->pInterface->lock, (int)handle->pInterface->lock));
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(blk, pInt, sizeof(BAPE_BufferInterface));
 
-    if ( handle->pInterface->lock == 0 )
+    if ( pInt->lock == 0 )
     {
-        BDBG_ERR(("ERROR UNLOCK BUF %p, intf %p, lock %d prior to Unlock", (void*)handle, (void*)handle->pInterface, (int)handle->pInterface->lock));
+        BDBG_ERR(("ERROR UNLOCK BUF %p, intf %p, lock %d prior to Unlock", (void*)handle, (void*)pInt, (int)pInt->lock));
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
-    if (!BAPE_BUFFER_UNLOCK(handle->pInterface)) {
-        BDBG_ERR(("ERROR UNLOCK BUF %p, intf %p, Unlock failed", (void*)handle, (void*)handle->pInterface));
+    if (!BAPE_BUFFER_UNLOCK(pInt)) {
+        BDBG_ERR(("ERROR UNLOCK BUF %p, intf %p, Unlock failed", (void*)handle, (void*)pInt));
         return BERR_TRACE(BERR_UNKNOWN);
     }
 
-    BDBG_MODULE_MSG(bape_buffer_lock, ("--UNLOCK BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)handle->pInterface, (void*)&handle->pInterface->lock, (int)handle->pInterface->lock));
+    BDBG_MODULE_MSG(bape_buffer_lock, ("--UNLOCK BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)pInt, (void*)&pInt->lock, (int)pInt->lock));
 
     /* Flush Cache */
-    BAPE_FLUSHCACHE_ISRSAFE(handle->interfaceBlock, handle->pInterface, sizeof(BAPE_BufferInterface));
+    BAPE_FLUSHCACHE_ISRSAFE(blk, pInt, sizeof(BAPE_BufferInterface));
 
     return BERR_SUCCESS;
 }
@@ -1105,6 +1337,14 @@ typedef struct BAPE_BufferGroup
     bool interleaved;
     bool buffered;
     BMMA_DeviceOffset localReadOffset; /* used for non-buffered linked outputs */
+
+    /* used for non-buffered linked outputs */
+    struct {
+        BMMA_Block_Handle block;
+        BMMA_DeviceOffset interfaceOffset;
+        BAPE_BufferInterface * pInterface;
+    } localBufferInterface[BAPE_Channel_eMax];
+
     unsigned bufferSize;
     BAPE_BufferHandle pBufferHandle[BAPE_Channel_eMax];
     BAPE_BufferGroupInterruptHandlers interrupts;
@@ -1128,6 +1368,137 @@ void BAPE_BufferGroup_GetDefaultOpenSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->numChannels = 1; /* stereo, since we are defaulting to interleaved */
     pSettings->interleaved = true;
+}
+
+static void BAPE_BufferGroup_P_SyncBufferInterface_isr(
+    BAPE_BufferGroupHandle handle,
+    uint32_t sync
+    )
+{
+    BAPE_BufferGroupHandle pBufferGroup;
+    BERR_Code errCode;
+    unsigned i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+
+    /* if we are a linked buffer and we ourselves are bufferless,
+       pull the valid ptr from upstream */
+    if ( handle->pSource && !handle->buffered )
+    {
+        bool dataAdded = false;
+
+        /* Lock all the buffers in the source group */
+        errCode = BAPE_BufferGroup_P_ControlLock_isrsafe(handle->pSource);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error, unable to get control lock for buffer group"));
+            BERR_TRACE(BERR_UNKNOWN);
+            BERR_TRACE(BAPE_BufferGroup_P_ControlUnlock_isrsafe(handle->pSource));
+            return;
+        }
+
+        /* Lock all the buffers in the group */
+        errCode = BAPE_BufferGroup_P_ControlLock_isrsafe(handle);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error, unable to get control lock for buffer group"));
+            BERR_TRACE(BERR_UNKNOWN);
+            return;
+        }
+
+        /* Update our control and format from the source */
+        for ( i = 0; i < handle->numChannelPairs * 2; i++ )
+        {
+            BAPE_BufferInterface * pSrcInterface = NULL;
+            if ( handle->pSource->pBufferHandle[i] )
+            {
+                pSrcInterface = handle->pSource->pBufferHandle[i]->pInterface;
+            }
+            else if (handle->pSource->localBufferInterface[i].pInterface )
+            {
+                pSrcInterface = handle->pSource->localBufferInterface[i].pInterface;
+            }
+
+            if ( pSrcInterface )
+            {
+                BMMA_Block_Handle destBlock = NULL;
+                BAPE_BufferInterface * pDestInterface = NULL;
+                if ( handle->pBufferHandle[i] )
+                {
+                    pDestInterface = handle->pBufferHandle[i]->pInterface;
+                    destBlock = handle->pBufferHandle[i]->interfaceBlock;
+                }
+                else if (handle->localBufferInterface[i].pInterface )
+                {
+                    pDestInterface = handle->localBufferInterface[i].pInterface;
+                    destBlock = handle->localBufferInterface[i].block;
+                }
+
+                if ( pDestInterface )
+                {
+                    if ( (sync & BAPE_BUFFERGROUP_SYNC_CONFIG) != 0 )
+                    {
+                        pDestInterface->config = pSrcInterface->config;
+                    }
+                    if ( (sync & BAPE_BUFFERGROUP_SYNC_FORMAT) != 0 )
+                    {
+                        pDestInterface->format = pSrcInterface->format;
+                    }
+                    if ( (sync & BAPE_BUFFERGROUP_SYNC_VPTR) != 0 )
+                    {
+                        if ( !dataAdded )
+                        {
+                            /* TBD7211 - calculate the amount of data we are adding, use below. */
+                            dataAdded = pDestInterface->valid != pSrcInterface->valid;
+                        }
+                        pDestInterface->valid = pSrcInterface->valid;
+                    }
+                    BAPE_FLUSHCACHE_ISRSAFE(destBlock, pDestInterface, sizeof(BAPE_BufferInterface));
+                }
+            }
+        }
+
+        /* Unlock all the buffers in the group */
+        errCode = BAPE_BufferGroup_P_ControlUnlock_isrsafe(handle);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error, unable to get control lock for buffer group"));
+            BERR_TRACE(BERR_UNKNOWN);
+        }
+
+        /* Unlock all the buffers in the source group */
+        errCode = BAPE_BufferGroup_P_ControlUnlock_isrsafe(handle->pSource);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error, unable to get control lock for buffer group"));
+            BERR_TRACE(BERR_UNKNOWN);
+        }
+
+        if ( dataAdded )
+        {
+            BDBG_MSG(("BG %p Calling Data Ready from SyncInterface()", (void*)handle));
+            BAPE_BufferGroup_P_DataReady_isr(handle, 0, 0);
+        }
+    }
+
+    for ( pBufferGroup = BLST_S_FIRST(&handle->outputList);
+        pBufferGroup != NULL;
+        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) )
+    {
+        unsigned localSync = sync;
+        localSync &= ~BAPE_BUFFERGROUP_SYNC_VPTR;
+        if ( localSync != 0 )
+        {
+            BAPE_BufferGroup_P_SyncBufferInterface_isr(pBufferGroup, localSync);
+        }
+    }
+
+    errCode = BAPE_BufferGroup_P_FillOutputs_isr(handle);
+    if ( errCode != BERR_SUCCESS )
+    {
+        BDBG_ERR(("Fill Outputs failed."));
+        BERR_TRACE(BERR_UNKNOWN);
+    }
 }
 
 /***************************************************************************
@@ -1227,11 +1598,10 @@ BERR_Code BAPE_BufferGroup_Open(
                 bufferSettings.interfaceOffset = pSettings->buffers[i].interfaceOffset;
                 bufferSettings.pInterface = pSettings->buffers[i].pInterface;
                 bufferSettings.pBuffer = pSettings->buffers[i].pBuffer;
-                errCode = BAPE_Buffer_Open(deviceHandle, &bufferSettings, &handle->pBufferHandle[i]);
+                errCode = BERR_TRACE(BAPE_Buffer_Open(deviceHandle, &bufferSettings, &handle->pBufferHandle[i]));
                 if ( errCode != BERR_SUCCESS )
                 {
                     BDBG_ERR(("failed to open buffer index %d", (int)i));
-                    BERR_TRACE(errCode);
                     goto err_cleanup;
                 }
                 if ( bufferSize == 0 )
@@ -1242,9 +1612,65 @@ BERR_Code BAPE_BufferGroup_Open(
                 if ( handle->pBufferHandle[i]->size != bufferSize )
                 {
                     BDBG_ERR(("buffer interface size does not match last buffer size %d", (int)bufferSize));
-                    BERR_TRACE(BERR_UNKNOWN);
+                    errCode = BERR_TRACE(BERR_UNKNOWN);
                     goto err_cleanup;
                 }
+            }
+        }
+    }
+    else
+    {
+        BMMA_Heap_Handle heap;
+        unsigned allocSize;
+
+        if ( pSettings->heap )
+        {
+            heap = pSettings->heap;
+        }
+        else
+        {
+            heap = deviceHandle->memHandle;
+        }
+        if ( NULL == heap )
+        {
+            BDBG_ERR(("no heap specified"));
+            errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+            goto err_cleanup;
+        }
+
+        /* create a local copy of the buffer interface so that another CPU
+           can access the interface as a read client */
+        for ( i = 0; i < numChannelPairs * 2; i++ )
+        {
+            if ( i%2 == 0 || !pSettings->interleaved )
+            {
+                allocSize = sizeof(BAPE_BufferInterface);
+                BAPE_SIZE_ALIGN(allocSize);
+                BDBG_MSG(("%s - calling BMMA_Alloc(%p, %lu)", BSTD_FUNCTION, (void *)heap, (unsigned long)allocSize));
+                handle->localBufferInterface[i].block = BMMA_Alloc(heap, allocSize, BAPE_ADDRESS_ALIGN, NULL);
+                if ( NULL == handle->localBufferInterface[i].block )
+                {
+                    BDBG_ERR(("failed to allocate %lu byte buffer", (unsigned long)allocSize));
+                    errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                    goto err_cleanup;
+                }
+                handle->localBufferInterface[i].pInterface = BMMA_Lock(handle->localBufferInterface[i].block);
+                if ( NULL == handle->localBufferInterface[i].pInterface )
+                {
+                    BDBG_ERR(("could not lock block"));
+                    errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                    goto err_cleanup;
+                }
+                handle->localBufferInterface[i].interfaceOffset = BMMA_LockOffset(handle->localBufferInterface[i].block);
+                if ( 0 == handle->localBufferInterface[i].interfaceOffset )
+                {
+                    BDBG_ERR(("could not lock offset"));
+                    errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                    goto err_cleanup;
+                }
+
+                BKNI_Memset(handle->localBufferInterface[i].pInterface, 0, sizeof(BAPE_BufferInterface));
+                BAPE_FLUSHCACHE_ISRSAFE(handle->localBufferInterface[i].block, handle->localBufferInterface[i].pInterface, sizeof(BAPE_BufferInterface));
             }
         }
     }
@@ -1256,6 +1682,21 @@ BERR_Code BAPE_BufferGroup_Open(
     handle->buffered = !pSettings->bufferless;
     handle->bufferSize = bufferSize;
     BLST_S_INIT(&handle->outputList);
+
+    if ( handle->buffered )
+    {
+        /* init basic format parameters */
+        BAPE_BufferGroupFormat bgFormat;
+        BKNI_Memset(&bgFormat, 0, sizeof(bgFormat));
+        errCode = BERR_TRACE(BAPE_BufferGroup_SetFormat(handle, &bgFormat));
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("failed to set buffer format"));
+            goto err_cleanup;
+        }
+    }
+
+    BDBG_MSG(("created %sBG nchs %d, int %d", handle->buffered? "":"BUFFERLESS ", numChannelPairs, pSettings->interleaved));
 
     *pHandle = handle;
     return BERR_SUCCESS;
@@ -1274,19 +1715,46 @@ void BAPE_BufferGroup_Close(
     BAPE_BufferGroupHandle handle
     )
 {
-    if ( handle != NULL )
-    {
-        unsigned i;
-        for ( i = 0; i < handle->numChannelPairs*2; i++ )
-        {
-            if ( handle->pBufferHandle[i] )
-            {
-                BAPE_Buffer_Close(handle->pBufferHandle[i]);
-                handle->pBufferHandle[i] = NULL;
-            }
-        }
-        BKNI_Free(handle);
+    BAPE_BufferGroupHandle pBufferGroup;
+    unsigned i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+
+    for ( pBufferGroup = BLST_S_FIRST(&handle->outputList);
+        pBufferGroup != NULL;
+        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
+        BAPE_BufferGroup_UnLinkOutput(handle, pBufferGroup);
     }
+
+    if ( handle->pSource )
+    {
+        BAPE_BufferGroup_UnLinkOutput(handle->pSource, handle);
+    }
+
+    for ( i = 0; i < handle->numChannelPairs * 2; i++ )
+    {
+        if ( handle->pBufferHandle[i] )
+        {
+            BAPE_Buffer_Close(handle->pBufferHandle[i]);
+            handle->pBufferHandle[i] = NULL;
+        }
+        else if ( handle->localBufferInterface[i].block )
+        {
+            if ( handle->localBufferInterface[i].pInterface )
+            {
+                BMMA_Unlock(handle->localBufferInterface[i].block, handle->localBufferInterface[i].pInterface);
+                handle->localBufferInterface[i].pInterface = NULL;
+            }
+            if ( handle->localBufferInterface[i].interfaceOffset )
+            {
+                BMMA_UnlockOffset(handle->localBufferInterface[i].block, handle->localBufferInterface[i].interfaceOffset);
+                handle->localBufferInterface[i].interfaceOffset = 0;
+            }
+            BMMA_Free(handle->localBufferInterface[i].block);
+            handle->localBufferInterface[i].block = NULL;
+        }
+    }
+    BKNI_Free(handle);
 }
 
 /***************************************************************************
@@ -1313,9 +1781,14 @@ BERR_Code BAPE_BufferGroup_LinkOutput(
         return BERR_TRACE(BERR_NOT_AVAILABLE);
     }
 
-    if ( !pSource->buffered )
+    if ( destStatus.numChannels != sourceStatus.numChannels ||
+         destStatus.interleaved != sourceStatus.interleaved )
     {
-        BDBG_ERR(("Cannot link outputs to a linked dummy output buffer group"));
+        BDBG_ERR(("Cannot link outputs with different configurations"));
+        BDBG_ERR(("  src nchs %d, int %d",
+                  sourceStatus.numChannels, sourceStatus.interleaved));
+        BDBG_ERR(("  dst nchs %d, int %d",
+                  destStatus.numChannels, destStatus.interleaved));
         return BERR_TRACE(BERR_NOT_AVAILABLE);
     }
 
@@ -1334,8 +1807,39 @@ BERR_Code BAPE_BufferGroup_LinkOutput(
     /* Set the source so we know we are linked */
     pDest->pSource = pSource;
 
-    /* reset the read pointer offset */
-    pDest->localReadOffset = 0;
+    if ( !pDest->buffered )
+    {
+        unsigned i;
+
+        /* reset the read pointer offset */
+        pDest->localReadOffset = 0;
+        for ( i = 0; i < pSource->numChannelPairs * 2; i++ )
+        {
+            BAPE_BufferInterface * pDestInterface = pDest->localBufferInterface[i].pInterface;
+            BAPE_BufferInterface * pSrcInterface = NULL;
+            if ( pSource->buffered && pSource->pBufferHandle[i] )
+            {
+                pSrcInterface = pSource->pBufferHandle[i]->pInterface;
+            }
+            else if ( !pSource->buffered && pSource->localBufferInterface[i].pInterface )
+            {
+                pSrcInterface = pSource->localBufferInterface[i].pInterface;
+            }
+
+            /* synchronize the destination interface with the source */
+            if ( pDestInterface && pSrcInterface )
+            {
+                BDBG_ASSERT(pDestInterface != NULL);
+                BDBG_ASSERT(pSrcInterface != NULL);
+                BKNI_Memcpy(pDestInterface, pSrcInterface, sizeof(BAPE_BufferInterface));
+            }
+            else if ( (pDestInterface && !pSrcInterface) || (!pDestInterface && pSrcInterface) )
+            {
+                BDBG_ERR(("Invalid buffer linkage"));
+                return BERR_TRACE(BERR_UNKNOWN);
+            }
+        }
+    }
 
     /* Add to the output list of the source */
     BLST_S_INSERT_HEAD(&pSource->outputList, pDest, node);
@@ -1361,11 +1865,22 @@ void BAPE_BufferGroup_UnLinkOutput(
         pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
         if ( pBufferGroup == pDest )
         {
+            unsigned i;
+
             BLST_S_REMOVE(&pSource->outputList, pDest, BAPE_BufferGroup, node);
             pDest->pSource = NULL;
 
             /* reset the read pointer offset */
             pDest->localReadOffset = 0;
+            for ( i = 0; i < pDest->numChannelPairs * 2; i++ )
+            {
+                BAPE_BufferInterface * pDestInterface = pDest->localBufferInterface[i].pInterface;
+                /* synchronize the destination interface with the source */
+                if ( pDestInterface )
+                {
+                    BKNI_Memset(pDestInterface, 0, sizeof(BAPE_BufferInterface));
+                }
+            }
         }
     }
 }
@@ -1401,9 +1916,18 @@ static BERR_Code BAPE_BufferGroup_P_ControlLock_isrsafe(BAPE_BufferGroupHandle h
 
     for ( i = 0; i < handle->numChannelPairs*2; i++ )
     {
-        if ( handle->pBufferHandle[i] )
+        if ( handle->pBufferHandle[i] ) /* buffered */
         {
-            errCode = BAPE_Buffer_P_ControlLock_isrsafe(handle->pBufferHandle[i]);
+            errCode = BAPE_Buffer_P_ControlLock_isrsafe(handle->pBufferHandle[i], NULL, NULL);
+            if ( errCode != BERR_SUCCESS )
+            {
+                BDBG_ERR(("Error, unable to get control lock for buffer interface[%d]", (int)i));
+                return BERR_TRACE(errCode);
+            }
+        }
+        else if ( handle->localBufferInterface[i].pInterface ) /* ! buffered */
+        {
+            errCode = BAPE_Buffer_P_ControlLock_isrsafe(NULL, handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block);
             if ( errCode != BERR_SUCCESS )
             {
                 BDBG_ERR(("Error, unable to get control lock for buffer interface[%d]", (int)i));
@@ -1423,9 +1947,18 @@ static BERR_Code BAPE_BufferGroup_P_ControlUnlock_isrsafe(BAPE_BufferGroupHandle
     BDBG_MODULE_MSG(bape_buffer_lock, ("UNLOCK BUF GRP %p", (void*)handle));
     for ( i = 0; i < handle->numChannelPairs*2; i++ )
     {
-        if ( handle->pBufferHandle[i] )
+        if ( handle->pBufferHandle[i] ) /* buffered */
         {
-            errCode = BAPE_Buffer_P_ControlUnlock_isrsafe(handle->pBufferHandle[i]);
+            errCode = BAPE_Buffer_P_ControlUnlock_isrsafe(handle->pBufferHandle[i], NULL, NULL);
+            if ( errCode != BERR_SUCCESS )
+            {
+                BDBG_ERR(("Error, unable to release control lock for buffer interface[%d]", (int)i));
+                return BERR_TRACE(errCode);
+            }
+        }
+        else if ( handle->localBufferInterface[i].pInterface ) /* ! buffered */
+        {
+            errCode = BAPE_Buffer_P_ControlUnlock_isrsafe(NULL, handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block);
             if ( errCode != BERR_SUCCESS )
             {
                 BDBG_ERR(("Error, unable to release control lock for buffer interface[%d]", (int)i));
@@ -1437,142 +1970,23 @@ static BERR_Code BAPE_BufferGroup_P_ControlUnlock_isrsafe(BAPE_BufferGroupHandle
     return BERR_SUCCESS;
 }
 
-static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSource)
+static BERR_Code BAPE_BufferGroup_P_ConsumeUpstream_isr(BAPE_BufferGroupHandle pSource)
 {
-    unsigned freeSpace = INVALID_SIZE;
-    unsigned bytesToComplete = INVALID_SIZE;
     BAPE_BufferGroupHandle pBufferGroup = NULL;
-
-    BDBG_MODULE_MSG(bape_buffer_detail, ("Fill output buffers"));
-    for ( pBufferGroup = BLST_S_FIRST(&pSource->outputList);
-        pBufferGroup != NULL;
-        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
-        if ( pBufferGroup->buffered )
-        {
-            freeSpace = BAPE_MIN(freeSpace, BAPE_BufferGroup_GetBufferFree_isr(pBufferGroup));
-        }
-    }
-
-    BDBG_MODULE_MSG(bape_buffer_detail, ("  freeSpace %d", (int)freeSpace));
-
-    /* freeSpace will be set to INVALID_SIZE if we have no outputs or
-       we have only linked dummy output buffer groups */
-    if ( freeSpace > 0 && freeSpace != INVALID_SIZE )
-    {
-        BERR_Code errCode;
-        BAPE_BufferDescriptor srcDescriptor;
-        unsigned bytesToWrite;
-
-        errCode = BAPE_BufferGroup_Read_isr(pSource, &srcDescriptor);
-        if ( errCode != BERR_SUCCESS )
-        {
-            BDBG_ERR(("Error getting source buffers"));
-            return BERR_TRACE(errCode);
-        }
-
-        BDBG_MODULE_MSG(bape_buffer_detail, ("  source bytes avail %d", (int)srcDescriptor.bufferSize+srcDescriptor.wrapBufferSize));
-
-        bytesToWrite = BAPE_MIN(srcDescriptor.bufferSize+srcDescriptor.wrapBufferSize, freeSpace);
-
-        BDBG_MODULE_MSG(bape_buffer_detail, ("  bytesToWrite %d", (int)bytesToWrite));
-
-        if ( bytesToWrite > 0 )
-        {
-            for ( pBufferGroup = BLST_S_FIRST(&pSource->outputList);
-                pBufferGroup != NULL;
-                pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
-                BAPE_BufferDescriptor destDescriptor;
-                unsigned destBytesToWrite = bytesToWrite;
-                unsigned written = 0;
-                unsigned offset = pBufferGroup->localReadOffset;
-
-                /* check local read offset */
-                if ( destBytesToWrite > pBufferGroup->localReadOffset && pBufferGroup->buffered )
-                {
-                    destBytesToWrite -= pBufferGroup->localReadOffset;
-                }
-                else
-                {
-                    /* buffer already up to date */
-                    destBytesToWrite = 0;
-                }
-
-                while ( destBytesToWrite != 0 )
-                {
-                    unsigned i, writeSize;
-                    errCode = BAPE_BufferGroup_GetWriteBuffers_isr(pBufferGroup, &destDescriptor);
-                    if ( errCode != BERR_SUCCESS )
-                    {
-                        BDBG_ERR(("Error getting destination buffers"));
-                        return BERR_TRACE(errCode);
-                    }
-                    if ( (destDescriptor.bufferSize+destDescriptor.wrapBufferSize) < destBytesToWrite )
-                    {
-                        BDBG_ERR(("Free space does not match what was reported above."));
-                        BDBG_ERR(("  Buffer reports %d, expected %d", destDescriptor.bufferSize+destDescriptor.wrapBufferSize, destBytesToWrite));
-                    }
-                    BDBG_ASSERT((destDescriptor.bufferSize+destDescriptor.wrapBufferSize) >= destBytesToWrite);
-                    BDBG_ASSERT(destDescriptor.numBuffers == srcDescriptor.numBuffers);
-
-                    writeSize = BAPE_MIN(destBytesToWrite, destDescriptor.bufferSize);
-                    if ( (written+offset) < srcDescriptor.bufferSize )
-                    {
-                        writeSize = BAPE_MIN(writeSize, srcDescriptor.bufferSize - (written+offset));
-                    }
-                    else
-                    {
-                        BDBG_ASSERT(writeSize <= ((srcDescriptor.wrapBufferSize+srcDescriptor.bufferSize) - (written+offset)));
-                    }
-
-                    for ( i = 0; i < destDescriptor.numBuffers; i++ )
-                    {
-                        BDBG_ASSERT(destDescriptor.buffers[i].pBuffer != NULL);
-                        if ( (written+offset) < srcDescriptor.bufferSize )
-                        {
-                            BDBG_ASSERT(srcDescriptor.buffers[i].pBuffer != NULL);
-                            BDBG_ASSERT((written+offset+writeSize) <= srcDescriptor.bufferSize);
-                            BKNI_Memcpy(destDescriptor.buffers[i].pBuffer, (uint8_t*)srcDescriptor.buffers[i].pBuffer+written+offset, writeSize);
-                        }
-                        else
-                        {
-                            BDBG_ASSERT(srcDescriptor.buffers[i].pWrapBuffer != NULL);
-                            BDBG_ASSERT((written+offset-srcDescriptor.bufferSize) <= srcDescriptor.wrapBufferSize);
-                            BKNI_Memcpy(destDescriptor.buffers[i].pBuffer, (uint8_t*)srcDescriptor.buffers[i].pWrapBuffer+(written+offset-srcDescriptor.bufferSize), writeSize);
-                        }
-                    }
-
-                    written += writeSize;
-
-                    errCode = BAPE_BufferGroup_WriteComplete_isr(pBufferGroup, writeSize);
-                    if ( errCode != BERR_SUCCESS )
-                    {
-                        BDBG_ERR(("Error completing write to destination buffers"));
-                        return BERR_TRACE(errCode);
-                    }
-                    destBytesToWrite -= writeSize;
-                }
-
-                pBufferGroup->localReadOffset += written;
-
-                if ( written > 0 )
-                {
-                    BAPE_BufferGroup_P_DataReady_isr(pBufferGroup, written);
-                }
-            }
-        }
-    }
+    unsigned bytesToComplete = INVALID_SIZE;
 
     /* look to see how much we can read complete */
     for ( pBufferGroup = BLST_S_FIRST(&pSource->outputList);
         pBufferGroup != NULL;
-        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
+        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) )
+    {
         bytesToComplete = BAPE_MIN(bytesToComplete, pBufferGroup->localReadOffset);
     }
 
     if ( bytesToComplete != INVALID_SIZE && bytesToComplete > 0 )
     {
         BERR_Code errCode;
-        errCode = BAPE_BufferGroup_ReadComplete_isr(pSource, bytesToComplete);
+        errCode = BAPE_BufferGroup_P_ReadComplete_isr(pSource, bytesToComplete, false);
         if ( errCode != BERR_SUCCESS )
         {
             BDBG_ERR(("Error completing read of source buffers"));
@@ -1584,6 +1998,178 @@ static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSour
             pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
             BDBG_ASSERT(pBufferGroup->localReadOffset >= bytesToComplete);
             pBufferGroup->localReadOffset -= bytesToComplete;
+        }
+    }
+
+    if ( pSource->pSource )
+    {
+        return BAPE_BufferGroup_P_ConsumeUpstream_isr(pSource->pSource);
+    }
+
+    return BERR_SUCCESS;
+}
+
+static BERR_Code BAPE_BufferGroup_P_FillOutput_isr(BAPE_BufferGroupHandle pBufferGroup, BAPE_BufferDescriptor * srcDescriptor, unsigned bytesToWrite)
+{
+    BERR_Code errCode;
+    BAPE_BufferDescriptor destDescriptor;
+    unsigned destBytesToWrite = bytesToWrite;
+    unsigned written = 0;
+    unsigned offset = pBufferGroup->localReadOffset;
+
+    /* check local read offset */
+    if ( pBufferGroup->buffered && destBytesToWrite > pBufferGroup->localReadOffset  )
+    {
+        destBytesToWrite -= pBufferGroup->localReadOffset;
+    }
+    else
+    {
+        /* buffer already up to date */
+        destBytesToWrite = 0;
+    }
+
+    while ( destBytesToWrite != 0 )
+    {
+        unsigned i, writeSize;
+        errCode = BAPE_BufferGroup_P_GetWriteBuffers_isr(pBufferGroup, &destDescriptor, false);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error getting destination buffers"));
+            return BERR_TRACE(errCode);
+        }
+        if ( (destDescriptor.bufferSize+destDescriptor.wrapBufferSize) < destBytesToWrite )
+        {
+            BDBG_ERR(("Free space does not match what was reported above."));
+            BDBG_ERR(("  Buffer reports %d, expected %d", destDescriptor.bufferSize+destDescriptor.wrapBufferSize, destBytesToWrite));
+        }
+        BDBG_ASSERT((destDescriptor.bufferSize+destDescriptor.wrapBufferSize) >= destBytesToWrite);
+        BDBG_ASSERT(destDescriptor.numBuffers == srcDescriptor->numBuffers);
+
+        writeSize = BAPE_MIN(destBytesToWrite, destDescriptor.bufferSize);
+        if ( (written+offset) < srcDescriptor->bufferSize )
+        {
+            writeSize = BAPE_MIN(writeSize, srcDescriptor->bufferSize - (written+offset));
+        }
+        else
+        {
+            BDBG_ASSERT(writeSize <= ((srcDescriptor->wrapBufferSize+srcDescriptor->bufferSize) - (written+offset)));
+        }
+
+        for ( i = 0; i < destDescriptor.numBuffers; i++ )
+        {
+            BDBG_ASSERT(destDescriptor.buffers[i].pBuffer != NULL);
+            if ( (written+offset) < srcDescriptor->bufferSize )
+            {
+                BDBG_ASSERT(srcDescriptor->buffers[i].pBuffer != NULL);
+                BDBG_ASSERT((written+offset+writeSize) <= srcDescriptor->bufferSize);
+                BKNI_Memcpy(destDescriptor.buffers[i].pBuffer, (uint8_t*)srcDescriptor->buffers[i].pBuffer+written+offset, writeSize);
+            }
+            else
+            {
+                BDBG_ASSERT(srcDescriptor->buffers[i].pWrapBuffer != NULL);
+                BDBG_ASSERT((written+offset-srcDescriptor->bufferSize) <= srcDescriptor->wrapBufferSize);
+                BKNI_Memcpy(destDescriptor.buffers[i].pBuffer, (uint8_t*)srcDescriptor->buffers[i].pWrapBuffer+(written+offset-srcDescriptor->bufferSize), writeSize);
+            }
+        }
+
+        written += writeSize;
+
+        errCode = BAPE_BufferGroup_P_WriteComplete_isr(pBufferGroup, writeSize, false);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error completing write to destination buffers"));
+            return BERR_TRACE(errCode);
+        }
+        destBytesToWrite -= writeSize;
+    }
+
+    /*BDBG_ERR(("BG (%p) Increasing localReadOffset from %u to %u", (void*)pBufferGroup, (unsigned int)pBufferGroup->localReadOffset, (unsigned int)(pBufferGroup->localReadOffset+written)));*/
+    pBufferGroup->localReadOffset += written;
+
+    return BERR_SUCCESS;
+}
+
+static BERR_Code BAPE_BufferGroup_P_FillOutputs_isr(BAPE_BufferGroupHandle pSource)
+{
+    BERR_Code errCode;
+    unsigned freeSpace = INVALID_SIZE;
+    BAPE_BufferGroupHandle pBufferGroup = NULL;
+
+    BDBG_MODULE_MSG(bape_buffer_detail, ("BG (%p) Fill output buffers", (void*)pSource));
+
+    /* Consume upstream */
+    errCode = BAPE_BufferGroup_P_ConsumeUpstream_isr(pSource);
+    if ( errCode != BERR_SUCCESS )
+    {
+        BDBG_ERR(("Error Consuming Upstream"));
+        return BERR_TRACE(errCode);
+    }
+
+    for ( pBufferGroup = BLST_S_FIRST(&pSource->outputList);
+        pBufferGroup != NULL;
+        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
+        if ( pBufferGroup->buffered )
+        {
+            freeSpace = BAPE_MIN(freeSpace, BAPE_BufferGroup_GetBufferFree_isr(pBufferGroup));
+        }
+    }
+
+    BDBG_MODULE_MSG(bape_buffer_detail, ("BG (%p)   freeSpace %d", (void*)pSource, (int)freeSpace));
+
+    /* freeSpace will be set to INVALID_SIZE if we have no outputs or
+       we have only linked dummy output buffer groups */
+    if ( freeSpace > 0 && freeSpace != INVALID_SIZE )
+    {
+        BAPE_BufferDescriptor srcDescriptor;
+        unsigned bytesToWrite;
+
+        errCode = BAPE_BufferGroup_P_Read_isr(pSource, &srcDescriptor, false);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error getting source buffers"));
+            return BERR_TRACE(errCode);
+        }
+
+        BDBG_MODULE_MSG(bape_buffer_detail, ("BG (%p)   source bytes avail %d", (void*)pSource, (int)srcDescriptor.bufferSize+srcDescriptor.wrapBufferSize));
+
+        bytesToWrite = BAPE_MIN(srcDescriptor.bufferSize+srcDescriptor.wrapBufferSize, freeSpace);
+
+        BDBG_MODULE_MSG(bape_buffer_detail, ("BG (%p)   bytesToWrite %d", (void*)pSource, (int)bytesToWrite));
+
+        if ( bytesToWrite > 0 )
+        {
+            for ( pBufferGroup = BLST_S_FIRST(&pSource->outputList);
+                pBufferGroup != NULL;
+                pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
+
+                if ( pBufferGroup->buffered )
+                {
+                    errCode = BAPE_BufferGroup_P_FillOutput_isr(pBufferGroup, &srcDescriptor, bytesToWrite);
+                    if ( errCode != BERR_SUCCESS )
+                    {
+                        BDBG_ERR(("Error getting source buffers"));
+                        return BERR_TRACE(errCode);
+                    }
+                }
+            }
+        }
+    }
+
+    /* Consume upstream */
+    errCode = BAPE_BufferGroup_P_ConsumeUpstream_isr(pSource);
+    if ( errCode != BERR_SUCCESS )
+    {
+        BDBG_ERR(("Error Consuming Upstream"));
+        return BERR_TRACE(errCode);
+    }
+
+    for ( pBufferGroup = BLST_S_FIRST(&pSource->outputList);
+        pBufferGroup != NULL;
+        pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
+
+        if ( !pBufferGroup->buffered )
+        {
+            BAPE_BufferGroup_P_SyncBufferInterface_isr(pBufferGroup, BAPE_BUFFERGROUP_SYNC_VPTR);
         }
     }
 
@@ -1608,13 +2194,38 @@ BERR_Code BAPE_BufferGroup_Read(
     return errCode;
 }
 
-/***************************************************************************
-Summary:
-Buffer Group Read - non destructive
-***************************************************************************/
-BERR_Code BAPE_BufferGroup_Read_isr(
+static BERR_Code BAPE_BufferGroup_P_GetBufferFromUpstream_isrsafe(
     BAPE_BufferGroupHandle handle,
-    BAPE_BufferDescriptor * pGroupDescriptor /* [out] */
+    unsigned i,
+    void ** pBuffer,
+    BMMA_Block_Handle * bufferBlock
+    )
+{
+    if ( handle->buffered )
+    {
+        if ( handle->pBufferHandle[i] == NULL )
+        {
+            BDBG_ERR(("Invalid buffer index"));
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
+
+        *pBuffer = handle->pBufferHandle[i]->pBuffer;
+        *bufferBlock = handle->pBufferHandle[i]->block;
+        return BERR_SUCCESS;
+    }
+    else if ( handle->pSource )
+    {
+        return BERR_TRACE(BAPE_BufferGroup_P_GetBufferFromUpstream_isrsafe(handle->pSource, i, pBuffer, bufferBlock));
+    }
+
+    BDBG_ERR(("Could not find upstream buffer??"));
+    return BERR_TRACE(BERR_UNKNOWN);
+}
+
+static BERR_Code BAPE_BufferGroup_P_Read_isr(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferDescriptor * pGroupDescriptor, /* [out] */
+    bool fillOutputs
     )
 {
     BAPE_BufferGroupStatus bgStatus;
@@ -1641,8 +2252,9 @@ BERR_Code BAPE_BufferGroup_Read_isr(
     }
 
     /* We are a linked buffer. Ask for data */
-    if ( handle->pSource )
+    if ( handle->pSource && fillOutputs )
     {
+        BDBG_MSG(("BG (%p) Calling Filloutputs from Read()", (void*)handle->pSource));
         errCode = BAPE_BufferGroup_P_FillOutputs_isr(handle->pSource);
         if ( errCode )
         {
@@ -1651,7 +2263,7 @@ BERR_Code BAPE_BufferGroup_Read_isr(
         }
     }
 
-    if ( handle->buffered )
+    /*if ( handle->buffered )*/
     {
         /* Lock all the buffers in the group */
         errCode = BAPE_BufferGroup_P_ControlLock_isrsafe(handle);
@@ -1663,6 +2275,7 @@ BERR_Code BAPE_BufferGroup_Read_isr(
 
         for ( i = 0; i < handle->numChannelPairs * 2; i++ )
         {
+            bool dataAvailable = false;
             BAPE_SimpleBufferDescriptor descriptor;
             if ( handle->pBufferHandle[i] )
             {
@@ -1672,6 +2285,30 @@ BERR_Code BAPE_BufferGroup_Read_isr(
                     bufferSize = wrapBufferSize = 0;
                     break;
                 }
+                dataAvailable = true;
+            }
+            else if ( handle->localBufferInterface[i].pInterface )
+            {
+                void * pBuffer = NULL;
+                BMMA_Block_Handle bufferBlock = NULL;
+                errCode = BAPE_BufferGroup_P_GetBufferFromUpstream_isrsafe(handle, i, &pBuffer, &bufferBlock);
+                if ( errCode != BERR_SUCCESS )
+                {
+                    BDBG_ERR(("Error, unable to buffer from upstream"));
+                    return BERR_TRACE(BERR_UNKNOWN);
+                }
+
+                if ( BAPE_Buffer_P_Read_isr(handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block, pBuffer, bufferBlock, &descriptor) == 0 )
+                {
+                    /* no data returned from at least one of the buffers*/
+                    bufferSize = wrapBufferSize = 0;
+                    break;
+                }
+                dataAvailable = true;
+            }
+
+            if ( dataAvailable )
+            {
                 pGroupDescriptor->buffers[i].block = descriptor.block;
                 pGroupDescriptor->buffers[i].pBuffer = descriptor.pBuffer;
                 pGroupDescriptor->buffers[i].offset = descriptor.offset;
@@ -1682,6 +2319,8 @@ BERR_Code BAPE_BufferGroup_Read_isr(
             }
         }
 
+        /*BDBG_MSG(("%*sBUFFERED READ, got %d bytes from pSource Buffer Group", callDepth*2, "", (int)(bufferSize+wrapBufferSize)));*/
+
         /* Unlock all the buffers in the group */
         errCode = BAPE_BufferGroup_P_ControlUnlock_isrsafe(handle);
         if ( errCode != BERR_SUCCESS )
@@ -1690,56 +2329,6 @@ BERR_Code BAPE_BufferGroup_Read_isr(
             return BERR_TRACE(BERR_UNKNOWN);
         }
     }
-    else if ( handle->pSource ) /* use the source group's buffers to read directly */
-    {
-        BAPE_BufferDescriptor srcDescriptor;
-        unsigned offset = handle->localReadOffset;
-
-        errCode = BAPE_BufferGroup_Read_isr(handle->pSource, &srcDescriptor);
-        if ( errCode != BERR_SUCCESS )
-        {
-            BDBG_ERR(("Error, unable to from source buffer group"));
-            return BERR_TRACE(BERR_UNKNOWN);
-        }
-
-        if ( (srcDescriptor.bufferSize+srcDescriptor.wrapBufferSize) > 0 &&
-             offset < (srcDescriptor.bufferSize+srcDescriptor.wrapBufferSize) )
-        {
-            if ( offset < srcDescriptor.bufferSize )
-            {
-                bufferSize = srcDescriptor.bufferSize - offset;
-                wrapBufferSize = srcDescriptor.wrapBufferSize;
-            }
-            else
-            {
-                bufferSize = srcDescriptor.wrapBufferSize - (offset-srcDescriptor.bufferSize);
-                /* no wrap buffer */
-            }
-
-            for ( i = 0; i < handle->numChannelPairs * 2; i++ )
-            {
-                if ( srcDescriptor.buffers[i].pBuffer )
-                {
-                    pGroupDescriptor->buffers[i].block = srcDescriptor.buffers[i].block;
-                    /* we can provide some data */
-                    if ( offset < srcDescriptor.bufferSize )
-                    {
-                        pGroupDescriptor->buffers[i].pBuffer = (uint8_t*)srcDescriptor.buffers[i].pBuffer+offset;
-                        pGroupDescriptor->buffers[i].offset = srcDescriptor.buffers[i].offset+offset;
-                        pGroupDescriptor->buffers[i].pWrapBuffer = srcDescriptor.buffers[i].pWrapBuffer;
-                        pGroupDescriptor->buffers[i].wrapOffset = srcDescriptor.buffers[i].wrapOffset;
-                    }
-                    else
-                    {
-                        pGroupDescriptor->buffers[i].pBuffer = (uint8_t*)srcDescriptor.buffers[i].pWrapBuffer+(offset-srcDescriptor.bufferSize);
-                        pGroupDescriptor->buffers[i].offset = srcDescriptor.buffers[i].wrapOffset+(offset-srcDescriptor.bufferSize);
-                        /* no wrap buffer */
-                    }
-                }
-            }
-        }
-    }
-
 
     /* finalize the descriptor */
     if ( bufferSize != INVALID_SIZE )
@@ -1758,7 +2347,26 @@ BERR_Code BAPE_BufferGroup_Read_isr(
     pGroupDescriptor->samplesPerDword = bgStatus.samplesPerDword;
     pGroupDescriptor->compressed = bgStatus.compressed;
 
+    if ( BAPE_BufferGroup_GetBufferFree_isr(handle) > 0 )
+    {
+        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle, BAPE_BufferGroup_GetBufferFree_isr(handle), 0);
+    }
+
+    /*BDBG_ERR(("READ BG (%p) returning %u bytes of data", (void*)handle, (unsigned) pGroupDescriptor->bufferSize+pGroupDescriptor->wrapBufferSize));*/
+
     return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Buffer Group Read - non destructive
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_Read_isr(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferDescriptor * pGroupDescriptor /* [out] */
+    )
+{
+    return BERR_TRACE(BAPE_BufferGroup_P_Read_isr(handle, pGroupDescriptor, true));
 }
 
 /***************************************************************************
@@ -1779,13 +2387,10 @@ BERR_Code BAPE_BufferGroup_ReadComplete(
     return errCode;
 }
 
-/***************************************************************************
-Summary:
-Buffer Group Read Complete
-***************************************************************************/
-BERR_Code BAPE_BufferGroup_ReadComplete_isr(
+static BERR_Code BAPE_BufferGroup_P_ReadComplete_isr(
     BAPE_BufferGroupHandle handle,
-    size_t size
+    size_t size,
+    bool fillOutputs
     )
 {
     BERR_Code errCode = BERR_SUCCESS;
@@ -1853,21 +2458,88 @@ BERR_Code BAPE_BufferGroup_ReadComplete_isr(
             return BERR_TRACE(BERR_UNKNOWN);
         }
     }
-    else
+    else /* !buffered */
     {
         BDBG_ASSERT(handle->pSource);
 
+        /*BDBG_ERR(("RC Increasing localReadOffset from %u to %u", (unsigned int)handle->localReadOffset, (unsigned int)(handle->localReadOffset+size)));*/
         handle->localReadOffset += size;
 
+        /* move the read ptr for local bufferInterface */
+        /* Lock all the buffers in the group */
+        errCode = BAPE_BufferGroup_P_ControlLock_isrsafe(handle);
+        if ( errCode != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error, unable to get control lock for buffer group"));
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
+
+        for ( i = 0; i < handle->numChannelPairs*2; i++ )
+        {
+            if ( handle->localBufferInterface[i].pInterface )
+            {
+                unsigned depth = BAPE_Buffer_P_GetBufferDepth_isr(handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block);
+                if ( depth == 0 )
+                {
+                    /* no data returned from at least one of the buffers*/
+                    bufferDepth = 0;
+                    break;
+                }
+                bufferDepth = BAPE_MIN(bufferDepth, depth);
+            }
+        }
+
+        if ( size > bufferDepth )
+        {
+            BDBG_ERR(("Attempt to read complete %d bytes, but only %d bytes in the buffer", (int)size, (int)bufferDepth));
+            errCode = BERR_TRACE(BERR_UNKNOWN);
+        }
+        else
+        {
+            for ( i = 0; i < handle->numChannelPairs*2; i++ )
+            {
+                if ( handle->localBufferInterface[i].pInterface )
+                {
+                    BDBG_ASSERT( BAPE_Buffer_P_ReadComplete_isr(handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block, size) == size );
+                }
+            }
+        }
+
+        /* Unlock all the buffers in the group */
+        if ( BAPE_BufferGroup_P_ControlUnlock_isrsafe(handle) != BERR_SUCCESS )
+        {
+            BDBG_ERR(("Error, unable to get control lock for buffer group"));
+            return BERR_TRACE(BERR_UNKNOWN);
+        }
+    }
+
+    /*BDBG_ERR(("READCOMPLETE BG (%p) completed %u bytes", (void*)handle, (unsigned)size));*/
+
+    if ( handle->pSource && fillOutputs )
+    {
+        BDBG_MSG(("BG (%p) Calling Filloutputs from ReadComplete()", (void*)handle->pSource));
         errCode = BERR_TRACE(BAPE_BufferGroup_P_FillOutputs_isr(handle->pSource));
     }
 
     if ( size > 0 && errCode == BERR_SUCCESS )
     {
-        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle, size);
+        BDBG_MSG(("  BG %p Calling Free Available from ReadComplete()", (void*)handle));
+        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle, size, 0);
     }
 
     return errCode;
+}
+
+/***************************************************************************
+Summary:
+Buffer Group Read Complete
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_ReadComplete_isr(
+    BAPE_BufferGroupHandle handle,
+    size_t size
+    )
+{
+    return BERR_TRACE(BAPE_BufferGroup_P_ReadComplete_isr(handle, size, true));
 }
 
 /***************************************************************************
@@ -1888,13 +2560,10 @@ BERR_Code BAPE_BufferGroup_GetWriteBuffers(
     return errCode;
 }
 
-/***************************************************************************
-Summary:
-Get Buffer Group descriptors for writing - non destructive
-***************************************************************************/
-BERR_Code BAPE_BufferGroup_GetWriteBuffers_isr(
+static BERR_Code BAPE_BufferGroup_P_GetWriteBuffers_isr(
     BAPE_BufferGroupHandle handle,
-    BAPE_BufferDescriptor * pGroupDescriptor /* [out] */
+    BAPE_BufferDescriptor * pGroupDescriptor, /* [out] */
+    bool fillOutputs
     )
 {
     BERR_Code errCode;
@@ -1917,6 +2586,16 @@ BERR_Code BAPE_BufferGroup_GetWriteBuffers_isr(
     {
         BDBG_WRN(("Attempt to get write buffers from a ReadOnly Buffer"));
         return BERR_TRACE(BERR_UNKNOWN);
+    }
+
+    if ( fillOutputs )
+    {
+        /* if we have outputs, push data to them */
+        if ( !BLST_S_EMPTY(&handle->outputList) )
+        {
+            BDBG_MSG(("BG (%p) Calling Filloutputs from GetWriteBuffers()", (void*)handle));
+            BERR_TRACE(BAPE_BufferGroup_P_FillOutputs_isr(handle));
+        }
     }
 
     if ( handle->buffered )
@@ -1978,9 +2657,22 @@ BERR_Code BAPE_BufferGroup_GetWriteBuffers_isr(
     return BERR_SUCCESS;
 }
 
+/***************************************************************************
+Summary:
+Get Buffer Group descriptors for writing - non destructive
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_GetWriteBuffers_isr(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferDescriptor * pGroupDescriptor /* [out] */
+    )
+{
+    return BERR_TRACE(BAPE_BufferGroup_P_GetWriteBuffers_isr(handle, pGroupDescriptor, true));
+}
+
 static void BAPE_BufferGroup_P_DataReady_isr(
     BAPE_BufferGroupHandle handle,
-    unsigned size
+    unsigned size,
+    unsigned level
     )
 {
     BAPE_BufferGroupHandle pBufferGroup;
@@ -1992,35 +2684,41 @@ static void BAPE_BufferGroup_P_DataReady_isr(
         pBufferGroup != NULL;
         pBufferGroup = BLST_S_NEXT(pBufferGroup, node) ) {
 
-        BAPE_BufferGroup_P_DataReady_isr(pBufferGroup, size);
+        BDBG_MODULE_MSG(bape_buffer_detail, ("%*sBG (%p) notifying downstream BG (%p) of data ready", level*2, "", (void*)handle, (void*)pBufferGroup));
+        level++;
+        BAPE_BufferGroup_P_DataReady_isr(pBufferGroup, size, level);
+        level--;
     }
     /* notify our direct consumer, if any exists */
     if ( handle->interrupts.dataReady.pCallback_isr )
     {
+        BDBG_MODULE_MSG(bape_buffer_detail, ("%*sBG (%p) notifying direct consumer of data ready", level*2, "", (void*)handle));
         handle->interrupts.dataReady.pCallback_isr(handle->interrupts.dataReady.pParam1, handle->interrupts.dataReady.param2);
     }
 }
 
 static void BAPE_BufferGroup_P_FreeSpaceAvailable_isr(
     BAPE_BufferGroupHandle handle,
-    unsigned size
+    unsigned size,
+    unsigned level
     )
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
 
     BSTD_UNUSED(size);
 
-    #if 0 /* this is done by ReadComplete / FillOutputs */
-    /* pass upstream to parent buffer group */
+    /* pass up to source buffer group */
     if ( handle->pSource )
     {
-        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle->pSource, size);
+        BDBG_MODULE_MSG(bape_buffer_detail, ("%*sBG (%p) notifying freeSpace is available to upstream BG %p.", level*2, "", (void*)handle, (void*)handle->pSource));
+        level++;
+        BAPE_BufferGroup_P_FreeSpaceAvailable_isr(handle->pSource, size, level);
+        level--;
     }
-    #endif
-
     /* notify our direct consumer, if any exists */
-    if ( handle->interrupts.freeAvailable.pCallback_isr )
+    else if ( handle->interrupts.freeAvailable.pCallback_isr )
     {
+        BDBG_MODULE_MSG(bape_buffer_detail, ("%*sBG (%p) notifying freeSpace is available to app callback.", level*2, "", (void*)handle));
         handle->interrupts.freeAvailable.pCallback_isr(handle->interrupts.freeAvailable.pParam1, handle->interrupts.freeAvailable.param2);
     }
 }
@@ -2043,14 +2741,10 @@ BERR_Code BAPE_BufferGroup_WriteComplete(
     return errCode;
 }
 
-/***************************************************************************
-Summary:
-Buffer Group Write
-***************************************************************************/
-BERR_Code BAPE_BufferGroup_WriteComplete_isr(
+static BERR_Code BAPE_BufferGroup_P_WriteComplete_isr(
     BAPE_BufferGroupHandle handle,
-    size_t size
-    )
+    size_t size,
+    bool fillOutputs)
 {
     BERR_Code errCode;
     unsigned i;
@@ -2127,16 +2821,20 @@ BERR_Code BAPE_BufferGroup_WriteComplete_isr(
             return BERR_TRACE(BERR_UNKNOWN);
         }
 
-        /* if we have outputs, push data to them */
-        if ( !BLST_S_EMPTY(&handle->outputList) )
+        if ( fillOutputs )
         {
-            /* BDBG_MSG(("Fill output buffer consumers")); */
-            BERR_TRACE(BAPE_BufferGroup_P_FillOutputs_isr(handle));
+            /* if we have outputs, push data to them */
+            if ( !BLST_S_EMPTY(&handle->outputList) )
+            {
+                BDBG_MSG(("BG (%p) Calling Filloutputs from WriteComplete()", (void*)handle));
+                BERR_TRACE(BAPE_BufferGroup_P_FillOutputs_isr(handle));
+            }
         }
 
         if ( size > 0 )
         {
-            BAPE_BufferGroup_P_DataReady_isr(handle, size);
+            BDBG_MSG(("BG %p Calling Data Ready from WriteComplete()", (void*)handle));
+            BAPE_BufferGroup_P_DataReady_isr(handle, size, 0);
         }
     }
     else
@@ -2146,6 +2844,18 @@ BERR_Code BAPE_BufferGroup_WriteComplete_isr(
     }
 
     return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Buffer Group Write
+***************************************************************************/
+BERR_Code BAPE_BufferGroup_WriteComplete_isr(
+    BAPE_BufferGroupHandle handle,
+    size_t size
+    )
+{
+    return BERR_TRACE(BAPE_BufferGroup_P_WriteComplete_isr(handle, size, true));
 }
 
 /***************************************************************************
@@ -2360,7 +3070,7 @@ BERR_Code BAPE_BufferGroup_Enable_isr(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
 
-    if ( handle->buffered )
+    /*if ( handle->buffered )*/
     {
         /* Lock all the buffers in the group */
         errCode = BAPE_BufferGroup_P_ControlLock_isrsafe(handle);
@@ -2370,13 +3080,17 @@ BERR_Code BAPE_BufferGroup_Enable_isr(
             return BERR_TRACE(BERR_UNKNOWN);
         }
 
-        if ( BAPE_Buffer_IsEnabled_isrsafe(handle->pBufferHandle[0]) != enable )
+        /*if ( BAPE_Buffer_IsEnabled_isrsafe(handle->pBufferHandle[0]) != enable )*/
         {
             for ( i = 0; i < handle->numChannelPairs*2; i++ )
             {
                 if ( handle->pBufferHandle[i] )
                 {
                     BAPE_Buffer_Enable_isr(handle->pBufferHandle[i], enable);
+                }
+                else if ( handle->localBufferInterface[i].pInterface )
+                {
+                    BAPE_Buffer_P_Enable_isr(handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block, enable);
                 }
             }
         }
@@ -2391,6 +3105,9 @@ BERR_Code BAPE_BufferGroup_Enable_isr(
     }
 
     handle->enabled = enable;
+
+    /* push to downstream linked buffer groups */
+    BAPE_BufferGroup_P_SyncBufferInterface_isr(handle, BAPE_BUFFERGROUP_SYNC_FORMAT | BAPE_BUFFERGROUP_SYNC_CONFIG);
 
     return BERR_SUCCESS;
 }
@@ -2442,6 +3159,11 @@ void BAPE_BufferGroup_GetStatus_isrsafe(
         pStatus->samplesPerDword = sourceStatus.samplesPerDword;
         pStatus->numChannels = sourceStatus.numChannels;
     }
+    else /* no source yet - return bare minimum */
+    {
+        pStatus->interleaved = handle->interleaved;
+        pStatus->numChannels = handle->numChannelPairs * (handle->interleaved ? 2 : 1);
+    }
 }
 
 /***************************************************************************
@@ -2477,7 +3199,7 @@ BERR_Code BAPE_BufferGroup_SetFormat_isr(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    if ( handle->buffered )
+    /*if ( handle->buffered )*/
     {
         BERR_Code errCode;
 
@@ -2512,6 +3234,15 @@ BERR_Code BAPE_BufferGroup_SetFormat_isr(
                         break;
                     }
                 }
+                else if ( handle->localBufferInterface[i].pInterface )
+                {
+                    errCode = BERR_TRACE(BAPE_Buffer_P_SetFormat_isr(handle->localBufferInterface[i].pInterface, handle->localBufferInterface[i].block, &bufferFormat));
+                    if ( errCode )
+                    {
+                        BDBG_ERR(("Unable set format for buffer %u", i));
+                        break;
+                    }
+                }
             }
         }
         else
@@ -2527,6 +3258,9 @@ BERR_Code BAPE_BufferGroup_SetFormat_isr(
             return BERR_TRACE(BERR_UNKNOWN);
         }
     }
+
+    /* push to downstream linked buffer groups */
+    BAPE_BufferGroup_P_SyncBufferInterface_isr(handle, BAPE_BUFFERGROUP_SYNC_FORMAT);
 
     return BERR_SUCCESS;
 }
@@ -2561,4 +3295,31 @@ BERR_Code BAPE_BufferGroup_SetInterruptHandlers(
     handle->interrupts = *pInterrupts;
 
     return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Buffer Group Get Buffer Interfaces (for externally managed consumer/producer)
+***************************************************************************/
+void BAPE_BufferGroup_GetBufferInterface(
+    BAPE_BufferGroupHandle handle,
+    BAPE_BufferInterfaceDescriptor * pInterfaceDesc
+    )
+{
+    unsigned i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_BufferGroup);
+    BDBG_ASSERT(NULL != pInterfaceDesc);
+
+    BKNI_Memset(pInterfaceDesc, 0, sizeof(BAPE_BufferInterfaceDescriptor));
+    for ( i = 0; i < handle->numChannelPairs*2; i++ )
+    {
+        if ( handle->pBufferHandle[i] )
+        {
+            pInterfaceDesc->numBuffers++;
+            pInterfaceDesc->block[i] = handle->pBufferHandle[i]->interfaceBlock;
+            pInterfaceDesc->interfaceOffset[i] = handle->pBufferHandle[i]->interfaceOffset;
+            pInterfaceDesc->pInterface[i] = handle->pBufferHandle[i]->pInterface;
+        }
+    }
 }

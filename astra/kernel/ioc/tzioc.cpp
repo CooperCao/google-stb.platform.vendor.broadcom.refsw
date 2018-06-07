@@ -109,7 +109,7 @@ void TzIoc::init(void *devTree)
     if ((!fpSzCells) || (propLen < sizeof(int)))
         szCellSize = 1;
     else
-        szCellSize = parseInt((void *)fpAdCells->data, propLen);
+        szCellSize = parseInt((void *)fpSzCells->data, propLen);
 
     int adByteSize = adCellSize * sizeof(int);
     int szByteSize = szCellSize * sizeof(int);
@@ -136,7 +136,6 @@ void TzIoc::init(void *devTree)
     smemSize = (uint32_t)((szCellSize == 1) ?
          parseInt(rangeData, szByteSize) :
          parseInt64(rangeData, szByteSize));
-    rangeData += szByteSize;
 
     printf("TzIoc shared memory at phys address 0x%x, size 0x%x\n",
            (unsigned int)smemStart, (unsigned int)smemSize);
@@ -241,10 +240,16 @@ void TzIoc::proc()
         // Dispatch received msg
         if (pHdr->ucDest == TZIOC_CLIENT_ID_SYS) {
             err = sysMsgProc(pHdr);
+            if (err) {
+                printf("Failed to process sys msg\n");
+            }
         }
 #if TZIOC_MSG_ECHO
         else if (pHdr->ucDest == TZIOC_CLIENT_ID_MAX) {
             err = echoMsgProc(pHdr);
+            if (err) {
+                printf("Failed to process echo msg\n");
+            }
         }
 #endif
         else {

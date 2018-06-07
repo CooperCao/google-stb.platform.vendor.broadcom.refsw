@@ -1,42 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
@@ -89,13 +90,17 @@
     #define PDEBUG(fmt, args...)
 #endif
 
+#define BDBG_ERR(X) do {PERR X; printk("\n");} while (0)
+#define BDBG_WRN(X) do {PWARN X; printk("\n");} while (0)
+#define BDBG_LOG(X) do {PINFO X; printk("\n");} while (0)
+#define BDBG_MSG(X) do {PDEBUG X; printk("\n");} while (0)
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0)
 #include "linux/brcmstb/brcmstb.h"
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 #include "asm/brcmstb/brcmstb.h"
 #endif
 
-#define BDBG_LOG(x)
 #define BDBG_FILE_MODULE(x) extern int __unused
 #define BDBG_MODULE_MSG(x,y) PDEBUG y
 #define BDBG_ASSERT(x)  ((x) ? (void)0 : (void)0)
@@ -105,7 +110,7 @@
 #define BKNI_Malloc(x) kmalloc(x, GFP_KERNEL)
 
 static struct {
-    unsigned bchp_physical_offset;
+    uint64_t bchp_physical_offset;
 } g_breg;
 
 static uint32_t breg_read(uint32_t addr)
@@ -152,7 +157,11 @@ static void breg_write(uint32_t addr, uint32_t value)
 /* temp stub */
 #define dma_cache_wback_inv(ADDR,SIZE)  printk( KERN_ERR "BCMDRV: need to port dma_cache_wback_inv for arm linux\n\n")
 #endif
+#if defined(IRQ_START_INDEX)
+static int g_irq_start_index = IRQ_START_INDEX;
+#else
 static int g_irq_start_index = 32;
+#endif
 #define make_linux_irq(i)   ((i)+g_irq_start_index-1)
 #define unmake_linux_irq(i) ((i)-g_irq_start_index+1)
 #else
@@ -228,8 +237,8 @@ static struct proc_dir_entry *umdrv_dir, *version_file, *interrupt_file, *latenc
 char debug_info[256];
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
-	static spinlock_t g_magnum_spinlock = __SPIN_LOCK_UNLOCKED(g_magnum_spinlock);
-	#define brcm_magnum_spinlock g_magnum_spinlock
+        static spinlock_t g_magnum_spinlock = __SPIN_LOCK_UNLOCKED(g_magnum_spinlock);
+        #define brcm_magnum_spinlock g_magnum_spinlock
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0)
     #include <linux/brcmstb/brcmapi.h>
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
@@ -554,7 +563,7 @@ static int proc_read_latency(struct seq_file *m, void *v)
 static ssize_t proc_write_latency(struct file *file,const char *buffer,unsigned long count,void *data)
 #else
 static ssize_t proc_write_latency(struct file *file, const char __user *buffer,
-				size_t count, loff_t *_pos)
+                                size_t count, loff_t *_pos)
 #endif
 {
     /* reset counts. don't parse incoming data. just consume it all. */
@@ -1333,7 +1342,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
 #else
         PERR("Not implemented for this platfrom\n");
 #endif
-        break; 
+        break;
 
     case BRCM_IOCTL_PM_MEM_EXCLUDE:
 #if defined(BRCMSTB_HAS_PM_MEM_EXCLUDE)
@@ -1690,29 +1699,29 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
 }
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(3,10,0)
-#define BUILD_RO_FOPS(name)					\
+#define BUILD_RO_FOPS(name)                                     \
 static int proc_open_##name(struct inode *inode, struct file *file) \
-{								\
-	return single_open(file, proc_read_##name, NULL);	\
-}								\
-static const struct file_operations read_fops_##name = {	\
-	.open	=	proc_open_##name,			\
-	.read	=	seq_read,				\
-	.llseek =	seq_lseek,				\
-	.release = 	seq_release,				\
+{                                                               \
+        return single_open(file, proc_read_##name, NULL);       \
+}                                                               \
+static const struct file_operations read_fops_##name = {        \
+        .open   =       proc_open_##name,                       \
+        .read   =       seq_read,                               \
+        .llseek =       seq_lseek,                              \
+        .release =      seq_release,                            \
 };
 
-#define BUILD_RW_FOPS(name)					\
+#define BUILD_RW_FOPS(name)                                     \
 static int proc_open_##name(struct inode *inode, struct file *file) \
-{								\
-	return single_open(file, proc_read_##name, NULL);	\
-}								\
-static const struct file_operations read_fops_##name = {	\
-	.open	=	proc_open_##name,			\
-	.read	=	seq_read,				\
-	.write	=	proc_write_##name,			\
-	.llseek =	seq_lseek,				\
-	.release = 	seq_release,				\
+{                                                               \
+        return single_open(file, proc_read_##name, NULL);       \
+}                                                               \
+static const struct file_operations read_fops_##name = {        \
+        .open   =       proc_open_##name,                       \
+        .read   =       seq_read,                               \
+        .write  =       proc_write_##name,                      \
+        .llseek =       seq_lseek,                              \
+        .release =      seq_release,                            \
 };
 
 BUILD_RW_FOPS(interrupts);

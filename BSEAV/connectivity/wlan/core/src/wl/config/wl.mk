@@ -38,7 +38,7 @@ endif
 
 #Add if you wan additonal internal debug. Want to limit debug builds module size
 ifeq ($(BCMINTDBG),1)
-	WLFLAGS += -DBCMINTDBG -DWL_EXPORT_CURPOWER
+	WLFLAGS += -DBCMINTDBG -DWL_EXPORT_CURPOWER -DRXDESENS_EN
 endif
 
 ifeq ($(NO_BCMDBG_ASSERT), 1)

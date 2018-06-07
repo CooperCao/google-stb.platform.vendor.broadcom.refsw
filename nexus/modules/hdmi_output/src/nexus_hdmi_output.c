@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "nexus_hdmi_output_module.h"
@@ -76,6 +80,7 @@ static void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data) ;
 
 static void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput) ;
+static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context);
 
 static void NEXUS_HdmiOutput_P_GetTmdsSignals(
     NEXUS_HdmiOutputHandle hdmiOutput) ;
@@ -633,6 +638,12 @@ static void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput )
         NEXUS_CancelTimer(hdmiOutput->connectTimer);
         hdmiOutput->connectTimer = NULL;
     }
+
+    if (hdmiOutput->postFormatChangeTimer)
+    {
+        NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
+        hdmiOutput->postFormatChangeTimer = NULL;
+    }
 }
 
 static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
@@ -1137,7 +1148,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
         NEXUS_P_ColorSpace_FromMagnum_isrsafe(stVideoSettings.eColorSpace) ;
     pStatus->colorDepth = output->displaySettings.colorDepth;
 
-    (void) BHDM_GetHdmiSettings(output->hdmHandle, &output->hdmSettings);
+    BHDM_GetHdmiSettings(output->hdmHandle, &output->hdmSettings);
     pStatus->videoFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(output->hdmSettings.eInputVideoFmt);
     pStatus->aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(output->hdmSettings.eAspectRatio);
 
@@ -1259,7 +1270,7 @@ done:
 NEXUS_Error NEXUS_HdmiOutput_GetBasicEdidData( NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputBasicEdidData *pData )
 {
     NEXUS_Error errCode;
-	uint8_t i ;
+    uint8_t i ;
 
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
     RESOLVE_ALIAS(output);
@@ -1534,7 +1545,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
     retCode = NEXUS_HdmiOutput_P_GetSupportedFormats(output, pEdid->videoFormatSupported) ;
     if ( retCode ) { errCode = BERR_TRACE(retCode); }
 
-	pEdid->valid = true ;
+    pEdid->valid = true ;
 
 done:
     if (pstBcmAudioFormats)
@@ -2168,8 +2179,8 @@ static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
 
     }
 
-	/* enable/disable start Auto I2c based on Scrambling setting */
-	BHDM_SCDC_SetStatusMonitor(hdmiOutput->hdmHandle, scdc.RxScramblerStatus) ;
+    /* enable/disable start Auto I2c based on Scrambling setting */
+    BHDM_SCDC_SetStatusMonitor(hdmiOutput->hdmHandle, scdc.RxScramblerStatus) ;
 
 notifyApp:
     BDBG_LOG(("HDMI Link Scramble Status: %s",
@@ -2363,7 +2374,7 @@ static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data)
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
     BDBG_MSG(("Hotplug interrupt source: %s  deviceAttached: %d",
-		param ? "software" : "hardware", deviceAttached)) ;
+        param ? "software" : "hardware", deviceAttached)) ;
 
     if (deviceAttached) {
         hdmiOutput->lastHotplugState_isr = NEXUS_HdmiOutputState_eRxSenseCheck ;
@@ -3026,6 +3037,11 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
+    if (hdmiOutput->postFormatChangeTimer) {
+        NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
+        hdmiOutput->postFormatChangeTimer = NULL;
+    }
+
     BHDM_GetHdmiSettings(hdmiOutput->hdmHandle, &hdmiOutput->hdmSettings);
     hdmiOutput->hdmSettings.eInputVideoFmt = format;
     rc = BHDM_SetHdmiSettings(hdmiOutput->hdmHandle, &hdmiOutput->hdmSettings);
@@ -3081,19 +3097,34 @@ done:
     return 0;
 }
 
-
 NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput)
+{
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
+
+    /* PostFormatChange will never be called without a prior PreFormatChange, there the timer is cleared */
+    BDBG_ASSERT(!hdmiOutput->postFormatChangeTimer);
+    if (hdmiOutput->settings.postFormatChangeAvMuteDelay) {
+        hdmiOutput->postFormatChangeTimer = NEXUS_ScheduleTimer(hdmiOutput->settings.postFormatChangeAvMuteDelay, NEXUS_HdmiOutput_P_PostFormatChange_timer, hdmiOutput);
+        if (!hdmiOutput->postFormatChangeTimer) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+    }
+    else {
+        /* if no delay, call synchronously */
+        NEXUS_HdmiOutput_P_PostFormatChange_timer(hdmiOutput);
+    }
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context)
 {
     NEXUS_Error rc = NEXUS_SUCCESS ;
     BHDM_Status hdmiStatus;
-
-    NEXUS_ASSERT_MODULE();
-    BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
+    NEXUS_HdmiOutputHandle hdmiOutput = context;
     BDBG_MSG(("PostFormatChange"));
 
-    /* Give receiver time to finish processing format change before unmuting */
-    BKNI_Sleep(hdmiOutput->settings.postFormatChangeAvMuteDelay);
-
+    hdmiOutput->postFormatChangeTimer = NULL;
     hdmiOutput->formatChangeMute = false;
 
 #if NEXUS_DBV_SUPPORT
@@ -3139,7 +3170,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
     }
 
 done :
-    return rc ;
+    return;
 }
 
 
@@ -3709,8 +3740,20 @@ NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(
 
     rc = BHDM_EnableDisplay(hdmiOutput->hdmHandle, pSettings);
     if (rc) { rc = BERR_TRACE(rc); return rc; }
-    /* EnableDisplay can modify AVI IF within the PI, so we need to read it back up */
+    /*
+     * EnableDisplay will modify AVI IF within the PI
+     * (except for fields controlled by override, see below),
+     * so we need to read it back up
+     */
     NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(hdmiOutput);
+    /*
+     * Reapply the nexus AVIIF in order to update all fields covered by override
+     * that would have been updated by EnableDisplay, had they not been overridden
+     * by nexus.  Specifically, VIC and pixel repeat need to be updated.
+     */
+    rc = NEXUS_HdmiOutput_P_ApplyAviInfoFrame(hdmiOutput);
+    if (rc) { rc = BERR_TRACE(rc); return rc; }
+
     return rc;
 }
 

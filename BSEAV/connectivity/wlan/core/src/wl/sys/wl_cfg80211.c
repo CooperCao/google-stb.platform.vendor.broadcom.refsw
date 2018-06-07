@@ -44,6 +44,9 @@
 #include <linux/wait.h>
 #include <net/cfg80211.h>
 #include <net/rtnetlink.h>
+#ifdef WLFBT
+#include <proto/802.11r.h>
+#endif /* WLFBT */
 
 #include <wlioctl.h>
 #include <wldev_common.h>
@@ -603,6 +606,9 @@ static s32 wl_cfg80211_del_station(struct wiphy *wiphy,
 static s32 wl_cfg80211_del_station(struct wiphy *wiphy,
 	struct net_device *ndev, u8* mac_addr);
 #endif
+static s32 wl_cfg80211_add_station(struct wiphy *wiphy,
+	struct net_device *dev, const u8 *mac, struct station_parameters *params);
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 static s32 wl_cfg80211_change_station(struct wiphy *wiphy,
 	struct net_device *dev, const u8 *mac, struct station_parameters *params);
@@ -1017,6 +1023,12 @@ static int wl_cfg80211_delayed_roam(struct bcm_cfg80211 *cfg, struct net_device 
 static s32 __wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify);
 
 static s32 cfg80211_to_wl_iftype(uint16 type, uint16 *role, uint16 *mode);
+
+#ifdef WLFBT
+static s32 wl_cfg80211_set_fbt(struct net_device *ndev, u8 *ptr, u32 len);
+static s32 wl_cfg80211_fbt_send_auth_resp(struct net_device *ndev, struct ether_addr *sta_addr, const u8 *resp_ies, u32 resp_ie_len);
+static s32 wl_cfg80211_fbt_send_assoc_resp(struct net_device *ndev, struct ether_addr *sta_addr, const u8 *resp_ies, u32 resp_ie_len);
+#endif /* WLFBT */
 
 static s32 wl_action_tx_complete(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 			const wl_event_msg_t *e, void *data);
@@ -2375,6 +2387,8 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 		case NL80211_IFTYPE_AP:
 		case NL80211_IFTYPE_AP_VLAN:
 		case NL80211_IFTYPE_WDS:
+			/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+			/* coverity[stack_use_overflow] */
 			wdev = wl_cfg80211_create_iface(cfg->wdev->wiphy,
 				wl_iftype, mac_addr, name);
 			break;
@@ -2974,6 +2988,7 @@ s32
 wl_cfg80211_ifdel_ops(struct net_device *ndev)
 {
 	struct bcm_cfg80211 *cfg = wl_get_cfg(ndev);
+	s32 wowl_activate, err;
 
 	WL_TRACE(("Started.. \n"));
 
@@ -2996,7 +3011,14 @@ wl_cfg80211_ifdel_ops(struct net_device *ndev)
 		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_WDS &&
 		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_AP_VLAN &&
 #endif /* WDS */
-		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_AP) {
+		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_AP &&
+		ndev_to_wdev(ndev)->iftype != NL80211_IFTYPE_P2P_GO) {
+		err = wldev_iovar_getint(ndev, "wowl_activated", &wowl_activate);
+		if (!unlikely(err) && wowl_activate == 1) {
+#if defined(WOWL_DRV_NORELOAD)
+			wl_resume_normalmode();
+#endif /* WOWL_DRV_NORELOAD */
+		}
 		CFG80211_DISCONNECTED(ndev, 0, NULL, 0, false, GFP_KERNEL);
 	}
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)) */
@@ -3373,7 +3395,7 @@ wl_run_escan(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 
 		err = wldev_iovar_setbuf(ndev, "escan", params, params_size,
 			cfg->escan_ioctl_buf, WLC_IOCTL_MEDLEN, NULL);
-		WL_ERR(("LEGACY_SCAN sync ID: %d, bssidx: %d\n", params->sync_id, bssidx));
+		WL_SCAN(("LEGACY_SCAN sync ID: %d, bssidx: %d\n", params->sync_id, bssidx));
 		if (unlikely(err)) {
 			if (err == BCME_EPERM)
 				/* Scan Not permitted at this point of time */
@@ -6736,7 +6758,6 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	bool act = false;
 	s32 err = 0;
 	u8 *curbssid;
-	s32 wowl_activate;
 #ifdef BCMDONGLEHOST
 	dhd_pub_t *dhdp = (dhd_pub_t *)(cfg->pub);
 #endif /* BCMDONGLEHOST */
@@ -6789,11 +6810,6 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 					return err;
 				}
 				wl_cfg80211_wait_for_disconnection(cfg, dev);
-		} else  {
-			err = wldev_iovar_getint(dev, "wowl_activated", &wowl_activate);
-			if (!unlikely(err) && wowl_activate == 1) {
-				CFG80211_DISCONNECTED(dev, reason_code, NULL, 0, false, GFP_KERNEL);
-			}
 		}
 	}
 #ifdef CUSTOM_SET_CPUCORE
@@ -7517,6 +7533,8 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 			} else {
 				if (memcmp(mac, &bssid.octet, ETHER_ADDR_LEN) != 0) {
 					/* roaming is detected */
+					/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
+					/* coverity[stack_use_overflow] */
 					err = wl_cfg80211_delayed_roam(cfg, dev, &bssid);
 					if (err)
 						WL_ERR(("Failed to handle the delayed roam, "
@@ -9422,6 +9440,32 @@ wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 #ifndef WL_CFG80211_VSDB_PRIORITIZE_SCAN_REQUEST
 			wl_notify_escan_complete(cfg, dev, true, true);
 #endif /* not WL_CFG80211_VSDB_PRIORITIZE_SCAN_REQUEST */
+#ifdef WLFBT
+		} else if (ieee80211_is_auth(mgmt->frame_control)) {
+			struct dot11_management_header hdr;
+			const u8 *auth_resp;
+			s32 auth_resp_len;
+
+			/* Extract mgmt Header */
+			memcpy((void *)&hdr, buf, DOT11_MGMT_HDR_LEN);
+			auth_resp = &buf[DOT11_MGMT_HDR_LEN];
+			auth_resp_len = len - DOT11_MGMT_HDR_LEN;
+			err = wl_cfg80211_fbt_send_auth_resp(dev, &hdr.da, auth_resp, auth_resp_len);
+			cfg80211_mgmt_tx_status(cfgdev, *cookie, buf, len, true, GFP_KERNEL);
+			goto exit;
+		} else if (ieee80211_is_reassoc_resp(mgmt->frame_control) || ieee80211_is_assoc_resp(mgmt->frame_control)) {
+			struct dot11_management_header hdr;
+			const u8 *assoc_resp;
+			s32 assoc_resp_len;
+
+			/* Extract mgmt Header */
+			memcpy((void *)&hdr, buf, DOT11_MGMT_HDR_LEN);
+			assoc_resp = &buf[DOT11_MGMT_HDR_LEN];
+			assoc_resp_len = len - DOT11_MGMT_HDR_LEN;
+			err = wl_cfg80211_fbt_send_assoc_resp(dev, &hdr.da, assoc_resp, assoc_resp_len);
+			cfg80211_mgmt_tx_status(cfgdev, *cookie, buf, len, true, GFP_KERNEL);
+			goto exit;
+#endif /* WLFBT */
 		}
 
 	} else {
@@ -9481,11 +9525,67 @@ static void
 wl_cfg80211_mgmt_frame_register(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 	u16 frame, bool reg)
 {
+#if defined(WLFBT)
+	struct cfg80211_mgmt_registration {
+		struct list_head list;
+		u32 nlportid;
+		int match_len;
+		__le16 frame_type;
+		u8 match[];
+	};
+	struct cfg80211_mgmt_registration *ereg, *nreg;
+	struct wireless_dev *wdev = cfgdev_to_wdev(cfgdev);
+	u32 snd_portid = 0;
+	int i, found;
+	static const int stypes[] = {
+		FC_AUTH,
+		FC_ASSOC_REQ,
+		FC_REASSOC_REQ,
+	};
+#endif
 
 	WL_DBG(("frame_type: %x, reg: %d\n", frame, reg));
 
+#if defined(WLFBT)
+	if (wdev->iftype != NL80211_IFTYPE_AP) {
+		WL_DBG(("Not an AP, no need to register Auth and (Re)Assoc Req frames.\n"));
+		return;
+	}
+
+	/* This is hack to register frames in driver level for Hostapd FBT */
+	ereg = list_first_entry(&wdev->mgmt_registrations, typeof(*ereg), list);
+	if (!ereg) {
+		WL_ERR(("No register frame\n"));
+		return;
+	}
+	/* Get netlink portid */
+	snd_portid = ereg->nlportid;
+
+	for (i = 0; i < ARRAYSIZE(stypes); i++) {
+		found = 0;
+		list_for_each_entry(ereg, &wdev->mgmt_registrations, list) {
+			if (stypes[i] == le16_to_cpu(ereg->frame_type)) {
+				found = 1;
+				break;
+			}
+		}
+		if (!found) {
+			nreg = kzalloc(sizeof(*ereg), GFP_KERNEL);
+			if (!nreg) {
+				WL_ERR(("Failed to allocate frame registration entry"));
+				return;
+			}
+			nreg->match_len = 0;
+			nreg->nlportid = snd_portid;
+			nreg->frame_type = cpu_to_le16(stypes[i]);
+			list_add(&nreg->list, &wdev->mgmt_registrations);
+			WL_DBG(("Register frame_type: %x\n", nreg->frame_type));
+		}
+	}
+#else
 	if (frame != (IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_REQ))
 		return;
+#endif
 
 	return;
 }
@@ -9628,6 +9728,7 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	chanspec_t chspec = 0;
 	chanspec_t fw_chspec = 0;
 	u32 bw = WL_CHANSPEC_BW_20;
+	s32 nmode = 1; /* non-legacy */
 #ifdef WL11ULB
 	u32 ulb_bw = wl_cfg80211_get_ulb_bw(wl_get_cfg(dev), dev->ieee80211_ptr);
 #endif /* WL11ULB */
@@ -9701,6 +9802,21 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 #endif /* WL11ULB */
 	if (chan->band == IEEE80211_BAND_5GHZ) {
 		param.band = WLC_BAND_5G;
+
+		/* if nmode = 0 (legacy), only 20MHz supported */
+		err = wldev_iovar_getint(dev, "nmode", &nmode);
+		if (err) {
+			if (err != BCME_UNSUPPORTED) {
+				WL_ERR(("nmode failed, %d\n", err));
+				return err;
+			}
+		} else {
+			if (!nmode) {
+				bw = WL_CHANSPEC_BW_20;
+				goto set_channel;
+			}
+		}
+
 		err = wldev_iovar_getbuf(dev, "bw_cap", &param, sizeof(param),
 			ioctl_buf, sizeof(ioctl_buf), NULL);
 		if (err) {
@@ -9724,8 +9840,9 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 				bw = WL_CHANSPEC_BW_20;
 
 		}
-	} else if (chan->band == IEEE80211_BAND_2GHZ)
+	} else if (chan->band == IEEE80211_BAND_2GHZ) {
 		bw = WL_CHANSPEC_BW_20;
+	}
 
 set_channel:
 	chspec = wf_channel2chspec(_chan, bw);
@@ -9957,6 +10074,11 @@ wl_validate_wpa2ie(struct net_device *dev, const bcm_tlv_t *wpa2ie, s32 bssidx)
 			wpa_auth |= WPA2_AUTH_1X_SHA256;
 			break;
 #endif /* MFP */
+#ifdef WLFBT
+		case RSN_AKM_FBT_PSK:
+			wpa_auth |= WPA2_AUTH_FT;
+			break;
+#endif
 		default:
 			WL_ERR(("No Key Mgmt Info\n"));
 		}
@@ -10678,6 +10800,132 @@ static s32 wl_cfg80211_bcn_set_params(
 	return err;
 }
 #endif /* LINUX_VERSION >= VERSION(3,4,0) || WL_COMPAT_WIRELESS */
+#ifdef WLFBT
+static s32
+wl_cfg80211_set_fbt(struct net_device *ndev, u8 *ptr, u32 len)
+{
+	dot11_mdid_ie_t *mdie;
+	s32 err = BCME_OK;
+
+	mdie = (dot11_mdid_ie_t*)bcm_parse_tlvs(ptr, len, DOT11_MNG_MDIE_ID);
+
+	if (mdie != NULL) {
+		/* Parse Beacon */
+		err = wldev_iovar_setint(ndev, "fbt", 1);
+		if (err < 0) {
+			WL_ERR(("wl fbt 1 error %d\n", err));
+		}
+
+		err = wldev_iovar_setint(ndev, "fbt_ap", 1);
+		if (err < 0) {
+			WL_ERR(("wl fbt_ap 1 error %d\n", err));
+		}
+
+		err = wldev_iovar_setint(ndev, "fbt_over_top", 1);
+		if (err < 0) {
+			WL_ERR(("wl fbt_over_top 1 error %d\n", err));
+		}
+
+		err = wldev_iovar_setint(ndev, "fbt_mdid", mdie->mdid);
+		if (err < 0) {
+			WL_ERR(("wl fbt_mdid 0x%x error %d\n", mdie->mdid, err));
+		}
+
+		err = wldev_iovar_setint(ndev, "fbtoverds", (mdie->cap&0x01));
+		if (err < 0) {
+			WL_ERR(("wl fbtoverds %x error %d\n", (mdie->cap&0x01), err));
+		}
+	} else {
+		WL_DBG(("No MDIE and FTIE found in beacon.\n"));
+	}
+
+	return err;
+}
+
+static s32
+wl_cfg80211_fbt_send_auth_resp(struct net_device *ndev, struct ether_addr *sta_addr, const u8 *resp_ies, u32 resp_ie_len)
+{
+	struct bcm_cfg80211 *cfg = wl_get_cfg(ndev);
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
+	wlc_fbt_auth_resp_t *ft_authresp;
+	s32 ft_authresp_len;
+	int err;
+
+	ft_authresp = (wlc_fbt_auth_resp_t *)kzalloc(WLC_IOCTL_MEDLEN, kflags);
+	if (ft_authresp == NULL) {
+		WL_ERR(("failed to alloc ft_authresp\n"));
+		return BCME_ERROR;
+	}
+
+	/* Set STA Address */
+	memcpy(ft_authresp->macaddr, (const u8 *)sta_addr, ETH_ALEN);
+
+	/* Only Set IEs */
+	ft_authresp_len = sizeof(wlc_fbt_auth_resp_t) - sizeof(ft_authresp->ies) + resp_ie_len;
+	if (ft_authresp_len > WLC_IOCTL_MEDLEN) {
+		WL_ERR(("the ioctl buf is not enough for the auth resp from hostapd\n"));
+		kfree(ft_authresp);
+		return BCME_ERROR;
+	}
+	ft_authresp->ie_len = resp_ie_len;
+	memcpy(ft_authresp->ies, resp_ies, resp_ie_len);
+
+	/* Set Status */
+	ft_authresp->status = DOT11_SC_SUCCESS;
+
+	/* Using FBT IOVAR to send AUTH RESP. */
+	err = wldev_iovar_setbuf(ndev, "fbt_auth_resp", ft_authresp, ft_authresp_len,
+				cfg->ioctl_buf, WLC_IOCTL_MEDLEN, &cfg->ioctl_buf_sync);
+	if (unlikely(err)) {
+		WL_ERR(("fbt_auth_resp set error (%d)\n", err));
+	}
+
+	kfree(ft_authresp);
+	return err;
+}
+
+static s32
+wl_cfg80211_fbt_send_assoc_resp(struct net_device *ndev, struct ether_addr *sta_addr, const u8 *resp_ies, u32 resp_ie_len)
+{
+	struct bcm_cfg80211 *cfg = wl_get_cfg(ndev);
+	u16 kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
+	wlc_fbt_assoc_resp_t *ft_assocresp;
+	s32 ft_assocresp_len;
+	int err;
+
+	ft_assocresp = (wlc_fbt_assoc_resp_t *)kzalloc(WLC_IOCTL_MEDLEN, kflags);
+	if (ft_assocresp == NULL) {
+		WL_ERR(("failed to alloc ft_assocresp\n"));
+		return BCME_ERROR;
+	}
+
+	/* Set STA Address */
+	memcpy(ft_assocresp->macaddr, (const u8 *)sta_addr, ETH_ALEN);
+
+	/* Only Set IEs */
+	ft_assocresp_len = sizeof(wlc_fbt_auth_resp_t) - sizeof(ft_assocresp->ies) + resp_ie_len;
+	if (ft_assocresp_len > WLC_IOCTL_MEDLEN) {
+		WL_ERR(("the ioctl buf is not enough for the assoc resp from hostapd\n"));
+		kfree(ft_assocresp);
+		return BCME_ERROR;
+	}
+	ft_assocresp->ie_len = resp_ie_len;
+	memcpy(ft_assocresp->ies, resp_ies, resp_ie_len);
+
+	/* Set Status */
+	ft_assocresp->status = DOT11_SC_SUCCESS;
+
+	/* Using FBT IOVAR to send AUTH RESP. */
+	err = wldev_iovar_setbuf(ndev, "fbt_assoc_resp", ft_assocresp, ft_assocresp_len,
+				cfg->ioctl_buf, WLC_IOCTL_MEDLEN, &cfg->ioctl_buf_sync);
+	if (unlikely(err)) {
+		WL_ERR(("fbt_assoc_resp set error (%d)\n", err));
+	}
+
+	kfree(ft_assocresp);
+	return err;
+}
+#endif /* WLFBT */
 #ifdef WL11K
 static s32
 wl_cfg80211_set_rrm (struct net_device *ndev, u8 *ptr, u32 len)
@@ -11195,6 +11443,18 @@ wl_cfg80211_set_ies(
 		WL_DBG(("Applied Vndr IEs for Probe Resp \n"));
 	}
 
+#ifdef WLFBT
+#if defined(STRICT_GCC_WARNINGS) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#endif
+	if (wl_cfg80211_set_fbt(dev,(u8 *)info->tail, info->tail_len)) {
+		WL_ERR(("Set FBT cap failed \n"));
+	}
+#if defined(STRICT_GCC_WARNINGS) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+#endif /* WLFBT */
 	return err;
 }
 #endif /* LINUX_VERSION >= VERSION(3,4,0) || WL_COMPAT_WIRELESS */
@@ -11443,6 +11703,21 @@ wl_cfg80211_del_station(
 	return 0;
 }
 
+static s32
+wl_cfg80211_add_station(
+	struct wiphy *wiphy,
+	struct net_device *dev,
+	const u8 *mac,
+	struct station_parameters *params)
+{
+	/* For supporting hostapd 802.11r, we need to forward the auth/(re)assoc to hostapd.
+	*  When hostapd is handling the auth/(re)assoc, it will call NL80211_CMD_ADD_STATION to add the STA.
+	*  Currently the STA will be added in the driver so we don't need to implement this add_station function and
+	*  just return success directly, otherwise hostapd will have problem on doing NL80211_CMD_ADD_STATION.
+	*/
+	return 0;
+}
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
 static s32
 wl_cfg80211_change_station(
@@ -11469,8 +11744,12 @@ wl_cfg80211_change_station(
 
 	/* Processing only authorize/de-authorize flag and vlan for now */
 	if (!(params->sta_flags_mask & BIT(NL80211_STA_FLAG_AUTHORIZED)) &&
+#ifdef WLFBT
+		!(params->sta_flags_mask & BIT(NL80211_STA_FLAG_ASSOCIATED)) &&
+		!(params->sta_flags_mask & BIT(NL80211_STA_FLAG_AUTHENTICATED)) &&
+#endif
 		!params->vlan) {
-		WL_ERR(("WLC_SCB_AUTHORIZE sta_flags_mask and vlan not set \n"));
+		WL_ERR(("Got unsupported sta_flags_mask...\n"));
 		return -ENOTSUPP;
 	}
 
@@ -12670,6 +12949,7 @@ static struct cfg80211_ops wl_cfg80211_ops = {
 	.sched_scan_start = wl_cfg80211_sched_scan_start,
 	.sched_scan_stop = wl_cfg80211_sched_scan_stop,
 #endif /* WL_SCHED_SCAN */
+	.add_station = wl_cfg80211_add_station,
 #if defined(WL_SUPPORT_BACKPORTED_KPATCHES) || (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0))
 	.del_station = wl_cfg80211_del_station,
 	.change_station = wl_cfg80211_change_station,
@@ -13004,6 +13284,10 @@ static s32 wl_setup_wiphy(struct wireless_dev *wdev, struct device *sdiofunc_dev
 	(LINUX_VERSION_CODE <= KERNEL_VERSION(3, 3, 0))) && defined(WL_IFACE_COMB_NUM_CHANNELS)
 	/* Workaround for a cfg80211 bug */
 	wdev->wiphy->flags &= ~WIPHY_FLAG_ENFORCE_COMBINATIONS;
+#endif
+
+#ifdef WLFBT
+	wdev->wiphy->features |= NL80211_FEATURE_FULL_AP_CLIENT_STATE;
 #endif
 
 	return err;
@@ -15773,6 +16057,7 @@ wl_notify_rx_mgmt_frame(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 	u8 bsscfgidx;
 	u32 mgmt_frame_len;
 	u16 channel;
+
 	if (ntoh32(e->datalen) < sizeof(wl_event_rx_frame_data_t)) {
 		WL_ERR(("wrong datalen:%d\n", ntoh32(e->datalen)));
 		return -EINVAL;
@@ -16051,6 +16336,68 @@ _Pragma("GCC diagnostic pop")
 				return 0;
 		} else
 			return 0;
+#ifdef WLFBT
+	} else if (event == WLC_E_FBT_AUTH_REQ_IND) {
+		u8 ioctl_buf[WLC_IOCTL_SMLEN];
+
+		if ((err = wldev_iovar_getbuf_bsscfg(ndev, "cur_etheraddr",
+			NULL, 0, ioctl_buf, sizeof(ioctl_buf), bsscfgidx,
+			NULL)) != BCME_OK) {
+			WL_ERR(("WLC_GET_CUR_ETHERADDR failed, error %d\n", err));
+			goto exit;
+		}
+
+		err = wldev_ioctl_get(ndev, WLC_GET_BSSID, &bssid, ETHER_ADDR_LEN);
+		if (err < 0) {
+			 WL_ERR(("WLC_GET_BSSID error %d\n", err));
+		}
+		memcpy(da.octet, ioctl_buf, ETHER_ADDR_LEN);
+		mgmt_frame_len = ntoh32(e->datalen);
+
+		/* mgmt frame = header + body */
+		err = wl_frame_get_mgmt(FC_AUTH, &da, &e->addr, &bssid,
+			&mgmt_frame, &mgmt_frame_len,
+			(u8 *)rxframe);
+
+		if (err < 0) {
+			WL_ERR(("Error in auth frame len %d channel %d freq %d\n",
+				mgmt_frame_len, channel, freq));
+			goto exit;
+		}
+	} else if ((event == WLC_E_FBT_ASSOC_REQ_IND) || (event == WLC_E_FBT_REASSOC_REQ_IND)) {
+		u8 ioctl_buf[WLC_IOCTL_SMLEN];
+		u32 fixed_len;
+
+		fixed_len = (event == WLC_E_FBT_ASSOC_REQ_IND)? DOT11_ASSOC_REQ_FIXED_LEN : DOT11_REASSOC_REQ_FIXED_LEN;
+
+		if ((err = wldev_iovar_getbuf_bsscfg(ndev, "cur_etheraddr",
+			NULL, 0, ioctl_buf, sizeof(ioctl_buf), bsscfgidx,
+			NULL)) != BCME_OK) {
+			WL_ERR(("WLC_GET_CUR_ETHERADDR failed, error %d\n", err));
+			goto exit;
+		}
+
+		err = wldev_ioctl_get(ndev, WLC_GET_BSSID, &bssid, ETHER_ADDR_LEN);
+		if (err < 0) {
+			 WL_ERR(("WLC_GET_BSSID error %d\n", err));
+		}
+		memcpy(da.octet, ioctl_buf, ETHER_ADDR_LEN);
+		mgmt_frame_len = ntoh32(e->datalen) - fixed_len;
+
+		/* the wl_frame_get_mgmt doesn't fill up the fixed parameters, will do it later. */
+		err = wl_frame_get_mgmt((event == WLC_E_FBT_ASSOC_REQ_IND) ? FC_ASSOC_REQ : FC_REASSOC_REQ, &da, &e->addr, &bssid,
+			&mgmt_frame, &mgmt_frame_len,
+			(u8 *)rxframe + fixed_len);
+
+		/* fill up the fixed parameters */
+		memcpy(&mgmt_frame[DOT11_MGMT_HDR_LEN], rxframe, DOT11_REASSOC_REQ_FIXED_LEN);
+
+		if (err < 0) {
+			WL_ERR(("Error in assoc frame len %d channel %d freq %d\n",
+				mgmt_frame_len, channel, freq));
+			goto exit;
+		}
+#endif /* WLFBT */
 	} else {
 		mgmt_frame = (u8 *)((wl_event_rx_frame_data_t *)rxframe + 1);
 
@@ -16098,7 +16445,7 @@ _Pragma("GCC diagnostic pop")
 	else
 		WL_DBG(("Rx Managment frame For Iface (%s) \n", ndev->name));
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
-	 cfg80211_rx_mgmt(cfgdev, freq, 0,  mgmt_frame, mgmt_frame_len, 0);
+	cfg80211_rx_mgmt(cfgdev, freq, 0,  mgmt_frame, mgmt_frame_len, 0);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
 	cfg80211_rx_mgmt(cfgdev, freq, 0,  mgmt_frame, mgmt_frame_len, 0, GFP_ATOMIC);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || \
@@ -16408,6 +16755,11 @@ static void wl_init_event_handler(struct bcm_cfg80211 *cfg)
 #if defined(WDS)
 	cfg->evt_handler[WLC_E_UNEXPECTED_4ADDR_FRAME] = wl_notify_unexpected_4addr_frame;
 #endif /* WDS */
+#ifdef WLFBT
+	cfg->evt_handler[WLC_E_FBT_AUTH_REQ_IND] = wl_notify_rx_mgmt_frame;
+	cfg->evt_handler[WLC_E_FBT_ASSOC_REQ_IND] = wl_notify_rx_mgmt_frame;
+	cfg->evt_handler[WLC_E_FBT_REASSOC_REQ_IND] = wl_notify_rx_mgmt_frame;
+#endif /* WLFBT */
 }
 
 #if defined(STATIC_WL_PRIV_STRUCT)
@@ -16743,8 +17095,12 @@ wl_cfg80211_netdev_notifier_call(struct notifier_block * nb,
 
 	WL_DBG(("Enter \n"));
 
-	if (!wdev || !cfg || dev == bcmcfg_to_prmry_ndev(cfg))
+	if (!wdev || !cfg)
 		return NOTIFY_DONE;
+#if	(LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0))
+	if (dev == bcmcfg_to_prmry_ndev(cfg))
+		return NOTIFY_DONE;
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0) */
 
 	switch (state) {
 		case NETDEV_DOWN:
@@ -18222,7 +18578,7 @@ void wl_cfg80211_detach(struct bcm_cfg80211 *cfg)
 #endif /* WL_ENABLE_P2P_IF || WL_NEWCFG_PRIVCMD_SUPPORT */
 
 	wl_cfg80211_ibss_vsie_free(cfg);
-	wl_cfg80211_clear_mgmt_vndr_ies(cfg);
+
 	wl_dealloc_netinfo_by_wdev(cfg, cfg->wdev);
 	wl_deinit_priv(cfg);
 #if !defined(BCMDONGLEHOST)
@@ -19304,6 +19660,7 @@ _Pragma("GCC diagnostic pop")
 		cfg->scan_request = NULL;
 	}
 	spin_unlock_irqrestore(&cfg->cfgdrv_lock, flags);
+#if !defined(STB_SOC_WIFI) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
 #if defined(STRICT_GCC_WARNINGS) && defined(__GNUC__) && \
 (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
 _Pragma("GCC diagnostic push")
@@ -19336,6 +19693,7 @@ _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
 (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
 _Pragma("GCC diagnostic pop")
 #endif
+#endif /* STB_SOC_WIFI  && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0) */
 	bcmcfg_to_prmry_ndev(cfg)->ieee80211_ptr->iftype =
 		NL80211_IFTYPE_STATION;
 
@@ -19428,6 +19786,9 @@ _Pragma("GCC diagnostic pop")
 		del_timer_sync(&cfg->scan_timeout);
 	}
 
+#if	(LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0))
+	wl_cfg80211_clear_mgmt_vndr_ies(cfg);
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0) */
 #if defined(BCMDONGLEHOST) && defined(OEM_ANDROID)
 	DHD_OS_SCAN_WAKE_UNLOCK((dhd_pub_t *)(cfg->pub));
 #endif

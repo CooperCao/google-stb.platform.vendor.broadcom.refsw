@@ -713,6 +713,7 @@ end:
 
 NEXUS_Error NEXUS_Sage_GetEncKey(uint8_t *pKeyBuff, uint32_t keySize, uint32_t *pOutKeySize)
 {
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     NEXUS_Error ret = NEXUS_SUCCESS;
 
     BDBG_ENTER(NEXUS_Sage_GetEncKey);
@@ -728,12 +729,20 @@ NEXUS_Error NEXUS_Sage_GetEncKey(uint8_t *pKeyBuff, uint32_t keySize, uint32_t *
 end:
     BDBG_LEAVE(NEXUS_Sage_GetEncKey);
     return ret;
+#else
+    BSTD_UNUSED(pKeyBuff);
+    BSTD_UNUSED(keySize);
+    BSTD_UNUSED(pOutKeySize);
+    BDBG_ERR(("NEXUS_Sage_GetEncKey is not supported in SAGE 3.x and later"));
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
 }
 
 NEXUS_Error NEXUS_Sage_GetLogBuffer(uint8_t *pBuff, uint32_t bufSize,
                                     uint32_t *pBufSize,uint32_t *pWrapBufSize,
                                     uint32_t *pActualBufSize,uint32_t *pActualWrapBufSize)
 {
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
     NEXUS_Error ret = NEXUS_SUCCESS;
 
     BDBG_ENTER(NEXUS_Sage_GetLogBuffer);
@@ -749,6 +758,16 @@ NEXUS_Error NEXUS_Sage_GetLogBuffer(uint8_t *pBuff, uint32_t bufSize,
 end:
     BDBG_LEAVE(NEXUS_Sage_GetLogBuffer);
     return ret;
+#else
+    BSTD_UNUSED(pBuff);
+    BSTD_UNUSED(bufSize);
+    BSTD_UNUSED(pBufSize);
+    BSTD_UNUSED(pWrapBufSize);
+    BSTD_UNUSED(pActualBufSize);
+    BSTD_UNUSED(pActualWrapBufSize);
+    BDBG_ERR(("NEXUS_Sage_GetLogBuffer is not supported in SAGE 3.x and later"));
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
 }
 
 /* Send a response (to a callback request) to SAGE-side through a channel

@@ -390,6 +390,15 @@ NEXUS_Error NEXUS_VideoDecoder_ReturnDecodedFrames(
     unsigned numFrames                                      /* Number of frames to return to the decoder */
     );
 
+typedef enum NEXUS_VideoDecoderExclusiveMode
+{
+    NEXUS_VideoDecoderExclusiveMode_eNone,  /* no exclusion, either because 4K not supported or 4K doesn't restrict other channels */
+    NEXUS_VideoDecoderExclusiveMode_e4K,     /* if channel 0 is 4K, other channels not available */
+    NEXUS_VideoDecoderExclusiveMode_e4Kp60, /* if channel 0 is 4Kp60, other channels not available */
+    NEXUS_VideoDecoderExclusiveMode_e4K_or_10bit, /* if channel 0 is 4K or 10 bit, other channels not available */
+    NEXUS_VideoDecoderExclusiveMode_eMax
+} NEXUS_VideoDecoderExclusiveMode;
+
 /**
 Summary:
 video decoder module capabilities
@@ -405,6 +414,8 @@ typedef struct NEXUS_VideoDecoderCapabilities
             unsigned colorDepth; /* 8 or 10 bit capability of MFD. If less than decoder (see memory[].colorDepth), it will downconvert. */
             unsigned index; /* MFD index */
         } feeder;
+        bool shared; /* Set for all decoders on an HVD device with an exclusive mode */
+        NEXUS_VideoDecoderExclusiveMode exclusiveMode; /* set for the master decoder in a set of shared decoders on an HVD */
     } videoDecoder[NEXUS_MAX_VIDEO_DECODERS];
     unsigned numStcs; /* total number of XPT STC broadcasts accessible by AVD hardware */
     struct {

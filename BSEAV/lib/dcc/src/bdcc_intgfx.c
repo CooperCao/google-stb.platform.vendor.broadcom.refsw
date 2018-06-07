@@ -1,6 +1,6 @@
 /******************************************************************************
  *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -637,6 +637,8 @@ void BCCGFX_INT_P_AccumulateChar(
     int PrimaryRCInc, SecondaryRCInc, PrimaryRCReset, SecondaryRCLimit ;
     int ts  ;
     int chChanged ;
+    /* inject ETX can generate too many ETXs, (e.g. 0x8c, 0x89, 0x90, 0x91, 0x90 sequence), so if it is back-to-back ETX, drop it */
+    static unsigned char pre_ch = 0;
 
     BDCC_INT_P_TsElement * pTextElement;
 
@@ -666,6 +668,20 @@ void BCCGFX_INT_P_AccumulateChar(
     {
         ch = MapMultiByteTextToC1(hCodObject, ch, AddlBytes, pAddlBytes) ;
     }
+    /* need to check some back-to-back charaters after multi bytes mapping */
+    if (pre_ch == ch) {
+        if (0x03 == ch) {
+                return;
+        }
+        /* SWSTB-9657. It is the stream issue in a way to encode misc control and PAC. IF customer want to the fix, pleasse uncomment out following */
+#if 0
+        if (0x80 == ch) {
+            BDBG_MSG(("%s: TSP 0x80\n", __func__));
+            return;
+        }
+#endif
+    }
+    pre_ch = ch;
 
     CalcDirectionalValues(pw,
         &pPrimaryRC, &pSecondaryRC,
@@ -819,7 +835,7 @@ void BCCGFX_INT_P_AccumulateChar(
             /* do we need to scoot left? */
             /* SWSTB-9115 */
             *pPrimaryRC -= PrimaryRCInc ;
-            if (*pPrimaryRC < 0)	/* validataion */
+            if (*pPrimaryRC < 0)	/* validation */
                 *pPrimaryRC = 0;
             pw->WndBuf.aTextSeg[ts].aCharInfo[*pPrimaryRC].ch = 0 ;
             /* don't clear row in BS case */

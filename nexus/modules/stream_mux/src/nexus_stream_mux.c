@@ -1063,6 +1063,7 @@ NEXUS_StreamMux_AddSystemDataBuffer(NEXUS_StreamMuxHandle mux, const NEXUS_Strea
     if (pSystemDataBuffer->pData == NULL || !NEXUS_P_CpuAccessibleAddress(pSystemDataBuffer->pData)) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
+    NEXUS_FlushCache(pSystemDataBuffer->pData, pSystemDataBuffer->size);
 
     BKNI_Memset( &astSystemDataBuffer[0], 0, sizeof( BMUXlib_TS_SystemData ) );
     astSystemDataBuffer[0].uiTimestampDelta = pSystemDataBuffer->timestampDelta;

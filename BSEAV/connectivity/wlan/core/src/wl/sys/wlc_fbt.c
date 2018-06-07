@@ -232,6 +232,7 @@ typedef struct bss_fbt_info {
 	uint8			fbt_res_req_cap;	/* resource req capability support */
 	uint			reassoc_time;		/* reassoc deadline timer value in TU */
 	bool			fbt_timer_set;		/* Fbt timer is set or not */
+	bool			fbt_over_top;		/* Let application to handle the authentication and (re)association for FBT */
 #endif /* AP */
 } bss_fbt_info_t;
 
@@ -247,6 +248,18 @@ typedef struct wlc_fbt_scb {
 	uint8	*auth_resp_ies; /* IEs contains MDIE, RSNIE, FBTIE
 							(ANonce, SNonce, R0KH-ID, R1KH-ID)
 							*/
+
+	/* cache assoc req until hostapd reply the reassoc resp.  */
+	uint	assoc_req_len;
+	uint8	*assoc_req_body;
+	bool	short_preamble;
+	struct dot11_management_header hdr;
+
+	/* assoc resp from hostapd */
+	uint	assoc_resp_ielen;
+	uint8	*assoc_resp_ies;
+	uint8	*rsnie_pos, *ftie_pos; /* point to the rsnie/ftie in the assoc_resp_ies */
+	uint8	rsnie_len, ftie_len; /* the rsnie/ftie length in the assoc_resp_ies */
 	uint	auth_time; /* the system time in milliseconds when
 						FBT authentication request is received by AP
 						*/
@@ -352,6 +365,8 @@ static bool wlc_fbt_fbtoverds_enable(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bool
 static void wlc_fbtap_reassociation_timer(void *arg);
 static int wlc_fbtap_process_auth_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
 	struct scb *scb, wlc_fbt_auth_resp_t *fbt_auth_resp);
+static int wlc_fbtap_process_assoc_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
+	struct scb *scb, wlc_fbt_assoc_resp_t *fbt_assoc_resp);
 static int wlc_fbtap_process_ds_auth_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
 	wlc_bsscfg_t *bsscfg, wlc_fbt_auth_resp_t *fbt_auth_resp);
 static int wlc_fbt_scb_init(void *context, struct scb *scb);
@@ -480,6 +495,8 @@ enum wlc_fbt_iov {
 	IOV_FBT_ACT_RESP = 10,		/* Send FBT Action Response Frame */
 	IOV_FBT_PARAM = 11,			/* Override various FBT parameters for STA */
 	IOV_FBT_MSGLEVEL = 12,		/* Add or remove extra debug output for FBT */
+	IOV_FBT_ASSOC_RESP = 13,	/* Send FBT ReAssociation Response */
+	IOV_FBT_OVER_TOP = 14,		/* Let application to handle the authentication and (re)association for FBT */
 	IOV_LAST
 };
 
@@ -502,6 +519,8 @@ static const bcm_iovar_t fbt_iovars[] = {
 #if WL_FT_DBG_IOVARS_ENAB
 	{"fbt_msglevel", IOV_FBT_MSGLEVEL, (0), 0, IOVT_UINT32, 0},
 #endif /* WL_FT_DBG_IOVARS_ENAB */
+	{"fbt_assoc_resp", IOV_FBT_ASSOC_RESP, IOVF_SET_UP|IOVF_BSSCFG_AP_ONLY, 0, IOVT_BUFFER, 0},
+	{"fbt_over_top", IOV_FBT_OVER_TOP, IOVF_SET_UP|IOVF_BSSCFG_AP_ONLY, 0, IOVT_INT32, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -1428,6 +1447,7 @@ wlc_fbt_doiovar(void *handle, uint32 actionid,
 	uint16 ft_mode;
 	uint16 mdid;
 	wlc_fbt_auth_resp_t *fbt_auth_resp;
+	wlc_fbt_assoc_resp_t *fbt_assoc_resp;
 	wlc_fbt_action_resp_t *fbt_act_resp;
 	struct ether_addr sta_mac;
 	int slen;
@@ -1637,6 +1657,35 @@ wlc_fbt_doiovar(void *handle, uint32 actionid,
 			return BCME_ERROR;
 		}
 		err = wlc_fbtap_process_auth_resp(wlc, fbt_info, scb, fbt_auth_resp);
+		break;
+	case IOV_SVAL(IOV_FBT_ASSOC_RESP):
+		WL_FBT(("wl%d: %s: send out (re)assoc response.\n", wlc->pub->unit, __FUNCTION__));
+		fbt_assoc_resp = (wlc_fbt_assoc_resp_t *)arg;
+		memcpy(sta_mac.octet, fbt_assoc_resp->macaddr, ETHER_ADDR_LEN);
+
+		scb = wlc_scbfind(wlc, bsscfg, &sta_mac);
+		if (scb == NULL) {
+			WL_ERROR(("wl%d: %s: (re)assoc response for unknown MAC %s\n",
+				wlc->pub->unit, __FUNCTION__,
+				bcm_ether_ntoa((struct ether_addr *)&fbt_assoc_resp->macaddr,
+				eabuf)));
+			return BCME_ERROR;
+		}
+
+		if (!SCB_AUTHENTICATED(scb)) {
+			wlc_scb_setstatebit(wlc, scb, AUTHENTICATED);
+			scb->auth_alg = DOT11_FAST_BSS;
+			WL_FBT(("wl%d: %s: set scb to AUTHENTICATED for over-DS case.\n", wlc->pub->unit, __FUNCTION__));
+		}
+		err = wlc_fbtap_process_assoc_resp(wlc, fbt_info, scb, fbt_assoc_resp);
+		break;
+	case IOV_GVAL(IOV_FBT_OVER_TOP):
+		*ret_int_ptr = fbt_bsscfg->fbt_over_top;
+		WL_FBT(("fbt_over_top: currently is %d\n", fbt_bsscfg->fbt_over_top));
+		break;
+	case IOV_SVAL(IOV_FBT_OVER_TOP):
+		fbt_bsscfg->fbt_over_top = (uint16) int_val;
+		WL_FBT(("fbt_over_top: set to %d\n", fbt_bsscfg->fbt_over_top));
 		break;
 	case IOV_SVAL(IOV_FBT_DS_ADD_STA):
 		fbt_auth_resp = (wlc_fbt_auth_resp_t *)arg;
@@ -4012,6 +4061,34 @@ wlc_fbt_enabled(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg)
 }
 
 #ifdef AP
+/* Return TRUE if the Auth and (Re)Assoc need to forward to the application for supporting FBT feature. */
+bool
+wlc_fbt_overtop_enabled(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg)
+{
+	wlc_fbt_priv_t *fbt_priv;
+	bss_fbt_info_t *fbt_cfg;
+
+	if (fbt_info == NULL) {
+		return FALSE;
+	}
+
+	fbt_priv = WLC_FBT_PRIV_INFO(fbt_info);
+	if (!fbt_priv || !WLFBT_ENAB(fbt_priv->wlc->pub)) {
+		return FALSE;
+	}
+
+	if (!BSSCFG_AP(cfg)) {
+		return FALSE;
+	}
+
+	fbt_cfg = FBT_BSSCFG_CUBBY(fbt_info, cfg);
+	if (!fbt_cfg) {
+		return FALSE;
+	}
+
+	return fbt_cfg->fbt_over_top;
+}
+
 static bool
 wlc_fbt_fbtoverds_flag(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
 {
@@ -4095,6 +4172,16 @@ wlc_fbt_scb_deinit(void *context, struct scb *scb)
 		fbt_scb->auth_resp_ielen = 0;
 		fbt_scb->auth_resp_ies = NULL;
 	}
+	if (fbt_scb->assoc_resp_ies) {
+		MFREE(wlc->osh, fbt_scb->assoc_resp_ies, fbt_scb->assoc_resp_ielen);
+		fbt_scb->assoc_resp_ielen = 0;
+		fbt_scb->assoc_resp_ies = NULL;
+	}
+	if (fbt_scb->assoc_req_body) {
+		MFREE(wlc->osh, fbt_scb->assoc_req_body, fbt_scb->assoc_req_len);
+		fbt_scb->assoc_req_len = 0;
+		fbt_scb->assoc_req_body = NULL;
+	}
 	wlc_fbtap_free_fbties(wlc, &(fbt_scb->fbties_assoc));
 	MFREE(fbt_priv->osh, fbt_scb, sizeof(wlc_fbt_scb_t));
 	fbt_scb_cubby->cubby = NULL;
@@ -4128,6 +4215,7 @@ wlc_fbtap_process_auth_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
 {
 	wlc_bsscfg_t *bsscfg = scb->bsscfg;
 	wlc_fbt_scb_t *fbt_scb = FBT_SCB(fbt_info, scb);
+	bss_fbt_info_t *fbt_bss = FBT_BSSCFG_CUBBY(fbt_info, bsscfg);
 
 	ASSERT(scb != NULL);
 
@@ -4157,8 +4245,9 @@ wlc_fbtap_process_auth_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
 		goto deauth;
 	}
 
-	if (fbt_auth_resp->ie_len < (sizeof(dot11_ft_ie_t) +
-		sizeof(dot11_mdid_ie_t) + sizeof(wpa_rsn_ie_fixed_t))) {
+	if (!fbt_bss->fbt_over_top && (fbt_auth_resp->ie_len < (sizeof(dot11_ft_ie_t) +
+		sizeof(dot11_mdid_ie_t) + sizeof(wpa_rsn_ie_fixed_t)))) {
+		WL_ERROR(("wl%d: %s: the auth response doesn't carry ft, mdid and rsn ies.\n", wlc->pub->unit, __FUNCTION__));
 		goto deauth;
 	}
 
@@ -4204,6 +4293,101 @@ wlc_fbtap_process_auth_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
 deauth:
 	wlc_scbfree(wlc, scb);
 	return BCME_ERROR;
+}
+
+static int
+wlc_fbtap_process_assoc_resp(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
+	struct scb *scb, wlc_fbt_assoc_resp_t *fbt_assoc_resp)
+{
+	wlc_bsscfg_t *bsscfg = scb->bsscfg;
+	wlc_fbt_scb_t *fbt_scb = FBT_SCB(fbt_info, scb);
+	uint8 *pos, *ies_end;
+	uint8 ie_tag, ie_len;
+
+	ASSERT(scb != NULL);
+
+	if (fbt_scb == NULL) {
+		WL_ERROR(("wl%d: %s: fbt_scb is NULL", wlc->pub->unit, __FUNCTION__));
+		return BCME_ERROR;
+	}
+
+	if (fbt_scb->assoc_resp_ies) {
+		MFREE(wlc->osh, fbt_scb->assoc_resp_ies, fbt_scb->assoc_resp_ielen);
+		fbt_scb->assoc_resp_ielen = 0;
+		fbt_scb->assoc_resp_ies = NULL;
+	}
+
+	fbt_scb->assoc_resp_ies = (uint8 *) MALLOCZ(wlc->osh, fbt_assoc_resp->ie_len);
+	if (fbt_scb->assoc_resp_ies == NULL) {
+		WL_ERROR(("wl%d: %s: out of memory, malloced %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, fbt_assoc_resp->ie_len));
+		fbt_scb->assoc_resp_ielen = 0;
+		return BCME_ERROR;
+	}
+	fbt_scb->assoc_resp_ielen = fbt_assoc_resp->ie_len;
+	bcopy(&(fbt_assoc_resp->ies[0]), fbt_scb->assoc_resp_ies, fbt_scb->assoc_resp_ielen);
+	fbt_scb->status = fbt_assoc_resp->status;
+
+	/* Find RSN IE and  FT IE from Assoc Resp */
+	ies_end = fbt_scb->assoc_resp_ies + fbt_scb->assoc_resp_ielen;
+	for (pos = fbt_scb->assoc_resp_ies + DOT11_ASSOC_RESP_FIXED_LEN, ie_len = pos[1]; pos + ie_len <= ies_end; pos += (ie_len + 2)) {
+		ie_tag = pos[0];
+		ie_len = pos[1];
+
+		switch (ie_tag) {
+			case DOT11_MNG_RSN_ID:
+				fbt_scb->rsnie_pos = pos;
+				fbt_scb->rsnie_len = ie_len + TLV_HDR_LEN;
+				break;
+			case DOT11_MNG_FTIE_ID:
+				fbt_scb->ftie_pos = pos;
+				fbt_scb->ftie_len = ie_len + TLV_HDR_LEN;
+				break;
+		}
+	}
+	WL_FBT(("wl%d: %s: rsnie_len = %d, ftie_len = %d\n", wlc->pub->unit, __FUNCTION__, fbt_scb->rsnie_len, fbt_scb->ftie_len));
+
+	wlc_ap_process_assocreq(wlc->ap, bsscfg, &fbt_scb->hdr, fbt_scb->assoc_req_body, fbt_scb->assoc_req_len, scb, fbt_scb->short_preamble);
+	if (fbt_scb->assoc_req_body) {
+		MFREE(wlc->osh, fbt_scb->assoc_req_body, fbt_scb->assoc_req_len);
+		fbt_scb->assoc_req_len = 0;
+		fbt_scb->assoc_req_body = NULL;
+	}
+	return BCME_OK;
+}
+
+int
+wlc_fbtap_cache_assoc_req(wlc_info_t *wlc, wlc_fbt_info_t *fbt_info,
+	struct scb *scb, uint8 *body, int body_len, struct dot11_management_header *hdr, bool short_preamble)
+{
+	wlc_fbt_scb_t *fbt_scb = FBT_SCB(fbt_info, scb);
+
+	ASSERT(scb != NULL);
+
+	if (fbt_scb == NULL) {
+		WL_ERROR(("wl%d: %s: fbt_scb is NULL", wlc->pub->unit, __FUNCTION__));
+		return BCME_ERROR;
+	}
+
+	if (fbt_scb->assoc_req_body) {
+		MFREE(wlc->osh, fbt_scb->assoc_req_body, fbt_scb->assoc_req_len);
+		fbt_scb->assoc_req_len = 0;
+		fbt_scb->assoc_req_body = NULL;
+	}
+
+	fbt_scb->assoc_req_body = (uint8 *) MALLOCZ(wlc->osh, body_len);
+	if (fbt_scb->assoc_req_body == NULL) {
+		WL_ERROR(("wl%d: %s: out of memory, malloced %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, body_len));
+		fbt_scb->assoc_req_len = 0;
+		return BCME_ERROR;
+	}
+	fbt_scb->assoc_req_len = body_len;
+	bcopy(body, fbt_scb->assoc_req_body, body_len);
+	fbt_scb->short_preamble = short_preamble;
+	bcopy(hdr, &fbt_scb->hdr, sizeof(struct dot11_management_header));
+
+	return BCME_OK;
 }
 
 static int
@@ -4322,6 +4506,7 @@ wlc_fbtap_parse_rde_ie(void *ctx, wlc_iem_parse_data_t *data)
 	wlc_iem_ft_pparm_t *ftpparm = data->pparm->ft;
 	struct scb *scb = ftpparm->assocreq.scb;
 	wlc_fbt_scb_t *fbt_scb;
+	bss_fbt_info_t *fbt_bsscfg;
 	int len, ric_elem_count;
 	uint8 *ricend;
 	bool found = FALSE;
@@ -4334,6 +4519,15 @@ wlc_fbtap_parse_rde_ie(void *ctx, wlc_iem_parse_data_t *data)
 
 	if (!fbt_info)
 		return BCME_OK;
+
+	fbt_bsscfg = FBT_BSSCFG_CUBBY(fbt_info, cfg);
+	ASSERT(fbt_bsscfg != NULL);
+
+	if (fbt_bsscfg->fbt_over_top) {
+		WL_FBT(("%s: the RDE IE has been checked in the application.\n",
+			__FUNCTION__));
+		return BCME_OK;
+	}
 
 	fbt_priv = WLC_FBT_PRIV_INFO(fbt_info);
 
@@ -4396,6 +4590,7 @@ wlc_fbtap_parse_ft_ie(void *ctx, wlc_iem_parse_data_t *data)
 	wlc_iem_ft_pparm_t *ftpparm = data->pparm->ft;
 	struct scb *scb = ftpparm->assocreq.scb;
 	wlc_fbt_scb_t *fbt_scb;
+	bss_fbt_info_t *fbt_bsscfg;
 #ifdef BCMDBG
 	char eabuf[ETHER_ADDR_STR_LEN];
 #endif
@@ -4417,6 +4612,15 @@ wlc_fbtap_parse_ft_ie(void *ctx, wlc_iem_parse_data_t *data)
 
 	if (!fbt_info)
 		return BCME_OK;
+
+	fbt_bsscfg = FBT_BSSCFG_CUBBY(fbt_info, cfg);
+	ASSERT(fbt_bsscfg != NULL);
+
+	if (fbt_bsscfg->fbt_over_top) {
+		WL_FBT(("%s: the FT IE has been checked in the application.\n",
+			__FUNCTION__));
+		return BCME_OK;
+	}
 
 	fbt_priv = WLC_FBT_PRIV_INFO(fbt_info);
 
@@ -4676,9 +4880,11 @@ wlc_fbtap_auth_parse_ft_ie(void *ctx, wlc_iem_parse_data_t *data)
 		if (ftpparm->auth.alg == DOT11_FAST_BSS) {
 			wlc_scb_setstatebit(wlc, scb, PENDING_AUTH);
 			/* Notify application, send all IEs to application */
-			wlc_bss_mac_event(wlc, cfg, WLC_E_FBT_AUTH_REQ_IND, &scb->ea,
-				WLC_E_STATUS_SUCCESS, 0, 0,
-				(void *)data->buf, data->buf_len);
+			if (!fbt_bsscfg->fbt_over_top) {
+				wlc_bss_mac_event(wlc, cfg, WLC_E_FBT_AUTH_REQ_IND, &scb->ea,
+					WLC_E_STATUS_SUCCESS, 0, 0,
+					(void *)data->buf, data->buf_len);
+			}
 			fbt_scb = FBT_SCB(fbt_info, scb);
 			fbt_scb->auth_time = OSL_SYSUPTIME();
 			reassoc_deadline = ((fbt_bsscfg->reassoc_time) * DOT11_TU_TO_US)/1000;
@@ -4819,6 +5025,7 @@ wlc_fbtap_parse_rsn_ie(void *ctx, wlc_iem_parse_data_t *data)
 	wlc_iem_ft_pparm_t *ftpparm = data->pparm->ft;
 	struct scb *scb = ftpparm->assocreq.scb;
 	wlc_fbt_scb_t *fbt_scb;
+	bss_fbt_info_t *fbt_bsscfg;
 	uint8 *ptr;
 	wpa_suite_auth_key_mgmt_t *mgmt;
 	uint32 WPA_auth = cfg->WPA_auth;
@@ -4875,6 +5082,15 @@ wlc_fbtap_parse_rsn_ie(void *ctx, wlc_iem_parse_data_t *data)
 
 		/* In initial association only mdid is validated */
 		if (scb->auth_alg == DOT11_OPEN_SYSTEM) {
+			return BCME_OK;
+		}
+
+		fbt_bsscfg = FBT_BSSCFG_CUBBY(fbt_info, cfg);
+		ASSERT(fbt_bsscfg != NULL);
+
+		if (fbt_bsscfg->fbt_over_top) {
+			WL_FBT(("%s: the check of pmk_r1_name is done in the application.\n",
+				__FUNCTION__));
 			return BCME_OK;
 		}
 
@@ -5333,6 +5549,7 @@ wlc_fbtap_calc_rsn_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 	wlc_iem_ft_cbparm_t *ftcbparm = data->cbparm->ft;
 	struct scb *scb = ftcbparm->assocresp.scb;
 	wlc_fbt_scb_t *fbt_scb;
+	bss_fbt_info_t *fbt_bsscfg;
 	uint8 buf[257];
 	uint8 *cp = buf;
 	uint ielen = 0;
@@ -5345,12 +5562,20 @@ wlc_fbtap_calc_rsn_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 	fbt_priv = WLC_FBT_PRIV_INFO(fbt_info);
 	wlc = fbt_priv->wlc;
 
+	fbt_bsscfg = FBT_BSSCFG_CUBBY(fbt_info, bsscfg);
+	ASSERT(fbt_bsscfg != NULL);
+
 	if (WLFBT_ENAB(wlc->pub) && wlc_fbt_enabled(fbt_info, bsscfg) && scb) {
 		fbt_scb = FBT_SCB(fbt_info, scb);
 
 		if (scb->auth_alg == DOT11_FAST_BSS && fbt_scb) {
-			cp = wlc_fbt_write_rsn_ie_safe(wlc, bsscfg, cp, sizeof(buf));
-			ielen = cp - buf + sizeof(wpa_pmkid_list_t);
+			if (fbt_bsscfg->fbt_over_top) {
+				ielen = fbt_scb->rsnie_len;
+				WL_FBT(("wl%d: %s: rsnie_len = %d\n", wlc->pub->unit, __FUNCTION__, ielen));
+			} else {
+				cp = wlc_fbt_write_rsn_ie_safe(wlc, bsscfg, cp, sizeof(buf));
+				ielen = cp - buf + sizeof(wpa_pmkid_list_t);
+			}
 		}
 	}
 
@@ -5368,6 +5593,7 @@ wlc_fbtap_write_rsn_ie(void *ctx, wlc_iem_build_data_t *data)
 	wlc_info_t *wlc;
 	struct scb *scb = ftcbparm->assocresp.scb;
 	wlc_fbt_scb_t *fbt_scb;
+	bss_fbt_info_t *fbt_bsscfg;
 	wpa_pmkid_list_t *wpa_pmkid;
 	bcm_tlv_t *wpa2ie;
 	int count = 0;
@@ -5380,22 +5606,31 @@ wlc_fbtap_write_rsn_ie(void *ctx, wlc_iem_build_data_t *data)
 	fbt_priv = WLC_FBT_PRIV_INFO(fbt_info);
 	wlc = fbt_priv->wlc;
 
+	fbt_bsscfg = FBT_BSSCFG_CUBBY(fbt_info, bsscfg);
+	ASSERT(fbt_bsscfg != NULL);
+
 	if (WLFBT_ENAB(wlc->pub) && wlc_fbt_enabled(fbt_info, bsscfg) && scb) {
 		fbt_scb = FBT_SCB(fbt_info, scb);
 		wpa2ie = (bcm_tlv_t *)cp;
 
 		if (scb->auth_alg == DOT11_FAST_BSS && fbt_scb) {
-			cp = wlc_fbt_write_rsn_ie_safe(wlc, bsscfg, cp, data->buf_len);
-			wpa_pmkid = (wpa_pmkid_list_t *)cp;
-			count = 1;
-			wpa_pmkid->count.low = (uint8)count;
-			wpa_pmkid->count.high = (uint8)(count>>8);
-			bcopy(fbt_scb->pmk_r1_name, &wpa_pmkid->list[0], WPA2_PMKID_LEN);
-			cp += sizeof(wpa_pmkid_list_t);
-			wpa2ie->len = (int)(cp - data->buf - TLV_HDR_LEN);
+			if (fbt_bsscfg->fbt_over_top) {
+				bcopy(fbt_scb->rsnie_pos, cp, fbt_scb->rsnie_len);
+				wpa2ie->len = fbt_scb->rsnie_len - TLV_HDR_LEN;
+				WL_FBT(("wl%d: %s: copy the rsnie which is from hostapd.\n", wlc->pub->unit, __FUNCTION__));
+			} else {
+				cp = wlc_fbt_write_rsn_ie_safe(wlc, bsscfg, cp, data->buf_len);
+				wpa_pmkid = (wpa_pmkid_list_t *)cp;
+				count = 1;
+				wpa_pmkid->count.low = (uint8)count;
+				wpa_pmkid->count.high = (uint8)(count>>8);
+				bcopy(fbt_scb->pmk_r1_name, &wpa_pmkid->list[0], WPA2_PMKID_LEN);
+				cp += sizeof(wpa_pmkid_list_t);
+				wpa2ie->len = (int)(cp - data->buf - TLV_HDR_LEN);
 
-			/* save wpa2 ie for MIC calc */
-			ftcbparm->assocresp.wpa2_ie = data->buf;
+				/* save wpa2 ie for MIC calc */
+				ftcbparm->assocresp.wpa2_ie = data->buf;
+			}
 		}
 	}
 
@@ -5736,6 +5971,13 @@ wlc_fbtap_calc_ft_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 
 	ASSERT(fbt_scb != NULL);
 
+	/* the FT IE should come from the application if fbt_over_top is enabled. */
+	if (fbt_bsscfg->fbt_over_top) {
+		ielen = fbt_scb->ftie_len;
+		WL_FBT(("wl%d: %s: ftie_len = %d\n", wlc->pub->unit, __FUNCTION__, ielen));
+		return ielen;
+	}
+
 	if (scb->auth_alg == DOT11_OPEN_SYSTEM) {
 		ielen += sizeof(dot11_ft_ie_t);
 		/* sub element R1KH_ID */
@@ -5849,6 +6091,18 @@ wlc_fbtap_write_ft_ie(void *ctx, wlc_iem_build_data_t *data)
 
 	memset(fbtie, 0, sizeof(dot11_ft_ie_t));
 	fbtie->id = DOT11_MNG_FTIE_ID;
+
+	/* the FT IE should come from the application if fbt_over_top is enabled. */
+	if (fbt_bsscfg->fbt_over_top) {
+		bcm_tlv_t *wpa2ie;
+
+		wpa2ie = (bcm_tlv_t *)cp;
+		bcopy(fbt_scb->ftie_pos, cp, fbt_scb->ftie_len);
+		wpa2ie->len = fbt_scb->ftie_len - TLV_HDR_LEN;
+		WL_FBT(("wl%d: %s: copy the ftie which is from hostapd.\n", wlc->pub->unit, __FUNCTION__));
+		return BCME_OK;
+	}
+
 	if (scb->auth_alg == DOT11_OPEN_SYSTEM) {
 		ptr = cp + sizeof(dot11_ft_ie_t);
 		tlv = (bcm_tlv_t *)ptr;

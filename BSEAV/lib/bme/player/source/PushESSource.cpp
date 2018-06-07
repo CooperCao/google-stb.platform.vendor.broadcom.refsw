@@ -1,5 +1,6 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 // stdint must be included after bstd(_defs)
@@ -26,6 +27,7 @@
 #include "nexus_security_client.h"
 #include "sage_srai.h"
 #endif
+#include "nxclient_global.h" // NxClient_{Get|Set}AudioProcessingSettings()
 #include "MediaDrmContext.h"
 
 #include "bfile_stdio.h"
@@ -273,6 +275,14 @@ bool PushESSource::initialise(bool basic)
             SetCallback(&Settings.primary.firstPts,      staticAudioFirstPts,              this);
             SetCallback(&Settings.primary.sourceChanged, staticAudioSourceChanged,         this);
             NEXUS_SimpleAudioDecoder_SetSettings(connector->audioDecoder, &Settings);
+
+            {
+                NxClient_AudioProcessingSettings settings;
+                NxClient_GetAudioProcessingSettings(&settings);
+                settings.advancedTsm.mode = NEXUS_AudioAdvancedTsmMode_eOff;
+                NxClient_SetAudioProcessingSettings(&settings);
+            }
+
             NEXUS_PlaypumpOpenPidChannelSettings PidSettings;
             NEXUS_Playpump_GetDefaultOpenPidChannelSettings(&PidSettings);
             PidSettings.pidType                     = NEXUS_PidType_eAudio;
@@ -394,8 +404,8 @@ void PushESSource::swapAudioCodecs(NEXUS_AudioCodec codec)
 
     // Wait for the current audio codec stream to complete
     // processing (almost - we may drop some audio)
-    SourceConnector           *connector = getConnector();
-    NEXUS_SimpleAudioDecoderHandle decoder   = connector->audioDecoder;
+    SourceConnector *connector = getConnector();
+    NEXUS_SimpleAudioDecoderHandle decoder = connector->audioDecoder;
     while (_state == IMedia::StartedState) {
         NEXUS_AudioDecoderStatus status;
         NEXUS_SimpleAudioDecoder_GetStatus(decoder, &status);
@@ -415,6 +425,8 @@ void PushESSource::swapAudioCodecs(NEXUS_AudioCodec codec)
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&Settings);
     Settings.primary.codec      = codec;
     Settings.primary.pidChannel = connector->audioPidChannel;
+    Settings.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+    Settings.master             = true;
     BME_CHECK(NEXUS_SimpleAudioDecoder_Start(decoder, &Settings));
     instance->codec.audio = codec;
 }
@@ -915,8 +927,7 @@ void PushESSource::seekToPts(TIME45k pts)
     BME_DEBUG_TRACE(("%s Seeking to %u ms (%d)\n", __FUNCTION__, seek32 / 45, seek32));
     NEXUS_SimpleVideoDecoderHandle video = getConnector()->videoDecoder;
     BME_CHECK(NEXUS_SimpleVideoDecoder_SetStartPts(video, seek32));
-    NEXUS_SimpleAudioDecoderHandle audio = getConnector()->audioDecoder;
-    BME_CHECK(NEXUS_SimpleAudioDecoder_Advance(audio, seek32)); // audio decoder must be paused
+    // No equivalent for the audio decoder
 
     // Unpause the streams
     // Note: This is the rates, not the clock

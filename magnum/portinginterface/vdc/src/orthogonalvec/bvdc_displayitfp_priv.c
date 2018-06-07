@@ -890,11 +890,12 @@ void BVDC_P_ITFP_EPM_Preprocessor_ReadVipStats_isr(BVDC_P_Vip_Handle hVip)
     int8_t WrPtr_PictureQueue, WrPtr;
     uint32_t PrvOpts, PrvPrvOpts;
     BVDC_P_ITFP_EpmPreprocessorInfo_t *pEpmPreprocessorInfo;
-    unsigned PicWidth = hVip->pCapture->stPicture.ulWidth;
-    unsigned Hist4Threshold = ((PicWidth + 3)>>2) << hVip->stEpmInfo.IsProgressive;
+    unsigned PicWidth, Hist4Threshold;
 
     BDBG_OBJECT_ASSERT(hVip, BVDC_VIP);
     pEpmPreprocessorInfo = &hVip->stEpmInfo;
+    PicWidth = hVip->pCapture->stPicture.ulWidth;
+    Hist4Threshold = ((PicWidth + 3)>>2) << hVip->stEpmInfo.IsProgressive;
 
     WrPtr_PictureQueue = pEpmPreprocessorInfo->PreProcessorPictureQueue.WrPtr;
 

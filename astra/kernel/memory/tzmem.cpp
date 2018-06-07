@@ -104,7 +104,7 @@ void TzMem::init(void *devTree) {
     if ((!fpSzCells) || (propLen < sizeof(int)))
         szCellSize = 1;
     else
-        szCellSize = parseInt((void *)fpAddrCells->data, propLen);
+        szCellSize = parseInt((void *)fpSzCells->data, propLen);
     int szByteSize = szCellSize * sizeof(int);
 
     // Parse the 'reg' property
@@ -333,7 +333,7 @@ TzMem::PhysAddr TzMem::allocContiguousPages(int numPages, int pid) {
     }
 
  SCAN_DONE:
-    if (freeCount < numPages) {
+    if ((freeStart == -1)||(freeCount < numPages)) {
         err_msg("%s: Could not find %d contiguous pages. Found %d\n",
                 __PRETTY_FUNCTION__, numPages, freeCount);
         return nullptr;

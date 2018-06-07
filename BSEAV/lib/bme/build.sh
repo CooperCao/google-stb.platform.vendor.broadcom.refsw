@@ -52,10 +52,11 @@ if [ $MS12_B == "y" ]; then
     export BDSP_MS12_SUPPORT=b
 elif [ $MS12_C == "y" ]; then
     export BDSP_MS12_SUPPORT=c
+elif [ $MS12_D == "y" ]; then
+    export BDSP_MS12_SUPPORT=d
 else
     export BDSP_MS12_SUPPORT=n
 fi
-echo $BDSP_MS12_SUPPORT
 
 # Multi-core builds
 NUM_JOBS="${CONFIG_JLEVEL:-0}"

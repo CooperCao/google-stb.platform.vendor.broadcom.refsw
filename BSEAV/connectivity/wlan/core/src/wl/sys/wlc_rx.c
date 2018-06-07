@@ -3592,6 +3592,13 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 			PKTPUSH(osh, p, pull_len);
 			wlc_ap_authresp(wlc->ap, bsscfg, hdr, body, body_len,
 					p, short_preamble, &wrxh->rxhdr);
+
+#ifdef WLFBT
+			if (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg)) {
+				WL_FBT(("wl%d: %s: got auth req for fbt ota roaming\n", wlc->pub->unit, __FUNCTION__));
+				wlc_bss_mac_event(wlc, bsscfg, WLC_E_FBT_AUTH_REQ_IND, &hdr->sa, 0, 0, 0, body, body_len);
+			}
+#endif /* WLFBT */
 			PKTPULL(osh, p, pull_len);
 #endif
 			}
@@ -3996,15 +4003,29 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 			break;
 		}
 
+#if defined(AP) && defined(WLFBT)
+		ASSERT(scb && (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg) || SCB_AUTHENTICATED(scb)));
+#else
 		ASSERT(scb && SCB_AUTHENTICATED(scb));
+#endif
 
 		if (!bsscfg->up || !BSSCFG_AP(bsscfg))
 			break;
 
 		/* Check that this (re)associate is for us */
-		if (!bcmp(hdr->bssid.octet, bsscfg->BSSID.octet, ETHER_ADDR_LEN))
+		if (!bcmp(hdr->bssid.octet, bsscfg->BSSID.octet, ETHER_ADDR_LEN)) {
+#if defined(AP) && defined(WLFBT)
+			if (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg)) {
+				WL_FBT(("wl%d: %s: got (re)assoc req\n", wlc->pub->unit, __FUNCTION__));
+				wlc_bss_mac_event(wlc, bsscfg,
+					(fk == FC_ASSOC_REQ)? WLC_E_FBT_ASSOC_REQ_IND : WLC_E_FBT_REASSOC_REQ_IND,
+					&hdr->sa, 0, 0, 0, body, body_len);
+				wlc_fbtap_cache_assoc_req(wlc, wlc->fbt, scb, body, body_len, hdr, short_preamble);
+			} else
+#endif /* WLFBT */
 			wlc_ap_process_assocreq(wlc->ap, bsscfg, hdr, body, body_len, scb,
 				short_preamble);
+		}
 		break;
 
 	case FC_ACTION:
@@ -4792,6 +4813,9 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 		 * also, don't send if we're not currently on-channel
 		 */
 		if (!ETHER_ISMULTI(&h->a1) && !(scb && (scb->state & PENDING_AUTH)) &&
+#if defined(AP) && defined(WLFBT)
+			!(wlc_fbt_overtop_enabled(wlc->fbt, bsscfg) && (fk == FC_REASSOC_REQ)) &&
+#endif /* WLFBT */
 		    (rx_bandunit == (int) wlc->band->bandunit)) {
 			struct ether_addr *cur_etheraddr;
 
@@ -4861,6 +4885,12 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 					WLC_E_STATUS_SUCCESS, &h->a2, rc, 0);
 			}
 		}
+#ifdef WLFBT
+		else if (wlc_fbt_overtop_enabled(wlc->fbt, bsscfg) && (fk == FC_REASSOC_REQ)) {
+			WL_FBT(("wl%d: %s: don't drop the reassoc req frame of fbt over-ds roaming, current rc = %d.\n", wlc->pub->unit, __FUNCTION__, rc));
+			rc = 0;
+		}
+#endif
 		WLCNTINCR(wlc->pub->_cnt->rxbadproto);
 	}
 	/* Toss if nonassociated */

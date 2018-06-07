@@ -247,7 +247,9 @@ void SysCalls::doGetPgid(TzTask *currTask) {
 }
 
 void SysCalls::doGetUid(TzTask *currTask) {
-    uint16_t rv = currTask->owner();
+    int16_t rv = currTask->owner();
+    if(rv < 0)
+        printf("doGetUid : invalid uid \n");
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }
 

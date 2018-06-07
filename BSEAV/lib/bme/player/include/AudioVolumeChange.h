@@ -1,5 +1,6 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 
@@ -46,6 +47,11 @@ public:
 
     static unsigned int levelToNexus(float level);
     static float        nexusToLevel(unsigned int nexus);
+
+    static bool isMs12()
+    {
+        return ms12;
+    }
 
 protected:
     virtual void applyMasterVolume() = 0; // Called with lock held

@@ -1283,16 +1283,19 @@ void NEXUS_Rave_SetBandHold(NEXUS_RaveHandle rave, bool enable)
     BXPT_Rave_SetBandHold(rave->raveHandle,enable);
     return;
 }
+
 void NEXUS_Rave_AddPidChannel_priv(NEXUS_RaveHandle rave,NEXUS_PidChannelHandle pidChannel)
 {
-
+    int berr;
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
     NEXUS_ASSERT_MODULE();
-    nexus_rave_add_pid(rave,pidChannel->hwPidChannel);
+    berr = nexus_rave_add_pid(rave,pidChannel->hwPidChannel);
+    if (berr) {
+        BERR_TRACE(berr);
+    }
     return;
 }
-
 
 void NEXUS_Rave_RemovePidChannel_priv(NEXUS_RaveHandle rave)
 {
@@ -1407,7 +1410,7 @@ void NEXUS_Rave_Flush_priv(NEXUS_RaveHandle rave)
         if (rave->settings.numOutputBytesEnabled) {
             BAVC_XptContextMap *pXptContextMap;
             pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-            rave->numOutputBytes += BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
+            rave->numOutputBytes += BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
         }
         rave->lastValid = 0;
         rc = BXPT_Rave_FlushContext(rave->raveHandle);

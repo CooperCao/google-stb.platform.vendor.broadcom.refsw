@@ -765,6 +765,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     BAPE_PathNode *pNode;
     unsigned numFound, i;
     uint32_t sampleRate = 0;
+    bool disablePauseBursts = false;
 
     BDBG_ASSERT(handle->taskState == BAPE_TaskState_eStopped);
 
@@ -818,6 +819,8 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         handle->mclkSource = BAPE_MclkSource_eNone;
     }
 
+    disablePauseBursts = BAPE_PathNode_P_PauseBurstDisabled(&handle->pathNode);
+
     /* Setup Stages and Task */
     handle->taskState = BAPE_TaskState_eStarting;
     BDSP_Task_GetDefaultStartSettings(handle->hTask, &taskStartSettings);
@@ -826,6 +829,15 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     if (!handle->settings.mixerEnableZeros) {
         taskStartSettings.openGateAtStart = false;
     }
+
+    if (disablePauseBursts == false) {
+        taskStartSettings.eSpdifPauseWidth = BDSP_AF_P_SpdifPauseWidth_eHundredEightyEightWord;
+        taskStartSettings.eFMMPauseBurstType = BDSP_AF_P_BurstFill_ePauseBurst;
+    }
+    else {
+        taskStartSettings.eFMMPauseBurstType = BDSP_AF_P_BurstFill_eZeroes;
+    }
+
     taskStartSettings.timeBaseType = BDSP_AF_P_TimeBaseType_e45Khz;
     taskStartSettings.schedulingMode = BDSP_TaskSchedulingMode_eMaster;
 

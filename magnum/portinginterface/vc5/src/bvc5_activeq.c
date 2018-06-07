@@ -48,7 +48,6 @@ typedef struct BVC5_P_ActiveQ
    BLST_Q_HEAD(sQueue, BVC5_P_InternalJob)   sQueue;
 } BVC5_P_ActiveQ;
 
-
 /***************************************************************************/
 
 BERR_Code BVC5_P_ActiveQCreate(
@@ -60,6 +59,7 @@ BERR_Code BVC5_P_ActiveQCreate(
    if (phActiveQ == NULL)
       return BERR_INVALID_PARAMETER;
 
+   BDBG_CASSERT(sizeof(BVC5_P_ActiveQ) <= CPU_PAGE_SIZE);
    hActiveQ = (BVC5_ActiveQHandle)BKNI_Malloc(sizeof(struct BVC5_P_ActiveQ));
    if (hActiveQ == NULL)
       return BERR_OUT_OF_SYSTEM_MEMORY;

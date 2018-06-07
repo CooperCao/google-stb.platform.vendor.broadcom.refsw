@@ -1,51 +1,56 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <arch.h>
 #include <arch_helpers.h>
 
 #include "config.h"
 #include "monitor.h"
+#include "cache.h"
 #include "memory.h"
 #include "mmap.h"
 #include "xlat.h"
 
-#ifdef DEBUG
+#ifdef VERBOSE
 #define SPACER_1 ""
 #define SPACER_2 "  "
 #define SPACER_3 "    "
@@ -67,7 +72,7 @@ static uint64_t xlat_build_desc(
 
     desc = paddr;
     desc |= (level == 3) ? TABLE_DESC : BLOCK_DESC;
-    desc |= (attr & MT_NS) ? LOWER_ATTRS(NS) : 0;
+    desc |= (attr & MT_NSEC) ? LOWER_ATTRS(NS) : 0;
     desc |= (attr & MT_RW) ? LOWER_ATTRS(AP_RW) : LOWER_ATTRS(AP_RO);
     desc |= LOWER_ATTRS(ACCESS_FLAG);
 
@@ -119,11 +124,11 @@ static uint64_t xlat_build_desc(
         }
     }
 
-    DBG_PRINT((mem_type == MT_MEMORY) ? "MEM" :
-            (mem_type == MT_NON_CACHEABLE) ? "NC" : "DEV");
-    DBG_PRINT((attr & MT_RW) ? "-RW" : "-RO");
-    DBG_PRINT((attr & MT_NS) ? "-NS" : "-S");
-    DBG_PRINT((attr & MT_EXECUTE_NEVER) ? "-XN" : "-EXEC");
+    VB_PRINT((mem_type == MT_MEMORY) ? "MEM" :
+             (mem_type == MT_NON_CACHEABLE) ? "NC" : "DEV");
+    VB_PRINT((attr & MT_RW) ? "-RW" : "-RO");
+    VB_PRINT((attr & MT_NSEC) ? "-NS" : "-S");
+    VB_PRINT((attr & MT_EXECUTE_NEVER) ? "-XN" : "-EXEC");
     return desc;
 }
 
@@ -159,10 +164,10 @@ static mmap_region_t *xlat_init_table_inner(
             /* This area and the region overlap or contain one another */
             if (level == 3) {
 
-                DBG_PRINT("  %sVA:%p PA:%p size:0x%llx ", LEVEL_SPACER(level),
-                          (void *)vaddr,
-                          (void *)vaddr - pmm->vaddr + pmm->paddr,
-                          (unsigned long long)level_size);
+                VB_PRINT("  %sVA:%p PA:%p size:0x%llx ", LEVEL_SPACER(level),
+                         (void *)vaddr,
+                         (void *)vaddr - pmm->vaddr + pmm->paddr,
+                         (unsigned long long)level_size);
 
                 /*
                  * Get attributes of this area on the block level.
@@ -179,22 +184,22 @@ static mmap_region_t *xlat_init_table_inner(
                     vaddr - pmm->vaddr + pmm->paddr,
                     level);
 
-                DBG_PRINT("\n");
+                VB_PRINT("\n");
             }
             else {
                 /* Allocate a new table */
                 uint64_t *new_table = xlat_tables[xlat_table_cnt++];
                 DBG_ASSERT(xlat_table_cnt <= MAX_XLAT_TABLES);
 
-                DBG_PRINT("  %sVA:%p TB:%p size:0x%llx ", LEVEL_SPACER(level),
-                          (void *)vaddr,
-                          (void *)new_table,
-                          (unsigned long long)level_size);
+                VB_PRINT("  %sVA:%p TB:%p size:0x%llx ", LEVEL_SPACER(level),
+                         (void *)vaddr,
+                         (void *)new_table,
+                         (unsigned long long)level_size);
 
                 /* Build table descriptor */
                 desc = TABLE_DESC | (uintptr_t)new_table;
 
-                DBG_PRINT("\n");
+                VB_PRINT("\n");
 
                 /* Recurse to fill in new table */
                 pmm = xlat_init_table_inner(pmm, vaddr, new_table, level + 1);
@@ -212,7 +217,10 @@ static mmap_region_t *xlat_init_table_inner(
 
 void xlat_init_tables(mmap_region_t *pmm)
 {
-    DBG_PRINT("\nxlat tables:\n");
+    VB_PRINT("\nxlat tables:\n");
+
+    /* Reset xlat tables */
+    xlat_table_cnt = 0;
 
     /* Allocate L1 table */
     uint64_t *l1_table = xlat_tables[xlat_table_cnt++];
@@ -226,7 +234,7 @@ __bootstrap void enable_mmu(void)
     uint64_t mair, tcr, ttbr;
     uint32_t sctlr;
 
-    DBG_ASSERT((read_sctlr_el3() & SCTLR_M_BIT) == 0);
+    DBG_ASSERT(!(read_sctlr_el3() & SCTLR_M_BIT));
 
     DBG_MSG("Enabling MMU...");
 
@@ -254,14 +262,53 @@ __bootstrap void enable_mmu(void)
     /* Ensure all translation table writes have drained */
     /* into memory, the TLB invalidation is complete, */
     /* and translation register writes are committed */
-    /* before enabling the MMU */
-    dsb();
+    /* before enabling MMU */
     isb();
+    dsb();
 
     sctlr  = read_sctlr_el3();
     sctlr |= SCTLR_M_BIT | SCTLR_C_BIT | SCTLR_I_BIT;
     write_sctlr_el3(sctlr);
 
-    /* Ensure the MMU enable takes effect immediately */
+    /* Ensure MMU enable takes effect immediately */
     isb();
+}
+
+__bootstrap void disable_mmu(void)
+{
+    uint32_t sctlr;
+
+    DBG_ASSERT((read_sctlr_el3() & SCTLR_M_BIT));
+
+    DBG_MSG("Disabling MMU...");
+
+    /* Disable caches */
+    sctlr  = read_sctlr_el3();
+    sctlr &= ~(SCTLR_C_BIT | SCTLR_I_BIT);
+    write_sctlr_el3(sctlr);
+
+    /* Ensure caches disable takes effect immediately */
+    isb();
+
+    /* Clean data cache */
+    dsb();
+    dcsw_op_all(DCCSW);
+
+    /* Ensure all data writes have completed, */
+    /* and system register writes are committed */
+    /* before disabling MMU */
+    isb();
+    dsb();
+
+    /* Disable MMU */
+    sctlr &= ~SCTLR_M_BIT;
+    write_sctlr_el3(sctlr);
+
+    /* Ensure MMU disable takes effect immediately */
+    isb();
+
+    /* Invalidate caches */
+    dsb();
+    iciallu();
+    dcsw_op_all(DCISW);
 }

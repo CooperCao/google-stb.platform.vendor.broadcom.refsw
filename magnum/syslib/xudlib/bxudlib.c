@@ -398,6 +398,27 @@ static const uint8_t BXUDlib_P_SWAP8[256] =
 };
 
 
+static void
+BXUDlib_S_CommitWriteOffset_isrsafe( BXUD_StdInfo *pstdInfo, unsigned uiType, unsigned uiQueueSize )
+{
+   if ( pstdInfo->type[uiType].uiWriteOffset != pstdInfo->type[uiType].uiShadowWriteOffset )
+   {
+      unsigned uiCurrentOffset = pstdInfo->type[uiType].uiWriteOffset;
+      unsigned uiDecodePictureId = pstdInfo->type[uiType].astCCData[uiCurrentOffset].uiDecodePictureId;
+
+      /* Set the decode ID of all CC pairs to the smallest decode ID so that they all get sent together */
+      do
+      {
+         pstdInfo->type[uiType].astCCData[uiCurrentOffset].uiDecodePictureId = uiDecodePictureId;
+         uiCurrentOffset++;
+         uiCurrentOffset %= uiQueueSize;
+      } while( uiCurrentOffset != pstdInfo->type[uiType].uiShadowWriteOffset );
+
+      pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+   }
+}
+
+
 /* BXUDlib_UserDataHandler_isr is called to provide XUD with user data packets (only closed
    captioning is used for now). All packets are associated with a "decode" picture id. XUD copies and queues the data
    provided in this callback for later processing.
@@ -591,7 +612,7 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
                             && ( 3 == ccData[uiIndex].seq.cc_type ) )
                        {
                           /* We are starting a new packet, so update the write offset to push out the previous packet */
-                          pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+                          BXUDlib_S_CommitWriteOffset_isrsafe( pstdInfo, uiType, pContext->createSettings.queueSize );
                        }
                        else if ( ( 0 == ccData[uiIndex].cc_valid )
                                 && ( ( 2 == ccData[uiIndex].seq.cc_type )
@@ -610,7 +631,7 @@ BXUDlib_UserDataHandler_isr(BXUDlib_Handle hXud, const BAVC_USERDATA_info  *pstU
                     pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiShadowWriteOffset].uiDecodePictureId = pstUserData->ulDecodePictureId;
                     pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiShadowWriteOffset].ccData = ccData[uiIndex];
                     pstdInfo->type[uiType].uiShadowWriteOffset = uiTempWriteOffset;
-                    if ( ( true == ccData[uiIndex].bIsAnalog ) || ( true == bPacketEnd ) ) pstdInfo->type[uiType].uiWriteOffset = pstdInfo->type[uiType].uiShadowWriteOffset;
+                    if ( ( true == ccData[uiIndex].bIsAnalog ) || ( true == bPacketEnd ) ) BXUDlib_S_CommitWriteOffset_isrsafe( pstdInfo, uiType, pContext->createSettings.queueSize );
 
                     /* If the queue is full, we discard the oldest data in the queue */
                     if ( uiTempWriteOffset == pstdInfo->type[uiType].uiReadOffset )

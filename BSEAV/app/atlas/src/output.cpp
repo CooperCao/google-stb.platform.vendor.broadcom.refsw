@@ -1034,7 +1034,7 @@ eRet COutputHdmi::initialize()
 
     nError = NEXUS_HdmiOutput_SetSettings(_outputHdmi, &hdmiSettings);
     CHECK_NEXUS_ERROR_ASSERT("error setting hdmi output settings", nError);
-
+#if NEXUS_HAS_SECURITY
     /* register nexus callbacks for hdcp events */
     NEXUS_HdmiOutput_GetHdcpSettings(_outputHdmi, &hdcpSettings);
     hdcpSettings.stateChangedCallback.callback = nexusHdcpStatusCallback;
@@ -1044,7 +1044,7 @@ eRet COutputHdmi::initialize()
     /* TO DO: Add successCallback */
     nError = NEXUS_HdmiOutput_SetHdcpSettings(_outputHdmi, &hdcpSettings);
     CHECK_NEXUS_ERROR_ASSERT("error setting hdcp output settings", nError);
-
+#endif
     /* add audio delay if specified by atlas configuration option */
     if (0 < GET_INT(_pCfg, HDMI_OUTPUT_DELAY))
     {

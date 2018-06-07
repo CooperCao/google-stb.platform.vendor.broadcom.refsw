@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2004-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,32 +50,6 @@ typedef struct NEXUS_P_MemoryMap {
 } NEXUS_P_MemoryMap;
 
 static NEXUS_P_MemoryMap g_NEXUS_P_MemoryMap[16];
-
-/**
-NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE is the virtual address split between
-kernel and user modes. Allow chip-specific override in nexus_platform_features.h.
-**/
-#ifndef NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE
-#if NEXUS_CPU_ARM64
-/* https://www.kernel.org/doc/Documentation/arm64/memory.txt  */
-#define NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE 0xFFFF000000000000ul
-#elif NEXUS_CPU_ARM
-#define NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE 0xC0000000
-#else
-#define NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE 0x80000000
-#endif
-#endif
-
-
-NEXUS_P_Base_MemoryRange g_NEXUS_P_CpuNotAccessibleRange = {
-#if NEXUS_BASE_OS_ucos_ii || B_REFSW_SYSTEM_MODE_CLIENT
-    NULL, 0
-#elif NEXUS_MODE_driver || NEXUS_BASE_OS_linuxkernel
-    NULL, NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE
-#else
-    (void *)NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE, ~0ul - NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE
-#endif
-};
 
 #define B_IS_INTERSECT(off1, len1, off2, len2) ((off1) <= ((off2)+(len2)-1) && (off2) <= ((off1)+(len1)-1))
 

@@ -919,7 +919,7 @@ Functionality   :   Returns the following data back to the PI.
     5)  The size of the Status Buffer required by the algorithm.
 ***********************************************************************/
 
-void BDSP_Arm_P_GetAlgorithmInfo(
+void BDSP_Arm_P_GetAlgorithmInfo_isrsafe(
     BDSP_Algorithm algorithm,
     BDSP_AlgorithmInfo *pInfo /* [out] */
     )

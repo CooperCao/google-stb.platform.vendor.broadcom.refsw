@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -56,6 +60,7 @@
 #include "nxserverlib_thermal.h"
 
 #include "thermal_config.h"
+#include "sysfs.h"
 
 BDBG_MODULE(nxserverlib_thermal);
 
@@ -75,93 +80,12 @@ struct thermal_state {
     pthread_t thread;
     bool exit;
     bool has_pmu;
-    NEXUS_VideoFormat orig_format;
-    struct {
-        FILE *fp;
-        unsigned start_time;
-        bool enabled;
-    } log;
+    NEXUS_VideoFormat display_format;
+    unsigned current_user_level;
     unsigned num_cooling_agents;
     unsigned num_priorities;
 } g_thermal_state;
 
-
-static int sysfs_set(const char *path, const char *filename, int val)
-{
-    FILE *fd;
-    int ret = -1;
-    char filepath[256];
-
-    snprintf(filepath, 256, "%s/%s", path, filename);
-
-    fd = fopen(filepath, "w");
-    if (!fd) {
-        BDBG_ERR(("Open failed %s", filepath));
-        return ret;
-    }
-    ret = fprintf(fd, "%d", val);
-    fclose(fd);
-
-    return 0;
-}
-
-static int sysfs_get(const char *path, const char *filename, unsigned *val)
-{
-    FILE *fd;
-    int ret = -1;
-    char filepath[256];
-
-    snprintf(filepath, 256, "%s/%s", path, filename);
-
-    fd = fopen(filepath, "r");
-    if (!fd) {
-        BDBG_ERR(("Open failed %s", filepath));
-        return ret;
-    }
-    ret = fscanf(fd, "%u", val);
-    fclose(fd);
-
-    return 0;
-}
-
-static int sysfs_get_string(const char *path, const char *filename, char *str)
-{
-    FILE *fd;
-    int ret = -1;
-    char filepath[256];
-
-    snprintf(filepath, 256, "%s/%s", path, filename);
-
-    fd = fopen(filepath, "r");
-    if (!fd) {
-        BDBG_ERR(("Open failed %s", filepath));
-        return ret;
-    }
-    ret = fscanf(fd, "%256s", str);
-    fclose(fd);
-
-    return ret;
-}
-
-static char* sysfs_read_file(const char *path, const char *filename, char *buf, size_t len)
-{
-    FILE *fd;
-    char *str = NULL;
-    char filepath[256];
-
-    snprintf(filepath, 256, "%s/%s", path, filename);
-
-    fd = fopen(filepath, "r");
-    if (!fd) {
-        BDBG_ERR(("Open failed %s", filepath));
-        return str;
-    }
-
-    str = fgets(buf, len, fd);
-    fclose(fd);
-
-    return str;
-}
 
 /* return instance id for file format such as trip_point_4_temp */
 static int get_instance_id(const char *name, const char *match)
@@ -193,7 +117,7 @@ static NEXUS_Error scan_trip_point(const char *tz_name, const char *d_name, ther
         sysfs_get(tz_name, d_name, &tzi->tp[tp_id].hyst);
         BDBG_MSG(("Thermal Zone %s node %s, Trip %d, Hyst %u", tz_name, d_name, tp_id, tzi->tp[tp_id].hyst));
     } else if (strstr(d_name, "type")) {
-        sysfs_get_string(tz_name, "type", tzi->tp[tp_id].type);
+        sysfs_get_string(tz_name, "type", tzi->tp[tp_id].type, sizeof(tzi->tp[tp_id].type));
         BDBG_MSG(("Thermal Zone %s node %s, Trip %d, Type %s", tz_name, d_name, tp_id, tzi->tp[tp_id].type));
     }
 
@@ -216,7 +140,7 @@ static NEXUS_Error scan_thermal_zones(const char *tz_name, thermal_zone_info *tz
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
-    sysfs_get_string(filename, "type", tzi->type);
+    sysfs_get_string(filename, "type", tzi->type, sizeof(tzi->type));
 
     /* detect trip points and cdev attached to this tzone */
     tzi->num_cooling_devices = 0;
@@ -246,7 +170,7 @@ static NEXUS_Error scan_cooling_devices(const char *cdev_name, cooling_device_in
     memset(filename, 0, sizeof(filename));
     snprintf(filename, 256, "%s/%s", THERMAL_SYSFS, cdev_name);
 
-    sysfs_get_string(filename, "type", cdi->type);
+    sysfs_get_string(filename, "type", cdi->type, sizeof(cdi->type));
     sysfs_get(filename, "max_state", (unsigned*)&cdi->max_state);
     sysfs_get(filename, "cur_state", (unsigned*)&cdi->cur_state);
     BDBG_MSG(("Cooling Device %s type %s, Max State %d, Cur State %d", cdev_name, cdi->type, cdi->max_state, cdi->cur_state));
@@ -320,7 +244,7 @@ static NEXUS_Error cpufreq_get_available_frequencies(void)
     char *str;
     unsigned i=0, j, tmp;
 
-    if (!sysfs_read_file(CPUFREQ_SYSFS, "scaling_available_frequencies", buf, sizeof(buf))) {
+    if (sysfs_get_string(CPUFREQ_SYSFS, "scaling_available_frequencies", buf, sizeof(buf))) {
         BDBG_ERR(("Could not read cpufreq sysfs"));
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -365,37 +289,7 @@ static NEXUS_Error probe_cpufreq_sysfs(void)
     return rc;
 }
 
-int prev_total=0, prev_idle=0;
-static int get_cpu_load(void)
-{
-    char buf[256];
-    char *str;
-    int total=0, idle=0, i=0;
-    int cpu_load = 0;
 
-    if (!sysfs_read_file("/proc", "stat", buf, sizeof(buf))) {
-        BDBG_ERR(("Could not read /proc/stat"));
-        return -1;
-    }
-    str = strtok (buf," ");
-    while (str != NULL) {
-        str = strtok (NULL, " ");
-        if(str != NULL){
-            total += atoi(str);
-            if(i == 3)
-                idle = atoi(str);
-            i++;
-        }
-    }
-
-    if (prev_total && prev_idle) {
-        cpu_load = 100 - (((idle - prev_idle)*100)/(total - prev_total));
-    }
-    prev_total = total;
-    prev_idle = idle;
-
-    return cpu_load;
-}
 
 static void get_temp(void)
 {
@@ -436,6 +330,17 @@ static void get_power(void)
     return;
 }
 
+static void notify_app_callback(void)
+{
+    unsigned i;
+    for(i=0; i<NXCLIENT_MAX_SESSIONS; i++) {
+        if(g_thermal_state.server->session[i]) {
+            g_thermal_state.server->session[i]->callbackStatus.coolingAgentChanged++;
+        }
+    }
+    return;
+}
+
 static NEXUS_Error throttle_cpu_frequency(cooling_agent *agent, unsigned level)
 {
     if (level >= g_thermal_state.cpufreq.num_p_states) {
@@ -443,13 +348,14 @@ static NEXUS_Error throttle_cpu_frequency(cooling_agent *agent, unsigned level)
         return NEXUS_NOT_SUPPORTED;
     }
 
-    BDBG_MSG(("Limit cpufreq to Pstate %u", level));
+    BDBG_MSG(("Limit cpufreq to Pstate %u, Frequency %u", level, g_thermal_state.cpufreq.avail_freqs[level]));
     if (sysfs_set(CPUFREQ_SYSFS, "scaling_max_freq", g_thermal_state.cpufreq.avail_freqs[level])) {
         BDBG_ERR(("Could not set cpufreq sysfs"));
         return BERR_TRACE(NEXUS_OS_ERROR);
     }
 
     agent->cur_level = level;
+    notify_app_callback();
 
     return NEXUS_SUCCESS;
 }
@@ -484,6 +390,7 @@ static NEXUS_Error cpu_idle_injection(cooling_agent *agent, unsigned level)
         return BERR_TRACE(NEXUS_OS_ERROR);
     }
     agent->cur_level = level;
+    notify_app_callback();
 
     return NEXUS_SUCCESS;
 }
@@ -499,6 +406,7 @@ static NEXUS_Error scale_graphics3d_frequency(cooling_agent *agent, unsigned lev
     rc = NEXUS_Graphicsv3d_SetFrequencyScaling(scale);
     if (rc) {rc = BERR_TRACE(rc); goto err;}
     agent->cur_level = level;
+    notify_app_callback();
 
 err:
     return rc;
@@ -515,6 +423,7 @@ static NEXUS_Error scale_graphics2d_frequency(cooling_agent *agent, unsigned lev
     rc = NEXUS_Graphics2D_SetFrequencyScaling(scale);
     if (rc) {rc = BERR_TRACE(rc); goto err;}
     agent->cur_level = level;
+    notify_app_callback();
 
 err:
     return rc;
@@ -543,10 +452,10 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
         if (rc) {rc = BERR_TRACE(rc); goto err;}
         if (!level) {
             /* Restore video format */
-            settings.format = g_thermal_state.orig_format;
+            settings.format = g_thermal_state.display_format;
         } else {
             /* Switch format to lower supported format */
-            g_thermal_state.orig_format = settings.format;
+            g_thermal_state.display_format = settings.format;
             if (status.hdmi.status.connected) {
                 NEXUS_VideoFormat format;
                 for (format = NEXUS_VideoFormat_eNtsc; format < NEXUS_VideoFormat_eMax; format++) {
@@ -559,7 +468,7 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
                 settings.format = NEXUS_VideoFormat_eNtsc;
             }
         }
-        if (settings.format != session->nxclient.displaySettings.format) {
+        if (settings.format && settings.format != session->nxclient.displaySettings.format) {
             BDBG_MSG(("Setting display format to  %s", lookup_name(g_videoFormatStrs, settings.format)));
             rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
             if (rc) {rc = BERR_TRACE(rc);}
@@ -568,46 +477,59 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
         rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
+    notify_app_callback();
+
 err:
     return rc;
 }
 #endif
 
-static NEXUS_Error stop_pip_decode(cooling_agent *agent, unsigned level)
+static NEXUS_Error stop_decode(unsigned level, bool pip)
 {
     nxclient_t client;
-
-    BSTD_UNUSED(agent);
-    BSTD_UNUSED(level);
+    NxClient_VideoWindowType window_type = pip?NxClient_VideoWindowType_ePip:NxClient_VideoWindowType_eMain;
 
     for (client = BLST_D_FIRST(&g_thermal_state.server->clients); client; client = BLST_D_NEXT(client, link)) {
         struct b_connect *connect;
         for (connect = BLST_D_FIRST(&client->connects); connect; connect = BLST_D_NEXT(connect, link)) {
-            if (connect->settings.simpleVideoDecoder[0].windowCapabilities.type == NxClient_VideoWindowType_ePip) {
-                BDBG_MSG(("%s Pip Video Decode", level?"Release":"Acquire"));
+            if (connect->settings.simpleVideoDecoder[0].windowCapabilities.type == window_type) {
+                BDBG_MSG(("%s %s Video Decode", level?"Release":"Acquire", pip?"Pip":"Main"));
                 if (level) {
-                    b_connect_release(client, connect);
+                    /* Dont use b_connect_release because we don't want to assign connect to another client */
+                    if (is_video_request(connect)) {
+                        release_video_decoders(connect);
+                    }
+                    release_audio_decoders(connect);
+                    release_audio_playbacks(connect);
+                    release_video_encoders(connect);
                 } else {
                     b_connect_acquire(client, connect);
                 }
             }
         }
     }
+    notify_app_callback();
 
     return NEXUS_SUCCESS;
 }
 
-static NEXUS_Error notify_app_callback(cooling_agent *agent, unsigned level)
+static NEXUS_Error stop_pip_decode(cooling_agent *agent, unsigned level)
 {
-    unsigned i;
+    BSTD_UNUSED(agent);
+    return stop_decode(level, true);
+}
 
-    for(i=0; i<NXCLIENT_MAX_SESSIONS; i++) {
-        if(g_thermal_state.server->session[i]) {
-            g_thermal_state.server->session[i]->callbackStatus.coolingAgentChanged++;
-        }
-    }
+static NEXUS_Error stop_main_decode(cooling_agent *agent, unsigned level)
+{
+    BSTD_UNUSED(agent);
+    return stop_decode(level, false);
+}
+
+static NEXUS_Error notify_user(cooling_agent *agent, unsigned level)
+{
+    g_thermal_state.current_user_level = level;
     agent->cur_level = level;
-
+    notify_app_callback();
     return NEXUS_SUCCESS;
 }
 
@@ -620,14 +542,12 @@ cooling_agent g_cooling_agents[] = {
     COOLING_AGENT(v3d, scale_graphics3d_frequency),
 #endif
     COOLING_AGENT(m2mc, scale_graphics2d_frequency),
-    COOLING_AGENT(user, notify_app_callback),
-};
-
-cooling_agent g_forced_agents[] = {
 #if NEXUS_HAS_HDMI_OUTPUT
     COOLING_AGENT(display, set_display_format),
 #endif
-    COOLING_AGENT(pip, stop_pip_decode),
+    COOLING_AGENT(stop_pip, stop_pip_decode),
+    COOLING_AGENT(stop_main, stop_main_decode),
+    COOLING_AGENT(user, notify_user),
 };
 
 static void init_cooling_agents(void)
@@ -655,26 +575,11 @@ static void init_cooling_agents(void)
                 g_thermal_state.num_priorities++;
             }
         }
-    } else {
-        BDBG_MSG(("Priority List already initialized from config file"));
     }
 
     /* Initialize cooling agents */
     for(i=0; i<num_cooling_agents; i++) {
         g_cooling_agents[i].func(&g_cooling_agents[i], 0);
-    }
-
-    /* Add agent for forced display format change and pip decode*/
-    for (i=0; i<sizeof(g_forced_agents)/sizeof(g_forced_agents[0]); i++) {
-        item=BKNI_Malloc(sizeof(*item));
-        BKNI_Memset(item, 0, sizeof(*item));
-        item->agent = &g_forced_agents[i];
-        item->level = 1;
-        item->agent->levels = 1;
-        BLST_Q_INSERT_TAIL(&g_thermal_state.available, item, link);
-        BDBG_MSG(("Init Priority Table %s (%u:%u)", item->agent->name, item->level, item->agent->levels));
-        num_cooling_agents++;
-        g_thermal_state.num_priorities++;
     }
 
     g_thermal_state.num_cooling_agents = num_cooling_agents;
@@ -693,41 +598,6 @@ static void uninit_cooling_agents(void)
         BLST_Q_REMOVE_HEAD(&g_thermal_state.active, link);
         BKNI_Free(item);
     }
-}
-
-static void log_data(void)
-{
-    struct timeval tv;
-    unsigned time;
-
-    if (!g_thermal_state.log.enabled)
-        return;
-
-    if (!g_thermal_state.log.fp) {
-        g_thermal_state.log.fp = fopen("thermal_log.csv", "w");
-        BDBG_ASSERT(g_thermal_state.log.fp);
-
-        gettimeofday(&tv, NULL);
-        g_thermal_state.log.start_time = tv.tv_sec;
-        fprintf(g_thermal_state.log.fp, "Time, Temp, Over Temp, Hyst");
-        if (g_thermal_state.has_pmu)
-            fprintf(g_thermal_state.log.fp,", Power, Power Avg");
-        fprintf(g_thermal_state.log.fp,", CPU Load\n");
-    }
-
-    gettimeofday(&tv, NULL);
-    time = tv.tv_sec - g_thermal_state.log.start_time;
-    fprintf(g_thermal_state.log.fp, "%u, %f, %f, %f", time, (double)g_thermal_state.data.temp[0]/1000, (double)g_thermal_state.config.over_temp_threshold/1000, (double)g_thermal_state.params.temp_target/1000);
-    if (g_thermal_state.has_pmu)
-        fprintf(g_thermal_state.log.fp,", %u, %u", g_thermal_state.data.power.instant, g_thermal_state.data.power.average);
-    fprintf(g_thermal_state.log.fp,", %d\n", get_cpu_load());
-    fflush(g_thermal_state.log.fp);
-}
-
-static void log_close(void)
-{
-    if (g_thermal_state.log.fp)
-        fclose(g_thermal_state.log.fp);
 }
 
 static void *thermal_monitor_thread(void *context)
@@ -768,14 +638,14 @@ static void *thermal_monitor_thread(void *context)
             BDBG_MSG(("Instant Power %u, Average Power %u", g_thermal_state.data.power.instant, g_thermal_state.data.power.average));
         BDBG_MSG(("Current State : %u", state));
 
-        log_data();
-
         if (g_thermal_state.data.temp[0] > g_thermal_state.config.over_temp_threshold) {
             switch(state) {
                 case cooling_state_normal:
                     if (g_thermal_state.has_pmu) {
                         unsigned power_delta = ((g_thermal_state.data.temp[0] - g_thermal_state.params.temp_target)*1000)/g_thermal_state.config.theta_jc;
-                        power_target = g_thermal_state.data.power.average - power_delta;
+                        if (g_thermal_state.data.power.average > power_delta) {
+                            power_target = g_thermal_state.data.power.average - power_delta;
+                        }
                         BDBG_MSG(("Calculated Power Target %u", power_target));
                     }
                     state = cooling_state_apply_agent;
@@ -789,7 +659,10 @@ static void *thermal_monitor_thread(void *context)
                         BDBG_MSG(("Average Power %u, Power Target %u", g_thermal_state.data.power.average, power_target));
                         if (g_thermal_state.data.power.instant < power_target) break;
                     }
-                    if (BLST_Q_EMPTY(&g_thermal_state.available)) break;
+                    if (BLST_Q_EMPTY(&g_thermal_state.available)) {
+                        notify_app_callback(); /* Keep notifying app when we have run out of cooling agents */
+                        break;
+                    }
                     state = cooling_state_apply_agent;
                     break;
             }
@@ -832,7 +705,7 @@ static void *thermal_monitor_thread(void *context)
                 agent->func(agent, priority->level);
                 BLST_Q_REMOVE(&g_thermal_state.available, priority, link);
                 BLST_Q_INSERT_HEAD(&g_thermal_state.active, priority, link);
-                priority->last_applied_time = nxserver_p_millisecond_tick();
+                NEXUS_GetTimestamp(&priority->last_applied_time);
             }
             BKNI_ReleaseMutex(server->settings.lock);
         } else if (state == cooling_state_remove_agent){
@@ -845,7 +718,7 @@ static void *thermal_monitor_thread(void *context)
                 agent->func(agent, priority->level-1);
                 BLST_Q_REMOVE(&g_thermal_state.active, priority, link);
                 BLST_Q_INSERT_HEAD(&g_thermal_state.available, priority, link);
-                priority->last_removed_time = nxserver_p_millisecond_tick();
+                NEXUS_GetTimestamp(&priority->last_removed_time);
             }
             BKNI_ReleaseMutex(server->settings.lock);
         } else {
@@ -865,8 +738,6 @@ static void *thermal_monitor_thread(void *context)
     if (server->settings.watchdog) {
         nxserver_p_pet_watchdog(server, &server->watchdog.state, 0);
     }
-
-    log_close();
 
     return NULL;
 }
@@ -1012,7 +883,7 @@ NEXUS_Error nxserver_get_thermal_status(nxclient_t client, NxClient_ThermalStatu
     pStatus->temperature = g_thermal_state.data.temp[0];
     if(priority) {
         pStatus->userDefined = !strncmp(priority->agent->name, "user", 4);
-        pStatus->level = priority->level;
+        pStatus->level = g_thermal_state.current_user_level;
     }
 
     for (priority=BLST_Q_LAST(&g_thermal_state.active); priority; priority=BLST_Q_PREV(priority, link)) {

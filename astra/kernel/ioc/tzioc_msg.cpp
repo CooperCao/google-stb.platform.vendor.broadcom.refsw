@@ -54,6 +54,9 @@ void TzIoc::TzIocMsg::init(void *devTree)
 {
     // Get parent tzioc node
     int parentOffset = fdt_subnode_offset(devTree, 0, "tzioc");
+    if(parentOffset<0) {
+        kernelHalt("No tzioc node found in the device tree");
+    }
     int propLen;
 
     // Parse #address-cells property of parent node
@@ -74,7 +77,7 @@ void TzIoc::TzIocMsg::init(void *devTree)
     if ((!fpSzCells) || (propLen < sizeof(int)))
         szCellSize = 1;
     else
-        szCellSize = parseInt((void *)fpAdCells->data, propLen);
+        szCellSize = parseInt((void *)fpSzCells->data, propLen);
 
     int adByteSize = adCellSize * sizeof(int);
     int szByteSize = szCellSize * sizeof(int);
@@ -101,7 +104,6 @@ void TzIoc::TzIocMsg::init(void *devTree)
     uint32_t t2nSize = (uint32_t)((szCellSize == 1) ?
          parseInt(t2nRegData, szByteSize) :
          parseInt64(t2nRegData, szByteSize));
-    t2nRegData += szByteSize;
 
     printf("TzIoc T2N ring at 0x%x, size 0x%x\n",
            (unsigned int)t2nOffset, (unsigned int)t2nSize);
@@ -128,7 +130,6 @@ void TzIoc::TzIocMsg::init(void *devTree)
     uint32_t n2tSize = (uint32_t)((szCellSize == 1) ?
          parseInt(n2tRegData, szByteSize) :
          parseInt64(n2tRegData, szByteSize));
-    n2tRegData += szByteSize;
 
     printf("TzIoc N2T ring at 0x%x, size 0x%x\n",
            (unsigned int)n2tOffset, (unsigned int)n2tSize);

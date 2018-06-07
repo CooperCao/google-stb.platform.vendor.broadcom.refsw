@@ -962,12 +962,8 @@ static B_PlaybackIpError lock_ip_session(
 
     /* BIP TODO: should we use the TryLock here and use a while loop w/ 10msec sleep interval and some upper limit on the loop count, this will avoid a mutex lockup */
     /* now wait the lock to be released by other threads (Nexus IO or HTTP main thread) */
-    if (BKNI_AcquireMutex(playback_ip->lock) != B_ERROR_SUCCESS) {
-        rc = B_ERROR_UNKNOWN;
-    }
-    else {
-        rc = B_ERROR_SUCCESS;
-    }
+    BKNI_AcquireMutex(playback_ip->lock);
+    rc = B_ERROR_SUCCESS;
 
     /* now restore the current state */
     playback_ip->playback_state = currentState;

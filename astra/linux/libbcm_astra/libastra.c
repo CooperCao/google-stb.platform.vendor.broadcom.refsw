@@ -628,4 +628,8 @@ void _astra_uapp_coredump(
 
     buf = (unsigned int *)core_buf;
     _astra_uapp_coredump_proc(buf);
+
+    munmap(
+        core_buf,
+        COREDUMP_FILE_SIZE);
 }

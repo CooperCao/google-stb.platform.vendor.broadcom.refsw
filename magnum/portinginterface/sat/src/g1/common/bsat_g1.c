@@ -1,6 +1,6 @@
 /******************************************************************************
 * Copyright (C) 2018 Broadcom.
-* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to
@@ -76,11 +76,7 @@ static const BSAT_Settings defDevSettings =
       BSAT_g1_P_GetBertStatus,
       BSAT_g1_P_SetSearchRange,
       BSAT_g1_P_GetSearchRange,
-#ifndef BSAT_EXCLUDE_AFEC
       BSAT_g1_P_SetAmcScramblingSeq,
-#else
-      NULL,
-#endif
       BSAT_g1_P_SetNetworkSpec,
       BSAT_g1_P_GetNetworkSpec_isrsafe,
       BSAT_g1_P_SetOutputTransportSettings,
@@ -105,13 +101,8 @@ static const BSAT_Settings defDevSettings =
       BSAT_g1_P_GetChannelConfig,
       BSAT_g1_P_GetLegacyQpskAcqSettings,
       BSAT_g1_P_SetLegacyQpskAcqSettings,
-#ifndef BSAT_EXCLUDE_AFEC
       BSAT_g1_P_GetDvbs2AcqSettings,
       BSAT_g1_P_SetDvbs2AcqSettings,
-#else
-      NULL,
-      NULL,
-#endif
 #ifndef BSAT_EXCLUDE_TFEC
       BSAT_g1_P_GetTurboAcqSettings,
       BSAT_g1_P_SetTurboAcqSettings,

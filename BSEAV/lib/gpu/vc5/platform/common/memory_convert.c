@@ -1,17 +1,24 @@
-/******************************************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
- *****************************************************************************************************/
-
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ ******************************************************************************/
 #if NEXUS_HAS_GRAPHICS2D
 
 #include "display_helpers.h"
+
+#include "bchp_common.h"
+#ifdef BCHP_M2MC_REG_START
 #include "bchp_m2mc.h"
+#endif
 #include "memory_convert.h"
 #include "assert.h"
 
 #include "bdbg.h"
 
+#ifdef BCHP_M2MC_REG_START
 #define M2MC_HAS_UIF_SUPPORT (BCHP_M2MC_REVISION_MAJOR_DEFAULT >= 2)
+#else
+#define M2MC_HAS_UIF_SUPPORT 0
+#endif
 
 static void EventHandler(void *data, int unused)
 {

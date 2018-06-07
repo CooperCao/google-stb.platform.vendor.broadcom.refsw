@@ -989,9 +989,9 @@ void BXPT_P_MemoryToRegister(BREG_Handle reg, struct BXPT_Backup *backup, const 
     BXPT_P_FreeBackup(backup);
 }
 
+#if BXPT_P_ENABLE_SUBMODULE_CLOCKGATING
 const char* const BXPT_P_SUBMODULE_STRING[] = {"MSG", "RAVE", "MCPB", "PSUB", "PCROFFSET", "REMUX", "MPOD", "XMEMIF", "TSIO"};
 
-#if BXPT_P_ENABLE_SUBMODULE_CLOCKGATING
 #include "bchp_xpt_pmu.h"
 static unsigned BXPT_P_GetPmuField(BREG_Handle hReg, BXPT_P_Submodule sub)
 {

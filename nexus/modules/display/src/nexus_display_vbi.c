@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -189,9 +193,19 @@ NEXUS_Display_P_ConnectVbi(NEXUS_DisplayHandle display)
     }
 
     rc = BVBI_Encode_GetInterruptName(vbi_path, BAVC_Polarity_eTopField, &tf_isr);
-    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vbi_path;}
+    if (rc!=BERR_SUCCESS)
+    {
+        /* Return success. Having no VBI resource is not a system failure. */
+        BDBG_WRN(("No VBI resource available for VBI path %d on display %d.", vbi_path, display->index));
+        return 0;
+    }
     rc = BVBI_Encode_GetInterruptName(vbi_path, BAVC_Polarity_eBotField, &bf_isr);
-    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vbi_path;}
+    if (rc!=BERR_SUCCESS)
+    {
+        /* Return success. Having no VBI resource is not a system failure. */
+        BDBG_WRN(("No VBI resource available for VBI path %d on display %d.", vbi_path, display->index));
+        return 0;
+    }
 
     display->vbi.progressive = false;
 
@@ -353,7 +367,7 @@ NEXUS_Display_P_DisableVbi(NEXUS_DisplayHandle display)
     return ;
 }
 
-bool nexus_display_p_vbi_available(enum nexus_vbi_resources res)
+static bool nexus_display_vbi_available(enum nexus_vbi_resources res)
 {
     BVBI_Capabilities cap;
     unsigned total = 0, i;
@@ -364,12 +378,30 @@ bool nexus_display_p_vbi_available(enum nexus_vbi_resources res)
     }
     BVBI_GetCapabilities(g_NEXUS_DisplayModule_State.vbi, &cap);
     switch (res) {
-    case nexus_vbi_resource_vec_int:
-        return total < cap.ulNumVecEnc;
-    case nexus_vbi_resource_vec_bypass_int:
-        return total < cap.ulNumPassThruEnc;
+    case nexus_vbi_resources_amole:
+        return total < cap.ulNumAmole;
+    case nexus_vbi_resources_cce:
+        return total < cap.ulNumCce;
     case nexus_vbi_resources_cgmse:
         return total < cap.ulNumCgmse;
+    case nexus_vbi_resources_gse:
+        return total < cap.ulNumGse;
+    case nexus_vbi_resources_tte:
+        return total < cap.ulNumTte;
+    case nexus_vbi_resources_wsse:
+        return total < cap.ulNumWssE;
+    case nexus_vbi_resources_656amole:
+        return total < cap.ulNumAmole656;
+    case nexus_vbi_resources_656cce:
+        return total < cap.ulNumCce656;
+    case nexus_vbi_resources_656cgmse:
+        return total < cap.ulNumCgmse656;
+    case nexus_vbi_resources_656gse:
+        return total < cap.ulNumGse656;
+    case nexus_vbi_resources_656tte:
+        return total < cap.ulNumTte656;
+    case nexus_vbi_resources_656wsse:
+        return total < cap.ulNumWssE_656;
     default:
         return false;
     }
@@ -378,7 +410,7 @@ bool nexus_display_p_vbi_available(enum nexus_vbi_resources res)
 BERR_Code
 NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
 {
-    BERR_Code rc;
+    BERR_Code rc = BERR_SUCCESS;
     bool isSd = NEXUS_P_VideoFormat_IsSd(format);
     BFMT_VideoFmt formatVdc;
     bool enabled;
@@ -428,80 +460,168 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
     if (rc) {return BERR_TRACE(rc);}
 
     rc = BVBI_Encode_SetVideoFormat(display->vbi.enc_core,  formatVdc);
-    if (rc) {
-        BDBG_WRN(("NEXUS_Display_P_EnableVbi: %#lx VBI not supported for %u", (unsigned long)display, (unsigned)format));
+    if (rc)
+    {
+        BDBG_ERR(("Display %d VBI not supported for format %u.", display->index, (unsigned)format));
         return BERR_TRACE(rc);
     }
 
-    if (is656Output) {
-        rc = BVBI_Encode_656_SetCC(display->vbi.enc_core, isSd && display->vbi.settings.closedCaptionEnabled);
-        if (rc) {
-            BDBG_WRN(("ClosedCaption is not supported for this display format"));
-            return BERR_TRACE(rc);
+    if (is656Output)
+    {
+        enabled = isSd && display->vbi.settings.closedCaptionEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_656cce] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_656cce))
+        {
+            BDBG_WRN(("No 656 closed-caption encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_656_SetCC(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("656 closed-caption is not supported for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_656cce] = enabled;
         }
 
-        rc = BVBI_Encode_656_SetTeletext(display->vbi.enc_core, isSd && display->vbi.settings.teletextEnabled);
-        if (rc) {
-            BDBG_WRN(("Teletext is not supported for this display format"));
-            return BERR_TRACE(rc);
+        enabled = isSd && display->vbi.settings.teletextEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_656tte] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_656tte))
+        {
+            BDBG_WRN(("No 656 teletext encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_656_SetTeletext(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("656 teletext is not supported for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_656tte] = enabled;
         }
 
-        rc = BVBI_Encode_656_SetWSS(display->vbi.enc_core, display->vbi.settings.wssEnabled);
-        if (rc) {
-            BDBG_WRN(("WSS is not supported for this display format"));
-            return BERR_TRACE(rc);
+        enabled = display->vbi.settings.wssEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_656wsse] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_656wsse))
+        {
+            BDBG_WRN(("No 656 WSS encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_656_SetWSS(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("656 WSS is not supported for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_656wsse] = enabled;
         }
     }
-    else {
-        rc = BVBI_Encode_SetCC(display->vbi.enc_core, isSd && display->vbi.settings.closedCaptionEnabled);
-        if (rc) {
-            BDBG_WRN(("ClosedCaption is not supported for this display format"));
-            return BERR_TRACE(rc);
+    else
+    {
+        enabled = isSd && display->vbi.settings.closedCaptionEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_cce] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_cce))
+        {
+            BDBG_WRN(("No closed-caption encoder available for display %u", display->index));
         }
-
-        rc = BVBI_Encode_SetTeletext(display->vbi.enc_core, isSd && display->vbi.settings.teletextEnabled);
-        if (rc) {
-            BDBG_WRN(("Teletext is not supported for this display format"));
-            return BERR_TRACE(rc);
-        }
-
-        rc = BVBI_Encode_SetWSS(display->vbi.enc_core, display->vbi.settings.wssEnabled);
-        if (rc) {
-            BDBG_WRN(("WSS is not supported for this display format"));
-            return BERR_TRACE(rc);
-        }
-
-        if(g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowCgmsB){
-            /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
-            rc = BVBI_Encode_SetCGMSB(display->vbi.enc_core, (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled);
-            if (rc) {
-                BDBG_WRN(("CGMS B is not supported for this display format"));
+        else
+        {
+            rc = BVBI_Encode_SetCC(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("Closed-caption is not supported for format %d.", format));
                 return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_cce] = enabled;
+        }
+
+        enabled = isSd && display->vbi.settings.teletextEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_tte] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_tte))
+        {
+            BDBG_WRN(("No teletext encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_SetTeletext(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("Teletext is not supported for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+        }
+
+        enabled = display->vbi.settings.wssEnabled;
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_wsse] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_wsse))
+        {
+            BDBG_WRN(("No WSS encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_SetWSS(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("WSS is not supported for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+        }
+
+        if(g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowCgmsB)
+        {
+            /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
+            enabled = (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled;
+
+            if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] &&
+                !nexus_display_vbi_available(nexus_vbi_resources_cgmse))
+            {
+                BDBG_WRN(("No CGMS B encoder available for display %u", display->index));
+            }
+            else
+            {
+                rc = BVBI_Encode_SetCGMSB(display->vbi.enc_core,
+                                          (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled);
+                if (rc)
+                {
+                    BDBG_ERR(("CGMS B is not supported for format %d.", format));
+                    return BERR_TRACE(rc);
+                }
+                display->vbi.enabled[nexus_vbi_resources_cgmse] = enabled;
             }
         }
 
         /* CGMS is supported for NTSC and 50/60Hz HD, but not PAL. */
         enabled = (format != NEXUS_VideoFormat_ePal) && display->vbi.settings.cgmsEnabled;
-        if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] && !nexus_display_p_vbi_available(nexus_vbi_resources_cgmse)) {
-            BDBG_WRN(("no CGMS A encoder available for display %u", display->index));
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_cgmse] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_cgmse))
+        {
+            BDBG_WRN(("No CGMS A encoder available for display %u", display->index));
         }
-        else {
+        else
+        {
             rc = BVBI_Encode_SetCGMSA(display->vbi.enc_core, enabled);
-            if (rc) {
-                BDBG_WRN(("CGMS A is not supported for this display format"));
+            if (rc)
+            {
+                BDBG_ERR(("CGMS A is not supported for format %d.", format));
                 return BERR_TRACE(rc);
             }
             display->vbi.enabled[nexus_vbi_resources_cgmse] = enabled;
         }
 
         rc = BVBI_Encode_SetVPS(display->vbi.enc_core, display->vbi.settings.vpsEnabled);
-        if (rc) {
-            BDBG_WRN(("VPS is not supported for this display format"));
+        if (rc)
+        {
+            BDBG_ERR(("VPS is not supported for format %d.", format));
             return BERR_TRACE(rc);
         }
     }
 
-    if (display->vbi.settings.gemStarEnabled) {
+    enabled = display->vbi.settings.gemStarEnabled;
+    if (enabled)
+    {
         BVBI_GSOptions gsOptions;
         (void)BVBI_Encode_GetGemstarOptions(display->vbi.enc_core, &gsOptions);
         gsOptions.baseline_top = display->vbi.settings.gemStar.baseLineTop;
@@ -512,23 +632,29 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
         if (rc) return BERR_TRACE(rc);
     }
 
-    if (is656Output) {
-        rc = BVBI_Encode_656_SetGemstar(display->vbi.enc_core, display->vbi.settings.gemStarEnabled);
-        if (rc) {
-            BDBG_WRN(("656 GemStar is not supported for this display format"));
+    if (is656Output)
+    {
+        rc = BVBI_Encode_656_SetGemstar(display->vbi.enc_core, enabled);
+        if (rc)
+        {
+            BDBG_ERR(("656 GemStar is not supported for format %d.", format));
             return BERR_TRACE(rc);
         }
     }
-    else {
-        rc = BVBI_Encode_SetGemstar(display->vbi.enc_core, display->vbi.settings.gemStarEnabled);
-        if (rc) {
-            BDBG_WRN(("GemStar is not supported for this display format"));
+    else
+    {
+        rc = BVBI_Encode_SetGemstar(display->vbi.enc_core, enabled);
+        if (rc)
+        {
+            BDBG_ERR(("GemStar is not supported for format %d.", format));
             return BERR_TRACE(rc);
         }
     }
 
-    if (display->vbi.settings.amolEnabled) {
-        switch (display->vbi.settings.amol.type) {
+    if (display->vbi.settings.amolEnabled)
+    {
+        switch (display->vbi.settings.amol.type)
+        {
         case NEXUS_AmolType_eI:
             display->vbi.amolType = BVBI_AMOL_Type_I; break;
         case NEXUS_AmolType_eII_Lowrate:
@@ -542,22 +668,42 @@ NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format)
         if (rc) return BERR_TRACE(rc);
     }
 
-    if (is656Output) {
-        rc = BVBI_Encode_656_SetAMOL(display->vbi.enc_core,
-            /* AMOL only supported for NTSC and NTSC-J */
-            (format == NEXUS_VideoFormat_eNtsc || format == NEXUS_VideoFormat_eNtscJapan) && display->vbi.settings.amolEnabled);
-        if (rc) {
-            BDBG_WRN(("AMOL is not supported"));
-            return BERR_TRACE(rc);
+    /* AMOL only supported for NTSC and NTSC-J */
+    enabled = (format == NEXUS_VideoFormat_eNtsc || format == NEXUS_VideoFormat_eNtscJapan) && display->vbi.settings.amolEnabled;
+    if (is656Output)
+    {
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_656amole] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_656amole))
+        {
+            BDBG_WRN(("No 656 AMOL encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_656_SetAMOL(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("Failed to enable 656 AMOL for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_656amole] = enabled;
         }
     }
-    else {
-        rc = BVBI_Encode_SetAMOL(display->vbi.enc_core,
-            /* AMOL only supported for NTSC and NTSC-J */
-            (format == NEXUS_VideoFormat_eNtsc || format == NEXUS_VideoFormat_eNtscJapan) && display->vbi.settings.amolEnabled);
-        if (rc) {
-            BDBG_WRN(("AMOL is not supported"));
-            return BERR_TRACE(rc);
+    else
+    {
+        if (enabled && !display->vbi.enabled[nexus_vbi_resources_amole] &&
+            !nexus_display_vbi_available(nexus_vbi_resources_amole))
+        {
+            BDBG_WRN(("No AMOL encoder available for display %u", display->index));
+        }
+        else
+        {
+            rc = BVBI_Encode_SetAMOL(display->vbi.enc_core, enabled);
+            if (rc)
+            {
+                BDBG_ERR(("Failed to enable AMOL for format %d.", format));
+                return BERR_TRACE(rc);
+            }
+            display->vbi.enabled[nexus_vbi_resources_amole] = enabled;
         }
     }
 
@@ -579,12 +725,6 @@ NEXUS_Error NEXUS_Display_SetVbiSettings(NEXUS_DisplayHandle display, const NEXU
     NEXUS_VideoInput prevInput;
 
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
-
-    if (!display->vbi.enc && !display->vbi.enc_core)
-    {
-        BDBG_WRN(("Display %d does not have a VBI encoder.", display->index));
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
 
     if (pSettings->amolEnabled && !g_NEXUS_DisplayModule_State.moduleSettings.vbi.allowAmol) {
         BDBG_WRN(("cannot enable amol because NEXUS_DisplayModuleSettings.vbi.allowAmol is false"));

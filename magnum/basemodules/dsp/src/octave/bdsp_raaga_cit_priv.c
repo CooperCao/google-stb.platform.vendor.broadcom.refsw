@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *****************************************************************************/
 
 #include "bdsp_raaga_cit_priv.h"
@@ -422,12 +426,25 @@ static void BDSP_Raaga_P_CreatePortBufferDetails(
     BDSP_P_PortDetails  *pPortDetials
 )
 {
-    BERR_Code errCode = BERR_SUCCESS;
-    unsigned i=0, j=0, numbuffers =0;
-	BDSP_MMA_Memory descriptorMemory[BDSP_AF_P_MAX_CHANNELS];
-	BDSP_AF_P_sCIRCULAR_BUFFER *pDescriptor[BDSP_AF_P_MAX_CHANNELS];
-
+	BERR_Code errCode = BERR_SUCCESS;
+	unsigned i=0, j=0, numbuffers=0, usedIndex=0;
+	BDSP_MMA_Memory descriptorMemory[BDSP_MAX_DESCRIPTORS_PER_POOL];
+	BDSP_AF_P_sCIRCULAR_BUFFER *pDescriptor[BDSP_MAX_DESCRIPTORS_PER_POOL];
 	BDBG_ENTER(BDSP_Raaga_P_CreatePortBufferDetails);
+
+	numbuffers = pPortDetials->numDataBuffers+
+					pPortDetials->numTocBuffers+
+					pPortDetials->numMetaDataBuffers+
+					pPortDetials->numObjectDataBuffers;
+	BKNI_Memset((void *)&descriptorMemory[0],0,(sizeof(BDSP_MMA_Memory)*BDSP_MAX_DESCRIPTORS_PER_POOL));
+	BDSP_Raaga_P_AssignDescriptor((void *)pDevice,
+								dspIndex,
+								&descriptorMemory[0],
+								numbuffers);
+	for(i=0;i<numbuffers;i++)
+	{
+		pDescriptor[i] = (BDSP_AF_P_sCIRCULAR_BUFFER *)descriptorMemory[i].pAddr;
+	}
     for(i=0; i<pPortDetials->numPortBuffers; i++)
     {
         switch(i)
@@ -449,31 +466,23 @@ static void BDSP_Raaga_P_CreatePortBufferDetails(
                 BDBG_ASSERT(0);
                 break;
         }
-		BKNI_Memset((void *)&descriptorMemory[0],0,(sizeof(BDSP_MMA_Memory)*BDSP_AF_P_MAX_CHANNELS));
-        BDSP_Raaga_P_AssignDescriptor((void *)pDevice,
-                                    dspIndex,
-                                    &descriptorMemory[0],
-                                    numbuffers);
-        for(j=0;j<numbuffers;j++)
-        {
-            pDescriptor[j] = (BDSP_AF_P_sCIRCULAR_BUFFER *)descriptorMemory[j].pAddr;
-        }
-        errCode = BDSP_Raaga_P_PopulatePortBufferDescriptors(
-                                    pConnectionDetails,
-                                    eConnectionType,
-                                    pDescriptor[0],
-                                    numbuffers,
-                                    i);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Raaga_P_CreatePortBufferDetails: Port Buffer Descriptor Not configured properly"));
-            BDBG_ASSERT(0);
-        }
-        for(j=0;j<numbuffers;j++)
-        {
-            pPortDetials->IoBuffer[i][j]= descriptorMemory[j].offset;
-            BDSP_MMA_P_FlushCache(descriptorMemory[j], sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
-        }
+		errCode = BDSP_Raaga_P_PopulatePortBufferDescriptors(
+									pConnectionDetails,
+									eConnectionType,
+									pDescriptor[usedIndex],
+									numbuffers,
+									i);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_CreatePortBufferDetails: Port Buffer Descriptor Not configured properly"));
+			BDBG_ASSERT(0);
+		}
+		for(j=0;j<numbuffers;j++)
+		{
+			pPortDetials->IoBuffer[i][j]= descriptorMemory[j+usedIndex].offset;
+			BDSP_MMA_P_FlushCache(descriptorMemory[j+usedIndex], sizeof(BDSP_AF_P_sCIRCULAR_BUFFER));
+		}
+		usedIndex = usedIndex+numbuffers;
     }
 	BDBG_LEAVE(BDSP_Raaga_P_CreatePortBufferDetails);
 }
@@ -1234,7 +1243,6 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
 	unsigned index=0,i=0,j=0, interStagePortIndex=0, interTaskPortIndex = 0;
 	BDSP_P_InterStagePortInfo *psInterStagePortInfo;
     BDSP_P_InterTaskBuffer    *pInterTaskBuffer;
-	dramaddr_t decriptorArray[BDSP_AF_P_MAX_CHANNELS];
 	BDSP_AF_P_sIoPort *psIoPort;
 
 	BDBG_ENTER(BDSP_Raaga_P_CleanupDescriptors);
@@ -1246,23 +1254,13 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
-				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
-				{
-					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
-					{
-						decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-						psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
-					}
-					errCode = BDSP_Raaga_P_ReleaseDescriptor(
-						(void *)pRaagaStage->pContext->pDevice,
+				errCode = BDSP_Raaga_P_ReleasePortDescriptors(pRaagaStage->pContext->pDevice,
 						pRaagaStage->pRaagaTask->createSettings.dspIndex,
-						&decriptorArray[0],
-						psIoPort->sIoBuffer[j].ui32NumBuffer);
-					if(errCode != BERR_SUCCESS)
-					{
-						BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-						goto end;
-					}
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
 				}
 				break;
 			case BDSP_AF_P_PortType_eInterStage:
@@ -1285,23 +1283,13 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
-				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
-				{
-					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
-					{
-						decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-						psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
-					}
-					errCode = BDSP_Raaga_P_ReleaseDescriptor(
-						(void *)pRaagaStage->pContext->pDevice,
+				errCode = BDSP_Raaga_P_ReleasePortDescriptors(pRaagaStage->pContext->pDevice,
 						pRaagaStage->pRaagaTask->createSettings.dspIndex,
-						&decriptorArray[0],
-						psIoPort->sIoBuffer[j].ui32NumBuffer);
-					if(errCode != BERR_SUCCESS)
-					{
-						BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-						goto end;
-					}
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
 				}
 				break;
 			case BDSP_AF_P_PortType_eInterStage:
@@ -1310,24 +1298,20 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
                     &interStagePortIndex);
 				psInterStagePortInfo = &pRaagaStage->sStageConnectionInfo.sInterStagePortInfo[interStagePortIndex];
 				psInterStagePortInfo->tocIndex = BDSP_AF_P_TOC_INVALID;
+				errCode = BDSP_Raaga_P_ReleasePortDescriptors(pRaagaStage->pContext->pDevice,
+						pRaagaStage->pRaagaTask->createSettings.dspIndex,
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
+				}
 				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
 				{
 					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
 					{
-						decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-						psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
+						psInterStagePortInfo->bufferDescriptorAddr[j][i] = 0;
 					}
-					errCode = BDSP_Raaga_P_ReleaseDescriptor(
-						(void *)pRaagaStage->pContext->pDevice,
-						pRaagaStage->pRaagaTask->createSettings.dspIndex,
-						&decriptorArray[0],
-						psIoPort->sIoBuffer[j].ui32NumBuffer);
-					if(errCode != BERR_SUCCESS)
-					{
-						BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-						goto end;
-					}
-					psInterStagePortInfo->bufferDescriptorAddr[j][i] = 0;
 				}
 				break;
             case BDSP_AF_P_PortType_eInterTask:
@@ -1336,26 +1320,22 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
                     psIoPort->ePortDataType,
                     &interTaskPortIndex);
                 pInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pRaagaStage->sStageConnectionInfo.sStageOutput[interTaskPortIndex].connectionHandle.interTask.hInterTask->pInterTaskBufferHandle;
-                for(j=0;j<psIoPort->ui32numPortBuffer;j++)
-                {
-                    for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
-                    {
-                        decriptorArray[i] = psIoPort->sIoBuffer[j].sCircularBuffer[i];
-                        psIoPort->sIoBuffer[j].sCircularBuffer[i]=0;
-                    }
-                    errCode = BDSP_Raaga_P_ReleaseDescriptor(
-                        (void *)pRaagaStage->pContext->pDevice,
-                        pRaagaStage->pRaagaTask->createSettings.dspIndex,
-                        &decriptorArray[0],
-                        psIoPort->sIoBuffer[j].ui32NumBuffer);
-                    if(errCode != BERR_SUCCESS)
-                    {
-                        BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
-                        goto end;
-                    }
-                    pInterTaskBuffer->bufferDescriptorAddr[j][i]=0;
-                }
-                pInterTaskBuffer->descriptorAllocated=false;
+				errCode = BDSP_Raaga_P_ReleasePortDescriptors(pRaagaStage->pContext->pDevice,
+						pRaagaStage->pRaagaTask->createSettings.dspIndex,
+						psIoPort);
+				if(errCode != BERR_SUCCESS)
+				{
+					BDBG_ERR(("BDSP_Raaga_P_CleanupDescriptors: Error in Cleanup of Descriptor"));
+					goto end;
+				}
+				for(j=0;j<psIoPort->ui32numPortBuffer;j++)
+				{
+					for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)
+					{
+						pInterTaskBuffer->bufferDescriptorAddr[j][i]=0;
+					}
+				}
+				pInterTaskBuffer->descriptorAllocated=false;
                 break;
 			default:
 				BDBG_ERR(("Cleanup descriptor at Output, Port type not supported"));

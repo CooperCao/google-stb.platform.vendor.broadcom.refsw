@@ -133,6 +133,13 @@ static const radar_spec_t radar_spec[] = {
 	/* ETSI 4: PW 20-30us, PRI 250-500us */
 	{ RADAR_TYPE_ETSI_4, 20, 400, 600, 250, 500 },
 
+        /* UK 1: PW 1us, PRI 333us (similar to JP4) */
+	{ RADAR_TYPE_UK1, 3, 20, 20, 333, 333 },
+
+        /* UK 2: PW 20us, PRI 222us */
+	{ RADAR_TYPE_UK2, 5, 400, 400, 222, 222 },
+
+
 	{ RADAR_TYPE_NONE, 0, 0, 0, 0, 0 }
 };
 
@@ -316,9 +323,19 @@ bool bw80_80_mode)
 }
 
 static bool
-wlc_phy_radar_valid(uint16 feature_mask, uint8 radar_type)
+wlc_phy_radar_valid(const phy_info_t *pi, uint16 feature_mask, uint8 radar_type)
 {
-	switch (radar_type) {
+	bool uk_new_valid = FALSE;
+        bool stagger_valid = FALSE;
+
+        /* no stagger for ch > 144 */
+        if (CHSPEC_CHANNEL(pi->radio_chanspec) <= 144)
+		stagger_valid = TRUE;
+	if ((CHSPEC_CHANNEL(pi->radio_chanspec) == 138) ||
+		(CHSPEC_CHANNEL(pi->radio_chanspec) >= 142))
+		uk_new_valid = TRUE;
+
+        switch (radar_type) {
 	case RADAR_TYPE_NONE:
 	case RADAR_TYPE_UNCLASSIFIED:
 		return FALSE;
@@ -328,11 +345,17 @@ wlc_phy_radar_valid(uint16 feature_mask, uint8 radar_type)
 	case RADAR_TYPE_ETSI_2:
 	case RADAR_TYPE_ETSI_3:
 	case RADAR_TYPE_ETSI_4:
+                return ((feature_mask & RADAR_FEATURE_ETSI_DETECT) != 0);
+
 	case RADAR_TYPE_ETSI_5_STG2:
 	case RADAR_TYPE_ETSI_5_STG3:
 	case RADAR_TYPE_ETSI_6_STG2:
 	case RADAR_TYPE_ETSI_6_STG3:
-		return (feature_mask & RADAR_FEATURE_ETSI_DETECT) ? TRUE : FALSE;
+		return (stagger_valid && (feature_mask & RADAR_FEATURE_ETSI_DETECT) != 0);  
+
+	case RADAR_TYPE_UK1:
+	case RADAR_TYPE_UK2:
+		return (uk_new_valid && (feature_mask & RADAR_FEATURE_UK_DETECT) != 0);
 
 	default:
 		;
@@ -342,16 +365,16 @@ wlc_phy_radar_valid(uint16 feature_mask, uint8 radar_type)
 }
 
 static const radar_spec_t *
-wlc_phy_radar_detect_match(const pulse_data_t *pulse, uint16 feature_mask)
+wlc_phy_radar_detect_match(phy_info_t *pi, const pulse_data_t *pulse, uint16 feature_mask)
 {
 	const radar_spec_t *pRadar;
 	const pulse_data_t *next_pulse = pulse + 1;
-
+  
 	/* scan the list of Radars for a possible match */
 	for (pRadar = &radar_spec[0]; pRadar->radar_type != RADAR_TYPE_NONE; ++pRadar) {
 
 		/* skip Radars not in our region */
-		if (!wlc_phy_radar_valid(feature_mask, pRadar->radar_type))
+		if (!wlc_phy_radar_valid(pi,feature_mask, pRadar->radar_type))
 			continue;
 
 		/* need consistent intervals */
@@ -625,7 +648,7 @@ wlc_phy_radar_detect_run_epoch(phy_info_t *pi,
 		uint32 curr_interval = rt->pulses[j].interval;
 
 		/* contiguous pulse detection */
-		pRadar = wlc_phy_radar_detect_match(&rt->pulses[j],
+		pRadar = wlc_phy_radar_detect_match(pi, &rt->pulses[j],
 		                                    rparams->radar_args.feature_mask);
 		det_type = pRadar->radar_type;
 

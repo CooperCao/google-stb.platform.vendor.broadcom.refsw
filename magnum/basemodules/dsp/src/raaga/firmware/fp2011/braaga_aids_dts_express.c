@@ -1,39 +1,43 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bchp.h"
@@ -158,7 +162,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x940c49cf,
 	0x1b5f9783,
 	0x5d008c30,
-	0xc6d344b3,
+	0xc6d3454b,
 	0x7400010f,
 	0x741c03cf,
 	0xe479ff53,
@@ -185,7 +189,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x940c13cf,
 	0x941011cf,
 	0x941449cb,
-	0xc6d34c13,
+	0xc6d34cab,
 	0x761c03cf,
 	0x741801cf,
 	0x94004b07,
@@ -209,7 +213,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x46104207,
 	0x3d9c7217,
 	0x07b27e1b,
-	0xc6d379d3,
+	0xc6d37a6b,
 	0xb6f989ff,
 	0x07a47f2f,
 	0x740c160f,
@@ -231,7 +235,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x00000001,
 	0x951e8e07,
 	0x95248407,
-	0xdb880e20,
+	0xdb900e20,
 	0xdad00e60,
 	0xd9b80fa0,
 	0xd9f81420,
@@ -409,7 +413,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x74040c07,
 	0x741a0a07,
 	0x2b00fe1b,
-	0xdafa0022,
+	0xdaf20022,
 	0x74000847,
 	0x94020a47,
 	0x94107e0f,
@@ -422,7 +426,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x94087e0f,
 	0x940c7e0f,
 	0x940e7e0f,
-	0xdb8a0cc2,
+	0xdb920cc2,
 	0x15008a47,
 	0x94100608,
 	0xa0bf8e2c,
@@ -436,9 +440,9 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x74140807,
 	0x74421217,
 	0x00000041,
-	0xdb5a0c42,
+	0xdb520c42,
 	0x74160003,
-	0xdafa0c62,
+	0xdaf20c62,
 	0x1b448d83,
 	0x94040608,
 	0x013fffff,
@@ -449,7 +453,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x94061008,
 	0x2b00fe38,
 	0x94080e08,
-	0xdb8a0c22,
+	0xdb920c22,
 	0xd9ba0c42,
 	0xda4a0c62,
 	0x9400060f,
@@ -462,7 +466,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x940c0808,
 	0x74040c0f,
 	0x740c0e0f,
-	0xdb580be0,
+	0xdb500be0,
 	0x74100a0f,
 	0x7406080f,
 	0x7408060f,
@@ -571,7 +575,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0xe981fa8b,
 	0xf2204643,
 	0x3d00c30b,
-	0xc6d36ae3,
+	0xc6d36b7b,
 	0x2482105f,
 	0x24864057,
 	0x20824027,
@@ -739,7 +743,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x397d142f,
 	0x8ac82707,
 	0x2a817e97,
-	0xdcc9f402,
+	0xdcd1f402,
 	0x393e9c4f,
 	0x393e9447,
 	0x397d0a3f,
@@ -748,9 +752,9 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x0000001f,
 	0x2b917e87,
 	0x00000056,
-	0xdcc97703,
-	0xdccd6221,
-	0xdccaee00,
+	0xdcd17703,
+	0xdcd56221,
+	0xdcd2ee00,
 	0xdd2ac442,
 	0xddb58880,
 	0x2b807e17,
@@ -795,7 +799,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x07bfff2f,
 	0xa7d38dd3,
 	0xe00b0643,
-	0xff2646db,
+	0xff2e46db,
 	0xa7d309d3,
 	0x1b3f9187,
 	0x2a8a7e07,
@@ -1008,7 +1012,7 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0xe15ffc3b,
 	0xdac810f0,
 	0x07a1100b,
-	0xdba010f0,
+	0xdba810f0,
 	0xb6d689fb,
 	0xe00b0643,
 	0x07bfff2b,
@@ -1731,20 +1735,20 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0xd9e8b2a2,
 	0x94285917,
 	0x00000016,
-	0xc6d346a3,
+	0xc6d3473b,
 	0xf0240e43,
-	0xc6d34693,
+	0xc6d3472b,
 	0x1b3f9043,
 	0xb60a01fc,
 	0x07a47f27,
 	0xf0246643,
-	0xc6d3466b,
+	0xc6d34703,
 	0x3d00915f,
 	0x2a887e07,
 	0x4f7fd757,
 	0x07b17e0f,
 	0x940e551b,
-	0xc6d3463b,
+	0xc6d346d3,
 	0x4f7f9047,
 	0x1480c987,
 	0xb41885f8,
@@ -1778,13 +1782,13 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x9426590f,
 	0xb6ea89fb,
 	0xf0244643,
-	0xc6d3452b,
+	0xc6d345c3,
 	0x3d00915f,
 	0x2a887e07,
 	0x4f7fd757,
 	0x07b17e0f,
 	0x940e551b,
-	0xc6d344fb,
+	0xc6d34593,
 	0xb6f60dff,
 	0x4f7f9047,
 	0x4610c007,
@@ -1814,12 +1818,12 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0x94085340,
 	0xd8a2b110,
 	0xb60281f8,
-	0xdac2b110,
+	0xdab2b110,
 	0xb60905f8,
 	0xd8a15888,
 	0xe25c371b,
 	0xb60105f8,
-	0xdac15888,
+	0xdab15888,
 	0xb60a05f8,
 	0xd8a0fa00,
 	0xb60c81f8,
@@ -1849,14 +1853,14 @@ const uint32_t BDSP_IMG_dts_express_ids_decode_array1[] = {
 	0xb6d909fb,
 	0xf0242643,
 	0x21081123,
-	0xc6d342f3,
+	0xc6d3438b,
 	0x4f7f9043,
 	0xb6e58dff,
 	0x07b21047,
 	0xd8a3e800,
 	0xe05e1f1b,
 	0xb6f801f8,
-	0xdac3e800,
+	0xdab3e800,
 	0xb60285f8,
 	0xd8a2ee00,
 	0xb4f685f8,
