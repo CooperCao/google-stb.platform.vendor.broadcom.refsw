@@ -488,7 +488,11 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	pArmTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
 	pDevice->taskDetails[pArmTask->createSettings.dspIndex].numActiveTasks++;
-	pDevice->taskDetails[pArmTask->createSettings.dspIndex].pTask[pArmTask->taskParams.taskId] = (void *)pArmTask;
+	if(pArmTask->taskParams.taskId < BDSP_MAX_FW_TASK_PER_DSP)
+	{
+		/* To Beat Coverity */
+		pDevice->taskDetails[pArmTask->createSettings.dspIndex].pTask[pArmTask->taskParams.taskId] = (void *)pArmTask;
+	}
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
 
 	pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
@@ -503,6 +507,9 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 	}
 	BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pArmConnectStage)
 
+	/* Starting the task in Firmware, reset states */
+	pArmTask->taskParams.paused = false;
+	pArmTask->taskParams.frozen = false;
 end:
 	BDBG_LEAVE(BDSP_Arm_P_InitAtStartTask);
 	return errCode;
@@ -534,6 +541,9 @@ static void BDSP_Arm_P_UnInitAtStopTask(
 	pArmTask->taskParams.lastCommand   = BDSP_P_CommandID_STOP_TASK;
 	pArmTask->taskParams.masterTaskId  = BDSP_P_INVALID_TASK_ID;
 	pArmTask->taskParams.commandCounter= 0;
+	/* Stoping the task in Firmware, reset states */
+	pArmTask->taskParams.paused = false;
+	pArmTask->taskParams.frozen = false;
 
 	BKNI_AcquireMutex(pArmTask->pContext->pDevice->deviceMutex);
 	pDevice->taskDetails[pArmTask->createSettings.dspIndex].numActiveTasks--;

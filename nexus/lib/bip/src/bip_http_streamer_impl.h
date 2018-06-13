@@ -305,7 +305,7 @@ typedef struct BIP_HttpStreamer
     BIP_HttpStreamerStats                       stats;
 
 #ifdef NEXUS_HAS_ASP
-    B_AspChannelHandle                          hAspChannel;
+    B_AspOutputHandle                           hAspOutput;
 #endif
 } BIP_HttpStreamer;
 

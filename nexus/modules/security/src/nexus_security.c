@@ -1003,6 +1003,28 @@ BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeyLayer( NEXUS_SecurityKeyLayer 
     return BCMD_KeyRamBuf_eMax;
 }
 
+BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeySource( NEXUS_SecurityKeySource keySource )
+{
+    BCMD_KeyRamBuf_e hsmKeySource;
+
+    if( keySource > NEXUS_SecurityKeySource_eMax ) {
+        BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        /* continue */
+    }
+
+    /* check equivalance of most used sources.  */
+    BDBG_CASSERT( (int)NEXUS_SecurityKeySource_eKey3 == (int)BCMD_KeyRamBuf_eKey3 );
+    BDBG_CASSERT( (int)NEXUS_SecurityKeySource_eKey4 == (int)BCMD_KeyRamBuf_eKey4 );
+    BDBG_CASSERT( (int)NEXUS_SecurityKeySource_eKey5 == (int)BCMD_KeyRamBuf_eKey5 );
+    BDBG_CASSERT( (int)NEXUS_SecurityKeySource_eKey6 == (int)BCMD_KeyRamBuf_eKey6 );
+    BDBG_CASSERT( (int)NEXUS_SecurityKeySource_eKey7 == (int)BCMD_KeyRamBuf_eKey7 );
+
+    /* pass the keysource though as it was input. */
+    /* coverity[mixed_enums] */
+    hsmKeySource = keySource;
+
+    return hsmKeySource;
+}
 
 /* Map the NEXUS keyslot type to a HSM keyslot type. */
 BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, /* the Nexus keyslot type */
@@ -1034,6 +1056,197 @@ BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKe
 
     return BCMD_XptSecKeySlot_eType0;  /* default to Type0 */
 }
+
+BCMD_VKLID_e NEXUS_Security_P_mapNexus2Hsm_VklId( NEXUS_SecurityVirtualKeyladderID vklId )
+{
+    BCMD_VKLID_e hsmVklId = BCMD_VKL_KeyRam_eMax;
+    bool masked = vklId & BHSM_VKL_ID_ALLOCATION_FLAG;
+
+    /* remove the BHSM allocation flag. */
+    vklId = vklId &(~BHSM_VKL_ID_ALLOCATION_FLAG);
+
+    switch( vklId ) {
+        case NEXUS_SecurityVirtualKeyladderID_eVKL0:    { hsmVklId = BCMD_VKL0; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL1:    { hsmVklId = BCMD_VKL1; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL2:    { hsmVklId = BCMD_VKL2; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL3:    { hsmVklId = BCMD_VKL3; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL4:    { hsmVklId = BCMD_VKL4; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL5:    { hsmVklId = BCMD_VKL5; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL6:    { hsmVklId = BCMD_VKL6; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKL7:    { hsmVklId = BCMD_VKL7; break; }
+        case NEXUS_SecurityVirtualKeyladderID_eVKLDummy:
+        case NEXUS_SecurityVirtualKeyladderID_eSWKey:   { hsmVklId = BCMD_VKL_KeyRam_eMax; break; }
+        default: {
+            BDBG_MSG(("VKL[0x%X] masked[%d]", vklId, masked ));
+            break;
+        }
+    }
+
+    /* replace the BHSM allocation flag */
+    if( masked ) hsmVklId |= BHSM_VKL_ID_ALLOCATION_FLAG;
+
+    return hsmVklId;
+}
+
+NEXUS_SecurityVirtualKeyladderID NEXUS_Security_P_mapHsm2Nexus_VklId( BCMD_VKLID_e vklId )
+{
+    NEXUS_SecurityVirtualKeyladderID nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKLDummy;
+    bool masked = vklId & BHSM_VKL_ID_ALLOCATION_FLAG;
+
+    /* remove the BHSM allocation flag. */
+    vklId = vklId &(~BHSM_VKL_ID_ALLOCATION_FLAG);
+
+    switch( vklId ) {
+        case BCMD_VKL0:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL0;     break; }
+        case BCMD_VKL1:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL1;     break; }
+        case BCMD_VKL2:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL2;     break; }
+        case BCMD_VKL3:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL3;     break; }
+        case BCMD_VKL4:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL4;     break; }
+        case BCMD_VKL5:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL5;     break; }
+        case BCMD_VKL6:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL6;     break; }
+        case BCMD_VKL7:             { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKL7;     break; }
+        case BCMD_VKL_KeyRam_eMax:  { nxVklId = NEXUS_SecurityVirtualKeyladderID_eVKLDummy; break; }
+        default:{
+            BDBG_ERR(("VKL[0x%X]", vklId ));
+            BERR_TRACE( NEXUS_INVALID_PARAMETER );
+            break;
+        }
+    }
+
+    /* replace the BHSM allocation flag */
+    if( masked ) nxVklId |= BHSM_VKL_ID_ALLOCATION_FLAG;
+
+    return nxVklId;
+}
+
+BCMD_KeyMode_e NEXUS_Security_P_mapNexus2Hsm_KeyMode( NEXUS_SecurityKeyMode keyMode )
+{
+    BCMD_KeyMode_e hsmKeyMode = BCMD_KeyMode_eMax;
+
+    switch( keyMode ) {
+        case NEXUS_SecurityKeyMode_eRegular:        { hsmKeyMode = BCMD_KeyMode_eRegular; break; }
+        case NEXUS_SecurityKeyMode_eDes56:          { hsmKeyMode = BCMD_KeyMode_eDes56; break; }
+        case NEXUS_SecurityKeyMode_eReserved2:      { hsmKeyMode = BCMD_KeyMode_eReserved2; break; }
+        case NEXUS_SecurityKeyMode_eReserved3:      { hsmKeyMode = BCMD_KeyMode_eReserved3; break; }
+        case NEXUS_SecurityKeyMode_eDvbConformance: { hsmKeyMode = BCMD_KeyMode_eDvbConformance; break; }
+        case NEXUS_SecurityKeyMode_eCwc:            {
+       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+            hsmKeyMode = BCMD_KeyMode_eReserved5;
+       #endif /* use default for less that zeus3  */
+            break;
+         }
+        case NEXUS_SecurityKeyMode_eMax:            { hsmKeyMode = BCMD_KeyMode_eMax; break; }
+        default: { BERR_TRACE( NEXUS_INVALID_PARAMETER ); break; }
+    }
+
+    return hsmKeyMode;
+}
+
+BCMD_CustomerSubMode_e NEXUS_Security_P_mapNexus2Hsm_CustomerSubMode( NEXUS_SecurityCustomerSubMode cusSubMode )
+{
+    BCMD_CustomerSubMode_e hsmCusSubMode;
+
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_64_4   == (int)BCMD_CustomerSubMode_eGeneric_CA_64_4 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CP_64_4   == (int)BCMD_CustomerSubMode_eGeneric_CP_64_4 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_64_5   == (int)BCMD_CustomerSubMode_eGeneric_CA_64_5 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CP_64_5   == (int)BCMD_CustomerSubMode_eGeneric_CP_64_5 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_128_4  == (int)BCMD_CustomerSubMode_eGeneric_CA_128_4 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4  == (int)BCMD_CustomerSubMode_eGeneric_CP_128_4 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_128_5  == (int)BCMD_CustomerSubMode_eGeneric_CA_128_5 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_5  == (int)BCMD_CustomerSubMode_eGeneric_CP_128_5 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_64_7   == (int)BCMD_CustomerSubMode_eGeneric_CA_64_7 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_128_7  == (int)BCMD_CustomerSubMode_eGeneric_CA_128_7 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved10        == (int)BCMD_CustomerSubMode_eReserved10 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved11        == (int)BCMD_CustomerSubMode_eReserved11 );
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eSage_128_5        == (int)BCMD_CustomerSubMode_eReserved12 );
+   #endif
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved13        == (int)BCMD_CustomerSubMode_eReserved13 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneralPurpose1   == (int)BCMD_CustomerSubMode_eGeneralPurpose1 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneralPurpose2   == (int)BCMD_CustomerSubMode_eGeneralPurpose2 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved16        == (int)BCMD_CustomerSubMode_eReserved16 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved17        == (int)BCMD_CustomerSubMode_eReserved17 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CA_64_45  == (int)BCMD_CustomerSubMode_eGeneric_CA_64_45 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eGeneric_CP_64_45  == (int)BCMD_CustomerSubMode_eGeneric_CP_64_45 );
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved20        == (int)BCMD_CustomerSubMode_eHWKL );
+   #endif
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved21        == (int)BCMD_CustomerSubMode_eReserved21 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eSecureRSA2        == (int)0x16 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eETSI_5            == (int)BCMD_CustomerSubMode_eETSI_5 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eDTA_M_CA          == (int)BCMD_CustomerSubMode_eReserved24 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eDTA_M_CP          == (int)BCMD_CustomerSubMode_eReserved25 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eDTA_C_CA          == (int)BCMD_CustomerSubMode_eReserved26 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eDTA_C_CP          == (int)BCMD_CustomerSubMode_eReserved27 );
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eScte52CA5         == (int)BCMD_CustomerSubMode_eSCTE52_CA_5 );
+   #endif
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eSageBlDecrypt     == (int)BCMD_CustomerSubMode_eSAGE_BL_DECRYPT );
+   #endif
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eVistaKeyLadder    == (int)BCMD_CustomerSubMode_eReserved30 );
+   #endif
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eVistaCwc          == (int)BCMD_CustomerSubMode_eRESERVED31 );
+   #endif
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved32        == (int)BCMD_CustomerSubMode_eReserved32 );
+   #endif
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved33        == (int)BCMD_CustomerSubMode_eReserved33 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eReserved34        == (int)BCMD_CustomerSubMode_eReserved34 );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eDupleSource       == (int)BCMD_CustomerSubMode_eDupleSource );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eDupleDestination  == (int)BCMD_CustomerSubMode_eDupleDestination );
+    BDBG_CASSERT( (int)NEXUS_SecurityCustomerSubMode_eOTPKeyFieldProgramDataDecrypt == (int)BCMD_CustomerSubMode_eOTPKeyFieldProgramDataDecrypt );
+   #endif
+
+    /* pass the cusSubMode though as it was input. */
+    /* coverity[mixed_enums] */
+    hsmCusSubMode = cusSubMode;
+
+    return hsmCusSubMode;
+}
+
+BCMD_RootKeySrc_e NEXUS_Security_P_mapNexus2Hsm_RootKeySource( NEXUS_SecurityRootKeySrc rootKeySource )
+{
+    BCMD_RootKeySrc_e hsmRootKeySource = BCMD_RootKeySrc_eMax;
+
+    switch( rootKeySource )
+    {
+        case NEXUS_SecurityRootKeySrc_eCuskey:    { hsmRootKeySource = BCMD_RootKeySrc_eCusKey; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyA:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeya; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyB:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeyb; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyC:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeyc; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyD:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeyd; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyE:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeye; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyF:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeyf; break; }
+        case NEXUS_SecurityRootKeySrc_eReserved0: { hsmRootKeySource = BCMD_RootKeySrc_eReserved9; break; }
+        case NEXUS_SecurityRootKeySrc_eMax:       { break; }
+       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
+        case NEXUS_SecurityRootKeySrc_eOtpKeyG:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeyg; break; }
+        case NEXUS_SecurityRootKeySrc_eOtpKeyH:   { hsmRootKeySource = BCMD_RootKeySrc_eOTPKeyh; break; }
+        case NEXUS_SecurityRootKeySrc_eReserved1: { hsmRootKeySource = BCMD_RootKeySrc_eReserved10; break; }
+        case NEXUS_SecurityRootKeySrc_eReserved2: { hsmRootKeySource = BCMD_RootKeySrc_eReserved11; break; }
+        case NEXUS_SecurityRootKeySrc_eGlobalKey: { hsmRootKeySource = BCMD_RootKeySrc_eASKMGlobalKey; break; }
+       #else
+        case NEXUS_SecurityRootKeySrc_eOtpKeyG:
+        case NEXUS_SecurityRootKeySrc_eOtpKeyH:
+        case NEXUS_SecurityRootKeySrc_eReserved1:
+        case NEXUS_SecurityRootKeySrc_eReserved2:
+        case NEXUS_SecurityRootKeySrc_eGlobalKey:
+       #endif
+        /* leave clear for above to fall though */
+        default:{
+            BDBG_ERR(("Root Source Key[0x%X]", rootKeySource ));
+            BERR_TRACE( NEXUS_INVALID_PARAMETER );
+            break;
+        }
+    }
+
+    return hsmRootKeySource;
+}
+
 
 static NEXUS_Error NEXUS_Security_AllocateM2mKeySlot(NEXUS_KeySlotHandle * pKeyHandle,const NEXUS_SecurityKeySlotSettings *pSettings, BCMD_XptSecKeySlot_e type)
 {
@@ -1923,7 +2136,6 @@ NEXUS_Error NEXUS_Security_LoadClearKey(NEXUS_KeySlotHandle keyHandle, const NEX
         loadRouteUserKeyIO.bIsRouteKeyRequired = true;
         loadRouteUserKeyIO.keyDestBlckType = blockType;
         loadRouteUserKeyIO.keyDestEntryType = entryType;
-        loadRouteUserKeyIO.keyMode          = pClearKey->keyMode;
         loadRouteUserKeyIO.caKeySlotType = keyHandle->keyslotType;
         loadRouteUserKeyIO.unKeySlotNum = keyHandle->keySlotNumber;
         loadRouteUserKeyIO.keyMode= BCMD_KeyMode_eRegular;
@@ -2228,8 +2440,8 @@ static NEXUS_Error NEXUS_Security_P_InvalidateKey(NEXUS_KeySlotHandle keyHandle,
     invalidateKeyIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( pSettings->keyDestEntryType );
     invalidateKeyIO.caKeySlotType = (BCMD_XptSecKeySlot_e)keyHandle->keyslotType;
     invalidateKeyIO.unKeySlotNum = keyHandle->keySlotNumber;
-    invalidateKeyIO.virtualKeyLadderID = (BCMD_VKLID_e)pSettings->virtualKeyLadderID;
-    invalidateKeyIO.keyLayer = (BCMD_KeyRamBuf_e)pSettings->keySrc;
+    invalidateKeyIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pSettings->virtualKeyLadderID );
+    invalidateKeyIO.keyLayer = NEXUS_Security_P_mapNexus2Hsm_KeySource( pSettings->keySrc );
 
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     invalidateKeyIO.bInvalidateAllEntries = pSettings->invalidateAllEntries;

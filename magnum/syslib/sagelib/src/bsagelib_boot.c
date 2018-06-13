@@ -1,5 +1,5 @@
-/******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/***************************************************************************
+ *  Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
- ******************************************************************************/
-
+ **************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -1195,6 +1193,7 @@ BSAGElib_P_Boot_ParseSageImage(
        uint32_t image_type, image_signing_scheme, header_version;
        uint32_t all_sig_size;
        uint32_t sec_header_size;
+       uint32_t dtree_param_size;
        bool triple;
 
        holder->header = (BSAGElib_SageSecureHeaderCommon *)raw_ptr;
@@ -1209,7 +1208,7 @@ BSAGElib_P_Boot_ParseSageImage(
            BSAGElib_DeviceBottom *pFrameworkBottom;
            BSAGElib_CombineImageHeader *pBlob = (BSAGElib_CombineImageHeader *)raw_ptr;
            void *dst;
-           const void *src;
+           const uint8_t *src;
            size_t len;
            BSAGElib_DeviceBottom  *pBottom;
 
@@ -1245,8 +1244,11 @@ BSAGElib_P_Boot_ParseSageImage(
 
            /* put signatures after binary, leave out the device tree controling parameter and device tree signature, they're infront of the binary */
            dst = (void *)(bin_ptr+raw_remain);
-           src = &pBottom->ucBinaryControllingParameters;
-           len = sizeof(BSAGElib_DeviceBottom) - sizeof(BSAGElib_ControllingParams) - 256;
+           src = (uint8_t*)pBottom;
+           /*bypass the Device tree related info in the image. Don't copy it*/
+           dtree_param_size = sizeof(pBottom->ucDevicetreeControllingParameters) + sizeof(pBottom->ucDeviceTreeSignature);
+           src = (uint8_t*)(src + dtree_param_size);
+           len = sizeof(BSAGElib_DeviceBottom) - dtree_param_size;
            BKNI_Memcpy(dst,src,len);
            BKNI_Free(pBottom);
 
@@ -1408,16 +1410,26 @@ BSAGElib_P_Boot_SetBootParams(
 #else
      /* SAGE Services parameters - resources */
     {
-        uint32_t sageVklMask;
+        uint32_t sageVklMask = 0;
         BHSM_KeyLadderInfo info;
+        BERR_Code rc_local;
 
-        info.index = 32; /* shift past uint32 if no return value */
-        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
-        sageVklMask = 1<<info.index;
+        BKNI_Memset(&info, 0, sizeof(info));
+        rc_local = BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
+        if(rc_local != BERR_SUCCESS) { rc = BERR_TRACE( rc_local ); goto end; }
 
-        info.index = 32;
-        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
-        sageVklMask |= 1<<info.index;
+        if(info.index < 32)
+        {
+            sageVklMask = 1<<info.index;
+        }
+
+        rc_local = BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
+        if(rc_local != BERR_SUCCESS) { rc = BERR_TRACE( rc_local ); goto end; }
+
+        if(info.index < 32)
+        {
+            sageVklMask |= 1<<info.index;
+        }
 
         /* HSM internally remaps VKL ID. We need to remap VKL ID back to actual VKL ID before to send to SAGE. */
         _BSAGElib_P_Boot_SetBootParam(SageVklMask, sageVklMask);
@@ -2265,16 +2277,26 @@ BSAGElib_Boot_HostReset(
 #else
      /* SAGE Services parameters - resources */
     {
-        uint32_t sageVklMask;
+        uint32_t sageVklMask = 0;
         BHSM_KeyLadderInfo info;
+        BERR_Code rc_local;
 
-        info.index = 32; /* shift past uint32 if no return value */
-        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
-        sageVklMask = 1<<info.index;
+        BKNI_Memset(&info, 0, sizeof(info));
+        rc_local = BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
+        if(rc_local != BERR_SUCCESS) { rc = BERR_TRACE( rc_local ); goto end; }
 
-        info.index = 32;
-        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
-        sageVklMask |= 1<<info.index;
+        if(info.index < 32)
+        {
+            sageVklMask = 1<<info.index;
+        }
+
+        rc_local = BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
+        if(rc_local != BERR_SUCCESS) { rc = BERR_TRACE( rc_local ); goto end; }
+
+        if(info.index < 32)
+        {
+            sageVklMask |= 1<<info.index;
+        }
 
         if(val != sageVklMask)
         {

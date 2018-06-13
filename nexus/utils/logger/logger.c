@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016-2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -554,7 +554,7 @@ int main(int argc, char * const argv[])
     BDBG_ASSERT(fname);
     /* coverity[tainted_string] */
     if ( strcmp(fname, "disabled") ) {
-        fd = open(fname, O_RDONLY);
+        fd = open(fname, O_RDWR);
         if(fd<0) {
             perror(fname);
             usage(argv[0]);
@@ -594,7 +594,7 @@ int main(int argc, char * const argv[])
     signal(SIGUSR1,sigusr1_handler);
     if ( fd >= 0 ) {
         size = st.st_size;
-        shared = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+        shared = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
         if(shared==MAP_FAILED) {
             perror("mmap");
             usage(argv[0]);

@@ -1,39 +1,43 @@
 ############################################################
-#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom.
+#  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
-#  and may only be used, duplicated, modified or distributed pursuant to the terms and
-#  conditions of a separate, written license agreement executed between you and Broadcom
-#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-#  no license (express or implied), right to use, or waiver of any kind with respect to the
-#  Software, and Broadcom expressly reserves all rights in and to the Software and all
-#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#  and may only be used, duplicated, modified or distributed pursuant to
+#  the terms and conditions of a separate, written license agreement executed
+#  between you and Broadcom (an "Authorized License").  Except as set forth in
+#  an Authorized License, Broadcom grants no license (express or implied),
+#  right to use, or waiver of any kind with respect to the Software, and
+#  Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+#  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+#  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
 #  Except as expressly set forth in the Authorized License,
 #
-#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#  1.     This program, including its structure, sequence and organization,
+#  constitutes the valuable trade secrets of Broadcom, and you shall use all
+#  reasonable efforts to protect the confidentiality thereof, and to use this
+#  information only in connection with your use of Broadcom integrated circuit
+#  products.
 #
-#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-#  USE OR PERFORMANCE OF THE SOFTWARE.
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+#  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+#  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+#  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+#  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+#  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 #
-#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-#  ANY LIMITED REMEDY.
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+#  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+#  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+#  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+#  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+#  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+#  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+#  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 #
 # Module Description:
 #       This makefile contains the OS-independent rules for building
@@ -220,6 +224,24 @@ $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc:${NEXUS_BUILD_DIR}/exists
 -include $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc
 endif
 
+# rafael tuner rules
+ifeq ($(NEXUS_RFT_SUPPORT),y)
+BRFT_OBJ_DIR=$(NEXUS_OBJ_DIR)/MAGNUM
+ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(filter ${NEXUS_MODE},client proxy),)
+$(BRFT_OBJ_DIR)/brft.inc:
+	$(MAKE) -f $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/7255ib/rft/Makefile BRFT_OBJ_DIR=$(BRFT_OBJ_DIR) BRFT_ROOT=$(BRFT_ROOT) BRFT_OBJ_SUFFIX=$(NEXUS_OBJ_SUFFIX) MAGNUM=$(MAGNUM)
+-include $(BRFT_OBJ_DIR)/brft.inc
+vpath %.c $(dir $(BRFT_LIB_SOURCES))
+MAGNUM_CFLAGS += $(addprefix -D,$(BRFT_LIB_DEFINES)) $(addprefix -I,$(BRFT_LIB_INCLUDES))
+MAGNUM_OBJECTS += $(addprefix $(NEXUS_OBJ_DIR)/MAGNUM/,$(patsubst %.c,%.$(NEXUS_OBJ_SUFFIX),$(notdir $(BRFT_LIB_SOURCES))))
+endif
+endif
+EXTRA_CLEAN += clean_rft
+clean_rft:
+	$(MAKE) -f $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/7255ib/rft/Makefile BRFT_OBJ_DIR=$(BRFT_OBJ_DIR) BRFT_OBJ_SUFFIX=$(NEXUS_OBJ_SUFFIX) clean
+endif
+
 # dolby vision rules
 ifeq ($(NEXUS_DBV_SUPPORT),y)
 BDBV_OBJ_DIR=$(NEXUS_OBJ_DIR)/MAGNUM
@@ -284,4 +306,3 @@ ${NEXUS_SYNCTHUNK_DIR}/nexus_scm_id_string.h:${NEXUS_SYNCTHUNK_DIR}/exists
 # NOTE: It's important that NEXUS_$(module)_PUBLIC_INCLUDES not be rolled up into a single, global include path inside nexus.inc.
 # Having per-module include paths is required for perserving modularity by preventing unmanaged calls from one module to another.
 # See platform_app.inc for a rolled up NEXUS_$(module)_PUBLIC_INCLUDES usable by applications to access the entire Nexus public API.
-

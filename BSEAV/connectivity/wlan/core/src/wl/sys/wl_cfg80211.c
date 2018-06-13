@@ -9525,62 +9525,81 @@ static void
 wl_cfg80211_mgmt_frame_register(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 	u16 frame, bool reg)
 {
-#if defined(WLFBT)
-	struct cfg80211_mgmt_registration {
-		struct list_head list;
-		u32 nlportid;
-		int match_len;
-		__le16 frame_type;
-		u8 match[];
-	};
-	struct cfg80211_mgmt_registration *ereg, *nreg;
-	struct wireless_dev *wdev = cfgdev_to_wdev(cfgdev);
-	u32 snd_portid = 0;
-	int i, found;
-	static const int stypes[] = {
-		FC_AUTH,
-		FC_ASSOC_REQ,
-		FC_REASSOC_REQ,
-	};
-#endif
-
 	WL_DBG(("frame_type: %x, reg: %d\n", frame, reg));
 
 #if defined(WLFBT)
-	if (wdev->iftype != NL80211_IFTYPE_AP) {
-		WL_DBG(("Not an AP, no need to register Auth and (Re)Assoc Req frames.\n"));
-		return;
-	}
+	if (reg) { /* This is hack to register frames in driver level for Hostapd FBT */
+		struct cfg80211_mgmt_registration {
+			struct list_head list;
+			u32 nlportid;
+			int match_len;
+			__le16 frame_type;
+			u8 match[];
+		};
+		struct cfg80211_mgmt_registration *ereg, *nreg;
+		struct wireless_dev *wdev;
+		struct bcm_cfg80211 *cfg;
+		u32 snd_portid = 0;
+		int i, found;
+		static const int stypes[] = {
+			FC_AUTH,
+			FC_ASSOC_REQ,
+			FC_REASSOC_REQ,
+		};
 
-	/* This is hack to register frames in driver level for Hostapd FBT */
-	ereg = list_first_entry(&wdev->mgmt_registrations, typeof(*ereg), list);
-	if (!ereg) {
-		WL_ERR(("No register frame\n"));
-		return;
-	}
-	/* Get netlink portid */
-	snd_portid = ereg->nlportid;
+		cfg = wiphy_priv(wiphy);
+		if (cfg->fbt_mgmt_registered) {
+			WL_DBG(("The mgmt frames for fbt had been registered.\n"));
+			return;
+		}
 
-	for (i = 0; i < ARRAYSIZE(stypes); i++) {
-		found = 0;
-		list_for_each_entry(ereg, &wdev->mgmt_registrations, list) {
-			if (stypes[i] == le16_to_cpu(ereg->frame_type)) {
-				found = 1;
-				break;
+		wdev = cfgdev_to_wdev(cfgdev);
+		if (wdev->iftype != NL80211_IFTYPE_AP) {
+			WL_DBG(("Not an AP, no need to register Auth and (Re)Assoc Req frames.\n"));
+			return;
+		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+		spin_lock_bh(&wdev->mgmt_registrations_lock);
+#endif
+		ereg = list_first_entry(&wdev->mgmt_registrations, typeof(*ereg), list);
+		if (!ereg) {
+			WL_ERR(("No register frame\n"));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+			spin_unlock_bh(&wdev->mgmt_registrations_lock);
+#endif
+			return;
+		}
+		/* Get netlink portid */
+		snd_portid = ereg->nlportid;
+
+		for (i = 0; i < ARRAYSIZE(stypes); i++) {
+			found = 0;
+			list_for_each_entry(ereg, &wdev->mgmt_registrations, list) {
+				if (stypes[i] == le16_to_cpu(ereg->frame_type)) {
+					found = 1;
+					break;
+				}
+			}
+			if (!found) {
+				nreg = kzalloc(sizeof(*ereg), GFP_KERNEL);
+				if (!nreg) {
+					WL_ERR(("Failed to allocate frame registration entry"));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+					spin_unlock_bh(&wdev->mgmt_registrations_lock);
+#endif
+					return;
+				}
+				nreg->match_len = 0;
+				nreg->nlportid = snd_portid;
+				nreg->frame_type = cpu_to_le16(stypes[i]);
+				list_add(&nreg->list, &wdev->mgmt_registrations);
+				WL_DBG(("Register frame_type: %x\n", nreg->frame_type));
 			}
 		}
-		if (!found) {
-			nreg = kzalloc(sizeof(*ereg), GFP_KERNEL);
-			if (!nreg) {
-				WL_ERR(("Failed to allocate frame registration entry"));
-				return;
-			}
-			nreg->match_len = 0;
-			nreg->nlportid = snd_portid;
-			nreg->frame_type = cpu_to_le16(stypes[i]);
-			list_add(&nreg->list, &wdev->mgmt_registrations);
-			WL_DBG(("Register frame_type: %x\n", nreg->frame_type));
-		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+		spin_unlock_bh(&wdev->mgmt_registrations_lock);
+#endif
+		cfg->fbt_mgmt_registered = TRUE;
 	}
 #else
 	if (frame != (IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_REQ))
@@ -17137,6 +17156,14 @@ wl_cfg80211_netdev_notifier_call(struct notifier_block * nb,
 				refcnt++;
 			}
 #endif /* LINUX_VERSION < VERSION(3, 14, 0) */
+			wl_clr_drv_status(cfg, READY, dev);
+			wl_clr_drv_status(cfg, SCANNING, dev);
+			wl_clr_drv_status(cfg, SCAN_ABORTING, dev);
+			wl_clr_drv_status(cfg, CONNECTING, dev);
+			wl_clr_drv_status(cfg, CONNECTED, dev);
+			wl_clr_drv_status(cfg, DISCONNECTING, dev);
+			wl_clr_drv_status(cfg, AP_CREATED, dev);
+			wl_clr_drv_status(cfg, AP_CREATING, dev);
 			break;
 		}
 		case NETDEV_UNREGISTER:

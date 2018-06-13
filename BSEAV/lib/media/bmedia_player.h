@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -251,6 +251,8 @@ typedef struct bmedia_player_config {
       } format;
 } bmedia_player_config;
 
+struct b_mp4_cenc_payload_handler;
+
 /**
 Summary:
   This structure is used to define stream that player shall manage
@@ -282,6 +284,7 @@ typedef struct bmedia_player_stream {
     } stream;
 	void *cntx;
 	void (*decrypt_callback)(void *cntx, batom_cursor *cursor, size_t *length, void *drm_info, unsigned track_no);
+    const struct b_mp4_cenc_payload_handler *mp4_cenc;
 } bmedia_player_stream;
 
 /**

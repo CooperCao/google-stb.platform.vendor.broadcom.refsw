@@ -1,5 +1,5 @@
 /*
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -347,7 +347,7 @@ static void v3d_gem_put_pages(struct v3d_drm_gem_object *obj)
 
 	if (obj->cma_pages) {
 		DRM_DEBUG_ALLOC("Free CMA pages for obj=0x%pK\n", obj);
-		v3d_free_cma_pages(num_pages, obj->cma_pages);
+		v3d_free_cma_pages(obj->fp, num_pages, obj->cma_pages);
 		vfree(obj->cma_pages);
 		obj->cma_pages = NULL;
 	}
@@ -476,7 +476,7 @@ free_addrs:
 	obj->dma_addrs = NULL;
 free_pages:
 	if (obj->cma_pages) {
-		v3d_free_cma_pages(num_pages, obj->cma_pages);
+		v3d_free_cma_pages(fp, num_pages, obj->cma_pages);
 		vfree(obj->cma_pages);
 		obj->cma_pages = NULL;
 	}
@@ -1246,7 +1246,7 @@ static const struct of_device_id v3d_drm_of_table[] = {
 	{ .compatible = "brcm,v3d-v3.3.1.0", .data = &v3d_v3_3_1_0 },
 	{ .compatible = "brcm,v3d-v4.0.2.0", .data = &v3d_v3_3_1_0 },
 	{ .compatible = "brcm,v3d-v4.1.34.0", .data = &v3d_v3_3_1_0 },
-	{ .compatible = "brcm,v3d-v4.2.13.0", .data = &v3d_v3_3_1_0 },
+   { .compatible = "brcm,v3d-v4.2.13.0", .data = &v3d_v3_3_1_0 },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, v3d_drm_of_table);

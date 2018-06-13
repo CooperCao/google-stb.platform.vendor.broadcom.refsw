@@ -369,6 +369,7 @@ static std::string int_to_string(uint32_t i)
 
 static const uint16_t kWRMHEADERRecord = 0x1;
 
+#if 0
 static void ParsePssh(std::string* pssh, std::string* wrmheader)
 {
     wrmheader->clear();
@@ -403,6 +404,7 @@ static void ParsePssh(std::string* pssh, std::string* wrmheader)
         ptr16 = (uint16_t*)(ptr + dataLen);
     }
 }
+#endif
 
 Playready30Decryptor::Playready30Decryptor()
     : BaseDecryptor()

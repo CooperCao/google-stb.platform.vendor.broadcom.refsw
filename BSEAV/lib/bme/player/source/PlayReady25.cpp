@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #include "MediaDrmContext.h"
@@ -32,7 +32,9 @@ void MediaDrmContext::decryptPR25(NEXUS_DmaJobBlockSettings* dmaBlock, size_t ne
     std::lock_guard<std::mutex> lg(_drmLock);  // Drm_Reader_Decrypt*() not reentrant
     DRM_DECRYPT_CONTEXT *instance = (DRM_DECRYPT_CONTEXT *)_context;
     Decrypt25_t decrypt = reinterpret_cast<Decrypt25_t>(_playReady25.decryptOpaque);
-    (void) (*decrypt)(instance, &AesConfig, dmaBlock, dmaBlock, nelem);
+    int status = (int) (*decrypt)(instance, &AesConfig, dmaBlock, dmaBlock, nelem);
+    if (status != 0)
+        throw status;
 }
 
 }

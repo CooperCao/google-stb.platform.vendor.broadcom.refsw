@@ -299,9 +299,9 @@ static void playerPrintStatus(
 
     BKNI_Memset(&pbipStatus, 0, sizeof(pbipStatus));
 #ifdef NEXUS_HAS_ASP
-    if (hPlayer->hAspChannel)
+    if (hPlayer->hAspInput)
     {
-        B_AspChannel_PrintStatus(hPlayer->hAspChannel);
+        B_AspInput_PrintStatus(hPlayer->hAspInput);
     }
 #endif
 
@@ -319,7 +319,7 @@ static void playerPrintStatus(
         totalConsumed = pbipStatus.totalConsumed;
     }
 #ifdef NEXUS_HAS_ASP
-    if (hPlayer->hAspChannel)
+    if (hPlayer->hAspInput)
     {
         /* TODO: for ASP Path, need to find out the position. */
         currentPositionInMs = 0;
@@ -6068,7 +6068,21 @@ static int tcpConnect(char *pServer, char *pPort)
     rc = bind(sd, (struct sockaddr *)&localAddr, sizeof(localAddr));
     BDBG_ASSERT(rc == 0);
 
-    rc = connect(sd, addrInfo->ai_addr, addrInfo->ai_addrlen);
+    do
+    {
+        rc = connect(sd, addrInfo->ai_addr, addrInfo->ai_addrlen);
+        if (rc != 0)
+        {
+            perror("connect error: ");
+            BDBG_WRN(("connect returned errno=%d", errno));
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+    while (1);
     BDBG_ASSERT(rc == 0);
 
     BDBG_WRN(("%s: Connected to %s:%s ...", BSTD_FUNCTION, pServer, pPort));
@@ -6096,7 +6110,8 @@ static void aspLibCallbackViaArbTimer(
     }
     else if (param == 2)
     {
-        hPlayer->gotAspLibStateChangedCallback = true;
+        hPlayer->gotAspLibEndOfStreamingCallback = true;
+        hPlayer->reachedEndOfStream = true;
     }
     /* coverity[sleep: FALSE] */
     processPlayerState_locked( (BIP_PlayerHandle) hPlayer, BIP_Arb_ThreadOrigin_eTimer);
@@ -6142,7 +6157,7 @@ static BIP_Status createAspChannelAndSendHttpRequest(
     BIP_PlayerHandle hPlayer
     )
 {
-    B_Error     rc;
+    NEXUS_Error nrc;
     BIP_Status  completionStatus = BIP_ERR_INTERNAL;
 
     if (hPlayer->streamInfo.transportType != NEXUS_TransportType_eTs)
@@ -6153,69 +6168,64 @@ static BIP_Status createAspChannelAndSendHttpRequest(
         goto error;
     }
 
+    if (hPlayer->playerProtocol != BIP_PlayerProtocol_eSimpleHttp)
+    {
+        BDBG_ERR(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Protocol=%d not yet supported by ASPs" BIP_MSG_PRE_ARG,
+                    BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->playerProtocol));
+        completionStatus = BIP_ERR_NOT_SUPPORTED;
+        goto error;
+    }
+
     /* Create an ASP Channel in the StreamIn mode. */
     {
-        B_AspChannelCreateSettings createSettings;
-        B_AspStreamingProtocol aspStreamingProtocol;
+        B_AspInputCreateSettings createSettings;
 
-        switch (hPlayer->playerProtocol)
-        {
-            case BIP_PlayerProtocol_eSimpleHttp:
-                aspStreamingProtocol = B_AspStreamingProtocol_eHttp;
-                break;
-            default:
-                BDBG_ERR(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Protocol=%d not yet supported by ASPs" BIP_MSG_PRE_ARG,
-                            BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->playerProtocol));
-                completionStatus = BIP_ERR_NOT_SUPPORTED;
-                goto error;
-        }
+        B_AspInput_GetDefaultCreateSettings( &createSettings);
 
-        /* fill-in StreamingIn mode related settings. */
-        B_AspChannel_GetDefaultCreateSettings(aspStreamingProtocol, &createSettings);
-        BDBG_ASSERT(createSettings.protocol == B_AspStreamingProtocol_eHttp);
-        createSettings.mode = B_AspStreamingMode_eIn;
-        createSettings.modeSettings.streamIn.hPlaypump = hPlayer->hPlaypump;
-        createSettings.mediaInfoSettings.transportType = hPlayer->streamInfo.transportType;
-
-        /* Create ASP Channel. This will allow us to send & receive HTTP Request & Response using this Channel. */
-        hPlayer->hAspChannel = B_AspChannel_Create(hPlayer->socketFd, &createSettings);
-        BDBG_ASSERT(hPlayer->hAspChannel);
+        /* Create ASP Input. */
+        hPlayer->hAspInput = B_AspInput_Create(&createSettings);
+        BIP_CHECK_GOTO(( hPlayer->hAspInput ), ( "B_AspInput_Create() Failed"), error, BIP_ERR_NEXUS, completionStatus );
     }
 
     /* Setup callbacks. */
     {
-        B_AspChannelSettings settings;
+        B_AspInputSettings settings;
 
-        B_AspChannel_GetSettings(hPlayer->hAspChannel, &settings);
+        B_AspInput_GetSettings(hPlayer->hAspInput, &settings);
 
         /* Setup a callback to notify when data (HTTP Response) will be available. */
-        settings.dataReady.context = hPlayer;
-        settings.dataReady.param = 1;
-        settings.dataReady.callback = callbackFromAspLib;
+        settings.httpResponseDataReady.context = hPlayer;
+        settings.httpResponseDataReady.callback = callbackFromAspLib;
+        settings.httpResponseDataReady.param = 1;
 
         /* Setup a callback to notify state transitions indicating either network errors or EOF condition. */
-        settings.stateChanged.context = hPlayer;
-        settings.dataReady.param = 2;
-        settings.stateChanged.callback = callbackFromAspLib;
+        settings.endOfStreaming.context = hPlayer;
+        settings.endOfStreaming.callback = callbackFromAspLib;
+        settings.endOfStreaming.param = 2;
 
-        rc = B_AspChannel_SetSettings(hPlayer->hAspChannel, &settings);
-        BDBG_ASSERT(rc==0);
+        nrc = B_AspInput_SetSettings(hPlayer->hAspInput, &settings);
+        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "B_AspInput_SetSettings() Failed"), error, BIP_ERR_NEXUS, completionStatus);
+    }
+
+    /* Connect to ASP */
+    {
+        B_AspInputConnectHttpSettings settings;
+
+        B_AspInput_GetDefaultConnectHttpSettings(&settings);
+
+        settings.transportType = hPlayer->streamInfo.transportType;
+        settings.hPlaypump = hPlayer->hPlaypump;
+
+        nrc = B_AspInput_ConnectHttp(hPlayer->hAspInput, hPlayer->socketFd, &settings);
+        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "B_AspInput_ConnectHttp() Failed"), error, BIP_ERR_NEXUS, completionStatus);
     }
 
     /* Send HTTP Request using AspChannel. */
     {
-        void *pHttpReqBuf;
-        unsigned httpReqBufSize = 0;
-        void *pHttpReqBuf1;
-        unsigned httpReqBufSize1 = 0;
+        char httpReqBuf[8196];
+        unsigned httpReqBufSize = 8196;
 
-        /* Get Buffer where HTTP Request will be written into. */
-        rc = B_AspChannel_GetWriteBufferWithWrap(hPlayer->hAspChannel, &pHttpReqBuf, &httpReqBufSize, &pHttpReqBuf1, &httpReqBufSize1);
-        BDBG_ASSERT(rc==0);
-        BSTD_UNUSED(pHttpReqBuf1);
-        BSTD_UNUSED(httpReqBufSize1);
-        BDBG_MSG(("pHttpReqBuf=%p size=%u", pHttpReqBuf, httpReqBufSize));
-        BKNI_Memset(pHttpReqBuf, 0, httpReqBufSize);
+        BKNI_Memset(httpReqBuf, 0, httpReqBufSize);
 
         /* Prepare HTTP Request into this buffer. */
 #define HTTP_GET_REQUEST_STRING \
@@ -6223,20 +6233,25 @@ static BIP_Status createAspChannelAndSendHttpRequest(
     "Connection: Close\r\n" \
     "User-Agent: ASP Test Player\r\n" \
     "\r\n"
-        snprintf(pHttpReqBuf, httpReqBufSize-1, HTTP_GET_REQUEST_STRING,
+        snprintf(httpReqBuf, httpReqBufSize-1, HTTP_GET_REQUEST_STRING,
                             hPlayer->hUrl->path,
                             hPlayer->hUrl->query ? hPlayer->hUrl->query:"",
                             hPlayer->hUrl->fragment ? hPlayer->hUrl->fragment:""
                 );
-        BDBG_WRN(("httpReq=\n%s", (char *)pHttpReqBuf));
+        BDBG_WRN(("httpReq=\n%s", (char *)httpReqBuf));
 
         /* Provide this buffer to ASP so that it can send it out on the network. */
-        rc = B_AspChannel_WriteComplete(hPlayer->hAspChannel, strlen(pHttpReqBuf));
-        BDBG_ASSERT(rc==0);
+        nrc = B_AspInput_SendHttpRequest(hPlayer->hAspInput, httpReqBuf, strlen(httpReqBuf));
+        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "B_AspInput_SendHttpRequest() Failed"), error, BIP_ERR_NEXUS, completionStatus);
         completionStatus = BIP_SUCCESS;
     }
 
 error:
+    if (completionStatus != BIP_SUCCESS)
+    {
+        if (hPlayer->hAspInput) B_AspInput_Destroy(hPlayer->hAspInput);
+        hPlayer->hAspInput = NULL;
+    }
     return completionStatus;
 } /* createAspChannelAndSendHttpRequest */
 
@@ -6244,25 +6259,18 @@ static BIP_Status checkForHttpResponse(
     BIP_PlayerHandle hPlayer
     )
 {
-    B_Error     rc;
-    const void *pHttpRespBuf;
-    unsigned    httpRespBufSize = 0;
-    const void *pHttpRespBuf1;
-    unsigned    httpRespBufSize1 = 0;
-
-    BSTD_UNUSED(pHttpRespBuf1);
-    BSTD_UNUSED(httpRespBufSize1);
+    NEXUS_Error nrc;
+    const void *pHttpRespBuf = NULL;
+    unsigned    httpRespDataLength = 0;
 
     /* Check if ASP has received any data from network. */
-    rc = B_AspChannel_GetReadBufferWithWrap(hPlayer->hAspChannel, &pHttpRespBuf, &httpRespBufSize, &pHttpRespBuf1, &httpRespBufSize1);
-    BDBG_ASSERT(rc==B_ERROR_SUCCESS);
-
-    if (httpRespBufSize && pHttpRespBuf)
+    nrc = B_AspInput_GetHttpResponseData(hPlayer->hAspInput, &pHttpRespBuf, &httpRespDataLength);
+    if (nrc == NEXUS_SUCCESS && httpRespDataLength && pHttpRespBuf)
     {
         /* TODO: HTTP Response is available, parse it & check if full Response has been read. */
         /* Otherwise, save the partial response into the buffer. */
         /* TODO: feed this to the HTTP Response class. */
-        BDBG_WRN(("ResponseLength=%u response=%s", httpRespBufSize, (char *)pHttpRespBuf));
+        BDBG_WRN(("ResponseLength=%u response=%s", httpRespDataLength, (char *)pHttpRespBuf));
 
         if (strcasestr(pHttpRespBuf, "200 ok") == NULL)
         {
@@ -6270,7 +6278,7 @@ static BIP_Status checkForHttpResponse(
         }
 
         /* Let ASP know that we have consumed either whole or some part of this buffer. */
-        B_AspChannel_ReadComplete(hPlayer->hAspChannel, httpRespBufSize);
+        B_AspInput_HttpResponseDataConsumed(hPlayer->hAspInput, true, httpRespDataLength );
         return BIP_SUCCESS;
     }
     else
@@ -6468,8 +6476,13 @@ static BIP_Status processStartingState_locked(
         }
         else if (completionStatus == BIP_SUCCESS)
         {
+            B_AspInputStartSettings settings;
+
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Got successful HTTP Response, starting Player!" BIP_MSG_PRE_ARG, (void *)hPlayer));
-            B_AspChannel_StartStreaming(hPlayer->hAspChannel);
+            B_AspInput_GetDefaultStartSettings(&settings);
+            settings.feedMode = B_AspInputFeedMode_eAuto;
+            nrc = B_AspInput_Start(hPlayer->hAspInput, &settings);
+            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "B_AspInput_Start() Failed"), error, completionStatus, completionStatus );
         }
     }
 #endif
@@ -7833,12 +7846,11 @@ static BIP_Status processStopApiState_locked(
 
         /* Now Stop PBIP */
 #ifdef NEXUS_HAS_ASP
-        if (hPlayer->hAspChannel)
+        if (hPlayer->hAspInput)
         {
-            /* TODO: check return status. */
-            B_AspChannel_StopStreaming(hPlayer->hAspChannel);
-            B_AspChannel_Destroy(hPlayer->hAspChannel, NULL);
-            hPlayer->hAspChannel = NULL;
+            B_AspInput_Stop(hPlayer->hAspInput);
+            B_AspInput_Destroy(hPlayer->hAspInput);
+            hPlayer->hAspInput = NULL;
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ASP Channel is Stopped & Destroyed!!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         }
         else

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1110,6 +1110,54 @@ batom_extract(batom_t src, const batom_cursor *first, const batom_cursor *last, 
 	return atom;
 }
 
+size_t batom_cursor_extract_range (const batom_cursor *first, const batom_cursor *last, batom_vec *vecs, size_t vec_size, size_t *required_vec_size)
+{
+    unsigned nvecs;
+    unsigned first_pos;
+
+    BDBG_MSG_TRACE(("batom_cursor_extract_range>:%p %p(%u) %p(%u)",  (void *)vecs, (void *)first, (unsigned)batom_cursor_pos(first), (void *)last, last?(int)batom_cursor_pos(last):-1));
+    BDBG_ASSERT(first->pos <= first->count);
+    if(last) {
+        BDBG_ASSERT(first->pos <= last->pos);
+        BDBG_ASSERT(first->vec == last->vec);
+        BDBG_ASSERT(first->count == last->count);
+        BDBG_ASSERT(last->pos <= last->count);
+        BDBG_ASSERT(batom_cursor_pos(first) <= batom_cursor_pos(last));
+    }
+
+    if(first->left>0) {
+        first_pos = first->pos - 1;
+    } else {
+        first_pos = first->pos;
+    }
+    if(last) {
+        BDBG_ASSERT(last->pos>=first_pos);
+        nvecs = last->pos - first_pos;
+    } else {
+        nvecs = first->count - first_pos;
+    }
+    *required_vec_size = nvecs;
+    if(nvecs>vec_size) {
+        nvecs = vec_size;
+    }
+    if (nvecs>0) {
+        b_atom_copy_vecs(vecs, first->vec+first_pos, nvecs);
+        /* adjust first vector */
+        if(first->left > 0) {
+            BDBG_ASSERT(first->vec[first_pos].len>= first->left);
+            vecs[0].len = first->left;
+            vecs[0].base = (uint8_t *)vecs[0].base + (first->vec[first_pos].len - first->left);
+        }
+        /* adjust last vector */
+        if(last && last->left > 0) {
+            BDBG_ASSERT(vecs[nvecs-1].len >= last->left);
+            vecs[nvecs-1].len -= last->left;
+        }
+        BDBG_MSG_TRACE(("batom_cursor_extract_range:%p  -> (%u:%u) %p:%u", (void *)vecs, (unsigned)nvecs, (unsigned)*required_vec_size, (void *)vecs[0].base, (unsigned)vecs[0].len));
+    } /* else nvecs = 0, do nothing */
+    return nvecs;
+}
+
 size_t batom_cursor_extract (const batom_cursor *cursor, batom_vec *vecs, size_t vec_size, size_t *required_vec_size)
 {
     unsigned first_pos;
@@ -1139,6 +1187,7 @@ size_t batom_cursor_extract (const batom_cursor *cursor, batom_vec *vecs, size_t
     }
     return result;
 }
+
 
 batom_t 
 batom_clone(batom_t atom, const batom_user  *user, const void *udata)
@@ -2189,12 +2238,36 @@ batom_cursor_dump(const batom_cursor *src, const char *name)
 
 void batom_range_dump(const void *data, size_t length, const char *name)
 {
-    batom_vec vec;
     batom_cursor c;
 
-    BATOM_VEC_INIT(&vec, data, length);
-    batom_cursor_from_vec(&c, &vec, 1);
-    b_atom_cursor_dump(&c, "range", name);
+    if(length<BATOM_VEC_MAX_SIZE) {
+        batom_vec vec;
+        BATOM_VEC_INIT(&vec, data, length);
+        batom_cursor_from_vec(&c, &vec, 1);
+        b_atom_cursor_dump(&c, "range", name);
+    } else {
+        unsigned count = (length + BATOM_VEC_MAX_SIZE - 1) / BATOM_VEC_MAX_SIZE;
+        unsigned i;
+        size_t left = length;
+        const uint8_t *buf = data;
+        batom_vec *vecs;
+        vecs=BKNI_Malloc(sizeof(*vecs)*count);
+        if(vecs==NULL) {(void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);return;}
+        for(i=0;i<count;i++) {
+            unsigned vec_len;
+            if(left > BATOM_VEC_MAX_SIZE) {
+                vec_len = BATOM_VEC_MAX_SIZE;
+            } else {
+                vec_len = left;
+            }
+            BATOM_VEC_INIT(&vecs[i], buf, vec_len);
+            buf += vec_len;
+            left -= vec_len;
+        }
+        batom_cursor_from_vec(&c, vecs, count);
+        b_atom_cursor_dump(&c, "range", name);
+        BKNI_Free(vecs);
+    }
     return;
 }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -324,18 +324,17 @@ typedef struct bmp4_sample_mp3 {
     bmp4_audiosampleentry audio;
 } bmp4_sample_mp3;
 
-
-typedef struct bmp4_sample_codecprivate {
+typedef struct bmp4_box_info {
     unsigned offset;
     bmp4_box box;
-} bmp4_sample_codecprivate;
+} bmp4_box_info;
 
 typedef struct bmp4_sampleentry {
     uint16_t data_reference_index;
     bool encrypted;
     uint32_t type;
     bmp4_sample_type sample_type;
-    bmp4_sample_codecprivate codecprivate;
+    bmp4_box_info codecprivate;
     size_t protection_scheme_information_size;
     uint8_t protection_scheme_information[128];
     union {
@@ -447,6 +446,46 @@ typedef struct bmp4_track_fragment_run_state {
 #define BMP4_SAMPLE_ENCRYPTED_VIDEO BMP4_TYPE('e','n','c','v')
 #define BMP4_SAMPLE_ENCRYPTED_AUDIO BMP4_TYPE('e','n','c','a')
 
+#define BMP4_SAMPLE_GROUP_DESCRIPTION BMP4_TYPE('s','g','p','d')
+struct bmp4_SampleGroupDescription {
+    uint32_t grouping_type;
+    uint32_t default_length;
+    uint32_t default_sample_description_index;
+    uint32_t entry_count;
+    bool default_length_valid;
+    bool default_sample_description_index_valid;
+};
+
+struct bmp4_SampleAuxiliaryInformation {
+    uint32_t type;
+    uint32_t type_parameter;
+};
+
+#define BMP4_SAMPLE_AUXILIARY_INFORMATION_SIZES BMP4_TYPE('s','a','i','z')
+struct bmp4_SampleAuxiliaryInformationSizes {
+    struct bmp4_SampleAuxiliaryInformation aux_info;
+    uint8_t default_sample_info_size;
+    uint32_t sample_count;
+};
+
+#define BMP4_SAMPLE_AUXILIARY_INFORMATION_OFFSETS BMP4_TYPE('s','a','i','o')
+struct bmp4_SampleAuxiliaryInformationOffsets {
+    struct bmp4_SampleAuxiliaryInformation aux_info;
+    uint32_t entry_count;
+};
+
+#define BMP4_SAMPLE_GROUP_DESCRIPTION BMP4_TYPE('s','g','p','d')
+
+#define BMP4_SAMPLE_TO_GROUP BMP4_TYPE('s','b','g','p')
+struct bmp4_SampleToGroup {
+    uint32_t grouping_type;
+    bool grouping_type_parameter_valid;
+    uint32_t grouping_type_parameter;
+    uint32_t entry_count;
+};
+#define BMP4_PROTECTION_SCHEME_INFORMATION BMP4_TYPE('s','i','n','f')
+#define BMP4_SCHEME_INFORMATION BMP4_TYPE('s','c','h','i')
+
 size_t bmp4_parse_box(batom_cursor *cursor, bmp4_box *box);
 size_t bmp4_scan_box(batom_cursor *cursor, uint32_t type, bmp4_box *box);
 bool bmp4_parse_box_extended(batom_cursor *cursor, bmp4_box_extended *box);
@@ -470,6 +509,13 @@ bool bmp4_parse_track_fragment_header(batom_cursor *cursor, bmp4_track_fragment_
 bool bmp4_parse_track_fragment_run_header(batom_cursor *cursor, bmp4_track_fragment_run_header  *run_header);
 void bmp4_init_track_fragment_run_state(bmp4_track_fragment_run_state *state);
 bool bmp4_parse_track_fragment_run_sample(batom_cursor *cursor, const bmp4_track_fragment_header *fragment_header, const bmp4_track_fragment_run_header *run_header, const bmp4_trackextendsbox *track_extends, bmp4_track_fragment_run_state *state, bmp4_track_fragment_run_sample *sample);
+bool bmp4_parse_SampleGroupDescription(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleGroupDescription *sgpd);
+bool bmp4_parse_SampleAuxiliaryInformationSizes(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleAuxiliaryInformationSizes *saiz);
+bool bmp4_parse_SampleAuxiliaryInformationOffsets(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleAuxiliaryInformationOffsets *saio);
+bool bmp4_parse_SampleToGroup(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleToGroup *sbgp);
+size_t bmp4_find_box(batom_cursor *cursor, uint32_t type, bmp4_box_info *codecprivate);
+
+
 
 #if 0
 /* unused functions */

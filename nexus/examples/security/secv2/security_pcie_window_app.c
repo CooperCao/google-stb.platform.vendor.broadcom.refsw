@@ -39,7 +39,6 @@
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-
 #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_API_VERSION==2) && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5)
 
 #include "nexus_memory.h"
@@ -50,6 +49,25 @@
 #include "nexus_otp_msp_indexes.h"
 #include "security_utils.h"
 #include "security_test_vectors_clear_key.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+
+static long long _getInt( char *p )
+{
+    int base = 10;
+
+    if( !p ) {
+        return BERR_TRACE(0);
+    }
+
+    if( p[0] == '0' && ( p[1] == 'x' || p[1] == 'X' ) ) {
+        base = 16;
+    };
+
+    return (long long)strtoll( p, NULL, base );
+}
 
 int main(
     int argc,
@@ -61,12 +79,11 @@ int main(
     NEXUS_SecurityPciEMaxWindowSizeSettings *maxWinSize = NULL;
     NEXUS_Addr    offset = 0;
     uint8_t      *addr = 0;
-    size_t        size = 5 * 1024;
+    size_t        size = 10 * 1024;
     uint8_t       signedCommand[NEXUS_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE] = { 0 };    /* TODO: replace with the correct command blob. */
     bool          maxWinSizeEnfored = false;
+    char ch;
 
-    BSTD_UNUSED( argc );
-    BSTD_UNUSED( argv );
 
     /* Start NEXUS. */
     securityUtil_PlatformInit( false );
@@ -154,25 +171,30 @@ int main(
     /* if the MSP is not enfored, and the above call is not made or failed, we expect it can be any size. */
     if( size /* <= maxPcieWinSize */  ) {
 
-        rc = NEXUS_Memory_Allocate( size, &memSetting, ( void * ) &addr );
-        SECURITY_CHECK_RC( rc );
+        if( argc != 3 ) {
+            printf( "\nusage: %s <memory window start offset> <window size> \n"
+                    "   e.g., nexus %s 0x80000000 0x2000000 \n\n", argv[0], argv[0] );
+            goto exit;
+        }
 
-        /* Host access to the memory */
-        addr [size - 1] = 0;
-        addr [0] = 0;
-        BDBG_LOG ( ( " --- Host accessed to the allocated memory range."));
+        offset = _getInt( argv[1] );
+        size   = _getInt( argv[2] );
 
-        /* The operation needs the memory offset */
-        offset = NEXUS_AddrToOffset( addr );
-        BDBG_LOG( ( "Allocated address %p, offset %p of size %u bytes", ( void * ) addr, ( void * ) offset,
-                    ( unsigned ) size ) );
+        BDBG_LOG(( "\nDo you want to input " \
+                " offset [" BDBG_UINT64_FMT "]\n" \
+                " size [0x%08X]\n" \
+                " y to proceed.\n\n", BDBG_UINT64_ARG(offset), size));
+
+        while( ( ch=getchar( ) ) == '\n'){ }
+        if( ch != 'y' && ch != 'Y' ) { goto exit; }
 
         rc = NEXUS_Security_SetPciERestrictedRange( offset, size, 0 );
         SECURITY_CHECK_RC( rc );
 
-        addr [size - 1] = 0;
-        addr [0] = 0;
-        BDBG_LOG ( ( " --- Host accessed to the PCIe memory range."));
+        BDBG_LOG(( "\nPCIE0 can now access to memory " \
+                " offset [" BDBG_UINT64_FMT "]\n" \
+                " size [0x%08X]\n" \
+                " \n", BDBG_UINT64_ARG(offset), size));
     }
     else {
         rc = NEXUS_INVALID_PARAMETER;

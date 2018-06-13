@@ -1,5 +1,5 @@
 /*
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -221,7 +221,8 @@ struct v3d_drm_gem_object {
 void v3d_release_cma_blocks(struct v3d_drm_file_private *fp,
 			    struct v3d_drm_dev_private *dp);
 
-void v3d_free_cma_pages(size_t num_pages, struct v3d_page_allocation *pages);
+void v3d_free_cma_pages(struct v3d_drm_file_private *fp, size_t num_pages,
+			struct v3d_page_allocation *pages);
 
 int v3d_allocate_cma_pages(struct v3d_drm_file_private *fp, size_t num_pages,
 			   struct v3d_page_allocation *pages);

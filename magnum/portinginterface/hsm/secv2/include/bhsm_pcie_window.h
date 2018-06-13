@@ -58,7 +58,8 @@ extern "C"
 typedef struct
 {
     BSTD_DeviceOffset baseOffset;  /* start of memory that can be access from PCIe */
-    size_t size;                   /* size of memory that can be accesed from PCIe*/
+    size_t size;                   /* size of memory that can be accesed from PCIe. Set size to zero to
+                                      lock out the MEMC (memory controller) that baseOffset resides within.  */
     unsigned index;                /* identify particular PCIe interface */
 
 }BHSM_PcieWindowSettings;

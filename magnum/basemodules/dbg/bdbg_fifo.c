@@ -1,5 +1,6 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2002-2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -120,7 +121,9 @@ struct BDBG_Fifo {
     unsigned nelements;
     bool buffer_allocated;
     bool enabled;
-    BDBG_P_Atomic write_counter;
+    BDBG_P_Atomic write_counter; /* written by writer, read by writer and all readers */
+    BDBG_P_Atomic input_empty; /* read by writer, written by all readers */
+
     BDBG_OBJECT(BDBG_Fifo)
     unsigned buffer[1]; /* variable size array */
 };
@@ -218,6 +221,8 @@ BDBG_Fifo_Create(BDBG_Fifo_Handle *pFifo, const BDBG_Fifo_CreateSettings *create
     fifo->element_size = element_size;
 
     BDBG_P_Atomic_Set_isrsafe(&fifo->write_counter, 0);
+    BDBG_P_Atomic_Set_isrsafe(&fifo->input_empty, 0);
+
     for(i=0;i<fifo->nelements;i++) {
         BDBG_P_Atomic *atomic;
 
@@ -290,6 +295,49 @@ BDBG_Fifo_CommitBuffer_isrsafe(const BDBG_Fifo_Token *token)
     return;
 }
 
+void BDBG_Fifo_SyncSession_Begin(BDBG_Fifo_Handle fifo, BDBG_Fifo_SyncSession *session)
+{
+    session->write_counter = BDBG_P_Atomic_Get_isrsafe(&fifo->write_counter);
+    session->cookie = BDBG_P_Atomic_Get_isrsafe(&fifo->input_empty);
+    session->budget = fifo->nelements / 8; /* advance sync session not more by 12.5% of FIFO */
+    return;
+}
+
+BERR_Code BDBG_Fifo_SyncSession_Wait(BDBG_Fifo_Handle fifo, BDBG_Fifo_SyncSession *session, unsigned timeout)
+{
+    unsigned budged = session->budget;
+    unsigned i;
+    long current_write_counter = BDBG_P_Atomic_Get_isrsafe(&fifo->write_counter);
+    if(current_write_counter - session->write_counter < (long)budged) {
+        return BERR_SUCCESS;
+    }
+    for(i=0;;i++) {
+        unsigned sleep=i<10?1:20; /* sleep first 10 ms by 1 ms then by 20 ms */
+        long input_empty = BDBG_P_Atomic_Get_isrsafe(&fifo->input_empty);
+        if(session->cookie != input_empty) {
+            session->write_counter = BDBG_P_Atomic_Get_isrsafe(&fifo->write_counter);
+            session->cookie = input_empty;
+            return BERR_SUCCESS;
+        }
+        if(timeout==0) {
+            break;
+        }
+        if(sleep>timeout) {
+            sleep = timeout;
+        }
+        timeout-=sleep;
+        BKNI_Sleep(sleep);
+    }
+    return BERR_TRACE(BERR_TIMEOUT);
+}
+
+void BDBG_Fifo_SyncSession_End(BDBG_Fifo_Handle fifo, BDBG_Fifo_SyncSession *session)
+{
+    BSTD_UNUSED(fifo);
+    BSTD_UNUSED(session);
+    return;
+}
+
 
 BERR_Code 
 BDBG_FifoReader_Create(BDBG_FifoReader_Handle *pReader, BDBG_Fifo_Handle fifo)
@@ -332,6 +380,8 @@ BDBG_FifoReader_Read(BDBG_FifoReader_Handle fifo, void *buffer, size_t buffer_si
     if(buffer_size < element_size) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     distance = BDBG_P_Atomic_Get_isrsafe(&fifo->writer->write_counter)-fifo->read_counter;
     if(distance == 0) {
+        long unused = BDBG_P_Atomic_AddReturnOld_isrsafe(&fifo->writer->input_empty, 1);
+        BSTD_UNUSED(unused);
         return BERR_FIFO_NO_DATA;
     }
     if(distance < 0 || distance >= (long)fifo->writer->nelements) {

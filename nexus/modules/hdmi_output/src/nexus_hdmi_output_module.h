@@ -196,7 +196,7 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle riCallback;
     NEXUS_EventCallbackHandle pjCallback;
     NEXUS_TimerHandle hdcpTimer;
-    NEXUS_TimerHandle hdcpKeepAliveTimer;
+    NEXUS_TimerHandle hdcpFailedStartTimer;
     NEXUS_HdmiOutputHdcpSettings hdcpSettings;
     NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs;
     uint16_t numRevokedKsvs;

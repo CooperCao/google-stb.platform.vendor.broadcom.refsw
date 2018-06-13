@@ -1,5 +1,6 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +36,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
+
 
 #include "nexus_sage_module.h"
 #include "priv/nexus_core.h" /* get access to g_pCoreHandles */
@@ -217,7 +219,12 @@ void NEXUS_Sage_P_SecureLog_Uninit(void)
     if (lHandle->hSagelibRpcModuleHandle != NULL)
     {
         BSAGElib_Rai_Module_Uninit(lHandle->hSagelibRpcModuleHandle, &lHandle->uiLastAsyncId);
-        NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        rc = NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        if(rc != BERR_SUCCESS)
+        {
+            /* Since we're uniniting, just note the error */
+            BDBG_ERR(("NEXUS_Sage_SecureLog_P_WaitForSage fails with rc=%d", rc));
+        }
         BSAGElib_Rpc_RemoveRemote(lHandle->hSagelibRpcModuleHandle);
         BDBG_MSG(("Uninit & remove SecureLog SAGE Module: assignedAsyncId [0x%x]", lHandle->uiLastAsyncId));
         lHandle->hSagelibRpcModuleHandle = NULL;
@@ -226,7 +233,12 @@ void NEXUS_Sage_P_SecureLog_Uninit(void)
     if(lHandle->hSagelibRpcPlatformHandle)
     {
         BSAGElib_Rai_Platform_Close(lHandle->hSagelibRpcPlatformHandle, &lHandle->uiLastAsyncId);
-        NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        rc = NEXUS_Sage_SecureLog_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        if(rc != BERR_SUCCESS)
+        {
+            /* Since we're uniniting, just note the error */
+            BDBG_ERR(("NEXUS_Sage_SecureLog_P_WaitForSage fails with rc=%d", rc));
+        }
         BSAGElib_Rpc_RemoveRemote(lHandle->hSagelibRpcPlatformHandle);
         lHandle->hSagelibRpcPlatformHandle=NULL;
     }

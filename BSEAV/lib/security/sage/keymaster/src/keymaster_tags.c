@@ -121,6 +121,15 @@ static inline bool km_tag_is_valid(km_tag_value_t *param)
     case SKM_TAG_OS_PATCHLEVEL :
     case SKM_TAG_UNIQUE_ID :
     case SKM_TAG_ATTESTATION_CHALLENGE :
+    case SKM_TAG_ATTESTATION_APPLICATION_ID :
+    case SKM_TAG_ATTESTATION_ID_BRAND :
+    case SKM_TAG_ATTESTATION_ID_DEVICE :
+    case SKM_TAG_ATTESTATION_ID_PRODUCT :
+    case SKM_TAG_ATTESTATION_ID_SERIAL :
+    case SKM_TAG_ATTESTATION_ID_IMEI :
+    case SKM_TAG_ATTESTATION_ID_MEID :
+    case SKM_TAG_ATTESTATION_ID_MANUFACTURER :
+    case SKM_TAG_ATTESTATION_ID_MODEL :
     case SKM_TAG_ASSOCIATED_DATA :
     case SKM_TAG_NONCE :
     case SKM_TAG_AUTH_TOKEN :
@@ -431,7 +440,8 @@ static KM_Tag_Item* km_tag_make_tag_item_from_android_data(uint8_t **data, uint8
     }
 
     if (!km_tag_is_valid((km_tag_value_t *)*data)) {
-        BDBG_ERR(("%s: Invalid tag", BSTD_FUNCTION));
+        km_tag_value_t *param = (km_tag_value_t *)*data;
+        BDBG_ERR(("%s: Invalid tag %x", BSTD_FUNCTION, param->tag));
         goto err_done;
     }
 
@@ -445,7 +455,7 @@ static KM_Tag_Item* km_tag_make_tag_item_from_android_data(uint8_t **data, uint8
         }
         BKNI_Memcpy(&blobSize, *data, sizeof(uint32_t));
         if (blobSize > SKM_TAG_VALUE_BLOB_MAX_SIZE) {
-            BDBG_ERR(("%s: Blob too large", BSTD_FUNCTION));
+            BDBG_ERR(("%s: Blob too large %d, tag %x", BSTD_FUNCTION, blobSize, tag));
             goto err_done;
         }
 
@@ -734,6 +744,15 @@ BERR_Code KM_Tag_ValidateKeyParameters(KM_Tag_ContextHandle handle)
         case SKM_TAG_AUTH_TOKEN:
         case SKM_TAG_APPLICATION_DATA:
         case SKM_TAG_ATTESTATION_CHALLENGE:
+        case SKM_TAG_ATTESTATION_APPLICATION_ID:
+        case SKM_TAG_ATTESTATION_ID_BRAND:
+        case SKM_TAG_ATTESTATION_ID_DEVICE:
+        case SKM_TAG_ATTESTATION_ID_PRODUCT:
+        case SKM_TAG_ATTESTATION_ID_SERIAL:
+        case SKM_TAG_ATTESTATION_ID_IMEI:
+        case SKM_TAG_ATTESTATION_ID_MEID:
+        case SKM_TAG_ATTESTATION_ID_MANUFACTURER:
+        case SKM_TAG_ATTESTATION_ID_MODEL:
         case SKM_TAG_ORIGIN:
         case SKM_TAG_ROOT_OF_TRUST:
         case SKM_TAG_OS_VERSION:

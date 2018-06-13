@@ -611,7 +611,7 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
 
    /* HP is locked */
    BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eRcvrLocked);
-   BDBG_ERR(("HP%d locked in %u usecs", h->channel, t-hChn->count1));
+   /* BDBG_MSG(("HP%d locked in %u usecs", h->channel, t-hChn->count1)); */
 
    if ((BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode)) || (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode)))
    {

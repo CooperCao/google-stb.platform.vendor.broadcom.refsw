@@ -84,6 +84,15 @@ static const BBOX_MemcClientEntry g_astMemcClientTbl[] = {
 #endif
 
 #include "memc/bchp_memc_clients_chip.h"
+
+#if BCHP_P_MEMC_COUNT == 1
+{ BCHP_MemcClient_eMax, 0 }
+#elif BCHP_P_MEMC_COUNT == 2
+{ BCHP_MemcClient_eMax, 0, 0 }
+#else /* BCHP_P_MEMC_COUNT == 3 */
+{ BCHP_MemcClient_eMax, 0, 0, 0 }
+#endif
+
 #undef BCHP_P_MEMC_DEFINE_CLIENT
 };
 
@@ -349,9 +358,9 @@ BERR_Code BBOX_P_LoadRts
                 }
             }
 
-            if (stBoxRts.pastPfriClient == NULL)
+            if (stBoxRts.pastAddrDataPairs == NULL)
             {
-                BDBG_ERR(("Box mode %d RTS PFRI Client list is uninitialized.", ulBoxId));
+                BDBG_ERR(("Box mode %d RTS Addr-Data pair list is uninitialized.", ulBoxId));
                 if (stBoxRts.pchRtsVersion)
                 {
                     BDBG_ERR(("RTS configuration version %s", stBoxRts.pchRtsVersion));
@@ -360,10 +369,12 @@ BERR_Code BBOX_P_LoadRts
                 goto done;
             }
 
-            for (i=0;i<stBoxRts.ulNumPfriClients;i++)
+            for (i=0;i<stBoxRts.ulNumAddrDataPairs;i++)
             {
-                BREG_Write32(hReg, stBoxRts.pastPfriClient[i].ulAddr, stBoxRts.pastPfriClient[i].ulData);
-                BDBG_MODULE_MSG(BBOX_MEMC, ("PFRI[%d] = 0x%x : 0x%x", i, stBoxRts.pastPfriClient[i].ulAddr, stBoxRts.pastPfriClient[i].ulData));
+                if (stBoxRts.pastAddrDataPairs[i].ulAddr == BBOX_RTS_INVALID_ADDR) break;
+
+                BREG_Write32(hReg, stBoxRts.pastAddrDataPairs[i].ulAddr, stBoxRts.pastAddrDataPairs[i].ulData);
+                BDBG_MODULE_MSG(BBOX_MEMC, ("Addr-Data pair[%d] = 0x%x : 0x%x", i, stBoxRts.pastAddrDataPairs[i].ulAddr, stBoxRts.pastAddrDataPairs[i].ulData));
             }
         }
         else if (eStatus == BBOX_RTS_LOADED_BY_CFE)

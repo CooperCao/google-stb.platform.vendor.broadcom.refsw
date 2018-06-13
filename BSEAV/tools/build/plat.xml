@@ -104,6 +104,13 @@
     <cpu_arch>ARM64</cpu_arch>
     <boards></boards>
   </platform>
+  <platform id="972622">
+    <revisions>A0</revisions>
+    <nexus_platform>97260</nexus_platform>
+    <nexus_platform_ver>B0</nexus_platform_ver>
+    <cpu_arch>ARM64</cpu_arch>
+    <boards></boards>
+  </platform>
   <platform id="97268">
     <bondouts></bondouts>
     <revisions>B0</revisions>
@@ -391,8 +398,8 @@
   <kernel version="26" default="OLD_MIPS">2.6.37-3.5</kernel>
   <kernel version="33" default="MIPS">3.3-4.2</kernel>
   <kernel version="314">3.14-1.21</kernel>
-  <kernel version="41" default="ARM,BMIPS">4.1-1.18</kernel>
-  <kernel version="49" default="ARM64">4.9-1.5</kernel>
+  <kernel version="41" default="ARM,BMIPS">4.1-1.19</kernel>
+  <kernel version="49" default="ARM64">4.9-1.6</kernel>
 </kernels>
 <bootloaders>
   <version>1.0</version>

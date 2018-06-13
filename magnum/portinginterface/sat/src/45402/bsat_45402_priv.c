@@ -152,6 +152,7 @@ BERR_Code BSAT_45402_P_Close(BSAT_Handle h)
 ******************************************************************************/
 BERR_Code BSAT_45402_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 {
+#if 0
    BSAT_45402_P_Handle *pDevImpl = (BSAT_45402_P_Handle *)(h->pImpl);
    uint32_t product_id, family_id, retries;
    BERR_Code retCode = BERR_SUCCESS;
@@ -185,6 +186,11 @@ BERR_Code BSAT_45402_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 
    done:
    return retCode;
+#else
+   BSTD_UNUSED(h);
+   *totalChannels = 2; /* do this for now */
+   return BERR_SUCCESS;
+#endif
 }
 
 

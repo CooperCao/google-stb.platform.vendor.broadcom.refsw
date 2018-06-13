@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -227,18 +227,21 @@ v3d_find_alloc_block_with_space(struct v3d_drm_file_private *fp,
 	}
 }
 
-static inline void v3d_free_cma_page(struct v3d_page_allocation *page)
+static inline void v3d_free_cma_page(struct v3d_drm_file_private *fp,
+				     struct v3d_page_allocation *page)
 {
 	page->alloc_block->n_allocs--;
 	clear_bit(page->block_page_nr, page->alloc_block->alloc_map);
+	fp->all_blocks_full[page->alloc_block->cma_dev] = false;
 }
 
-void v3d_free_cma_pages(size_t num_pages, struct v3d_page_allocation *pages)
+void v3d_free_cma_pages(struct v3d_drm_file_private *fp, size_t num_pages,
+			struct v3d_page_allocation *pages)
 {
 	size_t i;
 
 	for (i = 0; i < num_pages; i++) {
-		v3d_free_cma_page(&pages[i]);
+		v3d_free_cma_page(fp, &pages[i]);
 		/*
 		 * TODO: determine if/when we release empty alloc blocks
 		 * back to the system.
@@ -293,6 +296,6 @@ out:
 	/*
 	 * Cleanup partially allocated pages
 	 */
-	v3d_free_cma_pages(alloc_idx, pages);
+	v3d_free_cma_pages(fp, alloc_idx, pages);
 	return -ENOMEM;
 }

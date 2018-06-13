@@ -1,18 +1,44 @@
-/***************************************************************************
- * Copyright (c)2016 Broadcom
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2, as
- * published by the Free Software Foundation (the "GPL").
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License version 2 (GPLv2) for more details.
+ *  Except as expressly set forth in the Authorized License,
  *
- * You should have received a copy of the GNU General Public License
- * version 2 (GPLv2) along with this source code.
- ***************************************************************************/
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <asm/uaccess.h>
 #include <asm/current.h>
@@ -49,6 +75,153 @@ static int astra_ioctl_uapp_coredump(struct file *file,void *arg);
 
 /* short-hand to get ioctl offset */
 #define IOCTL_OFFSET(name)      (ASTRA_IOCTL_##name - ASTRA_IOCTL_FIRST)
+
+static void * astra_map_clientHandle_user(struct file *file, uint32_t userHandle)
+{
+    struct astra_client **pClients;
+    if((userHandle < ASTRA_CLIENT_START)||(userHandle > (ASTRA_CLIENT_START+ASTRA_CLIENT_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra Client");
+        return NULL;
+    }
+    pClients = (struct astra_client **)file->private_data;
+    //LOGI("astra_map_clientHandle_user: userHandle=0x%x KernelHandle=%p",userHandle,pClients[userHandle]);
+    return pClients[userHandle];
+}
+
+static uint32_t astra_map_clientHandle_kernel(struct file *file, void * kernelHandle)
+{
+    uint32_t i=0;
+    struct astra_client **pClients = (struct astra_client **)file->private_data;
+
+    for ( i = ASTRA_CLIENT_START; i < (ASTRA_CLIENT_START+ASTRA_CLIENT_NUM_MAX); i++) {
+        if (pClients[i] == (struct astra_client *)kernelHandle) {
+            return i;
+        }
+    }
+
+    for ( i = ASTRA_CLIENT_START; i < (ASTRA_CLIENT_START+ASTRA_CLIENT_NUM_MAX); i++) {
+        if (!pClients[i]) {
+            pClients[i] = (struct astra_client *)kernelHandle;
+            break;
+        }
+    }
+
+    if (i == (ASTRA_CLIENT_START+ASTRA_CLIENT_NUM_MAX)) {
+        LOGE("Max number of clients reached for the process");
+        return -1;
+    }
+    return (i);
+}
+
+static void * astra_map_uappHandle_user(struct file *file, uint32_t userHandle)
+{
+    struct astra_uapp **pUapps;
+    if((userHandle < ASTRA_UAPP_START)||(userHandle > (ASTRA_UAPP_START+ASTRA_UAPP_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra UAPP");
+        return NULL;
+    }
+    pUapps = (struct astra_uapp **)file->private_data;
+    return pUapps[userHandle];
+}
+
+
+static uint32_t astra_map_uappHandle_kernel(struct file *file, void * kernelHandle)
+{
+    uint32_t i=0;
+    struct astra_uapp **pUapps = (struct astra_uapp **)file->private_data;
+
+    for ( i = ASTRA_UAPP_START; i < (ASTRA_UAPP_START+ASTRA_UAPP_NUM_MAX); i++) {
+        if (pUapps[i] == (struct astra_uapp *)kernelHandle) {
+            return i;
+        }
+    }
+
+    for ( i = ASTRA_UAPP_START; i < (ASTRA_UAPP_START+ASTRA_UAPP_NUM_MAX); i++) {
+        if (!pUapps[i]) {
+            pUapps[i] = (struct astra_uapp *)kernelHandle;
+            break;
+        }
+    }
+
+    if (i == (ASTRA_UAPP_START+ASTRA_UAPP_NUM_MAX)) {
+        LOGE("Max number of UAPPs reached for the process");
+        return -1;
+    }
+    return i;
+}
+
+static void * astra_map_peerHandle_user(struct file *file, uint32_t userHandle)
+{
+    struct astra_peer **pPeers;
+    if((userHandle < ASTRA_PEER_START)||(userHandle > (ASTRA_PEER_START+ASTRA_PEER_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra Peer");
+        return NULL;
+    }
+    pPeers = (struct astra_peer **)file->private_data;
+    return pPeers[userHandle];
+}
+
+static uint32_t astra_map_peerHandle_kernel(struct file *file, void * kernelHandle)
+{
+    uint32_t i=0;
+    struct astra_peer **pPeers = (struct astra_peer **)file->private_data;
+
+    for ( i = ASTRA_PEER_START; i < (ASTRA_PEER_START+ASTRA_PEER_NUM_MAX); i++) {
+        if (pPeers[i] == (struct astra_peer *)kernelHandle) {
+            return i;
+        }
+    }
+
+    for ( i = ASTRA_PEER_START; i < (ASTRA_PEER_START+ASTRA_PEER_NUM_MAX); i++) {
+        if (!pPeers[i]) {
+            pPeers[i] = (struct astra_peer *)kernelHandle;
+            break;
+        }
+    }
+
+    if (i == (ASTRA_PEER_START+ASTRA_PEER_NUM_MAX)) {
+        LOGE("Max number of Peers reached for the process");
+        return -1;
+    }
+    return i;
+}
+
+static void * astra_map_fileHandle_user(struct file *file, uint32_t userHandle)
+{
+    struct astra_file **pFiles;
+    if((userHandle < ASTRA_FILE_START)||(userHandle > (ASTRA_FILE_START+ASTRA_FILE_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra File");
+        return NULL;
+    }
+
+    pFiles = (struct astra_file **)file->private_data;
+    return pFiles[userHandle];
+}
+
+static uint32_t astra_map_fileHandle_kernel(struct file *file, void * kernelHandle)
+{
+    uint32_t i=0;
+    struct astra_file **pFiles= (struct astra_file **)file->private_data;
+
+    for ( i = ASTRA_FILE_START; i < (ASTRA_FILE_START+ASTRA_FILE_NUM_MAX); i++) {
+        if (pFiles[i] == (struct astra_file *)kernelHandle) {
+            return i;
+        }
+    }
+
+    for ( i = ASTRA_FILE_START; i < (ASTRA_FILE_START+ASTRA_FILE_NUM_MAX); i++) {
+        if (!pFiles[i]) {
+            pFiles[i] = (struct astra_file *)kernelHandle;;
+            break;
+        }
+    }
+
+    if (i == (ASTRA_FILE_START+ASTRA_FILE_NUM_MAX)) {
+        LOGE("Max number of clients reached for the process");
+        return -1;
+    }
+    return i;
+}
 
 int __init _astra_ioctl_module_init(void)
 {
@@ -121,7 +294,6 @@ static int astra_ioctl_event_poll(struct file *file, void *arg)
     char eventData[16];
     size_t eventDataLen;
     int err = 0;
-
     err = copy_from_user(
         &eventPollData,
         (void *)arg,
@@ -132,7 +304,7 @@ static int astra_ioctl_event_poll(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)eventPollData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user(file,eventPollData.hClient);
 
     if (!pClient) {
         LOGE("Invalid args in astra ioctl event poll cmd");
@@ -187,7 +359,7 @@ static int astra_ioctl_event_exit(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)eventExitData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user(file,eventExitData.hClient);
 
     if (!pClient) {
         LOGE("Invalid args in astra ioctl event exit cmd");
@@ -292,7 +464,7 @@ static int astra_ioctl_call_smc(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)callSmcData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user(file,callSmcData.hClient);
 
     if (!pClient) {
         LOGE("Invalid args in astra ioctl call smc cmd");
@@ -322,12 +494,9 @@ static int astra_ioctl_call_smc(struct file *file, void *arg)
 static int astra_ioctl_client_open(struct file *file, void *arg)
 {
     struct astra_ioctl_client_open_data clientOpenData;
-    struct astra_client **pClients;
     struct astra_client *pClient;
     char *pName;
     int err = 0;
-    int i;
-
     err = copy_from_user(
         &clientOpenData,
         (void *)arg,
@@ -347,31 +516,20 @@ static int astra_ioctl_client_open(struct file *file, void *arg)
     }
 
     pClient = _astra_user_client_open(pName);
-
     if (pClient == NULL) {
         LOGE("Failed to open astra user client");
         clientOpenData.retVal = -EFAULT;
         goto RETURN;
     }
 
-    /* add client to file */
-    pClients = (struct astra_client **)file->private_data;
-    for (i = 0; i < ASTRA_CLIENT_NUM_MAX; i++) {
-        if (!pClients[i]) {
-            pClients[i] = pClient;
-            break;
-        }
-    }
-
-    if (i == ASTRA_CLIENT_NUM_MAX) {
-        LOGE("Max number of clients reached for the process");
-        _astra_user_client_close(pClient);
-        clientOpenData.retVal = -EFAULT;
-        goto RETURN;
-    }
-
     clientOpenData.retVal = 0;
-    clientOpenData.hClient = pClient;
+    clientOpenData.hClient = astra_map_clientHandle_kernel(file,pClient);
+
+    if(clientOpenData.hClient == -1){
+        LOGE("Failed to map astra kernel client to user client");
+        clientOpenData.retVal = -EFAULT;
+        _astra_user_client_close(pClient);
+    }
 
  RETURN:
     err = copy_to_user(
@@ -383,7 +541,6 @@ static int astra_ioctl_client_open(struct file *file, void *arg)
         LOGE("Failed to access astra ioctl arguments");
         return -EFAULT;
     };
-
     return 0;
 }
 
@@ -393,8 +550,6 @@ static int astra_ioctl_client_close(struct file *file, void *arg)
     struct astra_client **pClients;
     struct astra_client *pClient;
     int err = 0;
-    int i;
-
     err = copy_from_user(
         &clientCloseData,
         (void *)arg,
@@ -405,7 +560,7 @@ static int astra_ioctl_client_close(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)clientCloseData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user(file, clientCloseData.hClient);
 
     if (!pClient) {
         LOGE("Invalid args in astra ioctl client close cmd");
@@ -417,12 +572,7 @@ static int astra_ioctl_client_close(struct file *file, void *arg)
 
     /* clear client from file */
     pClients = (struct astra_client **)file->private_data;
-    for (i = 0; i < ASTRA_CLIENT_NUM_MAX; i++) {
-        if (pClients[i] == pClient) {
-            pClients[i] = NULL;
-            break;
-        }
-    }
+    pClients[(uintptr_t)clientCloseData.hClient] = NULL;
 
     clientCloseData.retVal = 0;
 
@@ -459,7 +609,7 @@ static int astra_ioctl_uapp_open(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)uappOpenData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user(file,uappOpenData.hClient);
     pName = uappOpenData.name;
     pPath = uappOpenData.path;
 
@@ -483,7 +633,13 @@ static int astra_ioctl_uapp_open(struct file *file, void *arg)
     }
 
     uappOpenData.retVal = 0;
-    uappOpenData.hUapp = pUapp;
+    uappOpenData.hUapp = astra_map_uappHandle_kernel(file, pUapp);
+
+    if(uappOpenData.hUapp == -1){
+        LOGE("Failed to map astra kernel UAPP to user UAPP");
+        uappOpenData.retVal = -EFAULT;
+        _astra_uapp_close(pUapp);
+    }
 
  RETURN:
     err = copy_to_user(
@@ -503,6 +659,7 @@ static int astra_ioctl_uapp_close(struct file *file, void *arg)
 {
     struct astra_ioctl_uapp_close_data uappCloseData;
     struct astra_uapp *pUapp;
+    struct astra_uapp **pUapps;
     int err = 0;
 
     err = copy_from_user(
@@ -515,7 +672,7 @@ static int astra_ioctl_uapp_close(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pUapp = (struct astra_uapp *)uappCloseData.hUapp;
+    pUapp = (struct astra_uapp *)astra_map_uappHandle_user(file, uappCloseData.hUapp);
 
     if (!pUapp) {
         LOGE("Invalid args in astra ioctl userapp close cmd");
@@ -525,6 +682,9 @@ static int astra_ioctl_uapp_close(struct file *file, void *arg)
 
     _astra_uapp_close(pUapp);
 
+    /* clear UAPP from file */
+    pUapps = (struct astra_uapp **)file->private_data;
+    pUapps[(uintptr_t)uappCloseData.hUapp] = NULL;
     uappCloseData.retVal = 0;
 
  RETURN:
@@ -559,7 +719,7 @@ static int astra_ioctl_peer_open(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pUapp = (struct astra_uapp *)peerOpenData.hUapp;
+    pUapp = (struct astra_uapp *)astra_map_uappHandle_user(file,peerOpenData.hUapp);
     pName = peerOpenData.name;
 
     if (!pUapp ||
@@ -580,7 +740,13 @@ static int astra_ioctl_peer_open(struct file *file, void *arg)
     }
 
     peerOpenData.retVal = 0;
-    peerOpenData.hPeer = pPeer;
+    peerOpenData.hPeer = astra_map_peerHandle_kernel(file,pPeer);
+
+    if(peerOpenData.hPeer == -1){
+         LOGE("Failed to map astra kernel Peer to user Peer");
+         peerOpenData.retVal = -EFAULT;
+         _astra_peer_close(pPeer);
+     }
 
  RETURN:
     err = copy_to_user(
@@ -600,6 +766,7 @@ static int astra_ioctl_peer_close(struct file *file, void *arg)
 {
     struct astra_ioctl_peer_close_data peerCloseData;
     struct astra_peer *pPeer;
+    struct astra_peer **pPeers;
     int err = 0;
 
     err = copy_from_user(
@@ -612,7 +779,7 @@ static int astra_ioctl_peer_close(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pPeer = (struct astra_peer *)peerCloseData.hPeer;
+    pPeer = (struct astra_peer *)astra_map_peerHandle_user (file, peerCloseData.hPeer);
 
     if (!pPeer) {
         LOGE("Invalid args in astra ioctl peer close cmd");
@@ -621,6 +788,10 @@ static int astra_ioctl_peer_close(struct file *file, void *arg)
     }
 
     _astra_peer_close(pPeer);
+
+    /* clear Peer from file */
+    pPeers = (struct astra_peer **)file->private_data;
+    pPeers[(uintptr_t)peerCloseData.hPeer] = NULL;
 
     peerCloseData.retVal = 0;
 
@@ -647,7 +818,7 @@ static int astra_ioctl_msg_send(struct file *file, void *arg)
     struct astra_ioctl_msg_send_data msgSendData;
     struct astra_peer *pPeer;
     const void *pUserMsg;
-    size_t msgLen;
+    uint32_t msgLen;
     int err = 0;
 
     err = copy_from_user(
@@ -660,8 +831,8 @@ static int astra_ioctl_msg_send(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pPeer = (struct astra_peer *)msgSendData.hPeer;
-    pUserMsg = msgSendData.pMsg;
+    pPeer = (struct astra_peer *)astra_map_peerHandle_user (file,msgSendData.hPeer);
+    pUserMsg = (void *)((uintptr_t)msgSendData.pMsg);
     msgLen = msgSendData.msgLen;
 
     if (!pPeer || !pUserMsg ||
@@ -716,7 +887,7 @@ static int astra_ioctl_msg_receive(struct file *file, void *arg)
     struct astra_client *pClient;
     struct astra_peer *pPeer;
     void *pUserMsg;
-    size_t msgLen;
+    uint32_t msgLen;
     int timeout;
     int err = 0;
 
@@ -730,8 +901,8 @@ static int astra_ioctl_msg_receive(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)msgReceiveData.hClient;
-    pUserMsg = msgReceiveData.pMsg;
+    pClient = (struct astra_client *)astra_map_clientHandle_user (file,msgReceiveData.hClient);
+    pUserMsg = (void *)((uintptr_t)msgReceiveData.pMsg);
     msgLen = msgReceiveData.msgLen;
     timeout = msgReceiveData.timeout;
 
@@ -770,7 +941,7 @@ static int astra_ioctl_msg_receive(struct file *file, void *arg)
     }
 
     msgReceiveData.retVal = 0;
-    msgReceiveData.hPeer = pPeer;
+    msgReceiveData.hPeer = astra_map_peerHandle_kernel(file,pPeer);
     msgReceiveData.msgLen = msgLen;
 
  RETURN:
@@ -806,7 +977,7 @@ static int astra_ioctl_mem_alloc(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)memAllocData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user (file,memAllocData.hClient);
     size = memAllocData.size;
 
     if (!pClient || size == 0) {
@@ -870,7 +1041,7 @@ static int astra_ioctl_mem_free(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)memFreeData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user (file,memFreeData.hClient);
     buffOffset = memFreeData.buffOffset;
 
     if (!pClient || buffOffset == 0) {
@@ -928,7 +1099,7 @@ static int astra_ioctl_file_open(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pClient = (struct astra_client *)fileOpenData.hClient;
+    pClient = (struct astra_client *)astra_map_clientHandle_user (file,fileOpenData.hClient);
     pPath = fileOpenData.path;
     flags = fileOpenData.flags;
 
@@ -951,7 +1122,13 @@ static int astra_ioctl_file_open(struct file *file, void *arg)
     }
 
     fileOpenData.retVal = 0;
-    fileOpenData.hFile = pFile;
+    fileOpenData.hFile = astra_map_fileHandle_kernel(file,pFile);
+
+    if(fileOpenData.hFile == -1){
+          LOGE("Failed to map astra kernel File to user File");
+          fileOpenData.retVal = -EFAULT;
+          _astra_file_close(pFile);
+    }
 
  RETURN:
     err = copy_to_user(
@@ -971,6 +1148,7 @@ static int astra_ioctl_file_close(struct file *file, void *arg)
 {
     struct astra_ioctl_file_close_data fileCloseData;
     struct astra_file *pFile;
+    struct astra_file **pFiles;
     int err = 0;
 
     err = copy_from_user(
@@ -983,7 +1161,7 @@ static int astra_ioctl_file_close(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pFile = (struct astra_file *)fileCloseData.hFile;
+    pFile = (struct astra_file *)astra_map_fileHandle_user (file,fileCloseData.hFile);
 
     if (!pFile) {
         LOGE("Invalid args in astra ioctl file close cmd");
@@ -992,6 +1170,9 @@ static int astra_ioctl_file_close(struct file *file, void *arg)
     }
 
     _astra_file_close(pFile);
+    /* clear Peer from file */
+    pFiles = (struct astra_file **)file->private_data;
+    pFiles[(uintptr_t)fileCloseData.hFile] = NULL;
 
     fileCloseData.retVal = 0;
 
@@ -1027,7 +1208,7 @@ static int astra_ioctl_file_write(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pFile = (struct astra_file *)fileWriteData.hFile;
+    pFile = (struct astra_file *)astra_map_fileHandle_user (file,fileWriteData.hFile);
     paddr = fileWriteData.paddr;
     bytes = fileWriteData.bytes;
 
@@ -1083,7 +1264,7 @@ static int astra_ioctl_file_read(struct file *file, void *arg)
         return -EFAULT;
     };
 
-    pFile = (struct astra_file *)fileReadData.hFile;
+    pFile = (struct astra_file *)astra_map_fileHandle_user (file,fileReadData.hFile);
     paddr = fileReadData.paddr;
     bytes = fileReadData.bytes;
 
@@ -1137,7 +1318,7 @@ static int astra_ioctl_uapp_coredump(struct file *file,void *arg)
         return -EFAULT;
     };
 
-    pUapp = (struct astra_uapp *)uappCoredumpData.hUapp;
+    pUapp = (struct astra_uapp *)astra_map_uappHandle_user (file,uappCoredumpData.hUapp);
 
     if (!pUapp) {
         LOGE("Invalid args in astra ioctl userapp close cmd");

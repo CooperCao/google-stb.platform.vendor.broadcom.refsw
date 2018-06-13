@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "khrn_options.h"
 #include "libs/util/gfx_options/gfx_options.h"
@@ -110,6 +110,11 @@ void khrn_init_options(void)
    khrn_options.force_async_host_reads = gfx_options_bool("KHRN_FORCE_ASYNC_HOST_READS", false);
 
    khrn_options.disable_buffer_age     = gfx_options_bool("DISABLE_BUFFER_AGE", false);
+
+   khrn_options.disable_big_damage_opt = gfx_options_bool("DISABLE_BIG_DAMAGE_OPT", false);
+   khrn_options.big_damage_opt_cnt     = gfx_options_uint32("BIG_DAMAGE_OPT_CNT", 4);
+   khrn_options.zero_age_retry_cnt     = gfx_options_uint32("ZERO_AGE_RETRY_CNT", 12);
+   khrn_options.big_damage_thresh      = gfx_options_uint32("BIG_DAMAGE_THRESH", 75);
 
    if (khrn_options.random_wireframe)
       gfx_rand_init(&random_wireframe_state, khrn_options.random_wireframe_seed);

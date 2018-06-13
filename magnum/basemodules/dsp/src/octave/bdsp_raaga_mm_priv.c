@@ -1548,15 +1548,20 @@ BERR_Code BDSP_Raaga_P_ReleasePortDescriptors(
 	if(k > BDSP_MAX_DESCRIPTORS_PER_POOL)
 	{
 		BDBG_ERR(("BDSP_Raaga_P_ReleasePortDescriptors: Number of Descriptors being Released(%d) is more than Cacheline(%d)",k,BDSP_MAX_DESCRIPTORS_PER_POOL));
+		errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
 	}
-	errCode = BDSP_Raaga_P_ReleaseDescriptor(
-		pDevice,
-		dspIndex,
-		&decriptorArray[0],
-		k);
-	if(errCode != BERR_SUCCESS)
+	else
 	{
-		BDBG_ERR(("BDSP_Raaga_P_ReleasePortDescriptors: Error in Cleanup of Descriptor"));
+		errCode = BDSP_Raaga_P_ReleaseDescriptor(
+			pDevice,
+			dspIndex,
+			&decriptorArray[0],
+			k);
+		if(errCode != BERR_SUCCESS)
+		{
+			errCode = BERR_TRACE(errCode);
+			BDBG_ERR(("BDSP_Raaga_P_ReleasePortDescriptors: Error in Cleanup of Descriptor"));
+		}
 	}
 	return errCode;
 }

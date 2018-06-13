@@ -488,7 +488,7 @@ void BDSP_Arm_P_AstraEventCallback_isr(
     BDSP_ArmTask *pArmTask = NULL;
     uint32_t    ui32TaskId = 0;
 	uint32_t    ui32DeviceId = 0;
-    size_t ui32RcvMsgLen = 0;
+    uint32_t ui32RcvMsgLen = 0;
     BTEE_ConnectionHandle hConnection = NULL;
 
     BDBG_ENTER(BDSP_Arm_P_AstraEventCallback_isr);

@@ -257,6 +257,7 @@ struct NEXUS_DisplayGraphics {
         NEXUS_Graphics2DHandle gfx;
         NEXUS_CallbackHandler checkpointCallback;
         bool warning, checkpoint;
+        unsigned currentCheckpoint; /* if checkpoint == true, this is current blit pending in cache[] */
     } compression;
 #endif
     uint16_t frameBufferWidth; /* width of the frame buffer */
@@ -401,7 +402,6 @@ struct NEXUS_Display {
     BXUDlib_Handle hXud;
     bool encodeUserData;
     NEXUS_VideoInputHandle xudSource;
-    BXUDlib_Settings userDataEncodeSettings;
 #if NEXUS_P_USE_PROLOGUE_BUFFER
     struct {
 #if NEXUS_DISPLAY_USE_VIP

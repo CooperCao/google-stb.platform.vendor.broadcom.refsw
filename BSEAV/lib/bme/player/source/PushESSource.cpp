@@ -1325,15 +1325,28 @@ void PushESSource::makePesVideoChunk(TIME45k pts, const DataFragment_t *fragment
     instance->video.pump.makePesChunk(instance->pid.video, pts, fragment, n, true);
 }
 
+// Use an object to manage the mutex to allow for exceptions
+struct HoldMutex
+{
+    BKNI_MutexHandle handle;
+
+    HoldMutex(BKNI_MutexHandle handle) : handle(handle)
+    {
+        BKNI_AcquireMutex(handle);
+    }
+    ~HoldMutex()
+    {
+        BKNI_ReleaseMutex(handle);
+    }
+};
+
 bool PushESSource::pushAudioChunk(
     void        *drmContext,
     uint64_t     vector,
     bool         block)
 {
-    BKNI_AcquireMutex(_context->audio.pump.lock);
-    bool sent = _context->audio.pump.pushChunk(drmContext, vector, block);
-    BKNI_ReleaseMutex(_context->audio.pump.lock);
-    return sent;
+    struct HoldMutex lock(_context->audio.pump.lock);
+    return _context->audio.pump.pushChunk(drmContext, vector, block);
 }
 
 bool PushESSource::pushVideoChunk(
@@ -1341,10 +1354,8 @@ bool PushESSource::pushVideoChunk(
     uint64_t     vector,
     bool         block)
 {
-    BKNI_AcquireMutex(_context->video.pump.lock);
-    bool sent = _context->video.pump.pushChunk(drmContext, vector, block);
-    BKNI_ReleaseMutex(_context->video.pump.lock);
-    return sent;
+    struct HoldMutex lock(_context->video.pump.lock);
+    return _context->video.pump.pushChunk(drmContext, vector, block);
 }
 
 

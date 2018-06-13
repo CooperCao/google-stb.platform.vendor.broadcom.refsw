@@ -796,11 +796,24 @@ static void setup_gui()
     NxClient_AllocSettings allocSettings;
     NEXUS_SurfaceRegion virtualDisplay = {1280, 720};
     struct bgui_settings gui_settings;
+    NEXUS_VideoDecoderCapabilities videoDecoderCap;
 
     bgui_get_default_settings(&gui_settings);
     gui_settings.width = virtualDisplay.width;
     gui_settings.height = virtualDisplay.height;
     s_app.gui = bgui_create(&gui_settings);
+
+    NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
+    if (s_app.num_mosaics > videoDecoderCap.memory[0].mosaic.maxNumber) {
+        LOGW(("num_mosaics %d larger than videoDecoderCap maxNumber %d",
+            s_app.num_mosaics, videoDecoderCap.memory[0].mosaic.maxNumber));
+        LOGW(("reducing num_mosaics to %d", videoDecoderCap.memory[0].mosaic.maxNumber));
+        s_app.num_mosaics = videoDecoderCap.memory[0].mosaic.maxNumber;
+    }
+    if (s_app.num_mosaics == 0) {
+        LOGW(("unable to perform mosaic - forcing to play only one stream"));
+        s_app.num_mosaics = 1;
+    }
 
     num_columns = (s_app.num_mosaics + 1) / 2;
     num_rows = (s_app.num_mosaics == 1) ? 1 : 2;

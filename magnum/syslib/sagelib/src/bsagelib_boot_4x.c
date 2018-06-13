@@ -124,8 +124,8 @@ typedef struct {
 #define BFW_VERSION_CHECK_SUBMINOR 3
 #else
 #define BFW_VERSION_CHECK_MAJOR 2
-#define BFW_VERSION_CHECK_MINOR 0
-#define BFW_VERSION_CHECK_SUBMINOR 2
+#define BFW_VERSION_CHECK_MINOR 1
+#define BFW_VERSION_CHECK_SUBMINOR 3
 #endif
 
 static BERR_Code
@@ -133,14 +133,14 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
     BSAGElib_Handle hSAGElib,
     BSAGElib_Sage_ImageHolder *image)
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     SUIF_CommonHeader *pCommonHeader;
 
     if (hSAGElib == NULL || image == 0)
     {
        BDBG_ERR(("%s hSAGElib %p or image %p NULL", BSTD_FUNCTION, (void *)hSAGElib,(void *)image));
-        rc = BERR_INVALID_PARAMETER;
-        goto end;
+       rc = BERR_INVALID_PARAMETER;
+       goto end;
     }
 
     pCommonHeader = &(image->header->imageHeader.common);
@@ -153,20 +153,24 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
         if( ( rc = BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps ) ) != BERR_SUCCESS )
         {
             BDBG_ERR(("couldn't read BFW version"));
-            return rc;
+            goto end;
         }
         else
         {
             BDBG_MSG(("BFW %d.%d.%d",hsmCaps.version.firmware.bseck.major, hsmCaps.version.firmware.bseck.minor, hsmCaps.version.firmware.bseck.subMinor));
             if ( BFW_VERSION_CHECK_MAJOR < hsmCaps.version.firmware.bseck.major )
             {
-                return rc;
+                /* major version is later than required version, return success */
+                rc = BERR_SUCCESS;
+                goto end;
             }
             else if ( BFW_VERSION_CHECK_MAJOR == hsmCaps.version.firmware.bseck.major )
             {
                 if ( BFW_VERSION_CHECK_MINOR < hsmCaps.version.firmware.bseck.minor )
                 {
-                    return rc;
+                    /* minor version is later than required version, return success */
+                    rc = BERR_SUCCESS;
+                    goto end;
                 }
                 else if ( BFW_VERSION_CHECK_MINOR == hsmCaps.version.firmware.bseck.minor )
                 {
@@ -174,35 +178,45 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
 #else
         BHSM_ModuleCapabilities hsmCaps;
         BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
-        BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps );
+        if ( ( rc = BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps ) ) != BERR_SUCCESS )
+        {
+            BDBG_ERR(("couldn't read BFW version"));
+            goto end;
+        }
+        else
         {
             BDBG_MSG(("BFW %d.%d.%d",hsmCaps.version.bfw.major, hsmCaps.version.bfw.minor, hsmCaps.version.bfw.subminor));
             if ( BFW_VERSION_CHECK_MAJOR < hsmCaps.version.bfw.major )
             {
-                return BERR_SUCCESS;
+                /* major version is later than required version, return success */
+                rc = BERR_SUCCESS;
+                goto end;
             }
             else if ( BFW_VERSION_CHECK_MAJOR == hsmCaps.version.bfw.major )
             {
                 if ( BFW_VERSION_CHECK_MINOR < hsmCaps.version.bfw.minor )
                 {
-                    return BERR_SUCCESS;
+                    /* minor version is later than required version, return success */
+                    rc = BERR_SUCCESS;
+                    goto end;
                 }
                 else if ( BFW_VERSION_CHECK_MINOR == hsmCaps.version.bfw.minor )
                 {
                     if ( BFW_VERSION_CHECK_SUBMINOR <= hsmCaps.version.bfw.subminor )
 #endif
                     {
-                        return rc;
-                    }
-                    else
-                    {
-                        return BERR_NOT_SUPPORTED;
+                        /* subminor version is later than or equal to required version, return success */
+                        rc = BERR_SUCCESS;
+                        goto end;
                     }
                 }
             }
-            return BERR_NOT_SUPPORTED;
+
+            /* BFW version doesn't meet the requirement of SAGE */
+            rc =  BERR_NOT_SUPPORTED;
         }
     }
+
 end:
     return rc;
 }
@@ -653,16 +667,26 @@ BSAGElib_P_Boot_Framework(
 #else
      /* SAGE Services parameters - resources */
     {
-        uint32_t sageVklMask;
+        uint32_t sageVklMask = 0;
         BHSM_KeyLadderInfo info;
+        BERR_Code rc_local;
 
-        info.index = 32; /* shift past uint32 if no return value */
-        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
-        sageVklMask = 1<<info.index;
+        BKNI_Memset(&info, 0, sizeof(info));
+        rc_local = BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle1, &info);
+        if(rc_local != BERR_SUCCESS) { rc = BERR_TRACE( rc_local ); goto end; }
 
-        info.index = 32;
-        BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
-        sageVklMask |= 1<<info.index;
+        if(info.index < 32)
+        {
+            sageVklMask = 1<<info.index;
+        }
+
+        rc_local = BHSM_KeyLadder_GetInfo(hSAGElib->vklHandle2, &info);
+        if(rc_local != BERR_SUCCESS) { rc = BERR_TRACE( rc_local ); goto end; }
+
+        if(info.index < 32)
+        {
+            sageVklMask |= 1<<info.index;
+        }
 
         /* HSM internally remaps VKL ID. We need to remap VKL ID back to actual VKL ID before to send to SAGE. */
         _BSAGElib_P_Boot_SetBootParam(SageVklMask, sageVklMask);

@@ -823,8 +823,16 @@ NEXUS_Error NEXUS_StcChannel_GetStatus(NEXUS_StcChannelHandle stcChannel, NEXUS_
     {
         status->mode = stcChannel->settings.mode;
     }
-    NEXUS_StcChannel_GetStc(stcChannel, &status->stc);
-    status->stcValid = stcChannel->stcValid;
+
+    NEXUS_StcChannel_GetSerialStc_priv(stcChannel, &status->serialStc);
+    if (!stcChannel->swPcrOffsetEnabled) {
+        status->stc = status->serialStc + BXPT_PcrOffset_GetOffset(stcChannel->pcrOffset);
+        status->stcValid = BXPT_PcrOffset_IsOffsetValid(stcChannel->pcrOffset);
+    }
+    else {
+        status->stc = status->serialStc + stcChannel->swPcrOffset;
+        status->stcValid = stcChannel->stcValid;
+    }
 
     status->index = stcChannel->index;
     status->stcIndex = stcChannel->stcIndex;

@@ -57,6 +57,7 @@ extern "C" {
 #define BHSM_VKL_CUSTSUBMODE_MASK           0x000000FF
 #define BHSM_VKL_CLIENT_MASK                0x0000FF00
 #define BHSM_VKL_CLIENT_SHIFT               8
+#define BHSM_VKL_ID_ALLOCATION_FLAG         0x80    /* Flag on VKL Id that indicactes/"verifies" it's HSM allocated. */
 
 #define BHSM_VISTA_PROCIN_LEN               16
 

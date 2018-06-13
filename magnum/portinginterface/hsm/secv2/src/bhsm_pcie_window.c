@@ -39,7 +39,6 @@
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-
 #include "bhsm.h"
 #include "bhsm_priv.h"
 #include "bsp_types.h"
@@ -68,14 +67,23 @@ BERR_Code BHSM_PcieWindow_Set( BHSM_Handle hHsm, BHSM_PcieWindowSettings *pSetti
     /* size must be a multiple of 1024 byte */
     if( pSettings->size & 0xFF ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
-    addressStart = (uint32_t)(pSettings->baseOffset >> 8);
-    addressEnd = addressStart + (pSettings->size >> 8) - 1;
+    if (pSettings->size > 0) {
+        addressStart = (uint32_t)(pSettings->baseOffset >> 8);
+        addressEnd = addressStart + (pSettings->size >> 8) - 1 ;
+    }
+    else
+    {
+        /* Size is 0, make start > end to disable the access. */
+        addressStart = (uint32_t)((pSettings->baseOffset + 1024) >> 8);
+        addressEnd = (uint32_t)(pSettings->baseOffset >> 8);
+    }
 
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
     bspConfig.in.addrRangeStart = addressStart;
     bspConfig.in.addrRangeEnd   = addressEnd;
     bspConfig.in.exclusiveMode  = 1; /* exclusive mode */
+
     bspConfig.in.enablePcie0    = (pSettings->index == 0)?1:0;
     bspConfig.in.enablePcie1    = (pSettings->index == 1)?1:0;
     bspConfig.in.cmdPending     = 0;

@@ -55,8 +55,6 @@ void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     uint32_t i;
     uint8_t version = 0;
     uint32_t flags = 0;
-    uint32_t auxInfoType = 0;
-    uint32_t auxInfoTypeParam = 0;
     uint8_t defsize = 0;
     uint32_t samplecount = 0;
     uint8_t sampleinfo = 0;
@@ -72,8 +70,8 @@ void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     if (flags & 1) {
         /* TODO: Complete handling of aux_info_type and parameter */
         /* For now, simply move the cursor to the correct location */
-        auxInfoType = batom_cursor_uint32_be(cursor);
-        auxInfoTypeParam = batom_cursor_uint32_be(cursor);
+        batom_cursor_uint32_be(cursor);
+        batom_cursor_uint32_be(cursor);
     }
 
     batom_cursor_copy(cursor, &defsize, 1);

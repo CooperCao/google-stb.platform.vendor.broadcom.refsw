@@ -1,0 +1,1216 @@
+diff -Naur Original/R642_API_v1.2J8_Multi/I2C_Sys.c R642_API_v1.2J8_Multi/I2C_Sys.c
+--- Original/R642_API_v1.2J8_Multi/I2C_Sys.c	2018-05-31 14:46:42.856250000 -0700
++++ R642_API_v1.2J8_Multi/I2C_Sys.c	2018-06-01 15:21:39.911000100 -0700
+@@ -1,149 +1,134 @@
+-#include "I2C_Sys.h"
+-
+-R642_TUNER_NUM_TYPE TUNER_NO = R642_TUNER_1;
+-
+-BOOL flag;
+-LONG *IoRead;
+-LONG ulIoPortConfig;
+-HANDLE hDevice[127];
+-I2C_TRANS TransI2C;
+-HINSTANCE hDLL;
+-GETDLLVERSION GetDllVersion;
+-OPENDEVICEINSTANCE OpenDeviceInstance;
+-CLOSEDEVICEINSTANCE CloseDeviceInstance;
+-DETECTDEVICE DetectDevice;
+-GETDEVICECOUNT GetDeviceCount;
+-GETDEVICEINFO GetDeviceInfo;
+-OPENDEVICEBYSERIALID OpenDeviceBySerialId;
+-GETSERIALID GetSerialId;
+-CONFIGIOPORTS ConfigIoPorts;
+-GETIOCONFIG GetIoConfig;
+-READIOPORTS ReadIoPorts;
+-WRITEIOPORTS WriteIoPorts;
+-READI2C ReadI2c;
+-WRITEI2C WriteI2c;
+-
+-bool I2C_Init(R642_TUNER_NUM_TYPE R642_Tuner_Num)
+-{
+-	hDLL = LoadLibrary("UsbI2cIo.dll");          // attempt load dll
+-	if( hDLL != NULL) {
+-		// got handle to dll, now initialize API function pointers
+-		GetDllVersion=(GETDLLVERSION)GetProcAddress(hDLL,"DAPI_GetDllVersion");
+-		OpenDeviceInstance=(OPENDEVICEINSTANCE)GetProcAddress(hDLL,"DAPI_OpenDeviceInstance");
+-		CloseDeviceInstance=(CLOSEDEVICEINSTANCE)GetProcAddress(hDLL,"DAPI_CloseDeviceInstance");
+-		DetectDevice=(DETECTDEVICE)GetProcAddress(hDLL,"DAPI_DetectDevice");
+-		GetDeviceCount=(GETDEVICECOUNT)GetProcAddress(hDLL,"DAPI_GetDeviceCount");
+-		GetDeviceInfo=(GETDEVICEINFO)GetProcAddress(hDLL,"DAPI_GetDeviceInfo");
+-		OpenDeviceBySerialId=(OPENDEVICEBYSERIALID)GetProcAddress(hDLL,"DAPI_OpenDeviceBySerialId");
+-		GetSerialId=(GETSERIALID)GetProcAddress(hDLL,"DAPI_GetSerialId");
+-		ConfigIoPorts=(CONFIGIOPORTS)GetProcAddress(hDLL,"DAPI_ConfigIoPorts"); 
+-		GetIoConfig=(GETIOCONFIG)GetProcAddress(hDLL,"DAPI_GetIoConfig"); 
+-		ReadIoPorts=(READIOPORTS)GetProcAddress(hDLL,"DAPI_ReadIoPorts");
+-		WriteIoPorts=(WRITEIOPORTS)GetProcAddress(hDLL,"DAPI_WriteIoPorts");
+-		ReadI2c=(READI2C)GetProcAddress(hDLL,"DAPI_ReadI2c");
+-		WriteI2c=(WRITEI2C)GetProcAddress(hDLL,"DAPI_WriteI2c");
+-	}
+-	else
+-		return false;
+-	
+-	hDevice[R642_Tuner_Num]=OpenDeviceInstance("UsbI2cIo", (BYTE)R642_Tuner_Num);
+-
+-	if(hDevice == INVALID_HANDLE_VALUE) 
+-	return false;
+-
+-  TransI2C.byTransType = I2C_TRANS_8ADR;
+-
+-	return true;
+-}
+-
+-bool Close_I2C(R642_TUNER_NUM_TYPE R642_Tuner_Num)
+-{
+-	CloseDeviceInstance(hDevice[R642_Tuner_Num]);
+-	return true;
+-}
+-
+-bool I2C_Write_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info)
+-{
+-	int DataCount = 0;
+-	LONG lWrite   = 0;
+-
+-	TransI2C.bySlvDevAddr = R642_ADDRESS;
+-	TransI2C.wMemoryAddr  = I2C_Info->RegAddr;
+-	TransI2C.wCount       = I2C_Info->Len;
+-
+-	for(DataCount = 0;DataCount < TransI2C.wCount;DataCount ++)
+-	{
+-		TransI2C.Data[DataCount] = I2C_Info->Data[DataCount];
+-	}
+-
+-	lWrite = WriteI2c(hDevice[R642_Tuner_Num], &TransI2C);
+-
+-	if(lWrite != TransI2C.wCount)
+-		return false;
+-	
+-	return true;
+-}
+-
+-
+-
+-bool I2C_Read_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info)
+-{
+-	int DataCount = 0;
+-	LONG lRead   = 0;
+-
+-	TransI2C.bySlvDevAddr = R642_ADDRESS;
+-	TransI2C.wMemoryAddr  = 0x00;
+-	TransI2C.wCount       = I2C_Info->Len;
+-
+-	lRead = ReadI2c(hDevice[R642_Tuner_Num], &TransI2C);
+-
+-	if(lRead != TransI2C.wCount)
+-		return false;
+-
+-	for(DataCount = 0;DataCount < TransI2C.wCount;DataCount ++)
+-	{
+-		 I2C_Info->Data[DataCount] = (unsigned char)R642_Convert(TransI2C.Data[DataCount]);
+-	}
+-	
+-	return true;
+-}
+-
+-
+-
+-bool I2C_Write(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_TYPE *I2C_Info)
+-{
+-	//int DataCount = 0;
+-	LONG lWrite   = 0;
+-
+-	TransI2C.bySlvDevAddr = R642_ADDRESS;
+-	TransI2C.wMemoryAddr  = I2C_Info->RegAddr;
+-	TransI2C.wCount       = 1;
+-	TransI2C.Data[0]      = I2C_Info->Data;
+-
+-	lWrite = WriteI2c(hDevice[R642_Tuner_Num], &TransI2C);
+-
+-	if(lWrite != TransI2C.wCount)
+-		return false;
+-	
+-	return true;
+-}
+-
+-
+-int R642_Convert(int InvertNum)
+-{
+-	int ReturnNum = 0;
+-	int AddNum    = 0x80;
+-	int BitNum    = 0x01;
+-	int CountNum   = 0;
+-
+-	for(CountNum = 0;CountNum < 8;CountNum ++)
+-	{
+-		if(BitNum & InvertNum)
+-			ReturnNum += AddNum;
+-
+-		AddNum /= 2;
+-		BitNum *= 2;
+-	}
+-
+-	return ReturnNum;
+-}
+\ No newline at end of file
++#include "bstd.h"
++#include "Tuner/R642.h"
++#include "i2c_sys.h"
++#include "bkni.h"
++#include "bdbg.h"
++
++R642_TUNER_NUM_TYPE TUNER_NO = R642_TUNER_1;
++
++static I2C_DEVICE *I2c_P_Device;
++
++#define READ_MODE 0x101
++#define I2C_POLLING_INTERVAL    50  // in usecs
++#define BI2C_P_MIN_TIMEOUT_MS   43  // 4 millseconds observed to be required on realtime OS
++
++// Add 10% for fudge factor and round it up
++#define BI2C_P_CALCULATE_TIMEOUT(lval, clkRate) ((((lval) * 1100)/(clkRate)) + BI2C_P_MIN_TIMEOUT_MS)
++BDBG_MODULE(I2C_Sys);
++
++bool I2C_Init(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_DEVICE *I2c_Device)
++{
++    I2C_LEN_TYPE I2C_Info;
++    BSTD_UNUSED(R642_Tuner_Num);
++
++    BDBG_ASSERT( I2c_Device );
++
++    /* Alloc memory from the system heap */    
++    I2c_P_Device = (I2C_DEVICE *) BKNI_Malloc( sizeof( I2C_DEVICE ) );
++
++    if ( I2c_P_Device == NULL )
++    {
++        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
++        BDBG_ERR(("I2C_Init: BKNI_malloc() failed"));
++        return false;
++    }
++    BKNI_Memset( I2c_P_Device, 0x00, sizeof( I2C_DEVICE ) );
++
++    I2c_P_Device->I2cRegHandle = I2c_Device->I2cRegHandle;
++    I2c_P_Device->Address = I2c_Device->Address;
++    I2C_Info.RegAddr = 0;
++    I2C_Info.Len = 1;
++    I2C_Read_Len(R642_TUNER_1, &I2C_Info);
++
++    BDBG_MSG(("Tuner chip is 0x%0x", I2C_Info.Data[0]));
++
++    return true;
++}
++
++bool I2C_Close(R642_TUNER_NUM_TYPE R642_Tuner_Num)
++{
++    BSTD_UNUSED(R642_Tuner_Num);
++
++    if (I2c_P_Device) {
++        BKNI_Free(I2c_P_Device);
++        I2c_P_Device = NULL;
++    }
++
++    return true;
++}
++
++bool I2C_Read_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info)
++{
++    BERR_Code retCode = BERR_SUCCESS;
++    int DataCount = 0;
++    I2C_TRANS TransI2C;
++    BSTD_UNUSED(R642_Tuner_Num);
++
++    TransI2C.BySlvDevAddr = I2c_P_Device->Address;
++    TransI2C.WMemoryAddr = I2C_Info->RegAddr;
++    TransI2C.WCount = I2C_Info->Len;
++
++    retCode = BREG_I2C_Read(I2c_P_Device->I2cRegHandle, TransI2C.BySlvDevAddr, TransI2C.WMemoryAddr, &TransI2C.Data[0], TransI2C.WCount);
++    if(retCode){BERR_TRACE(BERR_NOT_INITIALIZED); return false;}
++        
++    for (DataCount = 0;DataCount < TransI2C.WCount;DataCount ++) {
++        I2C_Info->Data[DataCount] = (unsigned char)R642_Convert(TransI2C.Data[DataCount]);
++    }
++
++    return true;
++}
++
++bool I2C_Write_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info)
++{
++    BERR_Code retCode = BERR_SUCCESS;
++    int DataCount = 0;
++    I2C_TRANS TransI2C;
++    BSTD_UNUSED(R642_Tuner_Num);    
++
++    TransI2C.BySlvDevAddr = I2c_P_Device->Address;
++    TransI2C.WMemoryAddr = I2C_Info->RegAddr;
++    TransI2C.WCount = I2C_Info->Len;
++
++    for (DataCount = 0;DataCount < TransI2C.WCount;DataCount ++) {
++        TransI2C.Data[DataCount] = I2C_Info->Data[DataCount];
++    }
++
++    retCode = BREG_I2C_Write(I2c_P_Device->I2cRegHandle, TransI2C.BySlvDevAddr, TransI2C.WMemoryAddr, &TransI2C.Data[0], TransI2C.WCount);
++    if(retCode){BERR_TRACE(BERR_NOT_INITIALIZED); return false;}
++
++    return true;
++}
++
++bool I2C_Write(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_TYPE *I2C_Info)
++{
++    BERR_Code retCode = BERR_SUCCESS;
++    I2C_TRANS TransI2C;
++    TransI2C.BySlvDevAddr = I2c_P_Device->Address;
++    TransI2C.WMemoryAddr = I2C_Info->RegAddr;
++    TransI2C.WCount = 1;
++    TransI2C.Data[0] = I2C_Info->Data;
++    BSTD_UNUSED(R642_Tuner_Num);    
++
++    retCode = BREG_I2C_Write(I2c_P_Device->I2cRegHandle, TransI2C.BySlvDevAddr, TransI2C.WMemoryAddr, &TransI2C.Data[0], TransI2C.WCount);
++    if(retCode){BERR_TRACE(BERR_NOT_INITIALIZED); return false;}
++
++    return true;
++}
++
++int R642_Convert(int InvertNum)
++{
++    int ReturnNum = 0;
++    int AddNum = 0x80;
++    int BitNum = 0x01;
++    int CountNum = 0;
++
++    for (CountNum = 0;CountNum < 8;CountNum ++) {
++        if (BitNum & InvertNum)
++            ReturnNum += AddNum;
++
++        AddNum /= 2;
++        BitNum *= 2;
++    }
++
++    return ReturnNum;
++}
+diff -Naur Original/R642_API_v1.2J8_Multi/i2c_sys.h R642_API_v1.2J8_Multi/i2c_sys.h
+--- Original/R642_API_v1.2J8_Multi/i2c_sys.h	2018-05-31 14:46:40.840625000 -0700
++++ R642_API_v1.2J8_Multi/i2c_sys.h	2018-06-01 14:50:56.292147300 -0700
+@@ -1,48 +1,43 @@
+-#ifndef _I2C_SYS_H_
+-#define _I2C_SYS_H_
+-
+-
+-#include "usbi2cio.h"
+-#include "Tuner\R642.h"
+-
+-
+-extern R642_TUNER_NUM_TYPE TUNER_NO;
+-
+-
+-typedef WORD(CALLBACK* GETDLLVERSION)(void);
+-typedef HANDLE(CALLBACK* OPENDEVICEINSTANCE)(LPSTR,BYTE);
+-typedef BOOL(CALLBACK* CLOSEDEVICEINSTANCE)(HANDLE);
+-typedef BOOL(CALLBACK* DETECTDEVICE)(HANDLE);
+-typedef BYTE(CALLBACK* GETDEVICECOUNT)(LPSTR);
+-typedef BYTE(CALLBACK* GETDEVICEINFO)(LPSTR,LPDEVINFO);
+-typedef HANDLE(CALLBACK* OPENDEVICEBYSERIALID)(LPSTR,LPSTR);
+-typedef BOOL(CALLBACK* GETSERIALID)(HANDLE,LPSTR);
+-typedef BOOL(CALLBACK* CONFIGIOPORTS)(HANDLE,ULONG);
+-typedef BOOL(CALLBACK* GETIOCONFIG)(HANDLE,LPLONG);
+-typedef BOOL(CALLBACK* READIOPORTS)(HANDLE,LPLONG);
+-typedef BOOL(CALLBACK* WRITEIOPORTS)(HANDLE,ULONG,ULONG);
+-typedef BOOL(CALLBACK* READI2C)(HANDLE,PI2C_TRANS);
+-typedef BOOL(CALLBACK* WRITEI2C)(HANDLE,PI2C_TRANS);
+-
+-typedef struct _I2C_LEN_TYPE
+-{
+-	UINT8 RegAddr;
+-	UINT8 Data[50];
+-	UINT8 Len;
+-}I2C_LEN_TYPE;
+-
+-typedef struct _I2C_TYPE
+-{
+-	UINT8 RegAddr;
+-	UINT8 Data;
+-}I2C_TYPE;
+-
+-bool I2C_Init(R642_TUNER_NUM_TYPE R642_Tuner_Num);
+-bool Close_I2C(R642_TUNER_NUM_TYPE R642_Tuner_Num);
+-bool I2C_Write_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info);
+-bool I2C_Read_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info);
+-bool I2C_Write(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_TYPE *I2C_Info);
+-int R642_Convert(int InvertNum);
+-
+-
+-#endif
+\ No newline at end of file
++#ifndef _I2C_SYS_H_
++#define _I2C_SYS_H_
++
++#include "bstd.h"
++#include "Tuner/R642.h"
++
++typedef UINT8 R642_TUNER_NUM_TYPE ;
++
++typedef struct _I2C_LEN_TYPE
++{
++	UINT8 RegAddr;
++	UINT8 Data[50];
++	UINT8 Len;
++} I2C_LEN_TYPE;
++
++typedef struct _I2C_TYPE
++{
++	UINT8 RegAddr;
++	UINT8 Data;
++} I2C_TYPE;
++
++typedef struct _I2C_TRANS
++{
++	UINT8 BySlvDevAddr;
++	UINT8 WMemoryAddr;
++	UINT8 WCount;
++	UINT8 Data[50];
++} I2C_TRANS;
++
++typedef struct __I2C_DEVICE 
++{
++    BREG_I2C_Handle I2cRegHandle;
++    UINT8 Address;
++} I2C_DEVICE;
++
++bool I2C_Init(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_DEVICE *I2C_Device);
++bool I2C_Close(R642_TUNER_NUM_TYPE R642_Tuner_Num);
++bool I2C_Write_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info);
++bool I2C_Read_Len(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_LEN_TYPE *I2C_Info);
++bool I2C_Write(R642_TUNER_NUM_TYPE R642_Tuner_Num, I2C_TYPE *I2C_Info);
++int R642_Convert(int InvertNum);
++
++#endif
+diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.c R642_API_v1.2J8_Multi/Tuner/R642.c
+--- Original/R642_API_v1.2J8_Multi/Tuner/R642.c	2018-05-31 14:50:50.606250000 -0700
++++ R642_API_v1.2J8_Multi/Tuner/R642.c	2018-06-04 15:23:25.596134506 -0700
+@@ -9,24 +9,20 @@
+ 
+ 
+ #include "R642.h"
+-#include "..\I2C_Sys.h"    // "I2C_Sys" is only for SW porting reference.
++#include "../i2c_sys.h"    // "I2C_Sys" is only for SW porting reference.
+ 
+ #define  FILTER_GAIN_DELAY  5
+ #define  FILTER_CODE_DELAY 5
+ #define  XTAL_CHK_DELAY    20
+ #define  PLL_LOCK_DELAY    10
+ 
+-//==========Device Address============//
+- UINT8 R642_ADDRESS = 0xF8;	                 //R642 I2C addr is 0xF8
+-
+-//===========Xtal Frequency===========//
+- UINT16 R642_Xtal = 16000;					 //Xtal clock rate.
++UINT16 R642_Xtal = 24000;					 //Xtal clock rate.
+ 
+ //===========Xtal Cap set (Range is 0~41pF) ===============
+ //Suggest R642_Xtal_cap use 39pF when xtal CL value is 20pF, Default.
+ //Suggest R642_Xtal_cap use 30pF when xtal CL value is 16pF 
+ //Suggest R642_Xtal_cap use 22pF when xtal CL value is 12pF 
+- UINT8 R642_Xtal_cap = 39;
++UINT8 R642_Xtal_cap = 18; //Per Rafael changedfrom 39 to 18 because of 24 MHz XTAL
+ 
+ //===========External LNA Option===========//
+ UINT8 R642_External_LNA = 0;			     //External LNA : 0:Disable , 1:Enable
+@@ -112,8 +108,8 @@
+ UINT8 R642_Fil_Cal_Gap = 8;
+ UINT32 R642_IF_HIGH = 8500;
+ UINT32 R642_IF_GOLOBAL = 6000;
+-UINT8 R642_Xtal_Pwr[MAX_TUNER_NUM] = {XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST};			 //*
+-UINT8 R642_Xtal_Pwr_tmp[MAX_TUNER_NUM] = {XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST};		 //*
++UINT8 R642_Xtal_Pwr[MAX_TUNER_NUM] = {XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST};
++UINT8 R642_Xtal_Pwr_tmp[MAX_TUNER_NUM] = {XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST,XTAL_HIGHEST};
+ UINT8 R642_Mixer_Mode = R642_IMR_REV;
+ UINT8 R642_Mixer_Mode_Manual = 0;
+ UINT8 R642_Mixer_Amp_LPF_IMR_CAL = 7;
+@@ -351,8 +347,6 @@
+                                            25, 77, 56, -12, 164, 42, -17, -49, -41, 0,//745~845
+                                            53, 109, 122, 114, 71, -11,//845~905
+                                            169, 200, 184, 148, 119, 47, 5, 8, 34, 60};//905~1000
+-
+-
+ #elif(R642_RSSI_NORMAL_TYPE == 0)
+ 
+ 	static UINT16 R642_Lna_Acc_Gain[4][32] = 
+@@ -392,13 +386,7 @@
+ 										20,	20,	10,	10,	0,	-10, 100, -20, -30,	-40,				//745~845
+ 										80,	-50, -60, -70, -80, -80};							//845~905
+ #endif
+-/*
+-static UINT16 R642_Rf_Acc_Gain[16] = 
+-{
+- 0, 15, 31, 46, 58, 58, 58, 58, 58, 72,			//0~9
+-86, 99, 113, 113, 124, 134						//10~15
+-};
+-*/
++
+ static UINT16 R642_Rf_Acc_Gain[4][16] =	//Gain *100
+ {
+ 	{0, 155,	316,	474,	598,	597,	597,	597,	597,	747,	891,	1027,	1179,	1178,	1301,	1419},   //50 MHz ~ 260 MHz
+@@ -727,7 +715,8 @@
+ 
+ R642_Freq_Info_Type R642_Freq_Sel(UINT32 LO_freq, UINT32 RF_freq, R642_Standard_Type R642_Standard)
+ {
+-	R642_Freq_Info_Type R642_Freq_Info;
++    R642_Freq_Info_Type R642_Freq_Info;
++    BSTD_UNUSED(RF_freq);    
+ 
+ 
+ 	//----- LO dependent parameter --------
+@@ -1991,7 +1980,7 @@
+ 		break;
+ 	case 1:
+ 		R642_SysFreq_Info.DEGLITCH_CLK = 1;		//R38[3]		["500Hz"(0), "1KHz"(1)]
+-		R642_SysFreq_Info.LNA_RF_DIS_MODE = R642_SysFreq_Info.LNA_RF_DIS_MODE=0;			//(R45[1:0];R32[5];R31[0];) : 0011 normal					case 0
++		R642_SysFreq_Info.LNA_RF_DIS_MODE = 0;	//(R45[1:0];R32[5];R31[0];) : 0011 normal					case 0
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST &= 0x03;		
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST += 4;			//R44[7:6]	  R45[7:6] ["0.6u" (0), "0.9u" (4), "1.5u" (8), "2.4u" (12)] 
+ 		R642_SysFreq_Info.NAT_HYS = 1;			//R35[6]		["no hys"(0) , "-6.5dB hys"(1)]
+@@ -2007,7 +1996,7 @@
+ 		break;
+ 	case 2:
+ 		R642_SysFreq_Info.DEGLITCH_CLK = 1;		//R38[3]		["500Hz"(0), "1KHz"(1)]
+-		R642_SysFreq_Info.LNA_RF_DIS_MODE = R642_SysFreq_Info.LNA_RF_DIS_MODE=1;			//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
++		R642_SysFreq_Info.LNA_RF_DIS_MODE = 1;	//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST &= 0x03;		
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST += 8;			//R44[7:6]	  R45[7:6] ["0.6u" (0), "0.9u" (4), "1.5u" (8), "2.4u" (12)] 
+ 		R642_SysFreq_Info.NAT_HYS = 1;			//R35[6]		["no hys"(0) , "-6.5dB hys"(1)]
+@@ -2023,7 +2012,7 @@
+ 		break;
+ 	case 3:
+ 		R642_SysFreq_Info.DEGLITCH_CLK = 1;		//R38[3]		["500Hz"(0), "1KHz"(1)]
+-		R642_SysFreq_Info.LNA_RF_DIS_MODE = R642_SysFreq_Info.LNA_RF_DIS_MODE=1;			//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
++		R642_SysFreq_Info.LNA_RF_DIS_MODE = 1;	//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST &= 0x03;		
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST += 12;			//R44[7:6]	  R45[7:6] ["0.6u" (0), "0.9u" (4), "1.5u" (8), "2.4u" (12)] 
+ 		R642_SysFreq_Info.NAT_HYS = 1;			//R35[6]		["no hys"(0) , "-6.5dB hys"(1)]
+@@ -2039,7 +2028,7 @@
+ 		break;
+ 	case 4:
+ 		R642_SysFreq_Info.DEGLITCH_CLK = 1;		//R38[3]		["500Hz"(0), "1KHz"(1)]
+-		R642_SysFreq_Info.LNA_RF_DIS_MODE = R642_SysFreq_Info.LNA_RF_DIS_MODE=1;			//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
++		R642_SysFreq_Info.LNA_RF_DIS_MODE = 1;	//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST &= 0x03;		
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST += 8;			//R44[7:6]	  R45[7:6] ["0.6u" (0), "0.9u" (4), "1.5u" (8), "2.4u" (12)] 
+ 		R642_SysFreq_Info.NAT_HYS = 1;			//R35[6]		["no hys"(0) , "-6.5dB hys"(1)]
+@@ -2055,7 +2044,7 @@
+ 		break;
+ 	case 5:
+ 		R642_SysFreq_Info.DEGLITCH_CLK = 1;		//R38[3]		["500Hz"(0), "1KHz"(1)]
+-		R642_SysFreq_Info.LNA_RF_DIS_MODE = R642_SysFreq_Info.LNA_RF_DIS_MODE=1;			//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
++		R642_SysFreq_Info.LNA_RF_DIS_MODE = 1;	//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST &= 0x03;		
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST += 8;			//R44[7:6]	  R45[7:6] ["0.6u" (0), "0.9u" (4), "1.5u" (8), "2.4u" (12)] 
+ 		R642_SysFreq_Info.NAT_HYS = 0;			//R35[6]		["no hys"(0) , "-6.5dB hys"(1)]
+@@ -2071,7 +2060,7 @@
+ 		break;
+ 	case 6:
+ 		R642_SysFreq_Info.DEGLITCH_CLK = 1;		//R38[3]		["500Hz"(0), "1KHz"(1)]
+-		R642_SysFreq_Info.LNA_RF_DIS_MODE = R642_SysFreq_Info.LNA_RF_DIS_MODE=1;			//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
++		R642_SysFreq_Info.LNA_RF_DIS_MODE = 1;	//Both (fast+slow) (R45[1:0]=0'b00; R31[0]=1 ;R32[5]=1)	: 1111 Both (fast+slow)	case 1
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST &= 0x03;		
+ 		R642_SysFreq_Info.LNA_DIS_SLOW_FAST += 8;			//R44[7:6]	  R45[7:6] ["0.6u" (0), "0.9u" (4), "1.5u" (8), "2.4u" (12)] 
+ 		R642_SysFreq_Info.NAT_HYS = 1;			//R35[6]		["no hys"(0) , "-6.5dB hys"(1)]
+@@ -2873,41 +2862,7 @@
+ R642_ErrCode R642_Init(R642_TUNER_NUM R642_Tuner_Num, R642_Standard_Type R642_Standard)
+ {
+     UINT8 i;
+-	UINT8 check_i2c_count = 0;
+-	R642_Sys_Info_Type R642_Sys_Init;
+-
+-	R642_Sys_Init = R642_Sys_Sel (R642_Standard);	//Get R642_Mixer_Mode by different standard
+-
+-
+-	//Check Device Address
+-	R642_I2C_Len.RegAddr = 0x00;
+-	R642_I2C_Len.Len = 1;
+-	R642_I2C_Len.Data[0] = 0;
+-	while(check_i2c_count < 8)
+-	{
+-		R642_ADDRESS = R642_Address_List[check_i2c_count];
+-		if(I2C_Read_Len(R642_Tuner_Num, &R642_I2C_Len) == RT_Success)
+-		{
+-			if((R642_I2C_Len.Data[0] == CHIP_ID) && (check_i2c_count >= 4))
+-			{
+-				R642_Chip = R642_MP;
+-				break;
+-			}
+-			else if ((R642_I2C_Len.Data[0] == CHIP_ID) && (check_i2c_count < 4))
+-			{
+-				R642_Chip = R642_MT1;
+-				break;
+-			}
+-			else
+-			{
+-				check_i2c_count++;
+-			}
+-		}
+-		else
+-		{
+-			check_i2c_count++;
+-		}
+-	}
++    BSTD_UNUSED(R642_Standard);
+ 
+ 	if(R642_Initial_done_flag[R642_Tuner_Num]==FALSE)
+ 	{
+@@ -3074,14 +3029,7 @@
+ 	R642_I2C.Data = R642_Array[R642_Tuner_Num][47];
+ 	if(I2C_Write(R642_Tuner_Num,&R642_I2C) != RT_Success)
+ 		return RT_Fail;
+-/*
+-	//Xtal_pow=lowest & Xtal_div=1
+-	R642_I2C.RegAddr = 32;
+-	R642_Array[R642_Tuner_Num][32] = (R642_Array[R642_Tuner_Num][32] & 0x39) | 0x06 | 0x00;
+-	R642_I2C.Data = R642_Array[R642_Tuner_Num][32];
+-	if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-	    return RT_Fail;
+-*/
++
+ 	//Set Ni, Si, DivNum    
+ 	if (R642_Xtal == 24000)  //LO=510MHz, VCO=4080MHz
+ 	{
+@@ -3412,18 +3360,6 @@
+ 		return RT_Fail;
+ 
+ 	//Ring PLL power initial at "min_lp"
+-/*
+-	//Ring PLL power, R25[2:1]
+-	if((RingFreq>0) && (RingFreq<R642_RING_POWER_FREQ))  
+-         R642_Array[R642_Tuner_Num][25] = (R642_Array[R642_Tuner_Num][25] & 0xF9) | 0x04;   //R25[2:1]=2'b10; min_lp
+-	else
+-        R642_Array[R642_Tuner_Num][25] = (R642_Array[R642_Tuner_Num][25] & 0xF9) | 0x00;   //R25[2:1]=2'b00; min
+-
+-	R642_I2C.RegAddr = 0x19;
+-	R642_I2C.Data = R642_Array[R642_Tuner_Num][25];
+-	if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-		return RT_Fail;
+-*/
+ 	if(Rev_Mode==R642_IMR_NOR)
+ 	{
+ 		//Must do MUX before PLL() 
+@@ -4284,9 +4220,9 @@
+ 		
+ 	//PntReg is reg to change; FlucPot is change value
+ 	if(PotReg == R642_IMR_GAIN_REG)
+-		PntReg = R642_IMR_PHASE_REG; //phase control
++		PntReg = R642_IMR_PHASE_REG; /* phase control */
+ 	else
+-		PntReg = R642_IMR_GAIN_REG; //gain control
++		PntReg = R642_IMR_GAIN_REG; /* gain control */
+ 
+ 	for(TreeCount = 0; TreeCount<3; TreeCount ++)
+ 	{
+@@ -4345,31 +4281,25 @@
+ 
+ R642_ErrCode R642_IQ_Tree5(R642_TUNER_NUM R642_Tuner_Num, UINT8 FixPot, UINT8 FlucPot, UINT8 PotReg, R642_SectType* CompareTree)
+ {
+-	UINT8 TreeCount  = 0;
+-	UINT8 TreeTimes = 5;
+-	UINT8 TempPot   = 0;
+-	UINT8 PntReg    = 0;
+-	UINT8 CompCount = 0;
+-	R642_SectType CorTemp[5];
++    UINT8 TreeCount  = 0;
++    UINT8 TreeTimes = 5;
++    UINT8 TempPot   = 0;
++    UINT8 PntReg    = 0;
++    UINT8 CompCount = 0;
++    R642_SectType CorTemp[5];
+     R642_SectType Compare_Temp;
+-	UINT8 CountTemp = 0;
++    UINT8 CountTemp = 0;
+ 
+-	memset(&Compare_Temp,0, sizeof(R642_SectType));
+-	Compare_Temp.Value = 255;
+-
+-	for(CompCount=0; CompCount<3; CompCount++)
+-	{
+-		CorTemp[CompCount].Gain_X = CompareTree[CompCount].Gain_X;
+-		CorTemp[CompCount].Phase_Y = CompareTree[CompCount].Phase_Y;
+-		CorTemp[CompCount].Value = CompareTree[CompCount].Value;
+-	}
+-
+-	/*
+-	if(PotReg == 0x08)
+-		PntReg = 0x09; //phase control
+-	else
+-		PntReg = 0x08; //gain control
+-	*/
++    //CAB 4/4/2018 memset(&Compare_Temp,0, sizeof(R642_SectType));
++    BKNI_Memset(&Compare_Temp,0, sizeof(R642_SectType));
++    Compare_Temp.Value = 255;
++
++    for(CompCount=0; CompCount<3; CompCount++)
++    {
++        CorTemp[CompCount].Gain_X = CompareTree[CompCount].Gain_X;
++        CorTemp[CompCount].Phase_Y = CompareTree[CompCount].Phase_Y;
++        CorTemp[CompCount].Value = CompareTree[CompCount].Value;
++    }
+ 
+ 	//PntReg is reg to change; FlucPot is change value
+ 	if(PotReg == R642_IMR_GAIN_REG)
+@@ -5071,41 +5001,6 @@
+ 			return RT_Fail;
+ 	}
+ 
+-
+-/*
+-
+-	// Record SW Version 
+-	R642_I2C.RegAddr = 0x0C;
+-	R642_Array[R642_Tuner_Num][12] = (R642_Array[R642_Tuner_Num][12] & 0xF0) | VER_NUM;  
+-    R642_I2C.Data = R642_Array[R642_Tuner_Num][12];
+-    if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-       return RT_Fail;
+-
+-	// Record init flag
+-	R642_I2C.RegAddr = 0x1A;
+-	R642_Array[R642_Tuner_Num][26] = ((R642_Array[R642_Tuner_Num][26] & 0xF0) | (R642_Initial_done_flag<<1) | (R642_Fil_Cal_flag[RT_Standard]<<2) 
+-		| R642_IMR_done_flag | (R642_DetectTfType<<3));  
+-    R642_I2C.Data = R642_Array[R642_Tuner_Num][26];
+-    if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-       return RT_Fail;
+-    
+-
+-	//Rspin
+-	//disable IF_AGC read, R8[7]=0
+-	R642_I2C.RegAddr = 0x08;
+-	R642_Array[R642_Tuner_Num][8] = R642_Array[R642_Tuner_Num][8] & 0x7F;
+-	R642_I2C.Data = R642_Array[R642_Tuner_Num][8];
+-	if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-		return RT_Fail;
+-
+-	//ADC power off, R12[7]=1
+-	R642_I2C.RegAddr = 0x0C;
+-	R642_Array[R642_Tuner_Num][12] = R642_Array[R642_Tuner_Num][12] | 0x80;
+-	R642_I2C.Data = R642_Array[R642_Tuner_Num][12];
+-	if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-		return RT_Fail;
+-	
+-*/
+ 	return RT_Success;
+ }
+ 
+@@ -5296,11 +5191,10 @@
+ 		 }
+ 	 }
+      
+-	 if(u1FilterCode==16)
+-          u1FilterCodeResult = 15;
+-
+-	  return u1FilterCodeResult;
++    if(u1FilterCode == 16)
++        u1FilterCodeResult = 15;
+ 
++    return u1FilterCodeResult;
+ }
+ 
+ R642_ErrCode R642_SetFrequency(R642_TUNER_NUM R642_Tuner_Num, R642_Set_Info R642_INFO) //Write Multi byte 
+@@ -5651,20 +5545,6 @@
+ //R8[2]
+ //LDO bypass		550MHz~670MHz	R8[2]=1
+ //LDO 2.95v			other			R8[2]=0
+-/*
+-	R642_I2C.RegAddr = 8;
+-	if((R642_INFO.RF_KHz>=550000) && (R642_INFO.RF_KHz<670000))
+-	{
+-		R642_Array[R642_Tuner_Num][R642_I2C.RegAddr] = R642_Array[R642_Tuner_Num][R642_I2C.RegAddr] | 0x04;
+-	}
+-	else
+-	{
+-		R642_Array[R642_Tuner_Num][R642_I2C.RegAddr] = R642_Array[R642_Tuner_Num][R642_I2C.RegAddr] & 0xFB;
+-	}
+-	R642_I2C.Data = R642_Array[R642_Tuner_Num][R642_I2C.RegAddr];
+-	if(I2C_Write(R642_Tuner_Num, &R642_I2C) != RT_Success)
+-		return RT_Fail;
+-*/
+ 	 return RT_Success;
+ }
+ 
+@@ -5903,16 +5783,6 @@
+ 	pR642_rf_gain->RF_gain2 = (R642_I2C_Len.Data[4] & 0x0F);            //rf
+ 	pR642_rf_gain->RF_gain3 = (R642_I2C_Len.Data[4] & 0xF0)>>4;       //mixer
+ 	pR642_rf_gain->RF_gain4 = (R642_I2C_Len.Data[5] & 0x0F);             //filter
+-/*
+-	if(pR642_rf_gain->RF_gain1 > 24) 
+-        pR642_rf_gain->RF_gain1 = 24;  
+-
+-	//Mixer Amp Gain
+-	if(pR642_rf_gain->RF_gain3 > 10)
+-        pR642_rf_gain->RF_gain3 = 10;  //MixerAmp gain max is 10	
+-	
+-	pR642_rf_gain->RF_gain_comb = (acc_lna_gain[pR642_rf_gain->RF_gain1] + acc_rfbuf_gain + pR642_rf_gain->RF_gain3*12);
+-*/
+ 	pR642_rf_gain->RF_gain_comb = acc_lna_gain[pR642_rf_gain->RF_gain1]
+ 		                        + acc_rf_gain[pR642_rf_gain->RF_gain2]
+ 		                        + acc_mixer_gain[pR642_rf_gain->RF_gain3]
+@@ -6204,17 +6074,14 @@
+ //  3rd parameter: output signal level (dBm*1000)                    //
+ //  4th parameter: output RF max gain indicator (1:max gain)    //
+ //-----------------------------------------------------------------------//
+-R642_ErrCode R642_GetRfRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RfLevelDbm, UINT8 *fgRfMaxGain)
++R642_ErrCode R642_GetRfRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RfLevelDbm, UINT8 *fgRfMaxGain, R642_RF_Gain_Info *pR642_rf_gain)
+ { 	
+-	//UINT8 bPulseFlag;
+ 	R642_RF_Gain_Info rf_gain_info;
+ 	UINT16  acc_lna_gain;
+-	INT16  acc_lna_gain_temp;
+ 	UINT16  acc_rfbuf_gain;
+ 	UINT16  acc_mixer_gain;
+ 	UINT16  acc_filter_gain;
+ 	UINT16  rf_total_gain;
+-	UINT8   u1FreqIndex;
+ 	INT32  u2FreqFactor=0;
+ 	UINT8  u1LnaGainqFactorIdx;
+ 	INT32     rf_rssi;
+@@ -6225,10 +6092,8 @@
+ 	UINT8	filter_limit;
+ 	R642_I2C_Len.RegAddr = 0x00;
+ 	R642_I2C_Len.Len = 6;
+-#if(R642_RSSI_NORMAL_TYPE == 1)				
+-	//{50~135, 135~215, 215~265, 265~315, 315~325, 325~345, 345~950}
+-	//INT16 R642_Start_Gain_Cal_By_Freq[7] = {100, -100, -300, -100, 200, 200, 200};
+-#elif(R642_RSSI_NORMAL_TYPE == 0)									
++    BSTD_UNUSED(RT_Standard);
++#if(R642_RSSI_NORMAL_TYPE == 0)									
+ 	//{50~215, 215~275, 275~295, 295~710, 710~950}
+ 	INT16 R642_Start_Gain_Cal_By_Freq[5] = {0, -200, 0, +200, +300};
+ 	//MS_S8 R642_Start_Gain_Cal_By_Freq[7] = {0, 0, 0, 0, 0};
+@@ -6243,10 +6108,16 @@
+ 	
+ 	//bPulseFlag = ((R642_I2C_Len.Data[1] & 0x40) >> 6);
+ 
+-	rf_gain_info.RF_gain1 = (R642_I2C_Len.Data[3] & 0x1F);          //lna
+-	rf_gain_info.RF_gain2 = (R642_I2C_Len.Data[4] & 0x0F);          //rf
+-	rf_gain_info.RF_gain3 = (R642_I2C_Len.Data[4] & 0xF0)>>4;       //mixer
+-	rf_gain_info.RF_gain4 = (R642_I2C_Len.Data[5] & 0x0F);          //filter
++    rf_gain_info.RF_gain1 = (R642_I2C_Len.Data[3] & 0x1F);          //lna
++    rf_gain_info.RF_gain2 = (R642_I2C_Len.Data[4] & 0x0F);          //rf
++    rf_gain_info.RF_gain3 = (R642_I2C_Len.Data[4] & 0xF0)>>4;       //mixer
++    rf_gain_info.RF_gain4 = (R642_I2C_Len.Data[5] & 0x0F);          //filter
++
++    pR642_rf_gain->RF_gain_comb = 0;
++    pR642_rf_gain->RF_gain1 = (R642_I2C_Len.Data[3] & 0x1F);          //lna
++    pR642_rf_gain->RF_gain2 = (R642_I2C_Len.Data[4] & 0x0F);          //rf
++    pR642_rf_gain->RF_gain3 = (R642_I2C_Len.Data[4] & 0xF0)>>4;       //mixer
++    pR642_rf_gain->RF_gain4 = (R642_I2C_Len.Data[5] & 0x0F);          //filter
+ 
+ 	
+    //max gain indicator
+@@ -6290,57 +6161,7 @@
+ 
+ 
+ 
+-#if(R642_RSSI_NORMAL_TYPE == 1)
+-/*
+-		//coarse adjustment
+-		if(RF_Freq_Khz<135000)   //<135M
+-		{
+-			u1FreqIndex = 0;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[0];
+-		}
+-		else if((RF_Freq_Khz>=135000)&&(RF_Freq_Khz<215000))   //135~215M
+-		{
+-			u1FreqIndex = 0;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[1];
+-		}
+-		else if((RF_Freq_Khz>=215000)&&(RF_Freq_Khz<265000))   //215~265M
+-		{
+-			u1FreqIndex = 1;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[2];
+-		}
+-		else if((RF_Freq_Khz>=265000)&&(RF_Freq_Khz<315000))   //265~315M
+-		{
+-			u1FreqIndex = 1;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[3];
+-		}
+-		else if((RF_Freq_Khz>=315000)&&(RF_Freq_Khz<325000))   //315~325M
+-		{
+-			u1FreqIndex = 1;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[4];
+-		}
+-		else if((RF_Freq_Khz>=325000)&&(RF_Freq_Khz<345000))   //325~345M
+-		{
+-			u1FreqIndex = 1;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[5];
+-		}
+-		else if((RF_Freq_Khz>=345000)&&(RF_Freq_Khz<420000))   //345~420M
+-		{
+-			u1FreqIndex = 1;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[6];
+-		}
+-		else if((RF_Freq_Khz>=420000)&&(RF_Freq_Khz<710000))   //420~710M
+-		{
+-			u1FreqIndex = 2;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[6];
+-
+-		}
+-		else    // >=710
+-		{
+-			u1FreqIndex = 3;
+-			u2FreqFactor = R642_Start_Gain_Cal_By_Freq[6];
+-		}
+-*/
+-#elif(R642_RSSI_NORMAL_TYPE == 0)	//{50~215, 215~425, 425~710, 710~1000}				// u1FreqIndex
++#if(R642_RSSI_NORMAL_TYPE == 0)	//{50~215, 215~425, 425~710, 710~1000}				// u1FreqIndex
+ 		////{50~215, 215~275, 275~295, 295~710, 695~950}	// u2FreqFactor
+ 		//coarse adjustment
+ 		if(RF_Freq_Khz<215000)   //<215M
+@@ -6408,21 +6229,22 @@
+ #if(R642_RSSI_NORMAL_TYPE == 1)
+ 	//LNA Gain
+ 
+-	u1LnaGainqFactorIdx = (UINT8) ((RF_Freq_Khz-50000) / 10000);
++    u1LnaGainqFactorIdx = (UINT8) ((RF_Freq_Khz-50000) / 10000);
+ 
+-	if( ((RF_Freq_Khz-50000)  - (u1LnaGainqFactorIdx * 10000))>=5000)
+-		u1LnaGainqFactorIdx +=1;
+-	if((RF_Freq_Khz>=185000)&&(RF_Freq_Khz<186000))
+-	{
+-		u1LnaGainqFactorIdx -=1;
+-	}
+-	else if((RF_Freq_Khz>=205000)&&(RF_Freq_Khz<210000))
+-	{
+-		u1LnaGainqFactorIdx -=1;
+-	}
+-	acc_lna_gain = (UINT16)(R642_Lna_Acc_Gain[u1LnaGainqFactorIdx][rf_gain_info.RF_gain1]);
++    if(((RF_Freq_Khz-50000)  - (u1LnaGainqFactorIdx * 10000))>=5000)
++        u1LnaGainqFactorIdx +=1;
++
++    if(u1LnaGainqFactorIdx>95)
++        u1LnaGainqFactorIdx = 95;
++
++    if((RF_Freq_Khz>=185000) && (RF_Freq_Khz<186000))
++        u1LnaGainqFactorIdx -=1;
++    else if((RF_Freq_Khz>=205000) && (RF_Freq_Khz<210000))
++        u1LnaGainqFactorIdx -=1;
++
++    acc_lna_gain = (UINT16)(R642_Lna_Acc_Gain[u1LnaGainqFactorIdx][rf_gain_info.RF_gain1]);
+ 
+-	u2FreqFactor = rfrssi_offset_by_freq[u1LnaGainqFactorIdx];
++    u2FreqFactor = rfrssi_offset_by_freq[u1LnaGainqFactorIdx];
+ 
+ #else
+ 
+@@ -6436,25 +6258,20 @@
+ //Method 2 : All frequencies are finely adjusted..
+ 
+ 						
+-	if(rf_gain_info.RF_gain1 >= 10)
+-	{
+-		u1LnaGainqFactorIdx = (UINT8) ((RF_Freq_Khz-50000) / 10000);
+-
+-		if( ((RF_Freq_Khz-50000)  - (u1LnaGainqFactorIdx * 10000))>=5000)
+-			u1LnaGainqFactorIdx +=1;
+-		acc_lna_gain_temp = (INT16)acc_lna_gain + (INT16)(Lna_Acc_Gain_offset[u1LnaGainqFactorIdx]);
+-		acc_lna_gain = (UINT16)acc_lna_gain_temp;
+-	}
++    if(rf_gain_info.RF_gain1 >= 10)
++    {
++        u1LnaGainqFactorIdx = (UINT8) ((RF_Freq_Khz-50000) / 10000);
++
++        if( ((RF_Freq_Khz-50000)  - (u1LnaGainqFactorIdx * 10000))>=5000)
++            u1LnaGainqFactorIdx +=1;
++        if (u1LnaGainqFactorIdx>95)
++            u1LnaGainqFactorIdx = 95;
++        acc_lna_gain_temp = (INT16)acc_lna_gain + (INT16)(Lna_Acc_Gain_offset[u1LnaGainqFactorIdx]);
++        acc_lna_gain = (UINT16)acc_lna_gain_temp;
++    }
+ 
+ #endif
+-	//RF buf
+-/*
+-	acc_rfbuf_gain = R642_Rf_Acc_Gain[rf_gain_info.RF_gain2];
+-	if(RF_Freq_Khz<=300000)
+-		acc_rfbuf_gain += (rf_gain_info.RF_gain2 * 1);
+-	else if (RF_Freq_Khz>=600000)
+-		acc_rfbuf_gain -= (rf_gain_info.RF_gain2 * 1);
+-*/
++
+ 	if(RF_Freq_Khz<=260000)
+ 	{
+ 		acc_rfbuf_gain = (UINT16)R642_Rf_Acc_Gain[0][rf_gain_info.RF_gain2];
+@@ -6566,25 +6383,22 @@
+ //  2nd parameter: input Standard                                           //
+ //  3rd parameter: return signal level indicator (dBm*100)               //
+ //-----------------------------------------------------------------------//
+-R642_ErrCode R642_GetTotalRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RssiDbm)
++R642_ErrCode R642_GetTotalRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, int32_t *RssiDbm, R642_RF_Gain_Info *pR642_rf_gain)
+ {
+-	INT32   rf_rssi;
+-	INT32   if_rssi;
+-	INT32   rem, total_rssi;
+-	INT32   ssi_offset = 0;   //need to fine tune by platform
+-	INT32   total_rssi_dbm;
+-	UINT8  rf_max_gain_flag;
++    INT32   rf_rssi;
++    INT32   if_rssi=0;
++    INT32   ssi_offset = 0;   //need to fine tune by platform
++    INT32   total_rssi;
++    UINT8   rf_max_gain_flag;
+ 
+-	R642_GetRfRssi(R642_Tuner_Num, RF_Freq_Khz, RT_Standard, &rf_rssi, &rf_max_gain_flag);
+-
+-	R642_GetIfRssi(R642_Tuner_Num, &if_rssi);  //vga gain        
++    R642_GetRfRssi(R642_Tuner_Num, RF_Freq_Khz, RT_Standard, &rf_rssi, &rf_max_gain_flag, pR642_rf_gain); 
+ 
+     total_rssi = (INT32)(rf_rssi - (if_rssi));
+ 
+-	//for different platform, need to fine tune offset value
+-	*RssiDbm = total_rssi_dbm + ssi_offset;   
++    //for different platform, need to fine tune offset value
++    *RssiDbm = total_rssi + ssi_offset;   
+ 
+-	return RT_Success;
++    return RT_Success;
+ }
+ 
+ 
+diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tuner/R642.h
+--- Original/R642_API_v1.2J8_Multi/Tuner/R642.h	2018-05-31 14:43:23.996875000 -0700
++++ R642_API_v1.2J8_Multi/Tuner/R642.h	2018-06-04 13:53:33.096580015 -0700
+@@ -1,6 +1,9 @@
+-//#include "..\stdafx.h"
+ #ifndef  _R642_H_ 
+ #define _R642_H_
++
++#include "bstd.h"
++#include "bi2c.h"
++
+ #define DEBUG_MODE  FALSE
+ 
+ //20180522 v1.2J5 rfrssi_offset_by_freq modify around 275~315MHz
+@@ -30,9 +33,6 @@
+ #define R642_SHARE_XTAL_MASTER    FALSE     //share Xtal, R642 is Master device, xtal_gm = normal (R32[4:3]=2'b11), xtal pw = highest
+ #define R642_SHARE_XTAL_SLAVE    FALSE     //share Xtal, R642 is Slave device, xtal_gm = off (R32[4:3]=2'b11), xtal pw = lowest, xtal cap = 0
+ 
+-
+-
+-
+ //===========RSSI Type============//
+ //If use ISDB-T standard, please set 0, and set 1 for other standard.
+ //If use external LNA circuit, please set 2.
+@@ -61,7 +61,7 @@
+ 	UINT16		   FILT_COMP;
+ 	UINT16		   IF_KHz;            
+ 	UINT16		   FILT_CAL_IF;  
+-}R642_Sys_Info_Type;
++} R642_Sys_Info_Type;
+ 
+ typedef struct _R642_Freq_Info_Type
+ {
+@@ -75,7 +75,7 @@
+ 	UINT8		IMR_MEM_NOR;
+ 	UINT8		IMR_MEM_REV;
+ 	UINT8       TEMP;    
+-}R642_Freq_Info_Type;
++} R642_Freq_Info_Type;
+ 
+ typedef struct _R642_SysFreq_Info_Type
+ {
+@@ -127,7 +127,7 @@
+ 	UINT8	   NATG_OFFSET;
+ 
+ 	UINT8      TEMP;
+-}R642_SysFreq_Info_Type;
++} R642_SysFreq_Info_Type;
+ 
+ typedef struct _R642_Cal_Info_Type
+ {
+@@ -138,7 +138,7 @@
+ 	UINT8		LNA_POWER;
+ 	UINT8		RFBUF_POWER;
+ 	UINT8		RFBUF_OUT;
+-}R642_Cal_Info_Type;
++} R642_Cal_Info_Type;
+ 
+ typedef struct _R642_SectType
+ {
+@@ -146,13 +146,13 @@
+ 	UINT8   Gain_X;
+ 	UINT8   Iqcap;
+ 	UINT8   Value;
+-}R642_SectType;
++} R642_SectType;
+ 
+ typedef enum _R642_IMR_Type  
+ {
+ 	R642_IMR_NOR=0,
+-	R642_IMR_REV,
+-}R642_IMR_Type;
++	R642_IMR_REV
++} R642_IMR_Type;
+ 
+ typedef enum _R642_Cal_Type
+ {
+@@ -160,7 +160,7 @@
+ 	R642_IMR_LNA_CAL,
+ 	R642_LPF_CAL,
+ 	R642_LPF_LNA_CAL
+-}R642_Cal_Type;
++} R642_Cal_Type;
+ 
+ typedef enum _R642_BW_Type
+ {
+@@ -170,13 +170,13 @@
+ 	BW_1_7M,
+ 	BW_10M,
+ 	BW_200K
+-}R642_BW_Type;
++} R642_BW_Type;
+ 
+ typedef enum _R642_NRB_DET_Type  
+ {
+-	R642_NRB_DET_ON=0,
+-	R642_NRB_DET_OFF,
+-}R642_NRB_DET_Type;
++    R642_NRB_DET_ON=0,
++    R642_NRB_DET_OFF
++} R642_NRB_DET_Type;
+ 
+ enum XTAL_PWR_VALUE
+ {
+@@ -191,7 +191,7 @@
+ {
+ 	R642_MP = 0,
+ 	R642_MT1
+-}Rafael_Chip_Type;
++} Rafael_Chip_Type;
+ 
+ 
+ 
+@@ -203,16 +203,16 @@
+ {
+ 	RT_Success = TRUE,
+ 	RT_Fail = FALSE
+-}R642_ErrCode;
++} R642_ErrCode;
+ 
+ typedef enum _TUNER_NUM
+ {
+-	R642_TUNER_1 = 0,   //master
++	R642_TUNER_1 = 0,
+ 	R642_TUNER_2,
+ 	R642_TUNER_3,
+ 	R642_TUNER_4,
+ 	MAX_TUNER_NUM
+-}R642_TUNER_NUM;
++} R642_TUNER_NUM;
+ 
+ /*
+ typedef enum _R642_Multi_Tuner_Type
+@@ -258,27 +258,27 @@
+ 	R642_DTMB_6M_IF_5M,     
+ 	R642_ATSC_IF_5M,  
+ 	R642_FM,
+-	R642_STD_SIZE,
+-}R642_Standard_Type;
++	R642_STD_SIZE
++} R642_Standard_Type;
+ 
+ 
+ typedef enum _R642_LoopThrough_Type
+ {
+ 	LT_ON = TRUE,
+ 	LT_OFF= FALSE
+-}R642_LoopThrough_Type;
++} R642_LoopThrough_Type;
+ 
+ typedef enum _R642_ClkOutMode_Type
+ {
+ 	CLK_OUT_OFF = 0,
+ 	CLK_OUT_ON
+-}R642_ClkOutMode_Type;
++} R642_ClkOutMode_Type;
+ 
+ typedef enum _R642_RF_Gain_TYPE
+ {
+ 	RF_AUTO = 0,
+ 	RF_MANUAL
+-}R642_RF_Gain_TYPE;
++} R642_RF_Gain_TYPE;
+ 
+ typedef enum _R642_Xtal_Div_TYPE
+ {
+@@ -286,7 +286,7 @@
+ 	XTAL_DIV1_2,	//1st_div2=0(R34[0]), 2nd_div2=1(R34[1])  ; same AGC clock
+ 	XTAL_DIV2_1,	//1st_div2=1(R34[0]), 2nd_div2=0(R34[1])  ; diff AGC clock
+ 	XTAL_DIV4
+-}R642_Xtal_Div_TYPE;
++} R642_Xtal_Div_TYPE;
+ 
+ typedef struct _R642_Set_Info
+ {
+@@ -294,7 +294,7 @@
+ 	R642_Standard_Type       R642_Standard;
+ 	R642_LoopThrough_Type    R642_LT;
+ 	R642_ClkOutMode_Type     R642_ClkOutMode;
+-}R642_Set_Info;
++} R642_Set_Info;
+ 
+ typedef struct _R642_RF_Gain_Info
+ {
+@@ -303,18 +303,18 @@
+ 	UINT8   RF_gain2;
+ 	UINT8   RF_gain3;
+ 	UINT8   RF_gain4;
+-}R642_RF_Gain_Info;
++} R642_RF_Gain_Info;
+ 
+ typedef enum _R642_Vga_Mode_TYPE
+ {
+ 	VGA_AUTO = 0,
+ 	VGA_MANUAL
+-}R642_Vga_Mode_TYPE;
++} R642_Vga_Mode_TYPE;
+ 
+ //----------------------------------------------------------//
+ //                   R642 Public Function                       //
+ //----------------------------------------------------------//
+-#define R642_Delay_MS(R642_Tuner_Num, x_ms)   	Sleep(x_ms)
++#define R642_Delay_MS(R642_Tuner_Num, x_ms)   	BKNI_Delay(x_ms*1000)
+ 
+ R642_ErrCode R642_Init(R642_TUNER_NUM R642_Tuner_Num, R642_Standard_Type R642_Standard);
+ R642_ErrCode R642_SetPllData(R642_TUNER_NUM R642_Tuner_Num, R642_Set_Info R642_INFO);
+@@ -322,7 +322,7 @@
+ R642_ErrCode R642_WakeUp(R642_TUNER_NUM R642_Tuner_Num);
+ R642_ErrCode R642_GetRfGain(R642_TUNER_NUM R642_Tuner_Num, R642_RF_Gain_Info *pR642_rf_gain);
+ R642_ErrCode R642_RfGainMode(R642_TUNER_NUM R642_Tuner_Num, R642_RF_Gain_TYPE R642_RfGainType);
+-R642_ErrCode R642_GetRfRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RfLevelDbm, UINT8 *fgRfMaxGain);
++
+ UINT8 R642_PLL_Lock(R642_TUNER_NUM R642_Tuner_Num);
+ R642_ErrCode R642_AGC_Slow(R642_TUNER_NUM R642_Tuner_Num, R642_Standard_Type R642_Standard);
+ 
+@@ -331,19 +331,19 @@
+ {
+ 	HPF_NOTCH_HIGH = 0,
+ 	HPF_NOTCH_LOW
+-}R642_HpfNotch_Type;
++}  R642_HpfNotch_Type;
+ 
+ typedef enum _R642_ClkSwing_Type
+ {
+ 	CLK_SWING_LOW = 0,
+ 	CLK_SWING_HIGH
+-}R642_ClkSwing_Type;
++} R642_ClkSwing_Type;
+ 
+ R642_ErrCode R642_SetHpfNotch(R642_TUNER_NUM R642_Tuner_Num, R642_HpfNotch_Type R642_HpfNotch);
+ R642_ErrCode R642_GetIfRssi(R642_TUNER_NUM R642_Tuner_Num, INT32 *VgaGain);
+-R642_ErrCode R642_GetTotalRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RssiDbm);
++R642_ErrCode R642_GetTotalRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, int32_t *RssiDbm, R642_RF_Gain_Info *pR642_rf_gain);
+ R642_ErrCode R642_SetXtalCap(R642_TUNER_NUM R642_Tuner_Num, UINT8 u8XtalCap);
+-R642_ErrCode R642_GetRfRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RfLevelDbm, UINT8 *fgRfMaxGain);
++R642_ErrCode R642_GetRfRssi(R642_TUNER_NUM R642_Tuner_Num, UINT32 RF_Freq_Khz, R642_Standard_Type RT_Standard, INT32 *RfLevelDbm, UINT8 *fgRfMaxGain, R642_RF_Gain_Info *pR642_rf_gain);
+ 
+ //-------------for GUI test-------------//
+ R642_ErrCode R642_SetIfFreq(R642_TUNER_NUM R642_Tuner_Num, UINT16 IF_KHz, UINT32 RF_KHz, R642_Standard_Type u1SystemStd);
+@@ -355,4 +355,4 @@
+ extern UINT8   R642_Initial_done_flag[MAX_TUNER_NUM];
+ extern UINT8   R642_IMR_done_flag[MAX_TUNER_NUM];
+ 
+-#endif
+\ No newline at end of file
++#endif

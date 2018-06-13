@@ -5070,7 +5070,11 @@ wlc_ap_doiovar(void *hdl, uint32 actionid,
 
 		if (wlc->pub->up && (appvt->chanspec_selected != 0) &&
 		    (WLC_BAND_PI_RADIO_CHANSPEC != appvt->chanspec_selected))
-		    /* coverity[stack_use_overflow] */
+			/* The call stack will not go to wlc_ampdu_release because
+			 * wlc_ampdu_txeval will return in the condition
+			 * 'ini->ba_state != AMPDU_TID_STATE_BA_ON'.
+			 */
+			/* coverity[stack_use_overflow] */
 			wlc_ap_acs_update(wlc);
 
 #ifdef WLDFS

@@ -92,8 +92,7 @@ enum {
 typedef struct BSAT_45402_Bp3SessionInfo {
    uint8_t sessionToken[8];
    uint8_t otpId[4];
-   uint8_t rootKeyDerivation;
-   uint8_t klDerivation;
+   uint8_t alg[2];
 } BSAT_45402_Bp3SessionInfo;
 
 

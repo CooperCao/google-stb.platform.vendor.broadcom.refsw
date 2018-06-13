@@ -315,9 +315,10 @@ ASKM Key2 generation parameter.
 **/
 typedef enum NEXUS_SecurityMaskKey
 {
-    NEXUS_SecurityMaskKey_eReal       = 0,
-    NEXUS_SecurityMaskKey_eReserved1  = 1,
-    NEXUS_SecurityMaskKey_eFixed      = 2
+    NEXUS_SecurityMaskKey_eReal,
+    NEXUS_SecurityMaskKey_eReserved1,
+    NEXUS_SecurityMaskKey_eFixed,
+    NEXUS_SecurityMaskKey_eMax
 } NEXUS_SecurityMaskKey;
 
 /**

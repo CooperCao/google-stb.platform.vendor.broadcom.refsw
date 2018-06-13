@@ -57,7 +57,6 @@ typedef struct BDSP_P_ImageBlockInfo
     BDSP_MMA_Memory Memory;
     BDSP_Algorithm algorithm;
     int32_t numUser;
-    bool bDownloadValid;
 }BDSP_P_ImageBlockInfo;
 
 typedef struct BDSP_P_AlgoTypeSplitInfo

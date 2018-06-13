@@ -308,6 +308,12 @@ void NEXUS_KeySlot_GetEntrySettings( NEXUS_KeySlotHandle handle,
     pSettings->rPipeEnable = true;
     pSettings->gPipeEnable = true;
 
+    BDBG_CASSERT( (int)NEXUS_CryptographicAlgorithmMode_eEcb == (int)BHSM_CryptographicAlgorithmMode_eEcb );
+    BDBG_CASSERT( (int)NEXUS_CryptographicAlgorithmMode_eCbc ==  (int)BHSM_CryptographicAlgorithmMode_eCbc );
+    BDBG_CASSERT( (int)NEXUS_CryptographicAlgorithmMode_eCounter == (int)BHSM_CryptographicAlgorithmMode_eCounter );
+    BDBG_CASSERT( (int)NEXUS_CryptographicAlgorithmMode_eRcbc == (int)BHSM_CryptographicAlgorithmMode_eRcbc );
+    BDBG_CASSERT( (int)NEXUS_CryptographicAlgorithmMode_eMax == (int)BHSM_CryptographicAlgorithmMode_eMax );
+
     return;
 }
 

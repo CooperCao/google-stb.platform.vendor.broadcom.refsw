@@ -4134,20 +4134,34 @@ void NEXUS_VideoDecoder_P_IsCodecSupported_Generic( NEXUS_VideoDecoderHandle vid
 
 void NEXUS_VideoDecoder_GetCodecCapabilities( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoCodec codec, NEXUS_VideoDecoderCodecCapabilities *pCodecCapabilities )
 {
-    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    struct NEXUS_VideoDecoderDevice *device;
+    bool codecSupported;
+
     BKNI_Memset(pCodecCapabilities, 0, sizeof(*pCodecCapabilities));
-    if (videoDecoder->settings.supportedCodecs[codec]) {
+
+    if (videoDecoder) {
+        BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+        device = videoDecoder->device;
+        codecSupported = videoDecoder->settings.supportedCodecs[codec];
+    }
+    else {
+        BAVC_VideoCompressionStd xvdCodec = NEXUS_P_VideoCodec_ToMagnum(codec, NEXUS_TransportType_eTs);
+        device = &g_NEXUS_videoDecoderXvdDevices[0];
+        codecSupported = device->cap.bCodecSupported[xvdCodec];
+    }
+
+    if (codecSupported) {
         BAVC_VideoCompressionStd xvdCodec = NEXUS_P_VideoCodec_ToMagnum(codec, NEXUS_TransportType_eTs);
         pCodecCapabilities->supported = true;
-        pCodecCapabilities->protocolProfile = (NEXUS_VideoProtocolProfile)videoDecoder->device->cap.stCodecCapabilities[xvdCodec].eProfile;
-        pCodecCapabilities->protocolLevel = (NEXUS_VideoProtocolLevel)videoDecoder->device->cap.stCodecCapabilities[xvdCodec].eLevel;
-        switch (videoDecoder->device->cap.stCodecCapabilities[xvdCodec].eBitDepth) {
+        pCodecCapabilities->protocolProfile = (NEXUS_VideoProtocolProfile)device->cap.stCodecCapabilities[xvdCodec].eProfile;
+        pCodecCapabilities->protocolLevel = (NEXUS_VideoProtocolLevel)device->cap.stCodecCapabilities[xvdCodec].eLevel;
+        switch (device->cap.stCodecCapabilities[xvdCodec].eBitDepth) {
         default:
         case BAVC_VideoBitDepth_e8Bit: pCodecCapabilities->colorDepth = 8; break;
         case BAVC_VideoBitDepth_e10Bit: pCodecCapabilities->colorDepth = 10; break;
         }
         /* reduced by RTS or memconfig */
-        if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth < pCodecCapabilities->colorDepth) {
+        if (videoDecoder && g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth < pCodecCapabilities->colorDepth) {
             pCodecCapabilities->colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
         }
     }

@@ -60,8 +60,9 @@ See Also:
 **/
 typedef enum NEXUS_HMACSHA_Op
 {
-    NEXUS_HMACSHA_Op_eSHA   = 0,   /* Perform a SHA HASH Operation */
-    NEXUS_HMACSHA_Op_eHMAC  = 1    /* Perform a HMAC Operation */
+    NEXUS_HMACSHA_Op_eSHA,   /* Perform a SHA HASH Operation */
+    NEXUS_HMACSHA_Op_eHMAC,  /* Perform a HMAC Operation */
+    NEXUS_HMACSHA_Op_eMax
 
 } NEXUS_HMACSHA_Op;
 

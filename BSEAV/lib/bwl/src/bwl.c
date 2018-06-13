@@ -121,7 +121,7 @@
 #define WL_CHANIM_BUF_LEN (2*1024)
 #define WL_CHANIM_BUF_SMLEN    512
 
-#define BWL_CHANIM_DBG  (1)
+#define BWL_CHANIM_DBG  (0)
 
 char *GetFileContents( const char *filename );
 #ifdef INCLUDE_WPS

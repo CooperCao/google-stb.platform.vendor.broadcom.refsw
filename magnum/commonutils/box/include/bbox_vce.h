@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -57,6 +61,10 @@ extern "C" {
    _memcIndex, /* uiFirmwareMemcIndex */\
    _videoFormat, /* eVideoFormat */\
    16, /* uiPixelAlignment */\
+   { \
+      { _channels, _videoFormat },\
+      { 0, BFMT_VideoFmt_eMaxCount },\
+   }\
 }
 
 #define BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( _instance, _channels, _memcIndex )\
@@ -102,6 +110,10 @@ extern "C" {
    _fwMemcIndex, /* uiFirmwareMemcIndex */\
    _videoFormat, /* eVideoFormat */\
    16, /* uiPixelAlignment */\
+   { \
+      { _channels, _videoFormat },\
+      { 0, BFMT_VideoFmt_eMaxCount },\
+   }\
 }
 
 #define BBOX_VCE_CHANNEL_INFO_720p25_V2( _instance, _channels, _memcIndex, _fwMemcIndex )\
@@ -134,14 +146,47 @@ extern "C" {
    _instance, _channels, _memcIndex, _fwMemcIndex, BFMT_VideoFmt_e1080p\
    )
 
+/* _modes should follow this format:
+ * {
+ *    {_channels_0, _videoFormat_0},
+ *    {_channels_1, _videoFormat_1},
+ *    { 0, BFMT_VideoFmt_eMaxCount }
+ *    etc.
+ * }
+ */
+#define BBOX_VCE_CHANNEL_INFO_V3_EXCLUSIVE_DUAL( _instance, _memcIndex, _fwMemcIndex, _channels_0, _videoFormat_0, _channels_1, _videoFormat_1 ) \
+{\
+   _instance, /* uiInstance */\
+   _channels_0, /* uiChannels */\
+   _memcIndex, /* uiMemcIndex */\
+   _fwMemcIndex, /* uiFirmwareMemcIndex */\
+   _videoFormat_0, /* eVideoFormat */\
+   16, /* uiPixelAlignment */\
+   { \
+      { _channels_0, _videoFormat_0 },\
+      { _channels_1, _videoFormat_1 },\
+      { 0, BFMT_VideoFmt_eMaxCount },\
+   }\
+}
+
+#define BBOX_VCE_MAX_MODE_COUNT 3
+
 typedef struct BBOX_Vce_Channel_Capabilities
 {
    uint8_t uiInstance;
-   uint8_t uiChannels; /* A bit mask indicating which channels are valid */
+   uint8_t uiChannels; /* Deprecated. See stMode[0].uiChannels */
    uint8_t uiMemcIndex; /* Picture Buffer MEMC Index */
    uint8_t uiFirmwareMemcIndex; /* Firmware MEMC Index */
-   BFMT_VideoFmt eVideoFormat;
+   BFMT_VideoFmt eVideoFormat; /* Deprecated. See stMode[0].eVideoFormat */
    uint8_t uiPixelAlignment; /* height and width must me a multiple of uiPixelAlignment */
+
+   /* List of supported encode combinations
+    * { 0, BFMT_VideoFmt_eMaxCount } indicates the end of the list */
+   struct
+   {
+      uint8_t uiChannels; /* A bit mask indicating which channels are valid */
+      BFMT_VideoFmt eVideoFormat;
+   } stMode[BBOX_VCE_MAX_MODE_COUNT];
 } BBOX_Vce_Channel_Capabilities;
 
 #define BBOX_VCE_MAX_INSTANCE_COUNT 2

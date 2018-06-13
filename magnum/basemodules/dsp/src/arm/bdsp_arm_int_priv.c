@@ -85,7 +85,7 @@ void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle
     int uiTaskIndex = 0;
 	BDSP_Arm_P_AckInfo sAckInfo;
 	BERR_Code ret = BERR_SUCCESS;
-	size_t ui32RcvMsgLen = 0;
+	uint32_t ui32RcvMsgLen = 0;
 	BTEE_ConnectionHandle hConnection = NULL;
 
 	BDBG_ENTER(BDSP_Arm_P_AckEventCallback_isr);

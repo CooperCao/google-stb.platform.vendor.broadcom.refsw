@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "nexus_platform_client.h"
 #include "nxclient.h"
@@ -69,16 +73,30 @@ PlatformSchedulerHandle platform_scheduler_p_create(PlatformHandle platform, con
     }
 
     BKNI_CreateMutex(&scheduler->mutex);
-
     BKNI_AcquireMutex(scheduler->mutex);
     BLST_Q_INIT(&scheduler->listeners);
     BLST_Q_INIT(&scheduler->free);
     scheduler->platform = platform;
-    BKNI_ReleaseMutex(scheduler->mutex);
-
     BKNI_CreateEvent(&scheduler->wake);
-
+    BKNI_ReleaseMutex(scheduler->mutex);
     return scheduler;
+}
+
+void platform_scheduler_stop(PlatformSchedulerHandle scheduler)
+{
+    if (scheduler->state == PlatformSchedulerState_eInit) return;
+    BKNI_AcquireMutex(scheduler->mutex);
+    if (scheduler->state == PlatformSchedulerState_eRunning)
+    {
+        scheduler->state = PlatformSchedulerState_eDone;
+        BKNI_SetEvent(scheduler->wake);
+    }
+    BKNI_ReleaseMutex(scheduler->mutex);
+    if (scheduler->thread) pthread_join(scheduler->thread, NULL);
+    BDBG_ASSERT(scheduler->state == PlatformSchedulerState_eInit);
+    BKNI_AcquireMutex(scheduler->mutex);
+    scheduler->thread = 0;
+    BKNI_ReleaseMutex(scheduler->mutex);
 }
 
 void platform_scheduler_p_destroy(PlatformSchedulerHandle scheduler)
@@ -86,21 +104,23 @@ void platform_scheduler_p_destroy(PlatformSchedulerHandle scheduler)
     PlatformListenerHandle l;
 
     if (!scheduler) return;
-    if (scheduler->thread)
-    {
-        scheduler->state = PlatformSchedulerState_eDone;
-        BKNI_SetEvent(scheduler->wake);
-        pthread_join(scheduler->thread, NULL);
-    }
+    platform_scheduler_stop(scheduler);
 
+    BKNI_AcquireMutex(scheduler->mutex);
     for (l = BLST_Q_FIRST(&scheduler->free); l; l = BLST_Q_FIRST(&scheduler->free))
     {
         BLST_Q_REMOVE_HEAD(&scheduler->free, link);
         BKNI_Free(l);
     }
-
+    for (l = BLST_Q_FIRST(&scheduler->listeners); l; l = BLST_Q_FIRST(&scheduler->listeners))
+    {
+        BLST_Q_REMOVE_HEAD(&scheduler->listeners, link);
+        BKNI_Free(l);
+    }
     BKNI_DestroyEvent(scheduler->wake);
+    scheduler->wake = NULL;
     scheduler->platform->schedulers[scheduler->createSettings.index] = NULL;
+    BKNI_ReleaseMutex(scheduler->mutex);
     BKNI_DestroyMutex(scheduler->mutex);
     BKNI_Free(scheduler);
 }
@@ -147,20 +167,14 @@ void platform_scheduler_start(PlatformSchedulerHandle scheduler)
 
     if (scheduler->state != PlatformSchedulerState_eInit) return;
 
+    BKNI_AcquireMutex(scheduler->mutex);
     scheduler->state = PlatformSchedulerState_eRunning;
-
     if (pthread_create(&scheduler->thread, NULL, &platform_scheduler_p_thread, scheduler))
     {
         BDBG_WRN(("Unable to create platform scheduler thread"));
         BDBG_ASSERT(0);
     }
-}
-
-void platform_scheduler_stop(PlatformSchedulerHandle scheduler)
-{
-    scheduler->state = PlatformSchedulerState_eDone;
-    if (scheduler->thread) pthread_join(scheduler->thread, NULL);
-    scheduler->thread = 0;
+    BKNI_ReleaseMutex(scheduler->mutex);
     scheduler->state = PlatformSchedulerState_eInit;
 }
 
@@ -208,5 +222,7 @@ void * platform_scheduler_p_thread(void * context)
         }
     }
 
+    BKNI_AcquireMutex(scheduler->mutex);
+    BKNI_ReleaseMutex(scheduler->mutex);
     return NULL;
 }

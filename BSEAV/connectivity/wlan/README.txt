@@ -48,7 +48,9 @@ However, the WLAN code can be built in many different ways, depending on the val
             -cfg80211-      (Config 802.11 feature)
             -p2p-mchan-     (Enables p2p and multichannel)
             -tdls-          (Enables Tunneled Direct Link Setup(TDLS))
-			-pspretend-     (Enable PS_PRETEND. This is an AP/softAP feature only)
+            -pspretend-     (Enable PS_PRETEND. This is an AP/softAP feature only)
+            -wowl-          (Wake on Wireless Lan)
+            -slvradar-      (Slave Radar Detection.  OBSOLETE.  This is part of standard, not an option)
 
         Some examples:
             Basic 32-bit driver with no debug print logs:

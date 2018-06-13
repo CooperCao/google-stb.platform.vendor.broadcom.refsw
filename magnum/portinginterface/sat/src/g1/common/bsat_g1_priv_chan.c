@@ -1,6 +1,6 @@
 /******************************************************************************
 * Copyright (C) 2018 Broadcom.
-* The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to
@@ -141,11 +141,7 @@ BERR_Code BSAT_g1_P_ConfigChanAgc_isr(BSAT_ChannelHandle h, bool bTracking)
       agc_chx_lf_frz = 0
       agc_chx_lf_k1 = 3
     */
-#if BCHP_CHIP==45308
    val = (9 << BCHP_STB_CHAN_CH0_AGC_CTRL_AGC_LF_K1_SHIFT) & BCHP_STB_CHAN_CH0_AGC_CTRL_AGC_LF_K1_MASK;
-#else
-   val = (3 << BCHP_STB_CHAN_CH0_AGC_CTRL_AGC_LF_K1_SHIFT) & BCHP_STB_CHAN_CH0_AGC_CTRL_AGC_LF_K1_MASK;
-#endif
    if (bTracking)
       agc_thresh = 7366246;
    else

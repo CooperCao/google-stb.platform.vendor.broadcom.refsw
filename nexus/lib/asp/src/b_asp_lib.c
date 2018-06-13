@@ -66,19 +66,6 @@ BDBG_MODULE(b_asp_lib);
 
 #define ASP_IP_ADDR_FOR_LOCAL_STREAMING "192.168.1.250"
 
-/* Global ASP Mgr Context. */
-typedef struct B_Asp
-{
-    int initialized;        /* 0 => not initialized */
-    B_AspInitSettings settings;
-    char *pAspProxyServerIp;
-} B_Asp;
-static B_Asp g_aspMgr;      /* Initialized to zero at compile time. */
-
-static pthread_mutex_t g_initMutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-
 typedef struct B_AspChannel
 {
     B_AspChannelCreateSettings              createSettings;
@@ -100,84 +87,6 @@ typedef struct B_AspChannel
     uint32_t                                nexusStatusTxBitRate;     /* last calculated ASP channel bit-rate. */
     uint32_t                                nexusStatusRxBitRate;     /* last calculated ASP channel bit-rate. */
 } B_AspChannel;
-
-void B_Asp_Uninit(void)
-{
-    pthread_mutex_lock(&g_initMutex);
-
-    if (g_aspMgr.initialized)
-    {
-        g_aspMgr.initialized = false;
-
-        if (g_aspMgr.pAspProxyServerIp)
-        {
-            free(g_aspMgr.pAspProxyServerIp);
-            g_aspMgr.pAspProxyServerIp = NULL;
-        }
-
-        BKNI_Uninit();
-    }
-
-    pthread_mutex_unlock(&g_initMutex);
-    return;
-}
-
-void B_Asp_GetDefaultInitSettings(
-    B_AspInitSettings                       *pSettings
-    )
-{
-    BDBG_ASSERT(pSettings);
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-}
-
-B_Error B_Asp_Init(
-    const B_AspInitSettings                 *pSettings
-    )
-{
-
-    B_Error errCode = B_ERROR_SUCCESS;
-    int rc;
-
-    rc = pthread_mutex_lock(&g_initMutex);
-    if ( rc )
-    {
-        return B_ERROR_OS_ERROR;
-    }
-
-    /* Check for first open */
-    if ( g_aspMgr.initialized )
-    {
-        BDBG_ERR(("Error, B_Asp_Init() has already been called."));
-        errCode = B_ERROR_NOT_INITIALIZED;
-    }
-
-    if (errCode == B_ERROR_SUCCESS)
-    {
-        errCode = BKNI_Init();
-    }
-
-    if ( errCode == B_ERROR_SUCCESS)
-    {
-        if (!pSettings)
-        {
-            B_Asp_GetDefaultInitSettings(&g_aspMgr.settings);
-        }
-        else
-        {
-            g_aspMgr.settings = *pSettings;
-        }
-
-        /* TODO: Create the Daemon. */
-    }
-
-    if ( errCode == B_ERROR_SUCCESS)
-    {
-        g_aspMgr.initialized = true;
-    }
-
-    pthread_mutex_unlock(&g_initMutex);
-    return errCode;
-}
 
 void B_AspChannel_Destroy(
     B_AspChannelHandle                      hAspChannel,
@@ -362,13 +271,6 @@ B_AspChannelHandle B_AspChannel_Create(
     BDBG_ASSERT(pSettings->protocol < B_AspStreamingProtocol_eMax);
 
     BDBG_MSG(("%s: socketFd=%d", BSTD_FUNCTION, socketFdToOffload));
-
-    if ( !g_aspMgr.initialized )
-    {
-        BDBG_ERR(("Error, B_Asp_Init() has not been called"));
-        BDBG_ASSERT(g_aspMgr.initialized);
-        return NULL;
-    }
 
     if (pSettings->mode == B_AspStreamingMode_eOut && !pSettings->modeSettings.streamOut.hRecpump)
     {
@@ -965,7 +867,7 @@ B_Error B_AspChannel_PrintStatus(
                 pStatus->stats.nwSwTxToHostInUnicastIpPkts,
                 pStatus->stats.nwSwTxToP0InUnicastIpPkts
              ));
-    BDBG_LOG(("RxStats[ch=%d]: p0=%u p7=%u umac=%u edpkt=%u edpktPending=%u p8=%u Discards: p0=%u",
+    BDBG_LOG(("RxStats[ch=%d]: p0=%u p7=%u umac=%u edpkt=%u edpktPending=%u p8=%u Discards: p0=%u xptTsPkts=%"PRIu64 " xptBytes=%"PRIu64,
                 status.nexusStatus.aspChannelIndex,
                 pStatus->stats.nwSwRxP0InUnicastIpPkts,
                 pStatus->stats.nwSwTxToAspInUnicastIpPkts,
@@ -973,9 +875,10 @@ B_Error B_AspChannel_PrintStatus(
                 pStatus->stats.eDpktRxIpPkts,
                 pStatus->stats.eDpktPendingPkts,
                 pStatus->stats.nwSwRxP8InUnicastIpPkts,
-                pStatus->stats.nwSwRxP0InDiscards
+                pStatus->stats.nwSwRxP0InDiscards,
+                pStatus->stats.xptMcpbConsumedInTsPkts, pStatus->stats.xptMcpbConsumedInBytes
              ));
-    BDBG_LOG(("FwStats[ch=%d]: window: congestion=%u rcv=%u send=%u, pkts: sent=%"PRId64 " rcvd=%"PRId64 " dropped=%u dataDropped=%u retx=%d, seq#: send=%x ack=%x rcvd=%x retx=%x",
+    BDBG_LOG(("FwStats[ch=%d]: window: congestion=%u rcv=%u send=%u, pkts: sent=%"PRId64 " rcvd=%"PRId64 " dropped=%u dataDropped=%u retx=%d, seq#: send=%x ack=%x rcvd=%x retx=%x rx: xptDesc=%u bytes=%u",
                 status.nexusStatus.aspChannelIndex,
                 status.nexusStatus.stats.fwStats.congestionWindow,
                 status.nexusStatus.stats.fwStats.receiveWindow,
@@ -988,7 +891,9 @@ B_Error B_AspChannel_PrintStatus(
                 status.nexusStatus.stats.fwStats.sendSequenceNumber,
                 status.nexusStatus.stats.fwStats.rcvdAckNumber,
                 status.nexusStatus.stats.fwStats.rcvdSequenceNumber,
-                status.nexusStatus.stats.fwStats.retxSequenceNumber
+                status.nexusStatus.stats.fwStats.retxSequenceNumber,
+                status.nexusStatus.stats.fwStats.descriptorsFedToXpt,
+                status.nexusStatus.stats.fwStats.bytesFedToXpt
              ));
 
     hAspChannel->nexusStatus = status.nexusStatus;

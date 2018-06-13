@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_simple_decoder_module.h"
 #include "nexus_video_window.h"
@@ -1186,6 +1190,101 @@ err_startaudio:
     return rc;
 }
 
+static NEXUS_Error nexus_simpleencoder_p_start_videoencoder( NEXUS_SimpleEncoderHandle handle, bool startAudio )
+{
+    int rc;
+
+    handle->stack.videoEncoderStartSettings = handle->startSettings.output.video.settings;
+#ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
+    handle->stack.videoEncoderStartSettings.bounds.inputDimension.max.width = handle->settings.video.width;
+    handle->stack.videoEncoderStartSettings.bounds.inputDimension.max.height = handle->settings.video.height;
+#endif
+    handle->stack.videoEncoderStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eVideo);
+
+    if (handle->startSettings.input.display) {
+        handle->stack.videoEncoderStartSettings.input = handle->serverSettings.displayEncode.display;
+        /* session display encode needs low latency override:
+               1) rateBufferDelay - 0 defaults to large delay; overrides it with low latency default;
+               2) fieldPairing - increases encoder pre-process delay; turn it off for session encode;
+               3) adaptiveLowDelayMode - to reduce encode start latency;
+               */
+        if(handle->stack.videoEncoderStartSettings.rateBufferDelay == 0) {
+            handle->stack.videoEncoderStartSettings.rateBufferDelay        = 50;/* ms */
+        }
+        /* if decoder is not stopped, encoder stop/start with this mode ON might drop all frames;
+           so leave it to app to control.*/
+        /*videoEncoderStartSettings.adaptiveLowDelayMode = true;*/
+        handle->settings.videoEncoder.enableFieldPairing = false;
+    }
+    else if (handle->startSettings.input.video) {
+        handle->stack.videoEncoderStartSettings.input = handle->transcodeDisplay;
+    }
+
+    /* NOTE: video encoder delay is in 27MHz ticks */
+    rc = NEXUS_VideoEncoder_GetDelayRange(handle->serverSettings.videoEncoder, &handle->settings.videoEncoder, &handle->stack.videoEncoderStartSettings, &handle->stack.videoDelay);
+    if (rc) {
+        BERR_TRACE(rc);
+        handle->stack.videoDelay.min = handle->stack.videoDelay.max = 0;
+    }
+    BDBG_WRN(("Video encoder end-to-end delay = [%u ~ %u] ms", handle->stack.videoDelay.min/27000, handle->stack.videoDelay.max/27000));
+
+    if (startAudio) {
+        unsigned Dee;
+
+        rc = NEXUS_AudioMuxOutput_GetDelayStatus(handle->serverSettings.audioMuxOutput, handle->startSettings.output.audio.codec, &handle->stack.audioDelayStatus);
+        BDBG_WRN(("Audio codec %d end-to-end delay = %u ms", handle->startSettings.output.audio.codec, handle->stack.audioDelayStatus.endToEndDelay));
+
+        if (rc) {
+            Dee = handle->stack.videoDelay.max;
+        }
+        else {
+            Dee = handle->stack.audioDelayStatus.endToEndDelay * 27000; /* in 27MHz ticks */
+        }
+        if(Dee > handle->stack.videoDelay.min)
+        {
+            if(Dee > handle->stack.videoDelay.max)
+            {
+                BDBG_ERR(("Audio Dee is way too big! Use video Dee max!"));
+                Dee = handle->stack.videoDelay.max;
+            }
+            else
+            {
+                BDBG_WRN(("Use audio Dee %u ms %u ticks@27Mhz!", Dee/27000, Dee));
+            }
+        }
+        else
+        {
+            Dee = handle->stack.videoDelay.min;
+            BDBG_WRN(("Use video Dee %u ms %u ticks@27Mhz!", Dee/27000, Dee));
+        }
+        handle->settings.videoEncoder.encoderDelay = Dee;
+
+        /* Start audio mux output */
+        if(!handle->started) {
+            NEXUS_AudioMuxOutput_GetDefaultStartSettings(&handle->stack.audioMuxStartSettings);
+            handle->stack.audioMuxStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eAudio);
+            handle->stack.audioMuxStartSettings.presentationDelay = Dee/27000;/* in ms */
+            handle->stack.audioMuxStartSettings.nonRealTime = nexus_simpleencoder_p_nonRealTime(handle);
+            rc = NEXUS_AudioMuxOutput_Start(handle->serverSettings.audioMuxOutput, &handle->stack.audioMuxStartSettings);
+            if (rc) return BERR_TRACE(rc);
+        }
+    }
+    else {
+        handle->settings.videoEncoder.encoderDelay = handle->stack.videoDelay.min;
+    }
+
+    /* reapply settings with new encoderDelay */
+    rc = NEXUS_SimpleEncoder_SetSettings(handle, &handle->settings);
+    if (rc) return BERR_TRACE(rc);
+
+    handle->stack.videoEncoderStartSettings.nonRealTime = nexus_simpleencoder_p_nonRealTime(handle);
+    rc = NEXUS_VideoEncoder_Start(handle->serverSettings.videoEncoder, &handle->stack.videoEncoderStartSettings);
+    if (rc) return BERR_TRACE(rc);
+    handle->videoEncoderStarted = true;/* video encoder actually started */
+
+    return NEXUS_SUCCESS;
+}
+
 /**
 actual start happens after decoders are started
 **/
@@ -1200,90 +1299,8 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
     }
 
     if (handle->startVideo) {
-
-        handle->stack.videoEncoderStartSettings = handle->startSettings.output.video.settings;
-#ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
-        handle->stack.videoEncoderStartSettings.bounds.inputDimension.max.width = handle->settings.video.width;
-        handle->stack.videoEncoderStartSettings.bounds.inputDimension.max.height = handle->settings.video.height;
-#endif
-        handle->stack.videoEncoderStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eVideo);
-
-        if (handle->startSettings.input.display) {
-            handle->stack.videoEncoderStartSettings.input = handle->serverSettings.displayEncode.display;
-            /* session display encode needs low latency override:
-                   1) rateBufferDelay - 0 defaults to large delay; overrides it with low latency default;
-                   2) fieldPairing - increases encoder pre-process delay; turn it off for session encode;
-                   3) adaptiveLowDelayMode - to reduce encode start latency;
-                   */
-            if(handle->stack.videoEncoderStartSettings.rateBufferDelay == 0) {
-                handle->stack.videoEncoderStartSettings.rateBufferDelay        = 50;/* ms */
-            }
-            /* if decoder is not stopped, encoder stop/start with this mode ON might drop all frames;
-               so leave it to app to control.*/
-            /*videoEncoderStartSettings.adaptiveLowDelayMode = true;*/
-            handle->settings.videoEncoder.enableFieldPairing = false;
-        }
-        else if (handle->startSettings.input.video) {
-            handle->stack.videoEncoderStartSettings.input = handle->transcodeDisplay;
-        }
-
-        /* NOTE: video encoder delay is in 27MHz ticks */
-        NEXUS_VideoEncoder_GetDelayRange(handle->serverSettings.videoEncoder, &handle->settings.videoEncoder, &handle->stack.videoEncoderStartSettings, &handle->stack.videoDelay);
-        BDBG_WRN(("Video encoder end-to-end delay = [%u ~ %u] ms", handle->stack.videoDelay.min/27000, handle->stack.videoDelay.max/27000));
-
-        if (handle->startAudio) {
-            unsigned Dee;
-
-            rc = NEXUS_AudioMuxOutput_GetDelayStatus(handle->serverSettings.audioMuxOutput, handle->startSettings.output.audio.codec, &handle->stack.audioDelayStatus);
-            BDBG_WRN(("Audio codec %d end-to-end delay = %u ms", handle->startSettings.output.audio.codec, handle->stack.audioDelayStatus.endToEndDelay));
-
-            if (rc) {
-                Dee = handle->stack.videoDelay.max;
-            }
-            else {
-                Dee = handle->stack.audioDelayStatus.endToEndDelay * 27000; /* in 27MHz ticks */
-            }
-            if(Dee > handle->stack.videoDelay.min)
-            {
-                if(Dee > handle->stack.videoDelay.max)
-                {
-                    BDBG_ERR(("Audio Dee is way too big! Use video Dee max!"));
-                    Dee = handle->stack.videoDelay.max;
-                }
-                else
-                {
-                    BDBG_WRN(("Use audio Dee %u ms %u ticks@27Mhz!", Dee/27000, Dee));
-                }
-            }
-            else
-            {
-                Dee = handle->stack.videoDelay.min;
-                BDBG_WRN(("Use video Dee %u ms %u ticks@27Mhz!", Dee/27000, Dee));
-            }
-            handle->settings.videoEncoder.encoderDelay = Dee;
-
-            /* Start audio mux output */
-            if(!handle->started) {
-                NEXUS_AudioMuxOutput_GetDefaultStartSettings(&handle->stack.audioMuxStartSettings);
-                handle->stack.audioMuxStartSettings.stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eAudio);
-                handle->stack.audioMuxStartSettings.presentationDelay = Dee/27000;/* in ms */
-                handle->stack.audioMuxStartSettings.nonRealTime = nexus_simpleencoder_p_nonRealTime(handle);
-                rc = NEXUS_AudioMuxOutput_Start(handle->serverSettings.audioMuxOutput, &handle->stack.audioMuxStartSettings);
-                if (rc) {rc = BERR_TRACE(rc); goto err_startaudio;}
-            }
-        }
-        else {
-            handle->settings.videoEncoder.encoderDelay = handle->stack.videoDelay.min;
-        }
-
-        /* reapply settings with new encoderDelay */
-        rc = NEXUS_SimpleEncoder_SetSettings(handle, &handle->settings);
-        if (rc) {rc = BERR_TRACE(rc); goto err_encodersettings;}
-
-        handle->stack.videoEncoderStartSettings.nonRealTime = nexus_simpleencoder_p_nonRealTime(handle);
-        rc = NEXUS_VideoEncoder_Start(handle->serverSettings.videoEncoder, &handle->stack.videoEncoderStartSettings);
-        if (rc) {rc = BERR_TRACE(rc); goto err_startvideoenc;}
-        handle->videoEncoderStarted = true;/* video encoder actually started */
+        rc = nexus_simpleencoder_p_start_videoencoder(handle, handle->startAudio);
+        if (rc) {BERR_TRACE(rc); goto err_startvideo;}
     }
     else if(!handle->started) {
         /* Start audio mux output */
@@ -1322,8 +1339,7 @@ err_start_psi:
     nexus_simpleencoder_p_destroy_stream_mux(handle);
 err_create_stream_mux:
 err_mixer_start:
-err_startvideoenc:
-err_encodersettings:
+err_startvideo:
 err_startaudio:
     /* NEXUS_SimpleEncoder_Stop must be called by the caller */
     BDBG_ASSERT(rc);
@@ -1945,4 +1961,51 @@ void NEXUS_SimpleEncoder_GetCompletedSystemDataBuffers( NEXUS_SimpleEncoderHandl
     }
 #endif
     *pCompletedCount = 0;
+}
+
+void NEXUS_SimpleEncoder_Watchdog( NEXUS_SimpleEncoderServerHandle server, NEXUS_SimpleEncoderHandle handle )
+{
+#if NEXUS_HAS_STREAM_MUX
+    int rc;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
+    if (handle->server != server) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
+
+    if (!handle->videoEncoderStarted) return;
+
+    BDBG_WRN(("Video encoder %p watchdog callback fired. Restarting.", (void*)handle));
+    if (handle->serverSettings.nonRealTime) {
+        /* restart everything */
+        nexus_simpleencoder_p_stop(handle);
+        /* TODO: why is p_stop clearing clientStarted? */
+        handle->clientStarted = true;
+        rc = nexus_simpleencoder_p_pre_start(handle);
+        if (rc) {
+            BERR_TRACE(rc);
+        }
+        else {
+            rc = nexus_simpleencoder_p_start(handle);
+            if (rc) {
+                BERR_TRACE(rc);
+            }
+            else {
+                if (handle->startSettings.input.video) {
+                    rc = nexus_simplevideodecoder_p_start(handle->startSettings.input.video);
+                    if (rc) BERR_TRACE(rc);
+                }
+                if (handle->startSettings.input.audio) {
+                    rc = nexus_simpleaudiodecoder_p_start(handle->startSettings.input.audio);
+                    if (rc) BERR_TRACE(rc);
+                }
+            }
+        }
+    } else {
+        /* restart only video encoder */
+        nexus_simpleencoder_p_stop_videoencoder(handle, true);
+        rc = nexus_simpleencoder_p_start_videoencoder(handle, false);
+        if (rc) BERR_TRACE(rc);
+    }
+#else
+    BSTD_UNUSED(server);
+    BSTD_UNUSED(handle);
+#endif
 }

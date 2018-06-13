@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2003-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  ***************************************************************************/
 
 #include "bstd.h"
@@ -60,6 +57,9 @@
 #undef BDBG_EnumerateAll
 #undef BDBG_GetModuleInstanceLevel
 #undef BDBG_SetModuleInstanceLevel
+#undef BDBG_SyncSession_Begin
+#undef BDBG_SyncSession_Wait
+#undef BDBG_SyncSession_End
 
 
 struct BDBG_DebugInstModule {
@@ -1657,3 +1657,35 @@ BDBG_P_Assert_isrsafe(bool expr, const char *file, unsigned line)
     BDBG_P_AssertFailed_isrsafe(NULL, file, line);
 }
 #endif
+
+
+void BDBG_SyncSession_Begin(BDBG_SyncSession *session)
+{
+    BDBG_Fifo_Handle dbgLog = gDbgState.dbgLog;
+    if(dbgLog) {
+        BDBG_Fifo_SyncSession_Begin(dbgLog, session);
+        session->budget = 10; /* print 10/2 lines and sleep, so more likely sane amount of sleep (100 10ms ticks) will see empty fifo tick */
+    } else {
+        BKNI_Memset(session, 0, sizeof(*session));
+    }
+    return;
+}
+
+BERR_Code BDBG_SyncSession_Wait( BDBG_Fifo_SyncSession *session, unsigned timeout)
+{
+    BDBG_Fifo_Handle dbgLog = gDbgState.dbgLog;
+    if(dbgLog) {
+        return BDBG_Fifo_SyncSession_Wait(dbgLog, session, timeout);
+    } else {
+        return BERR_SUCCESS;
+    }
+}
+
+void BDBG_SyncSession_End(BDBG_Fifo_SyncSession *session)
+{
+    BDBG_Fifo_Handle dbgLog = gDbgState.dbgLog;
+    if(dbgLog) {
+        BDBG_Fifo_SyncSession_End(dbgLog, session);
+    }
+    return;
+}

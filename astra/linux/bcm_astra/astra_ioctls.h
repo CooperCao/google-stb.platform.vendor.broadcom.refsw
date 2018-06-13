@@ -1,48 +1,64 @@
-/***************************************************************************
- * Copyright (c)2016 Broadcom
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2, as
- * published by the Free Software Foundation (the "GPL").
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License version 2 (GPLv2) for more details.
+ *  Except as expressly set forth in the Authorized License,
  *
- * You should have received a copy of the GNU General Public License
- * version 2 (GPLv2) along with this source code.
- ***************************************************************************/
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef ASTRA_IOCTLS_H
 #define ASTRA_IOCTLS_H
 
 #ifdef __KERNEL__
-
 /* kernel space */
 #include <linux/types.h>
 #include <asm/ioctl.h>
-
 #include "astra_api.h"
+#else
+/* user space */
+#include <stdint.h>
+#include <asm/ioctl.h>
+#include "libastra_api.h"
+#endif
 
 typedef astra_client_handle astra_kclient_handle;
 typedef astra_uapp_handle astra_kuapp_handle;
 typedef astra_peer_handle astra_kpeer_handle;
 typedef astra_file_handle astra_kfile_handle;
-
-#else
-
-/* user space */
-#include <stdint.h>
-#include <asm/ioctl.h>
-
-#include "libastra_api.h"
-
-typedef void *astra_kclient_handle;
-typedef void *astra_kuapp_handle;
-typedef void *astra_kpeer_handle;
-typedef void *astra_kfile_handle;
-#endif
 
 #define ASTRA_IOCTL_MAGIC       0x94 /* 'A'(0x41) + 'S'(0x53) */
 
@@ -88,17 +104,17 @@ enum {
 struct astra_ioctl_event_poll_data {
     int retVal;
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
 
     astra_event event;
     char eventData[16];
-    size_t eventDataLen;
+    uint32_t eventDataLen;
 };
 
 struct astra_ioctl_event_exit_data {
     int retVal;
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
 };
 
 struct astra_ioctl_version_get_data {
@@ -124,126 +140,126 @@ struct astra_ioctl_client_open_data {
 
     char name[ASTRA_NAME_LEN_MAX];
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
 };
 
 struct astra_ioctl_client_close_data {
     int retVal;
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
 };
 
 struct astra_ioctl_uapp_open_data {
     int retVal;
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
     char name[ASTRA_NAME_LEN_MAX];
     char path[ASTRA_PATH_LEN_MAX];
 
-    astra_kuapp_handle hUapp;
+    uint64_t hUapp;
 };
 
 struct astra_ioctl_uapp_close_data {
     int retVal;
 
-    astra_kuapp_handle hUapp;
+    uint64_t hUapp;
 };
 
 struct astra_ioctl_peer_open_data {
     int retVal;
 
-    astra_kuapp_handle hUapp;
+    uint64_t hUapp;
     char name[ASTRA_NAME_LEN_MAX];
 
-    astra_kpeer_handle hPeer;
+    uint64_t hPeer;
 };
 
 struct astra_ioctl_peer_close_data {
     int retVal;
 
-    astra_kpeer_handle hPeer;
+    uint64_t hPeer;
 };
 
 struct astra_ioctl_msg_send_data {
     int retVal;
 
-    astra_kpeer_handle hPeer;
-    const void *pMsg;
-    size_t msgLen;
+    uint64_t hPeer;
+    uint64_t pMsg;
+    uint32_t msgLen;
 };
 
 struct astra_ioctl_msg_receive_data {
     int retVal;
 
-    astra_kclient_handle hClient;
-    void *pMsg;
-    size_t msgLen;
+    uint64_t hClient;
+    uint64_t pMsg;
+    uint32_t msgLen;
     int timeout;
 
-    astra_kpeer_handle hPeer;
+    uint64_t hPeer;
 };
 
 struct astra_ioctl_mem_alloc_data {
     int retVal;
 
-    astra_kclient_handle hClient;
-    size_t size;
+    uint64_t hClient;
+    uint32_t size;
 
-    uint32_t buffOffset;
+    uint64_t buffOffset;
 };
 
 struct astra_ioctl_mem_free_data {
     int retVal;
 
-    astra_kclient_handle hClient;
-    uint32_t buffOffset;
+    uint64_t hClient;
+    uint64_t buffOffset;
 };
 
 struct astra_ioctl_call_smc_data {
     int retVal;
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
     uint32_t code;
 };
 
 struct astra_ioctl_file_open_data {
     int retVal;
 
-    astra_kclient_handle hClient;
+    uint64_t hClient;
     char path[ASTRA_PATH_LEN_MAX];
     int flags;
 
-    astra_kfile_handle hFile;
+    uint64_t hFile;
 };
 
 struct astra_ioctl_file_close_data {
     int retVal;
 
-    astra_kfile_handle hFile;
+    uint64_t hFile;
 };
 
 struct astra_ioctl_file_write_data {
     int retVal;
 
-    astra_kfile_handle hFile;
+    uint64_t hFile;
     astra_paddr_t paddr;
-    size_t bytes;
+    uint32_t bytes;
 };
 
 struct astra_ioctl_file_read_data {
     int retVal;
 
-    astra_kfile_handle hFile;
+    uint64_t hFile;
     astra_paddr_t paddr;
-    size_t bytes;
+    uint32_t bytes;
 };
 
 struct astra_ioctl_uapp_coredump_data {
     int retVal;
 
-    astra_kuapp_handle hUapp;
+    uint64_t hUapp;
     astra_paddr_t paddr;
-    size_t bytes;
+    uint32_t bytes;
 };
 
 #endif /* ASTRA_IOCTLS_H */

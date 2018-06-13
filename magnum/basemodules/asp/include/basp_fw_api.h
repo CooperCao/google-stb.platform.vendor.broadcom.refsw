@@ -1,6 +1,6 @@
 /********************************************************************************
  * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to
@@ -572,7 +572,8 @@ typedef struct BASP_ConnectionControlBlock
 
     uint32_t ui32TimeStampEnable;
     /* Need to check that the initial value for TSECRneed to be specified by host. */
-    uint32_t ui32TimeStampEchoValue; /* TODO: we will check if host can get this value, else send 0 */
+    /* This is local timestamp value from Host to FW */
+    uint32_t ui32LocalTimeStampValue; /* TODO: we will check if host can get this value, else send 0 */
 
     uint32_t ui32MaxSegmentSize;
 
@@ -1490,6 +1491,48 @@ typedef struct BASP_FwChannelInfo
 
     /* ASP_UMAC_GRUC - Receive Unicast Packet Counter */
     uint32_t ui32NumOfUnicastPktReceived;
+
+    /* Number of DRAM descriptor sent to MCPB */
+    uint32_t ui32NumOfDescriptorSent;
+
+    /* Number of bytes fed to descriptors */
+    uint32_t ui32NumBytesFedToDescriptors;
+
+    /* collect fw stats for number of spans used*/
+    uint32_t ui32NumSpansUsed;
+
+    /* collect fw stats for span full info
+     * 0 = Not full
+     * 1 = full
+    */
+    uint32_t ui32IsSpanFull;
+
+    /* un-scaled sent window size (for stream-in mainly)*/
+    uint32_t ui32UnScaledSentWinSize;
+
+    /* Number of retransmitted packets received */
+    uint32_t ui32NumRetransPktReceived;
+
+    /* Number of retransmitted bytes received */
+    uint32_t ui32NumRetransBytesReceived;
+
+    /* Number of Retrans Pkt sent due to 3dup */
+    uint32_t ui32NumRetransPktDueTo3Dup;
+
+    /* Number of Retrans Pkt sent due to RTO */
+    uint32_t ui32NumRetransPktDueToRto;
+
+    /* Number of Retrans Pkt sent due to Sack */
+    uint32_t ui32NumRetransPktDueToSack;
+
+    /* Number of Retrans Pkt sent at Fast Retx State */
+    uint32_t ui32NumRetransPktAtFastRetx;
+
+    /* Number of Retrans Pkt sent at Fast Recovery State */
+    uint32_t ui32NumRetransPktAtFastRecov;
+
+    /* Updated PA1 Address */
+    uint32_t ui32UpdatedPa1Addr;
 
 } BASP_FwChannelInfo;
 

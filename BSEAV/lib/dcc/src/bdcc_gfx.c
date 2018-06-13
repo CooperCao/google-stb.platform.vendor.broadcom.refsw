@@ -1,43 +1,44 @@
-/***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 
 
@@ -1272,13 +1273,17 @@ void BCCGFX_P_Periodic(
 		for ( wnd=0 ; wnd < CCGFX_NUM_WNDS ; wnd++ )
 		{
 			int row ;
+			int opacity = 0;
 			pWI = &hCCGfxHandle->WndInfo[wnd] ;
 
 			/*
 			** If the window is visible, flash rows as appropriate.
 			*/
+			opacity = ((pWI->FillOpacity == BDCC_Opacity_Flash) ||
+				(pWI->PenFgOpacity == BDCC_Opacity_Flash) ||
+				(pWI->PenBgOpacity == BDCC_Opacity_Flash));
 
-			if (  pWI->ShowState )
+			if ( pWI->ShowState && opacity )
 			{
 			    for ( row=0 ; row < pWI->ActualRowCount ; row++ )
 			    {
@@ -3079,4 +3084,90 @@ static void dbg_Update(
 }
 
 #endif
+
+/****************************************************************
+ *
+ * Function:		BCCGFX_P_FlashEmptyLine
+ *
+ * Input:		WndId			- window identifier
+ *			Row			- zero-based, wnd-based row
+ *
+ * Output:
+ *
+ * Returns:			<void>
+ *
+ * Description:
+ *
+ * This function is used to flash empty line for window flashing effect
+ *
+ *****************************************************************/
+void BCCGFX_P_FlashEmptyLine(
+		BCCGFX_P_GfxHandle hCCGfxHandle,
+		int WndId,
+		int Row)
+{
+	int irow ;
+	BCCGFX_P_WND_INFO * pWI = &hCCGfxHandle->WndInfo[WndId] ;
+
+	BDBG_MSG(("BCCGFX_P_FlashEmptyLine, WndId=%d, Row=%dd", WndId, Row)) ;
+
+	/* first part for RenderBegin */
+	if ( ! pWI->fCreated )
+	{
+		BDBG_WRN(( "ccgfxRenderBegin:  Error wnd %d not created\n", WndId)) ;
+		return ;
+	}
+
+	/* Rendering a line from the beginning */
+	irow = (Row + pWI->IndxOfTopRow + ((pWI->ScrollPhase)?1:0)) % pWI->ActualRowCount ;
+#if 0
+	hCCGfxHandle->pCurWin = pWI->RowInfo[irow].win;
+#endif
+
+#if FLASH_BY_2SURFACES
+	if ( pWI->RowInfo[irow].pFlashSurface )
+	{
+		BDBG_MSG(( "BCCGFX_P_FlashEmptyLine: already have flash surface\n")) ;
+	}
+	else
+	{
+		pWI->RowInfo[irow].pFlashSurface = BCCGFX_P_SurfaceReserve(hCCGfxHandle) ;
+
+		if ( pWI->RowInfo[irow].pFlashSurface )
+		{
+			/* if the fill opacity is 'flash' then pCurWin is 'solid' and pCurFlashWin is 'transparent' */
+			BDCC_Opacity opacity = (pWI->FillOpacity == BDCC_Opacity_Flash) ?
+				BDCC_Opacity_Transparent : pWI->FillOpacity;
+
+			hCCGfxHandle->WinLibInterface.SetCaptionRowZorder(pWI->RowInfo[irow].pFlashSurface, pWI->ZOrder) ;
+			FillSurface(hCCGfxHandle, pWI->RowInfo[irow].pFlashSurface, opacity, pWI->FillColor) ;
+		}
+		else {
+			BDBG_WRN(( "BCCGFX_P_FlashEmptyLine:  BCCGFX_P_SurfaceReserve for WndId %d, row %d failed \n", WndId, irow)) ;
+		}
+	}
+#endif
+
+	/* RenderEnd */
+#if FLASH_BY_2SURFACES
+	if ( pWI->RowInfo[irow].pFlashSurface )
+	{
+		if ( pWI->ShowState && !hCCGfxHandle->WinLibInterface.IsCaptionRowVisible(pWI->RowInfo[irow].win) )
+		{
+			hCCGfxHandle->WinLibInterface.SetCaptionRowVisibility(pWI->RowInfo[irow].pFlashSurface, true) ;
+		}
+		else
+		{
+			hCCGfxHandle->WinLibInterface.SetCaptionRowVisibility(pWI->RowInfo[irow].pFlashSurface, false) ;
+		}
+	}
+	else
+	{
+		BDBG_ERR(( "BCCGFX_P_FlashEmptyLine:  ERROR pFlashSurface is NULL\n")) ;
+	}
+#else
+	hCCGfxHandle->WinLibInterface.RenderEnd(pWI->RowInfo[irow].win);
+#endif
+
+}
 

@@ -5621,6 +5621,11 @@ good_phy:
 		wlc_hw->band->CWmin = APHY_CWMIN;
 		wlc_hw->band->CWmax = PHY_CWMAX;
 
+		/* The call stack will not go to wlc_ampdu_release because
+		 * wlc_ampdu_txeval will return in the condition
+		 * 'ini->ba_state != AMPDU_TID_STATE_BA_ON'.
+		 */
+		/* coverity[stack_use_overflow] */
 		if (!wlc_bmac_attach_dmapio(wlc_hw, wme)) {
 			err = 19;
 			goto fail;
@@ -9822,6 +9827,11 @@ BCMINITFN(wlc_coreinit)(wlc_hw_info_t *wlc_hw)
 
 		if (RXFIFO_SPLIT()) {
 			/* Enable Header conversion */
+			/* The call stack will not go to wlc_ampdu_release because
+			 * wlc_ampdu_txeval will return in the condition
+			 * 'ini->ba_state != AMPDU_TID_STATE_BA_ON'.
+			 */
+			/* coverity[stack_use_overflow] */
 			wlc_update_splitrx_mode(wlc_hw, wlc_hw->hdrconv_mode, TRUE);
 
 			/* copy count value */
@@ -18440,6 +18450,11 @@ wlc_bmac_bmc_dump(wlc_hw_info_t *wlc_hw, struct bcmstrbuf *b)
 		bcm_bprintf(b, "\t xmt_fifo_full_thr %d alloc_cnt %d alloc_thr %d\n",
 			R_REG(osh, &regs->u.d11acregs.XmtFIFOFullThreshold), tmp0, tmp1);
 
+		/* The call stack will not go to wlc_ampdu_release because
+		 * wlc_ampdu_txeval will return in the condition
+		 * 'ini->ba_state != AMPDU_TID_STATE_BA_ON'.
+		 */
+		/* coverity[stack_use_overflow] */
 		wlc_bmac_suspend_mac_and_wait(wlc_hw);
 		bmccmd1 = R_REG(osh, &regs->u.d11acregs.BMCCmd1);
 

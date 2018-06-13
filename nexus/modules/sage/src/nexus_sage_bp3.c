@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "nexus_sage_module.h"
@@ -49,6 +52,7 @@
 #include "nexus_security_client.h"
 #include "bsagelib_boot.h"
 #include "bkni.h"
+#include "strings.h"
 
 #include "bp3_module_ids.h"
 #include "bp3_platform_ids.h"
@@ -57,6 +61,178 @@
 
 
 BDBG_MODULE(nexus_sage_bp3);
+
+#define NUM_BP3_FEATURE_LIST 32
+const char *bp3FeatureListVideo0[NUM_BP3_FEATURE_LIST] = {
+    "H264/AVC",
+    "MPEG-2",
+    "NA",
+    "H263",
+    "VC1",
+    "MPEG1",
+    "MPEG2DTV",
+    "NA",
+    "MPEG-4 Part2/Divx",
+    "AVS",
+    "MPEG2_DSS_PES",
+    "H264/SVC",
+    "NA",
+    "H264/MVC",
+    "VP6",
+    "NA",
+    "WebM/VP8",
+    "RV9",
+    "SPARK",
+    "H265(HEVC)",
+    "VP9",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "HD Decode"
+};
+const char *bp3FeatureListVideo1[NUM_BP3_FEATURE_LIST] = {
+    "10 bit",
+    "4Kp30",
+    "4Kp60",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved"
+};
+const char *bp3FeatureListHost[NUM_BP3_FEATURE_LIST] = {
+    "Macrovision",
+    "Dolby Vision HDR",
+    "TCH HDR",
+    "TCH ITM",
+    "QAM",
+    "EchoStar-FE DiSeqC Turbo code",
+    "DIRECTV-FE FTM",
+    "S2X",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved"
+};
+const char *bp3FeatureListSage[NUM_BP3_FEATURE_LIST] = {
+    "Adv. Countermeasure",
+    "CA Multi2",
+    "CA DVB-CSA3",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved"
+};
+const char *bp3FeatureListAudio[NUM_BP3_FEATURE_LIST] = {
+    "Dolby Post Proc: DAP",
+    "Dolby Decode Digital",
+    "Dolby Decode Digital Plus",
+    "Dolby Decode AC4",
+    "Dolby Decode TrueHD",
+    "Dolby MS10/11",
+    "Dolby MS12V1",
+    "Dolby MS12V2",
+    "DTS TruVolume",
+    "DTS Digital Surround",
+    "DTS-HD (M6)",
+    "DTS-HDMA (M8)",
+    "DTS Headphone:X",
+    "DTS Virtual:X",
+    "DTS:X",
+    "Reserved",
+    "Dolby MS12 v1.3 Profile C",
+    "Dolby MS12 v1.3 Profile D",
+    "Dolby MS12 v1.3 Profile B",
+    "Dolby MS12 v1.3 Profile A",
+    "Dolby DAP Content Processing",
+    "Dolby DAP Virtualizer",
+    "Dolby DAP Device Processing",
+    "Dolby MS12v2.3 Adv OpChannels",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved"
+};
 
 struct sageBP3Info {
     BSAGElib_ClientHandle sagelibClientHandle;
@@ -531,20 +707,109 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
                 regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3AudioFeatureList0);
                 regValue = BREG_Read32(hReg, regAddr);
                 BDBG_LOG(("Audio   Feature List 0x%08X",~regValue));
+                for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+                {
+                    if (~regValue & 1)
+                    {
+                        if (NEXUS_StrCmp(bp3FeatureListAudio[index],"Reserved") == 0)
+                        {
+                            if (prodOtpData == 0)
+                            {
+                                BDBG_ERR(("check bp3 audio features list %d",index));
+                            }
+                        }
+                        else
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListAudio[index]));
+                        }
+                    }
+                    regValue = regValue >> 1;
+                }
                 regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList0);
                 regValue = BREG_Read32(hReg, regAddr);
                 BDBG_LOG(("Video 0 Feature List 0x%08X",~regValue));
+                for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+                {
+                    if (~regValue & 1)
+                    {
+                        if ((NEXUS_StrCmp(bp3FeatureListVideo0[index],"Reserved") == 0) ||
+                            (NEXUS_StrCmp(bp3FeatureListVideo0[index],"NA") == 0))
+                        {
+                            if (prodOtpData == 0)
+                            {
+                                BDBG_ERR(("check bp3 video0 features list %d",index));
+                            }
+                        }
+                        else
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListVideo0[index]));
+                        }
+                    }
+                    regValue = regValue >> 1;
+                }
                 regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList1);
                 regValue = BREG_Read32(hReg, regAddr);
                 BDBG_LOG(("Video 1 Feature List 0x%08X",~regValue));
+                for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+                {
+                    if (~regValue & 1)
+                    {
+                        if (NEXUS_StrCmp(bp3FeatureListVideo1[index],"Reserved") == 0)
+                        {
+                            if (prodOtpData == 0)
+                            {
+                                BDBG_ERR(("check bp3 video1 features list %d",index));
+                            }
+                        }
+                        else
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListVideo1[index]));
+                        }
+                    }
+                    regValue = regValue >> 1;
+                }
                 regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3HostFeatureList);
                 regValue = BREG_Read32(hReg, regAddr);
                 BDBG_LOG(("Host    Feature List 0x%08X",~regValue));
+                for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+                {
+                    if (~regValue & 1)
+                    {
+                        if (NEXUS_StrCmp(bp3FeatureListHost[index],"Reserved") == 0)
+                        {
+                            if (prodOtpData == 0)
+                            {
+                                BDBG_ERR(("check bp3 host features list %d",index));
+                            }
+                        }
+                        else
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListHost[index]));
+                        }
+                    }
+                    regValue = regValue >> 1;
+                }
                 regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3SAGEFeatureList);
                 regValue = BREG_Read32(hReg, regAddr);
-                BDBG_LOG(("SAGE    Feature List 0x%08X",~regValue));
-
-
+                BDBG_LOG(("Sage    Feature List 0x%08X",~regValue));
+                for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+                {
+                    if (~regValue & 1)
+                    {
+                        if (NEXUS_StrCmp(bp3FeatureListSage[index],"Reserved") == 0)
+                        {
+                            if (prodOtpData == 0)
+                            {
+                                BDBG_ERR(("check bp3 sage features list %d",index));
+                            }
+                        }
+                        else
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListSage[index]));
+                        }
+                    }
+                    regValue = regValue >> 1;
+                }
             }
         }
     }

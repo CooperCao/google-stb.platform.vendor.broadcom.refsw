@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
@@ -34,14 +34,123 @@ static EGLint init_attribs(EGL_SURFACE_T *surface, const void *attrib_list,
    return EGL_SUCCESS;
 }
 
-void egl_surface_base_swap_done(EGL_SURFACE_T *surface, int new_buffer_age)
+static void manage_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T *state)
 {
-   /* Reset the per-swap state in the surface and set the age */
-   KHRN_MEM_ASSIGN(surface->damage_rects, NULL);
+   // When an application queries buffer age for a surface, we are required to have preserved
+   // the content of that buffer whenever we return a non-zero buffer age. In a naive
+   // implementation, this effectively means the first age query latches the preserve state
+   // forever. The preserve costs bandwidth and hurts performance slightly, so we want to do
+   // better. When small damage regions are used, the savings outweigh the cost.
+   //
+   // We use a heuristic approach to attempt to get some performance back when apps use
+   // fullscreen damage regions, or query the age but never set a damage region.
+   //
+   // We monitor the number of sequential frames where no damage region is set, or a fullscreen
+   // region is present. If we see a number of these in a row, we start to return buffer age
+   // of zero. In this mode, the application must redraw the entire frame and we don't need
+   // to preserve. Once in this mode however, the application will never give us a damage region
+   // again, so we wait for a particular number of frames and then give back a real buffer age.
+   // This gives the app a chance to send a non-fullscreen damage region again.
+   if (state->buffer_age_enabled && !khrn_options.disable_big_damage_opt)
+   {
+      if (state->buffer_age_queried)
+      {
+         // Default new_mode will be the current mode
+         egl_buffer_count_mode_t new_mode = state->mode;
 
-   surface->num_damage_rects   = -1;
-   surface->buffer_age         = new_buffer_age;
-   surface->buffer_age_queried = false;
+         if (state->buffer_age == 0)
+         {
+            // Next frame has a real age of zero, so reset state machine
+            new_mode = MODE_REPORT_REAL_AGE_ZERO;
+            state->big_damage_count   = 0;
+            state->age_override_count = 0;
+         }
+         else
+         {
+            if (state->mode == MODE_REPORT_REAL_AGE_ZERO)
+            {
+               // The last buffer had a real age of zero
+               if (state->buffer_age > 0)
+                  new_mode = MODE_REPORT_REAL_BUFFER_AGE;
+            }
+            else if (state->mode == MODE_REPORT_ZERO_BUFFER_AGE)
+            {
+               // We are counting frames whilst reporting ages of zero
+               state->age_override_count++;
+
+               if (state->age_override_count >= khrn_options.zero_age_retry_cnt)
+               {
+                  // Transition back to giving out real ages and counting big damage regions
+                  new_mode = MODE_REPORT_REAL_BUFFER_AGE;
+                  state->age_override_count = 0;
+                  state->big_damage_count   = 0;
+               }
+            }
+            else if (state->mode == MODE_REPORT_REAL_BUFFER_AGE)
+            {
+               // We are reporting real buffer ages, and counting sequences of big damage
+               bool big_region = state->num_damage_rects <= 0 || ((100.0f * state->damage_coverage) >=
+                                                                   khrn_options.big_damage_thresh);
+               if (big_region)
+                  state->big_damage_count++;
+               else
+                  state->big_damage_count = 0;
+
+               if (state->big_damage_count >= khrn_options.big_damage_opt_cnt)
+               {
+                  // We've seen enough big damage frames in a row, so transition to reporting
+                  // zero ages
+                  new_mode = MODE_REPORT_ZERO_BUFFER_AGE;
+                  state->age_override_count = 0;
+               }
+            }
+         }
+
+         // Assign the new state machine mode
+         state->mode = new_mode;
+
+         log_trace("big_damage_count = %u, age_override_count = %u",
+                   state->big_damage_count, state->age_override_count);
+      }
+      else
+      {
+         // If buffer age wasn't queried this frame, disable until it's queried again to prevent
+         // having to preserve.
+         state->buffer_age_enabled = false;
+         state->mode = MODE_REPORT_REAL_BUFFER_AGE;
+      }
+   }
+   else
+      state->mode = MODE_REPORT_REAL_BUFFER_AGE;
+
+   switch (state->mode)
+   {
+   case MODE_REPORT_REAL_AGE_ZERO  :
+   case MODE_REPORT_ZERO_BUFFER_AGE: state->buffer_age_override = 0;                 break;
+   case MODE_REPORT_REAL_BUFFER_AGE: state->buffer_age_override = state->buffer_age; break;
+   }
+}
+
+void egl_surface_base_update_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T *state)
+{
+   // Calculate the buffer age we want to report and update the heuristics
+   manage_buffer_age_heuristics(state);
+
+   // If no-one has ever queried the buffer age on this surface, treating it as undefined
+   // allows later optimizations, so force age to 0. Setting the khrn_option to disable buffer
+   // age will force buffer_age_enabled off and therefore also treat the buffer as undefined.
+   if (!state->buffer_age_enabled || state->age_override_count > 0)
+      state->buffer_age_override = 0;
+}
+
+void egl_surface_base_swap_done(EGL_SURFACE_T *surface)
+{
+   EGL_BUFFER_AGE_DAMAGE_STATE_T *state = &surface->age_damage_state;
+
+   /* Reset the per-swap state in the surface */
+   KHRN_MEM_ASSIGN(state->damage_rects, NULL);
+   state->num_damage_rects    = -1;
+   state->buffer_age_queried  = false;
 }
 
 EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
@@ -80,11 +189,17 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
    surface->native_window = win;
    surface->native_pixmap = pix;
 
-   surface->buffer_age         = 0;
-   surface->buffer_age_queried = false;
-   surface->buffer_age_enabled = false;
-   surface->num_damage_rects   = -1;
-   surface->damage_rects       = NULL;
+   EGL_BUFFER_AGE_DAMAGE_STATE_T *dmg_state = &surface->age_damage_state;
+   dmg_state->buffer_age          = 0;
+   dmg_state->buffer_age_override = 0;
+   dmg_state->buffer_age_queried  = false;
+   dmg_state->buffer_age_enabled  = false;
+   dmg_state->age_override_count  = 0;
+   dmg_state->big_damage_count    = 0;
+   dmg_state->num_damage_rects    = -1;
+   dmg_state->damage_coverage     = 0.0f;
+   dmg_state->damage_rects        = NULL;
+   dmg_state->mode                = MODE_REPORT_REAL_AGE_ZERO;
 
    EGLint status = init_attribs(surface, attrib_list, attrib_type);
    if (status != EGL_SUCCESS) return status;
@@ -106,7 +221,7 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
 
 void egl_surface_base_destroy(EGL_SURFACE_T *surface)
 {
-   KHRN_MEM_ASSIGN(surface->damage_rects, NULL);
+   KHRN_MEM_ASSIGN(surface->age_damage_state.damage_rects, NULL);
    egl_surface_base_delete_aux_bufs(surface);
    vcos_mutex_delete(&surface->lock);
 }
@@ -209,10 +324,12 @@ EGLint egl_surface_base_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint
             if (!context || context->draw != surface)
                return EGL_BAD_SURFACE;
 
-            surface->buffer_age_queried = true; // Queried this frame
-            surface->buffer_age_enabled = true; // Queried ever
+            EGL_BUFFER_AGE_DAMAGE_STATE_T *state = &surface->age_damage_state;
 
-            *value = surface->buffer_age;
+            state->buffer_age_queried = true; // Queried this frame
+            state->buffer_age_enabled = true;
+
+            *value = state->buffer_age_override;
          }
          else
             *value = 0;  // Non-postable buffers have age 0

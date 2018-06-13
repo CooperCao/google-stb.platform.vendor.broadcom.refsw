@@ -69,6 +69,10 @@ uint32 g_assert_delay = 3; /* Kernel Panic Delay */
 #endif /* defined(STB_SOC_WIFI) && !defined(BCMDBG) */
 #endif /* defined(WLC_DUMP_MAC_EXT) */
 
+#if defined(BCMDBG_ASSERT) || defined(BCMASSERT_LOG)
+uint8 g_assert_buf[256];
+#endif /* defined(BCMDBG_ASSERT) || defined(BCMASSERT_LOG) */
+
 module_param(g_assert_type, int, 0);
 module_param(g_assert_delay, int, 0);
 
@@ -1045,7 +1049,6 @@ extern void osl_preempt_enable(osl_t *osh)
 void
 osl_assert(const char *exp, const char *file, int line)
 {
-	char tempbuf[256];
 	const char *basename;
 
 	basename = strrchr(file, '/');
@@ -1057,22 +1060,22 @@ osl_assert(const char *exp, const char *file, int line)
 		basename = file;
 
 #ifdef BCMASSERT_LOG
-	snprintf(tempbuf, 64, "\"%s\": file \"%s\", line %d\n",
+	snprintf(g_assert_buf, 64, "\"%s\": file \"%s\", line %d\n",
 		exp, basename, line);
 #ifndef OEM_ANDROID
-	bcm_assert_log(tempbuf);
+	bcm_assert_log(g_assert_buf);
 #endif /* OEM_ANDROID */
 #endif /* BCMASSERT_LOG */
 
 #ifdef BCMDBG_ASSERT
-	snprintf(tempbuf, 256, "assertion \"%s\" failed: file \"%s\", line %d\n",
+	snprintf(g_assert_buf, 256, "assertion \"%s\" failed: file \"%s\", line %d\n",
 		exp, basename, line);
 	dump_stack();
 
 	/* Print assert message and give it time to be written to /var/log/messages */
 	if (!in_interrupt() && g_assert_type != 1 && g_assert_type != 3) {
 		const int delay = g_assert_delay;
-		printk("%s", tempbuf);
+		printk("%s", g_assert_buf);
 		printk("panic in %d seconds\n", delay);
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(delay * HZ);
@@ -1081,15 +1084,15 @@ osl_assert(const char *exp, const char *file, int line)
 
 	switch (g_assert_type) {
 	case 0:
-		panic("%s", tempbuf);
+		panic("%s", g_assert_buf);
 		break;
 	case 1:
 		/* fall through */
 	case 3:
-		printk("%s", tempbuf);
+		printk("%s", g_assert_buf);
 		break;
 	case 2:
-		printk("%s", tempbuf);
+		printk("%s", g_assert_buf);
 		BUG();
 		break;
 	default:

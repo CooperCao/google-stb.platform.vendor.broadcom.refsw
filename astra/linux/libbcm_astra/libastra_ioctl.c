@@ -1,40 +1,44 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <string.h>
 #include <errno.h>
@@ -47,12 +51,12 @@ int _astra_ioctl_event_poll(
     astra_kclient_handle hKClient,
     astra_event *pEvent,
     void *pEventData,
-    size_t *pEventDataLen)
+    uint32_t *pEventDataLen)
 {
     struct astra_ioctl_event_poll_data eventPollData;
     int err = 0;
 
-    eventPollData.hClient = hKClient;
+    eventPollData.hClient = (uint64_t)((uintptr_t)hKClient);
 
     err = ioctl(
         pAstra->fd,
@@ -80,7 +84,7 @@ int _astra_ioctl_event_exit(
     struct astra_ioctl_event_exit_data eventExitData;
     int err = 0;
 
-    eventExitData.hClient = hKClient;
+    eventExitData.hClient = (uint64_t)((uintptr_t)hKClient);
 
     err = ioctl(
         pAstra->fd,
@@ -166,7 +170,7 @@ int _astra_ioctl_call_smc(
     struct astra_ioctl_call_smc_data callSmcData;
     int err = 0;
 
-    callSmcData.hClient = hKClient;
+    callSmcData.hClient = (uint64_t)((uintptr_t)hKClient);
     callSmcData.code = code;
 
     err = ioctl(
@@ -209,7 +213,7 @@ int _astra_ioctl_client_open(
     if (clientOpenData.retVal)
         return clientOpenData.retVal;
 
-    *phKClient = clientOpenData.hClient;
+    *phKClient = (astra_kclient_handle)((uintptr_t)clientOpenData.hClient);
     return 0;
 }
 
@@ -219,7 +223,7 @@ int _astra_ioctl_client_close(
     struct astra_ioctl_client_close_data clientCloseData;
     int err = 0;
 
-    clientCloseData.hClient = hKClient;
+    clientCloseData.hClient = (uint64_t)((uintptr_t)hKClient);
 
     err = ioctl(
         pAstra->fd,
@@ -244,7 +248,7 @@ int _astra_ioctl_uapp_open(
     struct astra_ioctl_uapp_open_data uappOpenData;
     int err = 0;
 
-    uappOpenData.hClient = hKClient;
+    uappOpenData.hClient = (uint64_t)((uintptr_t)hKClient);
     strncpy(uappOpenData.name, pName, ASTRA_NAME_LEN_MAX-1);
     /* Coverity:Explicitly null terminate string */
     uappOpenData.name[ASTRA_NAME_LEN_MAX-1] = '\0';
@@ -263,7 +267,7 @@ int _astra_ioctl_uapp_open(
     if (uappOpenData.retVal)
         return uappOpenData.retVal;
 
-    *phKUapp = uappOpenData.hUapp;
+    *phKUapp = (astra_kuapp_handle)((uintptr_t)uappOpenData.hUapp);
     return 0;
 }
 
@@ -273,7 +277,7 @@ int _astra_ioctl_uapp_close(
     struct astra_ioctl_uapp_close_data uappCloseData;
     int err = 0;
 
-    uappCloseData.hUapp = hKUapp;
+    uappCloseData.hUapp = (uint64_t)((uintptr_t)hKUapp);
 
     err = ioctl(
         pAstra->fd,
@@ -297,7 +301,7 @@ int _astra_ioctl_peer_open(
     struct astra_ioctl_peer_open_data peerOpenData;
     int err = 0;
 
-    peerOpenData.hUapp = hKUapp;
+    peerOpenData.hUapp = (uint64_t)((uintptr_t)hKUapp);
     strncpy(peerOpenData.name, pName, ASTRA_NAME_LEN_MAX-1);
     /* Coverity:Explicitly null terminate string */
     peerOpenData.name[ASTRA_NAME_LEN_MAX-1] = '\0';
@@ -313,7 +317,7 @@ int _astra_ioctl_peer_open(
     if (peerOpenData.retVal)
         return peerOpenData.retVal;
 
-    *phKPeer = peerOpenData.hPeer;
+    *phKPeer = (astra_kpeer_handle)((uintptr_t)peerOpenData.hPeer);
     return 0;
 }
 
@@ -323,7 +327,7 @@ int _astra_ioctl_peer_close(
     struct astra_ioctl_peer_close_data peerCloseData;
     int err = 0;
 
-    peerCloseData.hPeer = hKPeer;
+    peerCloseData.hPeer = (uint64_t)((uintptr_t)hKPeer);
 
     err = ioctl(
         pAstra->fd,
@@ -342,13 +346,13 @@ int _astra_ioctl_peer_close(
 int _astra_ioctl_msg_send(
     astra_kpeer_handle hKPeer,
     const void *pMsg,
-    size_t msgLen)
+    uint32_t msgLen)
 {
     struct astra_ioctl_msg_send_data msgSendData;
     int err = 0;
 
-    msgSendData.hPeer = hKPeer;
-    msgSendData.pMsg = pMsg;
+    msgSendData.hPeer = (uint64_t)((uintptr_t)hKPeer);
+    msgSendData.pMsg = (uint64_t)((uintptr_t)pMsg);
     msgSendData.msgLen = msgLen;
 
     err = ioctl(
@@ -369,14 +373,14 @@ int _astra_ioctl_msg_receive(
     astra_kclient_handle hKClient,
     astra_kpeer_handle *phKPeer,
     void *pMsg,
-    size_t *pMsgLen,
+    uint32_t *pMsgLen,
     int timeout)
 {
     struct astra_ioctl_msg_receive_data msgReceiveData;
     int err = 0;
 
-    msgReceiveData.hClient = hKClient;
-    msgReceiveData.pMsg = pMsg;
+    msgReceiveData.hClient = (uint64_t)((uintptr_t)hKClient);
+    msgReceiveData.pMsg = (uint64_t)((uintptr_t)pMsg);
     msgReceiveData.msgLen = *pMsgLen;
     msgReceiveData.timeout = timeout;
 
@@ -391,20 +395,20 @@ int _astra_ioctl_msg_receive(
     if (msgReceiveData.retVal)
         return msgReceiveData.retVal;
 
-    *phKPeer = msgReceiveData.hPeer;
+    *phKPeer = (astra_kpeer_handle)((uintptr_t)msgReceiveData.hPeer);
     *pMsgLen = msgReceiveData.msgLen;
     return 0;
 }
 
 int _astra_ioctl_mem_alloc(
     astra_kclient_handle hKClient,
-    size_t size,
+    uint32_t size,
     uint32_t *pBuffOffset)
 {
     struct astra_ioctl_mem_alloc_data memAllocData;
     int err = 0;
 
-    memAllocData.hClient = hKClient;
+    memAllocData.hClient = (uint64_t)((uintptr_t)hKClient);
     memAllocData.size = size;
 
     err = ioctl(
@@ -429,7 +433,7 @@ int _astra_ioctl_mem_free(
     struct astra_ioctl_mem_free_data memFreeData;
     int err = 0;
 
-    memFreeData.hClient = hKClient;
+    memFreeData.hClient = (uint64_t)((uintptr_t)hKClient);
     memFreeData.buffOffset = buffOffset;
 
     err = ioctl(
@@ -455,7 +459,7 @@ int _astra_ioctl_file_open(
     struct astra_ioctl_file_open_data fileOpenData;
     int err = 0;
 
-    fileOpenData.hClient = hKClient;
+    fileOpenData.hClient = (uint64_t)((uintptr_t)hKClient);
     strncpy(fileOpenData.path, pPath, ASTRA_PATH_LEN_MAX-1);
     /* Coverity:Explicitly null terminate string */
     fileOpenData.path[ASTRA_PATH_LEN_MAX-1] = '\0';
@@ -473,7 +477,7 @@ int _astra_ioctl_file_open(
     if (fileOpenData.retVal)
         return fileOpenData.retVal;
 
-    *phKFile = fileOpenData.hFile;
+    *phKFile = (astra_kfile_handle)((uintptr_t)fileOpenData.hFile);
     return 0;
 }
 
@@ -483,7 +487,7 @@ int _astra_ioctl_file_close(
     struct astra_ioctl_file_close_data fileCloseData;
     int err = 0;
 
-    fileCloseData.hFile = hKFile;
+    fileCloseData.hFile = (uint64_t)((uintptr_t)hKFile);
 
     err = ioctl(
         pAstra->fd,
@@ -502,12 +506,12 @@ int _astra_ioctl_file_close(
 int _astra_ioctl_file_write(
     astra_kfile_handle hKFile,
     astra_paddr_t paddr,
-    size_t *pBytes)
+    uint32_t *pBytes)
 {
     struct astra_ioctl_file_write_data fileWriteData;
     int err = 0;
 
-    fileWriteData.hFile = hKFile;
+    fileWriteData.hFile = (uint64_t)((uintptr_t)hKFile);
     fileWriteData.paddr = paddr;
     fileWriteData.bytes = *pBytes;
 
@@ -529,12 +533,12 @@ int _astra_ioctl_file_write(
 int _astra_ioctl_file_read(
     astra_kfile_handle hKFile,
     astra_paddr_t paddr,
-    size_t *pBytes)
+    uint32_t *pBytes)
 {
     struct astra_ioctl_file_read_data fileReadData;
     int err = 0;
 
-    fileReadData.hFile = hKFile;
+    fileReadData.hFile = (uint64_t)((uintptr_t)hKFile);
     fileReadData.paddr = paddr;
     fileReadData.bytes = *pBytes;
 
@@ -559,7 +563,7 @@ int _astra_ioctl_uapp_coredump(
     struct astra_ioctl_uapp_coredump_data uappCoredumpData;
     int err = 0;
 
-    uappCoredumpData.hUapp = hKUapp;
+    uappCoredumpData.hUapp = (uint64_t)((uintptr_t)hKUapp);
 
     err = ioctl(
         pAstra->fd,

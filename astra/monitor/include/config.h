@@ -69,4 +69,7 @@
 #define MAX_MMAP_REGIONS                32
 #define MAX_XLAT_TABLES                 32
 
+#define MAX_TZ_IMG_SIZE                 (10 * 1024 * 1024)
+#define MAX_TZ_CMP_SIZE                 ( 2 * 1024 * 1024)
+
 #endif /* _CONFIG_H_ */
