@@ -43,15 +43,9 @@ vpath %.c $(SRCBASE)/shared/nvram $(SRCBASE)/shared
 
 all: libnvram.so $(if $(CONFIG_NVRAM_UTILITY),nvram) $(if $(CONFIG_NVRAMD),nvramd)
 
-ifneq ($(findstring aarch64,${B_REFSW_ARCH}),)
-LIBDIR := lib64
-else
-LIBDIR := lib
-endif
-
 install: all
-	install -D libnvram.so $(INSTALLDIR)/$(LIBDIR)/libnvram.so
-	$(STRIP) $(INSTALLDIR)/$(LIBDIR)/libnvram.so
+	install -D libnvram.so $(INSTALLDIR)/usr/lib/libnvram.so
+	$(STRIP) $(INSTALLDIR)/usr/lib/libnvram.so
 ifneq ($(CONFIG_NVRAM_UTILITY),)
 	install -D nvram $(INSTALLDIR)/usr/sbin/nvram
 	$(STRIP) $(INSTALLDIR)/usr/sbin/nvram

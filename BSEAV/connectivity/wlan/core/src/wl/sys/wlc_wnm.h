@@ -73,7 +73,6 @@ extern int wlc_wnm_scb_timbc_status(wlc_info_t *wlc, struct scb *scb);
 extern void wlc_wnm_tbtt(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 extern void wlc_wnm_tttt(wlc_info_t *wlc);
 extern int wlc_wnm_scb_sm_interval(wlc_info_t *wlc, struct scb *scb);
-extern bool wlc_wnm_scb_sm_sleeping(wlc_info_t *wlc, struct scb *scb);
 extern bool wlc_wnm_dms_amsdu_on(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 extern void wlc_wnm_dms_spp_conflict(wlc_info_t *wlc, struct scb *scb);
 #ifdef MFP

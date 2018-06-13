@@ -520,9 +520,6 @@ static void wlc_low_txq_account(wlc_info_t *wlc, txq_t *low_txq, uint prec,
 static void wlc_low_txq_sync(wlc_info_t *wlc, txq_t* low_txq, uint fifo_bitmap,
 	uint8 flag);
 static void wlc_tx_pktpend_check(wlc_info_t *wlc, uint *fifo_bitmap);
-#ifdef WLAMPDU_MAC
-static void wlc_tx_fifo_epoch_save(wlc_info_t *wlc, wlc_txq_info_t *qi, uint fifo_idx);
-#endif /* WLAMPDU_MAC */
 
 #ifdef STA
 static void wlc_pm_tx_upd(wlc_info_t *wlc, struct scb *scb, void *pkt, bool ps0ok, uint fifo);
@@ -1504,142 +1501,6 @@ wlc_low_txq_scb_flush(wlc_info_t *wlc, wlc_txq_info_t *qi, struct scb *remove)
 		if (wlc->active_queue == qi) {
 			TXPKTPENDDEC(wlc, fifo_idx, (int16)info.count);
 		}
-#ifdef WLAMPDU_MAC
-		if (AMPDU_AQM_ENAB(wlc->pub)) {
-			wlc_tx_fifo_epoch_save(wlc, qi, fifo_idx);
-		}
-#endif /* WLAMPDU_MAC */
-	}
-}
-
-typedef struct {
-	int time;
-	uint16 pkt_cnt;
-	map_pkts_cb_fn orig_cb;
-	void *orig_ctx;
-	wlc_info_t *wlc;
-} low_txq_map_t;
-
-static bool
-wlc_low_txq_pkt_cb(void *ctx, void *pkt)
-{
-	bool ret = FALSE;
-	uint16 *buffered;
-	low_txq_map_t *low_txq_map = (low_txq_map_t *)ctx;
-
-	ret = low_txq_map->orig_cb(low_txq_map->orig_ctx, pkt);
-
-	if (ret == TRUE) {
-#if defined(TXQ_MUX)
-		buffered = &low_txq_map->time;
-#else
-		buffered = &low_txq_map->pkt_cnt;
-#endif
-		wlc_txq_freed_pkt_time(low_txq_map->wlc, pkt, buffered);
-	}
-	return ret;
-}
-
-static void
-wlc_low_tx_map_pkts(wlc_info_t *wlc, struct spktq *swq, map_pkts_cb_fn cb, void *ctx)
-{
-	void *head_pkt, *pkt;
-	bool pkt_free;
-
-	head_pkt = NULL;
-	while (spktq_peek(swq) != head_pkt) {
-		pkt = spktq_deq(swq);
-		if (pkt) {
-			pkt_free = cb(ctx, pkt);
-			if (!pkt_free) {
-				if (!head_pkt)
-					head_pkt = pkt;
-				spktenq(swq, pkt);
-			} else
-				PKTFREE(wlc->osh, pkt, TRUE);
-		}
-	}
-}
-
-void
-wlc_low_txq_map_pkts(wlc_info_t *wlc, wlc_txq_info_t *qi, map_pkts_cb_fn cb, void *ctx)
-{
-	uint fifo;
-	txq_t *low_txq;
-	struct spktq *free_swq;
-	low_txq_map_t low_txq_map;
-
-	low_txq = qi->low_txq;
-
-	low_txq_map.orig_cb = cb;
-	low_txq_map.orig_ctx = ctx;
-	low_txq_map.wlc = wlc;
-	for (fifo = 0; fifo < low_txq->nfifo; fifo++) {
-		low_txq_map.pkt_cnt  = 0;
-		low_txq_map.time  = 0;
-		free_swq = &low_txq->swq[fifo];
-		wlc_low_tx_map_pkts(wlc, free_swq, wlc_low_txq_pkt_cb, &low_txq_map);
-#if defined(TXQ_MUX)
-		wlc_low_txq_buffered_dec(low_txq, fifo, low_txq_map.time);
-#else
-		wlc_low_txq_buffered_dec(low_txq, fifo, low_txq_map.pkt_cnt);
-#endif
-	}
-}
-
-void
-wlc_tx_map_pkts(wlc_info_t *wlc, struct pktq *q, int prec, map_pkts_cb_fn cb, void *ctx)
-{
-	void *head_pkt, *pkt;
-	bool pkt_free;
-
-	head_pkt = NULL;
-
-	while (pktqprec_peek(q, prec) != head_pkt) {
-		pkt = pktq_pdeq(q, prec);
-		if (pkt) {
-			pkt_free = cb(ctx, pkt);
-			if (!pkt_free) {
-				if (!head_pkt)
-					head_pkt = pkt;
-				pktq_penq(q, prec, pkt);
-			} else
-				PKTFREE(wlc->osh, pkt, TRUE);
-		}
-	}
-}
-
-void
-wlc_txq_map_pkts(wlc_info_t *wlc, wlc_txq_info_t *qi, map_pkts_cb_fn cb, void *ctx)
-{
-	int prec;
-	struct pktq *q;
-	q =  WLC_GET_TXQ(qi);
-
-	PKTQ_PREC_ITER(q, prec) {
-		wlc_tx_map_pkts(wlc, q, prec, cb, ctx);
-	}
-}
-
-#ifdef AP
-void
-wlc_scb_psq_map_pkts(wlc_info_t *wlc, struct pktq *q, map_pkts_cb_fn cb, void *ctx)
-{
-	int prec;
-
-	PKTQ_PREC_ITER(q, prec) {
-		wlc_tx_map_pkts(wlc, q, prec, cb, ctx);
-	}
-}
-#endif
-
-void
-wlc_bsscfg_psq_map_pkts(wlc_info_t *wlc, struct pktq *q, map_pkts_cb_fn cb, void *ctx)
-{
-	int prec;
-
-	PKTQ_PREC_ITER(q, prec) {
-		wlc_tx_map_pkts(wlc, q, prec, cb, ctx);
 	}
 }
 
@@ -3651,6 +3512,7 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 
 	/* check IAPP L2 update frame */
 	if (!wds && BSSCFG_AP(bsscfg) && ETHER_ISMULTI(dst)) {
+
 		if ((ntoh16(eh->ether_type) == ETHER_TYPE_IAPP_L2_UPDATE) &&
 			(WLPKTTAG(sdu)->flags & WLF_HOST_PKT)) {
 			struct ether_addr *src;
@@ -3659,18 +3521,11 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 
 			/* cleanup the scb */
 			if ((scb = wlc_scbfindband(wlc, bsscfg, src, bandunit)) != NULL) {
-#ifdef WLWNM_AP
-				if (WLWNM_ENAB(wlc->pub) &&
-					!WNM_PROXYARP_ENABLED(wlc_wnm_get_cap(wlc, bsscfg))) {
-#endif /* WLWNM_AP */
-					WL_INFORM(("wl%d: %s: non-associated station %s\n", wlc->pub->unit,
-						__FUNCTION__, bcm_ether_ntoa(src, eabuf)));
-					wlc_bss_mac_event(wlc, bsscfg, WLC_E_DISASSOC_IND, &scb->ea,
-						WLC_E_STATUS_SUCCESS, DOT11_RC_DISASSOC_LEAVING, 0, 0, 0);
-					wlc_scbfree(wlc, scb);
-#ifdef WLWNM_AP
-				}
-#endif /* WLWNM_AP */
+				WL_INFORM(("wl%d: %s: non-associated station %s\n", wlc->pub->unit,
+					__FUNCTION__, bcm_ether_ntoa(src, eabuf)));
+				wlc_bss_mac_event(wlc, bsscfg, WLC_E_DISASSOC_IND, &scb->ea,
+					WLC_E_STATUS_SUCCESS, DOT11_RC_DISASSOC_LEAVING, 0, 0, 0);
+				wlc_scbfree(wlc, scb);
 			}
 		}
 	}
@@ -11216,27 +11071,19 @@ wlc_low_txq_account(wlc_info_t *wlc, txq_t *low_txq, uint prec,
  * Same shall be restored upon "re-attach" of the given queue in wlc_tx_fifo_attach_complete.
  */
 static void
-wlc_tx_fifo_epoch_save(wlc_info_t *wlc, wlc_txq_info_t *qi, uint fifo_idx)
+wlc_tx_fifo_epoch_save(wlc_info_t *wlc, struct spktq *swq, int prec)
 {
-	txq_t *low_txq;
-	struct spktq *swq;
-		void *pkt;
-			wlc_txh_info_t txh_info;
-
-	ASSERT(qi != NULL);
-	low_txq = qi->low_txq;
-	ASSERT(low_txq != NULL);
-	swq = low_txq->swq;
+	ASSERT(wlc->txfifo_detach_transition_queue != NULL);
 	ASSERT(swq != NULL);
 
-	if (fifo_idx < NFIFO) {
-		if ((pkt = swq[fifo_idx].q.tail)) {
+	if (wlc->txfifo_detach_transition_queue && swq && prec < AC_COUNT) {
+		void *pkt;
+
+		if ((pkt = swq->q.tail)) {
+			wlc_txh_info_t txh_info;
 			wlc_get_txh_info(wlc, pkt, &txh_info);
-			qi->epoch[fifo_idx] = wlc_txh_get_epoch(wlc, &txh_info);
-			/* restore the epoch bit setting for this queue fifo */
-			if (qi == wlc->active_queue) {
-				wlc_ampdu_set_epoch(wlc->ampdu_tx, fifo_idx, qi->epoch[fifo_idx]);
-			}
+			wlc->txfifo_detach_transition_queue->epoch[prec] =
+				wlc_txh_get_epoch(wlc, &txh_info);
 		}
 	}
 }
@@ -11416,7 +11263,7 @@ wlc_tx_fifo_sync_complete(wlc_info_t *wlc, uint fifo_bitmap, uint8 flag)
 		 * 2. Handle selective TID flushes (FLUSHFIFO_FLUSHID)
 		*/
 		if (AMPDU_AQM_ENAB(wlc->pub)) {
-			wlc_tx_fifo_epoch_save(wlc, wlc->txfifo_detach_transition_queue, i);
+			wlc_tx_fifo_epoch_save(wlc, &low_txq->swq[i], i);
 		}
 #endif /* WLAMPDU_MAC */
 
@@ -11511,7 +11358,7 @@ wlc_tx_fifo_attach_complete(wlc_info_t *wlc)
 
 #ifdef WLAMPDU_MAC
 	if (AMPDU_AQM_ENAB(wlc->pub)) {
-		for  (i = 0; i <  WLC_HW_NFIFO_INUSE(wlc); i++) {
+		for  (i = 0; i < AC_COUNT; i++) {
 			/* restore the epoch bit setting for this queue fifo */
 			wlc_ampdu_set_epoch(wlc->ampdu_tx, i, wlc->active_queue->epoch[i]);
 		}

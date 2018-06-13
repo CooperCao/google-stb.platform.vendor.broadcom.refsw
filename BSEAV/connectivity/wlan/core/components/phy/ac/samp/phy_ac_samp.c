@@ -637,7 +637,7 @@ wlc_phy_sample_collect_now(phy_ac_samp_info_t *sampi, wl_samplecollect_args_t *c
 		} else {
 			W_REG(pi->sh->osh, &pi->regs->psm_phy_hdr_param, phy_ctl | (1 << 4));
 		}
-		OSL_DELAY(1000000);
+		OSL_DELAY(timer * 1000);
 	} else {
 		uint32 sample_capture_pointer_timeouts = 0;
 
@@ -783,6 +783,7 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 
 	bool	downSamp = FALSE, suspend = FALSE;
 	int	coreSel = 0, bitStartVal = 2;
+	uint16 nonsampcapval;
 
 	wl_sampledata_t	*sample_data;
 
@@ -867,12 +868,13 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 		}
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_4)) */
+#if !defined(PHY_VER) || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
 	if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-	           ACMAJORREV_33(pi->pubpi->phy_rev) ||
-	           ACMAJORREV_37(pi->pubpi->phy_rev)) {
+	           ACMAJORREV_33(pi->pubpi->phy_rev)) {
 			szbytes = 579*1024;
 			sc_buff_offs = 192 * 1024 >> 2;
 	} else
+#endif /* !defined(PHY_VER) || (defined(PHY_VER) && defined(PHY_ACMAJORREV_32) || (defined(PHY_VER) && defined(PHY_ACMAJORREV_33)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_25))
 	if (ACMAJORREV_25(pi->pubpi->phy_rev)) {
 		szbytes = 256*1024;
@@ -896,6 +898,13 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 			sc_buff_offs = 0;
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_36)) */
+#if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
+	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		/* 7271 */
+		szbytes = 480*1024;
+		sc_buff_offs = 32 * 1024 >> 2;
+	}  else
+#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
 	{
 		szbytes = 512*1024;
 		sc_buff_offs = 0;
@@ -1013,7 +1022,10 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_36)) */
 
 	WRITE_PHYREG(pi, AdcDataCollect, 0);
-	WRITE_PHYREG(pi, RxFeTesMmuxCtrl, 0);
+
+	nonsampcapval = READ_PHYREG(pi, RxFeTesMmuxCtrl);
+	nonsampcapval = nonsampcapval & 0xF800;
+	WRITE_PHYREG(pi, RxFeTesMmuxCtrl, nonsampcapval);
 
 	/* 4360A0/A2, 4335A0/B0, 4345 do not have the spectrum analyzer mode */
 	if (ACREV_IS(pi->pubpi->phy_rev, 0) ||
@@ -1023,14 +1035,15 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 	}
 	else {
 		support_spectrum_analyzer_mode = 1;
-		if (ACREV_IS(pi->pubpi->phy_rev, 1))
+		if (ACREV_IS(pi->pubpi->phy_rev, 1)) {
 			PHY_REG_WRITE(pi, ACPHY, SpectrumAnalyzerMode(1), 0);
-		else /* phyrev!=0 && phyrev !=1  */
+		} else { /* phyrev!=0 && phyrev !=1  */
 			PHY_REG_WRITE(pi, ACPHY, SpectrumAnalyzerMode(2), 0);
-		if (!ACREV_IS(pi->pubpi->phy_rev, 1))
+		}
+		if (!ACREV_IS(pi->pubpi->phy_rev, 1)) {
 			WRITE_PHYREG(pi, SpecAnaDataCollect, 0);
+		}
 	}
-
 	switch (collect->mode)
 	{
 		case SC_MODE_0_sd_adc:
@@ -1309,16 +1322,28 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 				MOD_PHYREG(pi, SpecAnaDataCollect, wide64bus_sel, 1);
 			}
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_36)) */
+#if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
+			if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				uint16 crosscoresel_val;
+				/* 7271 */
+				if (coreSel) {
+					crosscoresel_val = 0xFFFF;
+				} else {
+					crosscoresel_val = 0x0000;
+				}
+				WRITE_PHYREG(pi, data_collect_crosscoresel0, crosscoresel_val);
+				WRITE_PHYREG(pi, data_collect_crosscoresel1, crosscoresel_val);
+			}
+#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
+
 			if (!ACMAJORREV_32(pi->pubpi->phy_rev) &&
-				!ACMAJORREV_33(pi->pubpi->phy_rev) &&
-				!ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				!ACMAJORREV_33(pi->pubpi->phy_rev)) {
 				MOD_PHYREG(pi, RxFeTesMmuxCtrl, samp_coll_core_sel, coreSel);
 			}
 			MOD_PHYREG(pi, RxFeTesMmuxCtrl, rxfe_dbg_mux_sel, 4);
 
 			if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
 				ACMAJORREV_33(pi->pubpi->phy_rev) ||
-				ACMAJORREV_37(pi->pubpi->phy_rev) ||
 				ACMAJORREV_40(pi->pubpi->phy_rev)) {
 			  MOD_PHYREG(pi, AdcDataCollect, sampSel, 4);
 			  MOD_PHYREG(pi, AdcDataCollect, rxSingleCoreMode, 1);
@@ -1354,8 +1379,8 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 				pmu_chip_ctl_regupdate = 1;
 			}
 			/* Special mode for BCM43457A0/B0, BCM4345B0/B1 (CRDOT11ACPHY-590) */
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_3) || defined(PHY_ACMAJORREV_4) || defined(PHY_ACMAJORREV_40)))
-			if (ACMAJORREV_3(pi->pubpi->phy_rev) || ACMAJORREV_4(pi->pubpi->phy_rev) ||
+#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_3) || defined(PHY_ACMAJORREV_4) || defined(PHY_ACMAJORREV_37) || defined(PHY_ACMAJORREV_40)))
+			if (ACMAJORREV_3(pi->pubpi->phy_rev) || ACMAJORREV_4(pi->pubpi->phy_rev) || ACMAJORREV_37(pi->pubpi->phy_rev) ||
 				ACMAJORREV_40(pi->pubpi->phy_rev)) {
 				MOD_PHYREG(pi, SpecAnaDataCollect, pktprocMuxEn, 1);
 			}
@@ -1780,6 +1805,9 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 
 			/* Writing to lower 8 bits */
 			WRITE_PHYREG(pi, gpioSel, ((save_gpio & 0xFF00)| collect->gpio_sel));
+			if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				MOD_PHYREG(pi, gpioClkControl, gpioEn, 1);
+			}
 
 			MOD_PHYREG(pi, AdcDataCollect, gpioMode, 0);
 			MOD_PHYREG(pi, AdcDataCollect, gpioSel,  1);
@@ -1789,7 +1817,6 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 			 */
 			WRITE_PHYREG(pi, gpioLoOutEn, 0xFFFF);
 			WRITE_PHYREG(pi, gpioHiOutEn, 0xFFFF);
-
 
 			collect->gpio_collection = 1;
 
@@ -1809,6 +1836,9 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 
 			/* Writing to lower 8 bits */
 			WRITE_PHYREG(pi, gpioSel, ((save_gpio & 0xFF00)| collect->gpio_sel));
+			if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				MOD_PHYREG(pi, gpioClkControl, gpioEn, 1);
+			}
 
 			WRITE_PHYREG(pi, gpioCapMaskHigh, ((collect->gpioCapMask >> 16) & 0xFFFF));
 			WRITE_PHYREG(pi, gpioCapMaskLow, (collect->gpioCapMask  & 0xFFFF));
@@ -1888,7 +1918,6 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 					MOD_PHYREG_ENTRY(pi, AdcDataCollect, specAnaMode, 1)
 				ACPHY_REG_LIST_EXECUTE(pi);
 			} else { /* phyrev >=2 */
-
 				MOD_PHYREG(pi, SpecAnaDataCollect,
 					specAnaModeChanSel, coreSel);
 				MOD_PHYREG(pi, SpectrumAnalyzerMode, specAnaModeEn, 1);
@@ -1955,8 +1984,9 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 
 	/* Apply filter settings if requested */
 	/* Override the LPF high pass corners to their lowest values (0x1) */
-	if (collect->filter)
+	if (collect->filter) {
 		phy_ac_lpf_hpc_override(pi_ac, TRUE);
+	}
 
 	/* set Tx-FIFO collect start pointer to sc_buff_start */
 	phy_ac_set_startptr(sampi, sc_buff_start);
@@ -2005,14 +2035,13 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 	PHY_TRACE(("wl%d: %s Start capture, trigger = %d\n", pi->sh->unit, __FUNCTION__,
 		collect->trigger));
 
-	timer = collect->timeout;
+	timer = collect->timeout * 1000;
 
 	PHY_TRACE(("wl%d: %s Start capture, timer = %d\n", pi->sh->unit, __FUNCTION__,
 		collect->timeout));
 
 	if (ACMAJORREV_32(pi->pubpi->phy_rev) ||
-	    ACMAJORREV_33(pi->pubpi->phy_rev) ||
-	    ACMAJORREV_37(pi->pubpi->phy_rev)) {
+	    ACMAJORREV_33(pi->pubpi->phy_rev)) {
 		W_REG(pi->sh->osh, &pi->regs->PHYREF_SampleCollectPlayCtrl, 1 << 11);
 	}
 
@@ -2175,8 +2204,9 @@ phy_ac_sample_collect(phy_type_samp_ctx_t *ctx, wl_samplecollect_args_t *collect
 
 	if (support_spectrum_analyzer_mode == 1) {
 		MOD_PHYREG(pi, SpectrumAnalyzerMode, specAnaModeEn, 0);
-		if (!ACREV_IS(pi->pubpi->phy_rev, 1))
+		if (!ACREV_IS(pi->pubpi->phy_rev, 1)) {
 			MOD_PHYREG(pi, SpecAnaDataCollect, specAnaMode, 0);
+		}
 		FOREACH_CORE(pi, core) {
 			WRITE_PHYREGCE(pi, forceFront, core, forceFront_save[core]);
 		}

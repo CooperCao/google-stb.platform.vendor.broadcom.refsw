@@ -320,17 +320,12 @@ ifneq ($(findstring stb,$(TARGET)),)
     STBLINUX=1
 endif # stb
 
-############################################################
-# Kernel symbols from wlan_plat module
-############################################################
-WLPLAT_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/src/wlplat/$(OBJDIR)/Module.symvers
-export KBUILD_EXTRA_SYMBOLS=$(WLPLAT_EXTRA_SYMBOLS)
-############################################################
-
 ifneq (,$(findstring wmf,$(TARGET))$(findstring stbap,$(TARGET)))
+    ifeq ($(KBUILD_EXTRA_SYMBOLS),)
         export BCM_EXTERNAL_WMF_MODULES_REQUIRED=TRUE
-        export IGS_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/igs/$(OBJDIR)/Module.symvers
-        export EMF_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/emf/$(OBJDIR)/Module.symvers
+        export EMF_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/igs/$(OBJDIR)/Module.symvers
+        export KBUILD_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/emf/$(OBJDIR)/Module.symvers
+    endif
 endif # wmf
 
 ifndef ECLOUD_BUILD_ID
@@ -405,9 +400,6 @@ IFLAGS   += -I.
 IFLAGS   += $(WLAN_ComponentIncPathA)
 IFLAGS   += $(WLAN_IncPathA)
 IFLAGS   += -I$(WLAN_SrcBaseA)/shared/zlib
-ifeq ($(DPSTA),1)
-IFLAGS   += -I$(WLAN_TreeBaseA)/components/router/dpsta
-endif
 
 ############################################################
 # Check if the dongle image is embedded
@@ -833,12 +825,6 @@ objdir:
 	# Generate WL config file from WLCONFS tokens
 	cat $(foreach config,$(WLCONFS),$(WLCFGDIR)/$(WLCFG_PREFIX)$(config)) > \
 		$(OBJDIR)/$(WLCONFFILE)
-	# First make the wlplat driver
-	@echo "Making wlplat driver"
-	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/src/wlplat WLARCH=$(WLARCH) clean
-	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/src/wlplat WLARCH=$(WLARCH)
-	cp $(WLAN_TreeBaseA)/src/wlplat/$(OBJDIR)/wlplat.ko $(OBJDIR)
-
 ifdef BCM_EXTERNAL_WMF_MODULES_REQUIRED
 	# Start of WMF extra modules
 	@echo "Making EMF and IGS .ko's"
@@ -846,8 +832,7 @@ ifdef BCM_EXTERNAL_WMF_MODULES_REQUIRED
 	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/components/router/emf/emf WLARCH=$(WLARCH)
 	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/components/router/emf/igs WLARCH=$(WLARCH) clean
 	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/components/router/emf/igs WLARCH=$(WLARCH)
-	cat $(EMF_EXTRA_SYMBOLS) >> $(KBUILD_EXTRA_SYMBOLS)
-	cat $(IGS_EXTRA_SYMBOLS) >> $(KBUILD_EXTRA_SYMBOLS)
+	cat $(EMF_EXTRA_SYMBOLS) > $(KBUILD_EXTRA_SYMBOLS)
 	cp $(WLAN_TreeBaseA)/components/router/emf/emf/$(OBJDIR)/emf.ko $(OBJDIR)
 	cp $(WLAN_TreeBaseA)/components/router/emf/igs/$(OBJDIR)/igs.ko $(OBJDIR)
 endif # BCM_EXTERNAL_WMF_MODULES_REQUIRED

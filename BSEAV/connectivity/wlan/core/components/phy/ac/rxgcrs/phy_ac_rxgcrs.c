@@ -1011,7 +1011,7 @@ BCMATTACHFN(phy_ac_rxgcrs_std_params_attach)(phy_ac_rxgcrs_info_t *ri)
 	ri->phy_crs_th_from_crs_cal = ACPHY_CRSMIN_DEFAULT;
 	/* default clip1_th & edcrs_en */
 	ri->clip1_th = 0x404e;
-	ri->edcrs_en = 0xfff;
+	ri->edcrs_en = 0xffff;
 	bzero((uint8 *)ri->phy_noise_pwr_array, sizeof(ri->phy_noise_pwr_array));
 	bzero((uint8 *)ri->phy_noise_in_crs_min, sizeof(ri->phy_noise_in_crs_min));
 	ri->phy_debug_crscal_counter = 0;

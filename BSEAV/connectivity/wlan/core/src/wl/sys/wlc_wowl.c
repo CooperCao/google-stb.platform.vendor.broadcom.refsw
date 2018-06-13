@@ -148,7 +148,8 @@ enum {
 	IOV_WOWL_GPIO,	 /**< configure gpio pin to be used to indicate wakeup towards host */
 	IOV_WOWL_GPIOPOL,/**< configure polarity of wakeup gpio pin */
 	IOV_WOWL_RLS_WAKE_MDNS,         /** release the mDNS payload of a packet that triggerred a wake up event */
-	IOV_WOWL_SENDUP_MDNS		/* release a pkt to the upper layer */
+	IOV_WOWL_SENDUP_MDNS,		/* release a pkt to the upper layer */
+	IOV_WOWL_ACTIVATED,		/**< wowl acticated or not */
 };
 
 static const bcm_iovar_t wowl_iovars[] = {
@@ -164,11 +165,12 @@ static const bcm_iovar_t wowl_iovars[] = {
 #if defined(BCMULP) && defined(WOWL_OS_OFFLOADS)
 	{"wowl_arp_hostip", IOV_WOWL_ARP_HOSTIP, (0), 0, IOVT_BUFFER, 4},
 	{"ns_hostip", IOV_WOWL_NS_HOSTIP, (0), 0, IOVT_BUFFER, 16},
-#endif 
+#endif
 	{"wowl_ext_magic", IOV_WOWL_EXTENDED_MAGIC, (0), 0, IOVT_BUFFER, ETHER_ADDR_LEN},
 	{"wowl_keepalive", IOV_WOWL_KEEPALIVE, (0), 0, IOVT_BUFFER, WL_MKEEP_ALIVE_FIXED_LEN},
 	{"wowl_pm_mode", IOV_WOWL_PM_MODE, (0), 0, IOVT_INT32, 0},
 	{"wowl_activate", IOV_WOWL_ACTIVATE, (0), 0, IOVT_BOOL, 0},
+	{"wowl_activated", IOV_WOWL_ACTIVATED, (0), 0, IOVT_BOOL, 0},
 	{"wowl_rls_wake_mdns", IOV_WOWL_RLS_WAKE_MDNS, (0), 0, IOVT_BUFFER, 0},
 	{"wowl_sendup_wake_mdns", IOV_WOWL_SENDUP_MDNS, (0), 0, IOVT_BUFFER, 0},
 	{NULL, 0, 0, 0, 0, 0}
@@ -1144,7 +1146,14 @@ wlc_wowl_doiovar(void *hdl, uint32 actionid,
 			arg);
 		prhex("ipv6", arg, 16);
 		break;
-#endif 
+#endif
+
+	case IOV_GVAL(IOV_WOWL_ACTIVATED):
+		if (WOWL_ACTIVE(wlc->pub))
+			*ret_int_ptr = 1;
+		else
+			*ret_int_ptr = 0;
+		break;
 
 	case IOV_GVAL(IOV_WOWL_ACTIVATE):
 		wlc->down_override = TRUE;
@@ -3085,11 +3094,6 @@ wlc_wowl_clear_by_cfgid(wowl_info_t *wowl, uint16 id)
 	wlc = wowl->wlc;
 
 	cfg = wlc_bsscfg_find_by_ID(wlc, id);
-
-	if (!cfg) {
-		WL_ERROR(("wl%d: no cfg's with matching criteria\n", wlc->pub->unit));
-		return BCME_ERROR;
-	}
 
 	/* clear the wowl_os flags */
 	wowl->flags_os = 0;

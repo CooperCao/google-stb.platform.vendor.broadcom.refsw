@@ -524,7 +524,7 @@ static cmd_t wl_phy_cmds[] = {
 	"\t-d Downsample enable (default 0)\n"
 	"\t\t use only for HTPHY\n"
 	"\t-e BeDeaf enable (default 0)\n"
-	"\t-i Timeout in units of 10us. (ACPHY is in 10ms unit) (default 1000)\n"
+	"\t-i Timeout in units of 1ms (default 1000)\n"
 	"Optional parameters (NPHY with NREV < 7) are:\n"
 	"\t-u Sample collect duration in us (default 60)\n"
 	"\t-c Cores to do sample collect, only if BW=40MHz (default both)\n"
@@ -1851,7 +1851,9 @@ wl_sample_collect(void *wl, cmd_t *cmd, char **argv)
 		/* extended settings */
 		else if (!strcmp(s, "-t")) {
 			/* event trigger */
-			if (!strcmp(argv[1], "crs"))
+			if (!strcmp(argv[1], "now"))
+				collect.trigger = TRIGGER_NOW;
+			else if (!strcmp(argv[1], "crs"))
 				collect.trigger = TRIGGER_CRS;
 			else if (!strcmp(argv[1], "crs_deassert"))
 				collect.trigger = TRIGGER_CRSDEASSERT;
@@ -1863,6 +1865,10 @@ wl_sample_collect(void *wl, cmd_t *cmd, char **argv)
 				collect.trigger = TRIGGER_BADPLCP;
 			else if (!strcmp(argv[1], "crs_glitch"))
 				collect.trigger = TRIGGER_CRSGLITCH;
+			else {
+				ret = BCME_USAGE_ERROR;
+				goto exit;
+			}
 		}
 		else if (!strcmp(s, "-m")) {
 			if (!strcmp(argv[1], "gpio")) {
@@ -1873,7 +1879,7 @@ wl_sample_collect(void *wl, cmd_t *cmd, char **argv)
 					collect.mode = 0xff;
 				}
 			} else {
-			collect.mode = atoi(argv[1]);
+				collect.mode = atoi(argv[1]);
 			}
 		}
 		else if (!strcmp(s, "-k"))

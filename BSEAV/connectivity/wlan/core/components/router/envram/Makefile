@@ -29,10 +29,10 @@ envram: envramc.o
 	$(CC) $^ -o $@
 
 install: all
-	install -D envrams $(INSTALLDIR)/usr/sbin/envrams
-	install -D envram $(INSTALLDIR)/usr/sbin/envram
-	$(STRIP) $(INSTALLDIR)/usr/sbin/envrams
-	$(STRIP) $(INSTALLDIR)/usr/sbin/envram
+	install -m 755 envrams $(INSTALL_DIR)/bin
+	install -m 755 envram $(INSTALL_DIR)/bin
+	$(STRIP) $(INSTALL_DIR)/bin/envrams
+	$(STRIP) $(INSTALL_DIR)/bin/envram
 
 clean:
 	rm -f *.o envram envrams

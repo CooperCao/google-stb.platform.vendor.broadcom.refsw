@@ -26,9 +26,9 @@
 #include <bcm_osl.h>
 #else
 #if defined(__GNUC__)
-extern void bcopy(const void *src, void *dst, size_t len);
-extern int bcmp(const void *b1, const void *b2, size_t len);
-extern void bzero(void *b, size_t len);
+extern void bcopy(const void *src, void *dst, uint len);
+extern int bcmp(const void *b1, const void *b2, uint len);
+extern void bzero(void *b, uint len);
 #else
 #define	bcopy(src, dst, len)	memcpy((dst), (src), (len))
 #define	bcmp(b1, b2, len)	memcmp((b1), (b2), (len))

@@ -171,7 +171,7 @@ extern void wlc_ampdu_txeval_all(wlc_info_t *wlc);
 extern void wlc_ampdu_agg_state_update_tx_all(wlc_info_t *wlc, bool aggr);
 
 #if defined(WLAMPDU_MAC)
-extern void wlc_ampdu_set_epoch(ampdu_tx_info_t *ampdu_tx, int fifo, uint8 epoch);
+extern void wlc_ampdu_set_epoch(ampdu_tx_info_t *ampdu_tx, int ac, uint8 epoch);
 #endif /* WLAMPDU_MAC */
 
 #if defined(WL_LINKSTAT)

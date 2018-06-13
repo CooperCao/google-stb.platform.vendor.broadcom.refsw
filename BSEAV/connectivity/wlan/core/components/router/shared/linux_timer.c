@@ -76,7 +76,7 @@ nanosleep( ) - suspend the current task until the time interval elapses (POSIX)
 #define US_PER_MS  1000		/* 1000us per ms */
 #define UCLOCKS_PER_SEC 1000000 /* Clock ticks per second */
 
-typedef void (*event_callback_t)(timer_t, void*);
+typedef void (*event_callback_t)(timer_t, int);
 
 #ifdef BCMQT
 uint htclkratio = 50;
@@ -126,7 +126,7 @@ struct event {
     struct timeval it_interval;
     struct timeval it_value;
     event_callback_t func;
-    void *arg;
+    int arg;
     unsigned short flags;
     struct event *next;
 #ifdef TIMER_PROFILE
@@ -269,8 +269,8 @@ int timer_delete(
 int timer_connect
 (
 	timer_t     timerid, /* timer ID */
-	void (*routine)(timer_t, void*), /* user routine */
-	void *      arg      /* user argument */
+	void (*routine)(timer_t, int), /* user routine */
+	int         arg      /* user argument */
 )
 {
 	struct event *event = (struct event *) timerid;
@@ -483,10 +483,10 @@ static void print_event_queue()
 	int i = 0;
 
 	for (event = event_queue; event; event = event->next) {
-		printf("#%d (0x%lx)->0x%lx: \t%ld sec %ld usec\t%p\n",
-		       i++, (long) event, (long) event->next, (long)
+		printf("#%d (0x%x)->0x%x: \t%d sec %d usec\t%p\n",
+		       i++, (unsigned int) event, (unsigned int) event->next, (int)
 		       event->it_value.tv_sec,
-		       (long) event->it_value.tv_usec, event->func);
+		       (int) event->it_value.tv_usec, event->func);
 		if (i > g_maxevents) {
 			printf("...(giving up)\n");
 			break;
@@ -534,7 +534,7 @@ static void alarm_handler(int i)
 #endif
 
 		/* call the event callback function */
-		(*(event->func))((timer_t) event, event->arg);
+		(*(event->func))((timer_t) event, (int)event->arg);
 
 		/* If the event has been cancelled, do NOT put it back on the queue. */
 		if (!(event->flags & TFLAG_CANCELLED)) {
@@ -797,7 +797,7 @@ int bcm_timer_settime(bcm_timer_id timer_id, const struct itimerspec *timer_spec
 	return timer_settime((timer_t)timer_id, 0, timer_spec, NULL);
 }
 
-int bcm_timer_connect(bcm_timer_id timer_id, bcm_timer_cb func, void *data)
+int bcm_timer_connect(bcm_timer_id timer_id, bcm_timer_cb func, int data)
 {
 	return timer_connect((timer_t)timer_id, (void *)func, data);
 }

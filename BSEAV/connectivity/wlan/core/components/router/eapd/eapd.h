@@ -226,7 +226,7 @@ void mevent_app_recv_handler(eapd_wksp_t *nwksp, eapd_cb_t *from,
 #ifdef BCM_BSD
 int bsd_app_init(eapd_wksp_t *nwksp);
 int bsd_app_deinit(eapd_wksp_t *nwksp);
-int bsd_app_sendup(eapd_wksp_t *nwksp, uint8 *pData, int pLen, char *fromlan, int bss);
+int bsd_app_sendup(eapd_wksp_t *nwksp, uint8 *pData, int pLen, char *fromlan);
 #if EAPD_WKSP_AUTO_CONFIG
 int bsd_app_enabled(char *name);
 #endif

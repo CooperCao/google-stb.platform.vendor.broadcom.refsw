@@ -26,9 +26,7 @@ include $(SRCBASE_ROUTER)/.config
 CFLAGS	+= -I. -I../httpd -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/../components/shared -I$(SRCBASE)/common/include -Wall -fPIC
 CFLAGS	+= $(WLAN_ComponentIncPath)
 ifneq (2_4,$(LINUX_VERSION))
-ifneq ($(STBLINUX),1)
 CFLAGS += -I$(LINUXDIR)/include
-endif
 CFLAGS += -DLINUX26
 ifeq (2_6_36,$(LINUX_VERSION))
 CFLAGS += -DAUTOFW_PORT_DEPRECATED
@@ -44,10 +42,7 @@ endif
 LDFLAGS += -L.
 
 
-OBJS := nvparse.o shutils.o wl.o wl_linux.o linux_timer.o defaults.o wlif_utils.o bcmwifi_channels.o confmtd_utils.o common_utils.o
-ifneq ($(STBLINUX),1)
-OBJS += et_linux.o
-endif
+OBJS := nvparse.o shutils.o wl.o wl_linux.o linux_timer.o defaults.o wlif_utils.o bcmwifi_channels.o et_linux.o confmtd_utils.o common_utils.o
 
 # Adding passpoint_nvparse.c dependency
 ifeq ($(CONFIG_HSPOT),y)

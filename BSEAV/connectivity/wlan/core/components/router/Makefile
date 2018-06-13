@@ -31,21 +31,17 @@ include .config.plt
 CPU ?=
 MAKE_ARGS ?=
 
-$(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
-ifeq (${LINUXVER},)
-    export LINUXVER?=$(shell cat ${LINUX}/include/config/kernel.release)
-endif
-ifeq (${STBLINUX},)
-    export STBLINUX=1
-endif
-ifneq ($(findstring aarch64,${B_REFSW_ARCH}),)
-	ARCH ?= arm64
-	PLT ?= aarch64
-else ifneq ($(findstring arm,${B_REFSW_ARCH}),)
-	ARCH ?= arm
-	PLT ?= arm
+$(if $(LINUX),,    $(error ERROR: LINUX is not defined))
+ifneq ($(findstring arm,${LINUX}),)
+	ifeq ($(findstring arm64,${LINUX}),)
+		ARCH ?= arm64
+		PLT ?= arm
+	else
+		ARCH ?= arm
+		PLT ?= arm
+	endif
 else
-    $(error I do not understand B_REFSW_ARCH: ${B_REFSW_ARCH})
+	$(error I do not understand LINUX: ${LINUX})
 endif
 
 $(if $(LINUXVER),,    $(error ERROR: LINUXVER is not defined))
@@ -88,11 +84,7 @@ export	KBUILD_VERBOSE := 1
 export	BUILD_MFG := 0
 SUBMAKE_SETTINGS = SRCBASE=$(SRCBASE) BASEDIR=$(BASEDIR)
 else
-ifeq ($(STBLINUX),1)
-export	LINUXDIR := ${LINUX}
-else
 export	LINUXDIR := $(SRCBASE)/linux/linux
-endif
 SUBMAKE_SETTINGS  = SRCBASE=$(SRCBASE)
 endif
 
@@ -181,17 +173,6 @@ SUBMAKE_SETTINGS += ARCH=$(ARCH)
 EXTRA_LDFLAGS := -lgcc_s
 endif
 
-ifeq ($(PLATFORM),aarch64-glibc)
-export CROSS_COMPILE ?= ${B_REFSW_ARCH}-
-export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../bin && pwd -P)
-EXTRA_LDFLAGS := -lgcc_s
-endif
-
-ifeq ($(PLATFORM),arm-glibc)
-export CROSS_COMPILE ?= ${B_REFSW_ARCH}-
-export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../bin && pwd -P)
-EXTRA_LDFLAGS := -lgcc_s
-endif
 
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
 export CFLAGS += -Os
@@ -475,7 +456,6 @@ obj-$(CONFIG_EMF) += emf
 obj-$(CONFIG_EMF) += igs
 obj-$(CONFIG_IGMP_PROXY) += igmp
 obj-$(CONFIG_WL_ACI) += aci
-obj-$(CONFIG_BCMBSD) += bsd
 ifeq (2_6,$(LINUX_VERSION))
 obj-y += udev
 obj-y += hotplug2
@@ -492,6 +472,9 @@ obj-$(CONFIG_PHYMON_UTILITY) += phymon
 #endif
 #if defined(EXT_ACS)
 obj-$(CONFIG_EXTACS) += acsd
+#endif
+#if defined(BCM_BSD)
+obj-$(CONFIG_BCMBSD) += bsd
 #endif
 #if defined(BCM_SSD)
 obj-$(CONFIG_BCMSSD) += ssd
@@ -582,10 +565,12 @@ export CONFIG_HSPOT
 export CONFIG_WNM
 export CONFIG_FBT
 
+#all: version check_kernel_config obj_prelibs
 all: version obj_prelibs
-	+$(MAKE) $(MAKE_ARGS) post_preplibs
+#all: version obj_prelibs
+#	+$(MAKE) $(MAKE_ARGS) post_preplibs
 
-obj_prelibs: oldconf
+obj_prelibs:
 	+$(MAKE) parallel=true $(MAKE_ARGS) ARCH=$(ARCH) $(obj-prelibs)
 
 obj_postlibs:
@@ -594,7 +579,6 @@ obj_postlibs:
 post_preplibs:  obj_postlibs
         # Also build kernel
 
-ifneq ($(STBLINUX),1)
 ifneq (2_4,$(LINUX_VERSION))
 ifneq ($(BUILD_MFG), 1)
 ifdef ECLOUD_BUILD_ID
@@ -680,7 +664,7 @@ endif # CONFIG_USBAP
 	$(call STRIP_DEBUG_SYMBOLS,$(LINUXDIR)/drivers/net/emf/emf.o)
 	$(call STRIP_DEBUG_SYMBOLS,$(LINUXDIR)/drivers/net/igs/igs.o)
 endif # LINUXDIR
-endif # STBLINUX
+
 
 # well, we should always be able to use the BOM, but right now, the last build step on
 # the build machine doesn't have it, so we don't rerun this is the file already
@@ -698,16 +682,13 @@ endif
 
 
 router-clean: $(obj-clean) config-clean
-ifneq ($(STBLINUX),1)
 	rm -rf $(TARGETDIR)
 	rm -f $(PLATFORMDIR)/linux.trx $(PLATFORMDIR)/linux-gzip.trx
 	rm -f $(PLATFORMDIR)/vmlinuz $(PLATFORMDIR)/vmlinuz-gzip
 	rm -f $(PLATFORMDIR)/target.cramfs $(PLATFORMDIR)/target.squashfs
 	rm -rf $(INSTALLDIR)/busybox
-endif
 
 clean: router-clean
-ifneq ($(STBLINUX),1)
 	@echo cleaning LINUXDIR = $(LINUXDIR)
 ifneq (2_4,$(LINUX_VERSION))
 	# we need to pass some conf file for cleaning 2.6. The kbuild clean doesn't seem to
@@ -719,13 +700,11 @@ else
 endif
 	$(MAKE) -C $(BASEDIR)/components/cfe/build/broadcom/bcm947xx ARCH=$(ARCH) clean
 	[ ! -f $(SRCBASE)/tools/misc/Makefile ] || $(MAKE) -C $(SRCBASE)/tools/misc clean
-endif
 
 distclean mrproper: clean
 	rm -f .config .config.plt $(LINUXDIR)/.config
 
 install package: $(filter-out lib-install,$(obj-install)) check_kernel_config
-ifneq ($(STBLINUX),1)
 	# Install binaries into target directory
 	install -d $(TARGETDIR)
 	for dir in $(wildcard $(patsubst %,$(INSTALLDIR)/%,$(obj-y))) ; do \
@@ -835,7 +814,6 @@ endif # LINUXDIR
 	dd conv=sync bs=64k < $(PLATFORMDIR)/zImage > $(PLATFORMDIR)/linux.bin
 	# Append filesystem to self-booting Linux
 	cat $(PLATFORMDIR)/$(ROOT_IMG) >> $(PLATFORMDIR)/linux.bin
-endif # STBLINUX
 
 # sibling target is specific for release build scripts used. src/router/misc/toplevel-release.mk will do it.
 # Create linux-ap.trx or linux-apsta.trx and copy to $(SIBLING_INSTALL_DIR) foldir.
@@ -883,7 +861,7 @@ conf mconf:
 	+$(MAKE) LINUXDIR=${LINUXDIR} k$@
 
 oldconf: .config
-	+$(MAKE) -C config conf LINUXDIR=${LINUXDIR}
+	+$(MAKE) -C config LINUXDIR=${LINUXDIR}
 	@LINUXDIR=${LINUXDIR} ./config/conf -o ./config/Config
 
 kconf:
@@ -916,17 +894,14 @@ else
 endif
 
 $(LINUXDIR)/.config:
-ifneq ($(STBLINUX),1)
 ifneq (2_4,$(LINUX_VERSION))
 	cp $(LINUXDIR)/arch/$(ARCH)/defconfig-2.6-bcm947xx $@
 else
 	cp $(LINUXDIR)/arch/$(ARCH)/defconfig-bcm947xx $@
 endif
-endif
 
 # Overwrite Kernel .config
 check_kernel_config: $(LINUXDIR)/.config
-ifneq ($(STBLINUX),1)
 	cp $(LINUXDIR)/.config $(LINUXDIR)/.config.tmp
 ifeq ($(CONFIG_SQUASHFS), y)
 	if ! grep -q "CONFIG_SQUASHFS=y" $(LINUXDIR)/.config ; then \
@@ -974,7 +949,6 @@ endif
 	$(if $(shell [ ! cmp ${LINUXDIR}/.config ${LINUXDIR}/.config.tmp >/dev/null 2>&1 ] && echo "y"), \
 	+$(MAKE) -C ${LINUXDIR} $(SUBMAKE_SETTINGS) oldconfig < /dev/null \
 	)
-endif
 
 #
 # Overrides

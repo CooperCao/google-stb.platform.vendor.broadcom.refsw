@@ -558,8 +558,6 @@ wlc_dotxstatus(wlc_info_t *wlc, tx_status_t *txs, uint32 frm_tx2)
 					wlc_adv_pspoll_upd(wlc, scb, p, TRUE, queue);
 			}
 #endif /* STA */
-			/* coverity[stack_use_overflow] */
-			/* coverity doesn't map the iovar correctly and reported a wrong call stack which makes overflow. */
 			ret_val = wlc_ampdu_dotxstatus(wlc->ampdu_tx, scb, p, txs, &txh_info);
 		}
 #ifdef WL_LPC

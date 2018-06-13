@@ -2,11 +2,11 @@
  * wl_linux.c exported functions and definitions
  *
  * Copyright (C) 2017, Broadcom. All Rights Reserved.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -155,7 +155,7 @@ struct wl_info {
 	struct ieee80211_tkip_data  *tkip_bcast_data[NUM_GROUP_KEYS];
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14) */
 	/* RPC, handle, lock, txq, workitem */
-	uint		txq_dispatched;	/**< max tx work items dispatched before waiting to schedule a tx work item */
+	bool		txq_dispatched;	/**< Soft IRQ scheduling the tasklet runs on one CPU core so converting the txq_dispatched to bool */
 	spinlock_t	txq_lock;	/**< Lock for the queue */
 	struct sk_buff	*txq_head;	/**< TX Q */
 	struct sk_buff	*txq_tail;	/**< Points to the last buf */
@@ -232,7 +232,7 @@ struct wl_info {
 #else
 #define WL_ALL_PASSIVE_ENAB(wl)	0
 #endif /* WL_ALL_PASSIVE */
-#endif 
+#endif
 
 /* perimeter lock */
 #define WL_LOCK(wl) \

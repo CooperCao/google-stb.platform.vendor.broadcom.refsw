@@ -319,7 +319,6 @@ enum {
 	IOV_SCAN_PWRSAVE,	/* turn on/off bith tx and rx for single core scanning  */
 	IOV_SCANMAC,
 	IOV_SCAN_SUPPRESS,	/* scan suppress IOVAR */
-	IOV_SCAN_IN_PROGRESS,
 	IOV_LAST 		/* In case of a need to check max ID number */
 };
 
@@ -400,7 +399,6 @@ static const bcm_iovar_t wlc_scan_iovars[] = {
 	/* configurable scan MAC */
 	{"scanmac", IOV_SCANMAC, 0, 0, IOVT_BUFFER, OFFSETOF(wl_scanmac_t, data)},
 	{"scansuppress", IOV_SCAN_SUPPRESS, (IOVF_RSDB_SET), 0, IOVT_BOOL, 0},
-	{"scan_in_progress", IOV_SCAN_IN_PROGRESS, 0, 0, IOVT_BOOL, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 #endif /* WLC_SCAN_IOVARS */
@@ -2093,10 +2091,9 @@ int _wlc_scan(
 		scan_info->channel_num = channel_num;
 	}
 #ifdef BCMCCX
-	else if (BSS_CCX_ENAB(SCAN_WLC(scan_info), SCAN_USER(scan_info, cfg))) {
+	else if (BSS_CCX_ENAB(SCAN_WLC(scan_info), cfg))
 		/* no fast roam if the roam channel list is invalid */
-		wlc_ccx_set_fast_roam(wlc->ccx, SCAN_USER(scan_info, cfg), FALSE);
-	}
+		wlc_ccx_set_fast_roam(wlc->ccx, cfg, FALSE);
 #endif
 #ifdef WLMSG_ROAM
 	bcopy(&ssid->SSID, SSIDbuf, ssid->SSID_len);
@@ -4451,10 +4448,6 @@ wlc_scan_doiovar(void *hdl, uint32 actionid,
 
 	case IOV_GVAL(IOV_SCAN_SUPPRESS):
 		*ret_int_ptr = scan_info->scan_pub->state & SCAN_STATE_SUPPRESS ? 1 : 0;
-		break;
-
-	case IOV_GVAL(IOV_SCAN_IN_PROGRESS):
-		*ret_int_ptr = (int32)scan_info->scan_pub->in_progress;
 		break;
 
 	default:

@@ -1426,17 +1426,6 @@ wlc_ap_stas_timeout(wlc_ap_info_t *ap)
 			continue;
 		}
 
-#ifdef WLWNM_AP
-		/* Temporarily disable sta probe for SCB in WNM sleep mode */
-		if (WLWNM_ENAB(wlc->pub)) {
-			if (wlc_wnm_scb_sm_sleeping(wlc, scb)) {
-				/* If the SCB is in WNM sleep mode, ignore sta probe */
-				WL_WNM(("wl%d: %s: In WNM sleeping mode, ignore sta probe\n", wlc->pub->unit, __FUNCTION__));
-				continue;
-			}
-		}
-#endif /* WLWNM_AP */
-
 		/* probe associated stas if idle for scb_activity_time or reprobe them */
 		if (SCB_ASSOCIATED(scb) &&
 		    ((appvt->scb_activity_time &&

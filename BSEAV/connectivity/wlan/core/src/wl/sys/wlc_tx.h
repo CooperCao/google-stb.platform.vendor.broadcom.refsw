@@ -232,15 +232,6 @@ extern void wlc_tx_fifo_hold_clr(wlc_info_t *wlc, uint fifo_bitmap);
 extern void *wlc_sdu_to_pdu(wlc_info_t *wlc, void *sdu, struct scb *scb, bool is_8021x);
 #endif /* STA */
 
-extern void wlc_low_txq_map_pkts(wlc_info_t *wlc, wlc_txq_info_t *qi, map_pkts_cb_fn cb, void *ctx);
-extern void wlc_txq_map_pkts(wlc_info_t *wlc, wlc_txq_info_t *qi, map_pkts_cb_fn cb, void *ctx);
-extern void wlc_bsscfg_psq_map_pkts(wlc_info_t *wlc, struct pktq *q, map_pkts_cb_fn cb, void *ctx);
-#ifdef AP
-extern void wlc_scb_psq_map_pkts(wlc_info_t *wlc, struct pktq *q, map_pkts_cb_fn cb, void *ctx);
-#endif
-extern void wlc_tx_map_pkts(wlc_info_t *wlc, struct pktq *q, int prec,
-            map_pkts_cb_fn cb, void *ctx);
-
 void wlc_beacon_phytxctl_txant_upd(wlc_info_t *wlc, ratespec_t bcn_rate);
 void wlc_beacon_phytxctl(wlc_info_t *wlc, ratespec_t bcn_rspec, chanspec_t chanspec);
 

@@ -54,7 +54,6 @@ bsd_app_set_eventmask(eapd_app_t *app)
 	setbit(app->bitvec, WLC_E_REASSOC_IND);
 	setbit(app->bitvec, WLC_E_PROBREQ_MSG);
 	setbit(app->bitvec, WLC_E_PSTA_PRIMARY_INTF_IND);
-	setbit(app->bitvec, WLC_E_BSSTRANS_RESP);
 	return;
 }
 
@@ -155,7 +154,7 @@ bsd_app_deinit(eapd_wksp_t *nwksp)
 }
 
 int
-bsd_app_sendup(eapd_wksp_t *nwksp, uint8 *pData, int pLen, char *from, int bss)
+bsd_app_sendup(eapd_wksp_t *nwksp, uint8 *pData, int pLen, char *from)
 {
 	eapd_bsd_t *bsd;
 
@@ -172,10 +171,7 @@ bsd_app_sendup(eapd_wksp_t *nwksp, uint8 *pData, int pLen, char *from, int bss)
 
 		to.sin_addr.s_addr = inet_addr(EAPD_WKSP_UDP_ADDR);
 		to.sin_family = AF_INET;
-		if (bss)
-			to.sin_port = htons(EAPD_WKSP_BSD_UDP_MPORT);
-		else
-			to.sin_port = htons(EAPD_WKSP_BSD_UDP_SPORT);
+		to.sin_port = htons(EAPD_WKSP_BSD_UDP_SPORT);
 
 		sentBytes = sendto(bsd->appSocket, pData, pLen, 0,
 			(struct sockaddr *)&to, sizeof(struct sockaddr_in));
@@ -254,10 +250,7 @@ bsd_app_handle_event(eapd_wksp_t *nwksp, uint8 *pData, int Len, char *from)
 			memcpy(pData, event->ifname, IFNAMSIZ);
 
 			/* send to bsd use cb->ifname */
-			if (type == WLC_E_BSSTRANS_RESP)
-				bsd_app_sendup(nwksp, pData, Len, cb->ifname, 1);
-			else
-				bsd_app_sendup(nwksp, pData, Len, cb->ifname, 0);
+			bsd_app_sendup(nwksp, pData, Len, cb->ifname);
 			break;
 		}
 		cb = cb->next;

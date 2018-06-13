@@ -932,7 +932,7 @@ struct wlc_txq_info {
 	wlc_mux_t*              ac_mux[NFIFO];
 	mux_source_handle_t     mux_hdl[NFIFO];
 #endif /* TXQ_MUX */
-	uint8			epoch[NFIFO_EXT];	/* in case of WL_MULTIQUEUE this is used to
+	uint8			epoch[AC_COUNT];	/* in case of WL_MULTIQUEUE this is used to
 							 * save/restore the per ac epoch state
 							 */
 };

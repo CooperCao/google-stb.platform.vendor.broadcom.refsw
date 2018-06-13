@@ -125,10 +125,6 @@ static int wlc_dwds_config(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_dwds_confi
 static void wlc_dwds_scb_state_upd(void *ctx, scb_state_upd_data_t *data);
 #endif /* DWDS */
 
-static wlc_bsscfg_t* wlc_dwds_iface_create(void *if_module_ctx, wl_interface_create_t *if_buf,
-	wl_interface_info_t *wl_info, int32 *err);
-static int32 wlc_dwds_iface_remove(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
-
 #if defined(DPSTA) || defined(DWDS)
 static void wlc_dwds_mode_enable(wlc_info_t *wlc, struct scb *scb,
 	wlc_bsscfg_t *bsscfg, bool enable);
@@ -238,14 +234,6 @@ BCMATTACHFN(wlc_wds_attach)(wlc_info_t *wlc)
 	                            wlc_wds_bcn_parse_wme_ie, mwds) != BCME_OK) {
 		WL_ERROR(("wl%d: %s: wlc_iem_vs_add_parse_fn failed, wme ie in bcn\n",
 		          wlc->pub->unit, __FUNCTION__));
-		goto fail;
-	}
-
-	/* Add callback function for WDS interface creation */
-	if (wlc_bsscfg_iface_register(wlc, WL_INTERFACE_TYPE_WDS, wlc_dwds_iface_create,
-		wlc_dwds_iface_remove, mwds) != BCME_OK) {
-		WL_ERROR(("wl%d: %s: wlc_bsscfg_iface_register() failed\n",
-			WLCWLUNIT(wlc), __FUNCTION__));
 		goto fail;
 	}
 
@@ -620,78 +608,6 @@ wlc_dump_wds(wlc_wds_info_t *mwds, struct bcmstrbuf *b)
 }
 #endif /* BCMDBG */
 
-/*
- * Function:	wlc_dwds_iface_create
- *
- * Purpose:	Function to create wds interface through interface create command.
- *
- * Parameters:
- * module_ctx	: Module context
- * if_buf	: interface create buffer
- * wl_info	: out parameter of created interface
- * err		: pointer to store the error status
- *
- * Returns:	cfg pointer - If success
- *		NULL on failure
- */
-static wlc_bsscfg_t*
-wlc_dwds_iface_create(void *if_module_ctx, wl_interface_create_t *if_buf,
-	wl_interface_info_t *wl_info, int32 *err)
-{
-	wlc_bsscfg_t *cfg;
-	wlc_wds_info_t *mwds = if_module_ctx;
-	wlc_bsscfg_type_t type = {BSSCFG_TYPE_GENERIC, BSSCFG_GENERIC_STA};
-
-	ASSERT(mwds->wlc);
-
-	cfg = wlc_iface_create_generic_bsscfg(mwds->wlc, if_buf, &type, err);
-
-	return (cfg);
-}
-
-/*
- * Function:	wlc_dwds_iface_remove
- *
- * Purpose:	Function to remove wds interface(s) through interface_remove IOVAR.
- *
- * Input Parameters:
- *	wlc	: Pointer to wlc
- *	bsscfg	: Pointer to bsscfg corresponding to the interface
- *
- * Returns:	BCME_OK - If success
- *		Respective error code on failures.
- */
-static int32
-wlc_dwds_iface_remove(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
-{
-	wlc_bsscfg_t *cfg;
-	struct scb_iter scbiter;
-	struct scb *scb;
-	int32 idx;
-	int32 ret;
-
-	if (bsscfg->subtype != BSSCFG_GENERIC_STA) {
-		ret = BCME_NOTAP;
-	} else {
-		/* Need to search for scb across bsscfgs. */
-		FOREACH_BSS(wlc, idx, cfg) {
-			FOREACH_BSS_SCB(wlc->scbstate, &scbiter, cfg, scb) {
-				if (SCB_WDS(scb) && SCB_WDS(scb) == bsscfg->wlcif) {
-					wlc_wds_scb_deinit(wlc->mwds, scb);
-				}
-			}
-		}
-
-		if (bsscfg->enable) {
-			wlc_bsscfg_disable(wlc, bsscfg);
-		}
-		wlc_bsscfg_free(wlc, bsscfg);
-		ret = BCME_OK;
-	}
-
-	return (ret);
-}
-
 int
 wlc_wds_create(wlc_info_t *wlc, struct scb *scb, uint flags)
 {
@@ -792,21 +708,14 @@ wlc_wds_scb_deinit(void *ctx, struct scb *scb)
 
 	/* process event queue */
 	wlc_eventq_flush(wlc->eventq);
-
-	/* if scb->wdscfg not null, wlcif is created from cfg80211.
-	 * Let it freed from del_virtual_intf.
-	 */
-	if (!scb->wdscfg) {
-		if (scb->wds->wlif) {
-			wlc_if_event(wlc, WLC_E_IF_DEL, scb->wds);
-			wl_del_if(wlc->wl, scb->wds->wlif);
-			scb->wds->wlif = NULL;
-		}
-		wlc_wlcif_free(wlc, wlc->osh, scb->wds);
+	if (scb->wds->wlif) {
+		wlc_if_event(wlc, WLC_E_IF_DEL, scb->wds);
+		wl_del_if(wlc->wl, scb->wds->wlif);
+		scb->wds->wlif = NULL;
+		SCB_DWDS_DEACTIVATE(scb);
 	}
-	SCB_DWDS_DEACTIVATE(scb);
+	wlc_wlcif_free(wlc, wlc->osh, scb->wds);
 	scb->wds = NULL;
-	scb->wdscfg = NULL;
 }
 
 void
@@ -1121,17 +1030,7 @@ wlc_dwds_config(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_dwds_config_t *dwds)
 
 	if (dwds->enable) {
 		if (BSSCFG_AP(cfg)) {
-			/* bsscfg created from cfg80211 add_virtual_intf, we use the wlcif
-			 * of bsscfg and don't do wlc_wds_create to create wlcif again.
-			 */
-			if (dwds->bssidx > 0) {
-				scb->wdscfg = wlc->bsscfg[dwds->bssidx];
-				scb->wds = scb->wdscfg->wlcif;
-				scb->wds->type = WLC_IFTYPE_WDS;
-				scb->wds->u.scb = scb;
-				scb->if_stats = scb->wds->_cnt;
-			} else
-				wlc_wds_create(wlc, scb, WDS_DYNAMIC);
+			wlc_wds_create(wlc, scb, WDS_DYNAMIC);
 		}
 		/* make this scb to do 4-addr data frame from now */
 		SCB_A4_DATA_ENABLE(scb);
@@ -1142,19 +1041,13 @@ wlc_dwds_config(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_dwds_config_t *dwds)
 		if (scb->wds != NULL) {
 			/* process event queue */
 			wlc_eventq_flush(wlc->eventq);
-			/* if scb->wdscfg not null, wlcif is created from cfg80211.
-			 * Let it freed from del_virtual_intf.
-			 */
-			if (!scb->wdscfg) {
-				if (scb->wds->wlif) {
-					wlc_if_event(wlc, WLC_E_IF_DEL, scb->wds);
-					wl_del_if(wlc->wl, scb->wds->wlif);
-					scb->wds->wlif = NULL;
-				}
-				wlc_wlcif_free(wlc, wlc->osh, scb->wds);
+			if (scb->wds->wlif) {
+				wlc_if_event(wlc, WLC_E_IF_DEL, scb->wds);
+				wl_del_if(wlc->wl, scb->wds->wlif);
+				scb->wds->wlif = NULL;
 			}
+			wlc_wlcif_free(wlc, wlc->osh, scb->wds);
 			scb->wds = NULL;
-			scb->wdscfg = NULL;
 		}
 		SCB_A4_DATA_DISABLE(scb);
 		SCB_DWDS_DEACTIVATE(scb);
