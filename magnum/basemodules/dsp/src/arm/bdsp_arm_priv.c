@@ -165,7 +165,7 @@ BERR_Code BDSP_Arm_P_PreloadFwToAstra(BTEE_ClientHandle hClient,	BDSP_Arm *pDevi
 	BERR_Code ret = BERR_SUCCESS;
 
 	BTEE_FileHandle pFile;
-	size_t BytesWritten;
+	uint32_t BytesWritten;
 
 	BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(AlgoId)];
 
@@ -202,7 +202,7 @@ BERR_Code BDSP_Arm_P_DownloadFwToAstra(BTEE_ClientHandle hClient,	BDSP_Arm *pDev
 	BERR_Code ret = BERR_SUCCESS;
 
 	BTEE_FileHandle pFile;
-	size_t BytesWritten;
+	uint32_t BytesWritten;
 
 	BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(AlgoId)];
 
@@ -239,7 +239,7 @@ BERR_Code BDSP_Arm_P_DownloadLibDmaCodeToAstra(BTEE_ClientHandle hClient,BDSP_Ar
     BERR_Code ret = BERR_SUCCESS;
 
 	BTEE_FileHandle pFile;
-	size_t BytesWritten;
+	uint32_t BytesWritten;
 	BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
 
 	/* Open file in Astra for writing system elf file */
@@ -277,7 +277,7 @@ BERR_Code BDSP_Arm_P_DownloadSystemCodeToAstra(BTEE_ClientHandle hClient,BDSP_Ar
     BERR_Code ret = BERR_SUCCESS;
 
     BTEE_FileHandle pFile;
-    size_t BytesWritten;
+    uint32_t BytesWritten;
     BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
 
     /* Open file in Astra for writing system elf file */
@@ -314,7 +314,7 @@ BERR_Code BDSP_Arm_P_DownloadHbcMonitorToAstra(BTEE_ClientHandle hClient,BDSP_Ar
     BERR_Code ret = BERR_SUCCESS;
 
     BTEE_FileHandle pFile;
-    size_t BytesWritten;
+    uint32_t BytesWritten;
     BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
 
     /* Open file in Astra for writing system elf file */
@@ -3974,7 +3974,7 @@ BERR_Code BDSP_Arm_P_StartTask(
     {
         BDBG_ERR(("BDSP_Arm_P_StartTask: Unable to Copy the Start Task params provided by PI"));
         err = BERR_TRACE(err);
-        return err;
+        goto end;
     }
     pArmPrimaryStage = (BDSP_ArmStage *)pStartSettings->primaryStage->pStageHandle;
 

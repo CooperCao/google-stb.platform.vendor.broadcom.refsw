@@ -1,0 +1,41 @@
+diff -ruN musl-1.1.14/ldso/dynlink.c musl-1.1.14_modified/ldso/dynlink.c
+--- musl-1.1.14/ldso/dynlink.c	2016-02-22 10:37:05.000000000 +0530
++++ musl-1.1.14_modified/ldso/dynlink.c	2018-04-10 17:14:11.164825000 +0530
+@@ -725,7 +725,7 @@
+ 		l = strcspn(s, ":\n");
+ 		if (l-1 >= INT_MAX) return -1;
+ 		if (snprintf(buf, buf_size, "%.*s/%s", (int)l, s, name) < buf_size) {
+-			if ((fd = open(buf, O_RDONLY|O_CLOEXEC))>=0) return fd;
++			if ((fd = open(buf, O_RDONLY|O_CLOEXEC|O_EXEC))>=0) return fd;
+ 			switch (errno) {
+ 			case ENOENT:
+ 			case ENOTDIR:
+@@ -939,7 +939,7 @@
+ 	}
+ 	if (strchr(name, '/')) {
+ 		pathname = name;
+-		fd = open(name, O_RDONLY|O_CLOEXEC);
++		fd = open(name, O_RDONLY|O_CLOEXEC|O_EXEC);
+ 	} else {
+ 		/* Search for the name to see if it's already loaded */
+ 		for (p=head->next; p; p=p->next) {
+@@ -978,7 +978,7 @@
+ 				snprintf(etc_ldso_path, sizeof etc_ldso_path,
+ 					"%.*s/etc/ld-musl-" LDSO_ARCH ".path",
+ 					(int)prefix_len, prefix);
+-				FILE *f = fopen(etc_ldso_path, "rbe");
++				FILE *f = fopen(etc_ldso_path, "rbs");
+ 				if (f) {
+ 					if (getdelim(&sys_path, (size_t[1]){0}, 0, f) <= 0) {
+ 						free(sys_path);
+diff -ruN musl-1.1.14/src/stdio/__fmodeflags.c musl-1.1.14_modified/src/stdio/__fmodeflags.c
+--- musl-1.1.14/src/stdio/__fmodeflags.c	2016-02-22 10:37:05.000000000 +0530
++++ musl-1.1.14_modified/src/stdio/__fmodeflags.c	2018-04-10 17:14:20.361267000 +0530
+@@ -9,6 +9,7 @@
+ 	else flags = O_WRONLY;
+ 	if (strchr(mode, 'x')) flags |= O_EXCL;
+ 	if (strchr(mode, 'e')) flags |= O_CLOEXEC;
++	if (strchr(mode, 's')) flags |= O_CLOEXEC | O_EXEC;
+ 	if (*mode != 'r') flags |= O_CREAT;
+ 	if (*mode == 'w') flags |= O_TRUNC;
+ 	if (*mode == 'a') flags |= O_APPEND;

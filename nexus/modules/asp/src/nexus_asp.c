@@ -56,6 +56,8 @@
 #include "basp.h"
 #include "priv/nexus_core.h"
 #include "bchp_xpt_rave.h"
+#include "bchp_xpt_mcpb_ch0.h"
+#include "bchp_xpt_mcpb_ch1.h"
 #include "bxpt_capabilities.h"
 #include "bchp_asp_mcpb.h"
 #include "bchp_asp_mcpb_ch0.h"
@@ -65,11 +67,6 @@
 BDBG_MODULE(nexus_asp);
 
 NEXUS_ModuleHandle g_NEXUS_aspModule;
-static bool g_enableTcpRetrans = true;
-static bool g_enableTcpCongestionControl = true;
-static bool g_enableTcpTimestamps = true;
-static bool g_enableTcpSack = false;
-static bool g_enableAch = false;
 
 /* Setting this to non-zero will read ASP messages by polling
  * instead of using BASP interrupt callbacks. */
@@ -81,16 +78,6 @@ static bool g_enableAch = false;
                                     /* Doesn't belong in platforms/common/include/nexus_platform_generic_features_priv.h */
 #define NEXUS_ASP_BLOCK_SIZE 192
 #define NEXUS_ASP_NUM_BLOCKS_IN_A_CHUNK 512
-
-typedef struct NEXUS_AspBuffer
-{
-    BMMA_Block_Handle   hBlock;
-    void                *pBuffer;
-    BMMA_DeviceOffset   offset;
-    BMMA_Heap_Handle    hMmaHeap;      /* if non-NULL, then the block is internally-allocated */
-    NEXUS_HeapHandle    hNexusHeap;
-    unsigned            size;
-} NEXUS_AspBuffer;
 
 /* Per ASP Channel Structure. */
 typedef struct NEXUS_AspChannel
@@ -131,18 +118,7 @@ typedef struct NEXUS_AspChannel
 } NEXUS_AspChannel;
 
 /* Global ASP State. */
-static struct
-{
-    NEXUS_AspModuleSettings             settings;
-    BASP_Handle                         hAspBaseModule;
-    unsigned                            createdChannelCount;
-    struct NEXUS_AspChannel             *hAspChannelList[BASP_MAX_NUMBER_OF_CHANNEL];
-    NEXUS_AspBuffer                     rxPacketHeadersBuffer;      /* Buffer to hold up incoming packet headers before firmware gets to process them. */
-    BASP_ContextHandle                  hContext;
-    NEXUS_TimerHandle                   hTimer;
-    unsigned                            timerIntervalInMs;
-    NEXUS_AspBuffer                     statusBuffer;
-} g_NEXUS_asp;
+NEXUS_asp_data  g_NEXUS_asp;
 
 #if NEXUS_HAS_SECURITY
 #define LOCK_SECURITY() NEXUS_Module_Lock(g_NEXUS_asp.settings.modules.security)
@@ -277,7 +253,7 @@ static void configSwitch(
 #endif
 
     /* TODO: Disable ACH logic in Switch until we add the full ACH support. */
-    if (g_enableAch == false)
+    if (g_NEXUS_asp.enableAch == false)
     {
         uint32_t value;
         value = BREG_Read32(hReg, 0xf80800);
@@ -463,7 +439,7 @@ static bool tcpRetransmissionActive(
     bool tcpRetransmissionActive = false;
     BSTD_UNUSED(hReg);
 
-    if (g_enableTcpRetrans == false)
+    if (g_NEXUS_asp.enableTcpRetrans == false)
     {
         /* We didn't disable TCP retransmissions, so check its status from h/w. */
         tcpRetransmissionActive = true;
@@ -624,7 +600,7 @@ static void updateStats(
         }
 #endif
 
-    /* MCPB Stats. */
+    /* ASP MCPB Stats. */
     {
         uint32_t mcpbChFieldOffset;
         uint32_t mcpbChannelSize = BCHP_ASP_MCPB_CH1_DMA_DESC_ADDR - BCHP_ASP_MCPB_CH0_DMA_DESC_ADDR;
@@ -663,6 +639,23 @@ static void updateStats(
 
         curValue = BREG_Read32(hReg, BCHP_ASP_MCPB_DEBUG_14);
         pStatus->stats.mcpbStalled = curValue >> 10 & 0x1;
+    }
+
+    /* XPT MCPB Stats. */
+    if (hAspChannel->startSettings.mode == NEXUS_AspStreamingMode_eIn)
+    {
+        uint32_t mcpbChFieldOffset;
+        uint32_t mcpbChannelSize = BCHP_XPT_MCPB_CH1_RUN - BCHP_XPT_MCPB_CH0_RUN;
+        uint32_t newValue, curValue;
+
+        /* Find offset for the ASP MCPB channel being used. */
+        mcpbChFieldOffset = BCHP_XPT_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + (channelNumber * mcpbChannelSize);
+        newValue = BREG_Read32(hReg, mcpbChFieldOffset);
+        curValue = (uint32_t)(pStatus->stats.xptMcpbConsumedInTsPkts & 0xFFFFFFFF);
+        pStatus->stats.xptMcpbConsumedInTsPkts += newValue - curValue;
+        BDBG_MSG(("MCPBPktCounter value: new=%u cur=%u hi=%u lo=%u", newValue, curValue, (uint32_t)(pStatus->stats.xptMcpbConsumedInTsPkts >> 32), (uint32_t)(pStatus->stats.xptMcpbConsumedInTsPkts&0xFFFFFFFF)));
+
+        pStatus->stats.xptMcpbConsumedInBytes = pStatus->stats.xptMcpbConsumedInTsPkts * 188; /* TODO: */
     }
 
     /* EPKT Stats. */
@@ -784,6 +777,12 @@ NEXUS_ModuleHandle NEXUS_AspModule_Init(
 
     BDBG_ASSERT(!g_NEXUS_aspModule);
 
+    g_NEXUS_asp.enableTcpRetrans = true;
+    g_NEXUS_asp.enableTcpCongestionControl = true;
+    g_NEXUS_asp.enableTcpTimestamps = true;
+    g_NEXUS_asp.enableTcpSack = false;
+    g_NEXUS_asp.enableAch = false;
+
     g_NEXUS_aspModule = NEXUS_Module_Create("asp", NULL);
     if (pSettings)
     {
@@ -895,30 +894,30 @@ NEXUS_ModuleHandle NEXUS_AspModule_Init(
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableTcpRetx")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);
-            g_enableTcpRetrans = envVarValue ? true:false;
+            g_NEXUS_asp.enableTcpRetrans = envVarValue ? true:false;
         }
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableTcpCc")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);
-            g_enableTcpCongestionControl = envVarValue ? true:false;
+            g_NEXUS_asp.enableTcpCongestionControl = envVarValue ? true:false;
         }
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableTcpTs")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);
-            g_enableTcpTimestamps = envVarValue ? true:false;
+            g_NEXUS_asp.enableTcpTimestamps = envVarValue ? true:false;
         }
 #if !defined(NEXUS_MODE_driver) && !defined(NEXUS_BASE_OS_linuxkernel)
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableTcpSack")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);
-            g_enableTcpSack = envVarValue ? true:false;
-            if (g_enableTcpSack) system("echo 1 > /proc/sys/net/ipv4/tcp_sack"); else system("echo 0 > /proc/sys/net/ipv4/tcp_sack");
+            g_NEXUS_asp.enableTcpSack = envVarValue ? true:false;
+            if (g_NEXUS_asp.enableTcpSack) system("echo 1 > /proc/sys/net/ipv4/tcp_sack"); else system("echo 0 > /proc/sys/net/ipv4/tcp_sack");
         }
 #endif
         if ( (pEnvVar = NEXUS_GetEnv("basp_enableAch")) != NULL)
         {
             envVarValue = NEXUS_atoi(pEnvVar);
-            g_enableAch = envVarValue ? true:false;
+            g_NEXUS_asp.enableAch = envVarValue ? true:false;
         }
 
         BDBG_WRN(("******************************************************"));
@@ -929,10 +928,10 @@ NEXUS_ModuleHandle NEXUS_AspModule_Init(
         BDBG_WRN(("TCP Timestamps:              export basp_enableTcpTs=1"));
         BDBG_WRN(("TCP Selective ACKs:          export basp_enableTcpSack=1"));
         BDBG_WRN(("TCP Features: Timestamps=%s CongestionControl=%s Retx=%s, Sacks=%s",
-                    g_enableTcpTimestamps?"Y":"N",
-                    g_enableTcpCongestionControl?"Y":"N",
-                    g_enableTcpRetrans?"Y":"N",
-                    g_enableTcpSack?"Y":"N"
+                    g_NEXUS_asp.enableTcpTimestamps?"Y":"N",
+                    g_NEXUS_asp.enableTcpCongestionControl?"Y":"N",
+                    g_NEXUS_asp.enableTcpRetrans?"Y":"N",
+                    g_NEXUS_asp.enableTcpSack?"Y":"N"
                  ));
         BDBG_WRN(("******************************************************"));
         BDBG_WRN(("******************************************************"));
@@ -1498,8 +1497,8 @@ NEXUS_Error NEXUS_AspChannel_Start(
         /* Build message payload. */
         pStreamOut = &msg.MessagePayload.ChannelStartStreamOut;
 
-        BDBG_MSG(("%s: !!!!!! TCP Retransmissions is %s!", BSTD_FUNCTION, g_enableTcpRetrans?"enabled":"disabled"));
-        pStreamOut->ui32RetransmissionEnable = g_enableTcpRetrans;
+        BDBG_MSG(("%s: !!!!!! TCP Retransmissions is %s!", BSTD_FUNCTION, g_NEXUS_asp.enableTcpRetrans?"enabled":"disabled"));
+        pStreamOut->ui32RetransmissionEnable = g_NEXUS_asp.enableTcpRetrans;
         pStreamOut->ReTransmissionBuffer.ui32BaseAddrLo = (uint32_t)(hAspChannel->reTransmitFifo.offset & 0xFFFFFFFF);
         pStreamOut->ReTransmissionBuffer.ui32BaseAddrHi = (uint32_t)(hAspChannel->reTransmitFifo.offset>>32);
         pStreamOut->ReTransmissionBuffer.ui32Size = (uint32_t)hAspChannel->reTransmitFifo.size;
@@ -1528,7 +1527,7 @@ NEXUS_Error NEXUS_AspChannel_Start(
         }
         pStreamOut->ui32CongestionFlowControlEnable = 1 << BASP_DEBUG_HOOK_DUPLICATE_ACK_COND_BIT;
 #if 1
-        if (g_enableTcpCongestionControl)
+        if (g_NEXUS_asp.enableTcpCongestionControl)
         {
             BDBG_MSG(("%s: !!!!!! Enabling TCP Congestion Control Algorithm: Slow Start & Congestion Avoidance!", BSTD_FUNCTION));
             pStreamOut->ui32CongestionFlowControlEnable |= 1 << BASP_DEBUG_HOOK_CONGESTION_CONTROL_ENABLE_BIT;
@@ -1721,13 +1720,13 @@ NEXUS_Error NEXUS_AspChannel_Start(
             pCcb->ui32WindowAdvConst = 0x1000; /* TODO: hardcoded as per HW team, need to further lookinto on this value. */
             pCcb->ui32RemoteWindowScaleValue = pTcp->remoteWindowScaleValue;
             pCcb->ui32LocalWindowScaleValue = pTcp->localWindowScaleValue;
-            if (g_enableTcpSack) pCcb->ui32SackEnable = pTcp->enableSack;
+            if (g_NEXUS_asp.enableTcpSack) pCcb->ui32SackEnable = pTcp->enableSack;
             pCcb->ui32TimeStampEnable = pTcp->enableTimeStamps;
-            BDBG_MSG(("%s: !!!!!! TCP Timestamps are %s!", BSTD_FUNCTION, g_enableTcpTimestamps? "enabled":"disabled"));
-            if (g_enableTcpTimestamps)
+            BDBG_MSG(("%s: !!!!!! TCP Timestamps are %s!", BSTD_FUNCTION, g_NEXUS_asp.enableTcpTimestamps? "enabled":"disabled"));
+            if (g_NEXUS_asp.enableTcpTimestamps)
             {
                 pCcb->ui32TimeStampEnable = 1;
-                pCcb->ui32TimeStampEchoValue = pTcp->senderTimestamp;
+                pCcb->ui32LocalTimeStampValue = pTcp->senderTimestamp;
             }
             else
             {
@@ -2217,6 +2216,8 @@ NEXUS_Error NEXUS_AspChannel_GetStatus(
         pStatus->stats.fwStats.pktsRetx = pFwChannelInfo->ui32NumOfTotalRetx;
         pStatus->stats.fwStats.retxSequenceNumber = pFwChannelInfo->ui32RetxSequenceNum;
         pStatus->stats.fwStats.rcvdSequenceNumber = pFwChannelInfo->ui32ReceivedSequenceNumber;
+        pStatus->stats.fwStats.descriptorsFedToXpt = pFwChannelInfo->ui32NumOfDescriptorSent;
+        pStatus->stats.fwStats.bytesFedToXpt = pFwChannelInfo->ui32NumBytesFedToDescriptors;
     }
 
     pStatus->statsValid = true;

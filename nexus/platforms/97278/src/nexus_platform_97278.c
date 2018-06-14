@@ -55,6 +55,7 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
         case 1:
         case 3:
         case 4:
+        case 5:
         case 6:
             pSettings->videoDecoder[0].mosaic.maxNumber = 3;
             pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
@@ -95,6 +96,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         case 1:
         case 3:
         case 4:
+        case 5:
         case 6:
         {
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 64*1024*1024;

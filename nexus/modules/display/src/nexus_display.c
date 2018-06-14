@@ -1833,19 +1833,20 @@ NEXUS_Display_P_DecoderDataReady_isr(void *context, const BAVC_MFD_Picture *pict
 
 #if NEXUS_HAS_VIDEO_ENCODER
 NEXUS_Error
-NEXUS_DisplayModule_SetUserDataEncodeMode_priv(NEXUS_DisplayHandle display, bool encodeUserData, BXUDlib_Settings *userDataEncodeSettings, NEXUS_VideoWindowHandle udWindow)
+NEXUS_DisplayModule_SetUserDataEncodeMode_priv(NEXUS_DisplayHandle display, bool encodeUserData, const BXUDlib_Settings *userDataEncodeSettings, NEXUS_VideoWindowHandle udWindow)
 {
     NEXUS_Error rc = BERR_SUCCESS;
     unsigned i;
-
-    BXUDlib_Settings *pXudSettings = (BXUDlib_Settings *)userDataEncodeSettings;
+    BXUDlib_Settings clear_settings;
 
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
     display->encodeUserData = encodeUserData;
-    if(encodeUserData) {
-        display->userDataEncodeSettings = *pXudSettings;
-        BXUDlib_SetSettings(display->hXud, &display->userDataEncodeSettings);
+    if(!encodeUserData) {
+        userDataEncodeSettings = &clear_settings;
+        BKNI_Memset(&clear_settings, 0, sizeof(clear_settings));
     }
+    BXUDlib_SetSettings(display->hXud, userDataEncodeSettings);
+
     if (udWindow && udWindow->open && udWindow->input)
     {
         display->xudSource = encodeUserData? udWindow->input:NULL;

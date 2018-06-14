@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifdef KHRN_GEOMD
 #include "libs/tools/geomd/geomd.h"
@@ -737,11 +737,7 @@ static bool create_render_subjob_cl(GLXX_HW_RENDER_STATE_T *rs,
 
                   for (int32_t r = 0; r < fb->num_damage_rects; r++)
                   {
-                     gfx_rect damage_rect = { fb->damage_rects[r * 4 + 0], fb->damage_rects[r * 4 + 1],
-                                               fb->damage_rects[r * 4 + 2], fb->damage_rects[r * 4 + 3] };
-
-                     want_supertile = gfx_do_rects_intersect(&supertile_rect, &damage_rect);
-
+                     want_supertile = gfx_do_rects_intersect(&supertile_rect, &fb->damage_rects[r]);
                      if (want_supertile)
                         break;
                   }

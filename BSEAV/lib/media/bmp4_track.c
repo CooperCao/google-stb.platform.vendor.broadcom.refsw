@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -75,6 +75,7 @@ BDBG_MODULE(bmp4_track);
 void 
 bmp4_track_info_init(bmp4_track_info *track)
 {
+    unsigned i;
 	BKNI_Memset(track, 0, sizeof(*track));
 	bfile_segment_clear(&track->decode_t2s);
 	bfile_segment_clear(&track->composition_t2s);
@@ -85,6 +86,14 @@ bmp4_track_info_init(bmp4_track_info *track)
 	bfile_segment_clear(&track->chunkoffset64);
 	bfile_segment_clear(&track->syncsample);
 	bfile_segment_clear(&track->edit);
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        bfile_segment_clear(&track->sampleAuxiliaryInformation[i].sizes);
+        bfile_segment_clear(&track->sampleAuxiliaryInformation[i].offsets);
+    }
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        bfile_segment_clear(&track->sampleGroup[i].sampleToGroup);
+        bfile_segment_clear(&track->sampleGroup[i].description);
+    }
     track->movieheader = NULL;
 	return;
 }
@@ -909,6 +918,444 @@ b_mp4_edit_stream_shutdown(b_mp4_edit_stream *stream)
 	return;
 }
 
+struct b_mp4_cached_box {
+    batom_cursor cursor;
+    batom_vec vec;
+    char data[BMP4_BOX_MAX_SIZE + BMP4_FULLBOX_SIZE + 64];
+};
+
+static int b_mp4_cached_box_load(struct b_mp4_cached_box *box, bfile_io_read_t fd, const bfile_segment *segment)
+{
+    unsigned len;
+    int rc;
+    off_t rc_off;
+
+    rc_off=fd->seek(fd, segment->start, SEEK_SET);
+    if(rc_off!=segment->start) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return -1;
+    }
+    len = sizeof(box->data);
+    if(len>segment->len) {
+        len = segment->len;
+    }
+    rc = fd->read(fd, box->data, len);
+    if(rc<0) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return -1;
+    }
+    batom_vec_init(&box->vec, box->data, rc);
+    batom_cursor_from_vec(&box->cursor, &box->vec, 1);
+    return 0;
+}
+
+static int b_mp4_cached_box_prepare(struct b_mp4_cached_box *cached_box, bfile_io_read_t fd, const bfile_segment *segment, bmp4_fullbox *full_box)
+{
+    int rc;
+
+    rc=b_mp4_cached_box_load(cached_box, fd, segment);
+    if(rc!=0) {
+        return rc;
+    }
+    if(!bmp4_parse_fullbox(&cached_box->cursor, full_box)) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        return -1;
+    }
+    return 0;
+}
+
+static bfile_cache_t b_mp4_cached_finalize(struct b_mp4_cached_box *cached_box, bfile_io_read_t fd, const bfile_segment *segment, unsigned entry)
+{
+    size_t pos = batom_cursor_pos(&cached_box->cursor);
+    bfile_segment final_segment;
+    size_t len = segment->len;
+
+    if(len > pos+entry) {
+        len -= pos;
+    } else {
+        len = entry;
+    }
+    bfile_segment_set(&final_segment, segment->start + pos, len);
+    return bfile_cache_create(fd, &final_segment, B_MP4_CACHE_FRAMES*entry, entry);
+}
+
+typedef struct b_mp4_saiz_stream {
+    bfile_cache_t  cache;
+    unsigned count;
+    struct bmp4_SampleAuxiliaryInformationSizes saiz;
+} b_mp4_saiz_stream;
+
+static int
+b_mp4_saiz_stream_init(b_mp4_saiz_stream *stream, bfile_io_read_t fd, const bfile_segment *segment)
+{
+    struct b_mp4_cached_box data;
+    bmp4_fullbox box;
+
+    if(b_mp4_cached_box_prepare(&data, fd, segment, &box)!=0) {
+        goto err_prepare;
+    }
+    if(!bmp4_parse_SampleAuxiliaryInformationSizes(&data.cursor, &box, &stream->saiz)) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_saiz;
+    }
+    stream->cache = b_mp4_cached_finalize(&data, fd, segment, sizeof(uint8_t));
+    if(!stream->cache) {
+        goto err_cache;
+    }
+    stream->count = 0;
+    return 0;
+
+err_cache:
+err_saiz:
+err_prepare:
+    return -1;
+}
+
+static void
+b_mp4_saiz_stream_shutdown(b_mp4_saiz_stream *stream)
+{
+    bfile_cache_destroy(stream->cache);
+    return;
+}
+
+static int
+b_mp4_saiz_stream_next(struct b_mp4_saiz_stream *stream, uint8_t *sample_info_size)
+{
+    BDBG_ASSERT(stream);
+    BDBG_ASSERT(sample_info_size);
+    BDBG_MSG_TRACE(("b_mp4_saiz_stream_next:%p count:%u entry_count:%u", (void *)stream, stream->count, stream->saiz.sample_count));
+    if(stream->count < stream->saiz.sample_count) {
+        if(stream->saiz.default_sample_info_size!=0) {
+            *sample_info_size = stream->saiz.default_sample_info_size;
+        } else {
+            const uint8_t *buf = bfile_cache_next(stream->cache);
+            if(buf) {
+                *sample_info_size = *buf;
+            } else {
+                (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+                return -1;
+            }
+        }
+        stream->count++;
+        BDBG_MSG(("b_mp4_saiz_stream_next:%p sample_info_size:%u", (void *)stream, (unsigned)*sample_info_size));
+        return 0;
+    }
+    return -1;
+}
+
+static int
+b_mp4_saiz_stream_seek(b_mp4_saiz_stream *stream, unsigned entry)
+{
+    if(entry<stream->saiz.sample_count) {
+        if(stream->saiz.default_sample_info_size==0) {
+            int rc = bfile_cache_seek(stream->cache, sizeof(uint8_t)*entry);
+            if(rc!=0) { goto error;}
+        }
+        stream->count = entry;
+        return 0;
+    }
+
+error:
+    return -1;
+}
+
+typedef struct b_mp4_saio_stream {
+    bfile_cache_t  cache;
+    unsigned count;
+    unsigned size;
+    struct bmp4_SampleAuxiliaryInformationOffsets saio;
+} b_mp4_saio_stream;
+
+static int
+b_mp4_saio_stream_init(b_mp4_saio_stream *stream, bfile_io_read_t fd, const bfile_segment *segment)
+{
+    struct b_mp4_cached_box data;
+    bmp4_fullbox box;
+
+    if(b_mp4_cached_box_prepare(&data, fd, segment, &box)!=0) {
+        goto err_prepare;
+    }
+    if(!bmp4_parse_SampleAuxiliaryInformationOffsets(&data.cursor, &box, &stream->saio)) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_saio;
+    }
+    stream->size = box.version == 0 ? sizeof(uint32_t) : sizeof(uint64_t);
+    stream->cache = b_mp4_cached_finalize(&data, fd, segment, stream->size);
+    if(!stream->cache) {
+        goto err_cache;
+    }
+    stream->count = 0;
+    return 0;
+
+err_cache:
+err_saio:
+err_prepare:
+    return -1;
+}
+
+static void
+b_mp4_saio_stream_shutdown(b_mp4_saio_stream *stream)
+{
+    bfile_cache_destroy(stream->cache);
+    return;
+}
+
+static int
+b_mp4_saio_stream_next(struct b_mp4_saio_stream *stream, uint64_t *sample_info_offset)
+{
+    BDBG_ASSERT(stream);
+    BDBG_ASSERT(sample_info_offset);
+    BDBG_MSG_TRACE(("b_mp4_saio_stream_next:%p count:%u entry_count:%u", (void *)stream, stream->count, stream->saio.entry_count));
+    if(stream->count < stream->saio.entry_count) {
+        const uint8_t *buf = bfile_cache_next(stream->cache);
+        if(buf) {
+            if(stream->size==32) {
+                *sample_info_offset = B_MP4_GET_UINT32(buf,0);
+            } else {
+                *sample_info_offset = B_MP4_GET_UINT64(buf,0);
+            }
+        } else {
+            (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+            return -1;
+        }
+        stream->count++;
+        BDBG_MSG(("b_mp4_saio_stream_next:%p sample_info_offset:%lu", (void *)stream, (unsigned long)*sample_info_offset));
+        return 0;
+    }
+    return -1;
+}
+
+static int
+b_mp4_saio_stream_seek(b_mp4_saio_stream *stream, unsigned entry)
+{
+    if(entry<stream->saio.entry_count) {
+        int rc = bfile_cache_seek(stream->cache, stream->size*entry);
+        if(rc!=0) { goto error;}
+        stream->count = entry;
+        return 0;
+    }
+
+error:
+    return -1;
+}
+
+struct b_mp4_SampleToGroupEntry {
+    uint32_t sample_count;
+    uint32_t group_description_index;
+};
+
+typedef struct b_mp4_SampleToGroup_stream {
+    bfile_cache_t  cache;
+    struct bmp4_SampleToGroup SampleToGroup;
+    unsigned entry_count;
+    unsigned sample_count;
+    struct b_mp4_SampleToGroupEntry entry;
+} b_mp4_SampleToGroup_stream;
+
+static int
+b_mp4_SampleToGroup_stream_init(b_mp4_SampleToGroup_stream *stream, bfile_io_read_t fd, const bfile_segment *segment)
+{
+    struct b_mp4_cached_box data;
+    bmp4_fullbox box;
+
+    if(b_mp4_cached_box_prepare(&data, fd, segment, &box)!=0) {
+        goto err_prepare;
+    }
+    if(!bmp4_parse_SampleToGroup(&data.cursor, &box, &stream->SampleToGroup)) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_SampleToGroup;
+    }
+    stream->cache = b_mp4_cached_finalize(&data, fd, segment, sizeof(uint32_t)+sizeof(uint32_t));
+    if(!stream->cache) {
+        goto err_cache;
+    }
+    stream->sample_count = 0;
+    stream->entry_count = 0;
+    stream->entry.sample_count = 0;
+    return 0;
+
+err_cache:
+err_SampleToGroup:
+err_prepare:
+    return -1;
+}
+
+static void
+b_mp4_SampleToGroup_stream_shutdown(b_mp4_SampleToGroup_stream *stream)
+{
+    bfile_cache_destroy(stream->cache);
+    return;
+}
+
+static int
+b_mp4_SampleToGroup_stream_load_entry(struct b_mp4_SampleToGroup_stream *stream)
+{
+    const uint8_t *buf = bfile_cache_next(stream->cache);
+    if(!buf) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return -1;
+    }
+    stream->entry.sample_count = B_MP4_GET_UINT32(buf,0);
+    stream->entry.group_description_index = B_MP4_GET_UINT32(buf,4);
+    stream->entry_count++;
+    stream->sample_count=0;
+    return 0;
+}
+
+static int
+b_mp4_SampleToGroup_stream_next(struct b_mp4_SampleToGroup_stream *stream, uint32_t *group_description_index)
+{
+    BDBG_ASSERT(stream);
+    BDBG_ASSERT(group_description_index);
+    BDBG_MSG_TRACE(("b_mp4_SampleToGroup_stream_next:%p count:%u entry_count:%u", (void *)stream, stream->count, stream->SampleToGroup.sample_count));
+    if(stream->sample_count >= stream->entry.sample_count) {
+        if(stream->entry_count >= stream->SampleToGroup.entry_count) {
+            (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+            return -1;
+        }
+        if(b_mp4_SampleToGroup_stream_load_entry(stream)!=0) {
+            (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+            return -1;
+        }
+    }
+    *group_description_index = stream->entry.group_description_index;
+    stream->sample_count++;
+    BDBG_MSG(("b_mp4_SampleToGroup_stream_next:%p group_description_index:%u sample_count:%u/%u entry_count:%u/%u", (void *)stream, (unsigned)*group_description_index, (unsigned)stream->sample_count, (unsigned)stream->entry.sample_count, (unsigned)stream->entry_count, (unsigned)stream->SampleToGroup.entry_count));
+    return 0;
+}
+
+static int
+b_mp4_SampleToGroup_stream_seek(b_mp4_SampleToGroup_stream *stream, unsigned entry)
+{
+    int rc = bfile_cache_seek(stream->cache, 0);
+    unsigned left;
+
+    if(rc!=0) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return -1;
+    }
+    stream->entry_count = 0;
+    for(left=entry;left>0;) {
+        if(b_mp4_SampleToGroup_stream_load_entry(stream)!=0) {
+            (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+            return -1;
+        }
+        stream->entry_count++;
+        if(left<=stream->entry.sample_count) {
+            stream->sample_count = left;
+            break;
+        }
+        left -= stream->entry.sample_count;
+    }
+
+    return 0;
+}
+
+struct b_mp4_SampleGroupDescription_entry {
+    uint64_t offset;
+    unsigned length;
+};
+
+typedef struct b_mp4_SampleGroupDescription_stream {
+    bfile_cache_t  cache;
+    struct bmp4_SampleGroupDescription SampleGroupDescription;
+    bool currentValid;
+    unsigned current;
+    uint64_t base_offset;
+    struct b_mp4_SampleGroupDescription_entry entry;
+} b_mp4_SampleGroupDescription_stream;
+
+static int
+b_mp4_SampleGroupDescription_stream_init(b_mp4_SampleGroupDescription_stream *stream, bfile_io_read_t fd, const bfile_segment *segment)
+{
+    struct b_mp4_cached_box data;
+    bmp4_fullbox box;
+
+    if(b_mp4_cached_box_prepare(&data, fd, segment, &box)!=0) {
+        goto err_prepare;
+    }
+    if(!bmp4_parse_SampleGroupDescription(&data.cursor, &box, &stream->SampleGroupDescription)) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto err_SampleGroupDescription;
+    }
+    stream->cache = b_mp4_cached_finalize(&data, fd, segment, sizeof(uint32_t));
+    if(!stream->cache) {
+        goto err_cache;
+    }
+    stream->current = 0;
+    stream->currentValid = false;
+    stream->base_offset = segment->start + batom_cursor_pos(&data.cursor);
+    return 0;
+
+err_cache:
+err_SampleGroupDescription:
+err_prepare:
+    return -1;
+}
+
+/* ISO/IEC 14496-12:2015 8.9.3 Sample Group Description Box */
+static int
+b_mp4_SampleGroupDescription_stream_load(struct b_mp4_SampleGroupDescription_stream *stream, uint32_t group_description_index, struct b_mp4_SampleGroupDescription_entry *entry )
+{
+    BDBG_ASSERT(stream);
+    BDBG_ASSERT(entry);
+    BDBG_MSG_TRACE(("b_mp4_SampleGroupDescription_stream_load%p group_description_index:%u/%u", (void *)stream, (unsigned)group_description_index, (unsigned)stream->SampleGroupDescription.entry_count));
+    if(stream->currentValid && stream->current == group_description_index) {
+        *entry = stream->entry;
+    } else {
+        int rc;
+        if(stream->SampleGroupDescription.default_length!=0) {
+            unsigned entry_offset = (group_description_index-1) * stream->SampleGroupDescription.default_length;
+            rc = bfile_cache_seek(stream->cache, entry_offset);
+            if(rc!=0) {
+                (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+                return -1;
+            }
+            stream->entry.length = stream->SampleGroupDescription.default_length;
+            stream->entry.offset = stream->base_offset + entry_offset;
+        } else {
+            unsigned i;
+            unsigned offset = 0;
+            for(i=0;;) {
+                const uint8_t *buf;
+                uint32_t  description_length;
+
+                rc = bfile_cache_seek(stream->cache, 0);
+                if(rc!=0) {
+                    (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+                    return -1;
+                }
+                buf = bfile_cache_next(stream->cache);
+                if(buf==NULL) {
+                    (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+                    return -1;
+                }
+                description_length = B_MP4_GET_UINT32(buf, 0);
+                stream->entry.length = description_length;
+                offset += sizeof(uint32_t);
+                stream->entry.offset = stream->base_offset + offset;
+                i++;
+                if(i==group_description_index) {
+                    break;
+                }
+                offset += description_length;
+            }
+        }
+        *entry = stream->entry;
+    }
+    BDBG_MSG(("b_mp4_SampleGroupDescription_stream_load:%p group_description_index:%u %lu..%u", (void *)stream, (unsigned)group_description_index, (unsigned long)entry->offset, entry->length));
+    return 0;
+}
+
+static void
+b_mp4_SampleGroupDescription_stream_shutdown(struct b_mp4_SampleGroupDescription_stream *stream)
+{
+    bfile_cache_destroy(stream->cache);
+    return;
+}
+
+
+
 /* this structure maintains all state that is needed for _fast_ random access within MP4 track */
 typedef struct b_mp4_stream_state {
 	bool chunk_valid;
@@ -937,12 +1384,28 @@ typedef struct b_mp4_stream_state {
 	unsigned decoding_time_off;
 	unsigned composition_time_off;
 	unsigned syncsample_off;
+    struct {
+       bool valid;
+       uint64_t data_offset;
+       unsigned saiz_off;
+       unsigned saio_off;
+    } auxiliary[B_MP4_MAX_AUXILIARY_INFO];
+
 	bmp4_sample	next_sample;
 } b_mp4_stream_state;
 
 static void
+bmp4_sample_init(bmp4_sample *sample)
+{
+    BKNI_Memset(sample, 0, sizeof(*sample));
+    return;
+}
+
+static void
 b_mp4_stream_state_init(b_mp4_stream_state *state)
 {
+    unsigned i;
+
 	state->count = 0;
 	state->samples_in_chunk = 0;
 	state->chunk_valid = false;
@@ -964,11 +1427,13 @@ b_mp4_stream_state_init(b_mp4_stream_state *state)
 	state->decoding_time_off=0;
 	state->composition_time_off=0;
 	state->syncsample_off=0;
-
-	state->next_sample.offset = 0;
-	state->next_sample.len = 0;
-	state->next_sample.time = 0;
-	state->next_sample.syncsample = false;
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        state->auxiliary[i].valid=false;
+        state->auxiliary[i].data_offset=0;
+        state->auxiliary[i].saiz_off=0;
+        state->auxiliary[i].saio_off=0;
+    }
+    bmp4_sample_init(&state->next_sample);
 	
 	return;
 }
@@ -1002,7 +1467,24 @@ struct bmp4_stream_sample {
 	b_mp4_timedelta_stream composition_time;
 	b_mp4_syncsample_stream syncsample;
     b_mp4_edit_stream edit;
+    struct {
+        bool saiz_valid;
+        bool saio_valid;
+        b_mp4_saiz_stream saiz;
+        b_mp4_saio_stream saio;
+    } auxiliary[B_MP4_MAX_AUXILIARY_INFO];
+    struct {
+        bool sampleToGroup_valid;
+        bool sampleGroupDescription_valid;
+        b_mp4_SampleToGroup_stream sampleToGroup;
+        b_mp4_SampleGroupDescription_stream sampleGroupDescription;
+    } sampleGroup[B_MP4_MAX_SAMPLE_GROUP];
 };
+
+static bool b_mp4_SampleAuxiliaryInformation_equal(const struct bmp4_SampleAuxiliaryInformation *a, const struct bmp4_SampleAuxiliaryInformation *b)
+{
+    return a->type == b->type && a->type_parameter == b->type_parameter;
+}
 
 bmp4_stream_sample_t
 bmp4_stream_sample_create(bfile_io_read_t fd, const bmp4_track_info *track)
@@ -1010,6 +1492,7 @@ bmp4_stream_sample_create(bfile_io_read_t fd, const bmp4_track_info *track)
 	int rc;
 	bmp4_stream_sample_t stream;
 	const bmp4_sampleentry *entry;
+    unsigned i;
 
 	BDBG_ASSERT(fd);
 	BDBG_ASSERT(track);
@@ -1134,6 +1617,92 @@ bmp4_stream_sample_create(bfile_io_read_t fd, const bmp4_track_info *track)
 		}
 		stream->has_edit = true;
     }
+    /* Auxiliary 1. Create 'saiz' objects */
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        stream->auxiliary[i].saiz_valid = false;
+        stream->auxiliary[i].saio_valid = false;
+        if(bfile_segment_test(&track->sampleAuxiliaryInformation[i].sizes)) {
+            rc = b_mp4_saiz_stream_init(&stream->auxiliary[i].saiz, fd, &track->sampleAuxiliaryInformation[i].sizes);
+            if(rc==0) {
+                stream->auxiliary[i].saiz_valid = true;
+            }
+        }
+    }
+    /* Auxiliary 2. Create 'saio' objects at matching positions */
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        if(bfile_segment_test(&track->sampleAuxiliaryInformation[i].offsets)) {
+            b_mp4_saio_stream saio;
+            rc = b_mp4_saio_stream_init(&saio, fd, &track->sampleAuxiliaryInformation[i].offsets);
+            if(rc==0) {
+                unsigned j;
+                for(j=0;j<B_MP4_MAX_AUXILIARY_INFO;j++) {
+                    if( stream->auxiliary[j].saiz_valid && b_mp4_SampleAuxiliaryInformation_equal(&saio.saio.aux_info, &stream->auxiliary[j].saiz.saiz.aux_info)) {
+                        BDBG_MSG(("bmp4_stream_sample_create:%p found matched[%u] auxiliary sizes and offsets for " B_MP4_TYPE_FORMAT "", (void *)stream, j, B_MP4_TYPE_ARG(saio.saio.aux_info.type)));
+                        stream->auxiliary[j].saio = saio;
+                        stream->auxiliary[j].saio_valid = true;
+                        break;
+                    }
+                }
+                if(j==B_MP4_MAX_AUXILIARY_INFO) {
+                    BDBG_WRN(("bmp4_stream_sample_create:%p can't find matching auxiliary sizes for " B_MP4_TYPE_FORMAT "", (void *)stream, B_MP4_TYPE_ARG(saio.saio.aux_info.type)));
+                    b_mp4_saio_stream_shutdown(&saio);
+                }
+            }
+        }
+    }
+    /* Auxiliary 3. Clean not matched 'saiz' objects */
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        if(stream->auxiliary[i].saiz_valid && !stream->auxiliary[i].saio_valid) {
+            BDBG_WRN(("bmp4_stream_sample_create:%p can't find matching auxiliary offsets for " B_MP4_TYPE_FORMAT "", (void *)stream, B_MP4_TYPE_ARG(stream->auxiliary[i].saiz.saiz.aux_info.type)));
+            b_mp4_saiz_stream_shutdown(&stream->auxiliary[i].saiz);
+            stream->auxiliary[i].saiz_valid = false;
+        }
+    }
+
+    /* Grouping 1. Create 'SampleGroupDescription' objects */
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        stream->sampleGroup[i].sampleGroupDescription_valid = false;
+        stream->sampleGroup[i].sampleToGroup_valid = false;
+        if(bfile_segment_test(&track->sampleGroup[i].description)) {
+            rc = b_mp4_SampleGroupDescription_stream_init(&stream->sampleGroup[i].sampleGroupDescription, fd, &track->sampleGroup[i].description);
+            if(rc==0) {
+                stream->sampleGroup[i].sampleGroupDescription_valid = true;
+            }
+        }
+    }
+
+    /* Grouping 2. Create 'SampleToGroup' objects at matching positions */
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        if(bfile_segment_test(&track->sampleGroup[i].sampleToGroup)) {
+            b_mp4_SampleToGroup_stream sampleToGroup_stream;
+            rc = b_mp4_SampleToGroup_stream_init(&sampleToGroup_stream, fd, &track->sampleGroup[i].sampleToGroup);
+            if(rc==0) {
+                unsigned j;
+                for(j=0;j<B_MP4_MAX_SAMPLE_GROUP;j++) {
+                    if( stream->sampleGroup[j].sampleGroupDescription_valid && sampleToGroup_stream.SampleToGroup.grouping_type == stream->sampleGroup[j].sampleGroupDescription.SampleGroupDescription.grouping_type) {
+                        BDBG_MSG(("bmp4_stream_sample_create:%p found matched[%u] sampleGroup for " B_MP4_TYPE_FORMAT "", (void *)stream, j, B_MP4_TYPE_ARG(sampleToGroup_stream.SampleToGroup.grouping_type)));
+                        stream->sampleGroup[j].sampleToGroup = sampleToGroup_stream;
+                        stream->sampleGroup[j].sampleToGroup_valid = true;
+                        break;
+                    }
+                }
+                if(j==B_MP4_MAX_AUXILIARY_INFO) {
+                    BDBG_WRN(("bmp4_stream_sample_create:%p can't find matching SampleGroupDescription for " B_MP4_TYPE_FORMAT "", (void *)stream, B_MP4_TYPE_ARG(sampleToGroup_stream.SampleToGroup.grouping_type)));
+                    b_mp4_SampleToGroup_stream_shutdown(&sampleToGroup_stream);
+                }
+            }
+        }
+    }
+    /* Grouping 3. Clean not matched SampleGroupDescription objects */
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        if( stream->sampleGroup[i].sampleGroupDescription_valid && !stream->sampleGroup[i].sampleToGroup_valid) {
+            if(!stream->sampleGroup[i].sampleGroupDescription.SampleGroupDescription.default_sample_description_index_valid) {
+                BDBG_MSG(("bmp4_stream_sample_create:%p found matched[%u] SampleToGroup for " B_MP4_TYPE_FORMAT "", (void *)stream, i, B_MP4_TYPE_ARG(stream->sampleGroup[i].sampleGroupDescription.SampleGroupDescription.grouping_type)));
+                b_mp4_SampleGroupDescription_stream_shutdown(&stream->sampleGroup[i].sampleGroupDescription);
+                stream->sampleGroup[i].sampleGroupDescription_valid = false;
+            }
+        }
+    }
 
 	return stream;
 
@@ -1174,7 +1743,27 @@ err_invalid_timescale:
 void 
 bmp4_stream_sample_destroy(bmp4_stream_sample_t stream)
 {
+    unsigned i;
 	BDBG_OBJECT_ASSERT(stream, bmp4_stream_sample_t);
+
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        if(stream->sampleGroup[i].sampleToGroup_valid) {
+            b_mp4_SampleToGroup_stream_shutdown(&stream->sampleGroup[i].sampleToGroup);
+        }
+        if(stream->sampleGroup[i].sampleGroupDescription_valid) {
+            b_mp4_SampleGroupDescription_stream_shutdown(&stream->sampleGroup[i].sampleGroupDescription);
+        }
+    }
+
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        if(stream->auxiliary[i].saiz_valid) {
+            b_mp4_saiz_stream_shutdown(&stream->auxiliary[i].saiz);
+        }
+        if(stream->auxiliary[i].saio_valid) {
+            b_mp4_saio_stream_shutdown(&stream->auxiliary[i].saio);
+        }
+    }
+
     if(stream->has_edit) {
         b_mp4_edit_stream_shutdown(&stream->edit);
     }
@@ -1205,6 +1794,8 @@ bmp4_stream_sample_destroy(bmp4_stream_sample_t stream)
 static int
 b_mp4_stream_sample_next(bmp4_stream_sample_t stream, bmp4_sample *sample, size_t max_sample_count)
 {
+    unsigned i;
+
 	BDBG_OBJECT_ASSERT(stream, bmp4_stream_sample_t);
     BKNI_Memset(sample, 0, sizeof(*sample)); 
     sample->endofstream = false;
@@ -1272,6 +1863,54 @@ b_mp4_stream_sample_next(bmp4_stream_sample_t stream, bmp4_sample *sample, size_
 				}
 				sample->syncsample = stream->state.syncsample_valid && (stream->state.syncsample_number == (stream->state.count+1));
 			}
+            for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+                if(stream->auxiliary[i].saiz_valid && stream->state.auxiliary[i].valid) {
+                    rc = b_mp4_saiz_stream_next(&stream->auxiliary[i].saiz, &sample->auxiliaryInformation[i].size);
+                    if(rc==0) {
+                        sample->auxiliaryInformation[i].offset = stream->state.auxiliary[i].data_offset;
+                        sample->auxiliaryInformation[i].aux_info = stream->auxiliary[i].saiz.saiz.aux_info;
+                        sample->auxiliaryInformation[i].valid = true;
+                        stream->state.auxiliary[i].saiz_off++;
+                        stream->state.auxiliary[i].data_offset += sample->auxiliaryInformation[i].size;
+                        BDBG_MSG(("b_mp4_stream_sample_next:%p auxiliaryInformation: " B_MP4_TYPE_FORMAT "->%lu:%u", (void*)stream, B_MP4_TYPE_ARG(sample->auxiliaryInformation[i].aux_info.type), (unsigned long)sample->auxiliaryInformation[i].offset, (unsigned)sample->auxiliaryInformation[i].size));
+                    } else {
+                        BDBG_WRN(("b_mp4_stream_sample_next:%p can't read auxiliary size " B_MP4_TYPE_FORMAT " at %u", (void*)stream, B_MP4_TYPE_ARG(stream->auxiliary[i].saiz.saiz.aux_info.type), (unsigned)stream->state.auxiliary[i].saiz_off));
+                    }
+                }
+            }
+            for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+                if(stream->sampleGroup[i].sampleGroupDescription_valid) {
+                    unsigned group_description_index=0;
+                    bool group_description_index_valid = false;
+                    struct b_mp4_SampleGroupDescription_entry entry;;
+
+                    if(stream->sampleGroup[i].sampleToGroup_valid) {
+                        rc = b_mp4_SampleToGroup_stream_next(&stream->sampleGroup[i].sampleToGroup, &group_description_index);
+                        if(rc==0) {
+                            group_description_index_valid = true;
+                        } else {
+                            BDBG_WRN(("b_mp4_stream_sample_next:%p can't read sampleToGroup " B_MP4_TYPE_FORMAT " at %u", (void*)stream, B_MP4_TYPE_ARG(stream->sampleGroup[i].sampleToGroup.SampleToGroup.grouping_type), (unsigned)stream->state.count));
+                        }
+                    }
+                    if(!group_description_index_valid) {
+                        if(stream->sampleGroup[i].sampleGroupDescription.SampleGroupDescription.default_sample_description_index_valid) {
+                            group_description_index = stream->sampleGroup[i].sampleGroupDescription.SampleGroupDescription.default_sample_description_index;
+                        } else {
+                            continue;
+                        }
+                    }
+                    rc = b_mp4_SampleGroupDescription_stream_load(&stream->sampleGroup[i].sampleGroupDescription, group_description_index, &entry);
+                    if(rc!=0) {
+                        BDBG_WRN(("b_mp4_stream_sample_next:%p can't locate sampleGroupDescription " B_MP4_TYPE_FORMAT " at %u", (void*)stream, B_MP4_TYPE_ARG(stream->sampleGroup[i].sampleGroupDescription.SampleGroupDescription.grouping_type), (unsigned)group_description_index));
+                        continue;
+                    }
+                    sample->sampleGroup[i].valid = true;
+                    sample->sampleGroup[i].type = stream->sampleGroup[i].sampleGroupDescription.SampleGroupDescription.grouping_type;
+                    sample->sampleGroup[i].length = entry.length;
+                    sample->sampleGroup[i].offset = entry.offset;
+                    BDBG_MSG(("b_mp4_stream_sample_next:%p sampleGroup" B_MP4_TYPE_FORMAT "->%lu:%u", (void*)stream, B_MP4_TYPE_ARG(sample->sampleGroup[i].type), (unsigned long)sample->sampleGroup[i].offset, (unsigned)sample->sampleGroup[i].length));
+                }
+            }
             if(stream->frame_info.samplesPerPacket==0 || stream->frame_info.bytesPerFrame==0) {
                 if(stream->samplesize_type == b_mp4_samplesize_type_32) {
                     len = b_mp4_samplesize_stream_next(&stream->samplesize.sz_32);
@@ -1477,6 +2116,27 @@ b_mp4_stream_sample_next(bmp4_stream_sample_t stream, bmp4_sample *sample, size_
 		} else {
 			stream->state.next_chunk_valid = false;
 		}
+        for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+            if(!stream->auxiliary[i].saio_valid) {
+                continue;
+            }
+            if(stream->state.auxiliary[i].saio_off==0 || stream->auxiliary[i].saio.saio.entry_count > 1) {
+                rc = b_mp4_saio_stream_seek(&stream->auxiliary[i].saio, stream->state.auxiliary[i].saio_off);
+                if(rc==0) {
+                    stream->state.auxiliary[i].saio_off++;
+                    rc = b_mp4_saio_stream_next(&stream->auxiliary[i].saio, &stream->state.auxiliary[i].data_offset);
+                    if(rc==0) {
+                        stream->state.auxiliary[i].valid = true;
+                        continue;
+                    }
+                }
+                BDBG_WRN(("b_mp4_stream_sample_next: %p can't read auxilary offsets for " B_MP4_TYPE_FORMAT "[%u]", (void *)stream, B_MP4_TYPE_ARG(stream->auxiliary[i].saio.saio.aux_info.type), (unsigned)stream->state.auxiliary[i].saio_off));
+                stream->state.auxiliary[i].valid = false;
+            }
+        }
+
+
+
 	}
 }
 
@@ -1521,6 +2181,7 @@ bmp4_stream_sample_seek(bmp4_stream_sample_t stream, bmedia_player_pos pos, bool
 	int rc;
 	bmedia_player_pos time;
 	bmp4_sample sample;
+    unsigned i;
 
 	BDBG_MSG_TRACE(("bmp4_stream_sample_seek:> %#lx pos:%u", (unsigned long)stream, (unsigned) pos));
 
@@ -1572,6 +2233,25 @@ bmp4_stream_sample_seek(bmp4_stream_sample_t stream, bmedia_player_pos pos, bool
 		BDBG_WRN(("bmp4_stream_sample_seek: %#lx can't seek samplesize to %u", (unsigned long)stream, (unsigned)stream->state.samplesize_off));
 		goto error;
 	}
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        if(stream->auxiliary[i].saiz_valid) {
+            rc = b_mp4_saiz_stream_seek(&stream->auxiliary[i].saiz, stream->state.auxiliary[i].saiz_off);
+            if(rc<0) {
+                BDBG_WRN(("bmp4_stream_sample_seek:%p can't seek saiz[%u] to %u", (void *)stream, i, (unsigned)stream->state.auxiliary[i].saiz_off));
+                goto error;
+            }
+        }
+    }
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        if(stream->sampleGroup[i].sampleToGroup_valid) {
+            rc = b_mp4_SampleToGroup_stream_seek(&stream->sampleGroup[i].sampleToGroup, stream->state.count);
+            if(rc<0) {
+                BDBG_WRN(("bmp4_stream_sample_seek:%p can't seek SampleToGroup[%u] to %u", (void *)stream, i, (unsigned)stream->state.count));
+                goto error;
+            }
+        }
+    }
+
 	for(time=BMEDIA_PLAYER_INVALID,sample=stream->state.next_sample;;) {
 		BDBG_MSG_TRACE(("bmp4_stream_sample_seek: %#lx %u:%u chunk:%u len:%u %s", (unsigned long)stream, (unsigned)pos, (unsigned)sample.time, (unsigned)stream->state.chunk_count, (unsigned)sample.len, sample.syncsample?"SYNC":""));
 		if(sample.syncsample && sample.time>=pos) {

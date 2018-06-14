@@ -1,45 +1,44 @@
-//****************************************************************************
-//
-// Copyright (c) 2008-2012 Broadcom Corporation
-//
-// This program is the proprietary software of Broadcom Corporation and/or
-// its licensors, and may only be used, duplicated, modified or distributed
-// pursuant to the terms and conditions of a separate, written license
-// agreement executed between you and Broadcom (an "Authorized License").
-// Except as set forth in an Authorized License, Broadcom grants no license
-// (express or implied), right to use, or waiver of any kind with respect to
-// the Software, and Broadcom expressly reserves all rights in and to the
-// Software and all intellectual property rights therein.  IF YOU HAVE NO
-// AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
-// AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
-// SOFTWARE.  
-//
-// Except as expressly set forth in the Authorized License,
-//
-// 1.     This program, including its structure, sequence and organization,
-// constitutes the valuable trade secrets of Broadcom, and you shall use all
-// reasonable efforts to protect the confidentiality thereof, and to use this
-// information only in connection with your use of Broadcom integrated circuit
-// products.
-//
-// 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
-// "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
-// OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
-// RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
-// IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
-// A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-// ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-// THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-//
-// 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
-// OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
-// INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
-// RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
-// HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
-// EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
-// WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
-// FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-//
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 //****************************************************************************
 //
 //  Filename:       EstbIpThread.cpp
@@ -146,7 +145,7 @@
 
 // Secure Download stuff.
 #ifdef INCLUDE_SECURE_DOWNLOAD
-	#include "CmSecureDownload.h"
+    #include "CmSecureDownload.h"
 #endif
 
 // For s/w dload checking support.
@@ -176,7 +175,7 @@
 #if (BFC_INCLUDE_DHCPV6_SUPPORT)
 #include "EstbDhcpV6Defaults.h"
 #include "Portable.h"
-#include <net/if.h>	// PTMOD REMOVE
+#include <net/if.h> // PTMOD REMOVE
 #endif
 
 #if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
@@ -263,7 +262,7 @@ static unsigned int DefaultValidateImageCallout(const unsigned char *pBuffer,
 //********************** Extern Functions *************************************
 extern "C"
 {
-	extern uint32 SetInterfaceFlags(uint32 ipAddress, char *pInterfaceName, uint32 flags);
+    extern uint32 SetInterfaceFlags(uint32 ipAddress, char *pInterfaceName, uint32 flags);
 }
 
 #if(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
@@ -287,47 +286,47 @@ extern void initializeDhcpV6ClientRpcInterfaceAndSubscribeToEvents(void);
 //
 BcmEstbIpThread::BcmEstbIpThread(BcmOperatingSystem::ThreadPriority initialPriority, unsigned int stackNumber) :
     BcmThread("EstbIpThread", false, initialPriority),
-		fIpState(kIpNotStarted),
+        fIpState(kIpNotStarted),
         fIpV6State(kIpV6NotStarted),
-		fSwUpdateState(kSwNotStarted),
-		fThreadIsRunning(false),
-		fAbortSwUpdate(false),
-		fTimeOfDayCompleted(false),
+        fSwUpdateState(kSwNotStarted),
+        fThreadIsRunning(false),
+        fAbortSwUpdate(false),
+        fTimeOfDayCompleted(false),
 
-		pfConfigFileBuffer(NULL),
+        pfConfigFileBuffer(NULL),
         fTftpServerIpAddressBackoffPairList(),
         fTftpBlockSize(0),
         fCurrentConfigFileIp(),
         fConfigFileFilename(128),
 
-		pfSwUpdateFilename(NULL),
-		fSwUpdateStartedByManagement(false),
-		fImageNumber(0),
-		fSecureDownload(true),
-//		pfSettingsToStore(NULL),
+        pfSwUpdateFilename(NULL),
+        fSwUpdateStartedByManagement(false),
+        fImageNumber(0),
+        fSecureDownload(true),
+//      pfSettingsToStore(NULL),
 
-		// These will be created in the thread constructor.
-		pfWaitForAbortSemaphore(NULL),
-		pfEventSet(NULL),
-		pfMessageQueue(NULL),
-		pfTodHelperDoneEvent(NULL),     // PR2182
-		pfTftpTimer(NULL),
+        // These will be created in the thread constructor.
+        pfWaitForAbortSemaphore(NULL),
+        pfEventSet(NULL),
+        pfMessageQueue(NULL),
+        pfTodHelperDoneEvent(NULL),     // PR2182
+        pfTftpTimer(NULL),
         pfRouterSolicitationTimer(NULL),
         pfSWDnldResetMaxDelayTimer(NULL),
         pfPostCallDelayTimer(NULL),
 
-		fModemCapabilities(255),
+        fModemCapabilities(255),
         fModemCapabilitiesBinary(0),
 
-		// This is created when RegisterWithIpStack() is called.
-		pfDhcpAct(NULL),
+        // This is created when RegisterWithIpStack() is called.
+        pfDhcpAct(NULL),
         pfDhcpV6Act(NULL),
         pfDhcpV6PacketAct(NULL),    // PR13544
 
-		pfEventPublisherMutex(NULL),
+        pfEventPublisherMutex(NULL),
 
-		fOption43Callout(NULL),
-//		fPacketCableDhcpOptionNumber( kDhcpPacketCableServers ),
+        fOption43Callout(NULL),
+//      fPacketCableDhcpOptionNumber( kDhcpPacketCableServers ),
 
         fSWDownloadOKPending(false),
         fMaxResetDelayTimerActive(false),
@@ -337,23 +336,20 @@ BcmEstbIpThread::BcmEstbIpThread(BcmOperatingSystem::ThreadPriority initialPrior
         fPostCallResetDelay(0),
         fPostCallDelayPendingTime(0),
         fESafeImpact(none),
-		fValidateImageCallout(DefaultValidateImageCallout),
+        fValidateImageCallout(DefaultValidateImageCallout),
         fPreferredIpVersionIsIPv6(false),
         fDualStackOperationEnabled(false),
         fAlternameIpManagementModeEnabled(false),
         fRouterSolicitationCount(0),
-		pfDomainList(NULL)
+        pfDomainList(NULL)
 
-		#if (BCM_EVD_INTERFACE_INCLUDED)
-		,pfDhcpV6EventDispatcherACT( NULL )
-		,fLastEventIdLogged(0)
-		#endif
+        #if (BCM_EVD_INTERFACE_INCLUDED)
+        ,pfDhcpV6EventDispatcherACT( NULL )
+        ,fLastEventIdLogged(0)
+        #endif
 {
     // Override the class name given by my parent.
     fMessageLogSettings.SetModuleName("BcmEstbIpThread");
-
-    pfSwUpdateFilename = new char[256];
-    pfSwUpdateFilename[0] = '\0';
 
     // Query nonvol settings to see which IP stack number we're supposed to use.
     // By default, use stack 1.
@@ -367,12 +363,12 @@ BcmEstbIpThread::BcmEstbIpThread(BcmOperatingSystem::ThreadPriority initialPrior
     }
 #else
 
-	fStackNumber = stackNumber;
-	ipStackNumber = fStackNumber;
+    fStackNumber = stackNumber;
+    ipStackNumber = fStackNumber;
 
-	pThisEstbIpThread = this;
+    pThisEstbIpThread = this;
 
-	pfDomainList = new BcmOctetBuffer(256);
+    pfDomainList = new BcmOctetBuffer(256);
 #endif
 #if (NOT_INCLUDED_IN_ESTB_DHCP) //(BFC_INCLUDE_DHCPV4_SUPPORT)  
     {
@@ -450,8 +446,6 @@ BcmEstbIpThread::~BcmEstbIpThread()
 #endif
 
 #if (BFC_INCLUDE_DHCPV4_SUPPORT) 
-    delete pfSwUpdateFilename;
-    pfSwUpdateFilename = NULL;
 
     delete pfDhcpAct;
     pfDhcpAct = NULL;
@@ -464,7 +458,7 @@ BcmEstbIpThread::~BcmEstbIpThread()
     pfDhcpV6PacketAct = NULL;
 
 #if (BCM_EVD_INTERFACE_INCLUDED)
-	delete pfDhcpV6EventDispatcherACT;
+    delete pfDhcpV6EventDispatcherACT;
 #endif
 }
 
@@ -555,8 +549,8 @@ void BcmEstbIpThread::RegisterWithIpStack(void)
             pIpHalIf->DhcpV6ClientIf()->Subscribe(BcmDhcpV6ClientIf::kEventReplyPacketReceived_Rebinding, pfDhcpV6PacketAct);
         }
 
-		// Register for DHCPv6 Advertise / Reply
-		BcmDhcpV6ClientIf * pDhcpV6ClientIf = pIpHalIf->DhcpV6ClientIf();
+        // Register for DHCPv6 Advertise / Reply
+        BcmDhcpV6ClientIf * pDhcpV6ClientIf = pIpHalIf->DhcpV6ClientIf();
         
         if(pDhcpV6ClientIf != NULL)
         {
@@ -865,7 +859,7 @@ bool BcmEstbIpThread::StartIpInit(BcmOctetBuffer *pConfigFileBuffer,
 #if (BFC_INCLUDE_DHCPV4_SUPPORT)  
     else
     {
-        gLogMessageRaw <<"Starting IPv4 DHCP client! "<< endl;	
+        gLogMessageRaw <<"Starting IPv4 DHCP client! "<< endl;
         fIpState = kIpDhcpInProgress;
         dhcpVersion = 1;
         event = kStartIpV4Init;
@@ -962,7 +956,7 @@ bool BcmEstbIpThread::StopAndReset(void)
     }
 #if (BFC_INCLUDE_DHCPV4_SUPPORT)
 
-	#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+    #if (NOT_INCLUDED_IN_ESTB_DHCP)
     // It is possible that we are "stuck" doing a TFTP transfer; in other words,
     // the physical link might be down, and the TFTP client might be retrying.
     // If so, it will continue to retry until it times out, which can take more
@@ -971,7 +965,7 @@ bool BcmEstbIpThread::StopAndReset(void)
     // context of the calling thread, since my thread is the one that's blocked
     // with the TFTP retries.
     pfTftpHelper->Stop();
-	#endif
+    #endif
 
     // If we are doing a s/w update, then make it stop.  I have to do this
     // before I try to send a message to myself, because the thread might be
@@ -1126,7 +1120,7 @@ const BcmString &BcmEstbIpThread::CurrentTftpServerFilename(void) const
 //
 int BcmEstbIpThread::GetTodLastDelta(void)
 {
-	return SystemTimeGetLastDelta();
+    return SystemTimeGetLastDelta();
 }
 
 
@@ -1144,7 +1138,7 @@ int BcmEstbIpThread::GetTodLastDelta(void)
 //
 bool BcmEstbIpThread::SoftwareImagesAreTheSame(const char *pFilename)
 {
-	return false;
+    return false;
 }
 
 
@@ -1335,7 +1329,7 @@ void BcmEstbIpThread::ProcessDhcpEvent(const BcmCompletionEvent &eventCode)
         case BcmDhcpClientLease::kEventRenewing:
             // PR5736 - Notify clients that the lease is starting to renew.
             //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewStarting);
-			PublishEvent(kEstbDhcpRenewStarting);
+            PublishEvent(kEstbDhcpRenewStarting);
             break;
 
         default:
@@ -1368,7 +1362,7 @@ void BcmEstbIpThread::ProcessDhcpV6Event(const BcmCompletionEvent &eventCode)
             // synchronously - the DocsisCtlThread uses this event to modify the forwarding
             // rules so that the multicast Rebind packet is not visible on the LAN. 
             //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewStarting);
-			PublishEvent(kEstbDhcpRenewStarting);
+            PublishEvent(kEstbDhcpRenewStarting);
             break;
 
         default:
@@ -1518,14 +1512,14 @@ void BcmEstbIpThread::ThreadMain(void)
     bool result;
     bool timeToExit = false;
 
-	#if(BCM_EVD_INTERFACE_INCLUDED)
-		// Initialize RPC interface
-		#if(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
-		initializeDhcpV6ClientRpcInterfaceAndSubscribeToEvents();
-		#else
-		SubscribeToEvents();
-		#endif
-	#endif
+    #if(BCM_EVD_INTERFACE_INCLUDED)
+        // Initialize RPC interface
+        #if(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
+        initializeDhcpV6ClientRpcInterfaceAndSubscribeToEvents();
+        #else
+        SubscribeToEvents();
+        #endif
+    #endif
 
     // Keep going until told to exit.  This is handled by servicing the message
     // queue; when we receive a command to exit, we will break out of the loop.
@@ -1699,13 +1693,13 @@ void BcmEstbIpThread::ThreadMain(void)
         // See if the TFTP timer expired.
         if (pfEventSet->Occurred(*pfRouterSolicitationTimer))
         {
-			gAlwaysMsgNoFields(fMessageLogSettings) 
+            gAlwaysMsgNoFields(fMessageLogSettings)
                 << "Router Solicitation Timer expired!" << endl;
             // Restart the TFTP, depending on our current state.
             if (fIpV6State == kRouterAdvertisementCollectionInProgress)
             {
-				gAlwaysMsgNoFields(fMessageLogSettings) 
-					<< "Current state is kRouterAdvertisementCollectionInProgress" << endl;
+                gAlwaysMsgNoFields(fMessageLogSettings)
+                    << "Current state is kRouterAdvertisementCollectionInProgress" << endl;
                 pfMessageQueue->Send( kObtainRouterAdvertisement );
             }
             else
@@ -1733,12 +1727,12 @@ void BcmEstbIpThread::ThreadMain(void)
         
         // See if the SW Download reset delay timer expired.
         if (pfEventSet->Occurred(*pfPostCallDelayTimer))
-        {			
-			// Use this timer to process soft timers of DHCPv6 thread.
-			// Grab my IP stack.
-			BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
-			pIpHalIf->DhcpV6ClientIf()->DhcpV6ClientThread()->ResyncTimers();
-			pfPostCallDelayTimer->Restart();
+        {
+            // Use this timer to process soft timers of DHCPv6 thread.
+            // Grab my IP stack.
+            BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
+            pIpHalIf->DhcpV6ClientIf()->DhcpV6ClientThread()->ResyncTimers();
+            pfPostCallDelayTimer->Restart();
 #if 0
             // Restart the TFTP, depending on our current state.
             if (fPostCallResetDelayTimerActive)
@@ -1900,35 +1894,35 @@ void BcmEstbIpThread::InitiateDuplicateAddressDetectionOnLinkLocalAddress()
 
     BcmDupDetectNeighborDiscoveryACT * pACT = new BcmDupDetectNeighborDiscoveryACT(this);
 
-	fIpV6State = kDuplicateAddressDetectionOfLinkLocalAddressInProgress;
+    fIpV6State = kDuplicateAddressDetectionOfLinkLocalAddressInProgress;
 
     BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
     BcmIpV6Address linkLocalIpAddress; 
     pIpHalIf->GetIpv6LinkLocalAddress( linkLocalIpAddress );  
-	pACT->DestinationIpAddress( linkLocalIpAddress );
+    pACT->DestinationIpAddress( linkLocalIpAddress );
 
-	gLogMessageRaw << "Initiating DAD on Link-local address " << linkLocalIpAddress << endl;
-	{
-		
-		//gLogMessageRaw
-		//	<<" Removing and adding Link-Local address to force the kernel to start the DAD process. \n" <<endl;
+    gLogMessageRaw << "Initiating DAD on Link-local address " << linkLocalIpAddress << endl;
+    {
 
-		// This will actually try to add this address to the interface even if the interface is already configured with the 
-		// same address.
-		pIpHalIf->RemoveIpv6Address(linkLocalIpAddress);
-		BcmOperatingSystemFactory::ThreadSleep(1000);
-		pIpHalIf->AddIpv6LinkLocalAddress();	
-		
-		// sleep 6 seconds to allow the IP stack to send the MLD message - 
-		// I'm not sure why the stack waits 5-7 seconds to join for the link-local address.  
-		//BcmOperatingSystemFactory::ThreadSleep(4000);
-	}
+        //gLogMessageRaw
+        //  <<" Removing and adding Link-Local address to force the kernel to start the DAD process. \n" <<endl;
 
-	// The time between retransmissions of Neighbor Solicitation messages to a neighbor when
-	// resolving the address or when probing the reachability of a neighbor.
-	//
+        // This will actually try to add this address to the interface even if the interface is already configured with the
+        // same address.
+        pIpHalIf->RemoveIpv6Address(linkLocalIpAddress);
+        BcmOperatingSystemFactory::ThreadSleep(1000);
+        pIpHalIf->AddIpv6LinkLocalAddress();
+
+        // sleep 6 seconds to allow the IP stack to send the MLD message -
+        // I'm not sure why the stack waits 5-7 seconds to join for the link-local address.
+        //BcmOperatingSystemFactory::ThreadSleep(4000);
+    }
+
+    // The time between retransmissions of Neighbor Solicitation messages to a neighbor when
+    // resolving the address or when probing the reachability of a neighbor.
+    //
     // kick off neighbor discovery on link-local address.  The result will be picked up in HandleEvent above. 
-	pIpHalIf->PerformDuplicateAddressDetection(pACT);
+    pIpHalIf->PerformDuplicateAddressDetection(pACT);
 }
 #endif
 
@@ -1949,10 +1943,10 @@ void BcmEstbIpThread::DuplicateAddressDetectionOnLinkLocalAddressComplete( bool 
         {
             printf("ERROR:  Duplicate detected.  Manual intervention required.\n");
 
-			#if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
+            #if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
             // log event kEE_D01301 "Link-Local address failed DAD"
             DhcpV6LogEvent(kEE_D01301);
-			#endif
+            #endif
 
             // Remove the link-local address now that a duplicate was detected
             BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
@@ -2008,14 +2002,14 @@ void BcmEstbIpThread::ObtainRouterAdvertisement( void )
         // request the neighbor discovery thread send a router solicitation
         pNeighborDiscoveryThread->SendRouterSolicitation();
 
-		pfRouterSolicitationTimer->Start(RTR_SOLICITATION_INTERVAL_MS);
+        pfRouterSolicitationTimer->Start(RTR_SOLICITATION_INTERVAL_MS);
 #else
-		printf("Obtaining router advertisement\n");
-		printf("Default RouterList Is Empty. Starting Router Solicitation Timer! \n");
-		//pfRouterSolicitationTimer->Start(MAX_INITIAL_RTR_ADVERT_INTERVAL *1000); 
-		// I changed this back to router solicitation timer value because
-		// IP stack will send a router solicitation as soon as we add the link local address.
-		pfRouterSolicitationTimer->Start(RTR_SOLICITATION_INTERVAL_MS);
+        printf("Obtaining router advertisement\n");
+        printf("Default RouterList Is Empty. Starting Router Solicitation Timer! \n");
+        //pfRouterSolicitationTimer->Start(MAX_INITIAL_RTR_ADVERT_INTERVAL *1000);
+        // I changed this back to router solicitation timer value because
+        // IP stack will send a router solicitation as soon as we add the link local address.
+        pfRouterSolicitationTimer->Start(RTR_SOLICITATION_INTERVAL_MS);
 #endif
         
     }
@@ -2028,10 +2022,10 @@ void BcmEstbIpThread::ObtainRouterAdvertisement( void )
         // reset my counter
         fRouterSolicitationCount = 0;
 
-		#if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
-		// log event "DHCP failed - RS sent, no RA received"
-		DhcpV6LogEvent(kEE_D01200);
-		#endif
+        #if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
+        // log event "DHCP failed - RS sent, no RA received"
+        DhcpV6LogEvent(kEE_D01200);
+        #endif
 
         // Without a router advertisement, we are supposed to fail IP initialization
         IpV6AddressAcquisitionFailed();
@@ -2094,9 +2088,9 @@ void BcmEstbIpThread::IpV6AddressAcquisitionFailed()
 
             fIpState = kIpFailedDhcp;
             
-			PublishEvent(kEstbDhcpInitFailed, fLastEventIdLogged);
-			//#warning " PTASKIRAN- DHCPv6 MODS - CALL ObtainRouterAdvertisement () in BcmEstbIpThread::IpV6AddressAcquisitionFailed to restart DHCPv6"
-			//ObtainRouterAdvertisement();
+            PublishEvent(kEstbDhcpInitFailed, fLastEventIdLogged);
+            //#warning " PTASKIRAN- DHCPv6 MODS - CALL ObtainRouterAdvertisement () in BcmEstbIpThread::IpV6AddressAcquisitionFailed to restart DHCPv6"
+            //ObtainRouterAdvertisement();
         }
     }
 }
@@ -2116,110 +2110,110 @@ void BcmEstbIpThread::StartDhcpV6(void)
 
     // Grab my IP stack.
     pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
-	
-	if(pIpHalIf)
-		gAlwaysMsgNoFields(fMessageLogSettings) << "Starting IP Initialization with DHCPv6 for " <<pIpHalIf->Description() << endl;
 
-	//printf(" Interface = %s  [IF number = %d] [Stack number = %d]\n", pIpHalIf->Description(), pIpHalIf->InterfaceNumber(), fStackNumber);
+    if(pIpHalIf)
+        gAlwaysMsgNoFields(fMessageLogSettings) << "Starting IP Initialization with DHCPv6 for " <<pIpHalIf->Description() << endl;
+
+    //printf(" Interface = %s  [IF number = %d] [Stack number = %d]\n", pIpHalIf->Description(), pIpHalIf->InterfaceNumber(), fStackNumber);
 
     // Update my state and publish event if we are the primary IP version
     if( fIpState == kIpNotStarted )
     {
         //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitStarted);
-		PublishEvent(kEstbDhcpInitStarted);
+        PublishEvent(kEstbDhcpInitStarted);
 
         fIpState = kIpDhcpInProgress;
     }
 
     // Set the DHCPv6 options that will be sent to the server.
     {
-		gAlwaysMsgNoFields(fMessageLogSettings) << "Generating DHCPv6 packet with these options: " << endl;
+        gAlwaysMsgNoFields(fMessageLogSettings) << "Generating DHCPv6 packet with these options: " << endl;
         BcmDhcpV6OptionsList clientOptions;
 
-		uint16 dhcpOptionPolicy[kDefault_NumberOfOptions] = kDefault_DhcpPolicy;
-		for( uint32 i=0; i<kDefault_NumberOfOptions; i++ )
-		{
-			switch(dhcpOptionPolicy[i])
-			{
-				case kDhcpV6OptionRapidCommit:
-					{
-						gAlwaysMsgNoFields(fMessageLogSettings) 
-							<< "RapidCommit" << endl;
-						// Include the Rapid Commit option.
-						BcmDhcpV6RapidCommitOption rapidCommitOption;
-						clientOptions.Add(rapidCommitOption);
-					}
-					break;
+        uint16 dhcpOptionPolicy[kDefault_NumberOfOptions] = kDefault_DhcpPolicy;
+        for( uint32 i=0; i<kDefault_NumberOfOptions; i++ )
+        {
+            switch(dhcpOptionPolicy[i])
+            {
+                case kDhcpV6OptionRapidCommit:
+                    {
+                        gAlwaysMsgNoFields(fMessageLogSettings)
+                            << "RapidCommit" << endl;
+                        // Include the Rapid Commit option.
+                        BcmDhcpV6RapidCommitOption rapidCommitOption;
+                        clientOptions.Add(rapidCommitOption);
+                    }
+                    break;
 
-				case kDhcpV6OptionReconfigureAccept:
-					{
-						gAlwaysMsgNoFields(fMessageLogSettings) 
-							<< "ReconfigureAccept" << endl;
-						// Include a reconfigure accept option.
-						BcmDhcpV6ReconfigureAcceptOption reconfigureAcceptOption;
-						clientOptions.Add(reconfigureAcceptOption);
-					}
-					break;
+                case kDhcpV6OptionReconfigureAccept:
+                    {
+                        gAlwaysMsgNoFields(fMessageLogSettings)
+                            << "ReconfigureAccept" << endl;
+                        // Include a reconfigure accept option.
+                        BcmDhcpV6ReconfigureAcceptOption reconfigureAcceptOption;
+                        clientOptions.Add(reconfigureAcceptOption);
+                    }
+                    break;
 
-				case kDhcpV6OptionVendorSpecificInfo:
-					{
-						gAlwaysMsgNoFields(fMessageLogSettings) 
-							<< "VendorSpecificInfo" << endl;
-						AddCableLabsVendorSpecificInfoOption(clientOptions);
-					}
-					break;
+                case kDhcpV6OptionVendorSpecificInfo:
+                    {
+                        gAlwaysMsgNoFields(fMessageLogSettings)
+                            << "VendorSpecificInfo" << endl;
+                        AddCableLabsVendorSpecificInfoOption(clientOptions);
+                    }
+                    break;
 
-				case kDhcpV6OptionVendorClass:
-					{
-						gAlwaysMsgNoFields(fMessageLogSettings) 
-							<< "VendorClass" << endl;
+                case kDhcpV6OptionVendorClass:
+                    {
+                        gAlwaysMsgNoFields(fMessageLogSettings)
+                            << "VendorClass" << endl;
 
-						BcmDhcpV6VendorClassOption vendorClassOption;
-						vendorClassOption.EnterpriseNumber(4491);	// vendor-specific enterprise number
+                        BcmDhcpV6VendorClassOption vendorClassOption;
+                        vendorClassOption.EnterpriseNumber(4491);   // vendor-specific enterprise number
 
-						BcmOctetBuffer vendorClassData(16);
-						vendorClassData.AddToEnd(kDefault_VendorClassString, false); // vendor-specific class
-						vendorClassOption.Add(vendorClassData);
+                        BcmOctetBuffer vendorClassData(16);
+                        vendorClassData.AddToEnd(kDefault_VendorClassString, false); // vendor-specific class
+                        vendorClassOption.Add(vendorClassData);
 
-						//gAlwaysMsgNoFields(fMessageLogSettings) 
-						//	<< vendorClassData.AccessBuffer() << endl;
+                        //gAlwaysMsgNoFields(fMessageLogSettings)
+                        //  << vendorClassData.AccessBuffer() << endl;
 
-						clientOptions.Add(vendorClassOption);
-					}
-					break;
+                        clientOptions.Add(vendorClassOption);
+                    }
+                    break;
 
-				case kDhcpV6OptionRequestOption:
-					{
-						gAlwaysMsgNoFields(fMessageLogSettings) 
-							<< "RequestOption" << endl;
+                case kDhcpV6OptionRequestOption:
+                    {
+                        gAlwaysMsgNoFields(fMessageLogSettings)
+                            << "RequestOption" << endl;
 
-						// Configure the options that I want to request from the server.
-						BcmDhcpV6OptionRequestOption optionRequestOption;
-						//optionRequestOption.Add(23); //OPTION_DNS_SERVERS (23)
-						//optionRequestOption.Add(24); //OPTION_DOMAIN_LIST (24)
-						//clientOptions.Add(optionRequestOption);
+                        // Configure the options that I want to request from the server.
+                        BcmDhcpV6OptionRequestOption optionRequestOption;
+                        //optionRequestOption.Add(23); //OPTION_DNS_SERVERS (23)
+                        //optionRequestOption.Add(24); //OPTION_DOMAIN_LIST (24)
+                        //clientOptions.Add(optionRequestOption);
 
-						uint16 dhcpOptionRequestOptionPolicy[kDefault_NumberOfOptionRequestOptions] = kDefault_DhcpOptionRequestOptionPolicy;
-						for( uint32 i=0; i<kDefault_NumberOfOptionRequestOptions; i++ )
-						{
-							optionRequestOption.Add(dhcpOptionRequestOptionPolicy[i]);
-						}
-						clientOptions.Add(optionRequestOption);
-					}
-					break;
+                        uint16 dhcpOptionRequestOptionPolicy[kDefault_NumberOfOptionRequestOptions] = kDefault_DhcpOptionRequestOptionPolicy;
+                        for( uint32 i=0; i<kDefault_NumberOfOptionRequestOptions; i++ )
+                        {
+                            optionRequestOption.Add(dhcpOptionRequestOptionPolicy[i]);
+                        }
+                        clientOptions.Add(optionRequestOption);
+                    }
+                    break;
 
-				default:
-					{
-						gAlwaysMsgNoFields(fMessageLogSettings) 
-							<< "Option code ot recognized" << endl;
-					}
+                default:
+                    {
+                        gAlwaysMsgNoFields(fMessageLogSettings)
+                            << "Option code ot recognized" << endl;
+                    }
 
 
-			}
-		}
+            }
+        }
 
-		pIpHalIf->DhcpV6ClientIf()->SetClientOptions(clientOptions);
-	}
+        pIpHalIf->DhcpV6ClientIf()->SetClientOptions(clientOptions);
+    }
 
     result = pIpHalIf->DhcpV6ClientIf()->AcquireAddresses();
 
@@ -2235,12 +2229,12 @@ void BcmEstbIpThread::StartDhcpV6(void)
         {
             fIpState = kIpFailedDhcp;
             
-			PublishEvent(kEstbDhcpInitFailed, fLastEventIdLogged);
+            PublishEvent(kEstbDhcpInitFailed, fLastEventIdLogged);
         }
     }
 
-	// Temp workaround to process soft timers used in DHCP thread.
-	pfPostCallDelayTimer->Start(1000);
+    // Temp workaround to process soft timers used in DHCP thread.
+    pfPostCallDelayTimer->Start(1000);
 }
 #endif
 
@@ -2254,9 +2248,9 @@ void BcmEstbIpThread::StartDhcp()
 {
 #if (BFC_INCLUDE_DHCPV4_SUPPORT)  
 
-	#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+    #if (NOT_INCLUDED_IN_ESTB_DHCP)
     BcmCmDocsisNonVolSettings *pSettings;
-	#endif		
+    #endif
     BcmBaseIpHalIf *pIpHalIf;
 
     CallTrace("BcmEstbIpThread", "StartDhcp");
@@ -2265,7 +2259,7 @@ void BcmEstbIpThread::StartDhcp()
     printf("Starting IPv4 Initialization with DHCP...\n");
 
     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitStarted);
-	PublishEvent(kEstbDhcpInitStarted);
+    PublishEvent(kEstbDhcpInitStarted);
 
     // Grab my IP stack.
     pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
@@ -2282,7 +2276,7 @@ void BcmEstbIpThread::StartDhcp()
         fIpState = kIpFailedDhcp;
 
         //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitFailed);
-		PublishEvent(kEstbDhcpInitFailed);
+        PublishEvent(kEstbDhcpInitFailed);
 
         return;
     }
@@ -2347,10 +2341,10 @@ void BcmEstbIpThread::StartDhcp()
 void BcmEstbIpThread::StartDhcpAsNonPreferredIpVersion()
 {
 #if (BFC_INCLUDE_DHCPV4_SUPPORT) 
-	
-	#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+
+    #if (NOT_INCLUDED_IN_ESTB_DHCP)
     BcmCmDocsisNonVolSettings *pSettings;
-	#endif
+    #endif
     BcmBaseIpHalIf *pIpHalIf;
 
     CallTrace("BcmEstbIpThread", "StartDhcp");
@@ -2373,7 +2367,7 @@ void BcmEstbIpThread::StartDhcpAsNonPreferredIpVersion()
         return;
     }
     
-	#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+    #if (NOT_INCLUDED_IN_ESTB_DHCP)
     // Check the non-vol settings to see if we are supposed to bypass DHCP.  If
     // so, then load the DHCP settings with non-vol values, and cause events to
     // occur that simulate the successful completion of DHCP.
@@ -2411,7 +2405,7 @@ void BcmEstbIpThread::StartDhcpAsNonPreferredIpVersion()
         }
     }
     else
-	#endif
+    #endif
     {
         SetupAndInitiateDhcpV4(pLease);
     }
@@ -2428,10 +2422,10 @@ void BcmEstbIpThread::StartDhcpAsNonPreferredIpVersion()
 //
 void BcmEstbIpThread::SetupAndInitiateDhcpV4(BcmDhcpClientLease *pLease)
 {
-	#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+    #if (NOT_INCLUDED_IN_ESTB_DHCP)
     BcmCmDocsisNonVolSettings *pSettings;
     pSettings = BcmCmDocsisNonVolSettings::GetSingletonInstance();
-	#endif
+    #endif
 
     BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
 
@@ -2454,7 +2448,7 @@ void BcmEstbIpThread::SetupAndInitiateDhcpV4(BcmDhcpClientLease *pLease)
         kDhcpServerIdentifier
     };
 
-	//Option value required by OpenCable Host devices
+    //Option value required by OpenCable Host devices
     uint8 requiredOptionsListValues[] =
     {
         kDhcpRouter,
@@ -2464,7 +2458,7 @@ void BcmEstbIpThread::SetupAndInitiateDhcpV4(BcmDhcpClientLease *pLease)
         kDhcpServerIdentifier
     };
 
-	BcmOctetBuffer requiredOptionsList(requiredOptionsListValues,
+    BcmOctetBuffer requiredOptionsList(requiredOptionsListValues,
                                        sizeof(requiredOptionsListValues), 
                                        sizeof(requiredOptionsListValues), 
                                        false);    
@@ -2491,7 +2485,7 @@ void BcmEstbIpThread::SetupAndInitiateDhcpV4(BcmDhcpClientLease *pLease)
         // DOCSIS thing, we're just getting our IP address, usually over
         // ethernet, so all we really need is the IP address.
         //pLease->SetRequiredFields(BcmDhcpClientLease::kYourAddr);
-		// Added requiredOptionList for OpenCable Host device
+        // Added requiredOptionList for OpenCable Host device
         pLease->SetRequiredFields(BcmDhcpClientLease::kYourAddr,requiredOptionsList);
     }
     
@@ -2518,18 +2512,18 @@ void BcmEstbIpThread::SetupAndInitiateDhcpV4(BcmDhcpClientLease *pLease)
                                BcmDhcpClientLease::kFileName,
                                buffer);
 
-	#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+    #if (NOT_INCLUDED_IN_ESTB_DHCP)
     // if more than one downstream receiver is supported then assume 
     // that the CM supports downstream bonding.  for pre-docsis 3.0
     // deployment we will advertise "docsis2.0" and include an
     // option 43 vendor specific sub-option for number of ds rx chans.
     uint8 numDsRxSupported = fModemCapabilitiesObject.fNumDsRxSupported;
-	#endif	
+    #endif
     
 #if 1
 /* UNFINISHED - ESTB DHCPv4 CONFIGURATION, some value need retrieve from SNMP 
 agent when this dhcp client is put into Open Cable Host app. Now hardcode them. 
-***********************************************************************	 */
+***********************************************************************  */
     // Set option 60 - Vendor Class Id.  This must be one of the DOCSIS
     // strings, with our modem capabilities converted to ASCII 
     {
@@ -2549,7 +2543,7 @@ agent when this dhcp client is put into Open Cable Host app. Now hardcode them.
 
         // BcmOctetBuffer optionField(64);
         uint8 macAddress[6];
-        //Need add mac address of ipHalif //	
+        //Need add mac address of ipHalif //
         pIpHalIf->MacAddress().Get(macAddress[0],macAddress[1],macAddress[2],macAddress[3],macAddress[4],macAddress[5]);
         buffer.NetworkAddToEnd((uint8) macAddress[0]);
         buffer.NetworkAddToEnd((uint8) macAddress[1]);
@@ -2780,7 +2774,7 @@ agent when this dhcp client is put into Open Cable Host app. Now hardcode them.
             << "Failed to start DHCP!" << endl;
     
         //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitFailed);
-		PublishEvent(kEstbDhcpInitFailed);
+        PublishEvent(kEstbDhcpInitFailed);
     }
 }
 #endif //#if (BFC_INCLUDE_DHCPV4_SUPPORT)  
@@ -2813,7 +2807,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                 printf("DHCP completed successfully!\n");
 
                 //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitOk);
-				PublishEvent(kEstbDhcpInitOk);
+                PublishEvent(kEstbDhcpInitOk);
 
                 // if APM is enabled, and DHCPv6 failed to complete
                 if( fAlternameIpManagementModeEnabled && (fIpV6State != kIpV6Success) ) 
@@ -2822,7 +2816,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                     // PTMOD - LOG EVENT CmLogEvent(kD12_5);
                 }
 
-				#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+                #if (NOT_INCLUDED_IN_ESTB_DHCP)
                 bool fakeTod = false;
 
                 BcmDhcpClientLease *pLease = GetLease();
@@ -2864,7 +2858,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                 fIpState = kIpTftpInProgress;
                 SetupIPv4ConfigFileTftpParameters();
                 TftpConfigFile();
-				#endif
+                #endif
             }
             else if (fIpState == kIpSuccess)
             { 
@@ -2879,9 +2873,9 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                 // PR5736 - tell anyone who cares that the renewal completed
                 // successfully.
                 //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewSuccess);
-				PublishEvent(kEstbDhcpRenewSuccess);
+                PublishEvent(kEstbDhcpRenewSuccess);
 
-				#if (NOT_INCLUDED_IN_ESTB_DHCP) 
+                #if (NOT_INCLUDED_IN_ESTB_DHCP)
                 oldTimeOffset = pfTodThread->GetUtcOffset();
                 GetLease()->ServerLeaseSettings().GetOption(kDhcpTimeOffset, newTimeOffset);
 
@@ -2914,7 +2908,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                         pfTodThread->GetTimeOfDay(BcmTimeOfDayThread::kProtocolUdp);
                     }
                 }
-				#endif
+                #endif
             }
             break;
 
@@ -2949,7 +2943,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                         << "DHCP failed!" << endl;
     
                     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitFailed);
-					PublishEvent(kEstbDhcpInitFailed, fLastEventIdLogged);
+                    PublishEvent(kEstbDhcpInitFailed, fLastEventIdLogged);
                 }
 
                 // IPv6 failed or was never used - DHCP was good and then failed
@@ -2960,7 +2954,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                         << "DHCP renew failed!" << endl;
     
                     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewFailed);
-					PublishEvent(kEstbDhcpRenewFailed);
+                    PublishEvent(kEstbDhcpRenewFailed);
                 }
             }
 
@@ -2998,7 +2992,7 @@ void BcmEstbIpThread::HandleDhcpEvent(BcmDhcpClientLease::DhcpClientLeaseEvent e
                 if( publishDhcpRenewFailed == true ) 
                 {
                     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewFailed);
-					PublishEvent(kEstbDhcpRenewFailed);
+                    PublishEvent(kEstbDhcpRenewFailed);
                 }
 #if (BFC_INCLUDE_DHCPV4_SUPPORT)
                 //Need restart DHCP if v4 version is running.
@@ -3037,7 +3031,7 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
             {
                 // re-publish this event
                 //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpv6IpAddressAcquiredTentative);
-				PublishEvent(kEstbDhcpv6IpAddressAcquiredTentative);
+                PublishEvent(kEstbDhcpv6IpAddressAcquiredTentative);
             }
             break;
 
@@ -3059,7 +3053,7 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
                 if( fIpState == kIpDhcpInProgress )
                 {
                     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpInitOk);
-					PublishEvent(kEstbDhcpInitOk);
+                    PublishEvent(kEstbDhcpInitOk);
 
                     bool fakeTod = false;
 
@@ -3076,7 +3070,7 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
                     }
 #else
 //#warning "PTASKIRAN-DHCPv6 MODS - STUB " 
-					if(1)
+                    if(1)
                         fakeTod = true;                   
 #endif
                     // Also check to see if there is a ToD server specified; if not, then we
@@ -3212,7 +3206,7 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
                 if( publishDhcpRenewFailed == true ) 
                 {
                     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewFailed);
-					PublishEvent(kEstbDhcpRenewFailed);
+                    PublishEvent(kEstbDhcpRenewFailed);
                 }
             }
             break;
@@ -3221,7 +3215,7 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
             {
                 // tell anyone who cares that the renewal completed successfully.
                 //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewSuccess);
-				PublishEvent(kEstbDhcpRenewSuccess);
+                PublishEvent(kEstbDhcpRenewSuccess);
 
                 // It is possible during the DHCPv6 renew operation that the CM will receive 
                 // updated fields in the DHCP Reply message.  If the CM IPv6 Management Address 
@@ -3242,7 +3236,7 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
                         << fIpV6Address << ".  Treating like failed renew." << endl;
         
                     //PublishEvent(BcmCmDocsisStatusEventCodes::kEstbDhcpRenewFailed);
-					PublishEvent(kEstbDhcpRenewFailed);
+                    PublishEvent(kEstbDhcpRenewFailed);
 
                     // log event "DHCP Renew - lease parameters <P1> modified" 
                     // PTMOD - LOG EVENT CmLogEvent( kD106_0, "IA Address");
@@ -3366,28 +3360,28 @@ void BcmEstbIpThread::HandleDhcpV6Event(BcmDhcpV6ClientIf::DhcpV6ClientLeaseEven
 
     case BcmDhcpV6ClientIf::kEventNoDhcpAdvertiseReceived:
         {
-			#if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
+            #if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
             // log event kEE_D01202 "DHCP failed - DHCP Solicit sent, No DHCP Advertise received"
             DhcpV6LogEvent(kEE_D01202);
-			#endif
+            #endif
         }
         break;
 
     case BcmDhcpV6ClientIf::kEventNoDhcpReplyReceived:
         {
-			#if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
+            #if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
             // log event kEE_D01203 "DHCP failed - DHCP Request sent, No DHCP REPLY received"
             DhcpV6LogEvent(kEE_D01203);
-			#endif
+            #endif
         }
         break;
 
     case BcmDhcpV6ClientIf::kEventDuplicateAddressDetected:
         {
-			#if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
+            #if (BCM_ESTB_CLIENT_SNMP_INTERFACE_INCLUDED)
             // log event kEE_D01302 "DHCP lease address failed DAD"
             DhcpV6LogEvent(kEE_D01302);
-			#endif
+            #endif
         }
         break;
 
@@ -3647,12 +3641,12 @@ void BcmEstbIpThread::StopAndResetSync(bool releaseSemaphore)
     fRouterSolicitationCount = 0;
 #endif
     // PR12294 - release any leased IPv6 addresses here.
-//	BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
+//  BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
     pIpHalIf->DhcpV6ClientIf()->ReleaseAddresses();
 
-	fDnsServerList.Reset();
-	if( pfDomainList )
-		pfDomainList->Empty();
+    fDnsServerList.Reset();
+    if( pfDomainList )
+        pfDomainList->Empty();
 
     //#endif
 
@@ -3803,7 +3797,7 @@ const char * BcmEstbIpThread::GetConfigFileName()
 //
 void BcmEstbIpThread::RestoreApplicationSpecificIpState(void)
 {
-	fIpState = kIpSuccess;
+    fIpState = kIpSuccess;
 }
 #if 0 // PTASKIRAN _ ESTB SNMP AGENT SUPPORT(SNMP_SUPPORT)
 // Reset docsDevSwAdminStatus to it's initial value. This would normally be
@@ -3816,7 +3810,7 @@ void BcmEstbIpThread::RestoreApplicationSpecificIpState(void)
 //
 void BcmEstbIpThread::RestoreApplicationSpecificSwAdminStatus(CmSnmpNonVolSettings *pSnmpSettings)
 {
-	pSnmpSettings->DocsDevSwAdminStatus(CONSTVAL_DOCSDEVSWADMINSTATUS_ALLOWPROVISIONINGUPGRADE);
+    pSnmpSettings->DocsDevSwAdminStatus(CONSTVAL_DOCSDEVSWADMINSTATUS_ALLOWPROVISIONINGUPGRADE);
 }
 #endif
 // Do application specific program store driver configuration.
@@ -3975,8 +3969,8 @@ void BcmEstbIpThread::AddCableLabsVendorSpecificInfoOption(BcmDhcpV6OptionsList 
 #ifdef STUB// (SNMP_SUPPORT)
             BcmString sysDescr = CmSnmpAgent::Singleton().sysDescr();
 #else
-			//"BFC cablemodem reference design <<HW_REV: V1.0; VENDOR: Broadcom; BOOTR: 0.1.1e; SW_REV: 4.4.1; MODEL: BCM93255eSTB>>";
-			BcmString sysDescr = kDefault_EstbSysDescr;
+            //"BFC cablemodem reference design <<HW_REV: V1.0; VENDOR: Broadcom; BOOTR: 0.1.1e; SW_REV: 4.4.1; MODEL: BCM93255eSTB>>";
+            BcmString sysDescr = kDefault_EstbSysDescr;
 #endif
             
             // Include the CL_OPTION_ORO.
@@ -4037,8 +4031,8 @@ void BcmEstbIpThread::AddCableLabsVendorSpecificInfoOption(BcmDhcpV6OptionsList 
 #ifdef STUB // (SNMP_SUPPORT)
                 CmSnmpNonVolSettings *pSettings = CmSnmpNonVolSettings::GetSingletonInstance();
                 buffer.AddToEnd(pSettings->DocsDevSerialNumber(), false);
-#else				
-				buffer.AddToEnd(kDefault_DeviceSerialNumber, false);
+#else
+                buffer.AddToEnd(kDefault_DeviceSerialNumber, false);
 #endif
                 // Add the serial number to the option data
                 deviceSerialNumberOption.Value( buffer );
@@ -4188,7 +4182,7 @@ void BcmEstbIpThread::AddCableLabsVendorSpecificInfoOption(BcmDhcpV6OptionsList 
 
             // Include the DOCSIS Device Identifier option.
             {
-				BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
+                BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(fStackNumber);
                 BcmDhcpV6DocsisDeviceIdentifierOption docsisDeviceIdentifierOption;
                 docsisDeviceIdentifierOption.Replace(0, pIpHalIf->MacAddress());
                 cableLabsVendorSpecificInfoOption.OptionsModify().Add( docsisDeviceIdentifierOption );
@@ -4220,12 +4214,12 @@ bool BcmEstbIpThread::CmDhcpV6AdvertiseReplyCallout(const BcmDhcpV6Packet &dhcpP
 {
     bool result = true;
 
-	BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(ipStackNumber);	
-	if( pIpHalIf == NULL )
-	{
-		gLogMessageRaw << "CmDhcpV6AdvertiseReplyCallout: pIpHalIf is NULL" << endl;    
-		return false;
-	}
+    BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(ipStackNumber);
+    if( pIpHalIf == NULL )
+    {
+        gLogMessageRaw << "CmDhcpV6AdvertiseReplyCallout: pIpHalIf is NULL" << endl;
+        return false;
+    }
 
     // check the message type
     if (dhcpPacket.MessageType() == kDhcpV6Advertise)
@@ -4235,10 +4229,10 @@ bool BcmEstbIpThread::CmDhcpV6AdvertiseReplyCallout(const BcmDhcpV6Packet &dhcpP
             BcmDhcpV6ReconfigureAcceptOption reconfigureAcceptOption;
 
             // If OPTION_RECONF_ACCEPT option in absent from the Advertise message, 
-			// the eSTB MUST discard the message and wait for other Advertise messages.
+            // the eSTB MUST discard the message and wait for other Advertise messages.
             if( dhcpPacket.Options().Get(reconfigureAcceptOption) )
             {                
-				gLogMessageRaw << "OPTION_RECONF_ACCEPT present in DHCPv6 Advertise." << endl;                 
+                gLogMessageRaw << "OPTION_RECONF_ACCEPT present in DHCPv6 Advertise." << endl;
             }
             else
             {
@@ -4247,83 +4241,83 @@ bool BcmEstbIpThread::CmDhcpV6AdvertiseReplyCallout(const BcmDhcpV6Packet &dhcpP
             }
         }
 
-		{
-			// Get the DNS server IPv6 address suboption.
-			BcmDhcpV6DnsServersOption dnsServersOption;
+        {
+            // Get the DNS server IPv6 address suboption.
+            BcmDhcpV6DnsServersOption dnsServersOption;
 
-			if( dhcpPacket.Options().Get(dnsServersOption) == true )
+            if( dhcpPacket.Options().Get(dnsServersOption) == true )
             {                
-				gLogMessageRaw << "OPTION_DNS_SERVERS present in DHCPv6 Advertise." << endl;
+                gLogMessageRaw << "OPTION_DNS_SERVERS present in DHCPv6 Advertise." << endl;
 
-				//BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(ipStackNumber);					
+                //BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(ipStackNumber);
 
-				unsigned int serverIndex = 0;
-				for( serverIndex = 0; serverIndex < dnsServersOption.NumberOfIpV6Addresses(); serverIndex++) 
-				{
-					if( !pThisEstbIpThread->DnsServerList().IsPresent(dnsServersOption.Get( serverIndex )) )
-					{
-						gLogMessageRaw << dnsServersOption.Get( serverIndex ) << endl;
-						pThisEstbIpThread->DnsServerList().Add( dnsServersOption.Get( serverIndex ) );
+                unsigned int serverIndex = 0;
+                for( serverIndex = 0; serverIndex < dnsServersOption.NumberOfIpV6Addresses(); serverIndex++)
+                {
+                    if( !pThisEstbIpThread->DnsServerList().IsPresent(dnsServersOption.Get( serverIndex )) )
+                    {
+                        gLogMessageRaw << dnsServersOption.Get( serverIndex ) << endl;
+                        pThisEstbIpThread->DnsServerList().Add( dnsServersOption.Get( serverIndex ) );
 
-						int retVal = 0;
-						retVal = pIpHalIf->AddIpv6DnsServer( dnsServersOption.Get( serverIndex ));
-						//gLogMessageRaw << "AddIpv6DnsServer - returned " << retVal << endl;		
-						//retVal = pIpHalIf->RemoveIpv6DnsServer( dnsServersOption.Get( serverIndex ));
-						//gLogMessageRaw << "RemoveIpv6DnsServer - returned " << retVal << endl;	
-					}
-				}						
+                        int retVal = 0;
+                        retVal = pIpHalIf->AddIpv6DnsServer( dnsServersOption.Get( serverIndex ));
+                        //gLogMessageRaw << "AddIpv6DnsServer - returned " << retVal << endl;
+                        //retVal = pIpHalIf->RemoveIpv6DnsServer( dnsServersOption.Get( serverIndex ));
+                        //gLogMessageRaw << "RemoveIpv6DnsServer - returned " << retVal << endl;
+                    }
+                }
             }
             else
             {
                 gLogMessageRaw << "Missing OPTION_DNS_SERVERS option in DHCPv6 Advertise." << endl;                
             }
-		}
+        }
 
-		{
-			// Get the DNS server IPv6 address suboption.
-			BcmDhcpV6DomainListOption domainListOption;
+        {
+            // Get the DNS server IPv6 address suboption.
+            BcmDhcpV6DomainListOption domainListOption;
 
-			if( dhcpPacket.Options().Get(domainListOption) == true )
+            if( dhcpPacket.Options().Get(domainListOption) == true )
             {                
-				gLogMessageRaw << "OPTION_DOMAIN_LIST present in DHCPv6 Advertise." << endl;
+                gLogMessageRaw << "OPTION_DOMAIN_LIST present in DHCPv6 Advertise." << endl;
 
-				//BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(ipStackNumber);					
+                //BcmBaseIpHalIf *pIpHalIf = BcmIpStackManager::GetSingleton().Find(ipStackNumber);
 
-				unsigned int domainListSize = domainListOption.DataSize();
-				BcmOctetBuffer domainList = domainListOption.Value();
-				unsigned int domainLength;
-				unsigned int offset = 0;
+                unsigned int domainListSize = domainListOption.DataSize();
+                BcmOctetBuffer domainList = domainListOption.Value();
+                unsigned int domainLength;
+                unsigned int offset = 0;
 
-				BcmOctetBuffer domainName(0);
-			                    
-				while( domainListSize > offset )
-				{
-					domainLength = strlen((const char*)(domainList.AccessBuffer() + offset));
-					domainName.Overlay( domainList, offset, domainLength );
+                BcmOctetBuffer domainName(0);
 
-					//gLogMessageRaw << domainList << domainName << domainLength << endl;
-					if(!pThisEstbIpThread->DomainListIsPresent(domainName))
-					{				
-						pThisEstbIpThread->DomainListAdd(domainName);
+                while( domainListSize > offset )
+                {
+                    domainLength = strlen((const char*)(domainList.AccessBuffer() + offset));
+                    domainName.Overlay( domainList, offset, domainLength );
 
-						int retVal = 0;
-						retVal = pIpHalIf->AddIpv6DomainName( (const char*) domainName.AccessBuffer() );
-						//gLogMessageRaw << "AddIpv6DomainName - returned " << retVal << endl;	
-						//retVal = pIpHalIf->RemoveIpv6DomainName( (const char*) domainName.AccessBuffer() );
-						//gLogMessageRaw << "RemoveIpv6DomainName - returned " << retVal << endl;
-					}
-					offset += domainLength + 1;
-				}				
-				
-				//BcmOctetBuffer testDomainName;
-				//testDomainName.NetworkAddToEnd(".example.com", false);
-				//pThisEstbIpThread->DomainListRemove(testDomainName);				
+                    //gLogMessageRaw << domainList << domainName << domainLength << endl;
+                    if(!pThisEstbIpThread->DomainListIsPresent(domainName))
+                    {
+                        pThisEstbIpThread->DomainListAdd(domainName);
+
+                        int retVal = 0;
+                        retVal = pIpHalIf->AddIpv6DomainName( (const char*) domainName.AccessBuffer() );
+                        //gLogMessageRaw << "AddIpv6DomainName - returned " << retVal << endl;
+                        //retVal = pIpHalIf->RemoveIpv6DomainName( (const char*) domainName.AccessBuffer() );
+                        //gLogMessageRaw << "RemoveIpv6DomainName - returned " << retVal << endl;
+                    }
+                    offset += domainLength + 1;
+                }
+
+                //BcmOctetBuffer testDomainName;
+                //testDomainName.NetworkAddToEnd(".example.com", false);
+                //pThisEstbIpThread->DomainListRemove(testDomainName);
             }
             else
             {
                 gLogMessageRaw << "Missing OPTION_DNS_SERVERS option in DHCPv6 Advertise." << endl;                
             }
-		}
+        }
     }
     else if(dhcpPacket.MessageType() == kDhcpV6Reply)
     {
@@ -4334,7 +4328,7 @@ bool BcmEstbIpThread::CmDhcpV6AdvertiseReplyCallout(const BcmDhcpV6Packet &dhcpP
             // Check if the Reconfigure Accept Option exists in this message.
             if( dhcpPacket.Options().Get(reconfigureAcceptOption) )
             {                
-				gLogMessageRaw << "OPTION_RECONF_ACCEPT present in DHCPv6 Reply." << endl;                 
+                gLogMessageRaw << "OPTION_RECONF_ACCEPT present in DHCPv6 Reply." << endl;
             }
             else
             {
@@ -4359,87 +4353,87 @@ void BcmEstbIpThread::This( BcmEstbIpThread* pThis)
 
 bool BcmEstbIpThread::DomainListIsPresent(BcmOctetBuffer& newDomainName)
 {
-	unsigned int domainListSize = pfDomainList->BufferSize();
-	//BcmOctetBuffer domainList = domainListOption.Value();
-	unsigned int domainLength;
-	unsigned int offset = 0;
+    unsigned int domainListSize = pfDomainList->BufferSize();
+    //BcmOctetBuffer domainList = domainListOption.Value();
+    unsigned int domainLength;
+    unsigned int offset = 0;
 
-	BcmOctetBuffer domainName(0);
-					
-	while( domainListSize > offset )
-	{
-		domainLength = strlen((const char*)(pfDomainList->AccessBuffer() + offset));
-		domainName.Overlay( *pfDomainList, offset, domainLength );
+    BcmOctetBuffer domainName(0);
 
-		if( domainName == newDomainName )
-		{
-			return true;
-		}
-		//gLogMessageRaw << domainList << domainName << domainLength << endl;
-		
-		offset += domainLength + 1;
-	}	
-	
-	return false;
+    while( domainListSize > offset )
+    {
+        domainLength = strlen((const char*)(pfDomainList->AccessBuffer() + offset));
+        domainName.Overlay( *pfDomainList, offset, domainLength );
+
+        if( domainName == newDomainName )
+        {
+            return true;
+        }
+        //gLogMessageRaw << domainList << domainName << domainLength << endl;
+
+        offset += domainLength + 1;
+    }
+
+    return false;
 }
 
 bool BcmEstbIpThread::DomainListAdd(BcmOctetBuffer& newDomainName)
 {
-	bool retVal = pfDomainList->Append( newDomainName, 0, newDomainName.BufferSize(), true);
-	if( retVal )
-		pfDomainList->NullTerminate();
+    bool retVal = pfDomainList->Append( newDomainName, 0, newDomainName.BufferSize(), true);
+    if( retVal )
+        pfDomainList->NullTerminate();
 
-	//gLogMessageRaw << *pfDomainList << endl;
+    //gLogMessageRaw << *pfDomainList << endl;
 
-	return retVal;
+    return retVal;
 }
 
 bool BcmEstbIpThread::DomainListRemove(BcmOctetBuffer& domainName)
 {
-	unsigned int domainListSize = pfDomainList->BufferSize();
-	BcmOctetBuffer tempBuff(domainListSize);
-	//BcmOctetBuffer domainList = domainListOption.Value();
-	unsigned int domainLength;
-	unsigned int offset = 0;
-	bool domainFound = false;
+    unsigned int domainListSize = pfDomainList->BufferSize();
+    BcmOctetBuffer tempBuff(domainListSize);
+    //BcmOctetBuffer domainList = domainListOption.Value();
+    unsigned int domainLength;
+    unsigned int offset = 0;
+    bool domainFound = false;
 
-	BcmOctetBuffer overlayDomainName(0);
-					
-	while( domainListSize > offset )
-	{
-		domainLength = strlen((const char*)(pfDomainList->AccessBuffer() + offset));
-		overlayDomainName.Overlay( *pfDomainList, offset, domainLength );
+    BcmOctetBuffer overlayDomainName(0);
 
-		if( overlayDomainName != domainName )
-		{
-			bool result = tempBuff.Append( overlayDomainName, 0, overlayDomainName.BufferSize(), true);
-			if( result )
-				tempBuff.NullTerminate();
+    while( domainListSize > offset )
+    {
+        domainLength = strlen((const char*)(pfDomainList->AccessBuffer() + offset));
+        overlayDomainName.Overlay( *pfDomainList, offset, domainLength );
 
-			offset += domainLength + 1;
-		}
-		else
-		{
-			domainFound = true;
+        if( overlayDomainName != domainName )
+        {
+            bool result = tempBuff.Append( overlayDomainName, 0, overlayDomainName.BufferSize(), true);
+            if( result )
+                tempBuff.NullTerminate();
 
-			// Found the one we want to remove. Skip over it and copy the rest.
-			offset += domainLength + 1;
-			//bool result = 
-			tempBuff.Append( *pfDomainList, offset, (domainListSize-offset), true);
-			
-			gLogMessageRaw <<"DomainListRemove " << tempBuff << endl;
+            offset += domainLength + 1;
+        }
+        else
+        {
+            domainFound = true;
 
-			break;
-		}
-		//gLogMessageRaw << domainList << domainName << domainLength << endl;				
-	}	
-	
-	*pfDomainList = tempBuff;
-	gLogMessageRaw <<"DomainListRemove "  << *pfDomainList 
-		<<"domainName = " << domainName << endl;
+            // Found the one we want to remove. Skip over it and copy the rest.
+            offset += domainLength + 1;
+            //bool result =
+            tempBuff.Append( *pfDomainList, offset, (domainListSize-offset), true);
+
+            gLogMessageRaw <<"DomainListRemove " << tempBuff << endl;
+
+            break;
+        }
+        //gLogMessageRaw << domainList << domainName << domainLength << endl;
+    }
+
+    *pfDomainList = tempBuff;
+    gLogMessageRaw <<"DomainListRemove "  << *pfDomainList
+        <<"domainName = " << domainName << endl;
 
 
-	return domainFound;
+    return domainFound;
 }
 
 
@@ -4449,64 +4443,63 @@ bool BcmEstbIpThread::DomainListRemove(BcmOctetBuffer& domainName)
 #if !(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
 void BcmEstbIpThread::SubscribeToEvents(void)
 {
-	// SUBSCRIBE TO EVENTS
-	// Now subscribe to events.	
-	unsigned int i=0;
-	unsigned int eventList[kDefault_NumOfEvents] = kDefault_EventList;
+    // SUBSCRIBE TO EVENTS
+    // Now subscribe to events.
+    unsigned int i=0;
+    unsigned int eventList[kDefault_NumOfEvents] = kDefault_EventList;
 
     // create my ACT & hook it up to Event Dispatcher
     // the ACT will relay interesting state changes from the Event Dispatcher.
-	pfDhcpV6EventDispatcherACT = new BcmDhcpV6ClientEventDispatcherACT (this);
+    pfDhcpV6EventDispatcherACT = new BcmDhcpV6ClientEventDispatcherACT (this);
 
-	BcmEcmEventDispatcherThread *pEvDispatcher = BcmEcmEventDispatcherThread::GetSingletonInstance();
+    BcmEcmEventDispatcherThread *pEvDispatcher = BcmEcmEventDispatcherThread::GetSingletonInstance();
 
-	for( i=0; i<kDefault_NumOfEvents; i++ )
-	{
-		if(pEvDispatcher)
-			pEvDispatcher->SubscribeMsgNote (*(eventList+i), pfDhcpV6EventDispatcherACT);
+    for( i=0; i<kDefault_NumOfEvents; i++ )
+    {
+        if(pEvDispatcher)
+            pEvDispatcher->SubscribeMsgNote (*(eventList+i), pfDhcpV6EventDispatcherACT);
 
-		cout <<" ESTB DHCPv6 Client: SubscribeMsgNote event " << (*(eventList+i)) << endl;
-	}
+        cout <<" ESTB DHCPv6 Client: SubscribeMsgNote event " << (*(eventList+i)) << endl;
+    }
 }
 #endif
 
 void BcmEstbIpThread::DhcpV6LogEvent(uint32 Id)
 {
-	#if(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
-	{
-		dhcpV6EvdClientLogEvent(Id);
-	}
-	#else     
-	{		
-		fLastEventIdLogged = Id;
-		cout << "DHCPv6 Client LOG EVENT ! " << fLastEventIdLogged << endl;		
+    #if(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
+    {
+        dhcpV6EvdClientLogEvent(Id);
+    }
+    #else
+    {
+        fLastEventIdLogged = Id;
+        cout << "DHCPv6 Client LOG EVENT ! " << fLastEventIdLogged << endl;
 
-		//uint32 msgParam = kEE_D120;
-		BcmEcmEventDispatcherThread *pEvDispatcher = BcmEcmEventDispatcherThread::GetSingletonInstance();
-		pEvDispatcher->PublishMsg( kEventLogEvent, (void*) &Id );
-		// This should be replaced with EstbLogEvent if EstbSnmpAgent is included in the same process.
-	}
-	#endif
+        //uint32 msgParam = kEE_D120;
+        BcmEcmEventDispatcherThread *pEvDispatcher = BcmEcmEventDispatcherThread::GetSingletonInstance();
+        pEvDispatcher->PublishMsg( kEventLogEvent, (void*) &Id );
+        // This should be replaced with EstbLogEvent if EstbSnmpAgent is included in the same process.
+    }
+    #endif
 }
 
 void EstbDhcpV6LogEvent(uint32 Id)
 {
-	if(pThisEstbIpThread)
-	{
-		pThisEstbIpThread->DhcpV6LogEvent(Id);
-	}
+    if(pThisEstbIpThread)
+    {
+        pThisEstbIpThread->DhcpV6LogEvent(Id);
+    }
 }
 #endif
 
 void BcmEstbIpThread::PublishEvent(unsigned int event, uint32 value)
 {
-	#if (BCM_EVD_INTERFACE_INCLUDED)
-	#if !(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
-	//uint8 dummy = 0;
-	BcmEcmEventDispatcherThread *pEvDispatcher = BcmEcmEventDispatcherThread::GetSingletonInstance();
-	cout <<" BcmEstbIpThread: Publishing event= " << event <<" value = " << value << endl;
-	pEvDispatcher->PublishMsg( event, (void*) &value );
-	#endif
-	#endif
+    #if (BCM_EVD_INTERFACE_INCLUDED)
+    #if !(BCM_EVD_RPCCL_INTERFACE_INCLUDED)
+    //uint8 dummy = 0;
+    BcmEcmEventDispatcherThread *pEvDispatcher = BcmEcmEventDispatcherThread::GetSingletonInstance();
+    cout <<" BcmEstbIpThread: Publishing event= " << event <<" value = " << value << endl;
+    pEvDispatcher->PublishMsg( event, (void*) &value );
+    #endif
+    #endif
 }
-

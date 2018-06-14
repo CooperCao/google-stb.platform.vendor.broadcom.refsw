@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #include "MediaDrmContext.h"
@@ -65,7 +65,9 @@ void MediaDrmContext::decryptPR30(NEXUS_DmaJobBlockSettings* dmaBlock, size_t ne
         std::lock_guard<std::mutex> lg(_drmLock);  // Drm_Reader_Decrypt*() not reentrant
         DRM_DECRYPT_CONTEXT *instance = (DRM_DECRYPT_CONTEXT *)_context;
         DecryptBroadcom30_t decrypt = reinterpret_cast<DecryptBroadcom30_t>(_playReady30.decryptBroadcom);
-        (void) (*decrypt)(instance, &aesConfig, dmaBlock, nelem);
+        int status = (int) (*decrypt)(instance, &aesConfig, dmaBlock, nelem);
+        if (status != 0)
+            throw status;
         return;
     }
 
@@ -97,9 +99,11 @@ void MediaDrmContext::decryptPR30(NEXUS_DmaJobBlockSettings* dmaBlock, size_t ne
     Decrypt30_t decrypt = reinterpret_cast<Decrypt30_t>(_playReady30.decryptOpaque);
     const uint8_t *source      = reinterpret_cast<const uint8_t *>(dmaBlock[0].pSrcAddr);
     uint8_t       *destination = reinterpret_cast<      uint8_t *>(dmaBlock[0].pDestAddr);
-    (void) (*decrypt)(
+    int status = (int) (*decrypt)(
         instance, fragments.size(), fragments.data(), aesConfig.qwInitializationVector, bytes,
         const_cast<uint8_t *>(source), &bytes, &destination);
+    if (status != 0)
+        throw status;
 #endif
 }
 

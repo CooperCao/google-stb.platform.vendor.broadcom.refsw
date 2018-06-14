@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bmp4_util.h"
 #include "bkni.h"
 #include "biobits.h"
-
+#include "bmp4_ce_util.h"
 
 
 BDBG_MODULE(bmp4_util);
@@ -78,8 +78,8 @@ bmp4_parse_box(batom_cursor *cursor, bmp4_box *box)
 	return 0;
 }
 
-static size_t
-b_mp4_find_box(batom_cursor *cursor, uint32_t type, bmp4_sample_codecprivate *codecprivate)
+size_t
+bmp4_find_box(batom_cursor *cursor, uint32_t type, bmp4_box_info *codecprivate)
 {
     for(;;) {
         bmp4_box box;
@@ -91,14 +91,14 @@ b_mp4_find_box(batom_cursor *cursor, uint32_t type, bmp4_sample_codecprivate *co
             break;
         }
         if(box.type == type) {
-            BDBG_MSG(("b_mp4_find_box: find " B_MP4_TYPE_FORMAT ":%u", B_MP4_TYPE_ARG(box.type), (unsigned)box.size));
+            BDBG_MSG(("bmp4_find_box: find " B_MP4_TYPE_FORMAT ":%u", B_MP4_TYPE_ARG(box.type), (unsigned)box.size));
             if(codecprivate) {
                 codecprivate->offset = offset;
                 codecprivate->box = box;
             }
             return box_hdr_size;
         }
-        BDBG_MSG(("b_mp4_find_box: looking " B_MP4_TYPE_FORMAT " skipping " B_MP4_TYPE_FORMAT ":%u", B_MP4_TYPE_ARG(type), B_MP4_TYPE_ARG(box.type), (unsigned)box.size));
+        BDBG_MSG(("bmp4_find_box: looking " B_MP4_TYPE_FORMAT " skipping " B_MP4_TYPE_FORMAT ":%u", B_MP4_TYPE_ARG(type), B_MP4_TYPE_ARG(box.type), (unsigned)box.size));
         if(box.size>box_hdr_size) {
             batom_cursor_skip(cursor, box.size - box_hdr_size);
             continue;
@@ -416,7 +416,7 @@ bmp4_parse_sample_avcC(batom_cursor *cursor, bmp4_sample_avc *avc, size_t entry_
 }
 
 static bool
-b_mp4_parse_sample_avc(batom_cursor *cursor, bmp4_sample_avc *avc, size_t entry_data_size, bmp4_sample_codecprivate *codecprivate)
+b_mp4_parse_sample_avc(batom_cursor *cursor, bmp4_sample_avc *avc, size_t entry_data_size, bmp4_box_info *codecprivate)
 {
     BDBG_ASSERT(cursor);
     BDBG_ASSERT(avc);
@@ -448,7 +448,7 @@ b_mp4_parse_sample_avc(batom_cursor *cursor, bmp4_sample_avc *avc, size_t entry_
 }
 
 static bool
-b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sample_codecprivate *codecprivate, const bmp4_box *entry_box)
+b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_box_info *codecprivate, const bmp4_box *entry_box)
 {
     BDBG_ASSERT(cursor);
     BDBG_ASSERT(hevc);
@@ -461,7 +461,7 @@ b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sampl
         hevc->dvc_valid = false;
 #endif
 
-        if(!b_mp4_find_box(cursor, BMP4_TYPE('h','v','c','C'), codecprivate)) {
+        if(!bmp4_find_box(cursor, BMP4_TYPE('h','v','c','C'), codecprivate)) {
             return false;
         }
         configurationVersion = batom_cursor_byte(cursor);
@@ -477,7 +477,7 @@ b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sampl
             return false;
         }
 #if B_HAS_MEDIA_DBV
-        if(b_mp4_find_box(&dbv_cursor, BMP4_BOX_DV_CONFIGURATION, NULL) && batom_cursor_pos(&dbv_cursor) < entry_box->size ) {
+        if(bmp4_find_box(&dbv_cursor, BMP4_BOX_DV_CONFIGURATION, NULL) && batom_cursor_pos(&dbv_cursor) < entry_box->size ) {
             if(!bmedia_parse_DOVIDecoderConfigurationRecord(&dbv_cursor, &hevc->dvc)) {
                 return false;
             }
@@ -497,7 +497,7 @@ b_mp4_parse_sample_hevc(batom_cursor *cursor, bmp4_sample_hevc *hevc, bmp4_sampl
 }
 
 static bool
-b_mp4_parse_sample_mp4a(batom_cursor *cursor, bmp4_sample_mp4a *mp4a, size_t entry_data_size, bmp4_sample_codecprivate *codecprivate)
+b_mp4_parse_sample_mp4a(batom_cursor *cursor, bmp4_sample_mp4a *mp4a, size_t entry_data_size, bmp4_box_info *codecprivate)
 {
     size_t last = batom_cursor_pos(cursor)+entry_data_size;
 
@@ -602,7 +602,7 @@ b_mp4_parse_sample_mp4v(batom_cursor *cursor, bmp4_sample_mp4v *mp4v)
 	if(bmp4_parse_visualsampleentry(cursor, &mp4v->visual)) {
 		bmp4_fullbox fullbox;
 
-        if(!b_mp4_find_box(cursor, BMP4_TYPE('e','s','d','s'), NULL)) {
+        if(!bmp4_find_box(cursor, BMP4_TYPE('e','s','d','s'), NULL)) {
             return false;
         }
 		if(!bmp4_parse_fullbox(cursor, &fullbox)) {
@@ -685,10 +685,10 @@ b_mp4_parse_sample_ms(batom_cursor *cursor, bmp4_sample_ms *ms)
         BSTD_UNUSED(bytesPerFrame);
         bytesPerSample = batom_cursor_uint32_be(cursor);
         BSTD_UNUSED(bytesPerSample);
-        if(b_mp4_find_box(cursor, BMP4_TYPE('w','a','v','e'), NULL)) {
-            if(b_mp4_find_box(cursor, BMP4_TYPE('f','r','m','a'), NULL)) {
+        if(bmp4_find_box(cursor, BMP4_TYPE('w','a','v','e'), NULL)) {
+            if(bmp4_find_box(cursor, BMP4_TYPE('f','r','m','a'), NULL)) {
                 uint32_t type = batom_cursor_uint32_be(cursor);
-                if(b_mp4_find_box(cursor, type, NULL)) {
+                if(bmp4_find_box(cursor, type, NULL)) {
                     return bmedia_read_waveformatex(&ms->waveformat, cursor);
                 }
             }
@@ -868,7 +868,7 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
                 if(sinf_box_hdr_size==0 || sinf_box_hdr_size > sinf_box.size || batom_cursor_reserve(&protection_scheme_information_cursor, sinf_box.size)!=sinf_box.size) {
                     break;
                 }
-                if(sinf_box.type == BMP4_TYPE('s','i','n','f')) {
+                if(sinf_box.type == BMP4_PROTECTION_SCHEME_INFORMATION) {
                     protection_scheme_information_size = sinf_box.size;
                     if(protection_scheme_information_size>sizeof(entry->protection_scheme_information)) {
                         break;
@@ -887,6 +887,7 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
                         }
                     }
                     break;
+                } else if(sinf_box.type == BMP4_SCHEME_TYPE) {
                 }
                 batom_cursor_skip(&sinf_cursor, sinf_box.size - sinf_box_hdr_size);
             }
@@ -1378,3 +1379,65 @@ bool bmp4_parse_track_fragment_run_sample(batom_cursor *cursor, const bmp4_track
     return false;
 }
 
+/* ISO/IEC 14496-12:2015(E) . 8.9.3 Sample Group Description Box */
+bool bmp4_parse_SampleGroupDescription(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleGroupDescription *sgpd)
+{
+    sgpd->default_length = 0;
+    sgpd->grouping_type = batom_cursor_uint32_be(cursor);
+    if(box->version==1) {
+        sgpd->default_length = batom_cursor_uint32_be(cursor);
+        sgpd->default_length_valid = true;
+    }
+    if(box->version>=2) {
+        sgpd->default_sample_description_index = batom_cursor_uint32_be(cursor);
+        sgpd->default_sample_description_index_valid = true;
+    }
+    sgpd->entry_count = batom_cursor_uint32_be(cursor);
+    BDBG_MSG(("SampleGroupDescription: version:%u grouping_type:" B_MP4_TYPE_FORMAT " entry_count:%u", (unsigned)box->version, B_MP4_TYPE_ARG(sgpd->grouping_type), sgpd->entry_count));
+    return !BATOM_IS_EOF(cursor);
+}
+
+static void b_mp4_parse_SampleAuxiliaryInformation(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleAuxiliaryInformation *info)
+{
+    info->type = 0;
+    info->type_parameter = 0;
+    if(box->flags & 1) {
+        info->type = batom_cursor_uint32_be(cursor);
+        info->type_parameter = batom_cursor_uint32_be(cursor);
+    }
+    return;
+}
+
+/* ISO/IEC 14496-12:2015(E) . 8.7.8 Sample Auxiliary Information Sizes Box  */
+bool bmp4_parse_SampleAuxiliaryInformationSizes(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleAuxiliaryInformationSizes *saiz)
+{
+    b_mp4_parse_SampleAuxiliaryInformation(cursor, box, &saiz->aux_info);
+    saiz->default_sample_info_size = batom_cursor_byte(cursor);
+    saiz->sample_count = batom_cursor_uint32_be(cursor);
+    BDBG_MSG(("SampleAuxiliaryInformationSizes: flags:%#x default_sample_info_size:%u sample_count:%u aux_info_type:" B_MP4_TYPE_FORMAT "", (unsigned)box->flags, (unsigned)saiz->default_sample_info_size, (unsigned)saiz->sample_count, B_MP4_TYPE_ARG(saiz->aux_info.type)));
+    return !BATOM_IS_EOF(cursor);
+}
+
+/* ISO/IEC 14496-12:2015(E) . 8.7.9 Sample Auxiliary Information Offsets Box  */
+bool bmp4_parse_SampleAuxiliaryInformationOffsets(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleAuxiliaryInformationOffsets *saio)
+{
+    b_mp4_parse_SampleAuxiliaryInformation(cursor, box, &saio->aux_info);
+    saio->entry_count = batom_cursor_uint32_be(cursor);
+    BDBG_MSG(("SampleAuxiliaryInformationSizes: flags:%#x entry_count:%u aux_info_type:" B_MP4_TYPE_FORMAT "", (unsigned)box->flags, (unsigned)saio->entry_count, B_MP4_TYPE_ARG(saio->aux_info.type)));
+    return !BATOM_IS_EOF(cursor);
+}
+
+/*  ISO/IEC 14496-12:2015(E) .  8.9.2 Sample to Group Box  */
+bool bmp4_parse_SampleToGroup(batom_cursor *cursor, const bmp4_fullbox *box, struct bmp4_SampleToGroup *sbgp)
+{
+    sbgp->grouping_type_parameter_valid = false;
+    sbgp->grouping_type_parameter = 0;
+    sbgp->grouping_type = batom_cursor_uint32_be(cursor);
+    if(box->version==1) {
+        sbgp->grouping_type_parameter_valid = true;
+        sbgp->grouping_type_parameter = batom_cursor_uint32_be(cursor);
+    }
+    sbgp->entry_count = batom_cursor_uint32_be(cursor);
+    BDBG_MSG(("SampleToGroup: version%u  grouping_type: " B_MP4_TYPE_FORMAT " entry_count:%u", (unsigned)box->version, B_MP4_TYPE_ARG(sbgp->grouping_type), (unsigned)sbgp->entry_count));
+    return !BATOM_IS_EOF(cursor);
+}

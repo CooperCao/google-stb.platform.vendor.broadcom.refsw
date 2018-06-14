@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef GLXX_FRAMEBUFFER_H
 #define GLXX_FRAMEBUFFER_H
@@ -15,6 +15,8 @@
 
 #include "../egl/egl_surface.h"
 #include "glxx_utils.h"
+
+#include "libs/util/gfx_util/gfx_util_rect.h"
 
 typedef enum
 {
@@ -112,8 +114,8 @@ typedef struct
                                     enquire that value */
    bool default_fixed_sample_locations;
 
-   int *damage_rects;       /* A khrn_mem_alloc'ed list of damage rects, or NULL if none set */
-   int  num_damage_rects;   /* Number of rects in damage_rects */
+   gfx_rect *damage_rects;       /* A khrn_mem_alloc'ed list of damage rects, or NULL if none set */
+   int       num_damage_rects;   /* Number of rects in damage_rects */
 
    char *debug_label;
 

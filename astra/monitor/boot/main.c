@@ -54,6 +54,7 @@
 #include "mon_params.h"
 #include "mon_params_v2.h"
 #include "bl31_params.h"
+#include "gzip.h"
 #include "astra.h"
 #include "psci.h"
 #include "dvfs.h"
@@ -70,12 +71,21 @@ cpu_data_t cpu_data[MAX_NUM_CPUS];
 #define IMG_IS_AARCH64(img_info) \
     ((img_info.flags & IMG_AARCH32_MASK) == IMG_AARCH64)
 
+#define GZIP_MAGIC_OFFSET               0x0
+#define GZIP_MAGIC_NUMBER               0x8b1f
+
 #define ARM_IMAGE_MAGIC_OFFSET          0x38
 #define ARM_IMAGE_MAGIC_AARCH64         0x644d5241
 #define ARM_IMAGE_MAGIC_AARCH32         0x324d5241
 
 #define ZIMAGE_MAGIC_OFFSET             0x24
 #define ZIMAGE_MAGIC_NUMBER             0x016f2818
+
+static inline bool is_img_gzipped(void *pimg)
+{
+    uint16_t magic = *(uint16_t *)(pimg + GZIP_MAGIC_OFFSET);
+    return (magic == GZIP_MAGIC_NUMBER);
+}
 
 static inline bool is_img_arm_aarch32(void *pimg)
 {
@@ -320,20 +330,18 @@ void mon_early_init(uintptr_t mon_params_addr)
 
 void mon_images_mmap_init(void)
 {
-    size_t i;
+    /* Add image addresses to mmap regions */
+    mmap_add_region(
+        ALIGN_TO_PAGE(mon_params.tz_entry_point),
+        ALIGN_TO_PAGE(mon_params.tz_entry_point),
+        MAX_TZ_IMG_SIZE + MAX_TZ_CMP_SIZE,
+        MT_RW_DATA | MT_SEC);
 
-    /* Add image header addresses to mmap regions */
-    for (i = 0; i < 2; i++) {
-        uint64_t hdr_addr = (i == 0) ?
-            mon_params.tz_entry_point :
-            mon_params.nw_entry_point;
-
-        mmap_add_region(
-            ALIGN_TO_PAGE(hdr_addr),
-            ALIGN_TO_PAGE(hdr_addr),
-            PAGE_SIZE,
-            MT_MAILBOX | ((i == 0) ? MT_SEC : MT_NSEC));
-    }
+    mmap_add_region(
+        ALIGN_TO_PAGE(mon_params.nw_entry_point),
+        ALIGN_TO_PAGE(mon_params.nw_entry_point),
+        PAGE_SIZE,
+        MT_RW_DATA | MT_NSEC);
 }
 
 void mon_images_init(void)
@@ -341,6 +349,32 @@ void mon_images_init(void)
     /* Update image flags */
     if (mon_params.tz_entry_point) {
         void *pimg = (void *)mon_params.tz_entry_point;
+
+        /* Check if image is gzipped */
+        if (is_img_gzipped(pimg)) {
+            size_t cmpSize, imgSize;
+
+            DBG_MSG("Decompressing secure image...");
+
+            /* Use max compressed image if image size NOT given */
+            cmpSize = (mon_params.tz_img_info.size) ?
+                mon_params.tz_img_info.size :
+                MAX_TZ_CMP_SIZE;
+
+            /* Copy image to higher address */
+            memcpy(pimg + MAX_TZ_IMG_SIZE, pimg, cmpSize);
+
+            /* GZIP decompress image */
+            if (gzip_decompress(
+                    pimg, &imgSize,
+                    pimg + MAX_TZ_IMG_SIZE, &cmpSize)) {
+                ERR_MSG("Failed to decompress secure image");
+                SYS_HALT();
+            }
+
+            DBG_MSG("  compressed size: %d", (int)cmpSize);
+            DBG_MSG("  decompressed size: %d", (int)imgSize);
+        }
 
         /* Overwrite image flags with ARM image header info */
         if (is_img_arm_aarch64(pimg))
@@ -363,22 +397,27 @@ void mon_images_init(void)
 
 void mon_mmap_init(void)
 {
-    size_t i;
+    mbox_info_t *pmbox;
 
     /* Add mailbox addresses to mmap regions */
-    for (i = 0; i < 2; i++) {
-        mbox_info_t *pmbox = (i == 0) ?
-            &mon_params.tz_mbox_info :
-            &mon_params.nw_mbox_info;
+    pmbox = &mon_params.tz_mbox_info;
+    if (pmbox->addr) {
+        ASSERT(IS_PAGE_ALIGNED(pmbox->addr));
+        mmap_add_region(
+            pmbox->addr,
+            pmbox->addr,
+            pmbox->size,
+            MT_MAILBOX | MT_SEC);
+    }
 
-        if (pmbox->addr) {
-            ASSERT(IS_PAGE_ALIGNED(pmbox->addr));
-            mmap_add_region(
-                pmbox->addr,
-                pmbox->addr,
-                pmbox->size,
-                MT_MAILBOX | ((i == 0) ? MT_SEC : MT_NSEC));
-        }
+    pmbox = &mon_params.nw_mbox_info;
+    if (pmbox->addr) {
+        ASSERT(IS_PAGE_ALIGNED(pmbox->addr));
+        mmap_add_region(
+            pmbox->addr,
+            pmbox->addr,
+            pmbox->size,
+            MT_MAILBOX | MT_NSEC);
     }
 
 #ifdef DEBUG

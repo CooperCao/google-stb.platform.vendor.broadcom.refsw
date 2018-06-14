@@ -904,6 +904,7 @@ struct bcm_cfg80211 {
 	bool bss_pending_op;		/* indicate where there is a pending IF operation */
 #ifdef WLFBT
 	uint8 fbt_key[FBT_KEYLEN];
+	bool fbt_mgmt_registered;
 #endif
 	int roam_offload;
 #ifdef WL_NAN

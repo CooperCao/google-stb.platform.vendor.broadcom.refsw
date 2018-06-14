@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "glxx_int_config.h"
@@ -412,8 +412,8 @@ void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
 
    KHRN_MEM_ASSIGN(color, NULL);
 
-   fb->num_damage_rects = gfx_smax(0, surface->num_damage_rects);
-   KHRN_MEM_ASSIGN(fb->damage_rects, surface->damage_rects);
+   fb->num_damage_rects = gfx_smax(0, surface->age_damage_state.num_damage_rects);
+   KHRN_MEM_ASSIGN(fb->damage_rects, surface->age_damage_state.damage_rects);
 }
 
 void glxx_fb_detach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,

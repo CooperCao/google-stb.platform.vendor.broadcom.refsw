@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2003-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2003-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,6 +42,7 @@
 #define BDBG_FIFO_H
 
 #include "berr_ids.h"
+#include "bdbg_fifo_session.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,7 +59,7 @@ struct BDBG_Fifo_Token {
 };
 
 typedef struct BDBG_Fifo *BDBG_Fifo_Handle;
-typedef const struct BDBG_Fifo *BDBG_Fifo_CHandle;
+typedef struct BDBG_Fifo *BDBG_Fifo_CHandle;
 typedef struct BDBG_FifoReader *BDBG_FifoReader_Handle;
 
 typedef struct BDBG_Fifo_CreateSettings {
@@ -67,7 +68,6 @@ typedef struct BDBG_Fifo_CreateSettings {
     size_t bufferSize; /* [optional] size of the preallocated buffer */
     void *buffer;       /* [optional] pointer to preallocated buffer */
 } BDBG_Fifo_CreateSettings;
-
 
 
 #define BERR_FIFO_NO_DATA   BERR_MAKE_CODE(BERR_DBG_ID, 0)
@@ -84,6 +84,10 @@ BERR_Code BDBG_FifoReader_Create(BDBG_FifoReader_Handle *pReader, BDBG_Fifo_Hand
 void BDBG_FifoReader_Destroy(BDBG_FifoReader_Handle fifo);
 BERR_Code BDBG_FifoReader_Read(BDBG_FifoReader_Handle fifo, void *buffer, size_t buffer_size);
 BERR_Code BDBG_FifoReader_Resync(BDBG_FifoReader_Handle fifo);
+void BDBG_Fifo_SyncSession_Begin(BDBG_Fifo_Handle fifo, BDBG_Fifo_SyncSession *session);
+BERR_Code BDBG_Fifo_SyncSession_Wait(BDBG_Fifo_Handle fifo, BDBG_Fifo_SyncSession *session, unsigned timeout);
+void BDBG_Fifo_SyncSession_End(BDBG_Fifo_Handle fifo, BDBG_Fifo_SyncSession *session);
+
 
 #define BDBG_Fifo_GetBuffer(fifo, token) BDBG_Fifo_GetBuffer_isrsafe((fifo), (token))
 #define BDBG_Fifo_CommitBuffer(token) BDBG_Fifo_CommitBuffer_isrsafe((token))

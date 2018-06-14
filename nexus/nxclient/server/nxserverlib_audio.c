@@ -135,12 +135,19 @@ struct b_audio_resource {
 
 static struct {
     struct b_session *session;
-    NEXUS_AudioCaptureHandle handle;
     NxClient_AudioCaptureType captureType;
+#if !NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+    NEXUS_AudioCaptureHandle handle;
+#else
+    NEXUS_AudioBufferCaptureHandle handle;
+#endif
 } g_capture[NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS];
 
-
-static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS_SimpleAudioDecoderServerSettings *sessionSettings, NxClient_AudioCaptureType captureType);
+#if !NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+static void nxserverlib_p_configure_audio_output_capture(struct b_session *session, NEXUS_SimpleAudioDecoderServerSettings *sessionSettings, NxClient_AudioCaptureType captureType);
+#else
+static void nxserverlib_p_configure_audio_buffer_capture(struct b_session *session, NEXUS_AudioBufferCaptureCreateSettings *captureSettings, NxClient_AudioCaptureType captureType);
+#endif
 
 static enum nxserverlib_dolby_ms_type  b_dolby_ms(const struct b_session *session) {
     return session->server->settings.session[session->index].dolbyMs;
@@ -2390,9 +2397,18 @@ int bserver_set_audio_config(struct b_audio_resource *r)
     /* If there is a captue attached and we had to recreate then reconfigure the capture output */
     if (audioSettings.capture.output != NULL && recreateDownstream) {
         for (i=0;i<cap.numOutputs.capture;i++) {
+#if !NEXUS_AUDIO_BUFFER_CAPTURE_EXT
             if (g_capture[i].handle == audioSettings.capture.output) {
-                nxserverlib_configure_audio_capture(session, &audioSettings, g_capture[i].captureType);
+                nxserverlib_p_configure_audio_output_capture(session, &audioSettings, g_capture[i].captureType);
             }
+#else
+            /* Ring buffer capture can't swap without closing. Just close */
+            if (g_capture[i].handle) {
+                NEXUS_AudioBufferCapture_Stop(g_capture[i].handle);
+                NEXUS_AudioBufferCapture_Destroy(g_capture[i].handle);
+                g_capture[i].handle = NULL;
+            }
+#endif
         }
     }
 
@@ -2893,6 +2909,7 @@ int audio_init(nxserver_t server)
             outputs.audioDummy[i] = timingResourcesUsed++;
         }
     }
+#if !NEXUS_AUDIO_BUFFER_CAPTURE_EXT
     for (i=0; i<cap.numOutputs.capture;i++) {
         if (timingResourcesUsed <= timingResourcesAvailable) {
             outputs.audioCapture[i] = timingResourcesUsed++;
@@ -2913,6 +2930,7 @@ int audio_init(nxserver_t server)
             }
         }
     }
+#endif
     rc = NEXUS_AudioOutput_CreateClockConfig(&outputs, &config);
     if (rc) return BERR_TRACE(rc);
 
@@ -2943,8 +2961,9 @@ int audio_init(nxserver_t server)
             NEXUS_AudioOutput_SetSettings(NEXUS_AudioDummyOutput_GetConnector(server->platformConfig.outputs.audioDummy[i]), &outputSettings);
         }
      }
+#if !NEXUS_AUDIO_BUFFER_CAPTURE_EXT
      BKNI_Memcpy(&server->settings.audioCapture.clockSources, &config.audioCapture, sizeof(NEXUS_AudioOutputClockSource)*NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS);
-
+#endif
      bserver_init_audio_config(server);
      return 0;
 }
@@ -2972,7 +2991,94 @@ int audio_get_stc_index(struct b_connect *connect)
     return stcIndex;
 }
 
-static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS_SimpleAudioDecoderServerSettings *sessionSettings, NxClient_AudioCaptureType captureType)
+#if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+void nxserverlib_p_configure_audio_buffer_capture(struct b_session *session, NEXUS_AudioBufferCaptureCreateSettings *captureSettings, NxClient_AudioCaptureType captureType)
+{
+    NEXUS_AudioCapabilities capabilities;
+    NEXUS_GetAudioCapabilities(&capabilities);
+
+    switch (captureType) {
+    case NxClient_AudioCaptureType_e16BitStereo:
+    case NxClient_AudioCaptureType_e24BitStereo:
+        captureSettings->input = b_audio_get_pcm_input(session->main_audio, NEXUS_AudioConnectorType_eStereo);
+        break;
+    case NxClient_AudioCaptureType_e24Bit5_1:
+        captureSettings->input = b_audio_get_pcm_input(session->main_audio, NEXUS_AudioConnectorType_eMultichannel);
+        captureSettings->numChannels = 6;
+        break;
+    case NxClient_AudioCaptureType_eCompressed:
+        captureSettings->input = b_audio_get_compressed_input(session->main_audio, NEXUS_AudioConnectorType_eCompressed);
+        break;
+    case NxClient_AudioCaptureType_eCompressed4x:
+        if (session->server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 &&
+            session->audioSettings.dolbyMsAllowed && capabilities.dsp.codecs[NEXUS_AudioCodec_eAc3Plus].encode) {
+                captureSettings->input = b_audio_get_compressed_input(session->main_audio, NEXUS_AudioConnectorType_eCompressed4x);
+            }
+        else {
+            captureSettings->input = b_audio_get_compressed_input(session->main_audio, NEXUS_AudioConnectorType_eCompressed);
+        }
+        break;
+    default:
+        return;
+    }
+    return;
+}
+
+NEXUS_AudioBufferCaptureHandle nxserverlib_p_open_audio_buffer_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType)
+{
+    unsigned i;
+    NEXUS_AudioCapabilities audioCapabilities;
+    int rc;
+    NEXUS_AudioBufferCaptureCreateSettings captureSettings;
+    NEXUS_AudioBufferCaptureHandle handle;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (!session->main_audio->mixer[nxserver_audio_mixer_stereo] && !session->main_audio->mixer[nxserver_audio_mixer_multichannel]) {
+        BDBG_ERR(("no mixers in this session"));
+        return NULL;
+    }
+
+    for (i=0;i<audioCapabilities.numOutputs.capture;i++) {
+        if (!g_capture[i].handle) break;
+    }
+    if (i == audioCapabilities.numOutputs.capture) {
+        BDBG_ERR(("no audio captures left %d > %d", i, audioCapabilities.numOutputs.capture));
+        return NULL;
+    }
+
+    NEXUS_AudioBufferCapture_GetDefaultCreateSettings(&captureSettings);
+    captureSettings.channelBufferSize = 1536*1024*4;
+    nxserverlib_p_configure_audio_buffer_capture(session, &captureSettings, captureType);
+
+    if (captureSettings.input == NULL) {
+        return NULL;
+    }
+
+    handle = NEXUS_AudioBufferCapture_Create(&captureSettings);
+    if (!handle) {
+        return NULL;
+    }
+    rc = NEXUS_AudioBufferCapture_Start(handle);
+    if (rc) {
+        NEXUS_AudioBufferCapture_Destroy(handle);
+        return NULL;
+    }
+
+    g_capture[i].handle = handle;
+    g_capture[i].session = session;
+    g_capture[i].captureType = captureType;
+    *id = i;
+    return handle;
+}
+
+NEXUS_AudioBufferCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType)
+{
+    return nxserverlib_p_open_audio_buffer_capture(session, id, captureType);
+}
+
+#else
+static void nxserverlib_p_configure_audio_output_capture(struct b_session *session, NEXUS_SimpleAudioDecoderServerSettings *sessionSettings, NxClient_AudioCaptureType captureType)
 {
     /* set up per codec outputs for Capture */
     int i;
@@ -3068,16 +3174,16 @@ static void nxserverlib_configure_audio_capture(struct b_session *session, NEXUS
     return;
 }
 
-NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType)
+NEXUS_AudioCaptureHandle nxserverlib_p_open_audio_output_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType)
 {
+        unsigned i;
+    NEXUS_AudioCapabilities audioCapabilities;
+    int rc;
     NEXUS_AudioCaptureHandle handle;
     NEXUS_AudioCaptureOpenSettings settings;
-    int rc;
-    unsigned i;
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
     NEXUS_SimpleAudioDecoderServerSettings sessionSettings;
     NEXUS_AudioOutputSettings outputSettings;
-    NEXUS_AudioCapabilities audioCapabilities;
 
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
@@ -3126,7 +3232,7 @@ NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *sessio
 
     NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, audioDecoder, &sessionSettings);
     sessionSettings.capture.output = handle;
-    nxserverlib_configure_audio_capture(session, &sessionSettings, captureType);
+    nxserverlib_p_configure_audio_output_capture(session, &sessionSettings, captureType);
     rc = NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, audioDecoder, &sessionSettings);
     if ( rc ) goto err_add_mixer;
 
@@ -3147,11 +3253,18 @@ err_suspend:
     return NULL;
 }
 
+NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType)
+{
+    return nxserverlib_p_open_audio_output_capture(session, id, captureType);
+}
+#endif
+
 void nxserverlib_close_audio_capture(struct b_session *session,unsigned id)
 {
+    NEXUS_AudioCapabilities audioCapabilities;
+#if !NEXUS_AUDIO_BUFFER_CAPTURE_EXT
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
     NEXUS_SimpleAudioDecoderServerSettings sessionSettings;
-    NEXUS_AudioCapabilities audioCapabilities;
     int rc;
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
@@ -3172,6 +3285,17 @@ void nxserverlib_close_audio_capture(struct b_session *session,unsigned id)
         rc = NEXUS_SimpleAudioDecoder_Resume(audioDecoder);
         if (rc) {rc = BERR_TRACE(rc);}
     }
+#else
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    BSTD_UNUSED(session);
+
+    if (id < audioCapabilities.numOutputs.capture) {
+        BDBG_ASSERT(g_capture[id].handle);
+        NEXUS_AudioBufferCapture_Stop(g_capture[id].handle);
+        NEXUS_AudioBufferCapture_Destroy(g_capture[id].handle);
+        g_capture[id].handle = NULL;
+    }
+#endif
 }
 
 

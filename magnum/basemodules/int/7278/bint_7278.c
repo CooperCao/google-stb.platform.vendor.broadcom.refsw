@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to
@@ -38,6 +38,7 @@
  * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
  *****************************************************************************/
 
 #include "bstd.h"
@@ -231,16 +232,6 @@ BDBG_MODULE(interruptinterface_7278);
     case BCHP_UPG_MAIN_AON_IRQ_CPU_STATUS: \
     case BCHP_UPG_BSC_AON_IRQ_CPU_STATUS: \
     case BCHP_UPG_SPI_AON_IRQ_CPU_STATUS:
-
-#define BINT_P_UPG_AUX_RO_CPU_STATUS      0x0
-#define BINT_P_UPG_AUX_RO_CPU_SET         0x4
-#define BINT_P_UPG_AUX_RO_CPU_CLEAR       0x8
-#define BINT_P_UPG_AUX_RO_CPU_MASK_STATUS 0xc
-#define BINT_P_UPG_AUX_RO_CPU_MASK_SET    0x10
-#define BINT_P_UPG_AUX_RO_CPU_MASK_CLEAR  0x14
-
-#define BINT_P_UPG_AUX_RO_STATUS_CASES \
-    case BCHP_UPG_AUX_INTR2_CPU_STATUS:
 
 #define BINT_P_XPT_STATUS           0x00
 #define BINT_P_XPT_ENABLE           0x04
@@ -466,7 +457,7 @@ static const BINT_P_IntMap bint_map[] =
     BINT_MAP(2, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
 
-    BINT_MAP(2, UPG_AUX, "_UPG_TMON", UPG_AUX_INTR2_CPU_STATUS, REGULAR, SOME, 0x3 ),
+    BINT_MAP_STD(2, UPG_AUX, UPG_AUX_INTR2_CPU ),
 
     BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
@@ -646,9 +637,6 @@ static void BINT_P_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift
 #endif
             /* Has to cleared at the source */
             break;
-        BINT_P_UPG_AUX_RO_STATUS_CASES
-            BREG_Write32( regHandle, baseAddr + BINT_P_UPG_AUX_RO_CPU_CLEAR, 1ul<<shift);
-            break;
         BINT_P_PCROFFSET_CASES
             /* Write 0 to clear the int bit. Writing 1's are ingored. */
             BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS, ~( 1ul << shift ) );
@@ -708,10 +696,6 @@ static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift 
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
         intEnable &= ~(1ul<<shift);
         BREG_Write32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE, intEnable );
-        break;
-
-    BINT_P_UPG_AUX_RO_STATUS_CASES
-        BREG_Write32( regHandle, baseAddr + BINT_P_UPG_AUX_RO_CPU_MASK_SET, 1ul<<shift);
         break;
 
     BINT_P_PCROFFSET_CASES
@@ -777,9 +761,6 @@ static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shif
         intEnable |= 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE, intEnable );
         break;
-    BINT_P_UPG_AUX_RO_STATUS_CASES
-        BREG_Write32( regHandle, baseAddr + BINT_P_UPG_AUX_RO_CPU_MASK_CLEAR, 1ul<<shift);
-        break;
     BINT_P_TIMER_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_TIMER_MASK );
         intEnable |= (1ul<<shift);
@@ -826,8 +807,7 @@ static uint32_t BINT_P_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr )
 #endif
     BINT_P_UPGSC_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
-    BINT_P_UPG_AUX_RO_STATUS_CASES
-        return BREG_Read32( regHandle, baseAddr + BINT_P_UPG_AUX_RO_CPU_STATUS);
+
     BINT_P_PCROFFSET_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS );
 

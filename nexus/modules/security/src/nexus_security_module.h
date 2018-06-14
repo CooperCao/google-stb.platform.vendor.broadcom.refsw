@@ -167,6 +167,21 @@ BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKe
 
 /* converts a nexus keylayer type to a HSM keylayer type. */
 BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeyLayer( NEXUS_SecurityKeyLayer keyLayer );
+BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeySource( NEXUS_SecurityKeySource keySource );
+
+/* converts a nexus virtual keyladder if to HSM. */
+BCMD_VKLID_e NEXUS_Security_P_mapNexus2Hsm_VklId( NEXUS_SecurityVirtualKeyladderID vklId );
+/* converts a HSM virtual keyladder if to NEXUS. */
+NEXUS_SecurityVirtualKeyladderID NEXUS_Security_P_mapHsm2Nexus_VklId( BCMD_VKLID_e vklId );
+
+/* convert NEXUS keyMode to HSM equivalent */
+BCMD_KeyMode_e NEXUS_Security_P_mapNexus2Hsm_KeyMode( NEXUS_SecurityKeyMode keyMode );
+
+/* convert NEXUS customer sub mode  to HSM equivalent */
+BCMD_CustomerSubMode_e NEXUS_Security_P_mapNexus2Hsm_CustomerSubMode( NEXUS_SecurityCustomerSubMode cusSubMode );
+
+/* convert NEXUS rook key source to HSM equivalent */
+BCMD_RootKeySrc_e NEXUS_Security_P_mapNexus2Hsm_RootKeySource( NEXUS_SecurityRootKeySrc rootKeySource );
 
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_RegionVerify);

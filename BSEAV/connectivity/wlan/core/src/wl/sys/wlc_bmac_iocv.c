@@ -1927,6 +1927,11 @@ wlc_bmac_doiovar(void *hw, uint32 actionid,
 
 	case IOV_SVAL(IOV_BMAC_MACFREQ):
 	{
+		/* The call stack will not go to wlc_ampdu_release because
+		 * wlc_ampdu_txeval will return in the condition
+		 * 'ini->ba_state != AMPDU_TID_STATE_BA_ON'.
+		 */
+		/* coverity[stack_use_overflow] */
 		wlc_bmac_switch_macfreq_dynamic(wlc_hw, (uint8)int_val);
 		break;
 	}

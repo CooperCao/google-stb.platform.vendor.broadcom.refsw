@@ -104,11 +104,12 @@ void BHSM_Hmac_Destroy( BHSM_HmacHandle handle )
     BHSM_P_Hmac *pInstance = (BHSM_P_Hmac*)handle;
 
     BDBG_ENTER( BHSM_Hmac_Destroy );
-    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     if( !pInstance ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
 
+    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
     BDBG_OBJECT_DESTROY( handle, BHSM_P_Hmac );
+
     BKNI_Free( pInstance );
 
     BDBG_LEAVE( BHSM_Hmac_Destroy );
@@ -133,10 +134,11 @@ BERR_Code BHSM_Hmac_SetSettings( BHSM_HmacHandle handle, const BHSM_HmacSettings
     BHSM_P_Hmac *pInstance = (BHSM_P_Hmac*)handle;
 
     BDBG_ENTER( BHSM_Hmac_SetSettings );
-    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
+    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     pInstance->settings = *pSettings;
     pInstance->state = BHSM_P_HmacState_eReady;
@@ -153,12 +155,13 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
     BERR_Code rc = BERR_UNKNOWN;
 
     BDBG_ENTER( BHSM_Hmac_SubmitData );
-    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( pInstance->state == BHSM_P_HmacState_eInitial ) { return BERR_TRACE(BHSM_STATUS_STATE_ERROR); }
         /* ready and inprogress allowed.  */
+
+    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     BDBG_MSG(("%s dataSize[%u] last[%x]", BSTD_FUNCTION, pData->dataSize, pData->last ));
 

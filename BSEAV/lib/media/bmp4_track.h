@@ -1,24 +1,45 @@
 /***************************************************************************
- *     Copyright (c) 2007-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * MP4 library, media track interface
- * 
- * Revision History:
  *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #ifndef _BMP4_TRACK_H__
 #define _BMP4_TRACK_H__
@@ -31,6 +52,9 @@
 extern "C"
 {
 #endif
+
+#define B_MP4_MAX_AUXILIARY_INFO    1
+#define B_MP4_MAX_SAMPLE_GROUP  1
 
 typedef struct bmp4_track_info {
 	bmp4_trackheaderbox trackheader;
@@ -46,8 +70,30 @@ typedef struct bmp4_track_info {
 	bfile_segment chunkoffset64; 
 	bfile_segment syncsample;
     bfile_segment edit;
+    struct {
+        bfile_segment sizes;
+        bfile_segment offsets;
+    } sampleAuxiliaryInformation[B_MP4_MAX_AUXILIARY_INFO];
+    struct {
+        bfile_segment sampleToGroup;
+        bfile_segment description;
+    } sampleGroup[B_MP4_MAX_SAMPLE_GROUP];
     const bmp4_movieheaderbox *movieheader;
 } bmp4_track_info;
+
+typedef struct bmp4_sample_auxiliary {
+    bool valid;
+    uint8_t size;
+    uint64_t offset;
+    struct bmp4_SampleAuxiliaryInformation aux_info;
+} bmp4_sample_auxiliary;
+
+typedef struct bmp4_sample_group {
+    bool valid;
+    uint32_t type;
+    unsigned length;
+    uint64_t offset;
+} bmp4_sample_group;
 
 typedef struct bmp4_sample {
 	off_t offset;
@@ -56,10 +102,13 @@ typedef struct bmp4_sample {
     unsigned sample_count;
 	bool	syncsample; 
     bool    endofstream;
+
+    bmp4_sample_auxiliary auxiliaryInformation[B_MP4_MAX_AUXILIARY_INFO];
+    bmp4_sample_group sampleGroup[B_MP4_MAX_SAMPLE_GROUP];
 } bmp4_sample;
 
 typedef struct bmp4_stream_sample_status {
-    unsigned sample_count; /* number of samples immediattly avaliable in the track */
+    unsigned sample_count; /* number of samples immediately available in the track */
 } bmp4_stream_sample_status;
 
 typedef struct bmp4_stream_sample *bmp4_stream_sample_t;

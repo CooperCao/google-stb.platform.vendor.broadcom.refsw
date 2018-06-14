@@ -927,8 +927,8 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     if ( regionConfiguration.cpuType == BCMD_MemAuth_CpuType_eScpu )  /* Support for SCPU */
     {
-        regionConfiguration.keyLayer                 = pRegionData->keyLadderLayer;
-        regionConfiguration.vkl                      = pRegionData->keyLadderId;
+        regionConfiguration.keyLayer                 = NEXUS_Security_P_mapNexus2Hsm_KeySource( pRegionData->keyLadderLayer );
+        regionConfiguration.vkl                      = NEXUS_Security_P_mapNexus2Hsm_VklId( pRegionData->keyLadderId );
         regionConfiguration.bgCheck                  = pRegionData->enableBackgroundChecker;
         regionConfiguration.instrChecker             = pRegionData->enableInstructionChecker;
         regionConfiguration.SCMVersion               = pRegionData->scmVersion;

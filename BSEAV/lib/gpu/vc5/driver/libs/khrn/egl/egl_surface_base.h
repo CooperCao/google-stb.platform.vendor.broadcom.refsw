@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef EGL_SURFACE_BASE_H
 #define EGL_SURFACE_BASE_H
@@ -8,6 +8,8 @@
 #include "egl_config.h"
 #include "egl_attrib_list.h"
 #include "../common/khrn_image.h"
+
+#include "libs/util/gfx_util/gfx_util_rect.h"
 
 typedef enum
 {
@@ -87,6 +89,29 @@ enum egl_surface_type
    EGL_SURFACE_TYPE_PIXMAP,
 };
 
+typedef enum egl_buffer_count_mode
+{
+   MODE_REPORT_REAL_AGE_ZERO = 0,
+   MODE_REPORT_REAL_BUFFER_AGE,
+   MODE_REPORT_ZERO_BUFFER_AGE
+} egl_buffer_count_mode_t;
+
+typedef struct egl_buffer_age_damage_state
+{
+   gfx_rect               *damage_rects;       /* A malloc'ed list of damage rects, or NULL if none set */
+   int                     num_damage_rects;   /* -1 indicates no regions have been set since last swap */
+   int                     buffer_age;         /* The real buffer age of the surface                    */
+   int                     buffer_age_override;/* The buffer age to report to the application           */
+   bool                    buffer_age_queried; /* true if buffer age queried since last swap            */
+   bool                    buffer_age_enabled; /* true if buffer age has ever been requested on surface */
+   unsigned                big_damage_count;   /* How many large damage rectangles we've seen           */
+   unsigned                age_override_count; /* How many times we've overridden the buffer age        */
+   float                   damage_coverage;    /* How much of the surface is damaged when damage is     */
+                                               /* valid and enabled? (0.0->1.0)                         */
+   egl_buffer_count_mode_t mode;               /* The mode the heuristic state machine is in            */
+}
+EGL_BUFFER_AGE_DAMAGE_STATE_T;
+
 struct egl_surface_base
 {
    /*
@@ -106,11 +131,7 @@ struct egl_surface_base
    EGLNativeWindowType           native_window;  /* If this surface is attached to a native window, which one? */
    EGLNativePixmapType           native_pixmap;  /* If this surface is attached to a native pixmap, which one? */
 
-   int                          *damage_rects;       /* A malloc'ed list of damage rects, or NULL if none set */
-   int                           num_damage_rects;   /* -1 indicates no regions have been set since last swap */
-   int                           buffer_age;         /* The buffer age to report when queried                 */
-   bool                          buffer_age_queried; /* true if buffer age queried since last swap            */
-   bool                          buffer_age_enabled; /* true if buffer age has ever been requested on surface */
+   EGL_BUFFER_AGE_DAMAGE_STATE_T age_damage_state;
 
    /*
     * The context that this surface is bound to. In other words, context->draw
@@ -169,6 +190,8 @@ extern khrn_image *egl_surface_base_get_aux_buffer(
       const EGL_SURFACE_T *surface, egl_aux_buf_t which);
 
 /* Called after swap buffers to reset per-swap state in the surface */
-extern void egl_surface_base_swap_done(EGL_SURFACE_T *surface, int new_buffer_age);
+extern void egl_surface_base_swap_done(EGL_SURFACE_T *surface);
+
+extern void egl_surface_base_update_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T *state);
 
 #endif /* EGL_SURFACE_BASE_H */

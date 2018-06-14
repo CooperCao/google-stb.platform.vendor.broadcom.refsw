@@ -1,0 +1,22 @@
+In order to run sage_otpepoch_update_tool, user needs to compile nexus and app as following
+
+make -C nexus/build
+
+# build nexus with nxclient support(optional)
+export NXCLIENT_SUPPORT=y
+make -C nexus/nxclient
+
+make -C BSEAV/lib/security/sage/otpepoch_update re
+
+Before launching the tool, user must make sure the desired SAGE TAs are all loaded, and the corresponding
+feature certificate binary is located in the directory.
+
+The default location and name of the OTP EPOCH update feature certificate file is ./sage_fc_otp_epoch_update.bin.
+The name of the file is "sage_fc_otp_epoch_update.bin" and the directory is the current directory.
+
+On Box
+run the application without nxserver:
+./nexus sage_otpepoch_update_tool sage_fc_otp_epoch_update.bin
+
+run the application with nxserver:
+./sage_otpepoch_update_tool sage_fc_otp_epoch_update.bin

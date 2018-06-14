@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef GLXX_HW_FRAMEBUFFER_H
 #define GLXX_HW_FRAMEBUFFER_H
@@ -9,6 +9,7 @@
 #include "libs/core/v3d/v3d_gen.h"
 #include "glxx_int_config.h"
 #include "../common/khrn_image_plane.h"
+#include "libs/util/gfx_util/gfx_util_rect.h"
 
 typedef struct
 {
@@ -29,8 +30,8 @@ typedef struct
    unsigned height; /* min height of all images */
    unsigned layers; /* min layers of all images */
 
-   int *damage_rects;     /* A khrn_mem_alloc'ed list of damage rects, or NULL if none set */
-   int  num_damage_rects; /* Number of rects in damage_rects */
+   gfx_rect *damage_rects;     /* A khrn_mem_alloc'ed list of damage rects, or NULL if none set */
+   int       num_damage_rects; /* Number of rects in damage_rects */
 
 } GLXX_HW_FRAMEBUFFER_T;
 

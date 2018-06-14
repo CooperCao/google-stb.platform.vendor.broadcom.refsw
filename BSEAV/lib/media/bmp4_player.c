@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,8 +41,8 @@
 #include "bmp4_player.h"
 #include "bmp4_track.h"
 #include "biobits.h"
-
 #include "blst_squeue.h"
+#include "bmp4_ce_util.h"
 
 BDBG_MODULE(bmp4_player);
 #define BDBG_MSG_TRACE(x) BDBG_MSG(x)
@@ -119,6 +119,21 @@ typedef struct b_mp4_fragment_track {
     } index;
 } b_mp4_fragment_track;
 
+typedef struct b_mp4_track_drm {
+    bfile_segment senc;
+    struct {
+        bool valid;
+        bmp4_fullbox senc_box;
+        struct bmp4_TrackEncryption tenc;
+        struct {
+            bool valid;
+            uint64_t offset;
+            struct bmp4_CencSampleEncryptionInformationGroupEntry entry;
+        } group;
+        uint8_t frame_meta_data[256];
+    } cenc;
+} b_mp4_track_drm;
+
 typedef struct b_mp4_track {
     BLST_SQ_ENTRY(b_mp4_track) next;
     bool trackheader_valid;
@@ -139,6 +154,8 @@ typedef struct b_mp4_track {
     batom_accum_t track_accum; /* accumulator that is used to keep data across different samples */
     /* accumulator */
     void *accum_data; /* pointer to dynamically allocate track data */
+
+    b_mp4_track_drm drm;
 
     union {
         bmedia_adts_header mp4a;
@@ -205,6 +222,10 @@ struct bmp4_player {
     b_mp4_player_handler movie_extends_handler;
     uint64_t next_seek;
     uint8_t pes_buf[256];
+    struct {
+        struct b_mp4_cenc_frame frame;
+        batom_vec vecs[B_MP4_CENC_MAX_FRAME_VECS];
+    } cenc;
 };
 
 
@@ -358,6 +379,193 @@ b_mp4_player_filetype(bmp4_parser_handler *handler, uint32_t type, batom_t box)
     return bmp4_parser_action_none;
 }
 
+static void
+b_mp4_track_drm_init(b_mp4_track_drm * drm)
+{
+    drm->cenc.valid = false;
+    drm->cenc.group.valid = false;
+    bfile_segment_clear(&drm->senc);
+    return;
+}
+
+static int
+b_mp4_load_data(bfile_io_read_t fd, uint64_t offset, unsigned file_length, void *buf, unsigned buf_length, batom_cursor *cursor, batom_vec *vec)
+{
+    off_t seek_result;
+    ssize_t read_result;
+
+    if(0) BDBG_LOG(("b_mp4_load_data:%p offset:%lu file_length:%u buf_length:%u", (void *)fd, (unsigned long)offset, file_length, buf_length));
+    if(file_length > buf_length) {
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        goto error;
+    }
+
+    seek_result = fd->seek(fd, offset, SEEK_SET);
+    if(seek_result<0 || (uint64_t)seek_result != offset) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto error;
+    }
+    read_result =  fd->read(fd, buf, file_length);
+    if(read_result<0) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto error;
+    }
+    if((unsigned)read_result!=file_length) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto error;
+    }
+    batom_vec_init(vec, buf, file_length);
+    batom_cursor_from_vec(cursor, vec, 1);
+    return 0;
+error:
+    return -1;
+}
+
+
+static void
+b_mp4_player_prepare_track_drm(bmp4_player_t player, b_mp4_track *track, const bmp4_sampleentry *sample)
+{
+    batom_cursor cursor;
+    batom_vec vec;
+    uint8_t buf[BMP4_FULLBOX_SIZE];
+
+    if(!bfile_segment_test(&track->drm.senc)) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return;
+    }
+    if(b_mp4_load_data(player->fd, track->drm.senc.start, sizeof(buf), buf, sizeof(buf), &cursor, &vec)!=0) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return;
+    }
+    if(!bmp4_parse_fullbox(&cursor, &track->drm.cenc.senc_box)) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        return;
+    }
+    batom_vec_init(&vec, sample->protection_scheme_information, sample->protection_scheme_information_size);
+    batom_cursor_from_vec(&cursor, &vec, 1);
+    if(bmp4_find_box(&cursor, BMP4_PROTECTION_SCHEME_INFORMATION, NULL)) {
+        if(bmp4_find_box(&cursor, BMP4_SCHEME_INFORMATION, NULL)) {
+            if(bmp4_find_box(&cursor, BMP4_TRACK_ENCRYPTION, NULL)) {
+                bmp4_fullbox box;
+                if(bmp4_parse_fullbox(&cursor, &box)) {
+                    if(bmp4_parse_TrackEncryption(&cursor, &box, &track->drm.cenc.tenc)) {
+                        track->drm.cenc.valid = true;
+                    }
+                }
+            }
+        }
+    }
+    return;
+}
+
+static BERR_Code
+b_mp4_process_payload_cenc_frame(bmp4_player_t player, batom_cursor *subsamples, struct bmp4_SampleEncryptionEntry *senc, const struct bmp4_CencSampleEncryptionInformationGroupEntry *group, batom_t payload)
+{
+    unsigned i;
+    batom_cursor cursor;
+    unsigned subsample_count = senc->subsample_count;
+    BERR_Code rc;
+
+    player->cenc.frame.subsample_count = 0;
+    player->cenc.frame.vec_count = 0;
+    rc = player->stream.mp4_cenc->sample_begin(player->stream.cntx, senc, group);
+    if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
+
+    batom_cursor_from_atom(&cursor, payload);
+    for(i=0;i<subsample_count;i++) {
+        struct bmp4_SampleEncryptionSubsample subsample;
+        if(!bmp4_parse_SampleEncryptionSubsample(subsamples, &subsample)) {
+            batom_cursor_dump(subsamples, "subsamples");
+            (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto error;
+        }
+        BDBG_MSG(("b_mp4_process_payload_cenc_frame: subsample:%u/%u BytesOfClearData:%u BytesOfProtectedData:%u", i, subsample_count, subsample.BytesOfClearData, subsample.BytesOfProtectedData));
+        if(subsample.BytesOfClearData) {
+            if(batom_cursor_skip(&cursor,subsample.BytesOfClearData) != subsample.BytesOfClearData) {
+                (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto error;
+            }
+        }
+        if(subsample.BytesOfProtectedData) {
+            size_t required_vec_size;
+            size_t nvecs;
+
+            batom_cursor begin;
+            BATOM_CLONE(&begin, &cursor);
+            if(batom_cursor_skip(&cursor,subsample.BytesOfProtectedData) != subsample.BytesOfProtectedData) {
+                (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto error;
+            }
+            nvecs = batom_cursor_extract_range (&begin, &cursor, player->cenc.vecs, sizeof(player->cenc.vecs)/sizeof(*player->cenc.vecs), &required_vec_size);
+            if(required_vec_size!=nvecs) {
+                BDBG_ERR(("b_mp4_process_payload_cenc_frame:%p required_vec_size:%u nvecs:%u", (void*)player, (unsigned)required_vec_size, (unsigned)(sizeof(player->cenc.vecs)/sizeof(*player->cenc.vecs))));
+                rc=BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto error;
+            }
+            rc = player->stream.mp4_cenc->subsample(player->stream.cntx, &player->cenc.frame, player->cenc.vecs, nvecs);
+            if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
+        }
+    }
+    rc = player->stream.mp4_cenc->sample_end(player->stream.cntx, &player->cenc.frame, group);
+    if(rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto error;}
+    return BERR_SUCCESS;
+error:
+    return BERR_TRACE(rc);
+}
+
+static void
+b_mp4_process_payload_cenc(bmp4_player_t player, b_mp4_track *track, batom_t payload)
+{
+    unsigned i;
+    const bmp4_sample_auxiliary *aux=NULL;
+    const bmp4_sample_group *group=NULL;
+    struct bmp4_SampleEncryptionEntry senc;
+    batom_cursor cursor;
+    batom_vec vec;
+
+    for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+        /* BDBG_MSG_TRACE(("aux: %u: valid %u %#x %#x", i, track->next_sample.auxiliaryInformation[i].valid, track->next_sample.auxiliaryInformation[i].aux_info.type, BMP4_CENC_SCHEME_AES_CTR)); */
+        if(track->next_sample.auxiliaryInformation[i].valid && track->next_sample.auxiliaryInformation[i].aux_info.type == BMP4_CENC_SCHEME_AES_CTR) {
+            aux = &track->next_sample.auxiliaryInformation[i];
+            break;
+        }
+    }
+    for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+        /* BDBG_MSG_TRACE(("group %u: valid %u %#x %#x", i, track->next_sample.sampleGroup[i].valid, track->next_sample.sampleGroup[i].type, BMP4_CENC_SAMPLE_ENCRYPTION_INFORMATION_GROUP_ENTRY)); */
+        if(track->next_sample.sampleGroup[i].valid && track->next_sample.sampleGroup[i].type == BMP4_CENC_SAMPLE_ENCRYPTION_INFORMATION_GROUP_ENTRY) {
+            group = &track->next_sample.sampleGroup[i];
+            break;
+        }
+    }
+    if(group == NULL || aux == NULL) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto error;
+    }
+    if(!track->drm.cenc.group.valid || track->drm.cenc.group.offset != group->offset) {
+        if(b_mp4_load_data(player->fd, group->offset, group->length, track->drm.cenc.frame_meta_data, sizeof(track->drm.cenc.frame_meta_data), &cursor, &vec)!=0) {
+            (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+            goto error;
+        }
+        if(!bmp4_parse_CencSampleEncryptionInformationGroupEntry(&cursor, &track->drm.cenc.group.entry)) {
+            (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+            goto error;
+        }
+        track->drm.cenc.group.valid = true;
+        track->drm.cenc.group.offset = group->offset;
+    }
+    if(b_mp4_load_data(player->fd, aux->offset, aux->size, track->drm.cenc.frame_meta_data, sizeof(track->drm.cenc.frame_meta_data), &cursor, &vec)!=0) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto error;
+    }
+    if(!bmp4_parse_SampleEncryptionEntry(&cursor, &track->drm.cenc.senc_box , track->drm.cenc.group.entry.Per_Sample_IV_Size, &senc)) {
+        (void)BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto error;
+    }
+    b_mp4_process_payload_cenc_frame(player, &cursor, &senc, &track->drm.cenc.group.entry, payload);
+    return;
+error:
+    return;
+}
 
 static void
 b_mp4_track_init(b_mp4_track *track)
@@ -381,6 +589,7 @@ b_mp4_track_init(b_mp4_track *track)
 #endif
     track->fragment.index.valid = false;
     bmp4_track_info_init(&track->info);
+    b_mp4_track_drm_init(&track->drm);
     return;
 }
 
@@ -768,11 +977,65 @@ b_mp4_player_object_begin(void *cntx, uint32_t type, uint64_t size, uint64_t off
             segment = &track->info.edit;
         }
         break;
+    case BMP4_SAMPLE_AUXILIARY_INFORMATION_SIZES:
+        track = b_mp4_player_reserve_track(player);
+        if(track) {
+            unsigned i;
+            for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+                if(track->info.sampleAuxiliaryInformation[i].sizes.len==0) {
+                    segment = &track->info.sampleAuxiliaryInformation[i].sizes;
+                    break;
+                }
+            }
+        }
+        break;
+    case BMP4_SAMPLE_AUXILIARY_INFORMATION_OFFSETS:
+        track = b_mp4_player_reserve_track(player);
+        if(track) {
+            unsigned i;
+            for(i=0;i<B_MP4_MAX_AUXILIARY_INFO;i++) {
+                if(track->info.sampleAuxiliaryInformation[i].offsets.len==0) {
+                    segment = &track->info.sampleAuxiliaryInformation[i].offsets;
+                    break;
+                }
+            }
+        }
+        break;
+    case BMP4_SAMPLE_TO_GROUP:
+        track = b_mp4_player_reserve_track(player);
+        if(track) {
+            unsigned i;
+            for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+                if(track->info.sampleGroup[i].sampleToGroup.len==0) {
+                    segment = &track->info.sampleGroup[i].sampleToGroup;
+                    break;
+                }
+            }
+        }
+        break;
+    case BMP4_SAMPLE_GROUP_DESCRIPTION:
+        track = b_mp4_player_reserve_track(player);
+        if(track) {
+            unsigned i;
+            for(i=0;i<B_MP4_MAX_SAMPLE_GROUP;i++) {
+                if(track->info.sampleGroup[i].description.len==0) {
+                    segment = &track->info.sampleGroup[i].description;
+                    break;
+                }
+            }
+        }
+        break;
+    case BMP4_SAMPLE_ENCRYPTION:
+        track = b_mp4_player_reserve_track(player);
+        if(track) {
+            segment = &track->drm.senc;
+        }
+        break;
+
     case BMP4_TYPE('s','t','s','h'): /* Shadow Sync Sample Box */
     case BMP4_TYPE('s','t','d','p'): /* Degradation Priority Box */
     case BMP4_TYPE('p','a','d','b'): /* Padding Bits Box */
     case BMP4_TYPE('s','d','t','p'): /* AVC, Independent and Disposable Samples Box */
-    case BMP4_TYPE('s','b','g','p'): /* AVC, SampleToGroup Box */
         player->next_seek = offset+size;
         return bmp4_parser_action_discard;
     default:
@@ -792,6 +1055,7 @@ b_mp4_player_object_begin(void *cntx, uint32_t type, uint64_t size, uint64_t off
     }
     return bmp4_parser_action_discard;
 }
+
 
 static void
 b_mp4_player_prepare_track(bmp4_player_t player, b_mp4_track *track)
@@ -968,6 +1232,10 @@ b_mp4_player_prepare_track(bmp4_player_t player, b_mp4_track *track)
     case bmp4_sample_type_ac4:
     default:
         break;
+    }
+
+    if(sample->protection_scheme_information_size) {
+        b_mp4_player_prepare_track_drm(player, track, sample);
     }
     return;
 }
@@ -1787,16 +2055,16 @@ b_mp4_process_sample_s263(bmp4_player_t player, b_mp4_track *track, batom_t atom
     }
 }
 
+
 static batom_t
-b_mp4_process_sample_avc(bmp4_player_t player, const b_mp4_track *track, batom_t atom, const bmp4_sample_avc *avc)
+b_mp4_process_payload_avc(bmp4_player_t player, b_mp4_track *track, batom_t atom, unsigned lengthSize)
 {
-    batom_accum_t src = player->accum_src;
-    batom_accum_t dst = player->accum_dest;
     batom_cursor cursor;
     batom_t result = NULL;
+    batom_accum_t src = player->accum_src;
+    batom_accum_t dst = player->accum_dest;
 
     BDBG_ASSERT(track);
-    BDBG_ASSERT(avc);
     BDBG_ASSERT(batom_accum_len(src)==0);
     BDBG_ASSERT(batom_accum_len(dst)==0);
 
@@ -1813,15 +2081,14 @@ b_mp4_process_sample_avc(bmp4_player_t player, const b_mp4_track *track, batom_t
         batom_cursor nal;
         size_t data_len;
 
-
-        nal_len = batom_cursor_vword_be(&cursor, avc->meta.nalu_len);
+        nal_len = batom_cursor_vword_be(&cursor, lengthSize);
         if(BATOM_IS_EOF(&cursor)) {
             break;
         }
         BATOM_CLONE(&nal, &cursor);
         data_len = batom_cursor_skip(&cursor, nal_len);
         if(data_len!=nal_len || nal_len==0) {
-            BDBG_WRN(("b_mp4_process_sample_avc: %#lx invalid nal_len %u:%u", (unsigned long)player, (unsigned)nal_len, (unsigned)data_len));
+            BDBG_WRN(("b_mp4_process_payload_avc:%p invalid nal_len %u:%u", (void *)player, (unsigned)nal_len, (unsigned)data_len));
             b_mp4_player_data_error(player);
             batom_accum_clear(dst);
             result = batom_empty(player->factory, NULL, NULL);
@@ -1834,56 +2101,20 @@ b_mp4_process_sample_avc(bmp4_player_t player, const b_mp4_track *track, batom_t
 done:
     batom_accum_clear(src);
     return result;
+}
+
+
+static batom_t
+b_mp4_process_sample_avc(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_avc *avc)
+{
+    return b_mp4_process_payload_avc(player, track, atom, avc->meta.nalu_len);
 }
 
 static batom_t
-b_mp4_process_sample_hevc(bmp4_player_t player, const b_mp4_track *track, batom_t atom, const bmp4_sample_hevc *hevc)
+b_mp4_process_sample_hevc(bmp4_player_t player, b_mp4_track *track, batom_t atom, const bmp4_sample_hevc *hevc)
 {
-    batom_accum_t src = player->accum_src;
-    batom_accum_t dst = player->accum_dest;
-    batom_cursor cursor;
-    batom_t result = NULL;
-
-    BDBG_ASSERT(track);
-    BDBG_ASSERT(hevc);
-    BDBG_ASSERT(batom_accum_len(src)==0);
-    BDBG_ASSERT(batom_accum_len(dst)==0);
-
-    batom_accum_add_atom(src, atom);
-    batom_release(atom);
-    batom_cursor_from_accum(&cursor, src);
-
-    if(track->next_sample.syncsample && track->hdr_len) {
-        batom_accum_add_range(dst, track->hdr_buf, track->hdr_len);
-    }
-
-    for(;;)  {
-        size_t nal_len;
-        batom_cursor nal;
-        size_t data_len;
-
-        nal_len = batom_cursor_vword_be(&cursor, hevc->meta.lengthSize);
-        if(BATOM_IS_EOF(&cursor)) {
-            break;
-        }
-        BATOM_CLONE(&nal, &cursor);
-        data_len = batom_cursor_skip(&cursor, nal_len);
-        if(data_len!=nal_len || nal_len==0) {
-            BDBG_WRN(("b_mp4_process_sample_hevc: %#lx invalid nal_len %u:%u", (unsigned long)player, (unsigned)nal_len, (unsigned)data_len));
-            b_mp4_player_data_error(player);
-            batom_accum_clear(dst);
-            result = batom_empty(player->factory, NULL, NULL);
-            goto done;
-        }
-        batom_accum_add_vec(dst, &bmedia_nal_vec);
-        batom_accum_append(dst, src, &nal, &cursor);
-    }
-    result = batom_from_accum(dst, NULL, NULL);
-done:
-    batom_accum_clear(src);
-    return result;
+    return b_mp4_process_payload_avc(player, track, atom, hevc->meta.lengthSize);
 }
-
 
 #if 0
 static bool b_mp4_process_sample_mjpb_add_marker(bmp4_player_t player, uint32_t offset, const batom_vec *vec)
@@ -2169,7 +2400,10 @@ b_mp4_player_process_sample(bmp4_player_t player, b_mp4_track *track, batom_t at
         }
 
         player->stream.decrypt_callback(player->stream.cntx, &cursor, NULL, &drm_info, track->info.trackheader.track_ID);
+    } else if(track->drm.cenc.valid && player->stream.mp4_cenc) {
+        b_mp4_process_payload_cenc(player, track, atom);
     }
+
 #if B_MP4_PLAYER_SAVE_FRAMES
     {
         BKNI_Snprintf(fname, sizeof(fname), "frame_%u_%u.in", track->info.trackheader.track_ID, frame_no);

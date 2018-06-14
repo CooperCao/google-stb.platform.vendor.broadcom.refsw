@@ -1182,8 +1182,6 @@ void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *func
 }
 #endif
 
-#ifdef BDBG_DEBUG_WITH_STRINGS
-BDBG_FILE_MODULE(nexus_environment);
 static const char * const NEXUS_P_GetEnvVariables [] =
 {
     /* all entries MUST be sorted */
@@ -1303,6 +1301,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "profile_show",
     "sage_log",
     "sage_log_file",
+    "sage_log_file_path",
     "sage_log_file_size",
     "sage_logging",
     "sarnoff_lipsync_offset_enabled",
@@ -1324,6 +1323,21 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "xvd_removal_delay"
 };
 
+#if NEXUS_MODE_proxy
+extern void NEXUS_Platform_P_SetEnv(const char *name);
+void NEXUS_Base_ExportEnvVariables(void)
+{
+    unsigned nentries = sizeof(NEXUS_P_GetEnvVariables)/sizeof(NEXUS_P_GetEnvVariables[0]);
+    unsigned i;
+    for(i=0;i<nentries;i++) {
+        NEXUS_Platform_P_SetEnv(NEXUS_P_GetEnvVariables[i]);
+    }
+    return;
+}
+#endif
+
+#ifdef BDBG_DEBUG_WITH_STRINGS
+BDBG_FILE_MODULE(nexus_environment);
 /*
 function that does a binary search in a sorted array ([0] smallest value)
 it returns either index of located entry or negative result
@@ -1400,18 +1414,6 @@ void NEXUS_P_PrintEnv(const char *mode)
     }
     return ;
 }
-#if NEXUS_MODE_proxy
-extern void NEXUS_Platform_P_SetEnv(const char *name);
-void NEXUS_Base_ExportEnvVariables(void)
-{
-    unsigned nentries = sizeof(NEXUS_P_GetEnvVariables)/sizeof(NEXUS_P_GetEnvVariables[0]);
-    unsigned i;
-    for(i=0;i<nentries;i++) {
-        NEXUS_Platform_P_SetEnv(NEXUS_P_GetEnvVariables[i]);
-    }
-    return;
-}
-#endif
 #else /* #if BDBG_DEBUG_WITH_STRINGS */
 void NEXUS_P_CheckEnv_isrsafe(const char *name)
 {
@@ -1421,10 +1423,6 @@ void NEXUS_P_CheckEnv_isrsafe(const char *name)
 void NEXUS_P_PrintEnv(const char *mode)
 {
     BSTD_UNUSED(mode);
-    return;
-}
-void NEXUS_Base_ExportEnvVariables(void)
-{
     return;
 }
 #endif /* #if BDBG_DEBUG_WITH_STRINGS */

@@ -193,8 +193,8 @@ BERR_Code BSAT_45402_GetBp3SessionInfo(BSAT_Handle h, BSAT_45402_Bp3SessionInfo 
    pSessionInfo->otpId[1] = (uint8_t)((hab[3] >> 16) & 0xFF);
    pSessionInfo->otpId[2] = (uint8_t)((hab[3] >> 8) & 0xFF);
    pSessionInfo->otpId[3] = (uint8_t)(hab[3] & 0xFF);
-   pSessionInfo->rootKeyDerivation = (uint8_t)(hab[4] & 0xFF);
-   pSessionInfo->klDerivation = (uint8_t)((hab[4] >> 8) & 0xFF);
+   pSessionInfo->alg[0] = (uint8_t)(hab[4] & 0xFF);
+   pSessionInfo->alg[1] = (uint8_t)((hab[4] >> 8) & 0xFF);
 
    done:
    BDBG_LEAVE(BSAT_45402_GetBp3SessionInfo);

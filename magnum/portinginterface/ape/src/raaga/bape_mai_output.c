@@ -104,7 +104,7 @@ typedef struct BAPE_MaiOutput
     struct {
         unsigned subFrames;
         unsigned clk;
-        uint8_t channelStatus[24];
+        uint32_t channelStatus[6];
         bool cpuEncode;
     } spdif;
 
@@ -1638,6 +1638,7 @@ BAPE_MaiOutput_P_SetCbits_Ott_isr(BAPE_MaiOutputHandle handle)
             handle->spdif.channelStatus[3] = 0;
             handle->spdif.channelStatus[4] = 0;
             handle->spdif.channelStatus[5] = 0;
+            BDBG_MSG(("%s: %.8x %.8x %.8x", BSTD_FUNCTION, handle->spdif.channelStatus[0], handle->spdif.channelStatus[1], handle->spdif.channelStatus[2]));
         }
         handle->spdif.clk = 0;
     }

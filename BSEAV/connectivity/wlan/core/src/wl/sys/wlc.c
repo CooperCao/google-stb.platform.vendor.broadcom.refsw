@@ -2157,6 +2157,11 @@ void BCMINITFN(wlc_init)(wlc_info_t *wlc)
 	wlc_channel_sar_init(wlc->cmi);
 #endif /* WL_SARLIMIT */
 
+	/* The call stack will not go to wlc_ampdu_release because
+	 * wlc_ampdu_txeval will return in the condition
+	 * 'ini->ba_state != AMPDU_TID_STATE_BA_ON'.
+	 */
+	/* coverity[stack_use_overflow] */
 	wlc_bmac_init(wlc->hw, chanspec, mute, 0);
 #ifdef BCM_RECLAIM
 	wl_reclaim_postattach();

@@ -52,7 +52,7 @@ static BERR_Code BDSP_Arm_P_FileWriteLibtoAstra(
 {
     BERR_Code errCode = BERR_SUCCESS;
     BTEE_FileHandle pFile;
-    size_t BytesWritten;
+    uint32_t BytesWritten;
 
     BDBG_ENTER(BDSP_Arm_P_FileWriteLibtoAstra);
     /* Open file in Astra for writing system elf file */
@@ -647,7 +647,7 @@ static BERR_Code BDSP_Arm_P_PreLoadPostProcessImages(
 		BDBG_MSG(("BDSP_Arm_P_PreLoadPostProcessImages: Algorithm(%d) %s", algorithm, pAlgoSupportInfo->pName));
 		if(pAlgoSupportInfo->supported)
 		{
-			for(imageId = BDSP_ARM_IMG_ID_CODE(algorithm); imageId <= BDSP_ARM_IMG_ID_IDS(algorithm); imageId++)
+			for(imageId = BDSP_ARM_IMG_ID_CODE(algorithm); imageId <= BDSP_ARM_IMG_ID_IFRAME(algorithm); imageId++)
 			{
 				pImgInfo = &pArm->codeInfo.imgInfo[imageId];
 				if(pImgInfo->ui32Size == 0 )
@@ -728,7 +728,6 @@ static BERR_Code BDSP_Arm_P_AssignMemoryForDynamicDownload(
 			pAlgoTypeSplitInfo->sImageBlockInfo[i].Memory = Memory;
 			pAlgoTypeSplitInfo->sImageBlockInfo[i].algorithm = BDSP_Algorithm_eMax;
 			pAlgoTypeSplitInfo->sImageBlockInfo[i].numUser   = 0;
-			pAlgoTypeSplitInfo->sImageBlockInfo[i].bDownloadValid = false;
 		}
 	}
 end:
@@ -785,7 +784,8 @@ end:
 
 static BDSP_P_ImageBlockInfo* BDSP_Arm_P_GetFreeImageBlock(
 	BDSP_Algorithm algorithm,
-	BDSP_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo
+	BDSP_P_AlgoTypeSplitInfo *pAlgoTypeSplitInfo,
+	bool *pbdownload
 )
 {
 	BDSP_P_ImageBlockInfo *pImageBlockInfo = NULL;
@@ -798,7 +798,9 @@ static BDSP_P_ImageBlockInfo* BDSP_Arm_P_GetFreeImageBlock(
 		pImageBlockInfo = &pAlgoTypeSplitInfo->sImageBlockInfo[index];
 		if(algorithm == pImageBlockInfo->algorithm)
 		{
-			BDBG_MSG(("BDSP_Arm_P_GetFreeImageBlock: Using the already downloaded Image Block (%d)", index));
+			*pbdownload = false;
+			pImageBlockInfo->numUser++;
+			BDBG_MSG(("BDSP_Arm_P_GetFreeImageBlock: Using the already downloaded Image Block (%d) NumUser = %d", index,pImageBlockInfo->numUser));
 			goto end;
 		}
 		if(pImageBlockInfo->algorithm == BDSP_Algorithm_eMax)
@@ -815,11 +817,17 @@ static BDSP_P_ImageBlockInfo* BDSP_Arm_P_GetFreeImageBlock(
 	{
 		BDBG_MSG(("BDSP_Arm_P_GetFreeImageBlock: Using the Fresh Image Block (%d)", freshIndex));
 		pImageBlockInfo = &pAlgoTypeSplitInfo->sImageBlockInfo[freshIndex];
-	}
+		*pbdownload = true;
+		pImageBlockInfo->numUser = 1;
+		pImageBlockInfo->algorithm = algorithm;
+    }
 	else if(ReUseIndex != BDSP_MAX_DOWNLOAD_BUFFERS)
 	{
 		BDBG_MSG(("BDSP_Arm_P_GetFreeImageBlock: Reusing the Image Block (%d)", ReUseIndex));
 		pImageBlockInfo = &pAlgoTypeSplitInfo->sImageBlockInfo[ReUseIndex];
+		*pbdownload = true;
+		pImageBlockInfo->numUser = 1;
+		pImageBlockInfo->algorithm = algorithm;
 	}
 	else
 	{
@@ -861,7 +869,7 @@ BERR_Code BDSP_Arm_P_DownloadAlgorithm(
 			goto end;
 		}
 
-		pImageBlockInfo = BDSP_Arm_P_GetFreeImageBlock(algorithm, &pArm->codeInfo.sLoadableImageInfo.sAlgoTypeSplitInfo[pAlgoInfo->type]);
+		pImageBlockInfo = BDSP_Arm_P_GetFreeImageBlock(algorithm, &pArm->codeInfo.sLoadableImageInfo.sAlgoTypeSplitInfo[pAlgoInfo->type],&bdownload);
 		if(pImageBlockInfo == NULL)
 		{
 			BDBG_ERR(("BDSP_Arm_P_DownloadAlgorithm: Couldn't Find a free Buffer to download algorithm(%d) %s",algorithm, pAlgoInfo->pName));
@@ -869,14 +877,8 @@ BERR_Code BDSP_Arm_P_DownloadAlgorithm(
 			goto end;
 		}
 
-		if(pImageBlockInfo->bDownloadValid == true)
-		{
-			pImageBlockInfo->numUser++;
-			bdownload = false;
-		}
-
 		Memory = pImageBlockInfo->Memory;
-		for(imageId = BDSP_ARM_IMG_ID_CODE(algorithm); imageId <= BDSP_ARM_IMG_ID_IDS(algorithm); imageId++)
+		for(imageId = BDSP_ARM_IMG_ID_CODE(algorithm); imageId <= BDSP_ARM_IMG_ID_IFRAME(algorithm); imageId++)
 		{
 			pImgInfo = &pArm->codeInfo.imgInfo[imageId];
 			if(pImgInfo->ui32Size == 0 )
@@ -966,6 +968,7 @@ BERR_Code BDSP_Arm_P_ReleaseAlgorithm(
 		{
 			BDBG_ASSERT(pImageBlockInfo->numUser > 0 );
 			pImageBlockInfo->numUser--;
+			BDBG_MSG(("BDSP_Arm_P_ReleaseAlgorithm: Released Algorithm from Index = %d, NumUser = %d", index, pImageBlockInfo->numUser));
 			goto end;
 		}
 	}

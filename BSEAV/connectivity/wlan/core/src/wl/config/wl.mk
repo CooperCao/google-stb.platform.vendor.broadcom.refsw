@@ -38,7 +38,7 @@ endif
 
 #Add if you wan additonal internal debug. Want to limit debug builds module size
 ifeq ($(BCMINTDBG),1)
-	WLFLAGS += -DBCMINTDBG -DWL_EXPORT_CURPOWER -DRXDESENS_EN
+	WLFLAGS += -DBCMINTDBG -DWL_EXPORT_CURPOWER
 endif
 
 ifeq ($(NO_BCMDBG_ASSERT), 1)
@@ -57,7 +57,7 @@ endif
 
 # mfgtest builds
 ifeq ($(WLTEST),1)
-    WLFLAGS += -DWLTEST -DWL_EXPORT_CURPOWER
+    WLFLAGS += -DWLTEST -DWL_EXPORT_CURPOWER -DRXDESENS_EN
     # Disable parallel scan for MFGTEST
     WLFLAGS += -DRSDB_PARALLEL_SCAN_DISABLED
 endif

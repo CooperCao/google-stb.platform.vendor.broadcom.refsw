@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "egl_thread.h"
@@ -251,19 +251,15 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
          }
       }
 
-      // Getting the new back buffer will update the buffer_age in the surface which we use below.
+      // Getting the new back buffer will update the buffer_age in surface->dmg_state which we use below.
       khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
 
-      int buffer_age = surface->buffer_age;
+      EGL_BUFFER_AGE_DAMAGE_STATE_T *dmg_state = &surface->age_damage_state;
 
-      /* If no-one has ever queried the buffer age on this surface, treating it as undefined
-       * allows later optimizations, so force age to 0. Setting the khrn_option to disable buffer
-       * age will force buffer_age_enabled off and therefore also treat the buffer as undefined.
-       */
-      if (!surface->buffer_age_enabled)
-         buffer_age = 0;
+      /* Update buffer age state and get a new buffer_age_override value */
+      egl_surface_base_update_buffer_age_heuristics(dmg_state);
 
-      if (buffer_age == 0)
+      if (dmg_state->buffer_age_override == 0)
       {
          /* Buffers with age 0 have undefined content, so we can invalidate the new back-buffer.
           * This will prevent unnecessary tile loads of undefined data in certain cases. */
@@ -273,7 +269,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
       }
 
       /* Reset any per-swap state in the surface */
-      egl_surface_base_swap_done(surface, buffer_age);
+      egl_surface_base_swap_done(surface);
 
       if (surface->context)
          egl_context_reattach(surface->context);

@@ -298,6 +298,28 @@ int platform_media_player_start(PlatformMediaPlayerHandle player, const Platform
     return rc;
 }
 
+static void platform_media_player_p_clear_video_surfaces(PlatformHandle platform)
+{
+    NEXUS_SurfaceMemory mem;
+    NEXUS_SurfaceCreateSettings createSettings;
+    unsigned i;
+    unsigned r;
+    unsigned c;
+    uint32_t *buf32;
+
+    for (i = 0; i < NEXUS_SIMPLE_DECODER_MAX_SURFACES; i++)
+    {
+        NEXUS_Surface_GetCreateSettings(platform->media.streams[platform_get_pip_stream_id(platform)].surfaces[i], &createSettings);
+        NEXUS_Surface_GetMemory(platform->media.streams[platform_get_pip_stream_id(platform)].surfaces[i], &mem);
+        buf32 = mem.buffer;
+        for (r = 0; r < createSettings.height; r++) {
+            for (c = 0; c < createSettings.width; c++) {
+                *buf32++ = 0xFF000000;
+            }
+        }
+    }
+}
+
 void platform_media_player_stop(PlatformMediaPlayerHandle player)
 {
     BDBG_ASSERT(player);
@@ -313,6 +335,7 @@ void platform_media_player_stop(PlatformMediaPlayerHandle player)
         media_player_stop(player->nxPlayer);
         player->streamInfo.nx.valid = false;
         player->platform->media.streams[player->streamId].player = NULL;
+        platform_media_player_p_clear_video_surfaces(player->platform);
         player->streamId = -1;
     }
     BKNI_ReleaseMutex(player->mutex);

@@ -77,6 +77,7 @@ typedef enum BSAGElib_BinFileDrmTypes_e
     BSAGElib_BinFileDrmType_eCSecureRsa,
     BSAGElib_BinFileDrmType_eNTKL,
     BSAGElib_BinFileDrmType_eBSecureRsa,
+    BSAGElib_BinFileDrmType_eACAS,
     BSAGElib_BinFileDrmType_eMax
 } BSAGElib_BinFileDrmTypes_e;
 

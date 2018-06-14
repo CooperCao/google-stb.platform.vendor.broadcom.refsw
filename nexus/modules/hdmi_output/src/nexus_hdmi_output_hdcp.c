@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_hdmi_output_module.h"
 #include "priv/nexus_core.h"
@@ -62,7 +66,7 @@ BDBG_MODULE(nexus_hdmi_output_hdcp);
 static void NEXUS_HdmiOutput_P_RiCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_PjCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_HdcpTimerCallback(void *pContext);
-static void NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback(void *pContext);
+static void NEXUS_HdmiOutput_P_HdcpFailedStartCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_UpdateHdcpState(NEXUS_HdmiOutputHandle handle);
 static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp1x(NEXUS_HdmiOutputHandle output);
 NEXUS_Error NEXUS_HdmiOutput_P_SetHdcpVersion(NEXUS_HdmiOutputHandle handle, NEXUS_HdmiOutputHdcpVersion version_select);
@@ -475,10 +479,10 @@ void NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output)
         NEXUS_CancelTimer(output->hdcpTimer);
         output->hdcpTimer = NULL;
     }
-    if ( output->hdcpKeepAliveTimer )
+    if ( output->hdcpFailedStartTimer )
     {
-        NEXUS_CancelTimer(output->hdcpKeepAliveTimer);
-        output->hdcpKeepAliveTimer = NULL;
+        NEXUS_CancelTimer(output->hdcpFailedStartTimer);
+        output->hdcpFailedStartTimer = NULL;
     }
 
     if (output->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
@@ -1426,6 +1430,8 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         goto done ;
     }
 
+    handle->hdcpRequiredPostFormatChange = false;
+
     /* Check for device */
     state = NEXUS_HdmiOutput_P_GetState(handle);
     if ( state != NEXUS_HdmiOutputState_ePoweredOn)
@@ -1513,14 +1519,16 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         NEXUS_HdmiOutput_P_HdcpTimerCallback(handle);
     }
 
-
-    if (handle->hdcpKeepAliveTimer) {
-        NEXUS_CancelTimer(handle->hdcpKeepAliveTimer);
-        handle->hdcpKeepAliveTimer = NULL;
-    }
-    handle->hdcpKeepAliveTimer = NEXUS_ScheduleTimer(20000, NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback, handle);
-
 done:
+    if ( handle->hdcpFailedStartTimer )
+    {
+        NEXUS_CancelTimer(handle->hdcpFailedStartTimer);
+        handle->hdcpFailedStartTimer = NULL;
+    }
+    if (errCode) {
+        /* only start the timer to help applications (like nxserver) restart */
+        handle->hdcpFailedStartTimer = NEXUS_ScheduleTimer(1000, NEXUS_HdmiOutput_P_HdcpFailedStartCallback, handle);
+    }
     return errCode ;
 }
 
@@ -1545,10 +1553,10 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
         NEXUS_CancelTimer(handle->hdcpTimer);
         handle->hdcpTimer = NULL;
     }
-    if ( handle->hdcpKeepAliveTimer )
+    if ( handle->hdcpFailedStartTimer )
     {
-        NEXUS_CancelTimer(handle->hdcpKeepAliveTimer);
-        handle->hdcpKeepAliveTimer = NULL;
+        NEXUS_CancelTimer(handle->hdcpFailedStartTimer);
+        handle->hdcpFailedStartTimer = NULL;
     }
 
     errCode = BHDCPlib_DisableAuthentication(handle->hdcpHandle);
@@ -1609,6 +1617,8 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpEncryption(
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 
+    handle->hdcpRequiredPostFormatChange = false;
+
     /* Check for device */
     state = NEXUS_HdmiOutput_P_GetState(handle);
     if ( state != NEXUS_HdmiOutputState_ePoweredOn )
@@ -1662,30 +1672,15 @@ BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
 
 }
 
-static void NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback(void *pContext)
+static void NEXUS_HdmiOutput_P_HdcpFailedStartCallback(void *pContext)
 {
     NEXUS_HdmiOutputHandle handle = (NEXUS_HdmiOutputHandle)pContext;
-    NEXUS_HdmiOutputHdcpStatus hdcpStatus;
-    int rc;
 
-    handle->hdcpKeepAliveTimer = NULL;
-
-    /* we stop the timer if we are authenticated */
-    rc = NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
-    if (rc) BERR_TRACE(rc);
-
-    if (hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled) {
-        return;
-    }
-
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
-    handle->hdcpMonitor.hdcp22.timeoutCounter++ ;
-#endif
-
-    /* otherwise, restart authentication */
+    handle->hdcpFailedStartTimer = NULL;
+    /* If StartHdcpAuthentication failed, the caller is responsible to restart. This helps them not forget,
+    or it helps them catch internally-called Starts which fail. But we make it a one-shot to not be intrusive
+    once a Start is underway. */
     NEXUS_TaskCallback_Fire(handle->hdcpFailureCallback);
-
-    /* fire stateChange call back */
     NEXUS_TaskCallback_Fire(handle->hdcpStateChangedCallback);
 }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2004-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -532,38 +532,41 @@ static bool NEXUS_Platform_P_AllocateInRegion(const NEXUS_PlatformHeapSettings *
         BMMA_RangeAllocator_Region newRegion;
         /* all heaps that SAGE is using must not cross two addresses
          * 256M
-         * 1024M
+         * 512M (>=ZEUS5) or 1024M(other)
          */
         const unsigned _256M = 256 * 1024 * 1024;
-        const unsigned _1024M = 1024 * 1024 * 1024;
-        if(region->base < _1024M && region->base + region->length > _1024M) {
+        unsigned high = 1024 * 1024 * 1024;
+#if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5)
+        high = 512 * 1024 * 1024;
+#endif
+        if(region->base < high && region->base + region->length > high) {
             crosses = true;
             if(inFront) {
                 newRegion.base = region->base;
-                newRegion.length = _1024M - region->base;
+                newRegion.length = high - region->base;
                 if(newRegion.base < _256M) {
-                    newRegion.length = _1024M - _256M;
+                    newRegion.length = high - _256M;
                     newRegion.base =_256M;
                 }
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
-                newRegion.base = _1024M;
-                newRegion.length = (region->base  + region->length) - _1024M;
+                newRegion.base = high;
+                newRegion.length = (region->base  + region->length) - high;
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
             } else {
-                newRegion.base = _1024M;
-                newRegion.length = (region->base  + region->length) - _1024M;
+                newRegion.base = high;
+                newRegion.length = (region->base  + region->length) - high;
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
 
                 newRegion.base = region->base;
-                newRegion.length = _1024M - region->base;
-                if(newRegion.base < _256M) {
-                    newRegion.length = _1024M - _256M;
+                newRegion.length = high - region->base;
+                if(newRegion.base < high ) {
+                    newRegion.length = high - _256M;
                     newRegion.base =_256M;
                 }
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
@@ -581,8 +584,8 @@ static bool NEXUS_Platform_P_AllocateInRegion(const NEXUS_PlatformHeapSettings *
                 }
                 newRegion.base = _256M;
                 newRegion.length = (region->base + region->length) - _256M;
-                if(newRegion.base + newRegion.length > _1024M) {
-                    newRegion.length = _1024M - _256M;
+                if(newRegion.base + newRegion.length > high) {
+                    newRegion.length = high - _256M;
                 }
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
@@ -590,8 +593,8 @@ static bool NEXUS_Platform_P_AllocateInRegion(const NEXUS_PlatformHeapSettings *
             } else {
                 newRegion.base = _256M;
                 newRegion.length = (region->base + region->length) - _256M;
-                if(newRegion.base + newRegion.length > _1024M) {
-                    newRegion.length = _1024M - _256M;
+                if(newRegion.base + newRegion.length > high) {
+                    newRegion.length = high - _256M;
                 }
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
@@ -1435,10 +1438,13 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
         }
         if(heap->placement.sage) {
             const unsigned _256M = 256 * 1024 * 1024;
-            const unsigned _1024M = 1024 * 1024 * 1024;
+            unsigned high = 1024 * 1024 * 1024;
+#if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5)
+            high = 512 * 1024 * 1024;
+#endif
             if(
                NEXUS_Platform_P_TestIntersect(region->offset, region->length, _256M, 0) ||
-               NEXUS_Platform_P_TestIntersect(region->offset, region->length, _1024M, 0)) {
+               NEXUS_Platform_P_TestIntersect(region->offset, region->length, high, 0)) {
                 BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " can't cross 256M or 1024M boundary", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length)));
                 return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             }

@@ -743,6 +743,8 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 					                   wlc_get_mcsallow(wlc, wlc->cfg));
 
 					/* change the hw_rateset  when rxchain is modified */
+					/* In the call stack, it will not reach "off" case in wlc_set_nmode. */
+					/* coverity[stack_use_overflow] */
 					wlc_set_nmode(wlc->hti, ON);
 				}
 			}

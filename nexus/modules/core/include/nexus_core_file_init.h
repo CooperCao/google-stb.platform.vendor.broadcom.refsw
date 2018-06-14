@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,7 @@ Summary:
 NEXUS_FileModuleSettings declared in Core so it can be passed into NEXUS_PlatformSettings.
 ****************************************************************************/
 #ifndef NEXUS_FILE_MAX_IOWORKERS
-#define NEXUS_FILE_MAX_IOWORKERS 4
+#define NEXUS_FILE_MAX_IOWORKERS 8
 #endif
 typedef struct NEXUS_FileModuleSettings
 {

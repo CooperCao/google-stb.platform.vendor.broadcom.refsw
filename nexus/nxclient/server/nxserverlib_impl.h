@@ -61,6 +61,9 @@ typedef void *NEXUS_VideoDecoderCapabilities;
 #include "nexus_spdif_output.h"
 #include "nexus_audio_capture.h"
 #include "nexus_audio_crc.h"
+#if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+#include "nexus_audio_buffer_capture.h"
+#endif
 #endif
 #include "nexus_core_compat.h"
 #if NEXUS_HAS_HDMI_INPUT
@@ -197,7 +200,11 @@ struct b_client_handles
 #if NEXUS_HAS_AUDIO
     struct {
         unsigned id; /* server id, not client id */
+        #if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+        NEXUS_AudioBufferCaptureHandle handle;
+        #else
         NEXUS_AudioCaptureHandle handle;
+        #endif
     } audioCapture;
     struct {
         unsigned id; /* server id, not client id */
@@ -595,7 +602,11 @@ void audio_get_encode_resources(struct b_audio_resource *r, NEXUS_AudioMixerHand
 int audio_get_stc_index(struct b_connect *connect);
 
 #if NEXUS_HAS_AUDIO
+#if NEXUS_AUDIO_BUFFER_CAPTURE_EXT
+NEXUS_AudioBufferCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType);
+#else
 NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType);
+#endif
 void nxserverlib_close_audio_capture(struct b_session *session,unsigned id);
 NEXUS_AudioCrcHandle nxserverlib_open_audio_crc(struct b_session *session, unsigned *id, NxClient_AudioCrcType crcType);
 void nxserverlib_close_audio_crc(struct b_session *session,unsigned id);

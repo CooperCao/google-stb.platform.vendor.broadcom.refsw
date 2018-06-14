@@ -67,6 +67,11 @@ void NEXUS_HMACSHA_GetDefaultOpSettings(
     pOpSettings->dataSrc   = NEXUS_HMACSHA_DataSource_eDRAM;
     pOpSettings->keySource = NEXUS_HMACSHA_KeySource_eKeyVal;
     pOpSettings->context   = NEXUS_HMACSHA_BSPContext_eContext0;
+
+    BDBG_CASSERT( (int)NEXUS_HMACSHA_Op_eSHA == (int)BPI_HmacSha1_Op_eSha1 );
+    BDBG_CASSERT( (int)NEXUS_HMACSHA_Op_eHMAC == (int)BPI_HmacSha1_Op_eHmac );
+    BDBG_CASSERT( (int)NEXUS_HMACSHA_Op_eMax == (int)BPI_HmacSha1_Op_eMax );
+
     return;
 }
 
@@ -114,8 +119,8 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
 
     if( pOpSettings->keySource == NEXUS_HMACSHA_KeySource_eKeyLadder )
     {
-        hsmConf.VirtualKeyLadderID = pOpSettings->VKL;
-        hsmConf.keyLayer = pOpSettings->keyLayer;
+        hsmConf.VirtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pOpSettings->VKL );
+        hsmConf.keyLayer = NEXUS_Security_P_mapNexus2Hsm_KeySource( pOpSettings->keyLayer );
     }
     else
     {

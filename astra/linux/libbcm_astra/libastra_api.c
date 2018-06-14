@@ -1,40 +1,44 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "libastra_api.h"
 #include "libastra.h"
@@ -92,7 +96,7 @@ astra_client_handle astra_client_open(
     if (!pName || pName[0] == '\0' ||
         !pCallback) {
         LOGE("invalid args");
-        return NULL;
+        return 0;
     }
 
     /* open astra client */
@@ -103,7 +107,7 @@ astra_client_handle astra_client_open(
 
     if (!pClient) {
         LOGE("failed to open astra client");
-        return NULL;
+        return 0;
     }
 
     LOGI("open astra client %s, handle %p", pName, pClient);
@@ -133,13 +137,13 @@ astra_uapp_handle astra_uapp_open(
     const char *pPath)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
-    struct astra_uapp *pUapp;
+    astra_uapp_handle pUapp;
 
     if (!pClient ||
         !pName || pName[0] == '\0' ||
         !pPath || pPath[0] == '\0') {
         LOGE("invalid args");
-        return NULL;
+        return 0;
     }
 
     /* open astra userapp */
@@ -150,10 +154,10 @@ astra_uapp_handle astra_uapp_open(
 
     if (!pUapp) {
         LOGE("failed to open astra userapp");
-        return NULL;
+        return 0;
     }
 
-    LOGI("open astra userapp %s, handle %p", pName, pUapp);
+    LOGI("open astra userapp %s", pName);
 
     return pUapp;
 }
@@ -161,78 +165,70 @@ astra_uapp_handle astra_uapp_open(
 void astra_uapp_close(
     astra_uapp_handle hUapp)
 {
-    struct astra_uapp *pUapp = (struct astra_uapp *)hUapp;
-
-    if (!pUapp) {
+    if (!hUapp) {
         LOGE("invalid args");
         return;
     }
 
-    LOGI("close astra userapp, handle %p", pUapp);
+    LOGI("close astra userapp");
 
     /* close astra userapp */
-    _astra_uapp_close(pUapp);
+    _astra_uapp_close(hUapp);
 }
 
 astra_peer_handle astra_peer_open(
     astra_uapp_handle hUapp,
     const char *pName)
 {
-    struct astra_uapp *pUapp = (struct astra_uapp *)hUapp;
-    struct astra_peer *pPeer;
+    astra_peer_handle pPeer;
 
-    if (!pUapp ||
+    if (!hUapp ||
         !pName || pName[0] == '\0') {
         LOGE("invalid args");
-        return NULL;
+        return 0;
     }
 
     /* open astra peer */
     pPeer = _astra_peer_open(
-        pUapp,
+        hUapp,
         pName);
 
     if (!pPeer) {
         LOGE("failed to open astra peer");
-        return NULL;
+        return 0;
     }
 
-    LOGI("open astra peer %s, handle %p", pName, pPeer);
+    LOGI("open astra peer %s", pName);
 
-    return (astra_peer_handle)pPeer;
+    return pPeer;
 }
 
 void astra_peer_close(
     astra_peer_handle hPeer)
 {
-    struct astra_peer *pPeer = (struct astra_peer *)hPeer;
-
-    if (!pPeer) {
+    if (!hPeer) {
         LOGE("invalid args");
         return;
     }
 
-    LOGI("close astra peer, handle %p", pPeer);
+    LOGI("close astra peer");
 
     /* close astra peer */
-    _astra_peer_close(pPeer);
+    _astra_peer_close(hPeer);
 }
 
 int astra_msg_send(
     astra_peer_handle hPeer,
     const void *pMsg,
-    size_t msgLen)
+    uint32_t msgLen)
 {
-    struct astra_peer *pPeer = (struct astra_peer *)hPeer;
-
-    if (!pPeer || !pMsg || msgLen == 0) {
+    if (!hPeer || !pMsg || msgLen == 0) {
         LOGE("invalid args");
         return -EINVAL;
     }
-
     /* send astra msg */
     return _astra_msg_send(
-        pPeer,
+        hPeer,
         pMsg,
         msgLen);
 }
@@ -241,7 +237,7 @@ int astra_msg_receive(
     astra_client_handle hClient,
     astra_peer_handle *phPeer,
     void *pMsg,
-    size_t *pMsgLen,
+    uint32_t *pMsgLen,
     int timeout)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
@@ -250,7 +246,6 @@ int astra_msg_receive(
         LOGE("invalid args");
         return -EINVAL;
     }
-
     /* receive astra msg */
     return _astra_msg_receive(
         pClient,
@@ -262,7 +257,7 @@ int astra_msg_receive(
 
 void *astra_mem_alloc(
     astra_client_handle hClient,
-    size_t size)
+    uint32_t size)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
 
@@ -296,7 +291,7 @@ void astra_mem_free(
 
 astra_paddr_t astra_pmem_alloc(
     astra_client_handle hClient,
-    size_t size)
+    uint32_t size)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
 
@@ -325,7 +320,7 @@ void astra_pmem_free(
 
 void *astra_offset2vaddr(
     astra_client_handle hClient,
-    uint32_t offset)
+    uint64_t offset)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
 
@@ -338,7 +333,7 @@ void *astra_offset2vaddr(
     return (void *)_astra_offset2vaddr(pClient, offset);
 }
 
-uint32_t astra_vaddr2offset(
+uint64_t astra_vaddr2offset(
     astra_client_handle hClient,
     void *pBuff)
 {
@@ -359,12 +354,12 @@ astra_file_handle astra_file_open(
     int flags)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
-    struct astra_file *pFile;
+    astra_file_handle pFile;
 
     if (!pClient ||
         !pPath || pPath[0] == '\0') {
         LOGE("invalid args");
-        return NULL;
+        return 0;
     }
 
     /* open astra file */
@@ -375,45 +370,41 @@ astra_file_handle astra_file_open(
 
     if (!pFile) {
         LOGE("failed to open astra file");
-        return NULL;
+        return 0;
     }
 
-    LOGI("open astra file %s, handle %p", pPath, pFile);
+    LOGI("open astra file %s", pPath);
 
-    return (astra_file_handle)pFile;
+    return pFile;
 }
 
 void astra_file_close(
     astra_file_handle hFile)
 {
-    struct astra_file *pFile = (struct astra_file *)hFile;
-
-    if (!pFile) {
+    if (!hFile) {
         LOGE("invalid args");
         return;
     }
 
-    LOGI("close astra file, handle %p", pFile);
+    LOGI("close astra file");
 
     /* close astra file */
-    _astra_file_close(pFile);
+    _astra_file_close(hFile);
 }
 
 int astra_file_write(
     astra_file_handle hFile,
     astra_paddr_t paddr,
-    size_t bytes)
+    uint32_t bytes)
 {
-    struct astra_file *pFile = (struct astra_file *)hFile;
-
-    if (!pFile || paddr == 0 || bytes == 0) {
+    if (!hFile || paddr == 0 || bytes == 0) {
         LOGE("invalid args");
         return -EINVAL;
     }
 
     /* write to astra file */
     return _astra_file_write(
-        pFile,
+        hFile,
         paddr,
         bytes);
 }
@@ -421,18 +412,16 @@ int astra_file_write(
 int astra_file_read(
     astra_file_handle hFile,
     astra_paddr_t paddr,
-    size_t bytes)
+    uint32_t bytes)
 {
-    struct astra_file *pFile = (struct astra_file *)hFile;
-
-    if (!pFile || paddr == 0 || bytes == 0) {
+    if (!hFile || paddr == 0 || bytes == 0) {
         LOGE("invalid args");
         return -EINVAL;
     }
 
     /* read from astra file */
     return _astra_file_read(
-        pFile,
+        hFile,
         paddr,
         bytes);
 }
@@ -457,15 +446,13 @@ int astra_call_smc(
 void astra_uapp_coredump(
     astra_uapp_handle hUapp)
 {
-    struct astra_uapp *pUapp = (struct astra_uapp *)hUapp;
-
-    if (!pUapp) {
+    if (!hUapp) {
         LOGE("invalid args");
         return;
     }
 
-    LOGI("close astra userapp, handle %p", pUapp);
+    LOGI("close astra userapp");
 
     /* close astra userapp */
-    _astra_uapp_coredump(pUapp);
+    _astra_uapp_coredump(hUapp);
 }

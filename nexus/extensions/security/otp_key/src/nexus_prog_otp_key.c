@@ -99,8 +99,8 @@ NEXUS_Error NEXUS_Security_ProgramOtpKey ( const NEXUS_ProgramOtpKey * pOtpKey )
 
     /* formulate the request structure */
     progOtpKey.keyType = pOtpKey->keyType;
-    progOtpKey.keyLayer = pOtpKey->keyLayer;
-    progOtpKey.virtualKeyLadderID = pOtpKey->virtualKeyLadderID;
+    progOtpKey.keyLayer = NEXUS_Security_P_mapNexus2Hsm_KeySource( pOtpKey->keyLayer );
+    progOtpKey.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pOtpKey->virtualKeyLadderID );
     progOtpKey.keyDataSize = pOtpKey->keyDataSize;
 
     BKNI_Memcpy ( &progOtpKey.keyData, &pOtpKey->keyData, pOtpKey->keyDataSize );

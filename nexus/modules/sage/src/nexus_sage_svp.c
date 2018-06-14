@@ -1,5 +1,6 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -702,6 +703,7 @@ static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion, uint32_t minCo
             break;
         case 0x00020008: /* Can handle this, no fwrr/ARR/xcode */
             BDBG_WRN(("OLDER SAGE SVP API VERSION DETECTED! FWRR/xcode/ARR NOT supported"));
+            break;
         case 0x00020009: /* Can handle, but secure xcode not possible */
             BDBG_WRN(("OLDER SAGE SVP API VERSION DETECTED! xcode/ARR not supported"));
             break;

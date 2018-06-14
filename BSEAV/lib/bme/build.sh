@@ -45,6 +45,7 @@ NEXUS_BIN_DIR=$OUTPUT_FOLDER/nexus/bin
 NEXUS_BUILD_BREADCRUMB=$OUTPUT_FOLDER/.nexus
 COMMON_DRM_BUILD_BREADCRUMB=$OUTPUT_FOLDER/.common_drm
 SRAI_BUILD_BREADCRUMB=$OUTPUT_FOLDER/.srai
+WIDEVINE_BUILD_BREADCRUMB=$OUTPUT_FOLDER/.widevine
 VERBOSE=n
 
 # MS12 options
@@ -104,7 +105,6 @@ function clean_build {
 
 function nexus_build {
     if [ ! -f $NEXUS_BUILD_BREADCRUMB ]; then
-        echo "[Building Nexus...]"
         make $MAKE_OPTIONS -C $REFSW_TOP/nexus/build nexus_headers 1> $LOG_OUTPUT
         make $MAKE_OPTIONS -C $REFSW_TOP/nexus/nxclient/ server 1> $LOG_OUTPUT
         install $NEXUS_BIN_DIR/libnxserver.a $TARGET_LIB_FOLDER
@@ -112,6 +112,7 @@ function nexus_build {
         install $NEXUS_BIN_DIR/libnexus.so $TARGET_LIB_FOLDER
         rm $TARGET_MODULE_FOLDER/nexus.ko || true 1> $LOG_OUTPUT
         rm $TARGET_MODULE_FOLDER/bcmdriver.ko || true 1> $LOG_OUTPUT
+        rm $TARGET_MODULE_FOLDER/bcm_astra.ko || true 1> $LOG_OUTPUT
         if [ "$NEXUS_MODE" == "proxy" ]; then
             install $NEXUS_BIN_DIR/nexus.ko $TARGET_MODULE_FOLDER
         else
@@ -119,6 +120,7 @@ function nexus_build {
             install $NEXUS_BIN_DIR/libnexus_client.so $TARGET_LIB_FOLDER
         fi
         install $NEXUS_BIN_DIR/brcmv3d.ko $TARGET_MODULE_FOLDER || true
+        install $NEXUS_BIN_DIR/bcm_astra.ko $TARGET_MODULE_FOLDER || true
         install $NEXUS_BIN_DIR/nxserver $TARGET_BIN_FOLDER/nxserver/
 
         if [ $SAGE_SUPPORT == "y" ]; then
@@ -174,9 +176,12 @@ function srai_build {
 
 function widevine_build {
     if [ $BME_ENABLE_WIDEVINE == "y" ]; then
-        echo "[Building Widevine libraries...]"
-        make -C $REFSW_TOP/BSEAV/opensource/protobuf install_to_nexus_bin 1> $LOG_OUTPUT
-        make -C $REFSW_TOP/BSEAV/lib/security/third_party/widevine/CENC3x cenc_only 1> $LOG_OUTPUT
+        if [ ! -f $WIDEVINE_BUILD_BREADCRUMB ]; then
+            echo "[Building Widevine libraries...]"
+            make -C $REFSW_TOP/BSEAV/opensource/protobuf install_to_nexus_bin 1> $LOG_OUTPUT
+            make -C $REFSW_TOP/BSEAV/lib/security/third_party/widevine/CENC3x cenc_only 1> $LOG_OUTPUT
+            touch $WIDEVINE_BUILD_BREADCRUMB
+        fi
     fi
 }
 

@@ -38,26 +38,11 @@
  *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ *****************************************************************************/
+#ifndef __BMEMPERF_SERVER_UTILS_H__
+#define __BMEMPERF_SERVER_UTILS_H__
 
+void bmemperf_send_data( int socket_fd, const char * const Caller, int iswrite, const char *tagname, const char *data, int len, const char *logfile );
+int  bmemperf_get_response ( const char * const Caller, int socket_fd, const char * const ExpectedResponse, char * ActualResponse, int ActualResponseLen, const char *logfile );
 
-#ifndef BHSM_KEYLADDER_ENC_PRIVATE_H__
-#define BHSM_KEYLADDER_ENC_PRIVATE_H__
-
-
-#include "bhsm.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-#define BHSM_VKL_ID_ALLOCATION_FLAG            (0x80)       /* The flag added from VKL allocation API */
-
-
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* BHSM_KEYLADDER_ENC_H__ */
+#endif /* __BMEMPERF_SERVER_UTILS_H__ */

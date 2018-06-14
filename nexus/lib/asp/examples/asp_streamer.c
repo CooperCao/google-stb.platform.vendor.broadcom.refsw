@@ -62,13 +62,15 @@
 #include "nexus_playback.h"
 #include "nexus_record.h"
 #include "b_asp_lib.h"
+#include "b_asp_output.h"
 #include "bstd.h"
 #include "bkni.h"
 
 BDBG_MODULE(asp_streamer);
 
 #if 1
-#define HBO 1
+#define BIG_BUCK_BUNNEY 1
+#define HBO 0
 #define ALLEGRO 0
 #define CNN 0
 #define HEVC 0
@@ -105,6 +107,14 @@ BDBG_MODULE(asp_streamer);
 #define APP_VIDEO_CODEC     NEXUS_VideoCodec_eMpeg2
 #define APP_VIDEO_PID       17
 #define APP_PCR_PID         17
+#elif BIG_BUCK_BUNNEY
+#define FILE_NAME_TO_STREAM     "./videos/big_buck_bunny_1080p60_40Mbps.ts"
+#define APP_TRANSPORT_TYPE  NEXUS_TransportType_eTs
+#define APP_AUDIO_CODEC     7       /* AC3 */
+#define APP_AUDIO_PID       258
+#define APP_VIDEO_CODEC     NEXUS_VideoCodec_eH264
+#define APP_VIDEO_PID       257
+#define APP_PCR_PID         257
 #else
 #define FILE_NAME_TO_STREAM     "./videos/cnnticker.mpg"
 #define APP_TRANSPORT_TYPE  NEXUS_TransportType_eTs
@@ -229,17 +239,14 @@ static int recvHttpRequest(
     return (bytesRead);
 } /* recvHttpRequest */
 
-static int sendHttpResponse(
-    int socketFd
+static int prepareHttpResponse(
+    char *pHttpBuffer,
+    size_t httpBufferSize,
+    size_t *pBytesToWrite
     )
 {
-#define HTTP_BUFFER_SIZE    2048
-    char                    httpBuffer[HTTP_BUFFER_SIZE+1];
-    ssize_t                 bytesWritten;
-    size_t                  bytesToWrite;
-
-    BKNI_Memset(httpBuffer, 0, HTTP_BUFFER_SIZE+1);
-    bytesToWrite = snprintf(httpBuffer, sizeof(httpBuffer),
+    BKNI_Memset(pHttpBuffer, 0, httpBufferSize);
+    *pBytesToWrite = snprintf(pHttpBuffer, httpBufferSize-1,
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: video/mpeg\r\n"
             "Connection: close\r\n"
@@ -261,15 +268,8 @@ static int sendHttpResponse(
             APP_TRANSPORT_TYPE,
             APP_PCR_PID
             );
-    BDBG_LOG(("%s: Sending simple HTTP response on socketFd=%d", BSTD_FUNCTION, socketFd ));
-    BDBG_LOG(("%s", httpBuffer));
-    bytesWritten = write(socketFd, httpBuffer, bytesToWrite);
-    if (bytesWritten != bytesToWrite)
-    {
-        BDBG_ERR(("%s: Failed to write=%u bytes, wrote=%d, errno=%d", BSTD_FUNCTION, bytesToWrite, bytesWritten, errno));
-    }
-    return (bytesWritten);
-} /* sendHttpResponse */
+    BDBG_LOG(("HTTP Response (length=%u) -->\n\t%s", *pBytesToWrite, pHttpBuffer));
+} /* prepareHttpResponse */
 
 static void callbackFromNexusAsp(
     void *context,
@@ -303,7 +303,7 @@ static void callbackFromNexusPlayback(
 static void drainStreamer(
     NEXUS_RecpumpHandle hRecpump,
     int   socketFd,
-    B_AspChannelHandle hAspCh,
+    B_AspOutputHandle hAspOutput,
     BKNI_EventHandle hAspStateChangedEvent
     )
 {
@@ -312,10 +312,10 @@ static void drainStreamer(
     uint8_t             *pBuffer;
     size_t              bufferLength;
 
-    BDBG_LOG(("%s: hRecpump=%p disableOffload=%s socketFd=%d", BSTD_FUNCTION, hRecpump, hAspCh? "N":"Y", socketFd));
+    BDBG_LOG(("%s: hRecpump=%p disableOffload=%s socketFd=%d", BSTD_FUNCTION, hRecpump, hAspOutput? "N":"Y", socketFd));
 
     NEXUS_StopCallbacks(hRecpump);
-    if (!hAspCh)
+    if (!hAspOutput)
     {
         while (true)
         {
@@ -344,17 +344,17 @@ static void drainStreamer(
     }
     else
     {
-        B_AspChannelStatus status;
+        B_AspOutputStatus status;
 
 #if 0
         BKNI_WaitForEvent(hAspStateChangedEvent, BKNI_INFINITE);
         BDBG_LOG(("%s: Got hAspStateChangedEvent from ASP", BSTD_FUNCTION, rc, gTotalBytesStreamed, socketFd));
-        B_AspChannel_GetStatus(hAspCh, &status);
+        B_AspOutput_GetStatus(hAspOutput, &status);
 #else
         BKNI_Sleep(5000);
 #endif
         /* TODO:
-        if (status.state == B_AspChannelState_)
+        if (status.state == B_AspOutputState_)
         {
         }
         */
@@ -405,10 +405,10 @@ int main(int argc, char *argv[])
     unsigned                        maxBitRate = 40;    /* In Mbps */
     B_Error                         rc;
     NEXUS_Error                     nrc;
-    B_AspChannelHandle              hAspCh = NULL;
+    B_AspOutputHandle               hAspOutput = NULL;
     BKNI_EventHandle                hAspStateChangedEvent;
     BKNI_EventHandle                hEofEvent;
-    B_AspChannelStatus              status;
+    B_AspOutputStatus               status;
     int                             listenerFd;
     int                             socketFdToOffload;
     char                            *pPlayFileName = FILE_NAME_TO_STREAM;
@@ -422,11 +422,8 @@ int main(int argc, char *argv[])
     NEXUS_PlaybackSettings          playbackSettings;
     NEXUS_RecpumpSettings           recpumpSettings;
 
-    B_Asp_Init(NULL);
-
     /* Parse command line options. */
     {
-
         pListenerPort = "5000";
         for (i=1; i<argc; i++)
         {
@@ -505,6 +502,11 @@ int main(int argc, char *argv[])
 #endif /* NXCLIENT_SUPPORT */
     }
 
+    /* Initialize ASP Library. */
+    {
+        B_Asp_Init(NULL);
+    }
+
     /* Create resources needed for streaming out. */
     {
         BKNI_CreateEvent(&hAspStateChangedEvent);
@@ -526,9 +528,6 @@ int main(int argc, char *argv[])
     {
         /* Recv HTTP Request & get the mediaFile name. */
         rc = recvHttpRequest(socketFdToOffload, NULL, 0);
-        BDBG_ASSERT( rc >= 0);
-
-        rc = sendHttpResponse(socketFdToOffload);
         BDBG_ASSERT( rc >= 0);
     }
 
@@ -592,40 +591,66 @@ int main(int argc, char *argv[])
 
         /* Create ASP Channel in the StreamOut mode. This example assumes that HTTP Response has already been sent. */
         {
-            B_AspChannelCreateSettings createSettings;
+            B_AspOutputCreateSettings createSettings;
 
-            B_AspChannel_GetDefaultCreateSettings( B_AspStreamingProtocol_eHttp, &createSettings);
-            /* Setup HTTP Protocol related settings. */
-            createSettings.protocol = B_AspStreamingProtocol_eHttp;
-            createSettings.mode = B_AspStreamingMode_eOut;
-            createSettings.modeSettings.streamOut.hRecpump = hRecpump;   /* source of AV data. */
-            createSettings.mediaInfoSettings.transportType = NEXUS_TransportType_eTs;
-            createSettings.mediaInfoSettings.maxBitRate = maxBitRate * 1024 *1024;
-
+            B_AspOutput_GetDefaultCreateSettings(&createSettings);
+            /* Note: Apps can update the FIFO sizes here. */
             /* Create ASP Channel. */
-            hAspCh = B_AspChannel_Create(socketFdToOffload, &createSettings);
-            BDBG_ASSERT(hAspCh);
+            hAspOutput = B_AspOutput_Create(&createSettings);
+            BDBG_ASSERT(hAspOutput);
         }
 
         /* Setup callbacks. */
         {
-            B_AspChannelSettings settings;
+            B_AspOutputSettings settings;
 
-            B_AspChannel_GetSettings(hAspCh, &settings);
+            B_AspOutput_GetSettings(hAspOutput, &settings);
 
             /* Setup a callback to notify state transitions indicating either network errors or EndOfStreaming condition. */
-            settings.stateChanged.context = hEofEvent;
-            settings.stateChanged.param = 1;
-            settings.stateChanged.callback = callbackFromNexusAsp;
+            settings.endOfStreaming.callback = callbackFromNexusAsp;
+            settings.endOfStreaming.context = hEofEvent;
+            settings.endOfStreaming.param = 1;
 
-            rc = B_AspChannel_SetSettings(hAspCh, &settings);
-            BDBG_ASSERT(rc == B_ERROR_SUCCESS);
+            nrc = B_AspOutput_SetSettings(hAspOutput, &settings);
+            BDBG_ASSERT(nrc == NEXUS_SUCCESS);
+        }
+
+        /* Connect to ASP */
+        {
+            B_AspOutputConnectHttpSettings settings;
+
+            B_AspOutput_GetDefaultConnectHttpSettings(&settings);
+
+            settings.maxBitRate = maxBitRate * 1024 * 1024;
+            settings.transportType = NEXUS_TransportType_eTs;
+            settings.hRecpump  = hRecpump;
+            settings.hPlaypump = hPlaypump;
+
+            nrc = B_AspOutput_ConnectHttp(hAspOutput, socketFdToOffload, &settings);
+            BDBG_ASSERT(nrc == NEXUS_SUCCESS);
+        }
+
+        /* Send HTTP Response */
+        {
+#define HTTP_BUFFER_SIZE    2048
+            char                    httpBuffer[HTTP_BUFFER_SIZE];
+            size_t                  bytesToWrite;
+
+            rc = prepareHttpResponse( httpBuffer, HTTP_BUFFER_SIZE, &bytesToWrite );
+            BDBG_ASSERT(rc == 0);
+
+            nrc = B_AspOutput_SendHttpResponse( hAspOutput, httpBuffer, bytesToWrite );
+            BDBG_ASSERT(nrc == NEXUS_SUCCESS);
         }
 
         /* Start Streaming. */
         {
-            rc = B_AspChannel_StartStreaming(hAspCh);
-            BDBG_ASSERT(rc == B_ERROR_SUCCESS);
+            B_AspOutputStartSettings startSettings;
+
+            B_AspOutput_GetDefaultStartSettings(&startSettings);
+            startSettings.feedMode = B_AspOutputFeedMode_eAuto;
+            nrc = B_AspOutput_Start(hAspOutput, &startSettings);
+            BDBG_ASSERT(nrc == NEXUS_SUCCESS);
         }
     } /* !disableOffload */
 
@@ -645,13 +670,13 @@ int main(int argc, char *argv[])
         BERR_Code rc;
 
         rc = BKNI_WaitForEvent(hEofEvent, 1000);
-        if (rc == BERR_TIMEOUT && !hAspCh)
+        if (rc == BERR_TIMEOUT && !hAspOutput)
         {
             continue;
         }
         else if (rc == BERR_TIMEOUT)
         {
-            B_AspChannel_PrintStatus(hAspCh);
+            B_AspOutput_PrintStatus(hAspOutput);
         }
         else
         {
@@ -661,13 +686,13 @@ int main(int argc, char *argv[])
 
     /* Drain data after Playback notifies EOF. */
     {
-        drainStreamer(hRecpump, socketFdToOffload, hAspCh, hAspStateChangedEvent);
+        drainStreamer(hRecpump, socketFdToOffload, hAspOutput, hAspStateChangedEvent);
     }
 
     /* Stop & Cleanup Sequence. */
     {
         BDBG_LOG(("Stop & Close resources..."));
-        if (hAspCh) B_AspChannel_StopStreaming(hAspCh);
+        if (hAspOutput) B_AspOutput_Stop(hAspOutput);
         NEXUS_Playback_Stop(hPlayback);
         NEXUS_StopCallbacks(hRecpump);
         NEXUS_Recpump_Stop(hRecpump);
@@ -677,14 +702,20 @@ int main(int argc, char *argv[])
         NEXUS_Playpump_Close(hPlaypump);
         NEXUS_Playback_Destroy(hPlayback);
         NEXUS_Recpump_Close(hRecpump);
+        if (hPlayFile) NEXUS_FilePlay_Close(hPlayFile);
 
-        if (hAspCh) B_AspChannel_Destroy(hAspCh, NULL);
+        if (hAspOutput) B_AspOutput_Destroy(hAspOutput);
         /* For now, app is closing the socket, but this needs to be revisted after the intial ASP bringup! */
         BDBG_WRN(("Closing socket: socketFdToOffload=%d", socketFdToOffload));
         close(socketFdToOffload);
 
         BKNI_DestroyEvent(hEofEvent);
         BKNI_DestroyEvent(hAspStateChangedEvent);
+    }
+
+    /* Uninitialize */
+    {
+        B_Asp_Uninit();
     }
 
 #if NXCLIENT_SUPPORT
@@ -694,6 +725,5 @@ int main(int argc, char *argv[])
     NEXUS_Platform_Uninit();
 #endif
 
-    B_Asp_Uninit();
     BDBG_LOG(("Done!...."));
 }

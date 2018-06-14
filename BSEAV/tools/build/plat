@@ -107,6 +107,8 @@ if [ $# -gt 0 ]; then
     unset LINUX_ROOT
     unset B_REFSW_BOOTLOADER
     unset B_REFSW_BOOTLOADER_VER
+    unset OBJ_NEXUS_PLATFORM
+    unset OBJ_BCHP_VER
 
     B_REFSW_OBJ_SUFFIX=$(echo "$@")
 
@@ -169,6 +171,14 @@ if [ $# -gt 0 ]; then
         fi
         export PATH=$TOOLCHAIN_PATH:$PATH
     fi
+
+    # If we have an override version for NEXUS_PLATFORM and BCHP_VER
+    if [ -z $OBJ_NEXUS_PLATFORM ]; then
+        OBJ_NEXUS_PLATFORM=$NEXUS_PLATFORM
+    fi
+    if [ -z $OBJ_BCHP_VER ]; then
+        OBJ_BCHP_VER=$BCHP_VER
+    fi
 fi
 # Now show the current settings
 echo "Current settings:"
@@ -202,15 +212,16 @@ if [ ! -z ${BOARD_LIST} ]; then
     unset BOARD_LIST
 fi
 
-if [ ! -z "${NEXUS_PLATFORM}"  -a ! -z "${B_REFSW_OBJ_SUFFIX}"  ]; then
+if [ ! -z "${NEXUS_PLATFORM}"  -a ! -z "${B_REFSW_OBJ_SUFFIX}" -a $# -gt 0 ]; then
     B_REFSW_OBJ_SUFFIX=$(
         echo ${B_REFSW_OBJ_SUFFIX}|tr /a-z/ /A-Z/|xargs -n1 | # upperase command line and convert words to lines
-        grep -v -F "${NEXUS_PLATFORM}"|grep -v -F "${BCHP_VER}"| # filter out platform and chip revsion (so we can add them later)
-        sort -u|xargs|sed -e 's/ /./g') # sort (to get consistent order) and convert lines to words separated by dots
-    B_REFSW_OBJ_DIR="obj.${NEXUS_PLATFORM}"
-    if [ ! -z "${BCHP_VER}" ]; then
+            grep -v -F "${NEXUS_PLATFORM}"|grep -v -F "${BCHP_VER}"| # filter out platform and chip revsion (so we can add them later)
+            grep -v -F "${OBJ_NEXUS_PLATFORM}"|grep -v -F "${OBJ_BCHP_VER}"| # filter out platform and chip revsion (so we can add them later)
+            sort -u|xargs|sed -e 's/ /./g') # sort (to get consistent order) and convert lines to words separated by dots
+    B_REFSW_OBJ_DIR="obj.${OBJ_NEXUS_PLATFORM}"
+    if [ ! -z "${OBJ_BCHP_VER}" ]; then
         # add chip revision (if known)
-        B_REFSW_OBJ_DIR="${B_REFSW_OBJ_DIR}.${BCHP_VER}"
+        B_REFSW_OBJ_DIR="${B_REFSW_OBJ_DIR}.${OBJ_BCHP_VER}"
     fi
     if [ ! -z "${B_REFSW_OBJ_SUFFIX}" ]; then
         # add everything else
@@ -218,6 +229,8 @@ if [ ! -z "${NEXUS_PLATFORM}"  -a ! -z "${B_REFSW_OBJ_SUFFIX}"  ]; then
     fi
     export B_REFSW_OBJ_DIR
     echo "B_REFSW_OBJ_DIR=${B_REFSW_OBJ_DIR}"
+    unset OBJ_NEXUS_PLATFORM
+    unset OBJ_BCHP_VER
 fi
 
 if [ ! -z "${NEXUS_PLATFORM}" -a  ! -z  "${B_REFSW_BOOTLOADER_VER}" ] ; then

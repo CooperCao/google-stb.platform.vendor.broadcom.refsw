@@ -122,6 +122,7 @@ typedef enum NEXUS_CryptographicAlgorithmMode
     NEXUS_CryptographicAlgorithmMode_eEcb,        /* Electronic Code Book */
     NEXUS_CryptographicAlgorithmMode_eCbc,        /* Cipher Block Chaining */
     NEXUS_CryptographicAlgorithmMode_eCounter,    /* Counter */
+    NEXUS_CryptographicAlgorithmMode_eRcbc,       /* Reverse Cipher Block Chaining */
     NEXUS_CryptographicAlgorithmMode_eMax
 } NEXUS_CryptographicAlgorithmMode;
 

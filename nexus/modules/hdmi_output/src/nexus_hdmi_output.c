@@ -3268,6 +3268,7 @@ void NEXUS_HdmiOutput_GetVendorSpecificInfoFrame(
     NEXUS_HdmiOutputHandle handle,
     NEXUS_HdmiVendorSpecificInfoFrame *pVendorSpecificInfoFrame)
 {
+    RESOLVE_ALIAS(handle);
     BKNI_Memcpy(pVendorSpecificInfoFrame, &handle->vsif, sizeof(*pVendorSpecificInfoFrame));
 }
 

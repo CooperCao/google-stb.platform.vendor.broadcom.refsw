@@ -274,6 +274,8 @@ NEXUS_Error NEXUS_Security_DefineSecureRegion(
 
     setArchIO.unLowerRangeAddress = pSettings->sRegStartAddress>>3;
     setArchIO.unUpperRangeAddress = pSettings->sRegEndAddress>>3;
+    /* pass architecture type as receive */
+    /* coverity[mixed_enums] */
     setArchIO.ArchSel             = pSettings->archType;
     setArchIO.PCIArch             = pSettings->pciArchType;
     setArchIO.DRAMSel             = pSettings->DRAMType;
@@ -320,7 +322,7 @@ static NEXUS_Error GeneratePciESignatureVerificationKey ( pciESignatureVerificat
     hsmGlobalKey.globalKeyIndex     = pConfig->globalKeyIndex;
     hsmGlobalKey.stbOwnerId         = pConfig->stbOwnerId;
     hsmGlobalKey.globalKeyOwnerId   = pConfig->globalKeyOwnerId;
-    hsmGlobalKey.virtualKeyLadderId = (BCMD_VKLID_e)pConfig->vkl;
+    hsmGlobalKey.virtualKeyLadderId = NEXUS_Security_P_mapNexus2Hsm_VklId( pConfig->vkl );
     hsmGlobalKey.caVendorId         = pConfig->caVendorId;
 
     if( ( rc = BHSM_GenerateGlobalKey( hHsm, &hsmGlobalKey ) ) != NEXUS_SUCCESS )
@@ -473,7 +475,7 @@ NEXUS_Error NEXUS_Security_SetPciEMaxWindowSize (
 
     BKNI_Memset( &keyLadderConfig, 0, sizeof(keyLadderConfig) );
 
-    keyLadderConfig.vkl              = vklConf.allocVKL;
+    keyLadderConfig.vkl              = NEXUS_Security_P_mapHsm2Nexus_VklId( vklConf.allocVKL );
     keyLadderConfig.globalKeyIndex   = header.globalKeyIndex;
     keyLadderConfig.globalKeyOwnerId = header.globalKeyOwnerId;
     keyLadderConfig.stbOwnerId       = header.stbOwnerId;
@@ -706,8 +708,8 @@ NEXUS_Error NEXUS_Security_AVDSRegistersSetUp(
 
     BKNI_Memset( &setVichRegParIO, 0, sizeof(setVichRegParIO) );
     /* formulate the request structure */
-    setVichRegParIO.virtualKeyLadderID = pSettings->vkl;
-    setVichRegParIO.keyLayer           = pSettings->keyLayer;
+    setVichRegParIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pSettings->vkl );
+    setVichRegParIO.keyLayer           = NEXUS_Security_P_mapNexus2Hsm_KeySource( pSettings->keyLayer );
     setVichRegParIO.nRanges            = pSettings->nRange;
     setVichRegParIO.VDECId             = pSettings->VDECId;
     for (index = 0; index < pSettings->nRange; index++)
@@ -760,8 +762,8 @@ NEXUS_Error NEXUS_Security_AVDSRegistersModify(
 
     BKNI_Memset( &startAVDIO, 0, sizeof(startAVDIO) );
     /* formulate the request structure */
-    startAVDIO.virtualKeyLadderID = pSettings->vkl;
-    startAVDIO.keyLayer           = pSettings->keyLayer;
+    startAVDIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pSettings->vkl );
+    startAVDIO.keyLayer           = NEXUS_Security_P_mapNexus2Hsm_KeySource( pSettings->keyLayer );
     startAVDIO.avdID              = pSettings->avdID;
     startAVDIO.numAVDReg          = pSettings->nAVDReg;
     for (index = 0; index < pSettings->nAVDReg; index++)

@@ -45,7 +45,6 @@
 #include "bhsm_private.h"
 #include "bhsm_keyslots.h"
 #include "bhsm_keyladder_enc.h"
-#include "bhsm_keyladder_enc_private.h"
 #include "bhsm_bsp_msg.h"
 
 #define BHSM_KEYLADDER_HDCP_ROOT_KEY_SOURCE_MASK (0x80)

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  ***************************************************************************/
 #include "bstd.h"
 #include "blst_list.h"
@@ -845,51 +842,74 @@ BERR_Code BMMA_Heap_GetStatus(BMMA_Heap_Handle h, BMMA_Heap_FastStatus *fastStat
     return BERR_SUCCESS;
 }
 
+struct BMMA_Dbg_P_DumpHeapSession {
+    BMMA_Heap_Handle h;
+    BDBG_Fifo_SyncSession session;
+};
+
 static bool BMMA_Heap_P_DumpHeap_IteratorAllocated(void *context, void *header, const BMMA_RangeAllocator_Region *region, bool boundary)
 {
 #if BDBG_DEBUG_BUILD
     BMMA_Block_Handle b = header;
-#else
-    BSTD_UNUSED(header);
-#endif
-    BSTD_UNUSED(context);
-    BSTD_UNUSED(region);
-    BSTD_UNUSED(boundary);
-#if BDBG_DEBUG_BUILD
+    struct BMMA_Dbg_P_DumpHeapSession *session = context;
     if(b) {
         BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
         size_t size = BMMA_RangeAllocator_GetAllocationSize(b->block);
+        if(BDBG_SyncSession_Wait(&session->session, 1000)!=BERR_SUCCESS) {
+            return false;
+        }
         BDBG_MODULE_LOG(BMEM_ALLOCATED, ("" BDBG_UINT64_FMT ",%-8u,%s:%u,%u%s", BDBG_UINT64_ARG(offset),(unsigned)size, b->fname, b->line, (unsigned)(b->lock_offset_cnt),b->discardable?",discardable":"" ));
     }
+#else
+    BSTD_UNUSED(header);
+    BSTD_UNUSED(context);
 #endif
+    BSTD_UNUSED(boundary);
+    BSTD_UNUSED(region);
     return true;
 }
 
 static bool BMMA_Heap_P_DumpHeap_IteratorFree(void *context, void *header, const BMMA_RangeAllocator_Region *region, bool boundary)
 {
-    BMMA_Heap_Handle h = context;
+#if BDBG_DEBUG_BUILD
+    struct BMMA_Dbg_P_DumpHeapSession *session = context;
+    BMMA_Heap_Handle h = session->h;
     BMMA_Block_Handle b = header;
     BSTD_UNUSED(h);
     BSTD_UNUSED(boundary);
     if(!b) {
+        if(BDBG_SyncSession_Wait(&session->session, 1000)!=BERR_SUCCESS) {
+            return false;
+        }
         if(region->length>256) {
             BDBG_MODULE_LOG(BMEM_FREE, ("" BDBG_UINT64_FMT ",%-8u", BDBG_UINT64_ARG(region->base),(unsigned)region->length));
         } else {
             BDBG_MODULE_MSG(BMEM_FREE, ("" BDBG_UINT64_FMT ",%-8u", BDBG_UINT64_ARG(region->base),(unsigned)region->length));
         }
     }
+#else
+    BSTD_UNUSED(header);
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(region);
+    BSTD_UNUSED(boundary);
+#endif
     return true;
 }
 
 static void BMMA_Dbg_DumpHeap_locked(BMMA_Heap_Handle h)
 {
+    struct BMMA_Dbg_P_DumpHeapSession session;
+
+    BDBG_SyncSession_Begin(&session.session);
+    session.h = h;
+
     BDBG_MODULE_LOG(BMEM_ALLOCATED, ("heap:%p(" BDBG_UINT64_FMT "):", (void *)h, BDBG_UINT64_ARG(h->settings.base)));
     BDBG_MODULE_LOG(BMEM_ALLOCATED, ("offset,totalsize,filename,line,lock"));
-    BMMA_RangeAllocator_Iterate(h->rangeAllocator, BMMA_Heap_P_DumpHeap_IteratorAllocated, h, NULL);
+    BMMA_RangeAllocator_Iterate(h->rangeAllocator, BMMA_Heap_P_DumpHeap_IteratorAllocated, &session, NULL);
     BDBG_MODULE_LOG(BMEM_FREE, ("heap:%p(" BDBG_UINT64_FMT "):", (void *)h, BDBG_UINT64_ARG(h->settings.base)));
     BDBG_MODULE_LOG(BMEM_FREE, ("offset,totalsize"));
-    BMMA_RangeAllocator_Iterate(h->rangeAllocator, BMMA_Heap_P_DumpHeap_IteratorFree, h, NULL);
-
+    BMMA_RangeAllocator_Iterate(h->rangeAllocator, BMMA_Heap_P_DumpHeap_IteratorFree, &session, NULL);
+    BDBG_SyncSession_End(&session.session);
     return;
 }
 

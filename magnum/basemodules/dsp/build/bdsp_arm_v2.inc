@@ -54,15 +54,11 @@
 # Derive the architecture of ARM compilation to determine the firmware version
 #
 
-BDSP_ASTRA_MODE = $(notdir $(LINUX))
-
-ifeq ($(BDSP_ASTRA_MODE),arm)
-AONA_VER = v8/32
-else ifeq ($(BDSP_ASTRA_MODE),arm64)
+ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX}/.config 2>/dev/null && echo y),y)
 AONA_VER = v8/64
+else
+AONA_VER = v8/32
 endif
-
-
 
 # Select the Audio firmware binaries
 ifeq ($(BDSP_AONA_CLEAR),y)

@@ -54,6 +54,9 @@
 #include "nexus_platform_features.h"
 #include "nexus_base.h"
 
+#include "bchp_sun_top_ctrl.h"
+#include "bchp_gio.h"
+
 #if NEXUS_HAS_SPI
 #include "nexus_spi.h"
 #endif
@@ -79,7 +82,7 @@ typedef struct boardFrontendConfigOptions {
 
 static boardFrontendConfigOptions boardFrontendConfig[] = {
     /* BID   FEM    QAM    SPI    IRQ settings */
-    {  1, 1, true,  false, true,  25, NEXUS_GpioType_eAonStandard }, /* 73574A0 on board */
+    {  1, 1, false, false, true,  25, NEXUS_GpioType_eAonStandard }, /* 73574A0 on board */
     {  1, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* SV Slot 0 */
     {  2, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* DV */
     {  6, 2, true,  false, true,  24, NEXUS_GpioType_eAonStandard}, /* HB */
@@ -117,7 +120,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     boardFrontendConfigOptions* boardConfig = NULL;
     unsigned i = 0;
     unsigned i2c_chn = 3;
-    unsigned i2c_addr = 0x68;
+    unsigned i2c_addr = 0x7c;
 
     platformStatus = BKNI_Malloc(sizeof(*platformStatus));
     if (!platformStatus) {
@@ -259,6 +262,20 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         BDBG_MSG(("Search for internal LEAP"));
         NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
         NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
+        deviceSettings.tuner.i2c.device = pConfig->i2c[i2c_chn];
+        deviceSettings.tuner.i2c.address = i2c_addr;
+        {
+            NEXUS_GpioHandle gpio;
+
+            BDBG_MSG(("setting GPIO 37 high"));
+            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+            gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+            gpioSettings.value = NEXUS_GpioValue_eHigh;
+            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 37, &gpioSettings);
+            if (gpio)
+                NEXUS_Gpio_Close(gpio);
+        }
+
         if (probeResults.chip.familyId != 0) {
             device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
             if (device) {

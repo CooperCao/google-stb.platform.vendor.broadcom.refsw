@@ -623,7 +623,11 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 		BDSP_Raaga_P_SetDspClkRate( (void *)pDevice, pDevice->hardwareStatus.dpmInfo.defaultDspClkRate[pRaagaTask->createSettings.dspIndex], pRaagaTask->createSettings.dspIndex );
 	}
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks++;
-	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].pTask[pRaagaTask->taskParams.taskId] = (void *)pRaagaTask;
+	if(pRaagaTask->taskParams.taskId < BDSP_MAX_FW_TASK_PER_DSP)
+	{
+		/* To Beat Coverity */
+		pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].pTask[pRaagaTask->taskParams.taskId] = (void *)pRaagaTask;
+	}
 	BKNI_ReleaseMutex(pDevice->deviceMutex);
 
 	pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
@@ -637,6 +641,10 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 		stageIndex++;
 	}
 	BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
+
+	/* Starting the task in Firmware, reset states */
+	pRaagaTask->taskParams.paused = false;
+	pRaagaTask->taskParams.frozen = false;
 
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_InitAtStartTask);
@@ -670,6 +678,9 @@ static void BDSP_Raaga_P_UnInitAtStopTask(
 	pRaagaTask->taskParams.lastCommand   = BDSP_P_CommandID_STOP_TASK;
 	pRaagaTask->taskParams.masterTaskId  = BDSP_P_INVALID_TASK_ID;
 	pRaagaTask->taskParams.commandCounter= 0;
+	/* Stoping the task in Firmware, reset states */
+	pRaagaTask->taskParams.paused = false;
+	pRaagaTask->taskParams.frozen = false;
 
 	BKNI_AcquireMutex(pRaagaTask->pContext->pDevice->deviceMutex);
 	pDevice->taskDetails[pRaagaTask->createSettings.dspIndex].numActiveTasks--;

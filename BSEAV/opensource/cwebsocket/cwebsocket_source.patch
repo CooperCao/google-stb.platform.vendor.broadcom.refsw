@@ -1,5 +1,5 @@
 --- cwebsocket.2016.04.22/src/cwebsocket/client.c	2016-04-22 14:08:52.000000000 -0700
-+++ cwebsocket.2016.04.22.modified/src/cwebsocket/client.c	2018-04-16 18:41:59.715459205 -0700
++++ cwebsocket.2016.04.22.modified/src/cwebsocket/client.c	2018-06-01 11:03:07.486534436 -0700
 @@ -193,7 +193,7 @@
  		strcat(handshake, "Sec-WebSocket-Protocol: ");
  		for(i=0; i<websocket->subprotocol_len; i++) {
@@ -9,7 +9,18 @@
  				strcat(handshake, " ");
  			}
  			else {
-@@ -283,7 +283,7 @@
+@@ -222,7 +222,10 @@
+ 
+ 	if(connect(websocket->fd, servinfo->ai_addr, servinfo->ai_addrlen) != 0 ) {
+ 		syslog(LOG_ERR, "cwebsocket_client_connect: %s", strerror(errno));
++#if 0
++        /* CAD - This API call was causing a segfault on my 97278 VMS for some reason. It doesn't appear to be necessary */
+ 		cwebsocket_client_onerror(websocket, strerror(errno));
++#endif
+ 		websocket->state = WEBSOCKET_STATE_CLOSED;
+ 		if(websocket->retry > 0) {
+ 			sleep(websocket->retry);
+@@ -283,7 +286,7 @@
  	websocket->state = WEBSOCKET_STATE_CONNECTED;
  #endif
  
@@ -18,7 +29,7 @@
  		syslog(LOG_ERR, "cwebsocket_client_connect: %s", strerror(errno));
  		cwebsocket_client_onerror(websocket, strerror(errno));
  		return -1;
-@@ -354,7 +354,7 @@
+@@ -354,7 +357,7 @@
  			}
  			if(strcasecmp(token, "Sec-WebSocket-Accept:") == 0) {
  				char* response = cwebsocket_create_key_challenge_response(seckey);
@@ -27,8 +38,8 @@
  					free(seckey);
  					if(websocket->subprotocol->onerror != NULL) {
  						char errmsg[255];
---- cwebsocket.2016.04.22/config.h	2018-04-17 11:51:18.496651868 -0700
-+++ cwebsocket.2016.04.22.modified/config.h	2018-04-16 18:34:11.615459589 -0700
+--- cwebsocket.2016.04.22/config.h	2018-06-01 11:03:57.005345470 -0700
++++ cwebsocket.2016.04.22.modified/config.h	2018-06-01 11:02:12.407173484 -0700
 @@ -5,7 +5,7 @@
  /* #undef ENABLE_DEBUG */
  
@@ -64,7 +75,7 @@
  
  /* Define to 1 if you have the <memory.h> header file. */
  #define HAVE_MEMORY_H 1
-@@ -154,7 +154,7 @@
+@@ -153,7 +153,7 @@
  #endif
  
  /* Define to rpl_malloc if the replacement function should be used. */

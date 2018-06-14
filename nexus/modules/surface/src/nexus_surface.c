@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  **************************************************************************/
 
 #include "nexus_surface_module.h"
@@ -222,6 +226,12 @@ static void NEXUS_Surface_P_Init(NEXUS_SurfaceHandle surface)
     return;
 }
 
+static bool nexus_p_dynamic_heap(NEXUS_HeapHandle heap)
+{
+    NEXUS_MemoryStatus heapStatus;
+    return NEXUS_Heap_GetStatus(heap, &heapStatus) == NEXUS_SUCCESS && ((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC);
+}
+
 NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCreateSettings)
 {
     BERR_Code rc = BERR_SUCCESS;
@@ -229,9 +239,7 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     BPXL_Format palette_pixel_format;
     NEXUS_SurfaceHandle surface;
     NEXUS_SurfaceCreateSettings defaultSettings;
-    BMMA_Heap_Handle heap;
-    NEXUS_MemoryStatus heapStatus;
-    BMMA_AllocationSettings mmaSettings;
+    NEXUS_HeapHandle nexusHeap;
 
     if(!pCreateSettings) {
         NEXUS_Surface_GetDefaultCreateSettings(&defaultSettings);
@@ -297,32 +305,27 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         rc = BPXL_Plane_Uif_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, surface->createSettings.mipLevel, pixel_format, (BCHP_Handle)g_pCoreHandles->chp);
         if(rc !=BERR_SUCCESS) goto error;
     }
-    else
+    else {
         BPXL_Plane_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format);
+    }
+
+    /* make sure we have a default heap */
+    nexusHeap = NEXUS_P_DefaultHeap(pCreateSettings->heap, BPXL_IS_PALETTE_FORMAT(pixel_format) ? NEXUS_DefaultHeapType_eFull : NEXUS_DefaultHeapType_eAny);
+    /* retain support for module-level default index, but this should not be used. */
+    if (!nexusHeap && g_NEXUS_SurfaceModuleData.settings.heapIndex < NEXUS_MAX_HEAPS) {
+        nexusHeap = g_pCoreHandles->heap[g_NEXUS_SurfaceModuleData.settings.heapIndex].nexus;
+    }
+    if (!nexusHeap) {
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto error;
+    }
 
     if ( pCreateSettings->pMemory || pCreateSettings->pixelMemory) {
         surface->createSettings.heap = NULL;
-        heap = NULL;
     }
-    else {
-        /* if NULL, get the registered default heap. modify the stored createSettings for GetCreateSettings. */
-        surface->createSettings.heap = NEXUS_P_DefaultHeap(pCreateSettings->heap, BPXL_IS_PALETTE_FORMAT(pixel_format) ? NEXUS_DefaultHeapType_eFull : NEXUS_DefaultHeapType_eAny);
-        /* retain support for module-level default index, but this should not be used. */
-        if (!surface->createSettings.heap && g_NEXUS_SurfaceModuleData.settings.heapIndex < NEXUS_MAX_HEAPS) {
-            surface->createSettings.heap = g_pCoreHandles->heap[g_NEXUS_SurfaceModuleData.settings.heapIndex].nexus;
-        }
-        if (!surface->createSettings.heap) {
-            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            goto error;
-        }
-        heap = NEXUS_Heap_GetMmaHandle(surface->createSettings.heap);
-
-        rc = NEXUS_Heap_GetStatus(surface->createSettings.heap, &heapStatus);
-        if (rc) {
-            rc = BERR_TRACE(rc);
-            goto error;
-        }
-        BMMA_GetDefaultAllocationSettings(&mmaSettings);
+    else if (!surface->createSettings.heap) {
+        /* in 2010 (SW7420-703) we set createSettings.heap if user didn't. not ideal, but maintained for backward compat. */
+        surface->createSettings.heap = nexusHeap;
     }
 
     if (pixel_format != BPXL_eUIF_R8_G8_B8_A8) {
@@ -408,12 +411,14 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
             alignment_in_bytes = 4096;
         }
 #endif
-        surface->plane.hPixels = BMMA_Alloc(heap, sz, alignment_in_bytes, &mmaSettings);
+        surface->plane.hPixels = BMMA_Alloc(NEXUS_Heap_GetMmaHandle(nexusHeap), sz, alignment_in_bytes, NULL);
         if (!surface->plane.hPixels) {
-            rc = ((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC) ?
-               BERR_OUT_OF_DEVICE_MEMORY : BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            if (!((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC)) {
-               BDBG_ERR(("unable to allocate surface size=%u alignment=2^%d", (unsigned)sz, pCreateSettings->alignment));
+            if (nexus_p_dynamic_heap(nexusHeap)) {
+                rc = BERR_OUT_OF_DEVICE_MEMORY;
+            }
+            else {
+                rc = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                BDBG_ERR(("unable to allocate surface size=%u alignment=2^%d", (unsigned)sz, pCreateSettings->alignment));
             }
             goto error;
         }
@@ -440,10 +445,14 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
             surface->plane.hPalette = NEXUS_MemoryBlock_GetBlock_priv(pCreateSettings->paletteMemory);
             BMMA_Block_Acquire(g_NEXUS_pCoreHandles->mma, surface->plane.hPalette);
         } else {
-            surface->plane.hPalette = BMMA_Alloc(heap, 256 * 4, 1<<5, &mmaSettings);
+            surface->plane.hPalette = BMMA_Alloc(NEXUS_Heap_GetMmaHandle(nexusHeap), 256 * 4, 1<<5, NULL);
             if(surface->plane.hPalette==NULL) {
-                rc = ((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC) ?
-                   NEXUS_OUT_OF_DEVICE_MEMORY : BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+                if (nexus_p_dynamic_heap(nexusHeap)) {
+                    rc = NEXUS_OUT_OF_DEVICE_MEMORY;
+                }
+                else {
+                    rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+                }
                 goto error;
             }
         }

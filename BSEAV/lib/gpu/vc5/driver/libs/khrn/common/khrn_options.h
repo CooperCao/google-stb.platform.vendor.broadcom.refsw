@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef KHRN_OPTIONS_H
 #define KHRN_OPTIONS_H
@@ -104,6 +104,12 @@ struct khrn_options {
    bool     no_compute_batching;
    uint32_t max_worker_threads;        /* Maximum number of worker threads to spawn for computing in parallel */
    bool     disable_buffer_age;        /* Don't expose buffer age and partial update extensions */
+
+   /* Controls for big damage area optimisations */
+   bool     disable_big_damage_opt;    /* Disable the optimisation */
+   uint32_t big_damage_opt_cnt;        /* Number of big-damage frames before reporting age of zero */
+   uint32_t zero_age_retry_cnt;        /* Number of age zero frames before retrying real age */
+   uint32_t big_damage_thresh;         /* Percentage of screen coverage where 'big-damage' is assumed */
 };
 
 extern struct khrn_options khrn_options;

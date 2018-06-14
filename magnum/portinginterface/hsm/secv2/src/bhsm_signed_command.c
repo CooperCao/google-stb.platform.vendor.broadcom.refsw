@@ -116,5 +116,5 @@ BHSM_P_DONE_LABEL:
 
     BDBG_LEAVE( BHSM_SignedCommand_Set );
 
-    return BERR_SUCCESS;
+    return rc;
 }

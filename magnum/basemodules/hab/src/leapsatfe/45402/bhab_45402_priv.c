@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bhab_45402_priv.h"
 #include "bchp_45402_cpu_mem.h"
@@ -63,6 +67,7 @@ BDBG_MODULE(bhab_45402_priv);
 
 /* #define BHAB_DEBUG */
 /* #define BHAB_EXT_RAM_DEBUG */
+/* #define BHAB_VERIFY_DOWNLOAD */
 
 #define BHAB_MAX_BBSI_RETRIES  10
 
@@ -122,6 +127,8 @@ BERR_Code BHAB_45402_P_Open(
    BDBG_ASSERT(retCode == BERR_SUCCESS);
    retCode = BKNI_CreateEvent(&(h45402Dev->hHabDoneEvent));
    BDBG_ASSERT(retCode == BERR_SUCCESS);
+
+   h45402Dev->bLeapRunning = false;
 
    *handle = hDev;
    return retCode;
@@ -215,7 +222,7 @@ BERR_Code BHAB_45402_P_InitAp(
    /* enable init_done interrupt */
    init_done_mask = BHAB_45402_HIRQ0_INIT_DONE;
    BHAB_CHK_RETCODE(BHAB_45402_P_WriteRegister(h, BCHP_LEAP_HOST_L2_0_MASK_CLEAR0, &init_done_mask));
-   BHAB_45402_P_WaitForEvent(h, pImpl->hInitDoneEvent, 0);
+   BKNI_WaitForEvent(pImpl->hInitDoneEvent, 0);
 
    /* download to RAM */
 #ifdef BHAB_NO_IMG
@@ -288,6 +295,13 @@ BERR_Code BHAB_45402_P_InitAp(
       fwAddr |= (uint32_t)(*pImage++ << 8);
       fwAddr |= (uint32_t)(*pImage++);
 
+      if (fwAddr >= 0x40000000)
+      {
+         /* this is DTCM, so map it to 0x100000 */
+         fwAddr -= 0x40000000;
+         fwAddr += 0x100000;
+      }
+
       fw_size = n;
       num_chunks = fw_size / chunk_size;
       if (fw_size % chunk_size)
@@ -295,7 +309,7 @@ BERR_Code BHAB_45402_P_InitAp(
 
       for (chunk = 0; chunk < num_chunks; chunk++)
       {
-          BDBG_ERR(("BHAB_45402_P_InitAp: img next[%d of %d]...", chunk, num_chunks));
+          BDBG_MSG(("BHAB_45402_P_InitAp: img next[%d of %d]...", chunk, num_chunks));
           if (chunk == num_chunks-1) {
               n = fw_size % chunk_size;
           } else
@@ -339,8 +353,15 @@ BERR_Code BHAB_45402_P_InitAp(
 #endif
 
    /* start running the AP */
-   BHAB_CHK_RETCODE(BHAB_45402_P_RunAp(h));
-   BDBG_MSG(("LEAP is running"));
+#ifndef BHAB_DONT_USE_INTERRUPT
+   BHAB_45402_P_EnableHostInterrupt(h, true);
+#endif
+   retCode = BHAB_45402_P_RunAp(h);
+   if (retCode)
+   {
+      BDBG_ERR(("Unable to start the LEAP"));
+      goto done;
+   }
 
 #ifdef BHAB_DONT_USE_INTERRUPT
    /* poll for AP init done */
@@ -382,7 +403,6 @@ BERR_Code BHAB_45402_P_InitAp(
 
    /* disable the init_done interrupt */
    BHAB_CHK_RETCODE(BHAB_45402_P_WriteRegister(h, BCHP_LEAP_HOST_L2_0_MASK_SET0, &init_done_mask));
-
    done:
    if (retCode == BERR_SUCCESS)
    {
@@ -837,6 +857,7 @@ BERR_Code BHAB_45402_P_SendHabCommand(
       checksum += pReadBuf[i];
    if (checksum != pReadBuf[read_len-1])
    {
+      BDBG_ERR(("invalid HAB checksum: read=0x%X, expected=0x%X", pReadBuf[read_len-1], checksum));
       BERR_TRACE(retCode = BHAB_ERR_HAB_CHECKSUM);
    }
    else if ((pReadBuf[0] & BHAB_45402_ACK) == 0)
@@ -866,16 +887,29 @@ BERR_Code BHAB_45402_P_SendHabCommand(
 ******************************************************************************/
 BERR_Code BHAB_45402_P_Reset(BHAB_Handle h)
 {
+   BHAB_45402_P_Handle *pImpl = (BHAB_45402_P_Handle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t val32;
 
+#if 0 /* dont access CPU_MISC_CORECTRL block */
    /* reset the maestro */
-   BHAB_CHK_RETCODE(BHAB_45402_P_ReadRegister(h, BCHP_CPU_MISC_CORECTRL_CORE_ENABLE, &val32));
+   retCode = BHAB_45402_P_ReadRegister(h, BCHP_CPU_MISC_CORECTRL_CORE_ENABLE, &val32);
+   if (retCode)
+   {
+      BDBG_ERR(("unable to read CPU_MISC_CORECTRL_CORE_ENABLE"));
+      goto done;
+   }
    if (val32 & 1)
    {
       val32 = 0;
-      BHAB_CHK_RETCODE(BHAB_45402_P_WriteRegister(h, BCHP_CPU_MISC_CORECTRL_CORE_ENABLE, &val32));
+      retCode = BHAB_45402_P_WriteRegister(h, BCHP_CPU_MISC_CORECTRL_CORE_ENABLE, &val32);
+      if (retCode)
+      {
+         BDBG_ERR(("unable to write CPU_MISC_CORECTRL_CORE_ENABLE"));
+         goto done;
+      }
    }
+#endif
 
    /* reset the cores */
    val32 = 0xFFFF;
@@ -886,8 +920,13 @@ BERR_Code BHAB_45402_P_Reset(BHAB_Handle h)
    BHAB_CHK_RETCODE(BHAB_45402_P_WriteRegister(h, BCHP_TM_SFT_RST0, &val32));
    BHAB_CHK_RETCODE(BHAB_45402_P_WriteRegister(h, BCHP_TM_SFT_RST1, &val32));
 
+#if 0
    if (BHAB_45402_P_IsLeapRunning(h))
+   {
+      BDBG_ERR(("BHAB_45402_P_Reset() failed"));
       return BERR_TRACE(BHAB_ERR_AP_FAIL);
+   }
+#endif
 
    done:
    return retCode;
@@ -899,11 +938,13 @@ BERR_Code BHAB_45402_P_Reset(BHAB_Handle h)
 ******************************************************************************/
 static BERR_Code BHAB_45402_P_RunAp(BHAB_Handle h)
 {
+   BHAB_45402_P_Handle *pImpl = (BHAB_45402_P_Handle *)(h->pImpl);
    BERR_Code retCode;
    uint32_t val32;
 
    val32 = 1;
    BHAB_CHK_RETCODE(BHAB_45402_P_WriteRegister(h, BCHP_CPU_MISC_CORECTRL_CORE_ENABLE, &val32));
+   pImpl->bLeapRunning = true;
 
    if (BHAB_45402_P_IsLeapRunning(h))
       retCode = BERR_SUCCESS;
@@ -928,11 +969,8 @@ static BERR_Code BHAB_45402_P_ServiceHab(
 )
 {
    BHAB_45402_P_Handle *pImpl = (BHAB_45402_P_Handle *)(h->pImpl);
-   BERR_Code retCode = BERR_SUCCESS;
-   uint32_t mask, val32;
-#ifdef BHAB_DONT_USE_INTERRUPT
-   uint32_t i;
-#endif
+   BERR_Code retCode = BERR_SUCCESS, retCode2;
+   uint32_t mask, val32, i, mask_status;
 
    /* clear the HAB_DONE interrupt */
    mask = BHAB_45402_HIRQ0_HAB_DONE;
@@ -945,44 +983,55 @@ static BERR_Code BHAB_45402_P_ServiceHab(
 #endif
 
    /* send the command */
-   val32 =  BCHP_CPU_CTRL_MISC_HAB_REQ_SET_HAB_REQ_SET_MASK;
+   val32 = BCHP_CPU_CTRL_MISC_HAB_REQ_SET_HAB_REQ_SET_MASK;
    BHAB_45402_P_WriteRegister(h, BCHP_CPU_CTRL_MISC_HAB_REQ_SET, &val32);
 
-#if 0 /* explicitly setting HAB_REQ_STAT L2 irq may not be needed */
-   /* assert the HAB interrupt on the LEAP */
-   val32 = BCHP_CPU_L2_CPU_SET_HAB_REQ_STAT_MASK;
-   BHAB_45402_P_WriteRegister(h, BCHP_LEAP_L2_CPU_SET, &val32);
-#endif
-
-#ifdef BHAB_DONT_USE_INTERRUPT
-   /* wait for HAB to be serviced (polling) */
+#if 1
+   /* wait for HAB to be serviced */
    for (i = 0; i < BHAB_CMD_TIMEOUT; i++)
    {
       val32 = 0;
-      BHAB_45402_P_ReadRegister(h, BCHP_LEAP_HOST_L2_0_STATUS0, &val32);
-      if (val32 & BHAB_45402_HIRQ0_HAB_DONE)
-         break;
-      BKNI_Sleep(1);
+      retCode = BHAB_45402_P_ReadRegister(h, BCHP_LEAP_HOST_L2_0_STATUS0, &val32);
+      if (retCode == BERR_SUCCESS)
+      {
+         if (val32 & BHAB_45402_HIRQ0_HAB_DONE)
+            break;
+      }
    }
-   if ((val32 & BHAB_45402_HIRQ0_HAB_DONE) == 0)
-      retCode = BERR_TIMEOUT;
-   else
+
+   if (retCode == BERR_SUCCESS)
    {
-      /* clear the HAB_DONE interrupt status */
-      BHAB_45402_P_WriteRegister(h, BCHP_LEAP_HOST_L2_0_CLEAR0, &mask);
+      if ((val32 & BHAB_45402_HIRQ0_HAB_DONE) == 0)
+         retCode = BERR_TIMEOUT;
+      else
+      {
+         /* clear the HAB_DONE interrupt status */
+         BHAB_45402_P_WriteRegister(h, BCHP_LEAP_HOST_L2_0_CLEAR0, &mask);
+         /* retCode = BHAB_45402_P_DecodeInterrupt(handle); */
+      }
    }
 #else
-   /* wait for HAB done interrupt */
    retCode = BHAB_45402_P_WaitForEvent(h, pImpl->hHabDoneEvent, BHAB_CMD_TIMEOUT);
 #endif
 
    if (retCode != BERR_SUCCESS)
    {
       /* check if HAB is done */
-      BHAB_45402_P_ReadRegister(h, BCHP_LEAP_HOST_L2_0_STATUS0, &val32);
+      retCode2 = BHAB_45402_P_ReadRegister(h, BCHP_LEAP_HOST_L2_0_STATUS0, &val32);
+      if (retCode2 != BERR_SUCCESS)
+      {
+         BDBG_ERR(("unable to read LEAP_HOST_L2_0_STATUS0"));
+         goto done;
+      }
       if ((val32 & BHAB_45402_HIRQ0_HAB_DONE) == 0)
       {
-         BDBG_ERR(("HAB timeout"));
+         retCode2 = BHAB_45402_P_ReadRegister(h, BCHP_LEAP_HOST_L2_0_MASK_STATUS0, &mask_status);
+         if (retCode2 != BERR_SUCCESS)
+         {
+            BDBG_ERR(("unable to read LEAP_HOST_L2_0_MASK_STATUS0"));
+            goto done;
+         }
+         BDBG_ERR(("HAB timeout\n"));
          BHAB_45402_P_DumpError(h);
          retCode = BHAB_45402_P_ReadRegister(h, BCHP_CPU_CTRL_GP2, &val32);
          if (retCode == BERR_SUCCESS)
@@ -992,7 +1041,9 @@ static BERR_Code BHAB_45402_P_ServiceHab(
                BERR_TRACE(retCode = BHAB_ERR_HAB_TIMEOUT);
             }
             else
-               retCode = val32;
+            {
+               BERR_TRACE(retCode = val32);
+            }
          }
          goto done;
       }
@@ -1070,7 +1121,10 @@ static BERR_Code BHAB_45402_P_DecodeInterrupt(BHAB_Handle h)
    fstatus2 = (status2 & ~mask2);
    fstatus3 = 0; /* currently not used */
    if ((fstatus0 == 0) && (fstatus1 == 0) && (fstatus2 == 0))
+   {
+      /* BDBG_ERR(("DecodeInterrupt: no irqs")); */
       goto done;
+   }
 
 #if 0 /* for debug only */
    BDBG_ERR(("status0,mask0,fstatus0=%08X,%08X,%08X", status0, mask0, fstatus0));
@@ -1142,7 +1196,6 @@ static BERR_Code BHAB_45402_P_DecodeInterrupt(BHAB_Handle h)
       retCode = BHAB_45402_P_DispatchCallback(&(pImpl->cbSat), fstatus0, fstatus1, fstatus2, fstatus3);
    }
 
-
    /* clear the interrupt status */
    if (fstatus0)
       BHAB_45402_P_WriteRegister(h, BCHP_LEAP_HOST_L2_0_CLEAR0, &fstatus0);
@@ -1169,22 +1222,42 @@ static bool BHAB_45402_P_IsLeapRunning(
    BHAB_Handle h  /* [in] BHAB handle */
 )
 {
+#if 0
    uint32_t val;
    bool bRunning = false;
 
    if (BHAB_45402_P_ReadRegister(h,  BCHP_CPU_MISC_CORECTRL_CORE_ENABLE, &val) == BERR_SUCCESS)
    {
+      //BDBG_ERR(("BCHP_CPU_MISC_CORECTRL_CORE_ENABLE=0x%X", val));
       if (val & 1)
       {
+#if 0
          if (BHAB_45402_P_ReadRegister(h,  BCHP_CPU_MISC_CORECTRL_CORE_IDLE, &val) == BERR_SUCCESS)
          {
+            BDBG_ERR(("BCHP_CPU_MISC_CORECTRL_CORE_IDLE=0x%X", val));
             if ((val & 1) == 0)
                bRunning = true;
          }
+         else
+         {
+            BDBG_ERR(("error reading BCHP_CPU_MISC_CORECTRL_CORE_IDLE"));
+            bRunning = true; /* workaround */
+         }
+#else
+         bRunning = true;
+#endif
       }
+   }
+   else {
+      BDBG_ERR(("error reading BCHP_CPU_MISC_CORECTRL_CORE_ENABLE"));
+      bRunning = true; /* workaround */
    }
 
    return bRunning;
+#else
+   BHAB_45402_P_Handle *pImpl = (BHAB_45402_P_Handle *)(h->pImpl);
+   return pImpl->bLeapRunning;
+#endif
 }
 
 
@@ -1458,12 +1531,17 @@ BERR_Code BHAB_45402_P_ReadRbus(
    if ((n == 0) || (addr & 0x3) || (buf == NULL))
       return BERR_INVALID_PARAMETER;
 
+   BHAB_CHK_RETCODE(BHAB_45402_P_WaitForBbsiDone(h));
+
+   i2c_buf[0] = 2;
+   BHAB_CHK_RETCODE(BHAB_45402_P_WriteBbsi(h, BCHP_CSR_CONFIG1, i2c_buf, 1));
+
    for (i = 0; i < n; i++)
    {
       /* set up the starting address to read */
       if (i == 0)
       {
-         i2c_buf[0] = (n > 1) ? 0x03 : 0x05; /* BCHP_CSR_CONFIG */
+         i2c_buf[0] = (n > 1) ? 0x23 : 0x25; /* BCHP_CSR_CONFIG */
          i2c_buf[1] = 0; /* bits[39:32] of rbus address */
          i2c_buf[2] = (uint8_t)((addr >> 24) & 0xFF);
          i2c_buf[3] = (uint8_t)((addr >> 16) & 0xFF);
@@ -1501,6 +1579,11 @@ BERR_Code BHAB_45402_P_WriteRbus(
    if ((n == 0) || (addr & 0x3) || (buf == NULL))
       return BERR_INVALID_PARAMETER;
 
+   BHAB_CHK_RETCODE(BHAB_45402_P_WaitForBbsiDone(h));
+
+   i2c_buf[0] = 2;
+   BHAB_CHK_RETCODE(BHAB_45402_P_WriteBbsi(h, BCHP_CSR_CONFIG1, i2c_buf, 1));
+
    for (i = 0; i < n; i++)
    {
       /* wait for !busy or error */
@@ -1508,7 +1591,7 @@ BERR_Code BHAB_45402_P_WriteRbus(
 
       if (i == 0)
       {
-         i2c_buf[0] = 0; /* BCHP_CSR_CONFIG */
+         i2c_buf[0] = 0x20; /* BCHP_CSR_CONFIG */
          i2c_buf[1] = 0; /* bits[39:32] of rbus address */
          i2c_buf[2] = (uint8_t)((addr >> 24) & 0xFF);
          i2c_buf[3] = (uint8_t)((addr >> 16) & 0xFF);
@@ -1526,6 +1609,8 @@ BERR_Code BHAB_45402_P_WriteRbus(
 
       BHAB_CHK_RETCODE(BHAB_45402_P_WriteBbsi(h, (uint8_t)(i ? BCHP_CSR_RBUS_DATA0 : BCHP_CSR_CONFIG), i2c_buf, data_idx));
    }
+
+   retCode = BHAB_45402_P_WaitForBbsiDone(h);
 
    done:
    return retCode;
@@ -1568,7 +1653,7 @@ static void BHAB_45402_P_DumpError(BHAB_Handle h)
 {
    uint32_t i, j, reg, val1, val2, val3;
 
-   for (i = 0; i < 7; i++)
+   for (i = 0; i < 8; i++)
    {
       j = i * 3;
       reg = BCHP_CPU_CTRL_GP0 + (j << 2);

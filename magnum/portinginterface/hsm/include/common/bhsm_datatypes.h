@@ -113,8 +113,9 @@ typedef enum BHSM_ClientType_e
 typedef enum BHSM_SC01ModeWordMapping_e
 {
     BHSM_SC01ModeWordMapping_eClear,    /* manage SC01 as a clear SC */
-    BHSM_SC01ModeWordMapping_eOdd,      /* manage SC01 as an odd SC */
+    BHSM_SC01ModeWordMapping_eReserved, /* reserved. */
     BHSM_SC01ModeWordMapping_eEven,     /* manage SC01 as an even SC */
+    BHSM_SC01ModeWordMapping_eOdd,      /* manage SC01 as an odd SC */
     BHSM_SC01ModeWordMapping_eMax
 
 } BHSM_SC01ModeWordMapping_e;

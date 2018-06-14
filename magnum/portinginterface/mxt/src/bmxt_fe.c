@@ -205,7 +205,13 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
     }
 
     if (pSettings->enablePidFiltering) {
-        BDBG_WRN(("Open: enable demod pid filtering on %s", BMXT_CHIP_STR[mxt->settings.chip]));
+        BMXT_Handle handle = mxt;
+        if (BMXT_HAS_PID_TABLE()) {
+            BDBG_WRN(("Open: enable demod pid filtering on %s", BMXT_CHIP_STR[mxt->settings.chip]));
+        }
+        else {
+            BDBG_WRN(("Open: demod pid filtering not supported on %s", BMXT_CHIP_STR[mxt->settings.chip]));
+        }
     }
 #if 0
 {
@@ -846,7 +852,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         }
 
         BMXT_P_SetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum, pConfig->virtualParserNum);
-        BDBG_MSG(("BAND_ID mapping: MTSIF_TX: TX%u, parser%u, addr 0x%08x", pConfig->mtsifTxSelect, parserNum, RegAddr));
+        BDBG_MSG(("BAND_ID mapping: MTSIF_TX: TX%u, parser%u", pConfig->mtsifTxSelect, parserNum));
     }
     else {
         if (parserNum >= LEGACY_NUM_REMAP_PB) {
@@ -900,6 +906,12 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 #endif
 
 post_map:
+    /* don't restamp on master parserband in daisy-chain config */
+    RegAddr = BMXT_R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * BMXT_STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    Reg = BMXT_RegRead32(handle, RegAddr);
+    BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP, pConfig->passthrough ? 0 : 1); /* reset value is 1 */
+    BMXT_RegWrite32(handle, RegAddr, Reg);
+
     /* channel start or new settings while channel was running */
     if (pConfig->Enable) {
         BMXT_P_ParserVersion(handle, parserNum);
@@ -1039,6 +1051,7 @@ void BMXT_ConfigPidChannel(BMXT_Handle handle, unsigned index, const BMXT_PidCha
     }
     if (!BMXT_HAS_PID_TABLE()) {
         BERR_TRACE(BERR_NOT_SUPPORTED);
+        return;
     }
 
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*index);

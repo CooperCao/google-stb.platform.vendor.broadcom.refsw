@@ -1,40 +1,44 @@
 #!/usr/bin/perl
 #############################################################################
-# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom.
+# The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+# and may only be used, duplicated, modified or distributed pursuant to
+# the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied),
+# right to use, or waiver of any kind with respect to the Software, and
+# Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+# THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+# IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
 # Except as expressly set forth in the Authorized License,
 #
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
 #
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 #############################################################################
 
 use strict;
@@ -98,12 +102,22 @@ sub checkRevision {
     my $platform = $_[0];
     my @revs = split /,/, $platform->findnodes('./revisions')->to_literal();
 
-    foreach my $rev (@revs) {
-        if ($rev =~ /^$revision/i) { # Case insensitive match
-            $valid_revision = 1;
-            push (@config,"export BCHP_VER=$revision\n");
+    # Platform override for when Nexus build ver doesn't match product ID ver.
+    if ($platform->findnodes('./nexus_platform_ver')->to_literal() !~ /^\s*$/) {
+        my $chip_rev = $platform->findnodes('./nexus_platform_ver')->to_literal();
+        $valid_revision = 1;
+        push (@config,"export BCHP_VER=$chip_rev\n");
+        push (@config,"export OBJ_BCHP_VER=$revision\n");
+    } else {
+        foreach my $rev (@revs) {
+            if ($rev =~ /^$revision/i) { # Case insensitive match
+                $valid_revision = 1;
+                push (@config,"export BCHP_VER=$revision\n");
+                last;
+            }
         }
     }
+
     if ($valid_revision =~ 0) {
         print ("Error: $chip is supported, but invalid revision $revision. Supported revisions are @revs.\n");
         exit -2;
@@ -190,6 +204,7 @@ foreach my $platform ($dom->findnodes('/plat/platforms/platform')) {
         my $nexus_chip = $chip;
         if ($platform->findnodes('./nexus_platform')->to_literal() !~ /^\s*$/) {
             $nexus_chip = $platform->findnodes('./nexus_platform')->to_literal();
+            push (@config,"export OBJ_NEXUS_PLATFORM=$chip\n");
         }
         push (@config,"export NEXUS_PLATFORM=$nexus_chip\n");
         &checkRevision($platform);
@@ -202,6 +217,7 @@ foreach my $platform ($dom->findnodes('/plat/platforms/platform')) {
                 $valid_chip=1;
                 $chip = $platform->findnodes('./@id')->to_literal();
                 push (@config,"export NEXUS_PLATFORM=$chip\n");
+                push (@config,"export OBJ_NEXUS_PLATFORM=$bondout\n");
                 &checkRevision($platform);
             }
         }

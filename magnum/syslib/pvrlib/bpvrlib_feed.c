@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,7 +81,7 @@ static void b_pvr_feed_save_open(b_pvr_feed_save *save)
     char name[64];
     BKNI_Snprintf(name, sizeof(name),
 #if B_PVR_LIB_FEED_CONTEXT_NAME
-  "videos/bpvrlib_feed_%#x_%s_%u.mpg", save,
+  "videos/bpvrlib_feed_%p_%s_%u.mpg", (void *)save,
 #else
   "videos/bpvrlib_feed_%s_%u.mpg",
 #endif

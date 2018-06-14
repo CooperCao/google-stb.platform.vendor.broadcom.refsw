@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -210,6 +214,7 @@ BERR_Code BWFE_g3_Adc_P_Accumulate(BWFE_ChannelHandle h, uint8_t slice, uint8_t 
 {
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t val = 0;
+   bool bDgsumActive = true;
 
    /* reset accumulators, note all accumulators controlled by ping lane slice0 */
    BWFE_P_ToggleBit(h, BCHP_WFE_CORE_DGSCTL2, 0x00000001);
@@ -222,10 +227,23 @@ BERR_Code BWFE_g3_Adc_P_Accumulate(BWFE_ChannelHandle h, uint8_t slice, uint8_t 
    BWFE_P_OrRegister(h, BCHP_WFE_CORE_DGSCTL2, 0x00000002);   /* edge detect, non self clearing */
 
    do {
-      /* poll for dgsum2_accu_active = 0 */
       BWFE_P_ReadRegister(h, BCHP_WFE_CORE_HDOFFSTS, &val);
+   #if (BCHP_CHIP==45402)
+      /* poll for dgsum2_accu_active = 0 */
+      bDgsumActive = (val & 0x2) ? true : false;
+   #else
+      /* poll for dgsum2_accu_active_pX_slcX = 0 */
+      if ((slice == 0) && (lane == 0))
+         bDgsumActive = (val & 0x2) ? true : false;
+      else if ((slice == 0) && (lane == 1))
+         bDgsumActive = (val & 0x4) ? true : false;
+      else if ((slice == 1) && (lane == 0))
+         bDgsumActive = (val & 0x8) ? true : false;
+      else if ((slice == 1) && (lane == 1))
+         bDgsumActive = (val & 0x10) ? true : false;
+   #endif
    }
-   while (val & 0x2);
+   while (bDgsumActive);
 
    /* stop accumulator */
    BWFE_P_AndRegister(h, BCHP_WFE_CORE_DGSCTL2, ~0x00000002);
@@ -577,6 +595,21 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
             BWFE_DEBUG_EQU(BDBG_MSG(("PN gain calibration...")));
             for (slice = 0; slice < BWFE_NUM_SLICES; slice++)
             {
+            #if (BCHP_CHIP==45402)
+               /* initialize taps for faster convergence */
+               BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSCOEFEN_SLC, ~0x00000003, 0x00000003);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFA_SLC, 2);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFD_SLC, 0x00400000);
+
+               /* disable auto dc-tap reset, dc tap mode, no pre-main tap, 1 post-main tap */
+               BWFE_P_AndSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, ~0x1C040000);
+               BWFE_P_OrSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, 0x03000000);   /* update ping and pong coefficients */
+
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSLMSMU_SLC, 0x00880000);  /* set mu step sizes */
+
+               /* set background interval, disable background cal */
+               BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSBGLMS_SLC, ~0x0000007D, 0x13 << 2);
+            #else
                /* initialize taps for faster convergence */
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSCOEFEN_SLC, ~0x00000003, 0x00000003);
                BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFA_SLC, 3);
@@ -592,6 +625,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
 
                /* set background interval, disable background cal */
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSBGLMS_SLC, ~0x0000007D, 0x19 << 2);
+            #endif
 
                /* eq error power controls, beta=1, unbypass, unfreeze */
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSEPCTL_SLC, ~0x000000FB, 0x00000010);
@@ -615,7 +649,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
             BWFE_P_WriteSliceRegister(h, 0, BCHP_WFE_CORE_DGSLMSMU_SLC, 0x00000000);   /* slice 0 */
             BWFE_P_WriteSliceRegister(h, 1, BCHP_WFE_CORE_DGSLMSMU_SLC, 0x00000000);   /* slice 1 */
 
-            /* run for 3400ms */
+            /* run for 1000ms with initialized taps */
             hChn->equState = 7;
             return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, 1000000, BWFE_g3_Adc_P_EqualizeMdac1);
 
@@ -630,25 +664,37 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
             BWFE_DEBUG_EQU(BDBG_MSG(("enable BG mdac cal!")));
             for (slice = 0; slice < BWFE_NUM_SLICES; slice++)
             {
-               /* disable auto dc-tap reset, dc tap mode, 1 pre-main tap, 2 post-main taps */
+            #if (BCHP_CHIP==45402)
+                /* disable auto dc-tap reset, dc tap mode, no pre-main tap, 1 post-main tap */
+               BWFE_P_AndSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, ~0x1C040000);
+               BWFE_P_OrSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, 0x03000000);   /* update ping and pong coefficients */
+
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSLMSMU_SLC, 0x00CC0000);  /* set mu step sizes */
+            #else
+                /* disable auto dc-tap reset, dc tap mode, 1 pre-main tap, 2 post-main taps */
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, ~0x1C0C0000, 0x00040000);
                BWFE_P_OrSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, 0x03000000);   /* update ping and pong coefficients */
 
-               /* set mu step sizes */
-               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSLMSMU_SLC, 0x00220000);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSLMSMU_SLC, 0x00220000);  /* set mu step sizes */
+            #endif
 
                /* eq error power controls, beta=1, unbypass, unfreeze */
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSEPCTL_SLC, ~0x000000FB, 0x00000010);
                BWFE_P_ToggleSliceBit(h, slice, BCHP_WFE_CORE_DGSEPCTL_SLC, 0x00000004);    /* toggle integrator reset */
 
                /* set background interval, disable background cal */
+            #if (BCHP_CHIP==45402)
+               BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSBGLMS_SLC, ~0x0000007D, 0x0A << 2);
+            #else
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSBGLMS_SLC, ~0x0000007D, 0x14 << 2);
+            #endif
                BWFE_P_OrSliceReg(h, slice, BCHP_WFE_CORE_DGSBGLMS_SLC, 0x00000001);    /*  enable background cal */
 
                /* enable PN input for LMS and update coefficients for mdac1 */
                mask = (hChn->equTapMask << 4) | 0x2;
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, ~(0xF3 << 16), mask << 16);
             }
+
             return retCode;
 
          default:

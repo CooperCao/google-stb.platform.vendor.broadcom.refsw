@@ -507,10 +507,10 @@ int bmp4_parse_mdia(batom_t atom, batom_cursor *cursor, bmp4_box *pBox, bmp4_tra
                 batom_cursor_skip(cursor, box.size - box_hdr_size);
                 mdhdAtom = batom_extract(atom, &startCursor, cursor, NULL, NULL);
                 if(!bmp4_parse_mediaheader(mdhdAtom, &mediaHeader)) {
-                    LOGD(("%s: bmp4_parse_mediaheader returned error", __FUNCTION__));
+                    LOGD(("%s: bmp4_parse_mediaheader returned error", BSTD_FUNCTION));
                     rc = -1; goto ErrorExit;
                 }
-                LOGD(("%s:timescale=%d", __FUNCTION__, mediaHeader.timescale));
+                LOGD(("%s:timescale=%d", BSTD_FUNCTION, mediaHeader.timescale));
                 pTrack->scheme.trackTimeScale = mediaHeader.timescale;
                 break;
             default :

@@ -47,7 +47,6 @@
 #include "bhsm_keyslots_private.h"
 #include "bhsm_keyladder.h"
 #include "bhsm_bsp_msg.h"
-#include "../keyladder/bhsm_keyladder_enc_private.h"
 #include "bchp_bsp_control_intr2.h"
 #include "bchp_bsp_glb_control.h"
 #if BHSM_HOST_SAGE_SRAM_INTERFACE

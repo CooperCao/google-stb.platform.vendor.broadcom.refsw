@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <stdio.h>
 #include <errno.h>
@@ -57,6 +61,7 @@
 #include "nexus_playback.h"
 #include "nexus_record.h"
 #include "b_asp_lib.h"
+#include "b_asp_input.h"
 #include "bstd.h"
 #include "bkni.h"
 
@@ -69,7 +74,7 @@ BDBG_MODULE(asp_player);
     "\r\n"
 #define MAX_DURATION_IN_SEC 600
 
-static bool stateChanged = false;
+static bool endOfStream = false;
 /*
  * Psuedo code showing usage of B_ASP library APIs as Media Player.
  */
@@ -78,7 +83,7 @@ static void callbackFromAspLib(void *context, int param)
     BSTD_UNUSED(param);
     BKNI_SetEvent((BKNI_EventHandle)context);
     BDBG_LOG(("%s: Got callback w/ param=%d", BSTD_FUNCTION, param));
-    if (param == 1) stateChanged = true;
+    if (param == 1) endOfStream = true;
 }
 
 static void printUsage(
@@ -219,12 +224,12 @@ int main(int argc, char *argv[])
     char                            *pTarget;
     int                             socketFdToOffload;
     bool                            disableOffload = false;
-    B_AspChannelHandle              hAspCh;
+    B_AspInputHandle                hAspInput;
     NEXUS_PlaypumpHandle            hPlaypump;
     NEXUS_RecpumpHandle             hRecpump;
     BKNI_EventHandle                hDataReadyEvent;
-    BKNI_EventHandle                hStateChangedEvent;
-    B_AspChannelStatus              status;
+    BKNI_EventHandle                hEndOfStreamingEvent;
+    B_AspInputStatus                status;
     NEXUS_PlaypumpSettings          playpumpSettings;
     NEXUS_PlaypumpOpenPidChannelSettings pidChannelSettings;
     NEXUS_PidChannelHandle          hAllPassPidChannel;
@@ -233,6 +238,7 @@ int main(int argc, char *argv[])
     unsigned                        maxDurationInSec;
     bool                            dontSave = false;
 
+    BDBG_LOG(("%s options: server IP:Port=%s:%s OffloadDisabled=%s", argv[0], pServerIp, pServerPort, disableOffload?"Y":"N"));
     /* Initialize */
     {
         B_Asp_Init(NULL);
@@ -331,8 +337,8 @@ int main(int argc, char *argv[])
     {
         BKNI_CreateEvent(&hDataReadyEvent);
         BDBG_ASSERT(hDataReadyEvent);
-        BKNI_CreateEvent(&hStateChangedEvent);
-        BDBG_ASSERT(hStateChangedEvent);
+        BKNI_CreateEvent(&hEndOfStreamingEvent);
+        BDBG_ASSERT(hEndOfStreamingEvent);
 
         hPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
         BDBG_ASSERT(hPlaypump);
@@ -404,84 +410,78 @@ int main(int argc, char *argv[])
 
     /* Create an ASP Channel in the StreamIn mode. */
     {
-        B_AspChannelCreateSettings createSettings;
+        B_AspInputCreateSettings createSettings;
 
-        B_AspChannel_GetDefaultCreateSettings( B_AspStreamingProtocol_eHttp,  /* example assumes HTTP protocol based streaming. */
-                                                  &createSettings);
+        B_AspInput_GetDefaultCreateSettings( &createSettings);
 
-        /* Setup HTTP Protocol related settings. */
-        createSettings.protocol = B_AspStreamingProtocol_eHttp;
-
-        /* fill-in StreamingIn mode related settings. */
-        createSettings.mode = B_AspStreamingMode_eIn;
-        createSettings.modeSettings.streamIn.hPlaypump = hPlaypump;
-        createSettings.modeSettings.streamIn.hRecpump = hRecpump;
-        createSettings.mediaInfoSettings.transportType = NEXUS_TransportType_eTs;
-
-        /* Create ASP Channel. This will allow us to send & receive HTTP Request & Response using this Channel. */
-        hAspCh = B_AspChannel_Create(socketFdToOffload, &createSettings);
-        BDBG_ASSERT(hAspCh);
+        /* Create ASP Input. */
+        hAspInput = B_AspInput_Create(&createSettings);
+        BDBG_ASSERT(hAspInput);
     }
 
     /* Setup callbacks. */
     {
-        B_AspChannelSettings settings;
+        B_AspInputSettings settings;
 
-        B_AspChannel_GetSettings(hAspCh, &settings);
+        B_AspInput_GetSettings(hAspInput, &settings);
 
         /* Setup a callback to notify when data (HTTP Response) will be available. */
-        settings.dataReady.context = hDataReadyEvent;
-        settings.dataReady.callback = callbackFromAspLib;
-        settings.dataReady.param = 0;
+        settings.httpResponseDataReady.context = hDataReadyEvent;
+        settings.httpResponseDataReady.callback = callbackFromAspLib;
+        settings.httpResponseDataReady.param = 0;
 
         /* Setup a callback to notify state transitions indicating either network errors or EOF condition. */
-        settings.stateChanged.context = hStateChangedEvent;
-        settings.stateChanged.callback = callbackFromAspLib;
-        settings.stateChanged.param = 1;
+        settings.endOfStreaming.context = hEndOfStreamingEvent;
+        settings.endOfStreaming.callback = callbackFromAspLib;
+        settings.endOfStreaming.param = 1;
 
-        rc = B_AspChannel_SetSettings(hAspCh, &settings);
+        rc = B_AspInput_SetSettings(hAspInput, &settings);
         BDBG_ASSERT(rc==0);
+    }
+
+    /* Connect to ASP */
+    {
+        B_AspInputConnectHttpSettings settings;
+
+        B_AspInput_GetDefaultConnectHttpSettings(&settings);
+
+        settings.transportType = NEXUS_TransportType_eTs;
+        settings.hPlaypump = hPlaypump;
+
+        nrc = B_AspInput_ConnectHttp(hAspInput, socketFdToOffload, &settings);
+        BDBG_ASSERT(nrc == NEXUS_SUCCESS);
     }
 
     /* Send HTTP Request using AspChannel. */
     {
-        void *pHttpReqBuf;
-        unsigned httpReqBufSize;
-        void *pHttpReqBuf1;
-        unsigned httpReqBufSize1;
-
-        /* Get Buffer where HTTP Request will be written into. */
-        rc = B_AspChannel_GetWriteBufferWithWrap(hAspCh, &pHttpReqBuf, &httpReqBufSize, &pHttpReqBuf1, &httpReqBufSize1);
-        BDBG_ASSERT(rc==0);
-        BDBG_WRN(("pHttpReqBuf=%p size=%u", pHttpReqBuf, httpReqBufSize));
-        BKNI_Memset(pHttpReqBuf, 0, httpReqBufSize);
+        char httpReqBuf[8196];
+        unsigned httpReqBufSize = 8196;
 
         /* Prepare HTTP Request into this buffer. */
-        snprintf(pHttpReqBuf, httpReqBufSize-1, HTTP_GET_REQUEST_STRING, pTarget);
-        BDBG_WRN(("httpReq=%s", pHttpReqBuf));
+        BKNI_Memset(httpReqBuf, 0, sizeof(httpReqBuf));
+        snprintf(httpReqBuf, httpReqBufSize-1, HTTP_GET_REQUEST_STRING, pTarget);
+        BDBG_WRN(("httpReq=%s", httpReqBuf));
 
         /* Provide this buffer to ASP so that it can send it out on the network. */
-        B_AspChannel_WriteComplete(hAspCh, strlen(pHttpReqBuf));
+        nrc = B_AspInput_SendHttpRequest(hAspInput, httpReqBuf, strlen(httpReqBuf));
+        BDBG_ASSERT(nrc == NEXUS_SUCCESS);
     }
 
     /* HTTP Request is sent, wait for HTTP Response to arrive & parse it. */
     while (true)
     {
         const void *pHttpRespBuf;
-        unsigned httpRespBufSize;
-        const void *pHttpRespBuf1;
-        unsigned httpRespBufSize1;
+        unsigned httpRespDataLength = 0;
 
         /* Check if ASP has received any data from network. */
-        rc = B_AspChannel_GetReadBufferWithWrap(hAspCh, &pHttpRespBuf, &httpRespBufSize, &pHttpRespBuf1, &httpRespBufSize1);
-        BDBG_ASSERT(rc==B_ERROR_SUCCESS);
-        BSTD_UNUSED(pHttpRespBuf1);
-        BSTD_UNUSED(httpRespBufSize1);
-
-        if (httpRespBufSize)
+        nrc = B_AspInput_GetHttpResponseData(hAspInput, &pHttpRespBuf, &httpRespDataLength);
+        if (nrc == NEXUS_SUCCESS && httpRespDataLength)
         {
-            /* TODO: HTTP Response is available, parse it & check if full Response has been read. */
-            BDBG_WRN(("ResponseLength=%u response=%s", httpRespBufSize, pHttpRespBuf));
+            /* HTTP Response is available. */
+            BDBG_WRN(("ResponseLength=%u response=%s", httpRespDataLength, pHttpRespBuf));
+
+            /* TODO: parse HTTP Response to see if complete Response has been received. */
+            /* For now we assume the complete HTTP Response is available in the response data. */
 
             if (strcasestr(pHttpRespBuf, "200 ok") == NULL)
             {
@@ -490,7 +490,8 @@ int main(int argc, char *argv[])
             }
 
             /* Let ASP know that we have consumed either whole or some part of this buffer. */
-            B_AspChannel_ReadComplete(hAspCh, httpRespBufSize);
+            B_AspInput_HttpResponseDataConsumed(hAspInput, true, httpRespDataLength );
+            /* TODO: Should really continue to read until end of HttpResponse is found. */
 
             /* break if full Response is read. */
             break;
@@ -500,26 +501,19 @@ int main(int argc, char *argv[])
         BKNI_WaitForEvent(hDataReadyEvent, 5000);
     }
 
-    /* We have parsed the HTTP Response and it's all well. So notify ASP to start the stream-in flow. */
+    /* We have parsed the HTTP Response and it's good. So notify ASP to start the stream-in flow. */
     {
-        BKNI_ResetEvent(hStateChangedEvent);    /* Reset this event if we need to know when the B_AspChannel_StartStreaming() completes. */
+        B_AspInputStartSettings settings;
+
+        BKNI_ResetEvent(hEndOfStreamingEvent);
         BKNI_ResetEvent(hDataReadyEvent);
 
-        B_AspChannel_StartStreaming(hAspCh);
+        B_AspInput_GetDefaultStartSettings(&settings);
+        settings.feedMode = B_AspInputFeedMode_eAuto;
+        nrc = B_AspInput_Start(hAspInput, &settings);
+        BDBG_ASSERT(nrc == NEXUS_SUCCESS);
     }
 
-    /* Optionally wait for stateChanged Callback to indicate Streaming has indeed stated. */
-    if (0)
-    {
-        BKNI_WaitForEvent(hStateChangedEvent, BKNI_INFINITE);
-        B_AspChannel_GetStatus(hAspCh, &status);
-        if (status.state == B_AspChannelState_eStartedStreaming)
-        {
-            /* Now we are playing the stream. */
-        }
-    }
-
-    stateChanged = false;
     while (g_quit == false)
     {
         unsigned timeout = 100; /* msec */
@@ -528,34 +522,34 @@ int main(int argc, char *argv[])
         dataReadyCallback1(hRecpump, 1);
         if (count++ % 10 == 0)
         {
-            B_AspChannel_PrintStatus(hAspCh);
+            B_AspInput_PrintStatus(hAspInput);
             totalTimeout++;
         }
-        BKNI_WaitForEvent(hStateChangedEvent, timeout);
+        BKNI_WaitForEvent(hEndOfStreamingEvent, timeout);
         if (totalTimeout == maxDurationInSec) {BDBG_LOG(("%u sec passed, stopping!!", maxDurationInSec)); break;}
-        if (stateChanged) {BDBG_LOG(("breaking loop due to stateChanged Callback from ASP Lib.")); break;}
+        if (endOfStream) {BDBG_LOG(("breaking loop due to endOfStream Callback from ASP Lib.")); break;}
     }
 
     /*
      * To show playing for some finite time, set the timeout value. By default, this example will play till it
-     * gets EndOfStream (EOS) indication using the stateChanged Callback.
+     * gets EndOfStream (EOS) indication using the endOfStream Callback.
      */
 out:
     /* Initiate Stop Sequence. */
     {
         /* Stop the ASP Channel. */
-        if (hAspCh) B_AspChannel_StopStreaming(hAspCh);
+        if (hAspInput) B_AspInput_Stop(hAspInput);
         if (hPlaypump) NEXUS_Playpump_Stop(hPlaypump);
         if (hRecpump) NEXUS_Recpump_Stop(hRecpump);
     }
 
     /* Free-up the resources. */
-    if (hAspCh) B_AspChannel_Destroy(hAspCh, NULL);
+    if (hAspInput) B_AspInput_Destroy(hAspInput);
     NEXUS_Recpump_RemoveAllPidChannels(hRecpump);
     NEXUS_Playpump_ClosePidChannel(hPlaypump, hAllPassPidChannel);
     if (hPlaypump) NEXUS_Playpump_Close(hPlaypump);
     if (hRecpump) NEXUS_Recpump_Close(hRecpump);
-    BKNI_DestroyEvent(hStateChangedEvent);
+    BKNI_DestroyEvent(hEndOfStreamingEvent);
     BKNI_DestroyEvent(hDataReadyEvent);
 
     /* Uninitialize */

@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -93,6 +93,7 @@ copy_headers:
 # bdbg and bkni is convenient for apps
 	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/dbg/bdbg.h ${NEXUS_BIN_DIR}/include
 	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/dbg/bdbg_app.h ${NEXUS_BIN_DIR}/include
+	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/dbg/bdbg_fifo_session.h ${NEXUS_BIN_DIR}/include
 	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/dbg/bdbg_priv.h ${NEXUS_BIN_DIR}/include
 	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/kni/generic/bkni.h ${NEXUS_BIN_DIR}/include
 	${Q_}$(CP) -f $(NEXUS_TOP)/../magnum/basemodules/kni/generic/bkni_multi.h ${NEXUS_BIN_DIR}/include

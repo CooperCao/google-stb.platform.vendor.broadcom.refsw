@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_display.h"
@@ -60,7 +60,7 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
    assert(platform->GetNextSurface);
    surf->native_back_buffer = platform->GetNextSurface(platform->context,
          surf->native_window_state, format, surf->base.secure,
-         &surf->base.buffer_age, &fence);
+         &surf->base.age_damage_state.buffer_age, &fence);
    if (!surf->native_back_buffer)
       return EGL_RES_BAD_NATIVE_WINDOW;
 

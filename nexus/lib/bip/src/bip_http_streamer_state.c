@@ -48,7 +48,7 @@
 #include "b_playback_ip_lib.h"
 #include "namevalue.h"
 #ifdef NEXUS_HAS_ASP
-#include "b_asp_lib.h"
+#include "b_asp_output.h"
 #endif
 
 
@@ -100,9 +100,9 @@ static void httpStreamerPrintStatus(
     )
 {
 #ifdef NEXUS_HAS_ASP
-    if (hHttpStreamer->hAspChannel)
+    if (hHttpStreamer->hAspOutput)
     {
-        B_AspChannel_PrintStatus(hHttpStreamer->hAspChannel);
+        B_AspOutput_PrintStatus(hHttpStreamer->hAspOutput);
     }
 #endif
 
@@ -733,9 +733,9 @@ static BIP_Status createAndStartAspStreamer(
     int                     socketFd
     )
 {
-    BIP_Status bipStatus = BIP_SUCCESS;
+    NEXUS_Error rc;
+    BIP_Status bipStatus = BIP_ERR_INVALID_PARAMETER;
     BIP_DtcpIpServerStreamStatus dtcpIpStreamStatus;
-    B_Error rc;
 
     if ( hHttpStreamer->output.settings.enableDtcpIp )
     {
@@ -750,69 +750,81 @@ static BIP_Status createAndStartAspStreamer(
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_DtcpIpServer_GetStreamStatus() Failed" ), error, bipStatus, bipStatus );
     }
 
+    /* Create ASP Channel. */
     {
-        B_AspChannelCreateSettings createSettings;
+        B_AspOutputCreateSettings createSettings;
 
-        B_AspChannel_GetDefaultCreateSettings( B_AspStreamingProtocol_eHttp,  /* example assumes HTTP protocol based streaming. */
-                                                  &createSettings);
+        B_AspOutput_GetDefaultCreateSettings(&createSettings);
+        hHttpStreamer->hAspOutput = B_AspOutput_Create(&createSettings);
+        BIP_CHECK_GOTO(( hHttpStreamer->hAspOutput ), ( "B_AspOutput_Create() Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+    }
 
-        /* Setup HTTP Protocol related settings. */
-        createSettings.protocol = B_AspStreamingProtocol_eHttp;
-        createSettings.mode = B_AspStreamingMode_eOut;
-        createSettings.modeSettings.streamOut.hRecpump = hHttpStreamer->pStreamer->hRecpump;   /* source of AV data. */
-        createSettings.modeSettings.streamOut.hPlaypump = hHttpStreamer->pStreamer->hPlaypump;   /* source of AV data. */
-        createSettings.mediaInfoSettings.transportType = hHttpStreamer->pStreamer->streamerStreamInfo.transportType;
-        createSettings.mediaInfoSettings.maxBitRate = hHttpStreamer->output.settings.streamerSettings.maxDataRate;
-        createSettings.protocolSettings.http.enableChunkTransferEncoding = hHttpStreamer->output.settings.enableHttpChunkXferEncoding;
-        createSettings.protocolSettings.http.chunkSize = hHttpStreamer->output.settings.chunkSize;
+    {
+        /* Connect to ASP */
+        B_AspOutputConnectHttpSettings connectSettings;;
 
-        if ( hHttpStreamer->output.settings.enableDtcpIp )
-        {
-            createSettings.drmType = NEXUS_AspChannelDrmType_eDtcpIp;
-        }
-        /* Create ASP Channel. */
-        hHttpStreamer->hAspChannel = B_AspChannel_Create(socketFd, &createSettings);
-        BIP_CHECK_GOTO(( hHttpStreamer->hAspChannel ), ( "B_AspChannel_Create Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        B_AspOutput_GetDefaultConnectHttpSettings(&connectSettings);
+
+        connectSettings.hRecpump = hHttpStreamer->pStreamer->hRecpump;   /* source of AV data. */
+        connectSettings.hPlaypump = hHttpStreamer->pStreamer->hPlaypump;   /* source of AV data. */
+        connectSettings.maxBitRate = hHttpStreamer->output.settings.streamerSettings.maxDataRate;
+        connectSettings.transportType = hHttpStreamer->pStreamer->streamerStreamInfo.transportType;
+        connectSettings.enableChunkTransferEncoding = hHttpStreamer->output.settings.enableHttpChunkXferEncoding;
+        connectSettings.chunkSize = hHttpStreamer->output.settings.chunkSize;
+
+        rc = B_AspOutput_ConnectHttp(hHttpStreamer->hAspOutput, socketFd, &connectSettings);
+        BIP_CHECK_GOTO((rc == NEXUS_SUCCESS), ( "B_AspOutput_ConnectHttp Failed" ), error, BIP_ERR_NEXUS, bipStatus );
     }
 
     /* Setup callbacks. */
     {
-        B_AspChannelSettings settings;
+        B_AspOutputSettings settings;
 
-        B_AspChannel_GetSettings(hHttpStreamer->hAspChannel, &settings);
+        B_AspOutput_GetSettings(hHttpStreamer->hAspOutput, &settings);
 
         /* Setup a callback to notify state transitions indicating either network errors or EOF condition. */
-        settings.stateChanged.context = hHttpStreamer;
-        settings.stateChanged.callback = aspLibCallback;
-        rc = B_AspChannel_SetSettings(hHttpStreamer->hAspChannel, &settings);
-        BIP_CHECK_GOTO((rc == B_ERROR_SUCCESS), ( "B_AspChannel_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        settings.endOfStreaming.context = hHttpStreamer;
+        settings.endOfStreaming.callback = aspLibCallback;
+
+        rc = B_AspOutput_SetSettings(hHttpStreamer->hAspOutput, &settings);
+        BIP_CHECK_GOTO((rc == NEXUS_SUCCESS), ( "B_AspOutput_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
     }
 
     if ( hHttpStreamer->output.settings.enableDtcpIp )
     {
-        B_AspChannelDtcpIpSettings dtcpIpSettings;
-        dtcpIpSettings.settings.exchKeyLabel = dtcpIpStreamStatus.exchKeyLabel;
-        dtcpIpSettings.settings.emiModes = dtcpIpStreamStatus.emiModes;
-        dtcpIpSettings.settings.pcpPayloadSize = hHttpStreamer->output.settings.dtcpIpOutput.pcpPayloadLengthInBytes;
-        BKNI_Memcpy(dtcpIpSettings.settings.exchKey,  dtcpIpStreamStatus.exchKey, NEXUS_ASP_DTCP_IP_EXCH_KEY_IN_BYTES);
-        BKNI_Memcpy(dtcpIpSettings.settings.initialNonce,  dtcpIpStreamStatus.initialNonce, NEXUS_ASP_DTCP_IP_NONCE_IN_BYTES);
-        rc = B_AspChannel_SetDtcpIpSettings( hHttpStreamer->hAspChannel, &dtcpIpSettings);
-        BIP_CHECK_GOTO((rc == B_ERROR_SUCCESS), ( "B_AspChannel_SetDtcpIpSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        B_AspOutputDtcpIpSettings dtcpIpSettings;
+
+        B_AspOutput_GetDtcpIpSettings(hHttpStreamer->hAspOutput, &dtcpIpSettings);
+
+        dtcpIpSettings.exchKeyLabel = dtcpIpStreamStatus.exchKeyLabel;
+        dtcpIpSettings.emiModes = dtcpIpStreamStatus.emiModes;
+        dtcpIpSettings.pcpPayloadSize = hHttpStreamer->output.settings.dtcpIpOutput.pcpPayloadLengthInBytes;
+        BKNI_Memcpy(dtcpIpSettings.exchKey,  dtcpIpStreamStatus.exchKey, sizeof(dtcpIpSettings.exchKey));
+        BKNI_Memcpy(dtcpIpSettings.initialNonce,  dtcpIpStreamStatus.initialNonce, sizeof(dtcpIpSettings.initialNonce));
+
+        rc = B_AspOutput_SetDtcpIpSettings(hHttpStreamer->hAspOutput, &dtcpIpSettings);
+        BIP_CHECK_GOTO((rc == NEXUS_SUCCESS), ( "B_AspOutput_SetDtcpIpSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Set DTCP/IP Exch Kay & Nonce settings w/ ASP Lib" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
     }
 
     /* Start Streaming. */
     {
-        rc = B_AspChannel_StartStreaming(hHttpStreamer->hAspChannel);
-        BIP_CHECK_GOTO((rc == B_ERROR_SUCCESS), ( "B_AspChannel_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        B_AspOutputStartSettings startSettings;
+
+        B_AspOutput_GetDefaultStartSettings(&startSettings);
+        startSettings.feedMode = B_AspOutputFeedMode_eAuto;
+        rc = B_AspOutput_Start(hHttpStreamer->hAspOutput, &startSettings);
+        BIP_CHECK_GOTO((rc == NEXUS_SUCCESS), ( "B_AspOutput_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+        bipStatus = BIP_SUCCESS;
     }
     BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Started Streaming using ASP..." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
 
 error:
     if (bipStatus != BIP_SUCCESS)
     {
-        if (hHttpStreamer->hAspChannel) B_AspChannel_Destroy(hHttpStreamer->hAspChannel, NULL);
-        hHttpStreamer->hAspChannel = NULL;
+        if (hHttpStreamer->hAspOutput) B_AspOutput_Destroy(hHttpStreamer->hAspOutput);
+        hHttpStreamer->hAspOutput = NULL;
     }
     return ( bipStatus );
 } /* createAndStartAspStreamer */
@@ -1848,9 +1860,9 @@ static void stopAndDestroyStreamer(
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s:" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 #ifdef NEXUS_HAS_ASP
     /* Notify ASP or PBIP to stop streaming. */
-    if (hHttpStreamer->hAspChannel)
+    if (hHttpStreamer->hAspOutput)
     {
-        B_AspChannel_StopStreaming( hHttpStreamer->hAspChannel );
+        B_AspOutput_Stop( hHttpStreamer->hAspOutput );
     }
     else
 #endif
@@ -1867,10 +1879,10 @@ static void stopAndDestroyStreamer(
 
     /* Notify ASP or PBIP to Destroy the streaming channel. */
 #ifdef NEXUS_HAS_ASP
-    if (hHttpStreamer->hAspChannel)
+    if (hHttpStreamer->hAspOutput)
     {
-        B_AspChannel_Destroy( hHttpStreamer->hAspChannel, NULL/* TODO: &socketFd: need to see if this is a new or existing socket. If new, then need a way to let HttpSocket know about this!!!*/ );
-        hHttpStreamer->hAspChannel = NULL;
+        B_AspOutput_Destroy( hHttpStreamer->hAspOutput/* TODO: &socketFd: need to see if this is a new or existing socket. If new, then need a way to let HttpSocket know about this!!!*/ );
+        hHttpStreamer->hAspOutput = NULL;
         if (hHttpStreamer->hDtcpIpServerStream)
         {
             if (BIP_DtcpIpServer_CloseStream(hHttpStreamer->startSettings.hInitDtcpIp, hHttpStreamer->hDtcpIpServerStream) != BIP_SUCCESS)
@@ -3916,7 +3928,7 @@ void processHttpStreamerState(
         BIP_Arb_AcceptRequest(hArb);
 
 #ifdef NEXUS_HAS_ASP
-        if (!hHttpStreamer->hAspChannel)
+        if (!hHttpStreamer->hAspOutput)
 #endif
         {
             BIP_Streamer_PrintStatus( hHttpStreamer->hStreamer );
@@ -4449,11 +4461,11 @@ void processHttpStreamerState(
                 bytesStreamed = status.bytesStreamed;
             }
 #ifdef NEXUS_HAS_ASP
-            else if (hHttpStreamer->hAspChannel)
+            else if (hHttpStreamer->hAspOutput)
             {
-                B_AspChannelStatus status;
-                B_AspChannel_GetStatus(hHttpStreamer->hAspChannel, &status);
-                bytesStreamed = status.nexusStatus.stats.mcpbConsumedInBytes;
+                B_AspOutputStatus status;
+                B_AspOutput_GetStatus(hHttpStreamer->hAspOutput, &status);
+                bytesStreamed = status.bytesStreamed;
             }
 #endif
             if ( bytesStreamed != hHttpStreamer->totalBytesStreamed )

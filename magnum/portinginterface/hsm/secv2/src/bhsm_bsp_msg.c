@@ -100,8 +100,15 @@ BDBG_MODULE(BHSMa);
     #define MAILBOX_INT_CLEAR_OLOAD_MASK          BCHP_BSP_CONTROL_INTR2_CPU_CLEAR_OLOAD1_INTR_MASK
     #define MAILBOX_INT_CLEAR                     BCHP_BSP_CONTROL_INTR2_CPU_CLEAR
 
-    #define MAILBOX_ADDRESS_IN                    BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE
-    #define MAILBOX_ADDRESS_OUT                  (BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BHSM_P_MAILBOX_BYTE_SIZE * 1))
+    /* mailbox are relocated at BFW_MAILBOX_VA virtual address */
+    #include "memory_mailbox.h"
+    #define MAILBOX_ADDRESS_IN                    ((volatile uint32_t *)BFW_MAILBOX_VA)
+    #define MAILBOX_ADDRESS_OUT                   (MAILBOX_ADDRESS_IN + BHSM_P_MAILBOX_WORD_SIZE)
+
+    #define writeOutbox(regHandle,wordOffset,value)   (MAILBOX_ADDRESS_IN[wordOffset]) = value
+    #define readOutbox(regHandle,wordOffset)          (MAILBOX_ADDRESS_IN[wordOffset])
+    #define readInbox(regHandle,wordOffset)           (MAILBOX_ADDRESS_OUT[wordOffset])
+
 #else
     #define MAILBOX_OLOAD_INTERRUPT_ID            BCHP_INT_ID_CREATE( BCHP_BSP_CONTROL_INTR2_CPU_STATUS ,\
                                                                       BCHP_BSP_CONTROL_INTR2_CPU_STATUS_OLOAD2_INTR_SHIFT )
@@ -120,6 +127,11 @@ BDBG_MODULE(BHSMa);
 
     #define MAILBOX_ADDRESS_IN                   (BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BHSM_P_MAILBOX_BYTE_SIZE * 2))
     #define MAILBOX_ADDRESS_OUT                  (BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BHSM_P_MAILBOX_BYTE_SIZE * 3))
+
+    /* macros to read and write to the mailbox.  */
+    #define writeOutbox(regHandle,wordOffset,value) BREG_Write32( regHandle, (MAILBOX_ADDRESS_IN  + (wordOffset)*4), (value) )
+    #define readOutbox(regHandle,wordOffset)        BREG_Read32(  regHandle, (MAILBOX_ADDRESS_IN  + (wordOffset)*4) )
+    #define readInbox(regHandle,wordOffset)         BREG_Read32(  regHandle, (MAILBOX_ADDRESS_OUT + (wordOffset)*4) )
 #endif
 
 
@@ -170,10 +182,6 @@ static void _ParseBfwVersion( BHSM_BfwVersion *pVersion, uint32_t bspFwReleaseVe
 static void _MailboxIntHandler_isr( void* pHsm, int unused );
 #endif
 
-/* macros to read and write to the mailbox.  */
-#define writeOutbox(regHandle,wordOffset,value) BREG_Write32( regHandle, (MAILBOX_ADDRESS_IN  + (wordOffset)*4), (value) )
-#define readOutbox(regHandle,wordOffset)        BREG_Read32(  regHandle, (MAILBOX_ADDRESS_IN  + (wordOffset)*4) )
-#define readInbox(regHandle,wordOffset)         BREG_Read32(  regHandle, (MAILBOX_ADDRESS_OUT + (wordOffset)*4) )
 
 
 BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgInit_t *pParam )

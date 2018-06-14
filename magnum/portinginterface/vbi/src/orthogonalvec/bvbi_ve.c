@@ -167,7 +167,7 @@ BERR_Code BVBI_Encode_GetInterruptName(
         default:
                 aEncodeInterruptName[0] = 0;
                 aEncodeInterruptName[1] = 0;
-                eErr = BERR_TRACE(BVBI_ERR_HW_UNSUPPORTED);
+                eErr = BVBI_ERR_HW_UNSUPPORTED;
                 goto BVBI_Encode_GetInterruptName_Done;
                 break;
         }

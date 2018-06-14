@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_platform_module.h"
 #include "nexus_platform_sage_log.h"
@@ -122,8 +125,8 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
     uint32_t actualBufferSize=0,actualWrapBufSize=0;
     off_t fileWriteOffset = 0;
     const char *pFileSize=NULL;
+    const char *pLogPath=NULL;
     off_t  maxFileSize = MAX_SAGE_LOG_FILE_SIZE;
-    uint32_t charCount=0;
 
     NEXUS_MemoryAllocationSettings allocSettings;
 
@@ -133,12 +136,12 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
     {
         maxFileSize = NEXUS_atoi(pFileSize);
     }
+    if((pLogPath = NEXUS_GetEnv("sage_log_file_path")) == NULL)
+    {
+        pLogPath = ".";
+    }
 
-    charCount = snprintf(pathname, sizeof(pathname), "%s.bin", pEnv);
-	if(0 == charCount)
-	{
-		BDBG_ERR(("snprintf Failed charCount %d",charCount));
-	}
+    (void)snprintf(pathname, sizeof(pathname), "%s/%s.bin", pLogPath, pEnv);
     pFile = fopen(pathname, "wb+");
     if ( NULL == pFile )
     {
@@ -193,11 +196,7 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
         NEXUS_Platform_P_Hex2Base64(keyBuffer, keySize, pBase64Buffer, &base64Outlen);
 
-        charCount = snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
-        if(0 == charCount)
-        {
-            BDBG_ERR(("snprintf Failed charCount %d",charCount));
-        }
+        (void)snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
         if((keySize != 0)&&(bufferSize != 0))/*Do not write just key data only*/
         {
             (void)fwrite(header, strlen(header), 1, pFile);
@@ -206,11 +205,7 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
         NEXUS_Platform_P_Hex2Base64(pLogBuffer, bufferSize, pBase64Buffer, &base64Outlen);
 
-        charCount = snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:",actualBufferSize,bufferSize,base64Outlen);
-        if(0 == charCount)
-        {
-            BDBG_ERR(("snprintf Failed charCount %d",charCount));
-        }
+        (void)snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:",actualBufferSize,bufferSize,base64Outlen);
         if(bufferSize != 0)
         {
             (void)fwrite(header, strlen(header), 1, pFile);
@@ -222,12 +217,7 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
             NEXUS_Platform_P_Hex2Base64(keyBuffer, keySize, pBase64Buffer, &base64Outlen);
 
-            charCount = snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
-            if(0 == charCount)
-            {
-                BDBG_ERR(("snprintf Failed charCount %d",charCount));
-            }
-
+            (void)snprintf(header, sizeof(header), "#KB:%04x:%04x:%04x:", keySize, keySize,base64Outlen);
             if((keySize != 0)&&(bufferSize != 0))/*Do not write just key data only*/
             {
                 (void)fwrite(header, strlen(header), 1, pFile);
@@ -236,12 +226,7 @@ static void *NEXUS_Platform_P_SageLogThread(void *pParam)
 
             NEXUS_Platform_P_Hex2Base64(pWrapLogBuffer, wrapBufSize, pBase64Buffer, &base64Outlen);
 
-            charCount = snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:", actualWrapBufSize, wrapBufSize, base64Outlen);
-            if(0 == charCount)
-            {
-                BDBG_ERR(("snprintf Failed charCount %d",charCount));
-            }
-
+            (void)snprintf(header, sizeof(header), "#LB:%04x:%04x:%04x:", actualWrapBufSize, wrapBufSize, base64Outlen);
             (void)fwrite(header, strlen(header), 1, pFile);
             (void)fwrite(pBase64Buffer, base64Outlen, 1, pFile);
         }
@@ -333,9 +318,15 @@ static NEXUS_Error NEXUS_Platform_P_SageSecureLogCapture(
             if(pFile == NULL)
             {
                 const char *pEnv = "secure_log";
+                const char *pLogPath = NULL;
                 char pathname[SAGE_SECURE_LOG_PATH_MAX];
 
-                snprintf(pathname, sizeof(pathname), "%s_%d_0x%x.bin", pEnv,bufferId,pBuffContext->secHead.sdl_id);
+                if((pLogPath = NEXUS_GetEnv("sage_log_file_path")) == NULL)
+                {
+                    pLogPath = ".";
+                }
+
+                (void)snprintf(pathname, sizeof(pathname), "%s/%s_%d_0x%x.bin", pLogPath,pEnv,bufferId,pBuffContext->secHead.sdl_id);
                 pFile = fopen(pathname, "ab");
                 if(pFile == NULL)
                 {

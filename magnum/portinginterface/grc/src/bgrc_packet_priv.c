@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bchp_common.h"
@@ -1102,8 +1106,8 @@ static void BGRC_PACKET_P_ProcSwPktThreeSourceFeeders( BGRC_PacketContext_Handle
     hContext->SRC_surface_pitch = packet->plane0.pitch;
 #endif
 #else
-	BSTD_UNUSED(hContext);
-	BSTD_UNUSED(header);
+    BSTD_UNUSED(hContext);
+    BSTD_UNUSED(header);
 #endif
 }
 /***************************************************************************/
@@ -2400,11 +2404,12 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
             if(ulCompressed)
             {
                 uint32_t ulMaxScalingUpFactor, ulMaxScalingUpFraction;
+                /* old code that causes coverity dead code warning:
                 if(hContext->hGrc->eDeviceNum == BGRC_eMM_M2mc0)
                 {
                     ulMaxScalingUpFactor = BGRC_P_SCALE_UP_MIPMAP_MAX >>bYuv420;
                     ulMaxScalingUpFraction = BGRC_P_SCALE_UP_MIPMAP_MAX_FRAC >> bYuv420;
-                }
+                } */
                 if(ulCompressed==1)
                 {
                     ulMaxScalingUpFactor = BGRC_P_SCALE_UP_1BSTC_MAX>>bYuv420;
@@ -2428,7 +2433,7 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
 #endif
 
 #if (BDBG_DEBUG_BUILD)
-        if (in_stripe_w < (110<<16) || out_stripe_w < 110)
+        if ((in_stripe_w > 0) && (out_stripe_w > 0) && (in_stripe_w < (110<<16) || out_stripe_w < 110))
         {
             BDBG_WRN(("info: in_w %d, in_stripe_w 0x%x(%d), out_w %d, out_stripe_w %d",
                 src_rect->width , in_stripe_w, in_stripe_w>>16, out_rect->width, out_stripe_w));
@@ -2883,6 +2888,7 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlit( BGRC_PacketContext_Handle hContext
 
 /***************************************************************************/
 /*   HW stripe */
+#if (BGRC_P_VER_2 <= BGRC_P_VER)
 static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
     BM2MC_PACKET_PacketScaleBlendBlit *packet = (BM2MC_PACKET_PacketScaleBlendBlit *) header;
@@ -3014,6 +3020,7 @@ static void BGRC_PACKET_P_ProcHwPktStripeBlit( BGRC_PacketContext_Handle hContex
 
     BGRC_PACKET_P_CheckAndForceDestDisable( hContext );
 }
+#endif /* #if (BGRC_P_VER_2 <= BGRC_P_VER) */
 
 /**************************************************************************
  * software mimic hw stripe
@@ -3124,6 +3131,7 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlendBlit( BGRC_PacketContext_Handle hCo
         hContext->scaler_header = header;
     }
 
+#if (BGRC_P_VER_2 <= BGRC_P_VER)
     if(bSoftStripeBlit || (hContext->scaler.input_stripe_width ==0))
     {
         BGRC_PACKET_P_ProcSwPktStripeBlit( hContext, &packet->src_rect, &packet->out_rect, &packet->dst_point );
@@ -3132,6 +3140,9 @@ static void BGRC_PACKET_P_ProcSwPktScaleBlendBlit( BGRC_PacketContext_Handle hCo
     {
         BGRC_PACKET_P_ProcHwPktStripeBlit(hContext, header );
     }
+#else /* older versions always uses software stripe */
+    BGRC_PACKET_P_ProcSwPktStripeBlit( hContext, &packet->src_rect, &packet->out_rect, &packet->dst_point );
+#endif
 
 #ifdef BCHP_M2MC_DCEG_CFG
     BGRC_PACKET_P_SetDcegCompression(hContext);

@@ -4068,7 +4068,7 @@ wlc_fbt_overtop_enabled(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg)
 	wlc_fbt_priv_t *fbt_priv;
 	bss_fbt_info_t *fbt_cfg;
 
-	if (fbt_info == NULL) {
+	if (fbt_info == NULL || cfg == NULL) {
 		return FALSE;
 	}
 

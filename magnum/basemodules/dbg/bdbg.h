@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,7 @@
 #define BDBG_H
 
 #include "blst_slist.h"
+#include "bdbg_fifo_session.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,6 +93,7 @@ typedef enum {
 } BDBG_Level;
 
 typedef void *BDBG_Instance;
+typedef BDBG_Fifo_SyncSession BDBG_SyncSession;
 
 /***************************************************************************
 Summary:
@@ -996,9 +998,73 @@ void BDBG_P_Release(BDBG_pDebugModuleFile dbg_module);
 void BDBG_EnterFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function);
 void BDBG_LeaveFunction_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *function);
 
+/***************************************************************************
+Summary:
+    Initializes synchronization session for the debug output
+
+Description:
+    This function is acquired resources used by BDBG_SyncSession_Wait
+    to throttle down execution of software to allow all produced output
+    be captured by reader (for example printed on the console)
+
+Example:
+    BDBG_SyncSession session;
+    unsigned i;
+    BDBG_SyncSession_Begin(&session);
+    for(i=0;i<1000;i++) {
+        if(BDBG_SyncSession_Wait(&session, 1000 )!=BERR_SUCCESS) { // wait up to 1 second
+           // something bad happened, for example there is no reader (so output will not get printed on console any way
+           break;
+        }
+        BDBG_LOG(("i=%u", i));
+    }
+    BDBG_SyncSession_End(&session);
+
+See Also:
+    BDBG_SyncSession_Wait, BDBGSyncSession_End
+****************************************************************************/
+void BDBG_SyncSession_Begin(BDBG_SyncSession *session);
+
+/***************************************************************************
+Summary:
+    Waits for reader to capture the debug output
+
+Description:
+    This function is used wait for the reader to capture debug output,
+    so it provides way to throttle down execution of software to allow all produced output
+    be captured by reader (for example printed on the console)
+
+Example:
+    See BDBG_SyncSession_Begin
+
+See Also:
+    BDBG_SyncSession_Begin, BDBGSyncSession_End
+****************************************************************************/
+BERR_Code BDBG_SyncSession_Wait( BDBG_Fifo_SyncSession *session, unsigned timeout);
+
+/***************************************************************************
+Summary:
+    Releases resources acquired by BDBG_SyncSession_Begin
+
+Description:
+    This function is used release resources that are used by the
+    synchronization session
+
+Example:
+    See BDBG_SyncSession_Begin
+
+See Also:
+    BDBG_SyncSession_Begin, BDBGSyncSession_Wait
+****************************************************************************/
+void BDBG_SyncSession_End(BDBG_Fifo_SyncSession *session);
+
 
 #else /* BDBG_DEBUG_BUILD */
 /* stubs */
+
+#define BDBG_SyncSession_Begin(session)
+#define BDBG_SyncSession_Wait( session, timeout) (BERR_TIMEOUT)
+#define BDBG_SyncSession_End(session)
 
 #define BDBG_MODULE(module) extern int bdbg_unused
 #define BDBG_FILE_MODULE(module) extern int bdbg_unused

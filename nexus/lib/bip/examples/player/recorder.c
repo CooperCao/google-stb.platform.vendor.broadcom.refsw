@@ -357,9 +357,49 @@ int main(int argc, char *argv[])
         }
         recordData(hRecpump, 1);
         BKNI_WaitForEvent(hStateChangedEvent, timeout);
+        if (pAppCtx->playbackDone)
+        {
+            BKNI_Sleep(5000);
+            BIP_Player_PrintStatus(hPlayer);
+            NEXUS_Recpump_StopData(hRecpump);
+            recordData(hRecpump, 1);
+            break;
+        }
     }
 
     bipStatus = BIP_SUCCESS;
+    {
+        NEXUS_RecpumpStatus status;
+        char *pTmp;
+
+        pTmp = getenv("testMode");
+        if (pTmp)
+        {
+            NEXUS_Recpump_GetStatus(hRecpump, &status);
+            if (status.data.bytesRecorded != 209715128)
+            {
+                const void *pDataBuffer;
+                size_t dataBufferLength;
+                NEXUS_Error nrc;
+
+                nrc = NEXUS_Recpump_GetDataBuffer(hRecpump, &pDataBuffer, &dataBufferLength);
+                BDBG_ASSERT(!nrc);
+
+                BDBG_WRN((">>>>>>>>>>>>>> Failed to receive all data bytes, got=%"PRIu64 " depth=%u dataBufferLength=%u",
+                            status.data.bytesRecorded,
+                            status.data.fifoDepth, dataBufferLength
+                            ));
+                pause();
+            }
+            else
+            {
+                BDBG_WRN((">>>>>>>>>>>>>> Received all data bytes=%"PRIu64 " depth=%u",
+                            status.data.bytesRecorded,
+                            status.data.fifoDepth
+                            ));
+            }
+        }
+    }
 error:
     /* Stop the Player & Decoders. */
     {

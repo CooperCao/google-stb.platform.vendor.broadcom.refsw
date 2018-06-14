@@ -75,6 +75,12 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
          BBOX_VCE_CHANNEL_INFO_1080p60_V2( 0, 0x1, 1, 0 ),
       },
    },
+   /* Box Mode: 5 (1080p30x2 *or* 1080p60x1) */
+   { 5,
+      { /* Instance Array */
+        BBOX_VCE_CHANNEL_INFO_V3_EXCLUSIVE_DUAL( 0, 1, 0, 0x03, BFMT_VideoFmt_e1080p_30Hz, 0x01, BFMT_VideoFmt_e1080p ),
+      },
+   },
    /* Box Mode: 6 (1080p30x2) */
    { 6,
       { /* Instance Array */

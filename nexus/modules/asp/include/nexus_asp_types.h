@@ -160,6 +160,7 @@ typedef struct NEXUS_AspIpSettings
 typedef struct NEXUS_AspTcpSettings
 {
     NEXUS_AspIpSettings                     ip;
+    bool                                    connectionLost;
     unsigned                                localPort;
     unsigned                                remotePort;
     unsigned                                initialSendSequenceNumber;
@@ -352,6 +353,9 @@ typedef struct NEXUS_AspChannelStatus
         uint64_t mcpbConsumedInBytes;
         uint64_t mcpbConsumedInTsPkts;
         uint64_t mcpbConsumedInIpPkts;
+        uint64_t xptMcpbConsumedInBytes;
+        uint64_t xptMcpbConsumedInTsPkts;
+        uint64_t xptMcpbConsumedInIpPkts;
         unsigned ePktConsumedInBytes;
         unsigned unimacConsumedInUnicastIpPkts;     /* IP packets sent to the switch (from ASP EPKT). */
         unsigned unimacConsumedInUnicastIpBytes;
@@ -388,6 +392,8 @@ typedef struct NEXUS_AspChannelStatus
             unsigned pktsDropped;
             unsigned dataPktsDropped;
             unsigned rcvdSequenceNumber;
+            unsigned descriptorsFedToXpt;
+            unsigned bytesFedToXpt;
         } fwStats;
     } stats;
 

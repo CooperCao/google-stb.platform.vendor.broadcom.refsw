@@ -1,40 +1,44 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <stdlib.h>
 #include <fcntl.h>
@@ -59,7 +63,7 @@ static void *astra_client_event_thread(void *arg)
     struct astra_client *pClient = (struct astra_client *)arg;
     astra_event event;
     char eventData[16] __attribute__ ((aligned (8)));
-    size_t eventDataLen;
+    uint32_t eventDataLen;
     int err = 0;
 
     while (1) {
@@ -221,14 +225,14 @@ struct astra_client *_astra_client_open(
 
     if (pAstra->fd == -1) {
         err = _astra_init();
-        if (err) return NULL;
+        if (err) return 0;
     }
 
     /* alloc client */
     pClient = malloc(sizeof(struct astra_client));
     if (!pClient) {
         LOGE("failed to alloc astra client");
-        return NULL;
+        return 0;
     }
 
     /* init client */
@@ -265,7 +269,7 @@ struct astra_client *_astra_client_open(
 
  ERR_EXIT:
     _astra_client_close(pClient);
-    return NULL;
+    return 0;
 }
 
 void _astra_client_close(
@@ -295,12 +299,12 @@ void _astra_client_close(
     free(pClient);
 }
 
-struct astra_uapp *_astra_uapp_open(
+astra_uapp_handle _astra_uapp_open(
     struct astra_client *pClient,
     const char *pName,
     const char *pPath)
 {
-    struct astra_uapp *pUapp;
+    astra_uapp_handle pUapp;
     int err = 0;
 
     /* open kernel uapp */
@@ -312,14 +316,14 @@ struct astra_uapp *_astra_uapp_open(
 
     if (err) {
         LOGE("failed to open kernel userapp");
-        return NULL;
+        return 0;
     }
 
     return pUapp;
 }
 
 void _astra_uapp_close(
-    struct astra_uapp *pUapp)
+    astra_uapp_handle pUapp)
 {
     int err = 0;
 
@@ -331,11 +335,11 @@ void _astra_uapp_close(
     }
 }
 
-struct astra_peer *_astra_peer_open(
-    struct astra_uapp *pUapp,
+astra_peer_handle _astra_peer_open(
+    astra_uapp_handle pUapp,
     const char *pName)
 {
-    struct astra_peer *pPeer;
+    astra_peer_handle pPeer;
     int err = 0;
 
     /* open kernel peer */
@@ -346,14 +350,14 @@ struct astra_peer *_astra_peer_open(
 
     if (err) {
         LOGE("failed to open kernel peer");
-        return NULL;
+        return 0;
     }
 
     return pPeer;
 }
 
 void _astra_peer_close(
-    struct astra_peer *pPeer)
+    astra_peer_handle pPeer)
 {
     int err = 0;
 
@@ -366,9 +370,9 @@ void _astra_peer_close(
 }
 
 int _astra_msg_send(
-    struct astra_peer *pPeer,
+    astra_peer_handle pPeer,
     const void *pMsg,
-    size_t msgLen)
+    uint32_t msgLen)
 {
     int err = 0;
 
@@ -388,9 +392,9 @@ int _astra_msg_send(
 
 int _astra_msg_receive(
     struct astra_client *pClient,
-    struct astra_peer **ppPeer,
+    astra_peer_handle *ppPeer,
     void *pMsg,
-    size_t *pMsgLen,
+    uint32_t *pMsgLen,
     int timeout)
 {
     int err = 0;
@@ -414,7 +418,7 @@ int _astra_msg_receive(
 
 void *_astra_mem_alloc(
     struct astra_client *pClient,
-    size_t size)
+    uint32_t size)
 {
     uint32_t buffOffset;
     void *pBuff;
@@ -470,7 +474,7 @@ void _astra_mem_free(
 
 void *_astra_offset2vaddr(
     struct astra_client *pClient,
-    uint32_t offset)
+    uint64_t offset)
 {
     UNUSED(pClient);
 
@@ -480,7 +484,7 @@ void *_astra_offset2vaddr(
         return NULL;
 }
 
-uint32_t _astra_vaddr2offset(
+uint64_t _astra_vaddr2offset(
     struct astra_client *pClient,
     void *pBuff)
 {
@@ -493,12 +497,12 @@ uint32_t _astra_vaddr2offset(
         return 0;
 }
 
-struct astra_file *_astra_file_open(
+astra_file_handle _astra_file_open(
     struct astra_client *pClient,
     const char *pPath,
     int flags)
 {
-    struct astra_file *pFile;
+    astra_file_handle pFile;
     int err = 0;
 
     /* open kernel file */
@@ -510,14 +514,14 @@ struct astra_file *_astra_file_open(
 
     if (err) {
         LOGE("failed to open kernel file");
-        return NULL;
+        return 0;
     }
 
     return pFile;
 }
 
 void _astra_file_close(
-    struct astra_file *pFile)
+    astra_file_handle pFile)
 {
     int err = 0;
 
@@ -530,9 +534,9 @@ void _astra_file_close(
 }
 
 int _astra_file_write(
-    struct astra_file *pFile,
+    astra_file_handle pFile,
     astra_paddr_t paddr,
-    size_t bytes)
+    uint32_t bytes)
 {
     int err = 0;
 
@@ -551,9 +555,9 @@ int _astra_file_write(
 }
 
 int _astra_file_read(
-    struct astra_file *pFile,
+    astra_file_handle pFile,
     astra_paddr_t paddr,
-    size_t bytes)
+    uint32_t bytes)
 {
     int err = 0;
 
@@ -593,7 +597,7 @@ int _astra_call_smc(
 #define COREDUMP_FILE_SIZE        4*1024*1024
 
 void _astra_uapp_coredump(
-    struct astra_uapp *pUapp)
+    astra_uapp_handle pUapp)
 {
     int err = 0;
     void * core_buf=NULL;

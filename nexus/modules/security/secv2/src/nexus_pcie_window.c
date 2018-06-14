@@ -39,7 +39,6 @@
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-
 #include "bstd.h"
 #include "nexus_security_module.h"
 #include "nexus_base.h"
@@ -49,6 +48,7 @@
 #include "nexus_signed_command.h"
 #include "priv/nexus_security_priv.h"
 #include "bhsm_pcie_window.h"
+#include "priv/nexus_core.h"
 
 
 BDBG_MODULE(nexus_pcie_window);
@@ -107,20 +107,48 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
     BERR_Code rc = NEXUS_SUCCESS;
     BHSM_PcieWindowSettings pcieWindow;
     BHSM_Handle hHsm;
+    unsigned i = 0;
+    unsigned numMemc = 0;
+    const BCHP_MemoryLayout *pMemcLayout; /* the layout of the memory controllers. */
 
     BDBG_ENTER( NEXUS_Security_SetPciERestrictedRange );
 
     NEXUS_Security_GetHsm_priv( &hHsm );
     if( !hHsm ) { return BERR_TRACE( NEXUS_NOT_INITIALIZED ); }
 
-    BKNI_Memset( &pcieWindow, 0, sizeof(pcieWindow) );
+    pMemcLayout = &g_pCoreHandles->memoryLayout;
 
-    pcieWindow.baseOffset = baseOffset;
-    pcieWindow.size = size;
-    pcieWindow.index = index;
+    BDBG_CASSERT( NEXUS_MAX_MEMC == sizeof(pMemcLayout->memc)/sizeof(pMemcLayout->memc[0]) );
 
-    rc = BHSM_PcieWindow_Set( hHsm, &pcieWindow );
-    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+    numMemc = sizeof(pMemcLayout->memc)/sizeof(pMemcLayout->memc[0]);
+
+    for( i = 0; i < numMemc; i++ )
+    {
+        if( ( baseOffset >=  pMemcLayout->memc[i].region[0].addr ) &&
+            ( baseOffset < ( pMemcLayout->memc[i].region[0].addr + pMemcLayout->memc[i].region[0].size ) ) )
+        {
+            BDBG_MSG(("OPENING PCIE[%d] MEMC[%d] address[" BDBG_UINT64_FMT "] size[%lu]", index,  i, BDBG_UINT64_ARG(baseOffset), (long int)size ));
+
+            BKNI_Memset( &pcieWindow, 0, sizeof(pcieWindow) );
+            pcieWindow.baseOffset = baseOffset;
+            pcieWindow.size = size;
+            pcieWindow.index = index;
+
+            rc = BHSM_PcieWindow_Set( hHsm, &pcieWindow );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+        }
+        else if( pMemcLayout->memc[i].region[0].addr && pMemcLayout->memc[i].region[0].size )
+        {
+            BDBG_MSG(("LOCKING PCIE[%d] MEMC[%d] address[" BDBG_UINT64_FMT "]", index, i, BDBG_UINT64_ARG(baseOffset) ));
+            BKNI_Memset( &pcieWindow, 0, sizeof(pcieWindow) );
+            pcieWindow.baseOffset = pMemcLayout->memc[i].region[0].addr; /* must be different from the input value of baseOffset */
+            pcieWindow.size = 0; /* lock the MEMC.  */
+            pcieWindow.index = index;
+
+            rc = BHSM_PcieWindow_Set( hHsm, &pcieWindow );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+        }
+    }
 
     BDBG_LEAVE( NEXUS_Security_SetPciERestrictedRange );
     return NEXUS_SUCCESS;

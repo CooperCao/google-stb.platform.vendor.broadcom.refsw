@@ -52,6 +52,10 @@
 #include "bhsm_keyladder.h"
 #include "bhsm_keyladder_enc.h"
 
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+static BHSM_SC01ModeWordMapping_e _mapNexus2Hsm_Sc01Polarity( NEXUS_SecurityAlgorithmScPolarity polarity );
+#endif
+
 /**
 Summary:
 This struct defines the Virtual Key Ladder (VKL) handle structure.
@@ -85,6 +89,11 @@ void NEXUS_Security_GetDefaultSessionKeySettings(
     BDBG_ENTER(NEXUS_Security_GetDefaultSessionKeySettings);
 
     if( !pSettings ){ BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
+
+    BDBG_CASSERT((int)NEXUS_SecurityMaskKey_eReal      == (int)BCMD_ASKM_MaskKeySel_eRealMaskKey);
+    BDBG_CASSERT((int)NEXUS_SecurityMaskKey_eReserved1 == (int)BCMD_ASKM_MaskKeySel_eReserved1);
+    BDBG_CASSERT((int)NEXUS_SecurityMaskKey_eFixed     == (int)BCMD_ASKM_MaskKeySel_eFixedMaskKey);
+    BDBG_CASSERT((int)NEXUS_SecurityMaskKey_eMax       == (int)BCMD_ASKM_MaskKeySel_eMax);
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->keyGenCmdID     = NEXUS_SecurityKeyGenCmdID_eKeyGen;
@@ -506,16 +515,16 @@ NEXUS_Error NEXUS_Security_GenerateSessionKey(
     generateRouteKeyIO.globalKeyVersion      = pSessionKey->globalKeyVersion;
    #endif
     generateRouteKeyIO.keyTweak         = pSessionKey->keyTweakOp;
-    generateRouteKeyIO.sourceDupleKeyLadderId = pSessionKey->sourceDupleKeyLadderId;
+    generateRouteKeyIO.sourceDupleKeyLadderId = NEXUS_Security_P_mapNexus2Hsm_VklId( pSessionKey->sourceDupleKeyLadderId );
 
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     /* HWKL CWC setting */
     generateRouteKeyIO.bHWKLVistaKeyGenEnable = pSessionKey->hwklVistaKeyGen;
    #endif
 
-    generateRouteKeyIO.virtualKeyLadderID = pSessionKey->virtualKeyLadderID;
-    generateRouteKeyIO.customerSubMode    = pSessionKey->custSubMode;
-    generateRouteKeyIO.keyMode            = pSessionKey->keyMode;
+    generateRouteKeyIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pSessionKey->virtualKeyLadderID );
+    generateRouteKeyIO.customerSubMode    = NEXUS_Security_P_mapNexus2Hsm_CustomerSubMode( pSessionKey->custSubMode );
+    generateRouteKeyIO.keyMode            = NEXUS_Security_P_mapNexus2Hsm_KeyMode( pSessionKey->keyMode );
 
     if(pSessionKey->keySize == 8) {
         generateRouteKeyIO.ucKeyDataLen = 8;
@@ -625,9 +634,9 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
                 blockType);
 
     generateRouteKeyIO.rootKeySrc         = rootkeySrc;             /* need this for ASKM keyladder distinction */
-    generateRouteKeyIO.virtualKeyLadderID = pCW->virtualKeyLadderID;
-    generateRouteKeyIO.customerSubMode      = pCW->custSubMode;
-    generateRouteKeyIO.keyMode              = pCW->keyMode;
+    generateRouteKeyIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pCW->virtualKeyLadderID );
+    generateRouteKeyIO.customerSubMode    = NEXUS_Security_P_mapNexus2Hsm_CustomerSubMode( pCW->custSubMode );
+    generateRouteKeyIO.keyMode            = NEXUS_Security_P_mapNexus2Hsm_KeyMode( pCW->keyMode );
     generateRouteKeyIO.ucKeyDataLen       = pCW->keySize;
     BKNI_Memset(generateRouteKeyIO.aucKeyData, 0,  pCW->keySize);
     if( pCW->keySize > sizeof(generateRouteKeyIO.aucKeyData) ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
@@ -650,11 +659,11 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     generateRouteKeyIO.client             = pCW->client;
-    generateRouteKeyIO.SC01ModeMapping    = pCW->sc01GlobalMapping;
+    generateRouteKeyIO.SC01ModeMapping    =  _mapNexus2Hsm_Sc01Polarity( pCW->sc01GlobalMapping );
 #endif
     generateRouteKeyIO.protectionKeyIvSource = pCW->protectionKeyIvSource;
     generateRouteKeyIO.keyTweak         = pCW->keyTweakOp;
-    generateRouteKeyIO.sourceDupleKeyLadderId = pCW->sourceDupleKeyLadderId;
+    generateRouteKeyIO.sourceDupleKeyLadderId = NEXUS_Security_P_mapNexus2Hsm_VklId( pCW->sourceDupleKeyLadderId );
     generateRouteKeyIO.unKeySlotNum     = keyHandle->keySlotNumber;
     generateRouteKeyIO.caKeySlotType    = keyHandle->keyslotType;
     generateRouteKeyIO.bASKMModeEnabled = pCW->bASKMMode;
@@ -746,7 +755,7 @@ NEXUS_VirtualKeyLadderHandle NEXUS_Security_AllocateVKL(
     if( hHsm == NULL || !pVKLSettings ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return NULL; }
 
     allocateVKLIO.client                  = pVKLSettings->client;
-    allocateVKLIO.customerSubMode         = pVKLSettings->custSubMode;
+    allocateVKLIO.customerSubMode         = NEXUS_Security_P_mapNexus2Hsm_CustomerSubMode( pVKLSettings->custSubMode );
     allocateVKLIO.bNewVKLCustSubModeAssoc = pVKLSettings->newVKLCustSubModeAssoc;
 
     rc= BHSM_AllocateVKL( hHsm, &allocateVKLIO );
@@ -764,7 +773,7 @@ NEXUS_VirtualKeyLadderHandle NEXUS_Security_AllocateVKL(
 
     pVKLHandle->client      = pVKLSettings->client;
     pVKLHandle->custSubMode = pVKLSettings->custSubMode;
-    pVKLHandle->vkl         = allocateVKLIO.allocVKL;
+    pVKLHandle->vkl         = NEXUS_Security_P_mapHsm2Nexus_VklId( allocateVKLIO.allocVKL );
 
     BDBG_LEAVE( NEXUS_Security_AllocateVKL );
     return pVKLHandle;
@@ -789,14 +798,14 @@ static void NEXUS_VirtualKeyLadder_P_Finalizer( NEXUS_VirtualKeyLadderHandle vkl
     BKNI_Memset( &invalidate, 0, sizeof(invalidate) );
     invalidate.bInvalidateVkl = true;           /* for Zeus4+*/
     invalidate.keyLayer = BCMD_KeyRamBuf_eKey3; /* For Zeus1/2/3 */
-    invalidate.virtualKeyLadderID = vklHandle->vkl;
+    invalidate.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( vklHandle->vkl );
 
     hsmRc = BHSM_InvalidateVKL( hHsm, &invalidate );
     if( hsmRc != BERR_SUCCESS ){
         BDBG_ERR(("Failed to invalidate VKL"));  /* continue, best effort. */
     }
 
-    BHSM_FreeVKL( hHsm, vklHandle->vkl );
+    BHSM_FreeVKL( hHsm, NEXUS_Security_P_mapNexus2Hsm_VklId(vklHandle->vkl) );
 
     NEXUS_OBJECT_DESTROY( NEXUS_VirtualKeyLadder, vklHandle );
     BKNI_Free( vklHandle );
@@ -901,9 +910,9 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
     generateRouteKeyIO.protectionKeyIvSource = pCW->protectionKeyIvSource;
     generateRouteKeyIO.keyTweak         = pCW->keyTweakOp; /* needed for tweaks */
     generateRouteKeyIO.rootKeySrc         = rootkeySrc;             /* need this for ASKM keyladder distinction */
-    generateRouteKeyIO.virtualKeyLadderID = pCW->virtualKeyLadderID;
-    generateRouteKeyIO.customerSubMode      = pCW->custSubMode;
-    generateRouteKeyIO.keyMode              = pCW->keyMode;
+    generateRouteKeyIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( pCW->virtualKeyLadderID );
+    generateRouteKeyIO.customerSubMode    = NEXUS_Security_P_mapNexus2Hsm_CustomerSubMode( pCW->custSubMode );
+    generateRouteKeyIO.keyMode            = NEXUS_Security_P_mapNexus2Hsm_KeyMode( pCW->keyMode );
     generateRouteKeyIO.ucKeyDataLen       = pCW->keySize;
     BKNI_Memset(generateRouteKeyIO.aucKeyData, 0,  pCW->keySize);
     if( pCW->keySize > sizeof(generateRouteKeyIO.aucKeyData) ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
@@ -967,7 +976,7 @@ NEXUS_Error NEXUS_Security_GenerateProcOut(
     }
 
     BKNI_Memset( &procOutIO, 0, sizeof(procOutIO)  );
-    procOutIO.virtualKeyLadderID = inProcOutParm->virtualKeyLadderID;
+    procOutIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( inProcOutParm->virtualKeyLadderID );
     procOutIO.unProcInLen        = inProcOutParm->procInLen;
     if( inProcOutParm->procInLen > sizeof(procOutIO.aucProcIn) ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
     BKNI_Memcpy( procOutIO.aucProcIn, inProcOutParm->procIn, inProcOutParm->procInLen );
@@ -1001,7 +1010,7 @@ NEXUS_Error NEXUS_SecurityChallengeResponse(
 
     /* Step 1: Get Challenge */
     BKNI_Memset(&kladChallengeIO, 0, sizeof(BHSM_KladChallengeIO_t));
-    kladChallengeIO.keyId = crParm->otpKeyId;
+    kladChallengeIO.keyId = NEXUS_Security_P_mapNexus2Hsm_RootKeySource( crParm->otpKeyId );
 
     rc = BHSM_KladChallenge(hHsm,&kladChallengeIO);
     if( rc ) { return BERR_TRACE( MAKE_HSM_ERR(rc)); }
@@ -1010,7 +1019,7 @@ NEXUS_Error NEXUS_SecurityChallengeResponse(
     BKNI_Memset(&kladResponseIO, 0, sizeof(BHSM_KladResponseIO_t));
     kladResponseIO.kladMode = crParm->kladMode;
     kladResponseIO.keyLayer = BCMD_KeyRamBuf_eKey3;
-    kladResponseIO.virtualKeyLadderID = crParm->vkl;
+    kladResponseIO.virtualKeyLadderID = NEXUS_Security_P_mapNexus2Hsm_VklId( crParm->vkl );
     if( crParm->challengeSize > sizeof(kladResponseIO.aucNonce) ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
     BKNI_Memcpy( kladResponseIO.aucNonce, crParm->data, crParm->challengeSize );
 
@@ -1024,3 +1033,18 @@ NEXUS_Error NEXUS_SecurityChallengeResponse(
     BDBG_LEAVE(NEXUS_SecurityChallengeResponse);
     return NEXUS_SUCCESS;
 }
+
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+static BHSM_SC01ModeWordMapping_e _mapNexus2Hsm_Sc01Polarity( NEXUS_SecurityAlgorithmScPolarity polarity )
+{
+    switch( polarity ) {
+        case NEXUS_SecurityAlgorithmScPolarity_eClear:    return BHSM_SC01ModeWordMapping_eClear;
+        case NEXUS_SecurityAlgorithmScPolarity_eMpegOdd:  return BHSM_SC01ModeWordMapping_eReserved;
+        case NEXUS_SecurityAlgorithmScPolarity_eEven:     return BHSM_SC01ModeWordMapping_eEven;
+        case NEXUS_SecurityAlgorithmScPolarity_eOdd:      return BHSM_SC01ModeWordMapping_eOdd;
+        default:  BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    return BHSM_SC01ModeWordMapping_eMax;
+}
+#endif

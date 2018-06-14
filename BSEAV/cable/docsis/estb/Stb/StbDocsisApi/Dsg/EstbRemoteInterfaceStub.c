@@ -3093,14 +3093,15 @@ int DsgSendCableCardIpUsData( unsigned char *pData, unsigned short len )
 
     // Pad out the buffer to minimum expected reply size.
     if (total_len < kEcmReplyPktSize)
+    {
         total_len = kEcmReplyPktSize;
+    }
+    pDsgConfig = (unsigned char *)malloc(total_len);
 
-	pDsgConfig = (unsigned char *)malloc(total_len);
-
-	if( pDsgConfig == NULL )
+    if( pDsgConfig == NULL )
     {
         pthread_mutex_unlock(&LnxDsgApiMutex);
-		return kFuncFail;
+        return kFuncFail;
     }
 
     // zero out packet

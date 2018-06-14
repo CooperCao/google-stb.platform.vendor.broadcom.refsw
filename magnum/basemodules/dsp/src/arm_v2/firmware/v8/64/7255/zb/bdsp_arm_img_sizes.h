@@ -169,7 +169,7 @@
 
 /*APP_MIXER_DAPV2 Size requirement*/
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE                    ((uint32_t)1273856)
-#define BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE                            ((uint32_t)108544)
+#define BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE                            ((uint32_t)109056)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE                ((uint32_t)331776)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE        ((uint32_t)512)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_TABLES_SIZE                     ((uint32_t)89600)

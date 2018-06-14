@@ -74,7 +74,6 @@ BDBG_MODULE(nexus_simple_audio_decoder);
 #if NEXUS_HAS_AUDIO
 static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecoderHandle handle );
 static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHandle handle );
-static NEXUS_Error nexus_simpleaudiodecoder_p_start(NEXUS_SimpleAudioDecoderHandle handle);
 static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle handle);
 static NEXUS_Error nexus_simpleaudiodecoder_p_start_resume(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToStart);
 static NEXUS_Error nexus_simpleaudiodecoder_apply_mixerinput_settings( NEXUS_AudioInputHandle hInput, NEXUS_AudioMixerHandle hMixer, NEXUS_SimpleAudioDecoderSelector selector, const NEXUS_SimpleAudioDecoderSettings *pSettings );
@@ -2677,7 +2676,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_p_start_resume(NEXUS_SimpleAudioDeco
     return 0;
 }
 
-static NEXUS_Error nexus_simpleaudiodecoder_p_start(NEXUS_SimpleAudioDecoderHandle handle)
+NEXUS_Error nexus_simpleaudiodecoder_p_start(NEXUS_SimpleAudioDecoderHandle handle)
 {
     const NEXUS_SimpleAudioDecoderStartSettings *pSettings = &handle->startSettings;
     NEXUS_Error rc;
