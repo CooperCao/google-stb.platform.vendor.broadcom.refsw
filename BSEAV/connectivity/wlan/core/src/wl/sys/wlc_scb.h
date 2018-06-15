@@ -97,7 +97,6 @@ struct scb {
 	uint8           ps_pretend;     /**< AP pretending STA is in PS mode */
 	uint16		cap;		/**< sta's advertized capability field */
 	wlc_if_t	*wds;		/**< per-port WDS cookie */
-	wlc_bsscfg_t	*wdscfg;	/**< bsscfg to which wds scb belongs */
 	tx_path_node_t	*tx_path;	/**< pkt tx path (allocated as scb cubby) */
 	wl_if_stats_t	*if_stats;
 #ifdef WL_CS_RESTRICT_RELEASE

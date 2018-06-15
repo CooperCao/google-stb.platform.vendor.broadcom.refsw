@@ -56,7 +56,7 @@
 #define WL_WPA_PSK_SIZE_MAX  72  // max 64 hex or 63 char
 #define WL_UUID_SIZE_MAX  40
 
-#define WL_DEFAULT_VALUE_SIZE_MAX  128
+#define WL_DEFAULT_VALUE_SIZE_MAX  160
 #define WL_DEFAULT_NAME_SIZE_MAX  20
 #define WL_WDS_SIZE_MAX  80
 
@@ -272,8 +272,7 @@ static void * _nvram_file_mmap(char *fname, int size)
 		DBG_ERROR(" nvram: file %s open error\n", fname);
 		return 0;
 	}
-	if (ftruncate(fd, size) == -1)
-		perror("ftruncate() error");
+	ftruncate(fd, size);
 
 	va = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, fd, 0);
 	if(va == ((caddr_t) - 1)) {
@@ -297,8 +296,7 @@ static int _nvram_file_update(void *va, int size)
 	}
 	/*flush*/
 	DBG_INFO("close file with %d bytes\n",((struct nvram_header*)va)->len);
-	if (ftruncate(fd,((struct nvram_header*)va)->len) == -1)
-		perror("ftruncate() error");
+	ftruncate(fd,((struct nvram_header*)va)->len);
 	msync((caddr_t)va, ((struct nvram_header*)va)->len, MS_SYNC);
 	munmap((caddr_t)va, size);
 	close(fd);
@@ -1150,9 +1148,6 @@ nvramd_load_file(char *ifile, char *ofile)
 				}
 			}
 		}
-		/* clear data area if wlan partition contains garbage */
-		if (((struct nvram_header *)*envh)->magic != NVRAM_MAGIC)
-			bzero(nvram_buf, nvramd_info.nvinfo.nvram_max_size);
 	}
 
 	if ((ret = _nvram_read(*envh)) == 0 &&
@@ -1204,8 +1199,7 @@ static int nvramd_started(int state)
 		DBG_ERROR("nvramd: shm file open error %d/%s\n", errno, strerror(errno));
 		return -1;
 	}
-	if (ftruncate(shm_fd, sizeof(int)) == -1)
-		perror("ftruncate() error");
+	ftruncate(shm_fd, sizeof(int));
 	attach = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, shm_fd, (off_t)0);
 	if (state != -1) {
 		*((int *)attach) = state;
@@ -1268,10 +1262,8 @@ daemonize(unsigned int console_log)
 			close(i);  /* close all descriptors */
 		nvramd_info.cons.devname = "/dev/null";
 		nvramd_info.cons.cns_fd = open(nvramd_info.cons.devname, O_RDWR);
-		if (dup(nvramd_info.cons.cns_fd) == -1)
-			perror("dup() error");
-		if (dup(nvramd_info.cons.cns_fd) == -1)
-			perror("dup() error");
+		dup(nvramd_info.cons.cns_fd);
+		dup(nvramd_info.cons.cns_fd); /* handle standart I/O */
 	}
 
 	umask(027); /* set newly created file permissions */
@@ -1427,7 +1419,7 @@ nvramd_proc_client_req()
 									}
 								} else if (!strcmp(&buf[offset], "get")) {
 									if ((resp_msg = nvramd_get(data))) {
-										resp_size = sprintf(buf, "%s", resp_msg);
+										resp_size = sprintf(buf, resp_msg);
 									} else /* not found */
 										resp_size = -1;
 								} else if (!strcmp(&buf[offset], "show")) {

@@ -521,6 +521,8 @@ wlc_write_rsn_ie_safe(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *buf, int buflen
 		akm_type = RSN_AKM_UNSPECIFIED;
 		if (WPA_auth & WPA2_AUTH_1X_SHA256)
 			akm_type = RSN_AKM_SHA256_1X;
+		else if (BSSCFG_IS_FBT_1X(cfg))
+			akm_type = RSN_AKM_FBT_1X;
 #ifdef MFP
 		else if (BSSCFG_IS_MFP_REQUIRED(cfg))
 			akm_type = RSN_AKM_SHA256_1X;
@@ -537,6 +539,8 @@ wlc_write_rsn_ie_safe(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *buf, int buflen
 		akm_type = RSN_AKM_PSK;
 		if (WPA_auth & WPA2_AUTH_PSK_SHA256)
 			akm_type = RSN_AKM_SHA256_PSK;
+		else if (BSSCFG_IS_FBT_PSK(cfg))
+			akm_type = RSN_AKM_FBT_PSK;
 #ifdef MFP
 		else if (BSSCFG_IS_MFP_REQUIRED(cfg))
 			akm_type = RSN_AKM_SHA256_PSK;
@@ -549,17 +553,6 @@ wlc_write_rsn_ie_safe(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *buf, int buflen
 		WPA_len += WPA_SUITE_LEN;
 		buflen -= WPA_SUITE_LEN;
 	}
-#ifdef WLFBT
-	if (BSSCFG_IS_FBT(cfg)) {
-		/* length check */
-		/* if buffer too small, return untouched buffer */
-		BUFLEN_CHECK_AND_RETURN(WPA_SUITE_LEN, buflen, orig_buf);
-		bcopy(WPA2_OUI, auth->list[count].oui, DOT11_OUI_LEN);
-		auth->list[count++].type = BSSCFG_IS_FBT_1X(cfg) ? RSN_AKM_FBT_1X : RSN_AKM_FBT_PSK;
-		WPA_len += WPA_SUITE_LEN;
-		buflen -= WPA_SUITE_LEN;
-	}
-#endif /* WLFBT */
 #if defined(WLTDLS)
 	if (WPA_auth & WPA2_AUTH_TPK) {
 		/* length check */

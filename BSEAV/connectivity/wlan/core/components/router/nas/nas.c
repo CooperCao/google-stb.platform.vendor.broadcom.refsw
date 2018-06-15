@@ -1155,7 +1155,7 @@ nas_start_radius_watchdog(nas_t *nas)
 
 	ts = wpa_set_itimer(nas->timer, &nas->watchdog_td,
 	                    (bcm_timer_cb)nas_radius_watchdog,
-	                    nas, 1, 0);
+	                    (int)nas, 1, 0);
 	if (ts != ITIMER_OK)
 		dbg(nas, "Session timeout timer set failed, code %d", ts);
 }
@@ -1197,7 +1197,7 @@ nas_start_watchdog(nas_t *nas)
 
 	ts = wpa_set_itimer(nas->timer, &nas->watchdog_td,
 	                    (bcm_timer_cb)nas_watchdog,
-	                    nas, 1, 0);
+	                    (int)nas, 1, 0);
 	if (ts != ITIMER_OK)
 		dbg(nas, "Session timeout timer set failed, code %d", ts);
 }

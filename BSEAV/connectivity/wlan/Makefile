@@ -112,13 +112,13 @@ ifeq ($(B_REFSW_VERBOSE),)
                 -e  "s/^  CC \[M\] .*\/\(.*\)\.o$$/[Build... \1 (WLAN)]/ "          \
                 -e  "s/^\# Build dependencies/Checking WLAN dependencies.../ "      \
                 -e  "s/^\# Strip off debugging symbols/Stripping WLAN symbols.../ " \
-        ; exit $${PIPESTATUS[0]}
+        ; test $${PIPESTATUS[0]}
 
     B_WLAN_WLEXE_MAKE_REDIR :=  |                                                               \
         egrep --line-buffered  -e "^${B_REFSW_CROSS_COMPILE}.*\.c"  |                           \
         sed -u                                                                                  \
                 -e  "s|^${B_REFSW_CROSS_COMPILE}.*[/ ]\([^ ]*\.c\)$$|[Compile... \1 (WLAN)]|"  \
-        ; exit $${PIPESTATUS[0]}
+        ; test $${PIPESTATUS[0]}
 
 endif
 
@@ -231,7 +231,6 @@ a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/utils   ${B_WLAN_OOSRC_DIR} )
 # Build a list of resulting filenames (without directories) that we want from the WLAN build.
 # Start with the wl.ko driver:
 B_WLAN_DRIVER_RESULT_FILE_NAME:=wl.ko
-B_WLAN_DRIVER_RESULT_WLPLAT_FILE_NAME:=wlplat.ko
 B_WLAN_DRIVER_RESULT_EMF_FILE_NAME:=emf.ko
 B_WLAN_DRIVER_RESULT_IGS_FILE_NAME:=igs.ko
 
@@ -247,7 +246,6 @@ else
 B_WLAN_DRIVER_RESULT_OOSRC_DIR:=$(B_WLAN_DRIVER_BUILD_OOSRC_DIR)/obj-${BUILDCFG}-${LINUXVER}
 endif
 B_WLAN_DRIVER_RESULT_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_FILE_NAME}
-B_WLAN_DRIVER_RESULT_WLPLAT_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_WLPLAT_FILE_NAME}
 B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME}
 B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH?=${B_WLAN_DRIVER_RESULT_OOSRC_DIR}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME}
 
@@ -295,12 +293,11 @@ endif
 # get a list of targets.
 B_WLAN_DRIVER_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_FILE_NAME})
 B_WLAN_DRIVER_INSTALL_PATH_LIST+=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${BUILDCFG}-wl.ko)
-B_WLAN_WLPLAT_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_WLPLAT_FILE_NAME})
 B_WLAN_WLEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_WLEXE_INSTALL_FILE_NAME})
 B_WLAN_NVRAMEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST},${dir}/${file}))
 B_WLAN_ENVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
-B_WLAN_IGS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME})
-B_WLAN_EMF_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME})
+B_WLAN_IGS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME})
+B_WLAN_EMF_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME})
 B_WLAN_NVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
 B_WLAN_UTILS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_UTILS_RESULT_FILE_NAME_LIST},${dir}/${file}))
 
@@ -341,15 +338,22 @@ build_wlexe: build_epiver
 build_components_router: build_epiver
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Submake... $(notdir ${B_WLAN_ROUTER_OOSRC_DIR}) (WLAN)]"
-	${Q_}${MAKE} -C ${B_WLAN_ROUTER_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc LD=$(B_REFSW_CROSS_COMPILE)ld STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_DRIVER_MAKE_REDIR}
+	${Q_}${MAKE} -C ${B_WLAN_ROUTER_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc LD=$(B_REFSW_CROSS_COMPILE)ld STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_WLEXE_MAKE_REDIR}
 	$(B_TRACE_RECIPE_END)
 
+#  Submake the wowl plat driver.
+.PHONY: build_platdriver
+build_platdriver:
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Submake... Plat Driver (WLAN) Target ${BUILDCFG}]"
+	${Q_}${MAKE} -C ${BSEAV_TOP}/connectivity/wlan/wakeonwlan
+	$(B_TRACE_RECIPE_END)
 
 #  After submaking the driver and wl executable (via prerequisites), create a marker file.
 #  Then as long as the marker file is newer than all source files, we don't need to do
 #  any submakes.
 .PHONY: build_wlan_all
-build_wlan_all: build_wldriver build_wlexe
+build_wlan_all: build_wldriver build_wlexe build_platdriver
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Creating WLAN marker file..."
 	${Q_}$(shell date >${B_WLAN_LAST_BUILD_MARKER_FILE})
@@ -442,21 +446,6 @@ ${B_WLAN_DRIVER_RESULT_OOSRC_PATH}:  ${B_WLAN_BUILD_TARGET_MAYBE}
 	$(B_TRACE_RECIPE_BEGIN)
 	$(B_TRACE_RECIPE_END)
 
-#  Wait for the driver to get built if any source files have changed.
-${B_WLAN_DRIVER_RESULT_WLPLAT_OOSRC_PATH}:  ${B_WLAN_BUILD_TARGET_MAYBE}
-	$(B_TRACE_RECIPE_BEGIN)
-	$(B_TRACE_RECIPE_END)
-
-#  Wait for the driver to get built if any source files have changed.
-${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH}:  ${B_WLAN_BUILD_TARGET_MAYBE}
-	$(B_TRACE_RECIPE_BEGIN)
-	$(B_TRACE_RECIPE_END)
-
-#  Wait for the driver to get built if any source files have changed.
-${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH}:  ${B_WLAN_BUILD_TARGET_MAYBE}
-	$(B_TRACE_RECIPE_BEGIN)
-	$(B_TRACE_RECIPE_END)
-
 #  Each installed driver is copied from its post-build location in the out-of-source tree.
 ${B_WLAN_DRIVER_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_OOSRC_PATH}
 	$(B_TRACE_RECIPE_BEGIN)
@@ -466,15 +455,7 @@ ${B_WLAN_DRIVER_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_OOSRC_PATH}
 	$(B_TRACE_RECIPE_END)
 
 #  Each installed driver is copied from its post-build location in the out-of-source tree.
-${B_WLAN_WLPLAT_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_WLPLAT_OOSRC_PATH}
-	$(B_TRACE_RECIPE_BEGIN)
-	echo "[Install... ${B_WLAN_DRIVER_RESULT_WLPLAT_FILE_NAME} to $(dir $@) (WLAN)]";
-	$(MKDIR) -p $(dir $@);
-	$(CP) -dfp  ${B_WLAN_DRIVER_RESULT_WLPLAT_OOSRC_PATH} $@;
-	$(B_TRACE_RECIPE_END)
-
-#  Each installed driver is copied from its post-build location in the out-of-source tree.
-${B_WLAN_IGS_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH}
+${B_WLAN_IGS_INSTALL_PATH_LIST}:
 	$(B_TRACE_RECIPE_BEGIN)
 	if [ -f ${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH} ]; then \
 		echo "[Install... ${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME} to $(dir $@) (WLAN)]";\
@@ -484,7 +465,7 @@ ${B_WLAN_IGS_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_IGS_OOSRC_PATH}
 	$(B_TRACE_RECIPE_END)
 
 #  Each installed driver is copied from its post-build location in the out-of-source tree.
-${B_WLAN_EMF_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH}
+${B_WLAN_EMF_INSTALL_PATH_LIST}:
 	$(B_TRACE_RECIPE_BEGIN)
 	if [ -f ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH} ]; then \
 		echo "[Install... ${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME} to $(dir $@) (WLAN)]";\
@@ -498,13 +479,13 @@ ${B_WLAN_EMF_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH}
 ###################################################################
 #  The "install" target just lists all of the installed files as its prerequisites.
 .PHONY: install
-install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+install:  ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
 
 # The "driver" intended for Coverity just builds driver related files
-driver: build_wldriver
+driver: build_wldriver build_platdriver
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
@@ -522,7 +503,7 @@ clean:
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning..."
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_VER_DIR}
-	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST}  ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST}  ${B_WLAN_UTILS_INSTALL_PATH_LIST}  ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/connectivity/wlan/wakeonwlan clean
 	$(B_TRACE_RECIPE_END)
 

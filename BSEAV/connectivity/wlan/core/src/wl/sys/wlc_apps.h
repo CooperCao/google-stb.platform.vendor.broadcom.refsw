@@ -175,6 +175,4 @@ struct pktq * wlc_apps_prec_pktq(wlc_info_t* wlc, struct scb* scb);
 #endif
 
 struct pktq * wlc_apps_get_psq(wlc_info_t * wlc, struct scb * scb);
-
-extern void wlc_apps_map_pkts(wlc_info_t *wlc, struct scb *scb, map_pkts_cb_fn cb, void *ctx);
 #endif /* _wlc_apps_h_ */

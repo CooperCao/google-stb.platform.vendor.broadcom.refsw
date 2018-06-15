@@ -1166,13 +1166,6 @@ static txmod_fns_t BCMATTACHDATA(ampdu_txmod_fns) = {
 	NULL			/* Handle the activation of the feature */
 };
 
-typedef struct {
-	struct scb *scb;
-	uint8 tid;
-} ampdu_tx_map_pkts_cb_params_t;
-static bool wlc_ampdu_map_pkts_cb(void *ctx, void *pkt);
-static void wlc_ampdu_tx_map_pkts(ampdu_tx_info_t *ampdu_tx, struct scb *scb, uint8 tid);
-
 #ifdef WLAMPDU_MAC /* ucode, ucode hw assisted or AQM aggregation */
 /** ncons 'number consumed' marks last packet in tx chain that can be freed */
 static uint16
@@ -8708,7 +8701,6 @@ wlc_ampdu_dotxstatus_aqm_complete(ampdu_tx_info_t *ampdu_tx, struct scb *scb,
 #ifdef WL_TX_STALL
 	wlc_tx_status_t tx_status = WLC_TX_STS_SUCCESS;
 #endif
-	struct scb *scb1;
 #if defined(BCMDBG) || (defined(WLTEST) && !defined(WLTEST_DISABLED)) || \
 	defined(BCMDBG_AMPDU) || defined(WL_LINKSTAT)
 #ifdef WL11AC
@@ -9279,7 +9271,7 @@ not_retry:		/* don't retry an unacked MPDU, but send BAR if applicable */
 			}
 		}
 #endif /* PROP_TXSTATUS */
-free_and_next:
+
 		if (free_mpdu) {
 #if defined(WLPKTDLYSTAT) || defined(WL11K)
 			/* calculate latency and packet loss statistics */
@@ -9338,18 +9330,9 @@ free_and_next:
 			ASSERT(ini->tid == PKTPRIO(p));
 		}
 #endif
-		/* validate scb pointer */
-		scb1 = WLPKTTAGSCBGET(p);
-		if (scb1 != scb) {
-			wlc_txh_info_t txh_info1;
-			wlc_get_txh_info(wlc, p, &txh_info1);
-			WL_ERROR(("%s:scb 0x%p fid 0x%04x scb1 0x%p fid1 0x%04x, txh_info1 0x%p\n",
-				__FUNCTION__, scb, txh_info->TxFrameID, scb1, txh_info1.TxFrameID,
-				&txh_info1));
-			ASSERT(0);
-			free_mpdu = TRUE;
-			goto free_and_next;
-		}
+
+		WLPKTTAGSCBSET(p, scb);
+
 #ifdef PKTQ_LOG
 		if (prec_cnt) {
 			/* get info from next header to give accurate packet length */
@@ -11008,53 +10991,6 @@ ampdu_ini_move_window(ampdu_tx_info_t *ampdu_tx,
 	wlc_ampdu_ini_move_window(ampdu_tx, scb_ampdu, ini);
 }
 
-static bool
-wlc_ampdu_map_pkts_cb(void *ctx, void *pkt)
-{
-	ampdu_tx_map_pkts_cb_params_t *cb_params = ctx;
-
-	if ((cb_params->scb != WLPKTTAGSCBGET(pkt)) ||
-		(cb_params->tid != PKTPRIO(pkt)) ||
-		!(WLPKTTAG(pkt)->flags & WLF_AMPDU_MPDU)) {
-		return FALSE;
-	}
-	/* Disable the AMPDU packet callback for the packet */
-	WLF2_PCB4_UNREG(pkt);
-	return FALSE;
-}
-
-static void
-wlc_ampdu_tx_map_pkts(ampdu_tx_info_t *ampdu_tx, struct scb *scb, uint8 tid)
-{
-	ampdu_tx_map_pkts_cb_params_t cb_params;
-	wlc_info_t *wlc;
-	wlc = ampdu_tx->wlc;
-	cb_params.scb = scb;
-	cb_params.tid = tid;
-
-	if (wlc->active_queue && wlc->primary_queue) {
-		wlc_low_txq_map_pkts(wlc, wlc->active_queue, wlc_ampdu_map_pkts_cb, &cb_params);
-		if (wlc->active_queue != wlc->primary_queue)
-			wlc_low_txq_map_pkts(wlc, wlc->primary_queue, wlc_ampdu_map_pkts_cb,
-				&cb_params);
-		wlc_txq_map_pkts(wlc, wlc->active_queue, wlc_ampdu_map_pkts_cb, &cb_params);
-		if (wlc->active_queue != wlc->primary_queue)
-			wlc_txq_map_pkts(wlc, wlc->primary_queue, wlc_ampdu_map_pkts_cb,
-				&cb_params);
-	}
-#ifdef AP
-	wlc_apps_map_pkts(wlc, scb, wlc_ampdu_map_pkts_cb, &cb_params);
-#endif
-
-#ifdef WL_BSSCFG_TX_SUPR
-	if (scb->bsscfg != NULL && wlc_bsscfg_get_psq(wlc->psqi, scb->bsscfg) != NULL)
-		wlc_bsscfg_psq_map_pkts(wlc, wlc_bsscfg_get_psq(wlc->psqi, scb->bsscfg),
-			wlc_ampdu_map_pkts_cb, &cb_params);
-#endif
-
-	wlc_dma_map_pkts(wlc->hw, wlc_ampdu_map_pkts_cb, &cb_params);
-}
-
 /** Called when tearing down a connection with a conversation partner (DELBA or otherwise) */
 void
 ampdu_cleanup_tid_ini(ampdu_tx_info_t *ampdu_tx, struct scb *scb, uint8 tid, bool force)
@@ -11127,9 +11063,6 @@ ampdu_cleanup_tid_ini(ampdu_tx_info_t *ampdu_tx, struct scb *scb, uint8 tid, boo
 
 	/* Cancel any pending wlc_send_bar_complete packet callbacks. */
 	wlc_pcb_fn_find(ampdu_tx->wlc->pcb, wlc_send_bar_complete, ini, TRUE);
-
-	/* Disable the AMPDU packet callback for packets found in the map */
-	wlc_ampdu_tx_map_pkts(ampdu_tx, scb, tid);
 
 	/* Free ini immediately as no callbacks are pending */
 	MFREE(ampdu_tx->wlc->osh, ini, sizeof(scb_ampdu_tid_ini_t));
@@ -11659,10 +11592,6 @@ wlc_ampdu_init_tid_ini(ampdu_tx_info_t *ampdu_tx, scb_ampdu_tx_t *scb_ampdu, uin
 
 	scb_ampdu_update_config(ampdu_tx, scb);
 
-	if (scb_ampdu->ini[tid]) {
-		ampdu_cleanup_tid_ini(ampdu_tx, scb, tid, TRUE);
-	}
-
 	if (!scb_ampdu->ini[tid]) {
 		ini = MALLOCZ(wlc->osh, sizeof(scb_ampdu_tid_ini_t));
 		if (ini == NULL) {
@@ -11673,7 +11602,7 @@ wlc_ampdu_init_tid_ini(ampdu_tx_info_t *ampdu_tx, scb_ampdu_tx_t *scb_ampdu, uin
 
 		scb_ampdu->ini[tid] = ini;
 	} else {
-		return NULL;
+		ini = scb_ampdu->ini[tid];
 	}
 
 	memset(ini, 0, sizeof(scb_ampdu_tid_ini_t));
@@ -15076,14 +15005,14 @@ wlc_ampdu_print_txstuck(wlc_info_t *wlc, struct bcmstrbuf *b)
 
 #if defined(WLAMPDU_MAC)
 void
-wlc_ampdu_set_epoch(ampdu_tx_info_t *ampdu_tx, int fifo, uint8 epoch)
+wlc_ampdu_set_epoch(ampdu_tx_info_t *ampdu_tx, int ac, uint8 epoch)
 {
-	ASSERT(fifo < NFIFO);
+	ASSERT(ac < AC_COUNT);
 	ASSERT(AMPDU_AQM_ENAB(ampdu_tx->wlc->pub));
 
-	ampdu_tx->hagg[fifo].epoch = epoch;
+	ampdu_tx->hagg[ac].epoch = epoch;
 	/* set prev_ft to AMPDU_11VHT, so wlc_ampdu_chgnsav_epoch will always be called. */
-	ampdu_tx->hagg[fifo].prev_ft = AMPDU_11VHT;
+	ampdu_tx->hagg[ac].prev_ft = AMPDU_11VHT;
 } /* wlc_ampdu_set_epoch */
 #endif /* WLAMPDU_MAC */
 

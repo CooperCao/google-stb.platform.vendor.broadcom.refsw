@@ -26,10 +26,6 @@
 
 #include <osl_decl.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 enum {
 	TAIL_BYTES_TYPE_FCS = 1,
 	TAIL_BYTES_TYPE_ICV = 2,
@@ -93,16 +89,7 @@ MAKE_PREFETCH_RANGE_FN(PREF_STORE_RETAINED)
 #if defined(WL_UNITTEST)
 #include <utest_osl.h>
 #elif defined(linux)
-#include <bcm_osl_bus.h>
-#include <bcm_osl_device.h>
-#include <bcm_osl_dma.h>
-#include <bcm_osl_fileio.h>
-#include <bcm_osl_lock.h>
-#include <bcm_osl_mem.h>
-#include <bcm_osl_pm.h>
-#include <bcm_osl_strings.h>
-#include <bcm_osl_utils.h>
-
+#include <linux_osl.h>
 #include <linux_pkt.h>
 #elif defined(__FreeBSD__)
 #include <fbsd_osl.h>
@@ -424,7 +411,4 @@ do { \
 #define MEMCHECK(f, l)
 #endif /* OSL_MEMCHECK */
 
-#ifdef __cplusplus
-}
-#endif
 #endif	/* _osl_h_ */

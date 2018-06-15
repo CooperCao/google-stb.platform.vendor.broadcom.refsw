@@ -41,7 +41,6 @@
 #include <shutils.h>
 #include <wlutils.h>
 #include <wlif_utils.h>
-//#include <osl.h>
 
 #ifndef MAX_NVPARSE
 #define MAX_NVPARSE 255
@@ -831,7 +830,7 @@ wl_update_block_mac_list(maclist_t *static_maclist, maclist_t *maclist,
 
 		default:
 			printf("Wrong action= %d\n", action);
-//			ASSERT(0);
+			ASSERT(0);
 	}
 }
 
@@ -903,7 +902,7 @@ wl_wlif_block_mac(wl_wlif_hdl *hdl, struct ether_addr addr, int timeout)
 			if (bcm_timer_create(timer, &timerid)) {
 				goto end;
 			} else if (bcm_timer_connect(timerid, (bcm_timer_cb)wl_wlif_unblock_mac_cb,
-					data)) {
+					(int)data)) {
 				goto end;
 			}
 

@@ -783,7 +783,7 @@ static const bcm_iovar_t wlc_iovars[] = {
 	},
 #else
 	{"cur_etheraddr", IOV_CUR_ETHERADDR,
-	(0), 0, IOVT_BUFFER, ETHER_ADDR_LEN
+	(IOVF_SET_DOWN), 0, IOVT_BUFFER, ETHER_ADDR_LEN
 	},
 #endif /* EXT_STA || BCMNODOWN */
 	{"perm_etheraddr", IOV_PERM_ETHERADDR,
@@ -1685,14 +1685,14 @@ wlc_ps_allowed(wlc_bsscfg_t *cfg)
 
 	/* disallow PS when one of the following bsscfg specific conditions meets */
 	if (/*!cfg->BSS || */
-            #ifdef WOWL
-            /* In some test cases, after waking up with magic packet, system is still in wowl mode 
-             * which makes SW PS state different from MAC PM state so when wlc_watchdog handler kicks in, 
-             * it causes an assert. This will avoid that assert and user level application will have enough 
-             * time to set the WLAN device to non-wowl mode
-             */ 
-	    WOWL_ACTIVE(wlc->pub) ||
-            #endif
+#ifdef WOWL
+		/* In some test cases, after waking up with magic packet, system is still in wowl mode 
+		* which makes SW PS state different from MAC PM state so when wlc_watchdog handler kicks in, 
+		* it causes an assert. This will avoid that assert and user level application will have enough 
+		* time to set the WLAN device to non-wowl mode
+		*/
+		WOWL_ACTIVE(wlc->pub) ||
+#endif
 	    !cfg->associated ||
 	    !pm->PMenabled ||
 	    pm->PM_override ||
@@ -6705,20 +6705,6 @@ BCMATTACHFN(wlc_attach)(void *wl, uint16 vendor, uint16 device, uint unit, uint 
 	}
 #endif
 
-#if defined(WL_2G2X2LOCK)
-	/* Default in 2G */
-	wlc->bandlocked = TRUE;
-	wlc_bandlock(wlc, WLC_BAND_2G);
-
-	if (CHSPEC_IS2G(wlc->chanspec)) {
-		/* Default to cores 0 and 1 for 2G chain lock */
-		wlc_stf_txchain_set(wlc, 0x3, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-		wlc_stf_rxchain_set(wlc, 0x3, TRUE);
-	} else {
-		WL_ERROR(("wl%d: %s: -2glock- chanspec must be 2G band.\n", unit, __FUNCTION__));
-	}
-#endif
-
 	return ((void*)wlc);
 
 fail:
@@ -9833,19 +9819,6 @@ wlc_change_band(wlc_info_t *wlc, int band)
 		/* sync up phy/radio chanspec */
 		wlc_set_phy_chanspec(wlc, chspec);
 	}
-
-#if defined(WL_2G2X2LOCK)
-	/* Set chains based on band */
-	if (CHSPEC_IS2G(wlc->chanspec)) {
-		wlc_stf_txchain_set(wlc, 0x3, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-		wlc_stf_rxchain_set(wlc, 0x3, TRUE);
-	} else if (CHSPEC_IS5G(wlc->chanspec)) {
-		wlc_stf_txchain_set(wlc, wlc->stf->hw_txchain, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-		wlc_stf_rxchain_set(wlc, wlc->stf->hw_rxchain, TRUE);
-	} else {
-		WL_ERROR(("%s:%d ERROR unknown chanspec for WL_2G2X2LOCK. 0x%x\n", __FUNCTION__, __LINE__, wlc->chanspec));
-	}
-#endif
 
 	return BCME_OK;
 }

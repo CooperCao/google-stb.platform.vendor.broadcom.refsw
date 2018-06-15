@@ -2131,7 +2131,6 @@ wlc_assoc_scan_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
 
 		WL_SRSCAN(("starting assoc scan"));
 		WL_ASSOC(("starting assoc scan\n"));
-		wlc_assoc_homech_req_update(cfg);
 	} else {
 		wlc_bss_info_t *current_bss = cfg->current_bss;
 		bool partial_scan_ok;

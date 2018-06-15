@@ -678,7 +678,7 @@ static int wpa_ft_create_pmkr1_timer(wpa_t *wpa, wpa_ft_pmk_r1_sa_t *r1)
 	} else {
 		ts = wpa_set_itimer(wpa->nas->timer, &r1->rekey_timer,
 			(bcm_timer_cb)wpa_ft_new_pmkr1_callback,
-			r1, wpa->fbt_info.r0_key_lifetime, 0);
+			(int)r1, wpa->fbt_info.r0_key_lifetime, 0);
 		if (ts != ITIMER_OK) {
 #if 0
 			dbg(wpa->nas, "FT: PMKR1 Key interval timer set failed, for STA "MACF". "
@@ -1322,7 +1322,7 @@ void wpa_ft_process_auth(wpa_t *wpa, bcm_event_t *dpkt, nas_sta_t *sta)
 {
 	uint16 status;
 	uint8 *resp_ies;
-	uint32 resp_ies_len;
+	size_t resp_ies_len;
 #ifdef BCMINTDBG
 	char eabuf[ETHER_ADDR_STR_LEN];
 #endif /* BCMINTDBG */
@@ -1386,7 +1386,7 @@ static int wpa_ft_rrb_rx_request(wpa_t *wpa,
 	uint16 status;
 	nas_sta_t *nas_sta;
 	uint8 *resp_ies;
-	uint32 resp_ies_len;
+	size_t resp_ies_len;
 	int32 err = -1, result;
 	uint8 pend_auth_iter;
 	struct timeval now;
@@ -1548,7 +1548,7 @@ static int wpa_ft_rrb_rx_resp(wpa_t *wpa,
 	time_t saved_ts;
 	struct timeval now;
 	uint8 *resp_ies;
-	uint32 resp_ies_len;
+	size_t resp_ies_len;
 	uint16 status;
 
 	dbg(wpa->nas, "FT: Received PMK-R1 pull response");

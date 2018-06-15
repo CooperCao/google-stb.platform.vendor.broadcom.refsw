@@ -3312,20 +3312,6 @@ wlc_dmatx_reclaim(wlc_hw_info_t *wlc_hw)
 
 #endif /* DMATXRC */
 
-void
-wlc_dma_map_pkts(wlc_hw_info_t *wlc_hw, map_pkts_cb_fn cb, void *ctx)
-{
-	uint i;
-	hnddma_t *di;
-
-	for (i = 0; i < WLC_HW_NFIFO_INUSE(wlc_hw->wlc); i++) {
-		di = wlc_hw->di[i];
-		if (di) {
-			dmatx_map_pkts(di, cb, ctx);
-		}
-	}
-}
-
 void * wlc_bmac_dmatx_peeknexttxp(wlc_info_t *wlc, int fifo)
 {
 	return dma_peeknexttxp(WLC_HW_DI(wlc, fifo));

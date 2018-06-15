@@ -272,9 +272,8 @@ typedef union bcm_event_msg_u {
 											* tx/rxchain
 											*/
 #define WLC_E_FBT			166	/* FBT event */
-#define WLC_E_UNEXPECTED_4ADDR_FRAME	167	/* 4ADDR event */
-#define WLC_E_LAST			168	/* highest val + 1 for range checking */
-#if (WLC_E_LAST > 168)
+#define WLC_E_LAST			167	/* highest val + 1 for range checking */
+#if (WLC_E_LAST > 167)
 #error "WLC_E_LAST: Invalid value for last event; must be <= 166."
 #endif /* WLC_E_LAST */
 

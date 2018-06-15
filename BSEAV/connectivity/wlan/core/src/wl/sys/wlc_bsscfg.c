@@ -241,13 +241,9 @@ wlc_bsscfg_doiovar(void *hdl, uint32 actionid,
 
 	BCM_REFERENCE(val_size);
 
-	if (wlcif && wlcif->type == WLC_IFTYPE_WDS && actionid == IOV_SVAL(IOV_INTERFACE_REMOVE)) {
-		bsscfg = wlcif->u.scb->wdscfg ? wlcif->u.scb->wdscfg : SCB_BSSCFG(wlcif->u.scb);
-	} else {
-		/* update bsscfg w/provided interface context */
-		bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlcif);
-		ASSERT(bsscfg != NULL);
-	}
+	/* update bsscfg w/provided interface context */
+	bsscfg = wlc_bsscfg_find_by_wlcif(wlc, wlcif);
+	ASSERT(bsscfg != NULL);
 
 	/* convenience int and bool vals for first 8 bytes of buffer */
 	if (p_len >= (int)sizeof(int_val))

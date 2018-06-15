@@ -4746,8 +4746,6 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 			WL_ASSOC(("wl%d: %s: invalid WDS frame from non-WDS station %s\n",
 				wlc->pub->unit, __FUNCTION__, bcm_ether_ntoa(&h->a2, eabuf)));
 			WLCNTINCR(wlc->pub->_cnt->rxbadproto);
-			wlc_bss_mac_event(wlc, bsscfg, WLC_E_UNEXPECTED_4ADDR_FRAME, &scb->ea,
-				0, 0, 0, 0, 0);
 		}
 #if defined(WL_NAN) && defined(NAN_DEBUG)
 		else if (BSSCFG_NAN_DATA(bsscfg) && (nan_filter_rxpkt(wlc->nan, bsscfg, scb,
@@ -4969,9 +4967,6 @@ wlc_recv_mgmtact(wlc_info_t *wlc, struct scb *scb, struct dot11_management_heade
 		(action_category == DOT11_ACTION_CAT_PDPA) ||
 		(action_category == DOT11_ACTION_CAT_VS) ||
 		(action_category == DOT11_ACTION_CAT_QOS) ||
-#ifdef WL11K
-		(action_category == DOT11_ACTION_CAT_RRM) ||
-#endif
 		((action_category == DOT11_ACTION_CAT_WNM) &&
 #ifdef WLWNM
 		(action_id != DOT11_WNM_ACTION_BSSTRANS_REQ)) ||

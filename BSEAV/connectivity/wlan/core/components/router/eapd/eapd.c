@@ -184,8 +184,8 @@ eapd_dump(eapd_wksp_t *nwksp)
 	while (cb) {
 		if (cb->brcmSocket) {
 			brcmSocket = cb->brcmSocket;
-			EAPD_PRINT("         [rfp=0x%lx] drvSocket %d on %s for brcm event packet\n",
-				(long) brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
+			EAPD_PRINT("         [rfp=0x%x] drvSocket %d on %s for brcm event packet\n",
+				(uint) brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
 		}
 		cb = cb->next;
 		if (cb)
@@ -230,14 +230,14 @@ eapd_dump(eapd_wksp_t *nwksp)
 	while (cb) {
 		preauthSocket = &cb->preauthSocket;
 		if (preauthSocket->drvSocket >= 0) {
-			EAPD_PRINT("         [0x%lx] drvSocket %d on %s for preauth packet\n",
-			        (long) preauthSocket, preauthSocket->drvSocket,
+			EAPD_PRINT("         [0x%x] drvSocket %d on %s for preauth packet\n",
+			        (uint) preauthSocket, preauthSocket->drvSocket,
 			        preauthSocket->ifname);
 		}
 		if (cb->brcmSocket) {
 			brcmSocket = cb->brcmSocket;
-			EAPD_PRINT("         [rfp=0x%lx] drvSocket %d on %s for brcm event packet\n",
-				(long) brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
+			EAPD_PRINT("         [rfp=0x%x] drvSocket %d on %s for brcm event packet\n",
+				(uint) brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
 		}
 		cb = cb->next;
 		if (cb)
@@ -379,8 +379,8 @@ eapd_dump(eapd_wksp_t *nwksp)
 	while (cb) {
 		if (cb->brcmSocket) {
 			brcmSocket = cb->brcmSocket;
-			EAPD_PRINT("	     [rfp=0x%p] drvSocket %d on %s for brcm event packet\n",
-				brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
+			EAPD_PRINT("	     [rfp=0x%x] drvSocket %d on %s for brcm event packet\n",
+				(uint) brcmSocket, brcmSocket->drvSocket, brcmSocket->ifname);
 		}
 		cb = cb->next;
 		if (cb)
@@ -488,8 +488,8 @@ eapd_dump(eapd_wksp_t *nwksp)
 	EAPD_PRINT("BRCM (brcm event):\n");
 	for (i = 0; i < nwksp->brcmSocketCount; i++) {
 		brcmSocket = &nwksp->brcmSocket[i];
-		EAPD_PRINT("     [0x%lx] [inuseCount=%d] drvSocket %d on %s for "
-		        "brcm event packet\n",	(long) brcmSocket,
+		EAPD_PRINT("     [0x%x] [inuseCount=%d] drvSocket %d on %s for "
+		        "brcm event packet\n",	(uint) brcmSocket,
 		        brcmSocket->inuseCount, brcmSocket->drvSocket,
 		        brcmSocket->ifname);
 	}

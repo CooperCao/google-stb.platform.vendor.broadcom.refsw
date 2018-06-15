@@ -36,6 +36,7 @@
 #include <wlioctl.h>
 #include <wlioctl_utils.h>
 #include <bcmutils.h>
+#include <linux_osl.h>
 #if defined(BCMDONGLEHOST)
 #include <dhd_dbg.h>
 #include <dngl_stats.h>

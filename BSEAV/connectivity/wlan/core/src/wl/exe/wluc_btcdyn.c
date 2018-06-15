@@ -173,7 +173,7 @@ wl_btcoex_dynctl(void *wl, cmd_t *cmd, char **argv)
 			return BCME_NOMEM;
 
 		/* copy current profile values into buf allocated for set ioctl */
-		memcpy(profile, ptr, sizeof(dctl_prof_t));
+		bcopy(ptr, profile, sizeof(dctl_prof_t));
 
 		miniopt_init(&to, __FUNCTION__, NULL, FALSE);
 
@@ -382,7 +382,7 @@ wl_btcoex_dynctl_status(void *wl, cmd_t *cmd, char **argv)
 			return err;
 	}
 	/* copy the status from ioctl buffer */
-	memcpy(&status, ptr, sizeof(dynctl_status_t));
+	bcopy(ptr, &status, sizeof(dynctl_status_t));
 
 	printf("--- btc dynctl status ---:\n");
 	printf("simulation mode:%s\n", status.sim_on?"On":"Off");
@@ -430,7 +430,7 @@ wl_btcoex_dynctl_sim(void *wl, cmd_t *cmd, char **argv)
 			return BCME_NOMEM;
 
 		/* copy current ioctl buf into local var */
-		memcpy(sim, ptr, sizeof(dynctl_sim_t));
+		bcopy(ptr, sim, sizeof(dynctl_sim_t));
 
 		/* 1st parameter is on/off ( 0 | 1)  */
 		if (*argv[0] == '1') {
