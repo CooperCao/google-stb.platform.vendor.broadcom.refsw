@@ -48,6 +48,7 @@
 #include "bchp_45402_leap_host_l2_1.h"
 #include "bchp_45402_tm.h"
 #include "bchp_45402_cpu_ctrl.h"
+#include "bchp_45402_cpu_l2.h"
 #include "bhab_45402.h"
 #include "bsat.h"
 #include "bsat_priv.h"
@@ -59,6 +60,15 @@ BDBG_MODULE(bsat_45402_priv);
 
 #define BSAT_DEBUG(x) /* x */
 
+#define LEAP_GP_STATUS_CMD      BCHP_CPU_CTRL_GP111
+#define LEAP_GP_STATUS_RESULT   BCHP_CPU_CTRL_GP112
+#define LEAP_GP_STATUS0         BCHP_CPU_CTRL_GP113
+#define LEAP_GP_STATUS1         BCHP_CPU_CTRL_GP114
+#define LEAP_GP_STATUS2         BCHP_CPU_CTRL_GP115
+#define LEAP_GP_STATUS3         BCHP_CPU_CTRL_GP116
+#define LEAP_GP_STATUS4         BCHP_CPU_CTRL_GP117
+#define LEAP_GP_STATUS5         BCHP_CPU_CTRL_GP118
+#define LEAP_GP_STATUS6         BCHP_CPU_CTRL_GP119
 
 /* local functions */
 static BERR_Code BSAT_45402_P_InterruptCallback(void *pParm1, int parm2);
@@ -2250,5 +2260,77 @@ BERR_Code BSAT_45402_P_GetSpectrumStatus(BSAT_ChannelHandle h, BSAT_SpectrumStat
 
    done:
    BDBG_LEAVE(BSAT_45402_P_GetSpectrumStatus);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_45402_P_GetFastChannelStatus()
+******************************************************************************/
+BERR_Code BSAT_45402_P_GetFastChannelStatus(BSAT_ChannelHandle h, BSAT_FastStatusId *pIds, uint8_t n, BSAT_FastChannelStatus *pStatus)
+{
+   BSAT_45402_P_Handle *pDevImpl = (BSAT_45402_P_Handle *)(h->pDevice->pImpl);
+   BERR_Code retCode;
+   uint32_t cmd = (h->channel << 28), result, val, i;
+   bool bDone;
+   uint8_t statusID;
+
+   BDBG_ENTER(BSAT_45402_P_GetFastChannelStatus);
+
+   if ((n == 0) || (n > 7) || (pIds == NULL) || (pStatus == NULL))
+      return BERR_INVALID_PARAMETER;
+
+   for (i = 0; i < n; i++)
+   {
+      statusID = (uint8_t)pIds[i];
+      if (statusID >= BSAT_FastStatusId_max)
+         return BERR_INVALID_PARAMETER;
+      pStatus->item[i].bValid = false;
+      cmd |= ((statusID & 0x0F) << (i*4));
+   }
+
+   val = 0;
+   BSAT_45402_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &val));
+   BSAT_45402_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &cmd));
+
+   /* interrupt the leap */
+   val = 1 << 23;
+   BSAT_45402_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, BCHP_CPU_L2_CPU_SET, &val));
+
+   bDone = false;
+   for (i = 0; !bDone && (i < 1000); i++)
+   {
+      BSAT_45402_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &result));
+      if (result & 0x80000000)
+         bDone = true;
+      else
+         BKNI_Delay(1);
+   }
+   if (!bDone)
+   {
+      retCode = BERR_TIMEOUT;
+      goto done;
+   }
+
+   if (result & 0x40000000)
+   {
+      retCode = BSAT_ERR_POWERED_DOWN;
+      goto done;
+   }
+
+   /* BKNI_Printf("BSAT_GetFastChannelStatus: i=%d\n", i); */
+   pStatus->bDemodLocked = (result & 0x80) ? true : false;
+   for (i = 0; i < n; i++)
+   {
+      if (result & (1<<i))
+      {
+         pStatus->item[i].bValid = true;
+         BSAT_45402_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS0 + (i*4), &val));
+         pStatus->item[i].value.uint32 = val;
+      }
+   }
+
+   done:
+   BDBG_LEAVE(BSAT_45402_P_GetFastChannelStatus);
    return retCode;
 }

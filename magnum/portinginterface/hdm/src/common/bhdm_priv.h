@@ -807,6 +807,8 @@ void BHDM_SCDC_P_ConfigureScramblingTx(
 
 void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI);
 
+void BHDM_P_SetHdcpConstrainAvConfiguration(
+	BHDM_Handle hHDMI, const BHDM_Settings *HdmiSettings) ;
 #endif
 
 const uint8_t * BHDM_EDID_P_GetDebugEdid(const BHDM_Handle hHDMI) ;

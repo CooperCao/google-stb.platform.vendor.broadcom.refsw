@@ -1,0 +1,323 @@
+<!--
+###############################################################################
+#   Copyright (C) 2018 Broadcom.
+#   The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+#
+#   This program is the proprietary software of Broadcom and/or its licensors,
+#   and may only be used, duplicated, modified or distributed pursuant to
+#   the terms and conditions of a separate, written license agreement executed
+#   between you and Broadcom (an "Authorized License").  Except as set forth in
+#   an Authorized License, Broadcom grants no license (express or implied),
+#   right to use, or waiver of any kind with respect to the Software, and
+#   Broadcom expressly reserves all rights in and to the Software and all
+#   intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+#   THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+#   IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+#   Except as expressly set forth in the Authorized License,
+#
+#   1.     This program, including its structure, sequence and organization,
+#   constitutes the valuable trade secrets of Broadcom, and you shall use all
+#   reasonable efforts to protect the confidentiality thereof, and to use this
+#   information only in connection with your use of Broadcom integrated circuit
+#   products.
+#
+#   2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+#   "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+#   OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+#   RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+#   IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+#   A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#   ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#   THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+#   3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+#   OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+#   INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+#   RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+#   HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+#   EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+#   WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+#   FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+###############################################################################
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Broadcom Power dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-expand-md">
+        <a class="navbar-brand" href="#">
+            <img src="img/brcm-logo-white.jpg"> Bcool power dashboard
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Power</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Wifi</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <br>
+
+    <div class="container-fluid">
+        <!-- Collapsable Thermal and Power Monitor -->
+        <button type="button" class="btn btn-outline-info" data-toggle="collapse" data-target="#thermalAndPower">Thermal & Power Monitor</button>
+        <div id="thermalAndPower" class="collapse show">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card bg-light text-dark">
+                                <!-- Add thermal and Power code here -->
+                                <img class="img-responsive" src="img/thermail_power.jpg" class="img-rounded" alt="Thermal and power">
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card bg-light text-dark">
+                                <div class="card-header">Controls</div>
+                                <div class="card-body">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Collapsable Dynamic power management view -->
+        <button type="button" class="btn btn-outline-info" data-toggle="collapse" data-target="#dynamicPower">Dynamic Power Management</button>
+        <div id="dynamicPower" class="collapse show">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="card bg-light text-dark">
+                                <div class="card-header">Hardware View</div>
+                                <div class="card-body">
+                                    <!-- Add Hardware Clock Tree code here -->
+                                    <h6>
+                                        Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy
+                                        text ever since the 1500s, when an unknown printer took a galley of type and scrambled
+                                        it to make a type specimen book. It has survived not only five centuries, but also
+                                        the leap into electronic typesetting, remaining essentially unchanged. It was popularised
+                                        in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages,
+                                        and more recently with desktop publishing software like Aldus PageMaker including
+                                        versions of Lorem Ipsum
+                                    </h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card  bg-light text-dark">
+                                <div class="card-header">Software View</div>
+                                <div class="card-body">
+                                    <!-- Add Software Clock Tree code here -->
+                                    <h6>
+                                        Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy
+                                        text ever since the 1500s, when an unknown printer took a galley of type and scrambled
+                                        it to make a type specimen book. It has survived not only five centuries, but also
+                                        the leap into electronic typesetting, remaining essentially unchanged. It was popularised
+                                        in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages,
+                                        and more recently with desktop publishing software like Aldus PageMaker including
+                                        versions of Lorem Ipsum
+                                    </h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Collapsable DVFS,CPU,NETWORK,INTERRUPTS-->
+        <button type="button" class="btn btn-outline-info" data-toggle="collapse" data-target="#system">System</button>
+        <div id="system" class="collapse show">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <div class="card bg-light text-dark">
+                                <div class="card-header">CPU/DVFS</div>
+                                <div class="card-body">
+                                    <!-- CPU DVFS code here -->
+                                    <h6>
+                                        Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy
+                                        text ever since the 1500s, when an unknown printer took a galley of type and scrambled
+                                        it to make a type specimen book. It has survived not only five centuries, but also
+                                        the leap into electronic typesetting, remaining essentially unchanged. It was popularised
+                                        in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages,
+                                        and more recently with desktop publishing software like Aldus PageMaker including
+                                        versions of Lorem Ipsum
+                                    </h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card  bg-light text-dark">
+                                <div class="card-header">Interrupts</div>
+                                <div class="card-body">
+                                    <!-- Add interrupts counters here -->
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Source</th>
+                                                <th>Interrupts per second</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Video Deocoder</td>
+                                                <td>100</td>
+                                            </tr>
+                                            <tr class="table-primary">
+                                                <td>Audio decoder</td>
+                                                <td>500</td>
+                                            </tr>
+                                            <tr class="table-success">
+                                                <td>Wifi</td>
+                                                <td>17000</td>
+                                            </tr>
+                                            <tr class="table-danger">
+                                                <td>Display</td>
+                                                <td>Moe</td>
+                                            </tr>
+                                            <tr class="table-info">
+                                                <td>Ethernet</td>
+                                                <td>5000</td>
+                                            </tr>
+                                            <tr class="table-warning">
+                                                <td>2DGraphics</td>
+                                                <td>20000</td>
+                                            </tr>
+                                            <tr class="table-active">
+                                                <td>3D Graphics</td>
+                                                <td>2000</td>
+                                            </tr>
+                                            <tr class="table-secondary">
+                                                <td>Usb</td>
+                                                <td>20</td>
+                                            </tr>
+                                            <tr class="table-light">
+                                                <td>Sata</td>
+                                                <td>40</td>
+                                            </tr>
+                                            <tr class="table-dark text-dark">
+                                                <td>Other</td>
+                                                <td>20</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card  bg-light text-dark">
+                                <div class="card-header">Network</div>
+                                <div class="card-body">
+                                    <!-- Network -->
+                                    <h6>
+                                        Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy
+                                        text ever since the 1500s, when an unknown printer took a galley of type and scrambled
+                                        it to make a type specimen book. It has survived not only five centuries, but also
+                                        the leap into electronic typesetting, remaining essentially unchanged. It was popularised
+                                        in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages,
+                                        and more recently with desktop publishing software like Aldus PageMaker including
+                                        versions of Lorem Ipsum
+                                    </h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Bling Control -->
+        <button type="button" class="btn btn-outline-info" data-toggle="collapse" data-target="#bling">Bling</button>
+        <div id="bling" class="collapse show">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-9">
+                            <div class="card bg-light text-dark">
+                                <div class="card-header">HDMI Input Streamer</div>
+                                <div class="card-body">
+                                    <!---->
+                                    <h6>
+                                        Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy
+                                        text ever since the 1500s, when an unknown printer took a galley of type and scrambled
+                                        it to make a type specimen book. It has survived not only five centuries, but also
+                                        the leap into electronic typesetting, remaining essentially unchanged. It was popularised
+                                        in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages,
+                                        and more recently with desktop publishing software like Aldus PageMaker including
+                                        versions of Lorem Ipsum
+                                    </h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="card  bg-light text-dark">
+                                <div class="card-header">Remote Control</div>
+                                <div class="card-body">
+                                    <!-- Add Remote Control Buttons -->
+                                    <button type="button" class="btn btn-danger">Power</button>
+                                    <br>
+                                    <button type="button" class="btn btn-primary">1</button>
+                                    <button type="button" class="btn btn-primary">2</button>
+                                    <button type="button" class="btn btn-primary">3</button>
+                                    <button type="button" class="btn btn-primary">4</button>
+                                    <button type="button" class="btn btn-primary">5</button>
+                                    <br>
+                                    <button type="button" class="btn btn-primary">5</button>
+                                    <button type="button" class="btn btn-primary">7</button>
+                                    <button type="button" class="btn btn-primary">8</button>
+                                    <button type="button" class="btn btn-primary">9</button>
+                                    <button type="button" class="btn btn-primary">0</button>
+                                    <button type="button" class="btn btn-primary">.</button>
+                                    <button type="button" class="btn btn-primary">Ent</button>
+                                    <br>
+                                    <button type="button" class="btn btn-warning">Up</button>
+                                    <button type="button" class="btn btn-warning">Down</button>
+                                    <button type="button" class="btn btn-warning">Left</button>
+                                    <button type="button" class="btn btn-warning">Right</button>
+                                    <button type="button" class="btn btn-warning">Select</button>
+                                    <br>
+                                    <button type="button" class="btn btn-success">Chan+</button>
+                                    <button type="button" class="btn btn-success">Chan-</button>
+                                    <button type="button" class="btn btn-success">Vol+</button>
+                                    <button type="button" class="btn btn-success">Vol-</button>
+                                    <br>
+                                    <button type="button" class="btn btn-info">Play</button>
+                                    <button type="button" class="btn btn-info">Pause</button>
+                                    <button type="button" class="btn btn-info">FF</button>
+                                    <button type="button" class="btn btn-info">Rew</button>
+                                    <button type="button" class="btn btn-danger">Record</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

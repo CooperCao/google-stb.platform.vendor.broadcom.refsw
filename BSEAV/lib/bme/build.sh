@@ -14,7 +14,7 @@ include_if_exists()
 }
 include_if_exists $REFSW_TOP/app/build/.config
 export PATH=$PATH:$CONFIG_TOOLCHAIN_PATH
-export LINUX=$CONFIG_KERNEL_PATH
+if [ ${CONFIG_KERNEL_PATH+x} ]; then export LINUX=$CONFIG_KERNEL_PATH; fi
 
 # Check inputs
 if [ -z ${NEXUS_PLATFORM+x} ]; then echo "NEXUS_PLATFORM needs to be set. Aborting"; exit -1; fi
@@ -27,9 +27,9 @@ export BSEAV_TOP=$REFSW_TOP/BSEAV
 export NEXUS_TOP=$REFSW_TOP/nexus
 export MAGNUM=$REFSW_TOP/magnum
 
-CMNDRM_DIR=$(make -sf build/drm.inc print-CMNDRM_DIR)
-PR_PREBUILT_LIBS=$(make -sf build/drm.inc print-PR_PREBUILT_LIBS)
-DRMROOTFS_LIBDIR=$(make -sf build/drm.inc print-DRMROOTFS_LIBDIR)
+CMNDRM_DIR=$(make --no-print-directory -sf build/drm.inc print-CMNDRM_DIR)
+PR_PREBUILT_LIBS=$(make --no-print-directory -sf build/drm.inc print-PR_PREBUILT_LIBS)
+DRMROOTFS_LIBDIR=$(make --no-print-directory -sf build/drm.inc print-DRMROOTFS_LIBDIR)
 
 if [ -z ${B_REFSW_OBJ_ROOT+x} ]; then
     B_REFSW_OBJ_ROOT=$REFSW_TOP/$B_REFSW_OBJ_DIR
@@ -134,8 +134,8 @@ function nexus_build {
 function curl_build {
     if [ $BME_ENABLE_WIDEVINE == "y" ]; then
         echo "[Building Curl...]"
-        CURL_LIB_FOLDER=$(make -sf build/drm.inc print-CURL_LIB_FOLDER)
-        CURL_SOURCE_PATH=$(make -sf build/drm.inc print-CURL_SOURCE_PATH)
+        CURL_LIB_FOLDER=$(make --no-print-directory -sf build/drm.inc print-CURL_LIB_FOLDER)
+        CURL_SOURCE_PATH=$(make --no-print-directory -sf build/drm.inc print-CURL_SOURCE_PATH)
         mkdir -p $TARGET_INC_FOLDER/curl
         make -C $REFSW_TOP/BSEAV/opensource/curl all 1> $LOG_OUTPUT
         install $CURL_LIB_FOLDER/*.so* $TARGET_LIB_FOLDER

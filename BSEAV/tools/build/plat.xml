@@ -400,10 +400,12 @@
   <kernel version="314">3.14-1.21</kernel>
   <kernel version="41" default="ARM,BMIPS">4.1-1.19</kernel>
   <kernel version="49" default="ARM64">4.9-1.6</kernel>
+  <kernel version="49" default="97211A0">4.9-1.7</kernel>
 </kernels>
 <bootloaders>
   <version>1.0</version>
   <bootloader type="BOLT" default="ARM64,ARM">1.42</bootloader>
+  <bootloader type="BOLT" default="97211A0">1.44</bootloader>
   <bootloader type="CFE" default="BMIPS,MIPS,OLD_MIPS">18.2</bootloader>
 </bootloaders>
 </plat>

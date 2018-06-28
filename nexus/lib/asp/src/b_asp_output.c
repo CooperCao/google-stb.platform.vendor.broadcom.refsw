@@ -92,7 +92,6 @@ typedef struct B_AspOutput
     int                                     switchPortNumberForRemoteNode;
 
     B_AspOutputStatus                       status;
-    NEXUS_AspOutputStatus                   nexusStatus;                /* Saved previous Nexus ASP status. */
     NEXUS_AspOutputHttpStatus               nexusHttpStatus;            /* Saved previous Nexus ASP status. */
     bool                                    nexusHttpStatusIsValid;     /* true => nexusStatus has been populated. */
     B_Time                                  nexusHttpStatusTime;        /* Time that nexusStatus was acquired. */
@@ -125,7 +124,6 @@ static void endOfStreamingCallback(
     /* Get the latest status from Nexus. */
     {
         NEXUS_AspOutput_GetStatus(hAspOutput->hNexusAspOutput, &nexusStatus);
-        hAspOutput->nexusStatus = nexusStatus;
     }
 
     /* The endOfStreaming callback must have been invoked because of one of these events! */
@@ -1275,6 +1273,8 @@ NEXUS_Error B_AspOutput_GetStatus(
     )
 {
     NEXUS_Error nrc;
+    NEXUS_AspOutputHttpStatus   nexusHttpStatus;
+    NEXUS_AspOutputStatus       nexusStatus;
 
     BDBG_ASSERT(hAspOutput);
     BDBG_ASSERT(pStatus);
@@ -1297,21 +1297,20 @@ NEXUS_Error B_AspOutput_GetStatus(
 
     /* Get current status from Nexus & fill-in the caller's structure. */
     {
-        nrc = NEXUS_AspOutput_GetStatus(hAspOutput->hNexusAspOutput, &hAspOutput->nexusStatus);
+        nrc = NEXUS_AspOutput_GetStatus(hAspOutput->hNexusAspOutput, &nexusStatus);
         B_ASP_CHECK_GOTO(nrc == NEXUS_SUCCESS, ("hAspOutput=%p: NEXUS_AspOutput_GetStatus() Failed", (void *)hAspOutput), error_class_unlock, nrc, nrc);
 
-        nrc = NEXUS_AspOutput_GetHttpStatus(hAspOutput->hNexusAspOutput, &hAspOutput->nexusHttpStatus);
+        nrc = NEXUS_AspOutput_GetHttpStatus(hAspOutput->hNexusAspOutput, &nexusHttpStatus);
         B_ASP_CHECK_GOTO(nrc == NEXUS_SUCCESS, ("hAspOutput=%p: NEXUS_AspOutput_GetHttpStatus() Failed", (void *)hAspOutput), error_class_unlock, nrc, nrc);
 
         pStatus->state              = hAspOutput->state;
-        pStatus->aspChannelIndex    = hAspOutput->nexusStatus.aspChannelIndex;
-        pStatus->bytesStreamed      = hAspOutput->nexusHttpStatus.tcp.mcpbConsumedInBytes;
-        pStatus->finishRequested    = hAspOutput->nexusStatus.finishRequested;
-        pStatus->finishCompleted    = hAspOutput->nexusStatus.finishCompleted;
-        pStatus->connectionReset    = hAspOutput->nexusStatus.connectionReset;
-        pStatus->networkTimeout     = hAspOutput->nexusStatus.networkTimeout;
-        pStatus->remoteDoneSending  = hAspOutput->nexusStatus.remoteDoneSending;
-
+        pStatus->aspChannelIndex    = nexusStatus.aspChannelIndex;
+        pStatus->bytesStreamed      = nexusHttpStatus.tcp.mcpbConsumedInBytes;
+        pStatus->finishRequested    = nexusStatus.finishRequested;
+        pStatus->finishCompleted    = nexusStatus.finishCompleted;
+        pStatus->connectionReset    = nexusStatus.connectionReset;
+        pStatus->networkTimeout     = nexusStatus.networkTimeout;
+        pStatus->remoteDoneSending  = nexusStatus.remoteDoneSending;
     }
 
 error_class_unlock:
@@ -1597,7 +1596,7 @@ void B_AspOutput_PrintStatus(
             txBitRate = hAspOutput->txBitRate;      /* use last reported bit rate */
             rxBitRate = hAspOutput->rxBitRate;      /* use last reported bit rate */
 
-#if 0
+#if 1
             BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld savedBitRate=%u diffTime=%lu\n",
                         BSTD_FUNCTION, __LINE__,
                         nexusStatus.aspChannelIndex,
@@ -1615,13 +1614,14 @@ void B_AspOutput_PrintStatus(
             txBitRate = (((nexusHttpStatus.tcp.mcpbConsumedInBytes - hAspOutput->nexusHttpStatus.tcp.mcpbConsumedInBytes)*8*1000000)/diffTimeInUs);
             rxBitRate = (((uint64_t)(nexusHttpStatus.tcp.fwStats.rcvdSequenceNumber - hAspOutput->nexusHttpStatus.tcp.fwStats.rcvdSequenceNumber))*8*1000000)/diffTimeInUs;
 
-#if 0
-            BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld byte count=%lu diffBytes=%lu diffTime=%lu\n",
+#if 1
+            BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld now bytes=%lu prev bytes=%lu diffBytes=%lu diffTime=%lu\n",
                         BSTD_FUNCTION, __LINE__,
                         nexusStatus.aspChannelIndex,
                         nexusHttpStatusTime.tv_sec, nexusHttpStatusTime.tv_usec,
                         hAspOutput->nexusHttpStatusTime.tv_sec, hAspOutput->nexusHttpStatusTime.tv_usec,
                         nexusHttpStatus.tcp.mcpbConsumedInBytes,
+                        hAspOutput->nexusHttpStatus.tcp.mcpbConsumedInBytes,
                         nexusHttpStatus.tcp.mcpbConsumedInBytes - hAspOutput->nexusHttpStatus.tcp.mcpbConsumedInBytes,
                         diffTimeInUs ));
 #endif

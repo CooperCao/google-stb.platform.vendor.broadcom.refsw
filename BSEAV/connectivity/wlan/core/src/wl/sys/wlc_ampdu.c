@@ -4264,6 +4264,13 @@ wlc_ampdu_atf_calc_rbytes(atf_state_t *atf_state, ratespec_t rspec)
 	atf_state->rbytes_target.min = (ampdu_rate_kbps/8000) *
 		atf_state->txq_time_min_allowance_us;
 
+#ifdef WLATM_PERC
+	if (wlc->atm_perc && scb->airtime_weight) {
+		atf_state->rbytes_target.max = (atf_state->rbytes_target.max * scb->airtime_weight) / 100;
+		atf_state->rbytes_target.min = (atf_state->rbytes_target.min * scb->airtime_weight) / 100;
+	}
+#endif /* WLATM_PERC */
+
 	atf_state->last_est_rate = rspec;
 	WLCNTINCR(atf_stats->cache_miss);
 

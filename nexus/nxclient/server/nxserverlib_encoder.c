@@ -266,57 +266,74 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
     unsigned i;
     unsigned index;
     bool transcode = connect != NULL;
-    unsigned r2;
-    unsigned cap2;
+    unsigned r2 = 0;
+    unsigned cap2 = 0;
 
     /* find available encoder */
-    if (NEXUS_VideoFrameRate_GetRefreshRate(connect->settings.simpleEncoder[0].encoderCapabilities.maxFrameRate, &r2)) {
-        r2 = 30000;
+    if (connect) {
+        if (NEXUS_VideoFrameRate_GetRefreshRate(connect->settings.simpleEncoder[0].encoderCapabilities.maxFrameRate, &r2)) {
+            r2 = 30000;
+        }
+        cap2 = video_encoder_cap(connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth, connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight, r2);
     }
-    cap2 = video_encoder_cap(connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth, connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight, r2);
     for (index=0; index < NEXUS_NUM_VIDEO_ENCODERS; index++) {
-        unsigned r1;
-        bool pick = true;
         if (!session->server->settings.memConfigSettings.videoEncoder[index].used) continue;
         displayIndex = get_transcode_display_index(session->server, index);
-        if (NEXUS_VideoFrameRate_GetRefreshRate(session->server->videoEncoder.cap.videoEncoder[index].memory.maxFrameRate, &r1)) {
-            r1 = 30000;
-        }
-
-        if (g_encoder[index].open ||
-            (displayIndex == -1) ||
-            (!video_only && !session->server->display.cap.display[displayIndex].graphics.width) ||
-            is_local_display(session->server, displayIndex)) pick = false;
-
-        if (pick) {
-            unsigned cap1 = video_encoder_cap(session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth, session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight, r1);
-            if (cap2 > cap1) {
-                pick = false;
+        if (connect) {
+            unsigned r1;
+            bool pick = true;
+            if (NEXUS_VideoFrameRate_GetRefreshRate(session->server->videoEncoder.cap.videoEncoder[index].memory.maxFrameRate, &r1)) {
+                r1 = 30000;
             }
-            else {
-                if ((r1 == 25000 || r1 == 50000) && r2 > 50000) {
+
+            if (g_encoder[index].open ||
+                (displayIndex == -1) ||
+                (!video_only && !session->server->display.cap.display[displayIndex].graphics.width) ||
+                is_local_display(session->server, displayIndex)) pick = false;
+
+            if (pick) {
+                unsigned cap1 = video_encoder_cap(session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth, session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight, r1);
+                if (cap2 > cap1) {
                     pick = false;
                 }
+                else {
+                    if ((r1 == 25000 || r1 == 50000) && r2 > 50000) {
+                        pick = false;
+                    }
+                }
             }
+
+            BDBG_MSG(("compare encoder%u: %ux%up%u with connect: %dx%dp%d --> %s", index,
+                session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth,
+                session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight,
+                r1/1000,
+                connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth,
+                connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight,
+                r2/1000,
+                pick?"yes":"no"));
+
+            if (pick) break;
         }
-
-        BDBG_MSG(("compare encoder%u: %ux%up%u with connect: %dx%dp%d --> %s", index,
-            session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth,
-            session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight,
-            r1/1000,
-            connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth,
-            connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight,
-            r2/1000,
-            pick?"yes":"no"));
-
-        if (pick) break;
+        else {
+            if (g_encoder[index].open ||
+                (displayIndex == -1) ||
+                (!video_only && !session->server->display.cap.display[displayIndex].graphics.width) ||
+                is_local_display(session->server, displayIndex)) continue;
+            /* else, use this one */
+            break;
+        }
     }
     if (index == NEXUS_NUM_VIDEO_ENCODERS) {
         /* because encoder systems are complex, give information that may explain the failure */
-        BDBG_WRN(("unable to get %ux%up%u video encoder from pool",
-            connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth,
-            connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight,
-            r2/1000));
+        if (connect) {
+            BDBG_WRN(("unable to get %ux%up%u video encoder from pool",
+                connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth,
+                connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight,
+                r2/1000));
+        }
+        else {
+            BDBG_WRN(("unable to get video encoder from pool"));
+        }
         print_open_encoders(session->server);
         return NULL;
     }
@@ -347,7 +364,9 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
 
     nxserver_p_disable_local_display(session->server, displayIndex);
 
-    r->settings.headless = (session->server->session[0]->display[0].display == NULL);
+    if (connect) {
+        r->settings.headless = (session->server->session[0]->display[0].display == NULL);
+    }
     if (transcode) {
         r->settings.transcodeDisplayIndex = displayIndex;
     }
@@ -356,7 +375,7 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
         if (!r->settings.displayEncode.display) goto error;
     }
 
-    if (connect->settings.simpleAudioDecoder.id) {
+    if (!connect || connect->settings.simpleAudioDecoder.id) {
         NEXUS_AudioMuxOutput_GetDefaultCreateSettings(&muxCreateSettings);
         muxCreateSettings.data.heap = session->server->settings.client.heap[NXCLIENT_FULL_HEAP];
         muxCreateSettings.index.heap = session->server->settings.client.heap[NXCLIENT_FULL_HEAP];
@@ -373,7 +392,7 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
     encoderOpenSettings.memoryConfig.maxWidth = session->server->settings.memConfigSettings.videoEncoder[index].maxWidth;
     encoderOpenSettings.memoryConfig.maxHeight = session->server->settings.memConfigSettings.videoEncoder[index].maxHeight;
     encoderOpenSettings.memoryConfig.interlaced = session->server->settings.memConfigSettings.videoEncoder[index].interlaced;
-    if (connect->settings.simpleEncoder[0].encoderCapabilities.lowDelay) {
+    if (connect && connect->settings.simpleEncoder[0].encoderCapabilities.lowDelay) {
         encoderOpenSettings.type = NEXUS_VideoEncoderType_eSingle;
     }
     encoderOpenSettings.watchdogCallback.callback = nxserver_p_video_encoder_watchdog;

@@ -56,6 +56,7 @@ BERR_Code BHSM_Otp_EnableProgram_priv( BHSM_Handle hHsm, bool cacheProgRequest )
     BDBG_ENTER( BHSM_Otp_EnableProgram );
 
     if( !hHsm ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BKNI_Memset( &bspPattern, 0, sizeof(bspPattern) );
     bspPattern.in.patternArray[0] = 0xBC32F4AC;

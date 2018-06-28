@@ -1358,7 +1358,7 @@ bool BCFC_UpdateCfg_isr
                 BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stM3x4.m[0][0]), 4, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pCfc->stMc.m[0][0]));
               #if (BCFC_VERSION >= BCFC_VER_2) /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
                 pColorSpaceExtIn->stCfg.stBits.SelTF = BCFC_NL2L_BYPASS;
-                pColorSpaceExtOut->stCfg.stBits.SelTF = BCFC_L2NL_BYPASS;
+                pCfc->bForceBypassL2NL = true; /* don't force ColorSpaceExtOut->stCfg.stBits.SelTF, it is shared by video and gfx win */
                 pCfc->stLRangeAdj.pTable = &s_LRangeAdj_Identity;
                 bRamLutCfgDirty = true; /* pCfc->pTfConvRamLuts will be *_Tbl[eBt1886][eBt1886] */
               #endif

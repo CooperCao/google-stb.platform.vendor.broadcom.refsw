@@ -57,7 +57,7 @@ typedef struct{
 }BHSM_P_ExternalKeySlot;
 
 
-/*data structure representing a keyslot entry */
+/*private data structure representing a keyslot entry */
 typedef struct
 {
     bool configured;
@@ -67,9 +67,11 @@ typedef struct
 
 }BHSM_P_KeyEntry;
 
-/*data structure representing a keyslot instance (the handle)*/
-typedef struct
+/* private data structure representing a keyslot instance (the handle)*/
+typedef struct BHSM_P_KeySlot
 {
+    BDBG_OBJECT(BHSM_P_KeySlot)
+
     bool configured;
     BHSM_KeyslotType slotType;  /* The keyslot type   */
     unsigned number;            /* The keyslot number */
@@ -79,14 +81,14 @@ typedef struct
 
     struct BHSM_KeySlotModule *pModule; /* pointer back to module data. */
 
-   #ifdef BHSM_BUILD_HSM_FOR_SAGE
-    void *pRestricted;                   /* restricted extension. */
+   #ifdef BHSM_KEYSLOT_EXTENSION
+    struct BHSM_P_KeySlotRestricted *pRestricted;  /* restricted extension to keyslot instance. */
    #endif
 
 }BHSM_P_KeySlot;
 
+BDBG_OBJECT_ID_DECLARE(BHSM_P_KeySlot);
 
-/*DEPRECATED .. use BHSM_P_Keyslot_GetInfo and BHSM_P_Keyslot_GetEntryInfo */
 typedef struct{
     unsigned numKeySlotsForType[BHSM_KeyslotType_eMax];
 } BHSM_KeyslotModuleCapabilities;
@@ -95,44 +97,24 @@ typedef struct{
     unsigned numKeySlotsForType[BHSM_KeyslotType_eMax];
 }BHSM_KeyslotModuleSettings;
 
-
-typedef struct {
-
-    uint8_t keyModeBspMapped;            /* the KeyMode mapped to BSP*/
-    uint32_t ctrlWord0;
-    uint32_t ctrlWord1;
-    uint32_t ctrlWord2;
-    uint32_t ctrlWord3;
-
-    BHSM_KeyslotType slotType;      /* The keyslot TYPE */
-    unsigned number;                /* Only required on SAGE side. Ignored on HOST side. */
-    BHSM_KeyslotPolarity polarity;  /* odd/even/clear*/
-    BHSM_KeyslotBlockType blockType;/* cps/ca/cpd */
-
-    bool externalIvValid;
-    unsigned externalIvOffset;
-
-    struct
-    {
-        BHSM_KeyslotPolarity useEntry;
-        struct
-        {
-            BHSM_KeyslotPolarity  rPipe;
-            BHSM_KeyslotPolarity  gPipe;
-        }outputPolarity;
-    }sc01;
-
-    BHSM_Handle hHsm;
-
-}BHSM_KeyslotDetails;
-
-
 /* Internal Keyslot paramters. */
 typedef struct {
 
     BHSM_Handle hHsm;
     BHSM_KeyslotType slotType;      /* The keyslot TYPE */
-    unsigned number;                /* Only required on SAGE side. Ignored on HOST side. */
+    unsigned number;                /* An index of the slot within the slot types. */
+
+
+    struct    /* configure how TS packets with reserved (b01) Scrambled Control (SC) its are handled. */
+    {
+        BHSM_KeyslotPolarity useEntry;   /* Specify what entry (odd/even/clear) packets with reserved
+                                            polarity (b01) will use. */
+        struct
+        {                                /* specify the output polarity of packets with SC value of "b10" */
+            BHSM_KeyslotPolarity  rPipe; /* "restricted" (usually decode) Pipe. Ignored if specify==false */
+            BHSM_KeyslotPolarity  gPipe; /* "global" (usually record) Pipe. Ignored if specify==false. */
+        }outputPolarity;
+    }sc01[BHSM_KeyslotBlockType_eMax];
 
 }BHSM_KeyslotSlotDetails;
 
@@ -153,14 +135,6 @@ typedef struct
         uint8_t  slotType;
         uint8_t  blockType;     /* cpd/ca/cps */
         uint8_t  entryType;     /* polarity ... even/odd/clear/reserved. */
-        struct {
-            uint8_t useEntry;   /* polarity ... even/odd/clear/reserved. */
-            struct
-            {
-                uint8_t  rPipe;
-                uint8_t  gPipe;
-            }outputPolarity;
-        }sc01;
 
         bool externalIvValid;
         unsigned externalIvOffset;
@@ -172,15 +146,22 @@ typedef struct
 BERR_Code BHSM_Keyslot_Init( BHSM_Handle hHsm, BHSM_KeyslotModuleSettings *pSettings );
 void BHSM_Keyslot_Uninit( BHSM_Handle hHsm );
 
+/* returns details on the keyslot module; relevant to all keyslots.  */
+BERR_Code BHSM_P_KeyslotModule_GetCapabilities( BHSM_Handle hHsm,
+                                                BHSM_KeyslotModuleCapabilities *pCaps );
 
+/* returns details on a particular keyslot instance. */
 BERR_Code BHSM_P_Keyslot_GetSlotDetails( BHSM_KeyslotHandle handle,
-                                         BHSM_KeyslotSlotDetails *pInfo );
+                                         BHSM_KeyslotSlotDetails *pSlotDetails );
+
+/* returns details on a singe entry of af a keyslot instance. */
 BERR_Code BHSM_P_Keyslot_GetEntryDetails( BHSM_KeyslotHandle handle,
                                           BHSM_KeyslotBlockEntry entry,
-                                          BHSM_KeyslotEntryDetails *pInfo );
+                                          BHSM_KeyslotEntryDetails *pEntryDetails );
 
 uint8_t BHSM_P_Map2KeySlotCryptoAlg( BHSM_CryptographicAlgorithm  algorithm );
 uint8_t BHSM_P_ConvertSlotType( BHSM_KeyslotType type );
+
 
 /* Look up existing BHSM_KeyslotHandle, given the type and number
  * RESTRICTED usage only. BHSM clients should typically use the allocate/free mechanism */
@@ -188,22 +169,10 @@ BHSM_KeyslotHandle BHSM_P_GetKeySlotHandle( BHSM_Handle hHsm,
                                             BHSM_KeyslotType slotType,
                                             unsigned slotNumber );
 
-#ifdef BHSM_BUILD_HSM_FOR_SAGE
+#ifdef BHSM_KEYSLOT_EXTENSION
   BERR_Code BHSM_Keyslot_InitExtensionRestricted( BHSM_KeyslotHandle handle );
   void  BHSM_Keyslot_UninitExtensionRestricted( BHSM_KeyslotHandle handle );
   uint32_t BHSM_P_CompileControl0GlobalHiReserved( BHSM_KeyslotHandle handle );
 #endif
 
-
-
-
-
-
-/* DEPRECATED .. use BHSM_P_Keyslot_GetSlotDetails */
-BERR_Code BHSM_P_KeyslotModule_GetCapabilities( BHSM_Handle hHsm,
-                                                BHSM_KeyslotModuleCapabilities *pCaps );
-/* DEPRECATED .. use BHSM_P_Keyslot_GetSlotDetails or BHSM_P_Keyslot_GetEntryDetails */
-BERR_Code BHSM_P_Keyslot_GetDetails( BHSM_KeyslotHandle handle,
-                                     BHSM_KeyslotBlockEntry entry,
-                                     BHSM_KeyslotDetails *pDetails );
 #endif

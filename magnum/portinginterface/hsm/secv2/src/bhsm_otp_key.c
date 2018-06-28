@@ -52,7 +52,7 @@ BDBG_MODULE( BHSM );
 
 typedef struct BHSM_OtpKeyModule
 {
-    BHSM_OtpKeyInfo KeyInfo[Bsp_Otp_KeyType_eMax];
+    BHSM_OtpKeyInfo keyInfo[Bsp_Otp_KeyType_eMax];
     bool cached[Bsp_Otp_KeyType_eMax];
 }BHSM_OtpKeyModule;
 
@@ -66,12 +66,12 @@ BERR_Code BHSM_OtpKey_Init( BHSM_Handle hHsm, BHSM_OtpKeyModuleSettings *pSettin
     BDBG_ENTER( BHSM_OtpKey_Init );
     BSTD_UNUSED( pSettings );
 
+    if( hHsm->modules.pOtpKey ) { return BERR_TRACE( BERR_NOT_AVAILABLE ); }
+
     hHsm->modules.pOtpKey = BKNI_Malloc( sizeof(BHSM_OtpKeyModule) );
     if( !hHsm->modules.pOtpKey ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
 
     BKNI_Memset( hHsm->modules.pOtpKey, 0, sizeof(BHSM_OtpKeyModule) );
-
-
 
     BDBG_LEAVE( BHSM_OtpKey_Init );
     return BERR_SUCCESS;
@@ -101,11 +101,12 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
     BDBG_ENTER( BHSM_OtpKey_GetInfo );
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !hHsm->modules.pOtpKey ) { return BERR_TRACE( BERR_NOT_INITIALIZED ); }
     if( !pKeyInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( pKeyInfo->index >= Bsp_Otp_KeyType_eMax ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
-    if(hHsm->modules.pOtpKey->cached[pKeyInfo->index] == false)
+    if( hHsm->modules.pOtpKey->cached[pKeyInfo->index] == false )
     {
         /* KeyHash */
         pKeyInfo->hashValid = _isHashValid( hHsm, pKeyInfo->index );
@@ -220,12 +221,12 @@ BERR_Code BHSM_OtpKey_GetInfo( BHSM_Handle hHsm, BHSM_OtpKeyInfo *pKeyInfo )
         pKeyInfo->customerMode = keyRead.out.data[0];
 
         hHsm->modules.pOtpKey->cached[pKeyInfo->index] = true;
-
-        BKNI_Memcpy(&hHsm->modules.pOtpKey->KeyInfo[pKeyInfo->index],pKeyInfo, sizeof(*pKeyInfo));
+        hHsm->modules.pOtpKey->keyInfo[pKeyInfo->index] = *pKeyInfo;
     }
     else
     {
-        BKNI_Memcpy(pKeyInfo, &hHsm->modules.pOtpKey->KeyInfo[pKeyInfo->index], sizeof(*pKeyInfo));
+        /* use cached parameters */
+        *pKeyInfo = hHsm->modules.pOtpKey->keyInfo[pKeyInfo->index];
     }
 
 BHSM_P_DONE_LABEL:

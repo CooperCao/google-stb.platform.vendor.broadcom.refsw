@@ -624,21 +624,20 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
     BVDC_P_GfxDirtyBits  stDirty;
     BVDC_P_SurfaceInfo  *pCurSur;
     uint32_t  ulCntWidth, ulOutWidth, ulCntHeight, ulOutHeight;
-    uint32_t  ulAdjCntWidth, ulAdjCntLeft, ulAdjCntHeight, ulAdjCntTopInt;
-#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
-    uint32_t  ulOutOrientLR;
+    uint32_t  ulAdjCntWidth, ulAdjCntHeight;
+    uint32_t  ulCntLeft, ulAdjCntLeftInt, ulHsclInitPhase, ulHsclBstcOffset, ulHsclSrcStep, ulGfdSrcPitch;
     uint32_t  ulVsclSrcStep, ulBlkAvgSize;
-    uint32_t  ulCntTop, ulVsclInitPhase, ulVsclInitPhaseBot;
-#endif
-    uint32_t  ulGfdPitch;
+    uint32_t  ulCntTop, ulAdjCntTopInt, ulVsclInitPhase, ulVsclInitPhaseBot, ulVsclBstcOffset;
+    bool      bEnDecompression, bNeedHorizScale, bNeedVertScale = false;
     bool      bSource3d;
-    bool      bAvoidPitchOverflow = false;
 
     /* Note: since this func could be called during BuildRul, which
      * would pass CurCfg in, hence pCfg->ulCnt* should not be updated until
      * all error cheking is completed.
      * Note: the combination of scale-out with dst rect and canvas is checked
      * by BVDC_P_Window_ValidateChanges */
+
+    bEnDecompression = BPXL_IS_COMPRESSED_FORMAT(pSur->eInputPxlFmt)? 1 : 0;
 
     /* check if clut is used by both palette and gamma correction */
     if ( (BPXL_IS_PALETTE_FORMAT(pSur->eInputPxlFmt)) &&
@@ -660,19 +659,22 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
     ulOutWidth  = pSclOutRect->ulWidth;
     ulOutHeight = pSclOutRect->ulHeight;
 
-    BDBG_ASSERT(ulOutWidth);
-    BDBG_ASSERT(ulOutHeight);
-
+    if ((0 == ulOutWidth) || (0 == ulCntWidth))
+    {
+        return BERR_TRACE(BVDC_ERR_GFX_HSCL_OUT_OF_RANGE);
+    }
+    if ((0 == ulOutHeight) || (0 == ulCntHeight))
+    {
+        return BERR_TRACE(BVDC_ERR_GFX_VSCL_OUT_OF_RANGE);
+    }
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     if(hGfxFeeder->bSupportVertScl)
     {
-        if ((0 == ulOutWidth) || (0 == ulCntWidth) ||
-            (8 * ulCntWidth < ulOutWidth) || (ulCntWidth > 8 * ulOutWidth))
+        if ((8 * ulCntWidth < ulOutWidth) || (ulCntWidth > 8 * ulOutWidth))
         {
             return BERR_TRACE(BVDC_ERR_GFX_HSCL_OUT_OF_RANGE);
         }
-        if ((0 == ulOutHeight) || (0 == ulCntHeight) ||
-            (8 * ulCntHeight < ulOutHeight) || (ulCntHeight > 12 * ulOutHeight))
+        if ((8 * ulCntHeight < ulOutHeight) || (ulCntHeight > 12 * ulOutHeight))
         {
             return BERR_TRACE(BVDC_ERR_GFX_VSCL_OUT_OF_RANGE);
         }
@@ -683,19 +685,11 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
         {
             return BERR_TRACE(BVDC_ERR_GFX_VERTICAL_SCALE);
         }
-        if ( (0 == ulCntWidth) && (0 != ulOutWidth) )
-        {
-            return BERR_TRACE(BVDC_ERR_GFX_INFINITE_SCALE);
-        }
     }
 #else
     if ( ulCntHeight < ulOutHeight )
     {
         return BERR_TRACE(BVDC_ERR_GFX_VERTICAL_SCALE);
-    }
-    if ( (0 == ulCntWidth) && (0 != ulOutWidth) )
-    {
-        return BERR_TRACE(BVDC_ERR_GFX_INFINITE_SCALE);
     }
 #endif /* #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3) */
 
@@ -707,14 +701,55 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
     }
 #endif
 
+    bSource3d = BVDC_P_ORIENTATION_IS_3D(pCfg->eInOrientation);
+    if( bSource3d && (!hGfxFeeder->b3dSrc))
+    {
+        BDBG_ERR(("GFD[%d] usage does not support 3D", hGfxFeeder->eId-BAVC_SourceId_eGfx0));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+
+
+    /* pitch written to register SRC_PITCH */
+    ulGfdSrcPitch = ((bEnDecompression)? 4 * pSur->ulPitch: /* 4 rows */
+                     (pCfg->stFlags.bInterlaced)? 2 * pSur->ulPitch : pSur->ulPitch); /* skip opposite field */
+    if (ulGfdSrcPitch > BVDC_P_GFD_SRC_PITCH_MAX)
+    {
+        if (hGfxFeeder->bSupportVertScl && (pSur->ulPitch <= BVDC_P_GFD_SRC_PITCH_MAX) &&
+            (!bEnDecompression))
+        { /* pitch register overflow due to interlace, so use vertical scale to avoid 2 * pSur->ulPitch */
+            bNeedVertScale = true;
+        }
+        else
+        {
+            BDBG_ERR(("GFD[%d] src pitch 0x%x overflow", hGfxFeeder->eId-BAVC_SourceId_eGfx0, ulGfdSrcPitch));
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+    }
+
+    bNeedHorizScale = (ulCntWidth != ulOutWidth) || (BVDC_FilterCoeffs_eSharp == pCfg->eHorzScaleCoeffs);
+    bNeedVertScale  |= (hGfxFeeder->bSupportVertScl && (ulCntHeight != ulOutHeight));
+#if BVDC_P_GFX_INIT_WORKAROUND
+    bNeedHorizScale |= (pCfg->eOutOrientation==BFMT_Orientation_e3D_LeftRight);
+    bNeedVertScale  |= (pCfg->eOutOrientation==BFMT_Orientation_e3D_OverUnder);
+#endif
+    /* cannot use pitch to skip top/bottom field lines if src is compressed */
+    bNeedVertScale  |= (bEnDecompression && pCfg->stFlags.bInterlaced);
+
+    /* correct ulGfdSrcPich for the case that vscl is used, src is not compressed, and display is interlaced */
+    if (bNeedVertScale && !bEnDecompression)
+    {
+        ulGfdSrcPitch = pSur->ulPitch;
+    }
+
+    /* note: dest cut is xfered into src clip to save bandwidth */
     ulAdjCntWidth = (pDstRect->ulWidth * ulCntWidth + (ulOutWidth - 1)) / ulOutWidth;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
-    if(pCfg->stFlags.bNeedVertScale)
+    if(bNeedVertScale)
     {
         /* we will do vertical scale */
-        ulOutOrientLR = (pCfg->eOutOrientation==BFMT_Orientation_e3D_LeftRight)? 1 : 0;
-        if (((ulAdjCntWidth     << ulOutOrientLR) > hGfxFeeder->ulVertLineBuf)
-            &&
+        uint32_t ulOutOrientLR = (pCfg->eOutOrientation==BFMT_Orientation_e3D_LeftRight)? 1 : 0;
+        if (((ulAdjCntWidth     << ulOutOrientLR) > hGfxFeeder->ulVertLineBuf) &&
             ((pDstRect->ulWidth << ulOutOrientLR) > hGfxFeeder->ulVertLineBuf))
         {
             /* See also HW7425-385 for additonal information. */
@@ -725,43 +760,41 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
     }
 #endif
 
-    bSource3d = BVDC_P_ORIENTATION_IS_3D(pCfg->eInOrientation);
-    if( bSource3d && (!hGfxFeeder->b3dSrc))
-    {
-        BDBG_ERR(("GFD[%d] usage does not support 3D", hGfxFeeder->eId-BAVC_SourceId_eGfx0));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    ulGfdPitch = (pCfg->stFlags.bInterlaced)? 2 * pSur->ulPitch : pSur->ulPitch;
-    if (ulGfdPitch > BVDC_P_GFD_SRC_PITCH_MAX)
-    {
-        if (hGfxFeeder->bSupportVertScl && (pSur->ulPitch <= BVDC_P_GFD_SRC_PITCH_MAX))
-            bAvoidPitchOverflow = true;
-        else
-        {
-            BDBG_ERR(("GFD[%d] src pitch 0x%x overflow",
-                      hGfxFeeder->eId-BAVC_SourceId_eGfx0, ulGfdPitch));
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-    }
-
-    /* after this point, no more error is possible */
-
-    /* note: dest cut is xfered into src clip to save bandwidth; CntLeft and SrcStep
-     * are fixed point number with precision provided by HW; cntWidth is rounded to
-     * ceiling */
-    pCfg->ulHsclSrcStep =
-        BVDC_P_MIN(GFD_MAX_FIR_STEP,
-            (ulCntWidth << GFD_NUM_BITS_FIR_STEP_FRAC) / ulOutWidth);
-    ulAdjCntLeft =
-        (pClipRect->ulLeft << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC) +
-        (pSclOutRect->lLeft * ulCntWidth << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC) / ulOutWidth;
+    /* note: dest cut is xfered into src clip to save bandwidth; CntLeft and SrcStep are fixed point
+     * number with precision provided by HW; cntWidth is rounded to ceiling */
+    ulHsclSrcStep = BVDC_P_MIN(GFD_MAX_FIR_STEP, (ulCntWidth << GFD_NUM_BITS_FIR_STEP_FRAC) / ulOutWidth);
+    ulCntLeft = ((pClipRect->ulLeft << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC) +
+                 (pSclOutRect->lLeft * ulCntWidth << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC) / ulOutWidth);
     /* ulAdjCntWidth = (pDstRect->ulWidth * ulCntWidth + (ulOutWidth - 1)) / ulOutWidth;
      * would not be outside of original src size */
+    ulHsclInitPhase = ulCntLeft & GFD_MASK_FIR_INIT_PHASE_FRAC;
+    ulAdjCntLeftInt = ulCntLeft >> GFD_NUM_BITS_FIR_INIT_PHASE_FRAC;
+#ifdef BCHP_GFD_0_DCXG_CFG
+    if (bEnDecompression)
+    {
+        ulHsclBstcOffset = ulAdjCntLeftInt;
+        ulAdjCntLeftInt = 0;
+    }
+#else
+    if (bEnDecompression)
+    {
+        uint32_t ulAlignedCntLeft, ulAlignedCntRight;
+        ulAlignedCntLeft = BVDC_P_ALIGN_DN(ulAdjCntLeftInt, 4);
+        ulAlignedCntRight = BVDC_P_ALIGN_UP(ulAdjCntLeftInt + ulAdjCntWidth, 4);
+        ulHsclBstcOffset = (ulAdjCntLeftInt - ulAlignedCntLeft);
+        ulAdjCntLeftInt = ulAlignedCntLeft;
+        ulAdjCntWidth = ulAlignedCntRight - ulAlignedCntLeft;
+    }
+#endif
+    else if ( BPXL_IS_YCbCr422_FORMAT(pSur->eInputPxlFmt) && (ulAdjCntLeftInt & 0x1) )
+    {
+        /* need even pixel allignment for Y0PrY1Pb format */
+        ulAdjCntLeftInt -= 1;
+        ulHsclInitPhase += (1 << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC);
+    }
 
-    /* OutWidth and ulOutHeight are used to set GFD_0_DISP_PIC_SIZE */
-    pCfg->ulOutWidth  = pDstRect->ulWidth;
-
+    ulHsclBstcOffset = 0;
+    ulVsclBstcOffset = 0;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     /* note: dest cut is xfered into src clip to save bandwidth; CntTop and SrcStep
      * are fixed point number with precision provided by HW; cntHeight is rounded to
@@ -782,8 +815,7 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
         else /* VSCL is turned off */
         {
             ulVsclSrcStep = GFD_VSCL_FIR_STEP_1;
-            ulCntTop = (pClipRect->ulTop + pSclOutRect->lTop) <<
-                GFD_VSCL_NUM_BITS_FIR_INIT_PHASE_FRAC;
+            ulCntTop = (pClipRect->ulTop + pSclOutRect->lTop) << GFD_VSCL_NUM_BITS_FIR_INIT_PHASE_FRAC;
             ulAdjCntHeight = ulCntHeight;
         }
 
@@ -793,6 +825,23 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
          * surface pixel format */
         ulAdjCntTopInt = ulCntTop >> GFD_VSCL_NUM_BITS_FIR_INIT_PHASE_FRAC;
         ulVsclInitPhase = ulCntTop & (GFD_VSCL_FIR_PHASE_1 - 1);
+#ifdef BCHP_GFD_0_DCXG_CFG
+        if (bEnDecompression)
+        {
+            ulVsclBstcOffset = ulAdjCntTopInt;
+            ulAdjCntTopInt = 0;
+        }
+#else
+        if (bEnDecompression)
+        {
+            uint32_t ulAlignedCntTop, ulAlignedCntBottom;
+            ulAlignedCntTop = BVDC_P_ALIGN_DN(ulAdjCntTopInt, 4);
+            ulAlignedCntBottom = BVDC_P_ALIGN_UP(ulAdjCntTopInt + ulAdjCntHeight, 4);
+            ulVsclBstcOffset = (ulAdjCntTopInt - ulAlignedCntTop);
+            ulAdjCntTopInt = ulAlignedCntTop;
+            ulAdjCntHeight = ulAlignedCntBottom - ulAlignedCntTop;
+        }
+#endif
         BDBG_P_GFD_MSG(("orig InitPhase 0x%x and %d/64", ulVsclInitPhase >> 6, ulVsclInitPhase & 63));
         ulVsclInitPhase += GFD_VSCL_FIR_STEP_TO_PHASE(ulVsclSrcStep >> 1);
         BDBG_P_GFD_MSG(("after +srcStep/2, InitPhase 0x%x and %d/64", ulVsclInitPhase >> 6, ulVsclInitPhase & 63));
@@ -814,53 +863,34 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
             ulVsclInitPhase /= (ulBlkAvgSize + 1);
             ulVsclInitPhaseBot /= (ulBlkAvgSize + 1);
         }
-        pCfg->ulVsclBlkAvgSize = ulBlkAvgSize;
-        pCfg->ulVsclSrcStep = ulVsclSrcStep;
-        pCfg->ulVsclInitPhase = ulVsclInitPhase;
-        pCfg->ulVsclInitPhaseBot = ulVsclInitPhaseBot;
     }
     else
     {
-        pCfg->ulVsclBlkAvgSize = 0;
-        pCfg->ulVsclSrcStep = GFD_VSCL_FIR_STEP_1;
+        ulBlkAvgSize = 0;
+        ulVsclSrcStep = GFD_VSCL_FIR_STEP_1;
         ulAdjCntTopInt = pClipRect->ulTop + pSclOutRect->lTop;
         ulAdjCntHeight = pDstRect->ulHeight; /* not used */
+        ulVsclInitPhase = 0;
+        ulVsclInitPhaseBot = GFD_VSCL_FIR_STEP_TO_PHASE(ulVsclSrcStep);
     }
 #else
-    pCfg->ulVsclBlkAvgSize = 0;
-    pCfg->ulVsclSrcStep = GFD_VSCL_FIR_STEP_1;
+    ulBlkAvgSize = 0;
+    ulVsclSrcStep = GFD_VSCL_FIR_STEP_1;
     ulAdjCntTopInt = pClipRect->ulTop + pSclOutRect->lTop;
     ulAdjCntHeight = pDstRect->ulHeight; /* not used */
-#endif /* #if (BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_3)   */
+    ulVsclInitPhase = 0;
+    ulVsclInitPhaseBot = GFD_VSCL_FIR_STEP_TO_PHASE(ulVsclSrcStep);
+#endif /* #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)   */
 
     /* turn on dejag if vertical scale factor is bigger than 1*/
-    pCfg->stFlags.bEnDejag = (pCfg->stFlags.bNeedVertScale &&
-         (pCfg->ulVsclSrcStep <= GFD_VSCL_FIR_STEP_1) &&
-         (0 == pCfg->ulVsclBlkAvgSize))? 1 : 0;
+    pCfg->stFlags.bEnDejag = (bNeedVertScale &&
+        (ulVsclSrcStep <= GFD_VSCL_FIR_STEP_1) && (0 == ulBlkAvgSize))? 1 : 0;
 
     /* turn on dering if horizontal scale factor is bigger than 2/3, alpha clip */
     pCfg->stFlags.bEnDering =
-                ( pCfg->stFlags.bNeedHorizScale &&
-                ((2 * pCfg->ulHsclSrcStep) <= (3 * GFD_HSCL_FIR_STEP_1)))? 1 : 0;
+        (bNeedHorizScale && ((2 * ulHsclSrcStep) <= (3 * GFD_HSCL_FIR_STEP_1)))? 1 : 0;
 
-    /* OutWidth and ulOutHeight are used to set GFD_0_DISP_PIC_SIZE */
-    pCfg->ulOutHeight = pDstRect->ulHeight;
-
-    pCfg->stFlags.bNeedHorizScale =
-        (GFD_HSCL_FIR_STEP_1 != pCfg->ulHsclSrcStep) ||
-        (BVDC_FilterCoeffs_eSharp == pCfg->eHorzScaleCoeffs);
-    pCfg->stFlags.bNeedVertScale =
-        ((hGfxFeeder->bSupportVertScl) &&
-         ((GFD_VSCL_FIR_STEP_1 != pCfg->ulVsclSrcStep) ||
-          (0 != pCfg->ulVsclBlkAvgSize) ||
-          (bAvoidPitchOverflow)));
-#if BVDC_P_GFX_INIT_WORKAROUND
-    pCfg->stFlags.bNeedHorizScale |= ((pCfg->eOutOrientation==BFMT_Orientation_e3D_LeftRight)? 1 : 0);
-    pCfg->stFlags.bNeedVertScale  |= ((pCfg->eOutOrientation==BFMT_Orientation_e3D_OverUnder)? 1 : 0);
-#endif
     pCfg->stFlags.bNeedColorSpaceConv = (!hGfxFeeder->hWindow->stSettings.bBypassVideoProcessings)? 1 : 0;
-    pCfg->stFlags.bEnDecompression = BPXL_IS_COMPRESSED_FORMAT(pSur->eInputPxlFmt)? 1 : 0;
-    pCfg->stFlags.bNeedVertScale  |= (pCfg->stFlags.bEnDecompression && pCfg->stFlags.bInterlaced)? 1 : 0;
 
     /* set the dirty bits due to combined surface or configure change
      * note: pCfg could be NewCfg or CurCfg */
@@ -871,7 +901,7 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
     if (pSur->eInputPxlFmt != pCurSur->eInputPxlFmt)
     {
         stDirty.stBits.bPxlFmt = true;
-        if (BPXL_IS_COMPRESSED_FORMAT(pSur->eInputPxlFmt) != BPXL_IS_COMPRESSED_FORMAT(pCurSur->eInputPxlFmt))
+        if (bEnDecompression != pCurCfg->stFlags.bEnDecompression)
         {
             stDirty.stBits.bCompress = true;
         }
@@ -882,32 +912,49 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
         stDirty.stBits.bOrientation = BVDC_P_DIRTY;
     }
 
-    if ( (ulAdjCntLeft   != pCurCfg->ulCntLeft)  ||
-         (ulAdjCntTopInt != pCurCfg->ulCntTopInt) ||
-         (ulAdjCntWidth  != pCurCfg->ulCntWidth) ||
-         (ulAdjCntHeight != pCurCfg->ulCntHeight) )
+    if (stDirty.stBits.bPxlFmt || stDirty.stBits.bOrientation ||
+        (bNeedHorizScale != pCurCfg->stFlags.bNeedHorizScale) ||
+        (bNeedVertScale  != pCurCfg->stFlags.bNeedVertScale) ||
+        (ulAdjCntLeftInt   != pCurCfg->ulCntLeftInt)     || (ulAdjCntTopInt     != pCurCfg->ulCntTopInt)      ||
+        (ulHsclInitPhase   != pCurCfg->ulHsclInitPhase)  || (ulVsclInitPhase    != pCurCfg->ulVsclInitPhase)  ||
+        (ulHsclBstcOffset  != pCurCfg->ulHsclBstcOffset) || (ulVsclBstcOffset   != pCurCfg->ulVsclBstcOffset) ||
+        (ulAdjCntWidth     != pCurCfg->ulCntWidth)       || (ulAdjCntHeight     != pCurCfg->ulCntHeight)      ||
+        (pDstRect->ulWidth != pCurCfg->ulOutWidth)       || (pDstRect->ulHeight != pCurCfg->ulOutHeight)      ||
+        (ulHsclSrcStep     != pCurCfg->ulHsclSrcStep)    || (ulVsclSrcStep      != pCurCfg->ulVsclSrcStep)    ||
+        (ulGfdSrcPitch     != pCurCfg->ulGfdSrcPitch)    || (ulBlkAvgSize       != pCurCfg->ulVsclBlkAvgSize))
     {
         /* note: dest clip is also transfered into src clip */
         stDirty.stBits.bSrcClip   = BVDC_P_DIRTY;
         stDirty.stBits.bClipOrOut = BVDC_P_DIRTY;
     }
 
-    if ( (stDirty.stBits.bPxlFmt) ||
-         (stDirty.stBits.bSrcClip) ||
-         (pSur->ulPitch != pCurSur->ulPitch))
+    if ((stDirty.stBits.bPxlFmt) || (stDirty.stBits.bSrcClip) || (pSur->ulPitch != pCurSur->ulPitch))
     {
         stDirty.stBits.bSurOffset = BVDC_P_DIRTY;
     }
 
-    /* since pCfg could be pCurCfg, we can not store new cnt rect values
-     * to pCfg until the comparing of those values in pCfg and pCurCfg are
-     * done */
-    pCfg->ulCntLeft = ulAdjCntLeft;
+    pCfg->stDirty = stDirty;
+
+    /* since pCfg could be pCurCfg, we can not store values to pCfg until the above dirty bits are decided */
+    /* after this point, no more error is possible, so now we can start to write change to *pCfg */
+    pCfg->stFlags.bEnDecompression = (bEnDecompression)? 1 : 0;
+    pCfg->stFlags.bNeedHorizScale = (bNeedHorizScale)? 1 : 0;
+    pCfg->stFlags.bNeedVertScale = (bNeedVertScale)? 1 : 0;
+    pCfg->ulOutWidth  = pDstRect->ulWidth; /* OutWidth and ulOutHeight are used to set GFD_0_DISP_PIC_SIZE */
+    pCfg->ulOutHeight = pDstRect->ulHeight;
+    pCfg->ulGfdSrcPitch = ulGfdSrcPitch;
+    pCfg->ulCntLeftInt = ulAdjCntLeftInt;
     pCfg->ulCntWidth = ulAdjCntWidth;
     pCfg->ulCntTopInt = ulAdjCntTopInt;
     pCfg->ulCntHeight = ulAdjCntHeight;
-
-    pCfg->stDirty = stDirty;
+    pCfg->ulHsclSrcStep = ulHsclSrcStep;
+    pCfg->ulHsclBstcOffset = ulHsclBstcOffset;
+    pCfg->ulHsclInitPhase = ulHsclInitPhase;
+    pCfg->ulVsclBlkAvgSize = ulBlkAvgSize;
+    pCfg->ulVsclSrcStep = ulVsclSrcStep;
+    pCfg->ulVsclInitPhase = ulVsclInitPhase;
+    pCfg->ulVsclInitPhaseBot = ulVsclInitPhaseBot;
+    pCfg->ulVsclBstcOffset = ulVsclBstcOffset;
 
     return BERR_SUCCESS;
 }
@@ -1400,7 +1447,6 @@ static BERR_Code BVDC_P_GfxFeeder_CalcSurfaceOffset_isr
 {
     BVDC_P_SurfaceInfo   *pCurSur;
     BVDC_P_GfxFeederCfgInfo  *pCurCfg;
-    uint32_t  ulCntLeft, ulFirInitPhase;
     uint32_t  ulBitsPerPixel, ulOffsetBitsInLine, ulOffsetByteInLine;
 
     BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
@@ -1408,10 +1454,8 @@ static BERR_Code BVDC_P_GfxFeeder_CalcSurfaceOffset_isr
     pCurCfg = &(hGfxFeeder->stCurCfgInfo);
     pCurSur = &(hGfxFeeder->stGfxSurface.stCurSurInfo);
 
-    ulFirInitPhase = pCurCfg->ulCntLeft & GFD_MASK_FIR_INIT_PHASE_FRAC;
-    ulCntLeft = pCurCfg->ulCntLeft >> GFD_NUM_BITS_FIR_INIT_PHASE_FRAC;
     ulBitsPerPixel = BPXL_BITS_PER_PIXEL(pCurSur->eInputPxlFmt);
-    ulOffsetBitsInLine = ulBitsPerPixel * ulCntLeft;
+    ulOffsetBitsInLine = ulBitsPerPixel * pCurCfg->ulCntLeftInt;
     ulOffsetByteInLine = ulOffsetBitsInLine / GFD_NUM_BITS_PER_BYTE;
     if ( (0 < ulBitsPerPixel) && (ulBitsPerPixel < GFD_NUM_BITS_PER_BYTE) )
     {
@@ -1426,16 +1470,10 @@ static BERR_Code BVDC_P_GfxFeeder_CalcSurfaceOffset_isr
         hGfxFeeder->ulOffsetPixInByte = 0;
     }
 
-    if ( BPXL_IS_YCbCr422_FORMAT(pCurSur->eInputPxlFmt) && (ulCntLeft & 0x1) )
-    {
-        /* need even pixel allignment for Y0PrY1Pb format */
-        ulOffsetByteInLine -= 2; /* two byte per YCrCb422 pixel */
-        ulFirInitPhase += (1 << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC);
-    }
-
-    hGfxFeeder->ulFirInitPhase = ulFirInitPhase;
-    hGfxFeeder->stGfxSurface.ulMainByteOffset =
-        (BPXL_IS_COMPRESSED_FORMAT(pCurSur->eInputPxlFmt))? 0 :
+    /* BPXL_BITS_PER_PIXEL() returns 4 for BSTC compressed format
+     * pCurCfg->ulCntLeftInt and pCurCfg->ulCntTopInt IS 0 for DCXG compressed format */
+    hGfxFeeder->stGfxSurface.ulMainByteOffset = (pCurCfg->stFlags.bEnDecompression)?
+        pCurCfg->ulCntTopInt * pCurSur->ulPitch + ulOffsetByteInLine * 2 : /* 4 lines */
         pCurCfg->ulCntTopInt * pCurSur->ulPitch + ulOffsetByteInLine;
 
     return BERR_SUCCESS;
@@ -1462,12 +1500,11 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     BVDC_P_GfxDirtyBits  stDirty;
     BVDC_P_GfxCfgFlags  stFlags;
     uint32_t  *pulRulCur;
-    uint32_t  ulMainSurPitch;
-    uint32_t  ulOffsetPixInByte;
     bool  bChangeClipOrField;
     uint32_t  ulFirStepLow, ulFirStepInt;
     uint32_t  *pulCoeffs;
     uint32_t  ulRulOffset;
+    uint32_t  ulCntWidth;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     uint32_t  ulEnDemoMode;
     uint32_t  ulVsclFirStep;
@@ -1540,8 +1577,8 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
         /* dering/dejag features come with vertical scaling capacity */
         if(hGfxFeeder->bSupportVertScl)
         {
-            bool bEnDering = pCurCfg->stFlags.bEnDering;
-            ulEnDemoMode = (pCurCfg->stFlags.bDeringDemoMode)? 1 : 0;
+            bool bEnDering = stFlags.bEnDering;
+            ulEnDemoMode = (stFlags.bDeringDemoMode)? 1 : 0;
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_DERINGING ) + ulRulOffset;
             *pulRulCur++ =
@@ -1564,19 +1601,25 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_VSIZE ) + ulRulOffset;
 
-            ulCntHeight = (stFlags.bNeedVertScale || !pCurCfg->stFlags.bInterlaced) ?
-                pCurCfg->ulCntHeight :  pCurCfg->ulCntHeight / 2;
+#ifdef BCHP_GFD_0_DCXG_CFG
+            ulCntHeight = (stFlags.bEnDecompression)? pCurSur->ulHeight :
+                (stFlags.bNeedVertScale || !stFlags.bInterlaced) ? pCurCfg->ulCntHeight :  pCurCfg->ulCntHeight / 2;
+#else
+            ulCntHeight =
+                (stFlags.bNeedVertScale || !stFlags.bInterlaced) ? pCurCfg->ulCntHeight :  pCurCfg->ulCntHeight / 2;
+
+#endif
             *pulRulCur++ =
                 BCHP_FIELD_DATA( GFD_0_SRC_VSIZE, VSIZE, ulCntHeight );
 
-            ulEnDemoMode = (pCurCfg->stFlags.bDejagDemoMode)? 1 : 0;
+            ulEnDemoMode = (stFlags.bDejagDemoMode)? 1 : 0;
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_DEJAGGING ) + ulRulOffset;
             *pulRulCur++ =
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, HORIZ,           0)                         |
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, GAIN,            0)                         |
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, CORE,            0)                         |
-                BCHP_FIELD_DATA( GFD_0_DEJAGGING, VERT_DEJAGGING,  pCurCfg->stFlags.bEnDejag) |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, HORIZ,           0)                |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, GAIN,            0)                |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, CORE,            0)                |
+                BCHP_FIELD_DATA( GFD_0_DEJAGGING, VERT_DEJAGGING,  stFlags.bEnDejag) |
                 BCHP_FIELD_DATA( GFD_0_DEJAGGING, DEMO_MODE,       ulEnDemoMode );
 
             /* TODO set demo_setting */
@@ -1620,51 +1663,50 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
 #if (BVDC_P_SUPPORT_GFD_VER <  BVDC_P_SUPPORT_GFD_VER_4)
             *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE ) + ulRulOffset;
-            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE, PHASE, hGfxFeeder->ulFirInitPhase );
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE, PHASE, pCurCfg->ulHsclInitPhase );
 #elif (BVDC_P_SUPPORT_GFD_VER <=  BVDC_P_SUPPORT_GFD_VER_10)
             /* 3D support */
             BDBG_CASSERT(2 == (((BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE) / sizeof(uint32_t)) + 1));
             *pulRulCur++ = BRDC_OP_IMMS_TO_REGS((
                 (BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE) / sizeof(uint32_t)) + 1);
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE ) + ulRulOffset;
-            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, hGfxFeeder->ulFirInitPhase );
-            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, hGfxFeeder->ulFirInitPhase );
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, pCurCfg->ulHsclInitPhase );
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, pCurCfg->ulHsclInitPhase );
 #else /* BVDC_P_SUPPORT_GFD_VER_11 */
             BDBG_CASSERT(2 == (((BCHP_GFD_0_HORIZ_FIR_INIT_PHASE - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R) / sizeof(uint32_t)) + 1));
             *pulRulCur++ = BRDC_OP_IMMS_TO_REGS((
                 (BCHP_GFD_0_HORIZ_FIR_INIT_PHASE - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R) / sizeof(uint32_t)) + 1);
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R ) + ulRulOffset;
-            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, hGfxFeeder->ulFirInitPhase );
-            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, hGfxFeeder->ulFirInitPhase );
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, pCurCfg->ulHsclInitPhase );
+            *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, pCurCfg->ulHsclInitPhase );
 #endif
         }
 
         /* if ClipRect or Surface changes, more likely some thing in the following
          * will change, therefore no need to comppare */
-        ulOffsetPixInByte = hGfxFeeder->ulOffsetPixInByte;
-        ulMainSurPitch =
-#if defined(BCHP_GFD_0_CTRL_BSTC_ENABLE_ON)
-            (stFlags.bEnDecompression)? 4 * pCurSur->ulPitch :
-#endif
-            (stFlags.bNeedVertScale || !stFlags.bInterlaced)? pCurSur->ulPitch : 2 * pCurSur->ulPitch;
 
+#ifdef BCHP_GFD_0_DCXG_CFG
+        ulCntWidth = (stFlags.bEnDecompression)? pCurSur->ulWidth : pCurCfg->ulCntWidth;
+#else
+        ulCntWidth = pCurCfg->ulCntWidth;
+#endif
 #if (BVDC_P_SUPPORT_GFD_VER <=  BVDC_P_SUPPORT_GFD_VER_10)
         BDBG_CASSERT(2 == (((BCHP_GFD_0_SRC_HSIZE - BCHP_GFD_0_SRC_OFFSET) / sizeof(uint32_t)) + 1));
         *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_SRC_HSIZE - BCHP_GFD_0_SRC_OFFSET) / sizeof(uint32_t)) + 1);
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_OFFSET ) + ulRulOffset;
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, ulOffsetPixInByte );
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, pCurCfg->ulCntWidth );
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, hGfxFeeder->ulOffsetPixInByte );
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, ulCntWidth );
 #else
         BDBG_CASSERT(2 == (((BCHP_GFD_0_SRC_OFFSET - BCHP_GFD_0_SRC_HSIZE) / sizeof(uint32_t)) + 1));
         *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_SRC_OFFSET - BCHP_GFD_0_SRC_HSIZE) / sizeof(uint32_t)) + 1);
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_HSIZE ) + ulRulOffset;
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, pCurCfg->ulCntWidth );
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, ulOffsetPixInByte );
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, ulCntWidth );
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, hGfxFeeder->ulOffsetPixInByte );
 #endif
 
         *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_PITCH ) + ulRulOffset;
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_PITCH,  PITCH, ulMainSurPitch );
+        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_PITCH,  PITCH, pCurCfg->ulGfdSrcPitch );
 
         /* vertical init phase will be diff for top and bot field, even if surface
          * and clip-rect and output rect has no change */
@@ -2023,11 +2065,10 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
         }
         else /* compressed */
         {
-            uint32_t ulFieldSelect = (eFieldId == BAVC_Polarity_eFrame || pCurCfg->stFlags.bNeedVertScale)?
+            /*uint32_t ulFieldSelect = (eFieldId == BAVC_Polarity_eFrame || pCurCfg->stFlags.bNeedVertScale)?
                 BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, FRAME_OUT) : (eFieldId == BAVC_Polarity_eTopField)?
                 BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, TOP_FIELD_OUT) :
-                BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, BOT_FIELD_OUT);
-
+                BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, BOT_FIELD_OUT);*/
 
             BDBG_CASSERT(3 == (((BCHP_GFD_0_CROP_SRC_HSIZE - BCHP_GFD_0_DCXG_CFG) / sizeof(uint32_t)) + 1));
             *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_CROP_SRC_HSIZE - BCHP_GFD_0_DCXG_CFG) / sizeof(uint32_t)) + 1);
@@ -2038,16 +2079,28 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
                 BCHP_FIELD_ENUM(GFD_0_DCXG_CFG, FIXED_RATE, Fixed ) |
                 BCHP_FIELD_ENUM(GFD_0_DCXG_CFG, COMPRESSION, BPP_16p5 );
             *pulRulCur++ =
-                BCHP_FIELD_DATA(GFD_0_CROP_CFG,  FIELD_SEL, ulFieldSelect) |
-                BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_OFFSET_R, pCurCfg->ulCntLeft) |
-                BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_OFFSET, pCurCfg->ulCntLeft);
+#ifdef BCHP_GFD_0_CROP_CFG_SRC_VOFFSET_SHIFT
+                BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_VOFFSET, pCurCfg->ulVsclBstcOffset) |
+#endif
+                /*BCHP_FIELD_DATA(GFD_0_CROP_CFG,  FIELD_SEL, ulFieldSelect) |*/
+                BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_OFFSET_R, pCurCfg->ulHsclBstcOffset) |
+                BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_OFFSET, pCurCfg->ulHsclBstcOffset);
             *pulRulCur++ =
                 BCHP_FIELD_DATA(GFD_0_CROP_SRC_HSIZE, HSIZE, pCurCfg->ulCntWidth);
         }
     }
-#else
-    BSTD_UNUSED(eFieldId);
+#elif defined(BCHP_GFD_0_CROP_CFG)
+    /* for BSTC compression */
+    /* BSTD_UNUSED(eFieldId); ??? */
+    *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
+    *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CROP_CFG ) + ulRulOffset;
+    *pulRulCur++ =
+        /* BCHP_FIELD_DATA(GFD_0_CROP_CFG,  FIELD_SEL, 0) | */
+        BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_VOFFSET, pCurCfg->ulVsclBstcOffset) |
+        BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_OFFSET_R, pCurCfg->ulHsclBstcOffset) |
+        BCHP_FIELD_DATA(GFD_0_CROP_CFG,  SRC_OFFSET, pCurCfg->ulHsclBstcOffset);
 #endif
+    BSTD_UNUSED(eFieldId);
 
     /* set RUL for color matrix */
     if (stDirty.stBits.bCsc)

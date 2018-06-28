@@ -1755,7 +1755,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_MANR                   (0) /* Number of ANR HW in MCVP */
 #define BVDC_P_SUPPORT_MANR_VER               (0) /* ANR in MCVP version */
 #if (BCHP_CHIP==7364) && (BCHP_VER>=BCHP_VER_C0)
-#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (9) /* Testfeature HW version */
 #else
 #define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (6) /* Testfeature HW version */
 #endif
@@ -2026,7 +2026,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
 #define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect, see SW7366-151 */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
-#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
 #define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
 #define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
@@ -2060,10 +2059,12 @@ extern "C" {
 #define BVDC_P_SUPPORT_MASK_DITHER            (0)
 #define BVDC_P_SUPPORT_HIST                   (0)
 #define BVDC_P_SUPPORT_VFC                    (1) /* Number of stand alone VFC HW */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (9) /* Testfeature HW version */
 #else
 #define BVDC_P_SUPPORT_MASK_DITHER            (1)
 #define BVDC_P_SUPPORT_HIST                   (1)
 #define BVDC_P_SUPPORT_VFC                    (0) /* Number of stand alone VFC HW */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
 #endif
 #define BVDC_P_SUPPORT_CAP                    (2)
 #define BVDC_P_SUPPORT_VFD                    (2)
@@ -2169,7 +2170,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
 #define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect, see SW7366-151 */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
-#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (9) /* Testfeature HW version */
 #define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
 #define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
@@ -2300,7 +2301,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
 #define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect, see SW7366-151 */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
-#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (9) /* Testfeature HW version */
 #define BVDC_P_SUPPORT_MANR_VER               (5) /* ANR in MCVP version */
 #define BVDC_P_SUPPORT_CAP_VER                (8) /* CAP HW version, see bvdc_capture_priv.h */
 #define BVDC_P_SUPPORT_HDMI_RM_VER            (7)
@@ -2431,7 +2432,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (12)
 #define BVDC_P_SUPPORT_BOX_DETECT             (1) /* Number LBOX HW detect, see SW7366-151 */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
-#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (9) /* Testfeature HW version */
 #define BVDC_P_SUPPORT_LPDDR4                 (1)
 #define BVDC_P_SUPPORT_MFD                    (4)
 #define BVDC_P_SUPPORT_MFD_VER                (17)/* MFD HW version */
@@ -2583,7 +2584,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_HDDVI_VER              (12)
 #define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (0)
-#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (8) /* Testfeature HW version */
+#define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER (9) /* Testfeature HW version */
 #define BVDC_P_SUPPORT_LPDDR4                 (1)
 #define BVDC_P_SUPPORT_MFD                    (2)
 #define BVDC_P_SUPPORT_MFD_VER                (18)/* MFD HW version */
@@ -3444,11 +3445,17 @@ DCX macro
  */
 #define BVDC_P_VIDEO_TESTFEATURE1_VER_7       (7)
 
-/* 7271 Ax:
+/* 7271 Ax, 7268Ax, 7260Ax:
  *  Support TestFeature1 in deinterlacer, CAP and VFD
  *  Fixed SW workaround for SW7364-197 enable free run for dcxm chips
  */
 #define BVDC_P_VIDEO_TESTFEATURE1_VER_8       (8)
+
+/* 7271 Bx, 7268Bx, 7260Bx, 7278Ax:
+ *  Support TestFeature1 in deinterlacer, CAP and VFD
+ *  Fixed 72 pixel restriction SWSTB-2319 for dcxm chips
+ */
+#define BVDC_P_VIDEO_TESTFEATURE1_VER_9       (9)
 
 /* TestFeature1 support in each block */
 #define BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_MAD_ANR   \
@@ -3500,7 +3507,7 @@ DCX macro
 #define BVDC_P_MASK_GFD_BSTC_MIN_GT_MAX              (0)
 #endif
 /*SW7439-400:SWSTB-2319: 72 pixel restriction */
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER >= BVDC_P_VIDEO_TESTFEATURE1_VER_8)
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER >= BVDC_P_VIDEO_TESTFEATURE1_VER_9)
 #define BVDC_P_DCXM_72PIXELS   (0)
 #else
 #define BVDC_P_DCXM_72PIXELS   (1)

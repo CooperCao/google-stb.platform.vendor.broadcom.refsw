@@ -51,6 +51,8 @@
 
 typedef struct BHSM_P_RvRegion
 {
+    BDBG_OBJECT(BHSM_P_RvRegion)
+
     bool allocated;
     bool configured;
 
@@ -64,6 +66,8 @@ typedef struct BHSM_P_RvRegion
    #endif
 
 }BHSM_P_RvRegion;
+
+BDBG_OBJECT_ID_DECLARE( BHSM_P_RvRegion );
 
 typedef struct BHSM_RvRegionModule
 {

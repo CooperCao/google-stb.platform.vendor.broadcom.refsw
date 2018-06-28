@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,10 +36,11 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "nxclient.h"
+#include <stdio.h>
+#if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_hddvi_input.h"
 #include "nexus_simple_video_decoder.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -102,3 +103,10 @@ int main(int argc, char **argv)  {
     NxClient_Uninit();
     return rc;
 }
+#else /* #if NEXUS_HAS_SIMPLE_DECODER */
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

@@ -648,6 +648,7 @@ NEXUS_VideoInput_GetStatus(NEXUS_VideoInput input,NEXUS_VideoInputStatus *pStatu
         BVDC_Dbg_Source_GetDebugStatus(link->sourceVdc, &status);
         pStatus->numBvnErrors = status.ulNumErr;
     }
+    pStatus->mtg = nexus_p_input_is_mtg(link);
 
 done:
     return 0;

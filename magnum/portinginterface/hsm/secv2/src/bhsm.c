@@ -41,7 +41,6 @@
  ******************************************************************************/
 
 #include "bstd.h"
-#include "bkni.h"
 #include "bhsm.h"
 #include "bhsm_priv.h"
 #include "bhsm_keyslot_priv.h"
@@ -60,7 +59,7 @@ BDBG_OBJECT_ID(BHSM_P_Handle);
 
 BHSM_Handle BHSM_Open( const BHSM_ModuleSettings *pSettings )
 {
-    BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_Handle *pHandle = NULL;
     BHSM_KeyslotModuleSettings keyslotSettings;
     unsigned i = 0;
@@ -156,9 +155,8 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm,  BHSM_ModuleCapabilities *pCap
     BDBG_ENTER( BHSM_GetCapabilities );
 
     if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-    if( !pCaps ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+    if( !pCaps ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
 

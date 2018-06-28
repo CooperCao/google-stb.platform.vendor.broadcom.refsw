@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_16
+## SAGE Binary Metadata - SSF 3_2_17
 ## unique_key checksum_type checksum url
-7250B0/sage_ta_dtcpip.bin sha1 4320f3d093781835f980c60675d3e333a39311e0 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_16/7250B0/ZB/sage_ta_dtcpip.bin
+7250B0/sage_ta_dtcpip.bin sha1 cd3b8fdb3e189ee437a728476da7f0774b8a1e64 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_17/7250B0/ZB/sage_ta_dtcpip.bin

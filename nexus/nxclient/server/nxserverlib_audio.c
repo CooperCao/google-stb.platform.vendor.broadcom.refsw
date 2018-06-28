@@ -130,6 +130,7 @@ struct b_audio_resource {
 
     struct b_session *session;
     struct b_connect *connect;
+    bool secure; /* used for internal state of secure mode prior to first connect */
     bool localSession;
 };
 
@@ -1426,31 +1427,21 @@ BERR_Code nxserverlib_p_audio_create_downstream(struct b_session *session, struc
     return BERR_SUCCESS;
 }
 
-struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type)
+void audio_decoder_get_default_create_settings(b_audio_decoder_create_settings * create_settings)
 {
-    unsigned i;
-    int rc;
+    BDBG_ASSERT(create_settings != NULL);
+    BKNI_Memset(create_settings, 0, sizeof(!create_settings));
+}
+
+BERR_Code audio_decoder_p_create_decoders(struct b_audio_resource *r, enum b_audio_decoder_type type, b_audio_decoder_create_settings * create_settings)
+{
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
-    struct b_audio_resource *r;
     unsigned index;
+    struct b_session *session = r->session;
     nxserver_t server = session->server;
-    bool localSession = false;
     NEXUS_AudioCapabilities cap;
 
     NEXUS_GetAudioCapabilities(&cap);
-    if (type == b_audio_decoder_type_regular || type == b_audio_decoder_type_persistent) {
-        localSession = IS_SESSION_DISPLAY_ENABLED(server->settings.session[session->index]);
-    }
-
-    r = BKNI_Malloc(sizeof(*r));
-    if (!r) {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-        return NULL;
-    }
-    memset(r, 0, sizeof(*r));
-    r->session = session;
-    r->localSession = localSession;
-    BDBG_MSG(("create %p", (void*)r));
 
     NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioOpenSettings);
 
@@ -1458,36 +1449,51 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
     if (server->settings.audioDecoder.fifoSize) {
         audioOpenSettings.fifoSize = server->settings.audioDecoder.fifoSize;
     }
+    r->secure = false;
     if ( cap.numDsps > 0 )
     {
-        audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
+        if ( cap.dsp.dspSecureDecode )
+        {
+            audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
+            r->secure = true;
+        }
     }
+    else if ( cap.numSoftAudioCores > 0 ) /* arm decode only */
+    {
+        if ( create_settings->secure )
+        {
+            if ( !cap.dsp.softAudioSecureDecode )
+            {
+                BDBG_WRN(("WARNING: secure decode requested, but device support does not appear to be present. Attempting secure mode anyway."));
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+            r->secure = true;
+            audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
+        }
+    }
+
     if (server->settings.svp != nxserverlib_svp_type_none) {
         if (!audioOpenSettings.cdbHeap) {
-            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-            goto error;
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
         }
     }
 
     if (type == b_audio_decoder_type_regular) {
         r->mode = b_audio_mode_playback;
         if (b_alloc_audio_index(r, &index)) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
+            return BERR_TRACE(NEXUS_UNKNOWN);
         }
         audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
         r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
         if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
+            return BERR_TRACE(NEXUS_UNKNOWN);
         }
 
         BDBG_MSG(("open AudioDecoder[%u](%p) for %p", nxserver_audio_decoder_primary, (void*)r->audioDecoder[nxserver_audio_decoder_primary], (void*)r));
         if (server->settings.audioDecoder.enablePassthroughBuffer) {
             r->passthroughPlayback = NEXUS_AudioPlayback_Open(NEXUS_ANY_ID, NULL);
             if (!r->passthroughPlayback) {
-                rc = BERR_TRACE(NEXUS_UNKNOWN);
-                goto error;
+                return BERR_TRACE(NEXUS_UNKNOWN);
             }
         }
 
@@ -1516,7 +1522,111 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
                     BDBG_MSG(("open AudioDecoder[%u](%p) for %p (audio description)", nxserver_audio_decoder_description, (void*)r->audioDecoder[nxserver_audio_decoder_description], (void*)r));
                 }
             }
+        }
+    }
+    else if ( type == b_audio_decoder_type_persistent ) {
+        r->mode = b_audio_mode_decode;
+        if (b_alloc_audio_index(r, &index)) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
+        r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
+        if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+    }
+    else if ( type == b_audio_decoder_type_standalone ) {
+        r->mode = b_audio_mode_decode;
+        if (b_alloc_audio_index(r, &index)) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
+        r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
+        if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        if (b_alloc_audio_index(r, &index)) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        audioOpenSettings.karaokeSupported = false;
+        audioOpenSettings.type = NEXUS_AudioDecoderType_ePassthrough;
+        r->audioDecoder[nxserver_audio_decoder_passthrough] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
+        if (!r->audioDecoder[nxserver_audio_decoder_passthrough]) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+    }
+    /* transcode */
+    else {
+        NEXUS_AudioMixerSettings mixerSettings;
 
+        r->mode = b_audio_mode_transcode;
+        if (b_alloc_audio_index(r, &index)) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        if (cap.numDsps > 1) {
+            /* DSP 1 supports two transcodes only */
+            unsigned i, total = 0;
+            for (i=0;i<cap.numDecoders;i++) {
+                if (g_decoders[i].r && g_decoders[i].r->dspIndex == 1) total++;
+            }
+            if (total < 2) {
+                r->dspIndex = audioOpenSettings.dspIndex = 1;
+            }
+        }
+        r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
+        if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+
+        }
+        BDBG_MSG(("open AudioDecoder0(%p) for %p (transcode)", (void*)r->audioDecoder[nxserver_audio_decoder_primary], (void*)r));
+
+        /* DSP mixer for transcode decouples audio decode and encode. This allows encode to proceed even
+        if decode is stalled, flushed, etc. */
+        NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
+        mixerSettings.mixUsingDsp = true;
+        mixerSettings.dspIndex = audioOpenSettings.dspIndex; /* mixer dspIndex must match decoder */
+        r->mixer[nxserver_audio_mixer_stereo] = NEXUS_AudioMixer_Open(&mixerSettings);
+        if (!r->mixer[nxserver_audio_mixer_stereo]) {
+            BDBG_WRN(("unable to open a DSP AudioMixer for transcode"));
+            /* still allow transcode */
+        }
+    }
+    return BERR_SUCCESS;
+
+}
+
+struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type, b_audio_decoder_create_settings * create_settings)
+{
+    unsigned i;
+    int rc;
+    struct b_audio_resource *r;
+    nxserver_t server = session->server;
+    bool localSession = false;
+    NEXUS_AudioCapabilities cap;
+
+    NEXUS_GetAudioCapabilities(&cap);
+    if (type == b_audio_decoder_type_regular || type == b_audio_decoder_type_persistent) {
+        localSession = IS_SESSION_DISPLAY_ENABLED(server->settings.session[session->index]);
+    }
+
+    r = BKNI_Malloc(sizeof(*r));
+    if (!r) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    memset(r, 0, sizeof(*r));
+    r->session = session;
+    r->localSession = localSession;
+    BDBG_MSG(("create %p", (void*)r));
+
+    rc = audio_decoder_p_create_decoders(r, type, create_settings);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto error;
+    }
+
+    if (type == b_audio_decoder_type_regular) {
+        if (r->localSession) {
             rc = nxserverlib_p_audio_create_downstream(session, r);
             if (rc) {
                 BERR_TRACE(rc);
@@ -1534,80 +1644,6 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
             }
             /* Connect Open Playbacks to mixers */
             b_audio_connect_pb(r);
-        }
-    }
-    else if ( type == b_audio_decoder_type_persistent ) {
-        r->mode = b_audio_mode_decode;
-        if (b_alloc_audio_index(r, &index)) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-        audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
-        r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
-        if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-    }
-    else if ( type == b_audio_decoder_type_standalone ) {
-        r->mode = b_audio_mode_decode;
-        if (b_alloc_audio_index(r, &index)) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-        audioOpenSettings.karaokeSupported = server->settings.session[session->index].karaoke;
-        r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
-        if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-        if (b_alloc_audio_index(r, &index)) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-        audioOpenSettings.karaokeSupported = false;
-        audioOpenSettings.type = NEXUS_AudioDecoderType_ePassthrough;
-        r->audioDecoder[nxserver_audio_decoder_passthrough] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
-        if (!r->audioDecoder[nxserver_audio_decoder_passthrough]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-    }
-    /* transcode */
-    else {
-        NEXUS_AudioMixerSettings mixerSettings;
-
-        r->mode = b_audio_mode_transcode;
-        if (b_alloc_audio_index(r, &index)) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-        if (cap.numDsps > 1) {
-            /* DSP 1 supports two transcodes only */
-            unsigned i, total = 0;
-            for (i=0;i<cap.numDecoders;i++) {
-                if (g_decoders[i].r && g_decoders[i].r->dspIndex == 1) total++;
-            }
-            if (total < 2) {
-                r->dspIndex = audioOpenSettings.dspIndex = 1;
-            }
-        }
-        r->audioDecoder[nxserver_audio_decoder_primary] = NEXUS_AudioDecoder_Open(index, &audioOpenSettings);
-        if (!r->audioDecoder[nxserver_audio_decoder_primary]) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto error;
-        }
-        BDBG_MSG(("open AudioDecoder0(%p) for %p (transcode)", (void*)r->audioDecoder[nxserver_audio_decoder_primary], (void*)r));
-
-        /* DSP mixer for transcode decouples audio decode and encode. This allows encode to proceed even
-        if decode is stalled, flushed, etc. */
-        NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
-        mixerSettings.mixUsingDsp = true;
-        mixerSettings.dspIndex = audioOpenSettings.dspIndex; /* mixer dspIndex must match decoder */
-        r->mixer[nxserver_audio_mixer_stereo] = NEXUS_AudioMixer_Open(&mixerSettings);
-        if (!r->mixer[nxserver_audio_mixer_stereo]) {
-            BDBG_WRN(("unable to open a DSP AudioMixer for transcode"));
-            /* still allow transcode */
         }
     }
 
@@ -1797,10 +1833,26 @@ void nxserverlib_p_audio_destroy_downstream(struct b_audio_resource *r)
     }
 }
 
+void audio_decoder_p_destroy_decoder(struct b_audio_resource *r)
+{
+    unsigned i;
+    for (i=0;i<nxserver_audio_decoder_max;i++) {
+        if (r->audioDecoder[i]) {
+            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(r->audioDecoder[i], NEXUS_AudioConnectorType_eMultichannel));
+            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(r->audioDecoder[i], NEXUS_AudioConnectorType_eStereo));
+            NEXUS_AudioDecoder_Close(r->audioDecoder[i]);
+        }
+    }
+    if (r->passthroughPlayback) {
+        NEXUS_AudioInput_Shutdown(NEXUS_AudioPlayback_GetConnector(r->passthroughPlayback));
+        NEXUS_AudioPlayback_Close(r->passthroughPlayback);
+    }
+    b_dealloc_audio_index(r);
+}
+
 void audio_decoder_destroy(struct b_audio_resource *r)
 {
     int rc;
-    unsigned i;
     struct b_audio_playback_resource *pb;
 
     BDBG_MSG(("destroy %p", (void*)r));
@@ -1817,7 +1869,6 @@ void audio_decoder_destroy(struct b_audio_resource *r)
             rc = NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
             if (rc) { BERR_TRACE(rc); }
         }
-
         NEXUS_SimpleAudioDecoder_Destroy(r->masterSimpleAudioDecoder);
     }
 
@@ -1826,18 +1877,7 @@ void audio_decoder_destroy(struct b_audio_resource *r)
     while ((pb = BLST_Q_FIRST(&r->audioPlaybackList))) {
         b_audio_close_pb(r, pb);
     }
-    for (i=0;i<nxserver_audio_decoder_max;i++) {
-        if (r->audioDecoder[i]) {
-            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(r->audioDecoder[i], NEXUS_AudioConnectorType_eMultichannel));
-            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(r->audioDecoder[i], NEXUS_AudioConnectorType_eStereo));
-            NEXUS_AudioDecoder_Close(r->audioDecoder[i]);
-        }
-    }
-    if (r->passthroughPlayback) {
-        NEXUS_AudioInput_Shutdown(NEXUS_AudioPlayback_GetConnector(r->passthroughPlayback));
-        NEXUS_AudioPlayback_Close(r->passthroughPlayback);
-    }
-    b_dealloc_audio_index(r);
+    audio_decoder_p_destroy_decoder(r);
     BKNI_Free(r);
 }
 
@@ -1902,6 +1942,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
     bool grab = !is_transcode_connect(connect);
     NEXUS_SimpleAudioDecoderHandle audioDecoder = b_audio_get_decoder(connect);
     struct b_req *req = connect->req[b_resource_simple_audio_decoder];
+    bool secureChange = false;
+    NEXUS_AudioCapabilities cap;
 
     if (!nxserver_p_allow_grab(connect->client)) {
         grab = false;
@@ -1910,6 +1952,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         /* no request */
         return 0;
     }
+
+    NEXUS_GetAudioCapabilities(&cap);
 
     if (req->handles.simpleAudioDecoder.r) {
         if (req->handles.simpleAudioDecoder.r->connect != connect) {
@@ -1930,6 +1974,7 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         if (!session->main_audio) {
             return BERR_TRACE(NEXUS_NOT_AVAILABLE);
         }
+
         if (session->main_audio->connect) {
             if (!force_grab && connect->settings.simpleAudioDecoder.primer) {
                 return 0;
@@ -1943,10 +1988,21 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
                 return BERR_TRACE(NEXUS_NOT_AVAILABLE);
             }
         }
+
         r = session->main_audio;
+
+        if (r->secure != connect->settings.simpleAudioDecoder.decoderCapabilities.secure )
+        {
+            if (cap.numDsps == 0 && cap.numSoftAudioCores > 0) {
+                BDBG_MSG(("NEED TO RECREATE DYNAMIC MAIN AUDIO DECODER"));
+                secureChange = true;
+            }
+        }
     }
     else {
+        b_audio_decoder_create_settings create_settings;
         b_audio_decoder_type decoder_type = b_audio_decoder_type_background;
+        audio_decoder_get_default_create_settings(&create_settings);
         if ( connect->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent ) {
             /* We just want to get a connectId and prepare for possible swapping */
             if (connect->settings.simpleAudioDecoder.primer) {
@@ -1960,7 +2016,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         else if ( nxserver_p_connect_is_nonrealtime_encode(connect) ) {
             decoder_type = b_audio_decoder_type_background_nrt;
         }
-        r = audio_decoder_create(session, decoder_type);
+        create_settings.secure = connect->settings.simpleAudioDecoder.decoderCapabilities.secure;
+        r = audio_decoder_create(session, decoder_type, &create_settings);
     }
     if (!r) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -1986,7 +2043,7 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
             BDBG_MSG(("transfer audio %p: connect %p(%p) -> connect %p(%p)",
                       (void*)r, (void*)session->main_audio->connect, (void*)mainAudioDecoder,
                       (void*)connect, (void*)audioDecoder));
-            rc = NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, mainAudioDecoder, audioDecoder);
+            rc = NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, mainAudioDecoder, audioDecoder, secureChange ? false : true);
             if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
 
             rc = audio_acquire_stc_index(connect, audioDecoder);
@@ -1998,11 +2055,8 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
             audio_release_stc_index(connect, r->masterSimpleAudioDecoder);
             BDBG_MSG(("transfer audio %p: playback(%p) -> connect %p(%p)",
                       (void*)r, (void*)r->masterSimpleAudioDecoder, (void*)connect, (void*)audioDecoder));
-            rc = NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server,
-                r->masterSimpleAudioDecoder,
-                audioDecoder);
+            rc = NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, r->masterSimpleAudioDecoder, audioDecoder, secureChange ? false : true);
             if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
-
             rc = audio_acquire_stc_index(connect, audioDecoder);
             if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
 
@@ -2010,6 +2064,18 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
         }
 
         session->main_audio->connect = connect;
+        if (secureChange) {
+            b_audio_decoder_create_settings create_settings;
+            audio_decoder_p_destroy_decoder(r);
+            audio_decoder_get_default_create_settings(&create_settings);
+            create_settings.secure = connect->settings.simpleAudioDecoder.decoderCapabilities.secure;
+            rc = audio_decoder_p_create_decoders(r, b_audio_decoder_type_regular, &create_settings);
+            if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
+            r->mode = b_audio_mode_decode;
+            rc = bserver_set_audio_config(r);
+            if (rc) { rc = BERR_TRACE(rc); goto err_setsettings; }
+        }
+
     }
     else if ( connect->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent ) {
         NEXUS_SimpleAudioDecoderServerSettings settings;
@@ -2169,7 +2235,7 @@ void release_audio_decoders(struct b_connect *connect)
         /* when releasing the main decoder, transfer back to masterSimpleAudioDecoder */
         audio_release_stc_index(connect, mainAudioDecoder);
         BDBG_MSG(("transfer audio %p: connect %p -> playback", (void*)r, (void*)session->main_audio->connect));
-        (void)NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, mainAudioDecoder, r->masterSimpleAudioDecoder);
+        (void)NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, mainAudioDecoder, r->masterSimpleAudioDecoder, true);
         session->main_audio->connect = NULL;
         r->mode = b_audio_mode_playback;
     }
@@ -2631,7 +2697,7 @@ int bserver_set_audio_config(struct b_audio_resource *r)
                          outputMode == NxClient_AudioOutputMode_ePassthrough ) {
                         outputMode = config->spdif.audioCodecOutput[i];
 
-                        switch (session->audioSettings.hdmi.compressedOverride[i]) {
+                        switch (session->audioSettings.spdif.compressedOverride[i]) {
                         case NxClientAudioCodecSupport_eEnabled: /* Do compressed no matter if we can support it */
                             outputMode = NxClient_AudioOutputMode_ePassthrough;
                             break;
@@ -3669,7 +3735,7 @@ static int swap_persistent_audio_decoders(struct b_connect *destConnect, struct 
     BDBG_MSG(("transfer audio %p: connect %p(%p) -> connect %p(%p)",
               (void*)r, (void*)srcConnect, (void*)srcDecoder,
               (void*)destConnect, (void*)destDecoder));
-    rc = NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, srcDecoder, destDecoder);
+    rc = NEXUS_SimpleAudioDecoder_MoveServerSettings(session->audio.server, srcDecoder, destDecoder, true);
     if (rc) {BERR_TRACE(rc); goto err_setsettings;}
 
     rc = audio_acquire_stc_index(destConnect, destDecoder);
@@ -3738,7 +3804,7 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
 void release_audio_playbacks(struct b_connect *connect) {BSTD_UNUSED(connect); }
 int acquire_audio_decoders(struct b_connect *connect, bool force_grab) { BSTD_UNUSED(connect);BSTD_UNUSED(force_grab);return 0; }
 void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start) {BSTD_UNUSED(r);BSTD_UNUSED(start); }
-struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type) { BSTD_UNUSED(session);BSTD_UNUSED(type);return NULL; }
+struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type, b_audio_decoder_create_settings * create_settings) { BSTD_UNUSED(session);BSTD_UNUSED(type);BSTD_UNUSED(create_settings);return NULL; }
 void audio_decoder_destroy(struct b_audio_resource *r) {BSTD_UNUSED(r); }
 int audio_init(nxserver_t server) { BSTD_UNUSED(server);return 0; }
 void release_audio_decoders(struct b_connect *connect) {BSTD_UNUSED(connect); }
@@ -3752,4 +3818,5 @@ int audio_get_stc_index(struct b_connect *connect) {BSTD_UNUSED(connect);return 
 int nxserverlib_p_audio_i2s0_shares_with_dac(struct b_session *session) {BSTD_UNUSED(session);return 0;}
 bool b_dolby_ms_capable(const struct b_session *session) {BSTD_UNUSED(session);return false;}
 void bserver_set_default_audio_settings(struct b_session *session) {BSTD_UNUSED(session);}
+void audio_decoder_get_default_create_settings(b_audio_decoder_create_settings * create_settings) { BSTD_UNUSED(create_settings); }
 #endif /* NEXUS_HAS_AUDIO */

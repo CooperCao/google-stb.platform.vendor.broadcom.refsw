@@ -59,7 +59,7 @@ typedef struct {
 /**
     Access hardware Random Number Generator (RNG).
 **/
-BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm, BHSM_GetRandomNumberData *pData );
+BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm, BHSM_GetRandomNumberData *pRequest );
 
 #ifdef __cplusplus
 }

@@ -139,7 +139,7 @@ enum eUartType{
 // system uart base
 static uintptr_t sys_uart = 0;
 static eUartType uart_type;
-uintptr_t uart_base;
+static uintptr_t uart_base;
 
 IUart *IUart::uart = NULL;
 
@@ -229,9 +229,6 @@ static void platform_init_uart(void *devTree)
     /* Default UART Type */
     uart_type = UART_TYPE_NS16550a;
 
-    // Get chosen node
-    char *stdoutPath = NULL;
-
     node = fdt_subnode_offset(devTree, 0, "chosen");
     if (node < 0) {
         if (node != -FDT_ERR_NOTFOUND) {
@@ -264,13 +261,6 @@ static void platform_init_uart(void *devTree)
 
     // Get serial node
     node = -1;
-
-    if (stdoutPath) {
-        node = fdt_path_offset(devTree, stdoutPath);
-        if (node < 0) {
-            warn_msg("Failed to find chosen serial node in device tree");
-        }
-    }
 
     if (node < 0) {
         // Use first ns16550a compatible node
@@ -523,7 +513,7 @@ void Platform::setUart()
             UartNS16550a::init(uart_base);
             IUart::uart = new UartNS16550a;
 
-        }else if (uart_type == UART_TYPE_NS16550a){
+        }else if (uart_type == UART_TYPE_PL011){
             UartPL011::init(uart_base);
             IUart::uart = new UartPL011;
         }

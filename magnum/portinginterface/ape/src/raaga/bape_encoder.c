@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: Encoder
@@ -817,11 +821,11 @@ static BERR_Code BAPE_Encoder_P_AllocatePathFromInput(struct BAPE_PathNode *pNod
             case BAVC_AudioCompressionStd_eAacLoas:
             case BAVC_AudioCompressionStd_eAacPlusAdts:
             case BAVC_AudioCompressionStd_eAacPlusLoas:
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
             case BAVC_AudioCompressionStd_eAc3:
             case BAVC_AudioCompressionStd_eAc3Plus:
 #endif
-#if BDSP_MS10_SUPPORT || BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS10_MS11_SUPPORT || BAPE_DSP_MS12_SUPPORT
                 dataType = BDSP_DataType_eDolbyTranscodeData;
 #endif
                 break;
@@ -910,7 +914,7 @@ static void BAPE_Encoder_P_FreePathFromInput(struct BAPE_PathNode *pNode, struct
 static BERR_Code BAPE_Encoder_P_ApplyAc3Settings(BAPE_EncoderHandle handle)
 {
     BERR_Code errCode;
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     BDSP_Raaga_Audio_DDPEncConfigParams userConfig;
 #else
     BDSP_Raaga_Audio_DDTranscodeConfigParams userConfig;
@@ -922,7 +926,7 @@ static BERR_Code BAPE_Encoder_P_ApplyAc3Settings(BAPE_EncoderHandle handle)
         return BERR_TRACE(errCode);
     }
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     userConfig.ui32Mode = (handle->codec == BAVC_AudioCompressionStd_eAc3Plus) ? 8 : 9;
     userConfig.ui32DolbyCertificationFlag = (handle->ac3Settings.certificationMode) ? 1 : 0;
     BDBG_ERR(("%s - setting userConfig ui32Mode=%d, ui32DolbyCertificationFlag=%d", BSTD_FUNCTION, userConfig.ui32Mode, userConfig.ui32DolbyCertificationFlag));
@@ -941,7 +945,7 @@ static BERR_Code BAPE_Encoder_P_ApplyAc3Settings(BAPE_EncoderHandle handle)
 
 static void BAPE_Encoder_P_GetDefaultAc3Settings(BAPE_Handle deviceHandle, BAPE_Ac3EncodeSettings *ac3Settings)
 {
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     BDSP_Raaga_Audio_DDPEncConfigParams userConfig;
     BDSP_Algorithm algo = BDSP_Algorithm_eDDPEncode;
 #else
@@ -954,7 +958,7 @@ static void BAPE_Encoder_P_GetDefaultAc3Settings(BAPE_Handle deviceHandle, BAPE_
 
     BERR_TRACE(BDSP_GetDefaultAlgorithmSettings(algo, &userConfig, sizeof(userConfig)));
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     ac3Settings->certificationMode = (userConfig.ui32DolbyCertificationFlag == 1) ? true : false;
 #else
     ac3Settings->spdifHeaderEnabled = (userConfig.eSpdifHeaderEnable == BDSP_AF_P_eEnable)?true:false;

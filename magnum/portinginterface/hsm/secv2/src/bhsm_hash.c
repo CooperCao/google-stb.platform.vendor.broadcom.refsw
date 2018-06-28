@@ -64,8 +64,10 @@ typedef enum{
     BHSM_P_HashState_Max
 }BHSM_P_HashState;
 
-typedef struct
+typedef struct BHSM_P_Hash
 {
+    BDBG_OBJECT(BHSM_P_Hash)
+
     BHSM_Handle hHsm;
     BHSM_HashSettings settings;
     BHSM_P_HashState state;
@@ -74,6 +76,7 @@ typedef struct
 
 }BHSM_P_Hash;
 
+BDBG_OBJECT_ID(BHSM_P_Hash);
 
 BHSM_HashHandle BHSM_Hash_Create( BHSM_Handle hHsm )
 {
@@ -82,10 +85,12 @@ BHSM_HashHandle BHSM_Hash_Create( BHSM_Handle hHsm )
     BDBG_ENTER( BHSM_Hash_Create );
 
     if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return NULL; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     pHandle = (BHSM_P_Hash*)BKNI_Malloc( sizeof(BHSM_P_Hash) );
     if( !pHandle ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
 
+    BDBG_OBJECT_SET( pHandle, BHSM_P_Hash );
     pHandle->hHsm = hHsm;
     pHandle->state = BHSM_P_HashState_eInitial;
 
@@ -101,6 +106,8 @@ void BHSM_Hash_Destroy( BHSM_HashHandle handle )
     BDBG_ENTER( BHSM_Hash_Destroy );
 
     if( !pInstance ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
+
+    BDBG_OBJECT_DESTROY(handle, BHSM_P_Hash);
 
     BKNI_Memset( pInstance, 0, sizeof(*pInstance) );
     BKNI_Free( pInstance );
@@ -131,6 +138,7 @@ BERR_Code BHSM_Hash_SetSettings( BHSM_HashHandle handle, const BHSM_HashSettings
     BDBG_ENTER( BHSM_Hash_SetSettings );
 
     if( !pInstance ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( pInstance, BHSM_P_Hash );
     if( !pSettings ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     pInstance->settings = *pSettings;
@@ -149,6 +157,7 @@ BERR_Code BHSM_Hash_SubmitData( BHSM_HashHandle handle, BHSM_HashSubmitData  *pD
     BDBG_ENTER( BHSM_Hash_SubmitData );
 
     if( !pInstance ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( pInstance, BHSM_P_Hash );
     if( pInstance->state == BHSM_P_HashState_eInitial ) { return BERR_TRACE(BHSM_STATUS_STATE_ERROR); }
     if( !pData ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 

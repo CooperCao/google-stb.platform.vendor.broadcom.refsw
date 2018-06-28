@@ -1747,7 +1747,6 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
     NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle) pContext;
     BERR_Code errCode ;
     uint8_t deviceAttached ;
-    bool rxLogicalDisconnect = false ;
 
     /* if already waiting to connect,
          cancel request to connect since the Rx has been removed */
@@ -1762,33 +1761,17 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
     BERR_TRACE(errCode) ;
     if (!deviceAttached)
     {
-        if (output->powerTimer)
-        {
-            NEXUS_CancelTimer(output->powerTimer) ;
-            output->powerTimer = NULL ;
-        }
-    }
-
-    /*
-        if device has already been removed/disconnected
-        due to RxSense treated as HP (DEVICE REMOVED)
-    */
-    if (output->lastRxState == NEXUS_HdmiOutputState_eDisconnected)
-    {
-        rxLogicalDisconnect = true ;
-    }
-
-    BDBG_MSG(("Rx Device Attached: %s ; Rx logically disconected via RxSense %s",
-        deviceAttached ? "Yes" : "No",
-        deviceAttached && rxLogicalDisconnect ? "Yes" : "No")) ;
-
-    if ((!deviceAttached) || (rxLogicalDisconnect))
-    {
         output->rxState = NEXUS_HdmiOutputState_eDisconnected ;
 
         /* reset cached edid settings */
         output->edidHdmiDevice = false ;
         BKNI_Memset(&output->edidVendorSpecificDB, 0, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
+
+        if (output->powerTimer)
+        {
+            NEXUS_CancelTimer(output->powerTimer) ;
+            output->powerTimer = NULL ;
+        }
     }
 
 #if BHDM_HAS_HDMI_20_SUPPORT
@@ -1871,12 +1854,12 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
     }
 #endif
 
-    /* notify the app of HP change  */
-    NEXUS_HdmiOutput_P_HdcpNotifyHotplug(output) ;
 
     /* notify Nexus Display of the cable removal to disable the HDMI Output */
     output->formatChangeUpdate = true ;
     NEXUS_TaskCallback_Fire(output->notifyDisplay) ;
+
+    NEXUS_HdmiOutput_P_HdcpNotifyHotplug(output) ;
 
     /* notify the app of the cable removal */
     NEXUS_TaskCallback_Fire(output->hotplugCallback) ;
@@ -1958,7 +1941,6 @@ static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
     {
         /* notify Nexus Display of the cable insertion to re-enable HDMI Output */
         output->formatChangeUpdate = true ;
-
         NEXUS_TaskCallback_Fire(output->notifyDisplay);
 
         if (output->notifyAudioEvent)
@@ -2302,7 +2284,7 @@ static void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext)
         else
         {
             /* report debug message indicating CONNECTED event was already in process */
-            BDBG_MSG(("Connected event already pending...")) ;
+            BDBG_WRN(("Connected event already pending...")) ;
 
             /* Stop/restart the previous running RxSense detection */
             NEXUS_HdmiOutput_P_StopRxSenseDetection(output) ;
@@ -2722,11 +2704,11 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     if (notifyDisplay)
         NEXUS_TaskCallback_Set(handle->notifyDisplay, notifyDisplay);
 
-   /* if no device is attached or the Rx is powered down, settings cannot be applied; simply return */
+   /* if no device is attached, settings cannot be applied; simply return */
     errCode = BHDM_RxDeviceAttached(handle->hdmHandle, &deviceAttached) ;
     BERR_TRACE(errCode) ;
 
-    if (!deviceAttached || (handle->rxState != NEXUS_HdmiOutputState_ePoweredOn))
+    if (!deviceAttached)
     {
         return BERR_SUCCESS ;
     }
@@ -3033,6 +3015,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
     NEXUS_Error rc;
     NEXUS_HdmiOutputState state;
     BHDM_Status hdmiStatus;
+    BHDM_HDCP_AuthenticationStatus stHdcpAuthStatus;
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
@@ -3062,14 +3045,26 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
         state == NEXUS_HdmiOutputState_ePoweredOn
             ? "powered" : "disconnect/unpowered"));
 
+    rc = BHDM_HDCP_GetAuthenticationStatus(hdmiOutput->hdmHandle, &stHdcpAuthStatus) ;
+    if (rc)
+    {
+        rc = BERR_TRACE(rc) ;
+        goto done ;
+    }
+
     /* if device is POWERED and HDCP is currently ENABLED */
     if ((state == NEXUS_HdmiOutputState_ePoweredOn)
-    && hdmiOutput->hdcpStarted)
+    && stHdcpAuthStatus.bEncrypted)
     {
-        hdmiOutput->hdcpRequiredPostFormatChange = true ;
-
+        /*
+        * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
+        * is not handled properly on certain TVs; use DisableEncryption/StartAuthentication instead.
+        * Always disable Hdcp Encryption before settng hdcpRequiredPostFormatChange flag
+        */
         rc = NEXUS_HdmiOutput_DisableHdcpEncryption(hdmiOutput);
         if (rc) return BERR_TRACE(rc);
+
+        hdmiOutput->hdcpRequiredPostFormatChange = true ;
 
         BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
         /* remember the pixel rate to determine if re-authentication or enable encryption is required */
@@ -3086,7 +3081,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
        mute is only required if hdmiOutput is connected to the display */
     if (hdmiOutput->videoConnected)
     {
-        rc = NEXUS_HdmiOutput_SetAVMute(hdmiOutput, hdmiOutput->avMuteSetting);
+        rc = NEXUS_HdmiOutput_SetAVMute(hdmiOutput, hdmiOutput->formatChangeMute);
         if (rc) return BERR_TRACE(rc);
 
         /* Give receiver time to process the AvMute packet  */
@@ -3104,6 +3099,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
 
     /* PostFormatChange will never be called without a prior PreFormatChange, there the timer is cleared */
     BDBG_ASSERT(!hdmiOutput->postFormatChangeTimer);
+    hdmiOutput->retryPostFormatChangeCount = 0 ;
     if (hdmiOutput->settings.postFormatChangeAvMuteDelay) {
         hdmiOutput->postFormatChangeTimer = NEXUS_ScheduleTimer(hdmiOutput->settings.postFormatChangeAvMuteDelay, NEXUS_HdmiOutput_P_PostFormatChange_timer, hdmiOutput);
         if (!hdmiOutput->postFormatChangeTimer) {
@@ -3122,19 +3118,45 @@ static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context)
     NEXUS_Error rc = NEXUS_SUCCESS ;
     BHDM_Status hdmiStatus;
     NEXUS_HdmiOutputHandle hdmiOutput = context;
-    BDBG_MSG(("PostFormatChange"));
 
     hdmiOutput->postFormatChangeTimer = NULL;
-    hdmiOutput->formatChangeMute = false;
 
 #if NEXUS_DBV_SUPPORT
     rc = NEXUS_HdmiOutput_P_SetDbvMode(hdmiOutput);
     if (rc) { rc = BERR_TRACE(rc); goto done; }
 #endif
 
+    rc = BHDM_CheckForValidVideo(hdmiOutput->hdmHandle) ;
+    if (rc) {
+        /* upstream video data is not valid; allow more settle time */
+        if (!hdmiOutput->settings.postFormatChangeAvMuteDelay)
+            goto unmute_video ;
+
+        /* wait up to ~500ms for a stable signal from upstream */
+        if  (hdmiOutput->retryPostFormatChangeCount++ < 32)
+        {
+            hdmiOutput->postFormatChangeTimer =
+                NEXUS_ScheduleTimer(16, NEXUS_HdmiOutput_P_PostFormatChange_timer, hdmiOutput);
+            if (!hdmiOutput->postFormatChangeTimer) {
+                BERR_TRACE(NEXUS_UNKNOWN);
+                goto unmute_video;
+            }
+            return ;
+        }
+        else
+        {
+            BDBG_WRN(("Timeout waiting for valid video into HDMI core; display may be invalid")) ;
+            BERR_TRACE(NEXUS_TIMEOUT) ;
+        }
+    }
+
+unmute_video:
+    hdmiOutput->formatChangeMute = false;
+
     /* Now unmute */
-    rc = NEXUS_HdmiOutput_SetAVMute(hdmiOutput, hdmiOutput->avMuteSetting);
-    if (rc) {rc = BERR_TRACE(rc); goto done ;}
+    rc = NEXUS_HdmiOutput_SetAVMute(hdmiOutput, hdmiOutput->formatChangeMute);
+    if (rc) {rc = BERR_TRACE(rc);}
+
 
     if (hdmiOutput->hdcpRequiredPostFormatChange)
     {
@@ -3163,7 +3185,11 @@ static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context)
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
         }
         else {
-            rc = NEXUS_HdmiOutput_EnableHdcpEncryption(hdmiOutput);
+            /*
+            * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
+			* is not handled properly on certain TVs; use Disable/Start Authentication instead
+            */
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
         }
         if (rc) {rc = BERR_TRACE(rc); goto done ;}
 

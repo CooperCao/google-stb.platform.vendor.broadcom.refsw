@@ -1,47 +1,44 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to
- * the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied),
- * right to use, or waiver of any kind with respect to the Software, and
- * Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <unistd.h>
 #include <stdio.h>
@@ -59,33 +56,37 @@
 #include "nxserverlib_impl.h"
 #include "nxserverlib_thermal.h"
 
-#include "thermal_config.h"
 #include "sysfs.h"
 
 BDBG_MODULE(nxserverlib_thermal);
+
+enum callback_type {
+    callback_type_agent_changed,
+    callback_type_config_changed,
+    callback_type_max
+};
 
 struct thermal_state {
     nxserver_t server;
     thermal_info thermal;
     cpufreq_info cpufreq;
     thermal_data data;
-    thermal_config config;
-    BLST_Q_HEAD(priority_avail, priority_list) available;
-    BLST_Q_HEAD(priority_active, priority_list) active;
+    BLST_Q_HEAD(config_list, thermal_config) configs;
+    thermal_config *active_config;
     struct {
-        unsigned temp_target;
         unsigned park_high;
         unsigned park_low;
     } params;
     pthread_t thread;
-    bool exit;
+    bool enabled;
     bool has_pmu;
     NEXUS_VideoFormat display_format;
-    unsigned current_user_level;
-    unsigned num_cooling_agents;
-    unsigned num_priorities;
 } g_thermal_state;
 
+extern const namevalue_t agents[];
+
+static NEXUS_Error init_p_thermal_config(thermal_config *config);
+static void uninit_p_thermal_config(thermal_config *config);
 
 /* return instance id for file format such as trip_point_4_temp */
 static int get_instance_id(const char *name, const char *match)
@@ -330,12 +331,24 @@ static void get_power(void)
     return;
 }
 
-static void notify_app_callback(void)
+static void notify_app_callback(enum callback_type cb_type)
 {
     unsigned i;
+
+    if (!g_thermal_state.enabled) return;
+
     for(i=0; i<NXCLIENT_MAX_SESSIONS; i++) {
         if(g_thermal_state.server->session[i]) {
-            g_thermal_state.server->session[i]->callbackStatus.coolingAgentChanged++;
+            switch(cb_type) {
+                case callback_type_agent_changed:
+                    g_thermal_state.server->session[i]->callbackStatus.coolingAgentChanged++;
+                    break;
+                case callback_type_config_changed:
+                    g_thermal_state.server->session[i]->callbackStatus.thermalConfigChanged++;
+                    break;
+                default:
+                    break;
+            }
         }
     }
     return;
@@ -355,7 +368,7 @@ static NEXUS_Error throttle_cpu_frequency(cooling_agent *agent, unsigned level)
     }
 
     agent->cur_level = level;
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
 
     return NEXUS_SUCCESS;
 }
@@ -390,7 +403,7 @@ static NEXUS_Error cpu_idle_injection(cooling_agent *agent, unsigned level)
         return BERR_TRACE(NEXUS_OS_ERROR);
     }
     agent->cur_level = level;
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
 
     return NEXUS_SUCCESS;
 }
@@ -406,7 +419,7 @@ static NEXUS_Error scale_graphics3d_frequency(cooling_agent *agent, unsigned lev
     rc = NEXUS_Graphicsv3d_SetFrequencyScaling(scale);
     if (rc) {rc = BERR_TRACE(rc); goto err;}
     agent->cur_level = level;
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
 
 err:
     return rc;
@@ -423,7 +436,7 @@ static NEXUS_Error scale_graphics2d_frequency(cooling_agent *agent, unsigned lev
     rc = NEXUS_Graphics2D_SetFrequencyScaling(scale);
     if (rc) {rc = BERR_TRACE(rc); goto err;}
     agent->cur_level = level;
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
 
 err:
     return rc;
@@ -439,7 +452,7 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
     BSTD_UNUSED(agent);
 
     for(i=0; i<NXCLIENT_MAX_SESSIONS; i++) {
-        if(g_thermal_state.server->session[i]->hdmiOutput) {
+        if(g_thermal_state.server->session[i] && g_thermal_state.server->session[i]->hdmiOutput) {
             session = g_thermal_state.server->session[i];
             break;
         }
@@ -477,7 +490,7 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
         rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
 
 err:
     return rc;
@@ -508,7 +521,7 @@ static NEXUS_Error stop_decode(unsigned level, bool pip)
             }
         }
     }
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
 
     return NEXUS_SUCCESS;
 }
@@ -527,79 +540,91 @@ static NEXUS_Error stop_main_decode(cooling_agent *agent, unsigned level)
 
 static NEXUS_Error notify_user(cooling_agent *agent, unsigned level)
 {
-    g_thermal_state.current_user_level = level;
     agent->cur_level = level;
-    notify_app_callback();
+    notify_app_callback(callback_type_agent_changed);
     return NEXUS_SUCCESS;
 }
 
-#define COOLING_AGENT(name, func) {#name, func, 0, 0}
+#define COOLING_AGENT(name, type, func, max) {#name, NxClient_CoolingAgent_e##type, func, 0, 0, max}
 
 cooling_agent g_cooling_agents[] = {
-    COOLING_AGENT(cpu_pstate, throttle_cpu_frequency),
-    COOLING_AGENT(cpu_idle, cpu_idle_injection),
+    COOLING_AGENT(cpu_pstate, CpuPstate, throttle_cpu_frequency, 4),
+    COOLING_AGENT(cpu_idle, CpuIdle, cpu_idle_injection, 4),
 #if NEXUS_HAS_GRAPHICSV3D
-    COOLING_AGENT(v3d, scale_graphics3d_frequency),
+    COOLING_AGENT(v3d, Graphics3D, scale_graphics3d_frequency, 4),
 #endif
-    COOLING_AGENT(m2mc, scale_graphics2d_frequency),
+    COOLING_AGENT(m2mc, Graphics2D, scale_graphics2d_frequency, 4),
 #if NEXUS_HAS_HDMI_OUTPUT
-    COOLING_AGENT(display, set_display_format),
+    COOLING_AGENT(display, Display, set_display_format, 1),
 #endif
-    COOLING_AGENT(stop_pip, stop_pip_decode),
-    COOLING_AGENT(stop_main, stop_main_decode),
-    COOLING_AGENT(user, notify_user),
+    COOLING_AGENT(stop_pip, StopPip, stop_pip_decode, 1),
+    COOLING_AGENT(stop_main, StopMain, stop_main_decode, 1),
+    COOLING_AGENT(user, User, notify_user, (unsigned)-1),
 };
 
-static void init_cooling_agents(void)
+static void apply_cooling_agent(priority_list *priority)
 {
-    unsigned i, j;
-    unsigned num_cooling_agents = sizeof(g_cooling_agents)/sizeof(g_cooling_agents[0]);
-    unsigned default_levels=4;
-    priority_list *item;
+    if (priority) {
+        cooling_agent *agent = priority->agent;
+        BDBG_WRN(("Applying Cooling agent %s, Level %u, Temp %u", agent->name, priority->level, g_thermal_state.data.temp[0]));
+        agent->func(agent, priority->level);
+        BLST_Q_REMOVE(&g_thermal_state.active_config->available, priority, link);
+        BLST_Q_INSERT_HEAD(&g_thermal_state.active_config->active, priority, link);
+        NEXUS_GetTimestamp(&priority->last_applied_time);
+    }
+}
 
-    if(!BLST_Q_FIRST(&g_thermal_state.available)) {
-        /* Init default Cooling Agents */
-        for(i=0; i<num_cooling_agents; i++) {
-            g_cooling_agents[i].levels = default_levels;
-            BDBG_MSG(("Init Cooling Agent %s (%d)", g_cooling_agents[i].name, g_cooling_agents[i].levels));
+static void remove_cooling_agent(priority_list *priority)
+{
+    if (priority) {
+        cooling_agent *agent = priority->agent;
+        BDBG_WRN(("Removing Cooling agent %s, Level %u, Temp %u", agent->name, priority->level, g_thermal_state.data.temp[0]));
+        agent->func(agent, priority->level-1);
+        BLST_Q_REMOVE(&g_thermal_state.active_config->active, priority, link);
+        BLST_Q_INSERT_HEAD(&g_thermal_state.active_config->available, priority, link);
+        NEXUS_GetTimestamp(&priority->last_removed_time);
+    }
+}
+
+static void set_active_config(void)
+{
+    unsigned temp = g_thermal_state.data.temp[0];
+    thermal_config *config, *last_enabled=NULL;
+    for (config=BLST_Q_FIRST(&g_thermal_state.configs); config; config=BLST_Q_NEXT(config, link)) {
+        if (!BLST_Q_EMPTY(&config->available)) {
+            break;
         }
-
-        /* Init default priority list */
-        for(i=1; i<=default_levels; i++) {
-            for(j=0; j<num_cooling_agents; j++) {
-                item=BKNI_Malloc(sizeof(*item));
-                item->agent = &g_cooling_agents[j];
-                item->level = i;
-                BLST_Q_INSERT_TAIL(&g_thermal_state.available, item, link);
-                BDBG_MSG(("Init Priority Table %s (%u:%u)", item->agent->name, item->level, item->agent->levels));
-                g_thermal_state.num_priorities++;
+        if (config->enabled) {
+            last_enabled=config;
+        }
+    }
+    if (config) {
+        if (config != g_thermal_state.active_config) {
+            if (temp >= config->config.overTempThreshold || !g_thermal_state.active_config->enabled) {
+                g_thermal_state.active_config = config;
+                notify_app_callback(callback_type_config_changed);
+                BDBG_WRN(("Active Configuration set to %u", g_thermal_state.active_config->config.overTempThreshold));
+            }
+        } else {
+            if (temp < (config->config.overTempThreshold - config->config.hysteresis) && BLST_Q_EMPTY(&config->active)) {
+                if (last_enabled) {
+                    g_thermal_state.active_config = last_enabled;
+                    notify_app_callback(callback_type_config_changed);
+                    BDBG_WRN(("Active Configuration set to %u", g_thermal_state.active_config->config.overTempThreshold));
+                }
             }
         }
-    }
-
-    /* Initialize cooling agents */
-    for(i=0; i<num_cooling_agents; i++) {
-        g_cooling_agents[i].func(&g_cooling_agents[i], 0);
-    }
-
-    g_thermal_state.num_cooling_agents = num_cooling_agents;
-
-    return;
-}
-
-static void uninit_cooling_agents(void)
-{
-    priority_list *item;
-    while ((item=BLST_Q_FIRST(&g_thermal_state.available))) {
-        BLST_Q_REMOVE_HEAD(&g_thermal_state.available, link);
-        BKNI_Free(item);
-    }
-    while ((item=BLST_Q_FIRST(&g_thermal_state.active))) {
-        BLST_Q_REMOVE_HEAD(&g_thermal_state.active, link);
-        BKNI_Free(item);
+    } else {
+        g_thermal_state.active_config = last_enabled?last_enabled:BLST_Q_FIRST(&g_thermal_state.configs);
     }
 }
 
+#define ABOVE_THRESHOLD \
+    ((g_thermal_state.data.temp[0] > g_thermal_state.active_config->config.overTempThreshold) || \
+    (g_thermal_state.has_pmu && (g_thermal_state.data.power.average >= g_thermal_state.active_config->config.overPowerThreshold)))
+#define BELOW_THRESHOLD \
+    ((g_thermal_state.data.temp[0] < temp_target) && \
+    (g_thermal_state.has_pmu && (g_thermal_state.data.power.average < g_thermal_state.active_config->config.overPowerThreshold)))
 static void *thermal_monitor_thread(void *context)
 {
     nxserver_t server = g_thermal_state.server;
@@ -616,21 +641,23 @@ static void *thermal_monitor_thread(void *context)
     BDBG_MSG(("Starting Thermal Monitor Thread ..."));
 
     get_power();
-    g_thermal_state.params.temp_target = g_thermal_state.config.over_temp_threshold - g_thermal_state.config.hysteresis;
 
-    while(!g_thermal_state.exit) {
+    while(g_thermal_state.enabled) {
         priority_list *priority;
-        cooling_agent *agent;
+        unsigned temp_target;
 
         BKNI_AcquireMutex(server->settings.lock);
         if (server->settings.watchdog) {
-            unsigned timeout = g_thermal_state.config.temp_delay / 1000 * 2;
+            unsigned timeout = g_thermal_state.active_config->config.tempDelay / 1000 * 2;
             /* default is twice the sleep time, but we want to be very conservative with nxserver watchdogs,
             so use a 15 second min. */
             if (timeout < 15) timeout = 15;
             nxserver_p_pet_watchdog(server, &server->watchdog.state, timeout);
         }
         get_temp();
+
+        /* Set active config */
+        set_active_config();
         BKNI_ReleaseMutex(server->settings.lock);
 
         BDBG_MSG(("Temp %u", g_thermal_state.data.temp[0]));
@@ -638,13 +665,18 @@ static void *thermal_monitor_thread(void *context)
             BDBG_MSG(("Instant Power %u, Average Power %u", g_thermal_state.data.power.instant, g_thermal_state.data.power.average));
         BDBG_MSG(("Current State : %u", state));
 
-        if (g_thermal_state.data.temp[0] > g_thermal_state.config.over_temp_threshold) {
+        temp_target = g_thermal_state.active_config->config.overTempThreshold - g_thermal_state.active_config->config.hysteresis;
+
+        if (ABOVE_THRESHOLD) {
             switch(state) {
                 case cooling_state_normal:
                     if (g_thermal_state.has_pmu) {
-                        unsigned power_delta = ((g_thermal_state.data.temp[0] - g_thermal_state.params.temp_target)*1000)/g_thermal_state.config.theta_jc;
+                        unsigned power_delta = ((g_thermal_state.data.temp[0] - temp_target)*1000)/g_thermal_state.active_config->config.thetaJC;
                         if (g_thermal_state.data.power.average > power_delta) {
                             power_target = g_thermal_state.data.power.average - power_delta;
+                        }
+                        if (power_target > g_thermal_state.active_config->config.overPowerThreshold) {
+                            power_target = g_thermal_state.active_config->config.overPowerThreshold;
                         }
                         BDBG_MSG(("Calculated Power Target %u", power_target));
                     }
@@ -659,20 +691,22 @@ static void *thermal_monitor_thread(void *context)
                         BDBG_MSG(("Average Power %u, Power Target %u", g_thermal_state.data.power.average, power_target));
                         if (g_thermal_state.data.power.instant < power_target) break;
                     }
-                    if (BLST_Q_EMPTY(&g_thermal_state.available)) {
-                        notify_app_callback(); /* Keep notifying app when we have run out of cooling agents */
+                    /* All agents have been applied. Keep sending notification to client */
+                    if (BLST_Q_EMPTY(&g_thermal_state.active_config->available) &&
+                        !BLST_Q_EMPTY(&g_thermal_state.active_config->active)) {
+                        notify_app_callback(callback_type_agent_changed);
                         break;
                     }
                     state = cooling_state_apply_agent;
                     break;
             }
-        } else if (g_thermal_state.data.temp[0] < g_thermal_state.params.temp_target) {
+        } else if (BELOW_THRESHOLD) {
             switch(state) {
                 case cooling_state_wait:
                     state = cooling_state_remove_agent;
                     break;
                 case cooling_state_remove_agent:
-                    if (BLST_Q_EMPTY(&g_thermal_state.active)) {
+                    if (BLST_Q_EMPTY(&g_thermal_state.active_config->active)) {
                         state = cooling_state_normal;
                         break;
                     }
@@ -698,32 +732,18 @@ static void *thermal_monitor_thread(void *context)
         if (state == cooling_state_apply_agent) {
             /* Apply Policy */
             BKNI_AcquireMutex(server->settings.lock);
-            priority = BLST_Q_FIRST(&g_thermal_state.available);
-            if (priority) {
-                agent = priority->agent;
-                BDBG_WRN(("Applying Cooling agent %s, Temp %u", agent->name, g_thermal_state.data.temp[0]));
-                agent->func(agent, priority->level);
-                BLST_Q_REMOVE(&g_thermal_state.available, priority, link);
-                BLST_Q_INSERT_HEAD(&g_thermal_state.active, priority, link);
-                NEXUS_GetTimestamp(&priority->last_applied_time);
-            }
+            priority = BLST_Q_FIRST(&g_thermal_state.active_config->available);
+            apply_cooling_agent(priority);
             BKNI_ReleaseMutex(server->settings.lock);
         } else if (state == cooling_state_remove_agent){
             /* Remove Policy */
             BKNI_AcquireMutex(server->settings.lock);
-            priority = BLST_Q_FIRST(&g_thermal_state.active);
-            if (priority) {
-                agent = priority->agent;
-                BDBG_WRN(("Removing Cooling agent %s, Temp %u", agent->name, g_thermal_state.data.temp[0]));
-                agent->func(agent, priority->level-1);
-                BLST_Q_REMOVE(&g_thermal_state.active, priority, link);
-                BLST_Q_INSERT_HEAD(&g_thermal_state.available, priority, link);
-                NEXUS_GetTimestamp(&priority->last_removed_time);
-            }
+            priority = BLST_Q_FIRST(&g_thermal_state.active_config->active);
+            remove_cooling_agent(priority);
             BKNI_ReleaseMutex(server->settings.lock);
         } else {
             /* Wait */
-            unsigned delay = state==cooling_state_normal?g_thermal_state.config.polling_interval:g_thermal_state.config.temp_delay;
+            unsigned delay = state==cooling_state_normal?g_thermal_state.active_config->config.pollInterval:g_thermal_state.active_config->config.tempDelay;
             if (g_thermal_state.has_pmu) {
                 unsigned duration, sleep_ms;
                 for(duration=0, sleep_ms=100; duration < delay; duration += sleep_ms) {
@@ -742,71 +762,140 @@ static void *thermal_monitor_thread(void *context)
     return NULL;
 }
 
-static NEXUS_Error get_thermal_config(const char *filename)
+static NEXUS_Error init_p_thermal_config(thermal_config *config)
 {
-    NEXUS_Error rc;
-    thermal_config *config = &g_thermal_state.config;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NxClient_ThermalConfiguration *nxConfig = &config->config;
     unsigned i, j;
 
-    rc = parse_thermal_config_file(filename, config);
-    if (rc) return BERR_TRACE(rc);
+    BLST_Q_INIT(&config->available);
+    BLST_Q_INIT(&config->active);
 
-    for (i=0; i<sizeof(config->priority_table)/sizeof(config->priority_table[0]); i++) {
+    for (i=0; i<sizeof(nxConfig->priorityTable)/sizeof(nxConfig->priorityTable[0]); i++) {
         cooling_agent *agent=NULL;
         priority_list *item=NULL;
 
-        if (!config->priority_table[i].level) break;
+        if (!nxConfig->priorityTable[i].agent) break;
 
-        for(j=0; j<sizeof(g_cooling_agents)/sizeof(g_cooling_agents[0]); j++) {
-            if(strstr(config->priority_table[i].name, g_cooling_agents[j].name)) {
+        for (j=0; j<sizeof(g_cooling_agents)/sizeof(g_cooling_agents[0]); j++) {
+            if(nxConfig->priorityTable[i].agent == g_cooling_agents[j].type) {
                 agent = &g_cooling_agents[j];
+                if (agent->levels >= agent->max_level) {
+                    BDBG_WRN(("Exceeded max levels for Agent %s(%u:%u)", lookup_name(agents, nxConfig->priorityTable[i].agent), agent->levels, agent->max_level));
+                    agent = NULL;
+                    rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+                    break;
+                }
                 agent->levels++;
                 break;
             }
         }
-        if(!agent) {
-            BDBG_WRN(("Agent %s not found. Check config file", config->priority_table[i].name));
+        if (rc) { break; }
+        if (!agent) {
+            BDBG_WRN(("Agent %s not found. Check config file", lookup_name(agents, nxConfig->priorityTable[i].agent)));
             continue;
         }
-        /*BDBG_ASSERT(agent->levels == config->priority_table[i].level);*/
         item = BKNI_Malloc(sizeof(*item));
-        BKNI_Memset(item, 0, sizeof(*item));
-        if(!item) {
+        if (!item) {
             rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
             break;
         }
+        BKNI_Memset(item, 0, sizeof(*item));
         item->agent = agent;
         item->level = agent->levels;
-        BLST_Q_INSERT_TAIL(&g_thermal_state.available, item, link);
-        g_thermal_state.num_priorities++;
+        BLST_Q_INSERT_TAIL(&config->available, item, link);
     }
 
+    if (rc) {
+        uninit_p_thermal_config(config);
+    }
     return rc;
+}
+
+static NEXUS_Error init_thermal_config(const char *filename)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    thermal_config *config;
+
+    config = BKNI_Malloc(sizeof(*config));
+    if(!config) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    BKNI_Memset(config, 0, sizeof(*config));
+
+    rc = parse_thermal_config_file(filename, &config->config);
+    if (rc) {
+        rc = BERR_TRACE(rc);
+        goto err;
+    }
+
+    rc = init_p_thermal_config(config);
+    if (rc) {
+        rc = BERR_TRACE(rc);
+        goto err;
+    }
+
+    config->enabled = true;
+    BLST_Q_INSERT_TAIL(&g_thermal_state.configs, config, link);
+    g_thermal_state.active_config = config;
+
+err:
+    if (rc) {
+        BKNI_Free(config);
+    }
+    return rc;
+}
+
+static void uninit_p_thermal_config(thermal_config *config)
+{
+    priority_list *item;
+    while ((item=BLST_Q_FIRST(&config->available))) {
+        BLST_Q_REMOVE_HEAD(&config->available, link);
+        item->agent->levels--;
+        BKNI_Free(item);
+    }
+    while ((item=BLST_Q_FIRST(&config->active))) {
+        BLST_Q_REMOVE_HEAD(&config->active, link);
+        item->agent->levels--;
+        BKNI_Free(item);
+    }
+}
+
+static void uninit_thermal_config(void)
+{
+    thermal_config *config;
+    while ((config=BLST_Q_FIRST(&g_thermal_state.configs))) {
+        uninit_p_thermal_config(config);
+        BLST_Q_REMOVE_HEAD(&g_thermal_state.configs, link);
+        BKNI_Free(config);
+    }
+    g_thermal_state.active_config = NULL;
 }
 
 static void print_thermal_config(void)
 {
     unsigned i;
-    thermal_config *config = &g_thermal_state.config;
+    NxClient_ThermalConfiguration *config = &g_thermal_state.active_config->config;
     BDBG_MSG(("Starting Thermal Monitor with following configuration"));
-    BDBG_MSG(("over_temp_threshold = %u", config->over_temp_threshold));
-    BDBG_MSG(("over_temp_reset = %u", config->over_temp_reset));
+    BDBG_MSG(("over_temp_threshold = %u", config->overTempThreshold));
+    BDBG_MSG(("over_temp_reset = %u", config->overTempReset));
+    BDBG_MSG(("over_power_threshold = %u", config->overPowerThreshold));
     BDBG_MSG(("temp_hysteresis = %u", config->hysteresis));
-    BDBG_MSG(("poll_interval = %u", config->polling_interval));
-    BDBG_MSG(("temp_delay = %u", config->temp_delay));
-    BDBG_MSG(("theta_jc = %u", config->theta_jc));
+    BDBG_MSG(("poll_interval = %u", config->pollInterval));
+    BDBG_MSG(("temp_delay = %u", config->tempDelay));
+    BDBG_MSG(("theta_jc = %u", config->thetaJC));
     BDBG_MSG(("park_high = %u", g_thermal_state.params.park_high));
     BDBG_MSG(("park_low = %u", g_thermal_state.params.park_low));
     BDBG_MSG(("Priority Table :"));
-    for (i=0; i<sizeof(config->priority_table)/sizeof(config->priority_table[0]); i++) {
-        if (!config->priority_table[i].level) break;
-        BDBG_MSG(("\tAgent : %s, Level %u", config->priority_table[i].name, config->priority_table[i].level));
+    for (i=0; i<sizeof(config->priorityTable)/sizeof(config->priorityTable[0]); i++) {
+        if (!config->priorityTable[i].agent) break;
+        BDBG_MSG(("\tAgent : %s", lookup_name(agents, config->priorityTable[i].agent)));
     }
 }
 
 static void set_avs_reset_threshold(void)
 {
-    unsigned threshold = g_thermal_state.config.over_temp_reset;
+    unsigned threshold = g_thermal_state.active_config->config.overTempReset;
     unsigned park_high = threshold - 10000; /* TODO : Should it be configurable? */
     unsigned park_low  = park_high - 10000;
 
@@ -814,6 +903,15 @@ static void set_avs_reset_threshold(void)
 
     g_thermal_state.params.park_high = park_high;
     g_thermal_state.params.park_low = park_low;
+}
+
+static void reset_cooling_agents(void)
+{
+    unsigned i;
+    for(i=0; i<sizeof(g_cooling_agents)/sizeof(g_cooling_agents[0]); i++) {
+        g_cooling_agents[i].func(&g_cooling_agents[i], 0);
+    }
+    return;
 }
 
 NEXUS_Error nxserver_p_thermal_init(nxserver_t server)
@@ -825,12 +923,11 @@ NEXUS_Error nxserver_p_thermal_init(nxserver_t server)
     }
 
     BKNI_Memset(&g_thermal_state, 0, sizeof(g_thermal_state));
-    BLST_Q_INIT(&g_thermal_state.available);
-    BLST_Q_INIT(&g_thermal_state.active);
+    BLST_Q_INIT(&g_thermal_state.configs);
     g_thermal_state.has_pmu = true;
     g_thermal_state.server = server;
 
-    rc = get_thermal_config(server->settings.thermal.thermal_config_file);
+    rc = init_thermal_config(server->settings.thermal.thermal_config_file);
     if (rc && rc != NEXUS_NOT_AVAILABLE) return BERR_TRACE(rc);
 
     rc = probe_thermal_sysfs();
@@ -839,11 +936,13 @@ NEXUS_Error nxserver_p_thermal_init(nxserver_t server)
     rc = probe_cpufreq_sysfs();
     if (rc) return BERR_TRACE(rc);
 
-    init_cooling_agents();
+    reset_cooling_agents();
 
     set_avs_reset_threshold();
 
     print_thermal_config();
+
+    g_thermal_state.enabled = true;
 
     rc = pthread_create(&g_thermal_state.thread, NULL, thermal_monitor_thread, NULL);
     if (rc) return BERR_TRACE(rc);
@@ -856,12 +955,12 @@ NEXUS_Error nxserver_p_thermal_init(nxserver_t server)
 void nxserver_p_thermal_uninit(nxserver_t server)
 {
     BSTD_UNUSED(server);
+    g_thermal_state.enabled = false;
     if (g_thermal_state.thread) {
-        g_thermal_state.exit = true;
         pthread_join(g_thermal_state.thread, NULL);
     }
-
-    uninit_cooling_agents();
+    reset_cooling_agents();
+    uninit_thermal_config();
 }
 
 static void nxserver_p_get_thermal_status(NxClient_ThermalStatus *pStatus, priority_list *priority, unsigned index, bool in_use)
@@ -874,24 +973,215 @@ static void nxserver_p_get_thermal_status(NxClient_ThermalStatus *pStatus, prior
 
 NEXUS_Error nxserver_get_thermal_status(nxclient_t client, NxClient_ThermalStatus *pStatus)
 {
-    priority_list *priority = BLST_Q_FIRST(&g_thermal_state.active);
+    priority_list *priority;
     unsigned i=0;
 
     BSTD_UNUSED(client);
 
-    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
-    pStatus->temperature = g_thermal_state.data.temp[0];
-    if(priority) {
-        pStatus->userDefined = !strncmp(priority->agent->name, "user", 4);
-        pStatus->level = g_thermal_state.current_user_level;
+    if (!g_thermal_state.enabled) {
+        return NEXUS_NOT_AVAILABLE;
     }
 
-    for (priority=BLST_Q_LAST(&g_thermal_state.active); priority; priority=BLST_Q_PREV(priority, link)) {
+    if (!pStatus) {
+        return NEXUS_NOT_INITIALIZED;
+    }
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    pStatus->temperature = g_thermal_state.data.temp[0];
+    if (g_thermal_state.active_config->enabled) {
+        pStatus->activeTempThreshold = g_thermal_state.active_config->config.overTempThreshold;
+    }
+    for (priority=BLST_Q_LAST(&g_thermal_state.active_config->active); priority; priority=BLST_Q_PREV(priority, link)) {
         nxserver_p_get_thermal_status(pStatus, priority, i++, true);
     }
-    for (priority=BLST_Q_FIRST(&g_thermal_state.available); priority; priority=BLST_Q_NEXT(priority, link)) {
+    for (priority=BLST_Q_FIRST(&g_thermal_state.active_config->available); priority; priority=BLST_Q_NEXT(priority, link)) {
         nxserver_p_get_thermal_status(pStatus, priority, i++, false);
     }
 
     return NEXUS_SUCCESS;
+}
+
+void nxserver_get_thermal_configuration_list(nxclient_t client, NxClient_ThermalConfigurationList *pConfigList)
+{
+    thermal_config *config;
+    unsigned i=0;
+
+    BSTD_UNUSED(client);
+
+    if (!g_thermal_state.enabled) {
+        return;
+    }
+
+    BKNI_Memset(pConfigList, 0, sizeof(*pConfigList));
+    for (config=BLST_Q_FIRST(&g_thermal_state.configs); config; config=BLST_Q_NEXT(config, link)) {
+        if (i > NXCLIENT_MAX_THERMAL_CONFIGS) {
+            BDBG_WRN(("Exceed max configs!!"));
+            break;
+        }
+        if (config->enabled) {
+            pConfigList->tempThreshold[i++] = config->config.overTempThreshold;
+        }
+    }
+}
+
+NEXUS_Error nxserver_get_thermal_configuration(nxclient_t client, unsigned tempThreshold, NxClient_ThermalConfiguration *pConfig)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    thermal_config *config;
+
+    BSTD_UNUSED(client);
+
+    if (!g_thermal_state.enabled) {
+        return NEXUS_NOT_AVAILABLE;
+    }
+
+    BKNI_Memset(pConfig, 0, sizeof(*pConfig));
+    for (config=BLST_Q_FIRST(&g_thermal_state.configs); config; config=BLST_Q_NEXT(config, link)) {
+        if (tempThreshold == config->config.overTempThreshold) {
+            *pConfig = config->config;
+            break;
+        }
+    }
+    if (!config) {
+        return NEXUS_NOT_AVAILABLE;
+    }
+
+    return rc;
+}
+
+static bool is_last_enabled(thermal_config *config)
+{
+    thermal_config *cfg;
+
+    for (cfg=BLST_Q_NEXT(config, link); cfg; cfg=BLST_Q_NEXT(cfg, link)) {
+        if (cfg->enabled) {return false;}
+    }
+
+    return true;
+}
+
+static void disable_config(thermal_config *config)
+{
+    priority_list *priority;
+    while((priority=BLST_Q_FIRST(&config->active))) {
+        remove_cooling_agent(priority);
+    }
+    uninit_p_thermal_config(config);
+    config->enabled = false;
+}
+
+static NEXUS_Error enable_config(thermal_config *config)
+{
+    NEXUS_Error rc = init_p_thermal_config(config);
+    if (!rc) {
+        config->enabled = true;
+    }
+    return rc;
+}
+
+static NEXUS_Error set_new_config(const NxClient_ThermalConfiguration *pConfig, thermal_config **cfg)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    thermal_config *config;
+
+    config = BKNI_Malloc(sizeof(*config));
+    if(!config) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    BKNI_Memset(config, 0, sizeof(*config));
+
+    config->config = *pConfig;
+
+    rc = init_p_thermal_config(config);
+    if (rc) {
+        BKNI_Free(config);
+        return BERR_TRACE(rc);
+    }
+    config->enabled = true;
+    *cfg = config;
+
+    return rc;
+}
+
+NEXUS_Error nxserver_set_thermal_configuration(nxclient_t client, unsigned tempThreshold, const NxClient_ThermalConfiguration *pConfig)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    thermal_config *config;
+
+    BSTD_UNUSED(client);
+
+    if (!g_thermal_state.enabled) {
+        return NEXUS_NOT_AVAILABLE;
+    }
+    if (pConfig && pConfig->overTempThreshold != tempThreshold) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    for (config=BLST_Q_FIRST(&g_thermal_state.configs); config; config=BLST_Q_NEXT(config, link)) {
+        if (tempThreshold <= config->config.overTempThreshold) {
+            break;
+        }
+    }
+
+    if (config && !is_last_enabled(config)) {
+        BDBG_ERR(("Cannot set config %u. Disable active configs with higher threshold first", tempThreshold));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    if(!pConfig) {
+        if (config && config->enabled) {
+            /* Disable config */
+            if (tempThreshold == config->config.overTempThreshold) {
+                disable_config(config);
+            } else {
+                BDBG_ERR(("Could not find config %u to disable", tempThreshold));
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+        } else {
+            /* Invalid */
+            BDBG_ERR(("Cannot disable invalid config %u", tempThreshold));
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+    } else {
+        if (config) {
+            if (tempThreshold == config->config.overTempThreshold) {
+                /* Update/Enable config */
+                if (config->enabled) {
+                    /* Return if no change */
+                    if (!BKNI_Memcmp(&config->config, pConfig, sizeof(*pConfig))) {
+                        BDBG_MSG(("No change in config"));
+                        return rc;
+                    }
+                    disable_config(config);
+                }
+                config->config = *pConfig;
+                rc = enable_config(config);
+                if (rc) { rc = BERR_TRACE(rc); }
+            } else {
+                /* Insert new config before */
+                if (!config->enabled) {
+                    thermal_config *new;
+                    rc = set_new_config(pConfig, &new);
+                    if (rc) {
+                        BERR_TRACE(rc);
+                    } else {
+                        BLST_Q_INSERT_BEFORE(&g_thermal_state.configs, config, new, link);
+                    }
+                } else {
+                    BDBG_ERR(("Config %u is still enabled. Cannot insert new config %u", config->config.overTempThreshold, tempThreshold));
+                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                }
+            }
+        } else {
+            /* Insert new config to tail */
+            thermal_config *new;
+            rc = set_new_config(pConfig, &new);
+            if (rc) {
+                BERR_TRACE(rc);
+            } else {
+                BLST_Q_INSERT_TAIL(&g_thermal_state.configs, new, link);
+            }
+        }
+    }
+
+    return rc;
 }

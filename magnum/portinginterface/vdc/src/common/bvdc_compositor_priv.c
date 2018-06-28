@@ -1254,9 +1254,6 @@ static void BVDC_P_Window_BuildDitherRul_isr
 
 #ifdef BCHP_CMP_0_V0_CSC_DITHER_CTRL
     /* CSC Dither: only with 10-bit compositor */
-#if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
-    if(!BVDC_P_CMP_DBV_MODE(hCompositor))
-#endif
     if(hCompositor->bIs10BitCore &&
        hCompositor->pFeatures->ulMaxVideoWindow > eWinInCmp)
     {

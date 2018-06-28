@@ -51,55 +51,71 @@ BDBG_MODULE( BHSM );
 
 
 BERR_Code BHSM_GetRandomNumber( BHSM_Handle hHsm,
-                                BHSM_GetRandomNumberData *pData )
+                                BHSM_GetRandomNumberData *pRequest )
 {
     BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_CryptoRng bspConfig;
-    unsigned itterations; /* # of time we'll call BSP for full load. */
-    unsigned residual;    /* # of bytes required from last call */
-    unsigned count = 0;
+    unsigned itterations; /* # of times we'll call BSP for max length random number. */
+    unsigned residual;    /* # of bytes required from last call that is a multiple of 4  */
+    unsigned modulus;     /* # of bytes random number length is not a multiple of 4 */
     uint8_t  *pDest;
 
     BDBG_ENTER( BHSM_GetRandomNumber );
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !pData->pRandomNumber ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+    if( !pRequest ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( !pRequest->pRandomNumber ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
-    pDest = pData->pRandomNumber;
+    pDest = pRequest->pRandomNumber;
 
-    BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
+    itterations = pRequest->randomNumberSize / sizeof( bspConfig.out.randomNumber);
+    modulus = pRequest->randomNumberSize % 4;
+    residual = (pRequest->randomNumberSize % sizeof( bspConfig.out.randomNumber )) - modulus;
 
-    itterations = pData->randomNumberSize / sizeof( bspConfig.out.randomNumber);
-    while( count++ < itterations )
-    {
+    if( itterations ) {
+
+        BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
         bspConfig.in.randomNumberLength = sizeof( bspConfig.out.randomNumber);
 
-        rc = BHSM_P_Crypto_Rng( hHsm, &bspConfig );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+        do{
+            bspConfig.out.randomNumberSize_inPlace = bspConfig.in.randomNumberLength;
+            bspConfig.out.pRandomNumber_inPlace = pDest;
 
-        rc = BHSM_MemcpySwap( (void*)pDest, (void*)bspConfig.out.randomNumber, sizeof( bspConfig.out.randomNumber) );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+            rc = BHSM_P_Crypto_Rng( hHsm, &bspConfig );
+            if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
-        pDest += sizeof( bspConfig.out.randomNumber );
+            pDest += bspConfig.in.randomNumberLength;
+
+        }while( --itterations );
     }
 
-    residual = pData->randomNumberSize % sizeof( bspConfig.out.randomNumber );
-    if( residual )
-    {
+    if( residual ) {
+
+        BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
         bspConfig.in.randomNumberLength = residual;
-        if(bspConfig.in.randomNumberLength & 0x3)
-        {
-            bspConfig.in.randomNumberLength = ((bspConfig.in.randomNumberLength + 4) & (~0x3));
-        }
+
+        bspConfig.out.randomNumberSize_inPlace = bspConfig.in.randomNumberLength;
+        bspConfig.out.pRandomNumber_inPlace = pDest;
 
         rc = BHSM_P_Crypto_Rng( hHsm, &bspConfig );
         if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
-        rc = BHSM_MemcpySwap( (void*)bspConfig.out.randomNumber, (void*)bspConfig.out.randomNumber, bspConfig.in.randomNumberLength);
+        pDest += bspConfig.in.randomNumberLength;
+    }
+
+    if( modulus ) {
+        uint8_t buffer[4]; /* minimum size random number that BSP will return. */
+
+        BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
+        bspConfig.in.randomNumberLength = sizeof(buffer);
+        bspConfig.out.randomNumberSize_inPlace = bspConfig.in.randomNumberLength;
+        bspConfig.out.pRandomNumber_inPlace = buffer;
+
+        rc = BHSM_P_Crypto_Rng( hHsm, &bspConfig );
         if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
 
-        BKNI_Memcpy(pDest, bspConfig.out.randomNumber, residual);
+        BKNI_Memcpy( pDest, buffer, modulus );
     }
 
     BDBG_LEAVE( BHSM_GetRandomNumber );

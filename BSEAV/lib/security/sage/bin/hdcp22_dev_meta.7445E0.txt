@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_16
+## SAGE Binary Metadata - SSF 3_2_17
 ## unique_key checksum_type checksum url
-7445E0/dev/sage_ta_hdcp22_dev.bin sha1 591f4f991cc75a30d49881d1c9a53133f41c3086 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_16/7445E0/ZD/sage_ta_hdcp22_dev.bin
+7445E0/dev/sage_ta_hdcp22_dev.bin sha1 4dbbc1afe96fe84acedd246daaee8ba3acf2b207 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_17/7445E0/ZD/sage_ta_hdcp22_dev.bin

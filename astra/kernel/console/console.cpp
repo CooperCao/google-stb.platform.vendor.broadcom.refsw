@@ -46,6 +46,7 @@
 #include "poll.h"
 #include "vuartfops.h"
 #include "uartfops.h"
+#include "uart_boot.h"
 
 IFile *Console::stdin;
 IFile *Console::stdout;
@@ -166,5 +167,8 @@ void kernel_write(const void *data, const size_t numBytes)
     if(Console::stdout)
         Console::stdout->write(data,numBytes,0);
     else
-        if(IUart::uart) IUart::uart->puts((char *)data);
+        if(IUart::uart)
+            IUart::uart->puts((char *)data);
+        else
+            early_uart_puts((char *)data);
 }

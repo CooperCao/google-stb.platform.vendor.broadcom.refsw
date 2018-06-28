@@ -587,7 +587,12 @@ typedef enum b_audio_decoder_type
     b_audio_decoder_type_background,
     b_audio_decoder_type_background_nrt
 } b_audio_decoder_type;
-struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type);
+typedef struct b_audio_decoder_create_settings
+{
+    bool secure;
+} b_audio_decoder_create_settings;
+void audio_decoder_get_default_create_settings(b_audio_decoder_create_settings * create_settings);
+struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type, b_audio_decoder_create_settings * create_settings);
 void audio_decoder_destroy(struct b_audio_resource *r);
 int acquire_audio_decoders(struct b_connect *connect, bool force_grab);
 void release_audio_decoders(struct b_connect *connect);
@@ -682,5 +687,8 @@ nxserverlib_thermal.c API
 NEXUS_Error nxserver_p_thermal_init(nxserver_t server);
 void nxserver_p_thermal_uninit(nxserver_t server);
 NEXUS_Error nxserver_get_thermal_status(nxclient_t client, NxClient_ThermalStatus *pStatus);
+void nxserver_get_thermal_configuration_list(nxclient_t client, NxClient_ThermalConfigurationList *pConfigList);
+NEXUS_Error nxserver_get_thermal_configuration(nxclient_t client, unsigned tempThreshold, NxClient_ThermalConfiguration *pConfig);
+NEXUS_Error nxserver_set_thermal_configuration(nxclient_t client, unsigned tempThreshold, const NxClient_ThermalConfiguration *pConfig);
 
 #endif /* NXSERVERLIB_IMPL_H__ */

@@ -2480,7 +2480,9 @@ static void display_hdr_info_changed(void * context, int param)
     BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel, &status.infoFrame.metadata.typeSettings.type1.contentLightLevel, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel));
     BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &status.infoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
     session->hdmi.drm.smdValid = true;
+#if NEXUS_HAS_VIDEO_DECODER
     session->hdmi.drm.dynamicMetadataType = status.infoFrame.metadata.type;
+#endif
     nxserverlib_p_apply_hdmi_drm(session, NULL, false);
     BKNI_ReleaseMutex(session->server->settings.lock);
 }
@@ -3294,7 +3296,9 @@ after_display_open:
         /* must create audio after session->hdmiOutput is set */
         /* and don't create main_audio for headless systems */
         if (session->display[0].display) {
-            session->main_audio = audio_decoder_create(session, b_audio_decoder_type_regular);
+            b_audio_decoder_create_settings create_settings;
+            audio_decoder_get_default_create_settings(&create_settings);
+            session->main_audio = audio_decoder_create(session, b_audio_decoder_type_regular, &create_settings);
             if (!session->main_audio) {rc = BERR_TRACE(-1); goto error;}
         }
     }
@@ -5483,13 +5487,16 @@ int nxserverlib_allow_decode(nxserver_t server, bool allow)
     struct b_session *session = server->session[0];
     BKNI_AcquireMutex(server->settings.lock);
     if (allow) {
+        b_audio_decoder_create_settings create_settings;
+        audio_decoder_get_default_create_settings(&create_settings);
+
         rc = video_init(server);
         if (rc) {rc = BERR_TRACE(rc); goto err_video_init;}
 
         rc = audio_init(server);
         if (rc) {rc = BERR_TRACE(rc); goto err_audio_init;}
 
-        session->main_audio = audio_decoder_create(session, b_audio_decoder_type_regular);
+        session->main_audio = audio_decoder_create(session, b_audio_decoder_type_regular, &create_settings);
         if (!session->main_audio) {rc = BERR_TRACE(-1); goto err_audio_create;}
     }
     else {
@@ -5765,6 +5772,21 @@ bool nxserver_p_allow_grab(nxclient_t client)
 NEXUS_Error NxClient_P_GetThermalStatus(nxclient_t client, NxClient_ThermalStatus *pStatus)
 {
     return nxserver_get_thermal_status(client, pStatus);
+}
+
+void NxClient_P_GetThermalConfigurationList(nxclient_t client, NxClient_ThermalConfigurationList *pConfigList)
+{
+    nxserver_get_thermal_configuration_list(client, pConfigList);
+}
+
+NEXUS_Error NxClient_P_GetThermalConfiguration(nxclient_t client, unsigned tempThreshold, NxClient_ThermalConfiguration *pConfig)
+{
+    return nxserver_get_thermal_configuration(client, tempThreshold, pConfig);
+}
+
+NEXUS_Error NxClient_P_SetThermalConfiguration(nxclient_t client, unsigned tempThreshold, bool pConfig_isNull, const NxClient_ThermalConfiguration *pConfig)
+{
+    return nxserver_set_thermal_configuration(client, tempThreshold, pConfig_isNull?NULL:pConfig);
 }
 
 unsigned nxserver_p_millisecond_tick(void)

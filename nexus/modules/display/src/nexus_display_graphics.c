@@ -498,10 +498,11 @@ static void nexus_p_compression_checkpoint(void *context)
 static NEXUS_Error nexus_p_compression_blit(NEXUS_DisplayHandle display)
 {
     struct NEXUS_DisplayGraphics *graphics = &display->graphics;
-    unsigned i, lru_index = NEXUS_MAX_COMPRESSED_FRAMEBUFFERS, lru = 0xFFFFFFFF;
+    unsigned i, j, lru_index = NEXUS_MAX_COMPRESSED_FRAMEBUFFERS, lru = 0xFFFFFFFF;
     NEXUS_SurfaceHandle surface = graphics->frameBuffer3D.main;
     NEXUS_Graphics2DBlitSettings blitSettings;
     int rc;
+    BAVC_Gfx_Picture pic;
 
     if (!graphics->compression.warning) {
         BDBG_WRN(("automatic compression of framebuffer on display %u", display->index));
@@ -523,8 +524,25 @@ static NEXUS_Error nexus_p_compression_blit(NEXUS_DisplayHandle display)
         rc = NEXUS_Graphics2D_SetSettings(graphics->compression.gfx, &gfxSettings);
         if (rc) return BERR_TRACE(rc);
     }
+
+    /* learn currently displayed surface */
+    if (graphics->source) {
+        BKNI_EnterCriticalSection();
+        rc = BVDC_Source_GetSurface_isr(graphics->source, &pic);
+        BKNI_LeaveCriticalSection();
+        if (rc) pic.pSurface = NULL;
+    }
+    else {
+        pic.pSurface = NULL;
+    }
+
     /* prefer matching, then empty slot, then LRU */
     for (i=0;i<NEXUS_MAX_COMPRESSED_FRAMEBUFFERS;i++) {
+        /* cannot blit into queued or displayed surface */
+        if (graphics->compression.cache[i].compressed_plane &&
+            (graphics->compression.cache[i].compressed_plane == graphics->queuedPlane ||
+             graphics->compression.cache[i].compressed_plane == pic.pSurface)) continue;
+
         if (graphics->compression.cache[i].uncompressed == surface) {
             break;
         }
@@ -556,6 +574,16 @@ static NEXUS_Error nexus_p_compression_blit(NEXUS_DisplayHandle display)
         graphics->compression.cache[i].compressed = NEXUS_Surface_Create(&createSettings);
         if (!graphics->compression.cache[i].compressed) {
             return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+        }
+        NEXUS_Module_Lock(pVideo->modules.surface);
+        graphics->compression.cache[i].compressed_plane = NEXUS_Surface_GetPixelPlane_priv(graphics->compression.cache[i].compressed);
+        NEXUS_Module_Unlock(pVideo->modules.surface);
+    }
+
+    /* remove previous submissions */
+    for (j=0;j<NEXUS_MAX_COMPRESSED_FRAMEBUFFERS;j++) {
+        if (graphics->compression.cache[j].uncompressed == surface) {
+            graphics->compression.cache[j].uncompressed = NULL;
         }
     }
 
@@ -826,9 +854,6 @@ NEXUS_Error NEXUS_Display_GetGraphicsFramebufferStatus( NEXUS_DisplayHandle disp
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
     pStatus->state = NEXUS_GraphicsFramebufferState_eUnused;
     graphics = &display->graphics;
-    if (!graphics->source) {
-        return NEXUS_SUCCESS;
-    }
 #if NEXUS_AUTO_GRAPHICS_COMPRESSION
     /* if compression is possible, search for a match. if no match, search for what we're given. */
     {
@@ -846,6 +871,9 @@ NEXUS_Error NEXUS_Display_GetGraphicsFramebufferStatus( NEXUS_DisplayHandle disp
         }
     }
 #endif
+    if (!graphics->source) {
+        return NEXUS_SUCCESS;
+    }
 
     NEXUS_Module_Lock(video->modules.surface);
     plane = NEXUS_Surface_GetPixelPlane_priv(surface);

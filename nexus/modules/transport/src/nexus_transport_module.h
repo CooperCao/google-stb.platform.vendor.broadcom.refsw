@@ -152,6 +152,10 @@ B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #include "nexus_tsio.h"
 #endif
 
+#if NEXUS_TRANSPORT_EXTENSION_CRC
+#include "nexus_playpump_crc.h"
+#endif
+
 #if NEXUS_TRANSPORT_EXTENSION_EPR
 #include "nexus_epr.h"
 #endif

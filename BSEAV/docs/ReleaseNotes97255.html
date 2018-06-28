@@ -1,7 +1,7 @@
 <html>
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
-<title>Broadcom 97255 A0 Phase 18.1 Set-Top Unified Reference Software
+<title>Broadcom 97255 A0 Phase 18.2 Set-Top Unified Reference Software
 Release (URSR) Release Notes</title>
 </head>
 
@@ -9,7 +9,7 @@ Release (URSR) Release Notes</title>
 
 <h1>
   <a name="_top"><strong>
-      Broadcom 97255 A0 Phase 18.1
+      Broadcom 97255 A0 Phase 18.2
   </strong></a>
   <strong>
     Unified Set-Top Reference Software Release Notes
@@ -19,8 +19,8 @@ Release (URSR) Release Notes</title>
 <h2><strong>Release Date: </strong></h2>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
-<p>March 1, 2018</p>
-<p>Phase 18.1 URSR Release</p>
+<p>June 25, 2018</p>
+<p>Phase 18.2 URSR Release</p>
 </blockquote>
 
 <h2>Index</h2>
@@ -44,21 +44,13 @@ Release (URSR) Release Notes</title>
   <li>The 7255a0 family are the first chips to use TrustZone on ARM to provide a secure environment for decoding audio.</li>
   <li>Due to this change in architecture the boot sequence is unlike any other Broadcom set top box chip and the instructions
     below must be followed exactly in order to have a fully working system.</li>
-  <li>The initial TrustZone implementation will only work  in a 64-bit environment, so a 64-bit Linux kernel must be used.</li>
-  <li>Most of the testing has been done using 64-bit user space applications but it shold be possible to use a mixed ABI configuration
-    with this release to allow the use of 32-bit userspace applications.</li>
-  <li>Please refer to &#8220;Reference software 64 bit Migration Application Note&#8221; for more details on migrating to 64-bit code.</li>
-</strong></ul>
-
-<h2><a name="platforms">Supported Platforms&nbsp</a><a href="#top">(Top)</a></h2>
-<ul>
-<li>972554SV - BCM72554 A0</li>
-<li>972550SV - BCM72550 A0</li>
-<li>9725502LD3 - BCM72550 A0</li>
-<li>972554SHB - BCM72554 A0</li>
-<li>972554DV - BCM72554 A0</li>
+  <li style="color:red">Due to the licensing restrictions of running Dolby audio code on ARM processors the audio codec files loaded into TrustZone must be encrypted.</li>
+  <li style="color:red">This means that in order to run with audio enabled you must run with the secure BOLT and secure Astra packages.</li>
+  <li style="color:red">To diasble audio at Nexus compile time add NEXUS_AUDIO_SUPPORT=n to your environment.</li>
+  <li>This release now supports the of running the ARM processor in 32 bit emulation mode.</li>
+</strong>
+  <li>Instructions for building support for the Rafael tuner is covered in magnum/portinginterface/tnr/src/leapnarrowband/7255ib/rft/README.txt.</li>
 </ul>
-
 <h2><a name="where_to_start">Where To Start&nbsp</a><a href="#top">(Top)</a></h2>
 
 <p >Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
@@ -71,27 +63,26 @@ Atlas as part of the Reference Software. </p>
 <ul style='margin-top:0in' type=disc>
  <li># tar -xjf stbgcc-6.3-1.2.tar.bz2 -C /opt/toolchains</li>
  <li># export PATH=/opt/toolchains/stbgcc-6.3-1.2/bin:$PATH </li>
- <li># tar -xvjf rootfs-4.9-1.4.tar.bz2 </li>
- <li># tar -xvjf stblinux-4.9-1.4.tar.bz2 </li>
+ <li># tar -xvjf rootfs-4.9-1.7.tar.bz2 </li>
+ <li># tar -xvjf stblinux-4.9-1.7.tar.bz2 </li>
  <li># cd rootfs </li>
  <li># make defaults-arm64</li>
  <li># make images</li>
  <li># export LINUX=`readlink -f ../linux` </li>
 </ul>
 
-<h3><a name="atlas"<b>Instructions to build atlas the Nexus sample UI application&nbsp</b></a><a href="#top">(Top)</a></h3>
+<h3><a name="atlas"<b>Instructions to build atlas the Nexus sample UI application in 32bit mode</b></a><a href="#top">(Top)</a></h3>
 
 <ul style='margin-top:0in' type=disc>
- <li> # tar xvfz refsw_release_unified_20180301.tgz</li>
+ <li> # tar xvfz refsw_release_unified_20180625.tgz</li>
  <li> # mkdir -p /opt/toolchains/tzos/DSO/
  <li> # tar -xjf gcc-aarch64-tzos-musl-5.3-2017q3.tar.bz2 -C /opt/toolchains/tzos/DSO/</li>
- <li> # export PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3/bin:$PATH </li>
- <li> # export B_REFSW_ARCH=aarch64-linux</li>
+ <li> # tar -xjf gcc-arm-tzos-musl-5.3-2016q4v3.tar.bz2 -C /opt/toolchains/tzos/DSO/</li>
+ <li> # export PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3-2017q3/bin:/opt/toolchains/gcc-arm-tzos-musl-5.3-2016q4v3/bin:$PATH </li>
+ <li> # export B_REFSW_ARCH=arm-linux</li>
  <li> # export NEXUS_PLATFORM=97255</li>
  <li> # export NEXUS_MODE=proxy</li>
  <li> # export BCHP_VER=A0</li>
- <li> # make -C astra/user </li>
- <li> # make -C astra/monitor </li>
  <li> # make -C BSEAV/app/atlas/build install </li>
 </ul>
 
@@ -99,15 +90,14 @@ Atlas as part of the Reference Software. </p>
 
 <ul style='margin-top:0in' type=disc>
  <li >BOLT&gt; tz init</li>
- <li >BOLT&gt; tz mon &lt;network_location&gt;:mon64.bin</li>
- <li >BOLT&gt; tz boot &lt;network_location&gt;:astra.bin &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64&nbsp;</li>
- <li>N.B. The TZ monitor and Astra binaries get built as part of the RefSW build above.</li>
- <li>For the 2LD3 & 2LD4 low cost board designs with 512MB of RAM please add the kernel boot option 'bmem=223m@192m'</li>
+  <li >BOLT&gt; tz boot &lt;network_location&gt;:astra32.bin &lt;network_location&gt;:49-1.7/vmlinuz-initrd-arm</li>
+ <li>N.B. Astra binaries get built as part of the RefSW build above.</li>
+ <li>For the 2LD3 & 2LD4 low cost board designs with 512MB of RAM please add the nexus recommended bmem option to the boot arguments, it should be something like 'bmem=223m@192m'</li>
 </ul>
 
 <p><strong>
     There are multiple box modes available which contain the RTS to support the different variants and features of this chip.<br>
-    Information on the available box modes has been moved to a <span style='color:#0070C0'><a href="7255A0_box_mode_comparison.html"><span style='color:#0070C0'>new HTML table</a></span>.</p>
+    Information on the available box modes has been moved to a <span style='color:#0070C0'><a href="7255A0_box_mode_comparison.html"><span style='color:#0070C0'>separate HTML table</a></span>.</p>
 </strong></p>
 
 <h3><a name="run"><b>Runtime instructions&nbsp</b></a><a href="#top">(Top)</a></h3>
@@ -130,22 +120,18 @@ Atlas as part of the Reference Software. </p>
 
 <h2><a name="limitations">Limitations&nbsp</a><a href="#top">(Top)</a></h2>
 <p>
-  <strong>
-    This is an initial engineering release so not all features are available, see the list below for known missing features.
-  </strong>
   <ul style='margin-top:0in' type=disc>
     <li>SAGE support is limited in this engineering release:
     <ul>
-        <li>SAGE 3.2.15 provides BP3, HDCP 2.2 and some DRM services.</li>
+        <li>SAGE 3.2.17 provides BP3, HDCP 2.2 and some DRM services.</li>
         <li>It is not currently possible to decode audio when SVP is enabled.</li>
         <li>DRM playback is limited to using the DIF playback applications, legacy DRM applications will not work.</li>
         <li>With the playback_dif_single application use the -noAudio option to stop the audio decode otherwise the application will cause continuous MRC violations.</li>
     </ul>
     </li>
-    <li>Dolby audio codecs are currently unavailable.</li>
     <li>Low power modes are not supported while running TrustZone.</li>
     <li>CPU dynamic voltage scaling is unsupported.</li>
-    <li>No support for onboard QAM demod.</li>
+    <li>Initial support for onboard QAM demod.</li>
   </ul>
 </p>
 

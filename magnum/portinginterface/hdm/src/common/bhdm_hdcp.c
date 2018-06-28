@@ -198,21 +198,29 @@ typedef enum BHDM_HDCP_P_VersionSelect
 	BHDM_HDCP_P_VersionSelect_eMax
 } BHDM_HDCP_P_VersionSelect ;
 
-static void BHDM_HDCP_P_GetHdcpVersionSelect(const BHDM_Handle hHDMI, uint8_t *uiHdcpVersionSelect)
+static uint8_t BHDM_HDCP_P_GetHdcpVersionSelect(const BHDM_Handle hHDMI)
 {
+    uint8_t uiHdcpVersionSelect ;
+
+	uiHdcpVersionSelect = BHDM_HDCP_P_VersionSelect_e1_x ;
+
 #if BHDM_CONFIG_HAS_HDCP22
-    BREG_Handle hRegister;
-    uint32_t Register, ulOffset;
+	{
+	    BREG_Handle hRegister;
+	    uint32_t Register, ulOffset;
 
-    hRegister = hHDMI->hRegister;
-    ulOffset = hHDMI->ulOffset;
+	    hRegister = hHDMI->hRegister;
+	    ulOffset = hHDMI->ulOffset;
 
-    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
-    *uiHdcpVersionSelect = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT) ;
+	    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
+	    uiHdcpVersionSelect =
+	        BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT) ;
+	}
 #else
 	BSTD_UNUSED(hHDMI) ;
-	*uiHdcpVersionSelect = BHDM_HDCP_P_VersionSelect_e1_x ;
 #endif
+
+	return uiHdcpVersionSelect ;
 }
 
 
@@ -253,7 +261,7 @@ static bool BHDM_HDCP_P_RegisterAccessAllowed(
         goto done ;
     }
 
-    BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI, &uiHdcpVersionUsed) ;
+    uiHdcpVersionUsed = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
     if (((uiHdcpVersionUsed == BHDM_HDCP_P_VersionSelect_e2_2) && (offset < BHDM_HDCP_2_2_OFFSET_START))
     ||  ((uiHdcpVersionUsed == BHDM_HDCP_P_VersionSelect_e1_x) && (offset >= BHDM_HDCP_2_2_OFFSET_START)))
     {
@@ -2306,7 +2314,7 @@ BERR_Code BHDM_HDCP_IsLinkAuthenticated(const BHDM_Handle hHDMI, bool *bAuthenti
 	hRegister = hHDMI->hRegister;
 	ulOffset = hHDMI->ulOffset;
 
-	BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI, &uiHdcpVersionUsed) ;
+	uiHdcpVersionUsed = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
 
 	switch (uiHdcpVersionUsed)
 	{
@@ -3228,6 +3236,50 @@ BERR_Code BHDM_HDCP_AssertSimulatedHpd_isr(const BHDM_Handle hHDMI, bool enable,
 	return rc;
 }
 
+
+BERR_Code BHDM_HDCP_GetAuthenticationStatus(const BHDM_Handle hHDMI, BHDM_HDCP_AuthenticationStatus *stHdcpAuthStatus)
+{
+	BERR_Code rc = BERR_SUCCESS;
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+	uint8_t uiVersionSelected ;
+
+	BDBG_ENTER(BHDM_HDCP_GetAuthenticationStatus);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
+
+	/* authenticated status */
+	rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &stHdcpAuthStatus->bAuthentictated) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
+	/* encryption status */
+	uiVersionSelected = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
+#if BHDM_CONFIG_HAS_HDCP22
+	if (uiVersionSelected == BHDM_HDCP_P_VersionSelect_e2_2)
+	{
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+		stHdcpAuthStatus->bEncrypted = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION) > 0 ;
+	}
+	else
+#else
+	BSTD_UNUSED(uiVersionSelected) ;
+#endif
+	{
+		Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
+		stHdcpAuthStatus->bEncrypted = BCHP_GET_FIELD_DATA(Register, HDMI_CP_CONFIG, I_MUX_VSYNC) ;
+	}
+
+
+	BDBG_LEAVE(BHDM_HDCP_GetAuthenticationStatus);
+done:
+	return rc ;
+}
 
 
 #if BHDM_CONFIG_HAS_HDCP22

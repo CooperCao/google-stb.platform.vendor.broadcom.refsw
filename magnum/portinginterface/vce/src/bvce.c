@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* base modules */
@@ -66,6 +70,7 @@ BDBG_FILE_MODULE(BVCE_RSP);
 BDBG_FILE_MODULE(BVCE_USERDATA);
 BDBG_FILE_MODULE(BVCE_MEMORY);
 BDBG_FILE_MODULE(BVCE_PLATFORM);
+BDBG_FILE_MODULE(BVCE_LIMIT);
 
 BDBG_OBJECT_ID(BVCE_P_Context);           /* BVCE_Handle */
 BDBG_OBJECT_ID(BVCE_P_Channel_Context);   /* BVCE_Channel_Handle */
@@ -3990,6 +3995,24 @@ BVCE_Open(
 
    hVce->stOpenSettings = *pstOpenSettings;
 
+   if ( NULL != hVce->stOpenSettings.hBox )
+   {
+      hVce->pstBoxConfig = (BBOX_Config *) BKNI_Malloc( sizeof( BBOX_Config ) );
+      if ( NULL == hVce->pstBoxConfig )
+      {
+         BDBG_WRN(("Cannot allocate box config"));
+      }
+      else
+      {
+         if ( BERR_SUCCESS != BBOX_GetConfig( hVce->stOpenSettings.hBox, hVce->pstBoxConfig ) )
+         {
+            BDBG_WRN(("Cannot get box config"));
+            BKNI_Free( hVce->pstBoxConfig );
+            hVce->pstBoxConfig = NULL;
+         }
+      }
+   }
+
    /* TODO: Print Settings */
    BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_Open():"));
 #define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_OpenSettings.stMemoryConfig."#_field"=%lu bytes", (unsigned long) hVce->stOpenSettings.stMemoryConfig._field));
@@ -4183,6 +4206,11 @@ BVCE_Close(
       }
    }
 #endif
+
+   if ( NULL != hVce->pstBoxConfig )
+   {
+      BKNI_Free( hVce->pstBoxConfig );
+   }
 
    BDBG_OBJECT_DESTROY(hVce, BVCE_P_Context);
 
@@ -7444,7 +7472,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
 }
 
 #if (BVCE_P_VDC_MANAGE_VIP)
-static bool BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isrsafe(
+static bool BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isr(
    BVCE_P_PictureBlockInfo *pstBlockInfo,
    const BAVC_EncodePictureBuffer *pstEncodePictureBuffer,
    BVCE_P_PictureBufferType ePictureBufferType
@@ -8113,6 +8141,167 @@ BVCE_Channel_S_Picture_Print_Debug_isr(
 }
 #endif
 
+#if (BVCE_P_VDC_MANAGE_VIP)
+static const unsigned BVCE_S_FrameRateLUT[BAVC_FrameRateCode_eMax] =
+{
+      30, /* BAVC_FrameRateCode_eUnknown */
+      24, /* BAVC_FrameRateCode_e23_976 */
+      24, /* BAVC_FrameRateCode_e24 */
+      25, /* BAVC_FrameRateCode_e25 */
+      30, /* BAVC_FrameRateCode_e29_97 */
+      30, /* BAVC_FrameRateCode_e30 */
+      50, /* BAVC_FrameRateCode_e50 */
+      60, /* BAVC_FrameRateCode_e59_94 */
+      60, /* BAVC_FrameRateCode_e60 */
+      15, /* BAVC_FrameRateCode_e14_985 */
+      8, /* BAVC_FrameRateCode_e7_493 */
+      10, /* BAVC_FrameRateCode_e10 */
+      15, /* BAVC_FrameRateCode_e15 */
+      20, /* BAVC_FrameRateCode_e20 */
+      13, /* BAVC_FrameRateCode_e12_5 */
+      100, /* BAVC_FrameRateCode_e100 */
+      120, /* BAVC_FrameRateCode_e119_88 */
+      120, /* BAVC_FrameRateCode_e120 */
+      20, /* BAVC_FrameRateCode_e19_98 */
+      8, /* BAVC_FrameRateCode_e7_5 */
+      12, /* BAVC_FrameRateCode_e12 */
+      12, /* BAVC_FrameRateCode_e11_988 */
+      10, /* BAVC_FrameRateCode_e9_99 */
+};
+
+#define BVCE_S_CALC_PIXELS_PER_SECOND( _width, _height, _fps ) ( (_width) * (_height) * (_fps) )
+
+static
+void
+BVCE_S_PrintEncoderConfig_isrsafe(
+      BVCE_Handle hVce
+      )
+{
+   unsigned uiChannelNum;
+
+   for ( uiChannelNum = 0; uiChannelNum < BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS; uiChannelNum++ )
+   {
+      BVCE_Channel_Handle hVceCh = &hVce->channels[uiChannelNum].context;
+
+      /* Skip encoders that aren't started or haven't received any pictures */
+      if ( ( BVCE_P_Status_eStarted != hVceCh->eStatus )
+           || ( false == hVceCh->stCurrentConfig.bValid ) ) continue;
+
+      BDBG_MODULE_ERR(BVCE_LIMIT,("\tChannel [%d] %ux%u@%u%c",
+            uiChannelNum,
+            hVceCh->stCurrentConfig.uiWidth,
+            hVceCh->stCurrentConfig.uiHeight,
+            hVceCh->stCurrentConfig.uiFramesPerSecond,
+            ( false == hVceCh->stCurrentConfig.bInterlaced ) ? 'p':'i'
+            ));
+   }
+}
+
+static
+bool
+BVCE_S_EncoderConfigIsValid_isrsafe(
+      BVCE_Handle hVce
+      )
+{
+   unsigned uiMode;
+   unsigned uiChannelNum;
+   BBOX_Config *pstBoxConfig = hVce->pstBoxConfig;
+
+   if ( NULL == pstBoxConfig ) return true;
+
+   /* Loop through each box mode config */
+   for ( uiMode=0; uiMode < BBOX_VCE_MAX_MODE_COUNT; uiMode++ )
+   {
+      BFMT_VideoFmt eVideoFormat = pstBoxConfig->stVce.stInstance[hVce->stOpenSettings.uiInstance].stMode[uiMode].eVideoFormat;
+      const BFMT_VideoInfo *pstVideoInfo = NULL;
+
+      if ( BFMT_VideoFmt_eMaxCount == eVideoFormat ) continue;
+
+      pstVideoInfo = BFMT_GetVideoFormatInfoPtr_isrsafe( eVideoFormat );
+
+      if ( NULL == pstVideoInfo ) continue;
+
+      {
+         unsigned uiFramesPerSecond = 0;
+         unsigned uiMaxPixelsPerSecond = 0;
+         unsigned uiHeight = ( 1088 == pstVideoInfo->ulDigitalHeight ) ? 1080 : pstVideoInfo->ulDigitalHeight;
+         unsigned uiWidth = pstVideoInfo->ulDigitalWidth;
+
+         uiFramesPerSecond = pstVideoInfo->ulVertFreq / BFMT_FREQ_FACTOR;
+         if ( ( 23 == uiFramesPerSecond ) || ( 29 == uiFramesPerSecond ) || ( 59 == uiFramesPerSecond) ) uiFramesPerSecond++;
+
+         uiMaxPixelsPerSecond = BVCE_S_CALC_PIXELS_PER_SECOND( uiWidth, uiHeight, uiFramesPerSecond );
+
+         BDBG_MODULE_MSG(BVCE_LIMIT, ("Trying Mode[%d] %ux%u@%u%c (%08x)",
+               uiMode, uiWidth, uiHeight, uiFramesPerSecond, ( false == pstVideoInfo->bInterlaced ) ? 'p':'i', uiMaxPixelsPerSecond));
+
+         /* Loop through each channel on the same device */
+         for ( uiChannelNum = 0; uiChannelNum < BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS; uiChannelNum++ )
+         {
+            BVCE_Channel_Handle hVceCh = &hVce->channels[uiChannelNum].context;
+            bool bResult = false;
+
+            /* Skip encoders that aren't started or haven't received any pictures */
+            if ( ( BVCE_P_Status_eStarted != hVceCh->eStatus )
+                 || ( false == hVceCh->stCurrentConfig.bValid ) ) continue;
+
+            /* Check to see if box mode supports this channel */
+            bResult= ((pstBoxConfig->stVce.stInstance[hVce->stOpenSettings.uiInstance].stMode[uiMode].uiChannels & (1 << uiChannelNum))
+                        && ( uiMaxPixelsPerSecond >= hVceCh->stCurrentConfig.uiPixelsPerSecond ) );
+
+            BDBG_MODULE_MSG(BVCE_LIMIT, ("\tChecking Channel[%d] %ux%u@%u%c (%08x) - %s",
+                  uiChannelNum,
+                  hVceCh->stCurrentConfig.uiWidth, hVceCh->stCurrentConfig.uiHeight, hVceCh->stCurrentConfig.uiFramesPerSecond, ( false == hVceCh->stCurrentConfig.bInterlaced ) ? 'p':'i', hVceCh->stCurrentConfig.uiPixelsPerSecond,
+                  ( true == bResult ) ? "OK" : "No Match"));
+
+            if ( false == bResult ) break;
+         }
+
+         if ( BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS == uiChannelNum )
+         {
+            return true;
+         }
+      }
+   }
+   return false;
+}
+
+static
+bool
+BVCE_Channel_S_EncoderConfigIsValid_isrsafe(
+      BVCE_Channel_Handle hVceCh,
+      const BAVC_EncodePictureBuffer *pstPicture,
+      bool bForceCheck
+      )
+{
+   /* See if the resolution + frame rate has changed since the last picture */
+   if ( ( false == hVceCh->stCurrentConfig.bValid )
+        || ( hVceCh->stCurrentConfig.uiHeight != pstPicture->ulHeight )
+        || ( hVceCh->stCurrentConfig.uiWidth != pstPicture->ulWidth )
+        || ( hVceCh->stCurrentConfig.eFrameRate != hVceCh->stEncodeSettings.stFrameRate.eFrameRate )
+        || ( true == bForceCheck )
+        )
+   {
+      /* Update current config */
+      hVceCh->stCurrentConfig.uiWidth = pstPicture->ulWidth;
+      hVceCh->stCurrentConfig.uiHeight = pstPicture->ulHeight;
+      hVceCh->stCurrentConfig.eFrameRate = hVceCh->stEncodeSettings.stFrameRate.eFrameRate;
+      hVceCh->stCurrentConfig.bInterlaced = ( hVceCh->stStartEncodeSettings.eInputType == BAVC_ScanType_eInterlaced );
+      hVceCh->stCurrentConfig.uiFramesPerSecond = BVCE_S_FrameRateLUT[hVceCh->stEncodeSettings.stFrameRate.eFrameRate];
+      if ( true == hVceCh->stCurrentConfig.bInterlaced )
+      {
+         if ( 30 == hVceCh->stCurrentConfig.uiFramesPerSecond ) hVceCh->stCurrentConfig.uiFramesPerSecond = 60;
+         if ( 25 == hVceCh->stCurrentConfig.uiFramesPerSecond ) hVceCh->stCurrentConfig.uiFramesPerSecond = 50;
+      }
+      BDBG_CWARNING( BAVC_FrameRateCode_e9_99+1 == BAVC_FrameRateCode_eMax );
+      hVceCh->stCurrentConfig.uiPixelsPerSecond = BVCE_S_CALC_PIXELS_PER_SECOND( hVceCh->stCurrentConfig.uiWidth, ( 1088 == hVceCh->stCurrentConfig.uiHeight ) ? 1080 : hVceCh->stCurrentConfig.uiHeight, hVceCh->stCurrentConfig.uiFramesPerSecond );
+      hVceCh->stCurrentConfig.bValid = true;
+      hVceCh->stCurrentConfig.bConfigIsValid = BVCE_S_EncoderConfigIsValid_isrsafe( hVceCh->hVce );
+   }
+   return hVceCh->stCurrentConfig.bConfigIsValid;
+}
+#endif
+
 BERR_Code
 BVCE_Channel_Picture_Enqueue_isr(
          BVCE_Channel_Handle hVceCh,
@@ -8141,6 +8330,24 @@ BVCE_Channel_Picture_Enqueue_isr(
                    hVceCh->hVce->handles.hReg,
                    hVceCh->hVce->stPlatformConfig.stDebug.uiSTC[hVceCh->stOpenSettings.uiInstance]
                    );
+
+      if ( false == BVCE_Channel_S_EncoderConfigIsValid_isrsafe( hVceCh, pstPicture, false ) )
+      {
+         if ( 0 == ( hVceCh->uiInvalidConfigCount % (60*5) ) )
+         {
+            /* We force check the config to account for any *other* channels that may have been stopped */
+            if ( false == BVCE_Channel_S_EncoderConfigIsValid_isrsafe( hVceCh, pstPicture, true ) )
+            {
+               BDBG_MODULE_ERR(BVCE_LIMIT,("[%d] Current video encoder configuration exceeds box mode limits!", hVceCh->stOpenSettings.uiInstance));
+               BVCE_S_PrintEncoderConfig_isrsafe( hVceCh->hVce );
+            }
+         }
+         hVceCh->uiInvalidConfigCount++;
+      }
+      else
+      {
+         hVceCh->uiInvalidConfigCount = 0;
+      }
 
       /* Ignore pictures that have the wrong polarity */
       if ( ( ( BAVC_ScanType_eProgressive == hVceCh->stStartEncodeSettings.eInputType )
@@ -8512,7 +8719,7 @@ BVCE_Channel_Picture_Enqueue_isr(
                   }
                   BDBG_ASSERT( i < BVCE_P_PICTURE_OFFSET_LUT_SIZE );
 
-                  if ( true == BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isrsafe( pstPictureBlockInfo, pstPicture, ePictureBufferType ) )
+                  if ( true == BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isr( pstPictureBlockInfo, pstPicture, ePictureBufferType ) )
                   {
                      /* Sanity check to make sure buffer isn't already in LUT */
                      {

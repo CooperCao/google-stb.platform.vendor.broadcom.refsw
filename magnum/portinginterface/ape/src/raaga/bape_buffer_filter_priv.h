@@ -1,6 +1,6 @@
 /***************************************************************************
 *  Copyright (C) 2018 Broadcom.
-*  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to
@@ -50,9 +50,14 @@
 
 typedef struct BAPE_BufferGroupFilter *BAPE_BufferGroupFilterHandle;
 
-typedef void BAPE_BufferGroupFilterFn(void *ctx, BAPE_BufferDescriptor *pDesc, uint8_t *pIn, unsigned inCount, uint8_t *pOut, unsigned outCount, unsigned *inSize, unsigned *outSize);
+typedef void BAPE_BufferGroupFilterFn(void *ctx, BAPE_BufferDescriptor *pDesc,
+                                      uint8_t *pIn, unsigned inCount,
+                                      uint8_t *pInWrap, unsigned inWrapCount,
+                                      uint8_t *pOut, unsigned outCount,
+                                      uint8_t *pOutWrap, unsigned outWrapCount,
+                                      unsigned *inSize, unsigned *outSize);
 
-BAPE_BufferGroupFilterHandle BAPE_BufferGroupFilter_P_Open(BAPE_Handle hDevice, BAPE_BufferGroupHandle hUpstreamBG, BAPE_BufferGroupFilterFn *pFunc, void *ctx);
+BAPE_BufferGroupFilterHandle BAPE_BufferGroupFilter_P_Open(BAPE_Handle hDevice, BAPE_BufferGroupHandle hUpstreamBG, unsigned bufferSize, BAPE_BufferGroupFilterFn *pFunc, void *ctx);
 void BAPE_BufferGroupFilter_P_Close(BAPE_BufferGroupFilterHandle hFilter);
 
 BERR_Code BAPE_BufferGroupFilter_P_Enable_isr(BAPE_BufferGroupFilterHandle hFilter, bool enable);

@@ -57,7 +57,7 @@
 #include "tzioc_coredump.h"
 
 #define ASTRA_TIMEOUT_MSEC      5000
-#define ASTRA_GETID_ATTEMPTS    5
+#define ASTRA_GETID_ATTEMPTS    10
 
 #define ASTRA_TYPE_CLIENT       0
 #define ASTRA_CLIENT_START      1

@@ -130,6 +130,7 @@ BERR_Code BHSM_OtpDataSection_Write( BHSM_Handle hHsm, const BHSM_DataSectionWri
     BERR_Code rc = BERR_UNKNOWN;
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     rc = BHSM_Otp_EnableProgram_priv( hHsm, !BHSM_OTP_CACHE_PROGRAM_REQUEST );
@@ -167,6 +168,7 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
     BERR_Code rc;
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &readParam, 0, sizeof(readParam) );
@@ -186,37 +188,37 @@ BERR_Code BHSM_OtpDataSection_Read( BHSM_Handle hHsm, BHSM_DataSectionRead *pPar
     }
 
     /* Check if the MSP bit indicates the DS being readable. */
-      readParam.data &= readParam.valid;
-      pParam->accessible = !( (readParam.data) & ( 1 << pParam->index ) );
+    readParam.data &= readParam.valid;
+    pParam->accessible = !( (readParam.data) & ( 1 << pParam->index ) );
 
-      /* Clear up the high order numbers to make sure the correct output. */
-      BKNI_Memset( pParam->data, 0, BHSM_DATA_SECTION_LENGTH );
-      if( !pParam->accessible ) {
-          /*
-           * Convert from BSP data format to 20-byte big endian array:
-           * BSP format:                           [159:128][127:96][95:64][63:32][31:0]
-           * Output format: [255:240][239:224] ... [159:128][127:96][95:64][63:32][31:0]
-           */
-          BKNI_Memcpy(&pParam->data[BHSM_DATA_SECTION_LENGTH - SHA160_BYTE_SIZE], bspParam.out.dataSectionData, SHA160_BYTE_SIZE);
-      }
-      else {
-          uint8_t *readData = (uint8_t *)bspParam.out.dataSectionData;
-          unsigned        i;
-          uint8_t byteData[BHSM_DATA_SECTION_LENGTH] = {0};
+    /* Clear up the high order numbers to make sure the correct output. */
+    BKNI_Memset( pParam->data, 0, BHSM_DATA_SECTION_LENGTH );
+    if( !pParam->accessible ) {
+        /*
+         * Convert from BSP data format to 20-byte big endian array:
+         * BSP format:                           [159:128][127:96][95:64][63:32][31:0]
+         * Output format: [255:240][239:224] ... [159:128][127:96][95:64][63:32][31:0]
+         */
+        BKNI_Memcpy(&pParam->data[BHSM_DATA_SECTION_LENGTH - SHA160_BYTE_SIZE], bspParam.out.dataSectionData, SHA160_BYTE_SIZE);
+    }
+    else {
+        uint8_t *readData = (uint8_t *)bspParam.out.dataSectionData;
+        unsigned        i;
+        uint8_t byteData[BHSM_DATA_SECTION_LENGTH] = {0};
 
-          /*
-           * Convert from BSP data format to 32-byte big endian array:
-           * BSP format:    [15:0][31:16][47:32][63:48] ... [239:224][255:240]
-           * Output format: [255:240][239:224] ... [63:48][47:32][31:16][15:0]
-           */
-          for( i = 0; i < BHSM_DATA_SECTION_LENGTH; i += 2 ) {
-              byteData[i] = readData[BHSM_DATA_SECTION_LENGTH - i - 2];
-              byteData[i + 1] = readData[BHSM_DATA_SECTION_LENGTH - i - 1];
-          }
+        /*
+         * Convert from BSP data format to 32-byte big endian array:
+         * BSP format:    [15:0][31:16][47:32][63:48] ... [239:224][255:240]
+         * Output format: [255:240][239:224] ... [63:48][47:32][31:16][15:0]
+         */
+        for( i = 0; i < BHSM_DATA_SECTION_LENGTH; i += 2 ) {
+            byteData[i] = readData[BHSM_DATA_SECTION_LENGTH - i - 2];
+            byteData[i + 1] = readData[BHSM_DATA_SECTION_LENGTH - i - 1];
+        }
 
-          rc = BHSM_MemcpySwap(pParam->data, byteData, BHSM_DATA_SECTION_LENGTH);
-          if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
-      }
+        rc = BHSM_MemcpySwap(pParam->data, byteData, BHSM_DATA_SECTION_LENGTH);
+        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+    }
 
     return BERR_SUCCESS;
 

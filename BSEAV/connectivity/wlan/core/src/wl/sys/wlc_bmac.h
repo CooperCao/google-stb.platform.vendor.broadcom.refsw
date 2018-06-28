@@ -381,6 +381,7 @@ extern int wlc_bmac_btc_flags_idx_get(wlc_hw_info_t *wlc_hw, int val);
 extern int wlc_bmac_btc_flags_get(wlc_hw_info_t *wlc_hw);
 extern int wlc_bmac_btc_params_set(wlc_hw_info_t *wlc_hw, int int_val, int int_val2);
 extern int wlc_bmac_btc_params_get(wlc_hw_info_t *wlc_hw, int int_val);
+extern void wlc_bmac_btc_params_save(wlc_hw_info_t *wlc_hw);
 extern int wlc_bmac_btc_period_get(wlc_hw_info_t *wlc_hw, uint16 *btperiod, bool *btactive,
 	uint16 *agg_off_bm, uint16 *acl_last_ts, uint16 *a2dp_last_ts);
 extern void wlc_bmac_btc_rssi_threshold_get(wlc_hw_info_t *wlc_hw, uint8 *, uint8 *, uint8 *);

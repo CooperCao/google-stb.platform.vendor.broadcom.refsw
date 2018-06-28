@@ -439,7 +439,9 @@
 		register TzMem::PhysAddr pageTablePA = TzMem::virtToPhys(top); \
 		register uintptr_t ttbr0_el1 = (uintptr_t)pageTablePA; \
 		asm volatile("msr TTBR0_EL1, %[xt]"::[xt] "r" (ttbr0_el1)); \
-		asm volatile("tlbi VMALLE1":::"memory"); \
+		asm volatile("tlbi vmalle1is":::"memory"); \
+		asm volatile("dsb sy":::"memory"); \
+		asm volatile("isb":::"memory"); \
 		asm volatile("ic IALLU":::"memory"); \
 }
 

@@ -301,10 +301,10 @@ b_mp4_process_payload_cenc_subsample_accumulate(struct b_mp4_cenc_frame *frame, 
 {
     unsigned subsample;
 
-    if(frame->vec_count + nvecs > B_MP4_CENC_MAX_FRAME_VECS) {
+    if(frame->vec_count + nvecs >= B_MP4_CENC_MAX_FRAME_VECS) {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    if(frame->subsample_count > B_MP4_CENC_MAX_FRAME_SUBSAMPLES ) {
+    if(frame->subsample_count >= B_MP4_CENC_MAX_FRAME_SUBSAMPLES ) {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
     subsample = frame->subsample_count;

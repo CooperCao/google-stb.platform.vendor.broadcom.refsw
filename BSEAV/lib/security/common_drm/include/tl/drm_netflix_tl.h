@@ -1,49 +1,44 @@
 /******************************************************************************
- *    (c)2010-2012 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: drm_netflix.h $
- * $brcm_Revision: 3 $
- * $brcm_Date: 11/21/12 3:42p $
- *
- * Module Description:
- *
- * Revision History:
- *
- *****************************************************************************/
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+*  Except as expressly set forth in the Authorized License,
+*
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #ifndef DRM_NETFLIX__TL_H_
 #define DRM_NETFLIX__TL_H_
 
@@ -759,7 +754,31 @@ DrmRC DRM_Netflix_HMAC_Verify(DrmNetFlixSageHandle    pHandle,
                               uint8_t                *hmacDataPtr,
                               uint32_t                hmacDataSize,
                               bool                   *verified);
-
+/*******************************************************************************
+// FUNCTION:
+//  DRM_Netflix_DH_Gen_Keys
+//
+// DESCRIPTION:
+//  Generate a DH Private and Public keys in SAG by the given prime and generator
+//  values.
+//
+// @param[in]       pHandle             Netflix sage handle
+// @param[in]       generator           Generator to be used
+// @param[in]       primePtr            Prime data
+// @param[in]       primeSize           Prime data size
+// @param[out]      pubKeyHandlePtr     The returned public key handle
+// @param[out]      privKeyHandlePtr    The returned private key handle
+//
+// @return Drm_Success if the operation is successful or an error.
+//
+********************************************************************************/
+DrmRC DRM_Netflix_DH_Gen_Keys_NRD5_1(DrmNetFlixSageHandle    pHandle,
+                              uint8_t                *generatorPtr,
+                              uint32_t                generatorSize,
+                              uint8_t                *primePtr,
+                              uint32_t                primeSize,
+                              uint8_t               *pubKey,
+                              uint32_t               *privKeyHandle); /*out*/
 /*******************************************************************************
 // FUNCTION:
 //  DRM_Netflix_DH_Gen_Keys
@@ -854,6 +873,22 @@ DrmRC DRM_Netflix_Secure_Store_Op(DrmNetFlixSageHandle   pHandle,
                                   uint8_t               *pOutBuf,
                                   uint32_t              *pOutSize,
                                   uint32_t               op);
+/*******************************************************************************
+// FUNCTION:
+//  DRM_Netflix_SetNRDVersion
+//
+// DESCRIPTION:
+//  From NRD 5.1 onwards, the netflix DPI will set the Version.
+//
+//
+// @param[in]         version      nrd version
+
+
+// @return Drm_Success if the operation is successful or an error.
+//
+********************************************************************************/
+DrmRC DRM_Netflix_SetNRDVersion(DrmNetFlixSageHandle   pHandle,
+    uint32_t               nrdVersion);
 #ifdef __cplusplus
 }
 #endif

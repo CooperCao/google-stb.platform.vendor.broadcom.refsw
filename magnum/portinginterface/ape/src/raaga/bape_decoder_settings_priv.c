@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -164,7 +168,7 @@ void BAPE_Decoder_P_GetAFDecoderType(BAPE_DecoderHandle handle, BDSP_AF_P_Decode
 
 static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
 {
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eUdcDecode;
 #else
     BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eAc3Decode;
@@ -252,7 +256,7 @@ static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
     BKNI_Memcpy(&handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate], &handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eMain], sizeof(handle->ac4Settings.codecSettings.ac4.programs[BAPE_Ac4Program_eAlternate]));
 }
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
 static void BAPE_Decoder_P_GetDefaultMs12AacSettings(BAPE_DecoderHandle handle)
 {
     if ( !BAPE_DSP_P_AlgorithmSupported(handle->deviceHandle, BDSP_Algorithm_eDolbyAacheAdtsDecode) )
@@ -274,7 +278,7 @@ static void BAPE_Decoder_P_GetDefaultMs12AacSettings(BAPE_DecoderHandle handle)
     BKNI_Memcpy(&handle->aacPlusSettings.codecSettings, &handle->aacSettings.codecSettings, sizeof(handle->aacSettings.codecSettings.aac));
 }
 
-#elif BDSP_MS10_SUPPORT
+#elif BAPE_DSP_MS10_MS11_SUPPORT
 
 static void BAPE_Decoder_P_GetDefaultMs10AacSettings(BAPE_DecoderHandle handle)
 {
@@ -335,9 +339,9 @@ static void BAPE_Decoder_P_GetDefaultLegacyAacSettings(BAPE_DecoderHandle handle
 
 static void BAPE_Decoder_P_GetDefaultAacSettings(BAPE_DecoderHandle handle)
 {
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     BAPE_Decoder_P_GetDefaultMs12AacSettings(handle);
-#elif BDSP_MS10_SUPPORT
+#elif BAPE_DSP_MS10_MS11_SUPPORT
     BAPE_Decoder_P_GetDefaultMs10AacSettings(handle);
 #else
     BAPE_Decoder_P_GetDefaultLegacyAacSettings(handle);
@@ -754,7 +758,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
         }
 
         BDBG_MODULE_MSG(bape_loudness,("%s AC3 decoder is configured for %s loudness mode%s",
-            (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 ? "MS-12" : BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eNone ? "Legacy":"MS-10"),
+            (BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 ? "MS-12" : BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11Plus ? "MS-11PLUS" : BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eNone ? "Legacy":"MS-10"),
             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
              handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
             (handle->deviceHandle->settings.loudnessSettings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -31 expected output level -24" :
@@ -1258,7 +1262,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
     return BERR_SUCCESS;
 }
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
 static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
     BAPE_DecoderHandle handle,
     const BAPE_AacSettings *pSettings
@@ -1454,7 +1458,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
     return BERR_SUCCESS;
 }
 
-#elif BDSP_MS10_SUPPORT
+#elif BAPE_DSP_MS10_MS11_SUPPORT
 
 static BERR_Code BAPE_Decoder_P_ApplyMs10AacSettings(
     BAPE_DecoderHandle handle,
@@ -1919,9 +1923,9 @@ static BERR_Code BAPE_Decoder_P_ApplyAacSettings(
     const BAPE_AacSettings *pSettings
     )
 {
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     return BAPE_Decoder_P_ApplyMs12AacSettings(handle, pSettings);
-#elif BDSP_MS10_SUPPORT
+#elif BAPE_DSP_MS10_MS11_SUPPORT
     return BAPE_Decoder_P_ApplyMs10AacSettings(handle, pSettings);
 #else
     return BAPE_Decoder_P_ApplyLegacyAacSettings(handle, pSettings);

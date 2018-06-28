@@ -80,7 +80,11 @@
 
 uint32_t chipProdID = 0;
 uint32_t securityCode = 0;
+#ifdef BP3_TA_FEATURE_READ_SUPPORT
 BP3_Otp_KeyType otpSelect = BP3_OTPKeyTypeA;
+#else
+int otpSelect = 0;
+#endif
 uint32_t otpIdHi = 0;
 uint32_t otpIdLo = 0;
 extern char ip_addr[INET_ADDRSTRLEN];
@@ -378,7 +382,7 @@ static int run( int argc, char **argv  )
   char addr_str[NI_MAXHOST] = "::";
   int opt;
 
-  while ((opt = getopt(argc, argv, "AP:")) != -1) {
+  while ((opt = getopt(argc, argv, "A:P:")) != -1) {
     switch (opt) {
     case 'A':
       strncpy(addr_str, optarg, NI_MAXHOST - 1);
@@ -423,11 +427,13 @@ int start_bp3_host( int argc, char **argv ) {
     return rc;
   }
 
+#if BP3_TA_FEATURE_READ_SUPPORT
   rc = bp3_get_otp_id(&otpIdHi, &otpIdLo);
   if (rc) {
     perror("bp3_get_otp_id");
     return rc;
   }
+#endif
   if (otpIdHi == 0 && otpIdLo == 0) {
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_hi, &otpIdHi);
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo, &otpIdLo);

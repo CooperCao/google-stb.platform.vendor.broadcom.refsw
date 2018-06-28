@@ -53,6 +53,7 @@ extern "C"
 
 #define BHSM_OTP_CACHE_PROGRAM_REQUEST true
 
+/* this function must be called before any request to program an OTP. */
 BERR_Code BHSM_Otp_EnableProgram_priv( BHSM_Handle hHsm, bool cacheProgRequest );
 
 

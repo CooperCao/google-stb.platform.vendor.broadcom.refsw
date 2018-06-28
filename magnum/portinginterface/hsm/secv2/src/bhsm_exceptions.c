@@ -56,6 +56,7 @@ BERR_Code  BHSM_Exception_GetMemcArch( BHSM_Handle hHsm, BHSM_ExceptionMemcArch_
     BDBG_ENTER( BHSM_Exception_GetMemcArch );
 
     if( !hHsm ) { return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pException ) { return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
 
     BKNI_Memset( &command, 0, sizeof(command) );
@@ -89,6 +90,7 @@ BERR_Code BHSM_ReadCaptureRegisters_priv( BHSM_Handle hHsm, BHSM_ReadCaptureRegi
     BDBG_ENTER(BHSM_ReadCaptureRegisters_priv );
 
     if( !hHsm ) { return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pRequest ) { return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR ); }
 
     BKNI_Memset( &capRegsCmd, 0, sizeof(capRegsCmd) );

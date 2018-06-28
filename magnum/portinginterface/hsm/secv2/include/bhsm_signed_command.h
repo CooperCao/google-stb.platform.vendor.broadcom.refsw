@@ -60,9 +60,9 @@ extern "C"
 typedef struct
 {
     /* input */
-    const uint8_t  *pCommand;                 /* Words 5 to 95 of command. Word 5 contains the "component" and "command" IDs */
+    const uint8_t  *pCommand;           /* Words 5 to 95 of command. Word 5 contains the "component" and "command" IDs */
     unsigned rsaKeyId;                  /* The Rsa Slot that the command is signed against. */
-    BSTD_DeviceOffset signatureOffset;  /* memory offset to signature. Valid of "enable" is true. */
+    BSTD_DeviceOffset signatureOffset;  /* memory offset to signature. Valid if "enable" is true. */
 
     /* output */
 

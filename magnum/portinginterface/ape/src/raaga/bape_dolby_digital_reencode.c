@@ -97,7 +97,7 @@ static bool BAPE_DolbyDigitalReencode_P_HasCompressedOutput(BAPE_DolbyDigitalRee
     return (handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eCompressed].directConnections > 0) ? true : false;
 }
 
-#if !BDSP_MS12_SUPPORT
+#if !BAPE_DSP_MS12_SUPPORT
 static bool BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(BAPE_DolbyDigitalReencodeHandle handle)
 {
     return (handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0) ? true : false;
@@ -113,7 +113,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     BAPE_DolbyDigitalReencodeSettings *pSettings   /* [out] default settings */
     )
 {
-    #if BDSP_MS12_SUPPORT
+    #if BAPE_DSP_MS12_SUPPORT
     BDSP_Raaga_Audio_DpcmrConfigParams * pRendererStageSettings;
     BDSP_Raaga_Audio_DDPEncConfigParams * pEncodeStageSettings;
     BDSP_Raaga_Audio_MixerDapv2ConfigParams * pDapv2Settings;
@@ -125,7 +125,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
-    #if BDSP_MS12_SUPPORT
+    #if BAPE_DSP_MS12_SUPPORT
     pRendererStageSettings = BKNI_Malloc(sizeof(BDSP_Raaga_Audio_DpcmrConfigParams));
     pEncodeStageSettings = BKNI_Malloc(sizeof(BDSP_Raaga_Audio_DDPEncConfigParams));
     pDapv2Settings = BKNI_Malloc(sizeof(BDSP_Raaga_Audio_MixerDapv2ConfigParams));
@@ -146,7 +146,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     }
     #endif
 
-    #if BDSP_MS12_SUPPORT
+    #if BAPE_DSP_MS12_SUPPORT
     BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDpcmr, (void *)pRendererStageSettings, sizeof(BDSP_Raaga_Audio_DpcmrConfigParams));
     BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDDPEncode, (void *)pEncodeStageSettings, sizeof(BDSP_Raaga_Audio_DDPEncConfigParams));
     BDSP_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMixerDapv2, (void *)pDapv2Settings, sizeof(BDSP_Raaga_Audio_MixerDapv2ConfigParams));
@@ -196,7 +196,7 @@ cleanup:
     {
         BKNI_Free(pEncodeStageSettings);
     }
-    #if BDSP_MS12_SUPPORT
+    #if BAPE_DSP_MS12_SUPPORT
     if ( pDapv2Settings )
     {
         BKNI_Free(pDapv2Settings);
@@ -331,7 +331,7 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
     handle->node.deviceContext = NULL; /* Will be initialized during Allocate sequence */
 
     /* Set Algo versions */
-    if (handle->version == BAPE_DolbyMSVersion_eMS12)
+    if (handle->version == BAPE_DolbyMSVersion_eMS12 || handle->version == BAPE_DolbyMSVersion_eMS11Plus)
     {
         handle->encodeAlgo = BDSP_Algorithm_eDDPEncode;
         handle->rendererAlgo = BDSP_Algorithm_eDpcmr;
@@ -831,7 +831,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
         }
 
         BAPE_PathNode_P_FindProducersBySubtype_isrsafe(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, pNodes);
-        #if BDSP_MS12_SUPPORT
+        #if BAPE_DSP_MS12_SUPPORT
         switch ( numFound ) {
         default:
         case 0:
@@ -840,7 +840,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
             handle->dspMixer = pNodes[0]->pHandle;
             break;
         }
-#endif
+        #endif
 
         errCode = BAPE_DolbyDigitalReencode_P_ApplyDspSettings(handle);
         if ( errCode )
@@ -1085,7 +1085,7 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(
     ddreSettings->drcScaleLowDownmix = pSettings->drcScaleLow;
 }
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
 static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     BAPE_DolbyDigitalReencodeHandle handle,
     BDSP_Raaga_Audio_DpcmrConfigParams *rendererStageSettings,
@@ -1372,7 +1372,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
 {
     bool externalPcmMode;
     BERR_Code errCode = BERR_SUCCESS;
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
     BDSP_Raaga_Audio_DpcmrConfigParams *pRendererStageSettings = NULL;
     BDSP_Raaga_Audio_DDPEncConfigParams *pEncodeStageSettings = NULL;
 #else
@@ -1381,7 +1381,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
 #endif
     BAPE_DolbyDigitalReencodeSettings *pLocalRendererSettings = NULL;
 
-    #if BDSP_MS12_SUPPORT
+    #if BAPE_DSP_MS12_SUPPORT
     pRendererStageSettings = BKNI_Malloc(sizeof(BDSP_Raaga_Audio_DpcmrConfigParams));
     pEncodeStageSettings = BKNI_Malloc(sizeof(BDSP_Raaga_Audio_DDPEncConfigParams));
     #else
@@ -1417,7 +1417,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
 
     if ( handle->hTranscodeStage )
     {
-        #if BDSP_MS12_SUPPORT
+        #if BAPE_DSP_MS12_SUPPORT
         errCode = BDSP_Stage_GetSettings(handle->hTranscodeStage, pEncodeStageSettings, sizeof(BDSP_Raaga_Audio_DDPEncConfigParams));
         #else
         errCode = BDSP_Stage_GetSettings(handle->hTranscodeStage, pEncodeStageSettings, sizeof(BDSP_Raaga_Audio_DDTranscodeConfigParams));
@@ -1521,7 +1521,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
             pLocalRendererSettings->externalPcmMode = true;
         }
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
         if (handle->dspMixer) {
             BAPE_MixerSettings mixerSettings;
             BAPE_Mixer_GetSettings(handle->dspMixer, &mixerSettings);
@@ -1537,7 +1537,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
         /* Translate DDRE settings to BDSP settings */
         BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(handle, pRendererStageSettings, pEncodeStageSettings, pLocalRendererSettings);
 
-        #if BDSP_MS12_SUPPORT
+        #if BAPE_DSP_MS12_SUPPORT
         errCode = BDSP_Stage_SetSettings(handle->hRendererStage, pRendererStageSettings, sizeof(BDSP_Raaga_Audio_DpcmrConfigParams));
         #else
         errCode = BDSP_Stage_SetSettings(handle->hRendererStage, pRendererStageSettings, sizeof(BDSP_Raaga_Audio_DDReencodeConfigParams));
@@ -1553,7 +1553,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
     {
         if ( BAPE_DolbyDigitalReencode_P_HasCompressedOutput(handle) )
         {
-            #if BDSP_MS12_SUPPORT
+            #if BAPE_DSP_MS12_SUPPORT
             BAPE_DSP_P_SET_VARIABLE((*pEncodeStageSettings), ui32DolbyCertificationFlag, handle->settings.encodeSettings.certificationMode ? BDSP_AF_P_eDisable : BDSP_AF_P_eEnable);
             BAPE_DSP_P_SET_VARIABLE((*pEncodeStageSettings), ui32Mode, BAPE_DolbyDigitalReencode_P_Has4xCompressedOutput(handle) ? 8 : 9);
             errCode = BDSP_Stage_SetSettings(handle->hTranscodeStage, pEncodeStageSettings, sizeof(BDSP_Raaga_Audio_DDPEncConfigParams));

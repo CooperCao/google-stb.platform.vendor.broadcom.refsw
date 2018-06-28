@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #if NEXUS_HAS_INPUT_ROUTER && NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_platform_client.h"
@@ -75,6 +79,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -max WIDTH,HEIGHT        max video decoder resolution\n"
     );
     printf(
+    "  -pig                     example of picture-in-graphics video window sizing\n"
     "  -smooth                  set smoothResolutionChange to disable scale factor rounding\n"
     "  -manual_4x3_box          example of client-side aspect ratio control\n"
     );
@@ -126,6 +131,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     printf(
     "  -secure                  use SVP secure picture buffers\n"
+    "  -secure_audio            use secure memory for audio cdb\n"
     "  -astm\n"
     "  -scan 1080p\n"
     "  -chunk                   chunked playback, size and first chunk is autodetected\n"
@@ -273,6 +279,25 @@ static void process_input(struct client_state *client, b_remote_key key, bool re
             media_player_frame_advance(client->player, true);
         }
         break;
+    case b_remote_key_next:
+        if (rate <= 0 || rate > 2*NEXUS_NORMAL_DECODE_RATE) {
+            rate = NEXUS_NORMAL_DECODE_RATE;
+        }
+        /* 1.2, 1.4, 1.7, 2 which is the max */
+        rate = rate * 6 / 5;
+        if (rate > 2*NEXUS_NORMAL_DECODE_RATE) {
+            rate = 2*NEXUS_NORMAL_DECODE_RATE;
+        }
+        rc = media_player_trick(client->player, rate);
+        break;
+    case b_remote_key_prev:
+        if (rate <= 0 || rate > NEXUS_NORMAL_DECODE_RATE) {
+            rate = NEXUS_NORMAL_DECODE_RATE;
+        }
+        /* .8, .6, .5, .4, etc. */
+        rate = rate * 5 / 6;
+        rc = media_player_trick(client->player, rate);
+        break;
     case b_remote_key_stop:
     case b_remote_key_back:
     case b_remote_key_clear:
@@ -357,6 +382,7 @@ int main(int argc, const char **argv)  {
     pthread_t standby_thread_id;
     NEXUS_VideoWindowContentMode contentMode = NEXUS_VideoWindowContentMode_eMax;
     NEXUS_TristateEnable fillContentModeBars = NEXUS_TristateEnable_eMax;
+    struct b_pig_inc pig_inc;
     bool manual_4x3_box = false;
     NEXUS_SurfaceClientHandle video_sc = NULL;
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
@@ -370,6 +396,7 @@ int main(int argc, const char **argv)  {
     bool hdcp_version_flag = false;
     unsigned video_cache_timeout = 0;
 
+    memset(&pig_inc, 0, sizeof(pig_inc));
     memset(client, 0, sizeof(*client));
     media_player_get_default_create_settings(&create_settings);
     media_player_get_default_start_settings(&start_settings);
@@ -417,6 +444,10 @@ int main(int argc, const char **argv)  {
                 nxapps_cmdline_parse(2, 4, argv, &cmdline);
             }
             start_settings.videoWindowType = NxClient_VideoWindowType_ePip;
+        }
+        else if (!strcmp(argv[curarg], "-pig")) {
+            pig_inc.y = pig_inc.x = 4;
+            pig_inc.width = 2;
         }
         else if (!strcmp(argv[curarg], "-smooth")) {
             start_settings.smoothResolutionChange = true;
@@ -564,6 +595,9 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-secure")) {
             start_settings.video.secure = true;
         }
+        else if (!strcmp(argv[curarg], "-secure_audio")) {
+            create_settings.audio.secure = true;
+        }
         else if (!strcmp(argv[curarg], "-astm")) {
             start_settings.astm = true;
         }
@@ -666,6 +700,9 @@ int main(int argc, const char **argv)  {
             settings.composition.fillContentModeBars = fillContentModeBars;
             NEXUS_SurfaceClient_SetSettings(video_sc, &settings);
         }
+        if (pig_inc.x) {
+            b_pig_init(video_sc);
+        }
     }
 
     if (!hdcp_flag || !hdcp_version_flag) {
@@ -746,7 +783,10 @@ int main(int argc, const char **argv)  {
             media_player_get_playback_status(client->player, &status);
             displayed = !gui_set_pos(client, status.position, status.first, status.last);
         }
-        {
+        if (pig_inc.x) {
+            b_pig_move(video_sc, &pig_inc);
+        }
+        else {
             b_remote_key key;
             bool repeat;
             if (!binput_read(client->input, &key, &repeat)) {
@@ -760,6 +800,10 @@ int main(int argc, const char **argv)  {
         /* don't wait until after other NxClient calls that may results in SurfaceCompositor work. This avoids an extra vsync of delay. */
         if (displayed) {
             rc = BKNI_WaitForEvent(client->displayedEvent, 5000);
+            if (rc) BERR_TRACE(rc);
+        }
+        else if (pig_inc.x) {
+            rc = BKNI_WaitForEvent(client->windowMovedEvent, 5000);
             if (rc) BERR_TRACE(rc);
         }
 
@@ -891,7 +935,17 @@ static void b_print_trickmode(char *buf, unsigned bufsize, const NEXUS_PlaybackT
         snprintf(buf, bufsize, "Pause");
     }
     else {
-        snprintf(buf, bufsize, "%dx", trickMode->rate/NEXUS_NORMAL_PLAY_SPEED);
+        int integer = trickMode->rate/NEXUS_NORMAL_PLAY_SPEED;
+        unsigned decimal = 0;
+        if (trickMode->rate > 0) {
+            decimal = (trickMode->rate%NEXUS_NORMAL_PLAY_SPEED)/100;
+        }
+        if (decimal == 0) {
+            snprintf(buf, bufsize, "%dx", integer);
+        }
+        else {
+            snprintf(buf, bufsize, "%d.%ux", integer, decimal);
+        }
     }
 }
 

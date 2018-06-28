@@ -492,6 +492,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PreInitAP(NEXUS_45308Device 
     return NEXUS_SUCCESS;
 err:
     /* Clean-up on error exit */
+    if (habHandle) { BHAB_Close(habHandle); }
     if (satHandle) { BSAT_Close(satHandle); }
     if (wfeHandle) { BWFE_Close(wfeHandle); }
     if (dsqHandle) { BDSQ_Close(dsqHandle); }
@@ -1449,6 +1450,12 @@ static NEXUS_Error NEXUS_Frontend_P_Get45308RuntimeSettings(void *handle, NEXUS_
 
     pSettings->selectedAdc = pSatChannel->selectedAdc;
     pSatChannel->diseqcIndex = pSatChannel->selectedAdc;
+
+    if (!pSatChannel->satDevice->satActive[pSatChannel->channel]) {
+        BDBG_MSG(("NEXUS_Frontend_P_Get45308RuntimeSettings: enabling %d",pSatChannel->channel));
+        BSAT_PowerUpChannel(pSatChannel->satChannel);
+        pSatChannel->satDevice->satActive[pSatChannel->channel] = true;
+    }
 
     e = BSAT_GetExternalBertSettings(p45308Device->satDevice->satHandle, &extBertSettings);
     if (!e) {

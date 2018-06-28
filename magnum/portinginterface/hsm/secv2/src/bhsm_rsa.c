@@ -53,11 +53,14 @@ BDBG_MODULE( BHSM );
 
 typedef struct BHSM_Rsa
 {
+    BDBG_OBJECT(BHSM_Rsa)
     BHSM_Handle hHsm;
     bool inUse;    /* only one instance allowed.  */
 }BHSM_Rsa;
 
 static uint8_t _BspRsaKeySize( BHSM_RsaKeySize rsaKeySize );
+
+BDBG_OBJECT_ID(BHSM_Rsa);
 
 BERR_Code BHSM_Rsa_Init( BHSM_Handle hHsm, BHSM_RsaModuleSettings *pSettings )
 {
@@ -103,12 +106,14 @@ BHSM_RsaHandle BHSM_Rsa_Open( BHSM_Handle hHsm )
     BDBG_ENTER( BHSM_Rsa_Open );
 
     if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !hHsm->modules.pRsa ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return NULL; }
 
     pRsa = hHsm->modules.pRsa; /* there is only one RSA instance in the system/chip. */
 
-    if( pRsa->inUse == true) { BERR_TRACE(BERR_NOT_AVAILABLE); return NULL; }
+    if( pRsa->inUse == true ) { BERR_TRACE(BERR_NOT_AVAILABLE); return NULL; }
 
+    BDBG_OBJECT_SET( pRsa, BHSM_Rsa );
     pRsa->inUse = true;
 
     BDBG_LEAVE( BHSM_Rsa_Open );
@@ -123,8 +128,10 @@ void BHSM_Rsa_Close( BHSM_RsaHandle handle )
     BDBG_ENTER( BHSM_Rsa_Close );
 
     if( !pRsa ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( pRsa, BHSM_Rsa );
     if( !pRsa->inUse ) { BERR_TRACE(BERR_NOT_INITIALIZED); return; }
 
+    BDBG_OBJECT_UNSET( pRsa, BHSM_Rsa );
     pRsa->inUse = false;
 
     BDBG_LEAVE( BHSM_Rsa_Close );
@@ -140,6 +147,8 @@ BERR_Code BHSM_Rsa_Exponentiate( BHSM_RsaHandle handle, const BHSM_RsaExponentia
     BDBG_ENTER( BHSM_Rsa_Exponentiate );
 
     if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( handle, BHSM_Rsa );
+    if( !handle->inUse ) { return BERR_TRACE(BERR_NOT_INITIALIZED); }
     if( !pSettings ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
@@ -165,6 +174,8 @@ BERR_Code BHSM_Rsa_GetResult( BHSM_RsaHandle handle, BHSM_RsaExponentiateResult 
     BDBG_ENTER( BHSM_Rsa_GetResult );
 
     if( !handle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( handle, BHSM_Rsa );
+    if( !handle->inUse ) { return BERR_TRACE(BERR_NOT_INITIALIZED); }
     if( !pResult ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );

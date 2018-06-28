@@ -809,7 +809,7 @@ void NEXUS_SimpleAudioDecoder_GetStcStatus_priv(NEXUS_SimpleAudioDecoderHandle h
     NEXUS_SimpleEncoder_GetStcStatus_priv(handle->encoder.handle, &pStatus->encoder);
 }
 
-NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle src, NEXUS_SimpleAudioDecoderHandle dest )
+NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle src, NEXUS_SimpleAudioDecoderHandle dest, bool allowRestart )
 {
 #if NEXUS_HAS_AUDIO
     int rc;
@@ -917,7 +917,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings( NEXUS_SimpleAudioDecode
     if (CONNECTED(dest)) {
         rc = NEXUS_SimpleAudioDecoder_SetSettings(dest, &dest->settings);
         if (rc) {rc = BERR_TRACE(rc);} /* fall through */
-        if (dest->clientStarted) {
+        if (dest->clientStarted && allowRestart) {
             rc = nexus_simpleaudiodecoder_p_start(dest);
             if (rc) {
                 rc = BERR_TRACE(rc); /* fall through */
@@ -1257,11 +1257,6 @@ error_start:
     return rc;
 }
 
-static void nexus_p_check_decoder(NEXUS_AudioDecoderHandle audioDecoder)
-{
-    NEXUS_AudioDecoder_GetConnector(audioDecoder, 0);
-}
-
 static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHandle handle )
 {
     unsigned i;
@@ -1278,13 +1273,6 @@ static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHa
     if (rc) {
         BERR_TRACE(rc);
         return;
-    }
-
-    if (handle->serverSettings.primary) {
-        nexus_p_check_decoder(handle->serverSettings.primary);
-    }
-    if (handle->serverSettings.secondary) {
-        nexus_p_check_decoder(handle->serverSettings.secondary);
     }
 
     if (handle->currentSpdifInput) {
@@ -3169,34 +3157,55 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_GetProcessorStatus( NEXUS_SimpleAudioDecode
                  handle->settings.processorSettings[selector].fade.connected ) {
                 NEXUS_AudioDecoderHandle decoder = NULL;
                 NEXUS_AudioMixerHandle mixer = handle->serverSettings.mixers.multichannel;
+                bool associateMixing = false;
 
                 switch (selector) {
                 default:
                     break;
                 case NEXUS_SimpleAudioDecoderSelector_ePrimary:
                     decoder = handle->serverSettings.primary;
+                    if (handle->startSettings.primary.mixingMode == NEXUS_AudioDecoderMixingMode_eDescription) {
+                        associateMixing = true;
+                    }
                     break;
                 case NEXUS_SimpleAudioDecoderSelector_eDescription:
                     decoder = handle->serverSettings.description;
+                    associateMixing = true;
                     break;
                 }
 
                 if ( mixer && decoder ) {
-                    NEXUS_AudioInputHandle input;
-                    NEXUS_AudioMixerInputStatus inputStatus;
                     NEXUS_Error rc;
+                    if (associateMixing) {
+                        NEXUS_AudioMixerStatus mixerStatus;
 
-                    input = NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioConnectorType_eMultichannel);
-                    rc = NEXUS_AudioMixer_GetInputStatus(mixer, input, &inputStatus);
-                    if ( rc != NEXUS_SUCCESS ) {
-                        return rc;
+                        rc = NEXUS_AudioMixer_GetStatus(mixer, &mixerStatus);
+                        if ( rc != NEXUS_SUCCESS ) {
+                            return rc;
+                        }
+
+                        pStatus->type = NEXUS_AudioPostProcessing_eFade;
+                        pStatus->status.fade.active = mixerStatus.mainDecodeFade.active;
+                        pStatus->status.fade.level = mixerStatus.mainDecodeFade.level;
+                        pStatus->status.fade.remaining = mixerStatus.mainDecodeFade.remaining;
+                        return NEXUS_SUCCESS;
                     }
+                    else {
+                        NEXUS_AudioInputHandle input;
+                        NEXUS_AudioMixerInputStatus inputStatus;
 
-                    pStatus->type = NEXUS_AudioPostProcessing_eFade;
-                    pStatus->status.fade.active = inputStatus.fade.active;
-                    pStatus->status.fade.level = inputStatus.fade.level;
-                    pStatus->status.fade.remaining = inputStatus.fade.remaining;
-                    return NEXUS_SUCCESS;
+                        input = NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioConnectorType_eMultichannel);
+                        rc = NEXUS_AudioMixer_GetInputStatus(mixer, input, &inputStatus);
+                        if ( rc != NEXUS_SUCCESS ) {
+                            return rc;
+                        }
+
+                        pStatus->type = NEXUS_AudioPostProcessing_eFade;
+                        pStatus->status.fade.active = inputStatus.fade.active;
+                        pStatus->status.fade.level = inputStatus.fade.level;
+                        pStatus->status.fade.remaining = inputStatus.fade.remaining;
+                        return NEXUS_SUCCESS;
+                    }
                 }
             }
         }

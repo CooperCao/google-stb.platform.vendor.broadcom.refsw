@@ -17,6 +17,11 @@ if [ ! -z $TEST ]; then
     rmmod brcmv3d
 fi
 
+TEST=`lsmod|grep bcm_astra >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod bcm_astra
+fi
+
 if [ -e ./../../lib/modules/brcmv3d.ko ]; then
     insmod ./../../lib/modules/brcmv3d.ko
 fi
@@ -28,6 +33,10 @@ elif [ -e ./../../lib/modules/bcmdriver.ko ]; then \
 	mknod /dev/brcm0 c 30 0; \
 else \
 	echo "Drivers are missing"; \
+fi
+
+if [ -e ./../../lib/modules/bcm_astra.ko ]; then
+    insmod ./../../lib/modules/bcm_astra.ko
 fi
 
 # Start whatever application is requested

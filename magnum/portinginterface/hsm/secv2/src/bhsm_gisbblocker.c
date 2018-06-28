@@ -57,6 +57,10 @@ BERR_Code BHSM_GisbBlocker_Enable( BHSM_Handle hHsm, BHSM_GisbBlockerEnable *pPa
 
     BDBG_ENTER( BHSM_GisbBlocker_Enable );
 
+    if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+    if( !pParam ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );
 
     bspConfig.in.gisbBlockerStartAddrLo = pParam->addr & 0xFFFFFFFF;

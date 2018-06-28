@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -348,7 +352,11 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
         feed_cfg.numDesc = p->openSettings.numDescriptors;
     }
     feed_cfg.applicationCnxt = p;
+#if NEXUS_TRANSPORT_EXTENSION_CRC
+    feed_cfg.useExtndedDesc = true;
+#else
     feed_cfg.useExtndedDesc = pSettings->streamMuxCompatible || pSettings->descriptorPacingEnabled;
+#endif
     feed_cfg.descAvaliable_isr = NEXUS_P_Playpump_DescAvail_isr;
     feed_cfg.offsetToCachedAddr = NEXUS_OffsetToCachedAddr;
     feed_cfg.flushCache = NEXUS_FlushCache;
@@ -1016,6 +1024,7 @@ static NEXUS_Error NEXUS_Playpump_Start_priv(NEXUS_PlaypumpHandle p, bool muxInp
         cfg.PacingCounter = p->pacingCounter;
     }
 #endif
+
     rc = BXPT_Playback_SetChannelSettings(p->xpt_play, &cfg);
     if (rc) {rc=BERR_TRACE(rc);goto error;}
 
@@ -1283,7 +1292,7 @@ void NEXUS_Playpump_GetDefaultWriteCompleteSettings(
     BKNI_Memset(Settings, 0, sizeof(*Settings));
 }
 
-NEXUS_Error NEXUS_Playpump_WriteCompleteWithSettings(NEXUS_PlaypumpHandle p, unsigned skip, unsigned amount_used, const NEXUS_PlaypumpWriteCompleteSettings *pSettings )
+NEXUS_Error b_playpump_write_complete(NEXUS_PlaypumpHandle p, unsigned skip, unsigned amount_used, const NEXUS_PlaypumpWriteCompleteSettings *pSettings, const void *crcSettings )
 {
     BERR_Code rc;
     unsigned amount_to_commit = skip + amount_used;
@@ -1318,13 +1327,18 @@ NEXUS_Error NEXUS_Playpump_WriteCompleteWithSettings(NEXUS_PlaypumpHandle p, uns
     /* make sure it's in the physical memory so the chip can read it */
     BDBG_MSG_FLOW(("write_complete %#lx:%u %u %#lx", (unsigned long)p->state.last_addr, skip, amount_used, (unsigned long)BFIFO_WRITE(&p->activeFifo)));
 
-    rc = b_playpump_p_add_request(p, amount_to_skip, amount_to_commit - amount_to_skip, NULL, &settings);
+    rc = b_playpump_p_add_request(p, amount_to_skip, amount_to_commit - amount_to_skip, NULL, &settings, crcSettings);
     if (rc) return BERR_TRACE(rc);
 
     p->state.last_addr = NULL;
     p->state.last_size = 0;
 
     return 0;
+}
+
+NEXUS_Error NEXUS_Playpump_WriteCompleteWithSettings(NEXUS_PlaypumpHandle p, unsigned skip, unsigned amount_used, const NEXUS_PlaypumpWriteCompleteSettings *pSettings )
+{
+    return b_playpump_write_complete(p, skip, amount_used, pSettings, NULL);
 }
 
 NEXUS_Error NEXUS_Playpump_SubmitScatterGatherDescriptor(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpScatterGatherDescriptor *pDesc, size_t numDescriptors, size_t *pNumConsumed)
@@ -1358,7 +1372,7 @@ NEXUS_Error NEXUS_Playpump_SubmitScatterGatherDescriptor(NEXUS_PlaypumpHandle p,
 
     BDBG_MSG_FLOW(("submit_sg %#lx: %#lx", (unsigned long)p->state.last_addr, (unsigned long)BFIFO_WRITE(&p->activeFifo)));
 
-    rc = b_playpump_p_add_request(p, 0, numDescriptors*sizeof(NEXUS_PlaypumpScatterGatherDescriptor), pDesc, &settings);
+    rc = b_playpump_p_add_request(p, 0, numDescriptors*sizeof(NEXUS_PlaypumpScatterGatherDescriptor), pDesc, &settings, NULL);
     if (rc) return BERR_TRACE(rc);
 
     *pNumConsumed = numDescriptors;

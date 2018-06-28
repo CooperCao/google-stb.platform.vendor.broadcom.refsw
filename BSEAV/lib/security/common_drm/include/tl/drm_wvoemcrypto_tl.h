@@ -965,6 +965,10 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
 			       uint32_t license_type,
                                int *wvRc);
 
+DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox,
+                                     uint32_t keyBoxLength,
+                                     int *wvRc);
+
 #ifdef __cplusplus
 }
 #endif

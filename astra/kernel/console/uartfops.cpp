@@ -45,6 +45,7 @@
 #include "eventqueue.h"
 #include "poll.h"
 #include "uartfops.h"
+#include "uart_boot.h"
 
 using namespace UartFops;
 
@@ -69,10 +70,17 @@ size_t UartFile::write(const void *data, const size_t numBytes, const uint64_t o
     UNUSED(offset);
     const uint8_t *cdata = (const uint8_t *)data;
     for (size_t i=0; i<numBytes; i++) {
-        if (cdata[i] == '\n')
-            if(IUart::uart) IUart::uart->putc('\r');
+        if (cdata[i] == '\n'){
+            if(IUart::uart)
+                IUart::uart->putc('\r');
+            else
+                early_uart_putc('\r');
+        }
 
-        if(IUart::uart) IUart::uart->putc(cdata[i]);
+        if(IUart::uart)
+            IUart::uart->putc(cdata[i]);
+        else
+            early_uart_putc(cdata[i]);
     }
 
     return numBytes;
@@ -103,7 +111,10 @@ size_t UartFile::read(const void *data, const size_t numBytes, const uint64_t of
     uint8_t *cdata = (uint8_t *)data;
     while (readCount < numBytes) {
         char c;
-        if(IUart::uart) IUart::uart->getc(&c);
+        if(IUart::uart)
+            IUart::uart->getc(&c);
+        else
+            return readCount;
 
         if (c == '\r')
             break;

@@ -7349,6 +7349,39 @@ void BXPT_Rave_AdvanceSoftContext(
         BDBG_MSG(("DestCtx->SoftRave.src_itb_base " BDBG_UINT64_FMT ", DestCtx->SoftRave.dest_itb_base " BDBG_UINT64_FMT "",
                   BDBG_UINT64_ARG(DestCtx->SoftRave.src_itb_base), BDBG_UINT64_ARG(DestCtx->SoftRave.dest_itb_base) ));
 
+        if ((DestCtx->SoftRave.SpliceLiveState != eSpliceStopLive_Disabled) &&
+            (DestCtx->SoftRave.mode = BXPT_RaveSoftMode_eDynamic_Splice)) {
+            /* Wait for pcr offset state machine:
+               - wait until pcr offset is received
+               - skip two invocations of this function
+               - setup stop point to trigger on any PTS and turn off SpliceLiveStopMode.
+               - if another pcr offset is received while skipping, restart from skip step
+               This state machine waits until pcr offset entries will stop coming within
+               about 100ms of one another. Second portion of the state machine is
+               where brave_itb_pcr_offset entry is processed for eDynamic_Splice.
+             */
+            switch(DestCtx->SoftRave.SpliceLiveState) {
+            case eSpliceStopLive_Start:
+                break;
+            case eSpliceStopLive_FoundPcrOffset:
+                DestCtx->SoftRave.SpliceLiveState = eSpliceStopLive_WaitOne;
+                break;
+            case eSpliceStopLive_WaitOne:
+                DestCtx->SoftRave.SpliceLiveState = eSpliceStopLive_WaitTwo;
+                break;
+            case eSpliceStopLive_WaitTwo:
+                DestCtx->SoftRave.splice_stop_PTS = 0x1;
+                DestCtx->SoftRave.splice_stop_PTS_tolerance = 0xfffffffe;
+                DestCtx->SoftRave.SpliceStopPTSFlag = true;
+                DestCtx->SoftRave.InsertStopPts = true;
+                DestCtx->SoftRave.StopMarkerInserted = false;
+                DestCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Disabled;
+                break;
+            default:
+                break;
+            }
+        }
+
         while (cur_src_itb < src_valid)
         {
             dest_itb = (uint32_t*)&DestCtx->SoftRave.dest_itb_mem[dest_valid - DestCtx->SoftRave.dest_itb_base];
@@ -8015,6 +8048,21 @@ void BXPT_Rave_AdvanceSoftContext(
                         }
                         else
                         {
+                            switch (DestCtx->SoftRave.SpliceLiveState) {
+                            case eSpliceStopLive_Disabled:
+                                break;
+                            case eSpliceStopLive_Start:
+                                DestCtx->SoftRave.SpliceLiveState = eSpliceStopLive_FoundPcrOffset;
+                                break;
+                            case eSpliceStopLive_WaitOne:
+                            case eSpliceStopLive_WaitTwo:
+                                if (DestCtx->SoftRave.splice_last_pcr_offset != src_itb[1]) {
+                                    DestCtx->SoftRave.SpliceLiveState = eSpliceStopLive_FoundPcrOffset;
+                                }
+                                break;
+                            default:
+                                break;
+                            }
                             DestCtx->SoftRave.splice_last_pcr_offset = src_itb[1];
                             COPY_ITB();
                         }
@@ -8241,6 +8289,7 @@ BERR_Code BXPT_Rave_ResetSoftContext(
     hCtx->SoftRave.SpliceAddPTSOffset = false;
     hCtx->SoftRave.SplicePTSOffset = 0;
     hCtx->SoftRave.SpliceLastPTS = 0;
+    hCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Disabled;
 
     return BXPT_Rave_FlushContext( hCtx );
 }
@@ -8260,6 +8309,7 @@ BERR_Code BXPT_Rave_StopPTS(
         hCtx->SoftRave.SpliceStopPTSCB = NULL;
         hCtx->SoftRave.SpliceStopPTSCBParam =NULL;
         hCtx->SoftRave.InsertStopPts = false;
+        hCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Disabled;
     }
     else
     {
@@ -8270,6 +8320,7 @@ BERR_Code BXPT_Rave_StopPTS(
     hCtx->SoftRave.SpliceStopPTSCBParam = param;
     hCtx->SoftRave.InsertStopPts = true;
     hCtx->SoftRave.StopMarkerInserted = false;
+    hCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Disabled;
     }
     return BERR_SUCCESS;
 }
@@ -8289,6 +8340,7 @@ BERR_Code BXPT_Rave_StartPTS(
     hCtx->SoftRave.InsertStartPts = false;
     hCtx->SoftRave.SpliceStartPTSCB = NULL;
     hCtx->SoftRave.SpliceStartPTSCBParam = NULL;
+    hCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Disabled;
     }
     else
     {
@@ -8299,10 +8351,27 @@ BERR_Code BXPT_Rave_StartPTS(
     hCtx->SoftRave.StartMarkerInserted = false;
     hCtx->SoftRave.SpliceStartPTSCB = StartPTSCb;
     hCtx->SoftRave.SpliceStartPTSCBParam = param;
+    hCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Disabled;
     }
     return BERR_SUCCESS;
 }
 
+BERR_Code BXPT_Rave_StopLive (
+    BXPT_RaveCx_Handle hCtx,
+    void (* StopPTSCb)(void *, uint32_t pts),
+    void * param
+    )
+{
+    hCtx->SoftRave.splice_stop_PTS = 0;
+    hCtx->SoftRave.splice_stop_PTS_tolerance = 0 ;
+    hCtx->SoftRave.SpliceStopPTSFlag = false;
+    hCtx->SoftRave.SpliceStopPTSCB = StopPTSCb;
+    hCtx->SoftRave.SpliceStopPTSCBParam = param;
+    hCtx->SoftRave.InsertStopPts = false;
+    hCtx->SoftRave.StopMarkerInserted = false;
+    hCtx->SoftRave.SpliceLiveState = eSpliceStopLive_Start;
+    return BERR_SUCCESS;
+}
 
 
 #if (!B_REFSW_MINIMAL)

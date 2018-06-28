@@ -1132,6 +1132,22 @@ static void setup_gui()
             LOGE(("video decoder not available"));
             exit(EXIT_FAILURE);
         }
+
+        /* Check if decoder needs larger max */
+        uint32_t width = 0;
+        uint32_t height = 0;
+        if (!s_app.parser[0]->GetVideoResolution(&width, &height)) {
+            LOGW(("failed to get video resolution"));
+        }
+        LOGW(("Video resolution: %dx%d", width, height));
+
+        NEXUS_VideoDecoderSettings decSettings;
+        NEXUS_VideoDecoder_GetSettings(s_app.videoDecoder[0], &decSettings);
+        if (width > decSettings.maxWidth || height > decSettings.maxHeight) {
+            decSettings.maxWidth = width;
+            decSettings.maxHeight = height;
+            NEXUS_VideoDecoder_SetSettings(s_app.videoDecoder[0], &decSettings);
+        }
     } else
     for (int i = 0; i < s_app.num_mosaics; i++)
     {
@@ -1857,13 +1873,13 @@ int main(int argc, char* argv[])
 
     LOGD(("@@@ Check Point #01"));
 
-    setup_gui();
-
-    setup_streamers();
-
     setup_files();
 
     setup_parsers();
+
+    setup_gui();
+
+    setup_streamers();
 
     setup_decryptors();
 

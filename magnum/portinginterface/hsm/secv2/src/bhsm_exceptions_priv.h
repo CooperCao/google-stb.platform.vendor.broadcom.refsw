@@ -67,7 +67,8 @@ typedef struct{
 
 }BHSM_ReadCaptureRegistersRequest;
 
-BERR_Code BHSM_ReadCaptureRegisters_priv( BHSM_Handle hHsm, BHSM_ReadCaptureRegistersRequest *pException );
+BERR_Code BHSM_ReadCaptureRegisters_priv( BHSM_Handle hHsm,
+                                          BHSM_ReadCaptureRegistersRequest *pException );
 
 #ifdef __cplusplus
 } /* extern "C" */

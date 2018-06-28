@@ -92,7 +92,6 @@ typedef struct B_AspInput
     int                                     switchPortNumberForRemoteNode;
 
     B_AspInputStatus                        status;
-    NEXUS_AspInputStatus                    nexusStatus;                /* Saved previous Nexus ASP status. */
     NEXUS_AspInputHttpStatus                nexusHttpStatus;            /* Saved previous Nexus ASP status. */
     bool                                    nexusHttpStatusIsValid;     /* true => nexusStatus has been populated. */
     B_Time                                  nexusHttpStatusTime;        /* Time that nexusStatus was acquired. */
@@ -125,7 +124,6 @@ static void endOfStreamingCallback(
     /* Get the latest status from Nexus. */
     {
         NEXUS_AspInput_GetStatus(hAspInput->hNexusAspInput, &nexusStatus);
-        hAspInput->nexusStatus = nexusStatus;
     }
 
     /* The endOfStreaming callback must have been invoked because of one of these events! */
@@ -778,6 +776,13 @@ static NEXUS_Error processConnectHttpApi_locked(
         NEXUS_AspInputSettings settings;
 
         NEXUS_AspInput_GetSettings(hAspInput->hNexusAspInput, &settings);
+
+        settings.endOfStreaming.callback = endOfStreamingCallback;
+        settings.endOfStreaming.context = hAspInput;
+
+        settings.bufferReady.callback = bufferReadyCallback;
+        settings.bufferReady.context = hAspInput;
+
         settings.httpResponseDataReady.callback = httpResponseDataReadyCallback;
         settings.httpResponseDataReady.context = hAspInput;
         nrc = NEXUS_AspInput_SetSettings(hAspInput->hNexusAspInput, &settings);
@@ -951,8 +956,15 @@ error:
         NEXUS_AspInputSettings settings;
 
         NEXUS_AspInput_GetSettings(hAspInput->hNexusAspInput, &settings);
+
+        settings.endOfStreaming.callback = NULL;
+        settings.endOfStreaming.context  = NULL;
+
+        settings.bufferReady.callback = NULL;
+        settings.bufferReady.context  = NULL;
+
         settings.httpResponseDataReady.callback = NULL;
-        settings.httpResponseDataReady.context = NULL;
+        settings.httpResponseDataReady.context  = NULL;
         NEXUS_AspInput_SetSettings(hAspInput->hNexusAspInput, &settings);
     }
 
@@ -1247,25 +1259,6 @@ NEXUS_Error B_AspInput_Start(
         hAspInput->startSettings = *pSettings;
     }
 
-    /* Setup the callbacks with Nexus. */
-    {
-        NEXUS_AspInputSettings settings;
-
-        NEXUS_AspInput_GetSettings(hAspInput->hNexusAspInput, &settings);
-
-        settings.endOfStreaming.callback = endOfStreamingCallback;
-        settings.endOfStreaming.context = hAspInput;
-
-        settings.bufferReady.callback = bufferReadyCallback;
-        settings.bufferReady.context = hAspInput;
-
-        settings.httpResponseDataReady.callback = httpResponseDataReadyCallback;
-        settings.httpResponseDataReady.context = hAspInput;
-
-        nrc = NEXUS_AspInput_SetSettings(hAspInput->hNexusAspInput, &settings);
-        B_ASP_CHECK_GOTO(nrc == NEXUS_SUCCESS, ("hAspInput=%p: NEXUS_AspInput_SetSettings() Failed", (void *)hAspInput), error_class_unlock, nrc, nrc);
-    }
-
     /* Update DRM Settings w/ Nexus AspInput. */
     if (hAspInput->drmType == B_AspInputDrmType_eDtcpIp)
     {
@@ -1320,6 +1313,7 @@ NEXUS_Error B_AspInput_GetStatus(
     )
 {
     NEXUS_Error nrc;
+    NEXUS_AspInputStatus   nexusStatus;
 
     BDBG_ASSERT(hAspInput);
     BDBG_ASSERT(pStatus);
@@ -1342,21 +1336,14 @@ NEXUS_Error B_AspInput_GetStatus(
 
     /* Get current status from Nexus & fill-in the caller's structure. */
     {
-        nrc = NEXUS_AspInput_GetStatus(hAspInput->hNexusAspInput, &hAspInput->nexusStatus);
+        nrc = NEXUS_AspInput_GetStatus(hAspInput->hNexusAspInput, &nexusStatus);
         B_ASP_CHECK_GOTO(nrc == NEXUS_SUCCESS, ("hAspInput=%p: NEXUS_AspInput_GetStatus() Failed", (void *)hAspInput), error_class_unlock, nrc, nrc);
 
-        pStatus->aspChannelIndex    = hAspInput->nexusStatus.aspChannelIndex;
+        pStatus->aspChannelIndex    = nexusStatus.aspChannelIndex;
         pStatus->state              = hAspInput->state;
-        pStatus->remoteDoneSending  = hAspInput->nexusStatus.remoteDoneSending;
-        pStatus->connectionReset    = hAspInput->nexusStatus.connectionReset;
-        pStatus->networkTimeout     = hAspInput->nexusStatus.networkTimeout;
-
-#if 0 /* ******************** Temporary by Gary **********************/
-        nrc = NEXUS_AspInput_GetHttpStatus(hAspInput->hNexusAspInput, &hAspInput->nexusHttpStatus);
-        B_ASP_CHECK_GOTO(nrc == NEXUS_SUCCESS, ("hAspInput=%p: NEXUS_AspInput_GetHttpStatus() Failed", (void *)hAspInput), error_class_unlock, nrc, nrc);
-
-        pStatus->bytesStreamed = hAspInput->nexusHttpStatus.tcp.mcpbConsumedInBytes;
-#endif /* ******************** Temporary by Gary **********************/
+        pStatus->remoteDoneSending  = nexusStatus.remoteDoneSending;
+        pStatus->connectionReset    = nexusStatus.connectionReset;
+        pStatus->networkTimeout     = nexusStatus.networkTimeout;
     }
 
 error_class_unlock:
@@ -1646,7 +1633,7 @@ void B_AspInput_PrintStatus(
             txBitRate = hAspInput->txBitRate;      /* use last reported bit rate */
             rxBitRate = hAspInput->rxBitRate;      /* use last reported bit rate */
 
-#if 0
+#if 1
             BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld savedBitRate=%u diffTime=%lu\n",
                         BSTD_FUNCTION, __LINE__,
                         nexusStatus.aspChannelIndex,
@@ -1664,13 +1651,14 @@ void B_AspInput_PrintStatus(
             txBitRate = (((nexusHttpStatus.tcp.mcpbConsumedInBytes - hAspInput->nexusHttpStatus.tcp.mcpbConsumedInBytes)*8*1000000)/diffTimeInUs);
             rxBitRate = (((uint64_t)(nexusHttpStatus.tcp.fwStats.rcvdSequenceNumber - hAspInput->nexusHttpStatus.tcp.fwStats.rcvdSequenceNumber))*8*1000000)/diffTimeInUs;
 
-#if 0
-            BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld byte count=%lu diffBytes=%lu diffTime=%lu\n",
+#if 1
+            BDBG_LOG(("%s : %d : Ch=%d nowTimeInMs=%ld %ld prevTimeInMs=%ld %ld now bytes=%lu prev bytes=%lu diffBytes=%lu diffTime=%lu\n",
                         BSTD_FUNCTION, __LINE__,
                         nexusStatus.aspChannelIndex,
                         nexusHttpStatusTime.tv_sec, nexusHttpStatusTime.tv_usec,
                         hAspInput->nexusHttpStatusTime.tv_sec, hAspInput->nexusHttpStatusTime.tv_usec,
                         nexusHttpStatus.tcp.mcpbConsumedInBytes,
+                        hAspInput->nexusHttpStatus.tcp.mcpbConsumedInBytes,
                         nexusHttpStatus.tcp.mcpbConsumedInBytes - hAspInput->nexusHttpStatus.tcp.mcpbConsumedInBytes,
                         diffTimeInUs ));
 #endif
@@ -1743,7 +1731,7 @@ void B_AspInput_PrintStatus(
                 pStatus->tcp.nwSwRxP0InDiscards,
                 pStatus->tcp.xptMcpbConsumedInTsPkts, pStatus->tcp.xptMcpbConsumedInBytes
              ));
-    BDBG_LOG(("FwStats[ch=%d]: window: congestion=%u rcv=%u send=%u, pkts: sent=%"PRId64 " rcvd=%"PRId64 " dropped=%u dataDropped=%u retx=%d, seq#: send=%x ack=%x rcvd=%x retx=%x rx: xptDesc=%u bytes=%u",
+    BDBG_LOG(("FwStats[ch=%d]: window: congestion=%u rcv=%u send=%u, pkts: sent=%"PRId64 " rcvd=%"PRId64 " dropped=%u dataDropped=%u retx=%d, seq#: send=%x ack=%x rcvd=%x retx=%x rx: xptDesc=%u bytes=%u OutOfOrder pkts=%u events=%u curEvents=%u",
                 nexusStatus.aspChannelIndex,
                 nexusHttpStatus.tcp.fwStats.congestionWindow,
                 nexusHttpStatus.tcp.fwStats.receiveWindow,
@@ -1758,7 +1746,10 @@ void B_AspInput_PrintStatus(
                 nexusHttpStatus.tcp.fwStats.rcvdSequenceNumber,
                 nexusHttpStatus.tcp.fwStats.retxSequenceNumber,
                 nexusHttpStatus.tcp.fwStats.descriptorsFedToXpt,
-                nexusHttpStatus.tcp.fwStats.bytesFedToXpt
+                nexusHttpStatus.tcp.fwStats.bytesFedToXpt,
+                nexusHttpStatus.tcp.fwStats.outOfOrderPacketsRcvd,
+                nexusHttpStatus.tcp.fwStats.outOfOrderEventsRcvd,
+                nexusHttpStatus.tcp.fwStats.curOutOfOrderEventsRcvd
              ));
 
     hAspInput->nexusHttpStatus = nexusHttpStatus;

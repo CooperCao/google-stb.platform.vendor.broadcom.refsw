@@ -100,7 +100,8 @@ BDBG_MODULE(asp_streamer);
 #define APP_VIDEO_PID       50
 #define APP_PCR_PID         49
 #elif HBO
-#define FILE_NAME_TO_STREAM     "./videos/HboMpeg2HD.mpg"
+/*#define FILE_NAME_TO_STREAM     "./videos/HboMpeg2HD.mpg"*/
+#define FILE_NAME_TO_STREAM     "./videos/Hbo1.mpg"
 #define APP_TRANSPORT_TYPE  NEXUS_TransportType_eTs
 #define APP_AUDIO_CODEC     7       /* AC3 */
 #define APP_AUDIO_PID       20
@@ -188,6 +189,39 @@ static int createTcpListener(
     return (socketFd);
 }
 
+static int getSocketAddrInfo(
+    int                         socketFd,           /* in: fd of socket to be offloaded from host to ASP. */
+    struct sockaddr_in          *pLocalIpAddr,
+    struct sockaddr_in          *pRemoteIpAddr
+    )
+{
+    int rc;
+    int addrLen = sizeof(*pLocalIpAddr);
+
+    /* Get local ip_addr and port details.*/
+    rc = getsockname(socketFd, (struct sockaddr *)pLocalIpAddr, (socklen_t *)&addrLen);
+    if (rc!=0) {BDBG_ERR(("failed to get local address info..")); goto error;}
+    BDBG_LOG(("%s: LocalIpAddr:Port %s:%d", __FUNCTION__, inet_ntoa(pLocalIpAddr->sin_addr), ntohs(pLocalIpAddr->sin_port)));
+
+#if ENDIANNESS_DEBUG
+    {
+        uint8_t *pByte = (uint8_t *)&pSocketState->localIpAddr.sin_port;
+        BDBG_MSG(("local port in hex=0x%x (Linux returned in BE, shown in LE on ARM), byte[0]=0x%x byte[1]=0x%x", pSocketState->localIpAddr.sin_port, pByte[0], pByte[1]));
+        pByte = (uint8_t *)&pSocketState->localIpAddr.sin_addr.s_addr;
+        BDBG_LOG(("local IP in hex=0x%x , Linux returned in BE, shown in LE on ARM), byte[0]=0x%x byte[1]=0x%x byte[2]=0x%x byte[3]=0x%x", pSocketState->localIpAddr.sin_addr.s_addr, pByte[0], pByte[1], pByte[2], pByte[3]));
+    }
+#endif
+    /* Get remote ip_addr and port details.*/
+    addrLen = sizeof(*pRemoteIpAddr);
+    rc = getpeername(socketFd, (struct sockaddr *)pRemoteIpAddr, (socklen_t *)&addrLen);
+    if (rc!=0) {BDBG_ERR(("failed to get local address info..")); goto error;}
+    BDBG_LOG(("%s: RemoteIpAddr:Port %s:%d", __FUNCTION__, inet_ntoa(pRemoteIpAddr->sin_addr), ntohs(pRemoteIpAddr->sin_port)));
+    return 0;
+
+error:
+    return -1;
+} /* getSocketAddrInfo */
+
 static int acceptConnection(
     int listenerSockFd
     )
@@ -201,6 +235,7 @@ static int acceptConnection(
     BDBG_ASSERT(socketFd >= 0);
 
     BDBG_LOG(("%s: Accepted connection: on socketFd=%d", BSTD_FUNCTION, listenerSockFd, socketFd));
+
     return (socketFd);
 } /* acceptConnection */
 
@@ -270,6 +305,23 @@ static int prepareHttpResponse(
             );
     BDBG_LOG(("HTTP Response (length=%u) -->\n\t%s", *pBytesToWrite, pHttpBuffer));
 } /* prepareHttpResponse */
+
+static int sendHttpResponse(
+    int socketFd,
+    char *pHttpBuffer,
+    size_t bytesToWrite
+    )
+{
+    size_t bytesWritten;
+
+    bytesWritten = write(socketFd, pHttpBuffer, bytesToWrite);
+    if (bytesWritten != bytesToWrite)
+    {
+        BDBG_ERR(("%s: Failed to write=%u bytes, wrote=%d, errno=%d", BSTD_FUNCTION, bytesToWrite, bytesWritten, errno));
+        return -1;
+    }
+    return (0);
+}
 
 static void callbackFromNexusAsp(
     void *context,
@@ -361,6 +413,7 @@ static void drainStreamer(
     }
 } /* drainStreamer */
 
+static bool socketError = false;
 static void dataReadyCallbackFromRecpump(
     void *pContext,
     int   socketFd
@@ -383,6 +436,7 @@ static void dataReadyCallbackFromRecpump(
     if (rc != bufferLength)
     {
         BDBG_ERR(("%s: Failed to write=%u bytes, wrote=%d, errno=%d", BSTD_FUNCTION, bufferLength, rc, errno));
+        socketError = true;
     }
     else
     {
@@ -653,6 +707,19 @@ int main(int argc, char *argv[])
             BDBG_ASSERT(nrc == NEXUS_SUCCESS);
         }
     } /* !disableOffload */
+    else
+    {
+        /* Send HTTP Response */
+#define HTTP_BUFFER_SIZE    2048
+        char                    httpBuffer[HTTP_BUFFER_SIZE];
+        size_t                  bytesToWrite;
+
+        rc = prepareHttpResponse( httpBuffer, HTTP_BUFFER_SIZE, &bytesToWrite );
+        BDBG_ASSERT(rc == 0);
+
+        nrc = sendHttpResponse( socketFdToOffload, httpBuffer, bytesToWrite );
+        BDBG_ASSERT(nrc == 0);
+    }
 
 
     /* All Streaming related setup is complete, so start Nexus Playback Producer. */
@@ -670,7 +737,11 @@ int main(int argc, char *argv[])
         BERR_Code rc;
 
         rc = BKNI_WaitForEvent(hEofEvent, 1000);
-        if (rc == BERR_TIMEOUT && !hAspOutput)
+        if (socketError)
+        {
+            break;
+        }
+        else if (rc == BERR_TIMEOUT && !hAspOutput)
         {
             continue;
         }

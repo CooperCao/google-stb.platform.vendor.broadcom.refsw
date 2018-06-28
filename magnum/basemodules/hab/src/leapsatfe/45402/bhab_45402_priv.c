@@ -318,7 +318,7 @@ BERR_Code BHAB_45402_P_InitAp(
 
          for (retries = 0; retries < 3; retries++)
          {
-            BDBG_ERR(("writing %d bytes starting from 0x%04X", n, fwAddr + chunk*chunk_size));
+            BDBG_MSG(("writing %d bytes starting from 0x%04X", n, fwAddr + chunk*chunk_size));
             retCode = BHAB_45402_P_WriteMemory(h, fwAddr + chunk*chunk_size, (uint8_t*)pImage, n);
             if (retCode == BERR_SUCCESS)
             {
@@ -887,7 +887,6 @@ BERR_Code BHAB_45402_P_SendHabCommand(
 ******************************************************************************/
 BERR_Code BHAB_45402_P_Reset(BHAB_Handle h)
 {
-   BHAB_45402_P_Handle *pImpl = (BHAB_45402_P_Handle *)(h->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t val32;
 

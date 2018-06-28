@@ -170,6 +170,12 @@ EXTRA_INSTALL += bcmdriver_install
 ifeq ($(NEXUS_TEE_SUPPORT),y)
 EXTRA_CLEAN += astra_clean astra_drv_clean
 EXTRA_INSTALL += astra_install astra_drv_install
+ifeq ($(NEXUS_USE_OTT_TRANSPORT),y)
+ifeq ($(NEXUS_USE_ASTRA_FOR_SWXPT),y)
+EXTRA_CLEAN += astra_swxpt_clean
+EXTRA_INSTALL += astra_swxpt_install
+endif
+endif
 NEXUS_EXTRALIBS += $(ASTRA_LIB)
 endif
 endif # client
@@ -287,18 +293,24 @@ bcmdriver_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
 
 # astra rules
-.PHONY: astra astra_drv
+.PHONY: astra astra_drv astra_swxpt
 ASTRA_LIB:=${B_REFSW_OBJ_ROOT}/astra/linux/libbcm_astra/$(B_REFSW_ARCH)/libbcm_astra.a
 ASTRA_DRV:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/bcm_astra.ko
 ASTRA_SYMVERS:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/Module.symvers
+ASTRA_SWXPT:=${B_REFSW_OBJ_ROOT}/astra/user/swxpt/swxpt.elf
 
+# if its an Astra SDK based build (.astra_sdk marker file is present), Astra Kernel and Monitor sources are not present under $(ASTRA_TOP). So do not build them.
 astra_drv:
 	@echo "[Build..... astra driver]"
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra --no-print-directory
-	@echo "[Build..... mon64]"
-	${Q_}$(MAKE) -C $(ASTRA)/monitor SMM64=n --no-print-directory
+ifeq ($(wildcard ${ASTRA_TOP}/.astra_sdk),)
 	@echo "[Build..... astra]"
 	${Q_}$(MAKE) -C $(ASTRA)/user --no-print-directory ${NEXUS_P_DRIVER_B_REFSW_ARCH}
+endif
+
+astra_swxpt:
+	@echo "[Build..... astra swxpt]"
+	${Q_}$(MAKE) -C $(ASTRA)/user/swxpt --no-print-directory ${NEXUS_P_DRIVER_B_REFSW_ARCH}
 
 astra: $(ASTRA_LIB)
 
@@ -306,7 +318,7 @@ $(ASTRA_LIB):
 	@echo "[Build..... astra]"
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.libbcm_astra --no-print-directory
 
-.PHONY: astra_clean astra_install astra_drv_clean astra_drv_install
+.PHONY: astra_clean astra_install astra_drv_clean astra_drv_install astra_swxpt_clean astra_swxpt_install
 astra_install: astra ${NEXUS_BIN_DIR}/exists
 	@echo "[Install... astra to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ASTRA_LIB} ${NEXUS_BIN_DIR}
@@ -321,8 +333,14 @@ astra_drv_install: astra_drv ${NEXUS_BIN_DIR}/exists
 
 astra_drv_clean:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra clean > /dev/null
-	${Q_}$(MAKE) -C $(ASTRA)/monitor clean > /dev/null
 	${Q_}$(MAKE) -C $(ASTRA)/user distclean > /dev/null
+
+astra_swxpt_install: astra_swxpt ${NEXUS_BIN_DIR}/exists
+	@echo "[Install... astra swxpt to $(realpath ${NEXUS_BIN_DIR})]"
+	${Q_}$(CP) ${ASTRA_SWXPT} ${NEXUS_BIN_DIR}
+
+astra_swxpt_clean:
+	${Q_}$(MAKE) -C $(ASTRA)/user/swxpt distclean > /dev/null
 
 # wakeupdriver rules
 .PHONY: wakeupdriver
@@ -542,3 +560,5 @@ else
 	${Q_}chmod +x ${NEXUS_BIN_DIR}/nexus.client ${NEXUS_BIN_DIR}/nxclient.sh
 endif
 	${Q_}$(CP) $(NEXUS_TOP)/build/bp3flash.sh ${NEXUS_BIN_DIR}
+	${Q_}$(CP) $(NEXUS_TOP)/build/nexus.bp3 ${NEXUS_BIN_DIR}
+	${Q_}chmod +x ${NEXUS_BIN_DIR}/bp3flash.sh ${NEXUS_BIN_DIR}/nexus.bp3

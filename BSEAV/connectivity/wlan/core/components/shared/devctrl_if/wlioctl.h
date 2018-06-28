@@ -10333,6 +10333,13 @@ typedef struct wl_staprio_cfg {
 	uint8 prio;		/**< scb priority */
 } wl_staprio_cfg_t;
 
+typedef struct wl_atm_staperc {
+	uint16 ver;             /* Version */
+	uint16 len;             /* Length */
+	struct ether_addr ea;   /* MAC addr */
+	uint8 perc;             /* scb atm percentage */
+} wl_atm_staperc_t;
+
 typedef enum wl_stamon_cfg_cmd_type {
 	STAMON_CFG_CMD_DEL = 0,
 	STAMON_CFG_CMD_ADD = 1,

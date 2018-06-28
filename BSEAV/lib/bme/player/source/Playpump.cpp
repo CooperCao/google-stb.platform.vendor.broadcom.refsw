@@ -4,6 +4,7 @@
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 
+#include <algorithm> // std::{min, max}
 #include <mutex>
 
 #include <string.h> // memcpy
@@ -178,6 +179,7 @@ bool Playpump_t::initialise(bool secure, size_t bytes, size_t dmaBytes)
     NEXUS_PlaypumpOpenSettings openSettings;
     NEXUS_Playpump_GetDefaultOpenSettings(&openSettings);
     openSettings.fifoSize = bytes;
+    openSettings.numDescriptors = std::max(bytes >> 14,  size_t(128));
 #if defined(BRCM_SAGE)
     if (secure) {
         NEXUS_MemoryAllocationSettings settings;
@@ -215,9 +217,6 @@ bool Playpump_t::initialise(bool secure, size_t bytes, size_t dmaBytes)
     ++initialised;
 
     // Configure
-    NEXUS_PlaypumpStatus playpumpStatus;
-    BME_CHECK(NEXUS_Playpump_GetStatus(handle, &playpumpStatus));
-
     NEXUS_PlaypumpSettings settings;
     NEXUS_Playpump_GetSettings(handle, &settings);
     settings.transportType          = NEXUS_TransportType_eMpeg2Pes;
@@ -601,7 +600,7 @@ void Playpump_t::clearDma(const NEXUS_DmaJobBlockSettings *descriptor, size_t n)
     for (; n != 0; n -= send, descriptor += send) {
         send = std::min(n, maxDmaFragments);
         NEXUS_Error status =
-            NEXUS_DmaJob_ProcessBlocks(dma.job, descriptor, n);
+            NEXUS_DmaJob_ProcessBlocks(dma.job, descriptor, send);
         if (status != NEXUS_DMA_QUEUED) {
             BKNI_SetEvent(dma.complete);
             BME_CHECK(status);

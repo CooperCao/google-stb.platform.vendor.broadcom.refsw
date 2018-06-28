@@ -524,7 +524,6 @@ If a pid channel is handling clear data and has a destination in CRR (with sourc
 this function must be called to associate it with the  HSM_BypassKeySlot_eGR2R_e Bypass Keyslot.
 
 **/
-
 BERR_Code  BHSM_SetPidChannelBypassKeyslot(
     BHSM_Handle hHsm,
     unsigned pidChannelIndex,

@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_types.h"
 #include "nexus_platform_priv.h"
@@ -43,6 +47,7 @@
 
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_aon_pin_ctrl.h"
+#include "bchp_gio.h"
 
 BDBG_MODULE(nexus_platform_pinmux);
 
@@ -252,6 +257,10 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     NEXUS_Platform_GetStatus(platformStatus);
     BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
+#if NEXUS_NUM_656_OUTPUTS && NEXUS_HAS_DVB_CI
+    BDBG_WRN(("DVB_CI and 656 out share the same pinmux control registers 14 and 15. 656 output will be blocked."));
+#endif
+
     if (platformStatus->boardId.major == SV_BOARD_ID) {
 
         BDBG_MSG(("Configuring pin mux for BCM9TS streamer input to input band 0"));
@@ -362,58 +371,116 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
         BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11, reg);
         BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11: %08x",reg));
     }
-#if NEXUS_HAS_DVB_CI
-        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
-        BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14: %08x",reg));
-        reg &= ~(
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104)
-            );
-        reg |= (
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_097_GPIO_097) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_098_GPIO_098) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_099_GPIO_099) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_100_GPIO_100) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_101_GPIO_101) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_102_GPIO_102) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_103_GPIO_103) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_104_EBI_ADDR_10)
-            );
-        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14, reg);
-        BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14: %08x",reg));
 
-        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
-        BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
-        reg &= ~(
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106) |
-            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107)
-            );
-        reg |= (
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_105_GPIO_105) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_106_EBI_WAITB) |
-            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107,
-                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_107_GPIO_107)
-            );
-        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15, reg);
-        BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
+#if NEXUS_HAS_DVB_CI
+    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
+    BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14: %08x",reg));
+    reg &= ~(
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104)
+        );
+    reg |= (
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_097_GPIO_097) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_098_GPIO_098) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_099_GPIO_099) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_100_GPIO_100) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_101_GPIO_101) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_102_GPIO_102) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_103_GPIO_103) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_104_EBI_ADDR_10)
+        );
+    BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14, reg);
+    BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14: %08x",reg));
+
+    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
+    BDBG_MSG(("Before BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
+    reg &= ~(
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106) |
+        BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107)
+        );
+    reg |= (
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_105_GPIO_105) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_106_EBI_WAITB) |
+        BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107,
+                        BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_107_GPIO_107)
+        );
+    BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15, reg);
+    BDBG_MSG(("After  BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15: %08x",reg));
 #endif
+
+#if NEXUS_NUM_656_OUTPUTS && !NEXUS_HAS_DVB_CI && defined(NEXUS_HAS_656_DAUGHTER_CARD)
+    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14);
+    reg &= ~(
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097)
+       );
+    reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_097, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_097_VO0_656_0) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_098, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_098_VO0_656_1) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_099, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_099_VO0_656_2) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_100, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_100_VO0_656_3) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_101, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_101_VO0_656_4) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_102, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_102_VO0_656_5) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_103, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_103_VO0_656_6) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_14, gpio_104, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_gpio_104_VO0_656_7)
+       );
+    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14, reg);
+
+    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15);
+    reg &= ~(
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_03) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_02) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_01) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_00) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_108) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106) |
+       BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105)
+       );
+    reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_03, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_sgpio_03_BSC_M4_SDA) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_02, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_sgpio_02_BSC_M4_SCL) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_01, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_sgpio_01_BSC_M3_SDA) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, sgpio_00, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_sgpio_00_BSC_M3_SCL) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_108, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_108_GPIO_108) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_107, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_107_GPIO_107) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_106, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_106_GPIO_106) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_15, gpio_105, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15_gpio_105_VO0_656_CLK)
+       );
+    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_15, reg);
+
+    reg = BREG_Read32(hReg, BCHP_GIO_ODEN_EXT2);
+    reg &= ~(BCHP_MASK(GIO_ODEN_EXT2, oden));
+    reg |= (BCHP_FIELD_DATA(GIO_ODEN_EXT2, oden, 0));
+    BREG_Write32 (hReg, BCHP_GIO_ODEN_EXT2, reg);
+
+    reg = BREG_Read32(hReg, BCHP_GIO_IODIR_EXT2);
+    reg &= ~(BCHP_MASK(GIO_IODIR_EXT2, iodir));
+    reg |= (BCHP_FIELD_DATA(GIO_IODIR_EXT2, iodir, 0));
+    BREG_Write32 (hReg, BCHP_GIO_IODIR_EXT2, reg);
+#endif /* NEXUS_NUM_656_OUTPUTS */
+
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux(platformStatus);
 #endif

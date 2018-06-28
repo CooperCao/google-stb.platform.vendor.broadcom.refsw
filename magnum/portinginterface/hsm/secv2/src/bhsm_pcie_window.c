@@ -39,6 +39,7 @@
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #include "bhsm.h"
 #include "bhsm_priv.h"
 #include "bsp_types.h"
@@ -58,6 +59,7 @@ BERR_Code BHSM_PcieWindow_Set( BHSM_Handle hHsm, BHSM_PcieWindowSettings *pSetti
     BDBG_ENTER( BHSM_PcieWindow_Set );
 
     if( !hHsm ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     /* currently only PCIe interface index 0 and 1 supported. */
@@ -83,7 +85,6 @@ BERR_Code BHSM_PcieWindow_Set( BHSM_Handle hHsm, BHSM_PcieWindowSettings *pSetti
     bspConfig.in.addrRangeStart = addressStart;
     bspConfig.in.addrRangeEnd   = addressEnd;
     bspConfig.in.exclusiveMode  = 1; /* exclusive mode */
-
     bspConfig.in.enablePcie0    = (pSettings->index == 0)?1:0;
     bspConfig.in.enablePcie1    = (pSettings->index == 1)?1:0;
     bspConfig.in.cmdPending     = 0;

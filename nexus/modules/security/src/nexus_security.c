@@ -117,6 +117,7 @@ static BCMD_XptM2MSecCryptoAlg_e mapNexus2Hsm_Algorithm( NEXUS_SecurityAlgorithm
 static BCMD_KeyDestEntryType_e   mapNexus2Hsm_keyEntryType( NEXUS_SecurityKeyType keytype );
 static BCMD_KeyDestIVType_e      mapNexus2Hsm_ivType( NEXUS_SecurityKeyIVType keyIVtype );
 static NEXUS_SecurityKeySlotType mapHsm2Nexus_keySlotType( BCMD_XptSecKeySlot_e hsmKeyslotType );
+static BCMD_XptKeyTableCustomerMode_e mapNexus2Hsm_CustomerMode( NEXUS_Security_CustomerMode customerMode );
 static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * pSettings);
 static void NEXUS_Security_P_UninitHsm(void);
 
@@ -1384,6 +1385,20 @@ static BCMD_XptM2MSecCryptoAlg_e mapNexus2Hsm_Algorithm( NEXUS_SecurityAlgorithm
     return (BCMD_XptM2MSecCryptoAlg_e)algorithm;
 }
 
+static BCMD_XptKeyTableCustomerMode_e mapNexus2Hsm_CustomerMode( NEXUS_Security_CustomerMode customerMode )
+{
+    switch( customerMode ) {
+        case NEXUS_Security_CustomerMode_eGeneric:   { return BCMD_XptKeyTableCustomerMode_eGeneric; }
+        case NEXUS_Security_CustomerMode_eReserved1: { return BCMD_XptKeyTableCustomerMode_eReserved1; }
+        case NEXUS_Security_CustomerMode_eReserved2: { return BCMD_XptKeyTableCustomerMode_eReserved2; }
+        case NEXUS_Security_CustomerMode_eReserved3: { return BCMD_XptKeyTableCustomerMode_eReserved3; }
+        case NEXUS_Security_CustomerMode_eMax:       { return BCMD_XptKeyTableCustomerMode_eMax; }
+        default:                                     { BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+    }
+    return BCMD_XptKeyTableCustomerMode_eMax;
+}
+
+
 static void NEXUS_Security_GetHsmAlgorithmKeySetting(
         NEXUS_KeySlotHandle keyHandle,
         const NEXUS_SecurityAlgorithmSettings *pSettings,
@@ -1416,14 +1431,14 @@ static void NEXUS_Security_GetHsmAlgorithmKeySetting(
     }
     else /* Security Algorithm Key setting for M2M */
     {
-        if (pSettings->algorithm == NEXUS_SecurityAlgorithm_eAes ||
-                pSettings->algorithm == NEXUS_SecurityAlgorithm_eAes192)
+        if ( pSettings->algorithm == NEXUS_SecurityAlgorithm_eAes ||
+             pSettings->algorithm == NEXUS_SecurityAlgorithm_eAes192)
         {
             if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eCounter)
             {
-                /* overload termination mode for M2M to handle AESCounter                 */
+                /*  Overload termination mode for M2M to handle AESCounter */
                 /*  For Zeus 2.0 and earlier CounterMode and CounterSize are the same */
-                /*  For  Zeus 2.0, 3.0, and 4.x, they are different, and CounterSize is pisked up after this   */
+                /*  For Zeus 3.0, and 4.x, they are different */
                 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
                 *pTerminationMode = pSettings->aesCounterMode;
                 #else
@@ -1612,6 +1627,8 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     configAlgorithmIO.cryptoAlg.termCounterMode    = terminationMode;
 
     if( cipherMode == BCMD_CipherModeSelect_eCTR){
+        /* IVModeCounterSize used to carry IvMode or CounterSize depending on cipher mode.*/
+        /* coverity[mixed_enums] */
         configAlgorithmIO.cryptoAlg.IVModeCounterSize = pSettings->aesCounterSize;
     }else{
         configAlgorithmIO.cryptoAlg.IVModeCounterSize = ivModeSelect;
@@ -1651,7 +1668,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     #endif
 
     configAlgorithmIO.cryptoAlg.MSCLengthSelect     = pSettings->mscLengthSelect;
-    configAlgorithmIO.cryptoAlg.customerType        = (BCMD_XptKeyTableCustomerMode_e)pSettings->customerType;
+    configAlgorithmIO.cryptoAlg.customerType        = mapNexus2Hsm_CustomerMode( pSettings->customerType );
     configAlgorithmIO.cryptoAlg.MACRegSelect        = pSettings->macRegSelect;
     configAlgorithmIO.cryptoAlg.MACNonSecureRegRead = pSettings->macNonSecureRegRead;
     if (pSettings->bMulti2Config)
@@ -1904,7 +1921,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         configAlgorithmIO.cryptoAlg.caCryptAlg.keyOffset = pSettings->keyOffset;
         configAlgorithmIO.cryptoAlg.caCryptAlg.ivOffset = pSettings->ivOffset;
         configAlgorithmIO.cryptoAlg.caCryptAlg.ucMSCLengthSelect = pSettings->mscLengthSelect;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.customerType = (BCMD_XptKeyTableCustomerMode_e)pSettings->customerType;
+        configAlgorithmIO.cryptoAlg.caCryptAlg.customerType = mapNexus2Hsm_CustomerMode( pSettings->customerType );
         configAlgorithmIO.cryptoAlg.caCryptAlg.DVBCSA2keyCtrl = pSettings->dvbCsa2keyCtrl;
         configAlgorithmIO.cryptoAlg.caCryptAlg.DVBCSA2ivCtrl = pSettings->dvbCsa2ivCtrl;
         configAlgorithmIO.cryptoAlg.caCryptAlg.DVBCSA2modEnabled = pSettings->dvbCsa2modEnabled;

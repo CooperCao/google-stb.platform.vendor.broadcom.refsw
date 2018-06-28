@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -1248,9 +1248,9 @@ static void nexus_server_channel_thread(void *context)
                         /* batom_range_dump(in_data, received, "RECV"); */
                         rc = (*g_nexus_server_handlers[channel->moduleId].process)(&cxn->client_module_state, in_data, received, channel->out_data, channel->dataSize, &out);
                         if (rc) {
-                            BDBG_ERR(("client(%p,%p,%d) module(%d) call failed: %d", (void *)cxn->client, (void *)cxn, cxn->fd, cxn->channel->moduleId, rc));
+                            BDBG_WRN(("client(%p,%p,%d) module(%d) call failed: %d", (void *)cxn->client, (void *)cxn, cxn->fd, cxn->channel->moduleId, rc));
                             /* write a 1 byte response, which will cause a failure on the client side, but keep connection open */
-                            out.size = 1;
+                            out.size = NEXUS_IPC_SERVER_ERROR_PKT_LEN;
                             out.data = channel->out_data;
                         }
                         ((NEXUS_Ipc_Header *)out.data)->packet_size = out.size;

@@ -52,6 +52,7 @@
 #include "nexus_platform_client.h"
 #include "nexus_random_number.h"
 #include "nexus_security.h"
+#include "nexus_base_mmap.h"
 
 #if (NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_otpmsp.h"
@@ -199,6 +200,64 @@ DrmRC drm_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
                                      uint32_t key_id_length,
                                      uint32_t cipher_mode,
                                      int *wvRc);
+
+
+/*  nexus bounce buffer.
+ *
+ *  copy source data into a nexus bounce buffer if the source address
+ *  is allocated in linux memory.
+ *  this is a feature|limitation of the xpt|dma firmware which requires
+ *  nexus buffers to operate.
+ */
+typedef struct Drm_WVOemCryptoBounceBuffer
+{
+   uint8_t *buffer;
+   size_t  size;
+
+} Drm_WVOemCryptoBounceBuffer;
+
+static Drm_WVOemCryptoBounceBuffer gWVDecryptBounceBuffer[MAX_SG_DMA_BLOCKS];
+static int gWVDecryptBounceBufferIndex = -1;
+
+static Drm_WVOemCryptoBounceBuffer gWVCopyBounceBuffer[MAX_SG_DMA_BLOCKS];
+static int gWVCopyBounceBufferIndex = -1;
+
+/*  android native handle.
+ *
+ *  destination secure buffers are wrapped into an android native handle.
+ *  rather than pulling the android include here, we just add the minimal
+ *  needed to decipher the content.
+ *
+ *  Drm_WVOemCryptoNativeHandle: copy of android's native_handle_t
+ *  Drm_WVOemCryptoOpaqueHandle: encapsulation of the native handle content.
+ */
+typedef struct Drm_WVOemCryptoNativeHandle
+{
+    int version;
+    int numFds;
+    int numInts;
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wzero-length-array"
+#endif
+    int data[0];        /* numFds + numInts ints */
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+} Drm_WVOemCryptoNativeHandle;
+
+typedef struct Drm_WVOemCryptoOpaqueHandle
+{
+    uint8_t *pBuffer;
+    size_t clearBuffSize;
+    size_t clearBuffOffset;
+} Drm_WVOemCryptoOpaqueHandle;
+
+static uint8_t *gWVDecryptBufferNativeHandle = NULL;
+static uint8_t *gWVDecryptBufferSecure = NULL;
+
+static uint8_t *gWVCopyBufferNativeHandle = NULL;
+static uint8_t *gWVCopyBufferSecure = NULL;
 
 
 BDBG_MODULE(drm_wvoemcrypto_tl);
@@ -440,6 +499,34 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
 
     gAntiRollbackHw = false;
     gSsdSupported = false;
+
+    if (gWVDecryptBounceBufferIndex >= 0)
+    {
+       for (int i = 0; (i <= gWVDecryptBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+       {
+          if (gWVDecryptBounceBuffer[i].buffer)
+          {
+             NEXUS_Memory_Free(gWVDecryptBounceBuffer[i].buffer);
+             gWVDecryptBounceBuffer[i].buffer = NULL;
+             gWVDecryptBounceBuffer[i].size = 0;
+          }
+       }
+       gWVDecryptBounceBufferIndex = -1;
+    }
+
+    if (gWVCopyBounceBufferIndex >= 0)
+    {
+       for (int i = 0; (i <= gWVCopyBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+       {
+          if (gWVCopyBounceBuffer[i].buffer)
+          {
+             NEXUS_Memory_Free(gWVCopyBounceBuffer[i].buffer);
+             gWVCopyBounceBuffer[i].buffer = NULL;
+             gWVCopyBounceBuffer[i].size = 0;
+          }
+       }
+       gWVCopyBounceBufferIndex = -1;
+    }
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
     return rc;
@@ -4412,11 +4499,119 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
     uint8_t *src_ptr = (uint8_t *)data_addr;
     uint8_t block_iv[WVCDM_KEY_IV_SIZE];
     uint8_t future_block_iv[WVCDM_KEY_IV_SIZE];
+    Drm_WVOemCryptoNativeHandle *native_hdl = (Drm_WVOemCryptoNativeHandle *)out_buffer;
+    bool native_hdl_locked = false;
+    size_t dma_align = PADDING_SZ_16_BYTE;
 
     BDBG_ENTER(drm_WVOemCrypto_DecryptCENC);
 
     *out_sz = 0;
     BKNI_Memcpy(block_iv, &iv[0], WVCDM_KEY_IV_SIZE);
+
+    if ((buffer_type == Drm_WVOEMCrypto_BufferType_Secure) &&
+        (NEXUS_GetAddrType((const void *)src_ptr) == NEXUS_AddrType_eUnknown))
+    {
+       if (gWVDecryptBounceBufferIndex+1 >= MAX_SG_DMA_BLOCKS)
+       {
+          BDBG_ERR(("%s: maximum bounce buffer count %d reached", BSTD_FUNCTION));
+          // do not clean up already allocated bounce buffer.  this should never happen.
+          rc = Drm_MemErr;
+          goto ErrorExit;
+       }
+
+       NEXUS_ClientConfiguration cc;
+       NEXUS_MemoryAllocationSettings ms;
+       NEXUS_Platform_GetClientConfiguration(&cc);
+       NEXUS_Memory_GetDefaultAllocationSettings(&ms);
+       ms.heap = cc.heap[1]; // NXCLIENT_FULL_HEAP
+       gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].size = (data_length + (dma_align-1)) & ~(dma_align-1);
+       NEXUS_Memory_Allocate(gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].size,
+                             &ms,
+                             (void **)&gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].buffer);
+       if (gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].buffer == NULL)
+       {
+          BDBG_ERR(("%s: Failed to allocate bounce buffer %d (sz=%u)", BSTD_FUNCTION,
+                    gWVDecryptBounceBufferIndex+1,
+                    gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].size));
+          gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].size = 0;
+          for (int i = 0; (i <= gWVDecryptBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+          {
+             if (gWVDecryptBounceBuffer[i].buffer)
+             {
+                NEXUS_Memory_Free(gWVDecryptBounceBuffer[i].buffer);
+                gWVDecryptBounceBuffer[i].buffer = NULL;
+                gWVDecryptBounceBuffer[i].size = 0;
+             }
+          }
+          gWVDecryptBounceBufferIndex = -1;
+          rc = Drm_MemErr;
+          goto ErrorExit;
+       }
+       gWVDecryptBounceBufferIndex += 1;
+       BKNI_Memcpy(gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex].buffer, src_ptr, data_length);
+       src_ptr = (uint8_t *)gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex].buffer;
+    }
+
+    if (buffer_type == Drm_WVOEMCrypto_BufferType_Secure)
+    {
+       if (subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE)
+       {
+          if (NEXUS_GetAddrType((const void *)dst_ptr) == NEXUS_AddrType_eUnknown)
+          {
+             NEXUS_Error nx_rc;
+             NEXUS_BaseObjectId nx_oid = 0;
+             // if we are passed in a native handle containing a nexus memory handle, we expect an opaque
+             // handle redirection; used by android.
+             nx_rc = NEXUS_Platform_GetIdFromObject((void *)native_hdl->data[0], &nx_oid);
+             if (!nx_rc && nx_oid)
+             {
+                void *pMemory = NULL;
+                nx_rc = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)native_hdl->data[0], &pMemory);
+                if (nx_rc || pMemory == NULL)
+                {
+                   BDBG_ERR(("%s: unable to lock secure buffer (%p:%x) handle", BSTD_FUNCTION, out_buffer, native_hdl->data[0]));
+                   rc = Drm_NexusErr;
+                   goto ErrorExit;
+                }
+                native_hdl_locked = true;
+                dst_ptr = ((Drm_WVOemCryptoOpaqueHandle *)pMemory)->pBuffer;
+                if (dst_ptr == NULL)
+                {
+                   BDBG_ERR(("%s: null destination buffer (%p:%x)??", BSTD_FUNCTION, out_buffer, native_hdl->data[0]));
+                   rc = Drm_NexusErr;
+                   goto ErrorExit;
+                }
+                // keep copy of the base native handle memory pointer.
+                gWVDecryptBufferNativeHandle = (uint8_t *)native_hdl;
+                gWVDecryptBufferSecure = dst_ptr;
+             }
+          }
+          // have been passed in a valid nexus address, go with it, skip any processing.
+          else
+          {
+             gWVDecryptBufferNativeHandle = NULL;
+             gWVDecryptBufferSecure = NULL;
+          }
+       }
+       // native handle funky arithmetic.
+       else if (gWVDecryptBufferNativeHandle != NULL)
+       {
+          size_t offset = dst_ptr - gWVDecryptBufferNativeHandle;
+          dst_ptr = gWVDecryptBufferSecure + offset;
+          BDBG_MSG(("%s: next sample destination (%p:%p) -> (%p:%x)", BSTD_FUNCTION,
+                    gWVDecryptBufferSecure, gWVDecryptBufferNativeHandle, dst_ptr, offset));
+       }
+       // better be a valid nexus address.
+       else
+       {
+          if (NEXUS_GetAddrType((const void *)dst_ptr) == NEXUS_AddrType_eUnknown)
+          {
+             BDBG_ERR(("%s: next sample: incorrect destination (%p)", BSTD_FUNCTION, dst_ptr));
+             rc = Drm_NexusErr;
+             goto ErrorExit;
+          }
+       }
+    }
 
     while (data_processed < data_length)
     {
@@ -4519,6 +4714,27 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
             block_encrypted, buffer_type, block_iv, block_offset, dst_ptr, &block_out_sz,
             block_subsample_flags, wvRc);
 
+        if ((subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE) &&
+            (gWVDecryptBounceBufferIndex >= 0))
+        {
+           for (int i = 0; (i <= gWVDecryptBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+           {
+              if (gWVDecryptBounceBuffer[i].buffer)
+              {
+                 NEXUS_Memory_Free(gWVDecryptBounceBuffer[i].buffer);
+                 gWVDecryptBounceBuffer[i].buffer = NULL;
+                 gWVDecryptBounceBuffer[i].size = 0;
+              }
+           }
+           gWVDecryptBounceBufferIndex = -1;
+        }
+
+        if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+        {
+           gWVDecryptBufferNativeHandle = NULL;
+           gWVDecryptBufferSecure = NULL;
+        }
+
         if (rc != Drm_Success)
         {
             BDBG_ERR(("%s: Failed to decrypt subsample subpattern block", BSTD_FUNCTION));
@@ -4547,6 +4763,12 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
     }
 
 ErrorExit:
+
+    if (native_hdl_locked)
+    {
+       NEXUS_MemoryBlock_Unlock((NEXUS_MemoryBlockHandle)native_hdl->data[0]);
+    }
+
     BDBG_LEAVE(drm_WVOemCrypto_DecryptCENC);
 
     return rc;
@@ -7967,6 +8189,11 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
 {
     bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
     DrmRC rc = Drm_Success;
+    uint8_t *src_ptr = (uint8_t*)data_addr;
+    uint8_t *dst_ptr = destination;
+    Drm_WVOemCryptoNativeHandle *native_hdl = (Drm_WVOemCryptoNativeHandle *)destination;
+    bool native_hdl_locked = false;
+    size_t dma_align = PADDING_SZ_16_BYTE;
 
     if(data_addr == NULL)
     {
@@ -7982,6 +8209,50 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
         goto ErrorExit;
     }
 
+    if ((buffer_type == Drm_WVOEMCrypto_BufferType_Secure) &&
+        (NEXUS_GetAddrType((const void *)src_ptr) == NEXUS_AddrType_eUnknown))
+    {
+       if (gWVCopyBounceBufferIndex+1 >= MAX_SG_DMA_BLOCKS)
+       {
+          BDBG_ERR(("%s: maximum bounce buffer count %d reached", BSTD_FUNCTION));
+          // do not clean up already allocated bounce buffer.  this should never happen.
+          rc = Drm_MemErr;
+          goto ErrorExit;
+       }
+
+       NEXUS_ClientConfiguration cc;
+       NEXUS_MemoryAllocationSettings ms;
+       NEXUS_Platform_GetClientConfiguration(&cc);
+       NEXUS_Memory_GetDefaultAllocationSettings(&ms);
+       ms.heap = cc.heap[1]; // NXCLIENT_FULL_HEAP
+       gWVCopyBounceBuffer[gWVCopyBounceBufferIndex+1].size = (data_length + (dma_align-1)) & ~(dma_align-1);
+       NEXUS_Memory_Allocate(gWVCopyBounceBuffer[gWVCopyBounceBufferIndex+1].size,
+                             &ms,
+                             (void **)&gWVCopyBounceBuffer[gWVCopyBounceBufferIndex+1].buffer);
+       if (gWVCopyBounceBuffer[gWVCopyBounceBufferIndex+1].buffer == NULL)
+       {
+          BDBG_ERR(("%s: Failed to allocate bounce buffer %d (sz=%u)", BSTD_FUNCTION,
+                    gWVCopyBounceBufferIndex+1,
+                    gWVCopyBounceBuffer[gWVCopyBounceBufferIndex+1].size));
+          gWVCopyBounceBuffer[gWVCopyBounceBufferIndex+1].size = 0;
+          for (int i = 0; (i <= gWVCopyBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+          {
+             if (gWVCopyBounceBuffer[i].buffer)
+             {
+                NEXUS_Memory_Free(gWVCopyBounceBuffer[i].buffer);
+                gWVCopyBounceBuffer[i].buffer = NULL;
+                gWVCopyBounceBuffer[i].size = 0;
+             }
+          }
+          gWVCopyBounceBufferIndex = -1;
+          rc = Drm_MemErr;
+          goto ErrorExit;
+       }
+       gWVCopyBounceBufferIndex += 1;
+       BKNI_Memcpy(gWVCopyBounceBuffer[gWVCopyBounceBufferIndex].buffer, src_ptr, data_length);
+       src_ptr = (uint8_t *)gWVCopyBounceBuffer[gWVCopyBounceBufferIndex].buffer;
+    }
+
     dump(data_addr,data_length,"srcdata:");
 
     if(destination == NULL)
@@ -7991,17 +8262,100 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
         goto ErrorExit;
     }
     BDBG_MSG(("%s: Copying the buffer isSecureDecrypt %d....",BSTD_FUNCTION, isSecureDecrypt));
+
+    if (buffer_type == Drm_WVOEMCrypto_BufferType_Secure)
+    {
+       if (subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE)
+       {
+          if (NEXUS_GetAddrType((const void *)dst_ptr) == NEXUS_AddrType_eUnknown)
+          {
+             NEXUS_Error nx_rc;
+             NEXUS_BaseObjectId nx_oid = 0;
+             // if we are passed in a native handle containing a nexus memory handle, we expect an opaque
+             // handle redirection; used by android.
+             nx_rc = NEXUS_Platform_GetIdFromObject((void *)native_hdl->data[0], &nx_oid);
+             if (!nx_rc && nx_oid)
+             {
+                void *pMemory = NULL;
+                nx_rc = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)native_hdl->data[0], &pMemory);
+                if (nx_rc || pMemory == NULL)
+                {
+                   BDBG_ERR(("%s: unable to lock secure buffer (%p:%x) handle", BSTD_FUNCTION, destination, native_hdl->data[0]));
+                   rc = Drm_NexusErr;
+                   goto ErrorExit;
+                }
+                native_hdl_locked = true;
+                dst_ptr = ((Drm_WVOemCryptoOpaqueHandle *)pMemory)->pBuffer;
+                // keep copy of the base native handle memory pointer.
+                gWVCopyBufferNativeHandle = (uint8_t *)native_hdl;
+                gWVCopyBufferSecure = dst_ptr;
+             }
+          }
+          // have been passed in a valid nexus address, go with it, skip any processing.
+          else
+          {
+             gWVDecryptBufferNativeHandle = NULL;
+             gWVDecryptBufferSecure = NULL;
+          }
+       }
+       // native handle funky arithmetic.
+       else if (gWVCopyBufferNativeHandle != NULL)
+       {
+          size_t offset = dst_ptr - gWVCopyBufferNativeHandle;
+          dst_ptr = gWVCopyBufferSecure + offset;
+          BDBG_MSG(("%s: next sample destination (%p:%p) -> (%p:%x)", BSTD_FUNCTION,
+                    gWVCopyBufferSecure, gWVCopyBufferNativeHandle, dst_ptr, offset));
+       }
+       // better be a valid nexus address.
+       else
+       {
+          if (NEXUS_GetAddrType((const void *)dst_ptr) == NEXUS_AddrType_eUnknown)
+          {
+             BDBG_ERR(("%s: next sample: incorrect destination (%p)", BSTD_FUNCTION, dst_ptr));
+             rc = Drm_NexusErr;
+             goto ErrorExit;
+          }
+       }
+    }
+
     if (!isSecureDecrypt)
     {
-       BKNI_Memcpy(destination,data_addr, data_length);
+       BKNI_Memcpy(dst_ptr, src_ptr, data_length);
     }
     else
     {
-        rc = drm_WVOemCrypto_P_CopyBuffer_Secure_SG(destination, data_addr,
+        rc = drm_WVOemCrypto_P_CopyBuffer_Secure_SG(dst_ptr, src_ptr,
             data_length, subsample_flags, true);
     }
 
+    if ((subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE) &&
+        (gWVCopyBounceBufferIndex >= 0))
+    {
+        for (int i = 0; (i <= gWVCopyBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+        {
+           if (gWVCopyBounceBuffer[i].buffer)
+           {
+              NEXUS_Memory_Free(gWVCopyBounceBuffer[i].buffer);
+              gWVCopyBounceBuffer[i].buffer = NULL;
+              gWVCopyBounceBuffer[i].size = 0;
+           }
+        }
+        gWVCopyBounceBufferIndex = -1;
+    }
+
+    if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+    {
+       gWVCopyBufferNativeHandle = NULL;
+       gWVCopyBufferSecure = NULL;
+    }
+
 ErrorExit:
+
+    if (native_hdl_locked)
+    {
+       NEXUS_MemoryBlock_Unlock((NEXUS_MemoryBlockHandle)native_hdl->data[0]);
+    }
+
     return rc;
 }
 
@@ -10151,5 +10505,78 @@ ErrorExit:
     }
 
     BDBG_LEAVE(drm_WVOemCrypto_LoadKeys);
+    return rc;
+}
+
+DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    BERR_Code sage_rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+
+    BDBG_ENTER(drm_WVOemCrypto_LoadTestKeybox);
+
+    if(keybox == NULL)
+    {
+        BDBG_ERR(("%s - keybox buffer is NULL", BSTD_FUNCTION));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+    container = SRAI_Container_Allocate();
+    if(container == NULL)
+    {
+        BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+    /* allocate buffers accessible by Sage*/
+    if(keyBoxLength != 0)
+    {
+        container->blocks[0].data.ptr = SRAI_Memory_Allocate(keyBoxLength, SRAI_MemoryType_Shared);
+        container->blocks[0].len = keyBoxLength;
+        BKNI_Memcpy(container->blocks[0].data.ptr, keybox, keyBoxLength);
+    }
+
+    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eLoadTestKeybox, container);
+    if (sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error Installing key box", BSTD_FUNCTION));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+    /* if success, extract status from container */
+    sage_rc = container->basicOut[0];
+
+    if (sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Command was sent successfully to load test keybox but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
+        rc = Drm_Err;
+        goto ErrorExit;
+    }
+
+    /* if success, extract status from container */
+    *wvRc = container->basicOut[2];
+    if (*wvRc != SAGE_OEMCrypto_SUCCESS)
+    {
+        BDBG_ERR(("%s - widevine return code (0x%08x)", BSTD_FUNCTION, *wvRc));
+    }
+
+  ErrorExit:
+
+    if(container != NULL)
+    {
+        if(container->blocks[0].data.ptr != NULL)
+        {
+            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            container->blocks[0].data.ptr = NULL;
+        }
+        SRAI_Container_Free(container);
+    }
+
+    BDBG_LEAVE(drm_WVOemCrypto_LoadTestKeybox);
+
     return rc;
 }

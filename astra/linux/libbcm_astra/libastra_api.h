@@ -180,6 +180,7 @@ Description:
 
 typedef struct astra_status {
     bool up;
+    bool secure;
 } astra_status;
 
 /*****************************************************************************

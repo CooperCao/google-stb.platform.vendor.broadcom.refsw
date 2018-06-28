@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -53,7 +57,9 @@
 
 #include "nexus_memory.h"
 
-#define nrd_version 1
+
+uint32_t nrd_version = 1;
+
 
 enum {
     NETFLIX_DECRYPT_DATA     = 0,
@@ -189,7 +195,8 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
     DrmCommonInit_TL_t              drmCmnInit;
     ChipType_e                      chip_type;
 
-    BDBG_LOG(("%s - Entered function", BSTD_FUNCTION));
+    BDBG_LOG(("%s - Entered function with nrd version=%d", BSTD_FUNCTION,nrd_version));
+
     printf("%s:%d\n",BSTD_FUNCTION,__LINE__);
 
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
@@ -262,7 +269,7 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
     }
     BDBG_MSG(("%s: allocated %u for PD certificate at container->blocks[1].data.ptr %p",BSTD_FUNCTION,binfilesize, container->blocks[1].data.ptr));
     handle->pNetflixSageModuleHandle = NULL;
-
+    container->basicIn[2] = nrd_version;
 #ifdef USE_UNIFIED_COMMON_DRM
     rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eNetflix, (char *) bin_file, container, &(handle->pNetflixSageModuleHandle));
 #else
@@ -2217,6 +2224,100 @@ ErrorExit:
 
     return rc;
 }
+#define NFLX_MAX_DH_MODULUS_LENGTH  129 /* 1032 bits */
+DrmRC DRM_Netflix_DH_Gen_Keys_NRD5_1(DrmNetFlixSageHandle    pHandle,
+                              /*uint32_t                generator,*/
+                              uint8_t                *generatorPtr,
+                              uint32_t                generatorSize,
+                              uint8_t                *primePtr,
+                              uint32_t                primeSize,
+                              uint8_t               *pubKey,   /*out*/
+                              uint32_t               *privKeyHandle)  /*out*/
+{
+    DrmRC                    rc = Drm_Success;
+    Netflix_SageCommandNode *pNode;
+    BERR_Code               sage_rc;
+    DrmNetflixSageContext_t *pCtx = (DrmNetflixSageContext_t *)pHandle;
+
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+
+    BDBG_ASSERT(pCtx          != NULL);
+    BDBG_ASSERT(generatorPtr  != NULL);
+    BDBG_ASSERT(primePtr      != NULL);
+    BDBG_ASSERT(pubKey  != NULL);
+    BDBG_ASSERT(privKeyHandle != NULL);
+
+    GET_COMMAND_CONTAINER(pNode, &pCtx->cmds, link, pCtx->mutex);
+
+    if(pNode == NULL){
+        BDBG_ERR(("%s - Out of SRAI command container", BSTD_FUNCTION));
+        CHK_RC(Drm_Err);
+    }
+
+    pNode->pCmd->basicIn[0] = (uint32_t)nrd_version;
+    pNode->pCmd->basicIn[1] = (uint32_t)pCtx->pSageNetflixCtx;
+    /*pNode->pCmd->basicIn[2] = (uint32_t)generator;*/
+
+    SETUP_SHARED_BLOCK(pNode->pCmd->blocks[0], primePtr, primeSize);
+    SETUP_SHARED_BLOCK(pNode->pCmd->blocks[1], generatorPtr, generatorSize);
+    SETUP_SHARED_BLOCK(pNode->pCmd->blocks[2], pubKey, NFLX_MAX_DH_MODULUS_LENGTH);
+
+    sage_rc = SRAI_Module_ProcessCommand(pCtx->pNetflixSageModuleHandle,
+                                         NETFLIX_DH_GEN_KEYS,
+                                         pNode->pCmd);
+    if( sage_rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - SRAI_Module_ProcessCommand() failed, %x", BSTD_FUNCTION, sage_rc));
+        CHK_RC(Drm_SraiModuleError);
+    }
+
+    rc = (DrmRC)pNode->pCmd->basicOut[0];
+    if(rc != Drm_Success) {
+        BDBG_ERR(("%s%d - Failed to generate DH keys from SAGE rc = (%d)", BSTD_FUNCTION,__LINE__,rc));
+        CHK_RC(Drm_Err);
+    }
+
+    /*
+       basically, SAGE will create only a single key handle for both dh public and private
+       therefore, we just return the same key handle for both parameters
+     */
+    BKNI_Memcpy(pubKey, pNode->pCmd->blocks[2].data.ptr, pNode->pCmd->basicOut[2]);
+
+/*  for (uint32_t ii = 0; ii < pNode->pCmd->basicOut[2]-1; ii += sizeof(uint32_t))
+    {
+        DRM_Netflix_P_EndianSwap((unsigned int *)&pubKey[ii]);
+    }
+    */
+
+
+    *privKeyHandle  = pNode->pCmd->basicOut[1];
+    /*printf("\nTEE Generated Pub Key: ");
+    for (int i = 0; i < pNode->pCmd->basicOut[2]; i++)
+    {
+        printf(" %X ", pubKey[i]);
+        if (i % 16 == 0 && (i != 0))
+            printf("\n");
+
+    }*/
+        /*printf("%s:%d - successfully generated the DH keys, handle (%d)\n",
+            BSTD_FUNCTION,__LINE__,*pubKeyHandle);
+            */
+
+ErrorExit:
+    if(pNode->pCmd->blocks[0].data.ptr) {
+        SRAI_Memory_Free(pNode->pCmd->blocks[0].data.ptr);
+        pNode->pCmd->blocks[0].data.ptr = NULL;
+    }
+    if(pNode->pCmd->blocks[1].data.ptr) {
+        SRAI_Memory_Free(pNode->pCmd->blocks[1].data.ptr);
+        pNode->pCmd->blocks[1].data.ptr = NULL;
+    }
+    if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
+
+    BDBG_MSG(("%s - Exiting, rc %d.", BSTD_FUNCTION, rc));
+
+    return rc;
+}
+
 
 DrmRC DRM_Netflix_DH_Gen_Keys(DrmNetFlixSageHandle    pHandle,
                               /*uint32_t                generator,*/
@@ -2294,6 +2395,7 @@ ErrorExit:
 
     return rc;
 }
+
 
 DrmRC DRM_Netflix_DH_Derive_Keys(DrmNetFlixSageHandle    pHandle,
                                  uint32_t                dhPrivKeyHandle,
@@ -2498,4 +2600,18 @@ ErrorExit:
     if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
 
     return rc;
+}
+
+DrmRC DRM_Netflix_SetNRDVersion(DrmNetFlixSageHandle   pHandle,
+        uint32_t               version)
+{
+
+    BSTD_UNUSED(pHandle);
+
+    BDBG_MSG(("%s - Entering", BSTD_FUNCTION));
+    BDBG_LOG(("%s:NRD_VERSION =%d",__FUNCTION__,version));
+
+    nrd_version = version;
+
+    return Drm_Success;
 }

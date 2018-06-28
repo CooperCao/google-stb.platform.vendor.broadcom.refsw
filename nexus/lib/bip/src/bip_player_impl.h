@@ -125,6 +125,7 @@ typedef struct BIP_Player
                                                                             /* PlayerSettings.trackSelectionCallback is set or explicit trackIds were not specified!. */
     bool                            newProgramFound;
     int                             socketFd;
+    BIP_SocketHandle                hSocket;
 #ifdef NEXUS_HAS_ASP
     B_AspInputHandle                hAspInput;
     bool                            gotAspLibDataReadyCallback;
@@ -140,6 +141,7 @@ typedef struct BIP_Player
     bool                            trickmodeActive;
     int                             playRate;
     int                             newPlayRate;                            /* play rate in NEXUS_NORMAL_PLAY_SPEED */
+    BIP_Status                      connectCompletionStatus;
 
     struct
     {

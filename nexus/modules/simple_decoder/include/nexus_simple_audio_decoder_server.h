@@ -178,7 +178,8 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings(
 NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings(
     NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioDecoderHandle source,
-    NEXUS_SimpleAudioDecoderHandle destination
+    NEXUS_SimpleAudioDecoderHandle destination,
+    bool allowRestart
     );
 #define NEXUS_SimpleAudioDecoder_SwapServerSettings NEXUS_SimpleAudioDecoder_MoveServerSettings
 

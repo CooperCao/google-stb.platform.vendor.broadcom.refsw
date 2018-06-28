@@ -352,6 +352,7 @@ void PageTable::reserveRange(TzMem::VirtAddr vaddrFirstPage, TzMem::VirtAddr vad
 
         vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
     }
+    ARCH_SPECIFIC_TLB_FLUSH;
 }
 
 void PageTable::releaseAddrRange(TzMem::VirtAddr vaddrFirstPage, unsigned int rangeSize) {
@@ -625,6 +626,7 @@ void PageTable::mapPageRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::
 
     // Issue a memory barrier: Data accesses and instructions that follow this point should not get
     // re-ordered to run before this point
+    ARCH_SPECIFIC_TLB_FLUSH;
 
     ARCH_SPECIFIC_MEMORY_BARRIER;
 }

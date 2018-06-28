@@ -1547,6 +1547,9 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
 
     handle->hdcpStarted = false;
 
+    /* clear hdcp Required flag */
+    handle->hdcpRequiredPostFormatChange = false ;
+
     /* Clean up any pending timers */
     if ( NULL != handle->hdcpTimer )
     {
@@ -1616,8 +1619,6 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpEncryption(
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-
-    handle->hdcpRequiredPostFormatChange = false;
 
     /* Check for device */
     state = NEXUS_HdmiOutput_P_GetState(handle);

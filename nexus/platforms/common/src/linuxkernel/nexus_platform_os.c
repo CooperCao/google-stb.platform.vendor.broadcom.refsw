@@ -522,7 +522,6 @@ static void __attribute__((no_instrument_function))
 NEXUS_Platform_P_Isr(unsigned long data)
 {
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
-    unsigned long flags;
 
     BSTD_UNUSED(data);
 
@@ -538,7 +537,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         unsigned i;
 
         /* Mask interrupts only to read current status */
-        spin_lock_irqsave(&state->lock, flags);
+        spin_lock_irq(&state->lock);
 
         for(status=0,i=0;i<NEXUS_NUM_L1_REGISTERS;i++) {
             /* swap pending and current interrupt, then clear pending  and reenable interrupts */
@@ -558,7 +557,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         }
 
         /* Restore interrupts */
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
 
         if(status==0) {
             goto done;
@@ -613,7 +612,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         }
 
         /* Now, restore any disabled virtual and shared gpio interrupts (masking not required) */
-        spin_lock_irqsave(&state->lock, flags);
+        spin_lock_irq(&state->lock);
         if (NEXUS_Platform_P_VirtualIrqSupported())
         {
             b_virtual_irq_reenable_irqs_spinlocked();
@@ -624,7 +623,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
             b_shared_gpio_reenable_irqs_spinlocked();
         }
 #endif
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
     }
 
 done:
@@ -707,7 +706,6 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     b_bare_os_special_interrupt_handler special_handler;
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
-    unsigned long flags;
     unsigned i;
 
     if (irqNum>=NUM_IRQS || handler_isr==NULL || !state->started) {
@@ -749,7 +747,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
         return BERR_TRACE(-1);
     }
     
-    spin_lock_irqsave(&state->lock, flags);
+    spin_lock_irq(&state->lock);
     entry->name = name;
     entry->handler = handler_isr;
     entry->context_ptr = context_ptr;
@@ -761,7 +759,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     BDBG_ASSERT(!entry->taskletEnabled);
     BDBG_ASSERT(!entry->requested);
     /* request_irq deferred to first enable. */
-    spin_unlock_irqrestore(&state->lock, flags);
+    spin_unlock_irq(&state->lock);
     
     return NEXUS_SUCCESS;
 }
@@ -804,7 +802,6 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
-    unsigned long flags;
 
     if (irqNum>=NUM_IRQS || !state->started) {
         return BERR_TRACE(-1);
@@ -814,7 +811,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         return BERR_TRACE(-1);
     }
     
-    spin_lock_irqsave(&state->lock, flags);
+    spin_lock_irq(&state->lock);
     state->processing[reg].IntrMaskStatus &= ~(1 << (irqNum%32));
 
     if (entry->virtual)
@@ -823,7 +820,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         entry->enabled = true;
         entry->taskletEnabled = false; /* leave tasklet disabled, because all handling done in another layer */
         entry->requested = false; /* leave requested false, because all handling done in another layer */
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
         return 0;
     }
 
@@ -845,15 +842,15 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         irqflags |= IRQF_TRIGGER_HIGH;
 #endif
 
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
         BDBG_MSG(("connect interrupt %s %d (%d, %p)", entry->name, LINUX_IRQ(irqNum), entry->shared, entry->special_handler));
         entry->taskletEnabled = true; /* set before call request_irq as irq can immediately fire */
         if (request_irq(LINUX_IRQ(irqNum), NEXUS_Platform_P_LinuxIsr, irqflags, entry->name, entry)) {
             /* disable */
-            spin_lock_irqsave(&state->lock, flags);
+            spin_lock_irq(&state->lock);
             entry->handler = NULL;
             state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
-            spin_unlock_irqrestore(&state->lock, flags);
+            spin_unlock_irq(&state->lock);
             return BERR_TRACE(-1);
         }
         entry->requested = true;
@@ -872,7 +869,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         }
         entry->enabled = true;
     }
-    spin_unlock_irqrestore(&state->lock, flags);
+    spin_unlock_irq(&state->lock);
     return 0;
 }
 
@@ -881,7 +878,6 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
-    unsigned long flags;
 
     if (irqNum>=NUM_IRQS) {
         return ;
@@ -895,17 +891,17 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
     if (entry->virtual)
     {
         BDBG_MSG(("disable virtual interrupt %d", LINUX_IRQ(irqNum)));
-        spin_lock_irqsave(&state->lock, flags);
+        spin_lock_irq(&state->lock);
         state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
         entry->enabled = false;
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
         return;
     }
 
     if (entry->enabled) {
         BDBG_ASSERT(entry->requested);
         BDBG_MSG(("disable interrupt %d", LINUX_IRQ(irqNum)));
-        spin_lock_irqsave(&state->lock, flags);
+        spin_lock_irq(&state->lock);
         state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
         if (!entry->special_handler) {
             /* If the TH has received the interrupt but it has not been processed by the tasklet, don't nest the disable call. */
@@ -916,7 +912,7 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
             }
         }
         entry->enabled = false;
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
     }
 }
 
@@ -926,7 +922,6 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
-    unsigned long flags;
 
     if(irqNum>=NUM_IRQS) {
         rc = BERR_TRACE(-1);
@@ -938,7 +933,7 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
         return;
     }
     
-    spin_lock_irqsave(&state->lock, flags);
+    spin_lock_irq(&state->lock);
     BDBG_MSG(("disconnect interrupt %d", LINUX_IRQ(irqNum)));
     entry->handler = NULL;
     if (entry->enabled) {
@@ -948,12 +943,12 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
     if (entry->requested) {
         entry->requested = false;
         entry->taskletEnabled = false;
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
         /* kernel can sleep in free_irq, so must release the spinlock first */
         free_irq(LINUX_IRQ(irqNum), entry);
     }
     else {
-        spin_unlock_irqrestore(&state->lock, flags);
+        spin_unlock_irq(&state->lock);
     }
 }
 
@@ -1004,9 +999,9 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
 #endif
     {
         /* this spinlock synchronizes with any kernel use of a set of shared registers. */
-        spin_lock_irqsave(&brcm_magnum_spinlock, flags);
+        spin_lock_irq(&brcm_magnum_spinlock);
         preInitState->privateState.regSettings.systemUpdate32_isrsafe(preInitState->hReg, reg, mask, value, false);
-        spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
+        spin_unlock_irq(&brcm_magnum_spinlock);
     }
     return;
 }

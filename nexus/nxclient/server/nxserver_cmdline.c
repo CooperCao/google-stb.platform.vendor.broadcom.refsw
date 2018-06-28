@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -220,6 +220,9 @@ static void print_full_usage(void)
     );
     printf(
     "  -default_sd {ntsc,pal,secam,off}  \tAutomatically switch display0 to SD format when HDMI is disconnected. Defaults on for non-HD/SD simul systems without component.\n"
+    );
+    printf(
+    "  -ondemand_mapping  \tWhere configure heaps to use ON DEMAND memory mapping\n"
     );
 }
 
@@ -1223,6 +1226,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if (!strcmp(argv[curarg], "-watchdog")) {
             settings->watchdog = true;
         }
+        else if (!strcmp(argv[curarg], "-ondemand_mapping")) {
+            settings->heaps.ondemand_mapping = true;
+        }
         else if (!strcmp(argv[curarg], "-default_sd") && curarg+1<argc) {
             curarg++;
             if (!strcmp(argv[curarg], "off")) {
@@ -1283,7 +1289,12 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     /* Audio Sanity Checks */
     if ( settings->session[0].dolbyMs == nxserverlib_dolby_ms_type_ms11 )
     {
-        if ( pMemConfigSettings->audio.dolbyCodecVersion != NEXUS_AudioDolbyCodecVersion_eMS11 )
+        if (pMemConfigSettings->audio.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS11Plus)
+        {
+            /* Treat MS11 Plus like MS12*/
+            settings->session[0].dolbyMs = nxserverlib_dolby_ms_type_ms12;
+        }
+        else if (pMemConfigSettings->audio.dolbyCodecVersion != NEXUS_AudioDolbyCodecVersion_eMS11)
         {
             BDBG_ERR(("Dolby MS11 must be enabled by environment settings (export BDSP_MS11_SUPPORT=y) and associated DSP FW binaries must be present."));
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1293,8 +1304,16 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     {
         if ( pMemConfigSettings->audio.dolbyCodecVersion != NEXUS_AudioDolbyCodecVersion_eMS12 )
         {
-            BDBG_ERR(("Dolby MS12 must be enabled by environment settings (export BDSP_MS12_SUPPORT=y/a/b/c/d) and associated DSP FW binaries must be present."));
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            if (pMemConfigSettings->audio.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS11Plus)
+            {
+                BDBG_ERR(("MS11Plus was detected.  Please use -ms11 on the command line"));
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
+            else
+            {
+                BDBG_ERR(("Dolby MS12 must be enabled by environment settings (export BDSP_MS12_SUPPORT=y/a/b/c/d) and associated DSP FW binaries must be present."));
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
         }
     }
 #endif
@@ -1436,6 +1455,20 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
         set_dynamic_picture_buffers(pMemConfigSettings, b_dynamic_picbuf_all);
     }
 #endif
+    if (settings->heaps.ondemand_mapping) {
+        unsigned heapIndex;
+        for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+            if((pPlatformSettings->heap[heapIndex].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) == NEXUS_HEAP_TYPE_PICTURE_BUFFERS &&
+                (pPlatformSettings->heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_SECURE) != NEXUS_MEMORY_TYPE_SECURE &&
+                (pPlatformSettings->heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) != NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED &&
+                (pPlatformSettings->heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_MANAGED) == NEXUS_MEMORY_TYPE_MANAGED
+               ) {
+                BDBG_LOG(("Setting ondemand mapping for %u", heapIndex));
+                pPlatformSettings->heap[heapIndex].memoryType &= ~NEXUS_MEMORY_TYPE_NOT_MAPPED;
+                pPlatformSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
+            }
+        }
+    }
 
     return 0;
 }
@@ -1499,6 +1532,29 @@ void nxserver_set_client_heaps(struct nxserver_settings *settings, const NEXUS_P
         if (i == NEXUS_MAX_HEAPS) {
             /* likely fix is that platform code must set NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS to graphics heap on another MEMC */
             BDBG_ERR(("NEXUS_Platform_GetFramebufferHeap(0) not mapped to clients."));
+        }
+    }
+    if(settings->heaps.ondemand_mapping) { /* if ondemand_mapping was requested, make these heaps available to clients */
+        unsigned heapIndex;
+        for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+            NEXUS_HeapHandle heap = platformConfig.heap[heapIndex];
+            if( heap &&
+                (pPlatformSettings->heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_SECURE) != NEXUS_MEMORY_TYPE_SECURE &&
+                (pPlatformSettings->heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED
+               ) {
+                unsigned i;
+                for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+                    if(i<=NXCLIENT_ARR_HEAP) {
+                        /* skip standard indices */
+                        continue;
+                    }
+                    if (settings->client.heap[i] == NULL) {
+                        BDBG_LOG(("Mapping ondemand heap:%p(%u) to client index %u", (void *)heap, heapIndex, i));
+                        settings->client.heap[i] = heap;
+                        break;
+                    }
+                }
+            }
         }
     }
 }

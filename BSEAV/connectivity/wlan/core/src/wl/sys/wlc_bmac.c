@@ -6170,6 +6170,7 @@ BCMINITFN(wlc_bmac_reset)(wlc_hw_info_t *wlc_hw)
 	wlc_flushqueues(wlc_hw);
 
 	/* save a copy of the btc params before going down */
+	wlc_bmac_btc_params_save(wlc_hw);
 
 	wlc_reset_bmac_done(wlc_hw->wlc);
 }
@@ -6569,6 +6570,7 @@ BCMUNINITFN(wlc_bmac_down_prep)(wlc_hw_info_t *wlc_hw)
 	}
 
 	/* save a copy of the btc params before going down */
+	wlc_bmac_btc_params_save(wlc_hw);
 
 	/* down phy at the last of this stage */
 	callbacks += phy_down((phy_info_t *)wlc_hw->band->pi);
@@ -16848,6 +16850,23 @@ wlc_bmac_btc_params_get(wlc_hw_info_t *wlc_hw, int int_val)
 	}
 }
 
+void
+BCMUNINITFN(wlc_bmac_btc_params_save)(wlc_hw_info_t *wlc_hw)
+{
+	uint16 index;
+	uint16 bt_shm_addr = wlc_hw->btc->bt_shm_addr;
+	uint16* wlc_btc_params = wlc_hw->btc->wlc_btc_params;
+
+	/* Save btc shmem values before going down */
+	if (wlc_hw->btc->wlc_btc_params) {
+	/* Get pointer to the BTCX shm block */
+		if (0 != (bt_shm_addr = 2 * wlc_bmac_read_shm(wlc_hw, M_BTCX_BLK_PTR(wlc_hw->wlc)))) {
+			for (index = 0; index < M_BTCX_BACKUP_SIZE; index++)
+				wlc_btc_params[index] =
+					wlc_bmac_read_shm(wlc_hw, bt_shm_addr+(index*2));
+		}
+	}
+}
 
 void
 wlc_bmac_btc_rssi_threshold_get(wlc_hw_info_t *wlc_hw,

@@ -1534,6 +1534,20 @@ typedef struct BASP_FwChannelInfo
     /* Updated PA1 Address */
     uint32_t ui32UpdatedPa1Addr;
 
+    /* # ooo packets
+     * Refer to asp_received_process_local.h for definitions*/
+    uint32_t ui32NumOoopackets;
+
+    /* # ooo events
+     * Refer to asp_received_process_local.h for definitions
+     * */
+    uint32_t ui32NumOooEvents;
+
+    /* # current ooo events
+     * Refer to asp_received_process_local.h for definitions
+     * */
+    uint32_t ui32CurrNumOooEvents;
+
 } BASP_FwChannelInfo;
 
 typedef struct BASP_FwStatusInfo

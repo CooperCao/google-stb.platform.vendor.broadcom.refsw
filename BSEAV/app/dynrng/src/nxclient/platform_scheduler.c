@@ -175,8 +175,15 @@ void platform_scheduler_start(PlatformSchedulerHandle scheduler)
         BDBG_ASSERT(0);
     }
     BKNI_ReleaseMutex(scheduler->mutex);
-    scheduler->state = PlatformSchedulerState_eInit;
 }
+
+static const char * stateNames[] =
+{
+    "initialized",
+    "running",
+    "done",
+    NULL
+};
 
 void * platform_scheduler_p_thread(void * context)
 {
@@ -188,6 +195,7 @@ void * platform_scheduler_p_thread(void * context)
 
     while (scheduler->state == PlatformSchedulerState_eRunning)
     {
+        BDBG_MSG(("scheduler %p %s", (void *)scheduler, stateNames[scheduler->state]));
         BKNI_AcquireMutex(scheduler->mutex);
         for (l = BLST_Q_FIRST(&scheduler->free); l; l = BLST_Q_FIRST(&scheduler->free))
         {
@@ -219,10 +227,12 @@ void * platform_scheduler_p_thread(void * context)
                 BDBG_ERR(("Error waiting for scheduler wake event"));
                 break;
             }
+
         }
     }
 
     BKNI_AcquireMutex(scheduler->mutex);
+    scheduler->state = PlatformSchedulerState_eInit;
     BKNI_ReleaseMutex(scheduler->mutex);
     return NULL;
 }

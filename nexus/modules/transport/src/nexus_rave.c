@@ -1,6 +1,6 @@
 /***************************************************************************
  *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -2201,6 +2201,12 @@ NEXUS_Error NEXUS_Rave_SetSplicePoint_priv(NEXUS_RaveHandle rave, const NEXUS_Ra
     case NEXUS_Rave_SpliceType_eStartPts:
         err = BXPT_Rave_StartPTS(rave->swRave.raveHandle, pSettings->pts, pSettings->ptsThreshold,
                                 pSettings->splicePoint, pSettings->context);
+        if(BERR_SUCCESS != err) {
+            nerr = BERR_TRACE(err);
+        }
+        break;
+    case NEXUS_Rave_SpliceType_eStopLive:
+        err = BXPT_Rave_StopLive(rave->swRave.raveHandle, pSettings->splicePoint, pSettings->context);
         if(BERR_SUCCESS != err) {
             nerr = BERR_TRACE(err);
         }

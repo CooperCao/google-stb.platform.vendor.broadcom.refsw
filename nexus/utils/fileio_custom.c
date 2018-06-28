@@ -1,7 +1,8 @@
 /******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+ *  Copyright (C) 200 4-2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom Inc. and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +35,9 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "nexus_platform.h"
+#if NEXUS_HAS_PLAYBACK
 #include "bfile_io.h"
 #include "nexus_file.h"
 #include "nexus_file_pvr.h"
@@ -374,4 +365,4 @@ FileIoSticky_ClearFailBit(NEXUS_FilePlayHandle file_)
     file->index.failed = false;
     return;
 }
-
+#endif /* NEXUS_HAS_PLAYBACK */

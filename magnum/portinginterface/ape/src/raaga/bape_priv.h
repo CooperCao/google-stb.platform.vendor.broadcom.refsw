@@ -74,6 +74,17 @@
 #include "bchp_aud_fmm_iop_in_spdif_0.h"
 #endif
 
+#if defined BDSP_MS12_SUPPORT || defined BDSP_MS11PLUS_SUPPORT
+    #define BAPE_DSP_MS12_SUPPORT 1
+    #define BAPE_DSP_MS10_MS11_SUPPORT 0
+#elif defined BDSP_MS10_SUPPORT
+    #define BAPE_DSP_MS12_SUPPORT 0
+    #define BAPE_DSP_MS10_MS11_SUPPORT 1
+#else
+    #define BAPE_DSP_MS12_SUPPORT 0
+    #define BAPE_DSP_MS10_MS11_SUPPORT 0
+#endif
+
 /* Defines */
 #define BAPE_MAX_CALLBACKCLIENTS    5
 
@@ -466,6 +477,7 @@ typedef struct BAPE_Device
     BTMR_Handle tmrHandle;
     BDSP_Handle dspHandle;
     BDSP_Handle armHandle;
+    BTEE_InstanceHandle teeHandle;
     BAPE_Settings settings;
 
     /* Ramp Step Sizes */
@@ -1048,6 +1060,8 @@ typedef struct BAPE_Mixer
     unsigned                    loopbackDspInput;
     unsigned                    dspIndex;
     BDSP_ContextHandle          dspContext;
+    BAPE_DecoderMixingMode      previousMixingMode; /*Stores if the last mixing mode as Standalone or Description,
+                                                      does not care about sound effects or app audio.*/
 #endif
     BLST_S_HEAD(OutputList, BAPE_OutputPortObject) outputList;
     BLST_S_ENTRY(BAPE_Mixer) pllNode;
@@ -1874,14 +1888,14 @@ typedef struct BAPE_Decoder
 
     union
     {
-#if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
+#if BAPE_DSP_MS10_MS11_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Raaga_Audio_DDPMultiStreamConfigParams ddp;
 #else
         BDSP_Raaga_Audio_UdcdecConfigParams ddp;
 #endif
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_MS12_SUPPORT
         BDSP_Raaga_Audio_DolbyAacheUserConfig aac;
-#elif BDSP_MS10_SUPPORT
+#elif BAPE_DSP_MS10_MS11_SUPPORT
         BDSP_Raaga_Audio_DolbyPulseUserConfig aac;
 #else
         BDSP_Raaga_Audio_AacheConfigParams aac;
@@ -1912,11 +1926,11 @@ typedef struct BAPE_Decoder
 
     union
     {
-#if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
+#if BAPE_DSP_MS10_MS11_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Raaga_Audio_MultiStreamDDPStreamInfo ddp;
 #else
         BDSP_Raaga_Audio_UdcStreamInfo ddp;
- #endif
+#endif
         BDSP_Raaga_Audio_DdpStreamInfo ddpPassthrough;
         BDSP_Raaga_Audio_AC4StreamInfo ac4;
         BDSP_Raaga_Audio_MpegStreamInfo mpeg;

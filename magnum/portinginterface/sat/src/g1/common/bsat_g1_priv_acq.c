@@ -599,7 +599,11 @@ void BSAT_g1_P_PowerDownOpll_isrsafe(BSAT_ChannelHandle h)
 ******************************************************************************/
 void BSAT_g1_P_PowerUpOpll_isr(BSAT_ChannelHandle h)
 {
+#if BCHP_CHIP==45402
+   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, ~0x1C); /* pwrdn=0 */
+#else
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, 0);
+#endif
 }
 
 
@@ -1695,6 +1699,13 @@ BERR_Code BSAT_g1_P_SetDecimationFilters_isr(BSAT_ChannelHandle h)
       goto write_filtctl;
    }
 
+   /* ckpark: optimize filtctl in range Fb=(15e6,19e6) */
+   if ((hChn->acqSettings.symbolRate > 15000000) && (hChn->acqSettings.symbolRate < 19000000))
+   {
+      filtctl = 0xC0DF;
+      goto write_filtctl;
+   }
+
    /* Fs_over_Fb = 2^16 * Fs/Fb */
    BMTH_HILO_32TO64_Mul(65536, hChn->sampleFreq, &P_hi, &P_lo);
    BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->acqSettings.symbolRate, &Q_hi, &Fs_over_Fb);
@@ -2102,6 +2113,7 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
    val = ((2000000 / hChn->outputBitrate) + 1) & 0x0000001F;
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OSUBD, val);
    bit_clk_opll = val * hChn->outputBitrate;
+   BSAT_DEBUG_OI(BDBG_MSG(("bit_clk_opll=%u", bit_clk_opll)));
 
    if (hChn->xportSettings.bOpllBypass)
    {
@@ -2116,7 +2128,11 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
       val &= 0x0F;
       vco_ref_clock = hDev->xtalFreq / val;
       BSAT_DEBUG_OI(BDBG_MSG(("vco_ref_clock=%d", vco_ref_clock)));
+#if BCHP_CHIP==45402
+      for (ndiv_int = 14; ndiv_int <= 83; ndiv_int++)
+#else
       for (ndiv_int = 14; ndiv_int <= 36; ndiv_int++)
+#endif
       {
          BSAT_DEBUG_OI(BDBG_MSG(("ndiv_int=%d", ndiv_int)));
          vco_base = ndiv_int * vco_ref_clock;
@@ -2132,10 +2148,14 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
 
          vco_freq = m1div * bit_clk_opll;
          BSAT_DEBUG_OI(BDBG_MSG(("vco_freq=%d", vco_freq)));
+#if BCHP_CHIP==45402
+         if ((vco_freq < 1200000000UL) || (vco_freq > 4000000000UL))
+#else
          if ((vco_freq < 500000000UL) || (vco_freq > 1600000000UL))
+#endif
             continue;
 
-         vco_residue = (m1div * bit_clk_opll) - vco_base;
+         vco_residue = vco_freq - vco_base;
          BSAT_DEBUG_OI(BDBG_MSG(("vco_residue=%d", vco_residue)));
 
          if (vco_residue >= vco_ref_clock)
@@ -2144,6 +2164,7 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
          BMTH_HILO_32TO64_Mul(vco_residue, 1048576 << 1, &P_hi, &P_lo);
          BMTH_HILO_64TO64_Div32(P_hi, P_lo, vco_ref_clock, &Q_hi, &Q_lo);
          ndiv_frac = (Q_lo + 1) >> 1;
+         BSAT_DEBUG_OI(BDBG_MSG(("ndiv_frac=%u", ndiv_frac)));
 
          val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OPLL_NPDIV);
          val &= 0x0000000F; /* retain pdiv */
@@ -2151,20 +2172,43 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
          val |= ((ndiv_frac << 4) & 0x00FFFFF0);
          BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OPLL_NPDIV, val);
          BSAT_DEBUG_OI(BDBG_MSG(("SDS_OI_OPLL_NPDIV=0x%X", val)));
+         BSAT_DEBUG_OI(BDBG_MSG(("read SDS_OI_OPLL_NPDIV=0x%X", BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OPLL_NPDIV))));
 
+#if BCHP_CHIP==45402
+         if ((vco_freq >= 1200000000UL) && (vco_freq < 2200000000UL))
+            ki = 4;
+         else if ((vco_freq >= 2200000000UL) && (vco_freq < 4000000000UL))
+            ki = 3;
+         else if (vco_freq >= 4000000000UL)
+            ki = 2;
+         else
+            continue;
+#else
          if (vco_freq < 1000000000UL)
             ki = 3;
          else
             ki = 2;
+#endif
          val = ((ki+3)<<17) | (ki<<14) | m1div;
          BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OPLL_MDIV_CTRL, val);
          BSAT_DEBUG_OI(BDBG_MSG(("SDS_OI_OPLL_MDIV_CTRL=0x%X", val)));
          break;
       }
 
+#if BCHP_CHIP==45402
+      BKNI_Delay(800000000 / hChn->acqSettings.symbolRate + 1); /* wait 800 baud clks */
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, ~1); /* areset=0 */
+      BKNI_Delay(800000000 / hChn->acqSettings.symbolRate + 1); /* wait 800 baud clks */
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_OI_OPLL_PWRDN_RST, ~2); /* dreset=0 */
+      BKNI_Delay(100000000 / hChn->acqSettings.symbolRate + 1); /* wait 100 baud clks */
+#endif
+
       /* enable the loop */
       val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL01);
       val |= 0x400; /* BCHP_SDS_OI_OIFCTL01_loop_en_MASK */
+#if BCHP_CHIP==45402
+      val &= ~BCHP_SDS_OI_0_OIFCTL01_out_data_dec_MASK; /* dont decimate */
+#endif
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL01, val);
    }
 
@@ -2213,6 +2257,7 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
 #ifdef BCHP_SDS_OI_0_OIFCTL02_delh_bert_MASK
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL02);
    val &= ~(BCHP_SDS_OI_0_OIFCTL02_delh_bert_MASK | BCHP_SDS_OI_0_OIFCTL02_oifxb_xbert_MASK | BCHP_SDS_OI_0_OIFCTL02_delh_xbert_MASK);
+   val |= BCHP_SDS_OI_0_OIFCTL02_clksup_xbert_MASK; /* per Bainan */
 
    if (hChn->acqSettings.options & BSAT_ACQ_ENABLE_BERT)
    {

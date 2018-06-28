@@ -62,7 +62,6 @@ typedef struct
 #define BHSM_BSP_DEBUG_INPUT 0
 #define BHSM_BSP_DEBUG_OUTPUT  (!BHSM_BSP_DEBUG_INPUT)
 
-
 typedef struct
 {
     unsigned numComponents;  /* number of components to hold in database. */

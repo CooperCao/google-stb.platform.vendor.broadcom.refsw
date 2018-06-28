@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
 <meta name=Generator content="Microsoft Word 14 (filtered)">
-<title>Broadcom 97278 B0/B1 Phase 18.1 Set-Top Unified Reference Software
+<title>Broadcom 97278 B0/B1 Phase 18.2 Set-Top Unified Reference Software
 Release (URSR) Release Notes</title>
 <style>
 <!--
@@ -195,16 +195,16 @@ href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></sp
 
 <div>
 
-<p><a name=top><strong>Broadcom 97278/7278 B0/B1 Phase 18.1 Set-Top Unified
+<p><a name=top><strong>Broadcom 97278/7278 B0/B1 Phase 18.2 Set-Top Unified
 Reference Software Release Notes</strong></a></p>
 
 <p><strong>Release Date: </strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>March 1, 2018</p>
+<p>June 25, 2018</p>
 
-<p>Phase 18.1 Release </p>
+<p>Phase 18.2 Release </p>
 
 </blockquote>
 
@@ -265,7 +265,7 @@ kernel files can be identified by &#8220;64&#8221; suffix. Bolt bootloader can
 boot either kernel. Please refer to &#8220;64 bit Migration Application
 Note&#8221; for more details.</a></p>
 
-<p class=MsoNormal><strong>&nbsp;</strong></p>
+<p class=MsoNormal><strong>Important: Support for B0 is limited and little-tested.</strong>  Please update to 7278B1 as soon as possible.  For B0, use SAGE_SUPPORT=n.  Video encoding is not working on B0.</p>
 
 <p><a name="where_to_start"><strong>Where To Start</strong></a><br>
 <a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
@@ -282,11 +282,11 @@ Atlas as part of the Reference Software. </p>
 <p class=MsoNormal><span style='color:blue'>In order to prevent confusion, due
 to the variety of configurations for different chip part numbers, BOLT bootloader
 is no longer bundled with the Reference Software release, and should be
-requested separately. For this release, 97278 was tested with BOLT v1.38.</span></p>
+requested separately. For this release, 97278 was tested with BOLT v1.42.</span></p>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p class=MsoNormal>In URSR 18.1, Audio/DSP supports MS12 v1.3.1:</p>
+<p class=MsoNormal>In URSR 18.2, Audio/DSP supports MS12 v1.3.1:</p>
 
 <p class=MsoNormal>7278 audio support in this release includes UDC (AC3/DDP),
 AC4 [Dolby MS12 license required], AAC/AAC-HE, MPEG and PCMWAV audio decode
@@ -339,65 +339,8 @@ Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nb
 Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span>HLG --&gt; HDR10 conversion</p>
 
-<p class=MsoListParagraph style='text-indent:-.25in'>&nbsp;</p>
-
 <p class=MsoNormal style='background:white'><b><span style='font-size:14.0pt;
-color:black'>SAGE 4.0 Alpha 4 Release Notes</span></b></p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>This is
-an engineering release for the 7278B0/B1 ZD and ZB with limited testing and
-feature support.&nbsp;</span></p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>Supported
-Features</span></p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial
-PlayReady 2.5, 3.3 and Widevine DRM support. (May require a patch, see Known
-Issues.)</p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Initial
-Secure Video Path (SVP) support.</p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support
-for BP3 provisioning. SAGE is required for BP3 parts.</p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Support
-for HDMI Tx with HDCP 2.2 with limited and basic compliance testing</p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>Known
-Issues</span></p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HDCP
-2.2 Rx is not supported</p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>&nbsp;</span></p>
-
-<p class=MsoNormal style='background:white'><span style='color:black'>Miscellaneous
-Notes</span></p>
-
-<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Various
-changes made to Nexus Security and HSM PI with the introduction of HSM version
-2.&nbsp; Please note that Nexus security and HSM APIs may change as additional
-features are enabled and tested in SAGE</p>
-
-<p class=MsoListParagraph style='margin-left:.25in;text-indent:-.25in'>&nbsp;</p>
-
-<p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
-
-<p class=MsoNormal style='background:white'><b><span style='font-size:14.0pt;
-color:black'>Release Notes for ASP in URSR 18.1</span></b></p>
+color:black'>Release Notes for ASP in URSR 18.2</span></b></p>
 
 <p class=MsoNormal><b><span style='color:#0070C0'>&nbsp;</span></b></p>
 
@@ -453,7 +396,7 @@ font-family:"Courier New";color:#222222'>B_REFSW_ARCH=aarch64-linux</span></b></
 font-family:"Courier New";color:#222222'>B_REFSW_OS=linuxuser</span></b></p>
 
 <p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
-font-family:"Courier New";color:#222222'>LINUX=/opt/brcm/linux-4.9-1.4/arm64</span></b></p>
+font-family:"Courier New";color:#222222'>LINUX=/opt/brcm/linux-4.9-1.6/arm64</span></b></p>
 
 <p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
 font-family:"Courier New";color:#222222'>Toolchain found at
@@ -501,7 +444,7 @@ font-family:"Tahoma","sans-serif";color:#222222'>Steps to run:</span></b></p>
 font-family:"Tahoma","sans-serif";color:#222222'>1.</span></b><b><span
 style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
 style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Ensure
-BOLT version of 1.37 is flashed on the 97278 board.</span></b></p>
+BOLT version of 1.42 is flashed on the 97278 board.</span></b></p>
 
 <p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
 font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
@@ -510,7 +453,7 @@ font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
 font-family:"Tahoma","sans-serif";color:#222222'>2.</span></b><b><span
 style='font-size:7.0pt;color:#222222'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b><b><span
 style='font-size:10.0pt;font-family:"Tahoma","sans-serif";color:#222222'>Use
-the 4.9-1.4 Linux kernel. The CONFIG_NETFILTER option must be enabled.</span></b></p>
+the 4.9-1.6 Linux kernel. The CONFIG_NETFILTER option must be enabled.</span></b></p>
 
 <p class=MsoNormal style='background:white'><b><span style='font-size:10.0pt;
 font-family:"Tahoma","sans-serif";color:#222222'>&nbsp;</span></b></p>
@@ -659,9 +602,9 @@ color:#222222'>Nexus in Kernel mode</span></b></p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='color:#0070C0'><b># tar -xvjf
-     rootfs-4.9-1.4.tar.bz2 </b></li>
+     rootfs-4.9-1.6.tar.bz2 </b></li>
  <li class=MsoNormal style='color:#0070C0'><b># tar -xvjf
-     stblinux-4.9-1.4.tar.bz2 </b></li>
+     stblinux-4.9-1.6.tar.bz2 </b></li>
  <li class=MsoNormal style='color:#0070C0'><b># cd rootfs </b></li>
  <li class=MsoNormal style='color:#0070C0'><b># make vmlinuz-initrd-arm <i>(For
      32-bit version of the kernel build)</i></b></li>
@@ -685,9 +628,9 @@ color:#222222'>Nexus in Kernel mode</span></b></p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot
-     &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm </b></li>
+     &lt;network_location&gt;:49-1.6/vmlinuz-initrd-arm </b></li>
  <li class=MsoNormal style='color:#0070C0'><b>BOLT&gt; boot
-     &lt;network_location&gt;:49-1.4/vmlinuz-initrd-arm64&nbsp; - This command
+     &lt;network_location&gt;:49-1.6/vmlinuz-initrd-arm64&nbsp; - This command
      will boot 64 bit kernel instead of 32 bit kernel. </b></li>
 </ul>
 
@@ -811,9 +754,8 @@ boards that are supported and the options required to build the software. </span
 modes available which contain the RTS to support the different variants and
 features of this chip.</span></strong><b><span style='color:#0070C0'><br>
 <strong>Information on the available box modes has been moved to a <a
-href="7278A0_box_mode_comparison.html"><span style='color:#0070C0'>new HTML
-table</span></a>. </strong></span><strong><span style='color:black'>At this
-time box modes are the same for A0 and B0 chip versions.</span></strong></b></p>
+href="7278B1_box_mode_comparison.html"><span style='color:#0070C0'>new HTML
+table</span></a>. </strong></span><strong>
 
 <p class=MsoNormal><b><span lang=EN-GB style='color:#1F497D'>&nbsp;</span></b></p>
 
@@ -822,7 +764,7 @@ nexus playback utility and use it to decode and display a UHD stream </span></st
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='color:black'><b># tar xvfz
-     refsw_release_unified_20180301.tgz </b></li>
+     refsw_release_unified_20180625.tgz </b></li>
  <li class=MsoNormal style='color:black'><b>#cd nexus/utils </b></li>
  <li class=MsoNormal style='color:black'><b>#make install </b></li>
 </ul>
@@ -843,7 +785,7 @@ use it to play UHD stream </span></b></p>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='color:black'><b># tar xvfz
-     refsw_release_unified_20180301.tgz</b></li>
+     refsw_release_unified_20180625.tgz</b></li>
  <li class=MsoNormal style='color:black'><b>#cd BSEAV/app/atlas/build </b></li>
  <li class=MsoNormal style='color:black'><b>#make install </b></li>
 </ul>
@@ -903,19 +845,10 @@ controller is used when generating and running splash. </span></b></p>
  </tr>
  <tr>
   <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>SWSTB-8584</p>
+  <p class=MsoNormal>SWSTB-10130</p>
   </td>
   <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>MMT from a live source (bonded or single stream) broken
-  with SAGE_SUPPORT=y</p>
-  </td>
- </tr>
- <tr>
-  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>SWSECDRM-1914</p>
-  </td>
-  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>Playready_SVP and other DRM playback tests fail on 7278</p>
+  <p class=MsoNormal>S3 standby/resume support in XPT for 7278 is not implemented.</p>
   </td>
  </tr>
 </table>

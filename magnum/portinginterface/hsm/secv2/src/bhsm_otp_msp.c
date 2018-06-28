@@ -59,6 +59,7 @@ BERR_Code BHSM_OtpMsp_Write( BHSM_Handle hHsm, BHSM_OtpMspWrite *pParam )
     BDBG_ENTER( BHSM_OtpMsp_Write );
 
     if( !hHsm ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pParam ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     rc = BHSM_Otp_EnableProgram_priv( hHsm, !BHSM_OTP_CACHE_PROGRAM_REQUEST );
@@ -89,6 +90,7 @@ BERR_Code BHSM_OtpMsp_Read( BHSM_Handle hHsm, BHSM_OtpMspRead *pParam )
     BDBG_ENTER( BHSM_OtpMsp_Read );
 
     if( !hHsm ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pParam ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     BKNI_Memset( &bspParam, 0, sizeof(bspParam) );
@@ -118,6 +120,7 @@ BERR_Code BHSM_OtpMsp_ReadRange( BHSM_Handle hHsm, BHSM_OtpMspReadRange *pParam 
     BDBG_ENTER( BHSM_OtpMsp_ReadRange );
 
     if( !hHsm ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pParam ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pParam->pMem ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( pParam->memSize < pParam->numMsp ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }

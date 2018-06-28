@@ -1300,7 +1300,7 @@ static BERR_Code BAPE_Buffer_P_ControlUnlock_isrsafe(BAPE_BufferHandle handle, B
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    BDBG_MODULE_MSG(bape_buffer_lock, ("++UNLOCK BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)handle->pInterface, (void*)&handle->pInterface->lock, (int)handle->pInterface->lock));
+    BDBG_MODULE_MSG(bape_buffer_lock, ("++UNLOCK BUF %p, intf %p, lock(%p) %d", (void*)handle, (void*)pInt, (void*)&pInt->lock, (int)pInt->lock));
 
     /* Flush Cache */
     BAPE_FLUSHCACHE_ISRSAFE(blk, pInt, sizeof(BAPE_BufferInterface));

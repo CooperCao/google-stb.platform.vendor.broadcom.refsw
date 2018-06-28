@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_16
+## SAGE Binary Metadata - SSF 3_2_17
 ## unique_key checksum_type checksum url
-7366C0/sage_ta_antirollback.bin sha1 d96a127c798728aa4d4b52255a0a5fdf3740e184 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_16/7366C0/ZB/sage_ta_antirollback.bin
+7366C0/sage_ta_antirollback.bin sha1 28e935cf2afc4ebbde2c3cc9205205c101294474 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_17/7366C0/ZB/sage_ta_antirollback.bin

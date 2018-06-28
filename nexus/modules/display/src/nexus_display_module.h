@@ -171,6 +171,7 @@ typedef struct NEXUS_DisplayModule_State {
     NEXUS_DisplayCapabilities cap;
     BVDC_Capabilities vdcCapabilities;
     NEXUS_DisplayModuleSettings moduleSettings;
+    NEXUS_DisplayModuleInternalSettings moduleInternalSettings;
     NEXUS_HeapHandle heap; /* main heap used in BVDC_Open */
     NEXUS_DisplayModuleDependencies modules;
     NEXUS_DisplayHandle displays[NEXUS_NUM_DISPLAYS];
@@ -250,6 +251,7 @@ struct NEXUS_DisplayGraphics {
     struct {
         struct {
             NEXUS_SurfaceHandle uncompressed, compressed;
+            const BPXL_Plane *compressed_plane;
 #define NEXUS_MAX_COMPRESSED_FRAMEBUFFERS 4
             unsigned cnt;
         } cache[NEXUS_MAX_COMPRESSED_FRAMEBUFFERS];

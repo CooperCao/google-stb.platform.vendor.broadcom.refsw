@@ -125,7 +125,7 @@ static const BSAT_Settings defDevSettings =
       BSAT_45402_P_GetAcmSettings,
       BSAT_45402_P_GetStreamList,
       BSAT_45402_P_GetStreamStatus,
-      NULL, /* BSAT_GetFastChannelStatus */
+      BSAT_45402_P_GetFastChannelStatus,
       BSAT_45402_P_ScanSpectrum,
       BSAT_45402_P_GetSpectrumStatus
    }

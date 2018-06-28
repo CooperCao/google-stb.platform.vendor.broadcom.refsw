@@ -219,6 +219,18 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
 #if NEXUS_VBI_SUPPORT && defined(MACROVISION_SUPPORT)
         nexus_p_check_macrovision(display, pSettings->format);
 #endif
+
+#if NEXUS_NUM_656_OUTPUTS
+        if ((display->cfg.format != pSettings->format) &&
+            display->timingGenerator == NEXUS_DisplayTimingGenerator_e656Output)
+        {
+            if (pVideo->moduleInternalSettings.config_Ccir656_Daughtercard)
+            {
+                pVideo->moduleInternalSettings.config_Ccir656_Daughtercard(pSettings->format);
+            }
+        }
+#endif
+
         /* actual display refresh rate should come from the display rate change callback */
         if(display->status.refreshRate == 0) {/* initialize if not updated by display callback */
             display->status.refreshRate = B_REFRESH_RATE_10_TO_1000(video_format_info.ulVertFreq);
@@ -1075,14 +1087,27 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
                 {
                     /* enough IT => default analog master */
                     vdcDisplayCfg.eMasterTg = vecIndex % NEXUS_DisplayTimingGenerator_eTertiaryInput;
+
+#if (BCHP_CHIP == 7278 || BCHP_CHIP == 7216)
+#if NEXUS_NUM_656_OUTPUTS && defined(NEXUS_HAS_656_DAUGHTER_CARD)
+                    /* No analog output available, use 656 output instead */
+                    if (display->index == 1) {
+                        vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_e656Dtg;
+                    }
+#endif
+#endif
                 }
                 else if(pVideo->vdcCapabilities.ulNumAtg + pVideo->vdcCapabilities.ulNum656Output >= pVideo->vdcCapabilities.ulNumCmp - pVideo->vdcCapabilities.ulNumStg)
                 {
                     /* The last display gets 656 master otherwise analog master */
                     if(vecIndex >= pVideo->vdcCapabilities.ulNumAtg)
+                    {
                         vdcDisplayCfg.eMasterTg = NEXUS_DisplayTimingGenerator_e656Output;
+                    }
                     else
+                    {
                         vdcDisplayCfg.eMasterTg = vecIndex % NEXUS_DisplayTimingGenerator_eTertiaryInput;
+                    }
                 }
                 else
                 {
@@ -1453,6 +1478,14 @@ NEXUS_Display_AddOutput(NEXUS_DisplayHandle display, NEXUS_VideoOutput output)
 
     rc = NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(display);
     if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto err_apply; }
+
+    if (display->timingGenerator == NEXUS_DisplayTimingGenerator_e656Output)
+    {
+        if (pVideo->moduleInternalSettings.config_Ccir656_Daughtercard)
+        {
+            pVideo->moduleInternalSettings.config_Ccir656_Daughtercard(display->cfg.format);
+        }
+    }
 
     return BERR_SUCCESS;
 

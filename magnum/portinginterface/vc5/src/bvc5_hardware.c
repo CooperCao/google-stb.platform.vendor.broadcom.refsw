@@ -563,10 +563,27 @@ static void BVC5_P_WaitForAXIIdle(
 #endif
 }
 
+#define CM_PASSWORD 0x5a000000
+static void BVC5_P_CM_V3DCTL_Enable(BVC5_Handle hVC5, int mode)
+{
+#ifdef BCHP_CM_V3DCTL
+   uint32_t uiReg;
+   /* 7211 uses Pi architecture, so BCHP_PWR_SUPPORT is not enabled */
+   uiReg = BREG_Read32(hVC5->hReg, BCHP_CM_V3DCTL);
+   BCHP_SET_FIELD_DATA(uiReg, CM_V3DCTL, ENAB, mode);
+   BREG_Write32(hVC5->hReg, BCHP_CM_V3DCTL, (CM_PASSWORD | uiReg));
+#else
+   BSTD_UNUSED(hVC5);
+   BSTD_UNUSED(mode);
+#endif
+}
+
 void BVC5_P_HardwarePLLEnable(
    BVC5_Handle hVC5
    )
 {
+   BVC5_P_CM_V3DCTL_Enable(hVC5, 1);
+
 #ifdef BCHP_PWR_SUPPORT
 #ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
    BCHP_PWR_AcquireResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
@@ -599,6 +616,8 @@ void BVC5_P_HardwarePLLDisable(
 #else
    BSTD_UNUSED(hVC5);
 #endif
+
+   BVC5_P_CM_V3DCTL_Enable(hVC5, 0);
 }
 
 void BVC5_P_HardwareBPCMPowerUp(

@@ -352,6 +352,7 @@ static BERR_Code NEXUS_Platform_P_TeeGetStatus(BTEE_InstanceStatus *pStatus)
     }
 
     pStatus->enabled = astraStatus.up;
+    pStatus->secure = astraStatus.secure;
     pStatus->version.major = astraVersion.major;
     pStatus->version.minor = astraVersion.minor;
     pStatus->version.build = astraVersion.build;

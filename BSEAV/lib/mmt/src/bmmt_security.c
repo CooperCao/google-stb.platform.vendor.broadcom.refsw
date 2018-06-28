@@ -256,7 +256,7 @@ bmmt_security_t bmmt_security_init(void)
     keyslotEntrySettings.algorithmMode = NEXUS_CryptographicAlgorithmMode_eCounter;
     keyslotEntrySettings.terminationMode = NEXUS_KeySlotTerminationMode_eClear;
     keyslotEntrySettings.solitaryMode = NEXUS_KeySlotTerminationSolitaryMode_eClear; /*= NEXUS_KeySlotTerminationSolitaryMode_eIv1*/;
-    keyslotEntrySettings.counterMode = NEXUS_CounterMode_e0;
+    keyslotEntrySettings.counterMode = NEXUS_CounterMode_e1;
     keyslotEntrySettings.counterSize = 128;
     #if BMMT_EXTERNAL_KEY_IV == 1
     keyslotEntrySettings.external.iv = true;
