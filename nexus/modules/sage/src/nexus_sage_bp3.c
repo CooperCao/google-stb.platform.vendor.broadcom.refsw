@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -552,23 +552,30 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
     {
 #ifdef BP3_PROVISIONING
         /* bp3.bin file may not exist if a BP3 part has not been provisioned yet. */
-        BDBG_LOG(("%s - Provisioning enabled.",BSTD_FUNCTION));
+        BDBG_LOG(("%s - BP3 Provisioning compile flag enabled.",BSTD_FUNCTION));
 #else
-        if ((prodOtpData & 0xFF) == 0)
+        if (NEXUS_GetEnv("BP3_PROVISIONING"))
         {
-            /* BP3 production part */
-            BDBG_ERR(("#####################################################################"));
-            BDBG_ERR(("%s - bp3.bin doesn't exist and provisioning is disabled",BSTD_FUNCTION));
-            BDBG_ERR(("#####################################################################"));
-            BDBG_ASSERT(0);
+            /* bp3.bin file may not exist if a BP3 part has not been provisioned yet. */
+            BDBG_LOG(("%s - BP3 Provisioning run-time flag enabled.",BSTD_FUNCTION));
         }
         else
         {
-            BDBG_LOG(("non-bp3 part doesn't require bp3.bin for non-bp3 features"));
+            if ((prodOtpData & 0xFF) == 0)
+            {
+                /* BP3 production part */
+                BDBG_ERR(("#####################################################################"));
+                BDBG_ERR(("%s - bp3.bin doesn't exist. ",BSTD_FUNCTION));
+                BDBG_ERR(("%s - provisioned features are disabled",BSTD_FUNCTION));
+                BDBG_ERR(("#####################################################################"));
+            }
+            else
+            {
+                BDBG_LOG(("non-bp3 part doesn't require bp3.bin for non-bp3 features"));
+            }
         }
 #endif
     }
-
 
 EXIT:
     BDBG_MSG(("SAGE BP3 init complete (0x%x)", rc));

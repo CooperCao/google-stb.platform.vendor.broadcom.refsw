@@ -1034,9 +1034,13 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     NEXUS_Sage_P_SvpInitDelayed(NULL);
 
     /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
-#if (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0)
+#if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
+     (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
+     (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0))
     rc= NEXUS_SUCCESS;
 #else
+    /* Install BP3 TA.  Initialize the platform and BP3 module.  Read and process bp3.bin if it exists and not provisioning.  */
     rc = NEXUS_Sage_P_BP3Init(&g_sage_module.settings);
 #endif
     if (rc != NEXUS_SUCCESS)
@@ -1132,7 +1136,12 @@ void NEXUS_SageModule_Uninit(void)
 
     NEXUS_Sage_P_SecureLog_Uninit();
 
-#if (BCHP_CHIP != 7278 || BCHP_VER != BCHP_VER_A0)
+#if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
+     (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
+     (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0))
+    /* BP3 TA is not installed on these legacy parts without BP3 provisionable features */
+#else
     NEXUS_Sage_P_BP3Uninit();
 #endif
     NEXUS_Sage_P_SvpStop(false);

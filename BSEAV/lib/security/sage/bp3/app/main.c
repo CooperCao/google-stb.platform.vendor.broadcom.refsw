@@ -1,40 +1,45 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,7 +68,7 @@ extern char bp3_bin_file_path[];
 
 BDBG_MODULE(bp3_main);
 
-#define BP3_HOST_MAX_BUF_SIZE 2048
+#define BP3_HOST_MAX_BUF_SIZE 65536
 
 uint32_t  bp3SessionTokenSize = 0;
 uint8_t  *pBp3SessionToken = NULL;
@@ -280,6 +285,91 @@ int bp3_session_start(uint8_t **token, uint32_t *size)
       return rc;
 }
 
+
+int bp3_get_otp_id (uint32_t *pOtpIdHigh, uint32_t *pOtpIdLow)
+{
+    int     rc = 0;
+
+    if (SAGE_BP3Module_GetOtpId(pOtpIdHigh, pOtpIdLow))
+    {
+        rc = -8;
+        goto error;
+    }
+error:
+    if (rc)
+    {
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
+    }
+    return rc;
+}
+
+int bp3_get_chip_info (
+    uint8_t  *pFeatureList,
+    uint32_t  featureListByteSize,
+    uint32_t *pProductID,
+    uint32_t *pSecurityCode,
+    uint32_t *pBondOption,
+    bool     *pProvisioned)
+{
+    int rc = 0;
+    uint8_t *pFeatures = NULL;
+
+    pFeatures = SRAI_Memory_Allocate(featureListByteSize, SRAI_MemoryType_Shared);
+    if (pFeatures == NULL)
+    {
+      rc = -1;
+      goto error;
+    }
+
+    if (SAGE_BP3Module_GetChipInfo (
+        pFeatures,
+        featureListByteSize,
+        pProductID,
+        pSecurityCode,
+        pBondOption,
+        pProvisioned))
+    {
+        rc = -9;
+        goto error;
+    }
+    // copy feature list
+    memcpy(pFeatureList, pFeatures, featureListByteSize);
+
+error:
+    if (pFeatures != NULL)
+    {
+        SRAI_Memory_Free(pFeatures);
+    }
+    if (rc)
+    {
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
+    }
+    return rc;
+
+}
+
+int bp3_ta_start()
+{
+    int rc = 0;
+    if (SAGE_BP3Platform_Init())
+    {
+      rc = -1;
+      goto error;
+    }
+error:
+    if (rc)
+    {
+        fprintf(stderr, "%s ERROR #%d\n", BSTD_FUNCTION, rc);
+    }
+    return rc;
+}
+
+void bp3_ta_end()
+{
+    int rc = 0;
+    SAGE_BP3Platform_Uninit();
+}
+
 int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize)
 {
     int       rc = 0;
@@ -464,113 +554,6 @@ leave:
     }
     return rc;
 }
-
-#if (NEXUS_SECURITY_API_VERSION == 1)
-    NEXUS_OtpKeyType find_otp_select(void)
-    {
-      unsigned int OTPCode = 25;
-      NEXUS_ReadOtpIO readOtpIO;
-
-      unsigned int j = ((NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyID ||
-          (NEXUS_OtpCmdReadRegister) OTPCode == NEXUS_OtpCmdReadRegister_eKeyHash) ? 0 : 4;
-
-      for (NEXUS_OtpKeyType keyType = NEXUS_OtpKeyType_eA; keyType < NEXUS_OtpKeyType_eSize; keyType++) {
-        if (NEXUS_Security_ReadOTP((NEXUS_OtpCmdReadRegister) OTPCode, (NEXUS_OtpKeyType) keyType,
-            &readOtpIO)) continue;
-        if (j + readOtpIO.otpKeyIdSize > NEXUS_OTP_KEY_ID_LEN) continue;
-        for (unsigned int i = 0; i < readOtpIO.otpKeyIdSize; i++)
-          if (readOtpIO.otpKeyIdBuf[i + j]) goto next;
-
-        return keyType;
-
-        next:;
-      }
-      // always return OTP Key A for now instead of OTP Key with SAGE key ladder rights.
-      return NEXUS_OtpKeyType_eA;
-    }
-
-    NEXUS_Error read_otp_id(NEXUS_OtpIdType keyType, uint32_t *otpIdHi, uint32_t *otpIdLo)
-    {
-      NEXUS_OtpIdOutput OTP_ID_out;
-
-      NEXUS_Error errCode = NEXUS_Security_ReadOtpId((NEXUS_OtpIdType) keyType, &OTP_ID_out);
-
-      if (!errCode) {
-        if (OTP_ID_out.size != 8) {
-          fprintf(stderr, "\n%s failed. Only 8 byte otp id is supported\n", __FUNCTION__);
-          return errCode;
-        }
-
-        // otpId array are in big endian
-        *otpIdHi = OTP_ID_out.otpId[3] | (uint32_t) OTP_ID_out.otpId[2] << 8 |
-            (uint32_t) OTP_ID_out.otpId[1] << 16 | (uint32_t) OTP_ID_out.otpId[0] << 24;
-
-        *otpIdLo = OTP_ID_out.otpId[7] | (uint32_t)OTP_ID_out.otpId[6] << 8 |
-            (uint32_t) OTP_ID_out.otpId[5] << 16 | (uint32_t) OTP_ID_out.otpId[4] << 24;
-        }
-      else
-        fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
-
-      return errCode;
-    }
-#else
-    BP3_Otp_KeyType find_otp_select(void)
-    {
-        unsigned int i;
-        NEXUS_OtpKeyInfo keyInfo;
-        BP3_Otp_KeyType keyType;
-
-        for (i=BP3_OTPKeyTypeA; i< BP3_OTPKeyMax; i++)
-        {
-            NEXUS_Error errCode = NEXUS_OtpKey_GetInfo(i, &keyInfo);
-            if (!errCode)
-            {
-                if (keyInfo.sageKeyLadderAllow)
-                {
-                    keyType = i;
-                    goto End;
-                }
-                else if (i == BP3_OTPKeyTypeH)
-                {
-                    fprintf(stderr, "%s failed to find key \n", __FUNCTION__);
-                    keyType = BP3_OTPKeyTypeA;
-                }
-            }
-            else
-            {
-                fprintf(stderr, "%s failed to get OTP key info %d\n", __FUNCTION__, errCode);
-                goto End;
-            }
-        }
-
-End:
-        // always return OTP Key A for now instead of OTP Key with SAGE key ladder rights.
-        return BP3_OTPKeyTypeA;
-    }
-
-    NEXUS_Error read_otp_id(unsigned keyIndex, uint32_t *otpIdHi, uint32_t *otpIdLo)
-    {
-        NEXUS_OtpKeyInfo keyInfo;
-
-        NEXUS_Error errCode = NEXUS_OtpKey_GetInfo(keyIndex, &keyInfo);
-
-        if (!errCode)
-        {
-            // keyInfo.id array are in big endian.  Convert to little endian.
-            *otpIdHi = keyInfo.id[3] | (uint32_t) keyInfo.id[2] << 8 |
-                (uint32_t) keyInfo.id[1] << 16 | (uint32_t) keyInfo.id[0] << 24;
-
-            *otpIdLo = keyInfo.id[7] | (uint32_t)keyInfo.id[6] << 8 |
-                (uint32_t) keyInfo.id[5] << 16 | (uint32_t) keyInfo.id[4] << 24;
-        }
-        else
-        {
-            fprintf(stderr, "\n%s failed. Error code: #%d\n", __FUNCTION__, errCode);
-        }
-
-        return errCode;
-    }
-#endif
 
 
 int bp3(int argc, char *argv[])
