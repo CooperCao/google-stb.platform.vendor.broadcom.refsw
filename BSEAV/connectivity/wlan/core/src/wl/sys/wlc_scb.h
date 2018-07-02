@@ -122,6 +122,10 @@ struct scb {
 	void *scb_rrm_tscm;
 #endif /* WL11K */
 	uint16	 vhtcap_orig_mcsmap;	/* Actual VHT cap mcs map of STA */
+#ifdef WLATM_PERC
+	uint8 scb_perc;	/* STA percentage for ATM, the range is 0 -100, 0 is auto. */
+	uint8 airtime_weight; /* The weight of AirTime for this STA. */
+#endif /* WLATM_PERC */
 };
 
 /** Iterator for scb list */

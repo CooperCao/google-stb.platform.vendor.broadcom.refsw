@@ -1,47 +1,45 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to
- * the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied),
- * right to use, or waiver of any kind with respect to the Software, and
- * Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #ifndef NXCLIENT_GLOBAL_H__
 #define NXCLIENT_GLOBAL_H__
 
@@ -476,6 +474,7 @@ typedef struct NxClient_CallbackStatus
     unsigned hdmiOutputHdcpChanged;
     unsigned displaySettingsChanged;
     unsigned audioSettingsChanged;
+    unsigned thermalConfigChanged;
     unsigned coolingAgentChanged;
     unsigned standbyStateChanged; /* incremented with NxClient_StandbySettings.settings.mode changes */
 } NxClient_CallbackStatus;
@@ -493,6 +492,7 @@ typedef struct NxClient_CallbackThreadSettings
     NEXUS_CallbackDesc hdmiOutputHdcpChanged;
     NEXUS_CallbackDesc displaySettingsChanged; /* called if NxClient_CallbackStatus.displaySettingsChanged increments */
     NEXUS_CallbackDesc audioSettingsChanged; /* called if NxClient_CallbackStatus.audioSettingsChanged increments */
+    NEXUS_CallbackDesc thermalConfigChanged;  /* called when the thermal configuration changes */
     NEXUS_CallbackDesc coolingAgentChanged;  /* called when the cooling agent changes */
     NEXUS_CallbackDesc standbyStateChanged;
     unsigned interval; /* polling interval in milliseconds */
@@ -627,22 +627,85 @@ NEXUS_Error NxClient_SetHdmiInputRepeater(
     NEXUS_HdmiInputHandle hdmiInput
     );
 
+#define NXCLIENT_MAX_THERMAL_PRIORITIES 32
+#define NXCLIENT_MAX_THERMAL_CONFIGS    16
+
+typedef enum NxClient_CoolingAgent
+{
+    NxClient_CoolingAgent_eUnknown,
+    NxClient_CoolingAgent_eCpuPstate,  /* Throttle CPU frequency by limiting max P state */
+    NxClient_CoolingAgent_eCpuIdle,    /* CPU idle injection */
+    NxClient_CoolingAgent_eGraphics3D, /* Throttle Graphics 3D frequency */
+    NxClient_CoolingAgent_eGraphics2D, /* Throttle Graphics 2D frequency */
+    NxClient_CoolingAgent_eDisplay,    /* Set Display Resolution */
+    NxClient_CoolingAgent_eStopPip,    /* Stop Pip Decode */
+    NxClient_CoolingAgent_eStopMain,   /* Stop Main Decode */
+    NxClient_CoolingAgent_eUser,       /* User Defined Cooling Agent */
+    NxClient_CoolingAgent_eMax
+} NxClient_CoolingAgent;
+
 typedef struct NxClient_ThermalStatus
 {
-    unsigned temperature;   /* Current Temperature in degrees C*/
-    bool userDefined;       /* True if user defined Cooling Agent needs to be applied*/
-    unsigned level;         /* Level of throttling for user defined cooling agent */
+    unsigned temperature;                /* Current Temperature in millidegrees C*/
+    unsigned activeTempThreshold;        /* Temp threshold of active NxClient_ThermalConfiguration in millidegrees C. 0 if none active */
     struct {
-        bool inUse;               /* Indicates whether cooling agent is applied or not */
+        bool inUse;                      /* Indicates whether cooling agent is applied or not */
         NEXUS_Timestamp lastAppliedTime; /* Timestamp in ms when cooling agent was last applied */
         NEXUS_Timestamp lastRemovedTime; /* Timestamp in ms when cooling agent was last removed */
-    } priorityTable[32];          /* index is priority from thermal.cfg file */
+    } priorityTable[NXCLIENT_MAX_THERMAL_PRIORITIES];          /* index is priority from thermal.cfg file */
 } NxClient_ThermalStatus;
 
 NEXUS_Error NxClient_GetThermalStatus(
     NxClient_ThermalStatus *pStatus
     );
 
+typedef struct NxClient_ThermalConfigurationList
+{
+    unsigned tempThreshold[NXCLIENT_MAX_THERMAL_CONFIGS]; /* array of keys for NxClient_ThermalConfiguration. 0 is unused slot. */
+} NxClient_ThermalConfigurationList;
+
+/**
+Summary:
+Load all available thermal configs
+**/
+void NxClient_GetThermalConfigurationList(
+    NxClient_ThermalConfigurationList *pConfigList
+    );
+
+typedef struct NxClient_ThermalConfiguration
+{
+    unsigned overTempThreshold; /* Over Temp Threshold in millidegrees C at which thermal throttling is applied*/
+    unsigned hysteresis;        /* Hysteresis in millidegrees C */
+    unsigned overTempReset;     /* Over temperature reset threshold in millidegrees C*/
+    unsigned overPowerThreshold;/* Power Threshold in mW at which throttling is applied */
+    unsigned pollInterval;      /* Thermal polling interval in milliseconds */
+    unsigned tempDelay;         /* Delay in milliseconds before applying next cooling agent */
+    unsigned thetaJC;           /* Thermal Resistance of the Box */
+    struct {
+        NxClient_CoolingAgent agent;  /* Cooling Agent type */
+    } priorityTable[NXCLIENT_MAX_THERMAL_PRIORITIES];
+} NxClient_ThermalConfiguration;
+
+/**
+Summary:
+Get the themal configuration for the specified threshold.
+Returns error if no matching config is loaded
+**/
+NEXUS_Error NxClient_GetThermalConfiguration(
+    unsigned tempThreshold, /* Unique key, which is the also the threshold for desired configuration. Specified in millidegrees celcius */
+    NxClient_ThermalConfiguration *pConfig
+    );
+
+/**
+Summary:
+Enable/Disable or Modify a thermal configuration. using the threshold as a unique id.
+Pass in NULL to disable a configuration.
+A configuration can be enabled/disabled/modified only if its threshold is higher than all existing configurations.
+**/
+NEXUS_Error NxClient_SetThermalConfiguration(
+    unsigned tempThreshold, /* Unique key, which is lower threshold to activate configuration, in millidegrees celcius */
+    const NxClient_ThermalConfiguration *pConfig /* attr{null_allowed=y} Set NULL to unload a config. */
+    );
 
 /**
 Summary:

@@ -133,6 +133,14 @@
 #endif
 #include "bchp_pm.h"
 
+#ifdef BCHP_VC_MCP_BRIDGE_REG_START
+#include "bchp_vc_mcp_bridge.h"
+#endif
+
+#ifdef BCHP_CM_REG_START
+#include "bchp_cm.h"
+#endif
+
 #if V3D_VER_AT_LEAST(3,3,0,0)
 /* Map the register names to core 0 addresses.
  * Address arithmetic in Read & WriteRegister will then

@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to
@@ -639,6 +639,11 @@ typedef struct BVDC_P_BufferContext
        its original polarity, i.e., passed from the XDM even though the capture
        is frame. See SWSTB-6406. */
     bool                          bMtgAlignSrcAndDisp;
+
+    /* Keeps track of how many XDM repeated pictures were skipped/dropped.
+       3 or more consecutive skips indicates the picture is paused so instead of
+       continuing to skip, allow the writer to move. */
+    uint32_t                      ulMtgXdmPicSkipCount;
 
 #if (BVDC_BUF_LOG==1)
     /* Multi-buffer log */

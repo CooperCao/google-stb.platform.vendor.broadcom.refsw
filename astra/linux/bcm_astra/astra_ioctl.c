@@ -560,6 +560,12 @@ static int astra_ioctl_client_close(struct file *file, void *arg)
         return -EFAULT;
     };
 
+    if((clientCloseData.hClient < ASTRA_CLIENT_START)||(clientCloseData.hClient > (ASTRA_CLIENT_START+ASTRA_CLIENT_NUM_MAX))) {
+        LOGE("Invalid Handle for Astra Client");
+        clientCloseData.retVal = -EINVAL;
+        goto RETURN;
+    }
+
     pClient = (struct astra_client *)astra_map_clientHandle_user(file, clientCloseData.hClient);
 
     if (!pClient) {
@@ -672,6 +678,12 @@ static int astra_ioctl_uapp_close(struct file *file, void *arg)
         return -EFAULT;
     };
 
+    if((uappCloseData.hUapp < ASTRA_UAPP_START)||(uappCloseData.hUapp > (ASTRA_UAPP_START+ASTRA_UAPP_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra UAPP");
+        uappCloseData.retVal = -EINVAL;
+        goto RETURN;
+    }
+
     pUapp = (struct astra_uapp *)astra_map_uappHandle_user(file, uappCloseData.hUapp);
 
     if (!pUapp) {
@@ -778,6 +790,12 @@ static int astra_ioctl_peer_close(struct file *file, void *arg)
         LOGE("Failed to access astra ioctl arguments");
         return -EFAULT;
     };
+
+    if((peerCloseData.hPeer < ASTRA_PEER_START)||(peerCloseData.hPeer > (ASTRA_PEER_START+ASTRA_PEER_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra Peer");
+        peerCloseData.retVal = -EINVAL;
+        goto RETURN;
+    }
 
     pPeer = (struct astra_peer *)astra_map_peerHandle_user (file, peerCloseData.hPeer);
 
@@ -1160,6 +1178,12 @@ static int astra_ioctl_file_close(struct file *file, void *arg)
         LOGE("Failed to access astra ioctl arguments");
         return -EFAULT;
     };
+
+    if((fileCloseData.hFile < ASTRA_FILE_START)||(fileCloseData.hFile > (ASTRA_FILE_START+ASTRA_FILE_NUM_MAX))) {
+        LOGE("Invalid User Handle for Astra File");
+        fileCloseData.retVal = -EINVAL;
+        goto RETURN;
+    }
 
     pFile = (struct astra_file *)astra_map_fileHandle_user (file,fileCloseData.hFile);
 

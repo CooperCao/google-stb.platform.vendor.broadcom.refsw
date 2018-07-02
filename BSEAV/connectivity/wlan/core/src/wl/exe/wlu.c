@@ -416,6 +416,7 @@ static cmd_func_t wl_hc;
 static cmd_func_t wl_wake_timer;
 
 static cmd_func_t wl_idauth;
+static cmd_func_t wl_atm_staperc;
 static int wl_idauth_config_set(void *wl, uint16 category, char **argv);
 static int wl_idauth_config_get(void *wl, uint16 category, char **argv);
 static int wl_idauth_dump_counters(void *wl, uint16 category, char **argv);
@@ -2120,6 +2121,8 @@ cmd_t wl_cmds[] = {
 	"Read the template RAM for ucode trace data.\n"},
 	{ "wds_ap_ifname", wl_wds_ap_ifname, WLC_GET_VAR, -1,
 	"Get associated AP interface name for WDS interface."},
+	{"atm_staperc", wl_atm_staperc, WLC_GET_VAR, WLC_SET_VAR,
+	"<mac_addr> [num_percent]\n"},
 	{ NULL, NULL, 0, 0, NULL }
 };
 
@@ -27226,6 +27229,34 @@ wl_idauth_dump_peer_info(void *wl, uint16 category, char **argv)
 		}
 	}
 	return (ret);
+}
+
+static int
+wl_atm_staperc(void *wl, cmd_t *cmd, char **argv)
+{
+	int err;
+	wl_atm_staperc_t *sp = (wl_atm_staperc_t *) buf;
+
+	if (*++argv) {
+		if (wl_ether_atoe(*argv, &sp->ea)) {
+			if (*++argv) {
+				/* SET */
+				sp->perc = atoi(*argv);
+				err = wlu_iovar_setbuf(wl, cmd->name,
+						sp, sizeof(*sp), buf, WLC_IOCTL_MEDLEN);
+			} else {
+				/* GET */
+				err = wlu_iovar_getbuf(wl, cmd->name,
+						sp, sizeof(*sp), buf, WLC_IOCTL_MEDLEN);
+				printf("%d%%\n", sp->perc);
+			}
+		}
+	} else {
+		printf("Provide <mac_addr> [num_percent]\n");
+		return BCME_USAGE_ERROR;
+	}
+
+	return err;
 }
 
 static int

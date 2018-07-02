@@ -143,6 +143,9 @@ extern const void* BHAB_45308_IMG_Context;
 #if NEXUS_FRONTEND_45316_FW
 extern const void* BHAB_45316_IMG_Context;
 #endif
+#if NEXUS_FRONTEND_45402_FW
+extern const void* BHAB_45402_IMG_Context;
+#endif
 #endif
 #endif
 #endif /* NEXUS_CONFIG_IMAGE */
@@ -917,6 +920,9 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 #endif
 #if NEXUS_FRONTEND_45316_FW
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_45316_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_45316); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_45402_FW
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_45402_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_45402); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
 #endif
 #if NEXUS_USE_OTT_TRANSPORT

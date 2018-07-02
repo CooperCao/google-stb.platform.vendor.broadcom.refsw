@@ -357,6 +357,7 @@ typedef struct BTEE_InstanceStatus
         unsigned build;
     } version;
     bool enabled;
+    bool secure;
 } BTEE_InstanceStatus;
 
 /***************************************************************************

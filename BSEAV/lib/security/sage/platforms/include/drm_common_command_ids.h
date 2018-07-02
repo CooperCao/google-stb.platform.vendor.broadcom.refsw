@@ -126,6 +126,7 @@ typedef enum DrmWVOemCrypto_CommandId_e
     DrmWVOEMCrypto_CommandId_eLoadEntitledContentKeys  = 59,
     DrmWVOEMCrypto_CommandId_eSelectKey                = 60,
     DrmWVOEMCrypto_CommandId_eLoadKeys                 = 61,
+    DrmWVOEMCrypto_CommandId_eLoadTestKeybox           = 62,
 
     DrmWVOEMCrypto_CommandId_eMax
 }DrmWVOemCrypto_CommandId_e;

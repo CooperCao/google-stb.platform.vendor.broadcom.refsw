@@ -1,5 +1,6 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
@@ -471,7 +472,7 @@ static bool check_valid_tf_draw(GLXX_SERVER_STATE_T *state, const glxx_hw_draw *
    assert(state->transform_feedback.in_use);
    assert(gl20_program_common_get(state)->transform_feedback.varying_count > 0);
 
-#if !V3D_VER_AT_LEAST(4,1,34,0)
+#if !KHRN_GLES32_DRIVER
    if(draw->is_indirect || !draw->is_draw_arrays)
       return false;
 #endif

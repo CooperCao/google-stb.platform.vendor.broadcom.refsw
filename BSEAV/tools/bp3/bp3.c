@@ -476,8 +476,14 @@ int status()
   uint32_t sessionSize = 0;
   rc = bp3_session_start(&session, &sessionSize);
   CHECK_ERROR(rc, "Unable to start bp3 session\n")
+#if BP3_TA_FEATURE_READ_SUPPORT
   rc = bp3_get_otp_id(&otpIdHi, &otpIdLo);
   CHECK_ERROR(rc, "Unable to read Chip ID\n")
+#endif
+  if (otpIdHi == 0 && otpIdLo == 0) {
+    NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_hi, &otpIdHi);
+    NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo, &otpIdLo);
+  }
   PRINTF("UId = 0x%08x%08x\n\n", otpIdHi, otpIdLo);
 
   for (int i = 0; i < 16 * 8; i++) {
@@ -746,8 +752,10 @@ int provision(int argc, char *argv[])
   rc = bp3_session_start(&session, &sessionSize);
   CHECK_ERROR(rc, "Unable to start bp3 session\n")
 
+#if BP3_TA_FEATURE_READ_SUPPORT
   rc = bp3_get_otp_id(&otpIdHi, &otpIdLo);
   CHECK_ERROR(rc, "Unable to read Chip ID\n")
+#endif
   if (otpIdHi == 0 && otpIdLo == 0) {
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_hi, &otpIdHi);
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo, &otpIdLo);
@@ -799,7 +807,11 @@ int provision(int argc, char *argv[])
   multipart = curl_mime_init(curl);
 #endif
   ADD_PART("otpId", "0x%x%08x", otpIdHi, otpIdLo)
+#ifdef BP3_TA_FEATURE_READ_SUPPORT
   ADD_PART("otpSelect", "%zu", BP3_OTPKeyTypeA)
+#else
+  ADD_PART("otpSelect", "%zu", 0)
+#endif
   ADD_PART("prodId", "0x%x", prodId)
   ADD_PART("secCode", "0x%x", securityCode & 0x03FFC000)
 

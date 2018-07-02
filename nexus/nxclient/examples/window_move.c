@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,16 +35,16 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+#include "nxclient.h"
+#include <stdio.h>
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_platform_client.h"
 #include "nexus_surface_client.h"
 #include "nexus_core_utils.h"
-#include "nxclient.h"
 #include "nxclient_global.h"
 #include "nexus_graphics2d.h"
 #include "nexus_playback.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -353,6 +353,12 @@ int main(int argc, const char **argv)
         if (++cur_pos == NUM_POS) cur_pos = 0;
     }
 
+    return 0;
+}
+#else /* #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER */
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
     return 0;
 }
 #endif

@@ -57,6 +57,7 @@
 
 
 BDBG_MODULE( BHSM );
+BDBG_OBJECT_ID( BHSM_P_RvRegion );
 
 
 /* called internally on platform initialisation */
@@ -65,6 +66,7 @@ BERR_Code BHSM_RvRegion_Init_priv( BHSM_Handle hHsm, BHSM_RvRegionModuleSettings
     BDBG_ENTER( BHSM_RvRegion_Init_priv );
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    if( hHsm->modules.pRvRegions ) { return BERR_TRACE( BERR_NOT_AVAILABLE ); } /* already intialialised */
     BSTD_UNUSED( pSettings );
 
     BDBG_CASSERT( (unsigned)BHSM_RegionId_eMax == (unsigned)Bsp_CmdRv_RegionId_eRegionMax );
@@ -103,6 +105,7 @@ BHSM_RvRegionHandle BHSM_RvRegion_Allocate( BHSM_Handle hHsm, const BHSM_RvRegio
     BDBG_ENTER( BHSM_RvRegion_Allocate );
 
     if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !hHsm->modules.pRvRegions ) { BERR_TRACE( BERR_NOT_INITIALIZED ); return NULL; }
     if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
     if( pSettings->regionId >= BHSM_RegionId_eMax ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
@@ -111,13 +114,14 @@ BHSM_RvRegionHandle BHSM_RvRegion_Allocate( BHSM_Handle hHsm, const BHSM_RvRegio
 
     if( pRegion->allocated ) { BERR_TRACE( BERR_NOT_AVAILABLE ); return NULL; }
 
+    BDBG_OBJECT_SET( pRegion, BHSM_P_RvRegion );
+
    #if BHSM_RV_REGION_EXTENSION
     if( BHSM_RvRegion_AllocateExtension_priv( pRegion ) != BERR_SUCCESS ) {
         BERR_TRACE( BERR_NOT_AVAILABLE );
         return NULL;
     }
    #endif
-
     pRegion->allocated = true;
     pRegion->regionId = pSettings->regionId;
     pRegion->hHsm = hHsm;
@@ -134,12 +138,14 @@ void BHSM_RvRegion_Free( BHSM_RvRegionHandle handle )
     BDBG_ENTER( BHSM_RvRegion_Free );
 
     if( !pRegion ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pRegion->allocated ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
    #if BHSM_RV_REGION_EXTENSION
     BHSM_RvRegionExtension_Free_priv( pRegion );
    #endif
 
+    BDBG_OBJECT_UNSET( pRegion, BHSM_P_RvRegion );
     BKNI_Memset( pRegion, 0, sizeof(*pRegion) );
     pRegion->allocated = false;
 
@@ -151,9 +157,11 @@ void BHSM_RvRegion_Free( BHSM_RvRegionHandle handle )
 void  BHSM_RvRegion_GetSettings( BHSM_RvRegionHandle handle, BHSM_RvRegionSettings *pSettings )
 {
     BHSM_P_RvRegion *pRegion = (BHSM_P_RvRegion*)handle;
+
     BDBG_ENTER( BHSM_RvRegion_GetSettings );
 
     if( !pRegion ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pSettings ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
     if( !pRegion->allocated ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
@@ -170,6 +178,7 @@ BERR_Code BHSM_RvRegion_SetSettings( BHSM_RvRegionHandle handle, const BHSM_RvRe
     BDBG_ENTER( BHSM_RvRegion_SetSettings );
 
     if( !pRegion ){ return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pSettings ){ return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
@@ -190,6 +199,7 @@ BERR_Code BHSM_RvRegion_Enable( BHSM_RvRegionHandle handle )
     BDBG_ENTER( BHSM_RvRegion_Enable );
 
     if( !pRegion ){ return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspEnableRegion, 0, sizeof(bspEnableRegion) );
@@ -286,11 +296,12 @@ BERR_Code BHSM_RvRegion_QueryAll(BHSM_Handle hHsm, BHSM_RvRegionStatusAll *pStat
     BDBG_ENTER( BHSM_RvRegion_QueryAll );
 
     if( !hHsm ){ return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     if( numBspRegions > BHSM_RegionId_eMax ) { return BERR_TRACE( BERR_NOT_SUPPORTED ); }
 
-    BKNI_Memset( &regionsStatus, 0, sizeof(regionsStatus) );
     BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
+    BKNI_Memset( &regionsStatus, 0, sizeof(regionsStatus) );
 
     rc = BHSM_P_Rv_QueryAllRegions( hHsm, &regionsStatus );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
@@ -317,7 +328,7 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_AUTH_ENFORCED          == (1<<Bsp_CmdRv_QueryStatusBits_eAuthEnforce) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_SAGE_OWNED             == (1<<Bsp_CmdRv_QueryStatusBits_eSageOwned) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_IN_PROGRESS == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergeInProg) );
-    BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED        == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergeFail) );
+    BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_FAILED      == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergeFail) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_LIVE_MERGE_PASS        == (1<<Bsp_CmdRv_QueryStatusBits_eLiveMergePass) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_FAST_CHECK_STARTED     == (1<<Bsp_CmdRv_QueryStatusBits_eFastChkStarted) );
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_FAST_CHECK_FINISHED    == (1<<Bsp_CmdRv_QueryStatusBits_eFastChkFinished) );
@@ -328,12 +339,10 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
     BDBG_CASSERT( BHSM_RV_REGION_STATUS_BG_CHECK_FAILED        == (1<<Bsp_CmdRv_QueryStatusBits_eBgChkResult) );
 
     if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !pRegion->configured ) { return BERR_TRACE(BERR_NOT_INITIALIZED); }
 
     BKNI_Memset( pStatus, 0, sizeof(*pStatus) );
-
-    pStatus->configured = true;
 
     BKNI_Memset( &regionsStatus, 0, sizeof(regionsStatus) );
     rc = BHSM_P_Rv_QueryAllRegions( pRegion->hHsm, &regionsStatus );
@@ -341,6 +350,7 @@ BERR_Code BHSM_RvRegion_GetStatus( BHSM_RvRegionHandle handle, BHSM_RvRegionStat
 
     regionId = pRegion->regionId;
     pStatus->status = regionsStatus.out.regionStatus[regionId];
+    pStatus->configured = pRegion->configured;
 
     BDBG_LEAVE( BHSM_RvRegion_GetStatus );
     return BERR_SUCCESS;
@@ -356,6 +366,7 @@ BERR_Code BHSM_RvRegion_Disable( BHSM_RvRegionHandle handle )
     BDBG_ENTER( BHSM_RvRegion_Disable );
 
     if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_NOT_INITIALIZED ); }
 
     BKNI_Memset( &disableRegion, 0, sizeof(disableRegion) );
@@ -377,6 +388,7 @@ BERR_Code BHSM_GetRvRegionInfo( BHSM_RvRegionHandle handle, BHSM_RvRegionInfo *p
     BDBG_ENTER( BHSM_GetRvRegionInfo );
 
     if( !pRegion ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRegion, BHSM_P_RvRegion );
     if( !pRegion->allocated ) { return BERR_TRACE( BERR_NOT_INITIALIZED ); }
     if( !pInfo ) return BERR_TRACE( BERR_INVALID_PARAMETER );
 

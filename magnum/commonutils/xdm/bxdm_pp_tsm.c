@@ -1402,13 +1402,13 @@ void BXDM_PPTSM_P_PtsInterpolate_isr(
 
       if ( true == pLocalState->bUsingSwStcToRunInReverse )
       {
-         BXDM_PPFP_P_FixPtSub_isr(
+         BXDM_PPFP_P_FixPtSub_isrsafe(
             &stPTSTemp,
             &(pstPicture->stPicParms.stTSM.stStatic.stPTSDelta),
             &stPTSTemp
             );
 
-         BXDM_PPFP_P_FixPtSub_isr(
+         BXDM_PPFP_P_FixPtSub_isrsafe(
             &stPTSOfNextPPB,
             &(pstPicture->stPicParms.stTSM.stStatic.stPTSDelta),
             &stPTSOfNextPPB
@@ -1416,13 +1416,13 @@ void BXDM_PPTSM_P_PtsInterpolate_isr(
       }
       else
       {
-         BXDM_PPFP_P_FixPtAdd_isr(
+         BXDM_PPFP_P_FixPtAdd_isrsafe(
             &stPTSTemp,
             &(pstPicture->stPicParms.stTSM.stStatic.stPTSDelta),
             &stPTSTemp
             );
 
-         BXDM_PPFP_P_FixPtAdd_isr(
+         BXDM_PPFP_P_FixPtAdd_isrsafe(
             &stPTSOfNextPPB,
             &(pstPicture->stPicParms.stTSM.stStatic.stPTSDelta),
             &stPTSOfNextPPB
@@ -2102,7 +2102,7 @@ static BXDM_PictureProvider_TSMResult BXDM_P_PPTSM_S_CompareStcAndPts_isr(
          iStcPtsDifferenceActual[i] = stPts[i].uiWhole - uiEffectiveStc;
 
          /* Subtract FIC offset for Frame Rate Conversion */
-         BXDM_PPFP_P_FixPtSub_isr(
+         BXDM_PPFP_P_FixPtSub_isrsafe(
             &stPts[i],
             &hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset,
             &stPts[i]);
@@ -2112,7 +2112,7 @@ static BXDM_PictureProvider_TSMResult BXDM_P_PPTSM_S_CompareStcAndPts_isr(
          iStcPtsDifferenceActual[i] = uiEffectiveStc - stPts[i].uiWhole;
 
          /* Add FIC offset for Frame Rate Conversion */
-         BXDM_PPFP_P_FixPtAdd_isr(
+         BXDM_PPFP_P_FixPtAdd_isrsafe(
             &stPts[i],
             &hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset,
             &stPts[i]);

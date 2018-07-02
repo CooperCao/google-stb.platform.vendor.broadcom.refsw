@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -284,6 +284,12 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
         }
         else {
             pSettings->videoDecoder[i].used = true;
+#if BCHP_CHIP == 7425
+            if (i == 2) {
+                pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080i;
+            }
+            else
+#endif
             pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080p;
             pSettings->videoDecoder[i].colorDepth = 8;
         }
@@ -1456,7 +1462,9 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
 #if NEXUS_NUM_SOFT_VIDEO_DECODERS
                 pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
 #else
-                pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_NOT_MAPPED;
+                if( (pSettings->heap[heapIndex].memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) != NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
+                    pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_NOT_MAPPED;
+                }
 #endif
 #endif
 

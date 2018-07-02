@@ -1,5 +1,6 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
@@ -1464,7 +1465,7 @@ GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target_e,
       }
       fb->default_height = param;
       break;
-#if V3D_VER_AT_LEAST(4,1,34,0)
+#if KHRN_GLES32_DRIVER
    case GL_FRAMEBUFFER_DEFAULT_LAYERS:
       if (param > V3D_MAX_LAYERS)
       {
@@ -1526,7 +1527,7 @@ GL_APICALL void GL_APIENTRY glGetFramebufferParameteriv(GLenum target_e,
    case GL_FRAMEBUFFER_DEFAULT_HEIGHT:
       params[0] = fb->default_height;
       break;
-#if V3D_VER_AT_LEAST(4,1,34,0)
+#if KHRN_GLES32_DRIVER
    case GL_FRAMEBUFFER_DEFAULT_LAYERS:
       params[0] = fb->default_layers;
       break;

@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -85,10 +89,6 @@ static void BXDM_PPCB_S_PictureExtensionData_isr(
                   BXDM_PictureProvider_Handle hXdmPP,
                   BXDM_PictureProvider_P_LocalState* pLocalState,
                   BXDM_PictureProvider_P_Picture_Context * pstPicture
-                  );
-static void BXDM_PPCB_S_PrintExtensionData_isr(
-                  BXDM_PictureProvider_Handle hXdmPP,
-                  const BXDM_Picture_ExtensionInfo * pstExtensionInfo
                   );
 
 /*******************************************************************************
@@ -1023,77 +1023,6 @@ static void BXDM_PPCB_S_TSMResult_isr(
 
 }    /* end of BXDM_PPCB_S_TSMResult_isr() */
 
-static void BXDM_PPCB_S_PrintExtensionData_isr(
-   BXDM_PictureProvider_Handle hXdmPP,
-   const BXDM_Picture_ExtensionInfo * pstExtensionInfo
-   )
-{
-   uint32_t i;
-
-   for( i=0; i < pstExtensionInfo->uiCount; i++ )
-   {
-      switch( pstExtensionInfo->astExtensionData[i].eType )
-      {
-         case BXDM_Picture_ExtensionType_eBluRay3DGraphicsOffset:
-            if ( pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.uiCount )
-            {
-               BDBG_MODULE_MSG( BXDM_PPCB, ("MVC graphics offset:: uiCount %d puiOffsetData 0x%lu *puiOffsetData %d",
-                     pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.uiCount,
-                                     (unsigned long)pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData,
-                     *pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData ));
-            }
-            else
-            {
-               BDBG_MODULE_MSG( BXDM_PPCB, ("MVC graphics offset:: uiCount %d puiOffsetData 0x%lu",
-                     pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.uiCount,
-                     (unsigned long)pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData ));
-            }
-            break;
-
-         case BXDM_Picture_ExtensionType_eSEIMsg_FramePacking:
-         {
-            /* SW7405-4500: the following needs to be two lines to avoid a compiler warning when DEBUG=n */
-
-#if BDBG_DEBUG_BUILD /* SW7445-1329: only compile for debug builds */
-            BXDM_Picture_Extension_SEIFramePacking * pstSEIFramePacking;
-            pstSEIFramePacking = pstExtensionInfo->astExtensionData[i].data.stSEIFramePacking.pstSeiData;
-
-            BDBG_MODULE_MSG( BXDM_PPCB, ("SEIFramePacking flag:0x%x msgFlag:0x%x msgData: %d %d %d %d %d %d %d %d %d",
-                     pstExtensionInfo->astExtensionData[i].data.stSEIFramePacking.uiFlags,
-                     pstSEIFramePacking->uiFlags,
-                     pstSEIFramePacking->uiFramePackingArrangementId,
-                     pstSEIFramePacking->uiFramePackingArrangementType,
-                     pstSEIFramePacking->uiContentInterpretationType,
-                     pstSEIFramePacking->uiFrame0GridPositionX,
-                     pstSEIFramePacking->uiFrame0GridPositionY,
-                     pstSEIFramePacking->uiFrame1GridPositionX,
-                     pstSEIFramePacking->uiFrame1GridPositionY,
-                     pstSEIFramePacking->uiFramePackingArrangementReservedByte,
-                     pstSEIFramePacking->uiFramePackingArrangementRepetitionPeriod
-                     ));
-#else
-            BDBG_NOP();
-#endif
-            break;
-         }
-
-         case BXDM_Picture_ExtensionType_eSEIFramePacking:  /* DEPRECATED: SW7405-4560: use BXDM_Picture_ExtensionType_eSEIMsg_FramePacking */
-         default:
-            BDBG_MODULE_MSG( BXDM_PPCB, ("    eType %d", pstExtensionInfo->astExtensionData[i].eType ));
-            break;
-
-      }     /* end of switch( eType )*/
-   }        /* end of for( pstExtensionInfo->uiCount ) */
-
-   if ( NULL != pstExtensionInfo->pNext )
-   {
-      BXDM_PPCB_S_PrintExtensionData_isr( hXdmPP, pstExtensionInfo->pNext );
-   }
-
-   return;
-
-}     /* end of BXDM_PPCB_S_PrintExtensionData_isr */
-
 static void BXDM_PPCB_S_PictureExtensionData_isr(
          BXDM_PictureProvider_Handle hXdmPP,
          BXDM_PictureProvider_P_LocalState* pLocalState,
@@ -1134,18 +1063,15 @@ static void BXDM_PPCB_S_PictureExtensionData_isr(
 
       pstPicture->stPicParms.stDisplay.stDynamic.bExtensionDataDelivered = true;
 
-      if ( 0 != pstPicture->pstUnifiedPicture->stExtensionInfo.uiCount
-            || ( NULL != pstPicture->pstUnifiedPicture->stExtensionInfo.pNext
-               && 0 != pstPicture->pstUnifiedPicture->stExtensionInfo.pNext->uiCount )
-         )
+      if ( 0 != pstPicture->pstUnifiedPicture->stExtensionInfo.uiCount )
       {
-         BDBG_MODULE_MSG( BXDM_PPCB, ("%x:[%02x.%03x] BXDM_PPCB_S_PictureExtensionData_isr uiCount %d",
+         BDBG_MODULE_MSG( BXDM_PPCB, ("%x:[%02x.%03x] %s:: uiCount:%d eType:%d",
                                     hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                     BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                     pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                    pstPicture->pstUnifiedPicture->stExtensionInfo.uiCount ));
-
-         BXDM_PPCB_S_PrintExtensionData_isr( hXdmPP, (BXDM_Picture_ExtensionInfo *)&(pstPicture->pstUnifiedPicture->stExtensionInfo) );
+                                    BSTD_FUNCTION,
+                                    pstPicture->pstUnifiedPicture->stExtensionInfo.uiCount,
+                                    pstPicture->pstUnifiedPicture->stExtensionInfo.astExtensionData[0].eType ));
       }
 
       /* Snapshot the start time. */

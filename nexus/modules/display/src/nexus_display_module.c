@@ -1,6 +1,6 @@
 /******************************************************************************
  *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -596,6 +596,7 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
 
     BKNI_Memset(state, 0, sizeof(*state));
     state->moduleSettings = *pSettings;
+    state->moduleInternalSettings = *pModuleSettings;
     state->pqDisabled = NEXUS_GetEnv("pq_disabled")!=NULL;
     state->verifyTimebase = NEXUS_GetEnv("verify_timebase")!=NULL;
 

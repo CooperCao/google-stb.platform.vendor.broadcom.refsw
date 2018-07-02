@@ -1079,8 +1079,23 @@ static void setup_streamers()
         videoProgram.settings.codec = NEXUS_VideoCodec_eH264;
         audioProgram.primary.codec = NEXUS_AudioCodec_eAacAdts;
 
-        videoProgram.maxWidth = s_app.mosaic[i].rect.width;
-        videoProgram.maxHeight = s_app.mosaic[i].rect.height;
+        /* Check if decoder needs larger max */
+        uint32_t width = 0;
+        uint32_t height = 0;
+        if (!s_app.parser[0]->GetVideoResolution(&width, &height)) {
+            LOGW(("failed to get video resolution"));
+        }
+        LOGW(("Video resolution: %dx%d", width, height));
+
+        NEXUS_VideoDecoderSettings decSettings;
+        NEXUS_SimpleVideoDecoder_GetSettings(s_app.videoDecoder[i], &decSettings);
+        if (width > decSettings.maxWidth || height > decSettings.maxHeight) {
+            videoProgram.maxWidth = width;
+            videoProgram.maxHeight = height;
+        } else {
+            videoProgram.maxWidth = s_app.mosaic[i].rect.width;
+            videoProgram.maxHeight = s_app.mosaic[i].rect.height;
+        }
 
         videoProgram.settings.pidChannel = s_app.videoPidChannel[i];
         NEXUS_SimpleVideoDecoder_Start(s_app.videoDecoder[i], &videoProgram);
@@ -1525,13 +1540,13 @@ int main(int argc, char* argv[])
 
     LOGD(("@@@ Check Point #01"));
 
-    setup_gui();
-
-    setup_streamers();
-
     setup_files();
 
     setup_parsers();
+
+    setup_gui();
+
+    setup_streamers();
 
     setup_decryptors();
 

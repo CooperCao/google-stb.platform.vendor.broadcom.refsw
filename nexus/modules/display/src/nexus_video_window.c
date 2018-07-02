@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to
@@ -13,7 +13,7 @@
  * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
  * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
  * 1.     This program, including its structure, sequence and organization,
  * constitutes the valuable trade secrets of Broadcom, and you shall use all
@@ -168,7 +168,7 @@ static bool nexus_p_synclock_capable(NEXUS_VideoInput input, NEXUS_VideoWindowHa
             NEXUS_VideoDecoder_GetSourceId_priv(input->source, &sourceId);
             NEXUS_Module_Unlock(pVideo->modules.videoDecoder);
         }
-        if (g_pCoreHandles->boxConfig->stVdc.astSource[sourceId].bMtgCapable && nexus_p_window_alloc_mtg(window) != BVDC_Mode_eOff) {
+        if (sourceId >= BAVC_SourceId_eMax || (g_pCoreHandles->boxConfig->stVdc.astSource[sourceId].bMtgCapable && nexus_p_window_alloc_mtg(window) != BVDC_Mode_eOff)) {
             /* this input is or will be mtg, so not synclocked */
             return false;
         }
@@ -2529,15 +2529,15 @@ NEXUS_Error NEXUS_Display_P_GetWindowMemc_isrsafe(unsigned displayIndex, unsigne
 }
 #endif
 
-void NEXUS_VideoWindow_GetParentIndex_isrsafe(NEXUS_VideoWindowHandle window, unsigned *parentIndex, bool *isMosaic)
+void NEXUS_VideoWindow_GetParentIndex_isrsafe(NEXUS_VideoWindowHandle window, unsigned *parentIndex, int *mosaicIndex)
 {
 #if NEXUS_NUM_MOSAIC_DECODES
     if (window->mosaic.parent) {
         *parentIndex = window->mosaic.parent->index;
-        *isMosaic = true;
+        *mosaicIndex = window->mosaic.userIndex;
         return;
     }
 #endif
     *parentIndex = window->index;
-    *isMosaic = false;
+    *mosaicIndex = -1;
 }

@@ -1,44 +1,44 @@
-/***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bhdm.h"
 #include "../common/bhdm_priv.h"
@@ -225,7 +225,6 @@ static BERR_Code BHDM_P_ConfigurePixelEncoding(const BHDM_Handle hHDMI, const BH
     switch(NewHdmiSettings->stVideoSettings.eColorSpace)
     {
     case BAVC_Colorspace_eRGB :
-    case BAVC_Colorspace_eYCbCr422 :
     case BAVC_Colorspace_eYCbCr444 :
         videoOutSel0 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT0_SEL_DEFAULT ;
         videoOutSel1 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT1_SEL_DEFAULT ;
@@ -233,8 +232,18 @@ static BERR_Code BHDM_P_ConfigurePixelEncoding(const BHDM_Handle hHDMI, const BH
         videoOutSel3 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT3_SEL_DEFAULT ;
         videoOutSel4 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT4_SEL_DEFAULT ;
         videoOutSel5 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT5_SEL_DEFAULT ;
-        BDBG_MSG(("Set Phy Configuration for 444/422 pixel encodings; BAVC_Colorspace: %d",
+        BDBG_MSG(("Set Phy Configuration for 444 pixel encodings; BAVC_Colorspace: %d",
             NewHdmiSettings->stVideoSettings.eColorSpace)) ;
+        break;
+
+    case BAVC_Colorspace_eYCbCr422 :
+        videoOutSel0 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT0_SEL_DEFAULT ;
+        videoOutSel1 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT1_SEL_DEFAULT ;
+        videoOutSel2 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT2_SEL_DEFAULT ;
+        videoOutSel3 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT3_SEL_DEFAULT ;
+        videoOutSel4 = BCHP_DVP_HT_VEC_INTERFACE_XBAR_VID_OUT4_SEL_DEFAULT ;
+        videoOutSel5 = 3 ;
+        BDBG_MSG(("Set Phy Configuration for 422 pixel encodings")) ;
         break;
 
     case BAVC_Colorspace_eYCbCr420 :
@@ -1045,6 +1054,63 @@ done:
 
 }
 #endif
+
+void BHDM_P_SetHdcpConstrainAvConfiguration(BHDM_Handle hHDMI, const BHDM_Settings *HdmiSettings)
+{
+#if BHDM_CONFIG_HAS_HDCP22
+
+	uint32_t Register ;
+	uint8_t uiCB_B ;
+	uint8_t uiY_G ;
+	uint8_t uiCR_R ;
+
+#if !BDBG_NO_MSG
+	/****************************/
+	/*    DEBUG COLOR  - RED    */
+	/****************************/
+	if (HdmiSettings->stVideoSettings.eColorSpace != BAVC_Colorspace_eRGB)
+	{
+		uiCB_B = 0x6D ; uiY_G  = 0x33 ; uiCR_R = 0xD4 ;
+	}
+	else
+	{
+		uiCB_B = 0x00 ;	uiY_G = 0x00 ; uiCR_R = 0xFF ;
+	}
+#else
+	/****************************/
+	/* PRODUCTION COLOR - BLACK */
+	/****************************/
+	if (HdmiSettings->stVideoSettings.eColorSpace != BAVC_Colorspace_eRGB)
+	{
+		uiCB_B = 0x80 ; uiY_G  = 0x10 ; uiCR_R = 0x80 ;
+	}
+	else
+	{
+		uiCB_B = 0x00 ;	uiY_G = 0x00 ; uiCR_R = 0x00 ;
+	}
+#endif
+
+	BDBG_MSG(("%s Constraint ColorSpace: %s CB_B = %x (%d), Y_G = %x (%d), CR_R = %x (%d)",
+		BDBG_DEBUG_BUILD ? "DEBUG" : "PRODUCTION",
+		HdmiSettings->stVideoSettings.eColorSpace == BAVC_Colorspace_eRGB ? "RGB" : "YCbCr",
+		uiCB_B, uiCB_B,	uiY_G, uiY_G, uiCR_R, uiCR_R)) ;
+
+	/* clear constraint registers */
+	Register = BREG_Read32(hHDMI->hRegister, BCHP_DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG) ;
+		Register &= ~ BCHP_MASK(DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, CH0) ; /*Cb*/
+		Register &= ~ BCHP_MASK(DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, CH1) ; /*Y*/
+		Register &= ~ BCHP_MASK(DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, CH2) ; /*Cr*/
+
+		Register |= BCHP_FIELD_DATA(DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, CH0, uiCB_B) ; /*Cb*/
+		Register |= BCHP_FIELD_DATA(DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, CH1, uiY_G) ; /*Y*/
+		Register |= BCHP_FIELD_DATA(DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, CH2, uiCR_R) ; /*Cr*/
+	BREG_Write32(hHDMI->hRegister, BCHP_DVP_HT_DVP_HT_HDCP_CONSTRAIN_CFG, Register);
+#else
+	BSTD_UNUSED(hHDMI) ;
+	BSTD_UNUSED(HdmiSettings) ;
+#endif
+}
+
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
 
 

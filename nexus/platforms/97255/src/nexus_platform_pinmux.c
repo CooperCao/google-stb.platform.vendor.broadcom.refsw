@@ -233,15 +233,17 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     NEXUS_Platform_GetStatus(platformStatus);
     BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
 
-    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4);
-    if (platformStatus->boardId.major == RMT_BOARD_ID) {
-        reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_032));
-        reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_032, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_032_DS_AGCI_CTL));
-    } else if (platformStatus->boardId.major == TWO_L_BOARD_ID) {
-        reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_025));
-        reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_025, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_025_DS_AGCI_CTL));
+    if ((platformStatus->boardId.major == RMT_BOARD_ID) || (platformStatus->boardId.major == TWO_L_BOARD_ID)) {
+        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4);
+        if (platformStatus->boardId.major == RMT_BOARD_ID) {
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_032));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_032, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_032_DS_AGCI_CTL));
+        } else if (platformStatus->boardId.major == TWO_L_BOARD_ID) {
+            reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_025));
+            reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_4, gpio_025, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_025_DS_AGCI_CTL));
+        }
+        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4, reg);
     }
-    BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4, reg);
 
     reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
     reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_037, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5_gpio_037_GPIO_037));

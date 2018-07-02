@@ -417,7 +417,7 @@ typedef struct NEXUS_VideoDecoderCapabilities
         unsigned avdIndex; /* mapping to HW decoder device */
         struct {
             unsigned colorDepth; /* 8 or 10 bit capability of MFD. If less than decoder (see memory[].colorDepth), it will downconvert. */
-            unsigned index; /* MFD index */
+            unsigned index; /* MFD index. (unsigned)-1 if decoder is graphics-only (no MFD). */
         } feeder;
         bool shared; /* Set for all decoders on an HVD device with an exclusive mode */
         NEXUS_VideoDecoderExclusiveMode exclusiveMode; /* set for the master decoder in a set of shared decoders on an HVD */

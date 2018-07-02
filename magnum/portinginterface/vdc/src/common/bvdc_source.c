@@ -58,6 +58,7 @@
 #include "bvdc_vnet_priv.h"
 #include "bvdc_hddvi_priv.h"
 #include "bchp_int_id_bvnf_intr2_0.h"
+#include "bchp_mfd_0.h"
 
 BDBG_MODULE(BVDC_SRC);
 BDBG_FILE_MODULE(BVDC_MEMC_INDEX_CHECK);
@@ -2367,6 +2368,15 @@ static void BVDC_P_Source_ValidateMpegData_isr
             BDBG_WRN(("This chip doesn't support fields pair buffers in progressive scanout! Downgraded to top-only!"));
             pNewPic->eSourcePolarity = BAVC_Polarity_eTopField;
         }
+    }
+#endif
+
+#ifdef BCHP_MFD_0_HW_CONFIGURATION_SUPPORTS_4K_MASK
+    if(!hSource->b4kSupportPresent && (pNewPic->ulSourceHorizontalSize > BFMT_1080P_WIDTH))
+    {
+        pNewPic->bMute = true;
+        pNewPic->ulSourceHorizontalSize = BVDC_P_SRC_INPUT_H_MIN;
+        pNewPic->ulSourceVerticalSize   = BVDC_P_SRC_INPUT_V_MIN;
     }
 #endif
 

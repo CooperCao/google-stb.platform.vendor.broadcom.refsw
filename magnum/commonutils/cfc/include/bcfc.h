@@ -691,6 +691,7 @@ typedef struct BCFC_Context
     bool                        bBlendInMatrixOn;
     bool                        bBypassCfc;
     bool                        bForceRgbPrimaryMatch;  /* user forces to match color primary even when BT2020 and HDR are not involved */
+    bool                        bForceBypassL2NL; /* don't force ColorSpaceExtOut->stCfg.stBits.SelTF, it is shared by video and gfx win */
 
     BCFC_Capability             stCapability;
     BCFC_ForceCfg               stForceCfg;

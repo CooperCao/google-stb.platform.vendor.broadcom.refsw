@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_platform_priv.h"
@@ -1321,6 +1325,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     BDBG_MSG((">DISPLAY"));
     NEXUS_DisplayModule_GetDefaultInternalSettings(&state->displaySettings);
     state->displaySettings.modules.surface = g_NEXUS_platformHandles.surface;
+#if NEXUS_NUM_656_OUTPUTS && defined(NEXUS_HAS_656_DAUGHTER_CARD)
+    state->displaySettings.config_Ccir656_Daughtercard = NEXUS_Platform_P_Ccir656Daughtercard_SetFormat;
+#endif
     /* don't set pDisplaySettings->modules.videoDecoder here */
 #if NEXUS_HAS_HDMI_OUTPUT
     state->displaySettings.modules.hdmiOutput = g_NEXUS_platformHandles.hdmiOutput;
@@ -2604,3 +2611,67 @@ void NEXUS_Platform_SetOverTempResetThreshold(unsigned overTemp, unsigned parkHi
     BSTD_UNUSED(parkLow);
 #endif
 }
+
+/* customer may change this to fit their needs */
+#if NEXUS_NUM_656_OUTPUTS && defined(NEXUS_HAS_656_DAUGHTER_CARD)
+/* Below is for configuring a Philips SAA7120 video encoder in Broadcom's 656 daughter card.*/
+#define NEXUS_NUM_656_DC_VEC_FMT_VALUES           22
+#define NEXUS_656_DC_VEC_I2C_DEV_ADDR           0x44
+#define NEXUS_656_DC_VEC_START_ADDR             0x5a
+#define NEXUS_656_DC_VEC_INPUT_PORT_CTRL_ADDR   0x3a
+#define NEXUS_656_DC_VEC_INPUT_PORT_CTRL_CONFIG 0x13
+
+void NEXUS_Platform_P_Ccir656Daughtercard_SetFormat(NEXUS_VideoFormat fmt)
+{
+    uint8_t *tbl = NULL;
+    NEXUS_I2cHandle i2c;
+
+    uint8_t dc_config = NEXUS_656_DC_VEC_INPUT_PORT_CTRL_CONFIG;
+
+    static const uint8_t pal[NEXUS_NUM_656_DC_VEC_FMT_VALUES] =
+        {
+            0x77, 0x7d, 0xaf, 0x23, 0x35, 0x35, 0x00,
+            0x06, 0x2f, 0xcb, 0x7c, 0x09, 0x2a, 0x00,
+            0x00, 0x00, 0x00, 0x20, 0x01, 0x30, 0xa0,
+            0x00
+        };
+
+    static const uint8_t ntsc[NEXUS_NUM_656_DC_VEC_FMT_VALUES] =
+        {
+            0x77, 0x76, 0xa5, 0x2a, 0x2e, 0x2e, 0x00,
+            0x15, 0x3f, 0x1f, 0x8a, 0xf0, 0x21, 0x00,
+            0x00, 0x00, 0x00, 0x20, 0x11, 0x31, 0x80,
+            0x00
+        };
+
+    i2c = g_NEXUS_platformHandles.config.i2c[NEXUS_656_OUT_I2C_CHANNEL];
+    if (!i2c)
+    {
+        BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto err_fmt;
+    }
+
+    if (fmt >= NEXUS_VideoFormat_eNtsc && fmt <= NEXUS_VideoFormat_eNtscJapan)
+    {
+        tbl = ntsc;
+
+    }
+    else if (fmt >= NEXUS_VideoFormat_ePalM && fmt <= NEXUS_VideoFormat_ePalI)
+    {
+        tbl = pal;
+    }
+    else
+    {
+        BDBG_ERR(("Only SD formats are supported in 656."));
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto err_fmt;
+    }
+
+    NEXUS_I2c_WriteNoAck(i2c, NEXUS_656_DC_VEC_I2C_DEV_ADDR, NEXUS_656_DC_VEC_INPUT_PORT_CTRL_ADDR, &dc_config, 1);
+
+    NEXUS_I2c_Write(i2c, NEXUS_656_DC_VEC_I2C_DEV_ADDR, NEXUS_656_DC_VEC_START_ADDR, tbl, NEXUS_NUM_656_DC_VEC_FMT_VALUES);
+
+err_fmt:
+    return;
+}
+#endif

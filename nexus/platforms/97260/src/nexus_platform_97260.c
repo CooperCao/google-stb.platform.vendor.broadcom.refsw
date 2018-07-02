@@ -131,6 +131,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
         case 3:
             board = "USFF";
             break;
+        case 4:
+            board = "PCK";
+            break;
         case 6:
             board = "HB";
             break;

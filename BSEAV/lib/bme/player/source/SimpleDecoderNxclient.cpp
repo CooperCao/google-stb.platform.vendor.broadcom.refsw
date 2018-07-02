@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #include "SimpleDecoderNxclient.h"
@@ -84,6 +84,7 @@ void SimpleDecoderNxclient::init()
 
 void SimpleDecoderNxclient::uninit()
 {
+    NxClient_Uninit();
 }
 
 uint32_t SimpleDecoderNxclient::allocMosaicMaster(SimpleDecoderNxclientContext* master,

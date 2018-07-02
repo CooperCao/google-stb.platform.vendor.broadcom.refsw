@@ -1,6 +1,6 @@
 /******************************************************************************
  *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -619,8 +619,14 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
            return "Widevine Certificate";
     case BSAGElib_BinFileDrmType_eCSecureRsa:
            return "C Secure RSA";
+    case BSAGElib_BinFileDrmType_eNTKL:
+           return "NTKL";
+    case BSAGElib_BinFileDrmType_eBSecureRsa:
+           return "BRSA";
+    case BSAGElib_BinFileDrmType_eACAS:
+           return "ACAS";
     case BSAGElib_BinFileDrmType_eMax:
-           return NULL;
+          return NULL;
     default:
         return NULL;
     }

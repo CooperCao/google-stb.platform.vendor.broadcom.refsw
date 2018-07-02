@@ -39,6 +39,7 @@ endif
 #Add if you wan additonal internal debug. Want to limit debug builds module size
 ifeq ($(BCMINTDBG),1)
 	WLFLAGS += -DBCMINTDBG -DWL_EXPORT_CURPOWER
+	MFP_TEST ?= 1
 endif
 
 ifeq ($(NO_BCMDBG_ASSERT), 1)
@@ -2850,6 +2851,10 @@ endif
 ifeq ($(WLBSSLOAD_REPORT),1)
 	WLFLAGS += -DWLBSSLOAD_REPORT
 	WLFILES_SRC += src/wl/sys/wlc_bssload.c
+endif
+
+ifeq ($(WLATM_PERC),1)
+	WLFLAGS += -DWLATM_PERC
 endif
 
 # the existing PKTC_DONGLE once this additional feature is proven to be stable

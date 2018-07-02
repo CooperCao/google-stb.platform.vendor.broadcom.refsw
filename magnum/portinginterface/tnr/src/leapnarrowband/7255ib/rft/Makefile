@@ -82,8 +82,8 @@ $(BRFT_ROOT_PATCHED)/exists:
 
 $(BRFT_ROOT_COPIED)/done: $(BRFT_ROOT_COPIED)/exists $(BRFT_ROOT_ORIGIN)
 	@echo "[Copy Rafael Tuner files ...]"
-	@cp $(BRFT_ROOT_ORIGIN)/R642_API_Multi.tgz $(BRFT_ROOT_COPIED)
-	@cd $(BRFT_ROOT_COPIED) && tar -xvf R642_API_Multi.tgz && rm *.tgz && mv R642_API_* rft
+	@cp $(BRFT_ROOT_ORIGIN)/R642_API_*_Multi.rar $(BRFT_ROOT_COPIED)
+	@cd $(BRFT_ROOT_COPIED) && 7z x R642_API_*_Multi.rar && mv R642_API_*_Multi rft
 	@cp -af $(BRFT_REF_PATCH) $(BRFT_ROOT_COPIED)
 	@mkdir -p $(BRFT_ROOT_COPIED)/done
 

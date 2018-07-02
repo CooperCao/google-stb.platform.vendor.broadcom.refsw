@@ -91,7 +91,7 @@ BDBG_MODULE(nexus_asp_input);
 typedef struct NEXUS_AspInput
 {
     NEXUS_OBJECT(NEXUS_AspInput);
-    NEXUS_AspInputState                state;
+    NEXUS_AspInputState                 state;
     bool                                finishRequested;
     bool                                finishCompleted;
     bool                                connectionReset;
@@ -102,11 +102,11 @@ typedef struct NEXUS_AspInput
     BASP_ChannelHandle                  hChannel;
     NEXUS_AspStreamingProtocol          protocol;
 
-    NEXUS_AspInputCreateSettings       createSettings;
-    NEXUS_AspInputSettings             settings;
-    NEXUS_AspInputStartSettings        startSettings;
-    NEXUS_AspInputConnectHttpSettings  connectHttpSettings;
-    NEXUS_AspTcpSettings               tcpSettings;
+    NEXUS_AspInputCreateSettings        createSettings;
+    NEXUS_AspInputSettings              settings;
+    NEXUS_AspInputStartSettings         startSettings;
+    NEXUS_AspInputConnectHttpSettings   connectHttpSettings;
+    NEXUS_AspTcpSettings                tcpSettings;
 
     NEXUS_AspBuffer                     writeFifo;
     NEXUS_AspBuffer                     reassembledFifo;
@@ -120,8 +120,8 @@ typedef struct NEXUS_AspInput
     unsigned                            rcvdPayloadLength;
     unsigned                            receiveFifoBytesConsumed;
 
-    NEXUS_AspInputTcpStatus            initialStatus;
-    NEXUS_AspInputTcpStatus            currentStatus;
+    NEXUS_AspInputTcpStatus             initialStatus;
+    NEXUS_AspInputTcpStatus             currentStatus;
 
     NEXUS_IsrCallbackHandle             hEndOfStreamingCallback;
     NEXUS_IsrCallbackHandle             hBufferReadyCallback;
@@ -139,8 +139,10 @@ typedef struct NEXUS_AspInput
     bool                                gotStopResponse;
     bool                                gotPayloadConsumedResponse;
 
-    NEXUS_AspInputDrmType              drmType;
-    NEXUS_AspInputDtcpIpSettings       dtcpIpSettings;
+    bool                                startStreamInMessageWasSent;
+
+    NEXUS_AspInputDrmType               drmType;
+    NEXUS_AspInputDtcpIpSettings        dtcpIpSettings;
 #ifdef NEXUS_HAS_SECURITY
     BHSM_KeyslotHandle                  hKeySlot;
     unsigned                            extKeyTableSlotIndex;
@@ -1297,6 +1299,8 @@ static NEXUS_Error buildAndSendStartStreaminMessage(
 
     if (nrc != NEXUS_SUCCESS) {BERR_TRACE(nrc); goto error;}
 
+    hAspInput->startStreamInMessageWasSent = true;  /* After this, Stop()/Finish() will require an ASP Stop or Abort. */
+
     /* Save initial stats as some of the stats are commulative & we need the initial values to calculate the current  */
     {
         updateStats(hAspInput, g_pCoreHandles->reg, hAspInput->channelNum, NULL, &hAspInput->initialStatus);
@@ -1408,7 +1412,8 @@ void NEXUS_AspInput_Stop(
     BDBG_MSG(( FMT_PREFIX "Entry. hAspInput=%p state=%s"
                ARG_PREFIX, (void*)hAspInput, NEXUS_AspInputState_toString(hAspInput->state)));
 
-    if (hAspInput->state != NEXUS_AspInputState_eStreaming)
+    if (hAspInput->state != NEXUS_AspInputState_eConnected &&
+        hAspInput->state != NEXUS_AspInputState_eStreaming )
     {
         BDBG_ERR(( FMT_PREFIX "hAspInput=%p NEXUS_AspInput_Stop() is invalid when state is %s"
                    ARG_PREFIX, (void*)hAspInput, NEXUS_AspInputState_toString(hAspInput->state)));
@@ -1421,6 +1426,7 @@ void NEXUS_AspInput_Stop(
         return;
     }
 
+    if (hAspInput->startStreamInMessageWasSent)
     {
         BASP_Pi2Fw_Message pi2FwMessage;
 
@@ -1434,6 +1440,8 @@ void NEXUS_AspInput_Stop(
                                           &hAspInput->gotStopResponse);
 
         if (rc != NEXUS_SUCCESS) {BERR_TRACE(rc); goto error;}
+
+        hAspInput->startStreamInMessageWasSent = false;
 
         if (hAspInput->protocol == NEXUS_AspStreamingProtocol_eHttp)
         {
@@ -1610,6 +1618,9 @@ NEXUS_Error NEXUS_AspInput_GetTcpStatus(
         pStatus->fwStats.rcvdSequenceNumber = pFwChannelInfo->ui32ReceivedSequenceNumber;
         pStatus->fwStats.descriptorsFedToXpt = pFwChannelInfo->ui32NumOfDescriptorSent;
         pStatus->fwStats.bytesFedToXpt = pFwChannelInfo->ui32NumBytesFedToDescriptors;
+        pStatus->fwStats.outOfOrderPacketsRcvd = pFwChannelInfo->ui32NumOoopackets;
+        pStatus->fwStats.outOfOrderEventsRcvd = pFwChannelInfo->ui32NumOooEvents;
+        pStatus->fwStats.curOutOfOrderEventsRcvd = pFwChannelInfo->ui32CurrNumOooEvents;
     }
 
     pStatus->statsValid = true;
@@ -1925,26 +1936,20 @@ static void NEXUS_AspInput_processMessage_isr(
     {
         case BASP_MessageType_eFw2PiRstNotify:
         {
-            if (hAspInput->state == NEXUS_AspInputState_eStreaming)
-            {
-                hAspInput->connectionReset = true;
+            hAspInput->connectionReset = true;
 
-                BDBG_MSG((FMT_PREFIX "hAspInput=%p Received RstNotify: connectionReset=true, firing hEndOfStreamingCallback!"
-                          ARG_PREFIX, (void *)hAspInput));
-                NEXUS_IsrCallback_Fire_isr(hAspInput->hEndOfStreamingCallback);
-            }
+            BDBG_MSG((FMT_PREFIX "hAspInput=%p Received RstNotify: connectionReset=true, firing hEndOfStreamingCallback!"
+                      ARG_PREFIX, (void *)hAspInput));
+            NEXUS_IsrCallback_Fire_isr(hAspInput->hEndOfStreamingCallback);
             break;
         }
         case BASP_MessageType_eFw2PiFinNotify:  /* TODO: FIN handling has to be different. For now, just making it same as RST handling. */
         {
-            if (hAspInput->state == NEXUS_AspInputState_eStreaming)
-            {
-                hAspInput->remoteDoneSending = true;
+            hAspInput->remoteDoneSending = true;
 
-                BDBG_MSG((FMT_PREFIX "hAspInput=%p Received FinNotify: remoteDoneSending=true, firing hEndOfStreamingCallback!"
-                          ARG_PREFIX, (void *)hAspInput));
-                NEXUS_IsrCallback_Fire_isr(hAspInput->hEndOfStreamingCallback);
-            }
+            BDBG_MSG((FMT_PREFIX "hAspInput=%p Received FinNotify: remoteDoneSending=true, firing hEndOfStreamingCallback!"
+                      ARG_PREFIX, (void *)hAspInput));
+            NEXUS_IsrCallback_Fire_isr(hAspInput->hEndOfStreamingCallback);
             break;
         }
         case BASP_MessageType_eFw2PiPayloadNotify:
@@ -1960,7 +1965,7 @@ static void NEXUS_AspInput_processMessage_isr(
             hAspInput->pRcvdPayload = ((uint8_t *)hAspInput->receiveFifo.pBuffer) + relativeOffset;
             hAspInput->rcvdPayloadLength = pFw2PiMessage->Message.MessagePayload.PayloadNotify.HttpResponseAddress.ui32Size;
 
-            BMMA_FlushCache_isrsafe( hAspInput->receiveFifo.hBlock, (char *)hAspInput->receiveFifo.pBuffer, hAspInput->rcvdPayloadLength );
+            BMMA_FlushCache_isrsafe( hAspInput->receiveFifo.hBlock, (char *)hAspInput->pRcvdPayload, hAspInput->rcvdPayloadLength );
 
             BDBG_MSG((FMT_PREFIX "hAspInput=%p Rcvd PayloadNotify msg: offset hi:lo=0x%x:0x%x relativeOffset=%u pRcvdPayload=%p Length=%u, firing hHttpResponseDataReadyCallback!"
                       ARG_PREFIX,
@@ -1973,20 +1978,18 @@ static void NEXUS_AspInput_processMessage_isr(
         }
         case BASP_MessageType_eFw2PiChannelAbortResp:
         {
-            if (hAspInput->state == NEXUS_AspInputState_eStreaming)
+            BDBG_MSG((FMT_PREFIX "hAspInput=%p Processing Abort Response message from Network Peer!"
+                      ARG_PREFIX, (void *)hAspInput));
+
+            if (hAspInput->protocol == NEXUS_AspStreamingProtocol_eHttp)
             {
-                BDBG_MSG((FMT_PREFIX "hAspInput=%p Processing Abort Response message from Network Peer!"
-                          ARG_PREFIX, (void *)hAspInput));
-
-                if (hAspInput->protocol == NEXUS_AspStreamingProtocol_eHttp)
-                {
-                    hAspInput->tcpState.finalSendSequenceNumber = pFw2PiMessage->Message.ResponsePayload.AbortResponse.ui32CurrentSeqNumber;
-                    hAspInput->tcpState.finalRecvSequenceNumber = pFw2PiMessage->Message.ResponsePayload.AbortResponse.ui32CurrentAckedNumber;
-                }
-
-                hAspInput->gotStopResponse = true;
-                BKNI_SetEvent(hAspInput->hMessageReceiveEvent);
+                hAspInput->tcpState.finalSendSequenceNumber = pFw2PiMessage->Message.ResponsePayload.AbortResponse.ui32CurrentSeqNumber;
+                hAspInput->tcpState.finalRecvSequenceNumber = pFw2PiMessage->Message.ResponsePayload.AbortResponse.ui32CurrentAckedNumber;
             }
+
+            hAspInput->gotStopResponse = true;
+            hAspInput->startStreamInMessageWasSent = false;
+            BKNI_SetEvent(hAspInput->hMessageReceiveEvent);
             break;
         }
         case BASP_MessageType_eFw2PiChannelStartStreamInResp:
@@ -1998,6 +2001,7 @@ static void NEXUS_AspInput_processMessage_isr(
 
         case BASP_MessageType_eFw2PiChannelStopResp:
             hAspInput->gotStopResponse = true;
+            hAspInput->startStreamInMessageWasSent = false;
             hAspInput->finishCompleted = true;
 
             BDBG_MSG((FMT_PREFIX "hAspInput=%p Received Stop response: finishCompleted=true, firing hEndOfStreamingCallback!"

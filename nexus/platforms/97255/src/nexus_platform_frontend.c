@@ -53,7 +53,9 @@
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
 #include "nexus_base.h"
-
+#ifdef NEXUS_FRONTEND_45402
+#include "bchp_45402_top_ctrl.h"
+#endif
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_gio.h"
 
@@ -119,8 +121,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_GpioSettings gpioSettings;
     boardFrontendConfigOptions* boardConfig = NULL;
     unsigned i = 0;
-    unsigned i2c_chn = 3;
-    unsigned i2c_addr = 0x7c;
+    unsigned i2cChn = 3;
+    unsigned i2cAddr = 0x7c;
+    unsigned diseqcI2cAddr = 0xB;
 
     platformStatus = BKNI_Malloc(sizeof(*platformStatus));
     if (!platformStatus) {
@@ -163,8 +166,8 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     } else
 #endif
     {
-        deviceSettings.i2cDevice = pConfig->i2c[i2c_chn];
-        deviceSettings.i2cAddress = i2c_addr;
+        deviceSettings.i2cDevice = pConfig->i2c[i2cChn];
+        deviceSettings.i2cAddress = i2cAddr;
     }
 
     if (boardConfig->femtsif) {
@@ -262,8 +265,8 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         BDBG_MSG(("Search for internal LEAP"));
         NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
         NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
-        deviceSettings.tuner.i2c.device = pConfig->i2c[i2c_chn];
-        deviceSettings.tuner.i2c.address = i2c_addr;
+        deviceSettings.tuner.i2c.device = pConfig->i2c[i2cChn];
+        deviceSettings.tuner.i2c.address = i2cAddr;
         {
             NEXUS_GpioHandle gpio;
 
@@ -300,28 +303,46 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         }
 
     }
-    /* This means it is built-in tuner - to be handled by FE expert sample code for now */
-    if (!boardConfig->onboardQam && !boardConfig->femtsif ) {
-        /* must be a 7357X type with built-in tuner  use product ID or board ID */
+
+    if (!boardConfig->onboardQam && !boardConfig->femtsif) {
         if (platformStatus->boardId.major == 1 && platformStatus->boardId.minor == 1) {
             NEXUS_FrontendProbeResults probeResults;
+            NEXUS_GpioHandle gpio;
             BSTD_UNUSED(userParams);
+
+            BDBG_MSG(("setting GPIO 00 low"));
+            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+            gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+            gpioSettings.value = NEXUS_GpioValue_eLow;
+            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 0, &gpioSettings);
+            BKNI_Sleep(1);
+            if (gpio)
+                NEXUS_Gpio_Close(gpio);
+            BDBG_MSG(("setting GPIO 00 high"));
+            gpioSettings.value = NEXUS_GpioValue_eHigh;
+            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 0, &gpioSettings);
+            BKNI_Sleep(50);
+            if (gpio)
+                NEXUS_Gpio_Close(gpio);
+
+            BDBG_MSG(("Search for internal 45402............"));
+
             NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
             if (probeResults.chip.familyId != 0) {
-                BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
+                BDBG_MSG(("Opening %x...",probeResults.chip.familyId));
                 BDBG_MSG(("Setting up interrupt on GPIO %d",boardConfig->irqGpio));
                 NEXUS_Gpio_GetDefaultSettings(boardConfig->irqGpioType, &gpioSettings);
                 gpioSettings.mode = NEXUS_GpioMode_eInput;
                 gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
                 gpioIrqHandle = NEXUS_Gpio_Open(boardConfig->irqGpioType, boardConfig->irqGpio, &gpioSettings);
                 BDBG_ASSERT(NULL != gpioIrqHandle);
-
+                deviceSettings.satellite.diseqc.i2cDevice = pConfig->i2c[i2cChn];
+                deviceSettings.satellite.diseqc.i2cAddress = diseqcI2cAddr;
                 deviceSettings.gpioInterrupt = gpioIrqHandle;
                 device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
 
                 if (device) {
                     NEXUS_FrontendDeviceCapabilities capabilities;
-
                     NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
                     for (i=0; i < capabilities.numTuners ; i++) {
                         NEXUS_FrontendChannelSettings channelSettings;
@@ -329,12 +350,38 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                         channelSettings.channelNumber = i;
 
                         pConfig->frontend[i] = NEXUS_Frontend_Open(&channelSettings);
-                        if ( NULL == (pConfig->frontend[i]) ) {
+                        if (NULL == (pConfig->frontend[i])) {
                             BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
                             continue;
                         }
                         BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
                     }
+#ifdef NEXUS_FRONTEND_45402
+                    {
+                        uint32_t val;
+                        /* setup MTSIF pinmuxing on the Frontend chip */
+                        NEXUS_Frontend_ReadRegister(pConfig->frontend[0], BCHP_TOP_CTRL_PIN_MUX_CTRL_0, &val);
+                        val |= ( BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_0, fe_gpio_07, BCHP_TOP_CTRL_PIN_MUX_CTRL_0_fe_gpio_07_FE_MTSIF_ATS_RESET));
+                        NEXUS_Frontend_WriteRegister(pConfig->frontend[0], (BCHP_TOP_CTRL_PIN_MUX_CTRL_0), val);
+
+                        NEXUS_Frontend_ReadRegister(pConfig->frontend[0], (BCHP_TOP_CTRL_PIN_MUX_CTRL_1), &val);
+                        val |= (BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_1, fe_gpio_08, BCHP_TOP_CTRL_PIN_MUX_CTRL_1_fe_gpio_08_FE_MTSIF_ATS_INC) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_1, fe_gpio_09, BCHP_TOP_CTRL_PIN_MUX_CTRL_1_fe_gpio_09_FE_MTSIF_TX_DATA_0) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_1, fe_gpio_10, BCHP_TOP_CTRL_PIN_MUX_CTRL_1_fe_gpio_10_FE_MTSIF_TX_DATA_1) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_1, fe_gpio_11, BCHP_TOP_CTRL_PIN_MUX_CTRL_1_fe_gpio_11_FE_MTSIF_TX_DATA_2) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_1, fe_gpio_12, BCHP_TOP_CTRL_PIN_MUX_CTRL_1_fe_gpio_12_FE_MTSIF_TX_DATA_3) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_1, fe_gpio_13, BCHP_TOP_CTRL_PIN_MUX_CTRL_1_fe_gpio_13_FE_MTSIF_TX_DATA_4));
+                        NEXUS_Frontend_WriteRegister(pConfig->frontend[0], (BCHP_TOP_CTRL_PIN_MUX_CTRL_1), val);
+
+                        NEXUS_Frontend_ReadRegister(pConfig->frontend[0], (BCHP_TOP_CTRL_PIN_MUX_CTRL_2), &val);
+                        val |= (BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_2, fe_gpio_14, BCHP_TOP_CTRL_PIN_MUX_CTRL_2_fe_gpio_14_FE_MTSIF_TX_DATA_5 ) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_2, fe_gpio_15, BCHP_TOP_CTRL_PIN_MUX_CTRL_2_fe_gpio_15_FE_MTSIF_TX_DATA_6 ) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_2, fe_gpio_16, BCHP_TOP_CTRL_PIN_MUX_CTRL_2_fe_gpio_16_FE_MTSIF_TX_DATA_7 ) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_2, fe_gpio_17, BCHP_TOP_CTRL_PIN_MUX_CTRL_2_fe_gpio_17_FE_MTSIF_TX_CLK ) |
+                            BCHP_FIELD_DATA(TOP_CTRL_PIN_MUX_CTRL_2, fe_gpio_18, BCHP_TOP_CTRL_PIN_MUX_CTRL_2_fe_gpio_18_FE_MTSIF_TX_SYNC ));
+                        NEXUS_Frontend_WriteRegister(pConfig->frontend[0], (BCHP_TOP_CTRL_PIN_MUX_CTRL_2), val);
+                    }
+#endif
                 }
             }
         }

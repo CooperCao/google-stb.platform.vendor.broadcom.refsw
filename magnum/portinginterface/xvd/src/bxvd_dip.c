@@ -50,7 +50,7 @@
 #include "bxvd_dip.h"
 #include "bxvd_reg.h"
 
-#if (BXVD_CHIP != 'N') && (BXVD_CHIP != 'T')
+#if (BXVD_CHIP != 'N') && (BXVD_CHIP != 'T') && (BXVD_CHIP != 'V')
 #include "bchp_decode_ip_shim_0.h"
 #endif
 

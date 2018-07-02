@@ -45,6 +45,23 @@
 
 #include "bhsm_keyladder.h"
 
+typedef struct BHSM_P_KeyLadder
+{
+    BDBG_OBJECT(BHSM_P_KeyLadder)
+
+    bool allocated;
+    unsigned index;
+    bool configured;
+
+    BHSM_Handle hHsm;                 /* HSM handle. */
+    BHSM_SecurityCpuContext owner;    /* used to specify whether the keyladder is intended for HOST or SAGE usage. */
+    BHSM_KeyLadderSettings settings;
+
+}BHSM_P_KeyLadder;
+
+
+BDBG_OBJECT_ID_DECLARE(BHSM_P_KeyLadder);
+
 typedef struct{
     BHSM_Handle hHsm;
     bool configured;

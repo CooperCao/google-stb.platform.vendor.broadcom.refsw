@@ -19,11 +19,11 @@
 #include "bmedia_pcm.h"
 #include "bmedia_probe.h"
 #include "nexus_simple_video_decoder_server.h"
-#include "nexus_security.h"
 #include "nexus_video_window.h"
 #include "nexus_dma.h"
 #include "nexus_platform_client.h"
 #if defined(BRCM_SAGE)
+#include "nexus_security.h"
 #include "nexus_security_client.h"
 #include "sage_srai.h"
 #endif

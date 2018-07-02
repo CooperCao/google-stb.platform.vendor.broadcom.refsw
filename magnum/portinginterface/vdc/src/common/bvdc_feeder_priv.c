@@ -332,6 +332,10 @@ void BVDC_P_Feeder_Create
 #ifdef BCHP_MFD_0_HW_CONFIGURATION_SUPPORTS_MFD_TRIGGER_DEFAULT
         pFeeder->hSource->bMtgIsPresent = BVDC_P_COMPARE_FIELD_DATA(ulHwConfig, MFD_0_HW_CONFIGURATION, MFD_TRIGGER, 1);
 #endif
+
+#ifdef BCHP_MFD_0_HW_CONFIGURATION_SUPPORTS_4K_MASK
+        pFeeder->hSource->b4kSupportPresent = BVDC_P_COMPARE_FIELD_DATA(ulHwConfig, MFD_0_HW_CONFIGURATION, SUPPORTS_4K, 1);
+#endif
 #else
         BSTD_UNUSED(ulHwConfig);
 #endif

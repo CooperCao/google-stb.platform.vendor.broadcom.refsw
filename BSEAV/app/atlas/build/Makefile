@@ -1553,7 +1553,7 @@ ifeq ($(DCC_SUPPORT),y)
 	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(STAGING_DIR)
 endif
 ifeq ($(BP3_SUPPORT)$(SAGE_SUPPORT),yy)
-	${Q_}$(CP) $(NEXUS_BIN_DIR)/bp3 $(STAGING_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/bp3* $(STAGING_DIR)
 	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libsrai*.so* $(STAGING_DIR)
 	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libz*.so* $(STAGING_DIR)
 	${Q_}$(CP) -du --preserve=links $(NEXUS_BIN_DIR)/libcurl*.so* $(STAGING_DIR)

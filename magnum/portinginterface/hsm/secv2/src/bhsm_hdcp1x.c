@@ -60,6 +60,7 @@ BERR_Code BHSM_Hdcp1x_RouteKey( BHSM_Handle hHsm, const BHSM_Hdcp1xRouteKey *pPa
     BDBG_ENTER( BHSM_Hdcp1x_RouteKey );
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
     if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspConfig, 0, sizeof(bspConfig) );

@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "nexus_platform.h"
@@ -1469,33 +1473,7 @@ int main(int argc, const char *argv[])
     if (opts.common.masterModeTimingGenerator) {
         displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eHdmiDvo; /* HDMI master mode */
     }
-    else if (opts.common.ccir656MasterModeTimingGenerator) {
-        displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_e656Output; /* 656 master mode */
-    }
     display = NEXUS_Display_Open(0, &displaySettings);
-
-#if NEXUS_NUM_656_OUTPUTS
-    if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0] && display) {
-       rc = NEXUS_Display_AddOutput(display, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
-       if (rc) BERR_TRACE(rc); /* keep going */
-    }
-#endif
-
-#if NEXUS_NUM_COMPOSITE_OUTPUTS
-    if (opts.common.useCompositeOutput && platformConfig.outputs.composite[0] && platformCap.display[1].supported && !platformCap.display[1].encoder) {
-        NEXUS_VideoFormatInfo videoFormatInfo;
-        NEXUS_DisplaySettings compositeDisplaySettings;
-        NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
-        NEXUS_Display_GetDefaultSettings(&compositeDisplaySettings);
-        compositeDisplaySettings.format = (videoFormatInfo.verticalFreq == 5000)
-            ? NEXUS_VideoFormat_ePal : NEXUS_VideoFormat_eNtsc;
-        displaySD = NEXUS_Display_Open(1, &compositeDisplaySettings);
-        if(displaySD) {
-            rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-            if (rc) BERR_TRACE(rc); /* keep going */
-        }
-    }
-#endif
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     if (opts.common.useComponentOutput) {
@@ -1503,6 +1481,7 @@ int main(int argc, const char *argv[])
         if (rc) BERR_TRACE(rc); /* keep going */
     }
 #endif
+
 #if NEXUS_HAS_HDMI_OUTPUT
     if (opts.common.useHdmiOutput) {
         NEXUS_HdmiOutputSettings hdmiSettings;
@@ -1530,6 +1509,37 @@ int main(int argc, const char *argv[])
 
         /* Force a hotplug to switch to preferred format */
         hotplug_callback(&hotplug_context, 0);
+    }
+#endif
+
+#if NEXUS_NUM_COMPOSITE_OUTPUTS || NEXUS_NUM_656_OUTPUTS
+    if ((opts.common.useCompositeOutput && platformConfig.outputs.composite[0] && platformCap.display[1].supported && !platformCap.display[1].encoder) ||
+        (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0])) {
+
+        NEXUS_VideoFormatInfo videoFormatInfo;
+        NEXUS_DisplaySettings compositeDisplaySettings;
+        NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
+        NEXUS_Display_GetDefaultSettings(&compositeDisplaySettings);
+
+        if (opts.common.ccir656MasterModeTimingGenerator) {
+            compositeDisplaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_e656Output; /* 656 master mode */
+        }
+
+        compositeDisplaySettings.format = (videoFormatInfo.verticalFreq == 5000)
+            ? NEXUS_VideoFormat_ePal : NEXUS_VideoFormat_eNtsc;
+        displaySD = NEXUS_Display_Open(1, &compositeDisplaySettings);
+        if(displaySD) {
+            if (opts.common.useCompositeOutput && platformConfig.outputs.composite[0])
+            {
+                rc = NEXUS_Display_AddOutput(displaySD, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+                if (rc) BERR_TRACE(rc); /* keep going */
+            }
+            if (opts.common.useCcir656Output && platformConfig.outputs.ccir656[0])
+            {
+               rc = NEXUS_Display_AddOutput(displaySD, NEXUS_Ccir656Output_GetConnector( platformConfig.outputs.ccir656[0]));
+               if (rc) BERR_TRACE(rc); /* keep going */
+            }
+        }
     }
 #endif
 

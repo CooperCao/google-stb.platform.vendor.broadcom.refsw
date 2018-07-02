@@ -489,13 +489,9 @@ int app_p_run_scenario_by_number(AppHandle app, int scenarioNum)
 
 int app_p_run_scenario(AppHandle app, const char * scenarioName)
 {
-    int rc;
     assert(app);
-    rc = scenario_player_play_scenario(app->scenario.player, scenarioName);
-    if (rc) goto end;
     app->scenario.name = set_string(app->scenario.name, scenarioName);
-end:
-    return rc;
+    return scenario_player_play_scenario(app->scenario.player, scenarioName);
 }
 
 void app_p_quit(AppHandle app)
@@ -697,7 +693,7 @@ static void app_p_stop_streams(AppHandle app, const Scenario * pScenario)
             (wasPip && !isPip && i == 1)
             ||
             /* we have fewer active streams in the new scenario, stop the active ones from the old scenario */
-            (i > pScenario->streamCount)
+            (i >= pScenario->streamCount)
             ||
             /* the stream paths have changed, stop the old ones */
             (pScenario->streamPaths[i] && app->stream.prevPaths[i] && strcmp(pScenario->streamPaths[i], app->stream.prevPaths[i]))

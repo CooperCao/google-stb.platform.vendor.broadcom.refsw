@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_framework.h"
 #include "platform_common.h"
@@ -166,8 +166,6 @@ void *DisplayFramework_GetNextSurface(DisplayFramework *df,
    pthread_mutex_unlock(&df->window_mutex);
 
    sem_wait(&df->latency);
-
-   DisplayInterface_Release(df->display_interface);
 
    SwapchainSurface *surface = SwapchainDequeueRenderSurface(
          &df->swapchain, &requested, secure);

@@ -3,6 +3,7 @@
 *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
+
 #include <cmath>
 #include <algorithm>
 #include "AudioVolumeChange.h"
@@ -25,11 +26,16 @@ NxClient_AudioStatus audioStatus;
 
 static bool ms12Enabled()
 {
-    NxClient_JoinSettings joinSettings;
-    NxClient_GetDefaultJoinSettings(&joinSettings);
-    (void) NxClient_Join(&joinSettings);
-
+    BME_CHECK(NxClient_Join(NULL));
     NxClient_GetAudioStatus(&audioStatus);
+    if (audioStatus.dolbySupport.mixer)
+    {
+        NxClient_AudioProcessingSettings settings;
+        NxClient_GetAudioProcessingSettings(&settings);
+        settings.dolby.ddre.fixedEncoderFormat = true;
+        BME_CHECK(NxClient_SetAudioProcessingSettings(&settings));
+    }
+    NxClient_Uninit();
     return audioStatus.dolbySupport.mixer;
 }
 
@@ -233,6 +239,9 @@ void AudioMasterVolumeChange::blur(unsigned int timeMs, float target, ChangeProf
 {
     // Start the manual change
     AudioVolumeChange::blur(timeMs, AudioVolumeBase::master, target, profile);
+
+    if (!AudioVolumeBase::isMs12())
+        return; // Nothing left to do if there's no Dolby mixer
 
     // Nexus doesn't support quadratic profiles, so we substitute cubic ones
     // In practice, the master volume is changed quickly, so the difference

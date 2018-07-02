@@ -402,6 +402,9 @@ struct wlc_bsscfg {
 
 	bcmc_cubby_t *bcmc_cubby; /* Broadcast/Multicast cubby pointer */
 	wl_interface_type_t iface_type;	/* stores bsscfg interface type */
+#ifdef WLATM_PERC
+	uint8 bss_perc;	/* BSS percentage for ATM, the range is 0 -100, 0 is for auto. */
+#endif /* WLATM_PERC */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG

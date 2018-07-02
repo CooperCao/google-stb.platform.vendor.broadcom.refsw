@@ -10373,7 +10373,7 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
      * some BVDC_P_BW_DELTA.  Currently it's set to 1% for rate oscillation.
      * But cut also overschedule RTS for aspect ratio correct without
      * toggle scl/cap, though need to find the delta and update accordingly. */
-    ulInRate   = BVDC_P_MAX(1, ulInRate);
+    ulInRate     = BVDC_P_MAX(1, ulInRate);
     ulCapFdrRate = (ulOutRate * BVDC_P_BW_RATE_FACTOR / ulInRate);
 
     BDBG_MSG(("BW: InX=%d InY=%d OutX=%d OutY=%d ulOutRate=%d ulInRate=%d ulCapFdrRate=%d",
@@ -10384,7 +10384,7 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
     {
         if(hWindow->bSrcSideDeinterlace)
         {
-            ulInY = hWindow->stSrcCnt.ulHeight;
+            BDBG_ASSERT(bSrcInterlace);
             ulOutRate = BVDC_P_DIV_ROUND_UP(ulOutX, BVDC_P_SCB_BURST_SIZE) * ulOutY;
             ulInRate  = BVDC_P_DIV_ROUND_UP(ulInX,  BVDC_P_SCB_BURST_SIZE) * ulInY * 2;
             ulCapFdrRate = (ulOutRate * BVDC_P_BW_RATE_FACTOR / ulInRate);
@@ -10408,7 +10408,7 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
             uint32_t ulMadOutClk = ulOclk * BVDC_P_BW_RATE_FACTOR / ulSclRatio;
 
             BDBG_MSG(("BW+MAD: InX=%d InY'=%d OutX=%d OutY=%d SclRatio=%d oclk=%d MadOutClk=%d BVDC_P_MAD_OUTPUT_RATE=%d",
-                ulInX, hWindow->stSrcCnt.ulHeight, ulOutX, ulOutY, ulSclRatio,
+                ulInX, ulInY, ulOutX, ulOutY, ulSclRatio,
                 ulOclk, ulMadOutClk, BVDC_P_MAD_OUTPUT_RATE));
 
             if(ulMadOutClk > BVDC_P_MAD_OUTPUT_RATE)
@@ -11104,7 +11104,14 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
     }
     else
     {
-        bCapInterlaced = pDstFmtInfo->bInterlaced && !pSrcInfo->bForceFrameCapture;
+        if(BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode))
+        {
+            bCapInterlaced = bMinSrcInterlace && !hWindow->bSrcSideDeinterlace;
+        }
+        else
+        {
+            bCapInterlaced = pDstFmtInfo->bInterlaced && !pSrcInfo->bForceFrameCapture;
+        }
         bDoPulldown = false;
     }
 
@@ -11119,7 +11126,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
         if(BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_Window_GetBufSize_isr(hWindow->eId, pCapBufRect,
-                bMinSrcInterlace, pCurInfo->bMosaicMode, false, false,
+                bCapInterlaced, pCurInfo->bMosaicMode, false, false,
                 pCurInfo->ePixelFormat, &hWindow->stCapCompression,
                 BVDC_P_BufHeapType_eCapture, &ulBufSize, eBitDepth);
         }
@@ -13296,7 +13303,6 @@ void BVDC_P_Window_Writer_isr
                 BVDC_P_Window_DecideVnetMode_isr(hWindow, pMvdFieldData, true,
                     &bRfcgMcvp, false, ulPictureIdx);
                 BVDC_P_Window_DecideBufsCfgs_isr(hWindow, pMvdFieldData, pXvdFieldData, true, ulPictureIdx);
-
                 BVDC_P_Window_CheckBuffers_isr(hWindow, ulPictureIdx,
                     &hWindow->bNotEnoughCapBuf, &bNotEnoughMcvpBuffers);
 
@@ -14572,6 +14578,9 @@ void BVDC_P_Window_Reader_isr
             ((hCompositor->hDisplay->stDviChan.bEnable || hCompositor->hDisplay->stCurInfo.bEnableHdmi) &&
              (hCompositor->hDisplay->stCurInfo.stHdmiSettings.eHdmiColorDepth == BAVC_HDMI_BitsPerPixel_e24bit)) ? true : false;
         bool bCscDitherEnable = bInDitherEnable & bHdmiOutput8Bit & !hWindow->stCurInfo.bMosaicMode;
+#if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
+        bCscDitherEnable &= !BVDC_P_CMP_DBV_MODE(hCompositor);
+#endif
         /* disable input dithering for transcode path */
         bInDitherEnable &= !hCompositor->hDisplay->stCurInfo.bEnableStg;
 #if BVDC_DITHER_OFF

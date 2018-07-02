@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -74,15 +74,9 @@ should be equivalent. */
 #include <linux/slab.h> /* memset and friends */
 
 #define BKNI_EVENTGROUP_SUPPORT
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
-#define DECLARE_MUTEX DEFINE_SEMAPHORE
-#define init_MUTEX(sem)     sema_init(sem, 1)
-#define init_MUTEX_LOCKED(sem)  sema_init(sem, 0)
-#endif
-
 #ifdef BKNI_EVENTGROUP_SUPPORT
 #include "blst_list.h"
+#include "blst_squeue.h"
 #endif
 
 #include <linux/wait.h>
@@ -110,8 +104,8 @@ should be equivalent. */
 #include <linux/tqueue.h>
 #include <asm/smplock.h>
 #endif
-#include <asm/atomic.h>
 #include <asm/uaccess.h>
+#include <linux/mutex.h>
 
 BDBG_MODULE(kernelinterface);
 
@@ -215,35 +209,39 @@ static sigset_t g_blockedSignals;
 
 #ifdef BKNI_EVENTGROUP_SUPPORT
 struct BKNI_GroupObj {
-    BLST_D_HEAD(group, BKNI_EventObj) members;
-    BKNI_MutexHandle lock;           /* mutex for protecting signal and conditional variables */
+    BLST_D_HEAD(group_members, BKNI_EventObj) members;
+    BLST_SQ_HEAD(group_fired, BKNI_EventObj) fired_members;
     wait_queue_head_t wq;
+#include "../linuxuser/bkni_event_group_stats_data.inc"
 };
+#include "../linuxuser/bkni_event_group_stats_api.inc"
 #endif
 
 struct BKNI_EventObj {
     BDBG_OBJECT(BKNI_Event)
 #ifdef BKNI_EVENTGROUP_SUPPORT
     BLST_D_ENTRY(BKNI_EventObj) list;
+    BLST_SQ_ENTRY(BKNI_EventObj) fired_list;
     struct BKNI_GroupObj *group;
+    bool in_fired_list;
 #endif
+    bool eventset;
     wait_queue_head_t wq;
-    atomic_t eventset;
 };
+
+static DEFINE_SPINLOCK(event_lock);
 
 struct BKNI_MutexObj {
     BKNI_P_MutexTracking tracking; /* must be first */
     BDBG_OBJECT(BKNI_Mutex)
-    struct semaphore sem;
+    struct mutex mutex;
     unsigned count;
 };
 
-#if BKNI_TRACK_MALLOCS
-static DECLARE_MUTEX(g_alloc_mutex);
-#endif
+static DEFINE_MUTEX(g_alloc_mutex);
 
-#define B_TRACK_ALLOC_LOCK()  down(&g_alloc_mutex)
-#define B_TRACK_ALLOC_UNLOCK() up(&g_alloc_mutex)
+#define B_TRACK_ALLOC_LOCK()  mutex_lock(&g_alloc_mutex)
+#define B_TRACK_ALLOC_UNLOCK() mutex_unlock(&g_alloc_mutex)
 #define B_TRACK_ALLOC_ALLOC(size) kmalloc(size, GFP_KERNEL)
 #define B_TRACK_ALLOC_FREE(ptr) kfree(ptr)
 #define B_TRACK_ALLOC_OS "linuxkernel"
@@ -454,8 +452,9 @@ BERR_Code BKNI_CreateEvent_tagged(BKNI_EventHandle *p_event, const char *file, u
     if (!event)
         return BERR_OS_ERROR;
     BDBG_OBJECT_SET(event, BKNI_Event);
-    atomic_set(&event->eventset, 0);
+    event->eventset = false;
 #ifdef BKNI_EVENTGROUP_SUPPORT
+    event->in_fired_list = false;
     event->group = NULL;
 #endif
     init_waitqueue_head(&event->wq);
@@ -472,11 +471,12 @@ void BKNI_DestroyEvent_tagged(BKNI_EventHandle event, const char *file, unsigned
     {
     struct BKNI_GroupObj *group = event->group;
 
+        spin_lock_bh(&event_lock);
+        group = event->group;
         if (group) {
-            BKNI_AcquireMutex(group->lock);
             BLST_D_REMOVE(&group->members, event, list);
-            BKNI_ReleaseMutex(group->lock);
         }
+        spin_unlock_bh(&event_lock);
     }
 #endif
     BDBG_OBJECT_DESTROY(event, BKNI_Event);
@@ -497,20 +497,30 @@ void BKNI_DestroyEvent(BKNI_EventHandle event)
 
 void BKNI_SetEvent_tagged(BKNI_EventHandle event, const char *file, unsigned line)
 {
+#ifdef BKNI_EVENTGROUP_SUPPORT
+    struct BKNI_GroupObj *group;
+#endif
     BDBG_OBJECT_ASSERT(event, BKNI_Event);
-    atomic_set(&event->eventset, 1);
+    spin_lock_bh(&event_lock);
+
+    event->eventset = true;
 #ifdef BKNI_METRICS_ENABLED
     if (g_metricsLoggingState.printEvents)
         BDBG_P_PrintString("BKNI_SetEvent(%p) at %s, line %d\n", event, file, line);
 #endif
+#ifdef BKNI_EVENTGROUP_SUPPORT
+    group = event->group;
+    if (group && !event->in_fired_list) {
+        event->in_fired_list = true;
+        BLST_SQ_INSERT_TAIL(&group->fired_members, event, fired_list);
+    }
+#endif
+    spin_unlock_bh(&event_lock);
     wake_up_interruptible(&event->wq);
 
 #ifdef BKNI_EVENTGROUP_SUPPORT
-    {
-        struct BKNI_GroupObj *group = event->group;
-        if (group) {
-            wake_up_interruptible(&group->wq);
-        }
+    if (group) {
+        wake_up_interruptible(&group->wq);
     }
 #endif
 }
@@ -518,8 +528,9 @@ void BKNI_SetEvent_tagged(BKNI_EventHandle event, const char *file, unsigned lin
 void BKNI_ResetEvent_tagged(BKNI_EventHandle event, const char *file, unsigned line)
 {
     BDBG_OBJECT_ASSERT(event, BKNI_Event);
-    /* just clear event state */
-    atomic_set(&event->eventset, 0);
+    spin_lock_bh(&event_lock);
+    event->eventset = false;
+    spin_unlock_bh(&event_lock);
     return;
 }
 
@@ -531,7 +542,6 @@ void BKNI_ResetEvent_tagged(BKNI_EventHandle event, const char *file, unsigned l
 **/
 static void BKNI_P_BlockSignals(sigset_t *pPrevMask)
 {
-    unsigned long flags;
     spinlock_t *pSignalLock;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
@@ -542,9 +552,7 @@ static void BKNI_P_BlockSignals(sigset_t *pPrevMask)
     pSignalLock = &current->sigmask_lock;
 #endif
 
-    /* Lock the signal structs, should use spin_lock_irq since the same
-     * spinlock coule be acqured by the kernel code from within IRQ handler */
-    spin_lock_irqsave(pSignalLock, flags);
+    spin_lock_irq(pSignalLock);
 
     /* Save current signals */
     memcpy(pPrevMask, &current->blocked, sizeof(sigset_t));
@@ -554,7 +562,7 @@ static void BKNI_P_BlockSignals(sigset_t *pPrevMask)
     recalc_sigpending();
 
     /* Release the lock */
-    spin_unlock_irqrestore(pSignalLock, flags);
+    spin_unlock_irq(pSignalLock);
     return;
 }
 
@@ -563,7 +571,6 @@ static void BKNI_P_BlockSignals(sigset_t *pPrevMask)
 **/
 static void BKNI_P_RestoreSignals(sigset_t *pPrevMask)
 {
-    unsigned long flags;
     spinlock_t *pSignalLock;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
@@ -574,9 +581,7 @@ static void BKNI_P_RestoreSignals(sigset_t *pPrevMask)
     pSignalLock = &current->sigmask_lock;
 #endif
 
-    /* Lock the signal structs, should use spin_lock_irq since the same
-     * spinlock coule be acqured by the kernel code from within IRQ handler */
-    spin_lock_irqsave(pSignalLock, flags);
+    spin_lock_irq(pSignalLock);
 
     /* Restore signals */
     memcpy(&current->blocked, pPrevMask, sizeof(sigset_t));
@@ -584,7 +589,8 @@ static void BKNI_P_RestoreSignals(sigset_t *pPrevMask)
     recalc_sigpending();
 
     /* Release the lock */
-    spin_unlock_irqrestore(pSignalLock, flags);
+    spin_unlock_irq(pSignalLock);
+    return;
 }
 
 /**
@@ -629,28 +635,24 @@ BERR_Code BKNI_WaitForEvent_tagged(BKNI_EventHandle event, int timeoutMsec, cons
 {
     BERR_Code result = BERR_TIMEOUT;
     sigset_t mask;
-    int prev_eventset;
+    bool prev_eventset;
 
     BDBG_OBJECT_ASSERT(event, BKNI_Event);
-    if ( timeoutMsec )
-    {
-        ASSERT_NOT_CRITICAL();
+    spin_lock_bh(&event_lock);
+    prev_eventset = event->eventset;
+    event->eventset = false;
+    spin_unlock_bh(&event_lock);
+    if(prev_eventset) {
+        return BERR_SUCCESS;
     }
-    else if ( CHECK_CRITICAL() )
-    {
-        /* Don't mess with current or wait queues from an ISR */
-        prev_eventset = atomic_xchg(&event->eventset, 0); /* this atomically clears 'eventset' and returns current (old) value */
-        if ( prev_eventset)
-        {
-            return BERR_SUCCESS;
-        }
-        else
-        {
-            return BERR_TIMEOUT;
-        }
+    if (timeoutMsec==0) {
+        return BERR_TIMEOUT;
     }
 
-    if (timeoutMsec!=0 && timeoutMsec!=BKNI_INFINITE) {
+    /* Can't mess with current or wait queues from an ISR */
+    ASSERT_NOT_CRITICAL();
+
+    if (timeoutMsec!=BKNI_INFINITE) {
         if (timeoutMsec<0) {
             /* If your app is written to allow negative values to this function, then it's highly likely you would allow -1, which would
             result in an infinite hang. We recommend that you only pass positive values to this function unless you definitely mean BKNI_INFINITE. */
@@ -693,7 +695,10 @@ BERR_Code BKNI_WaitForEvent_tagged(BKNI_EventHandle event, int timeoutMsec, cons
             /* check the condition and when we call schedule().     */
             set_current_state(TASK_INTERRUPTIBLE);
 
-            prev_eventset = atomic_xchg(&event->eventset, 0); /* this atomically clears 'eventset' and returns current (old) value */
+            spin_lock_bh(&event_lock);
+            prev_eventset = event->eventset;
+            event->eventset = false;
+            spin_unlock_bh(&event_lock);
             if(prev_eventset) 
             {
                 result = BERR_SUCCESS;
@@ -732,7 +737,7 @@ BERR_Code BKNI_WaitForEvent_tagged(BKNI_EventHandle event, int timeoutMsec, cons
 }
 
 static spinlock_t g_criticalSection = __SPIN_LOCK_UNLOCKED(bkni.lock);
-static DECLARE_MUTEX(g_csMutex);
+static DEFINE_MUTEX(g_csMutex);
 #if BKNI_DEBUG_CS_TIMING
 static unsigned long g_csTimeStart;
 static const char *g_csFile;
@@ -749,7 +754,7 @@ void BKNI_EnterCriticalSection_tagged(const char *file, unsigned line)
 
     if ( g_pIsrTasklet )
     {
-        down(&g_csMutex);
+        mutex_lock(&g_csMutex);
         tasklet_disable(g_pIsrTasklet);
     }
     else
@@ -832,7 +837,7 @@ void BKNI_LeaveCriticalSection_tagged(const char *file, unsigned line)
     if ( pIsrTasklet )
     {
         tasklet_enable(pIsrTasklet);
-        up(&g_csMutex);
+        mutex_unlock(&g_csMutex);
     }
     else
     {
@@ -875,7 +880,7 @@ BERR_Code BKNI_CreateMutex_tagged(BKNI_MutexHandle *mutex, const char *file, int
         return BERR_OS_ERROR;
     BDBG_OBJECT_SET(*mutex, BKNI_Mutex);
     BKNI_P_MutexTracking_Init(&(*mutex)->tracking, file, line);
-    init_MUTEX(&(*mutex)->sem);
+    mutex_init(&(*mutex)->mutex);
     (*mutex)->count = 0;
     return BERR_SUCCESS;
 }
@@ -911,7 +916,7 @@ void BKNI_AcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned
     if (g_metricsLoggingState.printMutexSections)
         BDBG_P_PrintString("BKNI_AcquireMutex(%p) at %s, line %d\n", mutex, file, line);
 #endif
-    down(&mutex->sem);
+    mutex_lock(&mutex->mutex);
     BKNI_P_MutexTracking_AfterAcquire(&mutex->tracking, file, line);
 
     BDBG_ASSERT(mutex->count == 0);
@@ -937,7 +942,7 @@ BERR_Code BKNI_TryAcquireMutex_tagged(BKNI_MutexHandle mutex, const char *file, 
     if (g_metricsLoggingState.printMutexSections)
         BDBG_P_PrintString("BKNI_TryAcquireMutex(%p) at %s, line %d\n", mutex, file, line);
 #endif
-    if (down_trylock(&mutex->sem)) {
+    if (mutex_trylock(&mutex->mutex)==0) {
 #ifdef BKNI_METRICS_ENABLED
         if (g_metricsLoggingState.printMutexSections)
             BDBG_P_PrintString("BKNI_TryAcquireMutex failed\n");
@@ -977,13 +982,13 @@ void BKNI_ReleaseMutex_tagged(BKNI_MutexHandle mutex, const char *file, unsigned
     mutex->count--;
     BKNI_P_MutexTracking_BeforeRelease(&mutex->tracking);
 
-    up(&mutex->sem);
+    mutex_unlock(&mutex->mutex);
 }
 
 #if BKNI_DEBUG_MUTEX_TRACKING
 static void BKNI_P_ForceReleaseMutex(void *x)
 {
-   up(&((struct BKNI_MutexObj *)x)->sem);
+   mutex_unlock(&((struct BKNI_MutexObj *)x)->mutex);
    return;
 }
 #endif
@@ -1070,18 +1075,14 @@ BKNI_CreateEventGroup(BKNI_EventGroupHandle *pGroup)
         goto error;
     }
     BLST_D_INIT(&group->members);
-    if (BKNI_CreateMutex(&group->lock)) {
-        result = BERR_TRACE(BERR_OS_ERROR);
-        goto error;
-    }
+    BLST_SQ_INIT(&group->fired_members);
+    BKNI_GroupObj_Stats_Init(group);
     init_waitqueue_head(&group->wq);
     *pGroup = group;
 
     return BERR_SUCCESS;
 
 error:
-    if (group)
-        BKNI_Free(group);
     return result;
 }
 
@@ -1092,13 +1093,14 @@ BKNI_DestroyEventGroup(BKNI_EventGroupHandle group)
 
     ASSERT_NOT_CRITICAL();
 
-    BKNI_AcquireMutex(group->lock);
+    spin_lock_bh(&event_lock);
+    BKNI_GroupObj_Stats_Report(group);
+    BKNI_GroupObj_Stats_Uninit(group);
     while(NULL != (event=BLST_D_FIRST(&group->members)) ) {
         event->group = NULL;
         BLST_D_REMOVE_HEAD(&group->members, list);
     }
-    BKNI_ReleaseMutex(group->lock);
-    BKNI_DestroyMutex(group->lock);
+    spin_unlock_bh(&event_lock);
     BKNI_Free(group);
     return;
 }
@@ -1111,19 +1113,21 @@ BKNI_AddEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
 
     ASSERT_NOT_CRITICAL();
 
-    BKNI_AcquireMutex(group->lock);
+    spin_lock_bh(&event_lock);
+    BKNI_GroupObj_Stats_AddEvent(group);
     if (event->group != NULL) {
         printk("### Event %p already connected to the group %p\n", (void *)event, (void *)group);
         result = BERR_TRACE(BERR_OS_ERROR);
     } else {
         BLST_D_INSERT_HEAD(&group->members, event, list);
         event->group = group;
-        if (atomic_read(&event->eventset)) { /* we can't use clear and return, since 'eventset' evaluated and cleared later in WaitForGroup */
+        if(event->eventset) {
+            BLST_SQ_INSERT_TAIL(&group->fired_members, event, fired_list);
             /* signal condition if signal already set */
             wake_up_interruptible(&group->wq);
        }
     }
-    BKNI_ReleaseMutex(group->lock);
+    spin_unlock_bh(&event_lock);
     return result;
 }
 
@@ -1134,15 +1138,20 @@ BKNI_RemoveEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
 
     ASSERT_NOT_CRITICAL();
 
-    BKNI_AcquireMutex(group->lock);
+    spin_lock_bh(&event_lock);
+    BKNI_GroupObj_Stats_RemoveEvent(group);
     if (event->group != group) {
         printk("### Event %p doesn't belong to the group %p\n", (void *)event, (void *)group);
         result = BERR_TRACE(BERR_OS_ERROR);
     } else {
         BLST_D_REMOVE(&group->members, event, list);
         event->group = NULL;
+        if(event->in_fired_list) {
+            event->in_fired_list=false;
+            BLST_SQ_REMOVE(&group->fired_members, event, BKNI_EventObj, fired_list);
+        }
     }
-    BKNI_ReleaseMutex(group->lock);
+    spin_unlock_bh(&event_lock);
     return result;
 }
 
@@ -1152,16 +1161,17 @@ group_get_events(BKNI_EventGroupHandle group, BKNI_EventHandle *events, unsigned
     BKNI_EventHandle ev;
     unsigned event;
 
-    BKNI_AcquireMutex(group->lock);
-    for(event=0, ev=BLST_D_FIRST(&group->members); ev && event<max_events ; ev=BLST_D_NEXT(ev, list)) {
-        int prev_eventset;
-        prev_eventset = atomic_xchg(&ev->eventset, 0); /* this atomically clears 'eventset' and returns icurrent (old) value */
-        if (prev_eventset) {
+    spin_lock_bh(&event_lock);
+    for(event=0, ev=BLST_SQ_FIRST(&group->fired_members); ev && event<max_events ; ev=BLST_SQ_FIRST(&group->fired_members)) {
+        ev->in_fired_list = false;
+        BLST_SQ_REMOVE_HEAD(&group->fired_members, fired_list);
+        if(ev->eventset) {
+            ev->eventset = false;
             events[event] = ev;
             event++;
         }
     }
-    BKNI_ReleaseMutex(group->lock);
+    spin_unlock_bh(&event_lock);
     return event;
 }
 
@@ -1177,6 +1187,13 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
 
     if (max_events<1) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    *nevents = group_get_events(group, events, max_events);
+    if(*nevents!=0) {
+        BKNI_GroupObj_Stats_WaitEvents_Fast(group);
+        result = BERR_SUCCESS;
+        goto done;
     }
 
     /* Block all non-terminal signals while sleeping */
@@ -1206,16 +1223,16 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
     /* Need to repeat the sleep until the entire timeout
     is consumed, or event occurs, or a true fatal signal is detected.
     It's possible to be signalled and yet keep going. */
-    for ( ;; )
+    for (;;)
     {
         /* Be sure to go half asleep before checking condition. */
         /* Otherwise we have a race condition between when we   */
         /* check the condition and when we call schedule().     */
         set_current_state(TASK_INTERRUPTIBLE);
-    
-            *nevents = group_get_events(group, events, max_events);
-            if(*nevents) {
-                result = BERR_SUCCESS;
+
+        *nevents = group_get_events(group, events, max_events);
+        if(*nevents) {
+            result = BERR_SUCCESS;
             break;
         }
         else if (!ticks) {
@@ -1240,6 +1257,8 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
     /* Restore original signal mask */
     BKNI_P_RestoreSignals(&mask);
 
+done:
+    BKNI_GroupObj_Stats_WaitEvents_Result(group, *nevents);
     return result;
 }
 #else

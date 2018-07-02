@@ -202,7 +202,9 @@ BERR_Code BAPE_Debug_GetChannelStatus(
     BAPE_DebugDigitalOutputStatus *status)
 {
     const BAPE_FMT_Descriptor     *pFormat;
+#if defined(BCHP_AUD_FMM_IOP_OUT_MAI_0_REG_START) || defined(BCHP_AUD_FMM_OP_CTRL_MAI_FORMAT)
     uint32_t lowRegAddr, highRegAddr;
+#endif
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Debug);
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
@@ -271,7 +273,6 @@ BERR_Code BAPE_Debug_GetChannelStatus(
     status->cbits[0] = BAPE_Reg_P_Read(handle->deviceHandle, lowRegAddr);
     status->cbits[1] = BAPE_Reg_P_Read(handle->deviceHandle, highRegAddr);
 #elif defined BCHP_DVP_CFG_REG_START /* Ott */
-    lowRegAddr = highRegAddr = 0;
     status->cbits[0] = 0;
     status->cbits[1] = 0;
 #else

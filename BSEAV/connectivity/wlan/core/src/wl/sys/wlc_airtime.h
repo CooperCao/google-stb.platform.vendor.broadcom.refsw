@@ -41,7 +41,11 @@
 #define WLC_AIRTIME_DISABLED	0
 #define WLC_AIRTINE_ENABLED		1
 #define WLC_AIRTIME_PMODE		2
+#ifdef WLATM_PERC
+#define WLC_AIRTIME_PERC		3 /* ATM Percentage mode. */
+#else /* WLATM_PERC */
 #define WLC_AIRTIME_DONGLE		3
+#endif /* WLATM_PERC */
 
 /**
  * Packet overhead not including PLCP header of payload

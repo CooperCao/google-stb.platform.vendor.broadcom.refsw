@@ -1,11 +1,12 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "wl_client.h"
 
 #include "wayland_egl/wayland_egl_priv.h"
 #include "nexus_base_mmap.h"
 #include "nexus_platform.h"
+#include "display_helpers.h"
 
 #include <wayland-client.h>
 #include <stdint.h>
@@ -14,19 +15,6 @@
 #include <stdio.h>
 
 #define UNUSED(x) (void)(x)
-
-static NEXUS_PixelFormat GetNativeFormat(BEGL_BufferFormat beglFormat)
-{
-   NEXUS_PixelFormat format;
-   switch (beglFormat)
-   {
-   case BEGL_BufferFormat_eA8B8G8R8: format = NEXUS_PixelFormat_eA8_B8_G8_R8; break;
-   case BEGL_BufferFormat_eX8B8G8R8: format = NEXUS_PixelFormat_eX8_B8_G8_R8; break;
-   case BEGL_BufferFormat_eR5G6B5:   format = NEXUS_PixelFormat_eR5_G6_B5; break;
-   default: format = NEXUS_PixelFormat_eUnknown; break;
-   }
-   return format;
-}
 
 bool CreateWlSharedBuffer(WlSharedBuffer *buffer, WlClient *client,
       uint32_t width, uint32_t height, BEGL_BufferFormat format, bool secure,
@@ -38,7 +26,9 @@ bool CreateWlSharedBuffer(WlSharedBuffer *buffer, WlClient *client,
 
    NEXUS_SurfaceCreateSettings surfSettings;
    NEXUS_Surface_GetDefaultCreateSettings(&surfSettings);
-   surfSettings.pixelFormat = GetNativeFormat(format);
+
+   if (!BeglToNexusFormat(&surfSettings.pixelFormat, format))
+      return false;
    surfSettings.width = width;
    surfSettings.height = height;
    surfSettings.compatibility.graphicsv3d = true;
@@ -281,9 +271,7 @@ void DestroyWlWindow(WlWindow *window)
    if (window->release_events)
       wl_event_queue_destroy(window->release_events);
 
-#ifndef NDEBUG
    memset(window, 0, sizeof(*window));
-#endif
 }
 
 static void FrameCb(void *data, struct wl_callback *callback, uint32_t time)

@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: Audio Module
@@ -43,12 +47,7 @@
 #include "nexus_audio_module.h"
 #define RAAGA_DEBUG_LOG_CHANGES 1
 #if BAPE_DSP_SUPPORT
-    #if BDSP_RAAGA_AUDIO_SUPPORT
-    #include "bdsp_raaga.h"
-    #endif
-    #if BDSP_ARM_AUDIO_SUPPORT
-    #include "bdsp_arm.h"
-    #endif
+#include "bdsp.h"
 #endif
 #include "priv/nexus_core_preinit.h"
 #if NEXUS_HAS_SECURITY
@@ -771,6 +770,8 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         pApeSettings->rampPcmSamples = false;
     }
 
+    pApeSettings->bTeeInstance = g_pCoreHandles->tee;
+
     BDBG_MSG(("Calling BAPE_Open"));
     BDBG_MSG(("DSP %p, ARM %p", (void*)g_NEXUS_audioModuleData.dspHandle, (void*)g_NEXUS_audioModuleData.armHandle));
     errCode = BAPE_Open(&NEXUS_AUDIO_DEVICE_HANDLE,
@@ -1412,6 +1413,8 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
 
     pCaps->numDsps = apeCaps->numDevices[BAPE_DEVICE_TYPE_DSP];
     pCaps->numSoftAudioCores = apeCaps->numDevices[BAPE_DEVICE_TYPE_ARM];
+    pCaps->dsp.dspSecureDecode = apeCaps->dsp[BAPE_DEVICE_TYPE_DSP].secureDecode;
+    pCaps->dsp.softAudioSecureDecode = apeCaps->dsp[BAPE_DEVICE_TYPE_ARM].secureDecode;
     for ( j = 0; j < BAPE_DEVICE_TYPE_MAX; j++ )
     {
         for ( i = 0; i < NEXUS_AudioCodec_eMax; i++ )
@@ -1718,7 +1721,8 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
             if (bdspAlgo != BDSP_Algorithm_eMax)
             {
                 /* Adjust AAC codecs to override compile defines */
-                if ( pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS12 )
+                if ( pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS12 ||
+                     pEstData->usageSettings.dolbyCodecVersion == NEXUS_AudioDolbyCodecVersion_eMS11Plus )
                 {
                     switch ( bdspAlgo )
                     {
@@ -1843,6 +1847,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     switch ( pEstData->usageSettings.dolbyCodecVersion )
     {
     case NEXUS_AudioDolbyCodecVersion_eMS12:
+    case NEXUS_AudioDolbyCodecVersion_eMS11Plus:
         /* tbd */
         break;
     case NEXUS_AudioDolbyCodecVersion_eMS11:
@@ -1899,6 +1904,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     default:
     case NEXUS_AudioDolbyCodecVersion_eMS10:
     case NEXUS_AudioDolbyCodecVersion_eMS12:
+    case NEXUS_AudioDolbyCodecVersion_eMS11Plus:
     case NEXUS_AudioDolbyCodecVersion_eAc3Plus:
     case NEXUS_AudioDolbyCodecVersion_eAc3:
         break;
@@ -1954,13 +1960,28 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     pEstData->dspUsage.NumAudioPostProcesses = pEstData->usageSettings.numPostProcessing;
     pEstData->dspUsage.NumAudioEchocancellers = pEstData->usageSettings.numEchoCancellers;
     pEstData->dspUsage.IntertaskBufferDataType = (pEstData->usageSettings.maxDecoderOutputChannels == 8) ? BDSP_DataType_ePcm7_1 : BDSP_DataType_ePcm5_1;
-    BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eAc3 == (int)BDSP_AudioDolbyCodecVersion_eAC3);
-    BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eAc3Plus == (int)BDSP_AudioDolbyCodecVersion_eDDP);
-    BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMS10 == (int)BDSP_AudioDolbyCodecVersion_eMS10);
-    BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMS11 == (int)BDSP_AudioDolbyCodecVersion_eMS11);
-    BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMS12 == (int)BDSP_AudioDolbyCodecVersion_eMS12);
-    BDBG_CASSERT(NEXUS_AudioDolbyCodecVersion_eMax == (int)BDSP_AudioDolbyCodecVersion_eMax);
-    pEstData->dspUsage.DolbyCodecVersion = (BDSP_AudioDolbyCodecVersion) pEstData->usageSettings.dolbyCodecVersion;
+
+    switch (pEstData->usageSettings.dolbyCodecVersion) {
+    case NEXUS_AudioDolbyCodecVersion_eMS12:
+    case NEXUS_AudioDolbyCodecVersion_eMS11Plus:
+        pEstData->dspUsage.DolbyCodecVersion = BDSP_AudioDolbyCodecVersion_eMS12;
+        break;
+    case NEXUS_AudioDolbyCodecVersion_eMS11:
+        pEstData->dspUsage.DolbyCodecVersion = BDSP_AudioDolbyCodecVersion_eMS11;
+        break;
+    case NEXUS_AudioDolbyCodecVersion_eMS10:
+        pEstData->dspUsage.DolbyCodecVersion = BDSP_AudioDolbyCodecVersion_eMS10;
+        break;
+    case NEXUS_AudioDolbyCodecVersion_eAc3Plus:
+        pEstData->dspUsage.DolbyCodecVersion = BDSP_AudioDolbyCodecVersion_eDDP;
+        break;
+    case NEXUS_AudioDolbyCodecVersion_eAc3:
+        pEstData->dspUsage.DolbyCodecVersion = BDSP_AudioDolbyCodecVersion_eAC3;
+        break;
+    default:
+        pEstData->dspUsage.DolbyCodecVersion = BDSP_AudioDolbyCodecVersion_eMax;
+        break;
+    }
 
     BDBG_MODULE_MSG(nexus_audio_memest, ("DSP USAGE: numDecoders %d, numEncoders %d, numPassthrus %d, numMixers %d, numPostProcs %d, numEchoCancel %d, dolbyVer %d",
               pEstData->dspUsage.NumAudioDecoders,
@@ -2013,6 +2034,9 @@ static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void)
     {
         case BAPE_DolbyMSVersion_eMS12:
             dolbyCodecVersion = NEXUS_AudioDolbyCodecVersion_eMS12;
+            break;
+        case BAPE_DolbyMSVersion_eMS11Plus:
+            dolbyCodecVersion  = NEXUS_AudioDolbyCodecVersion_eMS11Plus;
             break;
         case BAPE_DolbyMSVersion_eMS11:
             dolbyCodecVersion = NEXUS_AudioDolbyCodecVersion_eMS11;

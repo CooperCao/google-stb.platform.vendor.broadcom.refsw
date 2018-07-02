@@ -900,12 +900,15 @@ typedef enum NEXUS_DecoderSpliceState
    given pts was reached.
    NEXUS_DecoderSpliceMode_eStartAtPts - monitors content for a pts and starts data flow after
    given pts was reached.
+   NEXUS_DecoderSpliceMode_eStopAtFirstPts - finds first suitable stop point and stops data flow.
+   Used for splicing out of live decode in the middle of the splice interval.
  */
 typedef enum NEXUS_DecoderSpliceMode
 {
-    NEXUS_DecoderSpliceMode_eDisabled,   /* Splicing is disabled */
-    NEXUS_DecoderSpliceMode_eStopAtPts,  /* Decoding will stop at a given pts */
-    NEXUS_DecoderSpliceMode_eStartAtPts, /* Decoding will start at a given pts */
+    NEXUS_DecoderSpliceMode_eDisabled,       /* Splicing is disabled */
+    NEXUS_DecoderSpliceMode_eStopAtPts,      /* Decoding will stop at a given pts */
+    NEXUS_DecoderSpliceMode_eStartAtPts,     /* Decoding will start at a given pts */
+    NEXUS_DecoderSpliceMode_eStopAtFirstPts, /* Decoding will stop immediately at first found pts */
     NEXUS_DecoderSpliceMode_eMax
 } NEXUS_DecoderSpliceMode;
 

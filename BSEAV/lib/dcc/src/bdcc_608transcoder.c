@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -139,6 +143,11 @@ typedef struct BDCC_608_TranscoderObject
 		int		WndId1 ; // one based
 	} RowInfo[15] ;
 #endif	
+	/* SWSTB-9657 */
+	unsigned short		CharCount;		/* char count */
+	int			CurWnd;			/* current Wnd */
+	BDCC_608_P_State	CurState;		/* current state, current check 4 only to narrow down range of the fix can apply */
+
 } BDCC_608_TranscoderObject;
 
 typedef enum
@@ -1110,8 +1119,10 @@ void BDCC_608_P_ProcessCtrlPAC(
 	BDCC_608_P_CmdSetItalics(h608Transcoder, wnd, 0) ;
 	BDCC_608_P_CmdSetAnchorRow(h608Transcoder, wnd, Row) ; /* column is 0 */
 	h608Transcoder->WndInfo[wnd].fRowAssigned = 1 ;
+/*RLQ, DCC_608_P_CmdSetAnchorRow set column to 0 already */
+#if 0
 	BDCC_608_P_CmdSetCol(h608Transcoder, wnd, 0) ;
-
+#endif
 	switch ( b2PAC )
 	{
 		case 0x00 :
@@ -1407,8 +1418,21 @@ void BDCC_608_P_CmdSendDefineWindow(
 		wnd, h608Transcoder->eState, StateDecisions[h608Transcoder->eState].WndRowCount[wnd],
 		StateDecisions[h608Transcoder->eState].WndVisible[wnd] && h608Transcoder->WndInfo[wnd].fRowAssigned)) ;
 	BDCC_608_P_CmdSetVisible(h608Transcoder, wnd, StateDecisions[h608Transcoder->eState].WndVisible[wnd] && h608Transcoder->WndInfo[wnd].fRowAssigned) ;
-	if ( StateDecisions[h608Transcoder->eState].WndRowCount[wnd] >= 0 )
+	if ( StateDecisions[h608Transcoder->eState].WndRowCount[wnd] >= 0 ) {
+		/* SWSTB-9657 */
+		if (wnd == h608Transcoder->CurWnd && h608Transcoder->eState == h608Transcoder->CurState ) {
+			/* currently limited to check state 4 only */
+			if (4 != h608Transcoder->CurState) {
+				h608Transcoder->CharCount = 0;
+			}
+		}
+		else {
+			h608Transcoder->CharCount = 0;
+		}
 		BDCC_608_P_CmdSetRowCount(h608Transcoder, wnd, StateDecisions[h608Transcoder->eState].WndRowCount[wnd]) ;
+		h608Transcoder->CurWnd = wnd;
+		h608Transcoder->CurState = h608Transcoder->eState;
+	}
 
 	 /*
 	  * then, send it
@@ -1705,7 +1729,11 @@ void BDCC_608_P_CmdSetAnchorRow(
 	int val)
 {
     int rowAdjust = StateDecisions[h608Transcoder->eState].WndRowCount[wnd];
+#if 0
 	BDBG_MSG(("608 Transcoder: setting ANCHOR row %d for wnd %d", (val*BDCC_P_CYGRID75)/BDCC_P_CY15, wnd));
+#endif
+	/* using real row value instead of Window Positioning Grad value */
+	BDBG_MSG(("608 Transcoder: setting ANCHOR row %d for wnd %d", val, wnd));
 
     /* anchor row is defined as bottom row of caption window in 608 captions but in 708 captions we cannot use the fifteenth row if defined
     ** in this way, so we redefine the window in terms of anchor row being top row of the caption window */
@@ -1720,6 +1748,20 @@ void BDCC_608_P_CmdSetCol(
 	int wnd, 
 	int val)
 {
+	BDBG_MSG(("BDCC_608_P_CmdSetCol: wnd=%d, col=%d, curWnd=%d, CharCount=%d, CurCol=%d", wnd, val, h608Transcoder->CurWnd, h608Transcoder->CharCount, h608Transcoder->Cmds[wnd].SetPenLocation[2] & 0x3F));
+	/* SWSTB-9657 */
+	if (wnd == h608Transcoder->CurWnd && h608Transcoder->eState == h608Transcoder->CurState) {
+		int curCol = (h608Transcoder->Cmds[wnd].SetPenLocation[2] & 0x3F);
+		if (val && ((curCol + h608Transcoder->CharCount) >= val)) {
+			/* 608 CC encoding issue, that causing missing chars issue due to pen location overlap repeatedly */
+			BDBG_WRN(("BDCC_608_P_CmdSetCol: encoding issue can cause CC overrite. col=%d <= accum chars %d + cur col=%d", val, h608Transcoder->CharCount, curCol));
+			val = curCol + h608Transcoder->CharCount + 1;
+			h608Transcoder->CharCount = 0;
+		}
+		/* can't exceed 32, it is another issue in xaa stream */
+		if (val >= 32)
+			val = 0;
+	}
 	BDCC_608_P_SetByteField(&h608Transcoder->Cmds[wnd].SetPenLocation[2], 0x3F, 0, (unsigned char)val) ;
 }
 
@@ -1780,7 +1822,10 @@ void BDCC_608_P_ProcessChar2(
 		/* parity error, convert to solid block */
 		b = 0x7F ;
 	}
-	
+
+	/* SWSTB-9657, check how many char accumlated to same wnd, same row */
+	h608Transcoder->CharCount++;
+
 	/*
 	 * First, translate those chars that don't 
 	 * map directly to 708
@@ -1851,6 +1896,7 @@ void BDCC_608_P_ProcessCharSpecial(
 			Cmd_Send_ShowWindows(h608Transcoder, (unsigned char)(1<<wnd)) ;
 	}
 #endif
+	BDBG_MSG(("ProcessChar_Special:  b2=%02X)\n", b2)) ;
 	if ( (b2 & 0xF0) == 0x30 )
 	{
 		b2 = SpecialChar[b2 & 0x0F] ;
@@ -1859,6 +1905,9 @@ void BDCC_608_P_ProcessCharSpecial(
 			unsigned char ext1 = 0x10 ;
 			BDCC_CBUF_WritePtr(h608Transcoder->pOutBuf, &ext1, 1) ;
 		}
+		/* SWSTB-9657, check how many char accumlated to same wnd, same row, including special chars */
+		h608Transcoder->CharCount++;
+
 		BDCC_CBUF_WritePtr(h608Transcoder->pOutBuf, &b2, 1) ;
 	}
 }
@@ -2056,6 +2105,11 @@ void BDCC_608_P_ProcessCtrlTab(
 	unsigned char b2)
 {
 	static unsigned char tsp[2] = {0x10,0x20} ;
+
+#if 0
+/* SWSTB-9657, xax has TOx which messed up pen location, so bypass TOx if they want, but not recommended  */
+return;
+#endif
 
 	switch ( b2 )
 	{

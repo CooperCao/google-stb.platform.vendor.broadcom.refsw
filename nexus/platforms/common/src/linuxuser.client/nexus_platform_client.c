@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -434,6 +434,9 @@ NEXUS_P_Client_CallServer(NEXUS_P_ClientModuleHandle module, const void *in_para
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
     if(rc<(int)sizeof(NEXUS_Ipc_Header)) {
+        if(rc==NEXUS_IPC_SERVER_ERROR_PKT_LEN) {
+            return NEXUS_UNKNOWN;
+        }
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
     /* BDBG_MSG_TRACE(("read %d", rc)); */

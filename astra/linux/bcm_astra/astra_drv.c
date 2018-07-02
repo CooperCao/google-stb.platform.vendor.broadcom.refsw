@@ -1058,6 +1058,7 @@ int _astra_status_get(struct astra_status *pStatus)
 
     /* fill in astra status */
     pStatus->up = tzStatus.up;
+    pStatus->secure = tzStatus.secure;
     return 0;
 }
 

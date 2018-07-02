@@ -56,7 +56,7 @@ BDBG_MODULE(BHSM);
 
 
 typedef struct BHSM_P_RvRsa{
-
+    BDBG_OBJECT(BHSM_P_RvRsa)
     BHSM_Handle hHsm;
     bool allocated;
     unsigned rsaKeyId;
@@ -69,6 +69,7 @@ typedef struct BHSM_RvRsaModule
 
 }BHSM_RvRsaModule;
 
+BDBG_OBJECT_ID(BHSM_P_RvRsa);
 
 static BHSM_Handle _RvRsa_GetHsmHandle( BHSM_RvRsaHandle handle );
 
@@ -116,6 +117,7 @@ BHSM_RvRsaHandle BHSM_RvRsa_Allocate( BHSM_Handle hHsm, const BHSM_RvRsaAllocate
     BDBG_ENTER( BHSM_RvRsa_Allocate );
 
     if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
+    BDBG_OBJECT_ASSERT(hHsm, BHSM_P_Handle);
     if( !pSettings ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
     if( !hHsm->modules.pRvRsa ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
@@ -158,6 +160,7 @@ BHSM_RvRsaHandle BHSM_RvRsa_Allocate( BHSM_Handle hHsm, const BHSM_RvRsaAllocate
     }
 
     BKNI_Memset( pRvRsa, 0, sizeof(*pRvRsa) );
+    BDBG_OBJECT_SET( pRvRsa, BHSM_P_RvRsa );
 
     pRvRsa->allocated = true;
     pRvRsa->hHsm = hHsm;
@@ -176,17 +179,19 @@ void BHSM_RvRsa_Free( BHSM_RvRsaHandle handle )
 
     BDBG_ENTER( BHSM_RvRsa_Free );
 
-    if( pRvRsa->allocated )
-    {
-        BKNI_Memset( &bspRsaClear, 0, sizeof(bspRsaClear) );
+    if( !pRvRsa ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
+    BDBG_OBJECT_ASSERT( pRvRsa, BHSM_P_RvRsa );
+    if( !pRvRsa->allocated ) {  BERR_TRACE( BERR_INVALID_PARAMETER ); return; }
 
-        bspRsaClear.in.rsaKeyId = pRvRsa->rsaKeyId;
+    BKNI_Memset( &bspRsaClear, 0, sizeof(bspRsaClear) );
+    bspRsaClear.in.rsaKeyId = pRvRsa->rsaKeyId;
 
-        rc = BHSM_P_Rv_RsaKeyClear( _RvRsa_GetHsmHandle(handle), &bspRsaClear );
-        if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); } /* continue, best effort. */
+    rc = BHSM_P_Rv_RsaKeyClear( _RvRsa_GetHsmHandle(handle), &bspRsaClear );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); } /* continue, best effort. */
 
-        BKNI_Memset( pRvRsa, 0, sizeof(*pRvRsa) );
-    }
+    BDBG_OBJECT_UNSET( pRvRsa, BHSM_P_RvRsa );
+
+    BKNI_Memset( pRvRsa, 0, sizeof(*pRvRsa) );
 
     BDBG_LEAVE( BHSM_RvRsa_Free );
 
@@ -203,6 +208,7 @@ BERR_Code BHSM_RvRsa_SetSettings( BHSM_RvRsaHandle handle, const BHSM_RvRsaSetti
     BDBG_ENTER( BHSM_RvRsa_SetSettings );
 
     if( !pRvRsa ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRvRsa, BHSM_P_RvRsa );
     if( !pSettings ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspRsaSet, 0, sizeof(bspRsaSet) );
@@ -242,6 +248,7 @@ BERR_Code BHSM_RvRsa_GetInfo( BHSM_RvRsaHandle handle, BHSM_RvRsaInfo *pRvRsaInf
     BDBG_ENTER( BHSM_RvRsa_GetInfo );
 
     if( !pRvRsa ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
+    BDBG_OBJECT_ASSERT( pRvRsa, BHSM_P_RvRsa );
     if( !pRvRsaInfo ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( pRvRsaInfo, 0, sizeof(*pRvRsaInfo) );

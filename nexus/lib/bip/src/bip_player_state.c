@@ -1351,6 +1351,7 @@ static BIP_PlayerProtocol mapSchemeToBipProtocol(
         BDBG_ERR(( BIP_MSG_PRE_FMT "Incorrect or not yet supported URL Scheme=%s" BIP_MSG_PRE_ARG, scheme));
         protocol = BIP_PlayerProtocol_eMax;
     }
+    BDBG_MSG((BIP_MSG_PRE_FMT "scheme=%s protocol=%d" BIP_MSG_PRE_ARG, scheme, protocol));
     return protocol;
 }
 
@@ -1565,6 +1566,24 @@ static void asyncApiCallbackFromDtcpIpClient(
     BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, (void *)hPlayer ));
 
 } /* asyncApiCallbackFromDtcpIpClient */
+
+#ifdef NEXUS_HAS_ASP
+static void asyncConnectCallbackFromBip(
+    void *pContext,
+    int param
+    )
+{
+    BIP_PlayerHandle    hPlayer = (BIP_PlayerHandle) pContext;
+
+    BSTD_UNUSED(param);
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, (void *)hPlayer ));
+    /* coverity[sleep: FALSE] */
+    processPlayerState( hPlayer, 0, BIP_Arb_ThreadOrigin_eTimer);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, (void *)hPlayer ));
+
+} /* asyncConnectCallbackFromBip */
+#endif
 
 static void processPlayerStateFromApiTimerCallback(
     void *pContext
@@ -2084,7 +2103,9 @@ static void stopApiTimer(
 static BIP_Status createHttpResponseObjectFromResponseHeaders(
     BIP_PlayerHandle        hPlayer,
     BIP_HttpResponseHandle  *phHttpResponse,
-    const char              *pResponseHeader
+    const char              *pResponseHeader,
+    unsigned                 responseLength,
+    unsigned                *pBytesConsumed
     )
 {
     BIP_HttpResponseHandle hHttpResponse = NULL;
@@ -2092,25 +2113,39 @@ static BIP_Status createHttpResponseObjectFromResponseHeaders(
     bool deserializeComplete;
     size_t  consumeSize=0;
 
-    hHttpResponse = BIP_HttpResponse_Create(hPlayer, NULL);
-    BIP_CHECK_GOTO(( hHttpResponse ), ( "BIP_HttpResponse_Create Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+    hHttpResponse = *phHttpResponse;
 
+    /* Create a new HttpResponse if there isn't already one. */
+    if (hHttpResponse == NULL)
+    {
+        hHttpResponse = BIP_HttpResponse_Create(hPlayer, NULL);
+        BIP_CHECK_GOTO(( hHttpResponse ), ( "BIP_HttpResponse_Create Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+        *phHttpResponse = hHttpResponse;    /* Give new handle back to caller. */
+    }
+
+    /* Parse the passed buffer. */
     brc = BIP_HttpResponse_DeserializeFromBuffer(
             hHttpResponse,
             pResponseHeader,
-            strlen(pResponseHeader),
+            responseLength,
             &deserializeComplete,
             &consumeSize
             );
     BIP_CHECK_GOTO(( brc == BIP_SUCCESS ), ( "BIP_HttpResponse_DeserializeFromBuffer Failed"), error, brc, brc );
 
-    if((deserializeComplete == false) || (consumeSize == 0))
+    /* If caller wants to know how many bytes were consumed, let them know. */
+    if (pBytesConsumed)
     {
-        brc = BIP_ERR_INTERNAL;
-        goto error;
+        *pBytesConsumed = consumeSize;
     }
-    *phHttpResponse = hHttpResponse;
 
+    /* If only a partial response (and we need more), return "IN_PROGRESS". */
+    if((deserializeComplete == false))
+    {
+        return (BIP_INF_IN_PROGRESS);
+    }
+
+    /* We've parsed the entire response, now print it if appropriate. */
     {
         bool printEnabled = false;
         /* The following two prints will set the printEnabled flag if the BDBG module is enabled. */
@@ -2123,12 +2158,8 @@ static BIP_Status createHttpResponseObjectFromResponseHeaders(
             BIP_CHECK_GOTO(( brc == BIP_SUCCESS ), ( "BIP_HttpResponse_Print Failed"), error, brc, brc );
         }
     }
-    return brc;
+
 error:
-    if(hHttpResponse)
-    {
-        BIP_HttpResponse_Destroy(hHttpResponse, hPlayer);
-    }
     return brc;
 }
 
@@ -2170,7 +2201,11 @@ static BIP_Status processConnectingState_locked(
         completionStatus = startApiTimer(hPlayer, hPlayer->connectSettings.timeoutInMs);
         BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "startApiTimer Failed"), error, completionStatus, completionStatus );
 
+        hPlayer->playerProtocol = mapSchemeToBipProtocol(hPlayer->hUrl->scheme);
+        BIP_CHECK_GOTO(( hPlayer->playerProtocol < BIP_PlayerProtocol_eMax), ( "Unsupported URL=%s", hPlayer->connectApi.pUrl), error, BIP_ERR_INVALID_PARAMETER, completionStatus );
+
         /* Use PBIP SessionOpen API to TCP Connect, Send Request, Recv Response from Server. */
+        if (!hPlayer->connectSettings.deferServerConnection)
         {
             hPlayer->pbipState.hPlaybackIp = B_PlaybackIp_Open(NULL);
             BIP_CHECK_GOTO(( hPlayer->pbipState.hPlaybackIp ), ( "B_PlaybackIp_Open Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, completionStatus );
@@ -2192,8 +2227,6 @@ static BIP_Status processConnectingState_locked(
                 BIP_String_Destroy(hUserInfoAndServer);
             }
 
-            hPlayer->playerProtocol = mapSchemeToBipProtocol(hPlayer->hUrl->scheme);
-            BIP_CHECK_GOTO(( hPlayer->playerProtocol < BIP_PlayerProtocol_eMax), ( "Unsupported URL=%s", hPlayer->connectApi.pUrl), error, BIP_ERR_INVALID_PARAMETER, completionStatus );
             hPlayer->pbipState.protocol = mapSchemeToPBipProtocol(hPlayer->hUrl->scheme);
             hPlayer->pbipState.ipSessionOpenSettings.socketOpenSettings.protocol = hPlayer->pbipState.protocol;
             if (hPlayer->playerProtocol == BIP_PlayerProtocol_eSimpleHttp || hPlayer->playerProtocol == BIP_PlayerProtocol_eRtsp)
@@ -2325,6 +2358,10 @@ static BIP_Status processConnectingState_locked(
             /* Change subState to indicate that we are now waiting for Server Response (which we will check below). */
             hPlayer->subState = BIP_PlayerSubState_eConnectingWaitForResponse;
         } /* PBIP SessionOpen call. */
+        else {
+            completionStatus = BIP_SUCCESS;
+            hPlayer->subState = BIP_PlayerSubState_eConnectingDone;
+        }
     } /* subState == eNewConnect */
 
     /*
@@ -2387,8 +2424,9 @@ static BIP_Status processConnectingState_locked(
                 completionStatus = createHttpResponseObjectFromResponseHeaders(
                                             hPlayer,
                                             &hPlayer->hHttpResponse,
-                                            hPlayer->pbipState.ipSessionOpenStatus.u.http.responseHeaders
-                                            );
+                                            hPlayer->pbipState.ipSessionOpenStatus.u.http.responseHeaders,
+                                            strlen(hPlayer->pbipState.ipSessionOpenStatus.u.http.responseHeaders),
+                                            NULL /*pBytesConsumed*/);
                 BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "createHttpResponseObjectFromResponseHeaders Failed"), error, completionStatus, completionStatus );
 
                 if ( hPlayer->connectSettings.phHttpResponse )
@@ -5508,7 +5546,14 @@ static BIP_Status processPreparingState_locked(
          * Then, we will call _ProbeForMediaInfo() here if app hasn't apriori done it or if PlayerSettings dont contain required AV info.
          */
         needMediaProbeInfo = false;
-        if (!pStreamInfo )
+        if ( hPlayer->mode == BIP_PlayerMode_eRecord && pPlayerSettings->playbackSettings.playpumpSettings.allPass )
+        {
+            BDBG_MSG((BIP_MSG_PRE_FMT "Skipping media probe for recording mode!" BIP_MSG_PRE_ARG));
+            needMediaProbeInfo = false;
+            hPlayer->mediaProbeComplete = true;
+            hPlayer->streamInfo.transportType = pPlayerSettings->playbackSettings.playpumpSettings.transportType;
+        }
+        else if (!pStreamInfo )
         {
             needMediaProbeInfo = true;
         }
@@ -5903,7 +5948,7 @@ static BIP_Status processPreparingState_locked(
             }
 
             /* Let PBIP know about using Playpump & Clock Recovery Modes. */
-            if (hPlayer->mode == BIP_PlayerMode_eRecord )
+            if (hPlayer->mode == BIP_PlayerMode_eRecord && hPlayer->pbipState.hPlaybackIp)
             {
                 B_Error rc;
 
@@ -6029,66 +6074,6 @@ error:
 } /* processPreparingState_locked */
 
 #ifdef NEXUS_HAS_ASP
-/* Temp code: use HttpSocket instead. This function creates a TCP connection to server and returns the socket descriptor */
-static int tcpConnect(char *pServer, char *pPort)
-{
-    int sd=-1, rc;
-    struct sockaddr_in localAddr;
-    struct addrinfo hints;
-    struct addrinfo *addrInfo = NULL;
-    struct addrinfo *addrInfoNode = NULL;
-
-    BDBG_WRN(("%s: Connecting to %s:%s ...", BSTD_FUNCTION, pServer, pPort));
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    rc = getaddrinfo(pServer, pPort, &hints, &addrInfo);
-    BDBG_ASSERT(rc == 0);
-
-    for (addrInfoNode = addrInfo; addrInfoNode != NULL; addrInfoNode = addrInfo->ai_next)
-    {
-        if (addrInfoNode->ai_family == AF_INET)
-            break;
-    }
-    if (!addrInfoNode) {
-        BDBG_ERR(("%s: ERROR: no IPv4 address available for server ip:port=%s:%s", BSTD_FUNCTION, pServer, pPort));
-        return -1;
-    }
-    addrInfo = addrInfoNode;
-
-    sd = socket(AF_INET, SOCK_STREAM, 0);
-    BDBG_ASSERT(sd>0);
-
-    localAddr.sin_family = AF_INET;
-    localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    localAddr.sin_port = htons(0);
-
-    rc = bind(sd, (struct sockaddr *)&localAddr, sizeof(localAddr));
-    BDBG_ASSERT(rc == 0);
-
-    do
-    {
-        rc = connect(sd, addrInfo->ai_addr, addrInfo->ai_addrlen);
-        if (rc != 0)
-        {
-            perror("connect error: ");
-            BDBG_WRN(("connect returned errno=%d", errno));
-            continue;
-        }
-        else
-        {
-            break;
-        }
-    }
-    while (1);
-    BDBG_ASSERT(rc == 0);
-
-    BDBG_WRN(("%s: Connected to %s:%s ...", BSTD_FUNCTION, pServer, pPort));
-    return sd;
-}
-
 static void aspLibCallbackViaArbTimer(
     void *appCtx,
     int   param
@@ -6238,7 +6223,7 @@ static BIP_Status createAspChannelAndSendHttpRequest(
                             hPlayer->hUrl->query ? hPlayer->hUrl->query:"",
                             hPlayer->hUrl->fragment ? hPlayer->hUrl->fragment:""
                 );
-        BDBG_WRN(("httpReq=\n%s", (char *)httpReqBuf));
+        BDBG_MSG(("httpReq=\n%s", (char *)httpReqBuf));
 
         /* Provide this buffer to ASP so that it can send it out on the network. */
         nrc = B_AspInput_SendHttpRequest(hPlayer->hAspInput, httpReqBuf, strlen(httpReqBuf));
@@ -6262,24 +6247,25 @@ static BIP_Status checkForHttpResponse(
     NEXUS_Error nrc;
     const void *pHttpRespBuf = NULL;
     unsigned    httpRespDataLength = 0;
+    unsigned    consumedBytes = 0;
 
     /* Check if ASP has received any data from network. */
     nrc = B_AspInput_GetHttpResponseData(hPlayer->hAspInput, &pHttpRespBuf, &httpRespDataLength);
     if (nrc == NEXUS_SUCCESS && httpRespDataLength && pHttpRespBuf)
     {
-        /* TODO: HTTP Response is available, parse it & check if full Response has been read. */
-        /* Otherwise, save the partial response into the buffer. */
-        /* TODO: feed this to the HTTP Response class. */
-        BDBG_WRN(("ResponseLength=%u response=%s", httpRespDataLength, (char *)pHttpRespBuf));
-
-        if (strcasestr(pHttpRespBuf, "200 ok") == NULL)
+        nrc = createHttpResponseObjectFromResponseHeaders(hPlayer, &hPlayer->hHttpResponse, pHttpRespBuf, httpRespDataLength, &consumedBytes);
+        if (nrc == BIP_INF_IN_PROGRESS)
         {
-            BDBG_ERR(("Failed to get valid HTTP Response!"));
+            /* Let ASP know that we have consumed the whole buffer. */
+            B_AspInput_HttpResponseDataConsumed(hPlayer->hAspInput, false /*responseCompleted*/, httpRespDataLength );
+        }
+        else
+        {
+            /* Let ASP know how much of the buffer belonged to the response. */
+            B_AspInput_HttpResponseDataConsumed(hPlayer->hAspInput, true /*responseCompleted*/,  consumedBytes );
         }
 
-        /* Let ASP know that we have consumed either whole or some part of this buffer. */
-        B_AspInput_HttpResponseDataConsumed(hPlayer->hAspInput, true, httpRespDataLength );
-        return BIP_SUCCESS;
+        return nrc;
     }
     else
     {
@@ -6369,18 +6355,41 @@ static BIP_Status processStartingState_locked(
         {
             B_Error brc;
 
-            brc = B_PlaybackIp_Close(hPlayer->pbipState.hPlaybackIp);
-            BDBG_ASSERT(brc == B_ERROR_SUCCESS);
+            if (hPlayer->pbipState.hPlaybackIp)
+            {
+                brc = B_PlaybackIp_Close(hPlayer->pbipState.hPlaybackIp);
+                BDBG_ASSERT(brc == B_ERROR_SUCCESS);
+            }
+
             hPlayer->pbipState.hPlaybackIp = NULL;
 
-            hPlayer->socketFd = tcpConnect(hPlayer->hUrl->host, hPlayer->hUrl->port);
-            BDBG_ASSERT(hPlayer->socketFd);
+            /* Create socket */
+            {
+                BIP_SocketCreateSettings settings;
 
-            completionStatus = createAspChannelAndSendHttpRequest(hPlayer);
-            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "createAspChannelAndSendHttpRequest Failed"), error, completionStatus, completionStatus );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ASP Channel is successfully created!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                BIP_Socket_GetDefaultCreateSettings(&settings);
+                settings.type = BIP_SocketType_eTcp;
+                hPlayer->hSocket = BIP_Socket_Create( &settings );
+                BIP_CHECK_GOTO(( hPlayer->hSocket != NULL ), ( "BIP_Socket_Create() Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, completionStatus );
+            }
 
-            hPlayer->subState = BIP_PlayerSubState_eStartingWaitForHttpResponse;
+            /* Connect to server. */
+            {
+                BIP_SocketConnectSettings  settings;
+
+                BIP_Socket_GetDefaultConnectSettings( &settings );
+
+                settings.input.pIpAddress = hPlayer->hUrl->host;
+                settings.input.pPort = hPlayer->hUrl->port;
+                settings.api.timeout = -1;
+                hPlayer->connectCompletionStatus = BIP_INF_IN_PROGRESS;
+                settings.api.pAsyncStatus = &hPlayer->connectCompletionStatus;
+                settings.api.asyncCallback.callback = asyncConnectCallbackFromBip;
+                settings.api.asyncCallback.context  = hPlayer;
+                completionStatus = BIP_Socket_Connect( hPlayer->hSocket, &settings );
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: BIP_Socket_Connect status=%s!" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_StatusGetText(completionStatus) ));
+                hPlayer->subState = BIP_PlayerSubState_eStartingWaitForConnectCompletion;
+            }
         }
         else
 #endif
@@ -6467,6 +6476,43 @@ static BIP_Status processStartingState_locked(
     } /* if (hPlayer->subState == BIP_PlayerSubState_eStartingNew) */
 
 #ifdef NEXUS_HAS_ASP
+    if ( hPlayer->subState == BIP_PlayerSubState_eStartingWaitForConnectCompletion)
+    {
+        completionStatus = hPlayer->connectCompletionStatus;
+        if (completionStatus == BIP_INF_IN_PROGRESS)
+        {
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: waiting for async comletion of BIP_Socket_Connect()" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+        }
+        else if (completionStatus == BIP_SUCCESS)
+        {
+            /* Get socket info. */
+            {
+                BIP_SocketStatus  status;
+
+                completionStatus = BIP_Socket_GetStatus( hPlayer->hSocket, &status );
+                BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "BIP_Socket_GetStatus() failed with status=%s", BIP_StatusGetText(completionStatus) ), error, completionStatus, completionStatus );
+                hPlayer->socketFd = status.socketFd;
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: BIP_Socket_Connect() completed, socketFd=%d!" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->socketFd));
+            }
+
+            completionStatus = createAspChannelAndSendHttpRequest(hPlayer);
+            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "createAspChannelAndSendHttpRequest Failed"), error, completionStatus, completionStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ASP Channel is successfully created!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+
+            hPlayer->subState = BIP_PlayerSubState_eStartingWaitForHttpResponse;
+
+            /* If we have an existing HttpResponse, clear it so we can repopulate it from then next incoming response. */
+            if (hPlayer->hHttpResponse)
+            {
+                BIP_HttpResponse_Clear(hPlayer->hHttpResponse, NULL/*pSettings*/);
+            }
+        }
+        else
+        {
+            BDBG_ERR((BIP_MSG_PRE_FMT "hPlayer=%p: async completion of BIP_Socket_Connect() returned status=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_StatusGetText(completionStatus) ));
+        }
+    }
+
     if ( hPlayer->subState == BIP_PlayerSubState_eStartingWaitForHttpResponse )
     {
         completionStatus = checkForHttpResponse(hPlayer);
@@ -6589,13 +6635,12 @@ error:
             {
                 hPlayer->subState = BIP_PlayerSubState_eStartedPlayingNormal;
                 hPlayer->state = BIP_PlayerState_eStarted;
+                hPlayer->reRunState = true;     /* Re-run the state machine in case we've already reached end of stream. */
             }
             hPlayer->startSettings = *hPlayer->startApi.pSettings;
 
             /* Reset any state. */
-            hPlayer->reachedEndOfStream = false;
             hPlayer->reachedBeginningOfStream = false;
-            hPlayer->receivedNetworkError = false;
             hPlayer->seekCompleted = false;
 
             BIP_MSG_SUM(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Success: live=%s stcMode=%s playback=%s playpump=%s transport=%s security=%s startPaused=%s trick=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),

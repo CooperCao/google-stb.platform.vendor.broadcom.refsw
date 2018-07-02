@@ -1,42 +1,47 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
+#include "nexus_frontend_qam_helper_priv.h"
 #include "nexus_spi.h"
 #include "priv/nexus_spi_priv.h"
 #include "nexus_i2c.h"
@@ -979,10 +984,32 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneOob(void *handle, const NEXUS_Front
     NEXUS_3158Channel *pChannel;
     NEXUS_FrontendDeviceHandle hFrontendDevice = NULL;
 
+    BDBG_CASSERT((int) BAOB_ModulationType_eDvs167Qpsk ==  (int) NEXUS_FrontendOutOfBandMode_eAnnexAQpsk);
+    BDBG_CASSERT((int) BAOB_ModulationType_eDvs178Qpsk == (int) NEXUS_FrontendOutOfBandMode_eDvs178Qpsk);
+    BDBG_CASSERT((int) BAOB_ModulationType_ePod_Dvs167Qpsk == (int) NEXUS_FrontendOutOfBandMode_ePod_AnnexAQpsk);
+    BDBG_CASSERT((int) BAOB_ModulationType_ePod_Dvs178Qpsk ==  (int) NEXUS_FrontendOutOfBandMode_ePod_Dvs178Qpsk);
+    BDBG_CASSERT((int) BAOB_ModulationType_eLast == (int) NEXUS_FrontendOutOfBandMode_eMax);
+    BDBG_CASSERT((int) BAOB_ModulationType_eLast == (int) NEXUS_FrontendOutOfBandMode_eMax);
+
+    BDBG_CASSERT((int) BAOB_SpectrumMode_eAuto == (int) NEXUS_FrontendOutOfBandSpectrum_eAuto);
+    BDBG_CASSERT((int) BAOB_SpectrumMode_eNoInverted == (int) NEXUS_FrontendOutOfBandSpectrum_eNonInverted);
+    BDBG_CASSERT((int) BAOB_SpectrumMode_eInverted == (int) NEXUS_FrontendOutOfBandSpectrum_eInverted);
+    BDBG_CASSERT((int) BAOB_SpectrumMode_eLast == (int) NEXUS_FrontendOutOfBandSpectrum_eMax);
+
+    BDBG_CASSERT((int) BAOB_BerInputSrc_eRcvIChOutput == (int) NEXUS_FrontendOutOfBandBertSource_eIChOutput);
+    BDBG_CASSERT((int) BAOB_BerInputSrc_eRcvQChOutput == (int) NEXUS_FrontendOutOfBandBertSource_eQChOutput);
+    BDBG_CASSERT((int) BAOB_BerInputSrc_eRcvIQChOutputIntrlv == (int) NEXUS_FrontendOutOfBandBertSource_eIQChOutputInterleave);
+    BDBG_CASSERT((int) BAOB_BerInputSrc_eFecOutput == (int) NEXUS_FrontendOutOfBandBertSource_eFecOutput);
+    BDBG_CASSERT((int) BAOB_BerInputSrc_eLast == (int) NEXUS_FrontendOutOfBandBertSource_eMax);
+
+    BDBG_CASSERT((int) BAOB_BertPolynomial_e23 == (int) NEXUS_FrontendOutOfBandBertPolynomial_e23);
+    BDBG_CASSERT((int) BAOB_BertPolynomial_e15 == (int) NEXUS_FrontendOutOfBandBertPolynomial_e15);
+    BDBG_CASSERT((int) BAOB_BertPolynomial_eLast == (int) NEXUS_FrontendOutOfBandBertPolynomial_eMax);
+
     BDBG_ASSERT(NULL != handle);
     pChannel = (NEXUS_3158Channel *)handle;
     pDevice = (NEXUS_3158Device *)pChannel->pDevice;
-    BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
+    BDBG_ASSERT(pChannel->chn_num == pDevice->oobChannelNumber);
 #if 0 /* TODO: may not be applicable to 3158 */
     if(pDevice->deviceSettings.outOfBand.outputMode == NEXUS_FrontendOutOfBandOutputMode_eMax){
         BDBG_ERR(("Out of band output mode set to %d is not supported. Use NEXUS_FrontendDevice_Set3158Settings() to set the right settings.", pDevice->deviceSettings.outOfBand.outputMode));
@@ -1042,24 +1069,24 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneOob(void *handle, const NEXUS_Front
 
     obParams.frequency = pSettings->frequency;
     obParams.autoAcquire = pSettings->autoAcquire;
-    obParams.modType = (BAOB_ModulationType)pSettings->mode ;
+    obParams.modType = (BAOB_ModulationType) pSettings->mode;
     obParams.symbolRate = pSettings->symbolRate;
-    obParams.berSrc = pSettings->bertSource;
-    obParams.spectrum = pSettings->spectrum;
-    obParams.bertPolynomial = pSettings->bert.polynomial;
+    obParams.berSrc = (BAOB_BerInputSrc) pSettings->bertSource;
+    obParams.spectrum = (BAOB_SpectrumMode) pSettings->spectrum;
+    obParams.bertPolynomial = (BAOB_BertPolynomial) pSettings->bert.polynomial;
 
-	/*if support MPOD, we need the output mode to be set to satisfy the card*/
+    /*if support MPOD, we need the output mode to be set to satisfy the card*/
 #if defined(NEXUS_HAS_MPOD)
-	{
-		BAOB_ConfigSettings ConfigSettings;
-		rc = BAOB_GetConfigSettings(pDevice->aob, &ConfigSettings);
-		if(rc){rc = BERR_TRACE(rc); goto done;}
-		ConfigSettings.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
-		printf("\n ===set aob handle output mode to NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder===\n");
-		rc = BAOB_SetConfigSettings(pDevice->aob, &ConfigSettings);
-		if(rc){rc = BERR_TRACE(rc); goto done;}
-		pDevice->deviceSettings.cable.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
-	}
+    {
+        BAOB_ConfigSettings ConfigSettings;
+        rc = BAOB_GetConfigSettings(pDevice->aob, &ConfigSettings);
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+        ConfigSettings.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
+        printf("\n ===set aob handle output mode to NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder===\n");
+        rc = BAOB_SetConfigSettings(pDevice->aob, &ConfigSettings);
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+        pDevice->deviceSettings.cable.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
+    }
 #endif
 
     rc = BAOB_SetAcquireParams(pDevice->aob, &obParams);
@@ -1085,7 +1112,7 @@ static void NEXUS_Frontend_P_3158_UnTuneOob(void *handle)
     pChannel = (NEXUS_3158Channel *)handle;
     pDevice = (NEXUS_3158Device *)pChannel->pDevice;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
-    BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
+    BDBG_ASSERT(pChannel->chn_num == pDevice->oobChannelNumber);
 
     if (pDevice->frontendHandle[pChannel->chn_num]) {
         NEXUS_Frontend_P_UnsetMtsifConfig(pDevice->frontendHandle[pChannel->chn_num]);
@@ -1113,7 +1140,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_RequestOobAsyncStatus(void *handle)
     pChannel = (NEXUS_3158Channel *)handle;
     pDevice = (NEXUS_3158Device *)pChannel->pDevice;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
-    BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
+    BDBG_ASSERT(pChannel->chn_num == pDevice->oobChannelNumber);
 
     rc = BAOB_RequestAsyncStatus(pDevice->aob);
     if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -1138,7 +1165,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetOobAsyncStatus(void *handle, NEXUS_F
     pChannel = (NEXUS_3158Channel *)handle;
     pDevice = (NEXUS_3158Device *)pChannel->pDevice;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
-    BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
+    BDBG_ASSERT(pChannel->chn_num == pDevice->oobChannelNumber);
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
@@ -1156,7 +1183,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetOobAsyncStatus(void *handle, NEXUS_F
     pStatus->carrierPhaseOffset = st.carrierPhaseOffset;
     pStatus->correctedCount = st.correctedCount;
     pStatus->uncorrectedCount = st.uncorrectedCount;
-    pStatus->mode = (NEXUS_FrontendOutOfBandMode)st.modType;
+    pStatus->mode = st.modType;
     pStatus->symbolRate = st.symbolRate;
     pStatus->ifFreq = 0;/* Not required on 3158*/
     pStatus->loFreq = 0;/* Not required on 3158*/
@@ -1213,7 +1240,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetOobStatus(void *handle, NEXUS_Fronte
     pChannel = (NEXUS_3158Channel *)handle;
     pDevice = (NEXUS_3158Device *)pChannel->pDevice;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
-    BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
+    BDBG_ASSERT(pChannel->chn_num == pDevice->oobChannelNumber);
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
@@ -1251,7 +1278,7 @@ static void NEXUS_Frontend_P_3158_ResetOobStatus(void *handle)
     pChannel = (NEXUS_3158Channel *)handle;
     pDevice = (NEXUS_3158Device *)pChannel->pDevice;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
-    BDBG_ASSERT(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL);
+    BDBG_ASSERT(pChannel->chn_num == pDevice->oobChannelNumber);
 
     if(pDevice->isPoweredOn[pChannel->chn_num]) {
         rc = BAOB_ResetStatus(pDevice->aob);
@@ -1394,14 +1421,8 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetFastStatus(void *handle, NEXUS_Front
 
     pStatus->lockStatus = NEXUS_FrontendLockStatus_eUnknown;
 
-    if(pChannel->chn_num < NEXUS_3158_MAX_DOWNSTREAM_CHANNELS){
-        rc = BADS_GetLockStatus(p3158Device->ads_chn[pChannel->chn_num],  &eLock);
-        if(rc){rc = BERR_TRACE(rc); goto done;}
-        pStatus->lockStatus = NEXUS_Frontend_P_GetAdsLockStatus(eLock);
-        BSTD_UNUSED(hFrontendDevice);
-    }
 #if NEXUS_FRONTEND_315x_OOB
-    else if(pChannel->chn_num == NEXUS_3158_OOB_CHANNEL){
+    if(pChannel->chn_num == p3158Device->oobChannelNumber){
             if(p3158Device->aobPresent){
                 rc = BAOB_GetLockStatus(p3158Device->aob,  &bLock);
                 if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -1410,8 +1431,14 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetFastStatus(void *handle, NEXUS_Front
             else{
                 BDBG_WRN(("Out of band is Unsupported on 0x%x chip.", p3158Device->chipId));
             }
-    }
+    } else
 #endif
+    if(pChannel->chn_num < NEXUS_3158_MAX_DOWNSTREAM_CHANNELS){
+        rc = BADS_GetLockStatus(p3158Device->ads_chn[pChannel->chn_num],  &eLock);
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+        pStatus->lockStatus = NEXUS_Frontend_P_GetAdsLockStatus(eLock);
+        BSTD_UNUSED(hFrontendDevice);
+    }
     pStatus->acquireInProgress = p3158Device->acquireInProgress[pChannel->chn_num];
     return BERR_SUCCESS;
 done:
@@ -1663,16 +1690,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetQamScanStatus(void *handle, NEXUS_Fr
     pScanStatus->frequencyOffset = st.carrierFreqOffset;
     pScanStatus->interleaver = st.interleaver;
     pScanStatus->acquisitionStatus = st.acquisitionStatus;
-    if(st.modType < BADS_ModulationType_eAnnexBQam16) {
-        pScanStatus->annex = NEXUS_FrontendQamAnnex_eA;
-        pScanStatus->mode = st.modType;
-    }
-    else if(st.modType < BADS_ModulationType_eAnnexCQam16) {
-        pScanStatus->annex = NEXUS_FrontendQamAnnex_eB;
-        pScanStatus->mode = st.modType - BADS_ModulationType_eAnnexBQam16;
-    }
-    else
-        BDBG_ERR(("Unsupported Annex."));
+    NEXUS_Frontend_P_QamToModulationType(st.modType, &pScanStatus->annex,  &pScanStatus->mode);
     return BERR_SUCCESS;
 done:
     return rc;
@@ -2292,10 +2310,10 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PostInitAp(NEXUS_FrontendDeviceHandle de
         rc = BAOB_Open(&pDevice->aob, NULL, NULL, NULL, &aob_cfg);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-        rc = BAOB_InstallCallback(pDevice->aob, BAOB_Callback_eLockChange, (BAOB_CallbackFunc)NEXUS_Frontend_P_3158_callback_isr, (void*)&pDevice->frontendHandle[NEXUS_3158_OOB_CHANNEL]);
+        rc = BAOB_InstallCallback(pDevice->aob, BAOB_Callback_eLockChange, (BAOB_CallbackFunc)NEXUS_Frontend_P_3158_callback_isr, (void*)&pDevice->frontendHandle[pDevice->oobChannelNumber]);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-        rc = BAOB_InstallCallback(pDevice->aob, BAOB_Callback_eAsyncStatusReady, (BAOB_CallbackFunc)NEXUS_Frontend_P_3158_AsyncStatusCallback_isr, (void*)&pDevice->frontendHandle[NEXUS_3158_OOB_CHANNEL]);
+        rc = BAOB_InstallCallback(pDevice->aob, BAOB_Callback_eAsyncStatusReady, (BAOB_CallbackFunc)NEXUS_Frontend_P_3158_AsyncStatusCallback_isr, (void*)&pDevice->frontendHandle[pDevice->oobChannelNumber]);
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
     else{
@@ -2816,6 +2834,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
 
         p3158Device->spectrumDataAppCallback[channelNumber] = spectrumDataCallback;
         p3158Device->asyncStatusAppCallback[channelNumber] = qamAsyncStatusReadyCallback;
+        frontendHandle->mtsif.inputBand = pSettings->channelNumber;
     }
     else if(type == NEXUS_FrontendChannelType_eCableOutOfBand)
     {
@@ -2824,7 +2843,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
         if ( NULL == oobAsyncStatusReadyCallback ) { BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
 
         p3158Device->asyncStatusAppCallback[channelNumber] = oobAsyncStatusReadyCallback;
-        channelNumber = NEXUS_3158_OOB_CHANNEL;
+        frontendHandle->mtsif.inputBand = NEXUS_3158_OOB_CHANNEL;
     }
 
     frontendHandle->pGenericDeviceHandle = pFrontendDevice;
@@ -2841,9 +2860,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
     frontendHandle->chip.familyId = 0x3158;
     frontendHandle->chip.id = 0x3158;
 #endif
-
     frontendHandle->userParameters.isMtsif = true;
-    frontendHandle->mtsif.inputBand = pSettings->channelNumber;
 
     return frontendHandle;
 

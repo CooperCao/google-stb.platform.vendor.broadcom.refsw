@@ -496,6 +496,31 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
         }
     }
 
+    /* detect and report any mismatches of secure cdb settings */
+    if ( pSettings->cdbHeap != NULL )
+    {
+        NEXUS_HeapRuntimeSettings heapRTSettings;
+        bool deviceIsSecureCapable = false;
+
+        NEXUS_Heap_GetRuntimeSettings_priv(pSettings->cdbHeap, &heapRTSettings);
+
+        if ( BAPE_DEVICE_ARM_VALID(decoderOpenSettings.dspIndex) && g_NEXUS_audioModuleData.capabilities.dsp.softAudioSecureDecode )
+        {
+            deviceIsSecureCapable = true;
+        }
+        else if ( BAPE_DEVICE_DSP_VALID(decoderOpenSettings.dspIndex) && g_NEXUS_audioModuleData.capabilities.dsp.dspSecureDecode )
+        {
+            deviceIsSecureCapable = true;
+        }
+
+        if ( heapRTSettings.secure && !deviceIsSecureCapable )
+        {
+            BDBG_ERR(("Secure heap requested, but decoder device is not a secure client"));
+            BERR_TRACE(BERR_INVALID_PARAMETER);
+            goto err_channel;
+        }
+    }
+
     decoderOpenSettings.ancillaryDataFifoSize = pSettings->ancillaryDataFifoSize;
     decoderOpenSettings.karaokeSupported = pSettings->karaokeSupported;
     decoderOpenSettings.multichannelFormat = pSettings->multichannelFormat==NEXUS_AudioMultichannelFormat_e7_1 ? BAPE_MultichannelFormat_e7_1 : BAPE_MultichannelFormat_e5_1;
@@ -601,7 +626,6 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     raveSettings.spliceEnabled = pSettings->spliceEnabled;
 
     LOCK_TRANSPORT();
-    raveSettings.heap = pSettings->cdbHeap;
     handle->raveContext = NEXUS_Rave_Open_priv(&raveSettings);
     UNLOCK_TRANSPORT();
     if ( NULL == handle->raveContext )
@@ -4342,6 +4366,8 @@ static void NEXUS_AudioDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
             handle->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStartPts;
         }else if (handle->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtPts) {
             handle->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
+        }else if (handle->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtFirstPts) {
+            handle->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
         }
         handle->spliceStatus.pts = pts;
         NEXUS_IsrCallback_Fire_isr(handle->spliceCallback);
@@ -4349,6 +4375,8 @@ static void NEXUS_AudioDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
     return;
 }
 
+#define SPLICE_PTS_ANY 0x1
+#define SPLICE_PTS_THRESHOLD_ANY 0xfffffffe
 
 NEXUS_Error NEXUS_AudioDecoder_SetSpliceSettings(
     NEXUS_AudioDecoderHandle handle,
@@ -4405,6 +4433,32 @@ NEXUS_Error NEXUS_AudioDecoder_SetSpliceSettings(
         handle->spliceSettings = *pSettings;
         NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
         handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
+        break;
+    }
+    case NEXUS_DecoderSpliceMode_eStopAtFirstPts: {
+        /* Check that we decoding live stream */
+        NEXUS_AudioDecoderStartSettings * pProgram =  &handle->programSettings;
+        if (NULL == pProgram->stcChannel) {
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            break;
+        } else {
+            NEXUS_StcChannelSettings stcSettings;
+            NEXUS_StcChannel_GetSettings(pProgram->stcChannel, &stcSettings);
+            if (stcSettings.mode != NEXUS_StcChannelMode_ePcr) {
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                break;
+            }
+        }
+        raveSpliceSettings.context = (void *) handle;
+        raveSpliceSettings.splicePoint = NEXUS_AudioDecoder_P_SplicePoint_isr;
+        raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStopLive;
+        rc = NEXUS_Rave_SetSplicePoint_priv(handle->raveContext,&raveSpliceSettings);
+        if (rc) return BERR_TRACE(rc);
+        handle->spliceSettings = *pSettings;
+        handle->spliceSettings.pts = SPLICE_PTS_ANY;
+        handle->spliceSettings.ptsThreshold = SPLICE_PTS_THRESHOLD_ANY;
+        NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
+        handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         break;
     }
     default:

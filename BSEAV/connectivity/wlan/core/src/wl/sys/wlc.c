@@ -714,6 +714,10 @@ enum wlc_iov {
 	IOV_PKTALLOCED = 120,
 	IOV_INTF_ENABLE_BRIDGE = 121,
 	IOV_RX_PROB_REQ = 122,
+#ifdef WLATM_PERC
+	IOV_ATM_STAPERC = 123, /* AirTime percentage per STA */
+	IOV_ATM_BSSPERC = 124, /* AirTime percentage per BSS */
+#endif /* WLATM_PERC */
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -1141,6 +1145,14 @@ static const bcm_iovar_t wlc_iovars[] = {
 	{"drv_rx_prob_req", IOV_RX_PROB_REQ,
 	0, 0, IOVT_BOOL, 0
 	},
+#ifdef WLATM_PERC
+	{"atm_staperc", IOV_ATM_STAPERC,
+	(0), 0, IOVT_BUFFER, sizeof(wl_atm_staperc_t)
+	},
+	{"atm_bssperc", IOV_ATM_BSSPERC,
+	(0), 0, IOVT_UINT8, 0
+	},
+#endif /* WLATM_PERC */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -1427,6 +1439,10 @@ static int wlc_hc_rx_set(void *ctx, const uint8 *buf, uint16 type, uint16 len);
 static int wlc_hc_rx_get(wlc_info_t *wlc, wlc_if_t *wlcif,
         bcm_xtlv_t *params, void *out, uint o_len);
 #endif /* HC_RX_HANDLER */
+
+#ifdef WLATM_PERC
+static uint8 wlc_atm_cal_weight(wlc_info_t *wlc, uint8 perc, uint8 perc_sum, uint8 perc_max, uint8 auto_num);
+#endif /* WLATM_PERC */
 
 /* This includes the auto generated ROM IOCTL/IOVAR patch handler C source file (if auto patching is
  * enabled). It must be included after the prototypes and declarations above (since the generated
@@ -8505,6 +8521,41 @@ wlc_connect_time_upd(wlc_info_t *wlc)
 #endif /* WL_PWRSTATS */
 #endif /* STA */
 
+#ifdef WLATM_PERC
+uint8
+wlc_atm_cal_weight(wlc_info_t *wlc, uint8 perc, uint8 perc_sum, uint8 perc_max, uint8 auto_num)
+{
+	uint8 weight = 0;
+
+	if (perc_sum > 100) {
+		WL_ERROR(("wl%d: WARN: ATF percentage sum > 100, will keep the ratio to set the weight to each sta/bss.\n",
+			wlc->pub->unit));
+	}
+
+	if (perc_sum == 0) { /* No one has a specified percentage. */
+		weight = 100;
+	} else {
+		if (perc == 0) { /* This sta/bss is set to auto but one(or more) sta/bss has a specified percentage. */
+			if (perc_sum >= 100) {
+				weight = 1;
+			} else {
+				if (!auto_num)
+					weight = 100;
+				else
+					weight = (100 - perc_sum)/auto_num;
+			}
+		} else { /* This sta/bss has a specified percentage. */
+			if (!perc_max)
+				weight = 100;
+			else
+				weight = (100*perc)/perc_max;
+		}
+	}
+
+	return weight;
+}
+#endif /* WLATM_PERC */
+
 /** common watchdog code */
 void
 wlc_watchdog(void *arg)
@@ -8607,6 +8658,58 @@ wlc_watchdog(void *arg)
 	}
 #endif
 
+#ifdef WLATM_PERC
+	if (wlc->atm_perc) {
+		uint8 staperc, staperc_sum, sta_num, sta_auto;
+		uint8 bssperc, bssperc_sum, bss_num, bss_auto;
+		uint8 staperc_max, bssperc_max;
+		struct scb_iter scbiter;
+		struct scb *scb;
+
+		bssperc_sum = bss_num = bss_auto = 0;
+		bssperc_max = 0;
+		FOREACH_UP_AP(wlc, i, cfg) {
+			bssperc_sum += cfg->bss_perc;
+			if (!cfg->bss_perc)
+				bss_auto++;
+			else {
+				if (cfg->bss_perc > bssperc_max)
+					bssperc_max = cfg->bss_perc;
+				bss_num++;
+			}
+		}
+
+		FOREACH_UP_AP(wlc, i, cfg) {
+			staperc_sum = sta_num = sta_auto = 0;
+			staperc_max = 0;
+			FOREACH_BSS_SCB(wlc->scbstate, &scbiter, cfg, scb) {
+				if (!SCB_INTERNAL(scb) &&
+					SCB_ASSOCIATED(scb) &&
+					SCB_AUTHENTICATED(scb)) {
+					staperc_sum += scb->scb_perc;
+					if (!scb->scb_perc)
+						sta_auto++;
+					else {
+						if (scb->scb_perc > staperc_max)
+							staperc_max = scb->scb_perc;
+						sta_num++;
+					}
+				}
+			}
+
+			FOREACH_BSS_SCB(wlc->scbstate, &scbiter, cfg, scb) {
+				staperc = wlc_atm_cal_weight(wlc,
+						(uint8)scb->scb_perc, staperc_sum, staperc_max, sta_auto);
+				bssperc = wlc_atm_cal_weight(wlc,
+						scb->bsscfg->bss_perc, bssperc_sum, bssperc_max, bss_auto);
+				scb->airtime_weight = (staperc * bssperc) / 100;
+				if (!scb->airtime_weight)
+					scb->airtime_weight = 1;
+
+			}
+		}
+	}
+#endif /* WLATM_PERC */
 #if defined(WLATF_DONGLE)
 	if (ATFD_ENAB(wlc)) {
 		struct scb *scb;
@@ -12627,15 +12730,106 @@ wlc_doiovar(void *hdl, uint32 actionid,
 				}
 			}
 #endif /* WLATF_DONGLE */
-		if (err == BCME_OK) {
-			wlc_ampdu_atf_set_default_mode(wlc->ampdu_tx,
-					wlc->scbstate, (uint32)int_val);
-			wlc->atf = int_val;
+			if (err == BCME_OK) {
+				wlc_ampdu_atf_set_default_mode(wlc->ampdu_tx,
+						wlc->scbstate, (uint32)int_val);
+				wlc->atf = int_val;
+#ifdef WLATM_PERC
+				wlc->atm_perc = (int_val == WLC_AIRTIME_PERC) ? TRUE : FALSE;
+#endif /* WLATM_PERC */
 			}
 		}
 		break;
 
 #endif /* WLATF */
+#ifdef WLATM_PERC
+	case IOV_GVAL(IOV_ATM_STAPERC):
+	{
+		wl_atm_staperc_t *staperc;
+		struct scb *scb;
+
+		if (len < sizeof(wl_atm_staperc_t))
+			return BCME_BUFTOOSHORT;
+
+		staperc = (wl_atm_staperc_t *)arg;
+
+		memcpy(staperc, params, sizeof(wl_atm_staperc_t));
+
+		if (&staperc->ea == NULL)
+			return BCME_BADARG;
+
+		scb = wlc_scbfind(wlc, bsscfg, &staperc->ea);
+		if (!scb) {
+			WL_ERROR(("wl%d: %s: ERROR: NULL scb arg\n",
+				wlc->pub->unit, __FUNCTION__));
+			return BCME_BADARG;
+		}
+		staperc->perc = (uint8)scb->scb_perc;
+		break;
+	}
+
+	case IOV_SVAL(IOV_ATM_STAPERC):
+	{
+		wl_atm_staperc_t *staperc;
+		struct scb *scb;
+		struct scb_iter scbiter;
+		uint8 perc_sum = 0;
+
+		staperc = (wl_atm_staperc_t *)params;
+
+		if (&staperc->ea == NULL)
+			return BCME_BADARG;
+
+		FOREACH_BSS_SCB(wlc->scbstate, &scbiter, bsscfg, scb) {
+			perc_sum += scb->scb_perc;
+		}
+
+		scb = wlc_scbfind(wlc, bsscfg, &staperc->ea);
+		if (!scb) {
+			WL_ERROR(("wl%d: ERROR: NULL scb arg\n",
+				wlc->pub->unit));
+			return BCME_BADARG;
+		}
+
+		/* Check if new allocation to cause over 100 */
+		if ((perc_sum - scb->scb_perc + staperc->perc) > 100) {
+			WL_ERROR(("wl%d: ERROR: percentage of sum(%2d%%)"
+				" + new STA perc(%2d%%) > 100!\n",
+				wlc->pub->unit, perc_sum, staperc->perc));
+			return BCME_BADARG;
+		}
+		scb->scb_perc = (uint32)staperc->perc;
+		break;
+	}
+
+	case IOV_GVAL(IOV_ATM_BSSPERC):
+	{
+		*ret_int_ptr = (int32)bsscfg->bss_perc;
+		break;
+	}
+
+	case IOV_SVAL(IOV_ATM_BSSPERC):
+	{
+		wlc_bsscfg_t *cfg;
+		int i;
+		uint8 perc_sum = 0;
+
+		FOREACH_UP_AP(wlc, i, cfg) {
+			perc_sum += cfg->bss_perc;
+		}
+
+		if ((perc_sum - bsscfg->bss_perc+ int_val) > 100) {
+			WL_ERROR(("wl%d.%d: ERROR: percentage of sum(%2d%%)"
+				" + new BSS perc(%2d%%) > 100!\n",
+				wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg),
+				perc_sum, int_val));
+			return BCME_BADARG;
+		}
+
+		bsscfg->bss_perc = (uint8)int_val;
+		break;
+	}
+#endif /* WLATM_PERC */
 	/* Chanspecs with current driver settings */
 	case IOV_GVAL(IOV_CHANSPECS_DEFSET): {
 		char abbrev[1] = ""; /* No country abbrev should be take as input. */

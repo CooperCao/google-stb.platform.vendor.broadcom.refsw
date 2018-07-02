@@ -1,0 +1,604 @@
+<!--
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>BMON Plugin Monitor</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--Bootstrap cdn -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+    <!-- charts.js cdn -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-md navbar-dark" style="background-color:#563d7c;">
+        <a class="navbar-brand" href="index.html">
+            <img src="img/320px-Broadcom_Ltd_Logo.svg.png" title="Broadcom Logo">
+        </a>
+        <span class="navbar-text font-weight-bold">
+            BMON PLUGIN MONITOR
+        </span>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <br>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId0" placeholder="">
+                            <input type="text" name="uri0" id="uriId0" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId0" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId0">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId0" class="collapse">
+                        <div class="card-body ">
+                            <p id="pluginDataId0">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId0').on('hide.bs.collapse', function () {
+                                stopDataCollection(0);
+                                $('#uriShowHideButtonId0').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId0').on('show.bs.collapse', function () {
+                                startDataCollection(0);
+                                $('#uriShowHideButtonId0').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId1" placeholder="">
+                            <input type="text" name="uri1" id="uriId1" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId1" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId1">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId1" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId1">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId1').on('hide.bs.collapse', function () {
+                                stopDataCollection(1);
+                                $('#uriShowHideButtonId1').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId1').on('show.bs.collapse', function () {
+                                startDataCollection(1);
+                                $('#uriShowHideButtonId1').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId2" placeholder="">
+                            <input type="text" name="uri2" id="uriId2" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId2" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId2">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId2" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId2">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId2').on('hide.bs.collapse', function () {
+                                stopDataCollection(2);
+                                $('#uriShowHideButtonId2').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId2').on('show.bs.collapse', function () {
+                                startDataCollection(2);
+                                $('#uriShowHideButtonId2').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+        </div>
+        <br>
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId3" placeholder="">
+                            <input type="text" name="uri3" id="uriId3" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId3" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId3">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId3" class="collapse">
+                        <div class="card-body">
+
+                            <p id="pluginDataId3">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId3').on('hide.bs.collapse', function () {
+                                stopDataCollection(3);
+                                $('#uriShowHideButtonId3').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId3').on('show.bs.collapse', function () {
+                                startDataCollection(3);
+                                $('#uriShowHideButtonId3').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId4" placeholder="">
+                            <input type="text" name="uri4" id="uriId4" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId4" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId4">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId4" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId4">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId4').on('hide.bs.collapse', function () {
+                                stopDataCollection(4);
+                                $('#uriShowHideButtonId4').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId4').on('show.bs.collapse', function () {
+                                startDataCollection(4);
+                                $('#uriShowHideButtonId4').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId5" placeholder="">
+                            <input type="text" name="uri5" id="uriId5" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId5" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId5">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId5" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId5">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId5').on('hide.bs.collapse', function () {
+                                stopDataCollection(5);
+                                $('#uriShowHideButtonId5').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId5').on('show.bs.collapse', function () {
+                                startDataCollection(5);
+                                $('#uriShowHideButtonId5').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+        </div>
+        <br>
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId6" placeholder="">
+                            <input type="text" name="uri6" id="uriId6" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId6" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId6">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId6" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId6">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId6').on('hide.bs.collapse', function () {
+                                stopDataCollection(6);
+                                $('#uriShowHideButtonId6').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId6').on('show.bs.collapse', function () {
+                                startDataCollection(6);
+                                $('#uriShowHideButtonId6').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId7" placeholder="">
+                            <input type="text" name="uri7" id="uriId7" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId7" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId7">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId7" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId7">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId7').on('hide.bs.collapse', function () {
+                                stopDataCollection(7);
+                                $('#uriShowHideButtonId7').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId7').on('show.bs.collapse', function () {
+                                startDataCollection(7);
+                                $('#uriShowHideButtonId7').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="input-group mb-3">
+                            <input type="text" size="4" id="pullRateId8" placeholder="">
+                            <input type="text" name="uri8" id="uriId8" class="form-control" placeholder="" aria-label="" aria-describedby="basic-addon2">
+                            <div class="input-group-append">
+                                <button id="uriShowHideButtonId8" type="button" class="btn btn-light" data-toggle="collapse" data-target="#uriCardId8">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="uriCardId8" class="collapse">
+                        <div class="card-body">
+                            <p id="pluginDataId8">Data place holder </p>
+                        </div>
+                    </div>
+                    <script>
+                        $(function () {
+                            $('#uriCardId8').on('hide.bs.collapse', function () {
+                                stopDataCollection(8);
+                                $('#uriShowHideButtonId8').html(
+                                    '<span class="glyphicon glyphicon-collapse-down"></span> +');
+                            })
+                            $('#uriCardId8').on('show.bs.collapse', function () {
+                                startDataCollection(8);
+                                $('#uriShowHideButtonId8').html(
+                                    '<span class="glyphicon glyphicon-collapse-up"></span> -');
+                            })
+                        })
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        /* rest server implementation */
+        var g_resources = [{
+                uri: "power",
+                pullRateMSec: 0,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "hdmi_output",
+                pullRateMSec: 0,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "wifi",
+                pullRateMSec: 0,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "cpu",
+                pullRateMSec: 2000,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "video_decoder",
+                pullRateMSec: 2000,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "specA",
+                pullRateMSec: 2000,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "interrupt",
+                pullRateMSec: 2000,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "network",
+                pullRateMSec: 2000,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            },
+            {
+                uri: "platform",
+                pullRateMSec: 2000,
+                xmlHttp: null,
+                timeOutId: null,
+                visible: false,
+                dataHandler: function (index) {
+                    commonDataHandler(index);
+                },
+                timeoutHandler: function (index) {
+                    commonTimeOutHandler(index);
+                }
+            }
+        ];
+
+        function commonDataHandler(index) {
+            httpRequest = g_resources[index].xmlHttp;
+            var responseText = httpRequest.responseText;
+            if (!responseText)
+                return;
+            var myObj = JSON.parse(responseText);
+            var myJSON = JSON.stringify(myObj, null, 3);
+            document.getElementById("pluginDataId" + index).innerHTML = '<pre >' + myJSON +
+                '</pre>';
+        }
+
+        function commonTimeOutHandler(index) {
+            document.getElementById("pluginDataId" + index).innerHTML = '<pre style=\"color:white\">' +
+                "Connection Timeout: Rest server failed to respond to the request" +
+                '</pre>';
+        }
+
+        function sendRestRequest(index) {
+            if (g_resources[index].timeOutId) {
+                clearTimeout(g_resources[index].timeOutId);
+                g_resources[index].timeOutId = null;
+            }
+            if (g_resources[index].xmlHttp) {
+                g_resources[index].xmlHttp.abort();
+                g_resources[index].xmlHttp = null;
+            }
+            if (!g_resources[index].visible) {
+                return;
+            }
+            g_resources[index].xmlHttp = new XMLHttpRequest();
+            g_resources[index].xmlHttp.onreadystatechange = function () {
+                if (this.status == 200 && this.readyState == 4) {
+                    var responseText = this.responseText;
+                    if (!responseText)
+                        return;
+                    g_resources[index].dataHandler(index);
+                }
+            };
+            g_resources[index].xmlHttp.timeout = 5000;
+            g_resources[index].xmlHttp.ontimeout = function () {
+                g_resources[index].timeoutHandler(index);
+            };
+            var request = "http://" + location.host + ":8888";
+            request += '/' + g_resources[index].uri;
+            g_resources[index].xmlHttp.open("GET", request, true);
+            ScheduleNextRequest(index, g_resources[index].pullRateMSec);
+            g_resources[index].xmlHttp.send(null);
+        }
+
+        function startDataCollection(index) {
+            g_resources[index].visible = true;
+            g_resources[index].uri = document.getElementById("uriId" + index).value;
+            g_resources[index].pullRateMSec = document.getElementById("pullRateId" + index).value * 1000;
+            sendRestRequest(index);
+        }
+
+        function stopDataCollection(index) {
+            g_resources[index].visible = false;
+            document.getElementById("pluginDataId" + index).innerHTML = null;
+            if (g_resources[index].timeOutId) {
+                clearTimeout(g_resources[index].timeOutId);
+                g_resources[index].timeOutId = null;
+            }
+            if (g_resources[index].xmlHttp) {
+                g_resources[index].xmlHttp.abort();
+                g_resources[index].xmlHttp = null;
+            }
+        }
+
+        function ScheduleNextRequest(index, delay) {
+
+            if (g_resources[index].timeOutId) {
+                clearTimeout(g_resources[index].timeOutId);
+                g_resources[index].timeOutId = null;
+            }
+            if (delay) {
+                g_resources[index].timeOutId = setTimeout(function () {
+                    sendRestRequest(index);
+                }, delay);
+            }
+        }
+
+        window.onload = function () {
+            var i;
+            text = localStorage.getItem("plugin-monitor.cfg");
+            obj = JSON.parse(text);
+            if (obj) {
+                for (i = 0; i < obj.length; i++) {
+                    document.getElementById("uriId" + i).value = obj[i].uri;
+                    document.getElementById("pullRateId" + i).value = obj[i].pullRateMSec / 1000;
+                }
+            } else {
+                for (i = 0; i < g_resources.length; i++) {
+                    document.getElementById("uriId" + i).value = g_resources[i].uri;
+                    document.getElementById("pullRateId" + i).value = g_resources[i].pullRateMSec / 1000;
+                }
+            }
+        }
+
+        window.onunload = function () {
+            myJSON = JSON.stringify(g_resources);
+            localStorage.setItem("plugin-monitor.cfg", myJSON);
+        }
+    </script>
+</body>
+
+</html>

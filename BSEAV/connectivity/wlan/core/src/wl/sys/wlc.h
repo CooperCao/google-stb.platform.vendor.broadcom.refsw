@@ -1765,6 +1765,9 @@ struct wlc_info {
 	bool mac_pay_decode_war;
 	wlc_sup_info_t	*gtkref;		/**< gtk refresh module */
 	uint8 *ssidbuf;    /* buf for ssid format to avoid coverity issue */
+#ifdef WLATM_PERC
+	bool atm_perc; /* ATM percentage is enabled or not */
+#endif /* WLATM_PERC */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG

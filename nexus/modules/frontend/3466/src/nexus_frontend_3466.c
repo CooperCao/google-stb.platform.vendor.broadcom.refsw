@@ -767,6 +767,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open3466(unsigned index, const
     pFrontendDevice->pDevice = pDevice;
     pFrontendDevice->getCapabilities = NEXUS_FrontendDevice_P_3466_GetCapabilities;
     pFrontendDevice->getTunerCapabilities = NEXUS_FrontendDevice_P_3466_GetTunerCapabilities;
+    pFrontendDevice->bypassableFixedGain = pSettings->externalFixedGain.bypassable;
+    pFrontendDevice->totalFixedBoardGain = pSettings->externalFixedGain.total;
     pFrontendDevice->getInternalGain = NEXUS_FrontendDevice_P_3466_GetInternalGain;
     pFrontendDevice->getExternalGain = NEXUS_FrontendDevice_P_3466_GetExternalGain;
     pFrontendDevice->setExternalGain = NEXUS_FrontendDevice_P_3466_SetExternalGain;

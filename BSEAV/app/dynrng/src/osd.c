@@ -450,6 +450,7 @@ void osd_toggle_visibility(OsdHandle osd)
 void osd_set_visibility(OsdHandle osd, bool visible)
 {
     assert(osd);
+    printf("osd: %s main\n", visible ? "showing" : "hiding");
     pthread_mutex_lock(&osd->lock);
     BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->main, visible);
     pthread_mutex_unlock(&osd->lock);
@@ -458,6 +459,7 @@ void osd_set_visibility(OsdHandle osd, bool visible)
 void osd_set_info_visibility(OsdHandle osd, bool visible)
 {
     assert(osd);
+    if (!osd->current) return;
     printf("osd: %s info\n", visible ? "showing" : "hiding");
     pthread_mutex_lock(&osd->lock);
     BWT_Widget_SetVisibility((BWT_WidgetHandle)osd->current->base, visible);

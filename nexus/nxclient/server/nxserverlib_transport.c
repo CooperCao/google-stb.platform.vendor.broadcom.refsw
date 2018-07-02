@@ -41,6 +41,7 @@
  ******************************************************************************/
 #include "nxserverlib_impl.h"
 #if NEXUS_HAS_TRANSPORT
+#include "nexus_timebase.h"
 #if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder.h"
 #endif
@@ -62,6 +63,7 @@ NEXUS_Error stc_pool_init(nxserver_t server)
 #endif
 #if NEXUS_HAS_AUDIO
     NEXUS_AudioCapabilities audioCaps;
+    unsigned audioNumStc=0;
 #endif
     struct b_stc * pStc, * prev = NULL;
     unsigned i;
@@ -71,13 +73,16 @@ NEXUS_Error stc_pool_init(nxserver_t server)
 #endif
 #if NEXUS_HAS_AUDIO
     NEXUS_GetAudioCapabilities(&audioCaps);
+    audioNumStc = audioCaps.numStcs;
 #endif
     NEXUS_GetTransportCapabilities(&xptCaps);
 
     /* nxclient assumes timebase0 is reserved for display and audio. */
     nxserver_p_reserve_timebase(NEXUS_Timebase_e0);
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_AUDIO
     BDBG_MSG(("numStc: xpt=%d, vid=%d, aud=%d",
-        xptCaps.numStcs, videoCaps.numStcs, audioCaps.numStcs));
+        xptCaps.numStcs, videoCaps.numStcs, audioNumStc));
+#endif
 
     for (i = 0; i < xptCaps.numStcs; i++)
     {

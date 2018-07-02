@@ -1,0 +1,40 @@
+#!/bin/sh
+source bp3flash.sh "--"
+
+ps ax | grep nxserver > /dev/null 2>&1
+prxy=$?
+
+target=$1;
+shift
+
+if [ "$target" = "provision" ]; then
+  bp3_find bp30
+  if [ "$?" = "0" ]; then
+    mount | grep /mnt/bp30 | grep rw > /dev/null 2>&1
+    if [ "$?" != "0" ]; then
+      mount -o remount $part /mnt/bp30
+    fi
+    if [ "$prxy" = "0" ]; then
+      ./nexus.client bp3 ${target} "$@"
+    else
+      ./nexus bp3 ${target} "$@"
+    fi
+    excode=$?
+    if [ "$excode" = "0" ]; then
+      bp3_find bp31
+      mount $part /mnt/bp31
+      bp3_backup bp3.bin
+      if [ "$?" = "1" ]; then
+        cp bp3.bin /mnt/bp31
+      fi
+      bp3_remount
+    fi
+    exit $excode
+  fi
+fi
+
+if [ "$prxy" = "0" ]; then
+  ./nexus.client bp3 ${target} "$@"
+else
+  ./nexus bp3 ${target} "$@"
+fi

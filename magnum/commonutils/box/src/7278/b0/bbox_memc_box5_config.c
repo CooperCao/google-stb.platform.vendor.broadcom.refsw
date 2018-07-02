@@ -34,12 +34,11 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  ******************************************************************************
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Tue May 15 23:22:49 2018 GMT
+ *   at: Mon Jun 18 17:20:38 2018 GMT
  *   by: fm945799
  *   for: Box 7278B0_box5_box_mid_performance_sm
  *         MemC 0 (32-bit LPDDR4@1867MHz) w/486MHz clock
@@ -70,7 +69,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20180515232249_7278B0_box5_box_mid_performance_sm[] = {
+static const uint32_t aulMemc0_20180618172038_7278B0_box5_box_mid_performance_sm[] = {
            0x80edc028,  /*   0: XPT_WR_TUNER_RS RR 7833.33333333333ns */
            0x80721013,  /*   1: XPT_WR_CARD_RS RR 3760ns */
            0x804bb03c,  /*   2: XPT_WR_CDB RR 2497.56097560976ns */
@@ -179,10 +178,10 @@ static const uint32_t aulMemc0_20180515232249_7278B0_box5_box_mid_performance_sm
            0x3ffff0ff,  /* 105: UNASSIGNED off */
            0x0095d01b,  /* 106: BVNF_MFD0_0 4938ns */
            0x001dd000,  /* 107: BVNF_MFD0_1 987ns */
-           0x0095d01c,  /* 108: BVNF_MFD1_0 4938ns */
-           0x0063d00d,  /* 109: BVNF_MFD1_1 3292ns */
-           0x3ffff01d,  /* 110: BVNF_MFD2_0 off */
-           0x3ffff001,  /* 111: BVNF_MFD2_1 off */
+           0x3ffff01c,  /* 108: BVNF_MFD1_0 off */
+           0x3ffff001,  /* 109: BVNF_MFD1_1 off */
+           0x0095d01d,  /* 110: BVNF_MFD2_0 4938ns */
+           0x0063d00d,  /* 111: BVNF_MFD2_1 3292ns */
            0x3ffff01e,  /* 112: BVNF_MFD3_0 off */
            0x3ffff00e,  /* 113: BVNF_MFD3_1 off */
            0x3ffff0ff,  /* 114: UNASSIGNED off */
@@ -328,7 +327,7 @@ static const uint32_t aulMemc0_20180515232249_7278B0_box5_box_mid_performance_sm
            0xbffff0ff,  /* 254: MEMC_DRAM_INIT_ZQCS RR */
            0x003b2004   /* 255: REFRESH 1952ns */
          };
-static const uint32_t aulMemc1_20180515232249_7278B0_box5_box_mid_performance_sm[] = {
+static const uint32_t aulMemc1_20180618172038_7278B0_box5_box_mid_performance_sm[] = {
            0x3ffff028,  /*   0: XPT_WR_TUNER_RS off */
            0x3ffff013,  /*   1: XPT_WR_CARD_RS off */
            0x3ffff03c,  /*   2: XPT_WR_CDB off */
@@ -437,10 +436,10 @@ static const uint32_t aulMemc1_20180515232249_7278B0_box5_box_mid_performance_sm
            0x3ffff0ff,  /* 105: UNASSIGNED off */
            0x3ffff01b,  /* 106: BVNF_MFD0_0 off */
            0x3ffff000,  /* 107: BVNF_MFD0_1 off */
-           0x3ffff01c,  /* 108: BVNF_MFD1_0 off */
-           0x3ffff00d,  /* 109: BVNF_MFD1_1 off */
-           0x0095d01d,  /* 110: BVNF_MFD2_0 4938ns */
-           0x001dd001,  /* 111: BVNF_MFD2_1 987ns */
+           0x0095d01c,  /* 108: BVNF_MFD1_0 4938ns */
+           0x001dd001,  /* 109: BVNF_MFD1_1 987ns */
+           0x3ffff01d,  /* 110: BVNF_MFD2_0 off */
+           0x3ffff00d,  /* 111: BVNF_MFD2_1 off */
            0x0095d01e,  /* 112: BVNF_MFD3_0 4938ns */
            0x0063d00e,  /* 113: BVNF_MFD3_1 3292ns */
            0x3ffff0ff,  /* 114: UNASSIGNED off */
@@ -587,7 +586,8 @@ static const uint32_t aulMemc1_20180515232249_7278B0_box5_box_mid_performance_sm
            0x003b2004   /* 255: REFRESH 1952ns */
          };
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180515232249_7278B0_box5_box_mid_performance_sm[] = {
+
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180618172038_7278B0_box5_box_mid_performance_sm[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80750f06}, /* HVD0_PFRI (gHVC0) 236400.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x400002ce}, /* d: 4; p: 718.0625 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001740}, /* 5952 */
@@ -602,15 +602,15 @@ static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20180515232249_7278B0_box5_
   {BCHP_MEMC_GEN_1_PFRI_2_THROTTLE_THRESH1,     0x00000141}  /* 60% * 536 */
 };
 
-static const uint32_t* const paulMemc_box5[] = { &aulMemc0_20180515232249_7278B0_box5_box_mid_performance_sm[0], &aulMemc1_20180515232249_7278B0_box5_box_mid_performance_sm[0]};
+static const uint32_t* const paulMemc_box5[] = { &aulMemc0_20180618172038_7278B0_box5_box_mid_performance_sm[0], &aulMemc1_20180618172038_7278B0_box5_box_mid_performance_sm[0]};
 
 const BBOX_Rts stBoxRts_7278B0_box5_box_mid_performance_sm_box5 = {
-  "20180515232249_7278B0_box5_box_mid_performance_sm_box5",
+  "20180618172038_7278B0_box5_box_mid_performance_sm_box5",
   7278,
   5,
   2,
   256,
   (const uint32_t**)&paulMemc_box5[0],
   12,
-  stBoxRts_PfriClient_20180515232249_7278B0_box5_box_mid_performance_sm
+  stBoxRts_PfriClient_20180618172038_7278B0_box5_box_mid_performance_sm
 };

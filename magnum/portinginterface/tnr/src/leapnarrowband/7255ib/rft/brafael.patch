@@ -1,6 +1,6 @@
-diff -Naur Original/R642_API_v1.2J8_Multi/I2C_Sys.c R642_API_v1.2J8_Multi/I2C_Sys.c
---- Original/R642_API_v1.2J8_Multi/I2C_Sys.c	2018-05-31 14:46:42.856250000 -0700
-+++ R642_API_v1.2J8_Multi/I2C_Sys.c	2018-06-01 15:21:39.911000100 -0700
+diff -Naur R642_API_v1.2J8_Multi/I2C_Sys.c Patched/I2C_Sys.c
+--- R642_API_v1.2J8_Multi/I2C_Sys.c	2018-05-31 14:46:42.000000000 -0700
++++ Patched/I2C_Sys.c	2018-06-18 14:30:55.005964483 -0700
 @@ -1,149 +1,134 @@
 -#include "I2C_Sys.h"
 -
@@ -286,9 +286,9 @@ diff -Naur Original/R642_API_v1.2J8_Multi/I2C_Sys.c R642_API_v1.2J8_Multi/I2C_Sy
 +
 +    return ReturnNum;
 +}
-diff -Naur Original/R642_API_v1.2J8_Multi/i2c_sys.h R642_API_v1.2J8_Multi/i2c_sys.h
---- Original/R642_API_v1.2J8_Multi/i2c_sys.h	2018-05-31 14:46:40.840625000 -0700
-+++ R642_API_v1.2J8_Multi/i2c_sys.h	2018-06-01 14:50:56.292147300 -0700
+diff -Naur R642_API_v1.2J8_Multi/i2c_sys.h Patched/i2c_sys.h
+--- R642_API_v1.2J8_Multi/i2c_sys.h	2018-05-31 14:46:40.000000000 -0700
++++ Patched/i2c_sys.h	2018-06-18 14:30:55.001964483 -0700
 @@ -1,48 +1,43 @@
 -#ifndef _I2C_SYS_H_
 -#define _I2C_SYS_H_
@@ -382,9 +382,9 @@ diff -Naur Original/R642_API_v1.2J8_Multi/i2c_sys.h R642_API_v1.2J8_Multi/i2c_sy
 +int R642_Convert(int InvertNum);
 +
 +#endif
-diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.c R642_API_v1.2J8_Multi/Tuner/R642.c
---- Original/R642_API_v1.2J8_Multi/Tuner/R642.c	2018-05-31 14:50:50.606250000 -0700
-+++ R642_API_v1.2J8_Multi/Tuner/R642.c	2018-06-04 15:23:25.596134506 -0700
+diff -Naur R642_API_v1.2J8_Multi/Tuner/R642.c Patched/Tuner/R642.c
+--- R642_API_v1.2J8_Multi/Tuner/R642.c	2018-05-31 14:50:50.000000000 -0700
++++ Patched/Tuner/R642.c	2018-06-18 15:34:18.874678568 -0700
 @@ -9,24 +9,20 @@
  
  
@@ -590,6 +590,24 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.c R642_API_v1.2J8_Multi/Tun
  	if(Rev_Mode==R642_IMR_NOR)
  	{
  		//Must do MUX before PLL() 
+@@ -3763,7 +3699,7 @@
+ 	}
+ 	else if(R642_Xtal == 27000)
+ 	{
+-		u2XalDivJudge = (UINT16) ((LO_Freq+R642_IF_GOLOBAL)/1000/13.5);
++		u2XalDivJudge = (UINT16) ((LO_Freq+R642_IF_GOLOBAL)/10000/135);
+ 		//  48, 120 ,264 ,288, 336
+ 		if((u2XalDivJudge==4)||(u2XalDivJudge==10)||(u2XalDivJudge==22)||(u2XalDivJudge==24)||(u2XalDivJudge==28))
+ 		{
+@@ -3869,7 +3805,7 @@
+ 			else if(R642_Xtal==16000)
+ 			   u2XalDivJudge = (UINT16) ((LO_Freq + R642_IF_GOLOBAL)/1000/8);
+ 			else if(R642_Xtal==27000)
+-			   u2XalDivJudge = (UINT16) ((LO_Freq + R642_IF_GOLOBAL)/1000/13.5);
++			   u2XalDivJudge = (UINT16) ((LO_Freq + R642_IF_GOLOBAL)/10000/135);
+ 			else
+ 			   return RT_Fail;
+ 
 @@ -4284,9 +4220,9 @@
  		
  	//PntReg is reg to change; FlucPot is change value
@@ -968,10 +986,10 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.c R642_API_v1.2J8_Multi/Tun
  }
  
  
-diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tuner/R642.h
---- Original/R642_API_v1.2J8_Multi/Tuner/R642.h	2018-05-31 14:43:23.996875000 -0700
-+++ R642_API_v1.2J8_Multi/Tuner/R642.h	2018-06-04 13:53:33.096580015 -0700
-@@ -1,6 +1,9 @@
+diff -Naur R642_API_v1.2J8_Multi/Tuner/R642.h Patched/Tuner/R642.h
+--- R642_API_v1.2J8_Multi/Tuner/R642.h	2018-05-31 14:43:23.000000000 -0700
++++ Patched/Tuner/R642.h	2018-06-18 15:08:06.174010456 -0700
+@@ -1,22 +1,24 @@
 -//#include "..\stdafx.h"
  #ifndef  _R642_H_ 
  #define _R642_H_
@@ -982,7 +1000,29 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  #define DEBUG_MODE  FALSE
  
  //20180522 v1.2J5 rfrssi_offset_by_freq modify around 275~315MHz
-@@ -30,9 +33,6 @@
+ //20180531 v1.2J8 rfrssi_offset_by_freq modify all freq by broadcom
+-#define VERSION   "R642_GUI_v1.2J8"
+ #define VER_NUM   0
+ #define CHIP_ID       0x98
+ //----------------------------------------------------------//
+ //                   Type Define                                    //
+ //----------------------------------------------------------//
+-#define UINT8  unsigned char	//0 ~ 255
+-#define UINT16 unsigned short	//0 ~ 65535
+-#define UINT32 unsigned long	//0 ~ 4,294,967,295	
+-#define INT8    signed char
+-#define INT16  signed short
+-#define INT32 signed int		//!V2147483648 ~ 2147483647
++typedef unsigned char UINT8; //0 ~ 255
++typedef unsigned short UINT16; //0 ~ 65535
++typedef unsigned int UINT32; //0 ~ 4,294,967,295
++typedef signed char INT8;
++typedef signed short INT16;
++typedef signed int INT32; //0 ~ 4,294,967,295
+ 
+ #define TRUE   1
+ #define FALSE  0
+@@ -30,9 +32,6 @@
  #define R642_SHARE_XTAL_MASTER    FALSE     //share Xtal, R642 is Master device, xtal_gm = normal (R32[4:3]=2'b11), xtal pw = highest
  #define R642_SHARE_XTAL_SLAVE    FALSE     //share Xtal, R642 is Slave device, xtal_gm = off (R32[4:3]=2'b11), xtal pw = lowest, xtal cap = 0
  
@@ -992,7 +1032,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  //===========RSSI Type============//
  //If use ISDB-T standard, please set 0, and set 1 for other standard.
  //If use external LNA circuit, please set 2.
-@@ -61,7 +61,7 @@
+@@ -61,7 +60,7 @@
  	UINT16		   FILT_COMP;
  	UINT16		   IF_KHz;            
  	UINT16		   FILT_CAL_IF;  
@@ -1001,7 +1041,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef struct _R642_Freq_Info_Type
  {
-@@ -75,7 +75,7 @@
+@@ -75,7 +74,7 @@
  	UINT8		IMR_MEM_NOR;
  	UINT8		IMR_MEM_REV;
  	UINT8       TEMP;    
@@ -1010,7 +1050,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef struct _R642_SysFreq_Info_Type
  {
-@@ -127,7 +127,7 @@
+@@ -127,7 +126,7 @@
  	UINT8	   NATG_OFFSET;
  
  	UINT8      TEMP;
@@ -1019,7 +1059,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef struct _R642_Cal_Info_Type
  {
-@@ -138,7 +138,7 @@
+@@ -138,7 +137,7 @@
  	UINT8		LNA_POWER;
  	UINT8		RFBUF_POWER;
  	UINT8		RFBUF_OUT;
@@ -1028,7 +1068,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef struct _R642_SectType
  {
-@@ -146,13 +146,13 @@
+@@ -146,13 +145,13 @@
  	UINT8   Gain_X;
  	UINT8   Iqcap;
  	UINT8   Value;
@@ -1045,7 +1085,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef enum _R642_Cal_Type
  {
-@@ -160,7 +160,7 @@
+@@ -160,7 +159,7 @@
  	R642_IMR_LNA_CAL,
  	R642_LPF_CAL,
  	R642_LPF_LNA_CAL
@@ -1054,7 +1094,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef enum _R642_BW_Type
  {
-@@ -170,13 +170,13 @@
+@@ -170,13 +169,13 @@
  	BW_1_7M,
  	BW_10M,
  	BW_200K
@@ -1072,7 +1112,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  enum XTAL_PWR_VALUE
  {
-@@ -191,7 +191,7 @@
+@@ -191,7 +190,7 @@
  {
  	R642_MP = 0,
  	R642_MT1
@@ -1081,7 +1121,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  
  
-@@ -203,16 +203,16 @@
+@@ -203,16 +202,16 @@
  {
  	RT_Success = TRUE,
  	RT_Fail = FALSE
@@ -1101,7 +1141,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  /*
  typedef enum _R642_Multi_Tuner_Type
-@@ -258,27 +258,27 @@
+@@ -258,27 +257,27 @@
  	R642_DTMB_6M_IF_5M,     
  	R642_ATSC_IF_5M,  
  	R642_FM,
@@ -1134,7 +1174,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef enum _R642_Xtal_Div_TYPE
  {
-@@ -286,7 +286,7 @@
+@@ -286,7 +285,7 @@
  	XTAL_DIV1_2,	//1st_div2=0(R34[0]), 2nd_div2=1(R34[1])  ; same AGC clock
  	XTAL_DIV2_1,	//1st_div2=1(R34[0]), 2nd_div2=0(R34[1])  ; diff AGC clock
  	XTAL_DIV4
@@ -1143,7 +1183,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef struct _R642_Set_Info
  {
-@@ -294,7 +294,7 @@
+@@ -294,7 +293,7 @@
  	R642_Standard_Type       R642_Standard;
  	R642_LoopThrough_Type    R642_LT;
  	R642_ClkOutMode_Type     R642_ClkOutMode;
@@ -1152,7 +1192,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  typedef struct _R642_RF_Gain_Info
  {
-@@ -303,18 +303,18 @@
+@@ -303,18 +302,18 @@
  	UINT8   RF_gain2;
  	UINT8   RF_gain3;
  	UINT8   RF_gain4;
@@ -1174,7 +1214,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  R642_ErrCode R642_Init(R642_TUNER_NUM R642_Tuner_Num, R642_Standard_Type R642_Standard);
  R642_ErrCode R642_SetPllData(R642_TUNER_NUM R642_Tuner_Num, R642_Set_Info R642_INFO);
-@@ -322,7 +322,7 @@
+@@ -322,7 +321,7 @@
  R642_ErrCode R642_WakeUp(R642_TUNER_NUM R642_Tuner_Num);
  R642_ErrCode R642_GetRfGain(R642_TUNER_NUM R642_Tuner_Num, R642_RF_Gain_Info *pR642_rf_gain);
  R642_ErrCode R642_RfGainMode(R642_TUNER_NUM R642_Tuner_Num, R642_RF_Gain_TYPE R642_RfGainType);
@@ -1183,7 +1223,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  UINT8 R642_PLL_Lock(R642_TUNER_NUM R642_Tuner_Num);
  R642_ErrCode R642_AGC_Slow(R642_TUNER_NUM R642_Tuner_Num, R642_Standard_Type R642_Standard);
  
-@@ -331,19 +331,19 @@
+@@ -331,19 +330,19 @@
  {
  	HPF_NOTCH_HIGH = 0,
  	HPF_NOTCH_LOW
@@ -1207,7 +1247,7 @@ diff -Naur Original/R642_API_v1.2J8_Multi/Tuner/R642.h R642_API_v1.2J8_Multi/Tun
  
  //-------------for GUI test-------------//
  R642_ErrCode R642_SetIfFreq(R642_TUNER_NUM R642_Tuner_Num, UINT16 IF_KHz, UINT32 RF_KHz, R642_Standard_Type u1SystemStd);
-@@ -355,4 +355,4 @@
+@@ -355,4 +354,4 @@
  extern UINT8   R642_Initial_done_flag[MAX_TUNER_NUM];
  extern UINT8   R642_IMR_done_flag[MAX_TUNER_NUM];
  

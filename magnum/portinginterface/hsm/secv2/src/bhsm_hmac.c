@@ -71,7 +71,7 @@ typedef struct BHSM_P_Hmac
     BHSM_HmacSettings settings;
     BHSM_P_HmacState state;
 
-    uint8_t bspState[BHSM_P_HMAC_STATE_SIZE];
+    uint8_t bspState[BHSM_P_HMAC_STATE_SIZE]; /* intermediate data. */
 
 }BHSM_P_Hmac;
 
@@ -84,6 +84,7 @@ BHSM_HmacHandle BHSM_Hmac_Create( BHSM_Handle hHsm )
     BDBG_ENTER( BHSM_Hmac_Create );
 
     if( !hHsm ) { BERR_TRACE(BERR_INVALID_PARAMETER); return NULL; }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     pHandle = (BHSM_P_Hmac*)BKNI_Malloc( sizeof(BHSM_P_Hmac) );
     if( !pHandle ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
@@ -106,8 +107,8 @@ void BHSM_Hmac_Destroy( BHSM_HmacHandle handle )
     BDBG_ENTER( BHSM_Hmac_Destroy );
 
     if( !pInstance ) { BERR_TRACE(BERR_INVALID_PARAMETER); return; }
+    BDBG_OBJECT_ASSERT( pInstance, BHSM_P_Hmac );
 
-    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
     BDBG_OBJECT_DESTROY( handle, BHSM_P_Hmac );
 
     BKNI_Free( pInstance );
@@ -136,9 +137,8 @@ BERR_Code BHSM_Hmac_SetSettings( BHSM_HmacHandle handle, const BHSM_HmacSettings
     BDBG_ENTER( BHSM_Hmac_SetSettings );
 
     if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( pInstance, BHSM_P_Hmac );
     if( !pSettings ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
-
-    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     pInstance->settings = *pSettings;
     pInstance->state = BHSM_P_HmacState_eReady;
@@ -156,12 +156,12 @@ BERR_Code BHSM_Hmac_SubmitData( BHSM_HmacHandle handle, BHSM_HmacSubmitData *pDa
 
     BDBG_ENTER( BHSM_Hmac_SubmitData );
 
-    if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( !pInstance ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    BDBG_OBJECT_ASSERT( pInstance, BHSM_P_Hmac );
+    if( !pData ){ return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if( pInstance->state == BHSM_P_HmacState_eInitial ) { return BERR_TRACE(BHSM_STATUS_STATE_ERROR); }
         /* ready and inprogress allowed.  */
 
-    BDBG_OBJECT_ASSERT( handle, BHSM_P_Hmac );
 
     BDBG_MSG(("%s dataSize[%u] last[%x]", BSTD_FUNCTION, pData->dataSize, pData->last ));
 

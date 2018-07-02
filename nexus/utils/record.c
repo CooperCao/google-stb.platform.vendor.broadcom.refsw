@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,9 @@
 #if NEXUS_HAS_STREAM_MUX
 #include "nexus_stream_mux.h"
 #endif
+#if NEXUS_HAS_RECORD
 #include "nexus_record.h"
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 

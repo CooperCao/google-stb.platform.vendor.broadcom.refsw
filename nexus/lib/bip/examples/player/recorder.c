@@ -229,7 +229,8 @@ int main(int argc, char *argv[])
         const char *responseHeaders = NULL;
 
         BIP_Player_GetDefaultConnectSettings(&settings);
-        settings.pUserAgent = "BIP Player Example";
+        settings.pUserAgent = "BIP Recorder Example";
+        settings.deferServerConnection = true;
         bipStatus = BIP_Player_Connect( hPlayer, BIP_String_GetString(pAppCtx->hUrl), &settings );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Connect Failed to Connect to URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
         BDBG_MSG(("http response headers >>> \n%s", responseHeaders));
@@ -359,7 +360,6 @@ int main(int argc, char *argv[])
         BKNI_WaitForEvent(hStateChangedEvent, timeout);
         if (pAppCtx->playbackDone)
         {
-            BKNI_Sleep(5000);
             BIP_Player_PrintStatus(hPlayer);
             NEXUS_Recpump_StopData(hRecpump);
             recordData(hRecpump, 1);
@@ -376,7 +376,10 @@ int main(int argc, char *argv[])
         if (pTmp)
         {
             NEXUS_Recpump_GetStatus(hRecpump, &status);
+#if 0
             if (status.data.bytesRecorded != 209715128)
+#endif
+            if (status.data.bytesRecorded != 940000)
             {
                 const void *pDataBuffer;
                 size_t dataBufferLength;

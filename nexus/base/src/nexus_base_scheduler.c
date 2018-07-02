@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1087,6 +1087,7 @@ NEXUS_P_SchedulerProcessResponse(NEXUS_P_Scheduler *scheduler, const NEXUS_P_Sch
     if (response->result==BERR_TIMEOUT) {
         goto timeout;
     } else if (response->result!=BERR_SUCCESS) {
+        (void)BERR_TRACE(response->result);
         goto done;
     }
     /* coverity[use_after_free] */
@@ -1176,8 +1177,14 @@ NEXUS_P_Scheduler_Step(NEXUS_P_Scheduler *scheduler, unsigned timeout, NEXUS_P_B
         BDBG_MSG_TRACE(("NEXUS_P_Scheduler_Step:%#lx: %u(%u) %s", (unsigned long)scheduler, (unsigned)request.timeout, (unsigned)timeout, request.idle?"idle":""));
         if(request.idle) {
             response.result = BKNI_WaitForEvent(scheduler->control, request.timeout); /* when idle we only wait for the control event */
+            if(response.result != BERR_TIMEOUT && response.result != BERR_SUCCESS) {
+                response.result = BERR_TRACE(response.result);
+            }
         } else {
             response.result = BKNI_WaitForGroup(scheduler->group, request.timeout, response.events, sizeof(response.events)/sizeof(*response.events), &response.nevents);
+            if(response.result != BERR_TIMEOUT && response.result != BERR_SUCCESS) {
+                response.result = BERR_TRACE(response.result);
+            }
             success = NEXUS_P_SchedulerProcessResponse(scheduler, &response);
             if(!success) {
                 goto done;

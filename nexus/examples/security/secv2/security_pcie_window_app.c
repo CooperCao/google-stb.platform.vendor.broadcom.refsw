@@ -182,8 +182,8 @@ int main(
 
         BDBG_LOG(( "\nDo you want to input " \
                 " offset [" BDBG_UINT64_FMT "]\n" \
-                " size [0x%08X]\n" \
-                " y to proceed.\n\n", BDBG_UINT64_ARG(offset), size));
+                " size [0x%08lX]\n" \
+                " y to proceed.\n\n", BDBG_UINT64_ARG(offset), (unsigned long) size));
 
         while( ( ch=getchar( ) ) == '\n'){ }
         if( ch != 'y' && ch != 'Y' ) { goto exit; }
@@ -193,8 +193,8 @@ int main(
 
         BDBG_LOG(( "\nPCIE0 can now access to memory " \
                 " offset [" BDBG_UINT64_FMT "]\n" \
-                " size [0x%08X]\n" \
-                " \n", BDBG_UINT64_ARG(offset), size));
+                " size [0x%08lX]\n" \
+                " \n", BDBG_UINT64_ARG(offset), (unsigned long) size));
     }
     else {
         rc = NEXUS_INVALID_PARAMETER;

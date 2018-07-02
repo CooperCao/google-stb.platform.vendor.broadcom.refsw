@@ -47,6 +47,7 @@
 #define NXSERVERLIB_THERMAL_H
 
 #include "blst_queue.h"
+#include "thermal_config.h"
 
 #define MAX_NUM_TZONE 16
 #define MAX_NUM_CDEV 32
@@ -114,9 +115,11 @@ typedef struct thermal_info {
 /* Cooling Agents */
 typedef struct cooling_agent {
     char name[32];
+    NxClient_CoolingAgent type;
     NEXUS_Error (*func) (struct cooling_agent *, unsigned);
-    unsigned levels;    /* Max number of levels of throttling */
-    unsigned cur_level;
+    unsigned levels;    /* Number of levels of throttling */
+    unsigned cur_level; /* Current level of throttling */
+    unsigned max_level; /* Max levels of throttling */
 } cooling_agent;
 
 typedef struct priority_list {
@@ -127,6 +130,13 @@ typedef struct priority_list {
     NEXUS_Timestamp last_removed_time;
 } priority_list;
 
+typedef struct thermal_config {
+    BLST_Q_ENTRY(thermal_config) link;
+    NxClient_ThermalConfiguration config;
+    BLST_Q_HEAD(priority_avail, priority_list) available;
+    BLST_Q_HEAD(priority_active, priority_list) active;
+    bool enabled;
+} thermal_config;
 
 typedef struct cpufreq_info {
     unsigned avail_freqs[MAX_NUM_FREQ];

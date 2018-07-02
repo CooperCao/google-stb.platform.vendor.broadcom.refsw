@@ -153,6 +153,7 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_TimerHandle powerTimer;
     BKNI_EventHandle cecHotplugEvent;
     NEXUS_TimerHandle postFormatChangeTimer;
+    unsigned retryPostFormatChangeCount;
 
     bool pendingDisableAuthentication_isr;
     bool forceSendRxIdList;

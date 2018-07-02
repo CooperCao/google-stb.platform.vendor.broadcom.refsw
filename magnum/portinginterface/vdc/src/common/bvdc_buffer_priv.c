@@ -547,6 +547,7 @@ void BVDC_P_Buffer_Init
 
     hBuffer->bMtgMadDisplay1To1RateRelationship = false;
     hBuffer->ulMtgPictureRepeatCount = 0;
+    hBuffer->ulMtgXdmPicSkipCount = 0;
 
     /* Initialize all the picture nodes. */
     pPicture = hBuffer->pCurReaderBuf;
@@ -954,6 +955,7 @@ BERR_Code BVDC_P_Buffer_Invalidate_isr
 
     hBuffer->bMtgMadDisplay1To1RateRelationship = false;
     hBuffer->ulMtgPictureRepeatCount = 0;
+    hBuffer->ulMtgXdmPicSkipCount = 0;
 
 #if BVDC_P_REPEAT_ALGORITHM_ONE
     hBuffer->bRepeatForGap = false;
@@ -1146,9 +1148,9 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
     BVDC_P_PictureNode  *pNextNode;
     uint32_t             ulTimeStamp;
     uint32_t             ulMadOutPhase=1;
-    bool                 bDropPicDueToXdmMtgRepeat = false;
+    bool                 bSkipPicDueToXdmMtgRepeat = false;
 #if (BVDC_BUF_LOG == 1)
-    bool                 bDropPicDueToMtgPhase = false;
+    bool                 bSkipPicDueToMtgPhase = false;
 #endif
 
     BDBG_ENTER(BVDC_P_Buffer_GetNextWriterNode_isr);
@@ -1169,14 +1171,23 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
 
         bool bMtgRepeatPicture = (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat) &&
                              (hWindow->hBuffer->pCurWriterBuf->bChannelChange ||
-                              hWindow->hBuffer->pCurWriterBuf->stFlags.bPictureRepeatFlag) &&
+                              (hWindow->hBuffer->pCurWriterBuf->stFlags.bPictureRepeatFlag &&
+                              hWindow->hBuffer->pCurWriterBuf->stFlags.bRepeatField)) &&
                               !hWindow->hBuffer->pCurWriterBuf->bIgnorePicture;
 
         bool bUpSampledRate = (ulSrcFreq == hWindow->stCurInfo.hSource->ulVertFreq) ? false : true;
 
-        bDropPicDueToXdmMtgRepeat = bMtgRepeatPicture && bUpSampledRate &&
+        bSkipPicDueToXdmMtgRepeat = bMtgRepeatPicture && bUpSampledRate &&
                 (hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq == ulSrcFreq) ? true : false;
 
+        if (bSkipPicDueToXdmMtgRepeat)
+            hWindow->hBuffer->ulMtgXdmPicSkipCount++;
+        else
+            hWindow->hBuffer->ulMtgXdmPicSkipCount = 0;
+
+        /* More than 2 skips indicates pause. Allow writer to continue instead of skipping. */
+        if (hWindow->hBuffer->ulMtgXdmPicSkipCount > 2)
+            bSkipPicDueToXdmMtgRepeat = false;
     }
 
     /* ----------------------------------
@@ -1294,7 +1305,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
     /* Determine if MTG phase or MTG-based picture repeats warrant multibuffer processing. If not, drop the picture. */
     if (((hWindow->pCurWriterNode->stFlags.bRev32Locked &&
           ((ulMadOutPhase != 3 && ulMadOutPhase != 1) && eMtgMode == BVDC_P_Buffer_MtgMode_eMadPhase)) ||
-          bDropPicDueToXdmMtgRepeat) && !hWindow->pCurWriterNode->bMute)
+          bSkipPicDueToXdmMtgRepeat) && !hWindow->pCurWriterNode->bMute)
     {
         hWindow->hBuffer->pCurWriterBuf = hWindow->pCurWriterNode;
         if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)
@@ -1311,7 +1322,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
                     hWindow->eId, hWindow->hBuffer->pCurWriterBuf->ulMadOutPhase, hWindow->hBuffer->pCurWriterBuf->ulBufferId));
 
 #if (BVDC_BUF_LOG == 1)
-            bDropPicDueToMtgPhase = true;
+            bSkipPicDueToMtgPhase = true;
 #endif
         }
         goto done;
@@ -1364,7 +1375,7 @@ done:
             (hWindow->hBuffer->pCurWriterBuf->eDstPolarity << BVDC_P_BUF_LOG_DST_POLARITY_SHIFT),
         hWindow->hBuffer->ulCurrWriterTimestamp,
         (100000/hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq),
-        (((bDropPicDueToXdmMtgRepeat || bDropPicDueToMtgPhase) ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT),
+        (((bSkipPicDueToXdmMtgRepeat || bSkipPicDueToMtgPhase) ? 1 : 0) << BVDC_P_BUF_LOG_SKIP_DUE_TO_MTG_SHIFT),
         hWindow->hBuffer->pCurWriterBuf->ulDecodePictureId,
         hWindow->hBuffer);
 #endif

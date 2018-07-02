@@ -579,7 +579,7 @@ BERR_Code BXDM_PPDBG_P_Print_isr(
          iAverageStcDelta = pLocalState->stDeltaSTCAvg.uiWhole;
 
          /* Convert the fractional part of stDeltaSTCAvg to a base 10 value for display. */
-         BXDM_PPFP_P_FixPtBinaryFractionToBase10_isr(
+         BXDM_PPFP_P_FixPtBinaryFractionToBase10_isrsafe(
                   (BXDM_PPFP_P_DataType *)&(pLocalState->stDeltaSTCAvg),
                   2,
                   &(uiAverageFractionBase10)
@@ -1000,14 +1000,14 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
       if ( 0 !=  hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount )
       {
          /* determine Average dPTS (using FRD parameters) ... */
-         BXDM_PPFP_P_FixPtDiv_isr(
+         BXDM_PPFP_P_FixPtDiv_isrsafe(
                &hXdmPP->stDMState.stDecode.stFRDStats.stDeltaPTSRunningSum,
                hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount,
                &stDeltaPTSAvg
                );
 
          /* Convert the fractional part of stDeltaPTSAvg to a base 10 value for display. */
-         BXDM_PPFP_P_FixPtBinaryFractionToBase10_isr( &stDeltaPTSAvg, 2, &uiAverageFractionBase10 );
+         BXDM_PPFP_P_FixPtBinaryFractionToBase10_isrsafe( &stDeltaPTSAvg, 2, &uiAverageFractionBase10 );
       }
       else
       {

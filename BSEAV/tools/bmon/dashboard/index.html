@@ -1,0 +1,917 @@
+<!--
+###############################################################################
+#   Copyright (C) 2018 Broadcom.
+#   The term"Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+#
+#   This program is the proprietary software of Broadcom and/or its licensors,
+#   and may only be used, duplicated, modified or distributed pursuant to
+#   the terms and conditions of a separate, written license agreement executed
+#   between you and Broadcom (an"Authorized License").  Except as set forth in
+#   an Authorized License, Broadcom grants no license (express or implied),
+#   right to use, or waiver of any kind with respect to the Software, and
+#   Broadcom expressly reserves all rights in and to the Software and all
+#   intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+#   THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+#   IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+#   Except as expressly set forth in the Authorized License,
+#
+#   1.     This program, including its structure, sequence and organization,
+#   constitutes the valuable trade secrets of Broadcom, and you shall use all
+#   reasonable efforts to protect the confidentiality thereof, and to use this
+#   information only in connection with your use of Broadcom integrated circuit
+#   products.
+#
+#   2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+#  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+#   OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+#   RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+#   IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+#   A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#   ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#   THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+#   3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+#   OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+#   INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+#   RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+#   HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+#   EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+#   WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+#   FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+###############################################################################
+-->
+<<!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <title>BMON Dashboard</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!--Bootstrap cdn -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+        <!-- charts.js cdn -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+        <!--redial gauge -->
+        <script src="//cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.5/radial/gauge.min.js"></script>
+    </head>
+
+    <body>
+
+        <nav class="navbar navbar-expand-md navbar-dark" style="background-color:#563d7c;">
+            <a class="navbar-brand" href="index.html">
+                <img src="img/320px-Broadcom_Ltd_Logo.svg.png" title="Broadcom Logo">
+            </a>
+            <span class="navbar-text font-weight-bold">
+                BMON DASHBOARD
+            </span>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="plugin-monitor.html">PluginMonitor</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="specA.html">CM SpectrumAnalyzer</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <br>
+        <!-- container start  -->
+        <div class="container-fluid">
+            <img id="id-screenshot" class="img-fluid mx-auto d-block" src="screenshot.bmp" alt="Chania" width="720" height="480">
+            <br>
+            <div class="row">
+                <div class="col-2 class-pmu">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    POWER(
+                                    <span id="idPower"></span>W)
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHidePower" id="idShowHidePower">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBody-power">
+                            <div class="gauge-container text-left" style="height:11rem">
+                                <canvas id="power-gauge" data-type="radial-gauge" data-title="Power" data-units='Watts' data-bar-width="15" data-min-value="0"
+                                    data-value="0" data-max-value="10" data-major-ticks="0,2,4,6,8,10" data-minor-ticks="4" data-highlights='[{"from": 8, "to": 10, "color": "rgba(255, 0, 0, .5)"}]'
+                                    data-border-shadow-width="0" data-borders="false" data-needle-type="arrow" data-needle-shadow="false"
+                                    data-needle-width="4" data-needle-circle-size="5" data-needle-circle-inner="false" data-font-value-size="44"
+                                    data-value-box-stroke="0" data-value-box-border-radius="0" data-value-int="2" data-value-dec="1"
+                                    data-value-text-shadow="0" data-color-bar-progress="#8e5ea2" data-color-bar="#eee" data-color-value-box-background="transparent"
+                                    data-color-value-box-shadow="0" data-animation-duration="1500" data-animation-rule="linear"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <!-- <a href="power.html" class="card-link">PowerDashboard</a> -->
+                            <a href="power.html" class="btn btn-outline-info float-right">POWER DASHBOARD</a>
+                        </div>
+                        <script>
+                            $(".classShowHidePower").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHidePower')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBody-power").toggle(1000);
+                                tgBtn.toggleClass('classShowHidePower');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!-- column 1 end-->
+                <!-- column 2 -->
+                <div class="col-2 class-thermal">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    TEMP.(
+                                    <span id="idTemperature"></span>°C)
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideTemperature" id="idShowHideTemperature">-</button>
+                            </div>
+                        </div>
+
+                        <div class="card-body classCardBody-temp">
+                            <div class="gauge-container text-right" style="height:11rem">
+                                <canvas id="temperature-gauge" data-type="radial-gauge" data-title="Temp" data-units='&deg;C' data-bar-width="15" data-value="10"
+                                    data-min-value="0" data-max-value="120" data-major-ticks="0,20,40,60,80,100,120" data-minor-ticks="4"
+                                    data-highlights='[{"from": 0, "to": 120, "color": "rgba(255, 0, 0, .5)"}]' data-border-shadow-width="0"
+                                    data-borders="false" data-needle-type="arrow" data-needle-shadow="false" data-needle-width="4"
+                                    data-needle-circle-size="5" data-needle-circle-inner="false" data-font-value-size="44" data-value-box-stroke="0"
+                                    data-value-box-border-radius="0" data-value-dec="1" data-value-text-shadow="0" data-color-bar-progress="#8e5ea2"
+                                    data-color-bar="#eee" data-color-value-box-background="transparent" data-color-value-box-shadow="0"
+                                    data-animation-duration="1500" data-animation-rule="linear"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <!-- <a href="power.html" class="card-link">PowerDashboard</a> -->
+                            <a href="power.html" class="btn btn-outline-info float-right">POWER DASHBOARD</a>
+                        </div>
+                        <script>
+                            $(".classShowHideTemperature").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideTemperature')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBody-temp").toggle(1000);
+                                tgBtn.toggleClass('classShowHideTemperature');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!-- column temperature end -->
+                <!-- column cpu start -->
+                <div class="col-2 cpu-class">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    CPU(
+                                    <span id="cpu-id"></span>%)
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideCpu" id="idShowHideCpu">-</button>
+                            </div>
+                        </div>
+
+                        <div class="card-body cpuCardBody-class">
+                            <div class="gauge-container" style="height:11rem">
+                                <canvas id="cpu-gauge" data-type="radial-gauge" data-title="CPU" data-units='%' data-bar-width="15" data-min-value="0" data-max-value="100"
+                                    data-major-ticks="0,20,40,60,80,100" data-minor-ticks="4" data-highlights='[{"from": 85, "to": 100, "color": "rgba(255, 0, 0, .5)"}]'
+                                    data-border-shadow-width="0" data-borders="false" data-needle-type="arrow" data-needle-shadow="false"
+                                    data-needle-width="4" data-needle-circle-size="5" data-needle-circle-inner="false" data-font-value-size="44"
+                                    data-value-box-stroke="0" data-value-box-border-radius="0" data-value-int="2" data-value-dec="1"
+                                    data-value-text-shadow="0" data-color-bar-progress="#8e5ea2" data-color-bar="#eee" data-color-value-box-background="transparent"
+                                    data-color-value-box-shadow="0" data-animation-duration="1500" data-animation-rule="linear"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <!-- <a href="power.html" class="card-link">PowerDashboard</a> -->
+                            <a href="bsysperf.html" class="btn btn-outline-info float-right">BSYSPERF</a>
+                        </div>
+                        <script>
+                            $(".classShowHideCpu").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideCpu')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".cpuCardBody-class").toggle(1000);
+                                tgBtn.toggleClass('classShowHideCpu');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!-- cpu column end -->
+                <!-- memory BW-->
+                <div class="col-2 mem-bw-class">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    MEM BW(
+                                    <span id="mem-bw-id"></span>Mbps)
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideMemBw" id="showHideMemBw-id">-</button>
+                            </div>
+                        </div>
+
+                        <div class="card-body memBwCardBody-class">
+                            <div class="gauge-container" style="height:11rem">
+                                <canvas id="mem-bw-gauge" data-type="radial-gauge" data-title="MEM BW" data-units='Gbps' data-bar-width="15" data-min-value="0"
+                                    data-max-value="10" data-value="0" data-major-ticks="0,1,2,3,4,5,6,7,8,9,10" data-minor-ticks="4"
+                                    data-highlights='[{"from": 8, "to": 10, "color": "rgba(255, 0, 0, .5)"}]' data-border-shadow-width="0"
+                                    data-borders="false" data-needle-type="arrow" data-needle-shadow="false" data-needle-width="4"
+                                    data-needle-circle-size="5" data-needle-circle-inner="false" data-font-value-size="44" data-value-box-stroke="0"
+                                    data-value-box-border-radius="0" data-value-int="2" data-value-dec="1" data-value-text-shadow="0"
+                                    data-color-bar-progress="#8e5ea2" data-color-bar="#eee" data-color-value-box-background="transparent"
+                                    data-color-value-box-shadow="0" data-animation-duration="1500" data-animation-rule="linear"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <!-- <a href="power.html" class="card-link">PowerDashboard</a> -->
+                            <a href="bmemperf.html" class="btn btn-outline-info float-right">BMEMPERF</a>
+                        </div>
+                        <script>
+                            $(".classShowHideMemBw").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideMemBw')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".memBwCardBody-class").toggle(1000);
+                                tgBtn.toggleClass('classShowHideMemBw');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!-- memory BW -->
+                <!-- wifi -->
+                <div class="col-2">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h6 style="color:#563d7c;" class="ml-auto">
+                                    WIFI(SSID:
+                                    <span id="idSSID"></span>
+                                    <!--| RSSI:
+                                    <span id="idRSSI"></span>)-->
+                                </h6>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideWifi">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBody_1">
+                            <div class="gauge-container" style="height:11rem">
+                                <canvas id="rssi-gauge" data-type="radial-gauge" data-title="Signal Strength" data-units='bBm' data-bar-width="15" data-min-value="-100"
+                                    data-max-value="0" data-value="-100" data-major-ticks="-100,-90,-80,-70,-60,-50,-40,-30,-20,-10,0"
+                                    data-minor-ticks="4" data-highlights='[{"from": -100, "to": -80, "color": "rgba(255, 0, 0, .5)"},
+                                                              {"from": -80, "to": -70, "color": "rgba(255,165,0,.5)"},
+                                                              {"from": -70, "to": -60, "color": "rgba(255,255,0,.5)"},
+                                                              {"from": -60, "to": -0, "color": "rgba(0,128,0,0.5)"}]' data-border-shadow-width="0"
+                                    data-borders="false" data-needle-type="arrow" data-needle-shadow="false" data-needle-width="4"
+                                    data-needle-circle-size="5" data-needle-circle-inner="false" data-font-value-size="44" data-value-box-stroke="0"
+                                    data-value-box-border-radius="0" data-value-int="2" data-value-dec="1" data-value-text-shadow="0"
+                                    data-color-bar-progress="#8e5ea2" data-color-bar="#eee" data-color-value-box-background="transparent"
+                                    data-color-value-box-shadow="0" data-animation-duration="1500" data-animation-rule="linear"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="wifi.html" class="btn btn-outline-info float-right">WIFI DASHBOARD</a>
+                        </div>
+                        <script>
+                            $(".classShowHideWifi").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideWifi')) {
+                                    tgBtn.text('+');
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBody_1").toggle(1000);
+                                tgBtn.toggleClass('classShowHideWifi');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!-- wifi end-->
+                <!--network-->
+                <div class="col-2 network-class">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    NETWORK(
+                                    <span id="network-id"></span>Mbps)
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHidenetwork" id="showHidenetwork-id">-</button>
+                            </div>
+                        </div>
+
+                        <div class="card-body memBwCardBody-class">
+                            <div class="gauge-container" style="height:11rem">
+                                <canvas id="network-gauge" data-type="radial-gauge" data-title="NETWORK" data-units='Mbps' data-bar-width="15" data-min-value="0"
+                                    data-max-value="2000" data-value="0" data-major-ticks="0,200,400,600,800,1000,1200,1400,1600,1800,2000"
+                                    data-minor-ticks="4" data-border-shadow-width="0" data-borders="false" data-needle-type="arrow"
+                                    data-needle-shadow="false" data-needle-width="4" data-needle-circle-size="5" data-needle-circle-inner="false"
+                                    data-font-value-size="44" data-value-box-stroke="0" data-value-box-border-radius="0" data-value-int="2"
+                                    data-value-dec="1" data-value-text-shadow="0" data-color-bar-progress="#8e5ea2" data-color-bar="#eee"
+                                    data-color-value-box-background="transparent" data-color-value-box-shadow="0" data-animation-duration="1500"
+                                    data-animation-rule="linear"></canvas>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <!-- <a href="power.html" class="card-link">PowerDashboard</a> -->
+                            <a href="bsysperf.html" class="btn btn-outline-info float-right">BSYSPERF</a>
+                        </div>
+                        <script>
+                            $(".classShowHidenetwork").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHidenetwork')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".networkCardBody-class").toggle(1000);
+                                tgBtn.toggleClass('classShowHidenetwork');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!--network end -->
+            </div>
+            <br>
+            <!-- end of the row -->
+            <div class="row">
+                <div class="col-2">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h4 style="color:#563d7c;" class="ml-auto">
+                                    IR Remote(LastEvent:
+                                    <span id="idIRLastEvent"></span> | Time:
+                                    <span id="idIRLastTime"></span>)
+                                </h4>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideIREvent">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBodyIREvent">
+                            <span id="cardBodyTextIREvent">Add more useful information here </span>
+                            <br>
+                        </div>
+                        <script>
+                            $(".classShowHideIREvent").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideIREvent')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+
+                                }
+                                $(".classCardBodyIREvent").toggle(1000);
+                                tgBtn.toggleClass('classShowHideIREvent');
+                            });
+                        </script>
+                    </div>
+                </div>
+
+                <div class="col-2">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    PLATFORM:
+                                    <span id="board-id"></span>
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHidePlatform">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBodyPlatform">
+                            <div class="table-responsive">
+                                <table class="table" style="color:rgba(86, 61, 124, 0.7);">
+                                    <tbody id="platform-id">
+                                        <!-- automtically generated platform data -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <script>
+                            $(".classShowHidePlatform").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHidePlatform')) {
+                                    tgBtn.text('+');
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBodyPlatform").toggle(1000);
+                                tgBtn.toggleClass('classShowHidePlatform');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!-- Video -->
+                <div class="col-2">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    VIDEO:
+                                    <span id=""></span>
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideVideo">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBodyAudio">
+                            <div class="table-responsive">
+                                <table class="table" style="color:rgba(86, 61, 124, 0.7);">
+                                    <tbody id="video-id">
+                                        <!-- automtically generated platform data -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <script>
+                            $(".classShowHideVideo").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideVideo')) {
+                                    tgBtn.text('+');
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBodyAudio").toggle(1000);
+                                tgBtn.toggleClass('classShowHideVideo');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!--video -->
+                <!--audio-->
+                <div class="col-2">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h5 style="color:#563d7c;" class="ml-auto">
+                                    Audio:
+                                    <span id=""></span>
+                                </h5>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideAudio">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBodyAudio">
+                            <div class="table-responsive">
+                                <table class="table" style="color:rgba(86, 61, 124, 0.7);">
+                                    <tbody id="audio-id">
+                                        <!-- automtically generated platform data -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <script>
+                            $(".classShowHideAudio").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideAudio')) {
+                                    tgBtn.text('+');
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBodyAudio").toggle(1000);
+                                tgBtn.toggleClass('classShowHideAudio');
+                            });
+                        </script>
+                    </div>
+                </div>
+                <!--audio -->
+
+                <div class="col-2">
+                    <div class="card bg-light border border-0">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <h6 style="color:#563d7c;" class="ml-auto">
+                                    SCHEDULER CONFIG
+                                </h6>
+                                <button type="button" class="btn btn-md btn-light ml-auto classShowHideSchedulerConfig">-</button>
+                            </div>
+                        </div>
+                        <div class="card-body classCardBodySchedulerConfig">
+                            <p id="websocket"></p>
+                            <br>
+                        </div>
+                        <script>
+                            $(".classShowHideSchedulerConfig").click(function () {
+                                var tgBtn = $(this);
+                                if (tgBtn.hasClass('classShowHideSchedulerConfig')) {
+                                    tgBtn.text('+');
+
+                                } else {
+                                    tgBtn.text('-');
+                                }
+                                $(".classCardBodySchedulerConfig").toggle(1000);
+                                tgBtn.toggleClass('classShowHideSchedulerConfig');
+                            });
+                        </script>
+                    </div>
+                </div>
+            </div>
+            <!-- ennd of row -->
+        </div>
+        <!-- container end  -->
+
+        <script>
+            function updateScreenshot(data) {
+                if (data.data && data.data.length) {
+                    $("#id-screenshot").attr("src", data.data[0].uri + "?timestamp=" + new Date().getTime());
+                }
+            }
+
+            function updateIRInputView(data) {
+                var myJSON = JSON.stringify(data, null, 3);
+                document.getElementById("cardBodyTextIREvent").innerHTML = "<pre>" + myJSON + "</pre>";
+            }
+
+            function updatePowerView(obj) {
+                if (obj.error) {
+                    if (obj.error.code == 404) {
+                        //$(".class-pmu").remove();
+                        console.warn(obj.error.message);
+                        /* disable further invoking of this plugin */
+                        delete window.controllerResource["pmu"];
+                        /* send updated request to scheduler */
+                        buildSchedulerConfigAndSendToWebsocket();
+                        return;
+                    }
+                }
+                if (!obj.data) {
+                    console.warn("null data impossible");
+                }
+                var data = obj.data;
+                $("#idPower").html((data.power.systemPowerWatt).toFixed(2));
+                var gauge = document.gauges.get("power-gauge");
+                gauge.value = data.power.systemPowerWatt;
+            }
+
+            function updateThermalView(obj) {
+                if (obj.error) {
+                    if (obj.error.code == 404) {
+                        $(".class-thermal").remove();
+                        console.warn(obj.error.message);
+                        /* disable further invoking of this plugin */
+                        delete window.controllerResource["thermal"];
+                        /* send updated request to scheduler */
+                        buildSchedulerConfigAndSendToWebsocket();
+                        return;
+                    }
+                }
+                if (!obj.data) {
+                    console.warn("null data impossible");
+                }
+                var status;
+                for (var idx = 0; idx < obj.data.length; idx++) {
+                    if (obj.data[idx]["status"]) {
+                        status = obj.data[idx]["status"];
+                        break;
+                    }
+                }
+                if (!status) {
+                    console.warn("Did not receive correct status, investigate");
+                    return;
+                }
+                $("#idTemperature").html((status.temperatureCelsius).toFixed(2));
+                var gauge = document.gauges.get("temperature-gauge");
+                gauge.value = status.temperatureCelsius;
+                //gauge.highlights = '[{"from":' + status.overTemperatureThresholdCelsius + ', "to": 120, "color": "rgba(255, 0, 0, 1)"}]'
+                var tmpGauge = document.getElementById('temperature-gauge');
+                tmpGauge.setAttribute('data-highlights', '[{"from":' + status.overTemperatureThresholdCelsius +
+                    ', "to": 120, "color": "rgba(255, 0, 0, .5)"}]');
+            }
+
+            function updateCpuView(obj) {
+                var gauge = document.gauges.get("cpu-gauge");
+                gauge.value = Math.floor(Math.random() * 100);;
+                $("#cpu-id").html(gauge.value);
+            }
+
+
+            function updateWifiView(data) {
+                if (data) {
+                    var currentStats;
+                    for (var idx = 0; idx < data.data.length; idx++) {
+                        if (data.data[idx]["currentStats"]) {
+                            currentStats = data.data[idx]["currentStats"];
+                            break;
+                        }
+                    }
+                    if (currentStats) {
+                        $("#idSSID").html(currentStats.SSID);
+                        //$("#idRSSI").html(currentStats.RSSI);
+                        var gauge = document.gauges.get("rssi-gauge");
+                        gauge.value = currentStats.RSSI;
+                    }
+
+                } else {
+                    console.warn("Invalid data unable to update wifi data");
+                }
+            }
+
+            function updateNetworkView(obj) {
+                if (!obj) {
+                    console.log("Unvalid network data");
+                    return;
+                }
+                if (obj.error) {
+                    console.log(obj.error.message);
+                    return;
+                }
+                networkRes = window.controllerResource["network"];
+                var timeDiff = obj.timestampSec - networkRes.lastTimeStampSec;
+                networkRes.lastTimeStampSec = obj.timestampSec;
+            }
+
+            function updatePlatformView(obj) {
+                if (obj.error) {
+                    console.warn(obj.error.code + obj.error.message);
+                    return;
+                }
+                $("#platform-id").prepend("<tr><td>" + "Board" + "</td><td>" + obj.data[0].bolt.board +
+                    "</td></tr>" +
+                    "<tr><td>" + "Bolt Version" + "</td><td>" + obj.data[0].bolt.version + "</td></tr>" +
+                    "<tr><td>" + "Linux" + "</td><td>" + obj.data[0].uts.release + " " + obj.data[0].uts.machine +
+                    "</td></tr>");
+                /* disable further invoking of this plugin */
+                delete window.controllerResource["platform"];
+                /* send updated request to scheduler */
+                buildSchedulerConfigAndSendToWebsocket();
+            }
+
+            function updateVideoView(obj) {
+                if (obj.error) {
+                    console.warn(obj.error);
+                    return;
+                }
+                var table;
+                for (var i = 0; i < obj.data.length; i++) {
+                    if (obj.data[i]["decoder"]) {
+                        var decoder = obj.data[i]["decoder"];
+                        table += "<tr><td>" + "video deocder " + "</td><td>" + i + "</td></tr>" +
+                            "<tr><td>" + "codec" + "</td><td>" + decoder.protocolLevel + "</td></tr>" +
+                            "<tr><td>" + "format" + "</td><td>" + decoder.format + "</td></tr>" +
+                            "<tr><td>" + "Decoded Bytes" + "</td><td>" + decoder.numBytesDecoded + "</td></tr>"
+                    }
+                }
+                $("#video-id").empty();
+                $("#video-id").prepend(table);
+            }
+
+            function updateAudioView(obj) {
+                if (obj.error) {
+                    console.warn(obj.error);
+                    return;
+                }
+                var table;
+                for (var i = 0; i < obj.data.length; i++) {
+                    if (obj.data[i]["decoder"]) {
+                        var decoder = obj.data[i]["decoder"];
+                        table += "<tr><td>" + "audio deocder" + "</td><td>" + i + "</td></tr>" +
+                            "<tr><td>" + "codec" + "</td><td>" + decoder.codec + "</td></tr>" +
+                            "<tr><td>" + "Decoded Bytes" + "</td><td>" + decoder.numBytesDecoded + "</td></tr>"
+                    }
+                }
+                $("#audio-id").empty();
+                $("#audio-id").prepend(table);
+            }
+
+            function updateHdmiOutputView(obj) {
+                if (obj.error) {
+                    console.warn(obj.error);
+                    return;
+                }
+                var output = obj.data[0].output;
+            }
+
+            window.onload = function () {
+                window.controllerResource = {
+                    "screenshot": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "screenshot",
+                                "intervalCollect": 4,
+                                "collectFirst": 1
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateScreenshot(data);
+                        }
+                    },
+                    "pmu": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "pmu",
+                                "intervalCollect": 1,
+                                "collectFirst": 1
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updatePowerView(data);
+                        }
+                    },
+                    "thermal": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "thermal/status",
+                                "intervalCollect": 1,
+                                "collectFirst": 1
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateThermalView(data);
+                        }
+                    },
+                    "cpu": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "cpu",
+                                "intervalCollect": 3,
+                                "collectFirst": 1
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateCpuView(data);
+                        }
+                    },
+                    "wifi": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "wifi/currentStats?include=SSID+RSSI",
+                                "intervalCollect": 1,
+                                "collectFirst": 0
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateWifiView(data);
+                        }
+                    },
+                    "network": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "network",
+                                "intervalCollect": 1,
+                                "collectFirst": 0
+                            }
+                        },
+                        bVisible: true,
+                        lastTimeStampSec: 0,
+                        dataHandler: function (data) {
+                            updateNetworkView(data);
+                        }
+                    },
+                    "platform": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "platform",
+                                "intervalCollect": 1,
+                                "collectFirst": 1
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updatePlatformView(data);
+                        }
+                    },
+                    "ir_input": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "ir_input",
+                                "intervalCollect": 1,
+                                "collectFirst": 0
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateIRInputView(data);
+                        }
+                    },
+                    "video_decoder": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "video_decoder",
+                                "intervalCollect": 1,
+                                "collectFirst": 0
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateVideoView(data);
+                        }
+                    },
+                    "audio": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "audio",
+                                "intervalCollect": 1,
+                                "collectFirst": 0
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateAudioView(data);
+                        }
+                    },
+                    "hdmi_output": {
+                        "schedulerElement": {
+                            "element": {
+                                "uri": "hdmi_output",
+                                "intervalCollect": 1,
+                                "collectFirst": 0
+                            }
+                        },
+                        bVisible: true,
+                        dataHandler: function (data) {
+                            updateHdmiOutputView(data);
+                        }
+                    }
+                };
+                /* websocket  */
+                var request = "ws://" + location.host + ":8787/scheduler_websocket";
+                window.ws = new WebSocket(request);
+                ws = window.ws;
+                ws.onopen = function () {
+                    buildSchedulerConfigAndSendToWebsocket();
+                }
+                ws.onclose = function () {
+                    document.getElementById("websocket").innerHTML =
+                        "Websocket closed: BMON websocket service must be running for this page to update. make -C bmon/websocket on box run websocket.sh";
+                };
+                ws.onerror = function () {
+                    document.getElementById("websocket").innerHTML =
+                        "Websocket closed: BMON websocket service must be running for this page to update. make -C bmon/websocket on box run websocket.sh";
+                };
+                ws.onmessage = function (event) {
+                    var myObj = JSON.parse(event.data);
+                    if (myObj) {
+                        var resource = window.controllerResource[myObj.name];
+                        if (!resource) {
+                            console.warn("Unrequested data received from scheduler" + myObj.name);
+                            return;
+                        }
+                        resource.dataHandler(myObj);
+                    } else {
+                        //handle the invalid data case here
+                    }
+                    //console.log(event.data);
+                };
+            }
+
+            function buildSchedulerConfigAndSendToWebsocket() {
+                var bmonSchedulerObj = {
+                    "version": "1.0",
+                    "name": "config1",
+                    "description": "bmon_dashboard",
+                    "datetime": "Sun-May-27-23:15:17-2018",
+                    "timestampSec": 0,
+                    "timestamp": "0",
+                    "data": []
+                }
+                ws = window.ws;
+                var res = window.controllerResource;
+                for (var key in res) {
+                    if (res.hasOwnProperty(key)) {
+                        var val = res[key];
+                        bmonSchedulerObj.data.push(val.schedulerElement);
+                    }
+                }
+                var schedulerConfigText = JSON.stringify(bmonSchedulerObj) + "\n";
+                console.log(schedulerConfigText);
+                ws.send(schedulerConfigText);
+                var obj = JSON.parse(schedulerConfigText);
+                document.getElementById("websocket").innerHTML = "New Scheduler config:" + "<pre>" + JSON.stringify(
+                    obj, null, 3) + "</pre>";
+            }
+        </script>
+    </body>
+
+    </html>

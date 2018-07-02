@@ -253,6 +253,9 @@ typedef struct NEXUS_AspInputTcpStatus
         unsigned rcvdSequenceNumber;
         unsigned descriptorsFedToXpt;
         unsigned bytesFedToXpt;
+        unsigned outOfOrderPacketsRcvd;         /* total out-of-order packets received. */
+        unsigned outOfOrderEventsRcvd;          /* total out-of-order events received. */
+        unsigned curOutOfOrderEventsRcvd;       /* current out-of-order events received. */
     } fwStats;
 } NEXUS_AspInputTcpStatus;
 

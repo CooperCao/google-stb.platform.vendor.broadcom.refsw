@@ -48,7 +48,7 @@
 #include "bchp_bsp_control_intr2.h"
 #include "bchp_bsp_glb_control.h"
 #include "bsp_components.h"
- #include "bsp_headers.h"
+#include "bsp_headers.h"
 #include "bhsm_bsp_msg.h"
 #include "bhsm_priv.h"
 #include "bchp_bsp_glb_control.h"
@@ -141,11 +141,8 @@ BDBG_OBJECT_ID(BHSM_P_BspMsg);
 typedef struct BHSM_P_BspMsg_Module_s
 {
     bool bspInterfaceBusy;     /* Indicates that HSM is communicating with BSP interface. Used for debug */
-
     unsigned ownerId;          /* incremented by 1 for each command sent to the bsp (from this interface.)*/
-
     BREG_Handle hRegister;
-
    #ifdef BHSM_BSP_INTERRUPT_SUPPORT
     BKNI_EventHandle     oLoadWait;
     BINT_CallbackHandle  oLoadCallback;
@@ -192,9 +189,8 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgInit_t *pParam )
     BDBG_ENTER( BHSM_BspMsg_Init );
 
     if( !hHsm ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    BSTD_UNUSED( pParam );
-
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+    BSTD_UNUSED( pParam );
 
     if( !hHsm->regHandle ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
@@ -298,21 +294,21 @@ BHSM_BspMsg_h BHSM_BspMsg_Create( BHSM_Handle hHsm, BHSM_BspMsgCreate_t *pParam 
     BDBG_ENTER ( BHSM_BspMsg_Create );
 
     if( !hHsm ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
-    if( !pParam ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+    if( !pParam ){ BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     if( !hHsm->modules.pBsp ) { BERR_TRACE( BERR_INVALID_PARAMETER ); return NULL; }
 
     if( hHsm->modules.pBsp->bspInterfaceBusy ) {
 
-        /* Only one BspMsg Message Object should be instantiated at any one time */
+        /* Only one BspMsg Message Object can be instantiated at any one time */
         BERR_TRACE( BERR_NOT_AVAILABLE );
         return NULL;
     }
     hHsm->modules.pBsp->bspInterfaceBusy = true;
 
     hMsg = (BHSM_BspMsg_h) BKNI_Malloc( sizeof(BHSM_P_BspMsg) );
-    if( hMsg == NULL) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
+    if( !hMsg ) { BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); return NULL; }
 
     BKNI_Memset( hMsg, 0, sizeof(BHSM_P_BspMsg) );
     BDBG_OBJECT_SET( hMsg, BHSM_P_BspMsg );
@@ -336,6 +332,7 @@ BHSM_BspMsg_h BHSM_BspMsg_Create( BHSM_Handle hHsm, BHSM_BspMsgCreate_t *pParam 
         BERR_TRACE( BHSM_STATUS_IRDY_ERR );             /* continue, at risk. */
     }
 
+    /* give client direct access to mailbox, past the header. */
     pParam->pSend    = &hMsg->mailBox[sizeof(Bsp_CmdHeader_InFields_t)];
     pParam->pReceive = &hMsg->mailBox[sizeof(Bsp_CmdHeader_OutFields_t)];
 
@@ -369,8 +366,8 @@ BERR_Code BHSM_BspMsg_Configure( BHSM_BspMsg_h hMsg, BHSM_BspMsgConfigure_t *pPa
     BDBG_ENTER( BHSM_BspMsg_Configure );
 
     if( !hMsg ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pParam ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     hMsg->component = pParam->component;
     hMsg->command = pParam->command;
@@ -391,13 +388,12 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     BHSM_Handle hHsm;
     uint32_t regValue = 0;
     unsigned i = 0;
-    unsigned commandLength = 0;
     Bsp_CmdHeader_InFields_t *pSendHeader = NULL;
     Bsp_CmdHeader_OutFields_t *pReceiveHeader = NULL;
 
     if( !hMsg ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
-    if( !pBspStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pBspStatus ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     hHsm = hMsg->hHsm;
 
@@ -424,19 +420,11 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     {
         BKNI_Memcpy( &regValue, &hMsg->mailBox[i*4], 4 );
         writeOutbox( hHsm->regHandle, i, regValue );
-        if( regValue ) commandLength = i;
     }
 
    #ifdef BHSM_DEBUG_BSP
     BHSM_BspDebug_PrintCommand( hHsm, (uint32_t*)hMsg->mailBox );
    #endif
-
-    for( i = 0; i <= commandLength; i++ )
-    {
-        BKNI_Memcpy( &regValue, &hMsg->mailBox[i*4], 4 );
-        BDBG_MSG(("> %02d 0x%08X", i, regValue ));
-    }
-    BDBG_MSG(("Rest of mailbox is zeros."));
 
     /* indicate that message is loaded. */
     BREG_Write32( hHsm->regHandle, MAILBOX_ILOAD_CONTROL, MAILBOX_ILOAD_CONTROL_MASK );
@@ -469,7 +457,6 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     {
         regValue = readInbox( hHsm->regHandle, i );
         BKNI_Memcpy( &hMsg->mailBox[i*4], &regValue, 4 );
-        if( regValue ) { commandLength = i; }
     }
 
    #ifdef BHSM_DEBUG_BSP
@@ -482,13 +469,6 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg, uint16_t *pBspStatus )
     {
         _ParseBfwVersion( &hHsm->bfwVersion, pReceiveHeader->bspFwReleaseVer );
         hHsm->bfwVersionValid = true;
-    }
-
-    for( i = 0; i < (unsigned)(5 + (pReceiveHeader->paramLen/4)); i++ )
-    {
-        uint32_t regVal;
-        BKNI_Memcpy( &regVal, &hMsg->mailBox[i*4], 4 );
-        BDBG_MSG((" <%02d 0x%08X", i, regVal ));
     }
 
     if( pReceiveHeader->ownerId != hHsm->modules.pBsp->ownerId )

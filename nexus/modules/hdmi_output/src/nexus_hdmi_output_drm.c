@@ -187,6 +187,10 @@ static void NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(const NEXUS_HdmiDynamicRang
 static void NEXUS_HdmiOutput_P_DrmInfoFrameDisable(NEXUS_HdmiOutputHandle output)
 {
     BAVC_HDMI_DRMInfoFrame stDRMInfoFrame ;
+    BDBG_LOG(("    DRMInfoFrame")) ;
+    BDBG_LOG(("      eotf: %s -> %s",
+        eotfStrings[output->drm.outputInfoFrame.eotf],
+        eotfStrings[NEXUS_VideoEotf_eInvalid]));
     output->drm.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
     BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
     NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(&output->drm.outputInfoFrame, &stDRMInfoFrame);
@@ -199,7 +203,7 @@ static void NEXUS_HdmiOutput_P_DrmInfoFrameDisableTimerExpiration(void * pContex
 {
     NEXUS_HdmiOutputHandle output = pContext;
     if (!output->drm.offTimer) return; /* someone canceled early */
-    BDBG_LOG(("DRMIF disable timer expired; disabling DRMIF"));
+    BDBG_LOG(("DRMIF disable timer expired"));
     output->drm.offTimer = NULL;
     NEXUS_HdmiOutput_P_DrmInfoFrameDisable(output);
 }

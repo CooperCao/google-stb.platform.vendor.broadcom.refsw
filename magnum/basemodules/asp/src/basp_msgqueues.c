@@ -1205,7 +1205,7 @@ BERR_Code BASP_Msgqueue_Log_isrsafe(BASP_MsgqueueHandle hMsgqueue, const char *p
         BDBG_MSG(("Body              Fw2PiPayloadNotify"));
         BDBG_MSG(("                  ========================"));
         BDBG_MSG(("  responseAddress hi:lo:     0x%08x:0x%08x" ,
-                    pMsg->Message.MessagePayload.PayloadNotify.HttpResponseAddress.ui32BaseAddrLo,
+                    pMsg->Message.MessagePayload.PayloadNotify.HttpResponseAddress.ui32BaseAddrHi,
                     pMsg->Message.MessagePayload.PayloadNotify.HttpResponseAddress.ui32BaseAddrLo));
         BDBG_MSG(("  responseSize:              %d" , pMsg->Message.MessagePayload.PayloadNotify.HttpResponseAddress.ui32Size));
         break;
@@ -1216,7 +1216,8 @@ BERR_Code BASP_Msgqueue_Log_isrsafe(BASP_MsgqueueHandle hMsgqueue, const char *p
         BASP_Pi2Fw_Message  *pMsg = pMessage;
         BDBG_MSG(("Body               Pi2FwPayloadConsumed"));
         BDBG_MSG(("                   ====================="));
-        BDBG_MSG(("  ui32NumberofBytesToSkip:     0x%08x" , pMsg->MessagePayload.PayloadConsumed.ui32NumberofBytesToSkip));
+        BDBG_MSG(("  ui32NumberofBytesToSkip:     %u" , pMsg->MessagePayload.PayloadConsumed.ui32NumberofBytesToSkip));
+        BDBG_MSG(("  ui32RequireMoreData:         %u" , pMsg->MessagePayload.PayloadConsumed.ui32RequireMoreData));
         break;
     }
     case BASP_MessageType_eFw2PiPayloadConsumedResp:

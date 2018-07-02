@@ -121,6 +121,10 @@
 #include "bchp_zone0_fs.h"
 #endif
 
+#ifdef BCHP_CM_REG_START
+#include "bchp_cm.h"
+#endif
+
 #include "bchp_reset_common.h"
 
 BDBG_MODULE(BCHP);
@@ -313,6 +317,23 @@ static void BCHP_P_ResetRaagaCore(const BCHP_Handle hChip, const BREG_Handle hRe
 
 #ifdef USE_VC5
 
+#define CM_PASSWORD 0x5a000000
+static void BCHP_P_CM_V3DCTL_Enable(
+   const BREG_Handle hReg, int mode
+   )
+{
+#ifdef BCHP_CM_V3DCTL
+   uint32_t uiReg;
+   /* 7211 uses Pi architecture, so BCHP_PWR_SUPPORT is not enabled */
+   uiReg = BREG_Read32(hReg, BCHP_CM_V3DCTL);
+   BCHP_SET_FIELD_DATA(uiReg, CM_V3DCTL, ENAB, mode);
+   BREG_Write32(hReg, BCHP_CM_V3DCTL, (CM_PASSWORD | uiReg));
+#else
+   BSTD_UNUSED(hReg);
+   BSTD_UNUSED(mode);
+#endif
+}
+
 static void BCHP_P_HardwarePowerUpV3D(
    const BREG_Handle hReg
    )
@@ -392,6 +413,7 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
     BSTD_UNUSED(hChip);
 
 #ifdef USE_VC5
+    BCHP_P_CM_V3DCTL_Enable(hReg, 1);
     /* We will briefly power up the clocks and the v3d core, reset to clear any interrupts, then power off again */
     BCHP_P_HardwarePowerUpV3D(hReg);
 #endif /* USE_VC5 */
@@ -434,14 +456,15 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
 
 #ifdef USE_VC5
     BCHP_P_HardwarePowerDownV3D(hReg);
+    BCHP_P_CM_V3DCTL_Enable(hReg, 0);
 #endif /* USE_VC5 */
 }
 #endif
 
 BERR_Code BCHP_Cmn_ResetMagnumCores( const BCHP_Handle hChip )
 {
-
     BREG_Handle  hRegister = hChip->regHandle;
+    uint32_t i;
 
     BDBG_MSG(("BCHP_Cmn_ResetMagnumCores"));
 
@@ -457,15 +480,16 @@ BERR_Code BCHP_Cmn_ResetMagnumCores( const BCHP_Handle hChip )
 
     /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
     /* Note, SW_INIT set/clear registers don't need read-modify-write. */
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_DATA );
-
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_DATA );
-
-    /* Now clear the reset. This assumes the bits for SET and CLEAR always match. */
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_DATA );
-
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_DATA );
-
+    for (i=1; i; i<<=1) {
+        if (BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_DATA & i) {
+            BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, i);
+            BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, i);
+        }
+        if (BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_DATA & i) {
+            BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET, i);
+            BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR, i);
+        }
+    }
 
 #if ( BCHP_CHIP==7439 )
     {

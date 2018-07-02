@@ -291,6 +291,11 @@ typedef struct BIP_PlayerConnectSettings
 
     BIP_PlayerDataAvailabilityModel dataAvailabilityModel;    /*!< Specifies how the Stream's AV data is accessible: default is eAuto where Player determines it based on the HTTP Response. */
 
+    bool                            deferServerConnection;    /*!< Actual connection to the Server is deferred till the BIP_Player_Start state. */
+                                                              /*!< Useful when app knows the media info or doesn't need to know it in recording type usage. */
+                                                              /*!< Also, this option is currently only supported when BIP_PlayerPrepareSettings.enableHwOffload is set. */
+                                                              /*!< And is mainly there for testing purposes to blindly record the incoming IP stream. */
+
     BIP_SETTINGS(BIP_PlayerConnectSettings)                   /*!< Internal use... for init verification. */
 } BIP_PlayerConnectSettings;
 BIP_SETTINGS_ID_DECLARE(BIP_PlayerConnectSettings);
@@ -1430,6 +1435,7 @@ typedef enum BIP_PlayerSubState
     /* Substates for BIP_PlayerState_eStarting. */
     BIP_PlayerSubState_eStartingNew,                        /* Player is in the process of starting. */
     BIP_PlayerSubState_eStartingWaitForPbipStart,           /* Player is waiting for some internal tasks to finish before completing. */
+    BIP_PlayerSubState_eStartingWaitForConnectCompletion,   /* Player has issued BIP_Socket_Connect & is waiting for connect completion. */
     BIP_PlayerSubState_eStartingWaitForHttpResponse,        /* Player has sent HTTP Request & is waiting for HTTP Response before completing starting state. */
     BIP_PlayerSubState_eStartingDone,                       /* Player is started. */
 

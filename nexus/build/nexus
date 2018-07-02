@@ -41,9 +41,7 @@ if [ ! -z $TEST ]; then
     rmmod bcm_astra || exit;
 fi
 
-if [ ! -e bp3.bin ]; then
-  ./bp3flash.sh -r 2>/dev/null
-fi
+./bp3flash.sh 2>/dev/null
 
 insmod bcmdriver.ko || exit;
 if [ ! -e /dev/brcm0 ]; then

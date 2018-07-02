@@ -1,21 +1,45 @@
 /***************************************************************************
- *     Copyright (c) 2003-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -219,7 +243,7 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
    BDBG_ASSERT(pstExpectedDelta);
 
    {
-      BXDM_PP_Fix33_t fixExpectedDeltaStep = BXDM_PP_Fix33_from_mixedfraction(
+      BXDM_PP_Fix33_t fixExpectedDeltaStep = BXDM_PP_Fix33_from_mixedfraction_isrsafe(
             pstExpectedDelta->uiWhole,
             pstExpectedDelta->uiFractional,
             BXDM_PictureProvider_P_FixedPoint_FractionalOverflow
@@ -237,10 +261,10 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
    }
 
    /* Store original value as fixed point (P[n]) */
-   fixActualValueP = BXDM_PP_Fix33_from_uint32(uiCurrentValue);
+   fixActualValueP = BXDM_PP_Fix33_from_uint32_isrsafe(uiCurrentValue);
 
    /* Compute Delta Value Expected (D = DeltaStep * StepCount)*/
-   fixExpectedDeltaD= BXDM_PP_Fix33_mulu(hJrc->fixDeltaStep, hJrc->uiStepCount);
+   fixExpectedDeltaD= BXDM_PP_Fix33_mulu_isrsafe(hJrc->fixDeltaStep, hJrc->uiStepCount);
 
    /* Compute interpolated PTS (T[n] = P[0] + n*D) */
    if ( false == hJrc->bSeeded )
@@ -250,18 +274,18 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
    }
    else
    {
-      hJrc->fixExpectedValueT = BXDM_PP_Fix33_add( hJrc->fixExpectedValueT, fixExpectedDeltaD );
+      hJrc->fixExpectedValueT = BXDM_PP_Fix33_add_isrsafe( hJrc->fixExpectedValueT, fixExpectedDeltaD );
    }
 
    /* Compute the error bias (E[n] = P[n] - T[n]) */
-   fixBiasE = BXDM_PP_Fix33_sub(fixActualValueP, hJrc->fixExpectedValueT);
+   fixBiasE = BXDM_PP_Fix33_sub_isrsafe(fixActualValueP, hJrc->fixExpectedValueT);
 
-   if ( !( ( BXDM_PP_Fix33_to_int32(fixBiasE) <= (int32_t) hJrc->stSettings.uiJitterUpperThreshold )
-             && ( BXDM_PP_Fix33_to_int32(fixBiasE) >= -(int32_t)hJrc->stSettings.uiJitterUpperThreshold ) )
+   if ( !( ( BXDM_PP_Fix33_to_int32_isrsafe(fixBiasE) <= (int32_t) hJrc->stSettings.uiJitterUpperThreshold )
+             && ( BXDM_PP_Fix33_to_int32_isrsafe(fixBiasE) >= -(int32_t)hJrc->stSettings.uiJitterUpperThreshold ) )
            )
    {
       BXDM_PPJRC_P_Reset_isrsafe(hJrc);
-      BDBG_MSG(("RESET[0] - Beyond Jitter Threshold (%d)", BXDM_PP_Fix33_to_int32(fixBiasE)));
+      BDBG_MSG(("RESET[0] - Beyond Jitter Threshold (%d)", BXDM_PP_Fix33_to_int32_isrsafe(fixBiasE)));
       fixCorrectedValueC = fixActualValueP;
    }
    else
@@ -278,13 +302,13 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
    else
    {
       /* Subtract oldest value from running sum */
-      hJrc->fixCumulativeBias = BXDM_PP_Fix33_sub(hJrc->fixCumulativeBias, hJrc->afixBias[hJrc->uiBiasIndex]);
+      hJrc->fixCumulativeBias = BXDM_PP_Fix33_sub_isrsafe(hJrc->fixCumulativeBias, hJrc->afixBias[hJrc->uiBiasIndex]);
    }
 
    hJrc->afixBias[hJrc->uiBiasIndex] = fixBiasE ;
 
    /* Update running sum */
-   hJrc->fixCumulativeBias = BXDM_PP_Fix33_add(hJrc->fixCumulativeBias, hJrc->afixBias[hJrc->uiBiasIndex]);
+   hJrc->fixCumulativeBias = BXDM_PP_Fix33_add_isrsafe(hJrc->fixCumulativeBias, hJrc->afixBias[hJrc->uiBiasIndex]);
 
    /* Increment Bias index */
    hJrc->uiBiasIndex++;
@@ -296,26 +320,26 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
    /* Adjust corrected value by the Average Bias */
    if ( hJrc->uiBiasCount > 0 )
    {
-      fixAverageBiasB = BXDM_PP_Fix33_divu(hJrc->fixCumulativeBias, hJrc->uiBiasCount);
-      fixCorrectedValueC = BXDM_PP_Fix33_add(fixCorrectedValueC, fixAverageBiasB);
+      fixAverageBiasB = BXDM_PP_Fix33_divu_isrsafe(hJrc->fixCumulativeBias, hJrc->uiBiasCount);
+      fixCorrectedValueC = BXDM_PP_Fix33_add_isrsafe(fixCorrectedValueC, fixAverageBiasB);
    }
 
    /* Compute the overall correction (CorrectedValue - ActualValue) */
-   fixCorrection = BXDM_PP_Fix33_sub(fixCorrectedValueC, fixActualValueP);
+   fixCorrection = BXDM_PP_Fix33_sub_isrsafe(fixCorrectedValueC, fixActualValueP);
 
-   if ( ( BXDM_PP_Fix33_to_int32(fixCorrection) <= (int32_t) hJrc->stSettings.uiJitterLowerThreshold )
-        && ( BXDM_PP_Fix33_to_int32(fixCorrection) >= -(int32_t) hJrc->stSettings.uiJitterLowerThreshold )
+   if ( ( BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection) <= (int32_t) hJrc->stSettings.uiJitterLowerThreshold )
+        && ( BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection) >= -(int32_t) hJrc->stSettings.uiJitterLowerThreshold )
       )
    {
       fixCorrectedValueC = fixActualValueP;
       fixCorrection = 0;
    }
-   else if ( !( ( BXDM_PP_Fix33_to_int32(fixCorrection) <= (int32_t) hJrc->stSettings.uiJitterUpperThreshold )
-                && ( BXDM_PP_Fix33_to_int32(fixCorrection) >= -(int32_t)hJrc->stSettings.uiJitterUpperThreshold ) )
+   else if ( !( ( BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection) <= (int32_t) hJrc->stSettings.uiJitterUpperThreshold )
+                && ( BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection) >= -(int32_t)hJrc->stSettings.uiJitterUpperThreshold ) )
            )
    {
       BXDM_PPJRC_P_Reset_isrsafe(hJrc);
-      BDBG_MSG(("RESET[1] - Beyond Jitter Threshold (%d 0x%lu)", BXDM_PP_Fix33_to_int32(fixCorrection), (unsigned long)fixCorrection));
+      BDBG_MSG(("RESET[1] - Beyond Jitter Threshold (%d 0x%lu)", BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection), (unsigned long)fixCorrection));
       fixCorrectedValueC = fixActualValueP;
       fixAverageBiasB = 0;
       fixCorrection = 0;
@@ -325,23 +349,23 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
 
    {
 #if BDBG_DEBUG_BUILD
-      BXDM_PP_Fix33_t fixActualDelta = BXDM_PP_Fix33_sub(fixActualValueP, hJrc->fixPreviousActualValueP);
-      BXDM_PP_Fix33_t fixActualDeltaError = BXDM_PP_Fix33_sub(fixActualDelta, fixExpectedDeltaD);
-      BXDM_PP_Fix33_t fixCorrectedDelta = BXDM_PP_Fix33_sub(fixCorrectedValueC, hJrc->fixPreviousCorrectedValueC);
+      BXDM_PP_Fix33_t fixActualDelta = BXDM_PP_Fix33_sub_isrsafe(fixActualValueP, hJrc->fixPreviousActualValueP);
+      BXDM_PP_Fix33_t fixActualDeltaError = BXDM_PP_Fix33_sub_isrsafe(fixActualDelta, fixExpectedDeltaD);
+      BXDM_PP_Fix33_t fixCorrectedDelta = BXDM_PP_Fix33_sub_isrsafe(fixCorrectedValueC, hJrc->fixPreviousCorrectedValueC);
 #endif
 
       BDBG_MSG(("%03d: (Pn:%08x (dPn:%08x edPn:%08x err:%3d)) (Tn:%08x En:%3d) (Bn:%3d) --> (Cn:%08x (dCn:%08x (%3d))",
                hJrc->uiTotalCount % 1000,
-               BXDM_PP_Fix33_to_uint32(fixActualValueP),
-               BXDM_PP_Fix33_to_uint32(fixActualDelta),
-               BXDM_PP_Fix33_to_uint32(fixExpectedDeltaD),
-               BXDM_PP_Fix33_to_int32(fixActualDeltaError),
-               BXDM_PP_Fix33_to_uint32(hJrc->fixExpectedValueT),
-               BXDM_PP_Fix33_to_int32(fixBiasE),
-               BXDM_PP_Fix33_to_int32(fixAverageBiasB),
-               BXDM_PP_Fix33_to_uint32(fixCorrectedValueC),
-               BXDM_PP_Fix33_to_uint32(fixCorrectedDelta),
-               BXDM_PP_Fix33_to_int32(fixCorrection)
+               BXDM_PP_Fix33_to_uint32_isrsafe(fixActualValueP),
+               BXDM_PP_Fix33_to_uint32_isrsafe(fixActualDelta),
+               BXDM_PP_Fix33_to_uint32_isrsafe(fixExpectedDeltaD),
+               BXDM_PP_Fix33_to_int32_isrsafe(fixActualDeltaError),
+               BXDM_PP_Fix33_to_uint32_isrsafe(hJrc->fixExpectedValueT),
+               BXDM_PP_Fix33_to_int32_isrsafe(fixBiasE),
+               BXDM_PP_Fix33_to_int32_isrsafe(fixAverageBiasB),
+               BXDM_PP_Fix33_to_uint32_isrsafe(fixCorrectedValueC),
+               BXDM_PP_Fix33_to_uint32_isrsafe(fixCorrectedDelta),
+               BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection)
                ));
 
 #if BXDM_PPJRC_P_DUMP
@@ -359,16 +383,16 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
          if ( NULL != hJrc->fDump )
          {
             fprintf(hJrc->fDump, "%u,%u,%u,%d,%u,%u,%d,%u,%u,%d\n",
-                     BXDM_PP_Fix33_to_uint32(fixActualValueP),
-                     BXDM_PP_Fix33_to_uint32(fixActualDelta),
-                     BXDM_PP_Fix33_to_uint32(fixExpectedDeltaD),
-                     BXDM_PP_Fix33_to_int32(fixActualDeltaError),
-                     BXDM_PP_Fix33_to_uint32(hJrc->fixExpectedValueT),
-                     BXDM_PP_Fix33_to_int32(fixBiasE),
-                     BXDM_PP_Fix33_to_int32(fixAverageBiasB),
-                     BXDM_PP_Fix33_to_uint32(fixCorrectedValueC),
-                     BXDM_PP_Fix33_to_uint32(fixCorrectedDelta),
-                     BXDM_PP_Fix33_to_int32(fixCorrection)
+                     BXDM_PP_Fix33_to_uint32_isrsafe(fixActualValueP),
+                     BXDM_PP_Fix33_to_uint32_isrsafe(fixActualDelta),
+                     BXDM_PP_Fix33_to_uint32_isrsafe(fixExpectedDeltaD),
+                     BXDM_PP_Fix33_to_int32_isrsafe(fixActualDeltaError),
+                     BXDM_PP_Fix33_to_uint32_isrsafe(hJrc->fixExpectedValueT),
+                     BXDM_PP_Fix33_to_int32_isrsafe(fixBiasE),
+                     BXDM_PP_Fix33_to_int32_isrsafe(fixAverageBiasB),
+                     BXDM_PP_Fix33_to_uint32_isrsafe(fixCorrectedValueC),
+                     BXDM_PP_Fix33_to_uint32_isrsafe(fixCorrectedDelta),
+                     BXDM_PP_Fix33_to_int32_isrsafe(fixCorrection)
                     );
          }
       }
@@ -378,7 +402,7 @@ BERR_Code BXDM_PPJRC_P_AddValue_isrsafe(
    hJrc->fixPreviousCorrectedValueC = fixCorrectedValueC;
    hJrc->fixPreviousActualValueP = fixActualValueP;
    hJrc->uiStepCount = uiStepCount;
-   *puiJitterCorrectedValue = BXDM_PP_Fix33_to_uint32(fixCorrectedValueC);
+   *puiJitterCorrectedValue = BXDM_PP_Fix33_to_uint32_isrsafe(fixCorrectedValueC);
 
    BDBG_LEAVE(BXDM_PPJRC_P_AddValue_isrsafe);
 

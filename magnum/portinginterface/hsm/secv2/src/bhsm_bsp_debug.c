@@ -258,7 +258,7 @@ void BHSM_BspDebug_PrintCommand( BHSM_Handle hHsm, const uint32_t *pData )
     {
         unsigned xx = 0;
         unsigned maxOffset = 0;
-        for( xx = 0; xx < 384/4; xx++ ) /* TODO make BHSM_P_MAILBOX_BYTE_SIZE accessiable and use it */
+        for( xx = 0; xx < BHSM_P_MAILBOX_BYTE_SIZE/4; xx++ )
         {
             if( pData[xx] ) { maxOffset = xx; }
         }
@@ -302,7 +302,7 @@ void BHSM_BspDebug_PrintResponse( BHSM_Handle hHsm, const uint32_t *pData )
     {
         unsigned xx = 0;
         unsigned maxOffset = 0;
-        for( xx = 0; xx < 384/4; xx++ ) /* TODO make BHSM_P_MAILBOX_BYTE_SIZE accessiable and use it */
+        for( xx = 0; xx < BHSM_P_MAILBOX_BYTE_SIZE/4; xx++ )
         {
             if( pData[xx] ) { maxOffset = xx; }
         }

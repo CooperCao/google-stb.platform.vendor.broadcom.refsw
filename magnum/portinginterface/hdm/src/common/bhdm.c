@@ -1978,8 +1978,11 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 	/*RB*  07 Configure HDMI to the Input Display Format - Scheduler */
 	BHDM_CHECK_RC(rc, BHDM_P_ConfigureInputVideoFmt(hHDMI, NewHdmiSettings)) ;
 
-/* For boot loader usage */
+	/* For boot loader usage */
 #ifndef BHDM_FOR_BOOTUPDATER
+#if BHDM_CONFIG_HAS_HDCP22
+	BHDM_P_SetHdcpConstrainAvConfiguration(hHDMI, NewHdmiSettings) ;
+#endif
 	/*RB*  08 Configure Pixel Repeater for rate < 25MPixels */
 	if  (NewHdmiSettings->eOutputFormat == BHDM_OutputFormat_eHDMIMode)
 	{
@@ -2557,8 +2560,6 @@ BERR_Code BHDM_SetAvMute(
 	ulOffset = hHDMI->ulOffset ;
 
 	/* AvMute valid for HDMI only */
-	if  (hHDMI->DeviceSettings.eOutputFormat != BHDM_OutputFormat_eHDMIMode)
-		goto done ;
 
 	if (!hHDMI->DeviceStatus.tmds.dataEnabled) {
 		/* warn, but keep going */
@@ -2657,7 +2658,6 @@ BERR_Code BHDM_SetAvMute(
 
 	hHDMI->AvMuteState = bEnableAvMute ;
 
-done:
 	BDBG_LEAVE(BHDM_SetAvMute) ;
 	return rc ;
 }  /* END BHDM_SetAvMute */
@@ -2849,7 +2849,7 @@ BERR_Code BHDM_InitializeDriftFIFO(
 	uint8_t bHPInterrupt = false ;
 	uint32_t timeDelayed;
 	bool masterMode;
-	bool bAuthenticated ;
+	BHDM_HDCP_AuthenticationStatus stHdcpAuthStatus	;
 
 	BDBG_ENTER(BHDM_InitializeDriftFIFO) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
@@ -2862,14 +2862,14 @@ BERR_Code BHDM_InitializeDriftFIFO(
 	BDBG_MSG(("Start <RECENTER FIFO>...")) ;
 
 	/* do not recenter FIFO if HDCP is enabled */
-	rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &bAuthenticated) ;
+	rc = BHDM_HDCP_GetAuthenticationStatus(hHDMI, &stHdcpAuthStatus) ;
 	if (rc)
 	{
 		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
 
-	if (bAuthenticated)
+	if (stHdcpAuthStatus.bEncrypted)
 	{
 		BDBG_WRN(("Tx%d: HDCP is enabled ; <RECENTER FIFO> aborted...", hHDMI->eCoreId)) ;
 		goto done ;
@@ -3106,13 +3106,15 @@ BERR_Code BHDM_CheckForValidVideo(
 		rc = BHDM_HDCP_FIFO_UNDERFLOW ;
 		goto done ;
 	}
-	BDBG_MSG(("Tx%d: Video data to HDMI Core... OK", hHDMI->eCoreId)) ;
 
 
 done:
+	BDBG_MSG(("Tx%d: Video data to HDMI Core: %s",
+		hHDMI->eCoreId, rc ? "Unstable" : "Stable")) ;
 	return rc ;
 
 }
+
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
 
 
@@ -4517,6 +4519,26 @@ BERR_Code BHDM_GetCrcValue_isr(
 
 	Register = BREG_Read32(hRegister, REGADDR_CRC_CHECK_STATUS_0 + ulOffset) ;
 	stCrcData->crc = BCHP_GET_FIELD_DATA(Register, REGNAME_CRC_CHECK_STATUS_0, CRC_VALUE);
+
+    #if BCHP_HDMI_FORMAT_DET_CFG_TRIGGER_LINE_COUNT_MASK
+    {
+
+          uint32_t Reg, Reg_format_detect;
+
+          /* Read FORMAT_DET_5.UUT_VAL1 */
+
+          Reg_format_detect = BREG_Read32(hRegister, BCHP_HDMI_FORMAT_DET_5);
+          Reg_format_detect = Reg_format_detect & BCHP_HDMI_FORMAT_DET_5_UUT_VAL1_MASK;
+
+          /* Set FORMAT_DET_5.TRIGGER_LINE_COUNT to the value read above */
+
+          Reg = BREG_Read32(hRegister, BCHP_HDMI_FORMAT_DET_CFG);
+          Reg = (Reg & ~BCHP_HDMI_FORMAT_DET_CFG_TRIGGER_LINE_COUNT_MASK) | (Reg_format_detect << BCHP_HDMI_FORMAT_DET_CFG_TRIGGER_LINE_COUNT_SHIFT);
+
+          BREG_Write32(hRegister, BCHP_HDMI_FORMAT_DET_CFG, Reg);
+
+      }
+    #endif
 
 #else
 	BSTD_UNUSED(hHDMI);
