@@ -913,6 +913,12 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
                     BKNI_Snprintf(dspIndex, sizeof(dspIndex), "Device Index: %u", BAPE_DolbyDigitalReencode_P_GetDeviceIndex(ddreHandle));
                 }
                 break;
+            case BAPE_PostProcessorType_eAdvancedTsm:
+                {
+                    BAPE_ProcessorHandle processorHandle = pPathNode->pHandle;
+                    BKNI_Snprintf(dspIndex, sizeof(dspIndex), "(%s)", BAPE_Processor_P_GetAdvancedTsmMode(processorHandle) == 0 ? "BYPASS" : "ENABLED");
+                }
+                break;
             default:
                 break;
             }

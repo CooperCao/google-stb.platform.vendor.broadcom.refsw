@@ -985,6 +985,10 @@ int media_player_start( media_player_t player, const media_player_start_settings
                 settings.codecSettings.ac3Plus.drcMode = settings.codecSettings.ac3Plus.drcModeDownmix = player->start_settings.audio.dolbyDrcMode;
             }
             break;
+        case NEXUS_AudioCodec_eAc4:
+            audioProcessingSettings.dolby.ddre.externalPcmMode = false;
+            player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+            break;
             /* only line and rf applies for aac/aacplus, but nexus can validate params */
         case NEXUS_AudioCodec_eAacAdts:
         case NEXUS_AudioCodec_eAacLoas:
@@ -1020,12 +1024,6 @@ int media_player_start( media_player_t player, const media_player_start_settings
     if (player->create_settings.audio.usePersistent) {
         player->audioProgram.primary.mixingMode = player->start_settings.audio.mixingMode;
         player->audioProgram.master = player->start_settings.audio.master;
-    }
-
-    /* special start settings based on codec */
-    switch (player->audioProgram.primary.codec) {
-    case NEXUS_AudioCodec_eAc4: player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone; break;
-    default: /* just ignore */ break;
     }
 #endif
 

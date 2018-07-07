@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * API Description:
 *   API name: AudioDecoder
@@ -45,6 +49,9 @@
 #include "priv/nexus_audio_decoder_priv.h"
 #include "priv/nexus_pid_channel_priv.h"
 #include "priv/nexus_stc_channel_priv.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
+#endif
 
 /* Comment this line to disable debug logging */
 #define RAAGA_DEBUG_LOG_CHANGES 1
@@ -112,6 +119,275 @@ static void NEXUS_AudioDecoder_P_Watchdog_isr(void *pParam1, int param2)
     BKNI_SetEvent_isr(g_watchdogEvent);
 }
 
+/* PAK is only required on non-bp3 chips */
+#if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
+     (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
+     (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0) ||\
+     (BCHP_CHIP == 7271 && BCHP_VER < BCHP_VER_C0) || (BCHP_CHIP == 7268 && BCHP_VER < BCHP_VER_C0))
+#define NEXUS_AUDIO_PAK_SUPPORT 1
+#else
+#define NEXUS_AUDIO_PAK_SUPPORT 0
+#endif
+
+#if NEXUS_AUDIO_PAK_SUPPORT
+extern void *NEXUS_AUDIO_IMG_Context;
+extern BIMG_Interface NEXUS_AUDIO_IMG_Interface;
+
+static NEXUS_Error NEXUS_AudioDecoder_P_Img_Create(void)
+{
+#if defined(NEXUS_MODE_driver)
+    NEXUS_Error rc = BERR_SUCCESS;
+
+    rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_AUDIO_PAK, &g_NEXUS_audioModuleData.pPakContext, &g_NEXUS_audioModuleData.pakImg);
+    if ( rc )
+    {
+        rc = BERR_TRACE(rc);
+        g_NEXUS_audioModuleData.pPakContext = NULL;
+    }
+#else
+    g_NEXUS_audioModuleData.pPakContext = NEXUS_AUDIO_IMG_Context;
+    g_NEXUS_audioModuleData.pakImg = NEXUS_AUDIO_IMG_Interface;
+#endif
+
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_AudioDecoder_P_Img_Destroy(void)
+{
+#if defined(NEXUS_MODE_driver)
+    Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pPakContext);
+#endif
+}
+
+static NEXUS_Error NEXUS_AudioDecoder_P_LoadFile(
+    BIMG_Interface *pImg,
+    void *pContext,
+    NEXUS_AudioImage image,
+    NEXUS_MemoryBlockHandle *pBlock,
+    void **pMemory,
+    NEXUS_Addr *pOffset,
+    unsigned *pLength
+    )
+{
+    NEXUS_Error errCode;
+    void *pImage = NULL;
+    uint32_t *pSize;
+    const void *pBuffer;
+
+    BDBG_ASSERT(NULL != pImg);
+    BDBG_ASSERT(NULL != pContext);
+    BDBG_ASSERT(NULL != pBlock);
+    BDBG_ASSERT(NULL != pMemory);
+    BDBG_ASSERT(NULL != pOffset);
+
+    *pBlock = NULL;
+    *pMemory = NULL;
+    *pOffset = 0;
+    *pLength = 0;
+
+    /* Open file */
+    errCode = pImg->open(pContext, &pImage, image);
+    if( errCode )
+    {
+        if ( errCode != BERR_INVALID_PARAMETER )
+        {
+            errCode = BERR_TRACE(errCode);
+        }
+        goto err;
+    }
+
+    /* Get size */
+    errCode = pImg->next(pImage, 0, (const void **)&pSize, sizeof(uint32_t));
+    if( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    BDBG_ASSERT(NULL != pSize);
+
+    *pLength = *pSize;
+    *pBlock = NEXUS_MemoryBlock_Allocate(NULL, *pLength, 4096, NULL);
+    if ( NULL == pBlock )
+    {
+        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto err;
+    }
+
+    errCode = NEXUS_MemoryBlock_Lock(*pBlock, pMemory);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    errCode = pImg->next(pImage, 0, &pBuffer, *pLength);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    BKNI_Memcpy(*pMemory, pBuffer, *pLength);
+    NEXUS_FlushCache(*pMemory, *pLength);
+
+    pImg->close(pImage);
+    pImage = NULL;
+
+    errCode = NEXUS_MemoryBlock_LockOffset(*pBlock, pOffset);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    return NEXUS_SUCCESS;
+
+err:
+    if ( pImage )
+    {
+        pImg->close(pImage);
+    }
+    if ( *pBlock )
+    {
+        if ( *pOffset )
+        {
+            NEXUS_MemoryBlock_UnlockOffset(*pBlock);
+        }
+        if ( *pMemory )
+        {
+            NEXUS_MemoryBlock_Unlock(*pBlock);
+        }
+        NEXUS_MemoryBlock_Free(*pBlock);
+    }
+
+    return errCode;
+}
+
+/* Load a Sage binary (bootloader or framework) located on the file system into memory */
+static NEXUS_Error NEXUS_AudioDecoder_P_Img_LoadPak(void)
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+
+    void *pContext = g_NEXUS_audioModuleData.pPakContext;
+    BIMG_Interface *pImg = &g_NEXUS_audioModuleData.pakImg;
+    NEXUS_MemoryBlockHandle hPak= NULL, hDrm = NULL;
+    void *pPakMem = NULL, *pDrmMem = NULL;
+    NEXUS_Addr pakAddr=0, drmAddr=0;
+    unsigned pakLength, drmLength;
+    BDSP_ProcessPAKSettings pakSettings;
+    BDSP_ProcessPAKStatus pakStatus;
+    NEXUS_AudioImage imageType = NEXUS_AudioImage_ePak;
+
+
+    BDBG_MSG(("Loading PAK"));
+#if NEXUS_HAS_SAGE
+    {
+        BSAGElib_ChipInfo chipInfo;
+        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.sage);
+        NEXUS_Sage_GetChipInfo_priv(&chipInfo);
+        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.sage);
+        imageType = (chipInfo.chipType == BSAGElib_ChipType_eZS) ? NEXUS_AudioImage_ePakDev : NEXUS_AudioImage_ePak;
+    }
+#endif
+    errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, imageType, &hPak, &pPakMem, &pakAddr, &pakLength);
+    if ( errCode )
+    {
+        if ( errCode == BERR_INVALID_PARAMETER && imageType == NEXUS_AudioImage_ePakDev )
+        {
+            BDBG_MSG(("pak_dev.bin not found, trying pak.bin"));
+            errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, NEXUS_AudioImage_ePak, &hPak, &pPakMem, &pakAddr, &pakLength);
+        }
+        if ( errCode )
+        {
+            if ( errCode == BERR_INVALID_PARAMETER )
+            {
+                BDBG_WRN(("Unable to load pak.bin file"));
+            }
+            else
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+            goto err;
+        }
+    }
+
+    BDBG_MSG(("Done loading PAK - Loading DRM"));
+    errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, NEXUS_AudioImage_eDrm, &hDrm, &pDrmMem, &drmAddr, &drmLength);
+    if ( errCode )
+    {
+        if ( errCode == BERR_INVALID_PARAMETER )
+        {
+            BDBG_MSG(("drm.bin not found, trying drm_dev.bin"));
+            errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, NEXUS_AudioImage_eDrmDev, &hDrm, &pDrmMem, &drmAddr, &drmLength);
+        }
+        if ( errCode )
+        {
+            if ( errCode == BERR_INVALID_PARAMETER )
+            {
+                BDBG_WRN(("Unable to load drm.bin"));
+            }
+            else
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+            goto err;
+        }
+    }
+    BDBG_MSG(("Done Loading DRM"));
+
+    BDSP_GetDefaultProcessPAKSettings(&pakSettings);
+    pakSettings.pakMemory.hBlock = NEXUS_MemoryBlock_GetBlock_priv(hPak);
+    pakSettings.pakMemory.pAddr = pPakMem;
+    pakSettings.pakMemory.offset = pakAddr;
+    pakSettings.pakSize = pakLength;
+    pakSettings.drmMemory.hBlock = NEXUS_MemoryBlock_GetBlock_priv(hDrm);
+    pakSettings.drmMemory.pAddr = pDrmMem;
+    pakSettings.drmMemory.offset = drmAddr;
+    pakSettings.drmSize = drmLength;
+
+    errCode = BDSP_ProcessPAK(g_NEXUS_audioModuleData.dspHandle, &pakSettings, &pakStatus);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    BDBG_WRN(("Successfully loaded PAK"));
+
+    errCode = NEXUS_SUCCESS;
+    /* Fall through to clean up */
+err:
+    if ( hPak )
+    {
+        if ( pPakMem )
+        {
+            NEXUS_MemoryBlock_Unlock(hPak);
+        }
+        if ( pakAddr )
+        {
+            NEXUS_MemoryBlock_UnlockOffset(hPak);
+        }
+        NEXUS_MemoryBlock_Free(hPak);
+    }
+    if ( hDrm )
+    {
+        if ( pDrmMem )
+        {
+            NEXUS_MemoryBlock_Unlock(hDrm);
+        }
+        if ( drmAddr )
+        {
+            NEXUS_MemoryBlock_UnlockOffset(hDrm);
+        }
+        NEXUS_MemoryBlock_Free(hDrm);
+    }
+
+    return errCode;
+}
+#endif /* NEXUS_AUDIO_PAK_SUPPORT */
+
 NEXUS_Error NEXUS_AudioDecoder_P_Init(void)
 {
     BERR_Code errCode;
@@ -150,6 +426,32 @@ NEXUS_Error NEXUS_AudioDecoder_P_Init(void)
     /* initialize global decoder data */
     BKNI_Memset(&g_decoders, 0, sizeof(g_decoders));
 
+#if NEXUS_AUDIO_PAK_SUPPORT
+    /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
+    errCode = NEXUS_AudioDecoder_P_Img_Create();
+    if ( errCode )
+    {
+        BAPE_GetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
+        interrupts.watchdog.pCallback_isr = NULL;
+        (void)BAPE_SetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
+        NEXUS_UnregisterEvent(g_watchdogCallback);
+        g_watchdogCallback = NULL;
+        BKNI_DestroyEvent(g_watchdogEvent);
+        g_watchdogEvent = NULL;
+        return BERR_TRACE(errCode);
+    }
+
+    errCode = NEXUS_AudioDecoder_P_Img_LoadPak();
+    if ( errCode )
+    {
+        BDBG_WRN(("Unable to load PAK data"));
+        if ( errCode != BERR_INVALID_PARAMETER )
+        {
+            (void)BERR_TRACE(errCode);
+        }
+    }
+#endif
+
     return BERR_SUCCESS;
 }
 
@@ -160,6 +462,10 @@ void NEXUS_AudioDecoder_P_Uninit(void)
     BAPE_GetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
     interrupts.watchdog.pCallback_isr = NULL;
     BAPE_SetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
+
+#if NEXUS_AUDIO_PAK_SUPPORT
+    NEXUS_AudioDecoder_P_Img_Destroy();
+#endif
 
     NEXUS_UnregisterEvent(g_watchdogCallback);
     g_watchdogCallback = NULL;
@@ -2942,6 +3248,11 @@ void NEXUS_AudioDecoder_P_Reset(void)
 
     /* Process watchdog RESUME */
     BAPE_ProcessWatchdogInterruptResume(NEXUS_AUDIO_DEVICE_HANDLE);
+
+#if NEXUS_AUDIO_PAK_SUPPORT
+    /* Reload PAK data */
+    (void)NEXUS_AudioDecoder_P_Img_LoadPak();
+#endif
 
     /* Restart RAVE contexts */
     LOCK_TRANSPORT();

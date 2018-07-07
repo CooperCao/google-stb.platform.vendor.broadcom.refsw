@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -179,6 +179,19 @@ void BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(
     unsigned maxConsumers,
     unsigned *pNumFound,        /* [out] */
     BAPE_PathNode **pConsumers  /* [out] Must be an array of at least maxConsumers length */
+    );
+
+/***************************************************************************
+Summary:
+Search for producers by a type and subtype using PathNode
+***************************************************************************/
+void BAPE_PathNode_P_FindProducersBySubtype_isrsafe(
+    BAPE_PathNode *pNode,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    unsigned maxProducers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pProducers   /* [out] Must be an array of at least maxConsumers length */
     );
 
 

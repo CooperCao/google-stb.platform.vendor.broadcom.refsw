@@ -112,6 +112,7 @@ struct b_audio_resource {
     NEXUS_TruVolumeHandle truVolume;
     NEXUS_DolbyVolume258Handle dolbyVolume258;
     NEXUS_DolbyDigitalReencodeHandle ddre;
+    NEXUS_AudioProcessorHandle advancedTsm; /* Only for MS11/MS12 configurations*/
 
     BLST_Q_HEAD(b_audio_playback_resource_list, b_audio_playback_resource) audioPlaybackList;
     NEXUS_AudioEncoderHandle audioEncoder;
@@ -423,7 +424,18 @@ static NEXUS_AudioInputHandle b_audio_get_pcm_input(struct b_audio_resource *r, 
             return NEXUS_DolbyDigitalReencode_GetConnector(r->ddre, NEXUS_AudioConnectorType_eMultichannel);
         }
     }
-    else if (r->dolbyVolume258) {
+    else if (r->advancedTsm) {
+        switch (type)
+        {
+        default:
+        case NEXUS_AudioConnectorType_eStereo:
+            return NEXUS_AudioProcessor_GetConnectorByType(r->advancedTsm, NEXUS_AudioConnectorType_eStereo);
+        case NEXUS_AudioConnectorType_eMultichannel:
+            return NEXUS_AudioProcessor_GetConnectorByType(r->advancedTsm, NEXUS_AudioConnectorType_eMultichannel);
+        }
+    }
+    else if (r->dolbyVolume258)
+    {
         return NEXUS_DolbyVolume258_GetConnector(r->dolbyVolume258);
     }
     else if (r->truVolume && type == NEXUS_AudioConnectorType_eStereo) {
@@ -456,7 +468,7 @@ static NEXUS_AudioInputHandle b_audio_get_pcm_input(struct b_audio_resource *r, 
 
 static NEXUS_AudioInputHandle b_audio_get_compressed_input(struct b_audio_resource *r, NEXUS_AudioConnectorType type)
 {
-    /* filter graph is mixer[->avl][->truVolume][->dolbyVolume258][->ddre] */
+    /* filter graph is mixer[->advancedTsm[->avl][->truVolume][->dolbyVolume258][->ddre] */
     if (r->ddre) {
         switch (type)
         {
@@ -1207,6 +1219,30 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
         }
 
         if (b_dolby_ms_enabled(session)) {
+            if (cap.dsp.processing[NEXUS_AudioPostProcessing_eAdvancedTsm]) {
+                NEXUS_AudioInputHandle audioInput = b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eMultichannel);
+                NEXUS_AudioProcessorOpenSettings procOpenSettings;
+
+                NEXUS_AudioProcessor_GetDefaultOpenSettings(&procOpenSettings);
+                procOpenSettings.type = NEXUS_AudioPostProcessing_eAdvancedTsm;
+                r->advancedTsm = NEXUS_AudioProcessor_Open(&procOpenSettings);
+                if (r->advancedTsm) {
+                    rc = NEXUS_AudioProcessor_AddInput(r->advancedTsm, audioInput);
+                    if (rc) {
+                        BDBG_ERR(("NEXUS_AudioProcessor_AddInput %d", rc));
+                        NEXUS_AudioProcessor_Close(r->advancedTsm);
+                        r->advancedTsm = NULL;
+                    }
+                    else {
+                        NEXUS_AudioProcessorSettings processorSettings;
+                        NEXUS_AudioProcessor_GetSettings(r->advancedTsm, &processorSettings);
+                        processorSettings.settings.advancedTsm.mode = NEXUS_AudioAdvancedTsmMode_ePpm;
+                        BKNI_Memcpy(&session->audioProcessingSettings.advancedTsm, &processorSettings.settings.advancedTsm, sizeof(NEXUS_AudioAdvancedTsmSettings));
+                        NEXUS_AudioProcessor_SetSettings(r->advancedTsm, &processorSettings);
+                    }
+                }
+            }
+
             /* only MS11 has DV258. In MS12, volume leveling and other DAPv2 features are built into
                the Dsp Mixer */
             if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms11 )
@@ -1613,8 +1649,12 @@ void audio_decoder_destroy(struct b_audio_resource *r)
     if (r->ddre) {
         NEXUS_DolbyDigitalReencode_Close(r->ddre);
     }
-    if (r->dolbyVolume258) {
+    if (r->dolbyVolume258)
+    {
         NEXUS_DolbyVolume258_Close(r->dolbyVolume258);
+    }
+    if (r->advancedTsm) {
+        NEXUS_AudioProcessor_Close(r->advancedTsm);
     }
     if (r->avl)
     {
@@ -3137,6 +3177,7 @@ void nxserverlib_p_audio_get_audio_procesing_settings(struct b_session *session,
 int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session, const NxClient_AudioProcessingSettings *pSettings)
 {
     int rc;
+    bool restart = false;
     if (!session->main_audio) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
@@ -3179,6 +3220,16 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
     else {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
+    if (session->main_audio->advancedTsm) {
+        NEXUS_AudioProcessorSettings currentAudioProcessorSettings;
+        NEXUS_AudioProcessor_GetSettings(session->main_audio->advancedTsm, &currentAudioProcessorSettings);
+        if ( 0 != BKNI_Memcmp(&currentAudioProcessorSettings.settings.advancedTsm, &pSettings->advancedTsm, sizeof(NEXUS_AudioAdvancedTsmSettings)) ) {
+            BKNI_Memcpy(&currentAudioProcessorSettings.settings.advancedTsm, &pSettings->advancedTsm, sizeof(NEXUS_AudioAdvancedTsmSettings));
+            rc = NEXUS_AudioProcessor_SetSettings(session->main_audio->advancedTsm, &currentAudioProcessorSettings);
+            if (rc) return BERR_TRACE(rc);
+            restart = true;
+        }
+    }
     if (session->main_audio->ddre) {
         NEXUS_DolbyDigitalReencodeSettings currentDDRESettings;
         NEXUS_DolbyDigitalReencode_GetSettings(session->main_audio->ddre, &currentDDRESettings);
@@ -3197,6 +3248,9 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
         }
     }
     session->audioProcessingSettings = *pSettings;
+    if (restart) {
+        nxserverlib_p_restart_audio(session);
+    }
     return 0;
 }
 

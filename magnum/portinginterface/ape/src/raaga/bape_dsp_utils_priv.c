@@ -1195,9 +1195,28 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
 
     if ( hDspMixer != NULL )
     {
+        BAPE_PathNode *pPostProcessNodes[2];
+        BAPE_ProcessorHandle processor = NULL;
+        unsigned advTsmMode = 0;
         /* Setup Master Mode */
         pStartSettings->masterTask = hDspMixer->hTask;
         pStartSettings->schedulingMode = BDSP_TaskSchedulingMode_eSlave;
+
+        BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&hDspMixer->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eAdvancedTsm, 2, &numFound, pPostProcessNodes);
+        switch (numFound) {
+        case 0:
+            break;
+        case 1:
+            processor = pPostProcessNodes[0]->pHandle;
+            advTsmMode = BAPE_Processor_P_GetAdvancedTsmMode(processor);
+            if ((BAPE_AdvancedTsmMode)advTsmMode == BAPE_AdvancedTsmMode_ePpm) {
+                pStartSettings->ppmCorrection = true;
+            }
+            break;
+        default:
+            BDBG_ERR(("Multiple Advanced TSM postprocesses found downstream from mixer.  This is not supported."));
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
 
         /* Check if MuxOutput is after DSP Mixer */
         BAPE_PathNode_P_FindConsumersByType_isrsafe(&hDspMixer->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);

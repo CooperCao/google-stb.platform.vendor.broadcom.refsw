@@ -114,6 +114,7 @@ static void print_usage(void)
         "  -dvAmount {0..%d}  \t Controls the Amount of Volume Leveling (requires Dolby Volume Leveler enabled)\n",
         MAX_DOLBY_LEVELER
         );
+    print_list_option("advancedTsmMode", g_audioAdvancedTsmModeStrs);
     printf(
         "  -dde {on|off}  \tenable MS12 Dolby Dialog Enhancer (requires nxserver -ms12)\n"
         "  -ddeEnhancerLevel {0..%d}  \t Controls the Amount of Content Enhancing (requires Dolby Dialog Enhancer enabled)\n"
@@ -123,6 +124,7 @@ static void print_usage(void)
         );
     printf(
         "  -ms12EncoderFixedOutput {on|off}  \tenable MS12 Dolby Encoder Fixed Output Mode (requires nxserver -ms12)\n"
+        "  -ms12EncoderFixedAtmos {on|off}  \tenable MS12 Dolby Encoder Fixed Atmos (requires nxserver -ms12)\n"
         );
 }
 
@@ -171,6 +173,7 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
     printf(
         "avl                    %s\n"
         "truVolume              %s\n"
+        "advancedTsmMode        %s\n"
         "dv258                  %s\n"
         "dv                     %s\n"
         "dvIntelligentLoudness  %s\n"
@@ -178,9 +181,11 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         "dde                    %s\n"
         "ddeEnhancerLevel       %u\n"
         "ddeSuppressionLevel    %u\n"
-        "ms12EncoderFixedOutput %s\n",
+        "ms12EncoderFixedOutput %s\n"
+        "ms12EncoderFixedAtmos  %s\n",
         pAudioProcessingSettings->avl.enabled?"on":"off",
         pAudioProcessingSettings->truVolume.enabled?"on":"off",
+        lookup_name(g_audioAdvancedTsmModeStrs, pAudioProcessingSettings->advancedTsm.mode),
         pAudioProcessingSettings->dolby.dolbyVolume258.enabled?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.volumeLimiter.enableVolumeLimiting?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.volumeLimiter.enableIntelligentLoudness?"on":"off",
@@ -188,7 +193,8 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.enableDialogEnhancer?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.dialogEnhancerLevel,
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.contentSuppressionLevel,
-        pAudioProcessingSettings->dolby.ddre.fixedEncoderFormat?"on":"off");
+        pAudioProcessingSettings->dolby.ddre.fixedEncoderFormat?"on":"off",
+        pAudioProcessingSettings->dolby.ddre.fixedAtmosOutput?"on":"off");
 }
 
 static void print_status(void)
@@ -356,6 +362,10 @@ int main(int argc, char **argv)  {
             processing_change = true;
             audioProcessingSettings.truVolume.enabled = !strcmp(argv[++curarg], "on");
         }
+        else if (!strcmp(argv[curarg], "-advancedTsmMode") && curarg+1<argc) {
+            processing_change = true;
+            audioProcessingSettings.advancedTsm.mode = lookup(g_audioAdvancedTsmModeStrs, argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-dv258") && curarg+1<argc) {
             processing_change = true;
             audioProcessingSettings.dolby.dolbyVolume258.enabled = !strcmp(argv[++curarg], "on");
@@ -400,6 +410,10 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-ms12EncoderFixedOutput") && argc>curarg+1) {
             processing_change = true;
             audioProcessingSettings.dolby.ddre.fixedEncoderFormat = !strcmp(argv[++curarg], "on");
+        }
+        else if (!strcmp(argv[curarg], "-ms12EncoderFixedAtmos") && argc>curarg+1) {
+            processing_change = true;
+            audioProcessingSettings.dolby.ddre.fixedAtmosOutput = !strcmp(argv[++curarg], "on");
         }
         else {
             print_usage();

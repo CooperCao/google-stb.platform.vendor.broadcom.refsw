@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bdsp_raaga_fwinterface_priv.h"
@@ -668,12 +672,12 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     {
         BDBG_MSG(("*((uint32_t *)pMsgBuf+i) > %x", *((uint32_t *)pMsgBuf+i)));
         err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf+i));
-		if(err != BERR_SUCCESS)
-		{
-			BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 1"));
-			goto end;
-		}
-		MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
+        if(err != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 1"));
+            goto end;
+        }
+        MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
         ui32dramWriteAddr=ui32dramWriteAddr+4;
     }
 
@@ -695,12 +699,12 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
             BDBG_MSG(("-->*((uint32_t *)pMsgBuf+i) > %x",
                        *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i)));
             err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i));
-			if(err != BERR_SUCCESS)
-			{
-				BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 2"));
-				goto end;
-			}
-			MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
+            if(err != BERR_SUCCESS)
+            {
+                BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 2"));
+                goto end;
+            }
+            MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
             ui32dramWriteAddr=ui32dramWriteAddr+4;
         }
     }
@@ -759,7 +763,10 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 
 
     if ( (psCommand->sCommandHeader.ui32CommandID != BDSP_PING_COMMAND_ID)
-        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID))
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID)
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID)
+         && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_PROCESS_PAK_COMMAND_ID)
+       )
     {
         BDBG_ASSERT(pRaagaTask);
         /* When isStopped is true at that instance STOP/START commands can come
@@ -768,8 +775,6 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
         if( (pRaagaTask->isStopped == true) &&
             (psCommand->sCommandHeader.ui32CommandID != \
                 BDSP_START_TASK_COMMAND_ID)
-            &&(psCommand->sCommandHeader.ui32CommandID != \
-                BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID)
           )
         {
             BDBG_MSG(("Task is in stop state, Can't accept Command %#x",
@@ -1097,7 +1102,7 @@ BERR_Code BDSP_Raaga_P_SetAlgorithmSettings(
     size_t                  settingsBufferSize
     )
 {
-	BERR_Code err = BERR_SUCCESS;
+    BERR_Code err = BERR_SUCCESS;
     const BDSP_Raaga_P_AlgorithmInfo *pInfo;
 
     BDBG_ENTER( BDSP_Raaga_P_SetAlgorithmSettings );
@@ -1119,14 +1124,14 @@ BERR_Code BDSP_Raaga_P_SetAlgorithmSettings(
     BDBG_ASSERT(settingsBufferSize <= uiConfigBufSize);
 
     err = BDSP_MMA_P_CopyDataToDram(pConfigBuf, (void *)pSettingsBuffer, settingsBufferSize);
-	if(err != BERR_SUCCESS)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_SetAlgorithmSettings: Error in Copying the Settings buffer"));
-	}
+    if(err != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_SetAlgorithmSettings: Error in Copying the Settings buffer"));
+    }
 
     BDBG_LEAVE( BDSP_Raaga_P_SetAlgorithmSettings );
 
-	return err;
+    return err;
 }
 
 
@@ -1697,11 +1702,11 @@ BERR_Code BDSP_Raaga_P_WriteVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle   hMsgQueue
     /*Writing into Message queue*/
     BDBG_MSG(("In BRAP_P_WriteMsg_isr *(uint32_t *)pMsgBuf > 0x%x", *((uint32_t *)pMsgBuf)));
     err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf));
-	if(err != BERR_SUCCESS)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_WriteVideoMsg_isr: Error in updating the Data in the MSG Queue"));
-		goto end;
-	}
+    if(err != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_WriteVideoMsg_isr: Error in updating the Data in the MSG Queue"));
+        goto end;
+    }
     ui32dramWriteAddr=ui32dramWriteAddr+4;
 
     /* Taking wrap-around into consideration*/

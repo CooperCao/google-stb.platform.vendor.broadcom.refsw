@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,6 +52,7 @@
 #endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder_types.h"
+#include "nexus_audio_processing_types.h"
 #endif
 #if NEXUS_HAS_DISPLAY
 #include "nexus_display.h"
@@ -539,25 +540,25 @@ const namevalue_t g_matrixCoeffStrs[] = {
 };
 
 const namevalue_t g_audioLoudnessStrs[] = {
-	{"none", NEXUS_AudioLoudnessEquivalenceMode_eNone},
-	{"atsc", NEXUS_AudioLoudnessEquivalenceMode_eAtscA85},
-	{"ebu", NEXUS_AudioLoudnessEquivalenceMode_eEbuR128},
-	{NULL, 0}
+    {"none", NEXUS_AudioLoudnessEquivalenceMode_eNone},
+    {"atsc", NEXUS_AudioLoudnessEquivalenceMode_eAtscA85},
+    {"ebu", NEXUS_AudioLoudnessEquivalenceMode_eEbuR128},
+    {NULL, 0}
 };
 
 const namevalue_t g_videoEotfStrs[] = {
-	{"sdr", NEXUS_VideoEotf_eSdr},
-	{"hdr10", NEXUS_VideoEotf_eHdr10},
-	{"pqhdr", NEXUS_VideoEotf_eHdr10},
-	{"smpte2084", NEXUS_VideoEotf_eHdr10},
-	{"smpte", NEXUS_VideoEotf_eHdr10},
-	{"2084", NEXUS_VideoEotf_eHdr10},
-	{"hlg", NEXUS_VideoEotf_eHlg},
-	{"aribb67", NEXUS_VideoEotf_eHlg},
-	{"arib", NEXUS_VideoEotf_eHlg},
-	{"b67", NEXUS_VideoEotf_eHlg},
-	{"input", NEXUS_VideoEotf_eMax},
-	{NULL, 0}
+    {"sdr", NEXUS_VideoEotf_eSdr},
+    {"hdr10", NEXUS_VideoEotf_eHdr10},
+    {"pqhdr", NEXUS_VideoEotf_eHdr10},
+    {"smpte2084", NEXUS_VideoEotf_eHdr10},
+    {"smpte", NEXUS_VideoEotf_eHdr10},
+    {"2084", NEXUS_VideoEotf_eHdr10},
+    {"hlg", NEXUS_VideoEotf_eHlg},
+    {"aribb67", NEXUS_VideoEotf_eHlg},
+    {"arib", NEXUS_VideoEotf_eHlg},
+    {"b67", NEXUS_VideoEotf_eHlg},
+    {"input", NEXUS_VideoEotf_eMax},
+    {NULL, 0}
 };
 
 const namevalue_t g_dbvPriorityModeStrs[] = {
@@ -576,15 +577,15 @@ const namevalue_t g_dolbyVisionModeStrs[] = {
 
 const namevalue_t g_syncModeStrs[] = {
 #if NEXUS_HAS_SIMPLE_DECODER
-	{"none", NEXUS_SimpleStcChannelSyncMode_eOff},
-	{"off", NEXUS_SimpleStcChannelSyncMode_eOff},
-	{"default", NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment},
-	{"defaultAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment},
-	{"muteAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment},
-	{"noAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eNoAdjustmentConcealment},
-	{"audioAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eAudioAdjustmentConcealment},
+    {"none", NEXUS_SimpleStcChannelSyncMode_eOff},
+    {"off", NEXUS_SimpleStcChannelSyncMode_eOff},
+    {"default", NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment},
+    {"defaultAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment},
+    {"muteAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment},
+    {"noAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eNoAdjustmentConcealment},
+    {"audioAdjustmentConcealment", NEXUS_SimpleStcChannelSyncMode_eAudioAdjustmentConcealment},
 #endif
-	{NULL, 0}
+    {NULL, 0}
 };
 
 const char *lookup_name(const namevalue_t *table, int value)
@@ -735,6 +736,15 @@ const namevalue_t g_audioDdreCodecs[] = {
 #if NEXUS_HAS_AUDIO
     {"ac3",      NEXUS_AudioCodec_eAc3},
     {"ac3Plus",  NEXUS_AudioCodec_eAc3Plus},
+#endif
+    {NULL, 0}
+};
+
+const namevalue_t g_audioAdvancedTsmModeStrs[] = {
+#if NEXUS_HAS_AUDIO
+    {"off",     NEXUS_AudioAdvancedTsmMode_eOff},
+    {"dsola",   NEXUS_AudioAdvancedTsmMode_eDsola},
+    {"ppm",     NEXUS_AudioAdvancedTsmMode_ePpm},
 #endif
     {NULL, 0}
 };

@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bdsp_common_priv_include.h"
@@ -68,12 +72,12 @@ const BDSP_AudioTaskTsmSettings BDSP_sDefaultTSMSettings =
         0,                                  /* ui32AVOffset */
         0,                                  /* ui32SwSTCOffset */
         5760,                               /* ui32AudioOffset */
-        true,                				/* eEnableTSMErrorRecovery */
-        false,                				/* eSTCValid */
-        true,                 				/* ePlayBackOn */
-        false,                				/* eTsmEnable */
-        true,                 				/* eTsmLogEnable */
-        false                				/* eASTMEnable */
+        true,                               /* eEnableTSMErrorRecovery */
+        false,                              /* eSTCValid */
+        true,                               /* ePlayBackOn */
+        false,                              /* eTsmEnable */
+        true,                               /* eTsmLogEnable */
+        false                               /* eASTMEnable */
 };
 
 const BDSP_Raaga_Audio_MpegConfigParams  BDSP_sMpegDefaultUserConfig =
@@ -90,7 +94,7 @@ const BDSP_Raaga_Audio_MpegConfigParams  BDSP_sMpegDefaultUserConfig =
     {0, 1,0xFFFFFFFF,0xFFFFFFFF,
     0xFFFFFFFF, 0xFFFFFFFF,
     0xFFFFFFFF,0xFFFFFFFF},                 /* ui32OutputChannelMatrix */
-    true                         			/* Boolean MonotoStereoDownscale*/
+    true                                    /* Boolean MonotoStereoDownscale*/
 };
 
 const BDSP_Raaga_Audio_UdcdecConfigParams BDSP_sUdcdecDefaultUserConfig =
@@ -223,16 +227,16 @@ const BDSP_Raaga_Audio_UdcdecConfigParams BDSP_sUdcdecDefaultUserConfig =
     0,                      /*ui32EvolutionFileOut*/
     0,                      /*ui32EnableDynamicUserParams*/
     0,                       /*ui32EnableAtmosMetadata*/
-	0,						/*disable_associated_decorr */
-	0,						/*disable_associated_evolution */
-	0,						/*dec_errorconcealflag */
-	0,						/*dec_errorconcealtype */
-	0,						/*cnv_errorconcealflag */
-	0,						/*evohashflag */
-	0,						/*is_evolution_quickaccess */
-	0,						/*evoquickaccess_substreamid */
-	0,						/*evoquickaccess_strmtype */
-	0						/*joc_force_downmix */
+    0,                      /*disable_associated_decorr */
+    0,                      /*disable_associated_evolution */
+    0,                      /*dec_errorconcealflag */
+    0,                      /*dec_errorconcealtype */
+    0,                      /*cnv_errorconcealflag */
+    0,                      /*evohashflag */
+    0,                      /*is_evolution_quickaccess */
+    0,                      /*evoquickaccess_substreamid */
+    0,                      /*evoquickaccess_strmtype */
+    0                       /*joc_force_downmix */
 };
 
 const BDSP_Raaga_Audio_AacheConfigParams BDSP_sAacheDefaultUserConfig =
@@ -306,8 +310,8 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+          0xFFFFFFFF,{0},{0},0,0,{0},1
         },
         {
             2,                      /*ui32ChannelConfig*/
@@ -327,10 +331,10 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
         },
-	{
+          0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+    {
             2,                      /*ui32ChannelConfig*/
             0,                    /*i32MainAssocMixPref*/
             0,                      /*ui32Phase90Preference*/
@@ -348,8 +352,8 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
               5,
               6,
               7
-	    },
-	      0xFFFFFFFF,{0},{0},0,0,{0},1
+        },
+          0xFFFFFFFF,{0},{0},0,0,{0},1
         }
     },
     3,      /* ui32InputCplxLevel */
@@ -364,7 +368,7 @@ const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
 
     0,      /* ui32AC4DecodeMode */
     1,      /* ui32EnableADMixing */
-	-1      /* i32StreamInfoPresentationNumber */
+    -1      /* i32StreamInfoPresentationNumber */
 };
 
 const BDSP_Raaga_Audio_WmaConfigParams  BDSP_sWmaDefaultUserConfig =
@@ -1068,8 +1072,8 @@ const BDSP_Raaga_Audio_PassthruConfigParams   BDSP_sDefaultPassthruSettings =
 {
     BDSP_Raaga_ePassthruType_SPDIF,          /* ui32PassthruType */
     BDSP_Raaga_eAacHeaderType_Raw,
-	BDSP_AF_P_BurstFill_ePauseBurst,
-	BDSP_AF_P_SpdifPauseWidth_eEightWord
+    BDSP_AF_P_BurstFill_ePauseBurst,
+    BDSP_AF_P_SpdifPauseWidth_eEightWord
 };
 
 
@@ -1388,6 +1392,7 @@ const BDSP_Raaga_Audio_MixerDapv2ConfigParams  BDSP_sDefMixerDapv2ConfigParams =
         -1,                             /*i32DialogEnhancerSpeechConfidence*/
         -1,                             /*i32SurroundCompressorMusicConfidence*/
     },
+    0
 };
 
 const BDSP_Raaga_Audio_VocalPPConfigParams BDSP_sDefVocalPPConfigSettings =
@@ -1453,8 +1458,8 @@ const BDSP_Raaga_Audio_MixerConfigParams  BDSP_sDefFwMixerConfigSettings =
         /*C*/   {0, 0, 0, 0, 0x40000000, 0},
         /*LFE*/ {0, 0, 0, 0, 0, 0x40000000}
     },
-	BDSP_AF_P_BurstFill_ePauseBurst,
-	BDSP_AF_P_SpdifPauseWidth_eEightWord
+    BDSP_AF_P_BurstFill_ePauseBurst,
+    BDSP_AF_P_SpdifPauseWidth_eEightWord
 };
 
 const BDSP_Raaga_Audio_FadeCtrlConfigParams BDSP_sDefFadeCtrlConfigSettings =
@@ -1539,81 +1544,80 @@ const BDSP_Raaga_Audio_DpcmrConfigParams BDSP_sDefDpcmrConfigSettings=
             1,           /*compressor_profile*/
         0,
         0,
-        0,
         0
 };
 
 
-const BDSP_Raaga_Audio_DDPEncConfigParams		BDSP_sDefDdpencConfigSettings=
+const BDSP_Raaga_Audio_DDPEncConfigParams       BDSP_sDefDdpencConfigSettings=
 {
-	{0,1,2,3,4,5,6,7},	/* Input channel routing */
-	8,					/* Encoder Mode */
-	7,					/* Audio Coding Mode */
-	0,					/* Center Mix Level, not set */
-	31,					/* Dialnorm */
-	31,					/* Dialnorm Channel 2 */
-	0,					/* Dolby Surround Mode */
-	1,					/* LFE Enable*/
-	0,					/* Evolution Metadata Availability Flag (Mode 8 DDP Only) */
-	0,					/* Surround Mix Level, not set  */
-	1,					/* 90 Degree Phase Shift Filter */
-	640,				/* Datarate */
-	0,					/* Preferred Stereo Downmix Mode (Mode 8 DDP Only) */
-	4,					/* LtRt Center Mix Level (Mode 8 DDP Only), not set  */
-	4,					/* LtRt Surround Mix Level (Mode 8 DDP Only), not set  */
-	4,					/* LoRo Center Mix Level, not set  */
-	4,					/* LoRo Surround Mix Level, not set  */
-	0,					/* Dolby EX Mode (Mode 8 DDP Only) */
-	0,					/* Dolby Headphone Mode (Mode 8 DDP Only) */
-	0,					/* A/D Converter Type (Mode 8 DDP Only) */
-	0,					/* Send Audio Production Info */
-	0,					/* Send Audio Production Info Channel 2 */
-	80,					/* Audio production mixing level */
-	80,					/* Audio production mixing level Channel 2 */
-	1,					/* Copyright flag */
-	1,					/* Original Bitstream flag */
-	0,					/* Bitstream Mode */
-	0,					/* Audio production room type */
-	0,					/* Audio production room type Channel 2 */
-	0,					/* Additional Bitstream Information */
-	0,					/* Dolby Certification Flag */
-	0,					/* Enable Low Complexity Encoding */
-	33,					/* Intelligent loudness payloads only passed through by default */
-	0,					/* SPDIF Packing */
-	0,					/* Encoder Variant MS12 or MS11 */
-	{0},				/* Additional Bitstream Information String */
-	0,					/* Atmos Lock */
-	0,
-	{0},				/* drc1 */
-	0,
-	{0},				/* drc2 */
-	1,                  /* pcm_aligned_flag if 0, disable input PCM alignment to frame boundary (default enabled) */
-	1,                  /* converter_snr_offset (default enabled) */
-	0                   /* '-di' is specified and downmix input exists '*/
+    {0,1,2,3,4,5,6,7},  /* Input channel routing */
+    8,                  /* Encoder Mode */
+    7,                  /* Audio Coding Mode */
+    0,                  /* Center Mix Level, not set */
+    31,                 /* Dialnorm */
+    31,                 /* Dialnorm Channel 2 */
+    0,                  /* Dolby Surround Mode */
+    1,                  /* LFE Enable*/
+    0,                  /* Evolution Metadata Availability Flag (Mode 8 DDP Only) */
+    0,                  /* Surround Mix Level, not set  */
+    1,                  /* 90 Degree Phase Shift Filter */
+    640,                /* Datarate */
+    0,                  /* Preferred Stereo Downmix Mode (Mode 8 DDP Only) */
+    4,                  /* LtRt Center Mix Level (Mode 8 DDP Only), not set  */
+    4,                  /* LtRt Surround Mix Level (Mode 8 DDP Only), not set  */
+    4,                  /* LoRo Center Mix Level, not set  */
+    4,                  /* LoRo Surround Mix Level, not set  */
+    0,                  /* Dolby EX Mode (Mode 8 DDP Only) */
+    0,                  /* Dolby Headphone Mode (Mode 8 DDP Only) */
+    0,                  /* A/D Converter Type (Mode 8 DDP Only) */
+    0,                  /* Send Audio Production Info */
+    0,                  /* Send Audio Production Info Channel 2 */
+    80,                 /* Audio production mixing level */
+    80,                 /* Audio production mixing level Channel 2 */
+    1,                  /* Copyright flag */
+    1,                  /* Original Bitstream flag */
+    0,                  /* Bitstream Mode */
+    0,                  /* Audio production room type */
+    0,                  /* Audio production room type Channel 2 */
+    0,                  /* Additional Bitstream Information */
+    0,                  /* Dolby Certification Flag */
+    0,                  /* Enable Low Complexity Encoding */
+    33,                 /* Intelligent loudness payloads only passed through by default */
+    0,                  /* SPDIF Packing */
+    0,                  /* Encoder Variant MS12 or MS11 */
+    {0},                /* Additional Bitstream Information String */
+    0,                  /* Atmos Lock */
+    0,
+    {0},                /* drc1 */
+    0,
+    {0},                /* drc2 */
+    1,                  /* pcm_aligned_flag if 0, disable input PCM alignment to frame boundary (default enabled) */
+    1,                  /* converter_snr_offset (default enabled) */
+    0                   /* '-di' is specified and downmix input exists '*/
 } ;
 const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig =
 {
-	0,                      /* eDecoderType */
-	5,                      /* eDolbyAacheUsageMode */
-	1,                      /* ui32MapTo51Channels */
-	124,                    /* ui32RefDialnormLevel */
-	108,                    /* ui32DefDialnormLevel */
-	2,                      /* ui32DrcMode */
-	0,                      /* ui32DrcType */
-	1,                      /* ui32Fast2to1Resample */
-	0,                      /* ui32UpsampleToPrimaryRates */
-	0,                      /* ui32EnableErrorConcealment */
-	0,                      /* ui32EnableStereoDownmixType */
-	0,                      /* ui32IDKCertificationFlag */
-	0,                      /* ui32LoudnessEquivalenceMode */
-	{
-		{
-			{ 0, 1,0xFFFFFFFF,0xFFFFFFFF, 0xFFFFFFFF,
-			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },/* Multichannel */
-		},
-		{
-			{ 0, 1,0xFFFFFFFF,0xFFFFFFFF, 0xFFFFFFFF,
-			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },/* Stereo */
-		}
-	}
+    0,                      /* eDecoderType */
+    5,                      /* eDolbyAacheUsageMode */
+    1,                      /* ui32MapTo51Channels */
+    124,                    /* ui32RefDialnormLevel */
+    108,                    /* ui32DefDialnormLevel */
+    2,                      /* ui32DrcMode */
+    0,                      /* ui32DrcType */
+    1,                      /* ui32Fast2to1Resample */
+    0,                      /* ui32UpsampleToPrimaryRates */
+    0,                      /* ui32EnableErrorConcealment */
+    0,                      /* ui32EnableStereoDownmixType */
+    0,                      /* ui32IDKCertificationFlag */
+    0,                      /* ui32LoudnessEquivalenceMode */
+    {
+        {
+            { 0, 1,0xFFFFFFFF,0xFFFFFFFF, 0xFFFFFFFF,
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },/* Multichannel */
+        },
+        {
+            { 0, 1,0xFFFFFFFF,0xFFFFFFFF, 0xFFFFFFFF,
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },/* Stereo */
+        }
+    }
 };

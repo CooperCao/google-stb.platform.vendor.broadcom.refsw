@@ -65,40 +65,6 @@ Description: Audio Post Processing stage
 
 typedef struct NEXUS_AudioProcessor *NEXUS_AudioProcessorHandle;
 
-
-/***************************************************************************
-Summary:
-Advanced Audio Tsm processing mode
-***************************************************************************/
-typedef enum NEXUS_AudioAdvancedTsmMode
-{
-    NEXUS_AudioAdvancedTsmMode_eOff,
-    NEXUS_AudioAdvancedTsmMode_eDsola, /* stretches or shrinks audio, using pitch correction */
-    NEXUS_AudioAdvancedTsmMode_ePpm,   /* repeat or drop audio samples, smoothing with neighboring samples */
-    NEXUS_AudioAdvancedTsmMode_eMax
-} NEXUS_AudioAdvancedTsmMode;
-
-/***************************************************************************
-Summary:
-Advanced Audio Tsm Settings
-***************************************************************************/
-typedef struct NEXUS_AudioAdvancedTsmSettings
-{
-    NEXUS_AudioAdvancedTsmMode mode;
-} NEXUS_AudioAdvancedTsmSettings;
-
-/***************************************************************************
-Summary:
-Advanced Audio Tsm Status
-***************************************************************************/
-typedef struct NEXUS_AudioAdvancedTsmStatus
-{
-    NEXUS_AudioAdvancedTsmMode mode;    /* current mode of Advanced TSM processor */
-    uint32_t pts;                       /* current PTS in 45kHz units */
-    NEXUS_PtsType ptsType;              /* PTS Type */
-    int correction;                     /* Correction to this PTS in milliseconds */
-} NEXUS_AudioAdvancedTsmStatus;
-
 /***************************************************************************
 Summary:
 Audio Processor Settings
