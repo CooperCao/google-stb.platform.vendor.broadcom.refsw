@@ -199,6 +199,7 @@ typedef struct NxClient_AudioProcessingSettings
         NEXUS_AudioMixerDolbySettings dolbySettings; /* used when ms11 or ms12 is enabled */
         NEXUS_DolbyVolume258Settings dolbyVolume258; /* used when ms11 is enabled */
     } dolby;
+    NEXUS_AudioAdvancedTsmSettings advancedTsm; /* used when ms11 or ms12 is enabled */
 } NxClient_AudioProcessingSettings;
 
 void NxClient_GetAudioProcessingSettings(

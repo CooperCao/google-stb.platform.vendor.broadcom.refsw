@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -107,7 +107,10 @@ typedef struct BAPE_DolbyDigitalReencodeSettings
                                                    This is not changeable on the fly. */
     BAPE_ChannelMode stereoOutputMode;      /* Configure the channel mode for the stereo port. e2_0, e1_0 are valid values. e2_0 is the default. */
     bool fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
-                                multichannelFormat specified. This control only applies when MS12 is enabled. */
+                                multichannelFormat specified. This control only applies when MS12 is enabled.
+                                This is now popluated to the DSP mixer settings. */
+    bool fixedAtmosOutput;  /* When true, DDP encoder will always indicate Atmos presence, otherise Atmos indication will be
+                               dependent on the stream leading to dropouts.  This control only applies when MS12 is enabled. */
 
 
     /* The following settings are only applied if externalPcmMode = true */

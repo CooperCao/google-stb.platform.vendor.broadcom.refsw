@@ -1502,6 +1502,10 @@ static BERR_Code BAPE_Decoder_P_Start(
         goto err_stages;
     }
 
+    if (pSettings->codec == BAVC_AudioCompressionStd_eAc4) {
+        taskStartSettings->ppmCorrection = false;
+    }
+
     /* Setup Primary Stage */
     if ( handle->passthrough )
     {
@@ -2529,13 +2533,6 @@ void BAPE_Decoder_Stop(
     BKNI_LeaveCriticalSection();
 
     BAPE_Decoder_P_Stop(handle);
-
-    /* Temp work around for SWSTB-3311 until we get a DSP fix for maintaining
-       the film standard mode during a decoder stop. */
-    if ( handle->ddre && (NULL == handle->fwMixer || handle->fwMixerMaster == true) )
-    {
-        BAPE_DolbyDigitalReencode_P_SettingsChanged(handle->ddre, NULL);
-    }
 
     /* Reset multistream state */
     handle->ddre = NULL;

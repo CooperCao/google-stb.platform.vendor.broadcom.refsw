@@ -106,6 +106,7 @@
 #include "nexus_audio_crc.h"
 #include "nexus_audio_processor.h"
 #include "blst_queue.h"
+#include "priv/nexus_audio_image_priv.h"
 
 /***************************************************************************
 Summary:
@@ -137,6 +138,8 @@ typedef struct NEXUS_AudioModuleData
     bool verifyFirmware;   /* true if Firmware verifcation is required for Raaga0 or Raaga1  */
     char dspFirmwareVersionInfo[25];  /* Dsp Release Version */
     char armFirmwareVersionInfo[25];  /* Arm Release Version */
+    void *pPakContext;
+    BIMG_Interface pakImg;
 } NEXUS_AudioModuleData;
 
 extern NEXUS_AudioModuleData g_NEXUS_audioModuleData;

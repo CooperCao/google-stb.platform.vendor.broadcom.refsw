@@ -85,6 +85,7 @@ void NEXUS_DolbyDigitalReencode_GetDefaultSettings(
     BDBG_CASSERT((int)NEXUS_AudioDecoderDualMonoMode_eMax == (int)BAPE_DualMonoMode_eMax);
     pSettings->multichannelFormat = (piSettings.multichannelFormat == BAPE_MultichannelFormat_e7_1) ? NEXUS_AudioMultichannelFormat_e7_1 : NEXUS_AudioMultichannelFormat_e5_1;
     pSettings->fixedEncoderFormat = piSettings.fixedEncoderFormat;
+    pSettings->fixedAtmosOutput = piSettings.fixedAtmosOutput;
 }
 
 NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
@@ -143,6 +144,7 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
         piSettings.multichannelFormat = BAPE_MultichannelFormat_e5_1;
     }
     piSettings.fixedEncoderFormat = pSettings->fixedEncoderFormat;
+    piSettings.fixedAtmosOutput = pSettings->fixedAtmosOutput;
     errCode = BAPE_DolbyDigitalReencode_Create(NEXUS_AUDIO_DEVICE_HANDLE, &piSettings, &handle->apeHandle);
     if ( errCode )
     {
@@ -303,6 +305,7 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_SetSettings(
     piSettings.stereoMode = pSettings->stereoDownmixMode;
     piSettings.dualMonoMode = pSettings->dualMonoMode;
     piSettings.fixedEncoderFormat = pSettings->fixedEncoderFormat;
+    piSettings.fixedAtmosOutput = pSettings->fixedAtmosOutput;
     switch ( pSettings->stereoOutputMode )
     {
     default:

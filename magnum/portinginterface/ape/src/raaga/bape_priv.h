@@ -780,6 +780,15 @@ typedef struct BAPE_MixerInterface {
     BERR_Code (*getStatus)          (BAPE_MixerHandle hMixer, BAPE_MixerStatus *pStatus);
 } BAPE_MixerInterface ;
 
+
+typedef enum BAPE_TaskState
+{
+    BAPE_TaskState_eStopped, /* Task is not running */
+    BAPE_TaskState_eStarting,/* Task is in a state of preparing to start but Task Started not yet called */
+    BAPE_TaskState_eStarted, /* Task is fully started */
+    BAPE_TaskState_eMax
+} BAPE_TaskState;
+
 /***************************************************************************
 Summary:
 Mixer Structure
@@ -815,7 +824,7 @@ typedef struct BAPE_Mixer
                                    right or put just left or right on both channels.  Using the crossbar introduces issues
                                    with Sony TVs because the channel status would be invalid. */
 #if BAPE_CHIP_MAX_DSP_MIXERS > 0
-    bool taskStarted;
+    BAPE_TaskState taskState;
     BDSP_InterTaskBufferHandle hInterTaskBuffers[BAPE_CHIP_MAX_MIXER_INPUTS];
     BDSP_TaskHandle hTask;
     BDSP_StageHandle hMixerStage, hSrcStage;
@@ -2213,6 +2222,14 @@ CRC Stop
 ***************************************************************************/
 void BAPE_Crc_P_Stop(
     BAPE_CrcHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Get Advanced TSM Mode, returns 0 if not configured for Advanced TSM
+***************************************************************************/
+unsigned BAPE_Processor_P_GetAdvancedTsmMode(
+    BAPE_ProcessorHandle handle
     );
 
 #if BAPE_DSP_SUPPORT

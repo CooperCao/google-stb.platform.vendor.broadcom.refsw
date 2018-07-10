@@ -46,6 +46,10 @@
 #include "nexus_base_os.h" /* For NEXUS_GetEnv */
 #include "nexus_base_image.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 BDBG_MODULE(nexus_base_image);
 
 #include <stdio.h>
@@ -62,6 +66,65 @@ typedef struct
     void            *buf;
     bool            returnSize;
 } ImageContainerStruct;
+
+void NEXUS_BaseImage_FileExists(const char *filename, const char *env_path, bool *pExists)
+{
+    char * filepath = NULL;
+    size_t filepath_len = 0;
+    struct stat st;
+    int rc;
+
+    *pExists = false;
+
+    {
+        const char *tmp = filename;
+        while (*tmp++) {
+            filepath_len++;
+        }
+
+        if (!env_path) {
+            env_path = DEFAULT_PATH;
+        }
+
+       tmp = (char *)env_path;
+        while (*tmp++) {
+            filepath_len++;
+        }
+
+        filepath_len += 2; /* for '/' and trailing 0 */
+    }
+
+    filepath = BKNI_Malloc(filepath_len);
+    if (!filepath)
+    {
+        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", BSTD_FUNCTION, (unsigned)filepath_len));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto error;
+    }
+
+    if (BKNI_Snprintf(filepath, filepath_len, "%s/%s", env_path, filename) != (int)(filepath_len-1))
+    {
+        BDBG_ERR(("%s - Cannot build final binary path", BSTD_FUNCTION));
+        rc = NEXUS_UNKNOWN;
+        goto error;
+    }
+
+    /* Open the file */
+    BDBG_MSG(("%s - Checking file %s", BSTD_FUNCTION, filepath));
+    rc = stat(filepath, &st);
+    if ( rc )
+    {
+        BDBG_MSG(("File not found"));
+        goto error;
+    }
+
+    *pExists = true;
+    /* Fall through to exit */
+
+error:
+    if ( filepath ) { BKNI_Free(filepath); }
+    return;
+}
 
 NEXUS_Error NEXUS_BaseImage_Open(void **image, const char *filename, const char *env_path)
 {

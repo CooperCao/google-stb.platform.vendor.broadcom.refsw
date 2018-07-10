@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1275,6 +1275,68 @@ void BAPE_PathConnector_P_FindConsumersBySubtype_isrsafe(
     BDBG_ASSERT(NULL != pNumFound);
     *pNumFound = 0;
     BAPE_PathConnector_P_FindConsumers_isrsafe(pConnector, type, subtype, true, maxConsumers, pNumFound, pConsumers);
+}
+
+
+static void BAPE_PathConnector_P_FindProducers_isrsafe(
+    BAPE_PathConnector *pConnector,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    bool checkSubtype,
+    unsigned maxProducers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pProducers   /* [out] Must be an array of at least maxProducers length */
+    )
+{
+    BAPE_PathConnection *pConnection;
+
+    BDBG_OBJECT_ASSERT(pConnector, BAPE_PathConnector);
+    if (pConnector->pParent) {
+        if (pConnector->pParent->type == type) {
+            if ( false == checkSubtype || pConnector->pParent->subtype == subtype ) {
+                if ( *pNumFound < maxProducers ) {
+                    pProducers[*pNumFound] = pConnector->pParent;
+                    *pNumFound = (*pNumFound)+1;
+                }
+                else {
+                    return;
+                }
+            }
+        }
+
+        for ( pConnection = BLST_S_FIRST(&pConnector->pParent->upstreamList);
+              pConnection != NULL;
+              pConnection = BLST_S_NEXT(pConnection, upstreamNode) ) {
+            if (pConnection->pSource) {
+                BAPE_PathConnector_P_FindProducers_isrsafe(pConnection->pSource, type, subtype, true, maxProducers, pNumFound, pProducers);
+            }
+        }
+    }
+}
+
+/***************************************************************************
+Summary:
+Search for producers by a type and subtype
+***************************************************************************/
+void BAPE_PathNode_P_FindProducersBySubtype_isrsafe(
+    BAPE_PathNode *pNode,
+    BAPE_PathNodeType type,
+    unsigned subtype,
+    unsigned maxProducers,
+    unsigned *pNumFound,        /* [out] */
+    BAPE_PathNode **pProducers   /* [out] Must be an array of at least maxConsumers length */
+    )
+{
+    BAPE_PathConnection *pPathConnection;
+    BDBG_ASSERT(NULL != pNumFound);
+    *pNumFound = 0;
+     for ( pPathConnection = BLST_S_FIRST(&pNode->upstreamList);
+           pPathConnection != NULL;
+           pPathConnection = BLST_S_NEXT(pPathConnection, upstreamNode) ) {
+         if (pPathConnection->pSource) {
+             BAPE_PathConnector_P_FindProducers_isrsafe(pPathConnection->pSource, type, subtype, true, maxProducers, pNumFound, pProducers);
+         }
+    }
 }
 
 /***************************************************************************

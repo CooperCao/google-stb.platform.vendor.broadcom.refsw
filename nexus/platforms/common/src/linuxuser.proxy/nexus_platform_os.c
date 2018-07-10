@@ -80,6 +80,7 @@
 #endif
 #if defined BDSP_RAAGA_SUPPORT
 #include "bdsp_raaga_img.h"
+#include "priv/nexus_audio_image_priv.h"
 #else
 #if NEXUS_HAS_AUDIO
 #include "brap_img.h"
@@ -857,6 +858,11 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 #endif
     #if defined BDSP_RAAGA_SUPPORT
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_IMG_Interface, BDSP_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&NEXUS_AUDIO_IMG_Interface, NEXUS_AUDIO_IMG_Context, NEXUS_CORE_IMG_ID_AUDIO_PAK);
     if(rc != NEXUS_SUCCESS)
     {
         return BERR_TRACE(NEXUS_UNKNOWN);

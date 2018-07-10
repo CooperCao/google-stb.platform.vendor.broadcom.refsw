@@ -1,5 +1,5 @@
 ##############################################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,6 +59,15 @@ NEXUS_AUDIO_MAGNUM_MODULES = \
 
 NEXUS_FW_SIGN_MODULES += BDSP
 
+###############################################
+#  IMG Interface - also built in platform.inc #
+###############################################
+ifeq ($(B_REFSW_OS),linuxuser)
+ifeq ($(NEXUS_MODE),)
+NEXUS_AUDIO_SOURCES += $(NEXUS_TOP)/modules/audio/src/ape_raaga/linuxuser/nexus_audio_image.c
+endif
+endif #B_REFSW_OS
+
 ifneq ($(BAPE_DSP_SUPPORT),n)
 #####################
 # Module Extensions #
@@ -67,7 +76,7 @@ ifneq ($(NEXUS_AUDIO_EXTENSION_INC),)
 include $(NEXUS_AUDIO_EXTENSION_INC)
 endif
 ifeq ($(NEXUS_AUDIO_BUFFER_CAPTURE),y)
-include $(NEXUS_TOP)/extensions/audio/buffer_capture/buffer_capture.inc
+include $(NEXUS_TOP)/../rockford/unittests/nexus/audio/buffer_capture/buffer_capture.inc
 endif
 ifeq ($(BDSP_VP6_SUPPORT),y)
 include $(NEXUS_TOP)/extensions/audio/dsp_video_decoder/dsp_video_decoder.inc

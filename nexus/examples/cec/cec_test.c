@@ -74,15 +74,15 @@ void deviceReady_callback(void *context, int param)
     BKNI_SetEvent((BKNI_EventHandle)context);
     NEXUS_Cec_GetStatus(hCec, &status);
 
-    BDBG_WRN(("BCM%d Logical Address <%d> Acquired", 
-        BCHP_CHIP,        
+    BDBG_WRN(("BCM%d Logical Address <%d> Acquired",
+        BCHP_CHIP,
         status.logicalAddress)) ;
 
     BDBG_WRN(("BCM%d Physical Address: %X.%X.%X.%X",
         BCHP_CHIP,
-        (status.physicalAddress[0] & 0xF0) >> 4, 
+        (status.physicalAddress[0] & 0xF0) >> 4,
         (status.physicalAddress[0] & 0x0F),
-        (status.physicalAddress[1] & 0xF0) >> 4, 
+        (status.physicalAddress[1] & 0xF0) >> 4,
         (status.physicalAddress[1] & 0x0F))) ;
 
     if ((status.physicalAddress[0] != 0xFF)
@@ -112,18 +112,18 @@ void msgReceived_callback(void *context, int param)
 
     rc = NEXUS_Cec_ReceiveMessage(hCec, &receivedMessage);
     BDBG_ASSERT(!rc);
-	
+
     /* For debugging purposes */
     for (i = 0, j = 0; i <= receivedMessage.data.length && j<(sizeof(msgBuffer)-1); i++)
     {
-        j += BKNI_Snprintf(msgBuffer + j, sizeof(msgBuffer)-j, "%02X ", 
+        j += BKNI_Snprintf(msgBuffer + j, sizeof(msgBuffer)-j, "%02X ",
         receivedMessage.data.buffer[i]) ;
-    }           
+    }
 
-    BDBG_WRN(("CEC Message Length %d Received: %s", 
+    BDBG_WRN(("CEC Message Length %d Received: %s",
         receivedMessage.data.length, msgBuffer)) ;
 
-    BDBG_WRN(("Msg Recd Status from Phys/Logical Addrs: %X.%X.%X.%X / %d", 
+    BDBG_WRN(("Msg Recd Status from Phys/Logical Addrs: %X.%X.%X.%X / %d",
         (status.physicalAddress[0] & 0xF0) >> 4, (status.physicalAddress[0] & 0x0F),
         (status.physicalAddress[1] & 0xF0) >> 4, (status.physicalAddress[1] & 0x0F),
         status.logicalAddress)) ;
@@ -137,14 +137,14 @@ void msgTransmitted_callback(void *context, int param)
     BKNI_SetEvent((BKNI_EventHandle)context);
     NEXUS_Cec_GetStatus(hCec, &status);
 
-    BDBG_WRN(("Msg Xmit Status for Phys/Logical Addrs: %X.%X.%X.%X / %d", 
+    BDBG_WRN(("Msg Xmit Status for Phys/Logical Addrs: %X.%X.%X.%X / %d",
         (status.physicalAddress[0] & 0xF0) >> 4, (status.physicalAddress[0] & 0x0F),
         (status.physicalAddress[1] & 0xF0) >> 4, (status.physicalAddress[1] & 0x0F),
         status.logicalAddress)) ;
 
-    BDBG_WRN(("Xmit Msg Acknowledged: %s", 
+    BDBG_WRN(("Xmit Msg Acknowledged: %s",
 		status.transmitMessageAcknowledged ? "Yes" : "No")) ;
-    BDBG_WRN(("Xmit Msg Pending: %s", 
+    BDBG_WRN(("Xmit Msg Pending: %s",
 		status.messageTransmitPending ? "Yes" : "No")) ;
 }
 
@@ -155,7 +155,6 @@ int main(int argc, char **argv)
     unsigned hdmiOutputIndex = 0;
     BKNI_EventHandle event;
     unsigned loops;
-    NEXUS_HdmiOutputStatus status;
 
     NEXUS_CecSettings cecSettings;
     NEXUS_CecStatus cecStatus;
@@ -173,38 +172,19 @@ int main(int argc, char **argv)
     hdmiOutput = platformConfig.outputs.hdmi[0];
     hCec = platformConfig.outputs.cec[0];
 
-    BDBG_WRN(("waiting for hdmi connected..."));
-    for (loops = 0; loops < 10; loops++) {
-        rc = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
-        BDBG_ASSERT(!rc);
-        if (status.connected) {
-            break;
-        }
-        BKNI_Sleep(1000);
-    }
-    if (!status.connected) 
-        return 0;
+    rc = NEXUS_Cec_SetHdmiOutput(hCec, hdmiOutput);
+    BDBG_ASSERT(!rc);
 
-    BDBG_WRN(("********************")) ;
-    BDBG_WRN(("HDMI is connected"));
-    BDBG_WRN(("********************")) ;
-
-	
     NEXUS_Cec_GetSettings(hCec, &cecSettings);
         cecSettings.messageReceivedCallback.callback = msgReceived_callback ;
         cecSettings.messageReceivedCallback.context = event;
-        
+
         cecSettings.messageTransmittedCallback.callback = msgTransmitted_callback;
         cecSettings.messageTransmittedCallback.context = event;
-        
+
         cecSettings.logicalAddressAcquiredCallback.callback = deviceReady_callback ;
         cecSettings.logicalAddressAcquiredCallback.context = event;
 
-        cecSettings.physicalAddress[0]= (status.physicalAddressA << 4) 
-            | status.physicalAddressB;
-        cecSettings.physicalAddress[1]= (status.physicalAddressC << 4) 
-            | status.physicalAddressD;
-	
     rc = NEXUS_Cec_SetSettings(hCec, &cecSettings);
     BDBG_ASSERT(!rc);
 
@@ -233,33 +213,33 @@ int main(int argc, char **argv)
 
     transmitMessage.destinationAddr = 0;
     transmitMessage.length = 1;
-        
-    
+
+
     BDBG_WRN(("*************************")) ;
-    BDBG_WRN(("Make sure TV is turned ON")); 
+    BDBG_WRN(("Make sure TV is turned ON"));
     BDBG_WRN(("Send <Image View On> message")); /* this is needed in case TV was already powered off */
     BDBG_WRN(("*************************")) ;
     transmitMessage.buffer[0] = 0x04;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
-    BDBG_ASSERT(!rc);  
-    printf("Press <ENTER> to continue\n");
-    getchar();
-
-
-    BDBG_WRN(("*************************")) ;
-    BDBG_WRN(("Now Turn the TV OFF ")); 
-    BDBG_WRN(("Send <Standby> message "));
-    BDBG_WRN(("*************************")) ;
-    transmitMessage.buffer[0] = 0x36;
-    rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);  
     BDBG_ASSERT(!rc);
     printf("Press <ENTER> to continue\n");
     getchar();
 
 
     BDBG_WRN(("*************************")) ;
-    BDBG_WRN(("Turn the TV back ON")); 
-    BDBG_WRN(("Send <Image View On> message")); 
+    BDBG_WRN(("Now Turn the TV OFF "));
+    BDBG_WRN(("Send <Standby> message "));
+    BDBG_WRN(("*************************")) ;
+    transmitMessage.buffer[0] = 0x36;
+    rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
+    BDBG_ASSERT(!rc);
+    printf("Press <ENTER> to continue\n");
+    getchar();
+
+
+    BDBG_WRN(("*************************")) ;
+    BDBG_WRN(("Turn the TV back ON"));
+    BDBG_WRN(("Send <Image View On> message"));
     BDBG_WRN(("*************************")) ;
     transmitMessage.buffer[0] = 0x04;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
@@ -269,20 +249,20 @@ int main(int argc, char **argv)
     }
     printf("Press <ENTER> to continue\n");
     getchar();
-    
+
     loops = 10;
-    while (--loops) 
+    while (--loops)
     {
         BDBG_WRN(("Waiting for broadcast message from the TV...\n"));
         BKNI_WaitForEvent(event, 5 * 1000);
-        if (!messageReceived) 
+        if (!messageReceived)
         {
             BDBG_WRN(("CEC Message callback, but no msg received"));
         }
-        
+
     }
 
-done:   
+done:
     BDBG_WRN(("*************************")) ;
     BDBG_WRN(("Wait 10 seconds for any additional messages"));
     BDBG_WRN(("*************************")) ;

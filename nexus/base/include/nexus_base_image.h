@@ -42,6 +42,7 @@
 
 #include "nexus_base_types.h"
 
+void NEXUS_BaseImage_FileExists(const char *filename, const char *env_path, bool *pExists);
 NEXUS_Error NEXUS_BaseImage_Open(void **image, const char *filename, const char *env_path);
 NEXUS_Error NEXUS_BaseImage_Next(void *image, unsigned chunk, const void **data, uint16_t length);
 void NEXUS_BaseImage_Close(void *image);

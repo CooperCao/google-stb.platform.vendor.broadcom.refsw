@@ -312,6 +312,9 @@ typedef struct BDSP_Raaga_Audio_MixerDapv2ConfigParams
     /* Dapv2 user config might get changed after latest code change for content processing with no channel mixing */
     BDSP_Raaga_Audio_DAPv2UserConfig sDapv2UserConfig;
 
+    /* channel mode is locked to 5.1 */
+    /* This Parameter need to be set either 1 or 0 .1-to get the 5.1 output from mixer onwards*/
+    uint32_t    ui32ChannelLockModeEnable;
 }BDSP_Raaga_Audio_MixerDapv2ConfigParams;
 
 /*
@@ -2553,8 +2556,7 @@ typedef struct  BDSP_Raaga_Audio_DpcmrConfigParams
     /* This Parameter need not to expose at Nexus level since it is fixed for now */
     uint32_t     ui32CompressorProfile;
    /* encoded channel mode is locked to 5.1 */
-    /* This Parameter need to be set either 1 or 0 .1-to get the 5.1 output from encoder. do a downmix in the PCM Renderer from 7.1 -> 5.1*/
-    uint32_t    ui32ChannelLockModeEnable;
+
 }BDSP_Raaga_Audio_DpcmrConfigParams;
 /*
 

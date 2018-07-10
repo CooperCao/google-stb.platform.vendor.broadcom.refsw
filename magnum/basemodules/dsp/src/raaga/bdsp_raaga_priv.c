@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 /* #define RAAGA_UART_ENABLE */
@@ -351,7 +355,14 @@ void BDSP_Raaga_P_Close(
 				BDSP_MMA_P_FreeMemory(&pDevice->memInfo.sScratchandISBuff[uiDspIndex].InterStageIOGenericBuff[i32SchedulingGroupIndex][j].Buffer);
 			}
 		}
+		err = BDSP_Raaga_P_DeviceInterruptUninstall((void *)pDevice, uiDspIndex);
+        if(err != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_Close: Unable to Uninstall Interrupt callbacks for DSP %d", uiDspIndex));
+            err = BERR_TRACE(err);
+        }
 
+	    BKNI_DestroyEvent(pDevice->hEvent[uiDspIndex]);
 		BKNI_DestroyMutex((pDevice->fifoIdMutex[uiDspIndex]));
 		BKNI_DestroyMutex((pDevice->dspInterruptMutex[uiDspIndex]));
 	}
@@ -3426,8 +3437,7 @@ Functionality   :   Following are the operations performed.
 		2)  Intialise the Context handle for the context to store the address.
 		3)  Intialise all the function pointers which will be used by the PI for further processing.
 		4)  Install the interrupts used at the Context level.
-		5)  Allocate the Context level memory(VOM table) required for the context.
-		6)  Error handling if any errors occurs.
+		5)  Error handling if any errors occurs.
 ***********************************************************************/
 
 BERR_Code BDSP_Raaga_P_CreateContext(
@@ -3530,10 +3540,9 @@ Input       :   pContextHandle - Context handle which needs to be closed.
 Return      :   None
 
 Functionality   :   Following are the operations performed.
-		1)  Free the memory that was allocated for holding the Context level memory(VOM table) for the context.
-		2)  Free any that was accidently left open under the Context.
-		3)  Un-Install the interrupts used at the Context level.
-		4)  Free the Context memory that was allocated.
+		1)  Free any that was accidently left open under the Context.
+		2)  Un-Install the interrupts used at the Context level.
+		3)  Free the Context memory that was allocated.
 ***********************************************************************/
 
 void BDSP_Raaga_P_DestroyContext(
@@ -3696,7 +3705,8 @@ static BERR_Code BDSP_Raaga_P_InitInterframeBuffer(void *pStageHandle)
 }
 
 static BERR_Code BDSP_Raaga_P_SendVOMChangeCommand(
-	void *pTaskHandle
+	BDSP_Raaga	*pDevice,
+	unsigned	dspIndex
 	)
 {
 	BDSP_Raaga_P_Command sCommand;
@@ -3704,12 +3714,8 @@ static BERR_Code BDSP_Raaga_P_SendVOMChangeCommand(
 	dramaddr_t    physAddress = 0;
 	unsigned int i,j,index = 0;
 	BERR_Code err = BERR_SUCCESS;
-	BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-	BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
-
 
 	BDBG_ENTER (BDSP_Raaga_P_SendVOMChangeCommand);
-	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
 	pVOMTableInDRAM = (BDSP_VOM_Table *)pDevice->memInfo.sVomTableInfo.Buffer.pAddr;
 
@@ -3809,8 +3815,8 @@ static BERR_Code BDSP_Raaga_P_SendVOMChangeCommand(
 	BDBG_MSG (("VOM Table's location in DRAM : " BDSP_MSG_FMT, BDSP_MSG_ARG(physAddress)));
 
 	sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID;
-	sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
-	sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
+	sCommand.sCommandHeader.ui32CommandCounter = 0;
+	sCommand.sCommandHeader.ui32TaskID = 0;
 	sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
 	sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 	sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
@@ -3818,8 +3824,7 @@ static BERR_Code BDSP_Raaga_P_SendVOMChangeCommand(
 	sCommand.uCommand.sGetVomTable.ui32NumEntries = index;
 	sCommand.uCommand.sGetVomTable.ui32HostVomTableAddr = physAddress;
 
-	err = BDSP_Raaga_P_SendCommand(
-		pDevice->hCmdQueue[pRaagaTask->settings.dspIndex], &sCommand,(void *)pRaagaTask);
+	err = BDSP_Raaga_P_SendCommand(pDevice->hCmdQueue[dspIndex], &sCommand, NULL);
 
 	if (BERR_SUCCESS != err)
 	{
@@ -3830,6 +3835,114 @@ static BERR_Code BDSP_Raaga_P_SendVOMChangeCommand(
 	BDBG_LEAVE (BDSP_Raaga_P_SendVOMChangeCommand);
 	return BERR_SUCCESS;
 }
+
+/***********************************************************************
+Summary:
+This function prepares the command header with PAK File info, DRM File info
+and Bounded PAK File address and sends the command to DSP to evaluate the
+status of audio license.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_ProcessPAK(
+        void                          *pDeviceHandle,
+        const BDSP_ProcessPAKSettings *pSettings,
+        BDSP_ProcessPAKStatus         *pStatus
+        )
+{
+	BERR_Code err = BERR_SUCCESS;
+
+	BDSP_Raaga	*pDevice = (BDSP_Raaga *)pDeviceHandle;
+	BDSP_Raaga_P_Command sCommand;
+	BDSP_P_MsgType eMsgType;
+	BDSP_Raaga_P_Response sRsp;
+	uint32_t i;
+
+	BDBG_ENTER(BDSP_Raaga_P_ProcessPAK);
+
+	/*Prepare command for PAK based authorization */
+	sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_PROCESS_PAK_COMMAND_ID;
+	sCommand.sCommandHeader.ui32CommandCounter = 0;
+	sCommand.sCommandHeader.ui32TaskID = 0;
+	sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
+	sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+	sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+																BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
+
+	sCommand.uCommand.sProcessPakCommand.pakBufAddr = pSettings->pakMemory.offset;
+	sCommand.uCommand.sProcessPakCommand.ui32PakBufSize = pSettings->pakSize;
+	sCommand.uCommand.sProcessPakCommand.drmBufAddr = pSettings->drmMemory.offset;
+	sCommand.uCommand.sProcessPakCommand.ui32DrmBufSize = pSettings->drmSize;
+	sCommand.uCommand.sProcessPakCommand.pakOpBufAddr = 0;
+
+	sCommand.uCommand.sProcessPakCommand.pakDecryptTableAddr = pDevice->imgCache[BDSP_SystemImgId_eAlgolibTable].offset;
+	sCommand.uCommand.sProcessPakCommand.ui32PakDecryptTableSize = pDevice->imgCache[BDSP_SystemImgId_eAlgolibTable].size;
+
+	err = BDSP_Raaga_P_SendCommand(pDevice->hCmdQueue[0], &sCommand, NULL);
+
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command failed!"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
+
+	/* Wait for Ack_Response_Received event w/ timeout */
+	err = BKNI_WaitForEvent(pDevice->hEvent[0], BDSP_RAAGA_EVENT_TIMEOUT_IN_MS);
+	if (BERR_TIMEOUT == err)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command TIMEOUT!"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
+
+	eMsgType = BDSP_P_MsgType_eSyn;
+	err = BDSP_Raaga_P_GetMsg(pDevice->hGenRspQueue[0], (void *)&sRsp, eMsgType);
+
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Unable to read ACK!"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
+
+	if ((sRsp.sCommonAckResponseHeader.eStatus != BERR_SUCCESS)||
+		(sRsp.sCommonAckResponseHeader.ui32ResponseID != BDSP_RAAGA_PROCESS_PAK_COMMAND_RESPONSE_ID)/*||
+		device index(sRsp.sCommonAckResponseHeader.ui32TaskID != pRaagaTask->taskId)*/)		/* Should this be DSP Index?? */
+	{
+
+		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command ACK not received successfully!eStatus = %d , ui32ResponseID = %d , ui32TaskID %d ",
+			sRsp.sCommonAckResponseHeader.eStatus,sRsp.sCommonAckResponseHeader.ui32ResponseID,sRsp.sCommonAckResponseHeader.ui32TaskID));
+		err = BERR_TRACE(BERR_INVALID_PARAMETER);
+		goto end;
+	}
+
+	BDBG_MSG(("******************************************************"));
+
+
+	for(i=0; i<BDSP_Raaga_P_AlgoLicense_Select_Max; i++)
+	{
+		if ((sRsp.uResponse.sPAK.ui32LicenseBits & 1 << i) == 0)
+		{
+			BDBG_MSG(("Enabled for  %s",BDSP_Raaga_P_AlgoLicEnum2Char[i]));
+		}
+		else
+		{
+			BDBG_MSG(("Disabled for %s",BDSP_Raaga_P_AlgoLicEnum2Char[i]));
+
+		}
+	}
+
+	BDBG_MSG(("******************************************************"));
+
+	BDBG_LEAVE(BDSP_Raaga_P_ProcessPAK);
+end:
+	if(BERR_SUCCESS == err)
+		pStatus->valid = true;
+	else
+		pStatus->valid = false;
+
+	return err;
+}
+
 
 /***********************************************************************
 Name        :   BDSP_Raaga_P_ReleaseFIFO
@@ -5214,7 +5327,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 
 /*the above stuff came from create task to start task*/
 	/* Send VOM change Command */
-	BDSP_Raaga_P_SendVOMChangeCommand (pRaagaTask);
+	BDSP_Raaga_P_SendVOMChangeCommand(pDevice, pRaagaTask->settings.dspIndex);
 
 	BDBG_MSG(("Context Type = %d",pRaagaContext->settings.contextType));
 	BDBG_MSG(("Task Id = %d",pRaagaTask->taskId));
@@ -7479,6 +7592,15 @@ BERR_Code BDSP_Raaga_P_Open(
 			}
 			ret = BKNI_CreateMutex(&(pDevice->dspInterruptMutex[i]));
 			BDBG_ASSERT(ret == BERR_SUCCESS);
+
+			ret = BKNI_CreateEvent(&(pDevice->hEvent[i]));
+			if (BERR_SUCCESS != ret)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to create Generic Response event for DSP %d",i));
+				ret = BERR_TRACE(ret);
+				BDBG_ASSERT(0);
+			}
+			BKNI_ResetEvent(pDevice->hEvent[i]);
 		}
 		ret = BKNI_CreateMutex(&(pDevice->watchdogMutex));
 		BDBG_ASSERT(ret == BERR_SUCCESS);
@@ -7494,6 +7616,16 @@ BERR_Code BDSP_Raaga_P_Open(
 		{
 			ret = BERR_TRACE(ret);
 			goto err_allocate_scratchISmem;
+		}
+		for (i=0 ; i < pDevice->numDsp; i++)
+		{
+			ret = BDSP_Raaga_P_DeviceInterruptInstall(pDeviceHandle,i);
+			if(ret != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_Open: Unable to Install Device Interrupt callback for Raaga DSP %d", i));
+				ret = BERR_TRACE(BERR_INVALID_PARAMETER);
+				goto err_downloadfw;
+			}
 		}
 	}
 #ifdef FIREPATH_BM
@@ -7701,6 +7833,8 @@ BERR_Code BDSP_Raaga_P_Open(
 		ret = BDSP_Raaga_P_SendCommand(
 						pDevice->hCmdQueue[i32DspIndex], &sCommand,(void *)NULL);
 
+		/* Send VOM change Command */
+		BDSP_Raaga_P_SendVOMChangeCommand (pDevice, i32DspIndex);
 	}
 
 	BDBG_LOG(("BDSP Firmware Version %dp%dp%dp%d",
@@ -7820,7 +7954,7 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	uint32_t ui32Scratch[BDSP_AF_P_eSchedulingGroup_Max] = {0}, ui32InterStageIO[BDSP_AF_P_eSchedulingGroup_Max] = {0}, ui32InterStageIOGen[BDSP_AF_P_eSchedulingGroup_Max] = {0}, ui32NumCh[BDSP_AF_P_eSchedulingGroup_Max] = {0};
 	int32_t i32DspIndex =0, i32BranchIndex =0, i32SchedulingGroupIndex = 0;
 	unsigned NumDsp = BDSP_RAAGA_MAX_DSP;
-	unsigned ContextMemory = 0, TaskMemory = 0, IntertaskBufferMemory = 0;
+	unsigned TaskMemory = 0, IntertaskBufferMemory = 0;
 	unsigned DecodeMemory = 0, MixerMemory = 0, PostProcessingMemory = 0, EchocancellerMemory = 0, AudioEncoderMemory = 0, PassthruMemory =0;
 	unsigned VideoDecodeMemory = 0, VideoEncodeMemory =0;
 	unsigned NumChannels = 0;
@@ -7880,9 +8014,7 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	ret = BDSP_Raaga_P_GetFwMemRequired(pSettings, psDwnldMemInfo,(void *) pImgCache, false, pUsage);
 	pEstimate->FirmwareMemory = psDwnldMemInfo->ui32AllocwithGuardBand;
 
-	/* Memory Allocated for Context - VOM table */
-	ret = BDSP_Raaga_P_CalculateContextMemory(&ContextMemory);
-	pEstimate->GeneralMemory += ContextMemory;
+
 
 	/* Memory Allocated for Task per task is calculated.
 		 Worst Case Estimate is taken for 12 tasks */

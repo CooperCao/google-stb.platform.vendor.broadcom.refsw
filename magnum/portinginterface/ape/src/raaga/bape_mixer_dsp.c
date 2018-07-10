@@ -562,7 +562,7 @@ static BERR_Code BAPE_DspMixer_P_Start(BAPE_MixerHandle handle)
 
     handle->startedExplicitly = true;
 
-    if ( false == handle->taskStarted )
+    if ( handle->taskState == BAPE_TaskState_eStopped )
     {
         BDBG_MSG(("BAPE_DspMixer_P_Start: Task not present.  Starting mixer task."));
         errCode = BAPE_DspMixer_P_StartTask(handle);
@@ -760,7 +760,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     unsigned numFound, i;
     uint32_t sampleRate = 48000;
 
-    BDBG_ASSERT(false == handle->taskStarted);
+    BDBG_ASSERT(handle->taskState == BAPE_TaskState_eStopped);
 
     /* Apply latest and greatest settings */
     BAPE_DspMixer_P_SetSettings(handle, NULL);
@@ -813,6 +813,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     }
 
     /* Setup Stages and Task */
+    handle->taskState = BAPE_TaskState_eStarting;
     BDSP_Task_GetDefaultStartSettings(handle->hTask, &taskStartSettings);
     taskStartSettings.primaryStage = handle->hMixerStage;
     taskStartSettings.openGateAtStart = handle->startedExplicitly;
@@ -1014,7 +1015,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         goto err_start_task;
     }
 
-    handle->taskStarted = true;
+    handle->taskState = BAPE_TaskState_eStarted;
     return BERR_SUCCESS;
 
 err_start_task:
@@ -1072,6 +1073,7 @@ err_create_loopback_path:
         handle->fs = BAPE_FS_INVALID;
     }
     #endif
+    handle->taskState = BAPE_TaskState_eStopped;
 err_create_loopback_mixer:
     return errCode;
 }
@@ -1185,11 +1187,16 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
     }
     else
     {
+        bool ac4Found = false;
         BAPE_DecoderHandle decoder = (BAPE_DecoderHandle)pConnection->pSource->pParent->pHandle;
         if ( decoder != NULL )
         {
-            BAPE_DecoderMixingMode mixingMode = decoder->startSettings.mixingMode;
+            BAPE_DecoderMixingMode mixingMode;
             BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
+
+            mixingMode = decoder->startSettings.mixingMode;
+
+            ac4Found = (decoder->startSettings.codec == BAVC_AudioCompressionStd_eAc4) ? true : false;
 
             for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
             {
@@ -1212,6 +1219,7 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
                                     BDBG_ERR(("Unable to start path: %d input to Mixer is already in use", mixingMode));
                                     return BERR_NOT_SUPPORTED;
                                 }
+                                ac4Found |= (decoder->startSettings.codec == BAVC_AudioCompressionStd_eAc4) ? true : false;
                             }
                         }
                     }
@@ -1225,7 +1233,33 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
                 }
             }
         }
+
+        {
+            BAPE_PathNode *pNode;
+            unsigned numFound;
+            BAPE_ProcessorSettings processorSettings;
+            BERR_Code errCode;
+
+            BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eAdvancedTsm, 1, &numFound, &pNode);
+            switch ( numFound )
+            {
+            case 0:
+                break;
+            case 1:
+                BAPE_Processor_GetSettings((BAPE_ProcessorHandle)(pNode->pHandle), &processorSettings);
+                if (processorSettings.settings.advTsm.forceBypass != ac4Found) {
+                    processorSettings.settings.advTsm.forceBypass = ac4Found;
+                    errCode = BAPE_Processor_SetSettings((BAPE_ProcessorHandle)(pNode->pHandle), &processorSettings);
+                    if (errCode) { BERR_TRACE(errCode); }
+                }
+                break;
+            default:
+                BDBG_ERR(("Multiple AdvTSM consumers found downstream from mixer %u.  This is not supported.", handle->index));
+                break;
+            }
+        }
     }
+
     return BERR_SUCCESS;
 
 }
@@ -1258,7 +1292,7 @@ static BERR_Code BAPE_DspMixer_P_AllocatePathFromInput(struct BAPE_PathNode *pNo
     }
 
     /* First see if we need to create the mixer task itself */
-    if ( false == handle->taskStarted )
+    if ( handle->taskState == BAPE_TaskState_eStopped )
     {
         BDBG_MSG(("AllocatePathFromInput: Task not present.  Starting mixer task."));
         errCode = BAPE_DspMixer_P_StartTask(handle);
@@ -1333,7 +1367,7 @@ static void BAPE_DspMixer_P_FreePathFromInput(struct BAPE_PathNode *pNode, struc
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
 
     /* Stop the mixer task if nobody is running. */
-    if ( 0 == handle->running && handle->taskStarted )
+    if ( 0 == handle->running && handle->taskState == BAPE_TaskState_eStarted )
     {
         BDBG_MSG(("FreePathFromInput: No running inputs - stop mixer task"));
         BAPE_DspMixer_P_StopTask(handle);
@@ -1619,7 +1653,7 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
 
     handle->running--;
     /* Stop the mixer task if nobody is running. */
-    if ( 0 == handle->running && handle->taskStarted )
+    if ( 0 == handle->running && handle->taskState == BAPE_TaskState_eStarted )
     {
         BDBG_MSG(("FreePathFromInput: Last running input has stopped - stop mixer task"));
         BAPE_DspMixer_P_StopTask(handle);
@@ -1792,7 +1826,7 @@ static void BAPE_DspMixer_P_Stop(BAPE_MixerHandle handle)
     handle->running--;
 
     /* Stop the mixer task if nobody is running. */
-    if ( 0 == handle->running && handle->taskStarted )
+    if ( 0 == handle->running && handle->taskState == BAPE_TaskState_eStarted )
     {
         BDBG_MSG(("BAPE_DspMixer_P_Stop: Last running input has stopped - stop mixer task"));
         BAPE_DspMixer_P_StopTask(handle);
@@ -1806,7 +1840,7 @@ static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle)
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
 
-    if ( false == handle->taskStarted )
+    if ( handle->taskState != BAPE_TaskState_eStarted )
     {
         return;
     }
@@ -1861,7 +1895,7 @@ static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle)
 #endif
     }
 
-    handle->taskStarted = false;
+    handle->taskState = BAPE_TaskState_eStopped;
 }
 
 static BERR_Code BAPE_DspMixer_P_AllocateLoopbackInput(BAPE_MixerHandle handle, BAPE_PathConnection *pConnection)
@@ -2483,7 +2517,7 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
     if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         unsigned i;
-        if (!handle->taskStarted)
+        if (handle->taskState == BAPE_TaskState_eStopped)
         {
             BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
         }
@@ -2589,6 +2623,12 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         /* Fade */
         /* --------------------------------------------------------- */
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32RampMode, handle->settings.fade.continuousFading ? 1 : 0);
+
+        /* --------------------------------------------------------- */
+        /* Fixed Encoder Format */
+        /* --------------------------------------------------------- */
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, ui32ChannelLockModeEnable, handle->settings.fixedEncoderFormat ? 1 : 0);
+
         errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
     }
     else
@@ -2596,7 +2636,7 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         unsigned i, j;
         int32_t enableCustomMixing;
 
-        if (!handle->taskStarted)
+        if (handle->taskState == BAPE_TaskState_eStopped)
         {
             errCode = BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixer);
             if ( errCode )
@@ -2702,7 +2742,7 @@ static BERR_Code BAPE_DspMixer_P_GetInputStatus(
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
-        if (!handle->taskStarted)
+        if (handle->taskState == BAPE_TaskState_eStopped)
         {
             BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
         }
@@ -2742,7 +2782,7 @@ static BERR_Code BAPE_DspMixer_P_GetStatus(
     if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
-        if (!handle->taskStarted)
+        if (handle->taskState == BAPE_TaskState_eStopped)
         {
             BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
         }

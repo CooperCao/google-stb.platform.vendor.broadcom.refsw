@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -44,7 +48,22 @@
 
  BDBG_MODULE(bdsp_raaga_int);   /* Register software module with debug interface */
 
- /*------------------------- GLOBALS AND EXTERNS ------------------------------*/
+ /*------------------------- GLOBALS AND EXTERNS ------------------------------*/\
+ static const  BINT_Id DSPGenRespInterruptId[] =
+ {
+#if defined BCHP_INT_ID_HOST_MSG
+      BCHP_INT_ID_HOST_MSG
+#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
+     ,BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_HOST_MSG
+#endif
+#else
+      BCHP_INT_ID_RAAGA_DSP_FW_INTH_HOST_MSG
+#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
+     , BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_HOST_MSG
+#endif
+#endif
+ };
+
  static const  BINT_Id ui32DSPSynInterruptId[] =
  {
 #if defined BCHP_INT_ID_SYNC_MSG
@@ -93,6 +112,26 @@ static const  BINT_Id ui32DSPWatchDogInterruptId[] =
 
 #define BDSP_RAAGA_DEFAULT_WATCHDOG_COUNT   (0x3FFFFFFF)
 
+
+static void BDSP_Raaga_P_Dsp2HostGenResp_isr(
+   void    *pDeviceHandle,
+   int     iParm2
+)
+{
+ BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
+ uint32_t     ui32DspId = 0;
+
+ BDBG_ENTER(BDSP_Raaga_P_Dsp2HostGenResp_isr);
+ BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+
+ ui32DspId = iParm2;
+ BDBG_MSG(("... Generic Response Message Posted by DSP %d... ", ui32DspId));
+
+ BKNI_SetEvent(pDevice->hEvent[ui32DspId]);
+
+ BDBG_LEAVE(BDSP_Raaga_P_Dsp2HostGenResp_isr);
+ return;
+}
 
  /***************************************************************************
  Description:
@@ -816,10 +855,92 @@ static void  BDSP_Raaga_P_UnlicensedAlgo_isr(
     return;
 }
 
+BERR_Code BDSP_Raaga_P_DeviceInterruptInstall (
+  void        *pDeviceHandle,
+  unsigned    dspIndex
+)
+{
+  BERR_Code   errCode = BERR_SUCCESS;
+  BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
 
+  BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+  BDBG_ENTER (BDSP_Raaga_P_DeviceInterruptInstall);
 
+  errCode = BINT_CreateCallback(
+                          &pDevice->hGenRespCallback[dspIndex],
+                          pDevice->intHandle,
+                          DSPGenRespInterruptId[dspIndex],
+                          BDSP_Raaga_P_Dsp2HostGenResp_isr,
+                          (void*)pDevice,
+                          dspIndex
+                          );
+  if(errCode != BERR_SUCCESS)
+  {
+      BDBG_ERR(("Create Generic Response Callback failed for DSP = %d",dspIndex));
+      errCode = BERR_TRACE(errCode);
+      goto err_callback;
+  }
+  errCode = BINT_EnableCallback(pDevice->hGenRespCallback[dspIndex]);
+  if(errCode != BERR_SUCCESS)
+  {
+      BDBG_ERR(("Enable Generic Response Callback failed for DSP = %d",dspIndex));
+      errCode = BERR_TRACE(errCode);
+      goto err_callback;
+  }
 
-  /***************************************************************************
+  goto end;
+err_callback:
+  if(errCode != BERR_SUCCESS )
+  {
+      BDSP_Raaga_P_DeviceInterruptUninstall(pDeviceHandle, dspIndex);
+  }
+
+end:
+  BDBG_LEAVE(BDSP_Raaga_P_DeviceInterruptInstall);
+  return errCode;
+}
+
+/***************************************************************************
+Description:
+  This API uninstalls the top level interrupt handlers for all the interrups.
+Returns:
+  BERR_Code
+See Also:
+***************************************************************************/
+BERR_Code BDSP_Raaga_P_DeviceInterruptUninstall (
+  void        *pDeviceHandle,
+  unsigned     dspIndex
+)
+{
+  BERR_Code   errCode = BERR_SUCCESS;
+  BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
+
+  BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
+  BDBG_ENTER (BDSP_Raaga_P_DeviceInterruptUninstall);
+
+  if(pDevice->hGenRespCallback[dspIndex])
+  {
+      errCode = BINT_DisableCallback(pDevice->hGenRespCallback[dspIndex]);
+      if (errCode!=BERR_SUCCESS)
+      {
+          BDBG_ERR(("BDSP_Raaga_P_DeviceInterruptUninstall: Error in Disabling Gen Resp Interrupt for Device %d", dspIndex));
+          errCode = BERR_TRACE(errCode);
+          goto end;
+      }
+      errCode = BINT_DestroyCallback(pDevice->hGenRespCallback[dspIndex]);
+      if (errCode !=BERR_SUCCESS)
+      {
+          BDBG_ERR(("BDSP_Raaga_P_DeviceInterruptUninstall: Error in Destroying Gen Resp Interrupt for Device %d", dspIndex));
+          errCode = BERR_TRACE(errCode);
+          goto end;
+      }
+  }
+
+end:
+  BDBG_LEAVE(BDSP_Raaga_P_DeviceInterruptUninstall);
+  return errCode;
+}
+ /***************************************************************************
  Description:
      This API uninstalls the top level interrupt handlers for all the interrups.
  Returns:

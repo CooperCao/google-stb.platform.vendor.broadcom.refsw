@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -133,6 +137,69 @@ BDBG_OBJECT_ID_DECLARE(BDSP_RaagaExternalInterrupt);
 #define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER 3
 #define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER 1
 
+/* Enum for PAK Based license checks */
+typedef enum
+{
+    BDSP_Raaga_P_AlgoLicense_Select_DAP = 0,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyDigital =1,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyDigitalPlus =2,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyAC4 =3,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyTrueHD =4,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS11MS10 =5,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V1 =6,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V2=7,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsTruVolume=8,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsDigitalSurround=9,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsHDM6=10,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsHDM8=11,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsHeadphoneX=12,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsVirtualX=13,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsX=14,
+    BDSP_Raaga_P_AlgoLicense_Select_Reserved=15,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileC=16,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileD=17,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileB=18,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileA=19,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_DAP_ContentProc=20,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_DAP_Virtualizer=21,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_DAP_DevProc=22,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_Adv_OpChannels=23,
+    BDSP_Raaga_P_AlgoLicense_Select_Max=24
+}BDSP_Raaga_P_AlgoLicense_Select;
+
+
+/* String definitions to match the PAK license bits */
+static const char BDSP_Raaga_P_AlgoLicEnum2Char[BDSP_Raaga_P_AlgoLicense_Select_Max][MAX_CHAR_LENGTH] =
+{
+    {"Dolby   : DAP"},
+    {"Dolby   : AC3"},
+    {"Dolby   : DDP"},
+    {"Dolby   : AC4"},
+    {"Dolby   : TruHD"},
+    {"Dolby   : MS11/MS10"},
+    {"Dolby   : MS12v1"},
+    {"Dolby   : MS12v2"},
+    {"DTS     : TruVolume"},
+    {"DTS     : DigitalSurround"},
+    {"DTS:    : HDM6"},
+    {"DTS     : HDM8"},
+    {"DTS     : HeadphoneX"},
+    {"DTS     : VirtualX"},
+    {"DTS     : DTSX"},
+    {"Reserved: Reserved"},
+    {"Dolby   : Profile C"},
+    {"Dolby   : Profile D"},
+    {"Dolby   : Profile B"},
+    {"Dolby   : Profile A"},
+    {"Dolby   : DAP Content Proc"},
+    {"Dolby   : DAP Virtualizer"},
+    {"Dolby   : DAP Dev Proc"},
+    {"Dolby   : Adv Op Channels"}
+};
+
+
+
+
 
 #ifdef BDSP_FW_RBUF_CAPTURE
 /* Specific to FW Ring Buffer capture required for their unit testing */
@@ -217,6 +284,7 @@ typedef struct BDSP_Raaga
     BMMA_Heap_Handle memHandle;
     BINT_Handle intHandle;
     BBOX_Handle boxHandle;
+    BKNI_EventHandle hEvent[BDSP_RAAGA_MAX_DSP];
     uint32_t dspOffset[BDSP_RAAGA_MAX_DSP];
     BINT_CallbackHandle     ackCallbackHandle[BDSP_RAAGA_MAX_DSP];    /* This will install the Callback for Ping the DSp*/
     BDSP_Raaga_P_DPM dpmInfo;
@@ -236,6 +304,7 @@ typedef struct BDSP_Raaga
     BDSP_Raaga_P_MsgQueueHandle      hCmdQueue[BDSP_RAAGA_MAX_DSP];      /* Cmd queue handle*/
     BDSP_Raaga_P_MsgQueueHandle      hGenRspQueue[BDSP_RAAGA_MAX_DSP];      /* Generic Response queue handle*/
     BINT_CallbackHandle             hWatchdogCallback[BDSP_RAAGA_MAX_DSP];
+    BINT_CallbackHandle             hGenRespCallback[BDSP_RAAGA_MAX_DSP];
     bool                    deviceWatchdogFlag;
     BLST_S_HEAD(BDSP_RaagaContextList, BDSP_RaagaContext) contextList;
     bool    powerStandby;/*True if DSP is in standby*/
@@ -1033,6 +1102,18 @@ BERR_Code BDSP_Raaga_P_UnFreeze(
 void BDSP_Raaga_P_InitDeviceSettings(
     void * pDeviceHandle
     );
+
+/***********************************************************************
+Summary:
+This function prepares the command header with PAK File info, DRM File info
+and Bounded PAK File address and sends the command to DSP to evaluate the
+status of audio license.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_ProcessPAK(
+        void                          *pDeviceHandle,
+        const BDSP_ProcessPAKSettings *pSettings,
+        BDSP_ProcessPAKStatus         *pStatus
+        );
 
 /* PAUSE-UNPAUSE */
 

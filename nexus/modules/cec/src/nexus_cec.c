@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,6 +42,8 @@
 #include "nexus_cec_module.h"
 #include "nexus_cec.h"
 #include "priv/nexus_core.h"
+
+#include "priv/nexus_hdmi_output_priv.h"
 
 
 BDBG_MODULE(nexus_cec);
@@ -222,6 +224,7 @@ Close the Cec interface
 **/
 static void NEXUS_Cec_P_Finalizer(	NEXUS_CecHandle handle)
 {
+	NEXUS_Error rc = NEXUS_SUCCESS;
 	NEXUS_OBJECT_ASSERT(NEXUS_Cec, handle);
 
 	if ( handle->cecTransmittedEventCallback ) {
@@ -231,6 +234,9 @@ static void NEXUS_Cec_P_Finalizer(	NEXUS_CecHandle handle)
 	if ( handle->cecReceivedEventCallback ) {
 		NEXUS_UnregisterEvent(handle->cecReceivedEventCallback);
 	}
+
+	rc = NEXUS_Cec_SetHdmiOutput(handle, NULL);
+	if (rc) { BERR_TRACE(rc); }
 
 	if (handle->cecHandle) {
 		BCEC_Close(handle->cecHandle);
@@ -483,6 +489,140 @@ done:
         handle->status.messageTransmitPending = true;
 
     return rc;
+}
+
+
+static void NEXUS_Cec_P_UpdatePhysicalAddress(void *pContext)
+{
+    NEXUS_CecHandle handle = pContext;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputStatus hdmiOutputStatus;
+    NEXUS_CecSettings cecSettings;
+
+    rc = NEXUS_HdmiOutput_GetStatus(handle->hdmiOutput, &hdmiOutputStatus);
+    if (rc) {
+        BDBG_ERR(("Error getting Hdmi_Output status to update CEC physical address"));
+        rc = BERR_TRACE(rc) ;
+        goto done;
+    }
+
+    NEXUS_Cec_GetSettings(handle, &cecSettings);
+    if (!hdmiOutputStatus.connected)
+    {
+        BDBG_LOG(("No Rx device attached - physicalAddress not updated"));
+        cecSettings.physicalAddress[0] = 0xFF;
+        cecSettings.physicalAddress[1] = 0xFF;
+    }
+    else {
+        cecSettings.physicalAddress[0]= (hdmiOutputStatus.physicalAddressA << 4) | hdmiOutputStatus.physicalAddressB;
+        cecSettings.physicalAddress[1]= (hdmiOutputStatus.physicalAddressC << 4) | hdmiOutputStatus.physicalAddressD;
+    }
+    rc = NEXUS_Cec_SetSettings(handle, &cecSettings);
+    if (rc) { BERR_TRACE(rc);}
+
+done:
+    return;
+}
+
+
+NEXUS_Error NEXUS_Cec_SetHdmiOutput(
+    NEXUS_CecHandle handle,
+    NEXUS_HdmiOutputHandle hdmiOutput /* attr{null_allowed=y} Pass NULL to remove/disconnected the link */
+)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
+
+    if (hdmiOutput)
+    {
+        if (handle->hdmiOutput)
+        {
+            if (handle->hdmiOutput == hdmiOutput) {
+                rc = NEXUS_SUCCESS;
+                goto done;
+            }
+            else {
+                NEXUS_Module_Lock(g_NEXUS_cecModuleSettings.hdmiOutput);
+                NEXUS_HdmiOutput_SetCecHotplugHandler_priv(handle->hdmiOutput, NULL);
+                NEXUS_Module_Unlock(g_NEXUS_cecModuleSettings.hdmiOutput);
+                NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
+            }
+        }
+
+        NEXUS_OBJECT_ACQUIRE(handle, NEXUS_HdmiOutput, hdmiOutput);
+        handle->hdmiOutput = hdmiOutput;
+
+        /* first, update CEC physical address */
+        NEXUS_Cec_P_UpdatePhysicalAddress(handle);
+
+        if (!handle->cecHotplugEvent)
+        {
+            rc = BKNI_CreateEvent(&handle->cecHotplugEvent);
+            if (rc != BERR_SUCCESS) {
+                BDBG_ERR(( "Error creating cecHotplug Event" ));
+                rc = BERR_TRACE(rc);
+                NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
+                handle->hdmiOutput = NULL;
+                goto done;
+            }
+        }
+
+        /* register event */
+        if (handle->cecHotplugEventCallback) {
+            NEXUS_UnregisterEvent(handle->cecHotplugEventCallback);
+            handle->cecHotplugEventCallback = NULL;
+        }
+
+        /* register event */
+        handle->cecHotplugEventCallback = NEXUS_RegisterEvent(handle->cecHotplugEvent,
+                NEXUS_Cec_P_UpdatePhysicalAddress, handle);
+
+        if (handle->cecHotplugEventCallback == NULL)
+        {
+            BDBG_ERR(( "NEXUS_RegisterEvent(cecHotplugEvent) failed!" ));
+            rc = BERR_TRACE(NEXUS_OS_ERROR);
+
+            if (handle->cecHotplugEvent) {
+                BKNI_DestroyEvent(handle->cecHotplugEvent);
+                handle->cecHotplugEvent = NULL;
+            }
+            NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
+            handle->hdmiOutput = NULL;
+            goto done;
+        }
+
+        NEXUS_Module_Lock(g_NEXUS_cecModuleSettings.hdmiOutput);
+        NEXUS_HdmiOutput_SetCecHotplugHandler_priv(hdmiOutput, handle->cecHotplugEvent);
+        NEXUS_Module_Unlock(g_NEXUS_cecModuleSettings.hdmiOutput);
+    }
+    else {
+        if (!handle->hdmiOutput) {
+            rc = NEXUS_SUCCESS;
+            goto done;
+        }
+
+        NEXUS_Module_Lock(g_NEXUS_cecModuleSettings.hdmiOutput);
+        NEXUS_HdmiOutput_SetCecHotplugHandler_priv(handle->hdmiOutput, NULL);
+        NEXUS_Module_Unlock(g_NEXUS_cecModuleSettings.hdmiOutput);
+
+        if (handle->cecHotplugEventCallback) {
+            NEXUS_UnregisterEvent(handle->cecHotplugEventCallback);
+            handle->cecHotplugEventCallback = NULL;
+        }
+
+        if (handle->cecHotplugEvent) {
+            BKNI_DestroyEvent(handle->cecHotplugEvent);
+            handle->cecHotplugEvent = NULL;
+        }
+
+        NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
+        handle->hdmiOutput = NULL;
+    }
+
+done:
+    return rc;
+
 }
 
 

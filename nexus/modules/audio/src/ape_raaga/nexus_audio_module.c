@@ -900,6 +900,8 @@ static BAPE_PostProcessorType NEXUS_AudioModule_P_NexusProcessingTypeToPiProcess
         return BAPE_PostProcessorType_eFade;
     case NEXUS_AudioPostProcessing_eKaraokeVocal:
         return BAPE_PostProcessorType_eKaraokeVocal;
+    case NEXUS_AudioPostProcessing_eAdvancedTsm:
+        return BAPE_PostProcessorType_eAdvancedTsm;
     default:
         break;
     }
@@ -1121,9 +1123,10 @@ void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
         pCaps->dsp.truVolume |= apeCaps.dsp[j].truVolume;
         pCaps->dsp.karaoke |= apeCaps.dsp[j].karaoke;
 
-        for ( i = 0; i < NEXUS_AudioPostProcessing_eMax; i++ )
-        {
-            pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] |= apeCaps.dsp[j].processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
+        for ( i = 0; i < NEXUS_AudioPostProcessing_eMax; i++ ) {
+            if ( NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i) != BAPE_PostProcessorType_eMax ) {
+                pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] |= apeCaps.dsp[j].processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
+            }
         }
     }
 }

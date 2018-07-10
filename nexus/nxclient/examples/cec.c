@@ -49,7 +49,11 @@
 BDBG_MODULE(cec);
 #include "nxapp_prompt.inc"
 
+#define appHdmiOutputHpCbId 0
+
 static NEXUS_CecHandle hCec;
+static NEXUS_HdmiOutputHandle g_hdmiOutput;
+
 static bool deviceReady = false;
 static bool messageReceived = false;
 
@@ -137,8 +141,6 @@ int main(void)
     NEXUS_Error rc;
     BKNI_EventHandle event;
     unsigned loops;
-    NEXUS_HdmiOutputHandle hdmiOutput;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus;
     NEXUS_CecSettings cecSettings;
     NEXUS_CecStatus cecStatus;
     NEXUS_CecMessage transmitMessage;
@@ -157,8 +159,9 @@ int main(void)
     }
 
     /* nxserver opens HDMI output, so a client can only open as a read-only alias. */
-    hdmiOutput = NEXUS_HdmiOutput_Open(0 + NEXUS_ALIAS_ID, NULL);
-    rc = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus);
+    g_hdmiOutput = NEXUS_HdmiOutput_Open(0 + NEXUS_ALIAS_ID, NULL);
+
+    rc = NEXUS_Cec_SetHdmiOutput(hCec, g_hdmiOutput);
     BDBG_ASSERT(!rc);
 
     NEXUS_Cec_GetSettings(hCec, &cecSettings);
@@ -168,8 +171,6 @@ int main(void)
     cecSettings.messageTransmittedCallback.context = event;
     cecSettings.logicalAddressAcquiredCallback.callback = deviceReady_callback;
     cecSettings.logicalAddressAcquiredCallback.context = event;
-    cecSettings.physicalAddress[0]= (hdmiOutputStatus.physicalAddressA << 4) | hdmiOutputStatus.physicalAddressB;
-    cecSettings.physicalAddress[1]= (hdmiOutputStatus.physicalAddressC << 4) | hdmiOutputStatus.physicalAddressD;
     rc = NEXUS_Cec_SetSettings(hCec, &cecSettings);
     BDBG_ASSERT(!rc);
 

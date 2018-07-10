@@ -249,6 +249,9 @@ typedef struct BAPE_MixerSettings
                                            Default is false. */
         BAPE_FadeSettings mainDecodeFade; /* Fade control for main decode output mixer stage (Main+Associate or Dual Main) */
     } fade;
+    bool fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
+                                multichannelFormat specified. This control only applies when MS12 is enabled.
+                                This will be popluated by the DDRE settings */
     /* End Dolby MS12 DAP features */
 } BAPE_MixerSettings;
 

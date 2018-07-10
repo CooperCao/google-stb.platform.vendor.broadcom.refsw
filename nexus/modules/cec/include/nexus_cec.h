@@ -1,10 +1,10 @@
 /***************************************************************************
-*	   (c)2007-2013 Broadcom Corporation
+* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").	Except as set forth in an Authorized License, Broadcom grants
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
 * no license (express or implied), right to use, or waiver of any kind with respect to the
 * Software, and Broadcom expressly reserves all rights in and to the Software and all
 * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
@@ -13,11 +13,11 @@
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.	   This program, including its structure, sequence and organization, constitutes the valuable trade
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 * and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-*	2.	   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
 * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
 * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 * USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.	   TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
 * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
 * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
 * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -35,21 +35,14 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
 #ifndef NEXUS_CEC_H__
 #define NEXUS_CEC_H__
 
+#include "nexus_hdmi_output.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -150,7 +143,7 @@ typedef enum NEXUS_CecDeviceType
 /**
 Summary:
 Enumeration indicate which CEC controller will be used.
-Each HDMI core has its own CEC controller. For platform with 
+Each HDMI core has its own CEC controller. For platform with
 both HDMI Tx and Rx, only 1 CEC controller is needed for usage.
 **/
 typedef enum NEXUS_CecController
@@ -254,7 +247,7 @@ typedef struct NEXUS_CecStatus
 	bool messageTransmitPending; /* If true, you must wait before calling NEXUS_Cec_TransmitMessage again. */
 
 	bool transmitMessageAcknowledged; /* status from last transmitted message */
-	
+
     unsigned cecVersion; /* Cec Protocol version the platform is running */
 
 } NEXUS_CecStatus;
@@ -335,6 +328,16 @@ NEXUS_Error NEXUS_Cec_TransmitMessage(
 	const NEXUS_CecMessage *pMessage
 	);
 
+
+/**
+Summary:
+Set/create a link between cec & hdmi_output in order to inform hotplug event from
+hdmi_output -> cec. The hotplug event will required update of CEC Physical Address.
+**/
+NEXUS_Error NEXUS_Cec_SetHdmiOutput(
+    NEXUS_CecHandle handle,
+    NEXUS_HdmiOutputHandle hdmiOutput /* attr{null_allowed=y} Pass NULL to remove/disconnected the link */
+    );
 
 #ifdef __cplusplus
 }

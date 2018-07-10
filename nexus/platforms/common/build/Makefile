@@ -196,6 +196,10 @@ ifeq ($(shell test -e $(BSEAV)/lib/security/sage/bin/install.mak && echo y),y)
 EXTRA_INSTALL += install_sage
 include $(BSEAV)/lib/security/sage/bin/install.mak
 endif
+ifeq ($(shell test -e $(BSEAV)/lib/security/pak/install.mak && echo y),y)
+EXTRA_INSTALL += install_pak
+include $(BSEAV)/lib/security/pak/install.mak
+endif
 endif
 endif
 
