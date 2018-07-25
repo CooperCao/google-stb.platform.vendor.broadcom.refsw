@@ -3213,8 +3213,11 @@ ErrorExit:
 
     if(*wvRc !=SAGE_OEMCrypto_SUCCESS)
     {
-        BKNI_Memset(out_buffer, 0x0, data_length);
         *out_sz = 0;
+        if(out_buffer && !isSecureDecrypt)
+        {
+            BKNI_Memset(out_buffer, 0x0, data_length);
+        }
         rc = Drm_Err;
     }
     else
@@ -3500,8 +3503,11 @@ ErrorExit:
 
     if(*wvRc !=SAGE_OEMCrypto_SUCCESS)
     {
-        BKNI_Memset(out_buffer, 0x0, data_length);
         rc = Drm_Err;
+        if(out_buffer && !isSecureDecrypt)
+        {
+            BKNI_Memset(out_buffer, 0x0, data_length);
+        }
         *out_sz = 0;
     }
     else
