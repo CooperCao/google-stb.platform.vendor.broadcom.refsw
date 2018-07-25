@@ -2085,7 +2085,7 @@ const uint32_t BDSP_IMG_isac_decode_array1[] = {
 	0x56e002c7,
 	0x60000003,
 	0xab0441f8,
-	0x73a0f070,
+	0x7390f070,
 	0xe7bffe17,
 	0x2900861f,
 	0x8d820407,

@@ -182,7 +182,7 @@ const uint32_t BDSP_IMG_dvdlpcm_ids_array1[] = {
 	0x72c06240,
 	0x725061c0,
 	0x9902fa07,
-	0x71d07140,
+	0x71e07140,
 	0x72a070c0,
 	0x72c070c0,
 	0x72b09040,

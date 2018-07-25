@@ -103,7 +103,7 @@
 #define BDSP_IMG_DDP_DECODE_INTER_FRAME_SIZE                         ((uint32_t)566512)
 #define BDSP_IMG_DDP_DECODE_SIZE                                     ((uint32_t)184156)
 #define BDSP_IMG_DDP_DECODE_TABLES_SIZE                              ((uint32_t)42288)
-#define BDSP_IMG_DDP_ENCODE_CODE_SIZE                                ((uint32_t)280720)
+#define BDSP_IMG_DDP_ENCODE_CODE_SIZE                                ((uint32_t)280744)
 #define BDSP_IMG_DDP_ENCODE_INTER_FRAME_SIZE                         ((uint32_t)217536)
 #define BDSP_IMG_DDP_ENCODE_TABLES_SIZE                              ((uint32_t)24812)
 #define BDSP_IMG_DDP_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)

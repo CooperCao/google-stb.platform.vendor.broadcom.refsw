@@ -64,7 +64,7 @@ const uint32_t BDSP_IMG_pcmwav_ids_array1[] = {
 	0x5101d90f,
 	0x08030057,
 	0x21015f0f,
-	0x71708049,
+	0x71608049,
 	0x70d09049,
 	0x0a1d11cf,
 	0x2a063107,

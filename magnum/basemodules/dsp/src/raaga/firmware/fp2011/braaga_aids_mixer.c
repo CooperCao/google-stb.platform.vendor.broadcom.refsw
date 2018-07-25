@@ -595,7 +595,7 @@ const uint32_t BDSP_IMG_mixer_ids_array1[] = {
 	0xb41e81f8,
 	0x30087f67,
 	0x07bfff0f,
-	0xdbd70001,
+	0xdbdf0001,
 	0xb6e70dfb,
 	0x1500d987,
 	0x2b017f5f,
