@@ -258,7 +258,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x2003a90f,
 	0x0903590f,
 	0x2002390f,
-	0x717080c9,
+	0x716080c9,
 	0x2120990f,
 	0x2194422f,
 	0x70b0a049,
