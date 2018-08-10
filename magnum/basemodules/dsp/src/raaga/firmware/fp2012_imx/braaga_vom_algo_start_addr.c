@@ -136,7 +136,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x103d1800,
 
 		/* BDSP_AF_P_AlgoId_eFlacDecode */
-		0x104526d8,
+		0x104526dc,
 
 		/* BDSP_AF_P_AlgoId_eMacDecode */
 		0x1045a000,
@@ -298,7 +298,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_eAacHeEncode */
-		0x102e36d4,
+		0x102e36ac,
 
 		/* BDSP_AF_P_AlgoId_eDtsEncode */
 		0x10281000,
@@ -505,7 +505,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x106d4000,
 
 		/* BDSP_AF_P_AlgoId_eAmbisonicsPostProc */
-		0x106d947c,
+		0x106d9470,
 
 		/* BDSP_AF_P_AlgoId_eTsmCorrectionPostProc */
 		0x10776800,

@@ -1202,6 +1202,18 @@ typedef struct BDSP_Raaga_Audio_MpegAncDataPacket
 } BDSP_Raaga_Audio_MpegAncDataPacket;
 
 
+/***************************************************************************
+Summary:
+BDSP Dolby OTP info
+**************************************************************************/
+typedef enum BDSP_eDolbyOTP
+{
+    BDSP_eDolbyOTP_0,
+    BDSP_eDolbyOTP_1,
+    BDSP_eDolbyOTP_2,
+    BDSP_eDolbyOTP_3,
+    BDSP_eDolbyOTP_Max=0x7fffffff
+}BDSP_eDolbyOTP;
 
 #ifdef RAAGA_SCM_SUPPORT
 

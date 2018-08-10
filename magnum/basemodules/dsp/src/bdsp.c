@@ -55,6 +55,26 @@ void BDSP_Close(
     handle->close(handle->pDeviceHandle);
 }
 
+BERR_Code BDSP_GetAudioLicenseStatus(
+    BDSP_Handle handle,
+    BDSP_AudioLicenseStatus *pAudioLicenseStatus             /* [out] Current Status */
+    )
+{
+    BERR_Code err = BERR_NOT_AVAILABLE;
+    BDBG_OBJECT_ASSERT(handle, BDSP_Device);
+
+    if ( handle->getAudioLicenseStatus )
+    {
+        err = handle->getAudioLicenseStatus(handle->pDeviceHandle, pAudioLicenseStatus);
+    }
+    else
+    {
+        BKNI_Memset(pAudioLicenseStatus, 0, sizeof(BDSP_AudioLicenseStatus));
+        err = BERR_NOT_AVAILABLE;
+    }
+    return err;
+}
+
 void BDSP_GetStatus(
     BDSP_Handle handle,
     BDSP_Status *pStatus             /* [out] Current Status */

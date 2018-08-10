@@ -175,6 +175,7 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 	pRaaga->device.getDefaultContextSettings = BDSP_Raaga_P_GetDefaultContextSettings;
 	pRaaga->device.createContext = BDSP_Raaga_P_CreateContext;
 	pRaaga->device.getStatus= BDSP_Raaga_P_GetStatus;
+    pRaaga->device.getAudioLicenseStatus= NULL;
 	pRaaga->device.powerStandby= BDSP_Raaga_P_PowerStandby;
 	pRaaga->device.powerResume= BDSP_Raaga_P_PowerResume;
 	pRaaga->device.getAlgorithmInfo= BDSP_Raaga_P_GetAlgorithmInfo;

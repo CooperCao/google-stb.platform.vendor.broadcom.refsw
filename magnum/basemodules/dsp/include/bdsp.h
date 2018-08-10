@@ -167,6 +167,21 @@ void BDSP_GetStatus(
 
 /***************************************************************************
 Summary:
+Get AudioLicense Status
+***************************************************************************/
+typedef struct BDSP_AudioLicenseStatus{
+    uint32_t ui32AllAudioLicense;
+    uint32_t ui32LicenseEnabledInBP3;
+    uint32_t ui32LicenseEnabledInPAK;
+}BDSP_AudioLicenseStatus ;
+
+BERR_Code BDSP_GetAudioLicenseStatus(
+    BDSP_Handle handle,
+    BDSP_AudioLicenseStatus *pAudioLicenseStatus             /* [out] Current Status */
+);
+
+/***************************************************************************
+Summary:
     Enter standby mode with  DSP.
 
 Description:

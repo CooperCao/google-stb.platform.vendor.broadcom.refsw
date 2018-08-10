@@ -533,6 +533,10 @@ void BDSP_Raaga_P_GetStatus(
     void *pDeviceHandle,
     BDSP_Status *pStatus);
 
+BERR_Code BDSP_Raaga_P_GetAudioLicenseStatus(
+    void *pDeviceHandle,
+    BDSP_AudioLicenseStatus *pAudioLicenseStatus);
+
 void BDSP_Raaga_P_DestroyContext(
     void *pContextHandle);
 

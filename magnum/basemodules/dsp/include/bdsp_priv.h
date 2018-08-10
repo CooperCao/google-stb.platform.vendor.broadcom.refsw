@@ -60,6 +60,7 @@ typedef struct BDSP_Device
     /* Device-level Function table */
     void (*close)(void *pDeviceHandle);
     void (*getStatus)(void *pDeviceHandle, BDSP_Status *pStatus);
+    BERR_Code (*getAudioLicenseStatus)(void *pDeviceHandle, BDSP_AudioLicenseStatus *pStatus);
     void (*getDefaultContextSettings)(void *pDeviceHandle,BDSP_ContextType contextType, BDSP_ContextCreateSettings *pSettings);
     BERR_Code (*createContext)(void *pDeviceHandle, const BDSP_ContextCreateSettings *pSettings, BDSP_ContextHandle *pContext);
     BERR_Code (*powerStandby)(void *pDeviceHandle, BDSP_StandbySettings     *pSettings);

@@ -133,7 +133,7 @@ const uint32_t BDSP_IMG_system_rdbvars_array1[] = {
     0x00000000, /* MEM_PROTECT_REGION9_START */
     0x00000000, /* MEM_PROTECT_REGION9_END */
     0xf0404008,
-    0x00000000, /* Not Used */
+    0x00000001,
     0x00000000, /* Not Used */
     0x00000000, /* Not Used */
     0x00000000, /* Not Used */
