@@ -38,6 +38,9 @@
  *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
  **************************************************************************/
 #include "nexus_playback_module.h"
 #include "nexus_playback_impl.h"
@@ -149,9 +152,6 @@ NEXUS_Playback_Create( void )
     playback->capture.has_data = false;
     playback->capture.no = 0;
     playback->capture.fout = NULL;
-#endif
-#if NEXUS_PLAYBACK_MP4_CENC
-    NEXUS_PlaybackMp4Cenc_Init(playback);
 #endif
     playback->recordProgressCnt = 0;
 

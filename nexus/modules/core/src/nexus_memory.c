@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1036,7 +1036,7 @@ void NEXUS_MemoryBlock_GetDefaultAllocationSettings(NEXUS_MemoryBlockAllocationS
     return;
 }
 
-static NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_P_CreateFromMma_with_heap_priv(BMMA_Block_Handle mma_block, NEXUS_HeapHandle nexusHeap, unsigned size)
+NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_P_CreateFromMma_priv(BMMA_Block_Handle mma_block)
 {
     NEXUS_MemoryBlockHandle block;
 
@@ -1047,34 +1047,10 @@ static NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_P_CreateFromMma_with_heap_priv(
     block->block = mma_block;
     block->lockCnt = 0;
     block->offset = 0;
-    block->heap = nexusHeap;
-    block->size = size;
-    block->nexusAlignment = 0;
-
     BLST_D_INSERT_HEAD(&g_NexusCore.allocatedBlocks, block, link);
     return block;
 
 err_alloc:
-    return NULL;
-}
-
-NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_P_CreateFromMma_priv(BMMA_Block_Handle mma_block)
-{
-    NEXUS_MemoryBlockHandle block;
-    BMMA_BlockProperties mmaProperties;
-    NEXUS_HeapHandle nexusHeap;
-
-    BMMA_Block_GetProperties(mma_block, &mmaProperties);
-    nexusHeap = NEXUS_Heap_GetHeapFromMmaHandle(mmaProperties.heap);
-    if(nexusHeap==NULL) { (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);goto err_nexusheap;}
-
-    block = NEXUS_MemoryBlock_P_CreateFromMma_with_heap_priv(mma_block, nexusHeap, mmaProperties.size);
-    if(block==NULL) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_create;}
-
-    return block;
-
-err_create:
-err_nexusheap:
     return NULL;
 }
 
@@ -1217,13 +1193,15 @@ NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_Allocate_driver(NEXUS_HeapHandle alloc
         rc= silent ? BERR_OUT_OF_DEVICE_MEMORY : BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);goto err_mem_alloc;
     }
 
-    block = NEXUS_MemoryBlock_P_CreateFromMma_with_heap_priv(mma_block, nexusHeap, numBytes);
+    block = NEXUS_MemoryBlock_P_CreateFromMma_priv(mma_block);
     if(!block) { rc=BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_create;}
 
 #if BDBG_DEBUG_BUILD
     block->fileNameNode = node;
 #endif
+    block->size = numBytes;
     block->nexusAlignment = nexusAlignment;
+    block->heap = allocHeap;
 
     pProperties->size = numBytes;
     pProperties->memoryType = nexusHeap->settings.memoryType;
@@ -1243,17 +1221,17 @@ err_parameter:
 
 void NEXUS_MemoryBlock_GetProperties( NEXUS_MemoryBlockHandle block, NEXUS_MemoryBlockProperties *pProperties)
 {
+    BMMA_BlockProperties mmaProperties;
     NEXUS_HeapHandle nexusHeap;
 
-    NEXUS_OBJECT_ASSERT(NEXUS_MemoryBlock, block);
-
-    nexusHeap = block->heap;
-
-    NEXUS_OBJECT_ASSERT(NEXUS_Heap, nexusHeap);
-
-    pProperties->size = block->size;
-    pProperties->memoryType = nexusHeap->settings.memoryType;
-    return;
+    BMMA_Block_GetProperties(block->block, &mmaProperties);
+    nexusHeap = NEXUS_Heap_GetHeapFromMmaHandle(mmaProperties.heap);
+    pProperties->size = mmaProperties.size;
+    pProperties->memoryType = 0;
+    if(nexusHeap) {
+        pProperties->memoryType = nexusHeap->settings.memoryType;
+    }
+    return ;
 }
 
 static void NEXUS_MemoryBlock_P_Finalizer(NEXUS_MemoryBlockHandle block)

@@ -127,6 +127,27 @@
  */
 #define WLC_PRB_RESP_TIMEOUT	0 /* Disable probe response timeout */
 
+#define WIFI_FEATURE_INFRA              0x0001      /* Basic infrastructure mode        */
+#define WIFI_FEATURE_INFRA_5G           0x0002      /* Support for 5 GHz Band           */
+#define WIFI_FEATURE_HOTSPOT            0x0004      /* Support for GAS/ANQP             */
+#define WIFI_FEATURE_P2P                0x0008      /* Wifi-Direct                      */
+#define WIFI_FEATURE_SOFT_AP            0x0010      /* Soft AP                          */
+#define WIFI_FEATURE_GSCAN              0x0020      /* Google-Scan APIs                 */
+#define WIFI_FEATURE_NAN                0x0040      /* Neighbor Awareness Networking    */
+#define WIFI_FEATURE_D2D_RTT            0x0080      /* Device-to-device RTT             */
+#define WIFI_FEATURE_D2AP_RTT           0x0100      /* Device-to-AP RTT                 */
+#define WIFI_FEATURE_BATCH_SCAN         0x0200      /* Batched Scan (legacy)            */
+#define WIFI_FEATURE_PNO                0x0400      /* Preferred network offload        */
+#define WIFI_FEATURE_ADDITIONAL_STA     0x0800      /* Support for two STAs             */
+#define WIFI_FEATURE_TDLS               0x1000      /* Tunnel directed link setup       */
+#define WIFI_FEATURE_TDLS_OFFCHANNEL    0x2000      /* Support for TDLS off channel     */
+#define WIFI_FEATURE_EPR                0x4000      /* Enhanced power reporting         */
+#define WIFI_FEATURE_AP_STA             0x8000      /* Support for AP STA Concurrency   */
+#define WIFI_FEATURE_LINKSTAT           0x10000     /* Support for Linkstats            */
+#define WIFI_FEATUE_RSSI_MONITOR        0x80000     /* RSSI Monitor                     */
+#define WIFI_FEATURE_CONFIG_NDO         0x200000    /* ND offload configure             */
+#define WIFI_FEATURE_INVALID            0xFFFFFFFF  /* Invalid Feature                  */
+
 #ifdef BCMCCX
 #include <proto/802.11_ccx.h>
 /* the extra 2 bytes is needed for the difference between ckip_hdr and 802.3 hdr */
@@ -1746,6 +1767,7 @@ struct wlc_info {
 	d11_info_t *d11_info;	/* D11 core specific info */
 	uint16 maxpwrlimit_fail;
 	char ccode[24];
+	int ccode_type;
 	uint16 chanspec_array [8];
 
 	/* NAN Elelemt container IE mgmt registry */
@@ -1768,6 +1790,7 @@ struct wlc_info {
 #ifdef WLATM_PERC
 	bool atm_perc; /* ATM percentage is enabled or not */
 #endif /* WLATM_PERC */
+	int chains_2g;
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG

@@ -84,15 +84,6 @@ static const BBOX_MemcClientEntry g_astMemcClientTbl[] = {
 #endif
 
 #include "memc/bchp_memc_clients_chip.h"
-
-#if BCHP_P_MEMC_COUNT == 1
-{ BCHP_MemcClient_eMax, 0 }
-#elif BCHP_P_MEMC_COUNT == 2
-{ BCHP_MemcClient_eMax, 0, 0 }
-#else /* BCHP_P_MEMC_COUNT == 3 */
-{ BCHP_MemcClient_eMax, 0, 0, 0 }
-#endif
-
 #undef BCHP_P_MEMC_DEFINE_CLIENT
 };
 

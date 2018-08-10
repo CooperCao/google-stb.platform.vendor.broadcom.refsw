@@ -85,7 +85,7 @@ OBJ_BMON_DIR := ${B_REFSW_OBJ_ROOT}/BSEAV/tools/bmon/dashboard/$(B_REFSW_ARCH).$
 DESTDIR ?= ${NEXUS_BIN_DIR}
 
 BIT64 = $(findstring aarch64,${COMPILER})
-WEB_FILES = power.html power.js bmon-dash-1.html wifi.html wificore.js wifiapp.js wifivars.js ampdu.js wifichanstats.js plugin-monitor.html
+WEB_FILES = power.html power.js cpu_utils.js bmon-dash-1.html wifi.html wificore.js wifiapp.js wifivars.js ampdu.js wifichanstats.js plugin-monitor.html
 all: ${DESTDIR} chartjs-plugin-annotation $(WEB_FILES) boa nxclient_apps specA_html rest_server websocket plugin_cpu plugin_power plugin_wifi plugin_hdmi_output plugin_network plugin_screenshot dashboard_files
 	$(Q_)if [ ! -d $(OBJ_BMON_DIR) ]; then \
 		mkdir -p $(OBJ_BMON_DIR); \
@@ -95,10 +95,11 @@ all: ${DESTDIR} chartjs-plugin-annotation $(WEB_FILES) boa nxclient_apps specA_h
 
 dashboard_files: ${DESTDIR} boa
 	$(Q_)$(MKDIR) -p $(DESTDIR)/img
-	$(Q_)echo "[Install... (web files)]"
+	$(Q_)echo "[Install... $@ ]"
 	$(Q_)$(CP) -df $(BMON_SRC_DIR)/index.html $(DESTDIR)
 	$(Q_)$(CP) -df $(BMON_SRC_DIR)/power.html $(DESTDIR)
 	$(Q_)$(CP) -df $(BMON_SRC_DIR)/power.js $(DESTDIR)
+	$(Q_)$(CP) -df $(BMON_SRC_DIR)/cpu_utils.js $(DESTDIR)
 	$(Q_)$(CP) -df $(BMON_SRC_DIR)/walktreestructure.js $(DESTDIR)
 	$(Q_)$(CP) -df $(BMON_SRC_DIR)/img/power.png $(DESTDIR)
 	$(Q_)$(CP) -df $(BMON_SRC_DIR)/wifi.html $(DESTDIR)
@@ -165,6 +166,7 @@ specA_html:
 clean:
 	$(Q_)if [ -e $(DESTDIR)/power.html ]; then rm -f $(DESTDIR)/power.html ; fi;
 	$(Q_)if [ -e $(DESTDIR)/power.js ]; then rm -f $(DESTDIR)/power.js ; fi;
+	$(Q_)if [ -e $(DESTDIR)/cpu_utils.js ]; then rm -f $(DESTDIR)/cpu_utils.js ; fi;
 	$(Q_)if [ -e $(DESTDIR)/walktreestructure.js ]; then rm -f $(DESTDIR)/walktreestructure.js ; fi;
 	$(Q_)if [ -e $(DESTDIR)/wifi.html ]; then rm -f $(DESTDIR)/wifi.html ; fi;
 	$(Q_)if [ -e $(DESTDIR)/wificore.js ]; then rm -f $(DESTDIR)/wificore.js ; fi;

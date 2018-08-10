@@ -6084,20 +6084,24 @@ BVCE_Channel_S_WaitForEOS(
    unsigned uiNumIterations = BVCE_P_STOP_RECOVERY_TIME / BVCE_P_STOP_RECOVERY_DELAY;
 
    rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
-   while ( ( uiNumIterations != 0 )
-           && ( BVCE_P_Status_eOpened != hVceCh->eStatus )
-           && ( BERR_SUCCESS == rc )
-         )
+   if ( ( BERR_SUCCESS == rc )
+        && ( 0 != hVceCh->stStatus.uiTotalPicturesEncoded ) )
    {
-      BKNI_Delay(BVCE_P_STOP_RECOVERY_DELAY);
-      rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
-      uiNumIterations--;
-   }
+      while ( ( uiNumIterations != 0 )
+              && ( BVCE_P_Status_eOpened != hVceCh->eStatus )
+              && ( BERR_SUCCESS == rc )
+            )
+      {
+         BKNI_Delay(BVCE_P_STOP_RECOVERY_DELAY);
+         rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
+         uiNumIterations--;
+      }
 
-   if ( 0 == ( hVceCh->stStatus.uiEventFlags & BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS ) )
-   {
-      rc = BERR_TRACE( BERR_UNKNOWN );
-      BDBG_ERR(("VCE FW not done with stop, yet"));
+      if ( 0 == ( hVceCh->stStatus.uiEventFlags & BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS ) )
+      {
+         rc = BERR_TRACE( BERR_UNKNOWN );
+         BDBG_ERR(("VCE FW not done with stop, yet"));
+      }
    }
 
    BVCE_Channel_P_HandleEOSEvent(
@@ -6280,30 +6284,34 @@ BVCE_Channel_S_FlushEncode_impl(
       unsigned uiNumIterations = BVCE_P_STOP_RECOVERY_TIME / BVCE_P_STOP_RECOVERY_DELAY;
 
       rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
-      while ( ( uiNumIterations != 0 )
+      if ( ( BERR_SUCCESS == rc )
+           && ( 0 != hVceCh->stStatus.uiTotalPicturesEncoded ) )
+      {
+         while ( ( uiNumIterations != 0 )
+                 && ( BVCE_P_Status_eOpened != hVceCh->eStatus )
+                 && ( BERR_SUCCESS == rc )
+               )
+         {
+            BVCE_Channel_S_FlushEncode( hVceCh );
+            BKNI_Delay(BVCE_P_STOP_RECOVERY_DELAY);
+            rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
+            uiNumIterations--;
+         }
+
+         if ( 0 == ( hVceCh->stStatus.uiEventFlags & BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS ) )
+         {
+            rc = BERR_TRACE( BERR_UNKNOWN );
+            BDBG_ERR(("VCE FW not done with stop, yet"));
+         }
+
+         if ( ( NULL != hVceCh->stStartEncodeSettings.hOutputHandle )
               && ( BVCE_P_Status_eOpened != hVceCh->eStatus )
-              && ( BERR_SUCCESS == rc )
-            )
-      {
-         BVCE_Channel_S_FlushEncode( hVceCh );
-         BKNI_Delay(BVCE_P_STOP_RECOVERY_DELAY);
-         rc = BVCE_Channel_GetStatus( hVceCh, &hVceCh->stStatus );
-         uiNumIterations--;
-      }
-
-      if ( 0 == ( hVceCh->stStatus.uiEventFlags & BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS ) )
-      {
-         rc = BERR_TRACE( BERR_UNKNOWN );
-         BDBG_ERR(("VCE FW not done with stop, yet"));
-      }
-
-      if ( ( NULL != hVceCh->stStartEncodeSettings.hOutputHandle )
-           && ( BVCE_P_Status_eOpened != hVceCh->eStatus )
-           && ( BVCE_P_Output_BufferAccessMode_eDirect != hVceCh->stStartEncodeSettings.hOutputHandle->state.eBufferAccessMode )
-          )
-      {
-         rc = BERR_TRACE( BERR_UNKNOWN );
-         BDBG_ERR(("EOS not seen in ITB, yet"));
+              && ( BVCE_P_Output_BufferAccessMode_eDirect != hVceCh->stStartEncodeSettings.hOutputHandle->state.eBufferAccessMode )
+             )
+         {
+            rc = BERR_TRACE( BERR_UNKNOWN );
+            BDBG_ERR(("EOS not seen in ITB, yet"));
+         }
       }
 
       BVCE_Channel_P_HandleEOSEvent(
@@ -7472,7 +7480,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
 }
 
 #if (BVCE_P_VDC_MANAGE_VIP)
-static bool BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isr(
+static bool BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isrsafe(
    BVCE_P_PictureBlockInfo *pstBlockInfo,
    const BAVC_EncodePictureBuffer *pstEncodePictureBuffer,
    BVCE_P_PictureBufferType ePictureBufferType
@@ -8719,7 +8727,7 @@ BVCE_Channel_Picture_Enqueue_isr(
                   }
                   BDBG_ASSERT( i < BVCE_P_PICTURE_OFFSET_LUT_SIZE );
 
-                  if ( true == BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isr( pstPictureBlockInfo, pstPicture, ePictureBufferType ) )
+                  if ( true == BVCE_S_AcquirePictureBlockInfoFromEncodePictureBuffer_isrsafe( pstPictureBlockInfo, pstPicture, ePictureBufferType ) )
                   {
                      /* Sanity check to make sure buffer isn't already in LUT */
                      {

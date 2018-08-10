@@ -1967,13 +1967,15 @@ bool nxserverlib_p_native_3d_active(struct b_session *session)
 bool nxserverlib_p_dolby_vision_active(struct b_session *session)
 {
 #if NEXUS_HAS_HDMI_OUTPUT
-    NEXUS_HdmiOutputExtraStatus status;
-    NEXUS_HdmiOutput_GetExtraStatus(session->hdmiOutput, &status);
-    return status.dolbyVision.enabled;
+    if (session->hdmiOutput) {
+        NEXUS_HdmiOutputExtraStatus status;
+        NEXUS_HdmiOutput_GetExtraStatus(session->hdmiOutput, &status);
+        return status.dolbyVision.enabled;
+    }
 #else
     BSTD_UNUSED(session);
-    return false;
 #endif
+    return false;
 }
 
 static void make_cursor(NEXUS_SurfaceHandle surface, const NEXUS_SurfaceCreateSettings *settings)
@@ -2386,7 +2388,7 @@ static void hotplug_callback_locked(void *pParam, int iParam)
         }
         bserver_hdmi_edid_audio_config(session, &status);
         if (session->main_audio) {
-            bserver_set_audio_config(session->main_audio);
+            bserver_set_audio_config(session->main_audio, false);
         }
 
         if (!status.videoFormatSupported[session->nxclient.displaySettings.format]) {
@@ -2480,9 +2482,7 @@ static void display_hdr_info_changed(void * context, int param)
     BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel, &status.infoFrame.metadata.typeSettings.type1.contentLightLevel, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel));
     BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &status.infoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
     session->hdmi.drm.smdValid = true;
-#if NEXUS_HAS_VIDEO_DECODER
     session->hdmi.drm.dynamicMetadataType = status.infoFrame.metadata.type;
-#endif
     nxserverlib_p_apply_hdmi_drm(session, NULL, false);
     BKNI_ReleaseMutex(session->server->settings.lock);
 }
@@ -4101,6 +4101,8 @@ static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_
     nxserver_t server = session->server;
     NEXUS_DisplayHandle display;
 
+    if (server->settings.externalApp.enabled) return;
+
     /* SD outputs */
     if (server->settings.session[session->index].output.sd && pSettings->compositePreferences.enabled) {
         NEXUS_VideoFormatInfo info;
@@ -4955,7 +4957,7 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
     }
 
     if (reconfig_audio && session->main_audio) {
-        rc = bserver_set_audio_config(session->main_audio);
+        rc = bserver_set_audio_config(session->main_audio, false);
         if (rc) return BERR_TRACE(rc);
     }
     else if (restart) {

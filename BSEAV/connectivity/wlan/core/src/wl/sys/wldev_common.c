@@ -489,12 +489,27 @@ int wldev_set_country(
 	struct wireless_dev *wdev = ndev_to_wdev(dev);
 	struct wiphy *wiphy = wdev->wiphy;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+	int isup;
 #endif /* WL_CFG80211 */
 
+#if defined(OEM_ANDROID)
+	int country_change = 0;
+#endif /* OEM_ANDROID */
 	if (!country_code)
 		return error;
 
 	bzero(&scbval, sizeof(scb_val_t));
+#if defined(OEM_ANDROID)
+#if defined(BCMDONGLEHOST)
+	country_change = (int) dhd_force_country_change(dev);
+#else
+	error = wldev_iovar_getint(dev, "ccode_type", &country_change);
+	if (error < 0) {
+		WLDEV_ERROR(("%s: get ccode_type failed = %d\n", __FUNCTION__, error));
+		return error;
+	}
+#endif /* BCMDONGLEHOST */
+#endif /* OEM_ANDROID */
 	error = wldev_iovar_getbuf(dev, "country", NULL, 0, &cspec, sizeof(cspec), NULL);
 	if (error < 0) {
 		WLDEV_ERROR(("%s: get country failed = %d\n", __FUNCTION__, error));
@@ -502,9 +517,9 @@ int wldev_set_country(
 	}
 
 	if ((error < 0) ||
-#if defined(OEM_ANDROID) && !defined(STB_SOC_WIFI)
-		dhd_force_country_change(dev) ||
-#endif /* OEM_ANDROID && !STB_SOC_WIFI */
+#if defined(OEM_ANDROID)
+		country_change ||
+#endif /* OEM_ANDROID */
 	    (strncmp(country_code, cspec.ccode, WLC_CNTRY_BUF_SZ) != 0)) {
 
 #ifdef WL_CFG80211
@@ -536,6 +551,17 @@ int wldev_set_country(
 		}
 #if defined(BCMDONGLEHOST)
 		dhd_bus_country_set(dev, &cspec, notify);
+#else
+#ifdef WL_CFG80211
+		error = wldev_ioctl(dev, WLC_GET_UP, &isup, sizeof(uint), 0);
+		if (error < 0) {
+			WLDEV_ERROR(("%s: WLC_GET_UP failed\n",
+				__FUNCTION__));
+			return error;
+		}
+		if(isup)
+			wl_update_wiphybands(cfg, notify);
+#endif /* WL_CFG80211 */
 #endif /* BCMDONGLEHOST */
 		WLDEV_INFO(("%s: set country for %s as %s rev %d\n",
 			__FUNCTION__, country_code, cspec.ccode, cspec.rev));

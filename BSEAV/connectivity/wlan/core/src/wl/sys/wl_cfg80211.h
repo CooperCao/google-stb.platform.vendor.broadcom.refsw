@@ -1704,6 +1704,7 @@ extern s32 wl_cfg80211_get_connect_failed_status(struct net_device *dev, char* c
 #endif /* DHD_ENABLE_BIGDATA_LOGGING */
 extern struct bcm_cfg80211 *wl_get_cfg(struct net_device *ndev);
 extern s32 wl_cfg80211_set_if_band(struct net_device *ndev, int band);
+extern uint32 *wl_cfg80211_get_channel_list(struct net_device *dev, int band, uint32 *len);
 
 #define SCAN_BUF_CNT	2
 #define SCAN_BUF_NEXT	1

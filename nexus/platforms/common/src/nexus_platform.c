@@ -383,6 +383,10 @@ static void NEXUS_Platform_P_InitAudio(void *context)
     BDBG_ASSERT(g_NEXUS_platformHandles.security);
     internalAudioSettings.modules.security = g_NEXUS_platformHandles.security;
     #endif
+    #if NEXUS_HAS_SAGE
+    BDBG_ASSERT(g_NEXUS_platformHandles.sage);
+    internalAudioSettings.modules.sage = g_NEXUS_platformHandles.sage;
+    #endif
     /* this is something used by the DTV... for now ignore the "DTV centric guarding schema" */
     #if NEXUS_HAS_FRONTEND
     internalAudioSettings.modules.frontend = g_NEXUS_platformHandles.frontend;

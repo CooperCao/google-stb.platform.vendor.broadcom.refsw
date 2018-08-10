@@ -114,7 +114,7 @@ BDBG_OBJECT_ID(KeymasterTl_Instance);
 
 
 static void _KeymasterTl_ContextDelete(KeymasterTl_Handle hKeymasterTl);
-static KeymasterTl_Handle _KeymasterTl_ContextNew(const char *bin_file_path);
+static BERR_Code _KeymasterTl_ContextNew(KeymasterTl_InitSettings *pModuleSettings, KeymasterTl_Handle *ret_handle);
 
 void KeymasterTl_GetDefaultInitSettings(KeymasterTl_InitSettings *pModuleSettings)
 {
@@ -135,12 +135,14 @@ void KeymasterTl_GetDefaultInitSettings(KeymasterTl_InitSettings *pModuleSetting
     return;
 }
 
-static KeymasterTl_Handle _KeymasterTl_ContextNew(const char *bin_file_path)
+static BERR_Code _KeymasterTl_ContextNew(KeymasterTl_InitSettings *pModuleSettings, KeymasterTl_Handle *ret_handle)
 {
     BERR_Code err;
     NEXUS_Error nexus_rc;
     BSAGElib_InOutContainer *inout = NULL;
     KeymasterTl_Handle handle = NULL;
+
+    BDBG_ASSERT(ret_handle);
 
     nexus_rc = NEXUS_Memory_Allocate(sizeof(*handle), NULL, (void **)&handle);
     if (nexus_rc != NEXUS_SUCCESS) {
@@ -156,12 +158,14 @@ static KeymasterTl_Handle _KeymasterTl_ContextNew(const char *bin_file_path)
     KM_ALLOCATE_CONTAINER();
 
     err = Keymaster_ModuleInit(Keymaster_ModuleId_eKeymaster,
-                               bin_file_path,
+                               pModuleSettings,
                                inout,
                                &handle->moduleHandle,
                                &handle->ssdModuleHandle);
     if (err != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Error initializing module (0x%08x)", BSTD_FUNCTION, inout->basicOut[0]));
+        BDBG_ERR(("%s: Error initializing module (err 0x%08x, inout 0x%08x)", BSTD_FUNCTION, err, inout->basicOut[0]));
+        if ((err == BSAGE_ERR_INTERNAL) && (inout->basicOut[0] != BERR_SUCCESS))
+            err = inout->basicOut[0];
         goto done;
     }
 
@@ -173,7 +177,8 @@ done:
         handle = NULL;
     }
 
-    return handle;
+    *ret_handle = handle;
+    return err;
 }
 
 static void _KeymasterTl_ContextDelete(KeymasterTl_Handle handle)
@@ -208,9 +213,9 @@ BERR_Code KeymasterTl_Init(KeymasterTl_Handle *pHandle, KeymasterTl_InitSettings
         goto done;
     }
 
-    *pHandle = _KeymasterTl_ContextNew(pModuleSettings->drm_binfile_path);
-    if (*pHandle == NULL) {
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
+    rc = _KeymasterTl_ContextNew(pModuleSettings, pHandle);
+    if (rc != BERR_SUCCESS) {
+        *pHandle = NULL;
         goto done;
     }
 
@@ -1138,7 +1143,7 @@ BERR_Code KeymasterTl_CryptoUpdate(
 
     BDBG_ENTER(KeymasterTl_CryptoUpdate);
 
-    if (!handle || !settings || !settings->in_data.size || !settings->in_data.buffer) {
+    if (!handle || !settings) {
         BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
         err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
         goto done;

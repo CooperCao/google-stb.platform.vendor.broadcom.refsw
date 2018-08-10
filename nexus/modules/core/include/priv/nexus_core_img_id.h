@@ -47,7 +47,9 @@
 ***************************************************************************/
 #ifndef NEXUS_CORE_IMG_ID_H
 #define NEXUS_CORE_IMG_ID_H
-#define NEXUS_CORE_IMG_ID_RAP "RAP"
+#define NEXUS_CORE_IMG_ID_AUDIO_DSP "AUDIO_DSP"
+#define NEXUS_CORE_IMG_ID_SOFT_AUDIO "SOFT_AUDIO"
+#define NEXUS_CORE_IMG_ID_AUDIO_PAK "AUDIO_PAK"
 #define NEXUS_CORE_IMG_ID_XVD "XVD"
 #define NEXUS_CORE_IMG_ID_VCE "VCE"
 #define NEXUS_CORE_IMG_ID_SAGE "SAGE"

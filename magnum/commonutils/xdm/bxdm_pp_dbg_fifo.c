@@ -1021,11 +1021,11 @@ void BXDM_PictureProvider_Debug_PrintFifoEntry_isrsafe(
 }
 
 
-void BXDM_PictureProvider_Debug_DumpFifo(
+void BXDM_PictureProvider_Debug_DumpFifo_isrsafe(
    BXDM_PictureProvider_Handle hXdmPP
    )
 {
-   BDBG_ENTER(BXDM_PictureProvider_Debug_DumpFifo);
+   BDBG_ENTER(BXDM_PictureProvider_Debug_DumpFifo_isrsafe);
 
    if ( NULL ==  hXdmPP->stDMConfig.stDebugReader.hDebugReader)
    {
@@ -1067,7 +1067,7 @@ void BXDM_PictureProvider_Debug_DumpFifo(
 
 error:
 
-   BDBG_LEAVE(BXDM_PictureProvider_Debug_DumpFifo);
+   BDBG_LEAVE(BXDM_PictureProvider_Debug_DumpFifo_isrsafe);
 
    return;
 

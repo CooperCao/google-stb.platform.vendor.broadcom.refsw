@@ -398,6 +398,7 @@ void MediaPlayer::start()
             NEXUS_SimpleAudioDecoder_GetSettings(_context->audioDecoderHandle, &audioSettingsAfter);
             audioSettingsAfter.primary.firstPts.callback = audioSettings.primary.firstPts.callback;
             audioSettingsAfter.primary.firstPts.context = audioSettings.primary.firstPts.context;
+            audioSettingsAfter.primary.alwaysEnableDsola = true;
             NEXUS_SimpleAudioDecoder_SetSettings(_context->audioDecoderHandle, &audioSettingsAfter);
         }
 

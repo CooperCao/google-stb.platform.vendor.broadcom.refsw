@@ -231,6 +231,9 @@ struct NEXUS_P_MtsifPidChannel {
     unsigned hostPb, demodPb;
     unsigned hostIndex, demodIndex;
     unsigned mtsifTxSel;
+    struct {
+        unsigned spid, mode;
+    } spid;
     enum {
         enabled,
         pendingEnable, /* pidchannel has been opened on host, but no demodPB -> hostPB connection has been established */
@@ -2513,6 +2516,8 @@ static void NEXUS_Frontend_P_PidChannelCallback(void *arg)
                 pidChannel->hostPb = hostPb;
                 pidChannel->hostIndex = hostIndex;
                 pidChannel->demodIndex = demodIndex;
+                pidChannel->spid.mode = settings[i].spid.mode;
+                pidChannel->spid.spid = settings[i].spid.spid;
 
                 if (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected) { /* demodPB -> hostPB already connected */
                     NEXUS_FrontendDeviceMtsifConfig *config = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[pidChannel->hostPb].deviceConfig;
@@ -2572,7 +2577,9 @@ static void NEXUS_Frontend_P_SetPid(NEXUS_P_MtsifPidChannelHandle pidChannel)
     pidSettings.enable = (pidChannel->state==enabled);
     pidSettings.inputSelect = pidChannel->demodPb;
     pidSettings.mtsifTxSelect = pidChannel->mtsifTxSel;
-    BDBG_MSG(("Set pidchannel[%3u]: pid %x, enable %u, demodPB%u, TX%u", pidChannel->demodIndex, pidSettings.pid, pidSettings.enable, pidSettings.inputSelect, pidSettings.mtsifTxSelect));
+    pidSettings.spid.mode = pidChannel->spid.mode;
+    pidSettings.spid.spid = pidChannel->spid.spid;
+    BDBG_MSG(("Set pidchannel[%3u]: pid %x, enable %u, demodPB%u, TX%u, spid %u:%u", pidChannel->demodIndex, pidSettings.pid, pidSettings.enable, pidSettings.inputSelect, pidSettings.mtsifTxSelect, pidSettings.spid.mode, pidSettings.spid.spid));
     BMXT_ConfigPidChannel(pidChannel->mxt, pidChannel->demodIndex, &pidSettings);
 }
 

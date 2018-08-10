@@ -276,10 +276,10 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
 	case BDSP_IMG_ID_IDS(BDSP_Algorithm_eMpegAudioPassthrough):				return BDSP_IMG_aids_mpeg1;
 #endif /*BDSP_MPEG_PASSTHRU_SUPPORT*/
 #ifdef BDSP_WMAPRO_SUPPORT
-	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eWmaProDecode): 				return BDSP_IMG_adec_wmapro;
-	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eWmaProDecode):				return BDSP_IMG_adec_wmapro_tables;
-	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eWmaProDecode):				return BDSP_IMG_adec_wmapro_inter_frame;
-	case BDSP_IMG_ID_IDS(BDSP_Algorithm_eWmaProDecode):				return BDSP_IMG_aids_wmapro;
+	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eWmaProDecode): 				return BDSP_IMG_adec_wma_pro;
+	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eWmaProDecode):				return BDSP_IMG_adec_wma_pro_tables;
+	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eWmaProDecode):				return BDSP_IMG_adec_wma_pro_inter_frame;
+	case BDSP_IMG_ID_IDS(BDSP_Algorithm_eWmaProDecode):				return BDSP_IMG_aids_wma_pro;
 #endif /* BDSP_WMAPRO_SUPPORT */
 #ifdef BDSP_WMA_SUPPORT
 	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eWmaStdDecode):				return BDSP_IMG_adec_wma;

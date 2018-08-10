@@ -169,6 +169,26 @@ void NEXUS_VideoDecoder_P_Watchdog_isr(void *data, int not_used, void *not_used2
     BKNI_SetEvent(vDevice->watchdog_event);
 }
 
+void NEXUS_VideoDecoder_P_ClockBoostHandler(void *data)
+{
+    struct NEXUS_VideoDecoderDevice *vDevice = (struct NEXUS_VideoDecoderDevice *)data;
+
+    /* HVD will generate an interrupt whenever the source resolution changes.
+    The clock rate will be adjusted based on the current demands on the decoder. */
+    BXVD_ClockBoost_EventHandler(vDevice->xvd);
+
+    BKNI_ResetEvent(vDevice->clockBoost_event);
+}
+
+void NEXUS_VideoDecoder_P_ClockBoost_isr(void *data, int not_used, void *not_used2)
+{
+    struct NEXUS_VideoDecoderDevice *vDevice = (struct NEXUS_VideoDecoderDevice *)data;
+    BSTD_UNUSED(not_used);
+    BSTD_UNUSED(not_used2);
+    /* convert from isr to event */
+    BKNI_SetEvent(vDevice->clockBoost_event);
+}
+
 #if !BDBG_NO_MSG
 static void NEXUS_VideoDecoder_P_DataReady_PrintPicture_isr(NEXUS_VideoDecoderHandle videoDecoder, const BAVC_MFD_Picture * pFieldData)
 {
@@ -1235,6 +1255,11 @@ unsigned NEXUS_VideoDecoder_GetMosaicIndex_isrsafe(NEXUS_VideoDecoderHandle vide
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     return videoDecoder->mosaicIndex;
+}
+
+bool NEXUS_VideoDecoder_P_IsMosaic_isrsafe(NEXUS_VideoDecoderHandle videoDecoder)
+{
+    return videoDecoder->mosaicMode;
 }
 
 void NEXUS_VideoDecoder_GetSourceId_priv_Avd(NEXUS_VideoDecoderHandle videoDecoder, BAVC_SourceId *pSource)

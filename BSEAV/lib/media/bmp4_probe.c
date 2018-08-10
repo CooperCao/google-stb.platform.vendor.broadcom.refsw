@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -265,11 +265,6 @@ b_mp4_probe_object_begin(void *cntx, uint32_t type, uint64_t size, uint64_t offs
         BMP4_CHUNKOFFSET,
         BMP4_CHUNKLARGEOFFSET,
         BMP4_SYNCSAMPLE,
-        BMP4_SAMPLE_AUXILIARY_INFORMATION_SIZES,
-        BMP4_SAMPLE_AUXILIARY_INFORMATION_OFFSETS,
-        BMP4_SAMPLE_TO_GROUP,
-        BMP4_SAMPLE_GROUP_DESCRIPTION,
-        BMP4_TYPE('s','e','n','c'),
         BMP4_TYPE('s','t','s','h'),
         BMP4_TYPE('s','t','d','p'),
         BMP4_TYPE('p','a','d','b'),

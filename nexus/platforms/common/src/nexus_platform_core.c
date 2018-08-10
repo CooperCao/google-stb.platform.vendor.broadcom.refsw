@@ -611,6 +611,9 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
 #endif
     g_coreSettings.os64 = NEXUS_Platform_P_IsOs64();
     g_coreSettings.pMapSettings = NEXUS_Platform_P_ReadPMapSettings();
+    g_coreSettings.getPState = NEXUS_Platform_GetPstate;
+    g_coreSettings.setPState = NEXUS_Platform_SetPstate;
+    g_coreSettings.getAvsData = NEXUS_Platform_GetAvsData;
 
     /* Initialize core module */
     intr_cfg = BINT_GETSETTINGS();

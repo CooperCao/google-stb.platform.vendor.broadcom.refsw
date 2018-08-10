@@ -172,7 +172,8 @@ void NEXUS_SimpleAudioDecoder_GetServerSettings(
 NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings(
     NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioDecoderHandle handle,
-    const NEXUS_SimpleAudioDecoderServerSettings *pSettings
+    const NEXUS_SimpleAudioDecoderServerSettings *pSettings,
+    bool forceReconfig
     );
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings(

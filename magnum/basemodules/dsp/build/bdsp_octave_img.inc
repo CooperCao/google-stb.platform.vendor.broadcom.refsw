@@ -71,11 +71,19 @@ BDSP_IMG_SOURCES += \
 #################################################################
 #		Enable Modules For MS12 Support			#
 #################################################################
-BDSP_MS12_SUPPORT ?= B
 BDSP_MS11PLUS_SUPPORT ?= n
 
 ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_MS12_SUPPORT = MS11+
+BDSP_MS12_SUPPORT ?=n
+else
+BDSP_MS12_SUPPORT ?=B
+endif
+
+ifneq ($(BDSP_MS12_SUPPORT),n)
+BDSP_MS11PLUS_SUPPORT = n
+endif
+
+ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
 BDSP_AC4_SUPPORT = n
 BDSP_DEFINES += BDSP_MS11PLUS_SUPPORT
 endif
@@ -83,6 +91,9 @@ endif
 ifeq ($(BDSP_MS12_SUPPORT),y)
 BDSP_MS12_SUPPORT = B
 endif
+
+BDSP_WMAPRO_SUPPORT = n
+BDSP_WMA_SUPPORT = n
 
 #################################################################
 #		ADD AUDIO ALGORITHM SUPPORT			#
@@ -188,13 +199,21 @@ endif
 #UDC DECODE
 #
 ifneq ($(BDSP_MS12_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_UDC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ms11plus_udc.c
-else
 BDSP_UDC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c
+BDSP_UDC_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_ddp.c
+
+ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
+ifneq ($(wildcard $(BDSP_UDC_IDS_SOURCES)),)
+BDSP_UDC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_UDC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ms11plus_udc.c
 BDSP_UDC_IDS_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_ddp.c
 
@@ -352,13 +371,22 @@ endif
 #DOLBY AACHE DECODE
 #
 ifneq ($(BDSP_MS12_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_DOLBY_AACHE_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ms11plus_dolby_aache.c
-else
 BDSP_DOLBY_AACHE_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_dolby_aache.c
+BDSP_DOLBY_AACHE_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_adts.c \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_loas.c \
+
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
+BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_DOLBY_AACHE_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ms11plus_dolby_aache.c
 BDSP_DOLBY_AACHE_IDS_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_adts.c \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_loas.c \
@@ -526,9 +554,9 @@ endif
 #
 ifneq ($(BDSP_WMAPRO_SUPPORT),n)
 BDSP_WMAPRO_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_wmapro.c
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_wma_pro.c
 BDSP_WMAPRO_IDS_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wmapro.c
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_wma_pro.c
 
 ifneq ($(wildcard $(BDSP_WMAPRO_SOURCES)),)
 ifneq ($(wildcard $(BDSP_WMAPRO_IDS_SOURCES)),)
@@ -590,13 +618,17 @@ endif
 #DPCMR PP
 #
 ifneq ($(BDSP_MS12_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_DPCMR_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_ms11plus_dpcmr.c
-else
 BDSP_DPCMR_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_dpcmr.c
+
+ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
+BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_DPCMR_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_ms11plus_dpcmr.c
 
 ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
 BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -612,13 +644,17 @@ endif
 #DDPENC ENC
 #
 ifneq ($(BDSP_MS12_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_DDPENC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_ms11plus_dd.c
-else
 BDSP_DDPENC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_ddp.c
+
+ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
+BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_DDPENC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_ms11plus_dd.c
 
 ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
 BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -634,19 +670,22 @@ endif
 #MIXER_DAPV2 PP
 #
 ifneq ($(BDSP_MS12_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_MIXER_DAPV2_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_ms11plus_mixer.c
-else
 BDSP_MIXER_DAPV2_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_mixer_dapv2.c
-endif
 
 ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
 BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
 endif
 
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_MIXER_DAPV2_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_ms11plus_mixer.c
+ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
+BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+endif
+
+endif
 ifeq ($(BDSP_MIXERDAPV2_SUPPORT),y)
 BDSP_DEFINES += BDSP_MIXERDAPV2_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_MIXER_DAPV2_SOURCES)
@@ -769,6 +808,7 @@ ifneq ($(BDSP_DDPENC_SUPPORT),y)
 ifneq ($(BDSP_DPCMR_SUPPORT),y)
 ifneq ($(BDSP_AC4_SUPPORT),y)
 override BDSP_MS12_SUPPORT=n
+override BDSP_MS11PLUS_SUPPORT=n
 endif
 endif
 endif
@@ -776,7 +816,7 @@ endif
 endif
 endif
 
-ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y MS11+),)
+ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
 ifeq ($(BDSP_MS12_SUPPORT),A)
 	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
 else ifeq ($(BDSP_MS12_SUPPORT),a)
@@ -797,8 +837,6 @@ else ifeq ($(BDSP_MS12_SUPPORT),D)
 	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
 else ifeq ($(BDSP_MS12_SUPPORT),d)
 	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
-else ifeq ($(BDSP_MS12_SUPPORT),MS11+)
-        BDSP_DEFINES += BDSP_MS12_SUPPORT=69
 else
 	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
 endif

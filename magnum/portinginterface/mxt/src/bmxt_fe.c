@@ -205,13 +205,7 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
     }
 
     if (pSettings->enablePidFiltering) {
-        BMXT_Handle handle = mxt;
-        if (BMXT_HAS_PID_TABLE()) {
-            BDBG_WRN(("Open: enable demod pid filtering on %s", BMXT_CHIP_STR[mxt->settings.chip]));
-        }
-        else {
-            BDBG_WRN(("Open: demod pid filtering not supported on %s", BMXT_CHIP_STR[mxt->settings.chip]));
-        }
+        BDBG_WRN(("Open: enable demod pid filtering on %s", BMXT_CHIP_STR[mxt->settings.chip]));
     }
 #if 0
 {
@@ -852,7 +846,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         }
 
         BMXT_P_SetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum, pConfig->virtualParserNum);
-        BDBG_MSG(("BAND_ID mapping: MTSIF_TX: TX%u, parser%u", pConfig->mtsifTxSelect, parserNum));
+        BDBG_MSG(("BAND_ID mapping: MTSIF_TX: TX%u, parser%u, addr 0x%08x", pConfig->mtsifTxSelect, parserNum, RegAddr));
     }
     else {
         if (parserNum >= LEGACY_NUM_REMAP_PB) {
@@ -1051,7 +1045,6 @@ void BMXT_ConfigPidChannel(BMXT_Handle handle, unsigned index, const BMXT_PidCha
     }
     if (!BMXT_HAS_PID_TABLE()) {
         BERR_TRACE(BERR_NOT_SUPPORTED);
-        return;
     }
 
     addr = BMXT_R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*index);
@@ -1065,6 +1058,12 @@ void BMXT_ConfigPidChannel(BMXT_Handle handle, unsigned index, const BMXT_PidCha
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, PID_CHANNEL_ENABLE, pidChannelSettings->enable ? 1:0);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, ENABLE_HD_FILTER, 0);
     BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_PID_TABLE_i, HD_FILT_DIS_PID_CHANNEL_PID, pidChannelSettings->pid);
+    BMXT_RegWrite32(handle, addr, reg);
+
+    addr = BMXT_R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE) + (4*index);
+    reg = BMXT_RegRead32(handle, addr);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_SPID_TABLE_i, SPID_MODE, pidChannelSettings->spid.mode);
+    BCHP_SET_FIELD_DATA(reg, DEMOD_XPT_FE_SPID_TABLE_i, PID_FUNCTIONS_SPID_CHANNEL_PID, pidChannelSettings->spid.spid);
     BMXT_RegWrite32(handle, addr, reg);
 }
 

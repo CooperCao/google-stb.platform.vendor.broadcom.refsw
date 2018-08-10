@@ -80,79 +80,32 @@ BDSP_IMG_SOURCES += \
 #$(warning "From BDSP "$(BDSP_IMG_SOURCES))
 
 #################################################################
+#		Enable Modules For MS12/MS11PLUS Support        #
+#################################################################
+BDSP_MS12_SUPPORT ?= n
+
+ifeq ($(BDSP_MS12_SUPPORT),n)
+BDSP_MS11PLUS_SUPPORT ?= y
+else
+BDSP_MS11PLUS_SUPPORT = n
+endif
+
+ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
+BDSP_AC4_SUPPORT = n
+BDSP_DEFINES += BDSP_MS11PLUS_SUPPORT
+endif
+
+ifeq ($(BDSP_MS12_SUPPORT),y)
+BDSP_MS12_SUPPORT = B
+endif
+
+#################################################################
 #		ADD AUDIO ALGORITHM SUPPORT			#
 #################################################################
 
 ##########################################
 #		DECODER			 #
 ##########################################
-
-
-BDSP_MS12_SUPPORT ?= n
-BDSP_MS11PLUS_SUPPORT ?= n
-
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_MS12_SUPPORT = MS11+
-BDSP_DEFINES += BDSP_MS11PLUS_SUPPORT
-endif
-
-ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y MS11+),)
-#List of components required for MS12
-BDSP_UDC_SUPPORT = y
-BDSP_DOLBY_AACHE_SUPPORT = y
-BDSP_MIXERDAPV2_SUPPORT = y
-BDSP_DPCMR_SUPPORT = y
-BDSP_DDPENC_SUPPORT = y
-
-#Legacy codecs to be disabled when MS12 is enabled
-BDSP_AACSBR_SUPPORT = n
-BDSP_DDP_SUPPORT = n
-BDSP_AC3_SUPPORT = n
-
-#Legacy passthru enabled
-BDSP_DDP_PASSTHRU_SUPPORT = n
-BDSP_AC3_PASSTHRU_SUPPORT = n
-BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
-
-ifeq ($(BDSP_MS12_SUPPORT),y)
-BDSP_MS12_SUPPORT = B
-endif
-
-ifeq ($(BDSP_MS12_SUPPORT),A)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
-else ifeq ($(BDSP_MS12_SUPPORT),a)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
-else ifeq ($(BDSP_MS12_SUPPORT),B)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
-else ifeq ($(BDSP_MS12_SUPPORT),b)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
-else ifeq ($(BDSP_MS12_SUPPORT),Y)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
-else ifeq ($(BDSP_MS12_SUPPORT),y)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
-else ifeq ($(BDSP_MS12_SUPPORT),C)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
-else ifeq ($(BDSP_MS12_SUPPORT),c)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
-else ifeq ($(BDSP_MS12_SUPPORT),D)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
-else ifeq ($(BDSP_MS12_SUPPORT),d)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
-else ifeq ($(BDSP_MS12_SUPPORT),MS11+)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=69
-else
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
-endif
-endif
-
-ifeq ($(BDSP_MS12_SUPPORT), n)
-#List of components disabled when MS12 is off
-BDSP_UDC_SUPPORT = n
-BDSP_DPCMR_SUPPORT = n
-BDSP_MIXERDAPV2_SUPPORT = n
-BDSP_DDPENC_SUPPORT = n
-BDSP_DOLBY_AACHE_SUPPORT = n
-endif
 
 #
 #MPEG DECODE
@@ -232,16 +185,24 @@ endif
 #
 #UDC DECODE
 #
-ifneq ($(BDSP_UDC_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_UDC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_ms11plus_udc_code$(BDSP_AONA_FILE_TYPE).c \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_ms11plus_udc_data.c
-else
+ifneq ($(BDSP_MS12_SUPPORT),n)
 BDSP_UDC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_udc_code$(BDSP_AONA_FILE_TYPE).c \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_udc_data.c
+BDSP_UDC_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_ddp_code$(BDSP_AONA_FILE_TYPE).c
+
+ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
+ifneq ($(wildcard $(BDSP_UDC_IDS_SOURCES)),)
+BDSP_UDC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_UDC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_ms11plus_udc_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_ms11plus_udc_data.c
 BDSP_UDC_IDS_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_ddp_code$(BDSP_AONA_FILE_TYPE).c
 
@@ -253,11 +214,18 @@ endif
 endif
 
 ifeq ($(BDSP_UDC_SUPPORT),y)
-# Enable passthru also unless explicitly disabled by user
+# Enable passthru also unless explicitly disabled by user, disable legacy AC3/DDP
 BDSP_UDC_PASSTHRU_SUPPORT ?= y
 BDSP_DEFINES += BDSP_UDC_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_UDC_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_UDC_IDS_SOURCES)
+override BDSP_AC3_SUPPORT = n
+override BDSP_AC3_PASSTHRU_SUPPORT = n
+override BDSP_DDP_SUPPORT = n
+override BDSP_DDP_PASSTHRU_SUPPORT = n
+else
+# Disable UDC passthru when UDC is not available, should use either AC3/DDP Passthru
+override BDSP_UDC_PASSTHRU_SUPPORT = n
 endif
 
 #
@@ -285,6 +253,7 @@ BDSP_DEFINES += BDSP_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_UDC_PASSTHRU_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_UDC_PASSTHRU_IDS_SOURCES)
 endif
+
 #
 #DDP DECODE
 #
@@ -307,6 +276,7 @@ ifeq ($(BDSP_DDP_SUPPORT),y)
 BDSP_DDP_PASSTHRU_SUPPORT ?= y
 # Disable AC3 support
 override BDSP_AC3_SUPPORT = n
+override BDSP_AC3_PASSTHRU_SUPPORT = n
 BDSP_DEFINES += BDSP_DDP_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DDP_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_DDP_IDS_SOURCES)
@@ -392,6 +362,49 @@ BDSP_IMG_SOURCES += $(BDSP_AC3_PASSTHRU_IDS_SOURCES)
 endif
 
 #
+#DOLBY AACHE DECODE
+#
+ifneq ($(BDSP_MS12_SUPPORT),n)
+BDSP_DOLBY_AACHE_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_dolby_aache_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_dolby_aache_data.c
+BDSP_DOLBY_AACHE_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_adts_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_loas_code$(BDSP_AONA_FILE_TYPE).c \
+
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
+BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_DOLBY_AACHE_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_ms11plus_dolby_aache_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_ms11plus_dolby_aache_data.c
+BDSP_DOLBY_AACHE_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_adts_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_loas_code$(BDSP_AONA_FILE_TYPE).c \
+
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
+ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
+BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_DOLBY_AACHE_SUPPORT),y)
+# Enable passthru also unless explicitly disabled by user
+BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
+BDSP_DEFINES += BDSP_DOLBY_AACHE_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_IDS_SOURCES)
+# Disable legacy AAC
+override BDSP_AACSBR_SUPPORT = n
+endif
+
+#
 #AAC DECODE
 #
 ifneq ($(BDSP_AACSBR_SUPPORT),n)
@@ -416,39 +429,6 @@ BDSP_DEFINES += BDSP_AACSBR_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_AACSBR_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_AACSBR_IDS_SOURCES)
 endif
-
-#
-#DOLBY AACHE DECODE
-#
-ifneq ($(BDSP_DOLBY_AACHE_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_DOLBY_AACHE_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_ms11plus_dolby_aache_code$(BDSP_AONA_FILE_TYPE).c \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_ms11plus_dolby_aache_data.c
-else
-BDSP_DOLBY_AACHE_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_dolby_aache_code$(BDSP_AONA_FILE_TYPE).c \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_dolby_aache_data.c
-endif
-BDSP_DOLBY_AACHE_IDS_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_adts_code$(BDSP_AONA_FILE_TYPE).c \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_loas_code$(BDSP_AONA_FILE_TYPE).c \
-
-ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
-ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
-BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
-endif
-endif
-endif
-
-ifeq ($(BDSP_DOLBY_AACHE_SUPPORT),y)
-# Enable passthru also unless explicitly disabled by user
-BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
-BDSP_DEFINES += BDSP_DOLBY_AACHE_SUPPORT
-BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_SOURCES)
-BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_IDS_SOURCES)
-endif
-
 
 #
 #AAC Passthrough
@@ -520,16 +500,20 @@ endif
 #
 #DPCMR PP
 #
-ifneq ($(BDSP_DPCMR_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_DPCMR_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_app_ms11plus_dpcmr_code$(BDSP_AONA_FILE_TYPE).c \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_ms11plus_dpcmr_data.c
-else
+ifneq ($(BDSP_MS12_SUPPORT),n)
 BDSP_DPCMR_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_app_dpcmr_code$(BDSP_AONA_FILE_TYPE).c \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_dpcmr_data.c
+
+ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
+BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_DPCMR_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_app_ms11plus_dpcmr_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_ms11plus_dpcmr_data.c
 
 ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
 BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -544,16 +528,20 @@ endif
 #
 #DDPENC ENC
 #
-ifneq ($(BDSP_DDPENC_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_DDPENC_SOURCES := \
-		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aenc_ms11plus_dd_code$(BDSP_AONA_FILE_TYPE).c \
-		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_aenc_ms11plus_dd_data.c
-else
+ifneq ($(BDSP_MS12_SUPPORT),n)
 BDSP_DDPENC_SOURCES := \
 		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aenc_ddp_code$(BDSP_AONA_FILE_TYPE).c \
 		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_aenc_ddp_data.c
+
+ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
+BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_DDPENC_SOURCES := \
+		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aenc_ms11plus_dd_code$(BDSP_AONA_FILE_TYPE).c \
+		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_aenc_ms11plus_dd_data.c
 
 ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
 BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -568,16 +556,20 @@ endif
 #
 #MIXER_DAPV2 PP
 #
-ifneq ($(BDSP_MIXERDAPV2_SUPPORT),n)
-ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
-BDSP_MIXER_DAPV2_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_app_ms11plus_mixer_code$(BDSP_AONA_FILE_TYPE).c \
-	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_ms11plus_mixer_data.c
-else
+ifneq ($(BDSP_MS12_SUPPORT),n)
 BDSP_MIXER_DAPV2_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_app_mixer_dapv2_code$(BDSP_AONA_FILE_TYPE).c \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_mixer_dapv2_data.c
+
+ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
+BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
 endif
+endif
+
+ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
+BDSP_MIXER_DAPV2_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_app_ms11plus_mixer_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_ms11plus_mixer_data.c
 
 ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
 BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -623,6 +615,50 @@ endif
 ifeq ($(BDSP_DSOLA_SUPPORT),y)
 BDSP_DEFINES += BDSP_DSOLA_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DSOLA_SOURCES)
+endif
+
+#############################################################################
+#Control to Disable MS12, if none of the MS12 required modules are available
+#############################################################################
+ifneq ($(BDSP_UDC_SUPPORT),y)
+ifneq ($(BDSP_DOLBY_AACHE_SUPPORT),y)
+ifneq ($(BDSP_MIXERDAPV2_SUPPORT),y)
+ifneq ($(BDSP_DDPENC_SUPPORT),y)
+ifneq ($(BDSP_DPCMR_SUPPORT),y)
+ifneq ($(BDSP_AC4_SUPPORT),y)
+override BDSP_MS12_SUPPORT=n
+override BDSP_MS11PLUS_SUPPORT=n
+endif
+endif
+endif
+endif
+endif
+endif
+
+ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
+ifeq ($(BDSP_MS12_SUPPORT),A)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=65
+else ifeq ($(BDSP_MS12_SUPPORT),a)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=65
+else ifeq ($(BDSP_MS12_SUPPORT),B)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),b)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),Y)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),y)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),C)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+else ifeq ($(BDSP_MS12_SUPPORT),c)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+else ifeq ($(BDSP_MS12_SUPPORT),D)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=68
+else ifeq ($(BDSP_MS12_SUPPORT),d)
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=68
+else
+       BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+endif
 endif
 
 #This should be at the last

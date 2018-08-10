@@ -1758,9 +1758,10 @@ BERR_Code BXPT_Rave_StartPTS(
     void (* StartPTSCb)(void *, uint32_t pts),
     void * param
     );
-BERR_Code BXPT_Rave_StopLive (
+BERR_Code BXPT_Rave_Monitor_PTS(
     BXPT_RaveCx_Handle hCtx,
-    void (* SpliceStopPTSCB)(void *, uint32_t pts),
+    uint32_t PTS, uint32_t tolerance,
+    void (* CallBack)(void *, uint32_t pts),
     void * param
     );
 #if (!B_REFSW_MINIMAL)

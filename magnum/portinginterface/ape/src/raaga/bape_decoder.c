@@ -3886,11 +3886,15 @@ static void BAPE_Decoder_P_ModeChange_isr(void *pParam1, int param2, unsigned mo
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
     BSTD_UNUSED(param2);
-    handle->mode = mode;
-    BDBG_MSG(("Mode Change Received [decoder %u] acmod now %u", handle->index, mode));
-    if ( handle->interrupts.modeChange.pCallback_isr )
+
+    if ( mode != handle->mode )
     {
-        handle->interrupts.modeChange.pCallback_isr(handle->interrupts.modeChange.pParam1, handle->interrupts.modeChange.param2);
+        handle->mode = mode;
+        BDBG_MSG(("Mode Change Received [decoder %u] acmod now %u", handle->index, mode));
+        if ( handle->interrupts.modeChange.pCallback_isr )
+        {
+            handle->interrupts.modeChange.pCallback_isr(handle->interrupts.modeChange.pParam1, handle->interrupts.modeChange.param2);
+        }
     }
 }
 

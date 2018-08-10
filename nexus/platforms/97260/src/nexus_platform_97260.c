@@ -79,7 +79,7 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
 
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128 * MB;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 120 * MB;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 56 * MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64 * MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
@@ -91,7 +91,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         case 5:
         case 7:
         {
-            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
+            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 72 * MB;
             break;
         }
         case 6: /* UHD + HD */

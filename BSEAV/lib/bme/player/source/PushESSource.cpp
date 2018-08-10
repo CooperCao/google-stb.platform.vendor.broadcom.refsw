@@ -329,6 +329,7 @@ bool PushESSource::initialise(bool basic)
             SetCallback(&Settings.firstPts,       staticVideoFirstPts,               this);
             SetCallback(&Settings.firstPtsPassed, staticVideoFirstPtsPassedCallback, this);
             Settings.channelChangeMode = NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilTsmLock;
+            Settings.scanMode = NEXUS_VideoDecoderScanMode_e1080p;
             if (instance->codec.video == NEXUS_VideoCodec_eVp9) {
                 Settings.maxWidth = 3840;
                 Settings.maxHeight = 2160;
@@ -1211,38 +1212,6 @@ void PushESSource::triggerOnCompletion(void *context)
     reinterpret_cast<PushESSource *>(context)->onCompletion();
 }
 
-void PushESSource::pushAudioEndOfStream()
-{
-    PushESSourcePrivate_t *instance = _context;
-
-    if (instance->transport != NEXUS_TransportType_eEs)
-        return;
-
-    Playpump_t *pump = &instance->audio.pump;
-    DataFragment_t last(pump->sample.last, sizeof(pump->sample.last));
-    pump->sample.clear();
-    pump->sample.fragmentList.push_back(last);
-    pump->sample.bytes = sizeof(pump->sample.last);
-    pushAudioChunk();
-}
-
-void PushESSource::pushVideoEndOfStream()
-{
-    PushESSourcePrivate_t *instance = _context;
-    if (instance->transport != NEXUS_TransportType_eEs)
-        return;
-
-    Playpump_t *pump = &instance->video.pump;
-    DataFragment_t flush(pump->sample.flush, sizeof(pump->sample.flush));
-    DataFragment_t last(pump->sample.last, sizeof(pump->sample.last));
-    pump->sample.clear();
-    pump->sample.fragmentList.push_back(flush);
-    pump->sample.fragmentList.push_back(last);
-    pump->sample.fragmentList.push_back(flush);
-    pump->sample.bytes = 2*sizeof(pump->sample.flush) + sizeof(pump->sample.last);
-    pushVideoChunk();
-}
-
 
 // ===================================================================
 
@@ -1324,6 +1293,18 @@ void PushESSource::makePesVideoChunk(TIME45k pts, const DataFragment_t *fragment
     PushESSourcePrivate_t *instance = _context;
     instance->video.pump.makePesChunk(instance->pid.video, pts, fragment, n, true);
 }
+
+void PushESSource::makeVideoEndOfStreamChunk()
+{
+    PushESSourcePrivate_t *instance = _context;
+    instance->video.pump.makeVideoEndOfStreamChunk();
+}
+void PushESSource::makeAudioEndOfStreamChunk()
+{
+    PushESSourcePrivate_t *instance = _context;
+    instance->audio.pump.makeAudioEndOfStreamChunk();
+}
+
 
 // Use an object to manage the mutex to allow for exceptions
 struct HoldMutex

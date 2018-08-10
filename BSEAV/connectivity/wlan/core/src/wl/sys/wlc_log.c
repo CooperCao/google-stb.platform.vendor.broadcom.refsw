@@ -50,6 +50,7 @@
 void wlc_log_unexpected_rx_frame_log_80211hdr(wlc_info_t *wlc,
 	const struct dot11_header *h, int toss_reason)
 {
+#ifdef BCMINTDBG
 	BCM_REFERENCE(toss_reason);
 	toss_reason = (toss_reason >= WLC_RX_STS_LAST)? WLC_RX_STS_TOSS_UNKNOWN : toss_reason;
 	WL_ERROR(("Unexpected RX {if=wl%d fc=%04x seq=%04x "
@@ -59,6 +60,7 @@ void wlc_log_unexpected_rx_frame_log_80211hdr(wlc_info_t *wlc,
 		h->a1.octet[3], h->a1.octet[4], h->a1.octet[5],
 		h->a2.octet[0], h->a2.octet[1], h->a2.octet[2],
 		h->a2.octet[3], h->a2.octet[4], h->a2.octet[5]));
+#endif /* BCMINTDBG */
 }
 
 void wlc_log_unexpected_tx_frame_log_80211hdr(wlc_info_t *wlc, const struct dot11_header *h)

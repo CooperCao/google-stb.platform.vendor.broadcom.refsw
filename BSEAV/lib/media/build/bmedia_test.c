@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2007-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,8 +73,6 @@
 #include <strings.h>
 
 BDBG_MODULE(bmedia_test);
-
-#include "bmp4_cenc_soft_aes.c"
 
 #if 1
 #define BUF_SIZE	(4096*15)
@@ -474,7 +472,6 @@ media_feed(batom_factory_t factory, FILE *fin_data, FILE *fout, bfile_io_read_t 
         bfile_io_read_t fd_index;
         struct b_test_slow_fileio_read slow_fileio_data, slow_fileio_index;
         unsigned other_track=0;
-        b_mp4_cenc_state b_mp4_cenc_soft_state;
 
 		raw_fd_data = bfile_stdio_read_attach(fin_data);
         if(cfg->slow_read_factor) {
@@ -501,7 +498,6 @@ media_feed(batom_factory_t factory, FILE *fin_data, FILE *fout, bfile_io_read_t 
 		stream.format = cfg->stream_type;
 		stream.master = cfg->video.stream_id;
         stream.stream.id.master = cfg->video.pes_id;
-        b_mp4_cenc_soft_connect(&stream, &b_mp4_cenc_soft_state);
         for(i=0;i<MAX_AUDIO_TRACKS;i++) {
             if(!cfg->audio[i].stream_id) {
                 break;

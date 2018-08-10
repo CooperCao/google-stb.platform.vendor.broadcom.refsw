@@ -265,14 +265,6 @@ void BDSP_GetCodecCapabilities_isrsafe(
             pSetting->dolbyMs.ddpEncode71 = false;
             pSetting->dolbyMs.pcm71 = false;
             break;
-        case 'E': /* MS11+ Mode */
-            BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'MS11+' "));
-            pSetting->dolbyMs.dapv2 = false;
-            pSetting->dolbyMs.ddEncode = true;
-            pSetting->dolbyMs.ddpEncode51 = false;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-            break;
         default:
             BDBG_MSG(("BDSP detected BDSP_MS12_SUPPORT = 'C', Displaying MS12 Capabilities as: "));
             pSetting->dolbyMs.dapv2 = true;
@@ -282,6 +274,13 @@ void BDSP_GetCodecCapabilities_isrsafe(
             pSetting->dolbyMs.pcm71 = false;
             break;
     }
+#elif BDSP_MS11PLUS_SUPPORT
+			BDBG_MSG(("BDSP detected BDSP_MS11PLUS_SUPPORT "));
+			pSetting->dolbyMs.dapv2 = false;
+			pSetting->dolbyMs.ddEncode = true;
+			pSetting->dolbyMs.ddpEncode51 = false;
+			pSetting->dolbyMs.ddpEncode71 = false;
+			pSetting->dolbyMs.pcm71 = false;
 #else
             pSetting->dolbyMs.dapv2 = false;
 #ifdef BDSP_AC3ENC_SUPPORT

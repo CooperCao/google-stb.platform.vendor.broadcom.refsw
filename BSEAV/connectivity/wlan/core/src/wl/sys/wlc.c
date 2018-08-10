@@ -718,6 +718,7 @@ enum wlc_iov {
 	IOV_ATM_STAPERC = 123, /* AirTime percentage per STA */
 	IOV_ATM_BSSPERC = 124, /* AirTime percentage per BSS */
 #endif /* WLATM_PERC */
+	IOV_CAPS,
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -742,6 +743,9 @@ static const bcm_iovar_t wlc_iovars[] = {
 	},
 	{"cap", IOV_CAP,
 	(IOVF_OPEN_ALLOW), 0, IOVT_BUFFER, WLC_IOCTL_SMLEN
+	},
+	{"caps", IOV_CAPS,
+	(0), 0, IOVT_UINT32, 0
 	},
 	{"wpa_msgs", IOV_WPA_MSGS,
 	(0), 0, IOVT_BOOL, 0
@@ -1221,7 +1225,7 @@ static void wlc_xmtfifo_sz_upd_high(wlc_info_t *wlc, uint fifo, uint16 blocks);
 
 static void wlc_tx_prec_map_init(wlc_info_t *wlc);
 static char *wlc_cap(wlc_info_t *wlc, char *buf, uint bufsize);
-static void wlc_cap_bcmstrbuf(wlc_info_t *wlc, struct bcmstrbuf *b);
+static uint32 BCMRAMFN(wlc_cap_bcmstrbuf)(wlc_info_t *wlc, struct bcmstrbuf *b);
 
 static void wlc_watchdog_timer(void *arg);
 #ifdef STA
@@ -6737,20 +6741,27 @@ BCMATTACHFN(wlc_attach)(void *wl, uint16 vendor, uint16 device, uint unit, uint 
 	}
 #endif
 
+	wlc->chains_2g = 0;
 #if defined(WL_2G2X2LOCK)
-	/* Default in 2G */
-	wlc->bandlocked = TRUE;
-	wlc_bandlock(wlc, WLC_BAND_2G);
-
-	if (CHSPEC_IS2G(wlc->chanspec)) {
-		/* Default to cores 0 and 1 for 2G chain lock */
-		wlc_stf_txchain_set(wlc, 0x3, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-		wlc_stf_rxchain_set(wlc, 0x3, TRUE);
-	} else {
-		WL_ERROR(("wl%d: %s: -2glock- chanspec must be 2G band.\n", unit, __FUNCTION__));
+	wlc->chains_2g = 0x03;
+#else
+	if (getintvar(pub->vars, rstr_aa2g) != getintvar(pub->vars, rstr_aa5g)) {
+		wlc->chains_2g = getintvar(pub->vars, rstr_aa2g);
 	}
 #endif
+	if (wlc->chains_2g) {
+		/* Default in 2G */
+		wlc->bandlocked = TRUE;
+		wlc_bandlock(wlc, WLC_BAND_2G);
 
+		if (CHSPEC_IS2G(wlc->chanspec)) {
+			/* Default to cores 0 and 1 for 2G chain lock */
+			wlc_stf_txchain_set(wlc, wlc->chains_2g, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+			wlc_stf_rxchain_set(wlc, wlc->chains_2g, TRUE);
+		} else {
+			WL_ERROR(("wl%d: %s: -2glock- chanspec must be 2G band.\n", unit, __FUNCTION__));
+		}
+	}
 	return ((void*)wlc);
 
 fail:
@@ -9839,6 +9850,16 @@ wlc_bandlock(wlc_info_t *wlc, int val)
 	move = (wlc->band->bandtype != val);
 	bandunit = (val == WLC_BAND_5G) ? 1 : 0;
 
+	if (!move) {
+		if ((!bandunit && CHSPEC_IS5G(wlc->home_chanspec)) ||
+			(bandunit && CHSPEC_IS2G(wlc->home_chanspec))) {
+			/* force to set home channel (usually first channel in band)
+			* corresponding to the new band
+			*/
+			move = 1;
+		}
+	}
+
 	switch (val) {
 	case WLC_BAND_AUTO:
 		wlc->bandlocked = FALSE;
@@ -9967,19 +9988,18 @@ wlc_change_band(wlc_info_t *wlc, int band)
 		wlc_set_phy_chanspec(wlc, chspec);
 	}
 
-#if defined(WL_2G2X2LOCK)
-	/* Set chains based on band */
-	if (CHSPEC_IS2G(wlc->chanspec)) {
-		wlc_stf_txchain_set(wlc, 0x3, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-		wlc_stf_rxchain_set(wlc, 0x3, TRUE);
-	} else if (CHSPEC_IS5G(wlc->chanspec)) {
-		wlc_stf_txchain_set(wlc, wlc->stf->hw_txchain, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-		wlc_stf_rxchain_set(wlc, wlc->stf->hw_rxchain, TRUE);
-	} else {
-		WL_ERROR(("%s:%d ERROR unknown chanspec for WL_2G2X2LOCK. 0x%x\n", __FUNCTION__, __LINE__, wlc->chanspec));
+	if (wlc->chains_2g)	{
+		/* Set chains based on band */
+		if (CHSPEC_IS2G(wlc->chanspec)) {
+			wlc_stf_txchain_set(wlc, wlc->chains_2g, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+			wlc_stf_rxchain_set(wlc, wlc->chains_2g, TRUE);
+		} else if (CHSPEC_IS5G(wlc->chanspec)) {
+			wlc_stf_txchain_set(wlc, wlc->stf->hw_txchain, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+			wlc_stf_rxchain_set(wlc, wlc->stf->hw_rxchain, TRUE);
+		} else {
+			WL_ERROR(("%s:%d ERROR unknown chanspec for WL_2G2X2LOCK. 0x%x\n", __FUNCTION__, __LINE__, wlc->chanspec));
+		}
 	}
-#endif
-
 	return BCME_OK;
 }
 
@@ -12114,6 +12134,10 @@ wlc_doiovar(void *hdl, uint32 actionid,
 	case IOV_GVAL(IOV_CAP):
 		if (wlc_cap(wlc, (char*)arg, len) == NULL)
 			err = BCME_BUFTOOSHORT;
+		break;
+
+	case IOV_GVAL(IOV_CAPS):
+		*ret_int_ptr = wlc_cap_bcmstrbuf(wlc, NULL);
 		break;
 
 	case IOV_GVAL(IOV_WPA_AUTH):
@@ -16883,67 +16907,99 @@ BCMRAMFN(wlc_cap)(wlc_info_t *wlc, char *buf, uint bufsize)
 	return (buf);
 }
 
-static void
+/* wifi_feature_bits is for WIFI_FEATURE used by cfg80211 vendor command,
+    if no bit is defined for WIFI_FEATURE, set wifi_feature_bits as zero
+*/
+static uint32
+BCMRAMFN(bcm_bprintf_mask)(struct bcmstrbuf *b, const char *name, uint32 wifi_feature_bits) {
+	if (b) {
+		bcm_bprintf(b, name);
+	}
+	return wifi_feature_bits;
+}
+
+/* b is string for "wl cap"
+    return int for "wl caps", the supporting features set the related bits.
+*/
+static uint32
 BCMRAMFN(wlc_cap_bcmstrbuf)(wlc_info_t *wlc, struct bcmstrbuf *b)
 {
+	int feature = 0;
+
 	/* pure software-only components */
 
 /* Need AP defined here to print out capability only if enabled */
 #ifdef AP
-	bcm_bprintf(b, "ap ");
+	feature |= bcm_bprintf_mask(b, "ap ", WIFI_FEATURE_SOFT_AP);
 #endif
 
 #ifdef STA
-	bcm_bprintf(b, "sta ");
+	feature |= bcm_bprintf_mask(b, "sta ", WIFI_FEATURE_INFRA);
 #endif /* STA */
+
+#if defined(WL11U) && !defined(WL11U_DISABLED)
+	feature |= WIFI_FEATURE_HOTSPOT;
+#endif /* WL11U && !WL11U_DISABLED */
+#ifdef PNO_SUPPORT
+	feature_set |= WIFI_FEATURE_PNO;
+	feature_set |= WIFI_FEATURE_BATCH_SCAN;
+#ifdef GSCAN_SUPPORT
+	feature |= WIFI_FEATURE_GSCAN;
+#endif /* GSCAN_SUPPORT */
+#endif /* PNO_SUPPORT */
+
+#ifdef WL_NAN
+	feature |= WIFI_FEATURE_NAN;
+#endif /* WL_NAN */
+
 #ifdef WET
-	bcm_bprintf(b, "wet ");
+	bcm_bprintf_mask(b, "wet ", 0);
 #endif /* WET */
 #ifdef WET_TUNNEL
-	bcm_bprintf(b, "wet_tunnel ");
+	bcm_bprintf_mask(b, "wet_tunnel ", 0);
 #endif /* WET_TUNNEL */
 #ifdef MAC_SPOOF
-	bcm_bprintf(b, "mac_spoof ");
+	bcm_bprintf_mask(b, "mac_spoof ", 0);
 #endif /* MAC_SPOOF */
 #if defined(TOE) && !defined(TOE_DISABLED)
-	bcm_bprintf(b, "toe ");
+	bcm_bprintf_mask(b, "toe ", 0);
 #endif /* TOE */
 #ifdef WLLED
-	bcm_bprintf(b, "led ");
+	bcm_bprintf_mask(b, "led ", 0);
 #endif /* WLLED */
 #ifdef WME
-	bcm_bprintf(b, "wme ");
+	bcm_bprintf_mask(b, "wme ", 0);
 #endif /* WME */
 #ifdef WLPIO
-	bcm_bprintf(b, "pio ");
+	bcm_bprintf_mask(b, "pio ", 0);
 #endif /* PIO */
 #ifdef WL11D
-	bcm_bprintf(b, "802.11d ");
+	bcm_bprintf_mask(b, "802.11d ", 0);
 #endif /* WL11D */
 #ifdef WL11H
-	bcm_bprintf(b, "802.11h ");
+	bcm_bprintf_mask(b, "802.11h ", 0);
 #endif /* WL11H */
 #if defined(WLRM) && !defined(WLRM_DISABLED)
-	bcm_bprintf(b, "rm ");
+	bcm_bprintf_mask(b, "rm ", 0);
 #endif /* WLRM */
 #ifdef WLCQ
-	bcm_bprintf(b, "cqa ");
+	bcm_bprintf_mask(b, "cqa ", 0);
 #endif /* WLCQ */
 #ifdef BCMNODOWN
-	bcm_bprintf(b, "nodown ");
+	bcm_bprintf_mask(b, "nodown ", 0);
 #endif /* BCMNODOWN */
 #ifdef BCM_RECLAIM_INIT_FN_DATA
-	bcm_bprintf(b, "reclm ");
+	bcm_bprintf_mask(b, "reclm ", 0);
 #endif /* BCM_RECLAIM_INIT_FN_DATA */
 #if defined(BCMCCX) && !defined(BCMCCX_DISABLED)
-	bcm_bprintf(b, "ccx ");
+	bcm_bprintf_mask(b, "ccx ", 0);
 #endif /* BCMCCX */
 #if defined(WLCAC) && !defined(WLCAC_DISABLED)
-	bcm_bprintf(b, "cac ");
+	bcm_bprintf_mask(b, "cac ", 0);
 #endif /* WLCAC */
 #ifdef MBSS
 	if (MBSS_SUPPORT(wlc->pub)) {
-		if (wlc_bmac_ucodembss_hwcap(wlc->hw))
+		if (wlc_bmac_ucodembss_hwcap(wlc->hw) && b)
 			bcm_bprintf(b, "mbss%d ", wlc->pub->tunables->maxucodebss);
 	}
 #endif /* MBSS */
@@ -16951,226 +17007,244 @@ BCMRAMFN(wlc_cap_bcmstrbuf)(wlc_info_t *wlc, struct bcmstrbuf *b)
 	/* combo software+hardware components */
 
 	if (NBANDS(wlc) > 1)
-		bcm_bprintf(b, "dualband ");
+		feature |= bcm_bprintf_mask(b, "dualband ", WIFI_FEATURE_INFRA_5G);
 #ifdef WLAMPDU
 	if (wlc_ampdu_tx_cap(wlc->ampdu_tx) || wlc_ampdu_rx_cap(wlc->ampdu_rx))
-		bcm_bprintf(b, "ampdu ");
+		bcm_bprintf_mask(b, "ampdu ", 0);
 	if (wlc_ampdu_tx_cap(wlc->ampdu_tx))
-		bcm_bprintf(b, "ampdu_tx ");
+		bcm_bprintf_mask(b, "ampdu_tx ", 0);
 	if (wlc_ampdu_rx_cap(wlc->ampdu_rx))
-		bcm_bprintf(b, "ampdu_rx ");
+		bcm_bprintf_mask(b, "ampdu_rx ", 0);
 #endif
 #ifdef WLAMSDU
 	if (wlc_amsdurx_cap(wlc->ami))
-		bcm_bprintf(b, "amsdurx ");
+		bcm_bprintf_mask(b, "amsdurx ", 0);
 
 	if (wlc_amsdutx_cap(wlc->ami))
-		bcm_bprintf(b, "amsdutx ");
+		bcm_bprintf_mask(b, "amsdutx ", 0);
 #endif
 #if defined(WLTDLS)
 	if (TDLS_ENAB(wlc->pub) && wlc_tdls_cap(wlc->tdls))
-		bcm_bprintf(b, "tdls ");
+		feature |= bcm_bprintf_mask(b, "tdls ", WIFI_FEATURE_TDLS);
+#ifdef VSDB
+	feature |= WIFI_FEATURE_TDLS_OFFCHANNEL;
+#endif /* VSDB */
 #endif /* defined(WLTDLS) */
+
+#ifdef LINKSTAT_SUPPORT
+	feature |= WIFI_FEATURE_LINKSTAT;
+#endif /* LINKSTAT_SUPPORT */
+
+#ifdef RSSI_MONITOR_SUPPORT
+	feature |= WIFI_FEATUE_RSSI_MONITOR;
+#endif /* RSSI_MONITOR_SUPPORT */
+
+#ifdef NDO_CONFIG_SUPPORT
+	feature |= WIFI_FEATURE_CONFIG_NDO;
+#endif /* NDO_CONFIG_SUPPORT */
+
 #ifdef WOWL
 	if (wlc_wowl_cap(wlc))
-		bcm_bprintf(b, "wowl ");
+		bcm_bprintf_mask(b, "wowl ", 0);
 #endif
 #ifdef WMF
-	bcm_bprintf(b, "wmf ");
+	bcm_bprintf_mask(b, "wmf ", 0);
 #endif
 #ifdef RXCHAIN_PWRSAVE
-	bcm_bprintf(b, "rxchain_pwrsave ");
+	bcm_bprintf_mask(b, "rxchain_pwrsave ", 0);
 #endif
 #ifdef RADIO_PWRSAVE
-	bcm_bprintf(b, "radio_pwrsave ");
+	bcm_bprintf_mask(b, "radio_pwrsave ", 0);
 #endif
 #if defined(WLP2P) && !defined(WLP2P_DISABLED)
 	if (wlc_p2p_cap(wlc->p2p))
-		bcm_bprintf(b, "p2p ");
+		feature |= bcm_bprintf_mask(b, "p2p ", WIFI_FEATURE_P2P);
 #endif
 #ifdef BCM_DCS
-	bcm_bprintf(b, "bcm_dcs ");
+	bcm_bprintf_mask(b, "bcm_dcs ", 0);
 #endif
 #if defined(SRHWVSDB)
 	if (SRHWVSDB_ENAB(wlc->pub))
-		bcm_bprintf(b, "srvsdb ");
+		bcm_bprintf_mask(b, "srvsdb ", 0);
 #endif
 #if defined(PROP_TXSTATUS)
 	if (PROP_TXSTATUS_ENAB(wlc->pub))
-		bcm_bprintf(b, "proptxstatus ");
+		bcm_bprintf_mask(b, "proptxstatus ", 0);
 #endif
 #if defined(WLMCHAN)
 	if (MCHAN_ENAB(wlc->pub))
-		bcm_bprintf(b, "mchan ");
+		bcm_bprintf_mask(b, "mchan ", 0);
 #endif	/* WLMCHAN */
 #ifdef PSTA
-	bcm_bprintf(b, "psta psr ");
+	bcm_bprintf_mask(b, "psta psr ", 0);
 #endif /* PSTA */
 #ifdef WDS
-	bcm_bprintf(b, "wds ");
+	bcm_bprintf_mask(b, "wds ", 0);
 #endif
 #ifdef DWDS
-	bcm_bprintf(b, "dwds ");
+	bcm_bprintf_mask(b, "dwds ", 0);
 #endif
 #ifdef WLCSO
 	if (wlc->toe_capable)
-		bcm_bprintf(b, "cso ");
+		bcm_bprintf_mask(b, "cso ", 0);
 #endif
 #ifdef WLTSO
 	if (wlc->toe_capable)
-		bcm_bprintf(b, "tso ");
+		bcm_bprintf_mask(b, "tso ", 0);
 #endif
 #ifdef TRAFFIC_MGMT
-	bcm_bprintf(b, "traffic-mgmt ");
+	bcm_bprintf_mask(b, "traffic-mgmt ", 0);
 	#ifdef TRAFFIC_MGMT_DWM
-		bcm_bprintf(b, "traffic-mgmt-dwm ");
+		bcm_bprintf_mask(b, "traffic-mgmt-dwm ", 0);
 	#endif
 #endif /* TRAFFIC_MGMT */
 #if defined(P2PO) && !defined(P2PO_DISABLED)
-	bcm_bprintf(b, "p2po ");
+	bcm_bprintf_mask(b, "p2po ", 0);
 #endif
 #if defined(ANQPO) && !defined(ANQPO_DISABLED)
-	bcm_bprintf(b, "anqpo ");
+	bcm_bprintf_mask(b, "anqpo ", 0);
 #endif
 #ifdef WL11AC
 	if (WLC_VHT_PROP_RATES_CAP_PHY(wlc))
-		bcm_bprintf(b, "vht-prop-rates ");
+		bcm_bprintf_mask(b, "vht-prop-rates ", 0);
 
 	if (WLC_MU_BFR_CAP_PHY(wlc))
-		bcm_bprintf(b, "multi-user-beamformer ");
+		bcm_bprintf_mask(b, "multi-user-beamformer ", 0);
 	if (WLC_SU_BFR_CAP_PHY(wlc))
-		bcm_bprintf(b, "single-user-beamformer ");
+		bcm_bprintf_mask(b, "single-user-beamformer ", 0);
 	if (WLC_MU_BFE_CAP_PHY(wlc))
-		bcm_bprintf(b, "multi-user-beamformee ");
+		bcm_bprintf_mask(b, "multi-user-beamformee ", 0);
 	if (WLC_SU_BFE_CAP_PHY(wlc))
-		bcm_bprintf(b, "single-user-beamformee ");
+		bcm_bprintf_mask(b, "single-user-beamformee ", 0);
 #ifdef WL11AC_160
 	if (WLC_160MHZ_CAP_PHY(wlc))
-		bcm_bprintf(b, "160 ");
+		bcm_bprintf_mask(b, "160 ", 0);
 #endif /* WL11AC_160 */
 #ifdef WL11AC_80P80
 	if (WLC_8080MHZ_CAP_PHY(wlc))
-		bcm_bprintf(b, "80+80 ");
+		bcm_bprintf_mask(b, "80+80 ", 0);
 #endif /* WL11AC_80P80 */
 #endif /* WL11AC */
 #ifdef STA
-	bcm_bprintf(b, "dfrts ");
+	bcm_bprintf_mask(b, "dfrts ", 0);
 #ifdef LPAS
-	bcm_bprintf(b, "lpas ");
+	bcm_bprintf_mask(b, "lpas ", 0);
 #endif /* LPAS */
 #endif /* STA */
 #ifdef WLTXPWR_CACHE
-	bcm_bprintf(b, "txpwrcache ");
+	bcm_bprintf_mask(b, "txpwrcache ", 0);
 #endif
 #if defined(WL11N) || defined(WL11AC)
 	if (WLC_STBC_CAP_PHY(wlc)) {
-		bcm_bprintf(b, "stbc-tx ");
-		bcm_bprintf(b, "stbc-rx-1ss ");
+		bcm_bprintf_mask(b, "stbc-tx ", 0);
+		bcm_bprintf_mask(b, "stbc-rx-1ss ", 0);
 	}
 #endif
 #ifdef PSPRETEND
 	if (PSPRETEND_ENAB(wlc->pub)) {
-		bcm_bprintf(b, "pspretend ");
+		bcm_bprintf_mask(b, "pspretend ", 0);
 	}
 #endif /* PSPRETEND */
 #ifdef WLRSDB
 	if (RSDB_ENAB(wlc->pub)) {
-		bcm_bprintf(b, "mp2p ");
-		bcm_bprintf(b, "rsdb ");
+		bcm_bprintf_mask(b, "mp2p ", 0);
+		bcm_bprintf_mask(b, "rsdb ", 0);
 	}
 #endif
 #ifdef WLPROBRESP_MAC_FILTER
-	bcm_bprintf(b, "probresp_mac_filter ");
+	bcm_bprintf_mask(b, "probresp_mac_filter ", 0);
 #endif
 #if defined(MFP) && !defined(MFP_DISABLED)
-	bcm_bprintf(b, "mfp ");
+	bcm_bprintf_mask(b, "mfp ", 0);
 #endif /* MFP */
 #if defined(WLNDOE) && !defined(WLNDOE_DISABLED)
-	bcm_bprintf(b, "ndoe ");
+	bcm_bprintf_mask(b, "ndoe ", 0);
 #endif
 #if defined(RSSI_MONITOR) && !defined(RSSI_MONITOR_DISABLED)
-	bcm_bprintf(b, "rssi_mon ");
+	bcm_bprintf_mask(b, "rssi_mon ", 0);
 #endif /* RSSI_MONITOR */
 #if defined(WLWNM) && !defined(WLWNM_DISABLED)
-	bcm_bprintf(b, "wnm ");
-	bcm_bprintf(b, "bsstrans ");
+	bcm_bprintf_mask(b, "wnm ", 0);
+	bcm_bprintf_mask(b, "bsstrans ", 0);
 #endif
 #ifdef WLC_TXPWRCAP
-	bcm_bprintf(b, "txcap ");
+	bcm_bprintf_mask(b, "txcap ", 0);
 #endif /* WLC_TXPWRCAP */
 #if defined(WLPFN) && !defined(WLPFN_DISABLED)
-	bcm_bprintf(b, "epno ");
+	bcm_bprintf_mask(b, "epno ", 0);
 #endif /* WLPFN && !WLPFN_DISABLED */
 #if defined(WL_MPF) && !defined(WL_MPF_DISABLED)
 	if (MPF_ENAB(wlc->pub))
-		bcm_bprintf(b, "mpf ");
+		bcm_bprintf_mask(b, "mpf ", 0);
 #endif /* WL_MPF && !WL_MPF_DISABLED */
-	bcm_bprintf(b, "scanmac ");
+	bcm_bprintf_mask(b, "scanmac ", 0);
 #if defined(BDO) && !defined(BDO_DISABLED)
-	bcm_bprintf(b, "bdo ");
+	bcm_bprintf_mask(b, "bdo ", 0);
 #endif
 #ifdef WL_EXPORT_CURPOWER
-	bcm_bprintf(b, "cptlv-%d ", ppr_get_tlv_ver());
+	if (b)
+		bcm_bprintf(b, "cptlv-%d ", ppr_get_tlv_ver());
 #endif /* WL_EXPORT_CURPOWER */
 #if defined(PACKET_FILTER2) && !defined(PKT_FLT2_DISABLED)
-	bcm_bprintf(b, "pktfltr2 ");
+	bcm_bprintf_mask(b, "pktfltr2 ", 0);
 #if defined(PACKET_FILTER6) && !defined(PKT_FLT6_DISABLED)
-	bcm_bprintf(b, "pf6 ");
+	bcm_bprintf_mask(b, "pf6 ", 0);
 #endif /* PACKET_FILTER6 && !PKT_FLT6_DISABLED */
 #endif /* PACKET_FILTER2 && !PKT_FLT2_DISABLED */
 #if defined(WLFBT) && !defined(WLFBT_DISABLED) && defined(WL11K) && \
 	!defined(WL11K_DISABLED) && defined(WME)
-	bcm_bprintf(b, "ve ");
+	bcm_bprintf_mask(b, "ve ", 0);
 #endif /* VE */
 #if defined(WLFBT) && !defined(WLFBT_DISABLED)
-	bcm_bprintf(b, "fbtoverds ");
-	bcm_bprintf(b, "fbt_adpt ");
+	bcm_bprintf_mask(b, "fbtoverds ", 0);
+	bcm_bprintf_mask(b, "fbt_adpt ", 0);
 #endif /* fbtoverds */
 #if defined(ECOUNTERS) && !defined(ECOUNTERS_DISABLED)
-	bcm_bprintf(b, "ecounters ");
+	bcm_bprintf_mask(b, "ecounters ", 0);
 #endif
 #ifdef EVENT_LOG_COMPILE
-	bcm_bprintf(b, "event_log ");
+	bcm_bprintf_mask(b, "event_log ", 0);
 #endif
 #ifdef CNTRY_DEFAULT
-	bcm_bprintf(b, "cdef ");
+	bcm_bprintf_mask(b, "cdef ", 0);
 #endif /* CNTRY_DEFAULT */
 #ifdef WLC_TXPWRCAP
-	bcm_bprintf(b, "txcap ");
+	bcm_bprintf_mask(b, "txcap ", 0);
 #endif /* WLC_TXPWRCAP */
 #if defined(WL_MIMOPS) && !defined(WL_MIMOPS_DISABLED)
-	bcm_bprintf(b, "mimo_ps ");
+	bcm_bprintf_mask(b, "mimo_ps ", 0);
 #endif /* WL_MIMOPS */
 #if defined(WL_STF_ARBITRATOR) && !defined(WL_STF_ARBITRATOR_DISABLED)
-	bcm_bprintf(b, "arb ");
+	bcm_bprintf_mask(b, "arb ", 0);
 #endif /* WL_STF_ARBITRATOR */
 #if defined(OCL) && !defined(OCL_DISABLED)
-	bcm_bprintf(b, "ocl ");
+	bcm_bprintf_mask(b, "ocl ", 0);
 #endif /* OCL */
 #if (defined(HEALTH_CHECK) && !defined(HEALTH_CHECK_DISABLED))
-	bcm_bprintf(b, "hchk ");
+	bcm_bprintf_mask(b, "hchk ", 0);
 #endif /* HEALTH_CHECK */
 #if (defined(LOGTRACE) && !defined(LOGTRACE_DISABLED))
-	bcm_bprintf(b, "logtrace ");
+	bcm_bprintf_mask(b, "logtrace ", 0);
 #endif /* LOGTRACE */
 #if defined(D11_TX_STATUS) && defined(D11_RX_STATUS)
-	bcm_bprintf(b, "d11status ");
+	bcm_bprintf_mask(b, "d11status ", 0);
 #endif /* D11_TX_STATUS && D11_RX_STATUS */
 #if defined(WLSCANCACHE) && !defined(WLSCANCACHE_DISABLED)
-	bcm_bprintf(b, "scancache ");
+	bcm_bprintf_mask(b, "scancache ", 0);
 #endif /* WLSCANCACHE && !WLSCANCACHE_DISABLED */
 #if defined(APF) && !defined(APF_DISABLED)
-		bcm_bprintf(b, "apf");
+		bcm_bprintf_mask(b, "apf", 0);
 #endif /* APF */
 #if defined(ICMP) && !defined(ICMP_DISABLED)
-	bcm_bprintf(b, "icmp ");
+	bcm_bprintf_mask(b, "icmp ", 0);
 #endif
 #ifdef WLC_API_VERSION_MAJOR
-	bcm_bprintf(b, "ifver ");
+	bcm_bprintf_mask(b, "ifver ", 0);
 #endif /* WLC_API_VERSION_MAJOR */
 #if defined(TKO) && !defined(TKO_DISABLED)
-	bcm_bprintf(b, "tko ");
+	bcm_bprintf_mask(b, "tko ", 0);
 #endif
+	return feature;
 } /* wlc_cap_bcmstrbuf */
 
 void
@@ -19608,7 +19682,12 @@ _wlc_bss_update_beacon(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 
 #ifdef MBSS
 	if (MBSS_BCN_ENAB(wlc, cfg)) {
-		wlc_mbss_update_beacon(wlc, cfg);
+		wlc_bss_info_t *current_bss = cfg->current_bss;
+		int band = CHSPEC_IS2G(current_bss->chanspec) ? WLC_BAND_2G : WLC_BAND_5G;
+		if (band == wlc->band->bandtype)
+			wlc_mbss_update_beacon(wlc, cfg);
+		else
+			WL_MBSS(("Currently phy is in different band. skip beacon update\n"));
 	} else
 #endif /* MBSS */
 	if (HWBCN_ENAB(cfg)) { /* Hardware beaconing for this config */

@@ -71,6 +71,7 @@ void BDSP_Arm_P_Analyse_CIT(
 
     pTaskConfig = (BDSP_AF_P_sTASK_CONFIG *)pArmTask->taskMemInfo.sHostCITMemory.Buffer.pAddr;
 	BDBG_MSG(("Running on DSP: %d ",pArmTask->createSettings.dspIndex));
+	BDBG_MSG(("Running on CORE: %d ",pArmTask->taskParams.coreIndex));
 	BDBG_MSG(("Context: %s ",ContextType[pArmTask->pContext->settings.contextType]));
 	BDBG_MSG(("Scheduling Mode: %s ",SchedulingMode[pArmTask->startSettings.schedulingMode]));
 	if(BDSP_TaskSchedulingMode_eSlave == pArmTask->startSettings.schedulingMode)

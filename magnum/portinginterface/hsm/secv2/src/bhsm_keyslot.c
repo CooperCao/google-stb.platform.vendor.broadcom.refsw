@@ -674,12 +674,12 @@ BERR_Code BHSM_Keyslot_AddPidChannel_WithSettings( BHSM_KeyslotHandle handle,
     BERR_Code rc = BERR_UNKNOWN;
     BHSM_P_KeySlotPidAdd hsmAddPid;
     BHSM_P_KeySlot *pSlot = (BHSM_P_KeySlot*)handle;
+    BHSM_P_KeySlot *pSecondarySlot;
 
     BDBG_ENTER( BHSM_Keyslot_AddPidChannel );
 
     if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     BDBG_OBJECT_ASSERT( pSlot, BHSM_P_KeySlot );
-    BSTD_UNUSED( pSettings );
 
     BKNI_Memset( &hsmAddPid, 0, sizeof(hsmAddPid) );
 
@@ -687,10 +687,18 @@ BERR_Code BHSM_Keyslot_AddPidChannel_WithSettings( BHSM_KeyslotHandle handle,
     hsmAddPid.in.keySlotType   = BHSM_P_ConvertSlotType( pSlot->slotType );
     hsmAddPid.in.keySlotNumber = pSlot->number;
 
-    #if 0
-    hsmAddPid.keySlotTypeB; hsmAddPid.keySlotNumberB; hsmAddPid.setMultiplePidChan;
-    hsmAddPid.spidUsePointerB; hsmAddPid.estinationPipeSel;
-    #endif
+    if( pSettings && pSettings->secondary ) {
+        pSecondarySlot = (BHSM_P_KeySlot*)pSettings->secondaryKeySlot;
+
+        if( !pSecondarySlot ) {
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+        }
+        BDBG_OBJECT_ASSERT( pSecondarySlot, BHSM_P_KeySlot );
+
+        hsmAddPid.in.keySlotTypeB = BHSM_P_ConvertSlotType( pSecondarySlot->slotType );
+        hsmAddPid.in.keySlotNumberB = pSecondarySlot->number;
+        hsmAddPid.in.sPidUsePointerB = 1;
+    }
 
     rc = BHSM_P_KeySlot_PidAdd( _Keyslot_GetHsmHandle(handle), &hsmAddPid );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }

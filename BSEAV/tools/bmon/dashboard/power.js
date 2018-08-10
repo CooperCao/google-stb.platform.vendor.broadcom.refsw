@@ -51,7 +51,6 @@ var timestampSecOffsetPrevious = 0; // sometimes the previous is a delta of 2 ..
 var timestampSecInitialValue = 0; // gets updated only once when the first timestampSec arrives
 var passcount = 0;
 var MICROSECONDS_BETWEEN_UPDATES = 2000000;
-var cpu_idle_previous = [0, 0, 0, 0];
 
 window.chartColors = {
     red: 'rgb(255, 99, 132)',
@@ -88,6 +87,7 @@ function ButtonChange(event) {
                 if (cpu != "0") {
                     sendRequestExtra = "cpu=" + cpu + "&active=" + IsChecked;
                     sendRequestPlugin = "cpu";
+                    cpuUpdateInProgress[cpu] = 2; /* tell other functions to ignore button status while this is going on */
                 }
             }
         }
@@ -182,8 +182,7 @@ var ThermalParameters = {
 
                 // grid line settings
                 gridLines: {
-                    drawOnChartArea: false,
-                    // only want the grid lines for one axis to show up
+                    drawOnChartArea: false, // only want the grid lines for one axis to show up
                 },
                 ticks: {
                     suggestedMin: 30,
@@ -288,8 +287,7 @@ var CpuFrequencyParameters = {
 
                 // grid line settings
                 gridLines: {
-                    drawOnChartArea: true,
-                    // only want the grid lines for one axis to show up
+                    drawOnChartArea: true // only want the grid lines for one axis to show up
                 },
                 scaleLabel: {
                     display: true,
@@ -305,8 +303,7 @@ var CpuFrequencyParameters = {
 
                 // grid line settings
                 gridLines: {
-                    drawOnChartArea: false,
-                    // only want the grid lines for one axis to show up
+                    drawOnChartArea: false // only want the grid lines for one axis to show up
                 },
                 ticks: {
                     suggestedMin: 100,
@@ -367,7 +364,7 @@ window.onload = function () {
             labels: ["AVS-CPU", "AVS-MAIN"],
             datasets: [{
                 label: "voltages (volts)",
-                backgroundColor: [window.chartColors.orange, window.chartColors.turquoise ],
+                backgroundColor: [window.chartColors.orange, window.chartColors.turquoise],
                 data: [0, 0]
             }]
         },
@@ -410,10 +407,6 @@ var CPU_FREQUENCY_GRAPH = 0; // index into datasets[] array for Cooling Agents
 var GRAPHICS_3D_CORE_FREQUENCY = 1; // index into datasets[] array for Cooling Agents
 var GRAPHICS_2D_CORE_FREQUENCY = 2; // index into datasets[] array for Cooling Agents
 var USER_TRIGGERS_GRAPH = 3; // index into datasets[] array for Cooling Agents
-var uptime_msec = "";
-var uptime_msec_baseline = 0;
-var uptime_msec_previous = "";
-var cpu_idle_average_previous = 0;
 var ResponseCount = 0;
 
 function rtrim(stringToTrim) {
@@ -555,8 +548,7 @@ function serverHttpResponseRest() // This function runs as an asynchronous respo
                                     var num_datapoints = lineChartCpuFrequency.datasets[GRAPHICS_3D_CORE_FREQUENCY].data.length;
                                     if (num_datapoints) {
                                         var labelLastOne = lineChartCpuFrequency.labels[num_datapoints - 1];
-                                        if (labelLastOne != timestampSec) {
-                                            //console.log("time skew ... timestampSec" + timestampSec +" ... labelLastOne" + labelLastOne );
+                                        if (labelLastOne != timestampSec) { //console.log("time skew ... timestampSec" + timestampSec +" ... labelLastOne" + labelLastOne );
                                         }
                                     }
                                 }
@@ -617,14 +609,20 @@ function serverHttpResponseRest() // This function runs as an asynchronous respo
                                 var cpuFrequencyMhz = (cpuFrequencyCurrently / 1000);
 
                                 lineChartCpuFrequency.datasets[CPU_FREQUENCY_GRAPH].data.push(cpuFrequencyMhz);
-                                lineChartCpuFrequency.datasets[USER_TRIGGERS_GRAPH].data.push(0); // align with the bottom of the y axis
+                                lineChartCpuFrequency.datasets[USER_TRIGGERS_GRAPH].data.push(0);
+                                // align with the bottom of the y axis
 
                                 for (cpu = 0; cpu < cpuFrequenciesKhz.length; cpu++) {
-                                    if (cpuFrequenciesKhz)
+                                    if (cpuFrequenciesKhz) {
                                         cpuFrequencyCurrently = cpuFrequenciesKhz[cpu];
+                                    }
                                     cpuFrequencyMhz = (cpuFrequencyCurrently / 1000);
                                     //document.getElementById('CPU_FREQUENCY_' + cpu).innerHTML = cpuFrequencyMhz;
-                                    document.getElementById('idCpuFrequency').innerHTML = cpuFrequencyMhz;
+
+                                    /* if all other cpus are inactive, only cpu 0 will show accurate Mhz */
+                                    if ( cpu == 0 ) {
+                                        document.getElementById('idCpuFrequency').innerHTML = cpuFrequencyMhz;
+                                    }
                                 }
                                 // if this board does not have 4 CPU cores, disable the buttons for the extra non-existent cores
                                 if (cpuFrequenciesKhz.length < 4) {
@@ -639,10 +637,9 @@ function serverHttpResponseRest() // This function runs as an asynchronous respo
                                 obj = jsondata[idx]["thermal"];
                                 var overTemperatureThresholdMillidegrees = obj["overTemperatureThresholdMillidegrees"];
                                 var overTemperatureThresholdNumber = overTemperatureThresholdMillidegrees / 1000;
-                                if(!tmpGauge)
-                                {
+                                if (!tmpGauge) {
                                     var tmpGauge = document.getElementById('temperature-gauge');
-                                    tmpGauge.setAttribute('data-highlights', '[{"from":'+overTemperatureThresholdNumber + ', "to": 120, "color": "rgba(255, 0, 0, 1)"}]');
+                                    tmpGauge.setAttribute('data-highlights', '[{"from":' + overTemperatureThresholdNumber + ', "to": 120, "color": "rgba(255, 0, 0, 1)"}]');
                                 }
 
                                 lineChartThermal.datasets[THERMAL_THRESHOLD_GRAPH].data.push(overTemperatureThresholdNumber);
@@ -651,8 +648,8 @@ function serverHttpResponseRest() // This function runs as an asynchronous respo
                                 PlotCoolingAgentMarkers(coolingAgents);
                                 PopulateCoolingAgentTable(jsondata);
 
-                                SetInnerHtml( "OVERTEMPERATURE_THRESHOLD", overTemperatureThresholdNumber.toString() );
-                                SetInnerHtml( "OVERTEMPERATURE_DURATION", ConvertToDuration( 0 ) );
+                                SetInnerHtml("OVERTEMPERATURE_THRESHOLD", overTemperatureThresholdNumber.toString());
+                                SetInnerHtml("OVERTEMPERATURE_DURATION", ConvertToDuration(0));
 
                             } else if (jsondata[idx]["chipPowerState"]) {
                                 var objCHIP_POWER_STATE = document.getElementById('CHIP_POWER_STATE');
@@ -670,34 +667,31 @@ function serverHttpResponseRest() // This function runs as an asynchronous respo
                                 var unixtime_msec = (new Date()).getTime();
                                 var newdate = new Date();
                                 var standbyObj = jsondata[idx]["standby"];
-                                if ( standbyObj ) {
+                                if (standbyObj) {
                                     // compute how many seconds ago the box went into standby
-                                    var lastUptimeMsec = Number( standbyObj.uptimeSec * 1000 );
-                                    var lastStandbyTimeDeltaMsec = Number( (lastUptimeMsec - standbyObj.lastStandbyTime*1000));
+                                    var lastUptimeMsec = Number(standbyObj.uptimeSec * 1000);
+                                    var lastStandbyTimeDeltaMsec = Number((lastUptimeMsec - standbyObj.lastStandbyTime * 1000));
 
                                     // compute how many seconds ago the box came out of standby
-                                    var lastResumeTimeDeltaMsec  = Number( (lastUptimeMsec - standbyObj.lastResumeTime*1000));
+                                    var lastResumeTimeDeltaMsec = Number((lastUptimeMsec - standbyObj.lastResumeTime * 1000));
 
-                                    var lastStandbyDuration = Math.floor( (lastStandbyTimeDeltaMsec)/ 1000 );
-                                    var lastStandbyDurationStr = ConvertToDuration ( lastStandbyDuration );
+                                    var lastStandbyDuration = Math.floor((lastStandbyTimeDeltaMsec) / 1000);
+                                    var lastStandbyDurationStr = ConvertToDuration(lastStandbyDuration);
 
-                                    var lastResumeDuration = Math.floor( (lastResumeTimeDeltaMsec)/ 1000 );
-                                    var lastResumeDurationStr = ConvertToDuration ( lastResumeDuration );
+                                    var lastResumeDuration = Math.floor((lastResumeTimeDeltaMsec) / 1000);
+                                    var lastResumeDurationStr = ConvertToDuration(lastResumeDuration);
 
-                                    SetInnerHtml( "WAKEUP_DURATION", lastResumeDurationStr );
-                                    SetInnerHtml( "SLEEP_DURATION", ConvertToDuration ( standbyObj.lastResumeTime - standbyObj.lastStandbyTime ) );
-                                    SetInnerHtml( "SLEEP_STATE", "S" + standbyObj.lastStandbyMode.toString() );
-                                    SetInnerHtml( "RESET_DURATION", ConvertToDuration ( standbyObj.uptimeSec ) );
+                                    SetInnerHtml("WAKEUP_DURATION", lastResumeDurationStr);
+                                    SetInnerHtml("SLEEP_DURATION", ConvertToDuration(standbyObj.lastResumeTime - standbyObj.lastStandbyTime));
+                                    SetInnerHtml("SLEEP_STATE", "S" + standbyObj.lastStandbyMode.toString());
+                                    SetInnerHtml("RESET_DURATION", ConvertToDuration(standbyObj.uptimeSec));
 
                                     // extract the first reason in the list
                                     var resetList = standbyObj.resetList.split(",");
-                                    if ( resetList.length ) {
-                                        SetInnerHtml( "RESET_REASON", resetList[0] ); // the first entry in the list is the "last" reason
+                                    if (resetList.length) {
+                                        // the first entry in the list is the "last" reason
+                                        SetInnerHtml("RESET_REASON", resetList[0]);
                                     }
-
-                                    //var temp1 = formatDate( new Date(lastStandbyTimeDeltaMsec) );
-                                    //var temp2 = formatDate( new Date(lastResumeTimeDeltaMsec) );
-                                    //console.log(formatDate(new Date()));
                                 }
                             }
                         }
@@ -709,7 +703,6 @@ function serverHttpResponseRest() // This function runs as an asynchronous respo
                     get_remote_info_next();
                 }
             }
-            // if response is not blank
         } else {
             var row = 0;
             console.log("There was a problem retrieving JSON data:" + xmlhttpRest.statusText + ".");
@@ -1240,7 +1233,6 @@ function wifiPOWSViewHandler(index) {
     output.innerHTML = slider.value;
     slider.oninput = function () {
         var pows = 0;
-        //      startDataCollection(2);
         var resource = window.controllerResource[3];
         if (resource.timeOutId) {
             clearTimeout(resource.timeOutId);
@@ -1344,13 +1336,13 @@ function cpuCardViewHandler(index) {
         resource.cpuUtilizationLineChart.data.labels.shift();
 
         /* compute the cpu numbers & push and shift the elements */
-        computeCpuUtilization(myObj.data, resource.cpuUtilizationLineChart.data.datasets);
+        updateCpuUtilization(myObj.data, resource.cpuUtilizationLineChart.data.datasets);
 
-        //resource.cpuUtilizationLineChart.data.datasets[i].data.push(randomNum);
-        //resource.cpuUtilizationLineChart.data.datasets[i].data.shift();
+        /* make sure the CPU buttons match the current active/inactive state of each CPU */
+        updateCpuButtons(myObj.data);
 
         resource.cpuUtilizationLineChart.update();
-        //document.getElementById("idCpuUtilizationSpan").innerHTML = Math.floor(Math.random() * 101);
+
     } else { //invalid data
     }
 
@@ -1447,92 +1439,19 @@ function ScheduleNextRequest(index, delay) {
 }
 /* end of mvc code */
 
-function computeCpuUtilization(jsondata, jsonDatasets) {
-    var uptime_msec = 0;
-    var cpuobj = 0;
-    var uptime_msec_delta = 0;
+/*
+   The CPU plugin returns two structures. The first structure contains num_active_cpus, total_cpus, and uptime_msec.
+   The second structure is an array. Each array element contains the times for idle, user, system, etc. These times
+   are used to compute the utilization.
+*/
+function updateCpuUtilization(jsondata, jsonDatasets) {
+    var cpu_utilization = 0;
+    var cpu_total_idx = jsonDatasets.length - 1;
 
-    for (var idx = 0; idx < jsondata.length; idx++) {
-        if (idx == 0) {
-            uptime_msec = jsondata[idx]['uptime_msec'];
-            uptime_msec_delta = Number((uptime_msec - uptime_msec_previous) / 1000);
-            if (uptime_msec_delta < 1.0) {
-                return;
-            }
-        } else if (idx == 1) {
-            var cpu_idle_all_cpus = 0;
-            var cpu_idle_average = 0;
-            var cpu_utilization = 0;
+    cpu_utilization = computeCpuUtilization(jsondata, jsonDatasets);
+    //console.log( "updateCpuUtilization - " + cpu_utilization );
 
-            var cpu_active_count = 0;
-            var cpu_total_idx = jsonDatasets.length - 1;
-
-            cpuobj = jsondata[idx]["cpus"];
-            if (uptime_msec_baseline == 0) {
-                uptime_msec_baseline = uptime_msec;
-                //console.log("uptime_msec_baseline " + (uptime_msec_baseline / 1000));
-                //lineChartCreateNewXaxis(lineChartThermal, timestampSecOffset);
-                //lineChartCreateNewXaxis(lineChartCpuFrequency, timestampSecOffset);
-            }
-
-            // convert msec to seconds ... should be approx 1.00
-            var tempobj = 0;
-            var cpu_idle_average_delta = 0;
-            var num_data_points = 0;
-            for (var cpu = 0; cpu < cpuobj.length; cpu++) {
-                if (cpuobj[cpu].active) {
-                    var cpu_idle = Number(cpuobj[cpu].idle);
-                    num_data_points = jsonDatasets[cpu].data.length;
-                    if (num_data_points >= 10) {
-                        //resource.cpuUtilizationLineChart.data.datasets[i].data.push(randomNum);
-                        //resource.cpuUtilizationLineChart.data.datasets[i].data.shift();
-                        jsonDatasets[cpu].data.shift();
-                        // also need to shift the Total line ... it is the last element in the array
-                        if (cpu == 0) {
-                            if (cpu_total_idx > 0) {
-                                jsonDatasets[cpu_total_idx].data.shift();
-                            }
-                        }
-                    }
-
-                    cpu_idle_average_delta = Number(cpu_idle - cpu_idle_previous[cpu]);
-                    cpu_utilization = Math.max(Number(100 - (cpu_idle_average_delta / uptime_msec_delta)).toFixed(0), 0);
-
-                    cpu_idle_all_cpus += cpu_idle;
-                    cpu_active_count++;
-
-                    jsonDatasets[cpu].data.push(cpu_utilization);
-                    //console.log( "cpu " + cpu + " - " + cpu_utilization );
-
-                    cpu_idle_previous[cpu] = cpu_idle;
-                }
-            }
-            if (cpuobj.length && cpu_active_count) {
-                cpu_idle_average = cpu_idle_all_cpus / cpu_active_count;
-            }
-
-            //console.log("idle" + cpu_idle_average +" ... idle_prev" + cpu_idle_average_previous +
-            //  " idle_delta" + cpu_idle_average_delta +" ... uptime_delta" + uptime_msec_delta +
-            //  " ... utilization" + cpu_utilization );
-
-            cpu_idle_average_delta = Number(cpu_idle_average - cpu_idle_average_previous);
-            cpu_utilization = Number(100 - (cpu_idle_average_delta / uptime_msec_delta)).toFixed(1);
-            if (Number(cpu_utilization) <= 0) {
-                cpu_utilization = "0.5";
-            } else if (Number(cpu_utilization) >= 100) {
-                // don't want decimal place when 100%
-                cpu_utilization = "100";
-            }
-
-            if (cpu_total_idx > 0) {
-                jsonDatasets[cpu_total_idx].data.push(Number(cpu_utilization).toFixed(0));
-            }
-            document.getElementById("idCpuUtilizationSpan").innerHTML = cpu_utilization;
-
-            uptime_msec_previous = uptime_msec;
-            cpu_idle_average_previous = cpu_idle_average;
-        }
-    }
+    document.getElementById("idCpuUtilizationSpan").innerHTML = cpu_utilization;
 }
 
 var countClocksTotal = 0;
@@ -1541,8 +1460,7 @@ var countClocksHot = 0;
 /* This function will scan the elements in the specified object and count how many clock
  * values are set on. The resulting number will be used to determine what color to display
  * in the tree representation. */
-function countClocks(object)
-{
+function countClocks(object) {
     var key = "";
     var clock = 0;
     var new_values = 0;
@@ -1568,8 +1486,7 @@ function countClocks(object)
  * it finds. When a final "leaf" node is found, this function will output an SVG rectange to
  * the global variable GlobalSvg using the API DrawRectange. Along with each rectange is a
  * text value that describes the name of the leaf object. */
-function scanObject(object, path, X, Y, bShowBlock)
-{
+function scanObject(object, path, X, Y, bShowBlock) {
     var key = 0;
     var clock = "";
     var sram = "";
@@ -1588,32 +1505,32 @@ function scanObject(object, path, X, Y, bShowBlock)
 
     for (key in object) {
         var temp2 = key;
-        if ( /* ( key == "videoDecoder" || path.indexOf( "videoDecoder" ) == 0 ) && */ (key != "phy")) {
+        if ( key != "phy") {
             if (key == "clock") {
                 if (bShowBlock) {
                     clock = object[key].toString();
 
                     // if this clock structure also has a frequency specified, add the frequency to the clock name
                     // for example ... graphics, transport, & videoDecoder
-                    if ( object[ "freqHz" ] ) {
-                        freqMHz = Math.round( object[ "freqHz" ] / 1000000 );
+                    if (object["freqHz"]) {
+                        freqMHz = Math.round(object["freqHz"] / 1000000);
                         node.register = path + key + " (" + freqMHz + " Mhz)";
                     } else {
                         node.register = path + key;
                     }
-                    if ( clock == 1 || clock == "1" ) {
+                    if (clock == 1 || clock == "1") {
                         node.state = 1;
                     } else {
                         node.state = 0;
                     }
-                    Ylocal = DrawRectangle(node, Xlocal, Ylocal, 0 );
+                    Ylocal = DrawRectangle(node, Xlocal, Ylocal, 0);
                     Ylocal += GAP_BETWEEN_ROWS; // value returned from DrawRectangle() does not account for the space between rows
                 }
             } else if (key == "sram") {
                 sram = object[key].toString();
             } else if (key == "freqHz") {
                 freqHz = object[key].toString();
-                freqMHz = Math.round( freqHz / 1000000 );
+                freqMHz = Math.round(freqHz / 1000000);
             } else {
                 var temp3 = object[key];
                 var separator = "";
@@ -1638,7 +1555,6 @@ function scanObject(object, path, X, Y, bShowBlock)
 
                     DrawRectangle(node, Xlocal, Ylocal, 0);
                     Ylocal += RECTANGLE_HEIGHT;
-                    //Xlocal += 40;
 
                     if (g_clktreeExpand.indexOf(key) >= 0) {
                         bShowBlock = true;
@@ -1650,7 +1566,6 @@ function scanObject(object, path, X, Y, bShowBlock)
                     }
                 } else {}
 
-                //scanObject(object[key], path + key + separator, Xlocal + 40, Ylocal, bShowBlock );
                 scanObject(object[key], node.register, Xlocal + 40, Ylocal, bShowBlock);
 
                 Ylocal = g_YMax;
@@ -1659,39 +1574,36 @@ function scanObject(object, path, X, Y, bShowBlock)
     }
 }
 
-function formatDate(date)
-{
-  var monthNames = [
-      "January", "February", "March", "April", "May", "June", "July",
-      "August", "September", "October", "November", "December"
-  ];
+function formatDate(date) {
+    var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-  var day = date.getDate();
-  var monthIndex = date.getMonth();
-  var year = date.getFullYear();
-  var tzoffset = date.getTimezoneOffset();
-  var date_as_string = date.toString();
-  var dash_pos = date_as_string.indexOf( '-' );
-  var date_time_tz = date_as_string.substr
+    var day = date.getDate();
+    var monthIndex = date.getMonth();
+    var year = date.getFullYear();
+    var tzoffset = date.getTimezoneOffset();
+    var date_as_string = date.toString();
+    var dash_pos = date_as_string.indexOf('-');
+    var date_time_tz = date_as_string.substr
 
-  return monthNames[monthIndex] + ' ' + day + ' ' + year + ' ' + date.getHours().padZero() + ":" +
-         date.getMinutes().padZero() + ":" + date.getSeconds().padZero() ;
+    return monthNames[monthIndex] + ' ' + day + ' ' + year + ' ' + date.getHours().padZero() + ":" + date.getMinutes().padZero() + ":" + date.getSeconds().padZero();
 }
 
-Number.prototype.padZero= function(len){
-    var s= String(this), c= '0';
-    len= len || 2;
-    while (s.length < len) s= c + s;
+Number.prototype.padZero = function (len) {
+    var s = String(this);
+    var c = '0';
+    len = len || 2;
+    while (s.length < len) {
+        s = c + s;
+    }
     return s;
 }
 
 /* This function will convert the specified number of seconds to a string that contains hours,
  * minutes, and seconds ... like 2:15:49. */
-function ConvertToDuration ( seconds )
-{
-    var DurationHour = Math.floor(seconds /3600);
-    var DurationMin = Math.floor( (seconds - DurationHour*3600 )/ 60 );
-    var DurationSec = Math.floor( seconds % 60 );
+function ConvertToDuration(seconds) {
+    var DurationHour = Math.floor(seconds / 3600);
+    var DurationMin = Math.floor((seconds - DurationHour * 3600) / 60);
+    var DurationSec = Math.floor(seconds % 60);
 
     return DurationHour + ":" + DurationMin.padZero() + ":" + DurationSec.padZero();
 }
@@ -1699,10 +1611,9 @@ function ConvertToDuration ( seconds )
 /**
  *  Function: This function will set the innerHTML of the specified element with the value provided.
  **/
-function SetInnerHtml ( targetId, newvalue )
-{
-    var obj = document.getElementById ( targetId );
-    if ( obj ) {
+function SetInnerHtml(targetId, newvalue) {
+    var obj = document.getElementById(targetId);
+    if (obj) {
         obj.innerHTML = newvalue;
     }
     return true;

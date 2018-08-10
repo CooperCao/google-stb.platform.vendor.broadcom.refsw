@@ -116,6 +116,10 @@ BERR_Code BDSP_Raaga_P_ProcessInitCommand(
         BDBG_MSG(("Heap %d size : " BDSP_MSG_FMT, i, BDSP_MSG_ARG(sCommand.uCommand.sRaagaInitCommand.sHeapInfo.sHeapLimits[i].ui64HeapSize)));
     }
 
+	sCommand.uCommand.sRaagaInitCommand.sDescriptorMemoryInfo.BaseAddr  = pDevice->memInfo.DescriptorMemory[dspindex][0].Buffer.offset;
+	sCommand.uCommand.sRaagaInitCommand.sDescriptorMemoryInfo.Size      = BDSP_MAX_POOL_OF_DESCRIPTORS *
+			BDSP_ALIGN_SIZE((BDSP_MAX_DESCRIPTORS_PER_POOL*sizeof(BDSP_AF_P_sCIRCULAR_BUFFER)),BDSP_MAX_HOST_DSP_L2C_SIZE);
+
     sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumCores            = pDevice->numCorePerDsp;
     sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumUserProcess      = BDSP_MAX_NUM_USER_PROCESS;
     sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumSchedulingLevels = pDevice->systemSchedulingInfo.numSchedulingLevels;

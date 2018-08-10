@@ -270,6 +270,16 @@ enum gscan_ch_attributes {
 	GSCAN_ATTRIBUTE_CH_ID_7
 };
 
+#define GSCAN_MAX_CH_BUCKETS             8
+#define GSCAN_MAX_CHANNELS_IN_BUCKET     32
+#define GSCAN_MAX_AP_CACHE_PER_SCAN      32
+#define GSCAN_MAX_AP_CACHE               320
+#define GSCAN_BG_BAND_MASK             (1 << 0)
+#define GSCAN_A_BAND_MASK              (1 << 1)
+#define GSCAN_DFS_MASK                 (1 << 2)
+#define GSCAN_ABG_BAND_MASK            (GSCAN_A_BAND_MASK | GSCAN_BG_BAND_MASK)
+#define GSCAN_BAND_MASK                (GSCAN_ABG_BAND_MASK | GSCAN_DFS_MASK)
+
 enum rtt_attributes {
 	RTT_ATTRIBUTE_TARGET_CNT,
 	RTT_ATTRIBUTE_TARGET_INFO,

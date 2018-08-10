@@ -355,7 +355,8 @@ static void brcm_virtualize_l1s(void);
 static void brcm_reenable_irqs(intmgr_t *p_intmgr, const uint32_t *Mask)
 {
     unsigned i, irq;
-    spin_lock_irq(&gSpinLock);
+    unsigned long flags;
+    spin_lock_irqsave(&gSpinLock, flags);
     for (i=0,irq=1;i<g_sChipConfig.IntcSize;i++) {
         unsigned bitmask;
         for (bitmask=1;bitmask;bitmask <<= 1,irq++) {
@@ -376,7 +377,7 @@ static void brcm_reenable_irqs(intmgr_t *p_intmgr, const uint32_t *Mask)
     {
         b_shared_gpio_reenable_irqs_spinlocked();
     }
-    spin_unlock_irq(&gSpinLock);
+    spin_unlock_irqrestore(&gSpinLock, flags);
     return;
 }
 
@@ -388,19 +389,21 @@ status bits. */
 static void brcm_reset_irqs(intmgr_t *p_intmgr)
 {
     int irq;
+    unsigned long flags;
+
     /* reset to insmod state */
 
     /* normal irqs are acquired by bcmdriver on init, so re-enable these */
     for (irq = 1; irq < g_sChipConfig.maxNumIrq; ++irq)
     {
-        spin_lock_irq(&gSpinLock);
+        spin_lock_irqsave(&gSpinLock, flags);
         if (g_sChipConfig.pIntTable[irq].disabled) {
             if(gBcmDebug)
                 PINFO("Re-enabling %s irq (linux %d)\n", g_sChipConfig.pIntTable[irq].name, make_linux_irq(irq) );
             enable_irq(make_linux_irq(irq));
             g_sChipConfig.pIntTable[irq].disabled = 0;
         }
-        spin_unlock_irq(&gSpinLock);
+        spin_unlock_irqrestore(&gSpinLock, flags);
     }
     if (g_virtual_irq_supported)
     {
@@ -670,6 +673,7 @@ static int brcm_open(struct inode *inode, struct file *file)
 {
     int err = 0;
     unsigned int devnum, devmode;
+    unsigned long flags;
     int open_count;
 
     /* This must be the first operation to avoid auto-unload */
@@ -686,9 +690,9 @@ static int brcm_open(struct inode *inode, struct file *file)
 
     file->private_data = (void*)(unsigned long)((b_get_euid() == 0) ? 0 : -1);
 
-    spin_lock_irq(&gSpinLock);
+    spin_lock_irqsave(&gSpinLock, flags);
     open_count = brcm_open_count++;
-    spin_unlock_irq(&gSpinLock);
+    spin_unlock_irqrestore(&gSpinLock, flags);
     if (!open_count)
     {
         err = brcm_open_submodules();
@@ -703,18 +707,19 @@ static int brcm_open(struct inode *inode, struct file *file)
 static int brcm_close(struct inode *inode, struct file *file)
 {
     bool final_close = false;
+    unsigned long flags;
 
     if (file == g_interrupt_file) {
         g_interrupt_file = NULL;
     }
     wake_up_interruptible(&g_WaitQueue);
-    spin_lock_irq(&gSpinLock);
+    spin_lock_irqsave(&gSpinLock, flags);
     if (brcm_open_count > 0)
     {
         --brcm_open_count;
         final_close = (brcm_open_count == 0) ? true : false;
     }
-    spin_unlock_irq(&gSpinLock);
+    spin_unlock_irqrestore(&gSpinLock, flags);
     if (final_close)
     {
         brcm_close_submodules();
@@ -918,6 +923,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
     case BRCM_IOCTL_WAIT_FOR_INTERRUPTS:
         {
             tbcm_linux_dd_interrupt intStruct;
+            unsigned long flags;
 
             if (g_jiffies_user) {
                 int now = get_jiffies();
@@ -994,12 +1000,12 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 set_current_state(TASK_INTERRUPTIBLE);
 
 
-                spin_lock_irq(&gSpinLock);
+                spin_lock_irqsave(&gSpinLock, flags);
                 pending = 0;
                 for (i=0;i<g_sChipConfig.IntcSize;i++) {
                     pending = pending || (intStruct.interruptmask[i] & g_intmgr.status[i]);
                 }
-                spin_unlock_irq(&gSpinLock);
+                spin_unlock_irqrestore(&gSpinLock, flags);
                 if (!pending) {
                     if(schedule_timeout(ticks) == 0)
                         result = -EIO;
@@ -1010,13 +1016,13 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 remove_wait_queue(&g_WaitQueue, &wq_entry);
             }
 
-            spin_lock_irq(&gSpinLock);
+            spin_lock_irqsave(&gSpinLock, flags);
             for (i=0;i<g_sChipConfig.IntcSize;i++) {
                 intStruct.interruptstatus[i] = g_intmgr.status[i] & intStruct.interruptmask[i];
                 g_intmgr.reportedStatus[i] = intStruct.interruptstatus[i];
                 g_intmgr.status[i] &= ~intStruct.interruptmask[i];
             }
-            spin_unlock_irq(&gSpinLock);
+            spin_unlock_irqrestore(&gSpinLock, flags);
 
             if (g_jiffies_isr) {
                 g_jiffies_user = g_jiffies_isr; /* move this value to the second stage of the pipeline */
@@ -1112,17 +1118,18 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             }
 #else
             {
+                unsigned long flags = 0;
                 uint32_t value;
                 /* this spinlock synchronizes with any kernel use of a set of shared registers.
                 see BREG_P_CheckAtomicRegister in magnum/basemodules/reg/breg_mem.c for the list of registers. */
-                spin_lock_irq(&brcm_magnum_spinlock);
+                spin_lock_irqsave(&brcm_magnum_spinlock, flags);
 
                 /* read/modify/write */
                 value = breg_read(atomic_update_data.reg);
                 value &= ~atomic_update_data.mask;
                 value |= atomic_update_data.value;
                 breg_write(atomic_update_data.reg, value);
-                spin_unlock_irq(&brcm_magnum_spinlock);
+                spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
             }
 #endif
         }
@@ -1132,13 +1139,14 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
 
     case BRCM_IOCTL_MULTI_ATOMIC_UPDATE:
         {
+            unsigned long flags = 0;
             t_bcm_linux_dd_multi_atomic_update data;
             retValue = copy_from_user(&data, (void*)arg, sizeof(data));
 
 
             /* this spinlock synchronizes with any kernel use of a set of shared registers.
             see BREG_P_CheckAtomicRegister in magnum/basemodules/reg/breg_mem.c for the list of registers. */
-            spin_lock_irq(&brcm_magnum_spinlock);
+            spin_lock_irqsave(&brcm_magnum_spinlock, flags);
 
             for (i=0;i<BCM_MULTI_ATOMIC_UPDATE_NUM;i++) {
         /*printk("\nset[%d], addr=0x%x, value=0x%x\n",i, data.set[i].reg, data.set[i].value);       */
@@ -1151,7 +1159,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                     breg_write(data.set[i].reg, value);
                 }
                 }
-            spin_unlock_irq(&brcm_magnum_spinlock);
+            spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
 
         }
         break;
@@ -1682,6 +1690,39 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
         g_breg.bchp_physical_offset = chip_info.bchp_physical_offset;
         break;
     }
+#if defined(CONFIG_ARM_BRCMSTB_AVS_CPUFREQ) && defined(CONFIG_ARM_SCMI_CPUFREQ)
+    case BRCM_IOCTL_GET_PSTATE_INFO:
+    {
+        struct bcm_driver_pstate_info pstate_info={0};
+        result = copy_from_user(&pstate_info, (void*)arg, sizeof(pstate_info));
+        if (result) {BERR_TRACE(result); break;}
+        result = brcmstb_stb_dvfs_get_pstate(pstate_info.index, &pstate_info.pstate, pstate_info.command);
+        if (result) { BERR_TRACE(result); break; }
+        result = copy_to_user((void*)arg, &pstate_info, sizeof(pstate_info));
+        if (result) {BERR_TRACE(result); break;}
+        break;
+    }
+    case BRCM_IOCTL_SET_PSTATE_INFO:
+    {
+        struct bcm_driver_pstate_info pstate_info;
+        result = copy_from_user(&pstate_info, (void*)arg, sizeof(pstate_info));
+        if (result) {BERR_TRACE(result); break;}
+        result = brcmstb_stb_dvfs_set_pstate(pstate_info.index, pstate_info.pstate, pstate_info.num_writes, pstate_info.command);
+        if (result) { BERR_TRACE(result); break; }
+        break;
+    }
+    case BRCM_IOCTL_GET_AVS_DATA:
+    {
+        struct bcm_driver_avs_data avs_data={0};
+        result = copy_from_user(&avs_data, (void*)arg, sizeof(avs_data));
+        if (result) {BERR_TRACE(result); break;}
+        result = brcmstb_stb_avs_read_debug(avs_data.index, &avs_data.value);
+        if (result) { BERR_TRACE(result); break; }
+        result = copy_to_user((void*)arg, &avs_data, sizeof(avs_data));
+        if (result) {BERR_TRACE(result); break;}
+        break;
+    }
+#endif
     default:
         result = -ENOSYS;
         break;

@@ -1,5 +1,5 @@
 ############################################################################
-# Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,16 +56,6 @@ include ${BSEAV}/lib/bcmplayer/bcmplayer.inc
 
 TEST_MODULES := BMEDIA BMEDIA_PLAYER BMEDIA_FILTER BMEDIA_PROBE BFILE_ASYNC B_NAV_PLAYER B_MEDIA_NAV_PLAYER
 TEST_MODULES += BFILE_STDIO BASF_PARS
-
-ifneq ("$(wildcard ${BSEAV}/lib/media/build/tiny-AES-c/aes.c)","")
-# from https://github.com/kokke/tiny-AES-c.git
-AES_SOURCES := ${BSEAV}/lib/media/build/tiny-AES-c/aes.c
-AES_INCLUDES := ${BSEAV}/lib/media/build/tiny-AES-c
-AES_DEFINES := B_WITH_SOFT_AES=1
-TEST_MODULES += AES
-endif
-
-
 B_MODULES := $(sort ${TEST_MODULES} $(foreach module, $(TEST_MODULES), $($(module)_DEPENDS)))
 B_TEST_INC := $(addprefix -I,$(sort $(foreach module, $(B_MODULES), $($(module)_INCLUDES))))
 B_TEST_CFLAGS := $(addprefix -D,$(sort $(foreach module, $(B_MODULES), $($(module)_DEFINES))))
@@ -94,7 +84,6 @@ ifeq ($(B_REFSW_ARCH),i386-linux)
 #CFLAGS += -m32
 endif
 #CFLAGS += -S
-CFLAGS += -funwind-tables
 SRCS += ${B_TEST_SRCS}
 
 ifneq ($(APP),)
@@ -133,7 +122,7 @@ CFLAGS += -DB_PROBE_ONLY=1
 endif
 ifeq (${OS},linuxuser)
 LDFLAGS += -lpthread -lrt
-LDFLAGS += -rdynamic
+#LDFLAGS += -static
 endif
 
 OBJS += ${MAGNUM_OBJS}

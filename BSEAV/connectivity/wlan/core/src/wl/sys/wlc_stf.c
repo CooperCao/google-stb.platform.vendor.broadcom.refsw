@@ -282,7 +282,7 @@ static const bcm_iovar_t stf_iovars[] = {
 	(0), 0, IOVT_UINT8, 0
 	},
 	{"txchain", IOV_STF_TXCHAIN,
-	(0), 0, IOVT_INT32, 0
+	(IOVF_SET_DOWN), 0, IOVT_INT32, 0
 	},
 	{"hw_txchain", IOV_STF_HW_TXCHAIN,
 	(0), 0, IOVT_UINT8, 0
@@ -294,7 +294,7 @@ static const bcm_iovar_t stf_iovars[] = {
 	(0), 0, IOVT_UINT8, 0
 	},
 	{"rxchain", IOV_STF_RXCHAIN,
-	(0), 0, IOVT_INT32, 0
+	(IOVF_SET_DOWN), 0, IOVT_INT32, 0
 	},
 	{"txcore", IOV_STF_TXCORE,
 	(0), 0, IOVT_BUFFER,  sizeof(uint32)*2
@@ -535,13 +535,10 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 			if (!int_val)
 				return BCME_BADOPTION;
 
-#if defined(WL_2G2X2LOCK)
-			/* For 2G lock, only allow txchain 1,2,3 */
-			if(int_val > 3) {
-				WL_ERROR(("wl%d: -2glock- disallows txchain > 3\n", wlc->pub->unit));
+			if (CHSPEC_IS2G(wlc->chanspec) && wlc->chains_2g && (int_val & ~wlc->chains_2g)) {
+				WL_ERROR(("wl%d: -2glock- disallows txchain %x\n", wlc->pub->unit, wlc->chains_2g));
 				return BCME_RANGE;
 			}
-#endif
 
 			if (int_val == WL_STF_CONFIG_CHAINS_DISABLED) {
 				int_val = wlc->stf->hw_txchain;
@@ -687,13 +684,10 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 			}
 #endif
 
-#if defined(WL_2G2X2LOCK)
-			/* For 2G lock, only allow txchain 1,2,3 */
-			if(int_val > 3) {
-				WL_ERROR(("wl%d: -2glock- disallows rxchain > 3\n", wlc->pub->unit));
+			if(wlc->chains_2g && (int_val & ~wlc->chains_2g)) {
+				WL_ERROR(("wl%d: -2glock- disallows rxchain %x\n", wlc->pub->unit, wlc->chains_2g));
 				return BCME_RANGE;
 			}
-#endif
 
 			if (int_val == WL_STF_CONFIG_CHAINS_DISABLED) {
 				int_val = wlc->stf->hw_rxchain;

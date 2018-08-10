@@ -1,3 +1,4 @@
+############################################################
 #  Copyright (C) 2018 Broadcom.
 #  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
@@ -107,7 +108,6 @@ NEXUS_FRONTEND_SOURCES := $(NEXUS_TOP)/modules/frontend/common/src/nexus_amplifi
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_passthrough.c
 NEXUS_FRONTEND_LOCAL_SOURCES := $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_local.c
 
-
 #######################
 # Module Dependencies #
 #######################
@@ -136,7 +136,6 @@ else
 BHAB_IMG_EXTERNAL := y
 endif
 endif
-
 
 #
 # TNRs
@@ -523,7 +522,6 @@ BFSK_CHIP += 7364
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FSK=1
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/fsk/bfsk.inc
 endif
-NEXUS_FRONTEND_HAS_OFDM := y
 endif
 
 #
@@ -579,7 +577,6 @@ ifeq ($(BCHP_VER),B0)
 BAOB_CHIP := 7552
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/aob/baob.inc
 endif
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 #
@@ -622,7 +619,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/rpc/brpc.inc
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_MXT=1
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/rpc/brpc.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/mxt/bmxt.inc
-NEXUS_FRONTEND_HAS_QAM := y
 endif # NEXUS_FRONTEND_3383
 
 ifdef NEXUS_FRONTEND_3255
@@ -654,7 +650,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/aus/baus.inc
 
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/rpc/brpc.inc
 
-NEXUS_FRONTEND_HAS_QAM := y
 endif # NEXUS_FRONTEND_3255
 
 ifeq ($(NEXUS_FRONTEND_7125),y)
@@ -664,7 +659,6 @@ NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_7125
 BADS_7125_SUPPORT := y
 BTNR_7125_SUPPORT ?= y
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 #
@@ -738,7 +732,6 @@ NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3472/src/nexus_frontend_
 ifeq ($(NEXUS_USE_FRONTEND_DAUGHTER_CARD),y)
 NEXUS_FRONTEND_DEFINES += NEXUS_USE_FRONTEND_DAUGHTER_CARD
 endif
-NEXUS_FRONTEND_HAS_OFDM := y
 endif
 
 ifdef NEXUS_FRONTEND_3462
@@ -758,8 +751,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3462/src/nexus_frontend_3462.c
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3462
-NEXUS_FRONTEND_HAS_OFDM := y
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifdef NEXUS_FRONTEND_3466
@@ -788,8 +779,6 @@ NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3466/src/nexus_frontend_
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3466
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_MXT=1
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/mxt/bmxt.inc
-NEXUS_FRONTEND_HAS_OFDM := y
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifdef NEXUS_FRONTEND_3461
@@ -821,7 +810,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/thd/bthd.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3461/src/nexus_frontend_3461.c
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3461
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifeq ($(NEXUS_FRONTEND_7255), y)
@@ -851,7 +839,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_7255
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/7255/src/nexus_frontend_7255.c
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 endif
 
@@ -879,7 +866,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ods/bods.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/7563/src/nexus_frontend_7563.c
-NEXUS_FRONTEND_HAS_OFDM := y
 endif
 
 ifdef NEXUS_FRONTEND_7584
@@ -906,7 +892,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/7584/src/nexus_frontend_7584.c
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifdef NEXUS_FRONTEND_3128
@@ -963,7 +948,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3158/src/nexus_frontend_3158.c
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/mxt/bmxt.inc
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifneq ($(BCHP_312X_VER),)
@@ -982,7 +966,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3128/src/nexus_frontend_3128.c
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifdef NEXUS_FRONTEND_PASSTHROUGH
@@ -1049,7 +1032,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3117/src/nexus_frontend_31xx.c
-NEXUS_FRONTEND_HAS_QAM := y
 endif
 
 ifeq ($(NEXUS_PLATFORM_VER),HR44)
@@ -1066,15 +1048,4 @@ endif
 
 ifneq ($(NEXUS_FRONTEND_CUSTOMER_EXTENSION_INC),)
 include $(NEXUS_FRONTEND_CUSTOMER_EXTENSION_INC)
-endif
-
-###########################
-# Do more work from above #
-###########################
-ifdef NEXUS_FRONTEND_HAS_OFDM
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_ofdm_helper_priv.c
-endif
-
-ifdef NEXUS_FRONTEND_HAS_QAM
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_qam_helper_priv.c
 endif

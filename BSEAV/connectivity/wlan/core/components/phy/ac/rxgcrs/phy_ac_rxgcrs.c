@@ -1348,26 +1348,49 @@ WLBANDINITFN(wlc_phy_edcrs_thresh_acphy)(phy_info_t *pi)
 {
 	uint16 assert, deassert;
 	uint8 core;
+        uint8 region_group;
+	int16 db_offset = 0;
 	phy_info_acphy_t *pi_ac;
 	pi_ac = pi->u.pi_acphy;
+	region_group = wlc_phy_get_locale(pi->rxgcrsi);
 
 	/* -68, -74 (based on formula), though higher on chip */
 	assert = 940;  deassert = 812;
-
-	pi_ac->sromi->ed_thresh_default = ((((assert - 832)*30103)) - 48000000)/640000;
-	if (pi_ac->sromi->ed_thresh2g) {
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
-		if (TINY_RADIO(pi) && (ACMAJORREV_32(pi->pubpi->phy_rev) ||
+/* assign db_offset dependend on chip is TINY_radio or non-TINY_radio */
+/* Rev37,Rev44 maps 0.6V to digital code 512,so there is -3.5dB adjustement needed */
+	if (TINY_RADIO(pi) && (ACMAJORREV_32(pi->pubpi->phy_rev) ||
 			ACMAJORREV_33(pi->pubpi->phy_rev))) {
-			assert = (640000*(pi_ac->sromi->ed_thresh2g + 6 + 75) + 25045696)/30103;
-		} else
-#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33))) */
-		{
-			assert = (640000*(pi_ac->sromi->ed_thresh2g + 75) + 25045696)/30103;
-		}
-		deassert = (640000*(pi_ac->sromi->ed_thresh2g + 69) + 25045696)/30103;
-	}
+			db_offset = 6;
+		} else if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+			db_offset = -3.5 + 10;   // 10dB fuzzy factor characterized from Lab data.
+		} else {
+                        db_offset = 0 ;
+                }
 
+/* Convert the original driver default ED threshold value to local dBm value with db_offset adjustment. */
+	pi_ac->sromi->ed_thresh_default = (assert >= 832) ?
+                ((assert - 832)*30103 + 320000)/640000 - 75 - db_offset:
+                ((assert - 832)*30103 - 320000)/640000 - 75 - db_offset;
+/* Added country and band condition to pick up ED threshold from nvram file.*/
+	if (region_group == REGION_EU) {
+		if ((pi->srom_eu_edthresh2g) && CHSPEC_IS2G(pi->radio_chanspec)) {
+				assert = (640000*(pi->srom_eu_edthresh2g + db_offset + 75))/30103 + 832;
+				deassert = (640000*(pi->srom_eu_edthresh2g + db_offset + 69))/30103 + 832;
+		}
+		if ((pi->srom_eu_edthresh5g) && CHSPEC_IS5G(pi->radio_chanspec)) {
+			assert = (640000*(pi->srom_eu_edthresh5g + db_offset + 75))/30103 + 832;
+			deassert = (640000*(pi->srom_eu_edthresh5g + db_offset + 69))/30103 + 832;
+		}
+	} else {
+		if ((pi_ac->sromi->ed_thresh2g) && CHSPEC_IS2G(pi->radio_chanspec)) {
+			assert = (640000*(pi_ac->sromi->ed_thresh2g + db_offset + 75))/30103 + 832;
+			deassert = (640000*(pi_ac->sromi->ed_thresh2g + db_offset + 69))/30103 + 832;
+		}
+		if ((pi_ac->sromi->ed_thresh5g) && CHSPEC_IS5G(pi->radio_chanspec)) {
+			assert = (640000*(pi_ac->sromi->ed_thresh5g + db_offset + 75))/30103 + 832;
+			deassert = (640000*(pi_ac->sromi->ed_thresh5g + db_offset + 69))/30103 + 832;
+		}
+	}
 	if (ACREV_GE(pi->pubpi->phy_rev, 32)) {
 		/* Retain reset values for 43012A0 */
 		if (!(ACMAJORREV_36(pi->pubpi->phy_rev))) {
@@ -9154,7 +9177,6 @@ static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t *ctx, int32 *ass
 	phy_ac_rxgcrs_info_t *rxgcrs_info = (phy_ac_rxgcrs_info_t *)ctx;
 	phy_info_t * pi = rxgcrs_info->pi;
 	bool suspend = FALSE;
-	int32 assert_local_dBm;
 
 	/* Set the EDCRS Assert and De-assert Threshold
 	The de-assert threshold is set to 6dB lower then the assert threshold
@@ -9165,25 +9187,25 @@ static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t *ctx, int32 *ass
 	int32 assert_thres_val, de_assert_thresh_val;
 	uint16 th_u16;
 	uint8 core;
+        int16 db_offset = 0;
 
 	/* Suspend MAC */
 	wlc_phy_conditional_suspend(pi, &suspend);
-
-	if (set_threshold == TRUE) {
 		/* TINY maps 0.2 to adc code 512, whereas non-TINY 0.4, so there is a 6dB
 		   difference in formula, and ed logic in chip does not take care of it
 		*/
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
-		if (TINY_RADIO(pi) &&
-			(ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev))) {
-			assert_local_dBm = *assert_thresh_dbm + 6;
-		} else
-#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33))) */
-		{
-			assert_local_dBm = *assert_thresh_dbm;
-		}
-		assert_thres_val = (640000*(assert_local_dBm + 75) + 25045696)/30103;
-		de_assert_thresh_val = (640000*(assert_local_dBm + 69) + 25045696)/30103;
+
+        if (TINY_RADIO(pi) &&
+		(ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev))) {
+		db_offset = 6;
+	} else if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		db_offset = -3.5 + 10 ; // 10dB fuzzy factor was charaterized from Lab data.
+	}
+
+	if (set_threshold == TRUE) {
+
+		assert_thres_val = (640000*(*assert_thresh_dbm + db_offset + 75) + 25045696)/30103;
+		de_assert_thresh_val = (640000*(*assert_thresh_dbm + db_offset + 69) + 25045696)/30103;
 
 		if (ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev) ||  ACMAJORREV_37(pi->pubpi->phy_rev)) {
 			/* Set the EDCRS Assert Threshold for core0 */
@@ -9347,21 +9369,11 @@ static void wlc_phy_adjust_ed_thres_acphy(phy_type_rxgcrs_ctx_t *ctx, int32 *ass
 		} else {
 			assert_thres_val = READ_PHYREG(pi, ed_crs20LAssertThresh0);
 		}
-		assert_local_dBm = ((((assert_thres_val - 832)*30103)) - 48000000)/640000;
 
-		/* TINY maps 0.2 to adc code 512, whereas non-TINY 0.4, so there is a 6dB
-		   difference in formula, and ed logic in chip does not take care of it
-		*/
-#if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
-		if (TINY_RADIO(pi) &&
-			(ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev))) {
-			*assert_thresh_dbm = assert_local_dBm - 6;
-		} else
-#endif /* !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33))) */
-		{
-			*assert_thresh_dbm = assert_local_dBm;
-		}
-
+		// add/substract 320000 for proper rounding
+		*assert_thresh_dbm = (assert_thres_val >= 832) ?
+			((assert_thres_val - 832)*30103 + 320000)/640000 - 75 - db_offset:
+			((assert_thres_val - 832)*30103 - 320000)/640000 - 75 - db_offset;
 	}
 
 	/* Resume MAC */

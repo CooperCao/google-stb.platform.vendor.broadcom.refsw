@@ -4520,26 +4520,6 @@ BERR_Code BHDM_GetCrcValue_isr(
 	Register = BREG_Read32(hRegister, REGADDR_CRC_CHECK_STATUS_0 + ulOffset) ;
 	stCrcData->crc = BCHP_GET_FIELD_DATA(Register, REGNAME_CRC_CHECK_STATUS_0, CRC_VALUE);
 
-    #if BCHP_HDMI_FORMAT_DET_CFG_TRIGGER_LINE_COUNT_MASK
-    {
-
-          uint32_t Reg, Reg_format_detect;
-
-          /* Read FORMAT_DET_5.UUT_VAL1 */
-
-          Reg_format_detect = BREG_Read32(hRegister, BCHP_HDMI_FORMAT_DET_5);
-          Reg_format_detect = Reg_format_detect & BCHP_HDMI_FORMAT_DET_5_UUT_VAL1_MASK;
-
-          /* Set FORMAT_DET_5.TRIGGER_LINE_COUNT to the value read above */
-
-          Reg = BREG_Read32(hRegister, BCHP_HDMI_FORMAT_DET_CFG);
-          Reg = (Reg & ~BCHP_HDMI_FORMAT_DET_CFG_TRIGGER_LINE_COUNT_MASK) | (Reg_format_detect << BCHP_HDMI_FORMAT_DET_CFG_TRIGGER_LINE_COUNT_SHIFT);
-
-          BREG_Write32(hRegister, BCHP_HDMI_FORMAT_DET_CFG, Reg);
-
-      }
-    #endif
-
 #else
 	BSTD_UNUSED(hHDMI);
 	BSTD_UNUSED(stCrcData);

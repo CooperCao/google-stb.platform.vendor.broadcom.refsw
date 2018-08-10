@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 
@@ -87,6 +91,15 @@ static const BPXL_P_Format_Info s_aPxlFmtInfo[] =
     BPXL_P_MAKE_PXL(BPXL_eY8),
     BPXL_P_MAKE_PXL(BPXL_eCb8_Cr8),
     BPXL_P_MAKE_PXL(BPXL_eCr8_Cb8),
+    BPXL_P_MAKE_PXL(BPXL_eCb8),
+    BPXL_P_MAKE_PXL(BPXL_eCr8),
+    BPXL_P_MAKE_PXL(BPXL_eA8_Y8),
+
+    BPXL_P_MAKE_PXL(BPXL_eY10),
+    BPXL_P_MAKE_PXL(BPXL_eCb10_Cr10),
+    BPXL_P_MAKE_PXL(BPXL_eCr10_Cb10),
+    BPXL_P_MAKE_PXL(BPXL_eCb10),
+    BPXL_P_MAKE_PXL(BPXL_eCr10),
 
     /* YCbCr 444 10-bit */
     BPXL_P_MAKE_PXL(BPXL_eX2_Cr10_Y10_Cb10),
@@ -145,6 +158,26 @@ static const BPXL_P_Format_Info s_aPxlFmtInfo[] =
     BPXL_P_MAKE_PXL(BPXL_eX4_B4_G4_R4),
     BPXL_P_MAKE_PXL(BPXL_eR4_G4_B4_X4),
     BPXL_P_MAKE_PXL(BPXL_eB4_G4_R4_X4),
+
+    BPXL_P_MAKE_PXL(BPXL_eX2_R10_G10_B10),
+    BPXL_P_MAKE_PXL(BPXL_eX2_B10_G10_R10),
+    BPXL_P_MAKE_PXL(BPXL_eR10_G10_B10_X2),
+    BPXL_P_MAKE_PXL(BPXL_eB10_G10_R10_X2),
+
+    BPXL_P_MAKE_PXL(BPXL_eA2_R10_G10_B10),
+    BPXL_P_MAKE_PXL(BPXL_eA2_B10_G10_R10),
+    BPXL_P_MAKE_PXL(BPXL_eR10_G10_B10_A2),
+    BPXL_P_MAKE_PXL(BPXL_eB10_G10_R10_A2),
+
+    BPXL_P_MAKE_PXL(BPXL_eXf16_Rf16_Gf16_Bf16),
+    BPXL_P_MAKE_PXL(BPXL_eXf16_Bf16_Gf16_Rf16),
+    BPXL_P_MAKE_PXL(BPXL_eRf16_Gf16_Bf16_Xf16),
+    BPXL_P_MAKE_PXL(BPXL_eBf16_Gf16_Rf16_Xf16),
+
+    BPXL_P_MAKE_PXL(BPXL_eAf16_Rf16_Gf16_Bf16),
+    BPXL_P_MAKE_PXL(BPXL_eAf16_Bf16_Gf16_Rf16),
+    BPXL_P_MAKE_PXL(BPXL_eRf16_Gf16_Bf16_Af16),
+    BPXL_P_MAKE_PXL(BPXL_eBf16_Gf16_Rf16_Af16),
 
     /* Palette */
     BPXL_P_MAKE_PXL(BPXL_eP1),
@@ -430,59 +463,68 @@ void BPXL_ConvertPixel_YCbCrtoRGB_isrsafe(
     return;
 }
 
-/***************************************************************************/
-void BPXL_GetBytesPerNPixels_isrsafe(
+void BPXL_GetAlignment_isrsafe(
     BPXL_Format eFormat,
-    unsigned int uiNPixels,
-    unsigned int *puiBytes )
+    unsigned int uiWidth,
+    unsigned int uiHeight,
+    unsigned int *puiAlignedWidth,
+    unsigned int *puiAlignedHeight,
+    unsigned int *puiPitch )
 {
-    unsigned int uiBytes = 0;
-    unsigned int ulAlignment = BPXL_IS_YCbCr422_FORMAT(eFormat)?
-        BPXL_P_PITCH_YCBCR422_ALIGNMENT:BPXL_P_PITCH_ALIGNMENT;
-
-    /* Check parameter */
-    BDBG_ASSERT(puiBytes);
+    /* SWSTB-8271 maximize the alignment to the largest requirement so far*/
+    unsigned int uiAlignment = BPXL_IS_YCbCr422_FORMAT(eFormat)?
+        BPXL_P_PITCH_YCBCR422_ALIGNMENT : BPXL_P_PITCH_ALIGNMENT;
+    unsigned int uiAlignedWidth = uiWidth, uiAlignedHeight = uiHeight, uiPitch = 0;
 
     /* check if format is YCbCr 422 10-bit non-packed format */
-    if( BPXL_IS_YCbCr422_10BIT_FORMAT(eFormat) )
+    if(BPXL_IS_YCbCr422_10BIT_FORMAT(eFormat))
     {
         /* align size to 6 pixels (per 4 dwords) */
-        uiBytes = ((uiNPixels + 5) / 6) * 16;
+        uiAlignedWidth = ((uiWidth + 5) / 6) * 6;
+        uiPitch = (uiAlignedWidth / 6) * 16;
     }
     /* check if format is YCbCr 422 10-bit packed format (eg. BPXL_eCr10_Y110_Cb10_Y010)*/
-    else if( BPXL_IS_YCbCr422_10BIT_PACKED_FORMAT(eFormat) )
+    else if(BPXL_IS_YCbCr422_10BIT_PACKED_FORMAT(eFormat))
     {
         /* align size to 8 pixels (per 5 dwords) */
-        uiBytes = ((uiNPixels + 7) / 8) * 20;
+        uiAlignedWidth = (uiWidth + 7) & ~(0x7);
+        uiPitch = (uiAlignedWidth / 8) * 20;
     }
-    /* check if format is YCbCr 420 Luma 10-bit (non-packed) format (BPXL_eY10) */
+    /* check if format is YCbCr 420 Luma 10-bit (non-packed) format (BPXL_eY10)*/
     else if (BPXL_IS_YCbCr420_LUMA_10BIT_FORMAT(eFormat))
     {
         /* align size to 6 pixels (per 2 dwords) */
-        uiBytes = ((uiNPixels + 5) / 6) * 8;
+        uiAlignedWidth = ((uiWidth + 11) / 12) * 12; /* forced by Cb and Cr 6 pixels alignment */
+        uiPitch = (uiAlignedWidth / 6) * 8;
+        uiAlignedHeight = (uiHeight + 1) & (~0x1);
+    }
+    /* check if format is YCbCr 420 Cb/Cr 10-bit (non-packed) format (BPXL_eCb/Cr10) */
+    else if (BPXL_IS_YCbCr420_Cb_OR_Cr_10BIT_FORMAT(eFormat))
+    {
+        /* align size to 6 pixels (per 2 dwords), width/height passed in is already half of luma plane */
+        uiAlignedWidth = ((uiWidth + 5) / 6) * 6; /* this forces 422_LUMA_10BIT width to be aligned to 12 pixels */
+        uiPitch = (uiAlignedWidth / 6) * 8;
     }
     /* check if format is YCbCr 420 Chroma 10-bit (non-packed) format (BPXL_eCb10_Cr10)*/
-    else if (BPXL_IS_YCbCr420_CHROMA_10BIT_FORMAT(eFormat))
+    else if (BPXL_IS_YCbCr420_CbCr_10BIT_FORMAT(eFormat))
     {
-        /* align size to 3 pixels (per 2 dwords), width passed in is already half of luma plane */
-        uiBytes = ((uiNPixels + 2) / 3) * 8;
+        /* align size to 3 pixels (per 2 dwords), width/height passed in is already half of luma plane */
+        uiAlignedWidth = ((uiWidth + 2) / 3) * 3;
+        uiPitch = (uiAlignedWidth / 3) * 8;
     }
     /* check if format is BPXL_eCompressed_A8_R8_G8_B8 */
-    else if( BPXL_eCompressed_A8_R8_G8_B8 == eFormat )
+    else if (BPXL_IS_COMPRESSED_FORMAT(eFormat))
     {
 #if defined(BCHP_M2MC_DCEG_CFG)
-        uiBytes = ((((uiNPixels + 3) / 4) * 66) + 7) / 8;
+        uiAlignedWidth = (uiWidth + 3) & ~(0x3);
+        uiPitch = (((((uiAlignedWidth / 4) * 66) + 7) / 8) + 3) & (~0x3); /* align to 32-bits dwords */
 #elif defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
-        uiBytes = ((uiNPixels + 3) / 4) * 8;
+        uiAlignedWidth = (uiWidth + 3) & ~(0x3);
+        uiPitch = (uiAlignedWidth / 4) * 8;
+        uiAlignedHeight = (uiAlignedHeight + 3) & ~0x3;
 #else
-        uiBytes = uiNPixels * 4; /* non-compressed ARGB8888 */
+        uiPitch = uiWidth * 4; /* non-compressed ARGB8888 */
 #endif
-    }
-    else if( BPXL_eUIF_R8_G8_B8_A8 == eFormat )
-    {
-        /* TODO: varies by height, assume height > 8
-        4 bytes per pixel, rounded up to 128 bytes */
-        uiBytes = ((uiNPixels*4)+127) & ~127; /* round up to 128 */
     }
     else if( eFormat != BPXL_INVALID )
     {
@@ -492,21 +534,50 @@ void BPXL_GetBytesPerNPixels_isrsafe(
         if( uiBitsPerPixel < 8 )
         {
             unsigned int uiPixPerByte = (8 / uiBitsPerPixel);
-            uiBytes = (uiNPixels + (uiPixPerByte - 1)) / uiPixPerByte;
+            uiPitch = (uiWidth + (uiPixPerByte - 1)) / uiPixPerByte;
         }
         /* calculate bytes for formats that are a byte or larger */
         else
         {
-            /* align size of YCbCr 422 and YCbCr 420 luma formats to 2 pixels */
-            if( BPXL_IS_YCbCr422_FORMAT(eFormat) || BPXL_IS_YCbCr420_LUMA_FORMAT(eFormat) )
-                uiNPixels = (uiNPixels + 1) & (~1);
-
-            uiBytes = (uiNPixels * uiBitsPerPixel) / 8;
+            /* align size of YCbCr 422 and YCbCr 420 formats to 2 pixels */
+            if( BPXL_IS_YCbCr422_FORMAT(eFormat) )
+            {
+                uiAlignedWidth = (uiWidth + 1) & (~1);
+            }
+            /* for YCbCr420 chroma plane the width/height passed in is already half of luma plane */
+            else if( BPXL_IS_YCbCr420_LUMA_FORMAT(eFormat) )
+            {
+                uiAlignedWidth = (uiWidth + 1) & ~0x1;
+                uiAlignedHeight = (uiHeight + 1) & ~0x1;
+            }
+            uiPitch = (uiAlignedWidth * uiBitsPerPixel + 7) / 8;
         }
     }
 
-    *puiBytes = BPXL_P_ALIGN_UP(uiBytes, ulAlignment);
-    return;
+    /* buf size = uiAlignedHeight * uiPitch */
+    uiPitch = BPXL_P_ALIGN_UP(uiPitch, uiAlignment);
+
+    if (puiAlignedWidth)
+    {
+        *puiAlignedWidth = uiAlignedWidth;
+    }
+    if (puiAlignedHeight)
+    {
+        *puiAlignedHeight = uiAlignedHeight;
+    }
+    if (puiPitch)
+    {
+        *puiPitch = uiPitch;
+    }
+}
+
+/***************************************************************************/
+void BPXL_GetBytesPerNPixels_isrsafe(
+    BPXL_Format eFormat,
+    unsigned int uiNPixels,
+    unsigned int *puiBytes )
+{
+    BPXL_GetAlignment_isrsafe(eFormat, uiNPixels, 1, NULL, NULL, puiBytes);
 }
 
 /***************************************************************************/

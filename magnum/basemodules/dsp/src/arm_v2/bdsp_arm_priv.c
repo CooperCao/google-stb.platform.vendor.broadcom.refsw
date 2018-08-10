@@ -484,6 +484,7 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 		BDBG_OBJECT_ASSERT(pMasterArmTask, BDSP_ArmTask);
 		pArmTask->taskParams.masterTaskId = pMasterArmTask->taskParams.taskId;
 	}
+	pArmTask->taskParams.coreIndex = 0XFF; /* No concept of Core Index in ARM */
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	pArmTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
@@ -1601,6 +1602,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         goto end;
     }
     sPayload.ui32TaskId          = pArmTask->taskParams.taskId;
+	sPayload.ui32CoreIndex       = pArmTask->taskParams.coreIndex;
     sPayload.ui32MasterTaskId    = pArmTask->taskParams.masterTaskId;
     sPayload.ui32SyncQueueFifoId = pArmTask->hSyncQueue->ui32FifoId;
     sPayload.ui32AsyncQueueFifoId= pArmTask->hAsyncQueue->ui32FifoId;

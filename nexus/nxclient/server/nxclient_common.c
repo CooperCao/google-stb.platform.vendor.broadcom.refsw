@@ -123,6 +123,10 @@ void NxClient_GetDefaultAllocSettings(NxClient_AllocSettings *pSettings)
 void NxClient_GetDefaultConnectSettings( NxClient_ConnectSettings *pSettings )
 {
     unsigned i;
+    #if NEXUS_HAS_AUDIO
+    NEXUS_AudioCapabilities cap;
+    #endif
+
     memset(pSettings, 0, sizeof(*pSettings));
     for (i=0;i<NXCLIENT_MAX_IDS;i++) {
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxWidth = 1920;
@@ -130,6 +134,19 @@ void NxClient_GetDefaultConnectSettings( NxClient_ConnectSettings *pSettings )
         pSettings->simpleVideoDecoder[i].decoderCapabilities.userDataBufferSize = 16 * 1024;
         /* leave encoderCapabilities max values defaulted to 0, which picks any, so we can adapt to various box modes and configurations */
     }
+    #if NEXUS_HAS_AUDIO
+    NEXUS_GetAudioCapabilities(&cap);
+    if ( cap.numDsps > 0 ) {
+        if ( cap.dsp.dspSecureDecode ) {
+            pSettings->simpleAudioDecoder.decoderCapabilities.secure = true;
+        }
+    }
+    else if ( cap.numSoftAudioCores > 0 ) { /* arm decode only */
+        if ( cap.dsp.softAudioSecureDecode ) {
+            pSettings->simpleAudioDecoder.decoderCapabilities.secure = true;
+        }
+    }
+    #endif
 }
 
 void NxClient_GetDefaultStandbySettings(NxClient_StandbySettings *pSettings)

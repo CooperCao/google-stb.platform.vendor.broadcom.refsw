@@ -249,6 +249,8 @@ from host to any task on DSP */
 #define BDSP_RAAGA_BSP_SCM_COMMAND_ID       \
         ((uint32_t)((BDSP_RAAGA_AUDIO_GAP_FILL_COMMAND_ID ) + 1))                       /** 0x155**/
 
+#define BDSP_RAAGA_PROCESS_PAK_COMMAND_ID       \
+        ((uint32_t)((BDSP_RAAGA_BSP_SCM_COMMAND_ID ) + 1))                              /** 0x156 **/
 /*** Following are the Ack ids for different commands ***/
 
 #define BDSP_RAAGA_START_TASK_ACK_ID   \
@@ -295,6 +297,8 @@ from host to any task on DSP */
 #define BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_ACK_ID     \
          ((uint32_t)((BDSP_RAAGA_AUDIO_OUTPUT_FREEZE_COMMAND_ACK_ID ) + 1))             /** 0x20E **/
 
+#define BDSP_RAAGA_PROCESS_PAK_COMMAND_ACK_ID     \
+         ((uint32_t)((BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_ACK_ID ) + 1))           /** 0x20F **/
 
 
  /*** The following are the various Response Ids used for different commands  ***/
@@ -334,6 +338,8 @@ from host to any task on DSP */
 
 #define BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_RESPONSE_ID       \
          ((uint32_t)((BDSP_RAAGA_AUDIO_OUTPUT_FREEZE_COMMAND_RESPONSE_ID ) + 1))        /** 0x30C **/
+#define BDSP_RAAGA_PROCESS_PAK_COMMAND_RESPONSE_ID       \
+         ((uint32_t)((BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_RESPONSE_ID ) + 1))      /** 0x30D **/
 
 /***************************************************************************
 Summary:
@@ -444,6 +450,30 @@ typedef struct BDSP_Raaga_P_SCM_CmdOperation
 
 /***************************************************************************
 Summary:
+    License evaluation through PAK(Packet Authorization Key) method.
+
+Description:
+
+    This is the command structure of the PROCESS_PAK command to be
+    issued by the host to DSP to decrypt the PAK buffer and then return
+    the PAK output.
+
+See Also:
+****************************************************************************/
+typedef struct BDSP_Raaga_P_ProcessPakCommand
+{
+    dramaddr_t              pakBufAddr;         /*Address of the packet to be parsed*/
+    uint32_t                ui32PakBufSize;               /*Size of the packet*/
+    dramaddr_t              drmBufAddr;         /*Address of the DRM packet*/
+    uint32_t                ui32DrmBufSize;               /*Size of the DRM packet*/
+    dramaddr_t              pakOpBufAddr;       /*Address of the packet to be parsed*/
+    dramaddr_t              pakDecryptTableAddr; /* Physical Addr of the PAK decrypt info table downloaded by BDSP */
+    uint32_t                ui32PakDecryptTableSize;             /* Size of the PAK Table  */
+    uint32_t                ui32Dummy;                /*Required for Size Alignment */
+} BDSP_Raaga_P_ProcessPakCommand;
+
+/***************************************************************************
+Summary:
      Common structure for all firmware commands
 
 Description: Currently, it is assumed that all the commands posted by Host will be
@@ -473,8 +503,25 @@ typedef struct BDSP_Raaga_P_Command
         BDSP_Raaga_P_SCM_CmdOperation           sScmCmd;
         BDSP_Raaga_P_GetVomTableCommand         sGetVomTable;
         BDSP_Raaga_P_NumPicToDropCommand        sNumPicToDropCommand;
+        BDSP_Raaga_P_ProcessPakCommand          sProcessPakCommand;
     } uCommand;
 } BDSP_Raaga_P_Command;
+
+/***************************************************************************
+Summary:
+     PAK Response structure.
+
+Description:
+
+See Also:
+****************************************************************************/
+
+typedef struct BDSP_Raaga_P_PAKResponse
+{
+	uint32_t	ui32LicenseBits;
+} BDSP_Raaga_P_PAKResponse;
+
+
 
 /***************************************************************************
 Summary:
@@ -496,6 +543,7 @@ typedef struct BDSP_Raaga_P_Response
     union
     {
         BDSP_P_FrameAdvanceResponse    sFrameAdvance;
+        BDSP_Raaga_P_PAKResponse             sPAK;
     } uResponse;
 } BDSP_Raaga_P_Response;
 

@@ -190,11 +190,10 @@ NEXUS_TEE_SUPPORT ?= y
 endif
 
 ifeq ($(NEXUS_TEE_SUPPORT),y)
-ASTRA_TOP ?= $(BSEAV)/../astra
 ifeq ($(B_REFSW_OS),linuxkernel)
-NEXUS_PLATFORM_PRIVATE_INCLUDES += $(ASTRA_TOP)/linux/bcm_astra
+NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/bcm_astra
 else
-NEXUS_PLATFORM_PRIVATE_INCLUDES += $(ASTRA_TOP)/linux/libbcm_astra
+NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/libbcm_astra
 endif
 NEXUS_PLATFORM_DEFINES += NEXUS_TEE_SUPPORT=1
 NEXUS_PLATFORM_SOURCES += $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_tee.c
@@ -329,6 +328,10 @@ NEXUS_PLATFORM_PROXY_SOURCES = \
 ifeq ($(NEXUS_CONFIG_IMAGE),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS).$(NEXUS_MODE)/nexus_platform_image.c
+ifneq ($(NEXUS_AUDIO_SUPPORT),n)
+NEXUS_PLATFORM_PROXY_SOURCES += \
+    $(NEXUS_TOP)/modules/audio/src/ape_raaga/linuxuser/nexus_audio_image.c
+endif
 ifeq ($(SAGE_SUPPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
     $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c

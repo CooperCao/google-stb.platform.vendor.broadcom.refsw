@@ -1568,7 +1568,7 @@ void BVDC_P_Cfc_UpdateCfg_isr
         return;
     }
 
-    pCfc->bForceBypassL2NL = false; /* init here in case switch to DBV or TCH */
+    pCfc->bForceBypassTfTbl = false; /* init here in case switch to DBV or TCH */
 
 #if BVDC_P_DBV_SUPPORT
     if (pMetaData && pMetaData->stDbvInput.stHdrMetadata.eType == BAVC_HdrMetadataType_eDrpu &&
@@ -2476,7 +2476,8 @@ void BVDC_P_Window_BuildCfcRul_isr
     if (pCfc->stCapability.stBits.bMb)
     {
         uint32_t ulNLCfg;
-        uint32_t ulL2NL = (pCfc->bForceBypassL2NL)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
+        uint32_t ulNL2L = (pCfc->bForceBypassTfTbl)? BCFC_NL2L_BYPASS : pColorSpaceExtIn->stCfg.stBits.SelTF;
+        uint32_t ulL2NL = (pCfc->bForceBypassTfTbl)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
 /* 7271 B */
@@ -2547,7 +2548,7 @@ void BVDC_P_Window_BuildCfcRul_isr
           #ifdef BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_SEL_LR_LIMIT_SHIFT
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_LR_LIMIT,   DISABLE)  |
           #endif
-            BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_NL2L,       pColorSpaceExtIn->stCfg.stBits.SelTF)  |
+            BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_NL2L,       ulNL2L)  |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_CL_IN,      pColorSpaceExtIn->stCfg.stBits.bSelCL) |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, SEL_XVYCC_NL2L, pColorSpaceExtIn->stCfg.stBits.bSelXvYcc);
         ulStartReg = BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE + ulV0V1Offset + hCompositor->ulRegOffset;
@@ -2628,7 +2629,7 @@ void BVDC_P_Window_BuildCfcRul_isr
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_L2NL,       ulL2NL) |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ, ucCfcIdxForRect)                    |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_MB_COEF,    ucCfcIdxForRect)                    |
-            BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_NL2L,       pColorSpaceExtIn->stCfg.stBits.SelTF)  |
+            BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_NL2L,       ulNL2L)  |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_NL_CSC_EN,      ENABLE);
         hCompositor->aulNLCfg[eWinInCmp][ii] = (jj==0)? ulNLCfg :
             hCompositor->aulNLCfg[eWinInCmp][ii] | (ulNLCfg << BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_NL_CSC_EN_SHIFT);
@@ -2861,7 +2862,8 @@ void BVDC_P_Vfc_BuildCfcRul_isr
     if (pCfc->stCapability.stBits.bLRngAdj) /* bSupportTfConv */
     {
         uint32_t ulNLCfg;
-        uint32_t ulL2NL = (pCfc->bForceBypassL2NL)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
+        uint32_t ulNL2L = (pCfc->bForceBypassTfTbl)? BCFC_NL2L_BYPASS : pColorSpaceExtIn->stCfg.stBits.SelTF;
+        uint32_t ulL2NL = (pCfc->bForceBypassTfTbl)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
         bool bBypassCfc = pCfc->bBypassCfc;
 
         /* set eLeftShift = BCFC_LeftShift_e1/2_0 if needed */
@@ -2879,7 +2881,7 @@ void BVDC_P_Vfc_BuildCfcRul_isr
             BCHP_FIELD_ENUM(VFC_0_NL_CSC_CTRL, CSC_MA_ENABLE,   ENABLE)  |
             BCHP_FIELD_ENUM(VFC_0_NL_CSC_CTRL, LRANGE_ADJ_EN,   ENABLE)  |
             BCHP_FIELD_DATA(VFC_0_NL_CSC_CTRL, SEL_L2NL,        ulL2NL) |
-            BCHP_FIELD_DATA(VFC_0_NL_CSC_CTRL, SEL_NL2L,        pColorSpaceExtIn->stCfg.stBits.SelTF)  |
+            BCHP_FIELD_DATA(VFC_0_NL_CSC_CTRL, SEL_NL2L,        ulNL2L)  |
             BCHP_FIELD_DATA(VFC_0_NL_CSC_CTRL, SEL_CL_IN,       pColorSpaceExtIn->stCfg.stBits.bSelCL) |
             BCHP_FIELD_DATA(VFC_0_NL_CSC_CTRL, SEL_XVYCC_L2NL,  pColorSpaceExtOut->stCfg.stBits.bSelXvYcc) |
             BCHP_FIELD_DATA(VFC_0_NL_CSC_CTRL, SEL_XVYCC_NL2L,  pColorSpaceExtIn->stCfg.stBits.bSelXvYcc);
@@ -2984,7 +2986,8 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
     if (pCfc->stCapability.stBits.bLRngAdj) /* bSupportTfConv */
     {
         uint32_t ulNLCfg;
-        uint32_t ulL2NL = (pCfc->bForceBypassL2NL)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
+        uint32_t ulNL2L = (pCfc->bForceBypassTfTbl)? BCFC_NL2L_BYPASS : pColorSpaceExtIn->stCfg.stBits.SelTF;
+        uint32_t ulL2NL = (pCfc->bForceBypassTfTbl)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
 
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
 /* 7271 B */
@@ -3011,7 +3014,7 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, LMR_ADJ_EN,     (pCfc->pTfConvRamLuts->pRamLutLMR)? 1 : 0) |
             BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN,  ENABLE)  |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_L2NL,       ulL2NL) |
-            BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_NL2L,       pColorSpaceExtIn->stCfg.stBits.SelTF) |
+            BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_NL2L,       ulNL2L) |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_CL_IN,      pColorSpaceExtIn->stCfg.stBits.bSelCL) |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_XVYCC_L2NL, pColorSpaceExtOut->stCfg.stBits.bSelXvYcc) |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_XVYCC_NL2L, pColorSpaceExtIn->stCfg.stBits.bSelXvYcc);
@@ -3104,7 +3107,7 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
             :
             BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN,  ENABLE)  |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_L2NL,       ulL2NL) |
-            BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_NL2L,       pColorSpaceExtIn->stCfg.stBits.SelTF)  |
+            BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_NL2L,       ulNL2L)  |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_CL_IN,      pColorSpaceExtIn->stCfg.stBits.bSelCL) |
             BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_XVYCC,      pColorSpaceExtIn->stCfg.stBits.bSelXvYcc | pColorSpaceExtOut->stCfg.stBits.bSelXvYcc) |
             BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, NL_CSC,         ENABLE);
@@ -3362,7 +3365,8 @@ void BVDC_P_Display_BuildCfcRul_isr
         uint32_t ulNLCfg, ulLutId;
         BCFC_Csc3x4 stHwAlt, *pHwAlt = NULL;
         bool bBypassCfc = pCfc->bBypassCfc || hDisplay->bCmpBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess;
-        uint32_t ulL2NL = (pCfc->bForceBypassL2NL)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
+        uint32_t ulNL2L = (pCfc->bForceBypassTfTbl)? BCFC_NL2L_BYPASS : pColorSpaceExtIn->stCfg.stBits.SelTF;
+        uint32_t ulL2NL = (pCfc->bForceBypassTfTbl)? BCFC_L2NL_BYPASS : pColorSpaceExtOut->stCfg.stBits.SelTF;
 
         /* set eLeftShift = BCFC_LeftShift_e1/2_0 if needed */
         ulNLCfg = (bBypassCfc)?
@@ -3380,7 +3384,7 @@ void BVDC_P_Display_BuildCfcRul_isr
             BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, LRANGE_LIMIT_EN, 1)       |
             BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, LRANGE_ADJ_EN,   ENABLE)  |
             BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_L2NL,        ulL2NL) |
-            BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_NL2L,        pColorSpaceExtIn->stCfg.stBits.SelTF) |
+            BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_NL2L,        ulNL2L) |
             BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_CL_OUT,      pColorSpaceExtOut->stCfg.stBits.bSelCL) |
             BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_XVYCC_L2NL,  pColorSpaceExtOut->stCfg.stBits.bSelXvYcc) |
             BCHP_FIELD_DATA(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_XVYCC_NL2L,  pColorSpaceExtIn->stCfg.stBits.bSelXvYcc) |

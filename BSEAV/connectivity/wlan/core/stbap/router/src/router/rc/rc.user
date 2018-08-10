@@ -1,0 +1,4 @@
+
+#! /bin/sh
+# Start stbap_init.sh scrript.Add any specific daemons or apps launching here.
+stbap_init.sh

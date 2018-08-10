@@ -67,6 +67,9 @@ static unsigned BCHP_PWR_P_GetInternalIndex(BCHP_PWR_ResourceId resourceId);
 #ifndef BDBG_NO_LOG
 static bool BCHP_PWR_P_IsResourceAcquired(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId);
 #endif
+#if BCHP_PWR_NUM_P_PMAPSETTINGS && BCHP_UNIFIED_IMPL
+static BERR_Code BCHP_PWR_P_SetPstate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, BCHP_Pstate pState);
+#endif
 
 
 BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
@@ -153,6 +156,22 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
     BKNI_Memset(pDev->pMapSettings, 0, size);
 #endif
 
+    size = sizeof(BCHP_Pstate)*BCHP_PWR_P_NUM_NONLEAFS;
+    pDev->pCorePStates = BKNI_Malloc(size);
+    if (!pDev->pCorePStates) {
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto error;
+    }
+    BKNI_Memset(pDev->pCorePStates, 0, size);
+
+    size = sizeof(bool)*BCHP_PWR_P_NUM_NONLEAFS;
+    pDev->hasPStates = BKNI_Malloc(size);
+    if (!pDev->hasPStates) {
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto error;
+    }
+    BKNI_Memset(pDev->hasPStates, 0, size);
+
 #if BCHP_PWR_SUPPORT
     BDBG_WRN(("BCHP_PWR POWER MANAGEMENT ENABLED"));
     BDBG_MSG(("BCHP_PWR_Open: Non-HW %u, HW %u, Non-Leaf-HW %u", BCHP_PWR_P_NUM_NONLEAFS, BCHP_PWR_P_NUM_LEAFS, BCHP_PWR_P_NUM_NONLEAFSHW));
@@ -202,6 +221,12 @@ error:
         if (pDev->pMapSettings) {
             BKNI_Free(pDev->pMapSettings);
         }
+        if (pDev->pCorePStates) {
+            BKNI_Free(pDev->pCorePStates);
+        }
+        if (pDev->hasPStates) {
+            BKNI_Free(pDev->hasPStates);
+        }
         BKNI_Free(pDev);
     }
     return rc;
@@ -215,8 +240,49 @@ error:
     data |= (value<<shift) & mask; \
     BREG_Write32(handle->regHandle, reg, data);
 
-static void BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
+#if BCHP_PWR_NUM_P_PMAPSETTINGS && BCHP_UNIFIED_IMPL
+const struct BCHP_PWR_CoreState {
+    BCHP_PWR_ResourceId resourceId;
+    unsigned coreId;
+} g_coreState[] = {
+#ifdef BCHP_PWR_RESOURCE_AVD0_CLK
+    {BCHP_PWR_RESOURCE_AVD0_CLK, 2},
+#endif
+#ifdef BCHP_PWR_RESOURCE_AVD1_CLK
+    {BCHP_PWR_RESOURCE_AVD1_CLK, 3}
+#endif
+};
+
+static int BCHP_PWR_P_CoreId_LookUp(BCHP_PWR_ResourceId resourceId)
 {
+    unsigned i;
+
+    for (i=0; i<sizeof(g_coreState)/sizeof(g_coreState[0]); i++) {
+        if (g_coreState[i].resourceId == resourceId) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+static int BCHP_PWR_P_ResourceId_LookUp(unsigned coreId)
+{
+    unsigned i;
+
+    for (i=0; i<sizeof(g_coreState)/sizeof(g_coreState[0]); i++) {
+        if (g_coreState[i].coreId == coreId) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+#endif
+
+static BERR_Code BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
+{
+    BERR_Code rc = BERR_SUCCESS;
 #ifdef BCHP_PWR_NUM_P_PMAPSETTINGS
     unsigned j;
     uint32_t data;
@@ -225,40 +291,93 @@ static void BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
 
     /* First apply default settings */
     for (j=0; j<BCHP_PWR_NUM_P_PMAPSETTINGS; j++) {
-        APPLY_PMAP_SETTING(handle, handle->pwrManager->pMapSettings[j].reg, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].value)
+        unsigned pstate;
+        /* Initialize all pstate values to default pstate*/
+        for (pstate=1; pstate<BCHP_Pstate_eMax; pstate++) {
+            handle->pwrManager->pMapSettings[j].value[pstate] = handle->pwrManager->pMapSettings[j].value[0];
+        }
+
 #if BCHP_UNIFIED_IMPL
         if (handle->openSettings.pMapSettings) {
             unsigned i;
             for (i=0; handle->openSettings.pMapSettings[i].reg!=0; i++) {
+                unsigned last_valid_pstate=0;
                 uint32_t reg = PHY_TO_OFF(handle->openSettings.pMapSettings[i].reg);
                 if (handle->pwrManager->pMapSettings[j].reg == reg &&
                     handle->pwrManager->pMapSettings[j].mask == handle->openSettings.pMapSettings[i].mask &&
                     handle->pwrManager->pMapSettings[j].shift == handle->openSettings.pMapSettings[i].shift) {
-                    handle->pwrManager->pMapSettings[j].value = handle->openSettings.pMapSettings[i].value;
-                    BDBG_MSG(("Copied Value %d\tShift %x\t\tMask %x\tReg %x",
-                        handle->pwrManager->pMapSettings[j].value, handle->pwrManager->pMapSettings[j].shift,
-                        handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
+                    for (pstate=0; pstate<BCHP_Pstate_eMax; pstate++) {
+                        if (handle->openSettings.pMapSettings[i].value[pstate]) {
+                            handle->pwrManager->pMapSettings[j].value[pstate] = handle->openSettings.pMapSettings[i].value[pstate];
+                            last_valid_pstate = pstate;
+                        } else {
+                            handle->pwrManager->pMapSettings[j].value[pstate] = handle->pwrManager->pMapSettings[j].value[last_valid_pstate];
+                        }
+                        BDBG_MSG(("\tCopied Value %d\tShift %x\t\tMask %x\tReg %x\tPstate %d",
+                            handle->pwrManager->pMapSettings[j].value[pstate], handle->pwrManager->pMapSettings[j].shift,
+                            handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg, pstate));
+                    }
                     break;
                 }
             }
             if (handle->openSettings.pMapSettings[i].reg == 0) {
-                BDBG_MSG(("Pmap Setting Not Found : Shift %x\t\tMask %x\tReg %x", handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
+                BDBG_MSG(("\tPmap Setting Not Found : Shift %x\t\tMask %x\tReg %x", handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg));
             }
         }
+#else
+        APPLY_PMAP_SETTING(handle, handle->pwrManager->pMapSettings[j].reg, handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].shift, handle->pwrManager->pMapSettings[j].value[0])
 #endif
     }
 
 #if BCHP_UNIFIED_IMPL
     if (handle->openSettings.pMapSettings) {
         unsigned i;
+        bool apply_pstate[BCHP_MAX_CORES] = {0};
         for (i=0; handle->openSettings.pMapSettings[i].reg!=0; i++) {
+            int pstate = BCHP_Pstate_eMax;
             uint32_t reg = PHY_TO_OFF(handle->openSettings.pMapSettings[i].reg);
-            APPLY_PMAP_SETTING(handle, reg, handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].shift, handle->openSettings.pMapSettings[i].value)
+            while (--pstate >= 0) {
+                if (handle->openSettings.pMapSettings[i].value[pstate]) {
+                    if (pstate == 0) {
+                        APPLY_PMAP_SETTING(handle, reg, handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].shift, handle->openSettings.pMapSettings[i].value[pstate])
+                        BDBG_MSG(("\tApplied Value %d\tShift %x\t\tMask %x\tReg %x\tPstate %d",
+                                    handle->openSettings.pMapSettings[i].value[pstate], handle->openSettings.pMapSettings[i].shift,
+                                    handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].reg, pstate));
+                    } else {
+                        for (j=0; j<BCHP_MAX_CORES; j++) {
+                            unsigned id = handle->openSettings.pMapSettings[i].core[j];
+                            if (id) {
+                                apply_pstate[id] = true;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
 
-            BDBG_MSG(("Value %d\tShift %x\t\tMask %x\tReg %x",
-                        handle->openSettings.pMapSettings[i].value, handle->openSettings.pMapSettings[i].shift,
-                        handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].reg));
-            /* TODO : Verify settings from BOLT with that generated by script */
+        for (i=0; i<BCHP_PWR_P_NUM_NONLEAFS; i++) {
+            handle->pwrManager->pCorePStates[i] = BCHP_Pstate_eMax;
+        }
+
+        /* Set Pstates using Linux command */
+        for (i=0; i<BCHP_MAX_CORES; i++) {
+            if (apply_pstate[i]) {
+                unsigned idx;
+                int resource_idx = BCHP_PWR_P_ResourceId_LookUp(i);
+                if (resource_idx < 0) {
+                    rc = BERR_INVALID_PARAMETER;
+                    break;
+                }
+                idx = BCHP_PWR_P_GetInternalIndex(g_coreState[resource_idx].resourceId);
+                handle->pwrManager->hasPStates[idx] = true;
+                BDBG_MSG(("Apply Normal Pstate for core id %u", i));
+                rc = BCHP_PWR_P_SetPstate(handle, g_coreState[resource_idx].resourceId, BCHP_Pstate_eNormal);
+                if (rc) {
+                    rc = BERR_TRACE(rc);
+                    break;
+                }
+            }
         }
     }
 #if BCHP_CHIP != 7250 && BCHP_CHIP != 7364 && BCHP_CHIP != 7366 && BCHP_CHIP != 7439 && BCHP_CHIP != 7445
@@ -270,6 +389,7 @@ static void BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
 #else
     BSTD_UNUSED(handle);
 #endif
+    return rc;
 }
 
 static BERR_Code BCHP_PWR_P_Init(BCHP_Handle handle)
@@ -410,6 +530,12 @@ void BCHP_PWR_Close(BCHP_PWR_Handle handle)
     if (handle->pMapSettings) {
         BKNI_Free(handle->pMapSettings);
     }
+    if (handle->pCorePStates) {
+        BKNI_Free(handle->pCorePStates);
+    }
+    if (handle->hasPStates) {
+        BKNI_Free(handle->hasPStates);
+    }
     BKNI_Free(handle);
     BDBG_MSG(("BCHP_PWR_Close: <"));
 }
@@ -419,9 +545,11 @@ void BCHP_PWR_InitAllHwResources(BCHP_Handle handle)
 #if BCHP_PWR_SUPPORT
     const BCHP_PWR_P_Resource *resource;
     unsigned i, idx;
+#endif
 
     BDBG_ASSERT(handle);
     BDBG_ASSERT(handle->pwrManager);
+
     BDBG_MSG(("BCHP_PWR_InitAllHwResources: >"));
 
 #ifdef BCHP_RESET_COMMON
@@ -430,6 +558,7 @@ void BCHP_PWR_InitAllHwResources(BCHP_Handle handle)
     }
 #endif
 
+#if BCHP_PWR_SUPPORT
     BKNI_AcquireMutex(handle->pwrManager->lock);
 
     for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
@@ -441,15 +570,11 @@ void BCHP_PWR_InitAllHwResources(BCHP_Handle handle)
     }
 
     BKNI_ReleaseMutex(handle->pwrManager->lock);
-    BDBG_MSG(("BCHP_PWR_InitAllHwResources: <"));
-
+#endif
 #if 0 /* debug dump */
     BCHP_PWR_Dump(handle);
 #endif
-
-#else /* BCHP_PWR_SUPPORT */
-    BSTD_UNUSED(handle);
-#endif
+    BDBG_MSG(("BCHP_PWR_InitAllHwResources: <"));
 }
 
 /* the #define ID's for both non-leaf nodes start at 1, not 0. for HW leaf nodes, it starts at 0xff000001.
@@ -1035,7 +1160,7 @@ static unsigned BCHP_PWR_P_GetDiv(BCHP_Handle handle, unsigned index)
     unsigned val = 0;
     if (handle->pwrManager->pMapSettings) {
         if ((int)index != -1) {
-            val = handle->pwrManager->pMapSettings[index].value;
+            val = handle->pwrManager->pMapSettings[index].value[BCHP_Pstate_eNormal]; /* TODO : Return the value for current P state */
         }
     }
     return val;
@@ -1210,6 +1335,160 @@ error:
     return rc;
 }
 
+BERR_Code BCHP_PWR_GetPstate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, BCHP_Pstate *pState)
+{
+    BERR_Code rc = BERR_NOT_SUPPORTED;
+#if BCHP_PWR_NUM_P_PMAPSETTINGS && BCHP_UNIFIED_IMPL
+    int core_idx;
+    unsigned coreId;
+    BCHP_Pstate curPstate;
+    unsigned info;
+    unsigned idx = BCHP_PWR_P_GetInternalIndex(resourceId);
+
+    if (!resourceId) {
+        return BERR_INVALID_PARAMETER;
+    }
+    if (resourceId > BCHP_PWR_P_NUM_NONLEAFS) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (!handle->pwrManager->hasPStates[idx]) {
+        return BERR_SUCCESS; /* Return success if PState is not supported */
+    }
+    if(!handle->openSettings.getPState) {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    core_idx = BCHP_PWR_P_CoreId_LookUp(resourceId);
+    if (core_idx < 0) {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+    coreId = g_coreState[core_idx].coreId;
+
+    BKNI_AcquireMutex(handle->pwrManager->lock);
+    curPstate = handle->pwrManager->pCorePStates[idx];
+    rc = handle->openSettings.getPState(coreId, pState, &info);
+    if (!rc) {
+        BDBG_MSG(("Core %u, Pstate %u, info 0x%08x", coreId, *pState, info));
+        if (curPstate != *pState) {
+            BDBG_ERR(("Current PState (%u) does not match Pstate reported by AVS (%u)", curPstate, *pState));
+        }
+    } else {
+        BDBG_ERR(("Failed to get Pstate for core %u ", coreId));
+        rc = BERR_TRACE(rc);
+    }
+    BKNI_ReleaseMutex(handle->pwrManager->lock);
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(resourceId);
+    BSTD_UNUSED(pState);
+#endif
+    return rc;
+}
+
+#if BCHP_PWR_NUM_P_PMAPSETTINGS && BCHP_UNIFIED_IMPL
+static BERR_Code BCHP_PWR_P_SetPstate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, BCHP_Pstate pState)
+{
+    BERR_Code rc = BERR_NOT_SUPPORTED;
+    int core_idx;
+    const BCHP_PWR_P_DivTable *divTable = NULL;
+    const BCHP_PWR_P_Resource *resource;
+    unsigned postdiv, prediv, mult;
+    BCHP_Pstate curPstate;
+    unsigned coreId;
+    unsigned idx = BCHP_PWR_P_GetInternalIndex(resourceId);
+
+    if (!handle->pwrManager->hasPStates[idx]) {
+        return BERR_SUCCESS; /* Return success if PState is not supported */
+    }
+
+    if(!handle->openSettings.setPState) {
+        return BERR_TRACE(rc);
+    }
+
+    core_idx = BCHP_PWR_P_CoreId_LookUp(resourceId);
+    if (core_idx < 0) {
+        return BERR_TRACE(rc);
+    }
+
+    coreId = g_coreState[core_idx].coreId;
+    curPstate = handle->pwrManager->pCorePStates[idx];
+    if (pState == curPstate) {
+        return BERR_SUCCESS;
+    }
+
+    resource = BCHP_PWR_P_GetResourceHandle(resourceId);
+    divTable = BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, false);
+
+    if(divTable) {
+        if (handle->pwrManager->pMapSettings) {
+            unsigned value, num=0, command[9]={0};
+            int index;
+
+            index = (int)divTable->postdiv;
+            if (index != -1) {
+                value = handle->pwrManager->pMapSettings[index].value[pState];
+                if(value) {
+                    command[0] = handle->pwrManager->pMapSettings[index].reg;
+                    command[1] = value << handle->pwrManager->pMapSettings[index].shift;
+                    command[2] = handle->pwrManager->pMapSettings[index].mask;
+                    num++;
+                }
+            }
+            index = (int)divTable->mult;
+            if (index != -1) {
+                value = handle->pwrManager->pMapSettings[index].value[pState];
+                if(value) {
+                    command[3] = handle->pwrManager->pMapSettings[index].reg;
+                    command[4] = value << handle->pwrManager->pMapSettings[index].shift;
+                    command[5] = handle->pwrManager->pMapSettings[index].mask;
+                    num++;
+                }
+            }
+            if (num) {
+                BDBG_MSG(("Switching Core %u, Pstate %u -> %u, num_writes %u", coreId, curPstate, pState, num));
+                BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[0], command[1], command[2]));
+                BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[3], command[4], command[5]));
+                BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[6], command[7], command[8]));
+                rc = handle->openSettings.setPState(coreId, pState, num, command);
+                if (!rc) {
+                    handle->pwrManager->pCorePStates[idx] = pState;
+                } else {
+                    BDBG_WRN(("Failed to switch core %u Pstate %u -> %u", coreId, curPstate, pState));
+                    rc = BERR_TRACE(rc);
+                }
+            }
+        }
+    }
+
+    return rc;
+}
+#endif
+
+BERR_Code BCHP_PWR_SetPstate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, BCHP_Pstate pState)
+{
+    BERR_Code rc = BERR_NOT_SUPPORTED;
+#if BCHP_PWR_NUM_P_PMAPSETTINGS && BCHP_UNIFIED_IMPL
+    BDBG_ASSERT(handle);
+
+    if (!resourceId) {
+        return BERR_INVALID_PARAMETER;
+    }
+    if (resourceId > BCHP_PWR_P_NUM_NONLEAFS) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    BKNI_AcquireMutex(handle->pwrManager->lock);
+    rc = BCHP_PWR_P_SetPstate(handle, resourceId, pState);
+    BKNI_ReleaseMutex(handle->pwrManager->lock);
+    if (rc) { rc = BERR_TRACE(rc); }
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(resourceId);
+    BSTD_UNUSED(pState);
+#endif
+
+    return rc;
+}
 
 #else /* BCHP_PWR_HAS_RESOURCES */
 

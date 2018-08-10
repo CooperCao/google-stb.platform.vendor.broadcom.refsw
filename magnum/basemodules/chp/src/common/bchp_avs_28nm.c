@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *   See Module Overview below.
@@ -178,7 +182,7 @@ BERR_Code BCHP_P_AvsClose ( BCHP_P_AvsHandle hHandle )
 
 /* This is where these values come from IF the AVS firmware is running */
 /* The firmware updates these values every second */
-#if (BCHP_CHIP==7260) || (BCHP_CHIP==7268) || (BCHP_CHIP==7271) || (BCHP_CHIP==7278)
+#if (BCHP_CHIP==7260) || (BCHP_CHIP==7268) || (BCHP_CHIP==7271) || (BCHP_CHIP==7278) || (BCHP_CHIP==7255)
 #define AVS_FW_INTERFACE_DVFS
 #endif
 
@@ -189,35 +193,35 @@ BERR_Code BCHP_P_AvsClose ( BCHP_P_AvsHandle hHandle )
 #define MAX_AVS_DOMAIN_CNT 2
 
 typedef enum {
-	AVS_MSG_IDX_COMMAND,    /*  0 */
-	AVS_MSG_IDX_STATUS,     /*  1 */
-	AVS_MSG_IDX_VOLT0,      /*  2 */
-	AVS_MSG_IDX_TEMP0,      /*  3 */
-	AVS_MSG_IDX_PV0,        /*  4 */
-	AVS_MSG_IDX_MV0,        /*  5 */
+    AVS_MSG_IDX_COMMAND,    /*  0 */
+    AVS_MSG_IDX_STATUS,     /*  1 */
+    AVS_MSG_IDX_VOLT0,      /*  2 */
+    AVS_MSG_IDX_TEMP0,      /*  3 */
+    AVS_MSG_IDX_PV0,        /*  4 */
+    AVS_MSG_IDX_MV0,        /*  5 */
 #ifdef AVS_FW_INTERFACE_DVFS
-	AVS_MSG_IDX_COMMAND_P0, /*  6 */
-	AVS_MSG_IDX_COMMAND_P1, /*  7 */
-	AVS_MSG_IDX_COMMAND_P2, /*  8 */
-	AVS_MSG_IDX_COMMAND_P3, /*  9 */
+    AVS_MSG_IDX_COMMAND_P0, /*  6 */
+    AVS_MSG_IDX_COMMAND_P1, /*  7 */
+    AVS_MSG_IDX_COMMAND_P2, /*  8 */
+    AVS_MSG_IDX_COMMAND_P3, /*  9 */
 #else
-	AVS_MSG_IDX_VOLT1,      /*  6 */
-	AVS_MSG_IDX_TEMP1,      /*  7 */
-	AVS_MSG_IDX_PV1,        /*  8 */
-	AVS_MSG_IDX_MV1,        /*  9 */
+    AVS_MSG_IDX_VOLT1,      /*  6 */
+    AVS_MSG_IDX_TEMP1,      /*  7 */
+    AVS_MSG_IDX_PV1,        /*  8 */
+    AVS_MSG_IDX_MV1,        /*  9 */
 #endif
-	AVS_MSG_IDX_REVISION,   /* 10 */
-	AVS_MSG_IDX_STATE,      /* 11 */
-	AVS_MSG_IDX_HEARTBEAT,  /* 12 */
-	AVS_MSG_IDX_AVS_MAGIC,  /* 13 */
-	AVS_MSG_IDX_SIGMA_HVT,  /* 14 */
-	AVS_MSG_IDX_SIGMA_SVT   /* 15 */
+    AVS_MSG_IDX_REVISION,   /* 10 */
+    AVS_MSG_IDX_STATE,      /* 11 */
+    AVS_MSG_IDX_HEARTBEAT,  /* 12 */
+    AVS_MSG_IDX_AVS_MAGIC,  /* 13 */
+    AVS_MSG_IDX_SIGMA_HVT,  /* 14 */
+    AVS_MSG_IDX_SIGMA_SVT   /* 15 */
 #ifdef AVS_FW_INTERFACE_DVFS
-	,
-	AVS_MSG_IDX_VOLT1,      /* 16 */
-	AVS_MSG_IDX_TEMP1,      /* 17 */
-	AVS_MSG_IDX_PV1,        /* 18 */
-	AVS_MSG_IDX_MV1         /* 19 */
+    ,
+    AVS_MSG_IDX_VOLT1,      /* 16 */
+    AVS_MSG_IDX_TEMP1,      /* 17 */
+    AVS_MSG_IDX_PV1,        /* 18 */
+    AVS_MSG_IDX_MV1         /* 19 */
 #endif
 } AVS_MSG_IDX;
 
@@ -253,6 +257,7 @@ static const uint32_t treg_addr[] = {
  */
 static void GetAvsData_isrsafe(BCHP_P_AvsHandle hHandle, unsigned *voltage0, unsigned *voltage1, signed *temperature, bool *firmware_running, unsigned *heartbeat)
 {
+#if (BCHP_CHIP != 7255) /* TODO : Detect this at runtime */
     uint32_t v_reg0;
     uint32_t v_reg1;
     uint32_t t_reg;
@@ -314,6 +319,25 @@ static void GetAvsData_isrsafe(BCHP_P_AvsHandle hHandle, unsigned *voltage0, uns
     /* formula is: temperature=410.04-(t*0.48705) */
     *temperature = (4100400 - (signed)(t_reg * 4870)) / 10;
 #endif
+
+#else /* (BCHP_CHIP != 7255) */
+
+#if BCHP_UNIFIED_IMPL
+    BERR_Code rc;
+    BCHP_Handle hChip = hHandle->hChip;
+    if (hChip->openSettings.getAvsData) {
+        rc = hChip->openSettings.getAvsData(AVS_MSG_IDX_VOLT0, voltage0);
+        if (rc) {rc = BERR_TRACE(rc);}
+        rc = hChip->openSettings.getAvsData(AVS_MSG_IDX_VOLT1, voltage1);
+        if (rc) {rc = BERR_TRACE(rc);}
+        rc = hChip->openSettings.getAvsData(AVS_MSG_IDX_TEMP0, (unsigned*)temperature);
+        if (rc) {rc = BERR_TRACE(rc);}
+        rc = hChip->openSettings.getAvsData(AVS_MSG_IDX_HEARTBEAT, heartbeat);
+        if (rc) {rc = BERR_TRACE(rc);}
+        *firmware_running = *voltage0 == 0?false:true;
+    }
+#endif
+#endif
 }
 
 /* This gets called once a second to monitor the voltage and temperatures */
@@ -365,7 +389,7 @@ BERR_Code BCHP_P_GetAvsData_isrsafe (
     unsigned voltage0;
     unsigned voltage1;
     signed temperature;
-    bool firmware_running;
+    bool firmware_running = false;
     unsigned heartbeat;
 
     BDBG_ASSERT(pData);

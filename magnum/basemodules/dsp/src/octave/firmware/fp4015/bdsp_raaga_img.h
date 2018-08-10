@@ -262,10 +262,10 @@ extern const void * BDSP_IMG_adec_lpcm_tables[];
 extern const void * BDSP_IMG_adec_lpcm_inter_frame[];
 #endif /*BDSP_LPCMDVD_SUPPORT*/
 #ifdef BDSP_WMAPRO_SUPPORT
-extern const void * BDSP_IMG_aids_wmapro[];
-extern const void * BDSP_IMG_adec_wmapro[];
-extern const void * BDSP_IMG_adec_wmapro_tables[];
-extern const void * BDSP_IMG_adec_wmapro_inter_frame[];
+extern const void * BDSP_IMG_aids_wma_pro[];
+extern const void * BDSP_IMG_adec_wma_pro[];
+extern const void * BDSP_IMG_adec_wma_pro_tables[];
+extern const void * BDSP_IMG_adec_wma_pro_inter_frame[];
 #endif /*BDSP_WMAPRO_SUPPORT*/
 #ifdef BDSP_WMA_SUPPORT
 extern const void * BDSP_IMG_aids_wma[];

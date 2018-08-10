@@ -142,6 +142,7 @@ struct NEXUS_SimpleVideoDecoder
     NEXUS_VideoDecoderPlaybackSettings playbackSettings;
     NEXUS_VideoDecoderExtendedSettings extendedSettings;
     NEXUS_VideoDecoderSettings settings;
+    NEXUS_VideoDecoderSettings connectedSettings; /* settings at time of NEXUS_VideoWindow_AddInput, which affect XVD channel creation */
 
     struct {
         NEXUS_SimpleVideoDecoderStartCaptureSettings settings;
@@ -208,7 +209,7 @@ static NEXUS_SimpleVideoDecoderHandle nexus_simple_video_decoder_p_next(NEXUS_Si
     return next;
 }
 
-static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVideoDecoderHandle handle, bool currentSettings);
+static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVideoDecoderHandle handle);
 static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle handle );
 static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHandle handle);
 static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle handle, bool allow_cache);
@@ -218,7 +219,8 @@ static void nexus_simple_p_close_primer(NEXUS_SimpleVideoDecoderHandle handle);
 
 /* server settings cache */
 static bool add_settings_to_cache(NEXUS_SimpleVideoDecoderHandle handle);
-static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle);
+static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoDecoderSettings *pConnectedSettings);
+static int nexus_simplevideodecoder_p_check_reconnect(NEXUS_SimpleVideoDecoderHandle handle);
 
 /**
 server functions
@@ -584,8 +586,6 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
     if (handle->connected) return 0;
 
     BDBG_MSG(("nexus_simplevideodecoder_p_connect %p", (void *)handle));
-    rc = nexus_simplevideodecoder_p_setdecodersettings(handle, true);
-    if (rc) {BERR_TRACE(rc); goto error;}
 
     videoInput = nexus_simplevideodecoder_p_getinput(handle);
     if (!videoInput) {
@@ -597,12 +597,30 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         if (rc) return BERR_TRACE(rc);
     }
 
+    if (disp && use_cache(handle, &handle->connectedSettings)) {
+        handle->connected = true;
+        if (nexus_simplevideodecoder_p_check_reconnect(handle)) {
+            nexus_simplevideodecoder_p_disconnect(handle, false);
+        }
+    }
+
+    if (handle->serverSettings.videoDecoder) {
+        rc = nexus_simplevideodecoder_p_setdecodersettings(handle);
+        if (rc) {BERR_TRACE(rc); goto error;}
+
+        rc = NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &handle->playbackSettings);
+        if (rc) return BERR_TRACE(rc);
+
+        rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &handle->extendedSettings);
+        if (rc) return BERR_TRACE(rc);
+    }
+
     if (disp) {
         NEXUS_DisplayUpdateMode updateMode;
         SET_UPDATE_MODE(NEXUS_DisplayUpdateMode_eManual, &updateMode);
         NEXUS_SimpleVideoDecoder_SetClientSettings(handle, &handle->clientSettings);
         NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(handle, &handle->pictureQualitySettings);
-        if (!use_cache(handle)) {
+        if (!handle->connected) {
             if (handle->serverSettings.backendMosaic.display[0].window[0]) {
                 for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
                     unsigned j;
@@ -633,7 +651,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         }
         NEXUS_DisplayModule_SetUpdateMode(updateMode);
     }
-    else {
+    else if (handle->serverSettings.videoDecoder) {
         NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, handle->serverSettings.videoDecoder);
         rc = NEXUS_VideoDecoder_SetPowerState(handle->serverSettings.videoDecoder, true);
         if (rc) {rc = BERR_TRACE(rc); goto error;}
@@ -645,7 +663,10 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
     rc = nexus_simplevideodecoder_p_setvbisetings(handle, handle->clientSettings.closedCaptionRouting);
     if (rc) {BERR_TRACE(rc); goto error;}
 
-    handle->connected = true;
+    if (!handle->connected) {
+        handle->connectedSettings = handle->settings;
+        handle->connected = true;
+    }
     return 0;
 
 error:
@@ -682,7 +703,7 @@ static void nexus_simplevideodecoder_p_disconnect_settings(const NEXUS_SimpleVid
     NEXUS_DisplayModule_SetUpdateMode(updateMode);
     if (handle) {
         /* only reset video decoder settings back to default when shutting down */
-        nexus_simplevideodecoder_p_setdecodersettings(handle, false);
+        nexus_simplevideodecoder_p_set_default_decoder_settings(handle);
     }
 }
 
@@ -1277,22 +1298,25 @@ static void nexus_simplevideodecoder_p_disable_tsm_extensions( NEXUS_SimpleVideo
     }
 }
 
-/* returns non-zero if NEXUS_VideoDecoderSettings was modifed with NEXUS_SimpleVideoDecoderStartSettings */
-static int nexus_simplevideodecoder_p_apply_start_settings(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoDecoderSettings *settings /* in/out */)
+/* returns non-zero if VideoDecoder must be reconnected because of NEXUS_VideoDecoderSettings change */
+static int nexus_simplevideodecoder_p_check_reconnect(NEXUS_SimpleVideoDecoderHandle handle)
 {
     int rc = 0;
-    /* if startSettings causes any increase in resolution, or causes decrease from 4K to non-4K */
-    if (handle->startSettings.maxWidth && handle->startSettings.maxHeight) {
-        if (handle->startSettings.maxWidth > settings->maxWidth ||
-            handle->startSettings.maxHeight > settings->maxHeight ||
-            (settings->maxHeight > 1088 && handle->startSettings.maxHeight <= 1088)) {
-            rc = 1;
-        }
-        settings->maxWidth = handle->startSettings.maxWidth;
-        settings->maxHeight = handle->startSettings.maxHeight;
+    const NEXUS_VideoDecoderMemory *mem;
+    /* if dynamicPictureBuffers, we reconnect on any size change.
+    else, we only create with the max because reducing has no benefit. */
+    mem = NEXUS_VideoDecoder_P_GetMemory_isrsafe(handle->serverSettings.videoDecoder);
+    if (mem->dynamicPictureBuffers) {
+        unsigned val;
+        /* either startSettings (which has precedence) or settings has to match if set */
+        val = handle->startSettings.maxWidth ? handle->startSettings.maxWidth : handle->settings.maxWidth;
+        if (val && val != handle->connectedSettings.maxWidth) rc = 1;
+        val = handle->startSettings.maxHeight ? handle->startSettings.maxHeight : handle->settings.maxHeight;
+        if (val && val != handle->connectedSettings.maxHeight) rc = 1;
+        val = handle->settings.colorDepth;
+        if (val && val != handle->connectedSettings.colorDepth) rc = 1;
     }
-    if (!settings->supportedCodecs[handle->startSettings.settings.codec]) {
-        settings->supportedCodecs[handle->startSettings.settings.codec] = true;
+    if (handle->clientStarted && !handle->connectedSettings.supportedCodecs[handle->startSettings.settings.codec]) {
         rc = 1;
     }
     return rc;
@@ -1307,18 +1331,9 @@ NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHandle han
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
-    /* Force re-connect if we must enable codec support or increase memory use.
-    Also re-connect if decreasing memory use, but only when going from 4K to non-4K. */
+    /* Force re-connect if we must enable codec support or increase memory use. */
     if (handle->connected) {
-        NEXUS_VideoDecoderSettings *settings = &handle->functionData.nexus_simplevideodecoder_p_setdecodersettings.settings;
-        NEXUS_VideoDecoder_GetSettings(handle->serverSettings.videoDecoder, settings);
-        if (nexus_simplevideodecoder_p_apply_start_settings(handle, settings)) {
-            BDBG_WRN(("reconnect on start: supportedCodecs[%u] %u->%u, settings %ux%u -> %ux%u, ",
-                handle->startSettings.settings.codec,
-                settings->supportedCodecs[handle->startSettings.settings.codec],
-                handle->settings.supportedCodecs[handle->startSettings.settings.codec],
-                settings->maxWidth, settings->maxHeight,
-                handle->startSettings.maxWidth, handle->startSettings.maxHeight));
+        if (nexus_simplevideodecoder_p_check_reconnect(handle)) {
             nexus_simplevideodecoder_p_disconnect(handle, false);
         }
     }
@@ -1607,7 +1622,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetSettings( NEXUS_SimpleVideoDecoderHandle
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
     handle->settings = *pSettings;
     if (nexus_simplevideodecoder_has_resource(handle, &rc)) return rc; /* no BERR_TRACE */
-    rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, pSettings);
+    rc = nexus_simplevideodecoder_p_setdecodersettings(handle);
     if (rc) return BERR_TRACE(rc);
     return 0;
 }
@@ -1650,33 +1665,37 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetNextPts( NEXUS_SimpleVideoDecoderHandle 
     return 0;
 }
 
-static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVideoDecoderHandle handle, bool currentSettings)
+/* apply user's NEXUS_VideoDecoder_SetSettings with transforms for XVD channel memory */
+static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVideoDecoderHandle handle)
 {
     NEXUS_Error rc;
-    if (!handle->serverSettings.videoDecoder) {
-        return NEXUS_SUCCESS;
+    const NEXUS_VideoDecoderMemory *mem;
+    NEXUS_VideoDecoderSettings *settings = &handle->functionData.nexus_simplevideodecoder_p_setdecodersettings.settings;
+
+    *settings = handle->settings;
+
+    /* override settings that are tied to channel creation */
+    if (handle->clientStarted) {
+        settings->supportedCodecs[handle->startSettings.settings.codec] = true;
     }
-    if (currentSettings) {
-        NEXUS_VideoDecoderSettings *settings = &handle->functionData.nexus_simplevideodecoder_p_setdecodersettings.settings;
-        *settings = handle->settings;
-        /* apply the current simpledecoder settings back to the regular decoder */
-        rc = NEXUS_VideoDecoder_SetPlaybackSettings(handle->serverSettings.videoDecoder, &handle->playbackSettings);
-        if (rc) return BERR_TRACE(rc);
 
-        rc = nexus_simplevideodecoder_p_apply_start_settings(handle, settings);
-        BSTD_UNUSED(rc); /* doesn't matter if there's a change or not */
-
-        rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, settings);
-        if (rc) return BERR_TRACE(rc);
-
-        handle->settings = *settings;
-
-        rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &handle->extendedSettings);
-        if (rc) return BERR_TRACE(rc);
+    mem = NEXUS_VideoDecoder_P_GetMemory_isrsafe(handle->serverSettings.videoDecoder);
+    /* if not dynamic and not mosaic, there's no harm in applying the memconfig max, and it reduces
+    churn in memory allocation. */
+    if (!mem->dynamicPictureBuffers && !NEXUS_VideoDecoder_P_IsMosaic_isrsafe(handle->serverSettings.videoDecoder)) {
+        NEXUS_VideoFormatInfo info;
+        NEXUS_VideoFormat_GetInfo(mem->maxFormat, &info);
+        settings->maxWidth = info.width;
+        settings->maxHeight = info.height;
+        settings->colorDepth =  mem->colorDepth;
     }
-    else {
-        nexus_simplevideodecoder_p_set_default_decoder_settings(handle);
+    else if (handle->clientStarted) {
+        settings->maxWidth = handle->startSettings.maxWidth;
+        settings->maxHeight = handle->startSettings.maxHeight;
     }
+
+    rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, settings);
+    if (rc) return BERR_TRACE(rc);
 
     return 0;
 }
@@ -1978,6 +1997,7 @@ struct settings_cache {
     BLST_S_ENTRY(settings_cache) link;
     NEXUS_SimpleVideoDecoderHandle handle;
     NEXUS_SimpleVideoDecoderServerSettings settings;
+    NEXUS_VideoDecoderSettings connectedSettings;
     unsigned timeout; /* milliseconds remaining until cleared */
 };
 static struct {
@@ -1987,7 +2007,7 @@ static struct {
     NEXUS_Time timerStarted;
 } g_cache;
 
-static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle)
+static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoDecoderSettings *pConnectedSettings)
 {
     struct settings_cache *c;
     for (c = BLST_S_FIRST(&g_cache.list); c; ) {
@@ -1996,6 +2016,7 @@ static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle)
             /* remove from cache, but don't disconnect. settings will be in use. */
             BDBG_MSG(("use server settings from %p(%p) for %p in cache", (void *)c->handle, (void *)c->settings.videoDecoder, (void *)handle));
             BLST_S_REMOVE(&g_cache.list, c, settings_cache, link);
+            *pConnectedSettings = c->connectedSettings;
             BKNI_Free(c);
             return true;
         }
@@ -2162,6 +2183,7 @@ static bool add_settings_to_cache(NEXUS_SimpleVideoDecoderHandle handle)
     adjust_cache_timeouts();
 
     c->settings = handle->serverSettings;
+    c->connectedSettings = handle->connectedSettings;
     c->handle = handle;
     c->timeout = handle->clientSettings.cache.timeout;
     /* insert by increasing timeout */

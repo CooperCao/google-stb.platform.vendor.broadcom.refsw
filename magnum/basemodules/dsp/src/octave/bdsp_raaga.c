@@ -187,6 +187,8 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
     pRaaga->device.getCoreDumpStatus = BDSP_Raaga_P_GetCoreDumpStatus;
     pRaaga->device.getDownloadStatus = BDSP_Raaga_P_GetDownloadStatus;
     pRaaga->device.initialize = BDSP_Raaga_P_Initialize;
+    pRaaga->device.getRRRAddrRange = NULL;
+    pRaaga->device.processPAK = NULL;
 
 #ifdef BDSP_RAAGA_DEBUG_SERVICE
     pRaaga->device.runDebugService = BDSP_Raaga_P_RunDebugService;

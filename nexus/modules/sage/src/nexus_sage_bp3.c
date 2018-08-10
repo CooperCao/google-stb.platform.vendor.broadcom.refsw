@@ -59,6 +59,7 @@
 #include "nexus_sage_image.h"
 #include "nexus_sage_types.h"
 #include "bchp_jtag_otp.h"
+#include "bchp_sun_top_ctrl.h"
 
 
 BDBG_MODULE(nexus_sage_bp3);
@@ -226,7 +227,7 @@ const char *bp3FeatureListAudio[NUM_BP3_FEATURE_LIST] = {
     "Dolby DAP Content Processing",
     "Dolby DAP Virtualizer",
     "Dolby DAP Device Processing",
-    "Dolby MS12v2.3 Adv OpChannels",
+    "Dolby MS12 v2.3 Adv Output Channels",
     "Reserved",
     "Reserved",
     "Reserved",
@@ -450,6 +451,7 @@ static BERR_Code NEXUS_Sage_Get_BP3_Feature_List(
     BREG_Handle hReg = NULL;
     uint32_t    bondOption = 0xFFFFFFFF;
     uint32_t    index = 0;
+    uint32_t    productID = 0;
 
     if (pBp3FeatureList == NULL)
     {
@@ -458,7 +460,11 @@ static BERR_Code NEXUS_Sage_Get_BP3_Feature_List(
     }
     hReg = g_pCoreHandles->reg;
     bondOption = (BREG_Read32(hReg, BCHP_JTAG_OTP_GENERAL_STATUS_8)) & 0x000000FF;
-    if (bondOption != 0)
+    productID = (BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PRODUCT_ID)) & 0xFFFF0000;
+
+    if ((bondOption != NEXUS_BP3_BOND_OPTION_BP3_PRODUCTION_PART) &&
+        (productID != 0x72680000) &&
+        (productID != 0x72710000))
     {
         BDBG_WRN(("BP3 feature list is not supported on non-BP3 parts %d", bondOption));
         return NEXUS_NOT_SUPPORTED;
@@ -472,111 +478,135 @@ static BERR_Code NEXUS_Sage_Get_BP3_Feature_List(
         /* Read feature list from Global SRAM */
         regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3AudioFeatureList0);
         regValue = BREG_Read32(hReg, regAddr);
-        BDBG_MSG(("Audio   Feature List 0x%08X",~regValue));
-        for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
-        {
-            if (~regValue & 1)
-            {
-                if (NEXUS_StrCmp(bp3FeatureListAudio[index],"Reserved") == 0)
-                {
-                    BDBG_ERR(("check bp3 audio features list %d",index));
-                }
-                else if (NEXUS_StrCmp(bp3FeatureListAudio[index],"NP") != 0)
-                {
-                    if (printBp3Features)
-                    {
-                        BDBG_LOG(("%s",bp3FeatureListAudio[index]));
-                    }
-                }
-            }
-            regValue = regValue >> 1;
-        }
-        regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList0);
-        regValue = BREG_Read32(hReg, regAddr);
-        BDBG_MSG(("Video 0 Feature List 0x%08X",~regValue));
 
-        for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+        if (bondOption == NEXUS_BP3_BOND_OPTION_BP3_PRODUCTION_PART)
         {
-            if (~regValue & 1)
+            BDBG_MSG(("Audio   Feature List 0x%08X",~regValue));
+            for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
             {
-                if ((NEXUS_StrCmp(bp3FeatureListVideo0[index],"Reserved") == 0) ||
-                    (NEXUS_StrCmp(bp3FeatureListVideo0[index],"NA") == 0))
+                if (~regValue & 1)
                 {
-                    BDBG_ERR(("check bp3 video0 features list %d",index));
-                }
-                else if (NEXUS_StrCmp(bp3FeatureListVideo0[index],"NP") != 0)
-                {
-                    if (printBp3Features)
+                    if (NEXUS_StrCmp(bp3FeatureListAudio[index],"Reserved") == 0)
                     {
-                        BDBG_LOG(("%s",bp3FeatureListVideo0[index]));
+                        BDBG_MSG(("check bp3 audio features list %d",index));
+                    }
+                    else if (NEXUS_StrCmp(bp3FeatureListAudio[index],"NP") != 0)
+                    {
+                        if (printBp3Features)
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListAudio[index]));
+                        }
                     }
                 }
+                regValue = regValue >> 1;
             }
-            regValue = regValue >> 1;
-        }
-        regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList1);
-        regValue = BREG_Read32(hReg, regAddr);
-        BDBG_MSG(("Video 1 Feature List 0x%08X",~regValue));
-        for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
-        {
-            if (~regValue & 1)
+            regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList0);
+            regValue = BREG_Read32(hReg, regAddr);
+            BDBG_MSG(("Video 0 Feature List 0x%08X",~regValue));
+
+            for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
             {
-                if (NEXUS_StrCmp(bp3FeatureListVideo1[index],"Reserved") == 0)
+                if (~regValue & 1)
                 {
-                    BDBG_ERR(("check bp3 video1 features list %d",index));
-                }
-                else if (NEXUS_StrCmp(bp3FeatureListVideo1[index],"NP") != 0)
-                {
-                    if (printBp3Features)
+                    if ((NEXUS_StrCmp(bp3FeatureListVideo0[index],"Reserved") == 0) ||
+                        (NEXUS_StrCmp(bp3FeatureListVideo0[index],"NA") == 0))
                     {
-                        BDBG_LOG(("%s",bp3FeatureListVideo1[index]));
+                        BDBG_MSG(("check bp3 video0 features list %d",index));
+                    }
+                    else if (NEXUS_StrCmp(bp3FeatureListVideo0[index],"NP") != 0)
+                    {
+                        if (printBp3Features)
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListVideo0[index]));
+                        }
                     }
                 }
+                regValue = regValue >> 1;
             }
-            regValue = regValue >> 1;
-        }
-        regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3HostFeatureList);
-        regValue = BREG_Read32(hReg, regAddr);
-        BDBG_MSG(("Host    Feature List 0x%08X",~regValue));
-        for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
-        {
-            if (~regValue & 1)
+            regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3VideoFeatureList1);
+            regValue = BREG_Read32(hReg, regAddr);
+            BDBG_MSG(("Video 1 Feature List 0x%08X",~regValue));
+            for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
             {
-                if (NEXUS_StrCmp(bp3FeatureListHost[index],"Reserved") == 0)
+                if (~regValue & 1)
                 {
-                    BDBG_ERR(("check bp3 host features list %d",index));
+                    if (NEXUS_StrCmp(bp3FeatureListVideo1[index],"Reserved") == 0)
+                    {
+                        BDBG_MSG(("check bp3 video1 features list %d",index));
+                    }
+                    else if (NEXUS_StrCmp(bp3FeatureListVideo1[index],"NP") != 0)
+                    {
+                        if (printBp3Features)
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListVideo1[index]));
+                        }
+                    }
                 }
-                else if (NEXUS_StrCmp(bp3FeatureListHost[index],"NP") != 0)
+                regValue = regValue >> 1;
+            }
+            regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3HostFeatureList);
+            regValue = BREG_Read32(hReg, regAddr);
+            BDBG_MSG(("Host    Feature List 0x%08X",~regValue));
+            for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+            {
+                if (~regValue & 1)
+                {
+                    if (NEXUS_StrCmp(bp3FeatureListHost[index],"Reserved") == 0)
+                    {
+                        BDBG_MSG(("check bp3 host features list %d",index));
+                    }
+                    else if (NEXUS_StrCmp(bp3FeatureListHost[index],"NP") != 0)
+                    {
+                        if (printBp3Features)
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListHost[index]));
+                        }
+                    }
+                }
+                regValue = regValue >> 1;
+            }
+            regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3SAGEFeatureList);
+            regValue = BREG_Read32(hReg, regAddr);
+            BDBG_MSG(("Sage    Feature List 0x%08X",~regValue));
+            for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
+            {
+                if (~regValue & 1)
+                {
+                    if (NEXUS_StrCmp(bp3FeatureListSage[index],"Reserved") == 0)
+                    {
+                        BDBG_MSG(("check bp3 sage features list %d",index));
+                    }
+                    else if (NEXUS_StrCmp(bp3FeatureListSage[index],"NP") != 0)
+                    {
+                        if (printBp3Features)
+                        {
+                            BDBG_LOG(("%s",bp3FeatureListSage[index]));
+                        }
+                    }
+                }
+                regValue = regValue >> 1;
+            }
+        }
+        else if ((productID == 0x72680000) ||(productID != 0x72710000))
+        {
+            /* legacy 7268b0 and 7271b0 parts with bond option such as 03 are allowed to provision DV HDR, TCH HDR, and TCH ITM */
+            /* Other features are not managed by BP3/SAGE. */
+            regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3HostFeatureList);
+            regValue = BREG_Read32(hReg, regAddr);
+            regValue = regValue >> 1;
+            for (index=1; index < 4; index++)
+            {
+                if (~regValue & 1)
                 {
                     if (printBp3Features)
                     {
                         BDBG_LOG(("%s",bp3FeatureListHost[index]));
                     }
                 }
+                regValue = regValue >> 1;
             }
-            regValue = regValue >> 1;
         }
-        regAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eBP3SAGEFeatureList);
-        regValue = BREG_Read32(hReg, regAddr);
-        BDBG_MSG(("Sage    Feature List 0x%08X",~regValue));
-        for (index=0; index < NUM_BP3_FEATURE_LIST; index++)
-        {
-            if (~regValue & 1)
-            {
-                if (NEXUS_StrCmp(bp3FeatureListSage[index],"Reserved") == 0)
-                {
-                    BDBG_ERR(("check bp3 sage features list %d",index));
-                }
-                else if (NEXUS_StrCmp(bp3FeatureListSage[index],"NP") != 0)
-                {
-                    if (printBp3Features)
-                    {
-                        BDBG_LOG(("%s",bp3FeatureListSage[index]));
-                    }
-                }
-            }
-            regValue = regValue >> 1;
-        }
+
     }
     return NEXUS_SUCCESS;
 }
@@ -598,6 +628,7 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
     uint32_t                index = 0;
     BREG_Handle             hReg = NULL;
     uint32_t                bondOption = 0xFFFFFFFF;
+    uint32_t                productID = 0;
     NEXUS_Sage_BP3_Feature_List bp3FeatureList; /* all BP3 global SRAM registers including sage and reserved */
 
     if(lHandle)
@@ -771,8 +802,16 @@ NEXUS_Error NEXUS_Sage_P_BP3Init(NEXUS_SageModuleSettings *pSettings)
     }
     BDBG_MSG(("Initialized SAGE BP3 Module: receivedSageModuleHandle [%p], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, lHandle->uiLastAsyncId));
-    /* Read bp3.bin */
-    if ((pSettings->imageExists[bp3BinImg.id]) && (bondOption == NEXUS_BP3_BOND_OPTION_BP3_PRODUCTION_PART))
+
+    /* Read the chip's Product_ID */
+    productID = (BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PRODUCT_ID)) & 0xFFFF0000;
+
+    /* Read bp3.bin for BP3 part or 7268/7271 with 01 or 03 bond option if the file exists */
+    if ((pSettings->imageExists[bp3BinImg.id]) &&
+        ((bondOption == NEXUS_BP3_BOND_OPTION_BP3_PRODUCTION_PART) ||
+         (((productID == 0x72680000) || (productID == 0x72710000)) &&
+          ((bondOption == 0x01) || (bondOption == 0x03)))
+        ))
     {
         bp3_bin.buf = NULL;
         bp3_bin.len = 0;

@@ -945,6 +945,8 @@ typedef struct wl_country {
 						 */
 } wl_country_t;
 
+#define WLC_CCODE_CHANGED	0x01
+#define WLC_CCODE_NODFS		0x02
 #ifndef LINUX_POSTMOGRIFY_REMOVAL
 
 #define CCODE_INFO_VERSION 1

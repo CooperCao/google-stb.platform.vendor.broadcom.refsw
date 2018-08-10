@@ -85,6 +85,7 @@
 #include "bxdm_pp.h"
 
 BDBG_MODULE(BXVD);
+BDBG_FILE_MODULE(BXVD_INTR);
 
 /* This is temporary until defined in chp */
 #ifndef BCHP_AVD0_INTR2_CPU_STATUS_AVD_ARC_INTR_SHIFT
@@ -3755,6 +3756,14 @@ BERR_Code BXVD_StopDecode(BXVD_ChannelHandle hXvdChannel)
       }
    }
 
+   if (pXvdCh->bPreserveState == false)
+   {
+      /* Want to be in non-boost mode when the system is idle. */
+      pXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_eUnknown;
+      pXvdCh->eSourceResolutionOutOfBand = BXVD_SourceResolution_eUnknown;
+      BXVD_P_SetClockBoost( pXvd );
+   }
+
    BERR_TRACE(BXVD_GetChannelChangeMode( pXvdCh, &ChChangeMode));
 
    /* SW7425-1064: XDM should already be disabled or disconnnectd for the "enhanced" channnel */
@@ -4669,6 +4678,18 @@ BERR_Code BXVD_InstallDeviceInterruptCallback(BXVD_Handle           hXvd,
 
          break ;
 
+      case BXVD_DeviceInterrupt_eClockBoost:
+         /* The interrupt won't have been created if clock boost is not supported. */
+         if (hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR)
+         {
+            rc = BERR_TRACE(BINT_EnableCallback(hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR));
+            if (rc != BERR_SUCCESS )
+            {
+               return BERR_TRACE(rc);
+            }
+         }
+         break;
+
       default:
          break;
    }
@@ -4849,6 +4870,18 @@ BERR_Code BXVD_UnInstallDeviceInterruptCallback(BXVD_Handle           hXvd,
          }
 
          break ;
+
+      case BXVD_DeviceInterrupt_eClockBoost:
+          /* The interrupt won't have been created if clock boost is not supported. */
+         if (hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR)
+         {
+            eStatus = BERR_TRACE(BINT_DisableCallback(hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR));
+            if (eStatus != BERR_SUCCESS )
+            {
+               return BERR_TRACE(eStatus);
+            }
+         }
+         break;
 
       default:
          break;
@@ -11688,6 +11721,142 @@ BERR_Code BXVD_GetTrickModeSettings(
    BDBG_LEAVE( BXVD_GetTrickModeSettings );
    return BERR_TRACE(BERR_SUCCESS);
 }
+
+/***************************************************************************
+Summary:
+   Added to support setting the clock boost mode.  Provides an out-of-band
+   path for specifying stream parameters. The logic in BXVD_P_SetClockBoost
+   looks at the source resolution on all active channels to set the clock rate.
+
+****************************************************************************/
+
+BERR_Code BXVD_SetSourceInfo(
+   BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
+   const BXVD_SourceInfo *pstSourceInfo
+   )
+{
+   BERR_Code rc=BERR_SUCCESS;
+
+   BDBG_ENTER(BXVD_ClockBoost_EventHandler);
+
+#if BXVD_P_CLOCK_BOOST_SUPPORTED
+   {
+      BXVD_Handle hXvd = hXvdCh->pXvd;
+
+      if ( pstSourceInfo->eSourceResolution >= BXVD_SourceResolution_eMaxModes )
+      {
+         BXVD_DBG_ERR(hXvdCh, ("%s:: eSourceResolution of %d is out of range.", BSTD_FUNCTION, pstSourceInfo->eSourceResolution ));
+         rc = BERR_INVALID_PARAMETER;
+      }
+      else
+      {
+         hXvdCh->eSourceResolutionOutOfBand = pstSourceInfo->eSourceResolution;
+         BDBG_MODULE_MSG( BXVD_INTR, ("%s:: hXvdCh->eSourceResolutionOutOfBand: %d", BSTD_FUNCTION, hXvdCh->eSourceResolutionOutOfBand ));
+
+         BXVD_P_SetClockBoost( hXvd );
+      }
+   }
+#else
+   BSTD_UNUSED(hXvdCh);
+   BSTD_UNUSED(pstSourceInfo);
+#endif
+
+   BDBG_LEAVE(BXVD_ClockBoost_EventHandler);
+
+   return BERR_TRACE(rc);;
+
+}
+
+/***************************************************************************
+Summary:
+   Added to support setting the clock boost mode.  Provides an in-band
+   path for specifying the stream resolution.  The in-band path is driven
+   by an interrupt from HVD.  The logic in BXVD_P_SetClockBoost looks at
+   the source resolution on all active channels to set the clock rate.
+
+****************************************************************************/
+
+void BXVD_ClockBoost_EventHandler(void *pvXvd)
+{
+   BDBG_ENTER(BXVD_ClockBoost_EventHandler);
+
+#if BXVD_P_CLOCK_BOOST_SUPPORTED
+   {
+      uint32_t      uiFromHIM=0;
+      uint32_t      i;
+      BXVD_P_HIM_Offsets   stHimOffset;
+      BXVD_ChannelHandle hXvdCh;
+
+      BXVD_Handle hXvd = pvXvd;
+
+      /* Check if there are any open channels. Don't read the HIM if the HVD is not active. */
+
+      if ( hXvd->uiOpenChannels != 0 )
+      {
+         /* The firmware provides the source resolution as a 4 bit enum.  To support 16 channels,
+          * the resolutions will be store in two consecutive 32 bit words in HIM.  The enums are:
+          * 0 - unknown resolution
+          * 1 - CIF
+          * 2 - SD (this includes 480p)
+          * 3 - HD
+          * 4 - 4K
+          *
+          * When the interrupt fires, update the resolution for all channels that have been opened.
+          */
+         for ( i=0; i < BXVD_MAX_VIDEO_CHANNELS; i++ )
+         {
+            if ( i==0 || i==8 )
+            {
+               stHimOffset.ulByteOffset = ( i == 0 ) ? hXvd->uiClockBoost_Offset : hXvd->uiClockBoost_Offset+4 ;
+
+               BXVD_P_HOSTINTERFACEMEMORY_COOK_OFFSETS( stHimOffset, 4 );
+
+               BXVD_P_READ_HIM( hXvd, stHimOffset.ulWordOffset, uiFromHIM );
+            }
+
+            hXvdCh = hXvd->ahChannel[i];
+
+            if ( hXvdCh )
+            {
+               uint32_t uiMasked = uiFromHIM & 0xF;
+
+               BDBG_MODULE_MSG( BXVD_INTR, ("%s:: uDecoderInstance:%d channel:%d from HIM: %0x", BSTD_FUNCTION, hXvd->uDecoderInstance, i, uiMasked ));
+
+               switch ( uiMasked )
+               {
+                  case 0: hXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_eUnknown;    break;
+                  case 1: hXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_eCIF;        break;
+                  case 2: hXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_eSD;         break;
+                  case 3: hXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_eHD;         break;
+                  case 4: hXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_e4K;         break;
+                  default: hXvdCh->eSourceResolutionInBand = BXVD_SourceResolution_eUnknown;   break;
+               }
+            }
+
+            /* Advance to the field for the next channel. */
+            uiFromHIM >>= 4;
+
+
+         }
+
+         BXVD_P_SetClockBoost( hXvd );
+
+      }
+      else
+      {
+         BDBG_MODULE_MSG( BXVD_INTR, ("%s:: all the decode channels are closed.", BSTD_FUNCTION ));
+      }
+   }
+#else
+    BSTD_UNUSED(pvXvd);
+#endif
+
+   BDBG_LEAVE(BXVD_ClockBoost_EventHandler);
+
+   return;
+
+}
+
 
 /*******************/
 /* Deprecated APIs */

@@ -7807,9 +7807,7 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 	s32 err = BCME_OK;
-#if defined(WOWL_DRV_NORELOAD)
 	u32 val;
-#endif /* WOWL_DRV_NORELOAD */
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
 	int pkt_filter_id = WL_WOWLAN_PKT_FILTER_ID_FIRST;
@@ -7819,6 +7817,21 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 		WL_INFORM(("device is not ready\n"));
 		return err;
 	}
+#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
+		defined(WL_COMPAT_WIRELESS))
+#if defined(WOWL_DRV_NORELOAD)
+	if (wl_get_drv_status(cfg, CONNECTED, ndev))
+		wl_resume_normalmode();
+	else
+#endif /*WOWL_DRV_NORELOAD*/
+	{
+		/* Set interface up */
+		val = 1;
+		err = wldev_ioctl(ndev, WLC_UP, (void *)&val, sizeof(val), true);
+		if (err < 0)
+			WL_ERR(("set interface up failed, error = %d\n", err));
+	}
+#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
@@ -7841,22 +7854,9 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
 
-#if defined(WOWL_DRV_NORELOAD)
-#if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
-	defined(WL_COMPAT_WIRELESS))
-	if (wl_get_drv_status(cfg, CONNECTED, ndev))
-		wl_resume_normalmode();
-#endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
-
-	/* Set interface up */
-	val = 1;
-	err = wldev_ioctl(ndev, WLC_UP, (void *)&val, sizeof(val), true);
-	if (err < 0)
-		WL_ERR(("set interface up failed, error = %d\n", err));
-#endif  /*WOWL_DRV_NORELOAD*/
 	return err;
 }
-
+#if defined(WOWL_DRV_NORELOAD)
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS))
 static s32 wl_wowlan_config(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
@@ -8132,7 +8132,7 @@ exit:
 	return err;
 }
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
-
+#endif
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)
 static s32 wl_cfg80211_suspend(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
@@ -8179,16 +8179,19 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS))
+#if defined(WOWL_DRV_NORELOAD)
 	if (wl_get_drv_status(cfg, CONNECTED, ndev))
-        err = wl_wowlan_config(wiphy, wow);
-    else {
-        u32 val;
-        /* Set interface down */
-        val = 0;
-        err = wldev_ioctl(ndev, WLC_DOWN, (void *)&val, sizeof(val), true);
-        if (err < 0)
-            WL_ERR(("set interface up failed, error = %d\n", err));
-        }
+		err = wl_wowlan_config(wiphy, wow);
+	else
+#endif
+	{
+		u32 val;
+		/* Set interface down */
+		val = 0;
+		err = wldev_ioctl(ndev, WLC_DOWN, (void *)&val, sizeof(val), true);
+		if (err < 0)
+			WL_ERR(("set interface up failed, error = %d\n", err));
+	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
 	return err;
@@ -25417,3 +25420,50 @@ wl_notify_unexpected_4addr_frame(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cf
 
 }
 #endif /* WDS */
+
+uint32 *
+wl_cfg80211_get_channel_list(struct net_device *dev, int band,
+        uint32 *len)
+{
+	int err = BCME_OK, i, mem_needed;
+	uint32 *ret = NULL;
+	char *buf_ptr;
+	gfp_t kflags;
+	wl_channels_in_country_t	*cic;
+
+	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
+	buf_ptr = kzalloc(WLC_IOCTL_MAXLEN, kflags);
+	if (!buf_ptr) {
+		WL_ERR(("failed to allocate the buffer for version n"));
+		return NULL;
+	}
+
+	cic = (wl_channels_in_country_t *)buf_ptr;
+	cic->buflen = htod32(WLC_IOCTL_MAXLEN);
+	cic->band = htod32(band);
+	cic->count = htod32(0);
+	cic->country_abbrev[0] = htod32( 0 );
+
+	err = wldev_ioctl(dev, WLC_GET_VALID_CHANNELS, buf_ptr, WLC_IOCTL_MAXLEN, FALSE);
+	if (err < 0) {
+		WL_ERR(("failed to get channel list %d\n", err));
+		return NULL;
+	}
+
+	mem_needed = sizeof(uint32) * cic->count;
+	ret = (uint32 *) kmalloc(mem_needed, GFP_KERNEL);
+	if (!ret) {
+		WL_ERR(("%s: Unable to malloc %d bytes\n",
+				__FUNCTION__, mem_needed));
+		return NULL;
+	}
+	for (i = 0; i < cic->count; i++) {
+		ret[i] = wf_channel2mhz(cic->channel[i],
+			(cic->channel[i] <= CH_MAX_2G_CHANNEL?
+			WF_CHAN_FACTOR_2_4_G : WF_CHAN_FACTOR_5_G));
+	}
+	kfree(buf_ptr);
+	*len = mem_needed;
+	return ret;
+
+}

@@ -54,7 +54,6 @@
 
 #define BMP4_VISUAL_ENTRY_SIZE   (78)  /* Size of a Visual Sample Entry in bytes */
 #define BMP4_AUDIO_ENTRY_SIZE    (28)  /* Size of an Audio Sample Entry in bytes */
-#define BMP4_SAMPLE_ENTRY_HEAD   (24)  /* Size of Sample Entry Head in bytes */
 
 #define BMP4_PROTECTIONSCHEMEINFO BMP4_TYPE('s','i','n','f')
 #define BMP4_ORIGINALFMT          BMP4_TYPE('f','r','m','a')
@@ -113,8 +112,6 @@ typedef struct bmp4_trackInfo {
     bmp4_protectionSchemeInfo scheme; /* Will be set to NULL of no protection scheme box is found for the track */
     bool scheme_box_valid;
     bool piff_1_3;
-    uint32_t width;
-    uint32_t height;
 } bmp4_trackInfo;
 
 BDBG_MODULE(bmp4);
@@ -297,8 +294,6 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
     bmp4_fullbox fullbox;
 
     uint32_t entry_count = 0;
-    uint16_t width = 0;
-    uint16_t height = 0;
 
     BDBG_ASSERT(cursor != NULL);
     BDBG_ASSERT(pBox->type == BMP4_SAMPLEDESCRIPTION);
@@ -324,8 +319,6 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
            case BMP4_SAMPLE_ENCRYPTED_VIDEO:
            case BMP4_SAMPLE_ENCRYPTED_AUDIO:
            case BMP4_SAMPLE_AVC:
-           case BMP4_SAMPLE_HVC1:
-           case BMP4_SAMPLE_HEV1:
            case BMP4_SAMPLE_MP4A:
            {
                 uint32_t skip_bytes = 0;
@@ -333,32 +326,17 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
                 {
                     case BMP4_SAMPLE_ENCRYPTED_VIDEO:
                     case BMP4_SAMPLE_AVC:
-                    case BMP4_SAMPLE_HVC1:
-                    case BMP4_SAMPLE_HEV1:
                         skip_bytes = BMP4_VISUAL_ENTRY_SIZE;
-                        batom_cursor_skip(cursor, BMP4_SAMPLE_ENTRY_HEAD);
-
-                        /* retrieve video resolution */
-                        width = batom_cursor_uint16_be(cursor);
-                        height = batom_cursor_uint16_be(cursor);
-                        LOGD(("%s: video resolution in sample entry %dx%d",
-                            BSTD_FUNCTION, width, height));
-                        pTrack->width = (uint32_t)width << 16;
-                        pTrack->height = (uint32_t)height << 16;
-
-                        /* skip the rest */
-                        batom_cursor_skip(cursor,
-                            BMP4_VISUAL_ENTRY_SIZE - BMP4_SAMPLE_ENTRY_HEAD - 4);
                         break;
                     default:
                         skip_bytes = BMP4_AUDIO_ENTRY_SIZE;
-                        batom_cursor_skip(cursor, skip_bytes);
                         break;
                 }
 
                 pTrack->scheme.trackType = entry_box.type;
                 LOGD(("%s: scheme=%p trackType=%d", BSTD_FUNCTION,
                 (void*)&pTrack->scheme, pTrack->scheme.trackType));
+                batom_cursor_skip(cursor, skip_bytes);
 
                 for(j = skip_bytes + entry_hdr_size; j < entry_box.size; j += box.size)
                 {
@@ -583,19 +561,12 @@ int bmp4_parse_trak(bmp4_mp4_headers *header, batom_t atom, batom_cursor *cursor
                 batom_cursor_skip(cursor, box.size - box_hdr_size);
                 tkhd = batom_extract(atom, &start, cursor, NULL, NULL);
 
-                if (!bmp4_parse_trackheader(tkhd, &track_header)) {
+                if(!bmp4_parse_trackheader(tkhd, &track_header)){
                     LOGD(("%s: bmp4_parse_trackheader returned error", BSTD_FUNCTION));
                     rc = -1; goto ErrorExit;
                 }
                 LOGD(("%s:trackId=%d", BSTD_FUNCTION, track.scheme.trackId));
                 track.scheme.trackId = track_header.track_ID;
-                BKNI_Memcpy(&header->trackHeader[track.scheme.trackId],
-                    &track_header, sizeof(bmp4_trackheaderbox));
-                LOGD(("%s: trhd parsed trackId=%d width=%d height=%d",
-                    BSTD_FUNCTION, track.scheme.trackId,
-                    header->trackHeader[track.scheme.trackId].width >> 16,
-                    header->trackHeader[track.scheme.trackId].height >> 16));
-                header->nbOfTracks++;
                 break;
             case BMP4_MEDIA:
                 LOGD(("%s: BMP4_MEDIA", BSTD_FUNCTION));
@@ -618,12 +589,6 @@ int bmp4_parse_trak(bmp4_mp4_headers *header, batom_t atom, batom_cursor *cursor
         LOGD(("%s:scheme=%p trackId=%d trackType=0x%x", BSTD_FUNCTION,
             (void*)pScheme, track.scheme.trackId, pScheme->trackType));
         header->nbOfSchemes++;
-    }
-
-    if (track.width != 0 && track.height != 0) {
-        /* Overwrite video resolution with sample entry info */
-        header->trackHeader[track.scheme.trackId].width = track.width;
-        header->trackHeader[track.scheme.trackId].height = track.height;
     }
 
     if (track.piff_1_3) {

@@ -565,6 +565,21 @@ typedef enum BXVD_DecodeResolution
    BXVD_DecodeResolution_eMaxModes
 } BXVD_DecodeResolution;
 
+/***************************************************************************
+Summary:
+    Resolution of the stream being decoded.
+
+****************************************************************************/
+typedef enum BXVD_SourceResolution
+{
+   BXVD_SourceResolution_eUnknown=0,
+   BXVD_SourceResolution_eCIF,          /* probably don't need to know about anything smaller, matches firmware enums */
+   BXVD_SourceResolution_eSD,
+   BXVD_SourceResolution_eHD,
+   BXVD_SourceResolution_e4K,
+   BXVD_SourceResolution_eMaxModes
+} BXVD_SourceResolution;
+
 
 /***************************************************************************
 Summary:
@@ -904,6 +919,7 @@ typedef struct BXVD_Settings
 
       /* Number of channel contexts to pre-allocate */
       uint32_t uiNumPreAllocateChannels;
+
 } BXVD_Settings;
 
 /**************************************************************************
@@ -1085,6 +1101,7 @@ typedef enum BXVD_DeviceInterrupt
    BXVD_DeviceInterrupt_ePictureDataReady2,       /* Picture Data Ready Interrupt 2 */
    BXVD_DeviceInterrupt_eVidInstrChecker,         /* Video Instruction Checker */
    BXVD_DeviceInterrupt_eStereoSeqError,          /* Stereo Sequence Error */
+   BXVD_DeviceInterrupt_eClockBoost,              /* set clock rate based on source resolutions */
    BXVD_DeviceInterrupt_eMaxInterrupts            /* Not a Real interrupt just the max no of XVD Device interrupts */
 } BXVD_DeviceInterrupt;
 
@@ -1510,6 +1527,7 @@ typedef struct BXVD_ChannelSettings
   uint32_t           uiChannelPictureBlockSize1;   /* Decoder picture buffer 1 memory size for this channel */
   BXVD_1080pScanMode e1080pScanMode;            /* 1080p scan mode for this channel */
   BXVD_PictureDropMode ePictureDropMode;        /* PR48726: Indicates whether DM should drop pictures on field or frame boundaries */
+
 } BXVD_ChannelSettings;
 
 /***************************************************************
@@ -1969,6 +1987,19 @@ typedef struct BXVD_TrickModeSettings
 
 
 } BXVD_TrickModeSettings;
+
+/***************************************************************************
+Summary:
+   Added to support setting the clock boost mode.  The mode is based on
+   the source resolution.
+
+****************************************************************************/
+
+typedef struct BXVD_SourceInfo
+{
+   BXVD_SourceResolution eSourceResolution;
+
+} BXVD_SourceInfo;
 
 /***************************************************************************
 Summary:
@@ -5492,6 +5523,27 @@ BERR_Code BXVD_GetTrickModeSettings(
    BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
    BXVD_TrickModeSettings *pstTrickModeSettings
 );
+
+/***************************************************************************
+Summary:
+   Added to support setting the clock boost mode.  Provides an out-of-band
+   path for specifying the stream resolution.
+
+****************************************************************************/
+
+BERR_Code BXVD_SetSourceInfo(
+   BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
+   const BXVD_SourceInfo *pstSourceInfo
+);
+
+
+/***************************************************************************
+Summary:
+    hEventClockBoost was set, need to change the clock boost mode.
+
+****************************************************************************/
+
+void BXVD_ClockBoost_EventHandler(void *pvXvd);
 
 /*******************/
 /* Deprecated APIs */

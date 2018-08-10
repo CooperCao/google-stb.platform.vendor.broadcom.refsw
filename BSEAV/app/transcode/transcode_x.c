@@ -146,6 +146,14 @@ BDBG_FILE_MODULE(trnsx_parse);
 /*
  * Local data types.
  */
+/*
+#if NEXUS_HAS_SYNC_CHANNEL
+#define BTST_ENABLE_AV_SYNC 1
+#else
+#define BTST_ENABLE_AV_SYNC 0
+#endif
+*/
+#define BTST_ENABLE_AV_SYNC 0
 
 /* matching audio xcoders per DSP core with video */
 #if NEXUS_NUM_VCE_CHANNELS
@@ -446,13 +454,6 @@ typedef struct TRSNX_Command
       || _ptrans->record.eTransportType == NEXUS_TransportType_eMp4Fragment \
     ) \
     && _ptrans->bEncodeAudio == true \
-    && _ptrans->source.uiNumAudio != 0
-
-/* Assume audio playback if the audio decoder has been opened
- * and the source stream contains audio. */
-
-#define TRNSX_AUDIO_PLAYBACK( _ptrans ) \
-    _ptrans->audioDecoder.audioDecoder != NULL \
     && _ptrans->source.uiNumAudio != 0
 
 
@@ -2045,7 +2046,19 @@ static NEXUS_Error TRNSX_Transcode_GetDefaultSettings(
 #endif
     pTrans->videoEncoder.bCustomDisplaySettings = false;
     NEXUS_Display_GetDefaultCustomFormatSettings(&pTrans->videoEncoder.customFormatSettings);
+#if 0     /* TODO: delete? */
+    /* STC channel: decoder */
+    NEXUS_StcChannel_GetDefaultSettings(NEXUS_ANY_ID, &pTrans->videoDecoder.stcSettings);
+    pTrans->videoDecoder.stcSettings.timebase = NEXUS_Timebase_e0;
+    pTrans->videoDecoder.stcSettings.mode = NEXUS_StcChannelMode_eAuto;
 
+    /* STC channel: encoder requires different STC broadcast mode from decoder */
+    NEXUS_StcChannel_GetDefaultSettings(NEXUS_ANY_ID, &pTrans->videoEncoder.stcSettings);
+    pTrans->videoEncoder.stcSettings.timebase    = NEXUS_Timebase_e0; /* TODO: if multiple encodes, can they all be _e0 or should it be +pTrans->uiIndex? */
+    pTrans->videoEncoder.stcSettings.mode        = NEXUS_StcChannelMode_eAuto;
+    pTrans->videoEncoder.stcSettings.pcrBits     = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+    pTrans->videoEncoder.stcSettings.autoConfigTimebase = false; /* from transcode_ts */
+#endif
     /* Video Decoder */
     NEXUS_VideoDecoder_GetDefaultStartSettings(&pTrans->videoDecoder.startSettings);
 
@@ -2343,12 +2356,6 @@ static void TRNSX_SyncChannel_Connect(
         }
 #endif
         syncChannelSettings.enablePrecisionLipsync = false;/* to support 60->30 frc transcode */
-
-        /* This is to get around muted audio at starup, i.e.
-         * "synclib: [0] Audio source 0 unconditional unmute timer expired".
-         * This wasn't required in transcode_x; is there another way to avoid the mute? */
-
-        syncChannelSettings.enableMuteControl = false;
 
         NEXUS_SyncChannel_SetSettings(pTrans->syncChannel.syncChannel, &syncChannelSettings);
 
@@ -2892,8 +2899,6 @@ static void TRNSX_StreamMux_SystemData_Open(
     uint16_t audPid = 0;
     unsigned i;
     NEXUS_AudioCodec audCodec = NEXUS_AudioCodec_eUnknown;
-    bool bEncodingAudio = TRNSX_CHECK_ENCODE_AUDIO(pTrans);
-    bool bPlayingAudio = TRNSX_AUDIO_PLAYBACK(pTrans);
 
     BSTD_UNUSED(audCodec);
 
@@ -2921,25 +2926,22 @@ static void TRNSX_StreamMux_SystemData_Open(
             case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
             case NEXUS_VideoCodec_eVp9:           vidStreamType = 0x00; break; /* VP9 in TS doesn't actually work, but this is in place for VCE regression testing */
             default:
-                BDBG_ERR(("%s[%d]:: video encoder codec %d is not supported!\n", BSTD_FUNCTION, pTrans->uiIndex, pTrans->videoEncoder.startSettings.codec));
+                BDBG_ERR(("%s:: video encoder codec %d is not supported!\n", BSTD_FUNCTION, pTrans->videoEncoder.startSettings.codec));
                 BDBG_ASSERT(0);
         }
     }
-
-    if( bEncodingAudio )
-    {
-        /* audio transcode */
+#if 0
+    if(pContext->encodeSettings.bAudioEncode)
+    {/* audio transcode */
         audCodec = pTrans->audioEncoder.encoderSettings.codec;
         audPid = pTrans->streamMux.uiAudioPid;
     }
-    else if ( bPlayingAudio )
-    {
-        /* audio passthrough */
-        audCodec = pTrans->source.eAudioCodec;
+    else if(bEncodingAudio)
+    {/* audio passthrough */
+        audCodec = pContext->inputSettings.eAudioCodec;
         audPid = pTrans->streamMux.uiAudioPid;
     }
-
-    if( bPlayingAudio )
+    if(bEncodingAudio)
     {
         switch(audCodec)
         {
@@ -2952,9 +2954,10 @@ static void TRNSX_StreamMux_SystemData_Open(
             case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
             case NEXUS_AudioCodec_eLpcm1394:     audStreamType = 0x83; break;
             default:
-                BDBG_ERR(("%s{%d]:: audio encoder codec %d is not supported!\n", BSTD_FUNCTION, pTrans->uiIndex, audCodec));
+                BDBG_ERR(("Audio encoder codec %d is not supported!\n", audCodec));
         }
     }
+#endif
 
     TRNSX_StreamMux_SystemData_AddPatPmt(
                 pCtxt, pTrans,

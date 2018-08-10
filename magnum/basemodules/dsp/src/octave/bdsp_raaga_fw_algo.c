@@ -647,13 +647,13 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
         /* Algorithm */
         BDSP_Algorithm_eWmaProDecode,
         /* Scratch buffer size */               /* Rom table size */
-        BDSP_IMG_ADEC_WMAPRO_SCRATCH_SIZE,      BDSP_IMG_ADEC_WMAPRO_TABLES_SIZE,
+        BDSP_IMG_ADEC_WMA_PRO_SCRATCH_SIZE,      BDSP_IMG_ADEC_WMA_PRO_TABLES_SIZE,
         /* Interframe size */                   /* Compressed Interframe size */
-        BDSP_IMG_ADEC_WMAPRO_INTER_FRAME_SIZE,  BDSP_IMG_ADEC_WMAPRO_INTER_FRAME_ENCODED_SIZE,
+        BDSP_IMG_ADEC_WMA_PRO_INTER_FRAME_SIZE,  BDSP_IMG_ADEC_WMA_PRO_INTER_FRAME_ENCODED_SIZE,
         /* Algorithm codeSize*/                 /* IDS codeSize*/
-        BDSP_IMG_ADEC_WMAPRO_SIZE,              BDSP_IMG_AIDS_WMAPRO_SIZE,
+        BDSP_IMG_ADEC_WMA_PRO_SIZE,              BDSP_IMG_AIDS_WMA_PRO_SIZE,
         /* Code Lib name*/                      /* IDS Code Lib name*/
-        "/libadec_wmapro.so",                   "/libaids_wmapro.so",
+        "/libadec_wma_pro.so",                   "/libaids_wma_pro.so",
     },
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{

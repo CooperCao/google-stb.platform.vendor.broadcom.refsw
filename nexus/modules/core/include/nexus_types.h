@@ -436,6 +436,24 @@ typedef enum NEXUS_PixelFormat
     NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8, /* compressed ARGB_8888 */
     NEXUS_PixelFormat_eUIF_R8_G8_B8_A8,        /* UIF [V3D texture layout] RGBA_8888 */
 
+    NEXUS_PixelFormat_eA2_R10_G10_B10,   /* 32-bit */
+    NEXUS_PixelFormat_eX2_R10_G10_B10,   /* 32-bit */
+    NEXUS_PixelFormat_eA2_B10_G10_R10,   /* 32-bit */
+    NEXUS_PixelFormat_eX2_B10_G10_R10,   /* 32-bit */
+    NEXUS_PixelFormat_eR10_G10_B10_A2,   /* 32-bit */
+    NEXUS_PixelFormat_eR10_G10_B10_X2,   /* 32-bit */
+    NEXUS_PixelFormat_eB10_G10_R10_A2,   /* 32-bit */
+    NEXUS_PixelFormat_eB10_G10_R10_X2,   /* 32-bit */
+
+    NEXUS_PixelFormat_eAf16_Rf16_Gf16_Bf16,  /* 64-bit */
+    NEXUS_PixelFormat_eXf16_Rf16_Gf16_Bf16,  /* 64-bit */
+    NEXUS_PixelFormat_eAf16_Bf16_Gf16_Rf16,  /* 64-bit */
+    NEXUS_PixelFormat_eXf16_Bf16_Gf16_Rf16,  /* 64-bit */
+    NEXUS_PixelFormat_eRf16_Gf16_Bf16_Af16,  /* 64-bit */
+    NEXUS_PixelFormat_eRf16_Gf16_Bf16_Xf16,  /* 64-bit */
+    NEXUS_PixelFormat_eBf16_Gf16_Rf16_Af16,  /* 64-bit */
+    NEXUS_PixelFormat_eBf16_Gf16_Rf16_Xf16,  /* 64-bit */
+
     /* The following pixel formats are not supported by NEXUS_Graphics2D */
     NEXUS_PixelFormat_eR8_G8_B8,         /* 24-bit packet */
     NEXUS_PixelFormat_eYCbCr422_10bit,
@@ -900,15 +918,12 @@ typedef enum NEXUS_DecoderSpliceState
    given pts was reached.
    NEXUS_DecoderSpliceMode_eStartAtPts - monitors content for a pts and starts data flow after
    given pts was reached.
-   NEXUS_DecoderSpliceMode_eStopAtFirstPts - finds first suitable stop point and stops data flow.
-   Used for splicing out of live decode in the middle of the splice interval.
  */
 typedef enum NEXUS_DecoderSpliceMode
 {
-    NEXUS_DecoderSpliceMode_eDisabled,       /* Splicing is disabled */
-    NEXUS_DecoderSpliceMode_eStopAtPts,      /* Decoding will stop at a given pts */
-    NEXUS_DecoderSpliceMode_eStartAtPts,     /* Decoding will start at a given pts */
-    NEXUS_DecoderSpliceMode_eStopAtFirstPts, /* Decoding will stop immediately at first found pts */
+    NEXUS_DecoderSpliceMode_eDisabled,   /* Splicing is disabled */
+    NEXUS_DecoderSpliceMode_eStopAtPts,  /* Decoding will stop at a given pts */
+    NEXUS_DecoderSpliceMode_eStartAtPts, /* Decoding will start at a given pts */
     NEXUS_DecoderSpliceMode_eMax
 } NEXUS_DecoderSpliceMode;
 

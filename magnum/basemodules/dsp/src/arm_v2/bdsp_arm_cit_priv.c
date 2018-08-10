@@ -1143,6 +1143,7 @@ BERR_Code BDSP_Arm_P_ReconfigCit(
 			pStageIOConfig = &pTaskConfig->sStageConfig[stageIndex].sIOConfig;
 			if(bInputAdded)
 			{
+				BDBG_MSG(("BDSP_Arm_P_ReconfigCit: Connecting Input to STAGE %s",Algorithm2Name[pArmStage->eAlgorithm]));
 				pIOPort = &pStageIOConfig->sInputPort[index];
 				pStageIOConfig->ui32NumInputs++;
                 BKNI_Memset((void *)pIOPort,0, sizeof(BDSP_AF_P_sIoPort));
@@ -1151,7 +1152,33 @@ BERR_Code BDSP_Arm_P_ReconfigCit(
 			else
 			{
 			    /* Just reset the Port details and decrement the number of inputs*/
+				BDBG_MSG(("BDSP_Arm_P_ReconfigCit: Removing Input to STAGE %s",Algorithm2Name[pArmStage->eAlgorithm]));
 				pIOPort = &pStageIOConfig->sInputPort[index];
+				/*Release the descriptors used for the PORT if not associated with another task*/
+				if(BDSP_AF_P_PortType_eFMM == pIOPort->ePortType)
+				{
+					uint32_t i, j;
+					dramaddr_t decriptorArray[BDSP_AF_P_MAX_CHANNELS];
+					BDBG_MSG(("BDSP_Arm_P_ReconfigCit: Releasing Descriptors for the Input Port to Stage"));
+					for(j=0;j<pIOPort->ui32numPortBuffer;j++)
+					{
+						for(i=0;i<pIOPort->sIoBuffer[j].ui32NumBuffer;i++)
+						{
+							decriptorArray[i] = pIOPort->sIoBuffer[j].sCircularBuffer[i];
+							pIOPort->sIoBuffer[j].sCircularBuffer[i]=0;
+						}
+						errCode = BDSP_Arm_P_ReleaseDescriptor(
+										pArmStage->pContext->pDevice,
+										pArmStage->pArmTask->createSettings.dspIndex,
+										&decriptorArray[0],
+										pIOPort->sIoBuffer[j].ui32NumBuffer);
+						if(errCode != BERR_SUCCESS)
+						{
+							BDBG_ERR(("BDSP_Arm_P_ReconfigCit: Error in Cleanup of Descriptor"));
+							goto end;
+						}
+					}
+				}
 				pStageIOConfig->ui32NumInputs--;
                 BKNI_Memset((void *)pIOPort,0, sizeof(BDSP_AF_P_sIoPort));
                 pIOPort->ePortType     = BDSP_AF_P_PortType_eInvalid;

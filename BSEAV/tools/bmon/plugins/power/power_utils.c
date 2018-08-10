@@ -942,7 +942,7 @@ static int WalkTreeStructure(
 
         /* did the user specify a list of blocks to expand ... like expand=BVN+CPU */
         rc = bmon_uri_find_tagvalue( queryString, "expand", expandNodeList, sizeof( expandNodeList ));
-        if(strlen(expandNodeList) ) fprintf( stderr, "%s - top node ... bmon_uri_find_tagvalue (%s) ... rc %d \n", __FUNCTION__, expandNodeList, rc );
+        /*if(strlen(expandNodeList) ) fprintf( stderr, "%s - top node ... bmon_uri_find_tagvalue (%s) ... rc %d \n", __FUNCTION__, expandNodeList, rc );*/
         if (rc)                                            /* if the api found the string */
         {
             /* if this node name is found in the expand list */

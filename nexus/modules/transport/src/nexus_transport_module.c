@@ -1264,6 +1264,14 @@ void NEXUS_TransportModule_GetMtsifPidChannels_priv(struct NEXUS_MtsifPidChannel
             if (p && p->status.pidChannelIndex==i) {
                 pSettings[total].status = p->status;
                 pSettings[total].frontend = p->parserBand ? p->parserBand->settings.sourceTypeSettings.mtsif : NULL;
+#ifdef BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE
+                {
+                    uint32_t regAddr = BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + (4 * p->status.pidChannelIndex);
+                    uint32_t regVal = BREG_Read32(g_pCoreHandles->reg, regAddr);
+                    pSettings[total].spid.mode = BCHP_GET_FIELD_DATA(regVal, XPT_FE_SPID_TABLE_i, SPID_MODE);
+                    pSettings[total].spid.spid = BCHP_GET_FIELD_DATA(regVal, XPT_FE_SPID_TABLE_i, PID_FUNCTIONS_SPID_CHANNEL_PID);
+                }
+#endif
             }
             else {
                 BERR_TRACE(NEXUS_UNKNOWN);

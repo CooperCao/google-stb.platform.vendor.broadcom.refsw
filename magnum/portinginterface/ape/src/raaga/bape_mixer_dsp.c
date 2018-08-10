@@ -2355,7 +2355,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
     }
 
     /* Apply settings to FW Mixer */
-    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11Plus)
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_AudioTaskDatasyncSettings datasyncSettings;
         BAPE_DecoderMixingMode mixingMode = BAPE_DecoderMixingMode_eMax;
@@ -2634,7 +2634,7 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
     }
 
     /* Apply settings to FW Mixer */
-    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11Plus )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         unsigned i;
         if (handle->taskState == BAPE_TaskState_eStopped)
@@ -2835,7 +2835,7 @@ static BERR_Code BAPE_DspMixer_P_GetInputStatus(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11Plus )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
         BAPE_PathConnection * pConnection;
@@ -2899,7 +2899,7 @@ static BERR_Code BAPE_DspMixer_P_GetStatus(
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
-    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11Plus )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
         if (handle->taskState == BAPE_TaskState_eStopped)

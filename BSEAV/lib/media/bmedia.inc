@@ -1,5 +1,5 @@
 ############################################################
-# Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,7 +66,6 @@ BMEDIA_SOURCES = \
 
 # MP4 player
 B_MEDIA_FILTER_MP4_SOURCES :=  \
-	${BSEAV}/lib/media/bmp4_ce_util.c \
 	${BSEAV}/lib/media/bmp4_fragment_demux.c \
 	${BSEAV}/lib/media/bmp4_parser.c \
 	${BSEAV}/lib/media/bmp4_util.c \

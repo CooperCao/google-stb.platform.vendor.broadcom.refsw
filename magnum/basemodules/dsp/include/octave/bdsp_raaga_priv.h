@@ -351,6 +351,12 @@ BERR_Code BDSP_Raaga_P_ReleaseDeviceRWMemory(
     BDSP_Raaga *pDevice,
     unsigned dspindex
 );
+BERR_Code BDSP_Raaga_P_ReleaseDescriptor(
+	BDSP_Raaga *pDevice,
+	unsigned dspIndex,
+	dramaddr_t *pOffset,
+	unsigned numDescriptors
+);
 BERR_Code BDSP_Raaga_P_ReleasePortDescriptors(
 	BDSP_Raaga *pDevice,
 	unsigned    dspIndex,

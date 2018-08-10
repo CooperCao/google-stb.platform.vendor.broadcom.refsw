@@ -324,9 +324,12 @@ typedef struct
 Description:
     Settings used for BHSM_Keyslot_AddPidChannel
 **/
+#define BHSM_API_Keyslot_SecondaryPid
+
 typedef struct
 {
-    bool secondary;         /* true if secondary pid. Default is primary. */
+    bool secondary;                       /* true if secondaryKeySlot is valid */
+    BHSM_KeyslotHandle secondaryKeySlot;  /* keyslot for secondary pid */
 } BHSM_KeyslotAddPidChannelSettings;
 
 

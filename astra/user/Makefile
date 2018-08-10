@@ -175,9 +175,9 @@ else
 	$(Q_)$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 endif
 
-$(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) libkernel initramfs $(TZ_TOP)/build/link_$(ARCH)_tz.ld
+$(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) libkernel initramfs link_$(ARCH)_tz.ld
 	@echo "[Link... $@]"
-	$(Q_)$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) $(TZ_KERNEL_OBJ_DIR)/libkernel.a $(TZ_OBJ_DIR)/initramfs/initramfs.o -T$(TZ_TOP)/build/link_$(ARCH)_tz.ld -o $@
+	$(Q_)$(TZ_ARMGNU)-g++ -nostartfiles -static $(OBJS) $(TZ_KERNEL_OBJ_DIR)/libkernel.a $(TZ_OBJ_DIR)/initramfs/initramfs.o -Tlink_$(ARCH)_tz.ld -o $@
 
 libkernel:
 	$(MAKE) -C $(TZ_KERNEL_DIR) libkernel

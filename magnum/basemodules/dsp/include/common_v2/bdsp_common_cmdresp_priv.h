@@ -233,6 +233,7 @@ typedef struct BDSP_P_Raaga_InitCommand {
     BDSP_P_CustomMMInfo             sCustomMMInfo;         /* Custom MM info */
     BDSP_P_SchedulingInfo           sSchedulingInfo;       /* Scheduler info */
     BDSP_P_TimerInfo                sTimerInfo;            /* Timer info for scheduler */
+	BDSP_P_MemoryInfo               sDescriptorMemoryInfo;  /* Information about the Descriptor Memory */
 } BDSP_P_Raaga_InitCommand;
 
 typedef struct BDSP_Arm_P_MemoryDescriptor{
@@ -267,6 +268,8 @@ typedef struct BDSP_P_StartTaskCommand{
 	BDSP_P_TaskType                eTaskType;				/*Interrupt/RT/Assured/OnDemand/AFAP*/
 	uint32_t					   ui32SchedulingLevel;     /* Scheduling level*/
 	uint32_t					   ui32TaskId;				/*Task ID*/
+	uint32_t                       ui32CoreIndex;           /*Core Index*/
+	uint32_t                       Dummy;                   /*Dummy Variable to Pack the structure*/
 
 	uint32_t                       ui32MasterTaskId;        /*ID of master task*/
     uint32_t                       ui32SyncQueueFifoId;		/* Task Sync queue Id */

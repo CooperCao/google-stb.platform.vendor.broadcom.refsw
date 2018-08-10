@@ -89,7 +89,8 @@ typedef struct media_player_create_settings
     } window; /* assign window to control position */
     struct {
         bool usePersistent; /* If true use persistent decoder */
-        bool secure; /* If true, use secure memory for compressed audio cdb */
+        bool secure; /* If true, use secure memory for compressed audio cdb.  Set defaultSecure to false */
+        bool defaultSecure; /* If true use the default settings of the connection */
     } audio;
     NEXUS_VideoFormat maxFormat; /* Minimum source resolution from decoder. Takes precedence over maxWidth/maxHeight.
                                     Includes interlaced/progressive and frame rate, but doesn't work for sub-SD sizes. */

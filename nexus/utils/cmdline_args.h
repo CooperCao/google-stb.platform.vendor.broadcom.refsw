@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,9 +48,7 @@
 #if NEXUS_HAS_PLAYBACK
 #include "nexus_playback.h"
 #endif
-#if NEXUS_HAS_FILE
 #include "bmedia_pcm.h"
-#endif
 #include "namevalue.h"
 
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -78,11 +76,11 @@ struct common_opts_t {
 #if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderTimestampMode decoderTimestampMode;
     NEXUS_VideoDecoderSourceOrientation sourceOrientation;
-    NEXUS_VideoDecoderScanMode scanMode;
 #endif
     NEXUS_VideoFrameRate videoFrameRate;
     NEXUS_AspectRatio aspectRatio;
     NEXUS_VideoOrientation  displayOrientation;
+    NEXUS_VideoDecoderScanMode scanMode;
     struct {
         unsigned x, y;
     } sampleAspectRatio;
@@ -107,9 +105,7 @@ struct common_opts_t {
     bool pcm;
     bool audioUseLittle;
     bool dolbyDrcModeRf;
-#if NEXUS_HAS_FILE
     bpcm_file_config pcm_config;
-#endif
     unsigned maxWidth, maxHeight;
     unsigned maxAudioRate;
     NEXUS_AudioLoudnessEquivalenceMode audioLoudnessMode;

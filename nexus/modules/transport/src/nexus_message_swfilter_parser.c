@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description: This is the HW independent part of the SW message filter. It
  * accepts data, parsers the packet, and compares it with the filter. It is based on
@@ -48,6 +52,8 @@
 #include "biobits.h"
 
 BDBG_MODULE(nexus_message_swfilter_parser);
+
+#define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
 
 #define TS_PACKET_SIZE 188
 
@@ -114,48 +120,53 @@ struct parser_state_t {
     uint32_t packet_count;
     BLST_S_HEAD(ts_pid_list, ts_pid) pids;
     struct filter_list_t free_filter;
+    struct pes_filter_list_t used_filter; /* pes */
 };
-
-
-
-
-struct pes_state_t {
-    uint32_t packet_count;
-    struct pes_filter_list_t free_filter;
-    struct pes_filter_list_t used_filter;
-};
-
-struct dss_state_t {
-    uint32_t packet_count;
-    BLST_S_HEAD(dss_pid_list, ts_pid) pids;
-    struct filter_list_t free_filter;
-};
-
-static struct pes_state_t pst;
-
-static struct parser_state_t msg_pst;
-static struct dss_state_t  d_msg_pst;
 
 typedef enum {bdemux_pes_result_match, bdemux_pes_result_nomatch, bdemux_pes_result_more} bdemux_pes_result;
 
 static uint32_t bcrc32(uint8_t * data, unsigned len);
-static struct ts_pid * NEXUS_SwFilter_Msg_P_FindPid(uint16_t pid);
+static struct ts_pid * NEXUS_SwFilter_Msg_P_FindPid(NEXUS_SwMsgFilterHandle handle, uint16_t pid);
 static void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pid_state);
 static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid * pid_state);
 static void NEXUS_SwFilter_Msg_P_ParsePacket(const uint8_t *buf, ts_packet_t * packet);
 static void NEXUS_SwFilter_Msg_P_CapturePacket(ts_packet_t * packet, struct ts_pid * pid_state);
+static void NEXUS_SwFilter_Msg_P_FreePid(NEXUS_SwMsgFilterHandle handle, struct ts_pid *pid_state);
 
-static struct ts_pid * NEXUS_SwFilter_Msg_P_FindDssPid(uint16_t pid);
-static struct ts_pid * NEXUS_SwFilter_Msg_P_AllocDssPid(void);
-
-void NEXUS_SwFilter_Msg_P_Init(void)
+NEXUS_SwMsgFilterHandle NEXUS_SwFilter_Msg_P_Init(void)
 {
-    BKNI_Memset(&msg_pst, 0, sizeof(struct parser_state_t));
-    BLST_S_INIT(&msg_pst.free_filter);
+    NEXUS_SwMsgFilterHandle handle;
+    handle = BKNI_Malloc(sizeof(*handle));
+    if (!handle) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    BKNI_Memset(handle, 0, sizeof(*handle));
+    BLST_S_INIT(&handle->free_filter);
+    BLST_S_INIT(&handle->used_filter);
+    return handle;
+}
+
+void NEXUS_SwFilter_Msg_P_Uninit(NEXUS_SwMsgFilterHandle handle)
+{
+    struct ts_pid * pid_state;
+    struct NEXUS_SwFilter_FilterState * f;
+    while ((pid_state = BLST_S_FIRST(&handle->pids))) {
+        NEXUS_SwFilter_Msg_P_FreePid(handle, pid_state);
+    }
+    while ((f = BLST_S_FIRST(&handle->free_filter))) {
+        BLST_S_REMOVE_HEAD(&handle->free_filter, next);
+        BKNI_Free(f);
+    }
+    while ((f = BLST_S_FIRST(&handle->used_filter))) {
+        BLST_S_REMOVE_HEAD(&handle->used_filter, next);
+        BKNI_Free(f);
+    }
+    BKNI_Free(handle);
 }
 
 /* Break buffer on packets and process each packet */
-size_t NEXUS_SwFilter_Msg_P_Feed(uint8_t * buffer, size_t size)
+size_t NEXUS_SwFilter_Msg_P_Feed(NEXUS_SwMsgFilterHandle handle, uint8_t * buffer, size_t size)
 {
     ts_packet_t packet;
     size_t consumed;
@@ -175,28 +186,28 @@ size_t NEXUS_SwFilter_Msg_P_Feed(uint8_t * buffer, size_t size)
     while(size - consumed >= TS_PACKET_SIZE){
         NEXUS_SwFilter_Msg_P_ParsePacket(walker, &packet);
         /* TODO: we only process one filter per pid. HW processes multiple filters per pid. this would improve performance in some apps greatly. */
-        pid_state = NEXUS_SwFilter_Msg_P_FindPid(packet.PID);
+        pid_state = NEXUS_SwFilter_Msg_P_FindPid(handle, packet.PID);
         if(NULL != pid_state){
             NEXUS_SwFilter_Msg_P_ProcessPacket(&packet, pid_state);
         }
         walker += TS_PACKET_SIZE;
         consumed += TS_PACKET_SIZE;
-        msg_pst.packet_count++;
+        handle->packet_count++;
     }
 ExitFunc:
     return consumed;
 }
 
-struct ts_pid * NEXUS_SwFilter_Msg_P_FindPid(uint16_t pid)
+struct ts_pid * NEXUS_SwFilter_Msg_P_FindPid(NEXUS_SwMsgFilterHandle handle, uint16_t pid)
 {
     struct ts_pid * pid_state;
-    for (pid_state = BLST_S_FIRST(&msg_pst.pids); pid_state; pid_state = BLST_S_NEXT(pid_state, link)) {
+    for (pid_state = BLST_S_FIRST(&handle->pids); pid_state; pid_state = BLST_S_NEXT(pid_state, link)) {
         if (pid == pid_state->pid) break;
     }
     return pid_state;
 }
 
-static struct ts_pid * NEXUS_SwFilter_Msg_P_AllocPid(void)
+static struct ts_pid * NEXUS_SwFilter_Msg_P_AllocPid(NEXUS_SwMsgFilterHandle handle)
 {
     struct ts_pid *pid_state;
     pid_state = BKNI_Malloc(sizeof(*pid_state));
@@ -206,13 +217,13 @@ static struct ts_pid * NEXUS_SwFilter_Msg_P_AllocPid(void)
     }
     pid_state->discontinuity = 1;
     BLST_S_INIT(&pid_state->filters);
-    BLST_S_INSERT_HEAD(&msg_pst.pids, pid_state, link);
+    BLST_S_INSERT_HEAD(&handle->pids, pid_state, link);
     return pid_state;
 }
 
-static void NEXUS_SwFilter_Msg_P_FreePid(struct ts_pid *pid_state)
+static void NEXUS_SwFilter_Msg_P_FreePid(NEXUS_SwMsgFilterHandle handle, struct ts_pid *pid_state)
 {
-    BLST_S_REMOVE(&msg_pst.pids, pid_state, ts_pid, link);
+    BLST_S_REMOVE(&handle->pids, pid_state, ts_pid, link);
     BKNI_Free(pid_state);
 }
 
@@ -519,13 +530,13 @@ static void NEXUS_SwFilter_Msg_P_ParsePacket(const uint8_t *buf, ts_packet_t * p
     BDBG_MSG(("NEXUS_SwFilter_Msg_P_ParsePacket: p_data_byte=%p, data_size=%d, p_packet=%p", (void *)packet->p_data_byte, packet->data_size, (void *)packet->p_packet));
 }
 
-struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwFilter_MsgParams_t * params)
+struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwMsgFilterHandle handle, NEXUS_SwFilter_MsgParams_t * params)
 {
     struct NEXUS_SwFilter_FilterState * f;
     struct ts_pid * pid_state;
     int i;
 
-    f = BLST_S_FIRST(&msg_pst.free_filter);
+    f = BLST_S_FIRST(&handle->free_filter);
     if (!f) {
         f = BKNI_Malloc(sizeof(*f));
         if (!f) {
@@ -535,7 +546,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwFilte
         BKNI_Memset(f, 0, sizeof(*f));
     }
     else {
-        BLST_S_REMOVE_HEAD(&msg_pst.free_filter, next);
+        BLST_S_REMOVE_HEAD(&handle->free_filter, next);
     }
 
     BKNI_Memcpy(f->filt.coefficient, params->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE);
@@ -548,11 +559,11 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwFilte
     f->disable_crc_check = params->disable_crc_check;
     f->callback = params->callback;
     f->context = params->context;
-    pid_state = NEXUS_SwFilter_Msg_P_FindPid(params->pid);
+    pid_state = NEXUS_SwFilter_Msg_P_FindPid(handle, params->pid);
     if(NULL == pid_state){
-        pid_state = NEXUS_SwFilter_Msg_P_AllocPid();
+        pid_state = NEXUS_SwFilter_Msg_P_AllocPid(handle);
         if (NULL == pid_state){
-            BLST_S_INSERT_HEAD(&msg_pst.free_filter, f, next);
+            BLST_S_INSERT_HEAD(&handle->free_filter, f, next);
             return NULL;
         }
         pid_state->pid = params->pid;
@@ -567,14 +578,14 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwFilte
     BLST_S_INSERT_HEAD(&pid_state->filters, f, next);
 
     for (i=0; i<NEXUS_MESSAGE_FILTER_SIZE; i++){
-        BDBG_MSG(("NEXUS_SwFilter_Msg_P_SetFilter: coeff[%d]=%d, mask[%d]=%d, excl[%d]=%d",
+        BDBG_MSG_TRACE(("NEXUS_SwFilter_Msg_P_SetFilter: coeff[%d]=%d, mask[%d]=%d, excl[%d]=%d",
             i, f->filt.coefficient[i], i, f->filt.mask[i], i, f->filt.exclusion[i]));
     }
 
     return f;
 }
 
-void NEXUS_SwFilter_Msg_P_RemoveFilter(struct NEXUS_SwFilter_FilterState *filter)
+void NEXUS_SwFilter_Msg_P_RemoveFilter(NEXUS_SwMsgFilterHandle handle, struct NEXUS_SwFilter_FilterState *filter)
 {
     struct ts_pid * pid_state;
     pid_state = filter->pid_state;
@@ -587,30 +598,9 @@ void NEXUS_SwFilter_Msg_P_RemoveFilter(struct NEXUS_SwFilter_FilterState *filter
         pid_state->matched_filter = NULL;
     }
     BLST_S_REMOVE(&pid_state->filters, filter, NEXUS_SwFilter_FilterState, next);
-    BLST_S_INSERT_HEAD(&msg_pst.free_filter, filter, next);
+    BLST_S_INSERT_HEAD(&handle->free_filter, filter, next);
     if(BLST_S_EMPTY(&pid_state->filters)){
-        NEXUS_SwFilter_Msg_P_FreePid(pid_state);
-    }
-}
-
-void NEXUS_SwFilter_Msg_P_ResetPids(void)
-{
-    struct ts_pid * pid_state;
-    struct NEXUS_SwFilter_FilterState * f;
-    while ((pid_state = BLST_S_FIRST(&msg_pst.pids))) {
-        NEXUS_SwFilter_Msg_P_FreePid(pid_state);
-    }
-    while ((f = BLST_S_FIRST(&msg_pst.free_filter))) {
-        BLST_S_REMOVE_HEAD(&msg_pst.free_filter, next);
-        BKNI_Free(f);
-    }
-    while ((f = BLST_S_FIRST(&pst.free_filter))) {
-        BLST_S_REMOVE_HEAD(&pst.free_filter, next);
-        BKNI_Free(f);
-    }
-    while ((f = BLST_S_FIRST(&d_msg_pst.free_filter))) {
-        BLST_S_REMOVE_HEAD(&d_msg_pst.free_filter, next);
-        BKNI_Free(f);
+        NEXUS_SwFilter_Msg_P_FreePid(handle, pid_state);
     }
 }
 
@@ -648,12 +638,6 @@ ExitFunc:
 
 
 /************ for PES filter ********************/
-void NEXUS_SwFilter_Msg_P_InitPes(void)
-{
-    BKNI_Memset(&pst, 0, sizeof(struct pes_state_t));
-    BLST_S_INIT(&pst.free_filter);
-    BLST_S_INIT(&pst.used_filter);
-}
 
 
 void
@@ -702,11 +686,11 @@ bdemux_ts_init(bdemux_ts *ts, uint16_t pid)
     return;
 }
 
-struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetPesFilter(NEXUS_SwFilter_MsgParams_t * params)
+struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetPesFilter(NEXUS_SwMsgFilterHandle handle, NEXUS_SwFilter_MsgParams_t * params)
 {
     struct NEXUS_SwFilter_FilterState * f;
 
-    f = BLST_S_FIRST(&pst.free_filter);
+    f = BLST_S_FIRST(&handle->free_filter);
     if (!f) {
         f = BKNI_Malloc(sizeof(*f));
         if (!f) {
@@ -716,7 +700,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetPesFilter(NEXUS_SwFi
         BKNI_Memset(f, 0, sizeof(*f));
     }
     else {
-        BLST_S_REMOVE(&pst.free_filter, f, NEXUS_SwFilter_FilterState, next);
+        BLST_S_REMOVE(&handle->free_filter, f, NEXUS_SwFilter_FilterState, next);
     }
 
     BDBG_MSG(("%s: params->pid=%d params->buffer_size=%u params->buffer=%p",
@@ -729,22 +713,22 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetPesFilter(NEXUS_SwFi
     f->callback = params->callback;
     f->context = params->context;
 
-    BLST_S_INSERT_HEAD(&pst.used_filter, f, next);
+    BLST_S_INSERT_HEAD(&handle->used_filter, f, next);
 
     return f;
 }
 
-void NEXUS_SwFilter_Msg_P_RemovePesFilter(struct NEXUS_SwFilter_FilterState * filter)
+void NEXUS_SwFilter_Msg_P_RemovePesFilter(NEXUS_SwMsgFilterHandle handle, struct NEXUS_SwFilter_FilterState * filter)
 {
-    BLST_S_REMOVE(&pst.used_filter, filter, NEXUS_SwFilter_FilterState, next);
-    BLST_S_INSERT_HEAD(&pst.free_filter, filter, next);
+    BLST_S_REMOVE(&handle->used_filter, filter, NEXUS_SwFilter_FilterState, next);
+    BLST_S_INSERT_HEAD(&handle->free_filter, filter, next);
 }
 
-struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_FindPesPid(uint16_t pid)
+struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_FindPesPid(NEXUS_SwMsgFilterHandle handle, uint16_t pid)
 {
     struct NEXUS_SwFilter_FilterState * f;
 
-    f = BLST_S_FIRST(&pst.used_filter);
+    f = BLST_S_FIRST(&handle->used_filter);
     for(; f != NULL ; f = BLST_S_NEXT(f, next)){
         if(f->pes.ts.pid == pid){
             return f;
@@ -985,7 +969,7 @@ err_out_of_sync:
 }
 
 
-size_t NEXUS_SwFilter_Msg_P_FeedPes(uint8_t * buffer, size_t size)
+size_t NEXUS_SwFilter_Msg_P_FeedPes(NEXUS_SwMsgFilterHandle handle, uint8_t * buffer, size_t size)
 {
     size_t consumed;
     uint8_t * walker;
@@ -1009,7 +993,7 @@ size_t NEXUS_SwFilter_Msg_P_FeedPes(uint8_t * buffer, size_t size)
         word = B_TS_LOAD16(walker, 1);
         pid = B_GET_BITS(word, 12, 0);
 
-        filter = NEXUS_SwFilter_Msg_P_FindPesPid(pid);
+        filter = NEXUS_SwFilter_Msg_P_FindPesPid(handle, pid);
         if(NULL == filter){
             BDBG_ERR(("%s %d sync error", __FILE__, __LINE__));
             consumed = size;
@@ -1019,26 +1003,20 @@ size_t NEXUS_SwFilter_Msg_P_FeedPes(uint8_t * buffer, size_t size)
         NEXUS_SwFilter_Msg_P_bdemux_ts_feed(filter, walker, B_TS_PKT_LEN);
         walker += B_TS_PKT_LEN;
         consumed += B_TS_PKT_LEN;
-        pst.packet_count++;
+        handle->packet_count++;
     }
 ExitFunc:
     return consumed;
 }
 
 /************ for DSS filter ********************/
-void NEXUS_SwFilter_Msg_P_InitDss(void)
-{
-    BKNI_Memset(&d_msg_pst, 0, sizeof(d_msg_pst));
-    BLST_S_INIT(&d_msg_pst.free_filter);
-}
-
-struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetDssFilter(NEXUS_SwFilter_MsgParams_t * params, NEXUS_DssMessageType dssMsgType , NEXUS_DssMessageMptFlags dssMptFlags )
+struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetDssFilter(NEXUS_SwMsgFilterHandle handle, NEXUS_SwFilter_MsgParams_t * params, NEXUS_DssMessageType dssMsgType , NEXUS_DssMessageMptFlags dssMptFlags )
 {
     struct NEXUS_SwFilter_FilterState * f;
     struct ts_pid * pid_state;
     int i;
 
-    f = BLST_S_FIRST(&d_msg_pst.free_filter);
+    f = BLST_S_FIRST(&handle->free_filter);
     if (!f) {
         f = BKNI_Malloc(sizeof(*f));
         if (!f) {
@@ -1048,7 +1026,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetDssFilter(NEXUS_SwFi
         BKNI_Memset(f, 0, sizeof(*f));
     }
     else {
-        BLST_S_REMOVE_HEAD(&d_msg_pst.free_filter, next);
+        BLST_S_REMOVE_HEAD(&handle->free_filter, next);
     }
 
     BKNI_Memcpy(f->filt.coefficient, params->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE);
@@ -1063,11 +1041,11 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetDssFilter(NEXUS_SwFi
     f->dssMessageType     = dssMsgType;
     f->dssMessageMptFlags = dssMptFlags;
 
-    pid_state = NEXUS_SwFilter_Msg_P_FindDssPid(params->pid);
+    pid_state = NEXUS_SwFilter_Msg_P_FindPid(handle, params->pid);
     if(NULL == pid_state){
-        pid_state = NEXUS_SwFilter_Msg_P_AllocDssPid();
+        pid_state = NEXUS_SwFilter_Msg_P_AllocPid(handle);
         if (NULL == pid_state){
-            BLST_S_INSERT_HEAD(&d_msg_pst.free_filter, f, next);
+            BLST_S_INSERT_HEAD(&handle->free_filter, f, next);
             return NULL;
         }
         pid_state->pid = params->pid;
@@ -1087,12 +1065,6 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetDssFilter(NEXUS_SwFi
     }
 
     return f;
-}
-
-static void NEXUS_SwFilter_Msg_P_FreeDssPid(struct ts_pid *pid_state)
-{
-    BLST_S_REMOVE(&d_msg_pst.pids, pid_state, ts_pid, link);
-    BKNI_Free(pid_state);
 }
 
 #define DSS_PAYLOAD_OFSET 2
@@ -1127,32 +1099,6 @@ void NEXUS_SwFilter_Msg_P_CaptureDssPacket(ts_packet_t * packet, struct ts_pid *
 
 ExitFunc:
     return;
-}
-
-void NEXUS_SwFilter_Msg_P_RemoveDssFilter(struct NEXUS_SwFilter_FilterState *filter)
-{
-    struct ts_pid * pid_state;
-    pid_state = filter->pid_state;
-    BDBG_MSG(("NEXUS_SwFilter_Msg_P_RemoveDssFilter: filter handle %p", (void *)filter));
-    filter->enabled = false;
-    filter->pid_state = NULL;
-    if(pid_state->matched_filter == filter){
-        pid_state->matched_filter = NULL;
-    }
-    BLST_S_REMOVE(&pid_state->filters, filter, NEXUS_SwFilter_FilterState, next);
-    BLST_S_INSERT_HEAD(&d_msg_pst.free_filter, filter, next);
-    if(BLST_S_EMPTY(&pid_state->filters)){
-        NEXUS_SwFilter_Msg_P_FreeDssPid(pid_state);
-    }
-}
-
-struct ts_pid * NEXUS_SwFilter_Msg_P_FindDssPid(uint16_t pid)
-{
-    struct ts_pid * pid_state;
-    for (pid_state = BLST_S_FIRST(&d_msg_pst.pids); pid_state; pid_state = BLST_S_NEXT(pid_state, link)) {
-        if (pid == pid_state->pid) break;
-    }
-    return pid_state;
 }
 
 #define DSS_PAYLOAD_OFSET 2
@@ -1264,7 +1210,7 @@ ExitFunc:
 }
 
 /* Break buffer on packets and process each packet */
-size_t NEXUS_SwFilter_Msg_P_FeedDss(uint8_t * buffer, size_t size)
+size_t NEXUS_SwFilter_Msg_P_FeedDss(NEXUS_SwMsgFilterHandle handle, uint8_t * buffer, size_t size)
 {
     ts_packet_t packet;
     size_t consumed;
@@ -1284,34 +1230,17 @@ size_t NEXUS_SwFilter_Msg_P_FeedDss(uint8_t * buffer, size_t size)
     while(size - consumed >= DSS_PKT_SIZE ){
         NEXUS_SwFilter_Msg_P_ParseDssPacket(walker, &packet);
         /* TODO: we only process one filter per pid. HW processes multiple filters per pid. this would improve performance in some apps greatly. */
-        pid_state = NEXUS_SwFilter_Msg_P_FindDssPid(packet.PID);
+        pid_state = NEXUS_SwFilter_Msg_P_FindPid(handle, packet.PID);
         if(NULL != pid_state){
-            NEXUS_SwFilter_Msg_P_ProcessDssPacket(&packet, pid_state, msg_pst.packet_count );
+            NEXUS_SwFilter_Msg_P_ProcessDssPacket(&packet, pid_state, handle->packet_count );
         }
         walker += DSS_PKT_SIZE;
         consumed += DSS_PKT_SIZE;
-        msg_pst.packet_count++;
+        handle->packet_count++;
     }
 ExitFunc:
     return consumed;
 }
-
-static struct ts_pid * NEXUS_SwFilter_Msg_P_AllocDssPid(void)
-{
-    struct ts_pid *pid_state;
-    pid_state = BKNI_Malloc(sizeof(*pid_state));
-    if (!pid_state) {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-        return NULL;
-    }
-    pid_state->discontinuity = 1;
-    BLST_S_INIT(&pid_state->filters);
-    BLST_S_INSERT_HEAD(&d_msg_pst.pids, pid_state, link);
-    return pid_state;
-}
-
-
-
 
 /************************ CRC ****************/
 

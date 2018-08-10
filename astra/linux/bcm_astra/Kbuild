@@ -40,12 +40,13 @@ ccflags-y += \
 
 ifeq ($(NEXUS_BUILD),y)
 # Get RDB from magnum
-#BCHP_CHIP := $(TARGET)
-#MAGNUM := $(realpath $(TOP_DIR)/../magnum)
-#include $(MAGNUM)/basemodules/chp/bchp.inc
-#ccflags-y += \
-#        $(addprefix -I,$(BCHP_INCLUDES)) \
-#        $(addprefix -D,$(BCHP_DEFINES))
+BCHP_CHIP := $(TARGET)
+MAGNUM := $(realpath $(TOP_DIR)/../magnum)
+include $(MAGNUM)/basemodules/chp/bchp.inc
+ccflags-y += \
+        $(addprefix -I,$(BCHP_INCLUDES)) \
+        $(addprefix -D,$(BCHP_DEFINES))
+
 else
 ccflags-y += \
 	-I$(TOP_DIR)/linux/platform/$(PLATFORM) \

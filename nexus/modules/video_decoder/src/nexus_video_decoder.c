@@ -560,6 +560,10 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
         BKNI_CreateEvent(&vDevice->watchdog_event);
         vDevice->watchdogEventHandler = NEXUS_RegisterEvent(vDevice->watchdog_event, NEXUS_VideoDecoder_P_WatchdogHandler, vDevice);
 
+        /* similar to the handling of watchdog, i.e. convert the HVD clock boost interrupt to a task time event */
+        BKNI_CreateEvent(&vDevice->clockBoost_event);
+        vDevice->clockBoostEventHandler = NEXUS_RegisterEvent(vDevice->clockBoost_event, NEXUS_VideoDecoder_P_ClockBoostHandler, vDevice);
+
         /* install XVD device interrupts */
         if (g_NEXUS_videoDecoderModuleSettings.watchdogEnabled && !NEXUS_GetEnv("no_watchdog")) {
             rc = BXVD_InstallDeviceInterruptCallback(vDevice->xvd, BXVD_DeviceInterrupt_eWatchdog, NEXUS_VideoDecoder_P_Watchdog_isr, vDevice, 0);
@@ -570,6 +574,10 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
            rc = BXDM_DisplayInterruptHandler_Create(&vDevice->hXdmDih[j]);
             if (rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
         }
+
+        rc = BXVD_InstallDeviceInterruptCallback(vDevice->xvd, BXVD_DeviceInterrupt_eClockBoost, NEXUS_VideoDecoder_P_ClockBoost_isr, vDevice, 0);
+        if (rc) {rc=BERR_TRACE(rc); goto error;}
+
     }
 
 #if NEXUS_HAS_SAGE
@@ -605,6 +613,12 @@ error:
         }
         if (vDevice->watchdog_event) {
             BKNI_DestroyEvent(vDevice->watchdog_event);
+        }
+        if (vDevice->clockBoostEventHandler) {
+            NEXUS_UnregisterEvent(vDevice->clockBoostEventHandler);
+        }
+        if (vDevice->clockBoost_event) {
+            BKNI_DestroyEvent(vDevice->clockBoost_event);
         }
         if (vDevice->xvd) {
             BXVD_Close(vDevice->xvd);
@@ -642,8 +656,12 @@ void NEXUS_VideoDecoderModule_P_Uninit_Avd(void)
             BXVD_UnInstallDeviceInterruptCallback(vDevice->xvd, BXVD_DeviceInterrupt_eWatchdog);
         }
 
+        BXVD_UnInstallDeviceInterruptCallback(vDevice->xvd, BXVD_DeviceInterrupt_eClockBoost);
+
         NEXUS_UnregisterEvent(vDevice->watchdogEventHandler);
         BKNI_DestroyEvent(vDevice->watchdog_event);
+        NEXUS_UnregisterEvent(vDevice->clockBoostEventHandler);
+        BKNI_DestroyEvent(vDevice->clockBoost_event);
         BXVD_Close(vDevice->xvd);
         Nexus_Core_P_Img_Destroy(vDevice->img_context);
 
@@ -1809,6 +1827,8 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
         BDBG_WRN(("unusual width,height of %u,%u resulting in 4K decode resolution", videoDecoder->settings.maxWidth, videoDecoder->settings.maxHeight));
     }
     channelSettings.eDecodeResolution = NEXUS_VideoDecoder_GetDecodeResolution_priv(videoDecoder->settings.maxWidth, videoDecoder->settings.maxHeight);
+    videoDecoder->xvdOpenChannelSettings.maxWidth = videoDecoder->settings.maxWidth;
+    videoDecoder->xvdOpenChannelSettings.maxHeight = videoDecoder->settings.maxHeight;
     memConfigMaxDecodeResolution = NEXUS_VideoDecoder_GetDecodeResolution_priv(videoDecoder->memconfig.maxWidth,videoDecoder->memconfig.maxHeight);
     if (g_decodeResolutionSortOrder[channelSettings.eDecodeResolution] > g_decodeResolutionSortOrder[memConfigMaxDecodeResolution]) {
         BDBG_ERR(("runtime max %dx%d exceeds init memconfig %dx%d", videoDecoder->settings.maxWidth, videoDecoder->settings.maxHeight, videoDecoder->memconfig.maxWidth, videoDecoder->memconfig.maxHeight));
@@ -1878,6 +1898,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
                 colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
             }
         }
+        videoDecoder->xvdOpenChannelSettings.colorDepth = colorDepth;
         channelSettings.b10BitBuffersEnable = colorDepth >= 10;
     }
     channelSettings.uiExtraPictureMemoryAtoms = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].extraPictureBuffers;
@@ -2305,8 +2326,6 @@ err_link:
 
 void NEXUS_VideoDecoder_P_Close_Generic(NEXUS_VideoDecoderHandle videoDecoder)
 {
-    NEXUS_Error rc;
-
     if (videoDecoder->started) {
         NEXUS_VideoDecoder_Stop(videoDecoder);
     }
@@ -2350,16 +2369,6 @@ void NEXUS_VideoDecoder_P_Close_Generic(NEXUS_VideoDecoderHandle videoDecoder)
     if (videoDecoder->stc.statusChangeEvent) {
         BKNI_DestroyEvent(videoDecoder->stc.statusChangeEvent);
         videoDecoder->stc.statusChangeEvent = NULL;
-    }
-
-    /* automatically attach before close */
-    if (videoDecoder->raveDetached) {
-        rc = NEXUS_VideoDecoder_AttachRaveContext(videoDecoder, videoDecoder->rave);
-        BDBG_ASSERT(!rc);
-    }
-    if (videoDecoder->enhancementRaveDetached) {
-        rc = NEXUS_VideoDecoder_AttachRaveContext(videoDecoder, videoDecoder->enhancementRave);
-        BDBG_ASSERT(!rc);
     }
 
     if(videoDecoder->enhancementRave) {
@@ -2527,6 +2536,16 @@ static NEXUS_Error NEXUS_VideoDecoder_P_SetSettings(NEXUS_VideoDecoderHandle vid
 
     if (!videoDecoder->dec) {
         goto skip;
+    }
+
+    if (pSettings->maxWidth > videoDecoder->xvdOpenChannelSettings.maxWidth ||
+        pSettings->maxHeight > videoDecoder->xvdOpenChannelSettings.maxHeight ||
+        pSettings->colorDepth > videoDecoder->xvdOpenChannelSettings.colorDepth)
+    {
+        BDBG_ERR(("cannot increase from %ux%u %u bit to %ux%u %u bit when XVD channel is already created.",
+            videoDecoder->xvdOpenChannelSettings.maxWidth, videoDecoder->xvdOpenChannelSettings.maxHeight, videoDecoder->xvdOpenChannelSettings.colorDepth,
+            pSettings->maxWidth, pSettings->maxHeight, pSettings->colorDepth));
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
     if (force || (pSettings->fnrtSettings.enable != videoDecoder->settings.fnrtSettings.enable) || (pSettings->fnrtSettings.preChargeCount != videoDecoder->settings.fnrtSettings.preChargeCount)) {
@@ -5961,17 +5980,12 @@ static void NEXUS_VideoDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
             videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStartPts;
         }else if (videoDecoder->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtPts) {
             videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
-        }else if (videoDecoder->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtFirstPts) {
-            videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
         }
         videoDecoder->spliceStatus.pts = pts;
         NEXUS_IsrCallback_Fire_isr(videoDecoder->spliceCallback);
     }
     return;
 }
-
-#define SPLICE_PTS_ANY 0x1
-#define SPLICE_PTS_THRESHOLD_ANY 0xfffffffe
 
 NEXUS_Error NEXUS_VideoDecoder_SetSpliceSettings(
     NEXUS_VideoDecoderHandle videoDecoder,
@@ -6028,31 +6042,6 @@ NEXUS_Error NEXUS_VideoDecoder_SetSpliceSettings(
         videoDecoder->spliceSettings = *pSettings;
         NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
         videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
-        break;
-    }
-    case NEXUS_DecoderSpliceMode_eStopAtFirstPts: {
-        /* Check that we are decoding live stream */
-        if (NULL == videoDecoder->startSettings.stcChannel) {
-            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            break;
-        } else {
-            NEXUS_StcChannelSettings stcSettings;
-            NEXUS_StcChannel_GetSettings(videoDecoder->startSettings.stcChannel, &stcSettings);
-            if (stcSettings.mode != NEXUS_StcChannelMode_ePcr) {
-                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-                break;
-            }
-        }
-        raveSpliceSettings.context = (void *) videoDecoder;
-        raveSpliceSettings.splicePoint = NEXUS_VideoDecoder_P_SplicePoint_isr;
-        raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStopLive;
-        rc = NEXUS_Rave_SetSplicePoint_priv(videoDecoder->rave,&raveSpliceSettings);
-        if (rc) return BERR_TRACE(rc);
-        videoDecoder->spliceSettings = *pSettings;
-        videoDecoder->spliceSettings.pts = SPLICE_PTS_ANY;
-        videoDecoder->spliceSettings.ptsThreshold = SPLICE_PTS_THRESHOLD_ANY;
-        NEXUS_IsrCallback_Set(videoDecoder->spliceCallback, &pSettings->splicePoint);
-        videoDecoder->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         break;
     }
     default:
@@ -6168,4 +6157,9 @@ NEXUS_Error NEXUS_VideoDecoder_SpliceStartFlow(
     rc = NEXUS_SUCCESS;
 ExitFunc:
     return rc;
+}
+
+const NEXUS_VideoDecoderMemory *NEXUS_VideoDecoder_P_GetMemory_isrsafe(NEXUS_VideoDecoderHandle videoDecoder)
+{
+    return &g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex];
 }

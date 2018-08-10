@@ -53,6 +53,7 @@ BDBG_MODULE(nexus_platform_pinmux);
 #define SV_BOARD_ID 1
 #define DV_BOARD_ID 2
 #define HB_BOARD_ID 6
+#define HB_BOARD_973574_ID 3
 #define TWO_L_BOARD_ID 12
 #define RMT_BOARD_ID 12
 
@@ -232,6 +233,14 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     }
     NEXUS_Platform_GetStatus(platformStatus);
     BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus->boardId.major, platformStatus->boardId.minor));
+
+    if (platformStatus->boardId.major == HB_BOARD_973574_ID) {
+        BDBG_MSG(("We are setting the AON GPIO PIN 25 to PULL_NONE."));
+        reg = BREG_Read32(hReg,BCHP_AON_PIN_CTRL_PIN_MUX_PAD_CTRL_2);
+        reg &= ~(BCHP_MASK(AON_PIN_CTRL_PIN_MUX_PAD_CTRL_2, aon_gpio_25_pad_ctrl));
+        reg |= (BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_PAD_CTRL_2, aon_gpio_25_pad_ctrl, BCHP_AON_PIN_CTRL_PIN_MUX_PAD_CTRL_2_aon_gpio_25_pad_ctrl_PULL_NONE));
+        BREG_Write32 (hReg, BCHP_AON_PIN_CTRL_PIN_MUX_PAD_CTRL_2, reg);
+    }
 
     if ((platformStatus->boardId.major == RMT_BOARD_ID) || (platformStatus->boardId.major == TWO_L_BOARD_ID)) {
         reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4);

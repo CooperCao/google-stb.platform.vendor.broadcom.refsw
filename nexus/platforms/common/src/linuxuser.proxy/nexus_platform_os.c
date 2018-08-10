@@ -81,7 +81,9 @@
 #endif
 #if defined BDSP_RAAGA_SUPPORT
 #include "bdsp_raaga_img.h"
-#elif BDSP_ARM_AUDIO_SUPPORT
+#include "priv/nexus_audio_image_priv.h"
+#endif
+#if BDSP_ARM_AUDIO_SUPPORT
 #include "bdsp_arm_img.h"
 #endif
 #include "nexus_platform_image.h"
@@ -547,6 +549,19 @@ NEXUS_Platform_P_OpenDriver(void)
     rc = fcntl(fd, F_SETFD, FD_CLOEXEC);
     if (rc) BERR_TRACE(rc); /* keep going */
 
+#if !defined(NEXUS_CPU_ARM64)
+    {
+    PROXY_NEXUS_GetOsConfig os_cfg;
+    rc = ioctl(fd, IOCTL_PROXY_NEXUS_GetOsConfig, &os_cfg);
+    if(rc==0) {
+        if(os_cfg.os_64bit) {
+            g_NEXUS_P_CpuNotAccessibleRange.start = NULL;
+            g_NEXUS_P_CpuNotAccessibleRange.length = 0;
+        }
+    }
+    }
+#endif
+
     NEXUS_Platform_P_State.fd = fd;
     NEXUS_Platform_P_State.proxy_fd = fd; /* redundant */
 
@@ -839,19 +854,25 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
     }
     #endif
 #endif
-    #if BDSP_RAAGA_SUPPORT
-    rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_IMG_Interface, BDSP_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
+#if BDSP_RAAGA_SUPPORT
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_IMG_Interface, BDSP_IMG_Context, NEXUS_CORE_IMG_ID_AUDIO_DSP);
     if(rc != NEXUS_SUCCESS)
     {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
-    #elif BDSP_ARM_AUDIO_SUPPORT
-    rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_ARM_IMG_Interface, BDSP_ARM_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&NEXUS_AUDIO_IMG_Interface, NEXUS_AUDIO_IMG_Context, NEXUS_CORE_IMG_ID_AUDIO_PAK);
     if(rc != NEXUS_SUCCESS)
     {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
-    #endif
+#endif
+#if BDSP_ARM_AUDIO_SUPPORT
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_ARM_IMG_Interface, BDSP_ARM_IMG_Context, NEXUS_CORE_IMG_ID_SOFT_AUDIO);
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
+#endif
 #if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BVCE_IMAGE_Interface, BVCE_IMAGE_Context, NEXUS_CORE_IMG_ID_VCE);
     if(rc != NEXUS_SUCCESS)

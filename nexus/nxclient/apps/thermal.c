@@ -41,14 +41,12 @@
  ******************************************************************************/
 
 #include "nxclient.h"
-#include <stdio.h>
-#if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_simple_video_decoder.h"
 #include "nexus_simple_audio_decoder.h"
-#endif
 #include "nexus_surface_client.h"
 #include "bkni.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -67,10 +65,8 @@ struct client_state{
     NEXUS_SurfaceClientHandle surfaceClient;
     struct {
         NxClient_AllocResults allocResults;
-#if NEXUS_HAS_SIMPLE_DECODER
         NEXUS_SimpleVideoDecoderHandle videoDecoder;
         NEXUS_SimpleAudioDecoderHandle audioDecoder;
-#endif
         unsigned connectId;
     } decode[2];
     NxClient_ThermalConfiguration config;
@@ -213,7 +209,6 @@ static void disconnect_decode(struct client_state *state, unsigned idx)
     if (state->decode[idx].connectId) {
         NxClient_Disconnect(state->decode[idx].connectId);
     }
-#if NEXUS_HAS_SIMPLE_DECODER
     if (state->decode[idx].videoDecoder) {
         NEXUS_SimpleVideoDecoder_Release(state->decode[idx].videoDecoder);
         state->decode[idx].videoDecoder = NULL;
@@ -222,7 +217,6 @@ static void disconnect_decode(struct client_state *state, unsigned idx)
         NEXUS_SimpleAudioDecoder_Release(state->decode[idx].audioDecoder);
         state->decode[idx].audioDecoder = NULL;
     }
-#endif
     NxClient_Free(&state->decode[idx].allocResults);
 }
 
@@ -239,14 +233,12 @@ static NEXUS_Error connect_decode(struct client_state *state, unsigned idx)
     rc = NxClient_Alloc(&allocSettings, &state->decode[idx].allocResults);
     if (rc) return BERR_TRACE(rc);
 
-#if NEXUS_HAS_SIMPLE_DECODER
     if (state->decode[idx].allocResults.simpleVideoDecoder[0].id) {
         state->decode[idx].videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(state->decode[idx].allocResults.simpleVideoDecoder[0].id);
     }
     if (state->decode[idx].allocResults.simpleAudioDecoder.id) {
         state->decode[idx].audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(state->decode[idx].allocResults.simpleAudioDecoder.id);
     }
-#endif
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = state->decode[idx].allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].surfaceClientId = state->surfaceClientId;

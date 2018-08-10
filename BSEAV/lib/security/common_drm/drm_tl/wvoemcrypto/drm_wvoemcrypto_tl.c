@@ -46,6 +46,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "nexus_platform.h"
 #include "nexus_memory.h"
@@ -248,9 +249,10 @@ typedef struct Drm_WVOemCryptoNativeHandle
 
 typedef struct Drm_WVOemCryptoOpaqueHandle
 {
-    uint8_t *pBuffer;
-    size_t clearBuffSize;
-    size_t clearBuffOffset;
+   uint8_t *pBuffer;
+   NEXUS_MemoryBlockHandle hBuffer;
+   size_t clearBuffSize;
+   size_t clearBuffOffset;
 } Drm_WVOemCryptoOpaqueHandle;
 
 static uint8_t *gWVDecryptBufferNativeHandle = NULL;
@@ -3808,6 +3810,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
                                      uint8_t* out_buffer,
                                      uint32_t *out_sz,
                                      uint8_t subsample_flags,
+                                     bool force_transfer,
                                      int *wvRc)
 {
     BSAGElib_InOutContainer *container = NULL;
@@ -3850,11 +3853,17 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         goto ErrorExit;
     }
 
+    if (force_transfer)
+    {
+        /* Force a transfer by overriding subsample flags */
+        subsample_flags |= WV_OEMCRYPTO_LAST_SUBSAMPLE;
+    }
+
     if (!is_encrypted)
     {
         if (isSecureDecrypt)
         {
-            if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(out_buffer, data_addr, data_length, subsample_flags, false) != Drm_Success)
+            if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(out_buffer, data_addr, data_length, subsample_flags, force_transfer) != Drm_Success)
             {
                 BDBG_ERR(("%s: Operation failed for copy buffer SG Secure Buffer Type",BSTD_FUNCTION));
                 rc = Drm_Err;
@@ -4079,7 +4088,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         {
             if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
             {
-                if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, false) != Drm_Success)
+                if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, force_transfer) != Drm_Success)
                 {
                     BDBG_ERR(("%s: Operation failed for copy buffer SG Secure Buffer Type",BSTD_FUNCTION));
                     rc = Drm_Err;
@@ -4128,7 +4137,10 @@ ErrorExit:
     if(*wvRc != SAGE_OEMCrypto_SUCCESS)
     {
         *out_sz = 0;
-        BKNI_Memset(out_buffer, 0x0, data_length);
+        if(out_buffer && !isSecureDecrypt)
+        {
+            BKNI_Memset(out_buffer, 0x0, data_length);
+        }
         rc = Drm_Err;
     }
     else
@@ -4422,7 +4434,10 @@ ErrorExit:
     if(*wvRc !=SAGE_OEMCrypto_SUCCESS)
     {
         rc = Drm_Err;
-        BKNI_Memset(out_buffer, 0x0, data_length);
+        if(out_buffer && !isSecureDecrypt)
+        {
+            BKNI_Memset(out_buffer, 0x0, data_length);
+        }
         *out_sz = 0;
     }
     else
@@ -4502,6 +4517,7 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
     Drm_WVOemCryptoNativeHandle *native_hdl = (Drm_WVOemCryptoNativeHandle *)out_buffer;
     bool native_hdl_locked = false;
     size_t dma_align = PADDING_SZ_16_BYTE;
+    bool force_transfer = false;
 
     BDBG_ENTER(drm_WVOemCrypto_DecryptCENC);
 
@@ -4511,14 +4527,6 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
     if ((buffer_type == Drm_WVOEMCrypto_BufferType_Secure) &&
         (NEXUS_GetAddrType((const void *)src_ptr) == NEXUS_AddrType_eUnknown))
     {
-       if (gWVDecryptBounceBufferIndex+1 >= MAX_SG_DMA_BLOCKS)
-       {
-          BDBG_ERR(("%s: maximum bounce buffer count %d reached", BSTD_FUNCTION));
-          // do not clean up already allocated bounce buffer.  this should never happen.
-          rc = Drm_MemErr;
-          goto ErrorExit;
-       }
-
        NEXUS_ClientConfiguration cc;
        NEXUS_MemoryAllocationSettings ms;
        NEXUS_Platform_GetClientConfiguration(&cc);
@@ -4533,20 +4541,10 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
           BDBG_ERR(("%s: Failed to allocate bounce buffer %d (sz=%u)", BSTD_FUNCTION,
                     gWVDecryptBounceBufferIndex+1,
                     gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].size));
-          gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex+1].size = 0;
-          for (int i = 0; (i <= gWVDecryptBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
-          {
-             if (gWVDecryptBounceBuffer[i].buffer)
-             {
-                NEXUS_Memory_Free(gWVDecryptBounceBuffer[i].buffer);
-                gWVDecryptBounceBuffer[i].buffer = NULL;
-                gWVDecryptBounceBuffer[i].size = 0;
-             }
-          }
-          gWVDecryptBounceBufferIndex = -1;
           rc = Drm_MemErr;
           goto ErrorExit;
        }
+
        gWVDecryptBounceBufferIndex += 1;
        BKNI_Memcpy(gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex].buffer, src_ptr, data_length);
        src_ptr = (uint8_t *)gWVDecryptBounceBuffer[gWVDecryptBounceBufferIndex].buffer;
@@ -4565,7 +4563,7 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
              nx_rc = NEXUS_Platform_GetIdFromObject((void *)native_hdl->data[0], &nx_oid);
              if (!nx_rc && nx_oid)
              {
-                void *pMemory = NULL;
+                void *pMemory = NULL, *sMemory = NULL;
                 nx_rc = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)native_hdl->data[0], &pMemory);
                 if (nx_rc || pMemory == NULL)
                 {
@@ -4574,13 +4572,16 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
                    goto ErrorExit;
                 }
                 native_hdl_locked = true;
-                dst_ptr = ((Drm_WVOemCryptoOpaqueHandle *)pMemory)->pBuffer;
-                if (dst_ptr == NULL)
+                nx_rc = NEXUS_MemoryBlock_Lock(((Drm_WVOemCryptoOpaqueHandle *)pMemory)->hBuffer, &sMemory);
+                if (nx_rc || sMemory == NULL)
                 {
-                   BDBG_ERR(("%s: null destination buffer (%p:%x)??", BSTD_FUNCTION, out_buffer, native_hdl->data[0]));
+                   BDBG_ERR(("%s: unable to lock srai buffer (%p:%x:%" PRIx64 ") handle", BSTD_FUNCTION,
+                             out_buffer, native_hdl->data[0], ((Drm_WVOemCryptoOpaqueHandle *)pMemory)->hBuffer));
                    rc = Drm_NexusErr;
                    goto ErrorExit;
                 }
+                dst_ptr = sMemory;
+                NEXUS_MemoryBlock_Unlock(((Drm_WVOemCryptoOpaqueHandle *)pMemory)->hBuffer);
                 // keep copy of the base native handle memory pointer.
                 gWVDecryptBufferNativeHandle = (uint8_t *)native_hdl;
                 gWVDecryptBufferSecure = dst_ptr;
@@ -4702,6 +4703,11 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
             if (data_processed + blockDataLength >= data_length)
             {
                 block_subsample_flags |= WV_OEMCRYPTO_LAST_SUBSAMPLE;
+                if (gWVDecryptBounceBufferIndex >= MAX_SG_DMA_BLOCKS)
+                {
+                    /* Force all queued buffers to be transferred to prevent exceeding bounds */
+                    force_transfer = true;
+                }
             }
         }
 
@@ -4712,28 +4718,7 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
 
         rc = drm_WVOemCrypto_P_DecryptPatternBlock(session, src_ptr, blockDataLength,
             block_encrypted, buffer_type, block_iv, block_offset, dst_ptr, &block_out_sz,
-            block_subsample_flags, wvRc);
-
-        if ((subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE) &&
-            (gWVDecryptBounceBufferIndex >= 0))
-        {
-           for (int i = 0; (i <= gWVDecryptBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
-           {
-              if (gWVDecryptBounceBuffer[i].buffer)
-              {
-                 NEXUS_Memory_Free(gWVDecryptBounceBuffer[i].buffer);
-                 gWVDecryptBounceBuffer[i].buffer = NULL;
-                 gWVDecryptBounceBuffer[i].size = 0;
-              }
-           }
-           gWVDecryptBounceBufferIndex = -1;
-        }
-
-        if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
-        {
-           gWVDecryptBufferNativeHandle = NULL;
-           gWVDecryptBufferSecure = NULL;
-        }
+            block_subsample_flags, force_transfer, wvRc);
 
         if (rc != Drm_Success)
         {
@@ -4763,6 +4748,29 @@ DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
     }
 
 ErrorExit:
+
+    if (rc != Drm_Success || force_transfer || (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE))
+    {
+       if (gWVDecryptBounceBufferIndex >= 0)
+       {
+           for (int i = 0; (i <= gWVDecryptBounceBufferIndex) && (i < MAX_SG_DMA_BLOCKS) ; i++)
+           {
+              if (gWVDecryptBounceBuffer[i].buffer)
+              {
+                 NEXUS_Memory_Free(gWVDecryptBounceBuffer[i].buffer);
+                 gWVDecryptBounceBuffer[i].buffer = NULL;
+                 gWVDecryptBounceBuffer[i].size = 0;
+              }
+           }
+           gWVDecryptBounceBufferIndex = -1;
+       }
+    }
+
+    if ((subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE))
+    {
+       gWVDecryptBufferNativeHandle = NULL;
+       gWVDecryptBufferSecure = NULL;
+    }
 
     if (native_hdl_locked)
     {
@@ -8214,7 +8222,7 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
     {
        if (gWVCopyBounceBufferIndex+1 >= MAX_SG_DMA_BLOCKS)
        {
-          BDBG_ERR(("%s: maximum bounce buffer count %d reached", BSTD_FUNCTION));
+          BDBG_ERR(("%s: maximum bounce buffer count %d reached", BSTD_FUNCTION, gWVCopyBounceBufferIndex+1));
           // do not clean up already allocated bounce buffer.  this should never happen.
           rc = Drm_MemErr;
           goto ErrorExit;
@@ -8276,7 +8284,7 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
              nx_rc = NEXUS_Platform_GetIdFromObject((void *)native_hdl->data[0], &nx_oid);
              if (!nx_rc && nx_oid)
              {
-                void *pMemory = NULL;
+                void *pMemory = NULL, *sMemory = NULL;
                 nx_rc = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)native_hdl->data[0], &pMemory);
                 if (nx_rc || pMemory == NULL)
                 {
@@ -8285,7 +8293,16 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
                    goto ErrorExit;
                 }
                 native_hdl_locked = true;
-                dst_ptr = ((Drm_WVOemCryptoOpaqueHandle *)pMemory)->pBuffer;
+                nx_rc = NEXUS_MemoryBlock_Lock(((Drm_WVOemCryptoOpaqueHandle *)pMemory)->hBuffer, &sMemory);
+                if (nx_rc || sMemory == NULL)
+                {
+                   BDBG_ERR(("%s: unable to lock srai buffer (%p:%x:%" PRIx64 ") handle", BSTD_FUNCTION,
+                             destination, native_hdl->data[0], ((Drm_WVOemCryptoOpaqueHandle *)pMemory)->hBuffer));
+                   rc = Drm_NexusErr;
+                   goto ErrorExit;
+                }
+                dst_ptr = sMemory;
+                NEXUS_MemoryBlock_Unlock(((Drm_WVOemCryptoOpaqueHandle *)pMemory)->hBuffer);
                 // keep copy of the base native handle memory pointer.
                 gWVCopyBufferNativeHandle = (uint8_t *)native_hdl;
                 gWVCopyBufferSecure = dst_ptr;

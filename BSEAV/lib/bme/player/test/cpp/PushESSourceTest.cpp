@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #include <gtest/gtest.h>
@@ -267,7 +267,6 @@ public:
         if (audioDecThread.joinable())
             audioDecThread.join();
 
-        pushESSource->pushVideoEndOfStream();
         pushESSource->flush(false);
         while (!_gotEndofPlayback) {
            sleep(1);

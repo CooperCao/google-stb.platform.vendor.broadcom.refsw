@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include <errno.h>
@@ -97,7 +101,7 @@ static ChipType_e Keymaster_P_GetChipType(void);
 
 BERR_Code
 Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
-                     const char * drm_bin_filename,
+                     KeymasterTl_InitSettings *pModuleSettings,
                      BSAGElib_InOutContainer *container,
                      SRAI_ModuleHandle *moduleHandle,
                      SRAI_ModuleHandle *ssdModuleHandle)
@@ -208,12 +212,13 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
         {
             /* Ignore this error - RPMB will be disabled in Keymaster */
             BDBG_WRN(("%s: Error initialising SSD Client Module (ignored)", BSTD_FUNCTION));
+            rc = BERR_SUCCESS;
             tmpSsdModuleHandle = NULL;
         }
     }
 
-    /* if module uses a bin file - read it and add it to the container */
-    if(drm_bin_filename != NULL)
+    /* if module uses a bin file|buffer - read it and add it to the container */
+    if(pModuleSettings != NULL)
     {
         if (container == NULL)
         {
@@ -230,17 +235,28 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
             goto ErrorExit;
         }
 
-        BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, drm_bin_filename));
         /*
          * 1) allocate drm_bin_file_buff
          * 2) read bin file
          * 3) check size
          * */
-        rc = Keymaster_P_GetFileSize(drm_bin_filename, &filesize);
-        if(rc != BERR_SUCCESS)
+        if (pModuleSettings->drm_binfile_buffer && pModuleSettings->drm_binfile_size)
         {
-            BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
-            goto ErrorExit;
+            BDBG_MSG(("%s - DRM bin buffer '%p' (sz=%d)", BSTD_FUNCTION,
+                      pModuleSettings->drm_binfile_buffer, pModuleSettings->drm_binfile_size));
+
+            filesize = pModuleSettings->drm_binfile_size;
+        }
+        else
+        {
+            BDBG_MSG(("%s - DRM bin filename '%s'", BSTD_FUNCTION, pModuleSettings->drm_binfile_path));
+
+            rc = Keymaster_P_GetFileSize(pModuleSettings->drm_binfile_path, &filesize);
+            if(rc != BERR_SUCCESS)
+            {
+                BDBG_ERR(("%s - Error determine file size of bin file", BSTD_FUNCTION));
+                goto ErrorExit;
+            }
         }
 
         drm_bin_file_buff = SRAI_Memory_Allocate(filesize, SRAI_MemoryType_Shared);
@@ -251,12 +267,19 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
             goto ErrorExit;
         }
 
-        if(Keymaster_P_ReadFile(drm_bin_filename, drm_bin_file_buff,
-                             filesize) != BERR_SUCCESS)
+        if (pModuleSettings->drm_binfile_buffer && pModuleSettings->drm_binfile_size)
         {
-            BDBG_ERR(("%s - Error reading drm bin file", BSTD_FUNCTION));
-            rc = BERR_OS_ERROR;
-            goto ErrorExit;
+            memcpy(drm_bin_file_buff, pModuleSettings->drm_binfile_buffer, filesize);
+        }
+        else
+        {
+            if(Keymaster_P_ReadFile(pModuleSettings->drm_binfile_path, drm_bin_file_buff,
+                                 filesize) != BERR_SUCCESS)
+            {
+                BDBG_ERR(("%s - Error reading drm bin file", BSTD_FUNCTION));
+                rc = BERR_OS_ERROR;
+                goto ErrorExit;
+            }
         }
 
         /* verify allocated drm_bin_file_buff size with size in header */
@@ -309,13 +332,14 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
     }
 
     /* Overwrite the drm bin file in rootfs, free up the buffer since a copy will exist on the sage side */
-    if(drm_bin_filename != NULL)
+    if (!(pModuleSettings->drm_binfile_buffer && pModuleSettings->drm_binfile_size) &&
+        strlen(pModuleSettings->drm_binfile_path))
     {
         if(container->basicOut[1] == OVERWRITE_BIN_FILE)
         {
-            BDBG_MSG(("%s - Overwriting file '%s'", BSTD_FUNCTION, drm_bin_filename));
+            BDBG_MSG(("%s - Overwriting file '%s'", BSTD_FUNCTION, pModuleSettings->drm_binfile_path));
 
-            if(Keymaster_P_WriteFile(drm_bin_filename, container->blocks[0].data.ptr,
+            if(Keymaster_P_WriteFile(pModuleSettings->drm_binfile_path, container->blocks[0].data.ptr,
                                    filesize_from_header) != BERR_SUCCESS)
             {
                 BDBG_ERR(("%s - Error writing drm bin file size to rootfs", BSTD_FUNCTION));
@@ -324,7 +348,7 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
             }
         }
         else{
-            BDBG_MSG(("%s - No need to overwrite file '%s'", BSTD_FUNCTION, drm_bin_filename));
+            BDBG_MSG(("%s - No need to overwrite file '%s'", BSTD_FUNCTION, pModuleSettings->drm_binfile_path));
         }
     }
 

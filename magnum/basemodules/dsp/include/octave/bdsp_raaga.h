@@ -73,7 +73,7 @@
 #else
 #define BDSP_RAAGA_MAX_DSP 1
 #endif
-#define BDSP_RAAGA_MAX_CORE_PER_DSP 1
+#define BDSP_RAAGA_MAX_CORE_PER_DSP 2
 
 /***************************************************************************
 Summary:

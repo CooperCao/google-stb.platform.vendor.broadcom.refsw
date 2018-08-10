@@ -573,7 +573,7 @@ void nxserverlib_p_clear_video_cache(void);
 /************
 nxserverlib_audio.c API
 ************/
-int bserver_set_audio_config(struct b_audio_resource *ar);
+int bserver_set_audio_config(struct b_audio_resource *ar, bool forceReconfig);
 int bserver_set_audio_mixer_config(struct b_audio_resource *ar);
 void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start);
 #if NEXUS_HAS_HDMI_OUTPUT

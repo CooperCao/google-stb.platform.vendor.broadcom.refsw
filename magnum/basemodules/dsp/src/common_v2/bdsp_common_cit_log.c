@@ -120,7 +120,7 @@ const char Algorithm2Name[BDSP_Algorithm_eMax][BDSP_MAX_CHAR_LENGTH] =
 	{"GENERIC PASSTHRU"},
 	{"FW MIXER"},
 #ifdef BDSP_MS11PLUS_SUPPORT
-	{"MIXER "},
+	{"MIXER MS11+ MODE"},
 #else
 	{"MIXER DAPV2"},
 #endif

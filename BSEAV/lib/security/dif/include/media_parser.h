@@ -73,7 +73,6 @@ public:
     void* GetFragmentData(mp4_parse_frag_info &fragInfo, uint8_t *pPayload, uint32_t &decoderLength);
     bool GetProtectionInfo(bmp4_protection_info &protectionInfo);
     bool GetProtectionInfoForTrack(bmp4_protectionSchemeInfo &trackProtectionInfo, uint32_t inTrackId);
-    bool GetVideoResolution(uint32_t* width, uint32_t* height);
 
 protected:
     bool InitParser();

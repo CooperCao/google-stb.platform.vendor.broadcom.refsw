@@ -71,6 +71,12 @@ BDBG_MODULE(sage_manufacturing);
 #define OTP_MSP0_VALUE_ZB (0x3E)
 #define OTP_MSP1_VALUE_ZB (0x3F)
 
+#ifdef ANDROID
+#define MANUFACTURING_TA_PATH "/vendor/bin"
+#else
+#define MANUFACTURING_TA_PATH "."
+#endif
+
 #define MFG_TA_BIN_FILENAME "sage_ta_manufacturing.bin"
 #define MFG_TA_DEV_BIN_FILENAME "sage_ta_manufacturing_dev.bin"
 
@@ -816,19 +822,32 @@ static ChipType_e _P_GetChipType(void)
 BERR_Code _P_TA_Install(void)
 {
     BERR_Code rc = BERR_SUCCESS;
-    char *ta_bin_filename;
     FILE * fptr = NULL;
     uint32_t file_size = 0;
     uint32_t read_size = 0;
     uint8_t *ta_bin_file_buff = NULL;
     BERR_Code sage_rc = BERR_SUCCESS;
+    char ta_bin_filename[256];
+    char *path = MANUFACTURING_TA_PATH;
 
     BDBG_ENTER(_P_TA_Install);
 
     if(_P_GetChipType() == ChipType_eZS)
-        ta_bin_filename = MFG_TA_DEV_BIN_FILENAME;
-    else
-        ta_bin_filename = MFG_TA_BIN_FILENAME;
+    {
+       if (snprintf(ta_bin_filename, sizeof(ta_bin_filename), "%s/%s", path, MFG_TA_DEV_BIN_FILENAME) > (int)sizeof(ta_bin_filename))
+       {
+          BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
+          rc = BERR_INVALID_PARAMETER;
+          goto ErrorExit;
+       }
+    } else {
+       if (snprintf(ta_bin_filename, sizeof(ta_bin_filename), "%s/%s", path, MFG_TA_BIN_FILENAME) > (int)sizeof(ta_bin_filename))
+       {
+          BDBG_ERR(("%s: path too long", BSTD_FUNCTION));
+          rc = BERR_INVALID_PARAMETER;
+          goto ErrorExit;
+       }
+    }
 
     BDBG_MSG(("%s - Loadable TA filename '%s'", BSTD_FUNCTION, ta_bin_filename));
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
  **************************************************************************/
 #ifndef NEXUS_PLAYBACK_IMPL_H__
 #define NEXUS_PLAYBACK_IMPL_H__
@@ -44,10 +47,6 @@
 #include "nexus_file_pvr.h"
 #include "bmedia_player.h"
 #include "bmedia_util.h"
-
-#if NEXUS_PLAYBACK_MP4_CENC
-#include "nexus_playback_mp4_cenc_impl.h"
-#endif
 
 
 /* #define B_PLAYBACK_CAPTURE    1 */
@@ -289,9 +288,6 @@ struct NEXUS_Playback {
         NEXUS_TimerHandle rap_monitor_timer;
     } trick;
     NEXUS_ThreadSettings playpump_thread_settings;
-#if NEXUS_PLAYBACK_MP4_CENC
-    struct NEXUS_PlaybackMp4CencState mp4Cenc;
-#endif
 };
 
 #define B_IO_BLOCK_SIZE BIO_BLOCK_SIZE

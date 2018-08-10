@@ -52,7 +52,6 @@
 #include "bkni_event_group.h"
 #include "blst_list.h"
 #include "blst_queue.h"
-#include "blst_squeue.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -64,8 +63,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
-
-#define BKNI_P_WAITFORGROUP_STATS   0
 
 #if defined(__mips__) && defined(B_REFSW_ANDROID)
 /* Android's bionic C on MIPS does not have NPTL */
@@ -208,28 +205,23 @@ static void BKNI_P_ForceReleaseMutex(void *x)
 void * BKNI_Malloc_tagged(size_t size, const char *file, unsigned line);
 void BKNI_Free_tagged(void *ptr, const char *file, unsigned line);
 
+
 struct BKNI_GroupObj
 {
     BDBG_OBJECT(BKNI_EventGroup)
-    BLST_D_HEAD(group_members, BKNI_EventObj) members;
-    BLST_SQ_HEAD(group_fired, BKNI_EventObj) fired_members;
+    BLST_D_HEAD(group, BKNI_EventObj) members;
     pthread_mutex_t lock;            /* mutex for protecting signal and conditional variables */
     pthread_cond_t  cond;           /* condition to wake up from event*/
-#include "bkni_event_group_stats_data.inc"
 };
-
-#include "bkni_event_group_stats_api.inc"
 
 struct BKNI_EventObj
 {
     BDBG_OBJECT(BKNI_Event)
     BLST_D_ENTRY(BKNI_EventObj) list;
-    BLST_SQ_ENTRY(BKNI_EventObj) fired_list;
     struct BKNI_GroupObj *group;
     pthread_mutex_t lock;            /* mutex for protecting signal and conditional variables */
     pthread_cond_t  cond;           /* condition to wake up from event*/
     bool signal;
-    bool groupSignal;               /* set to true if event in added into the group_fired list, access protected by the BKNI_GroupObj.lock */
 };
 
 static pthread_mutex_t g_csMutex;
@@ -981,8 +973,6 @@ BKNI_CreateEvent_tagged(BKNI_EventHandle *pEvent, const char *file, int line)
     /* coverity[missing_lock: FALSE] */
     event->signal = false;
     /* coverity[missing_lock: FALSE] */
-    event->groupSignal = false;
-    /* coverity[missing_lock: FALSE] */
     event->group = NULL;
 
     return result;
@@ -1185,10 +1175,6 @@ BKNI_SetEvent(BKNI_EventHandle event)
         BDBG_ASSERT(false);
     }
     if (group) {
-        if(!event->groupSignal) {
-            event->groupSignal = true;
-            BLST_SQ_INSERT_TAIL(&group->fired_members, event, fired_list);
-        }
         rc = pthread_cond_signal(&group->cond);
         if (rc!=0) {
             BDBG_ERR(("pthread_cond_signal: %d, ignored", rc));
@@ -1248,10 +1234,8 @@ BKNI_CreateEventGroup(BKNI_EventGroupHandle *pGroup)
         goto err_no_memory;
     }
     BDBG_OBJECT_SET(group, BKNI_EventGroup);
-    BKNI_GroupObj_Stats_Init(group);
 
     BLST_D_INIT(&group->members);
-    BLST_SQ_INIT(&group->fired_members);
     rc = bkni_p_pthread_mutex_init(&group->lock);
     if (rc!=0) {
         result = BERR_TRACE(BERR_OS_ERROR);
@@ -1305,8 +1289,6 @@ BKNI_DestroyEventGroup(BKNI_EventGroupHandle group)
         BDBG_ERR(("pthread_mutex_lock failed, rc=%d", rc));
         BDBG_ASSERT(false);
     }
-    BKNI_GroupObj_Stats_Report(group);
-    BKNI_GroupObj_Stats_Uninit(group);
 
     while(NULL != (event=BLST_D_FIRST(&group->members)) ) {
         BDBG_ASSERT(event->group == group);
@@ -1351,13 +1333,11 @@ BKNI_AddEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
         BLST_D_INSERT_HEAD(&group->members, event, list);
         event->group = group;
         if (event->signal) {
-            BLST_SQ_INSERT_TAIL(&group->fired_members, event, fired_list);
             /* signal condition if signal already set */
             rc = pthread_cond_signal(&group->cond);
             if (rc) BDBG_ASSERT(false);
         }
     }
-    BKNI_GroupObj_Stats_AddEvent(group);
     rc = pthread_mutex_unlock(&event->lock);
     if (rc!=0) {
         BDBG_ERR(("pthread_mutex_unlock failed, rc=%d", rc));
@@ -1396,13 +1376,8 @@ BKNI_RemoveEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
         result = BERR_TRACE(BERR_OS_ERROR);
     } else {
         BLST_D_REMOVE(&group->members, event, list);
-        if(event->groupSignal) {
-            event->groupSignal = false;
-            BLST_SQ_REMOVE(&group->fired_members, event, BKNI_EventObj, fired_list);
-        }
         event->group = NULL;
     }
-    BKNI_GroupObj_Stats_RemoveEvent(group);
     rc = pthread_mutex_unlock(&event->lock);
     if (rc!=0) {
         BDBG_ERR(("pthread_mutex_unlock failed, rc=%d", rc));
@@ -1425,16 +1400,14 @@ group_get_events(BKNI_EventGroupHandle group, BKNI_EventHandle *events, unsigned
 
     BDBG_OBJECT_ASSERT(group, BKNI_EventGroup);
 
-    for(event=0, ev=BLST_SQ_FIRST(&group->fired_members); ev && event<max_events ; ev = BLST_SQ_FIRST(&group->fired_members) ) {
+    for(event=0, ev=BLST_D_FIRST(&group->members); ev && event<max_events ; ev=BLST_D_NEXT(ev, list)) {
         BDBG_OBJECT_ASSERT(ev, BKNI_Event);
         rc = pthread_mutex_lock(&ev->lock);
         if (rc!=0) {
             BDBG_ERR(("pthread_mutex_lock failed, rc=%d", rc));
             BDBG_ASSERT(false);
         }
-        ev->groupSignal = false;
-        BLST_SQ_REMOVE_HEAD(&group->fired_members, fired_list);
-        if(ev->signal) {
+        if (ev->signal) {
             ev->signal = false;
             events[event] = ev;
             event++;
@@ -1454,26 +1427,37 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
     int rc;
     struct timespec target;
     BERR_Code result = BERR_SUCCESS;
-    unsigned count;
 
     ASSERT_NOT_CRITICAL();
     BDBG_OBJECT_ASSERT(group, BKNI_EventGroup);
 
+    timeoutMsec = BKNI_P_ScaleTime(timeoutMsec);
+
     if (max_events<1) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    if (timeoutMsec!=0 && timeoutMsec!=BKNI_INFINITE) {
+        if (timeoutMsec<0) {
+            /* If your app is written to allow negative values to this function, then it's highly likely you would allow -1, which would
+            result in an infinite hang. We recommend that you only pass positive values to this function unless you definitely mean BKNI_INFINITE. */
+            BDBG_WRN(("BKNI_WaitForGroup given negative timeout. Possible infinite hang if timeout happens to be -1 (BKNI_INFINITE)."));
+        }
+        if (timeoutMsec < 16) {
+            timeoutMsec = 16; /* This is used to achieve consistency between different OS's. */
+        }
+        rc = BKNI_P_SetTargetTime(&target, timeoutMsec);
+        if (rc) {
+            return BERR_TRACE(BERR_OS_ERROR);
+        }
     }
     rc = pthread_mutex_lock(&group->lock);
     if (rc!=0) {
         BDBG_ERR(("pthread_mutex_lock failed, rc=%d", rc));
         BDBG_ASSERT(false);
     }
-    for(count=0;;count++) {
+    for(;;) {
         *nevents = group_get_events(group, events, max_events);
         if (*nevents) {
-            if(count==0) {
-                BKNI_GroupObj_Stats_WaitEvents_Fast(group);
-            }
-            BKNI_GroupObj_Stats_WaitEvents_Result(group, *nevents);
             goto done;
         }
         if (timeoutMsec == 0) {
@@ -1484,32 +1468,15 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
             rc = pthread_cond_wait(&group->cond, &group->lock);
         }
         else {
-            if(count==0) {
-                timeoutMsec = BKNI_P_ScaleTime(timeoutMsec);
-                if (timeoutMsec!=0 && timeoutMsec!=BKNI_INFINITE) {
-                    if (timeoutMsec<0) {
-                        /* If your app is written to allow negative values to this function, then it's highly likely you would allow -1, which would
-                           result in an infinite hang. We recommend that you only pass positive values to this function unless you definitely mean BKNI_INFINITE. */
-                        BDBG_WRN(("BKNI_WaitForGroup given negative timeout. Possible infinite hang if timeout happens to be -1 (BKNI_INFINITE)."));
-                    }
-                    if (timeoutMsec < 16) {
-                        timeoutMsec = 16; /* This is used to achieve consistency between different OS's. */
-                    }
-                    rc = BKNI_P_SetTargetTime(&target, timeoutMsec);
-                    if (rc) {
-                        rc = BERR_TRACE(BERR_OS_ERROR); goto done;
-                    }
-                }
-            }
             rc = pthread_cond_timedwait(&group->cond, &group->lock, &target);
             if (rc==ETIMEDOUT) {
-                BDBG_MSG(("BKNI_WaitForGroup(%p): timeout", (void *)group));
+                BDBG_MSG(("BKNI_WaitForGroup(%#x): timeout", (unsigned)(unsigned long)group));
                 result = BERR_TIMEOUT;
                 goto done;
             }
         }
         if(rc==EINTR) {
-            BDBG_MSG(("BKNI_WaitForGroup(%p): interrupted", (void *)group));
+            BDBG_MSG(("BKNI_WaitForGroup(%#x): interrupted", (unsigned)(unsigned long)group));
             continue;
         }
         if (rc!=0) {
@@ -1520,7 +1487,6 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
     }
 
 done:
-    BKNI_GroupObj_Stats_WaitEvents_Result(group, *nevents);
     rc = pthread_mutex_unlock(&group->lock);
     if (rc!=0) {
         BDBG_ERR(("pthread_mutex_unlock failed, rc=%d", rc));

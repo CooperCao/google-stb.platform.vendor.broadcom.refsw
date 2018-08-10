@@ -132,8 +132,6 @@ typedef struct bmp4_mp4_headers {
     uint32_t psshDataLength[BMP4_MAX_DRM_SCHEMES];
     bmp4_protectionSchemeInfo scheme[BMP4_MAX_NB_OF_TRACKS]; /* Pool of protection scheme info for tracks */
     uint32_t nbOfSchemes;           /* Number of encrypted tracks discovered from the moov */
-    bmp4_trackheaderbox trackHeader[BMP4_MAX_NB_OF_TRACKS]; /* Track headers */
-    uint32_t nbOfTracks;           /* Number of tracks discovered from the moov */
     bool piff_1_3;                  /* Set when PIFF 1.3 (CENC) is detected */
 } bmp4_mp4_headers;
 

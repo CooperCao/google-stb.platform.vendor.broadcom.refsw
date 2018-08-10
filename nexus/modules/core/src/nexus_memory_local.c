@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,11 +65,6 @@ struct NEXUS_CoreModule_StateLocal {
     BKNI_MutexHandle dataLock; /* this lock protects _only_ the 'localBlocks' data structure, no other nexus functions could be called while holding this lock */
     BMMA_PoolAllocator_Handle poolAllocator;
     struct NEXUS_P_MemoryMapOffsetTree offsetTree;
-#define NEXUS_P_MEMORY_ZOMBIE_THRESHOLD 64
-    unsigned zombieCount; /* number of time NEXUS_MemoryBlock_Lock was detected conflict with stale (already freed) blocks */
-#define NEXUS_P_MEMORY_LEAK_BASE_THRESHOLD 256
-    unsigned leakCount; /* counter that estimates number of allocated but not freed local state */
-    unsigned leakThreshold; /* current threshold */
 };
 
 static struct NEXUS_CoreModule_StateLocal g_NexusCoreLocal;
@@ -126,136 +121,53 @@ void NEXUS_MemoryBlock_Release_local(NEXUS_MemoryBlockHandle memoryBlock, const 
 }
 #endif
 
-struct NEXUS_MemoryMapOffsetKey {
-    NEXUS_Addr offset;
-    const struct NEXUS_MemoryMapNode *node;
-};
-
-static int NEXUS_P_MemoryMapOffset_Compare_isrsafe(const struct NEXUS_MemoryMapNode * node, const struct NEXUS_MemoryMapOffsetKey *key)
+static int NEXUS_P_MemoryMapOffset_Compare_isrsafe(const struct NEXUS_MemoryMapNode * node, NEXUS_Addr offset)
 {
-    if(key->offset > node->offset) {
+    if(offset > node->offset) {
         return 1;
-    } else if(key->offset==node->offset) {
-        if(key->node > node) {
-            return 1;
-        } else if(key->node == node) {
-            return 0;
-        }
-        return -1;
+    } else if(offset==node->offset) {
+        return 0;
     } else {
         return -1;
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND_SOME(NEXUS_P_MemoryMapOffsetTree , const struct NEXUS_MemoryMapOffsetKey *, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare_isrsafe)
-BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_MemoryMapOffsetTree, NEXUS_MemoryMapNode, offsetNode)
-BLST_AA_TREE_GENERATE_PREV(NEXUS_P_MemoryMapOffsetTree, NEXUS_MemoryMapNode, offsetNode)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryMapOffsetTree, const struct NEXUS_MemoryMapOffsetKey *, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_MemoryMapOffsetTree , NEXUS_Addr, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryMapOffsetTree, NEXUS_Addr, NEXUS_MemoryMapNode, offsetNode, NEXUS_P_MemoryMapOffset_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_MemoryMapOffsetTree, NEXUS_MemoryMapNode, offsetNode)
 
 void NEXUS_P_MemoryMap_InitNode(struct NEXUS_MemoryMapNode *node)
 {
     node->offset = 0;
-    node->size = 0;
+    node->sibling = NULL;
     node->lockedMem = NULL;
     return;
 }
 
-static struct NEXUS_MemoryMapNode *NEXUS_P_MemoryMap_FindByOffset_locked_mmapLock(NEXUS_Addr offset)
-{
-    struct NEXUS_MemoryMapOffsetKey key;
-    struct NEXUS_MemoryMapNode *node;
-
-    key.offset = offset;
-    key.node = NULL;
-    node = BLST_AA_TREE_FIND_SOME(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree, &key);
-    if(node) {/* FIND_SOME could return smaller entry */
-        if(node->offset < offset) {
-            node = BLST_AA_TREE_NEXT(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree, node);
-        }
-        if(node && node->offset != offset) {
-            node = NULL;
-        }
-    }
-    return node;
-}
-
-static NEXUS_Error NEXUS_P_MemoryBlock_CheckOffsetZombie(NEXUS_Addr offset, size_t size)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    struct NEXUS_MemoryMapNode *middle,*node;
-    struct NEXUS_MemoryMapOffsetKey key;
-
-    key.offset = offset;
-    key.node = NULL;
-
-    BKNI_AcquireMutex(g_NexusCoreLocal.mmapLock);
-    /* detect 'stale' blocks that will conflict with creating memory map */
-
-    middle = BLST_AA_TREE_FIND_SOME(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree, &key);
-    if(middle) {
-        for(node=middle;node;) {
-            if( node->offset <= offset) {
-                if( node->offset + node->size <= offset) {
-                    break;
-                }
-                if(node->offset != offset || node->size != size) {
-                    BDBG_WRN(("map: " BDBG_UINT64_FMT ":%u..." BDBG_UINT64_FMT " not compatible with existing map " BDBG_UINT64_FMT ":%u..." BDBG_UINT64_FMT  "->%p", BDBG_UINT64_ARG(offset), (unsigned)size, BDBG_UINT64_ARG(offset+size), BDBG_UINT64_ARG(node->offset), (unsigned)node->size, BDBG_UINT64_ARG(node->offset+node->size), node->lockedMem));
-                    rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done;
-                }
-            }
-            node = BLST_AA_TREE_PREV(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree, node);
-        }
-        for(node=middle;node;) {
-            if( node->offset >= offset) {
-                if( node->offset >= offset + size) {
-                    break;
-                }
-                if(node->offset != offset || node->size != size) {
-                    BDBG_WRN(("map: " BDBG_UINT64_FMT ":%u..." BDBG_UINT64_FMT " not compatible with existing map " BDBG_UINT64_FMT ":%u..." BDBG_UINT64_FMT  "->%p", BDBG_UINT64_ARG(offset), (unsigned)size, BDBG_UINT64_ARG(offset+size), BDBG_UINT64_ARG(node->offset), (unsigned)node->size, BDBG_UINT64_ARG(node->offset+node->size), node->lockedMem));
-                    rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done;
-                }
-            }
-            node = BLST_AA_TREE_NEXT(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree, node);
-        }
-    }
-done:
-    BKNI_ReleaseMutex(g_NexusCoreLocal.mmapLock);
-    return rc;
-}
-
-NEXUS_Error NEXUS_P_MemoryMap_Map(struct NEXUS_MemoryMapNode *memoryMap, NEXUS_Addr offset, size_t size)
+NEXUS_Error NEXUS_P_MemoryMap_Map(struct NEXUS_MemoryMapNode *node, NEXUS_Addr offset, size_t size)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     struct NEXUS_MemoryMapNode *sibling;
-    struct NEXUS_MemoryMapNode *nodeInserted;
-    struct NEXUS_MemoryMapOffsetKey key;
-
-    memoryMap->offset = offset;
-    memoryMap->size = size;
     BKNI_AcquireMutex(g_NexusCoreLocal.mmapLock);
-
-    sibling = NEXUS_P_MemoryMap_FindByOffset_locked_mmapLock(offset);
-
+    sibling = BLST_AA_TREE_FIND(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree, offset);
     if(sibling) {
-        if(sibling->size != size) {
-            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done;
-        }
-        /* this offset is already mapped */
-        BDBG_ASSERT(sibling!=memoryMap);
-        memoryMap->lockedMem = sibling->lockedMem;
+        BDBG_ASSERT(sibling->sibling==NULL); /* we could have only one more entry with the same offset */
+        sibling->sibling = node;
+        node->sibling = sibling;
+        node->lockedMem = sibling->lockedMem;
+        node->offset = 0; /* NULL indicated that it's a slave */
     } else {
-        memoryMap->lockedMem = NEXUS_Platform_P_MapMemory(memoryMap->offset, memoryMap->size, NEXUS_AddrType_eCached);
-        if(memoryMap->lockedMem==NULL) {
-            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto done;
+        node->lockedMem = NEXUS_Platform_P_MapMemory(offset, size, NEXUS_AddrType_eCached);
+        if(node->lockedMem==NULL) {
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        } else {
+            struct NEXUS_MemoryMapNode *nodeInserted;
+            node->offset = offset;
+            node->sibling = NULL;
+            nodeInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryMapOffsetTree,&g_NexusCoreLocal.offsetTree, node->offset, node);
+            BDBG_ASSERT(nodeInserted == node);
         }
     }
-    key.offset = memoryMap->offset;
-    key.node = memoryMap;
-    nodeInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryMapOffsetTree,&g_NexusCoreLocal.offsetTree, &key, memoryMap);
-    BDBG_ASSERT(nodeInserted == memoryMap);
-done:
-    BDBG_MSG(("map: %p(" BDBG_UINT64_FMT ":%u..."BDBG_UINT64_FMT" -> %p) sibling:%p", (void *)memoryMap, BDBG_UINT64_ARG(memoryMap->offset), (unsigned)memoryMap->size, BDBG_UINT64_ARG(memoryMap->offset+memoryMap->size), memoryMap->lockedMem, (void *)sibling));
     BKNI_ReleaseMutex(g_NexusCoreLocal.mmapLock);
     return rc;
 }
@@ -265,13 +177,21 @@ void NEXUS_P_MemoryMap_Unmap(struct NEXUS_MemoryMapNode *node, size_t size)
     struct NEXUS_MemoryMapNode *sibling;
     BKNI_AcquireMutex(g_NexusCoreLocal.mmapLock);
     BLST_AA_TREE_REMOVE(NEXUS_P_MemoryMapOffsetTree,&g_NexusCoreLocal.offsetTree, node);
-    sibling = NEXUS_P_MemoryMap_FindByOffset_locked_mmapLock(node->offset);
-    BDBG_MSG(("unmap: %p(%p:%u...%p) sibling:%p", (void *)node, node->lockedMem, (unsigned)size, (char *)node->lockedMem+size, (void *)sibling));
-    if(sibling==NULL) { /* there is no another live instance with the same mapping */
+    sibling = node->sibling;
+    if(sibling) { /* there is another live instance with the same mapping */
+        struct NEXUS_MemoryMapNode *nodeInserted;
+        BDBG_ASSERT(sibling->offset==0);
+        BDBG_ASSERT(sibling->sibling==node);
+        BDBG_ASSERT(sibling->lockedMem==node->lockedMem);
+        sibling->offset = node->offset;
+        sibling->sibling = NULL;
+        nodeInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryMapOffsetTree,&g_NexusCoreLocal.offsetTree, sibling->offset, sibling);
+        BDBG_ASSERT(nodeInserted == sibling);
+    } else {
         NEXUS_Platform_P_UnmapMemory(node->lockedMem, size, NEXUS_AddrType_eCached);
     }
+    node->sibling = NULL;
     node->offset = 0;
-    node->size = 0;
     node->lockedMem = NULL;
     BKNI_ReleaseMutex(g_NexusCoreLocal.mmapLock);
     return;
@@ -341,106 +261,20 @@ void NEXUS_StartCallbacks_tagged(void *interfaceHandle, const char *pFileName, u
     return;
 }
 
-struct NEXUS_MemoryMapPtrKey {
-    void *lockedMem;
-    const struct NEXUS_MemoryBlockLocal *node;
-};
-
-static int NEXUS_P_MemoryBlockAddress_Compare_isrsafe(const struct NEXUS_MemoryBlockLocal * node, const struct NEXUS_MemoryMapPtrKey *key)
+static int NEXUS_P_MemoryBlockAddress_Compare_isrsafe(const struct NEXUS_MemoryBlockLocal * node, void *addr)
 {
-    if((char *)key->lockedMem > (char *)node->memoryMap.lockedMem) {
+    if((char *)addr > (char *)node->memoryMap.lockedMem) {
         return 1;
-    } else if(key->lockedMem == node->memoryMap.lockedMem) {
-        if(key->node > node) {
-            return 1;
-        } else if (key->node == node) {
-            return 0;
-        } else {
-            return -1;
-        }
+    } else if(addr==node->memoryMap.lockedMem) {
+        return 0;
     } else {
         return -1;
     }
 }
 
-BLST_AA_TREE_GENERATE_FIND_SOME(NEXUS_P_MemoryBlockAddressTree , const struct NEXUS_MemoryMapPtrKey *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare_isrsafe)
-BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_MemoryBlockAddressTree, NEXUS_MemoryBlockLocal, addressNode)
-BLST_AA_TREE_GENERATE_PREV(NEXUS_P_MemoryBlockAddressTree, NEXUS_MemoryBlockLocal, addressNode)
-BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryBlockAddressTree, const struct NEXUS_MemoryMapPtrKey *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_MemoryBlockAddressTree , void *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare_isrsafe)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_MemoryBlockAddressTree, void *, NEXUS_MemoryBlockLocal, addressNode, NEXUS_P_MemoryBlockAddress_Compare_isrsafe)
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_MemoryBlockAddressTree, NEXUS_MemoryBlockLocal, addressNode)
-
-static unsigned NEXUS_P_MemoryBlock_ScanZombie_locked(void)
-{
-    struct NEXUS_MemoryBlockLocal *memoryBlockLocal;
-    unsigned zombies = 0;
-    BDBG_WRN(("scanning local state for 'zombies'"));
-
-    for(memoryBlockLocal = BLST_D_FIRST(&g_NexusCoreLocal.localBlocks); memoryBlockLocal;) {
-        struct NEXUS_MemoryBlockLocal *next_node;
-        NEXUS_Error rc;
-        NEXUS_MemoryBlockUserState userState;
-
-        BDBG_OBJECT_ASSERT(memoryBlockLocal, NEXUS_MemoryBlockLocal);
-
-        next_node = BLST_D_NEXT(memoryBlockLocal,link);
-
-        rc = NEXUS_MemoryBlock_GetUserState_local(memoryBlockLocal->memoryBlock, &userState);
-        if(rc != NEXUS_SUCCESS || userState.state != memoryBlockLocal) {
-            bool address = memoryBlockLocal->memoryMap.lockedMem != NULL;
-            bool ondemand = (memoryBlockLocal->properties.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
-            BDBG_WRN(("Remove zombie(%u) %s %s local block %p(%p) lockedMem:%p offset:" BDBG_UINT64_FMT ":%u", zombies, address?"[Address]":"", ondemand?"[OnDemand]":"", (void *)memoryBlockLocal, (void *)memoryBlockLocal->memoryBlock, memoryBlockLocal->memoryMap.lockedMem, BDBG_UINT64_ARG(memoryBlockLocal->memoryMap.offset), (unsigned)memoryBlockLocal->memoryMap.size));
-            zombies ++;
-            if(address) {
-                if(ondemand) {
-                    NEXUS_P_MemoryMap_Unmap(&memoryBlockLocal->memoryMap, memoryBlockLocal->properties.size);
-                }
-                BLST_AA_TREE_REMOVE(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, memoryBlockLocal);
-            }
-            BKNI_AcquireMutex(g_NexusCoreLocal.dataLock);
-            NEXUS_P_MemoryBlockLocal_Destroy_dataLocked(memoryBlockLocal);
-            BKNI_ReleaseMutex(g_NexusCoreLocal.dataLock);
-        }
-        memoryBlockLocal = next_node;
-    }
-    BKNI_AcquireMutex(g_NexusCoreLocal.dataLock);
-    g_NexusCoreLocal.zombieCount=0;
-    g_NexusCoreLocal.leakCount=0;
-    g_NexusCoreLocal.leakThreshold = NEXUS_P_MEMORY_LEAK_BASE_THRESHOLD;
-    BKNI_ReleaseMutex(g_NexusCoreLocal.dataLock);
-    return zombies;
-}
-
-#if 0
-BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_MemoryBlockAddressTree, NEXUS_MemoryBlockLocal, addressNode)
-static void NEXUS_P_MemoryBlock_VerifyTries_locked(void)
-{
-    struct NEXUS_MemoryBlockLocal *node;
-    struct NEXUS_MemoryBlockLocal *prev=NULL;
-    for(node=BLST_AA_TREE_FIRST(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree);
-        node;
-        node = BLST_AA_TREE_NEXT(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, node)) {
-        if(prev) {
-            BDBG_ASSERT((uint8_t *)node->memoryMap.lockedMem >= (uint8_t *)prev->memoryMap.lockedMem);
-            if(node->memoryMap.lockedMem == prev->memoryMap.lockedMem) {
-                BDBG_ASSERT(node->memoryMap.size == prev->memoryMap.size);
-            } else {
-                if( ! ((uint8_t *)prev->memoryMap.lockedMem + prev->memoryMap.size <= (uint8_t *)node->memoryMap.lockedMem)) {
-                    BDBG_ERR(("prev:%p (%p:%u:%p) next:%p (%p:%u:%p)", (void *)prev->memoryBlock, prev->memoryMap.lockedMem, prev->memoryMap.size, (uint8_t *)prev->memoryMap.lockedMem + prev->memoryMap.size, (void *)node->memoryBlock, node->memoryMap.lockedMem, node->memoryMap.size, (uint8_t *)node->memoryMap.lockedMem + node->memoryMap.size));
-                }
-                BDBG_ASSERT((uint8_t *)prev->memoryMap.lockedMem + prev->memoryMap.size <= (uint8_t *)node->memoryMap.lockedMem);
-                prev = node;
-            }
-        } else {
-            prev = node;
-        }
-    }
-    return;
-}
-#else
-static void NEXUS_P_MemoryBlock_VerifyTries_locked(void)
-{
-}
-#endif
 
 static struct NEXUS_MemoryBlockLocal *NEXUS_P_MemoryBlock_CreateLocal_locked(NEXUS_MemoryBlockHandle memoryBlock)
 {
@@ -455,47 +289,28 @@ static struct NEXUS_MemoryBlockLocal *NEXUS_P_MemoryBlock_CreateLocal_locked(NEX
     }
     BDBG_OBJECT_INIT(memoryBlockLocal, NEXUS_MemoryBlockLocal);
     BKNI_AcquireMutex(g_NexusCoreLocal.dataLock);
-    g_NexusCoreLocal.leakCount++;
     BLST_D_INSERT_HEAD(&g_NexusCoreLocal.localBlocks, memoryBlockLocal, link);
     BKNI_ReleaseMutex(g_NexusCoreLocal.dataLock);
-
     memoryBlockLocal->memoryMap.lockedMem = NULL;
     memoryBlockLocal->lockCnt = 0;
     memoryBlockLocal->memoryBlock = memoryBlock;
     userState.state = memoryBlockLocal;
     NEXUS_P_MemoryMap_InitNode(&memoryBlockLocal->memoryMap);
     NEXUS_MemoryBlock_SetUserState_local(memoryBlock, &userState);
-    if(g_NexusCoreLocal.leakCount>g_NexusCoreLocal.leakThreshold) {
-        unsigned leakThreshold = g_NexusCoreLocal.leakThreshold;
-        if(NEXUS_P_MemoryBlock_ScanZombie_locked()==0) {
-            leakThreshold *= 2;
-            if(leakThreshold>g_NexusCoreLocal.leakThreshold) {
-                g_NexusCoreLocal.leakThreshold = leakThreshold;
-            }
-        } else {
-            leakThreshold /= 2;
-            if(leakThreshold<NEXUS_P_MEMORY_LEAK_BASE_THRESHOLD) {
-                leakThreshold=NEXUS_P_MEMORY_LEAK_BASE_THRESHOLD;
-            }
-            g_NexusCoreLocal.leakThreshold = leakThreshold;
-        }
-    }
     return memoryBlockLocal;
 }
 
-static struct NEXUS_MemoryBlockLocal *NEXUS_P_MemoryBlock_GetLocal_locked(NEXUS_MemoryBlockHandle memoryBlock, bool *fresh)
+static struct NEXUS_MemoryBlockLocal *NEXUS_P_MemoryBlock_GetLocal_locked(NEXUS_MemoryBlockHandle memoryBlock)
 {
     struct NEXUS_MemoryBlockLocal *memoryBlockLocal;
     NEXUS_Error rc;
     NEXUS_MemoryBlockUserState userState;
 
-    *fresh= false;
     rc = NEXUS_MemoryBlock_GetUserState_local(memoryBlock, &userState);
     if(rc == NEXUS_SUCCESS) {
         memoryBlockLocal =  userState.state;
         BDBG_OBJECT_ASSERT(memoryBlockLocal, NEXUS_MemoryBlockLocal);
     } else if(rc == NEXUS_NOT_AVAILABLE) {
-        *fresh = true;
         memoryBlockLocal = NEXUS_P_MemoryBlock_CreateLocal_locked(memoryBlock);
         if(memoryBlockLocal) {
             NEXUS_MemoryBlock_GetProperties(memoryBlock, &memoryBlockLocal->properties);
@@ -534,6 +349,7 @@ NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_Allocate_tagged(NEXUS_HeapHandle heap,
     const char *fileName, unsigned lineNumber)
 {
     NEXUS_MemoryBlockHandle memoryBlock;
+    struct NEXUS_MemoryBlockLocal *memoryBlockLocal;
     struct NEXUS_MemoryBlockProperties properties;
     NEXUS_MemoryBlockTag tag;
 
@@ -551,38 +367,23 @@ NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_Allocate_tagged(NEXUS_HeapHandle heap,
         return NULL;
     }
 
-    return memoryBlock;
+    BKNI_AcquireMutex(g_NexusCoreLocal.lock);
+    memoryBlockLocal = NEXUS_P_MemoryBlock_CreateLocal_locked(memoryBlock);
+    BKNI_ReleaseMutex(g_NexusCoreLocal.lock);
+    if(memoryBlockLocal) {
+        memoryBlockLocal->properties = properties;
+        return memoryBlockLocal->memoryBlock;
+    } else {
+        return memoryBlock;
+    }
 }
 
 static void NEXUS_P_MemoryBlockLocal_Destroy_dataLocked(struct NEXUS_MemoryBlockLocal *memoryBlockLocal)
 {
-    if(g_NexusCoreLocal.leakCount>0) {
-        g_NexusCoreLocal.leakCount--;
-    }
     BLST_D_REMOVE(&g_NexusCoreLocal.localBlocks, memoryBlockLocal, link);
     BDBG_OBJECT_DESTROY(memoryBlockLocal, NEXUS_MemoryBlockLocal);
     BMMA_PoolAllocator_Free(g_NexusCoreLocal.poolAllocator, memoryBlockLocal);
     return;
-}
-
-static struct NEXUS_MemoryBlockLocal *NEXUS_P_MemoryBlock_FindByPtr_locked(void *lockedMem)
-{
-    struct NEXUS_MemoryMapPtrKey key;
-    struct NEXUS_MemoryBlockLocal *node;
-    key.lockedMem = lockedMem;
-    key.node = NULL;
-
-    node = BLST_AA_TREE_FIND_SOME(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, &key);
-    if(node) {
-        /* FIND_SOME could return value that is smaller */
-        if((char *)node->memoryMap.lockedMem < (char *)lockedMem) {
-            node = BLST_AA_TREE_NEXT(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, node);
-        }
-        if(node && node->memoryMap.lockedMem != lockedMem) {
-            node = NULL;
-        }
-    }
-    return node;
 }
 
 void NEXUS_MemoryBlock_Free_local(NEXUS_MemoryBlockHandle memoryBlock)
@@ -603,9 +404,7 @@ void NEXUS_MemoryBlock_Free_local(NEXUS_MemoryBlockHandle memoryBlock)
         if(memoryBlockLocal->memoryMap.lockedMem) {
             BLST_AA_TREE_REMOVE(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, memoryBlockLocal);
             if( (memoryBlockLocal->properties.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
-                if(!NEXUS_P_MemoryBlock_FindByPtr_locked(&memoryBlockLocal->memoryMap.lockedMem)) {
-                    NEXUS_P_MemoryMap_Unmap(&memoryBlockLocal->memoryMap, memoryBlockLocal->properties.size);
-                }
+                NEXUS_P_MemoryMap_Unmap(&memoryBlockLocal->memoryMap, memoryBlockLocal->properties.size);
             }
         }
 #if NEXUS_MODE_proxy || NEXUS_MODE_client
@@ -623,6 +422,8 @@ void NEXUS_MemoryBlock_Free_local(NEXUS_MemoryBlockHandle memoryBlock)
         BKNI_AcquireMutex(g_NexusCoreLocal.dataLock);
         NEXUS_P_MemoryBlockLocal_Destroy_dataLocked(memoryBlockLocal);
         BKNI_ReleaseMutex(g_NexusCoreLocal.dataLock);
+    } else {
+        BDBG_MSG(("Unknown memoryBlock %p", (void *)memoryBlock));
     }
     BKNI_ReleaseMutex(g_NexusCoreLocal.lock);
 }
@@ -642,9 +443,6 @@ NEXUS_Error NEXUS_CoreModule_LocalInit(void)
     BLST_AA_TREE_INIT(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree);
     BLST_AA_TREE_INIT(NEXUS_P_MemoryMapOffsetTree, &g_NexusCoreLocal.offsetTree);
     BLST_D_INIT(&g_NexusCoreLocal.localBlocks);
-    g_NexusCoreLocal.zombieCount=0;
-    g_NexusCoreLocal.leakCount=0;
-    g_NexusCoreLocal.leakThreshold = NEXUS_P_MEMORY_LEAK_BASE_THRESHOLD;
 
     rc = BKNI_CreateMutex(&g_NexusCoreLocal.lock);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_lock; }
@@ -691,46 +489,12 @@ void NEXUS_CoreModule_LocalUninit(void)
     return;
 }
 
-
-static void NEXUS_P_MemoryBlock_DestroyOneZombie_locked(struct NEXUS_MemoryBlockLocal *memoryBlockLocal)
-{
-    BLST_AA_TREE_REMOVE(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, memoryBlockLocal);
-    if((memoryBlockLocal->properties.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
-        if(!NEXUS_P_MemoryBlock_FindByPtr_locked(memoryBlockLocal->memoryMap.lockedMem)) {
-            NEXUS_P_MemoryMap_Unmap(&memoryBlockLocal->memoryMap, memoryBlockLocal->properties.size);
-        }
-    }
-    BKNI_AcquireMutex(g_NexusCoreLocal.dataLock);
-    NEXUS_P_MemoryBlockLocal_Destroy_dataLocked(memoryBlockLocal);
-    g_NexusCoreLocal.zombieCount++;
-    BKNI_ReleaseMutex(g_NexusCoreLocal.dataLock);
-    return;
-}
-
-static NEXUS_Error NEXUS_P_MemoryBlock_CheckPtrZombie_locked(const struct NEXUS_MemoryBlockLocal *memoryBlockLocal, struct NEXUS_MemoryBlockLocal *node)
-{
-    NEXUS_Error rc;
-    NEXUS_MemoryBlockUserState userState;
-
-    rc = NEXUS_MemoryBlock_GetUserState_local(node->memoryBlock, &userState);
-    if(rc != NEXUS_SUCCESS || userState.state != node ) {
-        /* there was another 'zombie' block that uses the same virtual address, kill it before inserting new block */
-        BDBG_WRN(("Remove zombie local block %p(%p %p:%u) %p:%u", (void *)node, (void *)node->memoryBlock, node->memoryMap.lockedMem, node->memoryMap.size, memoryBlockLocal->memoryMap.lockedMem, memoryBlockLocal->memoryMap.size));
-        NEXUS_P_MemoryBlock_DestroyOneZombie_locked(node);
-    } else if( node->memoryMap.lockedMem != memoryBlockLocal->memoryMap.lockedMem || node->memoryMap.size != memoryBlockLocal->memoryMap.size) {
-        BDBG_ERR(("new block:%p (%p:%u:%p) can't exist together with old block:%p (%p:%u:%p)", (void *)memoryBlockLocal->memoryBlock, memoryBlockLocal->memoryMap.lockedMem, memoryBlockLocal->memoryMap.size, (uint8_t *)memoryBlockLocal->memoryMap.lockedMem + memoryBlockLocal->memoryMap.size, (void *)node->memoryBlock, node->memoryMap.lockedMem, node->memoryMap.size, (uint8_t *)node->memoryMap.lockedMem + node->memoryMap.size));
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-    return NEXUS_SUCCESS;
-}
-
 static NEXUS_Error NEXUS_MemoryBlock_Lock_locked(NEXUS_MemoryBlockHandle memoryBlock, void **ppMemory)
 {
     struct NEXUS_MemoryBlockLocal *memoryBlockLocal;
     NEXUS_Error rc = NEXUS_SUCCESS;
-    bool fresh;
 
-    memoryBlockLocal=NEXUS_P_MemoryBlock_GetLocal_locked(memoryBlock, &fresh);
+    memoryBlockLocal=NEXUS_P_MemoryBlock_GetLocal_locked(memoryBlock);
     if(memoryBlockLocal==NULL) {
         *ppMemory = NULL;
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -743,6 +507,7 @@ static NEXUS_Error NEXUS_MemoryBlock_Lock_locked(NEXUS_MemoryBlockHandle memoryB
     if(memoryBlockLocal->lockCnt==0) {
         NEXUS_Addr addr;
         BERR_Code rc = NEXUS_MemoryBlock_LockOffset(memoryBlock, &addr);
+
         if(rc!=NEXUS_SUCCESS) {
             return BERR_TRACE(rc);
         }
@@ -751,12 +516,6 @@ static NEXUS_Error NEXUS_MemoryBlock_Lock_locked(NEXUS_MemoryBlockHandle memoryB
                 *ppMemory = NULL;
                 return BERR_TRACE(NEXUS_NOT_SUPPORTED);
             }
-            rc = NEXUS_P_MemoryBlock_CheckOffsetZombie(addr, memoryBlockLocal->properties.size);
-            if(rc!=NEXUS_SUCCESS) {
-                NEXUS_P_MemoryBlock_ScanZombie_locked(); /* scan and remove ALL zombies */
-                rc = NEXUS_P_MemoryBlock_CheckOffsetZombie(addr, memoryBlockLocal->properties.size); /* try again */
-                if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc); } /* if this failed we can't really map this memory */
-            }
             rc = NEXUS_P_MemoryMap_Map(&memoryBlockLocal->memoryMap, addr, memoryBlockLocal->properties.size);
             if(rc!=NEXUS_SUCCESS) {
                 rc = BERR_TRACE(rc);
@@ -764,70 +523,22 @@ static NEXUS_Error NEXUS_MemoryBlock_Lock_locked(NEXUS_MemoryBlockHandle memoryB
             }
         } else {
             memoryBlockLocal->memoryMap.offset = addr;
-            memoryBlockLocal->memoryMap.size = memoryBlockLocal->properties.size;
             memoryBlockLocal->memoryMap.lockedMem = NEXUS_OffsetToCachedAddr(addr);
-            /* 'fresh' limit scan to the very first 'Lock' however it is not really compatible with relocatable memory blocks */
-            if(memoryBlockLocal->memoryMap.lockedMem && fresh) {
-                /* if object was not used in this context, scan if there are some 'zombie' objects that share the same [address..address+size] range */
-                struct NEXUS_MemoryBlockLocal *node,*middle;
-                struct NEXUS_MemoryMapPtrKey key;
-                key.lockedMem = memoryBlockLocal->memoryMap.lockedMem;
-                key.node = NULL;
-
-                middle = BLST_AA_TREE_FIND_SOME(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, &key);
-                if(middle) {
-                    for(node=middle;node;) {
-                        struct NEXUS_MemoryBlockLocal *next_node;
-                        NEXUS_Error rc;
-                        BDBG_OBJECT_ASSERT(node, NEXUS_MemoryBlockLocal);
-                        if( (char *)node->memoryMap.lockedMem <= (char *)memoryBlockLocal->memoryMap.lockedMem) {
-                            if( (char *)node->memoryMap.lockedMem + node->memoryMap.size <= (char *)memoryBlockLocal->memoryMap.lockedMem) {
-                                break;
-                            }
-                            next_node = BLST_AA_TREE_PREV(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, node);
-                            middle=NULL; /* 'middle' node could be get deleted to clean it first */
-                            rc = NEXUS_P_MemoryBlock_CheckPtrZombie_locked(memoryBlockLocal, node);
-                            if(rc != NEXUS_SUCCESS) { return BERR_TRACE(rc); }
-                        } else {
-                            next_node = BLST_AA_TREE_PREV(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, node);
-                        }
-                        node = next_node;
-                    }
-                    if(middle==NULL) {
-                        middle = BLST_AA_TREE_FIND_SOME(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, &key);
-                    }
-                    for(node=middle;node;) {
-                        struct NEXUS_MemoryBlockLocal *next_node;
-                        NEXUS_Error rc;
-                        BDBG_OBJECT_ASSERT(node, NEXUS_MemoryBlockLocal);
-                        if( (char *)node->memoryMap.lockedMem >= (char *)memoryBlockLocal->memoryMap.lockedMem) {
-                            if( (char *)node->memoryMap.lockedMem >= (char *)memoryBlockLocal->memoryMap.lockedMem + memoryBlockLocal->memoryMap.size) {
-                                break;
-                            }
-                            next_node = BLST_AA_TREE_NEXT(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, node);
-                            rc = NEXUS_P_MemoryBlock_CheckPtrZombie_locked(memoryBlockLocal, node);
-                            if(rc != NEXUS_SUCCESS) { return BERR_TRACE(rc); }
-                        } else {
-                            next_node = BLST_AA_TREE_NEXT(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, node);
-                        }
-                        node = next_node;
-                    }
-                }
-            }
-            if(g_NexusCoreLocal.zombieCount>NEXUS_P_MEMORY_ZOMBIE_THRESHOLD) { /* scan all zombies */
-                NEXUS_P_MemoryBlock_ScanZombie_locked();
-            }
         }
         if(memoryBlockLocal->memoryMap.lockedMem) {
             struct NEXUS_MemoryBlockLocal *memoryBlockLocalInserted;
-            struct NEXUS_MemoryMapPtrKey key;
 
-            key.lockedMem = memoryBlockLocal->memoryMap.lockedMem;
-            key.node = memoryBlockLocal;
-            BDBG_MSG(("mapped block:%p -> address:%p", (void *)memoryBlock, memoryBlockLocal->memoryMap.lockedMem));
-            memoryBlockLocalInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, &key, memoryBlockLocal);
+            memoryBlockLocalInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, memoryBlockLocal->memoryMap.lockedMem, memoryBlockLocal);
+            if(memoryBlockLocalInserted!=memoryBlockLocal) {
+                /* there was another 'zomby' block that uses the same virtual address, kill it and insert new block */
+                BDBG_WRN(("Remove zomby local block %p and replace it with %p", (void *)memoryBlockLocalInserted, (void *)memoryBlockLocal));
+                BLST_AA_TREE_REMOVE(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, memoryBlockLocalInserted);
+                BKNI_AcquireMutex(g_NexusCoreLocal.dataLock);
+                NEXUS_P_MemoryBlockLocal_Destroy_dataLocked(memoryBlockLocalInserted);
+                BKNI_ReleaseMutex(g_NexusCoreLocal.dataLock);
+                memoryBlockLocalInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryBlockAddressTree,&g_NexusCoreLocal.addressTree, memoryBlockLocal->memoryMap.lockedMem, memoryBlockLocal);
+            }
             BDBG_ASSERT(memoryBlockLocalInserted==memoryBlockLocal);
-            NEXUS_P_MemoryBlock_VerifyTries_locked();
         }
     }
     memoryBlockLocal->lockCnt++;
@@ -892,13 +603,11 @@ void NEXUS_MemoryBlock_Unlock(NEXUS_MemoryBlockHandle memoryBlock)
     return;
 }
 
-
 NEXUS_MemoryBlockHandle NEXUS_MemoryBlock_FromAddress(void *pMemory)
 {
     struct NEXUS_MemoryBlockLocal *memoryBlockLocal;
-
     BKNI_AcquireMutex(g_NexusCoreLocal.lock);
-    memoryBlockLocal = NEXUS_P_MemoryBlock_FindByPtr_locked(pMemory);
+    memoryBlockLocal = BLST_AA_TREE_FIND(NEXUS_P_MemoryBlockAddressTree, &g_NexusCoreLocal.addressTree, pMemory);
     BKNI_ReleaseMutex(g_NexusCoreLocal.lock);
     if(memoryBlockLocal) {
         BDBG_ASSERT(pMemory==memoryBlockLocal->memoryMap.lockedMem);

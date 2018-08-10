@@ -1,5 +1,5 @@
 ############################################################
-# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 # See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 #############################################################################
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
@@ -153,6 +153,15 @@ ifeq ($(BME_ENABLE_WIDEVINE), y)
   OEMCRYPTO_TARGET = $(TARGET_LIB_DIR)/$(OEMCRYPTO_LIBNAME)
   OEMCRYPTO_LIB := ${CENC_DIR}/bin/${OEMCRYPTO_LIBNAME}
   WIDEVINE_TARGET = $(TARGET_LIB_DIR)/$(WIDEVINE_LIBNAME)
+endif
+
+# MS12 options
+ifeq ($(B_REFSW_ARCH), arm-linux)
+export BDSP_MS12_SUPPORT=b
+else ifeq ($(B_REFSW_ARCH), aarch64-linux)
+export BDSP_MS12_SUPPORT=b
+else ifeq ($(B_REFSW_ARCH), mipsel-linux)
+export BDSP_MS12_SUPPORT=c
 endif
 
 print-%  : ; @echo $($*)

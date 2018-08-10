@@ -800,6 +800,8 @@
 #define BFL4_BTC3WIRE_VIA_GCI	0x00000800 /* Enable 3wire coex through gci */
 #define BFL4_BTC3WIRE_VIA_GPIO	0x00001000 /* Enable 3wire coex through dot11mac*/
 #endif
+#define BFL4_SROM18_5G_CORE0_DETTYPE	0x00000004
+#define BFL4_SROM18_DETTYPE				0x00000008
 #define BFL4_SROM18_2G_CORE1_DETTYPE    0x00000400 /* Determine power detector type for 2G Core1 */
 #define BFL4_SROM18_2G_CORE2_DETTYPE    0x00000800 /* Determine power detector type for 2G Core2 */
 #define BFL4_SROM18_2G_CORE3_DETTYPE    0x00001000 /* Determine power detector type for 2G Core3 */

@@ -1403,7 +1403,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
     /* Get the current renderer and transcoder settings prior to calling BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings */
     if ( handle->hRendererStage )
     {
-        #if BDSP_MS12_SUPPORT
+        #if BAPE_DSP_MS12_SUPPORT
         errCode = BDSP_Stage_GetSettings(handle->hRendererStage, pRendererStageSettings, sizeof(BDSP_Raaga_Audio_DpcmrConfigParams));
         #else
         errCode = BDSP_Stage_GetSettings(handle->hRendererStage, pRendererStageSettings, sizeof(BDSP_Raaga_Audio_DDReencodeConfigParams));

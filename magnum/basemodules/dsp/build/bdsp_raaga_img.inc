@@ -77,6 +77,7 @@ BDSP_IMG_SOURCES += \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_sys_code.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_lib_sys.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_lib_algo.c \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_lib_algo_tables.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_common.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_vids_common.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_vids_common_inter_frame.c \
@@ -128,6 +129,12 @@ BDSP_MS12_SUPPORT = n
 BDSP_DOLBY_DCV_SUPPORT = y
 endif
 
+BDSP_MS11PLUS_SUPPORT ?= n
+ifeq ($(BDSP_MS11PLUS_SUPPORT),y)
+#No MS11PLUS for Legacy Chips. Fall back to MS11
+BDSP_MS11PLUS_SUPPORT = n
+BDSP_MS11_SUPPORT = y
+endif
 ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
 
 BDSP_UDC_SUPPORT = y

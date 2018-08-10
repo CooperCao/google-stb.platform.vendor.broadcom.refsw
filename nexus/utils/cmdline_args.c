@@ -42,7 +42,6 @@
 #include "nexus_platform.h"
 #include "nexus_core_utils.h"
 #include "cmdline_args.h"
-#if NEXUS_HAS_FILE
 #include "bmedia_probe.h"
 #include "bmpeg2ts_probe.h"
 #include "bmedia_cdxa.h"
@@ -52,12 +51,11 @@
 #if B_HAS_AVI
 #include "bavi_probe.h"
 #endif
-#include "bfile_stdio.h"
-#endif /* #if NEXUS_HAS_FILE */
 #if NEXUS_HAS_VIDEO_ENCODER && NEXUS_HAS_STREAM_MUX
 #include "nexus_video_encoder_types.h"
 #include "nexus_stream_mux.h"
 #endif
+#include "bfile_stdio.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -356,6 +354,9 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
                 return -1;
             }
         }
+        else if (!strcmp(argv[i], "-scan") && i+1<argc) {
+            opts->scanMode = !strcmp(argv[++i], "1080p") ? NEXUS_VideoDecoderScanMode_e1080p : NEXUS_VideoDecoderScanMode_eAuto;
+        }
         else if (!strcmp(argv[i], "-audio_type") && i+1<argc) {
             opts->audioCodec=lookup(g_audioCodecStrs, argv[++i]);
             state->isVideoEs = false;
@@ -419,11 +420,7 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
         else if (!strcmp(argv[i], "-source_3d") && i+1<argc) {
             opts->sourceOrientation=lookup(g_sourceOrientation, argv[++i]);
         }
-        else if (!strcmp(argv[i], "-scan") && i+1<argc) {
-            opts->scanMode = !strcmp(argv[++i], "1080p") ? NEXUS_VideoDecoderScanMode_e1080p : NEXUS_VideoDecoderScanMode_eAuto;
-        }
 #endif
-#if NEXUS_HAS_FILE
         else if (!strcmp(argv[i], "-pcm") && i+1<argc) {
             unsigned channel_count = opts->pcm_config.channel_count;
             unsigned sample_size = opts->pcm_config.sample_size;
@@ -435,7 +432,6 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
             opts->pcm_config.sample_rate = sample_rate;
             opts->pcm = true;
         }
-#endif
         else if (!strcmp(argv[i], "-max_video") && i+1<argc) {
             sscanf(argv[++i], "%u,%u", &opts->maxWidth, &opts->maxHeight);
         }

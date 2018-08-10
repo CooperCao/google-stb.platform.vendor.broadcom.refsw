@@ -48,7 +48,6 @@
 ***************************************************************************/
 /* Begin Includes */
 #include "nexus_frontend_3466_priv.h"
-#include "nexus_frontend_ofdm_helper_priv.h"
 #include "bchp_3466_leap_host_l1.h"
 #include "bhab_3466_priv.h"
 #include "bhab_3466_fw.h"
@@ -406,6 +405,35 @@ static void NEXUS_FrontendDevice_P_3466_UninstallCallbacks(void *handle)
 
 /* Terrestrial-specific functions */
 
+static BODS_SelectiveAsyncStatusType NEXUS_Frontend_P_3466_t2StatusTypeToOds(NEXUS_FrontendDvbt2StatusType type)
+{
+    switch (type)
+    {
+    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsL1Pre:
+        return BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsL1Pre;
+    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsL1Post:
+        return BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsL1Post;
+    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpA:
+        return BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsPlpA;
+    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpB:
+        return BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsPlpB;
+    case NEXUS_FrontendDvbt2StatusType_eL1Pre:
+        return BODS_SelectiveAsyncStatusType_eDvbt2L1Pre;
+    case NEXUS_FrontendDvbt2StatusType_eL1PostConfigurable:
+        return BODS_SelectiveAsyncStatusType_eDvbt2L1PostConfigurable;
+    case NEXUS_FrontendDvbt2StatusType_eL1PostDynamic:
+        return BODS_SelectiveAsyncStatusType_eDvbt2L1PostDynamic;
+    case NEXUS_FrontendDvbt2StatusType_eL1Plp:
+        return BODS_SelectiveAsyncStatusType_eDvbt2L1Plp;
+    case NEXUS_FrontendDvbt2StatusType_eBasic:
+        return BODS_SelectiveAsyncStatusType_eDvbt2Short;
+    default:
+        BDBG_WRN((" Unsupported status type."));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_SelectiveAsyncStatusType_eDvbt2Short;
+    }
+}
+
 static NEXUS_Error NEXUS_Frontend_P_3466_RequestDvbt2AsyncStatus(void *handle, NEXUS_FrontendDvbt2StatusType type)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
@@ -417,7 +445,7 @@ static NEXUS_Error NEXUS_Frontend_P_3466_RequestDvbt2AsyncStatus(void *handle, N
 
     pDevice = pChannel->pDevice;
 
-    statusType = NEXUS_Frontend_P_t2StatusTypeToDvbt2(type);
+    statusType = NEXUS_Frontend_P_3466_t2StatusTypeToOds(type);
 
     rc = BODS_RequestSelectiveAsyncStatus(pDevice->terrestrial.ods_chn[pChannel->chn_num], statusType);
     if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -469,7 +497,7 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbt2AsyncFecStatistics(void *handle
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     BKNI_Memset(&pDevice->terrestrial.odsStatus, 0, sizeof(pDevice->terrestrial.odsStatus));
 
-    statusType = NEXUS_Frontend_P_t2StatusTypeToDvbt2(type);
+    statusType = NEXUS_Frontend_P_3466_t2StatusTypeToOds(type);
 
     rc = BODS_GetSelectiveAsyncStatus(pDevice->terrestrial.ods_chn[pChannel->chn_num], statusType, &pDevice->terrestrial.odsStatus);
     if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -743,6 +771,133 @@ static void NEXUS_Frontend_P_PrintOfdmStatus(NEXUS_FrontendOfdmStatus *pStatus)
     BDBG_MSG(("pStatus->dvbt2Status.gainOffset = %d",pStatus->dvbt2Status.gainOffset));
 }
 
+static NEXUS_FrontendOfdmTransmissionMode NEXUS_Frontend_P_OdsToTransmissionMode(BODS_DvbtTransmissionMode mode)
+{
+    switch ( mode )
+    {
+    case BODS_DvbtTransmissionMode_e2K:
+        return NEXUS_FrontendOfdmTransmissionMode_e2k;
+    case BODS_DvbtTransmissionMode_e4K:
+        return NEXUS_FrontendOfdmTransmissionMode_e4k;
+    case BODS_DvbtTransmissionMode_e8K:
+        return NEXUS_FrontendOfdmTransmissionMode_e8k;
+    default:
+        BDBG_WRN(("Unrecognized transmission mode."));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return NEXUS_FrontendOfdmTransmissionMode_e8k;
+    }
+}
+
+static BODS_DvbtTransmissionMode NEXUS_Frontend_P_TransmissionModeToOds(NEXUS_FrontendOfdmTransmissionMode mode)
+{
+    switch ( mode )
+    {
+    case NEXUS_FrontendOfdmTransmissionMode_e2k:
+        return BODS_DvbtTransmissionMode_e2K;
+    case NEXUS_FrontendOfdmTransmissionMode_e4k:
+        return BODS_DvbtTransmissionMode_e4K;
+    case NEXUS_FrontendOfdmTransmissionMode_e8k:
+        return BODS_DvbtTransmissionMode_e8K;
+    default:
+        BDBG_WRN(("Unrecognized Nexus transmission mode."));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_DvbtTransmissionMode_e8K;
+    }
+}
+
+static NEXUS_FrontendOfdmModulation NEXUS_Frontend_P_THDToModulation(BODS_DvbtModulation modulation)
+{
+    switch ( modulation )
+    {
+    case BODS_DvbtModulation_eQpsk:
+        return NEXUS_FrontendOfdmModulation_eQpsk;
+    case BODS_DvbtModulation_e16Qam:
+        return NEXUS_FrontendOfdmModulation_eQam16;
+    case BODS_DvbtModulation_e64Qam:
+        return NEXUS_FrontendOfdmModulation_eQam64;
+    default:
+        BDBG_WRN(("Unrecognized modulation mode (%d) reported by BODS", modulation));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return NEXUS_FrontendOfdmModulation_eQam64;
+    }
+}
+static NEXUS_FrontendOfdmCodeRate NEXUS_Frontend_P_THDToCodeRate(BODS_DvbtCodeRate codeRate)
+{
+    switch ( codeRate )
+    {
+    case BODS_DvbtCodeRate_e1_2:
+        return NEXUS_FrontendOfdmCodeRate_e1_2;
+    case BODS_DvbtCodeRate_e2_3:
+        return NEXUS_FrontendOfdmCodeRate_e2_3;
+    case BODS_DvbtCodeRate_e3_4:
+        return NEXUS_FrontendOfdmCodeRate_e3_4;
+    case BODS_DvbtCodeRate_e5_6:
+        return NEXUS_FrontendOfdmCodeRate_e5_6;
+    case BODS_DvbtCodeRate_e7_8:
+        return NEXUS_FrontendOfdmCodeRate_e7_8;
+    default:
+        BDBG_WRN(("Unrecognized codeRate (%d) reported by BODS", codeRate));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return NEXUS_FrontendOfdmCodeRate_e1_2;
+    }
+}
+
+static NEXUS_FrontendOfdmGuardInterval NEXUS_Frontend_P_OdsToGuardInterval(BODS_DvbtGuardInterval guard)
+{
+    switch ( guard )
+    {
+    case BODS_DvbtGuardInterval_e1_4:
+        return NEXUS_FrontendOfdmGuardInterval_e1_4;
+    case BODS_DvbtGuardInterval_e1_8:
+        return NEXUS_FrontendOfdmGuardInterval_e1_8;
+    case BODS_DvbtGuardInterval_e1_16:
+        return NEXUS_FrontendOfdmGuardInterval_e1_16;
+    case BODS_DvbtGuardInterval_e1_32:
+        return NEXUS_FrontendOfdmGuardInterval_e1_32;
+    default:
+        BDBG_WRN(("Unrecognized guard interval (%d) reported by BODS", guard));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return NEXUS_FrontendOfdmGuardInterval_e1_4;
+    }
+}
+
+static BODS_DvbtGuardInterval NEXUS_Frontend_P_GuardIntervalToOds(NEXUS_FrontendOfdmGuardInterval guard)
+{
+    switch ( guard )
+    {
+    case NEXUS_FrontendOfdmGuardInterval_e1_4:
+        return BODS_DvbtGuardInterval_e1_4;
+    case NEXUS_FrontendOfdmGuardInterval_e1_8:
+        return BODS_DvbtGuardInterval_e1_8;
+    case NEXUS_FrontendOfdmGuardInterval_e1_16:
+        return BODS_DvbtGuardInterval_e1_16;
+    case NEXUS_FrontendOfdmGuardInterval_e1_32:
+        return BODS_DvbtGuardInterval_e1_32;
+    default:
+        BDBG_WRN(("Unrecognized guard interval (%d) reported by Nexus", guard));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_DvbtGuardInterval_e1_4;
+    }
+}
+
+static NEXUS_FrontendOfdmHierarchy NEXUS_Frontend_P_THDToHierarchy(BODS_DvbtHierarchy magnum)
+{
+    switch ( magnum )
+    {
+    case BODS_DvbtHierarchy_e0:
+        return NEXUS_FrontendOfdmHierarchy_e0;
+    case BODS_DvbtHierarchy_e1:
+        return NEXUS_FrontendOfdmHierarchy_e1;
+    case BODS_DvbtHierarchy_e2:
+        return NEXUS_FrontendOfdmHierarchy_e2;
+    case BODS_DvbtHierarchy_e4:
+        return NEXUS_FrontendOfdmHierarchy_e4;
+    default:
+        BDBG_WRN(("Unrecognized hierarchy (%d) reported by BODS", magnum));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return NEXUS_FrontendOfdmHierarchy_e0;
+    }
+}
 
 
 static NEXUS_Error NEXUS_Frontend_P_3466_GetOfdmAsyncStatus(void *handle, NEXUS_FrontendOfdmStatus *pStatus)
@@ -810,8 +965,8 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetOfdmAsyncStatus(void *handle, NEXUS_
         pStatus->receiverLock = pDevice->terrestrial.odsStatus.status.dvbt.receiverLock;
         pStatus->fecLock = pDevice->terrestrial.odsStatus.status.dvbt.fecLock;
         pStatus->noSignalDetected = pDevice->terrestrial.odsStatus.status.dvbt.noSignalDetected;
-        pStatus->transmissionMode = NEXUS_Frontend_P_DvbtToTransmissionMode(pDevice->terrestrial.odsStatus.status.dvbt.transmissionMode);
-        pStatus->guardInterval = NEXUS_Frontend_P_DvbtToGuardInterval(pDevice->terrestrial.odsStatus.status.dvbt.guardInterval);
+        pStatus->transmissionMode = NEXUS_Frontend_P_OdsToTransmissionMode(pDevice->terrestrial.odsStatus.status.dvbt.transmissionMode);
+        pStatus->guardInterval = NEXUS_Frontend_P_OdsToGuardInterval(pDevice->terrestrial.odsStatus.status.dvbt.guardInterval);
         pStatus->signalStrength = pDevice->terrestrial.odsStatus.status.dvbt.signalStrength/10;
         pStatus->signalLevelPercent = pDevice->terrestrial.odsStatus.status.dvbt.signalLevelPercent;
         pStatus->signalQualityPercent = pDevice->terrestrial.odsStatus.status.dvbt.signalQualityPercent;
@@ -820,9 +975,9 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetOfdmAsyncStatus(void *handle, NEXUS_
         pStatus->snr = pDevice->terrestrial.odsStatus.status.dvbt.snr*100/256;
         pStatus->spectrumInverted = pDevice->terrestrial.odsStatus.status.dvbt.spectrumInverted;
         pStatus->reacquireCount = pDevice->terrestrial.odsStatus.status.dvbt.reacqCount;
-        pStatus->modulation = NEXUS_Frontend_P_DvbtToModulation(pDevice->terrestrial.odsStatus.status.dvbt.modulation);
-        pStatus->codeRate = NEXUS_Frontend_P_DvbtToCodeRate(pDevice->terrestrial.odsStatus.status.dvbt.codeRate);
-        pStatus->hierarchy = NEXUS_Frontend_P_DvbtToHierarchy(pDevice->terrestrial.odsStatus.status.dvbt.hierarchy);
+        pStatus->modulation = NEXUS_Frontend_P_THDToModulation(pDevice->terrestrial.odsStatus.status.dvbt.modulation);
+        pStatus->codeRate = NEXUS_Frontend_P_THDToCodeRate(pDevice->terrestrial.odsStatus.status.dvbt.codeRate);
+        pStatus->hierarchy = NEXUS_Frontend_P_THDToHierarchy(pDevice->terrestrial.odsStatus.status.dvbt.hierarchy);
         pStatus->cellId = pDevice->terrestrial.odsStatus.status.dvbt.cellId;
         pStatus->fecCorrectedBlocks = pDevice->terrestrial.odsStatus.status.dvbt.rsCorrectedBlocks;
         pStatus->fecUncorrectedBlocks = pDevice->terrestrial.odsStatus.status.dvbt.rsUncorrectedBlocks;
@@ -919,6 +1074,62 @@ done:
     return rc;
 }
 
+static BODS_DvbtModulation NEXUS_Frontend_P_ModulationToDvbt(NEXUS_FrontendOfdmModulation modulation)
+{
+    switch ( modulation )
+    {
+    case NEXUS_FrontendOfdmModulation_eQpsk:
+        return BODS_DvbtModulation_eQpsk;
+    case NEXUS_FrontendOfdmModulation_eQam16:
+        return BODS_DvbtModulation_e16Qam;
+    case NEXUS_FrontendOfdmModulation_eQam64:
+        return BODS_DvbtModulation_e64Qam;
+    default:
+        BDBG_WRN(("Unrecognized modulation (%d)", modulation));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_DvbtModulation_eQpsk;
+    }
+}
+
+static BODS_DvbtCodeRate NEXUS_Frontend_P_CodeRateToDvbt(NEXUS_FrontendOfdmCodeRate codeRate)
+{
+    switch ( codeRate )
+    {
+    case NEXUS_FrontendOfdmCodeRate_e1_2:
+        return BODS_DvbtCodeRate_e1_2;
+    case NEXUS_FrontendOfdmCodeRate_e2_3:
+        return BODS_DvbtCodeRate_e2_3;
+    case NEXUS_FrontendOfdmCodeRate_e3_4:
+        return BODS_DvbtCodeRate_e3_4;
+    case NEXUS_FrontendOfdmCodeRate_e5_6:
+        return BODS_DvbtCodeRate_e5_6;
+    case NEXUS_FrontendOfdmCodeRate_e7_8:
+        return BODS_DvbtCodeRate_e7_8;
+    default:
+        BDBG_WRN(("Unrecognized code rate (%d)", codeRate));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_DvbtCodeRate_e1_2;
+    }
+}
+
+static BODS_DvbtHierarchy NEXUS_Frontend_P_HierarchyToDvbt(NEXUS_FrontendOfdmHierarchy hierarchy)
+{
+    switch ( hierarchy )
+    {
+    case NEXUS_FrontendOfdmHierarchy_e0:
+        return BODS_DvbtHierarchy_e0;
+    case NEXUS_FrontendOfdmHierarchy_e1:
+        return BODS_DvbtHierarchy_e1;
+    case NEXUS_FrontendOfdmHierarchy_e2:
+        return BODS_DvbtHierarchy_e2;
+    case NEXUS_FrontendOfdmHierarchy_e4:
+        return BODS_DvbtHierarchy_e4;
+    default:
+        BDBG_WRN(("Unrecognized hierarchy (%d)", hierarchy));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BODS_DvbtHierarchy_e0;
+    }
+}
 
 static NEXUS_Error NEXUS_Frontend_P_3466_RequestDvbtAsyncStatus(void *handle, NEXUS_FrontendDvbtStatusType type)
 {
@@ -986,11 +1197,11 @@ static NEXUS_Error NEXUS_Frontend_P_3466_GetDvbtAsyncStatus(void *handle, NEXUS_
         pStatus->status.basic.reacquireCount = pDevice->terrestrial.odsStatus.status.dvbt.reacqCount;
         pStatus->status.basic.viterbiErrorRate.rate = pDevice->terrestrial.odsStatus.status.dvbt.viterbiBer;
 
-        pStatus->status.basic.tps.modulation = NEXUS_Frontend_P_DvbtToModulation(pDevice->terrestrial.odsStatus.status.dvbt.modulation);
-        pStatus->status.basic.tps.transmissionMode = NEXUS_Frontend_P_DvbtToTransmissionMode(pDevice->terrestrial.odsStatus.status.dvbt.transmissionMode);
-        pStatus->status.basic.tps.guardInterval = NEXUS_Frontend_P_DvbtToGuardInterval(pDevice->terrestrial.odsStatus.status.dvbt.guardInterval);
-        pStatus->status.basic.tps.codeRate = NEXUS_Frontend_P_DvbtToCodeRate(pDevice->terrestrial.odsStatus.status.dvbt.codeRate);
-        pStatus->status.basic.tps.hierarchy = NEXUS_Frontend_P_DvbtToHierarchy(pDevice->terrestrial.odsStatus.status.dvbt.hierarchy);
+        pStatus->status.basic.tps.modulation = NEXUS_Frontend_P_THDToModulation(pDevice->terrestrial.odsStatus.status.dvbt.modulation);
+        pStatus->status.basic.tps.transmissionMode = NEXUS_Frontend_P_OdsToTransmissionMode(pDevice->terrestrial.odsStatus.status.dvbt.transmissionMode);
+        pStatus->status.basic.tps.guardInterval = NEXUS_Frontend_P_OdsToGuardInterval(pDevice->terrestrial.odsStatus.status.dvbt.guardInterval);
+        pStatus->status.basic.tps.codeRate = NEXUS_Frontend_P_THDToCodeRate(pDevice->terrestrial.odsStatus.status.dvbt.codeRate);
+        pStatus->status.basic.tps.hierarchy = NEXUS_Frontend_P_THDToHierarchy(pDevice->terrestrial.odsStatus.status.dvbt.hierarchy);
         pStatus->status.basic.tps.cellId = pDevice->terrestrial.odsStatus.status.dvbt.cellId;
         pStatus->status.basic.tps.inDepthSymbolInterleave = pDevice->terrestrial.odsStatus.status.dvbt.inDepthSymbolInterleave;
         pStatus->status.basic.tps.timeSlicing = pDevice->terrestrial.odsStatus.status.dvbt.timeSlicing;
@@ -1224,9 +1435,9 @@ full_acquire:
             odsParam.acquireParams.dvbt.tpsMode = BODS_DvbtTpsMode_eAuto;
         if(pSettings->manualModeSettings){
             odsParam.acquireParams.dvbt.transGuardMode = BODS_DvbtOfdmMode_eManual;
-            odsParam.acquireParams.dvbt.guardInterval = NEXUS_Frontend_P_GuardIntervalToDvbt(pSettings->modeSettings.guardInterval);
+            odsParam.acquireParams.dvbt.guardInterval = NEXUS_Frontend_P_GuardIntervalToOds(pSettings->modeSettings.guardInterval);
             if((pSettings->modeSettings.mode>NEXUS_FrontendOfdmTransmissionMode_e1k) && (pSettings->modeSettings.mode<NEXUS_FrontendOfdmTransmissionMode_e16k))
-                odsParam.acquireParams.dvbt.transmissionMode = NEXUS_Frontend_P_TransmissionModeToDvbt(pSettings->modeSettings.mode);
+                odsParam.acquireParams.dvbt.transmissionMode = NEXUS_Frontend_P_TransmissionModeToOds(pSettings->modeSettings.mode);
             else {
                 BDBG_ERR((" Unsupported DVBT Transmission mode."));
                 rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;

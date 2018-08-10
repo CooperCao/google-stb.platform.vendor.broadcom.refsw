@@ -1,44 +1,42 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to
- *  the terms and conditions of a separate, written license agreement executed
- *  between you and Broadcom (an "Authorized License").  Except as set forth in
- *  an Authorized License, Broadcom grants no license (express or implied),
- *  right to use, or waiver of any kind with respect to the Software, and
- *  Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization,
- *  constitutes the valuable trade secrets of Broadcom, and you shall use all
- *  reasonable efforts to protect the confidentiality thereof, and to use this
- *  information only in connection with your use of Broadcom integrated circuit
- *  products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
+
 #include "bmemperf_types64.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -62,7 +60,7 @@
 #include "bmemperf_utils.h"
 #include "nexus_platform.h"
 #include "bchp_common.h"
-#include "bmemperf_server_utils.h"
+#include "bmemperf_powerprobe.h"
 
 #define PRINTF2                      noprintf
 #define MAXHOSTNAME                  80
@@ -125,6 +123,14 @@ bmemperf_device_mbps     gSataUsbMbps[BMEMPERF_SATA_USB_MAX];
 bmemperf_device_mbps     gSataUsbMbpsHistory[BMEMPERF_SATA_USB_MAX][BMEMPERF_SATA_USB_HISTORY_MAX];
 unsigned int             gSataUsbMbpsHistoryIdx = 0;
 pthread_mutex_t          gSataUsbMutex;
+static pthread_t         gPowerProbeThreadId = 0;
+static unsigned long int gPowerProbeTelnet_pid = 0;
+static char              gPowerProbeIpAddr[INET6_ADDRSTRLEN];
+static unsigned char     gPowerProbeShunts[POWER_PROBE_MAX];
+static float             gPowerProbeVoltage[POWER_PROBE_MAX];
+static float             gPowerProbeCurrent[POWER_PROBE_MAX];
+static unsigned char     gPowerProbeConnected[POWER_PROBE_MAX];
+static unsigned char     gPowerProbeQuitCount = 0;
 static char              gServerStreamerIpAddr[INET6_ADDRSTRLEN];
 
 typedef struct
@@ -1152,6 +1158,700 @@ static int bmemperf_sata_usb_start(
     return( 0 );
 } /* bmemperf_sata_usb_start */
 
+/**
+ *  Function: This function will telnet to the Power Probe board and poll for the current and
+ *            voltage for up to 3 probes.
+ **/
+static void *bmemperf_power_probe_thread(
+    void *data
+    )
+{
+    struct sockaddr_in  srv;
+    int                 socket_fd=0;
+    int                 probe=0;
+    char                hostip[INET6_ADDRSTRLEN];
+    char                hostcmd[64];
+    char                response[1024];
+    struct timeval      tv1, tv2;
+    unsigned long long int microseconds1 = 0, microseconds2 = 0, microseconds3 = 0;
+    unsigned long int   microseconds_delta = 0;
+
+    if (data == NULL)
+    {
+        printf( "%s: arg1 cannot be NULL\n", __FUNCTION__ );
+        goto exit;
+    }
+
+    memset( &tv1, 0, sizeof(tv1) );
+    memset( &tv2, 0, sizeof(tv2) );
+
+    strncpy ( hostip, gPowerProbeIpAddr, sizeof(hostip) );
+
+    /* create a connection to the server */
+    srv.sin_family = AF_INET; // use the internet addr family
+    srv.sin_port = htons( TELNET_PORT ); // dedicated telnet port = 23
+    srv.sin_addr.s_addr = inet_addr( hostip );
+
+    /* create the socket */
+    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("%s:%lu:%lu socket() failed\n", __FUNCTION__, GETPID, pthread_self() );
+        /*perror("socket");*/
+        goto exit;
+    }
+
+    /* connect to the power probe's telnet server */
+    /*printf("%s:%lu:%lu Connecting to (%s) port %d\n", __FUNCTION__, GETPID, pthread_self(), hostip, TELNET_PORT );*/
+    if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
+        printf("%s:%lu:%lu connect() failed\n", __FUNCTION__, GETPID, pthread_self() );
+        /*perror("connect");*/
+        goto exit;
+    } else {
+        /*printf("%s:%lu:%lu Connection to (%s) successful.\n\n", __FUNCTION__, GETPID, pthread_self(), hostip );*/
+    }
+
+
+    memset( response, 0, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, sizeof(response), NULL );
+
+
+    PRINTF("%s:%lu:%lu sending User Name\n", __FUNCTION__, GETPID, pthread_self() );
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, NULL );
+
+    memset( response, 0, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+    /*usleep( 50 );*/
+
+
+    /* if we do not receive a request from the browser within 5 seconds, assume they stopped wanting power probe info and exit */
+    while ( gPowerProbeQuitCount < 5 )
+    {
+        float fWatts   = 0.0;
+
+        gettimeofday(&tv1, NULL);
+        microseconds1 = (tv1.tv_sec * 1000000LL);
+        /*printf("microseconds1 %llu (%lu) (%06lu)\n", microseconds1, tv1.tv_sec, tv1.tv_usec );*/
+        microseconds1 += tv1.tv_usec;
+        /*printf("microseconds1 %llu\n", microseconds1 );*/
+
+        /*
+        voltcont read_vSense 0
+        voltcont read_current 0 2
+        */
+        for ( probe=2; probe<3; probe++ )
+        {
+            char *eol = NULL;
+            char *eov = NULL; /* end of value we want to parse */
+            float fVoltage = 0.0;
+            float fCurrent = 0.0;
+            sprintf( hostcmd, "voltcont read_vSense %d", probe );
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+            /*usleep( 50 );*/
+            memset( response, 0, sizeof(response) );
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response), NULL );
+            eol = strchr( &response[3], '\n'); /* first char might be carriage-return */
+            if ( eol )
+            {
+                eol++;
+                eov = strchr( eol, '\n');
+                if ( eov ) *eov='\0';
+                eov = strchr( eol, '\r');
+                if ( eov ) *eov='\0';
+            }
+            /*printf("%s - %d ... for (%-26s) ... got response (%s) %s \n", __FUNCTION__, getpid(), hostcmd, eol, DateYyyyMmDdHhMmSs() );*/
+            if ( eol ) {
+                sscanf( eol, "%6f", &fVoltage );
+            } else {
+                printf("%s - for (%s) ... BAD response was (%s) (%s) \n", __FUNCTION__, hostcmd, eol, DateYyyyMmDdHhMmSs() );
+            }
+            gPowerProbeVoltage[probe] = fVoltage;
+
+            sprintf( hostcmd, "voltcont read_current %d %-2d", probe, gPowerProbeShunts[probe] );
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+            /*usleep( 50 );*/
+
+            memset( response, 0, sizeof(response) );
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# " /*hostcmd*/, response, sizeof(response), NULL );
+            eol = strchr(response, '\n');
+            if ( eol )
+            {
+                eol++;
+                eov = strchr( eol, '\n');
+                if ( eov ) *eov='\0';
+                eov = strchr( eol, '\r');
+                if ( eov ) *eov='\0';
+            }
+            /*printf("%s - %d ... for (%-26s) ... got response (%s) %s \n", __FUNCTION__, getpid(), hostcmd, eol, DateYyyyMmDdHhMmSs() );*/
+            if ( eol ) {
+                sscanf( eol, "%6f", &fCurrent );
+            } else {
+                printf("%s - for (%s) ... BAD response was (%s) (%s) \n", __FUNCTION__, hostcmd, eol, DateYyyyMmDdHhMmSs() );
+            }
+            /*printf("for (%-25s) ... got (%5.3f)\n", hostcmd, fCurrent );*/
+            gPowerProbeCurrent[probe] = fCurrent;
+
+            fWatts = fVoltage * fCurrent * 1000;
+        }
+
+        gettimeofday(&tv2, NULL);
+        microseconds2 = (tv2.tv_sec * 1000000LL);
+        /*printf("microseconds2 %llu (%lu) (%06lu)\n", microseconds2, tv2.tv_sec, tv2.tv_usec );*/
+        microseconds2 += tv2.tv_usec;
+        /*printf("microseconds2 %llu\n", microseconds2 );
+        printf("tv1 %lu.%06lu ... tv2 %lu.%06lu\n", tv1.tv_sec, tv1.tv_usec, tv2.tv_sec, tv2.tv_usec);*/
+        microseconds_delta = (microseconds2 - microseconds1);
+        /*printf("delta microseconds (%llu - %llu) ... %lu\n", microseconds2, microseconds1, microseconds_delta );*/
+
+        /* if it took less than a full second (200000 usec) to get all of the probe data, wait the remaining part of a full second (800000 usec) */
+        if ( microseconds_delta < 1000000 )
+        {
+            PRINTF( "%s:%lu:%lu need to usleep(%lu)\n\n\n", __FUNCTION__, GETPID, pthread_self(), (1000000 - microseconds_delta) );
+            usleep( (1000000 - microseconds_delta) );
+
+            gettimeofday(&tv1, NULL);
+            microseconds3 = (tv1.tv_sec * 1000000LL);
+            microseconds3 += tv1.tv_usec;
+            /*printf("%s - %d ... delta %llu ... %5.0f mw \n", __FUNCTION__, getpid(), microseconds3-microseconds1, fWatts );*/
+            if ( ((int)(microseconds3-microseconds1)) < 950000 )
+            {
+                printflog("%s - %d ... ALERT -> delta %llu ... %5.0f mw \n", __FUNCTION__, getpid(), microseconds3-microseconds1, fWatts );
+            }
+        }
+
+        /* each time the server gets a request for power probe data, the server will set this to 0 */
+        gPowerProbeQuitCount++;
+
+        /*printf( "%s:%lu:%lu gPowerProbeQuitCount (%u)\n", __FUNCTION__, GETPID, pthread_self(), gPowerProbeQuitCount );*/
+
+    }   /* while gPowerProbeQuitCount < 10 */
+
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4, NULL );
+
+    close( socket_fd );
+    socket_fd = 0;
+
+exit:
+    gPowerProbeThreadId = 0;
+    gPowerProbeTelnet_pid = 0;
+    for(probe=0; probe<POWER_PROBE_MAX; probe++)
+    {
+        gPowerProbeShunts[probe] = 0;
+        gPowerProbeVoltage[probe] = 0.0;
+        gPowerProbeCurrent[probe] = 0.0;
+        gPowerProbeConnected[probe] = 0;
+    }
+
+    PRINTF( "%s:%lu:%lu exiting. gPowerProbeThreadId is 0\n", __FUNCTION__, GETPID, pthread_self() );
+
+    /* if I call pthread_exit() in this thread, the parent thread will exit also */
+    PRINTF( "%s:%lu:%lu sleeping()\n", __FUNCTION__, GETPID, pthread_self() );
+    sleep( 123456789 );
+
+    return NULL;
+} /* bmemperf_power_probe_thread */
+
+
+/**
+ *  Function: This function will start a new thread that will telnet to the specified IP address
+ *            and gather Voltage and Current for the specified power probes.
+ **/
+static int bmemperf_power_probe_start(
+    unsigned long int option
+    )
+{
+    void                    *(*threadFunc)( void * );
+    static unsigned long int threadOption = 0;
+
+    PRINTF("%s:%lu:%lu gPowerProbeThreadId %lu ... gPowerProbeTelnet_pid %lu\n", __FUNCTION__,
+            GETPID, pthread_self(), (unsigned long int) gPowerProbeThreadId, gPowerProbeTelnet_pid );
+    /* if the thread has not already been started, start it now */
+    if ( gPowerProbeThreadId == 0 )
+    {
+        if ( gPowerProbeTelnet_pid == 0 )
+        {
+            /* start a background thread that will perform telnet I/O */
+            threadFunc   = bmemperf_power_probe_thread;
+            threadOption = 0;
+
+            if (pthread_create( &gPowerProbeThreadId, NULL, threadFunc, (void *)&threadOption ))
+            {
+                printf( "%s:%lu:%lu could not create thread for bmemperf_power_probe_thread; %s\n", __FUNCTION__,
+                        GETPID, pthread_self(), strerror( errno ));
+            }
+            else
+            {
+                /*printf( "%s:%lu:%lu Thread for bmemperf_power_probe_thread started successfully; id %lx\n", __FUNCTION__,
+                        GETPID, pthread_self(), (long int) gPowerProbeThreadId );*/
+            }
+        }
+    }
+    else
+    {
+        int status = 0;
+        PRINTF( "%s:%lu:%lu Thread for bmemperf_power_probe_thread already started; id %lx\n", __FUNCTION__,
+                GETPID, pthread_self(), (long int) gPowerProbeThreadId );
+        waitpid( gPowerProbeTelnet_pid, &status, WNOHANG );
+
+        /*printf( "%s:%lu:%lu after waitpid() ... status %d\n", __FUNCTION__, GETPID, pthread_self(), status );*/
+        /* if the child has exited for some reason */
+        if ( status == 13 )
+        {
+            printf( "%s:%lu:%lu PID %lu has exited with rc %d (%s)!!!!!\n", __FUNCTION__,
+                    GETPID, pthread_self(), gPowerProbeTelnet_pid, status, strerror(errno) );
+            gPowerProbeTelnet_pid = 0;
+            gPowerProbeThreadId = 0;
+        }
+    }
+
+    return( 0 );
+} /* bmemperf_power_probe_start */
+
+/**
+ *  Function: This function will save the list.csv response from the power probe board to a series of
+ *            csv files ... numbered from 0 to 9.
+ **/
+static unsigned long int   ResponseFileCount = 0;
+static int save_response( char * hostcmd, char *response, double fTimeDelta )
+{
+    if ( hostcmd && response )
+    {
+        int len = strlen(response);
+        if ( len > 80 )
+        {
+            char eol = response[80];
+            response[80] = '\0';
+            /*printf("L%u: %s for (%s) ... got response ... len %d (%s)\n", __LINE__, HhMmSsMsec(0), hostcmd, len, response );*/
+            response[80] = eol;
+        }
+        else
+        {
+            /*printf("L%u: %s for (%s) ... got response (%s)\n", __LINE__, HhMmSsMsec(0), hostcmd, response );*/
+        }
+
+        /* if the data is long enough, save the response to a file */
+        {
+            char   Filename[64];
+            char   probeDataFullFilename[PERF_FILE_FULL_PATH_LEN];
+            FILE  *fp = NULL;
+
+            if ( strlen(response) > 100 )
+            {
+                sprintf( Filename, "probedata%03lu.dat", ResponseFileCount );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), Filename );
+                fp = fopen( probeDataFullFilename, "w");
+                if ( fp )
+                {
+                    char timeDelta[64];
+                    sprintf( timeDelta, "Delta %6.03f\n", fTimeDelta );
+                    printf( "%s", timeDelta );
+                    fwrite( timeDelta, 1, strlen(timeDelta), fp);
+
+                    fwrite( response, 1, strlen(response), fp);
+                    fclose( fp );
+                    /*printf( "Wrote %lu bytes to to file (%s) \n", (unsigned long int) strlen(response), Filename );*/
+                }
+                else
+                {
+                    printf( "Could not open file (%s) for writing\n", Filename );
+                }
+                ResponseFileCount++;
+            }
+        }
+    }
+
+    return 0;
+}
+/**
+ *  Function: This function will telnet to the Power Probe board. The thread will issue a command
+ *            to extract voltage and current for 1000 points per second.
+ **/
+static void *bmemperf_power_probe_1000_thread(
+    void *data
+    )
+{
+    int                     idx        = 0;
+    int                     socket_fd  = 0;
+    int                     probe      = 0;
+    unsigned char           PingPong   = 0;
+    double                  fTimeStart = 0.0;
+    double                  fTimeNow   = 0.0;
+    int                     option     = 0;
+    FILE                   *fp         = NULL;
+    struct sockaddr_in      srv;
+    char                    hostip[INET6_ADDRSTRLEN];
+    char                    hostcmd[128];
+    char                    response[30*1024];
+    struct timeval          tv0, tv1, tv2;
+    unsigned long long int  microseconds1 = 0, microseconds2 = 0;
+    unsigned long int       microseconds_delta = 0;
+    char                    probeDataFullFilename[PERF_FILE_FULL_PATH_LEN];
+    char                    probeDataFilename[PERF_FILE_FULL_PATH_LEN];
+
+    if (data == NULL)
+    {
+        printf( "%s: arg1 cannot be NULL\n", __FUNCTION__ );
+        goto exit;
+    }
+
+    option = (int) * (int*)data;
+    /*printf("%s:%lu:%lu option %d\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), option );*/
+
+    memset( &tv0, 0, sizeof(tv0) );
+    memset( &tv1, 0, sizeof(tv1) );
+    memset( &tv2, 0, sizeof(tv2) );
+
+    strncpy ( hostip, gPowerProbeIpAddr, sizeof(hostip) );
+
+    for(idx=0; idx<2; idx++ )
+    {
+        sprintf( probeDataFilename, "list_%d.csv", idx );
+        PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+        remove( probeDataFullFilename );
+    }
+
+    /* create a connection to the server */
+    srv.sin_family = AF_INET; // use the internet addr family
+    srv.sin_port = htons(23); // dedicated telnet port = 23
+    srv.sin_addr.s_addr = inet_addr( hostip );
+
+    /* create the socket */
+    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("%s:%lu:%lu socket() failed\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+        /*perror("socket");*/
+        goto exit;
+    }
+
+    /* connect to the power probe's telnet server */
+    /*printf("%s:%lu:%lu Connecting to (%s) port %d\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostip, 23 );*/
+    if (connect(socket_fd, (struct sockaddr*) &srv, sizeof(srv)) < 0) {
+        printf("%s:%lu:%lu connect() failed\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+        /*perror("connect");*/
+        goto exit;
+    } else {
+        /*printf("%s:%lu:%lu Connection to (%s) successful.\n\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostip );*/
+    }
+
+
+    memset( response, 0, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "login:", response, sizeof(response), NULL );
+
+    /*printf("%s:%lu:%lu sending User Name\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );*/
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "root\n", 5, NULL );
+
+    memset( response, 0, sizeof(response) );
+    bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+    /*printf("for (%s) ... got response len (%d)\n", "root", (unsigned)strlen(response) );*/
+    usleep( 50 );
+
+#define LIST_FILE_FULL_PATH_LEN 64
+    /* if the power_probe_list.txt file exists, send its contents over to the power probe board */
+    {
+        FILE  *fp         = NULL;
+        char   probeDataFullFilename[LIST_FILE_FULL_PATH_LEN];
+        char   probeDataFilename[LIST_FILE_FULL_PATH_LEN];
+        char   probeDataFileLine[64];
+        char  *rc = NULL;
+
+        sprintf( hostcmd, "rm /tmp/list.txt" );
+        /*printf("%s:%lu:%lu sending (%s)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), hostcmd );*/
+        bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+        memset( response, 0, sizeof(response) );
+        bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+        /*printf("for (%s) ... got response len (%d)\n", hostcmd, (unsigned)strlen(response) );*/
+        usleep( 50 );
+
+        strcpy( probeDataFilename, POWER_PROBE_LIST_DAT_FILENAME );
+        PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+        fp = fopen( probeDataFullFilename, "r" );
+        /*printf("fopen (%s) returned %p\n", probeDataFullFilename, fp );
+        fflush(stdout);fflush(stderr);*/
+
+        while ( fp && !feof(fp) )
+        {
+            rc = fgets( probeDataFileLine, sizeof(probeDataFileLine), fp );
+            if ( rc != NULL )
+            {
+                int len = strlen( probeDataFileLine );
+                if ( len && probeDataFileLine[ len - 1 ] == '\n' ) probeDataFileLine[ len - 1 ] = '\0'; /* remove newline character */
+
+                sprintf( hostcmd, "echo \"%s\" >> /tmp/list.txt", probeDataFileLine );
+                /*printf("%s:%lu:%lu sending list.txt line (%s)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), probeDataFileLine );
+                fflush(stdout);fflush(stderr);*/
+                bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+                memset( response, 0, sizeof(response) );
+                bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+                usleep( 50 );
+            }
+        }
+    }
+
+    gettimeofday(&tv0, NULL); /* remember the time when things started; used later to determine how many seconds we have been collecting data */
+    fTimeStart = (tv0.tv_usec * 1.0) / 1000000.0 + (tv0.tv_sec * 1.0);
+    /*printf( "fTimeStart %8.06f sec %ld usec %ld\n", fTimeStart, tv0.tv_sec, tv0.tv_usec );*/
+
+    /* if we do not receive a request from the browser within 5 seconds, assume they stopped wanting power probe info and exit */
+    while ( gPowerProbeQuitCount < 5 )
+    {
+        float fCurrent = 0.0;
+
+        gettimeofday(&tv1, NULL);
+        microseconds1 = (tv1.tv_sec * 1000000LL);
+        /*printf("microseconds1 %llu (%lu) (%06lu)\n", microseconds1, tv1.tv_sec, tv1.tv_usec );*/
+        microseconds1 += tv1.tv_usec;
+        /*printf("microseconds1 %llu\n", microseconds1 );*/
+
+        if ( option == POWER_PROBE_ONE_HERTZ )
+        {
+            /*
+            Usage: voltcont write_list [numRails] [mode] [count_sec]
+            Writes /tmp/list.txt to /tmp/list.csv up to count_sec
+
+            arg mode (1=current only, 2=voltage only, else=all)
+            */
+
+            sprintf( hostcmd, "voltcont write_list 2 9 1" );
+            /*printf("for (%s) ... sending\n", hostcmd );*/
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+            sleep( 1 ); /* typically takes 1.5 seconds to collect 1000 points of data */
+
+            memset( response, 0, sizeof(response) );
+            /*printf("for (%s) ... getting response \n", hostcmd );*/
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+            fTimeNow = (tv1.tv_usec * 1.0) / 1000000.0 + (tv1.tv_sec * 1.0);
+            /*printf("L%d - tv0: %ld.%06ld ... tv1: %ld.%06ld ... %8.06f %8.06f ... delta %8.06f\n", __LINE__,
+                    (long int) tv0.tv_sec, (long int) tv0.tv_usec, (long int) tv1.tv_sec, (long int) tv1.tv_usec,
+                    fTimeStart, fTimeNow, fTimeNow - fTimeStart  );*/
+            save_response( hostcmd, response, fTimeNow - fTimeStart );
+
+            sprintf( hostcmd, "cat /tmp/list.csv && echo \"# \"" );
+            /*printf("for (%s) ... sending\n", hostcmd );*/
+            bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+            usleep( 50 ); /* expect about 26,000 bytes back */
+
+            memset( response, 0, sizeof(response) );
+            /*printf("for (%s) ... getting response \n", hostcmd );*/
+            bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+            /*printf("for (%s) ... got response len (%d)\n", hostcmd, strlen(response) );*/
+
+            /* read the previous CSV data from saved file */
+            if ( ResponseFileCount )
+            {
+                char  Filename[64];
+                FILE *fp = NULL;
+
+                sprintf( Filename, "probedata%03lu.dat", ResponseFileCount-1 );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), Filename );
+                fp = fopen( probeDataFullFilename, "r");
+                if ( fp )
+                {
+                    fread( response, 1, sizeof(response), fp );
+                    fclose( fp );
+                }
+                if ( ResponseFileCount >= 10 ) ResponseFileCount = 0;
+            }
+
+            if ( strlen(response) > 100 )
+            {
+                PingPong = 0;
+#if 0
+                int len = 0;
+
+                /* if list_0.csv exists */
+                sprintf( probeDataFilename, "list_%d.csv", PingPong );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+                len = GetFileLength( probeDataFullFilename );
+                printf( "L%u len (%s) is %d\n", __LINE__, probeDataFullFilename, len );
+                if ( GetFileLength( probeDataFullFilename ) > 0 )
+                {
+                    /* client has not had a chance to consume the data from list_0.csv; write data to list_1.csv */
+                    PingPong = 1;
+                    printf( "L%u - PingPong %d\n", __LINE__, PingPong );
+                }
+                else /* list_0.csv does not exist */
+                {
+                    /* if list_1.csv exists */
+                    sprintf( probeDataFilename, "list_%d.csv", 1 );
+                    PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+                    if ( GetFileLength( probeDataFullFilename ) > 0 )
+                    {
+                        char probeDataFullFilename0[PERF_FILE_FULL_PATH_LEN];
+                        char probeDataFilename0[PERF_FILE_FULL_PATH_LEN];
+
+                        sprintf( probeDataFilename0, "list_%d.csv", 0 );
+                        PrependTempDirectory( probeDataFullFilename0, sizeof( probeDataFullFilename0 ), probeDataFilename0 );
+
+                        /* rename list_1.csv to list_0.csv */
+                        rename( probeDataFullFilename, probeDataFullFilename0 );
+                        printf( "L%u - rename(%s,%s)\n", __LINE__, probeDataFullFilename, probeDataFullFilename0 );
+
+                        PingPong = 1;
+                        printf( "L%u - PingPong %d\n", __LINE__, PingPong );
+                    }
+                    else
+                    {
+                        PingPong = 0;
+                        printf( "L%u - PingPong %d\n", __LINE__, PingPong );
+                    }
+                }
+#endif
+
+                /* write the new file */
+                sprintf( probeDataFilename, "list_%d.csv", PingPong );
+                PrependTempDirectory( probeDataFullFilename, sizeof( probeDataFullFilename ), probeDataFilename );
+#if 1
+                fp = fopen( probeDataFullFilename, "a");
+                if ( fp ) {
+                    fwrite( response, 1, strlen(response), fp );
+                    fclose( fp );
+                }
+#else
+                SetFileContents( probeDataFullFilename, response );
+#endif
+               /*printf("wrote %d bytes to (%s)\n", (unsigned)strlen(response), probeDataFullFilename );*/
+            }
+
+            gPowerProbeCurrent[probe] = fCurrent;
+        }
+        else if ( option == POWER_PROBE_RETURN_CONNECTED_PROBES )
+        {
+            char *eol = NULL;
+            for( probe=0; probe<POWER_PROBE_MAX; probe++ )
+            {
+                sprintf( hostcmd, "voltcont lead_connected %d", probe );
+                /*printf("for (%s) ... sending\n", hostcmd );*/
+                bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, hostcmd, strlen(hostcmd), NULL );
+
+                memset( response, 0, sizeof(response) );
+                /*printf("for (%s) ... getting response \n", hostcmd );*/
+                bmemperf_get_response ( __FUNCTION__, socket_fd, "# ", response, sizeof(response), NULL );
+                /*printf("for (%s) ... got response len (%d) (%s)\n", hostcmd, strlen(response), response );*/
+                if ( ( eol = strstr( response, hostcmd ) ) )
+                {
+                    eol = strstr( eol, "\n" );
+                    if ( eol )
+                    {
+                        /*printf( "for (%s) ... response is (%c)\n", hostcmd, eol[1] );*/
+                        if ( eol[1] == '1' ) /* if the probe lead is connected to something */
+                        {
+                            gPowerProbeConnected[probe] = 1;
+                        }
+                        else
+                        {
+                            gPowerProbeConnected[probe] = 0;
+                        }
+                    }
+                }
+            }
+
+            if( gPowerProbeQuitCount < 3 ) gPowerProbeQuitCount = 3; /* give the thread one more second to allow main server to read active probes */
+        }
+
+        gettimeofday(&tv2, NULL);
+        microseconds2 = (tv2.tv_sec * 1000000LL);
+        /*printf("microseconds2 %llu (%lu) (%06lu)\n", microseconds2, tv2.tv_sec, tv2.tv_usec );*/
+        microseconds2 += tv2.tv_usec;
+        /*printf("microseconds2 %llu\n", microseconds2 );
+        printf("tv1 %lu.%06lu ... tv2 %lu.%06lu\n", tv1.tv_sec, tv1.tv_usec, tv2.tv_sec, tv2.tv_usec);*/
+        microseconds_delta = (microseconds2 - microseconds1);
+        /*printf("delta microseconds (%llu - %llu) ... %lu\n", microseconds2, microseconds1, microseconds_delta );*/
+
+        /* if it took less than a full second (200000 usec) to get all of the probe data, wait the remaining part of a full second (800000 usec) */
+        if ( microseconds_delta < 1000000 )
+        {
+            PRINTF( "%s:%lu:%lu need to usleep(%lu)\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), (1000000 - microseconds_delta) );
+            usleep( (1000000 - microseconds_delta) );
+        }
+
+        /* each time the server gets a request for power probe data, the server will set this to 0 */
+        gPowerProbeQuitCount++;
+    }   /* while gPowerProbeQuitCount has not max'ed out */
+
+    bmemperf_send_data( socket_fd, __FUNCTION__, 0, NULL, "quit", 4, NULL );
+
+    close( socket_fd );
+    socket_fd = 0;
+
+exit:
+    gPowerProbeThreadId = 0;
+    gPowerProbeTelnet_pid = 0;
+    for(probe=0; probe<POWER_PROBE_MAX; probe++)
+    {
+        gPowerProbeShunts[probe] = 0;
+        gPowerProbeVoltage[probe] = 0.0;
+        gPowerProbeCurrent[probe] = 0.0;
+        gPowerProbeConnected[probe] = 0;
+    }
+
+    /*printf( "%s:%lu:%lu exiting. gPowerProbeThreadId is 0\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );*/
+
+    /* if I call pthread_exit() in this thread, the parent thread will exit also */
+    PRINTF( "%s:%lu:%lu sleeping()\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self() );
+    sleep( 123456789 );
+
+    return NULL;
+} /* bmemperf_power_probe_1000_thread */
+
+
+/**
+ *  Function: This function will start a new thread that will telnet to the specified IP address
+ *            and gather Voltage and Current for the specified power probes.
+ **/
+static unsigned long int bmemperf_power_probe_1000_option = 0;
+static int bmemperf_power_probe_1000_start(
+    unsigned long int option
+    )
+{
+    void                    *(*threadFunc)( void * );
+
+    bmemperf_power_probe_1000_option = option;
+
+    PRINTF("%s :%lu:%lu gPowerProbeThreadId %lu ... gPowerProbeTelnet_pid %lu\n", __FUNCTION__,
+            (unsigned long int) getpid(), pthread_self(), (unsigned long int) gPowerProbeThreadId, gPowerProbeTelnet_pid );
+    /* if the thread has not already been started, start it now */
+    if ( gPowerProbeThreadId == 0 )
+    {
+        if ( gPowerProbeTelnet_pid == 0 )
+        {
+            /* start a background thread that will perform telnet I/O */
+            threadFunc   = bmemperf_power_probe_1000_thread;
+
+            if (pthread_create( &gPowerProbeThreadId, NULL, threadFunc, (void *)&bmemperf_power_probe_1000_option ))
+            {
+                printf( "%s :%lu:%lu could not create thread for bmemperf_power_probe_1000_thread; %s\n", __FUNCTION__,
+                        (unsigned long int) getpid(), pthread_self(), strerror( errno ));
+            }
+            else
+            {
+                printf( "%s :%lu:%lu Thread for bmemperf_power_probe_1000_thread started successfully; id %lx\n", __FUNCTION__,
+                        (unsigned long int) getpid(), pthread_self(), (long int) gPowerProbeThreadId );
+            }
+        }
+    }
+    else
+    {
+        int status = 0;
+        PRINTF( "%s :%lu:%lu Thread for bmemperf_power_probe_1000_thread already started; id %lx\n", __FUNCTION__,
+                (unsigned long int) getpid(), pthread_self(), (long int) gPowerProbeThreadId );
+        waitpid( gPowerProbeTelnet_pid, &status, WNOHANG );
+
+        /*printf( "%s :%lu:%lu after waitpid() ... status %d\n", __FUNCTION__, (unsigned long int) getpid(), pthread_self(), status );*/
+        /* if the child has exited for some reason */
+        if ( status == 13 )
+        {
+            printf( "%s :%lu:%lu PID %lu has exited with rc %d (%s)!!!!!\n", __FUNCTION__,
+                    (unsigned long int) getpid(), pthread_self(), gPowerProbeTelnet_pid, status, strerror(errno) );
+            gPowerProbeTelnet_pid = 0;
+            gPowerProbeThreadId = 0;
+        }
+    }
+
+    return( 0 );
+} /* bmemperf_power_probe_1000_start */
+
 #define CLIENT_STREAMER_MAX_THREADS 32
 /**
  *  Function: This function will issue a command to the specified telnet socket.
@@ -1956,6 +2656,44 @@ static int Bmemperf_ReadRequest(
                 bmemperf_computeIrqData( pResponse->response.overallStats.cpuData.numActiveCpus, &pResponse->response.overallStats.irqData );
 
                 bmemperf_getCpuUtilization( &pResponse->response.overallStats.cpuData );
+
+                /*printf("PowerProbeIpAddr (%s) ... PowerProbeSelect %d ... cmdSecondaryOption %ld ... QuitCount %u\n",
+                        pRequest->request.overall_stats_data.PowerProbeIpAddr,
+                        pRequest->request.overall_stats_data.PowerProbeSelect, pRequest->cmdSecondaryOption, gPowerProbeQuitCount );*/
+                if ( pRequest->request.overall_stats_data.PowerProbeIpAddr[0] == '1' &&
+                     strlen( pRequest->request.overall_stats_data.PowerProbeIpAddr ) > 0 )
+                {
+                    int idx=0;
+
+                    /* if we stop getting requests, the PowerProbeThread will count up to 5 seconds and then exit */
+                    gPowerProbeQuitCount = 0;
+
+                    /* copy the user's request data into global variables for use by PowerProbeThread */
+                    strncpy( gPowerProbeIpAddr, pRequest->request.overall_stats_data.PowerProbeIpAddr, sizeof(gPowerProbeIpAddr) );
+                    for(idx=0; idx<POWER_PROBE_MAX; idx++)
+                    {
+                        gPowerProbeShunts[idx] = pRequest->request.overall_stats_data.PowerProbeShunts[idx];
+                    }
+
+                    if ( pRequest->request.overall_stats_data.PowerProbeSelect == POWER_PROBE_BASPMON )
+                    {
+                        bmemperf_power_probe_start( pRequest->cmdSecondaryOption );
+                    }
+                    else if ( pRequest->request.overall_stats_data.PowerProbeSelect == POWER_PROBE_BPROBE )
+                    {
+                        bmemperf_power_probe_1000_start( pRequest->cmdSecondaryOption );
+                        usleep( 500000 ); /* give thread a tenth of a second to complete */
+                    }
+
+                    /* copy PowerProbeThread's data into user's response buffer */
+                    for(idx=0; idx<POWER_PROBE_MAX; idx++)
+                    {
+                        pResponse->response.overallStats.PowerProbeVoltage[idx] = gPowerProbeVoltage[idx];
+                        pResponse->response.overallStats.PowerProbeCurrent[idx] = gPowerProbeCurrent[idx];
+                        pResponse->response.overallStats.PowerProbeConnected[idx] = gPowerProbeConnected[idx];
+                        /*printf( "%s: Probe %d is %d\n", __FUNCTION__, idx, pResponse->response.overallStats.PowerProbeConnected[idx] );*/
+                    }
+                }
 
                 if ( pRequest->cmdSecondaryOption == BMEMPERF_CMD_CLIENT_RESET )
                 {

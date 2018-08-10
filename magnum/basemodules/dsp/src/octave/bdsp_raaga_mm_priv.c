@@ -1488,7 +1488,7 @@ BERR_Code BDSP_Raaga_P_AssignDescriptor(
 	return errCode;
 }
 
-static BERR_Code BDSP_Raaga_P_ReleaseDescriptor(
+BERR_Code BDSP_Raaga_P_ReleaseDescriptor(
 	BDSP_Raaga *pDevice,
 	unsigned dspIndex,
 	dramaddr_t *pOffset,
@@ -1536,7 +1536,7 @@ BERR_Code BDSP_Raaga_P_ReleasePortDescriptors(
 {
 	BERR_Code errCode = BERR_SUCCESS;
 	unsigned j=0, i=0, k=0;
-	dramaddr_t decriptorArray[BDSP_MAX_DESCRIPTORS_PER_POOL];
+	dramaddr_t decriptorArray[BDSP_MAX_DESCRIPTORS_PER_POOL] = {0};
 	for(j=0;j<psIoPort->ui32numPortBuffer;j++)
 	{
 		for(i=0;i<psIoPort->sIoBuffer[j].ui32NumBuffer;i++)

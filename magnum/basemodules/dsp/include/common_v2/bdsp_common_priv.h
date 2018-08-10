@@ -146,6 +146,7 @@ typedef struct BDSP_P_TaskParams
 	unsigned commandCounter;
 	unsigned lastCommand;
 	uint32_t eventEnabledMask;
+	uint32_t coreIndex;
 }BDSP_P_TaskParams;
 
 typedef struct BDSP_P_TaskMemoryInfo

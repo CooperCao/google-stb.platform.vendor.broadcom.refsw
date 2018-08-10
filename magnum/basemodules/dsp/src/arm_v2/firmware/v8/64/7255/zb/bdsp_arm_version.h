@@ -39,7 +39,7 @@
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-/* Commit ID of Astra : 72d44f83f7ff8f6a7d17380636c27bf6678474b4 */
+/* Commit ID of Astra : 6b58f32f4a8e612a0c816eb58e277134c3e9e26e */
 #define BDSP_ARM_MAJOR_VERSION       1
-#define BDSP_ARM_MINOR_VERSION       2
+#define BDSP_ARM_MINOR_VERSION       3
 #define BDSP_ARM_BUILD_VERSION       0

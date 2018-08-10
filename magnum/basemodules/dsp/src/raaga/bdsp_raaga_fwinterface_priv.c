@@ -763,7 +763,10 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 
 
     if ( (psCommand->sCommandHeader.ui32CommandID != BDSP_PING_COMMAND_ID)
-        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID))
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID)
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID)
+         && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_PROCESS_PAK_COMMAND_ID)
+       )
     {
         BDBG_ASSERT(pRaagaTask);
         /* When isStopped is true at that instance STOP/START commands can come
@@ -772,8 +775,6 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
         if( (pRaagaTask->isStopped == true) &&
             (psCommand->sCommandHeader.ui32CommandID != \
                 BDSP_START_TASK_COMMAND_ID)
-            &&(psCommand->sCommandHeader.ui32CommandID != \
-                BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID)
           )
         {
             BDBG_MSG(("Task is in stop state, Can't accept Command %#x",

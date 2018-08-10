@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
  **************************************************************************/
 #include "nexus_playback_module.h"
 #include "nexus_playback_impl.h"
@@ -686,11 +689,6 @@ b_play_stop_media(NEXUS_PlaybackHandle playback)
         bfile_buffer_destroy(playback->state.media.buffer);
         batom_factory_destroy(playback->state.media.factory);
         BDBG_ASSERT(playback->state.media.buf);
-#if NEXUS_PLAYBACK_MP4_CENC
-        if(playback->mp4Cenc.settings.enabled) {
-            NEXUS_PlaybackMp4Cenc_FileBuffer_Free(playback, playback->state.media.buf);
-        } else
-#endif
         BKNI_Free(playback->state.media.buf);
         playback->state.media.factory = NULL;
         playback->state.media.buffer = NULL;
@@ -1107,12 +1105,6 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
                   }
               }
           }
-#if NEXUS_PLAYBACK_MP4_CENC
-          NEXUS_PlaybackMp4Cenc_ConnectStream(playback, &data->stream);
-          if(playback->mp4Cenc.settings.enabled) {
-              playback->state.media.buf = NEXUS_PlaybackMp4Cenc_FileBuffer_Alloc(playback, buffer_cfg.buf_len+BIO_BLOCK_SIZE);
-          } else
-#endif
           playback->state.media.buf = BKNI_Malloc(buffer_cfg.buf_len+BIO_BLOCK_SIZE);
           if(!playback->state.media.buf) {
               BDBG_ERR(("b_play_start_media: %#lx can't allocate %u bytes for buffer", (unsigned long)playback, (unsigned)buffer_cfg.buf_len+BIO_BLOCK_SIZE));
@@ -1209,11 +1201,6 @@ error_player:
     }
 error_buffer:
     if(playback->state.media.buf) {
-#if NEXUS_PLAYBACK_MP4_CENC
-        if(playback->mp4Cenc.settings.enabled) {
-            NEXUS_PlaybackMp4Cenc_FileBuffer_Free(playback, playback->state.media.buf);
-        } else
-#endif
         BKNI_Free(playback->state.media.buf);
         playback->state.media.buf = NULL;
     }

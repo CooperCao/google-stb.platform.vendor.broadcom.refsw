@@ -1,6 +1,6 @@
 /******************************************************************************
  * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to
@@ -507,8 +507,6 @@ typedef struct BXPT_Playback_ChannelSettings
     BMMA_Block_Handle descBlock;
     unsigned descOffset;
     BMMA_Heap_Handle mmaHeap; /* Handle used to allocate the descBlock. */
-
-    bool pauseAtCrcMismatch;
 }
 BXPT_Playback_ChannelSettings;
 
@@ -1351,11 +1349,6 @@ BERR_Code BXPT_Playback_P_LoadPacingCounter(
 BERR_Code BXPT_Playback_P_LoadStcMuxDelayDiff(
     BXPT_Playback_Handle hPb
     );
-
-uint32_t BXPT_Playback_GetCrc(
-    BXPT_Playback_Handle hPb
-    );
-
 #endif
 
 #if !BXPT_HAS_MULTICHANNEL_PLAYBACK

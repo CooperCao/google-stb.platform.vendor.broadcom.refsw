@@ -324,13 +324,19 @@ endif # stb
 # Kernel symbols from wlan_plat module
 ############################################################
 WLPLAT_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/src/wlplat/$(OBJDIR)/Module.symvers
+ifeq (,$(findstring stbap,$(TARGET)))
 export KBUILD_EXTRA_SYMBOLS=$(WLPLAT_EXTRA_SYMBOLS)
+else
+export KBUILD_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/src/wlplat/Module.symvers
+endif # stbap
 ############################################################
 
-ifneq (,$(findstring wmf,$(TARGET))$(findstring stbap,$(TARGET)))
+ifneq (,$(findstring wmf,$(TARGET)))
+ifeq (,$(findstring stbap,$(TARGET)))
         export BCM_EXTERNAL_WMF_MODULES_REQUIRED=TRUE
         export IGS_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/igs/$(OBJDIR)/Module.symvers
         export EMF_EXTRA_SYMBOLS=$(WLAN_TreeBaseA)/components/router/emf/emf/$(OBJDIR)/Module.symvers
+endif # !stbap
 endif # wmf
 
 ifndef ECLOUD_BUILD_ID
@@ -838,6 +844,9 @@ objdir:
 	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/src/wlplat WLARCH=$(WLARCH) clean
 	+$(MAKE) -r $(MAKEJOBS) -C $(WLAN_TreeBaseA)/src/wlplat WLARCH=$(WLARCH)
 	cp $(WLAN_TreeBaseA)/src/wlplat/$(OBJDIR)/wlplat.ko $(OBJDIR)
+ifneq (,$(findstring stbap,$(TARGET)))
+	cat $(WLPLAT_EXTRA_SYMBOLS) > $(KBUILD_EXTRA_SYMBOLS)
+endif
 
 ifdef BCM_EXTERNAL_WMF_MODULES_REQUIRED
 	# Start of WMF extra modules

@@ -70,8 +70,8 @@ BDSP_AUTH_INCLUDES += \
 BDSP_AUTH_SOURCES +=	\
 		     $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fw_settings.c \
 		     $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fw_algo.c \
-		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_common_fwdownload_priv.c \
-		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_common_mm_priv.c \
+		     $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_fwdownload_priv.c \
+		     $(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_mm_priv.c \
 		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_fw_algo.c \
 		     $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_fwdownload_priv.c \
 		     $(MAGNUM)/basemodules/dsp/src/bdsp_auth.c

@@ -344,21 +344,21 @@ static BSAT_Mode NEXUS_Frontend_P_Sat_GetMode(const struct NEXUS_SatModeEntry *p
 
 static void NEXUS_Frontend_P_Sat_EnableSatChannel(NEXUS_SatChannelHandle pSatChannel)
 {
-    unsigned i;
-    bool activated = false;
+    BERR_Code errCode;
+
     if (!pSatChannel->satDevice->satActive[pSatChannel->channel]) {
         BDBG_MSG(("NEXUS_Frontend_P_Sat_EnableSatChannel: enabling %d",pSatChannel->channel));
-        BSAT_PowerUpChannel(pSatChannel->satChannel);
+        errCode = BSAT_PowerUpChannel(pSatChannel->satChannel);
+        if (errCode)
+            BERR_TRACE(errCode);
         pSatChannel->satDevice->satActive[pSatChannel->channel] = true;
     }
-    for (i=0; i < NEXUS_SAT_MAX_CHANNELS; i++) {
-        if (i != pSatChannel->channel && pSatChannel->satDevice->satActive[i] && pSatChannel->satDevice->wfeMap[i] == pSatChannel->selectedAdc) {
-            activated = true;
-        }
-    }
-    if (!activated && !pSatChannel->satDevice->wfeActive[pSatChannel->selectedAdc]) {
+
+    if (!pSatChannel->satDevice->wfeActive[pSatChannel->selectedAdc]) {
         BDBG_MSG(("NEXUS_Frontend_P_Sat_EnableSatChannel: enabling wfe %d",pSatChannel->selectedAdc));
-        BWFE_EnableInput(pSatChannel->satDevice->wfeChannels[pSatChannel->selectedAdc]);
+        errCode = BWFE_EnableInput(pSatChannel->satDevice->wfeChannels[pSatChannel->selectedAdc]);
+        if (errCode)
+            BERR_TRACE(errCode);
         pSatChannel->satDevice->wfeActive[pSatChannel->selectedAdc] = true;
         if (pSatChannel->satDevice->wfeReadyEvent[pSatChannel->selectedAdc]) {
             BDBG_MSG(("waiting for ready event from wfe %d",pSatChannel->selectedAdc));

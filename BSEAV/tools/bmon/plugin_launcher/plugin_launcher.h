@@ -51,7 +51,7 @@
 #define LINUX_EMBEDDED_BUFFER_SIZE 4096  /* If the plugin response exceeds this value, the data arriving
                                             from the printf() command from the plugin will arrive in
                                             chunks of this size */
-#define PLUGIN_LAUNCHER_VERSION      "0.1"
+#define PLUGIN_LAUNCHER_VERSION      "0.2"
 #define PLUGIN_LAUNCHER_NAME         "plugin_launcher"
 #define PLUGIN_LAUNCHER_DESCRIPTION  "Launches a standalone plugin"
 

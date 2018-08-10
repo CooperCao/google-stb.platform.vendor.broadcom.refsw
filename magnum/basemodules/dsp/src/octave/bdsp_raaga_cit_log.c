@@ -71,6 +71,7 @@ void BDSP_Raaga_P_Analyse_CIT(
 
     pTaskConfig = (BDSP_AF_P_sTASK_CONFIG *)pRaagaTask->taskMemInfo.sHostCITMemory.Buffer.pAddr;
 	BDBG_MSG(("Running on DSP: %d ",pRaagaTask->createSettings.dspIndex));
+	BDBG_MSG(("Running on CORE: %d ",pRaagaTask->taskParams.coreIndex));
 	BDBG_MSG(("Context: %s ",ContextType[pRaagaTask->pContext->settings.contextType]));
 	BDBG_MSG(("Scheduling Mode: %s ",SchedulingMode[pRaagaTask->startSettings.schedulingMode]));
 	if(BDSP_TaskSchedulingMode_eSlave == pRaagaTask->startSettings.schedulingMode)

@@ -59,6 +59,7 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_SystemImgId_eSystemRdbvars:                               return BDSP_IMG_system_rdbvars;
     case BDSP_SystemImgId_eSyslibCode:                                  return BDSP_IMG_syslib_code;
     case BDSP_SystemImgId_eAlgolibCode:                                 return BDSP_IMG_algolib_code;
+    case BDSP_SystemImgId_eAlgolibTable:                                return BDSP_IMG_algolib_tables;
     case BDSP_SystemImgId_eCommonIdsCode:                               return BDSP_IMG_idscommon_code;
     case BDSP_SystemImgId_eCommonVideoEncodeIdsCode:                    return BDSP_IMG_vididscommon_code;
     case BDSP_SystemImgId_eCommonVideoEncodeIdsInterframe:              return BDSP_IMG_vididscommon_inter_frame;

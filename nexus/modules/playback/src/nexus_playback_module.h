@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017-2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,10 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
-  **************************************************************************/
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #ifndef NEXUS_PLAYBACK_MODULE_H__
 #define NEXUS_PLAYBACK_MODULE_H__
 
@@ -43,9 +46,6 @@
 #include "nexus_playback.h"
 #if NEXUS_PLAYBACK_BLOCKAUTH
 #include "nexus_playback_blockauth.h"
-#endif
-#if NEXUS_PLAYBACK_MP4_CENC
-#include "nexus_playback_mp4_cenc.h"
 #endif
 #include "priv/nexus_playback_notify.h"
 #include "nexus_playback_init.h"

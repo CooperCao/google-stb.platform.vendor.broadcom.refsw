@@ -1,43 +1,52 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BPXL_H__
 #define BPXL_H__
+
+#include "bchp_common.h"
+#ifdef BCHP_M2MC_REG_START
+#include "bchp_m2mc.h"     /* for gfx compression mode. */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,16 +71,73 @@ o TODO: Complete list of specific features that are supported and unit
  * processing.
  ***************************************************************************/
 
-/* Private pixel format types */
-#define BPXL_P_ALPHA           0x01000000
-#define BPXL_P_COLOR           0x02000000
-#define BPXL_P_RGB             0x04000000
-#define BPXL_P_YCbCr           0x08000000
-#define BPXL_P_PALETTE         0x10000000
-#define BPXL_P_SPECIAL         0x20000000
-#define BPXL_P_WINDOW          0x40000000
-#define BPXL_P_UIF             (BPXL_P_SPECIAL | BPXL_P_WINDOW)
-#define BPXL_P_TYPE_MASK       0x7F000000
+/* Private format Layout:
+ */
+
+#define BPXL_P_LAYOUT_MASK                                0xE0000000
+#define BPXL_P_LAYOUT_SHIFT                                       29
+#define BPXL_P_MAKE_LAYOUT(t)             ((t)<<BPXL_P_LAYOUT_SHIFT)
+#define BPXL_P_GET_LAYOUT(f)  (((uint32_t)(f)) & BPXL_P_LAYOUT_MASK)
+
+#define BPXL_P_LAYOUT_Raster                BPXL_P_MAKE_LAYOUT(0) /* pixel linear */
+#define BPXL_P_LAYOUT_Stripe                BPXL_P_MAKE_LAYOUT(1) /* stripe */
+#define BPXL_P_LAYOUT_BlockLinear           BPXL_P_MAKE_LAYOUT(2) /* block linear */
+#define BPXL_P_LAYOUT_UIF                   BPXL_P_MAKE_LAYOUT(3) /* block stripe */
+
+/* Private Type:
+ *
+ * Note: BPXL macro implementation relies on the order of the following type definition
+ *       check every BPXL macro in this file carefully before making chnage!
+ */
+
+#define BPXL_P_TYPE_MASK                               0x1F000000
+#define BPXL_P_TYPE_SHIFT                                      24
+#define BPXL_P_MAKE_TYPE(t)              ((t)<<BPXL_P_TYPE_SHIFT)
+#define BPXL_P_GET_TYPE(f)   (((uint32_t)(f)) & BPXL_P_TYPE_MASK)
+
+/* RGB without A */
+#define BPXL_P_TYPE_RGB                       BPXL_P_MAKE_TYPE(0)  /* 8/10 bits, 10 bits format with X2 */
+#define BPXL_P_TYPE_WRGB                      BPXL_P_MAKE_TYPE(1)
+#define BPXL_P_TYPE_RGB_Fp16                  BPXL_P_MAKE_TYPE(2)  /* fp 16 bits format, with X16, 64 bits per pixel */
+
+/* RGB + A */
+#define BPXL_P_TYPE_ARGB                      BPXL_P_MAKE_TYPE(3)  /* 8 bits */
+#define BPXL_P_TYPE_ARGB_Compressed           BPXL_P_MAKE_TYPE(4)  /* compressed ARGB8888, 16 bits per pixel */
+#define BPXL_P_TYPE_ARGB_Fp16                 BPXL_P_MAKE_TYPE(5)  /* fp 16 bits format, 64 bits per pixel */
+
+/* YCbCr420, without A */
+#define BPXL_P_TYPE_Y                         BPXL_P_MAKE_TYPE(6)  /* 8/10 bits, 420/YV12, 10 bits format with X2, and 6 pixels in 2 words */
+#define BPXL_P_TYPE_Cb                        BPXL_P_MAKE_TYPE(7)  /* 8/10 bits, 420/YV12, 10 bits format with X2, and 6 pixels in 2 words */
+#define BPXL_P_TYPE_Cr                        BPXL_P_MAKE_TYPE(8)  /* 8/10 bits, 420/YV12, 10 bits format with X2, and 6 pixels in 2 words */
+#define BPXL_P_TYPE_CbCr                      BPXL_P_MAKE_TYPE(9)  /* 8/10 bits, 420; 10 bits format with X2, and 3 pixels in 2 words */
+
+/* YCbCr444, without A */
+#define BPXL_P_TYPE_YCbCr                     BPXL_P_MAKE_TYPE(10)  /* 8/10 bits, 444; 10 bits format with X2 */
+
+/* YCbCr422, without A */
+#define BPXL_P_TYPE_YCbCr422                  BPXL_P_MAKE_TYPE(11)  /* 8/10 bits, 422; 10 bits format with X2, and 6 pixels in 4 words */
+#define BPXL_P_TYPE_YCbCr422_10Bits_Packed    BPXL_P_MAKE_TYPE(12)  /* 10 bits 422 fully packed without X, 8 pixels in 5 words */
+
+/* YP */
+#define BPXL_P_TYPE_YP                        BPXL_P_MAKE_TYPE(20)
+
+/* YCbCr + A */
+#define BPXL_P_TYPE_AY                        BPXL_P_MAKE_TYPE(13)
+#define BPXL_P_TYPE_AYCbCr                    BPXL_P_MAKE_TYPE(14) /* 8 bits */
+
+/* W, also considered as A */
+#define BPXL_P_TYPE_W                         BPXL_P_MAKE_TYPE(15)
+
+/* Misc + A */
+#define BPXL_P_TYPE_A                         BPXL_P_MAKE_TYPE(16)
+#define BPXL_P_TYPE_AP                        BPXL_P_MAKE_TYPE(17)
+#define BPXL_P_TYPE_AL                        BPXL_P_MAKE_TYPE(18)
+#define BPXL_P_TYPE_AL0L1                     BPXL_P_MAKE_TYPE(19)
+
+/* Misc without A */
+#define BPXL_P_TYPE_P                         BPXL_P_MAKE_TYPE(21)
+#define BPXL_P_TYPE_L                         BPXL_P_MAKE_TYPE(22)
+#define BPXL_P_TYPE_Z                         BPXL_P_MAKE_TYPE(23) /* 16 bits */
 
 /* Private pixel component information */
 #define BPXL_P_COMP_SIZE_MASK  0xF
@@ -177,124 +243,149 @@ Description:
 typedef enum BPXL_Format
 {
     /* YCbCr 444 */
-    BPXL_eA8_Y8_Cb8_Cr8    = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_AYCbCr | 0x8888,
-    BPXL_eCr8_Cb8_Y8_A8    = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrCbYA | 0x8888,
-    BPXL_eY8_Cb8_Cr8_A8    = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_YCbCrA | 0x8888,
-    BPXL_eA8_Cr8_Cb8_Y8    = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_ACrCbY | 0x8888,
+    BPXL_eA8_Y8_Cb8_Cr8    = BPXL_P_TYPE_AYCbCr | BPXL_P_LOC_AYCbCr | 0x8888,
+    BPXL_eCr8_Cb8_Y8_A8    = BPXL_P_TYPE_AYCbCr | BPXL_P_LOC_CrCbYA | 0x8888,
+    BPXL_eY8_Cb8_Cr8_A8    = BPXL_P_TYPE_AYCbCr | BPXL_P_LOC_YCbCrA | 0x8888,
+    BPXL_eA8_Cr8_Cb8_Y8    = BPXL_P_TYPE_AYCbCr | BPXL_P_LOC_ACrCbY | 0x8888,
 
     /* YCbCr 422 */
-    BPXL_eCr8_Y18_Cb8_Y08  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrY1CbY0 | 0x8888,
-    BPXL_eY18_Cr8_Y08_Cb8  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y1CrY0Cb | 0x8888,
-    BPXL_eY08_Cb8_Y18_Cr8  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y0CbY1Cr | 0x8888,
-    BPXL_eCb8_Y08_Cr8_Y18  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbY0CrY1 | 0x8888,
-    BPXL_eCb8_Y18_Cr8_Y08  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbY1CrY0 | 0x8888,
-    BPXL_eY18_Cb8_Y08_Cr8  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y1CbY0Cr | 0x8888,
-    BPXL_eY08_Cr8_Y18_Cb8  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y0CrY1Cb | 0x8888,
-    BPXL_eCr8_Y08_Cb8_Y18  = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrY0CbY1 | 0x8888,
+    BPXL_eCr8_Y18_Cb8_Y08  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_CrY1CbY0 | 0x8888,
+    BPXL_eY18_Cr8_Y08_Cb8  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_Y1CrY0Cb | 0x8888,
+    BPXL_eY08_Cb8_Y18_Cr8  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_Y0CbY1Cr | 0x8888,
+    BPXL_eCb8_Y08_Cr8_Y18  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_CbY0CrY1 | 0x8888,
+    BPXL_eCb8_Y18_Cr8_Y08  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_CbY1CrY0 | 0x8888,
+    BPXL_eY18_Cb8_Y08_Cr8  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_Y1CbY0Cr | 0x8888,
+    BPXL_eY08_Cr8_Y18_Cb8  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_Y0CrY1Cb | 0x8888,
+    BPXL_eCr8_Y08_Cb8_Y18  = BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_CrY0CbY1 | 0x8888,
 
     /* YCbCr 420 */
-    BPXL_eY8               = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_ARGB | 0x0800,
-    BPXL_eCb8_Cr8          = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbCr | 0x0088,
-    BPXL_eCr8_Cb8          = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrCb | 0x0088,
-    BPXL_eY10              = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_ARGB | 0x0A00,
-    BPXL_eCb10_Cr10        = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbCr | 0x00AA,
-    BPXL_eCr10_Cb10        = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrCb | 0x00AA,
-    BPXL_eA8_Y8            = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_ARGB | 0x8800,
-    BPXL_eCb8              = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbCr | 0x0080,
-    BPXL_eCr8              = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbCr | 0x0008,
+    BPXL_eY8               = BPXL_P_TYPE_Y    | BPXL_P_LOC_ARGB | 0x0800,
+    BPXL_eCb8_Cr8          = BPXL_P_TYPE_CbCr | BPXL_P_LOC_CbCr | 0x0088,
+    BPXL_eCr8_Cb8          = BPXL_P_TYPE_CbCr | BPXL_P_LOC_CrCb | 0x0088,
+    BPXL_eCb8              = BPXL_P_TYPE_Cb   | BPXL_P_LOC_CbCr | 0x0080,
+    BPXL_eCr8              = BPXL_P_TYPE_Cr   | BPXL_P_LOC_CbCr | 0x0008,
+    BPXL_eA8_Y8            = BPXL_P_TYPE_AY   | BPXL_P_LOC_ARGB | 0x8800,
 
-    /* YCbCr 444 10-bit */
-    BPXL_eX2_Cr10_Y10_Cb10 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_ACrYCb | 0x2AAA,
+    /* YCbCr 420 10-bit (with X2, bpp 64/3 for CbCr, bpp 64/6 for Y/Cb/Cr) */
+    BPXL_eY10              = BPXL_P_TYPE_Y    | BPXL_P_LOC_ARGB | 0x0A00,
+    BPXL_eCb10_Cr10        = BPXL_P_TYPE_CbCr | BPXL_P_LOC_CbCr | 0x00AA,
+    BPXL_eCr10_Cb10        = BPXL_P_TYPE_CbCr | BPXL_P_LOC_CrCb | 0x00AA,
+    BPXL_eCb10             = BPXL_P_TYPE_Cb   | BPXL_P_LOC_CbCr | 0x00A0,
+    BPXL_eCr10             = BPXL_P_TYPE_Cr   | BPXL_P_LOC_CbCr | 0x000A,
 
-    /* YCbCr 422 10-bit (Special) */
+    /* YCbCr 444 10-bit (with X2, bpp 32) */
+    BPXL_eX2_Cr10_Y10_Cb10 = BPXL_P_TYPE_YCbCr | BPXL_P_LOC_ACrYCb | 0x2AAA,
+
+    /* not-fully-packed YCbCr 422 10-bit (with X2, bpp 128/6) */
     BPXL_eX2_Y010_Cb10_Y110_X2_Cr10_Y010_Cb10_X2_Y110_Cr10_Y010_X2_Cb10_Y110_Cr10 =
-                             BPXL_P_SPECIAL | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y0CbY1Cr | 0xAAAA,
+                             BPXL_P_TYPE_YCbCr422 | BPXL_P_LOC_Y0CbY1Cr | 0xAAAA,
 
-    /* YCbCr 422 10-bit (Packed 40-bit pixel)*/
-    BPXL_eCr10_Y110_Cb10_Y010 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrY1CbY0 | 0xAAAA,
-    BPXL_eY110_Cr10_Y010_Cb10 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y1CrY0Cb | 0xAAAA,
-    BPXL_eY010_Cb10_Y110_Cr10 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y0CbY1Cr | 0xAAAA,
-    BPXL_eCb10_Y010_Cr10_Y110 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbY0CrY1 | 0xAAAA,
-    BPXL_eCb10_Y110_Cr10_Y010 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CbY1CrY0 | 0xAAAA,
-    BPXL_eY110_Cb10_Y010_Cr10 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y1CbY0Cr | 0xAAAA,
-    BPXL_eY010_Cr10_Y110_Cb10 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_Y0CrY1Cb | 0xAAAA,
-    BPXL_eCr10_Y010_Cb10_Y110 = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_CrY0CbY1 | 0xAAAA,
+    /* YCbCr 422 10-bit (fully packed 40-bits per 2-pixels, without X, bpp 20) */
+    BPXL_eCr10_Y110_Cb10_Y010 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_CrY1CbY0 | 0xAAAA,
+    BPXL_eY110_Cr10_Y010_Cb10 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_Y1CrY0Cb | 0xAAAA,
+    BPXL_eY010_Cb10_Y110_Cr10 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_Y0CbY1Cr | 0xAAAA,
+    BPXL_eCb10_Y010_Cr10_Y110 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_CbY0CrY1 | 0xAAAA,
+    BPXL_eCb10_Y110_Cr10_Y010 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_CbY1CrY0 | 0xAAAA,
+    BPXL_eY110_Cb10_Y010_Cr10 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_Y1CbY0Cr | 0xAAAA,
+    BPXL_eY010_Cr10_Y110_Cb10 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_Y0CrY1Cb | 0xAAAA,
+    BPXL_eCr10_Y010_Cb10_Y110 = BPXL_P_TYPE_YCbCr422_10Bits_Packed | BPXL_P_LOC_CrY0CbY1 | 0xAAAA,
 
     /* RGB */
-    BPXL_eA8_R8_G8_B8      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x8888,
-    BPXL_eA8_B8_G8_R8      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x8888,
-    BPXL_eR8_G8_B8_A8      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x8888,
-    BPXL_eB8_G8_R8_A8      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x8888,
+    BPXL_eA8_R8_G8_B8      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ARGB | 0x8888,
+    BPXL_eA8_B8_G8_R8      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ABGR | 0x8888,
+    BPXL_eR8_G8_B8_A8      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_RGBA | 0x8888,
+    BPXL_eB8_G8_R8_A8      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_BGRA | 0x8888,
 
-    BPXL_eX8_R8_G8_B8      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x8888,
-    BPXL_eX8_B8_G8_R8      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x8888,
-    BPXL_eR8_G8_B8_X8      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x8888,
-    BPXL_eB8_G8_R8_X8      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x8888,
+    BPXL_eX8_R8_G8_B8      = BPXL_P_TYPE_RGB | BPXL_P_LOC_ARGB | 0x8888,
+    BPXL_eX8_B8_G8_R8      = BPXL_P_TYPE_RGB | BPXL_P_LOC_ABGR | 0x8888,
+    BPXL_eR8_G8_B8_X8      = BPXL_P_TYPE_RGB | BPXL_P_LOC_RGBA | 0x8888,
+    BPXL_eB8_G8_R8_X8      = BPXL_P_TYPE_RGB | BPXL_P_LOC_BGRA | 0x8888,
 
-    BPXL_eR8_G8_B8         = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGB | 0x0888,
-    BPXL_eB8_G8_R8         = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGR | 0x0888,
+    BPXL_eR8_G8_B8         = BPXL_P_TYPE_RGB | BPXL_P_LOC_RGB | 0x0888,
+    BPXL_eB8_G8_R8         = BPXL_P_TYPE_RGB | BPXL_P_LOC_BGR | 0x0888,
 
-    BPXL_eR5_G6_B5         = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x0565,
-    BPXL_eB5_G6_R5         = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x0565,
+    BPXL_eR5_G6_B5         = BPXL_P_TYPE_RGB | BPXL_P_LOC_ARGB | 0x0565,
+    BPXL_eB5_G6_R5         = BPXL_P_TYPE_RGB | BPXL_P_LOC_ABGR | 0x0565,
 
-    BPXL_eA1_R5_G5_B5      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x1555,
-    BPXL_eA1_B5_G5_R5      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x1555,
-    BPXL_eR5_G5_B5_A1      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x5551,
-    BPXL_eB5_G5_R5_A1      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x5551,
+    BPXL_eA1_R5_G5_B5      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ARGB | 0x1555,
+    BPXL_eA1_B5_G5_R5      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ABGR | 0x1555,
+    BPXL_eR5_G5_B5_A1      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_RGBA | 0x5551,
+    BPXL_eB5_G5_R5_A1      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_BGRA | 0x5551,
 
-    BPXL_eX1_R5_G5_B5      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x1555,
-    BPXL_eX1_B5_G5_R5      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x1555,
-    BPXL_eR5_G5_B5_X1      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x5551,
-    BPXL_eB5_G5_R5_X1      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x5551,
+    BPXL_eX1_R5_G5_B5      = BPXL_P_TYPE_RGB | BPXL_P_LOC_ARGB | 0x1555,
+    BPXL_eX1_B5_G5_R5      = BPXL_P_TYPE_RGB | BPXL_P_LOC_ABGR | 0x1555,
+    BPXL_eR5_G5_B5_X1      = BPXL_P_TYPE_RGB | BPXL_P_LOC_RGBA | 0x5551,
+    BPXL_eB5_G5_R5_X1      = BPXL_P_TYPE_RGB | BPXL_P_LOC_BGRA | 0x5551,
 
-    BPXL_eW1_R5_G5_B5      = BPXL_P_WINDOW | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x1555,
-    BPXL_eW1_B5_G5_R5      = BPXL_P_WINDOW | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x1555,
-    BPXL_eR5_G5_B5_W1      = BPXL_P_WINDOW | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x5551,
-    BPXL_eB5_G5_R5_W1      = BPXL_P_WINDOW | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x5551,
+    BPXL_eW1_R5_G5_B5      = BPXL_P_TYPE_WRGB | BPXL_P_LOC_ARGB | 0x1555,
+    BPXL_eW1_B5_G5_R5      = BPXL_P_TYPE_WRGB | BPXL_P_LOC_ABGR | 0x1555,
+    BPXL_eR5_G5_B5_W1      = BPXL_P_TYPE_WRGB | BPXL_P_LOC_RGBA | 0x5551,
+    BPXL_eB5_G5_R5_W1      = BPXL_P_TYPE_WRGB | BPXL_P_LOC_BGRA | 0x5551,
 
-    BPXL_eA4_R4_G4_B4      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x4444,
-    BPXL_eA4_B4_G4_R4      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x4444,
-    BPXL_eR4_G4_B4_A4      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x4444,
-    BPXL_eB4_G4_R4_A4      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x4444,
+    BPXL_eA4_R4_G4_B4      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ARGB | 0x4444,
+    BPXL_eA4_B4_G4_R4      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ABGR | 0x4444,
+    BPXL_eR4_G4_B4_A4      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_RGBA | 0x4444,
+    BPXL_eB4_G4_R4_A4      = BPXL_P_TYPE_ARGB | BPXL_P_LOC_BGRA | 0x4444,
 
-    BPXL_eX4_R4_G4_B4      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x4444,
-    BPXL_eX4_B4_G4_R4      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ABGR | 0x4444,
-    BPXL_eR4_G4_B4_X4      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x4444,
-    BPXL_eB4_G4_R4_X4      = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_BGRA | 0x4444,
+    BPXL_eX4_R4_G4_B4      = BPXL_P_TYPE_RGB | BPXL_P_LOC_ARGB | 0x4444,
+    BPXL_eX4_B4_G4_R4      = BPXL_P_TYPE_RGB | BPXL_P_LOC_ABGR | 0x4444,
+    BPXL_eR4_G4_B4_X4      = BPXL_P_TYPE_RGB | BPXL_P_LOC_RGBA | 0x4444,
+    BPXL_eB4_G4_R4_X4      = BPXL_P_TYPE_RGB | BPXL_P_LOC_BGRA | 0x4444,
 
     /* Palette */
-    BPXL_eP0               = BPXL_P_COLOR | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x0000,
-    BPXL_eP1               = BPXL_P_COLOR | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x0001,
-    BPXL_eP2               = BPXL_P_COLOR | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x0002,
-    BPXL_eP4               = BPXL_P_COLOR | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x0004,
-    BPXL_eP8               = BPXL_P_COLOR | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x0008,
-    BPXL_eA8_P8            = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x8008,
-    BPXL_eY8_P8            = BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_PALETTE | BPXL_P_LOC_ARGB | 0x0808,
+    BPXL_eP0               = BPXL_P_TYPE_P  | BPXL_P_LOC_ARGB | 0x0000,
+    BPXL_eP1               = BPXL_P_TYPE_P  | BPXL_P_LOC_ARGB | 0x0001,
+    BPXL_eP2               = BPXL_P_TYPE_P  | BPXL_P_LOC_ARGB | 0x0002,
+    BPXL_eP4               = BPXL_P_TYPE_P  | BPXL_P_LOC_ARGB | 0x0004,
+    BPXL_eP8               = BPXL_P_TYPE_P  | BPXL_P_LOC_ARGB | 0x0008,
+    BPXL_eA8_P8            = BPXL_P_TYPE_AP | BPXL_P_LOC_ARGB | 0x8008,
+    BPXL_eY8_P8            = BPXL_P_TYPE_YP | BPXL_P_LOC_ARGB | 0x0808,
 
     /* Alpha */
-    BPXL_eA0               = BPXL_P_ALPHA | BPXL_P_LOC_RGBA | 0x0000,
-    BPXL_eA1               = BPXL_P_ALPHA | BPXL_P_LOC_RGBA | 0x0001,
-    BPXL_eA2               = BPXL_P_ALPHA | BPXL_P_LOC_RGBA | 0x0002,
-    BPXL_eA4               = BPXL_P_ALPHA | BPXL_P_LOC_RGBA | 0x0004,
-    BPXL_eA8               = BPXL_P_ALPHA | BPXL_P_LOC_RGBA | 0x0008,
-    BPXL_eW1               = BPXL_P_WINDOW | BPXL_P_ALPHA | BPXL_P_LOC_RGBA | 0x0001,
+    BPXL_eA0               = BPXL_P_TYPE_A | BPXL_P_LOC_RGBA | 0x0000,
+    BPXL_eA1               = BPXL_P_TYPE_A | BPXL_P_LOC_RGBA | 0x0001,
+    BPXL_eA2               = BPXL_P_TYPE_A | BPXL_P_LOC_RGBA | 0x0002,
+    BPXL_eA4               = BPXL_P_TYPE_A | BPXL_P_LOC_RGBA | 0x0004,
+    BPXL_eA8               = BPXL_P_TYPE_A | BPXL_P_LOC_RGBA | 0x0008,
+    BPXL_eW1               = BPXL_P_TYPE_W | BPXL_P_LOC_RGBA | 0x0001,
 
     /* 3D (Special) */
-    BPXL_eL8               = BPXL_P_COLOR | BPXL_P_SPECIAL | BPXL_P_LOC_ARGB | 0x0008,
-    BPXL_eL8_A8            = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x0088,
-    BPXL_eZ16              = BPXL_P_SPECIAL | 0x0088,
+    BPXL_eL8               = BPXL_P_TYPE_L  | BPXL_P_LOC_ARGB | 0x0008,
+    BPXL_eL8_A8            = BPXL_P_TYPE_AL | BPXL_P_LOC_RGBA | 0x0088,
+    BPXL_eZ16              = BPXL_P_TYPE_Z  | 0x0088,
 
-    BPXL_eL4_A4            = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x0044,
-    BPXL_eL15_L05_A6       = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x0556,
+    BPXL_eL4_A4            = BPXL_P_TYPE_AL    | BPXL_P_LOC_RGBA | 0x0044,
+    BPXL_eL15_L05_A6       = BPXL_P_TYPE_AL0L1 | BPXL_P_LOC_RGBA | 0x0556,
 
-    /* compressed */
-    BPXL_eCompressed_A8_R8_G8_B8 = BPXL_P_SPECIAL | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x8888,
-    BPXL_eUIF_R8_G8_B8_A8        = BPXL_P_SPECIAL | BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_RGBA | 0x8888,
+    /* block layout */
+    BPXL_eCompressed_A8_R8_G8_B8 = BPXL_P_LAYOUT_BlockLinear | BPXL_P_TYPE_ARGB_Compressed | BPXL_P_LOC_ARGB | 0x8888,
+    BPXL_eUIF_R8_G8_B8_A8        = BPXL_P_LAYOUT_UIF         | BPXL_P_TYPE_ARGB            | BPXL_P_LOC_RGBA | 0x8888,
+
+    BPXL_eX2_R10_G10_B10   = BPXL_P_TYPE_RGB | BPXL_P_LOC_ARGB | 0x2AAA,
+    BPXL_eX2_B10_G10_R10   = BPXL_P_TYPE_RGB | BPXL_P_LOC_ABGR | 0x2AAA,
+    BPXL_eR10_G10_B10_X2   = BPXL_P_TYPE_RGB | BPXL_P_LOC_RGBA | 0xAAA2,
+    BPXL_eB10_G10_R10_X2   = BPXL_P_TYPE_RGB | BPXL_P_LOC_BGRA | 0xAAA2,
+
+    BPXL_eA2_R10_G10_B10   = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ARGB | 0x2AAA,
+    BPXL_eA2_B10_G10_R10   = BPXL_P_TYPE_ARGB | BPXL_P_LOC_ABGR | 0x2AAA,
+    BPXL_eR10_G10_B10_A2   = BPXL_P_TYPE_ARGB | BPXL_P_LOC_RGBA | 0xAAA2,
+    BPXL_eB10_G10_R10_A2   = BPXL_P_TYPE_ARGB | BPXL_P_LOC_BGRA | 0xAAA2,
+
+    BPXL_eXf16_Rf16_Gf16_Bf16   = BPXL_P_TYPE_RGB_Fp16  | BPXL_P_LOC_ARGB | 0xFFFF,
+    BPXL_eXf16_Bf16_Gf16_Rf16   = BPXL_P_TYPE_RGB_Fp16  | BPXL_P_LOC_ABGR | 0xFFFF,
+    BPXL_eRf16_Gf16_Bf16_Xf16   = BPXL_P_TYPE_RGB_Fp16  | BPXL_P_LOC_RGBA | 0xFFFF,
+    BPXL_eBf16_Gf16_Rf16_Xf16   = BPXL_P_TYPE_RGB_Fp16  | BPXL_P_LOC_BGRA | 0xFFFF,
+
+    BPXL_eAf16_Rf16_Gf16_Bf16   = BPXL_P_TYPE_ARGB_Fp16 | BPXL_P_LOC_ARGB | 0xFFFF,
+    BPXL_eAf16_Bf16_Gf16_Rf16   = BPXL_P_TYPE_ARGB_Fp16 | BPXL_P_LOC_ABGR | 0xFFFF,
+    BPXL_eRf16_Gf16_Bf16_Af16   = BPXL_P_TYPE_ARGB_Fp16 | BPXL_P_LOC_RGBA | 0xFFFF,
+    BPXL_eBf16_Gf16_Rf16_Af16   = BPXL_P_TYPE_ARGB_Fp16 | BPXL_P_LOC_BGRA | 0xFFFF,
 
     BPXL_INVALID           = 0
 }
 
 BPXL_Format;
+
 
 /***************************************************************************
 Summary:
@@ -311,25 +402,8 @@ Returns:
     1 - Format has alpha component.
 ****************************************************************************/
 #define BPXL_HAS_ALPHA(x) \
-    ((((uint32_t)(x)) & BPXL_P_ALPHA) ? 1 : 0)
-
-/***************************************************************************
-Summary:
-    Determines if a format contains a masked alpha component.
-
-Description:
-    This macro will determine if the specified format has a masked
-    alpha component. eg. BPXL_eX8_R8_G8_B8
-
-Input:
-    x - Pixel format.
-
-Returns:
-    0 - Format has no masked alpha component.
-    1 - Format has masked alpha component.
-****************************************************************************/
-#define BPXL_HAS_MASKED_ALPHA(x) \
-    (BPXL_IS_RGB_FORMAT(x) && (BPXL_HAS_ALPHA(x) == 0) && (BPXL_COMPONENT_SIZE(x, 3)) ? 1 : 0)
+    (((BPXL_P_GET_TYPE(x) >= BPXL_P_TYPE_ARGB) && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_ARGB_Fp16)) || \
+     ((BPXL_P_GET_TYPE(x) >= BPXL_P_TYPE_AY)   && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_AL0L1)))
 
 /***************************************************************************
 Summary:
@@ -347,7 +421,8 @@ Returns:
     1 - Format has one or more components.
 ****************************************************************************/
 #define BPXL_HAS_COLOR(x) \
-    ((((uint32_t)(x)) & BPXL_P_COLOR) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) != BPXL_P_TYPE_A) && (BPXL_P_GET_TYPE(x) != BPXL_P_TYPE_W) && \
+     (BPXL_P_GET_TYPE(x) != BPXL_P_TYPE_Z))
 
 /***************************************************************************
 Summary:
@@ -365,7 +440,7 @@ Returns:
     1 - Format is alpha only.
 ****************************************************************************/
 #define BPXL_IS_ALPHA_ONLY_FORMAT(x) \
-    (((((uint32_t)(x)) & BPXL_P_TYPE_MASK) == BPXL_P_ALPHA) ? 1 : 0)
+    (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_A)
 
 /***************************************************************************
 Summary:
@@ -382,7 +457,7 @@ Returns:
     1 - Format is RGB.
 ****************************************************************************/
 #define BPXL_IS_RGB_FORMAT(x) \
-    ((((uint32_t)(x)) & BPXL_P_RGB) ? 1 : 0)
+    (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_ARGB_Fp16)
 
 /***************************************************************************
 Summary:
@@ -399,24 +474,8 @@ Returns:
     1 - Format is YCbCr.
 ****************************************************************************/
 #define BPXL_IS_YCbCr_FORMAT(x) \
-    ((((uint32_t)(x)) & BPXL_P_YCbCr) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) >= BPXL_P_TYPE_Y) && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_AYCbCr))
 
-/***************************************************************************
-Summary:
-    Determines if a format is special.
-
-Description:
-    This macro will determine if the specified format is a special format.
-
-Input:
-    x - Pixel format.
-
-Returns:
-    0 - Format is not special.
-    1 - Format is special.
-****************************************************************************/
-#define BPXL_IS_SPECIAL_FORMAT(x) \
-    ((((uint32_t)(x)) & BPXL_P_SPECIAL) ? 1 : 0)
 
 /***************************************************************************
 Summary:
@@ -432,47 +491,51 @@ Returns:
     0 - Format is not YCbCr42x.
     1 - Format is YCbCr42x.
 ****************************************************************************/
-#define BPXL_IS_YCbCr422_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (BPXL_HAS_ALPHA(x) == 0) && (((x) & 0xFFFF) == 0x8888)) ? 1 : 0)
-
 #define BPXL_IS_YCbCr420_LUMA_8BIT_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && ((((x) & 0xFFFF) == 0x0800) || (((x) & 0xFFFF) == 0x8800))) ? 1 : 0)
+    (((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_Y) || (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_AY)) && \
+     (((x) & 0x0FFF) == 0x0800))
 
 #define BPXL_IS_YCbCr420_CHROMA_8BIT_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (((x) & 0xFFFF) == 0x0088)) ? 1 : 0)
+    (((BPXL_P_GET_TYPE(x) >= BPXL_P_TYPE_Cb) && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_CbCr)) && \
+     ((((x) & 0xFFF0) == 0x0080) || (((x) & 0xFF0F) == 0x0008)))
 
 #define BPXL_IS_YCbCr420_LUMA_10BIT_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (((x) & 0xFFFF) == 0x0A00)) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_Y) && (((x) & 0xFFFF) == 0x0A00))
 
-#define BPXL_IS_YCbCr420_CHROMA_10BIT_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (((x) & 0xFFFF) == 0x00AA)) ? 1 : 0)
+#define BPXL_IS_YCbCr420_Cb_OR_Cr_10BIT_FORMAT(x) \
+    (((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_Cb) || (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_Cr)) && \
+     ((((x) & 0xFFFF) == 0x00A0) || (((x) & 0xFFFF) == 0x000A)))
+
+#define BPXL_IS_YCbCr420_CbCr_10BIT_FORMAT(x) \
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_CbCr) && (((x) & 0xFFFF) == 0x00AA))
 
 #define BPXL_IS_YCbCr420_LUMA_FORMAT(x) \
-    (BPXL_IS_YCbCr420_LUMA_8BIT_FORMAT(x) || BPXL_IS_YCbCr420_LUMA_10BIT_FORMAT(x))
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_Y) || (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_AY))
 
 #define BPXL_IS_YCbCr420_CHROMA_FORMAT(x) \
-    (BPXL_IS_YCbCr420_CHROMA_8BIT_FORMAT(x) || BPXL_IS_YCbCr420_CHROMA_10BIT_FORMAT(x))
+    ((BPXL_P_GET_TYPE(x) >= BPXL_P_TYPE_Cb) && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_CbCr))
 
 #define BPXL_IS_YCbCr420_FORMAT(x) \
-    ((BPXL_IS_YCbCr420_LUMA_FORMAT(x) || BPXL_IS_YCbCr420_CHROMA_FORMAT(x)) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) >= BPXL_P_TYPE_Y) && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_CbCr))
 
 #define BPXL_IS_YCbCr420_10BIT_FORMAT(x) \
-    ((BPXL_IS_YCbCr420_LUMA_10BIT_FORMAT(x) || BPXL_IS_YCbCr420_CHROMA_10BIT_FORMAT(x)) ? 1 : 0)
+    ((BPXL_IS_YCbCr420_FORMAT(x)) && \
+     ((((x) & 0xFF00) == 0x0A00) || (((x) & 0xF0F0) == 0x00A0) || (((x) & 0xF00F) == 0x000A)))
 
 #define BPXL_IS_YCbCr444_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && BPXL_HAS_ALPHA(x)) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_YCbCr) && (BPXL_P_GET_TYPE(x) <= BPXL_P_TYPE_AYCbCr))
 
 #define BPXL_IS_YCbCr444_10BIT_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (((x) & 0xFFFF) == 0x2AAA)) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_YCbCr) && (((x) & 0xFFFF) == 0x2AAA))
 
-#define BPXL_IS_YCbCr422_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (BPXL_HAS_ALPHA(x) == 0) && (((x) & 0xFFFF) == 0x8888)) ? 1 : 0)
+#define BPXL_IS_YCbCr422_FORMAT(x) /* BPXL_IS_YCbCr422_8BIT_FORMAT(x) ? */ \
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_YCbCr422) && (((x) & 0xFFFF) == 0x8888))
 
-#define BPXL_IS_YCbCr422_10BIT_FORMAT(x) \
-    ((BPXL_IS_SPECIAL_FORMAT(x) && BPXL_IS_YCbCr_FORMAT(x) && (((x) & 0xFFFF) == 0xAAAA)) ? 1 : 0)
+#define BPXL_IS_YCbCr422_10BIT_FORMAT(x) /* BPXL_IS_YCbCr422_10BIT_NOT_PACKED_FORMAT ? */ \
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_YCbCr422) && (((x) & 0xFFFF) == 0xAAAA))
 
 #define BPXL_IS_YCbCr422_10BIT_PACKED_FORMAT(x) \
-    ((BPXL_IS_YCbCr_FORMAT(x) && (((x) & 0xFFFF) == 0xAAAA)) ? 1 : 0)
+    (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_YCbCr422_10Bits_Packed)
 
 /***************************************************************************
 Summary:
@@ -489,7 +552,25 @@ Returns:
     1 - Format is palette.
 ****************************************************************************/
 #define BPXL_IS_PALETTE_FORMAT(x) \
-    ((((uint32_t)(x)) & BPXL_P_PALETTE) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_P) || (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_AP) || \
+     ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_YP)))
+
+/***************************************************************************
+Summary:
+    Determines if a format is a 16 bits format.
+
+Description:
+    This macro will determine if the specified format is a 16 bits format.
+
+Input:
+    x - Pixel format.
+
+Returns:
+    0 - Format is not 16 bits format.
+    1 - Format is 16 bits format.
+****************************************************************************/
+#define BPXL_IS_16BITS_FORMAT(x) \
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_RGB_Fp16) || (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_ARGB_Fp16))
 
 /***************************************************************************
 Summary:
@@ -506,16 +587,16 @@ Returns:
     1 - Format has window alpha.
 ****************************************************************************/
 #define BPXL_IS_WINDOW_FORMAT(x) \
-    ((((uint32_t)(x)) & BPXL_P_WINDOW) ? 1 : 0)
+    ((BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_W) || (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_WRGB))
 
 /***************************************************************************
 Summary:
-    Determines if a format is luma.
+    Determines if a format is luma only.
 
 Description:
-    This macro will determine if the specified format is a luma format.
-    Luma formats have one color channel which is replicated across the RGB
-    color channels. These formats are supported by PX3D device.
+    This macro will determine if the specified format is a luma only format.
+    Luma only formats have one color channel which is replicated across the
+    RGB color channels. These formats are supported by PX3D device.
 
 Input:
     x - Pixel format.
@@ -524,8 +605,8 @@ Returns:
     0 - Format is not luma.
     1 - Format is luma.
 ****************************************************************************/
-#define BPXL_IS_LUMA_FORMAT(x) \
-    ((BPXL_IS_SPECIAL_FORMAT(x) && BPXL_HAS_COLOR(x) && (BPXL_IS_RGB_FORMAT(x) == 0) && (BPXL_IS_YCbCr_FORMAT(x) == 0)) ? 1 : 0)
+#define BPXL_IS_LUMA_ONLY_FORMAT(x) \
+    (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_L)
 
 /***************************************************************************
 Summary:
@@ -543,7 +624,7 @@ Returns:
     1 - Format is depth.
 ****************************************************************************/
 #define BPXL_IS_DEPTH_FORMAT(x) \
-    ((BPXL_IS_SPECIAL_FORMAT(x) && (BPXL_HAS_ALPHA(x) == 0) && (BPXL_HAS_COLOR(x) == 0)) ? 1 : 0)
+    (BPXL_P_GET_TYPE(x) == BPXL_P_TYPE_Z)
 
 /***************************************************************************
 Summary:
@@ -567,8 +648,12 @@ Summary:
     Returns the format's bits per pixel.
 
 Description:
-    This macro will retrieve the bits per pixel for a specified format,
-    except for the YCbCr 422 10-bit special format.
+    This macro will retrieve the bits per pixel for a specified format.
+
+    It will NOT work for YCbCr 420 10-bit formats, YCbCr 422 10-bit formats,
+    and DCEG-compressed format.
+
+    Use BPXL_GetBytesPerNPixels_isrsafe() for those formats
 
 Input:
     x - Pixel format.
@@ -576,12 +661,22 @@ Input:
 Returns:
     Format's bits per pixel.
 ****************************************************************************/
-#define BPXL_BITS_PER_PIXEL(x) ((\
-    (((x) & BPXL_P_COMP_SIZE_MASK) + \
-    (((x) >> BPXL_P_COMP_SIZE_SHIFT) & BPXL_P_COMP_SIZE_MASK) + \
-    (((x) >> (BPXL_P_COMP_SIZE_SHIFT * 2)) & BPXL_P_COMP_SIZE_MASK) + \
-    (((x) >> (BPXL_P_COMP_SIZE_SHIFT * 3)) & BPXL_P_COMP_SIZE_MASK))) / \
-    (BPXL_IS_YCbCr422_FORMAT(x) ? 2 : 1))
+#if defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
+#define BPXL_BITS_PER_PIXEL(x) ((BPXL_IS_16BITS_FORMAT(x)) ? 64 : \
+    (((((x) & BPXL_P_COMP_SIZE_MASK)) + \
+      (((x) >> BPXL_P_COMP_SIZE_SHIFT) & BPXL_P_COMP_SIZE_MASK) + \
+      (((x) >> (BPXL_P_COMP_SIZE_SHIFT * 2)) & BPXL_P_COMP_SIZE_MASK) + \
+      (((x) >> (BPXL_P_COMP_SIZE_SHIFT * 3)) & BPXL_P_COMP_SIZE_MASK)) >> \
+     ((BPXL_IS_YCbCr422_FORMAT(x) || BPXL_IS_COMPRESSED_FORMAT(x)) ? 1 : 0)))
+#else
+/* note: old DCEG compression ratio is not 2 to 1 */
+#define BPXL_BITS_PER_PIXEL(x) ((BPXL_IS_16BITS_FORMAT(x)) ? 64 : \
+    (((((x) & BPXL_P_COMP_SIZE_MASK)) + \
+      (((x) >> BPXL_P_COMP_SIZE_SHIFT) & BPXL_P_COMP_SIZE_MASK) + \
+      (((x) >> (BPXL_P_COMP_SIZE_SHIFT * 2)) & BPXL_P_COMP_SIZE_MASK) + \
+      (((x) >> (BPXL_P_COMP_SIZE_SHIFT * 3)) & BPXL_P_COMP_SIZE_MASK)) >> \
+     ((BPXL_IS_YCbCr422_FORMAT(x)) ? 1 : 0)))
+#endif
 
 /***************************************************************************
 Summary:
@@ -589,6 +684,7 @@ Summary:
 
 Description:
     This macro will retrieve the pixel mask for a specified format.
+    It only works for pixel format not bigger than 32 bits
 
 Input:
     x - Pixel format.
@@ -614,7 +710,7 @@ Returns:
     Format's number of palette entries.
 ****************************************************************************/
 #define BPXL_NUM_PALETTE_ENTRIES(x) \
-    (((x) & BPXL_P_PALETTE) ? 1 << ((x) & BPXL_P_COMP_SIZE_MASK) : 0)
+    ((BPXL_IS_PALETTE_FORMAT(x)) ? 1 << ((x) & BPXL_P_COMP_SIZE_MASK) : 0)
 
 /***************************************************************************
 Summary:
@@ -631,8 +727,8 @@ Input:
 Returns:
     Format's pixel component size.
 ****************************************************************************/
-#define BPXL_COMPONENT_SIZE(x,n) \
-    (((x) >> (BPXL_P_COMP_LOC(x,n) * BPXL_P_COMP_SIZE_SHIFT)) & BPXL_P_COMP_SIZE_MASK)
+#define BPXL_COMPONENT_SIZE(x,n) ((BPXL_IS_16BITS_FORMAT(x))? 16 : \
+    (((x) >> (BPXL_P_COMP_LOC(x,n) * BPXL_P_COMP_SIZE_SHIFT)) & BPXL_P_COMP_SIZE_MASK))
 
 /***************************************************************************
 Summary:
@@ -826,6 +922,26 @@ void BPXL_ConvertPixel_YCbCrtoRGB_isrsafe(
 
 /***************************************************************************
 Summary:
+    Get size and pitch aligment for a specific pixel format
+
+Description:
+    This function should be used whenever the user needs to know
+    how to align the size or pitch for a specific pixel format.
+
+    Alignment is not trivial for some packed formats and blocked layout.
+
+****************************************************************************/
+void BPXL_GetAlignment_isrsafe(
+    BPXL_Format eFormat,             /* [in] Pixel format. */
+    unsigned int uiWidth,            /* [in] Width. */
+    unsigned int uiHeight,           /* [in] Height. */
+    unsigned int *puiAlignedWidth,   /* [out] Pointer to aligned width */
+    unsigned int *puiAlignedHeight,  /* [out] Pointer to aligned height */
+    unsigned int *puiPitch           /* [out] Pointer to aligned pitch */
+);
+
+/***************************************************************************
+Summary:
     Returns the number of bytes for a specific number of pixels.
 
 Description:
@@ -834,7 +950,7 @@ Description:
 
     This requires a special function since the value is not always
     the number of bits per pixel * the number of pixels. In the case
-    of compressed formats, such as BPXL_eY08_Cb8_Y18_Cr8, there
+    of packed formats, such as BPXL_eY08_Cb8_Y18_Cr8, there
     may be some rounding involved.
 
 ****************************************************************************/

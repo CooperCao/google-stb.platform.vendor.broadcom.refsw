@@ -46,7 +46,7 @@
 #include "bsagelib_types.h"
 #include "bkni.h"
 
-#define BP3_FEATURES_NUM 29
+#define BP3_FEATURES_NUM 37
 
 typedef enum {
     Info, Video0, Audio0, Host, Sage, Reserved, Video1, ReservedLast, NotUsed

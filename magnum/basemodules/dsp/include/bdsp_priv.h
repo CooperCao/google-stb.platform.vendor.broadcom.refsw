@@ -86,6 +86,7 @@ typedef struct BDSP_Device
     BERR_Code (*getDownloadStatus)(void *pDeviceHandle, BDSP_DownloadStatus *pStatus);
     BERR_Code (*initialize)(void *pDeviceHandle);
     BERR_Code (*getRRRAddrRange)(void *pDeviceHandle, BDSP_DownloadStatus *pRRRAddrRange);
+    BERR_Code (*processPAK)(void *pDeviceHandle, const BDSP_ProcessPAKSettings *pPakSettings, BDSP_ProcessPAKStatus *pStatus);
 }BDSP_Device;
 
 void BDSP_P_InitDevice(

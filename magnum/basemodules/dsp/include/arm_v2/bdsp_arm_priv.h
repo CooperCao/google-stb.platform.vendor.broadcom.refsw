@@ -345,6 +345,12 @@ BERR_Code BDSP_Arm_P_ReleaseDeviceRWMemory(
     BDSP_Arm *pDevice,
     unsigned  dspindex
 );
+BERR_Code BDSP_Arm_P_ReleaseDescriptor(
+	BDSP_Arm *pDevice,
+	unsigned dspIndex,
+	dramaddr_t *pOffset,
+	unsigned numDescriptors
+);
 BERR_Code BDSP_Arm_P_ReleasePortDescriptors(
    BDSP_Arm   *pDevice,
    unsigned    dspIndex,

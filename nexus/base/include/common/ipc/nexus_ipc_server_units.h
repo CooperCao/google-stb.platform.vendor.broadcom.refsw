@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,7 +58,7 @@
 #define B_IPC_FIELD(api, dir, field) __##dir##_data->api.field
 
 #if __COVERITY__
-#define B_IPC_SERVER_COVERITY_STACK() __coverity_stack_depth__(40000)
+#define B_IPC_SERVER_COVERITY_STACK() __coverity_stack_depth__(20000)
 #else
 #define B_IPC_SERVER_COVERITY_STACK()
 #endif

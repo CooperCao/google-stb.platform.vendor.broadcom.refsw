@@ -61,7 +61,6 @@
 #include <phy_misc_api.h>
 #include <phy_calmgr_api.h>
 #include <wlc_assoc.h>
-
 #ifdef WLRSDB
 #include <wlc_rsdb.h>
 #endif /* WLRSDB */
@@ -1857,8 +1856,15 @@ wlc_dfs_watchdog(void *ctx)
 {
 	wlc_dfs_info_t *dfs = (wlc_dfs_info_t *)ctx;
 	wlc_info_t *wlc = dfs->wlc;
+	static uint64 start,end;
+	uint tstamp=0;
 
 	(void)wlc;
+
+	end=OSL_SYSUPTIME_US();
+	if(start)
+		tstamp=(uint)(end-start)/(uint)1000000;
+	start=end;
 
 	/* Restore channels 30 minutes after radar detect */
 	if (WL11H_ENAB(wlc) && dfs->radar) {
@@ -1866,11 +1872,16 @@ wlc_dfs_watchdog(void *ctx)
 
 		for (chan = 0; chan < MAXCHANNEL; chan++) {
 			if (dfs->chan_blocked[chan] &&
-			    dfs->chan_blocked[chan] != WLC_CHANBLOCK_FOREVER) {
-				dfs->chan_blocked[chan]--;
+				dfs->chan_blocked[chan] != WLC_CHANBLOCK_FOREVER) {
+				if(tstamp<dfs->chan_blocked[chan]){
+					dfs->chan_blocked[chan]-=tstamp;
+				}
+				else{
+					dfs->chan_blocked[chan]=0;
+				}
 				if (!dfs->chan_blocked[chan]) {
 					WL_REGULATORY(("\t** DFS *** Channel %d is"
-					               " clean after 30 minutes\n", chan));
+						" clean after 30 minutes\n", chan));
 				}
 			}
 		}

@@ -1,39 +1,43 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom.
+*  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*  and may only be used, duplicated, modified or distributed pursuant to
+*  the terms and conditions of a separate, written license agreement executed
+*  between you and Broadcom (an "Authorized License").  Except as set forth in
+*  an Authorized License, Broadcom grants no license (express or implied),
+*  right to use, or waiver of any kind with respect to the Software, and
+*  Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+*  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+*  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*  1.     This program, including its structure, sequence and organization,
+*  constitutes the valuable trade secrets of Broadcom, and you shall use all
+*  reasonable efforts to protect the confidentiality thereof, and to use this
+*  information only in connection with your use of Broadcom integrated circuit
+*  products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+*  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+*  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+*  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+*  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+*  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+*  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+*  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+*  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+*  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+*  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+*  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+*  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_DECODER_TYPES__
 #define NEXUS_AUDIO_DECODER_TYPES__
@@ -102,6 +106,18 @@ typedef enum NEXUS_AudioDecoderLatencyMode
 
 /***************************************************************************
 Summary:
+Audio Format Change Mode
+***************************************************************************/
+typedef enum NEXUS_AudioInputFormatChangeMode
+{
+    NEXUS_AudioInputFormatChangeMode_eAuto,      /* Automatically reconfigure decoder on format changes from input (Hdmi, Spdif, I2s) */
+    NEXUS_AudioInputFormatChangeMode_eManual,    /* Move to stopped state and send notification to application upon a format change.
+                                               This allows more control for the app to handle the format change */
+    NEXUS_AudioInputFormatChangeMode_eMax
+} NEXUS_AudioInputFormatChangeMode;
+
+/***************************************************************************
+Summary:
 Audio decoder program settings
 ***************************************************************************/
 typedef struct NEXUS_AudioDecoderStartSettings
@@ -109,8 +125,13 @@ typedef struct NEXUS_AudioDecoderStartSettings
     NEXUS_PidChannelHandle pidChannel;  /* Input from transport */
     NEXUS_AudioCodec codec;             /* Format of data coming from the pid channel */
     NEXUS_StcChannelHandle stcChannel;  /* Connection to clock for TSM and lipsync with VideoDecoder. If NULL, decode in vsync mode. */
-    NEXUS_AudioInputHandle input;             /* If you are decoding from a digital source such as HdmiInput or SpdifInput,
-                                           pass the connector here.  If this value is set, pidChannel must be NULL.  */
+    NEXUS_AudioInputHandle input;       /* If you are decoding from a digital source such as HdmiInput or SpdifInput,
+                                           pass the connector here. If this value is set, pidChannel must be NULL. */
+    NEXUS_AudioInputFormatChangeMode inputFormatChangeMode; /* When source is an input (HDMI or SPDIF input, typically), the format can change on the fly.
+                                           When configured to eAuto, the decoder will automatically stop and restart when necessary.
+                                           When configured to eManual, the decoder will be stopped when the format changes, requiring
+                                           the application to evaluate the change and restart manually - for example
+                                           if compressed format changes from ac3 to ac3plus or vice versa. */
     bool targetSyncEnabled;             /* If true, normal frame sync operation will be used (default).  This flag can be set to false
                                            for certification applications that require the last frame of the input buffer to be consumed
                                            without the audio decoder finding the start of the successive frame.  */

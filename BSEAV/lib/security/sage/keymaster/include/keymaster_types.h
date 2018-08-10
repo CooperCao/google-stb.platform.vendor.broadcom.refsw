@@ -49,6 +49,20 @@ extern "C"
 {
 #endif
 
+/***************************************************************************
+Summary:
+Keymaster init settings
+
+See Also:
+KeymasterTl_GetDefaultInitSettings()
+KeymasterTl_Init()
+***************************************************************************/
+typedef struct
+{
+    char drm_binfile_path[256];
+    uint8_t *drm_binfile_buffer;
+    uint32_t drm_binfile_size;
+} KeymasterTl_InitSettings;
 
 #define SKM_TAG_TYPE_SHIFT           28
 #define SKM_TAG_MASK_TYPE(tag)       ((tag) & (0xf << SKM_TAG_TYPE_SHIFT))

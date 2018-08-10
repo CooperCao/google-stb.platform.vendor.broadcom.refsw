@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -52,10 +56,10 @@ extern "C" {
 #endif
 
 typedef BERR_Code (*BCHP_GetFeatureFunc)(
-	const BCHP_Handle hChip,				/* [in] Chip handle. */
-	const BCHP_Feature eFeature,			/* [in] Feature to be queried. */
-	void *pFeatureValue						/* [out] Feature value .*/
-	);
+    const BCHP_Handle hChip,                /* [in] Chip handle. */
+    const BCHP_Feature eFeature,            /* [in] Feature to be queried. */
+    void *pFeatureValue                     /* [out] Feature value .*/
+    );
 
 typedef struct BCHP_PWR_P_Context {
     BKNI_MutexHandle lock; /* for internal sync */
@@ -72,6 +76,8 @@ typedef struct BCHP_PWR_P_Context {
                               MAGNUM_CONTROLLED and one that is not */
     bool *secureCtrl;      /* true if SECURE_ACCESS HW_ node */
     BCHP_PmapSettings *pMapSettings;
+    BCHP_Pstate *pCorePStates;
+    bool *hasPStates;
 } BCHP_PWR_P_Context;
 
 typedef struct BCHP_PWR_P_Context *BCHP_PWR_Handle;
@@ -98,17 +104,17 @@ BDBG_OBJECT_ID_DECLARE(BCHP);
 typedef struct BCHP_P_Context
 {
     BDBG_OBJECT(BCHP)
-	BCHP_MemoryInfo memoryInfo;
-	bool memoryInfoSet;
-	BREG_Handle regHandle;					/* register handle */
-	BCHP_GetFeatureFunc pGetFeatureFunc;	/* ptr to GetFeature func. */
-	BCHP_PWR_Handle pwrManager;				/* BCHP_PWR handle */
-	BCHP_AVS_Handle avsHandle;				/* BCHP_AVS handle */
-	BCHP_Info info;
-	const struct BCHP_P_Info *pChipInfo;
-	BCHP_P_AvsHandle hAvsHandle;
+    BCHP_MemoryInfo memoryInfo;
+    bool memoryInfoSet;
+    BREG_Handle regHandle;                  /* register handle */
+    BCHP_GetFeatureFunc pGetFeatureFunc;    /* ptr to GetFeature func. */
+    BCHP_PWR_Handle pwrManager;             /* BCHP_PWR handle */
+    BCHP_AVS_Handle avsHandle;              /* BCHP_AVS handle */
+    BCHP_Info info;
+    const struct BCHP_P_Info *pChipInfo;
+    BCHP_P_AvsHandle hAvsHandle;
 #if BCHP_UNIFIED_IMPL
-	BCHP_OpenSettings openSettings;
+    BCHP_OpenSettings openSettings;
 #endif
     bool skipInitialReset;
 } BCHP_P_Context;
@@ -156,7 +162,7 @@ extern const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[];
 extern const BCHP_PWR_P_MuxMap BCHP_PWR_P_MuxMapList[];
 extern const BCHP_PmapSettings BCHP_PWR_P_DefaultPMapSettings[];
 
-#define PMAP(reg, field, val) {val, BCHP_##reg##_##field##_SHIFT, BCHP_##reg##_##field##_MASK, BCHP_##reg}
+#define PMAP(reg, field, val) {{val}, BCHP_##reg##_##field##_SHIFT, BCHP_##reg##_##field##_MASK, BCHP_##reg, {0}}
 #define DIVTABLE(resource, n, p, m) const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_##resource[] = {{n, p, m}}
 #define FREQMAP(resource) {BCHP_PWR_##resource, BCHP_PWR_P_DivTable_##resource}
 
