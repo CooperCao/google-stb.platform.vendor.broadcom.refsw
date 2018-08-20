@@ -1,40 +1,45 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 
 #include "tzioc_mem.h"
 
@@ -218,6 +223,51 @@ void TzIoc::TzIocMem::free(
     spinLockRelease(&lock);
 }
 
+
+static bool setRR(TzIoc::TzIocMem::rrType rrX, uintptr_t *heapStart, uintptr_t *heapEnd)
+{
+
+    if((*heapStart != 0) && (*heapEnd != 0))
+    {
+        return true;
+    }
+
+    uintptr_t bspFeatureTableAddr = STB_REG_ADDR(STB_SUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR);
+    //printf("bspFeatureTableAdd 0x%lx \n",bspFeatureTableAddr);
+
+    uintptr_t bspFeatureTableHeaderOffset= REG_RD(bspFeatureTableAddr) + ARCH_DEVICE_BASE;
+    //printf("bspFeatureTableHeaderOffset 0x%lx \n",bspFeatureTableHeaderOffset);
+
+    uintptr_t rrTableOffset = REG_RD(bspFeatureTableHeaderOffset + 0x8) + ARCH_DEVICE_BASE;
+    //printf("rrTableOffset 0x%lx \n",rrTableOffset);
+
+    uint32_t rrTableHeader = REG_RD(rrTableOffset) + ARCH_DEVICE_BASE;
+    //printf("rrTableHeader 0x%x \n",rrTableHeader);
+
+    uint32_t rrTableHeaderVersion = rrTableHeader >> 24;
+    uint32_t rrTableNumRegions    = rrTableHeader & 0xFF;
+    //printf("rrTableHeaderVersion 0x%x rrTableNumRegions 0x%x \n",rrTableHeaderVersion, rrTableNumRegions);
+
+    /* Only support Table version 2*/
+    if((rrTableHeaderVersion == 0x2) && (rrTableNumRegions > 1) &&
+        (rrX == TzIoc::TzIocMem::eCRR)){
+
+        /* CRR is first entry of the table */
+        uint32_t index     = 0;
+        uintptr_t crrIndex  = (index * 2 * 4) + 4 + rrTableOffset;
+        *heapStart = REG_RD(crrIndex);
+        *heapEnd  = REG_RD(crrIndex + 4);
+        //printf("TZIOC: CRR is Set: crrHeapStart 0x%lx crrHeapSize 0x%lx\n", *heapStart, *heapEnd);
+        return true;
+    }else{
+        *heapStart = 0;
+        *heapEnd  = 0;
+        //printf("crrHeapStart 0x%lx crrHeapSize 0x%lx\n", *heapStart, *heapEnd);
+    }
+    return false;
+}
+
+
 int TzIoc::TzIocMem::mapPaddrs(
     struct tzioc_client *pClient,
     uint8_t ucCount,
@@ -227,6 +277,8 @@ int TzIoc::TzIocMem::mapPaddrs(
     PageTable *pageTable = task->userPageTable();
     int idx;
     int err = 0;
+    bool ns_memory = true; /* All memory mapped is NS by default*/
+
     for (idx = 0; idx < ucCount; idx++) {
         uintptr_t ulPaddr = pRegions[idx].ulPaddr;
         uint32_t  ulSize  = pRegions[idx].ulSize;
@@ -241,6 +293,57 @@ int TzIoc::TzIocMem::mapPaddrs(
         int endOffset   = startOffset + ulSize - 1;
         int numPages    = endOffset / PAGE_SIZE_4K_BYTES + 1;
 
+        /* Check if PA is allowed to be mapped
+           1. PA falls into MRR and KRR - Return Error
+           2. If CRR is set then Map
+                else Return Error
+           3. PA falls in CRR memory - Check App ID
+        */
+
+        uintptr_t pageStart = ulPaddr & PAGE_MASK;
+        uintptr_t pageEnd   = pageStart + (numPages * PAGE_SIZE_4K_BYTES);
+
+        /* Check if the PA wrapped */
+        if(pageStart > pageEnd){
+            err = -EINVAL;
+            goto ERR_EXIT;
+        }
+
+        /* PA should not be in MRR */
+        if(((pageStart >= TzMem::mrrHeapStart) && (pageStart <= TzMem::mrrHeapEnd)) ||
+           ((pageEnd   >= TzMem::mrrHeapStart) && (pageEnd   <= TzMem::mrrHeapEnd))){
+            err = -EPERM;
+            goto ERR_EXIT;
+        }
+
+        /* PA should not be in KRR */
+        if(((pageStart >= TzMem::krrHeapStart) && (pageStart <= TzMem::krrHeapEnd)) ||
+           ((pageEnd   >= TzMem::krrHeapStart) && (pageEnd   <= TzMem::krrHeapEnd))){
+            err = -EPERM;
+            goto ERR_EXIT;
+        }
+
+        /* Set RR only If RR needs to be secured by Astra */
+        if(TzMem::secRegion == 1)
+        {
+            /* Check if CRR is set*/
+            bool crr_set = setRR(TzIoc::TzIocMem::eCRR, &TzMem::crrHeapStart, &TzMem::crrHeapEnd);
+            if(crr_set == false){
+                err = -EINVAL;
+                goto ERR_EXIT;
+            }
+
+            //printf("TZIOC: Heaps: \nMRR [0x%lx-0x%lx] \nKRR [0x%lx-0x%lx] \nCRR [0x%lx-0x%lx] \n",
+            //       TzMem::mrrHeapStart, TzMem::mrrHeapEnd,
+            //       TzMem::krrHeapStart, TzMem::krrHeapEnd,
+            //       TzMem::crrHeapStart, TzMem::crrHeapEnd);
+
+            if(((pageStart >= TzMem::crrHeapStart) && (pageStart <= TzMem::crrHeapEnd)) ||
+               ((pageEnd   >= TzMem::crrHeapStart) && (pageEnd   <= TzMem::crrHeapEnd))){
+                err = -EPERM;
+                goto ERR_EXIT;
+            }
+        }
         void *paPageStart = PAGE_START_4K(ulPaddr);
         void *vaPageStart = pageTable->reserveAndMapAddrRange(
             paPageStart,
@@ -255,7 +358,8 @@ int TzIoc::TzIocMem::mapPaddrs(
                 true :                      // no execute
                 false,                      // allow execute
             true,                           // shared memory
-            true);                          // non-secure
+            ns_memory);                     // non-secure
+
         if (!vaPageStart) {
            err = -ENOMEM;
            goto ERR_EXIT;

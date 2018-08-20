@@ -1203,10 +1203,15 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *compatibl
                 if (val != NULL) {
                     if (!strcmp(pname, "brcm,value")) {
                         unsigned pstate;
-                        for (pstate=0; pstate<BCHP_Pstate_eMax; pstate++) {
+                        for (pstate=0; pstate<BCHP_Pstate_eMax && len > 0; pstate++) {
                             pMapSettings[cnt].value[pstate] = fdt32_to_cpu(*val++);
                             len -= 4;
-                            if (len <= 0) break;
+                        }
+                        if (pstate < BCHP_Pstate_eMax) {
+                            unsigned i;
+                            for (i=pstate; i<BCHP_Pstate_eMax; i++) {
+                                pMapSettings[cnt].value[i] = pMapSettings[cnt].value[pstate-1];
+                            }
                         }
                     }
                     if (!strcmp(pname, "brcm,core-id")) {

@@ -34,11 +34,7 @@ ARCH = mips
 PLT ?= mipsel
 
 # Get ARCH from PLT argument
-ifneq ($(findstring arm,$(PLT)),)
-ARCH := arm
-else
 ARCH=$(PLT)
-endif
 
 # uClibc wrapper
 ifeq ($(CONFIG_UCLIBC),y)
@@ -426,7 +422,7 @@ endif
 #
 
 export PLATFORMDIR := $(TOP)/$(PLATFORM)
-export INSTALLDIR := $(PLATFORMDIR)/install
+export INSTALLDIR ?= $(PLATFORMDIR)/install
 export TARGETDIR := $(PLATFORMDIR)/target
 
 define STRIP_DEBUG_SYMBOLS
@@ -777,6 +773,7 @@ all: version check_kernel_config obj_prelibs
 	+$(MAKE) $(MAKE_ARGS) post_preplibs
 
 obj_prelibs:
+	mkdir -p ${INSTALLDIR}
 	+$(MAKE) parallel=true $(MAKE_ARGS) ARCH=$(ARCH) $(obj-prelibs)
 
 obj_postlibs:
@@ -1327,6 +1324,14 @@ mdnsresponder-clean:
 endif
 
 ifeq ($(CONFIG_RPCAPD),y)
+ifneq ($(findstring arm,$(ARCH)),)
+_ARCH=arm
+else
+_ARCH=$(ARCH)
+endif
+endif
+
+ifeq ($(CONFIG_RPCAPD),y)
 rpcapd:
 	[ -f $(RPCAPD_DIR)/Makefile ] || \
 	(cd $(RPCAPD_DIR); \
@@ -1335,7 +1340,7 @@ rpcapd:
 	 ./configure --with-pcap=linux \
 	 --disable-big-core  --without-progs \
 	 --without-cxx --with-normal \
-	--host=$(ARCH)-uclibc-linux26 \
+	--host=$(_ARCH)-uclibc-linux26 \
 	CC=$(CROSS_COMPILE)gcc \
 	ac_cv_linux_vers=2)
 	$(MAKE) -C $(RPCAPD_DIR)

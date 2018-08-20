@@ -5,11 +5,45 @@
 set -x
 
 echo "######################################################################"
-echo "## Set environment variables"
+echo "## Set environment and other variables"
 echo "######################################################################"
 
 # do this first ===> source ./stbap_build_arml_${LINUXVER}.inc
-source ./stbap_config_full_src${BIT}${stbsoc}.inc
+if [ -e ./stbap_config_full_src${stbsoc}.inc ] ; then
+source ./stbap_config_full_src${stbsoc}.inc
+fi
+
+# Usage: ./stbap_build_full_src.sh <driver build flavor>
+if [ ! -z "$1" ] ; then
+  #overwrite *.inc variable
+  STBAP_WIFI_NIC_DRIVER=$1
+fi
+
+if [[ "${ARCH}" = "arm" || "${BIT}" = "32" || -z "${BIT}" ]] ; then
+	STBAP_WIFI_NIC_DRIVER=${STBAP_WIFI_NIC_DRIVER}-armv7l
+elif [[ "${ARCH}" = arm64 || "${BIT}" = "64" ]] ; then
+	STBAP_WIFI_NIC_DRIVER=${STBAP_WIFI_NIC_DRIVER}-armv8
+else
+	echo "TARGETARCH is undefined"
+	exit 0
+fi
+
+echo "######################################################################"
+echo "## All router Apps, NIC drivers, DHD driver and FW souces Directories"
+echo "######################################################################"
+
+STBAP_BUILDROOT=`pwd`
+STBAP_APPS_DIR=router
+STBAP_NIC_DRIVER_DIR=..
+if [[ -z "${stbsoc}" ]]; then
+STBAP_TARGET_DRIVER_TYPE=${STBAP_TARGET_DRIVER_TYPE:=fdnic-2ifs-${LINUXVER}}
+elif [[ "${stbsoc}" == "7271p" ]]; then
+STBAP_TARGET_DRIVER_TYPE=${STBAP_TARGET_DRIVER_TYPE:=stb7271-fdnic-2ifs-${LINUXVER}}
+else
+STBAP_TARGET_DRIVER_TYPE=${STBAP_TARGET_DRIVER_TYPE:=stb7271-nic_${LINUXVER}}
+fi
+STBAP_TARGET_DIR=${STBAP_TARGET_DIR:=${STBAP_BUILDROOT}/target_${STBAP_TARGET_DRIVER_TYPE}}
+export INSTALLDIR=${STBAP_BUILDROOT}/${STBAP_APPS_DIR}/src/router/${ARCH}-glibc/target
 
 echo "######################################################################"
 echo "## Copy AP Apps, Driver and FW packages."
@@ -18,7 +52,6 @@ echo "######################################################################"
 if [[ "${stbsoc}" != *7271* ]]; then
 cd linux-stbap-${STBAP_VER}
 fi
-STBAP_BUILDROOT=`pwd`
 
 echo "######################################################################"
 echo "## Build access point applications"
@@ -30,7 +63,7 @@ chmod 777 autogen.sh
 
 cd ${STBAP_BUILDROOT}/${STBAP_APPS_DIR}/src
 make -C include
-make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUX_VERSION} PLT=${ARCH} STBLINUX=1 -C router clean
+make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUX_VERSION} PLT=${ARCH} STBLINUX=1 -C router clean  apps_clean
 cp router/config/defconfig-stbap-dhd router/.config
 yes "" | make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUX_VERSION} PLT=${ARCH} STBLINUX=1 -C router oldconfig
 make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUX_VERSION} PLT=${ARCH} STBLINUX=1 -C router apps apps_install
@@ -47,14 +80,14 @@ else
 export KBUILD_EXTRA_SYMBOLS=${STBAP_BUILDROOT}/${STBAP_NIC_DRIVER_DIR}/src/wlplat/Module.symvers
 fi
 
-make -C router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${TOOLCHAIN}/bin/${ARCHTOOL}- clean
-make -C router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${TOOLCHAIN}/bin/${ARCHTOOL}-
+make -C router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
+make -C router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
-make -C router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${TOOLCHAIN}/bin/${ARCHTOOL}- clean
-make -C router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${TOOLCHAIN}/bin/${ARCHTOOL}-
+make -C router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
+make -C router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
-make -C router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${TOOLCHAIN}/bin/${ARCHTOOL}- clean
-make -C router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${TOOLCHAIN}/bin/${ARCHTOOL}-
+make -C router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
+make -C router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
 cat ${EMF_EXTRA_SYMBOLS} ${DPSTA_EXTRA_SYMBOLS} > ${KBUILD_EXTRA_SYMBOLS}
 
@@ -143,14 +176,6 @@ echo "######################################################################"
 
 cd ${STBAP_BUILDROOT}
 
-if [[ -z "${stbsoc}" ]]; then
-STBAP_TARGET_DRIVER_TYPE=fdnic-2ifs-${LINUXVER}
-elif [[ "${stbsoc}" == "7271p" ]]; then
-STBAP_TARGET_DRIVER_TYPE=stb7271-fdnic-2ifs-${LINUXVER}
-else
-STBAP_TARGET_DRIVER_TYPE=stb7271-nic-${LINUXVER}
-fi
-STBAP_TARGET_DIR=${STBAP_BUILDROOT}/target_${STBAP_TARGET_DRIVER_TYPE}
 rm -rf ${STBAP_TARGET_DIR}
 
 mkdir -p ${STBAP_TARGET_DIR}/etc

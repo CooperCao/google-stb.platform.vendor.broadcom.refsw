@@ -790,6 +790,12 @@ void NEXUS_AudioDecoder_P_Reset(void);
 
 /***************************************************************************
 Summary:
+    Load audio PAK
+ ***************************************************************************/
+void NEXUS_AudioDecoder_P_LoadPak(void);
+
+/***************************************************************************
+Summary:
     DecodeToMemory Initializer/Finalizer
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioDecoder_P_InitDecodeToMemory(NEXUS_AudioDecoderHandle decoder);

@@ -421,7 +421,7 @@ int UserAppDmon::UserFile::fileOpen()
     int ret = 0;
 
     // Open all files read/write
-    fd = open(path.c_str(), flags | O_CLOEXEC, S_IRWXU);
+    fd = open(path.c_str(), flags | O_CLOEXEC | O_TRUNC , S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
     if (fd == -1)
         ret = -errno;
     return ret;

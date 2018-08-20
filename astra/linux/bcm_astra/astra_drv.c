@@ -90,8 +90,8 @@ static int astra_coredev_mmap(
     struct vm_area_struct *vma);
 
 
-int __init astra_module_init(void);
-void __exit astra_module_exit(void);
+int astra_module_init(void);
+void astra_module_exit(void);
 int astra_module_deinit(void);
 
 /*
@@ -236,7 +236,7 @@ static long astra_mdev_ioctl(
  * Astra Module Functions
  */
 
-int __init astra_module_init(void)
+int astra_module_init(void)
 {
     int err = 0;
 
@@ -276,7 +276,7 @@ int __init astra_module_init(void)
     return err;
 }
 
-void __exit astra_module_exit(void)
+void astra_module_exit(void)
 {
     astra_module_deinit();
 }

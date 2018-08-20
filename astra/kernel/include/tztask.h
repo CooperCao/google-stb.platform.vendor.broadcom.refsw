@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  ***************************************************************************/
+
 #ifndef TASK_H_
 #define TASK_H_
 
@@ -202,6 +203,7 @@ public:
     static void terminationLock();
     static void terminationUnlock();
 
+    static int nswTask(void *task, void *ctx);
     static TzTask *nwProxy() { return nwProxyTask.cpuLocal(); }
 
     static IDType nextTaskId();
@@ -244,6 +246,8 @@ public:
     unsigned int processGroup() const { return pgid; }
     int changeProcessGroup(unsigned int newPgid);
 
+    uint32_t applicationId() const { return appId; }
+
     IDirectory *currDir() { return currWorkDir; }
     int setCurrDir(const char *dirPath);
     int setCurrDir(int fd);
@@ -254,6 +258,8 @@ public:
     void yield();
 
     void dataAbortException();
+    void prefetchAbortException();
+    void undefException();
 
     void run();
 
@@ -525,6 +531,7 @@ private:
     uint16_t gid;
 
     unsigned int pgid;
+    uint32_t appId;
 
     TzMem::VirtAddr brkStart;
     TzMem::VirtAddr brkCurr;
@@ -542,6 +549,7 @@ private:
     SpinLock lock;
 
     bool keepAtQueueHead = false;
+    IFile *shadowFile;
 private:
     static SpinLock termLock;
     static tzutils::Vector<TzTask *>tasks;

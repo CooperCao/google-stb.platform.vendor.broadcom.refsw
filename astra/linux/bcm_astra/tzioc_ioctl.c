@@ -59,7 +59,7 @@ static int tzioc_ioctl_call_smc(struct file *file, void *arg);
 /* short-hand to get ioctl offset */
 #define IOCTL_OFFSET(name)      (TZIOC_IOCTL_##name - TZIOC_IOCTL_FIRST)
 
-int __init _tzioc_ioctl_module_init(void)
+int _tzioc_ioctl_module_init(void)
 {
     /* alloc ioctl module */
     pIoctlMod = kzalloc(sizeof(struct tzioc_ioctl_module), GFP_KERNEL);

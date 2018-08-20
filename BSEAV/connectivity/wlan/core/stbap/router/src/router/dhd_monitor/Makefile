@@ -19,7 +19,7 @@
 
 include $(TOP)/.config
 
-CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(SRCBASE)/common/include -I$(LINUXDIR)/include
+CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(SRCBASE)/common/include
 ifeq ($(strip $(BCA_HNDROUTER)),)
 CFLAGS += -I$(TOP)/busybox-1.x
 endif

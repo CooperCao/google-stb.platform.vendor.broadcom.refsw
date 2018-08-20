@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -66,6 +66,7 @@ const v3d_imgconv_methods* get_tfu_path(void);
 const v3d_imgconv_methods* get_memcpy_tfu_path(void);
 const v3d_imgconv_methods* get_sand_m2mc_tfu_path(void);
 const v3d_imgconv_methods* get_yv12_tfu_path(void);
+const v3d_imgconv_methods* get_tlb_path(void);
 const v3d_imgconv_methods* get_neon_path(void);
 const v3d_imgconv_methods* get_extra_neon_path(void);
 const v3d_imgconv_methods* get_c_path(void);

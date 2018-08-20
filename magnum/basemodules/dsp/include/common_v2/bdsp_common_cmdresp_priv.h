@@ -73,6 +73,7 @@ typedef enum BDSP_ArmDspAck_Type
 {
     BDSP_ArmDspAck_Type_eDevice,
     BDSP_ArmDspAck_Type_eTask,
+    BDSP_ArmDspAck_Type_eSoftFMM,
     BDSP_ArmDspAck_Type_eLast,
     BDSP_ArmDspAck_Type_eMax = 0x7FFFFFFF
 }BDSP_ArmDspAck_Type;
@@ -112,28 +113,45 @@ typedef enum BDSP_P_EventID{
     BDSP_P_EventID_ENCODER_OVERFLOW_EVENT,
     BDSP_P_EventID_ON_DEMAND_AUDIO_FRAME_DELIVERED,
 
+    /* Soft FMM Events */
+    BDSP_P_EventID_SOFT_FMM_OUTPUT_DATA_READY,
+    BDSP_P_EventID_SOFT_FMM_INPUT_FREE_AVAILABLE,
+
     BDSP_P_EventID_MAX,
     BDSP_P_EventID_INVALID = 0x7FFFFFFF
 }BDSP_P_EventID;
 
 
 typedef enum BDSP_P_CommandID{
-    BDSP_P_CommandID_INIT = 100,
-    BDSP_P_CommandID_PING,
-    BDSP_P_CommandID_START_TASK,
-    BDSP_P_CommandID_STOP_TASK,
-    BDSP_P_CommandID_PAUSE,
-    BDSP_P_CommandID_RESUME,
-    BDSP_P_CommandID_FRAME_ADVANCE,
-    BDSP_P_CommandID_EVENT_NOTIFICATION,
-    BDSP_P_CommandID_TSM_RECONFIG,
-    BDSP_P_CommandID_DATASYNC_RECONFIG,
-    BDSP_P_CommandID_ALGO_RECONFIG,
-    BDSP_P_CommandID_CIT_RECONFIG,
-    BDSP_P_CommandID_AUDIO_GAP_FILL_ENABLE,
-    BDSP_P_CommandID_AUDIO_OUTPUT_FREEZE,
-    BDSP_P_CommandID_AUDIO_OUTPUT_UNFREEZE,
-    BDSP_P_CommandID_MAX,
+    BDSP_P_CommandID_INIT = 100,                /* 0x64  (or) 100 */
+    BDSP_P_CommandID_PING,                      /* 0x65  (or) 101 */
+    BDSP_P_CommandID_START_TASK,                /* 0x66  (or) 102 */
+    BDSP_P_CommandID_STOP_TASK,                 /* 0x67  (or) 103 */
+    BDSP_P_CommandID_PAUSE,                     /* 0x68  (or) 104 */
+    BDSP_P_CommandID_RESUME,                    /* 0x69  (or) 105 */
+    BDSP_P_CommandID_FRAME_ADVANCE,             /* 0x6A  (or) 106 */
+    BDSP_P_CommandID_EVENT_NOTIFICATION,        /* 0x6B  (or) 107 */
+    BDSP_P_CommandID_TSM_RECONFIG,              /* 0x6C  (or) 108 */
+    BDSP_P_CommandID_DATASYNC_RECONFIG,         /* 0x6D  (or) 109 */
+    BDSP_P_CommandID_ALGO_RECONFIG,             /* 0x6E  (or) 110 */
+    BDSP_P_CommandID_CIT_RECONFIG,              /* 0x6F  (or) 111 */
+    BDSP_P_CommandID_AUDIO_GAP_FILL_ENABLE,     /* 0x70  (or) 112 */
+    BDSP_P_CommandID_AUDIO_OUTPUT_FREEZE,       /* 0x71  (or) 113 */
+    BDSP_P_CommandID_AUDIO_OUTPUT_UNFREEZE,     /* 0x72  (or) 114 */
+    BDSP_P_CommandID_SOFT_FMM_START,            /* 0x73  (or) 115 */
+    BDSP_P_CommandID_SOFT_FMM_STOP,             /* 0x74  (or) 116 */
+    BDSP_P_CommandID_SOFT_FMM_CREATE_MIXER,     /* 0x75  (or) 117 */
+    BDSP_P_CommandID_SOFT_FMM_DESTROY_MIXER,    /* 0x76  (or) 118 */
+    BDSP_P_CommandID_SOFT_FMM_ADD_INPUT,        /* 0x77  (or) 119 */
+    BDSP_P_CommandID_SOFT_FMM_REMOVE_INPUT,     /* 0x78  (or) 120 */
+    BDSP_P_CommandID_SOFT_FMM_ADD_OUTPUT,       /* 0x79  (or) 121 */
+    BDSP_P_CommandID_SOFT_FMM_REMOVE_OUTPUT,    /* 0x7A  (or) 122 */
+    BDSP_P_CommandID_SOFT_FMM_START_MIXER,      /* 0x7B  (or) 123 */
+    BDSP_P_CommandID_SOFT_FMM_STOP_MIXER,       /* 0x7C  (or) 124 */
+    BDSP_P_CommandID_SOFT_FMM_MIXER_RECONFIG,   /* 0x7D  (or) 125 */
+    BDSP_P_CommandID_SOFT_FMM_INPUT_RECONFIG,   /* 0x7E  (or) 126 */
+    BDSP_P_CommandID_SOFT_FMM_OUTPUT_RECONFIG,  /* 0x7F  (or) 127 */
+    BDSP_P_CommandID_MAX,                       /* 0x80  (or) 128 */
     BDSP_P_CommandID_INVALID = 0x7FFFFFFF
 }BDSP_P_CommandID;
 
@@ -150,6 +168,7 @@ typedef enum BDSP_P_TaskType{
 	BDSP_P_TaskType_eAssuredRate,
 	BDSP_P_TaskType_eOnDemand,
 	BDSP_P_TaskType_eAFAP,
+	BDSP_P_TaskType_eRMS,
     BDSP_P_TaskType_eLast,
     BDSP_P_TaskType_eInvalid = 0x7FFFFFFF
 }BDSP_P_TaskType;
@@ -211,13 +230,21 @@ typedef struct BDSP_P_CustomMMInfo
     uint32_t ui32Dummy0;			  /* Element added to make structure size 64 bit aligned*/
 }BDSP_P_CustomMMInfo;
 
+typedef struct BDSP_P_TaskSchedulingMatrix{
+	uint32_t schedulingLevel;
+	uint32_t schedulingThreshold;
+}BDSP_P_TaskSchedulingMatrix;
+
 typedef struct BDSP_P_SchedulingInfo
 {
     uint32_t  ui32NumCores;             /* number of cores in the DSP */
     uint32_t  ui32NumUserProcess;       /* number of user processes */
     uint32_t  ui32NumSchedulingLevels;  /* number of scheduling levels */
+    uint32_t  ui32SoftFMMSupported;
+    uint32_t  Dummy;                   /*Dummy Variable to Pack the structure*/
 
     uint32_t  ui32PreemptiveThreshold[BDSP_MAX_NUM_SCHED_LEVELS]; /* preempt threshold level for each scheduling level*/
+	BDSP_P_TaskSchedulingMatrix sTaskSchedulingMatrix[BDSP_P_TaskType_eLast]; /*Scheduling Matrix for Firmware to detect Scheduling information */
 }BDSP_P_SchedulingInfo;
 
 typedef struct BDSP_P_TimerInfo
@@ -347,6 +374,97 @@ typedef struct BDSP_P_AudioOutputUnFreezeCommand{
 
 }BDSP_P_AudioOutputUnFreezeCommand;
 
+typedef struct BDSP_P_StartFMMCommand{
+    BDSP_P_SchedulingMode               eSchedulingMode;         /* Master/Slave*/
+    BDSP_P_TaskType                     eTaskType;               /*Interrupt/RT/Assured/OnDemand/AFAP/RMS*/
+    uint32_t                            ui32SchedulingLevel;     /* Scheduling level*/
+    uint32_t                            ui32TaskId;               /*Task ID*/
+
+    uint32_t                            ui32SyncQueueFifoId;     /* Task Sync queue Id */
+    uint32_t                            ui32AsyncQueueFifoId;    /* Task Async queue Id */
+    uint32_t                            ui32EventEnableMask;     /* Event Mask Enable */
+    BDSP_AF_P_sSOFT_FMM_PROCESS_CONFIG  processConfig;
+#if 0
+    /*BDSP_P_MemoryInfo              sConfigMemoryInfo;       CIT information*/
+    /*BDSP_P_MemoryInfo              sPrimaryStageMemoryInfo; Info of the memory allocated for Primary Stage*/
+#endif
+    BDSP_P_MemoryInfo              sTaskMemoryInfo;         /* Info of the memory allocated for Task*/
+    BDSP_P_MemoryInfo              sSharedMemoryInfo;       /* Info of the memory allocated for MP/AP sharing*/
+    BDSP_P_MemoryInfo              sScratchMemoryInfo;
+}BDSP_P_StartFMMCommand;
+
+
+typedef struct BDSP_P_SoftFMMAddInputCommand
+{
+    uint32_t InputIndex;
+    uint32_t MixerIndex;
+    BDSP_AF_P_sIoPort sInputPort;
+    BDSP_SoftFmm_InputPortConfig sSoftFMMInputPortConfig;
+} BDSP_P_SoftFMMAddInputCommand;
+
+typedef struct BDSP_P_SoftFMMCreateMixerCommand
+{
+    uint32_t MixerIndex;
+    BDSP_SoftFMM_MixerSettings sSoftFMMMixerSettings;
+} BDSP_P_SoftFMMCreateMixerCommand;
+
+
+typedef struct BDSP_P_SoftFMMAddOutputCommand
+{
+    uint32_t OutputIndex;
+    uint32_t MixerIndex;
+    BDSP_AF_P_sIoPort sOutputPort;
+    BDSP_SoftFMM_Output_HWConfig sHWConfig;
+    BDSP_SoftFMM_OutputSettings sSoftFMMOutputSettings;
+} BDSP_P_SoftFMMAddOutputCommand;
+
+typedef struct BDSP_P_SoftFMMStartMixerCommand
+{
+    uint32_t MixerIndex;
+    BDSP_AF_P_sSOFT_FMM_STAGE_CONFIG sStageConfig;
+} BDSP_P_SoftFMMStartMixerCommand;
+
+typedef struct BDSP_P_SoftFMMStopMixerCommand
+{
+    uint32_t MixerIndex;
+} BDSP_P_SoftFMMStopMixerCommand;
+
+typedef struct BDSP_P_SoftFMMRemoveOutputCommand
+{
+    uint32_t OutputIndex;
+    uint32_t MixerIndex;
+} BDSP_P_SoftFMMRemoveOutputCommand;
+
+typedef struct BDSP_P_SoftFMMRemoveInputCommand
+{
+    uint32_t InputIndex;
+    uint32_t MixerIndex;
+} BDSP_P_SoftFMMRemoveInputCommand;
+
+typedef struct BDSP_P_SoftFMMDestroyMixerCommand
+{
+    uint32_t MixerIndex;
+} BDSP_P_SoftFMMDestroyMixerCommand;
+
+typedef struct BDSP_P_SoftFMMMixerReConfigCommand
+{
+    uint32_t MixerIndex;
+    BDSP_SoftFMM_MixerSettings sSoftFMMMixerSettings;
+}BDSP_P_SoftFMMMixerReConfigCommand;
+
+typedef struct BDSP_P_SoftFMMOutputReConfigCommand
+{
+    uint32_t OutputIndex;
+    BDSP_SoftFMM_OutputSettings sSoftFMMOutputSettings;
+}BDSP_P_SoftFMMOutputReConfigCommand;
+
+typedef struct BDSP_P_SoftFMMInputReConfigCommand
+{
+    uint32_t InputIndex;
+    /*BDSP_SoftFMM_InputSettings sSoftFMMInputSettings;*/
+    BDSP_SoftFmm_InputPortConfig sSoftFMMInputPortConfig;
+}BDSP_P_SoftFMMInputReConfigCommand;
+
 typedef struct BDSP_P_Command
 {
     BDSP_P_CommandHeader   sCommandHeader;
@@ -362,6 +480,18 @@ typedef struct BDSP_P_Command
 		BDSP_P_CitReconfigCommand           sCitReconfigure;
 		BDSP_P_AudioOutputFreezeCommand     sAudioOutputFreeze;
 		BDSP_P_AudioOutputUnFreezeCommand   sAudioOutputUnFreeze;
+        BDSP_P_StartFMMCommand              sStartFMM;
+        BDSP_P_SoftFMMCreateMixerCommand    sCreateSoftFMMMixer;
+        BDSP_P_SoftFMMDestroyMixerCommand   sDestroySoftFMMMixer;
+        BDSP_P_SoftFMMStartMixerCommand     sStartSoftFMMMixer;
+        BDSP_P_SoftFMMStopMixerCommand      sStopSoftFMMMixer;
+        BDSP_P_SoftFMMAddInputCommand       sAddSoftFMMInput;
+        BDSP_P_SoftFMMRemoveInputCommand    sRemoveSoftFMMInput;
+        BDSP_P_SoftFMMAddOutputCommand      sAddSoftFMMOutput;
+        BDSP_P_SoftFMMRemoveOutputCommand   sRemoveSoftFMMOutput;
+        BDSP_P_SoftFMMMixerReConfigCommand  sSoftFMMMixerReconfig;
+        BDSP_P_SoftFMMInputReConfigCommand  sSoftFMMInputReconfig;
+        BDSP_P_SoftFMMOutputReConfigCommand sSoftFMMOutputReconfig;
     }uCommand;
 } BDSP_P_Command;
 
@@ -428,16 +558,30 @@ typedef struct BDSP_P_UnlicensedAlgoInfo
     uint32_t		ui32Dummy0;			  /* Element added to make structure size 64 bit aligned*/
 } BDSP_P_UnlicensedAlgoInfo;
 
+typedef struct BDSP_P_SoftFMMOutputDataReadyInfo
+{
+    uint32_t        ui32OutputIndex;
+    uint32_t        ui32NumBytesWritten;
+}BDSP_P_SoftFMMOutputDataReadyInfo;
+
+typedef struct BDSP_P_SoftFMMInputFreeAvailableInfo
+{
+    uint32_t        ui32InputIndex;
+    uint32_t        ui32NumBytesConsumed;
+}BDSP_P_SoftFMMInputFreeAvailableInfo;
+
 typedef struct BDSP_P_AsynMsg
 {
-	BDSP_P_AsynHeader sAsynHeader;
-	union{
-		BDSP_P_SampleRateChangeInfo     sSampleRateChangeInfo;
-		BDSP_P_PtsInfo	                sPtsInfo;
-		BDSP_P_AcmodeChangeInfo         sAcmodeChangeInfo;
-		BDSP_P_BitrateChangeInfo        sBitrateChangeInfo;
-		BDSP_P_UnlicensedAlgoInfo       sUnlicensedAlgoInfo;
-	}uInfo;
+    BDSP_P_AsynHeader sAsynHeader;
+    union{
+        BDSP_P_SampleRateChangeInfo             sSampleRateChangeInfo;
+        BDSP_P_PtsInfo	                        sPtsInfo;
+        BDSP_P_AcmodeChangeInfo                 sAcmodeChangeInfo;
+        BDSP_P_BitrateChangeInfo                sBitrateChangeInfo;
+        BDSP_P_UnlicensedAlgoInfo               sUnlicensedAlgoInfo;
+        BDSP_P_SoftFMMOutputDataReadyInfo       sSoftFMMOutputDataReadyInfo;
+        BDSP_P_SoftFMMInputFreeAvailableInfo    sSoftFMMInputFreeAvailableInfo;
+    }uInfo;
 }BDSP_P_AsynMsg;
 
 typedef struct BDSP_ArmSystemOpenCommand
@@ -468,6 +612,7 @@ typedef struct BDSP_ArmDspAck
     BDSP_ArmDspResp_Type   ui32RespType;       /* Additional Data */
     uint32_t               ui32DspIndex;
     uint32_t               ui32TaskID;         /*  Task ID */
+    uint32_t               ui32FMMID;
 } BDSP_ArmDspAck;
 
 #endif /*BDSP_COMMON_CMDRESP_PRIV_H_*/

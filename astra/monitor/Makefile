@@ -157,9 +157,9 @@ $(TZ_OBJ_DIR)/$(TZ_IMG).bin: $(TZ_OBJ_DIR)/$(TZ_IMG).elf
 	@echo [Create... $@]
 	$(Q_)$(TZ_ARMGNU)-objcopy $(TZ_OBJ_DIR)/$(TZ_IMG).elf -O binary $(TZ_OBJ_DIR)/$(TZ_IMG).bin
 
-$(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) link_$(ARCH)_mon.ld
+$(TZ_OBJ_DIR)/$(TZ_IMG).elf: $(OBJS) $(TZ_TOP)/build/link_$(ARCH)_mon.ld
 	@echo [Link... $@]
-	$(Q_)$(TZ_ARMGNU)-ld -nostartfiles -static $(OBJS) $(LDFLAGS) -Tlink_$(ARCH)_mon.ld -o $@
+	$(Q_)$(TZ_ARMGNU)-ld -nostartfiles -static $(OBJS) $(LDFLAGS) -T$(TZ_TOP)/build/link_$(ARCH)_mon.ld -o $@
 
 clean:
 	$(RM) -r $(TZ_OBJ_DIR)

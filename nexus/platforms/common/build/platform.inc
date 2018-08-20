@@ -190,10 +190,11 @@ NEXUS_TEE_SUPPORT ?= y
 endif
 
 ifeq ($(NEXUS_TEE_SUPPORT),y)
+ASTRA_TOP ?= $(BSEAV)/../astra
 ifeq ($(B_REFSW_OS),linuxkernel)
-NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/bcm_astra
+NEXUS_PLATFORM_PRIVATE_INCLUDES += $(ASTRA_TOP)/linux/bcm_astra
 else
-NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/libbcm_astra
+NEXUS_PLATFORM_PRIVATE_INCLUDES += $(ASTRA_TOP)/linux/libbcm_astra
 endif
 NEXUS_PLATFORM_DEFINES += NEXUS_TEE_SUPPORT=1
 NEXUS_PLATFORM_SOURCES += $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_tee.c

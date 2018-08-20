@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -100,6 +100,9 @@ static bool color_format(GFX_LFMT_T lfmt, EGLint *platFormat)
    case GFX_LFMT_X4B4G4R4_UNORM     : begl = BEGL_BufferFormat_eX4B4G4R4;  break;
    case GFX_LFMT_A1B5G5R5_UNORM     : begl = BEGL_BufferFormat_eA1B5G5R5;  break;
    case GFX_LFMT_X1B5G5R5_UNORM     : begl = BEGL_BufferFormat_eX1B5G5R5;  break;
+   case GFX_LFMT_R8_G8_B8_UNORM     : begl = BEGL_BufferFormat_eR8G8B8;    break;
+   case GFX_LFMT_R16_G16_B16_A16_FLOAT : begl = BEGL_BufferFormat_eA16B16G16R16_FP; break;
+   case GFX_LFMT_R10G10B10A2_UNORM  : begl = BEGL_BufferFormat_eA2B10G10R10;     break;
 #if V3D_VER_AT_LEAST(3, 3, 0, 0)
    case GFX_LFMT_BSTC_RGBA_UNORM    : begl = BEGL_BufferFormat_eBSTC;      break;
 #else

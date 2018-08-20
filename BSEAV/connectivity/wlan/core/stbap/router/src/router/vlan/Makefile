@@ -14,16 +14,11 @@ else
 CCFLAGS = -g -O2 -D_GNU_SOURCE -Wall
 endif
 
-ifeq ($(strip $(BCA_HNDROUTER)),)
-    CFLAGS += -I$(LINUXDIR)/include
-endif
-
 ifeq ($(strip $(DOSTATIC)),true)
     LDFLAGS += --static
 endif
 
-
-LDLIBS =  
+LDLIBS =
 
 VLAN_OBJS = vconfig.o
 

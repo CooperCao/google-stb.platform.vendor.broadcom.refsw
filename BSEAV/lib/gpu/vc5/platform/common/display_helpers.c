@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_helpers.h"
 
@@ -76,6 +76,15 @@ bool NexusToBeglFormat(BEGL_BufferFormat *result, NEXUS_PixelFormat format)
       break;
    case NEXUS_PixelFormat_eCb10_Cr10:
       *result = BEGL_BufferFormat_eCb10Cr10;
+      break;
+   case NEXUS_PixelFormat_eR8_G8_B8:
+      *result = BEGL_BufferFormat_eR8G8B8;
+      break;
+   case NEXUS_PixelFormat_eAf16_Bf16_Gf16_Rf16:
+      *result = BEGL_BufferFormat_eA16B16G16R16_FP;
+      break;
+   case NEXUS_PixelFormat_eA2_B10_G10_R10:
+      *result = BEGL_BufferFormat_eA2B10G10R10;
       break;
 #ifdef YV12_NEXUS_TESTING
    case NEXUS_PixelFormat_eA8_Y8:

@@ -40,7 +40,6 @@
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
-
 #include <linux/version.h>
 #include <linux/kconfig.h>
 #include <linux/module.h>
@@ -103,9 +102,10 @@ static long tzioc_mdev_ioctl(
     unsigned long arg);
 #endif /* TZIOC_DEV_SUPPORT */
 
-static int __init tzioc_module_init(void);
-static void __exit tzioc_module_exit(void);
-static int tzioc_module_deinit(void);
+static int  tzioc_module_init(void);
+static void tzioc_module_exit(void);
+static int  tzioc_module_deinit(void);
+static int  tzioc_module_reset(void);
 
 static void tzioc_isr(void);
 static void tzioc_proc(struct work_struct *work);
@@ -119,8 +119,8 @@ static int tzioc_sys_msg_proc(struct tzioc_msg_hdr *pHdr);
 static int tzioc_echo_msg_proc(struct tzioc_msg_hdr *pHdr);
 #endif /*TZIOC_MSG_ECHO */
 
-extern int __init astra_module_init(void);
-extern void __exit astra_module_exit(void);
+extern int astra_module_init(void);
+extern void astra_module_exit(void);
 extern int astra_module_deinit(void);
 
 /*
@@ -227,8 +227,9 @@ static long tzioc_mdev_ioctl(
  * TZIOC Module Functions
  */
 
-static int __init tzioc_module_init(void)
+static int tzioc_module_init(void)
 {
+    struct work_struct sysIrqWorkSave;
     struct device_node *node;
     const uint32_t *smem_params;
     uint64_t smemStart64, smemSize64;
@@ -236,6 +237,11 @@ static int __init tzioc_module_init(void)
     uint32_t sysIrq;
     struct tzioc_msg_hdr hdr;
     int err = 0;
+
+    /* check if in sysIrqWork context */
+    if (current_work() == &tdev->sysIrqWork)
+        /* save sysIrqWork */
+        sysIrqWorkSave = tdev->sysIrqWork;
 
     /* clear TZIOC device control block */
     memset(tdev, 0, sizeof(*tdev));
@@ -279,20 +285,24 @@ static int __init tzioc_module_init(void)
 
     /* check version */
     version = tdev->psmem->ulMagic;
-    if ((version & ASTRA_VERSION_MAJOR_MASK)!= (ASTRA_VERSION_MAJOR << ASTRA_VERSION_MAJOR_SHIFT)) {
+    if (ASTRA_VERSION_MAJOR_GET(version) != ASTRA_VERSION_MAJOR) {
         LOGE("Mismatched TZIOC Major version 0x%08x, expecting 0x%08x",
              version, ASTRA_VERSION_WORD);
         err = -ENODEV;
         goto ERR_EXIT;
     }
-    if ((version & ASTRA_VERSION_MINOR_MASK) < (ASTRA_VERSION_MINOR << ASTRA_VERSION_MINOR_SHIFT)) {
+    if (ASTRA_VERSION_MINOR_GET(version) < ASTRA_VERSION_MINOR) {
         LOGE("Not compatible TZIOC Minor version 0x%08x, expecting 0x%08x",
              version, ASTRA_VERSION_WORD);
         err = -ENODEV;
         goto ERR_EXIT;
     }
 
+    /* Remember secure flag */
     tdev->secure = tdev->psmem->secure;
+
+    /* Clear reset flag */
+    tdev->psmem->reset = false;
 
     /* get system IRQ info from device tree */
     err = of_property_read_u32(node, "irq", &sysIrq);
@@ -305,8 +315,13 @@ static int __init tzioc_module_init(void)
     tdev->sysIrq = sysIrq;
     LOGI("TZIOC system IRQ %d", tdev->sysIrq);
 
-    /* init work for bottom half */
-    INIT_WORK(&tdev->sysIrqWork, tzioc_proc);
+    /* check if in sysIrqWork context */
+    if (current_work() == &tdev->sysIrqWork)
+        /* restore sysIrqWork */
+        tdev->sysIrqWork = sysIrqWorkSave;
+    else
+        /* init work for bottom half */
+        INIT_WORK(&tdev->sysIrqWork, tzioc_proc);
 
 #ifdef KERNEL_IPI_PATCH
     /* request system IRQ */
@@ -412,7 +427,7 @@ static int __init tzioc_module_init(void)
     return err;
 }
 
-static void __exit tzioc_module_exit(void)
+static void tzioc_module_exit(void)
 {
     tzioc_module_deinit();
 }
@@ -484,10 +499,12 @@ static int tzioc_module_deinit(void)
 #if KERNEL_IPI_PATCH
     if (tdev->sysIrq)
         clear_ipi_handler(tdev->sysIrq);
-
-    /* cancel scheduled work */
-    cancel_work_sync(&tdev->sysIrqWork);
 #endif
+
+    /* check if NOT in sysIrqWork context */
+    if (current_work() != &tdev->sysIrqWork)
+        /* cancel scheduled work */
+        cancel_work_sync(&tdev->sysIrqWork);
 
 #if TZIOC_DEV_SUPPORT
     /* deregister misc device */
@@ -497,6 +514,27 @@ static int tzioc_module_deinit(void)
 
     LOGI("TZIOC uninitialized");
     return err;
+}
+
+static int tzioc_module_reset(void)
+{
+    int err = 0;
+
+    /* mark peer down first */
+    tdev->peerUp = false;
+
+    /* deinit entire TZIOC kernel module */
+    tzioc_module_deinit();
+
+    /* reinit TZIOC kernel module afresh */
+    err = tzioc_module_init();
+    if (err) {
+        LOGE("Failed to reset TZIOC");
+        return err;
+    }
+
+    LOGI("TZIOC reset");
+    return 0;
 }
 
 module_init(tzioc_module_init);
@@ -509,12 +547,22 @@ MODULE_LICENSE("GPL");
 
 static void tzioc_isr(void)
 {
-    schedule_work(&tdev->sysIrqWork);
+    if (!work_busy(&tdev->sysIrqWork))
+        schedule_work_on(0, &tdev->sysIrqWork);
 }
 
 static void tzioc_proc(struct work_struct *work)
 {
     LOGD("Received TZIOC system IRQ");
+
+    /* check for peer reset */
+    if (tdev->psmem->reset) {
+        LOGI("TZIOC peer is reset");
+
+        /* reset TZIOC kernel module */
+        tzioc_module_reset();
+        return;
+    }
 
 #if CPUTIME_ACCOUNTING
     /* account cputime */

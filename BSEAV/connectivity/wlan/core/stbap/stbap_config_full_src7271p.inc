@@ -1,6 +1,4 @@
 # All router Apps, NIC drivers, DHD driver and FW souces Directories.
-export STBAP_APPS_DIR=router
-export STBAP_NIC_DRIVER_DIR=..
 export STBAP_FD_DRIVER_DIR=DHD45RC91024_REL_1_363_5
 export STBAP_FW_DIR=FW_BISON04T_REL_7_14_170_2605
 

@@ -4516,7 +4516,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
 
         BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
 
-        queueSize = sizeof(uint32_t) * (pSettings->maxBuffers+1);  /* +1 to allow for the DSP's full/empty algo to work */
+        queueSize = sizeof(BMMA_DeviceOffset) * (pSettings->maxBuffers+1);  /* +1 to allow for the DSP's full/empty algo to work */
         BAPE_SIZE_ALIGN(queueSize);
 
         /* Allocate backing memory for queues */
@@ -4656,13 +4656,12 @@ static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
         while ( numPending > 0 )
         {
             BDSP_Queue_GetBuffer(hDecoder->decodeToMem.hADQ, &bufferDesc);
-            if ( bufferDesc.bufferSize >= 4 )
+            if ( bufferDesc.bufferSize >= sizeof(BMMA_DeviceOffset))
             {
                 pAddr = bufferDesc.buffers[0].buffer.pAddr;
-                BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
+                BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(BMMA_DeviceOffset));
                 /* TBDBMMA - should this become a uint64_t ? */
-                offset = ((uint32_t*)pAddr)[0];
-
+                offset = ((BMMA_DeviceOffset *)pAddr)[0];
                 /* Find matching entry in pending list (should be head) */
                 for ( pNode = BLST_Q_FIRST(&hDecoder->decodeToMem.pendingList);
                       NULL != pNode;
@@ -4704,7 +4703,7 @@ static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
                 }
 
                 /* Consume entry from DSP */
-                errCode = BDSP_Queue_ConsumeData(hDecoder->decodeToMem.hADQ, sizeof(uint32_t));
+                errCode = BDSP_Queue_ConsumeData(hDecoder->decodeToMem.hADQ, sizeof(BMMA_DeviceOffset));
                 if ( errCode )
                 {
                     (void)BERR_TRACE(errCode);
@@ -4868,7 +4867,7 @@ BERR_Code BAPE_Decoder_QueueBuffer(
     BERR_Code errCode;
     BAPE_DecodeToMemoryNode *pNode;
     BDSP_BufferDescriptor bufferDesc;
-    uint32_t *pAddr;
+    BMMA_DeviceOffset *pAddr;
 
     BDBG_OBJECT_ASSERT(hDecoder, BAPE_Decoder);
     BDBG_ASSERT(NULL != pDescriptor);
@@ -4898,8 +4897,8 @@ BERR_Code BAPE_Decoder_QueueBuffer(
     /* Save buffer info */
     pNode->descriptor = *pDescriptor;
     BKNI_Memset(pNode->pMetadata, 0, sizeof(BDSP_OnDemand_MetaDataInfo));
-    pNode->pMetadata->ui32FrameBufBaseAddressLow = (uint32_t)pDescriptor->memoryOffset;
-    pNode->pMetadata->ui32FrameBufBaseAddressHigh = (uint32_t)(pDescriptor->memoryOffset>>32);
+    pNode->pMetadata->ui32FrameBufBaseAddressLow = (BMMA_DeviceOffset)pDescriptor->memoryOffset;
+    pNode->pMetadata->ui32FrameBufBaseAddressHigh = (BMMA_DeviceOffset)(pDescriptor->memoryOffset>>32);
     pNode->pMetadata->ui32FrameBufferSizeInBytes = (uint32_t)pDescriptor->allocatedBytes;
     BAPE_FLUSHCACHE_ISRSAFE(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
 
@@ -4909,14 +4908,14 @@ BERR_Code BAPE_Decoder_QueueBuffer(
     {
         return BERR_TRACE(errCode);
     }
-    BDBG_ASSERT(bufferDesc.bufferSize >= 4);
+    BDBG_ASSERT(bufferDesc.bufferSize >= sizeof(BMMA_DeviceOffset));
     pAddr = bufferDesc.buffers[0].buffer.pAddr;
-    BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
-    pAddr[0] = (uint32_t)pNode->metadataOffset;
-    BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
+    BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(BMMA_DeviceOffset));
+    pAddr[0] = (BMMA_DeviceOffset)pNode->metadataOffset;
+    BAPE_FLUSHCACHE_ISRSAFE(bufferDesc.buffers[0].buffer.hBlock, pAddr,  sizeof(BMMA_DeviceOffset));
 
     /* Commit entry to DSP */
-    errCode = BDSP_Queue_CommitData(hDecoder->decodeToMem.hARQ, sizeof(uint32_t));
+    errCode = BDSP_Queue_CommitData(hDecoder->decodeToMem.hARQ, sizeof(BMMA_DeviceOffset));
     if ( errCode )
     {
         return BERR_TRACE(errCode);

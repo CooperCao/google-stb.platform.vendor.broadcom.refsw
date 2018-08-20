@@ -1730,6 +1730,8 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 
 	pRaagaStage->stage.addFmmOutput = BDSP_Raaga_P_AddFmmOutput;
 	pRaagaStage->stage.addFmmInput = BDSP_Raaga_P_AddFmmInput;
+    pRaagaStage->stage.addSoftFmmOutput = NULL;
+    pRaagaStage->stage.addSoftFmmInput = NULL;
 
 	pRaagaStage->stage.addRaveOutput = BDSP_Raaga_P_AddRaveOutput;
 	pRaagaStage->stage.addRaveInput = BDSP_Raaga_P_AddRaveInput;

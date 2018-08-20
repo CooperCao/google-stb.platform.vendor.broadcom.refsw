@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_display.h"
@@ -134,6 +134,18 @@ static uint32_t lfmts_from_surface_info(
    case BEGL_BufferFormat_eX1B5G5R5:
       *api_fmt = GFX_LFMT_X1B5G5R5_UNORM;
       lfmts[0] = GFX_LFMT_X1B5G5R5_UNORM_2D_RSO;
+      break;
+   case BEGL_BufferFormat_eR8G8B8:
+      *api_fmt = GFX_LFMT_R8_G8_B8_UNORM;
+      lfmts[0] = GFX_LFMT_R8_G8_B8_UNORM_2D_RSO;
+      break;
+   case BEGL_BufferFormat_eA16B16G16R16_FP:
+      *api_fmt = GFX_LFMT_R16_G16_B16_A16_FLOAT;
+      lfmts[0] = GFX_LFMT_R16_G16_B16_A16_FLOAT_2D_RSO;
+      break;
+   case BEGL_BufferFormat_eA2B10G10R10:
+      *api_fmt = GFX_LFMT_R10G10B10A2_UNORM;
+      lfmts[0] = GFX_LFMT_R10G10B10A2_UNORM_2D_RSO;
       break;
    case BEGL_BufferFormat_eYUV422:
       /* TODO, khrn_image requires at this time an api_fmt. There is no api_fmt for YUV422

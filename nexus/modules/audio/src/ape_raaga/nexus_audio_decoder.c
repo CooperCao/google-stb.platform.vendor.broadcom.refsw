@@ -271,8 +271,7 @@ err:
     return errCode;
 }
 
-/* Load a Sage binary (bootloader or framework) located on the file system into memory */
-static NEXUS_Error NEXUS_AudioDecoder_P_Img_LoadPak(void)
+void NEXUS_AudioDecoder_P_LoadPak(void)
 {
     NEXUS_Error errCode = NEXUS_SUCCESS;
 
@@ -389,8 +388,20 @@ err:
         }
         NEXUS_MemoryBlock_Free(hDrm);
     }
-
-    return errCode;
+    if ( errCode )
+    {
+        BDBG_WRN(("Unable to load PAK data"));
+        if ( errCode != BERR_INVALID_PARAMETER )
+        {
+            (void)BERR_TRACE(errCode);
+        }
+    }
+    return;
+}
+#else
+void NEXUS_AudioDecoder_P_LoadPak(void)
+{
+    /* Stub */
 }
 #endif /* NEXUS_AUDIO_PAK_SUPPORT */
 
@@ -447,15 +458,7 @@ NEXUS_Error NEXUS_AudioDecoder_P_Init(void)
         return BERR_TRACE(errCode);
     }
 
-    errCode = NEXUS_AudioDecoder_P_Img_LoadPak();
-    if ( errCode )
-    {
-        BDBG_WRN(("Unable to load PAK data"));
-        if ( errCode != BERR_INVALID_PARAMETER )
-        {
-            (void)BERR_TRACE(errCode);
-        }
-    }
+    NEXUS_AudioDecoder_P_LoadPak();
 #endif
 
     return BERR_SUCCESS;
@@ -3408,7 +3411,7 @@ void NEXUS_AudioDecoder_P_Reset(void)
 
 #if NEXUS_AUDIO_PAK_SUPPORT
     /* Reload PAK data */
-    (void)NEXUS_AudioDecoder_P_Img_LoadPak();
+    NEXUS_AudioDecoder_P_LoadPak();
 #endif
 
     /* Restart RAVE contexts */

@@ -1364,6 +1364,9 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
 
         rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
+
+        /* Reload PAK after resume if required */
+        NEXUS_AudioDecoder_P_LoadPak();
     }
 
 err :

@@ -67,13 +67,13 @@
 
 
 /*INIT_ROMFS Size requirement*/
-#define BDSP_IMG_INIT_ROMFS_SIZE                                     ((uint32_t)454656)
+#define BDSP_IMG_INIT_ROMFS_SIZE                                     ((uint32_t)483328)
 
 /*SYSTEM_CODE Size requirement*/
-#define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)438272)
+#define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)466944)
 
 /*SYSTEM_LIB Size requirement*/
-#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)882688)
+#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)940544)
 /****Codec specific parameters for the host ****/
 
 
@@ -313,3 +313,10 @@
 
 /*AIDS_WMA Size requirement*/
 #define BDSP_IMG_AIDS_WMA_SIZE                                       ((uint32_t)8704)
+
+/*APP_OUTPUTFORMATTER Size requirement*/
+#define BDSP_IMG_APP_OUTPUTFORMATTER_SCRATCH_SIZE                    ((uint32_t)12288)
+#define BDSP_IMG_APP_OUTPUTFORMATTER_SIZE                            ((uint32_t)7680)
+#define BDSP_IMG_APP_OUTPUTFORMATTER_INTER_FRAME_SIZE                ((uint32_t)1536)
+#define BDSP_IMG_APP_OUTPUTFORMATTER_INTER_FRAME_ENCODED_SIZE        ((uint32_t)512)
+#define BDSP_IMG_APP_OUTPUTFORMATTER_TABLES_SIZE                     ((uint32_t)1536)

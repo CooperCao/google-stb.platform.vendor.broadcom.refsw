@@ -93,7 +93,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
     switch(boxMode)
     {
-        case 1:
         case 3:
         case 4:
         case 5:
@@ -104,6 +103,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
             pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = 5*1024*1024;
             break;
         }
+        case 1:
         case 2:
         {
             break;

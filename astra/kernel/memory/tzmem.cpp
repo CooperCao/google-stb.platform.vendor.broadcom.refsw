@@ -1,40 +1,45 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 
 #include <cstddef>
 #include <cstdint>
@@ -58,6 +63,17 @@ TzMem::RangeFrame TzMem::rangeFrames[TzMem::TZ_MAX_NUM_RANGES];
 int TzMem::numRanges;
 SpinLock TzMem::lock;
 
+uintptr_t TzMem::mrrHeapStart;
+uintptr_t TzMem::mrrHeapEnd;
+
+uintptr_t TzMem::krrHeapStart;
+uintptr_t TzMem::krrHeapEnd;
+
+uintptr_t TzMem::crrHeapStart;
+uintptr_t TzMem::crrHeapEnd;
+
+uint32_t TzMem::secRegion;
+
 void TzMem::init(void *devTree) {
 
     spinLockInit(&lock);
@@ -79,6 +95,14 @@ void TzMem::init(void *devTree) {
      *
      * Note: The "reg" property of memory node uses #address-cells and #size-cells of the parent node.
      */
+
+    TzMem::mrrHeapStart = 0;
+    TzMem::mrrHeapEnd   = 0;
+    TzMem::krrHeapStart = 0;
+    TzMem::krrHeapEnd   = 0;
+    TzMem::crrHeapStart = 0;
+    TzMem::crrHeapEnd   = 0;
+    TzMem::secRegion    = 0;
 
     int nodeOffset = fdt_subnode_offset(devTree, 0, "memory");
     if (nodeOffset < 0) {
@@ -121,24 +145,30 @@ void TzMem::init(void *devTree) {
 
     const char *rangeData = fpMemRanges->data;
 
-    for (int i = 0; i < rangeNum; i++) {
-        unsigned long rangeStart = (unsigned long)
-            ((addrCellSize == 1) ?
-             parseInt(rangeData, addrByteSize) :
-             parseInt64(rangeData, addrByteSize));
-        rangeData += addrByteSize;
+    if(rangeNum > 1)
+        printf("%s Error: Detected more than one memory range in DT\n",__FUNCTION__);
 
-        unsigned long rangeSize = (unsigned long)
-            ((szCellSize == 1) ?
-             parseInt(rangeData, szByteSize) :
-             parseInt64(rangeData, szByteSize));
-        rangeData += szByteSize;
+    unsigned long rangeStart = (unsigned long)
+        ((addrCellSize == 1) ?
+         parseInt(rangeData, addrByteSize) :
+         parseInt64(rangeData, addrByteSize));
+    rangeData += addrByteSize;
 
-        printf("Adding memory range 0x%x, size 0x%x\n",
-               (unsigned int)rangeStart, (unsigned int)rangeSize);
+    unsigned long rangeSize = (unsigned long)
+        ((szCellSize == 1) ?
+         parseInt(rangeData, szByteSize) :
+         parseInt64(rangeData, szByteSize));
+    rangeData += szByteSize;
 
-        addRange(rangeStart, rangeSize);
-    }
+    printf("DT memory range 0x%x, size 0x%x\n",
+           (unsigned int)rangeStart, (unsigned int)rangeSize);
+
+    /* MRR and KRR from DT */
+    mrrHeapStart = rangeStart & PAGE_MASK;
+    mrrHeapEnd   = mrrHeapStart + rangeSize;
+    krrHeapStart = rangeStart & PAGE_MASK;
+    krrHeapEnd   = krrHeapStart + rangeSize;
+    addRange(krrHeapStart, krrHeapEnd-krrHeapStart);
 
     printf("TzMem init done\n");
 }
@@ -209,7 +239,8 @@ void TzMem::addRange(const unsigned long startAddr, const unsigned long size) {
     numRanges++;
 
     // protect memory range
-    Platform::memProtect((void *)startAddr, (void *)(startAddr + size - 1));
+    //printf("memProtect [0x%lx - 0x%lx] \n", startAddr, startAddr + size - 1);
+    //Platform::memProtect((void *)startAddr, (void *)(startAddr + size - 1));
 }
 
 void TzMem::freeInitRamFS(VirtAddr vaStart, VirtAddr vaEnd) {

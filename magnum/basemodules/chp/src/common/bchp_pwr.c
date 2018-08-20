@@ -278,6 +278,20 @@ static int BCHP_PWR_P_ResourceId_LookUp(unsigned coreId)
 
     return -1;
 }
+
+static bool BCHP_PWR_P_Has_Pstates(BCHP_PmapSettings *pMapSetting)
+{
+    unsigned i;
+    bool pstates_differ = false;
+    for (i=1; i<BCHP_Pstate_eMax; i++) {
+        if (pMapSetting->value[i] != pMapSetting->value[i-1]) {
+            pstates_differ = true;
+            break;
+        }
+    }
+    /* If atleast one core id is specified and there are different pstate values, then return true */
+    return (pMapSetting->core[0] && pstates_differ)?true:false;
+}
 #endif
 
 static BERR_Code BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
@@ -301,18 +315,12 @@ static BERR_Code BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
         if (handle->openSettings.pMapSettings) {
             unsigned i;
             for (i=0; handle->openSettings.pMapSettings[i].reg!=0; i++) {
-                unsigned last_valid_pstate=0;
                 uint32_t reg = PHY_TO_OFF(handle->openSettings.pMapSettings[i].reg);
                 if (handle->pwrManager->pMapSettings[j].reg == reg &&
                     handle->pwrManager->pMapSettings[j].mask == handle->openSettings.pMapSettings[i].mask &&
                     handle->pwrManager->pMapSettings[j].shift == handle->openSettings.pMapSettings[i].shift) {
                     for (pstate=0; pstate<BCHP_Pstate_eMax; pstate++) {
-                        if (handle->openSettings.pMapSettings[i].value[pstate]) {
-                            handle->pwrManager->pMapSettings[j].value[pstate] = handle->openSettings.pMapSettings[i].value[pstate];
-                            last_valid_pstate = pstate;
-                        } else {
-                            handle->pwrManager->pMapSettings[j].value[pstate] = handle->pwrManager->pMapSettings[j].value[last_valid_pstate];
-                        }
+                        handle->pwrManager->pMapSettings[j].value[pstate] = handle->openSettings.pMapSettings[i].value[pstate];
                         BDBG_MSG(("\tCopied Value %d\tShift %x\t\tMask %x\tReg %x\tPstate %d",
                             handle->pwrManager->pMapSettings[j].value[pstate], handle->pwrManager->pMapSettings[j].shift,
                             handle->pwrManager->pMapSettings[j].mask, handle->pwrManager->pMapSettings[j].reg, pstate));
@@ -334,25 +342,24 @@ static BERR_Code BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
         unsigned i;
         bool apply_pstate[BCHP_MAX_CORES] = {0};
         for (i=0; handle->openSettings.pMapSettings[i].reg!=0; i++) {
-            int pstate = BCHP_Pstate_eMax;
             uint32_t reg = PHY_TO_OFF(handle->openSettings.pMapSettings[i].reg);
-            while (--pstate >= 0) {
-                if (handle->openSettings.pMapSettings[i].value[pstate]) {
-                    if (pstate == 0) {
-                        APPLY_PMAP_SETTING(handle, reg, handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].shift, handle->openSettings.pMapSettings[i].value[pstate])
-                        BDBG_MSG(("\tApplied Value %d\tShift %x\t\tMask %x\tReg %x\tPstate %d",
-                                    handle->openSettings.pMapSettings[i].value[pstate], handle->openSettings.pMapSettings[i].shift,
-                                    handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].reg, pstate));
-                    } else {
-                        for (j=0; j<BCHP_MAX_CORES; j++) {
-                            unsigned id = handle->openSettings.pMapSettings[i].core[j];
-                            if (id) {
-                                apply_pstate[id] = true;
-                            }
-                        }
+            /* If there is atleast one core id specified, then we need to use the set p state command to avs */
+            if (BCHP_PWR_P_Has_Pstates(&handle->openSettings.pMapSettings[i])) {
+                for (j=0; j<BCHP_MAX_CORES; j++) {
+                    unsigned id = handle->openSettings.pMapSettings[i].core[j];
+                    if (id) {
+                        apply_pstate[id] = true;
+                        BDBG_MSG(("\tSet PState setting : Core %d\tValue %d\tShift %x\t\tMask %x\tReg %x",
+                                id, handle->openSettings.pMapSettings[i].value[BCHP_Pstate_eNormal], handle->openSettings.pMapSettings[i].shift,
+                                handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].reg));
                     }
-                    break;
+
                 }
+            } else {
+                APPLY_PMAP_SETTING(handle, reg, handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].shift, handle->openSettings.pMapSettings[i].value[BCHP_Pstate_eNormal])
+                BDBG_MSG(("\tApplied Value %d\tShift %x\t\tMask %x\tReg %x",
+                        handle->openSettings.pMapSettings[i].value[BCHP_Pstate_eNormal], handle->openSettings.pMapSettings[i].shift,
+                        handle->openSettings.pMapSettings[i].mask, handle->openSettings.pMapSettings[i].reg));
             }
         }
 
@@ -360,7 +367,7 @@ static BERR_Code BCHP_PWR_P_InitPMapSettings(BCHP_Handle handle)
             handle->pwrManager->pCorePStates[i] = BCHP_Pstate_eMax;
         }
 
-        /* Set Pstates using Linux command */
+        /* Set Pstates using Linux interface */
         for (i=0; i<BCHP_MAX_CORES; i++) {
             if (apply_pstate[i]) {
                 unsigned idx;
@@ -1419,6 +1426,7 @@ static BERR_Code BCHP_PWR_P_SetPstate(BCHP_Handle handle, BCHP_PWR_ResourceId re
     resource = BCHP_PWR_P_GetResourceHandle(resourceId);
     divTable = BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, false);
 
+    /* TODO : Handle multiple mdiv/ndiv/mux */
     if(divTable) {
         if (handle->pwrManager->pMapSettings) {
             unsigned value, num=0, command[9]={0};

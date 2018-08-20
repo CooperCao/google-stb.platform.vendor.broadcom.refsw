@@ -701,6 +701,8 @@ static void nexus_display_p_hdrInfoChange_event(void *context)
     if (display->private.settings.hdrInfoChanged.callback)
     {
         BKNI_Memcpy(&display->private.status.infoFrame, &display->hdmi.hdrInfoChange.infoFrame, sizeof(display->private.status.infoFrame));
+        /* must convert to "public" 1 nits units of MDCV.max-luma before sending callback out of nexus */
+        display->private.status.infoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max /= 10000;
         NEXUS_TaskCallback_Fire(display->private.hdrInfoChangedCallback);
     }
     if (display->hdmi.outputNotify)

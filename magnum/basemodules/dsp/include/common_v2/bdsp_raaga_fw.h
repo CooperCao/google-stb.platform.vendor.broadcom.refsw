@@ -122,6 +122,8 @@ typedef enum BDSP_AF_P_DistinctOpType
     BDSP_AF_P_DistinctOpType_eAncillaryData,            /* MPEG Ancillary Data  */
     BDSP_AF_P_DistinctOpType_eDescriptorQueue,          /* Descriptor Queue for the Pooled buffers*/
     BDSP_AF_P_DistinctOpType_eGenericIsData,            /* Any kind of data on Interstage buffer*/
+	BDSP_AF_P_DistinctOpType_eAudioReceiveQueue,	    /* Audio Receive Queue for Pool of buffer*/
+	BDSP_AF_P_DistinctOpType_eAudioDeliveryQueue,		/* Audio Delivery Queue for Pool of buffer*/
     BDSP_AF_P_DistinctOpType_eMax,
     BDSP_AF_P_DistinctOpType_eInvalid = 0x7FFFFFFF
 }BDSP_AF_P_DistinctOpType;
@@ -216,6 +218,7 @@ typedef enum BDSP_AF_P_BufferType
     BDSP_AF_P_BufferType_eDRAM,      /* DRAM Buffer */
     BDSP_AF_P_BufferType_eBufferPool,/* Pool of buffers in android audio */
     BDSP_AF_P_BufferType_eLinear,    /* Linear buffer typically used in interstage */
+    BDSP_AF_P_BufferType_eSoftFMM,   /* Soft FMM buffer typically used when there is no actual FMM buffer in the system  */
     BDSP_AF_P_BufferType_eLast,
     BDSP_AF_P_BufferType_eInvalid = 0x7fffffff
 }BDSP_AF_P_BufferType;
@@ -544,6 +547,7 @@ typedef struct BDSP_AF_P_sTASK_SCHEDULING_CONFIG
     BDSP_AF_P_BufferType  eBufferType;
     uint32_t              ui32Dummy;
 
+    dramaddr_t stcSnapshotCntrRegAddr;
     BDSP_AF_P_sEXTENDED_CIRCULAR_BUFFER sExtendedBuffer;
     BDSP_AF_P_sSchedulingInfo       sSchedulingInfo;
 }BDSP_AF_P_sTASK_SCHEDULING_CONFIG;
@@ -621,5 +625,25 @@ typedef struct BDSP_AF_P_sTASK_CONFIG
     BDSP_AF_P_sPRIMARYSTAGE_INFO    sPrimaryStageInfo;
     BDSP_AF_P_sSTAGE_CONFIG         sStageConfig[BDSP_AF_P_MAX_STAGES];
 }BDSP_AF_P_sTASK_CONFIG;
+
+typedef struct BDSP_AF_P_sSOFT_FMM_STAGE_CONFIG
+{
+    BDSP_P_MemoryInfo       sStageMemoryInfo;
+    BDSP_P_MemoryInfo       sInterFrameInfo;
+    BDSP_P_MemoryInfo       sAlgoCodeInfo;
+    BDSP_P_MemoryInfo       sUserCfgInfo;
+    BDSP_P_MemoryInfo       sStatusInfo;
+}BDSP_AF_P_sSOFT_FMM_STAGE_CONFIG;
+
+typedef struct BDSP_AF_P_sSOFT_FMM_PROCESS_CONFIG
+{
+    uint32_t ui32ScratchSize;
+    uint32_t ui32BufferThreshold;
+    /*Scheduling Info will have timer slice*/
+    uint32_t ui32TimeSlice;
+    /*BDSP_P_MemoryInfo       sSchedulingInfo*/
+    BDSP_P_MemoryInfo       sProcessMemoryInfo;
+    BDSP_P_MemoryInfo       sLookUpTableInfo;
+}BDSP_AF_P_sSOFT_FMM_PROCESS_CONFIG;
 
 #endif /*BDSP_RAAGA_FW_H*/

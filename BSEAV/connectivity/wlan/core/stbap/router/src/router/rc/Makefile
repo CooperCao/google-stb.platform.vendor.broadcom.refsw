@@ -43,7 +43,7 @@ ifeq ($(strip $(BUILD_ETHWAN)),)
 CFLAGS += -DNO_ETHWAN
 endif
 else
-CFLAGS += -I$(LINUXDIR)/include -I$(TOP)/busybox-1.x
+CFLAGS += -I$(TOP)/busybox-1.x
 endif
 else
 CFLAGS += -I. -I$(TOP)/shared -I$(TOP)/busybox -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall

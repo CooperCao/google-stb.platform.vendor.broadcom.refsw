@@ -1,45 +1,6 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
- *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to
- *  the terms and conditions of a separate, written license agreement executed
- *  between you and Broadcom (an "Authorized License").  Except as set forth in
- *  an Authorized License, Broadcom grants no license (express or implied),
- *  right to use, or waiver of any kind with respect to the Software, and
- *  Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization,
- *  constitutes the valuable trade secrets of Broadcom, and you shall use all
- *  reasonable efforts to protect the confidentiality thereof, and to use this
- *  information only in connection with your use of Broadcom integrated circuit
- *  products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
-
 #include <malloc.h>
 #include <memory.h>
 #include <assert.h>
@@ -85,8 +46,10 @@ static bool AndroidToBeglFormat(BEGL_BufferFormat *result, unsigned plane, int a
    default:                           *result = BEGL_BufferFormat_INVALID; ok = false; break;
    case HAL_PIXEL_FORMAT_RGBA_8888:   *result = BEGL_BufferFormat_eA8B8G8R8;           break;
    case HAL_PIXEL_FORMAT_RGBX_8888:   *result = BEGL_BufferFormat_eX8B8G8R8;           break;
-   case HAL_PIXEL_FORMAT_RGB_888:     *result = BEGL_BufferFormat_eX8B8G8R8;           break;
+   case HAL_PIXEL_FORMAT_RGB_888:     *result = BEGL_BufferFormat_eR8G8B8;             break;
    case HAL_PIXEL_FORMAT_RGB_565:     *result = BEGL_BufferFormat_eR5G6B5;             break;
+   case HAL_PIXEL_FORMAT_RGBA_FP16:   *result = BEGL_BufferFormat_eA16B16G16R16_FP;    break;
+   case HAL_PIXEL_FORMAT_RGBA_1010102:*result = BEGL_BufferFormat_eA2B10G10R10;        break;
    case HAL_PIXEL_FORMAT_YV12:
       switch (sandBits)
       {
@@ -129,11 +92,14 @@ static bool BeglToAndroidFormat(int *androidFormat, BEGL_BufferFormat format)
 
    switch (format)
    {
-   case BEGL_BufferFormat_eA8B8G8R8 : *androidFormat = HAL_PIXEL_FORMAT_RGBA_8888;    break;
-   case BEGL_BufferFormat_eX8B8G8R8 : *androidFormat = HAL_PIXEL_FORMAT_RGBX_8888;    break;
-   case BEGL_BufferFormat_eR5G6B5   : *androidFormat = HAL_PIXEL_FORMAT_RGB_565;      break;
-   case BEGL_BufferFormat_eYV12     : *androidFormat = HAL_PIXEL_FORMAT_YV12;         break;
-   default:                            ok = false;                                    break;
+   case BEGL_BufferFormat_eA8B8G8R8          : *androidFormat = HAL_PIXEL_FORMAT_RGBA_8888;    break;
+   case BEGL_BufferFormat_eX8B8G8R8          : *androidFormat = HAL_PIXEL_FORMAT_RGBX_8888;    break;
+   case BEGL_BufferFormat_eR8G8B8            : *androidFormat = HAL_PIXEL_FORMAT_RGB_888;      break;
+   case BEGL_BufferFormat_eR5G6B5            : *androidFormat = HAL_PIXEL_FORMAT_RGB_565;      break;
+   case BEGL_BufferFormat_eYV12              : *androidFormat = HAL_PIXEL_FORMAT_YV12;         break;
+   case BEGL_BufferFormat_eA16B16G16R16_FP   : *androidFormat = HAL_PIXEL_FORMAT_RGBA_FP16;    break;
+   case BEGL_BufferFormat_eA2B10G10R10       : *androidFormat = HAL_PIXEL_FORMAT_RGBA_1010102; break;
+   default:                                     ok = false;                                    break;
    }
 
    return ok;

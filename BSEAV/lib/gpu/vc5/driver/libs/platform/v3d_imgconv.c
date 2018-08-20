@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "v3d_imgconv.h"
 #include "v3d_imgconv_internal.h"
@@ -203,7 +203,7 @@ static void add_path(const v3d_imgconv_methods **list, bool is_sync_list,
    }
 }
 
-#define MAX_PATHS 8
+#define MAX_PATHS 9
 static const v3d_imgconv_methods* conv_path[MAX_PATHS];
 static const v3d_imgconv_methods* conv_path_sync[MAX_PATHS];
 static VCOS_ONCE_T paths_initialized = VCOS_ONCE_INIT;
@@ -225,6 +225,7 @@ static void init_conv_paths(void)
    add_path(conv_path, false, &i, get_m2mc_path());
    add_path(conv_path, false, &i, get_sand_m2mc_tfu_path()); /* SAND->RGBA   + async */
    add_path(conv_path, false, &i, get_yv12_tfu_path());      /* YV12->Y/CbCr + async */
+   add_path(conv_path, false, &i, get_tlb_path());
    add_path(conv_path, false, &i, get_neon_path());
    add_path(conv_path, false, &i, get_extra_neon_path());
    add_path(conv_path, false, &i, get_c_path());

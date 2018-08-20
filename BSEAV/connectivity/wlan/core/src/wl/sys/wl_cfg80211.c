@@ -516,6 +516,7 @@ static s32 wl_set_adps_mode(struct bcm_cfg80211 *cfg, struct net_device *ndev, u
 				 */
 #define MAX_P2P_IE_LEN	251	/* Up To 251 */
 
+static int mpc_state=1;
 
 /*
  * cfg80211_ops api/callback list
@@ -7813,10 +7814,6 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 	int pkt_filter_id = WL_WOWLAN_PKT_FILTER_ID_FIRST;
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) && !OEM_ANDROID */
 
-	if (unlikely(!wl_get_drv_status(cfg, READY, ndev))) {
-		WL_INFORM(("device is not ready\n"));
-		return err;
-	}
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 		defined(WL_COMPAT_WIRELESS))
 #if defined(WOWL_DRV_NORELOAD)
@@ -7830,8 +7827,15 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy)
 		err = wldev_ioctl(ndev, WLC_UP, (void *)&val, sizeof(val), true);
 		if (err < 0)
 			WL_ERR(("set interface up failed, error = %d\n", err));
+		err = wldev_iovar_setint(ndev, "mpc", mpc_state);
+		if (err < 0)
+			WL_ERR(("set  mpc 1 failed, error = %d\n", err));
 	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
+	if (unlikely(!wl_get_drv_status(cfg, READY, ndev))) {
+		WL_INFORM(("device is not ready\n"));
+		return err;
+	}
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS)) && !defined(OEM_ANDROID)
@@ -8188,6 +8192,12 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 		u32 val;
 		/* Set interface down */
 		val = 0;
+		err = wldev_iovar_getint(ndev, "mpc", &mpc_state);
+		if (err < 0)
+			WL_ERR(("get mpc state %d\n", err));
+		err = wldev_iovar_setint(ndev, "mpc", 0);
+		if (err < 0)
+			WL_ERR(("set mpc 0 error = %d\n", err));
 		err = wldev_ioctl(ndev, WLC_DOWN, (void *)&val, sizeof(val), true);
 		if (err < 0)
 			WL_ERR(("set interface up failed, error = %d\n", err));

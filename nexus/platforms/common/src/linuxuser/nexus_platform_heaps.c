@@ -510,6 +510,23 @@ static void NEXUS_Platform_P_IntersectRegion(const BMMA_RangeAllocator_Region *s
     return;
 }
 
+static void NEXUS_P_Platform_P_ApplySageOffsetLimit(BMMA_RangeAllocator_Region *region)
+{
+    unsigned _1GB = 1024 * 1024 * 1024;
+    uint64_t limit = 3 * _1GB;
+#if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5)
+    limit += _1GB;
+#endif
+    if(region->base + region->length > limit) {
+        if(limit >= region->base ) {
+            region->length = limit - region->base;
+        } else {
+            region->length = 0;
+        }
+    }
+    return;
+}
+
 static bool NEXUS_Platform_P_AllocateInRegion(const NEXUS_PlatformHeapSettings *heapSettings, bool inFront, const BMMA_RangeAllocator_Region *region, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation)
 {
     const uint64_t _4GB = ((uint64_t)1)<<32;
@@ -531,34 +548,38 @@ static bool NEXUS_Platform_P_AllocateInRegion(const NEXUS_PlatformHeapSettings *
         bool crosses=false;
         BMMA_RangeAllocator_Region newRegion;
         /* all heaps that SAGE is using must not cross two addresses
-         * 256M
-         * 512M (>=ZEUS5) or 1024M(other)
+         * 1024+256M (>=ZEUS5) or 256M(other)
+         * 1024M+512M (>=ZEUS5) or 1024M(other)
          */
-        const unsigned _256M = 256 * 1024 * 1024;
+        unsigned low = 256 * 1024 * 1024;
         unsigned high = 1024 * 1024 * 1024;
 #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5)
-        high = 512 * 1024 * 1024;
+        low += 1024 * 1024 * 1024;
+        high += 512 * 1024 * 1024;
 #endif
         if(region->base < high && region->base + region->length > high) {
             crosses = true;
             if(inFront) {
                 newRegion.base = region->base;
                 newRegion.length = high - region->base;
-                if(newRegion.base < _256M) {
-                    newRegion.length = high - _256M;
-                    newRegion.base =_256M;
+                if(newRegion.base < low) {
+                    newRegion.length = high - low;
+                    newRegion.base = low;
                 }
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
                 newRegion.base = high;
                 newRegion.length = (region->base  + region->length) - high;
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
             } else {
                 newRegion.base = high;
                 newRegion.length = (region->base  + region->length) - high;
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
@@ -566,41 +587,47 @@ static bool NEXUS_Platform_P_AllocateInRegion(const NEXUS_PlatformHeapSettings *
                 newRegion.base = region->base;
                 newRegion.length = high - region->base;
                 if(newRegion.base < high ) {
-                    newRegion.length = high - _256M;
-                    newRegion.base =_256M;
+                    newRegion.length = high - low;
+                    newRegion.base = low;
                 }
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
             }
         }
-        if(region->base < _256M && region->base + region->length > _256M) {
+        if(region->base < low && region->base + region->length > low) {
             crosses = true;
             if(inFront) {
                 newRegion.base = region->base;
-                newRegion.length = _256M - newRegion.base;
+                newRegion.length = low - newRegion.base;
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(BMMA_RangeAllocator_AllocateInRegion_InBack(&newRegion, size, settings, allocation)) {
                     return true;
                 }
-                newRegion.base = _256M;
-                newRegion.length = (region->base + region->length) - _256M;
+                newRegion.base = low;
+                newRegion.length = (region->base + region->length) - low;
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(newRegion.base + newRegion.length > high) {
-                    newRegion.length = high - _256M;
+                    newRegion.length = high - low;
                 }
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
             } else {
-                newRegion.base = _256M;
-                newRegion.length = (region->base + region->length) - _256M;
+                newRegion.base = low;
+                newRegion.length = (region->base + region->length) - low;
                 if(newRegion.base + newRegion.length > high) {
-                    newRegion.length = high - _256M;
+                    newRegion.length = high - low;
                 }
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
                     return true;
                 }
                 newRegion.base = region->base;
-                newRegion.length = _256M - newRegion.base;
+                newRegion.length = low - newRegion.base;
+                NEXUS_P_Platform_P_ApplySageOffsetLimit(&newRegion);
                 if(BMMA_RangeAllocator_AllocateInRegion_InBack(&newRegion, size, settings, allocation)) {
                     return true;
                 }
@@ -1437,13 +1464,14 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
             }
         }
         if(heap->placement.sage) {
-            const unsigned _256M = 256 * 1024 * 1024;
+            unsigned low = 256 * 1024 * 1024;
             unsigned high = 1024 * 1024 * 1024;
 #if NEXUS_HAS_SECURITY && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 5)
-            high = 512 * 1024 * 1024;
+            low += 1024 * 1024 * 1024;
+            high += 512 * 1024 * 1024;
 #endif
             if(
-               NEXUS_Platform_P_TestIntersect(region->offset, region->length, _256M, 0) ||
+               NEXUS_Platform_P_TestIntersect(region->offset, region->length, low, 0) ||
                NEXUS_Platform_P_TestIntersect(region->offset, region->length, high, 0)) {
                 BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " can't cross 256M or 1024M boundary", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length)));
                 return BERR_TRACE(NEXUS_INVALID_PARAMETER);

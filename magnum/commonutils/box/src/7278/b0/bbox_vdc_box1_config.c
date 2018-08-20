@@ -73,7 +73,7 @@ void BBOX_P_Vdc_SetBox1DisplayCapabilities
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid,    Class4);
         BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap, 4_1);
-        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video1, DISREGARD, false, Disregard, Disregard, Disregard,                  1,                  1, Auto, 0_1);
+        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video1, DISREGARD, true,  Disregard, Disregard, Disregard,                  1,                  1, Auto, 0_1);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0,   Gfx0,   INVALID, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display1,           PAL_G,           PAL_G, Invalid, Invalid, Invalid,    Class0);
@@ -92,7 +92,7 @@ void BBOX_P_Vdc_SetBox1DeinterlacerCapabilities
 {
     /* MCVP */
     BBOX_P_VDC_SET_DEINTERLACER_LIMIT(pDeinterlacerCap, Deinterlacer0, BFMT_1080I_WIDTH, BFMT_1080I_HEIGHT, BBOX_VDC_DISREGARD);
-    BBOX_P_VDC_SET_DEINTERLACER_LIMIT(pDeinterlacerCap, Deinterlacer1, BFMT_PAL_WIDTH, BFMT_PAL_HEIGHT, BBOX_VDC_DISREGARD);
+    BBOX_P_VDC_SET_DEINTERLACER_LIMIT(pDeinterlacerCap, Deinterlacer1, BFMT_1080I_WIDTH, BFMT_1080I_HEIGHT, BBOX_VDC_DISREGARD);
     BBOX_P_VDC_SET_DEINTERLACER_LIMIT(pDeinterlacerCap, Deinterlacer2, BFMT_1080I_WIDTH, BFMT_1080I_HEIGHT, BBOX_VDC_DISREGARD);
     BBOX_P_VDC_SET_DEINTERLACER_LIMIT(pDeinterlacerCap, Deinterlacer3, BFMT_1080I_WIDTH, BFMT_1080I_HEIGHT, BBOX_VDC_DISREGARD);
 }

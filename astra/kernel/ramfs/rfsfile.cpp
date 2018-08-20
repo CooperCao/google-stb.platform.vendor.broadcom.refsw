@@ -1,40 +1,45 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 
 #include "system.h"
 #include "fs/ramfs.h"
@@ -71,6 +76,7 @@ RamFS::File::File(uint16_t uid, uint16_t gid, uint32_t perms) {
     this->perms = perms;
     this->uid = uid;
     this->gid = gid;
+    this->shadowFile = NULL;
 
     linkCount = 1;
     numRefs = 0;
@@ -107,8 +113,11 @@ IFile* RamFS::File::clone() {
 void RamFS::File::destroy(IFile *fp) {
     RamFS::File *file = (RamFS::File *)fp;
     atomic_decr(&file->linkCount);
-    if ((file->linkCount == 0) && (file->numRefs == 0))
+    if ((file->linkCount == 0) && (file->numRefs == 0)){
+        if(file->shadowFile)
+            delete file->shadowFile;	/*TODO: Need to check appId? */
         delete file;
+    }
 }
 
 RamFS::File::~File() {
@@ -116,6 +125,18 @@ RamFS::File::~File() {
 }
 
 void RamFS::File::erase() {
+
+    /* Erase shadowFile also*/
+    if(RamFS::File::shadowFile){
+        uint32_t rc;
+        rc = shadowFile->checkAppId();
+        if(rc == 0){
+            //printf("Deleting shadowFile %p\n",RamFS::File::shadowFile);
+            RamFS::File::shadowFile->erase();
+            delete RamFS::File::shadowFile;
+            RamFS::File::shadowFile = NULL;
+        }
+    }
 
     for (int i=0; i<NumL1BlockEntries; i++) {
         uint64_t *l2Entry = (uint64_t *)l1BlockTable[i];
@@ -151,6 +172,15 @@ void RamFS::File::erase() {
 long RamFS::File::numBlocks() const {
 
     long rv = 0;
+    if(RamFS::File::shadowFile){
+        uint32_t rc;
+        rc = shadowFile->checkAppId();
+        if(rc == 0){
+            return RamFS::File::shadowFile->numBlocks();
+        }
+        return rv;
+    }
+
     for (int i=0; i<NumL1BlockEntries; i++) {
         uint64_t *l2Entry = (uint64_t *)l1BlockTable[i];
         if (l2Entry == nullptr)
@@ -190,6 +220,14 @@ void* RamFS::RandNumGen::operator new(size_t sz, void *where) {
 void RamFS::File::operator delete(void *f){
     RamFS::File *fp = (RamFS::File *)f;
     fileAllocator.free(fp);
+}
+
+
+void RamFS::File::open(RamFS::File *file, char* filePath, int flags) {
+
+    UNUSED(filePath);
+    UNUSED(flags);
+    file->addRef();
 }
 
 void RamFS::File::open(RamFS::File *file) {
@@ -292,8 +330,41 @@ int RamFS::File::changeGroup(uint16_t newGroup) {
     return 0;
 }
 
+int RamFS::File::checkAppId() {
+    TzTask *currTask = TzTask::current();
+
+    if(currTask == nullptr)
+        return -EACCES;
+    //printf("checkAppId uId %x %x \n", currTask->owner(), uid);
+    //printf("checkAppId aId %x %x \n", currTask->applicationId(), appId);
+
+    if (currTask->owner() == 0)
+        return 0;
+
+    if (currTask->owner() != uid){
+        return -EACCES;
+    }
+    if (currTask->applicationId() != appId){
+        return -EACCES;
+    }
+    TzClock::RealTime::time(&times.lastStatusChangeAt);
+
+    return 0;
+}
+
 size_t RamFS::File::read(const void *data, const size_t numBytes, const off_t offset) {
     SpinLocker locker(&lock);
+    //printf("Reading File %ld %d %d %d  \n",fileSize, perms, uid, gid);
+
+    if(shadowFile){
+        uint32_t rc;
+        rc = shadowFile->checkAppId();
+        if(rc == 0){
+            //printf("Reading into Decrypted File --> \n");
+            return shadowFile->read(data, numBytes, offset);
+        }
+        return rc;
+    }
 
     if (!checkPermissions(PERMS_READ_BIT))
         return -EACCES;
@@ -410,6 +481,17 @@ size_t RamFS::File::fetchFromBlockTable(uint8_t *data, uint64_t absStartPos, uin
 size_t RamFS::File::write(const void *data, const size_t numBytes, const uint64_t offset) {
     SpinLocker locker(&lock);
 
+    //printf("Writing File %ld %d %d %d offset %lx bytes %lx\n",fileSize, perms, uid, gid, offset, numBytes);
+    if(shadowFile){
+        uint32_t rc;
+        rc = shadowFile->checkAppId();
+        if(rc == 0){
+            //printf("W(%lx %lx)\n",offset, numBytes);
+            return shadowFile->write(data,numBytes,offset);
+        }
+        return rc;
+    }
+
     if (!checkPermissions(PERMS_WRITE_BIT))
         return -EACCES;
 
@@ -469,6 +551,15 @@ ssize_t RamFS::File::readv(const iovec *iov, int iovcnt, const uint64_t offset) 
 
 void RamFS::File::freeze() {
     PageTable *kernPageTable = PageTable::kernelPageTable();
+
+    /*Freeze both */
+    if(RamFS::File::shadowFile){
+        uint32_t rc;
+        rc = shadowFile->checkAppId();
+        if(rc == 0){
+            RamFS::File::shadowFile->freeze();
+        }
+    }
 
     for (int i=0; i<NumL1BlockEntries; i++) {
         uint64_t *l2Block = (uint64_t *)l1BlockTable[i];
@@ -616,12 +707,27 @@ static char zeroPage[PAGE_SIZE_4K_BYTES];
 int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, int flags, uint64_t offset, PageTable *pageTable) {
     uint8_t *va = (uint8_t *)addr;
 
+    if(shadowFile){
+	    uint32_t rc;
+	    rc = shadowFile->checkAppId();
+	    if(rc == 0){
+	        //printf("mmap decrypted File\n");
+	        return shadowFile->mmap(addr, mappedAddr, length, prot, flags, offset, pageTable);
+	    }
+	    return rc;
+    }
+
     if ((prot & PROT_READ) && (!checkPermissions(PERMS_READ_BIT)))
-        return -EACCES;
-    if ((prot & PROT_WRITE) && (!checkPermissions(PERMS_WRITE_BIT)))
         return -EACCES;
     if ((prot & PROT_EXEC) && (!checkPermissions(PERMS_EXECUTE_BIT)))
         return -EACCES;
+
+
+    bool cowMem = (flags & MAP_PRIVATE);
+    if(!cowMem){
+        if ((prot & PROT_WRITE) && (!checkPermissions(PERMS_WRITE_BIT)))
+            return -EACCES;
+    }
 
     int accessPerms = MEMORY_ACCESS_RW_KERNEL;
     bool noExec = true;
@@ -634,7 +740,6 @@ int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, in
 
     if (prot & PROT_EXEC)
         noExec = false;
-    bool sharedMem = (flags & MAP_SHARED);
 
     if (!pageTable)
         pageTable = TzTask::current()->userPageTable();
@@ -663,8 +768,8 @@ int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, in
         }
 
         TzMem::PhysAddr pa = kernelPageTable->lookUp(filePage);
-        pageTable->mapPage(curr, pa, MAIR_MEMORY, accessPerms, noExec, sharedMem);
-        if ((MEMORY_ACCESS_RW_USER == accessPerms) || (!sharedMem)) {
+        pageTable->mapPage(curr, pa, MAIR_MEMORY, accessPerms, noExec, cowMem);
+        if ((MEMORY_ACCESS_RW_USER == accessPerms) || (!cowMem)) {
             pageTable->makePageCopyOnWrite(curr);
         }
         curr += PAGE_SIZE_4K_BYTES;

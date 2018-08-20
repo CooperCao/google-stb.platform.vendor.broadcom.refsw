@@ -296,11 +296,14 @@ ASTRA_LIB:=${B_REFSW_OBJ_ROOT}/astra/linux/libbcm_astra/$(B_REFSW_ARCH)/libbcm_a
 ASTRA_DRV:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/bcm_astra.ko
 ASTRA_SYMVERS:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/Module.symvers
 
+# if its an Astra SDK based build (.astra_sdk marker file is present), Astra Kernel and Monitor sources are not present under $(ASTRA_TOP). So do not build them.
 astra_drv:
 	@echo "[Build..... astra driver]"
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra --no-print-directory
+ifeq ($(wildcard ${ASTRA_TOP}/.astra_sdk),)
 	@echo "[Build..... astra]"
 	${Q_}$(MAKE) -C $(ASTRA)/user --no-print-directory ${NEXUS_P_DRIVER_B_REFSW_ARCH}
+endif
 
 astra: $(ASTRA_LIB)
 

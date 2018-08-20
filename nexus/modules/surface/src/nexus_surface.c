@@ -280,6 +280,7 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         case NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08:
         case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
         case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
+        case NEXUS_PixelFormat_eR8_G8_B8:
         case NEXUS_PixelFormat_eA2_R10_G10_B10:
         case NEXUS_PixelFormat_eX2_R10_G10_B10:
         case NEXUS_PixelFormat_eA2_B10_G10_R10:

@@ -218,7 +218,7 @@ exit:
 	return err;
 }
 #endif /* BCMDONGLEHOST */
-
+#if 0
 static int
 wl_cfgvendor_set_rand_mac_oui(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
@@ -252,7 +252,7 @@ wl_cfgvendor_set_rand_mac_oui(struct wiphy *wiphy,
 
 	return err;
 }
-
+#endif
 static int
 wl_cfgvendor_set_nodfs_flag(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void *data, int len)
@@ -270,7 +270,7 @@ wl_cfgvendor_set_nodfs_flag(struct wiphy *wiphy,
 		nodfs = nla_get_u32(data);
 #ifdef BCMDONGLEHOST
 		err = dhd_dev_set_nodfs(bcmcfg_to_prmry_ndev(cfg), nodfs);
-#else 
+#else
 		err = wldev_iovar_getint(bcmcfg_to_prmry_ndev(cfg), "ccode_type", &ccode_type);
 		if (err < 0) {
 			WL_ERR(("%s: get ccode_type failed = %d\n", __FUNCTION__, err));
@@ -3717,6 +3717,7 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.doit = wl_cfgvendor_get_feature_set_matrix
 	},
 #endif /* defined(BCMDONGLEHOST) */
+#if 0
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3725,6 +3726,7 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_set_rand_mac_oui
 	},
+#endif
 	{
 		{
 			.vendor_id = OUI_GOOGLE,

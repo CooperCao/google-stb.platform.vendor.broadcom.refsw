@@ -11083,11 +11083,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
     }
 #if (BVDC_P_SUPPORT_MTG)
     else if (hWindow->stCurInfo.hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-             (bUseMadAtWriter ||
-             /* For progressive sources displayed as interlaced without a deinterlacer, ie., SD path,
-                capture as frame to prevent field inversion. Refer to SW7439-881 */
-              (!bUseMadAtWriter &&
-               !hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced)))
+             (bUseMadAtWriter))
     {
         bCapInterlaced = false;
         bDoPulldown = false;
@@ -11110,7 +11106,8 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
         }
         else
         {
-            bCapInterlaced = pDstFmtInfo->bInterlaced && !pSrcInfo->bForceFrameCapture;
+            bCapInterlaced = pDstFmtInfo->bInterlaced && !pSrcInfo->bForceFrameCapture &&
+                            (ulSrcVertRate == ulDspVertRate);
         }
         bDoPulldown = false;
     }

@@ -485,18 +485,23 @@
 
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(rv) asm volatile("mrs %[xt],cntfrq_el0" : [xt] "=r" (rv) : :)
 
-#define ARCH_SPECIFIC_NSWTASK \
-	while (true) { \
-		disable_fiq();\
+#define ARCH_SPECIFIC_NSWTASK { \
 		asm volatile( \
-			"mov x0, #0x83000000 \r\n"  \
+			"mov x0, #0x83000000 \r\n" \
 			"orr x0, x0, #0x0200 \r\n" \
 			"smc #0 \r\n" \
 			::: "x0"); \
-		enable_fiq(); \
 	}
 
-#define ARCH_SPECIFIC_CPU_UPDATE(load, freq) { \
+#define ARCH_SPECIFIC_MBOX_REPLY { \
+		asm volatile( \
+			"mov x0, #0x83000000 \r\n" \
+			"orr x0, x0, #0x0400 \r\n" \
+			"smc #0 \r\n" \
+			::: "x0"); \
+	}
+
+#define ARCH_SPECIFIC_CPU_UPDATE(load, freq) {  \
 		register uint32_t xload, xfreq; \
 		xload = load; \
 		asm volatile( \
@@ -512,11 +517,11 @@
 		freq = xfreq; \
 	}
 
-#define ARCH_SPECIFIC_ENABLE_INTERRUPTS { \
-		enable_irq(); \
-		enable_fiq(); \
-		enable_serror(); \
-	}
+#define ARCH_SPECIFIC_ENABLE_INTERRUPTS write_daifclr(DAIFBIT_ALL)
+#define ARCH_SPECIFIC_ENABLE_FIQ write_daifclr(DAIFBIT_FIQ)
+
+#define ARCH_SPECIFIC_DISABLE_INTERRUPTS write_daifset(DAIFBIT_ALL)
+#define ARCH_SPECIFIC_DISABLE_FIQ write_daifset(DAIFBIT_FIQ)
 
 #define ARCH_SPECIFIC_GET_SPSR(spsr) asm volatile("mrs %[xt],spsr_el1": [xt] "=r" (spsr) : :)
 
@@ -573,8 +578,6 @@
 	asm volatile("msr tpidrro_el0, x2":::)
 
 #define ARCH_SPECIFIC_GET_DFAR(dfar) asm volatile("mrs %[xt],far_el1": [xt] "=r" (dfar)::)
-
-#define ARCH_SPECIFIC_DISABLE_INTERRUPTS write_daifset(DAIFBIT_ALL)
 
 #define ARCH_SPECIFIC_ENABLE_USER_PERF_MON asm volatile("msr pmuserenr_el0,%[xt]" : : [xt] "r" (0x1))
 

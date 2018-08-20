@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "scheduler.h"
@@ -133,15 +137,16 @@ void Scheduler::init() {
 
     edfQueue.cpuLocal().init();
 
-#ifdef MON64
-    /* Entire EDF period is CPU load, calculated with init CPU frequency */
-    ARCH_SPECIFIC_CPU_UPDATE(0, cpuFreq);
-    cpuLoad.cpuLocal() = cpuFreq * TIME_SLICE_EDF_PERCENT / 100;
-#else
-    /* Fake CPU frequency as 100, CPU load is the percentage */
-    cpuFreq = 100;
-    cpuLoad.cpuLocal() = TIME_SLICE_EDF_PERCENT;
-#endif
+    if (ARMV8_BOOT_MODE == boot_mode) {
+        /* Entire EDF period is CPU load, calculated with init CPU frequency */
+        ARCH_SPECIFIC_CPU_UPDATE(0, cpuFreq);
+        cpuLoad.cpuLocal() = cpuFreq * TIME_SLICE_EDF_PERCENT / 100;
+    }
+    else {
+        /* Fake CPU frequency as 100, CPU load is the percentage */
+        cpuFreq = 100;
+        cpuLoad.cpuLocal() = TIME_SLICE_EDF_PERCENT;
+    }
     //printf("Scheduler cpu update %d %d\n", cpuFreq, cpuLoad.cpuLocal());
 
     uint64_t timeNow = TzHwCounter::timeNow();
@@ -320,9 +325,17 @@ void Scheduler::updateTimeSlice() {
 }
 
 void Scheduler::startNewTimeSlice() {
-#ifdef MON64
-    ARCH_SPECIFIC_CPU_UPDATE(cpuLoad.cpuLocal(), cpuFreq);
-#endif
+    if (ARMV8_BOOT_MODE == boot_mode) {
+        /* CPU update */
+        ARCH_SPECIFIC_CPU_UPDATE(cpuLoad.cpuLocal(), cpuFreq);
+    }
+
+    if (ARMV7_BOOT_MODE == boot_mode) {
+        /* Call tzioc processing */
+        if (arm::smpCpuNum() == 0)
+            TzIoc::proc();
+    }
+
     if (cpuLoad.cpuLocal()) {
         /* Scale EDF preemption timer according to CPU frequency */
         TimeSliceEDF.cpuLocal() = (uint64_t)TimeSliceDuration * cpuLoad.cpuLocal() / cpuFreq;
@@ -389,12 +402,6 @@ TzTask *Scheduler::cfsSchedule() {
 
     sumRunnablePriorities.cpuLocal() -= nextTask->priority;
 
-    if ((nextTask == TzTask::nwProxy())&&(cpuNum == 0)) {
-        // Notify tzioc in normal world for processing.
-        // This code can only be reached on the boot CPU.
-        TzIoc::notify();
-    }
-
     return nextTask;
 }
 
@@ -433,11 +440,6 @@ TzTask *Scheduler::edfSchedule() {
 
     currentTask[cpuNum] = nextTask;
 
-    if ((nextTask == TzTask::nwProxy())&&(cpuNum == 0)) {
-        // Notify tzioc in normal world for processing.
-        // This code can only be reached on the boot CPU.
-        TzIoc::notify();
-    }
     return nextTask;
 }
 

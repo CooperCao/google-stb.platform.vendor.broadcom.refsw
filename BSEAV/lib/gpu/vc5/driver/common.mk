@@ -137,6 +137,7 @@ COMMON_SRC_FILES :=                                             \
 	libs/platform/v3d_scheduler_graph.c                         \
 	libs/platform/v3d_imgconv_tfu.c                             \
 	libs/platform/v3d_imgconv_m2mc.c                            \
+	libs/platform/v3d_imgconv_tlb.c                             \
 	libs/platform/v3d_parallel.c                                \
 	libs/platform/bcg_abstract/gmem_abstract.c                  \
 	libs/platform/bcg_abstract/gmem_talloc.c                    \

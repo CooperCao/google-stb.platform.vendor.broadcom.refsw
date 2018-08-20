@@ -42,10 +42,6 @@ endif
 
 CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall
 
-ifeq ($(strip $(BCA_HNDROUTER)),)
-CFLAGS += -I$(LINUXDIR)/include
-endif
-
 all: libnetconf.so netconf
 
 install: all

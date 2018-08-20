@@ -23,9 +23,6 @@ include $(SRCBASE)/router/.config
 CFLAGS	+= -I. -I../httpd -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -fPIC
 CFLAGS	+= $(WLAN_ComponentIncPath)
 ifneq (2_4,$(LINUX_VERSION))
-ifeq ($(strip $(BCA_HNDROUTER)),)
-CFLAGS += -I$(LINUXDIR)/include
-endif
 CFLAGS += -DLINUX26
 ifneq (2_6,$(LINUX_VERSION))
 CFLAGS += -DAUTOFW_PORT_DEPRECATED

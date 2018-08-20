@@ -190,6 +190,7 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getDefaultDatasyncSettings = NULL;/*BDSP_Arm_P_GetDefaultDatasyncSettings;*/
 #endif /*!B_REFSW_MINIMAL*/
     pArm->device.getDefaultTsmSettings = NULL; /*BDSP_Arm_P_GetDefaultTsmSettings;*/
+    pArm->device.softFMMOpen = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pArm->contextList);

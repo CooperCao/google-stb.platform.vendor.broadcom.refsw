@@ -626,23 +626,23 @@ static void  bcm_vconsole_putchars(int con_idx, const char *c,
  * we assume that there is room in the buffer
  * at this point
  */
-static struct vuart_shmfifo *early_shmfifop __initdata;
-static void __init bcm_early_vconsole_write(struct console *con, const char *s,
+static struct vuart_shmfifo *early_shmfifop;
+static void bcm_early_vconsole_write(struct console *con, const char *s,
     unsigned int count)
 {
     bcm_vconsole_putchars(con->index, s, early_shmfifop, count);
 }
 
-static struct console bcm_early_vconsole __initdata = {
+static struct console bcm_early_vconsole = {
     .name   = BCM_VUART_TTYNAME,
     .write  = bcm_early_vconsole_write,
     .flags  = CON_PRINTBUFFER | CON_BOOT,
     .index  = -1
 };
 
-static int bcm_early_vconsole_initialized __initdata;
+static int bcm_early_vconsole_initialized;
 
-static int __init bcm_setup_early_vconsole(char *cmdline)
+static int bcm_setup_early_vconsole(char *cmdline)
 {
     char *s;
     unsigned long mapbase;
@@ -764,7 +764,7 @@ static struct console bcm_vconsole = {
     .data           = &bcm_vuart_driver,
 };
 
-static int __init bcm_vconsole_init(void)
+static int bcm_vconsole_init(void)
 {
     register_console(&bcm_vconsole);
     return 0;

@@ -935,6 +935,9 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 	pStage->stage.addInterTaskBufferInput = BDSP_Raaga_P_AddInterTaskBufferInput;
 	pStage->stage.addInterTaskBufferOutput = BDSP_Raaga_P_AddInterTaskBufferOutput;
 
+    pStage->stage.addSoftFmmOutput = NULL;
+    pStage->stage.addSoftFmmInput = NULL;
+
 #if !B_REFSW_MINIMAL
 	pStage->stage.addQueueInput = BDSP_Raaga_P_AddQueueInput;
 #endif /*!B_REFSW_MINIMAL*/

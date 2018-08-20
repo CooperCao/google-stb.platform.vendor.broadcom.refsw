@@ -1338,11 +1338,11 @@ static bool NEXUS_Platform_P_CheckCompatible(const char *path, const char *compa
     return match;
 }
 
-static void NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *field, unsigned *prop, unsigned len)
+static unsigned NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *field, unsigned *prop, unsigned len)
 {
     char buf[256];
     FILE *pFile;
-    unsigned size = 0;
+    unsigned size = 0, j=0;
     BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, field);
     pFile = fopen(buf, "rb");
     if (pFile) {
@@ -1352,7 +1352,7 @@ static void NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *f
         BDBG_ASSERT(size <= sizeof(val));
         size = fread(val, 1, size, pFile);
         if (size > 0) {
-            unsigned i,j;
+            unsigned i;
             for (i=0, j=0; i<size; i+=sizeof(unsigned),j++) {
                 prop[j] = val[i]<<24 | val[i+1]<<16 | val[i+2]<<8 | val[i+3];
             }
@@ -1360,7 +1360,7 @@ static void NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *f
         rc = fclose(pFile);
         if (rc) BERR_TRACE(rc);
     }
-    return;
+    return j;
 }
 
 static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *path, const char *compatible, BCHP_PmapSettings *pMapSettings)
@@ -1378,11 +1378,19 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *path, con
             BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, ent->d_name);
             if (NEXUS_Platform_P_CheckCompatible(buf, compatible)) {
                 if (pMapSettings) {
-                    NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,value", pMapSettings[i].value, BCHP_Pstate_eMax);
-                    NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,core-id", pMapSettings[i].core, BCHP_MAX_CORES);
-                    NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-shift", &pMapSettings[i].shift, 1);
-                    NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-mask", &pMapSettings[i].mask, 1);
-                    NEXUS_Platform_P_ReadDeviceTreeValue(buf, "reg", &pMapSettings[i].reg, 1);
+                    unsigned num;
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,core-id", pMapSettings[i].core, BCHP_MAX_CORES);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-shift", &pMapSettings[i].shift, 1);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-mask", &pMapSettings[i].mask, 1);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "reg", &pMapSettings[i].reg, 1);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,value", pMapSettings[i].value, BCHP_Pstate_eMax);
+                    /* Duplicate last value if array is not filled */
+                    if (num && num < BCHP_Pstate_eMax) {
+                        unsigned j;
+                        for (j = num; j < BCHP_Pstate_eMax; j++) {
+                            pMapSettings[i].value[j] =  pMapSettings[i].value[num-1];
+                        }
+                    }
                     BDBG_MSG(("pmap[%u]: %x, %x, %x, %x", i, pMapSettings[i].value[BCHP_Pstate_eNormal], pMapSettings[i].shift, pMapSettings[i].mask, pMapSettings[i].reg));
                 }
                 i++;

@@ -1,40 +1,45 @@
-/***************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 
 #include "kernel.h"
 #include "pgtable.h"
@@ -45,6 +50,8 @@
 #include "parse_utils.h"
 #include "lib_printf.h"
 #include "uart.h"
+#include "uart_ns16550a.h"
+#include "uart_pl011.h"
 
 // Register group enums
 enum {
@@ -97,6 +104,7 @@ static struct RegEntry regMap[] {
 
     {STB_REG_GROUP_SUN_TOP_CTRL,          0x304}, // STB_SUN_TOP_CTRL_RESET_SOURCE_ENABLE
     {STB_REG_GROUP_SUN_TOP_CTRL,          0x308}, // STB_SUN_TOP_CTRL_SW_MASTER_RESET
+    {STB_REG_GROUP_SUN_TOP_CTRL,            0x8}, // STB_SUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR
 
     {STB_REG_GROUP_HIF_CONTINUATION,        0x0}, // STB_HIF_CONTINUATION_STB_BOOT_HI_ADDR0
     {STB_REG_GROUP_HIF_CONTINUATION,        0x4}, // STB_HIF_CONTINUATION_STB_BOOT_ADDR0
@@ -123,20 +131,104 @@ static struct RegEntry regMap[] {
     {STB_REG_GROUP_LAST,                    0x0}  // STB_REG_LAST
 };
 
+enum eUartType{
+    UART_TYPE_NS16550a,
+    UART_TYPE_PL011,
+    UART_MAX
+};
+
 // system uart base
 static uintptr_t sys_uart = 0;
+static eUartType uart_type;
+static uintptr_t uart_base;
 
-extern uintptr_t uart_base;
+IUart *IUart::uart = NULL;
 
 // number of cpus
 uint32_t num_cpus = 0;
 
+static uintptr_t get_offset(void *devTree, int child)
+{
+
+    int parent;
+    int propLen;
+    const struct fdt_property *prop;
+
+    // Parse address and size cells of parent node
+    int childAddrCells;
+    int childSizeCells;
+
+    prop = fdt_get_property(devTree, child, "#address-cells", &propLen);
+    if (!prop || propLen < sizeof(int))
+        childAddrCells = 1;
+    else
+        childAddrCells = parseInt((void *)prop->data, propLen);
+
+    prop = fdt_get_property(devTree, child, "#size-cells", &propLen);
+    if (!prop || propLen < sizeof(int))
+        childSizeCells = 1;
+    else
+        childSizeCells = parseInt((void *)prop->data, propLen);
+
+    // Get parent node
+    parent = fdt_parent_offset(devTree, child);
+    if (parent < 0) {
+        kernelHalt("Failed to find parent node in device tree");
+    }
+
+    // Parse address and size cells of parent node
+    int parentAddrCells;
+    prop = fdt_get_property(devTree, parent, "#address-cells", &propLen);
+    if (!prop || propLen < sizeof(int))
+        parentAddrCells = 1;
+    else
+        parentAddrCells = parseInt((void *)prop->data, propLen);
+/*
+    int parentSizeCells;
+    prop = fdt_get_property(devTree, parent, "#size-cells", &propLen);
+    if (!prop || propLen < sizeof(int))
+        parentSizeCells = 1;
+    else
+        parentSizeCells = parseInt((void *)prop->data, propLen);
+
+    info_msg("parentAddrCells %d parentSizeCells %d ", parentAddrCells,parentSizeCells);
+    info_msg("childAddrCells %d childSizeCells %d ", childAddrCells,childSizeCells);
+*/
+    int parentAddrBytes = parentAddrCells * sizeof(int);
+    int childAddrBytes =  childAddrCells * sizeof(int);
+    int childSizeBytes =  childSizeCells * sizeof(int);
+
+    // Get ranges: If it doesn't exist then return 0
+    prop = fdt_get_property(devTree, child, "ranges", &propLen);
+    if (!prop || propLen != childAddrBytes + parentAddrBytes + childSizeBytes) {
+        return 0;
+    }
+/*
+    uintptr_t childAdd = (uintptr_t)((childAddrCells == 1) ?
+        parseInt(prop->data, childAddrBytes) :
+        parseInt64(prop->data, childAddrBytes));
+*/
+    uintptr_t parentAddr = (uintptr_t)((parentAddrCells == 1) ?
+        parseInt(prop->data+childAddrBytes, parentAddrBytes) :
+        parseInt64(prop->data+childAddrBytes, parentAddrBytes));
+/*
+    uint32_t childAddSize = (uint32_t)((childSizeCells == 1) ?
+        parseInt(prop->data+childAddrBytes+parentAddrBytes, childSizeBytes) :
+        parseInt64(prop->data+childAddrBytes+parentAddrBytes, childSizeBytes));
+
+        info_msg("childAdd %lx parentAddr %lx childAddSize %x", childAdd, parentAddr, childAddSize);
+*/
+    return parentAddr;
+}
 static void platform_init_uart(void *devTree)
 {
     int node;
     int parent;
     int propLen;
     const struct fdt_property *prop;
+
+    /* Default UART Type */
+    uart_type = UART_TYPE_NS16550a;
 
     // Get chosen node
     char *stdoutPath = NULL;
@@ -184,9 +276,13 @@ static void platform_init_uart(void *devTree)
     if (node < 0) {
         // Use first ns16550a compatible node
         node = fdt_node_offset_by_compatible(devTree, 0, "ns16550a");
-        if (node < 0) {
-            warn_msg("Failed to find any ns16550a compatible node in device tree");
-        }
+        uart_type = UART_TYPE_NS16550a;
+    }
+
+    if (node < 0) {
+        // Use first pl011 compatible node
+        node = fdt_node_offset_by_compatible(devTree, 0, "arm,pl011");
+        uart_type = UART_TYPE_PL011;
     }
 
     if (node < 0) {
@@ -234,6 +330,10 @@ static void platform_init_uart(void *devTree)
     // uint32_t serialSize = (uint32_t)((sizeCells == 1) ?
     //  parseInt((uint8_t *)prop->data + addrBytes, sizeBytes) :
     //  parseInt64((uint8_t *)prop->data + addrBytes, sizeBytes));
+
+
+    uintptr_t serialOffset = get_offset(devTree, parent);
+    serialAddr += serialOffset;
 
     // Map serial registers if necessary
     uint8_t *uartStart = (uint8_t *)PAGE_START_4K(serialAddr);
@@ -341,6 +441,9 @@ static void platform_init_regs(void *devTree)
             parseInt((uint8_t *)prop->data + addrBytes, sizeBytes) :
             parseInt64((uint8_t *)prop->data + addrBytes, sizeBytes));
 
+        uintptr_t regOffset = get_offset(devTree, parent);
+        regGroupAddr += regOffset;
+
         // Map register group
         uint8_t *regGroupStart = (uint8_t *)PAGE_START_4K(regGroupAddr);
 
@@ -417,7 +520,15 @@ void Platform::setUart()
         // There may be other registers sharing the same page.
 
         uart_base = sys_uart;
-        uart_init();
+        if(uart_type == UART_TYPE_NS16550a){
+            UartNS16550a::init(uart_base);
+            IUart::uart = new UartNS16550a;
+
+        }else if (uart_type == UART_TYPE_PL011){
+            UartPL011::init(uart_base);
+            IUart::uart = new UartPL011;
+        }
+
     }
 }
 

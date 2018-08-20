@@ -41,6 +41,7 @@
  *****************************************************************************/
 
 #include "bdsp_arm_priv_include.h"
+#include "bdsp_arm_soft_fmm_priv.h"
 
 BDBG_MODULE(bdsp_arm_priv);
 BDBG_OBJECT_ID(BDSP_Arm);
@@ -1799,6 +1800,8 @@ BERR_Code BDSP_Arm_P_CreateStage(
 
 	pArmStage->stage.addFmmOutput = BDSP_Arm_P_AddFmmOutput;
 	pArmStage->stage.addFmmInput = BDSP_Arm_P_AddFmmInput;
+    pArmStage->stage.addSoftFmmOutput = BDSP_Arm_P_AddSoftFmmOutput;
+    pArmStage->stage.addSoftFmmInput = BDSP_Arm_P_AddSoftFmmInput;
 
 	pArmStage->stage.addRaveOutput = BDSP_Arm_P_AddRaveOutput;
 	pArmStage->stage.addRaveInput = BDSP_Arm_P_AddRaveInput;

@@ -40,7 +40,6 @@
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
-
 #include "astra_version.h"
 
 #include "tzioc.h"
@@ -163,8 +162,8 @@ void TzIoc::init(void *devTree)
     void *virtPageStart = ARCH_SHMEM_BASE ? (void *)(ARCH_SHMEM_BASE) : pageStart;
     void *virtPageEnd   = (void *)((uintptr_t)virtPageStart + smemSize - 1);
     kernPageTable->mapPageRange(
-        virtPageStart,             // virtual start
-        virtPageEnd,               // virtual end
+        virtPageStart,         // virtual start
+        virtPageEnd,           // virtual end
         pageStart,             // physical start
         MAIR_MEMORY,           // cached memory
         MEMORY_ACCESS_RW_USER, // user read/write
@@ -184,6 +183,11 @@ void TzIoc::init(void *devTree)
     memset(psmem, 0, sizeof(*psmem));
     psmem->ulMagic = ASTRA_VERSION_WORD;
     psmem->secure = false;
+    psmem->reset = true;
+
+    // Init TzIoc system notify
+    // printf("TzIoc system notify\n");
+    GIC::sgiGenerate(1, sysIrq);
 
     // Init spinlock
     spinLockInit(&lock);

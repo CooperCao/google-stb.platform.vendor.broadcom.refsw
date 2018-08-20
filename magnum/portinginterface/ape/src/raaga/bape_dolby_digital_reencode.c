@@ -916,6 +916,19 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
             handle->taskStarted = true;
         }
     }
+    else {
+        BAPE_PathNode_P_FindProducersBySubtype_isrsafe(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, pNodes);
+        #if BAPE_DSP_MS12_SUPPORT
+        switch ( numFound ) {
+        default:
+        case 0:
+            break;
+        case 1:
+            handle->dspMixer = pNodes[0]->pHandle;
+            break;
+        }
+        #endif
+    }
     errCode = BAPE_DolbyDigitalReencode_P_ApplyDspSettings(handle);
     if ( errCode )
     {

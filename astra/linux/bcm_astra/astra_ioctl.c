@@ -223,7 +223,7 @@ static uint32_t astra_map_fileHandle_kernel(struct file *file, void * kernelHand
     return i;
 }
 
-int __init _astra_ioctl_module_init(void)
+int _astra_ioctl_module_init(void)
 {
     /* alloc ioctl module */
     pIoctlMod = kzalloc(sizeof(struct astra_ioctl_module), GFP_KERNEL);
@@ -257,7 +257,7 @@ int __init _astra_ioctl_module_init(void)
     pIoctlMod->handlers[IOCTL_OFFSET(FILE_CLOSE  )] = astra_ioctl_file_close;
     pIoctlMod->handlers[IOCTL_OFFSET(FILE_WRITE  )] = astra_ioctl_file_write;
     pIoctlMod->handlers[IOCTL_OFFSET(FILE_READ   )] = astra_ioctl_file_read;
-	pIoctlMod->handlers[IOCTL_OFFSET(UAPP_COREDUMP)] = astra_ioctl_uapp_coredump;
+    pIoctlMod->handlers[IOCTL_OFFSET(UAPP_COREDUMP)] = astra_ioctl_uapp_coredump;
 
     LOGI("Astra ioctl module initialized");
     return 0;
