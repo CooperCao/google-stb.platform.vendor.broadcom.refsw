@@ -41,6 +41,7 @@
  *****************************************************************************/
 
 #include "bdsp_arm_priv_include.h"
+#include "bdsp_arm_soft_fmm_priv.h"
 
 BDBG_MODULE(bdsp_arm);
 
@@ -140,10 +141,15 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getCoreDumpStatus = BDSP_Arm_P_GetCoreDumpStatus;
     pArm->device.getDownloadStatus = BDSP_Arm_P_GetDownloadStatus;
     pArm->device.initialize = BDSP_Arm_P_Initialize;
+    pArm->device.getRRRAddrRange = NULL;
+    pArm->device.processPAK = NULL;
+
+
 #if !B_REFSW_MINIMAL
     pArm->device.getDefaultDatasyncSettings = BDSP_P_GetDefaultDatasyncSettings;
 #endif /*!B_REFSW_MINIMAL*/
     pArm->device.getDefaultTsmSettings = BDSP_P_GetDefaultTsmSettings;
+    pArm->device.softFMMOpen = BDSP_Arm_P_SoftFMMOpen;
 
     /* Init context lists */
     BLST_S_INIT(&pArm->contextList);

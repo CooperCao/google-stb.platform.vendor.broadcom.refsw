@@ -288,7 +288,7 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
         {"HMAC 512",   km_test_new_params_with_hmac_defaults,     512,  {0},   BERR_SUCCESS},
         {"HMAC 128",   km_test_new_params_with_hmac_defaults,     128,  {0},   BERR_SUCCESS},
         {"HMAC 140",   km_test_new_params_with_hmac_defaults,     140,  {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
-        {"HMAC 528",   km_test_new_params_with_hmac_defaults,     528,  {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
+        {"HMAC MAX_KEY_SIZE+",   km_test_new_params_with_hmac_defaults,     SKM_HMAC_MAX_KEY_SIZE+8,  {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
         {"HMAC 0",     km_test_new_params_with_hmac_defaults,     0,    {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
         {"HMAC 160 -key_size",   km_test_new_params_with_hmac_defaults, 160,
                 {km_test_remove_key_size, 0}, BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
@@ -324,7 +324,7 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
                 {km_test_remove_key_size, km_test_remove_curve, 0}, BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
 
         {"RSA 1024",    km_test_new_params_with_rsa_defaults,     1024, {0},   BERR_SUCCESS},
-        {"RSA 2048",    km_test_new_params_with_rsa_defaults,     2048, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE}, /* TEMP disabled */
+        {"RSA 2048",    km_test_new_params_with_rsa_defaults,     2048, {0},   BERR_SUCCESS},
         {"RSA 3072",    km_test_new_params_with_rsa_defaults,     3072, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE}, /* TEMP disabled */
         {"RSA 4096",    km_test_new_params_with_rsa_defaults,     4096, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE}, /* TEMP disabled */
         {"RSA 256",     km_test_new_params_with_rsa_defaults,     256,  {0},   BERR_SUCCESS},
@@ -1586,7 +1586,6 @@ static BERR_Code km_delete_key_tests(KeymasterTl_Handle handle)
         }
 
         EXPECT_SUCCESS(km_test_new_params_with_aes_defaults(&key_params, 128));
-        TEST_TAG_ADD_BOOL(key_params, SKM_TAG_ROLLBACK_RESISTANT, true);
         EXPECT_SUCCESS(KeymasterTl_GenerateKey(handle, key_params, &key));
 
         KeymasterTl_GetDefaultKeyCharacteristicsSettings(&chSettings);

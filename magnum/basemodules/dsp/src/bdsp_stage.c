@@ -193,6 +193,31 @@ BERR_Code BDSP_Stage_AddFmmOutput(
     }
 }
 
+
+/***************************************************************************
+Summary:
+Add a Soft FMM output to a stage
+***************************************************************************/
+BERR_Code BDSP_Stage_AddSoftFmmOutput(
+	BDSP_StageHandle hStage,
+	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
+	unsigned *pOutputIndex
+)
+{
+    BDBG_OBJECT_ASSERT(hStage, BDSP_Stage);
+    BDBG_ASSERT(NULL != pDescriptor);
+    BDBG_ASSERT(NULL != pOutputIndex);
+
+    if (hStage->addFmmOutput)
+    {
+        return hStage->addSoftFmmOutput(hStage->pStageHandle, pDescriptor, pOutputIndex);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
 BERR_Code BDSP_Stage_AddRaveOutput(
     BDSP_StageHandle hStage,
     const BAVC_XptContextMap *pContext,
@@ -327,6 +352,30 @@ BERR_Code BDSP_Stage_AddFmmInput(
     if (hStage->addFmmInput)
     {
         return hStage->addFmmInput(hStage->pStageHandle, dataType, pDescriptor, pInputIndex);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
+/***************************************************************************
+Summary:
+Add a Soft FMM Input to a stage
+***************************************************************************/
+BERR_Code BDSP_Stage_AddSoftFmmInput(
+	BDSP_StageHandle hStage,
+	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
+	unsigned *pInputIndex
+)
+{
+    BDBG_OBJECT_ASSERT(hStage, BDSP_Stage);
+    BDBG_ASSERT(NULL != pDescriptor);
+    BDBG_ASSERT(NULL != pInputIndex);
+
+    if (hStage->addFmmInput)
+    {
+        return hStage->addSoftFmmInput(hStage->pStageHandle, pDescriptor, pInputIndex);
     }
     else
     {

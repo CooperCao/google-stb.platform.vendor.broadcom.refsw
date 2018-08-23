@@ -66,6 +66,7 @@ extern const BIMG_Interface BDSP_IMG_Interface;
 extern const void * BDSP_IMG_system_code [];
 extern const void * BDSP_IMG_system_rdbvars [];
 extern const void * BDSP_IMG_algolib_code[];
+extern const void * BDSP_IMG_algolib_tables[];
 extern const void * BDSP_IMG_syslib_code [];
 extern const void * BDSP_IMG_idscommon_code [];
 extern const void * BDSP_IMG_vididscommon_code[];

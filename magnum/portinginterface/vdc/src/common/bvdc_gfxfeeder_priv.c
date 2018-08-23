@@ -1470,10 +1470,9 @@ static BERR_Code BVDC_P_GfxFeeder_CalcSurfaceOffset_isr
         hGfxFeeder->ulOffsetPixInByte = 0;
     }
 
-    /* BPXL_BITS_PER_PIXEL() returns 4 for BSTC compressed format
-     * pCurCfg->ulCntLeftInt and pCurCfg->ulCntTopInt IS 0 for DCXG compressed format */
+    /* pCurCfg->ulCntLeftInt and pCurCfg->ulCntTopInt IS 0 for DCXG compressed format */
     hGfxFeeder->stGfxSurface.ulMainByteOffset = (pCurCfg->stFlags.bEnDecompression)?
-        pCurCfg->ulCntTopInt * pCurSur->ulPitch + ulOffsetByteInLine * 2 : /* 4 lines */
+        pCurCfg->ulCntTopInt * pCurSur->ulPitch + ulOffsetByteInLine * 4 : /* 4 lines */
         pCurCfg->ulCntTopInt * pCurSur->ulPitch + ulOffsetByteInLine;
 
     return BERR_SUCCESS;

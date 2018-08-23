@@ -10,7 +10,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta name=Generator content="Microsoft Word 14">
 <meta name=Originator content="Microsoft Word 14">
 <link rel=File-List href="ReleaseNotes97271_97268_files/filelist.xml">
-<title>Broadcom 97268 / 97271 B0 Phase 18.2 Set-Top Unified Reference Software
+<title>Broadcom 97268 / 97271 B0 Phase 18.2.1 Set-Top Unified Reference Software
 Release (URSR) Release Notes</title>
 <!--[if gte mso 9]><xml>
  <o:DocumentProperties>
@@ -2078,16 +2078,16 @@ style='color:#0070C0'>Feature List</span></a> </span></p>
 
 <div>
 
-<p><a name=top><strong>Broadcom 97271/7268 B0 Phase 18.2 </strong></a><strong>Set-Top
-Unified Reference Software Release Notes</strong></p>
+<p><a name=top><strong>Broadcom 97271/7268 B0 Phase 18.2.1 </strong></a><strong>Set-Top
+Unified Reference Software Patch ReleaseNotes</strong></p>
 
 <p><strong>Release Date: </strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>June 25, 2018</p>
+<p>August 6, 2018</p>
 
-<p>Phase 18.2 Release </p>
+<p>Phase 18.2.1 Release + WLAN patch</p>
 
 </blockquote>
 
@@ -2398,252 +2398,36 @@ the <span class=SpellE>wlan</span> driver.</p>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
 Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span class=GramE>This</span> release includes WIFI driver version <b>STB7271_REL_15_30_24</b>.&nbsp;
+</span><span class=GramE>This</span> patch includes WIFI driver version <b>STB7271_REL_15_30_28</b>.&nbsp;
 <br>
-Here are the high level changes from <b>15.30.11</b><span class=GramE>( Last</span>
-released driver in URSR18.1) to <b>15.30.24</b>:</p>
+Here are the high level changes from <b>15.30.24</b><span class=GramE>( Last</span>
+released driver in URSR18.2 and URSR Patch Release 18.2.1) to <b>15.30.28</b>:</p>
 
 <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
 margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
 style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
 style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-<span class=SpellE>softAP</span> mode RX chain power save feature in <span
-class=SpellE>mfgtest</span> build target<o:p></o:p></span></p>
-
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added vendor commands for android support<o:p></o:p></span></p>
 <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
 margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
 style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
 style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-RXDESENS_EN feature for <span class=SpellE>mfgtest</span> build target<o:p></o:p></span></p>
-
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>fixed issue to disallow chain manipulation while driver is up<o:p></o:p></span></p>
 <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
 margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
 style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
 style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>enabled
-BSSLOAD feature for QBSS (<span class=SpellE>QoS</span> enhanced basic service
-set)<o:p></o:p></span></p>
-
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added new NVRAM files for bcm97271alt.txt and bcm97271lc4l_RTC5638HS.txt reference designs<o:p></o:p></span></p>
 <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
 margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
 style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
 style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-support for <span class=SpellE>HostAPD</span> 802.11r<o:p></o:p></span></p>
-
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>**engineering release** added support for STBAP AP package<o:p></o:p></span></p>
 <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
 margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
 style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
 style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-issue during unloading of WLAN driver<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-P2P group formation issue in 5G<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>enabled
-UK radar type detection<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>improved
-TX packet processing resulting in higher/more stable throughput <o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-new NVRAMs for bcm97271db4l_v20 and bcm97271sdb_dr reference boards<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-new IOVAR <span class=SpellE>drv_rx_prob_req</span> for Cert. WPS-AP 4.2.9<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-issue during unloading of the <span class=SpellE>wlan</span> driver in normal
-and WOWL mode<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>updated
-US/0 country code<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-build issue for WMF (Wireless Multicast Forwarding) feature<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>enabled
-band steering daemon feature<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-issue in cfg80211 during CFG80211_DISCONNECTED<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-<span class=SpellE>coverity</span> issues<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-stack usage <span class=SpellE>coverity</span> issues<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>enabled
-local constraint to 4-stream rates<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-Key Reinstallation Vulnerability Detection case 5.2.5 failure<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-CCA pool size and dynamically allocated/de-allocated CCA pool<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-scan timeout issue<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-issue for <span class=SpellE>eMMC</span>-based reference board<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-<span class=SpellE>wlplat</span> driver banner<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-issue when RSSI is low or out of band blocker is strong<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-support for SKY85809-11(Logarithmic PDET) and RFFM4558A (Diode PDET) FEMs<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-COEX throughput issue during BT COEX activities (clear <span class=SpellE>enBtSignalsToFEMLut</span>
-bit)<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>improved
-transmit packet scheduling among multiple CPU cores in SMP system<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>add
-support for CCA (clear channel assessment) <span class=SpellE>disgnostics</span><o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>enabled
-802.11v (WNM) support for cfg80211<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved
-issue for 3 wire COEX<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-new NVRAM <span class=SpellE>boardflag</span> options for new FEM PDOT feature<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>improved
-VI throughput<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>reduced
-5G TIA gain table by 1dB<o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:.75in;text-indent:-.25in;mso-list:l15 level1 lfo14'><![if !supportLists]><span
-style='font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
-style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added
-802.11k support for <span class=SpellE>hostapd</span><o:p></o:p></span></p>
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added support for ATM (percentage mode) support<o:p></o:p></span></p>
 
 <p class=MsoNormal><o:p>&nbsp;</o:p></p>
 
@@ -2653,7 +2437,7 @@ it to decode and display a UHD stream </strong></p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l16 level1 lfo8;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar <span
-     class=SpellE>xvfz</span> refsw_release_unified_20180625.tgz <o:p></o:p></span></li>
+     class=SpellE>xvfz</span> refsw_release_unified_20180717.tgz <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l16 level1 lfo8;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#cd nexus/<span
      class=SpellE>utils</span> <o:p></o:p></span></li>
@@ -2682,7 +2466,7 @@ stream </b></p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l14 level1 lfo10;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar <span
-     class=SpellE>xvfz</span> refsw_release_97271_20180625.src.tgz<o:p></o:p></span></li>
+     class=SpellE>xvfz</span> refsw_release_97271_20180717.src.tgz<o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l14 level1 lfo10;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#cd
      BSEAV/app/atlas/build <o:p></o:p></span></li>

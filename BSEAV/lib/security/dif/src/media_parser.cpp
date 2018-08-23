@@ -389,38 +389,3 @@ bool MediaParser::GetProtectionInfoForTrack(bmp4_protectionSchemeInfo &trackProt
     LOGD(("%s: Did not find a valid protection scheme for trackId %d.", BSTD_FUNCTION, inTrackId));
     return false;
 }
-
-bool MediaParser::GetVideoResolution(uint32_t* width, uint32_t* height)
-{
-    struct mp4_parser_context* parser_context = (struct mp4_parser_context *)m_handle;
-    uint32_t index;
-
-    if (m_handle == NULL)
-    {
-        LOGE(("Invalid Parser Handle."));
-        return false;
-    }
-
-    if (width == NULL || height == NULL) {
-        LOGE(("Invalid parameters"));
-        return false;
-    }
-
-    *width = 0;
-    *height = 0;
-
-    bmp4_mp4_headers *mp4_header = &parser_context->mp4_mp4;
-
-    for (index = 0; index < mp4_header->nbOfTracks; index++) {
-        uint32_t w = mp4_header->trackHeader[index + 1].width >> 16;
-        uint32_t h = mp4_header->trackHeader[index + 1].height >> 16;
-        if (w != 0 && h != 0) {
-            LOGD(("%s: trackId=%d %dx%d", BSTD_FUNCTION, index+1, w, h));
-            *width = w;
-            *height = h;
-        }
-    }
-
-    LOGD(("%s: resolution %dx%d", BSTD_FUNCTION, *width, *height));
-    return true;
-}

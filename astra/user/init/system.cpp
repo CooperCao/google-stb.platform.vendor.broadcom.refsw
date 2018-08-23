@@ -64,6 +64,7 @@
 #include "clock.h"
 #include "futex.h"
 #include "tzioc.h"
+#include "tzmbox.h"
 #include "tracelog.h"
 #include "console.h"
 
@@ -111,6 +112,7 @@ void System::init(const void *devTree) {
     TzClock::init();
     Futex::init();
     TzIoc::init(tzDevTree);
+    TzMBox::init(tzDevTree);
     TraceLog::init();
 
     /* Load initramfs and release its memory */
@@ -125,8 +127,8 @@ void System::init(const void *devTree) {
     //PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     // Create /dev/random and /dev/urandom
-    IDirectory *devDir = RamFS::Directory::create(System::UID, System::GID, rootDir,
-        MAKE_PERMS(PERMS_READ_WRITE_EXECUTE, PERMS_READ_ONLY_EXECUTE, PERMS_READ_ONLY_EXECUTE));
+    IDirectory *devDir = RamFS::Directory::create(RamFS::UID, RamFS::GID, rootDir,
+        MAKE_PERMS(PERMS_READ_WRITE_EXECUTE, PERMS_READ_WRITE_EXECUTE, PERMS_READ_WRITE_EXECUTE));
     if (devDir == nullptr) {
         err_msg("Could not create devfs\n");
         System::halt();

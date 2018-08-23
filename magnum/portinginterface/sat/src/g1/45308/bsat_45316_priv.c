@@ -50,7 +50,6 @@
 #include "bchp_clkgen.h"
 #include "bchp_stb_chan_ctrl_0.h"
 #include "bchp_stb_chan_ctrl_1.h"
-#include "bchp_tm.h"
 
 
 #if (BCHP_CHIP != 45308)
@@ -442,13 +441,7 @@ const uint32_t BSAT_g1_ChannelIntrID[BSAT_G1_MAX_CHANNELS][BSAT_g1_MaxIntID] =
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 {
-   uint32_t val;
-
-   val = BREG_Read32(NULL, BCHP_TM_PRODUCT_ID) >> 8;
-   if ((val & 0xFF) == 0x12)
-      *totalChannels = 12;
-   else
-      *totalChannels = 16;
+   *totalChannels = 16;
    return BERR_SUCCESS;
 }
 

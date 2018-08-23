@@ -49,6 +49,9 @@
 #include "priv/nexus_audio_decoder_priv.h"
 #include "priv/nexus_pid_channel_priv.h"
 #include "priv/nexus_stc_channel_priv.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
+#endif
 
 /* Comment this line to disable debug logging */
 #define RAAGA_DEBUG_LOG_CHANGES 1
@@ -122,6 +125,286 @@ static void NEXUS_AudioDecoder_P_Watchdog_isr(void *pParam1, int param2)
     BKNI_SetEvent_isr(g_watchdogEvent);
 }
 
+/* PAK is only required on non-bp3 chips */
+#if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
+     (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
+     (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0) ||\
+     (BCHP_CHIP == 7271 && BCHP_VER < BCHP_VER_C0) || (BCHP_CHIP == 7268 && BCHP_VER < BCHP_VER_C0))
+#define NEXUS_AUDIO_PAK_SUPPORT 1
+#else
+#define NEXUS_AUDIO_PAK_SUPPORT 0
+#endif
+
+#if NEXUS_AUDIO_PAK_SUPPORT
+extern void *NEXUS_AUDIO_IMG_Context;
+extern BIMG_Interface NEXUS_AUDIO_IMG_Interface;
+
+static NEXUS_Error NEXUS_AudioDecoder_P_Img_Create(void)
+{
+#if defined(NEXUS_MODE_driver)
+    NEXUS_Error rc = BERR_SUCCESS;
+
+    rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_AUDIO_PAK, &g_NEXUS_audioModuleData.pPakContext, &g_NEXUS_audioModuleData.pakImg);
+    if ( rc )
+    {
+        rc = BERR_TRACE(rc);
+        g_NEXUS_audioModuleData.pPakContext = NULL;
+    }
+#else
+    g_NEXUS_audioModuleData.pPakContext = NEXUS_AUDIO_IMG_Context;
+    g_NEXUS_audioModuleData.pakImg = NEXUS_AUDIO_IMG_Interface;
+#endif
+
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_AudioDecoder_P_Img_Destroy(void)
+{
+#if defined(NEXUS_MODE_driver)
+    Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pPakContext);
+#endif
+}
+
+static NEXUS_Error NEXUS_AudioDecoder_P_LoadFile(
+    BIMG_Interface *pImg,
+    void *pContext,
+    NEXUS_AudioImage image,
+    NEXUS_MemoryBlockHandle *pBlock,
+    void **pMemory,
+    NEXUS_Addr *pOffset,
+    unsigned *pLength
+    )
+{
+    NEXUS_Error errCode;
+    void *pImage = NULL;
+    uint32_t *pSize;
+    const void *pBuffer;
+
+    BDBG_ASSERT(NULL != pImg);
+    BDBG_ASSERT(NULL != pContext);
+    BDBG_ASSERT(NULL != pBlock);
+    BDBG_ASSERT(NULL != pMemory);
+    BDBG_ASSERT(NULL != pOffset);
+
+    *pBlock = NULL;
+    *pMemory = NULL;
+    *pOffset = 0;
+    *pLength = 0;
+
+    /* Open file */
+    errCode = pImg->open(pContext, &pImage, image);
+    if( errCode )
+    {
+        if ( errCode != BERR_INVALID_PARAMETER )
+        {
+            errCode = BERR_TRACE(errCode);
+        }
+        goto err;
+    }
+
+    /* Get size */
+    errCode = pImg->next(pImage, 0, (const void **)&pSize, sizeof(uint32_t));
+    if( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    BDBG_ASSERT(NULL != pSize);
+
+    *pLength = *pSize;
+    *pBlock = NEXUS_MemoryBlock_Allocate(NULL, *pLength, 4096, NULL);
+    if ( NULL == pBlock )
+    {
+        errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto err;
+    }
+
+    errCode = NEXUS_MemoryBlock_Lock(*pBlock, pMemory);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    errCode = pImg->next(pImage, 0, &pBuffer, *pLength);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    BKNI_Memcpy(*pMemory, pBuffer, *pLength);
+    NEXUS_FlushCache(*pMemory, *pLength);
+
+    pImg->close(pImage);
+    pImage = NULL;
+
+    errCode = NEXUS_MemoryBlock_LockOffset(*pBlock, pOffset);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    return NEXUS_SUCCESS;
+
+err:
+    if ( pImage )
+    {
+        pImg->close(pImage);
+    }
+    if ( *pBlock )
+    {
+        if ( *pOffset )
+        {
+            NEXUS_MemoryBlock_UnlockOffset(*pBlock);
+        }
+        if ( *pMemory )
+        {
+            NEXUS_MemoryBlock_Unlock(*pBlock);
+        }
+        NEXUS_MemoryBlock_Free(*pBlock);
+    }
+
+    return errCode;
+}
+
+void NEXUS_AudioDecoder_P_LoadPak(void)
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+
+    void *pContext = g_NEXUS_audioModuleData.pPakContext;
+    BIMG_Interface *pImg = &g_NEXUS_audioModuleData.pakImg;
+    NEXUS_MemoryBlockHandle hPak= NULL, hDrm = NULL;
+    void *pPakMem = NULL, *pDrmMem = NULL;
+    NEXUS_Addr pakAddr=0, drmAddr=0;
+    unsigned pakLength, drmLength;
+    BDSP_ProcessPAKSettings pakSettings;
+    BDSP_ProcessPAKStatus pakStatus;
+    NEXUS_AudioImage imageType = NEXUS_AudioImage_ePak;
+
+
+    BDBG_MSG(("Loading PAK"));
+#if NEXUS_HAS_SAGE
+    {
+        BSAGElib_ChipInfo chipInfo;
+        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.sage);
+        NEXUS_Sage_GetChipInfo_priv(&chipInfo);
+        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.sage);
+        imageType = (chipInfo.chipType == BSAGElib_ChipType_eZS) ? NEXUS_AudioImage_ePakDev : NEXUS_AudioImage_ePak;
+    }
+#endif
+    errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, imageType, &hPak, &pPakMem, &pakAddr, &pakLength);
+    if ( errCode )
+    {
+        if ( errCode == BERR_INVALID_PARAMETER && imageType == NEXUS_AudioImage_ePakDev )
+        {
+            BDBG_MSG(("pak_dev.bin not found, trying pak.bin"));
+            errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, NEXUS_AudioImage_ePak, &hPak, &pPakMem, &pakAddr, &pakLength);
+        }
+        if ( errCode )
+        {
+            if ( errCode == BERR_INVALID_PARAMETER )
+            {
+                BDBG_WRN(("Unable to load pak.bin file"));
+            }
+            else
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+            goto err;
+        }
+    }
+
+    BDBG_MSG(("Done loading PAK - Loading DRM"));
+    errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, NEXUS_AudioImage_eDrm, &hDrm, &pDrmMem, &drmAddr, &drmLength);
+    if ( errCode )
+    {
+        if ( errCode == BERR_INVALID_PARAMETER )
+        {
+            BDBG_MSG(("drm.bin not found, trying drm_dev.bin"));
+            errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, NEXUS_AudioImage_eDrmDev, &hDrm, &pDrmMem, &drmAddr, &drmLength);
+        }
+        if ( errCode )
+        {
+            if ( errCode == BERR_INVALID_PARAMETER )
+            {
+                BDBG_WRN(("Unable to load drm.bin"));
+            }
+            else
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+            goto err;
+        }
+    }
+    BDBG_MSG(("Done Loading DRM"));
+
+    BDSP_GetDefaultProcessPAKSettings(&pakSettings);
+    pakSettings.pakMemory.hBlock = NEXUS_MemoryBlock_GetBlock_priv(hPak);
+    pakSettings.pakMemory.pAddr = pPakMem;
+    pakSettings.pakMemory.offset = pakAddr;
+    pakSettings.pakSize = pakLength;
+    pakSettings.drmMemory.hBlock = NEXUS_MemoryBlock_GetBlock_priv(hDrm);
+    pakSettings.drmMemory.pAddr = pDrmMem;
+    pakSettings.drmMemory.offset = drmAddr;
+    pakSettings.drmSize = drmLength;
+
+    errCode = BDSP_ProcessPAK(g_NEXUS_audioModuleData.dspHandle, &pakSettings, &pakStatus);
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+
+    BDBG_WRN(("Successfully loaded PAK"));
+
+    errCode = NEXUS_SUCCESS;
+    /* Fall through to clean up */
+err:
+    if ( hPak )
+    {
+        if ( pPakMem )
+        {
+            NEXUS_MemoryBlock_Unlock(hPak);
+        }
+        if ( pakAddr )
+        {
+            NEXUS_MemoryBlock_UnlockOffset(hPak);
+        }
+        NEXUS_MemoryBlock_Free(hPak);
+    }
+    if ( hDrm )
+    {
+        if ( pDrmMem )
+        {
+            NEXUS_MemoryBlock_Unlock(hDrm);
+        }
+        if ( drmAddr )
+        {
+            NEXUS_MemoryBlock_UnlockOffset(hDrm);
+        }
+        NEXUS_MemoryBlock_Free(hDrm);
+    }
+    if ( errCode )
+    {
+        BDBG_WRN(("Unable to load PAK data"));
+        if ( errCode != BERR_INVALID_PARAMETER )
+        {
+            (void)BERR_TRACE(errCode);
+        }
+    }
+    return;
+}
+#else
+void NEXUS_AudioDecoder_P_LoadPak(void)
+{
+    /* Stub */
+}
+#endif /* NEXUS_AUDIO_PAK_SUPPORT */
+
 NEXUS_Error NEXUS_AudioDecoder_P_Init(void)
 {
     BERR_Code errCode;
@@ -160,6 +443,24 @@ NEXUS_Error NEXUS_AudioDecoder_P_Init(void)
     /* initialize global decoder data */
     BKNI_Memset(&g_decoders, 0, sizeof(g_decoders));
 
+#if NEXUS_AUDIO_PAK_SUPPORT
+    /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
+    errCode = NEXUS_AudioDecoder_P_Img_Create();
+    if ( errCode )
+    {
+        BAPE_GetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
+        interrupts.watchdog.pCallback_isr = NULL;
+        (void)BAPE_SetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
+        NEXUS_UnregisterEvent(g_watchdogCallback);
+        g_watchdogCallback = NULL;
+        BKNI_DestroyEvent(g_watchdogEvent);
+        g_watchdogEvent = NULL;
+        return BERR_TRACE(errCode);
+    }
+
+    NEXUS_AudioDecoder_P_LoadPak();
+#endif
+
     return BERR_SUCCESS;
 }
 
@@ -170,6 +471,10 @@ void NEXUS_AudioDecoder_P_Uninit(void)
     BAPE_GetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
     interrupts.watchdog.pCallback_isr = NULL;
     BAPE_SetInterruptHandlers(NEXUS_AUDIO_DEVICE_HANDLE, &interrupts);
+
+#if NEXUS_AUDIO_PAK_SUPPORT
+    NEXUS_AudioDecoder_P_Img_Destroy();
+#endif
 
     NEXUS_UnregisterEvent(g_watchdogCallback);
     g_watchdogCallback = NULL;
@@ -1260,8 +1565,16 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
                 goto err_start;
             }
             handle->started = true;
-            BDBG_MSG(("  Force first Format Change"));
-            NEXUS_AudioDecoder_P_InputFormatChange(handle);
+            if ( handle->programSettings.inputFormatChangeMode == NEXUS_AudioInputFormatChangeMode_eManual && handle->programSettings.codec != NEXUS_AudioCodec_eMax )
+            {
+                BDBG_MSG(("  Start Decoder"));
+                BERR_TRACE(NEXUS_AudioDecoder_P_Start(handle));
+            }
+            else
+            {
+                BDBG_MSG(("  Force first Format Change"));
+                NEXUS_AudioDecoder_P_InputFormatChange(handle);
+            }
             return BERR_SUCCESS;
         }
     }
@@ -1494,7 +1807,16 @@ NEXUS_Error NEXUS_AudioDecoder_Resume(
                 goto err_start;
             }
             handle->started = true;
-            NEXUS_AudioDecoder_P_InputFormatChange(handle);
+            if ( handle->programSettings.inputFormatChangeMode == NEXUS_AudioInputFormatChangeMode_eManual && handle->programSettings.codec != NEXUS_AudioCodec_eMax )
+            {
+                BDBG_MSG(("  Start Decoder"));
+                BERR_TRACE(NEXUS_AudioDecoder_P_Start(handle));
+            }
+            else
+            {
+                BDBG_MSG(("  Force first Format Change"));
+                NEXUS_AudioDecoder_P_InputFormatChange(handle);
+            }
             return BERR_SUCCESS;
         }
     }
@@ -3087,6 +3409,11 @@ void NEXUS_AudioDecoder_P_Reset(void)
     /* Process watchdog RESUME */
     BAPE_ProcessWatchdogInterruptResume(NEXUS_AUDIO_DEVICE_HANDLE);
 
+#if NEXUS_AUDIO_PAK_SUPPORT
+    /* Reload PAK data */
+    NEXUS_AudioDecoder_P_LoadPak();
+#endif
+
     /* Restart RAVE contexts */
     for ( i = 0; i < audioCapabilities.numDecoders; i++ )
     {
@@ -3388,7 +3715,7 @@ static void NEXUS_AudioDecoder_P_StreamStatusAvailable_isr(void *pParam1, int pa
 
     BDBG_MSG(("Decoder %u Stream Status Ready", pDecoder->index));
     NEXUS_IsrCallback_Fire_isr(pDecoder->streamStatusCallback);
-    NEXUS_IsrCallback_Fire_isr(pDecoder->sourceChangeAppCallback);
+    /*NEXUS_IsrCallback_Fire_isr(pDecoder->sourceChangeAppCallback);*/
 }
 
 static void NEXUS_AudioDecoder_P_AncillaryData_isr(void *pParam1, int param2)
@@ -4056,11 +4383,14 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     BAVC_AudioCompressionStd avcCodec;
     BAPE_DecoderStatus *pDecoderStatus = &handle->apeStatus;
     bool stop=false, start=false;
+    bool wasRunning;
 
     BDBG_MSG(("%s", BSTD_FUNCTION));
     if (!handle->started) {
         return;
     }
+
+    wasRunning = handle->running;
 
     errCode = NEXUS_AudioInput_P_GetInputPortStatus(handle->programSettings.input, &inputPortStatus);
     if ( errCode )
@@ -4077,7 +4407,7 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     {
         BDBG_MSG(("Input Format Change - Decoder is running, running %d, halted %d, lastNumChs %d, newNumChs %d", pDecoderStatus->running, pDecoderStatus->halted, handle->inputPortStatus.numPcmChannels, inputPortStatus.numPcmChannels));
         if ( pDecoderStatus->halted       ||      /* due to on-the-fly input format change. */
-             ! pDecoderStatus->running    ||      /* due to format change during APE decoder start. */
+             !pDecoderStatus->running     ||      /* due to format change during APE decoder start. */
              avcCodec != handle->apeStartSettings.codec )  /* due to on-the-fly codec change.    */
         {
             /* The APE decoder has stopped because of a format change that can't be handled on-the-fly. */
@@ -4086,8 +4416,8 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
             if ( inputPortStatus.signalPresent )
             {
                 /* Restart with new codec if signal is present */
-                start = true;
-                BDBG_MSG(("Valid input signal. Need to restart."));
+                start = handle->programSettings.inputFormatChangeMode == NEXUS_AudioInputFormatChangeMode_eAuto;
+                BDBG_MSG(("Valid input signal. Need to restart or halt."));
             }
             else
             {
@@ -4108,7 +4438,7 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
         {
             /* Start with new codec if signal is present */
             BDBG_MSG(("Valid input signal, starting decoder."));
-            start = true;
+            start = handle->programSettings.inputFormatChangeMode == NEXUS_AudioInputFormatChangeMode_eAuto;
         }
         else
         {
@@ -4120,10 +4450,17 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     {
         NEXUS_Error errCode;
         BDBG_MSG(("Stop decoder on input format change"));
-        errCode = NEXUS_AudioDecoder_P_Stop(handle, true);
-        if ( errCode )
+        if ( handle->programSettings.inputFormatChangeMode == NEXUS_AudioInputFormatChangeMode_eAuto )
         {
-            (void)BERR_TRACE(errCode);
+            errCode = NEXUS_AudioDecoder_P_Stop(handle, true);
+            if ( errCode )
+            {
+                (void)BERR_TRACE(errCode);
+            }
+        }
+        else
+        {
+            (void)NEXUS_AudioDecoder_Stop(handle);
         }
     }
 
@@ -4131,7 +4468,7 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     if ( start )
     {
         NEXUS_Error errCode;
-        BDBG_MSG(("Start decoder on input format change"));
+        BDBG_MSG(("Start decoder on input format change codec %d", handle->apeStartSettings.codec));
         errCode = NEXUS_AudioDecoder_P_Start(handle);
         if ( errCode )
         {
@@ -4140,6 +4477,15 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pParam)
     }
 
     handle->inputPortStatus = inputPortStatus;
+
+    /* application may need to take action due to this change */
+    if ( (handle->running != wasRunning || !handle->running) &&
+         handle->sourceChangeAppCallback )
+    {
+        BKNI_EnterCriticalSection();
+        NEXUS_IsrCallback_Fire_isr(handle->sourceChangeAppCallback);
+        BKNI_LeaveCriticalSection();
+    }
 }
 
 static BERR_Code NEXUS_AudioDecoder_P_SetPcrOffset_isr(void *pContext, uint32_t pcrOffset)
@@ -4366,8 +4712,6 @@ static void NEXUS_AudioDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
             handle->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStartPts;
         }else if (handle->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtPts) {
             handle->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
-        }else if (handle->spliceSettings.mode == NEXUS_DecoderSpliceMode_eStopAtFirstPts) {
-            handle->spliceStatus.state = NEXUS_DecoderSpliceState_eFoundStopPts;
         }
         handle->spliceStatus.pts = pts;
         NEXUS_IsrCallback_Fire_isr(handle->spliceCallback);
@@ -4375,8 +4719,6 @@ static void NEXUS_AudioDecoder_P_SplicePoint_isr(void *Ctx, uint32_t pts)
     return;
 }
 
-#define SPLICE_PTS_ANY 0x1
-#define SPLICE_PTS_THRESHOLD_ANY 0xfffffffe
 
 NEXUS_Error NEXUS_AudioDecoder_SetSpliceSettings(
     NEXUS_AudioDecoderHandle handle,
@@ -4433,32 +4775,6 @@ NEXUS_Error NEXUS_AudioDecoder_SetSpliceSettings(
         handle->spliceSettings = *pSettings;
         NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
         handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStartPts;
-        break;
-    }
-    case NEXUS_DecoderSpliceMode_eStopAtFirstPts: {
-        /* Check that we decoding live stream */
-        NEXUS_AudioDecoderStartSettings * pProgram =  &handle->programSettings;
-        if (NULL == pProgram->stcChannel) {
-            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            break;
-        } else {
-            NEXUS_StcChannelSettings stcSettings;
-            NEXUS_StcChannel_GetSettings(pProgram->stcChannel, &stcSettings);
-            if (stcSettings.mode != NEXUS_StcChannelMode_ePcr) {
-                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-                break;
-            }
-        }
-        raveSpliceSettings.context = (void *) handle;
-        raveSpliceSettings.splicePoint = NEXUS_AudioDecoder_P_SplicePoint_isr;
-        raveSpliceSettings.type = NEXUS_Rave_SpliceType_eStopLive;
-        rc = NEXUS_Rave_SetSplicePoint_priv(handle->raveContext,&raveSpliceSettings);
-        if (rc) return BERR_TRACE(rc);
-        handle->spliceSettings = *pSettings;
-        handle->spliceSettings.pts = SPLICE_PTS_ANY;
-        handle->spliceSettings.ptsThreshold = SPLICE_PTS_THRESHOLD_ANY;
-        NEXUS_IsrCallback_Set(handle->spliceCallback, &pSettings->splicePoint);
-        handle->spliceStatus.state = NEXUS_DecoderSpliceState_eWaitForStopPts;
         break;
     }
     default:

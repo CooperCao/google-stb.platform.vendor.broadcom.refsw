@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_17
+## SAGE Binary Metadata - SAGE TA-only for_SAGE_3_2_17/BP3/4_2_5_32
 ## unique_key checksum_type checksum url
-7250B0/dev/sage_ta_bp3_dev.bin sha1 e1fafd881b1def3b3ce64a02050273409182e3c3 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_17/7250B0/ZD/sage_ta_bp3_dev.bin
+7250B0/dev/sage_ta_bp3_dev.bin sha1 3254c20400f48678ce5c2952a336aa4d92eb3fdc http://git-irv-03.irv.broadcom.com:88/files/SAGESDL/for_SAGE_3_2_17/BP3/4_2_5_32/7250B0/ZD/sage_ta_bp3_dev.bin

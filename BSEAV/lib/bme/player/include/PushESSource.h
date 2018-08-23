@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *  See ‘License-BroadcomSTB-CM-Software.txt’ for terms and conditions.
 ***************************************************************************/
 #ifndef __IPUSHESSOURCEIMPL_H__
@@ -76,8 +76,6 @@ public:
     // IPushESSource
     void resumeFromPause();
     void seekToPts(TIME45k seekTo);
-    void pushAudioEndOfStream();
-    void pushVideoEndOfStream();
 
     // Make the sample
     void makeVideoChunk(TIME45k pts, const DataFragment_t *fragment, size_t n);
@@ -89,6 +87,8 @@ public:
     void makePcmChunk(TIME45k pts, const DataFragment_t *fragment, size_t n);
     void makeVorbisChunk(TIME45k pts, const DataFragment_t *fragment, size_t n);
     void makePesAudioChunk(TIME45k pts, const DataFragment_t *fragment, size_t n);
+    void makeAudioEndOfStreamChunk(void);
+    void makeVideoEndOfStreamChunk(void);
 
     // Send the sample
     typedef bool (PushESSource::* PushFunction_t)(void *drmContext, uint64_t vector, bool block);

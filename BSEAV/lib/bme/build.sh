@@ -104,6 +104,8 @@ function clean_build {
 }
 
 function nexus_build {
+    export BDSP_MS12_SUPPORT=$(make --no-print-directory -sf build/drm.inc print-BDSP_MS12_SUPPORT)
+    export NEXUS_COMMON_CRYPTO_SUPPORT=$(make --no-print-directory -sf build/drm.inc print-NEXUS_COMMON_CRYPTO_SUPPORT)
     if [ ! -f $NEXUS_BUILD_BREADCRUMB ]; then
         make $MAKE_OPTIONS -C $REFSW_TOP/nexus/build nexus_headers 1> $LOG_OUTPUT
         make $MAKE_OPTIONS -C $REFSW_TOP/nexus/nxclient/ server 1> $LOG_OUTPUT
@@ -112,7 +114,6 @@ function nexus_build {
         install $NEXUS_BIN_DIR/libnexus.so $TARGET_LIB_FOLDER
         rm $TARGET_MODULE_FOLDER/nexus.ko || true 1> $LOG_OUTPUT
         rm $TARGET_MODULE_FOLDER/bcmdriver.ko || true 1> $LOG_OUTPUT
-        rm $TARGET_MODULE_FOLDER/bcm_astra.ko || true 1> $LOG_OUTPUT
         if [ "$NEXUS_MODE" == "proxy" ]; then
             install $NEXUS_BIN_DIR/nexus.ko $TARGET_MODULE_FOLDER
         else
@@ -120,7 +121,6 @@ function nexus_build {
             install $NEXUS_BIN_DIR/libnexus_client.so $TARGET_LIB_FOLDER
         fi
         install $NEXUS_BIN_DIR/brcmv3d.ko $TARGET_MODULE_FOLDER || true
-        install $NEXUS_BIN_DIR/bcm_astra.ko $TARGET_MODULE_FOLDER || true
         install $NEXUS_BIN_DIR/nxserver $TARGET_BIN_FOLDER/nxserver/
 
         if [ $SAGE_SUPPORT == "y" ]; then

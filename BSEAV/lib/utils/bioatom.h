@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2007-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -638,7 +638,7 @@ size_t batom_cursor_copy(
 Summary:
  This function copies data from cursor to the array of batom_vec
 Result:
- Function returns number of entries copied.
+ Function returns number of bytes copied, it could be smaller than requested number if cursor advanced past end of data
 Error:
  If there is not enough space in the destination arrays, then 'required_vec_size' would be larger then 'vec_size'
 **/
@@ -647,22 +647,6 @@ size_t batom_cursor_extract (
     batom_vec *vecs,            /* pointer to the batom_vec */
     size_t vec_size,            /* number of elements in vec */
     size_t *required_vec_size   /* number of elements used in vec */
-    );
-
-/**
-Summary:
- This function copies data from range specified by two cursor to the array of batom_vec
-Result:
- Function returns number of entries copied.
-Error:
- If there is not enough space in the destination arrays, then 'required_vec_size' would be larger then 'vec_size'
-**/
-size_t batom_cursor_extract_range (
-    const batom_cursor *first, /* pointer to the beginning of range */
-    const batom_cursor *last,  /* pointer to end of range (could be NULL) */
-    batom_vec *vecs,           /* pointer to the batom_vec */
-    size_t vec_size,           /* number of elements in vec */
-    size_t *required_vec_size  /* number of elements used in vec */
     );
 
 /**

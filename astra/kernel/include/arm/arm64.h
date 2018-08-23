@@ -1,45 +1,40 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to
- *  the terms and conditions of a separate, written license agreement executed
- *  between you and Broadcom (an "Authorized License").  Except as set forth in
- *  an Authorized License, Broadcom grants no license (express or implied),
- *  right to use, or waiver of any kind with respect to the Software, and
- *  Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization,
- *  constitutes the valuable trade secrets of Broadcom, and you shall use all
- *  reasonable efforts to protect the confidentiality thereof, and to use this
- *  information only in connection with your use of Broadcom integrated circuit
- *  products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #ifndef _B_TZ_ARM64_H
 #define _B_TZ_ARM64_H
 
@@ -174,21 +169,21 @@
 #define L1_BLOCK_ADDR_MASK      0xfffffffffffff000L
 #define L1_BLOCK_SHIFT          30
 #define L1_BLOCK_MASK           0x1ff
-#define L1_PHYS_ADDR_MASK       0xFFC0000000
+#define L1_PHYS_ADDR_MASK       0xC0000000
 #define L1_PAGE_NUM_ENTRIES     512
 #define L1_PAGE_TABLE_SLOT(x)  (int)(((unsigned long)x >> 30) & 0x1ff)
 
 #define L2_BLOCK_ADDR_MASK      0xfffffffffffff000L
 #define L2_BLOCK_SHIFT           21
 #define L2_BLOCK_MASK            0x1ff
-#define L2_PHYS_ADDR_MASK        0xFFFFE00000
+#define L2_PHYS_ADDR_MASK        0xFFE00000
 #define L2_PAGE_NUM_ENTRIES  512
 #define L2_PAGE_TABLE_SLOT(x)  (int)(((unsigned long)x >> 21) & 0x1ff)
 
 #define L3_BLOCK_ADDR_MASK      0xfffffffffffff000L
 #define L3_BLOCK_SHIFT           12
 #define L3_BLOCK_MASK            0x1ff
-#define L3_PHYS_ADDR_MASK        0xFFFFFFF000
+#define L3_PHYS_ADDR_MASK        0xFFFFF000
 #define L3_PAGE_NUM_ENTRIES  512
 #define L3_PAGE_TABLE_SLOT(x)  (int)(((unsigned long)x >> 12) & 0x1ff)
 
@@ -439,9 +434,7 @@
 		register TzMem::PhysAddr pageTablePA = TzMem::virtToPhys(top); \
 		register uintptr_t ttbr0_el1 = (uintptr_t)pageTablePA; \
 		asm volatile("msr TTBR0_EL1, %[xt]"::[xt] "r" (ttbr0_el1)); \
-		asm volatile("tlbi vmalle1is":::"memory"); \
-		asm volatile("dsb sy":::"memory"); \
-		asm volatile("isb":::"memory"); \
+		asm volatile("tlbi VMALLE1":::"memory"); \
 		asm volatile("ic IALLU":::"memory"); \
 }
 
@@ -492,18 +485,23 @@
 
 #define ARCH_SPECIFIC_GET_SECURE_TIMER_FREQUENCY(rv) asm volatile("mrs %[xt],cntfrq_el0" : [xt] "=r" (rv) : :)
 
-#define ARCH_SPECIFIC_NSWTASK \
-	while (true) { \
-		disable_fiq();\
+#define ARCH_SPECIFIC_NSWTASK { \
 		asm volatile( \
-			"mov x0, #0x83000000 \r\n"  \
+			"mov x0, #0x83000000 \r\n" \
 			"orr x0, x0, #0x0200 \r\n" \
 			"smc #0 \r\n" \
 			::: "x0"); \
-		enable_fiq(); \
 	}
 
-#define ARCH_SPECIFIC_CPU_UPDATE(load, freq) { \
+#define ARCH_SPECIFIC_MBOX_REPLY { \
+		asm volatile( \
+			"mov x0, #0x83000000 \r\n" \
+			"orr x0, x0, #0x0400 \r\n" \
+			"smc #0 \r\n" \
+			::: "x0"); \
+	}
+
+#define ARCH_SPECIFIC_CPU_UPDATE(load, freq) {  \
 		register uint32_t xload, xfreq; \
 		xload = load; \
 		asm volatile( \
@@ -519,11 +517,11 @@
 		freq = xfreq; \
 	}
 
-#define ARCH_SPECIFIC_ENABLE_INTERRUPTS { \
-		enable_irq(); \
-		enable_fiq(); \
-		enable_serror(); \
-	}
+#define ARCH_SPECIFIC_ENABLE_INTERRUPTS write_daifclr(DAIFBIT_ALL)
+#define ARCH_SPECIFIC_ENABLE_FIQ write_daifclr(DAIFBIT_FIQ)
+
+#define ARCH_SPECIFIC_DISABLE_INTERRUPTS write_daifset(DAIFBIT_ALL)
+#define ARCH_SPECIFIC_DISABLE_FIQ write_daifset(DAIFBIT_FIQ)
 
 #define ARCH_SPECIFIC_GET_SPSR(spsr) asm volatile("mrs %[xt],spsr_el1": [xt] "=r" (spsr) : :)
 
@@ -580,8 +578,6 @@
 	asm volatile("msr tpidrro_el0, x2":::)
 
 #define ARCH_SPECIFIC_GET_DFAR(dfar) asm volatile("mrs %[xt],far_el1": [xt] "=r" (dfar)::)
-
-#define ARCH_SPECIFIC_DISABLE_INTERRUPTS write_daifset(DAIFBIT_ALL)
 
 #define ARCH_SPECIFIC_ENABLE_USER_PERF_MON asm volatile("msr pmuserenr_el0,%[xt]" : : [xt] "r" (0x1))
 

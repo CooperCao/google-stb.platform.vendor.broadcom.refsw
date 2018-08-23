@@ -51,8 +51,7 @@
 #include "uart_boot.h"
 
 uintptr_t early_uart_base;
-
-extern uintptr_t boot_mode;
+unsigned long boot_mode;
 
 __init_data unsigned long phys_to_virt_offset;
 __init_data unsigned long virt_to_phys_offset;
@@ -248,7 +247,7 @@ __bootstrap static inline void enable_mmu(ptrdiff_t load_link_offset) {
 
 extern eUartType early_uart_type;
 
-__bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t machine_id, void *dtree_phys_addr, void *uart_addr) {
+__bootstrap void bootstrap_main(ptrdiff_t load_link_offset, uintptr_t machine_id, void *dtree_phys_addr, void *uart_addr) {
 
     // If this is not the boot CPU, enable the MMU using the page table
     // prepared by the boot CPU.
@@ -265,6 +264,7 @@ __bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t machine_i
 
     enable_mmu(load_link_offset);
 
+    boot_mode = (machine_id) ? ARMV7_BOOT_MODE : ARMV8_BOOT_MODE;
     phys_to_virt_offset = ULONG_MAX - load_link_offset + 1;
     virt_to_phys_offset = load_link_offset;
 
@@ -273,6 +273,4 @@ __bootstrap void  bootstrap_main(ptrdiff_t load_link_offset, uintptr_t machine_i
 
     /* TODO: Detect & Change UART Type at Runtime */
     early_uart_type = UART_TYPE_NS16550a;
-
-    boot_mode = (machine_id) ? ARMV7_BOOT_MODE : ARMV8_BOOT_MODE;
 }

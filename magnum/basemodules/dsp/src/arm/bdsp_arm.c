@@ -182,10 +182,15 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getCoreDumpStatus = NULL; /*BDSP_Arm_P_GetCoreDumpStatus;*/
     pArm->device.getDownloadStatus= BDSP_Arm_P_GetDownloadStatus;
     pArm->device.initialize = BDSP_Arm_P_Initialize;
+    pArm->device.getRRRAddrRange = NULL;
+    pArm->device.processPAK = NULL;
+
+
 #if !B_REFSW_MINIMAL
     pArm->device.getDefaultDatasyncSettings = NULL;/*BDSP_Arm_P_GetDefaultDatasyncSettings;*/
 #endif /*!B_REFSW_MINIMAL*/
     pArm->device.getDefaultTsmSettings = NULL; /*BDSP_Arm_P_GetDefaultTsmSettings;*/
+    pArm->device.softFMMOpen = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pArm->contextList);

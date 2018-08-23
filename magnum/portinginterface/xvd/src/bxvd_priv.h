@@ -42,7 +42,7 @@
 
 /***************************************************************************
  * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to
@@ -831,6 +831,7 @@ typedef struct BXVD_P_Context
   uint32_t uiDisplayInfo0_Offset;
   uint32_t uiDisplayInfo1_Offset;
   uint32_t uiDisplayInfo2_Offset;
+  uint32_t uiClockBoost_Offset;
 #endif
 
   BXVD_P_DisplayInfo  *pDisplayInfo0;
@@ -1072,6 +1073,13 @@ typedef struct BXVD_P_Channel
 
    /* SW7425-2686: contains the settings for multi-pass DQT */
    BXVD_TrickModeSettings stTrickModeSettings;
+
+   /* Need the size of the source stream to set the clock boost mode.
+    * eSourceResolutionInBand is from the firmware.
+    * eSourceResolutionOutOfBand is from the middleware. */
+
+   BXVD_SourceResolution eSourceResolutionInBand;
+   BXVD_SourceResolution eSourceResolutionOutOfBand;
 
 #if BXVD_DM_ENABLE_PPB_GRAB_MODE
    FILE* fCapturePPB;
@@ -1389,6 +1397,8 @@ void BXVD_P_KeepChannelHandle(BXVD_Handle hXvd,
                               BXVD_ChannelHandle hXvdCh);
 
 void BXVD_P_FreeAllocatedChannelHandles(BXVD_Handle hXvd);
+
+void BXVD_P_SetClockBoost(BXVD_Handle hXvd);
 
 #if (BXVD_P_POWER_MANAGEMENT)
 

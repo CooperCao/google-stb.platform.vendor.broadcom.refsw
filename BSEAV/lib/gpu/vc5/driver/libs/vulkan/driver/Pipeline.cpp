@@ -1,5 +1,5 @@
 /******************************************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *****************************************************************************************************/
 
 #include "AllObjects.h"
@@ -839,7 +839,7 @@ void GraphicsPipeline::CreateShaderRecord(bool rasterizerDiscard, bool sampleSha
    }
 
    // Write out tess or geom part
-   if (m_linkResult->m_data.has_tng)
+   if (m_linkResult->m_data.has_tess || m_linkResult->m_data.has_geom)
    {
       linkres_compute_tng_vpm_cfg(vpmV, shadrecPtr, &m_linkResult->m_data, patchControlPoints, vpmSize);
       shadrecPtr += V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE / sizeof(uint32_t);

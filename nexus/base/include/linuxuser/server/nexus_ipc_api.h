@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2004-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+*  Copyright (C) 2004-2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,8 +49,6 @@ typedef struct NEXUS_Ipc_Header {
    unsigned function_id;
    unsigned unused;
 } NEXUS_Ipc_Header;
-
-#define NEXUS_IPC_SERVER_ERROR_PKT_LEN  1
 
 
 /**

@@ -109,6 +109,27 @@ BERR_Code BDSP_Resume(
     }
 }
 
+/***************************************************************************
+Summary:
+Open DSP Soft FMM
+***************************************************************************/
+BERR_Code BDSP_SoftFMM_Open(
+    BDSP_Handle handle,                 /* [in] DSP device handle */
+    BDSP_SoftFMMHandle *pSoftFMM        /* [out] Soft FMM handle */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BDSP_Device);
+    if(handle->softFMMOpen)
+    {
+        return handle->softFMMOpen(handle->pDeviceHandle,pSoftFMM);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+    return BERR_SUCCESS;
+}
+
 BERR_Code BDSP_GetAlgorithmInfo_isrsafe(
     BDSP_Handle handle,
     BDSP_Algorithm algorithm, /* [in] */
@@ -371,7 +392,7 @@ BDSP_FwStatus BDSP_GetCoreDumpStatus (
 {
 
     BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
-    if(hDsp->consumeDebugData)
+    if(hDsp->getCoreDumpStatus)
     {
         return hDsp->getCoreDumpStatus(hDsp->pDeviceHandle, dspIndex);
     }
@@ -518,6 +539,52 @@ BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
     if(hDsp->getDefaultTsmSettings)
     {
         ErrCode = hDsp->getDefaultTsmSettings(hDsp->pDeviceHandle, pSettingsBuffer, settingsBufferSize);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    return ErrCode;
+}
+/*********************************************************************************************
+Summary:
+    Return Buffer details from BDSP in case Nexus should know any, before allocating the buffer
+**********************************************************************************************/
+void BDSP_GetDefaultProcessPAKSettings(
+    BDSP_ProcessPAKSettings *pSettings /* [out] */
+    )
+{
+    BKNI_Memset(pSettings, 0, sizeof(BDSP_ProcessPAKSettings));
+}
+
+/***********************************************************************************
+Summary:
+    Evaluate audio license status through Platform Authorization Key(PAK) method
+
+Description:
+    This function helps to find out the license status of the platform.
+    It must be called after the Raaga device open and before start of any audio task.
+    The output parameter pPAKOutput contains modified input PAK data that is to be
+    used as an input PAK for subsequent PAK calls.
+Returns:
+    BERR_SUCCESS - If PAK execution was successful
+
+See Also:
+************************************************************************************/
+BERR_Code BDSP_ProcessPAK(
+    BDSP_Handle                   hDsp,
+    const BDSP_ProcessPAKSettings *pSettings,
+    BDSP_ProcessPAKStatus         *pStatus
+)
+{
+    BERR_Code   ErrCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
+
+    if(hDsp->processPAK)
+    {
+        ErrCode = hDsp->processPAK(hDsp->pDeviceHandle, pSettings, pStatus);
     }
     else
     {

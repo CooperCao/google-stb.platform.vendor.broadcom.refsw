@@ -66,12 +66,14 @@
 BDBG_MODULE(nexus_audio_module);
 BDBG_FILE_MODULE(nexus_audio_memest);
 
+
+
 NEXUS_ModuleHandle g_NEXUS_audioModule;
 NEXUS_AudioModuleData g_NEXUS_audioModuleData;
 #if BAPE_DSP_SUPPORT
   #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
-    static BIMG_Interface g_audioImgInterface;
-    static bool g_audioImgInterfaceInitialized = false;
+    static BIMG_Interface g_audioImgInterface[BAPE_DEVICE_TYPE_MAX];
+    static bool g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_MAX] = {false, false};
   #endif
 #endif
 
@@ -142,7 +144,12 @@ static void NEXUS_AudioModule_Print(void)
     unsigned i,j;
     BDBG_LOG(("Audio:"));
 
-    BDBG_LOG((" handles: ape:%p dsp:%p img:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.dspHandle, (void *)g_NEXUS_audioModuleData.pImageContext));
+    #if BDSP_RAAGA_AUDIO_SUPPORT
+    BDBG_LOG((" handles: ape:%p dsp:%p img:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.dspHandle, (void *)g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP]));
+    #endif
+    #if BDSP_ARM_AUDIO_SUPPORT
+    BDBG_LOG((" handles: ape:%p soft audio:%p img:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.armHandle, (void *)g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM]));
+    #endif
     BDBG_LOG((" settings: wd:%d id:%d",g_NEXUS_audioModuleData.settings.watchdogEnabled,g_NEXUS_audioModuleData.settings.independentDelay));
 
     for (i=0; i < g_NEXUS_audioModuleData.capabilities.numDecoders; i++) {
@@ -358,11 +365,11 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
 {
     unsigned i;
 
-    if ( g_audioImgInterfaceInitialized )
+    if ( g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] )
     {
         BDBG_WRN(("(DSP) FW download used"));
-        raagaSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext;
-        raagaSettings->pImageInterface = &g_audioImgInterface;
+        raagaSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP];
+        raagaSettings->pImageInterface = &g_audioImgInterface[BAPE_DEVICE_TYPE_DSP];
     }
 
     for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
@@ -407,11 +414,11 @@ static void NEXUS_AudioModule_P_PopulateArmOpenSettings(
 
     BSTD_UNUSED(boxConfig);
 
-    if ( g_audioImgInterfaceInitialized )
+    if ( g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] )
     {
         BDBG_WRN(("(ARM) FW download used"));
-        armSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext;
-        armSettings->pImageInterface = &g_audioImgInterface;
+        armSettings->pImageContext = g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM];
+        armSettings->pImageInterface = &g_audioImgInterface[BAPE_DEVICE_TYPE_ARM];
     }
 
     for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
@@ -578,13 +585,30 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         BDBG_ERR(("Invalid firmware heap provided."));
         goto err_heap;
     }
+    #endif
 
-    if ( !g_audioImgInterfaceInitialized )
+    #if BDSP_RAAGA_AUDIO_SUPPORT
+    if ( !g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] )
     {
         /* TODO: Connect IMG to DSP interface */
-        if ( Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_RAP, &g_NEXUS_audioModuleData.pImageContext, &g_audioImgInterface) == NEXUS_SUCCESS )
+        if ( Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_AUDIO_DSP, &g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP], &g_audioImgInterface[BAPE_DEVICE_TYPE_DSP]) == NEXUS_SUCCESS )
         {
-            g_audioImgInterfaceInitialized = true;
+            g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] = true;
+        }
+        else
+        {
+            BDBG_WRN(("WARNING: Failed to open Audio FW image interface."));
+        }
+    }
+    #endif
+
+    #if BDSP_ARM_AUDIO_SUPPORT
+    if ( !g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] )
+    {
+        /* TODO: Connect IMG to DSP interface */
+        if ( Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_SOFT_AUDIO, &g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM], &g_audioImgInterface[BAPE_DEVICE_TYPE_ARM]) == NEXUS_SUCCESS )
+        {
+            g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] = true;
         }
         else
         {
@@ -970,10 +994,16 @@ err_dsp:
 err_heap:
 #if BAPE_DSP_SUPPORT
     #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
-    if ( g_audioImgInterfaceInitialized ) {
-        Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext);
-        g_NEXUS_audioModuleData.pImageContext = NULL;
-        g_audioImgInterfaceInitialized = false;
+    if ( g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] ) {
+        Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP]);
+        g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP] = NULL;
+        g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] = false;
+    }
+
+    if ( g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] ) {
+        Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM]);
+        g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM] = NULL;
+        g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] = false;
     }
     #endif
 #endif
@@ -1053,10 +1083,15 @@ void NEXUS_AudioModule_Uninit(void)
 
 #if BAPE_DSP_SUPPORT
     #if BDSP_RAAGA_AUDIO_SUPPORT || BDSP_ARM_AUDIO_SUPPORT
-    if ( g_audioImgInterfaceInitialized ) {
-        Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext);
-        g_NEXUS_audioModuleData.pImageContext = NULL;
-        g_audioImgInterfaceInitialized = false;
+    if ( g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] ) {
+        Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP]);
+        g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_DSP] = NULL;
+        g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_DSP] = false;
+    }
+    if ( g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] ) {
+        Nexus_Core_P_Img_Destroy(g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM]);
+        g_NEXUS_audioModuleData.pImageContext[BAPE_DEVICE_TYPE_ARM] = NULL;
+        g_audioImgInterfaceInitialized[BAPE_DEVICE_TYPE_ARM] = false;
     }
     #endif
 #endif
@@ -1329,6 +1364,9 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
 
         rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
+
+        /* Reload PAK after resume if required */
+        NEXUS_AudioDecoder_P_LoadPak();
     }
 
 err :

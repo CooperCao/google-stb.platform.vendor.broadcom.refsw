@@ -1,0 +1,63 @@
+# Access Point NVRAM text file for settop box
+#
+# $Copyright Broadcom Corporation$
+#
+# $Id$
+#
+#
+# Note:
+#   eth0 is the ethernet interface name
+#   eth1 and eth2 are the WiFi interface names
+#
+
+is_default=1
+is_modified=0
+
+time_zone=PST8PDT
+acs_ifnames=
+lan1_ifnames=
+frameburst_dyn=0
+igmp_enable=0
+ure_disable=1
+ctf_disable=1
+router_disable=0
+
+br0_ifname=br0
+br0_ifnames=eth0 eth1 eth2
+lan_ifname=br0
+lan_ifnames=eth0 eth1 eth2
+lan_ipaddr=192.168.1.2
+lan_netmask=255.255.255.0
+lan_gateway=192.168.1.1
+lan_proto=dhcp
+lan_stp=0
+lan_wins=
+lan_wps_oob=enabled
+lan_wps_reg=enabled
+lan_dhcp=0
+lan_lease=86400
+dhcp_start=192.168.1.100
+dhcp_end=192.168.1.150
+
+br1_ifname=br1
+lan1_ifname=br1
+lan1_ipaddr=192.168.2.2
+lan1_netmask=255.255.255.0
+lan1_gateway=192.168.2.1
+lan1_proto=dhcp
+lan1_stp=0
+lan1_dhcp=0
+
+landevs=et0 wl0 wl1
+
+wl0_mode=ap
+wl1_mode=ap
+
+wps_device_name=BroadcomAP
+wps_modelname=Broadcom
+wps_mfstring=Broadcom
+wps_modelnum=123456
+wps_version2=enabled
+boardnum=123456
+
+emf_enable=0

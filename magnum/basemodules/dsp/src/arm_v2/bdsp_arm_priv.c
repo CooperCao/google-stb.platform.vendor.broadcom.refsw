@@ -41,6 +41,7 @@
  *****************************************************************************/
 
 #include "bdsp_arm_priv_include.h"
+#include "bdsp_arm_soft_fmm_priv.h"
 
 BDBG_MODULE(bdsp_arm_priv);
 BDBG_OBJECT_ID(BDSP_Arm);
@@ -484,6 +485,7 @@ static BERR_Code BDSP_Arm_P_InitAtStartTask(
 		BDBG_OBJECT_ASSERT(pMasterArmTask, BDSP_ArmTask);
 		pArmTask->taskParams.masterTaskId = pMasterArmTask->taskParams.taskId;
 	}
+	pArmTask->taskParams.coreIndex = 0XFF; /* No concept of Core Index in ARM */
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	pArmTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
@@ -1601,6 +1603,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         goto end;
     }
     sPayload.ui32TaskId          = pArmTask->taskParams.taskId;
+	sPayload.ui32CoreIndex       = pArmTask->taskParams.coreIndex;
     sPayload.ui32MasterTaskId    = pArmTask->taskParams.masterTaskId;
     sPayload.ui32SyncQueueFifoId = pArmTask->hSyncQueue->ui32FifoId;
     sPayload.ui32AsyncQueueFifoId= pArmTask->hAsyncQueue->ui32FifoId;
@@ -1797,6 +1800,8 @@ BERR_Code BDSP_Arm_P_CreateStage(
 
 	pArmStage->stage.addFmmOutput = BDSP_Arm_P_AddFmmOutput;
 	pArmStage->stage.addFmmInput = BDSP_Arm_P_AddFmmInput;
+    pArmStage->stage.addSoftFmmOutput = BDSP_Arm_P_AddSoftFmmOutput;
+    pArmStage->stage.addSoftFmmInput = BDSP_Arm_P_AddSoftFmmInput;
 
 	pArmStage->stage.addRaveOutput = BDSP_Arm_P_AddRaveOutput;
 	pArmStage->stage.addRaveInput = BDSP_Arm_P_AddRaveInput;

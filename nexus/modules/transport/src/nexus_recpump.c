@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1788,28 +1788,6 @@ NEXUS_Error NEXUS_Recpump_AddPidChannel(NEXUS_RecpumpHandle r, NEXUS_PidChannelH
         }
         NEXUS_Playpump_GetSettings(playpump, &playpumpSettings);
         transportType = playpumpSettings.transportType;
-
-        /* non-native types converted by SW to MPEG-2 PES */
-        switch(transportType) {
-            case NEXUS_TransportType_eMkv:
-            case NEXUS_TransportType_eMp4:
-            case NEXUS_TransportType_eApe:
-            case NEXUS_TransportType_eAvi:
-            case NEXUS_TransportType_eAsf:
-            case NEXUS_TransportType_eWav:
-            case NEXUS_TransportType_eAiff:
-            case NEXUS_TransportType_eMp4Fragment:
-            case NEXUS_TransportType_eRmff:
-            case NEXUS_TransportType_eFlv:
-            case NEXUS_TransportType_eOgg:
-            case NEXUS_TransportType_eFlac:
-            case NEXUS_TransportType_eAmr:
-                transportType = NEXUS_TransportType_eMpeg2Pes;
-                break;
-            default:
-                break;
-        }
-        /* HW converts MPEG-2 PES to MPEG-2 TS */
         switch(transportType) {
         case NEXUS_TransportType_eMpeg2Pes:
             transportType = NEXUS_TransportType_eTs;

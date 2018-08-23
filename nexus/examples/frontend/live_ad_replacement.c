@@ -738,7 +738,6 @@ static void playpump_data_callback(void *context, int param)
     BKNI_SetEvent((BKNI_EventHandle)context);
 }
 
-#if (AUDIO_ENABLE == 1)
 static void audio_insertion_point_callback(void *context, int param)
 {
     NEXUS_AudioDecoderSpliceStatus spliceStatus;
@@ -776,7 +775,6 @@ static void audio_insertion_point_callback(void *context, int param)
     }
     return;
 }
-#endif
 
 static void video_insertion_point_callback(void *context, int param)
 {
@@ -972,8 +970,10 @@ static void * spliceThread(void *ctx)
     liveContext *liveCtx = (liveContext *)ctx;
     adContext *adCtx = (adContext *) &liveCtx->adCtx;
     NEXUS_VideoDecoderSpliceStatus videoSpliceStatus;
+    NEXUS_AudioDecoderSpliceStatus audioSpliceStatus;
     NEXUS_PlaypumpStatus playpumpStatus;
     NEXUS_VideoDecoderStatus videoDecoderStatus;
+    NEXUS_AudioDecoderStatus audioDecoderStatus;
     uint32_t stc;
     #if AUDIO_ENABLE
     uint32_t avPtsDiff=0;
@@ -982,8 +982,6 @@ static void * spliceThread(void *ctx)
     NEXUS_VideoDecoderSpliceStartFlowSettings videoStartFlowSettings;
     NEXUS_VideoDecoderSpliceSettings videoSpliceSettings;
     #if AUDIO_ENABLE
-    NEXUS_AudioDecoderSpliceStatus audioSpliceStatus;
-    NEXUS_AudioDecoderStatus audioDecoderStatus;
     NEXUS_AudioDecoderSpliceStartFlowSettings audioStartFlowSettings;
     NEXUS_AudioDecoderSpliceSettings audioSpliceSettings;
     #endif
@@ -1084,8 +1082,7 @@ static void * spliceThread(void *ctx)
         BDBG_ASSERT((adInfo[adCtx->adIndex].file));
 #if (START_IN_AD == 1)
         adPosition adPos;
-        rc = computeAdOffset(liveCtx, stc , &adPos);
-        BDBG_ASSERT(!rc);
+        computeAdOffset(liveCtx, stc , &adPos);
         liveCtx->adCtx.fileOffset = adPos.fileOffset;
         if (adCtx->fileOffset) {
             int ret = fseek(adInfo[adCtx->adIndex].file, adCtx->fileOffset, SEEK_SET);
@@ -1461,14 +1458,14 @@ static NEXUS_Error StartMainProgram(liveContext *liveCtx)
     NEXUS_Error rc;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
     NEXUS_VideoDecoderStatus videoDecoderStatus;
-    NEXUS_VideoDecoderSpliceSettings videoSpliceSettings;
-    NEXUS_VideoDecoderSpliceStatus videoSpliceStatus;
 #if AUDIO_ENABLE
     uint32_t avPtsDiff;
+#endif
+    NEXUS_VideoDecoderSpliceSettings videoSpliceSettings;
+    NEXUS_VideoDecoderSpliceStatus videoSpliceStatus;
     NEXUS_AudioDecoderStatus audioDecoderStatus;
     NEXUS_AudioDecoderSpliceSettings audioSpliceSettings;
     NEXUS_AudioDecoderSpliceStatus audioSpliceStatus;
-#endif
 
     NEXUS_VideoDecoder_GetSettings(liveCtx->videoDecoder, &videoDecoderSettings);
     videoDecoderSettings.mute = false;
@@ -1517,27 +1514,13 @@ static NEXUS_Error StartMainProgram(liveContext *liveCtx)
 
     BDBG_ERR(("Live start"));
 #if (START_IN_AD == 1)
-    fprintf(stderr, "Press enter to start ad\n");
+    fprintf(stderr, "Press enter to switch to ad\n");
     getchar();
-
-    NEXUS_VideoDecoder_Stop(liveCtx->videoDecoder);
-#if AUDIO_ENABLE
-    NEXUS_AudioDecoder_Stop(liveCtx->audioDecoder);
-#endif
-    BKNI_Sleep(1000);
     BDBG_ERR(("Ad start"));
-    rc = NEXUS_VideoDecoder_Start(liveCtx->videoDecoder, &liveCtx->videoProgram);
-    if(rc){rc = BERR_TRACE(rc); goto ExitFunc;}
-#if AUDIO_ENABLE
-    rc = NEXUS_AudioDecoder_Start(liveCtx->audioDecoder, &liveCtx->audioProgram);
-    if(rc){rc = BERR_TRACE(rc); goto ExitFunc;}
-#endif
-
     NEXUS_VideoDecoder_GetSettings(liveCtx->videoDecoder, &videoDecoderSettings);
     videoDecoderSettings.freeze = true;
     rc = NEXUS_VideoDecoder_SetSettings(liveCtx->videoDecoder, &videoDecoderSettings);
     if(rc){rc = BERR_TRACE(rc); goto ExitFunc;}
-#if AUDIO_ENABLE
     {
         NEXUS_AudioDecoderSettings audioDecoderSettings;
         NEXUS_AudioDecoder_GetSettings(liveCtx->audioDecoder, &audioDecoderSettings);
@@ -1545,11 +1528,11 @@ static NEXUS_Error StartMainProgram(liveContext *liveCtx)
         rc = NEXUS_AudioDecoder_SetSettings(liveCtx->audioDecoder, &audioDecoderSettings);
         if(rc){rc = BERR_TRACE(rc); goto ExitFunc;}
     }
-#endif
+
+    NEXUS_VideoDecoder_GetStatus(liveCtx->videoDecoder,&videoDecoderStatus);
 #endif
 
 #if AUDIO_ENABLE
-    NEXUS_VideoDecoder_GetStatus(liveCtx->videoDecoder,&videoDecoderStatus);
     NEXUS_AudioDecoder_GetStatus(liveCtx->audioDecoder,&audioDecoderStatus);
     BDBG_WRN(("audioDecoder.ptsStcDifference %d",audioDecoderStatus.ptsStcDifference));
     BSTD_UNUSED(avPtsDiff);     /* suppress compiler warning */
@@ -1563,7 +1546,6 @@ static NEXUS_Error StartMainProgram(liveContext *liveCtx)
     videoSpliceSettings.pts = adInfo[liveCtx->adCtx.adIndex].mainSpliceOutPts;
     videoSpliceSettings.ptsThreshold = VIDEO_SPLICE_TOLERANCE;
 #else
-    videoSpliceSettings.mode = NEXUS_DecoderSpliceMode_eStopAtFirstPts;
     videoSpliceSettings.pts = 1;
     videoSpliceSettings.ptsThreshold = 0xFFFFFFFE;
 #endif
@@ -1581,7 +1563,6 @@ static NEXUS_Error StartMainProgram(liveContext *liveCtx)
     audioSpliceSettings.pts = adInfo[liveCtx->adCtx.adIndex].mainSpliceOutPts - AUDIO_SPLICE_LAG;
     audioSpliceSettings.ptsThreshold = AUDIO_SPLICE_TOLERANCE;
 #else
-    audioSpliceSettings.mode = NEXUS_DecoderSpliceMode_eStopAtFirstPts;
     audioSpliceSettings.pts = 1;
     audioSpliceSettings.ptsThreshold = 0xFFFFFFFE;
 #endif

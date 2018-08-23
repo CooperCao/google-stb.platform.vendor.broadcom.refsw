@@ -77,6 +77,33 @@
 
 #define MAX_IR_HISTORY  16
 
+ssize_t formatTimeval(
+        struct timeval * tv,
+        char *           buf,
+        size_t           sz
+        )
+{
+    ssize_t     written = -1;
+    struct tm * gm      = NULL;
+
+    assert(NULL != tv);
+    assert(NULL != buf);
+    assert(0 < sz);
+
+    gm = gmtime(&tv->tv_sec);
+
+    if (gm)
+    {
+        written = (ssize_t)strftime(buf, sz, "%Y-%m-%dT%H:%M:%S", gm);
+        if ((written > 0) && ((size_t)written < sz))
+        {
+            int w = snprintf(buf+written, sz-(size_t)written, ".%06dZ", tv->tv_usec);
+            written = (w > 0) ? written + w : -1;
+        }
+    }
+    return(written);
+} /* formatTimeval */
+
 /**
  *  Function: This function will collect all requred ir_input data and output in JSON format
  **/

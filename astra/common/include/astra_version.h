@@ -45,8 +45,8 @@
 #define ASTRA_VERSION_H
 
 /* current version numbers */
-#define ASTRA_VERSION_MAJOR 1
-#define ASTRA_VERSION_MINOR 3
+#define ASTRA_VERSION_MAJOR 2
+#define ASTRA_VERSION_MINOR 0
 #define ASTRA_VERSION_BUILD 0
 
 /* utility macros */
@@ -63,5 +63,14 @@
     ((ASTRA_VERSION_MAJOR << ASTRA_VERSION_MAJOR_SHIFT) |   \
      (ASTRA_VERSION_MINOR << ASTRA_VERSION_MINOR_SHIFT) |   \
      (ASTRA_VERSION_BUILD << ASTRA_VERSION_BUILD_SHIFT))
+
+#define ASTRA_VERSION_MAJOR_GET(v) (((v) & ASTRA_VERSION_MAJOR_MASK) >> \
+                                    ASTRA_VERSION_MAJOR_SHIFT)
+
+#define ASTRA_VERSION_MINOR_GET(v) (((v) & ASTRA_VERSION_MINOR_MASK) >> \
+                                    ASTRA_VERSION_MINOR_SHIFT)
+
+#define ASTRA_VERSION_BUILD_GET(v) (((v) & ASTRA_VERSION_BUILD_MASK) >> \
+                                    ASTRA_VERSION_BUILD_SHIFT)
 
 #endif /* ASTRA_VERSION_H */

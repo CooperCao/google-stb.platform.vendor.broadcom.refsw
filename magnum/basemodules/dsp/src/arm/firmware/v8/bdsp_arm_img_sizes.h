@@ -40,8 +40,8 @@
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608312)
-#define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)218000)
+#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608440)
+#define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)218016)
 #define BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE                          ((uint32_t)26752)
 #define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)45824)
 #define BDSP_ARM_IMG_LIBDMA_CODE_SIZE                                ((uint32_t)26176)

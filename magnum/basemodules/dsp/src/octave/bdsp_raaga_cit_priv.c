@@ -333,28 +333,67 @@ static BERR_Code BDSP_Raaga_P_PopulateSchedulingConfig(
         {
             for(index=0; index<BDSP_AF_P_MAX_OP_FORKS; index++)
             {
-                if((pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].eConnectionType == BDSP_ConnectionType_eFmmBuffer) &&
-                    (pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].eValid == BDSP_AF_P_eValid))
+                if(pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].eValid == BDSP_AF_P_eValid)
                 {
-                    pSchedulingConfig->eBufferType = BDSP_AF_P_BufferType_eFMM;
-                    BDSP_P_GetFMMDetails(pRaagaConnectStage->sStageConnectionInfo.eStageOpDataType[index],
-                        pRaagaConnectStage->eAlgorithm,
-                        &eBaseRateMultiplier,
-                        &eFMMContentType);
-                    errCode = BDSP_Raaga_P_PopulatePortBufferDescriptors(
-                        (void *)&pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.fmm.fmmDescriptor,
-                        BDSP_ConnectionType_eFmmBuffer,
-                        &pSchedulingConfig->sExtendedBuffer.sCircularBuffer,
-                        1,
-                        BDSP_AF_P_PortBuffer_Type_Data);
-                    if(errCode != BERR_SUCCESS)
+                    switch(pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].eConnectionType)
                     {
-                        BDBG_ERR(("BDSP_Raaga_P_PopulateSchedulingConfig: Unable to populate the descriptor for the Scheduling buffer"));
-                        goto end;
+                        case BDSP_ConnectionType_eFmmBuffer:
+                            pSchedulingConfig->eBufferType = BDSP_AF_P_BufferType_eFMM;
+                            BDSP_P_GetFMMDetails(pRaagaConnectStage->sStageConnectionInfo.eStageOpDataType[index],
+                                pRaagaConnectStage->eAlgorithm,
+                                &eBaseRateMultiplier,
+                                &eFMMContentType);
+                            errCode = BDSP_Raaga_P_PopulatePortBufferDescriptors(
+                                (void *)&pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.fmm.fmmDescriptor,
+                                BDSP_ConnectionType_eFmmBuffer,
+                                &pSchedulingConfig->sExtendedBuffer.sCircularBuffer,
+                                1,
+                                BDSP_AF_P_PortBuffer_Type_Data);
+                            if(errCode != BERR_SUCCESS)
+                            {
+                                BDBG_ERR(("BDSP_Raaga_P_PopulateSchedulingConfig: Unable to populate the descriptor for the Scheduling buffer"));
+                                goto end;
+                            }
+                            pSchedulingConfig->sExtendedBuffer.startWriteAddr = pSchedulingConfig->sExtendedBuffer.sCircularBuffer.ReadAddr + (5*BDSP_SIZE_OF_FMMREG);
+                            independentDelay = pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.fmm.fmmDescriptor.delay;
+                            goto next_step_1;
+                            break; /* Unreachable */
+
+                        case BDSP_ConnectionType_eRDBBuffer:
+                            {
+                                BDSP_RaagaQueue *pRaagaQueue = (BDSP_RaagaQueue *)pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.rdb.pQHandle->pQueueHandle;
+                                if(pRaagaQueue->distinctOp == BDSP_AF_P_DistinctOpType_eDescriptorQueue)
+                                {
+                                    /* Android Use-Case*/
+                                    if(pRaagaQueue->input == false)
+                                        continue; /* Wait for the input ARQ port */
+                                    pSchedulingConfig->eBufferType = BDSP_AF_P_BufferType_eBufferPool;
+                                }
+                                else
+                                {
+                                    /* Normal RDB Port */
+                                    pSchedulingConfig->eBufferType = BDSP_AF_P_BufferType_eRDB;
+                                }
+                                errCode = BDSP_Raaga_P_PopulatePortBufferDescriptors(
+                                        (void *)pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.rdb.pQHandle->pQueueHandle,
+                                        BDSP_ConnectionType_eRDBBuffer,
+                                        &pSchedulingConfig->sExtendedBuffer.sCircularBuffer,
+                                        1,
+                                        BDSP_AF_P_PortBuffer_Type_Data);
+                                if(errCode != BERR_SUCCESS)
+                                {
+                                    BDBG_ERR(("BDSP_Raaga_P_PopulateSchedulingConfig: Unable to populate the descriptor for the Scheduling buffer"));
+                                    goto end;
+                                }
+                                pSchedulingConfig->sExtendedBuffer.startWriteAddr = 0;
+                                independentDelay = 0;
+                                goto next_step_1;
+                            }
+                            break; /* Unreachable */
+
+                        default:
+                            break;
                     }
-                    pSchedulingConfig->sExtendedBuffer.startWriteAddr = pSchedulingConfig->sExtendedBuffer.sCircularBuffer.ReadAddr + (5*BDSP_SIZE_OF_FMMREG);
-                    independentDelay = pRaagaConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.fmm.fmmDescriptor.delay;
-                    goto next_step_1;
                 }
             }
         }
@@ -827,9 +866,27 @@ static BERR_Code BDSP_Raaga_P_PopulateIOConfiguration(
                     sPortDetails.numTocBuffers        = 0;
                     sPortDetails.numMetaDataBuffers   = 0;
                     sPortDetails.numObjectDataBuffers = 0;
-                    sPortDetails.distinctOpType       = pQueueBuffer->distinctOp;
-                    sPortDetails.ePortType            = BDSP_AF_P_PortType_eRDB;
-                    sPortDetails.eBufferType          = BDSP_AF_P_BufferType_eRDB;
+					if(BDSP_AF_P_DistinctOpType_eDescriptorQueue == pQueueBuffer->distinctOp)
+					{
+						/* Android Audio UseCase */
+						sPortDetails.ePortType		  = BDSP_AF_P_PortType_eAndroidAudio;
+						sPortDetails.eBufferType      = BDSP_AF_P_BufferType_eBufferPool;
+						if(pQueueBuffer->input == true)
+						{
+							sPortDetails.distinctOpType = BDSP_AF_P_DistinctOpType_eAudioReceiveQueue;
+						}
+						else
+						{
+							sPortDetails.distinctOpType   = BDSP_AF_P_DistinctOpType_eAudioDeliveryQueue;
+						}
+					}
+					else
+					{
+						/*Normal Queue UseCase */
+						sPortDetails.ePortType		  = BDSP_AF_P_PortType_eRDB;
+						sPortDetails.eBufferType	  = BDSP_AF_P_BufferType_eRDB;
+						sPortDetails.distinctOpType   = pQueueBuffer->distinctOp;
+					}
                     sPortDetails.tocIndex             = BDSP_AF_P_TOC_INVALID;
                     sPortDetails.numBranchFromPort    = BDSP_AF_P_BRANCH_INVALID;
                     sPortDetails.psDataAccesAttributes= NULL;
@@ -1071,7 +1128,6 @@ BERR_Code BDSP_Raaga_P_GenCit(
 		BDBG_ERR(("BDSP_Raaga_P_GenCit: Error in populating the Primary Stage Info"));
 		BDBG_ASSERT(0);
 	}
-
 	errCode = BDSP_Raaga_P_FillStageConfig(pRaagaTask, &pTaskConfig->sStageConfig[0]);
 	if(errCode != BERR_SUCCESS)
 	{
@@ -1130,6 +1186,7 @@ BERR_Code BDSP_Raaga_P_ReconfigCit(
 			pStageIOConfig = &pTaskConfig->sStageConfig[stageIndex].sIOConfig;
 			if(bInputAdded)
 			{
+				BDBG_MSG(("BDSP_Raaga_P_ReconfigCit: Connecting Input to STAGE %s",Algorithm2Name[pRaagaStage->eAlgorithm]));
 				pIOPort = &pStageIOConfig->sInputPort[index];
 				pStageIOConfig->ui32NumInputs++;
                 BKNI_Memset((void *)pIOPort,0, sizeof(BDSP_AF_P_sIoPort));
@@ -1138,7 +1195,33 @@ BERR_Code BDSP_Raaga_P_ReconfigCit(
 			else
 			{
 			    /* Just reset the Port details and decrement the number of inputs*/
+				BDBG_MSG(("BDSP_Raaga_P_ReconfigCit: Removing Input to STAGE %s",Algorithm2Name[pRaagaStage->eAlgorithm]));
 				pIOPort = &pStageIOConfig->sInputPort[index];
+				/*Release the descriptors used for the PORT if not associated with another task*/
+				if(BDSP_AF_P_PortType_eFMM == pIOPort->ePortType)
+				{
+					uint32_t i, j;
+					dramaddr_t decriptorArray[BDSP_AF_P_MAX_CHANNELS];
+					BDBG_MSG(("BDSP_Raaga_P_ReconfigCit: Releasing Descriptors for the Input Port to Stage"));
+					for(j=0;j<pIOPort->ui32numPortBuffer;j++)
+					{
+						for(i=0;i<pIOPort->sIoBuffer[j].ui32NumBuffer;i++)
+						{
+							decriptorArray[i] = pIOPort->sIoBuffer[j].sCircularBuffer[i];
+							pIOPort->sIoBuffer[j].sCircularBuffer[i]=0;
+						}
+						errCode = BDSP_Raaga_P_ReleaseDescriptor(
+								pRaagaStage->pContext->pDevice,
+								pRaagaStage->pRaagaTask->createSettings.dspIndex,
+								&decriptorArray[0],
+								pIOPort->sIoBuffer[j].ui32NumBuffer);
+						if(errCode != BERR_SUCCESS)
+						{
+							BDBG_ERR(("BDSP_Raaga_P_ReconfigCit: Error in Cleanup of Descriptor"));
+							goto end;
+						}
+					}
+				}
 				pStageIOConfig->ui32NumInputs--;
                 BKNI_Memset((void *)pIOPort,0, sizeof(BDSP_AF_P_sIoPort));
                 pIOPort->ePortType     = BDSP_AF_P_PortType_eInvalid;
@@ -1254,6 +1337,7 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
+	     case BDSP_AF_P_PortType_eAndroidAudio:
 				errCode = BDSP_Raaga_P_ReleasePortDescriptors(pRaagaStage->pContext->pDevice,
 						pRaagaStage->pRaagaTask->createSettings.dspIndex,
 						psIoPort);
@@ -1283,6 +1367,7 @@ static BERR_Code BDSP_Raaga_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
+		case BDSP_AF_P_PortType_eAndroidAudio:
 				errCode = BDSP_Raaga_P_ReleasePortDescriptors(pRaagaStage->pContext->pDevice,
 						pRaagaStage->pRaagaTask->createSettings.dspIndex,
 						psIoPort);

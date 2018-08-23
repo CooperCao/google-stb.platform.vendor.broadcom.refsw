@@ -120,7 +120,7 @@ const char Algorithm2Name[BDSP_Algorithm_eMax][BDSP_MAX_CHAR_LENGTH] =
 	{"GENERIC PASSTHRU"},
 	{"FW MIXER"},
 #ifdef BDSP_MS11PLUS_SUPPORT
-	{"MIXER "},
+	{"MIXER MS11+ MODE"},
 #else
 	{"MIXER DAPV2"},
 #endif
@@ -195,7 +195,9 @@ const char DistinctOutputType[BDSP_AF_P_DistinctOpType_eMax][BDSP_MAX_CHAR_LENGT
 	{"ITB"},
 	{"ANCILLARY DATA"},
 	{"DESCRIPTOR QUEUE"},
-	{"GENERIC INTERSTAGE"}
+	{"GENERIC INTERSTAGE"},
+	{"AUDIO RELEASE QUEUE"},
+	{"AUDIO DELIVERY QUEUE"}
 };
 
 const char BufferType[BDSP_AF_P_BufferType_eLast][BDSP_MAX_CHAR_LENGTH] =

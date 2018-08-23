@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2017-2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,16 +34,18 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
  **************************************************************************/
 #include "nxclient.h"
-#include <stdio.h>
-#if NEXUS_HAS_PLAYBACK
 #include "nexus_playback.h"
 #include "nexus_surface_client.h"
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 BDBG_MODULE(playback);
@@ -250,11 +252,4 @@ int main(void)
     NxClient_Free(&allocResults);
     NxClient_Uninit();
     return 0;
-
-#else /* #if NEXUS_HAS_PLAYBACK */
-int main(void)
-{
-    printf("This application is not supported on this platform\n");
-    return 0;
 }
-#endif

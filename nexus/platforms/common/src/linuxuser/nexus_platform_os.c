@@ -1338,27 +1338,29 @@ static bool NEXUS_Platform_P_CheckCompatible(const char *path, const char *compa
     return match;
 }
 
-static unsigned NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *field)
+static unsigned NEXUS_Platform_P_ReadDeviceTreeValue(const char *path, const char *field, unsigned *prop, unsigned len)
 {
     char buf[256];
     FILE *pFile;
-    unsigned value = 0;
+    unsigned size = 0, j=0;
     BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, field);
     pFile = fopen(buf, "rb");
     if (pFile) {
-        char val[4]; /* Assuming 4 byte value. TODO : Fix for larger properties */
+        char val[32];
         int rc;
-        rc = fread(val, 1, sizeof(val), pFile);
-        if (rc != sizeof(val)) {
-            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-        }
-        else {
-            value = val[0]<<24 | val[1]<<16 | val[2]<<8 | val[3];
+        size = len*sizeof(unsigned);
+        BDBG_ASSERT(size <= sizeof(val));
+        size = fread(val, 1, size, pFile);
+        if (size > 0) {
+            unsigned i;
+            for (i=0, j=0; i<size; i+=sizeof(unsigned),j++) {
+                prop[j] = val[i]<<24 | val[i+1]<<16 | val[i+2]<<8 | val[i+3];
+            }
         }
         rc = fclose(pFile);
         if (rc) BERR_TRACE(rc);
     }
-    return value;
+    return j;
 }
 
 static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *path, const char *compatible, BCHP_PmapSettings *pMapSettings)
@@ -1376,11 +1378,20 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *path, con
             BKNI_Snprintf(buf, sizeof(buf), "%s/%s", path, ent->d_name);
             if (NEXUS_Platform_P_CheckCompatible(buf, compatible)) {
                 if (pMapSettings) {
-                    pMapSettings[i].value = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,value");
-                    pMapSettings[i].shift = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-shift");
-                    pMapSettings[i].mask = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-mask");
-                    pMapSettings[i].reg = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "reg");
-                    BDBG_MSG(("pmap[%u]: %x, %x, %x, %x", i, pMapSettings[i].value, pMapSettings[i].shift, pMapSettings[i].mask, pMapSettings[i].reg));
+                    unsigned num;
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,core-id", pMapSettings[i].core, BCHP_MAX_CORES);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-shift", &pMapSettings[i].shift, 1);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "bit-mask", &pMapSettings[i].mask, 1);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "reg", &pMapSettings[i].reg, 1);
+                    num = NEXUS_Platform_P_ReadDeviceTreeValue(buf, "brcm,value", pMapSettings[i].value, BCHP_Pstate_eMax);
+                    /* Duplicate last value if array is not filled */
+                    if (num && num < BCHP_Pstate_eMax) {
+                        unsigned j;
+                        for (j = num; j < BCHP_Pstate_eMax; j++) {
+                            pMapSettings[i].value[j] =  pMapSettings[i].value[num-1];
+                        }
+                    }
+                    BDBG_MSG(("pmap[%u]: %x, %x, %x, %x", i, pMapSettings[i].value[BCHP_Pstate_eNormal], pMapSettings[i].shift, pMapSettings[i].mask, pMapSettings[i].reg));
                 }
                 i++;
             }
@@ -1518,4 +1529,57 @@ bool NEXUS_Platform_P_IsOs64(void)
 bool NEXUS_Platform_P_LazyUnmap(void)
 {
     return false;
+}
+
+NEXUS_Error NEXUS_Platform_GetPstate(unsigned coreId, BCHP_Pstate *pState, unsigned *info)
+{
+    int rc;
+    struct bcm_driver_pstate_info pstate_info;
+
+    pstate_info.index = coreId;
+    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_PSTATE_INFO, &pstate_info);
+    if (rc) { return BERR_TRACE(BERR_OS_ERROR); }
+
+    *pState = pstate_info.pstate;
+    BKNI_Memcpy(info, pstate_info.command, sizeof(*info));
+
+    BDBG_MSG(("Core %u, Pstate %u, info 0x%08x", coreId, *pState, *info));
+
+    return BERR_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Platform_SetPstate(unsigned coreId, BCHP_Pstate pState, unsigned num, const unsigned *command)
+{
+    int rc;
+    struct bcm_driver_pstate_info pstate_info;
+
+    pstate_info.index = coreId;
+    pstate_info.pstate = pState;
+    pstate_info.num_writes = num;
+    BKNI_Memcpy(pstate_info.command, command, sizeof(pstate_info.command));
+
+    BDBG_MSG(("Core %u, Pstate %u, num_writes %u", coreId, pState, num));
+    BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[0], command[1], command[2]));
+    BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[3], command[4], command[5]));
+    BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[6], command[7], command[8]));
+
+    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SET_PSTATE_INFO, &pstate_info);
+    if (rc) {return BERR_TRACE(BERR_OS_ERROR);}
+
+    return BERR_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Platform_GetAvsData(unsigned idx, unsigned *value)
+{
+    int rc;
+    struct bcm_driver_avs_data avs_data;
+
+    avs_data.index = idx;
+    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_AVS_DATA, &avs_data);
+    if (rc) {return BERR_TRACE(BERR_OS_ERROR);}
+
+    *value = avs_data.value;
+    BDBG_MSG(("NEXUS_Platform_GetAvsData : index %u, value %u ", idx, *value));
+
+    return BERR_SUCCESS;
 }

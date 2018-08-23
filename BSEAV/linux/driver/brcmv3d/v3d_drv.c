@@ -1246,7 +1246,6 @@ static const struct of_device_id v3d_drm_of_table[] = {
 	{ .compatible = "brcm,v3d-v3.3.1.0", .data = &v3d_v3_3_1_0 },
 	{ .compatible = "brcm,v3d-v4.0.2.0", .data = &v3d_v3_3_1_0 },
 	{ .compatible = "brcm,v3d-v4.1.34.0", .data = &v3d_v3_3_1_0 },
-   { .compatible = "brcm,v3d-v4.2.13.0", .data = &v3d_v3_3_1_0 },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, v3d_drm_of_table);

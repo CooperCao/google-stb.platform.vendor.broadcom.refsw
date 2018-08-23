@@ -131,7 +131,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     printf(
     "  -secure                  use SVP secure picture buffers\n"
-    "  -secure_audio            use secure memory for audio cdb\n"
+    "  -secure_audio {on|off}   use secure memory for audio cdb\n"
     "  -astm\n"
     "  -scan 1080p\n"
     "  -chunk                   chunked playback, size and first chunk is autodetected\n"
@@ -398,6 +398,7 @@ int main(int argc, const char **argv)  {
 
     memset(&pig_inc, 0, sizeof(pig_inc));
     memset(client, 0, sizeof(*client));
+    memset(&create_settings, 0, sizeof(create_settings));
     media_player_get_default_create_settings(&create_settings);
     media_player_get_default_start_settings(&start_settings);
     binput_get_default_settings(&input_settings);
@@ -595,8 +596,19 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-secure")) {
             start_settings.video.secure = true;
         }
-        else if (!strcmp(argv[curarg], "-secure_audio")) {
-            create_settings.audio.secure = true;
+        else if (!strcmp(argv[curarg], "-secure_audio") && argc>curarg+1) {
+            create_settings.audio.defaultSecure = false;
+            curarg++;
+            if (!strcmp(argv[curarg],"on")) {
+                create_settings.audio.secure = true;
+            }
+            else if (!strcmp(argv[curarg],"off")) {
+                create_settings.audio.secure = false;
+            }
+            else {
+                print_usage(&cmdline);
+                return -1;
+            }
         }
         else if (!strcmp(argv[curarg], "-astm")) {
             start_settings.astm = true;

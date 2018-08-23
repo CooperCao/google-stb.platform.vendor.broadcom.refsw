@@ -280,6 +280,23 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         case NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08:
         case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
         case NEXUS_PixelFormat_eUIF_R8_G8_B8_A8:
+        case NEXUS_PixelFormat_eR8_G8_B8:
+        case NEXUS_PixelFormat_eA2_R10_G10_B10:
+        case NEXUS_PixelFormat_eX2_R10_G10_B10:
+        case NEXUS_PixelFormat_eA2_B10_G10_R10:
+        case NEXUS_PixelFormat_eX2_B10_G10_R10:
+        case NEXUS_PixelFormat_eR10_G10_B10_A2:
+        case NEXUS_PixelFormat_eR10_G10_B10_X2:
+        case NEXUS_PixelFormat_eB10_G10_R10_A2:
+        case NEXUS_PixelFormat_eB10_G10_R10_X2:
+        case NEXUS_PixelFormat_eAf16_Rf16_Gf16_Bf16:
+        case NEXUS_PixelFormat_eXf16_Rf16_Gf16_Bf16:
+        case NEXUS_PixelFormat_eAf16_Bf16_Gf16_Rf16:
+        case NEXUS_PixelFormat_eXf16_Bf16_Gf16_Rf16:
+        case NEXUS_PixelFormat_eRf16_Gf16_Bf16_Af16:
+        case NEXUS_PixelFormat_eRf16_Gf16_Bf16_Xf16:
+        case NEXUS_PixelFormat_eBf16_Gf16_Rf16_Af16:
+        case NEXUS_PixelFormat_eBf16_Gf16_Rf16_Xf16:
 #endif
             break;
         default:

@@ -5745,6 +5745,20 @@ wlc_valid_chanspec_ext(wlc_cm_info_t *wlc_cmi, chanspec_t chspec, bool dualband)
 	if (CHANNEL_BANDUNIT(wlc_cmi->wlc, channel) != CHSPEC_WLCBANDUNIT(chspec))
 		return FALSE;
 
+#ifdef BAND5G /* RADAR */
+	if (wlc->ccode_type & WLC_CCODE_NODFS) {
+		const chanvec_t *radar_channels;
+		uint8 ch;
+		if (chspec && CHSPEC_IS5G(chspec)) {
+			radar_channels = wlc_cmi->cm->bandstate[BAND_5G_INDEX].radar_channels;
+			FOREACH_20_SB(chspec, ch) {
+				if (isset(radar_channels->vec, ch)) {
+					return FALSE;
+				}
+			}
+		}
+	}
+#endif	/* BAND5G */
 
 	/* Check a 20Mhz channel */
 	if (CHSPEC_IS20(chspec)) {

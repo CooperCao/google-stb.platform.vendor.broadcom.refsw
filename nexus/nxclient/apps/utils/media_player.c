@@ -54,10 +54,8 @@ BDBG_OBJECT_ID(media_player);
 
 void media_player_get_default_create_settings( media_player_create_settings *psettings )
 {
-    NxClient_ConnectSettings connectSettings;
     memset(psettings, 0, sizeof(*psettings));
-    NxClient_GetDefaultConnectSettings(&connectSettings);
-    psettings->userDataBufferSize = connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize;
+    psettings->audio.defaultSecure = true;
 }
 
 void media_player_get_default_start_settings( media_player_start_settings *psettings )
@@ -204,7 +202,9 @@ static int media_player_p_connect_persistents(media_player_t player)
     NxClient_GetDefaultConnectSettings(&audioConnectSettings);
     audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
     audioConnectSettings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
-    audioConnectSettings.simpleAudioDecoder.decoderCapabilities.secure = player->create_settings.audio.secure;
+    if (!player->create_settings.audio.defaultSecure) {
+        audioConnectSettings.simpleAudioDecoder.decoderCapabilities.secure = player->create_settings.audio.secure;
+    }
 
     if (player->master && player->master->audio.persistentMasterConnectId != 0) {
         audioConnectSettings.simpleAudioDecoder.primer = true;
@@ -265,7 +265,9 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.colorDepth = player->colorDepth;
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.fifoSize = player->start_settings.video.fifoSize;
             connectSettings.simpleVideoDecoder[i].decoderCapabilities.itbFifoSize = player->start_settings.video.itbFifoSize;
-            connectSettings.simpleVideoDecoder[i].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
+            if (player->create_settings.userDataBufferSize != 0) {
+                connectSettings.simpleVideoDecoder[i].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
+            }
             connectSettings.simpleVideoDecoder[i].windowCapabilities.type = player->start_settings.videoWindowType;
         }
         if (player->audio.allocResults.simpleAudioDecoder.id) {
@@ -296,7 +298,9 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.itbFifoSize = player->start_settings.video.itbFifoSize;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = player->start_settings.video.secure;
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.virtualized = player->start_settings.video.virtualized;
-            connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
+            if (player->create_settings.userDataBufferSize != 0) {
+                connectSettings.simpleVideoDecoder[0].decoderCapabilities.userDataBufferSize = player->create_settings.userDataBufferSize;
+            }
             connectSettings.simpleVideoDecoder[0].windowCapabilities.type = player->start_settings.videoWindowType;
         }
 #if NEXUS_HAS_AUDIO
@@ -304,7 +308,9 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleAudioDecoder.id = player->allocResults.simpleAudioDecoder.id;
             connectSettings.simpleAudioDecoder.primer = (player->start_settings.audio_primers == media_player_audio_primers_immediate);
             connectSettings.simpleAudioDecoder.decoderCapabilities.type = (player->create_settings.audio.usePersistent ? NxClient_AudioDecoderType_ePersistent : NxClient_AudioDecoderType_eDynamic);
-            connectSettings.simpleAudioDecoder.decoderCapabilities.secure = player->create_settings.audio.secure;
+            if (!player->create_settings.audio.defaultSecure) {
+                connectSettings.simpleAudioDecoder.decoderCapabilities.secure = player->create_settings.audio.secure;
+            }
         }
 #endif
     }
@@ -349,17 +355,17 @@ media_player_t media_player_create( const media_player_create_settings *psetting
     int rc;
     media_player_create_settings default_settings;
 
-    if (!psettings) {
-        media_player_get_default_create_settings(&default_settings);
-        psettings = &default_settings;
-    }
-
     /* connect to server and nexus */
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", "media_player");
     rc = NxClient_Join(&joinSettings);
     if (rc) {
         return NULL;
+    }
+
+    if (!psettings) {
+        media_player_get_default_create_settings(&default_settings);
+        psettings = &default_settings;
     }
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
@@ -391,16 +397,16 @@ int media_player_create_mosaics(media_player_t *players, unsigned num_mosaics, c
     media_player_create_settings default_settings;
     unsigned i;
 
-    if (!psettings) {
-        media_player_get_default_create_settings(&default_settings);
-        psettings = &default_settings;
-    }
-
     /* connect to server and nexus */
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", "media_player");
     rc = NxClient_Join(&joinSettings);
     if (rc) return BERR_TRACE(rc);
+
+    if (!psettings) {
+        media_player_get_default_create_settings(&default_settings);
+        psettings = &default_settings;
+    }
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder = num_mosaics;
@@ -1161,7 +1167,9 @@ int media_player_switch_audio(media_player_t player)
             NxClient_ConnectSettings audioConnectSettings;
             NxClient_GetDefaultConnectSettings(&audioConnectSettings);
             audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
-            audioConnectSettings.simpleAudioDecoder.decoderCapabilities.secure = player->create_settings.audio.secure;
+            if (!player->create_settings.audio.defaultSecure) {
+                audioConnectSettings.simpleAudioDecoder.decoderCapabilities.secure = player->create_settings.audio.secure;
+            }
             rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
             if (rc) return BERR_TRACE(rc);
         }

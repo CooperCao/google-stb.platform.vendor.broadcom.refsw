@@ -47,7 +47,6 @@
 ***************************************************************************/
 /* General includes */
 #include "nexus_frontend_3466_priv.h"
-#include "nexus_frontend_qam_helper_priv.h"
 /* End general includes */
 
 /* Cable includes */
@@ -440,6 +439,101 @@ done:
 }
 
 
+static void NEXUS_Frontend_P_QamToModulationType(BADS_ModulationType modType, NEXUS_FrontendQamAnnex *pAnnex, NEXUS_FrontendQamMode *pMode)
+{
+    switch ( modType )
+    {
+    case BADS_ModulationType_eAnnexAQam16:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e16;
+        break;
+    case BADS_ModulationType_eAnnexAQam32:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e32;
+        break;
+    case BADS_ModulationType_eAnnexAQam64:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e64;
+        break;
+    case BADS_ModulationType_eAnnexAQam128:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e128;
+        break;
+    case BADS_ModulationType_eAnnexAQam256:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e256;
+        break;
+    case BADS_ModulationType_eAnnexAQam512:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e512;
+        break;
+    case BADS_ModulationType_eAnnexAQam1024:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e1024;
+        break;
+    case BADS_ModulationType_eAnnexAQam2048:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e2048;
+        break;
+    case BADS_ModulationType_eAnnexAQam4096:
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e4096;
+        break;
+
+    case BADS_ModulationType_eAnnexBQam16:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e16;
+        break;
+    case BADS_ModulationType_eAnnexBQam32:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e32;
+        break;
+    case BADS_ModulationType_eAnnexBQam64:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e64;
+        break;
+    case BADS_ModulationType_eAnnexBQam128:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e128;
+        break;
+    case BADS_ModulationType_eAnnexBQam256:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e256;
+        break;
+    case BADS_ModulationType_eAnnexBQam512:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e512;
+        break;
+    case BADS_ModulationType_eAnnexBQam1024:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e1024;
+        break;
+    case BADS_ModulationType_eAnnexBQam2048:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e2048;
+        break;
+    case BADS_ModulationType_eAnnexBQam4096:
+        *pAnnex = NEXUS_FrontendQamAnnex_eB; *pMode = NEXUS_FrontendQamMode_e4096;
+        break;
+
+    case BADS_ModulationType_eAnnexCQam16:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e16;
+        break;
+    case BADS_ModulationType_eAnnexCQam32:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e32;
+        break;
+    case BADS_ModulationType_eAnnexCQam64:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e64;
+        break;
+    case BADS_ModulationType_eAnnexCQam128:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e128;
+        break;
+    case BADS_ModulationType_eAnnexCQam256:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e256;
+        break;
+    case BADS_ModulationType_eAnnexCQam512:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e512;
+        break;
+    case BADS_ModulationType_eAnnexCQam1024:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e1024;
+        break;
+    case BADS_ModulationType_eAnnexCQam2048:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e2048;
+        break;
+    case BADS_ModulationType_eAnnexCQam4096:
+        *pAnnex = NEXUS_FrontendQamAnnex_eC; *pMode = NEXUS_FrontendQamMode_e4096;
+        break;
+
+    default:
+        BDBG_WRN(("Unrecognized QAM Modultation Type: value=%d", modType));
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        *pAnnex = NEXUS_FrontendQamAnnex_eA; *pMode = NEXUS_FrontendQamMode_e256;
+        return;
+    }
+}
 
 static NEXUS_Error NEXUS_Frontend_P_3466_GetQamScanStatus(void *handle, NEXUS_FrontendQamScanStatus *pScanStatus)
 {

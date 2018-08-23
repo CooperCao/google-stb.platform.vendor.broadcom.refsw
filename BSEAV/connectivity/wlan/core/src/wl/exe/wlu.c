@@ -25294,6 +25294,9 @@ static int wl_mu_group(void *wl, cmd_t *cmd, char **argv)
 	if (!argv[1]) {
 		/* read mode */
 		ret = wlu_iovar_getbuf(wl, cmd->name, NULL, 0, &mu_group, sizeof(mu_group));
+		if (ret != 0) {
+			goto exit_mu_group;
+		}
 		if (mu_group.version != WL_MU_GROUP_PARAMS_VERSION) {
 			printf("\tIncorrect version "
 			    "of mu_group struct: expect %d but get %d\n",

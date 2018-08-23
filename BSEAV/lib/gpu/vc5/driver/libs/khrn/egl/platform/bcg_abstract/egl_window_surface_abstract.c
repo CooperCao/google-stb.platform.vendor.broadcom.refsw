@@ -34,14 +34,16 @@ static BEGL_BufferFormat get_begl_format(GFX_LFMT_T fmt)
 {
    switch (fmt)
    {
-   case GFX_LFMT_R8_G8_B8_A8_UNORM: return BEGL_BufferFormat_eA8B8G8R8;
-   case GFX_LFMT_R8_G8_B8_X8_UNORM:
-   case GFX_LFMT_R8_G8_B8_UNORM:    return BEGL_BufferFormat_eX8B8G8R8;
-   case GFX_LFMT_B5G6R5_UNORM:      return BEGL_BufferFormat_eR5G6B5;
-   case GFX_LFMT_A4B4G4R4_UNORM:    return BEGL_BufferFormat_eA4B4G4R4;
-   case GFX_LFMT_A1B5G5R5_UNORM:    return BEGL_BufferFormat_eA1B5G5R5;
+   case GFX_LFMT_R8_G8_B8_A8_UNORM:    return BEGL_BufferFormat_eA8B8G8R8;
+   case GFX_LFMT_R8_G8_B8_X8_UNORM:    return BEGL_BufferFormat_eX8B8G8R8;
+   case GFX_LFMT_B5G6R5_UNORM:         return BEGL_BufferFormat_eR5G6B5;
+   case GFX_LFMT_A4B4G4R4_UNORM:       return BEGL_BufferFormat_eA4B4G4R4;
+   case GFX_LFMT_A1B5G5R5_UNORM:       return BEGL_BufferFormat_eA1B5G5R5;
+   case GFX_LFMT_R8_G8_B8_UNORM:       return BEGL_BufferFormat_eR8G8B8;
+   case GFX_LFMT_R16_G16_B16_A16_FLOAT:return BEGL_BufferFormat_eA16B16G16R16_FP;
+   case GFX_LFMT_R10G10B10A2_UNORM:    return BEGL_BufferFormat_eA2B10G10R10;
 #if V3D_VER_AT_LEAST(3,3,0,0)
-   case GFX_LFMT_BSTC_RGBA_UNORM:   return BEGL_BufferFormat_eBSTC;
+   case GFX_LFMT_BSTC_RGBA_UNORM:      return BEGL_BufferFormat_eBSTC;
 #endif
    default:                         unreachable(); return BEGL_BufferFormat_INVALID;
    }

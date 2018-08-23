@@ -992,7 +992,11 @@ BERR_Code BADS_Leap_GetAsyncStatus(
         pStatus->rxSymbolRate = (int32_t)((buf[0x1c] << 24) | (buf[0x1d] << 16) | (buf[0x1e] << 8) | buf[0x1f]);
         pStatus->interleaveDepth = 0; /* Not supported */
         pStatus->goodRsBlockCount = 0; /* Not supported */
+#if BADS_CHIP==3158
+        pStatus->berRawCount = (int32_t)((buf[0x7c] << 24) | (buf[0x7d] << 16) | (buf[0x7e] << 8) | buf[0x7f]);
+#else
         pStatus->berRawCount = (int32_t)((buf[0x40] << 24) | (buf[0x41] << 16) | (buf[0x42] << 8) | buf[0x43]);
+#endif
         pStatus->dsChannelPower = (int32_t)(((((int8_t)buf[0x4a] << 8) | buf[0x4b])) + 12480 /*48.75*256*/)*10/256; /* in 10th of dBmV unit */
         pStatus->isSpectrumInverted = (buf[7] & 0x10) >> 4;
         pStatus->mainTap = (int32_t)((buf[0x18] << 24) | (buf[0x19] << 16) | (buf[0x1a] << 8) | buf[0x1b]);

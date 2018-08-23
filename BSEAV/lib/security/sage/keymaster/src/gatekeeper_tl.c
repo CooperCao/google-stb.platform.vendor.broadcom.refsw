@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include <string.h>
@@ -89,7 +92,7 @@ BDBG_OBJECT_ID(GatekeeperTl_Instance);
 
 
 static void _GatekeeperTl_ContextDelete(GatekeeperTl_Handle hGatekeeperTl);
-static GatekeeperTl_Handle _GatekeeperTl_ContextNew(const char *bin_file_path);
+static BERR_Code _GatekeeperTl_ContextNew(GatekeeperTl_InitSettings *pModuleSettings, GatekeeperTl_Handle *ret_handle);
 
 void GatekeeperTl_GetDefaultInitSettings(GatekeeperTl_InitSettings *pModuleSettings)
 {
@@ -103,12 +106,14 @@ void GatekeeperTl_GetDefaultInitSettings(GatekeeperTl_InitSettings *pModuleSetti
     return;
 }
 
-static GatekeeperTl_Handle _GatekeeperTl_ContextNew(const char *bin_file_path)
+static BERR_Code _GatekeeperTl_ContextNew(GatekeeperTl_InitSettings *pModuleSettings, GatekeeperTl_Handle *ret_handle)
 {
     BERR_Code err;
     NEXUS_Error nexus_rc;
     BSAGElib_InOutContainer *inout = NULL;
     GatekeeperTl_Handle handle = NULL;
+
+    BDBG_ASSERT(ret_handle);
 
     nexus_rc = NEXUS_Memory_Allocate(sizeof(*handle), NULL, (void **)&handle);
     if (nexus_rc != NEXUS_SUCCESS) {
@@ -123,12 +128,14 @@ static GatekeeperTl_Handle _GatekeeperTl_ContextNew(const char *bin_file_path)
     GK_ALLOCATE_CONTAINER();
 
     err = Keymaster_ModuleInit(Keymaster_ModuleId_eGatekeeper,
-                               bin_file_path,
+                               (KeymasterTl_InitSettings *) pModuleSettings,
                                inout,
                                &handle->moduleHandle,
                                NULL);
     if (err != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Error initializing module (0x%08x)", BSTD_FUNCTION, inout->basicOut[0]));
+        BDBG_ERR(("%s: Error initializing module (err 0x%08x, inout 0x%08x)", BSTD_FUNCTION, err, inout->basicOut[0]));
+        if ((err == BSAGE_ERR_INTERNAL) && (inout->basicOut[0] != BERR_SUCCESS))
+            err = inout->basicOut[0];
         goto done;
     }
 
@@ -140,7 +147,8 @@ done:
         handle = NULL;
     }
 
-    return handle;
+    *ret_handle = handle;
+    return err;
 }
 
 static void _GatekeeperTl_ContextDelete(GatekeeperTl_Handle handle)
@@ -174,9 +182,9 @@ BERR_Code GatekeeperTl_Init(GatekeeperTl_Handle *pHandle, GatekeeperTl_InitSetti
         goto done;
     }
 
-    *pHandle = _GatekeeperTl_ContextNew(pModuleSettings->drm_binfile_path);
-    if (*pHandle == NULL) {
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
+    rc = _GatekeeperTl_ContextNew(pModuleSettings, pHandle);
+    if (rc != BERR_SUCCESS) {
+        *pHandle = NULL;
         goto done;
     }
 
@@ -220,7 +228,7 @@ BERR_Code GatekeeperTl_Enroll(
         (in_provided_password->size > GATEKEEPER_MAX_PASSWORD) ||!out_password_handle) {
         BDBG_ERR(("%s: Invalid parameter", BSTD_FUNCTION));
         err = BERR_INVALID_PARAMETER;
-        goto done;
+        goto err_input;
     }
 
     BDBG_OBJECT_ASSERT(handle, GatekeeperTl_Instance);
@@ -263,6 +271,7 @@ done:
     if (out_retry_timeout) {
         *out_retry_timeout = GK_CMD_ENROLL_OUT_RETRY_TIMEOUT;
     }
+err_input:
     GK_FREE_CONTAINER();
     GK_FREE_BLOCK(in_handle);
     GK_FREE_BLOCK(in_enroll_pass);
@@ -294,7 +303,7 @@ BERR_Code GatekeeperTl_Verify(
         (in_provided_password->size > GATEKEEPER_MAX_PASSWORD) || !in_password_handle || !out_auth_token) {
         BDBG_ERR(("%s: Invalid parameter", BSTD_FUNCTION));
         err = BERR_INVALID_PARAMETER;
-        goto done;
+        goto err_input;
     }
 
     BDBG_OBJECT_ASSERT(handle, GatekeeperTl_Instance);
@@ -327,6 +336,7 @@ done:
     if (out_retry_timeout) {
         *out_retry_timeout = GK_CMD_VERIFY_OUT_RETRY_TIMEOUT;
     }
+err_input:
     GK_FREE_CONTAINER();
     GK_FREE_BLOCK(challenge);
     GK_FREE_BLOCK(in_handle);

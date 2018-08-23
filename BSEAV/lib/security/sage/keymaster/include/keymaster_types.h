@@ -49,6 +49,20 @@ extern "C"
 {
 #endif
 
+/***************************************************************************
+Summary:
+Keymaster init settings
+
+See Also:
+KeymasterTl_GetDefaultInitSettings()
+KeymasterTl_Init()
+***************************************************************************/
+typedef struct
+{
+    char drm_binfile_path[256];
+    uint8_t *drm_binfile_buffer;
+    uint32_t drm_binfile_size;
+} KeymasterTl_InitSettings;
 
 #define SKM_TAG_TYPE_SHIFT           28
 #define SKM_TAG_MASK_TYPE(tag)       ((tag) & (0xf << SKM_TAG_TYPE_SHIFT))
@@ -382,7 +396,7 @@ typedef enum {
     SKM_HW_AUTH_ANY = UINT16_MAX,
 } km_hw_authenticator_type_t;
 
-typedef struct km_hw_auth_token_t {
+typedef struct __attribute__((__packed__)) km_hw_auth_token_t {
     uint8_t version;              // Current version is 0
     uint64_t challenge;
     uint64_t user_id;             // secure user ID, not Android user ID
@@ -392,7 +406,7 @@ typedef struct km_hw_auth_token_t {
     uint8_t hmac[32];
 } km_hw_auth_token_t;
 
-typedef struct gk_password_handle_t {
+typedef struct __attribute__((__packed__)) gk_password_handle_t {
     uint8_t version;
     uint64_t user_id;             // same as secure user ID, above
     uint64_t flags;               // Internal flags associated with password
@@ -440,9 +454,10 @@ typedef struct {
 #define SKM_NONCE_HMAC_KEY_SIZE      8
 
 #define SKM_RSA_MAX_KEY_SIZE             4096
-#define SKM_RSA_GENERATE_MAX_KEY_SIZE    1024    /* Max key size we can currently generate on SAGE */
+#define SKM_RSA_GENERATE_MAX_KEY_SIZE    2048    /* Max key size we can currently generate on SAGE */
 
-#define SKM_HMAC_MAX_KEY_SIZE        512
+#define SKM_HMAC_MIN_KEY_SIZE        64
+#define SKM_HMAC_MAX_KEY_SIZE        2048
 
 #define SKM_HMAC_MIN_MAC_LENGTH_BITS 64
 

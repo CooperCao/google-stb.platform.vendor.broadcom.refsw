@@ -280,6 +280,7 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_HEVC[5] =
 };
 
 BDBG_MODULE(BXVD_PRIV);
+BDBG_FILE_MODULE(BXVD_INTR);
 
 void BXVD_P_ValidateHeaps(BXVD_Handle        hXvd,
                           BXVD_P_MemCfgMode  eMemCfgMode)
@@ -2733,6 +2734,23 @@ BERR_Code BXVD_P_CreateInterrupts( BXVD_Handle hXvd)
       }
    }
 
+#if BXVD_P_CLOCK_BOOST_SUPPORTED
+   if (hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR == 0)
+   {
+      rc = BINT_CreateCallback(&(hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR),
+                               hXvd->hInterrupt,
+                               hXvd->stPlatformInfo.stReg.uiInterrupt_ClockBoost,
+                               BXVD_P_ClockBoost_isr,
+                               (void*)(hXvd),
+                               0);
+
+      if (rc != BERR_SUCCESS)
+      {
+         return BERR_TRACE(rc);
+      }
+   }
+#endif
+
    if (hXvd->stDecoderContext.pCbAVC_StillPicRdy_ISR == 0)
    {
       rc = BINT_CreateCallback(&(hXvd->stDecoderContext.pCbAVC_StillPicRdy_ISR),
@@ -2872,6 +2890,16 @@ BERR_Code BXVD_P_DisableInterrupts( BXVD_Handle hXvd)
       }
    }
 
+   if (hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR)
+   {
+      rc = BINT_DisableCallback(hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR);
+
+      if (rc != BERR_SUCCESS)
+      {
+         return BERR_TRACE(rc);
+      }
+   }
+
    if (hXvd->stDecoderContext.pCbAVC_StillPicRdy_ISR)
    {
       rc = BINT_DisableCallback(hXvd->stDecoderContext.pCbAVC_StillPicRdy_ISR);
@@ -2993,6 +3021,16 @@ BERR_Code BXVD_P_EnableInterrupts( BXVD_Handle hXvd)
       }
    }
 
+   if (hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR)
+   {
+      rc = BINT_EnableCallback(hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR);
+
+      if (rc != BERR_SUCCESS)
+      {
+         return BERR_TRACE(rc);
+      }
+   }
+
    if (hXvd->stDecoderContext.pCbAVC_StillPicRdy_ISR)
    {
 
@@ -3088,6 +3126,16 @@ BERR_Code BXVD_P_DestroyInterrupts(BXVD_Handle hXvd)
    {
       rc = BINT_DestroyCallback(hXvd->stDecoderContext.pCbAVC_MBX_ISR);
       if (BERR_SUCCESS != rc)
+      {
+         return BERR_TRACE(rc);
+      }
+   }
+
+   if (hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR)
+   {
+      rc = BINT_DestroyCallback(hXvd->stDecoderContext.pCbHVD_ClockBoost_ISR);
+
+      if (rc != BERR_SUCCESS)
       {
          return BERR_TRACE(rc);
       }
@@ -3410,6 +3458,95 @@ void BXVD_P_FreeAllocatedChannelHandles(BXVD_Handle hXvd)
       /* Free channel handle */
       BKNI_Free(hXvdCh);
    }
+}
+
+/*
+ * SWSTB-9214: use the source resolution of all active channels
+ * to set the clock boost mode.
+ */
+void BXVD_P_SetClockBoost( BXVD_Handle hXvd )
+{
+   BDBG_ENTER(BXVD_P_SetClockBoost);
+
+#if BXVD_P_CLOCK_BOOST_SUPPORTED && BCHP_PWR_SUPPORT
+   {
+      BERR_Code     rc;
+      BXVD_ChannelHandle hXvdCh;
+      BCHP_Pstate   powerState;
+      BCHP_PWR_ResourceId resourceId;
+      uint32_t i;
+
+      BXVD_SourceResolution eMaxInBand=BXVD_SourceResolution_eUnknown;
+      BXVD_SourceResolution eMaxOutOfBand=BXVD_SourceResolution_eUnknown;
+
+      /* This routine will be called both for in-band resolution changes (HVD)
+       * and out-of-band changes.
+       * Retrieve the max source resolution for all active channels on this decoder.
+       * Eventually we will need a more sophisticated lookup, something like a box mode. */
+
+      for ( i=0; i < BXVD_MAX_VIDEO_CHANNELS; i++ )
+      {
+         hXvdCh = hXvd->ahChannel[i];
+
+         if ( hXvdCh && hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive )
+         {
+            if ( hXvdCh->eSourceResolutionInBand > eMaxInBand )
+            {
+               eMaxInBand = hXvdCh->eSourceResolutionInBand;
+            }
+
+            if ( hXvdCh->eSourceResolutionOutOfBand > eMaxOutOfBand )
+            {
+               eMaxOutOfBand = hXvdCh->eSourceResolutionOutOfBand;
+            }
+         }
+      }
+
+      switch ( hXvd->uDecoderInstance )
+      {
+         case 0:    resourceId = BCHP_PWR_RESOURCE_AVD0_CLK;    break;
+
+#ifdef BCHP_PWR_RESOURCE_AVD1_CLK
+         case 1:    resourceId = BCHP_PWR_RESOURCE_AVD1_CLK;    break;
+#endif
+
+#ifdef BCHP_PWR_RESOURCE_AVD2_CLK
+         case 2:    resourceId = BCHP_PWR_RESOURCE_AVD2_CLK;    break;
+#endif
+
+         default:   resourceId = BCHP_PWR_RESOURCE_AVD0_CLK;    break;
+      }
+
+      /* Boost the clock if either in-band or out-of-band resolution is 4K.
+       * Again, eventually this will need to be more sophisticated. */
+
+      powerState = ( eMaxInBand == BXVD_SourceResolution_e4K || eMaxOutOfBand == BXVD_SourceResolution_e4K ) ? BCHP_Pstate_eBoost : BCHP_Pstate_eNormal;
+
+      BDBG_MODULE_MSG( BXVD_INTR, ("%s:: uDecoderInstance:%d  in-band:%d  out-of-band:%d BCHP_Pstate:%d  BCHP_PWR_ResourceId:%d",
+                                            BSTD_FUNCTION,
+                                            hXvd->uDecoderInstance,
+                                            eMaxInBand,
+                                            eMaxOutOfBand,
+                                            powerState,
+                                            resourceId ));
+
+      rc = BCHP_PWR_SetPstate( hXvd->hChip, resourceId, powerState );
+
+      if ( rc )
+      {
+         BDBG_ERR(("%s BCHP_PWR_SetPstate returned:%d", BSTD_FUNCTION, rc ));
+      }
+
+   }
+#else
+    BSTD_UNUSED(hXvd);
+    BDBG_MODULE_MSG( BXVD_INTR, ("%s:: clock boost is not supported on this system", BSTD_FUNCTION ));
+#endif
+
+   BDBG_LEAVE(BXVD_P_SetClockBoost);
+
+   return;
+
 }
 
 #if BXVD_P_POWER_MANAGEMENT

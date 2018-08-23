@@ -139,6 +139,69 @@ BDBG_OBJECT_ID_DECLARE(BDSP_RaagaExternalInterrupt);
 #define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER 3
 #define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_ECHOCANCELLER 1
 
+/* Enum for PAK Based license checks */
+typedef enum
+{
+    BDSP_Raaga_P_AlgoLicense_Select_DAP = 0,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyDigital =1,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyDigitalPlus =2,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyAC4 =3,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyTrueHD =4,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS11MS10 =5,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V1 =6,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V2=7,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsTruVolume=8,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsDigitalSurround=9,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsHDM6=10,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsHDM8=11,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsHeadphoneX=12,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsVirtualX=13,
+    BDSP_Raaga_P_AlgoLicense_Select_DtsX=14,
+    BDSP_Raaga_P_AlgoLicense_Select_Reserved=15,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileC=16,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileD=17,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileB=18,
+    BDSP_Raaga_P_AlgoLicense_Select_DolbyMS12V13_ProfileA=19,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_DAP_ContentProc=20,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_DAP_Virtualizer=21,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_DAP_DevProc=22,
+    BDSP_Raaga_P_AlgoLicense_Select_MS12V23_Adv_OpChannels=23,
+    BDSP_Raaga_P_AlgoLicense_Select_Max=24
+}BDSP_Raaga_P_AlgoLicense_Select;
+
+
+/* String definitions to match the PAK license bits */
+static const char BDSP_Raaga_P_AlgoLicEnum2Char[BDSP_Raaga_P_AlgoLicense_Select_Max][MAX_CHAR_LENGTH] =
+{
+    {"Dolby   : DAP"},
+    {"Dolby   : AC3"},
+    {"Dolby   : DDP"},
+    {"Dolby   : AC4"},
+    {"Dolby   : TruHD"},
+    {"Dolby   : MS11/MS10"},
+    {"Dolby   : MS12v1"},
+    {"Dolby   : MS12v2"},
+    {"DTS     : TruVolume"},
+    {"DTS     : DigitalSurround"},
+    {"DTS:    : HDM6"},
+    {"DTS     : HDM8"},
+    {"DTS     : HeadphoneX"},
+    {"DTS     : VirtualX"},
+    {"DTS     : DTSX"},
+    {"Reserved: Reserved"},
+    {"Dolby   : Profile C"},
+    {"Dolby   : Profile D"},
+    {"Dolby   : Profile B"},
+    {"Dolby   : Profile A"},
+    {"Dolby   : DAP Content Proc"},
+    {"Dolby   : DAP Virtualizer"},
+    {"Dolby   : DAP Dev Proc"},
+    {"Dolby   : Adv Op Channels"}
+};
+
+
+
+
 
 #ifdef BDSP_FW_RBUF_CAPTURE
 /* Specific to FW Ring Buffer capture required for their unit testing */
@@ -223,6 +286,7 @@ typedef struct BDSP_Raaga
     BMMA_Heap_Handle memHandle;
     BINT_Handle intHandle;
     BBOX_Handle boxHandle;
+    BKNI_EventHandle hEvent[BDSP_RAAGA_MAX_DSP];
     uint32_t dspOffset[BDSP_RAAGA_MAX_DSP];
     BINT_CallbackHandle     ackCallbackHandle[BDSP_RAAGA_MAX_DSP];    /* This will install the Callback for Ping the DSp*/
     BDSP_Raaga_P_DPM dpmInfo;
@@ -242,6 +306,7 @@ typedef struct BDSP_Raaga
     BDSP_Raaga_P_MsgQueueHandle      hCmdQueue[BDSP_RAAGA_MAX_DSP];      /* Cmd queue handle*/
     BDSP_Raaga_P_MsgQueueHandle      hGenRspQueue[BDSP_RAAGA_MAX_DSP];      /* Generic Response queue handle*/
     BINT_CallbackHandle             hWatchdogCallback[BDSP_RAAGA_MAX_DSP];
+    BINT_CallbackHandle             hGenRespCallback[BDSP_RAAGA_MAX_DSP];
     bool                    deviceWatchdogFlag;
     BLST_S_HEAD(BDSP_RaagaContextList, BDSP_RaagaContext) contextList;
     bool    powerStandby;/*True if DSP is in standby*/
@@ -1045,6 +1110,17 @@ void BDSP_Raaga_P_InitDeviceSettings(
     void * pDeviceHandle
     );
 
+/***********************************************************************
+Summary:
+This function prepares the command header with PAK File info, DRM File info
+and Bounded PAK File address and sends the command to DSP to evaluate the
+status of audio license.
+***********************************************************************/
+BERR_Code BDSP_Raaga_P_ProcessPAK(
+        void                          *pDeviceHandle,
+        const BDSP_ProcessPAKSettings *pSettings,
+        BDSP_ProcessPAKStatus         *pStatus
+        );
 /* PAUSE-UNPAUSE */
 
 /***************************************************************************

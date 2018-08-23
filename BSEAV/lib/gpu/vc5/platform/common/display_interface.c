@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "display_interface.h"
 
@@ -24,6 +24,14 @@ bool DisplayInterface_WaitSync(const DisplayInterface *di)
    assert(di != NULL);
 
    return di->wait_sync ? di->wait_sync(di->base.context) : false;
+}
+
+void DisplayInterface_Release(const DisplayInterface *di)
+{
+   assert(di != NULL);
+
+   if (di->release)
+      di->release(di->base.context);
 }
 
 void DisplayInterface_Stop(const DisplayInterface *di)

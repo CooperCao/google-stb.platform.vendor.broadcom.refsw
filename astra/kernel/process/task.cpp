@@ -39,12 +39,15 @@
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ***************************************************************************/
+
 #include "hwtimer.h"
 #include "arm/arm.h"
 #include "arm/spinlock.h"
 
 #include "tztask.h"
 #include "tzmemory.h"
+#include "tzmbox.h"
+#include "tzioc.h"
 #include "objalloc.h"
 #include "kernel.h"
 #include "scheduler.h"
@@ -62,9 +65,6 @@ uintptr_t _regBaseOffset;
 extern "C" uintptr_t _neonRegBaseOffset;
 uintptr_t _neonRegBaseOffset;
 
-extern "C" uintptr_t boot_mode;
-uintptr_t boot_mode;
-
 static ObjCacheAllocator<TzTask> allocator;
 static uint32_t nextTaskNum = 0;
 
@@ -78,10 +78,49 @@ PerCPU<TzTask *> TzTask::nwProxyTask;
 
 extern "C" uint32_t smcService(uint32_t);
 
-static int nswTask(void *task, void *ctx) {
-    UNUSED(task);
+int TzTask::nswTask(void *task, void *ctx) {
     UNUSED(ctx);
-    ARCH_SPECIFIC_NSWTASK;
+
+    // Bump NW proxy task in queue to allow normal world to boot up
+    TzTask *nwTask = (TzTask *)task;
+    if (nwTask->slotTimeSlice == (uint64_t)-1)
+        nwTask->slotTimeSlice = 0;
+
+    if (ARMV7_BOOT_MODE == boot_mode) {
+        while (1) {
+            // Enable FIQ to allow FIQ interrupts from normal world
+            ARCH_SPECIFIC_ENABLE_FIQ;
+
+            // Switch to normal world
+            ARCH_SPECIFIC_NSWTASK;
+
+            // Disable FIQ for kernel processing
+            ARCH_SPECIFIC_DISABLE_FIQ;
+
+            // Kernel processing
+            if (arm::smpCpuNum() == 0)
+                TzIoc::notify();
+        }
+    }
+    else {
+        while (1) {
+            // Disable FIQ to avoid immediate trigger upon return from monitor
+            ARCH_SPECIFIC_DISABLE_FIQ;
+
+            // Switch to normal world
+            ARCH_SPECIFIC_NSWTASK;
+
+            // Kernel processing
+            if (arm::smpCpuNum() == 0) {
+                TzMBox::proc();
+                TzIoc::proc();
+                TzIoc::notify();
+            }
+
+            // Enable FIQ to handle FIQ triggers
+            ARCH_SPECIFIC_ENABLE_FIQ;
+        }
+    }
     return 0;
 }
 
@@ -116,6 +155,8 @@ void TzTask::init() {
         kernelHalt("nw task creation failed");
     }
 
+    // Push back NW proxy task in queue to allow secure tasks to init
+    nwTask->slotTimeSlice = (uint64_t)-1;
     nwProxyTask.cpuLocal() = nwTask;
     Scheduler::addTask(nwTask);
 }
@@ -136,6 +177,8 @@ void TzTask::initSecondaryCpu() {
         kernelHalt("nw task creation failed");
     }
 
+    // Push back NW proxy task in queue to allow secure tasks to init
+    nwTask->slotTimeSlice = (uint64_t)-1;
     nwProxyTask.cpuLocal() = nwTask;
     Scheduler::addTask(nwTask);
 
@@ -264,6 +307,7 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
     brkCurr = nullptr;
     brkMax = nullptr;
     mmapMaxVa = nullptr;
+    shadowFile = nullptr;
 
     createUContext();
 
@@ -271,6 +315,7 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
     ProcessGroup::create(id());
     ProcessGroup::addGroupMember(id(), this);
     pgid = id();
+    appId = 0;
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
@@ -426,6 +471,7 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
 
     vmCloned = false;
     threadCloned = false;
+    shadowFile = nullptr;
 
     createUContext();
 
@@ -433,6 +479,7 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
     ProcessGroup::create(id());
     ProcessGroup::addGroupMember(id(), this);
     pgid = id();
+    appId = 0;
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
@@ -551,11 +598,13 @@ TzTask::TzTask(TzTask& parentTask) :
 
     vmCloned = false;
     threadCloned = false;
+    shadowFile = nullptr;
 
     createUContext();
 
     ProcessGroup::addGroupMember(parentTask.pgid, this);
     pgid = parentTask.pgid;
+    appId = 0;
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
@@ -698,6 +747,36 @@ int TzTask::setTidAddress(int *tidPtr) {
     kernPageTable->unmapPage(va);
 
     return tid;
+}
+
+void TzTask::prefetchAbortException() {
+    siginfo_t info;
+
+    err_msg("prefetchAbortException: Terminating Task %d for invalid access\n", tid);
+    pageTable->dump();
+    printURegs();
+
+    memset(&info, 0, sizeof(siginfo_t));
+    info.si_signo = SIGSEGV;
+    info.si_addr = (void *)0;
+    sigQueue(SIGSEGV, &info);
+
+    return;
+}
+
+void TzTask::undefException() {
+    siginfo_t info;
+
+    err_msg("undefException: Terminating Task %d for undef instruction execution \n", tid);
+    pageTable->dump();
+    printURegs();
+
+    memset(&info, 0, sizeof(siginfo_t));
+    info.si_signo = SIGSEGV;
+    info.si_addr = (void *)0;
+    sigQueue(SIGSEGV, &info);
+
+    return;
 }
 
 void TzTask::dataAbortException() {

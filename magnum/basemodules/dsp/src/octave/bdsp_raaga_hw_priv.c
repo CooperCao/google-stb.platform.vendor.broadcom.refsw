@@ -313,11 +313,15 @@ static BERR_Code BDSP_Raaga_P_L2C_Config(
 
 	/* Disabling Cache ways */
 #if 1
-	BDSP_Raaga_P_DisableCacheWays(pDevice, 0);
-	BDSP_Raaga_P_DisableCacheWays(pDevice, 1);
-	BDSP_Raaga_P_DisableCacheWays(pDevice, 2);
-	BDSP_Raaga_P_DisableCacheWays(pDevice, 3);
-	BDSP_Raaga_P_DisableCacheWays(pDevice, 4);
+	if(pDevice->numCorePerDsp == 1)
+	{
+		/*Disable the Cacheways only when single core is present */
+		BDSP_Raaga_P_DisableCacheWays(pDevice, 0);
+		BDSP_Raaga_P_DisableCacheWays(pDevice, 1);
+		BDSP_Raaga_P_DisableCacheWays(pDevice, 2);
+		BDSP_Raaga_P_DisableCacheWays(pDevice, 3);
+		BDSP_Raaga_P_DisableCacheWays(pDevice, 4);
+	}
 #else
 	BDSP_WriteReg32(pDevice->regHandle,
 		BCHP_RAAGA_DSP_L2C_CACHE_WAY_ENABLE+pDevice->dspOffset[uiDspIndex],

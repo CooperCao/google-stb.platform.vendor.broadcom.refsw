@@ -121,6 +121,17 @@ int wl_cfgvendor_send_async_event(struct wiphy *wiphy,
 
 	return 0;
 }
+#endif /* BCMDONGLEHOST || PLATFORM_INTEGRATED_WIFI */
+
+static int wl_cfgvendor_vendor_cmd_reply(void *skb)
+{
+#if defined(BCMDONGLEHOST) || defined(PLATFORM_INTEGRATED_WIFI)
+		return cfg80211_vendor_cmd_reply(skb);
+#else
+		extern int osl_vendor_cmd_reply(void *skb);
+		return osl_vendor_cmd_reply(skb);
+#endif /* BCMDONGLEHOST || PLATFORM_INTEGRATED_WIFI */
+}
 
 static int
 wl_cfgvendor_send_cmd_reply(struct wiphy *wiphy,
@@ -138,29 +149,37 @@ wl_cfgvendor_send_cmd_reply(struct wiphy *wiphy,
 	/* Push the data to the skb */
 	nla_put_nohdr(skb, len, data);
 
-	return cfg80211_vendor_cmd_reply(skb);
+	return wl_cfgvendor_vendor_cmd_reply(skb);
 }
-#endif /* BCMDONGLEHOST || PLATFORM_INTEGRATED_WIFI */
 
-#if defined(BCMDONGLEHOST)
+
 static int
 wl_cfgvendor_get_feature_set(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
 {
 	int err = 0;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
-	int reply;
+	int feature = 0;
 
-	reply = dhd_dev_get_feature_set(bcmcfg_to_prmry_ndev(cfg));
+#if defined(BCMDONGLEHOST)
+	feature = dhd_dev_get_feature_set(bcmcfg_to_prmry_ndev(cfg));
+#else
+	err = wldev_iovar_getint(bcmcfg_to_prmry_ndev(cfg), "caps", &feature);
+	if (unlikely(err)) {
+		WL_ERR(("error reading caps (%d)\n", err));
+	}
+
+#endif /* BCMDONGLEHOST */
 
 	err =  wl_cfgvendor_send_cmd_reply(wiphy, bcmcfg_to_prmry_ndev(cfg),
-	        &reply, sizeof(int));
+	        &feature, sizeof(int));
 	if (unlikely(err))
 		WL_ERR(("Vendor Command reply failed ret:%d \n", err));
 
 	return err;
 }
 
+#if defined(BCMDONGLEHOST)
 static int
 wl_cfgvendor_get_feature_set_matrix(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
@@ -198,23 +217,32 @@ wl_cfgvendor_get_feature_set_matrix(struct wiphy *wiphy,
 exit:
 	return err;
 }
-
+#endif /* BCMDONGLEHOST */
+#if 0
 static int
 wl_cfgvendor_set_rand_mac_oui(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
 {
 	int err = 0;
-	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+	struct bcm_cfg80211 *cfg;
 	int type;
-	uint8 random_mac_oui[DOT11_OUI_LEN];
 
 	type = nla_type(data);
-
+	cfg = wiphy_priv(wiphy);
 	if (type == ANDR_WIFI_ATTRIBUTE_RANDOM_MAC_OUI) {
+#if defined(BCMDONGLEHOST)
+		uint8 random_mac_oui[DOT11_OUI_LEN];
 		memcpy(random_mac_oui, nla_data(data), DOT11_OUI_LEN);
 
 		err = dhd_dev_cfg_rand_mac_oui(bcmcfg_to_prmry_ndev(cfg), random_mac_oui);
+#else
+		struct ether_addr ea = {{0, 0, 0, 0, 0, 0}};
+		s8 iovar_buf[WLC_IOCTL_SMLEN];
+		memcpy(&ea, nla_data(data), DOT11_OUI_LEN);
+		err = wldev_iovar_setbuf(bcmcfg_to_prmry_ndev(cfg), "cur_etheraddr", &ea, ETHER_ADDR_LEN,
+			iovar_buf,sizeof(iovar_buf), NULL);
 
+#endif /* BCMDONGLEHOST */
 		if (unlikely(err))
 			WL_ERR(("Bad OUI, could not set:%d \n", err));
 
@@ -224,9 +252,7 @@ wl_cfgvendor_set_rand_mac_oui(struct wiphy *wiphy,
 
 	return err;
 }
-#endif /* defined(BCMDONGLEHOST) */
-
-#ifdef CUSTOM_FORCE_NODFS_FLAG
+#endif
 static int
 wl_cfgvendor_set_nodfs_flag(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void *data, int len)
@@ -234,6 +260,46 @@ wl_cfgvendor_set_nodfs_flag(struct wiphy *wiphy,
 	int err = 0;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	int type;
+	u32 nodfs;
+#ifndef BCMDONGLEHOST
+	int ccode_type;
+#endif /* BCMDONGLEHOST */
+
+	type = nla_type(data);
+	if (type == ANDR_WIFI_ATTRIBUTE_NODFS_SET) {
+		nodfs = nla_get_u32(data);
+#ifdef BCMDONGLEHOST
+		err = dhd_dev_set_nodfs(bcmcfg_to_prmry_ndev(cfg), nodfs);
+#else
+		err = wldev_iovar_getint(bcmcfg_to_prmry_ndev(cfg), "ccode_type", &ccode_type);
+		if (err < 0) {
+			WL_ERR(("%s: get ccode_type failed = %d\n", __FUNCTION__, err));
+			return err;
+		}
+
+		if (nodfs)
+			ccode_type |= WLC_CCODE_NODFS;
+		else
+			ccode_type &= ~WLC_CCODE_NODFS;
+		err = wldev_iovar_setint(bcmcfg_to_prmry_ndev(cfg), "ccode_type", ccode_type);
+		if (unlikely(err)) {
+			WL_ERR(("error seting ccode_type (%d)\n", err));
+		}
+#endif /* BCMDONGLEHOST */
+	} else {
+		err = -1;
+	}
+	return err;
+}
+static int
+wl_cfgvendor_set_country(struct wiphy *wiphy,
+	struct wireless_dev *wdev, const void *data, int len)
+{
+	int err = 0;
+	int type;
+
+#if defined(BCMDONGLEHOST)
+	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	u32 nodfs;
 
 	type = nla_type(data);
@@ -243,9 +309,15 @@ wl_cfgvendor_set_nodfs_flag(struct wiphy *wiphy,
 	} else {
 		err = -1;
 	}
+#else
+	type = nla_type(data);
+	if (type == ANDR_WIFI_ATTRIBUTE_NODFS_SET) {
+		return wl_cfgvendor_set_nodfs_flag(wiphy, wdev, data, len);
+	}
+
+#endif
 	return err;
 }
-#endif /* CUSTOM_FORCE_NODFS_FLAG */
 #ifdef GSCAN_SUPPORT
 int
 wl_cfgvendor_send_hotlist_event(struct wiphy *wiphy,
@@ -336,12 +408,13 @@ wl_cfgvendor_gscan_get_capabilities(struct wiphy *wiphy,
 	kfree(reply);
 	return err;
 }
+#endif /* BCMDONGLEHOST */
 
 static int
 wl_cfgvendor_gscan_get_channel_list(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
 {
-	int err = 0, type, band;
+	int err = 0, type, band = 0, gscan_band;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	uint16 *reply = NULL;
 	uint32 reply_len = 0, num_channels, mem_needed;
@@ -350,14 +423,25 @@ wl_cfgvendor_gscan_get_channel_list(struct wiphy *wiphy,
 	type = nla_type(data);
 
 	if (type == GSCAN_ATTRIBUTE_BAND) {
-		band = nla_get_u32(data);
+		gscan_band = nla_get_u32(data);
 	} else {
 		return -EINVAL;
 	}
 
+#if defined(BCMDONGLEHOST)
 	reply = dhd_dev_pno_get_gscan(bcmcfg_to_prmry_ndev(cfg),
-	   DHD_PNO_GET_CHANNEL_LIST, &band, &reply_len);
+	   DHD_PNO_GET_CHANNEL_LIST, &gscan_band, &reply_len);
+#else
+	if (gscan_band & GSCAN_BG_BAND_MASK) {
+		band |= WLC_BAND_2G;
+	}
+	if (gscan_band & GSCAN_A_BAND_MASK) {
+		band |= WLC_BAND_5G;
+	}
 
+	reply = (uint16 *)wl_cfg80211_get_channel_list(bcmcfg_to_prmry_ndev(cfg),
+		band, &reply_len);
+#endif /* BCMDONGLEHOST */
 	if (!reply) {
 		WL_ERR(("Could not get channel list\n"));
 		err = -EINVAL;
@@ -377,7 +461,7 @@ wl_cfgvendor_gscan_get_channel_list(struct wiphy *wiphy,
 	nla_put_u32(skb, GSCAN_ATTRIBUTE_NUM_CHANNELS, num_channels);
 	nla_put(skb, GSCAN_ATTRIBUTE_CHANNEL_LIST, reply_len, reply);
 
-	err =  cfg80211_vendor_cmd_reply(skb);
+	err = wl_cfgvendor_vendor_cmd_reply(skb);
 
 	if (unlikely(err)) {
 		WL_ERR(("Vendor Command reply failed ret:%d \n", err));
@@ -387,6 +471,7 @@ exit:
 	return err;
 }
 
+#if defined(BCMDONGLEHOST)
 static int
 wl_cfgvendor_gscan_get_batch_results(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
@@ -2939,15 +3024,19 @@ static int wl_cfgvendor_dbg_reset_logging(struct wiphy *wiphy,
 
 	return ret;
 }
+#endif /* DEBUGABILITY */
 
 static int wl_cfgvendor_dbg_get_version(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void *data, int len)
 {
-	int ret = BCME_OK, rem, type;
+	int ret = BCME_OK;
 	int buf_len = 1024;
-	bool dhd_ver = FALSE;
 	char *buf_ptr;
+#if defined(BCMDONGLEHOST)
+	bool dhd_ver = FALSE;
+	int rem, type;
 	const struct nlattr *iter;
+#endif /* BCMDONGLEHOST */
 	gfp_t kflags;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	kflags = in_interrupt() ? GFP_ATOMIC : GFP_KERNEL;
@@ -2957,6 +3046,7 @@ static int wl_cfgvendor_dbg_get_version(struct wiphy *wiphy,
 		ret = BCME_NOMEM;
 		goto exit;
 	}
+#if defined(BCMDONGLEHOST)
 	nla_for_each_attr(iter, data, len, rem) {
 		type = nla_type(iter);
 		switch (type) {
@@ -2973,6 +3063,10 @@ static int wl_cfgvendor_dbg_get_version(struct wiphy *wiphy,
 		}
 	}
 	ret = dhd_os_get_version(bcmcfg_to_prmry_ndev(cfg), dhd_ver, &buf_ptr, buf_len);
+#else
+	ret = wldev_iovar_getbuf(bcmcfg_to_prmry_ndev(cfg), "ver", NULL, 0,
+		buf_ptr, buf_len, NULL);
+#endif /* BCMDONGLEHOST */
 	if (ret < 0) {
 		WL_ERR(("failed to get the version %d\n", ret));
 		goto exit;
@@ -2984,6 +3078,7 @@ exit:
 	return ret;
 }
 
+#ifdef DEBUGABILITY
 static int wl_cfgvendor_dbg_get_ring_status(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
 {
@@ -3057,26 +3152,27 @@ static int wl_cfgvendor_dbg_get_ring_data(struct wiphy *wiphy,
 
 	return ret;
 }
-
+#endif /* DEBUGABILITY */
 static int wl_cfgvendor_dbg_get_feature(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
 {
 	int ret = BCME_OK;
 	u32 supported_features = 0;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+#ifdef DEBUGABILITY
 	dhd_pub_t *dhd_pub = cfg->pub;
 
 	ret = dhd_os_dbg_get_feature(dhd_pub, &supported_features);
 	if (ret < 0) {
 		WL_ERR(("dbg_get_feature failed ret:%d\n", ret));
-		goto exit;
+		return ret;
 	}
+#endif /* DEBUGABILITY */
 	ret = wl_cfgvendor_send_cmd_reply(wiphy, bcmcfg_to_prmry_ndev(cfg),
 	        &supported_features, sizeof(supported_features));
-exit:
 	return ret;
 }
-
+#ifdef DEBUGABILITY
 static void wl_cfgvendor_dbg_ring_send_evt(void *ctx,
 	const int ring_id, const void *data, const uint32 len,
 	const dhd_dbg_ring_status_t ring_status)
@@ -3568,6 +3664,7 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_gscan_get_batch_results
 	},
+#endif /* GSCAN_SUPPORT */
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3576,7 +3673,6 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_gscan_get_channel_list
 	},
-#endif /* GSCAN_SUPPORT */
 #ifdef RTT_SUPPORT
 	{
 		{
@@ -3603,7 +3699,6 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.doit = wl_cfgvendor_rtt_get_capability
 	},
 #endif /* RTT_SUPPORT */
-#if defined(BCMDONGLEHOST)
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3612,6 +3707,7 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_get_feature_set
 	},
+#if defined(BCMDONGLEHOST)
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3620,6 +3716,8 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_get_feature_set_matrix
 	},
+#endif /* defined(BCMDONGLEHOST) */
+#if 0
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3628,8 +3726,7 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_set_rand_mac_oui
 	},
-#endif /* defined(BCMDONGLEHOST) */
-#ifdef CUSTOM_FORCE_NODFS_FLAG
+#endif
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3639,7 +3736,16 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.doit = wl_cfgvendor_set_nodfs_flag
 
 	},
-#endif /* CUSTOM_FORCE_NODFS_FLAG */
+	{
+		{
+			.vendor_id = OUI_GOOGLE,
+			.subcmd = ANDR_WIFI_SET_COUNTRY
+		},
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
+		.doit = wl_cfgvendor_set_country
+
+	},
+
 #ifdef LINKSTAT_SUPPORT
 	{
 		{
@@ -3650,6 +3756,16 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.doit = wl_cfgvendor_lstats_get_info
 	},
 #endif /* LINKSTAT_SUPPORT */
+
+	{
+		{
+			.vendor_id = OUI_GOOGLE,
+			.subcmd = DEBUG_GET_VER
+		},
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
+		.doit = wl_cfgvendor_dbg_get_version
+	},
+
 #ifdef DEBUGABILITY
 	{
 		{
@@ -3670,14 +3786,6 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
-			.subcmd = DEBUG_GET_VER
-		},
-		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
-		.doit = wl_cfgvendor_dbg_get_version
-	},
-	{
-		{
-			.vendor_id = OUI_GOOGLE,
 			.subcmd = DEBUG_GET_RING_STATUS
 		},
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
@@ -3691,6 +3799,7 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_dbg_get_ring_data
 	},
+#endif /* DEBUGABILITY */
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -3699,7 +3808,6 @@ static const struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wl_cfgvendor_dbg_get_feature
 	},
-#endif /* DEBUGABILITY */
 #ifdef DBG_PKT_MON
 	{
 		{

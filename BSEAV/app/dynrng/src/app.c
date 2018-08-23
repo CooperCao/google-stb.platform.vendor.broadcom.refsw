@@ -693,7 +693,7 @@ static void app_p_stop_streams(AppHandle app, const Scenario * pScenario)
             (wasPip && !isPip && i == 1)
             ||
             /* we have fewer active streams in the new scenario, stop the active ones from the old scenario */
-            (i >= pScenario->streamCount)
+            (i > pScenario->streamCount)
             ||
             /* the stream paths have changed, stop the old ones */
             (pScenario->streamPaths[i] && app->stream.prevPaths[i] && strcmp(pScenario->streamPaths[i], app->stream.prevPaths[i]))

@@ -1,44 +1,40 @@
-/******************************************************************************
- *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+/***************************************************************************
+ *  Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to
- *  the terms and conditions of a separate, written license agreement executed
- *  between you and Broadcom (an "Authorized License").  Except as set forth in
- *  an Authorized License, Broadcom grants no license (express or implied),
- *  right to use, or waiver of any kind with respect to the Software, and
- *  Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization,
- *  constitutes the valuable trade secrets of Broadcom, and you shall use all
- *  reasonable efforts to protect the confidentiality thereof, and to use this
- *  information only in connection with your use of Broadcom integrated circuit
- *  products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ **************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -124,8 +120,8 @@ typedef struct {
 #define BFW_VERSION_CHECK_SUBMINOR 3
 #else
 #define BFW_VERSION_CHECK_MAJOR 2
-#define BFW_VERSION_CHECK_MINOR 1
-#define BFW_VERSION_CHECK_SUBMINOR 3
+#define BFW_VERSION_CHECK_MINOR 0
+#define BFW_VERSION_CHECK_SUBMINOR 2
 #endif
 
 static BERR_Code
@@ -133,14 +129,14 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
     BSAGElib_Handle hSAGElib,
     BSAGElib_Sage_ImageHolder *image)
 {
-    BERR_Code rc = BERR_UNKNOWN;
+    BERR_Code rc = BERR_SUCCESS;
     SUIF_CommonHeader *pCommonHeader;
 
     if (hSAGElib == NULL || image == 0)
     {
        BDBG_ERR(("%s hSAGElib %p or image %p NULL", BSTD_FUNCTION, (void *)hSAGElib,(void *)image));
-       rc = BERR_INVALID_PARAMETER;
-       goto end;
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
     }
 
     pCommonHeader = &(image->header->imageHeader.common);
@@ -153,24 +149,20 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
         if( ( rc = BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps ) ) != BERR_SUCCESS )
         {
             BDBG_ERR(("couldn't read BFW version"));
-            goto end;
+            return rc;
         }
         else
         {
             BDBG_MSG(("BFW %d.%d.%d",hsmCaps.version.firmware.bseck.major, hsmCaps.version.firmware.bseck.minor, hsmCaps.version.firmware.bseck.subMinor));
             if ( BFW_VERSION_CHECK_MAJOR < hsmCaps.version.firmware.bseck.major )
             {
-                /* major version is later than required version, return success */
-                rc = BERR_SUCCESS;
-                goto end;
+                return rc;
             }
             else if ( BFW_VERSION_CHECK_MAJOR == hsmCaps.version.firmware.bseck.major )
             {
                 if ( BFW_VERSION_CHECK_MINOR < hsmCaps.version.firmware.bseck.minor )
                 {
-                    /* minor version is later than required version, return success */
-                    rc = BERR_SUCCESS;
-                    goto end;
+                    return rc;
                 }
                 else if ( BFW_VERSION_CHECK_MINOR == hsmCaps.version.firmware.bseck.minor )
                 {
@@ -178,45 +170,35 @@ BSAGElib_P_Boot_CheckFrameworkBFWVersion(
 #else
         BHSM_ModuleCapabilities hsmCaps;
         BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
-        if ( ( rc = BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps ) ) != BERR_SUCCESS )
-        {
-            BDBG_ERR(("couldn't read BFW version"));
-            goto end;
-        }
-        else
+        BHSM_GetCapabilities(hSAGElib->core_handles.hHsm, &hsmCaps );
         {
             BDBG_MSG(("BFW %d.%d.%d",hsmCaps.version.bfw.major, hsmCaps.version.bfw.minor, hsmCaps.version.bfw.subminor));
             if ( BFW_VERSION_CHECK_MAJOR < hsmCaps.version.bfw.major )
             {
-                /* major version is later than required version, return success */
-                rc = BERR_SUCCESS;
-                goto end;
+                return BERR_SUCCESS;
             }
             else if ( BFW_VERSION_CHECK_MAJOR == hsmCaps.version.bfw.major )
             {
                 if ( BFW_VERSION_CHECK_MINOR < hsmCaps.version.bfw.minor )
                 {
-                    /* minor version is later than required version, return success */
-                    rc = BERR_SUCCESS;
-                    goto end;
+                    return BERR_SUCCESS;
                 }
                 else if ( BFW_VERSION_CHECK_MINOR == hsmCaps.version.bfw.minor )
                 {
                     if ( BFW_VERSION_CHECK_SUBMINOR <= hsmCaps.version.bfw.subminor )
 #endif
                     {
-                        /* subminor version is later than or equal to required version, return success */
-                        rc = BERR_SUCCESS;
-                        goto end;
+                        return rc;
+                    }
+                    else
+                    {
+                        return BERR_NOT_SUPPORTED;
                     }
                 }
             }
-
-            /* BFW version doesn't meet the requirement of SAGE */
-            rc =  BERR_NOT_SUPPORTED;
+            return BERR_NOT_SUPPORTED;
         }
     }
-
 end:
     return rc;
 }

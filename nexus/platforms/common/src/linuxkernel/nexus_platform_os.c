@@ -522,6 +522,7 @@ static void __attribute__((no_instrument_function))
 NEXUS_Platform_P_Isr(unsigned long data)
 {
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
+    unsigned long flags;
 
     BSTD_UNUSED(data);
 
@@ -537,7 +538,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         unsigned i;
 
         /* Mask interrupts only to read current status */
-        spin_lock_irq(&state->lock);
+        spin_lock_irqsave(&state->lock, flags);
 
         for(status=0,i=0;i<NEXUS_NUM_L1_REGISTERS;i++) {
             /* swap pending and current interrupt, then clear pending  and reenable interrupts */
@@ -557,7 +558,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         }
 
         /* Restore interrupts */
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
 
         if(status==0) {
             goto done;
@@ -612,7 +613,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         }
 
         /* Now, restore any disabled virtual and shared gpio interrupts (masking not required) */
-        spin_lock_irq(&state->lock);
+        spin_lock_irqsave(&state->lock, flags);
         if (NEXUS_Platform_P_VirtualIrqSupported())
         {
             b_virtual_irq_reenable_irqs_spinlocked();
@@ -623,7 +624,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
             b_shared_gpio_reenable_irqs_spinlocked();
         }
 #endif
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
     }
 
 done:
@@ -706,6 +707,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     b_bare_os_special_interrupt_handler special_handler;
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
+    unsigned long flags;
     unsigned i;
 
     if (irqNum>=NUM_IRQS || handler_isr==NULL || !state->started) {
@@ -747,7 +749,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
         return BERR_TRACE(-1);
     }
     
-    spin_lock_irq(&state->lock);
+    spin_lock_irqsave(&state->lock, flags);
     entry->name = name;
     entry->handler = handler_isr;
     entry->context_ptr = context_ptr;
@@ -759,7 +761,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     BDBG_ASSERT(!entry->taskletEnabled);
     BDBG_ASSERT(!entry->requested);
     /* request_irq deferred to first enable. */
-    spin_unlock_irq(&state->lock);
+    spin_unlock_irqrestore(&state->lock, flags);
     
     return NEXUS_SUCCESS;
 }
@@ -802,6 +804,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
+    unsigned long flags;
 
     if (irqNum>=NUM_IRQS || !state->started) {
         return BERR_TRACE(-1);
@@ -811,7 +814,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         return BERR_TRACE(-1);
     }
     
-    spin_lock_irq(&state->lock);
+    spin_lock_irqsave(&state->lock, flags);
     state->processing[reg].IntrMaskStatus &= ~(1 << (irqNum%32));
 
     if (entry->virtual)
@@ -820,7 +823,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         entry->enabled = true;
         entry->taskletEnabled = false; /* leave tasklet disabled, because all handling done in another layer */
         entry->requested = false; /* leave requested false, because all handling done in another layer */
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
         return 0;
     }
 
@@ -842,15 +845,15 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         irqflags |= IRQF_TRIGGER_HIGH;
 #endif
 
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
         BDBG_MSG(("connect interrupt %s %d (%d, %p)", entry->name, LINUX_IRQ(irqNum), entry->shared, entry->special_handler));
         entry->taskletEnabled = true; /* set before call request_irq as irq can immediately fire */
         if (request_irq(LINUX_IRQ(irqNum), NEXUS_Platform_P_LinuxIsr, irqflags, entry->name, entry)) {
             /* disable */
-            spin_lock_irq(&state->lock);
+            spin_lock_irqsave(&state->lock, flags);
             entry->handler = NULL;
             state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
-            spin_unlock_irq(&state->lock);
+            spin_unlock_irqrestore(&state->lock, flags);
             return BERR_TRACE(-1);
         }
         entry->requested = true;
@@ -869,7 +872,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         }
         entry->enabled = true;
     }
-    spin_unlock_irq(&state->lock);
+    spin_unlock_irqrestore(&state->lock, flags);
     return 0;
 }
 
@@ -878,6 +881,7 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
+    unsigned long flags;
 
     if (irqNum>=NUM_IRQS) {
         return ;
@@ -891,17 +895,17 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
     if (entry->virtual)
     {
         BDBG_MSG(("disable virtual interrupt %d", LINUX_IRQ(irqNum)));
-        spin_lock_irq(&state->lock);
+        spin_lock_irqsave(&state->lock, flags);
         state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
         entry->enabled = false;
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
         return;
     }
 
     if (entry->enabled) {
         BDBG_ASSERT(entry->requested);
         BDBG_MSG(("disable interrupt %d", LINUX_IRQ(irqNum)));
-        spin_lock_irq(&state->lock);
+        spin_lock_irqsave(&state->lock, flags);
         state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
         if (!entry->special_handler) {
             /* If the TH has received the interrupt but it has not been processed by the tasklet, don't nest the disable call. */
@@ -912,7 +916,7 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
             }
         }
         entry->enabled = false;
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
     }
 }
 
@@ -922,6 +926,7 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
+    unsigned long flags;
 
     if(irqNum>=NUM_IRQS) {
         rc = BERR_TRACE(-1);
@@ -933,7 +938,7 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
         return;
     }
     
-    spin_lock_irq(&state->lock);
+    spin_lock_irqsave(&state->lock, flags);
     BDBG_MSG(("disconnect interrupt %d", LINUX_IRQ(irqNum)));
     entry->handler = NULL;
     if (entry->enabled) {
@@ -943,12 +948,12 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
     if (entry->requested) {
         entry->requested = false;
         entry->taskletEnabled = false;
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
         /* kernel can sleep in free_irq, so must release the spinlock first */
         free_irq(LINUX_IRQ(irqNum), entry);
     }
     else {
-        spin_unlock_irq(&state->lock);
+        spin_unlock_irqrestore(&state->lock, flags);
     }
 }
 
@@ -999,9 +1004,9 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
 #endif
     {
         /* this spinlock synchronizes with any kernel use of a set of shared registers. */
-        spin_lock_irq(&brcm_magnum_spinlock);
+        spin_lock_irqsave(&brcm_magnum_spinlock, flags);
         preInitState->privateState.regSettings.systemUpdate32_isrsafe(preInitState->hReg, reg, mask, value, false);
-        spin_unlock_irq(&brcm_magnum_spinlock);
+        spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
     }
     return;
 }
@@ -1192,22 +1197,39 @@ static unsigned NEXUS_Platform_P_ParseDeviceTreeCompatible(const char *compatibl
             {
                 const char *pname;
                 int *val;
-                unsigned int len;
+                int len;
 
                 val = (int*)fdt_getprop_by_offset(initial_boot_params, prop_offset, &pname, &len);
                 if (val != NULL) {
-                    unsigned value = fdt32_to_cpu(*val);
                     if (!strcmp(pname, "brcm,value")) {
-                        pMapSettings[cnt].value = value;
+                        unsigned pstate;
+                        for (pstate=0; pstate<BCHP_Pstate_eMax && len > 0; pstate++) {
+                            pMapSettings[cnt].value[pstate] = fdt32_to_cpu(*val++);
+                            len -= 4;
+                        }
+                        if (pstate < BCHP_Pstate_eMax) {
+                            unsigned i;
+                            for (i=pstate; i<BCHP_Pstate_eMax; i++) {
+                                pMapSettings[cnt].value[i] = pMapSettings[cnt].value[pstate-1];
+                            }
+                        }
+                    }
+                    if (!strcmp(pname, "brcm,core-id")) {
+                        unsigned id;
+                        for (id=0; id<BCHP_MAX_CORES; id++) {
+                            pMapSettings[cnt].core[id] = fdt32_to_cpu(*val++);
+                            len -= 4;
+                            if (len <= 0) break;
+                        }
                     }
                     else if (!strcmp(pname, "bit-shift")) {
-                        pMapSettings[cnt].shift = value;
+                        pMapSettings[cnt].shift = fdt32_to_cpu(*val);
                     }
                     else if (!strcmp(pname, "bit-mask")) {
-                        pMapSettings[cnt].mask = value;
+                        pMapSettings[cnt].mask = fdt32_to_cpu(*val);
                     }
                     else if (!strcmp(pname, "reg")) {
-                        pMapSettings[cnt].reg = value;
+                        pMapSettings[cnt].reg = fdt32_to_cpu(*val);
                     }
                 }
             }
@@ -1401,4 +1423,71 @@ bool NEXUS_Platform_P_LazyUnmap(void)
 
 void nexus_platform_p_update_all_mmap_access(void)
 {
+}
+
+NEXUS_Error NEXUS_Platform_GetPstate(unsigned coreId, BCHP_Pstate *pState, unsigned *info)
+{
+#if (defined(CONFIG_ARM_BRCMSTB_AVS_CPUFREQ) && defined(CONFIG_ARM_SCMI_CPUFREQ))
+    BERR_Code rc = BERR_SUCCESS;
+    int result = brcmstb_stb_dvfs_get_pstate(coreId, pState, info);
+    if (result) {
+        if (result > 0)
+            BDBG_ERR(("AVS Failed with error %d", result));
+        else
+            BDBG_ERR(("Error Communicating to AVS (%d)", result));
+        rc = BERR_TRACE(BERR_OS_ERROR);
+    }
+    BDBG_MSG(("Core %u, Pstate %u, info 0x%08x", coreId, *pState, *info));
+    return rc;
+#else
+    BSTD_UNUSED(coreId);
+    BSTD_UNUSED(pState);
+    BSTD_UNUSED(info);
+    return BERR_NOT_SUPPORTED;
+#endif
+}
+
+NEXUS_Error NEXUS_Platform_SetPstate(unsigned coreId, BCHP_Pstate pState, unsigned num, const unsigned *command)
+{
+#if (defined(CONFIG_ARM_BRCMSTB_AVS_CPUFREQ) && defined(CONFIG_ARM_SCMI_CPUFREQ))
+    BERR_Code rc = BERR_SUCCESS;
+    int result;
+    BDBG_MSG(("Core %u, Pstate %u, num_writes %u", coreId, pState, num));
+    BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[0], command[1], command[2]));
+    BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[3], command[4], command[5]));
+    BDBG_MSG(("0x%08x, 0x%08x, 0x%08x", command[6], command[7], command[8]));
+    result = brcmstb_stb_dvfs_set_pstate(coreId, pState, num, command);
+    if (result) {
+        if (result > 0)
+            BDBG_ERR(("AVS Failed with error %d", result));
+        else
+            BDBG_ERR(("Error Communicating to AVS (%d)", result));
+        rc = BERR_TRACE(BERR_OS_ERROR);
+    }
+    return rc;
+#else
+    BSTD_UNUSED(coreId);
+    BSTD_UNUSED(pState);
+    BSTD_UNUSED(num);
+    BSTD_UNUSED(command);
+    return BERR_NOT_SUPPORTED;
+#endif
+}
+
+NEXUS_Error NEXUS_Platform_GetAvsData(unsigned idx, unsigned *value)
+{
+#if defined(CONFIG_ARM_BRCMSTB_AVS_CPUFREQ) && defined(CONFIG_ARM_SCMI_CPUFREQ)
+    BERR_Code rc = BERR_SUCCESS;
+    int result;
+    result = brcmstb_stb_avs_read_debug(idx, value);
+    if (result) {
+        rc = BERR_TRACE(BERR_OS_ERROR);
+    }
+    BDBG_MSG(("NEXUS_Platform_GetAvsData : index %u, value %u ", idx, *value));
+    return rc;
+#else
+    BSTD_UNUSED(idx);
+    BSTD_UNUSED(value);
+    return BERR_NOT_SUPPORTED;
+#endif
 }

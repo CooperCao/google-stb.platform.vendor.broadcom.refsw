@@ -53,7 +53,14 @@ BERR_Code BDSP_Raaga_P_AckInstall(
 BERR_Code BDSP_Raaga_P_AckUninstall(
     void *pDeviceHandle
 );
-
+BERR_Code BDSP_Raaga_P_DeviceInterruptInstall (
+  void        *pDeviceHandle,
+  unsigned    dspIndex
+);
+BERR_Code BDSP_Raaga_P_DeviceInterruptUninstall (
+  void        *pDeviceHandle,
+  unsigned     dspIndex
+);
 BERR_Code BDSP_Raaga_P_InterruptInstall (
     void    *pTaskHandle        /* [in] Raptor Channel handle */
 );

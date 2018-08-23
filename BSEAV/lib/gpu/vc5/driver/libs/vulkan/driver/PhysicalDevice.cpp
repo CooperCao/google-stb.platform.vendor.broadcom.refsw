@@ -1,5 +1,5 @@
 /******************************************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *****************************************************************************************************/
 
 #include "AllObjects.h"
@@ -678,7 +678,7 @@ void PhysicalDevice::InitFeatures()
    m_features.depthBiasClamp                          = true;
    m_features.fillModeNonSolid                        = true;
    m_features.depthBounds                             = false;
-   m_features.wideLines                               = true;
+   m_features.wideLines                               = false;
    m_features.largePoints                             = true;
    m_features.alphaToOne                              = false;
    m_features.multiViewport                           = false;
@@ -913,10 +913,10 @@ void PhysicalDevice::InitLimits()
    m_limits.discreteQueuePriorities                          = 2;
    m_limits.pointSizeRange[0]                                = V3D_POINT_LINE_GRANULARITY;
    m_limits.pointSizeRange[1]                                = V3D_MAX_POINT_SIZE;
-   m_limits.lineWidthRange[0]                                = V3D_POINT_LINE_GRANULARITY;
-   m_limits.lineWidthRange[1]                                = V3D_MAX_LINE_WIDTH;
+   m_limits.lineWidthRange[0]                                = 1.0f;
+   m_limits.lineWidthRange[1]                                = 1.0f;
    m_limits.pointSizeGranularity                             = V3D_POINT_LINE_GRANULARITY;
-   m_limits.lineWidthGranularity                             = V3D_POINT_LINE_GRANULARITY;
+   m_limits.lineWidthGranularity                             = 0.0f;
    m_limits.strictLines                                      = true; // Wide lines rasterised with perp end caps
    m_limits.standardSampleLocations                          = V3D_VER_AT_LEAST(4,2,14,0);
    m_limits.optimalBufferCopyOffsetAlignment                 = 32;  // TODO : what should this be

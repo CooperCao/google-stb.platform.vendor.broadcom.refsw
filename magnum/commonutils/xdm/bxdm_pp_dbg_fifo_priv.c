@@ -1,43 +1,39 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
- * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to
- * the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied),
- * right to use, or waiver of any kind with respect to the Software, and
- * Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
- * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
- * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization,
- * constitutes the valuable trade secrets of Broadcom, and you shall use all
- * reasonable efforts to protect the confidentiality thereof, and to use this
- * information only in connection with your use of Broadcom integrated circuit
- * products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
- * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
- * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
- * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
- * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
- * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
- * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
- * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
- * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
- * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
- * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
@@ -59,7 +55,7 @@ BDBG_MODULE(BXDM_PPDBG_FIFO_PRIV);
 
 #if BDBG_DEBUG_BUILD
 
-static void BXDM_PPDFIFO_S_GetDefaultMetaData_isr(
+static void BXDM_PPDFIFO_S_GetDefaultMetaData(
    const BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_P_Picture_Context * pstPicture,
    BXDM_P_DebugFifo_Entry *pstEntry
@@ -113,7 +109,7 @@ BERR_Code BXDM_PPDFIFO_P_QueDBG_isr(
       goto done;
    }
 
-   BXDM_PPDFIFO_S_GetDefaultMetaData_isr( hXdmPP, NULL, pstEntry );
+   BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, NULL, pstEntry );
    pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eDebugInfo;
 
    pstEntry->data.stDebugInfo = *pstDebugInfo;
@@ -156,7 +152,7 @@ void BXDM_PPDFIFO_P_QueMFD_isr(
          goto done;
       }
 
-      BXDM_PPDFIFO_S_GetDefaultMetaData_isr( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture, pstEntry );
+      BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture, pstEntry );
       pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eMFD;
 
       pstEntry->data.stMFD = *pMFDPicture;
@@ -229,7 +225,7 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
    {
       BXDM_DebugFifo_UnifiedPicture * pUniP = (BXDM_DebugFifo_UnifiedPicture *)&pstEntry->data.stUniPic;
 
-      BXDM_PPDFIFO_S_GetDefaultMetaData_isr( hXdmPP, pstPicture, pstEntry );
+      BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, pstPicture, pstEntry );
       pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eUnifiedPicture;
 
       pUniP->stUnifiedPicture = *pstUnified;
@@ -266,14 +262,14 @@ void BXDM_PPDFIFO_P_QueUnifiedPicture_isr(
          if ( 0 !=  hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount )
          {
             /* determine Average dPTS (using FRD parameters) ... */
-            BXDM_PPFP_P_FixPtDiv_isrsafe(
+            BXDM_PPFP_P_FixPtDiv_isr(
                   &hXdmPP->stDMState.stDecode.stFRDStats.stDeltaPTSRunningSum,
                   hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount,
                   &pUniP->stDeltaPTSAvg
                   );
 
             /* Convert the fractional part of stDeltaPTSAvg to a base 10 value for display. */
-            BXDM_PPFP_P_FixPtBinaryFractionToBase10_isrsafe( &pUniP->stDeltaPTSAvg, 2, &pUniP->uiAverageFractionBase10 );
+            BXDM_PPFP_P_FixPtBinaryFractionToBase10_isr( &pUniP->stDeltaPTSAvg, 2, &pUniP->uiAverageFractionBase10 );
          }
          else
          {
@@ -428,7 +424,7 @@ void BXDM_PPDFIFO_P_QueDMConfig_isr(
       goto done;
    }
 
-   BXDM_PPDFIFO_S_GetDefaultMetaData_isr( hXdmPP, NULL, pstEntry );
+   BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, NULL, pstEntry );
    pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eConfig;
 
    pstEntry->data.stConfigInfo.bLastCall = bLastCall;
@@ -785,7 +781,7 @@ void BXDM_PPDFIFO_P_QueString_isr(
       va_list argList;
 
 
-      BXDM_PPDFIFO_S_GetDefaultMetaData_isr( hXdmPP, pstPicture, pstEntry );
+      BXDM_PPDFIFO_S_GetDefaultMetaData( hXdmPP, pstPicture, pstEntry );
       pstEntry->stMetadata.eType = BXDM_DebugFifo_EntryType_eString;
 
       pstEntry->data.stString.eType = ( eMessageType < BXDM_Debug_MsgType_eMax ) ? eMessageType : BXDM_Debug_MsgType_eUnKnown ;

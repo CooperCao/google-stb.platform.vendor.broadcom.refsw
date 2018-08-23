@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <limits.h>
 #include <assert.h>
@@ -2712,7 +2712,7 @@ static bool write_gl_shader_record(
    }
 
    // Write out tess or geom part.
-   if (link_data->data.has_tng)
+   if (link_data->data.has_tess || link_data->data.has_geom)
    {
       unsigned num_patch_vertices = link_data->data.has_tess ? state->num_patch_vertices : 0u;
 
@@ -3410,7 +3410,7 @@ static bool glxx_hw_update_z_prepass_state(
 
 #if V3D_VER_AT_LEAST(4,1,34,0)
    // disable z-only for TnG
-   if (link_data->data.has_tng)
+   if (link_data->data.has_tess || link_data->data.has_geom)
       goto disallowed;
 #endif
 

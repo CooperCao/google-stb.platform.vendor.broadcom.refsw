@@ -106,6 +106,7 @@ typedef enum BDSP_SystemImgId
     BDSP_SystemImgId_eSystemRdbvars,
     BDSP_SystemImgId_eSyslibCode,
     BDSP_SystemImgId_eAlgolibCode,
+    BDSP_SystemImgId_eAlgolibTable,
     BDSP_SystemImgId_eCommonIdsCode,
     BDSP_SystemImgId_eCommonVideoEncodeIdsCode,
     BDSP_SystemImgId_eCommonVideoEncodeIdsInterframe,

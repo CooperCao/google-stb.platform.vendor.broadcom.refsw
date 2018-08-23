@@ -215,6 +215,15 @@ BERR_Code BDSP_Resume(
 
 /***************************************************************************
 Summary:
+Open DSP Soft FMM
+***************************************************************************/
+BERR_Code BDSP_SoftFMM_Open(
+    BDSP_Handle handle,                 /* [in] DSP device handle */
+    BDSP_SoftFMMHandle *pSoftFMM        /* [out] Soft FMM handle */
+    );
+
+/***************************************************************************
+Summary:
     Algorithm info
 ***************************************************************************/
 typedef struct BDSP_AlgorithmInfo
@@ -389,5 +398,53 @@ BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
         BDSP_Handle hDsp,
         void *pSettingsBuffer,      /* [out] */
         size_t settingsBufferSize   /*[In]*/
+);
+/***********************************************************************
+Summary:
+    Settings to process Platform Authorization Key (PAK)
+***********************************************************************/
+typedef struct BDSP_ProcessPAKSettings
+{
+    BDSP_MMA_Memory pakMemory;
+    size_t          pakSize;
+    BDSP_MMA_Memory drmMemory;
+    size_t          drmSize;
+} BDSP_ProcessPAKSettings;
+
+/*********************************************************************
+Summary:
+    The status of the processing of PAK
+**********************************************************************/
+typedef struct BDSP_ProcessPAKStatus
+{
+    bool valid;     /* true if the PAK file is valid */
+} BDSP_ProcessPAKStatus;
+
+/*********************************************************************************************
+Summary:
+    Initialize PAK Settings
+**********************************************************************************************/
+void BDSP_GetDefaultProcessPAKSettings(
+    BDSP_ProcessPAKSettings *pSettings /* [out] */
+    );
+
+/***********************************************************************************
+Summary:
+    Evaluate audio license status through Platform Authorization Key(PAK) method
+
+Description:
+    This function helps to find out the license status of the platform.
+    It must be called after the Raaga device open and before start of any audio task.
+    The output parameter pPAKOutput contains modified input PAK data that is to be
+    used as an input PAK for subsequent PAK calls.
+Returns:
+    BERR_SUCCESS - If PAK execution was successful
+
+See Also:
+************************************************************************************/
+BERR_Code BDSP_ProcessPAK(
+    BDSP_Handle                     hDsp,
+    const BDSP_ProcessPAKSettings  *pSettings,
+    BDSP_ProcessPAKStatus          *pStatus     /* [out] */
 );
 #endif

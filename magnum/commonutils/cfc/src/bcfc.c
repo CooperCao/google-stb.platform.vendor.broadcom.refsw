@@ -1285,7 +1285,7 @@ bool BCFC_UpdateCfg_isr
             }
             else
           #endif /* #if BCHP_CMP_0_V0_NL_CSC_CTRL */
-            if (pCfc->stCapability.stBits.bMb && (bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch))
+            if (pCfc->stCapability.stBits.bMb && (bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch || bForceNotBypass))
             {
                 /* note: if pCfc->stCapability.stBits.bMb=true, we should use pColorSpaceExtIn->stM3x4 for Ma and
                  * pColorSpaceExtOut->stM3x4 for Mc directly
@@ -1350,15 +1350,14 @@ bool BCFC_UpdateCfg_isr
 
                 bDone = true;
             }
-            else if (pCfc->stCapability.stBits.bMb) /* && !(bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch) */
+            else if (pCfc->stCapability.stBits.bMb) /* && !(bHdrOrBt2020 || pCfc->bForceRgbPrimaryMatch || bForceNotBypass) */
             {
                 pCfc->pMa = &(s_Csc3x4Identity);
                 pCfc->stMb = s_Csc3x3Identity;
                 /* C = Cout * Ain */
                 BCFC_Csc_Mult_isrsafe(&(pColorSpaceExtOut->stM3x4.m[0][0]), 4, &(pColorSpaceExtIn->stM3x4.m[0][0]), 4, &(pCfc->stMc.m[0][0]));
               #if (BCFC_VERSION >= BCFC_VER_2) /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
-                pColorSpaceExtIn->stCfg.stBits.SelTF = BCFC_NL2L_BYPASS;
-                pCfc->bForceBypassL2NL = true; /* don't force ColorSpaceExtOut->stCfg.stBits.SelTF, it is shared by video and gfx win */
+                pCfc->bForceBypassTfTbl = true; /* don't ColorSpaceExtIn/Out, it would be sticky, or affected by another win */
                 pCfc->stLRangeAdj.pTable = &s_LRangeAdj_Identity;
                 bRamLutCfgDirty = true; /* pCfc->pTfConvRamLuts will be *_Tbl[eBt1886][eBt1886] */
               #endif

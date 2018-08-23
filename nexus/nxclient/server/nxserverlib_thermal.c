@@ -451,6 +451,10 @@ static NEXUS_Error set_display_format(cooling_agent *agent, unsigned level)
 
     BSTD_UNUSED(agent);
 
+    if (g_thermal_state.server->settings.externalApp.enabled) {
+        return NEXUS_SUCCESS;
+    }
+
     for(i=0; i<NXCLIENT_MAX_SESSIONS; i++) {
         if(g_thermal_state.server->session[i] && g_thermal_state.server->session[i]->hdmiOutput) {
             session = g_thermal_state.server->session[i];

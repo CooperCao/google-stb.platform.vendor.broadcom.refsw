@@ -58,7 +58,7 @@ typedef struct BAPE_BufferGroupFilter {
     unsigned lowWater;
 } BAPE_BufferGroupFilter;
 
-BAPE_BufferGroupFilterHandle BAPE_BufferGroupFilter_P_Open(BAPE_Handle hDevice, BAPE_BufferGroupHandle hUpstreamBG, unsigned bufferSize, BAPE_BufferGroupFilterFn *pFunc, void *ctx)
+BAPE_BufferGroupFilterHandle BAPE_BufferGroupFilter_P_Open(BAPE_Handle hDevice, BAPE_BufferGroupHandle hUpstreamBG, BAPE_BufferGroupFilterFn *pFunc, void *ctx)
 {
     BAPE_BufferGroupFilterHandle hFilter;
     BERR_Code rc;
@@ -73,7 +73,7 @@ BAPE_BufferGroupFilterHandle BAPE_BufferGroupFilter_P_Open(BAPE_Handle hDevice, 
     BAPE_BufferGroup_GetDefaultOpenSettings(&settings);
     settings.interleaved = true;
     settings.numChannels = 1;
-    settings.bufferSize = bufferSize;
+    settings.bufferSize = 65536;
     rc = BAPE_BufferGroup_Open(hDevice, &settings, &hFilter->hBG);
     if (rc != BERR_SUCCESS) {
         BKNI_Free(hFilter);
@@ -108,6 +108,8 @@ BERR_Code BAPE_BufferGroupFilter_P_Read_isr(BAPE_BufferGroupFilterHandle hFilter
     }
     if (pGroupDescriptor->bufferSize + pGroupDescriptor->wrapBufferSize < hFilter->lowWater) {
         BAPE_BufferDescriptor upstreamDesc, desc;
+        size_t readSize = 0, writeSize = 0;
+        unsigned inSize = 0, outSize = 0;
         rc = BAPE_BufferGroup_Read_isr(hFilter->hUpstreamBG, &upstreamDesc);
         if (rc != BERR_SUCCESS) {
             return BERR_TRACE(rc);
@@ -116,21 +118,77 @@ BERR_Code BAPE_BufferGroupFilter_P_Read_isr(BAPE_BufferGroupFilterHandle hFilter
         if (rc != BERR_SUCCESS) {
             return BERR_TRACE(rc);
         }
-        if (upstreamDesc.bufferSize) {
-            unsigned inSize = 0, outSize = 0;
-            (*hFilter->pFunc)(hFilter->ctx, &upstreamDesc,
-                              upstreamDesc.buffers[0].pBuffer, upstreamDesc.bufferSize,
-                              upstreamDesc.buffers[0].pWrapBuffer, upstreamDesc.wrapBufferSize,
-                              desc.buffers[0].pBuffer, desc.bufferSize,
-                              desc.buffers[0].pWrapBuffer, desc.wrapBufferSize,
-                              &inSize, &outSize);
-            if (inSize) {
-                BAPE_BufferGroup_ReadComplete_isr(hFilter->hUpstreamBG, inSize);
+        while (desc.bufferSize) {
+            /* transfer data */
+            if (upstreamDesc.bufferSize) {
+                (*hFilter->pFunc)(hFilter->ctx, &upstreamDesc, upstreamDesc.buffers[0].pBuffer, upstreamDesc.bufferSize, desc.buffers[0].pBuffer, desc.bufferSize, &inSize, &outSize);
+                BDBG_ASSERT(inSize <= upstreamDesc.bufferSize);
+                BDBG_ASSERT(outSize <= desc.bufferSize);
+                BDBG_ASSERT((inSize == 0 && outSize == 0) || (inSize > 0 && outSize > 0));
+                if (inSize == 0) {
+                    goto done;
+                }
+                upstreamDesc.buffers[0].pBuffer = (uint8_t *)upstreamDesc.buffers[0].pBuffer + inSize;
+                upstreamDesc.bufferSize -= inSize;
             }
-            if (outSize) {
-                BAPE_BufferGroup_WriteComplete_isr(hFilter->hBG, outSize);
-                rc = BAPE_BufferGroup_Read_isr(hFilter->hBG, pGroupDescriptor);
+            else if (upstreamDesc.wrapBufferSize) {
+                (*hFilter->pFunc)(hFilter->ctx, &upstreamDesc, upstreamDesc.buffers[0].pWrapBuffer, upstreamDesc.wrapBufferSize, desc.buffers[0].pBuffer, desc.bufferSize, &inSize, &outSize);
+                BDBG_ASSERT(inSize <= upstreamDesc.wrapBufferSize);
+                BDBG_ASSERT(outSize <= desc.bufferSize);
+                BDBG_ASSERT((inSize == 0 && outSize == 0) || (inSize > 0 && outSize > 0));
+                if (inSize == 0) {
+                    goto done;
+                }
+                upstreamDesc.buffers[0].pWrapBuffer = (uint8_t *)upstreamDesc.buffers[0].pWrapBuffer + inSize;
+                upstreamDesc.wrapBufferSize -= inSize;
             }
+            else {
+                goto done;
+            }
+            desc.buffers[0].pBuffer = (uint8_t *)desc.buffers[0].pBuffer + outSize;
+            desc.bufferSize -= outSize;
+            readSize += inSize;
+            writeSize += outSize;
+        }
+        while (desc.wrapBufferSize) {
+            /* transfer data */
+            if (upstreamDesc.bufferSize) {
+                (*hFilter->pFunc)(hFilter->ctx, &upstreamDesc, upstreamDesc.buffers[0].pBuffer, upstreamDesc.bufferSize, desc.buffers[0].pWrapBuffer, desc.wrapBufferSize, &inSize, &outSize);
+                BDBG_ASSERT(inSize <= upstreamDesc.bufferSize);
+                BDBG_ASSERT(outSize <= desc.wrapBufferSize);
+                BDBG_ASSERT((inSize == 0 && outSize == 0) || (inSize > 0 && outSize > 0));
+                if (inSize == 0) {
+                    goto done;
+                }
+                upstreamDesc.buffers[0].pBuffer = (uint8_t *)upstreamDesc.buffers[0].pBuffer + inSize;
+                upstreamDesc.bufferSize -= inSize;
+            }
+            else if (upstreamDesc.wrapBufferSize) {
+                (*hFilter->pFunc)(hFilter->ctx, &upstreamDesc, upstreamDesc.buffers[0].pWrapBuffer, upstreamDesc.wrapBufferSize, desc.buffers[0].pWrapBuffer, desc.wrapBufferSize, &inSize, &outSize);
+                BDBG_ASSERT(inSize <= upstreamDesc.wrapBufferSize);
+                BDBG_ASSERT(outSize <= desc.wrapBufferSize);
+                BDBG_ASSERT((inSize == 0 && outSize == 0) || (inSize > 0 && outSize > 0));
+                if (inSize == 0) {
+                    goto done;
+                }
+                upstreamDesc.buffers[0].pWrapBuffer = (uint8_t *)upstreamDesc.buffers[0].pWrapBuffer + inSize;
+                upstreamDesc.wrapBufferSize -= inSize;
+            }
+            else {
+                goto done;
+            }
+            desc.buffers[0].pWrapBuffer = (uint8_t *)desc.buffers[0].pWrapBuffer + outSize;
+            desc.wrapBufferSize -= outSize;
+            readSize += inSize;
+            writeSize += outSize;
+        }
+    done:
+        if (readSize) {
+            BAPE_BufferGroup_ReadComplete_isr(hFilter->hUpstreamBG, readSize);
+        }
+        if (writeSize) {
+            BAPE_BufferGroup_WriteComplete_isr(hFilter->hBG, writeSize);
+            rc = BAPE_BufferGroup_Read_isr(hFilter->hBG, pGroupDescriptor);
         }
     }
     return rc;

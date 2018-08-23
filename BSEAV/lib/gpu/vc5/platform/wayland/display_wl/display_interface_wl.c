@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  ******************************************************************************/
 #include "display_interface_wl.h"
 
@@ -19,8 +19,6 @@ typedef struct WlDisplayInterface
    const FenceInterface *fence_interface;
    WlWindow window;
 
-   pthread_t thread;
-   bool stop;
    pthread_mutex_t mutex;
    size_t buffers;
    DisplayItem displayed[0]; /* variable size array */
@@ -99,44 +97,31 @@ static bool wait_sync(void *context)
    return WaitWlFrame(&self->window);
 }
 
-static void stop(void *context)
-{
-   WlDisplayInterface *self = (WlDisplayInterface *)context;
-
-   /* stop the buffer release thread */
-   self->stop = true;
-   wl_display_roundtrip_queue(self->window.client->display,
-         self->window.release_events);
-   pthread_join(self->thread, NULL);
-
-   /* signal any remaining fences */
-   pthread_mutex_lock(&self->mutex);
-   for (unsigned i = 0; i < self->buffers; i++)
-   {
-      FenceInterface_Signal(self->fence_interface, self->displayed[i].fence);
-      self->displayed[i].fence = self->fence_interface->invalid_fence;
-   }
-   pthread_mutex_unlock(&self->mutex);
-}
-
 static void destroy(void *context)
 {
    WlDisplayInterface *self = (WlDisplayInterface *)context;
    if (self)
    {
-      stop(self);
-      pthread_mutex_destroy(&self->mutex);
       DestroyWlWindow(&self->window);
       free(self);
    }
 }
 
-static void *release_thread_func(void *p)
+static void release(void *context)
 {
-   WlDisplayInterface *self = (WlDisplayInterface *)p;
-   while(!self->stop && WaitWlRelease(&self->window, /*block=*/true) >= 0)
-      continue;
-   return NULL;
+   WlDisplayInterface *self = (WlDisplayInterface *)context;
+   WaitWlRelease(&self->window, /*block=*/false);
+}
+
+static void stop(void *context)
+{
+   WlDisplayInterface *self = (WlDisplayInterface *)context;
+   /* signal any remaining fences */
+   for (unsigned i = 0; i < self->buffers; i++)
+   {
+      FenceInterface_Signal(self->fence_interface, self->displayed[i].fence);
+      self->displayed[i].fence = self->fence_interface->invalid_fence;
+   }
 }
 
 bool DisplayInterface_InitWayland(DisplayInterface *di, WlClient *client,
@@ -145,43 +130,28 @@ bool DisplayInterface_InitWayland(DisplayInterface *di, WlClient *client,
    WlDisplayInterface *self;
    size_t size = sizeof(*self) + buffers * sizeof(self->displayed[0]);
    self = calloc(1, size);
-   if (!self)
-      goto end;
+   if (self && CreateWlWindow(&self->window, client, window))
+   {
+      self->client = client;
+      self->fence_interface = fi;
 
-   if (!CreateWlWindow(&self->window, client, window))
-      goto cleanup_self;
+      pthread_mutex_init(&self->mutex, NULL);
+      self->buffers = buffers;
+      for (unsigned i = 0; i < buffers; i++)
+         self->displayed[i].fence = fi->invalid_fence;
 
-   if (pthread_mutex_init(&self->mutex, NULL) != 0)
-      goto cleanup_window;
-
-   self->stop = false;
-   if (pthread_create(&self->thread, NULL, release_thread_func, self) != 0)
-      goto cleanup_mutex;
-
-   self->client = client;
-   self->fence_interface = fi;
-   self->buffers = buffers;
-   for (unsigned i = 0; i < buffers; i++)
-      self->displayed[i].fence = fi->invalid_fence;
-
-   di->base.context = self;
-   di->base.destroy = destroy;
-   di->display = display;
-   di->wait_sync = wait_sync;
-   di->stop = stop;
-   goto end;
-
-cleanup_mutex:
-   pthread_mutex_destroy(&self->mutex);
-
-cleanup_window:
-   DestroyWlWindow(&self->window);
-
-cleanup_self:
-   free(self);
-   self = NULL;
-
-end:
+      di->base.context = self;
+      di->base.destroy = destroy;
+      di->display = display;
+      di->wait_sync = wait_sync;
+      di->release = release;
+      di->stop = stop;
+   }
+   else
+   {
+      free(self);
+      self = NULL;
+   }
    return self != NULL;
 }
 

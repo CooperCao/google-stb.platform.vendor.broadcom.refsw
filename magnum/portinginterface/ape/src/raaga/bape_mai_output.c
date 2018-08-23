@@ -1659,22 +1659,8 @@ parityodd(uint32_t v)
 }
 #endif
 
-#define READBYTE() (inMainCount ? (inMainCount--, *pInMain++) : *pInWrap++)
-#define WRITEBYTE(v) if (outMainCount) { \
-    outMainCount--; \
-    *pOutMain++ = (v); \
-} \
-else { \
-    *pOutWrap++ = (v); \
-}
-
 static void
-BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc,
-                                     uint8_t *pInMain, unsigned inMainCount,
-                                     uint8_t *pInWrap, unsigned inWrapCount,
-                                     uint8_t *pOutMain, unsigned outMainCount,
-                                     uint8_t *pOutWrap, unsigned outWrapCount,
-                                     unsigned *inSize, unsigned *outSize)
+BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc, uint8_t *pIn, unsigned inCount, uint8_t *pOut, unsigned outCount, unsigned *inSize, unsigned *outSize)
 {
     unsigned bytesPerSample;
     unsigned framesToCopy;
@@ -1688,21 +1674,23 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc,
         bytesPerSample = 2;
         break;
     case 24:
+        bytesPerSample = 3;
+        break;
     case 32:
         bytesPerSample = 4;
         break;
     default:
         BDBG_ASSERT(0);
     }
-    framesToCopy = (inMainCount + inWrapCount) / (bytesPerSample * handle->spdif.subFrames);
-    if (framesToCopy > (outMainCount + outWrapCount) / (4 * handle->spdif.subFrames)) {
-        framesToCopy = (outMainCount + outWrapCount) / (4 * handle->spdif.subFrames);
+    framesToCopy = inCount / (bytesPerSample * handle->spdif.subFrames);
+    if (framesToCopy > outCount / (4 * handle->spdif.subFrames)) {
+        framesToCopy = outCount / (4 * handle->spdif.subFrames);
     }
     totalBytesRead = framesToCopy * bytesPerSample * handle->spdif.subFrames;
     totalBytesWritten = framesToCopy * 4 * handle->spdif.subFrames;
     /*
      * assume host order, 24 bit, signed, HDMI_MAI_CONFIG.MAI_BIT_REVERSE == 1, DVP_CFG_MAI0_CTL.PAREN == 1
-     * PCUV LLLL LLLL LLLL LLLL 0000 0000 'M or B' PCUV RRRR RRRR RRRR RRRR 0000 0000 'W'
+     * PCUV LLLL LLLL LLLL LLLL 0000 0000 'M or B' PCUV RRRR RRRR RRRR RRRR 'W'
      * 'M' 4 (or 0)
      * 'B' 1 (or f)
      * 'W' 2 (or same as subframe 0)
@@ -1735,20 +1723,26 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc,
             uint32_t samp;
             switch (bytesPerSample) {
             case 1:
-                samp = READBYTE();
+                samp = *pIn++;
                 samp = (samp << 20) | flags;
                 break;
             case 2:
-                samp = READBYTE();
-                samp |= READBYTE() << 8;
+                samp = *pIn++;
+                samp |= (*pIn++) << 8;
                 samp = (samp << 12) | flags;
                 break;
+            case 3:
+                samp = *pIn++;
+                samp |= (*pIn++) << 8;
+                samp |= (*pIn++) << 16;
+                samp = (samp << 8) | flags;
+                break;
             case 4:
-                samp = READBYTE(); /* skip LSB */
-                samp = READBYTE();
-                samp |= READBYTE() << 8;
-                samp |= READBYTE() << 16;
-                samp = (samp << 4) | flags;
+                pIn++; /* skip LSB */
+                samp = *pIn++;
+                samp |= (*pIn++) << 8;
+                samp |= (*pIn++) << 16;
+                samp = (samp << 8) | flags;
                 break;
             }
 
@@ -1757,11 +1751,9 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc,
                 samp |= 0x80000000;
             }
 #endif
-            WRITEBYTE(samp);
-            WRITEBYTE(samp >> 8);
-            WRITEBYTE(samp >> 16);
-            WRITEBYTE(samp >> 24);
+            *(uint32_t *)pOut = samp;
             flags = (flags & 0xfffffff0) | 0x2; /* W */
+            pOut += 4;
         }
         framesToCopy--;
     }
@@ -1769,9 +1761,6 @@ BAPE_MaiOutput_P_SpdifEncode_Ott_isr(void *ctx, BAPE_BufferDescriptor *pDesc,
     *outSize = totalBytesWritten;
     BDBG_MSG(("BAPE_MaiOutput_P_SpdifEncode_Ott_isr: %d/%d", totalBytesRead, totalBytesWritten));
 }
-
-#undef READBYTE
-#undef WRITEBYTE
 
 static BERR_Code
 BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
@@ -1789,14 +1778,14 @@ BAPE_MaiOutput_P_Enable_Ott(BAPE_OutputPort output)
     handle->spdif.cpuEncode = pFormat->type != BAPE_DataType_eIec60958Raw;
 
     /*
-     * set MAI_BIT_REVERSE if CPU or SoftFMM doing encoding
-     * also set MAI_FORMAT_REVERSE to compensate for how the format word is encoded
+     * set MAI_BIT_REVERSE if CPU doing encoding
+     * softFMM requirements TBD
      */
     BREG_AtomicUpdate32(handle->deviceHandle->regHandle,
                         BCHP_HDMI_MAI_CONFIG,
                         BCHP_MASK(HDMI_MAI_CONFIG, MAI_BIT_REVERSE)
                         | BCHP_MASK(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE),
-                        BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_BIT_REVERSE, 1)
+                        BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_BIT_REVERSE, handle->spdif.cpuEncode)
                         | BCHP_FIELD_DATA(HDMI_MAI_CONFIG, MAI_FORMAT_REVERSE, 1));
 
     rc = BAPE_DmaOutput_P_Bind(handle->dma, output->mixer->bufferGroupHandle, handle->spdif.cpuEncode ? BAPE_MaiOutput_P_SpdifEncode_Ott_isr : 0, handle);

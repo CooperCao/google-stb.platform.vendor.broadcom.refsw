@@ -1,0 +1,2 @@
+debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-stbsoc
+nodebug-apdef-stadef-extnvm-mfp-wet-pspretend-stbsoc

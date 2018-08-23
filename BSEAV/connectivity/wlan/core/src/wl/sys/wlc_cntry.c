@@ -48,6 +48,7 @@
 #include <wlc_dbg.h>
 #include <wlc_dump.h>
 #include <wlc_iocv.h>
+#include <wlc_scan.h>
 
 /* IOVar table */
 /* No ordering is imposed */
@@ -57,6 +58,7 @@ enum {
 	IOV_COUNTRY_IE_OVERRIDE,
 	IOV_COUNTRY_REV,
 	IOV_CCODE_INFO,
+	IOV_CCODE_TYPE,
 	IOV_LAST
 };
 
@@ -68,6 +70,7 @@ static const bcm_iovar_t wlc_cntry_iovars[] = {
 #endif /* BCMDBG */
 	{"country_rev", IOV_COUNTRY_REV, (0), 0, IOVT_BUFFER, (sizeof(uint32)*(WL_NUMCHANSPECS+1))},
 	{"ccode_info", IOV_CCODE_INFO, (0), 0, IOVT_BUFFER, WL_CCODE_INFO_FIXED_LEN},
+	{"ccode_type", IOV_CCODE_TYPE, (0), 0, IOVT_BOOL, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -377,6 +380,13 @@ wlc_cntry_doiovar(void *ctx, uint32 actionid,
 		if (err)
 			break;
 
+		/* previously registered scan channels may be invalid in
+		* new ccode; so abort scan
+		*/
+		if (SCAN_IN_PROGRESS(wlc->scan)) {
+			wlc_scan_abort(wlc->scan, WLC_E_STATUS_ABORT);
+		}
+
 		/* When set country code, check the current chanspec.
 		 * If the current chanspec is invalid,
 		 * find the first valid chanspec and set it.
@@ -486,6 +496,17 @@ wlc_cntry_doiovar(void *ctx, uint32 actionid,
 		break;
 	}
 #endif /* BCMDBG */
+
+	case IOV_GVAL(IOV_CCODE_TYPE): {
+		*ret_int_ptr = wlc->ccode_type;
+		break;
+	}
+
+	case IOV_SVAL(IOV_CCODE_TYPE): {
+		wlc->ccode_type = int_val;
+		break;
+	}
+
 	case IOV_GVAL(IOV_CCODE_INFO): {
 		err = wlc_populate_ccode_info(wlc, arg, len);
 		break;

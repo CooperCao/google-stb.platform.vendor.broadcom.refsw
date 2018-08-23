@@ -133,6 +133,8 @@ LDFLAGS 	+= -L$(NEXUS_BIN_DIR) -lnexus
 endif
 
 # build rules
+.NOTPARALLEL:
+
 .PHONY: checkplatform checkdirs prep_nexus $(USER_APP) $(DEP_LIBS)
 
 all: checkplatform checkdirs prep_nexus $(USER_APP)

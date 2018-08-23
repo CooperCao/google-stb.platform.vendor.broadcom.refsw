@@ -43,17 +43,19 @@
 
 
 # Check Usage
-if [ $# != 2 ]; then
-	echo "Usage: gen_sdk.sh <SOURCE/BINARY> <Arm64/Arm32>"
-	echo "	SOURCE: SDK with Kernel Sources"
-	echo "	BINARY: SDK with Kernel binary"
-	echo "	Arm64: SDK for 64 Bit Platform"
-	echo "	Arm32: SDK for 32 Bit Platform"
+if [ $# != 3 ]; then
+	echo "Usage: gen_sdk.sh <SOURCE/BINARY/RELEASE> <Arm64/Arm32> <Version>"
+	echo "	SOURCE:  SDK with Kernel Sources"
+	echo "	BINARY:  SDK with Kernel Binary"
+	echo "	RELEASE: SDK with no Source and no Binary"
+	echo "	Arm64:   SDK for 64 Bit Platform"
+	echo "	Arm32:   SDK for 32 Bit Platform"
+	echo "  Version: SDK Version String (ex: 1_3_0)"
 	exit
 fi
 
 # Check Input Parameters
-if [ $1 != 'SOURCE' ] && [ $1 != 'BINARY' ]; then
+if [ $1 != 'SOURCE' ] && [ $1 != 'BINARY' ] && [ $1 != 'RELEASE' ]; then
 	echo "Incorrect option for Source/Binary SDK. Valid options SOURCE/BINARY"
 	exit
 fi
@@ -98,8 +100,17 @@ mkdir astra_sdk
 touch astra_sdk/.astra_sdk
 cp -rf $ASTRA_TOP/build astra_sdk/.
 
-if [ $1 = 'BINARY' ]; then
+if [ $1 = 'RELEASE' ]; then
+
+	make -C $ASTRA_TOP/user TZ_ARCH=$2 distclean
+	make -C $ASTRA_TOP/monitor clean
+	mkdir astra_sdk/kernel
+	cp -rf $ASTRA_TOP/kernel/api astra_sdk/kernel/.
+	sdk_type=$3
+
+elif [ $1 = 'BINARY' ]; then
 # Build and copy Astra Kernel binary
+
 	make -C $ASTRA_TOP/user TZ_ARCH=$2 distclean
 	make -C $ASTRA_TOP/user TZ_ARCH=$2 BL31=n
 	mkdir astra_sdk/bin
@@ -107,26 +118,17 @@ if [ $1 = 'BINARY' ]; then
 
 	mkdir astra_sdk/kernel
 	cp -rf $ASTRA_TOP/kernel/api astra_sdk/kernel/.
-	sdk_type=$1_$2
+	sdk_type=$1_$2_$3
+
 elif [ $1 = 'SOURCE' ]; then
+
 # Create Bin Dirs
 	make -C $ASTRA_TOP/user TZ_ARCH=$2 checkdirs
 
 # Copy kernel Sources
 	cp -rf $ASTRA_TOP/kernel astra_sdk/.
-	sdk_type=$1_$2
-fi
+	sdk_type=$1_$2_$3
 
-# Build and Copy monitor binary for 64 bit platforms only
-if [ $2 = 'Arm64' ]; then
-	make -C $ASTRA_TOP/monitor clean
-	make -C $ASTRA_TOP/monitor SMM64=n
-	if [ -e astra_sdk/bin ]; then
-		cp $objdir/astra/monitor/mon64.bin astra_sdk/bin/.
-	else
-		mkdir astra_sdk/bin
-		cp $objdir/astra/monitor/mon64.bin astra_sdk/bin/.
-	fi
 fi
 
 # Copy linux driver module and user space lib
@@ -141,6 +143,7 @@ cp -rf $ASTRA_TOP/linux/examples/ astra_sdk/linux/.
 mkdir astra_sdk/user
 cp -rf $ASTRA_TOP/user/libtzioc astra_sdk/user/.
 cp -rf $ASTRA_TOP/user/astra_tapp astra_sdk/user/.
+cp -rf $ASTRA_TOP/user/tza_usec.pl astra_sdk/user/.
 
 # Copy Toolchain
 cp -rf $ASTRA_TOP/toolchain astra_sdk/.
@@ -149,18 +152,11 @@ cp -rf $ASTRA_TOP/toolchain astra_sdk/.
 find astra_sdk/. -name .git* -delete
 
 # Generate the tar file
-if [ -e astra_sdk_$sdk_type.tar ]; then
-    rm -rf astra_sdk_$sdk_type.tar
-fi
-if [ -e $objdir/astra/astra_sdk_$sdk_type.tar ]; then
-	echo Removing $objdir/astra/astra_sdk_$sdk_type.tar
-    rm -rf $objdir/astra/astra_sdk_$sdk_type.tar
+if [ -e ASTRA_SDK_$sdk_type.tar ]; then
+    rm -rf ASTRA_SDK_$sdk_type.tar
 fi
 
-tar -cvf astra_sdk_$sdk_type.tar astra_sdk/
-
-# Move the tar file to OBJ dir
-mv astra_sdk_$sdk_type.tar $objdir/astra/
+tar -cvf ASTRA_SDK_$sdk_type.tar astra_sdk/
 
 # Remove temp folders
 rm -rf astra_sdk

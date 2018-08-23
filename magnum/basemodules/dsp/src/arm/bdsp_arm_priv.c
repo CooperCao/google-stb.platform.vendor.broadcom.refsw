@@ -2747,6 +2747,10 @@ BERR_Code BDSP_Arm_P_CreateStage(
     pStage->stage.addInterTaskBufferInput = BDSP_Arm_P_AddInterTaskBufferInput;
     pStage->stage.addInterTaskBufferOutput = BDSP_Arm_P_AddInterTaskBufferOutput;
 
+    pStage->stage.addSoftFmmOutput = NULL;
+    pStage->stage.addSoftFmmInput = NULL;
+
+
 #if !B_REFSW_MINIMAL
     pStage->stage.addQueueInput = NULL;
 #endif /*!B_REFSW_MINIMAL*/

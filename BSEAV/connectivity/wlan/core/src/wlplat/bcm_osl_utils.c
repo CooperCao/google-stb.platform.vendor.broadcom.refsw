@@ -131,3 +131,10 @@ osl_sysuptime_us(void)
 }
 EXPORT_SYMBOL(osl_sysuptime_us);
 
+int
+osl_vendor_cmd_reply(void *skb)
+{
+	return cfg80211_vendor_cmd_reply(skb);
+}
+EXPORT_SYMBOL(osl_vendor_cmd_reply);
+

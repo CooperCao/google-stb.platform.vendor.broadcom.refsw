@@ -490,6 +490,24 @@ static const NEXUS_PixelFormatConvertInfo g_pixelFormatInfo[NEXUS_PixelFormat_eM
 
     {{true,  false, true,  32}, BPXL_eUIF_R8_G8_B8_A8, NEXUS_PixelFormat_eUIF_R8_G8_B8_A8},
 
+    {{true, false, true,  32}, BPXL_eA2_R10_G10_B10, NEXUS_PixelFormat_eA2_R10_G10_B10},
+    {{true, false, false, 32}, BPXL_eX2_R10_G10_B10, NEXUS_PixelFormat_eX2_R10_G10_B10},
+    {{true, false, true,  32}, BPXL_eA2_B10_G10_R10, NEXUS_PixelFormat_eA2_B10_G10_R10},
+    {{true, false, false, 32}, BPXL_eX2_B10_G10_R10, NEXUS_PixelFormat_eX2_B10_G10_R10},
+    {{true, false, true,  32}, BPXL_eR10_G10_B10_A2, NEXUS_PixelFormat_eR10_G10_B10_A2},
+    {{true, false, false, 32}, BPXL_eR10_G10_B10_X2, NEXUS_PixelFormat_eR10_G10_B10_X2},
+    {{true, false, true,  32}, BPXL_eB10_G10_R10_A2, NEXUS_PixelFormat_eB10_G10_R10_A2},
+    {{true, false, false, 32}, BPXL_eB10_G10_R10_X2, NEXUS_PixelFormat_eB10_G10_R10_X2},
+
+    {{true, false, true,  64}, BPXL_eAf16_Rf16_Gf16_Bf16, NEXUS_PixelFormat_eAf16_Rf16_Gf16_Bf16},
+    {{true, false, false, 64}, BPXL_eXf16_Rf16_Gf16_Bf16, NEXUS_PixelFormat_eXf16_Rf16_Gf16_Bf16},
+    {{true, false, true,  64}, BPXL_eAf16_Bf16_Gf16_Rf16, NEXUS_PixelFormat_eAf16_Bf16_Gf16_Rf16},
+    {{true, false, false, 64}, BPXL_eXf16_Bf16_Gf16_Rf16, NEXUS_PixelFormat_eXf16_Bf16_Gf16_Rf16},
+    {{true, false, true,  64}, BPXL_eRf16_Gf16_Bf16_Af16, NEXUS_PixelFormat_eRf16_Gf16_Bf16_Af16},
+    {{true, false, false, 64}, BPXL_eRf16_Gf16_Bf16_Xf16, NEXUS_PixelFormat_eRf16_Gf16_Bf16_Xf16},
+    {{true, false, true,  64}, BPXL_eBf16_Gf16_Rf16_Af16, NEXUS_PixelFormat_eBf16_Gf16_Rf16_Af16},
+    {{true, false, false, 64}, BPXL_eBf16_Gf16_Rf16_Xf16, NEXUS_PixelFormat_eBf16_Gf16_Rf16_Xf16},
+
     {{true, false, false, 24}, BPXL_eR8_G8_B8, NEXUS_PixelFormat_eR8_G8_B8},
     {{false, false, false, 32}, BPXL_eX2_Y010_Cb10_Y110_X2_Cr10_Y010_Cb10_X2_Y110_Cr10_Y010_X2_Cb10_Y110_Cr10, NEXUS_PixelFormat_eYCbCr422_10bit}
 };

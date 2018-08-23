@@ -192,11 +192,13 @@ BERR_Code BDSP_Raaga_Open(
     pRaaga->device.getDownloadStatus= BDSP_Raaga_P_GetDownloadStatus;
     pRaaga->device.initialize = BDSP_Raaga_P_Initialize;
     pRaaga->device.getRRRAddrRange= BDSP_Raaga_P_GetRRRAddrRange;
+    pRaaga->device.processPAK = BDSP_Raaga_P_ProcessPAK;
 #if !B_REFSW_MINIMAL
     pRaaga->device.getDefaultDatasyncSettings = BDSP_Raaga_P_GetDefaultDatasyncSettings;
 #endif /*!B_REFSW_MINIMAL*/
     pRaaga->device.getDefaultTsmSettings = BDSP_Raaga_P_GetDefaultTsmSettings;
     pRaaga->device.runDebugService = NULL;
+    pRaaga->device.softFMMOpen = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pRaaga->contextList);

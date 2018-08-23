@@ -65,7 +65,6 @@ typedef struct BAPE_DmaOutput {
     BAPE_BufferGroupHandle hUpstreamBG;
     BAPE_BufferGroupHandle hBG;
     BAPE_BufferGroupFilterHandle hFilter;
-    unsigned maxRequestSize;
     bool enabled;
     unsigned peeked;
     bool alreadySubmitting;
@@ -125,59 +124,50 @@ BAPE_DmaOutput_P_ReallySubmit_isr(BAPE_DmaOutputHandle hDma)
     unsigned nBlks;
     BERR_Code rc;
 
-    for (;;) {
-        DmaJob *job = BLST_SQ_FIRST(&hDma->freeJobList);
-        if (job == NULL) {
-            BDBG_MSG(("%s: no free jobs", BSTD_FUNCTION));
-            return BERR_SUCCESS;
-        }
-        rc = BAPE_DmaOutput_P_Read_isr(hDma, &desc);
-        if (rc != BERR_SUCCESS) {
-            return BERR_TRACE(rc);
-        }
-        if (desc.bufferSize == 0) {
-            BDBG_MSG(("%s: ringbuffer empty", BSTD_FUNCTION));
-            return BERR_SUCCESS;
-        }
-        if (desc.bufferSize >= hDma->maxRequestSize) {
-            desc.bufferSize = hDma->maxRequestSize;
-            desc.wrapBufferSize = 0;
-        }
-        else if (desc.bufferSize + desc.wrapBufferSize > hDma->maxRequestSize) {
-            desc.wrapBufferSize = hDma->maxRequestSize - desc.bufferSize;
-        }
-        BLST_SQ_REMOVE_HEAD(&hDma->freeJobList, link);
-        BOTT_Dma_Context_GetDefaultBlockSettings(&blk[0]);
-        BMMA_FlushCache_isrsafe(desc.buffers[0].block, desc.buffers[0].pBuffer, desc.bufferSize);
-        blk[0].src = desc.buffers[0].offset;
-        blk[0].perMap = 10;
-        blk[0].dstMode.reg = true;
-        blk[0].dstMode.size = BOTT_Dma_Size_e32;
-        blk[0].dst = BCHP_DVP_CFG_MAI0_DAT;
-        blk[0].dstMode.dreq = true;
-        blk[0].dstMode.inc = false;
-        blk[0].length.x = desc.bufferSize;
-        if (desc.wrapBufferSize) {
-            blk[1] = blk[0];
-            BMMA_FlushCache_isrsafe(desc.buffers[0].block, desc.buffers[0].pWrapBuffer, desc.wrapBufferSize);
-            blk[1].src = desc.buffers[0].wrapOffset;
-            blk[1].length.x = desc.wrapBufferSize;
-            nBlks = 2;
-        }
-        else {
-            nBlks = 1;
-        }
-        BDBG_MSG(("%s(%d): enqueue %d/%d", BSTD_FUNCTION, (unsigned)(job - hDma->job), desc.bufferSize, desc.wrapBufferSize));
-        rc = BOTT_Dma_Context_Enqueue_isr(job->hCtx, blk, nBlks);
-        if (rc != BOTT_DMA_QUEUED) {
-            BLST_SQ_INSERT_TAIL(&hDma->freeJobList, job, link);
-            return BERR_TRACE(rc);
-        }
-        job->consumed = desc.bufferSize + desc.wrapBufferSize;
-        hDma->peeked += job->consumed;
-        BLST_SQ_INSERT_TAIL(&hDma->activeJobList, job, link);
+    DmaJob *job = BLST_SQ_FIRST(&hDma->freeJobList);
+    if (job == NULL) {
+        BDBG_MSG(("%s: no free jobs", BSTD_FUNCTION));
         return BERR_SUCCESS;
     }
+    rc = BAPE_DmaOutput_P_Read_isr(hDma, &desc);
+    if (rc != BERR_SUCCESS) {
+        return BERR_TRACE(rc);
+    }
+    if (desc.bufferSize == 0) {
+        BDBG_MSG(("%s: ringbuffer empty", BSTD_FUNCTION));
+        return BERR_SUCCESS;
+    }
+    BLST_SQ_REMOVE_HEAD(&hDma->freeJobList, link);
+    BOTT_Dma_Context_GetDefaultBlockSettings(&blk[0]);
+    BMMA_FlushCache_isrsafe(desc.buffers[0].block, desc.buffers[0].pBuffer, desc.bufferSize);
+    blk[0].src = desc.buffers[0].offset;
+    blk[0].perMap = 10;
+    blk[0].dstMode.reg = true;
+    blk[0].dstMode.size = BOTT_Dma_Size_e32;
+    blk[0].dst = BCHP_DVP_CFG_MAI0_DAT;
+    blk[0].dstMode.dreq = true;
+    blk[0].dstMode.inc = false;
+    blk[0].length.x = desc.bufferSize;
+    if (desc.wrapBufferSize) {
+        blk[1] = blk[0];
+        BMMA_FlushCache_isrsafe(desc.buffers[0].block, desc.buffers[0].pWrapBuffer, desc.wrapBufferSize);
+        blk[1].src = desc.buffers[0].wrapOffset;
+        blk[1].length.x = desc.wrapBufferSize;
+        nBlks = 2;
+    }
+    else {
+        nBlks = 1;
+    }
+    BDBG_MSG(("%s(%d): enqueue %d/%d", BSTD_FUNCTION, (unsigned)(job - hDma->job), desc.bufferSize, desc.wrapBufferSize));
+    rc = BOTT_Dma_Context_Enqueue_isr(job->hCtx, blk, nBlks);
+    if (rc != BOTT_DMA_QUEUED) {
+        BLST_SQ_INSERT_TAIL(&hDma->freeJobList, job, link);
+        return BERR_TRACE(rc);
+    }
+    job->consumed = desc.bufferSize + desc.wrapBufferSize;
+    hDma->peeked += job->consumed;
+    BLST_SQ_INSERT_TAIL(&hDma->activeJobList, job, link);
+    return BERR_SUCCESS;
 }
 
 static BERR_Code
@@ -226,7 +216,6 @@ BAPE_DmaOutput_P_Open(BAPE_Handle hDevice)
     }
     BKNI_Memset(hDma, 0, sizeof(*hDma));
     BOTT_Dma_GetDefaultSettings(&settings);
-    settings.engineIndex = 11;
     rc = BOTT_Dma_Open(hDevice->chpHandle, hDevice->regHandle, hDevice->memHandle, hDevice->intHandle, &settings, &hDma->hOttDma);
     if (rc != BERR_SUCCESS) {
         BKNI_Free(hDma);
@@ -287,7 +276,6 @@ BAPE_DmaOutput_P_Bind(BAPE_DmaOutputHandle hDma, BAPE_BufferGroupHandle hUpstrea
     BERR_Code rc;
     unsigned i;
     BAPE_BufferGroupInterruptHandlers interrupts;
-    BAPE_BufferGroupStatus status;
 
     if (hDma->hUpstreamBG && hDma->hUpstreamBG != hUpstreamBG) {
         rc = BAPE_DmaOutput_P_UnBind(hDma);
@@ -298,14 +286,10 @@ BAPE_DmaOutput_P_Bind(BAPE_DmaOutputHandle hDma, BAPE_BufferGroupHandle hUpstrea
     if (hDma->hUpstreamBG != NULL) {
         return BERR_SUCCESS;
     }
-    BAPE_BufferGroup_GetStatus_isrsafe(hUpstreamBG, &status);
     BAPE_BufferGroup_GetDefaultOpenSettings(&settings);
-
-    BDBG_WRN(("upstream interleaved %d numChannels %d bufferSize %d", status.interleaved, status.numChannels, (unsigned)status.bufferSize));
-
-    settings.interleaved = status.interleaved;
+    settings.interleaved = true;
     settings.numChannels = 1;
-    settings.bufferSize = status.bufferSize;
+    settings.bufferSize = 131072;
     settings.bufferless = true;
     rc = BAPE_BufferGroup_Open(hDma->hDevice, &settings, &hDma->hBG);
     if (rc != BERR_SUCCESS) {
@@ -316,13 +300,12 @@ BAPE_DmaOutput_P_Bind(BAPE_DmaOutputHandle hDma, BAPE_BufferGroupHandle hUpstrea
         goto error;
     }
     hDma->hUpstreamBG = hUpstreamBG;
-    hDma->maxRequestSize = status.bufferSize / 3;
     BAPE_BufferGroup_GetInterruptHandlers(hDma->hBG, &interrupts);
     interrupts.dataReady.pCallback_isr = BAPE_DmaOutput_P_DataReady_isr;
     interrupts.dataReady.pParam1 = hDma;
     BAPE_BufferGroup_SetInterruptHandlers(hDma->hBG, &interrupts);
     if (func) {
-        hDma->hFilter = BAPE_BufferGroupFilter_P_Open(hDma->hDevice, hDma->hBG, status.bufferSize, func, ctx);
+        hDma->hFilter = BAPE_BufferGroupFilter_P_Open(hDma->hDevice, hDma->hBG, func, ctx);
     }
     /* Create enough jobs */
     hDma->nJobs = 4;

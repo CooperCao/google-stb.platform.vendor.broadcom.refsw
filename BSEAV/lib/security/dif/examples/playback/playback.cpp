@@ -796,24 +796,11 @@ static void setup_gui()
     NxClient_AllocSettings allocSettings;
     NEXUS_SurfaceRegion virtualDisplay = {1280, 720};
     struct bgui_settings gui_settings;
-    NEXUS_VideoDecoderCapabilities videoDecoderCap;
 
     bgui_get_default_settings(&gui_settings);
     gui_settings.width = virtualDisplay.width;
     gui_settings.height = virtualDisplay.height;
     s_app.gui = bgui_create(&gui_settings);
-
-    NEXUS_GetVideoDecoderCapabilities(&videoDecoderCap);
-    if (s_app.num_mosaics > videoDecoderCap.memory[0].mosaic.maxNumber) {
-        LOGW(("num_mosaics %d larger than videoDecoderCap maxNumber %d",
-            s_app.num_mosaics, videoDecoderCap.memory[0].mosaic.maxNumber));
-        LOGW(("reducing num_mosaics to %d", videoDecoderCap.memory[0].mosaic.maxNumber));
-        s_app.num_mosaics = videoDecoderCap.memory[0].mosaic.maxNumber;
-    }
-    if (s_app.num_mosaics == 0) {
-        LOGW(("unable to perform mosaic - forcing to play only one stream"));
-        s_app.num_mosaics = 1;
-    }
 
     num_columns = (s_app.num_mosaics + 1) / 2;
     num_rows = (s_app.num_mosaics == 1) ? 1 : 2;
@@ -1079,23 +1066,8 @@ static void setup_streamers()
         videoProgram.settings.codec = NEXUS_VideoCodec_eH264;
         audioProgram.primary.codec = NEXUS_AudioCodec_eAacAdts;
 
-        /* Check if decoder needs larger max */
-        uint32_t width = 0;
-        uint32_t height = 0;
-        if (!s_app.parser[0]->GetVideoResolution(&width, &height)) {
-            LOGW(("failed to get video resolution"));
-        }
-        LOGW(("Video resolution: %dx%d", width, height));
-
-        NEXUS_VideoDecoderSettings decSettings;
-        NEXUS_SimpleVideoDecoder_GetSettings(s_app.videoDecoder[i], &decSettings);
-        if (width > decSettings.maxWidth || height > decSettings.maxHeight) {
-            videoProgram.maxWidth = width;
-            videoProgram.maxHeight = height;
-        } else {
-            videoProgram.maxWidth = s_app.mosaic[i].rect.width;
-            videoProgram.maxHeight = s_app.mosaic[i].rect.height;
-        }
+        videoProgram.maxWidth = s_app.mosaic[i].rect.width;
+        videoProgram.maxHeight = s_app.mosaic[i].rect.height;
 
         videoProgram.settings.pidChannel = s_app.videoPidChannel[i];
         NEXUS_SimpleVideoDecoder_Start(s_app.videoDecoder[i], &videoProgram);
@@ -1540,13 +1512,13 @@ int main(int argc, char* argv[])
 
     LOGD(("@@@ Check Point #01"));
 
-    setup_files();
-
-    setup_parsers();
-
     setup_gui();
 
     setup_streamers();
+
+    setup_files();
+
+    setup_parsers();
 
     setup_decryptors();
 

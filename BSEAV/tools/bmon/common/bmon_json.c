@@ -111,35 +111,6 @@ void json_Uninitialize(cJSON ** pObject)
  * of catastrophic failure - calling code will delete the given pObject
  * anyways.
  ***************************************************************************/
-
-ssize_t formatTimeval(
-        struct timeval * tv,
-        char *           buf,
-        size_t           sz
-        )
-{
-    ssize_t     written = -1;
-    struct tm * gm      = NULL;
-
-    assert(NULL != tv);
-    assert(NULL != buf);
-    assert(0 < sz);
-
-    gm = gmtime(&tv->tv_sec);
-
-    if (gm)
-    {
-        written = (ssize_t)strftime(buf, sz, "%Y-%m-%dT%H:%M:%S", gm);
-        if ((written > 0) && ((size_t)written < sz))
-        {
-            int w = snprintf(buf+written, sz-(size_t)written, ".%06dZ", tv->tv_usec);
-            written = (w > 0) ? written + w : -1;
-        }
-    }
-    return(written);
-} /* formatTimeval */
-
-
 CJSON_PUBLIC(cJSON *) json_GenerateHeader(
         cJSON *          pObject,
         const char *     strPluginName,
@@ -175,7 +146,6 @@ CJSON_PUBLIC(cJSON *) json_GenerateHeader(
             rc = gettimeofday(pMyTv, NULL);
             CHECK_ERROR_GOTO("Failure gettimeofday", rc, error);
         }
-#if 0
         snprintf(strTime, sizeof(strTime) - 1, "%ld.%06ld", (unsigned long int)pMyTv->tv_sec, (unsigned long int)pMyTv->tv_usec);
 
         pRet = ctime_r(&(pMyTv->tv_sec), strPcTime);
@@ -183,9 +153,6 @@ CJSON_PUBLIC(cJSON *) json_GenerateHeader(
 
         /* ctime() returns a string that has a newline at the end of it so trim it */
         strPcTime[strlen(strPcTime) - 1] = '\0';
-#else
-        formatTimeval(pMyTv,strPcTime,sizeof(strPcTime));
-#endif
         dTime = (double)pMyTv->tv_sec + (double)pMyTv->tv_usec/1000000;
     }
 
@@ -193,14 +160,17 @@ CJSON_PUBLIC(cJSON *) json_GenerateHeader(
     CHECK_PTR_ERROR_GOTO("Unable to create JSON string", pRetJSON, rc, -1, error);
     pRetJSON = cJSON_AddStringToObject(pObject, "name", strPluginName);
     CHECK_PTR_ERROR_GOTO("Unable to create JSON string", pRetJSON, rc, -1, error);
-#if 0
     pRetJSON = cJSON_AddStringToObject(pObject, "description", strPluginDescription);
     CHECK_PTR_ERROR_GOTO("Unable to create JSON string", pRetJSON, rc, -1, error);
-#endif
     pRetJSON = cJSON_AddStringToObject(pObject, "datetime", strPcTime);
     CHECK_PTR_ERROR_GOTO("Unable to create JSON string", pRetJSON, rc, -1, error);
     pRetJSON = cJSON_AddNumberToObject(pObject, "timestampSec", dTime);
     CHECK_PTR_ERROR_GOTO("Unable to create JSON string", pRetJSON, rc, -1, error);
+#if 0
+    /* to be deprecated */
+    pRetJSON = cJSON_AddStringToObject(pObject, "timestamp", strTime);
+    CHECK_PTR_ERROR_GOTO("Unable to create JSON string", pRetJSON, rc, -1, error);
+#endif
     pObjectData = cJSON_AddArrayToObject(pObject, "data");
     CHECK_PTR_ERROR_GOTO("Unable to create JSON object", pRetJSON, rc, -1, error);
 

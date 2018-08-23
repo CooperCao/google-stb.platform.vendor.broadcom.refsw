@@ -57,6 +57,7 @@ const uint32_t BDSP_SystemID_MemoryReqd[BDSP_SystemImgId_eMax] = {
     BDSP_IMG_SYSTEM_RDBVARS_SIZE, /*BDSP_SystemImgId_eSystemRdbvars*/
     BDSP_IMG_SYSLIB_CODE_SIZE, /*BDSP_SystemImgId_eSyslibCode*/
     BDSP_IMG_ALGOLIB_CODE_SIZE, /*BDSP_SystemImgId_eAlgolibCode*/
+    BDSP_IMG_ALGOLIB_TABLES_SIZE, /*BDSP_SystemImgId_eSyslibTable*/
     BDSP_IMG_IDSCOMMON_CODE_SIZE, /*BDSP_SystemImgId_eCommonIdsCode*/
     BDSP_IMG_VIDIDSCOMMON_CODE_SIZE, /*BDSP_SystemImgId_eCommonVideoEncodeIdsCode*/
     BDSP_IMG_VIDIDSCOMMON_INTER_FRAME_SIZE, /*BDSP_SystemImgId_eCommonVideoEncodeIdsInterframe*/

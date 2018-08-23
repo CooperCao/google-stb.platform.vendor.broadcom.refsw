@@ -615,6 +615,7 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 		BDBG_OBJECT_ASSERT(pMasterRaagaTask, BDSP_RaagaTask);
 		pRaagaTask->taskParams.masterTaskId = pMasterRaagaTask->taskParams.taskId;
 	}
+	pRaagaTask->taskParams.coreIndex = 0xFF; /* No concept of Core Affinity in OCTAVE yet, Future Implementation */
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	pRaagaTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
@@ -1053,6 +1054,13 @@ void BDSP_Raaga_P_Close(
 		BDSP_FreeExternalInterrupt(&pRaagaExtInterrput->extInterrupt);
 	}
 
+	errCode = BDSP_Raaga_P_Reset(pDevice);
+	if (BERR_SUCCESS != errCode)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_Close: Unable to RESET DSP"));
+		errCode = BERR_TRACE(errCode);
+	}
+
 	for(dspIndex = 0; dspIndex< pDevice->numDsp; dspIndex++)
 	{
 		errCode = BDSP_P_DestroyMsgQueue(pDevice->hCmdQueue[dspIndex]);
@@ -1089,13 +1097,6 @@ void BDSP_Raaga_P_Close(
 	}
 
 	BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sROMemoryPool.Memory));
-
-	errCode = BDSP_Raaga_P_Reset(pDevice);
-	if (BERR_SUCCESS != errCode)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_Close: Unable to RESET DSP"));
-		errCode = BERR_TRACE(errCode);
-	}
 
 	BDSP_Raaga_P_EnableAllPwrResource(pDeviceHandle, false);
 
@@ -1531,6 +1532,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 		goto end;
 	}
 	sPayload.ui32TaskId          = pRaagaTask->taskParams.taskId;
+	sPayload.ui32CoreIndex       = pRaagaTask->taskParams.coreIndex;
 	sPayload.ui32MasterTaskId    = pRaagaTask->taskParams.masterTaskId;
 	sPayload.ui32SyncQueueFifoId = pRaagaTask->hSyncQueue->ui32FifoId;
 	sPayload.ui32AsyncQueueFifoId= pRaagaTask->hAsyncQueue->ui32FifoId;
@@ -1728,6 +1730,8 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 
 	pRaagaStage->stage.addFmmOutput = BDSP_Raaga_P_AddFmmOutput;
 	pRaagaStage->stage.addFmmInput = BDSP_Raaga_P_AddFmmInput;
+    pRaagaStage->stage.addSoftFmmOutput = NULL;
+    pRaagaStage->stage.addSoftFmmInput = NULL;
 
 	pRaagaStage->stage.addRaveOutput = BDSP_Raaga_P_AddRaveOutput;
 	pRaagaStage->stage.addRaveInput = BDSP_Raaga_P_AddRaveInput;

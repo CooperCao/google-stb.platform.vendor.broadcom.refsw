@@ -289,7 +289,7 @@ void Playpump_t::acquireLock()
 
 #define PES_HEADER_NO_PTS 9
 #define PES_HEADER_PTS 14
-#define PES_MAX_SIZE 65535
+#define PES_MAX_SIZE 0xfff9
 
 static size_t makePes(
     uint8_t *buffer, size_t payloadBytes, size_t &pesBytesLeft,
@@ -310,7 +310,8 @@ static size_t makePes(
 
 void Playpump_t::addPes(unsigned int id, TIME45k pts, bool singlePes)
 {
-    // Ensure that we have enough space for all additional fragments
+    // Ensure that we have enough space for all additional fragments so that addresses don't change
+    // - Over-estimate to simplify the calculation - it's not that much memory
     sample.pesHeaders.clear();
     sample.pesHeaders.reserve(PES_HEADER_PTS + (sample.bytes >> 15) * PES_HEADER_NO_PTS);
 
@@ -452,6 +453,25 @@ void Playpump_t::makeVorbisChunk(WavFormatHeader *header, unsigned int id, TIME4
 
     // Add PES header(s)
     addPes(id, pts, false);
+}
+
+void Playpump_t::makeVideoEndOfStreamChunk()
+{
+    DataFragment_t flush(sample.flush, sizeof(sample.flush));
+    DataFragment_t last(sample.last, sizeof(sample.last));
+    sample.clear();
+    sample.fragmentList.push_back(flush);
+    sample.fragmentList.push_back(last);
+    sample.fragmentList.push_back(flush);
+    sample.bytes = 2*sizeof(sample.flush) + sizeof(sample.last);
+}
+
+void Playpump_t::makeAudioEndOfStreamChunk()
+{
+    DataFragment_t last(sample.last, sizeof(sample.last));
+    sample.clear();
+    sample.fragmentList.push_back(last);
+    sample.bytes = sizeof(sample.last);
 }
 
 
@@ -607,8 +627,8 @@ void Playpump_t::clearDma(const NEXUS_DmaJobBlockSettings *descriptor, size_t n)
         }
 
         // Wait for the event if we're going to do multiple sends,
-        // otherwise we could think we've completed whne the first
-        // DMA completes
+        // otherwise we could think we've completed when only the
+        // first DMA has
         if (n != send)
             BKNI_WaitForEvent(dma.complete, BKNI_INFINITE);
     }
@@ -659,7 +679,6 @@ void Playpump_t::decryptWorkaround(void *drmContext, uint64_t vector, bool block
     BKNI_WaitForEvent(dma.complete, BKNI_INFINITE);
 }
 
-
 bool Playpump_t::pushChunk(
     void                 *drmContext,
     uint64_t              vector,
@@ -686,6 +705,7 @@ bool Playpump_t::pushChunk(
         // and for decrypting the encrypted regions in-place
         dma.fragment.dma.clear();
         dma.fragment.decrypt.clear();
+        dmaBuffer.reset();
 
         bool   copy;
         size_t copied, totalCopied = 0;
@@ -792,12 +812,6 @@ bool Playpump_t::pushChunk(
 
         // All data in the playpump buffer is now clear (i.e. unencrypted)
         BME_CHECK(NEXUS_Playpump_WriteComplete(handle, 0, totalCopied));
-
-        // Only reset dmaBuffer if there is no data left in it
-        // Data will remain if the datapump buffer was not large enough, which
-        // typically only occurs when we wrap (it's a circular buffer)
-        if (dmaBuffer.bytes() == 0)
-            dmaBuffer.reset();
     }
     return true;
 }

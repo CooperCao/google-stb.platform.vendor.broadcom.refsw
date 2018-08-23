@@ -516,6 +516,9 @@ typedef struct BMXT_PidChannelSettings
     bool enable;
     unsigned inputSelect; /* PB number */
     unsigned mtsifTxSelect;
+    struct {
+        unsigned spid, mode;
+    } spid;
 } BMXT_PidChannelSettings;
 
 void BMXT_ConfigPidChannel(

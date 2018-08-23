@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
@@ -528,6 +528,7 @@ khrn_image* glxx_get_image_for_texturing(khrn_image *image,
     * in the case of YV12/YUV we want a conversion to rgba + suitable image
     * for texturing;
     */
+   gfx_buffer_usage_t blob_usage = GFX_BUFFER_USAGE_NONE;
    if (gfx_lfmt_has_y(desc->planes[0].lfmt))
    {
       /* we want y(u)v conversions to rgba */
@@ -538,7 +539,18 @@ khrn_image* glxx_get_image_for_texturing(khrn_image *image,
    else
    {
       for (unsigned int p = 0; p < desc->num_planes; p++)
-         dst_fmts[p] = gfx_lfmt_fmt(desc->planes[p].lfmt);
+      {
+         if (gfx_lfmt_fmt(desc->planes[p].lfmt) == GFX_LFMT_R8_G8_B8_UNORM)
+         {
+#if !V3D_VER_AT_LEAST(4,1,34,0)
+            blob_usage |= GFX_BUFFER_USAGE_V3D_TLB_RAW;
+#endif
+            dst_fmts[p] = GFX_LFMT_R8_G8_B8_X8_UNORM;
+         }
+         else
+            dst_fmts[p] = gfx_lfmt_fmt(desc->planes[p].lfmt);
+
+      }
       dst_num_planes = desc->num_planes;
       api_fmt = image->api_fmt;
    }
@@ -555,7 +567,7 @@ khrn_image* glxx_get_image_for_texturing(khrn_image *image,
     * This also potentially modifies blob_usage to ensure the blob creation is
     * compatible with the conversion method (e.g. for the M2MC path).
     */
-   gfx_buffer_usage_t blob_usage = GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_RENDER_TARGET;
+   blob_usage |= (GFX_BUFFER_USAGE_V3D_TEXTURE | GFX_BUFFER_USAGE_V3D_RENDER_TARGET);
    gmem_usage_flags_t gmem_usage;
 
    khrn_image_calc_dst_usage(image, desc->width, desc->height, 1, 1, 1,

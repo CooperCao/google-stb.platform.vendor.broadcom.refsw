@@ -121,10 +121,6 @@
 #include "bchp_zone0_fs.h"
 #endif
 
-#ifdef BCHP_CM_REG_START
-#include "bchp_cm.h"
-#endif
-
 #include "bchp_reset_common.h"
 
 BDBG_MODULE(BCHP);
@@ -317,23 +313,6 @@ static void BCHP_P_ResetRaagaCore(const BCHP_Handle hChip, const BREG_Handle hRe
 
 #ifdef USE_VC5
 
-#define CM_PASSWORD 0x5a000000
-static void BCHP_P_CM_V3DCTL_Enable(
-   const BREG_Handle hReg, int mode
-   )
-{
-#ifdef BCHP_CM_V3DCTL
-   uint32_t uiReg;
-   /* 7211 uses Pi architecture, so BCHP_PWR_SUPPORT is not enabled */
-   uiReg = BREG_Read32(hReg, BCHP_CM_V3DCTL);
-   BCHP_SET_FIELD_DATA(uiReg, CM_V3DCTL, ENAB, mode);
-   BREG_Write32(hReg, BCHP_CM_V3DCTL, (CM_PASSWORD | uiReg));
-#else
-   BSTD_UNUSED(hReg);
-   BSTD_UNUSED(mode);
-#endif
-}
-
 static void BCHP_P_HardwarePowerUpV3D(
    const BREG_Handle hReg
    )
@@ -413,7 +392,6 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
     BSTD_UNUSED(hChip);
 
 #ifdef USE_VC5
-    BCHP_P_CM_V3DCTL_Enable(hReg, 1);
     /* We will briefly power up the clocks and the v3d core, reset to clear any interrupts, then power off again */
     BCHP_P_HardwarePowerUpV3D(hReg);
 #endif /* USE_VC5 */
@@ -456,7 +434,6 @@ static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg
 
 #ifdef USE_VC5
     BCHP_P_HardwarePowerDownV3D(hReg);
-    BCHP_P_CM_V3DCTL_Enable(hReg, 0);
 #endif /* USE_VC5 */
 }
 #endif

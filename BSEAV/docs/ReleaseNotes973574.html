@@ -1,0 +1,324 @@
+<html>
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=us-ascii">
+<meta name=Generator content="Microsoft Word 14 (filtered)">
+<title>Broadcom 973574 A0 Phase 18.2.1 Set-Top Unified Reference Software
+Release (URSR) Release Notes</title>
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Cambria;
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+h1
+	{mso-style-link:"Heading 1 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:24.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+h2
+	{mso-style-link:"Heading 2 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:18.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+h3
+	{mso-style-link:"Heading 3 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:13.5pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:purple;
+	text-decoration:underline;}
+p
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+span.Heading1Char
+	{mso-style-name:"Heading 1 Char";
+	mso-style-link:"Heading 1";
+	font-family:"Cambria","serif";
+	color:#365F91;
+	font-weight:bold;}
+span.Heading2Char
+	{mso-style-name:"Heading 2 Char";
+	mso-style-link:"Heading 2";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;}
+span.Heading3Char
+	{mso-style-name:"Heading 3 Char";
+	mso-style-link:"Heading 3";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;}
+p.msochpdefault, li.msochpdefault, div.msochpdefault
+	{mso-style-name:msochpdefault;
+	margin-right:0in;
+	margin-left:0in;
+	font-size:10.0pt;
+	font-family:"Times New Roman","serif";}
+span.il
+	{mso-style-name:il;}
+.MsoChpDefault
+	{font-size:10.0pt;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;}
+div.WordSection1
+	{page:WordSection1;}
+ /* List Definitions */
+ ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+
+</head>
+
+<body lang=EN-US link=blue vlink=purple>
+
+<div class=WordSection1>
+
+<h1><a name="_top"><strong>Broadcom 973574 A0 Phase 18.2.1 </strong></a><strong>Unified
+Set-Top Reference Software Release Notes </strong></h1>
+
+<h2><strong>Release Date: </strong></h2>
+
+<blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
+
+<p>July 17, 2018</p>
+
+<p>Phase 18.2.1 URSR Release</p>
+
+</blockquote>
+
+<h2>Index</h2>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal><a href="#important">Important notes</a></li>
+ <li class=MsoNormal><a href="#platforms">Supported Platforms</a></li>
+ <li class=MsoNormal><a href="#where_to_start">Where to Start</a></li>
+ <ul style='margin-top:0in' type=circle>
+  <li class=MsoNormal><a href="#linux">Linux kernel and root file system build
+      instructions</a></li>
+  <li class=MsoNormal><a href="#atlas">Atlas complication instructions</a></li>
+  <li class=MsoNormal><a href="#boot">System boot instructions</a></li>
+  <li class=MsoNormal><a href="#run">Runtime instructions</a></li>
+ </ul>
+ <li class=MsoNormal><a href="#features">Features</a></li>
+ <li class=MsoNormal><a href="#limitations">Limitations</a></li>
+</ul>
+
+<h2><a name=important>Important notes&nbsp;</a><a href="#top">(Top)</a></h2>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal><b>The 73574a0 is from the 7255A0 family and one of the
+     first chips to use TrustZone on ARM to provide a secure environment for
+     decoding audio.</b></li>
+ <li class=MsoNormal><b>Due to this change in architecture the boot sequence is
+     unlike any other Broadcom set top box chip and the instructions below must
+     be followed exactly in order to have a fully working system.</b></li>
+ <li class=MsoNormal style='color:red'><b>Due to the licensing restrictions of
+     running Dolby audio code on ARM processors the audio codec files loaded
+     into TrustZone must be encrypted.</b></li>
+ <li class=MsoNormal style='color:red'><b>This means that in order to run with
+     audio enabled you must run with the secure BOLT and secure Astra packages.</b></li>
+ <li class=MsoNormal style='color:red'><b>To diasble audio at Nexus compile
+     time add NEXUS_AUDIO_SUPPORT=n to your environment.</b></li>
+ <li class=MsoNormal><b>This release now supports the of running the ARM
+     processor in 32 bit emulation mode.</b></li>
+ <li class=MsoNormal><b>In order to run in secure mode with mon64.bin and Astra
+     image, please contact your customer support team for details.</b></li>
+</ul>
+
+<h2><a name="where_to_start">Where To Start&nbsp;</a><a href="#top">(Top)</a></h2>
+
+<p>Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
+Read Atlas_User_Guide.pdf for information on configuring the Linux environment
+on your Build Server and Set-Top, and information on building and installing
+Atlas as part of the Reference Software. </p>
+
+<h3><a name=linux>Linux kernel and root file system build instructions&nbsp;</a><a
+href="#top">(Top)</a></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar -xjf stbgcc-6.3-1.2.tar.bz2 -C /opt/toolchains</li>
+ <li class=MsoNormal># export PATH=/opt/toolchains/stbgcc-6.3-1.2/bin:$PATH </li>
+ <li class=MsoNormal># tar -xvjf rootfs-4.9-1.7.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.9-1.7.tar.bz2 </li>
+ <li class=MsoNormal># cd rootfs </li>
+ <li class=MsoNormal># make defaults-arm64</li>
+ <li class=MsoNormal># make images</li>
+ <li class=MsoNormal># export LINUX=`readlink -f ../linux` </li>
+</ul>
+
+<h3><a name=atlas>Instructions to build atlas the Nexus sample UI application in
+64bit mode</a><a href="#top">(Top)</a></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar xvfz refsw_release_unified_20180717.tgz</li>
+ <li class=MsoNormal># mkdir -p /opt/toolchains/tzos/DSO/ </li>
+ <li class=MsoNormal># tar -xjf gcc-aarch64-tzos-musl-5.3-2017q3.tar.bz2 -C
+     /opt/toolchains/tzos/DSO/</li>
+ <li class=MsoNormal># tar -xjf gcc-arm-tzos-musl-5.3-2016q4v3.tar.bz2 -C
+     /opt/toolchains/tzos/DSO/</li>
+ <li class=MsoNormal># export
+     PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3-2017q3/bin:/opt/toolchains/gcc-arm-tzos-musl-5.3-2016q4v3/bin:$PATH
+     </li>
+ <li class=MsoNormal># export B_REFSW_ARCH=aarch64-linux</li>
+ <li class=MsoNormal># export NEXUS_PLATFORM=97255</li>
+ <li class=MsoNormal># export NEXUS_MODE=proxy</li>
+ <li class=MsoNormal># export BCHP_VER=A0</li>
+ <li class=MsoNormal>#export NEXUS_USE_73574_SV=y</li>
+ <li class=MsoNormal>#export NEXUS_FRONTEND_45402=y</li>
+ <li class=MsoNormal># make -C BSEAV/app/atlas/build install </li>
+</ul>
+
+<h3>64 bit Boot instructions&nbsp;<a href="#top">(Top)</a></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; tz init</li>
+ <li class=MsoNormal>BOLT&gt; tz boot &lt;network_location&gt;:astra64.bin
+     &lt;network_location&gt;:49-1.7/vmlinuz-initrd-arm</li>
+ <li class=MsoNormal>N.B. Astra binaries get built as part of the RefSW build
+     above.</li>
+</ul>
+
+<h3>Instructions to build atlas the Nexus sample UI application in 32bit mode <a
+href="#top">(Top)</a></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar xvfz refsw_release_unified_20180717.tgz</li>
+ <li class=MsoNormal># mkdir -p /opt/toolchains/tzos/DSO/ </li>
+ <li class=MsoNormal># tar -xjf gcc-aarch64-tzos-musl-5.3-2017q3.tar.bz2 -C
+     /opt/toolchains/tzos/DSO/</li>
+ <li class=MsoNormal># tar -xjf gcc-arm-tzos-musl-5.3-2016q4v3.tar.bz2 -C
+     /opt/toolchains/tzos/DSO/</li>
+ <li class=MsoNormal># export
+     PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3-2017q3/bin:/opt/toolchains/gcc-arm-tzos-musl-5.3-2016q4v3/bin:$PATH
+     </li>
+ <li class=MsoNormal># export B_REFSW_ARCH=arm-linux</li>
+ <li class=MsoNormal># export NEXUS_PLATFORM=97255</li>
+ <li class=MsoNormal># export NEXUS_MODE=proxy</li>
+ <li class=MsoNormal># export BCHP_VER=A0</li>
+ <li class=MsoNormal>#export NEXUS_USE_73574_SV=y</li>
+ <li class=MsoNormal>#export NEXUS_FRONTEND_45402=y</li>
+ <li class=MsoNormal># make -C BSEAV/app/atlas/build install </li>
+</ul>
+
+<h3><a name=boot>32 bit Boot instructions&nbsp;</a><a href="#top">(Top)</a></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; tz init</li>
+ <li class=MsoNormal>BOLT&gt; tz boot &lt;network_location&gt;:astra32.bin
+     &lt;network_location&gt;:49-1.7/vmlinuz-initrd-arm</li>
+ <li class=MsoNormal>N.B. Astra binaries get built as part of the RefSW build
+     above.</li>
+</ul>
+
+<p><strong>There are multiple box modes available which contain the RTS to
+support the different variants and features of this chip.</strong><b><br>
+<strong>Information on the available box modes has been moved to a <span
+style='color:#0070C0'><a href="docs/docs/7255A0_box_mode_comparison.html"><span
+style='color:#0070C0'>separate HTML table</span></a>.</span></strong></b></p>
+
+<h3><a name=run><span style='color:#0070C0'>Runtime instructions&nbsp;</span></a><span
+style='color:#0070C0'><a href="#top">(Top)</a></span></h3>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:#0070C0'>Connect the UHD TV via HDMI.</li>
+ <li class=MsoNormal style='color:#0070C0'>Mount the USB/SATA drive containing
+     the streams as /data/videos.</li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:#0070C0'>Use the following commands to run
+     atlas after extracting the refsw tarball from obj.973574.A0.SV/BSEAV/bin
+     dir.</li>
+ <li class=MsoNormal style='color:#0070C0'># export B_REFSW_BOXMODE=4 </li>
+ <li class=MsoNormal style='color:#0070C0'># echo performance &gt;
+     /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor </li>
+ <li class=MsoNormal style='color:#0070C0'># echo performance &gt;
+     /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor </li>
+ <li class=MsoNormal style='color:#0070C0'># start install </li>
+ <li class=MsoNormal style='color:#0070C0'># start atlas </li>
+ <li class=MsoNormal style='color:#0070C0'>From the menu, select Playback -&gt;
+     stream name. </li>
+</ul>
+
+<h2><a name=limitations><span style='color:#0070C0'>Limitations&nbsp;</span></a><span
+style='color:#0070C0'><a href="#top">(Top)</a></span></h2>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='color:#0070C0'>SAGE support is limited in this
+     engineering release: </li>
+ <ul style='margin-top:0in' type=disc>
+  <li class=MsoNormal style='color:#0070C0'>SAGE 3.2.17 provides HDCP 2.2 and
+      some DRM services.</li>
+  <li class=MsoNormal style='color:#0070C0'><b><i>It is not currently possible
+      to decode audio when SVP is enabled.</i></b></li>
+  <li class=MsoNormal style='color:#0070C0'>DRM playback is limited to using
+      the DIF playback applications, legacy DRM applications will not work.</li>
+  <li class=MsoNormal style='color:#0070C0'>With the playback_dif_single application
+      use the -noAudio option to stop the audio decode otherwise the
+      application will cause continuous MRC violations.</li>
+ </ul>
+ <li class=MsoNormal style='color:#0070C0'>Low power modes are not supported
+     while running TrustZone.</li>
+ <li class=MsoNormal style='color:#0070C0'>CPU dynamic voltage scaling is
+     unsupported.</li>
+ <li class=MsoNormal style='color:#0070C0'><b><i>Initial support for SAT
+     front-end, we currently only support DVB-S and DVB-S2 demodulation.</i></b></li>
+</ul>
+
+<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0
+ style='left:10px;top:1287px' id=TABLE1A>
+ <colgroup><col span="1" style="width: 15%;"><col span="1" style="width: 85%;"></colgroup>
+ <tr>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Jira Ticket</b></p>
+  </td>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Description</b></p>
+  </td>
+ </tr>
+ <tr>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SWSTB-10238</p>
+  </td>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>7255A0 resets when resuming from S2.</p>
+  </td>
+ </tr>
+</table>
+
+
+<h2><a name=features><span style='color:#0070C0'>Features&nbsp;</span></a><span
+style='color:#0070C0'><a href="#top">(Top)</a></span></h2>
+
+<p><strong><span style='color:#0070C0'>Information on Features has been
+consolidated in the <a href="docs/docs/ReleaseNotes.html"><span
+style='color:#0070C0'>generic ReleaseNotes.html</span></a>.</span></strong></p>
+
+</div>
+
+</body>
+
+</html>

@@ -66,13 +66,16 @@ EXPORT_SYMBOL(num_spi_devices);
 static int spidrv_sync(struct spidrv_info *spi_driver, struct spi_message *message)
 {
     int status;
+    struct spi_device *spi;
 
     spin_lock_irq(&spi_driver->spi_lock);
+    spi = spi_driver->spi;
+    spin_unlock_irq(&spi_driver->spi_lock);
+
     if (spi_driver->spi == NULL)
         status = -ESHUTDOWN;
     else
-        status = spi_sync(spi_driver->spi, message);
-    spin_unlock_irq(&spi_driver->spi_lock);
+        status = spi_sync(spi, message);
 
     return status;
 }
@@ -380,7 +383,7 @@ static long spidrv_ioctl(struct file * file, unsigned int cmd, unsigned long arg
                     pr_err("Message length exceeded buffer size!\n");
                     break;
                 }
-                spidrv_message(spi_driver, &msg);
+                result = spidrv_message(spi_driver, &msg);
             }
             break;
         case BRCM_IOCTL_SPI_MSG_MULT:
@@ -391,7 +394,7 @@ static long spidrv_ioctl(struct file * file, unsigned int cmd, unsigned long arg
                     pr_err("copy_from_user failed!\n");
                     break;
                 }
-                spidrv_message_multiple(spi_driver, &msgs);
+                result = spidrv_message_multiple(spi_driver, &msgs);
             }
             break;
         default:

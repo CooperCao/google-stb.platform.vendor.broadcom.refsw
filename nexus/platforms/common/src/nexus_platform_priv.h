@@ -555,4 +555,7 @@ Set 656 daughter card output format
 void NEXUS_Platform_P_Ccir656Daughtercard_SetFormat(NEXUS_VideoFormat fmt);
 #endif
 
+NEXUS_Error NEXUS_Platform_GetPstate(unsigned coreId, BCHP_Pstate *pState, unsigned *command);
+NEXUS_Error NEXUS_Platform_SetPstate(unsigned coreId, BCHP_Pstate pState, unsigned num, const unsigned *command);
+NEXUS_Error NEXUS_Platform_GetAvsData(unsigned idx, unsigned *value);
 #endif /* #ifndef NEXUS_PLATFORM_PRIV_H__ */

@@ -680,6 +680,147 @@ end:
 	return errCode;
 }
 
+
+BERR_Code BDSP_Arm_P_AddSoftFmmInput(
+	void *pStageHandle,
+	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
+	unsigned *pInputIndex
+)
+{
+	BERR_Code errCode=BERR_SUCCESS;
+	BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
+	unsigned ipIndex=0, channels=0, index=0;
+	BDSP_P_ConnectionDetails *psStageInput;
+	BDSP_AF_P_DistinctOpType distinctOp;
+    BDSP_DataType dataType;
+
+	BDBG_ENTER(BDSP_Arm_P_AddSoftFmmInput);
+	BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
+	BDSP_P_GetFreeInputPortIndex(&(pArmStage->sStageConnectionInfo.sStageInput[0]), &ipIndex);
+	BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
+
+    dataType = BDSP_DataType_ePcmStereo;
+	psStageInput = (BDSP_P_ConnectionDetails *)&pArmStage->sStageConnectionInfo.sStageInput[ipIndex];
+
+	BDBG_MSG(("BDSP_Arm_P_AddSoftFmmInput:Connecting FMM Input to Stage (%s) with datatype = %s",
+        Algorithm2Name[pArmStage->eAlgorithm], DataType[dataType]));
+	BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &distinctOp);
+	if(channels!=pDescriptor->numBuffers)
+	{
+		errCode=BERR_TRACE(BERR_INVALID_PARAMETER);
+		BDBG_ERR(("BDSP_Arm_P_AddSoftFmmInput::FMM Input not added!! Channels = %d and buffers in descriptor = %d",channels,pDescriptor->numBuffers));
+		goto end;
+	}
+
+    for(index = 0; index < pDescriptor->numBuffers; index++)
+    {
+        if(NULL == pDescriptor->pInterface[index])
+        {
+            BDBG_ERR(("BDSP_Arm_P_AddSoftFmmInput: Output (%p) buffer(%d) interface NULL",(void *)pDescriptor,index));
+            errCode = BERR_TRACE(BERR_NOT_INITIALIZED);
+            goto end;
+        }
+    }
+
+	psStageInput->eValid          = BDSP_AF_P_eValid;
+	psStageInput->eConnectionType = BDSP_ConnectionType_eSoftFmmBuffer;
+	psStageInput->dataType        = dataType;
+
+	psStageInput->connectionHandle.softFmm.softFmmDescriptor = *pDescriptor;
+
+	for(index=0;index<BDSP_AF_P_MAX_CHANNEL_PAIR;index++)/*rate controller Initialize per pair of channels*/
+	{
+		psStageInput->connectionHandle.softFmm.rateController[index].wrcnt = BDSP_AF_P_WRCNT_INVALID;
+	}
+#if 0
+	for(index=0; index<((pDescriptor->numBuffers+1)>>1); index++)/*rate controller per pair of channels*/
+	{
+		psStageInput->connectionHandle.fmm.rateController[index].wrcnt = pDescriptor->rateControllers[index].wrcnt;
+	}
+#endif
+	pArmStage->totalInputs+=1;
+	pArmStage->sStageConnectionInfo.numInputs[BDSP_ConnectionType_eSoftFmmBuffer]+=1;
+	*pInputIndex = ipIndex;
+
+	if ((pArmStage->running)&&(!pArmStage->pContext->contextWatchdogFlag))
+	{
+        errCode = BDSP_Arm_P_ReconfigCit(pArmStage,true,psStageInput,ipIndex);
+		if(errCode != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AddSoftFmmInput: Error in Reconfig of CIT"));
+			goto end;
+		}
+	}
+end:
+	BDBG_LEAVE(BDSP_Arm_P_AddSoftFmmInput);
+	return errCode;
+}
+
+BERR_Code BDSP_Arm_P_AddSoftFmmOutput(
+	void *pStageHandle,
+	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
+	unsigned *pOutputIndex
+)
+{
+	BERR_Code errCode=BERR_SUCCESS;
+	BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
+	unsigned opIndex=0, channels =0, index=0;
+	BDSP_P_ConnectionDetails *psStageOutput;
+    BDSP_DataType dataType;
+
+	BDBG_ENTER(BDSP_Arm_P_AddSoftFmmOutput);
+	BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
+	BDSP_P_GetFreeOutputPortIndex(&(pArmStage->sStageConnectionInfo.sStageOutput[0]), &opIndex);
+	BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
+	psStageOutput = (BDSP_P_ConnectionDetails *)&pArmStage->sStageConnectionInfo.sStageOutput[opIndex];
+
+    dataType = BDSP_DataType_ePcmStereo;
+	BDBG_MSG(("BDSP_Arm_P_AddSoftFmmOutput:Connecting Soft FMM output to Stage (%s) with datatype = %s",
+        Algorithm2Name[pArmStage->eAlgorithm], DataType[dataType]));
+	BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &pArmStage->sStageConnectionInfo.eStageOpDataType[opIndex]);
+	if(channels!=pDescriptor->numBuffers)
+	{
+		errCode=BERR_TRACE(BERR_INVALID_PARAMETER);
+		BDBG_ERR(("BDSP_Arm_P_AddSoftFmmOutput::Soft FMM Output not added!! Channels = %d and buffers in descriptor = %d",channels,pDescriptor->numBuffers));
+		goto end;
+	}
+
+    for(index = 0; index < pDescriptor->numBuffers; index++)
+    {
+        if(NULL == pDescriptor->pInterface[index])
+        {
+            BDBG_ERR(("BDSP_Arm_P_AddSoftFmmOutput: Output (%p) buffer(%d) interface NULL",(void *)pDescriptor,index));
+            errCode = BERR_TRACE(BERR_NOT_INITIALIZED);
+            goto end;
+        }
+    }
+
+	psStageOutput->eValid          = BDSP_AF_P_eValid;
+	psStageOutput->eConnectionType = BDSP_ConnectionType_eSoftFmmBuffer;
+	psStageOutput->dataType        = dataType;
+
+	psStageOutput->connectionHandle.softFmm.softFmmDescriptor = *pDescriptor;
+
+	for(index=0;index<BDSP_AF_P_MAX_CHANNEL_PAIR;index++)/*rate controller Initialize per pair of channels*/
+	{
+		psStageOutput->connectionHandle.softFmm.rateController[index].wrcnt = BDSP_AF_P_WRCNT_INVALID;
+	}
+#if 0
+	for(index=0; index<((pDescriptor->numBuffers+1)>>1); index++)/*rate controller per pair of channels*/
+	{
+		psStageOutput->connectionHandle.fmm.rateController[index].wrcnt = pDescriptor->rateControllers[index].wrcnt;
+	}
+#endif
+	pArmStage->totalOutputs+=1;
+	pArmStage->sStageConnectionInfo.numOutputs[BDSP_ConnectionType_eSoftFmmBuffer]+=1;
+	*pOutputIndex = opIndex;
+
+end:
+	BDBG_LEAVE(BDSP_Arm_P_AddSoftFmmOutput);
+	return errCode;
+}
+
+
 /***********************************************************************
 Name        :   BDSP_Arm_P_AddInterTaskBufferInput
 

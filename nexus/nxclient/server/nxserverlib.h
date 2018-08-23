@@ -38,6 +38,9 @@
  * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
  *****************************************************************************/
 #ifndef NXSERVERLIB_H__
 #define NXSERVERLIB_H__
@@ -223,7 +226,6 @@ struct nxserver_settings
     } client;
     struct {
         unsigned clientFullHeap, dynamicHeap;
-        unsigned ondemand_mapping;
     } heaps;
 
 #if NEXUS_HAS_HDMI_OUTPUT

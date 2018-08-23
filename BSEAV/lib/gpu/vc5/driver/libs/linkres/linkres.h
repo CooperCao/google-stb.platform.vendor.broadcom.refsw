@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 
 #pragma once
@@ -82,15 +82,8 @@ typedef struct {
    uint8_t tess_edge_spacing : 2; // v3d_cl_tess_edge_spacing_t
    uint8_t tess_clockwise    : 1; // bool
 
-   union
-   {
-      struct
-      {
-         uint8_t has_tess : 1;
-         uint8_t has_geom : 1;
-      };
-      uint8_t has_tng;
-   };
+   uint8_t has_tess          : 1;
+   uint8_t has_geom          : 1;
 #endif
 } linkres_t;
 

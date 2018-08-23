@@ -1,5 +1,5 @@
 /*****************************************************************************************************
-*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 ******************************************************************************************************/
 
 #pragma once
@@ -28,6 +28,11 @@ typedef enum
    BEGL_BufferFormat_eA1B5G5R5,
    BEGL_BufferFormat_eR5G5B5X1,
    BEGL_BufferFormat_eX1B5G5R5,
+
+   BEGL_BufferFormat_eR8G8B8,
+
+   BEGL_BufferFormat_eA16B16G16R16_FP,
+   BEGL_BufferFormat_eA2B10G10R10,
 
    /* non renderable input formats */
    BEGL_BufferFormat_eYV12,                  /* 3 planes layed out in Google format */

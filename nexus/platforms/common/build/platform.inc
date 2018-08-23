@@ -329,6 +329,10 @@ NEXUS_PLATFORM_PROXY_SOURCES = \
 ifeq ($(NEXUS_CONFIG_IMAGE),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS).$(NEXUS_MODE)/nexus_platform_image.c
+ifneq ($(NEXUS_AUDIO_SUPPORT),n)
+NEXUS_PLATFORM_PROXY_SOURCES += \
+    $(NEXUS_TOP)/modules/audio/src/ape_raaga/linuxuser/nexus_audio_image.c
+endif
 ifeq ($(SAGE_SUPPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
     $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c

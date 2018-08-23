@@ -1,39 +1,43 @@
 /******************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ******************************************************************************/
 #include "nexus_platform.h"
 #if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_AUDIO
@@ -73,7 +77,8 @@ static    NEXUS_PlatformConfiguration platformConfig;
 static bool decodeAudio = false;
 static bool dualAudio = false;
 static bool hdmiOutOnly = false;
-static NEXUS_AudioDecoderHandle audioDecoder;
+static bool compressedAudio = false;
+static NEXUS_AudioDecoderHandle audioDecoder, audioCompDecoder=NULL;
 static NEXUS_AudioDecoderStartSettings audioProgram;
 static NEXUS_AudioInputCaptureHandle inputCapture;
 static NEXUS_AudioInputCaptureStartSettings inputCaptureStartSettings;
@@ -124,6 +129,36 @@ typedef struct SourceChangedCallbackParameters
     NEXUS_DisplayHandle display ;
 } SourceChangedCallbackParameters ;
 
+static void enable_audio(NEXUS_HdmiOutputHandle hdmiOutput);
+static void disable_audio(NEXUS_HdmiOutputHandle hdmiOutput);
+
+static void audio_source_changed(void *context, int param)
+{
+    NEXUS_AudioDecoderStatus decoderStatus;
+    NEXUS_AudioInputStatus status;
+    NEXUS_AudioDecoderHandle hDecoder = (NEXUS_AudioDecoderHandle)context;
+
+    BSTD_UNUSED(param);
+
+    if ( hdmiInput )
+    {
+        NEXUS_AudioInput_GetInputStatus(NEXUS_HdmiInput_GetAudioConnector(hdmiInput), &status);
+        if ( hDecoder )
+        {
+            BDBG_LOG(("Audio Codec %d. NEXUS can halt or automatically reconfigure based on the setting of NEXUS_AudioDecoderStartSettings.formatChangeMode", status.codec));
+            NEXUS_AudioDecoder_GetStatus(hDecoder, &decoderStatus);
+            BDBG_LOG(("Audio Decoder State %d", decoderStatus.started));
+
+            /* check if we need to make any changes and restart */
+            if ( decoderStatus.started == NEXUS_AudioRunningState_eStopped )
+            {
+                BDBG_LOG(("Audio Decoder Halted and/or codec changed from %d to %d", audioProgram.codec, status.codec));
+                audioProgram.codec = status.codec;
+                enable_audio(hdmiOutput);
+            }
+        }
+    }
+}
 
 static void source_changed(void *context, int param)
 {
@@ -321,13 +356,17 @@ static void disable_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 
     if ( decodeAudio || dualAudio )
     {
-        BDBG_ERR(("Stopping Audio Decode\n"));
+        BDBG_LOG(("Stopping Audio Decode\n"));
         NEXUS_AudioDecoder_Stop(audioDecoder);
+        if ( audioCompDecoder )
+        {
+            NEXUS_AudioDecoder_Stop(audioCompDecoder);
+        }
     }
 
     if ( !decodeAudio || dualAudio )
     {
-        BDBG_ERR(("Stopping HDMI bypass passthrough Audio\n"));
+        BDBG_LOG(("Stopping HDMI bypass passthrough Audio\n"));
         NEXUS_AudioInputCapture_Stop(inputCapture);
     }
 }
@@ -335,6 +374,29 @@ static void disable_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 static void enable_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 {
     BSTD_UNUSED(hdmiOutput);
+
+    if ( audioCompDecoder )
+    {
+        NEXUS_AudioOutput_RemoveInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioCompDecoder, NEXUS_AudioConnectorType_eCompressed));
+    }
+    NEXUS_AudioOutput_RemoveInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eCompressed));
+    NEXUS_AudioOutput_RemoveInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eMultichannel));
+    if ( decodeAudio && !dualAudio && audioCompDecoder )
+    {
+        if ( audioProgram.codec == NEXUS_AudioCodec_eAc3Plus )
+        {
+            NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioCompDecoder, NEXUS_AudioConnectorType_eCompressed));
+            NEXUS_AudioDecoder_Start(audioCompDecoder, &audioProgram);
+        }
+        else
+        {
+            NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eCompressed));
+        }
+    }
+    else
+    {
+        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eMultichannel));
+    }
 
     if ( decodeAudio || dualAudio )
     {
@@ -840,6 +902,10 @@ int main(int argc, char **argv)
         {
             hdmiOutOnly = true ;
         }
+        else if (!strcmp(argv[curarg], "-compressedAudio"))
+        {
+            compressedAudio = true ;
+        }
 
         curarg++;
     }
@@ -1027,12 +1093,19 @@ int main(int argc, char **argv)
     /* add audio support */
     if ( decodeAudio || dualAudio )
     {
+        bool pcmInput = false;
+        NEXUS_AudioDecoderSettings audioDecoderSettings;
         audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
         NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
+        if ( compressedAudio )
+        {
+            audioCompDecoder = NEXUS_AudioDecoder_Open(1, NULL);
+        }
         audioProgram.input = NEXUS_HdmiInput_GetAudioConnector(hdmiInput);
         audioProgram.latencyMode = NEXUS_AudioDecoderLatencyMode_eLowest;
+        audioProgram.inputFormatChangeMode = NEXUS_AudioInputFormatChangeMode_eManual;
         /* TSM no longer required for input -> decode
-        {                                                                                   ;
+        {
         NEXUS_StcChannelSettings stcSettings;
         NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
         stcSettings.timebase = NEXUS_Timebase_e0;
@@ -1043,18 +1116,45 @@ int main(int argc, char **argv)
         audioProgram.stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
         }
         */
-        if ( !dualAudio )
-        {
-            NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(hdmiOutput), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eMultichannel));
-        }
         if ( !hdmiOutOnly )
         {
             #if NEXUS_NUM_SPDIF_OUTPUTS
-            NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            if ( audioCompDecoder )
+            {
+                NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eCompressed));
+            }
+            else
+            {
+                NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            }
             #endif
             #if NEXUS_NUM_AUDIO_DACS
-            NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            if ( platformConfig.outputs.audioDacs[0] )
+            {
+                pcmInput = true;
+                NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            }
             #endif
+
+            if ( !pcmInput )
+            {
+                if ( platformConfig.outputs.audioDummy[0] )
+                {
+                    NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]), NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+                }
+            }
+        }
+
+        NEXUS_AudioDecoder_GetSettings(audioDecoder, &audioDecoderSettings);
+        audioDecoderSettings.sourceChanged.callback = audio_source_changed;
+        audioDecoderSettings.sourceChanged.context = audioDecoder;
+        NEXUS_AudioDecoder_SetSettings(audioDecoder, &audioDecoderSettings);
+        if ( audioCompDecoder )
+        {
+            NEXUS_AudioDecoder_GetSettings(audioCompDecoder, &audioDecoderSettings);
+            audioDecoderSettings.sourceChanged.callback = audio_source_changed;
+            audioDecoderSettings.sourceChanged.context = audioCompDecoder;
+            NEXUS_AudioDecoder_SetSettings(audioCompDecoder, &audioDecoderSettings);
         }
     }
 
@@ -1253,6 +1353,11 @@ shutdown :
         {
             NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
             NEXUS_AudioInput_Shutdown(NEXUS_HdmiInput_GetAudioConnector(hdmiInput));
+            if ( audioCompDecoder )
+            {
+                NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioCompDecoder, NEXUS_AudioConnectorType_eCompressed));
+                NEXUS_AudioDecoder_Close(audioCompDecoder);
+            }
             NEXUS_AudioDecoder_Close(audioDecoder);
             if ( audioProgram.stcChannel )
             {

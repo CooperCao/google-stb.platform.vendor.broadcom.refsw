@@ -89,6 +89,8 @@ typedef struct act_frame_cubby {
 	void			*wlc_handler;		/* wlc's MSCH used to send act frame. */
 } act_frame_cubby_t;
 
+#define WLC_AF_DEFAULT_DWELL_TIME 200
+
 #define ACTION_FRAME_IN_PROGRESS(act_frame_cubby)	((act_frame_cubby)->action_frame != NULL)
 
 /* bsscfg states access macros */
@@ -287,11 +289,20 @@ wlc_act_frame_doiovar(void *ctx, uint32 actionid,
 				af_continue = TRUE;
 			}
 
+			if (af->dwell_time < 0) {
+				af->dwell_time = WLC_AF_DEFAULT_DWELL_TIME;
+			}
+
 			if (!af_continue) {
 				if (ACTION_FRAME_IN_PROGRESS(actframe_cubby)) {
 					err = BCME_BUSY;
 					break;
 				}
+
+				if (af->channel == 0) {
+					af->channel = wf_chspec_ctlchan(WLC_BAND_PI_RADIO_CHANSPEC);
+				}
+
 				err = wlc_send_action_frame_off_channel(wlc, bsscfg,
 					CH20MHZ_CHSPEC(af->channel), af->dwell_time,
 					&af->BSSID, &af->action_frame, NULL, NULL);

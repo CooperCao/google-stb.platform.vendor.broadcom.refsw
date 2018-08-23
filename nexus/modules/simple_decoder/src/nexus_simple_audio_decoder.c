@@ -279,7 +279,7 @@ NEXUS_SimpleAudioDecoderHandle NEXUS_SimpleAudioDecoder_Create( NEXUS_SimpleAudi
     handle->serverSettings.type = NEXUS_SimpleAudioDecoderType_eMax;
 
     if (pSettings) {
-        rc = NEXUS_SimpleAudioDecoder_SetServerSettings(server, handle, pSettings);
+        rc = NEXUS_SimpleAudioDecoder_SetServerSettings(server, handle, pSettings, false);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
     else {
@@ -288,7 +288,7 @@ NEXUS_SimpleAudioDecoderHandle NEXUS_SimpleAudioDecoder_Create( NEXUS_SimpleAudi
         if(!settings) { (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto error; }
 
         NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(settings);
-        rc = NEXUS_SimpleAudioDecoder_SetServerSettings(server, handle, settings);
+        rc = NEXUS_SimpleAudioDecoder_SetServerSettings(server, handle, settings, false);
 
         BKNI_Free(settings);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
@@ -661,7 +661,7 @@ static void NEXUS_SimpleAudioDecoder_P_SetServerSettings(NEXUS_SimpleAudioDecode
 }
 #endif
 
-NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle handle, const NEXUS_SimpleAudioDecoderServerSettings *pSettings )
+NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioDecoderHandle handle, const NEXUS_SimpleAudioDecoderServerSettings *pSettings, bool forceReconfig )
 {
 #if NEXUS_HAS_AUDIO
     unsigned i;
@@ -697,6 +697,10 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
         }
         if (pSettings->description==NULL) {
             NEXUS_SimpleAudioDecoder_P_RestoreDecoder(handle, NEXUS_SimpleAudioDecoderSelector_eDescription);
+        }
+
+        if (forceReconfig) {
+            configOutputs = true;
         }
     }
     else {
@@ -773,6 +777,15 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
     NEXUS_SimpleAudioDecoder_P_SetServerSettings(server, handle, &handle->serverSettings);
 
     if (configOutputs) {
+        if (forceReconfig) {
+            /* If we forced a reconfiguration let's make sure nothing was left un-re-started */
+            if (CONNECTED(handle) && handle->clientStarted) {
+                rc = nexus_simpleaudiodecoder_p_start(handle);
+                if (rc) {
+                    rc = BERR_TRACE(rc); /* fall through */
+                }
+            }
+        }
         rc = NEXUS_SimpleAudioDecoder_P_AddOutputs(handle);
         if (rc) {rc = BERR_TRACE(rc);} /* fall through */
 

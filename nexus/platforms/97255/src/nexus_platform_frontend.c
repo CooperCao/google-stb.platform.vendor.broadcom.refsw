@@ -83,14 +83,15 @@ typedef struct boardFrontendConfigOptions {
 } boardFrontendConfigOptions;
 
 static boardFrontendConfigOptions boardFrontendConfig[] = {
-    /* BID   FEM    QAM    SPI    IRQ settings */
-    {  1, 1, false, false, true,  25, NEXUS_GpioType_eAonStandard }, /* 73574A0 on board */
-    {  1, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* SV Slot 0 */
-    {  2, 0, true,  false, true,  37, NEXUS_GpioType_eStandard },   /* DV */
-    {  6, 2, true,  false, true,  24, NEXUS_GpioType_eAonStandard}, /* HB */
-    {  6, 3, false, true,  true,   0, NEXUS_GpioType_eStandard},    /* RMT */
-    { 12, 2, false, true,  true,   0, NEXUS_GpioType_eStandard},    /* 2LD3 */
-    { 12, 3, true,  false, false, 25, NEXUS_GpioType_eAonStandard}, /* 2LD4 */
+    /* BID   FEM    QAM    SPI    IRQ settings                          boardType  */
+    {  1, 1, false, false, true,  25, NEXUS_GpioType_eAonStandard },    /* 73574A0 on board */
+    {  1, 0, true,  false, true,  37, NEXUS_GpioType_eStandard    },    /* SV Slot 0 */
+    {  2, 0, true,  false, true,  37, NEXUS_GpioType_eStandard    },    /* DV */
+    {  3, 0, false, false, true,  25, NEXUS_GpioType_eAonStandard },    /* 73574-HB */
+    {  6, 2, true,  false, true,  24, NEXUS_GpioType_eAonStandard },    /* HB */
+    {  6, 3, false, true,  true,   0, NEXUS_GpioType_eStandard    },    /* RMT */
+    { 12, 2, false, true,  true,   0, NEXUS_GpioType_eStandard    },    /* 2LD3 */
+    { 12, 3, true,  false, false, 25, NEXUS_GpioType_eAonStandard },    /* 2LD4 */
 };
 
 #include "priv/nexus_frontend_standby_priv.h"
@@ -123,7 +124,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     unsigned i = 0;
     unsigned i2cChn = 3;
     unsigned i2cAddr = 0x7c;
-    unsigned diseqcI2cAddr = 0xB;
 
     platformStatus = BKNI_Malloc(sizeof(*platformStatus));
     if (!platformStatus) {
@@ -303,59 +303,82 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         }
 
     }
-
+    /* if we get here, then this must be a 7357X derivative */
     if (!boardConfig->onboardQam && !boardConfig->femtsif) {
-        if (platformStatus->boardId.major == 1 && platformStatus->boardId.minor == 1) {
-            NEXUS_FrontendProbeResults probeResults;
-            NEXUS_GpioHandle gpio;
-            BSTD_UNUSED(userParams);
+        NEXUS_GpioStatus gpioStatus;
+        NEXUS_FrontendProbeResults probeResults;
+        NEXUS_GpioHandle gpio;
+        NEXUS_GpioType resetGpioType = NEXUS_GpioType_eStandard;
+        uint16_t diseqcI2cAddr = 0x0B;
+        BSTD_UNUSED(userParams);
 
-            BDBG_MSG(("setting GPIO 00 low"));
-            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
-            gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
-            gpioSettings.value = NEXUS_GpioValue_eLow;
-            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 0, &gpioSettings);
-            BKNI_Sleep(1);
-            if (gpio)
-                NEXUS_Gpio_Close(gpio);
-            BDBG_MSG(("setting GPIO 00 high"));
-            gpioSettings.value = NEXUS_GpioValue_eHigh;
-            gpio = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 0, &gpioSettings);
-            BKNI_Sleep(50);
-            if (gpio)
-                NEXUS_Gpio_Close(gpio);
+        if ((3 == boardConfig->boardIdMajor) && (0 == boardConfig->boardIdMinor) ) {
+            /* this must a HB board, initialize AON GPIO 00 */
+            BDBG_MSG(("Selecting Reset AON GPIO pin "));
+            resetGpioType = NEXUS_GpioType_eAonStandard;
+            diseqcI2cAddr = 0x08;
+        }
+        else if ((1 == boardConfig->boardIdMajor) && (1 == boardConfig->boardIdMinor) ) {
+            /* this must be a SV board, initialize GPIO 00 */
+            BDBG_MSG(("Selecting Reset Normal GPIO pin "));
+            resetGpioType = NEXUS_GpioType_eStandard;
+            diseqcI2cAddr = 0x0B;
+        }
 
-            BDBG_MSG(("Search for internal 45402............"));
+        /* toggle the reset pin to the front-end now that we know which type of GPIO we have */
+        NEXUS_Gpio_GetDefaultSettings(resetGpioType, &gpioSettings);
+        gpioSettings.mode = NEXUS_GpioMode_eInput;
+        gpio = NEXUS_Gpio_Open(resetGpioType, 0, &gpioSettings);
+        if (gpio) {
+          NEXUS_Gpio_GetStatus(gpio, &gpioStatus);
+          BDBG_MSG(("Reset GPIO val: %d", gpioStatus.value));
+          NEXUS_Gpio_Close(gpio);
+          BDBG_MSG(("setting Reset GPIO pin 00 low"));
+          NEXUS_Gpio_GetDefaultSettings(resetGpioType, &gpioSettings);
+          gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+          gpioSettings.value = NEXUS_GpioValue_eLow;
+          gpio = NEXUS_Gpio_Open(resetGpioType, 0, &gpioSettings);
+          BKNI_Sleep(1);
+          if (gpio)
+              NEXUS_Gpio_Close(gpio);
+          BDBG_MSG(("setting Reset GPIO pin 00 high"));
+          gpioSettings.value = NEXUS_GpioValue_eHigh;
+          gpio = NEXUS_Gpio_Open(resetGpioType, 0, &gpioSettings);
+          BKNI_Sleep(50);
+          if (gpio)
+              NEXUS_Gpio_Close(gpio);
+        }
+        BDBG_MSG(("Search for internal 45402............"));
 
-            NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
-            if (probeResults.chip.familyId != 0) {
-                BDBG_MSG(("Opening %x...",probeResults.chip.familyId));
-                BDBG_MSG(("Setting up interrupt on GPIO %d",boardConfig->irqGpio));
-                NEXUS_Gpio_GetDefaultSettings(boardConfig->irqGpioType, &gpioSettings);
-                gpioSettings.mode = NEXUS_GpioMode_eInput;
-                gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
-                gpioIrqHandle = NEXUS_Gpio_Open(boardConfig->irqGpioType, boardConfig->irqGpio, &gpioSettings);
-                BDBG_ASSERT(NULL != gpioIrqHandle);
-                deviceSettings.satellite.diseqc.i2cDevice = pConfig->i2c[i2cChn];
-                deviceSettings.satellite.diseqc.i2cAddress = diseqcI2cAddr;
-                deviceSettings.gpioInterrupt = gpioIrqHandle;
-                device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+        NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
+        if (probeResults.chip.familyId != 0) {
+            BDBG_MSG(("Found it, Opening %x...",probeResults.chip.familyId));
+            BDBG_MSG(("Setting up interrupt on GPIO %d",boardConfig->irqGpio));
+            NEXUS_Gpio_GetDefaultSettings(boardConfig->irqGpioType, &gpioSettings);
+            gpioSettings.mode = NEXUS_GpioMode_eInput;
+            gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+            gpioIrqHandle = NEXUS_Gpio_Open(boardConfig->irqGpioType, boardConfig->irqGpio, &gpioSettings);
+            BDBG_ASSERT(NULL != gpioIrqHandle);
+            deviceSettings.satellite.diseqc.i2cDevice = pConfig->i2c[i2cChn];
+            deviceSettings.satellite.diseqc.i2cAddress = diseqcI2cAddr;
+            deviceSettings.gpioInterrupt = gpioIrqHandle;
+            device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
 
-                if (device) {
-                    NEXUS_FrontendDeviceCapabilities capabilities;
-                    NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
-                    for (i=0; i < capabilities.numTuners ; i++) {
-                        NEXUS_FrontendChannelSettings channelSettings;
-                        channelSettings.device = device;
-                        channelSettings.channelNumber = i;
+            if (device) {
+                NEXUS_FrontendDeviceCapabilities capabilities;
+                NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+                for (i=0; i < capabilities.numTuners ; i++) {
+                    NEXUS_FrontendChannelSettings channelSettings;
+                    channelSettings.device = device;
+                    channelSettings.channelNumber = i;
 
-                        pConfig->frontend[i] = NEXUS_Frontend_Open(&channelSettings);
-                        if (NULL == (pConfig->frontend[i])) {
-                            BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
-                            continue;
-                        }
-                        BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+                    pConfig->frontend[i] = NEXUS_Frontend_Open(&channelSettings);
+                    if (NULL == (pConfig->frontend[i])) {
+                        BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
+                        continue;
                     }
+                    BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+                }
 #ifdef NEXUS_FRONTEND_45402
                     {
                         uint32_t val;
@@ -384,7 +407,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
                 }
             }
-        }
     }
 err:
     BKNI_Free(platformStatus);

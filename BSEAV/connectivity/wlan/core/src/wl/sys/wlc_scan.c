@@ -2088,8 +2088,20 @@ int _wlc_scan(
 	}
 
 	if (channel_num > 0) {
-		for (i = 0; i < channel_num; i++)
-			scan_info->chanspec_list[i] = chanspec_list[i];
+		for (i = 0; i < channel_num; i++) {
+			/* band is auto */
+			if (!wlc->bandlocked) {
+				scan_info->chanspec_list[i] = chanspec_list[i];
+			} else {
+				/* allow channels only from the band configured */
+				if ((BAND_2G(wlc->band->bandtype) && CHSPEC_IS5G(chanspec_list[i])) ||
+					(BAND_5G(wlc->band->bandtype) && CHSPEC_IS2G(chanspec_list[i]))) {
+					channel_num--;
+					continue;
+				}
+				scan_info->chanspec_list[i] = chanspec_list[i];
+			}
+		}
 		scan_info->channel_num = channel_num;
 	}
 #ifdef BCMCCX

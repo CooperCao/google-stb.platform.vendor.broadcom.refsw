@@ -116,6 +116,10 @@ BERR_Code BDSP_Raaga_P_ProcessInitCommand(
         BDBG_MSG(("Heap %d size : " BDSP_MSG_FMT, i, BDSP_MSG_ARG(sCommand.uCommand.sRaagaInitCommand.sHeapInfo.sHeapLimits[i].ui64HeapSize)));
     }
 
+	sCommand.uCommand.sRaagaInitCommand.sDescriptorMemoryInfo.BaseAddr  = pDevice->memInfo.DescriptorMemory[dspindex][0].Buffer.offset;
+	sCommand.uCommand.sRaagaInitCommand.sDescriptorMemoryInfo.Size      = BDSP_MAX_POOL_OF_DESCRIPTORS *
+			BDSP_ALIGN_SIZE((BDSP_MAX_DESCRIPTORS_PER_POOL*sizeof(BDSP_AF_P_sCIRCULAR_BUFFER)),BDSP_MAX_HOST_DSP_L2C_SIZE);
+
     sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumCores            = pDevice->numCorePerDsp;
     sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumUserProcess      = BDSP_MAX_NUM_USER_PROCESS;
     sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumSchedulingLevels = pDevice->systemSchedulingInfo.numSchedulingLevels;
@@ -137,6 +141,17 @@ BERR_Code BDSP_Raaga_P_ProcessInitCommand(
 	for(i =0; i<sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32NumSchedulingLevels; i++)
 	{
 		BDBG_MSG(("Threshold level[%d] = 0x%x", i, sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.ui32PreemptiveThreshold[i]));
+	}
+
+	for(i=0; i<BDSP_P_TaskType_eLast; i++)
+	{
+		sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.sTaskSchedulingMatrix[i].schedulingLevel =
+			pDevice->systemSchedulingInfo.sTaskSchedulingInfo[i].schedulingLevel;
+		sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.sTaskSchedulingMatrix[i].schedulingThreshold=
+			pDevice->systemSchedulingInfo.sTaskSchedulingInfo[i].schedulingThreshold;
+		BDBG_MSG(("TASK TYPE[%s]:LEVEL: 0x%x,\tTHRESHOLD: 0x%x",TaskType[i],
+			sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.sTaskSchedulingMatrix[i].schedulingLevel,
+			sCommand.uCommand.sRaagaInitCommand.sSchedulingInfo.sTaskSchedulingMatrix[i].schedulingThreshold));
 	}
     sCommand.uCommand.sRaagaInitCommand.sTimerInfo.ui32PeriodicTimerInUs = BDSP_PERIODIC_TIMER;
     sCommand.uCommand.sRaagaInitCommand.sTimerInfo.ui32WatchdogTimerinMs = BDSP_WATCHDOG_TIMER;

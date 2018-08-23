@@ -136,6 +136,7 @@ typedef enum BDSP_Algorithm
 	BDSP_Algorithm_eFadeCtrl,			 /* Fade-Control */
     BDSP_Algorithm_eAmbisonics,         /* Ambisonics */
 	BDSP_Algorithm_eTsmCorrection, 	 /* Tsm-Correction */
+	BDSP_Algorithm_eSoftFMM,         /* Soft FMM */
 	BDSP_Algorithm_eAudioProcessing_EndIdx = BDSP_Algorithm_eTsmCorrection,
 
 	/*Echo Canceller Algorithms*/

@@ -51,6 +51,7 @@
 #include "uart_boot.h"
 
 uintptr_t early_uart_base;
+unsigned long boot_mode;
 
 __init_data unsigned long phys_to_virt_offset;
 __init_data unsigned long virt_to_phys_offset;
@@ -250,6 +251,7 @@ __bootstrap void bootstrapMain(void *deviceTreePhysAddr, void *uartAddr, ptrdiff
 
     makeBootstrapPageTables(deviceTreePhysAddr, uartAddr);
 
+    boot_mode = ARMV8_BOOT_MODE;
     phys_to_virt_offset = ULONG_MAX - loadLinkOffset + 1;
     virt_to_phys_offset = loadLinkOffset;
 

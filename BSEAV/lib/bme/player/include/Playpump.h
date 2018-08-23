@@ -152,6 +152,8 @@ struct BME_SO_EXPORT Playpump_t
     void makePesChunk(
         unsigned int id, TIME45k pts,
         const DataFragment_t *fragment, size_t n, bool singlePes);
+    void makeVideoEndOfStreamChunk();
+    void makeAudioEndOfStreamChunk();
 
     void addPes(unsigned int id, TIME45k pts, bool singlePes);
 

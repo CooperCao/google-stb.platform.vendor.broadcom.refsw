@@ -111,10 +111,7 @@ size_t UartFile::read(const void *data, const size_t numBytes, const uint64_t of
     uint8_t *cdata = (uint8_t *)data;
     while (readCount < numBytes) {
         char c;
-        if(IUart::uart)
-            IUart::uart->getc(&c);
-        else
-            return readCount;
+        if(IUart::uart) IUart::uart->getc(&c);
 
         if (c == '\r')
             break;

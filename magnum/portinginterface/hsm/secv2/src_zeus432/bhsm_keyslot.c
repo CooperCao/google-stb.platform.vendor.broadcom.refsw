@@ -665,6 +665,7 @@ BERR_Code BHSM_Keyslot_AddPidChannel_WithSettings( BHSM_KeyslotHandle handle,
     BHSM_BspMsg_h       hMsg = NULL;
     BHSM_BspMsgHeader_t header;
     BHSM_P_KeySlot *pSlot = (BHSM_P_KeySlot*)handle;
+    BHSM_P_KeySlot *pSlotSecondary;
     uint32_t            tmp = 0;
     uint8_t             status = BHSM_P_BSP_INVALID_STATUS;
 
@@ -687,8 +688,14 @@ BERR_Code BHSM_Keyslot_AddPidChannel_WithSettings( BHSM_KeyslotHandle handle,
 
     if( pSettings && pSettings->secondary )
     {
-        BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotTypeB, _convertSlotType(pSlot->slotType) );
-        BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotNumberB, pSlot->number );
+        pSlotSecondary = pSettings->secondaryKeySlot;
+        if( !pSlotSecondary )
+        {
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+        }
+
+        BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotTypeB, _convertSlotType(pSlotSecondary->slotType) );
+        BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotNumberB, pSlotSecondary->number );
     }
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eKeyPointerSel, 0 );
