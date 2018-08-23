@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "gl_public_api.h"
 
@@ -1919,7 +1919,14 @@ static GLenum readpixels_check_internals(const GLXX_FRAMEBUFFER_T *fb, int x,
       return GL_INVALID_FRAMEBUFFER_OPERATION;
 
    if (fb->name != 0 && (glxx_fb_get_ms_mode(fb) != GLXX_NO_MS))
-      return GL_INVALID_OPERATION;
+   {
+      const GLXX_ATTACHMENT_T *att = glxx_fb_get_read_buffer(fb);
+      if (att == NULL ||
+          !glxx_attachment_has_downsample_texture(att))
+      {
+         return GL_INVALID_OPERATION;
+      }
+   }
 
    if (width < 0 || height < 0 || (!pixel_buffer && !pixels))
       return GL_INVALID_VALUE;
@@ -1956,7 +1963,7 @@ static void read_pixels(int x, int y, GLsizei width, GLsizei height,
 
    if (src == NULL)
    {
-      error = GL_INVALID_FRAMEBUFFER_OPERATION;
+      error = GL_INVALID_OPERATION;
       goto end;
    }
 
