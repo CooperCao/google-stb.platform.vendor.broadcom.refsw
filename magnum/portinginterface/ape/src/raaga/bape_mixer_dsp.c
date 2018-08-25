@@ -2692,7 +2692,7 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         {
             /* scale percentage to Q1.31 format for production usage case.
                BDSP will convert to dB from there, for the range -96 dB to 0 dB */
-            unsigned levelQ131 = (unsigned) (((int64_t)handle->settings.fade.mainDecodeFade.level)<<31) / 100;
+            unsigned levelQ131 = (unsigned) ((((int64_t)handle->settings.fade.mainDecodeFade.level)<<31) / 100);
 
             if ( levelQ131 > 0x7FFFFFFF )
             {

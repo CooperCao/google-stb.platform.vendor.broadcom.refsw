@@ -11,6 +11,7 @@
 #include "libs/platform/bcm_sched_api.h"
 #include "../../../common/khrn_process.h"
 #include "../../../common/khrn_fmem.h"
+#include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 #include "libs/platform/gmem.h"
 #include "libs/platform/v3d_scheduler.h"
@@ -30,16 +31,15 @@ struct egl_window_surface
 
 static EGL_SURFACE_METHODS_T fns;
 
-static BEGL_BufferFormat get_begl_format(GFX_LFMT_T fmt)
+static BEGL_BufferFormat get_begl_format(GFX_LFMT_T api_fmt, bool x_padded)
 {
-   switch (fmt)
+   switch (api_fmt)
    {
    case GFX_LFMT_R8_G8_B8_A8_UNORM:    return BEGL_BufferFormat_eA8B8G8R8;
-   case GFX_LFMT_R8_G8_B8_X8_UNORM:    return BEGL_BufferFormat_eX8B8G8R8;
    case GFX_LFMT_B5G6R5_UNORM:         return BEGL_BufferFormat_eR5G6B5;
    case GFX_LFMT_A4B4G4R4_UNORM:       return BEGL_BufferFormat_eA4B4G4R4;
    case GFX_LFMT_A1B5G5R5_UNORM:       return BEGL_BufferFormat_eA1B5G5R5;
-   case GFX_LFMT_R8_G8_B8_UNORM:       return BEGL_BufferFormat_eR8G8B8;
+   case GFX_LFMT_R8_G8_B8_UNORM:       return x_padded ? BEGL_BufferFormat_eX8B8G8R8 : BEGL_BufferFormat_eR8G8B8;
    case GFX_LFMT_R16_G16_B16_A16_FLOAT:return BEGL_BufferFormat_eA16B16G16R16_FP;
    case GFX_LFMT_R10G10B10A2_UNORM:    return BEGL_BufferFormat_eA2B10G10R10;
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -54,7 +54,7 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
 
    /* What color format does the config request? */
-   BEGL_BufferFormat format = get_begl_format(surf->base.config->color_api_fmt);
+   BEGL_BufferFormat format = get_begl_format(surf->base.config->color_api_fmt, surf->base.config->x_padded);
 
    /* Get our initial buffer */
    int fence = -1;
@@ -80,7 +80,7 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
 
    /* window surfaces need to be renderable */
    GFX_LFMT_T gfx_format = khrn_image_get_lfmt(surf->active_image, 0);
-   if (!egl_can_render_format(gfx_format))
+   if (!gfx_lfmt_can_render_format(gfx_format))
    {
       platform->CancelSurface(platform->context, surf->native_window_state,
             surf->native_back_buffer, fence);

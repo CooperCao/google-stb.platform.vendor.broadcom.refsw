@@ -41,10 +41,6 @@
 *****************************************************************************/
 
 #include "bdsp_arm_cit_priv.h"
-#include "bchp_common.h"
-#ifdef BCHP_AUD2711RATE_REG_START
-#include "bchp_aud2711rate.h"
-#endif
 
 BDBG_MODULE(bdsp_cit_priv);
 
@@ -164,39 +160,6 @@ static BERR_Code BDSP_Arm_P_PopulatePortBufferDescriptors(
 				}
 			}
 			break;
-        case BDSP_ConnectionType_eSoftFmmBuffer:
-            {
-                BDSP_SoftFMMBufferDescriptor *pSoftFMMDescriptor = (BDSP_SoftFMMBufferDescriptor *)pDescriptor;
-                if(typeOfBuffer > 0)
-                {
-                    BDBG_ERR(("Soft FMM doesn't support TOC/META/Object Data Type"));
-                    BDBG_ASSERT(0);
-                }
-                for(i=0;i<numBuffers;i++)
-                {
-                    #if 0
-                    pCircularBuffer->BaseAddr  = (dramaddr_t)&pSoftFMMDescriptor->pInterface[i]->base;
-                    pCircularBuffer->EndAddr   = (dramaddr_t)&pSoftFMMDescriptor->pInterface[i]->end;
-                    pCircularBuffer->ReadAddr  = (dramaddr_t)&pSoftFMMDescriptor->pInterface[i]->read;
-                    pCircularBuffer->WriteAddr = (dramaddr_t)&pSoftFMMDescriptor->pInterface[i]->valid;
-                    pCircularBuffer->WrapAddr  = (dramaddr_t)&pSoftFMMDescriptor->pInterface[i]->end;
-                    #else
-                    pCircularBuffer->BaseAddr  = (dramaddr_t)(pSoftFMMDescriptor->interfaceOffset[i] + (1*sizeof(dramaddr_t)));
-                    pCircularBuffer->EndAddr   = (dramaddr_t)(pSoftFMMDescriptor->interfaceOffset[i] + (2*sizeof(dramaddr_t)));
-                    pCircularBuffer->ReadAddr  = (dramaddr_t)(pSoftFMMDescriptor->interfaceOffset[i] + (3*sizeof(dramaddr_t)));
-                    pCircularBuffer->WriteAddr = (dramaddr_t)(pSoftFMMDescriptor->interfaceOffset[i] + (4*sizeof(dramaddr_t)));
-                    pCircularBuffer->WrapAddr  = pCircularBuffer->EndAddr;
-
-
-                    BDBG_MSG(("pSoftFMMDescriptor->pInterface[%d]->base 0x%x",  (int)i, (unsigned int)pSoftFMMDescriptor->pInterface[i]->base));
-                    BDBG_MSG(("pSoftFMMDescriptor->pInterface[%d]->end 0x%x",  (int)i, (unsigned int)pSoftFMMDescriptor->pInterface[i]->end));
-                    BDBG_MSG(("pSoftFMMDescriptor->pInterface[%d]->read 0x%x",  (int)i, (unsigned int)pSoftFMMDescriptor->pInterface[i]->read));
-                    BDBG_MSG(("pSoftFMMDescriptor->pInterface[%d]->valid 0x%x",  (int)i, (unsigned int)pSoftFMMDescriptor->pInterface[i]->valid));
-                    #endif
-                    pCircularBuffer++;
-                }
-            }
-            break;
         case BDSP_ConnectionType_eRDBBuffer:
             {
 #if 0
@@ -336,40 +299,6 @@ static BERR_Code BDSP_Arm_P_PopulateGateOpenConfig(
 				NumPorts++;
 				pRingbuffer++;
 			}
-            else if((pArmConnectStage->sStageConnectionInfo.sStageOutput[index].eConnectionType == BDSP_ConnectionType_eSoftFmmBuffer) &&
-				(pArmConnectStage->sStageConnectionInfo.sStageOutput[index].eValid == BDSP_AF_P_eValid))
-            {
-                BDSP_SoftFMMBufferDescriptor *pDescriptor = &pArmConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.softFmm.softFmmDescriptor;
-                BDSP_P_GetFMMDetails(pArmConnectStage->sStageConnectionInfo.eStageOpDataType[index],
-					pArmConnectStage->eAlgorithm,
-					&eBaseRateMultiplier,
-					&eFMMContentType);
-				pRingbuffer->bFixedSampleRate    = BDSP_AF_P_Boolean_eFalse;
-				pRingbuffer->ui32FixedSampleRate = 0;
-				pRingbuffer->eBufferType         = BDSP_AF_P_BufferType_eSoftFMM;
-				pRingbuffer->eFMMContentType     = eFMMContentType;
-				pRingbuffer->eBaseRateMultiplier = eBaseRateMultiplier;
-				pRingbuffer->ui32IndependentDelay= 0;/* TODO: Need to add this properly*/
-				pRingbuffer->ui32NumBuffers      = pDescriptor->numBuffers;
-				errCode = BDSP_Arm_P_PopulatePortBufferDescriptors(
-					(void *)pDescriptor,
-					BDSP_ConnectionType_eSoftFmmBuffer,
-					&sCircularBuffer[0],
-					pDescriptor->numBuffers,
-					BDSP_AF_P_PortBuffer_Type_Data);
-				if(errCode != BERR_SUCCESS)
-				{
-					BDBG_ERR(("BDSP_Arm_P_PopulateGateOpenConfig: Unable to populate the descriptor for the Gate Open buffer"));
-					goto end;
-				}
-				for(i=0;i<pRingbuffer->ui32NumBuffers;i++)
-				{
-					pRingbuffer->sExtendedBuffer[i].sCircularBuffer= sCircularBuffer[i];
-					pRingbuffer->sExtendedBuffer[i].startWriteAddr = (dramaddr_t)(pDescriptor->interfaceOffset[i] + (6*sizeof(dramaddr_t)));
-				}
-				NumPorts++;
-				pRingbuffer++;
-            }
 		}
 	}
 	BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pArmConnectStage)
@@ -429,38 +358,6 @@ static BERR_Code BDSP_Arm_P_PopulateSchedulingConfig(
                     }
                     pSchedulingConfig->sExtendedBuffer.startWriteAddr = pSchedulingConfig->sExtendedBuffer.sCircularBuffer.ReadAddr + (5*BDSP_SIZE_OF_FMMREG);
                     independentDelay = pArmConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.fmm.fmmDescriptor.delay;
-                    goto next_step_1;
-                }
-                else if((pArmConnectStage->sStageConnectionInfo.sStageOutput[index].eConnectionType == BDSP_ConnectionType_eSoftFmmBuffer) &&
-                        (pArmConnectStage->sStageConnectionInfo.sStageOutput[index].eValid == BDSP_AF_P_eValid))
-                {
-                    BDSP_SoftFMMBufferDescriptor *pDescriptor = &(pArmConnectStage->sStageConnectionInfo.sStageOutput[index].connectionHandle.softFmm.softFmmDescriptor);
-                    uint64_t config = pDescriptor->pInterface[0]->config;
-                    pSchedulingConfig->eBufferType = BDSP_AF_P_BufferType_eSoftFMM;
-                    BDSP_P_GetFMMDetails(pArmConnectStage->sStageConnectionInfo.eStageOpDataType[index],
-                        pArmConnectStage->eAlgorithm,
-                        &eBaseRateMultiplier,
-                        &eFMMContentType);
-                    errCode = BDSP_Arm_P_PopulatePortBufferDescriptors(
-                        (void *)pDescriptor,
-                        BDSP_ConnectionType_eSoftFmmBuffer,
-                        &pSchedulingConfig->sExtendedBuffer.sCircularBuffer,
-                        1,
-                        BDSP_AF_P_PortBuffer_Type_Data);
-                    if(errCode != BERR_SUCCESS)
-                    {
-                        BDBG_ERR(("BDSP_Arm_P_PopulateSchedulingConfig: Unable to populate the descriptor for the Scheduling buffer"));
-                        goto end;
-                    }
-                    pSchedulingConfig->sExtendedBuffer.startWriteAddr = (dramaddr_t)(pDescriptor->interfaceOffset[0] + (6*sizeof(dramaddr_t)));
-                    #ifdef BCHP_AUD2711RATE_CONTROL
-                    /*TODO: Set the Snapshot counter register address here*/
-                    pSchedulingConfig->stcSnapshotCntrRegAddr = (dramaddr_t)((uint64_t)BCHP_PHYSICAL_OFFSET + (uint64_t)BCHP_AUD2711RATE_SC_CURR_VALUE);
-                    #else
-                    /*TODO: Set the Snapshot counter register address to zero here*/
-                    pSchedulingConfig->stcSnapshotCntrRegAddr = 0;
-                    #endif
-                    independentDelay = BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY(config);/* TODO: Need to update this properly */
                     goto next_step_1;
                 }
             }
@@ -793,25 +690,6 @@ static BERR_Code BDSP_Arm_P_PopulateIOConfiguration(
                             (void *)&pStageConnectionDetails->connectionHandle.fmm.fmmDescriptor,
                             &sPortDetails);
 					break;
-                case BDSP_ConnectionType_eSoftFmmBuffer:
-					BDBG_MSG(("Connecting Soft FMM at Input"));
-					sPortDetails.numPortBuffers       = BDSP_AF_P_NumPortBuffers_One;
-					sPortDetails.numDataBuffers       = pStageConnectionDetails->connectionHandle.softFmm.softFmmDescriptor.numBuffers;
-                    sPortDetails.numTocBuffers        = 0;
-                    sPortDetails.numMetaDataBuffers   = 0;
-                    sPortDetails.numObjectDataBuffers = 0;
-                    BDSP_P_GetDistinctOpTypeAndNumChans(pStageConnectionDetails->dataType, &channels, &sPortDetails.distinctOpType);
-					sPortDetails.ePortType            = BDSP_AF_P_PortType_eFMM;
-					sPortDetails.eBufferType          = BDSP_AF_P_BufferType_eDRAM;
-					sPortDetails.tocIndex             = BDSP_AF_P_TOC_INVALID;
-					sPortDetails.numBranchFromPort    = BDSP_AF_P_BRANCH_INVALID;
-					sPortDetails.psDataAccesAttributes= NULL;
-                    BDSP_Arm_P_CreatePortBufferDetails(pDevice,
-                            dspIndex,
-                            BDSP_ConnectionType_eSoftFmmBuffer,
-                            (void *)&pStageConnectionDetails->connectionHandle.softFmm.softFmmDescriptor,
-                            &sPortDetails);
-					break;
                 case BDSP_ConnectionType_eRDBBuffer:
                     BDBG_MSG(("Connecting RDB at Input"));
 #if 0
@@ -950,26 +828,6 @@ static BERR_Code BDSP_Arm_P_PopulateIOConfiguration(
                             &sPortDetails);
 					DistinctFMMOutputCount[sPortDetails.distinctOpType]++;
 					break;
-                case BDSP_ConnectionType_eSoftFmmBuffer:
-					BDBG_MSG(("Connecting Soft FMM at Output"));
-					sPortDetails.numPortBuffers       = BDSP_AF_P_NumPortBuffers_One;
-					sPortDetails.numDataBuffers       = pStageConnectionDetails->connectionHandle.softFmm.softFmmDescriptor.numBuffers;
-                    sPortDetails.numTocBuffers        = 0;
-                    sPortDetails.numMetaDataBuffers   = 0;
-                    sPortDetails.numObjectDataBuffers = 0;
-                    sPortDetails.distinctOpType       = pArmStage->sStageConnectionInfo.eStageOpDataType[outputIndex];
-					sPortDetails.ePortType            = BDSP_AF_P_PortType_eFMM;
-					sPortDetails.eBufferType          = BDSP_AF_P_BufferType_eDRAM;
-					sPortDetails.tocIndex             = BDSP_AF_P_TOC_INVALID;
-					sPortDetails.numBranchFromPort    = BDSP_AF_P_BRANCH_INVALID;
-					sPortDetails.psDataAccesAttributes= NULL;
-                    BDSP_Arm_P_CreatePortBufferDetails(pDevice,
-                            dspIndex,
-                            BDSP_ConnectionType_eSoftFmmBuffer,
-                            (void *)&pStageConnectionDetails->connectionHandle.softFmm.softFmmDescriptor,
-                            &sPortDetails);
-                    DistinctFMMOutputCount[sPortDetails.distinctOpType]++;
-					break;
                 case BDSP_ConnectionType_eRDBBuffer:
                     BDBG_MSG(("Connecting RDB at Output"));
 #if 0
@@ -979,27 +837,9 @@ static BERR_Code BDSP_Arm_P_PopulateIOConfiguration(
                     sPortDetails.numTocBuffers        = 0;
                     sPortDetails.numMetaDataBuffers   = 0;
                     sPortDetails.numObjectDataBuffers = 0;
-					if(BDSP_AF_P_DistinctOpType_eDescriptorQueue == pQueueBuffer->distinctOp)
-					{
-						/* Android Audio UseCase */
-						sPortDetails.ePortType		  = BDSP_AF_P_PortType_eAndroidAudio;
-						sPortDetails.eBufferType      = BDSP_AF_P_BufferType_eBufferPool;
-						if(pQueueBuffer->input == false)
-						{
-							sPortDetails.distinctOpType = BDSP_AF_P_DistinctOpType_eAudioReceiveQueue;
-						}
-						else
-						{
-							sPortDetails.distinctOpType   = BDSP_AF_P_DistinctOpType_eAudioDeliveryQueue;
-						}
-					}
-					else
-					{
-						/*Normal Queue UseCase */
-						sPortDetails.ePortType		  = BDSP_AF_P_PortType_eRDB;
-						sPortDetails.eBufferType	  = BDSP_AF_P_BufferType_eRDB;
-						sPortDetails.distinctOpType   = pQueueBuffer->distinctOp;
-					}
+                    sPortDetails.distinctOpType       = pQueueBuffer->distinctOp;
+                    sPortDetails.ePortType            = BDSP_AF_P_PortType_eRDB;
+                    sPortDetails.eBufferType          = BDSP_AF_P_BufferType_eRDB;
                     sPortDetails.tocIndex             = BDSP_AF_P_TOC_INVALID;
                     sPortDetails.numBranchFromPort    = BDSP_AF_P_BRANCH_INVALID;
                     sPortDetails.psDataAccesAttributes= NULL;
@@ -1366,25 +1206,6 @@ BERR_Code BDSP_Arm_P_ReconfigCit(
                             (void *)&pStageConnectionDetails->connectionHandle.fmm.fmmDescriptor,
                             &sPortDetails);
 					break;
-                case BDSP_ConnectionType_eSoftFmmBuffer:
-					BDBG_MSG(("Reconfig CIT: Connecting Soft FMM at Input"));
-					sPortDetails.numPortBuffers       = BDSP_AF_P_NumPortBuffers_One;
-					sPortDetails.numDataBuffers       = pStageConnectionDetails->connectionHandle.softFmm.softFmmDescriptor.numBuffers;
-                    sPortDetails.numTocBuffers        = 0;
-                    sPortDetails.numMetaDataBuffers   = 0;
-                    sPortDetails.numObjectDataBuffers = 0;
-                    BDSP_P_GetDistinctOpTypeAndNumChans(pStageConnectionDetails->dataType, &channels, &sPortDetails.distinctOpType);
-					sPortDetails.ePortType            = BDSP_AF_P_PortType_eFMM;
-					sPortDetails.eBufferType          = BDSP_AF_P_BufferType_eDRAM;
-					sPortDetails.tocIndex             = BDSP_AF_P_TOC_INVALID;
-					sPortDetails.numBranchFromPort    = BDSP_AF_P_BRANCH_INVALID;
-					sPortDetails.psDataAccesAttributes= NULL;
-                    BDSP_Arm_P_CreatePortBufferDetails(pArmTask->pContext->pDevice,
-                            pArmTask->createSettings.dspIndex,
-                            BDSP_ConnectionType_eSoftFmmBuffer,
-                            (void *)&pStageConnectionDetails->connectionHandle.softFmm.softFmmDescriptor,
-                            &sPortDetails);
-					break;
                 case BDSP_ConnectionType_eInterTaskBuffer:
 					BDBG_MSG(("Reconfig CIT: Connecting InterTask at Input"));
                     pInterTaskBuffer = (BDSP_P_InterTaskBuffer*)pStageConnectionDetails->connectionHandle.interTask.hInterTask->pInterTaskBufferHandle;
@@ -1473,7 +1294,6 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
-			case BDSP_AF_P_PortType_eAndroidAudio:
 				errCode = BDSP_Arm_P_ReleasePortDescriptors(pArmStage->pContext->pDevice,
 				pArmStage->pArmTask->createSettings.dspIndex,
 				psIoPort);
@@ -1503,7 +1323,6 @@ static BERR_Code BDSP_Arm_P_CleanupDescriptors(
 			case BDSP_AF_P_PortType_eFMM:
             case BDSP_AF_P_PortType_eRAVE:
             case BDSP_AF_P_PortType_eRDB:
-			case BDSP_AF_P_PortType_eAndroidAudio:
 				errCode = BDSP_Arm_P_ReleasePortDescriptors(pArmStage->pContext->pDevice,
 						pArmStage->pArmTask->createSettings.dspIndex,
 						psIoPort);
@@ -1600,169 +1419,4 @@ BERR_Code BDSP_Arm_P_CleanupCit(
 end:
 	BDBG_LEAVE(BDSP_Arm_P_CleanupCit);
 	return errCode;
-}
-
-/* TODO: This code to be used when bits per sample code coming in properly from APE */
-#if 0
-static unsigned BDSP_Arm_P_IEC60958BitsPerSampleToBitsPerSample (unsigned bits)
-{
-    switch ( bits )
-    {
-    case 0:
-        return 0;
-        break; /* unreachable */
-    case 1:
-        return 16;
-        break; /* unreachable */
-    case 2:
-        return 18;
-        break; /* unreachable */
-    case 4:
-        return 19;
-        break; /* unreachable */
-    case 5:
-        return 20;
-        break; /* unreachable */
-    case 6:
-        return 17;
-        break; /* unreachable */
-    case 9:
-        return 20;
-        break; /* unreachable */
-    case 10:
-        return 22;
-        break; /* unreachable */
-    case 12:
-        return 23;
-        break; /* unreachable */
-    case 13:
-        return 24;
-        break; /* unreachable */
-    case 14:
-        return 21;
-        break; /* unreachable */
-    default:
-        BDBG_WRN(("Unknown bits per sample code 0x%x", bits));
-        break;
-    }
-
-    return 0;
-}
-
-static uint32_t BDSP_Arm_P_bits_to_bytes_per_sample(unsigned bits)
-{
-    uint32_t ui32NumBytesPerSample = 0;
-
-    switch(bits)
-    {
-        case 0:
-            ui32NumBytesPerSample = 0;
-            break;
-        case 16:
-            ui32NumBytesPerSample = 2;
-            break;
-        case 17:
-        case 18:
-        case 19:
-        case 20:
-        case 21:
-        case 22:
-        case 23:
-        case 24:
-            ui32NumBytesPerSample = 3;
-            break;
-         default:
-            BDBG_WRN(("Invalid bits per sample 0x%x",(bits)));
-            break;
-    }
-
-    return ui32NumBytesPerSample;
-}
-#endif
-
-BERR_Code BDSP_Arm_P_CreateSoftFMMIOPort(BDSP_Arm *pDevice, BDSP_SoftFMMBufferDescriptor *pSoftFMMBufferDescriptor, BDSP_AF_P_sIoPort *pIOPort)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-    unsigned dspIndex = 0;
-    BDSP_P_PortDetails sPortDetails;
-    BDSP_DataType dataType;
-    unsigned channels = 0;
-    BDSP_AF_P_Port_sDataAccessAttributes sDataAccessAttributes;
-    bool compressed;
-    /*unsigned bits_iec60958 = 0;
-    unsigned bits = 0;*/
-
-    BDBG_ENTER(BDSP_Arm_P_CreateSoftFMMIOPort);
-
-    BDBG_ASSERT(NULL != pSoftFMMBufferDescriptor);
-    BDBG_ASSERT(NULL != pIOPort);
-
-    BKNI_Memset((void *)pIOPort,0, sizeof(BDSP_AF_P_sIoPort));
-    pIOPort->ePortType     = BDSP_AF_P_PortType_eInvalid;
-    pIOPort->ePortDataType = BDSP_AF_P_BufferType_eInvalid;
-
-    sDataAccessAttributes.eDataAccessType =
-        BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED(pSoftFMMBufferDescriptor->pInterface[0]->format) ?
-        BDSP_AF_P_Port_eSampledInterleavedPCM : BDSP_AF_P_Port_eNone;
-
-    sDataAccessAttributes.ui32bytesPerSample = 2;
-    /* TODO: Remove the hardcoding once the below code is working */
-    /*bits_iec60958 = BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(pSoftFMMBufferDescriptor->pInterface[0]->format);
-    bits = BDSP_Arm_P_IEC60958BitsPerSampleToBitsPerSample(bits_iec60958);
-    sDataAccessAttributes.ui32bytesPerSample = BDSP_Arm_P_bits_to_bytes_per_sample(bits);
-    BDBG_ERR(("numbytes per sample %x",sDataAccessAttributes.ui32bytesPerSample));*/
-
-    sDataAccessAttributes.ui32numChannels =
-        BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS(pSoftFMMBufferDescriptor->pInterface[0]->format);
-
-    compressed = BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED(pSoftFMMBufferDescriptor->pInterface[0]->format);
-
-    if(compressed)
-    {
-        dataType = BDSP_DataType_eIec61937;
-    }
-    else
-    {
-        switch(sDataAccessAttributes.ui32numChannels)
-        {
-            case 1: dataType = BDSP_DataType_ePcmMono;
-                break;
-            case 2: dataType = BDSP_DataType_ePcmStereo;
-                break;
-            case 6: dataType = BDSP_DataType_ePcm5_1;
-                break;
-            case 8: dataType = BDSP_DataType_ePcm7_1;
-                break;
-            default:
-                BDBG_ERR(("BDSP_Arm_P_CreateSoftFMMIOPort:Invalid num channels %d",sDataAccessAttributes.ui32numChannels));
-                errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
-                goto end;
-                break;
-        }
-    }
-
-    sPortDetails.numPortBuffers       = BDSP_AF_P_NumPortBuffers_One;
-    sPortDetails.numDataBuffers       = pSoftFMMBufferDescriptor->numBuffers;
-    sPortDetails.numTocBuffers        = 0;
-    sPortDetails.numMetaDataBuffers   = 0;
-    sPortDetails.numObjectDataBuffers = 0;
-    BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &sPortDetails.distinctOpType);
-    sPortDetails.ePortType            = BDSP_AF_P_PortType_eFMM;
-    sPortDetails.eBufferType          = BDSP_AF_P_BufferType_eDRAM;
-    sPortDetails.tocIndex             = BDSP_AF_P_TOC_INVALID;
-    sPortDetails.numBranchFromPort    = BDSP_AF_P_BRANCH_INVALID;
-    sPortDetails.psDataAccesAttributes= &sDataAccessAttributes;
-
-    BDSP_Arm_P_CreatePortBufferDetails(pDevice,
-            dspIndex,
-            BDSP_ConnectionType_eSoftFmmBuffer,
-            (void *)pSoftFMMBufferDescriptor,
-            &sPortDetails);
-    BDSP_Arm_P_PopulatePortDetails(pIOPort,&sPortDetails);
-
-    goto end;
-
-end:
-    BDBG_LEAVE(BDSP_Arm_P_CreateSoftFMMIOPort);
-    return errCode;
 }

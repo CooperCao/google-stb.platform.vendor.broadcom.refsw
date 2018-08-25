@@ -253,18 +253,19 @@ static BERR_Code km_crypto_hmac_sign_verify_test(KeymasterTl_Handle handle)
         TEST_ALLOCATE_BLOCK(signature_data, settings.out_data.size);
         memcpy(signature_data.buffer, settings.out_data.buffer, signature_data.size);
         settings.signature_data = signature_data;
-        settings.out_data.buffer = NULL;
-        settings.out_data.size = 0;
+        settings.out_data = out_data;
 
         km_test_remove_mac_length(settings.begin_params);
 
         EXPECT_SUCCESS(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings));
 
         settings.signature_data.buffer[0]++;
+        settings.out_data = out_data;
         EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
         settings.signature_data.buffer[0]--;
         settings.in_data.buffer[0]++;
+        settings.out_data = out_data;
         EXPECT_FAILURE_CODE(KM_Crypto_Operation(SKM_PURPOSE_VERIFY, &settings), BSAGE_ERR_KM_VERIFICATION_FAILED);
 
         BDBG_LOG(("%s: %s success", BSTD_FUNCTION, comment));

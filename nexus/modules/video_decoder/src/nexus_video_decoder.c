@@ -1898,8 +1898,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
                 colorDepth = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].colorDepth;
             }
         }
-        videoDecoder->xvdOpenChannelSettings.colorDepth = colorDepth;
         channelSettings.b10BitBuffersEnable = colorDepth >= 10;
+        /* have to store the uncapped colorDepth because that's what we can compare with new user settings */
+        videoDecoder->xvdOpenChannelSettings.colorDepth = videoDecoder->settings.colorDepth;
     }
     channelSettings.uiExtraPictureMemoryAtoms = g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].extraPictureBuffers;
 

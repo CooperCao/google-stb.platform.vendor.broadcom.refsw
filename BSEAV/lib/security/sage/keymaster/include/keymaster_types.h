@@ -454,7 +454,7 @@ typedef struct {
 #define SKM_NONCE_HMAC_KEY_SIZE      8
 
 #define SKM_RSA_MAX_KEY_SIZE             4096
-#define SKM_RSA_GENERATE_MAX_KEY_SIZE    2048    /* Max key size we can currently generate on SAGE */
+#define SKM_RSA_GENERATE_MAX_KEY_SIZE    4096    /* Max key size we can currently generate on SAGE */
 
 #define SKM_HMAC_MIN_KEY_SIZE        64
 #define SKM_HMAC_MAX_KEY_SIZE        2048

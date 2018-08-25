@@ -40,7 +40,11 @@
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
+#include "nexus_base.h"
+#include "nexus_platform_features.h"
 #include "nexus_sage_module.h"
+#include "priv/nexus_sage_bp3.h"
+
 #include "priv/nexus_core.h" /* get access to g_pCoreHandles */
 #include "priv/nexus_security_priv.h"
 #include "priv/bsagelib_shared_globalsram.h"
@@ -950,5 +954,108 @@ EXIT:
     {
         Nexus_SageModule_P_Img_Destroy(img_context);
     }
+    return rc;
+}
+
+NEXUS_Error NEXUS_Sage_BP3_FrontEnd_CCF_priv(uint8_t* OTPId, uint8_t* Token, uint8_t* Algo, uint8_t* FeCCF)
+{
+    NEXUS_Error rc = NEXUS_NOT_AVAILABLE;
+    uint32_t productID = 0;
+    uint32_t bondOption = 0;
+
+    /* local copies of all variable we need */
+    uint8_t                *pOTPId = NULL;
+    uint8_t                *pToken = NULL;
+    uint8_t                *pAlgo = NULL;
+    uint8_t                *pFeCCF = NULL;
+
+    NEXUS_ASSERT_MODULE();
+    BDBG_MSG(("Calling BP3 FrontEnd on the sage side "));
+    /* Read the chip's Product_ID  and bond option */
+    productID = (BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PRODUCT_ID))& 0xFFFFF000;
+    bondOption = (BREG_Read32(g_pCoreHandles->reg, BCHP_JTAG_OTP_GENERAL_STATUS_8)) & 0x000000FF;
+    if (lHandle->sageContainer && ((productID == 0x07357000) && ((bondOption == 0x00)))) {
+        /* we are good to go, let's try to read the Front-End CCF */
+        /* allocate memory for status */
+
+        pOTPId = BSAGElib_Rai_Memory_Allocate(
+            lHandle->sagelibClientHandle,
+            BP3_FE_OTP_ID_BYTE_SIZE,
+            BSAGElib_MemoryType_Global);
+        pToken = BSAGElib_Rai_Memory_Allocate(
+            lHandle->sagelibClientHandle,
+            BP3_FE_SESSION_TOKEN_BYTE_SIZE,
+            BSAGElib_MemoryType_Global);
+        pAlgo = BSAGElib_Rai_Memory_Allocate(
+            lHandle->sagelibClientHandle,
+            BP3_FE_ALGORITHM_BYTE_SIZE,
+            BSAGElib_MemoryType_Global);
+        pFeCCF = BSAGElib_Rai_Memory_Allocate(
+            lHandle->sagelibClientHandle,
+            BP3_FE_BP3FE_CCF_BYTE_SIZE,
+            BSAGElib_MemoryType_Global);
+
+        if ( !pOTPId || !pToken || !pAlgo || !pFeCCF)
+        {
+            BDBG_ERR(("failed to allocate memory  for Front-End BP3 CCF"));
+            rc = NEXUS_NOT_AVAILABLE;
+            goto EXIT;
+        }
+        /* copy caller's data to our local vars */
+
+        BKNI_Memcpy(pOTPId, OTPId, BP3_FE_OTP_ID_BYTE_SIZE);
+        BKNI_Memcpy(pToken, Token, BP3_FE_SESSION_TOKEN_BYTE_SIZE);
+        BKNI_Memcpy(pAlgo,  Algo,  BP3_FE_ALGORITHM_BYTE_SIZE);
+
+        /* the CCF string is initialized to all zero */
+        BKNI_Memset(pFeCCF, BP3_FE_BP3FE_CCF_BYTE_SIZE, 0);
+
+        lHandle->sageContainer->blocks[0].data.ptr = pOTPId;
+        lHandle->sageContainer->blocks[0].len      = BP3_FE_OTP_ID_BYTE_SIZE;
+
+        lHandle->sageContainer->blocks[1].data.ptr = pToken;
+        lHandle->sageContainer->blocks[1].len      = BP3_FE_SESSION_TOKEN_BYTE_SIZE;
+
+        lHandle->sageContainer->blocks[2].data.ptr = pAlgo;
+        lHandle->sageContainer->blocks[2].len      = BP3_FE_ALGORITHM_BYTE_SIZE;
+
+        lHandle->sageContainer->blocks[3].data.ptr = pFeCCF;
+        lHandle->sageContainer->blocks[3].len      = BP3_FE_BP3FE_CCF_BYTE_SIZE;
+
+        BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
+                  (void*)lHandle->hSagelibRpcModuleHandle, BP3_CommandId_eProcessBP3BinFile, lHandle->uiLastAsyncId));
+
+        rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
+                                                BP3_CommandId_eCreateFEBP3_CCF,
+                                                lHandle->sageContainer,
+                                                &lHandle->uiLastAsyncId);
+        if (BERR_SUCCESS != rc) {
+            BDBG_ERR(("Failed to send Sage BP3 command, rc = %d", rc));
+            rc = BERR_TRACE(rc);
+            goto EXIT;
+        }
+        rc = NEXUS_Sage_BP3_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        if (rc != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Ooops time out on SAGE"));
+            rc=BERR_TRACE(rc);
+            goto EXIT;
+        }
+        BDBG_MSG(("Processed FE_BP3_CCF, status = %d", lHandle->sageContainer->basicOut[0]));
+        /* copy data back to caller */
+        BKNI_Memcpy(FeCCF, pFeCCF, BP3_FE_BP3FE_CCF_BYTE_SIZE);
+    }
+    else{
+        BDBG_ERR(("Unable to proceed with FrontEnd BP3 provisioning"));
+        BDBG_ERR(("product ID = %8.8x", productID));
+        BDBG_ERR(("bondOption = %x", bondOption));
+    }
+
+EXIT:
+    /* now release all the local copies that were allocated */
+    if (pOTPId) BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, pOTPId);
+    if (pToken) BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, pToken);
+    if (pAlgo)  BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, pAlgo);
+    if (pFeCCF) BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, pFeCCF);
     return rc;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *****************************************************************************************************/
 
 #include "AllObjects.h"
@@ -246,7 +246,7 @@ Image::Image(
    // image, indicate to gfx_buffer_gen_desc() that we want to use RSO.
    const bool useRSO = m_externalImage &&
                        gfxUsage == GFX_BUFFER_USAGE_V3D_RENDER_TARGET &&
-                       Formats::HasTLBSupport(Formats::GetLFMT(pCreateInfo->format)) &&
+                       gfx_lfmt_can_render_format(Formats::GetLFMT(pCreateInfo->format)) &&
                        pCreateInfo->mipLevels == 1 &&
                        pCreateInfo->samples == VK_SAMPLE_COUNT_1_BIT;
 

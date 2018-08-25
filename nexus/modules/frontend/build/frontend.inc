@@ -111,7 +111,7 @@ NEXUS_FRONTEND_LOCAL_SOURCES := $(NEXUS_TOP)/modules/frontend/common/src/nexus_f
 #######################
 # Module Dependencies #
 #######################
-NEXUS_FRONTEND_DEPENDENCIES := BASE CORE I2C GPIO SPI TRANSPORT
+NEXUS_FRONTEND_DEPENDENCIES := BASE CORE I2C GPIO SPI TRANSPORT SAGE
 
 ##################
 # Magnum Modules #

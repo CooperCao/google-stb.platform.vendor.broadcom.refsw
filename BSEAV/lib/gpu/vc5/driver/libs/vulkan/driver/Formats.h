@@ -1,5 +1,5 @@
 /******************************************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *****************************************************************************************************/
 
 #pragma once
@@ -20,7 +20,6 @@ public:
    static bool       IsScaled(VkFormat fmt) { return m_fmts[fmt].isScaled; }
 
    static bool HasTMUSupport(GFX_LFMT_T lfmt);
-   static bool HasTLBSupport(GFX_LFMT_T lfmt);
 
    static VkImageAspectFlags GetAspects(GFX_LFMT_T lfmt)
    {

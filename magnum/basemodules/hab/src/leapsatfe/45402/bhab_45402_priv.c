@@ -1652,7 +1652,7 @@ static void BHAB_45402_P_DumpError(BHAB_Handle h)
 {
    uint32_t i, j, reg, val1, val2, val3;
 
-   for (i = 0; i < 8; i++)
+   for (i = 0; i < 9; i++)
    {
       j = i * 3;
       reg = BCHP_CPU_CTRL_GP0 + (j << 2);

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
@@ -20,72 +20,72 @@
  */
 static const EGL_CONFIG_T egl_configs[] = {
    // EGLConfig
-   // |    SAMPLES
-   // |    |  COLOR                       DEPTH                      STENCIL           INVALID
-   /* 1*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /* 2*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /* 3*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /* 4*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /* 5*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /* 6*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /* 7*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
-   /* 8*/ {0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   // |    SAMPLES                        X PADDED
+   // |    |  COLOR                       |      DEPTH                       STENCIL           INVALID
+   /* 1*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /* 2*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /* 3*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /* 4*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /* 5*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /* 6*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /* 7*/ {0, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
+   /* 8*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
-   /* 9*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*10*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*11*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*12*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*13*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*14*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*15*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
-   /*16*/ {4, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /* 9*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*10*/ {4, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*11*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*12*/ {4, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*13*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*14*/ {4, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*15*/ {4, GFX_LFMT_R8_G8_B8_A8_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
+   /*16*/ {4, GFX_LFMT_R8_G8_B8_UNORM,    true,  GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
-   /*17*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*18*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*19*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*20*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*17*/ {0, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*18*/ {0, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*19*/ {0, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*20*/ {0, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
-   /*21*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*22*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*23*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*24*/ {4, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*21*/ {4, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*22*/ {4, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*23*/ {4, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*24*/ {4, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
-   /*25*/ {0, GFX_LFMT_B5G6R5_UNORM,      GFX_LFMT_D16_UNORM,        GFX_LFMT_NONE,    },
+   /*25*/ {0, GFX_LFMT_B5G6R5_UNORM,      false, GFX_LFMT_D16_UNORM,         GFX_LFMT_NONE,    },
 
-   /*26*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*27*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*28*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*29*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*26*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*27*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*28*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*29*/ {0, GFX_LFMT_R8_G8_B8_UNORM,    false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
    /* This config should look the same as config 1 except for having a larger
     * ID. So it should never be the top config returned by eglChooseConfig() or
     * eglGetConfigs() -- if it appears, config 1 will always appear earlier. */
-   /*30*/ {0, GFX_LFMT_BSTC_RGBA_UNORM,   GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    !V3D_VER_AT_LEAST(3,3,0,0)},
+   /*30*/ {0, GFX_LFMT_BSTC_RGBA_UNORM,   false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    !V3D_VER_AT_LEAST(3,3,0,0)},
 
-   /*31*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*32*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*33*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*34*/ {0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*31*/ {0, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*32*/ {0, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*33*/ {0, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*34*/ {0, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
-   /*35*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*36*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*37*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*38*/{ 4, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*35*/{ 4, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_S8D24_UINT_UNORM,  GFX_LFMT_NONE,    },
+   /*36*/{ 4, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_D24X8_UNORM,       GFX_LFMT_NONE,    },
+   /*37*/{ 4, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_S8_UINT, },
+   /*38*/{ 4, GFX_LFMT_A4B4G4R4_UNORM, false, GFX_LFMT_NONE,              GFX_LFMT_NONE,    },
 
 #if 0
    /* The 1-bit alpha component might cause some surprises if we add 5551 configs as it is internally
     * maintained at higher precision. This can sometimes lead to unexpected results, so for now, we won't
     * expose these formats.
     */
-   /*39*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*40*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*41*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*42*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*39*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*40*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*41*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*42*/ {0, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 
-   /*43*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
-   /*44*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
-   /*45*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
-   /*46*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
+   /*43*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    },
+   /*44*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    },
+   /*45*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_NONE,             GFX_LFMT_S8_UINT, },
+   /*46*/{ 4, GFX_LFMT_A1B5G5R5_UNORM,    false, GFX_LFMT_NONE,             GFX_LFMT_NONE,    },
 #endif
 };
 
@@ -238,7 +238,7 @@ static bool get_attrib(const EGL_CONFIG_T *config,
       *value = EGL_TRUE;
       return true;
    case EGL_NATIVE_VISUAL_ID:
-      egl_platform_color_format(config->color_api_fmt, value);
+      egl_platform_color_format(egl_api_fmt_to_lfmt(config->color_api_fmt, config->x_padded), value);
       return true;
    case EGL_NATIVE_VISUAL_TYPE:
       *value = EGL_NONE;
@@ -263,9 +263,9 @@ static bool get_attrib(const EGL_CONFIG_T *config,
    case EGL_SURFACE_TYPE:
       *value = EGL_MULTISAMPLE_RESOLVE_BOX_BIT;
 
-      if (egl_can_render_format(c))
+      if (gfx_lfmt_can_render_format(c))
       {
-         bool can_display = egl_can_display_format(c);
+         bool can_display = egl_can_display_format(egl_api_fmt_to_lfmt(config->color_api_fmt, config->x_padded));
          bool can_texture = egl_can_texture_from_format(c);
 
          if (can_display && can_texture)  // Pixmaps are used as EGLimages, so must be texturable too
@@ -658,6 +658,37 @@ EGLint egl_config_get_attrib(const EGL_CONFIG_T *config,
    return ret;
 }
 
+typedef struct {
+   GFX_LFMT_T api_fmt;
+   bool x_padded;
+   GFX_LFMT_T lfmt;
+} API_FMT_LFMT_T;
+
+/* converts an EGL api_fmt into an lfmt */
+static const API_FMT_LFMT_T api_fmt_to_lfmt_map[] = {
+   { GFX_LFMT_R8_G8_B8_UNORM,          true,    GFX_LFMT_R8_G8_B8_X8_UNORM },
+   { GFX_LFMT_R8_G8_B8_UNORM,          false,   GFX_LFMT_R8_G8_B8_UNORM },
+   { GFX_LFMT_B5G6R5_UNORM,            false,   GFX_LFMT_B5G6R5_UNORM },
+   { GFX_LFMT_A4B4G4R4_UNORM,          false,   GFX_LFMT_A4B4G4R4_UNORM },
+   { GFX_LFMT_A1B5G5R5_UNORM,          false,   GFX_LFMT_A1B5G5R5_UNORM },
+   { GFX_LFMT_R8_G8_B8_A8_UNORM,       false,   GFX_LFMT_R8_G8_B8_A8_UNORM },
+   { GFX_LFMT_R10G10B10A2_UNORM,       false,   GFX_LFMT_R10G10B10A2_UNORM },
+   { GFX_LFMT_R16_G16_B16_A16_FLOAT,   false,   GFX_LFMT_R16_G16_B16_A16_FLOAT },
+   { GFX_LFMT_BSTC_RGBA_UNORM,         false,   GFX_LFMT_BSTC_RGBA_UNORM },
+   { GFX_LFMT_B8_G8_R8_A8_UNORM,       false,   GFX_LFMT_B8_G8_R8_A8_UNORM }
+};
+
+GFX_LFMT_T egl_api_fmt_to_lfmt(GFX_LFMT_T api_fmt, bool x_padded)
+{
+   for (size_t i = 0; i != countof(api_fmt_to_lfmt_map); ++i)
+   {
+      API_FMT_LFMT_T entry = api_fmt_to_lfmt_map[i];
+      if (entry.api_fmt == api_fmt && entry.x_padded == x_padded) return entry.lfmt;
+   }
+   assert(0);
+   return GFX_LFMT_NONE;
+}
+
 /* Result is a bitmap which is a subset of s_api_bits */
 uint32_t egl_config_get_api_support(const EGL_CONFIG_T *config)
 {
@@ -678,8 +709,9 @@ uint32_t egl_config_get_api_conformance(const EGL_CONFIG_T *config)
    if (gfx_lfmt_is_bstc_family(config->color_api_fmt))
       return 0;
 
+   GFX_LFMT_T c = egl_api_fmt_to_lfmt(config->color_api_fmt, config->x_padded);
    /* 24-bit framebuffers can't be blitted from (we can't read them via the TMU) */
-   if (gfx_lfmt_get_base(&config->color_api_fmt) == GFX_LFMT_BASE_C8_C8_C8)
+   if (gfx_lfmt_get_base(&c) == GFX_LFMT_BASE_C8_C8_C8)
       return 0;
 
    /* vg doesn't support multisampled surfaces properly */
@@ -778,18 +810,6 @@ GFX_LFMT_T egl_config_depth_stencil_api_fmt(const EGL_CONFIG_T *config)
 GFX_LFMT_T egl_config_stencil_api_fmt(const EGL_CONFIG_T *config)
 {
    return config->stencil_api_fmt;
-}
-
-bool egl_can_render_format(GFX_LFMT_T lfmt)
-{
-#if V3D_VER_AT_LEAST(4,1,34,0)
-   v3d_pixel_format_t px_fmt;
-   bool reverse, rb_swap;
-   // This checks if the tile-buffer can support the format
-   return gfx_lfmt_maybe_translate_pixel_format(lfmt, &px_fmt, &reverse, &rb_swap);
-#else
-   return gfx_lfmt_maybe_translate_pixel_format(lfmt) != V3D_PIXEL_FORMAT_INVALID;
-#endif
 }
 
 bool egl_can_texture_from_format(GFX_LFMT_T lfmt)
@@ -983,10 +1003,12 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
    {
       const EGL_CONFIG_T *candidate = egl_configs + i;
 
-      bool advertiseMe =  egl_can_render_format(candidate->color_api_fmt) &&
-                          (egl_can_display_format(candidate->color_api_fmt) ||
-                          egl_can_texture_from_format(candidate->color_api_fmt)) &&
-                          !candidate->invalid;
+      GFX_LFMT_T c = egl_api_fmt_to_lfmt(candidate->color_api_fmt, candidate->x_padded);
+
+      bool advertiseMe = gfx_lfmt_can_render_format(c) &&
+                       (egl_can_display_format(c) ||
+                       egl_can_texture_from_format(c)) &&
+                       !candidate->invalid;
 
       if (advertiseMe && config_matches(candidate, cleaned_attrib_list))
       {

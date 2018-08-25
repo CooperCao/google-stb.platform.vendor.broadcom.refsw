@@ -182,38 +182,6 @@ typedef struct BDSP_P_StageMemoryInfo
 	BDSP_P_FwBuffer       sHostAlgoUserConfig;
 }BDSP_P_StageMemoryInfo;
 
-typedef struct BDSP_P_SoftFMMInfo
-{
-    bool fmmId[BDSP_MAX_SOFT_FMM_PER_DSP];
-    void *pSoftFMM[BDSP_MAX_SOFT_FMM_PER_DSP];
-    unsigned numActiveSoftFMMs;
-}BDSP_P_SoftFMMInfo;
-
-typedef struct BDSP_P_SoftFMMMemoryInfo
-{
-    BDSP_P_MemoryPool			sMemoryPool;
-
-    BDSP_P_HostBuffer			hostAsyncQueue;
-
-	BDSP_P_FwBuffer		        sCacheHole; /* 512 bytes of hole for cache coherency */
-
-	BDSP_P_MsgQueueParams       syncQueueParams;
-	BDSP_P_MsgQueueParams       asyncQueueParams;
-    BDSP_P_FwBuffer             sMPSharedMemory;
-    BDSP_P_FwBuffer             scratchMemory;
-}BDSP_P_SoftFMMMemoryInfo;
-
-typedef struct BDSP_P_SoftFMMStageMemoryInfo
-{
-	BDSP_P_MemoryPool	  sMemoryPool;
-	BDSP_P_FwBuffer       sInterframe;
-	BDSP_P_FwBuffer       sAlgoStatus;
-    BDSP_P_FwBuffer       sUserCfg;
-
-	BDSP_P_FwBuffer		  sCacheHole; /* 512 bytes of hole for cache coherency */
-}BDSP_P_SoftFMMStageMemoryInfo;
-
-
 BERR_Code BDSP_P_PopulateSystemSchedulingDeatils(
 	BDSP_P_SystemSchedulingInfo *pSystemSchedulingInfo
 );

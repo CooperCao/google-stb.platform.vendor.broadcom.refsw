@@ -79,14 +79,8 @@ typedef struct BDSP_P_ConnectionDetails
         struct
             {
                 BDSP_FmmBufferDescriptor fmmDescriptor;
-                BDSP_P_RateController rateController[BDSP_AF_P_MAX_CHANNEL_PAIR];
+				BDSP_P_RateController rateController[BDSP_AF_P_MAX_CHANNEL_PAIR];
             } fmm;
-        struct
-            {
-                BDSP_SoftFMMBufferDescriptor softFmmDescriptor;
-                BDSP_P_RateController rateController[BDSP_AF_P_MAX_CHANNEL_PAIR];
-                uint64_t regAddrSampleCounter;
-            } softFmm;
         struct
             {
                 BAVC_XptContextMap raveContextMap;

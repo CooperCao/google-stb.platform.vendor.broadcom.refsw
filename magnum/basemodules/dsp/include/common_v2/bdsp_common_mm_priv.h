@@ -48,7 +48,6 @@
 #define BDSP_MIN_DEBUG_BUFFER_SIZE 0
 
 #define BDSP_MAX_FW_TASK_PER_DSP            12
-#define BDSP_MAX_SOFT_FMM_PER_DSP           1
 #define BDSP_MAX_MSGS_PER_QUEUE             10
 #define BDSP_MAX_ASYNC_MSGS_PER_QUEUE       40
 
@@ -75,11 +74,7 @@
 #define BDSP_ReadReg64_isr(hReg, addr)         BREG_Read64_isr(hReg, addr)
 #define BDSP_WriteReg64_isr(hReg, addr, data)  BREG_Write64_isr(hReg, addr, data)
 
-#if defined BCHP_AUD_FMM_BF_CTRL_REG_START
 #define BDSP_SIZE_OF_FMMREG                    (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_ENDADDR - BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_BASEADDR)
-#else
-#define BDSP_SIZE_OF_FMMREG 4
-#endif
 #define BDSP_FMM_WRAP_BIT                      ((BDSP_SIZE_OF_FMMREG == 8)?39:31)
 #define BDSP_FMM_WRAP_MASK                     ((dramaddr_t)0x1<<BDSP_FMM_WRAP_BIT)
 #define BDSP_FMM_ADDR_MASK                     (BDSP_FMM_WRAP_MASK-1)

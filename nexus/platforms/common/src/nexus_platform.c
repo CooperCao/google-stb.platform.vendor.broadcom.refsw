@@ -1176,6 +1176,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_FrontendModule_GetDefaultSettings(&state->frontendSettings);
     state->frontendSettings.i2cModule = g_NEXUS_platformHandles.i2c;
     state->frontendSettings.transport = g_NEXUS_platformHandles.transport;
+    state->frontendSettings.sage = g_NEXUS_platformHandles.sage;
     state->frontendSettings.common.standbyLevel = NEXUS_ModuleStandbyLevel_eActive;
     g_NEXUS_platformHandles.frontend = NEXUS_FrontendModule_Init(&state->frontendSettings);
     if ( !g_NEXUS_platformHandles.frontend )

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2012-2017 2xxx Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2012-2018 2xxx Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -494,19 +494,31 @@ static void NEXUS_P_Base_Stats_ApiClear(void)
 
 static const char *NEXUS_P_Base_Stats_PriorityName(NEXUS_ModulePriority priority)
 {
+#ifdef BDBG_DEBUG_WITH_STRINGS
     static const char * const scheduler_names[]={
         "Idle",
         "Low",
         "Default",
         "High",
         "IdleActiveStandby",
+        "DefaultActiveStandby",
         "LowActiveStandby",
-        "HighActiveStandby"
+        "HighActiveStandby",
+        "AlwaysOn",
+        "CallbackLow",
+        "CallbackHigh",
+        "CallbackLowActiveStandby",
+        "CallbackHiActiveStandby",
+        "CallbackAlwaysOn",
+        "Internal"
     };
+    BDBG_CASSERT(sizeof(scheduler_names)/sizeof(scheduler_names[0])==NEXUS_ModulePriority_eMax);
     if(priority<sizeof(scheduler_names)/sizeof(*scheduler_names)) {
         return scheduler_names[priority];
-    } 
-    return "Unknown";
+    }
+#endif
+    return BDBG_STRING("Unknown");
+
 }
 #define NEXUS_P_BASE_STATS_REPORT_SEPARATOR(type) ("-------- %s ---------", type)
 

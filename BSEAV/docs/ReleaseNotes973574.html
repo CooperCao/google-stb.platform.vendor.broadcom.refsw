@@ -103,7 +103,7 @@ Set-Top Reference Software Release Notes </strong></h1>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>July 17, 2018</p>
+<p>August 20, 2018</p>
 
 <p>Phase 18.2.1 URSR Release</p>
 
@@ -142,10 +142,14 @@ Set-Top Reference Software Release Notes </strong></h1>
      audio enabled you must run with the secure BOLT and secure Astra packages.</b></li>
  <li class=MsoNormal style='color:red'><b>To diasble audio at Nexus compile
      time add NEXUS_AUDIO_SUPPORT=n to your environment.</b></li>
- <li class=MsoNormal><b>This release now supports the of running the ARM
-     processor in 32 bit emulation mode.</b></li>
+ <li class=MsoNormal><b>This release now supports running the ARM processor in
+     32 bit emulation mode.</b></li>
  <li class=MsoNormal><b>In order to run in secure mode with mon64.bin and Astra
      image, please contact your customer support team for details.</b></li>
+ <li class=MsoNormal><b>We now fully support BP3 provisioning of the front-end.
+     Provided a BP3 license is not found or software is compiled without SAGE
+     support, the tuner will only support DVB-S and DVB-S2 demodulation. For
+     any other demodulation to proceed, you must obtain a valid BP3 license.</b></li>
 </ul>
 
 <h2><a name="where_to_start">Where To Start&nbsp;</a><a href="#top">(Top)</a></h2>
@@ -169,16 +173,15 @@ href="#top">(Top)</a></h3>
  <li class=MsoNormal># export LINUX=`readlink -f ../linux` </li>
 </ul>
 
-<h3><a name=atlas>Instructions to build atlas the Nexus sample UI application in
-64bit mode</a><a href="#top">(Top)</a></h3>
+<h3><a name=atlas>Instructions to build atlas the Nexus sample UI application
+in 64bit mode</a><a href="#top">(Top)</a></h3>
 
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal># tar xvfz refsw_release_unified_20180717.tgz</li>
  <li class=MsoNormal># mkdir -p /opt/toolchains/tzos/DSO/ </li>
  <li class=MsoNormal># tar -xjf gcc-aarch64-tzos-musl-5.3-2017q3.tar.bz2 -C
      /opt/toolchains/tzos/DSO/</li>
- <li class=MsoNormal># tar -xjf gcc-arm-tzos-musl-5.3-2016q4v3.tar.bz2 -C
-     /opt/toolchains/tzos/DSO/</li>
+ <li class=MsoNormal># tar -xjf gcc-arm-tzos-musl-5.3-2016q4v3.tar.bz2 -C /opt/toolchains/tzos/DSO/</li>
  <li class=MsoNormal># export
      PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3-2017q3/bin:/opt/toolchains/gcc-arm-tzos-musl-5.3-2016q4v3/bin:$PATH
      </li>
@@ -211,8 +214,7 @@ href="#top">(Top)</a></h3>
      /opt/toolchains/tzos/DSO/</li>
  <li class=MsoNormal># tar -xjf gcc-arm-tzos-musl-5.3-2016q4v3.tar.bz2 -C
      /opt/toolchains/tzos/DSO/</li>
- <li class=MsoNormal># export
-     PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3-2017q3/bin:/opt/toolchains/gcc-arm-tzos-musl-5.3-2016q4v3/bin:$PATH
+ <li class=MsoNormal># export PATH=/opt/toolchains/gcc-aarch64-tzos-musl-5.3-2017q3/bin:/opt/toolchains/gcc-arm-tzos-musl-5.3-2016q4v3/bin:$PATH
      </li>
  <li class=MsoNormal># export B_REFSW_ARCH=arm-linux</li>
  <li class=MsoNormal># export NEXUS_PLATFORM=97255</li>
@@ -236,7 +238,7 @@ href="#top">(Top)</a></h3>
 <p><strong>There are multiple box modes available which contain the RTS to
 support the different variants and features of this chip.</strong><b><br>
 <strong>Information on the available box modes has been moved to a <span
-style='color:#0070C0'><a href="docs/docs/7255A0_box_mode_comparison.html"><span
+style='color:#0070C0'><a href="docs/docs/docs/7255A0_box_mode_comparison.html"><span
 style='color:#0070C0'>separate HTML table</span></a>.</span></strong></b></p>
 
 <h3><a name=run><span style='color:#0070C0'>Runtime instructions&nbsp;</span></a><span
@@ -272,21 +274,21 @@ style='color:#0070C0'><a href="#top">(Top)</a></span></h2>
  <ul style='margin-top:0in' type=disc>
   <li class=MsoNormal style='color:#0070C0'>SAGE 3.2.17 provides HDCP 2.2 and
       some DRM services.</li>
-  <li class=MsoNormal style='color:#0070C0'><b><i>It is not currently possible
-      to decode audio when SVP is enabled.</i></b></li>
+  <li class=MsoNormal style='color:#0070C0'><b><i>It is not currently possible to
+      decode audio when SVP is enabled.</i></b></li>
   <li class=MsoNormal style='color:#0070C0'>DRM playback is limited to using
       the DIF playback applications, legacy DRM applications will not work.</li>
-  <li class=MsoNormal style='color:#0070C0'>With the playback_dif_single application
-      use the -noAudio option to stop the audio decode otherwise the
-      application will cause continuous MRC violations.</li>
+  <li class=MsoNormal style='color:#0070C0'>With the playback_dif_single
+      application use the -noAudio option to stop the audio decode otherwise
+      the application will cause continuous MRC violations.</li>
  </ul>
  <li class=MsoNormal style='color:#0070C0'>Low power modes are not supported
      while running TrustZone.</li>
  <li class=MsoNormal style='color:#0070C0'>CPU dynamic voltage scaling is
      unsupported.</li>
- <li class=MsoNormal style='color:#0070C0'><b><i>Initial support for SAT
-     front-end, we currently only support DVB-S and DVB-S2 demodulation.</i></b></li>
 </ul>
+
+<p class=MsoNormal style='margin-left:.25in'><span style='color:#0070C0'>&nbsp;</span></p>
 
 <table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0
  style='left:10px;top:1287px' id=TABLE1A>
@@ -309,12 +311,11 @@ style='color:#0070C0'><a href="#top">(Top)</a></span></h2>
  </tr>
 </table>
 
-
 <h2><a name=features><span style='color:#0070C0'>Features&nbsp;</span></a><span
 style='color:#0070C0'><a href="#top">(Top)</a></span></h2>
 
 <p><strong><span style='color:#0070C0'>Information on Features has been
-consolidated in the <a href="docs/docs/ReleaseNotes.html"><span
+consolidated in the <a href="docs/docs/docs/ReleaseNotes.html"><span
 style='color:#0070C0'>generic ReleaseNotes.html</span></a>.</span></strong></p>
 
 </div>

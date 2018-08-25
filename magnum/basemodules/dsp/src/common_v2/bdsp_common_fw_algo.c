@@ -659,37 +659,6 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 			false
 		}
 	},
-    {
-		BDSP_Algorithm_eOutputFormatter, BDSP_AlgorithmType_eAudioProcessing, "Output Formatter",
-		&BDSP_sDefOutputFormatterConfigSettings, sizeof(BDSP_Raaga_Audio_OutputFormatterConfigParams),
-		0, 0xffffffff,
-		0, 0,
-		8,   					         4096,
-		{
-			true,
-			false,
-			false
-		}
-	},
-	{
-		/* Algorithm */				   /* Type */						/* Name */
-		BDSP_Algorithm_eSoftFMM, BDSP_AlgorithmType_eAudioProcessing, "Soft FMM",
-		/* Default User Config */ 		 /* User config size */
-		NULL,                            0,
-		/* Stream Info Size */			/* Valid offset */
-		0,								0xffffffff,
-		/* IDS status size */ 			  /* TSM status size */
-		0,								  0,
-		/* Max Channels Supported */		/* Samples per channel */
-		6,							   (8*1024),
-		/* Preemption levels*/
-		{
-			true,
-			false,
-			false
-		}
-	},
-    /* This entry must always be last used to derive the unsupported/invalid information */
 	{
 		BDSP_Algorithm_eMax, BDSP_AlgorithmType_eMax, "Invalid",
 		NULL, 0,

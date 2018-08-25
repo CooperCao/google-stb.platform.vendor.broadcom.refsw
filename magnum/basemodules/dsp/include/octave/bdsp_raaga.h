@@ -60,7 +60,6 @@
 #define BDSP_RAAGA_ADDRESS_ALIGN_ITB  12 /* ITB is aligned to 2^12 Bytes*/
 
 #define BDSP_RAAGA_ADDRESS_ALIGN      4096
-#if 1
 #define BDSP_RAAGA_SIZE_ALIGN(x)  	\
 	{                               \
 		unsigned power = 2;         \
@@ -68,16 +67,6 @@
 		while (x >>= 1) power <<= 1;\
 		x=power;                    \
 	}
-#else
-#define BDSP_RAAGA_SIZE_ALIGN(x) \
-	{                            \
-		unsigned min=0,max=4096; \
-		while(x){                \
-		if((min<x)&&(x<=max)){   \
-			x = max;break;}      \
-		min=max; max<<=1;}       \
-	}
-#endif
 
 #if defined BCHP_RAAGA_DSP_RGR_1_REG_START
 #define BDSP_RAAGA_MAX_DSP 2

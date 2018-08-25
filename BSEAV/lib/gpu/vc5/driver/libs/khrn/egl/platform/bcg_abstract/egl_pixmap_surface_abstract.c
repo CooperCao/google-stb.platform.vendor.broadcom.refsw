@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "../../egl_display.h"
@@ -11,6 +11,7 @@
 #include "libs/platform/bcm_sched_api.h"
 #include "../../../common/khrn_process.h"
 #include "../../../common/khrn_fmem.h"
+#include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 #include "libs/platform/gmem.h"
 #include "libs/platform/v3d_scheduler.h"
@@ -102,7 +103,7 @@ static EGLSurface egl_create_pixmap_surface_impl(
 
    /* pixmaps need to be renderable */
    gfx_format = khrn_image_get_lfmt(surface->image, 0);
-   if (!egl_can_render_format(gfx_format))
+   if (!gfx_lfmt_can_render_format(gfx_format))
    {
       error = EGL_BAD_NATIVE_PIXMAP;
       goto end;
@@ -213,7 +214,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
 
    /* pixmaps need to be renderable */
    gfx_format = khrn_image_get_lfmt(imageDst, 0);
-   if (!egl_can_render_format(gfx_format))
+   if (!gfx_lfmt_can_render_format(gfx_format))
    {
       error = EGL_BAD_NATIVE_PIXMAP;
       goto end;

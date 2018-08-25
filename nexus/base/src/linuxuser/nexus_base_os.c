@@ -136,7 +136,7 @@ BDBG_OBJECT_ID(NEXUS_Thread);
 
 struct NEXUS_Thread {
     NEXUS_P_ThreadInfo info; /* must be the first member */
-    char name[16];
+    char name[32];
     BDBG_OBJECT(NEXUS_Thread)
     pthread_t thread;
     void (*pThreadFunc)(void *);
@@ -164,7 +164,7 @@ NEXUS_P_ThreadEntry(void *t)
     void *threadId = (void *)pthread_self();
     
     thread->stack_top = buf;
-    BDBG_MSG(("thread '%s' stack %#lx", thread->name, (unsigned long)thread->stack_top));
+    BDBG_MSG(("thread:%#lx '%s' stack %#lx", (long)pthread_self(), thread->name, (unsigned long)thread->stack_top));
     /* Push the name into the Linux process so it will be visible from procps tools */
     prctl(PR_SET_NAME, thread->name, 0, 0, 0);
     

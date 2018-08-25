@@ -29,26 +29,14 @@ bool NexusToBeglFormat(BEGL_BufferFormat *result, NEXUS_PixelFormat format)
    case NEXUS_PixelFormat_eR4_G4_B4_A4:
       *result = BEGL_BufferFormat_eA4B4G4R4;
       break;
-   case NEXUS_PixelFormat_eR4_G4_B4_X4:
-      *result = BEGL_BufferFormat_eX4B4G4R4;
-      break;
    case NEXUS_PixelFormat_eA4_B4_G4_R4:
       *result = BEGL_BufferFormat_eR4G4B4A4;
-      break;
-   case NEXUS_PixelFormat_eX4_B4_G4_R4:
-      *result = BEGL_BufferFormat_eR4G4B4X4;
       break;
    case NEXUS_PixelFormat_eR5_G5_B5_A1:
       *result = BEGL_BufferFormat_eA1B5G5R5;
       break;
-   case NEXUS_PixelFormat_eR5_G5_B5_X1:
-      *result = BEGL_BufferFormat_eX1B5G5R5;
-      break;
    case NEXUS_PixelFormat_eA1_B5_G5_R5:
       *result = BEGL_BufferFormat_eR5G5B5A1;
-      break;
-   case NEXUS_PixelFormat_eX1_B5_G5_R5:
-      *result = BEGL_BufferFormat_eR5G5B5X1;
       break;
    case NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08:
       *result = BEGL_BufferFormat_eYUV422;
@@ -127,26 +115,14 @@ bool BeglToNexusFormat(NEXUS_PixelFormat *result, BEGL_BufferFormat format)
    case BEGL_BufferFormat_eR4G4B4A4:
       *result = NEXUS_PixelFormat_eA4_B4_G4_R4;
       break;
-   case BEGL_BufferFormat_eR4G4B4X4:
-      *result = NEXUS_PixelFormat_eX4_B4_G4_R4;
-      break;
    case BEGL_BufferFormat_eA4B4G4R4:
       *result = NEXUS_PixelFormat_eR4_G4_B4_A4;
-      break;
-   case BEGL_BufferFormat_eX4B4G4R4:
-      *result = NEXUS_PixelFormat_eR4_G4_B4_X4;
       break;
    case BEGL_BufferFormat_eA1B5G5R5:
       *result = NEXUS_PixelFormat_eR5_G5_B5_A1;
       break;
-   case BEGL_BufferFormat_eX1B5G5R5:
-      *result = NEXUS_PixelFormat_eR5_G5_B5_X1;
-      break;
    case BEGL_BufferFormat_eR5G5B5A1:
       *result = NEXUS_PixelFormat_eA1_B5_G5_R5;
-      break;
-   case BEGL_BufferFormat_eR5G5B5X1:
-      *result = NEXUS_PixelFormat_eX1_B5_G5_R5;
       break;
    case BEGL_BufferFormat_eYUV422:
       *result = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
@@ -174,6 +150,15 @@ bool BeglToNexusFormat(NEXUS_PixelFormat *result, BEGL_BufferFormat format)
       break;
    case BEGL_BufferFormat_eCb10Cr10:
       *result = NEXUS_PixelFormat_eCb10_Cr10;
+      break;
+   case BEGL_BufferFormat_eR8G8B8:
+      *result = NEXUS_PixelFormat_eR8_G8_B8;
+      break;
+   case BEGL_BufferFormat_eA16B16G16R16_FP:
+      *result = NEXUS_PixelFormat_eAf16_Bf16_Gf16_Rf16;
+      break;
+   case BEGL_BufferFormat_eA2B10G10R10:
+      *result = NEXUS_PixelFormat_eA2_B10_G10_R10;
       break;
 #ifdef YV12_NEXUS_TESTING
    case BEGL_BufferFormat_eYV12:

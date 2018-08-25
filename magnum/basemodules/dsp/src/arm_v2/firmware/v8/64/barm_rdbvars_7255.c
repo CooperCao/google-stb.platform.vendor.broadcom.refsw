@@ -41,7 +41,6 @@
  ******************************************************************************/
 
 #include "bchp.h"
-#include "bchp_common.h"
 
 const uint32_t BDSP_ARM_IMG_system_rdbvars_array1[] = {
   4,/*BDSP_ARM_P_eRdbVarIndices_DSP_PADDR_WIDTH_IN_BYTES*/
@@ -73,14 +72,14 @@ const uint32_t BDSP_ARM_IMG_system_rdbvars_array1[] = {
   0,/*BDSP_ARM_P_eRdbVarIndices_DSP_DOLBY_LICENSE_OTP1_MASK*/
   0,/*BDSP_ARM_P_eRdbVarIndices_DSP_DOLBY_LICENSE_OTP1_SHIFT*/
   0,/*eSUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR*/
-  0x20c80000,/*BDSP_ARM_P_eRdbVarIndices_DSP_RAAGA_REG_REGION_BASE_ADDR*/
+  0xf0c80000,/*BDSP_ARM_P_eRdbVarIndices_DSP_RAAGA_REG_REGION_BASE_ADDR*/
   0x00040090,/*BDSP_ARM_P_eRdbVarIndices_DSP_RAAGA_REG_REGION_SIZE*/
-  0x20a00000,/*BDSP_ARM_P_eRdbVarIndices_DSP_XPT_REG_REGION_BASE_ADDR*/
+  0xf0a00000,/*BDSP_ARM_P_eRdbVarIndices_DSP_XPT_REG_REGION_BASE_ADDR*/
   0x00080000,/*BDSP_ARM_P_eRdbVarIndices_DSP_XPT_REG_REGION_SIZE*/
-  0,/*BDSP_ARM_P_eRdbVarIndices_DSP_AUD_RATE_MANAGER_2711_BASE_ADDR*/
-  0,/*BDSP_ARM_P_eRdbVarIndices_DSP_AUD_RATE_MANAGER_2711_SIZE*/
-  (uint32_t)(BCHP_PHYSICAL_OFFSET),/*BDSP_ARM_P_eRdbVarIndices_DSP_BCHP_PHYSICAL_OFFSET_LO*/
-  (uint32_t)(((uint64_t)BCHP_PHYSICAL_OFFSET) >> 32),/*BDSP_ARM_P_eRdbVarIndices_DSP_BCHP_PHYSICAL_OFFSET_HI*/
+  0,/*Not used*/
+  0,/*Not used*/
+  0,/*Not used*/
+  0,/*Not used*/
   0,/*Not used*/
   0,/*Not used*/
   0,/*Not used*/

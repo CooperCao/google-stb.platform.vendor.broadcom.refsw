@@ -21,13 +21,9 @@ typedef enum
 
    BEGL_BufferFormat_eR4G4B4A4,
    BEGL_BufferFormat_eA4B4G4R4,
-   BEGL_BufferFormat_eR4G4B4X4,
-   BEGL_BufferFormat_eX4B4G4R4,
 
    BEGL_BufferFormat_eR5G5B5A1,
    BEGL_BufferFormat_eA1B5G5R5,
-   BEGL_BufferFormat_eR5G5B5X1,
-   BEGL_BufferFormat_eX1B5G5R5,
 
    BEGL_BufferFormat_eR8G8B8,
 

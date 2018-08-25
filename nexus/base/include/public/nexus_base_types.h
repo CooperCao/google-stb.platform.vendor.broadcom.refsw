@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2004-2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2004-2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -173,6 +173,11 @@ typedef enum NEXUS_ModulePriority
     NEXUS_ModulePriority_eDefaultActiveStandby, /* Medium priority. This is used by most modules, but remain to be active during active standby */
     NEXUS_ModulePriority_eHighActiveStandby,    /* The highest priority. This should only be used by fast-executing modules (no slow functions) which require it, and remain active during active standby */
     NEXUS_ModulePriority_eAlwaysOn,    /* This should be used by modules that remain On during all standby */
+    NEXUS_ModulePriority_eCallbackLow, /* scheduler used to route callbacks from the Idle and Low priority modules to application */
+    NEXUS_ModulePriority_eCallbackHigh, /* scheduler used to route callbacks from the Default and High priority modules to application */
+    NEXUS_ModulePriority_eCallbackLowActiveStandby, /* scheduler used to route callbacks from the Idle and Low priority modules that remain On during all standby to application */
+    NEXUS_ModulePriority_eCallbackHighActiveStandby, /* scheduler used to route callbacks from the Default and High priority modules that remain On during all standby to application */
+    NEXUS_ModulePriority_eCallbackAlwaysOn, /* scheduler used to route callbacks from the modules that remain On during all standby */
     NEXUS_ModulePriority_eInternal, /* Internal scheduler. This should only be internally to NEXUS and should not be used to route callbacks to application, and remain active during active standby */
     NEXUS_ModulePriority_eMax
 } NEXUS_ModulePriority;

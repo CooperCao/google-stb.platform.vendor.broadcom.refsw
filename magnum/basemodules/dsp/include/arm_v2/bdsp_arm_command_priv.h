@@ -43,8 +43,6 @@
 #define BDSP_ARM_COMMAND_PRIV_H_
 
 #include "bdsp_arm_priv_include.h"
-#include "bdsp_arm_soft_fmm_priv.h"
-
 
 BERR_Code BDSP_Arm_P_ProcessInitCommand(
     BDSP_Arm   *pDevice,
@@ -102,75 +100,4 @@ BERR_Code BDSP_Arm_P_ProcessAudioOutputUnFreezeCommand(
     BDSP_ArmTask *pArmTask,
     BDSP_P_AudioOutputUnFreezeCommand *pPayLoad
 );
-
-BERR_Code BDSP_Arm_P_ProcessStartFMMCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_StartFMMCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessCreateFMMMixerCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMCreateMixerCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessStartFMMMixerCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMStartMixerCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessStopFMMMixerCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMStopMixerCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessAddSoftFMMInputCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMAddInputCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessAddSoftFMMOutputCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMAddOutputCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessRemoveSoftFMMInputCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMRemoveInputCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessRemoveSoftFMMOutputCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMRemoveOutputCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessSoftFMMMixerReconfigCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMMixerReConfigCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessSoftFMMMixerReconfigCommand_isr(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMMixerReConfigCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessSoftFMMInputReconfigCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMInputReConfigCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessSoftFMMInputReconfigCommand_isr(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMInputReConfigCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessSoftFMMOutputReconfigCommand(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMOutputReConfigCommand *pPayload
-);
-
-BERR_Code BDSP_Arm_P_ProcessSoftFMMOutputReconfigCommand_isr(
-    BDSP_ArmSoftFMM *pArmSoftFMM,
-    BDSP_P_SoftFMMOutputReConfigCommand *pPayload
-);
-
 #endif /*BDSP_ARM_COMMAND_PRIV_H_*/

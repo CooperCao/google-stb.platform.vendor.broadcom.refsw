@@ -41,8 +41,6 @@
  *****************************************************************************/
 
 #include "bdsp_arm_priv_include.h"
-#include "bdsp_arm_soft_fmm_priv.h"
-
 
 BDBG_MODULE(bdsp_arm_int);   /* Register software module with debug interface */
 
@@ -355,64 +353,6 @@ static void  BDSP_Arm_P_VolumeLevelReached_isr(
     }
 }
 
-static void  BDSP_Arm_P_OnDemandAudioFrameDelivered_isr(
-	void *pTaskHandle)
-{
-
-	BDSP_ArmTask *pArmTask = (BDSP_ArmTask *)pTaskHandle;
-	BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
-
-	BDBG_MSG(("BDSP_Arm_P_OnDemandAudioFrameDelivered_isr: OnDemand Audio Output Delivered Event occured for Task %d",
-	             pArmTask->taskParams.taskId));
-	if(pArmTask->audioInterruptHandlers.onDemandAudioFrameDelivered.pCallback_isr) {
-	     pArmTask->audioInterruptHandlers.onDemandAudioFrameDelivered.pCallback_isr (
-	         pArmTask->audioInterruptHandlers.onDemandAudioFrameDelivered.pParam1,
-	         pArmTask->audioInterruptHandlers.onDemandAudioFrameDelivered.param2);
-	}
-}
-
-static void BDSP_Arm_P_SoftFMMOutputDataReady_isr(
-	void *pSoftFMM,
-	BDSP_P_SoftFMMOutputDataReadyInfo *pOutputDataReadyInfo)
-{
-
-   BDSP_ArmSoftFMM *pArmSoftFMM = (BDSP_ArmSoftFMM *)pSoftFMM;
-   BDSP_ArmSoftFMM_Output *pArmSoftFMMOutput;
-   BDBG_OBJECT_ASSERT(pArmSoftFMM, BDSP_ArmSoftFMM);
-   BDBG_MSG(("BDSP_Arm_P_SoftFMMOutputDataReady_isr: Data Ready event occured for SoftFMM %d bytes written %d",pArmSoftFMM->ui32FMMId, pOutputDataReadyInfo->ui32NumBytesWritten));
-
-   pArmSoftFMMOutput = pArmSoftFMM->pOutput[pOutputDataReadyInfo->ui32OutputIndex];
-
-    /* Call the application Soft FMM Data ready callback function */
-    if(pArmSoftFMMOutput->interruptHandlers.dataReady.pCallback_isr) {
-        pArmSoftFMMOutput->interruptHandlers.dataReady.pCallback_isr (
-            pArmSoftFMMOutput->interruptHandlers.dataReady.pParam1,
-            pArmSoftFMMOutput->interruptHandlers.dataReady.param2,
-            pOutputDataReadyInfo->ui32NumBytesWritten);
-    }
-}
-
-static void BDSP_Arm_P_SoftFMMInputFreeAvailable_isr(
-	void *pSoftFMM,
-	BDSP_P_SoftFMMInputFreeAvailableInfo *pInputFreeAvailableInfo)
-{
-
-   BDSP_ArmSoftFMM *pArmSoftFMM = (BDSP_ArmSoftFMM *)pSoftFMM;
-   BDSP_ArmSoftFMM_Input *pArmSoftFMMInput;
-   BDBG_OBJECT_ASSERT(pArmSoftFMM, BDSP_ArmSoftFMM);
-   BDBG_MSG(("BDSP_Arm_P_SoftFMMInputFreeAvailable_isr: Data Ready event occured for SoftFMM %d %d",pArmSoftFMM->ui32FMMId, pInputFreeAvailableInfo->ui32NumBytesConsumed));
-
-   pArmSoftFMMInput = pArmSoftFMM->pInput[pInputFreeAvailableInfo->ui32InputIndex];
-
-    /* Call the application Soft FMM Data ready callback function */
-    if(pArmSoftFMMInput->interruptHandlers.freeAvailable.pCallback_isr) {
-        pArmSoftFMMInput->interruptHandlers.freeAvailable.pCallback_isr (
-            pArmSoftFMMInput->interruptHandlers.freeAvailable.pParam1,
-            pArmSoftFMMInput->interruptHandlers.freeAvailable.param2,
-            pInputFreeAvailableInfo->ui32NumBytesConsumed);
-    }
-}
-
 static void BDSP_Arm_P_Dsp2TaskAsyn_isr(
     BDSP_Arm     *pDevice,
     BDSP_ArmTask *pArmTask
@@ -494,10 +434,6 @@ static void BDSP_Arm_P_Dsp2TaskAsyn_isr(
         {
            BDSP_Arm_P_VolumeLevelReached_isr((void *)pArmTask);
         }
-		else if (pEventMsg[i].sAsynHeader.eEventID	== BDSP_P_EventID_ON_DEMAND_AUDIO_FRAME_DELIVERED)
-		{
-		   BDSP_Arm_P_OnDemandAudioFrameDelivered_isr((void *)pArmTask);
-		}
         else
         {
            BDBG_WRN (("BDSP_Arm_P_DSP2HostAsyn_isr :: <<< Async Message is Not Valid or Not Supported. EventID >>> %d",
@@ -525,63 +461,6 @@ static void BDSP_Arm_P_Dsp2TaskSyn_isr(
 	BDBG_LEAVE(BDSP_Arm_P_Dsp2TaskSyn_isr);
 }
 
-static void BDSP_Arm_P_Dsp2HostSoftFMMSyn_isr(
-    BDSP_Arm        *pDevice,
-    BDSP_ArmSoftFMM *pArmSoftFMM
-)
-{
-
-	BDBG_ENTER(BDSP_Arm_P_Dsp2HostSoftFMMSyn_isr);
-	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
-	BDBG_OBJECT_ASSERT(pArmSoftFMM, BDSP_ArmSoftFMM);
-
-	BDBG_MSG(("SYNC MSG Received from SoftFMM %d", pArmSoftFMM->ui32FMMId));
-
-    BKNI_SetEvent(pArmSoftFMM->hEvent);
-
-	BDBG_LEAVE(BDSP_Arm_P_Dsp2HostSoftFMMSyn_isr);
-}
-
-static void BDSP_Arm_P_Dsp2HostSoftFMMAsyn_isr(
-    BDSP_Arm     *pDevice,
-    BDSP_ArmSoftFMM *pArmSoftFMM
-)
-{
-    BDSP_P_AsynMsg  *pEventMsg = NULL;
-    unsigned uiNumMsgs = 0, i = 0;
-
-	BDBG_ENTER(BDSP_Arm_P_Dsp2HostSoftFMMAsyn_isr);
-	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
-	BDBG_OBJECT_ASSERT(pArmSoftFMM, BDSP_ArmSoftFMM);
-
-	BDBG_MSG(("ASYNC MSG Received from SoftFMM %d", pArmSoftFMM->ui32FMMId));
-    pEventMsg = (BDSP_P_AsynMsg *)pArmSoftFMM->processMemInfo.hostAsyncQueue.pAddr;
-
-    /* Read the message in sEventMsg */
-    BDSP_Arm_P_GetAsyncMsg_isr(pArmSoftFMM->hAsyncQueue, pEventMsg, &uiNumMsgs);
-
-    /* Now check which response came from FW and work according to it*/
-    for(i = 0; i < uiNumMsgs; i++)
-    {
-        if(pEventMsg[i].sAsynHeader.eEventID== BDSP_P_EventID_SOFT_FMM_OUTPUT_DATA_READY)
-        {
-           BDSP_Arm_P_SoftFMMOutputDataReady_isr((void *)pArmSoftFMM, &(pEventMsg[i].uInfo.sSoftFMMOutputDataReadyInfo));
-        }
-        else if(pEventMsg[i].sAsynHeader.eEventID== BDSP_P_EventID_SOFT_FMM_INPUT_FREE_AVAILABLE)
-        {
-           BDSP_Arm_P_SoftFMMInputFreeAvailable_isr((void *)pArmSoftFMM, &(pEventMsg[i].uInfo.sSoftFMMInputFreeAvailableInfo));
-        }
-        else
-        {
-           BDBG_WRN (("BDSP_Arm_P_DSP2HostAsyn_isr :: <<< Async Message is Not Valid or Not Supported. EventID >>> %d",
-               pEventMsg[i].sAsynHeader.eEventID));
-        }
-        BDBG_MSG (("BDSP_Arm_P_DSP2HostAsyn_isr EventID %d :: ui32NumBytesWritten >>> %d", pEventMsg[i].sAsynHeader.eEventID,  pEventMsg[i].uInfo.sSoftFMMOutputDataReadyInfo.ui32NumBytesWritten));
-    }
-
-	BDBG_LEAVE(BDSP_Arm_P_Dsp2HostSoftFMMAsyn_isr);
-}
-
 static void BDSP_Arm_P_Dsp2HostGenResp_isr(
     BDSP_Arm     *pDevice,
     unsigned      dspIndex
@@ -607,9 +486,7 @@ void BDSP_Arm_P_AstraEventCallback_isr(
     BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
     BDSP_ArmDspAck sAckInfo;
     BDSP_ArmTask *pArmTask = NULL;
-    BDSP_ArmSoftFMM *pArmSoftFMM = NULL;
     uint32_t    ui32TaskId = 0;
-    uint32_t    ui32FMMId = 0;
 	uint32_t    ui32DeviceId = 0;
     uint32_t ui32RcvMsgLen = 0;
     BTEE_ConnectionHandle hConnection = NULL;
@@ -650,34 +527,6 @@ void BDSP_Arm_P_AstraEventCallback_isr(
 	{
 	    BDSP_Arm_P_Dsp2HostGenResp_isr(pDevice,sAckInfo.ui32DspIndex);
 	}
-    else if(BDSP_ArmDspAck_Type_eSoftFMM == sAckInfo.eAckType)
-    {
-        ui32FMMId = sAckInfo.ui32FMMID;
-        ui32DeviceId = sAckInfo.ui32DspIndex;
-        pArmSoftFMM = pDevice->softFMMDetails[ui32DeviceId].pSoftFMM[ui32FMMId];
-        if(NULL == pArmSoftFMM)
-		{
-			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: something went wrong and Event callback was called for someother soft FMM"));
-			goto end;
-		}
-		if(BDSP_MAX_SOFT_FMM_PER_DSP <= ui32FMMId)
-		{
-			BDBG_ERR(("BDSP_Arm_P_AstraEventCallback_isr: FMMIndex is %d which is greater than the max allowed index %d ",ui32FMMId,(BDSP_MAX_SOFT_FMM_PER_DSP-1)));
-			goto end;
-		}
-		/* Handling Response to command for Soft FMM */
-		if(BDSP_ArmDspResp_Type_eCmdAck == sAckInfo.ui32RespType)
-		{
-			BDSP_Arm_P_Dsp2HostSoftFMMSyn_isr(pDevice, pArmSoftFMM);
-		}
-		/* Handling of Async events for Soft FMM*/
-		else if(BDSP_ArmDspResp_Type_eEvent == sAckInfo.ui32RespType)
-		{
-			/* Async msg handler for Soft FMM*/
-			BDSP_Arm_P_Dsp2HostSoftFMMAsyn_isr(pDevice, pArmSoftFMM);
-		}
-
-    }
 	else if(BDSP_ArmDspAck_Type_eTask == sAckInfo.eAckType)
 	{
 		ui32TaskId = sAckInfo.ui32TaskID;
@@ -1150,103 +999,5 @@ BERR_Code BDSP_Arm_P_SetContextInterruptHandlers(
 	   pArmContext->interruptHandlers = *pInterrupts;
 	}
 
-    return errCode;
-}
-
-void BDSP_Arm_P_GetSoftFMMInputInterruptHandlers_isr(
-    void *pSoftFMMInput,
-    BDSP_SoftFMMInputInterruptHandlers *pHandlers
-)
-{
-    BDSP_ArmSoftFMM_Input *pArmSoftFMMInput = (BDSP_ArmSoftFMM_Input *)pSoftFMMInput;
-
-    BDBG_ENTER(BDSP_Arm_P_GetSoftFMMInputInterruptHandlers_isr);
-    BDBG_OBJECT_ASSERT(pArmSoftFMMInput, BDSP_ArmSoftFMM_Input);
-    BDBG_ASSERT(pHandlers);
-
-    *pHandlers = pArmSoftFMMInput->interruptHandlers;
-    goto end;
-
-end:
-    BDBG_LEAVE(BDSP_Arm_P_GetSoftFMMInputInterruptHandlers_isr);
-}
-
-BERR_Code BDSP_Arm_P_SetSoftFMMInputInterruptHandlers_isr(
-    void *pSoftFMMInput,
-    const BDSP_SoftFMMInputInterruptHandlers *pHandlers
-)
-{
-    BERR_Code errCode=BERR_SUCCESS;
-	BDSP_ArmSoftFMM_Input *pArmSoftFMMInput = (BDSP_ArmSoftFMM_Input *)pSoftFMMInput;
-    BDSP_ArmSoftFMM *pArmSoftFMM;
-
-    BDBG_ENTER(BDSP_Arm_P_SetSoftFMMInputInterruptHandlers_isr);
-    BDBG_OBJECT_ASSERT(pArmSoftFMMInput, BDSP_ArmSoftFMM_Input);
-    pArmSoftFMM = (BDSP_ArmSoftFMM *)pArmSoftFMMInput->pArmSoftFMM;
-    BDBG_OBJECT_ASSERT(pArmSoftFMM, BDSP_ArmSoftFMM);
-
-    /*Output Written Interrupt*/
-    if((pHandlers->freeAvailable.pCallback_isr == NULL))
-    {
-        BDSP_P_CLEAR_BIT(pArmSoftFMM->eventEnabledMask, BDSP_P_EventID_SOFT_FMM_INPUT_FREE_AVAILABLE);
-    }
-    else
-    {
-        BDSP_P_SET_BIT(pArmSoftFMM->eventEnabledMask, BDSP_P_EventID_SOFT_FMM_INPUT_FREE_AVAILABLE);
-    }
-    pArmSoftFMMInput->interruptHandlers = *pHandlers;
-    goto end;
-
-end:
-    BDBG_LEAVE(BDSP_Arm_P_SetSoftFMMInputInterruptHandlers_isr);
-    return errCode;
-}
-
-void BDSP_Arm_P_GetSoftFMMOutputInterruptHandlers_isr(
-    void *pSoftFMMOutput,
-    BDSP_SoftFMMOutputInterruptHandlers *pHandlers
-)
-{
-    BDSP_ArmSoftFMM_Output *pArmSoftFMMOutput = (BDSP_ArmSoftFMM_Output *)pSoftFMMOutput;
-
-    BDBG_ENTER(BDSP_Arm_P_GetSoftFMMOutputInterruptHandlers_isr);
-    BDBG_OBJECT_ASSERT(pArmSoftFMMOutput, BDSP_ArmSoftFMM_Output);
-    BDBG_ASSERT(pHandlers);
-
-    *pHandlers = pArmSoftFMMOutput->interruptHandlers;
-    goto end;
-
-end:
-    BDBG_LEAVE(BDSP_Arm_P_GetSoftFMMOutputInterruptHandlers_isr);
-}
-
-BERR_Code BDSP_Arm_P_SetSoftFMMOutputInterruptHandlers_isr(
-    void *pSoftFMMOutput,
-    const BDSP_SoftFMMOutputInterruptHandlers *pHandlers
-)
-{
-    BERR_Code errCode=BERR_SUCCESS;
-    BDSP_ArmSoftFMM_Output *pArmSoftFMMOutput = (BDSP_ArmSoftFMM_Output *)pSoftFMMOutput;
-    BDSP_ArmSoftFMM *pArmSoftFMM;
-
-    BDBG_ENTER(BDSP_Arm_P_SetSoftFMMOutputInterruptHandlers_isr);
-    BDBG_OBJECT_ASSERT(pArmSoftFMMOutput, BDSP_ArmSoftFMM_Output);
-    pArmSoftFMM = (BDSP_ArmSoftFMM *)pArmSoftFMMOutput->pArmSoftFMM;
-    BDBG_OBJECT_ASSERT(pArmSoftFMM, BDSP_ArmSoftFMM);
-
-    /*Output Written Interrupt*/
-    if((pHandlers->dataReady.pCallback_isr == NULL))
-    {
-        BDSP_P_CLEAR_BIT(pArmSoftFMM->eventEnabledMask, BDSP_P_EventID_SOFT_FMM_OUTPUT_DATA_READY);
-    }
-    else
-    {
-        BDSP_P_SET_BIT(pArmSoftFMM->eventEnabledMask, BDSP_P_EventID_SOFT_FMM_OUTPUT_DATA_READY);
-    }
-    pArmSoftFMMOutput->interruptHandlers = *pHandlers;
-    goto end;
-
-end:
-    BDBG_LEAVE(BDSP_Arm_P_SetSoftFMMOutputInterruptHandlers_isr);
     return errCode;
 }

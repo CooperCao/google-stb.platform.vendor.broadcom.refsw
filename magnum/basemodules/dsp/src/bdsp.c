@@ -109,27 +109,6 @@ BERR_Code BDSP_Resume(
     }
 }
 
-/***************************************************************************
-Summary:
-Open DSP Soft FMM
-***************************************************************************/
-BERR_Code BDSP_SoftFMM_Open(
-    BDSP_Handle handle,                 /* [in] DSP device handle */
-    BDSP_SoftFMMHandle *pSoftFMM        /* [out] Soft FMM handle */
-    )
-{
-    BDBG_OBJECT_ASSERT(handle, BDSP_Device);
-    if(handle->softFMMOpen)
-    {
-        return handle->softFMMOpen(handle->pDeviceHandle,pSoftFMM);
-    }
-    else
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-    return BERR_SUCCESS;
-}
-
 BERR_Code BDSP_GetAlgorithmInfo_isrsafe(
     BDSP_Handle handle,
     BDSP_Algorithm algorithm, /* [in] */

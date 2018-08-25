@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2008-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2008-2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,6 +70,7 @@ struct NEXUS_Module {
     BKNI_MutexHandle lock;
     BKNI_EventHandle event;
     NEXUS_P_Scheduler *scheduler;
+    NEXUS_P_Scheduler *callbackScheduler;
     NEXUS_ModuleSettings settings;
     const char *pModuleName;
     unsigned order;
@@ -146,6 +147,7 @@ struct NEXUS_P_Base_State {
     unsigned moduleOrder;
 };
 extern struct NEXUS_P_Base_State NEXUS_P_Base_State;
+
 #ifdef __cplusplus
 }
 #endif
