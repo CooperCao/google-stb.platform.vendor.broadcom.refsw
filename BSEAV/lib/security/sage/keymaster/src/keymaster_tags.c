@@ -109,6 +109,7 @@ static inline bool km_tag_is_valid(km_tag_value_t *param)
     case SKM_TAG_USER_AUTH_TYPE :
     case SKM_TAG_AUTH_TIMEOUT :
     case SKM_TAG_ALLOW_WHILE_ON_BODY :
+    case SKM_TAG_UNLOCKED_DEVICE_REQUIRED :
     case SKM_TAG_ALL_APPLICATIONS :
     case SKM_TAG_APPLICATION_ID :
     case SKM_TAG_EXPORTABLE :

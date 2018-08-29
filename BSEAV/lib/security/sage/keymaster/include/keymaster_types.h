@@ -159,6 +159,10 @@ typedef enum {
     SKM_TAG_ALLOW_WHILE_ON_BODY = SKM_BOOL | 506, /* Allow key to be used after authentication timeout
                                                    * if device is still on-body (requires secure
                                                    * on-body sensor. */
+    SKM_TAG_UNLOCKED_DEVICE_REQUIRED = SKM_BOOL | 509, /* Specifies that the key may only be used when
+                                                        * the device is unlocked. Must be software
+                                                        * enforced. (keymaster4)
+                                                        */
 
     /* Application access control */
     SKM_TAG_ALL_APPLICATIONS = SKM_BOOL | 600, /* Specified to indicate key is usable by all
