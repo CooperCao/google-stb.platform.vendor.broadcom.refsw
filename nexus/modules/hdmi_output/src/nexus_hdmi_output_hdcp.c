@@ -1534,7 +1534,6 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
     )
 {
     NEXUS_Error errCode;
-    NEXUS_HdmiOutputState state;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1553,15 +1552,7 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
         handle->hdcpKeepAliveTimer = NULL;
     }
 
-    /* Check for device */
-    state = NEXUS_HdmiOutput_P_GetState(handle);
-    if ( state != NEXUS_HdmiOutputState_ePoweredOn )
-        goto done;
-
-    BDBG_MSG(("Disabling HDCP"));
-
     errCode = BHDCPlib_DisableAuthentication(handle->hdcpHandle);
-
     if ( errCode )
     {
         return BERR_TRACE(errCode);
@@ -1570,8 +1561,6 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
     if (handle->eHdcpVersion != BHDM_HDCP_Version_e2_2) {
         NEXUS_HdmiOutput_P_UpdateHdcpState(handle);
     }
-
-done:
 
     return BERR_SUCCESS;
 }

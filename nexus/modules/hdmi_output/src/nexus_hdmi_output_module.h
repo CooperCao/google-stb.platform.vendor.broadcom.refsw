@@ -46,6 +46,7 @@
 #include "nexus_hdmi_output_extra.h"
 #include "bhdm.h"
 #include "bhdm_edid.h"
+#include "bhdm_monitor.h"
 #include "nexus_platform_features.h"
 #include "priv/nexus_core_video.h"
 #include "priv/nexus_core_audio.h"
@@ -217,6 +218,7 @@ typedef struct NEXUS_HdmiOutput
     BHDM_EDID_RxVendorSpecificDB edidVendorSpecificDB ;
 
     NEXUS_HdmiOutputTxHardwareStatus txHwStatus ;
+    BHDM_MONITOR_TxHwStatusExtra txHwStatusExtra ;
     NEXUS_HdmiOutputRxHardwareStatus rxHwStatus ;
     unsigned phyChangeRequestCounter ;
 

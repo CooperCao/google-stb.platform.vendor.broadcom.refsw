@@ -1208,6 +1208,7 @@ done:
     /* always copy txHwStatus counters */
     {
         BHDM_MONITOR_Status txStatus ;
+        BHDM_MONITOR_TxHwStatusExtra stTxHwStatusExtra ;
 
         errCode = BHDM_MONITOR_GetHwStatusTx(output->hdmHandle, &txStatus) ;
         if (!errCode)
@@ -1231,6 +1232,11 @@ done:
             BKNI_Memcpy(&pStatus->txHardwareStatus, &output->txHwStatus,
                 sizeof(NEXUS_HdmiOutputTxHardwareStatus)) ;
         }
+
+        /* these extra hw status are not copied to status; keep in handle for proc output */
+        BHDM_MONITOR_GetTxHwStatusExtra(output->hdmHandle, &stTxHwStatusExtra) ;
+            output->txHwStatusExtra.PllLocked = stTxHwStatusExtra.PllLocked ;
+            output->txHwStatusExtra.PllStatus = stTxHwStatusExtra.PllStatus ;
     }
 
     pStatus->eotf = output->drm.outputInfoFrame.eotf;
@@ -2974,6 +2980,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
     NEXUS_Error rc;
     NEXUS_HdmiOutputState state;
     BHDM_Status hdmiStatus;
+    BHDM_HDCP_AuthenticationStatus stHdcpAuthStatus;
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
@@ -2998,12 +3005,23 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
         state == NEXUS_HdmiOutputState_ePoweredOn
             ? "powered" : "disconnect/unpowered"));
 
+    rc = BHDM_HDCP_GetAuthenticationStatus(hdmiOutput->hdmHandle, &stHdcpAuthStatus) ;
+    if (rc)
+    {
+        rc = BERR_TRACE(rc) ;
+        goto done ;
+    }
+
     /* if device is POWERED and HDCP is currently ENABLED */
     if ((state == NEXUS_HdmiOutputState_ePoweredOn)
-    && hdmiOutput->hdcpStarted)
+    && stHdcpAuthStatus.bEncrypted)
     {
         hdmiOutput->hdcpRequiredPostFormatChange = true ;
-
+        /*
+        * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
+        * is not handled properly on certain TVs; use DisableEncryption/StartAuthentication instead.
+        * Always disable Hdcp Encryption before settng hdcpRequiredPostFormatChange flag
+        */
         rc = NEXUS_HdmiOutput_DisableHdcpEncryption(hdmiOutput);
         if (rc) return BERR_TRACE(rc);
 
@@ -3084,7 +3102,11 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
         }
         else {
-            rc = NEXUS_HdmiOutput_EnableHdcpEncryption(hdmiOutput);
+            /*
+            * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
+			* is not handled properly on certain TVs; use Disable/Start Authentication instead
+            */
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
         }
         if (rc) {rc = BERR_TRACE(rc); goto done ;}
 

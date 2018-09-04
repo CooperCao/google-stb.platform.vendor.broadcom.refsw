@@ -1937,10 +1937,12 @@ static void make_cursor(NEXUS_SurfaceHandle surface, const NEXUS_SurfaceCreateSe
 
 #if NEXUS_HAS_HDMI_OUTPUT
 static const char *g_hdcpLevelStr[NxClient_HdcpLevel_eMax] = {"off","optional","mandatory"};
-static const char *g_hdcpSelectStr[NxClient_HdcpVersion_eMax] = {"auto", "hdcp1x", "hdcp2x"};
+static const char *g_hdcpSelectStr[NxClient_HdcpVersion_eMax] = {"auto", "hdcp1x", "hdcp22type0", "hdcp22"};
 static const char *g_nxserver_hdcp_str[nxserver_hdcp_max] = {
     "not_pending",
     "begin",
+    "follow",
+    "pending_start_retry",
     "pending_start",
     "success"
 };
@@ -2098,12 +2100,53 @@ static void nxserver_check_hdcp(struct b_session *session)
     /* If new selection or not currently running, startup */
     if (session->hdcp.version_select != curr_version_select ||
         session->hdcp.version_state == nxserver_hdcp_not_pending) {
+        bool no_change = false;
         BDBG_MSG(("Change in version_select: %s (%s)", g_hdcpSelectStr[curr_version_select], g_hdcpLevelStr[curr_hdcp_level]));
+
+        /* when changing version and already authenticated, if new version is compatible with current state, no need to reauthenticate */
+        if (is_hdcp_start_complete(&hdcpStatus)) {
+            NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
+            NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
+            switch (curr_version_select) {
+            case NxClient_HdcpVersion_eAuto:
+                /* any authentication is good except hdcp22 cst 1 with a downstream 1x device */
+                no_change = !(hdcpStatus.hdcp2_2Features &&
+                    hdmiOutputHdcpSettings.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType1 &&
+                    hdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream);
+                break;
+            case NxClient_HdcpVersion_eHdcp1x:
+                /* must be hdcp1x */
+                if (!hdcpStatus.hdcp2_2Features) no_change = true;
+                break;
+            case NxClient_HdcpVersion_eAutoHdcp22Type0:
+                /* any authentication is good except hdcp22 cst 1 */
+                if (hdcpStatus.hdcp2_2Features) {
+                    if (hdmiOutputHdcpSettings.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType0) no_change = true;
+                }
+                else {
+                    no_change = true;
+                }
+                break;
+            case NxClient_HdcpVersion_eHdcp22:
+                /* only hdcp22 cst 1 allowed */
+                if (hdcpStatus.hdcp2_2Features) {
+                    if (hdmiOutputHdcpSettings.hdcp2xContentStreamControl == NEXUS_Hdcp2xContentStream_eType1) no_change = true;
+                }
+                break;
+            default:
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto done;
+            }
+        }
+        session->hdcp.version_select = curr_version_select;
+        if (no_change) {
+            BDBG_LOG(("No re-authentication needed"));
+            goto done;
+        }
+        /* start authentication */
         rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
         if (rc) BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
-        session->hdcp.version_select = curr_version_select;
         session->hdcp.version_state = nxserver_hdcp_begin;
-        session->hdcp.downstream_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
     }
 
 
@@ -2140,10 +2183,11 @@ static void nxserver_check_hdcp(struct b_session *session)
     case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure :
     case NEXUS_HdmiOutputHdcpState_eRiLinkIntegrityFailure :
     case NEXUS_HdmiOutputHdcpState_ePjLinkIntegrityFailure :
+        /* terminal state. nexus will not callback again. we must be happy or take action. */
         break;
     default:
+        /* not terminal state. nexus will callback again. */
         goto done;
-        break;
     }
 
     switch (curr_version_state) {
@@ -2176,7 +2220,7 @@ static void nxserver_check_hdcp(struct b_session *session)
             initializeHdmiOutputHdcpSettings(session, curr_version_select);
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
             if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
-            session->hdcp.version_state = nxserver_hdcp_pending_start;
+            session->hdcp.version_state = (curr_version_select == NxClient_HdcpVersion_eAuto) ? nxserver_hdcp_follow : nxserver_hdcp_pending_start;
         }
         else
         {
@@ -2184,6 +2228,29 @@ static void nxserver_check_hdcp(struct b_session *session)
             session->hdcp.version_state = nxserver_hdcp_success;
         }
 
+        break;
+
+    case nxserver_hdcp_follow:
+        if (!is_hdcp_start_complete(&hdcpStatus)) {
+            initializeHdmiOutputHdcpSettings(session, curr_version_select);
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            session->hdcp.version_state = nxserver_hdcp_follow;
+            session->callbackStatus.hdmiOutputHdcpChanged++;
+        }
+        /* if we've authenticated with an HDCP 2.2 repeater with a downstream 1.x deivce, we must re-authenticate using content stream type 0 */
+        else if (hdcpStatus.isHdcpRepeater && hdcpStatus.hdcp2_2Features && hdcpStatus.hdcp2_2RxInfo.hdcp1_xDeviceDownstream) {
+            initializeHdmiOutputHdcpSettings(session, curr_version_select);
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            session->hdcp.version_state = nxserver_hdcp_pending_start;
+            session->callbackStatus.hdmiOutputHdcpChanged++;
+        }
+        else {
+            /* we started with HDCP 1.x or HDCP 2.2 and content stream type 1, so we're done */
+            session->callbackStatus.hdmiOutputHdcpChanged++;
+            session->hdcp.version_state = nxserver_hdcp_success;
+        }
         break;
 
     case nxserver_hdcp_pending_start:
@@ -2328,7 +2395,7 @@ static void nxserver_hdcp_mute(struct b_session *session)
     int rc;
     bool mute = session->hdmiOutput && session->hdcp.level == NxClient_HdcpLevel_eMandatory;
 #if NEXUS_HAS_SAGE
-    /* for SAGE_SECURE_MODE 6/9, we need to mute on nxserver_hdcp_pending as well. */
+    /* for SAGE_SECURE_MODE 6/9, we need to mute on nxserver_hdcp_pending_start as well. */
     mute = mute && (session->hdcp.version_state < nxserver_hdcp_success);
 #else
     /* assuming order of enum has pending_start and success as the highest values */
@@ -2593,21 +2660,38 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
 #if NEXUS_HAS_SECURITY
     NEXUS_Error rc;
     NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
-    NEXUS_HdmiOutputHdcpVersion hdcp_version;
 
-    hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
-    switch (version_select) {
-    case NxClient_HdcpVersion_eAuto:   hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto; break;
-    case NxClient_HdcpVersion_eHdcp1x: hdcp_version = NEXUS_HdmiOutputHdcpVersion_e1_x;  break;
-    case NxClient_HdcpVersion_eHdcp22: hdcp_version = NEXUS_HdmiOutputHdcpVersion_e2_2;  break;
-    case NxClient_HdcpVersion_eMax: BDBG_ASSERT(0);break;
-    }
     NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
-    hdmiOutputHdcpSettings.hdcp_version = hdcp_version;
-    hdmiOutputHdcpSettings.hdcp2xContentStreamControl =
-        (hdcp_version == NEXUS_HdmiOutputHdcpVersion_e2_2) ? NEXUS_Hdcp2xContentStream_eType1 : NEXUS_Hdcp2xContentStream_eType0;
+    switch (version_select) {
+    case NxClient_HdcpVersion_eAuto:
+        hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
+        if (session->hdcp.version_state != nxserver_hdcp_begin) {
+            /* second pass */
+            hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType0;
+        }
+        else {
+            /* first pass */
+            hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType1;
+        }
+        break;
+    case NxClient_HdcpVersion_eHdcp1x:
+        hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_e1_x;
+        /* hdcp2xContentStreamControl is a don't care */
+        break;
+    case NxClient_HdcpVersion_eAutoHdcp22Type0:
+        hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
+        hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType0;
+        break;
+    case NxClient_HdcpVersion_eHdcp22:
+        hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_e2_2;
+        hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType1;
+        break;
+    case NxClient_HdcpVersion_eMax:
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
+    }
 
-    if (session->hdcpKeys.hdcp1x.size && hdcp_version != NEXUS_HdmiOutputHdcpVersion_e2_2) {
+    if (session->hdcpKeys.hdcp1x.size && hdmiOutputHdcpSettings.hdcp_version != NEXUS_HdmiOutputHdcpVersion_e2_2) {
         BKNI_Memcpy(hdmiOutputHdcpSettings.aksv.data, session->hdcpKeys.hdcp1x.buffer, sizeof(hdmiOutputHdcpSettings.aksv.data));
         BKNI_Memcpy(&hdmiOutputHdcpSettings.encryptedKeySet, &((uint8_t*)session->hdcpKeys.hdcp1x.buffer)[sizeof(hdmiOutputHdcpSettings.aksv.data)+3], sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
     }

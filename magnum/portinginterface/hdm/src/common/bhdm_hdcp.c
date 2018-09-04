@@ -194,21 +194,29 @@ typedef enum BHDM_HDCP_P_VersionSelect
 	BHDM_HDCP_P_VersionSelect_eMax
 } BHDM_HDCP_P_VersionSelect ;
 
-static void BHDM_HDCP_P_GetHdcpVersionSelect(const BHDM_Handle hHDMI, uint8_t *uiHdcpVersionSelect)
+static uint8_t BHDM_HDCP_P_GetHdcpVersionSelect(const BHDM_Handle hHDMI)
 {
+    uint8_t uiHdcpVersionSelect ;
+
+	uiHdcpVersionSelect = BHDM_HDCP_P_VersionSelect_e1_x ;
+
 #if BHDM_CONFIG_HAS_HDCP22
-    BREG_Handle hRegister;
-    uint32_t Register, ulOffset;
+	{
+	    BREG_Handle hRegister;
+	    uint32_t Register, ulOffset;
 
-    hRegister = hHDMI->hRegister;
-    ulOffset = hHDMI->ulOffset;
+	    hRegister = hHDMI->hRegister;
+	    ulOffset = hHDMI->ulOffset;
 
-    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
-    *uiHdcpVersionSelect = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT) ;
+	    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
+	    uiHdcpVersionSelect =
+	        BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT) ;
+	}
 #else
 	BSTD_UNUSED(hHDMI) ;
-	*uiHdcpVersionSelect = BHDM_HDCP_P_VersionSelect_e1_x ;
 #endif
+
+	return uiHdcpVersionSelect ;
 }
 
 
@@ -249,7 +257,7 @@ static bool BHDM_HDCP_P_RegisterAccessAllowed(
         goto done ;
     }
 
-    BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI, &uiHdcpVersionUsed) ;
+    uiHdcpVersionUsed = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
     if (((uiHdcpVersionUsed == BHDM_HDCP_P_VersionSelect_e2_2) && (offset < BHDM_HDCP_2_2_OFFSET_START))
     ||  ((uiHdcpVersionUsed == BHDM_HDCP_P_VersionSelect_e1_x) && (offset >= BHDM_HDCP_2_2_OFFSET_START)))
     {
@@ -1618,9 +1626,10 @@ BERR_Code BHDM_HDCP_RiLinkIntegrityCheck(
         */
         BDBG_ERR(("Tx%d: LIC: TxRi= %04x <> RxRi= %04x         R%d !=", hHDMI->eCoreId,
             hHDMI->HDCP_TxRi, hHDMI->HDCP_RxRi, hHDMI->HDCP_RiCount)) ;
-
-        rc = BERR_TRACE(BHDM_HDCP_LINK_RI_FAILURE) ;
     } while (RetryCount < BHDM_HDCP_MAX_I2C_RETRY) ;
+    
+    /* Ri Link Failure after BHDM_HDCP_MAX_I2C_RETRY count */
+    rc = BERR_TRACE(BHDM_HDCP_LINK_RI_FAILURE) ;
 
     /* Clear/Disable the HDCP Authentication */
     BHDM_HDCP_ClearAuthentication(hHDMI) ;
@@ -2234,7 +2243,7 @@ BERR_Code BHDM_HDCP_IsLinkAuthenticated(const BHDM_Handle hHDMI, bool *bAuthenti
 	hRegister = hHDMI->hRegister;
 	ulOffset = hHDMI->ulOffset;
 
-	BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI, &uiHdcpVersionUsed) ;
+	uiHdcpVersionUsed = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
 
 	switch (uiHdcpVersionUsed)
 	{
@@ -2948,9 +2957,7 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
 {
     BERR_Code rc = BERR_SUCCESS;
     uint8_t RxCaps ;
-    uint8_t uiHdcp2Version;
     uint8_t RxDeviceAttached;
-    bool authenticated ;
 
 
 #if BDBG_DEBUG_BUILD
@@ -2970,58 +2977,93 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
         goto done ;
     }
 
-    /* return cached version whenever the link is AUTHENTICATED */
-    rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &authenticated) ;
-    if (rc != BERR_SUCCESS || authenticated)
-    {
-        goto done ;
-    }
-
+	/* return cached version if already read */
+	if (hHDMI->HdcpVersion != BHDM_HDCP_Version_eUnused)
+	{
+		BDBG_MSG(("Returned cached hdcp version already read."));
+		goto done;
+	}
 
     /**************************/
     /* check for HDCP 2.x Rx device */
     /**************************/
 
     /* access to register space is allowed here */
-    { /* check up to 5 times */
-        uint8_t cnt;
 
-        uiHdcp2Version = 0;
-        for(cnt = 0; cnt < 5; cnt++)
-        {
-            uint8_t tmp;
+	/* attempt to read the same HDCP2VERSION byte N samples in a row */
+	/* try up to BHDM_HDCP_P_MAX_READ_HDCP2VERSION_TRIES */
 
-            rc = BHDM_P_BREG_I2C_Read(hHDMI,
-            BHDM_HDCP_RX_I2C_ADDR,  BHDM_HDCP_RX_HDCP2VERSION, &tmp, 1) ;
-            uiHdcp2Version |= tmp;
-        }
-    }
+#define BHDM_HDCP_P_MAX_READ_HDCP2VERSION_TRIES 3
+#define BHDM_HDCP_P_MAX_READ_HDCP2VERSION_SAMPLES 5
+	{
+		uint8_t uiReadAttempts ;
+		uint8_t uiSamplesRead ;
+		uint8_t ucHdcp2VersionByte = 0 ;
+		uint8_t ucPreviousHdcp2VersionByte = 0 ;
+		bool bI2cReadHdcpVersionFailure ;
 
-    if (rc == BERR_SUCCESS)
-    {
-        /* If 3rd bit set, Rx support HDCP 2.2 */
-        if (uiHdcp2Version & 0x04)
-        {
+		for (uiReadAttempts = 0 ; uiReadAttempts < BHDM_HDCP_P_MAX_READ_HDCP2VERSION_TRIES ; uiReadAttempts++)
+		{
+			bI2cReadHdcpVersionFailure = false ;
+
+			uiSamplesRead = 0 ;
+			do
+			{
+				rc = BHDM_P_BREG_I2C_Read(hHDMI, BHDM_HDCP_RX_I2C_ADDR,
+					BHDM_HDCP_RX_HDCP2VERSION, &ucHdcp2VersionByte, 1) ;
+				if (rc != BERR_SUCCESS)
+				{
+					bI2cReadHdcpVersionFailure = true ;
+					hHDMI->stMonitorTxHwStatusExtra.ui2cHdcp2VersionReadFailures++ ;
+					BDBG_ERR(("I2C read failure %d when reading HDCP2Version register", rc)) ;
+					break ;
+				}
+
+				BDBG_MSG(("HDCP2VERSION: 0x%02x", ucHdcp2VersionByte)) ;
+				if (!uiReadAttempts) /* first sample read */
+				{
+					ucPreviousHdcp2VersionByte = ucHdcp2VersionByte ;
+				}
+			}
+			while ((++uiSamplesRead < BHDM_HDCP_P_MAX_READ_HDCP2VERSION_SAMPLES)
+				&& (ucPreviousHdcp2VersionByte == ucHdcp2VersionByte)) ;
+
+			/* i2c read failure; try again */
+			if (bI2cReadHdcpVersionFailure)
+				continue ;
+
+			if ((uiSamplesRead == BHDM_HDCP_P_MAX_READ_HDCP2VERSION_SAMPLES)
+			&&  (ucPreviousHdcp2VersionByte == ucHdcp2VersionByte))
+			{
+				/* For all HDCP versions,
+				   the HDCP2VERION byte read at 0x50 offset must be 0x0 or 0x04 */
+				if ((ucHdcp2VersionByte == 0x0)  /* 0x00 = HDCP 1.x */
+				||  (ucHdcp2VersionByte == 0x4)) /* 0x04 = HDCP 2.2 */
+				{
+					break ; /* valid HdcpVersion was read */
+				}
+			}
+
+			ucPreviousHdcp2VersionByte = ucHdcp2VersionByte ;
+
+			BDBG_WRN(("Read invalid HDCP2Version: 0x%02x; <%s> is not HDCP compliant",
+				ucHdcp2VersionByte, hHDMI->AttachedEDID.MonitorName)) ;
+			hHDMI->stMonitorTxHwStatusExtra.ui2cHdcp2VersionDataFailures++ ;
+	    }
+
+
+		/* If only 3rd bit set, Rx support HDCP 2.2 */
+		if (ucHdcp2VersionByte == 0x4)
+		{
 #if BHDM_CONFIG_HAS_HDCP22
-            hHDMI->HdcpVersion = BHDM_HDCP_Version_e2_2 ;
-            goto done ;
+			hHDMI->HdcpVersion = BHDM_HDCP_Version_e2_2 ;
+			goto done ;
 #else
-            /* just report the Rx supports HDCP 2.2; even though this platform cannot */
-            BDBG_MSG(("Attached Rx supports HDCP 2.x")) ;
-            /* almost all devices support 1.x, but check BCaps */
+			/* just report the Rx supports HDCP 2.2; even though this platform cannot */
+			BDBG_MSG(("Attached Rx supports HDCP 2.x")) ;
 #endif
-        }
-    }
-    else
-    {
-#if BHDM_CONFIG_HAS_HDCP22
-        /* HDMI 2.0 Platforms expect HDCP 2.x support */
-        /* Warn if attached Rx does not support HDCP 2.x */
-        BDBG_ERR(("Tx%d: (i2c err code= %x)  Unable to read HDCP2VERSION - Rx does not support HDCP 2.x",
-            hHDMI->eCoreId, rc)) ;
-#endif
-    }
-
+	    }
+	}
 
     /**************************/
     /* check for HDCP 1.x Rx device */
@@ -3035,14 +3077,11 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
         RxCaps = hHDMI->RxBCaps;
     }
     else
+#endif
     {
         BHDM_CHECK_RC(rc, BHDM_P_BREG_I2C_Read(hHDMI,
             BHDM_HDCP_RX_I2C_ADDR, BHDM_HDCP_RX_BCAPS, &RxCaps, 1)) ;
     }
-#else
-    BHDM_CHECK_RC(rc, BHDM_P_BREG_I2C_Read(hHDMI,
-        BHDM_HDCP_RX_I2C_ADDR, BHDM_HDCP_RX_BCAPS, &RxCaps, 1)) ;
-#endif
 
     if (RxCaps & BHDM_HDCP_RxCaps_eHDCP_1_1_Features) {
         hHDMI->HdcpVersion = BHDM_HDCP_Version_e1_1_Optional_Features ;
@@ -3077,6 +3116,43 @@ done:
     return rc;
 }
 
+
+BERR_Code BHDM_HDCP_GetAuthenticationStatus(const BHDM_Handle hHDMI, BHDM_HDCP_AuthenticationStatus *stHdcpAuthStatus)
+{
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+	uint8_t uiVersionSelected ;
+
+	BDBG_ENTER(BHDM_HDCP_GetAuthenticationStatus);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
+
+	/* authenticated status */
+	BHDM_HDCP_IsLinkAuthenticated(hHDMI, &stHdcpAuthStatus->bAuthentictated) ;
+
+	/* encryption status */
+	uiVersionSelected = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
+#if BHDM_CONFIG_HAS_HDCP22
+	if (uiVersionSelected == BHDM_HDCP_P_VersionSelect_e2_2)
+	{
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+		stHdcpAuthStatus->bEncrypted = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION) > 0 ;
+	}
+	else
+#else
+	BSTD_UNUSED(uiVersionSelected) ;
+#endif
+	{
+		Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
+		stHdcpAuthStatus->bEncrypted = BCHP_GET_FIELD_DATA(Register, HDMI_CP_CONFIG, I_MUX_VSYNC) ;
+	}
+
+
+	BDBG_LEAVE(BHDM_HDCP_GetAuthenticationStatus);
+	return BERR_SUCCESS;
+}
 
 #if BHDM_CONFIG_HAS_HDCP22
 /* function to read/copy the HDCP RxStatus registers */

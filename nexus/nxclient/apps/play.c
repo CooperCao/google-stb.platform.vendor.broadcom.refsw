@@ -84,7 +84,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     printf(
     "  -hdcp {m[andatory]|o[ptional]}\n"
-    "  -hdcp_version {auto|hdcp1x|hdcp22}\n"
+    "  -hdcp_version {auto|hdcp1x|hdcp22type0|hdcp22}\n"
     );
     printf(
     "  -3d {lr|ou|auto}         stereoscopic (3D) source format\n"
@@ -476,12 +476,19 @@ int main(int argc, const char **argv)  {
             else if (!strcmp(argv[curarg],"hdcp1x")) {
                 start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp1x;
             }
+            else if (!strcmp(argv[curarg],"hdcp22type0")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eAutoHdcp22Type0;
+            }
             else if (!strcmp(argv[curarg],"hdcp22")) {
                 start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp22;
             }
             else {
                 print_usage(&cmdline);
                 return -1;
+            }
+            if (!hdcp_flag) {
+                hdcp_flag = true;
+                start_settings.hdcp = NxClient_HdcpLevel_eMandatory;
             }
         }
         else if (!strcmp(argv[curarg], "-3d") && curarg+1<argc) {

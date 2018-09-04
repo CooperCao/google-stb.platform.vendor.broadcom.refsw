@@ -349,12 +349,12 @@ struct b_session {
         enum nxserver_hdcp_state {
             nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
             nxserver_hdcp_begin,                         /* need to start hdcp authentication */
+            nxserver_hdcp_follow,                        /* started in eFollow, waiting to learn result */
             nxserver_hdcp_pending_start_retry,           /* authenticating w/ restart. lastHdcpError likely set. may mute. */
             nxserver_hdcp_pending_start,                 /* authenticating w/o restart. */
             nxserver_hdcp_success,                       /* hdcp authentication completed */
             nxserver_hdcp_max
         } version_state;
-        NEXUS_HdmiOutputHdcpVersion downstream_version;
         bool mute;
         NEXUS_HdmiOutputHdcpError lastHdcpError;
         NEXUS_HdmiOutputHdcpState prev_state;

@@ -1196,11 +1196,16 @@ BERR_Code BHDCPlib_DisableAuthentication(BHDCPlib_Handle hHDCPlib)
 	BDBG_ENTER(BHDCPlib_DisableAuthentication);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
+	BDBG_MSG(("Disabling HDCP"));
+
 #if BHDCPLIB_HAS_HDCP_2X_SUPPORT && defined(BHDCPLIB_HAS_SAGE)
 	if (hHDCPlib->stDependencies.eVersion == BHDM_HDCP_Version_e2_2) {
 		return BHDCPlib_P_Hdcp2x_StopAuthentication(hHDCPlib);
 	}
 #endif
+
+	/* stop/cancel internal HDCP timer */
+	BTMR_StopTimer(hHDCPlib->hTimer);
 
 	/* clear HDCP Authentication */
 	BHDM_HDCP_ClearAuthentication(hHDCPlib->stDependencies.hHdm) ;
