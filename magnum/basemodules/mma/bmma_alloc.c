@@ -455,6 +455,7 @@ BMMA_Block_Handle BMMA_Alloc(BMMA_Heap_Handle h, size_t size, unsigned alignment
 #endif
         if(h->settings.alloc) {
             BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
+            BMMA_P_Unlock(h);
             rc = h->settings.alloc(h->settings.context, offset, size,
 #if BDBG_DEBUG_BUILD
                                  b->fname, b->line
@@ -462,6 +463,7 @@ BMMA_Block_Handle BMMA_Alloc(BMMA_Heap_Handle h, size_t size, unsigned alignment
                                  NULL, 0
 #endif
                                       );
+            BMMA_P_Lock(h);
             if (rc) {
                 if(h != &h->parent->dummyHeap) {
                     BMMA_RangeAllocator_Free(h->rangeAllocator, block);
@@ -510,6 +512,7 @@ void BMMA_Free(BMMA_Block_Handle b)
 #endif
         if(h != &h->parent->dummyHeap) {
             size_t size = BMMA_RangeAllocator_GetAllocationSize(b->block);
+            BMMA_P_Unlock(h);
             if(b->lock_cnt>0) {
                 if(!b->uncached) {
                     b->heap->settings.unmap(h->settings.context, (uint8_t *)b + sizeof(*b), b->addr, size);
@@ -519,6 +522,7 @@ void BMMA_Free(BMMA_Block_Handle b)
                 BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
                 h->settings.free(h->settings.context, offset, size);
             }
+            BMMA_P_Lock(b->heap);
         }
 
         BDBG_OBJECT_DESTROY(b, BMMA_Block);

@@ -148,10 +148,11 @@ static void print_full_usage(void)
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
     );
     printf(
-    "  -hdcp_version {auto|hdcp1x|hdcp22} - if hdcp is optional or mandatory, then\n"
-    "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver (Content Stream Type 0)\n"
-    "          \thdcp1x - Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
-    "          \thdcp22 - Always authenticate using HDCP 2.2 mode, Content Stream Type 1\n"
+    "  -hdcp_version {auto|hdcp1x|hdcp22type0|hdcp22} - if hdcp is optional or mandatory, then\n"
+    "          \tauto        (default) Authenticate with either HDCP 1.x or HDCP 2.2 (Content Stream Type 0 or 1 depending on connected TV)\n"
+    "          \thdcp1x      Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
+    "          \thdcp22type0 Authenticate with either HDCP 1.x or HDCP 2.2 (Content Stream Type 0)\n"
+    "          \thdcp22      Always authenticate using HDCP 2.2 mode, Content Stream Type 1\n"
     );
     printf(
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
@@ -1032,10 +1033,14 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             curarg++;
             if      (!strcmp(argv[curarg],"auto"  ))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAuto;
             else if (!strcmp(argv[curarg],"hdcp1x"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp1x;
+            else if (!strcmp(argv[curarg],"hdcp22type0"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAutoHdcp22Type0;
             else if (!strcmp(argv[curarg],"hdcp22"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp22;
             else {
                 print_usage();
                 return -1;
+            }
+            if (settings->hdcp.alwaysLevel == NxClient_HdcpLevel_eNone) {
+                settings->hdcp.alwaysLevel = NxClient_HdcpLevel_eMandatory;
             }
         }
         else if (!strcmp(argv[curarg], "-spd") && curarg+1<argc) {

@@ -261,9 +261,21 @@ typedef enum NxClient_HdcpLevel
 
 typedef enum NxClient_HdcpVersion
 {
-    NxClient_HdcpVersion_eAuto,    /* Always authenticate using the highest version supported by HDMI receiver (Content Stream Type 0) */
+    NxClient_HdcpVersion_eAuto,  /* Authenticate with either HDCP 1.x or HDCP 2.2, depending on directly connected device.
+                                      If connected to HDCP 2.2 repeater, select Content Stream Type 0 or 1 depending on connected TV.
+                                      Scenarios:
+                                        STB -> repeater(2.2) -> TV(2.2)   use HDCP 2.2 content stream type 1
+                                        STB -> repeater(2.2) -> TV(1.x)   use HDCP 2.2 content stream type 0
+                                        STB -> repeater(1.x) -> TV(1.x)   use HDCP 1.x
+                                      Requires extra authentication step for HDCP 2.2 content stream type 0.
+                                      This mode cannot be used for HDCP 2.2 compliance testing. */
     NxClient_HdcpVersion_eFollow = NxClient_HdcpVersion_eAuto, /* deprecated */
     NxClient_HdcpVersion_eHdcp1x,  /* Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eAutoHdcp22Type0, /* Authenticate with either HDCP 1.x or HDCP 2.2 Content Stream Type 0, depending only on directly connected device.
+                                      Scenarios:
+                                        STB -> repeater(2.2) -> TV(2.2 or 1.x)   use HDCP 2.2 content stream type 0
+                                        STB -> repeater(1.x) -> TV(1.x)          use HDCP 1.x
+                                      Unlike eFollow, this does not require an extra authentication step. */
     NxClient_HdcpVersion_eHdcp22,  /* Always authenticate using HDCP 2.2 mode, Content Stream Type 1 */
     NxClient_HdcpVersion_eMax
 } NxClient_HdcpVersion;

@@ -59,11 +59,11 @@ static void print_usage(void)
         "OPTIONS:\n"
         "  --help or -h for help\n"
         "  -o           HDCP authentication is optional (video not muted). Default is mandatory (video will be muted on HDCP failure).\n"
-        "  -version {auto|hdcp1x|hdcp22}\n"
-        "               Force new version select policy\n"
+        "  -version {auto|hdcp1x|hdcp22type0|hdcp22}\n"
         "  -hdcp2x_keys BINFILE \tload Hdcp2.x bin file\n"
         "  -hdcp1x_keys BINFILE \tload Hdcp1.x bin file\n"
         "  -timeout     SECONDS \tbefore exiting (otherwise, wait for ctrl-C)\n"
+        "  -p           prompt\n"
         );
 
     printf (
@@ -73,6 +73,8 @@ static void print_usage(void)
                                 */
         );
 }
+
+#include "hdmi_output_status.inc"
 
 int main(int argc, char **argv)  {
     NxClient_JoinSettings joinSettings;
@@ -84,6 +86,7 @@ int main(int argc, char **argv)  {
     int timeout = -1;
     unsigned i;
     char *revocationListFile = NULL;
+    bool prompt = false;
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
@@ -104,8 +107,9 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-version") && argc>curarg+1) {
             curarg++;
             if (!strcmp(argv[curarg], "auto"))   displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eAuto;
-            if (!strcmp(argv[curarg], "hdcp1x")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp1x;
-            if (!strcmp(argv[curarg], "hdcp22")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp22;
+            else if (!strcmp(argv[curarg], "hdcp1x")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp1x;
+            else if (!strcmp(argv[curarg], "hdcp22type0"))   displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eAutoHdcp22Type0;
+            else if (!strcmp(argv[curarg], "hdcp22")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp22;
         }
         else if (!strcmp(argv[curarg], "-hdcp1x_keys") && curarg+1<argc) {
             hdcp_keys_binfile[NxClient_HdcpType_1x] = argv[++curarg];
@@ -120,6 +124,9 @@ int main(int argc, char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-revokedList") && curarg+1<argc) {
             revocationListFile = (char *)argv[++curarg];
+        }
+        else if (!strcmp(argv[curarg], "-p")) {
+            prompt = true;
         }
         else {
             print_usage();
@@ -218,18 +225,75 @@ int main(int argc, char **argv)  {
         NEXUS_MemoryBlock_Free(block);
     }
     else {
-        rc = NxClient_SetDisplaySettings(&displaySettings);
-        if (rc) BERR_TRACE(rc);
+        if (prompt) {
+            while (1) {
+                char buf[64];
 
-        if (timeout < 0) {
-            BDBG_WRN(("Press Ctrl-C to exit sethdcp and clear HDCP %s state",
-                displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
-            while (1) sleep(1);
+                NxClient_GetDisplaySettings(&displaySettings);
+                printf("sethdcp>");
+                fflush(stdout);
+                fgets(buf, sizeof(buf), stdin);
+                if (feof(stdin)) break;
+                buf[strlen(buf)-1] = 0; /* chop off \n */
+                if (!strcmp(buf, "?")) {
+                    printf(
+                    "none\n"
+                    "auto\n"
+                    "hdcp1x\n"
+                    "hdcp22type0\n"
+                    "hdcp22\n"
+                    "st\n"
+                    "q\n"
+                    );
+                }
+                else if (!strcmp(buf, "none")) {
+                    displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eNone;
+                }
+                else if (!strcmp(buf, "auto")) {
+                    displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eMandatory;
+                    displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eAuto;
+                }
+                else if (!strcmp(buf, "hdcp1x")) {
+                    displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eMandatory;
+                    displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp1x;
+                }
+                else if (!strcmp(buf, "hdcp22type0")) {
+                    displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eMandatory;
+                    displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eAutoHdcp22Type0;
+                }
+                else if (!strcmp(buf, "hdcp22")) {
+                    displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eMandatory;
+                    displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp22;
+                }
+                else if (!strcmp(buf, "st") || !buf[0]) {
+                    print_hdmi_status();
+                    continue;
+                }
+                else if (!strcmp(buf, "q")) {
+                    break;
+                }
+                else {
+                    printf("unknown command: %s\n", buf);
+                    continue;
+                }
+
+                rc = NxClient_SetDisplaySettings(&displaySettings);
+                if (rc) BERR_TRACE(rc);
+            }
         }
         else {
-            sleep(timeout);
-            BDBG_WRN(("exiting sethdcp and clear HDCP %s state",
-                displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
+            rc = NxClient_SetDisplaySettings(&displaySettings);
+            if (rc) BERR_TRACE(rc);
+            if (timeout < 0) {
+                BDBG_WRN(("Press Ctrl-C to exit sethdcp and clear HDCP %s state",
+                    displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
+                while (1) sleep(1);
+            }
+            else {
+                sleep(timeout);
+                BDBG_WRN(("exiting sethdcp and clear HDCP %s state",
+                    displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
+            }
         }
     }
 
