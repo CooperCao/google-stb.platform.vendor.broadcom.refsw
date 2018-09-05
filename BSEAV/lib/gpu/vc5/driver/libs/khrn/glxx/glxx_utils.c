@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "glxx_utils.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
@@ -212,9 +212,11 @@ bool glxx_is_color_renderable_from_api_fmt(GFX_LFMT_T fmt)
    case GFX_LFMT_R16_G16_B16_A16_FLOAT:
    case GFX_LFMT_R16_G16_FLOAT:
    case GFX_LFMT_R16_FLOAT:
-#if V3D_VER_AT_LEAST(4,1,34,0)
+   /* for < 4.1.34, glxx_hw_fmts_from_api_fmt() has translated the hw_fmt
+      to be GFX_LFMT_R8_G8_B8_A8_UNORM, but the api_fmt is still maintained
+      as GFX_LFMT_B8_G8_R8_A8_UNORM and valid.  later versions have TLB
+      support */
    case GFX_LFMT_B8_G8_R8_A8_UNORM:
-#endif
       res = true;
       break;
    default:

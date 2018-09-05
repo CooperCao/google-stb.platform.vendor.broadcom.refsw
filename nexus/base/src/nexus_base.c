@@ -175,6 +175,7 @@ NEXUS_Module_Create_locked(const char *pModuleName, const NEXUS_ModuleSettings *
         goto err_event;
     }
     module->scheduler = NULL;
+    module->callbackScheduler = NULL;
 
     /* insert into the sorted list */
     for(prev=NULL, cur=BLST_S_FIRST(&NEXUS_P_Base_State.modules); cur!=NULL; cur=BLST_S_NEXT(cur, link)) {
@@ -237,6 +238,30 @@ NEXUS_Module_Destroy_locked(NEXUS_ModuleHandle module)
     return;
 }
 
+static NEXUS_Error NEXUS_Base_P_GetCallbackPriority(NEXUS_ModulePriority priority, NEXUS_ModulePriority *pCallbackPriority)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_ModulePriority callbackPriority = priority;
+    switch(priority) {
+    case NEXUS_ModulePriority_eIdle: callbackPriority = NEXUS_ModulePriority_eCallbackLow; break;
+    case NEXUS_ModulePriority_eLow: callbackPriority = NEXUS_ModulePriority_eCallbackLow; break;
+    case NEXUS_ModulePriority_eDefault: callbackPriority = NEXUS_ModulePriority_eCallbackHigh; break;
+    case NEXUS_ModulePriority_eHigh: callbackPriority = NEXUS_ModulePriority_eCallbackHigh; break;
+    case NEXUS_ModulePriority_eIdleActiveStandby: callbackPriority = NEXUS_ModulePriority_eCallbackLowActiveStandby; break;
+    case NEXUS_ModulePriority_eLowActiveStandby: callbackPriority = NEXUS_ModulePriority_eCallbackLowActiveStandby; break;
+    case NEXUS_ModulePriority_eDefaultActiveStandby: callbackPriority = NEXUS_ModulePriority_eCallbackHighActiveStandby; break;
+    case NEXUS_ModulePriority_eHighActiveStandby: callbackPriority = NEXUS_ModulePriority_eCallbackHighActiveStandby; break;
+    case NEXUS_ModulePriority_eAlwaysOn: callbackPriority = NEXUS_ModulePriority_eCallbackAlwaysOn; break;
+    case NEXUS_ModulePriority_eCallbackLow: rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); break;
+    case NEXUS_ModulePriority_eCallbackHigh: rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); break;
+    case NEXUS_ModulePriority_eCallbackLowActiveStandby: rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); break;
+    case NEXUS_ModulePriority_eCallbackHighActiveStandby: rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); break;
+    case NEXUS_ModulePriority_eCallbackAlwaysOn: rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); break;
+    default: rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); break;
+    }
+    *pCallbackPriority = callbackPriority;
+    return rc;
+}
 NEXUS_ModuleHandle
 NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettings)
 {
@@ -253,22 +278,40 @@ NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettin
     NEXUS_LockModule();
     module = NEXUS_Module_Create_locked(pModuleName, pSettings);
     if(module) {
+        NEXUS_ModulePriority callbackPriority;
+        NEXUS_Error rc;
+
+        rc = NEXUS_Base_P_GetCallbackPriority(pSettings->priority, &callbackPriority);
+        if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc); goto err_callback_scheduler;}
+
         if(NEXUS_P_Base_State.schedulers[pSettings->priority]==NULL) { /* create scheduler on demand */
            NEXUS_P_Base_State.schedulers[pSettings->priority] = NEXUS_P_Scheduler_Create(pSettings->priority);
            if(NEXUS_P_Base_State.schedulers[pSettings->priority]==NULL) {
-                (void)BERR_TRACE(BERR_OS_ERROR);
-                NEXUS_Module_Destroy_locked(module);
-                module = NULL;
+                (void)BERR_TRACE(BERR_OS_ERROR); goto err_create_scheduller;
            }
         }
-        if(module) {
-            module->scheduler = NEXUS_P_Base_State.schedulers[pSettings->priority];
+        module->scheduler = NEXUS_P_Base_State.schedulers[pSettings->priority];
+
+        if(NEXUS_P_Base_State.schedulers[callbackPriority]==NULL) { /* create scheduler on demand */
+           NEXUS_P_Base_State.schedulers[callbackPriority] = NEXUS_P_Scheduler_Create(callbackPriority);
+           if(NEXUS_P_Base_State.schedulers[callbackPriority]==NULL) {
+                (void)BERR_TRACE(BERR_OS_ERROR); goto err_create_callback_scheduller;
+           }
         }
+        module->callbackScheduler = NEXUS_P_Base_State.schedulers[callbackPriority];
+
     }
     NEXUS_UnlockModule();
 
     BDBG_MSG(("Creating module %s, priority %d", pModuleName, pSettings->priority));
     return module;
+
+err_create_callback_scheduller:
+err_create_scheduller:
+err_callback_scheduler:
+    NEXUS_Module_Destroy_locked(module);
+    NEXUS_UnlockModule();
+    return NULL;
 }
 
 
@@ -832,6 +875,17 @@ NEXUS_Module_GetPriority(NEXUS_ModuleHandle module, NEXUS_ModulePriority *pPrior
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(pPriority);
     *pPriority = module->settings.priority;
+    return ;
+}
+
+void
+NEXUS_Module_GetCallbackPriority(NEXUS_ModuleHandle module, NEXUS_ModulePriority *pPriority)
+{
+    NEXUS_Error rc;
+    BDBG_OBJECT_ASSERT(module, NEXUS_Module);
+    BDBG_ASSERT(pPriority);
+    rc = NEXUS_Base_P_GetCallbackPriority(module->settings.priority, pPriority);
+    if(rc!=NEXUS_SUCCESS) {(void)BERR_TRACE(rc);}
     return ;
 }
 

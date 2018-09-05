@@ -183,16 +183,6 @@ BERR_Code BDSP_Stage_AddFmmOutput(
 
 /***************************************************************************
 Summary:
-Add a Soft FMM output to a stage
-***************************************************************************/
-BERR_Code BDSP_Stage_AddSoftFmmOutput(
-	BDSP_StageHandle hStage,
-	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
-	unsigned *pOutputIndex
-);
-
-/***************************************************************************
-Summary:
 Add a Rave output to a stage
 ***************************************************************************/
 BERR_Code BDSP_Stage_AddRaveOutput(
@@ -264,16 +254,6 @@ BERR_Code BDSP_Stage_AddFmmInput(
     const BDSP_FmmBufferDescriptor *pDescriptor,
     unsigned *pInputIndex
     );
-
-/***************************************************************************
-Summary:
-Add a Soft FMM Input to a stage
-***************************************************************************/
-BERR_Code BDSP_Stage_AddSoftFmmInput(
-	BDSP_StageHandle hStage,
-	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
-	unsigned *pInputIndex
-);
 
 /***************************************************************************
 Summary:

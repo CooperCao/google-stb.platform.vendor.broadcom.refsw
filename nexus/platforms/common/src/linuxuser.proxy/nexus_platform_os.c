@@ -374,6 +374,7 @@ NEXUS_Platform_P_InitOS(void)
     if (rc) {BERR_TRACE(rc); goto err_park_lock;}
 
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
+        char thread_name[32];
         NEXUS_Base_Scheduler_Config config;
         void (*scheduler)(void *) = NEXUS_Platform_P_SchedulerThread;
         if(state->slave) {
@@ -391,7 +392,9 @@ NEXUS_Platform_P_InitOS(void)
         if (rc) {BERR_TRACE(rc); goto err_threads;}
         NEXUS_P_Base_GetSchedulerConfig(i, &config);
         state->schedulers[i].priority = i;
-        state->schedulers[i].thread = NEXUS_Thread_Create(config.name, scheduler, &state->schedulers[i], config.pSettings);
+
+        BKNI_Snprintf(thread_name, sizeof(thread_name),"nx_sched%s%s", *config.name?"_":"",config.name);
+        state->schedulers[i].thread = NEXUS_Thread_Create(thread_name, scheduler, &state->schedulers[i], config.pSettings);
         if(!state->schedulers[i].thread) { rc = BERR_TRACE(NEXUS_OS_ERROR); goto err_threads; }
     }
     g_NEXUS_CallbackMonitorTimer = NEXUS_ScheduleTimerByPriority(Internal, 100, NEXUS_P_Platform_CallbackMonitor, NULL);
@@ -439,6 +442,7 @@ err_heap:
 err_init_map:
 err_threads:
     state->stop = true;
+    NEXUS_UnlockModule(); /* thread acquires module lock, we can't destroy threads with lock held */
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         if (state->schedulers[i].thread) {
             NEXUS_Thread_Destroy(state->schedulers[i].thread);
@@ -446,6 +450,9 @@ err_threads:
         }
     }
     pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
+    pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
+    return rc;
+
 err_park_lock:
     pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
 err_ioctl_lock:
@@ -477,6 +484,7 @@ NEXUS_Platform_P_UninitOS(void)
     nexus_p_uninit_map();
 
     state->stop = true;
+    NEXUS_UnlockModule(); /* thread acquires module lock, we can't destroy threads with lock held */
     for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
         if (state->schedulers[i].thread) {
             NEXUS_Thread_Destroy(state->schedulers[i].thread);
@@ -485,7 +493,6 @@ NEXUS_Platform_P_UninitOS(void)
     }
     pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.park_lock);
     pthread_rwlock_destroy(&NEXUS_Platform_P_State.stopCallbacks.ioctl_lock);
-    NEXUS_UnlockModule();
     return;
 }
 

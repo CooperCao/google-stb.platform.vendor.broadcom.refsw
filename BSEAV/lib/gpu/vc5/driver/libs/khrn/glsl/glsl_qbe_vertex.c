@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "glsl_backflow.h"
 #include "glsl_backflow_visitor.h"
@@ -40,7 +40,7 @@ static Backflow *get_win_coord(Backflow *clip, Backflow *recip_w, int i) {
 
    Backflow *ret;
    if (i == 2) ret = add(win, tr_special_uniform(BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z));
-   else        ret = tr_uop(V3D_QPU_OP_FTOIN, win);
+   else        ret = tr_uop(V3D_QPU_OP_FTOIZ, tr_uop(V3D_QPU_OP_FFLOOR, win));
    ret->age = win->age = clip->age;
    return ret;
 }

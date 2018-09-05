@@ -580,7 +580,7 @@ nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header
         if(entry) {
             NEXUS_ModulePriority priority;
             BDBG_ASSERT(header->module);
-            NEXUS_Module_GetPriority(header->module, &priority);
+            NEXUS_Module_GetCallbackPriority(header->module, &priority);
             scheduler = &nexus_driver_callback_schedulers[priority];
         }
     }

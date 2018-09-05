@@ -447,23 +447,6 @@ static void  BDSP_Raaga_P_VolumeLevelReached_isr(
 }
 
 
- static void  BDSP_Raaga_P_OnDemandAudioFrameDelivered_isr(
-     void *pTaskHandle)
- {
-
-    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
-
-    BDBG_MSG(("BDSP_Raaga_P_OnDemandAudioFrameDelivered_isr: OnDemand Audio Output Delivered Event occured for Task %d",
-                 pRaagaTask->taskParams.taskId));
-
-    if(pRaagaTask->audioInterruptHandlers.onDemandAudioFrameDelivered.pCallback_isr) {
-         pRaagaTask->audioInterruptHandlers.onDemandAudioFrameDelivered.pCallback_isr (
-             pRaagaTask->audioInterruptHandlers.onDemandAudioFrameDelivered.pParam1,
-             pRaagaTask->audioInterruptHandlers.onDemandAudioFrameDelivered.param2);
-    }
-}
-
 static void BDSP_Raaga_P_Dsp2TaskAsyn_isr(
 	void    *pDeviceHandle,
 	int	   iParm2
@@ -573,10 +556,6 @@ static void BDSP_Raaga_P_Dsp2TaskAsyn_isr(
 				else if (pEventMsg[i].sAsynHeader.eEventID  == BDSP_P_EventID_VOLUME_LEVEL_REACHED)
 				{
 				   BDSP_Raaga_P_VolumeLevelReached_isr((void *)pRaagaTask);
-				}
-				else if (pEventMsg[i].sAsynHeader.eEventID  == BDSP_P_EventID_ON_DEMAND_AUDIO_FRAME_DELIVERED)
-				{
-				   BDSP_Raaga_P_OnDemandAudioFrameDelivered_isr((void *)pRaagaTask);
 				}
 				else
 				{

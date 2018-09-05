@@ -1,5 +1,5 @@
 /******************************************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *****************************************************************************************************/
 
 #include "v3d_platform.h"
@@ -28,9 +28,7 @@ static BEGL_BufferFormat lfmt_to_begl_format(GFX_LFMT_T lfmt)
    case GFX_LFMT_R8_G8_B8_X8_UNORM: return BEGL_BufferFormat_eX8B8G8R8;
    case GFX_LFMT_B5G6R5_UNORM:      return BEGL_BufferFormat_eR5G6B5;
    case GFX_LFMT_A4B4G4R4_UNORM:    return BEGL_BufferFormat_eA4B4G4R4;
-   case GFX_LFMT_X4B4G4R4_UNORM:    return BEGL_BufferFormat_eX4B4G4R4;
    case GFX_LFMT_A1B5G5R5_UNORM:    return BEGL_BufferFormat_eA1B5G5R5;
-   case GFX_LFMT_X1B5G5R5_UNORM:    return BEGL_BufferFormat_eX1B5G5R5;
 #if V3D_VER_AT_LEAST(3,3,0,0)
    case GFX_LFMT_BSTC_RGBA_UNORM:   return BEGL_BufferFormat_eBSTC;
 #else

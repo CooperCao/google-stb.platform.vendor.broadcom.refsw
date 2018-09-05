@@ -155,9 +155,6 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 #ifdef BDSP_WMA_SUPPORT
 	{BDSP_Algorithm_eWmaStdDecode, "WMA Decode", true},
 #endif
-#ifdef BDSP_OUTPUTFORMATTER_SUPPORT
-	{BDSP_Algorithm_eOutputFormatter, "Output Formatter", true},
-#endif
 	{BDSP_Algorithm_eMax, "Invalid", false}
 };
 
@@ -657,18 +654,6 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
         BDSP_IMG_ADEC_WMA_PRO_SIZE,              BDSP_IMG_AIDS_WMA_PRO_SIZE,
         /* Code Lib name*/                      /* IDS Code Lib name*/
         "/libadec_wma_pro.so",                   "/libaids_wma_pro.so",
-    },
-    {
-        /* Algorithm */
-        BDSP_Algorithm_eOutputFormatter,
-        /* Scratch buffer size */               /* Rom table size */
-        BDSP_IMG_APP_OUTPUTFORMATTER_SCRATCH_SIZE,      BDSP_IMG_APP_OUTPUTFORMATTER_TABLES_SIZE,
-        /* Interframe size */                   /* Compressed Interframe size */
-        BDSP_IMG_APP_OUTPUTFORMATTER_INTER_FRAME_SIZE,  BDSP_IMG_APP_OUTPUTFORMATTER_INTER_FRAME_ENCODED_SIZE,
-        /* Algorithm codeSize*/                 /* IDS codeSize*/
-        BDSP_IMG_APP_OUTPUTFORMATTER_SIZE,              0,
-        /* Code Lib name*/                      /* IDS Code Lib name*/
-        "/libapp_outputformatter.so",                   "INVALID",
     },
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{

@@ -93,30 +93,6 @@ typedef struct BDSP_ExternalInterrupt *BDSP_ExternalInterruptHandle;
 
 /***************************************************************************
 Summary:
-DSP Soft FMM Handle
-***************************************************************************/
-typedef struct BDSP_SoftFMM *BDSP_SoftFMMHandle;
-
-/***************************************************************************
-Summary:
-DSP Soft FMM Mixer Handle
-***************************************************************************/
-typedef struct BDSP_SoftFMM_Mixer *BDSP_SoftFMMMixerHandle;
-
-/***************************************************************************
-Summary:
-DSP Soft FMM Handle
-***************************************************************************/
-typedef struct BDSP_SoftFMM_Output *BDSP_SoftFMMOutputHandle;
-
-/***************************************************************************
-Summary:
-DSP Soft FMM Handle
-***************************************************************************/
-typedef struct BDSP_SoftFMM_Input *BDSP_SoftFMMInputHandle;
-
-/***************************************************************************
-Summary:
 Placeholder Types
 ***************************************************************************/
 typedef uint32_t BDSP_TIME_45KHZ_TICKS;
@@ -213,7 +189,6 @@ typedef enum BDSP_BufferType
 typedef enum BDSP_ConnectionType
 {
     BDSP_ConnectionType_eFmmBuffer,
-    BDSP_ConnectionType_eSoftFmmBuffer,
     BDSP_ConnectionType_eRaveBuffer,
     BDSP_ConnectionType_eStage,
     BDSP_ConnectionType_eInterTaskBuffer,
@@ -298,94 +273,6 @@ typedef struct BDSP_FmmBufferDescriptor
     } rateControllers[4];
     unsigned delay; /* Independent delay in milli seconds */
 } BDSP_FmmBufferDescriptor;
-
-
-
-
-/*
-   Config/Control Layout:
-   bit   0      - enable/disable
-   bits  1 - 15 - reserved
-   bit  16      - inclusive
-   bits 17 - 25 - output delay [0-1f4h]
-   bits 26 - 63 - reserved
-*/
-
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CTRL_ENABLE_SHIFT         (0)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CTRL_ENABLE_MASK          (1<<BDSP_SOFTFMM_BUFFER_INTERFACE_CTRL_ENABLE_SHIFT)
-
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT       (16)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_INCLUSIVE_MASK        (1<<BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_INCLUSIVE_SHIFT)
-
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY_SHIFT           (17)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY_MASK            (0x1ff<<BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY_SHIFT)
-
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_ENABLED(ctl)              ((ctl & BDSP_SOFTFMM_BUFFER_INTERFACE_CTRL_ENABLE_MASK) != 0)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY(ctl)            ((ctl & BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_CFG_DELAY_SHIFT)
-
-/*
-   Format Layout:
-   bit   0      - interleaved
-   bits  1      - compressed
-   bits  2 - 4  - packing (samples per dword) [1-4]
-   bits  5 - 7  - num channels [1-4]
-   bit   8 - 11 - bits per sample (per iec-60958)
-   bits 12 - 15 - content sample rate (per iec-60958)
-   bits 16 - 19 - transmission sample rate (per iec-60958)
-   bits 20 - 63 - reserved
-*/
-
-
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT         (0)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK          (1<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT          (1)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED_MASK           (1<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT     (2)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK      (0x7<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT         (5)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK          (0x7<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT       (8)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK        (0xf<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_SHIFT   (12)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_MASK    (0xf<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_SHIFT    (16)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_MASK     (0xf<<BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED(fmt)          ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_INTERLEAVED_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED(fmt)           ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_COMPRESSED_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD(fmt)      ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_SAMPLESPERDWORD_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS(fmt)          ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_NUMCHANNELS_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE(fmt)        ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_BITSPERSAMPLE_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE(fmt)    ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_CONTENTSAMPLERATE_SHIFT)
-#define BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE(fmt)     ((fmt & BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_MASK) >> BDSP_SOFTFMM_BUFFER_INTERFACE_FMT_OUTPUTSAMPLERATE_SHIFT)
-
-
-typedef struct BDSP_FMMSoftBufferInterface
-{
-    uint64_t  memBlock;           /* host use */
-    uint64_t  base;
-    uint64_t  end;
-    uint64_t  read;
-    uint64_t  valid;
-    uint64_t  watermark;          /* Consumption may start when watermark reaches this level. May be 0.
-                                     Consumer will set to 0 when watermark is reached */
-    uint64_t  readStartOffset;    /* Initial offset for first read. Consumer will set to 0 after first
-                                     read is initiated */
-
-    uint64_t             config;  /* Configuration/Control bits */
-    uint64_t             format;  /* Producer specifies the format of the data */
-    uint64_t             rateControlData; /* TSM rate control data for PPM correction */
-    volatile int32_t     lock;    /* lock field for spin lock to protect enable->disable sequence */
-} BDSP_FMMSoftBufferInterface;
-
-
-typedef struct BDSP_SoftFMMBufferDescriptor
-{
-	unsigned numBuffers;
-    BMMA_Block_Handle block[8];
-    uint64_t interfaceOffset[8];
-    BDSP_FMMSoftBufferInterface * pInterface[8];
-} BDSP_SoftFMMBufferDescriptor;
-
 
 /***************************************************************************
 Summary:

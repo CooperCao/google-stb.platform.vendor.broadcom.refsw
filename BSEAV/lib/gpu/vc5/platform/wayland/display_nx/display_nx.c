@@ -285,10 +285,6 @@ static bool NxQueryBuffer(void *context, void *display, void* buffer,
       case BEGL_BufferFormat_eX8B8G8R8:
       case BEGL_BufferFormat_eR8G8B8X8:
       case BEGL_BufferFormat_eR5G6B5:
-      case BEGL_BufferFormat_eR4G4B4X4:
-      case BEGL_BufferFormat_eX4B4G4R4:
-      case BEGL_BufferFormat_eX1B5G5R5:
-      case BEGL_BufferFormat_eR5G5B5X1:
          *value = EGL_TEXTURE_RGB;
          break;
       /* we don't render into any of the formats below */

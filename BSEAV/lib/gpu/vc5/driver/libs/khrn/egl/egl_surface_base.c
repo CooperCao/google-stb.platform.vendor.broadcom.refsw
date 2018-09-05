@@ -467,7 +467,7 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
 bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 {
    const EGL_CONFIG_T *config = surface->config;
-   GFX_LFMT_T color_format = config->color_api_fmt;
+   GFX_LFMT_T color_format = egl_api_fmt_to_lfmt(config->color_api_fmt, config->x_padded);
    if (surface->gl_colorspace == SRGB)
       color_format = egl_surface_lfmt_to_srgb(color_format);
 
@@ -503,7 +503,7 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 
       /* multisample */
       {
-         color_format,
+         config->color_api_fmt,
 #if V3D_VER_AT_LEAST(4,1,34,0)
          color_format,
 #else

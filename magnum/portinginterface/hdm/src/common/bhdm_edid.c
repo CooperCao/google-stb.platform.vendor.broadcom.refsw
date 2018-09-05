@@ -463,9 +463,6 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	uint8_t uiSegment ;
 	uint8_t RxDeviceAttached ;
 	uint8_t validChecksum = 0 ;
-#if BHDM_CONFIG_HAS_HDCP22
-	bool Autoi2cDisabled = false ;
-#endif
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
@@ -477,27 +474,22 @@ BERR_Code BHDM_EDID_GetNthBlock(
 		goto done ;
 	}
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
 	/* check if the requested block already cached */
-	if ((hHDMI->bUseCachedEdid)
-	&& (BlockNumber == hHDMI->AttachedEDID.CachedBlock)
+	if ((BlockNumber < BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK)
+	&& (hHDMI->AttachedEDID.bBlockCached[BlockNumber])
 	&& (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eOK))
 	{
-		BDBG_MSG(("Skip reading EDID; Block %d already cached", BlockNumber)) ;
+		BDBG_LOG(("Skip reading EDID; Block %d already cached", BlockNumber)) ;
 
 		/* copy the cached EDID block to the user buffer (if external) */
-		if (pBuffer != hHDMI->AttachedEDID.Block)
-			BKNI_Memcpy(pBuffer, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE) ;
+		BKNI_EnterCriticalSection();
+		BKNI_Memcpy(pBuffer, hHDMI->AttachedEDID.CachedBlockRawData[BlockNumber], BHDM_EDID_BLOCKSIZE) ;
+		BKNI_LeaveCriticalSection();
 
 		rc = BERR_SUCCESS ;
+		hHDMI->AttachedEDID.lastBlockRead = BlockNumber;
 		goto done ;
 	}
-
-	hHDMI->bUseCachedEdid = true ;
 
 	if (uiBufSize <  BHDM_EDID_BLOCKSIZE)
 	{
@@ -516,13 +508,6 @@ BERR_Code BHDM_EDID_GetNthBlock(
 
 
 	{
-#if BHDM_CONFIG_HAS_HDCP22
-		/* make sure polling Auto I2C channels are disabled; prior to the read */
-		BKNI_EnterCriticalSection() ;
-			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-			Autoi2cDisabled = true ;
-		BKNI_LeaveCriticalSection() ;
-#endif
 
 		/* Read the EDID block; sometimes the EDID block is not ready/available */
 		/* try again if a READ failure occurs */
@@ -551,7 +536,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 				rc = BREG_I2C_ReadEDDC(hHDMI->hI2cRegHandle, (uint8_t) BHDM_EDID_I2C_ADDR,
 					(uint8_t) uiSegment,
 					(uint8_t) (BHDM_EDID_BLOCKSIZE * (BlockNumber % 2)), /* offset */
-					pBuffer, (uint16_t) BHDM_EDID_BLOCKSIZE) ;	/* storage & length  */
+					pBuffer, (uint16_t) BHDM_EDID_BLOCKSIZE) ;      /* storage & length  */
 			}
 
 			if (rc == BERR_SUCCESS)
@@ -570,12 +555,11 @@ BERR_Code BHDM_EDID_GetNthBlock(
 					break ;
 				}
 			}
-			else /* print error from reading EDID Block */
-			{
+			else {
+				/* print error from reading EDID Block */
 				BDBG_ERR(("Error (%x) reading EDID Block; Attempt retry %d of %d...",
-					rc, EdidErrorRetryCount, BHDM_EDID_P_MAX_EDID_ERROR_RETRY )) ;
+					rc, EdidErrorRetryCount, BHDM_EDID_P_MAX_EDID_ERROR_RETRY)) ;
 			}
-			BKNI_Sleep(10) ;
 		} while ( ++EdidErrorRetryCount <=  BHDM_EDID_P_MAX_EDID_ERROR_RETRY)  ;
 
 		/* ERROR reading the EDID block */
@@ -588,8 +572,13 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	}
 
 	/* copy the EDID block to the EDID handle */
-	if (pBuffer != hHDMI->AttachedEDID.Block)
-		BKNI_Memcpy(hHDMI->AttachedEDID.Block, pBuffer, BHDM_EDID_BLOCKSIZE) ;
+	if (BlockNumber < BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK)
+	{
+		BKNI_EnterCriticalSection();
+		BKNI_Memcpy(hHDMI->AttachedEDID.CachedBlockRawData[BlockNumber], pBuffer, BHDM_EDID_BLOCKSIZE) ;
+		hHDMI->AttachedEDID.bBlockCached[BlockNumber] = true;
+		BKNI_LeaveCriticalSection();
+	}
 
 	/* report invalid checksum */
 	if (!validChecksum)
@@ -602,19 +591,11 @@ BERR_Code BHDM_EDID_GetNthBlock(
 		rc = BERR_SUCCESS ;
 	}
 
-	hHDMI->AttachedEDID.CachedBlock = BlockNumber ;
+	hHDMI->AttachedEDID.lastBlockRead = BlockNumber;
 	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 
 done:
-#if BHDM_CONFIG_HAS_HDCP22
-	/* re-enable any polling Auto I2C channels disabled prior to the EDID read */
-	if (Autoi2cDisabled)
-	{
-		BKNI_EnterCriticalSection() ;
-			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-		BKNI_LeaveCriticalSection() ;
-	}
-#endif
+
 	return rc ;
 } /* end BHDM_EDID_GetNthBlock */
 
@@ -633,7 +614,6 @@ BERR_Code BHDM_EDID_ReadNthBlock(
 	BERR_Code rc = BERR_SUCCESS ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	hHDMI->bUseCachedEdid = false ;
 	rc = BHDM_EDID_GetNthBlock(hHDMI, BlockNumber, pBuffer, uiBufSize) ;
 	if (rc) {rc = BERR_TRACE(rc) ;}
 	return rc ;
@@ -4110,7 +4090,7 @@ static BERR_Code BHDM_EDID_P_ProcessBlockMap (const BHDM_Handle hHDMI)
 	uint8_t block_map[BHDM_EDID_BLOCKSIZE];
 	uint8_t i, index;
 
-	index = hHDMI->AttachedEDID.CachedBlock;
+	index = hHDMI->AttachedEDID.lastBlockRead;
 
 	/* Copy the block map from the hHDMI handle */
 	for(i=0; i< BHDM_EDID_BLOCKSIZE; i++){
@@ -4175,8 +4155,6 @@ BERR_Code BHDM_EDID_Initialize(
 		goto done ;
 	}
 
-	/* use cached EDID when available */
-	hHDMI->bUseCachedEdid = true ;
 
 	/* dont bother reading if EDID has been bypassed (DEBUG mode only) */
 #if BDBG_DEBUG_BUILD
@@ -4277,7 +4255,13 @@ BERR_Code BHDM_EDID_Initialize(
 			hHDMI->AttachedEDID.BasicData.EdidVersion,
 			hHDMI->AttachedEDID.BasicData.EdidRevision,
 			hHDMI->AttachedEDID.BasicData.Extensions)) ;
-		hHDMI->AttachedEDID.CachedBlock = 0 ;
+
+		for (i=0; i<BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK; i++)
+		{
+			BKNI_EnterCriticalSection();
+			hHDMI->AttachedEDID.bBlockCached[i] = false ;
+			BKNI_LeaveCriticalSection();
+		}
 		rc = BERR_SUCCESS ;
 	}
 
@@ -4456,7 +4440,7 @@ BERR_Code BHDM_EDID_Initialize(
 		goto done ;
 	}
 
-	/* Read the 1st EDID Block and parse to see if its a block map or an extension block(extensions count should be 1). */
+	/* Read the 2nd block (EDID Block 1) and parse to see if its a block map or an extension block(extensions count should be 1). */
 	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 1, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
 
 	if(hHDMI->AttachedEDID.BasicData.Extensions == 1) {

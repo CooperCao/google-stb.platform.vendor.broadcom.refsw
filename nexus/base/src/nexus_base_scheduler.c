@@ -471,7 +471,7 @@ NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleH
     struct NEXUS_P_BaseCallbackCommonTree_Key key;
     BSTD_UNUSED(pSettings);
 
-    BDBG_ASSERT(module->scheduler);
+    BDBG_ASSERT(module->callbackScheduler);
     NEXUS_CallbackDesc_Init(&callback->desc);
     callback->type = type;
     callback->armed = false;
@@ -485,7 +485,7 @@ NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleH
     callback->lineNumber = lineNumber;
 #endif
     NEXUS_LockModule();
-    callback->scheduler = module->scheduler;
+    callback->scheduler = module->callbackScheduler;
     key.node = callback;
     key.object = callback->object;
     BLST_AA_TREE_INSERT(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &key, callback);
@@ -533,7 +533,7 @@ NEXUS_Module_IsrCallback_Create(NEXUS_ModuleHandle module,  void *interfaceHandl
 
     NEXUS_LockModule();
     BKNI_EnterCriticalSection();
-    BLST_D_INSERT_HEAD(&module->scheduler->isr_callbacks.list, callback, list);
+    BLST_D_INSERT_HEAD(&module->callbackScheduler->isr_callbacks.list, callback, list);
     BKNI_LeaveCriticalSection();
     NEXUS_UnlockModule();
     return callback;
@@ -551,8 +551,8 @@ NEXUS_Module_IsrCallback_Destroy(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHan
     
     BDBG_OBJECT_ASSERT(callback, NEXUS_IsrCallback);
     NEXUS_LockModule();
-    BDBG_ASSERT(module->scheduler);
-    scheduler = module->scheduler;
+    BDBG_ASSERT(callback->common.scheduler);
+    scheduler = callback->common.scheduler;
     BKNI_EnterCriticalSection();
     for(cur=BLST_D_FIRST(&scheduler->isr_callbacks.list);cur!=NULL;cur=BLST_D_NEXT(cur, list)) {
         BDBG_OBJECT_ASSERT(cur, NEXUS_IsrCallback);
@@ -669,8 +669,8 @@ NEXUS_Module_IsrCallback_Fire_isr(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHa
         BDBG_ERR(("ignoring Fire to uninitialized NEXUS_CallbackDesc from %s", debug));
         return;
     }
-    BDBG_ASSERT(module->scheduler);
-    scheduler = module->scheduler;
+    BDBG_ASSERT(callback->common.scheduler);
+    scheduler = callback->common.scheduler;
     if(callback->common.stopped) {
         BDBG_ASSERT(!callback->common.armed);
         BDBG_ASSERT(!callback->common.in_armed_list);
@@ -728,13 +728,13 @@ NEXUS_Module_TaskCallback_Destroy( NEXUS_ModuleHandle module, NEXUS_TaskCallback
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
     BDBG_ASSERT(NEXUS_Module_Assert(module));
     BDBG_OBJECT_ASSERT(callback, NEXUS_TaskCallback);
-    BDBG_ASSERT(callback->common.scheduler == module->scheduler);
+    BDBG_ASSERT(callback->common.scheduler == module->callbackScheduler);
     BDBG_ASSERT(!callback->common.deleted);
     NEXUS_LockModule();
     callback->common.deleted = true; /* mark callback as deleted */
     BLST_AA_TREE_REMOVE(NEXUS_P_BaseCallbackCommonTree, &NEXUS_P_Base_Scheduler_State.callbacks_tree, &callback->common);
 
-    scheduler = module->scheduler;
+    scheduler = module->callbackScheduler;
     if(!callback->common.queued) { /* add callback into the queue */
         callback->common.queued = true;
         BDBG_ASSERT(!callback->common.armed);
@@ -793,7 +793,7 @@ NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHand
 {
     BDBG_OBJECT_ASSERT(callback, NEXUS_TaskCallback);
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
-    BDBG_ASSERT(callback->common.scheduler == module->scheduler);
+    BDBG_ASSERT(callback->common.scheduler == module->callbackScheduler);
     if(callback->common.deleted) {
         BDBG_WRN(("NEXUS_TaskCallback_Fire: %#lx using stale callback", (unsigned long)callback));
         return;
@@ -806,7 +806,7 @@ NEXUS_Module_TaskCallback_Fire(NEXUS_ModuleHandle module, NEXUS_TaskCallbackHand
         return;
     }
     NEXUS_LockModule();
-    BDBG_ASSERT(module->scheduler);
+    BDBG_ASSERT(module->callbackScheduler);
     if (callback->common.stopped) {
         NEXUS_Base_P_CheckStoppedCallback(&callback->common);
         BDBG_ASSERT(!callback->common.armed);
@@ -1256,18 +1256,24 @@ NEXUS_P_Scheduler_Thread(void *s)
     return;
 }
 
-static const char * const NEXUS_P_Scheduler_names[NEXUS_ModulePriority_eMax] = {
-    "nx_sched_idle",
-    "nx_sched_low",
-    "nx_sched",
-    "nx_sched_high",
-    "nx_sched_idle_stndby",
-    "nx_sched_low_stndby",
-    "nx_sched_stndby",
-    "nx_sched_high_stndby",
-    "nx_sched_always_on",
-    "nx_sched_internal"
+static const char * const NEXUS_P_Scheduler_names[] = {
+    "idle",
+    "low",
+    "",
+    "high",
+    "idle_stndby",
+    "low_stndby",
+    "stndby",
+    "high_stndby",
+    "always_on",
+    "callback_lo",
+    "callback_hi",
+    "callback_lo_standby",
+    "callback_hi_standby",
+    "callback_always_on",
+    "internal"
 };
+
 
 static NEXUS_P_Scheduler *
 NEXUS_P_Scheduler_Init(NEXUS_ModulePriority priority, const char *name, const NEXUS_ThreadSettings *pSettings)
@@ -1340,13 +1346,16 @@ NEXUS_P_Scheduler_Create(NEXUS_ModulePriority priority)
 {
     NEXUS_P_Scheduler *scheduler;
     const char *name;
+    char thread_name[64];
     const NEXUS_ThreadSettings *pSettings;
 
     NEXUS_ASSERT_MODULE(); /* we need lock held to task wouldn't start in middle of initialization */
+    BDBG_CASSERT(sizeof(NEXUS_P_Scheduler_names)/sizeof(NEXUS_P_Scheduler_names[0])==NEXUS_ModulePriority_eMax);
     name = NEXUS_P_Scheduler_names[priority];
+    BKNI_Snprintf(thread_name, sizeof(thread_name),"nx_sched%s%s", *name?"_":"",name);
     pSettings = &NEXUS_P_Base_State.settings.threadSettings[priority];
 
-    scheduler = NEXUS_P_Scheduler_Init(priority, name, pSettings);
+    scheduler = NEXUS_P_Scheduler_Init(priority, thread_name, pSettings);
     if(!scheduler) {
         BERR_TRACE(NEXUS_OS_ERROR);
         goto err_scheduller;
@@ -1693,12 +1702,12 @@ static void NEXUS_P_Base_CheckForStuckCallback_locked(NEXUS_P_Scheduler *schedul
         if (scheduler->current.timeout == 0) scheduler->current.timeout = timeout;
         if (duration > scheduler->current.timeout) {
             if (duration > 1000) {
-                BDBG_ERR(("stuck callback %s:%d for %d msec, module priority %d", scheduler->current.callback->pFileName, scheduler->current.callback->lineNumber, duration,
-                    scheduler->priority));
+                BDBG_ERR(("stuck callback %s:%d for %d msec, module priority %s(%d)", scheduler->current.callback->pFileName, scheduler->current.callback->lineNumber, duration,
+                    NEXUS_P_Scheduler_names[scheduler->priority],scheduler->priority));
             }
             else {
-                BDBG_WRN(("stuck callback %s:%d for %d msec, module priority %d", scheduler->current.callback->pFileName, scheduler->current.callback->lineNumber, duration,
-                    scheduler->priority));
+                BDBG_WRN(("stuck callback %s:%d for %d msec, module priority %s(%d)", scheduler->current.callback->pFileName, scheduler->current.callback->lineNumber, duration,
+                    NEXUS_P_Scheduler_names[scheduler->priority], scheduler->priority));
             }
             /* user timeout is initial, then increase recursively */
             scheduler->current.timeout = 2 * scheduler->current.timeout;

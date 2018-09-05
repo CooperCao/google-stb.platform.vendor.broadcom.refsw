@@ -59,8 +59,8 @@ typedef struct
       {
          glxx_ms_mode ms_mode;
          khrn_image *img;
-         khrn_image *ms_img;  /* if samples == 0, img != NULL && ms_img == NULL;
-                                   if samples != 0, ms_img != NULL and we
+         khrn_image *ms_img;  /* if ms_mode == GLXX_NO_MS, img != NULL && ms_img == NULL;
+                                   if ms_mode != GLXX_NO_MS, ms_img != NULL and we
                                    might also have a downsampled image in img
                                    (e.g: when we multismaple, in the color attachment case,we have a
                                    multisampled image and a downsampled image;
@@ -252,6 +252,15 @@ extern bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
       glxx_att_img_t att_img, bool use_0_if_layered,
       glxx_context_fences *fences,
       khrn_image **img, bool *is_ms);
+
+static inline bool glxx_attachment_has_downsample_texture(
+      const GLXX_ATTACHMENT_T *att)
+{
+   if (att->obj_type == GL_TEXTURE)
+      return att->obj.tex_info.texture->ms_mode == GLXX_NO_MS;
+   else
+      return false;
+}
 
 /* Acquires the desired att_img image from the read buffer specified for this
  * fb. If read buffer was set to none, img will be NULL.

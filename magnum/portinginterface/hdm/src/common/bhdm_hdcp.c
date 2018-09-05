@@ -3029,7 +3029,6 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
     BERR_Code rc = BERR_SUCCESS;
     uint8_t RxCaps ;
     uint8_t RxDeviceAttached;
-    bool authenticated ;
 
 
 #if BDBG_DEBUG_BUILD
@@ -3049,13 +3048,12 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
         goto done ;
     }
 
-    /* return cached version whenever the link is AUTHENTICATED */
-    rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &authenticated) ;
-    if (rc != BERR_SUCCESS || authenticated)
-    {
-        goto done ;
-    }
-
+	/* return cached version if already read */
+	if (hHDMI->HdcpVersion != BHDM_HDCP_Version_eUnused)
+	{
+		BDBG_MSG(("Returned cached hdcp version already read."));
+		goto done;
+	}
 
     /**************************/
     /* check for HDCP 2.x Rx device */

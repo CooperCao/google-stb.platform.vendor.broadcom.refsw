@@ -56,12 +56,8 @@
 #endif
 
 #include "bchp_sun_top_ctrl.h"
-#if defined BCHP_AUD_FMM_BF_CTRL_REG_START
 #include "bchp_aud_fmm_bf_ctrl.h"
-#endif
-#if defined BCHP_AUD_MISC_REG_START
 #include "bchp_aud_misc.h"
-#endif
 #include "btee.h"
 #include <fcntl.h>
 

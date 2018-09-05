@@ -198,7 +198,6 @@ BERR_Code BDSP_Raaga_Open(
 #endif /*!B_REFSW_MINIMAL*/
     pRaaga->device.getDefaultTsmSettings = BDSP_Raaga_P_GetDefaultTsmSettings;
     pRaaga->device.runDebugService = NULL;
-    pRaaga->device.softFMMOpen = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pRaaga->contextList);

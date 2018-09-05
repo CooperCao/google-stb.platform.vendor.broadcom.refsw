@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "lfmt_translate_v3d.h"
 #include "libs/core/v3d/v3d_tmu.h"
@@ -1308,4 +1308,16 @@ extern void gfx_lfmt_translate_to_tfu_type(
    bool ok = gfx_lfmt_maybe_translate_to_tfu_type(tfu_type, srgb, rgbord, src_lfmts,
       src_num_planes, src_yuv_col_space, dst_lfmt);
    assert(ok);
+}
+
+extern bool gfx_lfmt_can_render_format(GFX_LFMT_T lfmt)
+{
+#if V3D_VER_AT_LEAST(4,1,34,0)
+   v3d_pixel_format_t px_fmt;
+   bool reverse, rb_swap;
+   // This checks if the tile-buffer can support the format
+   return gfx_lfmt_maybe_translate_pixel_format(lfmt, &px_fmt, &reverse, &rb_swap);
+#else
+   return gfx_lfmt_maybe_translate_pixel_format(lfmt) != V3D_PIXEL_FORMAT_INVALID;
+#endif
 }

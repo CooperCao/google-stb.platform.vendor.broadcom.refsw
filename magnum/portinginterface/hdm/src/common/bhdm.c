@@ -1029,31 +1029,10 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
-#if BHDM_CONFIG_HAS_HDCP22
-	bool  bActivePolling = false ;
-
-	/* disable Auto I2C polling if enabled; prior to the read */
-	bActivePolling = BHDM_AUTO_I2C_P_IsPollingEnabled(hHDMI) ;
-	if (bActivePolling)
-	{
-		BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-		BKNI_LeaveCriticalSection() ;
-	}
-#endif
 
 	rc = BREG_I2C_Read(hHDMI->hI2cRegHandle, chipAddr, subAddr, pData, length) ;
 	if (rc) {rc = BERR_TRACE(rc) ; }
 
-#if BHDM_CONFIG_HAS_HDCP22
-	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	if (bActivePolling)
-	{
-		BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-		BKNI_LeaveCriticalSection() ;
-	}
-#endif
 
 	return rc;
 }
@@ -1068,40 +1047,9 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 {
 	BERR_Code rc = BERR_SUCCESS;
 
-#if BHDM_CONFIG_HAS_HDCP22
-	BHDM_AUTO_I2C_CHANNEL eChannel ;
-	bool  bActivePolling = false ;
-
-	for (eChannel = 0 ; eChannel < BHDM_AUTO_I2C_CHANNEL_eMax ; eChannel++)
-	{
-		if (hHDMI->AutoI2CChannel_TriggerConfig[eChannel].activePolling)
-		{
-			bActivePolling = true ;
-			break ;
-		}
-	}
-
-	/* disable Auto I2C polling if enabled prior to the read */
-	if (bActivePolling)
-	{
-		BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
-		BKNI_LeaveCriticalSection() ;
-	}
-#endif
 
 	rc = BREG_I2C_ReadNoAddr(hHDMI->hI2cRegHandle, chipAddr, pData, length) ;
 	if (rc) {rc = BERR_TRACE(rc) ; }
-
-#if BHDM_CONFIG_HAS_HDCP22
-	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	if (bActivePolling)
-	{
-		BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-		BKNI_LeaveCriticalSection() ;
-	}
-#endif
 
 	return rc;
 }
@@ -3657,6 +3605,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 	uint32_t Register, ulOffset ;
 
 	uint8_t RxDeviceAttached ;
+	uint8_t i=0;
 
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
@@ -3703,10 +3652,13 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		/* abort any pending HDCP requests */
 		BHDM_HDCP_P_ResetSettings_isr(hHDMI) ;
 
-#if BHDM_CONFIG_HAS_HDCP22
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, false) ;
-#endif
 
+		/* clear cached EDID block */
+		for (i=0; i < BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK; i++)
+		{
+			hHDMI->AttachedEDID.bBlockCached[i] = false;
+			BKNI_Memset(hHDMI->AttachedEDID.CachedBlockRawData[i], 0, BHDM_EDID_BLOCKSIZE);
+		}
 
 		/* Set CLEAR_RDB_AUTHENTICATED BIT only - all other bits must be zero */
 		Register = BCHP_FIELD_DATA(HDMI_HDCP_CTL, I_CLEAR_RDB_AUTHENTICATED, 1) ;

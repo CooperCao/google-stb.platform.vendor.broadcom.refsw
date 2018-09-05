@@ -1569,7 +1569,11 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
         BMRC_Monitor_HwBlock_eCPU /* only for os64 */
     };
     unsigned numSecureClients = sizeof(secureClients)/sizeof(secureClients[0]);
-    if (!g_NexusCore.cfg.os64) numSecureClients--;
+    bool tee = false;
+#if NEXUS_TEE_SUPPORT
+    tee = true;
+#endif
+    if (!(tee || g_NexusCore.cfg.os64)) numSecureClients--;
 
     if (nexus_p_custom_arc()) {
         return NEXUS_SUCCESS;

@@ -71,7 +71,6 @@ BDSP_SOURCES := \
         $(MAGNUM)/basemodules/dsp/src/bdsp_context.c \
         $(MAGNUM)/basemodules/dsp/src/bdsp_task.c \
         $(MAGNUM)/basemodules/dsp/src/bdsp_stage.c \
-        $(MAGNUM)/basemodules/dsp/src/bdsp_soft_fmm.c \
         $(MAGNUM)/basemodules/dsp/src/bdsp_priv.c
 
 # Include conditional files

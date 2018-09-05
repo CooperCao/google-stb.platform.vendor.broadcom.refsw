@@ -287,11 +287,6 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
 	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eWmaStdDecode):				return BDSP_IMG_adec_wma_inter_frame;
 	case BDSP_IMG_ID_IDS(BDSP_Algorithm_eWmaStdDecode): 			    return BDSP_IMG_aids_wma;
 #endif /* BDSP_WMA_SUPPORT */
-#ifdef BDSP_OUTPUTFORMATTER_SUPPORT
-	case BDSP_IMG_ID_CODE(BDSP_Algorithm_eOutputFormatter):				return BDSP_IMG_app_outputformatter;
-	case BDSP_IMG_ID_TABLE(BDSP_Algorithm_eOutputFormatter):			return BDSP_IMG_app_outputformatter_tables;
-	case BDSP_IMG_ID_IFRAME(BDSP_Algorithm_eOutputFormatter):			return BDSP_IMG_app_outputformatter_inter_frame;
-#endif
     default:
         BDBG_WRN(("IMG %u not supported (algo %u)", imgId, BDSP_IMG_ID_TO_ALGO(imgId)));
         return NULL;

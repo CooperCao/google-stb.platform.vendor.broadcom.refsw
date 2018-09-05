@@ -215,15 +215,6 @@ BERR_Code BDSP_Resume(
 
 /***************************************************************************
 Summary:
-Open DSP Soft FMM
-***************************************************************************/
-BERR_Code BDSP_SoftFMM_Open(
-    BDSP_Handle handle,                 /* [in] DSP device handle */
-    BDSP_SoftFMMHandle *pSoftFMM        /* [out] Soft FMM handle */
-    );
-
-/***************************************************************************
-Summary:
     Algorithm info
 ***************************************************************************/
 typedef struct BDSP_AlgorithmInfo

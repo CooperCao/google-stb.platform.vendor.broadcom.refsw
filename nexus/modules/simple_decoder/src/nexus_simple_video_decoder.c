@@ -266,6 +266,11 @@ static void nexus_simplevideodecoder_p_set_default_decoder_settings(NEXUS_Simple
         NEXUS_VideoDecoderPlaybackSettings playbackSettings;
     } data;
     NEXUS_Error rc;
+
+    if (!handle->serverSettings.videoDecoder) {
+        return;
+    }
+
     NEXUS_VideoDecoder_P_GetDefaultSettings_isrsafe(&data.settings);
     rc = NEXUS_VideoDecoder_SetSettings(handle->serverSettings.videoDecoder, &data.settings);
     if (rc) (void)BERR_TRACE(rc); /* keep going */
@@ -592,11 +597,6 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         return BERR_TRACE(-1);
     }
 
-    if (handle->encoder.window) {
-        rc = NEXUS_VideoWindow_AddInput(handle->encoder.window, videoInput);
-        if (rc) return BERR_TRACE(rc);
-    }
-
     if (disp && use_cache(handle, &handle->connectedSettings)) {
         handle->connected = true;
         if (nexus_simplevideodecoder_p_check_reconnect(handle)) {
@@ -612,6 +612,11 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         if (rc) return BERR_TRACE(rc);
 
         rc = NEXUS_VideoDecoder_SetExtendedSettings(handle->serverSettings.videoDecoder, &handle->extendedSettings);
+        if (rc) return BERR_TRACE(rc);
+    }
+
+    if (handle->encoder.window) {
+        rc = NEXUS_VideoWindow_AddInput(handle->encoder.window, videoInput);
         if (rc) return BERR_TRACE(rc);
     }
 

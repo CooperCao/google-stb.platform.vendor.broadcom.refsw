@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "egl_thread.h"
@@ -238,7 +238,7 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
          default_width, default_height, NULL, NULL);
    if (error != EGL_SUCCESS) goto end;
 
-   GFX_LFMT_T color_lfmt = gfx_lfmt_to_2d(config->color_api_fmt);
+   GFX_LFMT_T color_lfmt = gfx_lfmt_to_2d(egl_api_fmt_to_lfmt(config->color_api_fmt, config->x_padded));
    GFX_LFMT_T color_api_fmt = egl_config_color_api_fmt(config);
 
    if ((surface->texture_format == EGL_NO_TEXTURE) !=

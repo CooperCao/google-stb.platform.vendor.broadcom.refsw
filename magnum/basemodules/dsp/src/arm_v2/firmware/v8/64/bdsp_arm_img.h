@@ -227,9 +227,4 @@ extern const void * BDSP_ARM_IMG_adec_opus[];
 extern const void * BDSP_ARM_IMG_adec_opus_tables[];
 extern const void * BDSP_ARM_IMG_adec_opus_inter_frame[];
 #endif /*BDSP_OPUSDEC_SUPPORT*/
-#ifdef BDSP_SOFT_FMM_SUPPORT
-extern const void * BDSP_ARM_IMG_app_soft_fmm[];
-extern const void * BDSP_ARM_IMG_app_soft_fmm_tables[];
-extern const void * BDSP_ARM_IMG_app_soft_fmm_inter_frame[];
-#endif /*BDSP_SRC_SUPPORT*/
 #endif /*BDSP_ARM_IMG_H_*/

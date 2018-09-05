@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <string.h>
 #include <math.h>
@@ -113,8 +113,13 @@ static bool copytex_fb_complete_check(GLXX_SERVER_STATE_T *state)
    }
    if (fb->name != 0 && (glxx_fb_get_ms_mode(fb) != GLXX_NO_MS))
    {
-      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      return false;
+      const GLXX_ATTACHMENT_T *att = glxx_fb_get_read_buffer(fb);
+      if (att == NULL ||
+          !glxx_attachment_has_downsample_texture(att))
+      {
+         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+         return false;
+      }
    }
 
    return true;

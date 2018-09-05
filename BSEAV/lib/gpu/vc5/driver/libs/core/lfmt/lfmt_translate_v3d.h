@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -202,5 +202,7 @@ extern void gfx_lfmt_translate_to_tfu_type(
    const GFX_LFMT_T *src_lfmts, uint32_t src_num_planes,
    v3d_tfu_yuv_col_space_t src_yuv_col_space, /* Ignored if src not YUV */
    GFX_LFMT_T dst_lfmt);
+
+extern bool gfx_lfmt_can_render_format(GFX_LFMT_T lfmt);
 
 EXTERN_C_END

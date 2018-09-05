@@ -291,11 +291,18 @@ typedef struct BHDM_EDID_P_AUDIO_SAMPLE_RATES {
         BAVC_AudioSamplingRate BcmAudioSampleRate ;
 } BHDM_EDID_P_AUDIO_SAMPLE_RATES ;
 
+#define BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK 8
 
 typedef struct _BHDM_EDID_DATA_
 {
         uint8_t Block[BHDM_EDID_BLOCKSIZE] ;
-        uint8_t CachedBlock ;
+        uint8_t lastBlockRead;
+
+        /* Raw data of EDID block */
+        uint8_t CachedBlockRawData[BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK][BHDM_EDID_BLOCKSIZE];
+
+        /* flag to indicate whether the block has been catched - true: cached, false: not cached */
+        bool bBlockCached[BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK] ;
 
         BHDM_EDID_BasicData        BasicData ;
         bool BcmMonitorRangeParsed ;
@@ -517,7 +524,6 @@ typedef struct BHDM_P_Handle
         /* EDID variables */
         /******************/
         BHDM_EDID_DATA AttachedEDID ;
-        bool bUseCachedEdid ;
 
 #if BHDM_CONFIG_PLL_KICKSTART_WORKAROUND
         uint32_t uiPllKickStartCount ;

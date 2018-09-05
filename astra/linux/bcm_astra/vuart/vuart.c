@@ -984,17 +984,7 @@ static struct platform_driver bcm_vuart_platform_driver = {
     },
 };
 
-static void bcm_vuart_device_release(struct device *pdev)
-{
-}
-
-struct platform_device bcm_vuart_platform_device = {
-    .name           = BCM_VUART_DRVNAME,
-    .id             = 0,
-    .dev            = {
-        .release    = bcm_vuart_device_release,
-    },
-};
+static struct platform_device *pbcm_vuart_platform_device;
 
 int bcm_vuart_init(void)
 {
@@ -1030,15 +1020,24 @@ int bcm_vuart_init(void)
     if (ret)
         return ret;
 
-    ret = platform_device_register(&bcm_vuart_platform_device);
+    ret = platform_driver_register(&bcm_vuart_platform_driver);
     if (ret) {
         uart_unregister_driver(&bcm_vuart_driver);
         return ret;
     }
-    ret = platform_driver_register(&bcm_vuart_platform_driver);
+
+    pbcm_vuart_platform_device = platform_device_alloc(BCM_VUART_DRVNAME, 0);
+
+    if (pbcm_vuart_platform_device) {
+        ret = platform_device_add(pbcm_vuart_platform_device);
+    } else {
+        ret = -ENOMEM;
+    }
+
     if (ret) {
+        platform_device_put(pbcm_vuart_platform_device);
+        platform_driver_unregister(&bcm_vuart_platform_driver);
         uart_unregister_driver(&bcm_vuart_driver);
-        platform_device_unregister(&bcm_vuart_platform_device);
         return ret;
     }
 
@@ -1052,7 +1051,7 @@ void bcm_vuart_exit(void)
     if (!vuart_enabled)
         return;
 
-    platform_device_unregister(&bcm_vuart_platform_device);
+    platform_device_unregister(pbcm_vuart_platform_device);
     platform_driver_unregister(&bcm_vuart_platform_driver);
     uart_unregister_driver(&bcm_vuart_driver);
 

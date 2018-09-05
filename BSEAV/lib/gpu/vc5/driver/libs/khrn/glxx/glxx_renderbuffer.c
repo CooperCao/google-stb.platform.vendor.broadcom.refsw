@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../egl/egl_display.h"
@@ -172,19 +172,9 @@ static bool valid_image(khrn_image *image)
    if (!gfx_lfmt_is_2d(lfmt))
       return false;
 
-   if (!gfx_lfmt_has_color(lfmt) && !gfx_lfmt_has_depth(lfmt) && !gfx_lfmt_has_stencil(lfmt))
+   if (!gfx_lfmt_can_render_format(lfmt))
       return false;
 
-   switch (gfx_lfmt_get_swizzling(&lfmt))
-   {
-   case GFX_LFMT_SWIZZLING_UIF:
-   case GFX_LFMT_SWIZZLING_UIF_XOR:
-   case GFX_LFMT_SWIZZLING_UBLINEAR:
-   case GFX_LFMT_SWIZZLING_LT:
-      break;
-   default:
-      return false;
-   }
    return true;
 }
 

@@ -182,7 +182,6 @@ typedef struct BDSP_Arm
     BDSP_Raaga_P_DeviceCallBacks interruptCallbacks[BDSP_ARM_MAX_DSP];
 #endif
     BDSP_P_TaskInfo  taskDetails[BDSP_ARM_MAX_DSP];
-    BDSP_P_SoftFMMInfo softFMMDetails[BDSP_ARM_MAX_DSP];
 
     BDSP_P_MsgQueueHandle hCmdQueue[BDSP_ARM_MAX_DSP];
     BDSP_P_MsgQueueHandle hGenRespQueue[BDSP_ARM_MAX_DSP];

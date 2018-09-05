@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -140,6 +140,11 @@ void NEXUS_Module_Unlock_Tagged(
     );
 
 void NEXUS_Module_GetPriority(
+    NEXUS_ModuleHandle module,
+    NEXUS_ModulePriority *pPriority
+    );
+
+void NEXUS_Module_GetCallbackPriority(
     NEXUS_ModuleHandle module,
     NEXUS_ModulePriority *pPriority
     );

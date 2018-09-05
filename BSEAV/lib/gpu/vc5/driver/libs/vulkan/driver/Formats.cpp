@@ -1,5 +1,5 @@
 /******************************************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *****************************************************************************************************/
 
 #include "Formats.h"
@@ -252,13 +252,6 @@ bool Formats::HasTMUSupport(GFX_LFMT_T lfmt)
 #endif
 
    return true;
-}
-
-bool Formats::HasTLBSupport(GFX_LFMT_T lfmt)
-{
-   v3d_pixel_format_t pf;
-   bool rev, swap;
-   return gfx_lfmt_maybe_translate_pixel_format(lfmt, &pf, &rev, &swap);
 }
 
 // Make one so that the constructor (which checks the array) will be called

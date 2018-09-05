@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -533,6 +533,8 @@ static bool NEXUS_Platform_P_IsActiveStandbyScheduler(NEXUS_ModulePriority prior
     case NEXUS_ModulePriority_eLow: activeStandby = false; break;
     case NEXUS_ModulePriority_eDefault: activeStandby = false; break;
     case NEXUS_ModulePriority_eHigh: activeStandby = false; break;
+    case NEXUS_ModulePriority_eCallbackLow: activeStandby = false; break;
+    case NEXUS_ModulePriority_eCallbackHigh: activeStandby = false; break;
     default: activeStandby = true; break;
     }
     return activeStandby;
@@ -559,7 +561,7 @@ void NEXUS_Platform_P_SchedulersSet_Init(NEXUS_Platform_P_SchedulersSet *schedul
             break;
         case NEXUS_StandbyMode_ePassive:
         case NEXUS_StandbyMode_eDeepSleep:
-            set = (i == NEXUS_ModulePriority_eAlwaysOn)?true:false;
+            set = (i == NEXUS_ModulePriority_eAlwaysOn || i==NEXUS_ModulePriority_eCallbackAlwaysOn)?true:false;
             break;
         default:
             set = false;

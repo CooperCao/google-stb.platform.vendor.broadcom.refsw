@@ -69,10 +69,6 @@ BDBG_MODULE(nexus_message);
 /* if you use one recpump per PES filter, you can just do HW filtering. faster and no possible SW parsing bugs */
 #define B_USE_HW_PES_FILTERING 0
 
-#if BCHP_CHIP == 7255 || NEXUS_USE_OTT_TRANSPORT
-#define NO_PID2BUF 1 /* TODO evaluate */
-#endif
-
 /* this is the impl of NEXUS_MessageHandle */
 struct NEXUS_Message {
     NEXUS_OBJECT(NEXUS_Message);
@@ -140,7 +136,7 @@ struct NEXUS_SwFilterCapture {
 /* static global variable */
 static BLST_S_HEAD(NEXUS_SwFilterCaptureList, NEXUS_SwFilterCapture) g_swfilter_state_list;
 
-static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle msg);
+static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle msg, unsigned recpumpIndex);
 static void NEXUS_SwFilter_P_Close(struct NEXUS_SwFilterCapture *stream);
 static struct NEXUS_SwFilterPid *NEXUS_SwFilter_P_OpenPid(NEXUS_MessageHandle msg);
 static void NEXUS_SwFilter_P_ClosePid(struct NEXUS_SwFilterPid *pid);
@@ -177,6 +173,15 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
         pSettings = &settings;
     }
 
+    /* must keep track of Message handles in order to route interrupts back out to Message handles */
+    for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
+        if (!pTransport->message.handle[i]) break;
+    }
+    if (i == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
+        BDBG_ERR(("You must increase NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES"));
+        return NULL;
+    }
+
     msg = BKNI_Malloc(sizeof(*msg));
     if (!msg) {
         BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -184,6 +189,7 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
     }
     NEXUS_OBJECT_INIT(NEXUS_Message, msg);
     msg->settings = *pSettings;
+    pTransport->message.handle[i] = msg;
 
     if (pSettings->bufferSize) {
         NEXUS_MemoryAllocationSettings allocSettings;
@@ -197,27 +203,6 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
             rc = BERR_TRACE(rc);
             goto error;
         }
-    }
-
-#ifdef NO_PID2BUF
-    BDBG_MSG(("Set maxContiguousMessageSize" ));
-#else
-    if (pSettings->maxContiguousMessageSize) {
-        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        goto error;
-    }
-#endif
-
-    /* must keep track of Message handles in order to route interrupts back out to Message handles */
-    for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
-        if (!pTransport->message.handle[i]) {
-            pTransport->message.handle[i] = msg;
-            break;
-        }
-    }
-    if (i == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
-        BDBG_ERR(("You must increase NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES"));
-        goto error;
     }
 
     msg->dataReady = NEXUS_TaskCallback_Create(msg, NULL);
@@ -344,6 +329,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
 {
     NEXUS_Error rc;
     NEXUS_P_HwPidChannel *hwPidChannel;
+    unsigned recpumpIndex;
 
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
 
@@ -399,40 +385,28 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         msg->isDss = true;
     }
 
-#ifdef NO_PID2BUF
-    BDBG_MSG(("No pid2buf support" ));
-#else
+    recpumpIndex = msg->settings.recpumpIndex;
     if ( msg->settings.recpumpIndex == NEXUS_ANY_ID ) { /* only do search if ANY_ID */
-          unsigned findParser;
           unsigned i,listParser;
           NEXUS_MessageHandle listMsg;
 
-          if ( hwPidChannel->parserBand && hwPidChannel->parserBand->enumBand ) {
-
-              findParser = hwPidChannel->parserBand->enumBand;
+          if (hwPidChannel->parserBand) {
               for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
-                  if (pTransport->message.handle[i] ) {
+                  if (pTransport->message.handle[i] && pTransport->message.handle[i]->started) {
                       listMsg = pTransport->message.handle[i];
-                      if ( listMsg->startSettings.pidChannel == NULL ) {
-                          continue;
-                      }
                       listParser = listMsg->startSettings.pidChannel->hwPidChannel->parserBand->enumBand;
-                      if( listParser == findParser && listMsg->settings.recpumpIndex != NEXUS_ANY_ID ) {
-                            msg->settings.recpumpIndex = listMsg->settings.recpumpIndex;
-                            BDBG_MSG(("Re Use parser with recpumpIdx=%d" , msg->settings.recpumpIndex  ));
+                      if( listMsg->stream && listParser == hwPidChannel->parserBand->enumBand ) {
+                            recpumpIndex = listMsg->stream->recpumpIndex;
+                            BDBG_MSG(("Re Use parser with recpumpIdx=%d", recpumpIndex));
                             break;
                         }
                   }
               }
         }
-        else {
-            BDBG_MSG(("parserband not initialized " ));
-        }
-      }
-#endif
+    }
     /* don't enforce HW restrictions in SW filtering. there may be a use-case for more flexibility. */
 
-    msg->stream = NEXUS_SwFilter_P_Open(msg);
+    msg->stream = NEXUS_SwFilter_P_Open(msg, recpumpIndex);
     if (!msg->stream) {
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         goto err_open;
@@ -555,7 +529,6 @@ void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
     }
     NEXUS_SwFilter_P_ClosePid(msg->pid);
     NEXUS_SwFilter_P_Close(msg->stream);
-    msg->settings.recpumpIndex = NEXUS_ANY_ID;
     msg->started = false;
     msg->buffer = NULL;
     msg->bufferSize = 0;
@@ -672,7 +645,7 @@ static void NEXUS_SwFilter_P_DataReadyWrapper(void *context, int unused)
 #endif
 
 /* Open a message stream for a particular recpump and format of data */
-static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle msg)
+static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle msg, unsigned recpumpIndex)
 {
     NEXUS_RecpumpSettings recpumpSettings;
     NEXUS_RecpumpOpenSettings settings;
@@ -681,7 +654,7 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
 
     for (st = BLST_S_FIRST(&g_swfilter_state_list); st; st = BLST_S_NEXT(st, link)) {
         BDBG_OBJECT_ASSERT(st, NEXUS_SwFilterCapture);
-        if (st->recpumpIndex == msg->settings.recpumpIndex) {
+        if (st->recpumpIndex == recpumpIndex) {
             if (st->format != msg->startSettings.format) {
                 BDBG_ERR(("must use different recpump for different formats"));
                 return NULL;
@@ -738,19 +711,24 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
     }
     st->isDss = msg->isDss;
 
-    st->recpumpIndex = msg->settings.recpumpIndex;
-    st->recpump = NEXUS_Recpump_Open(st->recpumpIndex, &settings);
+    st->recpump = NEXUS_Recpump_Open(recpumpIndex, &settings);
     st->format = msg->startSettings.format;
     if (!st->recpump) {
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         goto err_recpump_open;
     }
-    if ( msg->settings.recpumpIndex == NEXUS_ANY_ID ) {
-          NEXUS_RecpumpStatus recStatus;
-          rc = NEXUS_Recpump_GetStatus( st->recpump, &recStatus);
-          st->recpumpIndex = recStatus.rave.index;
-          msg->settings.recpumpIndex = st->recpumpIndex;
-      }
+    if (recpumpIndex == NEXUS_ANY_ID) {
+        NEXUS_RecpumpStatus recStatus;
+        rc = NEXUS_Recpump_GetStatus(st->recpump, &recStatus);
+        if (rc) {
+            BERR_TRACE(rc);
+            goto err_recpump_getstatus;
+        }
+        st->recpumpIndex = recStatus.rave.index;
+    }
+    else {
+        st->recpumpIndex = recpumpIndex;
+    }
 
 
 #if B_CALLBACK_HANDLER_SUPPORT
@@ -787,6 +765,7 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
     return st;
 
 err_recpump_setsettings:
+err_recpump_getstatus:
     NEXUS_Recpump_Close(st->recpump);
 err_recpump_open:
     NEXUS_SwFilter_Msg_P_Uninit(st->handle);

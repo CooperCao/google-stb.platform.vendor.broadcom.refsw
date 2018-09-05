@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef EGL_CLIENT_CONFIG_H
 #define EGL_CLIENT_CONFIG_H
@@ -23,6 +23,7 @@ typedef struct
 {
    int         samples;
    GFX_LFMT_T  color_api_fmt;
+   bool        x_padded;
    GFX_LFMT_T  depth_stencil_api_fmt;
    GFX_LFMT_T  stencil_api_fmt;
    bool        invalid;
@@ -60,8 +61,9 @@ extern GFX_LFMT_T egl_config_color_api_fmt(const EGL_CONFIG_T *config);
 extern GFX_LFMT_T egl_config_depth_stencil_api_fmt(const EGL_CONFIG_T *config);
 extern GFX_LFMT_T egl_config_stencil_api_fmt(const EGL_CONFIG_T *config);
 
-extern bool egl_can_render_format(GFX_LFMT_T lfmt);
 extern bool egl_can_texture_from_format(GFX_LFMT_T lfmt);
 extern bool egl_can_display_format(GFX_LFMT_T lfmt);
+
+extern GFX_LFMT_T egl_api_fmt_to_lfmt(GFX_LFMT_T api_fmt, bool x_padded);
 
 #endif

@@ -64,14 +64,10 @@ const BDSP_AudioTaskTsmSettings BDSP_sDefaultTSMSettings =
         360,                                /* i32TSMGrossThreshold */
         135000,                             /* i32TSMDiscardThreshold */
         0,                                  /* i32TsmTransitionThreshold */
-#if defined BCHP_AUD_MISC_REG_START
 #ifdef BCHP_AUD_FMM_MISC_STC_UPPERi_ARRAY_BASE
         BDSP_REGSET_PHY_ADDR_FOR_DSP( BCHP_AUD_FMM_MISC_STC_UPPERi_ARRAY_BASE ),/* ui32STCAddr */
 #else
         BDSP_REGSET_PHY_ADDR_FOR_DSP( BCHP_AUD_MISC_STC_UPPERi_ARRAY_BASE ),/* ui32STCAddr */
-#endif
-#else
-        0,/* ui32STCAddr */
 #endif
         0,                                  /* ui32AVOffset */
         0,                                  /* ui32SwSTCOffset */

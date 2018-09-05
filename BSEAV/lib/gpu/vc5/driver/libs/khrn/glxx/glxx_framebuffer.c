@@ -712,6 +712,9 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb,
    bool fixed_sample_loc = false;
    bool has_layered_texture = false;
    bool has_layered_color_texture = false;
+   bool needs_color_resolve = false;
+   bool color_att_present[V3D_MAX_RENDER_TARGETS] = {false, };
+
    /* initialise this enum just so compiler does not complain */
    enum glxx_tex_target color_tex_target = GL_TEXTURE_1D_BRCM;
    for (unsigned b = 0; b < GLXX_ATT_COUNT; b++)
@@ -744,6 +747,9 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb,
             return GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
       }
 
+      if (b >= GLXX_COLOR0_ATT)
+         color_att_present[b - GLXX_COLOR0_ATT] = true;
+
       switch (att->obj_type)
       {
       case GL_RENDERBUFFER:
@@ -758,6 +764,13 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb,
                has_texture_att = true;
                fixed_sample_loc = tex_fixed_sample_loc;
             }
+
+            if (b >= GLXX_COLOR0_ATT && common_ms_mode != GLXX_NO_MS &&
+                  glxx_attachment_has_downsample_texture(att))
+            {
+               needs_color_resolve = true;
+            }
+
             if (!att->obj.tex_info.use_face_layer)
             {
                /* see if we already had attachments that are not layered */
@@ -795,6 +808,25 @@ glxx_fb_status_t glxx_fb_completeness_status(const GLXX_FRAMEBUFFER_T *fb,
    {
       if (fixed_sample_loc != true)
          return GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
+   }
+
+   if (needs_color_resolve)
+   {
+      assert(common_ms_mode != GLXX_NO_MS);
+      /* if we multisample and we need resolve, all color attachments must have
+       * downsampled image (all color attachments must be attached with
+       * FramebufferTexture2DMultisampleEXT)
+       */
+      for (unsigned b = 0; b < V3D_MAX_RENDER_TARGETS; b++)
+      {
+         if (color_att_present[b])
+         {
+            const GLXX_ATTACHMENT_T *att = &fb->attachment[GLXX_COLOR0_ATT + b];
+
+            if (!glxx_attachment_has_downsample_texture(att))
+               return GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE_EXT;
+         }
+      }
    }
 
    if (no_attachments)

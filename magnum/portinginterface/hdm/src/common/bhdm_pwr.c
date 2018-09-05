@@ -292,6 +292,12 @@ BERR_Code BHDM_Resume(
 	BHDM_AUTO_I2C_P_EnableInterrupts(hHDMI);
 #endif
 
+	BKNI_EnterCriticalSection() ;
+		/* reset HDCP settings/statemachine */
+		BHDM_HDCP_P_ResetSettings_isr(hHDMI) ;
+	BKNI_LeaveCriticalSection() ;
+
+
 	BDBG_LEAVE(BHDM_Resume) ;
 
 done:

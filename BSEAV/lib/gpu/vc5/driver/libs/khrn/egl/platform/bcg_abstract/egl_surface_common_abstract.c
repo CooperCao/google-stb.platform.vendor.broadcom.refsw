@@ -96,7 +96,7 @@ static uint32_t lfmts_from_surface_info(
       lfmts[0] = GFX_LFMT_R8_G8_B8_A8_UNORM_2D_RSO;
       break;
    case BEGL_BufferFormat_eX8B8G8R8:
-      *api_fmt = GFX_LFMT_R8_G8_B8_X8_UNORM;
+      *api_fmt = GFX_LFMT_R8_G8_B8_UNORM;
       lfmts[0] = GFX_LFMT_R8_G8_B8_X8_UNORM_2D_RSO;
       break;
    case BEGL_BufferFormat_eR5G6B5:
@@ -107,33 +107,17 @@ static uint32_t lfmts_from_surface_info(
       *api_fmt = GFX_LFMT_R4G4B4A4_UNORM;
       lfmts[0] = GFX_LFMT_R4G4B4A4_UNORM_2D_RSO;
       break;
-   case BEGL_BufferFormat_eR4G4B4X4:
-      *api_fmt = GFX_LFMT_R4G4B4X4_UNORM;
-      lfmts[0] = GFX_LFMT_R4G4B4X4_UNORM_2D_RSO;
-      break;
    case BEGL_BufferFormat_eA4B4G4R4:
       *api_fmt = GFX_LFMT_A4B4G4R4_UNORM;
       lfmts[0] = GFX_LFMT_A4B4G4R4_UNORM_2D_RSO;
-      break;
-   case BEGL_BufferFormat_eX4B4G4R4:
-      *api_fmt = GFX_LFMT_X4B4G4R4_UNORM;
-      lfmts[0] = GFX_LFMT_X4B4G4R4_UNORM_2D_RSO;
       break;
    case BEGL_BufferFormat_eR5G5B5A1:
       *api_fmt = GFX_LFMT_R5G5B5A1_UNORM;
       lfmts[0] = GFX_LFMT_R5G5B5A1_UNORM_2D_RSO;
       break;
-   case BEGL_BufferFormat_eR5G5B5X1:
-      *api_fmt = GFX_LFMT_R5G5B5X1_UNORM;
-      lfmts[0] = GFX_LFMT_R5G5B5X1_UNORM_2D_RSO;
-      break;
    case BEGL_BufferFormat_eA1B5G5R5:
       *api_fmt = GFX_LFMT_A1B5G5R5_UNORM;
       lfmts[0] = GFX_LFMT_A1B5G5R5_UNORM_2D_RSO;
-      break;
-   case BEGL_BufferFormat_eX1B5G5R5:
-      *api_fmt = GFX_LFMT_X1B5G5R5_UNORM;
-      lfmts[0] = GFX_LFMT_X1B5G5R5_UNORM_2D_RSO;
       break;
    case BEGL_BufferFormat_eR8G8B8:
       *api_fmt = GFX_LFMT_R8_G8_B8_UNORM;

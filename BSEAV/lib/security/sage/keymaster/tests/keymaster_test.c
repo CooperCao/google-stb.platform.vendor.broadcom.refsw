@@ -266,7 +266,7 @@ typedef struct {
     BERR_Code expected_err;
 } test_param_data;
 
-static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
+static BERR_Code km_generate_tests(KeymasterTl_Handle handle, bool shortTest)
 {
     BERR_Code err;
     KM_Tag_ContextHandle key_params = NULL;
@@ -325,8 +325,16 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
 
         {"RSA 1024",    km_test_new_params_with_rsa_defaults,     1024, {0},   BERR_SUCCESS},
         {"RSA 2048",    km_test_new_params_with_rsa_defaults,     2048, {0},   BERR_SUCCESS},
-        {"RSA 3072",    km_test_new_params_with_rsa_defaults,     3072, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE}, /* TEMP disabled */
-        {"RSA 4096",    km_test_new_params_with_rsa_defaults,     4096, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE}, /* TEMP disabled */
+#if SKM_RSA_GENERATE_MAX_KEY_SIZE >= 3072
+        {"RSA 3072",    km_test_new_params_with_rsa_defaults,     3072, {0},   BERR_SUCCESS},
+#else
+        {"RSA 3072",    km_test_new_params_with_rsa_defaults,     3072, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
+#endif
+#if SKM_RSA_GENERATE_MAX_KEY_SIZE >= 4096
+        {"RSA 4096",    km_test_new_params_with_rsa_defaults,     4096, {0},   BERR_SUCCESS},
+#else
+        {"RSA 4096",    km_test_new_params_with_rsa_defaults,     4096, {0},   BSAGE_ERR_KM_UNSUPPORTED_KEY_SIZE},
+#endif
         {"RSA 256",     km_test_new_params_with_rsa_defaults,     256,  {0},   BERR_SUCCESS},
         {"RSA 512",     km_test_new_params_with_rsa_defaults,     512,  {0},   BERR_SUCCESS},
         {"RSA 768",     km_test_new_params_with_rsa_defaults,     768,  {0},   BERR_SUCCESS},
@@ -342,44 +350,44 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
         {"AES 256 app_id+data", km_test_new_params_with_aes_defaults, 256,
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"AES 256 app_data",    km_test_new_params_with_aes_defaults, 256,
-                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"AES 256 app_id+all_apps", km_test_new_params_with_aes_defaults, 256,
                 {km_test_add_app_id, 0}, BERR_INVALID_PARAMETER},
         {"AES 256 -all_apps",   km_test_new_params_with_aes_defaults, 256,
-                {km_test_remove_all_apps, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, 0}, BERR_SUCCESS},
 
         {"HMAC app_id",         km_test_new_params_with_hmac_defaults, 256,
                 {km_test_remove_all_apps, km_test_add_app_id, 0}, BERR_SUCCESS},
         {"HMAC app_id+data",    km_test_new_params_with_hmac_defaults, 256,
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"HMAC app_data",       km_test_new_params_with_hmac_defaults, 256,
-                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"HMAC app_id+all_apps",    km_test_new_params_with_hmac_defaults, 256,
                 {km_test_add_app_id, 0}, BERR_INVALID_PARAMETER},
         {"HMAC -all_apps",      km_test_new_params_with_hmac_defaults, 256,
-                {km_test_remove_all_apps, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, 0}, BERR_SUCCESS},
 
         {"EC app_id",           km_test_new_params_with_ec_defaults, 256,
                 {km_test_remove_all_apps, km_test_add_app_id, 0}, BERR_SUCCESS},
         {"EC app_id+data",      km_test_new_params_with_ec_defaults, 256,
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"EC app_data",         km_test_new_params_with_ec_defaults, 256,
-                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"EC app_id_all_apps",  km_test_new_params_with_ec_defaults, 256,
                 {km_test_add_app_id, 0}, BERR_INVALID_PARAMETER},
         {"EC -all_apps",        km_test_new_params_with_ec_defaults, 256,
-                {km_test_remove_all_apps, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, 0}, BERR_SUCCESS},
 
         {"RSA app_id",          km_test_new_params_with_rsa_defaults, 1024,
                 {km_test_remove_all_apps, km_test_add_app_id, 0}, BERR_SUCCESS},
         {"RSA app_id+data",     km_test_new_params_with_rsa_defaults, 1024,
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"RSA app_data",        km_test_new_params_with_rsa_defaults, 1024,
-                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"RSA app_id+all_apps", km_test_new_params_with_rsa_defaults, 1024,
                 {km_test_add_app_id, 0}, BERR_INVALID_PARAMETER},
         {"RSA -all_apps",       km_test_new_params_with_rsa_defaults, 1024,
-                {km_test_remove_all_apps, 0}, BERR_INVALID_PARAMETER},
+                {km_test_remove_all_apps, 0}, BERR_SUCCESS},
     };
 
     memset(&key, 0, sizeof(key));
@@ -393,6 +401,11 @@ static BERR_Code km_generate_tests(KeymasterTl_Handle handle)
 
     for (i = 0; i < (int)(sizeof(params) / sizeof(test_param_data)); i++) {
         bool test_failed = true;
+
+        if (shortTest && (params[i].key_size > 2048)) {
+            BDBG_LOG(("%s: test %d skipped in short tests", BSTD_FUNCTION, i));
+            continue;
+        }
 
         EXPECT_SUCCESS(params[i].fn(&key_params, params[i].key_size));
         if (params[i].name[0] == 'H') {
@@ -934,8 +947,6 @@ static BERR_Code km_import_tests(KeymasterTl_Handle handle)
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
         {"EC app_id",           km_test_new_params_with_ec_defaults, 256, SKM_KEY_FORMAT_PKCS8,
                 {km_test_remove_all_apps, km_test_add_app_id, 0}, BERR_SUCCESS},
-        {"EC app_data",         km_test_new_params_with_ec_defaults, 256, SKM_KEY_FORMAT_PKCS8,
-                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
         {"RSA 1024", km_test_new_params_with_rsa_defaults,  1024, SKM_KEY_FORMAT_PKCS8, {0},   BERR_SUCCESS},
         {"RSA 768",  km_test_new_params_with_rsa_defaults,  768,  SKM_KEY_FORMAT_PKCS8, {0},   BERR_SUCCESS},
         {"RSA 3072", km_test_new_params_with_rsa_defaults,  3072, SKM_KEY_FORMAT_PKCS8, {0},   BERR_SUCCESS},
@@ -954,8 +965,6 @@ static BERR_Code km_import_tests(KeymasterTl_Handle handle)
                 {km_test_remove_all_apps, km_test_add_app_id, 0}, BERR_SUCCESS},
         {"RSA app_id+data",     km_test_new_params_with_rsa_defaults, 1024, SKM_KEY_FORMAT_PKCS8,
                 {km_test_remove_all_apps, km_test_add_app_id, km_test_add_app_data, 0}, BERR_SUCCESS},
-        {"RSA app_data",        km_test_new_params_with_rsa_defaults, 1024, SKM_KEY_FORMAT_PKCS8,
-                {km_test_remove_all_apps, km_test_add_app_data, 0}, BERR_INVALID_PARAMETER},
     };
 
     memset(&in_key, 0, sizeof(in_key));
@@ -1269,6 +1278,7 @@ static BERR_Code km_attest_tests(KeymasterTl_Handle handle)
             EXPECT_SUCCESS(km_test_copy_app_id_and_data(key_params, &in_params));
 
             TEST_TAG_ADD_BYTES(in_params, SKM_TAG_ATTESTATION_CHALLENGE, strlen(ATTEST_CHALLENGE), (uint8_t *)ATTEST_CHALLENGE);
+            TEST_TAG_ADD_BYTES(in_params, SKM_TAG_ATTESTATION_APPLICATION_ID, strlen(ATTEST_CHALLENGE), (uint8_t *)ATTEST_CHALLENGE);
 
             KeymasterTl_GetDefaultAttestKeySettings(&attSettings);
             attSettings.in_key_blob = in_key;
@@ -1695,7 +1705,7 @@ int main(int argc, char *argv[])
     EXPECT_SUCCESS(km_delete_all_keys(handle));
 
     EXPECT_SUCCESS(km_add_rng_tests(handle));
-    EXPECT_SUCCESS(km_generate_tests(handle));
+    EXPECT_SUCCESS(km_generate_tests(handle, shortTest));
     if (!shortTest) {
         EXPECT_SUCCESS(km_get_characteristics_tests(handle));
         EXPECT_SUCCESS(km_key_blob_tests(handle));

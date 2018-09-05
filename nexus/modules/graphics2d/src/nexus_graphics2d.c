@@ -338,13 +338,8 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
     packetContextSettings.packet_buffer_store = pSettings->packetFifoThreshold;
     packetContextSettings.private_data = gfx;
     packetContextSettings.secure = pSettings->secure;
-    heap = NEXUS_P_DefaultHeap(pSettings->boundsHeap, NEXUS_DefaultHeapType_eBounds);
-    if (heap) {
-        NEXUS_MemoryStatus status;
-        rc = NEXUS_Heap_GetStatus(heap, &status);
-        if (rc) {rc = BERR_TRACE(rc); goto error;}
-        packetContextSettings.memory_bounds.offset = status.offset;
-        packetContextSettings.memory_bounds.size = status.size;
+    if (pSettings->boundsHeap) {
+        BDBG_WRN(("boundsHeap %p is unused", (void*)pSettings->boundsHeap));
     }
     gfx->standby.packetContextSettings = packetContextSettings;
     rc = BGRC_Packet_CreateContext( gfx->grc, &gfx->packetContext, &packetContextSettings );

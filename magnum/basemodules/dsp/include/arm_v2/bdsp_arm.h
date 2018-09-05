@@ -56,7 +56,6 @@
 #define BDSP_ARM_ADDRESS_ALIGN_ITB  12 /* ITB is aligned to 2^12 Bytes*/
 
 #define BDSP_ARM_ADDRESS_ALIGN      4096
-#if 1
 #define BDSP_ARM_SIZE_ALIGN(x)  	\
 	{                               \
 		unsigned power = 2;         \
@@ -64,16 +63,6 @@
 		while (x >>= 1) power <<= 1;\
 		x=power;                    \
 	}
-#else
-#define BDSP_ARM_SIZE_ALIGN(x) \
-	{                            \
-		unsigned min=0,max=4096; \
-		while(x){                \
-		if((min<x)&&(x<=max)){   \
-			x = max;break;}      \
-		min=max; max<<=1;}       \
-	}
-#endif
 
 #define BDSP_ARM_MAX_DSP 1
 #define BDSP_ARM_MAX_CORE_PER_DSP 1

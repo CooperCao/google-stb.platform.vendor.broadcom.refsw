@@ -97,9 +97,7 @@ static bool color_format(GFX_LFMT_T lfmt, EGLint *platFormat)
    case GFX_LFMT_R8_G8_B8_X8_UNORM  : begl = BEGL_BufferFormat_eX8B8G8R8;  break;
    case GFX_LFMT_B5G6R5_UNORM       : begl = BEGL_BufferFormat_eR5G6B5;    break;
    case GFX_LFMT_A4B4G4R4_UNORM     : begl = BEGL_BufferFormat_eA4B4G4R4;  break;
-   case GFX_LFMT_X4B4G4R4_UNORM     : begl = BEGL_BufferFormat_eX4B4G4R4;  break;
    case GFX_LFMT_A1B5G5R5_UNORM     : begl = BEGL_BufferFormat_eA1B5G5R5;  break;
-   case GFX_LFMT_X1B5G5R5_UNORM     : begl = BEGL_BufferFormat_eX1B5G5R5;  break;
    case GFX_LFMT_R8_G8_B8_UNORM     : begl = BEGL_BufferFormat_eR8G8B8;    break;
    case GFX_LFMT_R16_G16_B16_A16_FLOAT : begl = BEGL_BufferFormat_eA16B16G16R16_FP; break;
    case GFX_LFMT_R10G10B10A2_UNORM  : begl = BEGL_BufferFormat_eA2B10G10R10;     break;
@@ -159,7 +157,8 @@ static bool match_pixmap(EGLNativePixmapType pixmap, const EGL_CONFIG_T *config)
 
 static bool is_valid_android_framebuffer_target(const EGL_CONFIG_T *config, EGLint attrib)
 {
-   return config->color_api_fmt         == GFX_LFMT_R8_G8_B8_A8_UNORM &&
+   return (config->color_api_fmt        == GFX_LFMT_R8_G8_B8_A8_UNORM ||
+           ((config->color_api_fmt      == GFX_LFMT_R8_G8_B8_UNORM) && config->x_padded)) &&
           config->depth_stencil_api_fmt == GFX_LFMT_NONE &&
           config->stencil_api_fmt       == GFX_LFMT_NONE;
 }
