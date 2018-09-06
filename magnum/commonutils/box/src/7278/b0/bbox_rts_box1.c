@@ -54,7 +54,7 @@ void BBOX_P_SetBox1MemConfig
 {
     BBOX_P_SET_DVI_CFC_MEMC(pBoxMemConfig, 0);
 
-    BBOX_P_SET_HDR_VIDEO_AND_GFX_MEMC(pBoxMemConfig, Display0,   0,       1);
+    BBOX_P_SET_HDR_VIDEO_AND_GFX_MEMC(pBoxMemConfig, Display0,   0,       0);
 
     BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video0,  1,       1);
     BBOX_P_SET_VIDEO_WIN_MEMC(pBoxMemConfig, Display0,  Video1,  1,       1);

@@ -1216,15 +1216,17 @@ BERR_Code BXPT_Dma_SetSettings(
     )
 {
     BERR_Code rc;
+    BXPT_Dma_ContextHandle ctx;
     BDBG_OBJECT_ASSERT(hDma, BXPT_Dma_Handle_Tag);
     BDBG_ASSERT(pSettings);
     BKNI_EnterCriticalSection();
-    if (BLST_SQ_FIRST(&hDma->activeCtxList)) {
+    ctx = BLST_SQ_FIRST(&hDma->activeCtxList);
+    BKNI_LeaveCriticalSection();
+    if (ctx) {
         BDBG_ERR(("%u: Cannot change channel settings while contexts are active", hDma->channelNum));
         rc = BERR_NOT_SUPPORTED;
         goto done;
     }
-    BKNI_LeaveCriticalSection();
     rc = BXPT_Dma_P_SetSettings(hDma, pSettings);
 
 done:
