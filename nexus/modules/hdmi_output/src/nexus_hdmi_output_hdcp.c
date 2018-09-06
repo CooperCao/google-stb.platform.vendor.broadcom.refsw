@@ -1147,6 +1147,7 @@ void NEXUS_HdmiOutput_GetHdcpSettings(
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     BDBG_ASSERT(NULL != pSettings);
 
+    RESOLVE_ALIAS(handle);
     *pSettings = handle->hdcpSettings;
 }
 

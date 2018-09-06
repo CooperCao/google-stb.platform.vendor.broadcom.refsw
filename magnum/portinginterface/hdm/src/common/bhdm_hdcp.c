@@ -3119,6 +3119,7 @@ done:
 
 BERR_Code BHDM_HDCP_GetAuthenticationStatus(const BHDM_Handle hHDMI, BHDM_HDCP_AuthenticationStatus *stHdcpAuthStatus)
 {
+	BERR_Code rc = BERR_SUCCESS;
 	uint32_t Register, ulOffset;
 	BREG_Handle hRegister;
 	uint8_t uiVersionSelected ;
@@ -3130,7 +3131,12 @@ BERR_Code BHDM_HDCP_GetAuthenticationStatus(const BHDM_Handle hHDMI, BHDM_HDCP_A
 	ulOffset = hHDMI->ulOffset;
 
 	/* authenticated status */
-	BHDM_HDCP_IsLinkAuthenticated(hHDMI, &stHdcpAuthStatus->bAuthentictated) ;
+	rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &stHdcpAuthStatus->bAuthentictated) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
 
 	/* encryption status */
 	uiVersionSelected = BHDM_HDCP_P_GetHdcpVersionSelect(hHDMI) ;
@@ -3151,7 +3157,8 @@ BERR_Code BHDM_HDCP_GetAuthenticationStatus(const BHDM_Handle hHDMI, BHDM_HDCP_A
 
 
 	BDBG_LEAVE(BHDM_HDCP_GetAuthenticationStatus);
-	return BERR_SUCCESS;
+done:
+	return rc ;
 }
 
 #if BHDM_CONFIG_HAS_HDCP22
