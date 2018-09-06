@@ -1987,7 +1987,7 @@ void nexus_p_surface_compositor_update_virtual_display(const struct NEXUS_Surfac
     return;
 }
 
-static void nexus_surface_compositor_p_copy_palette(NEXUS_SurfaceHandle dst, NEXUS_SurfaceHandle src)
+static NEXUS_Error nexus_surface_compositor_p_copy_palette(NEXUS_SurfaceHandle dst, NEXUS_SurfaceHandle src)
 {
     NEXUS_SurfaceStatus status;
     NEXUS_Surface_GetStatus( src, &status );
@@ -2001,16 +2001,24 @@ static void nexus_surface_compositor_p_copy_palette(NEXUS_SurfaceHandle dst, NEX
 
         NEXUS_Surface_GetStatus( dst, &dstStatus );
         if (status.numPaletteEntries != dstStatus.numPaletteEntries) {
-            BERR_TRACE(NEXUS_UNKNOWN);
-            return;
+            return BERR_TRACE(NEXUS_UNKNOWN);
         }
 
         rc = NEXUS_Surface_LockPalette(src, &temp);
-        if (rc) {BERR_TRACE(rc);return;}
+        if (rc) return BERR_TRACE(rc);
         srcPalette = temp;
+        if (!NEXUS_P_CpuAccessibleAddress(srcPalette)) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
         rc = NEXUS_Surface_LockPalette(dst, &temp);
-        if (rc) {BERR_TRACE(rc);NEXUS_Surface_UnlockPalette(src);return;}
+        if (rc) {
+            NEXUS_Surface_UnlockPalette(src);
+            return BERR_TRACE(rc);
+        }
         dstPalette = temp;
+        if (!NEXUS_P_CpuAccessibleAddress(dstPalette)) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
 
         for (i = 0; i < status.numPaletteEntries; i++) {
             if (dstPalette[i] != srcPalette[i]) {
@@ -2024,6 +2032,7 @@ static void nexus_surface_compositor_p_copy_palette(NEXUS_SurfaceHandle dst, NEX
         NEXUS_Surface_UnlockPalette(src);
         NEXUS_Surface_UnlockPalette(dst);
     }
+    return NEXUS_SUCCESS;
 }
 
 static void nexus_surface_compositor_p_update_dirty_client(NEXUS_SurfaceClientHandle client)
@@ -2036,7 +2045,11 @@ static void nexus_surface_compositor_p_update_dirty_client(NEXUS_SurfaceClientHa
     BDBG_ASSERT(client->set.serverSurface);
     BDBG_ASSERT(!client->set.updating); /* can't have another transaction in flight */
 
-    nexus_surface_compositor_p_copy_palette(client->set.serverSurface, client->set.surface.surface);
+    rc = nexus_surface_compositor_p_copy_palette(client->set.serverSurface, client->set.surface.surface);
+    if (rc) {
+        BERR_TRACE(rc);
+        return;
+    }
 
     NEXUS_Graphics2D_GetDefaultBlitSettings(pBlitSettings);
     pBlitSettings->source.surface = client->set.surface.surface;

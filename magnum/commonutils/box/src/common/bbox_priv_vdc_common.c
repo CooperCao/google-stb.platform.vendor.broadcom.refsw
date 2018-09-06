@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"                /* standard types */
 #include "bkni.h"
@@ -525,24 +528,26 @@ BERR_Code BBOX_P_Vdc_SelfCheck
 
         for (j=0; j<BBOX_VDC_GFX_WINDOW_COUNT_PER_DISPLAY; j++)
         {
+            uint32_t ulGfxWin = j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY;
+
             BDBG_MODULE_MSG(BBOX_SELF_CHECK, ("Display %d: Gfd%d: %x, VDC Gfd%d: %d", i, j,
                 pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j],
-                j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY,
-                pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable));
+                ulGfxWin,
+                pVdcCap->astDisplay[i].astWindow[ulGfxWin].bAvailable));
 
             if (((pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j] != BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable == false)) ||
+                (pVdcCap->astDisplay[i].astWindow[ulGfxWin].bAvailable == false)) ||
                 ((pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j] == BBOX_MemcIndex_Invalid) &&
-                (pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable == true)))
+                (pVdcCap->astDisplay[i].astWindow[ulGfxWin].bAvailable == true)))
             {
                 BDBG_ERR(("Memconfig Table display %d gfx window %d entry [%x] doesn't correspond to VDC BOX config entry [%s].",
                     i, j, pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j],
-                    pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable ? "true" : "false"));
+                    pVdcCap->astDisplay[i].astWindow[ulGfxWin].bAvailable ? "true" : "false"));
                 eStatus = BERR_INVALID_PARAMETER;
             }
 
-            if ((pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable == true) &&
-                (pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].eSclCapBias != BBOX_Vdc_SclCapBias_eDisregard))
+            if ((pVdcCap->astDisplay[i].astWindow[ulGfxWin].bAvailable == true) &&
+                (pVdcCap->astDisplay[i].astWindow[ulGfxWin].eSclCapBias != BBOX_Vdc_SclCapBias_eDisregard))
             {
                 BDBG_ERR(("Scl-Cap bias is enabled on graphics window for display %d.", i));
                 eStatus = BERR_INVALID_PARAMETER;
@@ -550,12 +555,26 @@ BERR_Code BBOX_P_Vdc_SelfCheck
 
             if (j==0) /* first GFX window only */
             {
-                if (pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex != BBOX_MemcIndex_Invalid &&
-                    pVdcCap->astDisplay[i].astWindow[j+BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY].bAvailable == false)
+                if (pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex != BBOX_MemcIndex_Invalid)
                 {
-                    BDBG_ERR(("GFD CFC allocation in MEMC %d doesn't correspond to display %d gfx window %d entry.",
-                        pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex, i, j));
-                    eStatus = BERR_INVALID_PARAMETER;
+                    if (pVdcCap->astDisplay[i].astWindow[ulGfxWin].bAvailable == false)
+                    {
+                        BDBG_ERR(("GFD CFC allocation in MEMC %d doesn't correspond to display %d gfx window %d entry.",
+                            pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex, i, j));
+                        eStatus = BERR_INVALID_PARAMETER;
+                    }
+                    else
+                    {
+                        /* Check if GFD LUT is in the same MEMC as GFX framebuffer. This may change in the future. */
+                        if (pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j] !=
+                            pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex)
+                        {
+                            BDBG_ERR(("GFD CFC MEMC (%d) is not the same as display %d gfx window %d MEMC (%d).",
+                                pMemConfig->stVdcMemcIndex.astDisplay[i].ulGfdCfcMemcIndex, i, j,
+                                pMemConfig->stVdcMemcIndex.astDisplay[i].aulGfdWinMemcIndex[j]));
+                            eStatus = BERR_INVALID_PARAMETER;
+                        }
+                    }
                 }
             }
         }
