@@ -1,0 +1,206 @@
+chipnum=$1
+#unset the all export settings. This list should be modified as and when new exports are added
+unset HLS_PROTOCOL_SUPPORT
+unset LIVEMEDIA_SUPPORT
+unset LIVE_STREAMING_SUPPORT
+unset MEDIA_ASF_SUPPORT
+unset MEDIA_AVI_SUPPORT
+unset MEDIA_FLV_SUPPORT
+unset NETACCEL_SUPPORT
+unset NEXUS_POWER_MANAGEMENT
+unset PLAYBACK_IP_SUPPORT
+unset VIDEO_ENCODER_SUPPORT
+unset BDSP_VP6_SUPPORT
+unset BMUXLIB_INPUT_DUMP_DESC
+unset BMUXLIB_INPUT_DUMP_FRAME_DESC
+unset BDSP_MS10_SUPPORT
+unset BDSP_MS11_SUPPORT
+unset BDSP_MS12_SUPPORT
+unset BDSP_AC4_SUPPORT
+unset BDSP_ENCODER_SUPPORT
+unset PLATFORM
+unset RAP_IQA_TEST_SUPPORT
+unset BDSP_AACSBR_SUPPORT
+unset NEXUS_MS12_SUPPORT
+unset NEXUS_USE_7364_SV
+unset BDSP_ENCODER_ACCELERATOR_SUPPORT
+unset SAGE_SUPPORT
+unset NEXUS_ARM_AUDIO_SUPPORT
+unset MRC_MONITOR
+unset NXCLIENT_SUPPORT
+unset BDSP_SOFT_FMM_SUPPORT
+#####################################
+if [ $chipnum == "7425" ]
+then
+	export MEDIA_ASF_SUPPORT=y
+	export MEDIA_AVI_SUPPORT=y
+	export MEDIA_FLV_SUPPORT=y
+	export VIDEO_ENCODER_SUPPORT=y
+	export BDSP_VP6_SUPPORT=y
+	export BDSP_MS10_SUPPORT=y
+	export BDSP_MS11_SUPPORT=y
+	export BMUXLIB_INPUT_DUMP_DESC=y
+	export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+	export PLATFORM=97425
+	export RAP_IQA_TEST_SUPPORT=y
+	export SAGE_SUPPORT=n
+	export MRC_MONITOR=y
+
+elif [ $chipnum == "7358" ]
+then
+	export MEDIA_AVI_SUPPORT=y
+	export MEDIA_ASF_SUPPORT=y
+	export MEDIA_FLV_SUPPORT=y
+	export BDSP_MS10_SUPPORT=n
+	export BDSP_MS11_SUPPORT=n
+	export BMUXLIB_INPUT_DUMP_DESC=y
+	export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+	export PLATFORM=97358
+	export SAGE_SUPPORT=n
+	export RAP_IQA_TEST_SUPPORT=y
+
+elif [ $chipnum == "7346" ]
+then
+	export MEDIA_ASF_SUPPORT=y
+	export MEDIA_AVI_SUPPORT=y
+	export MEDIA_FLV_SUPPORT=y
+	export VIDEO_ENCODER_SUPPORT=y
+	export BDSP_ENCODER_SUPPORT=y
+	export BDSP_MS10_SUPPORT=y
+	export BDSP_MS11_SUPPORT=y
+	export BMUXLIB_INPUT_DUMP_DESC=y
+	export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+	export PLATFORM=97346
+	export SAGE_SUPPORT=n
+	export RAP_IQA_TEST_SUPPORT=y
+
+elif [ $chipnum == "7435" ]
+then
+	export MEDIA_ASF_SUPPORT=y
+	export MEDIA_AVI_SUPPORT=y
+	export MEDIA_FLV_SUPPORT=y
+	export VIDEO_ENCODER_SUPPORT=y
+	export BDSP_VP6_SUPPORT=y
+	export BDSP_MS10_SUPPORT=y
+	export BDSP_MS11_SUPPORT=y
+	export BMUXLIB_INPUT_DUMP_DESC=y
+	export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+	export PLATFORM=97435
+	export RAP_IQA_TEST_SUPPORT=y
+	export SAGE_SUPPORT=n
+	export MRC_MONITOR=y
+
+elif [ $chipnum == "7364" ]
+then
+        export MEDIA_ASF_SUPPORT=y
+        export MEDIA_AVI_SUPPORT=y
+        export MEDIA_FLV_SUPPORT=y
+	export PLAYBACK_IP_SUPPORT=n
+	export VIDEO_ENCODER_SUPPORT=y
+	export BDSP_ENCODER_SUPPORT=y
+	export BDSP_ENCODER_ACCELERATOR_SUPPORT=y
+        export NEXUS_POWER_MANAGEMENT=n
+        export BMUXLIB_INPUT_DUMP_DESC=y
+        export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+        export NEXUS_USE_7364_SV=y
+	export PLATFORM=97364
+	export SAGE_SUPPORT=n
+        export RAP_IQA_TEST_SUPPORT=y
+
+elif [ $chipnum == "7250" ]
+then
+        export MEDIA_ASF_SUPPORT=y
+        export MEDIA_AVI_SUPPORT=y
+        export MEDIA_FLV_SUPPORT=y
+	export PLAYBACK_IP_SUPPORT=n
+	export VIDEO_ENCODER_SUPPORT=y
+	export BDSP_ENCODER_SUPPORT=y
+	export BDSP_ENCODER_ACCELERATOR_SUPPORT=y
+        export NEXUS_POWER_MANAGEMENT=n
+        export BMUXLIB_INPUT_DUMP_DESC=y
+        export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+        export NEXUS_USE_7250_SV=y
+	export PLATFORM=97250
+	export SAGE_SUPPORT=n
+	export BDSP_AACSBR_SUPPORT=n
+	export BDSP_MS10_SUPPORT=n
+	export BDSP_MS11_SUPPORT=n
+	export BDSP_MS12_SUPPORT=A
+	export BDSP_AC4_SUPPORT=y
+	export NEXUS_ARM_AUDIO_SUPPORT=y
+	export RAP_IQA_TEST_SUPPORT=y
+
+elif [ $chipnum == "7271" ]
+then
+        export NEXUS_USE_7271_SV=y
+	export PLATFORM=97271
+	export SAGE_SUPPORT=n
+	export RAP_IQA_TEST_SUPPORT=y
+	export NEXUS_ARM_AUDIO_SUPPORT=y
+	export BDSP_AC4_SUPPORT=y
+	export BDSP_MS12_SUPPORT=A
+
+elif [ $chipnum == "7278" ]
+then
+    export MEDIA_ASF_SUPPORT=n
+    export PLAYBACK_IP_SUPPORT=n
+    export NEXUS_USE_7278_SV=y
+    export PLATFORM=97278
+    export BDSP_VP6_SUPPORT=n
+    export VIDEO_ENCODER_SUPPORT=y
+    export BDSP_MS12_SUPPORT=y
+    export BMUXLIB_INPUT_DUMP_DESC=y
+    export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+    export NEXUS_SECURITY_SUPPORT=n
+    export NEXUS_VBI_SUPPORT=n
+    export NXCLIENT_SUPPORT=n
+
+elif [ $chipnum == "7260" ]
+then
+	export BDSP_MS12_SUPPORT=D
+	export BDSP_RAAGA_AUDIO_SUPPORT=n
+	export BDSP_ARM_ONLY_SOLUTION=y
+	export NEXUS_ARM_AUDIO_SUPPORT=y
+	export SAGE_SUPPORT=n
+	export VIDEO_ENCODER_SUPPORT=n
+	export BDSP_ENCODER_SUPPORT=n
+
+elif [ $chipnum == "7255" ]
+then
+      export BDSP_MS11PLUS_SUPPORT=y
+      export BDSP_RAAGA_AUDIO_SUPPORT=n
+      export NEXUS_ARM_AUDIO_SUPPORT=y
+      export SAGE_SUPPORT=n
+
+elif [ $chipnum == "7445" ]
+then
+	export MEDIA_ASF_SUPPORT=y
+	export MEDIA_AVI_SUPPORT=y
+	export MEDIA_FLV_SUPPORT=y
+	export VIDEO_ENCODER_SUPPORT=y
+	export NEXUS_MS12_SUPPORT=y
+	export BDSP_VP6_SUPPORT=y
+	export BDSP_AACSBR_SUPPORT=n
+	export BDSP_MS10_SUPPORT=n
+	export BDSP_MS11_SUPPORT=n
+	export BDSP_MS12_SUPPORT=y
+	export BDSP_AC4_SUPPORT=y
+	export BMUXLIB_INPUT_DUMP_DESC=y
+	export BMUXLIB_INPUT_DUMP_FRAME_DESC=y
+	export RAP_IQA_TEST_SUPPORT=y
+	export SAGE_SUPPORT=n
+	export PLATFORM=97445
+
+elif [ $chipnum == "7211" ]
+then
+    export BDSP_MS11PLUS_SUPPORT=n
+    export BDSP_MS11_SUPPORT=n
+    export BDSP_MS12_SUPPORT=n
+    export BDSP_AACSBR_SUPPORT=y
+    export BDSP_RAAGA_AUDIO_SUPPORT=n
+    export NEXUS_ARM_AUDIO_SUPPORT=y
+    export BDSP_SOFT_FMM_SUPPORT=y
+
+else
+	echo "ERROR: Exports are not defined for chipnum: $chipnum."
+fi

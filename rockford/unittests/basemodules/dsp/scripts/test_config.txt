@@ -1,0 +1,40 @@
+####################################################################################################################################################
+# List of chips for which smoketest has to be run in Raaga_BT, Raaga_BTM, Raaga_Release, Raaga_Patch_Release and Rebase_integration_Branch pipelines
+####################################################################################################################################################
+SMOKETEST_CHIPS:7358;7425;7445;7271;7364
+
+####################################################################################################################################################
+# Relugar expressions for smoketests
+####################################################################################################################################################
+RTFOptionalParams_7358:-regexp codec_options=n2 -force .keep_fail=1 -nousetmpdir -exclude 'subdir=(video/encoders|audio/encoders/opus|audio/decoders/ac4|audio/decoders/dolby_aache|audio/decoders/mpeg4_als|audio/decoders/udc|audio/decoders/TrueHD)'
+
+RTFOptionalParams_7425:-regexp codec_options=n2 -force .keep_fail=1 -nousetmpdir -exclude 'subdir=(video/encoders|audio/decoders/ac4|audio/decoders/dolby_aache|audio/decoders/udc|audio/decoders/TrueHD)'
+
+RTFOptionalParams_7435:-regexp codec_options=n2 -force .keep_fail=1 -nousetmpdir -exclude 'subdir=(video/encoders|audio/decoders/ac4|audio/decoders/dolby_aache|audio/decoders/udc|audio/decoders/TrueHD)'
+
+RTFOptionalParams_7445:-regexp codec_options=n2 -force .keep_fail=1 -nousetmpdir -exclude 'subdir=(audio/decoders/ddp|audio/decoders/dolby_pulse|audio/postprocess/ddre|video/encoders|audio/decoders/ac4|audio/decoders/dolby_aache|audio/decoders/udc|audio/decoders/TrueHD)'
+
+RTFOptionalParams_7364:-regexp codec_options=n2 -force .keep_fail=1 -nousetmpdir -exclude 'subdir=(video/encoders/avc_enc|audio/decoders/ac4|audio/decoders/dolby_aache|audio/decoders/udc|audio/decoders/TrueHD)'
+
+RTFOptionalParams_7271:-regexp codec_options=n2 -force .keep_fail=1 -nousetmpdir -exclude 'subdir=(video/encoders|audio/decoders/dolby_pulse|audio/postprocess/ddre|audio/decoders/ac4|audio/decoders/dolby_aache|audio/decoders/udc|audio/decoders/TrueHD)'
+
+####################################################################################################################################################
+# Known failures
+####################################################################################################################################################
+## ********* Write the failures that are specific to a FP cores.. like fp2008, fp2011, fp2012***********************
+#1) This is tracked under JIRA#FWRAA-989 (observed on 7435,7425)
+fp2011:audio/decoders/dts_lbr/48-256kbps-ChID51_downmix
+fp2012:audio/decoders/dts_lbr/48-256kbps-ChID51_downmix
+#2) This is tracked under JIRA#FWRAA-987
+fp2011:audio/encoders/enhAACplusenc/arefsna_32
+fp2011:audio/encoders/enhAACplusenc/krefsme_44
+fp2011:audio/encoders/enhAACplusenc/laugh
+fp2011:audio/encoders/enhAACplusenc/dual_mono_mix
+#3)Failures that are seen on fp2012 only and tracked under TLAMX-307 and FWRAA-1284
+fp2012:audio/decoders/dts_hd/BC-4424-2048fr-192k-MIPSIntensiveMD-20
+fp2012:audio/decoders/dts_hd/BC-downmix_test
+fp2012:audio/decoders/dts_hd/BC-9624-512fr-1536k-MIPSIntensive-51
+fp2012:audio/decoders/dts_cd/CD-512Framesize-14bit
+fp2012:audio/decoders/dts_cd/CD-48-768-32tone-20
+## ********** Write the details of the failures that are common across all the FPs**************************
+COMMON_FAILURE:

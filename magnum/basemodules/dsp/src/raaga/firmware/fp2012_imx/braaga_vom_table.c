@@ -915,7 +915,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */
 		{
 			0x00000584,
-			0x00000589,
+			0x00000588,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eBtscEncoderPostProc */
@@ -987,7 +987,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eMixerDapv2FrameSync */
 		{
 			0x00000cde,
-			0x00000ce1,
+			0x00000ce2,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfPpFsAlgos */
@@ -1005,7 +1005,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAlgoLib */
 		{
 			0x0000001c,
-			0x0000002b,
+			0x0000002c,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eIdsCommon */
@@ -1059,7 +1059,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eVideoDecodeTask */
 		{
 			0x00000a50,
-			0x00000a52,
+			0x00000a51,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eVideoEncodeTask */
