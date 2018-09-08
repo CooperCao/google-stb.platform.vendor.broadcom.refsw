@@ -1020,6 +1020,12 @@ BERR_Code BHDM_HDCP_ClearAuthentication(
     hRegister = hHDMI->hRegister ;
     ulOffset = hHDMI->ulOffset ;
 
+    if (!hHDMI->phyPowered)
+    {
+        BDBG_MSG(("HDMI is powered down, clear authentication is not needed")) ;
+        goto done ;
+    }
+
     /* Clear the MuxVsync Bit First (eliminate momentary snow at the Rx) */
     Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
     Register &= ~BCHP_MASK(HDMI_CP_CONFIG, I_MUX_VSYNC) ;
@@ -1059,6 +1065,8 @@ BERR_Code BHDM_HDCP_ClearAuthentication(
 #else
 
 #endif
+
+done:
     /* clear AuthenticatedLink Variable */
     hHDMI->HDCP_AuthenticatedLink = 0 ;
 
@@ -1091,6 +1099,12 @@ BERR_Code BHDM_HDCP_XmitEncrypted(
 
     hRegister = hHDMI->hRegister ;
     ulOffset = hHDMI->ulOffset ;
+
+    if (!hHDMI->phyPowered)
+    {
+        BDBG_MSG(("HDMI is powered down, Unable to transmit encrypted")) ;
+        goto done ;
+    }
 
     if ((hHDMI->HdcpVersion == BHDM_HDCP_Version_e1_1) /* same as hHDMI->HdcpVersion == BHDM_HDCP_Version_e1_0*/
     ||  (hHDMI->HdcpVersion == BHDM_HDCP_Version_eUnused))
@@ -1139,6 +1153,7 @@ BERR_Code BHDM_HDCP_XmitEncrypted(
     Register |= BCHP_FIELD_DATA(HDMI_CP_CONFIG, I_MUX_VSYNC, 1) ;
     BREG_Write32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset, Register) ;
 
+done:
     BDBG_LEAVE(BHDM_HDCP_XmitEncrypted) ;
     return rc ;
 } /* end BHDM_HDCP_XmitEncrypted */
@@ -1164,11 +1179,18 @@ BERR_Code BHDM_HDCP_XmitClear(
     hRegister = hHDMI->hRegister ;
     ulOffset = hHDMI->ulOffset ;
 
+    if (!hHDMI->phyPowered)
+    {
+        BDBG_MSG(("HDMI is powered down, unable to set transmit clear")) ;
+        goto done ;
+    }
+
     Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
     Register &= ~BCHP_MASK(HDMI_CP_CONFIG, I_MUX_VSYNC) ;
     Register |= BCHP_FIELD_DATA(HDMI_CP_CONFIG, I_MUX_VSYNC, 0) ;
     BREG_Write32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset, Register) ;
 
+done:
     BDBG_LEAVE(BHDM_HDCP_XmitClear) ;
     return rc ;
 } /* end BHDM_HDCP_XmitClear */
