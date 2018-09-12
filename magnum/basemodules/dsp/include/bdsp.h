@@ -168,6 +168,21 @@ void BDSP_GetStatus(
 
 /***************************************************************************
 Summary:
+Get AudioLicense Status
+***************************************************************************/
+typedef struct BDSP_AudioLicenseStatus{
+    uint32_t ui32AllAudioLicense;
+    uint32_t ui32LicenseEnabledInBP3;
+    uint32_t ui32LicenseEnabledInPAK;
+}BDSP_AudioLicenseStatus ;
+
+BERR_Code BDSP_GetAudioLicenseStatus(
+    BDSP_Handle handle,
+    BDSP_AudioLicenseStatus *pAudioLicenseStatus             /* [out] Current Status */
+);
+
+/***************************************************************************
+Summary:
     Enter standby mode with  DSP.
 
 Description:
@@ -211,6 +226,15 @@ See Also:
 
 BERR_Code BDSP_Resume(
     BDSP_Handle             handle      /* [in] DSP device handle */
+    );
+
+/***************************************************************************
+Summary:
+Open DSP Soft FMM
+***************************************************************************/
+BERR_Code BDSP_SoftFMM_Open(
+    BDSP_Handle handle,                 /* [in] DSP device handle */
+    BDSP_SoftFMMHandle *pSoftFMM        /* [out] Soft FMM handle */
     );
 
 /***************************************************************************

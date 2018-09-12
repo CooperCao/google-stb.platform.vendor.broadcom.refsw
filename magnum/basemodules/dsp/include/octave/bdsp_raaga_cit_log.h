@@ -59,4 +59,10 @@ void BDSP_Raaga_P_Analyse_CIT_Stage(
 	BDSP_AF_P_sSTAGE_CONFIG *pStageConfig,
 	BDSP_P_FwBuffer         *pDescriptorMemory
 );
+void BDSP_Raaga_P_Device_Diagnostics(
+	BDSP_Raaga  *pDevice
+);
+void BDSP_Raaga_P_Stage_PortDiagnostics(
+	BDSP_RaagaStage  *pRaagaStage
+);
 #endif /*BDSP_RAAGA_CIT_LOG_H_*/

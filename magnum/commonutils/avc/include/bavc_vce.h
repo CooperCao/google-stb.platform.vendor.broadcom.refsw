@@ -108,7 +108,7 @@ typedef struct BAVC_CompressedBufferDescriptor
 
    /* Buffer Parameters */
    unsigned uiOffset; /* REQUIRED: offset of frame data from frame buffer base address (in bytes) */
-   size_t uiLength;   /* REQUIRED: 0 if fragment is empty, e.g. for EOS entry (in bytes) */
+   unsigned uiLength;   /* REQUIRED: 0 if fragment is empty, e.g. for EOS entry (in bytes) */
    unsigned uiReserved[2]; /* Unused field */
 } BAVC_CompressedBufferDescriptor;
 

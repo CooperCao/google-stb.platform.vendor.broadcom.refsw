@@ -584,6 +584,7 @@ BERR_Code BDSP_Raaga_P_Queue_Create(
 	pQueue->dstIndex  = -1;
 	pQueue->dspIndex  = dspIndex;
 	pQueue->pRaagaContext  = pRaagaContext;
+	pQueue->input = pSettings->input;
 
 	BDSP_P_GetDistinctOpTypeAndNumChans(pSettings->dataType, &channels, &distinctOp);
 	pQueue->numChannels = channels;

@@ -47,6 +47,7 @@
 #include "bkni.h"
 #include "bkni_multi.h"
 #include "bdbg.h"
+#include "bdsp_soft_fmm_struct.h"
 
 BDBG_OBJECT_ID_DECLARE(BDSP_Device);
 
@@ -60,6 +61,7 @@ typedef struct BDSP_Device
     /* Device-level Function table */
     void (*close)(void *pDeviceHandle);
     void (*getStatus)(void *pDeviceHandle, BDSP_Status *pStatus);
+    BERR_Code (*getAudioLicenseStatus)(void *pDeviceHandle, BDSP_AudioLicenseStatus *pStatus);
     void (*getDefaultContextSettings)(void *pDeviceHandle,BDSP_ContextType contextType, BDSP_ContextCreateSettings *pSettings);
     BERR_Code (*createContext)(void *pDeviceHandle, const BDSP_ContextCreateSettings *pSettings, BDSP_ContextHandle *pContext);
     BERR_Code (*powerStandby)(void *pDeviceHandle, BDSP_StandbySettings     *pSettings);
@@ -87,6 +89,9 @@ typedef struct BDSP_Device
     BERR_Code (*initialize)(void *pDeviceHandle);
     BERR_Code (*getRRRAddrRange)(void *pDeviceHandle, BDSP_DownloadStatus *pRRRAddrRange);
     BERR_Code (*processPAK)(void *pDeviceHandle, const BDSP_ProcessPAKSettings *pPakSettings, BDSP_ProcessPAKStatus *pStatus);
+
+    /* API to open a SoftFMM handle*/
+    BERR_Code (*softFMMOpen)(void *pDeviceHandle, BDSP_SoftFMMHandle *pSoftFMM);
 }BDSP_Device;
 
 void BDSP_P_InitDevice(
@@ -147,6 +152,7 @@ typedef struct BDSP_Stage
     BERR_Code (*getAudioDelay_isrsafe)(BDSP_CTB_Input *pCtbInput, void *pStageHandle, BDSP_CTB_Output *pCTBOutput);
 
     BERR_Code (*addFmmOutput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_FmmBufferDescriptor *pDescriptor, unsigned *pOutputIndex);
+    BERR_Code (*addSoftFmmOutput)(void *pStageHandle, const BDSP_SoftFMMBufferDescriptor *pDescriptor, unsigned *pOutputIndex);
     BERR_Code (*addRaveOutput)(void *pStageHandle, const BAVC_XptContextMap *pContext, unsigned *pOutputIndex);
     BERR_Code (*addOutputStage)(void *pSrcStageHandle, BDSP_DataType dataType, void *pDstStageHandle, unsigned *pSourceInputIndex, unsigned *pDestinationInputIndex);
     BERR_Code (*addInterTaskBufferInput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_InterTaskBuffer *pBufferHandle, unsigned *pInputIndex);
@@ -157,6 +163,7 @@ typedef struct BDSP_Stage
     void (*removeAllOutputs)(void *pStageHandle);
 
     BERR_Code (*addFmmInput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_FmmBufferDescriptor *pDescriptor, unsigned *pOutputIndex);
+    BERR_Code (*addSoftFmmInput)(void *pStageHandle, const BDSP_SoftFMMBufferDescriptor *pDescriptor, unsigned *pOutputIndex);
     BERR_Code (*addRaveInput)(void *pStageHandle, const BAVC_XptContextMap *pContext, unsigned *pOutputIndex);
     void (*removeInput)(void *pStageHandle, unsigned inputIndex);
     void (*removeAllInputs)(void *pStageHandle);
@@ -245,6 +252,99 @@ typedef struct BDSP_Task
 
 }BDSP_Task;
 
+
+
+BDBG_OBJECT_ID_DECLARE(BDSP_SoftFMM_Output);
+typedef struct BDSP_SoftFMM_Output
+{
+    BDBG_OBJECT(BDSP_SoftFMM_Output)
+
+    void *pSoftFMMOutput;
+
+    void(*destroy)(void *pSoftFMMOutput);
+
+    void(*getInterruptHandlers_isr)(void *pSoftFMM, BDSP_SoftFMMOutputInterruptHandlers *pHandlers);
+    BERR_Code(*setInterruptHandlers_isr)(void *pSoftFMM, const BDSP_SoftFMMOutputInterruptHandlers *pHandlers);
+
+    BERR_Code(*setBufferConfig)(void *pSoftFMMOutput, BDSP_SoftFMMBufferDescriptor  *pSoftFMMOutputBufferDescriptor, BDSP_SoftFMM_Output_HWConfig *pSoftFMMOutputHWConfig);
+
+    BERR_Code(*getSettings)(void *pSoftFMMOutput, BDSP_SoftFMM_OutputSettings *pSoftFMMOutputSettings);
+    BERR_Code(*setSettings)(void *pSoftFMMOutput, BDSP_SoftFMM_OutputSettings *pSoftFMMOutputSettings);
+    BERR_Code(*setSettings_isr)(void *pSoftFMMOutput, BDSP_SoftFMM_OutputSettings *pSoftFMMOutputSettings);
+
+    BERR_Code(*getStatus)(void *pSoftFMMOutput, BDSP_SoftFMM_OutputStatus *pSoftFMMOutputStatus);
+
+}BDSP_SoftFMM_Output;
+
+
+BDBG_OBJECT_ID_DECLARE(BDSP_SoftFMM_Input);
+typedef struct BDSP_SoftFMM_Input
+{
+    BDBG_OBJECT(BDSP_SoftFMM_Input)
+
+    void *pSoftFMMInput;
+
+    void(*destroy)(void *pSoftFMMInput);
+
+    void(*getInterruptHandlers_isr)(void *pSoftFMM, BDSP_SoftFMMInputInterruptHandlers *pHandlers);
+    BERR_Code(*setInterruptHandlers_isr)(void *pSoftFMM, const BDSP_SoftFMMInputInterruptHandlers *pHandlers);
+
+    BERR_Code(*getSettings)(void *pSoftFMMInput, BDSP_SoftFMM_InputSettings *pSoftFMMInputSettings);
+    BERR_Code(*setSettings)(void *pSoftFMMInput, BDSP_SoftFMM_InputSettings *pSoftFMMInputSettings);
+    BERR_Code(*setSettings_isr)(void *pSoftFMMInput, BDSP_SoftFMM_InputSettings *pSoftFMMInputSettings);
+
+    BERR_Code(*getStatus)(void *pSoftFMMInput, BDSP_SoftFMM_InputStatus *pSoftFMMInputStatus);
+
+}BDSP_SoftFMM_Input;
+
+BDBG_OBJECT_ID_DECLARE(BDSP_SoftFMM_Mixer);
+typedef struct BDSP_SoftFMM_Mixer
+{
+    BDBG_OBJECT(BDSP_SoftFMM_Mixer)
+
+    void *pSoftFMMMixer;
+
+    void(*destroy)(void *pSoftFMMMixer);
+
+    BERR_Code(*start)(void *pSoftFMMMixer);
+    BERR_Code(*stop)(void *pSoftFMMMixer);
+
+    BERR_Code(*getStatus)(void *pSoftFMMMixer, BDSP_SoftFMM_MixerStatus *pSoftFMMMixerStatus);
+
+    BERR_Code(*getSettings)(void *pSoftFMMMixer, BDSP_SoftFMM_MixerSettings *pSoftFMMMixerSettings);
+    BERR_Code(*setSettings)(void *pSoftFMMMixer, BDSP_SoftFMM_MixerSettings *pSoftFMMMixerSettings);
+    BERR_Code(*setSettings_isr)(void *pSoftFMMMixer, BDSP_SoftFMM_MixerSettings *pSoftFMMMixerSettings);
+
+    BERR_Code(*addOutput)(void *pSoftFMMMixer, void *pSoftFMMOutput);
+    void(*removeOutput)(void *pSoftFMMMixer, void *pSoftFMMOutput);
+    void(*removeAllOutputs)(void *pSoftFMMMixer);
+
+    BERR_Code(*addInput)(void *pSoftFMMMixer, void *pSoftFMMInput);
+    void(*removeInput)(void *pSoftFMMMixer, void *pSoftFMMInput);
+    void(*removeAllInputs)(void *pSoftFMMMixer);
+}BDSP_SoftFMM_Mixer;
+
+
+BDBG_OBJECT_ID_DECLARE(BDSP_SoftFMM);
+typedef struct BDSP_SoftFMM
+{
+    BDBG_OBJECT(BDSP_SoftFMM)
+
+    void *pSoftFMM;
+
+    BERR_Code(*close)(void *pSoftFMM);
+
+    BERR_Code(*getDefaultMixerSettings)(void *pSoftFMM, BDSP_SoftFMM_MixerSettings *pSoftFMMDefaultMixerSettings);
+    BERR_Code(*createMixer)(void *pSoftFMM, const BDSP_SoftFMM_MixerSettings *pSoftFMMDefaultMixerSettings, BDSP_SoftFMMMixerHandle *pSoftFMMMixer);
+
+    BERR_Code(*getDefaultOutputSettings)(void *pSoftFMM, BDSP_SoftFMM_OutputSettings *pSoftFMMDefaultOutputSettings);
+    BERR_Code(*createOutput)(void *pSoftFMM, const BDSP_SoftFMM_OutputSettings *pSoftFMMDefaultOutputSettings, BDSP_SoftFMMOutputHandle *pSoftFMMOutput);
+
+    BERR_Code(*getDefaultInputSettings)(void *pSoftFMM, BDSP_SoftFMM_InputSettings *pSoftFMMDefaultInputSettings);
+    BERR_Code(*createInput)(void *pSoftFMM, const BDSP_SoftFMM_InputSettings *pSoftFMMDefaultInputSettings, BDSP_SoftFMMInputHandle * pSoftFMMInput);
+
+}BDSP_SoftFMM;
+
 /***************************************************************************
 Summary:
         BDSP Audio Capture Handle
@@ -294,5 +394,24 @@ void BDSP_P_InitQueue(
     void *pQueueHandle
     );
 
+void BDSP_P_InitSoftFMM(
+    BDSP_SoftFMM *pSoftFMM,
+    void *pSoftFMMHandle
+    );
+
+void BDSP_P_InitSoftFMMMixer(
+    BDSP_SoftFMM_Mixer *pSoftFMMMixer,
+    void *pSoftFMMMixerHandle
+    );
+
+void BDSP_P_InitSoftFMMInput(
+    BDSP_SoftFMM_Input *pSoftFMMInput,
+    void *pSoftFMMInputHandle
+    );
+
+void BDSP_P_InitSoftFMMOutput(
+    BDSP_SoftFMM_Output *pSoftFMMOutput,
+    void *pSoftFMMOutputHandle
+    );
 
 #endif /* #ifndef BDSP_PRIV_H_ */

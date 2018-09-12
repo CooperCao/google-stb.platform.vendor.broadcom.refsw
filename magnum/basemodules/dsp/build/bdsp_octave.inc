@@ -77,7 +77,8 @@ BDSP_SOURCES += \
         $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_io_priv.c \
         $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_cit_log.c \
         $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_cit_log_ext.c \
-        $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_capture_priv.c
+        $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_capture_priv.c \
+        $(MAGNUM)/basemodules/dsp/src/octave/bdsp_raaga_diagnostics_priv.c
 endif
 
 # Set CFLAG for Raaga Support

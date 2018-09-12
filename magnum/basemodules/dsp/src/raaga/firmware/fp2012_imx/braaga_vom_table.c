@@ -1005,7 +1005,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAlgoLib */
 		{
 			0x0000001c,
-			0x0000002b,
+			0x0000002c,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eIdsCommon */

@@ -274,7 +274,7 @@ typedef struct NEXUS_AudioMuxOutputFrame
     
     /* Buffer Parameters */
     unsigned offset; /* offset of frame data from frame buffer base address (in bytes) */
-    size_t length;   /* 0 if fragment is empty, e.g. for EOS entry (in bytes) */
+    unsigned length;   /* 0 if fragment is empty, e.g. for EOS entry (in bytes) */
     unsigned encoderIndex;
     unsigned unused;
 
@@ -282,7 +282,7 @@ typedef struct NEXUS_AudioMuxOutputFrame
     unsigned rawDataOffset;    /* For most codecs, this will be equivalent to offset but if the data is encapsulated in another 
                                   container (e.g. AAC ADTS) this will reflect the offset to the raw data block within the encapsulated 
                                   frame. */
-    size_t   rawDataLength;    /* For most codecs, this will be equivalent to length but if the data is encapsulated in another 
+    unsigned rawDataLength;    /* For most codecs, this will be equivalent to length but if the data is encapsulated in another
                                   container (e.g. AAC ADTS) this will reflect the length of the raw data block within the encapsulated 
                                   frame. */
     /* Metadata */

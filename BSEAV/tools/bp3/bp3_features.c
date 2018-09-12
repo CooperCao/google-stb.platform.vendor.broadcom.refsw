@@ -45,7 +45,7 @@
 #include "bkni.h"
 #include "bp3_features.h"
 
-bp3featuresStruct bp3_features[BP3_FEATURES_NUM] = {
+bp3featuresStruct bp3_features[] = {
     {"H265 (HEVC)", 1, 19},
     {"Dolby Vision HDR Activation ($)", 1, 65},
     {"Technicolor HDR Activation ($)", 1, 66},
@@ -56,6 +56,19 @@ bp3featuresStruct bp3_features[BP3_FEATURES_NUM] = {
     {"FE-DBS DVB-S2X Activation ($)", 1, 71},
     {"CA Multi2", 1, 81},
     {"CA DVB-CSA3", 1, 82},
+    {"AC4 Activation ($)", 1, 99},
+    {"TrueHD Activation ($)", 1, 100},
+    {"MS12v2 Activation ($)", 1, 103},
+    {"MS12v1 Config C Activation", 1, 112},
+    {"MS12v1 Config D Activation", 1, 113},
+    {"MS12v1 Config B Activation ($)", 1, 114},
+    {"MS12v1 Config A Activation ($)", 1, 115},
+    {"DAP Content Processing Activation ($)", 1, 116},
+    {"DAP Virtualizer Activation ($)", 1, 117},
+    {"DAP Device Processing Activation ($)", 1, 118},
+    {"Adv Output Ch Activation ($)", 1, 119},
+    {"HDR 10+ ($)", 1, 35},
+    {"TZ TA Customer ID", 1, TZTA_CUSTOMER_ID},
     {"Post Proc: DAP", 2, 0},
     {"Decode Dolby Digital", 2, 1},
     {"Decode Dolby Digital Plus", 2, 2},
@@ -75,12 +88,5 @@ bp3featuresStruct bp3_features[BP3_FEATURES_NUM] = {
     {"DTS Headphone:X", 5, 12},
     {"DTS Virtual:X", 5, 13},
     {"DTS:X", 5, 14},
-    {"MS12v1 Config C Activation", 1, 112},
-    {"MS12v1 Config D Activation", 1, 113},
-    {"MS12v1 Config B Activation ($)", 1, 114},
-    {"MS12v1 Config A Activation ($)", 1, 115},
-    {"DAP Content Processing Activation ($)", 1, 116},
-    {"DAP Virtualizer Activation ($)", 1, 117},
-    {"DAP Device Processing Activation ($)", 1, 118},
-    {"Adv Output Ch Activation ($)", 1, 119},
+    {NULL, 0, 0},
 };

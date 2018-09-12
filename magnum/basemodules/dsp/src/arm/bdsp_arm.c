@@ -170,6 +170,7 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getDefaultContextSettings = BDSP_Arm_P_GetDefaultContextSettings;
     pArm->device.createContext = BDSP_Arm_P_CreateContext;
     pArm->device.getStatus= BDSP_Arm_P_GetStatus;
+    pArm->device.getAudioLicenseStatus= NULL;
     pArm->device.powerStandby= NULL; /* BDSP_Arm_P_PowerStandby; */
     pArm->device.powerResume= NULL; /* BDSP_Arm_P_PowerResume; */
     pArm->device.getAlgorithmInfo= BDSP_Arm_P_GetAlgorithmInfo;
@@ -190,6 +191,7 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.getDefaultDatasyncSettings = NULL;/*BDSP_Arm_P_GetDefaultDatasyncSettings;*/
 #endif /*!B_REFSW_MINIMAL*/
     pArm->device.getDefaultTsmSettings = NULL; /*BDSP_Arm_P_GetDefaultTsmSettings;*/
+    pArm->device.softFMMOpen = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pArm->contextList);

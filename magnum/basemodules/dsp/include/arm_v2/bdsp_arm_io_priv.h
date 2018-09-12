@@ -78,6 +78,19 @@ BERR_Code BDSP_Arm_P_AddFmmOutput(
  const BDSP_FmmBufferDescriptor *pDescriptor,
  unsigned *pOutputIndex
 );
+
+BERR_Code BDSP_Arm_P_AddSoftFmmInput(
+	void *pStageHandle,
+	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
+	unsigned *pInputIndex
+);
+
+BERR_Code BDSP_Arm_P_AddSoftFmmOutput(
+	void *pStageHandle,
+	const BDSP_SoftFMMBufferDescriptor *pDescriptor,
+	unsigned *pOutputIndex
+);
+
 BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
 	void *pStageHandle,
 	BDSP_DataType dataType,

@@ -74,6 +74,7 @@
 #include "bchp_scpu_globalram.h"
 #include "priv/bsagelib_shared_globalsram.h"
 #include "bp3_features.h"
+#include "nexus_audio_dsp_private.h"
 
 #define BP3_Error_(x) #x
 const char * const bp3_errors[] = {
@@ -211,7 +212,7 @@ static char *output = NULL;
 char* get_output() { return output; }
 void free_output() {  FREE_OUTPUT }
 #else
-#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#define PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #define FREE_OUTPUT
 #endif
 
@@ -227,19 +228,20 @@ typedef struct inputfile_params_t {
   char license[256];
 } inputfile_params;
 
-static bitmapStruct bitmap[16 * 8];
+#define FEATURE_BYTES 32
 static const char *ipOwners[] = {"Unused", "Broadcom", "Dolby", "Rovi", "Technicolor", "DTS"};
+static const char *tzTaCustomers[] = {"", "Broadcom", "", "Novel-SuperTV"};
 static uint32_t features[GlobalSram_IPLicensing_Info_size];
 
 static struct {
     uint8_t OwnerId;
-    eSramMap SramMap[4];
-} owners[5] = {
-    {1, {Video0, Video1, Host, Audio0} },
-    {2, {Audio0, Host, Reserved, NotUsed} },
-    {3, {Host, Reserved, ReservedLast, NotUsed} },
-    {4, {Reserved, Host, ReservedLast, NotUsed} },
-    {5, {Audio0, Reserved, ReservedLast, NotUsed} }
+    eSramMap SramMap[6];
+} owners[] = {
+    {1, {Video0, Video1, Host, Audio, Sage, TrustZone} },
+    {2, {Audio, Host} },
+    {3, {Host} },
+    {4, {Info, Host} },
+    {5, {Audio} }
 };
 
 static long response_code = 0;
@@ -352,7 +354,7 @@ static bool isNumber(const char* str, const bool commaOK) {
   return true;
 }
 
-static bool isOn(uint8_t owner, uint8_t bit)
+static bool isOn(bitmapStruct bitmap[], uint8_t owner, uint8_t bit)
 {
     bitmapStruct i = bitmap[bit];
     return ((features[(int)owners[owner-1].SramMap[i.key]] & i.value) == 0);
@@ -486,25 +488,36 @@ int status()
   }
   PRINTF("UId = 0x%08x%08x\n\n", otpIdHi, otpIdLo);
 
-  for (int i = 0; i < 16 * 8; i++) {
+  bitmapStruct bitmap[FEATURE_BYTES * 8];
+  for (int i = 0; i < FEATURE_BYTES * 8; i++) {
     bitmap[i].key = i / 32;
     bitmap[i].value = 1 << (i % 32);
   }
-  for (int i = 0; i < GlobalSram_IPLicensing_Info_size; i++) {
-    features[i] = feats[i];
-  }
-  /* it appears that host and sage uses only 16 bit, and the higher 16 bit is from sage */
-  features[(uint32_t)Host] = (feats[(uint32_t)Host] & 0x0000FFFF) | (feats[(uint32_t)Sage] << 16);
 
-  for (int i = 0; i < BP3_FEATURES_NUM; i++) {
-    if (isOn(bp3_features[i].OwnerId, bp3_features[i].Bit))
-    {
-      PRINTF("%s - %s [Enabled]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name);
+  for (int i = 0; i < GlobalSram_IPLicensing_Info_size; i++)
+    features[i] = feats[i];
+
+  features[(uint32_t)Host] = (feats[(uint32_t)Sage] << 16) | (feats[(uint32_t)Host] & 0x0000FFFF);
+  features[(uint32_t)TrustZone] = (feats[(uint32_t)TrustZone] & 0xFFFF0000) | (feats[(uint32_t)Host] >> 16);
+
+  NEXUS_AudioDspPrivateLicenseStatus als;
+  rc = NEXUS_AudioDspPrivate_GetLicenseStatus(&als);
+  if (rc == 0)
+    features[(uint32_t)Audio] = (feats[(uint32_t)Audio] & 0xFF00FF00) | (als.status & 0x00FF00FF);
+
+  for (int i = 0; bp3_features[i].Name != NULL; i++) {
+    if (bp3_features[i].Bit == TZTA_CUSTOMER_ID && isOn(bitmap, bp3_features[i].OwnerId, bp3_features[i].Bit - 4)) {
+      uint8_t v = 0;
+      for (int j = 0; j < 8; j++)
+        v |= isOn(bitmap, bp3_features[i].OwnerId, bp3_features[i].Bit + j) ? 0 : (1 << j);
+      if (v < sizeof(tzTaCustomers))
+        PRINTF("%s - %s %s\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name, tzTaCustomers[v]);
+      else
+        PRINTF("%s - %s %d\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name, v);
+      continue;
     }
-    else
-    {
-      PRINTF("%s - %s [Disabled]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name);
-    }
+    PRINTF("%s - %s [%s]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name,
+          isOn(bitmap, bp3_features[i].OwnerId, bp3_features[i].Bit) ? "Enabled" : "Disabled");
   }
 
 // Supported with BP3 TA v4.0.9 and later
@@ -525,14 +538,14 @@ int status()
     &provisioned);
   CHECK_ERROR(rc, "Unable to read chip information\n")
 
-  printf("prodId: 0x%08x, securityCode: 0x%08x\n",prodId, securityCode);
-  printf("bondOption: 0x%08x\n",bondOption);
-  printf("provisioned = %s\n",provisioned==true ? "true" : "false");
+  PRINTF("\nprodId: 0x%08x, securityCode: 0x%08x\n",prodId, securityCode);
+  PRINTF("bondOption: 0x%08x\n",bondOption);
+  PRINTF("provisioned = %s\n",provisioned==true ? "true" : "false");
   /*
   int index;
   for (index=0; index<20; index += 4)
   {
-    printf("0 enabled featureList[%d] = 0x%02x%02x%02x%02x\n",
+    PRINTF("0 enabled featureList[%d] = 0x%02x%02x%02x%02x\n",
       index,featureList[index+3],featureList[index+2],featureList[index+1],featureList[index]);
   }
   */
@@ -540,7 +553,7 @@ int status()
 
 leave:
   if (session)
-    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
+    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
   return rc;
 }
 
@@ -879,7 +892,7 @@ int provision(int argc, char *argv[])
   uint32_t logsize = 0;
   uint32_t* status = NULL; /* status by IP owner */
   uint32_t statusSize = 0;
-  int errCode = bp3_session_end(ccf.memory, ccf.size, &logbuf, &logsize, &status, &statusSize);
+  int errCode = bp3_session_end(ccf.memory, ccf.size, &logbuf, &logsize, &status, &statusSize, NULL, NULL);
   session = NULL; // bp3_session_end freed bp3_session_end
   if (ccf.memory) free(ccf.memory);
   if (errCode != 0)
@@ -956,7 +969,7 @@ leave:
     rc = 1;
 
   if (session)  // bp3_session_end never called! Call it to free memory
-    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
+    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 #if CURL_AT_LEAST_VERSION(7,56,0)
   if (multipart) curl_mime_free(multipart);
 #else

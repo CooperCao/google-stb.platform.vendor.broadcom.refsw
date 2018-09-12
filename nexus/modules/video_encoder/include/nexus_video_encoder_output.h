@@ -72,7 +72,7 @@ typedef struct NEXUS_VideoEncoderDescriptor
 
     /* Buffer Parameters */
     unsigned offset; /* offset of frame data from frame buffer base address (in bytes) */
-    size_t length;   /* 0 if fragment is empty, e.g. for EOS entry (in bytes) */
+    unsigned length; /* 0 if fragment is empty, e.g. for EOS entry (in bytes) */
     unsigned unused[2];
 
     uint32_t videoFlags;

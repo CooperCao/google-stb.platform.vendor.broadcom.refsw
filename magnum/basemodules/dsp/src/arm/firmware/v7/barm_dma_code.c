@@ -1,4 +1,4 @@
-/******************************************************************************
+/*******************************************************************************
  * Copyright (C) 2018 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
@@ -38,8 +38,7 @@
  * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #include "bchp.h"
 const uint32_t BDSP_ARM_IMG_libdma_code_array1[] = {

@@ -46,14 +46,12 @@
 #include "bsagelib_types.h"
 #include "bkni.h"
 
-#define BP3_FEATURES_NUM 37
-
 typedef enum {
-    Info, Video0, Audio0, Host, Sage, Reserved, Video1, ReservedLast, NotUsed
+    Info, Video0, Audio, Host, Sage, TrustZone, Video1, Reserved
 } eSramMap;
 
 typedef struct {
-    uint32_t key;
+    uint8_t key;
     uint32_t value;
 } bitmapStruct;
 
@@ -63,4 +61,5 @@ typedef struct {
     uint8_t Bit;
 } bp3featuresStruct;
 
+#define TZTA_CUSTOMER_ID 164
 #endif /* BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_FEATURES_H_ */

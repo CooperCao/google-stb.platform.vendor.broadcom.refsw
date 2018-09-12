@@ -370,7 +370,7 @@ void bp3_ta_end()
     SAGE_BP3Platform_Uninit();
 }
 
-int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize)
+int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_t *logSize, uint32_t **status, uint32_t *statusSize, uint8_t **binBuf, uint32_t *binSize)
 {
     int       rc = 0;
     uint32_t *pCcfStatus = NULL;
@@ -503,6 +503,19 @@ int bp3_session_end(uint8_t *ccfBuf, uint32_t ccfSize, uint8_t **logBuf, uint32_
         goto leave;
     }
 
+    if (binBuf != NULL)
+    {
+      *binBuf = (uint8_t*) malloc(bp3BinSize);
+      if (*binBuf == NULL)
+      {
+        BDBG_ERR(("failed to allocate buffer for bp3.bin"));
+      }
+      else
+      {
+        memcpy(*binBuf, pBp3BinBuff, bp3BinSize);
+        *binSize = bp3BinSize;
+      }
+    }
     SAGE_Write_BP3_Bin_File(&pBp3BinBuff, &bp3BinSize, bp3binFilePath);
 leave:
     if (bp3binFilePath != NULL)
@@ -575,7 +588,7 @@ int bp3(int argc, char *argv[])
         goto leave;
     }
 
-    rc = bp3_session_end(NULL, 0, &logBuff, &logSize, NULL, NULL);
+    rc = bp3_session_end(NULL, 0, &logBuff, &logSize, NULL, NULL, NULL, NULL);
     if (rc)
       goto leave;
 

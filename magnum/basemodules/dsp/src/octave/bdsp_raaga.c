@@ -175,8 +175,9 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 	pRaaga->device.getDefaultContextSettings = BDSP_Raaga_P_GetDefaultContextSettings;
 	pRaaga->device.createContext = BDSP_Raaga_P_CreateContext;
 	pRaaga->device.getStatus= BDSP_Raaga_P_GetStatus;
-	pRaaga->device.powerStandby= BDSP_Raaga_P_PowerStandby;
-	pRaaga->device.powerResume= BDSP_Raaga_P_PowerResume;
+    pRaaga->device.getAudioLicenseStatus= NULL;
+    pRaaga->device.powerStandby= BDSP_Raaga_P_PowerStandby;
+    pRaaga->device.powerResume= BDSP_Raaga_P_PowerResume;
 	pRaaga->device.getAlgorithmInfo= BDSP_Raaga_P_GetAlgorithmInfo;
 	pRaaga->device.allocateExternalInterrupt = BDSP_Raaga_P_AllocateExternalInterrupt;
 	pRaaga->device.freeExternalInterrupt = BDSP_Raaga_P_FreeExternalInterrupt;
@@ -189,6 +190,7 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
     pRaaga->device.initialize = BDSP_Raaga_P_Initialize;
     pRaaga->device.getRRRAddrRange = NULL;
     pRaaga->device.processPAK = NULL;
+    pRaaga->device.softFMMOpen = NULL;
 
 #ifdef BDSP_RAAGA_DEBUG_SERVICE
     pRaaga->device.runDebugService = BDSP_Raaga_P_RunDebugService;

@@ -935,6 +935,9 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 	pStage->stage.addInterTaskBufferInput = BDSP_Raaga_P_AddInterTaskBufferInput;
 	pStage->stage.addInterTaskBufferOutput = BDSP_Raaga_P_AddInterTaskBufferOutput;
 
+    pStage->stage.addSoftFmmOutput = NULL;
+    pStage->stage.addSoftFmmInput = NULL;
+
 #if !B_REFSW_MINIMAL
 	pStage->stage.addQueueInput = BDSP_Raaga_P_AddQueueInput;
 #endif /*!B_REFSW_MINIMAL*/
@@ -3855,6 +3858,92 @@ This function prepares the command header with PAK File info, DRM File info
 and Bounded PAK File address and sends the command to DSP to evaluate the
 status of audio license.
 ***********************************************************************/
+BERR_Code BDSP_Raaga_P_GetAudioLicenseStatus(
+        void                          *pDeviceHandle,
+        BDSP_AudioLicenseStatus       *pAudioLicenseStatus
+        )
+{
+	BERR_Code err = BERR_SUCCESS;
+
+	BDSP_Raaga	*pDevice = (BDSP_Raaga *)pDeviceHandle;
+	BDSP_Raaga_P_Command sCommand;
+	BDSP_P_MsgType eMsgType;
+	BDSP_Raaga_P_Response sRsp;
+
+	BDBG_ENTER(BDSP_Raaga_P_ProcessPAK);
+	BKNI_Memset(&sCommand, 0, sizeof(sCommand));
+
+	/*Prepare command for PAK based authorization */
+	sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_GET_AUDIOLICENSE_STATUS_COMMAND_ID;
+	sCommand.sCommandHeader.ui32CommandCounter = 0;
+	sCommand.sCommandHeader.ui32TaskID = 0;
+	sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
+	sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+	sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+																BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
+
+	/*sCommand.uCommand.sProcessPakCommand.pakBufAddr = pSettings->pakMemory.offset;*/
+	err = BDSP_Raaga_P_SendCommand(pDevice->hCmdQueue[0], &sCommand, NULL);
+
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_GetAudioLicenseStatus: GetAudioLicenseStatus command failed!"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
+
+	/* Wait for Ack_Response_Received event w/ timeout */
+	err = BKNI_WaitForEvent(pDevice->hEvent[0], BDSP_RAAGA_EVENT_TIMEOUT_IN_MS);
+	if (BERR_TIMEOUT == err)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_GetAudioLicenseStatus: GetAudioLicenseStatus command TIMEOUT!"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
+
+	eMsgType = BDSP_P_MsgType_eSyn;
+	err = BDSP_Raaga_P_GetMsg(pDevice->hGenRspQueue[0], (void *)&sRsp, eMsgType);
+
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_GetAudioLicenseStatus: Unable to read ACK!"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
+
+	if ((sRsp.sCommonAckResponseHeader.eStatus != BERR_SUCCESS)||
+		(sRsp.sCommonAckResponseHeader.ui32ResponseID != BDSP_RAAGA_GET_AUDIOLICENSE_STATUS_COMMAND_RESPONSE_ID))
+	{
+
+		BDBG_ERR(("BDSP_Raaga_P_GetAudioLicenseStatus: Process PAK command ACK not received successfully!eStatus = %d , ui32ResponseID = %d , ui32TaskID %d ",
+			sRsp.sCommonAckResponseHeader.eStatus,sRsp.sCommonAckResponseHeader.ui32ResponseID,sRsp.sCommonAckResponseHeader.ui32TaskID));
+		err = BERR_TRACE(BERR_INVALID_PARAMETER);
+		goto end;
+	}
+
+    pAudioLicenseStatus->ui32AllAudioLicense = sRsp.uResponse.sAudioLicenseStatus.ui32AllAudioLicense;
+    pAudioLicenseStatus->ui32LicenseEnabledInBP3 = sRsp.uResponse.sAudioLicenseStatus.ui32LicenseEnabledInBP3;
+    pAudioLicenseStatus->ui32LicenseEnabledInPAK = sRsp.uResponse.sAudioLicenseStatus.ui32LicenseEnabledInPAK;
+    BDBG_MSG((" AllAudioLicense = 0x%08x, LicenseEnabledinBP3 = 0x%08x, LicenseEnabledInPAK = 0x%08x, LicenseInPAKUnmasked = 0x%x, dolbyotp = 0x%x, bondoption = %d, Isit28nm = %d",\
+    sRsp.uResponse.sAudioLicenseStatus.ui32AllAudioLicense,
+    sRsp.uResponse.sAudioLicenseStatus.ui32LicenseEnabledInBP3,
+    sRsp.uResponse.sAudioLicenseStatus.ui32LicenseEnabledInPAK,
+    sRsp.uResponse.sAudioLicenseStatus.ui32LicenseEnabledInPAKUnmasked,
+    sRsp.uResponse.sAudioLicenseStatus.eDolbyOTP,
+    sRsp.uResponse.sAudioLicenseStatus.ui32BondOption,
+    sRsp.uResponse.sAudioLicenseStatus.ui32Isit28nm));
+
+	BDBG_LEAVE(BDSP_Raaga_P_GetAudioLicenseStatus);
+end:
+	return err;
+}
+
+/***********************************************************************
+Summary:
+This function prepares the command header with PAK File info, DRM File info
+and Bounded PAK File address and sends the command to DSP to evaluate the
+status of audio license.
+***********************************************************************/
 BERR_Code BDSP_Raaga_P_ProcessPAK(
         void                          *pDeviceHandle,
         const BDSP_ProcessPAKSettings *pSettings,
@@ -3867,7 +3956,6 @@ BERR_Code BDSP_Raaga_P_ProcessPAK(
 	BDSP_Raaga_P_Command sCommand;
 	BDSP_P_MsgType eMsgType;
 	BDSP_Raaga_P_Response sRsp;
-	uint32_t i;
 
 	BDBG_ENTER(BDSP_Raaga_P_ProcessPAK);
 
@@ -3927,7 +4015,7 @@ BERR_Code BDSP_Raaga_P_ProcessPAK(
 		err = BERR_TRACE(BERR_INVALID_PARAMETER);
 		goto end;
 	}
-
+#if 0
 	BDBG_MSG(("******************************************************"));
 
 
@@ -3945,7 +4033,7 @@ BERR_Code BDSP_Raaga_P_ProcessPAK(
 	}
 
 	BDBG_MSG(("******************************************************"));
-
+#endif
 	BDBG_LEAVE(BDSP_Raaga_P_ProcessPAK);
 end:
 	if(BERR_SUCCESS == err)

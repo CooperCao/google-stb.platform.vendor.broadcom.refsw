@@ -2553,6 +2553,11 @@ int bserver_set_audio_config(struct b_audio_resource *r, bool forceReconfig)
                         break;
                     }
 
+                    if (i == NEXUS_AudioCodec_eAc3Plus && (!ddpCompressedAllowed) &&
+                        server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 && r->ddre ) {
+                        outputMode = NxClient_AudioOutputMode_ePcm;
+                    }
+
                     if (outputMode == NxClient_AudioOutputMode_ePcm) {
                         outputMode = (session->audioSettings.hdmi.outputMode == NxClient_AudioOutputMode_eAuto) ?
                             NxClient_AudioOutputMode_eTranscode : NxClient_AudioOutputMode_eMultichannelPcm;
@@ -2722,6 +2727,11 @@ int bserver_set_audio_config(struct b_audio_resource *r, bool forceReconfig)
                             break;
                         default:
                             break;
+                        }
+
+                        if (i == NEXUS_AudioCodec_eAc3Plus && (!ddpCompressedAllowed) &&
+                            server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 && r->ddre ) {
+                            outputMode = NxClient_AudioOutputMode_ePcm;
                         }
 
                         if (session->audioSettings.spdif.outputMode == NxClient_AudioOutputMode_eAuto &&

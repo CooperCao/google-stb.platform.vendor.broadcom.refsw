@@ -249,6 +249,7 @@ BERR_Code BDSP_P_RequestMemory(
     BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_ENTER(BDSP_P_RequestMemory);
+	BKNI_Memset((void *)pMemory, 0 , sizeof(BDSP_MMA_Memory));
 	if(ui32Size)
 	{
 	    if((pMemoryPool->ui32UsedSize + ui32Size) > pMemoryPool->ui32Size)

@@ -40,7 +40,6 @@
 # FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 #############################################################################
 
-
 #
 # Conditional Options for this Makefile
 #
@@ -62,5 +61,6 @@ BDSP_SOURCES += \
 	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_log.c \
 	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_log_buf.c \
 	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_cit_log_ext.c \
-	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common.c
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common.c \
+	$(MAGNUM)/basemodules/dsp/src/common_v2/bdsp_common_diagnostics_priv.c
 endif

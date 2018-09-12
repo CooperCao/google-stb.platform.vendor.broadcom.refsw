@@ -93,13 +93,12 @@ uint8_t *ccfbuf = NULL;
 uint32_t ccfsize = 0;
 uint8_t *logbuf = NULL;
 uint32_t logsize = 0;
+uint8_t *binbuf = NULL;
+uint32_t binsize = 0;
 uint32_t *_status = NULL; /* status by IP owner */
 uint32_t statusSize = 0;
 int errorCode = 0;
 pthread_t ssdpThread = 0;
-
-extern char bp3_bin_file_name[];
-extern char bp3_bin_file_path[];
 
 // TODO: Partners should define this port
 int port = 80;
@@ -153,7 +152,7 @@ static int web_post_bp3_handler(struct mg_connection *conn, void *cbdata)
   }
   for (int i = mg_read(conn, ccfbuf, ccfsize), l = i; i > 0 && l < ccfsize; l += i > 0 ? i : 0)
     i = mg_read(conn, ccfbuf + l, ccfsize - l);
-  errorCode = bp3_session_end(ccfbuf, ccfsize, &logbuf, &logsize, &_status, &statusSize);
+  errorCode = bp3_session_end(ccfbuf, ccfsize, &logbuf, &logsize, &_status, &statusSize, &binbuf, &binsize);
   free(ccfbuf);
   ccfbuf = NULL;
   ccfsize = 0;
@@ -167,20 +166,23 @@ static int web_post_bp3_handler(struct mg_connection *conn, void *cbdata)
   }
 }
 
+#define SEND_BUF(buf, size, name) \
+  if (buf) { \
+    mg_write_header(conn, "application/octet-stream"); \
+    mg_write(conn, buf, size); \
+    free(buf); \
+    buf = NULL; \
+    size = 0; \
+    return 200; \
+  } \
+  else { \
+    mg_send_http_error(conn, 500, "There is no %s", name); \
+    return 500; \
+  }
+
 static int web_get_log_handler(struct mg_connection *conn, void *cbdata)
 {
-  if (logbuf) {
-    mg_write_header(conn, "application/octet-stream");
-    mg_write(conn, logbuf, logsize);
-    free(logbuf);
-    logbuf = NULL;
-    logsize = 0;
-    return 200;
-  }
-  else {
-    mg_send_http_error(conn, 500, "%s", "There is no log");
-    return 500;
-  }
+  SEND_BUF(logbuf, logsize, "log")
 }
 
 static int web_get_token_handler(struct mg_connection *conn, void *cbdata)
@@ -198,10 +200,7 @@ static int web_get_token_handler(struct mg_connection *conn, void *cbdata)
 
 static int web_get_bp3_handler(struct mg_connection *conn, void *cbdata)
 {
-  unsigned char buf[256];
-  snprintf(buf, sizeof(buf), "%s/%s", bp3_bin_file_path, bp3_bin_file_name);
-  mg_send_mime_file(conn, buf, "application/octet-stream");
-  return 200;
+  SEND_BUF(binbuf, binsize, "bp3.bin")
 }
 
 static int web_get_status_handler(struct mg_connection *conn, void *cbdata)
@@ -237,7 +236,7 @@ static int web_get_state_handler(struct mg_connection *conn, void *cbdata)
     &bondOption,
     &provisioned);
   if (session)
-    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
+    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
   if (rc) {
     mg_send_http_error(conn, 500, "%s", "Unable to read chip information from bp3 ta");
     return 500;
@@ -439,7 +438,7 @@ int start_bp3_host( int argc, char **argv ) {
     NEXUS_Platform_ReadRegister(BCHP_BSP_GLB_CONTROL_v_PubOtpUniqueID_lo, &otpIdLo);
   }
   if (session)
-    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL);
+    bp3_session_end(NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 
   return run(argc, argv);
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2016-2018 Broadcom.  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
  ***************************************************************************/
 
 #ifndef BAVC_RAP_H__
@@ -181,7 +178,7 @@ typedef struct BAVC_AudioBufferDescriptor
     unsigned uiRawDataOffset;  /* For most codecs, this will be equivalent to stCommon.uiOffset but if the data is encapsulated in another
                                   container (e.g. AAC ADTS) this will reflect the offset to the raw data block within the encapsulated
                                   frame. */
-    size_t   uiRawDataLength;  /* For most codecs, this will be equivalent to stCommon.uiLength but if the data is encapsulated in another
+    unsigned uiRawDataLength;  /* For most codecs, this will be equivalent to stCommon.uiLength but if the data is encapsulated in another
                                   container (e.g. AAC ADTS) this will reflect the length of the raw data block within the encapsulated
                                   frame. */
     /* Metadata */

@@ -251,6 +251,10 @@ from host to any task on DSP */
 
 #define BDSP_RAAGA_PROCESS_PAK_COMMAND_ID       \
         ((uint32_t)((BDSP_RAAGA_BSP_SCM_COMMAND_ID ) + 1))                              /** 0x156 **/
+
+#define BDSP_RAAGA_GET_AUDIOLICENSE_STATUS_COMMAND_ID       \
+        ((uint32_t)((BDSP_RAAGA_PROCESS_PAK_COMMAND_ID ) + 1))                          /** 0x157 **/
+
 /*** Following are the Ack ids for different commands ***/
 
 #define BDSP_RAAGA_START_TASK_ACK_ID   \
@@ -300,6 +304,8 @@ from host to any task on DSP */
 #define BDSP_RAAGA_PROCESS_PAK_COMMAND_ACK_ID     \
          ((uint32_t)((BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_ACK_ID ) + 1))           /** 0x20F **/
 
+#define BDSP_RAAGA_GET_AUDIOLICENSE_STATUS_COMMAND_ACK_ID     \
+         ((uint32_t)((BDSP_RAAGA_PROCESS_PAK_COMMAND_ACK_ID ) + 1))                     /** 0x210 **/
 
  /*** The following are the various Response Ids used for different commands  ***/
 
@@ -341,6 +347,8 @@ from host to any task on DSP */
 #define BDSP_RAAGA_PROCESS_PAK_COMMAND_RESPONSE_ID       \
          ((uint32_t)((BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_RESPONSE_ID ) + 1))      /** 0x30D **/
 
+#define BDSP_RAAGA_GET_AUDIOLICENSE_STATUS_COMMAND_RESPONSE_ID       \
+         ((uint32_t)((BDSP_RAAGA_PROCESS_PAK_COMMAND_RESPONSE_ID ) + 1))                /** 0x30E **/
 /***************************************************************************
 Summary:
     Enum indicating Mask bit for Enabling/Disabling specific event for a task.
@@ -472,6 +480,16 @@ typedef struct BDSP_Raaga_P_ProcessPakCommand
     uint32_t                ui32Dummy;                /*Required for Size Alignment */
 } BDSP_Raaga_P_ProcessPakCommand;
 
+typedef struct BDSP_Raaga_P_AudioLicenseStatus{
+    uint32_t ui32AllAudioLicense;
+    uint32_t ui32LicenseEnabledInBP3;
+    uint32_t ui32LicenseEnabledInPAK;
+    uint32_t ui32LicenseEnabledInPAKUnmasked;
+    BDSP_eDolbyOTP eDolbyOTP;
+    uint32_t ui32BondOption;
+    uint32_t ui32Isit28nm;
+}BDSP_Raaga_P_AudioLicenseStatus ;
+
 /***************************************************************************
 Summary:
      Common structure for all firmware commands
@@ -544,6 +562,7 @@ typedef struct BDSP_Raaga_P_Response
     {
         BDSP_P_FrameAdvanceResponse    sFrameAdvance;
         BDSP_Raaga_P_PAKResponse             sPAK;
+        BDSP_Raaga_P_AudioLicenseStatus sAudioLicenseStatus;
     } uResponse;
 } BDSP_Raaga_P_Response;
 
