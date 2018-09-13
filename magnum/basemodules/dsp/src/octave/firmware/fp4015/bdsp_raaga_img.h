@@ -273,4 +273,9 @@ extern const void * BDSP_IMG_adec_wma[];
 extern const void * BDSP_IMG_adec_wma_tables[];
 extern const void * BDSP_IMG_adec_wma_inter_frame[];
 #endif /*BDSP_WMA_SUPPORT*/
+#ifdef BDSP_OUTPUTFORMATTER_SUPPORT
+extern const void * BDSP_IMG_app_outputformatter[];
+extern const void * BDSP_IMG_app_outputformatter_tables[];
+extern const void * BDSP_IMG_app_outputformatter_inter_frame[];
+#endif
 #endif /*BDSP_RAAGA_IMG_H_*/

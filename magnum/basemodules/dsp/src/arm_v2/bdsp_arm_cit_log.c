@@ -105,6 +105,23 @@ void BDSP_Arm_P_Analyse_CIT(
 		BDSP_Arm_P_Analyse_CIT_Stage(pStageConfig, &pArmTask->pContext->pDevice->memInfo.DescriptorMemory[pArmTask->createSettings.dspIndex][0]);
 		BDBG_MSG(("-------------------------------------------- "));
     }
+	{
+		BDSP_P_Task_Memory_details((void *)&pArmTask->taskMemInfo,pArmTask->taskParams.taskId);
+		{
+			BDSP_ArmStage *pArmPrimaryStage;
+			pArmPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
+		    BDBG_OBJECT_ASSERT(pArmPrimaryStage, BDSP_ArmStage);
+
+		    BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmPrimaryStage, pStageIterator)
+		    BSTD_UNUSED(macroStId);
+		    BSTD_UNUSED(macroBrId);
+		    {
+				BDSP_P_Stage_Memory_details((void *)&pStageIterator->stageMemInfo,pStageIterator->eAlgorithm, pArmTask->taskParams.taskId);
+				BDSP_Arm_P_Stage_PortDiagnostics(pStageIterator);
+		    }
+		    BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pStageIterator)
+		}
+	}
 	BDBG_MSG(("============================================ "));
 	BDBG_LEAVE(BDSP_Arm_P_Analyse_CIT);
 }

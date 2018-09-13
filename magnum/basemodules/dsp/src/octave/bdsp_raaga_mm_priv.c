@@ -136,6 +136,7 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
 {
     unsigned MemoryRequired = 0;
 	unsigned preemptionLevel = 0;
+	unsigned coreIndex = 0;
 	BDSP_Algorithm algorithm;
 	const BDSP_P_AlgorithmInfo *pAlgoInfo;
 	const BDSP_P_AlgorithmCodeInfo *pAlgoCodeInfo;
@@ -144,50 +145,52 @@ static void BDSP_Raaga_P_CalculateScratchAndInterStageMemory(
     BDBG_ENTER(BDSP_Raaga_P_CalculateScratchAndInterStageMemory);
     *pMemReqd = 0;
 
-	for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
+	for(coreIndex = 0; coreIndex<numCorePerDsp; coreIndex++)
 	{
-		unsigned interStageBufferReqd=0, scratchBufferReqd = 0;
-		for(algorithm=0; algorithm<BDSP_Algorithm_eMax; algorithm++)
+		for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
 		{
-			pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
-            pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(algorithm);
-
-			if(ifMemApiTool)
+			unsigned interStageBufferReqd=0, scratchBufferReqd = 0;
+			for(algorithm=0; algorithm<BDSP_Algorithm_eMax; algorithm++)
 			{
-				/*Memory Estimate API */
-				supported = pUsage->Codeclist[algorithm];
+				pAlgoInfo = BDSP_P_LookupAlgorithmInfo(algorithm);
+		        pAlgoCodeInfo = BDSP_Raaga_P_LookupAlgorithmCodeInfo(algorithm);
+
+				if(ifMemApiTool)
+				{
+					/*Memory Estimate API */
+					supported = pUsage->Codeclist[algorithm];
+				}
+				else
+				{
+					/* Normal Path */
+					const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
+					pAlgoSupportInfo = BDSP_Raaga_P_LookupAlgorithmSupportInfo(algorithm);
+					supported = pAlgoSupportInfo->supported;
+				}
+
+				if((supported)&&(pAlgoInfo->bPreemptionLevelSupported[preemptionLevel]))
+				{
+					if(scratchBufferReqd < pAlgoCodeInfo->scratchBufferSize)
+						scratchBufferReqd = pAlgoCodeInfo->scratchBufferSize;
+					if(interStageBufferReqd < ((pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4)+INTERSTAGE_EXTRA_SIZE_ALIGNED))
+						interStageBufferReqd = ((pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4)+INTERSTAGE_EXTRA_SIZE_ALIGNED);
+				}
 			}
-			else
+			scratchBufferReqd = BDSP_ALIGN_SIZE(scratchBufferReqd,4096);
+			interStageBufferReqd = BDSP_ALIGN_SIZE(interStageBufferReqd,4096);
+			MemoryRequired += (scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)));
+			if(!ifMemApiTool)
 			{
 				/* Normal Path */
-				const BDSP_P_AlgorithmSupportInfo *pAlgoSupportInfo;
-				pAlgoSupportInfo = BDSP_Raaga_P_LookupAlgorithmSupportInfo(algorithm);
-				supported = pAlgoSupportInfo->supported;
+				pDevice->memInfo.WorkBufferMemory[dspIndex][coreIndex][preemptionLevel].ui32Size =
+				              (scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)));
 			}
-
-			if((supported)&&(pAlgoInfo->bPreemptionLevelSupported[preemptionLevel]))
-			{
-				if(scratchBufferReqd < pAlgoCodeInfo->scratchBufferSize)
-					scratchBufferReqd = pAlgoCodeInfo->scratchBufferSize;
-				if(interStageBufferReqd < ((pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4)+INTERSTAGE_EXTRA_SIZE_ALIGNED))
-					interStageBufferReqd = ((pAlgoInfo->maxChannelsSupported*pAlgoInfo->samplesPerChannel*4)+INTERSTAGE_EXTRA_SIZE_ALIGNED);
-			}
+			BDBG_MSG(("Work Buffer Allocation for Preemption Level %d",preemptionLevel));
+			BDBG_MSG(("Scratch = %d InterStage = %d Total(Scratch + %d Interstage) = %d",scratchBufferReqd,interStageBufferReqd,
+				(BDSP_MAX_BRANCH+1),(scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)))));
 		}
-		scratchBufferReqd = BDSP_ALIGN_SIZE(scratchBufferReqd,4096);
-		interStageBufferReqd = BDSP_ALIGN_SIZE(interStageBufferReqd,4096);
-		MemoryRequired += (scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)));
-		if(!ifMemApiTool)
-		{
-			/* Normal Path */
-			pDevice->memInfo.WorkBufferMemory[dspIndex][preemptionLevel].ui32Size =
-			              (scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)));
-		}
-		BDBG_MSG(("Work Buffer Allocation for Preemption Level %d",preemptionLevel));
-		BDBG_MSG(("Scratch = %d InterStage = %d Total(Scratch + %d Interstage) = %d",scratchBufferReqd,interStageBufferReqd,
-			(BDSP_MAX_BRANCH+1),(scratchBufferReqd+(interStageBufferReqd*(BDSP_MAX_BRANCH+1)))));
 	}
-
-    MemoryRequired = (MemoryRequired*numCorePerDsp);
+    /*MemoryRequired = (MemoryRequired);*/
 	*pMemReqd = MemoryRequired;
 	BDBG_MSG(("Work buffer Memory for(%d) cores = %d (%d KB) (%d MB)",numCorePerDsp, MemoryRequired, (MemoryRequired/1024), (MemoryRequired/(1024*1024))));
     BDBG_LEAVE(BDSP_Raaga_P_CalculateScratchAndInterStageMemory);
@@ -319,6 +322,7 @@ void BDSP_Raaga_P_CalculateDeviceRWMemory(
 )
 {
     unsigned MemoryRequired = 0;
+	*pMemReqd = 0;
 
     BDBG_ENTER(BDSP_Raaga_P_CalculateDeviceRWMemory);
 
@@ -708,7 +712,7 @@ static BERR_Code BDSP_Raaga_P_AssignDebugMemory(
 		pDevice->memInfo.debugQueueParams[dspindex][index].Memory   = Memory;
 	}
 
-	/* For Shared Debug service memory used by Debug process for Interactive Deubg Service.
+	/* For Shared Debug service memory used by Debug process for Interactive Debug Service.
 	 * This memory is always required for the debug service to run */
 	errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], PM_HOST_DEBUG_BUFFER_SIZE, &Memory);
 	if(errCode != BERR_SUCCESS)
@@ -773,22 +777,24 @@ static BERR_Code BDSP_Raaga_P_AssignWorkBufferMemory(
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t ui32Size = 0;
     BDSP_MMA_Memory Memory;
-	unsigned preemptionLevel = 0;
+	unsigned preemptionLevel = 0, coreIndex = 0;
     BDBG_ENTER(BDSP_Raaga_P_AssignWorkBufferMemory);
 
-    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
-    {
-        ui32Size = pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size;
-        errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Raaga_P_AssignWorkBufferMemory: Unable to allocate RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
-            goto end;
-        }
-        pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].Buffer  = Memory;
-		pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size= ui32Size;
-    }
-
+	for(coreIndex = 0; coreIndex<pDevice->numCorePerDsp; coreIndex++)
+	{
+	    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
+	    {
+	        ui32Size = pDevice->memInfo.WorkBufferMemory[dspindex][coreIndex][preemptionLevel].ui32Size;
+	        errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+	        if(errCode != BERR_SUCCESS)
+	        {
+	            BDBG_ERR(("BDSP_Raaga_P_AssignWorkBufferMemory: Unable to allocate RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
+	            goto end;
+	        }
+	        pDevice->memInfo.WorkBufferMemory[dspindex][coreIndex][preemptionLevel].Buffer  = Memory;
+			pDevice->memInfo.WorkBufferMemory[dspindex][coreIndex][preemptionLevel].ui32Size= ui32Size;
+	    }
+	}
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_AssignWorkBufferMemory);
 	return errCode;
@@ -800,23 +806,77 @@ static BERR_Code BDSP_Raaga_P_ReleaseWorkBufferMemory(
 )
 {
     BERR_Code errCode = BERR_SUCCESS;
-	unsigned preemptionLevel = 0;
+	unsigned preemptionLevel = 0, coreIndex = 0;
     BDBG_ENTER(BDSP_Raaga_P_ReleaseWorkBufferMemory);
 
-    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
-    {
-        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
-		pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size,
-		&pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].Buffer);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Raaga_P_ReleaseWorkBufferMemory: Unable to Release RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
-            goto end;
-        }
-	pDevice->memInfo.WorkBufferMemory[dspindex][preemptionLevel].ui32Size = 0;
-    }
+	for(coreIndex = 0; coreIndex<pDevice->numCorePerDsp; coreIndex++)
+	{
+	    for(preemptionLevel=0; preemptionLevel<BDSP_MAX_NUM_SCHED_LEVELS; preemptionLevel++)
+	    {
+	        errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+			pDevice->memInfo.WorkBufferMemory[dspindex][coreIndex][preemptionLevel].ui32Size,
+			&pDevice->memInfo.WorkBufferMemory[dspindex][coreIndex][preemptionLevel].Buffer);
+	        if(errCode != BERR_SUCCESS)
+	        {
+	            BDBG_ERR(("BDSP_Raaga_P_ReleaseWorkBufferMemory: Unable to Release RW memory for dsp %d with Preemption level =%d !!!!",dspindex, preemptionLevel));
+	            goto end;
+	        }
+		pDevice->memInfo.WorkBufferMemory[dspindex][coreIndex][preemptionLevel].ui32Size = 0;
+	    }
+	}
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseWorkBufferMemory);
+	return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_AssignProcessSpawnMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspindex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    uint32_t ui32Size = 0;
+    BDSP_MMA_Memory Memory;
+    BDBG_ENTER(BDSP_Raaga_P_AssignProcessSpawnMemory);
+
+    ui32Size += (BDSP_IMG_USER_PROCESS_SPAWN_MEM_SIZE*BDSP_MAX_NUM_USER_PROCESS);
+    ui32Size += BDSP_IMG_DEFAULT_MM_PROC_HEAP_SIZE;
+    ui32Size += BDSP_IMG_INIT_PROCESS_MEM_SIZE;
+    ui32Size += BDSP_IMG_TOPLEVEL_PROCESS_MEM_SIZE;
+
+    errCode  = BDSP_P_RequestMemory(&pDevice->memInfo.sRWMemoryPool[dspindex], ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AssignProcessSpawnMemory: Unable to allocate Process Spawn Memory for dsp %d !!!!",dspindex));
+        goto end;
+    }
+    pDevice->memInfo.ProcessSpawnMemory[dspindex].Buffer  = Memory;
+	pDevice->memInfo.ProcessSpawnMemory[dspindex].ui32Size= ui32Size;
+
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_AssignProcessSpawnMemory);
+	return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_ReleaseProcessSpawnMemory(
+    BDSP_Raaga *pDevice,
+    unsigned dspindex
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDBG_ENTER(BDSP_Raaga_P_ReleaseProcessSpawnMemory);
+
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sRWMemoryPool[dspindex],
+		pDevice->memInfo.ProcessSpawnMemory[dspindex].ui32Size,
+		&pDevice->memInfo.ProcessSpawnMemory[dspindex].Buffer);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseProcessSpawnMemory: Unable to Release Process Spawn memory for dsp %d !!!!",dspindex));
+        goto end;
+    }
+	pDevice->memInfo.ProcessSpawnMemory[dspindex].ui32Size = 0;
+end:
+	BDBG_LEAVE(BDSP_Raaga_P_ReleaseProcessSpawnMemory);
 	return errCode;
 }
 
@@ -874,6 +934,12 @@ BERR_Code BDSP_Raaga_P_AssignDeviceRWMemory(
         goto end;
     }
 
+	errCode = BDSP_Raaga_P_AssignProcessSpawnMemory(pDevice, dspindex);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_AssignDeviceRWMemory: Unable to Assign Process Spawn Memory for dsp %d!!!!",dspindex));
+		goto end;
+	}
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_AssignDeviceRWMemory);
     return errCode;
@@ -929,6 +995,13 @@ BERR_Code BDSP_Raaga_P_ReleaseDeviceRWMemory(
         BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Workbuffer Memory for dsp %d!!!!",dspindex));
         goto end;
     }
+
+	errCode = BDSP_Raaga_P_ReleaseProcessSpawnMemory(pDevice, dspindex);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ReleaseDeviceRWMemory: Unable to Release Process Spaen Memory for dsp %d!!!!",dspindex));
+		goto end;
+	}
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_ReleaseDeviceRWMemory);
     return errCode;

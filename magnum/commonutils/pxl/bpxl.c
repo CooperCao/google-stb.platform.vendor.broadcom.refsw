@@ -555,7 +555,10 @@ void BPXL_GetAlignment_isrsafe(
     }
 
     /* buf size = uiAlignedHeight * uiPitch */
-    uiPitch = BPXL_P_ALIGN_UP(uiPitch, uiAlignment);
+    if (BPXL_IS_YCbCr422_FORMAT(eFormat))
+    {
+        uiPitch = BPXL_P_ALIGN_UP(uiPitch, uiAlignment);
+    }
 
     if (puiAlignedWidth)
     {

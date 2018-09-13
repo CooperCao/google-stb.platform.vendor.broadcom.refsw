@@ -3691,7 +3691,7 @@ static void BVDC_P_Window_SetBypassColor_isr
     ulEnColorConv = (hWindow->bBypassCmpCsc)? 0 : 1;
     if((hCompositor->ulActiveVideoWindow == 1) || (hWindow->eId == eV0Id))
     {
-        BCFC_ColorSpace  *pDspOutColorSpace = &hCompositor->hDisplay->stOutColorSpaceExt.stColorSpace;
+        const BCFC_ColorSpace  *pDspOutColorSpace = &hCompositor->hDisplay->stOutColorSpaceExt.stColorSpace;
 
         /* if there is only one window in this compositor, it decides whether dviCsc bypass,
          * and if two windows are enabled, then window 0 decides it */
@@ -3699,6 +3699,10 @@ static void BVDC_P_Window_SetBypassColor_isr
             ((bBypassColorByTf || (pColorSpaceIn->eColorimetry == pColorSpaceOut->eColorimetry)) &&
              (pDspOutColorSpace->eColorFmt == BCFC_ColorFormat_eYCbCr) &&
              (pDspOutColorSpace->eColorRange == BCFC_ColorRange_eLimited));
+
+        /* Needs DviCsc if we're muting the Dvi output with fixed color using Csc */
+        bBypassDviCsc &= !hCompositor->hDisplay->stCurInfo.abOutputMute[BVDC_DisplayOutput_eDvo];
+
         if (hCompositor->bBypassDviCsc != bBypassDviCsc)
         {
             BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d_V%d decides to %s DVI_CSC", hCompositor->eId, hWindow->eId-eV0Id, (bBypassDviCsc)? "bypass":"not bypass"));

@@ -195,7 +195,9 @@ const char DistinctOutputType[BDSP_AF_P_DistinctOpType_eMax][BDSP_MAX_CHAR_LENGT
 	{"ITB"},
 	{"ANCILLARY DATA"},
 	{"DESCRIPTOR QUEUE"},
-	{"GENERIC INTERSTAGE"}
+	{"GENERIC INTERSTAGE"},
+	{"AUDIO RELEASE QUEUE"},
+	{"AUDIO DELIVERY QUEUE"}
 };
 
 const char BufferType[BDSP_AF_P_BufferType_eLast][BDSP_MAX_CHAR_LENGTH] =
@@ -292,7 +294,8 @@ const char TaskType[BDSP_P_TaskType_eLast][BDSP_MAX_CHAR_LENGTH]=
     {"Real Time"},
     {"Assured Rate"},
     {"On Demand"},
-	{"AFAP"},
+	{"A.F.A.P"},
+	{"R.M.S"}
 };
 
 const char SchedulingType[BDSP_TaskRealtimeMode_eMax+1][BDSP_MAX_CHAR_LENGTH]=

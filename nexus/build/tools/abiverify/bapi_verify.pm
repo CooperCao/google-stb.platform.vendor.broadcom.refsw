@@ -390,6 +390,17 @@ sub get_referenced_structs
     [keys %references];
 }
 
+sub get_basetype
+{
+    my $type = shift;
+    $type =~ s/\bconst\b//g;
+    $type =~ s/\*//g;
+    $type =~ s/\s+/ /g;
+    $type =~ s/^\s+//g;
+    $type =~ s/\s+$//g;
+    $type;
+}
+
 
 
 sub process_functions {
@@ -476,8 +487,7 @@ sub process_functions {
                                 my $ioctl_memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})), TYPE => 'NEXUS_Addr *', COMMENT => 'array of NEXUS_Addr', COMPAT => {POINTER => 1}};
                                 my $data_memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})) . "[$reserved]" , TYPE => 'NEXUS_Addr'};
                                 my $reserved;
-                                my $basetype;
-                                ($basetype) = ($_->{TYPE} =~ /^\s*(?:const)?\s*(.*?)\s*\*\s*$/);
+                                my $basetype = get_basetype $_->{TYPE};
                                 $shared_types{$basetype} = 1;
                                 push @ioctl_pointers, $ioctl_memory;
                                 if ($param->{INPARAM}) {
@@ -494,7 +504,8 @@ sub process_functions {
                 }
                 if(exists $param->{ATTR}{memory} && $param->{ATTR}{memory} eq 'cached') {
                     my $null = {KIND => ['struct'], NAME => $param->{NAME}, TYPE => 'bool'};
-                    $shared_types{$param->{BASETYPE}} = 1;
+                    my $basetype = get_basetype $param->{BASETYPE};
+                    $shared_types{$basetype} = 1;
                     $field->{TYPE} = 'NEXUS_Addr';
                     $ioctl_field->{COMPAT}{POINTER}=1;
                     push @ioctl_pointers, $ioctl_field;
@@ -514,6 +525,10 @@ sub process_functions {
                     foreach (@{$structs->{$field->{TYPE}}}) {
                         if(exists $_->{ATTR}{memory} && $_->{ATTR}{memory} eq 'cached') {
                             my $memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})), TYPE => 'NEXUS_Addr'};
+                            if(exists $_->{BASETYPE}) {
+                                print Dumper($_);
+                                $shared_types{$_->{BASETYPE}} = 1;
+                            }
                             if ($param->{INPARAM}) {
                                 push @fields_memory_in, $memory;
                             } else {

@@ -766,6 +766,7 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
         && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID)
         && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID)
          && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_PROCESS_PAK_COMMAND_ID)
+         && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_AUDIOLICENSE_STATUS_COMMAND_ID)
        )
     {
         BDBG_ASSERT(pRaagaTask);

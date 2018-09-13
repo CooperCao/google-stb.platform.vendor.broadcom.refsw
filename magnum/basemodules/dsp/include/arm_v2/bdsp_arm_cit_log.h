@@ -44,19 +44,25 @@
 
 #include "bdsp_arm_priv_include.h"
 
- void BDSP_Arm_P_Analyse_CIT(
-     BDSP_ArmTask  *pArmTask,
-     bool             CitReconfig
- );
- void BDSP_Arm_P_Analyse_CIT_GlobalTask(
-     BDSP_ArmTask                  *pArmTask,
-     BDSP_AF_P_sGLOBAL_TASK_CONFIG   *psGlobalTaskConfig
- );
- void BDSP_Arm_P_Analyse_CIT_PrimaryStage(
-     BDSP_AF_P_sPRIMARYSTAGE_INFO    *pPrimaryStageInfo
- );
- void BDSP_Arm_P_Analyse_CIT_Stage(
-     BDSP_AF_P_sSTAGE_CONFIG *pStageConfig,
-     BDSP_P_FwBuffer         *pDescriptorMemory
- );
+void BDSP_Arm_P_Analyse_CIT(
+	BDSP_ArmTask  *pArmTask,
+	bool             CitReconfig
+);
+void BDSP_Arm_P_Analyse_CIT_GlobalTask(
+	BDSP_ArmTask                  *pArmTask,
+	BDSP_AF_P_sGLOBAL_TASK_CONFIG   *psGlobalTaskConfig
+);
+	void BDSP_Arm_P_Analyse_CIT_PrimaryStage(
+	BDSP_AF_P_sPRIMARYSTAGE_INFO    *pPrimaryStageInfo
+);
+void BDSP_Arm_P_Analyse_CIT_Stage(
+	BDSP_AF_P_sSTAGE_CONFIG *pStageConfig,
+	BDSP_P_FwBuffer         *pDescriptorMemory
+);
+void BDSP_Arm_P_Device_Diagnostics(
+	BDSP_Arm  *pDevice
+);
+void BDSP_Arm_P_Stage_PortDiagnostics(
+	BDSP_ArmStage  *pArmStage
+);
 #endif /*BDSP_ARM_CIT_LOG_H_*/

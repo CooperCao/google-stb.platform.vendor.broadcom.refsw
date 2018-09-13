@@ -105,6 +105,23 @@ void BDSP_Raaga_P_Analyse_CIT(
 		BDSP_Raaga_P_Analyse_CIT_Stage(pStageConfig, &pRaagaTask->pContext->pDevice->memInfo.DescriptorMemory[pRaagaTask->createSettings.dspIndex][0]);
 		BDBG_MSG(("-------------------------------------------- "));
     }
+	{
+		BDSP_P_Task_Memory_details((void *)&pRaagaTask->taskMemInfo,pRaagaTask->taskParams.taskId);
+		{
+			BDSP_RaagaStage *pRaagaPrimaryStage;
+			pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+		    BDBG_OBJECT_ASSERT(pRaagaPrimaryStage, BDSP_RaagaStage);
+
+		    BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pStageIterator)
+		    BSTD_UNUSED(macroStId);
+		    BSTD_UNUSED(macroBrId);
+		    {
+				BDSP_P_Stage_Memory_details((void *)&pStageIterator->stageMemInfo,pStageIterator->eAlgorithm, pRaagaTask->taskParams.taskId);
+				BDSP_Raaga_P_Stage_PortDiagnostics(pStageIterator);
+		    }
+		    BDSP_STAGE_TRAVERSE_LOOP_END(pStageIterator)
+		}
+	}
 	BDBG_MSG(("============================================ "));
 	BDBG_LEAVE(BDSP_Raaga_P_Analyse_CIT);
 }

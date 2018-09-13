@@ -574,6 +574,38 @@ static void BDSP_Raaga_P_UnInitAtTaskDestroy(
 	BDBG_LEAVE(BDSP_Raaga_P_UnInitAtTaskDestroy);
 }
 
+static void BDSP_Raaga_P_AssignCoreIndex(
+	BDSP_TaskStartSettings	*pStartSettings,
+	unsigned                 numCoresAvailable,
+	BDSP_P_TaskParams       *pTaskParams
+)
+{
+	BDSP_RaagaTask    *pMasterRaagaTask;
+	BDSP_RaagaStage   *pRaagaPrimaryStage;
+	BDBG_ENTER(BDSP_Raaga_P_AssignCoreIndex);
+	pTaskParams->coreIndex = 0xFF;
+	if(numCoresAvailable > 1)
+	{
+		if((pStartSettings->schedulingMode == BDSP_TaskSchedulingMode_eSlave) && (pStartSettings->masterTask != NULL))
+		{
+			pMasterRaagaTask = (BDSP_RaagaTask *)pStartSettings->masterTask->pTaskHandle;
+			BDBG_OBJECT_ASSERT(pMasterRaagaTask, BDSP_RaagaTask);
+			pTaskParams->coreIndex = pMasterRaagaTask->taskParams.coreIndex;
+		}
+		else
+		{
+			pRaagaPrimaryStage = (BDSP_RaagaStage *)pStartSettings->primaryStage->pStageHandle;
+			BDBG_OBJECT_ASSERT(pRaagaPrimaryStage, BDSP_RaagaStage);
+			if(BDSP_Algorithm_eMixerDapv2 == pRaagaPrimaryStage->eAlgorithm)
+				pTaskParams->coreIndex = 0x1;
+			else
+				pTaskParams->coreIndex = 0x0;
+		}
+	}
+
+	BDBG_LEAVE(BDSP_Raaga_P_AssignCoreIndex);
+}
+
 static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 	BDSP_RaagaTask 			*pRaagaTask,
 	BDSP_TaskStartSettings  *pStartSettings
@@ -615,7 +647,9 @@ static BERR_Code BDSP_Raaga_P_InitAtStartTask(
 		BDBG_OBJECT_ASSERT(pMasterRaagaTask, BDSP_RaagaTask);
 		pRaagaTask->taskParams.masterTaskId = pMasterRaagaTask->taskParams.taskId;
 	}
-	pRaagaTask->taskParams.coreIndex = 0xFF; /* No concept of Core Affinity in OCTAVE yet, Future Implementation */
+	BDSP_Raaga_P_AssignCoreIndex(pStartSettings,
+		pDevice->numCorePerDsp,
+		&pRaagaTask->taskParams);
 
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	pRaagaTask->taskParams.taskId = BDSP_P_GetFreeTaskId(&pDevice->taskDetails[dspIndex]);
@@ -1004,6 +1038,8 @@ BERR_Code BDSP_Raaga_P_Open(BDSP_Raaga *pDevice)
 		errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
 		BDBG_ASSERT(0);
 	}
+
+	BDSP_Raaga_P_Device_Diagnostics(pDevice);
 
 	BDBG_LEAVE(BDSP_Raaga_P_Open);
 	return errCode;
@@ -1730,6 +1766,8 @@ BERR_Code BDSP_Raaga_P_CreateStage(
 
 	pRaagaStage->stage.addFmmOutput = BDSP_Raaga_P_AddFmmOutput;
 	pRaagaStage->stage.addFmmInput = BDSP_Raaga_P_AddFmmInput;
+    pRaagaStage->stage.addSoftFmmOutput = NULL;
+    pRaagaStage->stage.addSoftFmmInput = NULL;
 
 	pRaagaStage->stage.addRaveOutput = BDSP_Raaga_P_AddRaveOutput;
 	pRaagaStage->stage.addRaveInput = BDSP_Raaga_P_AddRaveInput;

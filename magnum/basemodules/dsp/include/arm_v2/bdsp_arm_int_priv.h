@@ -73,4 +73,20 @@ BERR_Code BDSP_Arm_P_SetContextInterruptHandlers(
     void *pContextHandle,
     const BDSP_ContextInterruptHandlers *pInterrupts
 );
+void BDSP_Arm_P_GetSoftFMMInputInterruptHandlers_isr(
+    void *pSoftFMMInput,
+    BDSP_SoftFMMInputInterruptHandlers *pHandlers
+);
+BERR_Code BDSP_Arm_P_SetSoftFMMInputInterruptHandlers_isr(
+    void *pSoftFMMInput,
+    const BDSP_SoftFMMInputInterruptHandlers *pHandlers
+);
+void BDSP_Arm_P_GetSoftFMMOutputInterruptHandlers_isr(
+    void *pSoftFMMOutput,
+    BDSP_SoftFMMOutputInterruptHandlers *pHandlers
+);
+BERR_Code BDSP_Arm_P_SetSoftFMMOutputInterruptHandlers_isr(
+    void *pSoftFMMOutput,
+    const BDSP_SoftFMMOutputInterruptHandlers *pHandlers
+);
 #endif /*BDSP_ARM_INT_PRIV_H_*/

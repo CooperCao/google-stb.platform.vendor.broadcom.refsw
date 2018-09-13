@@ -179,6 +179,7 @@ BERR_Code BDSP_Raaga_Open(
     pRaaga->device.getDefaultContextSettings = BDSP_Raaga_P_GetDefaultContextSettings;
     pRaaga->device.createContext = BDSP_Raaga_P_CreateContext;
     pRaaga->device.getStatus= BDSP_Raaga_P_GetStatus;
+    pRaaga->device.getAudioLicenseStatus= BDSP_Raaga_P_GetAudioLicenseStatus;
     pRaaga->device.powerStandby= BDSP_Raaga_P_PowerStandby;
     pRaaga->device.powerResume= BDSP_Raaga_P_PowerResume;
     pRaaga->device.getAlgorithmInfo= BDSP_Raaga_P_GetAlgorithmInfo;
@@ -198,6 +199,7 @@ BERR_Code BDSP_Raaga_Open(
 #endif /*!B_REFSW_MINIMAL*/
     pRaaga->device.getDefaultTsmSettings = BDSP_Raaga_P_GetDefaultTsmSettings;
     pRaaga->device.runDebugService = NULL;
+    pRaaga->device.softFMMOpen = NULL;
 
     /* Init context lists */
     BLST_S_INIT(&pRaaga->contextList);

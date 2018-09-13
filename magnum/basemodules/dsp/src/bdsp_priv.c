@@ -53,6 +53,10 @@ BDBG_OBJECT_ID(BDSP_Stage);
 BDBG_OBJECT_ID(BDSP_InterTaskBuffer);
 BDBG_OBJECT_ID(BDSP_ExternalInterrupt);
 BDBG_OBJECT_ID(BDSP_Queue);
+BDBG_OBJECT_ID(BDSP_SoftFMM);
+BDBG_OBJECT_ID(BDSP_SoftFMM_Input);
+BDBG_OBJECT_ID(BDSP_SoftFMM_Output);
+BDBG_OBJECT_ID(BDSP_SoftFMM_Mixer);
 
 void BDSP_P_InitDevice(
     BDSP_Device *pDevice,
@@ -124,4 +128,52 @@ void BDSP_P_InitTask(
     BKNI_Memset(pTask, 0, sizeof(BDSP_Task));
     BDBG_OBJECT_SET(pTask, BDSP_Task);
     pTask->pTaskHandle = pTaskHandle;
+}
+
+void BDSP_P_InitSoftFMM(
+    BDSP_SoftFMM *pSoftFMM,
+    void *pSoftFMMHandle
+    )
+{
+    BDBG_ASSERT(NULL != pSoftFMM);
+    BDBG_ASSERT(NULL != pSoftFMMHandle);
+    BKNI_Memset(pSoftFMM, 0, sizeof(BDSP_SoftFMM));
+    BDBG_OBJECT_SET(pSoftFMM, BDSP_SoftFMM);
+    pSoftFMM->pSoftFMM = pSoftFMMHandle;
+}
+
+void BDSP_P_InitSoftFMMMixer(
+    BDSP_SoftFMM_Mixer *pSoftFMMMixer,
+    void *pSoftFMMMixerHandle
+    )
+{
+    BDBG_ASSERT(NULL != pSoftFMMMixer);
+    BDBG_ASSERT(NULL != pSoftFMMMixerHandle);
+    BKNI_Memset(pSoftFMMMixer, 0, sizeof(BDSP_SoftFMM_Mixer));
+    BDBG_OBJECT_SET(pSoftFMMMixer, BDSP_SoftFMM_Mixer);
+    pSoftFMMMixer->pSoftFMMMixer= pSoftFMMMixerHandle;
+}
+
+void BDSP_P_InitSoftFMMInput(
+    BDSP_SoftFMM_Input *pSoftFMMInput,
+    void *pSoftFMMInputHandle
+    )
+{
+    BDBG_ASSERT(NULL != pSoftFMMInput);
+    BDBG_ASSERT(NULL != pSoftFMMInputHandle);
+    BKNI_Memset(pSoftFMMInput, 0, sizeof(BDSP_SoftFMM_Input));
+    BDBG_OBJECT_SET(pSoftFMMInput, BDSP_SoftFMM_Input);
+    pSoftFMMInput->pSoftFMMInput = pSoftFMMInputHandle;
+}
+
+void BDSP_P_InitSoftFMMOutput(
+    BDSP_SoftFMM_Output *pSoftFMMOutput,
+    void *pSoftFMMOutputHandle
+    )
+{
+    BDBG_ASSERT(NULL != pSoftFMMOutput);
+    BDBG_ASSERT(NULL != pSoftFMMOutputHandle);
+    BKNI_Memset(pSoftFMMOutput, 0, sizeof(BDSP_SoftFMM_Output));
+    BDBG_OBJECT_SET(pSoftFMMOutput, BDSP_SoftFMM_Output);
+    pSoftFMMOutput->pSoftFMMOutput = pSoftFMMOutputHandle;
 }

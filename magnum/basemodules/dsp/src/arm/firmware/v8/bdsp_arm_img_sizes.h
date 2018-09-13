@@ -1,4 +1,4 @@
-/******************************************************************************
+/*******************************************************************************
  * Copyright (C) 2018 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
@@ -38,8 +38,7 @@
  * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
-
+ ******************************************************************************/
 #define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608440)
 #define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)218016)
 #define BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE                          ((uint32_t)26752)

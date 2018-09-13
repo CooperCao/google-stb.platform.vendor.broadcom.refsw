@@ -56,4 +56,10 @@
  BERR_Code BDSP_Arm_P_CleanupCit(
      BDSP_ArmTask *pArmTask
  );
+
+ BERR_Code BDSP_Arm_P_CreateSoftFMMIOPort(
+    BDSP_Arm *pDevice,
+    BDSP_SoftFMMBufferDescriptor *pSoftFMMBufferDescriptor,
+    BDSP_AF_P_sIoPort *pIOPort);
+
 #endif /*BDSP_ARM_CIT_PRIV_H__*/

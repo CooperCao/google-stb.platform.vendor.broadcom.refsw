@@ -798,6 +798,23 @@ BDSP_DEFINES += BDSP_MP3ENC_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_MP3ENC_SOURCES)
 endif
 
+#
+#OUTPUTFORMATTER PP
+#
+ifneq ($(BDSP_OUTPUTFORMATTER_SUPPORT),n)
+BDSP_OUTPUTFORMATTER_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_outputformatter.c
+
+ifneq ($(wildcard $(BDSP_OUTPUTFORMATTER_SOURCES)),)
+BDSP_OUTPUTFORMATTER_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_OUTPUTFORMATTER_SUPPORT),y)
+BDSP_DEFINES += BDSP_OUTPUTFORMATTER_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_OUTPUTFORMATTER_SOURCES)
+endif
+
 #############################################################################
 #Control to Disable MS12, if none of the MS12 required modules are availabel
 #############################################################################

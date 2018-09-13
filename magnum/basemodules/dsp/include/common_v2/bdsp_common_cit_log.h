@@ -76,6 +76,15 @@ void BDSP_P_Analyse_CIT_BufferDetails(
 	dramaddr_t 		   offset,
 	unsigned           index
 );
+void BDSP_P_Task_Memory_details(
+	void 			*pMemInfoPtr,
+	unsigned     	 taskId
+);
+void BDSP_P_Stage_Memory_details(
+	void 			*pMemInfoPtr,
+	BDSP_Algorithm	 algorithm,
+	unsigned         taskID
+);
 
 extern const char Algorithm2Name[BDSP_Algorithm_eMax][BDSP_MAX_CHAR_LENGTH];
 extern const char PortType[BDSP_AF_P_PortType_eLast][BDSP_MAX_CHAR_LENGTH];
