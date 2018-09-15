@@ -1093,6 +1093,7 @@ static BERR_Code BXVD_S_GetDecodeDefaultSettings
       pDecodeDefSettings->bIgnoreNumReorderFramesEqZero = false;              /* Ignore AVC Num Reorder Frames equal zero */
 
       pDecodeDefSettings->bEarlyPictureDeliveryMode = false;                  /* Disable Early Picture Delivery Mode */
+      pDecodeDefSettings->bUseAllAvailableFWBuffers = false;                  /* Disable Use of all available HVD FW buffers */
       pDecodeDefSettings->pstEnhancedSettings = NULL;                         /* SW7425-1064: with linked channels, BXVD_StartDecode will be called */
       pDecodeDefSettings->bUserDataBTPModeEnable = false;                     /* Disable Userdata in BTP mode */
       pDecodeDefSettings->bNRTModeEnable = false;                             /* Disable NRT decode mode */
@@ -2652,6 +2653,9 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - BXVD_DecodeSettings.bEarlyPictureDeliveryMode = %d",
                          pXvdCh->sDecodeSettings.bEarlyPictureDeliveryMode));
 
+   BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - BXVD_DecodeSettings.bUseAllAvailableFWBuffers = %d",
+                         pXvdCh->sDecodeSettings.bUseAllAvailableFWBuffers));
+
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - BXVD_DecodeSettings.bUserDataBTPModeEnable = %d",
                          pXvdCh->sDecodeSettings.bUserDataBTPModeEnable));
 
@@ -3020,8 +3024,9 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       uiChannelMode |= VDEC_CHANNEL_MODE_OUTPUT_ALL_10BIT_TO_8BIT;
    }
 
-   if ((pXvdCh->sDecodeSettings.eVideoCmprStd == BAVC_VideoCompressionStd_eVP8) &&
-       (pXvdCh->sChSettings.uiExtraPictureMemoryAtoms != 0))
+   if (((pXvdCh->sDecodeSettings.eVideoCmprStd == BAVC_VideoCompressionStd_eVP8) &&
+        (pXvdCh->sChSettings.uiExtraPictureMemoryAtoms != 0)) ||
+       pXvdCh->sDecodeSettings.bUseAllAvailableFWBuffers)
    {
       uiChannelMode |= VDEC_CHANNEL_MODE_NON_LEGACY;
    }
