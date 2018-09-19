@@ -3029,6 +3029,12 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         goto ErrorExit;
     }
 
+    if(isSecureDecrypt && (data_length % AES_BLOCK_SIZE) != 0)
+    {
+        /* Force transfer to prevent secure buffer mis-alignment */
+        subsample_flags |= WV_OEMCRYPTO_LAST_SUBSAMPLE;
+    }
+
     if (!is_encrypted)
     {
         if (isSecureDecrypt)
