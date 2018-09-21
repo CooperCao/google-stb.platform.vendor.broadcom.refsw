@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_17
+## SAGE Binary Metadata - SSF 3_2_18
 ## unique_key checksum_type checksum url
-7271B0/sage_ta_edrm.bin sha1 194a76f78567bc93b6a295bc3356e20fe6a258ff http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_17/7271B0/ZB/sage_ta_edrm.bin
+7271B0/sage_ta_edrm.bin sha1 9956e69306774d60369780a954a77ce5a4f36c97 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_18/7271B0/ZB/sage_ta_edrm.bin

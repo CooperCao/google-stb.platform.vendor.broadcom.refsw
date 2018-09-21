@@ -26,7 +26,7 @@ uint32_t DescriptorMap::Find(const DescriptorInfo &descInfo) const
    return iter->second;
 }
 
-DescriptorMaps::DescriptorMaps(spv::ModuleAllocator<uint32_t> &allocator, DescriptorTables *tables) :
+DescriptorMaps::DescriptorMaps(const SpvAllocator &allocator, DescriptorTables *tables) :
    m_ubo(allocator, &tables->GetUBO()),
    m_ssbo(allocator, &tables->GetSSBO()),
    m_sampler(allocator, &tables->GetSampler()),

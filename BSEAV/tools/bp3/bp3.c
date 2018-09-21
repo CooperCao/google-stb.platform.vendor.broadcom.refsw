@@ -230,7 +230,6 @@ typedef struct inputfile_params_t {
 
 #define FEATURE_BYTES 32
 static const char *ipOwners[] = {"Unused", "Broadcom", "Dolby", "Rovi", "Technicolor", "DTS"};
-static const char *tzTaCustomers[] = {"", "Broadcom", "", "Novel-SuperTV"};
 static uint32_t features[GlobalSram_IPLicensing_Info_size];
 
 static struct {
@@ -506,16 +505,6 @@ int status()
     features[(uint32_t)Audio] = (feats[(uint32_t)Audio] & 0xFF00FF00) | (als.status & 0x00FF00FF);
 
   for (int i = 0; bp3_features[i].Name != NULL; i++) {
-    if (bp3_features[i].Bit == TZTA_CUSTOMER_ID && isOn(bitmap, bp3_features[i].OwnerId, bp3_features[i].Bit - 4)) {
-      uint8_t v = 0;
-      for (int j = 0; j < 8; j++)
-        v |= isOn(bitmap, bp3_features[i].OwnerId, bp3_features[i].Bit + j) ? 0 : (1 << j);
-      if (v < sizeof(tzTaCustomers))
-        PRINTF("%s - %s %s\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name, tzTaCustomers[v]);
-      else
-        PRINTF("%s - %s %d\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name, v);
-      continue;
-    }
     PRINTF("%s - %s [%s]\n", ipOwners[bp3_features[i].OwnerId], bp3_features[i].Name,
           isOn(bitmap, bp3_features[i].OwnerId, bp3_features[i].Bit) ? "Enabled" : "Disabled");
   }

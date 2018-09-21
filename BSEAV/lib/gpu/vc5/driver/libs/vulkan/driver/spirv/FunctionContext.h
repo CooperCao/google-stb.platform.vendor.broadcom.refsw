@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 #include "SymbolHandle.h"
 #include "BasicBlock.h"
 
@@ -111,7 +111,7 @@ public:
    void ResolvePhis(DflowBuilder &builder);
 
 private:
-   FunctionContext(const spv::ModuleAllocator<uint32_t> &allocator);
+   FunctionContext(const SpvAllocator &allocator);
 
 private:
    // Basic blocks for this function -- one per label.

@@ -40,9 +40,10 @@ TEST=`lsmod|grep bcm_astra >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod bcm_astra || exit;
 fi
+
 [[ -z "$B_REFSW_BYPASS_BP3FLASH" ]] && B_REFSW_BYPASS_BP3FLASH=n
 if [ "$B_REFSW_BYPASS_BP3FLASH" == "n" ]; then
-./bp3flash.sh 2>/dev/null
+./bp3flash.sh 2 >/dev/null
 fi
 
 insmod bcmdriver.ko || exit;

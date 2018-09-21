@@ -7,8 +7,7 @@
 #include <vector>
 #include <cassert>
 
-#include "Dflow.h"
-#include "ModuleAllocator.h"
+#include "DflowScalars.h"
 
 namespace bvk {
 

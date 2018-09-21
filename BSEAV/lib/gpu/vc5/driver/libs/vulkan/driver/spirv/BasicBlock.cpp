@@ -15,10 +15,10 @@ namespace bvk {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-BasicBlockPool::BasicBlockPool(const spv::ModuleAllocator<uint32_t> &allocator) :
+BasicBlockPool::BasicBlockPool(const SpvAllocator &allocator) :
    m_allocator(allocator)
 {
-   m_list = spv::ModuleAllocator<spv::list<BasicBlock *>>(allocator).New(allocator);
+   m_list = allocator.New<spv::list<BasicBlock *>>(allocator);
 }
 
 BasicBlockPool::~BasicBlockPool()

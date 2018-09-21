@@ -17,7 +17,7 @@ namespace spv {
 extern void LogUsage(const char *name, const bvk::ArenaAllocator<bvk::SysMemCmdBlock, void*> &arena);
 
 //////////////////////////////////////////////////////////////////////////////
-// ModuleAllocator
+// PoolAllocator
 //
 // An templated arena allocator for objects of type T.
 // Fits the std::allocator model, so can be used in std containers for example.
@@ -30,9 +30,46 @@ extern void LogUsage(const char *name, const bvk::ArenaAllocator<bvk::SysMemCmdB
 // 'reserve()'d is not wise.
 //////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class ModuleAllocator
+class PoolAllocator
 {
 public:
+   PoolAllocator() {}
+
+   PoolAllocator(bvk::ArenaAllocator<bvk::SysMemCmdBlock, void*> *arena) :
+      m_arena(arena)
+   {
+   }
+
+   // Allow rebinding to allocate non-T types
+   template <class U>
+   PoolAllocator(const PoolAllocator<U> &other) :
+      m_arena(other.Arena())
+   {
+   }
+
+   // Utility for constructing objects of type U in the Pool
+   template <class U, class... Types>
+   U *New(Types&&... args) const
+   {
+      U *p = PoolAllocator<U>(*this).allocate(1);
+      return new (p) U(std::forward<Types>(args)...);
+   }
+
+   // Utility for constructing arrays of objects of type U in the Pool
+   template <class U>
+   U *NewArray(uint32_t numElems) const
+   {
+      U *p = PoolAllocator<U>(*this).allocate(numElems);
+
+      for (uint32_t i = 0; i < numElems; ++i)
+         new (p + i) U();
+
+      return p;
+   }
+
+   ////////////////////////////////////////////////////////////////////////////////////////////////
+   // std::allocate required interfaces
+   ////////////////////////////////////////////////////////////////////////////////////////////////
    using value_type = T;
    using pointer = T*;
    using const_pointer = const T*;
@@ -41,38 +78,6 @@ public:
    using size_type = std::size_t;
    using difference_type = std::ptrdiff_t;
 
-   ModuleAllocator() {}
-
-   ModuleAllocator(bvk::ArenaAllocator<bvk::SysMemCmdBlock, void*> *arena) :
-      m_arena(arena)
-   {
-   }
-
-   // Allow rebinding to allocate non-T types
-   template <class U>
-   ModuleAllocator(const ModuleAllocator<U> &other) :
-      m_arena(other.Arena())
-   {
-   }
-
-   template <class... Types>
-   T *New(Types&&... args) const
-   {
-      T *p = allocate(1);
-      return new (p) T(std::forward<Types>(args)...);
-   }
-
-   T *NewArray(uint32_t numElems) const
-   {
-      T *p = allocate(numElems);
-
-      for (uint32_t i = 0; i < numElems; ++i)
-         new (p + i) T();
-
-      return p;
-   }
-
-   // std::allocate required interfaces
    T *allocate(size_t n) const
    {
       size_t s = n * sizeof(T);
@@ -104,7 +109,7 @@ public:
    template <class U>
    struct rebind
    {
-      typedef ModuleAllocator<U> other;
+      typedef PoolAllocator<U> other;
    };
 
    void LogMemoryUsage(const char *name) const
@@ -122,13 +127,13 @@ private:
 };
 
 template< class T1, class T2 >
-bool operator==(const ModuleAllocator<T1>& lhs, const ModuleAllocator<T2>& rhs)
+bool operator==(const PoolAllocator<T1>& lhs, const PoolAllocator<T2>& rhs)
 {
    return true;
 }
 
 template< class T1, class T2 >
-bool operator!=(const ModuleAllocator<T1>& lhs, const ModuleAllocator<T2>& rhs)
+bool operator!=(const PoolAllocator<T1>& lhs, const PoolAllocator<T2>& rhs)
 {
    return false;
 }
@@ -136,24 +141,24 @@ bool operator!=(const ModuleAllocator<T1>& lhs, const ModuleAllocator<T2>& rhs)
 // Some definitions that make it easier to use std containers.
 // Use spv::vector rather than std::vector for example.
 template<typename T>
-using vector = std::vector<T, ModuleAllocator<T>>;
+using vector = std::vector<T, PoolAllocator<T>>;
 
 template<typename T>
-using list = std::list<T, ModuleAllocator<T>>;
+using list = std::list<T, PoolAllocator<T>>;
 
 template<typename T>
-using forward_list = std::forward_list<T, ModuleAllocator<T>>;
+using forward_list = std::forward_list<T, PoolAllocator<T>>;
 
 template<typename Key, class Compare = std::less<Key>>
-using set = std::set<Key, Compare, ModuleAllocator<Key>>;
+using set = std::set<Key, Compare, PoolAllocator<Key>>;
 
 template<typename Key, typename T, class Compare = std::less<Key>>
-using map = std::map<Key, T, Compare, ModuleAllocator<std::pair<const Key, T>>>;
+using map = std::map<Key, T, Compare, PoolAllocator<std::pair<const Key, T>>>;
 
 template<typename Key, typename T, class Compare = std::less<Key>>
-using multimap = std::multimap<Key, T, Compare, ModuleAllocator<std::pair<const Key, T>>>;
+using multimap = std::multimap<Key, T, Compare, PoolAllocator<std::pair<const Key, T>>>;
 
-using string = std::basic_string<char, std::char_traits<char>, ModuleAllocator<char>>;
+using string = std::basic_string<char, std::char_traits<char>, PoolAllocator<char>>;
 inline bool operator==(const spv::string &lhs, const std::string &rhs)
 {
    return strcmp(lhs.c_str(), rhs.c_str()) == 0;
@@ -172,3 +177,10 @@ inline bool operator!=(const spv::string &lhs, const char *rhs)
 }
 
 } // namespace spv
+
+namespace bvk
+{
+
+using SpvAllocator = spv::PoolAllocator<uint32_t>;
+
+}

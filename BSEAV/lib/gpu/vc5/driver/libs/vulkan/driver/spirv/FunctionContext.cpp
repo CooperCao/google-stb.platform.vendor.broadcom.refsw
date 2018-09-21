@@ -20,7 +20,7 @@ namespace bvk
 
 // Private helper constructor
 // The nullptr_t is just there to disambiguate this function
-FunctionContext::FunctionContext(const spv::ModuleAllocator<uint32_t> &allocator) :
+FunctionContext::FunctionContext(const SpvAllocator &allocator) :
    m_blocks(allocator),
    m_blockMap(std::less<const Node *>(), allocator),                 // gcc doesn't like not
    m_params(std::less<const NodeFunctionParameter *>(), allocator),  // being given the std::less
@@ -31,7 +31,7 @@ FunctionContext::FunctionContext(const spv::ModuleAllocator<uint32_t> &allocator
 
 // Create a default context with a single block -- for the entry point ("main") to be called from
 FunctionContext::FunctionContext(DflowBuilder &builder) :
-   FunctionContext(builder.GetArenaAllocator())
+   FunctionContext(builder.GetAllocator())
 {
    m_startBlock = BasicBlockHandle(builder.GetBasicBlockPool());
    m_blocks.push_back(m_startBlock);
@@ -41,7 +41,7 @@ FunctionContext::FunctionContext(DflowBuilder &builder) :
 // Note when the function call is nullptr, this would be an entry point
 FunctionContext::FunctionContext(const NodeFunction *function, const NodeFunctionCall *call,
                                  DflowBuilder &builder) :
-   FunctionContext(builder.GetArenaAllocator())
+   FunctionContext(builder.GetAllocator())
 {
    m_returnBlock  = BasicBlockHandle(builder.GetBasicBlockPool());
    m_functionCall = call;
@@ -87,7 +87,7 @@ void FunctionContext::ResolvePhis(DflowBuilder &builder)
 // Compile-time stack for function in-lining
 ///////////////////////////////////////////////////////////////////////////////
 FunctionStack::FunctionStack(DflowBuilder &builder) :
-   m_stack(builder.GetArenaAllocator()),
+   m_stack(builder.GetAllocator()),
    m_builder(builder)
 {
    // Creates an empty block from which "main" can be called.

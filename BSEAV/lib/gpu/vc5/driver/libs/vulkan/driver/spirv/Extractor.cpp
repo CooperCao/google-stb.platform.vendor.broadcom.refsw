@@ -7,6 +7,16 @@
 
 namespace bvk {
 
+Extractor::Extractor(Module &module, const uint32_t *instr) :
+   m_module   (module),
+   m_allocator(module.GetAllocator()),
+   m_instr    (instr),
+   m_index    (1),        // Start of first argument
+   m_wordCount(instr[0] >> spv::con::WordCountShift),
+   m_opCode   (static_cast<spv::Core>(instr[0] & spv::con::OpCodeMask))
+{
+}
+
 Extractor &Extractor::operator>>(const Node *&node)
 {
    m_module.FillNodePointer(&node, m_instr[m_index]);
@@ -22,11 +32,5 @@ Extractor &Extractor::operator>>(const NodeType *&node)
 
    return *this;
 }
-
-spv::ModuleAllocator<uint32_t> &Extractor::GetAllocator() const
-{
-   return m_module.GetArenaAllocator();
-}
-
 
 } // namespace bvk

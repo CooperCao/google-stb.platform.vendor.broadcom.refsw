@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 /*
  * This "macro" expects the following defines are available before including
@@ -65,6 +69,9 @@
 #endif
 #ifdef BCHP_UPG_SPI_AON_IRQ_REG_START
 #include "bchp_int_id_upg_spi_aon_irq.h"
+#endif
+#ifdef BCHP_UPG_AUX_AON_INTR2_REG_START
+#include "bchp_int_id_upg_aux_aon_intr2.h"
 #endif
 
 #ifdef BCHP_INT_ID_IRQ0_gio_irqen
@@ -198,6 +205,41 @@
 #else
 #define VIRTUAL_INT_ID_uc 0
 #endif
+#ifdef BCHP_INT_ID_BICAP_FIFO_INACT_INTR
+#define VIRTUAL_INT_ID_BICAP_FIFO_INACT_INTR BCHP_INT_ID_BICAP_FIFO_INACT_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_FIFO_INACT_INTR 0
+#endif
+#ifdef BCHP_INT_ID_BICAP_FIFO_LVL_INTR
+#define VIRTUAL_INT_ID_BICAP_FIFO_LVL_INTR BCHP_INT_ID_BICAP_FIFO_LVL_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_FIFO_LVL_INTR 0
+#endif
+#ifdef BCHP_INT_ID_BICAP_FIFO_OF_INTR
+#define VIRTUAL_INT_ID_BICAP_FIFO_OF_INTR BCHP_INT_ID_BICAP_FIFO_OF_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_FIFO_OF_INTR 0
+#endif
+#ifdef BCHP_INT_ID_BICAP_TIMEOUT0_INTR
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT0_INTR BCHP_INT_ID_BICAP_TIMEOUT0_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT0_INTR 0
+#endif
+#ifdef BCHP_INT_ID_BICAP_TIMEOUT1_INTR
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT1_INTR BCHP_INT_ID_BICAP_TIMEOUT1_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT1_INTR 0
+#endif
+#ifdef BCHP_INT_ID_BICAP_TIMEOUT2_INTR
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT2_INTR BCHP_INT_ID_BICAP_TIMEOUT2_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT2_INTR 0
+#endif
+#ifdef BCHP_INT_ID_BICAP_TIMEOUT3_INTR
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT3_INTR BCHP_INT_ID_BICAP_TIMEOUT3_INTR
+#else
+#define VIRTUAL_INT_ID_BICAP_TIMEOUT3_INTR 0
+#endif
 
 static const struct {
     uint32_t baseAddr;
@@ -224,6 +266,9 @@ static const struct {
 #ifdef BCHP_UPG_SPI_AON_IRQ_CPU_STATUS
     {BCHP_UPG_SPI_AON_IRQ_CPU_STATUS, NEXUS_Platform_P_VirtualL2_eUpgSpiAonIrq},
 #endif
+#ifdef BCHP_UPG_AUX_AON_INTR2_CPU_STATUS
+    {BCHP_UPG_AUX_AON_INTR2_CPU_STATUS, NEXUS_Platform_P_VirtualL2_eUpgAuxAonIntr2},
+#endif
     {0, NEXUS_Platform_P_VirtualL2_eMax}
 };
 
@@ -248,6 +293,9 @@ static const uint32_t g_NEXUS_Platform_P_VirtualL2GroupBaseAddresses[] = {
 #endif
 #ifdef BCHP_UPG_SPI_AON_IRQ_CPU_STATUS
     BCHP_UPG_SPI_AON_IRQ_CPU_STATUS,
+#endif
+#ifdef BCHP_UPG_AUX_AON_INTR2_CPU_STATUS
+    BCHP_UPG_AUX_AON_INTR2_CPU_STATUS,
 #endif
     0
 };
@@ -297,7 +345,14 @@ static const struct {
     {VIRTUAL_INT_ID_ua,      b_virtual_irq_line_ua},
     {VIRTUAL_INT_ID_ub,      b_virtual_irq_line_ub},
     {VIRTUAL_INT_ID_uc,      b_virtual_irq_line_uc},
-    {0,                        b_virtual_irq_line_max}
+    {VIRTUAL_INT_ID_BICAP_FIFO_INACT_INTR, b_virtual_irq_line_bicap_fifo_inact_intr},
+    {VIRTUAL_INT_ID_BICAP_FIFO_LVL_INTR,   b_virtual_irq_line_bicap_fifo_lvl_intr},
+    {VIRTUAL_INT_ID_BICAP_FIFO_OF_INTR,    b_virtual_irq_line_bicap_fifo_of_intr},
+    {VIRTUAL_INT_ID_BICAP_TIMEOUT0_INTR,   b_virtual_irq_line_bicap_timeout0_intr},
+    {VIRTUAL_INT_ID_BICAP_TIMEOUT1_INTR,   b_virtual_irq_line_bicap_timeout1_intr},
+    {VIRTUAL_INT_ID_BICAP_TIMEOUT2_INTR,   b_virtual_irq_line_bicap_timeout2_intr},
+    {VIRTUAL_INT_ID_BICAP_TIMEOUT3_INTR,   b_virtual_irq_line_bicap_timeout3_intr},
+    {0,                      b_virtual_irq_line_max}
 };
 
 bool NEXUS_Platform_P_VirtualIrqSupported(void)
@@ -496,17 +551,25 @@ NEXUS_Error NEXUS_Platform_P_UpdateIntSettings(BINT_Settings *pIntSettings)
                         if (mask & (1 << L2Shift)) {
                             NEXUS_Platform_P_VirtualL2State *virtualL2State = &g_NEXUS_Platform_P_VirtualL2State[virtualL2Index];
                             bool os_managed = false;
+                            bool l1_is_virtual = false;
                             BDBG_TRACE_L2(("%#x:%u -> %u %#x", virtualL2, L2Shift, g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine, mask));
                             mask &= ~(1 << L2Shift);
-                            os_managed = NEXUS_Platform_P_OsManagedIrq(g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine);
-                            BDBG_TRACE_L2(("Linux Managed Irq %d : %s", g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine, os_managed?"true":"false"));
-                            if (!os_managed ||
-                                (g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine == b_virtual_irq_line_gio) ||
-                                (g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine == b_virtual_irq_line_gio_aon)) {
-                                n_virtual++;
-                                group.lines[L2Shift] = g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine;
-                            } else {
-                                 L2RegisterUpdate->L2InvalidMask |= (1 << L2Shift);
+                            l1_is_virtual = NEXUS_Platform_P_IsVirtualIrq(L1Shift);
+                            BDBG_TRACE_L2(("L1 %u is virtual : %s", L1Shift, l1_is_virtual?"true":"false"));
+                            if (l1_is_virtual) {
+                                os_managed = NEXUS_Platform_P_OsManagedIrq(g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine);
+                                BDBG_TRACE_L2(("Linux Managed Irq %d : %s", g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine, os_managed?"true":"false"));
+                                if (virtualL2Index == NEXUS_Platform_P_VirtualL2_eUpgAuxAonIntr2) {
+                                    L2RegisterUpdate->L1Shift &= ~BINT_IS_STANDARD;
+                                }
+                                if (!os_managed ||
+                                    (g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine == b_virtual_irq_line_gio) ||
+                                    (g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine == b_virtual_irq_line_gio_aon)) {
+                                    n_virtual++;
+                                    group.lines[L2Shift] = g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine;
+                                } else {
+                                    L2RegisterUpdate->L2InvalidMask |= (1 << L2Shift);
+                                }
                             }
                             virtualL2State->irqLines[L2Shift] = g_NEXUS_Platform_P_VirtualL2IntIdIrqLineMap[k].irqLine;
                             if

@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 4_0_3
+## SAGE Binary Metadata - SSF 4_0_4
 ## unique_key checksum_type checksum url
-7278B0/sage_ta_netflix.bin sha1 07c4b68576bfb562fa7cfbf6b6895ada2b9c594f http://git-irv-03.irv.broadcom.com:88/files/SAGESW/4_0_3/7278B0/ZB/sage_ta_netflix.bin
+7278B0/sage_ta_netflix.bin sha1 f02a8a452bd13b027a1ea806c0a3f9f47e596177 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/4_0_4/7278B0/ZB/sage_ta_netflix.bin

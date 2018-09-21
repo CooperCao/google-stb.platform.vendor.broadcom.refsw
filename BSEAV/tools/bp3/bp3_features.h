@@ -61,5 +61,4 @@ typedef struct {
     uint8_t Bit;
 } bp3featuresStruct;
 
-#define TZTA_CUSTOMER_ID 164
 #endif /* BSEAV_LIB_SECURITY_SAGE_BP3_APP_BP3_FEATURES_H_ */

@@ -247,7 +247,7 @@ Dflow TextureLookup::CalcTexGrad() const
          uint32_t numScalars = dPdx.Size();
          assert(dPdy.Size() == numScalars);
 
-         DflowScalars tSize  = DflowScalars::TextureSize(m_builder.GetArenaAllocator(), numScalars, m_image);
+         DflowScalars tSize  = DflowScalars::TextureSize(m_builder.GetAllocator(), numScalars, m_image);
          bool         isCube = m_imageType->GetDim() == spv::Dim::Cube;
 
          result = calculateLod(tSize, m_coords, dPdx, dPdy, isCube);
@@ -262,7 +262,7 @@ DflowScalars TextureLookup::LodQuery() const
    uint32_t bits = ImageTextureBits(m_imageType) | DF_TEXBITS_LOD_QUERY;
    Dflow    bias = CalcTexBias(m_imageOperands);
 
-   return DflowScalars::Texture(m_builder.GetArenaAllocator(),
+   return DflowScalars::Texture(m_builder.GetAllocator(),
                                 m_coords, m_dref, bias,
                                 m_offset, m_image, m_sampler, bits);
 }
@@ -273,7 +273,7 @@ DflowScalars TextureLookup::ImplicitLodLookup() const
    uint32_t bits = ImageTextureBits(m_imageType);
    Dflow    bias = CalcTexBias(m_imageOperands);
 
-   return DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, bias,
+   return DflowScalars::Texture(m_builder.GetAllocator(), m_coords, m_dref, bias,
                                 m_offset, m_image, m_sampler, bits);
 }
 
@@ -286,7 +286,7 @@ DflowScalars TextureLookup::ExplicitLodLookup() const
    if (lod.IsNull())
       lod = CalcTexGrad();
 
-   return DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, lod,
+   return DflowScalars::Texture(m_builder.GetAllocator(), m_coords, m_dref, lod,
                                 m_offset, m_image, m_sampler, bits);
 }
 
@@ -304,7 +304,7 @@ DflowScalars TextureLookup::GatherLookup(uint32_t component) const
 
    bits |= (component & 0x3) << DF_TEXBITS_GATHER_COMP_SHIFT;
 
-   auto result = DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, lod,
+   auto result = DflowScalars::Texture(m_builder.GetAllocator(), m_coords, m_dref, lod,
                                        m_offset, m_image, m_sampler, bits);
 
    if (bits & DF_TEXBITS_I_OFF)
@@ -323,7 +323,7 @@ DflowScalars TextureLookup::ImageFetch() const
    uint32_t bits = DF_TEXBITS_FETCH;
    Dflow    lod  = CalcTexLod(m_imageOperands);
 
-   return DflowScalars::Texture(m_builder.GetArenaAllocator(), m_coords, m_dref, lod,
+   return DflowScalars::Texture(m_builder.GetAllocator(), m_coords, m_dref, lod,
                                 m_offset, m_image, Dflow(), bits);
 }
 
@@ -352,7 +352,7 @@ DflowScalars TextureLookup::Atomic(DataflowFlavour op, const DflowScalars &data,
    auto addr  = Dflow::CreateImageWriteAddress(m_image, m_coords);
    auto dflow = Dflow::Atomic(op, data[0].GetType(), addr, Dflow::Vec4(vs), block);
 
-   return DflowScalars(m_builder.GetArenaAllocator(), dflow);
+   return DflowScalars(m_builder.GetAllocator(), dflow);
 }
 
 }

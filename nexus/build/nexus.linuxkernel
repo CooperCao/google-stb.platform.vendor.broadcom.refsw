@@ -46,9 +46,12 @@ if [ "$TEST" != "64" ]; then
     fi
 fi
 
-./bp3flash.sh 2>/dev/null
+[[ -z "$B_REFSW_BYPASS_BP3FLASH" ]] && B_REFSW_BYPASS_BP3FLASH=n
+if [ "$B_REFSW_BYPASS_BP3FLASH" == "n" ]; then
+./bp3flash.sh 2 >/dev/null
+fi
 
-# bcm_asta.ko has to be loaded before nexus.ko
+# bcm_astra.ko has to be loaded before nexus.ko
 if [ -e bcm_astra.ko ]; then
 insmod bcm_astra.ko
 fi

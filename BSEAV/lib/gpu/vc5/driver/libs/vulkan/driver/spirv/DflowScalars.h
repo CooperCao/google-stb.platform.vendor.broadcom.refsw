@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "Dflow.h"
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 #include "SymbolTypeHandle.h"
 #include "BasicBlock.h"
 
@@ -53,7 +53,7 @@ public:
    // TODO (maybe) make the allocators more flexible so we can use
    // different allocators in different contexts e.g. use a temporary
    // allocator for intermediate results
-   using Allocator = spv::ModuleAllocator<uint32_t>;
+   using Allocator = SpvAllocator;
 
    DflowScalars() :
       m_allocator(nullptr),
@@ -371,7 +371,7 @@ public:
 private:
    Dflow *NewArray(uint32_t numElems) const
    {
-      return spv::ModuleAllocator<Dflow>(*m_allocator).NewArray(numElems);
+      return m_allocator->NewArray<Dflow>(numElems);
    }
 
 private:

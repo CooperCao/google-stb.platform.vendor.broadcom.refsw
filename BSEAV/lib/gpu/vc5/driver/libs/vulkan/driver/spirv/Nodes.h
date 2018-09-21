@@ -13,7 +13,7 @@
 
 #include "Optional.h"
 #include "NodeBase.h"
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 #include "NodeData.h"
 #include "Decoration.h"
 #include "Extractor.h"
@@ -213,6 +213,47 @@ private:
    spv::vector<uint32_t>   m_literals;
 };
 
+class NodeExecutionModeId : public Node
+{
+public:
+   NodeExecutionModeId(Extractor &ext) :
+      Node(),
+      m_ids(ext.GetAllocator())
+   {
+      ext >> m_entryPoint >> m_mode >> m_ids;
+   }
+
+   void Accept(NodeVisitor &visitor) const override
+   {
+      visitor.Visit(this);
+   }
+
+   const spv::vector<NodeConstPtr> &GetIds() const
+   {
+      return m_ids;
+   }
+
+   const NodeConstPtr &GetEntryPoint() const
+   {
+      return m_entryPoint;
+   }
+
+   spv::ExecutionMode GetMode() const
+   {
+      return m_mode;
+   }
+
+   spv::Core GetOpCode() const override
+   {
+      return spv::Core::OpExecutionMode;
+   }
+
+private:
+   NodeConstPtr               m_entryPoint;
+   spv::ExecutionMode         m_mode;
+   spv::vector<NodeConstPtr>  m_ids;
+};
+
 class NodeSpecConstantOp : public Node
 {
 public:
@@ -277,10 +318,10 @@ private:
 class NodeAccessChain : public Node
 {
 public:
-   NodeAccessChain(Extractor &ext, bool inBounds)
-      : Node(),
-        m_indices(ext.GetAllocator()),
-        m_inBounds(inBounds)
+   NodeAccessChain(Extractor &ext, bool inBounds) :
+      Node(),
+      m_indices(ext.GetAllocator()),
+      m_inBounds(inBounds)
    {
       ext >> m_resultType >> m_resultId >> m_base >> m_indices;
    }

@@ -1,56 +1,49 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ******************************************************************************
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * API Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  ******************************************************************************
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Fri Sep 22 21:16:51 2017 GMT
+ *   at: Tue Dec 19 21:57:36 2017 GMT
  *   by: gk901088
  *   for: Box Transcode
  *         MemC 0 (32-bit LPDDR4@1867MHz) w/486MHz clock
@@ -70,7 +63,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20170922211651_Transcode[] = {
+static const uint32_t aulMemc0_20171219215736_Transcode[] = {
            0x0475f01e,  /*   0: XPT_WR_RS 37600ns */
            0x817d402f,  /*   1: XPT_WR_XC RR 13309ns */
            0x81c8b01a,  /*   2: XPT_WR_CDB RR 15040ns */
@@ -149,7 +142,7 @@ static const uint32_t aulMemc0_20170922211651_Transcode[] = {
            0x804e3026,  /*  75: HVD0_ILCPU RR 2580ns */
            0x8032c023,  /*  76: HVD0_OLCPU RR 1776ns */
            0x804bc005,  /*  77: HVD0_CAB RR 2498ns */
-           0x007b000e,  /*  78: HVD0_ILSI 4055ns */
+           0x807b000e,  /*  78: HVD0_ILSI RR 4055ns */
            0x804e3027,  /*  79: HVD0_ILCPU_p2 RR 2580ns */
            0x007b000f,  /*  80: HVD0_ILSI_p2 4055ns */
            0x3ffff0ff,  /*  81: UNASSIGNED off */
@@ -330,25 +323,25 @@ static const uint32_t aulMemc0_20170922211651_Transcode[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20170922211651_Transcode[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20171219215736_Transcode[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80450f06}, /* HVD0_PFRI (gHVC) 188520.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000023c}, /* d: 4; p: 572.625 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x00001740}, /* 5952 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000df3}  /* 60% * 5952 */
 };
 
-static const uint32_t* const paulMemc_box11[] = { &aulMemc0_20170922211651_Transcode[0]};
+static const uint32_t* const paulMemc_box11[] = { &aulMemc0_20171219215736_Transcode[0]};
 
 const BBOX_Rts stBoxRts_Transcode_box11 = {
-  "20170922211651_Transcode_box11",
+  "20171219215736_Transcode_box11",
   7271,
   11,
   1,
   256,
   (const uint32_t**)&paulMemc_box11[0],
   4,
-  stBoxRts_PfriClient_20170922211651_Transcode
+  stBoxRts_PfriClient_20171219215736_Transcode
 };
 
-/* Checksum 0: 0x80740783 */
+/* Checksum 0: 0x67a30dc9 */
 /* Checksum 1: 0x0 */

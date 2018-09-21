@@ -6,10 +6,10 @@
 
 #include "glsl_symbols.h"
 #include "Spirv.h"
+#include "PoolAllocator.h"
 
 namespace bvk {
 
-class DflowBuilder;
 class NodeTypeStruct;
 
 ////////////////////////////////////////////////////////
@@ -73,13 +73,13 @@ public:
    static SymbolTypeHandle Sampler();
 
    // Returns an array type
-   static SymbolTypeHandle Array(const DflowBuilder &builder, SymbolTypeHandle elementType, uint32_t size);
+   static SymbolTypeHandle Array(const SpvAllocator &alloc, SymbolTypeHandle elementType, uint32_t size);
 
    // Returns a struct symbol type
-   static SymbolTypeHandle Struct(const DflowBuilder &builder, const NodeTypeStruct *, const MemberIter &members);
+   static SymbolTypeHandle Struct(const SpvAllocator &alloc, const NodeTypeStruct *, const MemberIter &members);
 
    // Returns a pointer symbol type
-   static SymbolTypeHandle Pointer(const DflowBuilder &builder, SymbolTypeHandle targetType);
+   static SymbolTypeHandle Pointer(const SpvAllocator &alloc, SymbolTypeHandle targetType);
 
    // Returns a sampled image symbol type
    static SymbolTypeHandle SampledImage(SymbolTypeHandle sampledType, spv::Dim dim, uint32_t arrayed, uint32_t ms);

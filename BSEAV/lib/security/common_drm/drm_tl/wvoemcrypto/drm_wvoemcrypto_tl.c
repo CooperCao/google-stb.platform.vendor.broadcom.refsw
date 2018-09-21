@@ -3853,6 +3853,24 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         goto ErrorExit;
     }
 
+    if(!force_transfer && isSecureDecrypt && (data_length % AES_BLOCK_SIZE) != 0)
+    {
+        /* Force transfer to prevent secure buffer mis-alignment */
+        force_transfer = true;
+    }
+
+    if(!force_transfer && gEventDrivenVerify)
+    {
+        current_time = time(NULL);
+        if(gHostSessionCtx[session].drmCommonOpStruct.num_dma_block > 0 &&
+            current_time >= gHostSessionCtx[session].decrypt_verify_time + WV_DECRYPT_VERIFY_INTERVAL)
+        {
+            /* Force a transfer if an encrypted portion is present and we've met the deadline */
+            BDBG_ERR(("%s - Forcing transfer to meet deadline", BSTD_FUNCTION));
+            force_transfer = true;
+        }
+    }
+
     if (force_transfer)
     {
         /* Force a transfer by overriding subsample flags */
@@ -3863,7 +3881,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
     {
         if (isSecureDecrypt)
         {
-            if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(out_buffer, data_addr, data_length, subsample_flags, force_transfer) != Drm_Success)
+            if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(out_buffer, data_addr, data_length, subsample_flags, false) != Drm_Success)
             {
                 BDBG_ERR(("%s: Operation failed for copy buffer SG Secure Buffer Type",BSTD_FUNCTION));
                 rc = Drm_Err;
@@ -3878,15 +3896,15 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
 
         if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
         {
-             /* Last subsample is clear. Transfer the encrypted block list */
+            /* Last subsample is clear. Transfer the encrypted block list */
              if(drm_WVOemCrypto_P_DecryptDMA_SG(NULL, NULL, 0,
-                 subsample_flags, &block_offset, session, isSecureDecrypt) != Drm_Success)
-             {
-                 BDBG_ERR(("%s: decryption failed for SG DMA",BSTD_FUNCTION));
-                 rc = Drm_Err;
-                 *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                 goto ErrorExit;
-             }
+                subsample_flags, &block_offset, session, isSecureDecrypt) != Drm_Success)
+            {
+                BDBG_ERR(("%s: decryption failed for SG DMA",BSTD_FUNCTION));
+                rc = Drm_Err;
+                *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+                goto ErrorExit;
+            }
         }
     }
     else
@@ -4088,7 +4106,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         {
             if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
             {
-                if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, force_transfer) != Drm_Success)
+                if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, false) != Drm_Success)
                 {
                     BDBG_ERR(("%s: Operation failed for copy buffer SG Secure Buffer Type",BSTD_FUNCTION));
                     rc = Drm_Err;
@@ -4952,7 +4970,7 @@ Retrieve DeviceID from the Keybox.
 Parameters:
 [out] deviceId pointer
 to the buffer that receives the Device ID
-[in/out] idLength – on input, size of the caller’s device ID buffer. On output, the number of bytes
+[in/out] idLength  on input, size of the callers device ID buffer. On output, the number of bytes
 written into the buffer.
 
 Returns:
@@ -5079,7 +5097,7 @@ Decrypt and return the Key Data field from the Keybox.
 Parameters:
 [out] keyData pointer
 to the buffer to hold the Key Data field from the Keybox
-[in/out] keyDataLength – on input, the allocated buffer size. On output, the number of bytes in
+[in/out] keyDataLength  on input, the allocated buffer size. On output, the number of bytes in
 Key Data
 
 Returns:
@@ -5308,12 +5326,12 @@ Parameters:
 to Keybox data to encrypt. May be NULL on the first call to test size of wrapped keybox. The keybox may either be clear or previously encrypted.
 [in] keyboxLength length
 the keybox data in bytes
-[out] wrappedKeybox – Pointer to wrapped keybox
-[out] wrappedKeyboxLength – Pointer to the length of the wrapped keybox in bytes
-[in] transportKey – Optional. AES transport key. If provided, the keybox parameter was
+[out] wrappedKeybox  Pointer to wrapped keybox
+[out] wrappedKeyboxLength  Pointer to the length of the wrapped keybox in bytes
+[in] transportKey  Optional. AES transport key. If provided, the keybox parameter was
 previously encrypted with this key. The keybox will be decrypted with the transport key using
 AESCBC and a null IV.
-[in] transportKeyLength – Optional. Number of bytes in the transportKey, if used.
+[in] transportKeyLength  Optional. Number of bytes in the transportKey, if used.
 
 Returns:
 OEMCrypto_SUCCESS success
@@ -7166,7 +7184,7 @@ ErrorExit:
 /*********************************************************************************
  * DRM_WVOemCrypto_ReportUsage
  *
- * Increment Usage Table’s generation number, sign, encrypt, and save the Usage Table.
+ * Increment Usage Tables generation number, sign, encrypt, and save the Usage Table.
  *
  * PARAMETERS:
  * [in] sessionContext: handle for the session to be used.
@@ -7347,7 +7365,7 @@ ErrorExit:
 /***********************************************************************************************
  * DRM_WVOemCrypto_DeleteUsageEntry
  *
- * Verifies the signature of the given message using the session’s mac_key[server]
+ * Verifies the signature of the given message using the sessions mac_key[server]
  * and the algorithm HMACSHA256, then deletes an entry from the session table. The
  * session should already be associated with the given entry, from a previous call to
  * DRM_WVOemCrypto_ReportUsage.

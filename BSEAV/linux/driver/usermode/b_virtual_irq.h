@@ -61,7 +61,7 @@ void b_virtual_irq_close_submodule(void);
 
 void b_virtual_irq_get_capabilities(b_virtual_irq_capabilities * caps);
 
-bool b_virtual_irq_l1_is_virtual(const char * name); /* returns bool */
+bool b_virtual_irq_l1_is_virtual(unsigned int irq); /* returns bool */
 int b_virtual_irq_get_linux_irq(b_virtual_irq_line line);
 void b_virtual_irq_software_l2_isr(b_virtual_irq_line line);
 

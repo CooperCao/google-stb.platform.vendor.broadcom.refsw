@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_17
+## SAGE Binary Metadata - SSF 3_2_18
 ## unique_key checksum_type checksum url
-7268B0/dev/sage_ta_netflix_dev.bin sha1 64ccc32456071e9cd623460c7befcbe698b2693c http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_17/7268B0/ZD/sage_ta_netflix_dev.bin
+7268B0/dev/sage_ta_netflix_dev.bin sha1 513380d137dca701a492ed48c4f3fc9325b31075 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_18/7268B0/ZD/sage_ta_netflix_dev.bin

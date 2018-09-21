@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include "Spirv.h"
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 
 namespace bvk {
 
