@@ -402,7 +402,7 @@ VULKAN_SRC_FILES :=                                                 \
 	libs/vulkan/driver/SwapchainKHR.cpp                         \
 	libs/vulkan/driver/Viewport.cpp                             \
 	libs/vulkan/driver/spirv/Module.cpp                         \
-	libs/vulkan/driver/spirv/ModuleAllocator.cpp                \
+	libs/vulkan/driver/spirv/PoolAllocator.cpp                  \
 	libs/vulkan/driver/spirv/Compiler.cpp                       \
 	libs/vulkan/driver/spirv/Linker.cpp                         \
 	libs/vulkan/driver/spirv/Dflow.cpp                          \

@@ -4,19 +4,13 @@
 
 #pragma once
 
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 
 namespace bvk {
 
 class Node;
 class NodeLabel;
-class NodeMemberDecorate;
-class NodeExecutionMode;
 class NodeFunctionParameter;
-class NodeEntryPoint;
-class NodeFunction;
-class NodeTypeStruct;
-class NodeVariable;
 class Decoration;
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -26,49 +20,14 @@ class Decoration;
 // a new Data* class here which will be contained in the Node.
 //////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////
-// Data held inside NodeEntryPoint
-//////////////////////////////////
-class DataEntryPoint
-{
-public:
-   DataEntryPoint(spv::ModuleAllocator<uint32_t> &arenaAllocator) :
-      m_modes(arenaAllocator)
-   {}
-
-   void AddMode(const NodeExecutionMode *mode)
-   {
-      m_modes.push_back(mode);
-   }
-
-   const spv::list<const NodeExecutionMode *> &GetModes() const
-   {
-      return m_modes;
-   }
-
-   void SetId(uint32_t id)
-   {
-      m_id = id;
-   }
-
-   uint32_t GetId() const
-   {
-      return m_id;
-   }
-
-private:
-   spv::list<const NodeExecutionMode *>   m_modes;
-   uint32_t                               m_id = ~0u;
-};
-
 /////////////////////////////
 // Data held inside NodeLabel
 /////////////////////////////
 class DataLabel
 {
 public:
-   DataLabel(spv::ModuleAllocator<uint32_t> &arenaAllocator) :
-      m_instructions(arenaAllocator)
+   DataLabel(const SpvAllocator &allocator) :
+      m_instructions(allocator)
    {}
 
    void AddInstruction(const Node *instruction)
@@ -81,18 +40,7 @@ public:
       return m_instructions;
    }
 
-   void SetBlockId(uint32_t id)
-   {
-      m_id = id;
-   }
-
-   uint32_t GetBlockId() const
-   {
-      return m_id;
-   }
-
 private:
-   uint32_t                   m_id;
    spv::vector<const Node *>  m_instructions;
 };
 
@@ -102,9 +50,9 @@ private:
 class DataFunction
 {
 public:
-   DataFunction(spv::ModuleAllocator<uint32_t> &arenaAllocator) :
-      m_parameters(arenaAllocator),
-      m_blocks(arenaAllocator)
+   DataFunction(const SpvAllocator &allocator) :
+      m_parameters(allocator),
+      m_blocks(allocator)
    {}
 
    void AddParameter(const NodeFunctionParameter *parameter)
@@ -129,20 +77,9 @@ public:
       return m_blocks;
    }
 
-   void SetId(uint32_t id)
-   {
-      m_id = id;
-   }
-
-   uint32_t GetId() const
-   {
-      return m_id;
-   }
-
 private:
    spv::vector<const NodeFunctionParameter *>  m_parameters;
    spv::vector<const NodeLabel *>              m_blocks;
-   uint32_t                                    m_id = ~0u;
 };
 
 //////////////////////////////////
@@ -154,8 +91,8 @@ public:
    using DecorationPair = std::pair<uint32_t, const Decoration *>;
    using DecorationList = spv::list<DecorationPair>;
 
-   DataTypeStruct(spv::ModuleAllocator<uint32_t> &arenaAllocator) :
-      m_memberDecorations(arenaAllocator)
+   DataTypeStruct(const SpvAllocator &allocator) :
+      m_memberDecorations(allocator)
    {}
 
    void SetMemberDecoration(uint32_t member, const Decoration *node);
@@ -167,48 +104,6 @@ public:
 
 private:
    DecorationList m_memberDecorations;
-};
-
-//////////////////////////////////////
-// Data held inside NodeMemberDecorate
-//////////////////////////////////////
-class DataMemberDecorate
-{
-public:
-   DataMemberDecorate(spv::ModuleAllocator<uint32_t> &arenaAllocator) :
-      m_literals(arenaAllocator)
-   {}
-
-   const spv::vector<uint32_t> &GetLiterals() const
-   {
-      return m_literals;
-   }
-
-private:
-   spv::vector<uint32_t>   m_literals;
-};
-
-////////////////////////////////
-// Data held inside NodeVariable
-////////////////////////////////
-class DataVariable
-{
-public:
-   DataVariable(spv::ModuleAllocator<uint32_t> &arenaAllocator)
-   {}
-
-   void SetId(uint32_t id)
-   {
-      m_id = id;
-   }
-
-   uint32_t GetId() const
-   {
-      return m_id;
-   }
-
-private:
-   uint32_t    m_id = ~0u;    // Id is used when this node is gathered into an array
 };
 
 } // namespace bvk

@@ -1593,6 +1593,13 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 if (result) {BERR_TRACE(result); break;}
                 break;
             }
+            case bcmdriver_irq_command_l1_is_virtual:
+            {
+                irq_control.data.l1.is_virtual = g_sChipConfig.pIntTable[irq_control.data.l1.irq+1].manageInt & INT_VIRTUAL_MASK;
+                result = copy_to_user((void*)arg, &irq_control, sizeof(irq_control));
+                if (result) {BERR_TRACE(result); break;}
+                break;
+            }
             default:
                 result = -EINVAL; BERR_TRACE(result);
                 break;
@@ -2104,7 +2111,7 @@ static void brcm_virtualize_l1s(void)
         if ((flags & INT_ENABLE_MASK) == 0) {
             continue;
         }
-        if (b_virtual_irq_l1_is_virtual(irqName))
+        if (b_virtual_irq_l1_is_virtual(make_linux_irq(i)))
         {
             flags &= ~INT_ENABLE_MASK;
             flags |= INT_VIRTUAL_MASK;

@@ -17,7 +17,7 @@
 #include "Allocating.h"
 #include "SysMemCmdBlock.h"
 #include "ArenaAllocator.h"
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 
 #include "glsl_symbols.h"
 #include "glsl_ir_program.h"
@@ -40,8 +40,8 @@ public:
    Module(const VkAllocationCallbacks *cbs, const uint32_t *spirvCode, uint32_t sizeInBytes);
    ~Module();
 
-   const spv::ModuleAllocator<uint32_t> &GetArenaAllocator() const { return m_arenaAllocator; }
-   spv::ModuleAllocator<uint32_t> &GetArenaAllocator() { return m_arenaAllocator; }
+   const SpvAllocator &GetAllocator() const { return m_allocator; }
+   SpvAllocator       &GetAllocator()       { return m_allocator; }
 
    uint32_t IdBound() const { return m_idBound; }
 
@@ -53,19 +53,23 @@ public:
    void AddDecorationGroup(const NodeDecorationGroup *group);
    void AddGroupMemberDecoration(const NodeGroupMemberDecorate *decorate);
 
-   void AddExecutionMode(const NodeExecutionMode *mode);
    void AddParameter(const NodeFunctionParameter *parameter);
    void AddInstruction(const Node *node);
    void AddMemberDecoration(const NodeMemberDecorate *node);
 
-   uint32_t AddFunction(const NodeFunction *function);
-   uint32_t AddEntryPoint(const NodeEntryPoint *entryPoint);
+   void AddFunction(const NodeFunction *function)
+   {
+      m_functions.push_back(function);
+   }
+
+   void AddEntryPoint(const NodeEntryPoint *entryPoint)
+   {
+      m_entryPoints.push_back(entryPoint);
+   }
 
    void AddVariable(const NodeVariable *node)
    {
-      uint32_t id = m_variables.size();
       m_variables.push_back(node);
-      node->GetData()->SetId(id);
 
       if (node->GetStorageClass() != spv::StorageClass::Function)
          m_globals.push_back(node);
@@ -81,7 +85,7 @@ public:
       m_globals.push_back(type);
    }
 
-   void AddConstant(const Node *node)
+   void AddGlobal(const Node *node)
    {
       m_globals.push_back(node);
    }
@@ -128,23 +132,9 @@ public:
 
    bool GetVarLocation(int *loc, const NodeVariable *var) const;
 
-   // Equivalent to "new T(args)" but will use the arena allocator
-   template <typename T, class... Types>
-   T *New(Types&&... args) const
-   {
-      return spv::ModuleAllocator<T>(m_arenaAllocator).New(std::forward<Types>(args)...);
-   }
-
-   template <typename T>
-   T *NewArray(uint32_t numElems) const
-   {
-      return spv::ModuleAllocator<T>(m_arenaAllocator).NewArray(numElems);
-   }
-
    const NodeEntryPoint *GetEntryPoint(const char *name, spv::ExecutionModel model,
                                        uint32_t *index = nullptr) const;
 
-   uint32_t                         GetNumBlocks() const { return m_blockCount; }
    const spv::vector<const Node *> &GetNodes()     const { return m_allNodes;   }
    uint32_t                         GetNumTypes()  const { return m_nTypes;     }
 
@@ -160,14 +150,15 @@ private:
 
 private:
    ArenaAllocator<SysMemCmdBlock, void*>  m_arena;
-   spv::ModuleAllocator<uint32_t>         m_arenaAllocator;
+   SpvAllocator                           m_allocator;
    uint32_t                               m_idBound;
 
    spv::vector<const Node *>              m_allNodes;
    spv::vector<const Node *>              m_results;
 
    // Patch list for forwards references (used during construction)
-   std::list<std::pair<NodeConstPtr *, NodeConstPtr *>>  m_forwards;
+   std::list<std::pair<NodeConstPtr *, NodeConstPtr *>>
+                                          m_forwards;
 
    // Type specific data
    spv::list<const NodeCapability *>      m_capabilities;
@@ -183,8 +174,6 @@ private:
 
    spv::vector<const NodeFunction *>      m_functions;
    spv::vector<const NodeEntryPoint *>    m_entryPoints;    // List of entry points
-
-   uint32_t                               m_blockCount = 0;
 
    spv::vector<spv::list<const Decoration *> *>
                                           m_decorations;    // Decorations applied to nodes

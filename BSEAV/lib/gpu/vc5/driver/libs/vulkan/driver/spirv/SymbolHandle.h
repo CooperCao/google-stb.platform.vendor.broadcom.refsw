@@ -7,12 +7,13 @@
 #include "glsl_common.h"
 #include "glsl_symbols.h"
 #include "SymbolTypeHandle.h"
+#include "PoolAllocator.h"
 #include "Qualifier.h"
 
 namespace bvk {
 
 class NodeVariable;
-class DflowBuilder;
+class Module;
 class SymbolListHandle;
 
 ////////////////////////////////////////////////////
@@ -29,16 +30,16 @@ public:
    explicit SymbolHandle(Symbol *symbol);
 
    // Named constructors
-   static SymbolHandle Variable(const DflowBuilder &builder, ShaderFlavour flavour, const char *name,
+   static SymbolHandle Variable(const Module &module, const SpvAllocator &alloc, ShaderFlavour flavour, const char *name,
                                 const NodeVariable *var, SymbolTypeHandle type);
 
-   static SymbolHandle Variable(const DflowBuilder &builder, ShaderFlavour flavour,
+   static SymbolHandle Variable(const SpvAllocator &alloc, ShaderFlavour flavour,
                                 const QualifierDecorations &qualifiers, uint32_t location, SymbolTypeHandle type);
 
-   static SymbolHandle Builtin(const DflowBuilder &builder, const char *name,
+   static SymbolHandle Builtin(const SpvAllocator &alloc, const char *name,
                                spv::StorageClass storageClass, SymbolTypeHandle type);
 
-   static SymbolHandle Internal(const DflowBuilder &builder, const char *name, SymbolTypeHandle type);
+   static SymbolHandle Internal(const SpvAllocator &alloc, const char *name, SymbolTypeHandle type);
 
    static SymbolHandle SharedBlock(const SymbolListHandle &symbols);
 
@@ -67,7 +68,7 @@ public:
    void                   DebugPrint() const;
 
 private:
-   SymbolHandle(const DflowBuilder &builder);
+   SymbolHandle(const SpvAllocator &builder);
 
 private:
    Symbol   *m_symbol = nullptr;

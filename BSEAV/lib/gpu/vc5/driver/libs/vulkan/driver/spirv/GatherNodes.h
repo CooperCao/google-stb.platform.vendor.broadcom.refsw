@@ -35,28 +35,12 @@ private:
    void Visit(const NodeDecorate *node)            override;
    void Visit(const NodeDecorationGroup *node)     override;
    void Visit(const NodeGroupDecorate *node)       override;
-   void Visit(const NodeName *node)                override;
-   void Visit(const NodeExecutionMode *node)       override;
    void Visit(const NodeVariable *node)            override;
    void Visit(const NodeLabel *node)               override;
    void Visit(const NodeFunction *node)            override;
    void Visit(const NodeFunctionParameter *node)   override;
    void Visit(const NodeMemberDecorate *node)      override;
    void Visit(const NodeGroupMemberDecorate *node) override;
-
-   void Visit(const NodeTypeVoid *node)         override;
-   void Visit(const NodeTypeBool *node)         override;
-   void Visit(const NodeTypeInt *node)          override;
-   void Visit(const NodeTypeFloat *node)        override;
-   void Visit(const NodeTypeVector *node)       override;
-   void Visit(const NodeTypeMatrix *node)       override;
-   void Visit(const NodeTypeImage *node)        override;
-   void Visit(const NodeTypeSampler *node)      override;
-   void Visit(const NodeTypeSampledImage *node) override;
-   void Visit(const NodeTypeArray *node)        override;
-   void Visit(const NodeTypeStruct *node)       override;
-   void Visit(const NodeTypePointer *node)      override;
-   void Visit(const NodeTypeFunction *node)     override;
 
 private:
    Module &m_module;

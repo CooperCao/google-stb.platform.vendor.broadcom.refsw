@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 /*
  * This "macro" expects the following defines are available before including
@@ -62,7 +66,7 @@ struct b_virtual_irq_line_state {
 
 static const struct b_virtual_irq_name_map_entry {
     b_virtual_irq_line irq_line;
-    char name[5];
+    char name[16];
 } g_virtual_irq_name_map[] = {
     {b_virtual_irq_line_iica, "iica"},
     {b_virtual_irq_line_iicb, "iicb"},
@@ -82,7 +86,14 @@ static const struct b_virtual_irq_name_map_entry {
     {b_virtual_irq_line_spi,  "spi"},
     {b_virtual_irq_line_ua,   "ua"},
     {b_virtual_irq_line_ub,   "ub"},
-    {b_virtual_irq_line_uc,   "uc"}
+    {b_virtual_irq_line_uc,   "uc"},
+    {b_virtual_irq_line_bicap_fifo_inact_intr,  "bicap_fifo_inact"},
+    {b_virtual_irq_line_bicap_fifo_lvl_intr,    "bicap_fifo_lvl"},
+    {b_virtual_irq_line_bicap_fifo_of_intr,     "bicap_fifo_of"},
+    {b_virtual_irq_line_bicap_timeout0_intr,    "bicap_timeout0"},
+    {b_virtual_irq_line_bicap_timeout1_intr,    "bicap_timeout1"},
+    {b_virtual_irq_line_bicap_timeout2_intr,    "bicap_timeout2"},
+    {b_virtual_irq_line_bicap_timeout3_intr,    "bicap_timeout3"},
 };
 
 static const char * b_virtual_irq_get_name(b_virtual_irq_line irq_line)
@@ -124,7 +135,16 @@ static const struct b_virtual_irq_map_entry {
     {b_virtual_irq_line_spi,  brcmstb_l2_irq_spi},
     {b_virtual_irq_line_ua,  brcmstb_l2_irq_ua},
     {b_virtual_irq_line_ub,  brcmstb_l2_irq_ub},
-    {b_virtual_irq_line_uc,  brcmstb_l2_irq_uc}
+    {b_virtual_irq_line_uc,  brcmstb_l2_irq_uc},
+#if BRCMSTB_H_VERSION >= 11
+    {b_virtual_irq_line_bicap_fifo_inact_intr, brcmstb_l2_irq_bicap_fifo_inact_intr },
+    {b_virtual_irq_line_bicap_fifo_lvl_intr,   brcmstb_l2_irq_bicap_fifo_lvl_intr},
+    {b_virtual_irq_line_bicap_fifo_of_intr,    brcmstb_l2_irq_bicap_fifo_of_intr},
+    {b_virtual_irq_line_bicap_timeout0_intr,   brcmstb_l2_irq_bicap_timeout0_intr},
+    {b_virtual_irq_line_bicap_timeout1_intr,   brcmstb_l2_irq_bicap_timeout1_intr},
+    {b_virtual_irq_line_bicap_timeout2_intr,   brcmstb_l2_irq_bicap_timeout2_intr},
+    {b_virtual_irq_line_bicap_timeout3_intr,   brcmstb_l2_irq_bicap_timeout3_intr}
+#endif
 };
 
 static brcmstb_l2_irq b_virtual_irq_find_linux_l2_by_line(b_virtual_irq_line irq_line)
@@ -184,33 +204,14 @@ void b_virtual_irq_get_capabilities(b_virtual_irq_capabilities * caps)
     *caps = g_virtual_irq_state.caps;
 }
 
-static const char * const g_virtual_irqs[] =
+static bool b_virtual_irq_l1_is_virtual(unsigned int irq)
 {
-#if B_VIRTUAL_IRQ_OS_SUPPORT
-"UPG_BSC",
-"UPG_BSC_AON",
-"UPG_MAIN",
-"UPG_MAIN_AON",
-"UPG_SPI"
-#else
-NULL
-#endif
-};
-
-bool b_virtual_irq_l1_is_virtual(const char * name)
-{
-    unsigned i;
-    const char *virtualIrq;
     bool virtual = false;
 
     if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return 0; }
 
-    for (i = 0; i < sizeof(g_virtual_irqs)/sizeof(g_virtual_irqs[0]); i++) {
-        virtualIrq = g_virtual_irqs[i];
-        if (virtualIrq && !strcmp(virtualIrq, name)) {
-            virtual = true;
-            break;
-        }
+    if (irq > 0) {
+        virtual = b_os_irq_is_os_managed(irq);
     }
     return virtual;
 }
@@ -494,4 +495,19 @@ end:
     printf("b_virtual_irq_make_group stubbed\n");
     return 0;
 #endif
+}
+
+static bool b_virtual_irq_is_os_managed(b_virtual_irq_line line)
+{
+    bool os_managed = false;
+
+    if (line > b_virtual_irq_line_unused && line < b_virtual_irq_line_max) {
+        int linux_irq = b_virtual_irq_get_linux_irq(line);
+        if (linux_irq > 0) {
+            os_managed = b_os_irq_is_os_managed(linux_irq);
+            if (g_brcm_virq_verbose) BDBG_LOG(("%s +%s", os_managed?"linux":"nexus", b_virtual_irq_get_name(line)));
+        }
+    }
+
+    return os_managed;
 }

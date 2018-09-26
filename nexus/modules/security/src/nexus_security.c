@@ -59,6 +59,7 @@
 #include "nexus_pid_channel.h"
 #include "priv/nexus_pid_channel_priv.h"
 #include "priv/nexus_transport_priv.h"
+#include "bhsm_otp_id.h"
 
 #if NEXUS_SECURITY_IPLICENSING
  #include "bhsm_ip_licensing.h"
@@ -392,6 +393,28 @@ static NEXUS_Error secureFirmwareRave( void )
     return BERR_SUCCESS;
 }
 
+static void _print_otpid_a(void)
+{
+    NEXUS_Error rc = BERR_SUCCESS;
+    BHSM_ReadOTPIdIO_t readOTPIdIO;
+    readOTPIdIO.OtpId = BHSM_OtpIdRead_eOTPIdA;
+    rc = BHSM_ReadOTPId(g_security.hsm, &readOTPIdIO);
+    if( rc != BERR_SUCCESS || readOTPIdIO.unStatus)
+    {
+        BDBG_ERR(("BHSM_ReadOTPId failed, rc=%d, unStatus=%d", rc, readOTPIdIO.unStatus));
+    } else {
+        if (readOTPIdIO.unIdSize != 8) {
+            BDBG_ERR(("%s: unknown OTP ID length %d", BSTD_FUNCTION, readOTPIdIO.unIdSize));
+        } else {
+            BDBG_LOG(("CHIPID: %02X%02X%02X%02X%02X%02X%02X%02X",
+                      (unsigned int)readOTPIdIO.aucOTPId[0], (unsigned int)readOTPIdIO.aucOTPId[1],
+                      (unsigned int)readOTPIdIO.aucOTPId[2], (unsigned int)readOTPIdIO.aucOTPId[3],
+                      (unsigned int)readOTPIdIO.aucOTPId[4], (unsigned int)readOTPIdIO.aucOTPId[5],
+                      (unsigned int)readOTPIdIO.aucOTPId[6], (unsigned int)readOTPIdIO.aucOTPId[7]));
+        }
+    }
+}
+
 NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalSettings *pModuleSettings, const NEXUS_SecurityModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
@@ -475,6 +498,8 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
     }
 
     NEXUS_UnlockModule();
+
+    _print_otpid_a();
 
     return NEXUS_P_SecurityModule;
 

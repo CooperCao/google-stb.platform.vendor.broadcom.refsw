@@ -1,42 +1,43 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2018 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bint_7358.h"
@@ -102,29 +103,29 @@
 
 BDBG_MODULE(interruptinterface_7358);
 
-#define BINT_P_STD_STATUS		0x00
-#define BINT_P_STD_SET			0x04
-#define BINT_P_STD_CLEAR		0x08
-#define BINT_P_STD_MASK_STATUS	0x0C
-#define BINT_P_STD_MASK_SET		0x10
-#define BINT_P_STD_MASK_CLEAR	0x14
+#define BINT_P_STD_STATUS       0x00
+#define BINT_P_STD_SET          0x04
+#define BINT_P_STD_CLEAR        0x08
+#define BINT_P_STD_MASK_STATUS  0x0C
+#define BINT_P_STD_MASK_SET     0x10
+#define BINT_P_STD_MASK_CLEAR   0x14
 
-#define	BINT_P_IRQ0_CASES \
+#define BINT_P_IRQ0_CASES \
     case BCHP_IRQ0_IRQEN:
 
-#define BINT_P_IRQ0_ENABLE		0
-#define BINT_P_IRQ0_STATUS		4
+#define BINT_P_IRQ0_ENABLE      0
+#define BINT_P_IRQ0_STATUS      4
 
 
-#define	BINT_P_IRQ0_AON_CASES \
+#define BINT_P_IRQ0_AON_CASES \
     case BCHP_IRQ0_AON_IRQEN:
 
-#define BINT_P_IRQ0_AON_ENABLE		0
-#define BINT_P_IRQ0_AON_STATUS		4
+#define BINT_P_IRQ0_AON_ENABLE      0
+#define BINT_P_IRQ0_AON_STATUS      4
 
 
-#define BINT_P_XPT_STATUS			0x00
-#define BINT_P_XPT_ENABLE			0x04
+#define BINT_P_XPT_STATUS           0x00
+#define BINT_P_XPT_ENABLE           0x04
 
 #define BINT_P_XPT_STATUS_CASES \
     case BCHP_XPT_BUS_IF_INTR_STATUS_REG: \
@@ -159,11 +160,11 @@ BDBG_MODULE(interruptinterface_7358);
     case BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS: \
     case BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS:
 
-#define BINT_P_PCROFFSET_STATUS		0x00
-#define BINT_P_PCROFFSET_ENABLE 	0x04
+#define BINT_P_PCROFFSET_STATUS     0x00
+#define BINT_P_PCROFFSET_ENABLE     0x04
 
 /* There is no constant address mapping from RAVE status to RAVE enable registers. */
-#define BINT_P_RAVE_STATUS			0x00
+#define BINT_P_RAVE_STATUS          0x00
 
 #define BINT_P_XPT_RAVE_CASES \
     case BCHP_XPT_RAVE_INT_CX0: \
@@ -191,8 +192,8 @@ BDBG_MODULE(interruptinterface_7358);
     case BCHP_XPT_RAVE_INT_CX22: \
     case BCHP_XPT_RAVE_INT_CX23:
 
-#define BINT_P_XPT_BUF_STATUS		0x00
-#define BINT_P_XPT_BUF_ENABLE		0x10
+#define BINT_P_XPT_BUF_STATUS       0x00
+#define BINT_P_XPT_BUF_ENABLE       0x10
 
 #define BINT_P_XPT_BUF_CASES \
     case BCHP_XPT_MSG_BUF_OVFL_INTR_00_31: \
@@ -204,8 +205,8 @@ BDBG_MODULE(interruptinterface_7358);
     case BCHP_XPT_MSG_BUF_DAT_RDY_INTR_64_95: \
     case BCHP_XPT_MSG_BUF_DAT_RDY_INTR_96_127:
 
-#define BINT_P_XPT_MSG_ERR_STATUS	( 0x00 )
-#define BINT_P_XPT_MSG_ERR_ENABLE	( 0x04 )
+#define BINT_P_XPT_MSG_ERR_STATUS   ( 0x00 )
+#define BINT_P_XPT_MSG_ERR_ENABLE   ( 0x04 )
 #define BINT_P_XPT_MSG_ERR_CASES \
     case BCHP_XPT_MSG_DAT_ERR_INTR:
 
@@ -218,8 +219,8 @@ BDBG_MODULE(interruptinterface_7358);
 #define BINT_P_UPGSC_CASES \
     case BCHP_SCIRQ0_SCIRQEN:
 
-#define BINT_P_TIMER_STATUS		0x00
-#define BINT_P_TIMER_MASK		0x04
+#define BINT_P_TIMER_STATUS     0x00
+#define BINT_P_TIMER_MASK       0x04
 
 #define BINT_P_TIMER_CASES \
     case BCHP_TIMER_TIMER_IS:
@@ -270,7 +271,7 @@ static const BINT_P_IntMap bint_7358[] =
     BINT_MAP_STD(1, SYS, SUN_L2_CPU),
     BINT_MAP_STD(1, SYS_AON, AON_L2_CPU),
     /*BINT_MAP(1, SYS_PM, "", AON_PM_L2_CPU_STATUS, REGULAR, NONE, 0),*/
-    BINT_MAP_STD(1, UPG_AUX_AON, UPG_AUX_AON_INTR2_CPU),
+    BINT_MAP(1, UPG_AUX_AON, "", UPG_AUX_AON_INTR2_CPU_STATUS, STANDARD, SOME, 0x7f ),
     BINT_MAP(1, UPG_BSC, "", IRQ0_IRQEN, REGULAR, MASK, 0xF8FFFFFF),
     BINT_MAP(1, UPG_BSC_AON, "", IRQ0_AON_IRQEN, REGULAR, MASK, 0xF7FFFFFF),
     BINT_MAP(1, UPG_MAIN, "", IRQ0_IRQEN, REGULAR, MASK, 0xFFFFFDA3),

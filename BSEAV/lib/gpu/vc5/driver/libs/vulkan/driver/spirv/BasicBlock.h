@@ -8,7 +8,7 @@
 #include "glsl_map.h"
 
 #include "SymbolHandle.h"
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 
 namespace bvk {
 
@@ -18,20 +18,20 @@ class BasicBlockData;
 class BasicBlockPool
 {
 public:
-   BasicBlockPool(const spv::ModuleAllocator<uint32_t> &allocator);
+   BasicBlockPool(const SpvAllocator &allocator);
    ~BasicBlockPool();
 
    BasicBlockData *ConstructBlockData() const
    {
       m_list->push_back(glsl_basic_block_construct());
-      return spv::ModuleAllocator<BasicBlockData>(m_allocator).New(m_list->back());
+      return m_allocator.New<BasicBlockData>(m_list->back());
    }
 
    void RetainReachableBlocks(BasicBlock *block);
 
 private:
-   spv::list<BasicBlock *>              *m_list;
-   const spv::ModuleAllocator<uint32_t> &m_allocator;
+   spv::list<BasicBlock *> *m_list;
+   const SpvAllocator      &m_allocator;
 };
 
 class BasicBlockHandle
@@ -131,5 +131,9 @@ inline bool BasicBlockHandle::IsSameBlock(const BasicBlockHandle other) const
    return m_blockData->IsSameBlock(other.m_blockData);
 }
 
+inline bool operator<(const BasicBlockHandle lhs, const BasicBlockHandle rhs)
+{
+   return lhs->GetBlock() < rhs->GetBlock();
+}
 
 } // namespace bvk

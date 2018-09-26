@@ -95,6 +95,17 @@ void PhysicalDevice::GetPhysicalDeviceFeatures(VkPhysicalDeviceFeatures *pFeatur
 void PhysicalDevice::GetPhysicalDeviceFeatures2(VkPhysicalDeviceFeatures2 *pFeatures) noexcept
 {
    GetPhysicalDeviceFeatures(&pFeatures->features);
+
+   for (void *p = pFeatures->pNext; p; p=Extensions::GetNext(p))
+   {
+      VkStructureType sType = Extensions::GetStructureType(p);
+
+      if (sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES)
+      {
+         auto q = static_cast<VkPhysicalDeviceShaderDrawParameterFeatures *>(p);
+         q->shaderDrawParameters = false;
+      }
+   }
 }
 
 void PhysicalDevice::GetPhysicalDeviceFormatProperties(

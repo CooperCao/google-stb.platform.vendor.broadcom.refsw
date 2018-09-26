@@ -69,21 +69,24 @@ DflowBuilder::DflowBuilder(DescriptorTables *tables,
                            bool robustBufferAccess, bool multiSampled) :
    m_module(module),
    m_arena(module.GetCallbacks()),
-   m_arenaAllocator(&m_arena),
+   m_allocator(&m_arena),
    m_robustBufferAccess(robustBufferAccess),
    m_multiSampled(multiSampled),
-   m_basicBlockPool(m_arenaAllocator),
+   m_basicBlockPool(m_allocator),
    m_functionStack(*this),
-   m_dataflow(module.IdBound(), DflowScalars(m_arenaAllocator), m_arenaAllocator),
-   m_extraDataflow(m_arenaAllocator),
-   m_dataflowBlock(module.IdBound(), BasicBlockHandle(), m_arenaAllocator),
-   m_symbolTypes(module.GetNumTypes(), SymbolTypeHandle(), m_arenaAllocator),
-   m_symbols(std::less<const NodeVariable *>(), m_arenaAllocator),
-   m_outputVariables(m_arenaAllocator),
-   m_descriptorMaps(m_arenaAllocator, tables),
-   m_usedSymbols(SymbolHandleCompare(), m_arenaAllocator),
-   m_conditionals(m_arenaAllocator),
-   m_loopMerge(m_arenaAllocator),
+   m_dataflow(module.IdBound(), DflowScalars(m_allocator), m_allocator),
+   m_extraDataflow(m_allocator),
+   m_dataflowBlock(module.IdBound(), BasicBlockHandle(), m_allocator),
+   m_symbolTypes(module.GetNumTypes(), SymbolTypeHandle(), m_allocator),
+   m_symbols(std::less<const NodeVariable *>(), m_allocator),
+   m_outputVariables(m_allocator),
+   m_descriptorMaps(m_allocator, tables),
+   m_usedSymbols(SymbolHandleCompare(), m_allocator),
+   m_loopMerge(m_allocator),
+   m_conditionals(m_allocator),
+   m_selectMerge(m_allocator),
+   m_switches(std::less<BasicBlockHandle>(), m_allocator),
+   m_merges(m_allocator),
    m_specializations(specialization)
 {
    m_executionModes.fs.early_tests = false;
@@ -91,7 +94,7 @@ DflowBuilder::DflowBuilder(DescriptorTables *tables,
 
 DflowBuilder::~DflowBuilder()
 {
-   m_arenaAllocator.LogMemoryUsage("=== DflowBuilder ===");
+   m_allocator.LogMemoryUsage("=== DflowBuilder ===");
 }
 
 DataflowType DflowBuilder::ResultDataflowType(const Node *node) const
@@ -186,7 +189,7 @@ void DflowBuilder::Visit(const NodeTypePointer *node)
 {
    auto  targetType = node->GetType()->As<const NodeType *>();
 
-   AddSymbolType(node, SymbolTypeHandle::Pointer(*this, GetSymbolType(targetType)));
+   AddSymbolType(node, SymbolTypeHandle::Pointer(m_allocator, GetSymbolType(targetType)));
 }
 
 
@@ -248,7 +251,7 @@ void DflowBuilder::Visit(const NodeTypeStruct *node)
 {
    MemberIter  mi(*this, node->GetMemberstype());
 
-   AddSymbolType(node, SymbolTypeHandle::Struct(*this, node, mi));
+   AddSymbolType(node, SymbolTypeHandle::Struct(m_allocator, node, mi));
 }
 
 void DflowBuilder::Visit(const NodeTypeMatrix *node)
@@ -267,7 +270,7 @@ void DflowBuilder::Visit(const NodeTypeArray *node)
 
    uint32_t length = node->IsRuntime() ? 0 : RequireConstantInt(node->GetLength());
 
-   AddSymbolType(node, SymbolTypeHandle::Array(*this, GetSymbolType(elementType), length));
+   AddSymbolType(node, SymbolTypeHandle::Array(m_allocator, GetSymbolType(elementType), length));
 }
 
 uint32_t DflowBuilder::StructureOffset(const NodeTypeStruct *type, uint32_t index) const
@@ -298,8 +301,8 @@ void DflowBuilder::Visit(const NodeUndef *node)
    const NodeType   *type       = node->GetResultType();
    SymbolTypeHandle  symbolType = GetSymbolType(type);
 
-   DflowScalars result(m_arenaAllocator, GetNumScalars(type));
-   AddDataflow(node, DflowScalars::Default(m_arenaAllocator, symbolType));
+   DflowScalars result(m_allocator, GetNumScalars(type));
+   AddDataflow(node, DflowScalars::Default(m_allocator, symbolType));
 }
 
 void DflowBuilder::Visit(const NodeConstantNull *node)
@@ -307,20 +310,20 @@ void DflowBuilder::Visit(const NodeConstantNull *node)
    const NodeType   *type       = node->GetResultType();
    SymbolTypeHandle  symbolType = GetSymbolType(type);
 
-   DflowScalars result(m_arenaAllocator, GetNumScalars(type));
-   AddDataflow(node, DflowScalars::Default(m_arenaAllocator, symbolType));
+   DflowScalars result(m_allocator, GetNumScalars(type));
+   AddDataflow(node, DflowScalars::Default(m_allocator, symbolType));
 }
 
 void DflowBuilder::AddBoolConstant(const Node *node, bool value)
 {
-   AddDataflow(node, DflowScalars::Bool(m_arenaAllocator, value));
+   AddDataflow(node, DflowScalars::Bool(m_allocator, value));
 }
 
 void DflowBuilder::AddValueConstant(const Node *node, uint32_t value)
 {
    const NodeType *nodeType = node->GetResultType();
 
-   AddDataflow(node, DflowScalars::Value(m_arenaAllocator, GetSymbolType(nodeType), value));
+   AddDataflow(node, DflowScalars::Value(m_allocator, GetSymbolType(nodeType), value));
 }
 
 // Constant
@@ -345,7 +348,7 @@ void DflowBuilder::AddComposite(const Node *node, const spv::vector<NodeConstPtr
 {
    const NodeType *type = node->GetResultType();
 
-   DflowScalars    result(m_arenaAllocator, GetNumScalars(type));
+   DflowScalars    result(m_allocator, GetNumScalars(type));
 
    uint32_t offset = 0;
    for (const NodeConstPtr &ni : constituents)
@@ -586,7 +589,7 @@ void DflowBuilder::Visit(const NodeSampledImage *node)
    const DflowScalars &image   = GetDataflow(node->GetImage());
    const DflowScalars &sampler = GetDataflow(node->GetSampler());
 
-   DflowScalars   result(m_arenaAllocator, { image[0], sampler[0] });
+   DflowScalars   result(m_allocator, { image[0], sampler[0] });
 
    AddDataflow(node, result);
 }
@@ -698,7 +701,7 @@ void DflowBuilder::Visit(const NodeImageQuerySize *node)
 {
    const DflowScalars &img        = GetDataflow(node->GetImage());
    uint32_t            numScalars = GetNumScalars(node->GetResultType());
-   DflowScalars        tSize      = DflowScalars::TextureSize(m_arenaAllocator, numScalars, img[0]);
+   DflowScalars        tSize      = DflowScalars::TextureSize(m_allocator, numScalars, img[0]);
 
    AddDataflow(node, tSize);
 }
@@ -709,7 +712,7 @@ void DflowBuilder::Visit(const NodeImageQuerySizeLod *node)
    const DflowScalars  &lod        = GetDataflow(node->GetLevelofDetail());
    const NodeTypeImage *imageType  = GetImageType(node->GetImage());
    uint32_t             numScalars = GetNumScalars(node->GetResultType());
-   DflowScalars         tSize      = DflowScalars::TextureSize(m_arenaAllocator, numScalars, img[0]);
+   DflowScalars         tSize      = DflowScalars::TextureSize(m_allocator, numScalars, img[0]);
 
    for (uint32_t i = 0; i < numScalars; i++)
    {
@@ -717,20 +720,20 @@ void DflowBuilder::Visit(const NodeImageQuerySizeLod *node)
          tSize[i] = tSize[i] >> lod[0];
    }
 
-   tSize = max(tSize, DflowScalars::Int(m_arenaAllocator, 1));
+   tSize = max(tSize, DflowScalars::Int(m_allocator, 1));
 
    AddDataflow(node, tSize);
 }
 
 void DflowBuilder::Visit(const NodeImageQuerySamples *node)
 {
-   AddDataflow(node, DflowScalars::Int(m_arenaAllocator, 4));
+   AddDataflow(node, DflowScalars::Int(m_allocator, 4));
 }
 
 void DflowBuilder::Visit(const NodeImageQueryLevels *node)
 {
    const DflowScalars &img    = GetDataflow(node->GetImage());
-   DflowScalars        levels = DflowScalars::TextureNumLevels(m_arenaAllocator, img[0]);
+   DflowScalars        levels = DflowScalars::TextureNumLevels(m_allocator, img[0]);
 
    AddDataflow(node, levels);
 }
@@ -747,19 +750,19 @@ void DflowBuilder::Visit(const NodeImageQueryLod *node)
    const NodeTypeImage *imageType = GetImageType(node->GetSampledImage());
 
    DflowScalars p      = GetDataflow(node->GetCoordinate());
-   DflowScalars tSize  = DflowScalars::TextureSize(m_arenaAllocator, p.Size(), sampler[0]);
+   DflowScalars tSize  = DflowScalars::TextureSize(m_allocator, p.Size(), sampler[0]);
    bool         isCube = imageType->GetDim() == spv::Dim::Cube;
 
    // TODO -- make lod a Dflow
-   DflowScalars lod(m_arenaAllocator, calculateLod(tSize, p, dFdx(p), dFdy(p), isCube));
+   DflowScalars lod(m_allocator, calculateLod(tSize, p, dFdx(p), dFdy(p), isCube));
 
-   DflowScalars minLevel = DflowScalars::TextureNumLevels(m_arenaAllocator, sampler[0]) -
-                           DflowScalars::Int(m_arenaAllocator, 1);
+   DflowScalars minLevel = DflowScalars::TextureNumLevels(m_allocator, sampler[0]) -
+                           DflowScalars::Int(m_allocator, 1);
 
    // Clamp the rounded lod to the actual mip-levels available
    DflowScalars mipLvl = clamp(round(lod), 0.0f, itof(minLevel));
 
-   DflowScalars result(m_arenaAllocator, { mipLvl[0], lod[0] });
+   DflowScalars result(m_allocator, { mipLvl[0], lod[0] });
    AddDataflow(node, result);
 #endif
 }
@@ -832,6 +835,7 @@ void DflowBuilder::Visit(const NodeBranchConditional *node)
    current->SetControl(GetDataflow(node->GetCondition())[0],
                        trueBlock, falseBlock);
 
+   // Are we in a loop?
    if (m_loopMerge.size() > 0)
       m_conditionals.emplace_back(current, m_loopMerge.back());
 }
@@ -856,7 +860,7 @@ static bool ReachesUncond(BasicBlock *from, BasicBlock *to)
 
 void DflowBuilder::PatchConditionals() const
 {
-   for (auto conditional : m_conditionals)
+   for (auto &conditional : m_conditionals)
    {
       BasicBlock *cond  = conditional.first->GetBlock();
       BasicBlock *merge = conditional.second->GetBlock();
@@ -864,9 +868,69 @@ void DflowBuilder::PatchConditionals() const
       // Is this a jump out of the loop?
       if (ReachesUncond(cond->branch_target, merge))
       {
+         // We change the sense of the condition because the compiler expects branches
+         // out of loops to follow the fallthrough_target
          std::swap(cond->branch_target, cond->fallthrough_target);
          cond->branch_cond = glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, cond->branch_cond);
       }
+   }
+}
+
+// Traverse the block call-graph replacing jumps to "original"
+// with "replacement"
+static void ReplaceMergers(std::set<BasicBlock *> &seen, BasicBlock *root, BasicBlock *original, BasicBlock *replacement)
+{
+   if (root == nullptr || seen.find(root) != seen.end())
+      return;
+
+   seen.insert(root);
+
+   if (root->fallthrough_target == original)
+      root->fallthrough_target = replacement;
+   else
+      ReplaceMergers(seen, root->fallthrough_target, original, replacement);
+
+   if (root->branch_target == original)
+      root->branch_target = replacement;
+   else
+      ReplaceMergers(seen, root->branch_target, original, replacement);
+}
+
+// Creates a merge tree of blocks which is a reflection of the conditional
+// branching structure at the top of the switch.  Each case has a merge block
+// added below it and jumps to the origibal merge block are replaced by
+// jumps to the new block.  The merge blocks are then chained together from
+// the innermost to the outermost and finally to the merge node.
+void DflowBuilder::PatchSwitches() const
+{
+   for (auto &cases : m_switches)
+   {
+      BasicBlockHandle                   merge    = cases.first;
+      const std::list<BasicBlockHandle> &caseList = cases.second;
+
+      std::vector<BasicBlockHandle>      mergeBlocks(caseList.size());
+
+      // Create a block for each case
+      for (uint32_t i = 0; i < mergeBlocks.size(); ++i)
+         mergeBlocks[i] = BasicBlockHandle(m_basicBlockPool);
+
+      // Make cases jump to the new blocks rather than the merge block
+      uint32_t i = 0;
+      for (BasicBlockHandle caseBlock : caseList)
+      {
+         std::set<BasicBlock *> seen;
+
+         ReplaceMergers(seen, caseBlock->GetBlock(), merge->GetBlock(), mergeBlocks[i]->GetBlock());
+
+         ++i;
+      }
+
+      // Chain together the mergers [i-1] -> [i-2] -> ... -> [1] -> [0]
+      for (uint32_t i = 1; i < mergeBlocks.size(); ++i)
+         mergeBlocks[i]->SetFallthroughTarget(mergeBlocks[i-1]);
+
+      // And finally jump to the merge block
+      mergeBlocks[0]->SetFallthroughTarget(merge);
    }
 }
 
@@ -890,10 +954,15 @@ void DflowBuilder::Visit(const NodeSwitch *node)
    // Set the selector variable
    StoreToSymbol(currentBlock, switchSym, GetDataflow(selector));
 
+   BasicBlockHandle              mergeBlock = m_selectMerge.back();
+   std::list<BasicBlockHandle>  &caseList   = m_switches[mergeBlock];
+
    for (uint32_t i = 0; i < cases.size(); ++i)
    {
       int32_t          literal     = static_cast<int32_t>(cases[i].first);
       BasicBlockHandle targetBlock = m_functionStack->BlockForLabel(cases[i].second);
+
+      caseList.push_back(targetBlock);
 
       // Load the selector and compare with literal
       DflowScalars   select = LoadFromSymbol(currentBlock, switchSym);
@@ -907,14 +976,18 @@ void DflowBuilder::Visit(const NodeSwitch *node)
    }
 
    // Add the default
-   currentBlock->SetFallthroughTarget(m_functionStack->BlockForLabel(node->GetDefault()));
+   BasicBlockHandle  defaultBlock = m_functionStack->BlockForLabel(node->GetDefault());
+   caseList.push_back(defaultBlock);
+
+   // And jump to it
+   currentBlock->SetFallthroughTarget(defaultBlock);
 }
 
 void DflowBuilder::Visit(const NodeKill *node)
 {
    BasicBlockHandle current = m_functionStack->GetCurrentBlock();
 
-   StoreToSymbol(current, m_discard, DflowScalars::Bool(m_arenaAllocator, true));
+   StoreToSymbol(current, m_discard, DflowScalars::Bool(m_allocator, true));
 
    current->SetFallthroughTarget(m_functionStack->GetReturnBlock());
 }
@@ -924,8 +997,8 @@ void DflowBuilder::Visit(const NodePhi *node)
    SymbolTypeHandle  symbolType = GetSymbolType(node->GetResultType());
    assert(symbolType.GetNumScalars() != 0);
 
-   SymbolHandle phiSym   = SymbolHandle::Internal(*this, "$$phi", symbolType);
-   DflowScalars defaults = DflowScalars::Default(m_arenaAllocator, symbolType);
+   SymbolHandle phiSym   = SymbolHandle::Internal(m_allocator, "$$phi", symbolType);
+   DflowScalars defaults = DflowScalars::Default(m_allocator, symbolType);
 
    StoreToSymbol(m_entryBlock, phiSym, defaults);
 
@@ -1113,7 +1186,7 @@ void DflowBuilder::Visit(const NodeIsFinite *node)
    const DflowScalars &x = GetDataflow(node->GetX());
 
    auto xint = reinterpu(fabs(x));
-   auto c    = DflowScalars::UInt(m_arenaAllocator, 0x7F800000);
+   auto c    = DflowScalars::UInt(m_allocator, 0x7F800000);
    AddDataflow(node, xint != c);
 }
 
@@ -1123,8 +1196,8 @@ void DflowBuilder::Visit(const NodeIsNormal *node)
 
    // Normal means exponent is non-zero
    auto xint = reinterpu(x);
-   auto c    = DflowScalars::UInt(m_arenaAllocator, 0x7F800000);
-   auto zero = DflowScalars::UInt(m_arenaAllocator, 0);
+   auto c    = DflowScalars::UInt(m_allocator, 0x7F800000);
+   auto zero = DflowScalars::UInt(m_allocator, 0);
 
    AddDataflow(node, (xint & c) != zero);
 }
@@ -1137,15 +1210,15 @@ void DflowBuilder::Visit(const NodeBitReverse *node)
    bool isSigned = IsSigned::Get(node->GetResultType());
 
    // Assumes 32-bit width
-   auto c1        = DflowScalars::UInt(m_arenaAllocator, 1);
-   auto c2        = DflowScalars::UInt(m_arenaAllocator, 2);
-   auto c4        = DflowScalars::UInt(m_arenaAllocator, 4);
-   auto c8        = DflowScalars::UInt(m_arenaAllocator, 8);
-   auto c16       = DflowScalars::UInt(m_arenaAllocator, 16);
-   auto x55555555 = DflowScalars::UInt(m_arenaAllocator, 0x55555555u);
-   auto x33333333 = DflowScalars::UInt(m_arenaAllocator, 0x33333333u);
-   auto x0F0F0F0F = DflowScalars::UInt(m_arenaAllocator, 0x0F0F0F0Fu);
-   auto x00FF00FF = DflowScalars::UInt(m_arenaAllocator, 0x00FF00FFu);
+   auto c1        = DflowScalars::UInt(m_allocator, 1);
+   auto c2        = DflowScalars::UInt(m_allocator, 2);
+   auto c4        = DflowScalars::UInt(m_allocator, 4);
+   auto c8        = DflowScalars::UInt(m_allocator, 8);
+   auto c16       = DflowScalars::UInt(m_allocator, 16);
+   auto x55555555 = DflowScalars::UInt(m_allocator, 0x55555555u);
+   auto x33333333 = DflowScalars::UInt(m_allocator, 0x33333333u);
+   auto x0F0F0F0F = DflowScalars::UInt(m_allocator, 0x0F0F0F0Fu);
+   auto x00FF00FF = DflowScalars::UInt(m_allocator, 0x00FF00FFu);
 
    DflowScalars v = isSigned ? reinterpu(x) : x;
 
@@ -1168,7 +1241,7 @@ void DflowBuilder::Visit(const NodeVectorTimesScalar *node)
    const DflowScalars &s = GetDataflow(node->GetScalar());
    assert(s.Size() == 1);
 
-   auto result = DflowScalars::ForeachIndex(m_arenaAllocator, v.Size(),
+   auto result = DflowScalars::ForeachIndex(m_allocator, v.Size(),
       [&v, &s](uint32_t i) { return v[i] * s[0]; } );
 
    AddDataflow(node, result);
@@ -1212,7 +1285,7 @@ void DflowBuilder::Visit(const NodeCompositeConstruct *node)
 {
    uint32_t size = GetNumScalars(node->GetResultType());
 
-   DflowScalars   result = DflowScalars(m_arenaAllocator, size);
+   DflowScalars   result = DflowScalars(m_allocator, size);
    uint32_t       offset = 0;
 
    // This is more general than the SPIR-V spec allows
@@ -1778,7 +1851,7 @@ void DflowBuilder::Visit(const NodeTranspose *node)
    NodeTypeMatrix::Size sz = MatrixSize(node);
 
    DflowMatrix src(sz.rows, sz.cols, GetDataflow(node->GetMatrix()));
-   DflowMatrix dst(m_arenaAllocator, sz.cols, sz.rows);
+   DflowMatrix dst(m_allocator, sz.cols, sz.rows);
 
    for (uint32_t c = 0; c < sz.cols; ++c)
       for (uint32_t r = 0; r < sz.rows; ++r)
@@ -1796,7 +1869,7 @@ void DflowBuilder::Visit(const NodeMatrixTimesScalar *node)
 
    uint32_t count = sz.cols * sz.rows;
 
-   auto result= DflowScalars::ForeachIndex(m_arenaAllocator, count,
+   auto result= DflowScalars::ForeachIndex(m_allocator, count,
       [&matrix, &scalar](uint32_t i) { return matrix[i] * scalar[0]; });
 
    AddDataflow(node, result);
@@ -1894,7 +1967,7 @@ void DflowBuilder::Visit(const NodeOuterProduct *node)
    const DflowScalars &lhs = GetDataflow(vecOp1);
    const DflowScalars &rhs = GetDataflow(vecOp2);
 
-   DflowMatrix  result(m_arenaAllocator, cols, rows);
+   DflowMatrix  result(m_allocator, cols, rows);
 
    for (uint32_t c = 0; c < cols; ++c)
       for (uint32_t r = 0; r < rows; ++r)
@@ -2605,7 +2678,7 @@ void DflowBuilder::Visit(const NodeStdInterpolateAtCentroid *node)
    auto sym = GetVariableSymbol(node->GetInterpolant()->As<const NodeVariable*>());
    assert(sym.GetFlavour() == SYMBOL_VAR_INSTANCE);
 
-   DflowScalars res = getValueAtOffset(p, getCentroidOffset(m_arenaAllocator), sym.GetInterpQualifier());
+   DflowScalars res = getValueAtOffset(p, getCentroidOffset(m_allocator), sym.GetInterpQualifier());
 
    AddDataflow(node, res);
 }
@@ -2724,21 +2797,42 @@ void DflowBuilder::Visit(const NodeArrayLength *node)
 
    Dflow length = Dflow::BufferArrayLength(Dflow::Buffer(DATAFLOW_STORAGE_BUFFER, descTableIndex, 0), 0);
 
-   AddDataflow(node, DflowScalars(m_arenaAllocator, length));
+   AddDataflow(node, DflowScalars(m_allocator, length));
 }
 
 void DflowBuilder::Visit(const NodeLabel *node)
 {
-   if (m_loopMerge.size() == 0)
-      return;
+   if (m_loopMerge.size() != 0)
+   {
+      if (m_loopMerge.back().IsSameBlock(m_functionStack->GetCurrentBlock()))
+      {
+         m_loopMerge.pop_back();
+         m_merges.pop_back();
+      }
+   }
 
-   if (m_loopMerge.back().IsSameBlock(m_functionStack->GetCurrentBlock()))
-      m_loopMerge.pop_back();
+   if (m_selectMerge.size() != 0)
+   {
+      if (m_selectMerge.back().IsSameBlock(m_functionStack->GetCurrentBlock()))
+      {
+         m_selectMerge.pop_back();
+         m_merges.pop_back();
+      }
+   }
 }
 
 void DflowBuilder::Visit(const NodeLoopMerge *node)
 {
-   m_loopMerge.push_back(m_functionStack->BlockForLabel(node->GetMergeBlock()));
+   BasicBlockHandle block = m_functionStack->BlockForLabel(node->GetMergeBlock());
+   m_loopMerge.push_back(block);
+   m_merges.push_back(block);
+}
+
+void DflowBuilder::Visit(const NodeSelectionMerge *node)
+{
+   BasicBlockHandle block = m_functionStack->BlockForLabel(node->GetMergeBlock());
+   m_selectMerge.push_back(m_functionStack->BlockForLabel(node->GetMergeBlock()));
+   m_merges.push_back(block);
 }
 
 void DflowBuilder::Visit(const NodeControlBarrier *node)
@@ -2775,15 +2869,15 @@ DflowScalars DflowBuilder::LoadFromSymbol(BasicBlockHandle block, SymbolHandle s
    uint32_t numScalars = symbol.GetType().GetNumScalars();
 
    if (scalarValues != nullptr)
-      return DflowScalars(m_arenaAllocator, numScalars, scalarValues);
+      return DflowScalars(m_allocator, numScalars, scalarValues);
 
-   scalarValues = DflowScalars::Load(m_arenaAllocator, symbol).Data();
+   scalarValues = DflowScalars::Load(m_allocator, symbol).Data();
 
    // Record the load array
    block->PutLoad(symbol, scalarValues);
 
    // Creates a new array with the same dataflows
-   DflowScalars result(m_arenaAllocator, numScalars, scalarValues);
+   DflowScalars result(m_allocator, numScalars, scalarValues);
 
    // Record the dataflow array
    block->PutScalars(symbol, result.Data());
@@ -2804,7 +2898,7 @@ void DflowBuilder::StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol, co
    if (scalarValues == nullptr)
    {
       // Create new empty array
-      scalarValues = DflowScalars(m_arenaAllocator, data.Size()).Data();
+      scalarValues = DflowScalars(m_allocator, data.Size()).Data();
 
       // Record the dataflow array
       block->PutScalars(symbol, scalarValues);
@@ -2827,13 +2921,13 @@ void DflowBuilder::StoreToSymbol(BasicBlockHandle block, SymbolHandle symbol,
 
    if (scalarValues == nullptr)
    {
-      DflowScalars load = DflowScalars::Load(m_arenaAllocator, symbol);
+      DflowScalars load = DflowScalars::Load(m_allocator, symbol);
 
       // Record dataflow array in load map
       block->PutLoad(symbol, load.Data());
 
       // Record a copy in the scalar map
-      scalarValues = DflowScalars(m_arenaAllocator, load.Size(), load.Data()).Data();
+      scalarValues = DflowScalars(m_allocator, load.Size(), load.Data()).Data();
       block->PutScalars(symbol, scalarValues);
    }
 
@@ -2889,7 +2983,7 @@ void DflowBuilder::BuildAtomic(const N *node, DataflowFlavour flavour)
 
 void DflowBuilder::Visit(const NodeAtomicLoad *node)
 {
-   DflowScalars zero = DflowScalars::UInt(m_arenaAllocator, 0);
+   DflowScalars zero = DflowScalars::UInt(m_allocator, 0);
 
    // This could be a float.  This also does a store which is inefficient.
    BuildAtomic(node, DATAFLOW_ATOMIC_OR, node->GetPointer(), zero);
@@ -2923,14 +3017,14 @@ void DflowBuilder::Visit(const NodeAtomicCompareExchange *node)
 
 void DflowBuilder::Visit(const NodeAtomicIIncrement *node)
 {
-   DflowScalars one = DflowScalars::UInt(m_arenaAllocator, 1);
+   DflowScalars one = DflowScalars::UInt(m_allocator, 1);
 
    BuildAtomic(node, DATAFLOW_ATOMIC_ADD, node->GetPointer(), one);
 }
 
 void DflowBuilder::Visit(const NodeAtomicIDecrement *node)
 {
-   DflowScalars one = DflowScalars::UInt(m_arenaAllocator, 1);
+   DflowScalars one = DflowScalars::UInt(m_allocator, 1);
 
    BuildAtomic(node, DATAFLOW_ATOMIC_SUB, node->GetPointer(), one);
 }
@@ -2979,6 +3073,91 @@ void DflowBuilder::Visit(const NodeAtomicXor *node)
 {
    BuildAtomic(node, DATAFLOW_ATOMIC_XOR);
 }
+
+static void RecordExecutionMode(IFaceData *executionModes, spv::ExecutionMode mode, const std::vector<uint32_t> &literals)
+{
+   switch (mode)
+   {
+   case spv::ExecutionMode::LocalSize:
+   case spv::ExecutionMode::LocalSizeId:
+      assert(literals.size() == 3);
+      for (int i = 0; i < 3; ++i)
+         executionModes->cs.wg_size[i] = literals[i];
+      break;
+   case spv::ExecutionMode::EarlyFragmentTests:
+      executionModes->fs.early_tests = true;
+      break;
+   case spv::ExecutionMode::DepthReplacing:
+   case spv::ExecutionMode::OriginUpperLeft:
+      // Valid execution modes that we don't care about
+      break;
+   default:
+      // TODO -- handle other modes we're interested in.
+      log_warn("Ignoring execution mode %u", static_cast<uint32_t>(mode));
+      break;
+   }
+}
+
+void DflowBuilder::Visit(const NodeExecutionMode *node)
+{
+   if (node->GetEntryPoint() == m_entryPoint->GetEntryPoint())
+   {
+      const spv::vector<uint32_t> &args = node->GetLiterals();
+      std::vector<uint32_t> literals(args.begin(), args.end());
+
+      RecordExecutionMode(&m_executionModes, node->GetMode(), literals);
+   }
+}
+
+void DflowBuilder::Visit(const NodeExecutionModeId *node)
+{
+   if (node->GetEntryPoint() == m_entryPoint->GetEntryPoint())
+   {
+      const spv::vector<const Node *> &args = node->GetIds();
+
+      std::vector<uint32_t> literals;
+      literals.reserve(args.size());
+
+      for (const Node *arg : args)
+      {
+         // Calculate dataflow -- it must be an OpConstant or OpSpecConstant
+         arg->Accept(*this);
+         literals.push_back(RequireConstantInt(arg));
+      }
+
+      RecordExecutionMode(&m_executionModes, node->GetMode(), literals);
+   }
+}
+
+// These are not added to the "instructions" for the module as they
+// are handled directly in the gather stage
+// Prefer to have these explicitly listed so that new Operations are
+// not accidentally missed out.
+void DflowBuilder::Visit(const NodeSourceContinued *node)     { assert(0); }
+void DflowBuilder::Visit(const NodeSource *node)              { assert(0); }
+void DflowBuilder::Visit(const NodeSourceExtension *node)     { assert(0); }
+void DflowBuilder::Visit(const NodeName *node)                { assert(0); }
+void DflowBuilder::Visit(const NodeMemberName *node)          { assert(0); }
+void DflowBuilder::Visit(const NodeString *node)              { assert(0); }
+void DflowBuilder::Visit(const NodeLine *node)                { assert(0); }
+void DflowBuilder::Visit(const NodeExtension *node)           { assert(0); }
+void DflowBuilder::Visit(const NodeExtInstImport *node)       { assert(0); }
+void DflowBuilder::Visit(const NodeExtInst *node)             { assert(0); }
+void DflowBuilder::Visit(const NodeMemoryModel *node)         { assert(0); }
+void DflowBuilder::Visit(const NodeEntryPoint *node)          { assert(0); }
+void DflowBuilder::Visit(const NodeCapability *node)          { assert(0); }
+void DflowBuilder::Visit(const NodeFunction *node)            { assert(0); }
+void DflowBuilder::Visit(const NodeFunctionParameter *node)   { assert(0); }
+void DflowBuilder::Visit(const NodeFunctionEnd *node)         { assert(0); }
+void DflowBuilder::Visit(const NodeImageTexelPointer *node)   { assert(0); }
+void DflowBuilder::Visit(const NodeAccessChain *node)         { assert(0); }
+void DflowBuilder::Visit(const NodeDecorate *node)            { assert(0); }
+void DflowBuilder::Visit(const NodeMemberDecorate *node)      { assert(0); }
+void DflowBuilder::Visit(const NodeDecorationGroup *node)     { assert(0); }
+void DflowBuilder::Visit(const NodeGroupDecorate *node)       { assert(0); }
+void DflowBuilder::Visit(const NodeGroupMemberDecorate *node) { assert(0); }
+void DflowBuilder::Visit(const NodeNoLine *node)              { assert(0); }
+void DflowBuilder::Visit(const NodeModuleProcessed *node)     { assert(0); }
 
 // Test whether a chain of indices are all constants
 bool DflowBuilder::IsConstant(const spv::vector<const Node *> &indices)
@@ -3042,11 +3221,11 @@ void DflowBuilder::RenameBuiltinSymbol(const Node *var, SymbolHandle symbol)
    }
 }
 
-void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavour flavour)
+void DflowBuilder::SetupInterface(ShaderFlavour flavour)
 {
    BasicBlockHandle exitBlock = m_functionStack->GetCurrentBlock();
 
-   for (const NodeConstPtr index : entryPoint->GetInterface())
+   for (const NodeConstPtr index : m_entryPoint->GetInterface())
    {
       auto         var    = index->As<const NodeVariable *>();
       SymbolHandle symbol = GetVariableSymbol(var);
@@ -3061,7 +3240,7 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
          // Are there any member decorations for gl_Position and gl_PointSize?
          for (uint32_t i = 0; i < structure->GetMemberstype().size(); i++)
          {
-            spv::vector<uint32_t> indices(1, i, m_arenaAllocator);
+            spv::vector<uint32_t> indices(1, i, m_allocator);
             uint32_t offset = ScalarOffsetStatic::Calculate(*this, structure, indices);
 
             spv::BuiltIn   builtin;
@@ -3072,7 +3251,7 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
                {
                   SymbolTypeHandle  floatType = SymbolTypeHandle::Float();
 
-                  auto glPosition = SymbolHandle::Builtin(*this, "gl_Position",
+                  auto glPosition = SymbolHandle::Builtin(m_allocator, "gl_Position",
                                                           spv::StorageClass::Output, SymbolTypeHandle::Vector(floatType, 4));
                   const DflowScalars scalars  = LoadFromSymbol(exitBlock, m_glPerVertex);
                   const DflowScalars position = scalars.Slice(offset, 4);
@@ -3084,7 +3263,7 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
                {
                   SymbolTypeHandle  floatType = SymbolTypeHandle::Float();
 
-                  auto glPointSize = SymbolHandle::Builtin(*this, "gl_PointSize",
+                  auto glPointSize = SymbolHandle::Builtin(m_allocator, "gl_PointSize",
                                                            spv::StorageClass::Output, floatType);
                   const DflowScalars scalars   = LoadFromSymbol(exitBlock, m_glPerVertex);
                   const DflowScalars pointSize = scalars.Slice(offset, 1);
@@ -3100,7 +3279,7 @@ void DflowBuilder::SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavou
 
 DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
 {
-   DflowScalars   result(m_arenaAllocator);
+   DflowScalars   result(m_allocator);
 
    switch (builtin)
    {
@@ -3114,43 +3293,47 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    // These are all part of the Shader capability group which we must support
    case spv::BuiltIn::VertexId      :
    case spv::BuiltIn::VertexIndex   :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_VERTEX_ID);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_GET_VERTEX_ID);
       break;
 
    case spv::BuiltIn::InstanceId    :
    case spv::BuiltIn::InstanceIndex :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_INSTANCE_ID);
-      // On v4 h/w, the instance id doesn't include the baseInstance, so add it back in
-      result = result + DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_BASE_INSTANCE);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_GET_INSTANCE_ID);
+      if (builtin == spv::BuiltIn::InstanceIndex)
+         result = result + DflowScalars::NullaryOp(m_allocator, DATAFLOW_GET_BASE_INSTANCE);
+      break;
+
+   case spv::BuiltIn::BaseInstance  :
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_GET_BASE_INSTANCE);
       break;
 
    case spv::BuiltIn::FragCoord     :
-      result = DflowScalars::NullaryOp(m_arenaAllocator,
+      result = DflowScalars::NullaryOp(m_allocator,
                                        { DATAFLOW_FRAG_GET_X, DATAFLOW_FRAG_GET_Y,
                                          DATAFLOW_FRAG_GET_Z, DATAFLOW_FRAG_GET_W });
       break;
 
    case spv::BuiltIn::PointCoord :
-      result = DflowScalars::NullaryOp(m_arenaAllocator,
+      result = DflowScalars::NullaryOp(m_allocator,
                                        { DATAFLOW_GET_POINT_COORD_X,
                                          DATAFLOW_GET_POINT_COORD_Y });
       result[1] = 1.0f - result[1];
       break;
 
    case spv::BuiltIn::FrontFacing :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_FRAG_GET_FF);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_FRAG_GET_FF);
       break;
 
    case spv::BuiltIn::HelperInvocation :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_IS_HELPER);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_IS_HELPER);
       break;
 
    case spv::BuiltIn::PrimitiveId :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_PRIMITIVE_ID);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_GET_PRIMITIVE_ID);
       break;
 
    case spv::BuiltIn::InvocationId :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_GET_INVOCATION_ID);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_GET_INVOCATION_ID);
       break;
 
    // Geometry
@@ -3170,22 +3353,22 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
 
    // SampleRateShading
    case spv::BuiltIn::SampleId :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_SAMPLE_ID);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_SAMPLE_ID);
       break;
 
    case spv::BuiltIn::SamplePosition :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, { DATAFLOW_SAMPLE_POS_X, DATAFLOW_SAMPLE_POS_Y });
+      result = DflowScalars::NullaryOp(m_allocator, { DATAFLOW_SAMPLE_POS_X, DATAFLOW_SAMPLE_POS_Y });
       break;
 
    case spv::BuiltIn::SampleMask :
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_SAMPLE_MASK);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_SAMPLE_MASK);
       break;
 
    ////////////////////////////////////////////////////////////////////////////
    // Compute
    ////////////////////////////////////////////////////////////////////////////
    case spv::BuiltIn::NumWorkgroups :
-      result = DflowScalars::NullaryOp(m_arenaAllocator,
+      result = DflowScalars::NullaryOp(m_allocator,
                                        { DATAFLOW_GET_NUMWORKGROUPS_X,
                                          DATAFLOW_GET_NUMWORKGROUPS_Y,
                                          DATAFLOW_GET_NUMWORKGROUPS_Z });
@@ -3203,7 +3386,7 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    case spv::BuiltIn::GlobalInvocationId   :
       // These symbols are set after the dflow has been constructed, so just put
       // some default values in here
-      result = DflowScalars::UInt(m_arenaAllocator, 0, 3);
+      result = DflowScalars::UInt(m_allocator, 0, 3);
       break;
 
    case spv::BuiltIn::LocalInvocationIndex :
@@ -3211,15 +3394,15 @@ DflowScalars DflowBuilder::CreateBuiltinInputDataflow(spv::BuiltIn builtin)
    case spv::BuiltIn::NumSubgroups:
       // These symbols are set after the dflow has been constructed, so just put
       // a default value in here
-      result = DflowScalars::UInt(m_arenaAllocator, 0);
+      result = DflowScalars::UInt(m_allocator, 0);
       break;
 
    case spv::BuiltIn::SubgroupSize:
-      result = DflowScalars::UInt(m_arenaAllocator, 16);
+      result = DflowScalars::UInt(m_allocator, 16);
       break;
 
    case spv::BuiltIn::SubgroupLocalInvocationId:
-      result = DflowScalars::NullaryOp(m_arenaAllocator, DATAFLOW_SG_LOCAL_IDX);
+      result = DflowScalars::NullaryOp(m_allocator, DATAFLOW_SG_LOCAL_IDX);
       break;
 
    case spv::BuiltIn::ClipDistance              : // We don't support ClipDistance
@@ -3255,7 +3438,7 @@ DflowScalars DflowBuilder::ImageSampler(
 
    uint32_t elemSize = elemType.GetNumScalars();
    assert(elemSize == 1 || elemSize == 2);
-   DflowScalars result = DflowScalars(m_arenaAllocator, type.GetNumScalars());
+   DflowScalars result = DflowScalars(m_allocator, type.GetNumScalars());
 
    for (uint32_t i = 0; i < numElems; i++)
    {
@@ -3334,7 +3517,7 @@ DflowScalars DflowBuilder::CreateVariableDataflow(const NodeVariable *var, Symbo
          if (init.IsValid())
             result = GetDataflow(init.Get());
          else
-            result = DflowScalars::Default(m_arenaAllocator, type);
+            result = DflowScalars::Default(m_allocator, type);
       }
       break;
 
@@ -3498,7 +3681,7 @@ SymbolHandle DflowBuilder::AddSymbol(const NodeVariable *var)
 
    if (IsGLPervertexStruct(var))
    {
-      symbol = SymbolHandle::Variable(*this, m_flavour, "$$gl_PerVertex", var, type);
+      symbol = SymbolHandle::Variable(m_module, m_allocator, m_flavour, "$$gl_PerVertex", var, type);
       // This symbol needs special treatment as the linker is looking for
       // gl_Position and gl_PointSize, so record it for later (see SetupInterface)
       m_glPerVertex = symbol;
@@ -3534,7 +3717,7 @@ SymbolHandle DflowBuilder::AddSymbol(const NodeVariable *var)
          n = name;
       }
 
-      symbol = SymbolHandle::Variable(*this, m_flavour, n, var, type);
+      symbol = SymbolHandle::Variable(m_module, m_allocator, m_flavour, n, var, type);
    }
 
    SetVariableSymbol(var, symbol);
@@ -3596,7 +3779,13 @@ void DflowBuilder::Visit(const NodeUnreachable *)
 {
    // Must be the last instruction in the block.
    BasicBlockHandle current = m_functionStack->GetCurrentBlock();
-   current->SetFallthroughTarget(m_exitBlock);
+
+   // This is unreachable so we can go anywhere -- jump to the innermost
+   // merge point, or failing that, the end of the current function
+   if (m_merges.size() > 0)
+      current->SetFallthroughTarget(m_merges.back());
+   else
+      current->SetFallthroughTarget(m_exitBlock);
 }
 
 void DflowBuilder::Visit(const NodeReturn *)
@@ -3617,7 +3806,7 @@ void DflowBuilder::Visit(const NodeReturnValue *node)
 
 void DflowBuilder::Visit(const NodeGroupNonUniformElect *node)
 {
-   AddDataflow(node, DflowScalars::UnaryOp(DATAFLOW_SG_ELECT, DflowScalars::Bool(m_arenaAllocator, true)));
+   AddDataflow(node, DflowScalars::UnaryOp(DATAFLOW_SG_ELECT, DflowScalars::Bool(m_allocator, true)));
 }
 
 bool DflowBuilder::ConstantInt(const Node *node, uint32_t *value)
@@ -3676,9 +3865,9 @@ SymbolHandle DflowBuilder::CreateInternal(const char *name, const NodeType *type
 
    if (symbolType.GetNumScalars() != 0)
    {
-      symbol = SymbolHandle::Internal(*this, name, symbolType);
+      symbol = SymbolHandle::Internal(m_allocator, name, symbolType);
 
-      DflowScalars defaults = DflowScalars::Default(m_arenaAllocator, symbolType);
+      DflowScalars defaults = DflowScalars::Default(m_allocator, symbolType);
 
       StoreToSymbol(m_entryBlock, symbol, defaults);
    }
@@ -3689,14 +3878,6 @@ SymbolHandle DflowBuilder::CreateInternal(const char *name, const NodeType *type
 SymbolHandle DflowBuilder::GetParameterSymbol(const NodeFunctionParameter *node) const
 {
    return m_functionStack->GetParameterSymbol(node);
-}
-
-void DflowBuilder::RecordExecutionModes(const NodeEntryPoint *entry)
-{
-   auto &modes = entry->GetData()->GetModes();
-
-   for (const NodeExecutionMode *mode : modes)
-      ExecutionModesRecord(mode);
 }
 
 void DflowBuilder::InitCompute(uint32_t sharedMemPerCore)
@@ -3733,9 +3914,9 @@ void DflowBuilder::AddInputSymbols()
          SymbolTypeHandle     vectorType = m_inputMap.VectorType(i);
          QualifierDecorations qualifiers = m_inputMap.Qualifiers(i);
 
-         SymbolHandle symbol = SymbolHandle::Variable(*this, m_flavour, qualifiers, i, vectorType);
+         SymbolHandle symbol = SymbolHandle::Variable(m_allocator, m_flavour, qualifiers, i, vectorType);
 
-         DflowScalars scalars = DflowScalars::In(m_arenaAllocator, vectorType, m_inputMap.Ids(i));
+         DflowScalars scalars = DflowScalars::In(m_allocator, vectorType, m_inputMap.Ids(i));
          StoreToSymbol(m_entryBlock, symbol, scalars);
          m_inputMap.SetSymbol(i, symbol);
          m_inputSymbols.push_back(symbol);
@@ -3757,9 +3938,9 @@ void DflowBuilder::AddOutputSymbols()
          SymbolTypeHandle     vectorType = m_outputMap.VectorType(i);
          QualifierDecorations qualifiers = m_outputMap.Qualifiers(i);
 
-         SymbolHandle symbol = SymbolHandle::Variable(*this, m_flavour, qualifiers, i, vectorType);
+         SymbolHandle symbol = SymbolHandle::Variable(m_allocator, m_flavour, qualifiers, i, vectorType);
 
-         DflowScalars scalars = DflowScalars::Default(m_arenaAllocator, vectorType);
+         DflowScalars scalars = DflowScalars::Default(m_allocator, vectorType);
          StoreToSymbol(m_entryBlock, symbol, scalars);
          m_outputMap.SetSymbol(i, symbol);
          m_outputSymbols.push_back(symbol);
@@ -3790,13 +3971,11 @@ void DflowBuilder::AssignOutputs()
 
 void DflowBuilder::Build(const char *name, ShaderFlavour flavour, uint32_t sharedMemPerCore)
 {
-   const NodeEntryPoint *entry = m_module.GetEntryPoint(name, ConvertExecutionModel(flavour));
-   if (entry == nullptr)
+   m_entryPoint = m_module.GetEntryPoint(name, ConvertExecutionModel(flavour));
+   if (m_entryPoint == nullptr)
       throw std::runtime_error(std::string("Failed to find entry point '") + name + "'");
 
-   RecordExecutionModes(entry);
-
-   const NodeFunction *function = m_module.GetEntryPointFunction(entry);
+   const NodeFunction *function = m_module.GetEntryPointFunction(m_entryPoint);
    if (function == nullptr)
       throw std::runtime_error(std::string("Failed to find entry point function for '") + name + "'");
 
@@ -3809,15 +3988,15 @@ void DflowBuilder::Build(const char *name, ShaderFlavour flavour, uint32_t share
       SymbolTypeHandle  uvec3Type = SymbolTypeHandle::Vector(uintType, 3);
 
       // The values associated with these variables are added post-facto
-      m_workGroupID          = SymbolHandle::Builtin(*this, "gl_WorkGroupID",          spv::StorageClass::Input, uvec3Type);
-      m_localInvocationID    = SymbolHandle::Builtin(*this, "gl_LocalInvocationID",    spv::StorageClass::Input, uvec3Type);
-      m_globalInvocationID   = SymbolHandle::Builtin(*this, "gl_GlobalInvocationID",   spv::StorageClass::Input, uvec3Type);
-      m_localInvocationIndex = SymbolHandle::Builtin(*this, "gl_LocalInvocationIndex", spv::StorageClass::Input, uintType);
-      m_subgroupID           = SymbolHandle::Builtin(*this, "gl_SubgroupID",           spv::StorageClass::Input, uintType);
-      m_numSubgroups         = SymbolHandle::Builtin(*this, "gl_NumSubgroups",         spv::StorageClass::Input, uintType);
+      m_workGroupID          = SymbolHandle::Builtin(m_allocator, "gl_WorkGroupID",          spv::StorageClass::Input, uvec3Type);
+      m_localInvocationID    = SymbolHandle::Builtin(m_allocator, "gl_LocalInvocationID",    spv::StorageClass::Input, uvec3Type);
+      m_globalInvocationID   = SymbolHandle::Builtin(m_allocator, "gl_GlobalInvocationID",   spv::StorageClass::Input, uvec3Type);
+      m_localInvocationIndex = SymbolHandle::Builtin(m_allocator, "gl_LocalInvocationIndex", spv::StorageClass::Input, uintType);
+      m_subgroupID           = SymbolHandle::Builtin(m_allocator, "gl_SubgroupID",           spv::StorageClass::Input, uintType);
+      m_numSubgroups         = SymbolHandle::Builtin(m_allocator, "gl_NumSubgroups",         spv::StorageClass::Input, uintType);
 
 #if !V3D_USE_CSD
-      SymbolHandle comp_vary = SymbolHandle::Builtin(*this, "$$comp_vary", spv::StorageClass::Input, uvec3Type);
+      SymbolHandle comp_vary = SymbolHandle::Builtin(m_allocator, "$$comp_vary", spv::StorageClass::Input, uvec3Type);
       RecordInputSymbol(comp_vary);
 #endif
    }
@@ -3836,8 +4015,8 @@ void DflowBuilder::Build(const char *name, ShaderFlavour flavour, uint32_t share
    if (flavour == SHADER_FRAGMENT)
    {
       // The linker looks for the $$discard variable
-      m_discard = SymbolHandle::Builtin(*this, "$$discard", spv::StorageClass::Output, SymbolTypeHandle::Bool());
-      StoreToSymbol(m_entryBlock, m_discard, DflowScalars::Bool(m_arenaAllocator, false));
+      m_discard = SymbolHandle::Builtin(m_allocator, "$$discard", spv::StorageClass::Output, SymbolTypeHandle::Bool());
+      StoreToSymbol(m_entryBlock, m_discard, DflowScalars::Bool(m_allocator, false));
       RecordOutputSymbol(m_discard);
    }
 
@@ -3850,12 +4029,13 @@ void DflowBuilder::Build(const char *name, ShaderFlavour flavour, uint32_t share
    // The back-end does not currently handle "breaks" on the true-branch of a conditional
    // so this swaps these round to false branches and flips the condition.
    PatchConditionals();
+   PatchSwitches();
 
    // Assign to the real output variables
    AssignOutputs();
 
    // Set up symbols for the interfaces
-   SetupInterface(entry, flavour);
+   SetupInterface(flavour);
 
    DebugPrint();
 

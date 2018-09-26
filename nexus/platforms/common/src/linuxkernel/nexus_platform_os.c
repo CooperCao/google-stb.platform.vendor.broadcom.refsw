@@ -131,7 +131,7 @@ BDBG_MODULE(nexus_platform_os);
 
 
 /* TODO: need a Linux macro to detect 2631-3.2 or greater */
-#if BMIPS4380_40NM || BMIPS5000_40NM || BMIPS_ZEPHYR_40NM 
+#if BMIPS4380_40NM || BMIPS5000_40NM || BMIPS_ZEPHYR_40NM
 #define LINUX_2631_3_2_OR_GREATER 1
 #endif
 
@@ -140,7 +140,7 @@ BDBG_MODULE(nexus_platform_os);
 #endif
 
 /*
-The interrupt code is meant to stay in sync with nexus/build/nfe_driver/b_bare_os.c's 
+The interrupt code is meant to stay in sync with nexus/build/nfe_driver/b_bare_os.c's
 interrupt code.
 */
 
@@ -177,7 +177,7 @@ struct b_bare_interrupt_entry {
                          /* keeps this state in "taskletEnabled" */
     bool taskletEnabled; /* true if irq is enabled in the kernel (enable_irq), false if irq is off at kernel (disable_irq) */
     bool shared;
-    
+
     unsigned count;
     bool print;
     bool virtual;
@@ -235,9 +235,9 @@ NEXUS_Platform_P_InitOS(void)
 
     rc = nexus_driver_scheduler_init();
     if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc);goto err_driver; }
-    
+
     return NEXUS_SUCCESS;
-    
+
 err_driver:
 err_tasklet:
     return rc;
@@ -364,13 +364,13 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type
     if (!addr) {
         BDBG_ERR(("vmap(" BDBG_UINT64_FMT ", %#x, %s) failed", BDBG_UINT64_ARG(offset), (unsigned)length, cached?"cached":"uncached"));
     }
-#elif LINUX_2631_3_2_OR_GREATER  
+#elif LINUX_2631_3_2_OR_GREATER
 
     if (type==NEXUS_AddrType_eCached)
         addr = ioremap_cachable(offset, length);
     else
         addr = ioremap_nocache(offset, length);
-    
+
     if (!addr) {
         BDBG_ERR(("ioremap(" BDBG_UINT64_FMT ", %#x, %s) failed", BDBG_UINT64_ARG(offset), length, cached?"cached":"uncached"));
     }
@@ -442,7 +442,7 @@ NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_AddrType memoryMap
 #if NEXUS_USE_CMA
     BSTD_UNUSED(addr);
     NEXUS_Platform_P_CmaVumap(pMem);
-#elif LINUX_2631_3_2_OR_GREATER 
+#elif LINUX_2631_3_2_OR_GREATER
      iounmap(pMem);
 #else
 #if BMIPS4380_40NM || BMIPS5000_40NM
@@ -667,7 +667,7 @@ NEXUS_Platform_P_LinuxIsr(int linux_irq, void *dev_id, struct pt_regs *regs)
     /* disable irq */
     BDBG_MSG_IRQ(("TH disable[irq] %d", linux_irq));
     if ( !entry->special_handler ) {
-        if ( entry->taskletEnabled ) { 
+        if ( entry->taskletEnabled ) {
             entry->taskletEnabled = false;
             disable_irq_nosync(linux_irq);
         }
@@ -688,7 +688,7 @@ NEXUS_Platform_P_LinuxIsr(int linux_irq, void *dev_id, struct pt_regs *regs)
     spin_unlock_irqrestore(&state->lock, flags);
 
     return IRQ_HANDLED;
-    
+
 error:
     BDBG_ASSERT(0); /* fail hard on unknown irq */
 #if 0
@@ -698,7 +698,7 @@ error:
     return IRQ_HANDLED;
 }
 
-NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum, 
+NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     NEXUS_Core_InterruptFunction handler_isr, void *context_ptr, int context_int)
 {
     struct NEXUS_Platform_P_IrqMap *nexusMap = NEXUS_Platform_P_IrqMap;
@@ -713,8 +713,8 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     if (irqNum>=NUM_IRQS || handler_isr==NULL || !state->started) {
         return BERR_TRACE(-1);
     }
-    
-    /* search the nexus map first */    
+
+    /* search the nexus map first */
     for (i=0;nexusMap[i].name;i++) {
         if (nexusMap[i].linux_irq == irqNum+1) {
             name = nexusMap[i].name;
@@ -728,7 +728,7 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
         /* use BINT's record of managed L2's (and their corresponding L1's) to validate the L1 connect */
         intMap = g_pCoreHandles->bint_map;
         BDBG_ASSERT(intMap);
-        
+
         /* find the first L2 that has this L1 */
         for (i=0;intMap[i].L1Shift!=-1;i++) {
             if (BINT_MAP_GET_L1SHIFT(&intMap[i]) == irqNum) {
@@ -755,8 +755,8 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     entry->context_ptr = context_ptr;
     entry->context_int = context_int;
     entry->special_handler = special_handler;
-    entry->shared = shared;\
-    entry->virtual = NEXUS_Platform_P_IsVirtualIrq(name);
+    entry->shared = shared;
+    entry->virtual = NEXUS_Platform_P_IsVirtualIrq(irqNum);
     BDBG_ASSERT(!entry->enabled);
     BDBG_ASSERT(!entry->taskletEnabled);
     BDBG_ASSERT(!entry->requested);
@@ -798,7 +798,7 @@ static void NEXUS_Platform_P_SetmaskL1(unsigned l1, bool disable)
         state->processing[reg].IntrMaskStatus &= ~(1 << (l1%32));
     }
 }
-    
+
 NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
 {
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
@@ -859,7 +859,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
         entry->requested = true;
         entry->enabled = true;
         return 0;
-    }    
+    }
     else if (!entry->enabled) {
         BDBG_MSG(("enable interrupt %d", LINUX_IRQ(irqNum)));
         if (!entry->special_handler) {
@@ -891,7 +891,7 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
         BERR_TRACE(-1);
         return;
     }
-    
+
     if (entry->virtual)
     {
         BDBG_MSG(("disable virtual interrupt %d", LINUX_IRQ(irqNum)));
@@ -909,7 +909,7 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
         state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
         if (!entry->special_handler) {
             /* If the TH has received the interrupt but it has not been processed by the tasklet, don't nest the disable call. */
-            if ( entry->taskletEnabled ) 
+            if ( entry->taskletEnabled )
             {
                 disable_irq_nosync(LINUX_IRQ(irqNum));
                 entry->taskletEnabled = false;

@@ -67,8 +67,6 @@ bp3featuresStruct bp3_features[] = {
     {"DAP Virtualizer Activation ($)", 1, 117},
     {"DAP Device Processing Activation ($)", 1, 118},
     {"Adv Output Ch Activation ($)", 1, 119},
-    {"HDR 10+ ($)", 1, 35},
-    {"TZ TA Customer ID", 1, TZTA_CUSTOMER_ID},
     {"Post Proc: DAP", 2, 0},
     {"Decode Dolby Digital", 2, 1},
     {"Decode Dolby Digital Plus", 2, 2},

@@ -156,8 +156,8 @@ LoadScalars::LoadScalars(DflowBuilder &builder, BasicBlockHandle block, const No
    m_builder(builder),
    m_block(block),
    m_resultType(resultType),
-   m_accessChain(builder.GetArenaAllocator()),
-   m_result(builder.GetArenaAllocator())
+   m_accessChain(builder.GetAllocator()),
+   m_result(builder.GetAllocator())
 {
 }
 
@@ -254,7 +254,7 @@ void LoadScalars::LoadFromMemory(const NodeVariable *var, const NodeType *rootTy
 
    // Calculate the types of all the scalars in the composite
    SymbolTypeHandle type = m_builder.GetSymbolType(m_resultType);
-   m_result = DflowScalars::LoadFromBufferAddress(m_builder.GetArenaAllocator(), type, accesses,
+   m_result = DflowScalars::LoadFromBufferAddress(m_builder.GetAllocator(), type, accesses,
                                                   buf, dynOffset, m_builder.RobustBufferAccess());
 }
 
@@ -264,7 +264,7 @@ void LoadScalars::LoadFromWorkgroup(const NodeVariable *var, const NodeType *roo
    Dflow        addr   = m_builder.WorkgroupAddress();
    SharedAccess access(m_builder, symbol, m_accessChain);
 
-   m_result = DflowScalars(m_builder.GetArenaAllocator(), access.GetType().GetNumScalars());
+   m_result = DflowScalars(m_builder.GetAllocator(), access.GetType().GetNumScalars());
 
    glsl_buffer_load_calculate_dataflow(m_block->GetBlock(), m_result.Data(),
                                        addr, access.GetOffset(),
@@ -289,11 +289,11 @@ void LoadScalars::LoadPushConstant(const NodeVariable *var, const NodeType *root
       uint32_t constOffset = offset.GetConstantInt();
       assert((constOffset & 3) == 0);
 
-      m_result = DflowScalars::LoadFromPushConstants(m_builder.GetArenaAllocator(), type, accesses, constOffset);
+      m_result = DflowScalars::LoadFromPushConstants(m_builder.GetAllocator(), type, accesses, constOffset);
    }
    else
    {
-      m_result = DflowScalars::LoadFromBufferAddress(m_builder.GetArenaAllocator(), type, accesses, buf, offset,
+      m_result = DflowScalars::LoadFromBufferAddress(m_builder.GetAllocator(), type, accesses, buf, offset,
                                                      m_builder.RobustBufferAccess());
    }
 }
@@ -411,7 +411,7 @@ StoreScalars::StoreScalars(DflowBuilder &builder, BasicBlockHandle block, const 
    m_block(block),
    m_storeType(storeType),
    m_scalars(scalars),
-   m_accessChain(builder.GetArenaAllocator())
+   m_accessChain(builder.GetAllocator())
 {
 }
 
@@ -551,8 +551,8 @@ AtomicAccess::AtomicAccess(DflowBuilder &builder, DataflowFlavour atomicOp, Basi
    m_atomicOp(atomicOp),
    m_block(block),
    m_storeType(storeType),
-   m_vec4(builder.GetArenaAllocator(), { value[0], comp, Dflow(), Dflow() }),
-   m_accessChain(builder.GetArenaAllocator())
+   m_vec4(builder.GetAllocator(), { value[0], comp, Dflow(), Dflow() }),
+   m_accessChain(builder.GetAllocator())
 {
 }
 

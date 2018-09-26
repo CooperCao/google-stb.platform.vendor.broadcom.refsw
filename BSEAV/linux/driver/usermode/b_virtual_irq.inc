@@ -61,7 +61,7 @@ struct b_virtual_irq_line_desc {
 
 static const struct b_virtual_irq_name_map_entry {
     b_virtual_irq_line irq_line;
-    char name[5];
+    char name[16];
 } g_virtual_irq_name_map[] = {
     {b_virtual_irq_line_iica,     "iica"},
     {b_virtual_irq_line_iicb,     "iicb"},
@@ -81,7 +81,14 @@ static const struct b_virtual_irq_name_map_entry {
     {b_virtual_irq_line_spi,      "spi"},
     {b_virtual_irq_line_ua,       "ua"},
     {b_virtual_irq_line_ub,       "ub"},
-    {b_virtual_irq_line_uc,       "uc"}
+    {b_virtual_irq_line_uc,       "uc"},
+    {b_virtual_irq_line_bicap_fifo_inact_intr,  "bicap_fifo_inact"},
+    {b_virtual_irq_line_bicap_fifo_lvl_intr,    "bicap_fifo_lvl"},
+    {b_virtual_irq_line_bicap_fifo_of_intr,     "bicap_fifo_of"},
+    {b_virtual_irq_line_bicap_timeout0_intr,    "bicap_timeout0"},
+    {b_virtual_irq_line_bicap_timeout1_intr,    "bicap_timeout1"},
+    {b_virtual_irq_line_bicap_timeout2_intr,    "bicap_timeout2"},
+    {b_virtual_irq_line_bicap_timeout3_intr,    "bicap_timeout3"},
 };
 
 static const char * b_virtual_irq_get_name(b_virtual_irq_line irq_line)
@@ -123,7 +130,16 @@ static const struct b_virtual_irq_map_entry {
     {b_virtual_irq_line_spi,  brcmstb_l2_irq_spi},
     {b_virtual_irq_line_ua,  brcmstb_l2_irq_ua},
     {b_virtual_irq_line_ub,  brcmstb_l2_irq_ub},
-    {b_virtual_irq_line_uc,  brcmstb_l2_irq_uc}
+    {b_virtual_irq_line_uc,  brcmstb_l2_irq_uc},
+#if BRCMSTB_H_VERSION >= 11
+    {b_virtual_irq_line_bicap_fifo_inact_intr, brcmstb_l2_irq_bicap_fifo_inact_intr},
+    {b_virtual_irq_line_bicap_fifo_lvl_intr,   brcmstb_l2_irq_bicap_fifo_lvl_intr},
+    {b_virtual_irq_line_bicap_fifo_of_intr,    brcmstb_l2_irq_bicap_fifo_of_intr},
+    {b_virtual_irq_line_bicap_timeout0_intr,   brcmstb_l2_irq_bicap_timeout0_intr},
+    {b_virtual_irq_line_bicap_timeout1_intr,   brcmstb_l2_irq_bicap_timeout1_intr},
+    {b_virtual_irq_line_bicap_timeout2_intr,   brcmstb_l2_irq_bicap_timeout2_intr},
+    {b_virtual_irq_line_bicap_timeout3_intr,   brcmstb_l2_irq_bicap_timeout3_intr}
+#endif
 };
 
 static brcmstb_l2_irq b_virtual_irq_find_linux_l2_by_line(b_virtual_irq_line irq_line)
@@ -204,33 +220,14 @@ void b_virtual_irq_get_capabilities(b_virtual_irq_capabilities * caps)
     *caps = g_virtual_irq_state.caps;
 }
 
-static const char * const g_virtual_irqs[] =
+bool b_virtual_irq_l1_is_virtual(unsigned int irq)
 {
-#if B_VIRTUAL_IRQ_OS_SUPPORT
-"UPG_BSC",
-"UPG_BSC_AON",
-"UPG_MAIN",
-"UPG_MAIN_AON",
-"UPG_SPI"
-#else
-NULL
-#endif
-};
-
-bool b_virtual_irq_l1_is_virtual(const char * name)
-{
-    unsigned i;
-    const char *virtualIrq;
     bool virtual = false;
 
     if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return 0; }
 
-    for (i = 0; i < sizeof(g_virtual_irqs)/sizeof(g_virtual_irqs[0]); i++) {
-        virtualIrq = g_virtual_irqs[i];
-        if (virtualIrq && !strcmp(virtualIrq, name)) {
-            virtual = true;
-            break;
-        }
+    if (irq > 0) {
+        virtual = b_os_irq_is_os_managed(irq);
     }
     return virtual;
 }

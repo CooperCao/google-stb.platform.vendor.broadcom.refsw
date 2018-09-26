@@ -3,8 +3,7 @@
  *****************************************************************************************************/
 
 #include "SymbolTypeHandle.h"
-#include "DflowBuilder.h"
-#include "Module.h"
+#include "Qualifier.h"
 
 #include "glsl_primitive_types.auto.h"
 
@@ -76,10 +75,10 @@ bool SymbolTypeHandle::IsImage() const
    return (primitiveTypeFlags[m_symbolType->u.primitive_type.index] & PRIM_STOR_IMAGE_TYPE) != 0;
 }
 
-static SymbolType *NewSymbolType(const DflowBuilder &builder, SymbolTypeFlavour flavour, const char *name,
+static SymbolType *NewSymbolType(const SpvAllocator &alloc, SymbolTypeFlavour flavour, const char *name,
                                  uint32_t numScalars)
 {
-   auto type = builder.New<SymbolType>();
+   auto type = alloc.New<SymbolType>();
 
    type->flavour      = flavour;
    type->name         = name;
@@ -88,9 +87,9 @@ static SymbolType *NewSymbolType(const DflowBuilder &builder, SymbolTypeFlavour 
    return type;
 }
 
-SymbolTypeHandle SymbolTypeHandle::Array(const DflowBuilder &builder, SymbolTypeHandle elementType, uint32_t size)
+SymbolTypeHandle SymbolTypeHandle::Array(const SpvAllocator &alloc, SymbolTypeHandle elementType, uint32_t size)
 {
-   SymbolType *type = NewSymbolType(builder, SYMBOL_ARRAY_TYPE, "array", size * elementType.GetNumScalars());
+   SymbolType *type = NewSymbolType(alloc, SYMBOL_ARRAY_TYPE, "array", size * elementType.GetNumScalars());
 
    type->u.array_type.member_count = size;
    type->u.array_type.member_type  = elementType.m_symbolType;
@@ -98,12 +97,12 @@ SymbolTypeHandle SymbolTypeHandle::Array(const DflowBuilder &builder, SymbolType
    return type;
 }
 
-SymbolTypeHandle SymbolTypeHandle::Struct(const DflowBuilder &builder, const NodeTypeStruct *node, const SymbolTypeHandle::MemberIter &members)
+SymbolTypeHandle SymbolTypeHandle::Struct(const SpvAllocator &alloc, const NodeTypeStruct *node, const SymbolTypeHandle::MemberIter &members)
 {
    uint32_t scalarCount = 0;
    uint32_t numMembers  = members.Size();
 
-   StructMember *memb = builder.NewArray<StructMember>(numMembers);
+   StructMember *memb = alloc.NewArray<StructMember>(numMembers);
 
    for (uint32_t i = 0; i < numMembers; ++i)
    {
@@ -126,16 +125,16 @@ SymbolTypeHandle SymbolTypeHandle::Struct(const DflowBuilder &builder, const Nod
       scalarCount += structMember.type->scalar_count;
    }
 
-   SymbolType *type = NewSymbolType(builder, SYMBOL_STRUCT_TYPE, "struct", scalarCount);
+   SymbolType *type = NewSymbolType(alloc, SYMBOL_STRUCT_TYPE, "struct", scalarCount);
    type->u.struct_type.member_count = numMembers;
    type->u.struct_type.member       = memb;
 
    return type;
 }
 
-SymbolTypeHandle SymbolTypeHandle::Pointer(const DflowBuilder &builder, SymbolTypeHandle targetType)
+SymbolTypeHandle SymbolTypeHandle::Pointer(const SpvAllocator &alloc, SymbolTypeHandle targetType)
 {
-   SymbolType *type = NewSymbolType(builder, SYMBOL_ARRAY_TYPE, "pointer", 1);
+   SymbolType *type = NewSymbolType(alloc, SYMBOL_ARRAY_TYPE, "pointer", 1);
 
    type->u.array_type.member_count = 1;
    type->u.array_type.member_type  = targetType.m_symbolType;

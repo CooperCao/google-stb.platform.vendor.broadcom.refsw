@@ -263,7 +263,7 @@ MemoryOffsetsOfScalars::MemoryOffsetsOfScalars(DflowBuilder &builder, spv::vecto
 spv::vector<MemAccess> MemoryOffsetsOfScalars::Calculate(
    DflowBuilder &builder, const NodeType *node, const LayoutInfo &layoutInfo)
 {
-   spv::vector<MemAccess> result(builder.GetArenaAllocator());
+   spv::vector<MemAccess> result(builder.GetAllocator());
    result.reserve(builder.GetNumScalars(node));
 
    MemoryOffsetsOfScalars visitor(builder, result, 0, layoutInfo);
@@ -445,7 +445,7 @@ void ExtractDynamicScalars::Visit(const NodeTypeVector *node)
       result = Dflow::CondOp(choose, m_scalars[i], result);
    }
 
-   m_scalars = DflowScalars(m_builder.GetArenaAllocator(), result);
+   m_scalars = DflowScalars(m_builder.GetAllocator(), result);
    m_type    = node->GetComponentType()->As<const NodeType *>();
 }
 
@@ -502,7 +502,7 @@ void ExtractDynamicScalars::Visit(const NodeTypeStruct *node)
    auto     memberType = node->GetMemberstype()[index]->As<const NodeType *>();
    uint32_t numScalars = m_builder.GetNumScalars(memberType);
 
-   DflowScalars result(m_builder.GetArenaAllocator(), numScalars);
+   DflowScalars result(m_builder.GetAllocator(), numScalars);
 
    for (uint32_t i = 0; i < numScalars; ++i)
       result[i] = m_scalars[offset + i];
@@ -574,7 +574,7 @@ InsertDynamicScalars::InsertDynamicScalars(
 DflowScalars InsertDynamicScalars::Calculate(DflowBuilder &builder, const DflowScalars &scalars,
    const NodeType *compositeType, const spv::vector<const Node *> &accessChain, const DflowScalars &data)
 {
-   DflowScalars   result(builder.GetArenaAllocator());
+   DflowScalars   result(builder.GetAllocator());
    result = scalars;
 
    InsertDynamicScalars visitor(builder, result, 0, accessChain, 0, data);
@@ -590,7 +590,7 @@ DflowScalars InsertDynamicScalars::Calculate(DflowBuilder &builder, const DflowS
    auto            vectorType    = compositeType->As<const NodeTypeVector *>();
    uint32_t        numComponents = vectorType->GetComponentCount();
 
-   DflowScalars    result(builder.GetArenaAllocator());
+   DflowScalars    result(builder.GetAllocator());
    result = scalars;
 
    for (uint32_t i = 0; i < numComponents; ++i)

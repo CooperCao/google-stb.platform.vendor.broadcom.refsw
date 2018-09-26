@@ -374,12 +374,44 @@ public:
    // Structured control flow
    void Visit(const NodeLabel *node) override;
    void Visit(const NodeLoopMerge *node) override;
+   void Visit(const NodeSelectionMerge *node) override;
 
    // Compute ops
    void Visit(const NodeControlBarrier *node);
    void Visit(const NodeMemoryBarrier *node);
 
    void Visit(const NodeGroupNonUniformElect *node);
+
+   // Misc
+   void Visit(const NodeExecutionMode *node) override;
+   void Visit(const NodeExecutionModeId *node) override;
+
+   // Should not be called.
+   void Visit(const NodeSourceContinued *node) override;
+   void Visit(const NodeSource *node) override;
+   void Visit(const NodeSourceExtension *node) override;
+   void Visit(const NodeName *node) override;
+   void Visit(const NodeMemberName *node) override;
+   void Visit(const NodeString *node) override;
+   void Visit(const NodeLine *node) override;
+   void Visit(const NodeExtension *node) override;
+   void Visit(const NodeExtInstImport *node) override;
+   void Visit(const NodeExtInst *node) override;
+   void Visit(const NodeMemoryModel *node) override;
+   void Visit(const NodeEntryPoint *node) override;
+   void Visit(const NodeCapability *node) override;
+   void Visit(const NodeFunction *node) override;
+   void Visit(const NodeFunctionParameter *node) override;
+   void Visit(const NodeFunctionEnd *node) override;
+   void Visit(const NodeImageTexelPointer *node) override;
+   void Visit(const NodeAccessChain *node) override;
+   void Visit(const NodeDecorate *node) override;
+   void Visit(const NodeMemberDecorate *node) override;
+   void Visit(const NodeDecorationGroup *node) override;
+   void Visit(const NodeGroupDecorate *node) override;
+   void Visit(const NodeGroupMemberDecorate *node) override;
+   void Visit(const NodeNoLine *node) override;
+   void Visit(const NodeModuleProcessed *node) override;
 
    // Compiler interface
    BasicBlockHandle GetEntryBlock()     const { return m_entryBlock;     }
@@ -389,22 +421,9 @@ public:
    SymbolListHandle GetSharedSymbols()  const { return m_sharedSymbols;  }
    const SymbolHandle GetWorkgroup()    const { return m_workgroup;      }
 
-   // Equivalent to "new T(args)" but will use the arena allocator
-   template <typename T, class... Types>
-   T *New(Types&&... args) const
+   const SpvAllocator &GetAllocator() const
    {
-      return spv::ModuleAllocator<T>(m_arenaAllocator).New(std::forward<Types>(args)...);
-   }
-
-   template <typename T>
-   T *NewArray(uint32_t numElems) const
-   {
-      return spv::ModuleAllocator<T>(m_arenaAllocator).NewArray(numElems);
-   }
-
-   const spv::ModuleAllocator<uint32_t> &GetArenaAllocator() const
-   {
-      return m_arenaAllocator;
+      return m_allocator;
    }
 
    // Dataflows are stored in the m_dataflow vector indexed by the
@@ -425,7 +444,7 @@ public:
 
    void AddDataflow(const Node *at, const Dflow &df)
    {
-      AddDataflow(at, DflowScalars(m_arenaAllocator, df));
+      AddDataflow(at, DflowScalars(m_allocator, df));
    }
 
    SymbolTypeHandle GetSymbolType(const NodeType *node) const
@@ -482,7 +501,7 @@ private:
    DataflowType ResultDataflowType(const Node *node) const;
 
    void RenameBuiltinSymbol(const Node *var, SymbolHandle symbol);
-   void SetupInterface(const NodeEntryPoint *entryPoint, ShaderFlavour flavour);
+   void SetupInterface(ShaderFlavour flavour);
 
    // Helper functions
    DflowScalars CreateBuiltinInputDataflow(spv::BuiltIn builtin);
@@ -519,6 +538,7 @@ private:
    void AssignIds(SymbolHandle symbol, int *current);
 
    void PatchConditionals() const;
+   void PatchSwitches() const;
 
    void AddInputSymbols();
    void AddOutputSymbols();
@@ -529,11 +549,12 @@ private:
 private:
    const Module                             &m_module;
    ArenaAllocator<SysMemCmdBlock, void*>     m_arena;
-   spv::ModuleAllocator<uint32_t>            m_arenaAllocator;
+   SpvAllocator                              m_allocator;
    ShaderFlavour                             m_flavour;
    bool                                      m_robustBufferAccess;
    bool                                      m_multiSampled;
 
+   const NodeEntryPoint         *m_entryPoint = nullptr;
    BasicBlockPool                m_basicBlockPool; // Record of all the basic blocks for clean-up
 
    FunctionStack                 m_functionStack;
@@ -567,9 +588,15 @@ private:
    BasicBlockHandle              m_exitBlock;
    IFaceData                     m_executionModes;
 
-   // Some data used to patch up conditions in loops
-   spv::vector<std::pair<BasicBlockHandle, BasicBlockHandle>>  m_conditionals;
+   // Used to patch up conditions in loops
    spv::vector<BasicBlockHandle>                               m_loopMerge;
+   spv::vector<std::pair<BasicBlockHandle, BasicBlockHandle>>  m_conditionals;
+
+   // Used to patch up merging of switches
+   spv::vector<BasicBlockHandle>                               m_selectMerge;
+   spv::map<BasicBlockHandle, std::list<BasicBlockHandle>>     m_switches;
+
+   spv::vector<BasicBlockHandle>                               m_merges;
 
    // Built-ins that require special handling
    SymbolHandle                  m_discard;

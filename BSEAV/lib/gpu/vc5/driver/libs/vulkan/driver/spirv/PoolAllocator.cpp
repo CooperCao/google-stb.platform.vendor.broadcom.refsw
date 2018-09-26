@@ -2,11 +2,11 @@
  * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *****************************************************************************************************/
 
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 
 #include "libs/util/log/log.h"
 
-LOG_DEFAULT_CAT("spv::ModuleAllocator");
+LOG_DEFAULT_CAT("spv::PoolAllocator");
 
 namespace spv {
 
@@ -20,7 +20,7 @@ void LogUsage(const char *name, const bvk::ArenaAllocator<bvk::SysMemCmdBlock, v
    arena.GetUsageData(&sysMemBlockCount, &sysBytesAlloced, &sysBytesUsed, &sysDeletedBytesWasted);
 
    log_trace("==============================================================");
-   log_trace("Module Arena Allocator for %s", name);
+   log_trace("Pool Allocator for %s", name);
    log_trace("System memory blocks used    : %zu", sysMemBlockCount);
    log_trace("System memory bytes alloced  : %zu", sysBytesAlloced);
    log_trace("System memory bytes used     : %zu", sysBytesUsed);

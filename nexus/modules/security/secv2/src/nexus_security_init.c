@@ -54,6 +54,7 @@
 #include "nexus_security_datatypes.h"
 #include "bhsm.h"
 #include "bhsm_keyslot.h"
+#include "bhsm_otp_key.h"
 
 BDBG_MODULE(nexus_security);
 
@@ -159,6 +160,26 @@ void NEXUS_SecurityModule_GetDefaultInternalSettings( NEXUS_SecurityModuleIntern
     return;
 }
 
+static void _print_otpid_a(void)
+{
+    BHSM_OtpKeyInfo keyInfo;
+    BERR_Code rc;
+    BKNI_Memset( &keyInfo, 0, sizeof(keyInfo) );
+    keyInfo.index = 0;
+    rc = BHSM_OtpKey_GetInfo(g_security.hsmHandle, &keyInfo);
+    if (rc == NEXUS_SUCCESS) {
+        if (sizeof(keyInfo.id) != 8) {
+            BDBG_ERR(("%s: unknown OTP ID length", BSTD_FUNCTION));
+        } else {
+            BDBG_LOG(("CHIPID: %02X%02X%02X%02X%02X%02X%02X%02X",
+                      (unsigned int)keyInfo.id[0], (unsigned int)keyInfo.id[1],
+                      (unsigned int)keyInfo.id[2], (unsigned int)keyInfo.id[3],
+                      (unsigned int)keyInfo.id[4], (unsigned int)keyInfo.id[5],
+                      (unsigned int)keyInfo.id[6], (unsigned int)keyInfo.id[7]));
+        }
+    }
+}
+
 NEXUS_ModuleHandle NEXUS_SecurityModule_Init( const NEXUS_SecurityModuleInternalSettings *pModuleSettings,
                                               const NEXUS_SecurityModuleSettings *pSettings )
 {
@@ -207,6 +228,8 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init( const NEXUS_SecurityModuleInternal
   #endif
 
     NEXUS_UnlockModule();
+
+    _print_otpid_a();
 
     return NEXUS_P_SecurityModule;
 

@@ -341,7 +341,7 @@ static void v3d_gem_put_pages(struct v3d_drm_gem_object *obj)
 					       obj->dma_addrs[i],
 					       PAGE_SIZE, DMA_TO_DEVICE);
 		}
-		kfree(obj->dma_addrs);
+		drm_free_large(obj->dma_addrs);
 		obj->dma_addrs = NULL;
 	}
 
@@ -436,8 +436,7 @@ static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 		}
 	}
 
-	obj->dma_addrs = kmalloc(num_pages * sizeof(*obj->dma_addrs),
-				 GFP_KERNEL);
+	obj->dma_addrs = drm_malloc_ab(num_pages, sizeof(*obj->dma_addrs));
 
 	if (!obj->dma_addrs) {
 		err = -ENOMEM;
@@ -472,8 +471,8 @@ static int v3d_gem_get_pages(struct v3d_drm_gem_object *obj)
 	return 0;
 
 free_addrs:
-	kfree(obj->dma_addrs);
-	obj->dma_addrs = NULL;
+   drm_free_large(obj->dma_addrs);
+   obj->dma_addrs = NULL;
 free_pages:
 	if (obj->cma_pages) {
 		v3d_free_cma_pages(fp, num_pages, obj->cma_pages);

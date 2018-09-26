@@ -3589,6 +3589,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
     if ( pStartSettings->appDisplayManagement )
     {
         cfg.bExternalPictureProviderMode = pStartSettings->appDisplayManagement;
+        cfg.bUseAllAvailableFWBuffers = true;   /* Allow decoder firmware to use all buffers in this mode without constraints for trickmodes, etc. */
         rc = NEXUS_VideoDecoder_P_InitializeQueue(videoDecoder);
         if ( rc ) { rc=BERR_TRACE(rc); goto err_init_queue; }
     }

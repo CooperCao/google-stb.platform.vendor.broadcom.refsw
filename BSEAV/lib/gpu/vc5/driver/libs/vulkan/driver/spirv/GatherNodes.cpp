@@ -10,7 +10,8 @@ namespace bvk {
 enum class NodeKind
 {
    Instruction,
-   Constant,
+   Global,
+   Type,
    Special,
    Ignored
 };
@@ -24,183 +25,203 @@ static NodeKind Kind(const Node *node)
 
    switch (node->GetOpCode())
    {
-   case spv::Core::OpFunctionCall                   :
-   case spv::Core::OpBranch                         :
-   case spv::Core::OpBranchConditional              :
-   case spv::Core::OpSwitch                         :
-   case spv::Core::OpReturn                         :
-   case spv::Core::OpReturnValue                    :
-   case spv::Core::OpNop                            :
-   case spv::Core::OpLoad                           :
-   case spv::Core::OpStore                          :
-   case spv::Core::OpCopyMemory                     :
-   case spv::Core::OpArrayLength                    :
-   case spv::Core::OpVectorExtractDynamic           :
-   case spv::Core::OpVectorInsertDynamic            :
-   case spv::Core::OpVectorShuffle                  :
-   case spv::Core::OpCompositeConstruct             :
-   case spv::Core::OpCompositeExtract               :
-   case spv::Core::OpCompositeInsert                :
-   case spv::Core::OpCopyObject                     :
-   case spv::Core::OpTranspose                      :
-   case spv::Core::OpSampledImage                   :
-   case spv::Core::OpImageSampleImplicitLod         :
-   case spv::Core::OpImageSampleExplicitLod         :
-   case spv::Core::OpImageSampleDrefImplicitLod     :
-   case spv::Core::OpImageSampleDrefExplicitLod     :
-   case spv::Core::OpImageSampleProjImplicitLod     :
-   case spv::Core::OpImageSampleProjExplicitLod     :
-   case spv::Core::OpImageSampleProjDrefImplicitLod :
-   case spv::Core::OpImageSampleProjDrefExplicitLod :
-   case spv::Core::OpImageFetch                     :
-   case spv::Core::OpImageGather                    :
-   case spv::Core::OpImageDrefGather                :
-   case spv::Core::OpImageRead                      :
-   case spv::Core::OpImageWrite                     :
-   case spv::Core::OpImage                          :
-   case spv::Core::OpImageQuerySizeLod              :
-   case spv::Core::OpImageQuerySize                 :
-   case spv::Core::OpImageQueryLod                  :
-   case spv::Core::OpImageQueryLevels               :
-   case spv::Core::OpImageQuerySamples              :
-   case spv::Core::OpConvertFToU                    :
-   case spv::Core::OpConvertFToS                    :
-   case spv::Core::OpConvertSToF                    :
-   case spv::Core::OpConvertUToF                    :
-   case spv::Core::OpUConvert                       :
-   case spv::Core::OpSConvert                       :
-   case spv::Core::OpFConvert                       :
-   case spv::Core::OpQuantizeToF16                  :
-   case spv::Core::OpBitcast                        :
-   case spv::Core::OpSNegate                        :
-   case spv::Core::OpFNegate                        :
-   case spv::Core::OpIAdd                           :
-   case spv::Core::OpFAdd                           :
-   case spv::Core::OpISub                           :
-   case spv::Core::OpFSub                           :
-   case spv::Core::OpIMul                           :
-   case spv::Core::OpFMul                           :
-   case spv::Core::OpUDiv                           :
-   case spv::Core::OpSDiv                           :
-   case spv::Core::OpFDiv                           :
-   case spv::Core::OpUMod                           :
-   case spv::Core::OpSRem                           :
-   case spv::Core::OpSMod                           :
-   case spv::Core::OpFRem                           :
-   case spv::Core::OpFMod                           :
-   case spv::Core::OpVectorTimesScalar              :
-   case spv::Core::OpMatrixTimesScalar              :
-   case spv::Core::OpVectorTimesMatrix              :
-   case spv::Core::OpMatrixTimesVector              :
-   case spv::Core::OpMatrixTimesMatrix              :
-   case spv::Core::OpOuterProduct                   :
-   case spv::Core::OpDot                            :
-   case spv::Core::OpIAddCarry                      :
-   case spv::Core::OpISubBorrow                     :
-   case spv::Core::OpUMulExtended                   :
-   case spv::Core::OpSMulExtended                   :
-   case spv::Core::OpAny                            :
-   case spv::Core::OpAll                            :
-   case spv::Core::OpIsNan                          :
-   case spv::Core::OpIsInf                          :
-   case spv::Core::OpLogicalEqual                   :
-   case spv::Core::OpLogicalNotEqual                :
-   case spv::Core::OpLogicalOr                      :
-   case spv::Core::OpLogicalAnd                     :
-   case spv::Core::OpLogicalNot                     :
-   case spv::Core::OpSelect                         :
-   case spv::Core::OpIEqual                         :
-   case spv::Core::OpINotEqual                      :
-   case spv::Core::OpUGreaterThan                   :
-   case spv::Core::OpSGreaterThan                   :
-   case spv::Core::OpUGreaterThanEqual              :
-   case spv::Core::OpSGreaterThanEqual              :
-   case spv::Core::OpULessThan                      :
-   case spv::Core::OpSLessThan                      :
-   case spv::Core::OpULessThanEqual                 :
-   case spv::Core::OpSLessThanEqual                 :
-   case spv::Core::OpFOrdEqual                      :
-   case spv::Core::OpFUnordEqual                    :
-   case spv::Core::OpFOrdNotEqual                   :
-   case spv::Core::OpFUnordNotEqual                 :
-   case spv::Core::OpFOrdLessThan                   :
-   case spv::Core::OpFUnordLessThan                 :
-   case spv::Core::OpFOrdGreaterThan                :
-   case spv::Core::OpFUnordGreaterThan              :
-   case spv::Core::OpFOrdLessThanEqual              :
-   case spv::Core::OpFUnordLessThanEqual            :
-   case spv::Core::OpFOrdGreaterThanEqual           :
-   case spv::Core::OpFUnordGreaterThanEqual         :
-   case spv::Core::OpShiftRightLogical              :
-   case spv::Core::OpShiftRightArithmetic           :
-   case spv::Core::OpShiftLeftLogical               :
-   case spv::Core::OpBitwiseOr                      :
-   case spv::Core::OpBitwiseXor                     :
-   case spv::Core::OpBitwiseAnd                     :
-   case spv::Core::OpNot                            :
-   case spv::Core::OpBitFieldInsert                 :
-   case spv::Core::OpBitFieldSExtract               :
-   case spv::Core::OpBitFieldUExtract               :
-   case spv::Core::OpBitReverse                     :
-   case spv::Core::OpBitCount                       :
-   case spv::Core::OpDPdx                           :
-   case spv::Core::OpDPdy                           :
-   case spv::Core::OpFwidth                         :
-   case spv::Core::OpDPdxFine                       :
-   case spv::Core::OpDPdyFine                       :
-   case spv::Core::OpFwidthFine                     :
-   case spv::Core::OpDPdxCoarse                     :
-   case spv::Core::OpDPdyCoarse                     :
-   case spv::Core::OpFwidthCoarse                   :
-   case spv::Core::OpControlBarrier                 :
-   case spv::Core::OpMemoryBarrier                  :
-   case spv::Core::OpAtomicLoad                     :
-   case spv::Core::OpAtomicStore                    :
-   case spv::Core::OpAtomicExchange                 :
-   case spv::Core::OpAtomicCompareExchange          :
-   case spv::Core::OpAtomicIIncrement               :
-   case spv::Core::OpAtomicIDecrement               :
-   case spv::Core::OpAtomicIAdd                     :
-   case spv::Core::OpAtomicISub                     :
-   case spv::Core::OpAtomicSMin                     :
-   case spv::Core::OpAtomicUMin                     :
-   case spv::Core::OpAtomicSMax                     :
-   case spv::Core::OpAtomicUMax                     :
-   case spv::Core::OpAtomicAnd                      :
-   case spv::Core::OpAtomicOr                       :
-   case spv::Core::OpAtomicXor                      :
-   case spv::Core::OpPhi                            :
-   case spv::Core::OpKill                           :
-   case spv::Core::OpUnreachable                    :
-   case spv::Core::OpLoopMerge                      :
-   case spv::Core::OpGroupNonUniformElect           :
+   using namespace spv;
+
+   case Core::OpFunctionCall                   :
+   case Core::OpBranch                         :
+   case Core::OpBranchConditional              :
+   case Core::OpSwitch                         :
+   case Core::OpReturn                         :
+   case Core::OpReturnValue                    :
+   case Core::OpNop                            :
+   case Core::OpLoad                           :
+   case Core::OpStore                          :
+   case Core::OpCopyMemory                     :
+   case Core::OpArrayLength                    :
+   case Core::OpVectorExtractDynamic           :
+   case Core::OpVectorInsertDynamic            :
+   case Core::OpVectorShuffle                  :
+   case Core::OpCompositeConstruct             :
+   case Core::OpCompositeExtract               :
+   case Core::OpCompositeInsert                :
+   case Core::OpCopyObject                     :
+   case Core::OpTranspose                      :
+   case Core::OpSampledImage                   :
+   case Core::OpImageSampleImplicitLod         :
+   case Core::OpImageSampleExplicitLod         :
+   case Core::OpImageSampleDrefImplicitLod     :
+   case Core::OpImageSampleDrefExplicitLod     :
+   case Core::OpImageSampleProjImplicitLod     :
+   case Core::OpImageSampleProjExplicitLod     :
+   case Core::OpImageSampleProjDrefImplicitLod :
+   case Core::OpImageSampleProjDrefExplicitLod :
+   case Core::OpImageFetch                     :
+   case Core::OpImageGather                    :
+   case Core::OpImageDrefGather                :
+   case Core::OpImageRead                      :
+   case Core::OpImageWrite                     :
+   case Core::OpImage                          :
+   case Core::OpImageQuerySizeLod              :
+   case Core::OpImageQuerySize                 :
+   case Core::OpImageQueryLod                  :
+   case Core::OpImageQueryLevels               :
+   case Core::OpImageQuerySamples              :
+   case Core::OpConvertFToU                    :
+   case Core::OpConvertFToS                    :
+   case Core::OpConvertSToF                    :
+   case Core::OpConvertUToF                    :
+   case Core::OpUConvert                       :
+   case Core::OpSConvert                       :
+   case Core::OpFConvert                       :
+   case Core::OpQuantizeToF16                  :
+   case Core::OpBitcast                        :
+   case Core::OpSNegate                        :
+   case Core::OpFNegate                        :
+   case Core::OpIAdd                           :
+   case Core::OpFAdd                           :
+   case Core::OpISub                           :
+   case Core::OpFSub                           :
+   case Core::OpIMul                           :
+   case Core::OpFMul                           :
+   case Core::OpUDiv                           :
+   case Core::OpSDiv                           :
+   case Core::OpFDiv                           :
+   case Core::OpUMod                           :
+   case Core::OpSRem                           :
+   case Core::OpSMod                           :
+   case Core::OpFRem                           :
+   case Core::OpFMod                           :
+   case Core::OpVectorTimesScalar              :
+   case Core::OpMatrixTimesScalar              :
+   case Core::OpVectorTimesMatrix              :
+   case Core::OpMatrixTimesVector              :
+   case Core::OpMatrixTimesMatrix              :
+   case Core::OpOuterProduct                   :
+   case Core::OpDot                            :
+   case Core::OpIAddCarry                      :
+   case Core::OpISubBorrow                     :
+   case Core::OpUMulExtended                   :
+   case Core::OpSMulExtended                   :
+   case Core::OpAny                            :
+   case Core::OpAll                            :
+   case Core::OpIsNan                          :
+   case Core::OpIsInf                          :
+   case Core::OpLogicalEqual                   :
+   case Core::OpLogicalNotEqual                :
+   case Core::OpLogicalOr                      :
+   case Core::OpLogicalAnd                     :
+   case Core::OpLogicalNot                     :
+   case Core::OpSelect                         :
+   case Core::OpIEqual                         :
+   case Core::OpINotEqual                      :
+   case Core::OpUGreaterThan                   :
+   case Core::OpSGreaterThan                   :
+   case Core::OpUGreaterThanEqual              :
+   case Core::OpSGreaterThanEqual              :
+   case Core::OpULessThan                      :
+   case Core::OpSLessThan                      :
+   case Core::OpULessThanEqual                 :
+   case Core::OpSLessThanEqual                 :
+   case Core::OpFOrdEqual                      :
+   case Core::OpFUnordEqual                    :
+   case Core::OpFOrdNotEqual                   :
+   case Core::OpFUnordNotEqual                 :
+   case Core::OpFOrdLessThan                   :
+   case Core::OpFUnordLessThan                 :
+   case Core::OpFOrdGreaterThan                :
+   case Core::OpFUnordGreaterThan              :
+   case Core::OpFOrdLessThanEqual              :
+   case Core::OpFUnordLessThanEqual            :
+   case Core::OpFOrdGreaterThanEqual           :
+   case Core::OpFUnordGreaterThanEqual         :
+   case Core::OpShiftRightLogical              :
+   case Core::OpShiftRightArithmetic           :
+   case Core::OpShiftLeftLogical               :
+   case Core::OpBitwiseOr                      :
+   case Core::OpBitwiseXor                     :
+   case Core::OpBitwiseAnd                     :
+   case Core::OpNot                            :
+   case Core::OpBitFieldInsert                 :
+   case Core::OpBitFieldSExtract               :
+   case Core::OpBitFieldUExtract               :
+   case Core::OpBitReverse                     :
+   case Core::OpBitCount                       :
+   case Core::OpDPdx                           :
+   case Core::OpDPdy                           :
+   case Core::OpFwidth                         :
+   case Core::OpDPdxFine                       :
+   case Core::OpDPdyFine                       :
+   case Core::OpFwidthFine                     :
+   case Core::OpDPdxCoarse                     :
+   case Core::OpDPdyCoarse                     :
+   case Core::OpFwidthCoarse                   :
+   case Core::OpControlBarrier                 :
+   case Core::OpMemoryBarrier                  :
+   case Core::OpAtomicLoad                     :
+   case Core::OpAtomicStore                    :
+   case Core::OpAtomicExchange                 :
+   case Core::OpAtomicCompareExchange          :
+   case Core::OpAtomicIIncrement               :
+   case Core::OpAtomicIDecrement               :
+   case Core::OpAtomicIAdd                     :
+   case Core::OpAtomicISub                     :
+   case Core::OpAtomicSMin                     :
+   case Core::OpAtomicUMin                     :
+   case Core::OpAtomicSMax                     :
+   case Core::OpAtomicUMax                     :
+   case Core::OpAtomicAnd                      :
+   case Core::OpAtomicOr                       :
+   case Core::OpAtomicXor                      :
+   case Core::OpPhi                            :
+   case Core::OpKill                           :
+   case Core::OpUnreachable                    :
+   case Core::OpLoopMerge                      :
+   case Core::OpSelectionMerge                 :
+   case Core::OpGroupNonUniformElect           :
       return NodeKind::Instruction;
 
-   case spv::Core::OpConstant              :
-   case spv::Core::OpConstantTrue          :
-   case spv::Core::OpConstantFalse         :
-   case spv::Core::OpConstantNull          :
-   case spv::Core::OpConstantComposite     :
-   case spv::Core::OpSpecConstantTrue      :
-   case spv::Core::OpSpecConstantFalse     :
-   case spv::Core::OpSpecConstant          :
-   case spv::Core::OpSpecConstantComposite :
-   case spv::Core::OpSpecConstantOp        :
-   case spv::Core::OpUndef                 :
-      return NodeKind::Constant;
+   case Core::OpTypeVoid         :
+   case Core::OpTypeBool         :
+   case Core::OpTypeInt          :
+   case Core::OpTypeFloat        :
+   case Core::OpTypeVector       :
+   case Core::OpTypeMatrix       :
+   case Core::OpTypeImage        :
+   case Core::OpTypeSampler      :
+   case Core::OpTypeSampledImage :
+   case Core::OpTypeArray        :
+   case Core::OpTypeStruct       :
+   case Core::OpTypePointer      :
+   case Core::OpTypeFunction     :
+      return NodeKind::Type;
 
-   case spv::Core::OpSourceExtension     :
-   case spv::Core::OpString              :
-   case spv::Core::OpLine                :
-   case spv::Core::OpNoLine              :
-   case spv::Core::OpSourceContinued     :
-   case spv::Core::OpMemberName          :
-   case spv::Core::OpSelectionMerge      :
-   case spv::Core::OpFunctionEnd         :
-   case spv::Core::OpAccessChain         :
-   case spv::Core::OpInBoundsAccessChain :
-   case spv::Core::OpImageTexelPointer   :
-   case spv::Core::OpModuleProcessed     :
+   case Core::OpConstant              :
+   case Core::OpConstantTrue          :
+   case Core::OpConstantFalse         :
+   case Core::OpConstantNull          :
+   case Core::OpConstantComposite     :
+   case Core::OpSpecConstantTrue      :
+   case Core::OpSpecConstantFalse     :
+   case Core::OpSpecConstant          :
+   case Core::OpSpecConstantComposite :
+   case Core::OpSpecConstantOp        :
+   case Core::OpUndef                 :
+   case Core::OpExecutionMode         :
+   case Core::OpExecutionModeId       :
+      return NodeKind::Global;
+
+   case Core::OpSourceExtension     :
+   case Core::OpString              :
+   case Core::OpLine                :
+   case Core::OpNoLine              :
+   case Core::OpSourceContinued     :
+   case Core::OpMemberName          :
+   case Core::OpFunctionEnd         :
+   case Core::OpAccessChain         :
+   case Core::OpInBoundsAccessChain :
+   case Core::OpImageTexelPointer   :
+   case Core::OpModuleProcessed     :
+   case Core::OpName                :
       return NodeKind::Ignored;
 
    default:
@@ -216,10 +237,11 @@ void GatherNodes::Gather(Module &module)
    {
       switch (Kind(node))
       {
-      case NodeKind::Instruction : module.AddInstruction(node);  break;
-      case NodeKind::Constant    : module.AddConstant(node);     break;
-      case NodeKind::Special     : node->Accept(visitor);        break;
-      case NodeKind::Ignored     : /* do nothing */              break;
+      case NodeKind::Instruction : module.AddInstruction(node);                  break;
+      case NodeKind::Type        : module.AddType(node->As<const NodeType *>()); break;
+      case NodeKind::Global      : module.AddGlobal(node);                       break;
+      case NodeKind::Special     : node->Accept(visitor);                        break;
+      case NodeKind::Ignored     : /* do nothing */                              break;
       }
    }
 }
@@ -236,30 +258,11 @@ void GatherNodes::Visit(const NodeSource *node)              { m_module.SetSourc
 void GatherNodes::Visit(const NodeDecorate *node)            { m_module.AddDecoration(node);            }
 void GatherNodes::Visit(const NodeDecorationGroup *node)     { m_module.AddDecorationGroup(node);       }
 void GatherNodes::Visit(const NodeGroupDecorate *node)       { m_module.AddGroupDecoration(node);       }
-void GatherNodes::Visit(const NodeName *node)                {                                          }
-void GatherNodes::Visit(const NodeExecutionMode *node)       { m_module.AddExecutionMode(node);         }
 void GatherNodes::Visit(const NodeVariable *node)            { m_module.AddVariable(node);              }
 void GatherNodes::Visit(const NodeLabel *node)               { m_module.AddLabel(node);                 }
 void GatherNodes::Visit(const NodeFunction *node)            { m_module.AddFunction(node);              }
 void GatherNodes::Visit(const NodeFunctionParameter *node)   { m_module.AddParameter(node);             }
 void GatherNodes::Visit(const NodeMemberDecorate *node)      { m_module.AddMemberDecoration(node);      }
 void GatherNodes::Visit(const NodeGroupMemberDecorate *node) { m_module.AddGroupMemberDecoration(node); }
-
-//////////////////////////////////////////////////////////////////////////////
-// Types are added to the module's type table
-//////////////////////////////////////////////////////////////////////////////
-void GatherNodes::Visit(const NodeTypeVoid *node)            { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeBool *node)            { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeInt *node)             { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeFloat *node)           { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeVector *node)          { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeMatrix *node)          { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeImage *node)           { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeSampler *node)         { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeSampledImage *node)    { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeArray *node)           { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeStruct *node)          { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypePointer *node)         { m_module.AddType(node); }
-void GatherNodes::Visit(const NodeTypeFunction *node)        { m_module.AddType(node); }
 
 } // namespace bvk

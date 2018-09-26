@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 #include "DescriptorInfo.h"
 
 namespace bvk {
@@ -14,10 +14,9 @@ namespace bvk {
 class DescriptorMap
 {
 public:
-   DescriptorMap(spv::ModuleAllocator<uint32_t> &allocator, DescriptorTable *table) :
+   DescriptorMap(const SpvAllocator &allocator, DescriptorTable *table) :
       m_table(table),
-      m_map(std::less<DescriptorInfo>(), spv::ModuleAllocator<
-            std::pair<const DescriptorInfo, uint32_t>>(allocator))
+      m_map(std::less<DescriptorInfo>(), allocator)
    {
       assert(table->size() == 0);
    }
@@ -33,7 +32,7 @@ private:
 class DescriptorMaps
 {
 public:
-   DescriptorMaps(spv::ModuleAllocator<uint32_t> &allocator, DescriptorTables *tables);
+   DescriptorMaps(const SpvAllocator &allocator, DescriptorTables *tables);
 
    uint32_t AddSampler(const DescriptorInfo &descInfo)
    {

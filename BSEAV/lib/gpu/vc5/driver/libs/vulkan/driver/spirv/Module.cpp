@@ -48,7 +48,6 @@ public:
    uint32_t m_capabilityCount = 0;
    uint32_t m_extensionCount  = 0;
    uint32_t m_extImportCount  = 0;
-   uint32_t m_constantCount   = 0;
    uint32_t m_typeCount       = 0;
    uint32_t m_variableCount   = 0;
    uint32_t m_globalCount     = 0;
@@ -112,7 +111,8 @@ void ModuleInfo::AddOp(spv::Core op)
    case spv::Core::OpSpecConstantFalse :
    case spv::Core::OpSpecConstant :
    case spv::Core::OpSpecConstantComposite :
-      m_constantCount++;
+   case spv::Core::OpExecutionMode :
+   case spv::Core::OpExecutionModeId :
       m_globalCount++;
       break;
 
@@ -202,17 +202,17 @@ static void DumpSPIRV(const uint32_t *spirvCode, uint32_t sizeInBytes)
 Module::Module(const VkAllocationCallbacks *cbs, const uint32_t *code, uint32_t sizeInBytes) :
    Allocating(cbs),
    m_arena(cbs),
-   m_arenaAllocator(&m_arena),
-   m_allNodes(m_arenaAllocator),
-   m_results(m_arenaAllocator),
-   m_capabilities(m_arenaAllocator),
-   m_extensions(m_arenaAllocator),
-   m_extImports(m_arenaAllocator),
-   m_variables(m_arenaAllocator),
-   m_globals(m_arenaAllocator),
-   m_functions(m_arenaAllocator),
-   m_entryPoints(m_arenaAllocator),
-   m_decorations(m_arenaAllocator)
+   m_allocator(&m_arena),
+   m_allNodes(m_allocator),
+   m_results(m_allocator),
+   m_capabilities(m_allocator),
+   m_extensions(m_allocator),
+   m_extImports(m_allocator),
+   m_variables(m_allocator),
+   m_globals(m_allocator),
+   m_functions(m_allocator),
+   m_entryPoints(m_allocator),
+   m_decorations(m_allocator)
 {
    assert((sizeInBytes & 3) == 0); // Must be multiple of 4
 
@@ -258,7 +258,7 @@ Module::Module(const VkAllocationCallbacks *cbs, const uint32_t *code, uint32_t 
 
 Module::~Module()
 {
-   m_arenaAllocator.LogMemoryUsage("=== Module ===");
+   m_allocator.LogMemoryUsage("=== Module ===");
 }
 
 const uint32_t *Module::ParseHeader(const uint32_t *instr)
@@ -281,7 +281,7 @@ const uint32_t *Module::ParseInstruction(const uint32_t *instr)
    {
       // Didn't find an auto-gen match for the op, make a dummy one
       log_warn("Found an unimplemented or unsupported instruction (%u)\n", static_cast<uint32_t>(extr.GetOpCode()));
-      AddNode(New<NodeDummy>(extr));
+      AddNode(m_allocator.New<NodeDummy>(extr));
    }
 
    return instr + extr.GetWordCount();
@@ -296,7 +296,7 @@ void Module::AllocateArrays(const ModuleInfo &info)
 
    m_decorations.resize(size);
    for (uint32_t i = 0; i < size; ++i)
-      m_decorations[i] = New<spv::list<const Decoration *>>(m_arenaAllocator);
+      m_decorations[i] = m_allocator.New<spv::list<const Decoration *>>(m_allocator);
 
    m_variables.reserve(info.m_variableCount);
    m_globals.reserve(info.m_globalCount),
@@ -306,21 +306,10 @@ void Module::AllocateArrays(const ModuleInfo &info)
 
 void Module::AddLabel(const NodeLabel *node)
 {
-   // Assign an id to the label
-   node->GetData()->SetBlockId(m_blockCount++);
-
    // Add the label to the current function
    m_functions.back()->GetData()->StartBlock(node);
 
    AddInstruction(node);
-}
-
-uint32_t Module::AddFunction(const NodeFunction *function)
-{
-   uint32_t id = m_functions.size();
-   m_functions.push_back(function);
-   function->GetData()->SetId(id);
-   return id;
 }
 
 void Module::AddParameter(const NodeFunctionParameter *parameter)
@@ -348,14 +337,6 @@ void Module::AddNode(Node *node)
    }
 
    m_allNodes.push_back(node);
-}
-
-uint32_t Module::AddEntryPoint(const NodeEntryPoint *entryPoint)
-{
-   uint32_t id = m_entryPoints.size();
-   m_entryPoints.push_back(entryPoint);
-   entryPoint->GetData()->SetId(id);
-   return id;
 }
 
 const NodeEntryPoint *Module::GetEntryPoint(const char *name, spv::ExecutionModel model, uint32_t *index) const
@@ -396,13 +377,6 @@ const NodeEntryPoint *Module::GetEntryPoint(uint32_t entryPointId, uint32_t *ind
    }
 
    return nullptr;
-}
-
-void Module::AddExecutionMode(const NodeExecutionMode *mode) // uint32_t entryPointId, const NodeExecutionMode *mode)
-{
-   const NodeEntryPoint *entryPoint = GetEntryPoint(mode->GetEntryPoint()->GetResultId());
-
-   entryPoint->GetData()->AddMode(mode);
 }
 
 const NodeFunction *Module::GetEntryPointFunction(const NodeEntryPoint *entryPoint) const

@@ -9,7 +9,7 @@
 #include "Spirv.h"
 #include "Optional.h"
 #include "NodeBase.h"
-#include "ModuleAllocator.h"
+#include "PoolAllocator.h"
 
 namespace bvk {
 
@@ -49,14 +49,7 @@ struct NumberOfWords<std::pair<S, T>>
 class Extractor
 {
 public:
-   Extractor(Module &module, const uint32_t *instr) :
-      m_module   (module),
-      m_instr    (instr),
-      m_index    (1),        // Start of first argument
-      m_wordCount(instr[0] >> spv::con::WordCountShift),
-      m_opCode   (static_cast<spv::Core>(instr[0] & spv::con::OpCodeMask))
-   {
-   }
+   Extractor(Module &module, const uint32_t *instr);
 
    uint32_t  GetWordCount() const  { return m_wordCount;           }
    uint32_t  WordsLeft()    const  { return m_wordCount - m_index; }
@@ -64,7 +57,13 @@ public:
 
    explicit operator bool() const  { return WordsLeft() > 0;       }
 
-   spv::ModuleAllocator<uint32_t> &GetAllocator() const;
+   const SpvAllocator &GetAllocator() const { return m_allocator; }
+
+   template <typename T>
+   T *NewData()
+   {
+      return m_allocator.New<T>(m_allocator);
+   }
 
    spv::GLSL GetExtOpCode() const
    {
@@ -156,6 +155,7 @@ public:
 
 private:
    Module         &m_module;    // The module
+   SpvAllocator   &m_allocator;
    const uint32_t *m_instr;     // SPIRV raw instruction data
    uint32_t        m_index;     // Current word index
    uint32_t        m_wordCount; // Number of words in the instruction

@@ -18,7 +18,7 @@ LOG_DEFAULT_CAT("bvk::comp::SPVSymbol");
 
 namespace bvk {
 
-static const char *GenName(const DflowBuilder &builder, ShaderFlavour flavour,
+static const char *GenName(const SpvAllocator &alloc, ShaderFlavour flavour,
                            const char *nm, uint32_t location)
 {
    // Add the flavour tag "$F", "$V", etc. to the end of the name to make them unique across stages.
@@ -30,7 +30,7 @@ static const char *GenName(const DflowBuilder &builder, ShaderFlavour flavour,
 
    // We must have all the names come from the module allocator since the linker will be reading
    // them and the DflowBuilder will be deceased by then.
-   spv::string *newName = builder.New<spv::string>(builder.GetArenaAllocator());
+   spv::string *newName = alloc.New<spv::string>(alloc);
 
    // Don't alter special symbol names (those starting gl_ or $$)
    if (nm == nullptr)
@@ -51,34 +51,34 @@ void SymbolHandle::SetLocation(uint32_t location)
    vi->layout_location      = location;
 }
 
-SymbolHandle::SymbolHandle(const DflowBuilder &builder)
+SymbolHandle::SymbolHandle(const SpvAllocator &alloc)
 {
-   m_symbol = builder.New<Symbol>();
+   m_symbol = alloc.New<Symbol>();
 }
 
 // Create a symbol corresponding to a SPIRV variable
-SymbolHandle SymbolHandle::Variable(const DflowBuilder &builder, ShaderFlavour flavour, const char *name,
+SymbolHandle SymbolHandle::Variable(const Module &module, const SpvAllocator &alloc, ShaderFlavour flavour, const char *name,
                                     const NodeVariable *var, SymbolTypeHandle type)
 {
    QualifierDecorations  q(var);
-   SymbolHandle          symbol(builder);
+   SymbolHandle          symbol(alloc);
 
-   const char *nm = GenName(builder, flavour, name, var->GetResultId());
+   const char *nm = GenName(alloc, flavour, name, var->GetResultId());
 
    glsl_symbol_construct_var_instance(symbol, nm, type, &q, nullptr, nullptr);
 
    int location;
-   if (builder.GetModule().GetVarLocation(&location, var))
+   if (module.GetVarLocation(&location, var))
       symbol.SetLocation(location);
 
    return symbol;
 }
 
-SymbolHandle SymbolHandle::Variable(const DflowBuilder &builder, ShaderFlavour flavour,
+SymbolHandle SymbolHandle::Variable(const SpvAllocator &alloc, ShaderFlavour flavour,
                                     const QualifierDecorations &qualifiers, uint32_t location, SymbolTypeHandle type)
 {
-   SymbolHandle  symbol(builder);
-   const char   *nm = GenName(builder, flavour, nullptr, location);
+   SymbolHandle  symbol(alloc);
+   const char   *nm = GenName(alloc, flavour, nullptr, location);
 
    glsl_symbol_construct_var_instance(symbol, nm, type, &qualifiers, nullptr, nullptr);
    symbol.SetLocation(location);
@@ -87,21 +87,21 @@ SymbolHandle SymbolHandle::Variable(const DflowBuilder &builder, ShaderFlavour f
 }
 
 // Used for internal symbols e.g. "discard", "gl_Position" etc.
-SymbolHandle SymbolHandle::Builtin(const DflowBuilder &builder, const char *name,
+SymbolHandle SymbolHandle::Builtin(const SpvAllocator &alloc, const char *name,
                                    spv::StorageClass storageClass, SymbolTypeHandle type)
 {
    QualifierDecorations q(storageClass);
-   SymbolHandle         symbol(builder);
+   SymbolHandle         symbol(alloc);
 
    glsl_symbol_construct_var_instance(symbol, name, type, &q, nullptr, nullptr);
 
    return symbol;
 }
 
-SymbolHandle SymbolHandle::Internal(const DflowBuilder &builder, const char *name, SymbolTypeHandle type)
+SymbolHandle SymbolHandle::Internal(const SpvAllocator &alloc, const char *name, SymbolTypeHandle type)
 {
    QualifierDecorations q;
-   SymbolHandle         symbol(builder);
+   SymbolHandle         symbol(alloc);
 
    glsl_symbol_construct_var_instance(symbol, name, type, &q, nullptr, nullptr);
 

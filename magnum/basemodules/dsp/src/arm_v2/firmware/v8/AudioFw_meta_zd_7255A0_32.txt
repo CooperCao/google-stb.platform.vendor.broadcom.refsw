@@ -1,0 +1,3 @@
+## Audio Firmware Binary Metadata - zd 18p2p3
+## unique_key checksum_type checksum url
+barm_v2_32_zd.tgz sha1 4356dbfdaf45e89bb6f6f4b4aa7909a8e5f6cce6 http://git-irv-03.irv.broadcom.com:88/files/AudioFwBin/18p2p3/7255A0/barm_v2_32_zd.tgz

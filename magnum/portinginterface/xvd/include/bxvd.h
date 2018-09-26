@@ -2089,6 +2089,7 @@ typedef struct BXVD_DecodeSettings
   bool bSWCoefAVCDecodeModeEnable;          /* Enable SW coefficient decode of AVC streams */
   bool bIgnoreNumReorderFramesEqZero;       /* Ignore AVC Num Reorder Frames equal zero */
   bool bEarlyPictureDeliveryMode;           /* Enable Early Picture Delivery Mode */
+  bool bUseAllAvailableFWBuffers;           /* HVD FW will use all available FW buffers as needed */
   struct BXVD_DecodeSettings * pstEnhancedSettings;  /* SW7425-1064: with linked channels, BXVD_StartDecode will be called */
                                                      /* once for both channel, hence the need to link the decode settings. */
   bool bUserDataBTPModeEnable;              /* Enable Userdata in BTP mode */

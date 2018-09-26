@@ -197,7 +197,7 @@ void IORecorder::Visit(const NodeTypeStruct *type)
 InputLoader::InputLoader(DflowBuilder &builder, uint32_t numScalars, const NodeVariable *var, BasicBlockHandle block) :
    IOVisitor(builder, var),
    m_resultIndex(0),
-   m_result(m_builder.GetArenaAllocator(), numScalars),
+   m_result(m_builder.GetAllocator(), numScalars),
    m_block(block)
 {}
 
