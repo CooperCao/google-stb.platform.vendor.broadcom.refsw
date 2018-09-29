@@ -3790,7 +3790,7 @@ const uint32_t BDSP_IMG_syslib_code_array1[] = {
 	0x461ffe27,
 	0x07bffe37,
 	0x0a50c103,
-	0xc6003bb3,
+	0xc6003b9b,
 	0x07bffe03,
 	0xa73609d7,
 	0x001dfff5,

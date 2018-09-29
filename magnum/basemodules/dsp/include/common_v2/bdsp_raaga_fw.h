@@ -107,6 +107,15 @@ typedef enum BDSP_AF_P_EnableDisable
     BDSP_AF_P_EnableDisable_eInvalid = 0x7FFFFFFF
 }BDSP_AF_P_EnableDisable;
 
+typedef enum BDSP_AF_P_TargetSyncEvalMode
+{
+    BDSP_AF_P_TargetSyncEvalMode_eDisableIfDecoderIsLocked = 0x0, /* Not supported in Raaga3p0(Octave), if passed by the host it will be treated as eDisable */
+    BDSP_AF_P_TargetSyncEvalMode_eEnable = 0x1,
+    BDSP_AF_P_TargetSyncEvalMode_eDisable = 0x2,
+    BDSP_AF_P_TargetSyncEvalMode_eMax,
+    BDSP_AF_P_TargetSyncEvalMode_eInvalid = 0x7FFFFFFF
+}BDSP_AF_P_TargetSyncEvalMode;
+
 typedef enum BDSP_AF_P_DistinctOpType
 {
     BDSP_AF_P_DistinctOpType_e7_1_PCM,                  /* 7.1 PCM */

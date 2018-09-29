@@ -107,6 +107,12 @@ BDBG_OBJECT_ID_DECLARE(BAPE_EchoCanceller);
 #define BAPE_P_NUM_ELEMS(x)  (sizeof(x) / sizeof (x)[0])
 #define BAPE_P_MAX(A,B) ((A)>(B)?(A):(B))
 
+#if BAPE_CHIP_MAX_SFIFOS > 0
+#define BAPE_P_PAD_SFIFO_ALLOCATION(x) (x + BAPE_CHIP_SFIFO_PADDING)
+#else
+#define BAPE_P_PAD_SFIFO_ALLOCATION(x) (x)
+#endif
+
 #if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:

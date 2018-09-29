@@ -1206,7 +1206,7 @@ Legacy 7425 style AIO
 
 static BERR_Code BAPE_SpdifOutput_P_Open_Legacy(BAPE_SpdifOutputHandle handle)
 {
-    handle->muteBufferBlock = BMMA_Alloc(handle->deviceHandle->memHandle, BAPE_P_MUTE_BUFFER_SIZE, 32, NULL);
+    handle->muteBufferBlock = BMMA_Alloc(handle->deviceHandle->memHandle, BAPE_P_PAD_SFIFO_ALLOCATION(BAPE_P_MUTE_BUFFER_SIZE), 32, NULL);
     if ( NULL == handle->muteBufferBlock )
     {
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1750,7 +1750,7 @@ static BERR_Code BAPE_SpdifOutput_P_OpenHw_Legacy(BAPE_SpdifOutputHandle handle)
     sfifoSettings.bufferInfo[0].block = handle->muteBufferBlock;
     sfifoSettings.bufferInfo[0].pBuffer = handle->pMuteBuffer;
     sfifoSettings.bufferInfo[0].base = handle->muteBufferOffset;
-    sfifoSettings.bufferInfo[0].length = sizeof(g_pauseburst)*64;
+    sfifoSettings.bufferInfo[0].length = BAPE_P_PAD_SFIFO_ALLOCATION(BAPE_P_MUTE_BUFFER_SIZE);
     sfifoSettings.bufferInfo[0].wrpoint = sfifoSettings.bufferInfo[0].base;
     errCode = BAPE_SfifoGroup_P_SetSettings(handle->hSfifo, &sfifoSettings);
     if ( errCode )
@@ -1905,7 +1905,7 @@ static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig_Legacy(BAPE_SpdifOutputHandle
         (void *)handle->pMuteBuffer, (void *)pCached, BAPE_P_MUTE_BUFFER_SIZE, handle->settings.underflowBurst,
         (handle->settings.underflowBurst==BAPE_SpdifBurstType_ePause)?"Pause Bursts" : (handle->settings.underflowBurst==BAPE_SpdifBurstType_eNull)?"NULL Bursts" : "Zeros"));
 
-    BKNI_Memset( pCached, 0, BAPE_P_MUTE_BUFFER_SIZE );
+    BKNI_Memset( pCached, 0, BAPE_P_PAD_SFIFO_ALLOCATION(BAPE_P_MUTE_BUFFER_SIZE) );
 
     if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_ePause )
     {
@@ -1925,7 +1925,7 @@ static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig_Legacy(BAPE_SpdifOutputHandle
         }
     }
 
-    BAPE_FLUSHCACHE_ISRSAFE(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_MUTE_BUFFER_SIZE);
+    BAPE_FLUSHCACHE_ISRSAFE(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_PAD_SFIFO_ALLOCATION(BAPE_P_MUTE_BUFFER_SIZE));
 
     if (handle->hSfifo)
     {

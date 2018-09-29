@@ -1269,8 +1269,13 @@ void NEXUS_AudioDecoder_GetDefaultStartSettings(
 {
     BKNI_Memset(pSettings, 0, sizeof(NEXUS_AudioDecoderStartSettings));
     pSettings->codec = NEXUS_AudioCodec_eAc3;
-    pSettings->targetSyncEnabled = true;
+    pSettings->targetSyncEnabled = NEXUS_AudioDecoderTargetSyncMode_eEnabled;
     pSettings->maxOutputRate = 48000;
+
+    BDBG_CASSERT((int)NEXUS_AudioDecoderTargetSyncMode_eDisabledAfterLock == (int)BAPE_DecoderTargetSyncMode_eDisabledAfterLock);
+    BDBG_CASSERT((int)NEXUS_AudioDecoderTargetSyncMode_eEnabled == (int)BAPE_DecoderTargetSyncMode_eEnabled);
+    BDBG_CASSERT((int)NEXUS_AudioDecoderTargetSyncMode_eDisabled == (int)BAPE_DecoderTargetSyncMode_eDisabled);
+    BDBG_CASSERT((int)NEXUS_AudioDecoderTargetSyncMode_eMax == (int)BAPE_DecoderTargetSyncMode_eMax);
 }
 
 #if BDBG_DEBUG_BUILD
@@ -1341,7 +1346,7 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
 
     pStartSettings = &handle->apeStartSettings;
     BAPE_Decoder_GetDefaultStartSettings(pStartSettings);
-    pStartSettings->targetSyncEnabled = pProgram->targetSyncEnabled;
+    pStartSettings->targetSyncEnabled = (BAPE_DecoderTargetSyncMode)pProgram->targetSyncEnabled;
     pStartSettings->forceCompleteFirstFrame = pProgram->forceCompleteFirstFrame;
     pStartSettings->nonRealTime = pProgram->nonRealTime;
     pStartSettings->karaokeModeEnabled = pProgram->karaokeModeEnabled;

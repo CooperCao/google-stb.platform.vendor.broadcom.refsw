@@ -1439,8 +1439,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
                  set the contentChangeOnly flag for later use in hdmi_output module*/
 
             contentChangeOnly =
-                !hdmiFormatChange /* no HDMI format change required */
-                && (((display->cfg.aspectRatio != aspectRatio) && (display->cfg.format == format) && (!_3dOrientationChange))
+                (((display->cfg.aspectRatio != aspectRatio) && (display->cfg.format == format) && (!_3dOrientationChange))
                 || (displaySyncOnly != settings.syncOnly)) ;
 
             rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &videoFmt);

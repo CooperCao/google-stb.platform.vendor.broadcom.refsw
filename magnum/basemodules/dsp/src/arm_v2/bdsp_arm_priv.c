@@ -983,6 +983,9 @@ BERR_Code BDSP_Arm_P_Open(
             pDevice->memInfo.sRWMemoryPool[dspindex].ui32Size     = MemoryRequired;
             pDevice->memInfo.sRWMemoryPool[dspindex].ui32UsedSize = 0;
         }
+    }
+	if((pDevice->hardwareStatus.deviceWatchdogFlag == false)||((pDevice->hardwareStatus.powerStandby == true)&&(pDevice->hardwareStatus.powerStandbyMode == BDSP_StandbyMode_eS3) ))
+    {
         errCode = BDSP_Arm_P_DownloadCode((void *)pDevice);
         if(errCode != BERR_SUCCESS)
         {
@@ -1919,12 +1922,11 @@ BERR_Code BDSP_Arm_P_PowerStandby(
 {
 	BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
 	BERR_Code err=BERR_SUCCESS;
+	unsigned imageId =0;
 
 	BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
 	BDBG_ENTER(BDSP_Arm_P_PowerStandby);
 
-	if (pSettings)
-		BSTD_UNUSED(pSettings);
 
 	if (!pDevice->hardwareStatus.powerStandby)
 	{
@@ -1950,7 +1952,36 @@ BERR_Code BDSP_Arm_P_PowerStandby(
 		/*BDSP_Arm_P_Close(pDeviceHandle);*/
 		BDSP_Arm_P_CloseUserApp(pDeviceHandle);
 
+		/* Realease fw Image memory in s3 standby mode */
+		if(pSettings->standbyMode == BDSP_StandbyMode_eS3)
+		{
+			/* Release Resident image memory */
+			for(imageId = 0; imageId < BDSP_ARM_SystemImgId_eMax; imageId++)
+			{
+				err = BDSP_P_ReleaseMemory(&pDevice->memInfo.sROMemoryPool,pDevice->codeInfo.imgInfo[imageId].ui32Size, &pDevice->codeInfo.imgInfo[imageId].Buffer);
+		        if(err != BERR_SUCCESS)
+		        {
+		            BDBG_ERR(("BDSP_Arm_P_PowerStandby: Unable to release memeory for imageId %d", imageId));
+					goto end;
+		        }
+			}
+			/* Release algo lib image */
+			for(imageId = BDSP_ARM_SystemImgId_eMax; imageId < BDSP_ARM_IMG_ID_MAX; imageId++)
+			{
+			    if(pDevice->codeInfo.imgInfo[imageId].ui32Size != 0)
+			    {
+					err = BDSP_P_ReleaseMemory(&pDevice->memInfo.sROMemoryPool,pDevice->codeInfo.imgInfo[imageId].ui32Size, &pDevice->codeInfo.imgInfo[imageId].Buffer);
+			        if(err != BERR_SUCCESS)
+			        {
+			            BDBG_ERR(("BDSP_Arm_P_PowerStandby: Unable to release memeory for imageId %d", imageId));
+						goto end;
+			        }
+			    }
+			}
+		}
+
 		pDevice->hardwareStatus.powerStandby = true;
+		pDevice->hardwareStatus.powerStandbyMode = pSettings->standbyMode;
 
 	}
 	else

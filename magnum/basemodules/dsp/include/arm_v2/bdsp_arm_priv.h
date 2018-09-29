@@ -148,6 +148,7 @@ typedef struct BDSP_Arm_P_HardwareStatus
 {
     bool deviceWatchdogFlag;
     bool    powerStandby;
+	BDSP_StandbyMode powerStandbyMode;
     bool softFifo[BDSP_ARM_MAX_DSP][BDSP_ARM_NUM_FIFOS];
     bool descriptor[BDSP_ARM_MAX_DSP][BDSP_MAX_POOL_OF_DESCRIPTORS];
 }BDSP_Arm_P_HardwareStatus;

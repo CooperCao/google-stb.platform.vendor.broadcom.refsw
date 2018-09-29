@@ -73,7 +73,7 @@
 #define BDSP_ARM_IMG_KERNEL_OPS_SIZE                                 ((uint32_t)93184)
 
 /*STAGE_IO Size requirement*/
-#define BDSP_ARM_IMG_STAGE_IO_SIZE                                   ((uint32_t)230912)
+#define BDSP_ARM_IMG_STAGE_IO_SIZE                                   ((uint32_t)233472)
 
 /*COMMON_IDS Size requirement*/
 #define BDSP_ARM_IMG_COMMON_IDS_SIZE                                 ((uint32_t)272384)
@@ -113,7 +113,7 @@
 
 /*ADEC_PCMWAV Size requirement*/
 #define BDSP_ARM_IMG_ADEC_PCMWAV_SCRATCH_SIZE                        ((uint32_t)32768)
-#define BDSP_ARM_IMG_ADEC_PCMWAV_SIZE                                ((uint32_t)39424)
+#define BDSP_ARM_IMG_ADEC_PCMWAV_SIZE                                ((uint32_t)41472)
 #define BDSP_ARM_IMG_ADEC_PCMWAV_INTER_FRAME_SIZE                    ((uint32_t)1536)
 #define BDSP_ARM_IMG_ADEC_PCMWAV_INTER_FRAME_ENCODED_SIZE            ((uint32_t)512)
 #define BDSP_ARM_IMG_ADEC_PCMWAV_TABLES_SIZE                         ((uint32_t)1536)
@@ -144,24 +144,24 @@
 
 /*ADEC_DDP Size requirement*/
 #define BDSP_ARM_IMG_ADEC_DDP_SCRATCH_SIZE                           ((uint32_t)593920)
-#define BDSP_ARM_IMG_ADEC_DDP_SIZE                                   ((uint32_t)814592)
+#define BDSP_ARM_IMG_ADEC_DDP_SIZE                                   ((uint32_t)860160)
 #define BDSP_ARM_IMG_ADEC_DDP_INTER_FRAME_SIZE                       ((uint32_t)1049600)
 #define BDSP_ARM_IMG_ADEC_DDP_INTER_FRAME_ENCODED_SIZE               ((uint32_t)512)
-#define BDSP_ARM_IMG_ADEC_DDP_TABLES_SIZE                            ((uint32_t)205312)
+#define BDSP_ARM_IMG_ADEC_DDP_TABLES_SIZE                            ((uint32_t)156672)
 
 /*ADEC_AC3 Size requirement*/
 #define BDSP_ARM_IMG_ADEC_AC3_SCRATCH_SIZE                           ((uint32_t)593920)
-#define BDSP_ARM_IMG_ADEC_AC3_SIZE                                   ((uint32_t)814592)
+#define BDSP_ARM_IMG_ADEC_AC3_SIZE                                   ((uint32_t)860160)
 #define BDSP_ARM_IMG_ADEC_AC3_INTER_FRAME_SIZE                       ((uint32_t)1049600)
 #define BDSP_ARM_IMG_ADEC_AC3_INTER_FRAME_ENCODED_SIZE               ((uint32_t)512)
-#define BDSP_ARM_IMG_ADEC_AC3_TABLES_SIZE                            ((uint32_t)205312)
+#define BDSP_ARM_IMG_ADEC_AC3_TABLES_SIZE                            ((uint32_t)156672)
 
 /*ADEC_UDC Size requirement*/
 #define BDSP_ARM_IMG_ADEC_UDC_SCRATCH_SIZE                           ((uint32_t)593920)
-#define BDSP_ARM_IMG_ADEC_UDC_SIZE                                   ((uint32_t)814592)
+#define BDSP_ARM_IMG_ADEC_UDC_SIZE                                   ((uint32_t)860160)
 #define BDSP_ARM_IMG_ADEC_UDC_INTER_FRAME_SIZE                       ((uint32_t)1049600)
 #define BDSP_ARM_IMG_ADEC_UDC_INTER_FRAME_ENCODED_SIZE               ((uint32_t)512)
-#define BDSP_ARM_IMG_ADEC_UDC_TABLES_SIZE                            ((uint32_t)205312)
+#define BDSP_ARM_IMG_ADEC_UDC_TABLES_SIZE                            ((uint32_t)156672)
 
 /*APP_DPCMR Size requirement*/
 #define BDSP_ARM_IMG_APP_DPCMR_SCRATCH_SIZE                          ((uint32_t)40960)
@@ -172,31 +172,31 @@
 
 /*APP_MIXER_DAPV2 Size requirement*/
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE                    ((uint32_t)1273856)
-#define BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE                            ((uint32_t)109056)
+#define BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE                            ((uint32_t)108544)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE                ((uint32_t)331776)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE        ((uint32_t)512)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_TABLES_SIZE                     ((uint32_t)89600)
 
 /*ADEC_DOLBY_AACHE Size requirement*/
 #define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SCRATCH_SIZE                   ((uint32_t)528384)
-#define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SIZE                           ((uint32_t)755712)
+#define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_SIZE                           ((uint32_t)807424)
 #define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_SIZE               ((uint32_t)525312)
 #define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_INTER_FRAME_ENCODED_SIZE       ((uint32_t)512)
-#define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_TABLES_SIZE                    ((uint32_t)159744)
+#define BDSP_ARM_IMG_ADEC_DOLBY_AACHE_TABLES_SIZE                    ((uint32_t)138240)
 
 /*AENC_DDP Size requirement*/
 #define BDSP_ARM_IMG_AENC_DDP_SCRATCH_SIZE                           ((uint32_t)81920)
-#define BDSP_ARM_IMG_AENC_DDP_SIZE                                   ((uint32_t)827392)
+#define BDSP_ARM_IMG_AENC_DDP_SIZE                                   ((uint32_t)873984)
 #define BDSP_ARM_IMG_AENC_DDP_INTER_FRAME_SIZE                       ((uint32_t)219648)
 #define BDSP_ARM_IMG_AENC_DDP_INTER_FRAME_ENCODED_SIZE               ((uint32_t)512)
 #define BDSP_ARM_IMG_AENC_DDP_TABLES_SIZE                            ((uint32_t)28160)
 
 /*ADEC_MS11PLUS_UDC Size requirement*/
 #define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_SCRATCH_SIZE                  ((uint32_t)593920)
-#define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_SIZE                          ((uint32_t)811008)
+#define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_SIZE                          ((uint32_t)860160)
 #define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_INTER_FRAME_SIZE              ((uint32_t)1049600)
 #define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_INTER_FRAME_ENCODED_SIZE      ((uint32_t)512)
-#define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_TABLES_SIZE                   ((uint32_t)205312)
+#define BDSP_ARM_IMG_ADEC_MS11PLUS_UDC_TABLES_SIZE                   ((uint32_t)156672)
 
 /*APP_MS11PLUS_DPCMR Size requirement*/
 #define BDSP_ARM_IMG_APP_MS11PLUS_DPCMR_SCRATCH_SIZE                 ((uint32_t)40960)
@@ -214,14 +214,14 @@
 
 /*ADEC_MS11PLUS_DOLBY_AACHE Size requirement*/
 #define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_SCRATCH_SIZE          ((uint32_t)528384)
-#define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_SIZE                  ((uint32_t)755712)
+#define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_SIZE                  ((uint32_t)807424)
 #define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_INTER_FRAME_SIZE      ((uint32_t)525312)
 #define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_INTER_FRAME_ENCODED_SIZE ((uint32_t)512)
-#define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_TABLES_SIZE           ((uint32_t)159744)
+#define BDSP_ARM_IMG_ADEC_MS11PLUS_DOLBY_AACHE_TABLES_SIZE           ((uint32_t)138240)
 
 /*AENC_MS11PLUS_DD Size requirement*/
 #define BDSP_ARM_IMG_AENC_MS11PLUS_DD_SCRATCH_SIZE                   ((uint32_t)81920)
-#define BDSP_ARM_IMG_AENC_MS11PLUS_DD_SIZE                           ((uint32_t)827392)
+#define BDSP_ARM_IMG_AENC_MS11PLUS_DD_SIZE                           ((uint32_t)873472)
 #define BDSP_ARM_IMG_AENC_MS11PLUS_DD_INTER_FRAME_SIZE               ((uint32_t)219648)
 #define BDSP_ARM_IMG_AENC_MS11PLUS_DD_INTER_FRAME_ENCODED_SIZE       ((uint32_t)512)
 #define BDSP_ARM_IMG_AENC_MS11PLUS_DD_TABLES_SIZE                    ((uint32_t)28160)

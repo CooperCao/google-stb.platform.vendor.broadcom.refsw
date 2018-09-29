@@ -947,8 +947,7 @@ Return      :   Error Code to return SUCCESS or FAILURE
 Functionality   :   Acquire the resources for the DSP. Reboot and initialize DSP, then Enable the Watchdog timer.
 ***********************************************************************/
 BERR_Code BDSP_Raaga_P_PowerResume(
-	void *pDeviceHandle
-)
+	void *pDeviceHandle)
 {
 	BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
 	BERR_Code errCode=BERR_SUCCESS;
