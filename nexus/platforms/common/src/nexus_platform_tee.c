@@ -95,6 +95,7 @@ static BERR_Code NEXUS_Platform_P_TeeClientCreate(void *pInstanceData, const cha
     BDBG_OBJECT_SET(pClient, NEXUS_TeeClient);
     pClient->pEventCallback_isr = pSettings->pEventCallback_isr;
     pClient->pEventPrivateData = pSettings->pCallbackData;
+    BDBG_MSG(("astra_client_open called"));
     pClient->hAstraClient = astra_client_open(pName, NEXUS_Platform_P_TeeEventHandler, pClient);
     if ( NULL == pClient->hAstraClient )
     {
@@ -117,6 +118,7 @@ static void NEXUS_Platform_P_TeeClientDestroy(void *pClientPrivate)
     NEXUS_TeeClient *pClient = (NEXUS_TeeClient *)pClientPrivate;
 
     BDBG_OBJECT_ASSERT(pClient, NEXUS_TeeClient);
+    BDBG_MSG(("astra_client_close called"));
     astra_client_close(pClient->hAstraClient);
     BDBG_OBJECT_DESTROY(pClient, NEXUS_TeeClient);
     BKNI_Free(pClient);
@@ -131,6 +133,7 @@ static BERR_Code NEXUS_Platform_P_TeeClientReceiveMessage(void *pClientPrivate, 
     BDBG_OBJECT_ASSERT(pClient, NEXUS_TeeClient);
 
     *pLength = maxLength;
+    BDBG_MSG(("astra_msg_receive called"));
     rc = astra_msg_receive(pClient->hAstraClient, &hPeer, pMessage, pLength, timeoutMsec);
     if ( rc )
     {
@@ -233,6 +236,7 @@ static BERR_Code NEXUS_Platform_P_TeeFileOpen(void *pClientPrivate, const char *
     BDBG_OBJECT_ASSERT(pClient, NEXUS_TeeClient);
 
     *pFilePrivate = NULL;
+    BDBG_MSG(("astra_file_open called"));
     hFile = astra_file_open(pClient->hAstraClient, pPath, flags);
     if ( NULL == hFile )
     {
@@ -247,6 +251,7 @@ static BERR_Code NEXUS_Platform_P_TeeFileRead(void *pFilePrivate, uint64_t addre
     int rc;
 
     *pBytesRead = 0;
+    BDBG_MSG(("astra_file_read called"));
     rc = astra_file_read(pFilePrivate, address, bytesToRead);
     if ( rc >= 0 )
     {
@@ -260,6 +265,7 @@ static BERR_Code NEXUS_Platform_P_TeeFileWrite(void *pFilePrivate, uint64_t addr
 {
     int rc;
     *pBytesWritten = 0;
+    BDBG_MSG(("astra_file_write called"));
     rc = astra_file_write(pFilePrivate, address, bytesToWrite);
     if ( rc >= 0 )
     {
@@ -271,6 +277,7 @@ static BERR_Code NEXUS_Platform_P_TeeFileWrite(void *pFilePrivate, uint64_t addr
 
 static void NEXUS_Platform_P_TeeFileClose(void *pFilePrivate)
 {
+    BDBG_MSG(("astra_file_close called"));
     astra_file_close(pFilePrivate);
 }
 
@@ -281,6 +288,7 @@ static BERR_Code NEXUS_Platform_P_TeeAppOpen(void *pClientPrivate, const char *p
     BDBG_OBJECT_ASSERT(pClient, NEXUS_TeeClient);
 
     *pAppPrivate = NULL;
+    BDBG_MSG(("astra_uapp_open called"));
     hApp = astra_uapp_open(pClient->hAstraClient, pName, pPath);
     if ( NULL == hApp )
     {
@@ -292,6 +300,7 @@ static BERR_Code NEXUS_Platform_P_TeeAppOpen(void *pClientPrivate, const char *p
 
 static void NEXUS_Platform_P_TeeAppClose(void *pAppPrivate)
 {
+    BDBG_MSG(("astra_uapp_close called"));
     astra_uapp_close(pAppPrivate);
 }
 
@@ -302,6 +311,7 @@ static BERR_Code NEXUS_Platform_P_TeeConnectionOpen(void *pAppPrivate, const cha
     BSTD_UNUSED(pSettings);
 
     *pConnectionPrivate = NULL;
+    BDBG_MSG(("astra_peer_open called"));
     hPeer = astra_peer_open(pAppPrivate, pServiceName);
     if ( NULL == hPeer )
     {
@@ -316,6 +326,7 @@ static BERR_Code NEXUS_Platform_P_TeeConnectionSendMessage(void *pConnectionPriv
 {
     int rc;
 
+    BDBG_MSG(("astra_msg_send called"));
     rc = astra_msg_send(pConnectionPrivate, pMessage, messageLength);
     if ( rc )
     {
@@ -326,6 +337,7 @@ static BERR_Code NEXUS_Platform_P_TeeConnectionSendMessage(void *pConnectionPriv
 
 static void NEXUS_Platform_P_TeeConnectionClose(void *pConnectionPrivate)
 {
+    BDBG_MSG(("astra_peer_close called"));
     astra_peer_close(pConnectionPrivate);
 }
 

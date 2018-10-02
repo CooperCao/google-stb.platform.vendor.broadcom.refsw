@@ -1247,6 +1247,7 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
     else
     {
         bool ac4Found = false;
+        bool standaloneFound = false;
         BAPE_DecoderHandle decoder = (BAPE_DecoderHandle)pConnection->pSource->pParent->pHandle;
         if ( decoder != NULL )
         {
@@ -1254,8 +1255,8 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
             BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
 
             mixingMode = decoder->startSettings.mixingMode;
-
             ac4Found = (decoder->startSettings.codec == BAVC_AudioCompressionStd_eAc4) ? true : false;
+            standaloneFound = (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone) ? true : false;
 
             for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
             {
@@ -1279,6 +1280,7 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
                                     return BERR_NOT_SUPPORTED;
                                 }
                                 ac4Found |= (decoder->startSettings.codec == BAVC_AudioCompressionStd_eAc4) ? true : false;
+                                standaloneFound |= (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone) ? true : false;
                             }
                         }
                     }
@@ -1299,6 +1301,8 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
             BAPE_ProcessorSettings processorSettings;
             BERR_Code errCode;
 
+            bool disableAdvTsm = ac4Found | standaloneFound;
+
             BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eAdvancedTsm, 1, &numFound, &pNode);
             switch ( numFound )
             {
@@ -1306,8 +1310,8 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
                 break;
             case 1:
                 BAPE_Processor_GetSettings((BAPE_ProcessorHandle)(pNode->pHandle), &processorSettings);
-                if (processorSettings.settings.advTsm.forceBypass != ac4Found) {
-                    processorSettings.settings.advTsm.forceBypass = ac4Found;
+                if (processorSettings.settings.advTsm.forceBypass != disableAdvTsm) {
+                    processorSettings.settings.advTsm.forceBypass = disableAdvTsm;
                     errCode = BAPE_Processor_SetSettings((BAPE_ProcessorHandle)(pNode->pHandle), &processorSettings);
                     if (errCode) { BERR_TRACE(errCode); }
                 }

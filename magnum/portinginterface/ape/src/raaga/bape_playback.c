@@ -269,7 +269,7 @@ BERR_Code BAPE_Playback_Open(
     {
         unsigned allocSize;
 
-        allocSize = pSettings->bufferSize + BAPE_CHIP_SFIFO_PADDING;
+        allocSize = BAPE_P_PAD_SFIFO_ALLOCATION(pSettings->bufferSize);
         BAPE_SIZE_ALIGN(allocSize);
         hPlayback->block[i] = BMMA_Alloc(hPlayback->hHeap, allocSize, BAPE_ADDRESS_ALIGN, NULL);
         if ( NULL == hPlayback->block[i] )

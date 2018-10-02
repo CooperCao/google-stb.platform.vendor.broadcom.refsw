@@ -397,7 +397,7 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     r->scdIdx = NULL;
     r->scdPidCount = 0;
     r->scdUsedMap = 0;
-    r->scdMapMode = -1;
+    r->scdMapMode = nexus_recpump_index_mapping_none;
     NEXUS_Recpump_GetDefaultSettings(&r->settings);
 
     BXPT_Rave_GetDefaultAllocCxSettings(&allocSettings);
@@ -622,7 +622,7 @@ NEXUS_Recpump_P_FreeScdIndexer(NEXUS_RecpumpHandle r)
             pid->assignedScd = -1;
         }
         r->scdUsedMap = 0;
-        r->scdMapMode = -1;
+        r->scdMapMode = nexus_recpump_index_mapping_none;
     }
 }
 
@@ -635,11 +635,11 @@ static void nexus_recpump_p_unassign_scd(NEXUS_RecpumpHandle r, NEXUS_Recpump_P_
         BKNI_Memset(&ScdConfig, 0, sizeof(ScdConfig));
         ScdConfig.EsCount = BXPT_MIN_ES_COUNT; /* no payload needed, min required */
         /* use previous (not new) mapMode to control disable */
-        if (r->scdMapMode == 0) {
+        if (r->scdMapMode == nexus_recpump_index_mapping_by_pidvalue) {
             rc = BXPT_Rave_SetScdUsingPid(r->scdIdx, pid->assignedScd, 0x1fff, &ScdConfig);
             if (rc) BERR_TRACE(rc); /* keep going */
         }
-        else if (r->scdMapMode == 1) {
+        else if (r->scdMapMode == nexus_recpump_index_mapping_by_pidchannel) {
             ScdConfig.PidChannel = 0x1fff;
             rc = BXPT_Rave_SetScdEntry(r->scdIdx, pid->assignedScd, &ScdConfig);
             if (rc) BERR_TRACE(rc); /* keep going */
@@ -656,22 +656,23 @@ static NEXUS_Error NEXUS_Recpump_P_ProvisionScdIndexer(NEXUS_RecpumpHandle r)
     unsigned scdNo;
     NEXUS_Recpump_P_PidChannel *pid;
     unsigned requiredScds = 0;
-    int newMapMode = -1;
+    enum nexus_recpump_index_mapping newMapMode = nexus_recpump_index_mapping_none;
 
     /* 1. Count the indexed pids, and detect the (new) pid mapping mode needed */
 
     for(pid=BLST_S_FIRST(&r->pid_list);pid;pid=BLST_S_NEXT(pid, link)) {
         if (NEXUS_RECPUMP_PID_IS_INDEX(&pid->settings)) {
+            enum nexus_recpump_index_mapping requiredMode = (pid->settings.pidType != NEXUS_PidType_eVideo || pid->settings.pidTypeSettings.video.pid == 0x1fff) ?
+                nexus_recpump_index_mapping_by_pidchannel : nexus_recpump_index_mapping_by_pidvalue;
             requiredScds++;
-            if (newMapMode >= 0) {
-                bool requiredMode = pid->settings.pidType == NEXUS_PidType_eVideo && pid->settings.pidTypeSettings.video.pid == 0x1fff;
+            if (newMapMode != nexus_recpump_index_mapping_none) {
                 if (requiredMode != newMapMode) {
-                    BDBG_ERR(("Mixed video indexing modes not supported"));
+                    BDBG_ERR(("Mixed index mapping modes not supported"));
                     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 }
             }
             else {
-                newMapMode = pid->settings.pidType == NEXUS_PidType_eVideo && pid->settings.pidTypeSettings.video.pid == 0x1fff;
+                newMapMode = requiredMode;
             }
         }
     }

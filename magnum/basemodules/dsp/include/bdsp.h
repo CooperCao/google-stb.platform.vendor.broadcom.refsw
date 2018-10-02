@@ -154,7 +154,7 @@ Standby settings
 ***************************************************************************/
 typedef struct BDSP_StandbySettings
 {
-    bool dummy; /* placeholder to avoid compiler warning */
+	BDSP_StandbyMode        standbyMode; /* placeholder to avoid compiler warning */
 }BDSP_StandbySettings;
 
 /***************************************************************************

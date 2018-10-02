@@ -256,6 +256,22 @@ typedef enum BDSP_DebugType
 
 /***************************************************************************
 Summary:
+    This enumeration defines various power standby modes.
+
+***************************************************************************/
+typedef enum BDSP_StandbyMode
+{
+    BDSP_StandbyMode_eS0 = 0,
+    BDSP_StandbyMode_eS1,
+    BDSP_StandbyMode_eS2,
+    BDSP_StandbyMode_eS3,
+    BDSP_StandbyMode_eLast,
+    BDSP_StandbyMode_eInvalid = 0x7FFFFFFF
+} BDSP_StandbyMode;
+
+
+/***************************************************************************
+Summary:
 Debug Type Settings
 ***************************************************************************/
 typedef struct BDSP_DebugTypeSettings

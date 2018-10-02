@@ -744,7 +744,7 @@ void BAPE_Decoder_GetDefaultStartSettings(
     pSettings->codec = BAVC_AudioCompressionStd_eMax;
     pSettings->streamType = BAVC_StreamType_eTsMpeg;
     pSettings->ppmCorrection = true;
-    pSettings->targetSyncEnabled = true;
+    pSettings->targetSyncEnabled = BAPE_DecoderTargetSyncMode_eEnabled;
     pSettings->maxOutputRate = 48000;
 }
 
@@ -1471,7 +1471,7 @@ static BERR_Code BAPE_Decoder_P_Start(
         goto err_stages;
     }
 
-    if (pSettings->codec == BAVC_AudioCompressionStd_eAc4) {
+    if (pSettings->codec == BAVC_AudioCompressionStd_eAc4 || pSettings->mixingMode == BAPE_DecoderMixingMode_eStandalone) {
         taskStartSettings->ppmCorrection = false;
     }
 
@@ -4117,7 +4117,19 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
     }
     else
     {
-        datasyncSettings.eEnableTargetSync = handle->startSettings.targetSyncEnabled ? BDSP_AF_P_eEnable : BDSP_AF_P_eDisable;
+        switch ( handle->startSettings.targetSyncEnabled )
+        {
+        default:
+        case BAPE_DecoderTargetSyncMode_eEnabled:
+            datasyncSettings.eEnableTargetSync = handle->startSettings.targetSyncEnabled;
+            break;
+        case BAPE_DecoderTargetSyncMode_eDisabledAfterLock:
+            datasyncSettings.eEnableTargetSync = BDSP_AF_P_TargetSyncEvalMode_eDisableIfDecoderIsLocked;
+            break;
+        case BAPE_DecoderTargetSyncMode_eDisabled:
+            datasyncSettings.eEnableTargetSync = BDSP_AF_P_TargetSyncEvalMode_eDisable;
+            break;
+        }
         datasyncSettings.eForceCompleteFirstFrame = handle->startSettings.forceCompleteFirstFrame?BDSP_AF_P_eEnable:BDSP_AF_P_eDisable;
     }
 

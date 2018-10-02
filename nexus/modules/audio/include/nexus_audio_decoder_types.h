@@ -118,6 +118,18 @@ typedef enum NEXUS_AudioInputFormatChangeMode
 
 /***************************************************************************
 Summary:
+Audio decoder Sync Modes
+***************************************************************************/
+typedef enum NEXUS_AudioDecoderTargetSyncMode
+{
+    NEXUS_AudioDecoderTargetSyncMode_eDisabledAfterLock=0,  /* The decoder will require a frame plus start of next frame to lock, then only a single frame to decode afterward. */
+    NEXUS_AudioDecoderTargetSyncMode_eEnabled,              /* The decoder will always require a frame plus start of next frame to lock and decode. */
+    NEXUS_AudioDecoderTargetSyncMode_eDisabled,             /* The decoder will lock when it finds a single frame - This mode is unsafe for any random access and may significantly degrade performance if used incorrectly */
+    NEXUS_AudioDecoderTargetSyncMode_eMax
+} NEXUS_AudioDecoderTargetSyncMode;
+
+/***************************************************************************
+Summary:
 Audio decoder program settings
 ***************************************************************************/
 typedef struct NEXUS_AudioDecoderStartSettings
@@ -132,9 +144,9 @@ typedef struct NEXUS_AudioDecoderStartSettings
                                            When configured to eManual, the decoder will be stopped when the format changes, requiring
                                            the application to evaluate the change and restart manually - for example
                                            if compressed format changes from ac3 to ac3plus or vice versa. */
-    bool targetSyncEnabled;             /* If true, normal frame sync operation will be used (default).  This flag can be set to false
-                                           for certification applications that require the last frame of the input buffer to be consumed
-                                           without the audio decoder finding the start of the successive frame.  */
+
+    NEXUS_AudioDecoderTargetSyncMode targetSyncEnabled;  /* Decoder Target Sync Mode.  See NEXUS_AudioDecoderTargetSyncMode for more details */
+
     bool nonRealTime;                   /* Normal operation for decoding is real time, if this is set to 'true' then decoding is used as a
                                            source for non-realtime transcode operations */
     bool secondaryDecoder;              /* If this decoder is a secondary, set true here.  A secondary decoder can be mixed with a

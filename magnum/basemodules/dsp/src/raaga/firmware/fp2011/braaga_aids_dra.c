@@ -414,7 +414,7 @@ const uint32_t BDSP_IMG_dra_ids_array1[] = {
 	0x3d81513f,
 	0x3d840007,
 	0x013fffff,
-	0xa76b8dd7,
+	0xa76b09d7,
 	0x0003fc72,
 	0x07bffe07,
 	0x013fffff,

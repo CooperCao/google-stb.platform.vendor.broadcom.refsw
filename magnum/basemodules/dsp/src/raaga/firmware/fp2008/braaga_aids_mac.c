@@ -986,7 +986,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x0841ca1f,
 	0x3d841007,
 	0x013fffff,
-	0xa76d0dd7,
+	0xa76c89d7,
 	0x0000376b,
 	0x07bffe07,
 	0x013fffff,

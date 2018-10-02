@@ -190,7 +190,8 @@ typedef struct BDSP_AudioTaskDatasyncSettings
 
     }uAudioIpSourceDetail;
 
-    BDSP_AF_P_EnableDisable               eEnableTargetSync;   /* Default = Enabled */
+    BDSP_AF_P_TargetSyncEvalMode                    eEnableTargetSync;   /* Default = Enabled, eDisableIfDecoderIsLocked is not supported for Raaga3p0(Octave),
+                                                                            if passed by the host it will be treated as eDisable */
 
     union
     {

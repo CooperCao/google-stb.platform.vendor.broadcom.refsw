@@ -545,7 +545,7 @@ const uint32_t BDSP_IMG_als_ids_array1[] = {
 	0x8cc2b1bf,
 	0x90c321bf,
 	0x90c3a9bf,
-	0x53dcf1d7,
+	0x53dc31d7,
 	0x50ffe270,
 	0xc8801007,
 	0x96c071bf,

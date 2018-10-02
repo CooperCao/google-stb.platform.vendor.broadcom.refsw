@@ -1236,6 +1236,21 @@ static BDSP_Algorithm NEXUS_Audio_P_PostProcessingToBdspAlgo(NEXUS_AudioPostProc
         return BDSP_Algorithm_eMax;
     }
 }
+
+BDSP_StandbyMode NEXUS_Audio_P_StandbyModeToBdspStandbyMode(NEXUS_StandbyMode mode)
+{
+    BDSP_StandbyMode bdspMode = BDSP_StandbyMode_eInvalid;
+    switch ( mode )
+    {
+    default: break;
+    case NEXUS_StandbyMode_eOn: bdspMode = BDSP_StandbyMode_eS0; break;
+    case NEXUS_StandbyMode_eActive: bdspMode = BDSP_StandbyMode_eS1; break;
+    case NEXUS_StandbyMode_ePassive: bdspMode = BDSP_StandbyMode_eS2; break;
+    case NEXUS_StandbyMode_eDeepSleep: bdspMode = BDSP_StandbyMode_eS3; break;
+    }
+
+    return bdspMode;
+}
 #endif
 
 static BAPE_PostProcessorType NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType(NEXUS_AudioPostProcessing procType)
@@ -1299,12 +1314,18 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
     #if BAPE_DSP_SUPPORT
     if ( g_NEXUS_audioModuleData.dspHandle )
     {
-        rc = BDSP_Standby(g_NEXUS_audioModuleData.dspHandle, NULL);
+        BDSP_StandbySettings dspStandbySettings;
+        BKNI_Memset(&dspStandbySettings, 0, sizeof(dspStandbySettings));
+        dspStandbySettings.standbyMode = NEXUS_Audio_P_StandbyModeToBdspStandbyMode(pSettings->mode);
+        rc = BDSP_Standby(g_NEXUS_audioModuleData.dspHandle, &dspStandbySettings);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
     }
     if ( g_NEXUS_audioModuleData.armHandle )
     {
-        rc = BDSP_Standby(g_NEXUS_audioModuleData.armHandle, NULL);
+        BDSP_StandbySettings dspStandbySettings;
+        BKNI_Memset(&dspStandbySettings, 0, sizeof(dspStandbySettings));
+        dspStandbySettings.standbyMode = NEXUS_Audio_P_StandbyModeToBdspStandbyMode(pSettings->mode);
+        rc = BDSP_Standby(g_NEXUS_audioModuleData.armHandle, &dspStandbySettings);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
     }
 
