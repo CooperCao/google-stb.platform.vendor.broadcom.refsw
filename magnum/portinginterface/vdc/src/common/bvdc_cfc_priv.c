@@ -3589,6 +3589,12 @@ void BVDC_P_Cfc_BuildRulForLutLoading_isr
             pLutList->ulIndex, (void*)pLutList->pulStart[pLutList->ulIndex]));
 
         BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent, ulAddrReg, pLutList->ullStartDeviceAddr[pLutList->ulIndex]);
+        /* SWSTB-11379: DVI_CFC LUT needs manual disable/enable edge to trigger LUT loading */
+        if(ulCfgReg == BCHP_DVI_CFC_0_LUT_DESC_CFG) {
+            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+            *pList->pulCurrent++ = BRDC_REGISTER(ulCfgReg);
+            *pList->pulCurrent++ = BCHP_FIELD_ENUM(HDR_CMP_0_LUT_DESC_CFG, ENABLE, DISABLE);
+        }
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
         *pList->pulCurrent++ = BRDC_REGISTER(ulCfgReg);
         *pList->pulCurrent++ =
