@@ -1031,7 +1031,8 @@ const BDSP_Raaga_Audio_G726ConfigParams BDSP_sG711G726DecUserConfig =
             {4, 4, 0xFFFFFFFF,0xFFFFFFFF, 0xFFFFFFFF,
             0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF},/* ui32OutputChannelMatrix */
         }
-    }
+    },
+    BDSP_AF_P_DecoderType_ePrimary
 };
 
 const BDSP_Raaga_Audio_G729DecConfigParams BDSP_sG729DecUserConfig =

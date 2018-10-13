@@ -166,7 +166,7 @@
 #define BDSP_IMG_FW_MIXER_INTER_FRAME_SIZE                           ((uint32_t)33464)
 #define BDSP_IMG_FW_MIXER_TABLES_SIZE                                ((uint32_t)4780)
 #define BDSP_IMG_G711_G726_DECODE_INTER_FRAME_SIZE                   ((uint32_t)8808)
-#define BDSP_IMG_G711_G726_DECODE_SIZE                               ((uint32_t)14852)
+#define BDSP_IMG_G711_G726_DECODE_SIZE                               ((uint32_t)14860)
 #define BDSP_IMG_G711_G726_DECODE_TABLES_SIZE                        ((uint32_t)500)
 #define BDSP_IMG_G711_G726_ENCODE_INTER_FRAME_SIZE                   ((uint32_t)1024)
 #define BDSP_IMG_G711_G726_ENCODE_SIZE                               ((uint32_t)12968)

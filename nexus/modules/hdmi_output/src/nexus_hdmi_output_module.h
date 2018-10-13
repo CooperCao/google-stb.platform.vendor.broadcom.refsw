@@ -94,16 +94,11 @@
 
 typedef enum NEXUS_HdmiOutputState
 {
-    NEXUS_HdmiOutputState_eNone,
     NEXUS_HdmiOutputState_eDisconnected,
     NEXUS_HdmiOutputState_eRxSenseCheck,
-
     NEXUS_HdmiOutputState_ePoweredDown,
-
-    NEXUS_HdmiOutputState_ePoweredOn,
-    NEXUS_HdmiOutputState_eMax
+    NEXUS_HdmiOutputState_ePoweredOn
 } NEXUS_HdmiOutputState;
-
 
 typedef enum NEXUS_HdmiOutputLogicalAddrSearch
 {
@@ -118,8 +113,6 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_OBJECT(NEXUS_HdmiOutput);
     bool opened;
     bool videoConnected;
-    bool tmdsClockEnabled ;
-    bool tmdsDataEnabled ;
 
 #define RESOLVE_ALIAS(handle) do {(handle) = ((handle)->alias.master?(handle)->alias.master:(handle));}while(0)
 #define IS_ALIAS(handle) ((handle)->alias.master != NULL)
@@ -127,15 +120,7 @@ typedef struct NEXUS_HdmiOutput
         NEXUS_HdmiOutputHandle master;
     } alias;
 
-    /* isr context */
-    bool forceDisconnect_isr ;
-    NEXUS_HdmiOutputState lastHotplugState_isr ;
-
-    NEXUS_HdmiOutputState lastState;
-    NEXUS_HdmiOutputState lastCallbackState;
-
     NEXUS_HdmiOutputState rxState;
-    NEXUS_HdmiOutputState lastRxState;
 
     NEXUS_VideoOutputObject videoConnector;
     NEXUS_AudioOutputObject audioConnector;
@@ -146,8 +131,6 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_HdmiOutputSettings previousSettings;
     NEXUS_HdmiOutputExtraSettings extraSettings;
     NEXUS_EventCallbackHandle hotplugEventCallback;
-    NEXUS_EventCallbackHandle mhlStandbyEventCallback;
-    NEXUS_EventCallbackHandle rxSenseEventCallback;
     NEXUS_EventCallbackHandle scrambleEventCallback;
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
@@ -155,7 +138,6 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_TimerHandle postFormatChangeTimer;
     unsigned retryPostFormatChangeCount;
 
-    bool pendingDisableAuthentication_isr;
     bool forceSendRxIdList;
     bool hdcpRequiredPostFormatChange;
     bool formatChangeMute;
@@ -165,9 +147,9 @@ typedef struct NEXUS_HdmiOutput
     uint8_t retryScrambleCount ;
     uint32_t pixelClkRatePreFormatChange;
 
-    NEXUS_TimerHandle connectTimer;
-    uint8_t checkRxSenseCount ;
-    uint8_t lastReceiverSense ;
+    NEXUS_TimerHandle rxSenseCheckTimer;
+    unsigned checkRxSenseCount ;
+    bool forceDisconnect_isr;
 
     bool contentChangeOnly;
 
@@ -329,11 +311,12 @@ extern NEXUS_HdmiOutputMemoryBlock g_hdcpTABlock;
 #endif
 
 /* Internal Private Routines */
-NEXUS_HdmiOutputState NEXUS_HdmiOutput_P_GetState(NEXUS_HdmiOutputHandle output);
+#define NEXUS_HdmiOutput_P_IsRxConnected(output) (output->rxState != NEXUS_HdmiOutputState_eDisconnected)
+#define NEXUS_HdmiOutput_P_IsRxPowered_isrsafe(output) (output->rxState == NEXUS_HdmiOutputState_ePoweredOn)
 
 NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp(NEXUS_HdmiOutputHandle output);
 void NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output);
-void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output);
+void NEXUS_HdmiOutput_P_HdcpPowerDown(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutputModule_Print(void);
 
@@ -356,6 +339,18 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetVideoSettings(
 NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(NEXUS_HdmiOutputHandle hdmiOutput, const BHDM_Settings * pSettings);
 NEXUS_Error NEXUS_HdmiOutput_P_ApplyAviInfoFrame(NEXUS_HdmiOutputHandle handle);
 
+void NEXUS_HdmiOutput_P_GetDefaultExtraSettings(NEXUS_HdmiOutputExtraSettings * pSettings);
+void NEXUS_HdmiOutput_P_InitExtraStatus(NEXUS_HdmiOutputHandle output);
+
+/* nexus_hdmi_output_hotplug */
+void NEXUS_HdmiOutput_P_ProcessRxState(NEXUS_HdmiOutputHandle output, bool *deviceAttached, bool *rxSense);
+void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext);
+void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data) ;
+void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput) ;
+void NEXUS_HdmiOutput_P_SetDisconnectedState(NEXUS_HdmiOutputHandle output);
+NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalData( NEXUS_HdmiOutputHandle handle, bool tmdsDataEnable);
+NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock( NEXUS_HdmiOutputHandle handle, bool tmdsClockEnable);
+
 #if NEXUS_DBV_SUPPORT
 void NEXUS_HdmiOutput_P_DbvConnectionChanged(NEXUS_HdmiOutputHandle output);
 NEXUS_Error NEXUS_HdmiOutput_P_SetDbvMode(NEXUS_HdmiOutputHandle output);
@@ -365,4 +360,5 @@ void NEXUS_HdmiOutput_P_GetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle
 void NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(NEXUS_HdmiOutputHandle output, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInfoFrame);
 void NEXUS_HdmiOutput_P_DbvUpdateDisplaySettings(NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputDisplaySettings * pDisplaySettings);
 #endif
+
 #endif /* #ifndef NEXUS_HDMI_OUTPUT_MODULE_H__ */

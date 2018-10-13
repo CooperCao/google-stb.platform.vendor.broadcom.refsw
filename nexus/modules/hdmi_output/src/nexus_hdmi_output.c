@@ -50,40 +50,26 @@
 #include "bhdm_edid.h"
 #include "bhdm_hdcp.h"
 #include "bhdm_scdc.h"
-#include "bhdm_auto_i2c.h"
 #include "bhdm_monitor.h"
 #include "bavc_hdmi.h"
 #include "priv/nexus_hdmi_output_mhl_priv.h"
 
-#if NEXUS_HAS_HDMI_INPUT
-#include "priv/nexus_hdmi_input_priv.h"
-#endif
-
 BDBG_MODULE(nexus_hdmi_output);
 
-#if NEXUS_NUM_HDMI_OUTPUTS
+#if NEXUS_NUM_HDMI_OUTPUTS == 0
+#error hdmi_output module requires NEXUS_NUM_HDMI_OUTPUTS be at least 1
+#endif
+NEXUS_HdmiOutput g_hdmiOutputs[NEXUS_NUM_HDMI_OUTPUTS];
 
 #define NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE 296703    /* 4K p30/25 */
 
-NEXUS_HdmiOutput g_hdmiOutputs[NEXUS_NUM_HDMI_OUTPUTS];
 
 static NEXUS_VideoFormat NEXUS_HdmiOutput_P_GetPreferredFormat(NEXUS_HdmiOutputHandle output);
-
-static void NEXUS_HdmiOutput_P_RxSenseTimerExpiration(void *pContext);
 
 static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_AvRateChangeCallback(void *pContext);
 
-static void NEXUS_HdmiOutput_P_StopRxSenseDetection(void *pContext) ;
-static void NEXUS_HdmiOutput_P_StartRxSenseDetection(void *pContext) ;
-static void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext);
-static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data) ;
-
-static void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput) ;
 static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context);
-
-static void NEXUS_HdmiOutput_P_GetTmdsSignals(
-    NEXUS_HdmiOutputHandle hdmiOutput) ;
 
 static NEXUS_Error NEXUS_HdmiOutput_P_GetSupportedFormats(
     NEXUS_HdmiOutputHandle output, bool *supportedVideoFormats) ;
@@ -147,7 +133,7 @@ NEXUS_Error NEXUS_HdmiOutputModule_Standby_priv(bool enabled, const NEXUS_Standb
         /***********/
         if (enabled)
         {
-            NEXUS_HdmiOutput_P_StopTimers(handle) ;
+            NEXUS_HdmiOutput_P_SetDisconnectedState(handle);
 
             /* remember standby mode for post standby processing e.g HDCP */
             handle->standbyMode = pSettings->mode ;
@@ -164,8 +150,10 @@ NEXUS_Error NEXUS_HdmiOutputModule_Standby_priv(bool enabled, const NEXUS_Standb
             {
                 BHDM_StandbySettings standbySettings;
 
-                BHDM_GetDefaultStandbySettings(&standbySettings);
-                rc = BHDM_Standby(handle->hdmHandle, &standbySettings);
+                if (handle->videoConnected) {
+                    BHDM_GetDefaultStandbySettings(&standbySettings);
+                    rc = BHDM_Standby(handle->hdmHandle, &standbySettings);
+                }
             }
         }
         /**********/
@@ -213,29 +201,13 @@ NEXUS_Error NEXUS_HdmiOutputModule_Standby_priv(bool enabled, const NEXUS_Standb
             {
                 rc = BHDM_Resume(handle->hdmHandle);
                 /* if err, dump trace and continue the power up sequence */
-                if (rc) {rc = BERR_TRACE(rc) ; }
-            }
-
-            handle->lastRxState  = NEXUS_HdmiOutputState_eMax ;
-            handle->rxState  = NEXUS_HdmiOutputState_eMax ;
-            handle->lastHotplugState_isr = NEXUS_HdmiOutputState_eMax ;
-            NEXUS_HdmiOutput_P_HotplugCallback(handle);
-
-            {
-                uint8_t deviceAttached ;
-
-                rc = BHDM_RxDeviceAttached(handle->hdmHandle, &deviceAttached);
-                if (rc) {rc = BERR_TRACE(rc) ; }
-                /* if error detected, deviceAttached = false */
-                /* report error and continue the power up sequence */
-
-                if (!deviceAttached) /* rx device is REMOVED */
-                {
-                    handle->rxState =
-                    handle->lastRxState =
-                        NEXUS_HdmiOutputState_eDisconnected ;
+                if (rc) {
+                    rc = BERR_TRACE(rc) ;
+                    goto err;
                 }
             }
+
+            NEXUS_HdmiOutput_P_HotplugCallback(handle);
         }
 err:
         if (rc) { return BERR_TRACE(rc); }
@@ -281,7 +253,6 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     static const uint8_t defaultVendorName[BAVC_HDMI_SPD_IF_VENDOR_LEN+1]  = "Broadcom";
     static const uint8_t defaultDescription[BAVC_HDMI_SPD_IF_DESC_LEN+1] = "STB Refsw Design";
     uint8_t *ptr ;
-    uint8_t deviceAttached ;
     NEXUS_HdmiOutputHandle master = NULL;
     const char *nexusEnv ;
 
@@ -514,19 +485,6 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     NEXUS_HdmiOutput_P_GetDefaultVendorSpecificInfoFrame(pOutput);
     NEXUS_HdmiOutput_P_GetCurrentAviInfoFrame(pOutput);
 
-    errCode = BHDM_RxDeviceAttached(pOutput->hdmHandle, &deviceAttached) ;
-    BERR_TRACE(errCode);
-
-    if (deviceAttached)
-    {
-        /* Update Rx supported hdcp version - use hdcp 2.2 if support */
-        errCode = BHDM_HDCP_GetHdcpVersion(pOutput->hdmHandle, &pOutput->eHdcpVersion);
-        /* default to HDCP 1.x if cannot read HDCP Version */
-        if (errCode != BERR_SUCCESS) {
-            pOutput->eHdcpVersion = BHDM_HDCP_Version_e1_1;
-        }
-    }
-
     /* If no SAGE support for HDCP 2.2 or 2.2 disabled, downgrade to 1.1 */
 #if ! (NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT))
     if (pOutput->eHdcpVersion == BHDM_HDCP_Version_e2_2)
@@ -545,22 +503,17 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     errCode = BHDM_InstallHotplugChangeCallback(
         pOutput->hdmHandle, NEXUS_HdmiOutput_P_HotPlug_isr, pOutput, 0);
 
-    pOutput->rxState = NEXUS_HdmiOutputState_eNone ;
-    pOutput->lastRxState = NEXUS_HdmiOutputState_eMax ;
+    pOutput->rxState = NEXUS_HdmiOutputState_eDisconnected;
 
     /* set DRM InfoFrame eotf to invalid, so DRM InfoFrame will be updated at least once */
     pOutput->drm.inputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid ;
     pOutput->drm.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid ;
 
-    /* force a hot plug if a device is attached */
-    if (deviceAttached)
-    {
-        NEXUS_HdmiOutput_P_HotplugCallback(pOutput);
-    }
-
     pOutput->opened = true;
     NEXUS_OBJECT_REGISTER(NEXUS_VideoOutput, &pOutput->videoConnector, Open);
     NEXUS_OBJECT_REGISTER(NEXUS_AudioOutput, &pOutput->audioConnector, Open);
+
+    NEXUS_HdmiOutput_P_HotplugCallback(pOutput);
 
     return pOutput;
 
@@ -622,30 +575,6 @@ err_event:
     return NULL;
 }
 
-
-static void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput )
-{
-    NEXUS_OBJECT_ASSERT(NEXUS_HdmiOutput, hdmiOutput);
-
-    if ( hdmiOutput->powerTimer )
-    {
-        NEXUS_CancelTimer(hdmiOutput->powerTimer);
-        hdmiOutput->powerTimer  = NULL ;
-    }
-
-    if (hdmiOutput->connectTimer)
-    {
-        NEXUS_CancelTimer(hdmiOutput->connectTimer);
-        hdmiOutput->connectTimer = NULL;
-    }
-
-    if (hdmiOutput->postFormatChangeTimer)
-    {
-        NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
-        hdmiOutput->postFormatChangeTimer = NULL;
-    }
-}
-
 static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
 {
     NEXUS_OBJECT_ASSERT(NEXUS_HdmiOutput, hdmiOutput);
@@ -687,11 +616,7 @@ static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
     NEXUS_UnregisterEvent(hdmiOutput->avRateChangeEventCallback);
     NEXUS_HdmiOutput_P_UninitHdcp(hdmiOutput);
     NEXUS_HdmiOutput_P_CloseHdcp(hdmiOutput);
-
-    if (hdmiOutput->notifyHotplugEvent != NULL)
-    {
-        BKNI_DestroyEvent(hdmiOutput->notifyHotplugEvent) ;
-    }
+    BKNI_DestroyEvent(hdmiOutput->notifyHotplugEvent) ;
 
     BHDM_Close(hdmiOutput->hdmHandle);
 
@@ -910,17 +835,12 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
         }
     }
 
-    /* TODO: should the display be reconfigured, even if HdmiOutput is not on? */
-    /* Save settings and return if not connected */
-    if ( output->rxState != NEXUS_HdmiOutputState_ePoweredOn )
-    {
-        BDBG_MSG(("Tx/Rx is not powered (%d)... new settings will be applied when powered",
-            output->rxState)) ;
+    /* Save settings and return if not powered */
+    if (output->rxState != NEXUS_HdmiOutputState_ePoweredOn) {
+        BDBG_MSG(("Rx is not ready/powered... new settings will be applied when powered")) ;
         errCode = NEXUS_SUCCESS ;
         goto done ;
-
     }
-
 
     /* See NEXUS_VideoOutput_P_SetHdmiSettings for how HdmiOutputSettings are applied to VDC */
 
@@ -1073,9 +993,6 @@ static void NEXUS_HdmiOutput_P_GetStatusEdidData(NEXUS_HdmiOutputHandle output, 
 
 NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputStatus *pStatus )
 {
-    NEXUS_Error errCode;
-    uint8_t deviceAttached ;
-    uint8_t RxSense;
     BHDM_Video_Settings stVideoSettings ;
 
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
@@ -1083,38 +1000,16 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
     BDBG_CASSERT(sizeof(NEXUS_HdmiOutputMonitorRange) == sizeof(BHDM_EDID_MonitorRange));
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->txHardwareStatus.hotplugInterruptEnabled = true ;
-    BKNI_Memset(output->supported3DFormats, 0, sizeof (output->supported3DFormats));
 
     /* get index/coreId of the HDMI Handle */
     pStatus->index = (unsigned) output->hdmSettings.eCoreId ;
 
-    /* Check for device */
-    errCode = BHDM_RxDeviceAttached(output->hdmHandle, &deviceAttached) ;
-    if ((errCode) || (!deviceAttached))
-    {
-        pStatus->connected = false ;
+    /* do not read HW connected/powered state here. rely on SW state. */
+    if (output->rxState == NEXUS_HdmiOutputState_eDisconnected) {
         goto done ;
     }
     pStatus->connected = true ;
-
-    /* do not report status until ready */
-    if (output->rxState == NEXUS_HdmiOutputState_eMax)
-    {
-        BDBG_MSG(("HdmiOutput not initialized")) ;
-        goto done ;
-    }
-
-    /* Get current RxSense; could still be reported OFF if power was just enabled */
-    errCode = BHDM_GetReceiverSense(output->hdmHandle, &RxSense) ;
-    pStatus->rxPowered = RxSense ;
-
-    /* HDMI must be connected to Nexus Display (i.e. powered) to get a valid RxSense value */
-    /* update the last receiver sense value only when a valid value can be read */
-    if ((!RxSense) && (!errCode) && (output->videoConnected))
-    {
-        BDBG_MSG(("Attached Rx may be powered down...")) ;
-        output->lastReceiverSense = RxSense ;
-    }
+    pStatus->rxPowered = (output->rxState == NEXUS_HdmiOutputState_ePoweredOn);
 
     if (output->edidState == BHDM_EDID_STATE_eInvalid)
     {
@@ -1220,6 +1115,7 @@ done:
     {
         BHDM_MONITOR_Status txStatus ;
         BHDM_MONITOR_TxHwStatusExtra stTxHwStatusExtra ;
+        NEXUS_Error errCode;
 
         errCode = BHDM_MONITOR_GetHwStatusTx(output->hdmHandle, &txStatus) ;
         if (!errCode)
@@ -1741,299 +1637,6 @@ done:
     return nexusFormat;
 }
 
-
-static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
-{
-    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle) pContext;
-    BERR_Code errCode ;
-    uint8_t deviceAttached ;
-
-    /* if already waiting to connect,
-         cancel request to connect since the Rx has been removed */
-    if (output->connectTimer)
-    {
-        NEXUS_CancelTimer(output->connectTimer) ;
-        output->connectTimer = NULL ;
-    }
-
-    /* if no device is attached, cancel RxSense polling if active */
-    errCode = BHDM_RxDeviceAttached(output->hdmHandle, &deviceAttached) ;
-    BERR_TRACE(errCode) ;
-    if (!deviceAttached)
-    {
-        output->rxState = NEXUS_HdmiOutputState_eDisconnected ;
-
-        /* reset cached edid settings */
-        output->edidHdmiDevice = false ;
-        BKNI_Memset(&output->edidVendorSpecificDB, 0, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
-
-        if (output->powerTimer)
-        {
-            NEXUS_CancelTimer(output->powerTimer) ;
-            output->powerTimer = NULL ;
-        }
-    }
-
-#if BHDM_HAS_HDMI_20_SUPPORT
-    /* make sure all Auto I2c channels are disabled */
-    BKNI_EnterCriticalSection() ;
-        BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
-    BKNI_LeaveCriticalSection() ;
-
-    BHDM_SCDC_DisableScrambleTx(output->hdmHandle) ;
-#endif
-
-
-#if NEXUS_DBV_SUPPORT
-    NEXUS_HdmiOutput_P_DbvConnectionChanged(output);
-#endif
-
-    /* Connected -> disconnected or Connected -> powered down.  Disable output and fire callback */
-    if ((!output->tmdsDataEnabled)
-    &&  (output->videoConnected))
-    {
-        BDBG_MSG(("TMDS data lines have already been disabled...")) ;
-        /* continue through to disable the TMDS clock if data has already been disabled */
-    }
-
-    /* disable TMDS data lines data and notify app of disconnect */
-    if (!output->openSettings.manualTmdsControl)
-    {
-        NEXUS_HdmiOutput_P_SetTmdsSignalData(output, false) ;
-    }
-    else
-    {
-        /* debug message for manual control by App */
-        BDBG_MSG(("NEXUS_HdmiOutput_P_RxRemoved: Expected TMDS DATA OFF")) ;
-    }
-
-#if NEXUS_HAS_HDMI_INPUT
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
-    /* Update hdcp2.x RxCaps settings */
-    if (output->hdmiInput)
-    {
-        NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
-
-        /* Update RxCaps */
-        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        errCode = NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(output->hdmiInput, false);
-        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        if (errCode != NEXUS_SUCCESS)
-        {
-            errCode = BERR_TRACE(errCode);
-            return;
-        }
-
-        BKNI_Memset(&stReceiverIdListData, 0, sizeof(NEXUS_Hdcp2xReceiverIdListData));
-        /* Clear outdated receiverIdList  */
-        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        errCode = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(output->hdmiInput,
-         &stReceiverIdListData, false);
-        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        if (errCode != BERR_SUCCESS)
-        {
-            errCode = BERR_TRACE(errCode);
-            return;
-        }
-    }
-#endif
-#endif
-
-#if NEXUS_HAS_SECURITY
-    /* make sure current HDCP link is disabled */
-    {
-        BHDCPlib_State hdcpState;
-        hdcpState = NEXUS_HdmiOutput_P_GetCurrentHdcplibState(output);
-        if ((hdcpState != BHDCPlib_State_eUnauthenticated)
-        &&  (hdcpState != BHDCPlib_State_eUnPowered))
-        {
-            BDBG_LOG(("Disable HDCP Authentication: current state: %d", hdcpState)) ;
-            errCode = NEXUS_HdmiOutput_DisableHdcpAuthentication(output);
-            if (errCode) { errCode = BERR_TRACE(errCode) ; }
-        }
-    }
-#endif
-
-
-    /* notify Nexus Display of the cable removal to disable the HDMI Output */
-    output->formatChangeUpdate = true ;
-    NEXUS_TaskCallback_Fire(output->notifyDisplay) ;
-
-    NEXUS_HdmiOutput_P_HdcpNotifyHotplug(output) ;
-
-    /* notify the app of the cable removal */
-    NEXUS_TaskCallback_Fire(output->hotplugCallback) ;
-
-}
-
-
-static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
-{
-
-    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
-
-    output->connectTimer = NULL ;
-
-    /*
-    ** after a hot plug (cable connected) event, some Rx Devices may require
-    ** extra time before it can be determined if the device is powered.
-    ** re-schedule the connectTimer until we have waited at least
-    ** output->openSettings.rxSenseInterval * output->openSettings.maxRxSenseRetries
-    ** by default this is 50ms * 20 = 1000ms (1 second)
-     */
-    if (output->rxState == NEXUS_HdmiOutputState_eRxSenseCheck)
-    {
-
-        BERR_Code errCode ;
-        uint8_t rxSense ;
-
-        errCode = BHDM_GetReceiverSense(output->hdmHandle, &rxSense);
-        if (errCode != BERR_SUCCESS)
-        {
-            BDBG_WRN(("Unable to get Receiver Sense")) ;
-        }
-        output->lastReceiverSense = rxSense ;
-
-        /* If in RxSense check state; we are waiting to determine if attached Rx is ON ;
-            do not set State to OFF until RxSense check has been completed
-        */
-
-        if (rxSense)
-        {
-
-            output->rxState = NEXUS_HdmiOutputState_ePoweredOn ;
-            output->lastHotplugState_isr = NEXUS_HdmiOutputState_eNone ;
-        }
-        else if (output->checkRxSenseCount < output->openSettings.maxRxSenseRetries)
-        {
-            output->connectTimer = NEXUS_ScheduleTimer(output->openSettings.rxSenseInterval,
-                NEXUS_HdmiOutput_P_HotplugTimerExpiration, output) ;
-            output->checkRxSenseCount++ ;
-
-            BDBG_MSG(("Check for RxSense try %2d of %2d; Elapsed time: %4dms",
-                output->checkRxSenseCount, output->openSettings.maxRxSenseRetries,
-                output->checkRxSenseCount * output->openSettings.rxSenseInterval)) ;
-            goto done ;
-        }
-        else
-        {
-            BDBG_WRN(("RxSense checking is finished; Rx is powered down...")) ;
-            /* get the updated TMDS Signals */
-            NEXUS_HdmiOutput_P_GetTmdsSignals (output) ;
-            output->rxState = NEXUS_HdmiOutputState_ePoweredDown ;
-        }
-    }
-
-    /* the RxSense Check has timed out
-        so the Rx device has been removed (DEVICE REMOVED)
-        OR the Rx device has been powered ON
-        OR the Rx device has been powered OFF
-    */
-
-
-    if ( output->rxState == NEXUS_HdmiOutputState_eDisconnected)
-    {
-        NEXUS_HdmiOutput_P_RxRemoved(output) ;
-        goto done ;
-    }
-
-    else if ( output->rxState == NEXUS_HdmiOutputState_ePoweredOn )
-    {
-        /* notify Nexus Display of the cable insertion to re-enable HDMI Output */
-        output->formatChangeUpdate = true ;
-        NEXUS_TaskCallback_Fire(output->notifyDisplay);
-
-        if (output->notifyAudioEvent)
-        {
-             BKNI_SetEvent(output->notifyAudioEvent);
-        }
-
-        NEXUS_HdmiOutput_P_CheckHdcpVersion(output);
-
-        {
-#if NEXUS_HAS_HDMI_INPUT
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
-            if (output->hdmiInput && (output->eHdcpVersion == BHDM_HDCP_Version_e2_2))
-            {
-                NEXUS_Error rc;
-
-                /* Update RxCaps */
-                NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-                rc = NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(output->hdmiInput, true);
-                NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-                if (rc != NEXUS_SUCCESS)
-                {
-                    rc = BERR_TRACE(rc);
-                    return;
-                }
-            }
-#endif
-#endif
-        }
-    }
-    else if ( output->rxState == NEXUS_HdmiOutputState_ePoweredDown )
-    {
-
-        /* Disconnected -> powered down - treat as no event */
-        BDBG_MSG(("Receiver powered down... at line %d", __LINE__));
-
-        if (!output->openSettings.manualTmdsControl)
-            NEXUS_HdmiOutput_P_SetTmdsSignalData(output, false) ;
-        else
-        {
-            /* debug message for manual control by App */
-            BDBG_MSG(("NEXUS_HdmiOutput_P_HotplugTimerExpiration: Expected TMDS OFF")) ;
-        }
-
-        /* enable Rx Sense polling to check if/when a HDMI Rx is powered back on...
-        a small number of receivers may not generate a Hotplug when powered on */
-        if (!output->powerTimer
-        &&   output->openSettings.powerPollingInterval)
-        {
-            BDBG_MSG(("Start Rx Sense polling...")) ;
-            output->powerTimer =
-                NEXUS_ScheduleTimer(output->openSettings.powerPollingInterval,
-                NEXUS_HdmiOutput_P_RxSenseTimerExpiration, output);
-
-            if (!output->powerTimer)
-            {
-                BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
-                goto done ;
-            }
-        }
-        else
-        {
-            BDBG_WRN(("RxSense polling timer is already running!")) ;
-        }
-
-#if BHDM_HAS_HDMI_20_SUPPORT
-        /* make sure all Auto I2c channels are disabled */
-        BKNI_EnterCriticalSection() ;
-            BHDM_AUTO_I2C_SetChannels_isr(output->hdmHandle, false) ;
-        BKNI_LeaveCriticalSection() ;
-#endif
-    }
-
-    /* Only notify hdcplib of CONNECT event for HDCP 1.x to update
-    internal hdcplib state. For HDCP2.x, the state is updated through SAGE indications */
-    if (output->eHdcpVersion == BHDM_HDCP_Version_e1_1)
-    {
-        NEXUS_HdmiOutput_P_HdcpNotifyHotplug(output) ;
-    }
-
-    /* notify application of hotplug status change */
-    NEXUS_TaskCallback_Fire(output->hotplugCallback);
-
-    if (output->cecHotplugEvent)
-    {
-        BKNI_SetEvent(output->cecHotplugEvent);
-    }
-
-done:
-    return ;
-}
-
-
 void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle cecHotplugEvent)
 {
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
@@ -2043,100 +1646,36 @@ void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutpu
     return;
 }
 
-static BERR_Code NEXUS_HdmiOutput_P_ReadEdid(NEXUS_HdmiOutputHandle hdmiOutput)
-{
-
-    BERR_Code errCode ;
-    BHDM_Status hdmiStatus ;
-    unsigned int i = 1 ;
-
-    hdmiOutput->invalidEdidReported = false ;
-
-    do
-    {
-        errCode = BHDM_EDID_Initialize(hdmiOutput->hdmHandle);
-        if (errCode == BERR_SUCCESS)
-        {
-            break ;
-        }
-
-        /* Rx Device has been removed .  Abort */
-        if (errCode == BHDM_NO_RX_DEVICE)
-        {
-            BDBG_WRN(("Device Disconnected while trying to read EDID")) ;
-            hdmiOutput->rxState = NEXUS_HdmiOutputState_eDisconnected ;
-             goto done ;
-        }
-
-        if (errCode == BERR_TIMEOUT) {
-            goto done;
-        }
-
-        /*
-        this delay should really not be needed, but allow some time
-        between EDID read attempts in case the Rx is still settling
-        */
-        BKNI_Sleep(100) ;
-        if (i < hdmiOutput->openSettings.maxEdidRetries)
-        {
-            BDBG_WRN(("Error code %d reading EDID...  Retry %d of %d",
-                errCode, i + 1, hdmiOutput->openSettings.maxEdidRetries)) ;
-        }
-    } while ( i++ <  hdmiOutput->openSettings.maxEdidRetries ) ;
-
-    if ( i >= hdmiOutput->openSettings.maxEdidRetries )
-    {
-        BDBG_ERR(("Unable to read EDID after %d attempts", hdmiOutput->openSettings.maxEdidRetries ));
-        goto done ;
-    }
-
-    /* cache EDID settings */
-    errCode = BHDM_EDID_IsRxDeviceHdmi(hdmiOutput->hdmHandle,
-        &hdmiOutput->edidVendorSpecificDB, &hdmiOutput->edidHdmiDevice) ;
-    if (errCode)
-    {
-        BDBG_ERR(("Error determining Rx Device type")) ;
-        goto done ;
-    }
-
-done:
-    BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus) ;
-    hdmiOutput->edidState = hdmiStatus.edidState ;
-
-    return errCode;
-}
-
-
 static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
 {
+#if BHDM_HAS_HDMI_20_SUPPORT
     NEXUS_HdmiOutputHandle hdmiOutput = (NEXUS_HdmiOutputHandle) pContext ;
-    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    BHDM_ScrambleConfig stScrambleConfig ;
+    char monitorName[14];
     BHDM_SCDC_StatusControlData scdc ;
+    BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
-    BKNI_Memset(&scdc, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
+    BHDM_SCDC_GetScrambleConfiguration(hdmiOutput->hdmHandle, &stScrambleConfig) ;
 
-#if BHDM_HAS_HDMI_20_SUPPORT
-    hdmiOutputStatus = BKNI_Malloc(sizeof(NEXUS_HdmiOutputStatus)) ;
-    if (hdmiOutputStatus == NULL)
-    {
-        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
-        goto done ;
+    errCode = BHDM_EDID_GetMonitorName(hdmiOutput->hdmHandle, (uint8_t *)monitorName);
+    if ( errCode ) {
+        monitorName[0] = 0;
     }
-    NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
 
+    BKNI_Memset(&scdc, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
     BHDM_SCDC_ReadStatusControlData(hdmiOutput->hdmHandle, &scdc) ;
     hdmiOutput->rxHwStatus.descrambling = scdc.RxScramblerStatus ;
 
     /* Some early HDMI 2.0 TVs do not enable deScrambling after being configured to do so */
     /* sometimes the re-write of the Scramble bit will work and sometimes it does not */
     /* Hot Plug or switching inputs and back to HDMI port sometimes helps */
-    if (hdmiOutputStatus->txHardwareStatus.scrambling != hdmiOutputStatus->rxHardwareStatus.descrambling)
+    if (stScrambleConfig.txScrambleEnable != stScrambleConfig.rxStatusFlags_Scramble)
     {
         BDBG_ERR(("Mismatch in Scramble Status for STB/Tx= %s vs. %s/Rx= %s",
-            hdmiOutputStatus->txHardwareStatus.scrambling ? "Yes" : "No",
-            hdmiOutputStatus->monitorName, hdmiOutputStatus->rxHardwareStatus.descrambling ? "Yes" : "No")) ;
+            stScrambleConfig.txScrambleEnable ? "Yes" : "No",
+            monitorName, stScrambleConfig.rxStatusFlags_Scramble ? "Yes" : "No")) ;
 
         /*************************/
         /* Possible No Display due to Rx */
@@ -2166,19 +1705,16 @@ static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
 
 notifyApp:
     BDBG_LOG(("HDMI Link Scramble Status: %s",
-        hdmiOutputStatus->txHardwareStatus.scrambling ? "***Scrambling***" : "Normal video")) ;
+        stScrambleConfig.txScrambleEnable ? "***Scrambling***" : "Normal video")) ;
         hdmiOutput->retryScrambleCount = 0 ;
 
     /* notify application of HDMI Rx Status Change event */
     NEXUS_TaskCallback_Fire(hdmiOutput->rxStatusCallback);
 
 done:
-    if (hdmiOutputStatus)
-    {
-        BKNI_Free(hdmiOutputStatus) ;
-    }
+    return;
 #else
-    BSTD_UNUSED(hdmiOutputStatus) ;
+    BSTD_UNUSED(pContext) ;
 #endif
 }
 
@@ -2194,340 +1730,6 @@ static void NEXUS_HdmiOutput_P_AvRateChangeCallback(void *pContext)
     hdmiSettings.bForceEnableDisplay = true ;
     NEXUS_HdmiOutput_P_EnableDisplay(hdmiOutput, &hdmiSettings);
 }
-
-static void NEXUS_HdmiOutput_P_StopRxSenseDetection(void *pContext)
-{
-    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
-
-    if (output->connectTimer)
-    {
-        NEXUS_CancelTimer(output->connectTimer) ;
-        output->connectTimer = NULL ;
-    }
-}
-
-
-static void NEXUS_HdmiOutput_P_StartRxSenseDetection(void *pContext)
-{
-    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
-
-    if (!output->openSettings.manualTmdsControl)
-    {
-        NEXUS_HdmiOutput_P_SetTmdsSignalClock(output, true) ;
-    }
-    else
-    {
-        /* debug message for manual control by App */
-        BDBG_MSG(("%s : Expected TMDS ON", BSTD_FUNCTION)) ;
-    }
-
-    output->connectTimer = NEXUS_ScheduleTimer(output->openSettings.rxSenseInterval,
-       NEXUS_HdmiOutput_P_HotplugTimerExpiration, output) ;
-
-    output->checkRxSenseCount = 0  ;
-
-}
-
-
-static void NEXUS_HdmiOutput_P_HotplugCallback(void *pContext)
-{
-    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
-    bool local_forceDisconnect ;
-    NEXUS_HdmiOutputState local_lastHotplugState ;
-    BERR_Code errCode ;
-
-    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
-
-    BKNI_EnterCriticalSection();
-        local_forceDisconnect = output->forceDisconnect_isr ;   /* force removal of HDMI */
-        local_lastHotplugState = output->lastHotplugState_isr;  /* last isr state: removed, connected, powered down  */
-        output->forceDisconnect_isr = false ;
-    BKNI_LeaveCriticalSection();
-
-    BDBG_MSG(("forceDisconnect_isr %s", local_forceDisconnect ? "Yes" : "No")) ;
-    BDBG_MSG(("lastHotplugState_isr %d", local_lastHotplugState)) ;
-
-    if (local_forceDisconnect)
-    {
-        BDBG_MSG(("Hot Plug request to disable TMDS lines %d", local_lastHotplugState)) ;
-
-        if (local_lastHotplugState == NEXUS_HdmiOutputState_eDisconnected)
-            output->lastRxState = NEXUS_HdmiOutputState_eDisconnected ;
-        else
-            output->lastRxState = NEXUS_HdmiOutputState_ePoweredOn ;
-
-        NEXUS_HdmiOutput_P_RxRemoved(output) ;
-        return ;
-    }
-
-    /*
-        DEVICE is CONNECTED
-        After a HotPlug, Initialization (lastRxState) or Resume (lastRxState)
-        schedule a connection event for later...
-        Use the time to allow the Rx to settle and to ensure an accurate RxSense reading
-      */
-    if ((local_lastHotplugState == NEXUS_HdmiOutputState_eRxSenseCheck)
-    || (output->lastRxState == NEXUS_HdmiOutputState_eMax))  /* force initial HP processing */
-    {
-        output->rxState = NEXUS_HdmiOutputState_eRxSenseCheck ;
-        if (!output->connectTimer)
-        {
-            /*  turn on the TMDS Clock after the cable is connected
-                  and wait for  Rx to be ready */
-            BDBG_MSG(("Schedule RxSense check for %dms ",
-                output->openSettings.maxRxSenseRetries
-                * output->openSettings.rxSenseInterval)) ;
-
-            NEXUS_HdmiOutput_P_StartRxSenseDetection(output) ;
-
-        }
-        else
-        {
-            /* report debug message indicating CONNECTED event was already in process */
-            BDBG_WRN(("Connected event already pending...")) ;
-
-            /* Stop/restart the previous running RxSense detection */
-            NEXUS_HdmiOutput_P_StopRxSenseDetection(output) ;
-            NEXUS_HdmiOutput_P_StartRxSenseDetection(output) ;
-
-            return ;
-        }
-
-        /* EDID is not dependent on RxSense; it should be available to be read now */
-        errCode = NEXUS_HdmiOutput_P_ReadEdid(output) ;
-        if (errCode == BERR_TIMEOUT)
-        {
-            NEXUS_HdmiOutput_P_StopRxSenseDetection(output) ;
-        }
-
-
-        /* notify HDR module that we have a connection change event */
-        NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(output);
-#if NEXUS_DBV_SUPPORT
-        NEXUS_HdmiOutput_P_DbvConnectionChanged(output);
-#endif
-        /* if checking for RxSense after a hot plug etc,
-            wait until *after* RxSense detection to notify the app of hp event */
-
-        if (output->rxState != NEXUS_HdmiOutputState_eRxSenseCheck)
-        {
-            NEXUS_TaskCallback_Fire(output->hotplugCallback) ;
-        }
-
-        return ;
-    }
-
-
-    if (output->rxState == NEXUS_HdmiOutputState_ePoweredOn )
-    {
-        BDBG_MSG(("Already powered and connected... ")) ;
-    }
-    else if (output->rxState == NEXUS_HdmiOutputState_ePoweredDown )
-    {
-        /* Disconnected -> powered down - treat as no event */
-        NEXUS_HdmiOutput_P_RxRemoved(output) ;
-        BDBG_MSG(("Receiver powered down, no hotplug event."));
-    }
-
-    else if (output->rxState == NEXUS_HdmiOutputState_eDisconnected)
-    {
-        /* Disconnected -> powered down - treat as no event */
-        NEXUS_HdmiOutput_P_RxRemoved(output) ;
-        BDBG_MSG(("Receiver not connected..."));
-    }
-
-    else if (output->rxState == NEXUS_HdmiOutputState_eMax)
-        /* Initialization State */
-        /* do nothing */ ;
-    else
-    {
-        /* should never get here */
-        BDBG_WRN((" HdmiOutputState (%d) not handled...", output->rxState)) ;
-        BERR_TRACE(NEXUS_UNKNOWN) ;
-    }
-}
-
-
-static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data)
-{
-    NEXUS_HdmiOutputHandle hdmiOutput = context;
-    bool deviceAttached =  * (bool *) data ;
-
-    BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
-
-    BDBG_MSG(("Hotplug interrupt source: %s  deviceAttached: %d",
-        param ? "software" : "hardware", deviceAttached)) ;
-
-    if (deviceAttached) {
-        hdmiOutput->lastHotplugState_isr = NEXUS_HdmiOutputState_eRxSenseCheck ;
-    }
-    else
-    {
-        hdmiOutput->lastHotplugState_isr = NEXUS_HdmiOutputState_eDisconnected ;
-        hdmiOutput->forceDisconnect_isr = true ;
-        hdmiOutput->edidProcDebugDisplayed = false ;
-
-        if (hdmiOutput->hdcpStarted) {
-            hdmiOutput->pendingDisableAuthentication_isr = true;
-        }
-    }
-
-    BKNI_SetEvent_isr(hdmiOutput->notifyHotplugEvent) ;
-
-    BDBG_MSG(("HotPlug isr state: '%s'",
-        deviceAttached ? "RxSense Check" : "Disconnected")) ;
-}
-
-
-NEXUS_HdmiOutputState NEXUS_HdmiOutput_P_GetState(NEXUS_HdmiOutputHandle output)
-{
-    BERR_Code errCode;
-    uint8_t rxSense=0, deviceAttached=1;
-    NEXUS_HdmiOutputState outputState ;
-
-    /* return eDisconnected if hdmiOutput is not connected to nexus display */
-    if (!output->videoConnected)
-    {
-        return NEXUS_HdmiOutputState_eDisconnected ;
-    }
-
-    errCode = BHDM_RxDeviceAttached(output->hdmHandle, &deviceAttached);
-    BERR_TRACE(errCode) ;
-
-    if (!deviceAttached) /* rx device is REMOVED */
-    {
-        output->lastRxState = output->rxState ;
-        output->rxState = NEXUS_HdmiOutputState_eDisconnected ;
-        outputState = NEXUS_HdmiOutputState_eDisconnected ;
-        goto done ;
-    }
-
-
-    /* rx Device is CONNECTED  */
-
-#if NEXUS_HAS_SECURITY
-    /* as long as encryption is enabled; no need to check for receiver sense */
-    if (NEXUS_HdmiOutput_P_GetCurrentHdcplibState(output) == BHDCPlib_State_eEncryptionEnabled)
-    {
-        outputState = NEXUS_HdmiOutputState_ePoweredOn ;
-        goto done ;
-    }
-#endif
-
-    errCode = BHDM_GetReceiverSense(output->hdmHandle, &rxSense);
-    if (errCode != BERR_SUCCESS)
-    {
-        outputState = output->lastRxState ;
-        BDBG_WRN(("Unable to get Receiver Sense")) ;
-        BERR_TRACE(errCode) ;
-        goto done ;
-    }
-
-    /* If in RxSense check state; we are waiting to determine if attached Rx is ON ;
-              do not set State  to OFF until RxSense check has been completed
-           */
-    if (output->lastState == NEXUS_HdmiOutputState_eRxSenseCheck)
-    {
-        if (rxSense)
-            outputState = NEXUS_HdmiOutputState_ePoweredOn ;
-        else
-            outputState = NEXUS_HdmiOutputState_eRxSenseCheck ;
-    }
-
-    else if (rxSense)
-        outputState = NEXUS_HdmiOutputState_ePoweredOn ;
-    else
-        outputState = NEXUS_HdmiOutputState_ePoweredDown;
-
-done :
-    if (deviceAttached)
-    {
-        BDBG_MSG(("Attached Rx Powered? %s",
-            outputState == NEXUS_HdmiOutputState_ePoweredOn ? "Yes" : "No")) ;
-    }
-    else
-    {
-        BDBG_MSG(("No Rx Device Attached")) ;
-    }
-
-
-    BDBG_MSG(("HDMI Output connected to Display? %s ",
-        output->videoConnected  ? "Yes" : "No")) ;
-#if 0
-    output->rxState = outputState ;
-#endif
-    return outputState ;
-}
-
-
-
-
-static void NEXUS_HdmiOutput_P_RxSenseTimerExpiration(void *pContext)
-{
-    NEXUS_HdmiOutputHandle output = pContext;
-    uint8_t receiverSense ;
-    BERR_Code errCode ;
-
-    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
-
-    output->powerTimer = NULL ; /* clear timer used */
-
-    errCode = BHDM_GetReceiverSense(output->hdmHandle, &receiverSense) ;
-    if(errCode!=BERR_SUCCESS) { (void)BERR_TRACE(errCode);};
-    if (receiverSense != output->lastReceiverSense)
-    {
-        BDBG_MSG(("rxState: %d;  RxSense change from %s to %s",
-            output->rxState,
-            output->lastReceiverSense ? "ON" : "OFF",
-            receiverSense ? "ON" : "OFF")) ;
-
-        output->lastReceiverSense = receiverSense ;
-
-        output->rxState = receiverSense ?
-              NEXUS_HdmiOutputState_ePoweredOn
-            : NEXUS_HdmiOutputState_ePoweredDown ;
-
-        if (receiverSense)
-        {
-            /* Rx detected to be ON...
-                make sure all TMDS data lines are ENABLED if under nexus control */
-            if (!output->openSettings.manualTmdsControl)
-                NEXUS_HdmiOutput_P_SetTmdsSignalData(output, true) ;
-            else
-            {
-                /* debug message for manual control by App */
-                BDBG_MSG(("NEXUS_HdmiOutput_P_HotplugCallback: Expected TMDS ON")) ;
-            }
-        }
-        else
-        {
-            /* Rx detected to be OFF...
-                make sure all TMDS data lines are DISABLED if under nexus control */
-            if (!output->openSettings.manualTmdsControl)
-                NEXUS_HdmiOutput_P_SetTmdsSignalData(output, false) ;
-            else
-            {
-                /* debug message for manual control by App */
-                BDBG_MSG(("NEXUS_HdmiOutput_P_HotplugCallback: Expected TMDS Data OFF")) ;
-            }
-        }
-
-        /* whether Rx is detected to be ON or OFF
-           set event for HP processing */
-
-        BKNI_EnterCriticalSection() ;
-        NEXUS_HdmiOutput_P_HotPlug_isr(output, 1, &receiverSense) ;
-        BKNI_LeaveCriticalSection() ;
-
-    }
-
-
-    /* Re-arm timer */
-    output->powerTimer =
-        NEXUS_ScheduleTimer(output->openSettings.powerPollingInterval,
-            NEXUS_HdmiOutput_P_RxSenseTimerExpiration, pContext);
-}
-
 
 /* VDC -> HDM callback info for rate changes */
 void NEXUS_HdmiOutput_VideoRateChange_isr(
@@ -2556,10 +1758,7 @@ void NEXUS_HdmiOutput_AudioSampleRateChange_isr(
     audioInfo.eAudioSamplingRate = sampleRate;
 
     BDBG_MSG(("HDMI Audio Sample Rate Change %d", sampleRate));
-    if ( handle->tmdsDataEnabled )
-    {
-        BHDM_AudioVideoRateChangeCB_isr(handle->hdmHandle, BHDM_Callback_Type_eAudioChange, &audioInfo);
-    }
+    BHDM_AudioVideoRateChangeCB_isr(handle->hdmHandle, BHDM_Callback_Type_eAudioChange, &audioInfo);
 }
 
 /* Returns false if the format is not supported, true if it is */
@@ -2689,7 +1888,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     )
 {
     BERR_Code errCode;
-    uint8_t deviceAttached ;
+    bool deviceAttached, rxSense;
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
@@ -2705,11 +1904,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
         NEXUS_TaskCallback_Set(handle->notifyDisplay, notifyDisplay);
 
    /* if no device is attached, settings cannot be applied; simply return */
-    errCode = BHDM_RxDeviceAttached(handle->hdmHandle, &deviceAttached) ;
-    BERR_TRACE(errCode) ;
-
-    if (!deviceAttached)
-    {
+    NEXUS_HdmiOutput_P_ProcessRxState(handle, &deviceAttached, &rxSense);
+    if (!deviceAttached) {
+        NEXUS_HdmiOutput_P_SetDisconnectedState(handle);
         return BERR_SUCCESS ;
     }
 
@@ -2723,7 +1920,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
 
     /* Aspect ratio change only, simply update AVI info frame is enough
         no need to go through BHDM_EnableDisplay */
-    if (handle->contentChangeOnly && handle->tmdsDataEnabled)
+    if (handle->contentChangeOnly && NEXUS_HdmiOutput_P_IsRxPowered_isrsafe(handle))
     {
         /* Save the new aspect ratio in HDMI settings */
         errCode = BHDM_SetHdmiSettings(handle->hdmHandle, &handle->hdmSettings);
@@ -2744,9 +1941,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
             handle->hdmSettings.stVideoSettings.eColorSpace,
             handle->hdmSettings.eColorimetry)) ;
         errCode = NEXUS_HdmiOutput_P_EnableDisplay(handle, &handle->hdmSettings);
-        /* get the updated TMDS Signals */
-        NEXUS_HdmiOutput_P_GetTmdsSignals (handle) ;
-
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2754,20 +1948,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
 
         (void) NEXUS_HdmiOutput_SetAudioParams_priv(handle, handle->audioBits,
             handle->sampleRate, handle->audioFormat, handle->audioNumChannels);
-
-        if ( !handle->powerTimer
-        && handle->openSettings.powerPollingInterval )
-        {
-            handle->powerTimer =
-                NEXUS_ScheduleTimer(handle->openSettings.powerPollingInterval,
-                    NEXUS_HdmiOutput_P_RxSenseTimerExpiration, handle);
-
-            if (!handle->powerTimer)
-            {
-                return BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
-            }
-        }
-
     }
 
     return BERR_SUCCESS;
@@ -2780,13 +1960,6 @@ NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
     )
 {
     BERR_Code errCode = BERR_SUCCESS ;
-    uint8_t deviceAttached = false ;
-
-    if (handle->openSettings.manualTmdsControl)
-    {
-        BDBG_MSG(("Manual Control of TMDS does not enable/disable phy")) ;
-        goto done ;
-    }
 
     if (handle->videoConnected)
     {
@@ -2797,17 +1970,9 @@ NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
     errCode = BHDM_Resume(handle->hdmHandle) ;
     if (errCode) { errCode = BERR_TRACE(errCode) ;}
 
-
-    errCode = BHDM_RxDeviceAttached(handle->hdmHandle, &deviceAttached);
-    if (errCode) {errCode = BERR_TRACE(errCode) ; }
-
-    /* when adding HDMI to display. force a hot plug if a device is attached */
-    if (deviceAttached)
-    {
-        NEXUS_HdmiOutput_P_HotplugCallback(handle) ;
-    }
-
     handle->videoConnected = true;
+
+    NEXUS_HdmiOutput_P_HotplugCallback(handle) ;
 
 done:
     return(errCode) ;
@@ -2824,31 +1989,21 @@ NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 
-    if (handle->openSettings.manualTmdsControl)
-    {
-        BDBG_MSG(("Manual Control of TMDS does not enable/disable phy")) ;
-        goto done ;
-    }
-
     if (!handle->videoConnected)
     {
         BDBG_WRN(("HDMI Output device already removed from the display")) ;
         goto done ;
     }
 
-    handle->lastRxState = NEXUS_HdmiOutputState_eMax;
+    /* TODO: rework notifyDisplay */
     NEXUS_TaskCallback_Set(handle->notifyDisplay, NULL);
+
+    NEXUS_HdmiOutput_P_SetDisconnectedState(handle);
 
     BHDM_GetDefaultStandbySettings(&standbySettings);
     errCode = BHDM_Standby(handle->hdmHandle, &standbySettings) ;
     /* if error, trace and continue disconnecting HDMI Output */
     if (errCode) {errCode = BERR_TRACE(errCode) ;}
-
-    if ( handle->powerTimer )
-    {
-        NEXUS_CancelTimer(handle->powerTimer);
-        handle->powerTimer = NULL ;
-    }
 
     handle->videoConnected = false;
 
@@ -2884,7 +2039,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetAudioParams_priv(
     }
 
     /* Don't enable TMDS on audio changes, only set this if we actually have a change. */
-    if ( handle->tmdsDataEnabled )
+    if ( NEXUS_HdmiOutput_P_IsRxPowered_isrsafe(handle) )
     {
         errCode = BHDM_GetAudioInfoFramePacket(handle->hdmHandle, &audioInfoFrame);
         if ( errCode )
@@ -2967,24 +2122,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetAudioParams_priv(
         */
         BDBG_MSG(("EnableDisplay:  Sample Rate %d", handle->hdmSettings.eAudioSamplingRate));
         errCode = NEXUS_HdmiOutput_P_EnableDisplay(handle, &handle->hdmSettings);
-
-        NEXUS_HdmiOutput_P_GetTmdsSignals (handle) ;
         if ( errCode )
         {
             return BERR_TRACE(errCode);
-        }
-
-        if ( !handle->powerTimer
-        && handle->openSettings.powerPollingInterval )
-        {
-            handle->powerTimer =
-                NEXUS_ScheduleTimer(handle->openSettings.powerPollingInterval,
-                    NEXUS_HdmiOutput_P_RxSenseTimerExpiration, handle);
-
-            if (!handle->powerTimer)
-            {
-                return BERR_TRACE(NEXUS_NOT_INITIALIZED) ;
-            }
         }
     }
     return NEXUS_SUCCESS;
@@ -3013,16 +2153,19 @@ NEXUS_Error NEXUS_HdmiOutput_SetAVMute(NEXUS_HdmiOutputHandle hdmiOutput, bool m
 NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput, BFMT_VideoFmt format, bool contentChangeOnly)
 {
     NEXUS_Error rc;
-    NEXUS_HdmiOutputState state;
-    BHDM_Status hdmiStatus;
     BHDM_HDCP_AuthenticationStatus stHdcpAuthStatus;
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
-    if (hdmiOutput->postFormatChangeTimer) {
+    if (hdmiOutput->postFormatChangeTimer)
+    {
         NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
         hdmiOutput->postFormatChangeTimer = NULL;
+    }
+
+    if (hdmiOutput->rxState != NEXUS_HdmiOutputState_ePoweredOn) {
+        goto done;
     }
 
     BHDM_GetHdmiSettings(hdmiOutput->hdmHandle, &hdmiOutput->hdmSettings);
@@ -3038,12 +2181,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
     hdmiOutput->phyChangeRequestCounter++ ;
 
     /* Check for device */
-    state = NEXUS_HdmiOutput_P_GetState(hdmiOutput);
-
-    BDBG_MSG(("PreFormatChange hdcp? %c; current state: %s",
-        hdmiOutput->hdcpStarted ? 'y' : 'n',
-        state == NEXUS_HdmiOutputState_ePoweredOn
-            ? "powered" : "disconnect/unpowered"));
+    BDBG_MSG(("PreFormatChange hdcp? %c", hdmiOutput->hdcpStarted ? 'y' : 'n'));
 
     rc = BHDM_HDCP_GetAuthenticationStatus(hdmiOutput->hdmHandle, &stHdcpAuthStatus) ;
     if (rc)
@@ -3053,8 +2191,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
     }
 
     /* if device is POWERED and HDCP is currently ENABLED */
-    if ((state == NEXUS_HdmiOutputState_ePoweredOn)
-    && stHdcpAuthStatus.bEncrypted)
+    if (stHdcpAuthStatus.bEncrypted)
     {
         /*
         * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
@@ -3065,13 +2202,6 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
         if (rc) return BERR_TRACE(rc);
 
         hdmiOutput->hdcpRequiredPostFormatChange = true ;
-
-        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
-        /* remember the pixel rate to determine if re-authentication or enable encryption is required */
-        hdmiOutput->pixelClkRatePreFormatChange = hdmiStatus.pixelClockRate;
-
-        BDBG_MSG(("%s pixelClkRate = %d",
-            BSTD_FUNCTION, hdmiOutput->pixelClkRatePreFormatChange)) ;
     }
 
     hdmiOutput->formatChangeMute = true;
@@ -3097,6 +2227,10 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
+    if (hdmiOutput->rxState != NEXUS_HdmiOutputState_ePoweredOn) {
+        goto done ;
+    }
+
     /* PostFormatChange will never be called without a prior PreFormatChange, there the timer is cleared */
     BDBG_ASSERT(!hdmiOutput->postFormatChangeTimer);
     hdmiOutput->retryPostFormatChangeCount = 0 ;
@@ -3110,6 +2244,8 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
         /* if no delay, call synchronously */
         NEXUS_HdmiOutput_P_PostFormatChange_timer(hdmiOutput);
     }
+
+done:
     return NEXUS_SUCCESS;
 }
 
@@ -3576,40 +2712,40 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalData(
     bool tmdsDataEnable)
 {
     BERR_Code rc = BERR_SUCCESS ;
-
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 
-    BDBG_MSG(("Set NEXUS_HdmiOutput_P_SetTmdsSignalData : %s",
-        tmdsDataEnable ? "ON" : "OFF"));
+    if (handle->openSettings.manualTmdsControl) {
+        /* debug message for manual control by App */
+        BDBG_MSG(("Expected TMDS data ON")) ;
+    }
+    else {
+        BDBG_MSG(("Set NEXUS_HdmiOutput_P_SetTmdsSignalData : %s",
+            tmdsDataEnable ? "ON" : "OFF"));
 
-    rc = BHDM_EnableTmdsData(handle->hdmHandle, tmdsDataEnable) ;
-    if (rc) return BERR_TRACE(rc);
-
-    /* get the updated TMDS Signals */
-    NEXUS_HdmiOutput_P_GetTmdsSignals (handle) ;
-
+        rc = BHDM_EnableTmdsData(handle->hdmHandle, tmdsDataEnable) ;
+        if (rc) return BERR_TRACE(rc);
+    }
     return NEXUS_SUCCESS ;
 }
-
 
 NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock(
     NEXUS_HdmiOutputHandle handle,
     bool tmdsClockEnable)
 {
     BERR_Code rc = BERR_SUCCESS ;
-
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 
-    BDBG_MSG(("NEXUS_HdmiOutput_P_SetTmdsSignalClock : %s",
-        tmdsClockEnable ? "ON" : "OFF"));
+    if (handle->openSettings.manualTmdsControl) {
+        /* debug message for manual control by App */
+        BDBG_MSG(("Expected TMDS clock ON")) ;
+    }
+    else {
+        BDBG_MSG(("NEXUS_HdmiOutput_P_SetTmdsSignalClock : %s",
+            tmdsClockEnable ? "ON" : "OFF"));
 
-    rc = BHDM_EnableTmdsClock(handle->hdmHandle, tmdsClockEnable) ;
-    if (rc) return BERR_TRACE(rc);
-
-    /* for power management, the clock will be forced off if a device is not connected */
-    /* get the updated TMDS Signals */
-    NEXUS_HdmiOutput_P_GetTmdsSignals (handle) ;
-
+        rc = BHDM_EnableTmdsClock(handle->hdmHandle, tmdsClockEnable) ;
+        if (rc) return BERR_TRACE(rc);
+    }
     return NEXUS_SUCCESS ;
 }
 
@@ -3642,25 +2778,14 @@ void NEXUS_HdmiOutput_GetTmdsSignal(
     NEXUS_HdmiOutputHandle handle,
     NEXUS_HdmiOutputTmdsSignalSettings *tmdsSettings)
 {
-
+    BHDM_Status hdmiStatus ;
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     RESOLVE_ALIAS(handle);
-    tmdsSettings->data = handle->tmdsDataEnabled ;
-    tmdsSettings->clock = handle->tmdsClockEnabled ;
+
+    BHDM_GetHdmiStatus(handle->hdmHandle, &hdmiStatus) ;
+    tmdsSettings->clock = hdmiStatus.tmds.clockEnabled ;
+    tmdsSettings->data = hdmiStatus.tmds.dataEnabled ;
     return;
-}
-
-
-static void NEXUS_HdmiOutput_P_GetTmdsSignals (NEXUS_HdmiOutputHandle hdmiOutput)
-{
-    BHDM_Status hdmiStatus ;
-
-    BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus) ;
-    hdmiOutput->tmdsClockEnabled = hdmiStatus.tmds.clockEnabled ;
-    hdmiOutput->tmdsDataEnabled = hdmiStatus.tmds.dataEnabled ;
-
-    BDBG_MSG(("Retrieved TMDS Signals Clock: %d; Data: %d",
-        hdmiOutput->tmdsClockEnabled, hdmiOutput->tmdsDataEnabled)) ;
 }
 
 NEXUS_Error NEXUS_HdmiOutput_GetSupportedVideoInfo(
@@ -3765,6 +2890,11 @@ NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(
 
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
+    if (! NEXUS_HdmiOutput_P_IsRxPowered_isrsafe(hdmiOutput))
+    {
+        return rc ;
+    }
+
     rc = BHDM_EnableDisplay(hdmiOutput->hdmHandle, pSettings);
     if (rc) { rc = BERR_TRACE(rc); return rc; }
     /*
@@ -3848,5 +2978,3 @@ NEXUS_Error NEXUS_HdmiOutput_P_ApplyAviInfoFrame(
      * the nexus copy, and we didn't want to see the DBV overrides anyway */
     return rc;
 }
-
-#endif /* #if NEXUS_NUM_HDMI_OUTPUTS */

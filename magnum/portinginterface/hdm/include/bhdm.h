@@ -252,7 +252,7 @@ typedef enum
 	BHDM_EventHDCPRiValue,
 	BHDM_EventHDCPPjValue,
 	BHDM_EventHDCPRepeater,
-	BHDM_EventHotPlug,
+	BHDM_EventHDCPPowerDown,
 	BHDM_EventFIFO, /* debugging event */
 	BHDM_EventRAM,   /* debugging event */
 	BHDM_EventRxSense,
@@ -1623,11 +1623,10 @@ Returns:
 
 See Also:
 *******************************************************************************/
-BERR_Code BHDM_GetReceiverSense(
-   BHDM_Handle hHDMI,
-   uint8_t *ReceiverSense          /* [in] HDMI handle */
-) ;
-
+void BHDM_GetReceiverSense(
+	const BHDM_Handle hHDMI,
+	bool *DeviceAttached,
+	bool *ReceiverSense);
 
 /******************************************************************************
 Summary:
@@ -2074,36 +2073,6 @@ Input:
 BERR_Code BHDM_UnInstallHotplugChangeCallback(
 	BHDM_Handle hHDMI,						 /* [in] HDMI Handle */
 	const BHDM_CallbackFunc pfCallback_isr) ; /* [in] cb for hotplug change */
-
-
-/******************************************************************************
-Summary:
-	install Rx Sense Change Callback to notify of HP dtect changes
-
-Input:
-	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	pfCallback_isr - callback for RxSense change
-
-*******************************************************************************/
-BERR_Code BHDM_InstallRxSenseChangeCallback(
-	BHDM_Handle hHDMI,			/* [in] HDMI Handle */
-	const BHDM_CallbackFunc pfCallback_isr, /* [in] cb for informing RxSense change */
-	void *pvParm1, /* [in] the first argument (void *) passed to the callback function */
-	int iParm2) ;	/* [in] the second argument(int) passed to the callback function */
-
-
-/******************************************************************************
-Summary:
-	Uninstall RxSense Change Callback
-
-Input:
-	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
-	pfCallback_isr - callback for RxSense change
-
-*******************************************************************************/
-BERR_Code BHDM_UnInstallRxSenseChangeCallback(
-	BHDM_Handle hHDMI,						 /* [in] HDMI Handle */
-	const BHDM_CallbackFunc pfCallback_isr) ; /* [in] cb for RxSense change */
 
 
 /***************************************************************************

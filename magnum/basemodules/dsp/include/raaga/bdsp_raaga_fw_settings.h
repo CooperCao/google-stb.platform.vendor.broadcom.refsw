@@ -4247,6 +4247,7 @@ typedef struct BDSP_Raaga_Audio_G726ConfigParams
     uint32_t ui32OutputType;
     /* Default = 0; 0 -> PCM samples, 1 -> 8-bit ADPCM u/A-law packed data */
     BDSP_Raaga_Audio_G726UsrCfg sUsrOutputCfg[2];
+	BDSP_AF_P_DecoderType   eDecoderType; /* Default : BDSP_AF_P_DecoderType_ePrimary */
 } BDSP_Raaga_Audio_G726ConfigParams;
 
 /*

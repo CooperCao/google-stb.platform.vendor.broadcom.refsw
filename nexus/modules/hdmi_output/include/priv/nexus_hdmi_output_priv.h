@@ -203,11 +203,39 @@ void NEXUS_HdmiOutput_RestorePrevSettings_priv(
 	) ;
 
 
-NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalData(
-    NEXUS_HdmiOutputHandle handle, bool tmdsDataEnable);
+#if NEXUS_HAS_SECURITY
+BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
+    NEXUS_HdmiOutputHandle hdmiOutput);
+#endif
 
-NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock(
-    NEXUS_HdmiOutputHandle handle, bool tmdsClockEnable);
+void NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe( NEXUS_HdmiOutputOpenSettings *pSettings );
+
+void NEXUS_HdmiOutput_PrintRxEdid(void);
+void NEXUS_HdmiOutput_PrintAudioInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintAviInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void);
+void NEXUS_HdmiOutput_PrintAcrPacket(void) ;
+
+/* call by NEXUS_Cec */
+void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle cecHotplugEvent);
+
+NEXUS_Error NEXUS_HdmiOutputModule_GetStatus_priv(NEXUS_HdmiOutputModuleStatus *pStatus);
+
+/* dynrng stuff */
+
+typedef struct NEXUS_HdmiOutputDynamicRangeSettings
+{
+    NEXUS_VideoFormat format;
+    NEXUS_VideoDynamicRangeMode dynamicRangeMode;
+} NEXUS_HdmiOutputDynamicRangeSettings;
+
+NEXUS_Error NEXUS_HdmiOutput_CheckDynrngSettings_priv(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    const NEXUS_HdmiOutputDynamicRangeSettings * pSettings
+);
+
+NEXUS_Error NEXUS_HdmiOutput_SetDynamicRangeMode_priv(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_VideoDynamicRangeMode dynamicRangeMode);
 
 NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(
     NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);
