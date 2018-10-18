@@ -887,7 +887,7 @@ const uint32_t BDSP_IMG_cdb_passthru_code_array1[] = {
 	0x3d88420f,
 	0xdc881582,
 	0xd8143132,
-	0xda8c3110,
+	0xda843110,
 	0x951e85cf,
 	0x07b0fe07,
 	0x94224907,

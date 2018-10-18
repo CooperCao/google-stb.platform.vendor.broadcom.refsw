@@ -1367,12 +1367,10 @@ BERR_Code BHDM_Open(
 	/* Create Events for use with Interrupts */
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventHDCP))) ;
 
-	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventHotPlug))) ;
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventFIFO))) ;
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventRAM))) ;
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventHDCPRiValue))) ;
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventHDCPPjValue))) ;
-	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventHDCPRepeater))) ;
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventRxSense))) ;
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventScramble)));
 	BHDM_CHECK_RC(rc, BKNI_CreateEvent(&(hHDMI->BHDM_EventAvRateChange)));
@@ -2364,12 +2362,10 @@ BERR_Code BHDM_Close(
 
 	/* Destroy the Events */
 	BKNI_DestroyEvent((hHDMI->BHDM_EventHDCP)) ;
-	BKNI_DestroyEvent((hHDMI->BHDM_EventHotPlug)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventFIFO)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventRAM)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventHDCPRiValue)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventHDCPPjValue)) ;
-	BKNI_DestroyEvent((hHDMI->BHDM_EventHDCPRepeater)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventRxSense)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventScramble)) ;
 	BKNI_DestroyEvent((hHDMI->BHDM_EventAvRateChange)) ;
@@ -3125,9 +3121,10 @@ BERR_Code BHDM_RxDeviceAttached(
 		return rc ;
 	}
 
+
 	/* read hotplug register and check if connected */
 	BKNI_EnterCriticalSection() ;
-		BHDM_P_RxDeviceAttached_isr(hHDMI, &status) ;
+        status = hHDMI->RxDeviceAttached;
 	BKNI_LeaveCriticalSection() ;
 
 	if (status) {
@@ -3521,10 +3518,6 @@ BERR_Code BHDM_GetEventHandle(
 		*pBHDMEvent = hHDMI->BHDM_EventHDCP ;
 		break ;
 
-	case BHDM_EventHotPlug :
-		*pBHDMEvent = hHDMI->BHDM_EventHotPlug ;
-		break ;
-
 	case BHDM_EventFIFO : /* debugging event */
 		*pBHDMEvent = hHDMI->BHDM_EventFIFO ;
 		break ;
@@ -3540,10 +3533,6 @@ BERR_Code BHDM_GetEventHandle(
 	case BHDM_EventHDCPPjValue :
 		*pBHDMEvent = hHDMI->BHDM_EventHDCPPjValue ;
 		break ;
-
-	case BHDM_EventHDCPRepeater:
-		*pBHDMEvent = hHDMI->BHDM_EventHDCPRepeater;
-		break;
 
 	case BHDM_EventRxSense:
 		*pBHDMEvent = hHDMI->BHDM_EventRxSense;
@@ -3698,8 +3687,6 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		hHDMI->pfHotplugChangeCallback(hHDMI->pvHotplugChangeParm1,
 			hHDMI->iHotplugChangeParm2, &hHDMI->RxDeviceAttached) ;
 	}
-
-	BKNI_SetEvent_isr(hHDMI->BHDM_EventHotPlug) ;
 }
 
 #else
@@ -3763,8 +3750,6 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		hHDMI->pfHotplugChangeCallback(hHDMI->pvHotplugChangeParm1,
 			hHDMI->iHotplugChangeParm2, &hHDMI->RxDeviceAttached) ;
 	}
-
-	BKNI_SetEvent_isr(hHDMI->BHDM_EventHotPlug) ;
 }
 #endif
 
@@ -4030,7 +4015,6 @@ void BHDM_P_HandleInterrupt_isr(
 	case MAKE_INTR_ENUM(HDCP_REPEATER_ERR) :		   /* 07 */
 	case MAKE_INTR_ENUM(HDCP_V_MISMATCH) :			   /* 08 */
 		BDBG_ERR(("Tx%d: Repeater Interrupt (0x%x)!", hHDMI->eCoreId, parm2));
-		BKNI_SetEvent_isr(hHDMI->BHDM_EventHDCPRepeater);
 		break;
 
 	case MAKE_INTR_ENUM(HDCP_V_MATCH) :				   /* 09 */

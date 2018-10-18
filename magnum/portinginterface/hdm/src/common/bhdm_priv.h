@@ -439,7 +439,6 @@ typedef struct BHDM_P_Handle
         BKNI_EventHandle BHDM_EventHDCPPjValue ;
         BKNI_EventHandle BHDM_EventHDCPRepeater;
         BKNI_EventHandle BHDM_EventRxSense ;
-        BKNI_EventHandle BHDM_EventHotPlug ;
         BKNI_EventHandle BHDM_EventAvRateChange ;
         BKNI_EventHandle BHDM_EventRAM ;   /* debugging events */
         BKNI_EventHandle BHDM_EventFIFO ;  /* debugging events */
@@ -532,12 +531,6 @@ typedef struct BHDM_P_Handle
         BHDM_CallbackFunc pfHotplugChangeCallback ;
         void *pvHotplugChangeParm1 ;
         int iHotplugChangeParm2 ;
-
-#if BHDM_CONFIG_RECEIVER_SENSE_SUPPORT
-        BHDM_CallbackFunc pfRxSenseChangeCallback ;
-        void *pvRxSenseChangeParm1 ;
-        int iRxSenseChangeParm2 ;
-#endif
 
 #if BHDM_CONFIG_BTMR_SUPPORT
         BTMR_Handle hTMR ;

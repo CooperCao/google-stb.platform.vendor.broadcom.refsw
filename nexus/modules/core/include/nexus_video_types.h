@@ -773,7 +773,7 @@ typedef enum NEXUS_PictureCoding
 
 /**
 Summary:
-Video Electro-Optical Transfer Function (EOTF) types for dynamic range signaling
+Video Electro-Optical Transfer Function (EOTF) types
 **/
 typedef enum NEXUS_VideoEotf
 {
@@ -783,11 +783,44 @@ typedef enum NEXUS_VideoEotf
     NEXUS_VideoEotf_eInvalid,
     NEXUS_VideoEotf_eMax,
     /* only aliases allowed after eMax */
+    NEXUS_VideoEotf_ePq = NEXUS_VideoEotf_eSmpteSt2084,
     NEXUS_VideoEotf_eHdr10 = NEXUS_VideoEotf_eSmpteSt2084,
     NEXUS_VideoEotf_eHlg = NEXUS_VideoEotf_eAribStdB67,
-    NEXUS_VideoEotf_eHdr = NEXUS_VideoEotf_eInvalid,
+    NEXUS_VideoEotf_eHdr = NEXUS_VideoEotf_eInvalid, /* This is HDR-Gamma, and is not supported */
     NEXUS_VideoEotf_eFuture = NEXUS_VideoEotf_eInvalid
 } NEXUS_VideoEotf;
+
+
+/**
+Summary:
+Video dynamic range mode.
+**/
+typedef enum NEXUS_VideoDynamicRangeMode
+{
+    NEXUS_VideoDynamicRangeMode_eDefault, /* chooses a default mode based on platform capabilities.  Currently, SDR for PLM platforms and TrackInput for non-PLM platforms. */
+    /*
+     * Automatic mode performs mode selection based on Broadcom rules for best user experience.
+     * eAuto only applies when used as an output setting.
+     */
+    NEXUS_VideoDynamicRangeMode_eAuto,
+    /*
+     * TrackInput mode performs automatic mode selection based on attempting to follow the input mode for full-screen video.
+     * The eTrackInput setting will only work for the following input EOTF-only dynamic range modes: Legacy, SDR, HDR10, HLG.
+     * Selecting this mode for other input dynamic range modes (Dolby Vision, HDR10+, etc.) will result in undefined behavior.
+     * eTrackInput only applies when used as an output setting.
+     */
+    NEXUS_VideoDynamicRangeMode_eTrackInput,
+    /*
+     * The following modes are explicit (non-automatic-selection) dynamic range modes.
+     */
+    NEXUS_VideoDynamicRangeMode_eLegacy, /* SDR with no signaling (no DRMIF packet sent) */
+    NEXUS_VideoDynamicRangeMode_eSdr, /* SDR with DRMIF-based signaling */
+    NEXUS_VideoDynamicRangeMode_eHdr10, /* SMPTE ST 2084 PQ with DRMIF-based signaling */
+    NEXUS_VideoDynamicRangeMode_eHlg, /* BT.2100 HLG with DRMIF-based signaling */
+    NEXUS_VideoDynamicRangeMode_eHdr10Plus, /* HDR10+ with proprietary signaling, falls back to HDR10 if input lacks HDR10+ metadata */
+    NEXUS_VideoDynamicRangeMode_eDolbyVision, /* Dolby Vision with proprietary signaling */
+    NEXUS_VideoDynamicRangeMode_eMax
+} NEXUS_VideoDynamicRangeMode;
 
 /**
 Summary:

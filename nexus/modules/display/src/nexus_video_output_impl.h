@@ -121,7 +121,7 @@ void NEXUS_VideoOutputs_P_Init(void);
 void NEXUS_VideoOutput_P_PostSetHdmiFormat(void);
 
 /* TODO: setHdrSettings only works for a single window, need to make more like cap update below to handle pip/multipip */
-NEXUS_Error NEXUS_VideoOutput_P_SetHdrSettings(
+void NEXUS_VideoOutput_P_SetHdrSettings(
     void *output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame *drmInfoFrame);
 NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(NEXUS_DisplayHandle display);
 

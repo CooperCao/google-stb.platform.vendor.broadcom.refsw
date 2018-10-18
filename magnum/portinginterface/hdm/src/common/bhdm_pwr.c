@@ -39,21 +39,16 @@
 #include "bhdm.h"
 #include "bhdm_priv.h"
 
-#if BHDM_CONFIG_RECEIVER_SENSE_SUPPORT
-static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense) ;
-#endif
-
-
-
 BDBG_MODULE(BHDM_PWR) ;
 
 #if BHDM_CONFIG_RECEIVER_SENSE_SUPPORT
-static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
+static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI)
 {
 	BREG_Handle hRegister ;
 	uint32_t Register, ulOffset ;
 	uint8_t ReceiverSense ;
 	uint8_t Ch0, Ch1, Ch2, Clock ;
+	bool RxSense;
 
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
@@ -62,7 +57,7 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 	/* return that TV is still powered */
 	if (hHDMI->TmdsDisabledForBitClockRatioChange)
 	{
-		*RxSense = true ;
+		hHDMI->rxSensePowerDetected = true ;
 		return ;
 	}
 
@@ -93,15 +88,15 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 	||  (ReceiverSense == 4)  /* or if clock + 3 data lines enabled, */
 	||  (Clock))              /* or if clock only, report RxSense on */
 	{
-		*RxSense = true ;
+		RxSense = true ;
 	}
 	else
 	{
-		*RxSense = false ;
+		RxSense = false ;
 	}
 
 
-	if (*RxSense != hHDMI->rxSensePowerDetected)
+	if (RxSense != hHDMI->rxSensePowerDetected)
 	{
 		/* notify of changes only if clock or clock/data are enabled
 		     i.e. not in  standby mode
@@ -111,10 +106,10 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 		{
 			BDBG_MSG(("Clk %d Data %d  RxSense change %d",
 				hHDMI->DeviceStatus.tmds.clockEnabled,
-				hHDMI->DeviceStatus.tmds.dataEnabled, *RxSense)) ;
+				hHDMI->DeviceStatus.tmds.dataEnabled, RxSense)) ;
 		}
 
-		hHDMI->rxSensePowerDetected = *RxSense ;
+		hHDMI->rxSensePowerDetected = RxSense ;
 		hHDMI->MonitorStatus.NumRxSenseChanges++ ;
 	}
 	return;
@@ -127,29 +122,23 @@ static void BHDM_P_GetReceiverSense_isr(const BHDM_Handle hHDMI, bool *RxSense)
 Summary:
 	Get power status of attached receiver
 *******************************************************************************/
-#define BHDM_RECEIVER_SENSE_ON 0x0F
-#define BHDM_RECEIVER_SENSE_OFF 0x00
-BERR_Code BHDM_GetReceiverSense(
-	const BHDM_Handle hHDMI, uint8_t *ReceiverSense)
+void BHDM_GetReceiverSense(
+	const BHDM_Handle hHDMI, bool *DeviceAttached, bool *ReceiverSense)
 {
-	BERR_Code rc = BERR_SUCCESS ;
-	uint8_t DeviceAttached;
-	bool RxSense = false ;
+	uint8_t deviceAttached;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	/* check if a Receiver is Attached */
-	rc = BHDM_RxDeviceAttached(hHDMI, &DeviceAttached);
-	(void) BERR_TRACE(rc) ;
-
-	if (!DeviceAttached)
+	BHDM_RxDeviceAttached(hHDMI, &deviceAttached);
+	*DeviceAttached = deviceAttached != 0;
+	if (!deviceAttached)
 	{
 #if BHDM_CONFIG_DEBUG_RSEN
 		BDBG_WRN(("Tx%d: No DVI/HDMI Device Attached; Unable to detect RxSense: ", hHDMI->eCoreId)) ;
 #endif
 		*ReceiverSense = false ;
 		hHDMI->rxSensePowerDetected	= false ;
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
 		goto done ;
 	}
 
@@ -168,14 +157,13 @@ BERR_Code BHDM_GetReceiverSense(
 
 	/* interrupt should always update the latest updated RSEN value */
 	BKNI_EnterCriticalSection() ;
-		BHDM_P_GetReceiverSense_isr(hHDMI, &RxSense) ;
-		*ReceiverSense = hHDMI->rxSensePowerDetected ?
-			BHDM_RECEIVER_SENSE_ON : BHDM_RECEIVER_SENSE_OFF ;
+		BHDM_P_GetReceiverSense_isr(hHDMI) ;
+		*ReceiverSense = hHDMI->rxSensePowerDetected;
 	BKNI_LeaveCriticalSection() ;
 #endif
 
 done:
-	return rc ;
+	return;
 }
 
 
@@ -201,7 +189,8 @@ BERR_Code BHDM_Standby(
 	BDBG_ENTER(BHDM_Standby) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 	if (hHDMI->standby) {
-		BDBG_MSG(("Tx%d: Already in standby", hHDMI->eCoreId));
+		BDBG_ERR(("Tx%d: Already in standby", hHDMI->eCoreId));
+		rc = BERR_TRACE(BERR_NOT_AVAILABLE);
 		goto done ;
 	}
 
@@ -280,7 +269,6 @@ BERR_Code BHDM_Resume(
 	BKNI_LeaveCriticalSection() ;
 
 
-	BKNI_SetEvent(hHDMI->BHDM_EventHotPlug);
 	hHDMI->RxDeviceAttached = RxDeviceAttached;
 
 	BHDM_P_EnableInterrupts(hHDMI) ;
@@ -303,76 +291,3 @@ BERR_Code BHDM_Resume(
 done:
 	return rc ;
 }
-
-
-#if !B_REFSW_MINIMAL
-/******************************************************************************
-Summary: install Receiver Sense Change Callback to notify of RxSense power detect changes
-*******************************************************************************/
-BERR_Code BHDM_InstallRxSenseChangeCallback(
-	const BHDM_Handle hHDMI,			/* [in] HDMI Handle */
-	const BHDM_CallbackFunc pfCallback_isr, /* [in] cb for Receiver Sense changes */
-	void *pvParm1, /* [in] the first argument (void *) passed to the callback function */
-	int iParm2)    /* [in] the second argument(int) passed to the callback function */
-{
-#if BHDM_CONFIG_RECEIVER_SENSE_SUPPORT
-	BERR_Code rc = BERR_SUCCESS;
-
-	BDBG_ENTER(BHDM_InstallRxSenseChangeCallback) ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	/* Check if this is a valid function */
-	if( pfCallback_isr == NULL )
-	{
-		rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-		goto done ;
-	}
-
-	BKNI_EnterCriticalSection() ;
-		hHDMI->pfRxSenseChangeCallback = pfCallback_isr ;
-		hHDMI->pvRxSenseChangeParm1 = pvParm1 ;
-		hHDMI->iRxSenseChangeParm2 = iParm2 ;
-	BKNI_LeaveCriticalSection() ;
-
-done:
-	BDBG_LEAVE(BHDM_InstallRxSenseChangeCallback);
-	return rc ;
-#else
-	BSTD_UNUSED( hHDMI) ;
-	BSTD_UNUSED(pfCallback_isr) ;
-	BSTD_UNUSED(pvParm1) ;
-	BSTD_UNUSED(iParm2)  ;
-
-	return BERR_SUCCESS ;
-
-#endif
-}
-
-
-/******************************************************************************
-Summary: Uninstall RxSense Change Callback
-*******************************************************************************/
-BERR_Code BHDM_UnInstallRxSenseChangeCallback(
-	const BHDM_Handle hHDMI,						 /* [in] HDMI Handle */
-	const BHDM_CallbackFunc pfCallback_isr) /* [in] cb for format changes */
-{
-#if BHDM_CONFIG_RECEIVER_SENSE_SUPPORT
-	BERR_Code rc = BERR_SUCCESS ;
-	BSTD_UNUSED(pfCallback_isr) ;
-
-	BDBG_ENTER(BHDM_UnInstallRxSenseChangeCallback) ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	BKNI_EnterCriticalSection() ;
-		hHDMI->pfRxSenseChangeCallback = (BHDM_CallbackFunc) NULL ;
-	BKNI_LeaveCriticalSection();
-
-	BDBG_LEAVE(BHDM_UnInstallRxSenseChangeCallback) ;
-	return rc;
-#else
-	BSTD_UNUSED( hHDMI) ;
-	BSTD_UNUSED(pfCallback_isr) ;
-	return BERR_SUCCESS ;
-#endif
-}
-#endif

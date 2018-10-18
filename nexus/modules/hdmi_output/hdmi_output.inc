@@ -63,6 +63,7 @@ NEXUS_HDMI_OUTPUT_SOURCES :=  \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_module.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_hdcp.c \
+                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_hotplug.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_format_validation.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_control.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_extra.c \

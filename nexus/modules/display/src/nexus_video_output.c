@@ -1189,20 +1189,16 @@ done:
     return ;
 }
 
-NEXUS_Error NEXUS_VideoOutput_P_SetHdrSettings(void *output,
+
+void NEXUS_VideoOutput_P_SetHdrSettings(void *output,
     const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInputDrmInfoFrame)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_HdmiOutputHandle hdmiOutput = output;
-
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-        rc = NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(hdmiOutput, pInputDrmInfoFrame);
+    NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(hdmiOutput, pInputDrmInfoFrame);
     NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-    if (rc) { BERR_TRACE(rc); goto error; }
-
-error:
-    return rc;
 }
+
 
 static void NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(const BVDC_Window_Capabilities * pVdc, NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities * pNexus)
 {
@@ -1656,20 +1652,8 @@ NEXUS_VideoOutput_P_ConnectHdmi(void *output,  NEXUS_DisplayHandle display)
     BDBG_MSG(("Add HDMI to nexus display...")) ;
     NEXUS_Module_Lock(video->modules.hdmiOutput) ;
         rc = NEXUS_HdmiOutput_Connect_priv(hdmi) ;
-        if (rc) return BERR_TRACE(rc);
-
-        rc = NEXUS_HdmiOutput_P_SetTmdsSignalData(hdmi, false) ;
-         if (!rc)
-        {
-            rc = NEXUS_HdmiOutput_P_SetTmdsSignalClock(hdmi, true) ;
-            if (rc) BERR_TRACE(rc) ;
-        }
-        else
-        {
-            BERR_TRACE(rc) ;
-        }
     NEXUS_Module_Unlock(video->modules.hdmiOutput) ;
-    if (rc) return rc ;
+    if (rc) return BERR_TRACE(rc);
 
     hdmiOutputStatus = &g_NEXUS_DisplayModule_State.functionData.NEXUS_VideoOutput_P_SetHdmiFormat.hdmiOutputStatus;
     rc = NEXUS_HdmiOutput_GetStatus(hdmi, hdmiOutputStatus);
