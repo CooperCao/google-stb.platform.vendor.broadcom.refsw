@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 4_0_4
+## SAGE Binary Metadata - SSF 4_0_5
 ## unique_key checksum_type checksum url
-7278B0/dev/sage_ta_secure_video_dev.bin sha1 d47bcbd2986e1c48926285eca22c6df0e3913703 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/4_0_4/7278B0/ZD/sage_ta_secure_video_dev.bin
+7278B0/dev/sage_ta_secure_video_dev.bin sha1 eafc052de989c5f517cd07c499ce9a892059abdf http://git-irv-03.irv.broadcom.com:88/files/SAGESW/4_0_5/7278B0/ZD/sage_ta_secure_video_dev.bin

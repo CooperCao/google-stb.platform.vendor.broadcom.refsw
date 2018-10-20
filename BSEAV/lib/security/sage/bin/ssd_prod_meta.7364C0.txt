@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_18
+## SAGE Binary Metadata - SSF 3_2_19
 ## unique_key checksum_type checksum url
-7364C0/sage_ta_ssd.bin sha1 9d92bc7e4fdf6f97af049042ab27bd426eb6e262 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_18/7364C0/ZB/sage_ta_ssd.bin
+7364C0/sage_ta_ssd.bin sha1 13f7958b0b4b08acc05aaf3834b8c2bc4d4c60c6 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_19/7364C0/ZB/sage_ta_ssd.bin
